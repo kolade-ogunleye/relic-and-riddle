@@ -37,10 +37,11 @@ from src.db import PipelineDatabase  # noqa: E402
 OPUS, SONNET, FABLE, HAIKU = "claude-opus-5-5", "claude-sonnet-5-5", "claude-fable-5-1", "claude-haiku-5-5"
 EVAL_TOPICS = 6
 CLEAN_CONTROLS = 2
-# Rough per-call costs from this project's usage records (USD), for the estimate and the cap.
-EST = {"script": {OPUS: 0.45, SONNET: 0.22}, "judge": 0.15, "plant": 0.03,
-       "check": {FABLE: 1.87, OPUS: 0.75, SONNET: 0.37}, "match": 0.002, "light": 0.02}
-CHECKERS = [FABLE, OPUS, SONNET]
+# Per-task costs measured in the 2026-10-12 eval run (USD; research included), for the estimate and the cap.
+# A Fable fact check is $2.80-5.60 (about $3.80 on average); Opus and Sonnet scale by token price.
+EST = {"script": {OPUS: 0.95, SONNET: 0.30}, "judge": 0.06, "plant": 0.01,
+       "check": {FABLE: 3.80, OPUS: 1.55, SONNET: 0.80}, "match": 0.001, "light": 0.02}
+CHECKERS = [OPUS, SONNET]  # judged against the planted errors themselves; Fable only with --with-fable
 
 
 class BudgetStop(RuntimeError):
@@ -131,17 +132,24 @@ def _flagged_claims(audits: List[Dict[str, Any]]) -> List[str]:
             if not (a["verdict"] == "supported" and a["sources"]) and not (a["verdict"] == "disputed" and a["hedged_in_script"])]
 
 
-def eval_second_check(scripts: Dict[str, Dict[str, Any]], spend: Spend, checkers: List[str]) -> Dict[str, Any]:
+def eval_second_check(scripts: Dict[str, Dict[str, Any]], spend: Spend, checkers: List[str],
+                      out: Path) -> Dict[str, Any]:
     from src.fact_checker import ClaimFactChecker
     checker = ClaimFactChecker()
     cases = []
     for tid, pair in scripts.items():
         payload = dict(pair[OPUS])
-        spend.ensure(EST["plant"], f"planting errors in {tid}")
-        c = llm.structured_call(PLANT, f"<narration>\n{payload['narration_script']}\n</narration>", Corruption,
-                                effort="low", models=[SONNET])
-        if len(c.errors) != 3 or any(e.corrupted not in c.narration_script for e in c.errors):
-            print(f"  {tid}: planting failed validation; skipped")
+        c = None
+        for planter in (SONNET, OPUS):  # retry once with the stronger model if validation fails
+            spend.ensure(EST["plant"] * (1 if planter == SONNET else 2), f"planting errors in {tid}")
+            c = llm.structured_call(PLANT, f"<narration>\n{payload['narration_script']}\n</narration>", Corruption,
+                                    effort="low", models=[planter])
+            if len(c.errors) == 3 and all(e.corrupted in c.narration_script and e.original in payload["narration_script"]
+                                           for e in c.errors):
+                break
+            c = None
+        if c is None:
+            print(f"  {tid}: planting failed validation twice; skipped")
             continue
         cases.append({"topic": tid, "payload": dict(payload, narration_script=c.narration_script),
                       "planted": [e.model_dump() for e in c.errors]})
@@ -167,18 +175,20 @@ def eval_second_check(scripts: Dict[str, Dict[str, Any]], spend: Spend, checkers
             if not case["planted"] and flagged:
                 false_alarms += 1
             details.append({"topic": case["topic"], "planted": len(case["planted"]), "caught": hits, "flagged": flagged})
-        per_model[model] = {"caught": sorted(caught), "n_caught": len(caught), "false_alarms": false_alarms, "details": details}
+            per_model[model] = {"caught": sorted(caught), "n_caught": len(caught), "false_alarms": false_alarms, "details": details}
+            # Saved after every check, so a budget stop never loses paid-for results.
+            (out / "second_check_partial.json").write_text(json.dumps(
+                {"cases": [{k: v for k, v in c.items() if k != "payload"} for c in cases], "per_model": per_model},
+                indent=1, ensure_ascii=False, default=str), encoding="utf-8")
 
-    ref = set(map(tuple, per_model.get(FABLE, {}).get("caught", [])))
+    planted = sum(len(c["planted"]) for c in cases)
     verdicts = {}
     for model, r in per_model.items():
-        if model == FABLE:
-            continue
-        mine = set(map(tuple, r["caught"]))
-        share = len(mine & ref) / len(ref) if ref else 1.0
-        verdicts[model] = {"share_of_fable_catches": round(share, 3), "extra_false_alarms":
-                           r["false_alarms"] - per_model.get(FABLE, {}).get("false_alarms", 0),
-                           "meets_bar": share >= 0.95 and r["false_alarms"] <= per_model.get(FABLE, {}).get("false_alarms", 0)}
+        # The planted errors are ground truth: a checker meets the bar if it catches >= 95% of them
+        # and raises no false alarm on the clean controls (Fable's rate is reported when it ran).
+        rate = r["n_caught"] / planted if planted else 0.0
+        verdicts[model] = {"catch_rate": round(rate, 3), "false_alarms": r["false_alarms"],
+                           "meets_bar": rate >= 0.95 and r["false_alarms"] == 0}
     return {"planted_total": sum(len(c["planted"]) for c in cases), "clean_controls": len(clean),
             "per_model": per_model, "verdicts": verdicts}
 
@@ -249,8 +259,8 @@ def summary_md(res: Dict[str, Any]) -> str:
         for m, r in sc["per_model"].items():
             lines.append(f"- {m}: caught {r['n_caught']}/{sc['planted_total']}, false alarms {r['false_alarms']}")
         for m, v in sc["verdicts"].items():
-            lines.append(f"- {m} vs Fable: {v['share_of_fable_catches'] * 100:.0f}% of Fable's catches, "
-                         f"extra false alarms {v['extra_false_alarms']} → meets bar: {v['meets_bar']}")
+            lines.append(f"- {m}: caught {v['catch_rate'] * 100:.0f}% of planted errors, "
+                         f"false alarms {v['false_alarms']} → meets bar: {v['meets_bar']}")
     if "light" in res:
         lines += ["", "## Light tasks", json.dumps(res["light"]["summary"])]
     return "\n".join(lines) + "\n"
@@ -262,6 +272,7 @@ def main() -> int:
     ap.add_argument("--max-usd", type=float, default=30.0)
     ap.add_argument("--only", choices=["scripts", "second_check", "light"])
     ap.add_argument("--scripts-from", help="Reuse scripts.json from an earlier eval folder")
+    ap.add_argument("--with-fable", action="store_true", help="Also run Fable 5.1 as a checker (about $3.80 per check)")
     args = ap.parse_args()
     if args.action == "estimate":
         estimate()
@@ -284,7 +295,7 @@ def main() -> int:
             res["scripts"] = eval_scripts(topics, spend, out)
             scripts = res["scripts"].pop("scripts")
         if args.only in (None, "second_check"):
-            res["second_check"] = eval_second_check(scripts, spend, CHECKERS)
+            res["second_check"] = eval_second_check(scripts, spend, CHECKERS + ([FABLE] if args.with_fable else []), out)
         if args.only in (None, "light"):
             res["light"] = eval_light(scripts, {t["id"]: t for t in topics}, spend)
     except BudgetStop as e:

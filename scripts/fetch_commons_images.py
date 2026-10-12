@@ -17,99 +17,21 @@ Usage:
 """
 
 import argparse
-import html
-import io
 import json
-import os
-import re
 import sys
-import time
 from pathlib import Path
 
 import requests
-from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from src.config import ASSETS_DIR, MIN_SCENE_IMAGES, TOPICS_DIR  # noqa: E402
-from src.credits import license_allowed, load_credits, normalize, save_credits, write_contact_sheet  # noqa: E402
+from src.commons import candidates, download_jpeg, search  # noqa: E402
+from src.credits import load_credits, normalize, save_credits, write_contact_sheet  # noqa: E402
 from src.db import PipelineDatabase  # noqa: E402
 
-API = "https://commons.wikimedia.org/w/api.php"
-# Wikimedia asks automated clients to identify themselves with contact details and throttles
-# anonymous ones hard. Set COMMONS_CONTACT (a URL or email you choose) for better rate limits.
-_CONTACT = os.getenv("COMMONS_CONTACT", "").strip()
-HEADERS = {"User-Agent": "RelicAndRiddle/1.0 (scene image fetcher" + (f"; {_CONTACT}" if _CONTACT else "") + ")"}
 TARGET_IMAGES = 8
-MIN_PIXELS = 1_500_000
-MIN_HEIGHT = 1000
-
-
-def _get(url: str, params: dict = None, timeout: float = 60) -> requests.Response:
-    """GET with polite pacing and Retry-After-aware backoff on 429/503."""
-    for attempt in range(5):
-        time.sleep(1.0)
-        resp = requests.get(url, params=params, headers=HEADERS, timeout=timeout)
-        if resp.status_code not in (429, 503):
-            resp.raise_for_status()
-            return resp
-        retry_after = resp.headers.get("Retry-After", "")
-        wait = int(retry_after) if retry_after.isdigit() else 15 * 2 ** attempt
-        if wait > 1800:
-            break  # don't hang for hours; re-run later (or set COMMONS_CONTACT) to resume
-        print(f"    rate limited; waiting {wait}s as requested")
-        time.sleep(wait + 1)  # retrying before Retry-After expires only extends the block
-    resp.raise_for_status()
-    return resp
-
-
-def _plain(value: str) -> str:
-    return html.unescape(re.sub(r"<[^>]+>", "", value or "")).strip()
-
-
-def search(query: str, limit: int = 50) -> list:
-    params = {
-        "action": "query", "format": "json", "generator": "search",
-        "gsrsearch": f"{query} filetype:bitmap", "gsrnamespace": 6, "gsrlimit": limit,
-        "prop": "imageinfo", "iiprop": "url|size|mime|extmetadata", "iiurlheight": 2400,
-        "iiextmetadatafilter": "LicenseShortName|Artist|LicenseUrl|AttributionRequired",
-    }
-    resp = _get(API, params=params, timeout=30)
-    pages = resp.json().get("query", {}).get("pages", {})
-    return sorted(pages.values(), key=lambda p: p.get("index", 0))
-
-
-def candidates(pages: list, keywords: list, allow_sa: bool):
-    for page in pages:
-        if not any(k in normalize(page["title"]) for k in keywords):
-            continue
-        info = (page.get("imageinfo") or [{}])[0]
-        meta = info.get("extmetadata", {})
-        licence = meta.get("LicenseShortName", {}).get("value", "")
-        if info.get("mime") not in ("image/jpeg", "image/png"):
-            continue
-        if not license_allowed(licence, allow_sa):
-            continue
-        if info.get("width", 0) * info.get("height", 0) < MIN_PIXELS or info.get("height", 0) < MIN_HEIGHT:
-            continue
-        yield {
-            "title": page["title"],
-            "download_url": info.get("thumburl") or info["url"],
-            "source_url": info.get("descriptionurl", ""),
-            "artist": _plain(meta.get("Artist", {}).get("value", "")) or "Unknown",
-            "license": licence,
-            "license_url": meta.get("LicenseUrl", {}).get("value", ""),
-            "attribution_required": meta.get("AttributionRequired", {}).get("value", "true") != "false",
-        }
-
-
-def download_jpeg(url: str, dest: Path) -> None:
-    resp = _get(url)
-    with Image.open(io.BytesIO(resp.content)) as im:
-        im.verify()  # reject corrupt / non-image payloads
-    with Image.open(io.BytesIO(resp.content)) as im:
-        im.convert("RGB").save(dest, "JPEG", quality=92)  # re-encode: strips metadata and odd formats
 
 
 def fetch_topic(topic: dict, spec: dict, allow_sa: bool) -> int:

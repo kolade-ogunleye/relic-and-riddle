@@ -75,7 +75,7 @@ Requirements:
 - first_comment: a debate-starting question, with no hashtags (Instagram's 5-hashtag cap covers the whole post).
 - sources: the pages you used, with real URLs."""
 
-GRAPHICS_SYSTEM = """You plan the on-screen graphics for a finished, fact-checked history Reel script. Use only facts stated in the narration or the research notes; never add new claims. Leave a field null when the facts don't support it."""
+GRAPHICS_SYSTEM = """You plan the on-screen graphics for a finished, fact-checked history Reel script. Use only facts stated in the narration or the research notes; never add new claims. Keep every hedge the narration uses: if it says "about", "up to", "estimated" or gives a range, the graphic must too (put the hedge in the value text, e.g. "about 280 ft", or set approximate=true). Graphics are fact-checked like the narration, and a flat figure where sources disagree is rejected. Leave a field null when the facts don't support it."""
 
 GRAPHICS_PROMPT = """Plan the graphics for this script.
 
@@ -169,8 +169,8 @@ def validate_structure(pkg: ScriptPackage) -> List[str]:
     if pkg.scale_fact is not None and (pkg.scale_fact.value <= 0 or len(pkg.scale_fact.subject) > 28):
         problems.append("scale_fact needs a positive value and a subject of at most 28 characters.")
     for card in pkg.stat_cards or []:
-        if len(card.label) > 40 or len(card.value) > 14:
-            problems.append("stat_cards need a value of at most 14 and a label of at most 40 characters.")
+        if len(card.label) > 40 or len(card.value) > 22:
+            problems.append("stat_cards need a value of at most 22 and a label of at most 40 characters.")
     if pkg.stat_cards is not None and not 1 <= len(pkg.stat_cards) <= 2:
         problems.append("stat_cards needs 1-2 entries (or null).")
     if pkg.cross_section is not None:
@@ -203,6 +203,24 @@ def validate_structure(pkg: ScriptPackage) -> List[str]:
     return problems
 
 
+GRAPHICS_FIELDS = ("timeline", "scale_fact", "stat_cards", "cross_section", "route", "photo_labels", "emphasis_words")
+
+
+def prune_graphics(pkg: ScriptPackage) -> ScriptPackage:
+    """Drops each planned graphic that fails its structural checks (logged), keeping the script.
+    Graphics are optional; one bad field shouldn't cost a whole script attempt."""
+    for field in GRAPHICS_FIELDS:
+        if getattr(pkg, field) is None:
+            continue
+        alone = pkg.model_copy(update={f: (getattr(pkg, f) if f == field else None) for f in GRAPHICS_FIELDS})
+        base = pkg.model_copy(update={f: None for f in GRAPHICS_FIELDS})
+        extra = [p for p in validate_structure(alone) if p not in validate_structure(base)]
+        if extra:
+            log.warning("Dropping planned graphic '%s': %s", field, " ".join(extra))
+            pkg = pkg.model_copy(update={field: None})
+    return pkg
+
+
 class ScriptEngine:
     def __init__(self, fact_checker: Optional[ClaimFactChecker] = None):
         self.fact_checker = fact_checker or ClaimFactChecker()
@@ -232,6 +250,7 @@ class ScriptEngine:
                 except LLMError as e:
                     log.error("Claude script generation failed: %s", e)
                     break
+                pkg = prune_graphics(pkg)  # an invalid graphic is dropped, not allowed to sink the script
                 problems = validate_structure(pkg)
                 if not problems:
                     return self._finalize(pkg, topic, origin="claude")
@@ -279,7 +298,7 @@ class ScriptEngine:
             extras = structured_call(
                 GRAPHICS_SYSTEM,
                 f"<narration>\n{core.narration_script}\n</narration>\n\n<research_notes>\n{notes}\n</research_notes>\n\n"
-                + GRAPHICS_PROMPT, GraphicsPlan, effort="medium")
+                + GRAPHICS_PROMPT + feedback, GraphicsPlan, effort="medium")  # revision notes cover graphics too
         except LLMError as e:
             log.warning("Graphics planning failed (%s); this script has no planned graphics.", e)
             extras = GraphicsPlan()

@@ -23,7 +23,7 @@ from PIL import Image, ImageDraw, ImageFilter
 
 from . import geo
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
-from .typography import get_font
+from .typography import fit_font, get_font
 
 log = logging.getLogger(__name__)
 
@@ -338,6 +338,7 @@ def render_scale(fact: Dict[str, Any], out: Path) -> Optional[Path]:
     metres = lambda ft: ft / 3.28084  # noqa: E731
     # In a depth comparison the landmark is measured by its height; say so.
     bars = [(fact["subject"], feet, GOLD, 330), (ref_label + (" (height)" if depth else ""), ref_feet, (150, 150, 158), 750)]
+    hedge = "ABOUT " if fact.get("approximate", True) else ""  # the narration's hedge, kept on screen
 
     def frames():
         for i in range(n):
@@ -359,6 +360,8 @@ def render_scale(fact: Dict[str, Any], out: Path) -> Optional[Path]:
                 if a > 0:
                     num = (f"{ft:,.0f} FT ({metres(ft):,.0f} M)" if ft >= 20 else
                            f"{int(ft)} FT {round((ft % 1) * 12)} IN ({metres(ft):.1f} M)")
+                    if k == 0 and hedge:
+                        num = hedge + num
                     ty = (y1 + 50) if depth else (y1 - 70)
                     _text(d, (cx, ty), num, font=f_num, fill=(*colour, a), anchor="mm")
                     lines = _wrap(d, label.upper(), f_lab, 340)[:2]
@@ -436,7 +439,8 @@ def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Pa
                 if a <= 0:
                     continue
                 count = _ease((t - start) / 1.3)
-                _text(d, (W // 2, cy - 30), shown(card, count).upper(), font=f_num, fill=(*GOLD, int(255 * a)), anchor="mm")
+                value_font = fit_font(d, card["value"].upper(), "Anton", f_num.size, W - 160, 70)  # long values shrink to fit
+                _text(d, (W // 2, cy - 30), shown(card, count).upper(), font=value_font, fill=(*GOLD, int(255 * a)), anchor="mm")
                 d.line([(W // 2 - 80, cy + 70), (W // 2 + 80, cy + 70)], fill=(*WHITE, int(160 * a)), width=3)
                 for j, line in enumerate(_wrap(d, card["label"].upper(), f_lab, W - 220)[:2]):
                     _text(d, (W // 2, cy + 115 + 50 * j), line, font=f_lab, fill=(*WHITE, int(255 * a)), anchor="mm")
@@ -469,7 +473,8 @@ def render_cross_section(cs: Dict[str, Any], out: Path) -> Optional[Path]:
         d0.line([(0, y), (W, y)], fill=(int(70 - 30 * k + band), int(56 - 26 * k + band), int(44 - 22 * k + band), 255))
     d0.line([(0, ground), (W, ground)], fill=(*MUTED, 255), width=4)
     _text(d0, (W - 120, ground - 30), "GROUND LEVEL", font=get_font("Montserrat", 26), fill=(*MUTED, 255), anchor="rm")
-    _text(d0, (120, TEXT_TOP + 20), cs["subject"].upper(), font=f_title, fill=(*WHITE, 255), anchor="lm")
+    title = cs["subject"].upper() + ("  ·  APPROX. DEPTHS" if cs.get("approximate", True) else "")
+    _text(d0, (120, TEXT_TOP + 20), title, font=fit_font(d0, title, "Anton", 56, W - 240, 30), fill=(*WHITE, 255), anchor="lm")
 
     def frames():
         for i in range(n):

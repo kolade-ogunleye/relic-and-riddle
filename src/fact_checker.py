@@ -84,11 +84,13 @@ class ClaimFactChecker:
                       for e in payload.get("timeline") or []]
         if payload.get("scale_fact"):
             f = payload["scale_fact"]
-            on_screen.append(f"Scale graphic: {f['subject']} = {f['value']:g} {f['unit']} ({f['dimension']})")
+            on_screen.append(f"Scale graphic: {f['subject']} = {'about ' if f.get('approximate', True) else ''}"
+                             f"{f['value']:g} {f['unit']} ({f['dimension']})")
         on_screen += [f"Number card: {c['value']} {c['label']}" for c in payload.get("stat_cards") or []]
         if payload.get("cross_section"):
             cs = payload["cross_section"]
-            on_screen.append(f"Cross-section of {cs['subject']}: total depth {cs['total_depth_ft']:g} ft; "
+            on_screen.append(f"Cross-section of {cs['subject']} ({'approximate' if cs.get('approximate', True) else 'exact'} depths): "
+                             f"total depth {cs['total_depth_ft']:g} ft; "
                              + "; ".join(f"{lv['label']} at {lv['depth_ft']:g} ft" for lv in cs["levels"]))
         on_screen += [f"Route stop: {s['place']}, {s['country']} - {s['label']}" for s in payload.get("route") or []]
         if payload.get("photo_labels"):

@@ -50,6 +50,7 @@ class ScaleFact(BaseModel):
     unit: Literal["ft", "m"]
     dimension: Literal["depth", "height", "length"]
     subject: str              # e.g. "Derinkuyu's depth"; at most 28 characters
+    approximate: bool = True  # the narration hedges it ("about", "up to"): shown as "ABOUT ..."
 
 
 class StatCard(BaseModel):
@@ -66,6 +67,7 @@ class CrossSection(BaseModel):
     subject: str              # e.g. "Derinkuyu"; at most 28 characters
     total_depth_ft: float
     levels: List[SectionLevel]  # 2-5 sourced levels or features, top to bottom
+    approximate: bool = True    # depths are estimates in the sources: shown with "ABOUT"
 
 
 class RouteStop(BaseModel):

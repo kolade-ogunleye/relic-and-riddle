@@ -145,3 +145,14 @@ def test_meta_caption_limits(curated_payload):
     warm = _pkg(curated_payload, caption="A city hidden under a house 🏛️\n\nMore context. Would you go down? 👇\n\n"
                                          "#Derinkuyu #Cappadocia #UndergroundCity #ByzantineHistory #Archaeology")
     assert validate_structure(warm) == []
+
+
+def test_invalid_graphic_is_dropped_not_fatal(curated_payload):
+    from src.script_engine import prune_graphics, validate_structure
+    pkg = _pkg(curated_payload, stat_cards=[{"value": "X" * 40, "label": "too long a value"}],
+               timeline=[{"year": -800, "approximate": True, "label": "First chambers"},
+                         {"year": 1963, "approximate": False, "label": "Rediscovered"}])
+    assert validate_structure(pkg)  # the oversized card fails as is
+    pruned = prune_graphics(pkg)
+    assert pruned.stat_cards is None and pruned.timeline is not None  # only the bad graphic goes
+    assert validate_structure(pruned) == []

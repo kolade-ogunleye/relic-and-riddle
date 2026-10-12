@@ -25,6 +25,7 @@ from .config import BASE_DIR, DATA_DIR
 log = logging.getLogger(__name__)
 
 COUNTRIES_FILE = BASE_DIR / "tools" / "geo" / "ne_50m_admin_0_countries.geojson"
+RELIEF_FILE = BASE_DIR / "tools" / "geo" / "relief" / "SR_HR.tif"  # Natural Earth shaded relief, public domain
 CACHE_FILE = DATA_DIR / "geo_cache.json"
 WIKIDATA_API = "https://www.wikidata.org/w/api.php"
 NAME_FIELDS = ("NAME", "NAME_LONG", "ADMIN", "FORMAL_EN", "NAME_EN", "GEOUNIT")
@@ -51,8 +52,12 @@ def countries() -> List[Dict[str, Any]]:
         polys = geom["coordinates"] if geom["type"] == "MultiPolygon" else [geom["coordinates"]]
         names = {str(props.get(k, "")).strip().lower() for k in NAME_FIELDS if props.get(k)}
         polygons = [[[(x, y) for x, y in ring] for ring in poly] for poly in polys]
+        label_at = (props.get("LABEL_X"), props.get("LABEL_Y"))
         out.append({"names": names, "sovereign": str(props.get("SOVEREIGNT", "")).strip().lower(),
-                    "polygons": polygons, "size": sum(len(poly[0]) for poly in polygons)})
+                    "polygons": polygons, "size": sum(len(poly[0]) for poly in polygons),
+                    "display": props.get("NAME") or props.get("ADMIN") or "",
+                    "label_at": label_at if None not in label_at else None,
+                    "label_rank": props.get("LABELRANK") or 9})
     return out
 
 

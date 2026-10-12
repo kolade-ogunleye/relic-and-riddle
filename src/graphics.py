@@ -16,6 +16,7 @@ import logging
 import math
 import subprocess
 from pathlib import Path
+from functools import lru_cache
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from PIL import Image, ImageDraw, ImageFilter
@@ -90,6 +91,104 @@ def _label_box(im: Image.Image, cx: int, y: int, title: str, sub: str, alpha: fl
 
 
 # ---------------------------------------------------------------------- map
+LAND_TINT, HOME_TINT = (74, 76, 82), (122, 100, 66)  # home: warm but not a flood of gold (big countries)
+
+
+@lru_cache(maxsize=1)
+def _relief() -> Optional[Image.Image]:
+    """Natural Earth shaded relief (21600x10800, public domain), loaded once."""
+    if not geo.RELIEF_FILE.exists():
+        return None
+    limit, Image.MAX_IMAGE_PIXELS = Image.MAX_IMAGE_PIXELS, None  # our own trusted 233 MP raster
+    try:
+        im = Image.open(geo.RELIEF_FILE)
+        im.load()
+        return im.convert("L")
+    finally:
+        Image.MAX_IMAGE_PIXELS = limit
+
+
+def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: float, home, project,
+                final_view: Tuple[float, float, float, float]) -> Image.Image:
+    """The map background: hillshaded land (the topic's country in warm gold), a navy sea with a
+    soft coastal glow, thin borders, and neighbouring countries named at Natural Earth's label points."""
+    import numpy as np
+    lon_span, lat_span = bw / (kx * coslat), bh / kx
+    lon_min, lat_max = lon0 - lon_span / 2, lat0 + lat_span / 2
+    rel = _relief()
+    if rel is not None:
+        px = lambda lon: (lon + 180) / 360 * rel.width  # noqa: E731
+        py = lambda lat: (90 - lat) / 180 * rel.height  # noqa: E731
+        box = (int(px(lon_min)), int(py(lat_max)), int(px(lon_min + lon_span)), int(py(lat_max - lat_span)))
+        hill = np.asarray(rel.crop(box).resize((bw, bh), Image.BICUBIC), dtype=np.float32) / 255.0
+    else:
+        hill = np.full((bh, bw), 0.75, dtype=np.float32)
+
+    lon_half, lat_half = lon_span / 2 + 2, lat_span / 2 + 2
+    land_m, home_m = Image.new("L", (bw, bh), 0), Image.new("L", (bw, bh), 0)
+    dl, dh = ImageDraw.Draw(land_m), ImageDraw.Draw(home_m)
+    visible = []
+    for c in geo.countries():
+        shown = False
+        for poly in c["polygons"]:
+            ring = poly[0]
+            if not any(abs(x - lon0) < lon_half and abs(y - lat0) < lat_half for x, y in ring[:: max(1, len(ring) // 50)]):
+                continue
+            shown = True
+            pts = [project(x, y) for x, y in ring]
+            dl.polygon(pts, fill=255)
+            if c is home:
+                dh.polygon(pts, fill=255)
+            for hole in poly[1:]:
+                hp = [project(x, y) for x, y in hole]
+                dl.polygon(hp, fill=0)
+                dh.polygon(hp, fill=0)
+        if shown:
+            visible.append(c)
+    land = np.asarray(land_m, dtype=np.float32)[..., None] / 255.0
+    homea = np.asarray(home_m, dtype=np.float32)[..., None] / 255.0
+    shade = (0.30 + 0.95 * hill)[..., None]
+    land_rgb = np.array(LAND_TINT, dtype=np.float32) * shade
+    home_rgb = np.array(HOME_TINT, dtype=np.float32) * shade
+    rows = np.linspace(0, 1, bh, dtype=np.float32)[:, None, None]
+    sea_rgb = np.array((14, 22, 34), dtype=np.float32) * (1 - rows) + np.array((7, 11, 19), dtype=np.float32) * rows
+    glow = np.asarray(land_m.filter(ImageFilter.GaussianBlur(28)), dtype=np.float32)[..., None] / 255.0
+    sea_rgb = sea_rgb + np.array((40, 62, 84), dtype=np.float32) * np.clip(glow - land, 0, 1) * 0.9
+    out = sea_rgb * (1 - land) + land_rgb * land * (1 - homea) + home_rgb * homea
+    base = Image.fromarray(np.clip(out, 0, 255).astype("uint8"), "RGB")
+
+    draw = ImageDraw.Draw(base)
+    for c in sorted(visible, key=lambda c: c is home):  # borders crisp on top; the home outline last, in gold
+        for poly in c["polygons"]:
+            ring = poly[0]
+            if any(abs(x - lon0) < lon_half and abs(y - lat0) < lat_half for x, y in ring[:: max(1, len(ring) // 50)]):
+                colour, width = ((*GOLD,), 7) if c is home else ((150, 150, 158), 3)
+                draw.line([project(x, y) for x, y in ring] + [project(*ring[0])], fill=colour, width=width)
+
+    # Neighbouring countries, named at Natural Earth's label points. A label is drawn only if it
+    # collides with no other label and is either wholly inside the final close-up or wholly
+    # outside it, so the last frame never shows half a name.
+    font = get_font("Montserrat", 66)
+    fx0, fy0, fx1, fy1 = final_view
+    placed: List[Tuple[float, float, float, float]] = []
+    for c in sorted(visible, key=lambda c: (c["label_rank"], -c["size"])):
+        if c is home or not c["label_at"] or c["label_rank"] > 5:
+            continue
+        x, y = project(*c["label_at"])
+        name = " ".join(c["display"].upper())  # letter-spaced small caps
+        l, t, r, b = draw.textbbox((x, y), name, font=font, anchor="mm")
+        box = (l - 30, t - 20, r + 30, b + 20)
+        if box[0] < 0 or box[1] < 0 or box[2] > bw or box[3] > bh:
+            continue
+        inside = fx0 <= box[0] and box[2] <= fx1 and fy0 <= box[1] and box[3] <= fy1
+        outside = box[2] < fx0 or box[0] > fx1 or box[3] < fy0 or box[1] > fy1
+        if not (inside or outside) or any(not (box[2] < p[0] or box[0] > p[2] or box[3] < p[1] or box[1] > p[3]) for p in placed):
+            continue
+        placed.append(box)
+        draw.text((x, y), name, font=font, fill=(150, 152, 160), anchor="mm")
+    return base
+
+
 def render_map(place: Dict[str, Any], out: Path) -> Optional[Path]:
     """Regional locator map: eases from a ~40° view to ~18° around the site, pin drop, label."""
     if not geo.available():
@@ -104,28 +203,9 @@ def render_map(place: Dict[str, Any], out: Path) -> Optional[Path]:
     def project(lon: float, lat: float) -> Tuple[float, float]:
         return bw / 2 + (lon - lon0) * kx * coslat, bh / 2 - (lat - lat0) * kx
 
-    base = Image.new("RGB", (bw, bh), SEA)
-    draw = ImageDraw.Draw(base)
-    lat_half = bh / 2 / kx + 2
-    lon_half = bw / 2 / (kx * coslat) + 2
-    for g in range(-180, 181, 5):  # faint graticule
-        if abs(g - lon0) < lon_half:
-            x = project(g, lat0)[0]
-            draw.line([(x, 0), (x, bh)], fill=GRID, width=2)
-        if abs(g - lat0) < lat_half:
-            y = project(lon0, g)[1]
-            draw.line([(0, y), (bw, y)], fill=GRID, width=2)
-    home = geo.find_country(place["country"])
-    for c in geo.countries():
-        for poly in c["polygons"]:
-            ring = poly[0]
-            if not any(abs(x - lon0) < lon_half and abs(y - lat0) < lat_half for x, y in ring[:: max(1, len(ring) // 50)]):
-                continue
-            pts = [project(x, y) for x, y in ring]
-            draw.polygon(pts, fill=HOME if c is home else LAND, outline=BORDER)
-            for hole in poly[1:]:
-                draw.polygon([project(x, y) for x, y in hole], fill=SEA, outline=BORDER)
-    base = base.filter(ImageFilter.SMOOTH)
+    zf = span_wide / span_close  # the close-up the camera ends on (labels must not be cut by it)
+    final_view = (bw / 2 - bw / 2 / zf, bh / 2 - bh / 2 / zf, bw / 2 + bw / 2 / zf, bh / 2 + bh / 2 / zf)
+    base = relief_base(lat0, lon0, bw, bh, kx, coslat, geo.find_country(place["country"]), project, final_view)
 
     n = int(CLIP_SECONDS * VIDEO_FPS)
     label = place["label"]

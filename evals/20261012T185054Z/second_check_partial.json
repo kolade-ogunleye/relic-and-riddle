@@ -155,9 +155,33 @@
     [
      "04_antikythera_mechanism",
      2
+    ],
+    [
+     "05_gobekli_tepe",
+     0
+    ],
+    [
+     "05_gobekli_tepe",
+     1
+    ],
+    [
+     "05_gobekli_tepe",
+     2
+    ],
+    [
+     "06_damascus_steel_nanotubes",
+     0
+    ],
+    [
+     "06_damascus_steel_nanotubes",
+     1
+    ],
+    [
+     "06_damascus_steel_nanotubes",
+     2
     ]
    ],
-   "n_caught": 8,
+   "n_caught": 14,
    "false_alarms": 0,
    "details": [
     {
@@ -211,6 +235,38 @@
       "The fragments include 37 bronze gears (narration) (false: 30 gears survive: 27 in Fragment A and one each in Fragments B, C and D. The figure of 37 or more appears in less reliable sources as an estimate of the reconstructed total, not a count of surviving gears.)",
       "Others dispute that (narration, on-screen, first comment) (unsupported: The only pushback in the sources found comes from the authors themselves and from press coverage, noting that the measurements may be wrong and that corrosion may have distorted the parts. Either name a critic or reword, e.g. 'the authors caution that corrosion may skew the measurements.' The search quota ran out before a named critic could be sought.)",
       "It came from a 'Greek shipwreck' at the Antikythera Shipwreck, Antikythera, Greece (caption) (disputed: The location is correct. Whose ship it was is described differently: Wikipedia calls it a Roman-era cargo ship from about the second quarter of the 1st century BC, while WHOI calls it a Greek trading ship. Safer wording: 'a shipwreck off Greece.')"
+     ]
+    },
+    {
+     "topic": "05_gobekli_tepe",
+     "planted": 3,
+     "caught": [
+      0,
+      1,
+      2
+     ],
+     "flagged": [
+      "\"Eight-ton carved pillars\" (N) (disputed: Weights are estimates and vary by source. The DAI blog gives about 8–10 metric tons each for the central pair in Enclosure D. Smithsonian quotes Schmidt as saying 7–10 tons for the tallest pillars. Most pillars are smaller, so 'eight-ton pillars' overgeneralizes. Suggested wording: 'pillars weighing up to about 10 tons.')",
+      "The oldest enclosures date to about 8500 BC (N) (false: Hedged with 'about'. UNESCO dates the site to 9600–8200 BCE, and the earliest monumental enclosures are from about 9500 BC. 8500 BC falls in the later phase. Should be about 9500 BC. This also contradicts the caption and on-screen text.)",
+      "One enclosure's central pillars stand 21 feet (6.4 m) tall (N) (false: The central pair in Enclosure D are about 5.5 m (18 ft). Should be 18 feet (5.5 m). This contradicts the caption and on-screen text.)",
+      "\"Ian Hodder's team\" sorted the bones (N) (false: Should be Klaus Schmidt's team. The count came from Joris Peters (LMU Munich), the archaeozoologist on Klaus Schmidt's excavation. The listed excavators of Göbekli Tepe are Schmidt, Necmi Karul and Lee Clare, not Hodder. Hodder is generally associated with Çatalhöyük, but this could not be confirmed in a search (searches ran out); this does not change the verdict.)",
+      "Wild grain traces were found on \"thousands of grinding stones\" (N) / \"over 7,000 grinding tools\" (OS) (unsupported: Unsupported as worded. The 2019 PLOS ONE study analysed more than 7,000 grinding and pounding tools. Its evidence for cereals comes from wear marks on handstones and plant microfossils (phytoliths) sampled from grinding surfaces. It doesn't show grain traces on all 7,000 tools. Suggested wording: 'Over 7,000 grinding tools point to large-scale cereal processing.')"
+     ]
+    },
+    {
+     "topic": "06_damascus_steel_nanotubes",
+     "planted": 3,
+     "caught": [
+      0,
+      1,
+      2
+     ],
+     "flagged": [
+      "Al-Kindi was a Persian scholar. (false: Narration. Al-Kindi (c. 801–873) was an Arab polymath, born in Kufa in Iraq and known as \"the philosopher of the Arabs.\" The Persian scholar was al-Biruni (973–1048), from Khwarazm. Fix: \"Arab philosopher al-Kindi,\" or \"Persian scholar al-Biruni.\")",
+      "Al-Kindi \"said the same,\" meaning he compared the pattern to running water. (unsupported: Narration. Al-Kindi did describe the sword pattern, which he called firind or jawhar. One metallurgy source says this \"might be\" the first description of the \"water\" pattern. No source found showing he compared it to running water. A safer line: \"al-Kindi described the patterned steel, called firind.\")",
+      "The last high-quality blades date to about 1650. (false: Narration; hedged with \"about.\" The last blades with the best patterns were made around 1750. Lower-quality patterned blades continued into the early 19th century. Caption and on-screen text already say 1750.)",
+      "Vanadium \"as little as 400 parts per million.\" (false: Narration. The correct figure is 40 ppm. One Verhoeven paper puts it at about 0.004% (40 ppm). On-screen text already says 40. The 400 probably comes from the iron Pendray and Verhoeven used, which contained about 0.04% vanadium (400 ppm).)",
+      "Al-Biruni compared the patterns to \"running water.\" (unsupported: Caption; also on screen, in quotation marks. One source says al-Biruni \"comments on the 'water' pattern.\" Another reads his \"water\" as a technical word for one of steel's two parts (dus), not a description of the pattern's look. No source found for the exact words \"running water.\" Remove the quotation marks, or say \"al-Biruni wrote about the patterned (firind) steel.\")"
      ]
     }
    ]

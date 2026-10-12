@@ -107,7 +107,25 @@ def ping_healthcheck(suffix: str = "") -> None:
         log.warning("Healthcheck ping failed: %s", e)
 
 
-def status_text(db: PipelineDatabase, next_run: Optional[str]) -> str:
+SCRIPT_CHARS = 750  # a 45-second narration is ~650-750 characters
+
+
+def quota_lines(voice_quota: Optional[dict]) -> List[str]:
+    """Voice quota summary, with a warning when fewer than ~3 scripts' worth remain."""
+    if not voice_quota or not voice_quota.get("limit"):
+        return []
+    left = max(0, voice_quota["limit"] - voice_quota["used"])
+    reset = ""
+    if voice_quota.get("resets"):
+        reset = ", resets " + datetime.fromtimestamp(int(voice_quota["resets"]), timezone.utc).strftime("%d %b")
+    line = (f"ElevenLabs ({html.escape(str(voice_quota.get('tier')))}): {left:,} of {voice_quota['limit']:,} "
+            f"characters left (~{left // SCRIPT_CHARS} Reels){reset}")
+    if left < 3 * SCRIPT_CHARS:
+        return [f"⚠️ {line}. Runs will fall back to the free edge-tts voice when it runs out."]
+    return [line]
+
+
+def status_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Optional[dict] = None) -> str:
     e = html.escape
     lines = [
         f"<b>Status</b>: {'⏸ paused' if is_paused(db) else '▶️ active'}",
@@ -129,16 +147,18 @@ def status_text(db: PipelineDatabase, next_run: Optional[str]) -> str:
     if CLAUDE_MONTHLY_BUDGET_USD > 0:
         spend += f" of ${CLAUDE_MONTHLY_BUDGET_USD:.2f} budget"
     lines.append(spend)
+    lines += quota_lines(voice_quota)
     return "\n".join(lines)
 
 
-def heartbeat_text(db: PipelineDatabase, next_run: Optional[str]) -> str:
-    return "💓 <b>Daily heartbeat</b> — the daemon is running.\n" + status_text(db, next_run)
+def heartbeat_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Optional[dict] = None) -> str:
+    return "💓 <b>Daily heartbeat</b> — the daemon is running.\n" + status_text(db, next_run, voice_quota)
 
 
 def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[str]],
                          trigger_run: Callable[[], str], send_photo: Optional[SendPhoto] = None,
-                         assets_dir: Path = ASSETS_DIR) -> Callable[[str, str], str]:
+                         assets_dir: Path = ASSETS_DIR,
+                         voice_quota: Callable[[], Optional[dict]] = lambda: None) -> Callable[[str, str], str]:
     def send_sheet(topic_dir: Path) -> bool:
         if send_photo is None:
             return False
@@ -166,7 +186,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command == "imgok":
             return "✅ " + html.escape(approve_set(_resolve_topic_dir(args, assets_dir), MIN_SCENE_IMAGES))
         if command == "status":
-            return status_text(db, next_run())
+            return status_text(db, next_run(), voice_quota())
         if command == "next":
             t = db.get_next_topic()
             return f"Next topic: <b>{html.escape(t['title'])}</b> (<code>{html.escape(t['id'])}</code>)"

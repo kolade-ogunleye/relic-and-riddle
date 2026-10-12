@@ -124,6 +124,21 @@ class AudioEngine:
             raise RuntimeError("edge-tts returned no word boundaries; captions cannot be timed.")
         return words
 
+    def voice_quota(self) -> Optional[Dict[str, Any]]:
+        """ElevenLabs character quota for this billing period, or None if unavailable."""
+        if not is_configured(self.eleven_key):
+            return None
+        try:
+            r = requests.get("https://api.elevenlabs.io/v1/user/subscription",
+                             headers={"xi-api-key": self.eleven_key}, timeout=20)
+            r.raise_for_status()
+            j = r.json()
+            return {"tier": j.get("tier"), "used": int(j.get("character_count") or 0),
+                    "limit": int(j.get("character_limit") or 0), "resets": j.get("next_character_count_reset_unix")}
+        except Exception as e:
+            log.warning("Could not read ElevenLabs quota: %s", e)
+            return None
+
     @staticmethod
     def get_duration(audio_path: Path) -> float:
         cmd = ["ffprobe", "-v", "error", "-show_entries", "format=duration",

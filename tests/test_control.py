@@ -157,3 +157,17 @@ def test_approve_button_routes_through_poller(db, monkeypatch, tmp_path):
     calls = []
     bot.poll_once(lambda c, a: calls.append((c, a)) or "done")
     assert calls == [("imgok", "03_kailasa_temple")] and sent == ["done"]
+
+
+def test_quota_lines_warn_when_low():
+    from src.control import quota_lines
+    assert quota_lines(None) == []
+    ok = quota_lines({"tier": "starter", "used": 1000, "limit": 30000, "resets": 1794414283})
+    assert ok and not ok[0].startswith("⚠️") and "29,000 of 30,000" in ok[0] and "~38 Reels" in ok[0]
+    low = quota_lines({"tier": "free", "used": 9000, "limit": 10000, "resets": None})
+    assert low[0].startswith("⚠️") and "edge-tts" in low[0]
+
+
+def test_status_includes_voice_quota(db):
+    h = make_command_handler(db, lambda: None, lambda: "", voice_quota=lambda: {"tier": "free", "used": 0, "limit": 10000})
+    assert "ElevenLabs (free): 10,000 of 10,000" in h("status", "")

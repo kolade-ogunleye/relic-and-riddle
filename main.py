@@ -389,6 +389,7 @@ def main(argv=None) -> int:
 
     if args.command == "bot":
         db = PipelineDatabase()
+        from src.audio_engine import AudioEngine
         from src.telegram_bot import TelegramApprovalBot
         bot = TelegramApprovalBot(db=db)
         if not bot.is_configured():
@@ -397,7 +398,7 @@ def main(argv=None) -> int:
         handler = make_command_handler(
             db, lambda: "none (bot-only mode)",
             lambda: "Production runs are disabled in bot-only mode. Use the daemon or `python main.py run`.",
-            send_photo=bot.send_photo,
+            send_photo=bot.send_photo, voice_quota=AudioEngine().voice_quota,
         )
         bot.notify("🤖 <b>Bot-only mode</b>: image review, approvals and /status are live; no runs are scheduled. "
                    "Send /images to start.")
@@ -451,7 +452,7 @@ def main(argv=None) -> int:
             return when.strftime("%a %d %b %H:%M %Z") if when else None
 
         def heartbeat():
-            bot.notify(heartbeat_text(coordinator.db, next_run()))
+            bot.notify(heartbeat_text(coordinator.db, next_run(), coordinator.audio_engine.voice_quota()))
             ping_healthcheck()
 
         scheduler.add_job(heartbeat, CronTrigger(hour=hb_hour, minute=hb_minute, timezone=TIMEZONE),
@@ -463,7 +464,8 @@ def main(argv=None) -> int:
             scheduler.add_job(production_run, kwargs={"manual": True})
             return "🎬 Starting a run now. You'll get the review card when it's rendered; nothing posts without your approval."
 
-        handler = make_command_handler(coordinator.db, next_run, trigger_run, send_photo=bot.send_photo)
+        handler = make_command_handler(coordinator.db, next_run, trigger_run, send_photo=bot.send_photo,
+                                       voice_quota=coordinator.audio_engine.voice_quota)
 
         def poll_telegram():
             while True:

@@ -56,11 +56,16 @@ def _host_allowed(host: str, provider: str) -> bool:
     return any(host == h or (h.startswith(".") and host.endswith(h)) for h in ALLOWED_HOSTS[provider])
 CACHE_DIR = config.BASE_DIR / "cache" / "footage_api"  # Pixabay asks for 24 h response caching
 CREDIT_PREFIX = "🎥 Footage:"
+# Words too common to show a stock clip is about the search ("city" matched a Dutch canal).
+GENERIC_WORDS = {"city", "town", "village", "underground", "ancient", "old", "great", "temple", "palace", "museum",
+                 "ruins", "valley", "lake", "river", "mountain", "island", "islands", "desert", "harbor", "harbour",
+                 "cave", "caves", "church", "cathedral", "castle", "fort", "wall", "site", "region", "province",
+                 "national", "park", "north", "south", "east", "west", "central", "upper", "lower", "roman", "greek"}
 
 
 class FootageCheck(BaseModel):
-    shows_subject: bool               # does it show what the query asked for?
-    place_matches: Literal["yes", "no", "unsure"]  # is it recognisably the named place?
+    matches_search: bool              # does it show what the SEARCH asked for (e.g. "Cappadocia" landscape)?
+    place_matches: Literal["yes", "no", "unsure"]  # is it recognisably the NAMED place itself?
     burned_in_text_or_watermark: bool
     brand_logo: bool
     identifiable_person_focus: bool
@@ -251,9 +256,12 @@ def _frames(clip: Path) -> List[Path]:
 
 
 CHECK = """You vet stock and archive video for a history documentary. Judge only what you see in these
-three frames from one clip. Be strict about watermarks, burned-in text or subtitles, channel logos
-and brand logos. "place_matches" is "yes" only if the frames are recognisably the named place
-(distinctive architecture or landscape); "unsure" if it could be anywhere similar."""
+three frames from one clip. Answer two separate questions:
+- matches_search: does the clip genuinely show what the search asked for? Regional or atmospheric
+  footage counts when the search was for the region or an atmosphere (it will be labelled as generic).
+- place_matches: is it recognisably the named place itself ("yes"), clearly somewhere else ("no"),
+  or could it be anywhere similar ("unsure")?
+Be strict about watermarks, burned-in text or subtitles, channel logos and brand logos."""
 
 
 @llm_task("footage_check")
@@ -295,8 +303,13 @@ def source(beats: List[Dict[str, Any]], topic: Dict[str, Any], work_dir: Path, p
             except (requests.RequestException, ValueError) as e:
                 log.warning("Footage search via %s failed (%s).", provider, e)
                 continue
+            query_words = [w for w in (normalize(x) for x in query.split()) if len(w) > 3 and w not in GENERIC_WORDS]
             for cand in candidates:
                 if found >= PER_QUERY or cand["source_url"] in seen:
+                    continue
+                # Free relevance filter before any download: stock search returns unrelated clips
+                # when nothing matches, so the clip's own title/tags must mention the search.
+                if query_words and not any(w in normalize(cand["text"]) for w in query_words):
                     continue
                 seen.add(cand["source_url"])
                 n = len(clips) + 1
@@ -314,7 +327,7 @@ def source(beats: List[Dict[str, Any]], topic: Dict[str, Any], work_dir: Path, p
                     continue
                 finally:
                     raw.unlink(missing_ok=True)  # never keep the original download
-                if not check.shows_subject or check.burned_in_text_or_watermark or check.brand_logo or check.identifiable_person_focus:
+                if not check.matches_search or check.burned_in_text_or_watermark or check.brand_logo or check.identifiable_person_focus:
                     log.info("Footage rejected by the check (%s): %s", cand["title"][:60], check.note)
                     clip.unlink(missing_ok=True)
                     continue

@@ -43,7 +43,12 @@ def _post(body: Dict[str, Any], timeout: float = 300) -> Dict[str, Any]:
     except requests.RequestException as e:
         raise GeminiError(f"Gemini request failed: {e}") from e
     if resp.status_code == 429:
-        raise GeminiError("Gemini quota exceeded (HTTP 429).")
+        hint = (" Google Search grounding is not available on the Gemini free tier for Gemini 3 models; enable "
+                "billing on the key's Google Cloud project (5,000 grounded searches/month are then free)."
+                if body.get("tools") else "")
+        raise GeminiError("Gemini quota exceeded (HTTP 429)." + hint)
+    if resp.status_code == 503:
+        raise GeminiError("Gemini is temporarily overloaded (HTTP 503); try again later.")
     try:
         data = resp.json()
     except ValueError:

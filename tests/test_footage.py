@@ -88,7 +88,7 @@ def test_source_labels_place_specific_only_when_named_and_seen(tmp_path, monkeyp
     cands = [
         {"provider": "commons", "title": "Derinkuyu tunnels", "text": "Derinkuyu underground city tunnels", "download_url": "u1",
          "source_url": "s1", "license": "CC BY 4.0", "artist": "Ann", "attribution_required": True, "width": 3840, "height": 2160, "duration": 60},
-        {"provider": "commons", "title": "Generic cave", "text": "a cave in Turkey", "download_url": "u2",
+        {"provider": "commons", "title": "Generic cave", "text": "a cave in Cappadocia", "download_url": "u2",
          "source_url": "s2", "license": "CC0", "artist": "Bob", "attribution_required": False, "width": 3840, "height": 2160, "duration": 60},
         {"provider": "commons", "title": "Watermarked", "text": "Derinkuyu", "download_url": "u3",
          "source_url": "s3", "license": "CC0", "artist": "C", "attribution_required": False, "width": 3840, "height": 2160, "duration": 60},
@@ -103,15 +103,19 @@ def test_source_labels_place_specific_only_when_named_and_seen(tmp_path, monkeyp
         Image.new("RGB", (10, 10)).save(out.with_suffix(".jpg"))
         return out
     monkeypatch.setattr(footage, "make_segment", segment)
-    checks = {"footage_01": ("yes", False), "footage_02": ("yes", False), "footage_03": ("yes", True)}
-    monkeypatch.setattr(footage, "verify", lambda clip, q, place: FootageCheck(
-        shows_subject=True, place_matches=checks[clip.stem][0], burned_in_text_or_watermark=checks[clip.stem][1],
-        brand_logo=False, identifiable_person_focus=False, note=""))
-    topic = {"location": {"name": "Derinkuyu Underground City", "country": "Turkey"}}
+    verdicts = iter([("yes", False), ("yes", True), ("yes", False)])  # in call order: tunnels, watermarked, cave
+
+    def check(clip, q, place):
+        pm, wm = next(verdicts)
+        return FootageCheck(matches_search=True, place_matches=pm, burned_in_text_or_watermark=wm,
+                            brand_logo=False, identifiable_person_focus=False, note="")
+    monkeypatch.setattr(footage, "verify", check)
+    topic = {"location": {"name": "Derinkuyu Underground City", "country": "Turkey", "region": "Cappadocia"}}
     clips, credits = footage.source([], topic, tmp_path)
     assert [c["title"] for c in credits] == ["Derinkuyu tunnels", "Generic cave"]  # watermarked one dropped
     assert credits[0]["place_specific"] is True
-    assert credits[1]["place_specific"] is False  # vision said yes, but its metadata doesn't name the site
+    assert credits[1]["place_specific"] is False  # found via the region search; its metadata doesn't name the site
+    assert credits[1]["query"] == "Cappadocia"
     assert not any(tmp_path.glob("raw_*"))  # original downloads are never kept
     assert json.loads((tmp_path / "credits.json").read_text(encoding="utf-8"))[0]["source_url"] == "s1"
 

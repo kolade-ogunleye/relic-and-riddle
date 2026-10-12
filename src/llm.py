@@ -161,6 +161,9 @@ def _first_request(send: Callable[[str], object], models: Optional[List[str]] = 
         except anthropic.BadRequestError as e:
             if "credit" in str(e).lower():
                 raise CreditExhausted("Anthropic credit balance is too low; add credit in the Claude Console.") from e
+            if "usage limit" in str(e).lower():
+                raise CreditExhausted("The Anthropic account's API usage limit is reached (set in the Claude Console "
+                                      f"under Limits); raise it to continue. Details: {e}") from e
             raise LLMError(f"Claude rejected the request: {e}") from e
         except (anthropic.InternalServerError, anthropic.NotFoundError, anthropic.RateLimitError,
                 anthropic.APIConnectionError) as e:

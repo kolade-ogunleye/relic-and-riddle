@@ -111,3 +111,10 @@ https://ai.google.dev/gemini-api/docs/pricing
   video weren't shown in the docs read on 2026-10-12, so Runway isn't wired yet (no guessed APIs).
 - Local Wan 2.2 TI2V-5B (Apache-2.0): not installed; needs roughly 25-30 GB of model downloads plus
   PyTorch. Waiting for the user's OK.
+
+## Gemini API (checked 2026-10-12 with the project's key)
+- https://ai.google.dev/gemini-api/docs/pricing: Gemini 3.8 Flash input/output are free on the free tier, but
+  "Grounding with Google Search" is "Not available" there. Paid tier: 5,000 free grounded search requests per
+  month (shared across Gemini 3+ models), then $14 per 1,000. Veo has no free tier.
+- Gemini 2.5 Flash (the last model with free-tier grounding) returns "no longer available to new users" for this key.
+- So the Gemini fact-check fallback and Veo both need billing enabled on the key's Google Cloud project.

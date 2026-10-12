@@ -145,7 +145,7 @@ def eval_second_check(scripts: Dict[str, Dict[str, Any]], spend: Spend, checkers
             c = llm.structured_call(PLANT, f"<narration>\n{payload['narration_script']}\n</narration>", Corruption,
                                     effort="low", models=[planter])
             if len(c.errors) == 3 and all(e.corrupted in c.narration_script and e.original in payload["narration_script"]
-                                           for e in c.errors):
+                                           and e.corrupted.strip() != e.original.strip() for e in c.errors):
                 break
             c = None
         if c is None:

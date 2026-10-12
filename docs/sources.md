@@ -118,3 +118,25 @@ https://ai.google.dev/gemini-api/docs/pricing
   month (shared across Gemini 3+ models), then $14 per 1,000. Veo has no free tier.
 - Gemini 2.5 Flash (the last model with free-tier grounding) returns "no longer available to new users" for this key.
 - So the Gemini fact-check fallback and Veo both need billing enabled on the key's Google Cloud project.
+
+## Captions, hashtags and titles (checked 2026-10-12)
+- Instagram caps hashtags at 5 per post and Reel (rolling out; reported by Social Media Today and others
+  quoting Instagram's @creators announcement; Instagram says generic tags like #reels/#explore don't help
+  and may hurt). We use 3-5 specific tags and none in the first comment.
+- Instagram caption: 2,200 characters; about the first 125 show before "more" (we keep the first line within 125).
+- Upload-Post (https://docs.upload-post.com/api/upload-video/): Instagram caption = `instagram_title`
+  (falls back to `title`); Facebook Reel title = `facebook_title` (falls back to `title`; max 255 chars per
+  https://docs.upload-post.com/resources/character-limits/), text = `facebook_description`. AI labels:
+  `is_ai_generated` (Instagram) and `facebook_is_ai_generated` (Facebook).
+- Carousels: 1080x1350 (4:5) — the tallest ratio Meta's content-publishing API has accepted for feed images
+  (4:5 to 1.91:1); Instagram's app reportedly also accepts 3:4, not relied on for API posting.
+
+## Using AI subscriptions instead of APIs (checked 2026-10-12)
+- Anthropic Consumer Terms (https://www.anthropic.com/legal/consumer-terms), section 3: users may not
+  "access the Services through automated or non-human means, whether through a bot, script, or otherwise",
+  "except when you are accessing our Services via an Anthropic API Key or where we otherwise explicitly
+  permit it". Claude Code's docs show `claude -p` for scripts and recommend an API key for scripted/CI use
+  (https://code.claude.com/docs/en/headless); Pro/Max limits are 5-hour and weekly, shared with interactive use.
+- Gemini CLI: secondary sources report Google ended the consumer (AI Pro) Gemini CLI backend in June 2026.
+- OpenAI's terms page could not be fetched automatically (403); not verified.
+- Decision: the unattended pipeline uses API keys; subscriptions remain for interactive development.

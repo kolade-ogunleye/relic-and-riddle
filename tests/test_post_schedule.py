@@ -139,13 +139,14 @@ def test_missed_reel_slot_moves_to_next_free_slot(coord, monkeypatch):
 def test_carousel_posts_newest_published_once_on_its_day(coord, monkeypatch):
     coord.schedule_run("r1", now=et(2026, 10, 12, 9, 30))
     coord.db.update_run("r1", "published")
+    reel_posted = et(2026, 10, 12, 19, 1)
     for p in coord.db.list_scheduled_posts(("pending",)):
-        coord.db.update_scheduled_post(p["id"], "published")
+        coord.db.update_scheduled_post(p["id"], "published", detail={"posted_at": reel_posted.isoformat()})
     posted = []
     monkeypatch.setattr(coord.publisher, "publish_photos",
                         lambda run_id, tid, kind, files, caption="": posted.append((kind, len(files), bool(caption))) or {"status": "published"})
-    wed = date(2026, 10, 14)
-    slot = ps.carousel_time(wed)
+    thu = date(2026, 10, 15)  # >48h after the Reel
+    slot = ps.carousel_time(thu)
     coord.post_due(now=slot - timedelta(minutes=1))
     assert posted == []
     coord.post_due(now=slot + timedelta(minutes=1))
@@ -169,3 +170,18 @@ def test_status_lists_upcoming_posts(coord):
     coord.schedule_run("r1", now=et(2026, 10, 13, 9, 30))
     text = status_text(coord.db, None)
     assert "Upcoming posts:" in text and "Reel" in text and "next carousel slot" in text
+
+
+def test_carousel_waits_48h_after_its_reel(coord, monkeypatch):
+    coord.schedule_run("r1", now=et(2026, 10, 12, 9, 30))
+    coord.db.update_run("r1", "published")
+    tue_slot = ps.carousel_time(date(2026, 10, 13))
+    for p in coord.db.list_scheduled_posts(("pending",)):  # Reel went out 6h before Tuesday's carousel slot
+        coord.db.update_scheduled_post(p["id"], "published", detail={"posted_at": (tue_slot - timedelta(hours=6)).isoformat()})
+    posted = []
+    monkeypatch.setattr(coord.publisher, "publish_photos", lambda *a, **k: posted.append(a[2]) or {"status": "published"})
+    coord.post_due(now=tue_slot + timedelta(minutes=1))
+    assert posted == []  # too soon: Upload-Post flags similar content within 48h
+    thu_slot = ps.carousel_time(date(2026, 10, 15))
+    coord.post_due(now=thu_slot + timedelta(minutes=1))
+    assert posted == ["carousel"]

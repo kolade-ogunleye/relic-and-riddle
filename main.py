@@ -51,6 +51,7 @@ MAX_FACT_REVISIONS = 2  # rewrites of a Claude script that failed fact-checking,
 
 
 MISSED_SLOT_GRACE = timedelta(hours=3)
+CAROUSEL_GAP = timedelta(hours=48)  # Upload-Post flags similar content within 48h (docs/sources.md)
 
 
 class PipelineCoordinator:
@@ -419,7 +420,8 @@ class PipelineCoordinator:
                     self._reschedule(post, run, now)
                     continue
                 res = self.publish_run(post["run_id"])
-                self.db.update_scheduled_post(post["id"], res["status"], detail={"error": res.get("publish_result", {}).get("error")})
+                self.db.update_scheduled_post(post["id"], res["status"], detail={
+                    "error": res.get("publish_result", {}).get("error"), "posted_at": now.isoformat()})
                 if res["status"] != "published":
                     for other in self.db.list_scheduled_posts(("pending", "waiting"), run_id=post["run_id"]):
                         self.db.update_scheduled_post(other["id"], "cancelled", detail={"reason": "the Reel did not post"})
@@ -462,6 +464,13 @@ class PipelineCoordinator:
             self._alert(f"❌ {name} not posted for {label}: {html.escape(str(res.get('error', '')))[:300]}")
         return res["status"]
 
+    def _reel_posted_before(self, run_id: str, cutoff: datetime) -> bool:
+        """Upload-Post flags similar content within 48h per account, so a topic's carousel waits."""
+        for p in self.db.list_scheduled_posts(("published",), run_id=run_id):
+            if p["kind"] == "reel":
+                return datetime.fromisoformat(p["detail"].get("posted_at") or p["updated_at"]) <= cutoff
+        return True  # posted outside the scheduler (CLI): no slot record to wait on
+
     def _post_carousel_if_due(self, now: datetime) -> None:
         local = now.astimezone(post_schedule.tz())
         slot = post_schedule.carousel_time(local.date())
@@ -475,7 +484,8 @@ class PipelineCoordinator:
                 self.db.update_scheduled_post(post["id"], "expired")
         ready = [(p, self.db.get_run(p["run_id"])) for p in waiting
                  if now - datetime.fromisoformat(p["created_at"]) <= timedelta(days=7)]
-        ready = [(p, r) for p, r in ready if r and r["status"] == "published"]
+        ready = [(p, r) for p, r in ready if r and r["status"] == "published"
+                 and self._reel_posted_before(p["run_id"], now - CAROUSEL_GAP)]
         if not ready:
             return
         post, run = max(ready, key=lambda pr: pr[0]["id"])  # the newest topic

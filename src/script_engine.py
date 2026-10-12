@@ -239,9 +239,15 @@ class ScriptEngine:
                 draft = {k: previous.get(k) for k in ScriptPackage.model_fields}
                 base_feedback = (
                     "\n\n<previous_draft>\n" + json.dumps(draft, ensure_ascii=False, indent=1) + "\n</previous_draft>\n"
-                    "This draft failed fact-checking. Revise it, changing only what the findings below require: "
-                    "hedge or drop disputed and weakly sourced figures, correct false ones, and add no new factual "
-                    "claims. Keep everything else as it is.\n<fact_check_findings>\n" + revision_notes + "\n</fact_check_findings>"
+                    "This draft failed fact-checking. Revise it, changing only what the findings below require. For "
+                    "each finding: if disputed, hedge it with the range or wording the finding gives; if unsupported "
+                    "or false, delete that sentence or replace it with a fact stated in the research notes. Do NOT "
+                    "write any new sentence whose facts are not in the research notes, not even small details "
+                    "(names, what people did, what is unknown): every new sentence is fact-checked again and an "
+                    "unsupported one fails the script. If the narration gets too short, extend it only with facts "
+                    "from the research notes. Apply the same fixes wherever the claim also appears (caption, "
+                    "on-screen text, slides, graphics). Keep everything else as it is.\n<fact_check_findings>\n"
+                    + revision_notes + "\n</fact_check_findings>"
                 )
             feedback = base_feedback
             for attempt in range(1, max_attempts + 1):

@@ -35,6 +35,7 @@ from src.credits import caption_credit_line, load_credits
 from src.db import PipelineDatabase, QueueEmpty
 from src.control import heartbeat_text, is_paused, make_command_handler, ping_healthcheck
 from src.scene_planner import plan_scenes, segment_beats
+from src.upscale import ensure_all, ensure_resolution
 from src.video_qa import qa_summary_html, review_render
 from src.ops import AssetLifecycleManager, PreFlightHealthChecker, setup_logging
 
@@ -253,7 +254,15 @@ class PipelineCoordinator:
     def _render_approve_publish(self, topic, run_id, run_dir, payload, scene_media, hero_img,
                                 vo_path, bed_path, words, vo_dur, auto_approve, dry_run, previous_status):
         tid = topic["id"]
-        # 6. Stills
+        # 6. Source quality: upscale stills too small for a sharp 1080x1920 crop (local Real-ESRGAN).
+        scene_media, low_res = ensure_all(scene_media)
+        hero_img = ensure_resolution(hero_img)
+        if low_res:
+            payload["source_note"] = (f"🖼 {low_res} of {len(scene_media)} source images were below video resolution "
+                                      "and were AI-upscaled; sharper originals would look better.")
+            log.info(payload["source_note"])
+
+        # Stills
         thumb_916, thumb_1x1 = self.visual_engine.generate_thumbnails(hero_img, payload, run_dir)
         story_slides = self.multiformat_gen.generate_story_sequence(hero_img, payload, run_dir)
         carousel_slides = self.multiformat_gen.generate_carousel_sequence(scene_media, payload, run_dir)

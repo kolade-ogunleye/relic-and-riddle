@@ -78,6 +78,8 @@ class TelegramApprovalBot:
             f"💬 First comment: <i>{e(script_payload.get('first_comment', ''))}</i>\n"
             f"🏷️ {e(' '.join(script_payload.get('hashtags', [])))}\n"
         )
+        if script_payload.get("source_note"):
+            text += "\n" + e(script_payload["source_note"]) + "\n"
         if script_payload.get("qa_summary"):
             text += "\n" + script_payload["qa_summary"] + "\n"  # already HTML-escaped by video_qa
         if sources:

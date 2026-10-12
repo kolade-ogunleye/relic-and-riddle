@@ -24,3 +24,8 @@ archive/media/
 # Fetched scene images (re-fetchable; credits.json stays tracked)
 assets/*/*.jpg
 assets/*/*.png
+
+# Local tools (downloaded binaries)
+tools/
+# Cache of upscaled images
+cache/

@@ -127,6 +127,8 @@ HARD_DURATION_CEILING = 58.0
 TARGET_WORD_COUNT_MIN = 95
 TARGET_WORD_COUNT_MAX = 115
 MIN_SCENE_IMAGES = 5
+# Local AI upscaler for low-resolution stills (https://github.com/xinntao/Real-ESRGAN, portable Vulkan build).
+REALESRGAN_BIN = os.getenv("REALESRGAN_BIN", str(BASE_DIR / "tools" / "realesrgan" / "realesrgan-ncnn-vulkan.exe"))
 
 # Narration & Voiceover (edge-tts)
 NARRATOR_VOICE = "en-US-ChristopherNeural"

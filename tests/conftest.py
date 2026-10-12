@@ -27,7 +27,8 @@ def no_real_services(monkeypatch):
     """
     import socket
 
-    for name in ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "ELEVENLABS_API_KEY", "UPLOAD_POST_API_KEY",
+    monkeypatch.setattr("src.gemini.GEMINI_API_KEY", "")
+    for name in ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "ELEVENLABS_API_KEY", "UPLOAD_POST_API_KEY", "GEMINI_API_KEY",
                  "META_ACCESS_TOKEN", "META_PAGE_ACCESS_TOKEN", "HEALTHCHECK_PING_URL"):
         monkeypatch.setattr(f"src.config.{name}", "")
     monkeypatch.setattr("src.config.TELEGRAM_APPROVER_IDS", set())

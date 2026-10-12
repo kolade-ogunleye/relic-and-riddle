@@ -14,6 +14,8 @@ Without Claude, only human-curated scripts (which carry their own sources) can p
 import logging
 from typing import Dict, Any, List, Optional, Set, Tuple
 
+from . import gemini
+from .config import GEMINI_MODEL, SECOND_CHECK_MODELS
 from .llm import LLMError, claude_available, format_sources, research, structured_call
 from .models import FactCheckReport
 
@@ -70,23 +72,56 @@ class ClaimFactChecker:
 
         return False, 0.0, [], "No fact-check available (ANTHROPIC_API_KEY unset) and script is not human-curated; failing closed."
 
-    def _check_with_claude(self, payload: Dict[str, Any]) -> Tuple[FactCheckReport, Set[str]]:
+    @staticmethod
+    def _material(payload: Dict[str, Any]) -> str:
         on_screen = [payload["thumbnail"][k] for k in ("eyebrow", "line1", "line2", "tagline")]
         on_screen += [f"{s['line1']} {s['line2']}. {s['body']}" for s in payload["story_slides"]]
         on_screen += [f"{c['heading']}: {c['body']}" for c in payload["carousel_slides"]]
-        prompt = (
+        return (
             f"<narration>\n{payload['narration_script']}\n</narration>\n\n"
             f"<caption>\n{payload['caption']}\n</caption>\n\n"
             f"<on_screen_text>\n" + "\n".join(on_screen) + "\n</on_screen_text>\n\n"
             f"<first_comment>\n{payload['first_comment']}\n</first_comment>"
         )
-        notes, retrieved = research(SYSTEM_PROMPT, prompt, web_search_uses=10, effort="high")
+
+    def _check_with_claude(self, payload: Dict[str, Any], models: Optional[List[str]] = None) -> Tuple[FactCheckReport, Set[str]]:
+        notes, retrieved = research(SYSTEM_PROMPT, self._material(payload), web_search_uses=10, effort="high",
+                                    models=models)
         report = structured_call(
             "You structure fact-check results faithfully, without re-judging them.",
             STRUCTURE_PROMPT.format(notes=notes, sources=format_sources(retrieved)),
-            FactCheckReport, effort="medium",
+            FactCheckReport, effort="medium", models=models,
         )
         return report, {s.url for s in retrieved}
+
+    def _check_with_gemini(self, payload: Dict[str, Any]) -> Tuple[FactCheckReport, Set[str]]:
+        notes, retrieved = gemini.research(SYSTEM_PROMPT, self._material(payload))
+        report = gemini.structured(
+            "You structure fact-check results faithfully, without re-judging them.",
+            STRUCTURE_PROMPT.format(notes=notes, sources=format_sources(retrieved)), FactCheckReport)
+        return report, {s.url for s in retrieved}
+
+    def second_opinion(self, payload: Dict[str, Any]) -> Tuple[str, float, List[Dict[str, Any]], str]:
+        """
+        Independent second check, run after the first passes. Tries SECOND_CHECK_MODELS
+        (best first), then Gemini (free). Returns (status, confidence, audits, summary) where
+        status is "pass", "fail" or "unavailable" (every option failed or none configured).
+        """
+        attempts = [(m, lambda m=m: self._check_with_claude(payload, models=[m]))
+                    for m in SECOND_CHECK_MODELS if claude_available()]
+        if gemini.available():
+            attempts.append((f"gemini ({GEMINI_MODEL})", lambda: self._check_with_gemini(payload)))
+        errors = []
+        for name, run in attempts:
+            try:
+                report, urls = run()
+            except (LLMError, gemini.GeminiError) as e:
+                log.warning("Second fact check via %s failed: %s", name, e)
+                errors.append(f"{name}: {e}")
+                continue
+            passed, confidence, audits, msg = self.evaluate(report, urls)
+            return ("pass" if passed else "fail"), confidence, audits, f"[{name}] {msg}"
+        return "unavailable", 0.0, [], "Second check unavailable: " + ("; ".join(errors) or "no checker configured")
 
     @staticmethod
     def evaluate(report: FactCheckReport, retrieved_urls: Optional[Set[str]] = None) -> Tuple[bool, float, List[Dict[str, Any]], str]:

@@ -66,6 +66,14 @@ CLAUDE_FALLBACK_MODELS = [m.strip() for m in os.getenv("CLAUDE_FALLBACK_MODELS",
 CLAUDE_MONTHLY_BUDGET_USD = float(os.getenv("CLAUDE_MONTHLY_BUDGET_USD", "0") or 0)
 CLAUDE_BUDGET_MODEL = os.getenv("CLAUDE_BUDGET_MODEL", "").strip()
 
+# Second, independent fact check (runs after the first passes). Claude models in order of
+# ability; Gemini (free tier with a key from aistudio.google.com) is the last fallback.
+SECOND_CHECK_ENABLED = os.getenv("SECOND_CHECK_ENABLED", "true").lower() in ("true", "1", "yes")
+SECOND_CHECK_MODELS = [m.strip() for m in os.getenv("SECOND_CHECK_MODELS", "claude-fable-5-1,claude-opus-5-5").split(",")
+                       if m.strip()]
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+
 # Voice
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
 ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "pNInz6obpgDQGcFmaJgB")

@@ -19,7 +19,7 @@ from typing import Dict, Any, List, Optional, Tuple
 
 from pydantic import ValidationError
 
-from .config import CURATED_SCRIPTS_DIR, TARGET_WORD_COUNT_MIN, TARGET_WORD_COUNT_MAX
+from .config import CURATED_SCRIPTS_DIR, SECOND_CHECK_ENABLED, TARGET_WORD_COUNT_MIN, TARGET_WORD_COUNT_MAX
 from .fact_checker import ClaimFactChecker
 from .llm import LLMError, claude_available, format_sources, research, structured_call
 from .models import ScriptPackage
@@ -237,4 +237,12 @@ class ScriptEngine:
         script_payload["consensus_confidence"] = confidence
         if not passed:
             return False, script_payload, f"REJECTED by fact checker: {msg}"
+
+        # Independent second check (only for Claude-written scripts that passed the first).
+        if SECOND_CHECK_ENABLED and script_payload.get("origin") == "claude":
+            status, conf2, audits2, msg2 = self.fact_checker.second_opinion(script_payload)
+            script_payload["second_check"] = {"status": status, "confidence": conf2, "audits": audits2, "summary": msg2}
+            if status == "fail":
+                return False, script_payload, f"REJECTED by second fact checker: {msg2}"
+            msg = f"{msg} | 2nd check: {msg2}"
         return True, script_payload, f"Structure OK ({pkg.narration_script.count(' ') + 1} words) | {msg}"

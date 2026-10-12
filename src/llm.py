@@ -48,7 +48,7 @@ T = TypeVar("T", bound=BaseModel)
 # fallback model chosen by refusal category, inside the same call. Not every model
 # supports it (Claude Haiku 5.5 has none), so it is only sent where accepted.
 _FALLBACK_BETA = "server-side-fallback-2026-07-01"
-_REFUSAL_FALLBACK_MODELS = ("claude-opus-5-5", "claude-opus-5", "claude-fable-5", "claude-sonnet-5-5")
+_REFUSAL_FALLBACK_MODELS = ("claude-fable-5-1", "claude-opus-5-5", "claude-opus-5", "claude-fable-5", "claude-sonnet-5-5")
 _MAX_CONTINUATIONS = 5
 
 # USD per million tokens (input, output); web search is $10 per 1,000 searches.
@@ -116,9 +116,9 @@ def _record(response) -> None:
         log.warning("Could not record Claude usage: %s", e)
 
 
-def model_chain() -> List[str]:
-    """Models to try, best first, honouring the monthly budget."""
-    chain = [CLAUDE_MODEL] + [m for m in CLAUDE_FALLBACK_MODELS if m != CLAUDE_MODEL]
+def model_chain(models: Optional[List[str]] = None) -> List[str]:
+    """Models to try, best first (or `models` if given), honouring the monthly budget."""
+    chain = list(models) if models else [CLAUDE_MODEL] + [m for m in CLAUDE_FALLBACK_MODELS if m != CLAUDE_MODEL]
     if CLAUDE_MONTHLY_BUDGET_USD > 0 and _month_spend is not None:
         month = datetime.now(timezone.utc).strftime("%Y-%m")
         spent = _month_spend(month)
@@ -136,10 +136,10 @@ def _model_kwargs(model: str) -> dict:
     return {}
 
 
-def _first_request(send: Callable[[str], object]) -> Tuple[object, str]:
+def _first_request(send: Callable[[str], object], models: Optional[List[str]] = None) -> Tuple[object, str]:
     """Sends the first request down the model chain. Returns (response, model used)."""
     last: Optional[Exception] = None
-    for model in model_chain():
+    for model in model_chain(models):
         try:
             return send(model), model
         except anthropic.BadRequestError as e:
@@ -186,7 +186,7 @@ def _collect_sources(blocks, sources: List[Source], seen: set) -> None:
 
 
 def research(system: str, prompt: str, *, web_search_uses: int, effort: str = "high",
-             max_tokens: int = 16000) -> Tuple[str, List[Source]]:
+             max_tokens: int = 16000, models: Optional[List[str]] = None) -> Tuple[str, List[Source]]:
     """Web-search-grounded answer. Returns (text, sources the search actually returned)."""
     client = _client()
     system = system + _MUST_SEARCH
@@ -201,7 +201,7 @@ def research(system: str, prompt: str, *, web_search_uses: int, effort: str = "h
             output_config={"effort": effort}, **_model_kwargs(model),
         )
 
-    response, model = _first_request(send)
+    response, model = _first_request(send, models)
     for _ in range(_MAX_CONTINUATIONS):
         _record(response)
         _collect_sources(response.content, sources, seen)
@@ -236,7 +236,7 @@ def image_block(path, max_side: int = 512) -> dict:
 
 
 def structured_call(system: str, prompt: Union[str, list], schema: Type[T], *, effort: str = "high",
-                    max_tokens: int = 16000) -> T:
+                    max_tokens: int = 16000, models: Optional[List[str]] = None) -> T:
     """One Claude request whose answer must validate against `schema` (no tools).
     `prompt` may be a string or a list of content blocks (e.g. images then text)."""
     client = _client()
@@ -248,7 +248,7 @@ def structured_call(system: str, prompt: Union[str, list], schema: Type[T], *, e
             output_config={"effort": effort}, output_format=schema, **_model_kwargs(model),
         )
 
-    response, _ = _first_request(send)
+    response, _ = _first_request(send, models)
     _record(response)
     _check_stop(response)
     if response.parsed_output is None:

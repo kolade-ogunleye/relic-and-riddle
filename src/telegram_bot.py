@@ -14,6 +14,7 @@ import html
 import json
 import logging
 import os
+import re
 import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Set
@@ -33,6 +34,16 @@ log = logging.getLogger(__name__)
 
 ACTIONS = {"approve": "approved", "regen": "regenerate", "reject": "rejected"}
 TELEGRAM_VIDEO_LIMIT_MB = 49.0
+
+
+def _second_check_line(second: Optional[Dict[str, Any]]) -> str:
+    if not second:
+        return ""
+    name = re.search(r"^\[([^\]]+)\]", second.get("summary", ""))
+    who = f" by {name.group(1)}" if name else ""
+    if second.get("status") == "pass":
+        return f"✅ Second check{html.escape(who)}: passed ({second.get('confidence', 0)}% of {len(second.get('audits', []))} claims)\n"
+    return "⚠️ Second check: unavailable (first check only)\n"
 
 
 class TelegramApprovalBot:
@@ -73,7 +84,8 @@ class TelegramApprovalBot:
             f"📍 {e(loc.get('name', ''))}, {e(loc.get('country', ''))}\n"
             f"⏱️ {script_payload.get('word_count', 0)} words · source: {e(script_payload.get('origin', '?'))}\n"
             f"✅ Fact check: {script_payload.get('consensus_confidence', 0)}% of {len(audits)} claims"
-            + (f" ({len(flagged)} hedged/disputed)" if flagged else "") + "\n\n"
+            + (f" ({len(flagged)} hedged/disputed)" if flagged else "") + "\n"
+            + _second_check_line(script_payload.get("second_check")) + "\n"
             f"📝 <i>{e(script_payload.get('narration_script', ''))}</i>\n\n"
             f"💬 First comment: <i>{e(script_payload.get('first_comment', ''))}</i>\n"
             f"🏷️ {e(' '.join(script_payload.get('hashtags', [])))}\n"

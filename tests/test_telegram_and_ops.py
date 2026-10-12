@@ -48,3 +48,9 @@ def test_logging_filter_masks_configured_secret(monkeypatch):
     record = logging.LogRecord("t", logging.INFO, "", 0, "key=%s", ("sk_live_supersecretvalue123",), None)
     _MaskingFilter(SecretMasker()).filter(record)
     assert "supersecret" not in record.getMessage()
+
+
+def test_placeholder_chat_id_is_not_an_approver():
+    from src.config import _approver_ids
+    assert _approver_ids("your_telegram_chat_id_here") == set()
+    assert _approver_ids("123, 456 ,abc") == {"123", "456"}

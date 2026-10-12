@@ -81,9 +81,12 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 # Comma-separated Telegram user IDs allowed to approve. Defaults to the chat ID,
 # which is the approver's user ID when the bot talks to them in a private chat.
-TELEGRAM_APPROVER_IDS = {
-    s.strip() for s in os.getenv("TELEGRAM_APPROVER_IDS", TELEGRAM_CHAT_ID).split(",") if s.strip()
-}
+def _approver_ids(raw: str) -> set:
+    """Numeric Telegram user IDs only; placeholders and junk are ignored."""
+    return {s.strip() for s in raw.split(",") if s.strip().lstrip("-").isdigit()}
+
+
+TELEGRAM_APPROVER_IDS = _approver_ids(os.getenv("TELEGRAM_APPROVER_IDS", TELEGRAM_CHAT_ID))
 APPROVAL_TIMEOUT_SECONDS = int(os.getenv("APPROVAL_TIMEOUT_SECONDS", "3600"))
 
 # Publishing defaults

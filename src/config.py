@@ -137,6 +137,10 @@ TARGET_WORD_COUNT_MAX = 115
 MIN_SCENE_IMAGES = 5
 # Local AI upscaler for low-resolution stills (https://github.com/xinntao/Real-ESRGAN, portable Vulkan build).
 REALESRGAN_BIN = os.getenv("REALESRGAN_BIN", str(BASE_DIR / "tools" / "realesrgan" / "realesrgan-ncnn-vulkan.exe"))
+# Per-beat images searched on Wikimedia Commons during a run. CC BY-SA images are excluded by
+# default: share-alike asks that adaptations (the video) be released under the same licence.
+BEAT_IMAGES_ENABLED = os.getenv("BEAT_IMAGES_ENABLED", "true").lower() in ("true", "1", "yes")
+BEAT_IMAGES_ALLOW_SHARE_ALIKE = os.getenv("BEAT_IMAGES_ALLOW_SHARE_ALIKE", "false").lower() in ("true", "1", "yes")
 
 # Narration & Voiceover (edge-tts)
 NARRATOR_VOICE = "en-US-ChristopherNeural"

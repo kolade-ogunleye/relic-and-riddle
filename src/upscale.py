@@ -68,7 +68,15 @@ def ensure_resolution(path: Path) -> Path:
     try:
         subprocess.run([str(binary), "-i", str(path), "-o", str(tmp), "-n", "realesrgan-x4plus"],
                        cwd=str(binary.parent), check=True, capture_output=True, timeout=600)
-        with Image.open(tmp) as im:
+        # Our own 4x output of a wide still can exceed Pillow's decompression-bomb limit
+        # (a 3840x2160 photo becomes 133 MP); the file is trusted, so lift the limit for it.
+        limit, Image.MAX_IMAGE_PIXELS = Image.MAX_IMAGE_PIXELS, None
+        try:
+            im = Image.open(tmp)
+            im.load()
+        finally:
+            Image.MAX_IMAGE_PIXELS = limit
+        with im:
             im = im.convert("RGB")
             # Keep no more than the video can use (a 2x-render crop width), to bound file size.
             scale = min(1.0, TARGET_CROP_WIDTH / max(1, vertical_crop_width(im.size)))

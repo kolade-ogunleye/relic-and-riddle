@@ -34,6 +34,7 @@ from src.config import ASSETS_DIR, DAILY_RUN_TIME, HARD_DURATION_CEILING, OUTPUT
 from src.credits import caption_credit_line, load_credits
 from src.db import PipelineDatabase, QueueEmpty
 from src.control import heartbeat_text, is_paused, make_command_handler, ping_healthcheck
+from src import beat_images
 from src.scene_planner import plan_scenes, segment_beats
 from src.upscale import ensure_all, ensure_resolution
 from src.music import mark_used as mark_track_used, music_for
@@ -282,19 +283,39 @@ class PipelineCoordinator:
         # 7. Master render
         # Match pictures to narration beats; cuts land on the beat boundaries.
         beats = segment_beats(words, vo_dur)
-        scenes, durations, plan_notes = plan_scenes(beats, scene_media)
-        log.info("Scene plan: %d beats (%s).", len(beats), plan_notes[:120])
+        # Extra candidates searched for the concrete subject of individual beats (openly licensed).
+        beat_paths, beat_credits = beat_images.source(beats, topic, run_dir / "beat_images")
+        for cred, path in zip(beat_credits, beat_paths):
+            cred["upscaled"] = str(ensure_resolution(path))
+        candidates = scene_media + [Path(c["upscaled"]) for c in beat_credits]
         master_mp4 = run_dir / f"{tid}_master.mp4"
-        # 2.5D parallax clips for the stills (local GPU); falls back to flat camera moves.
-        try:
-            scenes = render_parallax(scenes, durations, run_dir / "parallax", TRANS_DUR) or scenes
-        except Exception as e:
-            log.warning("Parallax rendering failed (%s); using flat camera moves.", e)
-        self.video_composer.compose_video(scenes, vo_path, bed_path, words, vo_dur, master_mp4, durations=durations)
+        caption_base, feedback, qa = payload["caption"], "", None
+        for attempt in (1, 2):  # a second pass only if the video check finds a picture mismatch
+            scenes, durations, plan_notes = plan_scenes(beats, candidates, feedback=feedback)
+            log.info("Scene plan: %d beats (%s).", len(beats), plan_notes[:120])
+            used = beat_images.used_credits(scenes, beat_credits)
+            caption = beat_images.credit_caption(caption_base, load_credits(ASSETS_DIR / tid), used)
+            if len(caption) > 2200:  # can't credit them within Instagram's limit, so don't use them
+                log.warning("Beat image credits would overflow the caption; using the topic's images only.")
+                candidates, used, caption = scene_media, [], caption_base
+                scenes, durations, plan_notes = plan_scenes(beats, candidates, feedback=feedback)
+            payload["caption"] = caption
+            payload["beat_image_credits"] = used
+            payload["beat_image_note"] = (f"🔍 {len(used)} beat-specific image(s) auto-sourced from Wikimedia Commons; "
+                                          "check they show the right thing" if used else "")
+            # 2.5D parallax clips for the stills (local GPU); falls back to flat camera moves.
+            try:
+                scenes = render_parallax(scenes, durations, run_dir / "parallax", TRANS_DUR) or scenes
+            except Exception as e:
+                log.warning("Parallax rendering failed (%s); using flat camera moves.", e)
+            self.video_composer.compose_video(scenes, vo_path, bed_path, words, vo_dur, master_mp4, durations=durations)
+            # Automated look at the finished video; findings go on the review card.
+            qa = review_render(master_mp4, beats, thumb_916, run_dir)
+            feedback = beat_images.picture_issues(qa)
+            if not feedback or attempt == 2:
+                break
+            log.info("Video check found picture mismatches; re-planning scenes once:\n%s", feedback)
         review_mp4 = self.video_composer.make_review_proxy(master_mp4, run_dir / "review_proxy.mp4")
-
-        # Automated look at the finished video; findings go on the review card.
-        qa = review_render(master_mp4, beats, thumb_916, run_dir)
         payload["qa_summary"] = qa_summary_html(qa)
         (run_dir / "qa_report.json").write_text(qa.model_dump_json(indent=2) if qa else "null", encoding="utf-8")
         log.info("%s", re.sub(r"<[^>]+>", "", payload["qa_summary"]).replace("\n", " | "))

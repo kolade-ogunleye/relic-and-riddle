@@ -136,3 +136,43 @@ def test_approval_button_uses_short_key(db, monkeypatch):
     cq = {"id": "q", "data": f"approve:{key}", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 1}}
     assert bot._handle_callback(cq) == "approved"
     assert db.get_approval(rid)["decision"] == "approved"
+
+
+def test_render_adds_beat_images_and_replans_once_on_picture_mismatch(db, monkeypatch, tmp_path, curated_payload):
+    import main
+    from src.models import QAIssue, QAReport
+    coord = PipelineCoordinator(db)
+    topic_img, beat_img = tmp_path / "t.jpg", tmp_path / "b.jpg"
+    monkeypatch.setattr(main, "ensure_all", lambda paths: (paths, 0))
+    monkeypatch.setattr(main, "ensure_resolution", lambda p: p)
+    monkeypatch.setattr(main, "load_credits", lambda d: {"images": []})
+    monkeypatch.setattr(main.beat_images, "source", lambda beats, topic, d: (
+        [beat_img], [{"file": str(beat_img), "beat": 1, "artist": "Bob", "license": "CC BY 4.0", "attribution_required": True}]))
+    plans = []
+
+    def plan(beats, media, feedback=""):
+        plans.append((list(media), feedback))
+        return [beat_img], [3.0], "n"
+    monkeypatch.setattr(main, "plan_scenes", plan)
+    monkeypatch.setattr(main, "segment_beats", lambda w, d: [{"start": 0, "end": 3, "text": "A door."}])
+    monkeypatch.setattr(main, "render_parallax", lambda *a: None)
+    reports = iter([QAReport(summary="", issues=[QAIssue(beat=1, severity="major", issue="Image shows a beach")]),
+                    QAReport(summary="", issues=[])])
+    monkeypatch.setattr(main, "review_render", lambda *a: next(reports))
+    monkeypatch.setattr(coord.visual_engine, "generate_thumbnails", lambda *a: (tmp_path / "c.jpg", tmp_path / "g.jpg"))
+    monkeypatch.setattr(coord.multiformat_gen, "generate_story_sequence", lambda *a: [])
+    monkeypatch.setattr(coord.multiformat_gen, "generate_carousel_sequence", lambda *a: [])
+    renders = []
+    monkeypatch.setattr(coord.video_composer, "compose_video", lambda *a, **k: renders.append(1))
+    monkeypatch.setattr(coord.video_composer, "make_review_proxy", lambda m, o: o)
+    monkeypatch.setattr(coord, "publish_run", lambda run_id, dry_run, previous_status: {"status": "simulated"})
+    db.create_run("r9", "01_topic")
+    payload = dict(curated_payload, caption="Story.")
+
+    coord._render_approve_publish({"id": "01_topic"}, "r9", tmp_path, payload, [topic_img], topic_img,
+                                  tmp_path / "v.mp3", tmp_path / "bed.wav", [], 3.0, True, True, None)
+
+    assert plans[0] == ([topic_img, beat_img], "") and plans[1][1] == "Beat 1: Image shows a beach"
+    assert len(renders) == 2  # one re-render, then stop
+    assert payload["caption"] == "Story.\n\n📷 Images via Wikimedia Commons: Bob (CC BY 4.0)"
+    assert payload["beat_image_note"].startswith("🔍 1 beat-specific image")

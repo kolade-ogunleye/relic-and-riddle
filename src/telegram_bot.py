@@ -92,6 +92,8 @@ class TelegramApprovalBot:
         )
         if script_payload.get("music_note"):
             text += "\n" + e(script_payload["music_note"])
+        if script_payload.get("beat_image_note"):
+            text += "\n" + e(script_payload["beat_image_note"])
         if script_payload.get("source_note"):
             text += "\n" + e(script_payload["source_note"]) + "\n"
         if script_payload.get("qa_summary"):

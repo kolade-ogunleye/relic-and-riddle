@@ -51,8 +51,9 @@ def segment_beats(words: List[Dict[str, Any]], total: float) -> List[Dict[str, A
     return beats
 
 
-def plan_scenes(beats: List[Dict[str, Any]], media: List[Path]) -> Tuple[List[Path], List[float], str]:
-    """Returns (media per beat, duration per beat, notes). A motion hook clip stays first."""
+def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = "") -> Tuple[List[Path], List[float], str]:
+    """Returns (media per beat, duration per beat, notes). A motion hook clip stays first.
+    `feedback` lists problems a reviewer found with a previous plan, so they are avoided."""
     durations = [b["end"] - b["start"] for b in beats]
     hook = media[0] if media and is_video(media[0]) else None
     stills = [p for p in media if not is_video(p)]
@@ -66,8 +67,9 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path]) -> Tuple[List[Pa
             for i, p in enumerate(stills, 1):
                 content += [{"type": "text", "text": f"Image {i}:"}, image_block(p)]
             lines = "\n".join(f"Beat {i}: {b['text']}" for i, b in enumerate(beats, 1))
+            fix = f"\n\nA reviewer found these problems with the previous choice; fix them:\n{feedback}" if feedback else ""
             content.append({"type": "text", "text": (
-                f"Narration beats ({n}):\n{lines}\n\nReturn exactly {n} image numbers (1-{len(stills)}), one per beat, in order.")})
+                f"Narration beats ({n}):\n{lines}{fix}\n\nReturn exactly {n} image numbers (1-{len(stills)}), one per beat, in order.")})
             plan = structured_call(SYSTEM, content, ScenePlan, effort="low", max_tokens=4000)
             picks = [i - 1 for i in plan.images]
             if len(picks) == n and all(0 <= i < len(stills) for i in picks):

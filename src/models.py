@@ -127,3 +127,13 @@ class TopicProposal(BaseModel):
 
 class TopicProposals(BaseModel):
     topics: List[TopicProposal]
+
+
+class BeatQuery(BaseModel):
+    beat: int            # 1-based beat number
+    query: str           # Wikimedia Commons search for the concrete subject of that beat
+    keywords: List[str]  # lowercase words, one of which a relevant file title must contain
+
+
+class BeatQueries(BaseModel):
+    items: List[BeatQuery]

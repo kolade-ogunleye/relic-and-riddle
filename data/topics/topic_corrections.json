@@ -1,0 +1,245 @@
+{
+  "_doc": "Accuracy pass (2026-10-12): replaces myth-based hooks and template filler facts in topic_bank.json. Still unverified notes: the script engine re-checks everything with web search.",
+  "01_derinkuyu_underground_city": {
+    "hook": "In 1963, a man renovating his house in Cappadocia knocked through a wall and found a tunnel leading down into an underground city.",
+    "key_facts": [
+      "Reaches roughly 60-85 m deep; about 8 levels are accessible, some sources claim up to 18",
+      "Often said to have sheltered up to 20,000 people; such figures are estimates",
+      "Ventilation shafts, wells, stables, chapels and storerooms",
+      "Rolling stone doors weighing up to about 500 kg, closable from the inside",
+      "Earliest phases possibly Phrygian (8th-7th century BC); greatly expanded in the Byzantine era; used until the 1923 population exchange"
+    ]
+  },
+  "06_damascus_steel_nanotubes": {
+    "hook": "Damascus steel blades were famed for their watery patterns and sharpness, and in 2006 scientists found carbon nanotubes inside one.",
+    "key_facts": [
+      "Made from wootz crucible steel produced in South India and Sri Lanka",
+      "Recognisable by flowing water-like (damask) surface patterns",
+      "A 2006 Nature paper (Reibold et al.) reported carbon nanotubes and cementite nanowires in a 17th-century Damascus sabre",
+      "The production method was lost around the 18th century, possibly as ores with specific trace impurities ran out",
+      "Stories of blades cutting silk scarves in mid-air are legend, not documented fact"
+    ]
+  },
+  "08_hypogeum_of_hal_saflieni": {
+    "hook": "Beneath an ordinary street in Malta lies a 5,000-year-old underground burial complex carved by hand from solid rock.",
+    "key_facts": [
+      "Three underground levels cut into globigerina limestone, used from about 4000 to 2500 BC",
+      "Discovered in 1902 by workers cutting cisterns for new houses",
+      "Remains of an estimated 7,000 people; source of the 'Sleeping Lady' figurine",
+      "The 'Oracle Room' has a strong acoustic resonance; claims that it alters brain activity are speculative",
+      "UNESCO World Heritage Site since 1980, with strictly limited daily visitors"
+    ]
+  },
+  "10_unfinished_obelisk_aswan": {
+    "hook": "In an Aswan granite quarry lies an obelisk that would have been the largest ever raised in ancient Egypt, abandoned when it cracked.",
+    "key_facts": [
+      "About 42 m long; estimated weight roughly 1,090-1,200 tonnes",
+      "Often attributed to Queen Hatshepsut's reign (15th century BC), though this is uncertain",
+      "Workers pounded the granite with balls of hard dolerite",
+      "Abandoned after cracks appeared in the stone",
+      "Gives rare direct evidence of how obelisks were quarried"
+    ]
+  },
+  "11_piri_reis_antarctica_map": {
+    "hook": "In 1929, a 1513 Ottoman world map turned up in Istanbul, partly copied from a lost map by Christopher Columbus.",
+    "key_facts": [
+      "Compiled in 1513 by Ottoman admiral Piri Reis from about 20 source maps",
+      "Rediscovered in 1929 in the Topkapi Palace library",
+      "Piri Reis noted that he used a map drawn by Columbus, which has never been found",
+      "Claims that it shows ice-free Antarctica are rejected by historians; the southern coast is usually read as a distorted South American coastline",
+      "Only about a third of the original map survives"
+    ]
+  },
+  "12_flannan_isle_lighthouse_disappearance": {
+    "hook": "In December 1900, three lighthouse keepers vanished from a remote Scottish island, and no trace of them was ever found.",
+    "key_facts": [
+      "Eilean Mor in the Flannan Isles, Outer Hebrides; absence discovered on 26 December 1900",
+      "Keepers James Ducat, Thomas Marshall and Donald MacArthur were missing",
+      "The official inquiry concluded they were probably swept away by a huge wave during a storm",
+      "Details like an overturned chair, an uneaten meal or eerie log entries come largely from a 1912 poem and later retellings",
+      "The lighthouse was automated in 1971"
+    ]
+  },
+  "13_trepanation_miracle": {
+    "hook": "Thousands of years ago, people cut holes in living patients' skulls, and many of those patients survived.",
+    "key_facts": [
+      "Trepanation is among the oldest known surgical procedures, with Neolithic examples thousands of years old",
+      "Healed bone around many openings shows patients lived for months or years afterwards",
+      "Found across Europe, Peru and elsewhere",
+      "Studies of ancient Peruvian skulls suggest survival rates improved over centuries",
+      "Reasons may have included treating head injuries; ritual motives are debated"
+    ]
+  },
+  "14_nazca_lines_runway_paradox": {
+    "title": "The Nazca Lines",
+    "hook": "In the desert of southern Peru, hundreds of giant figures and lines were drawn into the ground about 2,000 years ago.",
+    "key_facts": [
+      "Made by the Nazca culture between roughly 500 BC and AD 500",
+      "Created by removing reddish surface stones to expose lighter ground beneath",
+      "Many figures are best seen from the air, but lines are also visible from nearby foothills",
+      "Their purpose is debated: ritual walkways, water and fertility ceremonies, or astronomy",
+      "UNESCO World Heritage Site; new figures are still being found with drones and AI"
+    ]
+  },
+  "15_sunken_city_of_heracleion": {
+    "hook": "For centuries, the great Egyptian port of Thonis-Heracleion was known only from ancient texts, until divers found it underwater in 2000.",
+    "key_facts": [
+      "Located in Abu Qir Bay by Franck Goddio's team in 2000",
+      "Thonis (Egyptian name) and Heracleion (Greek name) were the same city",
+      "Egypt's main Mediterranean port before Alexandria rose",
+      "Sank gradually, likely through earthquakes, soil liquefaction and rising water, by around the 8th century AD",
+      "Finds include colossal statues about 5 m tall of a king, a queen and the god Hapi"
+    ]
+  },
+  "16_zhang_heng_132ad_seismoscope": {
+    "title": "Zhang Heng's Earthquake Detector (AD 132)",
+    "hook": "In AD 132, a Chinese inventor built a bronze vessel that, records say, signalled an earthquake hundreds of miles away.",
+    "key_facts": [
+      "Invented by the polymath Zhang Heng during the Eastern Han dynasty",
+      "Eight dragons held bronze balls; a ball dropped into a toad's mouth to show the direction of a tremor",
+      "Han records say it detected a quake in Longxi, hundreds of kilometres away, that was not felt in the capital",
+      "The internal mechanism is unknown; modern reconstructions use a pendulum",
+      "Known only from written descriptions; the original is lost"
+    ]
+  },
+  "17_voynich_manuscript": {
+    "hook": "A 600-year-old book written in an unknown script has defeated every attempt to read it.",
+    "key_facts": [
+      "Its vellum is radiocarbon-dated to 1404-1438",
+      "About 240 pages with drawings of unidentified plants, star charts and bathing figures",
+      "Named after book dealer Wilfrid Voynich, who acquired it in 1912",
+      "Studied without success by WWII-era codebreakers including William Friedman",
+      "Held at Yale's Beinecke Library; theories range from cipher to unknown language to elaborate hoax"
+    ]
+  },
+  "18_odessa_catacombs_labyrinth": {
+    "hook": "Beneath the city of Odesa runs one of the largest tunnel networks in the world, dug mostly by limestone miners.",
+    "key_facts": [
+      "Estimated at roughly 2,500 km (about 1,500 miles) of tunnels",
+      "Mostly former limestone quarries; the stone was used to build the city in the 19th century",
+      "Used by smugglers, and by Soviet partisans during World War II",
+      "Large parts are unmapped, and people have died after getting lost",
+      "A small section is open as a museum"
+    ]
+  },
+  "19_richat_structure_sahara_eye": {
+    "hook": "Seen from space, a 40-kilometre bullseye in the Sahara looks like a giant eye, and it was made by geology, not people.",
+    "key_facts": [
+      "About 40 km (25 miles) across, in Mauritania's Adrar region",
+      "Geologists explain it as an uplifted, eroded geological dome, not an impact crater",
+      "A well-known landmark for astronauts",
+      "Claims linking it to Atlantis are not supported by geology or archaeology",
+      "Prehistoric stone tools found in the area show people lived nearby"
+    ]
+  },
+  "20_amber_room_heist": {
+    "hook": "In 1941, German troops dismantled a palace room made of amber and shipped it away, and it has not been seen since 1945.",
+    "key_facts": [
+      "Created in Prussia in the early 18th century and given to Peter the Great in 1716",
+      "Installed in the Catherine Palace near St Petersburg; said to contain several tonnes of amber",
+      "Dismantled by German forces in 1941 and displayed in Konigsberg Castle",
+      "Disappeared in 1944-45; it may have been destroyed by bombing or fire, but its fate is unknown",
+      "A reconstruction was completed in 2003"
+    ]
+  },
+  "21_gol_gumbaz_whispering_gallery": {
+    "hook": "Under one of the largest domes of the pre-modern world, in Vijayapura, India, a whisper can carry right across the gallery.",
+    "key_facts": [
+      "Mausoleum of Sultan Mohammed Adil Shah, completed in 1656",
+      "Its dome is about 44 m across externally, among the largest pre-modern domes",
+      "A whispering gallery runs around the base of the dome",
+      "Sounds are said to echo many times, often quoted as seven or more",
+      "Located in Vijayapura (formerly Bijapur), Karnataka"
+    ]
+  },
+  "22_tunguska_event_1908": {
+    "hook": "In 1908, an explosion over Siberia flattened about 80 million trees across 2,000 square kilometres, without leaving a crater.",
+    "key_facts": [
+      "30 June 1908, near the Podkamennaya Tunguska River",
+      "Most likely the airburst of an asteroid or comet several kilometres above the ground",
+      "Energy estimates range widely, roughly 3 to 30 megatons",
+      "The first scientific expedition, led by Leonid Kulik, reached the site in 1927",
+      "The largest impact event in recorded history"
+    ]
+  },
+  "23_claw_of_archimedes": {
+    "hook": "When Rome besieged Syracuse, ancient writers say Archimedes built a giant claw that lifted enemy ships out of the sea.",
+    "key_facts": [
+      "Siege of Syracuse, 214-212 BC",
+      "Described by Polybius, Livy and Plutarch",
+      "Probably a crane-like arm with a grappling hook; the exact design is unknown",
+      "A 2005 TV experiment built a working full-scale version",
+      "Archimedes was killed when the city fell in 212 BC"
+    ]
+  },
+  "24_dyatlov_pass_incident": {
+    "hook": "In 1959, nine hikers cut their way out of their tent and fled into the snow at night, and none of them survived.",
+    "key_facts": [
+      "Group led by Igor Dyatlov, February 1959, on Kholat Syakhl in the northern Urals",
+      "The tent was cut open from inside; bodies were found over the following months, some with severe injuries",
+      "Traces of radioactivity were found on some clothing",
+      "A 2019-2020 Russian inquiry and a 2021 scientific study point to a slab avalanche",
+      "Some details are still debated"
+    ]
+  },
+  "25_lycurgus_cup_nanotech": {
+    "hook": "A 1,600-year-old Roman cup glows green in reflected light and turns red when lit from behind.",
+    "key_facts": [
+      "4th-century AD Roman glass cage cup, now in the British Museum",
+      "The colour change comes from tiny gold and silver nanoparticles in the glass",
+      "It depicts the myth of King Lycurgus",
+      "Its makers probably did not understand the effect in modern terms",
+      "It has inspired modern research into nanoparticle optics"
+    ]
+  },
+  "26_wieliczka_salt_cathedral": {
+    "hook": "Deep underground in Poland, miners carved an entire chapel from rock salt, down to the chandeliers.",
+    "key_facts": [
+      "Salt was mined at Wieliczka from the 13th century until 1996",
+      "Reaches about 327 m deep, with more than 280 km of passages",
+      "St Kinga's Chapel was carved over several decades from 1896, about 100 m below ground",
+      "Its chandeliers are made of salt crystals",
+      "One of the first UNESCO World Heritage Sites (1978)"
+    ]
+  },
+  "27_great_wall_of_gorgan": {
+    "hook": "In northern Iran runs a 195-kilometre ancient wall of red brick that few people have ever heard of.",
+    "key_facts": [
+      "Built by the Sasanian Empire, probably in the 5th-6th century AD",
+      "About 195 km long, with more than 30 forts",
+      "Made of fired red bricks and fed by a canal system, hence the nickname 'Red Snake'",
+      "Possibly garrisoned by tens of thousands of soldiers",
+      "Among the longest defensive walls of the ancient world"
+    ]
+  },
+  "28_dancing_plague_1518": {
+    "hook": "In July 1518, a woman began dancing in a Strasbourg street and could not stop, and within weeks dozens more joined her.",
+    "key_facts": [
+      "Began with a woman known as Frau Troffea in July 1518",
+      "Records describe dozens and perhaps up to 400 dancers over several weeks",
+      "Reports that people danced to death are uncertain; contemporary sources are limited",
+      "Authorities first encouraged the dancing, even hiring musicians",
+      "Explanations include mass psychogenic illness amid famine and disease; ergot poisoning is a disputed theory"
+    ]
+  },
+  "29_baltic_sea_anomaly": {
+    "hook": "In 2011, Swedish treasure hunters released a blurry sonar image of a round shape on the Baltic seabed, and the internet went wild.",
+    "key_facts": [
+      "Found by the Ocean X team in June 2011 in the northern Baltic Sea",
+      "Roughly 60 m (200 ft) across, at about 90 m depth",
+      "Claims that it disabled electrical equipment came from the finders and are unverified",
+      "Geologists who examined samples suggest a natural, glacially deposited rock formation",
+      "A case study in how sonar images can be misread"
+    ]
+  },
+  "30_acoustic_kitty_cia": {
+    "hook": "In the 1960s, the CIA reportedly tried to turn a cat into a walking microphone.",
+    "key_facts": [
+      "A 1960s project of the CIA's Directorate of Science and Technology",
+      "A microphone and transmitter were reportedly implanted in a cat",
+      "A heavily redacted CIA memo released in 2001 concluded the approach was not practical",
+      "Former CIA official Victor Marchetti claimed it cost about $20 million and that the cat was hit by a taxi; this account is disputed",
+      "The project was reportedly cancelled around 1967"
+    ]
+  }
+}

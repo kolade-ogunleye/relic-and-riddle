@@ -5,21 +5,21 @@
       "id": "01_derinkuyu_underground_city",
       "title": "The Underground City of Derinkuyu",
       "sub_theme": "Lost Civilizations",
-      "hook": "In 1963, a simple basement renovation in Turkey uncovered the largest underground city in human history.",
+      "hook": "In 1963, a man renovating his house in Cappadocia knocked through a wall and found a tunnel leading down into an underground city.",
       "location": {
         "name": "Derinkuyu Underground City",
         "city": "Derinkuyu",
-        "region": "Nev\u015fehir / Cappadocia",
+        "region": "Nevşehir / Cappadocia",
         "country": "Turkey",
         "latitude": 38.3736,
         "longitude": 34.7347
       },
       "key_facts": [
-        "18 subterranean stories carved 280 feet into solid volcanic rock",
-        "Sheltered over 20,000 citizens from surface invaders or catastrophes",
-        "Equipped with thousands of ventilation shafts, freshwater wells, and chapels",
-        "1,000-pound rolling stone disc doors that could only be locked from the inside",
-        "Still unknown who originally engineered the earliest levels"
+        "Reaches roughly 60-85 m deep; about 8 levels are accessible, some sources claim up to 18",
+        "Often said to have sheltered up to 20,000 people; such figures are estimates",
+        "Ventilation shafts, wells, stables, chapels and storerooms",
+        "Rolling stone doors weighing up to about 500 kg, closable from the inside",
+        "Earliest phases possibly Phrygian (8th-7th century BC); greatly expanded in the Byzantine era; used until the 1923 population exchange"
       ],
       "meta_categories": [
         "History & Philosophy",
@@ -75,7 +75,7 @@
       "id": "03_kailasa_temple_monolith",
       "title": "The Kailasa Temple Monolith",
       "sub_theme": "Architectural Enigma",
-      "hook": "This 100-foot temple was not built from the ground up\u2014it was carved out of a single mountain from top to bottom.",
+      "hook": "This 100-foot temple was not built from the ground up—it was carved out of a single mountain from top to bottom.",
       "location": {
         "name": "Kailasa Temple, Ellora Caves",
         "city": "Aurangabad",
@@ -143,19 +143,19 @@
     },
     {
       "id": "05_gobekli_tepe",
-      "title": "G\u00f6bekli Tepe: The 11,000-Year-Old Sanctuary",
+      "title": "Göbekli Tepe: The 11,000-Year-Old Sanctuary",
       "sub_theme": "Prehistoric Marvel",
       "hook": "Built 6,000 years before Stonehenge, this massive stone sanctuary proved human hunters organized societies long before farming began.",
       "location": {
-        "name": "G\u00f6bekli Tepe",
-        "city": "\u015eanl\u0131urfa",
+        "name": "Göbekli Tepe",
+        "city": "Şanlıurfa",
         "region": "Southeastern Anatolia",
         "country": "Turkey",
         "latitude": 37.2231,
         "longitude": 38.9225
       },
       "key_facts": [
-        "Dating to 9500 BC\u2014predating agriculture, pottery, the wheel, and metal tools",
+        "Dating to 9500 BC—predating agriculture, pottery, the wheel, and metal tools",
         "Massive T-shaped limestone pillars weighing up to 20 tons carved with low-relief predators",
         "Overturned the classical archaeological timeline that farming preceded monument building",
         "Intentionally buried and backfilled with dirt thousands of years after construction",
@@ -180,7 +180,7 @@
       "id": "06_damascus_steel_nanotubes",
       "title": "Damascus Steel & Ancient Carbon Nanotubes",
       "sub_theme": "Lost Metallurgy",
-      "hook": "Crusaders claimed these legendary swords could slice a falling silk ribbon in half\u2014modern electron microscopes revealed carbon nanotubes.",
+      "hook": "Damascus steel blades were famed for their watery patterns and sharpness, and in 2006 scientists found carbon nanotubes inside one.",
       "location": {
         "name": "Damascus Old City",
         "city": "Damascus",
@@ -190,11 +190,11 @@
         "longitude": 36.2765
       },
       "key_facts": [
-        "Forged from wootz crucible steel originally mined in ancient southern India",
-        "Recognized by characteristic swirling water patterns (damask) on the blade face",
-        "In 2006, German researchers discovered carbon nanotubes and cementite nanowires inside the steel",
-        "The precise thermal cycling and plant impurity recipe was lost by the 18th century",
-        "Provided unmatched flexibility and razor sharpness far beyond European medieval steel"
+        "Made from wootz crucible steel produced in South India and Sri Lanka",
+        "Recognisable by flowing water-like (damask) surface patterns",
+        "A 2006 Nature paper (Reibold et al.) reported carbon nanotubes and cementite nanowires in a 17th-century Damascus sabre",
+        "The production method was lost around the 18th century, possibly as ores with specific trace impurities ran out",
+        "Stories of blades cutting silk scarves in mid-air are legend, not documented fact"
       ],
       "meta_categories": [
         "Science & Tech",
@@ -250,9 +250,9 @@
       "id": "08_hypogeum_of_hal_saflieni",
       "title": "The Hypogeum of Hal Saflieni",
       "sub_theme": "Subterranean Relic",
-      "hook": "Beneath Malta lies a 5,000-year-old burial sanctuary with an acoustic chamber that alters the human brainwave frequency.",
+      "hook": "Beneath an ordinary street in Malta lies a 5,000-year-old underground burial complex carved by hand from solid rock.",
       "location": {
-        "name": "\u0126al Saflieni Hypogeum",
+        "name": "Ħal Saflieni Hypogeum",
         "city": "Paola",
         "region": "Southern Harbour",
         "country": "Malta",
@@ -260,11 +260,11 @@
         "longitude": 14.5069
       },
       "key_facts": [
-        "Three subterranean levels hand-carved out of globigerina limestone around 3300 BC",
-        "Discovered accidentally in 1902 by stone masons cutting cisterns",
-        "The 'Oracle Chamber' resonates powerfully at 110 Hz, a frequency known to stimulate emotional and creative brain processing",
-        "Yielded remains of an estimated 7,000 individuals alongside the famous 'Sleeping Lady' statuette",
-        "One of the best-preserved Neolithic underground architecture sites in the world"
+        "Three underground levels cut into globigerina limestone, used from about 4000 to 2500 BC",
+        "Discovered in 1902 by workers cutting cisterns for new houses",
+        "Remains of an estimated 7,000 people; source of the 'Sleeping Lady' figurine",
+        "The 'Oracle Room' has a strong acoustic resonance; claims that it alters brain activity are speculative",
+        "UNESCO World Heritage Site since 1980, with strictly limited daily visitors"
       ],
       "meta_categories": [
         "History & Philosophy",
@@ -320,7 +320,7 @@
       "id": "10_unfinished_obelisk_aswan",
       "title": "The Unfinished Obelisk of Aswan",
       "sub_theme": "Ancient Megaliths",
-      "hook": "Lying flat in an Egyptian quarry is a 1,200-ton block of solid granite that modern cranes still cannot lift.",
+      "hook": "In an Aswan granite quarry lies an obelisk that would have been the largest ever raised in ancient Egypt, abandoned when it cracked.",
       "location": {
         "name": "Aswan Granite Quarries",
         "city": "Aswan",
@@ -330,11 +330,11 @@
         "longitude": 32.8953
       },
       "key_facts": [
-        "Would have stood 137 feet (42 meters) tall if erected\u2014a third taller than any ancient obelisk",
-        "Estimated weight: approximately 1,200 metric tons (equivalent to 3 Boeing 747s)",
-        "Chiseled directly out of bedrock using hard diorite pounder stones",
-        "Work was abruptly abandoned when a fatal stress crack developed through the stone",
-        "Offers unparalleled direct evidence of ancient Egyptian stone-quarrying techniques"
+        "About 42 m long; estimated weight roughly 1,090-1,200 tonnes",
+        "Often attributed to Queen Hatshepsut's reign (15th century BC), though this is uncertain",
+        "Workers pounded the granite with balls of hard dolerite",
+        "Abandoned after cracks appeared in the stone",
+        "Gives rare direct evidence of how obelisks were quarried"
       ],
       "meta_categories": [
         "Archaeology",
@@ -355,7 +355,7 @@
       "id": "11_piri_reis_antarctica_map",
       "title": "The Piri Reis Map of 1513",
       "sub_theme": "Cartographic Mystery",
-      "hook": "In 1929, historians found a 1513 map showing the coastline of Antarctica 300 years before it was officially discovered.",
+      "hook": "In 1929, a 1513 Ottoman world map turned up in Istanbul, partly copied from a lost map by Christopher Columbus.",
       "location": {
         "name": "Topkapi Palace",
         "city": "Istanbul",
@@ -365,9 +365,11 @@
         "longitude": 0.0
       },
       "key_facts": [
-        "Core historical phenomenon: The Piri Reis Map of 1513",
-        "Geographic origin: Topkapi Palace, Istanbul, Turkey",
-        "Unresolved historical enigma verified by archival documentation"
+        "Compiled in 1513 by Ottoman admiral Piri Reis from about 20 source maps",
+        "Rediscovered in 1929 in the Topkapi Palace library",
+        "Piri Reis noted that he used a map drawn by Columbus, which has never been found",
+        "Claims that it shows ice-free Antarctica are rejected by historians; the southern coast is usually read as a distorted South American coastline",
+        "Only about a third of the original map survives"
       ],
       "meta_categories": [
         "History & Philosophy",
@@ -386,7 +388,7 @@
       "id": "12_flannan_isle_lighthouse_disappearance",
       "title": "The Flannan Isle Lighthouse Vanishing",
       "sub_theme": "Unsolved Disappearance",
-      "hook": "In 1900, a supply boat arrived at a Scottish lighthouse to find a set dinner table, a stopped clock, and three keepers vanished into thin air.",
+      "hook": "In December 1900, three lighthouse keepers vanished from a remote Scottish island, and no trace of them was ever found.",
       "location": {
         "name": "Flannan Isles",
         "city": "Outer Hebrides",
@@ -396,9 +398,11 @@
         "longitude": 0.0
       },
       "key_facts": [
-        "Core historical phenomenon: The Flannan Isle Lighthouse Vanishing",
-        "Geographic origin: Flannan Isles, Outer Hebrides, Scotland",
-        "Unresolved historical enigma verified by archival documentation"
+        "Eilean Mor in the Flannan Isles, Outer Hebrides; absence discovered on 26 December 1900",
+        "Keepers James Ducat, Thomas Marshall and Donald MacArthur were missing",
+        "The official inquiry concluded they were probably swept away by a huge wave during a storm",
+        "Details like an overturned chair, an uneaten meal or eerie log entries come largely from a 1912 poem and later retellings",
+        "The lighthouse was automated in 1971"
       ],
       "meta_categories": [
         "History & Philosophy",
@@ -417,7 +421,7 @@
       "id": "13_trepanation_miracle",
       "title": "Ancient Skull Surgery (Trepanation)",
       "sub_theme": "Ancient Medicine",
-      "hook": "Archaeologists found 7,000-year-old human skulls with neat geometric holes drilled into them\u2014and the bone had completely healed.",
+      "hook": "Thousands of years ago, people cut holes in living patients' skulls, and many of those patients survived.",
       "location": {
         "name": "Paracas Peninsula",
         "city": "Ica",
@@ -427,9 +431,11 @@
         "longitude": 0.0
       },
       "key_facts": [
-        "Core historical phenomenon: Ancient Skull Surgery (Trepanation)",
-        "Geographic origin: Paracas Peninsula, Ica, Peru",
-        "Unresolved historical enigma verified by archival documentation"
+        "Trepanation is among the oldest known surgical procedures, with Neolithic examples thousands of years old",
+        "Healed bone around many openings shows patients lived for months or years afterwards",
+        "Found across Europe, Peru and elsewhere",
+        "Studies of ancient Peruvian skulls suggest survival rates improved over centuries",
+        "Reasons may have included treating head injuries; ritual motives are debated"
       ],
       "meta_categories": [
         "History & Philosophy",
@@ -446,9 +452,9 @@
     },
     {
       "id": "14_nazca_lines_runway_paradox",
-      "title": "The Nazca Lines Runway Paradox",
+      "title": "The Nazca Lines",
       "sub_theme": "Geoglyphs",
-      "hook": "Miles of geometric lines etched into the Peruvian desert can only be recognized from an airplane that wasn't invented for 1,500 years.",
+      "hook": "In the desert of southern Peru, hundreds of giant figures and lines were drawn into the ground about 2,000 years ago.",
       "location": {
         "name": "Nazca Desert",
         "city": "Nazca",
@@ -458,9 +464,11 @@
         "longitude": 0.0
       },
       "key_facts": [
-        "Core historical phenomenon: The Nazca Lines Runway Paradox",
-        "Geographic origin: Nazca Desert, Nazca, Peru",
-        "Unresolved historical enigma verified by archival documentation"
+        "Made by the Nazca culture between roughly 500 BC and AD 500",
+        "Created by removing reddish surface stones to expose lighter ground beneath",
+        "Many figures are best seen from the air, but lines are also visible from nearby foothills",
+        "Their purpose is debated: ritual walkways, water and fertility ceremonies, or astronomy",
+        "UNESCO World Heritage Site; new figures are still being found with drones and AI"
       ],
       "meta_categories": [
         "History & Philosophy",
@@ -479,7 +487,7 @@
       "id": "15_sunken_city_of_heracleion",
       "title": "The Sunken City of Thonis-Heracleion",
       "sub_theme": "Submerged City",
-      "hook": "For 1,200 years, historians believed it was a myth until a diver spotted a colossal 16-foot statue submerged in the Mediterranean.",
+      "hook": "For centuries, the great Egyptian port of Thonis-Heracleion was known only from ancient texts, until divers found it underwater in 2000.",
       "location": {
         "name": "Abukir Bay",
         "city": "Alexandria",
@@ -489,9 +497,11 @@
         "longitude": 0.0
       },
       "key_facts": [
-        "Core historical phenomenon: The Sunken City of Thonis-Heracleion",
-        "Geographic origin: Abukir Bay, Alexandria, Egypt",
-        "Unresolved historical enigma verified by archival documentation"
+        "Located in Abu Qir Bay by Franck Goddio's team in 2000",
+        "Thonis (Egyptian name) and Heracleion (Greek name) were the same city",
+        "Egypt's main Mediterranean port before Alexandria rose",
+        "Sank gradually, likely through earthquakes, soil liquefaction and rising water, by around the 8th century AD",
+        "Finds include colossal statues about 5 m tall of a king, a queen and the god Hapi"
       ],
       "meta_categories": [
         "History & Philosophy",
@@ -508,9 +518,9 @@
     },
     {
       "id": "16_zhang_heng_132ad_seismoscope",
-      "title": "Zhang Heng's 132 AD Earthquake Detector",
+      "title": "Zhang Heng's Earthquake Detector (AD 132)",
       "sub_theme": "Lost Engineering",
-      "hook": "Nearly 2,000 years ago, a Chinese bronze urn could detect earthquakes 400 miles away before anyone felt the ground shake.",
+      "hook": "In AD 132, a Chinese inventor built a bronze vessel that, records say, signalled an earthquake hundreds of miles away.",
       "location": {
         "name": "Luoyang",
         "city": "Henan",
@@ -520,9 +530,11 @@
         "longitude": 0.0
       },
       "key_facts": [
-        "Core historical phenomenon: Zhang Heng's 132 AD Earthquake Detector",
-        "Geographic origin: Luoyang, Henan, China",
-        "Unresolved historical enigma verified by archival documentation"
+        "Invented by the polymath Zhang Heng during the Eastern Han dynasty",
+        "Eight dragons held bronze balls; a ball dropped into a toad's mouth to show the direction of a tremor",
+        "Han records say it detected a quake in Longxi, hundreds of kilometres away, that was not felt in the capital",
+        "The internal mechanism is unknown; modern reconstructions use a pendulum",
+        "Known only from written descriptions; the original is lost"
       ],
       "meta_categories": [
         "History & Philosophy",
@@ -541,7 +553,7 @@
       "id": "17_voynich_manuscript",
       "title": "The Unsolved Voynich Manuscript",
       "sub_theme": "Bizarre Relic",
-      "hook": "Written in an undecipherable script with illustrations of plants that don't exist on Earth, WWII codebreakers failed to crack a single word.",
+      "hook": "A 600-year-old book written in an unknown script has defeated every attempt to read it.",
       "location": {
         "name": "Beinecke Rare Book Library",
         "city": "New Haven",
@@ -551,9 +563,11 @@
         "longitude": 0.0
       },
       "key_facts": [
-        "Core historical phenomenon: The Unsolved Voynich Manuscript",
-        "Geographic origin: Beinecke Rare Book Library, New Haven, USA",
-        "Unresolved historical enigma verified by archival documentation"
+        "Its vellum is radiocarbon-dated to 1404-1438",
+        "About 240 pages with drawings of unidentified plants, star charts and bathing figures",
+        "Named after book dealer Wilfrid Voynich, who acquired it in 1912",
+        "Studied without success by WWII-era codebreakers including William Friedman",
+        "Held at Yale's Beinecke Library; theories range from cipher to unknown language to elaborate hoax"
       ],
       "meta_categories": [
         "History & Philosophy",
@@ -572,7 +586,7 @@
       "id": "18_odessa_catacombs_labyrinth",
       "title": "The 1,500-Mile Odessa Catacombs",
       "sub_theme": "Hidden Infrastructure",
-      "hook": "Beneath Ukraine lies a 1,500-mile subterranean labyrinth deeper, darker, and more dangerous than the Paris catacombs.",
+      "hook": "Beneath the city of Odesa runs one of the largest tunnel networks in the world, dug mostly by limestone miners.",
       "location": {
         "name": "Odessa",
         "city": "Odesa Oblast",
@@ -582,9 +596,11 @@
         "longitude": 0.0
       },
       "key_facts": [
-        "Core historical phenomenon: The 1,500-Mile Odessa Catacombs",
-        "Geographic origin: Odessa, Odesa Oblast, Ukraine",
-        "Unresolved historical enigma verified by archival documentation"
+        "Estimated at roughly 2,500 km (about 1,500 miles) of tunnels",
+        "Mostly former limestone quarries; the stone was used to build the city in the 19th century",
+        "Used by smugglers, and by Soviet partisans during World War II",
+        "Large parts are unmapped, and people have died after getting lost",
+        "A small section is open as a museum"
       ],
       "meta_categories": [
         "History & Philosophy",
@@ -603,7 +619,7 @@
       "id": "19_richat_structure_sahara_eye",
       "title": "The Richat Structure: The Eye of the Sahara",
       "sub_theme": "Geological Mystery",
-      "hook": "A 25-mile concentric circle in the Sahara desert matches Plato's exact description and dimensions of the lost city of Atlantis.",
+      "hook": "Seen from space, a 40-kilometre bullseye in the Sahara looks like a giant eye, and it was made by geology, not people.",
       "location": {
         "name": "Ouadane",
         "city": "Adrar Plateau",
@@ -613,9 +629,11 @@
         "longitude": 0.0
       },
       "key_facts": [
-        "Core historical phenomenon: The Richat Structure: The Eye of the Sahara",
-        "Geographic origin: Ouadane, Adrar Plateau, Mauritania",
-        "Unresolved historical enigma verified by archival documentation"
+        "About 40 km (25 miles) across, in Mauritania's Adrar region",
+        "Geologists explain it as an uplifted, eroded geological dome, not an impact crater",
+        "A well-known landmark for astronauts",
+        "Claims linking it to Atlantis are not supported by geology or archaeology",
+        "Prehistoric stone tools found in the area show people lived nearby"
       ],
       "meta_categories": [
         "History & Philosophy",
@@ -634,7 +652,7 @@
       "id": "20_amber_room_heist",
       "title": "The Disappearance of the Amber Room",
       "sub_theme": "Historical Heist",
-      "hook": "An entire palace room made of six tons of pure amber and gold was packed into crates in 1945 and has never been seen again.",
+      "hook": "In 1941, German troops dismantled a palace room made of amber and shipped it away, and it has not been seen since 1945.",
       "location": {
         "name": "Catherine Palace",
         "city": "Pushkin",
@@ -644,9 +662,11 @@
         "longitude": 0.0
       },
       "key_facts": [
-        "Core historical phenomenon: The Disappearance of the Amber Room",
-        "Geographic origin: Catherine Palace, Pushkin, Russia",
-        "Unresolved historical enigma verified by archival documentation"
+        "Created in Prussia in the early 18th century and given to Peter the Great in 1716",
+        "Installed in the Catherine Palace near St Petersburg; said to contain several tonnes of amber",
+        "Dismantled by German forces in 1941 and displayed in Konigsberg Castle",
+        "Disappeared in 1944-45; it may have been destroyed by bombing or fire, but its fate is unknown",
+        "A reconstruction was completed in 2003"
       ],
       "meta_categories": [
         "History & Philosophy",
@@ -665,7 +685,7 @@
       "id": "21_gol_gumbaz_whispering_gallery",
       "title": "The Whispering Gallery of Gol Gumbaz",
       "sub_theme": "Acoustic Wonder",
-      "hook": "In this 17th-century Indian dome, the quietest whisper can be heard 125 feet away and echoes exactly ten times.",
+      "hook": "Under one of the largest domes of the pre-modern world, in Vijayapura, India, a whisper can carry right across the gallery.",
       "location": {
         "name": "Bijapur",
         "city": "Karnataka",
@@ -675,9 +695,11 @@
         "longitude": 0.0
       },
       "key_facts": [
-        "Core historical phenomenon: The Whispering Gallery of Gol Gumbaz",
-        "Geographic origin: Bijapur, Karnataka, India",
-        "Unresolved historical enigma verified by archival documentation"
+        "Mausoleum of Sultan Mohammed Adil Shah, completed in 1656",
+        "Its dome is about 44 m across externally, among the largest pre-modern domes",
+        "A whispering gallery runs around the base of the dome",
+        "Sounds are said to echo many times, often quoted as seven or more",
+        "Located in Vijayapura (formerly Bijapur), Karnataka"
       ],
       "meta_categories": [
         "History & Philosophy",
@@ -696,7 +718,7 @@
       "id": "22_tunguska_event_1908",
       "title": "The Tunguska Event of 1908",
       "sub_theme": "Unexplained Event",
-      "hook": "An explosion 1,000 times stronger than Hiroshima flattened 80 million trees in Siberia, yet left behind zero impact crater.",
+      "hook": "In 1908, an explosion over Siberia flattened about 80 million trees across 2,000 square kilometres, without leaving a crater.",
       "location": {
         "name": "Podkamennaya Tunguska",
         "city": "Siberia",
@@ -706,9 +728,11 @@
         "longitude": 0.0
       },
       "key_facts": [
-        "Core historical phenomenon: The Tunguska Event of 1908",
-        "Geographic origin: Podkamennaya Tunguska, Siberia, Russia",
-        "Unresolved historical enigma verified by archival documentation"
+        "30 June 1908, near the Podkamennaya Tunguska River",
+        "Most likely the airburst of an asteroid or comet several kilometres above the ground",
+        "Energy estimates range widely, roughly 3 to 30 megatons",
+        "The first scientific expedition, led by Leonid Kulik, reached the site in 1927",
+        "The largest impact event in recorded history"
       ],
       "meta_categories": [
         "History & Philosophy",
@@ -727,7 +751,7 @@
       "id": "23_claw_of_archimedes",
       "title": "The Claw of Archimedes",
       "sub_theme": "Ancient Weapons",
-      "hook": "When Roman warships attacked Syracuse, giant hidden crane arms swung out from the cliffs and lifted whole ships straight out of the water.",
+      "hook": "When Rome besieged Syracuse, ancient writers say Archimedes built a giant claw that lifted enemy ships out of the sea.",
       "location": {
         "name": "Syracuse",
         "city": "Sicily",
@@ -737,9 +761,11 @@
         "longitude": 0.0
       },
       "key_facts": [
-        "Core historical phenomenon: The Claw of Archimedes",
-        "Geographic origin: Syracuse, Sicily, Italy",
-        "Unresolved historical enigma verified by archival documentation"
+        "Siege of Syracuse, 214-212 BC",
+        "Described by Polybius, Livy and Plutarch",
+        "Probably a crane-like arm with a grappling hook; the exact design is unknown",
+        "A 2005 TV experiment built a working full-scale version",
+        "Archimedes was killed when the city fell in 212 BC"
       ],
       "meta_categories": [
         "History & Philosophy",
@@ -758,7 +784,7 @@
       "id": "24_dyatlov_pass_incident",
       "title": "The Dyatlov Pass Mystery",
       "sub_theme": "Lost Expedition",
-      "hook": "Nine experienced hikers fled their tent in sub-zero weather wearing no shoes, leaving behind cracked ribs and radioactive clothing.",
+      "hook": "In 1959, nine hikers cut their way out of their tent and fled into the snow at night, and none of them survived.",
       "location": {
         "name": "Kholat Syakhl",
         "city": "Ural Mountains",
@@ -768,9 +794,11 @@
         "longitude": 0.0
       },
       "key_facts": [
-        "Core historical phenomenon: The Dyatlov Pass Mystery",
-        "Geographic origin: Kholat Syakhl, Ural Mountains, Russia",
-        "Unresolved historical enigma verified by archival documentation"
+        "Group led by Igor Dyatlov, February 1959, on Kholat Syakhl in the northern Urals",
+        "The tent was cut open from inside; bodies were found over the following months, some with severe injuries",
+        "Traces of radioactivity were found on some clothing",
+        "A 2019-2020 Russian inquiry and a 2021 scientific study point to a slab avalanche",
+        "Some details are still debated"
       ],
       "meta_categories": [
         "History & Philosophy",
@@ -789,7 +817,7 @@
       "id": "25_lycurgus_cup_nanotech",
       "title": "The 4th-Century Lycurgus Cup",
       "sub_theme": "Microscopic Wonder",
-      "hook": "A Roman glass goblet that glows green in normal light turns blood red when light shines through it, crafted with embedded gold nanoparticles.",
+      "hook": "A 1,600-year-old Roman cup glows green in reflected light and turns red when lit from behind.",
       "location": {
         "name": "British Museum",
         "city": "London",
@@ -799,9 +827,11 @@
         "longitude": 0.0
       },
       "key_facts": [
-        "Core historical phenomenon: The 4th-Century Lycurgus Cup",
-        "Geographic origin: British Museum, London, UK",
-        "Unresolved historical enigma verified by archival documentation"
+        "4th-century AD Roman glass cage cup, now in the British Museum",
+        "The colour change comes from tiny gold and silver nanoparticles in the glass",
+        "It depicts the myth of King Lycurgus",
+        "Its makers probably did not understand the effect in modern terms",
+        "It has inspired modern research into nanoparticle optics"
       ],
       "meta_categories": [
         "History & Philosophy",
@@ -820,7 +850,7 @@
       "id": "26_wieliczka_salt_cathedral",
       "title": "The Wieliczka Underground Salt Cathedral",
       "sub_theme": "Subterranean Marvel",
-      "hook": "Polish miners spent centuries carving an underground world 1,000 feet deep, complete with crystal chandeliers made entirely of salt.",
+      "hook": "Deep underground in Poland, miners carved an entire chapel from rock salt, down to the chandeliers.",
       "location": {
         "name": "Wieliczka",
         "city": "Lesser Poland",
@@ -830,9 +860,11 @@
         "longitude": 0.0
       },
       "key_facts": [
-        "Core historical phenomenon: The Wieliczka Underground Salt Cathedral",
-        "Geographic origin: Wieliczka, Lesser Poland, Poland",
-        "Unresolved historical enigma verified by archival documentation"
+        "Salt was mined at Wieliczka from the 13th century until 1996",
+        "Reaches about 327 m deep, with more than 280 km of passages",
+        "St Kinga's Chapel was carved over several decades from 1896, about 100 m below ground",
+        "Its chandeliers are made of salt crystals",
+        "One of the first UNESCO World Heritage Sites (1978)"
       ],
       "meta_categories": [
         "History & Philosophy",
@@ -851,7 +883,7 @@
       "id": "27_great_wall_of_gorgan",
       "title": "The Red Snake: The Great Wall of Gorgan",
       "sub_theme": "Ancient Defense",
-      "hook": "The second-longest defensive wall in the ancient world was made of 200 million red bricks and equipped with an advanced canal system.",
+      "hook": "In northern Iran runs a 195-kilometre ancient wall of red brick that few people have ever heard of.",
       "location": {
         "name": "Golestan",
         "city": "Gorgan Plain",
@@ -861,9 +893,11 @@
         "longitude": 0.0
       },
       "key_facts": [
-        "Core historical phenomenon: The Red Snake: The Great Wall of Gorgan",
-        "Geographic origin: Golestan, Gorgan Plain, Iran",
-        "Unresolved historical enigma verified by archival documentation"
+        "Built by the Sasanian Empire, probably in the 5th-6th century AD",
+        "About 195 km long, with more than 30 forts",
+        "Made of fired red bricks and fed by a canal system, hence the nickname 'Red Snake'",
+        "Possibly garrisoned by tens of thousands of soldiers",
+        "Among the longest defensive walls of the ancient world"
       ],
       "meta_categories": [
         "History & Philosophy",
@@ -882,7 +916,7 @@
       "id": "28_dancing_plague_1518",
       "title": "The Dancing Plague of 1518",
       "sub_theme": "Historical Paradox",
-      "hook": "In July 1518, a woman stepped into a street in Strasbourg and started dancing until her heart gave out\u2014and then 400 people joined her.",
+      "hook": "In July 1518, a woman began dancing in a Strasbourg street and could not stop, and within weeks dozens more joined her.",
       "location": {
         "name": "Strasbourg",
         "city": "Alsace",
@@ -892,9 +926,11 @@
         "longitude": 0.0
       },
       "key_facts": [
-        "Core historical phenomenon: The Dancing Plague of 1518",
-        "Geographic origin: Strasbourg, Alsace, France",
-        "Unresolved historical enigma verified by archival documentation"
+        "Began with a woman known as Frau Troffea in July 1518",
+        "Records describe dozens and perhaps up to 400 dancers over several weeks",
+        "Reports that people danced to death are uncertain; contemporary sources are limited",
+        "Authorities first encouraged the dancing, even hiring musicians",
+        "Explanations include mass psychogenic illness amid famine and disease; ergot poisoning is a disputed theory"
       ],
       "meta_categories": [
         "History & Philosophy",
@@ -913,7 +949,7 @@
       "id": "29_baltic_sea_anomaly",
       "title": "The Baltic Sea Anomaly",
       "sub_theme": "Maritime Enigma",
-      "hook": "In 2011, sonar divers found a 200-foot disc resting 300 feet deep that knocked out all electronic equipment within 200 meters.",
+      "hook": "In 2011, Swedish treasure hunters released a blurry sonar image of a round shape on the Baltic seabed, and the internet went wild.",
       "location": {
         "name": "Bothnian Sea",
         "city": "Baltic Sea",
@@ -923,9 +959,11 @@
         "longitude": 0.0
       },
       "key_facts": [
-        "Core historical phenomenon: The Baltic Sea Anomaly",
-        "Geographic origin: Bothnian Sea, Baltic Sea, Sweden",
-        "Unresolved historical enigma verified by archival documentation"
+        "Found by the Ocean X team in June 2011 in the northern Baltic Sea",
+        "Roughly 60 m (200 ft) across, at about 90 m depth",
+        "Claims that it disabled electrical equipment came from the finders and are unverified",
+        "Geologists who examined samples suggest a natural, glacially deposited rock formation",
+        "A case study in how sonar images can be misread"
       ],
       "meta_categories": [
         "History & Philosophy",
@@ -944,7 +982,7 @@
       "id": "30_acoustic_kitty_cia",
       "title": "Operation Acoustic Kitty",
       "sub_theme": "Declassified History",
-      "hook": "In the 1960s, the CIA spent $20 million turning a living cat into a walking spy microphone.",
+      "hook": "In the 1960s, the CIA reportedly tried to turn a cat into a walking microphone.",
       "location": {
         "name": "CIA Headquarters",
         "city": "Langley / Virginia",
@@ -954,9 +992,11 @@
         "longitude": 0.0
       },
       "key_facts": [
-        "Core historical phenomenon: Operation Acoustic Kitty",
-        "Geographic origin: CIA Headquarters, Langley / Virginia, USA",
-        "Unresolved historical enigma verified by archival documentation"
+        "A 1960s project of the CIA's Directorate of Science and Technology",
+        "A microphone and transmitter were reportedly implanted in a cat",
+        "A heavily redacted CIA memo released in 2001 concluded the approach was not practical",
+        "Former CIA official Victor Marchetti claimed it cost about $20 million and that the cat was hit by a taxi; this account is disputed",
+        "The project was reportedly cancelled around 1967"
       ],
       "meta_categories": [
         "History & Philosophy",

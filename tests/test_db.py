@@ -62,3 +62,15 @@ def test_reseed_does_not_reset_state(db):
     db.record_topic_status("01_topic", "published")
     db._seed_topics_from_json()
     assert db.get_topic_by_id("01_topic")["status"] == "published"
+
+
+def test_bank_edits_sync_content_but_not_state(db):
+    import json
+    db.record_topic_status("01_topic", "published")
+    bank = json.loads(db.topic_bank_file.read_text(encoding="utf-8"))
+    bank["topics"][0]["hook"] = "A corrected hook"
+    db.topic_bank_file.write_text(json.dumps(bank), encoding="utf-8")
+    db._seed_topics_from_json()
+    t = db.get_topic_by_id("01_topic")
+    assert t["hook"] == "A corrected hook"
+    assert (t["status"], t["times_published"]) == ("published", 1)

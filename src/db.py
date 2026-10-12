@@ -122,29 +122,43 @@ class PipelineDatabase:
             conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
 
     def _seed_topics_from_json(self):
-        """Inserts any topic-bank entries not yet in the database (never overwrites state)."""
+        """
+        Syncs the topic bank into the database: new topics are added, and edits to existing
+        topics' content (title, hook, facts, hashtags...) are applied. Production state
+        (status, publish count, last run) is never touched.
+        """
         if not self.topic_bank_file.exists():
             return
         with open(self.topic_bank_file, "r", encoding="utf-8") as f:
             topics = json.load(f).get("topics", [])
         now = _now()
         with self._conn() as conn:
-            inserted = 0
+            existing = {r["id"] for r in conn.execute("SELECT id FROM topics")}
+            changed = 0
             for t in topics:
                 cur = conn.execute("""
-                INSERT OR IGNORE INTO topics (
+                INSERT INTO topics (
                     id, title, sub_theme, hook, location_json, key_facts_json,
                     hashtags_json, meta_categories_json, status, times_published, updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'queued', 0, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    title = excluded.title, sub_theme = excluded.sub_theme, hook = excluded.hook,
+                    location_json = excluded.location_json, key_facts_json = excluded.key_facts_json,
+                    hashtags_json = excluded.hashtags_json, meta_categories_json = excluded.meta_categories_json
+                WHERE topics.title IS NOT excluded.title OR topics.hook IS NOT excluded.hook
+                   OR topics.sub_theme IS NOT excluded.sub_theme OR topics.location_json IS NOT excluded.location_json
+                   OR topics.key_facts_json IS NOT excluded.key_facts_json OR topics.hashtags_json IS NOT excluded.hashtags_json
+                   OR topics.meta_categories_json IS NOT excluded.meta_categories_json
                 """, (
                     t["id"], t.get("title", ""), t.get("sub_theme", ""), t.get("hook", ""),
                     json.dumps(t.get("location", {})), json.dumps(t.get("key_facts", [])),
                     json.dumps(t.get("hashtags", [])), json.dumps(t.get("meta_categories", [])),
                     now,
                 ))
-                inserted += cur.rowcount
-        if inserted:
-            log.info("Seeded %d new topics from %s.", inserted, self.topic_bank_file.name)
+                changed += cur.rowcount
+        added = len({t["id"] for t in topics} - existing)
+        if changed:
+            log.info("Topic bank sync: %d new, %d updated (%s).", added, changed - added, self.topic_bank_file.name)
 
     # ------------------------------------------------------------------ topics
     @staticmethod

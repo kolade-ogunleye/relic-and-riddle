@@ -66,6 +66,24 @@ def test_health_flags_chat_id_equal_to_bot_id(monkeypatch):
     ok, msg = PreFlightHealthChecker().check_live_credentials()
     assert not ok and "bot's own ID" in msg
     monkeypatch.setattr(config, "TELEGRAM_CHAT_ID", "987654")
+    monkeypatch.setattr(config, "AZURE_SPEECH_KEY", "a" * 20)
+    monkeypatch.setattr(config, "AZURE_SPEECH_REGION", "eastus")
+    assert PreFlightHealthChecker().check_live_credentials()[0]
+
+
+def test_health_requires_a_licensed_voice(monkeypatch):
+    from src import config
+    from src.audio_engine import AudioEngine
+    from src.ops import PreFlightHealthChecker
+    monkeypatch.setattr(config, "ANTHROPIC_API_KEY", "sk-real")
+    monkeypatch.setattr(config, "UPLOAD_POST_API_KEY", "k"); monkeypatch.setattr(config, "UPLOAD_POST_USER", "u")
+    monkeypatch.setattr(config, "TELEGRAM_BOT_TOKEN", "123456:ABCDEF")
+    monkeypatch.setattr(config, "TELEGRAM_CHAT_ID", "987654")
+    monkeypatch.setattr(config, "ELEVENLABS_API_KEY", "k" * 20)
+    monkeypatch.setattr(AudioEngine, "voice_quota", lambda self: {"tier": "free"})
+    ok, msg = PreFlightHealthChecker().check_live_credentials()
+    assert not ok and "licensed voice" in msg
+    monkeypatch.setattr(AudioEngine, "voice_quota", lambda self: {"tier": "starter"})
     assert PreFlightHealthChecker().check_live_credentials()[0]
 
 

@@ -277,6 +277,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             "-map", "[v_final]", "-map", "[a_final]",
             "-c:v", "libx264", "-preset", VIDEO_PRESET, "-crf", str(VIDEO_CRF),
             "-pix_fmt", "yuv420p", "-color_range", "tv", "-r", str(VIDEO_FPS),
+            # Meta Reels spec: closed GOP of 2-5 s. Fixed 2 s keyframe interval, no scene-cut keyframes.
+            "-g", str(VIDEO_FPS * 2), "-keyint_min", str(VIDEO_FPS * 2), "-sc_threshold", "0", "-flags", "+cgop",
             "-c:a", "aac", "-b:a", "192k", "-ar", str(AUDIO_SAMPLE_RATE),
             "-movflags", "+faststart",
             "-t", f"{vo_dur:.2f}",

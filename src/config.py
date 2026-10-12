@@ -79,6 +79,10 @@ UPLOAD_POST_FACEBOOK_PAGE_ID = os.getenv("UPLOAD_POST_FACEBOOK_PAGE_ID", "")
 # Publisher 2: Direct Instagram Graph API (Reels, resumable upload)
 META_ACCESS_TOKEN = os.getenv("META_ACCESS_TOKEN", "")
 META_IG_ACCOUNT_ID = os.getenv("META_IG_ACCOUNT_ID", "")
+# Publisher 3: Facebook Page Reels direct (fallback, Facebook only). Page token with
+# pages_show_list, pages_read_engagement, pages_manage_posts; defaults to META_ACCESS_TOKEN.
+META_PAGE_ID = os.getenv("META_PAGE_ID", "")
+META_PAGE_ACCESS_TOKEN = os.getenv("META_PAGE_ACCESS_TOKEN", "")
 META_GRAPH_VERSION = os.getenv("META_GRAPH_VERSION", "v26.0")
 
 # Telegram HITL approval

@@ -50,6 +50,7 @@ def _now() -> str:
 
 class UploadPostPublisher:
     name = "upload-post"
+    platforms = ("facebook", "instagram")
 
     def __init__(self, api_key: str = None, user: str = None, base_url: str = None, facebook_page_id: str = None,
                  poll_interval: float = 10.0, poll_timeout: float = 900.0):
@@ -165,6 +166,7 @@ class InstagramGraphPublisher:
     """Instagram Reels via Content Publishing API resumable upload (Facebook Login for Business token)."""
 
     name = "instagram-graph"
+    platforms = ("instagram",)
 
     def __init__(self, token: str = None, ig_user_id: str = None, version: str = None,
                  poll_interval: float = 15.0, poll_timeout: float = 600.0):
@@ -247,10 +249,86 @@ class InstagramGraphPublisher:
         raise PublishFailed("Instagram container not ready in time; it expires unpublished after 24h.")
 
 
+class FacebookPageReelsPublisher:
+    """Facebook Page Reels via the Graph API (developers.facebook.com/docs/video-api/guides/reels-publishing).
+    Needs a Page access token with pages_show_list, pages_read_engagement and pages_manage_posts."""
+
+    name = "facebook-page"
+    platforms = ("facebook",)
+
+    def __init__(self, token: str = None, page_id: str = None, version: str = None,
+                 poll_interval: float = 10.0, poll_timeout: float = 600.0):
+        self.token = token if token is not None else (config.META_PAGE_ACCESS_TOKEN or config.META_ACCESS_TOKEN)
+        self.page_id = page_id if page_id is not None else config.META_PAGE_ID
+        self.version = version or config.META_GRAPH_VERSION
+        self.graph = f"https://graph.facebook.com/{self.version}"
+        self.poll_interval = poll_interval
+        self.poll_timeout = poll_timeout
+
+    def configured(self) -> bool:
+        return is_configured(self.token) and is_configured(self.page_id)
+
+    def _call(self, method: str, url: str, timeout: float = 60, **kwargs) -> Dict[str, Any]:
+        resp = requests.request(method, url, timeout=timeout, **kwargs)
+        try:
+            body = resp.json()
+        except ValueError:
+            body = {"raw": resp.text[:500]}
+        if not resp.ok or "error" in body:
+            raise PublishFailed(f"Graph {method} {url.split('?')[0]} -> {resp.status_code}: {body.get('error', body)}")
+        return body
+
+    def publish(self, envelope: Dict[str, Any]) -> Dict[str, Any]:
+        if not self.configured():
+            raise NotConfigured("META_PAGE_ID / page access token not set")
+        meta, video_path = envelope["metadata"], Path(envelope["media"]["video_path"])
+        reels = f"{self.graph}/{self.page_id}/video_reels"
+
+        # Start, upload and processing can fail without anything being posted.
+        try:
+            session = self._call("POST", reels, data={"upload_phase": "start", "access_token": self.token})
+            video_id = session["video_id"]
+            upload_url = session.get("upload_url") or f"https://rupload.facebook.com/video-upload/{self.version}/{video_id}"
+            with open(video_path, "rb") as vf:
+                self._call("POST", upload_url, timeout=600, data=vf, headers={
+                    "Authorization": f"OAuth {self.token}", "offset": "0",
+                    "file_size": str(os.path.getsize(video_path)),
+                })
+            self._wait_until_ready(video_id)
+        except requests.RequestException as e:
+            raise PublishFailed(f"Facebook Reel upload failed: {e}") from e
+
+        # Finishing with PUBLISHED is the point of no return.
+        try:
+            self._call("POST", reels, data={
+                "upload_phase": "finish", "video_id": video_id, "video_state": "PUBLISHED",
+                "description": meta["caption"], "access_token": self.token,
+            })
+        except (requests.Timeout, requests.ConnectionError) as e:
+            raise PublishUnknown(f"Facebook Reel finish outcome unknown: {e}") from e
+        return {"status": "published", "post_ids": {"facebook": video_id},
+                "note": "First comment is not posted by this publisher."}
+
+    def _wait_until_ready(self, video_id: str):
+        deadline = time.monotonic() + self.poll_timeout
+        while time.monotonic() < deadline:
+            status = self._call("GET", f"{self.graph}/{video_id}",
+                                params={"fields": "status", "access_token": self.token}).get("status", {})
+            processed = (status.get("uploading_phase", {}).get("status") == "complete"
+                         and status.get("processing_phase", {}).get("status") == "complete")
+            if status.get("video_status") == "ready" or processed:
+                return
+            if status.get("video_status") == "error" or status.get("processing_phase", {}).get("status") == "error":
+                raise PublishFailed(f"Facebook processing failed: {status}")
+            time.sleep(self.poll_interval)
+        raise PublishFailed("Facebook video not ready in time; nothing was published.")
+
+
 class MetaPublisher:
     def __init__(self, db: Optional[PipelineDatabase] = None, publishers: Optional[list] = None):
         self.db = db or PipelineDatabase()
-        self.publishers = publishers if publishers is not None else [UploadPostPublisher(), InstagramGraphPublisher()]
+        self.publishers = publishers if publishers is not None else [
+            UploadPostPublisher(), InstagramGraphPublisher(), FacebookPageReelsPublisher()]
 
     def build_envelope(self, run_id: str, video_path: Path, thumbnail_916_path: Path, thumbnail_1x1_path: Path,
                        script_payload: Dict[str, Any], platforms: Optional[List[str]] = None) -> Dict[str, Any]:
@@ -285,15 +363,22 @@ class MetaPublisher:
             log.info("Dry run: nothing was published.")
             return res
 
-        errors = []
+        # Each requested platform is posted at most once: a publisher only handles the
+        # platforms still remaining that it supports (Upload-Post: both; direct APIs: one each).
+        remaining = set(envelope["platforms"])
+        errors, done = [], []
         for pub in self.publishers:
+            covers = remaining & set(getattr(pub, "platforms", envelope["platforms"]))
+            if not covers:
+                continue
             try:
-                log.info("Publishing via %s...", pub.name)
-                res = pub.publish(envelope)
+                log.info("Publishing %s via %s...", "+".join(sorted(covers)), pub.name)
+                res = pub.publish(dict(envelope, platforms=sorted(covers)))
                 res["channel"] = pub.name
                 self.db.record_publication(tid, run_id, pub.name, "published", res)
                 log.info("Published via %s.", pub.name)
-                return res
+                remaining -= covers
+                done.append(res)
             except NotConfigured as e:
                 log.info("%s skipped: %s", pub.name, e)
             except PublishFailed as e:
@@ -303,7 +388,19 @@ class MetaPublisher:
             except PublishUnknown as e:
                 log.error("%s outcome UNKNOWN; not failing over to avoid a duplicate post: %s", pub.name, e)
                 self.db.record_publication(tid, run_id, pub.name, "unknown", {"error": str(e)})
-                return {"status": "unknown", "channel": pub.name, "error": str(e)}
+                return {"status": "unknown", "channel": pub.name, "error": str(e), "published": done}
+            if not remaining:
+                break
 
+        if done:
+            merged = {"status": "published", "channel": "+".join(r["channel"] for r in done),
+                      "post_urls": {}, "post_ids": {}, "results": done}
+            for r in done:
+                merged["post_urls"].update(r.get("post_urls") or {})
+                merged["post_ids"].update(r.get("post_ids") or {})
+            if remaining:
+                merged["missing_platforms"] = sorted(remaining)
+                merged["error"] = "; ".join(errors) or "no publisher configured for " + ", ".join(sorted(remaining))
+            return merged
         msg = "; ".join(errors) if errors else "no publisher is configured"
         return {"status": "failed", "error": msg}

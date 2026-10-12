@@ -309,7 +309,10 @@ class PipelineCoordinator:
             log.info("Published %s.", run_id)
             urls = pub.get("post_urls") or pub.get("post_ids") or {}
             links = "\n".join(f"{html.escape(k)}: {html.escape(str(v))}" for k, v in urls.items())
-            self._alert(f"✅ <b>Published</b> {html.escape(payload.get('title', tid))}\n{links}")
+            missing = pub.get("missing_platforms")
+            warn = (f"\n⚠️ Not posted to {html.escape(', '.join(missing))}: {html.escape(str(pub.get('error', '')))[:300]}"
+                    if missing else "")
+            self._alert(f"✅ <b>Published</b> {html.escape(payload.get('title', tid))}\n{links}{warn}")
         elif status == "simulated":
             self.db.update_run(run_id, "simulated")
             self.topic_engine.record_status(tid, previous_status, run_id=run_id)

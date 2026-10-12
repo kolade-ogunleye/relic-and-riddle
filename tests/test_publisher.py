@@ -21,9 +21,10 @@ def envelope(tmp_path):
     }
 
 
-def _stub(name, exc=None, result=None):
+def _stub(name, exc=None, result=None, platforms=("facebook", "instagram")):
     pub = MagicMock()
     pub.name = name
+    pub.platforms = platforms
     if exc:
         pub.publish.side_effect = exc
     else:
@@ -121,3 +122,74 @@ def test_skipped_platforms_do_not_block_success():
     res = UploadPostPublisher._summarize([{"platform": "instagram", "success": True, "post_url": "u"},
                                           {"platform": "facebook", "success": True, "skipped": True}], {})
     assert res["status"] == "published" and res["skipped"] == ["facebook"]
+
+
+def test_direct_fallbacks_cover_each_platform_once(run, envelope):
+    ig = _stub("instagram-graph", result={"status": "published", "post_ids": {"instagram": "1"}}, platforms=("instagram",))
+    fb = _stub("facebook-page", result={"status": "published", "post_ids": {"facebook": "2"}}, platforms=("facebook",))
+    res = MetaPublisher(run, [_stub("upload-post", PublishFailed("401")), ig, fb]).publish_reel(envelope)
+    assert res["status"] == "published" and res["post_ids"] == {"instagram": "1", "facebook": "2"}
+    assert ig.publish.call_args[0][0]["platforms"] == ["instagram"]
+    assert fb.publish.call_args[0][0]["platforms"] == ["facebook"]
+    assert "missing_platforms" not in res
+
+
+def test_primary_success_skips_direct_fallbacks(run, envelope):
+    ig = _stub("instagram-graph", platforms=("instagram",))
+    res = MetaPublisher(run, [_stub("upload-post"), ig]).publish_reel(envelope)
+    assert res["status"] == "published"
+    ig.publish.assert_not_called()
+
+
+def test_partial_platform_coverage_is_reported(run, envelope):
+    ig = _stub("instagram-graph", result={"status": "published"}, platforms=("instagram",))
+    fb = _stub("facebook-page", NotConfigured("no page token"), platforms=("facebook",))
+    res = MetaPublisher(run, [_stub("upload-post", NotConfigured("x")), ig, fb]).publish_reel(envelope)
+    assert res["status"] == "published" and res["missing_platforms"] == ["facebook"]
+
+
+def test_unknown_on_second_platform_stops_and_reports_what_posted(run, envelope):
+    ig = _stub("instagram-graph", result={"status": "published"}, platforms=("instagram",))
+    fb = _stub("facebook-page", PublishUnknown("timeout"), platforms=("facebook",))
+    res = MetaPublisher(run, [_stub("upload-post", PublishFailed("x")), ig, fb]).publish_reel(envelope)
+    assert res["status"] == "unknown" and len(res["published"]) == 1
+
+
+def _fb_api(calls, finish_exc=None):
+    def request(method, url, timeout=60, **kw):
+        calls.append((method, url.split("?")[0], kw.get("data") if isinstance(kw.get("data"), dict) else "<file>"))
+        if "video_reels" in url and kw.get("data", {}).get("upload_phase") == "start":
+            body = {"video_id": "v1", "upload_url": "https://rupload.facebook.com/video-upload/v26.0/v1"}
+        elif "video_reels" in url and kw.get("data", {}).get("upload_phase") == "finish":
+            if finish_exc:
+                raise finish_exc
+            body = {"success": True}
+        elif "rupload" in url:
+            body = {"success": True}
+        else:
+            body = {"status": {"video_status": "ready"}}
+        r = MagicMock(ok=True, status_code=200)
+        r.json.return_value = body
+        return r
+    return request
+
+
+def test_facebook_page_reels_flow(monkeypatch, envelope):
+    from src.publisher import FacebookPageReelsPublisher
+    calls = []
+    monkeypatch.setattr(requests, "request", _fb_api(calls))
+    pub = FacebookPageReelsPublisher(token="t" * 20, page_id="123", version="v26.0", poll_interval=0)
+    res = pub.publish(envelope)
+    assert res["post_ids"] == {"facebook": "v1"}
+    phases = [c[2].get("upload_phase") for c in calls if isinstance(c[2], dict) and "upload_phase" in c[2]]
+    assert phases == ["start", "finish"]
+    finish = [c for c in calls if isinstance(c[2], dict) and c[2].get("upload_phase") == "finish"][0]
+    assert finish[2]["video_state"] == "PUBLISHED" and finish[2]["description"] == "Cap"
+
+
+def test_facebook_finish_timeout_is_unknown(monkeypatch, envelope):
+    from src.publisher import FacebookPageReelsPublisher
+    monkeypatch.setattr(requests, "request", _fb_api([], finish_exc=requests.Timeout("slow")))
+    pub = FacebookPageReelsPublisher(token="t" * 20, page_id="123", version="v26.0", poll_interval=0)
+    with pytest.raises(PublishUnknown):
+        pub.publish(envelope)

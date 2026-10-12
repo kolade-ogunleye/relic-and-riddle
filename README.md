@@ -36,7 +36,7 @@ topic → assets check → script (Claude + web search) → fact check (Claude +
 | Video check | `src/video_qa.py` | After rendering, one frame per beat plus the cover goes to Claude, which flags unreadable or clashing captions, mismatched images, watermarks or logos, glitches and rule risks. Findings appear on the review card; you decide. |
 | Stills | `src/visual_engine.py`, `src/multi_format.py` | Variant B cover (9:16 and 1:1), 3 Story frames, and a 7-slide carousel. Text is auto-fitted. Stories and carousels are for **manual** posting; the poll is added as a native sticker (see `companion_posting.json`). |
 | Approval | `src/telegram_bot.py` | Sends the cover, a 720p review copy (a few MB, under Telegram's upload limit) and the review card. Only `TELEGRAM_APPROVER_IDS` can decide. The CLI can decide too; the first decision wins. If nobody decides before the timeout, the run times out. |
-| Publish | `src/publisher.py` | Upload-Post (Facebook + Instagram) first, then the Instagram Graph API resumable Reels upload, which posts the first comment. |
+| Publish | `src/publisher.py` | Upload-Post (Facebook + Instagram) first. If it fails, each platform falls back separately: Instagram to the Graph API resumable Reels upload (which also posts the first comment), Facebook to the Page Reels API. Each platform is posted at most once, and the "Published" alert names any platform that didn't post. |
 | Ops | `src/ops.py` | Masks secrets in every log line (including Telegram tokens inside URLs), runs pre-flight checks, and prunes scratch audio older than 7 days. |
 
 ## Setup

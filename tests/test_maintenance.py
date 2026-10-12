@@ -32,3 +32,12 @@ def test_write_pins_only_touches_named_packages(tmp_path):
     _write_pins([Update("pillow", "12.2.0", "12.3.0", "security")], req)
     assert read_pins(req) == {"pillow": "12.3.0", "requests": "2.32.3", "pytest": "8.3.5"}
     assert "# dev" in req.read_text(encoding="utf-8")
+
+
+def test_pins_with_environment_markers(tmp_path):
+    req = tmp_path / "requirements.txt"
+    req.write_text('onnxruntime-directml==1.24.4; sys_platform == "win32"\nonnxruntime==1.24.4; sys_platform != "win32"\n',
+                   encoding="utf-8")
+    assert read_pins(req) == {"onnxruntime-directml": "1.24.4", "onnxruntime": "1.24.4"}
+    _write_pins([Update("onnxruntime", "1.24.4", "1.24.5", "safe")], req)
+    assert 'onnxruntime==1.24.5; sys_platform != "win32"' in req.read_text(encoding="utf-8")

@@ -7,6 +7,9 @@ pillow==12.3.0
 requests==2.34.2
 soundfile==0.13.1
 pip-audit==2.10.1
+onnxruntime-directml==1.24.4; sys_platform == "win32"
+onnxruntime==1.24.4; sys_platform != "win32"
+opencv-python-headless==4.14.0.94
 
 # dev
 pytest==9.0.3

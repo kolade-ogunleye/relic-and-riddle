@@ -36,6 +36,8 @@ from src.db import PipelineDatabase, QueueEmpty
 from src.control import heartbeat_text, is_paused, make_command_handler, ping_healthcheck
 from src.scene_planner import plan_scenes, segment_beats
 from src.upscale import ensure_all, ensure_resolution
+from src.parallax import render_scenes as render_parallax
+from src.video_composer import TRANS_DUR
 from src.video_qa import qa_summary_html, review_render
 from src.ops import AssetLifecycleManager, PreFlightHealthChecker, setup_logging
 
@@ -273,6 +275,11 @@ class PipelineCoordinator:
         scenes, durations, plan_notes = plan_scenes(beats, scene_media)
         log.info("Scene plan: %d beats (%s).", len(beats), plan_notes[:120])
         master_mp4 = run_dir / f"{tid}_master.mp4"
+        # 2.5D parallax clips for the stills (local GPU); falls back to flat camera moves.
+        try:
+            scenes = render_parallax(scenes, durations, run_dir / "parallax", TRANS_DUR) or scenes
+        except Exception as e:
+            log.warning("Parallax rendering failed (%s); using flat camera moves.", e)
         self.video_composer.compose_video(scenes, vo_path, bed_path, words, vo_dur, master_mp4, durations=durations)
         review_mp4 = self.video_composer.make_review_proxy(master_mp4, run_dir / "review_proxy.mp4")
 

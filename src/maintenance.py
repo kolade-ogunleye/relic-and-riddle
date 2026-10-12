@@ -28,7 +28,7 @@ from .config import BASE_DIR
 log = logging.getLogger(__name__)
 
 REQUIREMENTS = BASE_DIR / "requirements.txt"
-_PIN = re.compile(r"^([A-Za-z0-9_.\-]+)==([^\s#]+)")
+_PIN = re.compile(r"^([A-Za-z0-9_.\-]+)==([^\s#;]+)")  # name==version, optionally followed by "; marker"
 
 
 @dataclass
@@ -151,7 +151,8 @@ def _write_pins(updates: List[Update], path: Path = REQUIREMENTS) -> None:
     for line in path.read_text(encoding="utf-8").splitlines():
         m = _PIN.match(line.strip())
         if m and _norm(m.group(1)) in targets:
-            line = f"{m.group(1)}=={targets[_norm(m.group(1))]}"
+            # Replace only the version; keep any environment marker ("; sys_platform == ...").
+            line = line[:m.start(2)] + targets[_norm(m.group(1))] + line[m.end(2):]
         out.append(line)
     path.write_text("\n".join(out) + "\n", encoding="utf-8")
 

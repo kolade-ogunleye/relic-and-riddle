@@ -22,7 +22,8 @@ log = logging.getLogger(__name__)
 
 MIN_BEAT, TARGET_BEAT, MAX_BEAT = 2.5, 3.2, 4.5
 
-SYSTEM = """You are a documentary film editor. Choose the best picture for each line of narration in a short vertical history video. Prefer images that literally show what the line describes; for abstract lines, pick an atmospheric image that fits. Use each image at most once where possible, start strong (the first beat is the hook), and avoid placing two near-identical images back to back. Never pick an image that contradicts the narration."""
+SYSTEM = """You are a documentary film editor. Choose the best picture for each line of narration in a short vertical history video. Prefer images that literally show what the line describes; for abstract lines, pick an atmospheric image that fits. Use each image at most once where possible, start strong (the first beat is the hook), and avoid placing two near-identical images back to back. Never pick an image that contradicts the narration.
+Some candidates are the channel's own animated graphics (a locator map, a timeline, a scale comparison). Use each at most once, on the beat it fits: the map where the place is introduced, the timeline where the dates are told, the scale graphic where the size is stated. They add information the photos can't, so use the ones that fit; don't open the video with one unless no photo makes a stronger hook."""
 
 
 def segment_beats(words: List[Dict[str, Any]], total: float) -> List[Dict[str, Any]]:
@@ -51,36 +52,58 @@ def segment_beats(words: List[Dict[str, Any]], total: float) -> List[Dict[str, A
     return beats
 
 
+def _is_graphic(p: Path) -> bool:
+    """An original animated graphic from src/graphics.py (has a poster frame beside it)."""
+    return is_video(p) and Path(p).stem.startswith("graphic_") and Path(p).with_suffix(".jpg").exists()
+
+
 @llm_task("scene_plan")
 def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = "") -> Tuple[List[Path], List[float], str]:
     """Returns (media per beat, duration per beat, notes). A motion hook clip stays first.
     `feedback` lists problems a reviewer found with a previous plan, so they are avoided."""
     durations = [b["end"] - b["start"] for b in beats]
-    hook = media[0] if media and is_video(media[0]) else None
+    hook = media[0] if media and is_video(media[0]) and not _is_graphic(media[0]) else None
     stills = [p for p in media if not is_video(p)]
+    graphics = [p for p in media if _is_graphic(p)]
+    options = stills + graphics  # what the planner chooses from (graphics shown by their poster frame)
     n = len(beats)
 
-    order = list(range(n))  # default: filename order, cycling if there are more beats than images
+    order = list(range(n))  # default: filename order of the photos, cycling if there are more beats than photos
     notes = "filename order"
     if claude_available() and stills:
         try:
             content: List[dict] = []
-            for i, p in enumerate(stills, 1):
-                content += [{"type": "text", "text": f"Image {i}:"}, image_block(p)]
+            for i, p in enumerate(options, 1):
+                if p in graphics:
+                    kind = p.stem.replace("graphic_", "")
+                    content += [{"type": "text", "text": f"Image {i} (animated {kind} graphic, use at most once):"},
+                                image_block(p.with_suffix(".jpg"))]
+                else:
+                    content += [{"type": "text", "text": f"Image {i}:"}, image_block(p)]
             lines = "\n".join(f"Beat {i}: {b['text']}" for i, b in enumerate(beats, 1))
             fix = f"\n\nA reviewer found these problems with the previous choice; fix them:\n{feedback}" if feedback else ""
             content.append({"type": "text", "text": (
-                f"Narration beats ({n}):\n{lines}{fix}\n\nReturn exactly {n} image numbers (1-{len(stills)}), one per beat, in order.")})
+                f"Narration beats ({n}):\n{lines}{fix}\n\n"
+                f"Return exactly {n} image numbers (1-{len(options)}), one per beat, in order.")})
             plan = structured_call(SYSTEM, content, ScenePlan, effort="low", max_tokens=4000)
             picks = [i - 1 for i in plan.images]
-            if len(picks) == n and all(0 <= i < len(stills) for i in picks):
+            if len(picks) == n and all(0 <= i < len(options) for i in picks):
                 order, notes = picks, plan.notes
             else:
                 log.warning("Scene plan had %d picks for %d beats or bad numbers; using filename order.", len(picks), n)
         except LLMError as e:
             log.warning("Scene planning failed (%s); using filename order.", e)
 
-    chosen = [stills[i % len(stills)] for i in order]
+    planned = notes != "filename order"  # without a plan, photos only, in filename order
+    chosen: List[Path] = []
+    used_graphics = set()
+    for k, i in enumerate(order):
+        pick = options[i] if planned else stills[i % len(stills)]
+        if pick in graphics:
+            if pick in used_graphics:  # a graphic shown twice reads as padding: use a photo instead
+                pick = stills[k % len(stills)]
+            used_graphics.add(pick)
+        chosen.append(pick)
     if hook is not None:
         chosen[0] = hook
     return chosen, durations, notes

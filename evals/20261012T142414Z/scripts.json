@@ -1,0 +1,1474 @@
+{
+ "02_roman_self_healing_concrete": {
+  "claude-opus-5-5": {
+   "title": "The Roman Harbor Concrete That Grew Its Own Crystals",
+   "hook_sentence": "Nearly two thousand years ago, Pliny the Elder wrote that Roman harbor concrete becomes \"a single stone mass, impregnable to the waves and every day stronger.\"",
+   "narration_script": "Nearly two thousand years ago, Pliny the Elder wrote that Roman harbor concrete becomes \"a single stone mass, impregnable to the waves and every day stronger.\" At Tuscany's Portus Cosanus lies the oldest surviving concrete made to set underwater, from the second or first century BC. Researchers drilled cores up to about 7 feet (2.25 m) long in 2003. In Roman marine concrete, seawater dissolved volcanic ash, letting new crystals grow, aluminous tobermorite and phillipsite, that bound it tighter. Separately, a 2023 study showed lime chunks sealing cracks in lab copies within 30 days. Did Cosa's builders use that trick? Nobody has checked. Scientists are still testing a promise written two thousand years ago.",
+   "closing_sentence": "Scientists are still testing a promise written two thousand years ago.",
+   "caption": "Pliny said Roman harbor concrete got \"every day stronger.\" Was he right?\n\nAt Portus Cosanus, the port of the Roman colony of Cosa, survives the earliest known concrete made to set underwater, dated to the late 2nd or 1st century BC. A 2017 study found that in Roman marine concrete, seawater dissolved volcanic ash and let new minerals, aluminous tobermorite and phillipsite, grow and make it more cohesive. A separate 2023 study showed that lime chunks in lab copies could seal a crack within 30 days, though Cosa's own concrete hasn't been tested for that.\n\nShould modern harbors be built the Roman way, or is the old chemistry too slow for today?\n\n📍 Portus Cosanus Roman Harbor, Orbetello, Italy\n\n#RomanConcrete #PortusCosanus #Orbetello #AncientRome #RomanEngineering",
+   "first_comment": "Pliny called Roman harbor concrete \"every day stronger.\" Seawater-grown crystals or self-healing lime chunks: which do you think did more to keep it standing?",
+   "hashtags": [
+    "#RomanConcrete",
+    "#PortusCosanus",
+    "#Orbetello",
+    "#AncientRome",
+    "#RomanEngineering"
+   ],
+   "thumbnail": {
+    "eyebrow": "ANCIENT MATERIALS",
+    "line1": "ROMAN CONCRETE",
+    "line2": "THAT GREW CRYSTALS",
+    "tagline": "Seawater helped it, not hurt it"
+   },
+   "story_slides": [
+    {
+     "kicker": "PLINY, AROUND AD 79",
+     "line1": "EVERY DAY",
+     "line2": "STRONGER?",
+     "body": "Pliny claimed Roman harbor concrete became one stone mass, impregnable to the waves."
+    },
+    {
+     "kicker": "THE CHEMISTRY",
+     "line1": "SEAWATER GREW",
+     "line2": "NEW CRYSTALS",
+     "body": "It dissolved volcanic ash, letting aluminous tobermorite and phillipsite form."
+    },
+    {
+     "kicker": "OPEN QUESTION",
+     "line1": "WAS COSA",
+     "line2": "HOT-MIXED?",
+     "body": "Lime chunks sealed cracks in lab copies. Cosa's concrete hasn't been tested for it."
+    }
+   ],
+   "poll": {
+    "question": "What kept Roman harbor concrete going?",
+    "options": [
+     "Seawater crystals",
+     "Self-healing lime"
+    ]
+   },
+   "carousel_slides": [
+    {
+     "heading": "THE ROMAN CONCRETE PUZZLE",
+     "body": "What's real, what's myth and what's still unknown at Portus Cosanus."
+    },
+    {
+     "heading": "OLDEST UNDERWATER CONCRETE",
+     "body": "Cosa's harbor piers, late 2nd to 1st century BC, are the earliest surviving examples."
+    },
+    {
+     "heading": "DRILLED IN 2003",
+     "body": "ROMACONS took six cores, about 1.5 to 7.4 feet (0.48 to 2.25 m) long."
+    },
+    {
+     "heading": "SEAWATER, NOT DAMAGE",
+     "body": "Seawater dissolved volcanic ash, letting aluminous tobermorite and phillipsite grow."
+    },
+    {
+     "heading": "THE LIME CHUNK TRICK",
+     "body": "In 2023, lab copies with lime clasts sealed a crack with calcite within 30 days."
+    },
+    {
+     "heading": "MYTH: LASTS 40X LONGER",
+     "body": "No source backs that figure, and no surviving text gives a full Roman mixing method."
+    },
+    {
+     "heading": "YOUR TAKE?",
+     "body": "Should modern builders copy Roman concrete? Tell us in the comments."
+    }
+   ],
+   "sources": [
+    {
+     "title": "Phillipsite and Al-tobermorite mineral cements produced through low-temperature water-rock reactions in Roman marine concrete",
+     "url": "http://www.minsocam.org/msa/ammin/toc/2017/open_access/AM102P1435.pdf"
+    },
+    {
+     "title": "Phillipsite and Al-tobermorite mineral cements (American Mineralogist)",
+     "url": "https://pubs.geoscienceworld.org/msa/ammin/article/102/7/1435/353606/Phillipsite-and-Al-tobermorite-mineral-cements"
+    },
+    {
+     "title": "How seawater strengthens ancient Roman concrete (University of Utah)",
+     "url": "https://unews.utah.edu/articles/roman-concrete/"
+    },
+    {
+     "title": "New X-ray Studies of Roman Concrete Samples Stir Interest in Ancient Techniques (Berkeley Lab)",
+     "url": "https://newscenter.lbl.gov/2017/07/03/ancient-concrete-could-teach-us-to-do-as-romans-did/"
+    },
+    {
+     "title": "Riddle solved: Why was Roman concrete so durable? (MIT News)",
+     "url": "https://news.mit.edu/2023/roman-concrete-durability-lime-casts-0106"
+    },
+    {
+     "title": "Relict no more: purposeful inclusion of lime clasts gives Roman concretes self-healing properties (American Ceramic Society)",
+     "url": "https://ceramics.org/ceramic-tech-today/relict-no-more-purposeful-inclusion-of-lime-clasts-gives-roman-concretes-self-healing-properties/"
+    },
+    {
+     "title": "Why modern mortar crumbles, but Roman concrete lasts millennia (Science)",
+     "url": "https://www.science.org/content/article/why-modern-mortar-crumbles-roman-concrete-lasts-millennia"
+    },
+    {
+     "title": "ROMACONS 2003: preliminary field report (UVic)",
+     "url": "https://web.uvic.ca/~jpoleson/Harbour%20Concrete/ROMACONS03.html"
+    },
+    {
+     "title": "Portus Cosanus - Archaeology Magazine Archive",
+     "url": "https://archive.archaeology.org/online/features/cosa/"
+    }
+   ],
+   "topic_id": "02_roman_self_healing_concrete",
+   "origin": "claude",
+   "word_count": 114,
+   "location": {
+    "name": "Portus Cosanus Roman Harbor",
+    "city": "Orbetello",
+    "region": "Tuscany",
+    "country": "Italy",
+    "latitude": 42.4419,
+    "longitude": 11.2882
+   },
+   "meta_topic_categories": [
+    "Science & Tech",
+    "History & Philosophy",
+    "Architecture & Interior Design"
+   ]
+  },
+  "claude-sonnet-5-5": {
+   "title": "Roman Concrete: The Lime Lumps That May Heal Cracks",
+   "hook_sentence": "Roman harbors have sat in seawater for about 2,000 years, and some of their concrete is still standing.",
+   "narration_script": "Roman harbors have sat in seawater for about 2,000 years, and some of their concrete is still standing. At Orbetello, Italy, the Roman harbor of Portus Cosanus had concrete piers. In 2023, a team studying 2,000-year-old mortar from a city wall at Privernum, Italy, found lumps of lime scattered through it. Cracks run through those lumps. When water gets in, the lime recrystallizes as calcium carbonate and fills the crack. The team proposed that hot mixing created them. But researcher Masic has asked why the Romans would put so little effort into mixing it well. Scientists are still debating how deliberate it was, and that question starts with those harbors.",
+   "closing_sentence": "Scientists are still debating how deliberate it was, and that question starts with those harbors.",
+   "caption": "Roman harbors have sat in seawater for about 2,000 years. A 2023 study of 2,000-year-old mortar from a city wall at Privernum, Italy, found lumps of lime that give the concrete a self-healing function. When water seeps into a crack, the lime recrystallizes as calcium carbonate and fills the gap. The team proposed that hot mixing created those lumps, but researcher Masic has asked why the Romans would put so little effort into mixing it well. Deliberate recipe or lucky accident? 📍 Portus Cosanus Roman Harbor, Orbetello, Italy #RomanConcrete #AncientRome #RomanEngineering #Orbetello #AncientMaterials",
+   "first_comment": "Did Roman builders put those lime lumps in on purpose, or did sloppy mixing just get lucky? Which side are you on?",
+   "hashtags": [
+    "#RomanConcrete",
+    "#AncientRome",
+    "#RomanEngineering",
+    "#Orbetello",
+    "#AncientMaterials"
+   ],
+   "thumbnail": {
+    "eyebrow": "ROMAN CONCRETE",
+    "line1": "2,000 YEARS",
+    "line2": "IN SEAWATER",
+    "tagline": "HEALED BY LIME?"
+   },
+   "story_slides": [
+    {
+     "kicker": "THE HOOK",
+     "line1": "2,000 YEARS",
+     "line2": "IN SEAWATER",
+     "body": "Roman harbors are still standing. What was in the mix?"
+    },
+    {
+     "kicker": "THE REVELATION",
+     "line1": "LUMPS OF LIME",
+     "line2": "FILL THE CRACKS",
+     "body": "A 2023 study found lime lumps that recrystallize as calcium carbonate."
+    },
+    {
+     "kicker": "THE QUESTION",
+     "line1": "DESIGN OR",
+     "line2": "ACCIDENT?",
+     "body": "Scientists still debate how deliberate the Romans' hot mixing was."
+    }
+   ],
+   "poll": {
+    "question": "Roman lime lumps: design or accident?",
+    "options": [
+     "Design",
+     "Accident"
+    ]
+   },
+   "carousel_slides": [
+    {
+     "heading": "ROMAN CONCRETE",
+     "body": "Harbors in seawater for about 2,000 years. How did the concrete hold up?"
+    },
+    {
+     "heading": "THE 2023 STUDY",
+     "body": "Researchers studied 2,000-year-old mortar from a city wall at Privernum, Italy."
+    },
+    {
+     "heading": "LIME LUMPS",
+     "body": "The mortar holds lumps of lime that give it a self-healing function."
+    },
+    {
+     "heading": "HOW CRACKS CLOSE",
+     "body": "Cracks run through the lumps. Water gets in and the lime turns to calcium carbonate."
+    },
+    {
+     "heading": "THE HOT-MIXING IDEA",
+     "body": "The team proposed that hot mixing gave the concrete its durability."
+    },
+    {
+     "heading": "STILL DEBATED",
+     "body": "Researcher Masic asks why Romans put so little effort into mixing it well."
+    },
+    {
+     "heading": "YOUR TAKE?",
+     "body": "Deliberate recipe or happy accident? Tell us in the comments."
+    }
+   ],
+   "sources": [
+    {
+     "title": "Researchers dig up secrets of 'self-healing' Roman concrete",
+     "url": "https://phys.org/news/2023-01-secrets-self-healing-roman-concrete.html"
+    }
+   ],
+   "topic_id": "02_roman_self_healing_concrete",
+   "origin": "claude",
+   "word_count": 110,
+   "location": {
+    "name": "Portus Cosanus Roman Harbor",
+    "city": "Orbetello",
+    "region": "Tuscany",
+    "country": "Italy",
+    "latitude": 42.4419,
+    "longitude": 11.2882
+   },
+   "meta_topic_categories": [
+    "Science & Tech",
+    "History & Philosophy",
+    "Architecture & Interior Design"
+   ]
+  }
+ },
+ "03_kailasa_temple_monolith": {
+  "claude-opus-5-5": {
+   "title": "Kailasa: The Temple Carved Downward",
+   "hook_sentence": "This 100-foot temple wasn't built up—it was carved down, out of a single basalt hillside.",
+   "narration_script": "This 100-foot temple wasn't built up—it was carved down, out of a single basalt hillside. In the 8th century at Ellora, workers cut trenches into the rock and chiseled downward with hammers and picks, freeing a complex about 164 feet deep. Life-size elephants stand in the courtyard, and a frieze of elephants seems to hold the temple up. The often-cited figure is 200,000 metric tons of rock removed, but estimates vary widely. It's attributed to Rashtrakuta king Krishna the First, yet no known inscription names Kailasa directly. So how long did it take, and how many reigns did it span? The only certainty is the direction they worked.",
+   "closing_sentence": "The only certainty is the direction they worked.",
+   "caption": "They didn't build this temple. They subtracted it. 🪨\nIn the 8th century, carvers at Ellora cut trenches into a basalt hillside and worked downward, freeing a temple complex about 164 feet deep, 109 feet wide and 98 feet high (about 50 × 33 × 30 m). Life-size elephants, multi-story galleries and flag pillars roughly 50 to 55 feet (15–17 m) tall were all left standing from the same rock. Tradition credits Rashtrakuta king Krishna I (reigned about 756–773 CE), but the main evidence is an 812 CE copper-plate inscription that praises a temple at \"Elapura\" without naming Kailasa.\nHow many years, and how many kings, do you think it took?\n📍 Kailasa Temple (Cave 16), Ellora Caves, Aurangabad, India\n#KailasaTemple #ElloraCaves #Rashtrakuta #RockCutArchitecture #AncientIndia",
+   "first_comment": "The \"18 years\" figure you see online is a modern estimate, probably based on the length of Krishna I's reign. Could one king's workforce really finish Kailasa, or did it take several generations? Make your case.",
+   "hashtags": [
+    "#KailasaTemple",
+    "#ElloraCaves",
+    "#Rashtrakuta",
+    "#RockCutArchitecture",
+    "#AncientIndia"
+   ],
+   "thumbnail": {
+    "eyebrow": "ELLORA, INDIA · 8TH CENTURY",
+    "line1": "NOT BUILT UP",
+    "line2": "CARVED DOWN",
+    "tagline": "One temple, cut from a basalt hillside"
+   },
+   "story_slides": [
+    {
+     "kicker": "ELLORA, INDIA",
+     "line1": "NOT BUILT UP",
+     "line2": "CARVED DOWN",
+     "body": "Kailasa Temple was cut from the top down, out of a single basalt hillside."
+    },
+    {
+     "kicker": "THE SCALE",
+     "line1": "ABOUT 100 FEET TALL",
+     "line2": "164 FEET DEEP",
+     "body": "About 30 m high and 50 m deep. Often-cited: 200,000 metric tons of rock removed."
+    },
+    {
+     "kicker": "STILL DEBATED",
+     "line1": "ONE KING",
+     "line2": "OR SEVERAL?",
+     "body": "Credited to Krishna I (c. 756–773 CE). Did the work span more reigns? Vote next."
+    }
+   ],
+   "poll": {
+    "question": "How long did Kailasa take?",
+    "options": [
+     "One king's reign",
+     "Several reigns"
+    ]
+   },
+   "carousel_slides": [
+    {
+     "heading": "KAILASA TEMPLE, ELLORA",
+     "body": "A whole temple carved downward out of one basalt hillside in 8th-century India."
+    },
+    {
+     "heading": "CARVED FROM THE TOP",
+     "body": "Workers cut trenches into the hill, then chiseled down with hammers and picks."
+    },
+    {
+     "heading": "ABOUT 164 × 109 × 98 FT",
+     "body": "Roughly 50 × 33 × 30 m deep, wide and high, all freed from the living rock."
+    },
+    {
+     "heading": "HOW MUCH ROCK?",
+     "body": "Often cited: 200,000 metric tons. Some estimates go to 400,000 or more."
+    },
+    {
+     "heading": "ELEPHANTS IN STONE",
+     "body": "Life-size elephants stand in the court; a frieze of them seems to hold the temple up."
+    },
+    {
+     "heading": "WHO BUILT IT?",
+     "body": "Credited to Krishna I. An 812 CE plate praises a temple at Elapura, not naming Kailasa."
+    },
+    {
+     "heading": "ONE REIGN OR SEVERAL?",
+     "body": "Was Kailasa finished in one king's lifetime, or over generations? Tell us below."
+    }
+   ],
+   "sources": [
+    {
+     "title": "Kailasa Temple, Ellora",
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora"
+    },
+    {
+     "title": "Ellora Caves",
+     "url": "https://en.wikipedia.org/wiki/Ellora_Caves"
+    },
+    {
+     "title": "Krishna I",
+     "url": "https://en.wikipedia.org/wiki/Krishna_I"
+    },
+    {
+     "title": "Marvels of Kailasa Temple Architecture at Ellora Caves",
+     "url": "https://www.novatr.com/blog/architectural-marvel-kailash-temple-ellora-caves"
+    },
+    {
+     "title": "Kailasa Temple carved from single basalt hill, 400,000+ tons removed",
+     "url": "https://ancientnerds.com/news-archive/kailasa-temple-carved-from-single-basalt-hill-400000-tons-removed-7647"
+    }
+   ],
+   "topic_id": "03_kailasa_temple_monolith",
+   "origin": "claude",
+   "word_count": 108,
+   "location": {
+    "name": "Kailasa Temple, Ellora Caves",
+    "city": "Aurangabad",
+    "region": "Maharashtra",
+    "country": "India",
+    "latitude": 20.0238,
+    "longitude": 75.1793
+   },
+   "meta_topic_categories": [
+    "History & Philosophy",
+    "Architecture & Interior Design",
+    "Travel & Culture"
+   ]
+  },
+  "claude-sonnet-5-5": {
+   "title": "The Temple Carved From a Hillside",
+   "hook_sentence": "Nobody stacked a single block of this temple, and it stands about 100 feet (30 m) tall.",
+   "narration_script": "Nobody stacked a single block of this temple, and it stands about 100 feet (30 m) tall. Carvers at Ellora, India, started at the top of a basalt hillside and cut downward, leaving the shrine standing inside an excavated pit. Modern estimates put the rock removed at around 200,000 tons. Elephant sculptures circle the base, two freestanding pillars rise in the courtyard, and columned galleries climb in levels. Tradition credits the Rashtrakuta king Krishna I, who ruled from about 756 to 774 CE. Some scholars think work began earlier and spanned generations, so the timeline is still debated. So how do you build a temple without stacking a single block?",
+   "closing_sentence": "So how do you build a temple without stacking a single block?",
+   "caption": "Nobody stacked a single block of this 100-foot (30 m) temple.\n\nAt Ellora, India, carvers cut Kailasa Temple out of a basalt hillside, working from the top down. Modern estimates put the rock removed at around 200,000 tons. Tradition credits the Rashtrakuta king Krishna I (c. 756-774 CE), but some scholars think the work spanned generations.\n\nWhat do you think it would take to carve a temple out of a hillside?\n\n📍 Kailasa Temple, Ellora Caves, Aurangabad, India\n\n#KailasaTemple #ElloraCaves #Rashtrakuta #IndianArchitecture #RockCutArchitecture",
+   "first_comment": "Did Kailasa come from one king's reign, or did it really take generations? Which side would you argue?",
+   "hashtags": [
+    "#KailasaTemple",
+    "#ElloraCaves",
+    "#Rashtrakuta",
+    "#IndianArchitecture",
+    "#RockCutArchitecture"
+   ],
+   "thumbnail": {
+    "eyebrow": "ELLORA, INDIA",
+    "line1": "CARVED TOP DOWN",
+    "line2": "FROM ONE HILLSIDE",
+    "tagline": "NOT A BLOCK STACKED"
+   },
+   "story_slides": [
+    {
+     "kicker": "ELLORA, INDIA",
+     "line1": "NO BLOCKS STACKED",
+     "line2": "ABOUT 100 FEET TALL",
+     "body": "Kailasa Temple was cut out of a basalt hillside."
+    },
+    {
+     "kicker": "THE REVELATION",
+     "line1": "CARVED TOP DOWN",
+     "line2": "AN EST. 200,000 TONS",
+     "body": "Carvers began at the top and removed rock around the shrine, leaving a pit."
+    },
+    {
+     "kicker": "THE QUESTION",
+     "line1": "WHO FINISHED IT?",
+     "line2": "TIMELINE STILL DEBATED",
+     "body": "Tradition credits Krishna I, but some scholars see work across generations."
+    }
+   ],
+   "poll": {
+    "question": "Which sounds harder?",
+    "options": [
+     "Carving down",
+     "Building up"
+    ]
+   },
+   "carousel_slides": [
+    {
+     "heading": "KAILASA TEMPLE",
+     "body": "Ellora, India: a temple carved out of a hillside, not built up from the ground."
+    },
+    {
+     "heading": "CAVE 16 AT ELLORA",
+     "body": "Kailasa is Cave 16. UNESCO listed Ellora as a World Heritage Site in 1983."
+    },
+    {
+     "heading": "ABOUT 100 FEET TALL",
+     "body": "It stands roughly 100 feet (30 m), carved from a basalt hillside."
+    },
+    {
+     "heading": "CUT FROM THE TOP DOWN",
+     "body": "Carvers worked downward, leaving the shrine inside a large excavated pit."
+    },
+    {
+     "heading": "AN EST. 200,000 TONS",
+     "body": "A modern estimate of the rock removed, not an ancient record."
+    },
+    {
+     "heading": "ELEPHANTS AND PILLARS",
+     "body": "Elephant sculptures ring the base; two freestanding pillars stand in the courtyard."
+    },
+    {
+     "heading": "WHO BUILT IT?",
+     "body": "Tradition credits Krishna I (c. 756-774). One reign or many? Tell us below."
+    }
+   ],
+   "sources": [
+    {
+     "title": "Kailasa",
+     "url": "https://www.britannica.com/place/Kailasa"
+    },
+    {
+     "title": "Kailasa Temple, Ellora",
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora"
+    },
+    {
+     "title": "Ellora Caves",
+     "url": "https://en.wikipedia.org/wiki/Ellora_Caves"
+    }
+   ],
+   "topic_id": "03_kailasa_temple_monolith",
+   "origin": "claude",
+   "word_count": 110,
+   "location": {
+    "name": "Kailasa Temple, Ellora Caves",
+    "city": "Aurangabad",
+    "region": "Maharashtra",
+    "country": "India",
+    "latitude": 20.0238,
+    "longitude": 75.1793
+   },
+   "meta_topic_categories": [
+    "History & Philosophy",
+    "Architecture & Interior Design",
+    "Travel & Culture"
+   ]
+  }
+ },
+ "04_antikythera_mechanism": {
+  "claude-opus-5-5": {
+   "title": "The Antikythera Mechanism: A 2,000-Year-Old Analog Computer",
+   "hook_sentence": "Sponge divers pulled a corroded lump of bronze and wood from a shipwreck 148 feet (45 m) down.",
+   "narration_script": "Sponge divers pulled a corroded lump of bronze and wood from a shipwreck 148 feet (45 m) down. In May 1902, archaeologist Valerios Stais spotted gears and Greek letters in the crust. Built in the second century BC, it survives as 82 fragments, including 30 bronze gears. A hand crank drove dials for the Sun, the Moon and the four-year cycle of the Olympic Games. A spiral of 223 lunar months flagged coming eclipses. Nothing in Europe matched it until the 1300s. Did it actually run? A 2025 simulation suggests tiny flaws could have jammed it; others dispute that. It all came up from the sea as one corroded lump.",
+   "closing_sentence": "It all came up from the sea as one corroded lump.",
+   "caption": "A corroded lump from a Greek shipwreck hid 30 bronze gears. ⚙️\n\nSponge divers recovered the Antikythera Mechanism in 1901 from a wreck about 148 feet (45 m) down, and in May 1902 archaeologist Valerios Stais spotted gears and Greek letters in its crust. Made in the 2nd century BC, this hand-cranked device tracked the Sun and Moon, counted the four-year Olympiad cycle, and used a spiral of 223 lunar months to flag coming eclipses. Only about a third of it survives, and scholars still debate how its lost planet gearing worked and whether it ever ran smoothly.\n\nWas it a working instrument, or a brilliant showpiece that jammed?\n\n📍 Antikythera Shipwreck, Antikythera, Greece\n\n#AntikytheraMechanism #Antikythera #AncientGreece #Archaeoastronomy #HellenisticHistory",
+   "first_comment": "A 2025 simulation suggests tiny gear-tooth flaws could have jammed the Antikythera Mechanism, while other researchers dispute that. Do you think its maker built a precise working instrument, or something closer to a showpiece?",
+   "hashtags": [
+    "#AntikytheraMechanism",
+    "#Antikythera",
+    "#AncientGreece",
+    "#Archaeoastronomy",
+    "#HellenisticHistory"
+   ],
+   "thumbnail": {
+    "eyebrow": "2ND CENTURY BC",
+    "line1": "30 BRONZE GEARS",
+    "line2": "FROM A SHIPWRECK",
+    "tagline": "The oldest known analog computer"
+   },
+   "story_slides": [
+    {
+     "kicker": "ANTIKYTHERA · 1901",
+     "line1": "A CORRODED LUMP",
+     "line2": "FROM THE SEABED",
+     "body": "Sponge divers raised it from a wreck about 148 ft (45 m) down."
+    },
+    {
+     "kicker": "MAY 1902",
+     "line1": "GEARS INSIDE",
+     "line2": "AND GREEK LETTERS",
+     "body": "30 bronze gears survive. Its dials tracked the Sun, Moon and eclipse cycles."
+    },
+    {
+     "kicker": "STILL DEBATED",
+     "line1": "DID IT REALLY",
+     "line2": "WORK?",
+     "body": "A 2025 simulation says tiny flaws could jam it. Others disagree. Your call?"
+    }
+   ],
+   "poll": {
+    "question": "Did the Antikythera Mechanism really work?",
+    "options": [
+     "Working instrument",
+     "Showpiece"
+    ]
+   },
+   "carousel_slides": [
+    {
+     "heading": "THE ANTIKYTHERA MECHANISM",
+     "body": "A hand-cranked Greek device from the 2nd century BC. Swipe for the facts."
+    },
+    {
+     "heading": "FOUND IN A SHIPWRECK",
+     "body": "Sponge divers from Symi found the wreck in 1900. The device came up in 1901."
+    },
+    {
+     "heading": "GEARS SPOTTED IN 1902",
+     "body": "In May 1902, Valerios Stais noticed gears and Greek letters in the corrosion."
+    },
+    {
+     "heading": "ONLY A THIRD SURVIVES",
+     "body": "82 fragments remain, including 30 bronze gears with teeth about 1 mm long."
+    },
+    {
+     "heading": "AN ECLIPSE PREDICTOR",
+     "body": "A spiral dial of 223 lunar months marked eclipses using known repeating cycles."
+    },
+    {
+     "heading": "OLYMPICS ON THE DIAL",
+     "body": "A small dial tracked the 4-year Olympiad and games like the Pythia and Nemea."
+    },
+    {
+     "heading": "WORKING TOOL OR SHOWPIECE?",
+     "body": "Nothing in Europe matched it until the 1300s. Did it work? Tell us below."
+    }
+   ],
+   "sources": [
+    {
+     "title": "Antikythera mechanism - Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism"
+    },
+    {
+     "title": "Gears are discovered on the Antikythera mechanism, May 17, 1902 - EDN",
+     "url": "https://www.edn.com/gears-are-discovered-on-the-antikythera-mechanism-may-17-1902/"
+    },
+    {
+     "title": "Antikythera Mechanism - World History Encyclopedia",
+     "url": "https://www.worldhistory.org/Antikythera_Mechanism/"
+    },
+    {
+     "title": "A Model of the Cosmos in the ancient Greek Antikythera Mechanism - Scientific Reports",
+     "url": "https://www.nature.com/articles/s41598-021-84310-w"
+    },
+    {
+     "title": "Calendars with Olympiad display and eclipse prediction on the Antikythera Mechanism - Nature",
+     "url": "https://www.nature.com/articles/nature07130"
+    },
+    {
+     "title": "Panhellenic Games - Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Panhellenic_Games"
+    },
+    {
+     "title": "The Epoch Dates of the Antikythera Mechanism - ISAW Papers",
+     "url": "http://dlib.nyu.edu/awdl/isaw/isaw-papers/17/"
+    },
+    {
+     "title": "The Impact of Triangular-Toothed Gears on the Functionality of the Antikythera Mechanism - arXiv",
+     "url": "https://arxiv.org/pdf/2504.00327"
+    },
+    {
+     "title": "Antikythera Mechanism's intricate gears: Simulations reveal potential jamming issues - Phys.org",
+     "url": "https://phys.org/news/2025-04-antikythera-mechanism-intricate-gears-simulations.html"
+    },
+    {
+     "title": "New Study Suggests Antikythera Mechanism Had Design Flaws - Archaeology Magazine",
+     "url": "https://archaeology.org/news/2025/04/15/new-study-suggests-antikythera-mechanism-had-design-flaws/"
+    },
+    {
+     "title": "Scientists May Have Discovered How the Ancient Greeks' 'First Computer' Tracked the Cosmos - Smithsonian",
+     "url": "https://www.smithsonianmag.com/smart-news/new-research-illuminates-how-antikythera-mechanism-first-computer-may-have-functioned-180977257/"
+    },
+    {
+     "title": "Astronomical clock - Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Astronomical_clock"
+    }
+   ],
+   "topic_id": "04_antikythera_mechanism",
+   "origin": "claude",
+   "word_count": 110,
+   "location": {
+    "name": "Antikythera Shipwreck",
+    "city": "Antikythera",
+    "region": "Aegean Sea",
+    "country": "Greece",
+    "latitude": 35.8833,
+    "longitude": 23.3
+   },
+   "meta_topic_categories": [
+    "Science & Tech",
+    "History & Philosophy",
+    "Archaeology"
+   ]
+  },
+  "claude-sonnet-5-5": {
+   "title": "The Antikythera Mechanism: Greek Gears From the Sea",
+   "hook_sentence": "Divers hauled a crusted lump of bronze from a shipwreck off the Greek island of Antikythera.",
+   "narration_script": "Divers hauled a crusted lump of bronze from a shipwreck off the Greek island of Antikythera. Sponge divers found the wreck in 1900, and pieces came up through 1901. Researchers later recognized a geared Greek device for tracking the heavens. Its dials followed eclipse cycles called the Saros and Exeligmos, plus a calendar and the Panhellenic games, including Olympia. The surviving gearing is usually given as about 30 gears. Its planet display is lost, so a 2021 study proposed a model. Who built it? Hipparchus, Archimedean traditions and Rhodes are all proposed. That is what the sea gave back: one crusted lump of bronze.",
+   "closing_sentence": "That is what the sea gave back: one crusted lump of bronze.",
+   "caption": "A crusted lump of bronze from the seafloor turned out to be a Greek sky machine.\n\nSponge divers found the wreck off Antikythera in 1900, and pieces were recovered through 1901. Researchers later recognized a geared Greek device, with dials for eclipse cycles and the Panhellenic games, including Olympia. Its planet display is lost, so scholars rely on proposed models, including one published in 2021.\n\nWho do you think built it?\n\n📍 Antikythera Shipwreck, Antikythera, Greece\n\n#Antikythera #AntikytheraMechanism #AncientGreece #HistoryOfAstronomy #Archaeology",
+   "first_comment": "Hipparchus, Archimedean traditions or a workshop on Rhodes: who do you think built the Antikythera Mechanism, and why?",
+   "hashtags": [
+    "#Antikythera",
+    "#AntikytheraMechanism",
+    "#AncientGreece",
+    "#HistoryOfAstronomy",
+    "#Archaeology"
+   ],
+   "thumbnail": {
+    "eyebrow": "ANTIKYTHERA, GREECE",
+    "line1": "BRONZE LUMP",
+    "line2": "OR SKY MACHINE?",
+    "tagline": "GEARS FROM A WRECK"
+   },
+   "story_slides": [
+    {
+     "kicker": "DIVERS, 1900",
+     "line1": "A LUMP OF BRONZE",
+     "line2": "FROM A WRECK",
+     "body": "Sponge divers found a shipwreck off Antikythera. Pieces came up through 1901."
+    },
+    {
+     "kicker": "THE REVELATION",
+     "line1": "GEARS INSIDE",
+     "line2": "TRACKING THE SKY",
+     "body": "Dials followed eclipse cycles and the Panhellenic games, including Olympia."
+    },
+    {
+     "kicker": "THE OPEN QUESTION",
+     "line1": "WHO BUILT IT?",
+     "line2": "STILL DEBATED",
+     "body": "Hipparchus, Archimedean traditions and Rhodes are all proposed."
+    }
+   ],
+   "poll": {
+    "question": "Who built it?",
+    "options": [
+     "Hipparchus's circle",
+     "Archimedean school"
+    ]
+   },
+   "carousel_slides": [
+    {
+     "heading": "THE LUMP OF BRONZE",
+     "body": "A Greek device for tracking the heavens, raised from the sea."
+    },
+    {
+     "heading": "FOUND IN 1900-01",
+     "body": "Sponge divers found the wreck in 1900. Pieces came up through 1901."
+    },
+    {
+     "heading": "GEARS INSIDE",
+     "body": "Researchers later recognized gearing. About 30 gears survive, by the usual count."
+    },
+    {
+     "heading": "ECLIPSES AND GAMES",
+     "body": "Dials tracked the Saros and Exeligmos eclipse cycles and the Panhellenic games."
+    },
+    {
+     "heading": "THE PLANETS: A MODEL",
+     "body": "The planet gearing is lost. A 2021 study proposed a reconstruction."
+    },
+    {
+     "heading": "WHO BUILT IT?",
+     "body": "Hipparchus, Archimedean traditions and Rhodes have all been proposed."
+    },
+    {
+     "heading": "YOUR CALL",
+     "body": "Who do you think built it? Tell us in the comments."
+    }
+   ],
+   "sources": [
+    {
+     "title": "The Antikythera Mechanism: a mysterious ancient machine that should not exist? - History Skills",
+     "url": "https://www.historyskills.com/classroom/ancient-history/antikythera-mechanism/"
+    },
+    {
+     "title": "The Antikythera Mechanism - Communications of the ACM",
+     "url": "https://cacm.acm.org/research/the-antikythera-mechanism/"
+    },
+    {
+     "title": "A Model of the Cosmos in the ancient Greek Antikythera Mechanism - Scientific Reports",
+     "url": "https://www.nature.com/articles/s41598-021-84310-w"
+    },
+    {
+     "title": "Antikythera mechanism - Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism"
+    },
+    {
+     "title": "The Epoch Dates of the Antikythera Mechanism - ISAW Papers 17",
+     "url": "http://dlib.nyu.edu/awdl/isaw/isaw-papers/17/"
+    }
+   ],
+   "topic_id": "04_antikythera_mechanism",
+   "origin": "claude",
+   "word_count": 104,
+   "location": {
+    "name": "Antikythera Shipwreck",
+    "city": "Antikythera",
+    "region": "Aegean Sea",
+    "country": "Greece",
+    "latitude": 35.8833,
+    "longitude": 23.3
+   },
+   "meta_topic_categories": [
+    "Science & Tech",
+    "History & Philosophy",
+    "Archaeology"
+   ]
+  }
+ },
+ "05_gobekli_tepe": {
+  "claude-opus-5-5": {
+   "title": "Göbekli Tepe: Carved Pillars 6,000 Years Before Stonehenge",
+   "hook_sentence": "Six thousand years before Stonehenge, hunter-gatherers raised eight-ton carved pillars on a Turkish hilltop.",
+   "narration_script": "Six thousand years before Stonehenge, hunter-gatherers raised eight-ton carved pillars on a Turkish hilltop. Göbekli Tepe's oldest enclosures date to about 9500 BC, before pottery existed here. One enclosure's central pillars stand 18 feet (5.5 m) tall. Foxes, snakes, boars and birds are carved across its pillars. Excavators sorted 15,000 animal bones, all wild. Yet wild grain traces on thousands of grinding stones hint at bread or beer. Temple or village? Newer digs found hearths and a water supply. Its burial is debated too: ritual backfill, or landslides? Less than a tenth has been excavated. One question remains: what drew hunter-gatherers to build here, six thousand years before Stonehenge?",
+   "closing_sentence": "One question remains: what drew hunter-gatherers to build here, six thousand years before Stonehenge?",
+   "caption": "Hunter-gatherers built this 6,000 years before Stonehenge.\n\nGöbekli Tepe's earliest enclosures date to about 9500–9000 BC, before pottery existed in the region. In one enclosure, two central limestone pillars stand 18 feet (5.5 m) tall and weigh an estimated 8 tons (roughly 7–8 metric tons) each, while low-relief carvings across the site show foxes, snakes, boars and birds. Excavators sorted 15,000 animal bones in the first year, all wild, yet newer digs have uncovered hearths, large-scale cereal processing and a water supply.\n\nWas it a temple, a village, or something in between?\n\n📍 Göbekli Tepe, Şanlıurfa, Turkey\n\n#GobekliTepe #Neolithic #PrehistoricTurkey #Sanliurfa #AncientAnatolia",
+   "first_comment": "Excavator Klaus Schmidt called it a temple with no residents. Newer digs found hearths, grain processing and a water supply. Temple, village, or both? Make your case 👇",
+   "hashtags": [
+    "#GobekliTepe",
+    "#Neolithic",
+    "#PrehistoricTurkey",
+    "#Sanliurfa",
+    "#AncientAnatolia"
+   ],
+   "thumbnail": {
+    "eyebrow": "OLDER THAN STONEHENGE",
+    "line1": "BUILT BY",
+    "line2": "HUNTER-GATHERERS",
+    "tagline": "Göbekli Tepe, Turkey · c. 9500 BC"
+   },
+   "story_slides": [
+    {
+     "kicker": "SOUTHERN TURKEY · 9500 BC",
+     "line1": "6,000 YEARS BEFORE",
+     "line2": "STONEHENGE",
+     "body": "Hunter-gatherers carved and raised limestone pillars on this hilltop."
+    },
+    {
+     "kicker": "THE TWIST",
+     "line1": "15,000 BONES.",
+     "line2": "ALL WILD.",
+     "body": "No farm animals, yet wild grain traces turn up on over 7,000 grinding tools."
+    },
+    {
+     "kicker": "YOUR CALL",
+     "line1": "TEMPLE",
+     "line2": "OR VILLAGE?",
+     "body": "Newer digs found hearths and a water supply. Less than a tenth is excavated."
+    }
+   ],
+   "poll": {
+    "question": "Göbekli Tepe was mainly a...",
+    "options": [
+     "Temple",
+     "Village"
+    ]
+   },
+   "carousel_slides": [
+    {
+     "heading": "GÖBEKLI TEPE",
+     "body": "Carved stone enclosures raised by hunter-gatherers around 9500 BC in southern Turkey."
+    },
+    {
+     "heading": "OLDER THAN STONEHENGE",
+     "body": "Earliest buildings date to 9500–9000 BC, about 6,000 years before Stonehenge."
+    },
+    {
+     "heading": "18-FOOT PILLARS",
+     "body": "One enclosure's two central pillars: 18 ft (5.5 m) tall, an estimated 8 tons each."
+    },
+    {
+     "heading": "A STONE ZOO",
+     "body": "Low-relief carvings show foxes, snakes, boars, birds and other animals."
+    },
+    {
+     "heading": "WILD FOOD, BIG WORK",
+     "body": "15,000 animal bones in year one, all wild. Grain traces hint at bread or beer."
+    },
+    {
+     "heading": "BURIED, BUT HOW?",
+     "body": "Ritual backfill was the old theory. Newer studies point to slope slides."
+    },
+    {
+     "heading": "TEMPLE OR VILLAGE?",
+     "body": "Less than a tenth is dug. Tell us in the comments what you think it was for."
+    }
+   ],
+   "sources": [
+    {
+     "title": "Gobekli Tepe: The World's First Temple? - Smithsonian Magazine",
+     "url": "https://www.smithsonianmag.com/history/gobekli-tepe-the-worlds-first-temple-83613665/"
+    },
+    {
+     "title": "Last Stand of the Hunter-Gatherers? - Archaeology Magazine, May/June 2021",
+     "url": "https://archaeology.org/issues/may-june-2021/features/turkey-gobekli-tepe-hunter-gatherers/"
+    },
+    {
+     "title": "Göbekli Tepe (Turkey) No 1572 - UNESCO advisory evaluation",
+     "url": "https://whc.unesco.org/document/168743"
+    },
+    {
+     "title": "Göbekli Tepe Added to World Heritage List (Turkey) - DAI Tepe Telegrams",
+     "url": "https://www.dainst.blog/the-tepe-telegrams/2018/07/11/gobekli-tepe-added-to-world-heritage-list-turkey/"
+    },
+    {
+     "title": "There and Back Again: Towards a New Understanding of Abandonment Practices at the Neolithic Settlement of Göbekli Tepe",
+     "url": "https://www.academia.edu/70845886/There_and_Back_Again_Towards_a_New_Understanding_of_Abandonment_Practices_at_the_Neolithic_Settlement_of_G%C3%B6bekli_Tepe"
+    },
+    {
+     "title": "Cereal processing at Early Neolithic Göbekli Tepe, southeastern Turkey",
+     "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6493732/"
+    },
+    {
+     "title": "Of Monuments and Men: Exploring the 11,500 year old world of Göbekli Tepe - Templeton Foundation",
+     "url": "https://www.templeton.org/news/gobekli-tepe"
+    },
+    {
+     "title": "Göbekli Tepe - Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/G%C3%B6bekli_Tepe"
+    }
+   ],
+   "topic_id": "05_gobekli_tepe",
+   "origin": "claude",
+   "word_count": 109,
+   "location": {
+    "name": "Göbekli Tepe",
+    "city": "Şanlıurfa",
+    "region": "Southeastern Anatolia",
+    "country": "Turkey",
+    "latitude": 37.2231,
+    "longitude": 38.9225
+   },
+   "meta_topic_categories": [
+    "History & Philosophy",
+    "Archaeology",
+    "Travel & Culture"
+   ]
+  },
+  "claude-sonnet-5-5": {
+   "title": "Göbekli Tepe: What the Plaster Says",
+   "hook_sentence": "Wall plaster from Enclosure D at Göbekli Tepe returned a radiocarbon reading of 9,984 years, give or take 42.",
+   "narration_script": "Wall plaster from Enclosure D at Göbekli Tepe returned a radiocarbon reading of 9,984 years, give or take 42. Once calibrated, that places Enclosure D's construction around 9500 BC. Across the site, radiocarbon dates run from about 9500 to 8000 BC, the Pre-Pottery Neolithic. That is a span of about 1,500 years, not a single moment. Researchers think the Layer III enclosures were probably not all built at the same time. So a single planned temple complex, built in one go, fits the evidence poorly. How the builders used these enclosures is still debated. The story of its age starts with wall plaster.",
+   "closing_sentence": "The story of its age starts with wall plaster.",
+   "caption": "A scrap of wall plaster from Enclosure D reads 9,984 years, give or take 42.\n\nRadiocarbon dates from Göbekli Tepe run from about 9500 to 8000 BC, in the Pre-Pottery Neolithic. Wall plaster from Enclosure D points to construction around 9500 BC. Researchers think the Layer III enclosures were probably not all built at the same time.\n\nDoes a site built over centuries change how you picture it?\n\n📍 Göbekli Tepe, Şanlıurfa, Turkey\n\n#GobekliTepe #Neolithic #PrePotteryNeolithic #Radiocarbon #AncientTurkey",
+   "first_comment": "Radiocarbon dates suggest the Layer III enclosures were probably not all built at once. Do you picture Göbekli Tepe as one planned site, or a place that grew over centuries?",
+   "hashtags": [
+    "#GobekliTepe",
+    "#Neolithic",
+    "#PrePotteryNeolithic",
+    "#Radiocarbon",
+    "#AncientTurkey"
+   ],
+   "thumbnail": {
+    "eyebrow": "GÖBEKLI TEPE",
+    "line1": "9,984 YEARS",
+    "line2": "GIVE OR TAKE 42",
+    "tagline": "WHAT THE PLASTER SAYS"
+   },
+   "story_slides": [
+    {
+     "kicker": "PREHISTORIC MARVEL",
+     "line1": "9,984 YEARS",
+     "line2": "GIVE OR TAKE 42",
+     "body": "Radiocarbon reading from Enclosure D wall plaster at Göbekli Tepe."
+    },
+    {
+     "kicker": "THE DATES",
+     "line1": "ABOUT 9500-8000 BC",
+     "line2": "PRE-POTTERY NEOLITHIC",
+     "body": "Radiocarbon dates across the site span roughly 1,500 years."
+    },
+    {
+     "kicker": "YOUR CALL",
+     "line1": "ONE PLAN OR MANY?",
+     "line2": "BUILT OVER CENTURIES",
+     "body": "Layer III enclosures were probably not all built at once. How were they used?"
+    }
+   ],
+   "poll": {
+    "question": "Göbekli Tepe: one plan or built over time?",
+    "options": [
+     "One plan",
+     "Over centuries"
+    ]
+   },
+   "carousel_slides": [
+    {
+     "heading": "GÖBEKLI TEPE",
+     "body": "A Pre-Pottery Neolithic site in Şanlıurfa, Turkey. Here is what the dates say."
+    },
+    {
+     "heading": "THE ENCLOSURE D PLASTER",
+     "body": "Wall plaster gave a radiocarbon reading of 9,984 ± 42 years BP."
+    },
+    {
+     "heading": "WHAT THE DATE MEANS",
+     "body": "Calibrated, Enclosure D's construction falls around the mid-10th millennium BC."
+    },
+    {
+     "heading": "A 1,500-YEAR SPAN",
+     "body": "Radiocarbon dates run from about 9500 to 8000 BC across the site."
+    },
+    {
+     "heading": "NOT ALL AT ONCE",
+     "body": "Layer III enclosures were probably not all built at the same time."
+    },
+    {
+     "heading": "PRE-POTTERY ERA",
+     "body": "The dates place the site in the Pre-Pottery Neolithic, PPNA with later PPNB phases."
+    },
+    {
+     "heading": "YOUR TURN",
+     "body": "One planned complex or a site that grew? Tell us in the comments."
+    }
+   ],
+   "sources": [
+    {
+     "title": "Establishing a Radiocarbon Sequence for Göbekli Tepe. State of Research and New Data",
+     "url": "https://www.academia.edu/68645237/Establishing_a_Radiocarbon_Sequence_for_G%C3%B6bekli_Tepe_State_of_Research_and_New_Data"
+    }
+   ],
+   "topic_id": "05_gobekli_tepe",
+   "origin": "claude",
+   "word_count": 103,
+   "location": {
+    "name": "Göbekli Tepe",
+    "city": "Şanlıurfa",
+    "region": "Southeastern Anatolia",
+    "country": "Turkey",
+    "latitude": 37.2231,
+    "longitude": 38.9225
+   },
+   "meta_topic_categories": [
+    "History & Philosophy",
+    "Archaeology",
+    "Travel & Culture"
+   ]
+  }
+ },
+ "06_damascus_steel_nanotubes": {
+  "claude-opus-5-5": {
+   "title": "Damascus Steel's Nanotube Puzzle",
+   "hook_sentence": "Tilt a Damascus saber toward the light, and the steel ripples like running water.",
+   "narration_script": "Tilt a Damascus saber toward the light, and the steel ripples like running water. Persian scholar al-Biruni said the same. Yet the metal wasn't Syrian. It was wootz, a high-carbon crucible steel from southern India and Sri Lanka. In 2006, a Dresden team dissolved a sample of a 17th-century saber in acid and reported carbon nanotubes. But they studied one blade, and no one has shown the nanotubes made it stronger. The last high-quality blades date to about 1750. One theory: smiths lost access to ores with trace vanadium, as little as 40 parts per million. So scientists still tilt these old blades toward the light.",
+   "closing_sentence": "So scientists still tilt these old blades toward the light.",
+   "caption": "A 17th-century saber, a bath of acid, and carbon nanotubes. 🔬\nDamascus blades were forged from wootz, a high-carbon crucible steel from southern India and Sri Lanka, and the Persian scholar al-Biruni compared their patterns to running water. In 2006, a team from TU Dresden dissolved a sample of a 17th-century saber in acid and reported carbon nanotubes and cementite nanowires in the journal Nature. Only one blade was studied, though, and no one has proven the nanotubes made these swords stronger.\nWhat do you think really ended production of the finest blades around 1750?\n📍 Damascus Old City, Damascus, Syria\n#DamascusSteel #WootzSteel #CarbonNanotubes #AncientMetallurgy #Damascus",
+   "first_comment": "Pendray and Verhoeven eventually recreated the damascene pattern after about ten years of work. So is Damascus steel truly a \"lost\" art, or just a rediscovered one? 👇",
+   "hashtags": [
+    "#DamascusSteel",
+    "#WootzSteel",
+    "#CarbonNanotubes",
+    "#AncientMetallurgy",
+    "#Damascus"
+   ],
+   "thumbnail": {
+    "eyebrow": "LOST METALLURGY",
+    "line1": "NANOTUBES IN A",
+    "line2": "17TH-CENTURY SABER",
+    "tagline": "One blade. One acid bath. Open questions."
+   },
+   "story_slides": [
+    {
+     "kicker": "THE HOOK",
+     "line1": "STEEL THAT RIPPLES",
+     "line2": "LIKE RUNNING WATER",
+     "body": "Damascus blades were forged from wootz steel made in southern India and Sri Lanka."
+    },
+    {
+     "kicker": "THE REVELATION",
+     "line1": "2006: NANOTUBES",
+     "line2": "IN A 17TH-C SABER",
+     "body": "A Dresden team dissolved a sample in acid and reported carbon nanotubes."
+    },
+    {
+     "kicker": "THE QUESTION",
+     "line1": "DID THEY MAKE IT",
+     "line2": "STRONGER?",
+     "body": "Only one blade was studied. No one has proven the nanotubes mattered. Your take?"
+    }
+   ],
+   "poll": {
+    "question": "What ended true Damascus blades?",
+    "options": [
+     "Ores ran out",
+     "Lost know-how"
+    ]
+   },
+   "carousel_slides": [
+    {
+     "heading": "DAMASCUS STEEL'S SECRET",
+     "body": "Famous blades, steel from India, and a surprising 2006 lab result."
+    },
+    {
+     "heading": "MADE FROM WOOTZ",
+     "body": "Crucible steel from South India and Sri Lanka, made since at least the 3rd century BCE."
+    },
+    {
+     "heading": "WATER IN THE STEEL",
+     "body": "Al-Biruni compared the patterns to \"running water.\" Some show ladders or roses."
+    },
+    {
+     "heading": "NANOTUBES, 2006",
+     "body": "A Dresden team dissolved a 17th-century saber sample in acid and reported nanotubes."
+    },
+    {
+     "heading": "ONE BLADE, BIG CAVEAT",
+     "body": "Only one saber was studied. No one has proven nanotubes made the blades stronger."
+    },
+    {
+     "heading": "LOST AROUND 1750",
+     "body": "Theory: smiths lost ores with trace vanadium, as little as 40 parts per million."
+    },
+    {
+     "heading": "YOUR VERDICT",
+     "body": "Pendray and Verhoeven later recreated the pattern. Is it still a \"lost\" art?"
+    }
+   ],
+   "sources": [
+    {
+     "title": "Carbon nanotubes in an ancient Damascus sabre (Nature)",
+     "url": "https://www.nature.com/articles/444286a"
+    },
+    {
+     "title": "The Key Role of Impurities in Ancient Damascus Steel Blades",
+     "url": "https://www.tms.org/pubs/journals/jom/9809/verhoeven-9809.html"
+    },
+    {
+     "title": "Carbon nanotechnology in an 17th century Damascus sword (National Geographic)",
+     "url": "https://www.nationalgeographic.com/science/article/carbon-nanotechnology-in-an-17th-century-damascus-sword"
+    },
+    {
+     "title": "Ancient swords, modern nanotechnology",
+     "url": "https://skullsinthestars.com/2011/09/01/ancient-swords-modern-nanotechnology/"
+    },
+    {
+     "title": "Damascus steel (Wikipedia)",
+     "url": "https://en.wikipedia.org/wiki/Damascus_steel"
+    },
+    {
+     "title": "Wootz steel (Wikipedia)",
+     "url": "https://en.wikipedia.org/wiki/Wootz_steel"
+    },
+    {
+     "title": "Raiders of the lost steel (Chemistry World)",
+     "url": "https://www.chemistryworld.com/features/raiders-of-the-lost-steel/9344.article"
+    }
+   ],
+   "topic_id": "06_damascus_steel_nanotubes",
+   "origin": "claude",
+   "word_count": 106,
+   "location": {
+    "name": "Damascus Old City",
+    "city": "Damascus",
+    "region": "Levant",
+    "country": "Syria",
+    "latitude": 33.5138,
+    "longitude": 36.2765
+   },
+   "meta_topic_categories": [
+    "Science & Tech",
+    "History & Philosophy",
+    "Military History"
+   ]
+  },
+  "claude-sonnet-5-5": {
+   "title": "The Damascus Saber With Nanotubes Inside",
+   "hook_sentence": "Look closely at a seventeenth-century Damascus saber, and the steel seems to ripple like water.",
+   "narration_script": "Look closely at a seventeenth-century Damascus saber, and the steel seems to ripple like water. Crusaders first met blades like this, with a wavy banding pattern called damask and an exceptionally sharp edge. In 2006, a team at TU Dresden in Germany examined saber steel. They dissolved it in hydrochloric acid, then imaged the residue with a high-resolution transmission electron microscope. They found carbon nanotubes and cementite nanowires. Did those structures make the blade stronger? Finding them does not prove it, and little follow-up research exists, partly because samples are hard to obtain. The smiths could not have known nanotubes existed. So centuries later, one rippled blade still keeps scientists looking closer.",
+   "closing_sentence": "So centuries later, one rippled blade still keeps scientists looking closer.",
+   "caption": "A 17th-century saber's steel ripples like water, and it hid something far smaller than the eye can see.\n\nIn 2006, a team at TU Dresden reported carbon nanotubes and cementite nanowires in a 17th-century Damascus saber. They dissolved a sample in hydrochloric acid and imaged the residue with an electron microscope. Finding nanotubes does not prove they made the blade stronger, and follow-up research remains scarce.\n\nDo you think nanotubes explain the blade's famous edge, or were they just a side effect?\n\n📍 Damascus Old City, Damascus, Syria\n\n#DamascusSteel #CarbonNanotubes #LostMetallurgy #DamascusSaber #HistoryOfMetallurgy",
+   "first_comment": "Is \"ancient nanotechnology\" a fair label for a 17th-century saber, when the smiths could not have known nanotubes existed?",
+   "hashtags": [
+    "#DamascusSteel",
+    "#CarbonNanotubes",
+    "#LostMetallurgy",
+    "#DamascusSaber",
+    "#HistoryOfMetallurgy"
+   ],
+   "thumbnail": {
+    "eyebrow": "LOST METALLURGY",
+    "line1": "NANOTUBES IN A",
+    "line2": "17TH-CENTURY SABER",
+    "tagline": "Damascus steel, Dresden 2006"
+   },
+   "story_slides": [
+    {
+     "kicker": "DAMASCUS STEEL",
+     "line1": "A BLADE THAT",
+     "line2": "RIPPLES LIKE WATER",
+     "body": "Crusaders met these wavy-patterned blades. Then a 17th-century saber went to the lab."
+    },
+    {
+     "kicker": "THE REVELATION",
+     "line1": "NANOTUBES",
+     "line2": "INSIDE THE STEEL",
+     "body": "TU Dresden found carbon nanotubes and cementite nanowires in a saber sample."
+    },
+    {
+     "kicker": "THE QUESTION",
+     "line1": "STRONGER, OR",
+     "line2": "JUST INCIDENTAL?",
+     "body": "Finding them doesn't prove they strengthened the blade. Follow-up work is scarce."
+    }
+   ],
+   "poll": {
+    "question": "Did nanotubes make the blade better?",
+    "options": [
+     "Yes, likely",
+     "Just incidental"
+    ]
+   },
+   "carousel_slides": [
+    {
+     "heading": "DAMASCUS STEEL'S SECRET",
+     "body": "What a 17th-century saber revealed under a microscope in 2006"
+    },
+    {
+     "heading": "THE FAMED BLADES",
+     "body": "Crusaders first met them: wavy damask banding and an exceptionally sharp edge."
+    },
+    {
+     "heading": "DRESDEN, 2006",
+     "body": "A TU Dresden team published its findings in Nature on Nov. 15, 2006."
+    },
+    {
+     "heading": "THE METHOD",
+     "body": "Sample dissolved in hydrochloric acid; residue imaged by electron microscope."
+    },
+    {
+     "heading": "THE FIND",
+     "body": "Carbon nanotubes and cementite nanowires in 17th-century saber steel."
+    },
+    {
+     "heading": "THE CAVEAT",
+     "body": "Finding nanotubes does not prove they strengthened the blade. Samples are hard to get."
+    },
+    {
+     "heading": "YOUR TAKE?",
+     "body": "Strength secret or side effect? Tell us in the comments."
+    }
+   ],
+   "sources": [
+    {
+     "title": "Carbon nanotubes in an ancient Damascus sabre (Nature)",
+     "url": "https://www.nature.com/articles/444286a"
+    },
+    {
+     "title": "Materials: Carbon nanotubes in an ancient Damascus sabre - ADS",
+     "url": "https://ui.adsabs.harvard.edu/abs/2006Natur.444..286R/abstract"
+    },
+    {
+     "title": "Carbon nanotechnology in an 17th century Damascus sword (National Geographic)",
+     "url": "https://www.nationalgeographic.com/science/article/carbon-nanotechnology-in-an-17th-century-damascus-sword"
+    },
+    {
+     "title": "Ancient swords, modern nanotechnology (Skulls in the Stars)",
+     "url": "https://skullsinthestars.com/2011/09/01/ancient-swords-modern-nanotechnology/"
+    },
+    {
+     "title": "Nanostructured Ancient Damascus Blades, Pätzke et al. (DMG abstract)",
+     "url": "https://www.dmg-home.org/fileadmin/user_upload/Konferenzen/DMG-CD/filedir/208_abstract.pdf"
+    }
+   ],
+   "topic_id": "06_damascus_steel_nanotubes",
+   "origin": "claude",
+   "word_count": 112,
+   "location": {
+    "name": "Damascus Old City",
+    "city": "Damascus",
+    "region": "Levant",
+    "country": "Syria",
+    "latitude": 33.5138,
+    "longitude": 36.2765
+   },
+   "meta_topic_categories": [
+    "Science & Tech",
+    "History & Philosophy",
+    "Military History"
+   ]
+  }
+ },
+ "07_camp_century_nuclear_ice_city": {
+  "claude-opus-5-5": {
+   "title": "Camp Century: The Nuclear Town Under Greenland's Ice",
+   "hook_sentence": "Under Greenland's ice sheet, a nuclear reactor once powered a town of around 200 men.",
+   "narration_script": "Under Greenland's ice sheet, a nuclear reactor once powered a town of around 200 men. Camp Century, begun in 1959, had 26 tunnels, a hospital, a chapel and a barbershop. The PM-2A reactor arrived in cargo-plane-sized pieces, hauled 138 miles (222 km) across the ice. The base was public. It was a test bed for Project Iceworm, a secret plan to hide up to 600 nuclear missiles under the ice. None were ever deployed. Creeping ice squeezed the tunnels and helped sink the plan; by 1967, the Army was gone. Left behind: diesel, sewage, PCBs and low-level radioactive coolant. The ice above could start melting by 2100, and it's all still down there.",
+   "closing_sentence": "The ice above could start melting by 2100, and it's all still down there.",
+   "caption": "The US Army once ran a nuclear reactor inside Greenland's ice sheet. 🧊\n\nIn 1959, Army engineers began building Camp Century, a town of 26 ice tunnels with a hospital, chapel and barbershop for around 200 men, powered by a PM-2A reactor hauled 138 miles (222 km) across the ice. The base itself was public, but it served as a test bed for Project Iceworm, a secret plan for up to 600 nuclear missiles under the ice that was never built and only came to light in the 1990s. The Army was gone by 1967, and a 2016 study estimated that diesel, sewage, PCBs and low-level radioactive coolant remain buried there, under ice that could start melting by 2100.\n\nWho do you think should pay to clean it up: the US, Denmark or Greenland?\n\n📍 Camp Century, Thule Region, Greenland\n\n#CampCentury #ProjectIceworm #ColdWarHistory #GreenlandHistory #NuclearHistory",
+   "first_comment": "In 1957 Denmark's prime minister gave an ambiguous reply about nuclear weapons in Greenland, and the US read it as a yes. Was that a green light or a misunderstanding? And who should pay for the cleanup now?",
+   "hashtags": [
+    "#CampCentury",
+    "#ProjectIceworm",
+    "#ColdWarHistory",
+    "#GreenlandHistory",
+    "#NuclearHistory"
+   ],
+   "thumbnail": {
+    "eyebrow": "DECLASSIFIED COLD WAR",
+    "line1": "A NUCLEAR TOWN",
+    "line2": "UNDER GREENLAND ICE",
+    "tagline": "Camp Century, 1959–1967"
+   },
+   "story_slides": [
+    {
+     "kicker": "COLD WAR, 1959",
+     "line1": "A NUCLEAR TOWN",
+     "line2": "INSIDE THE ICE",
+     "body": "The US Army dug Camp Century into Greenland's ice sheet and powered it with a reactor."
+    },
+    {
+     "kicker": "DECLASSIFIED",
+     "line1": "THE SECRET PLAN",
+     "line2": "UP TO 600 MISSILES",
+     "body": "It tested Project Iceworm: up to 600 nuclear missiles under the ice. None were deployed."
+    },
+    {
+     "kicker": "STILL BURIED",
+     "line1": "WHO CLEANS IT UP?",
+     "line2": "BEFORE THE ICE MELTS",
+     "body": "The ice over the base could start melting by 2100. Who should pay for the cleanup?"
+    }
+   ],
+   "poll": {
+    "question": "Who should pay to clean up Camp Century?",
+    "options": [
+     "The US",
+     "Denmark"
+    ]
+   },
+   "carousel_slides": [
+    {
+     "heading": "CAMP CENTURY",
+     "body": "The US Army's nuclear-powered town inside Greenland's ice sheet, 1959–1967."
+    },
+    {
+     "heading": "A TOWN UNDER THE ICE",
+     "body": "26 tunnels, almost 2 miles (3 km) in total, held around 200 men, a hospital and a chapel."
+    },
+    {
+     "heading": "A REACTOR BY CARGO PLANE",
+     "body": "The PM-2A came in C-130-sized pieces and was hauled 138 miles (222 km) across the ice."
+    },
+    {
+     "heading": "THE SECRET: ICEWORM",
+     "body": "The plan: up to 600 nuclear missiles in ice tunnels. None were ever deployed."
+    },
+    {
+     "heading": "SCIENCE THAT HIT BEDROCK",
+     "body": "1966: the first ice core to reach bedrock in Greenland, about 4,550 ft (1,387 m) down."
+    },
+    {
+     "heading": "WHAT IT LEFT BEHIND",
+     "body": "Diesel, sewage, PCBs and low-level radioactive coolant, now about 100 ft (30 m) down."
+    },
+    {
+     "heading": "YOUR CALL",
+     "body": "The ice could start melting by 2100. Who should pay for the cleanup? Tell us below."
+    }
+   ],
+   "sources": [
+    {
+     "title": "Camp Century - Nuclear Museum - Atomic Heritage Foundation",
+     "url": "https://ahf.nuclearmuseum.org/ahf/history/camp-century/"
+    },
+    {
+     "title": "Project Iceworm - Wikipedia",
+     "url": "https://en.wikipedia.org/wiki/Project_Iceworm"
+    },
+    {
+     "title": "Camp Century: Secret Arctic base was part of a US Cold War project - CNN",
+     "url": "https://www.cnn.com/2025/03/15/science/camp-century-secret-arctic-base-cold-war"
+    },
+    {
+     "title": "When the Pentagon Dug Ice Tunnels in Greenland to Hide Nukes - History.com",
+     "url": "https://www.history.com/articles/project-iceworm-cold-war-nuclear-weapons-greenland"
+    },
+    {
+     "title": "The US Army tried portable nuclear power at remote bases 60 years ago - Arctic Focus",
+     "url": "https://www.arcticfocus.org/stories/the-us-army-tried-portable-nuclear-power-at-remote-bases-60-years-ago-it-didnt-go-well/"
+    },
+    {
+     "title": "PM-2A Nuclear Reactor in Greenland - Stanford University",
+     "url": "http://large.stanford.edu/courses/2026/ph241/bonanno1/"
+    },
+    {
+     "title": "Camp Century - Atomic Insights",
+     "url": "https://atomicinsights.com/nuclear-plant-designed-manufactured-constructed-tested-in-less-than-2-years/"
+    },
+    {
+     "title": "The Army once built an underground ice fortress during the Cold War - Task & Purpose",
+     "url": "https://taskandpurpose.com/history/us-army-camp-century-greenland-cold-war/"
+    },
+    {
+     "title": "Inside Camp Century - All That's Interesting",
+     "url": "https://allthatsinteresting.com/camp-century"
+    },
+    {
+     "title": "The abandoned ice sheet base at Camp Century, Greenland, in a warming climate - Colgan et al. 2016, Geophysical Research Letters",
+     "url": "https://agupubs.onlinelibrary.wiley.com/doi/full/10.1002/2016GL069688"
+    },
+    {
+     "title": "Melting ice sheet could expose frozen Cold War-era hazardous waste - ScienceDaily",
+     "url": "https://www.sciencedaily.com/releases/2016/08/160804141252.htm"
+    },
+    {
+     "title": "Camp Century Ice Core Data: Readme file - NOAA NCEI",
+     "url": "https://www.ncei.noaa.gov/pub/data/paleo/icecore/greenland/gisp/campcentury/del1977.txt"
+    },
+    {
+     "title": "What this secret nuclear base in Greenland can tell us about climate change - National Geographic",
+     "url": "https://www.nationalgeographic.com/history/article/camp-century-nasa-greenland-us-military"
+    },
+    {
+     "title": "Project Iceworm - Outrider",
+     "url": "https://outrider.org/nuclear-weapons/articles/project-iceworm"
+    }
+   ],
+   "topic_id": "07_camp_century_nuclear_ice_city",
+   "origin": "claude",
+   "word_count": 113,
+   "location": {
+    "name": "Camp Century",
+    "city": "Thule Region",
+    "region": "Greenland Ice Sheet",
+    "country": "Greenland",
+    "latitude": 77.1667,
+    "longitude": -61.1333
+   },
+   "meta_topic_categories": [
+    "Military History",
+    "History & Philosophy",
+    "Science & Tech"
+   ]
+  },
+  "claude-sonnet-5-5": {
+   "title": "Camp Century: The City Under the Ice",
+   "hook_sentence": "In 1959, the U.S. Army began carving a city into the Greenland ice sheet.",
+   "narration_script": "In 1959, the U.S. Army began carving a city into the Greenland ice sheet. Camp Century sat about 120 miles (190 km) inland, where temperatures fell to about minus 70 degrees Fahrenheit. Its longest trench, Main Street, ran 1,100 feet (335 m), and the camp had room for 200 soldiers. A portable reactor supplied power until 1963. Publicly, it was a science base; privately, a test bed for Project Iceworm, a plan for about 600 missiles. Iceworm was never built. By 1962, shifting ice had forced crews to raise the reactor room's ceiling 5 feet (1.5 m). The Army expected snow to bury its waste forever, but the ice keeps moving.",
+   "closing_sentence": "The Army expected snow to bury its waste forever, but the ice keeps moving.",
+   "caption": "The U.S. Army dug a city into Greenland's ice in 1959.\nCamp Century began in June 1959 as a polar research base, about 120 miles (190 km) inland from Thule Air Base. Its trenches held housing for 200 soldiers, and a portable reactor powered the camp until 1963. It also served as a test bed for Project Iceworm, a plan for about 600 missiles that was never built.\nWho should pay to clean up what the Army left in the ice?\n📍 Camp Century, Thule Region, Greenland\n#CampCentury #ProjectIceworm #ColdWarHistory #Greenland #DeclassifiedHistory",
+   "first_comment": "A 2016 study found the ice over the site could start melting by 2100 if current trends continue. Who should be responsible for the cleanup: the U.S., or Denmark and Greenland?",
+   "hashtags": [
+    "#CampCentury",
+    "#ProjectIceworm",
+    "#ColdWarHistory",
+    "#Greenland",
+    "#DeclassifiedHistory"
+   ],
+   "thumbnail": {
+    "eyebrow": "COLD WAR, GREENLAND",
+    "line1": "A CITY IN THE ICE",
+    "line2": "PROJECT ICEWORM",
+    "tagline": "WASTE LEFT IN THE ICE"
+   },
+   "story_slides": [
+    {
+     "kicker": "DECLASSIFIED HISTORY",
+     "line1": "A CITY IN THE ICE",
+     "line2": "GREENLAND, 1959",
+     "body": "The U.S. Army dug trenches into the ice sheet and built a camp inside."
+    },
+    {
+     "kicker": "THE REVELATION",
+     "line1": "SCIENCE ON TOP",
+     "line2": "MISSILE PLAN BELOW",
+     "body": "Camp Century was a test bed for Project Iceworm: about 600 missiles, never built."
+    },
+    {
+     "kicker": "YOUR TAKE",
+     "line1": "WHO CLEANS IT UP?",
+     "line2": "WASTE LEFT IN 1967",
+     "body": "The Army assumed snow would bury it forever. Should it be the one to dig it out?"
+    }
+   ],
+   "poll": {
+    "question": "Who should handle Camp Century's waste?",
+    "options": [
+     "The U.S.",
+     "Denmark/Greenland"
+    ]
+   },
+   "carousel_slides": [
+    {
+     "heading": "CAMP CENTURY",
+     "body": "The U.S. Army's city under the Greenland ice, begun in June 1959."
+    },
+    {
+     "heading": "MAIN STREET",
+     "body": "The longest trench ran 1,100 ft (335 m), and was 26 ft (8 m) high and deep."
+    },
+    {
+     "heading": "ROOM FOR 200",
+     "body": "Housing for 200 soldiers, plus a theater, library, chapel and barbershop."
+    },
+    {
+     "heading": "THE REACTOR",
+     "body": "A portable PM-2A reactor shut down in 1963. Diesel power took over in 1964."
+    },
+    {
+     "heading": "PROJECT ICEWORM",
+     "body": "A plan for about 600 missiles in tunnels. Camp Century was the test bed."
+    },
+    {
+     "heading": "THE ICE WON",
+     "body": "By 1962 the reactor room's ceiling needed raising 5 ft (1.5 m). Waste stayed."
+    },
+    {
+     "heading": "YOUR CALL",
+     "body": "Who should clean up Camp Century? Tell us in the comments."
+    }
+   ],
+   "sources": [
+    {
+     "title": "Camp Century - Nuclear Museum - Atomic Heritage Foundation",
+     "url": "https://ahf.nuclearmuseum.org/ahf/history/camp-century/"
+    },
+    {
+     "title": "Project Iceworm (Wikipedia)",
+     "url": "https://en.wikipedia.org/wiki/Project_Iceworm"
+    },
+    {
+     "title": "Camp Century (Polar Journal)",
+     "url": "https://polarjournal.net/camp-century-city-under-the-ice/"
+    },
+    {
+     "title": "NASA spots details of US Army base lost under Greenland ice (The Register)",
+     "url": "https://www.theregister.com/2024/11/25/camp_century_nasa_images/"
+    },
+    {
+     "title": "Top of the World: The US Military Camp Beneath Greenland's Ice Cap (Adventure Canada)",
+     "url": "https://www.adventurecanada.com/canadian-high-arctic-and-greenland/top-of-the-world-the-us-military-camp-beneath-greenlands-ice-cap"
+    },
+    {
+     "title": "The Astonishing Story Of Camp Century (All That's Interesting)",
+     "url": "https://allthatsinteresting.com/camp-century"
+    },
+    {
+     "title": "Melting ice sheet could expose frozen Cold War-era hazardous waste (ScienceDaily)",
+     "url": "https://www.sciencedaily.com/releases/2016/08/160804141252.htm"
+    }
+   ],
+   "topic_id": "07_camp_century_nuclear_ice_city",
+   "origin": "claude",
+   "word_count": 111,
+   "location": {
+    "name": "Camp Century",
+    "city": "Thule Region",
+    "region": "Greenland Ice Sheet",
+    "country": "Greenland",
+    "latitude": 77.1667,
+    "longitude": -61.1333
+   },
+   "meta_topic_categories": [
+    "Military History",
+    "History & Philosophy",
+    "Science & Tech"
+   ]
+  }
+ }
+}

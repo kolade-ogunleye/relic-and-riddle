@@ -82,3 +82,14 @@ https://ai.google.dev/gemini-api/docs/pricing
   - Instagram: 50 posts per 24 hours; Facebook: 25 per 24 hours. Only successful publishes count.
   - **It flags duplicate or similar content within 48 hours per account and network.**
 - **For us:** a topic's carousel must not reuse the Reel's caption, and must go out at least 48 hours after that Reel.
+
+## Map and graphics data
+- Natural Earth (https://www.naturalearthdata.com/about/terms-of-use/): "All versions of Natural Earth
+  raster + vector map data ... are in the public domain"; commercial use invited; "Crediting the
+  authors is unnecessary". We use 1:50m admin-0 countries v5.1.2 (`scripts/fetch_geodata.py`).
+- Wikidata (https://www.wikidata.org/wiki/Wikidata:Licensing): structured data is CC0. Coordinates
+  (P625) are accepted only inside the topic's country (src/geo.py). API etiquette
+  (https://www.mediawiki.org/wiki/API:Etiquette): identifying User-Agent, serial requests, maxlag, cache.
+- Scale-graphic references (src/graphics.py REFERENCES): Statue of Liberty 305 ft 1 in ground to torch
+  (U.S. National Park Service); Elizabeth Tower ("Big Ben") 96 m / 316 ft (UK Parliament); Great
+  Pyramid of Giza about 138.5 m / 454 ft today.

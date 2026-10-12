@@ -1,0 +1,162 @@
+{
+ "topkapi palace|turkey": {
+  "lat": 41.013,
+  "lon": 28.984,
+  "qid": "Q170495",
+  "country": "Turkey",
+  "label": "Topkapi Palace",
+  "approximate": false
+ },
+ "flannan isles|scotland": {
+  "lat": 58.283333333333,
+  "lon": -7.5833333333333,
+  "qid": "Q1427154",
+  "country": "Scotland",
+  "label": "Flannan Isles",
+  "approximate": false
+ },
+ "paracas peninsula|peru": {
+  "lat": -13.858888888889,
+  "lon": -76.328888888889,
+  "qid": "Q2735703",
+  "country": "Peru",
+  "label": "Paracas Peninsula",
+  "approximate": false
+ },
+ "nazca desert|peru": {
+  "lat": -14.828888888889,
+  "lon": -74.943611111111,
+  "qid": "Q1711521",
+  "country": "Peru",
+  "label": "Nazca",
+  "approximate": true
+ },
+ "abukir bay|egypt": {
+  "lat": 31.1975,
+  "lon": 29.8925,
+  "qid": "Q87",
+  "country": "Egypt",
+  "label": "Alexandria",
+  "approximate": true
+ },
+ "luoyang|china": {
+  "lat": 34.658611111111114,
+  "lon": 112.42444444444445,
+  "qid": "Q10380436",
+  "country": "China",
+  "label": "Luoyang",
+  "approximate": false
+ },
+ "beinecke rare book library|usa": {
+  "lat": 41.31161,
+  "lon": -72.92722,
+  "qid": "Q814779",
+  "country": "USA",
+  "label": "Beinecke Rare Book Library",
+  "approximate": false
+ },
+ "odessa|ukraine": {
+  "lat": 46.47747,
+  "lon": 30.73262,
+  "qid": "Q1874",
+  "country": "Ukraine",
+  "label": "Odessa",
+  "approximate": false
+ },
+ "ouadane|mauritania": {
+  "lat": 20.931944444444444,
+  "lon": -11.619583333333333,
+  "qid": "Q843127",
+  "country": "Mauritania",
+  "label": "Ouadane",
+  "approximate": false
+ },
+ "catherine palace|russia": {
+  "lat": 59.716,
+  "lon": 30.395555555555557,
+  "qid": "Q2854543",
+  "country": "Russia",
+  "label": "Catherine Palace",
+  "approximate": false
+ },
+ "bijapur|india": {
+  "lat": 16.82442,
+  "lon": 75.71537,
+  "qid": "Q3636023",
+  "country": "India",
+  "label": "Bijapur",
+  "approximate": false
+ },
+ "podkamennaya tunguska|russia": {
+  "lat": 57.6873,
+  "lon": 104.3553,
+  "qid": "Q26361",
+  "country": "Russia",
+  "label": "Podkamennaya Tunguska",
+  "approximate": false
+ },
+ "syracuse|italy": {
+  "lat": 37.069166666667,
+  "lon": 15.2875,
+  "qid": "Q13670",
+  "country": "Italy",
+  "label": "Syracuse",
+  "approximate": false
+ },
+ "kholat syakhl|russia": {
+  "lat": 61.755,
+  "lon": 59.4225,
+  "qid": "Q1915041",
+  "country": "Russia",
+  "label": "Kholat Syakhl",
+  "approximate": false
+ },
+ "british museum|uk": {
+  "lat": 51.519444444444446,
+  "lon": -0.12694444444444444,
+  "qid": "Q6373",
+  "country": "UK",
+  "label": "British Museum",
+  "approximate": false
+ },
+ "wieliczka|poland": {
+  "lat": 49.989444444444,
+  "lon": 20.066111111111,
+  "qid": "Q472621",
+  "country": "Poland",
+  "label": "Wieliczka",
+  "approximate": false
+ },
+ "golestan|iran": {
+  "lat": 36.8393,
+  "lon": 54.4444,
+  "qid": "Q170041",
+  "country": "Iran",
+  "label": "Golestan",
+  "approximate": false
+ },
+ "strasbourg|france": {
+  "lat": 48.573333333333,
+  "lon": 7.7522222222222,
+  "qid": "Q6602",
+  "country": "France",
+  "label": "Strasbourg",
+  "approximate": false
+ },
+ "bothnian sea|sweden": {
+  "lat": 58.325476,
+  "lon": 19.434687,
+  "qid": "Q579938",
+  "country": "Sweden",
+  "label": "Baltic Sea",
+  "approximate": true
+ },
+ "cia headquarters|usa": {
+  "lat": 38.952888333333,
+  "lon": -77.152479166667,
+  "qid": "Q61725439",
+  "country": "USA",
+  "label": "CIA Headquarters",
+  "approximate": false
+ }
+}

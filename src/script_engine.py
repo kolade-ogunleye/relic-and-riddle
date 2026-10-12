@@ -69,6 +69,8 @@ Requirements:
 - carousel_caption: a separate caption for the 7-slide carousel of the same topic, different wording from the Reel caption (not a rephrase of its first line): a short invitation to swipe, one fresh detail, one question, then the same hashtags. Under 800 characters.
 - hashtags: exactly 5, each starting with "#": specific to the place, era or subject (e.g. "#Cappadocia", "#ByzantineHistory"); no generic engagement tags like "#viral", "#fyp", "#ReelsViral", "#explore".
 - emphasis_words: 1-3 words or short names copied exactly from the narration that carry the story (a striking number, a name, a place). They get a gold highlight on screen, so choose sparingly.
+- timeline: 2-4 dated events from the story, oldest first, only dates the research supports (approximate=true for estimates; negative years for BC; labels at most 40 characters). Omit (null) if the story has fewer than two solid dates.
+- scale_fact: one striking, well-sourced size (depth, height or length) of the subject, for an on-screen comparison with a famous landmark; null if no reliable figure.
 - story_slides: exactly 3 (hook, revelation, question).
 - poll: one question with exactly 2 short options (posted manually as a native Story poll sticker).
 - carousel_slides: exactly 7 (title slide, five fact slides, closing call-to-comment slide).
@@ -136,6 +138,15 @@ def validate_structure(pkg: ScriptPackage) -> List[str]:
     ai_isms = [p for p in AI_PHRASES if re.search(r"\b" + re.escape(p) + r"\b", public_text, re.IGNORECASE)]
     if ai_isms:
         problems.append(f"Uses machine-sounding phrasing ({', '.join(ai_isms)}); rewrite in plain documentary language.")
+    if pkg.timeline is not None:
+        if not 2 <= len(pkg.timeline) <= 4:
+            problems.append("timeline needs 2-4 events (or null).")
+        if any(len(e.label) > 40 for e in pkg.timeline):
+            problems.append("timeline labels must be at most 40 characters.")
+        if [e.year for e in pkg.timeline] != sorted(e.year for e in pkg.timeline):
+            problems.append("timeline events must be in chronological order.")
+    if pkg.scale_fact is not None and (pkg.scale_fact.value <= 0 or len(pkg.scale_fact.subject) > 28):
+        problems.append("scale_fact needs a positive value and a subject of at most 28 characters.")
     for term in pkg.emphasis_words or []:
         if term.lower() not in pkg.narration_script.lower():
             problems.append(f"emphasis word '{term}' does not appear in the narration.")

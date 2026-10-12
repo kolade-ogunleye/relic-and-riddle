@@ -78,6 +78,13 @@ class ClaimFactChecker:
         on_screen = [payload["thumbnail"][k] for k in ("eyebrow", "line1", "line2", "tagline")]
         on_screen += [f"{s['line1']} {s['line2']}. {s['body']}" for s in payload["story_slides"]]
         on_screen += [f"{c['heading']}: {c['body']}" for c in payload["carousel_slides"]]
+        # Animated graphics (src/graphics.py) show these as fact; check them like any on-screen text.
+        from .graphics import year_text
+        on_screen += [f"Timeline: {year_text(e['year'], e.get('approximate', False))} - {e['label']}"
+                      for e in payload.get("timeline") or []]
+        if payload.get("scale_fact"):
+            f = payload["scale_fact"]
+            on_screen.append(f"Scale graphic: {f['subject']} = {f['value']:g} {f['unit']} ({f['dimension']})")
         return (
             f"<narration>\n{payload['narration_script']}\n</narration>\n\n"
             f"<caption>\n{payload['caption']}\n</caption>\n\n"

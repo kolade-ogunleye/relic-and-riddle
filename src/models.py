@@ -39,6 +39,19 @@ class Source(BaseModel):
     url: str
 
 
+class TimelineEvent(BaseModel):
+    year: int                 # negative for BC
+    approximate: bool         # shown as "c."
+    label: str                # at most 40 characters
+
+
+class ScaleFact(BaseModel):
+    value: float
+    unit: Literal["ft", "m"]
+    dimension: Literal["depth", "height", "length"]
+    subject: str              # e.g. "Derinkuyu's depth"; at most 28 characters
+
+
 class ScriptPackage(BaseModel):
     title: str
     hook_sentence: str
@@ -52,6 +65,8 @@ class ScriptPackage(BaseModel):
     poll: Poll
     carousel_slides: List[CarouselSlide]
     sources: List[Source]
+    timeline: Optional[List[TimelineEvent]] = None   # 2-4 dated events for the timeline graphic
+    scale_fact: Optional[ScaleFact] = None           # one well-sourced size for the scale graphic
     emphasis_words: Optional[List[str]] = None  # 1-3 key words/names from the narration, emphasised on screen
     carousel_caption: Optional[str] = None  # its own text: Meta/Upload-Post flag duplicate captions
 

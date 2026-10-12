@@ -35,7 +35,7 @@ from src.config import ASSETS_DIR, DAILY_RUN_TIME, HARD_DURATION_CEILING, OUTPUT
 from src.credits import caption_credit_line, load_credits
 from src.db import PipelineDatabase, QueueEmpty
 from src.control import heartbeat_text, is_paused, make_command_handler, ping_healthcheck
-from src import beat_images, post_schedule
+from src import beat_images, graphics, post_schedule
 from src.scene_planner import plan_scenes, segment_beats
 from src.upscale import ensure_all, ensure_resolution
 from src.music import mark_used as mark_track_used, music_for
@@ -307,7 +307,9 @@ class PipelineCoordinator:
         beat_paths, beat_credits = beat_images.source(beats, topic, run_dir / "beat_images")
         for cred, path in zip(beat_credits, beat_paths):
             cred["upscaled"] = str(ensure_resolution(path))
-        candidates = scene_media + [Path(c["upscaled"]) for c in beat_credits]
+        # The channel's own animated graphics (map, timeline, scale) as further candidates.
+        own_graphics = graphics.make_all(payload, topic, run_dir / "graphics")
+        candidates = scene_media + [Path(c["upscaled"]) for c in beat_credits] + own_graphics
         master_mp4 = run_dir / f"{tid}_master.mp4"
         caption_base, feedback, qa = payload["caption"], "", None
         for attempt in (1, 2):  # a second pass only if the video check finds a picture mismatch
@@ -320,6 +322,8 @@ class PipelineCoordinator:
                 candidates, used, caption = scene_media, [], caption_base
                 scenes, durations, plan_notes = plan_scenes(beats, candidates, feedback=feedback)
             payload["caption"] = caption
+            used_graphics = [p.stem.replace("graphic_", "") for p in own_graphics if p in scenes]
+            payload["graphics_note"] = ("🗺 Original graphics in this video: " + ", ".join(used_graphics)) if used_graphics else ""
             payload["beat_image_credits"] = used
             payload["beat_image_note"] = (f"🔍 {len(used)} beat-specific image(s) auto-sourced from Wikimedia Commons; "
                                           "check they show the right thing" if used else "")

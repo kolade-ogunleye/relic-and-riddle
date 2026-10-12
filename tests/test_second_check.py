@@ -123,3 +123,24 @@ def test_agreement_does_not_escalate(monkeypatch):
     monkeypatch.setattr(checker, "_check_with_claude", lambda payload, models=None: used.append(models[0]) or ("r", set()))
     monkeypatch.setattr(fc.ClaimFactChecker, "evaluate", staticmethod(lambda report, urls=None: (True, 100.0, [], "ok")))
     assert checker.second_opinion({})[0] == "pass" and used == ["claude-opus-5-5"]
+
+
+def test_gemini_schema_keeps_fields_named_title():
+    from src.gemini import _inline_refs
+    from src.models import FactCheckReport
+    s = _inline_refs(FactCheckReport.model_json_schema())
+    src = s["properties"]["claims"]["items"]["properties"]["sources"]["items"]
+    assert "title" in src["properties"] and set(src["required"]) <= set(src["properties"])
+    assert "title" not in s  # schema annotations are still stripped
+
+
+def test_gemini_redirect_citations_resolve_to_real_pages(monkeypatch):
+    from src import gemini
+
+    class H:
+        headers = {"Location": "https://www.example.org/derinkuyu"}
+    seen = []
+    monkeypatch.setattr(gemini.requests, "head", lambda url, allow_redirects, timeout: seen.append(allow_redirects) or H())
+    assert gemini._resolve("https://vertexaisearch.cloud.google.com/grounding-api-redirect/abc") == "https://www.example.org/derinkuyu"
+    assert seen == [False]  # the target page itself is never fetched
+    assert gemini._resolve("https://other.example/x") == "https://other.example/x"

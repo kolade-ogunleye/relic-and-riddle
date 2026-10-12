@@ -127,8 +127,13 @@ class AudioEngine:
 
         def on_boundary(evt):
             if evt.boundary_type == speechsdk.SpeechSynthesisBoundaryType.Word:
-                words.append({"word": evt.text, "start": evt.audio_offset / 10_000_000.0,
-                              "dur": max(0.05, evt.duration.total_seconds())})
+                start, dur = evt.audio_offset / 10_000_000.0, max(0.05, evt.duration.total_seconds())
+                parts = evt.text.split()  # Azure can report "In 1963" as one boundary; captions need words
+                total = sum(len(p) for p in parts) or 1
+                for p in parts:
+                    share = dur * len(p) / total
+                    words.append({"word": p, "start": start, "dur": max(0.05, share)})
+                    start += share
 
         synth.synthesis_word_boundary.connect(on_boundary)
         ssml = (f'<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">'

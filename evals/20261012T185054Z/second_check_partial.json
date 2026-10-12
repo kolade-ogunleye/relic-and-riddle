@@ -1,0 +1,189 @@
+{
+ "cases": [
+  {
+   "topic": "02_roman_self_healing_concrete",
+   "planted": [
+    {
+     "kind": "attribution",
+     "original": "Pliny the Elder",
+     "corrupted": "Vitruvius"
+    },
+    {
+     "kind": "number",
+     "original": "about 7 feet (2.25 m)",
+     "corrupted": "about 12 feet (2.25 m)"
+    },
+    {
+     "kind": "date",
+     "original": "2003",
+     "corrupted": "1997"
+    }
+   ]
+  },
+  {
+   "topic": "03_kailasa_temple_monolith",
+   "planted": [
+    {
+     "kind": "date",
+     "original": "In the 8th century at Ellora",
+     "corrupted": "In the 9th century at Ellora"
+    },
+    {
+     "kind": "number",
+     "original": "200,000 metric tons of rock removed",
+     "corrupted": "400,000 metric tons of rock removed"
+    },
+    {
+     "kind": "attribution",
+     "original": "Rashtrakuta king Krishna the First",
+     "corrupted": "Rashtrakuta king Dantidurga"
+    }
+   ]
+  },
+  {
+   "topic": "04_antikythera_mechanism",
+   "planted": [
+    {
+     "kind": "date",
+     "original": "In May 1902",
+     "corrupted": "In May 1905"
+    },
+    {
+     "kind": "attribution",
+     "original": "archaeologist Valerios Stais",
+     "corrupted": "archaeologist Spyridon Marinatos"
+    },
+    {
+     "kind": "number",
+     "original": "30 bronze gears",
+     "corrupted": "37 bronze gears"
+    }
+   ]
+  },
+  {
+   "topic": "05_gobekli_tepe",
+   "planted": [
+    {
+     "kind": "date",
+     "original": "about 9500 BC",
+     "corrupted": "about 8500 BC"
+    },
+    {
+     "kind": "number",
+     "original": "18 feet (5.5 m) tall",
+     "corrupted": "21 feet (6.4 m) tall"
+    },
+    {
+     "kind": "attribution",
+     "original": "Excavators sorted 15,000 animal bones",
+     "corrupted": "Ian Hodder's team sorted 15,000 animal bones"
+    }
+   ]
+  },
+  {
+   "topic": "06_damascus_steel_nanotubes",
+   "planted": [
+    {
+     "kind": "attribution",
+     "original": "Persian scholar al-Biruni said the same.",
+     "corrupted": "Persian scholar al-Kindi said the same."
+    },
+    {
+     "kind": "date",
+     "original": "date to about 1750",
+     "corrupted": "date to about 1650"
+    },
+    {
+     "kind": "number",
+     "original": "as little as 40 parts per million",
+     "corrupted": "as little as 400 parts per million"
+    }
+   ]
+  },
+  {
+   "topic": "07_camp_century_nuclear_ice_city",
+   "planted": [
+    {
+     "kind": "date",
+     "original": "begun in 1959",
+     "corrupted": "begun in 1955"
+    },
+    {
+     "kind": "number",
+     "original": "up to 600 nuclear missiles",
+     "corrupted": "up to 900 nuclear missiles"
+    },
+    {
+     "kind": "attribution",
+     "original": "the Army was gone",
+     "corrupted": "the Navy was gone"
+    }
+   ]
+  }
+ ],
+ "per_model": {
+  "claude-opus-5-5": {
+   "caught": [
+    [
+     "02_roman_self_healing_concrete",
+     0
+    ],
+    [
+     "02_roman_self_healing_concrete",
+     1
+    ],
+    [
+     "02_roman_self_healing_concrete",
+     2
+    ],
+    [
+     "03_kailasa_temple_monolith",
+     0
+    ],
+    [
+     "03_kailasa_temple_monolith",
+     2
+    ]
+   ],
+   "n_caught": 5,
+   "false_alarms": 0,
+   "details": [
+    {
+     "topic": "02_roman_self_healing_concrete",
+     "planted": 3,
+     "caught": [
+      0,
+      1,
+      2
+     ],
+     "flagged": [
+      "Vitruvius wrote that Roman harbor concrete becomes \"a single stone mass, impregnable to the waves and every day stronger.\" (false: This is Pliny the Elder, Naturalis Historia 35.166, written in the 1st century AD. Vitruvius wrote earlier (c. 30–22 BC) about volcanic ash, but the quote isn't his. Fix the narration to say \"Pliny the Elder\" so it matches the caption and on-screen text.)",
+      "(Narration) Researchers drilled the cores in 1997. (false: ROMACONS was set up in 2001, and it drilled at Portus Cosanus in June 2003.)",
+      "(Narration) The cores were up to about 12 feet (2.25 m) long. (false: Hedged with \"up to about\". 2.25 m is about 7.4 ft, not 12 ft. The 2.25 m maximum is for the whole 2003 season, which included a core from Santa Liberata.)",
+      "(On-screen) ROMACONS took six cores. (false: Verdict: false (in context). Six is the total for the 2003 season, including one core from the Santa Liberata pila, a separate site. The cores taken at Cosa numbered five. Say \"five cores at Cosa,\" or say the six covered two sites.)",
+      "(On-screen) The cores were about 1.5 to 7.4 ft (0.48 to 2.25 m) long. (unsupported: Verdict: unsupported (as a figure for Cosa). Hedged with \"about\". The 0.48–2.25 m range is for all six 2003 cores, including Santa Liberata. I couldn't confirm the range for Cosa's five cores alone. The conversions are fine: 0.48 m ≈ 1.6 ft and 2.25 m ≈ 7.4 ft.)",
+      "Nobody has checked whether Cosa's builders used the lime-chunk method; Cosa's concrete hasn't been tested for it. (unsupported: Rated without a full search (search limit reached). I couldn't confirm or rule this out. Leftover lime chunks have been documented in the ROMACONS harbor cores, so \"nobody has checked\" may overstate it. \"We found no published test of Cosa's concrete for this\" is safer. No sources confirming.)",
+      "(On-screen) No source backs the \"lasts 40x longer\" figure. (unsupported: Verdict: unsupported (not verified). The search limit stopped me checking this. Calling it a myth is a reasonable editorial call, but I haven't checked it.)",
+      "(On-screen) No surviving text gives a full Roman mixing method. (disputed: Rated without a full search (search limit reached). Vitruvius described marine construction with volcanic ash, and one secondary source says he gave a 1:2 lime-to-ash ratio for underwater work. That's not a full recipe, but the line could be read as saying no Roman text covers mixing at all. Suggested wording: \"Roman texts give proportions but not a complete method.\" The Interesting Engineering source is a listicle, so weak support.)"
+     ]
+    },
+    {
+     "topic": "03_kailasa_temple_monolith",
+     "planted": 3,
+     "caught": [
+      0,
+      2
+     ],
+     "flagged": [
+      "Narration: \"In the 9th century\" (when the trenches were cut and the work began) (false: The temple dates to the 8th century, credited to Krishna I (r. c. 756–773). One source dates the whole span to the \"8–9th centuries,\" so some later additions may fall in the 9th. But the start of the work, which is what this sentence describes, was in the 8th. Change it to \"8th century\" to match the caption and on-screen text.)",
+      "Narration: They also used picks (unsupported: Only popular websites mention picks. Better sources describe iron chisels, hammers and wooden wedges. Suggested wording: \"chisels and hammers.\" Sources are weak only.)",
+      "Narration: \"Attributed to Rashtrakuta king Dantidurga\" (disputed: The standard attribution is to Krishna I, Dantidurga's successor and uncle. Some scholars (Burgess, Goetz) think work began under Dantidurga, and one source credits both kings. Direct evidence for Dantidurga is lacking. Change to Krishna I, or say \"possibly begun under Dantidurga.\")",
+      "Narration: \"The only certainty is the direction they worked\" (disputed: Disputed because it overstates. Top-down carving is certain. But the 8th-century date and the Krishna I attribution are also generally treated as solid. What is really debated is how long it took and how many reigns it spanned.)",
+      "Caption: The flag pillars are about 50–55 ft (15–17 m) tall (unsupported: Could not confirm the height (searches hit a limit). The pages found mention the pillars but give no measurement. Check this against Wikipedia, the Archaeological Survey of India, or a scholarly source before publishing. No sources found that give a height.)",
+      "First comment: The \"18 years\" figure is a modern estimate, probably based on the length of Krishna I's reign (unsupported: Hedged via \"probably.\" Plausible: one explainer equates \"Krishna I's reign\" with \"roughly 18 years,\" and popular sites repeat \"18 years\" without naming any source. But no scholarly source explains where the figure comes from. Keep the hedge. Rests only on weak sources.)"
+     ]
+    }
+   ]
+  }
+ }
+}

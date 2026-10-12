@@ -77,12 +77,8 @@ def test_edge_tts_only_in_test_runs(monkeypatch, tmp_path):
 
 
 def test_azure_multiword_boundaries_split_into_words():
-    from src.audio_engine import AudioEngine  # noqa: F401  (splitting lives in _generate_azure's handler)
-    parts, start, dur = "In 1963".split(), 0.05, 1.5
-    total = sum(len(p) for p in parts)
-    words = []
-    for p in parts:
-        share = dur * len(p) / total
-        words.append({"word": p, "start": start, "dur": share})
-        start += share
-    assert [w["word"] for w in words] == ["In", "1963"] and abs(words[-1]["start"] + words[-1]["dur"] - 1.55) < 1e-9
+    from src.audio_engine import split_boundary
+    words = split_boundary("In 1963", 0.05, 1.5)
+    assert [w["word"] for w in words] == ["In", "1963"]
+    assert words[0]["start"] == 0.05 and abs(words[-1]["start"] + words[-1]["dur"] - 1.55) < 1e-9
+    assert split_boundary("tunnel", 2.0, 0.4) == [{"word": "tunnel", "start": 2.0, "dur": 0.4}]

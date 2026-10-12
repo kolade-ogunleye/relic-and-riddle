@@ -41,6 +41,19 @@ log = logging.getLogger(__name__)
 Words = List[Dict[str, Any]]
 
 
+def split_boundary(text: str, start: float, dur: float) -> Words:
+    """Azure can report "In 1963" as one word boundary; captions need single words, so the
+    time is shared out by character count."""
+    parts = text.split()
+    total = sum(len(p) for p in parts) or 1
+    out: Words = []
+    for p in parts:
+        share = dur * len(p) / total
+        out.append({"word": p, "start": start, "dur": max(0.05, share)})
+        start += share
+    return out
+
+
 class NoLicensedVoice(RuntimeError):
     """No commercially licensed voice is available for a real run."""
 
@@ -127,13 +140,7 @@ class AudioEngine:
 
         def on_boundary(evt):
             if evt.boundary_type == speechsdk.SpeechSynthesisBoundaryType.Word:
-                start, dur = evt.audio_offset / 10_000_000.0, max(0.05, evt.duration.total_seconds())
-                parts = evt.text.split()  # Azure can report "In 1963" as one boundary; captions need words
-                total = sum(len(p) for p in parts) or 1
-                for p in parts:
-                    share = dur * len(p) / total
-                    words.append({"word": p, "start": start, "dur": max(0.05, share)})
-                    start += share
+                words.extend(split_boundary(evt.text, evt.audio_offset / 10_000_000.0, max(0.05, evt.duration.total_seconds())))
 
         synth.synthesis_word_boundary.connect(on_boundary)
         ssml = (f'<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">'

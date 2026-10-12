@@ -117,6 +117,15 @@ class PipelineDatabase:
                 cost_usd REAL NOT NULL,
                 created_at TEXT NOT NULL
             )""")
+            self._add_column(conn, "llm_usage", "task", "TEXT")
+            conn.execute("""
+            CREATE TABLE IF NOT EXISTS media_usage (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                provider TEXT NOT NULL,
+                item TEXT,
+                cost_usd REAL NOT NULL,
+                created_at TEXT NOT NULL
+            )""")
             # Reel / Story / carousel posts waiting for their slot (due_at in UTC; NULL = next carousel slot).
             conn.execute("""
             CREATE TABLE IF NOT EXISTS scheduled_posts (
@@ -366,12 +375,13 @@ class PipelineDatabase:
             """, (key, value, _now()))
 
     # ------------------------------------------------------------- llm usage
-    def record_llm_usage(self, model: str, input_tokens: int, output_tokens: int, web_searches: int, cost_usd: float):
+    def record_llm_usage(self, model: str, input_tokens: int, output_tokens: int, web_searches: int, cost_usd: float,
+                         task: Optional[str] = None):
         with self._conn() as conn:
             conn.execute("""
-            INSERT INTO llm_usage (model, input_tokens, output_tokens, web_searches, cost_usd, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """, (model, input_tokens, output_tokens, web_searches, cost_usd, _now()))
+            INSERT INTO llm_usage (model, input_tokens, output_tokens, web_searches, cost_usd, created_at, task)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (model, input_tokens, output_tokens, web_searches, cost_usd, _now(), task))
 
     def llm_spend(self, month: str) -> float:
         """Total estimated Claude spend (USD) for a month given as 'YYYY-MM' (UTC)."""
@@ -379,6 +389,25 @@ class PipelineDatabase:
             row = conn.execute("SELECT COALESCE(SUM(cost_usd), 0) AS s FROM llm_usage WHERE substr(created_at, 1, 7) = ?",
                                (month,)).fetchone()
         return float(row["s"])
+
+    def record_media_usage(self, provider: str, item: str, cost_usd: float):
+        with self._conn() as conn:
+            conn.execute("INSERT INTO media_usage (provider, item, cost_usd, created_at) VALUES (?, ?, ?, ?)",
+                         (provider, item, cost_usd, _now()))
+
+    def media_spend(self, month: str) -> float:
+        with self._conn() as conn:
+            row = conn.execute("SELECT COALESCE(SUM(cost_usd), 0) AS s FROM media_usage WHERE substr(created_at, 1, 7) = ?",
+                               (month,)).fetchone()
+        return float(row["s"])
+
+    def llm_spend_by_task(self, month: str) -> List[Dict[str, Any]]:
+        """[{"task", "calls", "cost"}] for the month, most expensive first."""
+        with self._conn() as conn:
+            rows = conn.execute("""
+            SELECT COALESCE(task, 'other') AS task, COUNT(*) AS calls, SUM(cost_usd) AS cost FROM llm_usage
+            WHERE substr(created_at, 1, 7) = ? GROUP BY COALESCE(task, 'other') ORDER BY cost DESC""", (month,)).fetchall()
+        return [dict(r) for r in rows]
 
     def list_recent_runs(self, limit: int = 5) -> List[Dict[str, Any]]:
         with self._conn() as conn:

@@ -14,7 +14,7 @@ import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from .llm import LLMError, claude_available, image_block, structured_call
+from .llm import LLMError, claude_available, image_block, structured_call, task as llm_task
 from .models import QAReport
 
 log = logging.getLogger(__name__)
@@ -40,6 +40,7 @@ def extract_frames(video: Path, times: List[float], out_dir: Path) -> List[Path]
     return frames
 
 
+@llm_task("video_qa")
 def review_render(video: Path, beats: List[Dict[str, Any]], cover: Path, work_dir: Path) -> Optional[QAReport]:
     """Returns the QA report, or None if Claude is unavailable or the check fails."""
     if not claude_available():

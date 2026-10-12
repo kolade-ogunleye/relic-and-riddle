@@ -19,7 +19,7 @@ from typing import Dict, List, Optional
 
 from .config import TOPICS_DIR
 from .db import PipelineDatabase
-from .llm import claude_available, format_sources, research, structured_call
+from .llm import claude_available, format_sources, research, structured_call, task as llm_task
 from .models import TopicProposal, TopicProposals
 
 log = logging.getLogger(__name__)
@@ -67,6 +67,7 @@ def pending(db: PipelineDatabase) -> Dict[str, dict]:
     return json.loads(db.get_setting(PENDING_KEY, "{}"))
 
 
+@llm_task("topic_proposals")
 def propose(db: PipelineDatabase, n: int = 3) -> List[TopicProposal]:
     if not claude_available():
         raise RuntimeError("ANTHROPIC_API_KEY is not configured.")

@@ -21,7 +21,7 @@ from pydantic import ValidationError
 
 from .config import CURATED_SCRIPTS_DIR, SECOND_CHECK_ENABLED, TARGET_WORD_COUNT_MIN, TARGET_WORD_COUNT_MAX
 from .fact_checker import ClaimFactChecker
-from .llm import LLMError, claude_available, format_sources, research, structured_call
+from .llm import LLMError, claude_available, format_sources, research, structured_call, task as llm_task
 from .models import ScriptPackage
 
 log = logging.getLogger(__name__)
@@ -137,6 +137,7 @@ class ScriptEngine:
         self.fact_checker = fact_checker or ClaimFactChecker()
         self._research_cache: Dict[str, Tuple[str, list]] = {}  # topic_id -> (notes, retrieved sources)
 
+    @llm_task("script_writing")
     def generate_script(self, topic: Dict[str, Any], max_attempts: int = 2, revision_notes: str = "",
                         previous: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """

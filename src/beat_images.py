@@ -19,7 +19,7 @@ from PIL import Image
 
 from . import commons
 from . import config
-from .llm import LLMError, claude_available, structured_call
+from .llm import LLMError, claude_available, structured_call, task as llm_task
 from .models import BeatQueries
 
 log = logging.getLogger(__name__)
@@ -31,11 +31,13 @@ PER_BEAT = 2           # candidates per beat
 SYSTEM = """You plan picture research for a short history documentary. For each narration beat that names a concrete, photographable subject (a specific place, structure, object, artefact or document), write one precise Wikimedia Commons search for it, plus 1-4 lowercase keywords that a relevant file title would contain (proper nouns are best). Skip abstract beats (ideas, numbers, open questions). Prefer the specific site over generic look-alikes."""
 
 
+@llm_task("beat_queries")
 def plan_queries(beats: List[Dict[str, Any]], topic: Dict[str, Any]) -> BeatQueries:
     lines = "\n".join(f"Beat {i}: {b['text']}" for i, b in enumerate(beats, 1))
     loc = topic.get("location", {})
     return structured_call(SYSTEM, f"Topic: {topic.get('title', '')} ({loc.get('name', '')}, {loc.get('country', '')})\n"
-                                   f"{lines}\n\nAt most {MAX_BEATS} beats.", BeatQueries, effort="low", max_tokens=3000)
+                                   f"{lines}\n\nAt most {MAX_BEATS} beats.", BeatQueries, effort="low", max_tokens=3000,
+                           models=config.LIGHT_TASK_MODELS)
 
 
 def source(beats: List[Dict[str, Any]], topic: Dict[str, Any], work_dir: Path) -> Tuple[List[Path], List[Dict[str, Any]]]:

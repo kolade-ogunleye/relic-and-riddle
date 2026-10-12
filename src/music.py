@@ -21,8 +21,8 @@ from typing import Any, Dict, List, Literal, Optional
 import requests
 from pydantic import BaseModel
 
-from .config import DATA_DIR, ELEVENLABS_API_KEY, is_configured
-from .llm import LLMError, claude_available, structured_call
+from .config import DATA_DIR, ELEVENLABS_API_KEY, LIGHT_TASK_MODELS, MUSIC_PREFER, is_configured
+from .llm import LLMError, claude_available, structured_call, task as llm_task
 
 log = logging.getLogger(__name__)
 
@@ -42,6 +42,7 @@ class MoodChoice(BaseModel):
     mood: Literal["mysterious", "epic", "melancholic", "tense"]
 
 
+@llm_task("music_mood")
 def choose_mood(payload: Dict[str, Any]) -> str:
     if not claude_available():
         return "mysterious"
@@ -49,7 +50,8 @@ def choose_mood(payload: Dict[str, Any]) -> str:
         choice = structured_call(
             "Pick the background-music mood that best fits this short history documentary narration.",
             f"Title: {payload.get('title', '')}\nNarration: {payload.get('narration_script', '')}\n"
-            f"Moods: {', '.join(MOODS)}.", MoodChoice, effort="low", max_tokens=1000)
+            f"Moods: {', '.join(MOODS)}.", MoodChoice, effort="low", max_tokens=1000,
+            models=LIGHT_TASK_MODELS)
         return choice.mood
     except LLMError as e:
         log.warning("Mood classification failed (%s); using 'mysterious'.", e)
@@ -127,18 +129,33 @@ def music_for(payload: Dict[str, Any], seconds: float, work_dir: Path, voice_quo
     Returns {"path": Path|None, "source": "elevenlabs"|"library"|"none", "mood": str, "credit": str, "file": str}.
     """
     mood = choose_mood(payload)
-    if is_configured(ELEVENLABS_API_KEY) and elevenlabs_paid(voice_quota):
+
+    def library():
+        track = pick_library_track(mood, seconds)
+        if track:
+            log.info("Music: library track '%s' (%s).", track["title"], track["mood"])
+            return {"path": MUSIC_DIR / track["file"], "source": "library", "mood": mood,
+                    "credit": credit_line(track), "file": track["file"]}
+        return None
+
+    def elevenlabs():
+        if not (is_configured(ELEVENLABS_API_KEY) and elevenlabs_paid(voice_quota)):
+            return None
         try:
             path = generate_elevenlabs(mood, seconds + 1, work_dir / "music_elevenlabs.mp3")
             log.info("Music: ElevenLabs score (%s).", mood)
             return {"path": path, "source": "elevenlabs", "mood": mood, "credit": "", "file": ""}
         except (requests.RequestException, OSError) as e:
-            log.warning("ElevenLabs Music failed (%s); trying the free library.", e)
-    track = pick_library_track(mood, seconds)
-    if track:
-        log.info("Music: library track '%s' (%s).", track["title"], track["mood"])
-        return {"path": MUSIC_DIR / track["file"], "source": "library", "mood": mood,
-                "credit": credit_line(track), "file": track["file"]}
+            log.warning("ElevenLabs Music failed (%s).", e)
+            return None
+
+    # A reviewed bed under narration is close in quality to a generated score, so by default
+    # the free library goes first and ElevenLabs credits are kept for the voice (MUSIC_PREFER).
+    order = (elevenlabs, library) if MUSIC_PREFER == "elevenlabs" else (library, elevenlabs)
+    for option in order:
+        result = option()
+        if result:
+            return result
     log.info("Music: no paid plan or approved library track; using the synthesized drone.")
     return {"path": None, "source": "none", "mood": mood, "credit": "", "file": ""}
 

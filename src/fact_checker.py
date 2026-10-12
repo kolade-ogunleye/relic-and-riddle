@@ -15,8 +15,8 @@ import logging
 from typing import Dict, Any, List, Optional, Set, Tuple
 
 from . import gemini
-from .config import GEMINI_MODEL, SECOND_CHECK_MODELS
-from .llm import LLMError, claude_available, format_sources, research, structured_call
+from .config import GEMINI_MODEL, SECOND_CHECK_ESCALATION_MODEL, SECOND_CHECK_MODELS
+from .llm import LLMError, claude_available, format_sources, research, structured_call, task as llm_task
 from .models import FactCheckReport
 
 log = logging.getLogger(__name__)
@@ -48,6 +48,7 @@ STRUCTURE_PROMPT = """Convert this fact-check into the required structure. Keep 
 
 
 class ClaimFactChecker:
+    @llm_task("fact_check")
     def verify(
         self,
         script_payload: Dict[str, Any],
@@ -101,6 +102,7 @@ class ClaimFactChecker:
             STRUCTURE_PROMPT.format(notes=notes, sources=format_sources(retrieved)), FactCheckReport)
         return report, {s.url for s in retrieved}
 
+    @llm_task("second_check")
     def second_opinion(self, payload: Dict[str, Any]) -> Tuple[str, float, List[Dict[str, Any]], str]:
         """
         Independent second check, run after the first passes. Tries SECOND_CHECK_MODELS
@@ -120,8 +122,25 @@ class ClaimFactChecker:
                 errors.append(f"{name}: {e}")
                 continue
             passed, confidence, audits, msg = self.evaluate(report, urls)
-            return ("pass" if passed else "fail"), confidence, audits, f"[{name}] {msg}"
+            if not passed:
+                return self._escalate(payload, name, confidence, audits, msg)
+            return "pass", confidence, audits, f"[{name}] {msg}"
         return "unavailable", 0.0, [], "Second check unavailable: " + ("; ".join(errors) or "no checker configured")
+
+    def _escalate(self, payload, name, confidence, audits, msg) -> Tuple[str, float, List[Dict[str, Any]], str]:
+        """The checks disagree (the first passed, this one didn't): the escalation model re-checks once
+        and its verdict stands. If it can't run, the failure stands (fail closed)."""
+        model = SECOND_CHECK_ESCALATION_MODEL
+        if not model or model == name or not claude_available():
+            return "fail", confidence, audits, f"[{name}] {msg}"
+        log.info("Second check (%s) disputes the first; escalating to %s.", name, model)
+        try:
+            report, urls = self._check_with_claude(payload, models=[model])
+        except LLMError as e:
+            log.warning("Escalation to %s failed (%s); the dispute stands.", model, e)
+            return "fail", confidence, audits, f"[{name}] {msg} (escalation to {model} failed: {e})"
+        passed, confidence2, audits2, msg2 = self.evaluate(report, urls)
+        return ("pass" if passed else "fail"), confidence2, audits2, f"[{name} disputed; {model} decided] {msg2}"
 
     @staticmethod
     def evaluate(report: FactCheckReport, retrieved_urls: Optional[Set[str]] = None) -> Tuple[bool, float, List[Dict[str, Any]], str]:

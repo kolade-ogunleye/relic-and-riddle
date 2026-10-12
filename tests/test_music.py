@@ -44,10 +44,22 @@ def test_paid_plan_gate(library, monkeypatch):
     monkeypatch.setattr(music, "choose_mood", lambda p: "mysterious")
     called = []
     monkeypatch.setattr(music, "generate_elevenlabs", lambda *a: called.append(a) or a[2])
+    monkeypatch.setattr(music, "MUSIC_PREFER", "elevenlabs")
     res = music.music_for({}, 45, library, {"tier": "free"})
     assert res["source"] == "library" and called == []          # free tier: no commercial licence
     res = music.music_for({}, 45, library, {"tier": "starter"})
     assert res["source"] == "elevenlabs" and called
+
+
+def test_library_first_by_default_then_paid_score(library, monkeypatch):
+    monkeypatch.setattr(music, "ELEVENLABS_API_KEY", "key-1234567890")
+    monkeypatch.setattr(music, "choose_mood", lambda p: "mysterious")
+    monkeypatch.setattr(music, "MUSIC_PREFER", "library")
+    called = []
+    monkeypatch.setattr(music, "generate_elevenlabs", lambda *a: called.append(a) or a[2])
+    assert music.music_for({}, 45, library, {"tier": "starter"})["source"] == "library" and called == []
+    # No approved track long enough: the paid score fills in.
+    assert music.music_for({}, 500, library, {"tier": "starter"})["source"] == "elevenlabs"
 
 
 def test_music_review_flow(library, db):

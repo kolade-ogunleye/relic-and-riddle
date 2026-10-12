@@ -24,7 +24,7 @@ from typing import Callable, List, Optional
 
 import requests
 
-from .config import ASSETS_DIR, CLAUDE_MONTHLY_BUDGET_USD, HEALTHCHECK_PING_URL, MIN_SCENE_IMAGES, is_configured
+from .config import ASSETS_DIR, CLAUDE_MONTHLY_BUDGET_USD, MEDIA_MONTHLY_BUDGET_USD, HEALTHCHECK_PING_URL, MIN_SCENE_IMAGES, is_configured
 from .credits import CONTACT_SHEET, CREDITS_FILE, approve_set, drop_images, load_credits
 from .db import PipelineDatabase
 
@@ -167,6 +167,12 @@ def status_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Opti
     if CLAUDE_MONTHLY_BUDGET_USD > 0:
         spend += f" of ${CLAUDE_MONTHLY_BUDGET_USD:.2f} budget"
     lines.append(spend)
+    by_task = db.llm_spend_by_task(month)
+    if by_task:
+        lines.append("  by task: " + ", ".join(f"{e(t['task'].replace('_', ' '))} ${t['cost']:.2f}" for t in by_task[:5]))
+    media = db.media_spend(month)
+    if media or MEDIA_MONTHLY_BUDGET_USD > 0:
+        lines.append(f"Paid media this month: ${media:.2f}" + (f" of ${MEDIA_MONTHLY_BUDGET_USD:.2f} budget" if MEDIA_MONTHLY_BUDGET_USD > 0 else ""))
     lines += quota_lines(voice_quota)
     return "\n".join(lines)
 

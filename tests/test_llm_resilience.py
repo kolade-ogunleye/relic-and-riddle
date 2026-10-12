@@ -106,3 +106,35 @@ def test_db_month_spend(db):
     month = datetime.now(timezone.utc).strftime("%Y-%m")
     assert db.llm_spend(month) == pytest.approx(2.0)
     assert db.llm_spend("1999-01") == 0
+
+
+def test_usage_is_labelled_by_task_and_summed(db):
+    from src import llm
+    recorded = []
+    llm.configure_usage(lambda **kw: recorded.append(kw), lambda month: 0.0)
+    try:
+        class U:
+            input_tokens, output_tokens = 1000, 100
+        class R:
+            model, usage = "claude-opus-5-5", U()
+        with llm.task("second_check"):
+            llm._record(R())
+        llm._record(R())
+    finally:
+        llm.configure_usage(None, None)
+    assert [r["task"] for r in recorded] == ["second_check", "other"]
+    for r in recorded:
+        db.record_llm_usage(**r)
+    from datetime import datetime, timezone
+    rows = db.llm_spend_by_task(datetime.now(timezone.utc).strftime("%Y-%m"))
+    assert {r["task"] for r in rows} == {"second_check", "other"} and all(r["calls"] == 1 for r in rows)
+
+
+def test_media_budget_blocks_paid_calls(db, monkeypatch):
+    from src import media_budget
+    monkeypatch.setattr("src.config.MEDIA_MONTHLY_BUDGET_USD", 0.0)
+    assert not media_budget.allow(db, 0.10)  # 0 = paid media off
+    monkeypatch.setattr("src.config.MEDIA_MONTHLY_BUDGET_USD", 1.0)
+    assert media_budget.allow(db, 0.60)
+    media_budget.record(db, "veo-3.1-fast", "hook", 0.60)
+    assert not media_budget.allow(db, 0.60) and media_budget.allow(db, 0.40)

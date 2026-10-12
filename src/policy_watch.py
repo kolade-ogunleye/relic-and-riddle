@@ -16,7 +16,7 @@ from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from .db import PipelineDatabase
-from .llm import claude_available, format_sources, research, structured_call
+from .llm import claude_available, format_sources, research, structured_call, task as llm_task
 from .models import PolicyChange, PolicyDigest
 
 log = logging.getLogger(__name__)
@@ -42,6 +42,7 @@ def _key(change: PolicyChange) -> str:
     return hashlib.sha256(f"{change.area}|{change.source_url}|{change.summary[:120]}".encode()).hexdigest()[:16]
 
 
+@llm_task("policy_watch")
 def check(db: PipelineDatabase, now: Optional[datetime] = None) -> List[PolicyChange]:
     """Returns new, sourced policy changes since the last check (and records them as seen)."""
     if not claude_available():

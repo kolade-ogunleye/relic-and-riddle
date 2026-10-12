@@ -14,7 +14,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-from .llm import LLMError, claude_available, image_block, structured_call
+from .llm import LLMError, claude_available, image_block, structured_call, task as llm_task
 from .models import ScenePlan
 from .typography import is_video
 
@@ -51,6 +51,7 @@ def segment_beats(words: List[Dict[str, Any]], total: float) -> List[Dict[str, A
     return beats
 
 
+@llm_task("scene_plan")
 def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = "") -> Tuple[List[Path], List[float], str]:
     """Returns (media per beat, duration per beat, notes). A motion hook clip stays first.
     `feedback` lists problems a reviewer found with a previous plan, so they are avoided."""

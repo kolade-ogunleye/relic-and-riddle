@@ -23,7 +23,9 @@ Resilience and cost control:
   - Optional monthly budget: once reached, use CLAUDE_BUDGET_MODEL, or stop if unset.
 """
 
+import contextvars
 import logging
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Callable, List, Optional, Tuple, Type, TypeVar, Union
 
@@ -79,6 +81,20 @@ _record_usage: Optional[Callable[..., None]] = None
 _month_spend: Optional[Callable[[str], float]] = None
 
 
+# Which pipeline task the current calls belong to (e.g. "second_check"), for cost per task.
+_task: contextvars.ContextVar[str] = contextvars.ContextVar("llm_task", default="other")
+
+
+@contextmanager
+def task(name: str):
+    """Labels every Claude call inside the block with `name` in the usage records."""
+    token = _task.set(name)
+    try:
+        yield
+    finally:
+        _task.reset(token)
+
+
 def configure_usage(record: Callable[..., None], month_spend: Callable[[str], float]) -> None:
     global _record_usage, _month_spend
     _record_usage, _month_spend = record, month_spend
@@ -111,7 +127,7 @@ def _record(response) -> None:
     try:
         _record_usage(model=model, input_tokens=getattr(usage, "input_tokens", 0) or 0,
                       output_tokens=getattr(usage, "output_tokens", 0) or 0,
-                      web_searches=searches, cost_usd=round(call_cost(model, usage), 6))
+                      web_searches=searches, cost_usd=round(call_cost(model, usage), 6), task=_task.get())
     except Exception as e:  # accounting must never break a run
         log.warning("Could not record Claude usage: %s", e)
 

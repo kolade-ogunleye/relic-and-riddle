@@ -74,3 +74,52 @@ def test_gemini_parses_interactions_response(monkeypatch):
 def test_gemini_schema_is_inlined():
     schema = gemini._inline_refs(FactCheckReport.model_json_schema())
     assert "$defs" not in str(schema) and "$ref" not in str(schema)
+
+
+def test_disagreement_escalates_and_escalation_decides(monkeypatch):
+    from src import fact_checker as fc
+    checker = fc.ClaimFactChecker()
+    monkeypatch.setattr(fc, "claude_available", lambda: True)
+    monkeypatch.setattr(fc, "SECOND_CHECK_MODELS", ["claude-opus-5-5"])
+    monkeypatch.setattr(fc, "SECOND_CHECK_ESCALATION_MODEL", "claude-fable-5-1")
+    used = []
+
+    def check(payload, models=None):
+        used.append(models[0])
+        return "report-" + models[0], set()
+    monkeypatch.setattr(checker, "_check_with_claude", check)
+    verdicts = {"report-claude-opus-5-5": False, "report-claude-fable-5-1": True}
+    monkeypatch.setattr(fc.ClaimFactChecker, "evaluate", staticmethod(
+        lambda report, urls=None: (verdicts[report], 100.0 if verdicts[report] else 50.0, [], "msg")))
+    status, conf, _, summary = checker.second_opinion({})
+    assert used == ["claude-opus-5-5", "claude-fable-5-1"]
+    assert status == "pass" and conf == 100.0 and "claude-fable-5-1 decided" in summary
+
+
+def test_escalation_failure_keeps_the_dispute(monkeypatch):
+    from src import fact_checker as fc
+    from src.llm import LLMError
+    checker = fc.ClaimFactChecker()
+    monkeypatch.setattr(fc, "claude_available", lambda: True)
+    monkeypatch.setattr(fc, "SECOND_CHECK_MODELS", ["claude-opus-5-5"])
+    monkeypatch.setattr(fc, "SECOND_CHECK_ESCALATION_MODEL", "claude-fable-5-1")
+
+    def check(payload, models=None):
+        if models[0] == "claude-fable-5-1":
+            raise LLMError("overloaded")
+        return "r", set()
+    monkeypatch.setattr(checker, "_check_with_claude", check)
+    monkeypatch.setattr(fc.ClaimFactChecker, "evaluate", staticmethod(lambda report, urls=None: (False, 50.0, [], "x")))
+    status, _, _, summary = checker.second_opinion({})
+    assert status == "fail" and "escalation" in summary
+
+
+def test_agreement_does_not_escalate(monkeypatch):
+    from src import fact_checker as fc
+    checker = fc.ClaimFactChecker()
+    monkeypatch.setattr(fc, "claude_available", lambda: True)
+    monkeypatch.setattr(fc, "SECOND_CHECK_MODELS", ["claude-opus-5-5"])
+    used = []
+    monkeypatch.setattr(checker, "_check_with_claude", lambda payload, models=None: used.append(models[0]) or ("r", set()))
+    monkeypatch.setattr(fc.ClaimFactChecker, "evaluate", staticmethod(lambda report, urls=None: (True, 100.0, [], "ok")))
+    assert checker.second_opinion({})[0] == "pass" and used == ["claude-opus-5-5"]

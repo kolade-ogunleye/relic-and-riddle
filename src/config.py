@@ -71,6 +71,17 @@ CLAUDE_BUDGET_MODEL = os.getenv("CLAUDE_BUDGET_MODEL", "").strip()
 SECOND_CHECK_ENABLED = os.getenv("SECOND_CHECK_ENABLED", "true").lower() in ("true", "1", "yes")
 SECOND_CHECK_MODELS = [m.strip() for m in os.getenv("SECOND_CHECK_MODELS", "claude-fable-5-1,claude-opus-5-5").split(",")
                        if m.strip()]
+# When the second check disputes a claim the first passed, this model re-checks once and its
+# verdict stands, so the strongest reviewer decides contested facts ("" = no escalation).
+SECOND_CHECK_ESCALATION_MODEL = os.getenv("SECOND_CHECK_ESCALATION_MODEL", "claude-fable-5-1").strip()
+# Simple text tasks (picture search queries, music mood) where a top model adds nothing.
+LIGHT_TASK_MODELS = [m.strip() for m in os.getenv("LIGHT_TASK_MODELS", "claude-sonnet-5-5,claude-opus-5-5").split(",")
+                     if m.strip()]
+# Music: "library" = approved free tracks first, ElevenLabs Music only if none fits;
+# "elevenlabs" = generated score first (paid plan).
+MUSIC_PREFER = os.getenv("MUSIC_PREFER", "library").strip().lower()
+# Cap on pay-per-use media APIs (AI video), USD per month; 0 = paid media APIs disabled.
+MEDIA_MONTHLY_BUDGET_USD = float(os.getenv("MEDIA_MONTHLY_BUDGET_USD", "0") or 0)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 

@@ -41,6 +41,8 @@ Editorial rules:
 - No conspiracy or pseudo-archaeology framing (aliens, lost super-civilizations, etc.).
 - Topic notes supplied by the user may contain errors or exaggerations. Check them; do not repeat them unverified.
 - On-screen copy is short and uppercase-friendly: thumbnail lines at most 22 characters, story and carousel headings at most 26 characters, bodies at most 90 characters.
+- Audience: primarily the United States, then the UK, Canada and Australia. Use American English spelling, and give measurements in US units first with metric in parentheses, e.g. "about 280 feet (85 m)", "half a ton (about 500 kg)".
+- Write like a sharp human documentary narrator: concrete nouns, active verbs, specific numbers and names. Avoid generic AI phrasing such as "delve", "testament to", "tapestry", "unveil", "unravel", "shrouded in mystery", "realm", "embark", "intricate", "a glimpse into", "stands as", "it's important to note".
 - Return the sources you relied on."""
 
 RESEARCH_SYSTEM = """You are a research assistant for a history documentary team. Use web search to establish what reliable sources (scholarship, museums, heritage bodies, reputable encyclopedias and press) say about the topic. Report concrete, citable facts with numbers and dates, note where sources disagree and give the range, flag popular claims that are myths or exaggerations, and identify the genuine open questions. Be concise and factual."""
@@ -62,7 +64,7 @@ Topic notes (unverified): {key_facts}
 
 Requirements:
 - caption: line 1 hook teaser; then a 3-sentence micro-documentary; then an open-ended question; then "📍 <location>"; then the hashtags. Under 2,000 characters.
-- hashtags: exactly 7, each starting with "#".
+- hashtags: exactly 5, each starting with "#": specific to the place, era or subject (e.g. "#Cappadocia", "#ByzantineHistory"); no generic engagement tags like "#viral", "#fyp", "#ReelsViral", "#explore".
 - story_slides: exactly 3 (hook, revelation, question).
 - poll: one question with exactly 2 short options (posted manually as a native Story poll sticker).
 - carousel_slides: exactly 7 (title slide, five fact slides, closing call-to-comment slide).
@@ -74,6 +76,14 @@ BANNED_TROPES = [
     "alien", "aliens", "extraterrestrial", "illuminati", "reptilian", "magic portal",
     "time travel portal", "atlantis technology", "levitation ray", "levitation rays",
 ]
+# Phrasing that reads as machine-written; a draft containing it is sent back for a rewrite.
+AI_PHRASES = [
+    "delve", "delves", "delving", "testament to", "tapestry", "unveil", "unveils", "unravel", "unravels",
+    "shrouded in mystery", "realm of", "embark", "a glimpse into", "stands as a", "it's important to note",
+    "in the annals of", "intricate dance", "beacon of",
+]
+GENERIC_HASHTAGS = {"#viral", "#fyp", "#foryou", "#foryoupage", "#reelsviral", "#explore", "#explorepage", "#trending",
+                    "#reels", "#reelsinstagram", "#instagood"}
 
 
 def find_banned_tropes(text: str) -> List[str]:
@@ -113,6 +123,12 @@ def validate_structure(pkg: ScriptPackage) -> List[str]:
     ])
     for trope in find_banned_tropes(public_text):
         problems.append(f"Contains pseudo-archaeology trope '{trope}'.")
+    ai_isms = [p for p in AI_PHRASES if re.search(r"\b" + re.escape(p) + r"\b", public_text, re.IGNORECASE)]
+    if ai_isms:
+        problems.append(f"Uses machine-sounding phrasing ({', '.join(ai_isms)}); rewrite in plain documentary language.")
+    generic = [h for h in pkg.hashtags if h.lower() in GENERIC_HASHTAGS]
+    if generic:
+        problems.append(f"Generic hashtags {generic}; use specific subject tags.")
     return problems
 
 

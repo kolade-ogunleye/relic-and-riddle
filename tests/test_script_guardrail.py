@@ -77,3 +77,18 @@ def test_supported_claim_with_hallucinated_source_fails():
 
 def test_verdict_casing_is_normalized():
     assert ClaimAudit(claim="c", verdict=" Supported ", hedged_in_script=False, note="", sources=[]).verdict == "supported"
+
+
+def test_ai_phrasing_and_generic_hashtags_are_rejected(curated_payload):
+    from src.models import ScriptPackage
+    from src.script_engine import validate_structure
+    curated_payload["caption"] += " A testament to ancient ingenuity."
+    curated_payload["hashtags"] = curated_payload["hashtags"][:4] + ["#ReelsViral"]
+    problems = " ".join(validate_structure(ScriptPackage.model_validate(curated_payload)))
+    assert "testament to" in problems and "#ReelsViral" in problems
+
+
+def test_clean_script_has_no_style_problems(curated_payload):
+    from src.models import ScriptPackage
+    from src.script_engine import validate_structure
+    assert validate_structure(ScriptPackage.model_validate(curated_payload)) == []

@@ -52,6 +52,31 @@ class MissingAssetsError(FileNotFoundError):
     pass
 
 
+def calm_center_y(im: Image.Image, candidates=(760, 960, 1160), band: int = 440) -> int:
+    """Where to centre a title so it covers the least eye-catching, least busy part of the photo:
+    spectral-residual saliency (Hou & Zhang, 2007) plus edge density, on a small greyscale copy.
+    Candidates stay inside the centre square that the profile grid keeps; ties favour the middle."""
+    import cv2
+    import numpy as np
+    small = np.asarray(im.convert("L").resize((128, 228)), dtype=np.float32) / 255.0
+    spectrum = np.fft.fft2(small)
+    log_amp = np.log(np.abs(spectrum) + 1e-6)
+    blurred = cv2.blur(log_amp.astype(np.float32), (3, 3))
+    residual = np.exp((log_amp - blurred) + 1j * np.angle(spectrum))
+    sal = np.abs(np.fft.ifft2(residual)) ** 2
+    sal = cv2.GaussianBlur(sal.astype(np.float32), (0, 0), 3)
+    # Busy texture hurts legibility as much as a salient subject: add edge density (Sobel magnitude).
+    gx, gy = cv2.Sobel(small, cv2.CV_32F, 1, 0), cv2.Sobel(small, cv2.CV_32F, 0, 1)
+    edges = np.sqrt(gx * gx + gy * gy)
+    clutter = sal / (sal.mean() + 1e-6) + edges / (edges.mean() + 1e-6)
+    scale = clutter.shape[0] / im.height
+
+    def score(cy):
+        a, b = int((cy - band / 2) * scale), int((cy + band / 2) * scale)
+        return float(clutter[max(0, a):b].mean()) * (0.95 if cy == 960 else 1.0)
+    return min(candidates, key=score)
+
+
 class VisualEngine:
     def __init__(self, assets_dir: Path = ASSETS_DIR):
         self.assets_dir = assets_dir
@@ -113,6 +138,7 @@ class VisualEngine:
         copy = script_payload["thumbnail"]
         im = cover_crop(hero_image_path, (VIDEO_WIDTH, VIDEO_HEIGHT))
         render = {"lower_third": self._cover_lower_third, "minimal": self._cover_minimal}.get(style, self._cover_badge)
+        self._text_cy = calm_center_y(im)  # badge/minimal titles sit where the photo is calmest
         final_916 = render(im, copy).convert("RGB")
         final_916.save(out_916_path, quality=95)
         center_y = VIDEO_HEIGHT // 2
@@ -162,7 +188,7 @@ class VisualEngine:
         size = min(fit_font(draw, line1, "Anton", 104, SAFE_TEXT_WIDTH, 56).size,
                    fit_font(draw, line2, "Anton", 104, SAFE_TEXT_WIDTH, 56).size)
         font_title, font_eye = get_font("Anton", size), fit_font(draw, eyebrow, "Montserrat", 32, SAFE_TEXT_WIDTH, 22)
-        cx, cy = VIDEO_WIDTH // 2, VIDEO_HEIGHT // 2
+        cx, cy = VIDEO_WIDTH // 2, getattr(self, "_text_cy", VIDEO_HEIGHT // 2)
         draw.line([cx - 70, cy - size - 70, cx + 70, cy - size - 70], fill=GOLD, width=4)
         im = self._shadowed_text(im, (cx, cy - size - 30), eyebrow, font_eye, GOLD, "mm")
         im = self._shadowed_text(im, (cx, cy - size // 2), line1, font_title, WHITE, "mm")
@@ -194,7 +220,7 @@ class VisualEngine:
         tag_box_w, tag_box_h = w_tag + 68, h_tag + 32
         gap_eye, gap_lines, gap_tag = 28, 16, 32
 
-        center_y = VIDEO_HEIGHT // 2
+        center_y = getattr(self, "_text_cy", VIDEO_HEIGHT // 2)
         total_h = eye_box_h + gap_eye + h_l1 + gap_lines + h_l2 + gap_tag + tag_box_h
         start_y = center_y - total_h // 2
         title_y0 = start_y + eye_box_h + gap_eye

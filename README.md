@@ -81,6 +81,8 @@ While `python main.py daemon` runs, the bot also:
 
 - **Watches Meta policy weekly** (Wednesdays): Claude searches for changes to the Community Standards, monetisation, AI-labelling, Reels and Graph API rules since the last check. You get each change once, with its source, its impact on this channel and any action needed. Meta's policy pages are JavaScript-rendered, so a plain page comparison can't work. CLI: `python main.py policy [--telegram]`.
 
+- **Proposes new topics weekly** (Fridays) or on demand with `/propose`: Claude researches 3 fresh, sourced topics that fit the niche and don't overlap the bank, including Wikimedia search terms. Each arrives with **Add** / **Skip** buttons, and nothing joins the bank without your tap. CLI: `python main.py topic propose`, then `topic add <slug>`.
+
 `python main.py bot` runs only the Telegram side (commands, image review, approvals), with no scheduled runs. Use it to review images before switching the daemon on.
 
 ## Adding a topic

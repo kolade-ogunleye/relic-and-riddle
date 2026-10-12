@@ -13,7 +13,7 @@ Usage:
   python main.py review list
   python main.py review approve|reject|regenerate <run_id>   (while a run is waiting)
   python main.py review publish <run_id> [--dry-run]         (publish a finished, unpublished run)
-  python main.py topic next | list | requeue <topic_id> | repair
+  python main.py topic next | list | requeue <topic_id> | repair | propose | add <slug>
   python main.py assets list | approve <topic_id>            (review fetched scene images)
   python main.py health [--live]
   python main.py test                                        (end-to-end dry run, nothing published)
@@ -327,6 +327,42 @@ class PipelineCoordinator:
         return {"status": status, "publish_result": pub}
 
 
+def _proposal_trigger(db: PipelineDatabase, bot) -> Any:
+    """Returns a callable that researches topic proposals in the background and sends each with Add/Skip buttons."""
+    busy = threading.Lock()
+
+    def send_proposals():
+        from src import topic_proposer
+        if not busy.acquire(blocking=False):
+            return
+        try:
+            proposals = topic_proposer.propose(db)
+            if not proposals:
+                bot.notify("💡 No new topic proposals this time (none had verified sources or all overlapped).")
+            for p in proposals:
+                bot._api("sendMessage", data={
+                    "chat_id": bot.chat_id, "parse_mode": "HTML", "disable_web_page_preview": "true",
+                    "text": topic_proposer.proposal_text(p),
+                    "reply_markup": json.dumps({"inline_keyboard": [[
+                        {"text": "➕ Add", "callback_data": f"tadd:{p.slug}"},
+                        {"text": "✖ Skip", "callback_data": f"tskip:{p.slug}"},
+                    ]]}),
+                })
+        except Exception as e:
+            bot.notify(f"💡 Topic proposals failed: {html.escape(str(e))[:300]}")
+        finally:
+            busy.release()
+
+    def trigger() -> str:
+        if busy.locked():
+            return "Already researching topic proposals."
+        threading.Thread(target=send_proposals, name="topic-proposals", daemon=True).start()
+        return "💡 Researching 3 new topic ideas (about a minute). Each will arrive with Add / Skip buttons."
+
+    trigger.run_now = send_proposals  # for the weekly scheduled job
+    return trigger
+
+
 def _print_health(res: Dict[str, Any]):
     for k, v in res["details"].items():
         icon = "✓" if v["passed"] else ("✗" if v["required"] else "!")
@@ -375,6 +411,8 @@ def main(argv=None) -> int:
     topic_sub.add_parser("list")
     topic_sub.add_parser("requeue").add_argument("topic_id")
     topic_sub.add_parser("repair", help="Requeue topics wrongly counted as published by simulated runs")
+    topic_sub.add_parser("propose", help="Research new topic ideas (they wait for 'topic add')")
+    topic_sub.add_parser("add", help="Add a pending proposal to the topic bank").add_argument("slug")
 
     assets_p = sub.add_parser("assets", help="Review fetched scene images")
     assets_sub = assets_p.add_subparsers(dest="assets_action")
@@ -443,6 +481,7 @@ def main(argv=None) -> int:
             db, lambda: "none (bot-only mode)",
             lambda: "Production runs are disabled in bot-only mode. Use the daemon or `python main.py run`.",
             send_photo=bot.send_photo, voice_quota=AudioEngine().voice_quota,
+            propose_topics=_proposal_trigger(db, bot),
         )
         bot.notify("🤖 <b>Bot-only mode</b>: image review, approvals and /status are live; no runs are scheduled. "
                    "Send /images to start.")
@@ -533,6 +572,11 @@ def main(argv=None) -> int:
                                                            timezone=TIMEZONE), max_instances=1, coalesce=True,
                           misfire_grace_time=3600)
 
+        propose_topics = _proposal_trigger(coordinator.db, bot)
+        scheduler.add_job(propose_topics.run_now, CronTrigger(day_of_week="fri", hour=hb_hour, minute=hb_minute,
+                                                              timezone=TIMEZONE), max_instances=1, coalesce=True,
+                          misfire_grace_time=3600)
+
         def apply_updates() -> str:
             if run_lock.locked():
                 return "A production run is in progress; try again when it finishes."
@@ -555,7 +599,7 @@ def main(argv=None) -> int:
 
         handler = make_command_handler(coordinator.db, next_run, trigger_run, send_photo=bot.send_photo,
                                        voice_quota=coordinator.audio_engine.voice_quota,
-                                       apply_updates=apply_updates)
+                                       apply_updates=apply_updates, propose_topics=propose_topics)
 
         def poll_telegram():
             while True:
@@ -642,6 +686,19 @@ def main(argv=None) -> int:
         elif args.topic_action == "requeue":
             db.requeue_topic(args.topic_id)
             print(f"Requeued {args.topic_id}.")
+        elif args.topic_action == "propose":
+            from src import llm, topic_proposer
+            llm.configure_usage(db.record_llm_usage, db.llm_spend)
+            for p in topic_proposer.propose(db):
+                print(f"\n[{p.slug}] {p.title}\n  {p.hook}\n  sources: {', '.join(s.url for s in p.sources[:2])}")
+            print("\nAdd one with: python main.py topic add <slug>")
+        elif args.topic_action == "add":
+            from src import topic_proposer
+            try:
+                print(f"Added {topic_proposer.add(db, args.slug)}.")
+            except ValueError as e:
+                print(e)
+                return 1
         elif args.topic_action == "repair":
             fixed = db.repair_simulated_publications()
             print(f"Requeued {len(fixed)} topic(s) with no live publication: {fixed}")

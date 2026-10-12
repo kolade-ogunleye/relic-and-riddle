@@ -12,6 +12,7 @@ Commands (approvers only, in the configured chat):
   /images   image sets waiting for review
   /review N send topic N's numbered contact sheet with an Approve button
   /drop N 2 5  remove images 2 and 5 from topic N (re-run the fetcher to refill)
+  /propose  research 3 new topic ideas, each with Add / Skip buttons
   /help     this list
 """
 
@@ -40,6 +41,7 @@ HELP = (
     "/images — image sets waiting for review\n"
     "/review N — contact sheet for topic N, with an Approve button\n"
     "/drop N 2 5 — remove images 2 and 5 from topic N\n"
+    "/propose — research 3 new topic ideas (Add/Skip buttons)\n"
     "/help — this list"
 )
 
@@ -159,7 +161,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                          trigger_run: Callable[[], str], send_photo: Optional[SendPhoto] = None,
                          assets_dir: Path = ASSETS_DIR,
                          voice_quota: Callable[[], Optional[dict]] = lambda: None,
-                         apply_updates: Optional[Callable[[], str]] = None) -> Callable[[str, str], str]:
+                         apply_updates: Optional[Callable[[], str]] = None,
+                         propose_topics: Optional[Callable[[], str]] = None) -> Callable[[str, str], str]:
     def send_sheet(topic_dir: Path) -> bool:
         if send_photo is None:
             return False
@@ -184,6 +187,17 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             if load_credits(topic_dir)["images"]:
                 send_sheet(topic_dir)
             return html.escape(msg)
+        if command == "propose":
+            return propose_topics() if propose_topics else "Topic proposals need the bot or daemon running with Claude configured."
+        if command == "tadd":
+            from . import topic_proposer
+            topic_id = topic_proposer.add(db, args)
+            return (f"➕ Added <code>{html.escape(topic_id)}</code> to the topic bank. Fetch its images with "
+                    f"<code>python scripts/fetch_commons_images.py --topic-id {html.escape(topic_id)}</code>, then /images.")
+        if command == "tskip":
+            from . import topic_proposer
+            topic_proposer.skip(db, args)
+            return f"✖ Skipped {html.escape(args)}."
         if command == "upd":
             if apply_updates is None:
                 return "Updates can only be applied while the daemon is running."

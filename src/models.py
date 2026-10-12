@@ -102,3 +102,28 @@ class QAIssue(BaseModel):
 class QAReport(BaseModel):
     issues: List[QAIssue]
     summary: str
+
+
+class ProposedLocation(BaseModel):
+    name: str
+    city: str
+    region: str
+    country: str
+
+
+class TopicProposal(BaseModel):
+    slug: str                 # lowercase_with_underscores, e.g. "baghdad_battery"
+    title: str
+    sub_theme: str
+    hook: str
+    location: ProposedLocation
+    key_facts: List[str]
+    hashtags: List[str]
+    image_queries: List[str]  # Wikimedia Commons searches
+    image_keywords: List[str] # words a relevant file title must contain
+    why_it_works: str
+    sources: List[Source]
+
+
+class TopicProposals(BaseModel):
+    topics: List[TopicProposal]

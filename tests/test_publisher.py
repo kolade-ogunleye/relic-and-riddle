@@ -244,3 +244,18 @@ def test_story_failure_after_first_frame_is_unknown(monkeypatch, run, tmp_path):
 def test_photos_need_upload_post(run, tmp_path):
     res = MetaPublisher(db=run, publishers=[]).publish_photos("r1", "01_topic", "story", _photos(tmp_path, 1))
     assert res["status"] == "failed" and "Upload-Post" in res["error"]
+
+
+def test_reel_fields_map_to_each_platform(monkeypatch, envelope):
+    captured = {}
+
+    def fake_post(url, headers, data, files, timeout):
+        captured.update(data=dict(data))
+        return _response(200, {"success": True, "results": {"instagram": {"success": True}, "facebook": {"success": True}}})
+    monkeypatch.setattr(requests, "post", fake_post)
+    envelope["metadata"]["caption"] = "C" * 2000
+    UploadPostPublisher(api_key="k" * 20, user="u").publish(envelope)
+    d = captured["data"]
+    assert d["instagram_title"] == "C" * 2000 and d["facebook_description"] == "C" * 2000
+    assert d["facebook_title"] == "T" and len(d["title"]) <= 255  # not the 2,000-char caption
+    assert d["is_ai_generated"] == "true" and d["facebook_is_ai_generated"] == "true"

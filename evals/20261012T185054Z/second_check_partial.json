@@ -143,9 +143,21 @@
     [
      "03_kailasa_temple_monolith",
      2
+    ],
+    [
+     "04_antikythera_mechanism",
+     0
+    ],
+    [
+     "04_antikythera_mechanism",
+     1
+    ],
+    [
+     "04_antikythera_mechanism",
+     2
     ]
    ],
-   "n_caught": 5,
+   "n_caught": 8,
    "false_alarms": 0,
    "details": [
     {
@@ -181,6 +193,24 @@
       "Narration: \"The only certainty is the direction they worked\" (disputed: Disputed because it overstates. Top-down carving is certain. But the 8th-century date and the Krishna I attribution are also generally treated as solid. What is really debated is how long it took and how many reigns it spanned.)",
       "Caption: The flag pillars are about 50–55 ft (15–17 m) tall (unsupported: Could not confirm the height (searches hit a limit). The pages found mention the pillars but give no measurement. Check this against Wikipedia, the Archaeological Survey of India, or a scholarly source before publishing. No sources found that give a height.)",
       "First comment: The \"18 years\" figure is a modern estimate, probably based on the length of Krishna I's reign (unsupported: Hedged via \"probably.\" Plausible: one explainer equates \"Krishna I's reign\" with \"roughly 18 years,\" and popular sites repeat \"18 years\" without naming any source. But no scholarly source explains where the figure comes from. Keep the hedge. Rests only on weak sources.)"
+     ]
+    },
+    {
+     "topic": "04_antikythera_mechanism",
+     "planted": 3,
+     "caught": [
+      0,
+      1,
+      2
+     ],
+     "flagged": [
+      "The wreck lies 148 ft (45 m) down (disputed: Hedging is mixed: the narration is unhedged, while the caption and on-screen text are hedged ('about'). 45 m is a common figure, but WHOI reports depths of 40–50 m and Ancient-Greece.org gives about 50–52 m. Suggested wording: 'about 45–50 m down.' The narration should also say 'about.')",
+      "Gears were spotted in May 1905 (narration) (false: It was 17 May 1902.)",
+      "Spyridon Marinatos spotted the gears (narration) (false: It was archaeologist Valerios Stais.)",
+      "Built or made in the 2nd century BC (narration, caption, on-screen twice) (disputed: Estimates of when it was built run from about 205 BC to about 60 BC. Alexander Jones dates the eclipse and games cycles on the dials to 205 BC, which supports the 2nd century. Other estimates are 150–100 BC, about 87 BC, or within a generation before the wreck (about 70–60 BC). Safer wording: '2nd or early 1st century BC.')",
+      "The fragments include 37 bronze gears (narration) (false: 30 gears survive: 27 in Fragment A and one each in Fragments B, C and D. The figure of 37 or more appears in less reliable sources as an estimate of the reconstructed total, not a count of surviving gears.)",
+      "Others dispute that (narration, on-screen, first comment) (unsupported: The only pushback in the sources found comes from the authors themselves and from press coverage, noting that the measurements may be wrong and that corrosion may have distorted the parts. Either name a critic or reword, e.g. 'the authors caution that corrosion may skew the measurements.' The search quota ran out before a named critic could be sought.)",
+      "It came from a 'Greek shipwreck' at the Antikythera Shipwreck, Antikythera, Greece (caption) (disputed: The location is correct. Whose ship it was is described differently: Wikipedia calls it a Roman-era cargo ship from about the second quarter of the 1st century BC, while WHOI calls it a Greek trading ship. Safer wording: 'a shipwreck off Greece.')"
      ]
     }
    ]

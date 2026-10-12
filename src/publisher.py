@@ -77,13 +77,20 @@ class UploadPostPublisher:
         data: List[Tuple[str, str]] = [
             ("user", self.user),
             *[("platform[]", p) for p in envelope["platforms"]],
-            ("title", meta["caption"]),        # Instagram caption (instagram_title falls back to title)
-            ("description", meta["caption"]),  # Facebook description
+            # docs.upload-post.com/api/upload-video: Instagram's caption is instagram_title (falls back
+            # to title); Facebook's Reel title is facebook_title (falls back to title; max 255 chars,
+            # docs .../resources/character-limits) and its text is facebook_description.
+            ("title", meta["title"][:255]),
+            ("instagram_title", meta["caption"]),
+            ("facebook_title", meta["title"][:255]),
+            ("facebook_description", meta["caption"]),
             ("first_comment", meta["first_comment"]),
             ("media_type", "REELS"),
             ("share_to_feed", "true"),
             ("facebook_media_type", "REELS"),
+            # The AI label (synthetic narration) needs the Instagram and the Facebook flag.
             ("is_ai_generated", "true" if meta["is_ai_generated"] else "false"),
+            ("facebook_is_ai_generated", "true" if meta["is_ai_generated"] else "false"),
             ("async_upload", "true"),
             ("request_id", envelope["run_id"]),
         ]

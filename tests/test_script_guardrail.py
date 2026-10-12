@@ -130,3 +130,18 @@ def test_carousel_post_uses_own_caption_with_image_credits():
     payload = {"caption": "Reel text\n\n📷 Images via Wikimedia Commons: Ann (CC BY 4.0)", "carousel_caption": "Swipe."}
     assert PipelineCoordinator._carousel_caption(payload) == "Swipe.\n\n📷 Images via Wikimedia Commons: Ann (CC BY 4.0)"
     assert PipelineCoordinator._carousel_caption({"caption": "Reel text"}) == "Reel text"
+
+
+def test_meta_caption_limits(curated_payload):
+    from src.script_engine import validate_structure
+    six = _pkg(curated_payload, hashtags=["#A", "#B", "#C", "#D", "#E", "#F"])
+    assert any("at most 5" in p for p in validate_structure(six))
+    tagged_comment = _pkg(curated_payload, first_comment="What do you think? #Derinkuyu")
+    assert any("more than 5 hashtags" in p for p in validate_structure(tagged_comment))
+    long_first = _pkg(curated_payload, caption="X" * 130 + "\n\nMore.\n\n#Derinkuyu")
+    assert any("125" in p for p in validate_structure(long_first))
+    spammy = _pkg(curated_payload, caption="Hidden city 🏛️🔥😱🤯✨\n\nMore.\n\n#Derinkuyu")
+    assert any("emoji" in p for p in validate_structure(spammy))
+    warm = _pkg(curated_payload, caption="A city hidden under a house 🏛️\n\nMore context. Would you go down? 👇\n\n"
+                                         "#Derinkuyu #Cappadocia #UndergroundCity #ByzantineHistory #Archaeology")
+    assert validate_structure(warm) == []

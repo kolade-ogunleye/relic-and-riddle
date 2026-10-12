@@ -5,7 +5,7 @@ Typed contracts shared by the script engine, fact checker, and renderers.
 The same schema constrains Claude's structured output and validates curated scripts.
 """
 
-from typing import Annotated, List, Literal
+from typing import Annotated, List, Literal, Optional
 
 from pydantic import BaseModel, BeforeValidator
 
@@ -52,6 +52,7 @@ class ScriptPackage(BaseModel):
     poll: Poll
     carousel_slides: List[CarouselSlide]
     sources: List[Source]
+    carousel_caption: Optional[str] = None  # its own text: Meta/Upload-Post flag duplicate captions
 
 
 # Structured outputs may vary enum casing ("Supported"), so normalize before validating.

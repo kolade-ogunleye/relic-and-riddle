@@ -81,7 +81,9 @@ class ClaimFactChecker:
         return (
             f"<narration>\n{payload['narration_script']}\n</narration>\n\n"
             f"<caption>\n{payload['caption']}\n</caption>\n\n"
-            f"<on_screen_text>\n" + "\n".join(on_screen) + "\n</on_screen_text>\n\n"
+            + (f"<carousel_caption>\n{payload['carousel_caption']}\n</carousel_caption>\n\n"
+               if payload.get("carousel_caption") else "")
+            + f"<on_screen_text>\n" + "\n".join(on_screen) + "\n</on_screen_text>\n\n"
             f"<first_comment>\n{payload['first_comment']}\n</first_comment>"
         )
 

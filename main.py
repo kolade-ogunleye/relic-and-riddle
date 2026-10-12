@@ -455,12 +455,22 @@ class PipelineCoordinator:
         self._alert(f"⏰ Missed the {html.escape(missed)} slot for {html.escape(self.db.run_label(post['run_id']))} "
                     f"(the daemon was off or paused). Moved to {html.escape(post_schedule.fmt(slot))}.")
 
+    @staticmethod
+    def _carousel_caption(payload: Dict[str, Any]) -> str:
+        """The carousel's own text (Meta and Upload-Post flag duplicate captions), plus the image
+        credit line the licences require. Older scripts without one fall back to the Reel caption."""
+        own = (payload.get("carousel_caption") or "").strip()
+        if not own:
+            return payload.get("caption", "")
+        credits = [ln for ln in payload.get("caption", "").splitlines() if ln.startswith(beat_images.CREDIT_PREFIX)]
+        return own + ("\n\n" + credits[0] if credits else "")
+
     def _post_photos(self, post: Dict[str, Any], run: Dict[str, Any], kind: str) -> str:
         files = [f for f in post["files"] if Path(f).exists()]
         if not files:
             self.db.update_scheduled_post(post["id"], "failed", detail={"error": "image files are missing"})
             return "failed"
-        caption = run["script_payload"].get("caption", "") if kind == "carousel" else ""
+        caption = self._carousel_caption(run["script_payload"]) if kind == "carousel" else ""
         res = self.publisher.publish_photos(post["run_id"], run["topic_id"], kind, files, caption=caption)
         self.db.update_scheduled_post(post["id"], res["status"], detail=res)
         name = {"story": "Stories", "carousel": "Carousel"}[kind]

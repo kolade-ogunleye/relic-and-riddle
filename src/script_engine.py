@@ -12,6 +12,7 @@ Source of scripts, in order:
 There is deliberately no template fallback: a topic with neither fails the run.
 """
 
+import difflib
 import json
 import logging
 import re
@@ -42,6 +43,7 @@ Editorial rules:
 - Topic notes supplied by the user may contain errors or exaggerations. Check them; do not repeat them unverified.
 - On-screen copy is short and uppercase-friendly: thumbnail lines at most 22 characters, story and carousel headings at most 26 characters, bodies at most 90 characters.
 - Audience: primarily the United States, then the UK, Canada and Australia. Use American English spelling, and give measurements in US units first with metric in parentheses, e.g. "about 280 feet (85 m)", "half a ton (about 500 kg)".
+- The narration must add facts, context and interpretation a viewer could not get from the pictures alone (Meta treats voiceover that merely describes what is on screen as unoriginal). Never narrate the visuals ("here we see", "as you can see", "this photo shows").
 - Write like a sharp human documentary narrator: concrete nouns, active verbs, specific numbers and names. Avoid generic AI phrasing such as "delve", "testament to", "tapestry", "unveil", "unravel", "shrouded in mystery", "realm", "embark", "intricate", "a glimpse into", "stands as", "it's important to note".
 - Return the sources you relied on."""
 
@@ -63,7 +65,8 @@ Location: {location}
 Topic notes (unverified): {key_facts}
 
 Requirements:
-- caption: line 1 hook teaser; then a 3-sentence micro-documentary; then an open-ended question; then "📍 <location>"; then the hashtags. Under 2,000 characters.
+- caption: written like a magazine editor, not a template. First line: a curiosity-driven line that is NOT the narration's hook sentence. Then 2-3 short sentences that add context the video doesn't say (a detail, a consequence, a name), with the place worked naturally into the prose. Then one genuine question to the audience. Then the hashtags on the last line. No emoji labels or "📍" lines. Under 1,600 characters.
+- carousel_caption: a separate caption for the 7-slide carousel of the same topic, different wording from the Reel caption (not a rephrase of its first line): a short invitation to swipe, one fresh detail, one question, then the same hashtags. Under 800 characters.
 - hashtags: exactly 5, each starting with "#": specific to the place, era or subject (e.g. "#Cappadocia", "#ByzantineHistory"); no generic engagement tags like "#viral", "#fyp", "#ReelsViral", "#explore".
 - story_slides: exactly 3 (hook, revelation, question).
 - poll: one question with exactly 2 short options (posted manually as a native Story poll sticker).
@@ -78,12 +81,18 @@ BANNED_TROPES = [
 ]
 # Phrasing that reads as machine-written; a draft containing it is sent back for a rewrite.
 AI_PHRASES = [
+    "here we see", "as you can see", "this photo shows", "in this image", "in this video",
     "delve", "delves", "delving", "testament to", "tapestry", "unveil", "unveils", "unravel", "unravels",
     "shrouded in mystery", "realm of", "embark", "a glimpse into", "stands as a", "it's important to note",
     "in the annals of", "intricate dance", "beacon of",
 ]
 GENERIC_HASHTAGS = {"#viral", "#fyp", "#foryou", "#foryoupage", "#reelsviral", "#explore", "#explorepage", "#trending",
                     "#reels", "#reelsinstagram", "#instagood"}
+
+
+def _similar(a: str, b: str) -> float:
+    norm = lambda t: re.sub(r"[^a-z0-9 ]", "", t.lower()).strip()  # noqa: E731
+    return difflib.SequenceMatcher(None, norm(a), norm(b)).ratio() if a.strip() and b.strip() else 0.0
 
 
 def find_banned_tropes(text: str) -> List[str]:
@@ -117,7 +126,7 @@ def validate_structure(pkg: ScriptPackage) -> List[str]:
     if not 2 <= len(pkg.poll.options) <= 4:
         problems.append("Poll needs 2-4 options.")
     public_text = " ".join([
-        pkg.title, pkg.narration_script, pkg.caption, pkg.first_comment,
+        pkg.title, pkg.narration_script, pkg.caption, pkg.carousel_caption or "", pkg.first_comment,
         *(s.line1 + " " + s.line2 + " " + s.body for s in pkg.story_slides),
         *(c.heading + " " + c.body for c in pkg.carousel_slides),
     ])
@@ -126,6 +135,16 @@ def validate_structure(pkg: ScriptPackage) -> List[str]:
     ai_isms = [p for p in AI_PHRASES if re.search(r"\b" + re.escape(p) + r"\b", public_text, re.IGNORECASE)]
     if ai_isms:
         problems.append(f"Uses machine-sounding phrasing ({', '.join(ai_isms)}); rewrite in plain documentary language.")
+    if "📍" in pkg.caption:
+        problems.append("Caption uses the '📍 location' template line; work the place into the prose instead.")
+    first_line = next((ln for ln in pkg.caption.splitlines() if ln.strip()), "")
+    if _similar(first_line, pkg.hook_sentence) >= 0.8:
+        problems.append("Caption's first line repeats the narration hook; write a different opening line.")
+    if pkg.carousel_caption is not None:
+        if _similar(pkg.carousel_caption, pkg.caption) >= 0.6:
+            problems.append("carousel_caption is too close to the Reel caption; write it fresh.")
+        if len(pkg.carousel_caption) > 2200:
+            problems.append("carousel_caption exceeds 2,200 characters.")
     generic = [h for h in pkg.hashtags if h.lower() in GENERIC_HASHTAGS]
     if generic:
         problems.append(f"Generic hashtags {generic}; use specific subject tags.")

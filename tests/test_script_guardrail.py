@@ -92,3 +92,41 @@ def test_clean_script_has_no_style_problems(curated_payload):
     from src.models import ScriptPackage
     from src.script_engine import validate_structure
     assert validate_structure(ScriptPackage.model_validate(curated_payload)) == []
+
+
+def _pkg(curated_payload, **changes):
+    from src.models import ScriptPackage
+    data = {k: v for k, v in curated_payload.items() if k in ScriptPackage.model_fields}
+    data.update(changes)
+    return ScriptPackage.model_validate(data)
+
+
+def test_caption_template_line_and_hook_repeat_are_rejected(curated_payload):
+    from src.script_engine import validate_structure
+    assert validate_structure(_pkg(curated_payload)) == []
+    bad = _pkg(curated_payload, caption=curated_payload["caption"] + "\n\n📍 Derinkuyu, Turkey")
+    assert any("📍" in p for p in validate_structure(bad))
+    hooky = _pkg(curated_payload, caption=curated_payload["hook_sentence"] + "\n\nMore context here.")
+    assert any("repeats the narration hook" in p for p in validate_structure(hooky))
+
+
+def test_carousel_caption_must_be_its_own_text(curated_payload):
+    from src.script_engine import validate_structure
+    same = _pkg(curated_payload, carousel_caption=curated_payload["caption"])
+    assert any("carousel_caption is too close" in p for p in validate_structure(same))
+    fresh = _pkg(curated_payload, carousel_caption="Swipe through seven facts about a city dug into rock. "
+                                                    "Which level would you hide in? #Derinkuyu #Cappadocia")
+    assert validate_structure(fresh) == []
+
+
+def test_narrating_the_visuals_is_rejected(curated_payload):
+    from src.script_engine import validate_structure
+    text = curated_payload["narration_script"].replace("It led into", "As you can see, it led into", 1)
+    assert any("machine-sounding" in p for p in validate_structure(_pkg(curated_payload, narration_script=text)))
+
+
+def test_carousel_post_uses_own_caption_with_image_credits():
+    from main import PipelineCoordinator
+    payload = {"caption": "Reel text\n\n📷 Images via Wikimedia Commons: Ann (CC BY 4.0)", "carousel_caption": "Swipe."}
+    assert PipelineCoordinator._carousel_caption(payload) == "Swipe.\n\n📷 Images via Wikimedia Commons: Ann (CC BY 4.0)"
+    assert PipelineCoordinator._carousel_caption({"caption": "Reel text"}) == "Reel text"

@@ -1,0 +1,85 @@
+{
+  "reviewed": false,
+  "images": [
+    {
+      "title": "File:Archimedes Sand-Rechnung 1667.png",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/Archimedes_Sand-Rechnung_1667.png/1920px-Archimedes_Sand-Rechnung_1667.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Archimedes_Sand-Rechnung_1667.png",
+      "artist": "Johann Christoph Strum",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "file": "01_commons.jpg"
+    },
+    {
+      "title": "File:Death of Archimedes - Henri Girardet after Gustave Courtois - 1877.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/2/2f/Death_of_Archimedes_-_Henri_Girardet_after_Gustave_Courtois_-_1877.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Death_of_Archimedes_-_Henri_Girardet_after_Gustave_Courtois_-_1877.jpg",
+      "artist": "Henri Girardet (engraver), after a painting by Gustave Courtois",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "file": "02_commons.jpg"
+    },
+    {
+      "title": "File:Archimedes Directing the Defenses of Syracuse.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/3f/Archimedes_Directing_the_Defenses_of_Syracuse.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Archimedes_Directing_the_Defenses_of_Syracuse.jpg",
+      "artist": "Thomas Ralph Spence",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "file": "03_commons.jpg"
+    },
+    {
+      "title": "File:Domenico-Fetti Archimedes 1620.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/e/e7/Domenico-Fetti_Archimedes_1620.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Domenico-Fetti_Archimedes_1620.jpg",
+      "artist": "Domenico Fetti",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "file": "04_commons.jpg"
+    },
+    {
+      "title": "File:Dood van Archimedes De dood van Archimedes (titel op object), RP-P-1907-4791.jpg",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/96/Dood_van_Archimedes_De_dood_van_Archimedes_%28titel_op_object%29%2C_RP-P-1907-4791.jpg/1920px-Dood_van_Archimedes_De_dood_van_Archimedes_%28titel_op_object%29%2C_RP-P-1907-4791.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Dood_van_Archimedes_De_dood_van_Archimedes_(titel_op_object),_RP-P-1907-4791.jpg",
+      "artist": "Rijksmuseum",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "attribution_required": false,
+      "file": "05_commons.jpg"
+    },
+    {
+      "title": "File:Archimedes before his death with the Roman soldier, Roman mosaic.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/6/68/Archimedes_before_his_death_with_the_Roman_soldier%2C_Roman_mosaic.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Archimedes_before_his_death_with_the_Roman_soldier,_Roman_mosaic.jpg",
+      "artist": "Unknown authorUnknown author",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "file": "06_commons.jpg"
+    },
+    {
+      "title": "File:Sculpture of Archimedes.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/8/87/Sculpture_of_Archimedes.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Sculpture_of_Archimedes.jpg",
+      "artist": "Unknown authorUnknown author",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "file": "07_commons.jpg"
+    },
+    {
+      "title": "File:Archimedes (Dupuis, 1900).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/43/Archimedes_%28Dupuis%2C_1900%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Archimedes_(Dupuis,_1900).jpg",
+      "artist": "AnonymousUnknown author",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "file": "08_commons.jpg"
+    }
+  ]
+}

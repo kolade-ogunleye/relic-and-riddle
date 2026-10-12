@@ -1,0 +1,35 @@
+{
+  "reviewed": false,
+  "images": [
+    {
+      "title": "File:20160917 Thonis Drogenap1 door Oscar Rambonnet Zutphen.jpg",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/df/20160917_Thonis_Drogenap1_door_Oscar_Rambonnet_Zutphen.jpg/1920px-20160917_Thonis_Drogenap1_door_Oscar_Rambonnet_Zutphen.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "source_url": "https://commons.wikimedia.org/wiki/File:20160917_Thonis_Drogenap1_door_Oscar_Rambonnet_Zutphen.jpg",
+      "artist": "Gouwenaar",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "attribution_required": false,
+      "file": "03_commons.jpg"
+    },
+    {
+      "title": "File:20160917 Thonis Drogenap2 door Oscar Rambonnet Zutphen.jpg",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a7/20160917_Thonis_Drogenap2_door_Oscar_Rambonnet_Zutphen.jpg/1920px-20160917_Thonis_Drogenap2_door_Oscar_Rambonnet_Zutphen.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "source_url": "https://commons.wikimedia.org/wiki/File:20160917_Thonis_Drogenap2_door_Oscar_Rambonnet_Zutphen.jpg",
+      "artist": "Gouwenaar",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "attribution_required": false,
+      "file": "04_commons.jpg"
+    },
+    {
+      "title": "File:Alexandrie et la rade dAboukir (3523675030).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/9/92/Alexandrie_et_la_rade_dAboukir_%283523675030%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Alexandrie_et_la_rade_dAboukir_(3523675030).jpg",
+      "artist": "Jean-Pierre Dalbéra from Paris, France",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "attribution_required": true,
+      "file": "05_commons.jpg"
+    }
+  ]
+}

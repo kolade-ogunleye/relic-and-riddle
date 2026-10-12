@@ -1,0 +1,85 @@
+{
+  "reviewed": false,
+  "images": [
+    {
+      "title": "File:Richat Structure - SRTM.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/e/ef/Richat_Structure_-_SRTM.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure_-_SRTM.jpg",
+      "artist": "NASA/JPL/NIMA",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "file": "01_commons.jpg"
+    },
+    {
+      "title": "File:Richat Structure ISS030-E-12516.jpg",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/af/Richat_Structure_ISS030-E-12516.jpg/3840px-Richat_Structure_ISS030-E-12516.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure_ISS030-E-12516.jpg",
+      "artist": "NASA",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "file": "02_commons.jpg"
+    },
+    {
+      "title": "File:AS09-19-3050 Richat Structure.jpg",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/56/AS09-19-3050_Richat_Structure.jpg/3840px-AS09-19-3050_Richat_Structure.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "source_url": "https://commons.wikimedia.org/wiki/File:AS09-19-3050_Richat_Structure.jpg",
+      "artist": "James Stuby based on NASA image",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "file": "03_commons.jpg"
+    },
+    {
+      "title": "File:Richat Structure in Mauritania Topographic map.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/35/Richat_Structure_in_Mauritania_Topographic_map.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Richat_Structure_in_Mauritania_Topographic_map.jpg",
+      "artist": "Mauritania_Topography.png: Sadalmelik\nderivative work: דקי (talk)",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "file": "04_commons.jpg"
+    },
+    {
+      "title": "File:Eye of the Sahara (49141999011).png",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b2/Eye_of_the_Sahara_%2849141999011%29.png/3840px-Eye_of_the_Sahara_%2849141999011%29.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Eye_of_the_Sahara_(49141999011).png",
+      "artist": "SentinelHub",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "attribution_required": true,
+      "file": "05_commons.jpg"
+    },
+    {
+      "title": "File:ASTER Richat.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/6/6b/ASTER_Richat.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "source_url": "https://commons.wikimedia.org/wiki/File:ASTER_Richat.jpg",
+      "artist": "NASA/GSFC/MITI/ERSDAC/JAROS, and U.S./Japan ASTER Science Team",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "file": "06_commons.jpg"
+    },
+    {
+      "title": "File:The \"Eye of the Sahara\" in the African nation of Mauritania (iss069e005536).jpg",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/The_%22Eye_of_the_Sahara%22_in_the_African_nation_of_Mauritania_%28iss069e005536%29.jpg/3840px-The_%22Eye_of_the_Sahara%22_in_the_African_nation_of_Mauritania_%28iss069e005536%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "source_url": "https://commons.wikimedia.org/wiki/File:The_%22Eye_of_the_Sahara%22_in_the_African_nation_of_Mauritania_(iss069e005536).jpg",
+      "artist": "NASA Johnson Space Center",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "file": "07_commons.jpg"
+    },
+    {
+      "title": "File:The \"Eye of the Sahara\" in the African nation of Mauritania (iss069e005471).jpg",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/12/The_%22Eye_of_the_Sahara%22_in_the_African_nation_of_Mauritania_%28iss069e005471%29.jpg/3840px-The_%22Eye_of_the_Sahara%22_in_the_African_nation_of_Mauritania_%28iss069e005471%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "source_url": "https://commons.wikimedia.org/wiki/File:The_%22Eye_of_the_Sahara%22_in_the_African_nation_of_Mauritania_(iss069e005471).jpg",
+      "artist": "NASA Johnson Space Center",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "file": "08_commons.jpg"
+    }
+  ]
+}

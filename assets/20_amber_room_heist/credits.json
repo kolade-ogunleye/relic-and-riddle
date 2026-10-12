@@ -1,0 +1,85 @@
+{
+  "reviewed": false,
+  "images": [
+    {
+      "title": "File:Catherine Palace interior - Amber Room (1).jpg",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/54/Catherine_Palace_interior_-_Amber_Room_%281%29.jpg/3840px-Catherine_Palace_interior_-_Amber_Room_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Catherine_Palace_interior_-_Amber_Room_(1).jpg",
+      "artist": "Branson DeCou",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "file": "01_commons.jpg"
+    },
+    {
+      "title": "File:20230518 Reconstructed Amber Room 08.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/36/20230518_Reconstructed_Amber_Room_08.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "source_url": "https://commons.wikimedia.org/wiki/File:20230518_Reconstructed_Amber_Room_08.jpg",
+      "artist": "Sergey A. Demidov",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "file": "02_commons.jpg"
+    },
+    {
+      "title": "File:20230518 Reconstructed Amber Room 12.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/c/c8/20230518_Reconstructed_Amber_Room_12.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "source_url": "https://commons.wikimedia.org/wiki/File:20230518_Reconstructed_Amber_Room_12.jpg",
+      "artist": "Sergey A. Demidov",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "file": "03_commons.jpg"
+    },
+    {
+      "title": "File:20230518 Reconstructed Amber Room 02.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/2/26/20230518_Reconstructed_Amber_Room_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "source_url": "https://commons.wikimedia.org/wiki/File:20230518_Reconstructed_Amber_Room_02.jpg",
+      "artist": "Sergey A. Demidov",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "file": "04_commons.jpg"
+    },
+    {
+      "title": "File:20230518 Reconstructed Amber Room 20.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/f0/20230518_Reconstructed_Amber_Room_20.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "source_url": "https://commons.wikimedia.org/wiki/File:20230518_Reconstructed_Amber_Room_20.jpg",
+      "artist": "Sergey A. Demidov",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "file": "05_commons.jpg"
+    },
+    {
+      "title": "File:20230518 Reconstructed Amber Room 14.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/f3/20230518_Reconstructed_Amber_Room_14.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "source_url": "https://commons.wikimedia.org/wiki/File:20230518_Reconstructed_Amber_Room_14.jpg",
+      "artist": "Sergey A. Demidov",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "file": "06_commons.jpg"
+    },
+    {
+      "title": "File:20230518 Reconstructed Amber Room 24.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/a/aa/20230518_Reconstructed_Amber_Room_24.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "source_url": "https://commons.wikimedia.org/wiki/File:20230518_Reconstructed_Amber_Room_24.jpg",
+      "artist": "Sergey A. Demidov",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "file": "07_commons.jpg"
+    },
+    {
+      "title": "File:20230518 Reconstructed Amber Room 21.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/b/b1/20230518_Reconstructed_Amber_Room_21.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "source_url": "https://commons.wikimedia.org/wiki/File:20230518_Reconstructed_Amber_Room_21.jpg",
+      "artist": "Sergey A. Demidov",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "file": "08_commons.jpg"
+    }
+  ]
+}

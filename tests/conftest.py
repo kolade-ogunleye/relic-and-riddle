@@ -33,6 +33,8 @@ def no_real_services(monkeypatch):
                  "META_ACCESS_TOKEN", "META_PAGE_ACCESS_TOKEN", "HEALTHCHECK_PING_URL"):
         monkeypatch.setattr(f"src.config.{name}", "")
     monkeypatch.setattr("src.config.TELEGRAM_APPROVER_IDS", set())
+    monkeypatch.setattr("src.config.GEMINI_FREE_API_KEY", "")
+    monkeypatch.setattr("src.config.SCRIPT_ENGINE", "claude")  # free-engine tests opt in explicitly
     monkeypatch.setattr("src.telegram_bot.TELEGRAM_BOT_TOKEN", "")
     monkeypatch.setattr("src.telegram_bot.TELEGRAM_CHAT_ID", "")
     monkeypatch.setattr("src.telegram_bot.TELEGRAM_APPROVER_IDS", set())

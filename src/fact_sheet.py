@@ -26,8 +26,9 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 from .config import DATA_DIR
+from . import free_llm
 from .llm import research_with_evidence, structured_call, task as llm_task
-from .models import FactSheetDraft
+from .models import FactSheetDraft, Source
 
 log = logging.getLogger(__name__)
 
@@ -103,25 +104,33 @@ def _host(url: str) -> str:
 def build(topic: Dict[str, Any], web_search_uses: int = 10) -> Dict[str, Any]:
     """Research the topic, extract evidence-cited facts, apply the deterministic rules, save and return."""
     loc = topic.get("location", {})
-    prompt = (f"Topic: {topic.get('title', '')}\nPlace: {loc.get('name', '')}, {loc.get('country', '')}\n"
-              f"Claims to check (may be wrong): {'; '.join(topic.get('key_facts', []))}\n\n"
-              "Find what reliable sources (heritage bodies, scholarship, museums, encyclopedias, quality press) say: "
-              "key numbers, dates, names and events, where they disagree, and which popular claims are myths. "
-              "Quote the sources' exact wording for every figure.")
-    notes, sources, quotes = research_with_evidence(
-        "You are a meticulous researcher for a history documentary. Prefer primary and authoritative sources.",
-        prompt, web_search_uses=web_search_uses, effort="high")
+    if free_llm.enabled():
+        # Zero cost: Wikipedia (subject and place) plus the pages it cites, quoted sentence by sentence.
+        from . import free_evidence
+        keywords = (topic.get("title", "") + " " + (loc.get("name") or "")).split()
+        quotes, src = free_evidence.quotes_for(topic, keywords)
+        notes = ""
+        sources = [Source(title=x["title"], url=x["url"]) for x in src]
+    else:
+        prompt = (f"Topic: {topic.get('title', '')}\nPlace: {loc.get('name', '')}, {loc.get('country', '')}\n"
+                  f"Claims to check (may be wrong): {'; '.join(topic.get('key_facts', []))}\n\n"
+                  "Find what reliable sources (heritage bodies, scholarship, museums, encyclopedias, quality press) say: "
+                  "key numbers, dates, names and events, where they disagree, and which popular claims are myths. "
+                  "Quote the sources' exact wording for every figure.")
+        notes, sources, quotes = research_with_evidence(
+            "You are a meticulous researcher for a history documentary. Prefer primary and authoritative sources.",
+            prompt, web_search_uses=web_search_uses, effort="high")
     quotes = quotes[:MAX_QUOTES]
     if not quotes:
         raise ValueError("Research returned no quotable evidence; cannot build a fact sheet.")
     listing = "\n".join(f"Q{i}: [{_host(q['url'])}, tier {tier(q['url'])}] {q['quote'][:600]}" for i, q in enumerate(quotes, 1))
-    draft = structured_call(SYSTEM, f"<research_notes>\n{notes}\n</research_notes>\n\n<evidence_quotes>\n{listing}\n</evidence_quotes>",
-                            FactSheetDraft, effort="high", max_tokens=12000)
+    draft = free_llm.call(SYSTEM, f"<research_notes>\n{notes}\n</research_notes>\n\n<evidence_quotes>\n{listing}\n</evidence_quotes>",
+                          FactSheetDraft, effort="high", max_tokens=12000)
     facts, dropped = _apply_rules(draft.facts, quotes)
     # Facts dropped only for weak sourcing get one targeted search for a second, stronger source
     # (e.g. a well-known date that the broad search happened to find on a single travel site).
     weak = [f for f in draft.facts if any(d[0] == f.id and "weak source" in d[1] for d in dropped)]
-    if weak:
+    if weak and not free_llm.enabled():  # the shore-up search needs paid web search
         more_notes, _, more = research_with_evidence(
             "You verify specific facts for a documentary. Find authoritative sources and quote their exact wording.",
             "Verify each of these with strong sources (quote them):\n" + "\n".join(f"- {f.statement}" for f in weak),

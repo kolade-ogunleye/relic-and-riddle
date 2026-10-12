@@ -22,6 +22,7 @@ from pydantic import BaseModel, ValidationError
 
 from .config import CURATED_SCRIPTS_DIR, SECOND_CHECK_ENABLED, TARGET_WORD_COUNT_MIN, TARGET_WORD_COUNT_MAX
 from .fact_checker import ClaimFactChecker
+from . import free_llm
 from .llm import LLMError, claude_available, format_sources, research, structured_call, task as llm_task
 from . import fact_sheet, trace_check
 from .models import GraphicsPlan, ScriptCore, ScriptPackage, Source
@@ -75,6 +76,25 @@ Requirements:
 - carousel_slides: exactly 7 (title slide, five fact slides, closing call-to-comment slide).
 - first_comment: a debate-starting question, with no hashtags (Instagram's 5-hashtag cap covers the whole post).
 - sources: the pages you used, with real URLs."""
+
+AI_ORIGINS = ("claude", "gemini-free")  # scripts written by a model (vs curated by hand)
+
+
+def _structured(system, prompt, schema, **claude_kwargs):
+    """The free writer model when SCRIPT_ENGINE=free, otherwise Claude."""
+    if free_llm.enabled():
+        return free_llm.structured(system, prompt, schema, role="writer")
+    return structured_call(system, prompt, schema, **claude_kwargs)
+
+
+def _ready() -> bool:
+    """Can scripts be written on the configured engine (free Gemini key, or Claude)?"""
+    return free_llm.available() if free_llm.enabled() else claude_available()
+
+
+def writer_origin() -> str:
+    return "gemini-free" if free_llm.enabled() else "claude"
+
 
 FACTS_ONLY_RULES = """Write from the verified facts ONLY. Every factual statement in the narration, caption, title,
 on-screen text, slides, stories and first comment must come from a listed fact; for a DISPUTED fact use its hedge
@@ -260,7 +280,7 @@ class ScriptEngine:
         revision_notes / previous: fact-checker findings on the previous draft. The previous
         draft is edited (not rewritten) so corrections don't introduce new, unchecked claims.
         """
-        if claude_available():
+        if _ready():
             sheet = self._sheet(topic) if previous is not None and previous.get("fact_sheet") else None
             if revision_notes and previous and sheet:
                 try:
@@ -273,7 +293,7 @@ class ScriptEngine:
                     problems = validate_structure(pkg)
                     if not problems:
                         log.info("Revised surgically: only the rejected sentences changed.")
-                        return self._finalize(pkg, topic, origin="claude", fact_sheet_used=True)
+                        return self._finalize(pkg, topic, origin=writer_origin(), fact_sheet_used=True)
                     log.warning("Surgical revision failed structural checks (%s); rewriting.", problems)
             base_feedback = ""
             if revision_notes and previous:
@@ -300,7 +320,7 @@ class ScriptEngine:
                 pkg = prune_graphics(pkg)  # an invalid graphic is dropped, not allowed to sink the script
                 problems = validate_structure(pkg)
                 if not problems:
-                    return self._finalize(pkg, topic, origin="claude", fact_sheet_used=self._sheet(topic) is not None)
+                    return self._finalize(pkg, topic, origin=writer_origin(), fact_sheet_used=self._sheet(topic) is not None)
                 log.warning("Attempt %d failed structural checks: %s", attempt, problems)
                 feedback = base_feedback + "\n\nA previous draft was rejected for: " + " ".join(problems) + " Fix these."
             log.warning("Claude did not produce a usable script; trying curated script.")
@@ -322,7 +342,7 @@ class ScriptEngine:
         """The topic's verified fact sheet (cached on disk; built if missing), or None if it can't be built."""
         if topic["id"] not in self._sheets:
             try:
-                self._sheets[topic["id"]] = fact_sheet.ensure(topic) if claude_available() else None
+                self._sheets[topic["id"]] = fact_sheet.ensure(topic) if _ready() else None
             except (LLMError, ValueError) as e:
                 log.warning("No fact sheet for %s (%s); writing from research notes.", topic["id"], e)
                 self._sheets[topic["id"]] = None
@@ -332,7 +352,7 @@ class ScriptEngine:
         """Replace only the sentences the checks rejected, using the fact sheet; everything else stays.
         Returns None if the edits can't be applied cleanly (the caller then rewrites the draft)."""
         draft = {k: previous.get(k) for k in ScriptPackage.model_fields}
-        result = structured_call(
+        result = _structured(
             REVISE_SYSTEM,
             f"<verified_facts>\n{fact_sheet.as_prompt(sheet)}\n</verified_facts>\n\n"
             f"<draft>\n{json.dumps(draft, ensure_ascii=False, indent=1)}\n</draft>\n\n<findings>\n{findings}\n</findings>",
@@ -370,6 +390,8 @@ class ScriptEngine:
                 + f"<retrieved_sources>\n{format_sources(retrieved)}\n</retrieved_sources>\n"
                 + FACTS_ONLY_RULES + feedback
             )
+        elif free_llm.enabled():
+            raise LLMError("No verified fact sheet could be built; the free engine writes only from one.")
         else:
             if topic["id"] not in self._research_cache:  # research once per topic; revisions reuse it
                 notes, retrieved = research(RESEARCH_SYSTEM, RESEARCH_PROMPT.format(**fields), web_search_uses=6)
@@ -384,9 +406,9 @@ class ScriptEngine:
                 + "Use only facts supported by the research notes. List sources only from retrieved_sources."
                 + feedback
             )
-        core = structured_call(SYSTEM_PROMPT, prompt, ScriptCore, effort="high")
+        core = _structured(SYSTEM_PROMPT, prompt, ScriptCore, effort="high")
         try:  # graphics are planned from the finished script; optional, so a failure leaves them out
-            extras = structured_call(
+            extras = _structured(
                 GRAPHICS_SYSTEM,
                 f"<narration>\n{core.narration_script}\n</narration>\n\n<research_notes>\n{notes}\n</research_notes>\n\n"
                 + GRAPHICS_PROMPT + feedback, GraphicsPlan, effort="medium")  # revision notes cover graphics too
@@ -446,6 +468,13 @@ class ScriptEngine:
             disputed = sum(f["disputed"] for f in sheet["facts"])
             script_payload["fact_sheet_note"] = (f"🧾 Written from a verified fact sheet: {len(sheet['facts'])} facts with quoted "
                                                  f"evidence ({disputed} disputed, used only with their hedges)")
+        elif free_llm.enabled():
+            # No fact sheet and no paid checks: only a human-reviewed curated script (or a dry run) may pass.
+            if script_payload.get("origin") == "curated" and (script_payload.get("human_reviewed") or allow_unreviewed_curated):
+                passed, confidence, audits = True, 0.0, []
+                msg = "Curated script (" + ("human reviewed" if script_payload.get("human_reviewed") else "UNREVIEWED; dry run only") + ")."
+            else:
+                passed, confidence, audits, msg = False, 0.0, [], "No verified fact sheet; the free engine fails closed."
         else:
             passed, confidence, audits, msg = self.fact_checker.verify(script_payload, topic, allow_unreviewed_curated)
         script_payload["fact_audits"] = audits
@@ -454,8 +483,13 @@ class ScriptEngine:
             return False, script_payload, f"REJECTED by fact checker: {msg}"
 
         # Independent second check (only for Claude-written scripts that passed the first).
-        if SECOND_CHECK_ENABLED and script_payload.get("origin") == "claude":
-            status, conf2, audits2, msg2 = self.fact_checker.second_opinion(script_payload)
+        if SECOND_CHECK_ENABLED and script_payload.get("origin") in AI_ORIGINS:
+            if free_llm.enabled():
+                # Zero cost: a different free model judges every claim against the raw evidence quotes.
+                status, conf2, audits2, msg2 = (trace_check.evidence_check(script_payload, sheet) if sheet is not None
+                                                else ("fail", 0.0, [], "No fact sheet: the free engine can't check this script."))
+            else:
+                status, conf2, audits2, msg2 = self.fact_checker.second_opinion(script_payload)
             script_payload["second_check"] = {"status": status, "confidence": conf2, "audits": audits2, "summary": msg2}
             if status == "fail":
                 return False, script_payload, f"REJECTED by second fact checker: {msg2}"

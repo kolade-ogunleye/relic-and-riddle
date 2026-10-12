@@ -87,6 +87,13 @@ MEDIA_MONTHLY_BUDGET_USD = float(os.getenv("MEDIA_MONTHLY_BUDGET_USD", "0") or 0
 MOTION_VEO_MODEL = os.getenv("MOTION_VEO_MODEL", "veo-3.1-fast-generate-preview")
 MOTION_MAX_CLIPS = int(os.getenv("MOTION_MAX_CLIPS", "1"))  # the opening still; 2 = also one more
 KLING_API_KEY = os.getenv("KLING_API_KEY", "")
+# Script research, writing and fact checks: "free" = Gemini free tier on GEMINI_FREE_API_KEY (a key from a
+# Google project WITHOUT billing, so it can never be charged) with Wikipedia + cited pages as evidence;
+# "claude" = the paid Claude pipeline with web search. The free path never falls back to a paid key.
+SCRIPT_ENGINE = os.getenv("SCRIPT_ENGINE", "free").strip().lower()
+GEMINI_FREE_API_KEY = os.getenv("GEMINI_FREE_API_KEY", "")
+FREE_WRITER_MODEL = os.getenv("FREE_WRITER_MODEL", "gemini-3.8-flash")
+FREE_CHECKER_MODEL = os.getenv("FREE_CHECKER_MODEL", "gemini-3.7-flash")  # a different model checks the writer's work
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 

@@ -267,7 +267,7 @@ class PipelineCoordinator:
             payload = self.script_engine.generate_script(topic, revision_notes=revision_notes, previous=payload)
             passed, payload, notes = self.script_engine.verify_claims(payload, topic=topic, allow_unreviewed_curated=dry_run)
             log.info("Guardrail (draft %d): %s", revision + 1, notes)
-            if passed or payload.get("origin") != "claude":
+            if passed or payload.get("origin") not in ("claude", "gemini-free"):
                 break
             revision_notes = notes
         if passed:

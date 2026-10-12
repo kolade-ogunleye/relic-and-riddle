@@ -34,11 +34,16 @@ def available() -> bool:
     return is_configured(GEMINI_API_KEY)
 
 
-def _post(body: Dict[str, Any], timeout: float = 300) -> Dict[str, Any]:
-    if not available():
-        raise GeminiError("GEMINI_API_KEY is not configured.")
+class QuotaExhausted(GeminiError):
+    """The key's quota (free-tier daily limit) is used up."""
+
+
+def _post(body: Dict[str, Any], timeout: float = 300, key: str = None) -> Dict[str, Any]:
+    key = key if key is not None else GEMINI_API_KEY
+    if not is_configured(key):
+        raise GeminiError("No Gemini API key is configured for this call.")
     try:
-        resp = requests.post(URL, headers={"x-goog-api-key": GEMINI_API_KEY, "Content-Type": "application/json"},
+        resp = requests.post(URL, headers={"x-goog-api-key": key, "Content-Type": "application/json"},
                              json=body, timeout=timeout)
     except requests.RequestException as e:
         raise GeminiError(f"Gemini request failed: {e}") from e
@@ -46,7 +51,7 @@ def _post(body: Dict[str, Any], timeout: float = 300) -> Dict[str, Any]:
         hint = (" Google Search grounding is not available on the Gemini free tier for Gemini 3 models; enable "
                 "billing on the key's Google Cloud project (5,000 grounded searches/month are then free)."
                 if body.get("tools") else "")
-        raise GeminiError("Gemini quota exceeded (HTTP 429)." + hint)
+        raise QuotaExhausted("Gemini quota exceeded (HTTP 429)." + hint)
     if resp.status_code == 503:
         raise GeminiError("Gemini is temporarily overloaded (HTTP 503); try again later.")
     try:
@@ -122,13 +127,13 @@ def _inline_refs(schema: Dict[str, Any]) -> Dict[str, Any]:
     return walk(schema)
 
 
-def structured(system: str, prompt: str, schema: Type[T]) -> T:
+def structured(system: str, prompt: str, schema: Type[T], model: str = None, key: str = None) -> T:
     data = _post({
-        "model": GEMINI_MODEL,
+        "model": model or GEMINI_MODEL,
         "input": f"{system}\n\n{prompt}",
         "response_format": {"type": "text", "mime_type": "application/json",
                             "schema": _inline_refs(schema.model_json_schema())},
-    })
+    }, key=key)
     text = "".join(b.get("text", "") for b in _text_blocks(data)).strip()
     try:
         return schema.model_validate(json.loads(text))

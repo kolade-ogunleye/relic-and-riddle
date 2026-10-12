@@ -65,3 +65,34 @@ def test_failed_fact_check_is_revised_then_fails_closed(db, monkeypatch, tmp_pat
     with pytest.raises(RuntimeError, match="guardrail"):
         coord._produce_and_publish({"id": "01_topic"}, "r9", tmp_path, True, True, "queued")
     assert notes_seen == ["", "bad claim 1", "bad claim 2"]  # original + MAX_FACT_REVISIONS rewrites
+
+
+def test_resume_reuses_passed_script_and_voiceover(db, monkeypatch, tmp_path, curated_payload):
+    import json
+    import main
+    monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
+    run_dir = tmp_path / "r5"
+    run_dir.mkdir()
+    (run_dir / "script_metadata.json").write_text(json.dumps(dict(curated_payload, guardrail_passed=True)), encoding="utf-8")
+    (run_dir / "voiceover.mp3").write_bytes(b"x")
+    (run_dir / "words.json").write_text("[]", encoding="utf-8")
+    db.create_run("r5", "01_topic")
+    db.update_run("r5", "failed", error="RenderError")
+    coord = PipelineCoordinator(db)
+    monkeypatch.setattr(coord.visual_engine, "get_scene_sequence", lambda t: [tmp_path / "a.jpg"])
+    monkeypatch.setattr(main.VisualEngine if hasattr(main, "VisualEngine") else type(coord.visual_engine), "hero_image", staticmethod(lambda s: s[0]))
+    for name in ("generate_script", "verify_claims"):
+        monkeypatch.setattr(coord.script_engine, name, lambda *a, **k: pytest.fail("script was regenerated"))
+    monkeypatch.setattr(coord.audio_engine, "generate_narration", lambda *a, **k: pytest.fail("voice was regenerated"))
+    monkeypatch.setattr(coord.audio_engine, "get_duration", lambda p: 44.0)
+    monkeypatch.setattr(coord.audio_engine, "generate_ambient_bed", lambda *a, **k: None)
+    seen = {}
+    monkeypatch.setattr(coord, "_render_approve_publish", lambda *a: seen.setdefault("ok", True) and {"status": "simulated"})
+    assert coord.resume_run("r5", dry_run=True)["status"] == "simulated"
+    assert seen["ok"]
+
+
+def test_resume_refuses_published_run(rendered_run):
+    rendered_run.db.update_run("r1", "published")
+    with pytest.raises(ValueError, match="can't be resumed"):
+        rendered_run.resume_run("r1")

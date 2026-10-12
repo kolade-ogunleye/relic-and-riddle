@@ -5,6 +5,7 @@ CLI orchestrator and daily scheduler for the Autonomous Meta Reels pipeline.
 
 Usage:
   python main.py run [--topic-id ID] [--auto-approve] [--dry-run]
+  python main.py resume <run_id> [--auto-approve] [--dry-run]   (continue a failed run without re-paying)
   python main.py daemon [--time 09:00]
   python main.py review list
   python main.py review approve|reject|regenerate <run_id>   (while a run is waiting)
@@ -99,6 +100,32 @@ class PipelineCoordinator:
             self.topic_engine.record_status(tid, "failed", run_id=run_id)
         return result
 
+    def resume_run(self, run_id: str, auto_approve: bool = False, dry_run: bool = False) -> Dict[str, Any]:
+        """
+        Continues a failed run from where it stopped, reusing its approved script and
+        voiceover, so a late failure (e.g. rendering) doesn't mean paying for them again.
+        """
+        run = self.db.get_run(run_id)
+        if not run:
+            raise ValueError(f"Unknown run '{run_id}'.")
+        if run["status"] not in ("failed", "producing"):
+            raise ValueError(f"Run status '{run['status']}' can't be resumed.")
+        run_dir = OUTPUT_DIR / run_id
+        if not run_dir.is_dir():
+            raise ValueError(f"Run folder {run_dir} no longer exists.")
+        topic = self.topic_engine.get_topic_by_id(run["topic_id"])
+        previous_status = "published" if topic["times_published"] else "queued"
+        self.db.update_run(run_id, "producing")
+        self.topic_engine.record_status(topic["id"], "in_production", run_id=run_id)
+        log.info("Resuming run %s", run_id)
+        try:
+            return self._produce_and_publish(topic, run_id, run_dir, auto_approve, dry_run, previous_status)
+        except Exception as e:
+            self.db.update_run(run_id, "failed", error=f"{type(e).__name__}: {e}")
+            self.topic_engine.record_status(topic["id"], "failed", run_id=run_id)
+            log.error("Run %s failed: %s", run_id, e)
+            raise
+
     def _produce_and_publish(self, topic, run_id, run_dir, auto_approve, dry_run, previous_status) -> Dict[str, Any]:
         tid = topic["id"]
 
@@ -107,7 +134,35 @@ class PipelineCoordinator:
         hero_img = self.visual_engine.hero_image(scene_media)
         log.info("Scene media: %d items.", len(scene_media))
 
-        # 2-3. Script + guardrail (fails closed)
+        # 2-3. Script + guardrail (fails closed). A resumed run reuses a script that already passed.
+        saved_script = run_dir / "script_metadata.json"
+        saved = json.loads(saved_script.read_text(encoding="utf-8")) if saved_script.exists() else {}
+        if saved.get("guardrail_passed"):
+            log.info("Resuming with the script that already passed the guardrail.")
+            payload = saved
+        else:
+            payload = self._write_and_check_script(topic, run_id, run_dir, dry_run)
+
+        # 4-5. Audio (reused when resuming)
+        vo_path = run_dir / "voiceover.mp3"
+        words_path = run_dir / "words.json"
+        if vo_path.exists() and words_path.exists():
+            words = json.loads(words_path.read_text(encoding="utf-8"))
+            log.info("Resuming with the existing voiceover.")
+        else:
+            words = self.audio_engine.generate_narration(payload["narration_script"], vo_path)
+            words_path.write_text(json.dumps(words), encoding="utf-8")
+        vo_dur = self.audio_engine.get_duration(vo_path)
+        log.info("Voiceover: %.2fs, %d words timed.", vo_dur, len(words))
+        if vo_dur > HARD_DURATION_CEILING:
+            raise RuntimeError(f"Voiceover is {vo_dur:.1f}s; hard ceiling is {HARD_DURATION_CEILING}s.")
+        bed_path = run_dir / "ambient_bed.wav"
+        self.audio_engine.generate_ambient_bed(vo_dur + 0.5, bed_path, words=words)
+        return self._render_approve_publish(topic, run_id, run_dir, payload, scene_media, hero_img,
+                                            vo_path, bed_path, words, vo_dur, auto_approve, dry_run, previous_status)
+
+    def _write_and_check_script(self, topic, run_id, run_dir, dry_run) -> Dict[str, Any]:
+        tid = topic["id"]
         revision_notes, payload = "", None
         for revision in range(MAX_FACT_REVISIONS + 1):
             payload = self.script_engine.generate_script(topic, revision_notes=revision_notes, previous=payload)
@@ -122,21 +177,16 @@ class PipelineCoordinator:
                 payload["caption"] = f"{payload['caption']}\n\n{credit}"
                 if len(payload["caption"]) > 2200:
                     passed, notes = False, "Caption plus image credits exceeds Instagram's 2,200 characters."
+        payload["guardrail_passed"] = passed
         (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
         self.db.update_run(run_id, "producing", script_payload=payload)
         if not passed:
             raise RuntimeError(f"Script rejected by guardrail: {notes}")
+        return payload
 
-        # 4-5. Audio
-        vo_path = run_dir / "voiceover.mp3"
-        words = self.audio_engine.generate_narration(payload["narration_script"], vo_path)
-        vo_dur = self.audio_engine.get_duration(vo_path)
-        log.info("Voiceover: %.2fs, %d words timed.", vo_dur, len(words))
-        if vo_dur > HARD_DURATION_CEILING:
-            raise RuntimeError(f"Voiceover is {vo_dur:.1f}s; hard ceiling is {HARD_DURATION_CEILING}s.")
-        bed_path = run_dir / "ambient_bed.wav"
-        self.audio_engine.generate_ambient_bed(vo_dur + 0.5, bed_path, words=words)
-
+    def _render_approve_publish(self, topic, run_id, run_dir, payload, scene_media, hero_img,
+                                vo_path, bed_path, words, vo_dur, auto_approve, dry_run, previous_status):
+        tid = topic["id"]
         # 6. Stills
         thumb_916, thumb_1x1 = self.visual_engine.generate_thumbnails(hero_img, payload, run_dir)
         story_slides = self.multiformat_gen.generate_story_sequence(hero_img, payload, run_dir)
@@ -230,6 +280,11 @@ def main(argv=None) -> int:
     run_p.add_argument("--auto-approve", action="store_true", help="Skip human review (records who approved)")
     run_p.add_argument("--dry-run", action="store_true", help="Do everything except publish")
 
+    resume_p = sub.add_parser("resume", help="Continue a failed run, reusing its approved script and voiceover")
+    resume_p.add_argument("run_id")
+    resume_p.add_argument("--auto-approve", action="store_true")
+    resume_p.add_argument("--dry-run", action="store_true")
+
     daemon_p = sub.add_parser("daemon", help="Run the daily scheduler")
     daemon_p.add_argument("--time", default=DAILY_RUN_TIME, help="Daily run time HH:MM")
 
@@ -263,6 +318,17 @@ def main(argv=None) -> int:
     if args.command == "run":
         try:
             res = PipelineCoordinator().run_cycle(args.topic_id, args.auto_approve, args.dry_run)
+        except Exception:
+            return 1  # already logged and recorded on the run
+        print(json.dumps({k: res.get(k) for k in ("status", "run_id", "master_video")}, indent=2))
+        return 0 if res["status"] in ("published", "simulated") else 1
+
+    if args.command == "resume":
+        try:
+            res = PipelineCoordinator().resume_run(args.run_id, args.auto_approve, args.dry_run)
+        except ValueError as e:
+            print(f"Refusing: {e}")
+            return 1
         except Exception:
             return 1  # already logged and recorded on the run
         print(json.dumps({k: res.get(k) for k in ("status", "run_id", "master_video")}, indent=2))

@@ -166,20 +166,33 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             raise RenderError("Could not measure program loudness (silent audio?).")
         return float(i_match.group(1)), float(p_match.group(1))
 
-    def calibrate_gain(self, vo_path: Path, bed_path: Path, tolerance: float = 0.3, max_iter: int = 4) -> float:
-        """Finds the gain that lands the limited mix on TARGET_LUFS."""
+    def calibrate_gain(self, vo_path: Path, bed_path: Path, tolerance: float = 0.5, accept: float = 1.0,
+                       max_iter: int = 6) -> float:
+        """
+        Finds the gain that lands the limited mix on TARGET_LUFS (within `tolerance` LU,
+        the usual delivery tolerance). The limiter absorbs part of each gain step, so steps
+        are scaled up. If it never gets that close, the best result within `accept` LU is
+        used with a warning; platforms re-normalize, so that is not worth failing a run.
+        """
         base = _audio_chain(0, 1)
         integrated, _ = self._measure(vo_path, bed_path, base)
         gain = TARGET_LUFS - integrated
+        best_gain, best_err = gain, float("inf")
         for _ in range(max_iter):
             integrated, peak = self._measure(vo_path, bed_path, base + _master_chain(gain))
             log.info("Mastering: gain %+.2f dB -> %.1f LUFS, %.1f dBTP", gain, integrated, peak)
             if peak > TARGET_TRUE_PEAK:
                 raise RenderError(f"True peak {peak} dBTP exceeds {TARGET_TRUE_PEAK} after limiting.")
-            if abs(integrated - TARGET_LUFS) <= tolerance:
+            err = abs(integrated - TARGET_LUFS)
+            if err < best_err:
+                best_gain, best_err = gain, err
+            if err <= tolerance + 1e-9:
                 return gain
-            gain += TARGET_LUFS - integrated
-        raise RenderError(f"Loudness did not converge to {TARGET_LUFS} LUFS (last {integrated}).")
+            gain += (TARGET_LUFS - integrated) * 1.5
+        if best_err <= accept:
+            log.warning("Loudness within %.1f LU of %.1f LUFS (not %.1f); using best gain.", best_err, TARGET_LUFS, tolerance)
+            return best_gain
+        raise RenderError(f"Loudness did not converge to {TARGET_LUFS} LUFS (best was {best_err:.1f} LU off).")
 
     def compose_video(
         self,

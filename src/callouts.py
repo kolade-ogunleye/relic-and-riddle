@@ -19,7 +19,7 @@ from PIL import Image, ImageDraw, ImageFilter
 from pydantic import BaseModel
 
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
-from .graphics import CLIP_SECONDS, GOLD, TEXT_BOTTOM, TEXT_TOP, WHITE, _ease, _encode, _wrap
+from .graphics import _text, CLIP_SECONDS, GOLD, TEXT_BOTTOM, TEXT_TOP, WHITE, _ease, _encode, _wrap
 from .llm import LLMError, claude_available, image_block, structured_call, task as llm_task
 from .typography import cover_crop, get_font, is_video
 
@@ -90,7 +90,7 @@ def render(photo: Path, points: List[tuple], out: Path) -> Path:
     base = cover_crop(photo, (W, H)).convert("RGB")
     n = int(CLIP_SECONDS * VIDEO_FPS)
     font = get_font("Montserrat", 36)
-    measure = ImageDraw.Draw(base)
+    measure = ImageDraw.Draw(base, "RGBA")
     # Label positions: same vertical order as the points, spread evenly through the text-safe band.
     order = sorted(range(len(points)), key=lambda k: points[k][2])
     slots = [TEXT_TOP + 60 + k * ((TEXT_BOTTOM - TEXT_TOP - 120) / max(1, len(points) - 1)) for k in range(len(points))]
@@ -108,10 +108,9 @@ def render(photo: Path, points: List[tuple], out: Path) -> Path:
             t = i / VIDEO_FPS
             z = 1.0 + 0.06 * (t / CLIP_SECONDS)  # gentle push-in, centred (points scale with it)
             cw, ch = W / z, H / z
-            im = base.resize((W, H), Image.LANCZOS, box=((W - cw) / 2, (H - ch) / 2, (W + cw) / 2, (H + ch) / 2)).convert("RGBA")
-            shade = Image.new("RGBA", (W, H), (0, 0, 0, int(70 * _ease(t / 0.8))))  # dim slightly so labels read
-            im = Image.alpha_composite(im, shade)
-            d = ImageDraw.Draw(im)
+            im = base.resize((W, H), Image.LANCZOS, box=((W - cw) / 2, (H - ch) / 2, (W + cw) / 2, (H + ch) / 2)).convert("RGB")
+            d = ImageDraw.Draw(im, "RGBA")
+            d.rectangle([0, 0, W, H], fill=(0, 0, 0, int(70 * _ease(t / 0.8))))  # dim slightly so labels read
             for k, (label, x, y) in enumerate(points):
                 a = _ease((t - 0.5 - 1.0 * k) / 0.5)
                 if a <= 0:
@@ -127,7 +126,7 @@ def render(photo: Path, points: List[tuple], out: Path) -> Path:
                 d.rounded_rectangle([lx - 18, ly - hh / 2 - 8, lx + tw + 18, ly + hh / 2 + 8], radius=14,
                                     fill=(10, 10, 12, int(205 * a)), outline=(*GOLD, int(220 * a)), width=2)
                 for j, line in enumerate(lines):
-                    d.text((lx, ly - hh / 2 + 23 + 46 * j), line, font=font, fill=(*WHITE, int(255 * a)), anchor="lm")
+                    _text(d, (lx, ly - hh / 2 + 23 + 46 * j), line, font=font, fill=(*WHITE, int(255 * a)), anchor="lm")
             yield im
 
     return _encode(frames(), out, n)

@@ -72,6 +72,18 @@ def _clip_label(p: Path) -> str:
     return "real video footage, GENERIC (not the actual site): only for atmosphere, never where the narration names the place"
 
 
+MAX_GRAPHICS, GRAPHICS_MAX_SHARE = 3, 0.35
+
+
+def _graphics_count(chosen: List[Path]) -> int:
+    return sum(1 for c in chosen if Path(c).stem.startswith("graphic_"))
+
+
+def _graphics_share(chosen: List[Path], durations: List[float]) -> float:
+    total = sum(durations) or 1.0
+    return sum(d for c, d in zip(chosen, durations) if Path(c).stem.startswith("graphic_")) / total
+
+
 def _footage_share(chosen: List[Path], durations: List[float]) -> float:
     total = sum(durations) or 1.0
     return sum(d for c, d in zip(chosen, durations) if Path(c).stem.startswith("footage_")) / total
@@ -127,6 +139,13 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
     k = len(chosen) - 1
     while _footage_share(chosen, durations) > FOOTAGE_MAX_SHARE and k >= 0:
         if Path(chosen[k]).stem.startswith("footage_"):
+            chosen[k] = stills[k % len(stills)]
+        k -= 1
+    # Our own graphics carry information, but a Reel of diagrams loses the place: at most
+    # MAX_GRAPHICS of them and GRAPHICS_MAX_SHARE of the runtime; extras become photos.
+    k = len(chosen) - 1
+    while (_graphics_count(chosen) > MAX_GRAPHICS or _graphics_share(chosen, durations) > GRAPHICS_MAX_SHARE) and k >= 0:
+        if Path(chosen[k]).stem.startswith("graphic_"):
             chosen[k] = stills[k % len(stills)]
         k -= 1
     if hook is not None:

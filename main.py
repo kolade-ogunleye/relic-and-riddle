@@ -35,7 +35,7 @@ from src.config import ASSETS_DIR, DAILY_RUN_TIME, HARD_DURATION_CEILING, OUTPUT
 from src.credits import caption_credit_line, load_credits
 from src.db import PipelineDatabase, QueueEmpty
 from src.control import heartbeat_text, is_paused, make_command_handler, ping_healthcheck
-from src import beat_images, footage, graphics, motion, post_schedule
+from src import beat_images, callouts, footage, graphics, motion, post_schedule, then_now
 from src.llm import claude_available as llm_available
 from src.scene_planner import plan_scenes, segment_beats
 from src.upscale import ensure_all, ensure_resolution
@@ -319,7 +319,10 @@ class PipelineCoordinator:
         for cred, path in zip(beat_credits, beat_paths):
             cred["upscaled"] = str(ensure_resolution(path))
         # The channel's own animated graphics (map, timeline, scale) as further candidates.
-        own_graphics = graphics.make_all(payload, topic, run_dir / "graphics")
+        own_graphics = graphics.make_all(payload, topic, run_dir / "graphics", photo=hero_img)
+        labelled = callouts.make(payload, topic, scene_media, run_dir / "graphics")
+        then_clip, then_credits = then_now.make(topic, run_dir / "graphics")
+        own_graphics += [g for g in (labelled, then_clip) if g]
         candidates = scene_media + [Path(c["upscaled"]) for c in beat_credits] + own_graphics + footage_clips
         master_mp4 = run_dir / f"{tid}_master.mp4"
         caption_base, feedback, qa = payload["caption"], "", None
@@ -329,7 +332,9 @@ class PipelineCoordinator:
             log.info("Scene plan: %d beats (%s).", len(beats), plan_notes[:120])
             used = beat_images.used_credits(scenes, beat_credits)
             used_footage = [c for c in footage_credits if Path(c["file"]) in scenes]
-            caption = beat_images.credit_caption(caption_base, load_credits(ASSETS_DIR / tid), used)
+            # Then-and-now photos are Commons images too: credited with the others when that graphic is used.
+            used_images = used + (then_credits if then_clip and then_clip in scenes else [])
+            caption = beat_images.credit_caption(caption_base, load_credits(ASSETS_DIR / tid), used_images)
             caption = footage.with_credits(caption, used_footage)
             if len(caption) > 2200:  # can't credit them within Instagram's limit, so don't use them
                 log.warning("Image/footage credits would overflow the caption; using the topic's images and our graphics only.")

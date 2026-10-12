@@ -73,3 +73,53 @@ def test_planner_uses_each_graphic_once(tmp_path, monkeypatch):
     # Without a plan, graphics are not used at all.
     monkeypatch.setattr(scene_planner, "claude_available", lambda: False)
     assert gfx not in plan_scenes(beats, stills + [gfx])[0]
+
+
+def test_text_and_shapes_really_fade():
+    """Pillow ignores text alpha and RGBA-target alpha; graphics must blend for fades to exist."""
+    from PIL import Image, ImageDraw
+    from src.graphics import _text
+    from src.typography import get_font
+    font = get_font("Anton", 60)
+    hidden = Image.new("RGB", (200, 100), (0, 0, 0))
+    _text(ImageDraw.Draw(hidden, "RGBA"), (10, 10), "HI", font=font, fill=(255, 255, 255, 0))
+    assert hidden.getextrema() == ((0, 0), (0, 0), (0, 0))
+    half = Image.new("RGB", (200, 100), (0, 0, 0))
+    _text(ImageDraw.Draw(half, "RGBA"), (10, 10), "HI", font=font, fill=(255, 255, 255, 128))
+    assert 100 <= half.getextrema()[0][1] <= 140  # blended, not solid white
+
+
+def test_then_now_first_frame_has_no_recent_year_badge(tmp_path):
+    import subprocess
+    from PIL import Image
+    from src import then_now
+    a, b = tmp_path / "a.jpg", tmp_path / "b.jpg"
+    Image.new("RGB", (1200, 2000), (40, 40, 40)).save(a)
+    Image.new("RGB", (1200, 2000), (40, 40, 40)).save(b)
+    clip = then_now.render(a, 1925, b, 2019, tmp_path / "graphic_thennow.mp4")
+    f = tmp_path / "f.png"
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(clip), "-frames:v", "1", str(f)], check=True)
+    right = Image.open(f).convert("L").crop((700, 330, 1050, 430))  # where the 2019 badge ends up
+    assert right.getextrema()[1] < 80  # nothing bright there yet
+
+
+def test_planner_caps_graphics(tmp_path, monkeypatch):
+    from PIL import Image
+    from src import scene_planner
+    from src.models import ScenePlan
+    stills = []
+    for k in range(2):
+        p = tmp_path / f"s{k}.jpg"
+        Image.new("RGB", (10, 10)).save(p)
+        stills.append(p)
+    gfx = []
+    for name in ("map", "timeline", "numbers", "section", "route"):
+        g = tmp_path / f"graphic_{name}.mp4"
+        g.write_bytes(b"0")
+        Image.new("RGB", (10, 10)).save(g.with_suffix(".jpg"))
+        gfx.append(g)
+    beats = [{"start": i * 3.0, "end": (i + 1) * 3.0, "text": f"b{i}"} for i in range(10)]
+    monkeypatch.setattr(scene_planner, "claude_available", lambda: True)
+    monkeypatch.setattr(scene_planner, "structured_call", lambda *a, **k: ScenePlan(images=[1, 3, 4, 5, 6, 7, 2, 1, 2, 1], notes="n"))
+    chosen, durations, _ = scene_planner.plan_scenes(beats, stills + gfx)
+    assert scene_planner._graphics_count(chosen) <= 3 and scene_planner._graphics_share(chosen, durations) <= 0.35

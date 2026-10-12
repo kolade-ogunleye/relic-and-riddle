@@ -59,14 +59,25 @@ def search(query: str, limit: int = 50, max_wait: int = 1800) -> list:
         "action": "query", "format": "json", "generator": "search",
         "gsrsearch": f"{query} filetype:bitmap", "gsrnamespace": 6, "gsrlimit": limit,
         "prop": "imageinfo", "iiprop": "url|size|mime|extmetadata", "iiurlheight": 2400,
-        "iiextmetadatafilter": "LicenseShortName|Artist|LicenseUrl|AttributionRequired",
+        "iiextmetadatafilter": "LicenseShortName|Artist|LicenseUrl|AttributionRequired|DateTimeOriginal",
     }
     resp = _get(API, params=params, timeout=30, max_wait=max_wait)
     pages = resp.json().get("query", {}).get("pages", {})
     return sorted(pages.values(), key=lambda p: p.get("index", 0))
 
 
-def candidates(pages: list, keywords: List[str], allow_sa: bool = False) -> Iterator[dict]:
+def photo_year(raw: str) -> Optional[int]:
+    """The year a photo was taken, only when the record states exactly one plausible year
+    ("1902", "1902-05-17 10:00"); ranges, "circa" and empty values give None."""
+    text = _plain(raw).lower()
+    if not text or any(w in text for w in ("circa", "c.", "ca.", "before", "after", "between", "or ")):
+        return None
+    years = set(re.findall(r"\b(1[89]\d\d|20\d\d)\b", text))
+    return int(years.pop()) if len(years) == 1 else None
+
+
+def candidates(pages: list, keywords: List[str], allow_sa: bool = False, min_pixels: int = MIN_PIXELS,
+               min_height: int = MIN_HEIGHT) -> Iterator[dict]:
     """Relevant (title contains a keyword), openly licensed, high-enough-resolution images."""
     keywords = [normalize(k) for k in keywords]
     for page in pages:
@@ -79,7 +90,7 @@ def candidates(pages: list, keywords: List[str], allow_sa: bool = False) -> Iter
             continue
         if not license_allowed(licence, allow_sa):
             continue
-        if info.get("width", 0) * info.get("height", 0) < MIN_PIXELS or info.get("height", 0) < MIN_HEIGHT:
+        if info.get("width", 0) * info.get("height", 0) < min_pixels or info.get("height", 0) < min_height:
             continue
         yield {
             "title": page["title"],
@@ -89,6 +100,7 @@ def candidates(pages: list, keywords: List[str], allow_sa: bool = False) -> Iter
             "license": licence,
             "license_url": meta.get("LicenseUrl", {}).get("value", ""),
             "attribution_required": meta.get("AttributionRequired", {}).get("value", "true") != "false",
+            "year": photo_year(meta.get("DateTimeOriginal", {}).get("value", "")),
         }
 
 

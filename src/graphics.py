@@ -50,6 +50,24 @@ def _ease(t: float) -> float:
     return 1 - (1 - t) ** 3
 
 
+def _text(d: ImageDraw.ImageDraw, xy, text: str, font, fill, anchor: str = "la") -> None:
+    """d.text with real transparency. Pillow ignores the alpha of text ink (alpha 0 still paints solid),
+    so partly transparent text is drawn through an alpha mask instead."""
+    alpha = fill[3] if len(fill) == 4 else 255
+    if alpha <= 0 or not text:
+        return
+    if alpha >= 255:
+        d.text(xy, text, font=font, fill=tuple(fill[:3]), anchor=anchor)
+        return
+    l, t, r, b = d.textbbox(xy, text, font=font, anchor=anchor)
+    l, t, r, b = int(l) - 2, int(t) - 2, int(r) + 3, int(b) + 3
+    if r <= l or b <= t:
+        return
+    mask = Image.new("L", (r - l, b - t), 0)
+    ImageDraw.Draw(mask).text((xy[0] - l, xy[1] - t), text, font=font, fill=alpha, anchor=anchor)
+    d._image.paste(tuple(fill[:3]), (l, t, r, b), mask)
+
+
 def _encode(frames: Iterable[Image.Image], out: Path, n: int) -> Path:
     """Raw RGB frames piped to ffmpeg (local only) -> H.264 MP4 + poster JPEG of the last frame."""
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -77,19 +95,18 @@ def _label_box(im: Image.Image, cx: int, y: int, title: str, sub: str, alpha: fl
     """Place-name label: Anton title over a gold Montserrat line, on a soft dark pill."""
     if alpha <= 0:
         return im
-    draw = ImageDraw.Draw(im)
+    draw = ImageDraw.Draw(im, "RGBA")
     f1, f2 = get_font("Anton", 66), get_font("Montserrat", 30)
     w1 = draw.textlength(title.upper(), font=f1)
     w2 = draw.textlength(sub.upper(), font=f2)
     bw = int(max(w1, w2) + 70)
-    layer = Image.new("RGBA", im.size, (0, 0, 0, 0))
-    d = ImageDraw.Draw(layer)
+    d = ImageDraw.Draw(im, "RGBA")  # RGB frame + RGBA drawing = real alpha blending (fades work)
     a = int(255 * alpha)
     d.rounded_rectangle([cx - bw // 2, y - 62, cx + bw // 2, y + 66], radius=18, fill=(10, 10, 12, int(200 * alpha)),
                         outline=(*GOLD, int(220 * alpha)), width=2)
-    d.text((cx, y - 18), title.upper(), font=f1, fill=(*WHITE, a), anchor="mm")
-    d.text((cx, y + 38), sub.upper(), font=f2, fill=(*GOLD, a), anchor="mm")
-    return Image.alpha_composite(im, layer)
+    _text(d, (cx, y - 18), title.upper(), font=f1, fill=(*WHITE, a), anchor="mm")
+    _text(d, (cx, y + 38), sub.upper(), font=f2, fill=(*GOLD, a), anchor="mm")
+    return im
 
 
 # ---------------------------------------------------------------------- map
@@ -159,7 +176,7 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
     out = sea_rgb * (1 - land) + land_rgb * land * (1 - homea) + home_rgb * homea
     base = Image.fromarray(np.clip(out, 0, 255).astype("uint8"), "RGB")
 
-    draw = ImageDraw.Draw(base)
+    draw = ImageDraw.Draw(base, "RGBA")
     for c in sorted(visible, key=lambda c: c is home):  # borders crisp on top; the home outline last, in gold
         for poly in c["polygons"]:
             ring = poly[0]
@@ -187,7 +204,7 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
         if not (inside or outside) or any(not (box[2] < p[0] or box[0] > p[2] or box[3] < p[1] or box[1] > p[3]) for p in placed):
             continue
         placed.append(box)
-        draw.text((x, y), name, font=font, fill=(150, 152, 160), anchor="mm")
+        _text(draw, (x, y), name, font=font, fill=(150, 152, 160), anchor="mm")
     return base
 
 
@@ -219,8 +236,8 @@ def render_map(place: Dict[str, Any], out: Path) -> Optional[Path]:
             zoom = span_wide / (span_wide + (span_close - span_wide) * _ease(t / 1.6))
             cw, ch = bw / zoom, bh / zoom
             box = (bw / 2 - cw / 2, bh / 2 - ch / 2, bw / 2 + cw / 2, bh / 2 + ch / 2)
-            im = base.resize((W, H), Image.BICUBIC, box=box).convert("RGBA")
-            d = ImageDraw.Draw(im)
+            im = base.resize((W, H), Image.BICUBIC, box=box).convert("RGB")
+            d = ImageDraw.Draw(im, "RGBA")
             cx, cy = W // 2, H // 2
             # Pulse rings after the pin lands.
             if t > 1.6:
@@ -268,8 +285,8 @@ def render_timeline(events: List[Dict[str, Any]], out: Path) -> Optional[Path]:
     x0, top, bottom = 190, TEXT_TOP + 40, TEXT_BOTTOM - 120
     step = (bottom - top) / (len(events) - 1)
     f_year, f_lab = get_font("Anton", 74), get_font("Montserrat", 34)
-    bg = Image.new("RGBA", (W, H), (*SEA, 255))
-    g = ImageDraw.Draw(bg)
+    bg = Image.new("RGB", (W, H), SEA)
+    g = ImageDraw.Draw(bg, "RGBA")
     for y in range(0, H, 6):  # subtle vertical gradient
         g.line([(0, y), (W, y)], fill=(13 + y // 120, 16 + y // 120, 21 + y // 110, 255))
 
@@ -277,7 +294,7 @@ def render_timeline(events: List[Dict[str, Any]], out: Path) -> Optional[Path]:
         for i in range(n):
             t = i / VIDEO_FPS
             im = bg.copy()
-            d = ImageDraw.Draw(im)
+            d = ImageDraw.Draw(im, "RGBA")
             spine = top + (bottom - top) * _ease(t / 1.0)
             d.line([(x0, top), (x0, spine)], fill=(*GOLD, 255), width=6)
             for k, e in enumerate(events):
@@ -289,9 +306,9 @@ def render_timeline(events: List[Dict[str, Any]], out: Path) -> Optional[Path]:
                 r = 16 * appear
                 d.ellipse([x0 - r, y - r, x0 + r, y + r], fill=(*GOLD, a))
                 xt = x0 + 50 + int(30 * (1 - appear))
-                d.text((xt, y - 8), year_text(e["year"], e.get("approximate", False)), font=f_year, fill=(*GOLD, a), anchor="ls")
+                _text(d, (xt, y - 8), year_text(e["year"], e.get("approximate", False)), font=f_year, fill=(*GOLD, a), anchor="ls")
                 for j, line in enumerate(_wrap(d, e["label"], f_lab, W - xt - 90)[:2]):
-                    d.text((xt, y + 18 + 42 * j), line, font=f_lab, fill=(*WHITE, a), anchor="lt")
+                    _text(d, (xt, y + 18 + 42 * j), line, font=f_lab, fill=(*WHITE, a), anchor="lt")
             yield im
 
     return _encode(frames(), out, n)
@@ -325,10 +342,10 @@ def render_scale(fact: Dict[str, Any], out: Path) -> Optional[Path]:
     def frames():
         for i in range(n):
             t = i / VIDEO_FPS
-            im = Image.new("RGBA", (W, H), (*SEA, 255))
-            d = ImageDraw.Draw(im)
+            im = Image.new("RGB", (W, H), SEA)
+            d = ImageDraw.Draw(im, "RGBA")
             d.line([(140, base_y), (W - 140, base_y)], fill=(*MUTED, 255), width=4)
-            d.text((W // 2, base_y + (-28 if depth else 40)), "GROUND LEVEL" if depth else "", font=get_font("Montserrat", 24),
+            _text(d, (W // 2, base_y + (-28 if depth else 40)), "GROUND LEVEL" if depth else "", font=get_font("Montserrat", 24),
                    fill=(*MUTED, 255), anchor="mm")
             for k, (label, ft, colour, cx) in enumerate(bars):
                 grow = _ease((t - 0.3 - 0.5 * k) / 1.3)
@@ -343,11 +360,11 @@ def render_scale(fact: Dict[str, Any], out: Path) -> Optional[Path]:
                     num = (f"{ft:,.0f} FT ({metres(ft):,.0f} M)" if ft >= 20 else
                            f"{int(ft)} FT {round((ft % 1) * 12)} IN ({metres(ft):.1f} M)")
                     ty = (y1 + 50) if depth else (y1 - 70)
-                    d.text((cx, ty), num, font=f_num, fill=(*colour, a), anchor="mm")
+                    _text(d, (cx, ty), num, font=f_num, fill=(*colour, a), anchor="mm")
                     lines = _wrap(d, label.upper(), f_lab, 340)[:2]
                     for j, line in enumerate(lines):  # reading order top to bottom, whichever side of the bar
                         ly = ty + 52 + 36 * j if depth else ty - 52 - 36 * (len(lines) - 1 - j)
-                        d.text((cx, ly), line, font=f_lab, fill=(*WHITE, a), anchor="mm")
+                        _text(d, (cx, ly), line, font=f_lab, fill=(*WHITE, a), anchor="mm")
             yield im
 
     return _encode(frames(), out, n)
@@ -375,8 +392,8 @@ def _backdrop(photo: Optional[Path]) -> Image.Image:
         from .typography import cover_crop
         im = cover_crop(Path(photo), (W, H)).convert("RGB").filter(ImageFilter.GaussianBlur(28))
         dark = Image.new("RGB", (W, H), SEA)
-        return Image.blend(im, dark, 0.72).convert("RGBA")
-    return Image.new("RGBA", (W, H), (*SEA, 255))
+        return Image.blend(im, dark, 0.72).convert("RGB")
+    return Image.new("RGB", (W, H), SEA)
 
 
 # ------------------------------------------------------------- number cards
@@ -412,17 +429,17 @@ def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Pa
         for i in range(n):
             t = i / VIDEO_FPS
             im = bg.copy()
-            d = ImageDraw.Draw(im)
+            d = ImageDraw.Draw(im, "RGBA")
             for k, (card, cy) in enumerate(zip(cards, centres)):
                 start = 0.2 + 1.2 * k
                 a = _ease((t - start) / 0.4)
                 if a <= 0:
                     continue
                 count = _ease((t - start) / 1.3)
-                d.text((W // 2, cy - 30), shown(card, count).upper(), font=f_num, fill=(*GOLD, int(255 * a)), anchor="mm")
+                _text(d, (W // 2, cy - 30), shown(card, count).upper(), font=f_num, fill=(*GOLD, int(255 * a)), anchor="mm")
                 d.line([(W // 2 - 80, cy + 70), (W // 2 + 80, cy + 70)], fill=(*WHITE, int(160 * a)), width=3)
                 for j, line in enumerate(_wrap(d, card["label"].upper(), f_lab, W - 220)[:2]):
-                    d.text((W // 2, cy + 115 + 50 * j), line, font=f_lab, fill=(*WHITE, int(255 * a)), anchor="mm")
+                    _text(d, (W // 2, cy + 115 + 50 * j), line, font=f_lab, fill=(*WHITE, int(255 * a)), anchor="mm")
             yield im
 
     return _encode(frames(), out, n)
@@ -444,21 +461,21 @@ def render_cross_section(cs: Dict[str, Any], out: Path) -> Optional[Path]:
     label_x, label_w = W // 2 + 40, W // 2 - 120  # labels get the right half, wrapped to fit
     f_lab, f_dep, f_title = get_font("Montserrat", 32), get_font("Anton", 40), get_font("Anton", 56)
     rnd = random.Random(7)
-    bg = Image.new("RGBA", (W, H), (*SEA, 255))
-    d0 = ImageDraw.Draw(bg)
+    bg = Image.new("RGB", (W, H), SEA)
+    d0 = ImageDraw.Draw(bg, "RGBA")
     for y in range(ground, H):  # strata: warm earth bands darkening with depth
         k = (y - ground) / (H - ground)
         band = 6 * math.sin(y / 23.0) + rnd.uniform(-2, 2)
         d0.line([(0, y), (W, y)], fill=(int(70 - 30 * k + band), int(56 - 26 * k + band), int(44 - 22 * k + band), 255))
     d0.line([(0, ground), (W, ground)], fill=(*MUTED, 255), width=4)
-    d0.text((W - 120, ground - 30), "GROUND LEVEL", font=get_font("Montserrat", 26), fill=(*MUTED, 255), anchor="rm")
-    d0.text((120, TEXT_TOP + 20), cs["subject"].upper(), font=f_title, fill=(*WHITE, 255), anchor="lm")
+    _text(d0, (W - 120, ground - 30), "GROUND LEVEL", font=get_font("Montserrat", 26), fill=(*MUTED, 255), anchor="rm")
+    _text(d0, (120, TEXT_TOP + 20), cs["subject"].upper(), font=f_title, fill=(*WHITE, 255), anchor="lm")
 
     def frames():
         for i in range(n):
             t = i / VIDEO_FPS
             im = bg.copy()
-            d = ImageDraw.Draw(im)
+            d = ImageDraw.Draw(im, "RGBA")
             depth_now = total * _ease((t - 0.3) / 3.4)
             y_now = ground + depth_now * scale
             d.rectangle([shaft_x - 22, ground, shaft_x + 22, y_now], fill=(18, 16, 14, 255))  # the shaft opens as we descend
@@ -468,12 +485,12 @@ def render_cross_section(cs: Dict[str, Any], out: Path) -> Optional[Path]:
                 y = ground + lv["depth_ft"] * scale
                 a = int(255 * _ease((depth_now - lv["depth_ft"]) / (total * 0.08) if total else 1))
                 d.rectangle([shaft_x + 22, y - 16, label_x - 30, y + 16], fill=(22, 19, 16, a))  # the chamber or level
-                d.text((shaft_x - 50, y), f"{lv['depth_ft']:,.0f} FT", font=f_dep, fill=(*GOLD, a), anchor="rm")
-                d.text((shaft_x - 50, y + 34), f"({lv['depth_ft'] / 3.28084:,.0f} M)", font=get_font("Montserrat", 22),
+                _text(d, (shaft_x - 50, y), f"{lv['depth_ft']:,.0f} FT", font=f_dep, fill=(*GOLD, a), anchor="rm")
+                _text(d, (shaft_x - 50, y + 34), f"({lv['depth_ft'] / 3.28084:,.0f} M)", font=get_font("Montserrat", 22),
                        fill=(*MUTED, a), anchor="rm")
                 lines = _wrap(d, lv["label"].upper(), f_lab, label_w)[:2]
                 for j, line in enumerate(lines):
-                    d.text((label_x, y + (j - (len(lines) - 1) / 2) * 38), line, font=f_lab, fill=(*WHITE, a), anchor="lm")
+                    _text(d, (label_x, y + (j - (len(lines) - 1) / 2) * 38), line, font=f_lab, fill=(*WHITE, a), anchor="lm")
             d.ellipse([shaft_x - 14, y_now - 14, shaft_x + 14, y_now + 14], fill=(*GOLD, 255))
             yield im
 
@@ -515,8 +532,8 @@ def render_route(stops: List[Dict[str, Any]], out: Path) -> Optional[Path]:
     def frames():
         for i in range(n):
             t = i / VIDEO_FPS
-            im = base.convert("RGBA")
-            d = ImageDraw.Draw(im)
+            im = base.convert("RGB")
+            d = ImageDraw.Draw(im, "RGBA")
             for k in range(len(pts) - 1):
                 prog = _ease((t - 0.4 - k * seg_time) / seg_time)
                 if prog <= 0:
@@ -531,7 +548,7 @@ def render_route(stops: List[Dict[str, Any]], out: Path) -> Optional[Path]:
                 right = x < W / 2  # label on the open side
                 tx = x + 34 if right else x - 34
                 for j, line in enumerate(_wrap(d, p["label"].upper(), f_lab, 380)[:2]):
-                    d.text((tx, y - 18 + 40 * j), line, font=f_lab, fill=(*WHITE, int(255 * a)), anchor="lm" if right else "rm")
+                    _text(d, (tx, y - 18 + 40 * j), line, font=f_lab, fill=(*WHITE, int(255 * a)), anchor="lm" if right else "rm")
             yield im
 
     return _encode(frames(), out, n)

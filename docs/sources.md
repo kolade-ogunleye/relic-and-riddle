@@ -93,3 +93,21 @@ https://ai.google.dev/gemini-api/docs/pricing
 - Scale-graphic references (src/graphics.py REFERENCES): Statue of Liberty 305 ft 1 in ground to torch
   (U.S. National Park Service); Elizabeth Tower ("Big Ben") 96 m / 316 ft (UK Parliament); Great
   Pyramid of Giza about 138.5 m / 454 ft today.
+
+## AI motion APIs (src/motion.py)
+- Veo 3.1 (https://ai.google.dev/gemini-api/docs/veo): `POST .../v1beta/models/<model>:predictLongRunning`
+  with `x-goog-api-key`; poll `GET .../v1beta/<operation>` until `done`; video at
+  `response.generateVideoResponse.generatedSamples[0].video.uri`. Models `veo-3.1-generate-preview`,
+  `veo-3.1-fast-generate-preview`, `veo-3.1-lite-generate-preview`. `9:16` allowed; 1080p requires 8 s;
+  image-to-video `personGeneration` only `allow_adult`; audio always on (we strip it).
+  Not confirmed from the REST page: the exact type of `durationSeconds` (number vs string). Check on first live call.
+- Kling 3.0 (https://kling.ai/document-api/api/video/3-0-omni/image-to-video, read in a browser):
+  `POST https://api-singapore.klingai.com/image-to-video/kling-3.0`, `Authorization: Bearer <key>`,
+  `contents` [prompt, first_frame (URL or Base64)], `settings` {resolution 720p/1080p/4k, duration 3-15,
+  audio native/off, multi_shot}, `options.watermark_info.enabled`; poll `GET /tasks?task_ids=<id>`;
+  video at `data[0].outputs[type=video].url` (cleared after 30 days).
+- Runway (https://docs.dev.runwayml.com): `POST https://api.dev.runwayml.com/v1/image_to_video`,
+  `X-Runway-Version: 2024-11-06`, model `gen4.5`. Vertical ratio values and the task response for
+  video weren't shown in the docs read on 2026-10-12, so Runway isn't wired yet (no guessed APIs).
+- Local Wan 2.2 TI2V-5B (Apache-2.0): not installed; needs roughly 25-30 GB of model downloads plus
+  PyTorch. Waiting for the user's OK.

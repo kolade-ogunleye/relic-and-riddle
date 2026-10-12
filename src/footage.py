@@ -46,7 +46,14 @@ ALLOWED_HOSTS = {
     "pexels": {"videos.pexels.com", "player.vimeo.com"},
     "pixabay": {"cdn.pixabay.com"},
     "nasa": {"images-assets.nasa.gov"},
+    # AI motion results (src/motion.py). A leading dot allows that domain's subdomains.
+    "veo": {"generativelanguage.googleapis.com", ".googleusercontent.com", ".googleapis.com"},
+    "kling": {".klingai.com"},
 }
+
+
+def _host_allowed(host: str, provider: str) -> bool:
+    return any(host == h or (h.startswith(".") and host.endswith(h)) for h in ALLOWED_HOSTS[provider])
 CACHE_DIR = config.BASE_DIR / "cache" / "footage_api"  # Pixabay asks for 24 h response caching
 CREDIT_PREFIX = "🎥 Footage:"
 
@@ -172,18 +179,19 @@ PROVIDERS = [("commons", search_commons), ("pexels", search_pexels), ("pixabay",
 
 
 # ----------------------------------------------------------- download & clip
-def download(url: str, provider: str, dest: Path) -> Path:
+def download(url: str, provider: str, dest: Path, extra_headers: Optional[dict] = None) -> Path:
     """HTTPS from the provider's media hosts only, streamed with a size cap."""
     parsed = urlparse(url)
-    if parsed.scheme != "https" or parsed.hostname not in ALLOWED_HOSTS[provider]:
+    if parsed.scheme != "https" or not _host_allowed(parsed.hostname or "", provider):
         raise ValueError(f"refusing to download from {parsed.scheme}://{parsed.hostname}")
     headers = commons.HEADERS if provider == "commons" else {"User-Agent": commons.HEADERS["User-Agent"]}
+    headers = {**headers, **(extra_headers or {})}
     with requests.get(url, stream=True, timeout=(15, 120), headers=headers, allow_redirects=False) as resp:
         if resp.is_redirect:
             target = urlparse(resp.headers.get("Location", ""))
-            if target.scheme != "https" or target.hostname not in ALLOWED_HOSTS[provider]:
+            if target.scheme != "https" or not _host_allowed(target.hostname or "", provider):
                 raise ValueError(f"refusing redirect to {target.hostname}")
-            return download(resp.headers["Location"], provider, dest)
+            return download(resp.headers["Location"], provider, dest)  # credentials are not forwarded
         resp.raise_for_status()
         declared = int(resp.headers.get("Content-Length") or 0)
         if declared > MAX_BYTES:  # don't start a download that would only hit the cap

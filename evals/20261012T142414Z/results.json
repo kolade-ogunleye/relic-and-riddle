@@ -1,0 +1,54 @@
+{
+ "at": "20261012T142414Z",
+ "scripts": {
+  "pairs": [
+   {
+    "topic": "02_roman_self_healing_concrete",
+    "winner": "claude-opus-5-5",
+    "reasons": "B opens with a vivid, specific hook (Pliny's 'every day stronger' quote) and closes by paying it off, giving the script a real arc. Its facts are concrete and largely accurate: Cosa as the oldest surviving marine concrete, the 2003 drill cores, the seawater–volcanic ash reaction producing aluminous tobermorite and phillipsite (Jackson 2017), and the 2023 lime-clast self-healing study, kept separate and hedged ('Nobody has checked'). The mineral names are a slight hearing-aloud burden, but the pacing and specificity are strong. A has a flat, generic hook, jumps confusingly from Orbetello harbor piers to a Privernum city wall, and misrepresents the science: it implies cracks run through the lime lumps rather than through the mortar, and frames Masic as a critic of 'the team' when he led that team and posed the question rhetorically to argue the hot mixing was deliberate. 'Researcher Masic' is awkward, and the close ('that question starts with those harbors') is unearned since the harbor was barely connected to the story.",
+    "A": "claude-sonnet-5-5",
+    "B": "claude-opus-5-5"
+   },
+   {
+    "topic": "03_kailasa_temple_monolith",
+    "winner": "claude-opus-5-5",
+    "reasons": "B opens with a crisper, more immediately graspable hook ('wasn't built up—it was carved down'), gives vivid specifics (trenches cut first, the elephant frieze that appears to hold the temple up), hedges the 200,000-ton figure and the Krishna I attribution more carefully (noting no inscription names Kailasa directly), and lands a genuinely satisfying close that circles back to the hook ('The only certainty is the direction they worked'). A is accurate and reasonably specific, but its ending question—'how do you build a temple without stacking a single block?'—has already been answered in the second sentence, so it feels redundant rather than resonant; 'columned galleries climb in levels' is also vaguer than B's imagery. B's '164 feet deep' is a slightly shaky number, but it's a minor wobble against A's weaker structure and flat close.",
+    "A": "claude-sonnet-5-5",
+    "B": "claude-opus-5-5"
+   },
+   {
+    "topic": "04_antikythera_mechanism",
+    "winner": "claude-opus-5-5",
+    "reasons": "A reads like a story: a concrete discovery moment (Stais, May 1902, gears and Greek letters in the crust), hard numbers (82 fragments, 30 gears, 223-month spiral), a clear question ('Did it actually run?') with a properly hedged 2025 simulation claim, and a callback close. Its one real flaw is never naming Antikythera. B names the island and is factually sound (Saros/Exeligmos, 2021 UCL planet model, Hipparchus/Rhodes attributions), but it plays as a list rather than a narrative, uses clunky hedges ('usually given as about 30 gears'), and 'Exeligmos' and 'Archimedean traditions' land poorly when heard aloud. A has the stronger pacing and specificity.",
+    "A": "claude-opus-5-5",
+    "B": "claude-sonnet-5-5"
+   },
+   {
+    "topic": "05_gobekli_tepe",
+    "winner": "claude-opus-5-5",
+    "reasons": "Script B opens with a genuine hook (six thousand years before Stonehenge, hunter-gatherers raising eight-ton pillars) and sustains a story: scale, iconography, the temple-vs-village puzzle, newer finds, the backfill debate, and a callback close. It hedges appropriately (\"hint at,\" \"debated,\" \"less than a tenth excavated\") and stays concrete. Script A is accurate and careful but opens with a raw lab reading (\"9,984 years, give or take 42\") that is hard to parse aloud and weak as a hook; it is essentially a dating methodology note rather than a narrative, with repetition (9500 BC stated twice) and a flat, circular close. Minor quibbles with B (the 18-foot figure and \"all wild\" bones are slightly simplified) don't outweigh its far stronger pacing and payoff.",
+    "A": "claude-sonnet-5-5",
+    "B": "claude-opus-5-5"
+   },
+   {
+    "topic": "06_damascus_steel_nanotubes",
+    "winner": "claude-opus-5-5",
+    "reasons": "Both open with nearly the same ripple-like-water image, but A builds a real arc: origin (wootz from India/Sri Lanka, correctly noted as not Syrian), the 2006 Dresden nanotube finding, honest hedging (one blade, no proof of strength), the loss of the craft around 1750, and a specific, checkable theory (trace vanadium, ~40 ppm, echoing Verhoeven's work). The close bookends the hook cleanly. B is accurate and hedges the nanotube claim well, and the cementite nanowire detail is correct, but it spends its word budget on lab procedure (hydrochloric acid, TEM) that adds little for a listener, repeats the Crusader legend as near-fact without hedging, omits the wootz origin and the lost-art mystery entirely, and ends up as a one-study explainer rather than a story. A's only weak beat is the choppy 'al-Biruni said the same' line; B's weaknesses are structural.",
+    "A": "claude-opus-5-5",
+    "B": "claude-sonnet-5-5"
+   },
+   {
+    "topic": "07_camp_century_nuclear_ice_city",
+    "winner": "claude-opus-5-5",
+    "reasons": "A opens with a genuine hook (a nuclear reactor powering a town under the ice) rather than B's flatter dateline opener, and its payoff lands harder: it names the actual waste (diesel, sewage, PCBs, radioactive coolant), hedges the melt timeline properly with 'could', and closes on a concrete, unsettling line. Its facts (PM-2A, 138-mile haul, 600 missiles, 1967 departure) check out. B has some nice texture (Main Street's length, raising the reactor room ceiling) and good pacing, but 'carving a city' oversells, the 'about 120 miles inland' distance is shakier than A's figure, and the ending ('the ice keeps moving') is vaguer than A's about what the stakes actually are.",
+    "A": "claude-opus-5-5",
+    "B": "claude-sonnet-5-5"
+   }
+  ],
+  "sonnet_wins_or_ties": 0,
+  "of": 6,
+  "switch": false
+ },
+ "stopped": "Stopping before claude-fable-5-1 check of 03_kailasa_temple_monolith: $28.39 spent, next ≈ $1.87, cap $30.00.",
+ "spend": 28.39
+}

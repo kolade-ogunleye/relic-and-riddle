@@ -82,6 +82,11 @@ LIGHT_TASK_MODELS = [m.strip() for m in os.getenv("LIGHT_TASK_MODELS", "claude-s
 MUSIC_PREFER = os.getenv("MUSIC_PREFER", "library").strip().lower()
 # Cap on pay-per-use media APIs (AI video), USD per month; 0 = paid media APIs disabled.
 MEDIA_MONTHLY_BUDGET_USD = float(os.getenv("MEDIA_MONTHLY_BUDGET_USD", "0") or 0)
+# AI motion (src/motion.py): Veo through the Gemini API (billing on), then Kling. Runs only when
+# MEDIA_MONTHLY_BUDGET_USD > 0. Veo Fast is the default: Standard costs about 3x more per second.
+MOTION_VEO_MODEL = os.getenv("MOTION_VEO_MODEL", "veo-3.1-fast-generate-preview")
+MOTION_MAX_CLIPS = int(os.getenv("MOTION_MAX_CLIPS", "1"))  # the opening still; 2 = also one more
+KLING_API_KEY = os.getenv("KLING_API_KEY", "")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 

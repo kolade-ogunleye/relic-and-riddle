@@ -35,7 +35,7 @@ from src.config import ASSETS_DIR, DAILY_RUN_TIME, HARD_DURATION_CEILING, OUTPUT
 from src.credits import caption_credit_line, load_credits
 from src.db import PipelineDatabase, QueueEmpty
 from src.control import heartbeat_text, is_paused, make_command_handler, ping_healthcheck
-from src import beat_images, footage, graphics, post_schedule
+from src import beat_images, footage, graphics, motion, post_schedule
 from src.llm import claude_available as llm_available
 from src.scene_planner import plan_scenes, segment_beats
 from src.upscale import ensure_all, ensure_resolution
@@ -323,6 +323,7 @@ class PipelineCoordinator:
         candidates = scene_media + [Path(c["upscaled"]) for c in beat_credits] + own_graphics + footage_clips
         master_mp4 = run_dir / f"{tid}_master.mp4"
         caption_base, feedback, qa = payload["caption"], "", None
+        motion_memo: Dict[str, Any] = {}
         for attempt in (1, 2):  # a second pass only if the video check finds a picture mismatch
             scenes, durations, plan_notes = plan_scenes(beats, candidates, feedback=feedback)
             log.info("Scene plan: %d beats (%s).", len(beats), plan_notes[:120])
@@ -344,6 +345,10 @@ class PipelineCoordinator:
             payload["beat_image_credits"] = used
             payload["beat_image_note"] = (f"🔍 {len(used)} beat-specific image(s) auto-sourced from Wikimedia Commons; "
                                           "check they show the right thing" if used else "")
+            # AI motion for the opening photo (only with a media budget; real footage and our graphics come first).
+            scenes, motion_used = motion.apply(self.db, scenes, run_dir / "motion", memo=motion_memo)
+            payload["motion_note"] = (f"🤖 AI motion ({', '.join(motion_used)}) animates {len(motion_used)} real photo(s); "
+                                      "the Reel carries the AI label") if motion_used else ""
             # 2.5D parallax clips for the stills (local GPU); falls back to flat camera moves.
             try:
                 scenes = render_parallax(scenes, durations, run_dir / "parallax", TRANS_DUR) or scenes

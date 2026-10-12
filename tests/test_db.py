@@ -4,13 +4,17 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 
-def test_next_topic_prefers_queued_then_failed_then_least_published(db):
+def test_next_topic_prefers_queued_then_failed_and_never_repeats_published(db):
+    from src.db import QueueEmpty
     db.record_topic_status("01_topic", "published")
     db.record_topic_status("02_topic", "failed")
     assert db.get_next_topic()["id"] == "03_topic"
     db.record_topic_status("03_topic", "rejected")
     assert db.get_next_topic()["id"] == "02_topic"
     db.record_topic_status("02_topic", "in_production")
+    with pytest.raises(QueueEmpty):          # 01 is published: no automatic repeat
+        db.get_next_topic()
+    db.requeue_topic("01_topic")             # an explicit requeue brings it back
     assert db.get_next_topic()["id"] == "01_topic"
 
 

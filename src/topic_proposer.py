@@ -9,11 +9,13 @@ duplicate the bank; each proposal waits for a human "Add" before it joins the ba
               then syncs the database
 """
 
+import difflib
 import html
 import json
 import logging
 import re
-from typing import Dict, List
+import unicodedata
+from typing import Dict, List, Optional
 
 from .config import TOPICS_DIR
 from .db import PipelineDatabase
@@ -33,6 +35,28 @@ STRUCTURE_SYSTEM = "You turn topic research into structured proposals. Use only 
 
 def _slugify(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_")[:50]
+
+
+_STOP = {"the", "a", "an", "of", "and", "in", "on", "at", "to", "s", "its", "how", "why", "what", "that", "with",
+         "for", "from", "ancient", "mystery", "lost", "secret", "great", "old", "year"}
+
+
+def _key_words(title: str) -> set:
+    words = re.findall(r"[a-z0-9]+", unicodedata.normalize("NFKD", title).encode("ascii", "ignore").decode().lower())
+    return {w for w in words if w not in _STOP and not w.isdigit() and len(w) > 2}
+
+
+def near_duplicate(title: str, existing: List[str]) -> Optional[str]:
+    """Returns the existing title this one duplicates (shared key words or very similar wording), if any."""
+    new = _key_words(title)
+    for other in existing:
+        old = _key_words(other)
+        shared = new & old
+        if len(shared) >= 2 and len(shared) / min(len(new), len(old)) >= 0.5:
+            return other
+        if difflib.SequenceMatcher(None, title.lower(), other.lower()).ratio() >= 0.75:
+            return other
+    return None
 
 
 def _bank() -> dict:
@@ -67,9 +91,12 @@ def propose(db: PipelineDatabase, n: int = 3) -> List[TopicProposal]:
     for p in proposals.topics:
         p.slug = _slugify(p.slug or p.title)
         p.sources = [s for s in p.sources if s.url in retrieved_urls]
-        if not p.sources or p.slug in taken or len(p.key_facts) < 3:
-            log.info("Skipping proposal %s (no verified source, duplicate, or too thin).", p.slug)
+        dup = near_duplicate(p.title, existing)
+        if not p.sources or p.slug in taken or len(p.key_facts) < 3 or dup:
+            log.info("Skipping proposal %s (no verified source, duplicate%s, or too thin).", p.slug,
+                     f" of '{dup}'" if dup else "")
             continue
+        existing.append(p.title)
         taken.add(p.slug)
         store[p.slug] = p.model_dump()
         fresh.append(p)

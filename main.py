@@ -32,7 +32,7 @@ from typing import Any, Dict, Optional
 
 from src.config import ASSETS_DIR, DAILY_RUN_TIME, HARD_DURATION_CEILING, OUTPUT_DIR, TIMEZONE
 from src.credits import caption_credit_line, load_credits
-from src.db import PipelineDatabase
+from src.db import PipelineDatabase, QueueEmpty
 from src.control import heartbeat_text, is_paused, make_command_handler, ping_healthcheck
 from src.scene_planner import plan_scenes, segment_beats
 from src.video_qa import qa_summary_html, review_render
@@ -554,6 +554,11 @@ def main(argv=None) -> int:
                 result = coordinator.run_cycle(require_live=True)
                 if result.get("status") in ("published", "simulated", "rejected"):
                     ping_healthcheck()
+            except QueueEmpty:
+                ping_healthcheck()  # the system is healthy; it just has nothing new to make
+                bot.notify("📭 <b>Topic queue is empty</b>: every topic has been published, so today's run was skipped "
+                           "(repeating topics risks Meta's unoriginal-content rules).",
+                           [{"text": "💡 Propose new topics", "callback_data": "propose:"}])
             except BaseException as e:  # keep the daemon alive; the run is already recorded and alerted
                 log.exception("Run failed: %s", e)
             finally:
@@ -730,6 +735,13 @@ def main(argv=None) -> int:
             for t in topics:
                 print(f"  [{t['status']:<15}] x{t['times_published']} {t['id']}: {t['title']}")
         elif args.topic_action == "requeue":
+            t = db.get_topic_by_id(args.topic_id)
+            if t and t["times_published"]:
+                answer = input(f"'{t['title']}' has already been published {t['times_published']}x. Repeating a topic "
+                               "risks Meta's unoriginal-content rules. Requeue anyway? [y/N] ")
+                if answer.strip().lower() != "y":
+                    print("Not requeued.")
+                    return 1
             db.requeue_topic(args.topic_id)
             print(f"Requeued {args.topic_id}.")
         elif args.topic_action == "propose":

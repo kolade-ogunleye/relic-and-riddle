@@ -61,3 +61,26 @@ def test_skip_removes_pending(wired, monkeypatch):
 def test_proposal_text_escapes():
     text = tp.proposal_text(_proposal("a", title="<b>bad</b>"))
     assert "<b>bad</b>" not in text and "Topic proposal" in text
+
+
+@pytest.mark.parametrize("title, dup", [
+    ("The Hidden City of Derinkuyu", True),
+    ("Derinkuyu: Turkey's 18-Level Underground City", True),
+    ("The Antikythera Mechanism Explained", True),
+    ("The Tunnel of Eupalinos", False),
+    ("Persian Yakhchal Ice Houses", False),
+    ("The Roman Dodecahedron", False),           # shares only "roman" with Roman concrete
+    ("Roman Self-Healing Concrete Explained", True),
+])
+def test_near_duplicate_titles(title, dup):
+    existing = ["The Underground City of Derinkuyu", "The Antikythera Mechanism: 2,000-Year-Old Analog Computer",
+                "Damascus Steel & Ancient Carbon Nanotubes", "The Mystery of Roman Self-Healing Concrete"]
+    assert (tp.near_duplicate(title, existing) is not None) is dup
+
+
+def test_propose_rejects_near_duplicate_of_bank(wired, monkeypatch):
+    db, _ = wired
+    monkeypatch.setattr(tp, "_bank", lambda: {"topics": [{"id": "01_derinkuyu", "title": "The Underground City of Derinkuyu"}]})
+    monkeypatch.setattr(tp, "structured_call", lambda *a, **k: TopicProposals(topics=[
+        _proposal("hidden_derinkuyu", title="The Hidden City of Derinkuyu"), _proposal("eupalinos", title="Tunnel of Eupalinos")]))
+    assert [p.slug for p in tp.propose(db)] == ["eupalinos"]

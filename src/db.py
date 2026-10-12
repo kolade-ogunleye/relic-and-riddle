@@ -29,6 +29,10 @@ STALE_PRODUCTION_HOURS = 6
 log = logging.getLogger(__name__)
 
 
+class QueueEmpty(RuntimeError):
+    """Every topic is published, rejected or in production; nothing new to make."""
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -180,22 +184,23 @@ class PipelineDatabase:
 
     def get_next_topic(self) -> Dict[str, Any]:
         """
-        Next topic to produce: never-produced topics first, then topics whose last run
-        failed (retry), then the least-published topic. Human-rejected topics are skipped
-        until requeued; topics stuck in production for hours are treated as failed.
+        Next topic to produce: queued topics first, then topics whose last run failed
+        (retry). Published topics are never picked again automatically: repeating content
+        risks Meta's unoriginal/repetitive-content rules. A published topic only comes back
+        if a person explicitly requeues it. Rejected topics wait for a requeue; topics stuck
+        in production for hours are treated as failed.
         """
         stale_before = (datetime.now(timezone.utc) - timedelta(hours=STALE_PRODUCTION_HOURS)).isoformat()
         with self._conn() as conn:
             row = conn.execute("""
             SELECT * FROM topics
-            WHERE status IN ('queued', 'failed', 'published')
+            WHERE status IN ('queued', 'failed')
                OR (status = 'in_production' AND updated_at < ?)
-            ORDER BY CASE status WHEN 'queued' THEN 0 WHEN 'published' THEN 2 ELSE 1 END,
-                     times_published ASC, rowid ASC
+            ORDER BY CASE status WHEN 'queued' THEN 0 ELSE 1 END, times_published ASC, rowid ASC
             LIMIT 1
             """, (stale_before,)).fetchone()
         if not row:
-            raise RuntimeError("No producible topics: all are rejected or currently in production.")
+            raise QueueEmpty("No unpublished topics left. Add new ones with /propose (or `python main.py topic propose`).")
         return self._topic_from_row(row)
 
     def get_topic_by_id(self, topic_id: str) -> Optional[Dict[str, Any]]:

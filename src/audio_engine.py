@@ -2,8 +2,11 @@
 src/audio_engine.py
 ===================
 Narration and ambient bed.
-1. Voice: ElevenLabs (with character timestamps) when configured, else edge-tts
-   (ChristopherNeural) with word-boundary events.
+1. Voice, best first, with word timings from each provider:
+     ElevenLabs (character timestamps) -> Azure Speech (word-boundary events, licensed,
+     free F0 tier) -> edge-tts (dry runs only: no commercial licence).
+   Real (non-dry) runs use only licensed voices: ElevenLabs on a paid plan (the Free plan
+   has no commercial licence) or Azure. With neither, the run stops (NoLicensedVoice).
 2. Word timings for the kinetic karaoke captions.
 3. Ambient bed: 55 Hz + 82.5 Hz drone with diegetic hammer (t=0) and stone-door SFX.
 Final mixing, ducking and loudness mastering happen in src/video_composer.py.
@@ -22,6 +25,8 @@ import requests
 import soundfile as sf
 
 from .config import (
+    AZURE_SPEECH_KEY,
+    AZURE_SPEECH_REGION,
     NARRATOR_VOICE,
     NARRATOR_RATE,
     NARRATOR_PITCH,
@@ -36,6 +41,10 @@ log = logging.getLogger(__name__)
 Words = List[Dict[str, Any]]
 
 
+class NoLicensedVoice(RuntimeError):
+    """No commercially licensed voice is available for a real run."""
+
+
 class AudioEngine:
     def __init__(
         self,
@@ -44,12 +53,16 @@ class AudioEngine:
         pitch: str = NARRATOR_PITCH,
         eleven_key: Optional[str] = None,
         eleven_voice: Optional[str] = None,
+        azure_key: Optional[str] = None,
+        azure_region: Optional[str] = None,
     ):
         self.voice = voice
         self.rate = rate
         self.pitch = pitch
         self.eleven_key = eleven_key if eleven_key is not None else ELEVENLABS_API_KEY
         self.eleven_voice = eleven_voice if eleven_voice is not None else ELEVENLABS_VOICE_ID
+        self.azure_key = azure_key if azure_key is not None else AZURE_SPEECH_KEY
+        self.azure_region = azure_region if azure_region is not None else AZURE_SPEECH_REGION
 
     def _generate_elevenlabs(self, text: str, output_path: Path) -> Words:
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{self.eleven_voice}/with-timestamps"
@@ -100,28 +113,86 @@ class AudioEngine:
         words.sort(key=lambda w: w["start"])
         return words
 
-    # Set after each narration: which provider voiced it, and why the primary was skipped.
+    def _generate_azure(self, text: str, output_path: Path) -> Words:
+        """Azure Speech via the official SDK; word timings from word-boundary events."""
+        import html as _html
+
+        import azure.cognitiveservices.speech as speechsdk
+
+        cfg = speechsdk.SpeechConfig(subscription=self.azure_key, region=self.azure_region)
+        cfg.set_speech_synthesis_output_format(speechsdk.SpeechSynthesisOutputFormat.Audio48Khz192KBitRateMonoMp3)
+        cfg.set_property(speechsdk.PropertyId.SpeechServiceResponse_RequestWordBoundary, "true")
+        synth = speechsdk.SpeechSynthesizer(speech_config=cfg, audio_config=None)
+        words: Words = []
+
+        def on_boundary(evt):
+            if evt.boundary_type == speechsdk.SpeechSynthesisBoundaryType.Word:
+                words.append({"word": evt.text, "start": evt.audio_offset / 10_000_000.0,
+                              "dur": max(0.05, evt.duration.total_seconds())})
+
+        synth.synthesis_word_boundary.connect(on_boundary)
+        ssml = (f'<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">'
+                f'<voice name="{self.voice}"><prosody rate="{self.rate}" pitch="{self.pitch}">'
+                f"{_html.escape(text)}</prosody></voice></speak>")
+        result = synth.speak_ssml_async(ssml).get()
+        if result.reason != speechsdk.ResultReason.SynthesizingAudioCompleted:
+            details = getattr(result, "cancellation_details", None)
+            raise RuntimeError(f"Azure Speech failed: {result.reason} {getattr(details, 'error_details', '')}")
+        output_path.write_bytes(result.audio_data)
+        words.sort(key=lambda w: w["start"])
+        return words
+
+    # Set after each narration: which provider voiced it, whether it is commercially licensed,
+    # and why a better provider was skipped.
     last_provider: str = ""
+    last_licensed: bool = False
     fallback_reason: str = ""
 
-    def generate_narration(self, text: str, output_path: Path) -> Words:
+    def eleven_licensed(self) -> bool:
+        """ElevenLabs output is licensed for commercial use only on a paid plan."""
+        quota = self.voice_quota()
+        return bool(quota and quota.get("tier") and quota["tier"] != "free")
+
+    def generate_narration(self, text: str, output_path: Path, licensed_only: bool = False) -> Words:
+        """licensed_only (real runs): skip unlicensed voices; raise NoLicensedVoice if none is left."""
         self.fallback_reason = ""
+        reasons: List[str] = []
         if is_configured(self.eleven_key):
+            licensed = self.eleven_licensed()
+            if licensed_only and not licensed:
+                reasons.append("ElevenLabs is on the Free plan (no commercial licence)")
+            else:
+                try:
+                    log.info("Synthesizing voiceover via ElevenLabs (%s)...", self.eleven_voice)
+                    words = self._generate_elevenlabs(text, output_path)
+                    self.last_provider, self.last_licensed = "elevenlabs", licensed
+                    return words
+                except Exception as e:
+                    status = getattr(getattr(e, "response", None), "status_code", None)
+                    reasons.append(f"ElevenLabs failed (HTTP {status})" if status else f"ElevenLabs failed ({type(e).__name__})")
+                    log.warning("ElevenLabs failed (%s); trying the next voice.", e)
+        if is_configured(self.azure_key) and is_configured(self.azure_region):
             try:
-                log.info("Synthesizing voiceover via ElevenLabs (%s)...", self.eleven_voice)
-                words = self._generate_elevenlabs(text, output_path)
-                self.last_provider = "elevenlabs"
+                log.info("Synthesizing voiceover via Azure Speech (%s)...", self.voice)
+                words = self._generate_azure(text, output_path)
+                if not words:
+                    raise RuntimeError("Azure Speech returned no word boundaries")
+                self.last_provider, self.last_licensed = "azure", True
+                self.fallback_reason = "; ".join(reasons)
                 return words
             except Exception as e:
-                status = getattr(getattr(e, "response", None), "status_code", None)
-                self.fallback_reason = f"HTTP {status}" if status else type(e).__name__
-                log.warning("ElevenLabs failed (%s); falling back to edge-tts.", e)
-        self.last_provider = "edge-tts"
+                reasons.append(f"Azure Speech failed ({e})"[:200])
+                log.warning("Azure Speech failed (%s); trying the next voice.", e)
+        self.fallback_reason = "; ".join(reasons)
+        if licensed_only:
+            raise NoLicensedVoice("No commercially licensed voice is available: "
+                                  + (self.fallback_reason or "set up ElevenLabs (paid plan) or Azure Speech") + ".")
 
-        log.info("Synthesizing voiceover via edge-tts (%s)...", self.voice)
+        log.info("Synthesizing voiceover via edge-tts (%s; test runs only)...", self.voice)
         words = asyncio.run(self._generate_edge_tts(text, output_path))
         if not words:
             raise RuntimeError("edge-tts returned no word boundaries; captions cannot be timed.")
+        self.last_provider, self.last_licensed = "edge-tts", False
         return words
 
     def voice_quota(self) -> Optional[Dict[str, Any]]:

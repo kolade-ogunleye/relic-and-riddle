@@ -90,6 +90,8 @@ class TelegramApprovalBot:
             f"💬 First comment: <i>{e(script_payload.get('first_comment', ''))}</i>\n"
             f"🏷️ {e(' '.join(script_payload.get('hashtags', [])))}\n"
         )
+        if script_payload.get("voice_note"):
+            text += "\n" + e(script_payload["voice_note"])
         if script_payload.get("music_note"):
             text += "\n" + e(script_payload["music_note"])
         if script_payload.get("beat_image_note"):

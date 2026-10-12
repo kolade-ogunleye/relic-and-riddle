@@ -1,7 +1,8 @@
 anthropic==1.13.0
 pydantic==2.14.1
 APScheduler==3.11.3
-edge-tts==7.2.8
+edge-tts==7.2.8  # test runs only (no commercial licence)
+azure-cognitiveservices-speech==1.51.2
 numpy==2.4.6
 pillow==12.3.0
 requests==2.34.2

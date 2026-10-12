@@ -33,6 +33,9 @@ class SecretMasker:
         "UPLOAD_POST_API_KEY",
         "META_ACCESS_TOKEN",
         "TELEGRAM_BOT_TOKEN",
+        "AZURE_SPEECH_KEY",
+        "GEMINI_API_KEY",
+        "META_PAGE_ACCESS_TOKEN",
     )
 
     def __init__(self):
@@ -173,6 +176,12 @@ class PreFlightHealthChecker:
         graph = is_configured(config.META_ACCESS_TOKEN) and is_configured(config.META_IG_ACCOUNT_ID)
         if not (upload_post or graph):
             missing.append("a publisher (UPLOAD_POST_API_KEY+UPLOAD_POST_USER or META_ACCESS_TOKEN+META_IG_ACCOUNT_ID)")
+        azure = is_configured(config.AZURE_SPEECH_KEY) and is_configured(config.AZURE_SPEECH_REGION)
+        if not azure:
+            from .audio_engine import AudioEngine  # only when needed: asks ElevenLabs for the plan
+            if not (is_configured(config.ELEVENLABS_API_KEY) and AudioEngine().eleven_licensed()):
+                missing.append("a commercially licensed voice (ElevenLabs on a paid plan, or AZURE_SPEECH_KEY+"
+                               "AZURE_SPEECH_REGION); ElevenLabs Free and edge-tts are for test runs only")
         if missing:
             return False, "Missing: " + "; ".join(missing)
         return True, "Script, approval and publishing credentials configured"

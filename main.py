@@ -221,15 +221,25 @@ class PipelineCoordinator:
         # 4-5. Audio (reused when resuming)
         vo_path = run_dir / "voiceover.mp3"
         words_path = run_dir / "words.json"
-        if vo_path.exists() and words_path.exists():
+        voice_path = run_dir / "voice.json"  # which provider made it, and whether it's licensed
+        saved_voice = json.loads(voice_path.read_text(encoding="utf-8")) if voice_path.exists() else {}
+        # A real run never reuses an unlicensed (test) voiceover. Older runs without voice.json
+        # predate this record, so they are re-voiced too.
+        reusable = vo_path.exists() and words_path.exists() and (dry_run or saved_voice.get("licensed"))
+        if reusable:
             words = json.loads(words_path.read_text(encoding="utf-8"))
             log.info("Resuming with the existing voiceover.")
         else:
-            words = self.audio_engine.generate_narration(payload["narration_script"], vo_path)
+            words = self.audio_engine.generate_narration(payload["narration_script"], vo_path, licensed_only=not dry_run)
             words_path.write_text(json.dumps(words), encoding="utf-8")
+            voice_path.write_text(json.dumps({"provider": self.audio_engine.last_provider,
+                                              "licensed": self.audio_engine.last_licensed}), encoding="utf-8")
             if self.audio_engine.fallback_reason:
-                self._alert(f"🔁 ElevenLabs failed ({html.escape(self.audio_engine.fallback_reason)}); this run uses the free "
-                            "edge-tts voice. Check your ElevenLabs quota if this repeats.")
+                self._alert(f"🔁 Voice fallback: {html.escape(self.audio_engine.fallback_reason)}. This run is voiced by "
+                            f"{html.escape(self.audio_engine.last_provider)}.")
+        payload["voice_note"] = {"elevenlabs": "🎙 Voice: ElevenLabs", "azure": "🎙 Voice: Azure Speech (fallback)",
+                                 "edge-tts": "🎙 Voice: edge-tts (TEST ONLY: not licensed for posting)"}.get(
+            saved_voice.get("provider") if reusable else self.audio_engine.last_provider, "")
         vo_dur = self.audio_engine.get_duration(vo_path)
         log.info("Voiceover: %.2fs, %d words timed.", vo_dur, len(words))
         if vo_dur > HARD_DURATION_CEILING:

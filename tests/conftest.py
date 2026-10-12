@@ -36,6 +36,8 @@ def no_real_services(monkeypatch):
     monkeypatch.setattr("src.telegram_bot.TELEGRAM_CHAT_ID", "")
     monkeypatch.setattr("src.telegram_bot.TELEGRAM_APPROVER_IDS", set())
     monkeypatch.setattr("src.audio_engine.ELEVENLABS_API_KEY", "")
+    monkeypatch.setattr("src.audio_engine.AZURE_SPEECH_KEY", "")
+    monkeypatch.setattr("src.audio_engine.AZURE_SPEECH_REGION", "")
     monkeypatch.setattr("src.control.HEALTHCHECK_PING_URL", "")
 
     def blocked(*args, **kwargs):

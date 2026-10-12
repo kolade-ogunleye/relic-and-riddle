@@ -164,6 +164,9 @@ BEAT_IMAGES_ALLOW_SHARE_ALIKE = os.getenv("BEAT_IMAGES_ALLOW_SHARE_ALIKE", "fals
 
 # Narration & Voiceover (edge-tts)
 NARRATOR_VOICE = "en-US-ChristopherNeural"
+# Licensed free voice fallback: Azure Speech (F0 tier: 0.5M characters/month), same voice.
+AZURE_SPEECH_KEY = os.getenv("AZURE_SPEECH_KEY", "")
+AZURE_SPEECH_REGION = os.getenv("AZURE_SPEECH_REGION", "")
 NARRATOR_RATE = "-2%"
 NARRATOR_PITCH = "-2Hz"
 

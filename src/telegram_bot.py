@@ -16,7 +16,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Dict, Any, Optional, Set
+from typing import Any, Callable, Dict, Optional, Set
 
 import requests
 
@@ -129,15 +129,23 @@ class TelegramApprovalBot:
             log.warning("Could not read Telegram update offset: %s", e)
             return 0
 
-    def _handle_callback(self, cq: Dict[str, Any], run_id: str) -> Optional[str]:
+    def _authorized(self, user_id: Any, chat_id: Any) -> bool:
+        return str(user_id) in self.approver_ids and str(chat_id) == str(self.chat_id)
+
+    def _handle_callback(self, cq: Dict[str, Any], run_id: Optional[str] = None) -> Optional[str]:
+        """Applies an approval button press. With run_id, ignores presses for other runs."""
         action, _, target = cq.get("data", "").partition(":")
-        if target != run_id or action not in ACTIONS:
+        if action not in ACTIONS or (run_id is not None and target != run_id):
             return None
+        run_id = target
         user_id = str(cq.get("from", {}).get("id", ""))
         msg = cq.get("message") or {}
-        if user_id not in self.approver_ids or str(msg.get("chat", {}).get("id", "")) != str(self.chat_id):
+        if not self._authorized(user_id, msg.get("chat", {}).get("id", "")):
             log.warning("Ignoring approval click from unauthorized user %s.", user_id)
             self._api("answerCallbackQuery", data={"callback_query_id": cq["id"], "text": "Not authorized."})
+            return None
+        if not self.db.get_approval(run_id):
+            self._api("answerCallbackQuery", data={"callback_query_id": cq["id"], "text": "Unknown run."})
             return None
 
         decision = ACTIONS[action]
@@ -156,11 +164,61 @@ class TelegramApprovalBot:
             log.warning("Could not update Telegram card: %s", e)
         return decision
 
+    # ------------------------------------------------------------ notifications
+    def notify(self, text: str) -> bool:
+        """Sends an operational message (HTML). Never raises: alerts must not break a run."""
+        if not self.is_configured():
+            log.info("Notification (Telegram not configured): %s", text)
+            return False
+        try:
+            self._api("sendMessage", data={"chat_id": self.chat_id, "text": text[:4000],
+                                           "parse_mode": "HTML", "disable_web_page_preview": "true"})
+            return True
+        except Exception as e:
+            log.warning("Could not send Telegram notification: %s", e)
+            return False
+
+    # ------------------------------------------------- shared update poller
+    # Telegram allows one getUpdates consumer per bot. In daemon mode a single background
+    # thread calls poll_once() for both approval clicks and commands; approval waits then
+    # only watch the database (background_polling = True).
+    background_polling = False
+    _offset: Optional[int] = None
+
+    def poll_once(self, command_handler: Optional[Callable[[str, str], str]] = None, timeout: int = 25) -> None:
+        """One long-poll: applies approval clicks for any run and answers authorized /commands."""
+        if self._offset is None:
+            self._offset = self._latest_update_id() + 1
+        updates = self._api("getUpdates", timeout=timeout + 10, data={
+            "offset": self._offset, "timeout": timeout,
+            "allowed_updates": json.dumps(["callback_query", "message"]),
+        })
+        for update in updates:
+            self._offset = update["update_id"] + 1
+            if update.get("callback_query"):
+                self._handle_callback(update["callback_query"])
+                continue
+            msg = update.get("message") or {}
+            text = (msg.get("text") or "").strip()
+            if not text.startswith("/") or command_handler is None:
+                continue
+            if not self._authorized(msg.get("from", {}).get("id", ""), msg.get("chat", {}).get("id", "")):
+                log.warning("Ignoring command from unauthorized user %s.", msg.get("from", {}).get("id"))
+                continue
+            command, _, args = text[1:].partition(" ")
+            command = command.split("@")[0].lower()  # "/status@relicandriddle_bot" -> "status"
+            try:
+                reply = command_handler(command, args.strip())
+            except Exception as e:
+                log.exception("Command /%s failed", command)
+                reply = f"⚠️ /{html.escape(command)} failed: {html.escape(str(e))[:300]}"
+            self.notify(reply)
+
     def wait_for_decision(self, run_id: str, timeout_seconds: int = APPROVAL_TIMEOUT_SECONDS, poll_interval: int = 5) -> str:
         """Returns 'approved', 'rejected', 'regenerate', or 'timeout'. Never auto-approves."""
         log.info("Awaiting human decision for %s (timeout %ss)...", run_id, timeout_seconds)
         deadline = time.monotonic() + timeout_seconds
-        offset = self._latest_update_id() + 1 if self.is_configured() else 0
+        offset = self._latest_update_id() + 1 if self.is_configured() and not self.background_polling else 0
 
         while time.monotonic() < deadline:
             approval = self.db.get_approval(run_id)
@@ -168,7 +226,7 @@ class TelegramApprovalBot:
                 log.info("Decision for %s: %s (by %s)", run_id, approval["decision"], approval.get("decided_by"))
                 return approval["decision"]
 
-            if not self.is_configured():
+            if not self.is_configured() or self.background_polling:
                 time.sleep(poll_interval)
                 continue
 

@@ -90,6 +90,11 @@ def _approver_ids(raw: str) -> set:
 TELEGRAM_APPROVER_IDS = _approver_ids(os.getenv("TELEGRAM_APPROVER_IDS", TELEGRAM_CHAT_ID)) - {TELEGRAM_BOT_TOKEN.split(":")[0]}
 APPROVAL_TIMEOUT_SECONDS = int(os.getenv("APPROVAL_TIMEOUT_SECONDS", "3600"))
 
+# Operations: daily "alive" message time, and an optional dead-man's-switch URL
+# (e.g. a free https://healthchecks.io check) pinged on each heartbeat and finished run.
+HEARTBEAT_TIME = os.getenv("HEARTBEAT_TIME", "08:00")
+HEALTHCHECK_PING_URL = os.getenv("HEALTHCHECK_PING_URL", "")
+
 # Publishing defaults
 META_IS_AI_GENERATED = os.getenv("META_IS_AI_GENERATED", "true").lower() in ("true", "1", "yes")
 DAILY_RUN_TIME = os.getenv("SCHEDULE_DAILY_RUN_TIME", "09:00")

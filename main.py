@@ -17,7 +17,9 @@ Usage:
 """
 
 import argparse
+import html
 import json
+import threading
 import logging
 import sys
 import time
@@ -27,6 +29,7 @@ from typing import Any, Dict, Optional
 from src.config import ASSETS_DIR, DAILY_RUN_TIME, HARD_DURATION_CEILING, OUTPUT_DIR, TIMEZONE
 from src.credits import caption_credit_line, load_credits
 from src.db import PipelineDatabase
+from src.control import heartbeat_text, is_paused, make_command_handler, ping_healthcheck
 from src.ops import AssetLifecycleManager, PreFlightHealthChecker, setup_logging
 
 log = logging.getLogger("pipeline")
@@ -90,6 +93,8 @@ class PipelineCoordinator:
             self.db.update_run(run_id, "failed", error=f"{type(e).__name__}: {e}")
             self.topic_engine.record_status(tid, "failed", run_id=run_id)
             log.error("Run %s failed: %s", run_id, e)
+            self._alert(f"❌ <b>Run failed</b> <code>{html.escape(run_id)}</code>\n{html.escape(str(e))[:600]}")
+            ping_healthcheck("/fail")
             raise
 
         if result["status"] == "regenerate":
@@ -99,6 +104,9 @@ class PipelineCoordinator:
             log.warning("Regeneration limit reached for '%s'.", tid)
             self.topic_engine.record_status(tid, "failed", run_id=run_id)
         return result
+
+    def _alert(self, text: str) -> None:
+        self.telegram_bot.notify(text)
 
     def request_approval(self, run_id: str, dry_run: bool = False) -> Dict[str, Any]:
         """Re-sends the review card for a rendered run whose approval timed out, then acts on the decision."""
@@ -148,6 +156,8 @@ class PipelineCoordinator:
             self.db.update_run(run_id, "failed", error=f"{type(e).__name__}: {e}")
             self.topic_engine.record_status(topic["id"], "failed", run_id=run_id)
             log.error("Run %s failed: %s", run_id, e)
+            self._alert(f"❌ <b>Run failed</b> <code>{html.escape(run_id)}</code>\n{html.escape(str(e))[:600]}")
+            ping_healthcheck("/fail")
             raise
 
     def _produce_and_publish(self, topic, run_id, run_dir, auto_approve, dry_run, previous_status) -> Dict[str, Any]:
@@ -247,6 +257,9 @@ class PipelineCoordinator:
             if topic_status:
                 self.topic_engine.record_status(tid, topic_status, run_id=run_id)
             log.info("Not publishing: decision was '%s'.", decision)
+            if decision == "timeout":
+                self._alert(f"⏰ <b>Approval timed out</b> for <code>{html.escape(run_id)}</code>. The video is kept; "
+                            f"re-send it with <code>python main.py review send {html.escape(run_id)}</code>")
             result["status"] = decision
             return result
 
@@ -273,6 +286,9 @@ class PipelineCoordinator:
             self.db.update_run(run_id, "published")
             self.topic_engine.record_status(tid, "published", run_id=run_id)
             log.info("Published %s.", run_id)
+            urls = pub.get("post_urls") or pub.get("post_ids") or {}
+            links = "\n".join(f"{html.escape(k)}: {html.escape(str(v))}" for k, v in urls.items())
+            self._alert(f"✅ <b>Published</b> {html.escape(payload.get('title', tid))}\n{links}")
         elif status == "simulated":
             self.db.update_run(run_id, "simulated")
             self.topic_engine.record_status(tid, previous_status, run_id=run_id)
@@ -280,10 +296,13 @@ class PipelineCoordinator:
             self.db.update_run(run_id, "publish_unknown", error=pub.get("error"))
             self.topic_engine.record_status(tid, "publish_unknown", run_id=run_id)
             log.error("Publish outcome UNKNOWN for %s. Check the accounts, then `topic requeue %s` if it did not post.", run_id, tid)
+            self._alert(f"⚠️ <b>Publish outcome unknown</b> for <code>{html.escape(run_id)}</code>. Check Facebook/Instagram "
+                        f"before retrying; if it did not post: <code>python main.py topic requeue {html.escape(tid)}</code>")
         else:
             self.db.update_run(run_id, "failed", error=pub.get("error"))
             self.topic_engine.record_status(tid, "failed", run_id=run_id)
             log.error("Publishing failed for %s: %s", run_id, pub.get("error"))
+            self._alert(f"❌ <b>Publishing failed</b> for <code>{html.escape(run_id)}</code>: {html.escape(str(pub.get('error')))[:500]}")
         return {"status": status, "publish_result": pub}
 
 
@@ -365,23 +384,75 @@ def main(argv=None) -> int:
         from apscheduler.schedulers.blocking import BlockingScheduler
         from apscheduler.triggers.cron import CronTrigger
 
-        hour, minute = (int(x) for x in args.time.split(":"))
-        coordinator = PipelineCoordinator()
+        from src.config import HEARTBEAT_TIME
 
-        def scheduled_job():
+        hour, minute = (int(x) for x in args.time.split(":"))
+        hb_hour, hb_minute = (int(x) for x in HEARTBEAT_TIME.split(":"))
+        coordinator = PipelineCoordinator()
+        bot = coordinator.telegram_bot
+        run_lock = threading.Lock()  # one production run at a time (daily job or /run)
+
+        def production_run(manual: bool = False):
+            if not manual and is_paused(coordinator.db):
+                log.info("Scheduled run skipped: paused.")
+                bot.notify("⏸ Scheduled run skipped (paused). Send /resume to re-enable.")
+                return
+            if not run_lock.acquire(blocking=False):
+                log.warning("A run is already in progress; skipping.")
+                return
             try:
-                coordinator.run_cycle(require_live=True)
-            except BaseException as e:  # keep the daemon alive; the run is already recorded as failed
-                log.exception("Scheduled run failed: %s", e)
+                result = coordinator.run_cycle(require_live=True)
+                if result.get("status") in ("published", "simulated", "rejected"):
+                    ping_healthcheck()
+            except BaseException as e:  # keep the daemon alive; the run is already recorded and alerted
+                log.exception("Run failed: %s", e)
+            finally:
+                run_lock.release()
 
         scheduler = BlockingScheduler(timezone=TIMEZONE)
-        scheduler.add_job(scheduled_job, CronTrigger(hour=hour, minute=minute, timezone=TIMEZONE),
+        daily = scheduler.add_job(production_run, CronTrigger(hour=hour, minute=minute, timezone=TIMEZONE),
+                                  max_instances=1, coalesce=True, misfire_grace_time=3600)
+
+        def next_run() -> Optional[str]:
+            when = getattr(daily, "next_run_time", None)  # set once the scheduler is running
+            return when.strftime("%a %d %b %H:%M %Z") if when else None
+
+        def heartbeat():
+            bot.notify(heartbeat_text(coordinator.db, next_run()))
+            ping_healthcheck()
+
+        scheduler.add_job(heartbeat, CronTrigger(hour=hb_hour, minute=hb_minute, timezone=TIMEZONE),
                           max_instances=1, coalesce=True, misfire_grace_time=3600)
-        log.info("Daemon scheduled daily at %s (%s). Ctrl+C to stop.", args.time, TIMEZONE)
+
+        def trigger_run() -> str:
+            if run_lock.locked():
+                return "A run is already in progress."
+            scheduler.add_job(production_run, kwargs={"manual": True})
+            return "🎬 Starting a run now. You'll get the review card when it's rendered; nothing posts without your approval."
+
+        handler = make_command_handler(coordinator.db, next_run, trigger_run)
+
+        def poll_telegram():
+            while True:
+                try:
+                    bot.poll_once(handler)
+                except Exception as e:
+                    log.warning("Telegram polling error (will retry): %s", e)
+                    time.sleep(10)
+
+        if bot.is_configured():
+            bot.background_polling = True  # this thread owns getUpdates; approval waits read the database
+            threading.Thread(target=poll_telegram, name="telegram-poller", daemon=True).start()
+
+        log.info("Daemon scheduled daily at %s (%s); heartbeat at %s. Ctrl+C to stop.", args.time, TIMEZONE, HEARTBEAT_TIME)
         try:
+            scheduler.add_job(lambda: bot.notify(
+                f"🟢 <b>Daemon started</b>. Daily run at {html.escape(args.time)} {html.escape(TIMEZONE)}"
+                f"{' (paused)' if is_paused(coordinator.db) else ''}. Send /help for commands."))
             scheduler.start()
         except (KeyboardInterrupt, SystemExit):
             log.info("Daemon stopped.")
+            bot.notify("🔴 <b>Daemon stopped</b>.")
         return 0
 
     if args.command == "review":

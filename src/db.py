@@ -104,6 +104,7 @@ class PipelineDatabase:
             # Additive migrations for databases created by earlier versions.
             self._add_column(conn, "runs", "error", "TEXT")
             self._add_column(conn, "approvals", "decided_by", "TEXT")
+            conn.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT, updated_at TEXT)")
         self._seed_topics_from_json()
 
     @staticmethod
@@ -277,6 +278,26 @@ class PipelineDatabase:
             WHERE run_id = ? AND decision = 'pending'
             """, (decision, _now(), decided_by, run_id))
             return cur.rowcount == 1
+
+    # ---------------------------------------------------------------- settings
+    def get_setting(self, key: str, default: Optional[str] = None) -> Optional[str]:
+        with self._conn() as conn:
+            row = conn.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
+        return row["value"] if row else default
+
+    def set_setting(self, key: str, value: str):
+        with self._conn() as conn:
+            conn.execute("""
+            INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?)
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+            """, (key, value, _now()))
+
+    def list_recent_runs(self, limit: int = 5) -> List[Dict[str, Any]]:
+        with self._conn() as conn:
+            rows = conn.execute(
+                "SELECT run_id, topic_id, status, error, updated_at FROM runs ORDER BY created_at DESC LIMIT ?", (limit,)
+            ).fetchall()
+        return [dict(r) for r in rows]
 
     def reopen_approval(self, run_id: str) -> bool:
         """Puts a timed-out approval back to pending so the run can be reviewed again."""

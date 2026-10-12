@@ -178,6 +178,21 @@ class TelegramApprovalBot:
             log.warning("Could not send Telegram notification: %s", e)
             return False
 
+    def send_photo(self, path: Path, caption: str, buttons: Optional[list] = None) -> bool:
+        """Sends an image with an HTML caption (max 1,024 chars) and optional inline buttons."""
+        if not self.is_configured():
+            return False
+        data = {"chat_id": self.chat_id, "caption": caption[:1024], "parse_mode": "HTML"}
+        if buttons:
+            data["reply_markup"] = json.dumps({"inline_keyboard": [buttons]})
+        try:
+            with open(path, "rb") as f:
+                self._api("sendPhoto", data=data, files={"photo": f})
+            return True
+        except Exception as e:
+            log.warning("Could not send photo: %s", e)
+            return False
+
     # ------------------------------------------------- shared update poller
     # Telegram allows one getUpdates consumer per bot. In daemon mode a single background
     # thread calls poll_once() for both approval clicks and commands; approval waits then
@@ -195,8 +210,22 @@ class TelegramApprovalBot:
         })
         for update in updates:
             self._offset = update["update_id"] + 1
-            if update.get("callback_query"):
-                self._handle_callback(update["callback_query"])
+            cq = update.get("callback_query")
+            if cq:
+                action, _, target = cq.get("data", "").partition(":")
+                if action in ACTIONS:
+                    self._handle_callback(cq)
+                elif command_handler is not None:
+                    # Other buttons (e.g. "imgok:<topic>") map to the same command handler.
+                    ok = self._authorized(cq.get("from", {}).get("id", ""),
+                                          (cq.get("message") or {}).get("chat", {}).get("id", ""))
+                    self._api("answerCallbackQuery", data={"callback_query_id": cq["id"],
+                                                           "text": "Working…" if ok else "Not authorized."})
+                    if ok:
+                        try:
+                            self.notify(command_handler(action, target))
+                        except Exception as e:
+                            self.notify(f"⚠️ {html.escape(action)} failed: {html.escape(str(e))[:300]}")
                 continue
             msg = update.get("message") or {}
             text = (msg.get("text") or "").strip()

@@ -7,6 +7,7 @@ Usage:
   python main.py run [--topic-id ID] [--auto-approve] [--dry-run]
   python main.py resume <run_id> [--auto-approve] [--dry-run]   (continue a failed run without re-paying)
   python main.py daemon [--time 09:00]
+  python main.py bot                                          (Telegram commands only; no scheduled runs)
   python main.py review list
   python main.py review approve|reject|regenerate <run_id>   (while a run is waiting)
   python main.py review publish <run_id> [--dry-run]         (publish a finished, unpublished run)
@@ -333,6 +334,7 @@ def main(argv=None) -> int:
     resume_p.add_argument("--auto-approve", action="store_true")
     resume_p.add_argument("--dry-run", action="store_true")
 
+    sub.add_parser("bot", help="Run only the Telegram bot (image review, approvals, /status); no scheduled runs")
     daemon_p = sub.add_parser("daemon", help="Run the daily scheduler")
     daemon_p.add_argument("--time", default=DAILY_RUN_TIME, help="Daily run time HH:MM")
 
@@ -385,6 +387,32 @@ def main(argv=None) -> int:
         print(json.dumps({k: res.get(k) for k in ("status", "run_id", "master_video")}, indent=2))
         return 0 if res["status"] in ("published", "simulated") else 1
 
+    if args.command == "bot":
+        db = PipelineDatabase()
+        from src.telegram_bot import TelegramApprovalBot
+        bot = TelegramApprovalBot(db=db)
+        if not bot.is_configured():
+            print("Telegram is not configured (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID).")
+            return 1
+        handler = make_command_handler(
+            db, lambda: "none (bot-only mode)",
+            lambda: "Production runs are disabled in bot-only mode. Use the daemon or `python main.py run`.",
+            send_photo=bot.send_photo,
+        )
+        bot.notify("🤖 <b>Bot-only mode</b>: image review, approvals and /status are live; no runs are scheduled. "
+                   "Send /images to start.")
+        log.info("Bot-only mode: listening for Telegram commands. Ctrl+C to stop.")
+        try:
+            while True:
+                try:
+                    bot.poll_once(handler)
+                except Exception as e:
+                    log.warning("Telegram polling error (will retry): %s", e)
+                    time.sleep(10)
+        except KeyboardInterrupt:
+            bot.notify("🤖 Bot-only mode stopped.")
+        return 0
+
     if args.command == "daemon":
         from apscheduler.schedulers.blocking import BlockingScheduler
         from apscheduler.triggers.cron import CronTrigger
@@ -435,7 +463,7 @@ def main(argv=None) -> int:
             scheduler.add_job(production_run, kwargs={"manual": True})
             return "🎬 Starting a run now. You'll get the review card when it's rendered; nothing posts without your approval."
 
-        handler = make_command_handler(coordinator.db, next_run, trigger_run)
+        handler = make_command_handler(coordinator.db, next_run, trigger_run, send_photo=bot.send_photo)
 
         def poll_telegram():
             while True:
@@ -531,7 +559,7 @@ def main(argv=None) -> int:
 
     if args.command == "assets":
         from src.config import MIN_SCENE_IMAGES
-        from src.credits import CONTACT_SHEET, CREDITS_FILE, load_credits, save_credits
+        from src.credits import approve_set, load_credits
         from src.visual_engine import MissingAssetsError, VisualEngine
 
         if args.assets_action == "list":
@@ -547,17 +575,11 @@ def main(argv=None) -> int:
                     state = f"needs review ({n})" if n >= MIN_SCENE_IMAGES else f"short ({n}/{MIN_SCENE_IMAGES})"
                 print(f"  {state:<20} {t['id']}")
         elif args.assets_action == "approve":
-            topic_dir = ASSETS_DIR / args.topic_id
-            if not (topic_dir / CREDITS_FILE).exists():
-                print(f"No fetched images for {args.topic_id}.")
+            try:
+                print(approve_set(ASSETS_DIR / args.topic_id, MIN_SCENE_IMAGES))
+            except ValueError as e:
+                print(e)
                 return 1
-            credits = load_credits(topic_dir)
-            if len(credits["images"]) < MIN_SCENE_IMAGES:
-                print(f"Only {len(credits['images'])} images; need {MIN_SCENE_IMAGES}. Re-run the fetcher to refill.")
-                return 1
-            credits["reviewed"] = True
-            save_credits(topic_dir, credits)
-            print(f"Approved {len(credits['images'])} images for {args.topic_id} (reviewed via {CONTACT_SHEET}).")
         else:
             assets_p.print_help()
         return 0

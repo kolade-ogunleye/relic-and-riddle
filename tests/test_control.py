@@ -99,3 +99,61 @@ def test_healthcheck_ping_is_optional_and_safe(monkeypatch):
     monkeypatch.setattr(control, "HEALTHCHECK_PING_URL", "https://hc-ping.com/abc")
     control.ping_healthcheck("/fail")
     assert calls == ["https://hc-ping.com/abc/fail"]
+
+
+def _image_set(tmp_path, name="03_kailasa_temple", n=6, reviewed=False):
+    from PIL import Image
+    from src.credits import save_credits
+    d = tmp_path / name
+    d.mkdir()
+    files = []
+    for i in range(n):
+        Image.new("RGB", (60, 40)).save(d / f"{i:02d}_commons.jpg")
+        files.append({"file": f"{i:02d}_commons.jpg", "title": f"File:Img {i}.jpg", "license": "CC BY 4.0"})
+    save_credits(d, {"reviewed": reviewed, "images": files})
+    return d
+
+
+def test_images_review_drop_approve_flow(db, tmp_path):
+    from src.credits import load_credits
+    d = _image_set(tmp_path)
+    _image_set(tmp_path, "29_baltic_sea_anomaly", n=2)
+    sent = []
+    h = make_command_handler(db, lambda: None, lambda: "", send_photo=lambda p, cap, btns: sent.append((p.name, cap, btns)) or True,
+                             assets_dir=tmp_path)
+    listing = h("images", "")
+    assert "1 to review" in listing and "1 short" in listing and "03 — kailasa temple (6)" in listing
+
+    assert h("review", "3") == "Contact sheet sent above."
+    name, caption, buttons = sent[-1]
+    assert name == "contact_sheet.jpg" or name.endswith(".jpg")
+    assert "1. Img 0.jpg" in caption and buttons[0]["callback_data"] == "imgok:03_kailasa_temple"
+
+    assert "Removed 1; 5 images remain" in h("drop", "03 2")
+    assert len(load_credits(d)["images"]) == 5
+    assert "Approved 5 images" in h("imgok", "03_kailasa_temple")
+    assert load_credits(d)["reviewed"] is True
+
+
+def test_drop_below_minimum_then_approve_refused(db, tmp_path):
+    _image_set(tmp_path, n=5)
+    h = make_command_handler(db, lambda: None, lambda: "", assets_dir=tmp_path)
+    h("drop", "3 1")
+    with pytest.raises(ValueError, match="need 5"):
+        h("imgok", "03_kailasa_temple")
+
+
+def test_unknown_topic_and_bad_drop_usage(db, tmp_path):
+    _image_set(tmp_path)
+    h = make_command_handler(db, lambda: None, lambda: "", assets_dir=tmp_path)
+    with pytest.raises(ValueError, match="No fetched image set"):
+        h("review", "99")
+    assert "Usage" in h("drop", "3 two")
+
+
+def test_approve_button_routes_through_poller(db, monkeypatch, tmp_path):
+    click = {"id": "q", "data": "imgok:03_kailasa_temple", "from": {"id": 555}, "message": {"chat": {"id": 555}}}
+    bot, sent = _bot(db, monkeypatch, [{"update_id": 5, "callback_query": click}])
+    calls = []
+    bot.poll_once(lambda c, a: calls.append((c, a)) or "done")
+    assert calls == [("imgok", "03_kailasa_temple")] and sent == ["done"]

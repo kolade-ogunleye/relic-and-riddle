@@ -73,6 +73,9 @@ While `python main.py daemon` runs, the bot also:
 - **Alerts** you when a run fails, an approval times out, publishing fails or its outcome is unknown, and when a Reel goes live.
 - **Sends a daily heartbeat** at `HEARTBEAT_TIME`. Set `HEALTHCHECK_PING_URL` (a free healthchecks.io check) to be emailed if the heartbeat stops, for example if the PC is off.
 - **Answers commands** from approvers only, in your chat: `/status`, `/next`, `/pause`, `/resume`, `/run` (a run still needs your approval before anything posts), `/help`.
+- **Reviews image sets**: `/images` lists the sets, `/review N` sends topic N's numbered contact sheet with an **Approve set** button, and `/drop N 2 5` removes wrong images.
+
+`python main.py bot` runs only the Telegram side (commands, image review, approvals), with no scheduled runs. Use it to review images before switching the daemon on.
 
 ## Adding a topic
 

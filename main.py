@@ -596,6 +596,23 @@ class PipelineCoordinator:
         return {"status": status, "publish_result": pub}
 
 
+def prebuild_candidates(db: PipelineDatabase, n: int) -> list:
+    """The next n topics production would pick (queued first) that have approved images."""
+    from src.visual_engine import MissingAssetsError, VisualEngine
+    out, ve = [], VisualEngine()
+    for t in sorted(db.list_all_topics(), key=lambda t: (t["status"] != "queued", t.get("times_published", 0))):
+        if t["status"] not in ("queued", "failed"):
+            continue
+        try:
+            ve.get_scene_sequence(t)
+        except MissingAssetsError:
+            continue
+        out.append(t)
+        if len(out) >= n:
+            break
+    return out
+
+
 def _proposal_trigger(db: PipelineDatabase, bot) -> Any:
     """Returns a callable that researches topic proposals in the background and sends each with Add/Skip buttons."""
     busy = threading.Lock()
@@ -655,6 +672,10 @@ def main(argv=None) -> int:
     resume_p.add_argument("--dry-run", action="store_true")
 
     sub.add_parser("bot", help="Run only the Telegram bot (image review, approvals, /status); no scheduled runs")
+    facts_p = sub.add_parser("facts", help="Build verified fact sheets ahead of production")
+    facts_p.add_argument("--topic-id")
+    facts_p.add_argument("--next", type=int, default=3, help="Build for the next N queued topics without a fresh sheet")
+    facts_p.add_argument("--force", action="store_true", help="Rebuild even if a fresh sheet exists")
     policy_p = sub.add_parser("policy", help="Check for new Meta policy changes now (web-searched, sourced)")
     policy_p.add_argument("--telegram", action="store_true", help="Also send the digest to Telegram")
     update_p = sub.add_parser("update", help="Check pinned packages for updates and known vulnerabilities")
@@ -748,6 +769,20 @@ def main(argv=None) -> int:
             except Exception as e:
                 print(f"Not applied (rolled back): {e}")
                 return 1
+        return 0
+
+    if args.command == "facts":
+        from src import fact_sheet
+        db = PipelineDatabase()
+        topics = [db.get_topic_by_id(args.topic_id)] if args.topic_id else prebuild_candidates(db, args.next)
+        for t in topics:
+            if t is None:
+                print("Unknown topic"); return 1
+            if fact_sheet.load(t["id"]) and not args.force:
+                print(f"{t['id']}: fresh fact sheet exists"); continue
+            sheet = fact_sheet.build(t)
+            print(f"{t['id']}: {len(sheet['facts'])} facts ({sum(f['disputed'] for f in sheet['facts'])} disputed), "
+                  f"{len(sheet['dropped'])} dropped")
         return 0
 
     if args.command == "bot":
@@ -869,6 +904,20 @@ def main(argv=None) -> int:
             return f"📨 Sending {html.escape(coordinator.db.run_label(run_id))} for review again…"
 
         propose_topics = _proposal_trigger(coordinator.db, bot)
+        def prebuild_fact_sheets():
+            """Nightly: verified fact sheets for the next queued topics, so research (and any trouble with
+            it) happens well before the daily run, not at 9:00."""
+            from src import fact_sheet
+            for t in prebuild_candidates(coordinator.db, 3):
+                try:
+                    if not fact_sheet.load(t["id"]):
+                        fact_sheet.build(t)
+                except Exception as e:
+                    log.warning("Fact sheet pre-build failed for %s: %s", t["id"], e)
+                    bot.notify(f"🧾 Couldn't build the fact sheet for {html.escape(t['title'])}: {html.escape(str(e))[:200]}")
+
+        scheduler.add_job(prebuild_fact_sheets, CronTrigger(hour=3, minute=0, timezone=TIMEZONE),
+                          max_instances=1, coalesce=True, misfire_grace_time=6 * 3600)
         scheduler.add_job(propose_topics.run_now, CronTrigger(day_of_week="fri", hour=hb_hour, minute=hb_minute,
                                                               timezone=TIMEZONE), max_instances=1, coalesce=True,
                           misfire_grace_time=3600)

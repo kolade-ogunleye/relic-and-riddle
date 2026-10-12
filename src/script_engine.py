@@ -18,12 +18,13 @@ import logging
 import re
 from typing import Dict, Any, List, Optional, Tuple
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from .config import CURATED_SCRIPTS_DIR, SECOND_CHECK_ENABLED, TARGET_WORD_COUNT_MIN, TARGET_WORD_COUNT_MAX
 from .fact_checker import ClaimFactChecker
 from .llm import LLMError, claude_available, format_sources, research, structured_call, task as llm_task
-from .models import GraphicsPlan, ScriptCore, ScriptPackage
+from . import fact_sheet, trace_check
+from .models import GraphicsPlan, ScriptCore, ScriptPackage, Source
 
 log = logging.getLogger(__name__)
 
@@ -74,6 +75,30 @@ Requirements:
 - carousel_slides: exactly 7 (title slide, five fact slides, closing call-to-comment slide).
 - first_comment: a debate-starting question, with no hashtags (Instagram's 5-hashtag cap covers the whole post).
 - sources: the pages you used, with real URLs."""
+
+FACTS_ONLY_RULES = """Write from the verified facts ONLY. Every factual statement in the narration, caption, title,
+on-screen text, slides, stories and first comment must come from a listed fact; for a DISPUTED fact use its hedge
+wording (or something no stronger). Do not add details, names, causes, numbers or dates that are not in a fact,
+and do not derive new figures (no subtracting dates, no unit-free rounding). Use at most 8 distinct facts and reuse
+the same wording for a fact wherever it appears. Questions and framing are fine if they assert nothing new.
+List sources only from retrieved_sources."""
+
+REVISE_SYSTEM = """You fix a short history video package so it passes fact-checking. For each finding, replace ONLY
+the rejected sentence or phrase: hedge it using the verified fact's hedge wording, or replace it with a verified
+fact, or remove it. Return exact find/replace edits: "find" must be copied character-for-character from the draft
+(a whole sentence or phrase), "replace" is its new text ("" to delete). Fix every place the claim appears
+(narration, caption, title, on-screen text, slides, stories, graphics). Never add facts that are not verified.
+If you change the narration's last sentence, apply the same edit to closing_sentence."""
+
+
+class Edit(BaseModel):
+    find: str
+    replace: str
+
+
+class Edits(BaseModel):
+    edits: List[Edit]
+
 
 GRAPHICS_SYSTEM = """You plan the on-screen graphics for a finished, fact-checked history Reel script. Use only facts stated in the narration or the research notes; never add new claims. Keep every hedge the narration uses: if it says "about", "up to", "estimated" or gives a range, the graphic must too (put the hedge in the value text, e.g. "about 280 ft", or set approximate=true). Graphics are fact-checked like the narration, and a flat figure where sources disagree is rejected. Leave a field null when the facts don't support it."""
 
@@ -225,6 +250,7 @@ class ScriptEngine:
     def __init__(self, fact_checker: Optional[ClaimFactChecker] = None):
         self.fact_checker = fact_checker or ClaimFactChecker()
         self._research_cache: Dict[str, Tuple[str, list]] = {}  # topic_id -> (notes, retrieved sources)
+        self._sheets: Dict[str, Optional[Dict[str, Any]]] = {}    # topic_id -> verified fact sheet
 
     @llm_task("script_writing")
     def generate_script(self, topic: Dict[str, Any], max_attempts: int = 2, revision_notes: str = "",
@@ -234,6 +260,20 @@ class ScriptEngine:
         draft is edited (not rewritten) so corrections don't introduce new, unchecked claims.
         """
         if claude_available():
+            sheet = self._sheet(topic) if previous is not None and previous.get("fact_sheet") else None
+            if revision_notes and previous and sheet:
+                try:
+                    pkg = self._revise_surgically(previous, revision_notes, sheet)
+                except LLMError as e:
+                    log.warning("Surgical revision failed (%s); rewriting the draft.", e)
+                    pkg = None
+                if pkg is not None:
+                    pkg = prune_graphics(pkg)
+                    problems = validate_structure(pkg)
+                    if not problems:
+                        log.info("Revised surgically: only the rejected sentences changed.")
+                        return self._finalize(pkg, topic, origin="claude", fact_sheet_used=True)
+                    log.warning("Surgical revision failed structural checks (%s); rewriting.", problems)
             base_feedback = ""
             if revision_notes and previous:
                 draft = {k: previous.get(k) for k in ScriptPackage.model_fields}
@@ -259,7 +299,7 @@ class ScriptEngine:
                 pkg = prune_graphics(pkg)  # an invalid graphic is dropped, not allowed to sink the script
                 problems = validate_structure(pkg)
                 if not problems:
-                    return self._finalize(pkg, topic, origin="claude")
+                    return self._finalize(pkg, topic, origin="claude", fact_sheet_used=self._sheet(topic) is not None)
                 log.warning("Attempt %d failed structural checks: %s", attempt, problems)
                 feedback = base_feedback + "\n\nA previous draft was rejected for: " + " ".join(problems) + " Fix these."
             log.warning("Claude did not produce a usable script; trying curated script.")
@@ -277,6 +317,38 @@ class ScriptEngine:
             f"or add a curated script at data/scripts/{topic['id']}.json."
         )
 
+    def _sheet(self, topic: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """The topic's verified fact sheet (cached on disk; built if missing), or None if it can't be built."""
+        if topic["id"] not in self._sheets:
+            try:
+                self._sheets[topic["id"]] = fact_sheet.ensure(topic) if claude_available() else None
+            except (LLMError, ValueError) as e:
+                log.warning("No fact sheet for %s (%s); writing from research notes.", topic["id"], e)
+                self._sheets[topic["id"]] = None
+        return self._sheets[topic["id"]]
+
+    def _revise_surgically(self, previous: Dict[str, Any], findings: str, sheet: Dict[str, Any]) -> Optional[ScriptPackage]:
+        """Replace only the sentences the checks rejected, using the fact sheet; everything else stays.
+        Returns None if the edits can't be applied cleanly (the caller then rewrites the draft)."""
+        draft = {k: previous.get(k) for k in ScriptPackage.model_fields}
+        result = structured_call(
+            REVISE_SYSTEM,
+            f"<verified_facts>\n{fact_sheet.as_prompt(sheet)}\n</verified_facts>\n\n"
+            f"<draft>\n{json.dumps(draft, ensure_ascii=False, indent=1)}\n</draft>\n\n<findings>\n{findings}\n</findings>",
+            Edits, effort="medium", max_tokens=6000)
+        text = json.dumps(draft, ensure_ascii=False)
+        for e in result.edits:
+            old, new = json.dumps(e.find, ensure_ascii=False)[1:-1], json.dumps(e.replace, ensure_ascii=False)[1:-1]
+            if not old or old not in text:
+                log.warning("Surgical edit not found in the draft (%r); rewriting instead.", e.find[:60])
+                return None
+            text = text.replace(old, new)
+        try:
+            return ScriptPackage.model_validate(json.loads(text))
+        except (ValueError, ValidationError) as e:
+            log.warning("Surgical edits broke the draft (%s); rewriting instead.", e)
+            return None
+
     def _generate_with_claude(self, topic: Dict[str, Any], feedback: str) -> ScriptPackage:
         loc = topic.get("location", {})
         fields = dict(
@@ -286,19 +358,31 @@ class ScriptEngine:
             location=", ".join(v for v in (loc.get("name"), loc.get("city"), loc.get("country")) if v),
             key_facts="; ".join(topic.get("key_facts", [])),
         )
-        if topic["id"] not in self._research_cache:  # research once per topic; revisions reuse it
-            notes, retrieved = research(RESEARCH_SYSTEM, RESEARCH_PROMPT.format(**fields), web_search_uses=6)
-            if not retrieved:
-                raise LLMError("Research cited no sources; refusing to write an ungrounded script.")
-            self._research_cache[topic["id"]] = (notes, retrieved)
-        notes, retrieved = self._research_cache[topic["id"]]
-        prompt = (
-            USER_PROMPT_TEMPLATE.format(**fields)
-            + f"\n\n<research_notes>\n{notes}\n</research_notes>\n\n"
-            + f"<retrieved_sources>\n{format_sources(retrieved)}\n</retrieved_sources>\n"
-            + "Use only facts supported by the research notes. List sources only from retrieved_sources."
-            + feedback
-        )
+        sheet = self._sheet(topic)
+        if sheet is not None:
+            # Verify first, then write: the writer may use only the verified facts, with their hedges.
+            notes = "VERIFIED FACTS (use only these; keep each DISPUTED fact's hedge wording):\n" + fact_sheet.as_prompt(sheet)
+            retrieved = [Source(title=s["title"], url=s["url"]) for s in sorted(sheet["sources"], key=lambda s: s["tier"])]
+            prompt = (
+                USER_PROMPT_TEMPLATE.format(**fields)
+                + f"\n\n<verified_facts>\n{fact_sheet.as_prompt(sheet)}\n</verified_facts>\n\n"
+                + f"<retrieved_sources>\n{format_sources(retrieved)}\n</retrieved_sources>\n"
+                + FACTS_ONLY_RULES + feedback
+            )
+        else:
+            if topic["id"] not in self._research_cache:  # research once per topic; revisions reuse it
+                notes, retrieved = research(RESEARCH_SYSTEM, RESEARCH_PROMPT.format(**fields), web_search_uses=6)
+                if not retrieved:
+                    raise LLMError("Research cited no sources; refusing to write an ungrounded script.")
+                self._research_cache[topic["id"]] = (notes, retrieved)
+            notes, retrieved = self._research_cache[topic["id"]]
+            prompt = (
+                USER_PROMPT_TEMPLATE.format(**fields)
+                + f"\n\n<research_notes>\n{notes}\n</research_notes>\n\n"
+                + f"<retrieved_sources>\n{format_sources(retrieved)}\n</retrieved_sources>\n"
+                + "Use only facts supported by the research notes. List sources only from retrieved_sources."
+                + feedback
+            )
         core = structured_call(SYSTEM_PROMPT, prompt, ScriptCore, effort="high")
         try:  # graphics are planned from the finished script; optional, so a failure leaves them out
             extras = structured_call(
@@ -327,9 +411,10 @@ class ScriptEngine:
             raise ScriptUnavailableError(f"Curated script {path.name} is invalid: {e}") from e
 
     @staticmethod
-    def _finalize(pkg: ScriptPackage, topic: Dict[str, Any], origin: str) -> Dict[str, Any]:
+    def _finalize(pkg: ScriptPackage, topic: Dict[str, Any], origin: str, fact_sheet_used: bool = False) -> Dict[str, Any]:
         payload = pkg.model_dump()
         payload.update({
+            "fact_sheet": fact_sheet_used,  # written from the topic's verified fact sheet: trace-checked
             "topic_id": topic["id"],
             "origin": origin,
             "word_count": len(pkg.narration_script.split()),
@@ -354,7 +439,14 @@ class ScriptEngine:
         if problems:
             return False, script_payload, "REJECTED: " + " ".join(problems)
 
-        passed, confidence, audits, msg = self.fact_checker.verify(script_payload, topic, allow_unreviewed_curated)
+        sheet = fact_sheet.load(script_payload.get("topic_id", ""), max_age_days=3650) if script_payload.get("fact_sheet") else None
+        if sheet is not None:  # written from verified facts: trace every claim to them (same evidence each time)
+            passed, confidence, audits, msg = trace_check.check(script_payload, sheet)
+            disputed = sum(f["disputed"] for f in sheet["facts"])
+            script_payload["fact_sheet_note"] = (f"🧾 Written from a verified fact sheet: {len(sheet['facts'])} facts with quoted "
+                                                 f"evidence ({disputed} disputed, used only with their hedges)")
+        else:
+            passed, confidence, audits, msg = self.fact_checker.verify(script_payload, topic, allow_unreviewed_curated)
         script_payload["fact_audits"] = audits
         script_payload["consensus_confidence"] = confidence
         if not passed:

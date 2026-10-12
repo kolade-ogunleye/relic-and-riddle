@@ -238,6 +238,53 @@ def research(system: str, prompt: str, *, web_search_uses: int, effort: str = "h
     raise LLMError("Claude did not finish after repeated pause_turn continuations.")
 
 
+def research_with_evidence(system: str, prompt: str, *, web_search_uses: int, effort: str = "high",
+                           max_tokens: int = 16000, models: Optional[List[str]] = None
+                           ) -> Tuple[str, List[Source], List[dict]]:
+    """Like research(), plus every citation's exact quoted passage: [{"url", "title", "quote"}].
+    The quotes are the evidence a fact sheet is built on (text the search actually returned)."""
+    client = _client()
+    system = system + _MUST_SEARCH
+    messages = [{"role": "user", "content": prompt}]
+    # The basic search tool: its answers carry citations with the quoted passage (cited_text). The newer
+    # dynamic-filtering tool (web_search_20260209) returned empty citation lists in testing (2026-10-12).
+    tools = [{"type": "web_search_20250305", "name": "web_search", "max_uses": web_search_uses}]
+    sources: List[Source] = []
+    seen: set = set()
+    quotes: List[dict] = []
+    seen_quotes: set = set()
+
+    def send(model: str):
+        return client.beta.messages.create(
+            model=model, max_tokens=max_tokens, system=system, messages=messages, tools=tools,
+            output_config={"effort": effort}, **_model_kwargs(model),
+        )
+
+    response, model = _first_request(send, models)
+    for _ in range(_MAX_CONTINUATIONS):
+        _record(response)
+        _collect_sources(response.content, sources, seen)
+        for block in response.content:
+            if getattr(block, "type", None) != "text":
+                continue
+            for c in block.citations or []:
+                quote = (getattr(c, "cited_text", "") or "").strip()
+                url = getattr(c, "url", None)
+                if url and quote and (url, quote) not in seen_quotes:
+                    seen_quotes.add((url, quote))
+                    quotes.append({"url": url, "title": getattr(c, "title", "") or url, "quote": quote})
+        if response.stop_reason == "pause_turn":
+            messages.append({"role": "assistant", "content": response.content})
+            response = send(model)
+            continue
+        _check_stop(response)
+        text = "".join(b.text for b in response.content if b.type == "text").strip()
+        if not text:
+            raise LLMError("Research returned no text.")
+        return text, sources, quotes
+    raise LLMError("Claude did not finish after repeated pause_turn continuations.")
+
+
 def image_block(path, max_side: int = 512) -> dict:
     """A small JPEG of `path` as a base64 image content block (keeps vision calls cheap)."""
     import base64

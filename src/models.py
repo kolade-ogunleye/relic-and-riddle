@@ -76,6 +76,20 @@ class RouteStop(BaseModel):
     label: str                # at most 32 characters, e.g. "Built in Rhodes?" or "1902: found by divers"
 
 
+class DraftFact(BaseModel):
+    """A fact as the fact-sheet writer proposes it, citing evidence by number."""
+    id: str                   # short id, e.g. "F3"
+    statement: str            # one checkable fact, worded exactly as it may be said on screen
+    kind: Literal["number", "date", "name", "event", "other"]
+    quote_ids: List[int]      # 1-based numbers of the evidence quotes that support it
+    disputed: bool            # do the quotes (or sources) disagree?
+    hedge: str                # if disputed or estimated: the safe wording (e.g. "about 85 m; sources range 60-85 m"); else ""
+
+
+class FactSheetDraft(BaseModel):
+    facts: List[DraftFact]
+
+
 class ScriptCore(BaseModel):
     """What the script writer produces in one structured call."""
     title: str

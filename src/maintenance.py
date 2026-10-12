@@ -54,7 +54,9 @@ class UpdatePlan:
 
 
 def _major(version: str) -> str:
-    return version.split(".")[0]
+    """Compatibility line: '2' for 2.x; '0.13' for 0.13.x (0.x minor bumps may break APIs)."""
+    parts = version.split(".")
+    return ".".join(parts[:2]) if parts[0] == "0" else parts[0]
 
 
 def _norm(name: str) -> str:

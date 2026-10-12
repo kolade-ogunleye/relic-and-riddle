@@ -116,6 +116,15 @@ HEALTHCHECK_PING_URL = os.getenv("HEALTHCHECK_PING_URL", "")
 META_IS_AI_GENERATED = os.getenv("META_IS_AI_GENERATED", "true").lower() in ("true", "1", "yes")
 DAILY_RUN_TIME = os.getenv("SCHEDULE_DAILY_RUN_TIME", "09:00")
 TIMEZONE = os.getenv("DEFAULT_TIMEZONE", "America/New_York")
+# Posting slots (daemon only; CLI publishing is immediate). An approved Reel takes the next
+# free day's slot; days alternate between the listed times. Stories follow the Reel; a
+# carousel goes out on the listed weekdays at whichever Reel time that day's Reel isn't using.
+# Slots are in the audience's timezone (US Eastern), independent of DEFAULT_TIMEZONE (yours).
+POST_TIMEZONE = os.getenv("POST_TIMEZONE", "America/New_York")
+POST_SCHEDULING = os.getenv("POST_SCHEDULING", "true").lower() in ("true", "1", "yes")
+REEL_POST_TIMES = [t.strip() for t in os.getenv("REEL_POST_TIMES", "12:00,19:00").split(",") if t.strip()]
+STORY_DELAY_MINUTES = int(os.getenv("STORY_DELAY_MINUTES", "45"))
+CAROUSEL_DAYS = [d.strip().lower()[:3] for d in os.getenv("CAROUSEL_DAYS", "tue,wed,thu").split(",") if d.strip()]
 
 # ------------------------------------------------------------------------------
 # LOCKED PRODUCTION SPECIFICATIONS

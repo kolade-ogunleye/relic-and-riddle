@@ -6,7 +6,7 @@ Operations over Telegram: slash commands, the daily heartbeat, and the dead-man'
 Commands (approvers only, in the configured chat):
   /status   paused?, next scheduled run, pending approvals, recent runs
   /next     the topic the next run will produce
-  /pause    stop scheduled runs (an in-progress run finishes)
+  /pause    stop scheduled runs and posts (an in-progress run finishes)
   /resume   re-enable scheduled runs
   /run      start a production run now (still needs your approval to publish)
   /images   image sets waiting for review
@@ -35,7 +35,7 @@ HELP = (
     "<b>Relic &amp; Riddle commands</b>\n"
     "/status — schedule, approvals, recent runs\n"
     "/next — next topic\n"
-    "/pause — stop scheduled runs\n"
+    "/pause — stop scheduled runs and posts\n"
     "/resume — re-enable scheduled runs\n"
     "/run — start a run now (you still approve before anything posts)\n"
     "/images — image sets waiting for review\n"
@@ -54,7 +54,7 @@ STATUS_WORDS = {
     "producing": "being made", "pending_approval": "waiting for you", "approved": "approved",
     "published": "published", "simulated": "test run (not posted)", "rejected": "rejected",
     "regenerate": "regenerated", "timeout": "no decision in time", "failed": "failed",
-    "publish_unknown": "not sure it posted",
+    "publish_unknown": "not sure it posted", "scheduled": "scheduled to post",
 }
 
 
@@ -143,6 +143,14 @@ def status_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Opti
         f"<b>Status</b>: {'⏸ paused' if is_paused(db) else '▶️ active'}",
         f"Next scheduled run: {e(next_run or 'not scheduled')}",
     ]
+    upcoming = db.list_scheduled_posts(("pending", "waiting"))
+    if upcoming:
+        from .post_schedule import fmt
+        names = {"reel": "Reel", "story": "Stories", "carousel": "Carousel"}
+        lines.append("Upcoming posts:")
+        for p in upcoming[:6]:
+            when = fmt(datetime.fromisoformat(p["due_at"])) if p["due_at"] else "next carousel slot"
+            lines.append(f"  • {names.get(p['kind'], p['kind'])} {e(when)} — {e(db.run_label(p['run_id']))}")
     pending = db.list_pending_approvals()
     lines.append(f"Awaiting approval: {len(pending)}")
     for p in pending[:3]:
@@ -263,10 +271,10 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             return f"Next topic: <b>{html.escape(t['title'])}</b> (<code>{html.escape(t['id'])}</code>)"
         if command == "pause":
             db.set_setting(PAUSED_KEY, "true")
-            return "⏸ Scheduled runs paused. Send /resume to re-enable."
+            return "⏸ Scheduled runs and posts paused. Send /resume to re-enable."
         if command == "resume":
             db.set_setting(PAUSED_KEY, "false")
-            return f"▶️ Scheduled runs resumed. Next: {html.escape(next_run() or 'not scheduled')}"
+            return f"▶️ Scheduled runs and posts resumed. Next: {html.escape(next_run() or 'not scheduled')}"
         if command == "run":
             return trigger_run()
         return f"Unknown command /{html.escape(command)}. Send /help."

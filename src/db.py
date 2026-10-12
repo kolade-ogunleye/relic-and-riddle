@@ -117,6 +117,19 @@ class PipelineDatabase:
                 cost_usd REAL NOT NULL,
                 created_at TEXT NOT NULL
             )""")
+            # Reel / Story / carousel posts waiting for their slot (due_at in UTC; NULL = next carousel slot).
+            conn.execute("""
+            CREATE TABLE IF NOT EXISTS scheduled_posts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                run_id TEXT NOT NULL,
+                kind TEXT NOT NULL,
+                due_at TEXT,
+                status TEXT NOT NULL DEFAULT 'pending',
+                files_json TEXT,
+                detail_json TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )""")
         self._seed_topics_from_json()
 
     @staticmethod
@@ -418,6 +431,40 @@ class PipelineDatabase:
         with self._conn() as conn:
             rows = conn.execute("SELECT * FROM publications WHERE run_id = ? ORDER BY id", (run_id,)).fetchall()
         return [dict(r) for r in rows]
+
+    # --------------------------------------------------------- scheduled posts
+    def add_scheduled_post(self, run_id: str, kind: str, due_at: Optional[str], files: List[str],
+                           status: str = "pending") -> int:
+        now = _now()
+        with self._conn() as conn:
+            cur = conn.execute("""
+            INSERT INTO scheduled_posts (run_id, kind, due_at, status, files_json, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)""", (run_id, kind, due_at, status, json.dumps(files), now, now))
+            return cur.lastrowid
+
+    def update_scheduled_post(self, post_id: int, status: str, due_at: Optional[str] = None,
+                              detail: Optional[Dict[str, Any]] = None):
+        with self._conn() as conn:
+            conn.execute("""
+            UPDATE scheduled_posts SET status = ?, due_at = COALESCE(?, due_at),
+                   detail_json = COALESCE(?, detail_json), updated_at = ? WHERE id = ?""",
+                         (status, due_at, json.dumps(detail, default=str) if detail is not None else None, _now(), post_id))
+
+    def list_scheduled_posts(self, statuses: tuple = ("pending", "waiting"), run_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        q = f"SELECT * FROM scheduled_posts WHERE status IN ({','.join('?' * len(statuses))})"
+        args: List[Any] = list(statuses)
+        if run_id:
+            q += " AND run_id = ?"
+            args.append(run_id)
+        with self._conn() as conn:
+            rows = conn.execute(q + " ORDER BY COALESCE(due_at, '9999'), id", args).fetchall()
+        out = []
+        for r in rows:
+            d = dict(r)
+            d["files"] = json.loads(d.pop("files_json") or "[]")
+            d["detail"] = json.loads(d.pop("detail_json") or "{}")
+            out.append(d)
+        return out
 
     def _mirror_history_to_json(self):
         """Human-readable, read-only mirror at data/topics/history.json (written atomically)."""

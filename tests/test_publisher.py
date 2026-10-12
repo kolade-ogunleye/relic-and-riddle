@@ -193,3 +193,54 @@ def test_facebook_finish_timeout_is_unknown(monkeypatch, envelope):
     pub = FacebookPageReelsPublisher(token="t" * 20, page_id="123", version="v26.0", poll_interval=0)
     with pytest.raises(PublishUnknown):
         pub.publish(envelope)
+
+
+def _photos(tmp_path, n):
+    paths = []
+    for i in range(n):
+        p = tmp_path / f"s{i}.jpg"
+        p.write_bytes(b"0")
+        paths.append(str(p))
+    return paths
+
+
+def test_story_frames_post_one_by_one_as_stories(monkeypatch, run, tmp_path):
+    calls = []
+
+    def fake_post(url, headers, data, files, timeout):
+        calls.append((url, headers["Idempotency-Key"], dict(data), len(files)))
+        return _response(200, {"success": True, "results": {"instagram": {"success": True, "url": "u"}}})
+
+    monkeypatch.setattr(requests, "post", fake_post)
+    up = UploadPostPublisher(api_key="k" * 20, user="u", base_url="https://api.upload-post.com/api")
+    res = MetaPublisher(db=run, publishers=[up]).publish_photos("r1", "01_topic", "story", _photos(tmp_path, 3))
+    assert res["status"] == "published" and res["posted_parts"] == 3
+    assert [c[1] for c in calls] == ["r1-story-1", "r1-story-2", "r1-story-3"]
+    url, _, data, nfiles = calls[0]
+    assert url == "https://api.upload-post.com/api/upload_photos" and nfiles == 1
+    assert data["media_type"] == "STORIES" and data["facebook_media_type"] == "STORIES"
+
+
+def test_carousel_is_one_post_with_caption_and_max_ten(monkeypatch, run, tmp_path):
+    calls = []
+    monkeypatch.setattr(requests, "post", lambda url, headers, data, files, timeout: calls.append((dict(data), len(files)))
+                        or _response(200, {"success": True, "results": {"instagram": {"success": True, "url": "u"}}}))
+    up = UploadPostPublisher(api_key="k" * 20, user="u")
+    res = MetaPublisher(db=run, publishers=[up]).publish_photos("r1", "01_topic", "carousel", _photos(tmp_path, 12), caption="Cap")
+    assert res["status"] == "published" and len(calls) == 1
+    data, nfiles = calls[0]
+    assert nfiles == 10 and data["title"] == "Cap" and "media_type" not in data
+
+
+def test_story_failure_after_first_frame_is_unknown(monkeypatch, run, tmp_path):
+    responses = iter([_response(200, {"success": True, "results": {"instagram": {"success": True}}}),
+                      _response(400, {"success": False, "message": "bad"})])
+    monkeypatch.setattr(requests, "post", lambda *a, **k: next(responses))
+    up = UploadPostPublisher(api_key="k" * 20, user="u")
+    res = MetaPublisher(db=run, publishers=[up]).publish_photos("r1", "01_topic", "story", _photos(tmp_path, 3))
+    assert res["status"] == "unknown" and res["posted_parts"] == 1
+
+
+def test_photos_need_upload_post(run, tmp_path):
+    res = MetaPublisher(db=run, publishers=[]).publish_photos("r1", "01_topic", "story", _photos(tmp_path, 1))
+    assert res["status"] == "failed" and "Upload-Post" in res["error"]

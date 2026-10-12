@@ -27,14 +27,15 @@ import threading
 import logging
 import sys
 import time
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from src.config import ASSETS_DIR, DAILY_RUN_TIME, HARD_DURATION_CEILING, OUTPUT_DIR, TIMEZONE
+from src.config import ASSETS_DIR, DAILY_RUN_TIME, HARD_DURATION_CEILING, OUTPUT_DIR, POST_SCHEDULING, TIMEZONE
 from src.credits import caption_credit_line, load_credits
 from src.db import PipelineDatabase, QueueEmpty
 from src.control import heartbeat_text, is_paused, make_command_handler, ping_healthcheck
-from src import beat_images
+from src import beat_images, post_schedule
 from src.scene_planner import plan_scenes, segment_beats
 from src.upscale import ensure_all, ensure_resolution
 from src.music import mark_used as mark_track_used, music_for
@@ -49,8 +50,13 @@ MAX_REGENERATIONS = 2
 MAX_FACT_REVISIONS = 2  # rewrites of a Claude script that failed fact-checking, before failing closed
 
 
+MISSED_SLOT_GRACE = timedelta(hours=3)
+
+
 class PipelineCoordinator:
-    def __init__(self, db: Optional[PipelineDatabase] = None):
+    def __init__(self, db: Optional[PipelineDatabase] = None, schedule_posts: bool = False):
+        # schedule_posts: approved Reels wait for their posting slot (daemon); otherwise post at once (CLI).
+        self.schedule_posts = schedule_posts
         # Imported here so `health`/`topic`/`review` work even if a media dependency is broken.
         from src.audio_engine import AudioEngine
         from src.multi_format import MultiFormatGenerator
@@ -158,7 +164,7 @@ class PipelineCoordinator:
         self.telegram_bot.send_approval_request(video, Path(run["thumbnail_cover_path"]), run["script_payload"], run_id)
         decision = self.telegram_bot.wait_for_decision(run_id)
         if decision == "approved":
-            return {"run_id": run_id, "decision": decision, **self.publish_run(run_id, dry_run=dry_run)}
+            return {"run_id": run_id, "decision": decision, **self._after_approval(run_id, dry_run=dry_run)}
         status = {"rejected": "rejected", "regenerate": "regenerate"}.get(decision, "timeout")
         self.db.update_run(run_id, status)
         if decision == "rejected":
@@ -356,9 +362,125 @@ class PipelineCoordinator:
             result["status"] = decision
             return result
 
-        # 10. Publish
-        result.update(self.publish_run(run_id, dry_run=dry_run, previous_status=previous_status))
+        # 10. Publish (or book the posting slot when running as the daemon)
+        result.update(self._after_approval(run_id, dry_run=dry_run, previous_status=previous_status))
         return result
+
+    def _after_approval(self, run_id: str, dry_run: bool = False, previous_status: str = "queued") -> Dict[str, Any]:
+        if self.schedule_posts and POST_SCHEDULING and not dry_run:
+            return self.schedule_run(run_id)
+        return self.publish_run(run_id, dry_run=dry_run, previous_status=previous_status)
+
+    # ------------------------------------------------------------ posting slots
+    def schedule_run(self, run_id: str, now: Optional[datetime] = None) -> Dict[str, Any]:
+        """Books an approved run's Reel into the next free slot, its Stories after it, and its
+        carousel into the carousel queue. The daemon's post_due() publishes them when due."""
+        now = now or datetime.now(timezone.utc)
+        run = self.db.get_run(run_id)
+        if not run or not run.get("master_video_path"):
+            raise ValueError(f"Run '{run_id}' has no rendered video.")
+        payload = run["script_payload"]
+        if payload.get("origin") == "curated" and not payload.get("human_reviewed"):
+            raise ValueError("This run used an unreviewed curated script; it can only be published after review.")
+        run_dir = Path(run["master_video_path"]).parent
+        slot = post_schedule.next_reel_slot(now, self._booked_reel_days())
+        self.db.add_scheduled_post(run_id, "reel", slot.astimezone(timezone.utc).isoformat(), [])
+        lines = [f"🎬 Reel: {post_schedule.fmt(slot)}"]
+        stories = sorted(str(p) for p in (run_dir / "stories").glob("story_*.jpg"))
+        if stories:
+            when = post_schedule.story_time(slot)
+            self.db.add_scheduled_post(run_id, "story", when.astimezone(timezone.utc).isoformat(), stories)
+            lines.append(f"📱 {len(stories)} Story frames: {post_schedule.fmt(when)}")
+        carousel = sorted(str(p) for p in (run_dir / "carousel").glob("carousel_slide_*.jpg"))
+        if carousel:
+            self.db.add_scheduled_post(run_id, "carousel", None, carousel, status="waiting")
+            lines.append(f"🖼 Carousel: queued for the next carousel slot (from {post_schedule.fmt(post_schedule.next_carousel_slot(slot))})")
+        self.db.update_run(run_id, "scheduled")
+        self.topic_engine.record_status(run["topic_id"], "scheduled", run_id=run_id)
+        self._alert(f"🗓 <b>Scheduled</b> {html.escape(self.db.run_label(run_id))}\n" + "\n".join(html.escape(x) for x in lines))
+        return {"status": "scheduled", "scheduled_for": slot.isoformat()}
+
+    def _booked_reel_days(self, exclude_id: Optional[int] = None) -> set:
+        return {datetime.fromisoformat(p["due_at"]).astimezone(post_schedule.tz()).date()
+                for p in self.db.list_scheduled_posts(("pending",)) if p["kind"] == "reel" and p["id"] != exclude_id}
+
+    def post_due(self, now: Optional[datetime] = None) -> None:
+        """Publishes every post whose slot has come. A Reel slot missed by more than
+        MISSED_SLOT_GRACE (daemon off, or paused) moves to the next free slot instead of
+        posting at an odd hour; Stories and carousels only follow a Reel that really posted."""
+        now = now or datetime.now(timezone.utc)
+        for post in self.db.list_scheduled_posts(("pending",)):
+            due = datetime.fromisoformat(post["due_at"])
+            if due > now:
+                continue
+            run = self.db.get_run(post["run_id"]) or {}
+            if post["kind"] == "reel":
+                if now - due > MISSED_SLOT_GRACE:
+                    self._reschedule(post, run, now)
+                    continue
+                res = self.publish_run(post["run_id"])
+                self.db.update_scheduled_post(post["id"], res["status"], detail={"error": res.get("publish_result", {}).get("error")})
+                if res["status"] != "published":
+                    for other in self.db.list_scheduled_posts(("pending", "waiting"), run_id=post["run_id"]):
+                        self.db.update_scheduled_post(other["id"], "cancelled", detail={"reason": "the Reel did not post"})
+            elif post["kind"] == "story":
+                if run.get("status") == "scheduled":
+                    continue  # its Reel was moved; the Story moved with it
+                if run.get("status") != "published":
+                    self.db.update_scheduled_post(post["id"], "cancelled", detail={"reason": "the Reel did not post"})
+                    continue
+                self._post_photos(post, run, "story")
+        self._post_carousel_if_due(now)
+
+    def _reschedule(self, post: Dict[str, Any], run: Dict[str, Any], now: datetime) -> None:
+        slot = post_schedule.next_reel_slot(now, self._booked_reel_days(exclude_id=post["id"]))
+        self.db.update_scheduled_post(post["id"], "pending", due_at=slot.astimezone(timezone.utc).isoformat())
+        for story in self.db.list_scheduled_posts(("pending",), run_id=post["run_id"]):
+            if story["kind"] == "story":
+                when = post_schedule.story_time(slot).astimezone(timezone.utc).isoformat()
+                self.db.update_scheduled_post(story["id"], "pending", due_at=when)
+        missed = post_schedule.fmt(datetime.fromisoformat(post["due_at"]))
+        self._alert(f"⏰ Missed the {html.escape(missed)} slot for {html.escape(self.db.run_label(post['run_id']))} "
+                    f"(the daemon was off or paused). Moved to {html.escape(post_schedule.fmt(slot))}.")
+
+    def _post_photos(self, post: Dict[str, Any], run: Dict[str, Any], kind: str) -> str:
+        files = [f for f in post["files"] if Path(f).exists()]
+        if not files:
+            self.db.update_scheduled_post(post["id"], "failed", detail={"error": "image files are missing"})
+            return "failed"
+        caption = run["script_payload"].get("caption", "") if kind == "carousel" else ""
+        res = self.publisher.publish_photos(post["run_id"], run["topic_id"], kind, files, caption=caption)
+        self.db.update_scheduled_post(post["id"], res["status"], detail=res)
+        name = {"story": "Stories", "carousel": "Carousel"}[kind]
+        label = html.escape(self.db.run_label(post["run_id"]))
+        if res["status"] == "published":
+            self._alert(f"✅ {name} posted for {label}")
+        elif res["status"] == "unknown":
+            self._alert(f"⚠️ <b>Not sure the {name.lower()} posted</b> for {label} "
+                        f"({html.escape(str(res.get('error', '')))[:200]}). Not retried, to avoid a duplicate; please check.")
+        else:
+            self._alert(f"❌ {name} not posted for {label}: {html.escape(str(res.get('error', '')))[:300]}")
+        return res["status"]
+
+    def _post_carousel_if_due(self, now: datetime) -> None:
+        local = now.astimezone(post_schedule.tz())
+        slot = post_schedule.carousel_time(local.date())
+        if not slot or not slot <= now < slot + MISSED_SLOT_GRACE:
+            return
+        if self.db.get_setting("carousel_posted_on") == local.date().isoformat():
+            return
+        waiting = self.db.list_scheduled_posts(("waiting",))
+        for post in waiting:  # a week-old carousel is stale next to newer Reels
+            if now - datetime.fromisoformat(post["created_at"]) > timedelta(days=7):
+                self.db.update_scheduled_post(post["id"], "expired")
+        ready = [(p, self.db.get_run(p["run_id"])) for p in waiting
+                 if now - datetime.fromisoformat(p["created_at"]) <= timedelta(days=7)]
+        ready = [(p, r) for p, r in ready if r and r["status"] == "published"]
+        if not ready:
+            return
+        post, run = max(ready, key=lambda pr: pr[0]["id"])  # the newest topic
+        self.db.set_setting("carousel_posted_on", local.date().isoformat())  # before posting: never twice a day
+        self._post_photos(post, run, "carousel")
 
     def publish_run(self, run_id: str, dry_run: bool = False, previous_status: str = "queued") -> Dict[str, Any]:
         run = self.db.get_run(run_id)
@@ -540,6 +662,18 @@ def main(argv=None) -> int:
 
     if args.command == "update":
         import re
+        def post_due():
+            if is_paused(coordinator.db):
+                return  # held; slots missed while paused move to the next free slot on resume
+            try:
+                coordinator.post_due()
+            except Exception as e:
+                log.exception("Posting scheduled items failed: %s", e)
+                bot.notify(f"⚠️ Scheduled posting hit an error: {html.escape(str(e))[:300]}")
+
+        if POST_SCHEDULING:
+            scheduler.add_job(post_due, "interval", minutes=1, max_instances=1, coalesce=True)
+
         from src import maintenance
         plan = maintenance.check()
         print(re.sub(r"<[^>]+>", "", maintenance.report_text(plan)))
@@ -587,7 +721,7 @@ def main(argv=None) -> int:
 
         hour, minute = (int(x) for x in args.time.split(":"))
         hb_hour, hb_minute = (int(x) for x in HEARTBEAT_TIME.split(":"))
-        coordinator = PipelineCoordinator()
+        coordinator = PipelineCoordinator(schedule_posts=True)
         bot = coordinator.telegram_bot
         run_lock = threading.Lock()  # one production run at a time (daily job or /run)
 

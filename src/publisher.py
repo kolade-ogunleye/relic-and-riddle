@@ -122,6 +122,49 @@ class UploadPostPublisher:
         request_id = body.get("request_id") or envelope["run_id"]
         return self._poll(request_id)
 
+    def publish_photos(self, kind: str, photos: List[str], caption: str, platforms: List[str], key: str) -> Dict[str, Any]:
+        """A carousel (several photos, one post) or a single Story frame (kind="story", one photo).
+        Docs: docs.upload-post.com/api/upload-photo/ (media_type / facebook_media_type = STORIES)."""
+        if not self.configured():
+            raise NotConfigured("UPLOAD_POST_API_KEY / UPLOAD_POST_USER not set")
+        data: List[Tuple[str, str]] = [("user", self.user), *[("platform[]", p) for p in platforms],
+                                       ("async_upload", "true"), ("request_id", key)]
+        if kind == "story":
+            data += [("media_type", "STORIES"), ("facebook_media_type", "STORIES")]
+        else:
+            data += [("title", caption), ("description", caption)]
+        if self.facebook_page_id:
+            data.append(("facebook_page_id", self.facebook_page_id))
+
+        response = None
+        for attempt in (1, 2):  # same Idempotency-Key on retry, as for Reels
+            handles = [open(p, "rb") for p in photos]
+            try:
+                response = requests.post(
+                    f"{self.base_url}/upload_photos", headers=self._headers(key), data=data,
+                    files=[("photos[]", (Path(p).name, h, "image/jpeg")) for p, h in zip(photos, handles)],
+                    timeout=(15, 300))
+                break
+            except requests.ConnectionError as e:
+                if attempt == 2:
+                    raise PublishFailed(f"Could not connect to Upload-Post: {e}") from e
+            except requests.Timeout as e:
+                if attempt == 2:
+                    raise PublishUnknown(f"Upload-Post timed out after upload started: {e}") from e
+            finally:
+                for h in handles:
+                    h.close()
+            log.warning("Upload-Post photo request failed (attempt %d); retrying with the same idempotency key.", attempt)
+
+        body = self._json(response)
+        if response.status_code >= 500:
+            raise PublishUnknown(f"Upload-Post server error {response.status_code}: {body}")
+        if response.status_code >= 400 or not body.get("success"):
+            raise PublishFailed(f"Upload-Post rejected the {kind} ({response.status_code}): {body.get('message') or body}")
+        if "results" in body:
+            return self._summarize(body["results"], body)
+        return self._poll(body.get("request_id") or key)
+
     @staticmethod
     def _json(resp: requests.Response) -> Dict[str, Any]:
         try:
@@ -404,3 +447,36 @@ class MetaPublisher:
             return merged
         msg = "; ".join(errors) if errors else "no publisher is configured"
         return {"status": "failed", "error": msg}
+
+    def publish_photos(self, run_id: str, topic_id: str, kind: str, photos: List[str], caption: str = "",
+                       platforms: Optional[List[str]] = None, dry_run: bool = False) -> Dict[str, Any]:
+        """Stories (one post per frame, in order) or a carousel, via Upload-Post only (the direct
+        Graph publishers here handle Reels only). Same outcome rules as Reels: an unknown outcome
+        stops there so nothing is posted twice."""
+        platforms = platforms or ["facebook", "instagram"]
+        channel = f"upload-post:{kind}"
+        if dry_run:
+            self.db.record_publication(topic_id, run_id, channel, "simulated", {"photos": photos})
+            return {"status": "simulated"}
+        up = next((p for p in self.publishers if isinstance(p, UploadPostPublisher)), None)
+        if up is None or not up.configured():
+            return {"status": "failed", "error": "Upload-Post is not configured (needed for Stories and carousels)"}
+        batches = [[p] for p in photos] if kind == "story" else [photos[:10]]  # Instagram carousels: max 10
+        done = []
+        for i, batch in enumerate(batches, 1):
+            key = f"{run_id}-{kind}-{i}"
+            try:
+                res = up.publish_photos(kind, batch, caption, platforms, key)
+            except PublishFailed as e:
+                self.db.record_publication(topic_id, run_id, channel, "failed", {"error": str(e), "part": i})
+                status = "unknown" if done else "failed"  # earlier frames already went out
+                return {"status": status, "error": str(e), "posted_parts": len(done)}
+            except PublishUnknown as e:
+                self.db.record_publication(topic_id, run_id, channel, "unknown", {"error": str(e), "part": i})
+                return {"status": "unknown", "error": str(e), "posted_parts": len(done)}
+            self.db.record_publication(topic_id, run_id, channel, "published", dict(res, part=i))
+            done.append(res)
+        urls: Dict[str, Any] = {}
+        for r in done:
+            urls.update(r.get("post_urls") or {})
+        return {"status": "published", "post_urls": urls, "posted_parts": len(done)}

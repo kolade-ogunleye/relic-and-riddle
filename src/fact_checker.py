@@ -47,6 +47,15 @@ STRUCTURE_PROMPT = """Convert this fact-check into the required structure. Keep 
 </retrieved_sources>"""
 
 
+def norm_url(url: str) -> str:
+    """URLs compared without scheme, "www.", query strings, fragments or a trailing slash: a checker that
+    cites https://www.x.org/a/ for a page it retrieved as http://x.org/a?utm=1 still cites a retrieved page."""
+    from urllib.parse import urlparse
+    u = urlparse(url.strip())
+    host = (u.hostname or "").lower().removeprefix("www.")
+    return f"{host}{u.path.rstrip('/')}".lower()
+
+
 class ClaimFactChecker:
     @llm_task("fact_check")
     def verify(
@@ -168,13 +177,14 @@ class ClaimFactChecker:
         (when retrieved_urls is given), so a hallucinated URL cannot pass a claim.
         """
         audits = [c.model_dump() for c in report.claims]
+        retrieved_norm = {norm_url(u) for u in retrieved_urls} if retrieved_urls is not None else set()
         if not report.claims:
             return False, 0.0, audits, "No claims were extracted; cannot verify an empty audit."
 
         blocking = []
         ok = 0
         for c in report.claims:
-            sourced = [s for s in c.sources if retrieved_urls is None or s.url in retrieved_urls]
+            sourced = [s for s in c.sources if retrieved_urls is None or norm_url(s.url) in retrieved_norm]
             if c.verdict == "supported" and sourced:
                 ok += 1
             elif c.verdict == "disputed" and c.hedged_in_script:

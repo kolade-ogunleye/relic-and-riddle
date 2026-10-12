@@ -83,3 +83,27 @@ def test_scripts_from_a_fact_sheet_are_trace_checked(monkeypatch, curated_payloa
 def test_single_tier2_source_is_not_enough_for_a_number():
     kept, dropped = fact_sheet._apply_rules([fact("F1", "Derinkuyu is about 280 feet deep.", "number", [1])], QUOTES)
     assert kept == [] and "weak source" in dropped[0][1]
+
+
+def test_attribution_needs_evidence_from_that_source():
+    quotes = QUOTES + [{"url": "https://www.smithsonianmag.com/x", "quote": "Roman concrete is not a solved recipe."}]
+    kept, dropped = fact_sheet._apply_rules([
+        fact("A1", "Official sources count at least eight levels.", "other", [1], hedge="according to the ministry"),
+        fact("A2", "Smithsonian calls Roman concrete not a solved recipe.", "other", [5]),
+        fact("A3", "Smithsonian calls Roman concrete not a solved recipe.", "other", [1]),
+    ], quotes)
+    assert [f["id"] for f in kept] == ["A2"]  # the ministry has no quote; A3 cites Wikipedia, not the Smithsonian
+    assert all("attributes to" in r for _, r in dropped)
+
+
+def test_checker_url_matching_ignores_cosmetic_differences():
+    from src.fact_checker import norm_url
+    assert norm_url("https://www.example.org/a/b/?utm_source=x#top") == norm_url("http://example.org/a/b")
+    assert norm_url("https://example.org/a") != norm_url("https://example.org/b")
+
+
+def test_mentioning_a_source_word_is_not_an_attribution():
+    assert fact_sheet._named_sources("Doors are often said to weigh several hundred kilograms, but there is no official figure.") == set()
+    assert "si.edu" in fact_sheet._named_sources("The Smithsonian calls it unsolved.")
+    assert fact_sheet._named_sources("there is no official figure") == set()
+    assert ".gov" in fact_sheet._named_sources("according to official sources, eight levels")

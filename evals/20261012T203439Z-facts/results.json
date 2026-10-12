@@ -1,0 +1,45 @@
+{
+ "topics": [
+  {
+   "topic": "01_derinkuyu_underground_city",
+   "drafts": 3,
+   "passed": true,
+   "fact_sheet": true,
+   "cost": 10.01,
+   "last_notes": "Structure OK (109 words) | All 28 claims trace to the verified fact sheet. | 2nd check: [claude-opus-5-5 disputed; claude-fable-5-1 decided] All 22 claims verified (100.0%).",
+   "narration": "Under the streets of Derinkuyu, a city drops about 280 feet (85 meters), according to Turkey's culture ministry. At least eight levels are commonly cited. One ventilation shaft, about 180 feet (55 meters) deep, doubled as a water well. Estimates suggest it could have sheltered thousands, perhaps up to 20,000 people. Its rolling stone doors are often said to weigh several hundred kilograms, though no official figure is known. Who dug first is uncertain: some say Hittites, others Phrygians. In the middle Byzantine period, it was greatly expanded as a refuge from raids. Only about ten percent can be visited today; the rest lies under the streets of Derinkuyu."
+  }
+ ],
+ "catch": [
+  {
+   "topic": "01_derinkuyu_underground_city",
+   "planted": 3,
+   "caught": 3,
+   "errors": [
+    {
+     "kind": "number",
+     "original": "perhaps up to 20,000 people",
+     "corrupted": "perhaps up to 50,000 people"
+    },
+    {
+     "kind": "attribution",
+     "original": "others Phrygians",
+     "corrupted": "others Persians"
+    },
+    {
+     "kind": "date",
+     "original": "In the middle Byzantine period",
+     "corrupted": "In the early Byzantine period"
+    }
+   ],
+   "trace_message": "3 untraceable claim(s): 'Estimates suggest it could have sheltered thousands, perhaps up to 50,000 people' (narration; contradicts: F6 gives up to 20,000, not 50,000.); 'Who dug first is uncertain: some say Hittites, others Persians' (narration; contradicts: F13 names the Phrygians, not the Persians.); 'It was greatly expanded in the early Byzantine period as a refuge from raids' (narration; contradicts: F15 says the middle Byzantine period.)"
+  }
+ ],
+ "spend": 17.29,
+ "summary": {
+  "first_pass": "0/1",
+  "passed_within_revisions": "1/1",
+  "mean_cost_per_topic": 10.01,
+  "planted_caught": "3/3"
+ }
+}

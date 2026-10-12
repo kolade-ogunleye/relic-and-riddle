@@ -79,7 +79,8 @@ Requirements:
 FACTS_ONLY_RULES = """Write from the verified facts ONLY. Every factual statement in the narration, caption, title,
 on-screen text, slides, stories and first comment must come from a listed fact; for a DISPUTED fact use its hedge
 wording (or something no stronger). Do not add details, names, causes, numbers or dates that are not in a fact,
-and do not derive new figures (no subtracting dates, no unit-free rounding). Use at most 8 distinct facts and reuse
+and do not derive new figures (no subtracting dates, no unit-free rounding). Never put words in a source's mouth:
+attribute or quote a source ("the Smithsonian calls it...") only if the fact itself names that source. Use at most 8 distinct facts and reuse
 the same wording for a fact wherever it appears. Questions and framing are fine if they assert nothing new.
 List sources only from retrieved_sources."""
 

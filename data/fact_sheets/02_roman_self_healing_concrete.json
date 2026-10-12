@@ -1,0 +1,676 @@
+{
+ "topic_id": "02_roman_self_healing_concrete",
+ "built_at": "2026-10-12T20:53:29.239109+00:00",
+ "facts": [
+  {
+   "id": "F1",
+   "statement": "The Roman port at Cosa was presumably founded with the Latin colony on the hill above in 273 B.C.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "presumably founded in 273 B.C.",
+   "evidence": [
+    {
+     "url": "https://www.tandfonline.com/doi/abs/10.1179/009346979791489014",
+     "tier": 1,
+     "quote": "The port, presumably founded with the early Latin colony on the hill above in 273 B.C., is the earliest Roman harbor thus far known."
+    }
+   ]
+  },
+  {
+   "id": "F2",
+   "statement": "A radiocarbon sample from a drill core at the Cosa port gave a date range of 57 BC to AD 33.",
+   "kind": "date",
+   "disputed": true,
+   "hedge": "Estimates for Cosa's harbour piers range from the late 2nd century BC to the early 1st century AD.",
+   "evidence": [
+    {
+     "url": "https://www.researchgate.net/publication/227501582_The_ROMACONS_Project_A_Contribution_to_the_Historical_and_Engineering_Analysis_of_Hydraulic_Concrete_in_Roman_Maritime_Structures",
+     "tier": 3,
+     "quote": "A C14\n\nsample from Core PCO.2003.01 from the Cosa\n\n\n\nPort (see Appendix) pr ovided a date of 2020 ± 40\n\nB.P., gi ving a range of 57 BC to AD 33."
+    },
+    {
+     "url": "https://www.researchgate.net/publication/228054847_The_concrete_construction_of_the_Roman_harbours_of_Baiae_and_Portus_Iulius_Italy_The_ROMACONS_2006_field_season",
+     "tier": 3,
+     "quote": "The earliest surviving\n\nhy draulic concrete found to da te is the harbour\n\npilae\n\nat Cosa, dated betw een the late-2nd century\n\nand the mid-1st centur..."
+    }
+   ]
+  },
+  {
+   "id": "F3",
+   "statement": "Cosa's harbour has been called the earliest surviving major structure built with hydraulic concrete, but another source names the entrance channel to Portus Iulius as the oldest datable maritime concrete site.",
+   "kind": "other",
+   "disputed": true,
+   "hedge": "Cosa's harbour is among the earliest surviving examples of Roman marine concrete.",
+   "evidence": [
+    {
+     "url": "https://www.researchgate.net/publication/227501582_The_ROMACONS_Project_A_Contribution_to_the_Historical_and_Engineering_Analysis_of_Hydraulic_Concrete_in_Roman_Maritime_Structures",
+     "tier": 3,
+     "quote": "At present, the earliest surviving example of a\n\nmajor structure built with h ydraulic concrete is\n\nin the harbour at Cosa, a R oman colony on the\n\nco..."
+    },
+    {
+     "url": "https://www.researchgate.net/publication/228054847_The_concrete_construction_of_the_Roman_harbours_of_Baiae_and_Portus_Iulius_Italy_The_ROMACONS_2006_field_season",
+     "tier": 3,
+     "quote": "The earliest surviving\n\nhy draulic concrete found to da te is the harbour\n\npilae\n\nat Cosa, dated betw een the late-2nd century\n\nand the mid-1st centur..."
+    },
+    {
+     "url": "https://bmcr.brynmawr.edu/2015/2015.12.15",
+     "tier": 1,
+     "quote": "For example, the oldest preserved/datable site where maritime concrete was used was the entrance channel to Portus Iulius in the Gulf of Pozzuoli from..."
+    }
+   ]
+  },
+  {
+   "id": "F4",
+   "statement": "Researchers drilled a core, PCO.03.01, from Roman marine concrete at Portus Cosanus, near Orbetello.",
+   "kind": "name",
+   "disputed": true,
+   "hedge": "The research paper describes the sampled concrete as exposed above water. One blog places it below the tideline.",
+   "evidence": [
+    {
+     "url": "https://www.researchgate.net/publication/318117204_Phillipsite_and_Al-tobermorite_mineral_cements_produced_through_low-temperature_water-rock_reactions_in_Roman_marine_concrete",
+     "tier": 3,
+     "quote": "The marine concrete is exposed sub-aerially at Portus Cosanus (drill core\n\nPCO.03.01), Orbetello, (42.4079° N, 11.2933° E), and submerged in seawater ..."
+    },
+    {
+     "url": "https://scienceblog.com/sb-roman-concrete-piers-built-two-thousand-years-ago-along-the-mediterranean-coast-are-stronger-now-than-the-day-they-were-poured-because-seawater-seeping-into-the-volcanic-ash-mix-triggers-the-slow-g/",
+     "tier": 3,
+     "quote": "## What is happening in the concrete right now\nAt Portus Cosanus, north of Rome, a block of Roman marine concrete sits below the tideline."
+    }
+   ]
+  },
+  {
+   "id": "F5",
+   "statement": "The same volcanic ash was found in harbor concretes across the Mediterranean, indicating the Romans shipped it for marine structures.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://theworld.org/stories/2017/07/14/seawater-pores-it-s-what-made-roman-concrete-great",
+     "tier": 3,
+     "quote": "She notes that the same ash was found in harbor concretes across the Mediterranean, indicating the Romans shipped it for use in marine structures."
+    }
+   ]
+  },
+  {
+   "id": "F6",
+   "statement": "Lime clasts with fractures were documented in a drill core from the Portus Cosa concrete.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://www.academia.edu/24329677/Building_for_Eternity_the_History_and_Technology_of_Roman_Concrete_Engineering_in_the_Sea",
+     "tier": 1,
+     "quote": "12 Optical micrographs of white inclusions, (a) and (b) lime clasts with fractures, Portus Cosa (PCO.2003.01), © lime clast with fractures, Santa Libe..."
+    }
+   ]
+  },
+  {
+   "id": "F7",
+   "statement": "Some argue that the endurance of Roman marine concrete owed more to chance than to any mineralogical genius on the part of its builders.",
+   "kind": "other",
+   "disputed": true,
+   "hedge": "Researchers debate whether Roman builders' success was deliberate or partly luck.",
+   "evidence": [
+    {
+     "url": "https://www.worldcement.com/magazine/world-cement/august-2017/editorial-comment/",
+     "tier": 3,
+     "quote": "Ultimately, the endurance of Roman concrete in maritime environments owed more to chance that any particular mineralogical genius on the part of the a..."
+    }
+   ]
+  },
+  {
+   "id": "F8",
+   "statement": "A July 2017 study reported that phillipsite and Al-tobermorite mineral cements formed through low-temperature water-rock reactions in Roman marine concrete.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://www.researchgate.net/publication/318117204_Phillipsite_and_Al-tobermorite_mineral_cements_produced_through_low-temperature_water-rock_reactions_in_Roman_marine_concrete",
+     "tier": 3,
+     "quote": "# Phillipsite and Al-tobermorite mineral cements produced through low-temperature water-rock reactions in Roman marine concrete\n- July 2017\n- American..."
+    },
+    {
+     "url": "https://als.lbl.gov/ancient-roman-secret-concrete-resilience-seawater/",
+     "tier": 1,
+     "quote": "# The Ancient Roman Secret to Concrete Resilience in Seawater\nThe results indicate that Al-tobermorite and a related zeolite mineral called phillipsit..."
+    }
+   ]
+  },
+  {
+   "id": "F9",
+   "statement": "As seawater percolated through Roman maritime concrete, it dissolved components of the volcanic ash.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://www.worldcement.com/magazine/world-cement/august-2017/editorial-comment/",
+     "tier": 3,
+     "quote": "According to the scientists, when seawater percolated through the concrete in the Roman maritime structures, it dissolved components of the volcanic a..."
+    }
+   ]
+  },
+  {
+   "id": "F10",
+   "statement": "MIT researchers say reactions with water inside the concrete take place spontaneously and automatically heal cracks before they spread.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://news.mit.edu/2023/roman-concrete-durability-lime-casts-0106",
+     "tier": 1,
+     "quote": "These reactions take place spontaneously and therefore automatically heal the cracks before they spread."
+    },
+    {
+     "url": "https://news.mit.edu/2023/roman-concrete-durability-lime-casts-0106",
+     "tier": 1,
+     "quote": "This material can then react with water, creating a calcium-saturated solution, which can recrystallize as calcium carbonate and quickly fill the crac..."
+    }
+   ]
+  },
+  {
+   "id": "F12",
+   "statement": "In 2023, a team proposed that the Romans used a hot-mixing technique with quicklime, which could produce self-healing concrete.",
+   "kind": "event",
+   "disputed": true,
+   "hedge": "Smithsonian calls this one possible explanation, not a solved recipe.",
+   "evidence": [
+    {
+     "url": "https://www.smithsonianmag.com/smart-news/this-ancient-construction-site-in-the-ruins-of-pompeii-is-revealing-new-secrets-about-the-2000-year-old-recipe-for-roman-concrete-180987845/",
+     "tier": 1,
+     "quote": "In 2023, a team proposed one possible explanation: They used a “hot-mixing” technique to produce self-healing concrete, which could repair cracks on i..."
+    },
+    {
+     "url": "https://dspace.mit.edu/handle/1721.1/147056",
+     "tier": 1,
+     "quote": "Together, these analyses provide new insights into mortar preparation methodologies and provide evidence that the Romans employed hot mixing, using qu..."
+    }
+   ]
+  },
+  {
+   "id": "F13",
+   "statement": "Not all Roman concrete was produced by hot mixing.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://archaeologymag.com/2025/12/how-ancient-romans-created-self-healing-concrete/",
+     "tier": 3,
+     "quote": "However, it is important to note that not all Roman concrete was produced this way."
+    },
+    {
+     "url": "https://studyfinds.org/ancient-roman-concrete-heal-itself",
+     "tier": 3,
+     "quote": "The findings demonstrate that hot mixing with quicklime was used at this location during the post-earthquake reconstruction period, but cannot definit..."
+    }
+   ]
+  },
+  {
+   "id": "F14",
+   "statement": "Pliny the Elder described the intense heat released when quicklime meets water.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://archaeologymag.com/2025/12/how-ancient-romans-created-self-healing-concrete/",
+     "tier": 3,
+     "quote": "Yet ancient texts written by Pliny the Elder describe the intense heat released when quicklime meets water, which matches closely with what is now ide..."
+    }
+   ]
+  },
+  {
+   "id": "F15",
+   "statement": "Pliny the Elder wrote about Roman concrete in his Naturalis Historia around A.D. 79.",
+   "kind": "date",
+   "disputed": true,
+   "hedge": "around A.D. 79",
+   "evidence": [
+    {
+     "url": "https://www.worldcement.com/magazine/world-cement/august-2017/editorial-comment/",
+     "tier": 3,
+     "quote": "The discovery also seems to verify an observation that Pliny the Elder made around A.D. 79: Pliny wrote in his Naturalis Historia that the concrete ha..."
+    }
+   ]
+  },
+  {
+   "id": "F16",
+   "statement": "Geologist Marie Jackson has said the Roman recipe was completely lost.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://www.moftarchive.org/2017/08/08/scientists-unlock-the-mystery-behind-roman-concretes-amazing-longevity/",
+     "tier": 3,
+     "quote": "“The recipe was completely lost,” Jackson says in a press release."
+    }
+   ]
+  },
+  {
+   "id": "F17",
+   "statement": "Estimates of modern concrete's lifespan vary widely, from about 100 years down to as little as 10 years for some submerged objects.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "Modern marine concrete can fail within decades.",
+   "evidence": [
+    {
+     "url": "https://www.nbcnews.com/news/amp/wbna52112847",
+     "tier": 3,
+     "quote": "What Ancient Roman Concrete Could Teach Modern Builders\n\nContemporary concrete is designed to last for about 100 years."
+    },
+    {
+     "url": "https://riskfrontiers.com/insights/why-is-roman-concrete-more-durable-than-modern-concrete/",
+     "tier": 3,
+     "quote": "Some submerged concrete objects may last only 10 years; meanwhile, 2000-year old concrete constructed during the Roman Empire is still going strong (F..."
+    },
+    {
+     "url": "https://phys.org/news/2017-07-ancient-concrete-romans.html",
+     "tier": 3,
+     "quote": "While modern marine concrete structures crumble within decades, 2,000-year-old Roman piers and breakwaters endure to this day, and are stronger now th..."
+    }
+   ]
+  },
+  {
+   "id": "F18",
+   "statement": "Roman concrete takes time to develop strength from seawater, and it has less compressive strength than typical Portland cement.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://phys.org/news/2017-07-ancient-concrete-romans.html",
+     "tier": 3,
+     "quote": "Roman concrete takes time to develop strength from seawater, and features less compressive strength than typical Portland cement."
+    }
+   ]
+  },
+  {
+   "id": "F11",
+   "statement": "In a lab test, cracks in the concrete had completely healed within two weeks, and water could no longer flow through.",
+   "kind": "event",
+   "disputed": true,
+   "hedge": "In lab tests of new concrete made with the Roman hot-mixing method, the cracks healed within about two to three weeks and water stopped flowing through. MIT's press release says within two weeks.",
+   "evidence": [
+    {
+     "url": "https://news.mit.edu/2023/roman-concrete-durability-lime-casts-0106",
+     "tier": 1,
+     "quote": "Sure enough: Within two weeks the cracks had completely healed and the water could no longer flow."
+    },
+    {
+     "url": "https://www.scientificamerican.com/article/ancient-roman-concrete-has-self-healing-capabilities/",
+     "tier": 2,
+     "quote": "For the sample using ancient mixing techniques, “the cracks had completely healed” within two weeks, and water no longer flowed through the material."
+    },
+    {
+     "url": "https://www.iom3.org/resource/roman-concrete.html",
+     "tier": 3,
+     "quote": "Within two weeks, the cracks had completely healed and water could not flow."
+    },
+    {
+     "url": "https://www.sciencedaily.com/releases/2023/01/230106144441.htm",
+     "tier": 3,
+     "quote": "Sure enough: Within two weeks the cracks had completely healed and the water could no longer flow."
+    },
+    {
+     "url": "https://www.sciencenews.org/article/chemists-long-lasting-roman-concrete",
+     "tier": 3,
+     "quote": "The blocks incorporating hot mixed cement healed within two to three weeks."
+    },
+    {
+     "url": "https://cimsa.com.tr/en/concrete-cracks-self-healing-ancient-roman-concrete/",
+     "tier": 3,
+     "quote": "Then flow rates reduced over the course of 1 to 3 weeks depending on the geometry of the concrete cracks, to almost zero when the crack was eventually..."
+    }
+   ]
+  }
+ ],
+ "dropped": [],
+ "sources": [
+  {
+   "title": "(PDF) Phillipsite and Al-tobermorite mineral cements produced through low-temperature water-rock reactions in Roman marine concrete",
+   "url": "https://www.researchgate.net/publication/318117204_Phillipsite_and_Al-tobermorite_mineral_cements_produced_through_low-temperature_water-rock_reactions_in_Roman_marine_concrete",
+   "tier": 3
+  },
+  {
+   "title": "New X-ray Studies of Roman Concrete Samples Stir Interest in Ancient Techniques",
+   "url": "https://newscenter.lbl.gov/2017/07/03/ancient-concrete-could-teach-us-to-do-as-romans-did/",
+   "tier": 1
+  },
+  {
+   "title": "Phillipsite and Al-tobermorite mineral cements produced through low-temperature water-rock reactions in Roman marine concrete",
+   "url": "https://www.degruyterbrill.com/document/doi/10.2138/am-2017-5993CCBY/html?lang=en",
+   "tier": 3
+  },
+  {
+   "title": "New Research Shows How Natural Chemistry Strengthened Ancient Roman Marine Concrete",
+   "url": "https://www.sci.news/archaeology/roman-marine-concrete-05011.html",
+   "tier": 3
+  },
+  {
+   "title": "Synchrotron Microtomography and Neutron Radiography Characterization of the Microstruture and Water Absorption of Concrete from Pompeii",
+   "url": "https://arxiv.org/pdf/2005.13114",
+   "tier": 3
+  },
+  {
+   "title": "The Ancient Roman Secret to Concrete Resilience in Seawater",
+   "url": "https://als.lbl.gov/ancient-roman-secret-concrete-resilience-seawater/",
+   "tier": 1
+  },
+  {
+   "title": "New studies of ancient concrete could teach us to do as the Romans did",
+   "url": "https://phys.org/news/2017-07-ancient-concrete-romans.html",
+   "tier": 3
+  },
+  {
+   "title": "Phillipsite",
+   "url": "https://en.wikipedia.org/wiki/Phillipsite",
+   "tier": 2
+  },
+  {
+   "title": "Roman concrete piers built two thousand years ago along the Mediterranean coast are stronger now than the day they were poured, because seawater seeping into the volcanic ash mix triggers the slow growth of a rare crystal called aluminous tobermorite that welds new cracks shut - ScienceBlog.com",
+   "url": "https://scienceblog.com/sb-roman-concrete-piers-built-two-thousand-years-ago-along-the-mediterranean-coast-are-stronger-now-than-the-day-they-were-poured-because-seawater-seeping-into-the-volcanic-ash-mix-triggers-the-slow-g/",
+   "tier": 3
+  },
+  {
+   "title": "Ancient Roman Concrete Reacts With Saltwater to Repair Itself",
+   "url": "https://www.inverse.com/article/33727-ancient-rome-maritime-concrete-sea-level-rise-infrastructure",
+   "tier": 3
+  },
+  {
+   "title": "Researchers uncover the ‘secret sauce’ in Roman concrete",
+   "url": "https://canada.constructconnect.com/dcn/news/resource/2023/12/researchers-uncover-the-secret-sauce-in-roman-concrete",
+   "tier": 3
+  },
+  {
+   "title": "Dr. M.F. Khan on X: \"Ancient Roman concrete can heal its own cracks because it contains small white chunks of lime that react with water... A 2023 study led by researchers at MIT and Harvard examined Roman concrete samples from Privernum, an archaeological site near Rome, and focused on small whi… / X",
+   "url": "https://x.com/Dr_TheHistories/status/2104845593382359147",
+   "tier": 3
+  },
+  {
+   "title": "Relict no more—purposeful inclusion of lime clasts gives Roman concretes self-healing properties - The American Ceramic Society",
+   "url": "https://ceramics.org/ceramic-tech-today/relict-no-more-purposeful-inclusion-of-lime-clasts-gives-roman-concretes-self-healing-properties/",
+   "tier": 3
+  },
+  {
+   "title": "Ancient Roman Concrete’s Secret: Self-Healing Through Hot Mixing - Material Future",
+   "url": "https://www.materialfuture.com/ancient-roman-concretes-secret-self-healing-through-hot-mixing/",
+   "tier": 3
+  },
+  {
+   "title": "roman concrete durability lime casts 0106",
+   "url": "https://news.mit.edu/2023/roman-concrete-durability-lime-casts-0106",
+   "tier": 1
+  },
+  {
+   "title": "www.malaymail.com",
+   "url": "https://www.malaymail.com/news/life/2023/01/16/researchers-dig-up-secrets-of-self-healing-roman-concrete/50432",
+   "tier": 3
+  },
+  {
+   "title": "dspace.mit.edu",
+   "url": "https://dspace.mit.edu/handle/1721.1/147056?show=full",
+   "tier": 1
+  },
+  {
+   "title": "MIT Libraries logoDSpace@MIT",
+   "url": "https://dspace.mit.edu/handle/1721.1/147056",
+   "tier": 1
+  },
+  {
+   "title": "roman concrete miraculously held centuries 133000714",
+   "url": "https://www.yahoo.com/news/articles/roman-concrete-miraculously-held-centuries-133000714.html",
+   "tier": 3
+  },
+  {
+   "title": "pompeii offers insights ancient roman building technology 1209",
+   "url": "https://news.mit.edu/2025/pompeii-offers-insights-ancient-roman-building-technology-1209",
+   "tier": 1
+  },
+  {
+   "title": "Why was Roman concrete so strong? U. researcher has an idea",
+   "url": "https://www.deseret.com/2017/7/10/20615456/why-was-roman-concrete-so-strong-u-researcher-has-an-idea/",
+   "tier": 3
+  },
+  {
+   "title": "News - Chemistry of Roman Concrete Analyzed - Archaeology Magazine",
+   "url": "https://archaeology.org/news/2017/07/05/170705-roman-ocean-concrete/",
+   "tier": 1
+  },
+  {
+   "title": "World Cement August 2017 comment",
+   "url": "https://www.worldcement.com/magazine/world-cement/august-2017/editorial-comment/",
+   "tier": 3
+  },
+  {
+   "title": "Seawater in the pores? It’s what made Roman concrete great. - The World from PRX",
+   "url": "https://theworld.org/stories/2017/07/14/seawater-pores-it-s-what-made-roman-concrete-great",
+   "tier": 3
+  },
+  {
+   "title": "How seawater strengthens ancient Roman concrete",
+   "url": "https://www.eurekalert.org/news-releases/778694",
+   "tier": 3
+  },
+  {
+   "title": "Roman Concrete - Science Update",
+   "url": "https://www.scienceupdate.com/2017/07/roman/",
+   "tier": 3
+  },
+  {
+   "title": "Ancient concrete: Learning to do as the Romans did",
+   "url": "https://www.sciencedaily.com/releases/2017/07/170703132007.htm",
+   "tier": 3
+  },
+  {
+   "title": "Scientists Unlock the Mystery Behind Roman Concrete’s Amazing Longevity",
+   "url": "https://www.moftarchive.org/2017/08/08/scientists-unlock-the-mystery-behind-roman-concretes-amazing-longevity/",
+   "tier": 3
+  },
+  {
+   "title": "Rome wasn't built in a day, but its concrete has lasted centuries",
+   "url": "https://www.cbc.ca/lite/story/1.4193226",
+   "tier": 3
+  },
+  {
+   "title": "Roman Concrete Lasts Longer Than Many Modern Materials",
+   "url": "https://www.britannica.com/technology/Why-Did-Roman-Concrete-Last-Longer-Than-Many-Modern-Materials",
+   "tier": 1
+  },
+  {
+   "title": "Why modern mortar crumbles, but Roman concrete lasts millennia",
+   "url": "https://www.science.org/content/article/why-modern-mortar-crumbles-roman-concrete-lasts-millennia",
+   "tier": 1
+  },
+  {
+   "title": "Why is Roman concrete more durable than modern concrete?",
+   "url": "https://riskfrontiers.com/insights/why-is-roman-concrete-more-durable-than-modern-concrete/",
+   "tier": 3
+  },
+  {
+   "title": "Why 2,000 Year-Old Roman Concrete Is So Much Better Than What We Produce Today : ScienceAlert",
+   "url": "https://www.sciencealert.com/why-2-000-year-old-roman-concrete-is-so-much-better-than-what-we-produce-today",
+   "tier": 3
+  },
+  {
+   "title": "Why Roman Concrete Lasts Longer Than Modern Concrete",
+   "url": "https://trivbits.com/roman-concrete-lasts-longer/",
+   "tier": 3
+  },
+  {
+   "title": "Engineers Weigh Up Returning to Ancient Roman Concrete Recipes",
+   "url": "https://www.yahoo.com/news/articles/engineers-weigh-returning-ancient-roman-150048862.html",
+   "tier": 3
+  },
+  {
+   "title": "What Ancient Roman Concrete Could Teach Modern Builders",
+   "url": "https://www.nbcnews.com/news/amp/wbna52112847",
+   "tier": 3
+  },
+  {
+   "title": "vcresearch.berkeley.edu",
+   "url": "https://vcresearch.berkeley.edu/node/19532",
+   "tier": 1
+  },
+  {
+   "title": "The development of hydraulic concrete by the Romans for coastal underwater structures began most probably somewhere in the vicinity of Baia and at sometime before the last quarter the 2nd century BC (references)",
+   "url": "https://web.uvic.ca/~jpoleson/ROMACONS/Baia%202006.htm",
+   "tier": 3
+  },
+  {
+   "title": "Roman Maritime Concrete Study (ROMACONS)",
+   "url": "https://web.uvic.ca/~jpoleson/Harbour%20Concrete/HarbourConcrete.html",
+   "tier": 3
+  },
+  {
+   "title": "(PDF) The ROMACONS Project: A Contribution to the Historical and Engineering Analysis of Hydraulic Concrete in Roman Maritime Structures",
+   "url": "https://www.researchgate.net/publication/227501582_The_ROMACONS_Project_A_Contribution_to_the_Historical_and_Engineering_Analysis_of_Hydraulic_Concrete_in_Roman_Maritime_Structures",
+   "tier": 3
+  },
+  {
+   "title": "(PDF) The concrete construction of the Roman harbours of Baiae and Portus Iulius, Italy: The ROMACONS 2006 field season",
+   "url": "https://www.researchgate.net/publication/228054847_The_concrete_construction_of_the_Roman_harbours_of_Baiae_and_Portus_Iulius_Italy_The_ROMACONS_2006_field_season",
+   "tier": 3
+  },
+  {
+   "title": "CONSTRUCTING THE HARBOUR OF CAESAREA PALESTINAE:",
+   "url": "https://web.uvic.ca/~jpoleson/ROMACONS/Caesarea2005.htm",
+   "tier": 3
+  },
+  {
+   "title": "(PDF) Building for Eternity: the History and Technology of Roman Concrete Engineering in the Sea",
+   "url": "https://www.academia.edu/24329677/Building_for_Eternity_the_History_and_Technology_of_Roman_Concrete_Engineering_in_the_Sea",
+   "tier": 1
+  },
+  {
+   "title": "Roman ports: significance of their role, their structure and ...",
+   "url": "https://honorfrostfoundation.org/wp-content/uploads/2025/03/Roman-ports-significance-of-their-role-their-structure-and-construction.pdf",
+   "tier": 3
+  },
+  {
+   "title": "Building for Eternity: The History and Technology of Roman Concrete Engineering in the Sea",
+   "url": "https://bmcr.brynmawr.edu/2015/2015.12.15",
+   "tier": 1
+  },
+  {
+   "title": "The Harbor and Fishery Remains at Cosa, Italy: Journal of Field Archaeology: Vol 6, No 4",
+   "url": "https://www.tandfonline.com/doi/abs/10.1179/009346979791489014",
+   "tier": 1
+  },
+  {
+   "title": "Pompeii offers insights into ancient Roman building technology",
+   "url": "https://phys.org/news/2025-12-pompeii-insights-ancient-roman-technology.html",
+   "tier": 3
+  },
+  {
+   "title": "Ancient Construction Site at Pompeii Sheds Light on Rome's Miraculous Self-Healing Cement",
+   "url": "https://gizmodo.com/ancient-construction-site-at-pompeii-sheds-light-on-romes-miraculous-self-healing-cement-2000697080",
+   "tier": 3
+  },
+  {
+   "title": "Admir Masic",
+   "url": "https://en.wikipedia.org/wiki/Admir_Masic",
+   "tier": 2
+  },
+  {
+   "title": "We Finally Know Why Roman Concrete Has Survived For Nearly 2,000 Years : ScienceAlert",
+   "url": "https://www.sciencealert.com/we-finally-know-why-roman-concrete-has-survived-for-nearly-2000-years",
+   "tier": 3
+  },
+  {
+   "title": "Unfinished Pompeii Project Reveals Ancient Roman Building Technology - GreekReporter.com",
+   "url": "https://greekreporter.com/2025/12/11/unfinished-pompeii-project-ancient-roman-building-technology/",
+   "tier": 3
+  },
+  {
+   "title": "An unfinished Pompeian construction site reveals ancient Roman building technology",
+   "url": "https://www.nature.com/articles/s41467-025-66634-7",
+   "tier": 1
+  },
+  {
+   "title": "Ancient Roman Concrete Could Heal Itself? New Pompeii Evidence Shows A Key Step Scholars Missed",
+   "url": "https://studyfinds.org/ancient-roman-concrete-heal-itself",
+   "tier": 3
+  },
+  {
+   "title": "Nature Communications (Dec 2025)",
+   "url": "https://doaj.org/article/e0be9269bbac429fb57ea4f22bb0d2c7",
+   "tier": 3
+  },
+  {
+   "title": "pmc.ncbi.nlm.nih.gov",
+   "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12690119",
+   "tier": 1
+  },
+  {
+   "title": "M AT ER IAL S SCI EN CE Hot mixing: Mechanistic insights into the durability of",
+   "url": "https://www.ancientportsantiques.com/wp-content/uploads/Documents/ETUDESarchivees/Ma%C3%A7onnerie/B%C3%A9tonRomain/RomanConcrete-Seymour2023.pdf",
+   "tier": 3
+  },
+  {
+   "title": "(PDF) Hot mixing: Mechanistic insights into the durability of ancient Roman concrete",
+   "url": "https://www.researchgate.net/publication/366928321_Hot_mixing_Mechanistic_insights_into_the_durability_of_ancient_Roman_concrete",
+   "tier": 3
+  },
+  {
+   "title": "We Finally Know Why Ancient Roman Concrete Stood The Test of Time : ScienceAlert",
+   "url": "https://www.sciencealert.com/we-finally-know-why-ancient-roman-concrete-lasts-thousands-of-years",
+   "tier": 3
+  },
+  {
+   "title": "Hot mixing: Mechanistic insights into the durability of ancient Roman concrete",
+   "url": "https://www.science.org/doi/10.1126/sciadv.add1602",
+   "tier": 1
+  },
+  {
+   "title": "Hot mixing: Mechanistic insights into the durability of ancient Roman concrete",
+   "url": "https://dspace.mit.edu/entities/publication/d114c164-bdc9-4faf-8cd2-bb5075acfc0e",
+   "tier": 1
+  },
+  {
+   "title": "Riddle solved: Why was Roman concrete so durable?",
+   "url": "https://www.sciencedaily.com/releases/2023/01/230106144441.htm",
+   "tier": 3
+  },
+  {
+   "title": "Figure 5 - from Hot mixing: Mechanistic insights into the",
+   "url": "https://www.academia.edu/figures/26942872/figure-5-modern-mortar-self-healing-experiments-after",
+   "tier": 1
+  },
+  {
+   "title": "[LINK] Ideal concrete for 3D-printing structures?",
+   "url": "https://mailman.anu.edu.au/pipermail/link/2023-March/041011.html",
+   "tier": 3
+  },
+  {
+   "title": "Pompeii discovery reveals how ancient Roman builders created self-healing concrete",
+   "url": "https://archaeologymag.com/2025/12/how-ancient-romans-created-self-healing-concrete/",
+   "tier": 3
+  },
+  {
+   "title": "“This Material Can Heal Itself Over Thousands of Years”: MIT Scientists Have Deciphered the Ancient Mystery of Roman Concrete - The Debrief",
+   "url": "https://thedebrief.org/this-material-can-heal-itself-over-thousands-of-years-mit-scientists-have-deciphered-the-ancient-mystery-of-roman-concrete/",
+   "tier": 3
+  },
+  {
+   "title": "The Final Secret Of Self-Healing Roman Concrete May Have Been Cracked",
+   "url": "https://www.iflscience.com/the-final-secret-of-self-healing-roman-concrete-may-have-been-cracked-81851",
+   "tier": 3
+  },
+  {
+   "title": "This Ancient Construction Site in the Ruins of Pompeii Is Revealing New Secrets About the 2,000-Year-Old Recipe for Roman Concrete",
+   "url": "https://www.smithsonianmag.com/smart-news/this-ancient-construction-site-in-the-ruins-of-pompeii-is-revealing-new-secrets-about-the-2000-year-old-recipe-for-roman-concrete-180987845/",
+   "tier": 1
+  },
+  {
+   "title": "An Ancient Construction Site In Pompeii Is Revealing How The Romans Made 'Self-Healing' Concrete",
+   "url": "https://allthatsinteresting.com/pompeii-self-healing-roman-concrete",
+   "tier": 3
+  }
+ ]
+}

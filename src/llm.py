@@ -25,7 +25,7 @@ Resilience and cost control:
 
 import logging
 from datetime import datetime, timezone
-from typing import Callable, List, Optional, Tuple, Type, TypeVar
+from typing import Callable, List, Optional, Tuple, Type, TypeVar, Union
 
 import anthropic
 from pydantic import BaseModel
@@ -219,8 +219,26 @@ def research(system: str, prompt: str, *, web_search_uses: int, effort: str = "h
     raise LLMError("Claude did not finish after repeated pause_turn continuations.")
 
 
-def structured_call(system: str, prompt: str, schema: Type[T], *, effort: str = "high", max_tokens: int = 16000) -> T:
-    """One Claude request whose answer must validate against `schema` (no tools)."""
+def image_block(path, max_side: int = 512) -> dict:
+    """A small JPEG of `path` as a base64 image content block (keeps vision calls cheap)."""
+    import base64
+    import io
+
+    from PIL import Image
+
+    with Image.open(path) as im:
+        im = im.convert("RGB")
+        im.thumbnail((max_side, max_side))
+        buf = io.BytesIO()
+        im.save(buf, "JPEG", quality=80)
+    return {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg",
+                                        "data": base64.standard_b64encode(buf.getvalue()).decode("ascii")}}
+
+
+def structured_call(system: str, prompt: Union[str, list], schema: Type[T], *, effort: str = "high",
+                    max_tokens: int = 16000) -> T:
+    """One Claude request whose answer must validate against `schema` (no tools).
+    `prompt` may be a string or a list of content blocks (e.g. images then text)."""
     client = _client()
 
     def send(model: str):

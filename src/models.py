@@ -83,3 +83,22 @@ class PolicyChange(BaseModel):
 
 class PolicyDigest(BaseModel):
     changes: List[PolicyChange]
+
+
+class ScenePlan(BaseModel):
+    images: List[int]    # one 1-based image number per narration beat, in order
+    notes: str
+
+
+Severity = Annotated[Literal["minor", "major", "critical"], BeforeValidator(lambda v: str(v).strip().lower())]
+
+
+class QAIssue(BaseModel):
+    beat: int            # 1-based beat number the frame came from
+    severity: Severity
+    issue: str
+
+
+class QAReport(BaseModel):
+    issues: List[QAIssue]
+    summary: str

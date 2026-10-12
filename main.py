@@ -22,6 +22,7 @@ Usage:
 import argparse
 import html
 import json
+import re
 import threading
 import logging
 import sys
@@ -33,6 +34,8 @@ from src.config import ASSETS_DIR, DAILY_RUN_TIME, HARD_DURATION_CEILING, OUTPUT
 from src.credits import caption_credit_line, load_credits
 from src.db import PipelineDatabase
 from src.control import heartbeat_text, is_paused, make_command_handler, ping_healthcheck
+from src.scene_planner import plan_scenes, segment_beats
+from src.video_qa import qa_summary_html, review_render
 from src.ops import AssetLifecycleManager, PreFlightHealthChecker, setup_logging
 
 log = logging.getLogger("pipeline")
@@ -235,9 +238,19 @@ class PipelineCoordinator:
         carousel_slides = self.multiformat_gen.generate_carousel_sequence(scene_media, payload, run_dir)
 
         # 7. Master render
+        # Match pictures to narration beats; cuts land on the beat boundaries.
+        beats = segment_beats(words, vo_dur)
+        scenes, durations, plan_notes = plan_scenes(beats, scene_media)
+        log.info("Scene plan: %d beats (%s).", len(beats), plan_notes[:120])
         master_mp4 = run_dir / f"{tid}_master.mp4"
-        self.video_composer.compose_video(scene_media, vo_path, bed_path, words, vo_dur, master_mp4)
+        self.video_composer.compose_video(scenes, vo_path, bed_path, words, vo_dur, master_mp4, durations=durations)
         review_mp4 = self.video_composer.make_review_proxy(master_mp4, run_dir / "review_proxy.mp4")
+
+        # Automated look at the finished video; findings go on the review card.
+        qa = review_render(master_mp4, beats, thumb_916, run_dir)
+        payload["qa_summary"] = qa_summary_html(qa)
+        (run_dir / "qa_report.json").write_text(qa.model_dump_json(indent=2) if qa else "null", encoding="utf-8")
+        log.info("%s", re.sub(r"<[^>]+>", "", payload["qa_summary"]).replace("\n", " | "))
         self.db.update_run(run_id, "pending_approval", master_video_path=master_mp4,
                            thumbnail_cover_path=thumb_916, thumbnail_grid_path=thumb_1x1)
 

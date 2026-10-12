@@ -18,7 +18,7 @@ import os
 import re
 import subprocess
 from pathlib import Path
-from typing import List, Dict, Any, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from .config import (
     AUDIO_SAMPLE_RATE,
@@ -202,20 +202,32 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         words: List[Dict[str, Any]],
         vo_dur: float,
         output_mp4_path: Path,
+        durations: Optional[List[float]] = None,
     ) -> Path:
+        """
+        durations: seconds on screen per scene (e.g. from scene_planner beats). Each cut is
+        a short cross-fade centred on the beat boundary. Without durations, scenes share
+        the narration equally.
+        """
         ass_path = output_mp4_path.parent / (output_mp4_path.stem + "_captions.ass")
         self.build_subtitles(words, ass_path)
 
         n = len(scene_images)
-        step = (vo_dur + TRANS_DUR) / n
-        clip_dur = step + TRANS_DUR
-        frames = int(clip_dur * VIDEO_FPS) + 1
+        if not durations or len(durations) != n:
+            durations = [(vo_dur + TRANS_DUR) / n] * n
+        # Transition k starts half a fade before boundary k so the cut lands on the beat.
+        boundaries = [sum(durations[:k + 1]) for k in range(n - 1)]
+        offsets = [max(0.0, b - TRANS_DUR / 2) for b in boundaries]
+        clip_durs = [d + TRANS_DUR for d in durations]
+        clip_durs[-1] += TRANS_DUR  # tail headroom; the output is cut to the narration length
         w2, h2 = VIDEO_WIDTH * 2, VIDEO_HEIGHT * 2
 
         input_args: List[str] = []
         filter_parts: List[str] = []
         for i, item in enumerate(scene_images):
             item = Path(item)
+            clip_dur = clip_durs[i]
+            frames = int(clip_dur * VIDEO_FPS) + 1
             if is_video(item):
                 input_args += ["-t", f"{clip_dur:.3f}", "-i", str(item)]
                 filter_parts.append(
@@ -240,7 +252,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         curr = "[v0]"
         for k in range(n - 1):
             out = f"[x{k}]" if k < n - 2 else "[video_raw]"
-            off = round((k + 1) * step, 3)
+            off = round(offsets[k], 3)
             filter_parts.append(f"{curr}[v{k + 1}]xfade=transition={TRANSITIONS[k % len(TRANSITIONS)]}:duration={TRANS_DUR}:offset={off}{out}")
             curr = out
         if n == 1:

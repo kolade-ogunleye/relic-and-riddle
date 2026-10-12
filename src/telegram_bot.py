@@ -96,7 +96,7 @@ class TelegramApprovalBot:
             size_mb = os.path.getsize(video_path) / (1024 * 1024)
             if size_mb <= TELEGRAM_VIDEO_LIMIT_MB:
                 with open(video_path, "rb") as vid:
-                    self._api("sendVideo", timeout=300, data={"chat_id": self.chat_id, "caption": f"Master cut ({size_mb:.1f} MB)"},
+                    self._api("sendVideo", timeout=300, data={"chat_id": self.chat_id, "caption": f"Review copy, 720p ({size_mb:.1f} MB)"},
                               files={"video": vid})
             else:
                 log.warning("Video is %.1f MB, over Telegram's bot upload limit; review it locally: %s", size_mb, video_path)

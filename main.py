@@ -10,6 +10,7 @@ Usage:
   python main.py review approve|reject|regenerate <run_id>   (while a run is waiting)
   python main.py review publish <run_id> [--dry-run]         (publish a finished, unpublished run)
   python main.py topic next | list | requeue <topic_id> | repair
+  python main.py assets list | approve <topic_id>            (review fetched scene images)
   python main.py health [--live]
   python main.py test                                        (end-to-end dry run, nothing published)
 """
@@ -22,7 +23,8 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from src.config import DAILY_RUN_TIME, HARD_DURATION_CEILING, OUTPUT_DIR, TIMEZONE
+from src.config import ASSETS_DIR, DAILY_RUN_TIME, HARD_DURATION_CEILING, OUTPUT_DIR, TIMEZONE
+from src.credits import caption_credit_line, load_credits
 from src.db import PipelineDatabase
 from src.ops import AssetLifecycleManager, PreFlightHealthChecker, setup_logging
 
@@ -106,10 +108,16 @@ class PipelineCoordinator:
 
         # 2-3. Script + guardrail (fails closed)
         payload = self.script_engine.generate_script(topic)
-        passed, payload, notes = self.script_engine.verify_claims(payload, topic=topic)
+        passed, payload, notes = self.script_engine.verify_claims(payload, topic=topic, allow_unreviewed_curated=dry_run)
+        log.info("Guardrail: %s", notes)
+        if passed:
+            credit = caption_credit_line(load_credits(ASSETS_DIR / tid))
+            if credit:  # CC BY images must be attributed where the work is shared
+                payload["caption"] = f"{payload['caption']}\n\n{credit}"
+                if len(payload["caption"]) > 2200:
+                    passed, notes = False, "Caption plus image credits exceeds Instagram's 2,200 characters."
         (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
         self.db.update_run(run_id, "producing", script_payload=payload)
-        log.info("Guardrail: %s", notes)
         if not passed:
             raise RuntimeError(f"Script rejected by guardrail: {notes}")
 
@@ -131,6 +139,7 @@ class PipelineCoordinator:
         # 7. Master render
         master_mp4 = run_dir / f"{tid}_master.mp4"
         self.video_composer.compose_video(scene_media, vo_path, bed_path, words, vo_dur, master_mp4)
+        review_mp4 = self.video_composer.make_review_proxy(master_mp4, run_dir / "review_proxy.mp4")
         self.db.update_run(run_id, "pending_approval", master_video_path=master_mp4,
                            thumbnail_cover_path=thumb_916, thumbnail_grid_path=thumb_1x1)
 
@@ -140,7 +149,7 @@ class PipelineCoordinator:
             self.db.update_approval_decision(run_id, "approved", decided_by="auto-approve-flag")
             decision = "approved"
         else:
-            self.telegram_bot.send_approval_request(master_mp4, thumb_916, payload, run_id)
+            self.telegram_bot.send_approval_request(review_mp4, thumb_916, payload, run_id)
             decision = self.telegram_bot.wait_for_decision(run_id)
 
         result: Dict[str, Any] = {
@@ -170,6 +179,8 @@ class PipelineCoordinator:
         if not run or not run.get("master_video_path"):
             raise ValueError(f"Run '{run_id}' has no rendered video.")
         payload, tid = run["script_payload"], run["topic_id"]
+        if not dry_run and payload.get("origin") == "curated" and not payload.get("human_reviewed"):
+            raise ValueError("This run used an unreviewed curated script; it can only be published after review.")
         self.db.update_run(run_id, "approved")
         envelope = self.publisher.build_envelope(
             run_id, Path(run["master_video_path"]), Path(run["thumbnail_cover_path"]),
@@ -231,6 +242,11 @@ def main(argv=None) -> int:
     topic_sub.add_parser("list")
     topic_sub.add_parser("requeue").add_argument("topic_id")
     topic_sub.add_parser("repair", help="Requeue topics wrongly counted as published by simulated runs")
+
+    assets_p = sub.add_parser("assets", help="Review fetched scene images")
+    assets_sub = assets_p.add_subparsers(dest="assets_action")
+    assets_sub.add_parser("list")
+    assets_sub.add_parser("approve", help="Mark a topic's fetched images as reviewed").add_argument("topic_id")
 
     health_p = sub.add_parser("health", help="Pre-flight checks")
     health_p.add_argument("--live", action="store_true", help="Also require production credentials")
@@ -298,7 +314,11 @@ def main(argv=None) -> int:
                 return 1
             db.record_approval(args.run_id, run["topic_id"])
             db.update_approval_decision(args.run_id, "approved", decided_by="cli-publish")
-            res = PipelineCoordinator(db).publish_run(args.run_id, dry_run=args.dry_run)
+            try:
+                res = PipelineCoordinator(db).publish_run(args.run_id, dry_run=args.dry_run)
+            except ValueError as e:
+                print(f"Refusing: {e}")
+                return 1
             print(json.dumps(res, indent=2, default=str))
             return 0 if res["status"] in ("published", "simulated") else 1
         else:
@@ -324,6 +344,39 @@ def main(argv=None) -> int:
             print(f"Requeued {len(fixed)} topic(s) with no live publication: {fixed}")
         else:
             topic_p.print_help()
+        return 0
+
+    if args.command == "assets":
+        from src.config import MIN_SCENE_IMAGES
+        from src.credits import CONTACT_SHEET, CREDITS_FILE, load_credits, save_credits
+        from src.visual_engine import MissingAssetsError, VisualEngine
+
+        if args.assets_action == "list":
+            ve = VisualEngine()
+            for t in PipelineDatabase().list_all_topics():
+                topic_dir = ASSETS_DIR / t["id"]
+                try:
+                    n = len(ve.get_scene_sequence(t))
+                    state = f"ready ({n})"
+                except MissingAssetsError:
+                    cr = load_credits(topic_dir)
+                    n = len(cr["images"])
+                    state = f"needs review ({n})" if n >= MIN_SCENE_IMAGES else f"short ({n}/{MIN_SCENE_IMAGES})"
+                print(f"  {state:<20} {t['id']}")
+        elif args.assets_action == "approve":
+            topic_dir = ASSETS_DIR / args.topic_id
+            if not (topic_dir / CREDITS_FILE).exists():
+                print(f"No fetched images for {args.topic_id}.")
+                return 1
+            credits = load_credits(topic_dir)
+            if len(credits["images"]) < MIN_SCENE_IMAGES:
+                print(f"Only {len(credits['images'])} images; need {MIN_SCENE_IMAGES}. Re-run the fetcher to refill.")
+                return 1
+            credits["reviewed"] = True
+            save_credits(topic_dir, credits)
+            print(f"Approved {len(credits['images'])} images for {args.topic_id} (reviewed via {CONTACT_SHEET}).")
+        else:
+            assets_p.print_help()
         return 0
 
     if args.command == "health":

@@ -1,5 +1,6 @@
 {
-  "_review": "Human-curated fallback used only when Claude is unavailable. Claims are hedged where sources disagree (depth, door weight, dating). Re-review before reuse.",
+  "_review": "Curated fallback used only when Claude is unavailable. Drafted by Claude with hedged claims (depth, door weight, dating); a person must check it against the sources and set _reviewed_by_human to true before it can be published.",
+  "_reviewed_by_human": false,
   "title": "The City Hidden Behind One Basement Wall",
   "hook_sentence": "In 1963, a man renovating his house in Cappadocia knocked through a wall and found a tunnel.",
   "narration_script": "In 1963, a man renovating his house in Cappadocia knocked through a wall and found a tunnel. It led into Derinkuyu, an underground city carved roughly eighty-five metres down into soft volcanic rock. Its levels held stables, wells, chapels and food stores, while dozens of ventilation shafts carried fresh air to the deepest rooms. Rolling stone doors, some weighing up to half a ton, sealed each level from the inside. Its earliest tunnels may be nearly three thousand years old, and Byzantine-era Christians later expanded it to hide from raids. For centuries, an entire city lay hidden beneath ordinary homes, waiting behind a single wall.",

@@ -25,13 +25,13 @@ topic → assets check → script (Claude + web search) → fact check (Claude +
 | Stage | Module | Notes |
 |---|---|---|
 | Topic rotation | `src/db.py`, `src/topic_engine.py` | Never-produced topics first, then failed ones (retry), then least-published. Human-rejected topics wait for `topic requeue`. Topics stuck in production for more than 6 hours are recovered. |
-| Scene media | `src/visual_engine.py` | Requires `assets/<topic_id>/` with 5 or more images (optional `hook_motion.mp4`). The shared Cappadocia photos are used only for the Derinkuyu topic. |
-| Script | `src/script_engine.py` | Claude (`claude-opus-5-5`) researches with web search and returns schema-validated JSON (`src/models.py`): narration, caption, hashtags, thumbnail, Story and carousel copy, and sources. Falls back only to a human-curated `data/scripts/<topic_id>.json`. |
+| Scene media | `src/visual_engine.py`, `src/credits.py` | Requires `assets/<topic_id>/` with 5 or more images (optional `hook_motion.mp4`). The shared Cappadocia photos are used only for the Derinkuyu topic. Images fetched from Wikimedia Commons are used only after a person approves them, and CC BY credits are added to the caption automatically. |
+| Script | `src/script_engine.py` | Claude (`claude-opus-5-5`) researches with web search and returns schema-validated JSON (`src/models.py`): narration, caption, hashtags, thumbnail, Story and carousel copy, and sources. Falls back only to a curated `data/scripts/<topic_id>.json`, which can be published only after a person has checked it and set `"_reviewed_by_human": true` (dry runs may use it unreviewed). |
 | Guardrail | `src/script_engine.py`, `src/fact_checker.py` | Structural checks (95–115 words, loop-safe ending, caption length, slide counts, pseudo-archaeology tropes), then an independent Claude pass that extracts every claim and checks it with web search. Passes only if every claim is supported with a source, or disputed but already hedged in the script. |
 | Voice | `src/audio_engine.py` | ElevenLabs with character timestamps if configured, otherwise edge-tts with word boundaries. |
 | Render | `src/video_composer.py` | 1080×1920, 30 fps, H.264 CRF 18, TV-range yuv420p, AAC 48 kHz, `+faststart`. Anton 92pt karaoke captions above the Meta UI safe zone. Loudness measured and limited to −14 LUFS with true peak at or below −1.5 dBTP. |
 | Stills | `src/visual_engine.py`, `src/multi_format.py` | Variant B cover (9:16 and 1:1), 3 Story frames, and a 7-slide carousel. Text is auto-fitted. Stories and carousels are for **manual** posting; the poll is added as a native sticker (see `companion_posting.json`). |
-| Approval | `src/telegram_bot.py` | Sends the cover, video and review card. Only `TELEGRAM_APPROVER_IDS` can decide. The CLI can decide too; the first decision wins. If nobody decides before the timeout, the run times out. |
+| Approval | `src/telegram_bot.py` | Sends the cover, a 720p review copy (a few MB, under Telegram's upload limit) and the review card. Only `TELEGRAM_APPROVER_IDS` can decide. The CLI can decide too; the first decision wins. If nobody decides before the timeout, the run times out. |
 | Publish | `src/publisher.py` | Upload-Post (Facebook + Instagram) first, then the Instagram Graph API resumable Reels upload, which posts the first comment. |
 | Ops | `src/ops.py` | Masks secrets in every log line (including Telegram tokens inside URLs), runs pre-flight checks, and prunes scratch audio older than 7 days. |
 
@@ -59,13 +59,22 @@ python main.py review approve|reject|regenerate <run_id>   # while a run is wait
 python main.py review publish <run_id> [--dry-run]         # publish a finished, unpublished run
 
 python main.py topic next | list | requeue <topic_id> | repair
+python main.py assets list | approve <topic_id>
+python scripts/fetch_commons_images.py [--topic-id ID] [--allow-share-alike]
 python -m pytest -q
 ```
 
 ## Adding a topic
 
 1. Add it to `data/topics/topic_bank.json`. New entries are picked up on the next start, and existing state is never overwritten.
-2. Put at least 5 licensed images that depict it in `assets/<topic_id>/`. They play in filename order.
+2. Scene images, either:
+   - your own licensed images (5 or more) in `assets/<topic_id>/`, played in filename order; or
+   - `python scripts/fetch_commons_images.py --topic-id <id>`, which uses the searches in `data/topics/image_queries.json`.
+     It keeps only public-domain, CC0 and CC BY files whose titles match the topic keywords (CC BY-SA is opt-in, because
+     its share-alike terms can extend to the finished video). It records author and licence in `credits.json` and writes
+     `contact_sheet.jpg`. Look at the sheet, delete any wrong images (re-running the script refills the gaps), then run
+     `python main.py assets approve <topic_id>`. Keyword matching still lets through false positives, such as a rock band
+     called "Greek Fire", which is why approval is required.
 3. With `ANTHROPIC_API_KEY` set, the script and fact check are automatic. Without it, the topic can only run
    from a curated `data/scripts/<topic_id>.json` that includes sources.
 
@@ -75,5 +84,7 @@ python -m pytest -q
   tested with mocks, **not against live accounts**. Do one supervised `run` before enabling the daemon.
 - The Instagram Graph fallback publishes to Instagram only and uses the default cover frame
   (its custom covers require a public `cover_url`).
-- Only Derinkuyu currently has scene images. The other 29 topics fail fast until their `assets/<topic_id>/` folders exist.
+- Fetched Commons image sets are all **unreviewed**, and some topics don't yet have enough matching images
+  (check with `python main.py assets list`). Wikimedia rate-limits anonymous clients heavily; set `COMMONS_CONTACT` to speed this up.
+- The Derinkuyu curated script was drafted by Claude and is marked unreviewed. Review it before publishing.
 - `archive/` holds the earlier prototype scripts and media for reference. Nothing in `src/` uses them.

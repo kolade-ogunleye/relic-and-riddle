@@ -20,3 +20,7 @@ archive/media/
 *.aac
 *.wav
 !data/sfx/*.wav
+
+# Fetched scene images (re-fetchable; credits.json stays tracked)
+assets/*/*.jpg
+assets/*/*.png

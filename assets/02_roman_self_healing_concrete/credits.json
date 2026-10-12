@@ -1,0 +1,85 @@
+{
+  "reviewed": false,
+  "images": [
+    {
+      "title": "File:Ancient Roman concrete vault.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/41/Ancient_Roman_concrete_vault.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Ancient_Roman_concrete_vault.jpg",
+      "artist": "Michael Wilson from York, United Kingdom",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "attribution_required": true,
+      "file": "01_commons.jpg"
+    },
+    {
+      "title": "File:Pantheon (Rome), Dome interior.jpg",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4c/Pantheon_%28Rome%29%2C_Dome_interior.jpg/3840px-Pantheon_%28Rome%29%2C_Dome_interior.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Pantheon_(Rome),_Dome_interior.jpg",
+      "artist": "Wilfredor",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "attribution_required": false,
+      "file": "02_commons.jpg"
+    },
+    {
+      "title": "File:Dome Interior of the Pantheon, Rome.jpg",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/52/Dome_Interior_of_the_Pantheon%2C_Rome.jpg/3840px-Dome_Interior_of_the_Pantheon%2C_Rome.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Dome_Interior_of_the_Pantheon,_Rome.jpg",
+      "artist": "Julian Lupyan",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "attribution_required": false,
+      "file": "03_commons.jpg"
+    },
+    {
+      "title": "File:Pantheon interior rome (14292258124).jpg",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Pantheon_interior_rome_%2814292258124%29.jpg/3840px-Pantheon_interior_rome_%2814292258124%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Pantheon_interior_rome_(14292258124).jpg",
+      "artist": "Russ",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "attribution_required": true,
+      "file": "04_commons.jpg"
+    },
+    {
+      "title": "File:Roman Pantheon interior dome intrados, 1892.jpg",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/73/Roman_Pantheon_interior_dome_intrados%2C_1892.jpg/3840px-Roman_Pantheon_interior_dome_intrados%2C_1892.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Roman_Pantheon_interior_dome_intrados,_1892.jpg",
+      "artist": "Unknown authorUnknown author",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "file": "05_commons.jpg"
+    },
+    {
+      "title": "File:02 Pantheon Dome.jpg",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/46/02_Pantheon_Dome.jpg/3840px-02_Pantheon_Dome.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "source_url": "https://commons.wikimedia.org/wiki/File:02_Pantheon_Dome.jpg",
+      "artist": "NateBergin",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "file": "06_commons.jpg"
+    },
+    {
+      "title": "File:01 Pantheon Dome.jpg",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f1/01_Pantheon_Dome.jpg/3840px-01_Pantheon_Dome.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "source_url": "https://commons.wikimedia.org/wiki/File:01_Pantheon_Dome.jpg",
+      "artist": "NateBergin",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "file": "07_commons.jpg"
+    },
+    {
+      "title": "File:Rome-Pantheon-Interieur.jpg",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4a/Rome-Pantheon-Interieur.jpg/1920px-Rome-Pantheon-Interieur.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Rome-Pantheon-Interieur.jpg",
+      "artist": "Jean-Christophe BENOIST",
+      "license": "CC BY 2.5",
+      "license_url": "https://creativecommons.org/licenses/by/2.5",
+      "attribution_required": true,
+      "file": "08_commons.jpg"
+    }
+  ]
+}

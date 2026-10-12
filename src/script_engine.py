@@ -138,8 +138,11 @@ class ScriptEngine:
 
         curated = self._load_curated(topic["id"])
         if curated:
-            log.info("Using human-curated script for '%s'.", topic["id"])
-            return self._finalize(curated, topic, origin="curated")
+            pkg, reviewed = curated
+            log.info("Using curated script for '%s' (human reviewed: %s).", topic["id"], reviewed)
+            payload = self._finalize(pkg, topic, origin="curated")
+            payload["human_reviewed"] = reviewed
+            return payload
 
         raise ScriptUnavailableError(
             f"No script source for topic '{topic['id']}': configure ANTHROPIC_API_KEY "
@@ -171,14 +174,15 @@ class ScriptEngine:
         return pkg
 
     @staticmethod
-    def _load_curated(topic_id: str) -> Optional[ScriptPackage]:
+    def _load_curated(topic_id: str) -> Optional[Tuple[ScriptPackage, bool]]:
         path = CURATED_SCRIPTS_DIR / f"{topic_id}.json"
         if not path.exists():
             return None
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
         try:
-            return ScriptPackage.model_validate({k: v for k, v in data.items() if not k.startswith("_")})
+            pkg = ScriptPackage.model_validate({k: v for k, v in data.items() if not k.startswith("_")})
+            return pkg, data.get("_reviewed_by_human") is True
         except ValidationError as e:
             raise ScriptUnavailableError(f"Curated script {path.name} is invalid: {e}") from e
 
@@ -194,7 +198,8 @@ class ScriptEngine:
         })
         return payload
 
-    def verify_claims(self, script_payload: Dict[str, Any], topic: Optional[Dict[str, Any]] = None) -> Tuple[bool, Dict[str, Any], str]:
+    def verify_claims(self, script_payload: Dict[str, Any], topic: Optional[Dict[str, Any]] = None,
+                      allow_unreviewed_curated: bool = False) -> Tuple[bool, Dict[str, Any], str]:
         """
         Stage 2.5 guardrail. Fails closed: a script is publishable only if it passes the
         structural checks AND every factual claim is verified (or, for curated scripts,
@@ -209,7 +214,7 @@ class ScriptEngine:
         if problems:
             return False, script_payload, "REJECTED: " + " ".join(problems)
 
-        passed, confidence, audits, msg = self.fact_checker.verify(script_payload, topic)
+        passed, confidence, audits, msg = self.fact_checker.verify(script_payload, topic, allow_unreviewed_curated)
         script_payload["fact_audits"] = audits
         script_payload["consensus_confidence"] = confidence
         if not passed:

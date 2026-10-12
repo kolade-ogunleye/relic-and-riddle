@@ -9,9 +9,12 @@ def test_curated_script_is_structurally_valid(curated_payload):
     assert validate_structure(ScriptPackage.model_validate(curated_payload)) == []
 
 
-def test_curated_script_passes_guardrail_offline(curated_payload):
+def test_curated_script_offline_requires_human_review(curated_payload):
     passed, _, notes = ScriptEngine().verify_claims(curated_payload)
-    assert passed, notes
+    assert not passed and "reviewed" in notes
+    assert ScriptEngine().verify_claims(curated_payload, allow_unreviewed_curated=True)[0]
+    curated_payload["human_reviewed"] = True
+    assert ScriptEngine().verify_claims(curated_payload)[0]
 
 
 @pytest.mark.parametrize("mutate, expected", [
@@ -22,6 +25,7 @@ def test_curated_script_passes_guardrail_offline(curated_payload):
     (lambda p: p.update(title="x" * 61), "Title"),
 ])
 def test_structural_rejections(curated_payload, mutate, expected):
+    curated_payload["human_reviewed"] = True
     mutate(curated_payload)
     passed, _, notes = ScriptEngine().verify_claims(curated_payload)
     assert not passed
@@ -31,7 +35,7 @@ def test_structural_rejections(curated_payload, mutate, expected):
 def test_trope_check_uses_word_boundaries(curated_payload):
     # "alienated" must not trip the "alien" filter
     curated_payload["caption"] += " Villagers felt alienated."
-    assert ScriptEngine().verify_claims(curated_payload)[0]
+    assert ScriptEngine().verify_claims(curated_payload, allow_unreviewed_curated=True)[0]
 
 
 def test_uncurated_script_fails_closed_without_claude(curated_payload):

@@ -1,0 +1,25 @@
+{
+  "reviewed": false,
+  "images": [
+    {
+      "title": "File:Richard Ellis, Hal Saflieni Hypogeum (passage in lower storey).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/9/9f/Richard_Ellis%2C_Hal_Saflieni_Hypogeum_%28passage_in_lower_storey%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Richard_Ellis,_Hal_Saflieni_Hypogeum_(passage_in_lower_storey).jpg",
+      "artist": "Richard Ellis",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "file": "01_commons.jpg"
+    },
+    {
+      "title": "File:Hypogeum enter.JPG",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6a/Hypogeum_enter.JPG/3840px-Hypogeum_enter.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Hypogeum_enter.JPG",
+      "artist": "Andrey BG",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "file": "02_commons.jpg"
+    }
+  ]
+}

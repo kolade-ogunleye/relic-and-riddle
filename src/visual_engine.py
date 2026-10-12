@@ -26,6 +26,7 @@ from .config import (
     VIDEO_WIDTH,
     VIDEO_HEIGHT,
 )
+from .credits import CONTACT_SHEET, CREDITS_FILE, load_credits
 from .typography import cover_crop, fit_font, get_font, is_video, text_size
 
 log = logging.getLogger(__name__)
@@ -57,7 +58,9 @@ class VisualEngine:
     def get_scene_sequence(self, topic: Dict[str, Any]) -> List[Path]:
         """
         Scene media for the video, in order. Sources, first match wins:
-          assets/<topic_id>/*.jpg|*.png  (sorted by name; at least MIN_SCENE_IMAGES)
+          assets/<topic_id>/*.jpg|*.png  (sorted by name; at least MIN_SCENE_IMAGES).
+              If the folder has a credits.json (fetched images), only credited files are
+              used, and only after a human approved the set (`main.py assets approve`).
           the shared suite, for the topics it actually depicts
         An optional assets/<topic_id>/hook_motion.mp4 replaces the first still (Beat 1).
         """
@@ -65,8 +68,19 @@ class VisualEngine:
         topic_dir = self.assets_dir / tid
         resolved: List[Path] = []
 
-        if topic_dir.is_dir():
-            resolved = sorted(p for p in topic_dir.iterdir() if p.suffix.lower() in (".jpg", ".jpeg", ".png"))
+        if (topic_dir / CREDITS_FILE).exists():
+            credits = load_credits(topic_dir)
+            if not credits["reviewed"]:
+                raise MissingAssetsError(
+                    f"Fetched images for '{tid}' are not reviewed. Check {topic_dir / CONTACT_SHEET}, delete "
+                    f"wrong images, then run: python main.py assets approve {tid}"
+                )
+            resolved = sorted(topic_dir / c["file"] for c in credits["images"])
+        elif topic_dir.is_dir():
+            resolved = sorted(
+                p for p in topic_dir.iterdir()
+                if p.suffix.lower() in (".jpg", ".jpeg", ".png") and p.name != CONTACT_SHEET
+            )
         if len(resolved) < MIN_SCENE_IMAGES and tid in SHARED_SUITE:
             resolved = [self.assets_dir / name for name in SHARED_SUITE[tid] if (self.assets_dir / name).exists()]
 

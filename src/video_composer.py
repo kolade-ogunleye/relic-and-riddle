@@ -262,3 +262,15 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         size_mb = os.path.getsize(output_mp4_path) / (1024 * 1024)
         log.info("Master rendered: %s (%.2f MB)", output_mp4_path.name, size_mb)
         return output_mp4_path
+
+    @staticmethod
+    def make_review_proxy(master_mp4: Path, proxy_path: Path) -> Path:
+        """Small 720p copy for phone review over Telegram (bot uploads are capped near 50 MB)."""
+        _run_ffmpeg([
+            "ffmpeg", "-y", "-hide_banner", "-nostats", "-i", str(master_mp4),
+            "-vf", "scale=720:1280", "-c:v", "libx264", "-preset", "fast", "-crf", "28",
+            "-maxrate", "1500k", "-bufsize", "3000k", "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", str(proxy_path),
+        ])
+        log.info("Review proxy: %s (%.1f MB)", proxy_path.name, os.path.getsize(proxy_path) / (1024 * 1024))
+        return proxy_path

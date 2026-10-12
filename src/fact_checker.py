@@ -49,6 +49,7 @@ class ClaimFactChecker:
         self,
         script_payload: Dict[str, Any],
         topic: Optional[Dict[str, Any]] = None,
+        allow_unreviewed_curated: bool = False,
     ) -> Tuple[bool, float, List[Dict[str, Any]], str]:
         """Returns (passed, confidence_percent, claim_audits, summary)."""
         if claude_available():
@@ -60,7 +61,11 @@ class ClaimFactChecker:
 
         if script_payload.get("origin") == "curated" and script_payload.get("sources"):
             n = len(script_payload["sources"])
-            return True, 100.0, [], f"Human-curated script with {n} cited sources (automated check unavailable)."
+            if script_payload.get("human_reviewed"):
+                return True, 100.0, [], f"Human-reviewed curated script with {n} cited sources (automated check unavailable)."
+            if allow_unreviewed_curated:
+                return True, 0.0, [], f"UNREVIEWED curated script with {n} sources; allowed for dry run only."
+            return False, 0.0, [], "Curated script has not been reviewed by a human (_reviewed_by_human) and no automated check is available."
 
         return False, 0.0, [], "No fact-check available (ANTHROPIC_API_KEY unset) and script is not human-curated; failing closed."
 

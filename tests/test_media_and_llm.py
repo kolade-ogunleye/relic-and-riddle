@@ -120,3 +120,26 @@ def test_research_keeps_sources_from_paused_turns(monkeypatch):
     early = SimpleNamespace(type="web_search_tool_result", content=[SimpleNamespace(url="https://early.org", title="E")])
     _patch_client(monkeypatch, [_resp("pause_turn", content=[early]), _resp("end_turn", content=[_text("done")])])
     assert [s.url for s in llm.research("s", "p", web_search_uses=1)[1]] == ["https://early.org"]
+
+
+def test_revision_edits_previous_draft_and_reuses_research(monkeypatch, curated_payload):
+    from src import script_engine
+    from src.models import ScriptPackage, Source
+    calls = {"research": 0, "prompts": []}
+
+    def fake_research(*a, **k):
+        calls["research"] += 1
+        return "notes", [Source(title="s", url="https://s.org")]
+
+    def fake_structured(system, prompt, schema, **k):
+        calls["prompts"].append(prompt)
+        return ScriptPackage.model_validate(curated_payload)
+
+    monkeypatch.setattr(script_engine, "claude_available", lambda: True)
+    monkeypatch.setattr(script_engine, "research", fake_research)
+    monkeypatch.setattr(script_engine, "structured_call", fake_structured)
+    eng = script_engine.ScriptEngine()
+    first = eng.generate_script({"id": "t", "title": "T"})
+    eng.generate_script({"id": "t", "title": "T"}, revision_notes="'X' (false: wrong)", previous=first)
+    assert calls["research"] == 1
+    assert "<previous_draft>" in calls["prompts"][1] and "'X' (false: wrong)" in calls["prompts"][1]

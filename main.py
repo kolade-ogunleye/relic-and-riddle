@@ -108,9 +108,9 @@ class PipelineCoordinator:
         log.info("Scene media: %d items.", len(scene_media))
 
         # 2-3. Script + guardrail (fails closed)
-        revision_notes = ""
+        revision_notes, payload = "", None
         for revision in range(MAX_FACT_REVISIONS + 1):
-            payload = self.script_engine.generate_script(topic, revision_notes=revision_notes)
+            payload = self.script_engine.generate_script(topic, revision_notes=revision_notes, previous=payload)
             passed, payload, notes = self.script_engine.verify_claims(payload, topic=topic, allow_unreviewed_curated=dry_run)
             log.info("Guardrail (draft %d): %s", revision + 1, notes)
             if passed or payload.get("origin") != "claude":

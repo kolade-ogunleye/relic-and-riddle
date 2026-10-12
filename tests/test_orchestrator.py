@@ -54,7 +54,7 @@ def test_failed_fact_check_is_revised_then_fails_closed(db, monkeypatch, tmp_pat
     monkeypatch.setattr(VisualEngine, "hero_image", staticmethod(lambda s: s[0]))
     notes_seen = []
 
-    def gen(topic, revision_notes=""):
+    def gen(topic, revision_notes="", previous=None):
         notes_seen.append(revision_notes)
         return dict(curated_payload, origin="claude", topic_id=topic["id"])
 

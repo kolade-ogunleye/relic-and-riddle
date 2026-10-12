@@ -119,14 +119,24 @@ def validate_structure(pkg: ScriptPackage) -> List[str]:
 class ScriptEngine:
     def __init__(self, fact_checker: Optional[ClaimFactChecker] = None):
         self.fact_checker = fact_checker or ClaimFactChecker()
+        self._research_cache: Dict[str, Tuple[str, list]] = {}  # topic_id -> (notes, retrieved sources)
 
-    def generate_script(self, topic: Dict[str, Any], max_attempts: int = 2, revision_notes: str = "") -> Dict[str, Any]:
-        """revision_notes: fact-checker findings on a previous draft, to be corrected in this one."""
+    def generate_script(self, topic: Dict[str, Any], max_attempts: int = 2, revision_notes: str = "",
+                        previous: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        revision_notes / previous: fact-checker findings on the previous draft. The previous
+        draft is edited (not rewritten) so corrections don't introduce new, unchecked claims.
+        """
         if claude_available():
-            base_feedback = (
-                "\n\nA previous draft failed fact-checking. Fix every point below; where a figure is "
-                "disputed or weakly sourced, hedge it or drop it:\n" + revision_notes
-            ) if revision_notes else ""
+            base_feedback = ""
+            if revision_notes and previous:
+                draft = {k: previous.get(k) for k in ScriptPackage.model_fields}
+                base_feedback = (
+                    "\n\n<previous_draft>\n" + json.dumps(draft, ensure_ascii=False, indent=1) + "\n</previous_draft>\n"
+                    "This draft failed fact-checking. Revise it, changing only what the findings below require: "
+                    "hedge or drop disputed and weakly sourced figures, correct false ones, and add no new factual "
+                    "claims. Keep everything else as it is.\n<fact_check_findings>\n" + revision_notes + "\n</fact_check_findings>"
+                )
             feedback = base_feedback
             for attempt in range(1, max_attempts + 1):
                 try:
@@ -163,9 +173,12 @@ class ScriptEngine:
             location=", ".join(v for v in (loc.get("name"), loc.get("city"), loc.get("country")) if v),
             key_facts="; ".join(topic.get("key_facts", [])),
         )
-        notes, retrieved = research(RESEARCH_SYSTEM, RESEARCH_PROMPT.format(**fields), web_search_uses=6)
-        if not retrieved:
-            raise LLMError("Research cited no sources; refusing to write an ungrounded script.")
+        if topic["id"] not in self._research_cache:  # research once per topic; revisions reuse it
+            notes, retrieved = research(RESEARCH_SYSTEM, RESEARCH_PROMPT.format(**fields), web_search_uses=6)
+            if not retrieved:
+                raise LLMError("Research cited no sources; refusing to write an ungrounded script.")
+            self._research_cache[topic["id"]] = (notes, retrieved)
+        notes, retrieved = self._research_cache[topic["id"]]
         prompt = (
             USER_PROMPT_TEMPLATE.format(**fields)
             + f"\n\n<research_notes>\n{notes}\n</research_notes>\n\n"

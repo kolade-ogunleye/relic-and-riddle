@@ -33,7 +33,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from src.config import ASSETS_DIR, MIN_SCENE_IMAGES, TOPICS_DIR  # noqa: E402
-from src.credits import CONTACT_SHEET, license_allowed, load_credits, normalize, save_credits  # noqa: E402
+from src.credits import license_allowed, load_credits, normalize, save_credits, write_contact_sheet  # noqa: E402
 from src.db import PipelineDatabase  # noqa: E402
 
 API = "https://commons.wikimedia.org/w/api.php"
@@ -110,17 +110,6 @@ def download_jpeg(url: str, dest: Path) -> None:
         im.verify()  # reject corrupt / non-image payloads
     with Image.open(io.BytesIO(resp.content)) as im:
         im.convert("RGB").save(dest, "JPEG", quality=92)  # re-encode: strips metadata and odd formats
-
-
-def write_contact_sheet(topic_dir: Path, images: list) -> None:
-    cell_w, cell_h, cols = 360, 270, 4
-    rows = max(1, (len(images) + cols - 1) // cols)
-    sheet = Image.new("RGB", (cols * cell_w, rows * cell_h), "white")
-    for i, c in enumerate(images):
-        with Image.open(topic_dir / c["file"]) as im:
-            im.thumbnail((cell_w - 8, cell_h - 8))
-            sheet.paste(im, ((i % cols) * cell_w + 4, (i // cols) * cell_h + 4))
-    sheet.save(topic_dir / CONTACT_SHEET, quality=85)
 
 
 def fetch_topic(topic: dict, spec: dict, allow_sa: bool) -> int:

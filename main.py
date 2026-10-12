@@ -31,6 +31,7 @@ from src.ops import AssetLifecycleManager, PreFlightHealthChecker, setup_logging
 log = logging.getLogger("pipeline")
 
 MAX_REGENERATIONS = 2
+MAX_FACT_REVISIONS = 2  # rewrites of a Claude script that failed fact-checking, before failing closed
 
 
 class PipelineCoordinator:
@@ -107,9 +108,14 @@ class PipelineCoordinator:
         log.info("Scene media: %d items.", len(scene_media))
 
         # 2-3. Script + guardrail (fails closed)
-        payload = self.script_engine.generate_script(topic)
-        passed, payload, notes = self.script_engine.verify_claims(payload, topic=topic, allow_unreviewed_curated=dry_run)
-        log.info("Guardrail: %s", notes)
+        revision_notes = ""
+        for revision in range(MAX_FACT_REVISIONS + 1):
+            payload = self.script_engine.generate_script(topic, revision_notes=revision_notes)
+            passed, payload, notes = self.script_engine.verify_claims(payload, topic=topic, allow_unreviewed_curated=dry_run)
+            log.info("Guardrail (draft %d): %s", revision + 1, notes)
+            if passed or payload.get("origin") != "claude":
+                break
+            revision_notes = notes
         if passed:
             credit = caption_credit_line(load_credits(ASSETS_DIR / tid))
             if credit:  # CC BY images must be attributed where the work is shared

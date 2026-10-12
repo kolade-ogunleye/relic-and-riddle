@@ -120,9 +120,14 @@ class ScriptEngine:
     def __init__(self, fact_checker: Optional[ClaimFactChecker] = None):
         self.fact_checker = fact_checker or ClaimFactChecker()
 
-    def generate_script(self, topic: Dict[str, Any], max_attempts: int = 2) -> Dict[str, Any]:
+    def generate_script(self, topic: Dict[str, Any], max_attempts: int = 2, revision_notes: str = "") -> Dict[str, Any]:
+        """revision_notes: fact-checker findings on a previous draft, to be corrected in this one."""
         if claude_available():
-            feedback = ""
+            base_feedback = (
+                "\n\nA previous draft failed fact-checking. Fix every point below; where a figure is "
+                "disputed or weakly sourced, hedge it or drop it:\n" + revision_notes
+            ) if revision_notes else ""
+            feedback = base_feedback
             for attempt in range(1, max_attempts + 1):
                 try:
                     pkg = self._generate_with_claude(topic, feedback)
@@ -133,7 +138,7 @@ class ScriptEngine:
                 if not problems:
                     return self._finalize(pkg, topic, origin="claude")
                 log.warning("Attempt %d failed structural checks: %s", attempt, problems)
-                feedback = "\n\nA previous draft was rejected for: " + " ".join(problems) + " Fix these."
+                feedback = base_feedback + "\n\nA previous draft was rejected for: " + " ".join(problems) + " Fix these."
             log.warning("Claude did not produce a usable script; trying curated script.")
 
         curated = self._load_curated(topic["id"])

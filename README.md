@@ -1,7 +1,9 @@
-# Autonomous Meta Reels Pipeline
+# Relic & Riddle
 
-Produces and publishes short documentary Reels for Facebook and Instagram in the
-"Historical Curiosities & Ancient Marvels" niche, with a human approval step before anything goes live.
+*Relics and riddles of history, in 45 seconds.*
+
+Researches, fact-checks, voices, renders and publishes short documentary Reels for Facebook and Instagram
+in the "Historical Curiosities & Ancient Marvels" niche, with a human approval step before anything goes live.
 
 ```
 topic → assets check → script (Claude + web search) → fact check (Claude + web search)

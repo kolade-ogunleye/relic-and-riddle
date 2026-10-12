@@ -40,7 +40,7 @@ API = "https://commons.wikimedia.org/w/api.php"
 # Wikimedia asks automated clients to identify themselves with contact details and throttles
 # anonymous ones hard. Set COMMONS_CONTACT (a URL or email you choose) for better rate limits.
 _CONTACT = os.getenv("COMMONS_CONTACT", "").strip()
-HEADERS = {"User-Agent": "MetaReelsPipeline/1.0 (scene image fetcher" + (f"; {_CONTACT}" if _CONTACT else "") + ")"}
+HEADERS = {"User-Agent": "RelicAndRiddle/1.0 (scene image fetcher" + (f"; {_CONTACT}" if _CONTACT else "") + ")"}
 TARGET_IMAGES = 8
 MIN_PIXELS = 1_500_000
 MIN_HEIGHT = 1000

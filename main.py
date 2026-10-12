@@ -1,7 +1,7 @@
 """
 main.py
 =======
-CLI orchestrator and daily scheduler for the Autonomous Meta Reels pipeline.
+CLI orchestrator and daily scheduler for the Relic & Riddle Reels pipeline.
 
 Usage:
   python main.py run [--topic-id ID] [--auto-approve] [--dry-run]
@@ -296,7 +296,7 @@ def _print_health(res: Dict[str, Any]):
 
 def main(argv=None) -> int:
     setup_logging()
-    parser = argparse.ArgumentParser(description="Autonomous Meta Reels content & publishing pipeline")
+    parser = argparse.ArgumentParser(description="Relic & Riddle: Reels research, production & publishing pipeline")
     sub = parser.add_subparsers(dest="command")
 
     run_p = sub.add_parser("run", help="Produce (and, once approved, publish) one Reel")

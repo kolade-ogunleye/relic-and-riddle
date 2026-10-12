@@ -40,7 +40,9 @@ REFERENCES = [
     ("Statue of Liberty", 305.0, "NPS: ground to torch tip, 305 ft 1 in"),
     ("Big Ben's tower", 316.0, "UK Parliament: Elizabeth Tower, 96 m"),
     ("Great Pyramid of Giza", 454.0, "about 138.5 m today"),
+    ("An average US man", 5.75, "CDC NHANES: mean adult male height about 69 in"),
 ]
+PERSON = "An average US man"
 
 
 def _ease(t: float) -> float:
@@ -332,25 +334,221 @@ def render_scale(fact: Dict[str, Any], out: Path) -> Optional[Path]:
                 grow = _ease((t - 0.3 - 0.5 * k) / 1.3)
                 length = span * ft / longest * grow
                 y1 = base_y + length if depth else base_y - length
-                d.rectangle([cx - 70, min(base_y, y1), cx + 70, max(base_y, y1)], fill=(*colour, 255))
+                if label.startswith(PERSON):
+                    _person(d, cx, base_y, length, colour, upward=not depth)
+                else:
+                    d.rectangle([cx - 70, min(base_y, y1), cx + 70, max(base_y, y1)], fill=(*colour, 255))
                 a = int(255 * _ease((t - 1.4 - 0.5 * k) / 0.4))
                 if a > 0:
-                    num = f"{ft:,.0f} FT ({metres(ft):,.0f} M)"
+                    num = (f"{ft:,.0f} FT ({metres(ft):,.0f} M)" if ft >= 20 else
+                           f"{int(ft)} FT {round((ft % 1) * 12)} IN ({metres(ft):.1f} M)")
                     ty = (y1 + 50) if depth else (y1 - 70)
                     d.text((cx, ty), num, font=f_num, fill=(*colour, a), anchor="mm")
-                    for j, line in enumerate(_wrap(d, label.upper(), f_lab, 340)[:2]):
-                        d.text((cx, ty + (52 + 36 * j) * (1 if depth else -1) - (0 if depth else 20)), line, font=f_lab,
-                               fill=(*WHITE, a), anchor="mm")
+                    lines = _wrap(d, label.upper(), f_lab, 340)[:2]
+                    for j, line in enumerate(lines):  # reading order top to bottom, whichever side of the bar
+                        ly = ty + 52 + 36 * j if depth else ty - 52 - 36 * (len(lines) - 1 - j)
+                        d.text((cx, ly), line, font=f_lab, fill=(*WHITE, a), anchor="mm")
+            yield im
+
+    return _encode(frames(), out, n)
+
+
+def _person(d: ImageDraw.ImageDraw, cx: int, base_y: float, height: float, colour, upward: bool = True) -> None:
+    """A simple standing-figure silhouette `height` px tall (head, torso, arms, legs)."""
+    if height < 4:
+        return
+    sgn = -1 if upward else 1
+    y = lambda frac: base_y + sgn * height * frac  # noqa: E731  (0 = feet, 1 = top of head)
+    head_r = height * 0.065
+    fill = (*colour, 255)
+    d.ellipse([cx - head_r, y(0.935) - head_r, cx + head_r, y(0.935) + head_r], fill=fill)
+    w = height * 0.11
+    d.rounded_rectangle([cx - w, min(y(0.86), y(0.47)), cx + w, max(y(0.86), y(0.47))], radius=max(2, int(w / 2)), fill=fill)
+    for side in (-1, 1):  # arms and legs
+        d.line([(cx + side * w * 0.9, y(0.84)), (cx + side * w * 1.6, y(0.50))], fill=fill, width=max(2, int(w * 0.55)))
+        d.line([(cx + side * w * 0.5, y(0.48)), (cx + side * w * 0.8, y(0.0))], fill=fill, width=max(2, int(w * 0.75)))
+
+
+def _backdrop(photo: Optional[Path]) -> Image.Image:
+    """A dark, heavily blurred version of the topic's photo (or the plain ground) behind text graphics."""
+    if photo and Path(photo).exists():
+        from .typography import cover_crop
+        im = cover_crop(Path(photo), (W, H)).convert("RGB").filter(ImageFilter.GaussianBlur(28))
+        dark = Image.new("RGB", (W, H), SEA)
+        return Image.blend(im, dark, 0.72).convert("RGBA")
+    return Image.new("RGBA", (W, H), (*SEA, 255))
+
+
+# ------------------------------------------------------------- number cards
+def _split_number(value: str) -> Tuple[str, Optional[float], str]:
+    """'20,000' -> ('', 20000, ''); 'about 280 ft' -> ('about ', 280, ' ft'); no number -> (value, None, '')."""
+    import re
+    m = re.search(r"\d[\d,]*(\.\d+)?", value)
+    if not m:
+        return value, None, ""
+    return value[:m.start()], float(m.group(0).replace(",", "")), value[m.end():]
+
+
+def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Path] = None) -> Optional[Path]:
+    """1-2 headline figures counting up to their value, each with its label, over a dark photo backdrop."""
+    cards = cards[:2]
+    if not cards:
+        return None
+    n = int(CLIP_SECONDS * VIDEO_FPS)
+    bg = _backdrop(photo)
+    f_num, f_lab = get_font("Anton", 190 if len(cards) == 1 else 150), get_font("Montserrat", 40)
+    centres = [(TEXT_TOP + TEXT_BOTTOM) // 2] if len(cards) == 1 else [TEXT_TOP + 190, TEXT_BOTTOM - 230]
+
+    def shown(card: Dict[str, Any], p: float) -> str:
+        pre, num, post = _split_number(card["value"])
+        if num is None:
+            return card["value"]
+        decimals = len(str(num).split(".")[1]) if num % 1 else 0
+        cur = num * p
+        txt = f"{cur:,.{decimals}f}" if decimals else f"{round(cur):,}"
+        return f"{pre}{txt}{post}"
+
+    def frames():
+        for i in range(n):
+            t = i / VIDEO_FPS
+            im = bg.copy()
+            d = ImageDraw.Draw(im)
+            for k, (card, cy) in enumerate(zip(cards, centres)):
+                start = 0.2 + 1.2 * k
+                a = _ease((t - start) / 0.4)
+                if a <= 0:
+                    continue
+                count = _ease((t - start) / 1.3)
+                d.text((W // 2, cy - 30), shown(card, count).upper(), font=f_num, fill=(*GOLD, int(255 * a)), anchor="mm")
+                d.line([(W // 2 - 80, cy + 70), (W // 2 + 80, cy + 70)], fill=(*WHITE, int(160 * a)), width=3)
+                for j, line in enumerate(_wrap(d, card["label"].upper(), f_lab, W - 220)[:2]):
+                    d.text((W // 2, cy + 115 + 50 * j), line, font=f_lab, fill=(*WHITE, int(255 * a)), anchor="mm")
+            yield im
+
+    return _encode(frames(), out, n)
+
+
+# ------------------------------------------------------------ cross-section
+def render_cross_section(cs: Dict[str, Any], out: Path) -> Optional[Path]:
+    """A cutaway: sky, ground line, strata, and a shaft that a gold marker descends; each sourced
+    level appears as the marker reaches its depth (true proportion), labelled in ft and m."""
+    import random
+    levels = sorted(cs["levels"], key=lambda lv: lv["depth_ft"])
+    total = float(cs["total_depth_ft"])
+    if total <= 0 or len(levels) < 2:
+        return None
+    n = int(CLIP_SECONDS * VIDEO_FPS)
+    ground, bottom = TEXT_TOP + 110, TEXT_BOTTOM - 40
+    scale = (bottom - ground) / total
+    shaft_x = 250
+    label_x, label_w = W // 2 + 40, W // 2 - 120  # labels get the right half, wrapped to fit
+    f_lab, f_dep, f_title = get_font("Montserrat", 32), get_font("Anton", 40), get_font("Anton", 56)
+    rnd = random.Random(7)
+    bg = Image.new("RGBA", (W, H), (*SEA, 255))
+    d0 = ImageDraw.Draw(bg)
+    for y in range(ground, H):  # strata: warm earth bands darkening with depth
+        k = (y - ground) / (H - ground)
+        band = 6 * math.sin(y / 23.0) + rnd.uniform(-2, 2)
+        d0.line([(0, y), (W, y)], fill=(int(70 - 30 * k + band), int(56 - 26 * k + band), int(44 - 22 * k + band), 255))
+    d0.line([(0, ground), (W, ground)], fill=(*MUTED, 255), width=4)
+    d0.text((W - 120, ground - 30), "GROUND LEVEL", font=get_font("Montserrat", 26), fill=(*MUTED, 255), anchor="rm")
+    d0.text((120, TEXT_TOP + 20), cs["subject"].upper(), font=f_title, fill=(*WHITE, 255), anchor="lm")
+
+    def frames():
+        for i in range(n):
+            t = i / VIDEO_FPS
+            im = bg.copy()
+            d = ImageDraw.Draw(im)
+            depth_now = total * _ease((t - 0.3) / 3.4)
+            y_now = ground + depth_now * scale
+            d.rectangle([shaft_x - 22, ground, shaft_x + 22, y_now], fill=(18, 16, 14, 255))  # the shaft opens as we descend
+            for lv in levels:
+                if lv["depth_ft"] > depth_now:
+                    continue
+                y = ground + lv["depth_ft"] * scale
+                a = int(255 * _ease((depth_now - lv["depth_ft"]) / (total * 0.08) if total else 1))
+                d.rectangle([shaft_x + 22, y - 16, label_x - 30, y + 16], fill=(22, 19, 16, a))  # the chamber or level
+                d.text((shaft_x - 50, y), f"{lv['depth_ft']:,.0f} FT", font=f_dep, fill=(*GOLD, a), anchor="rm")
+                d.text((shaft_x - 50, y + 34), f"({lv['depth_ft'] / 3.28084:,.0f} M)", font=get_font("Montserrat", 22),
+                       fill=(*MUTED, a), anchor="rm")
+                lines = _wrap(d, lv["label"].upper(), f_lab, label_w)[:2]
+                for j, line in enumerate(lines):
+                    d.text((label_x, y + (j - (len(lines) - 1) / 2) * 38), line, font=f_lab, fill=(*WHITE, a), anchor="lm")
+            d.ellipse([shaft_x - 14, y_now - 14, shaft_x + 14, y_now + 14], fill=(*GOLD, 255))
+            yield im
+
+    return _encode(frames(), out, n)
+
+
+# ---------------------------------------------------------------- route map
+def render_route(stops: List[Dict[str, Any]], out: Path) -> Optional[Path]:
+    """The journey on the relief map: a gold path drawn stop by stop, each stop pinned and labelled.
+    Stops are located like the topic itself (inside their stated country, or skipped)."""
+    if not geo.available():
+        return None
+    located = []
+    for s in stops[:5]:
+        p = geo.locate({"location": {"name": s["place"], "country": s["country"]}})
+        if p:
+            located.append({**p, "label": s["label"]})
+    if len(located) < 2:
+        return None
+    lats, lons = [p["lat"] for p in located], [p["lon"] for p in located]
+    lat0, lon0 = (min(lats) + max(lats)) / 2, (min(lons) + max(lons)) / 2
+    coslat = max(0.2, math.cos(math.radians(lat0)))
+    scale = 2
+    bw, bh = W * scale, H * scale
+    # Fit every stop inside the middle of the frame (x between 15-85%, y between the text bounds).
+    span_lon = max((max(lons) - min(lons)) * coslat / 0.62, 6.0)
+    span_lat = max((max(lats) - min(lats)) / ((TEXT_BOTTOM - TEXT_TOP - 200) / H), 6.0)
+    kx = min(bw / span_lon, bh / span_lat)
+
+    def project(lon: float, lat: float) -> Tuple[float, float]:
+        return bw / 2 + (lon - lon0) * kx * coslat, bh / 2 - (lat - lat0) * kx
+
+    base = relief_base(lat0, lon0, bw, bh, kx, coslat, None, project, (0, 0, bw, bh)).resize((W, H), Image.LANCZOS)
+    pts = [(project(p["lon"], p["lat"])[0] / scale, project(p["lon"], p["lat"])[1] / scale) for p in located]
+    n = int(CLIP_SECONDS * VIDEO_FPS)
+    f_lab = get_font("Montserrat", 34)
+    seg_time = 3.6 / (len(pts) - 1)
+
+    def frames():
+        for i in range(n):
+            t = i / VIDEO_FPS
+            im = base.convert("RGBA")
+            d = ImageDraw.Draw(im)
+            for k in range(len(pts) - 1):
+                prog = _ease((t - 0.4 - k * seg_time) / seg_time)
+                if prog <= 0:
+                    break
+                (x0, y0), (x1, y1) = pts[k], pts[k + 1]
+                d.line([(x0, y0), (x0 + (x1 - x0) * prog, y0 + (y1 - y0) * prog)], fill=(*GOLD, 255), width=7)
+            for k, ((x, y), p) in enumerate(zip(pts, located)):
+                a = _ease((t - 0.2 - k * seg_time) / 0.35)
+                if a <= 0:
+                    continue
+                d.ellipse([x - 16, y - 16, x + 16, y + 16], fill=(*GOLD, int(255 * a)), outline=(20, 20, 20, int(255 * a)), width=4)
+                right = x < W / 2  # label on the open side
+                tx = x + 34 if right else x - 34
+                for j, line in enumerate(_wrap(d, p["label"].upper(), f_lab, 380)[:2]):
+                    d.text((tx, y - 18 + 40 * j), line, font=f_lab, fill=(*WHITE, int(255 * a)), anchor="lm" if right else "rm")
             yield im
 
     return _encode(frames(), out, n)
 
 
 # ----------------------------------------------------------------------- all
-def make_all(payload: Dict[str, Any], topic: Dict[str, Any], work_dir: Path) -> List[Path]:
-    """Every graphic the script and topic support. Never raises: graphics are optional."""
+def make_all(payload: Dict[str, Any], topic: Dict[str, Any], work_dir: Path, photo: Optional[Path] = None) -> List[Path]:
+    """Every graphic the script and topic support. Never raises: graphics are optional.
+    `photo`: the topic's hero photo, used (blurred) behind the number cards."""
     made: List[Path] = []
     jobs = []
+    if payload.get("stat_cards"):
+        jobs.append(("numbers", lambda: render_stat_cards(payload["stat_cards"], work_dir / "graphic_numbers.mp4", photo)))
+    if payload.get("cross_section"):
+        jobs.append(("cross-section", lambda: render_cross_section(payload["cross_section"], work_dir / "graphic_section.mp4")))
+    if payload.get("route"):
+        jobs.append(("route", lambda: render_route(payload["route"], work_dir / "graphic_route.mp4")))
     place = None
     try:
         place = geo.locate(topic)

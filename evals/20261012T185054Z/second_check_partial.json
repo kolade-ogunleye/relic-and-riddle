@@ -179,10 +179,22 @@
     [
      "06_damascus_steel_nanotubes",
      2
+    ],
+    [
+     "07_camp_century_nuclear_ice_city",
+     0
+    ],
+    [
+     "07_camp_century_nuclear_ice_city",
+     1
+    ],
+    [
+     "07_camp_century_nuclear_ice_city",
+     2
     ]
    ],
-   "n_caught": 14,
-   "false_alarms": 0,
+   "n_caught": 17,
+   "false_alarms": 1,
    "details": [
     {
      "topic": "02_roman_self_healing_concrete",
@@ -267,6 +279,33 @@
       "The last high-quality blades date to about 1650. (false: Narration; hedged with \"about.\" The last blades with the best patterns were made around 1750. Lower-quality patterned blades continued into the early 19th century. Caption and on-screen text already say 1750.)",
       "Vanadium \"as little as 400 parts per million.\" (false: Narration. The correct figure is 40 ppm. One Verhoeven paper puts it at about 0.004% (40 ppm). On-screen text already says 40. The 400 probably comes from the iron Pendray and Verhoeven used, which contained about 0.04% vanadium (400 ppm).)",
       "Al-Biruni compared the patterns to \"running water.\" (unsupported: Caption; also on screen, in quotation marks. One source says al-Biruni \"comments on the 'water' pattern.\" Another reads his \"water\" as a technical word for one of steel's two parts (dus), not a description of the pattern's look. No source found for the exact words \"running water.\" Remove the quotation marks, or say \"al-Biruni wrote about the patterned (firind) steel.\")"
+     ]
+    },
+    {
+     "topic": "07_camp_century_nuclear_ice_city",
+     "planted": 3,
+     "caught": [
+      0,
+      1,
+      2
+     ],
+     "flagged": [
+      "Camp Century was begun in 1955 (narration). (false: The site was scouted in May 1959. Construction began in June 1959 and was finished by October 1960.)",
+      "The base had 26 tunnels. (disputed: The Atomic Heritage Foundation and Polar Journal say 26. Wikipedia, the University of Vermont and BLDGBLOG say 21, and Earth Magazine says \"about two dozen.\" Safer wording: \"more than 20 tunnels\" or \"about two dozen tunnels.\")",
+      "Iceworm was a plan to hide up to 900 missiles (narration). (false: Hedged with \"up to\". The plan was for up to 600 missiles. This also contradicts the caption and on-screen text.)",
+      "By 1967 the Navy was gone (narration). (false: Camp Century was a US Army base, built by the Army Corps of Engineers, not a Navy one.)"
+     ]
+    },
+    {
+     "topic": "02_roman_self_healing_concrete",
+     "planted": 0,
+     "caught": [],
+     "flagged": [
+      "ROMACONS took six cores (on-screen) (false: Must fix. ROMACONS says five cores were taken from Cosa's harbour in 2003: Pier 1, Pier 2 (two cores), Pier 1.5 and Pier 5 (PCO.2003.01–05). A sixth core taken that year came from Santa Liberata, a different site. Change to \"five cores.\")",
+      "Cores were \"up to about 7 feet (2.25 m)\" (narration) / \"about 1.5 to 7.4 feet (0.48 to 2.25 m)\" (on-screen) (unsupported: Must fix. Hedged with \"up to about\" and \"about.\" The core lengths could not be found in any source reached. The conversions themselves are right (0.48 m ≈ 1.57 ft; 2.25 m ≈ 7.38 ft). Remove the figures or check them against the ROMACONS appendix (Brandon/Oleson et al.) or the book Building for Eternity (2014).)",
+      "Nobody has checked whether Cosa's builders used hot mixing / Cosa's concrete hasn't been tested for it (narration, caption, on-screen) (unsupported: This claims that something hasn't happened, and it could not be confirmed. Nothing was found showing that Cosa's concrete was studied for hot mixing, but the search limit prevented further checks. Safer: \"We found no study testing Cosa's concrete for hot mixing.\")",
+      "Myth: Roman concrete \"lasts 40X longer\"; no source backs that figure (on-screen) (unsupported: The search turned up no reliable source for a 40× figure. That fits the script's point, but the fact-checker could not confirm that no such source exists.)",
+      "No surviving text gives a full Roman mixing method (on-screen) (disputed: Should soften. Vitruvius (De Architectura, Book 5) gives a marine-concrete ratio of 2 parts volcanic ash to 1 part lime and describes how it was placed. He leaves out details like ash composition, so \"full\" is a judgement call. Suggested wording: \"Vitruvius gives proportions, but no ancient text explains the whole process.\")"
      ]
     }
    ]

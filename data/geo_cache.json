@@ -158,5 +158,29 @@
   "country": "USA",
   "label": "CIA Headquarters",
   "approximate": false
+ },
+ "antikythera|greece": {
+  "lat": 35.864166666667,
+  "lon": 23.305,
+  "qid": "Q213730",
+  "country": "Greece",
+  "label": "Antikythera",
+  "approximate": false
+ },
+ "athens|greece": {
+  "lat": 37.98416666666667,
+  "lon": 23.728055555555557,
+  "qid": "Q1524",
+  "country": "Greece",
+  "label": "Athens",
+  "approximate": false
+ },
+ "rhodes|greece": {
+  "lat": 36.17,
+  "lon": 27.92,
+  "qid": "Q43048",
+  "country": "Greece",
+  "label": "Rhodes",
+  "approximate": false
  }
 }

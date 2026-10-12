@@ -52,6 +52,28 @@ class ScaleFact(BaseModel):
     subject: str              # e.g. "Derinkuyu's depth"; at most 28 characters
 
 
+class StatCard(BaseModel):
+    value: str                # as shown, e.g. "20,000" or "280 ft"
+    label: str                # at most 40 characters, e.g. "people it could shelter"
+
+
+class SectionLevel(BaseModel):
+    depth_ft: float
+    label: str                # at most 32 characters
+
+
+class CrossSection(BaseModel):
+    subject: str              # e.g. "Derinkuyu"; at most 28 characters
+    total_depth_ft: float
+    levels: List[SectionLevel]  # 2-5 sourced levels or features, top to bottom
+
+
+class RouteStop(BaseModel):
+    place: str                # a findable place name (city, island, site)
+    country: str
+    label: str                # at most 32 characters, e.g. "Built in Rhodes?" or "1902: found by divers"
+
+
 class ScriptPackage(BaseModel):
     title: str
     hook_sentence: str
@@ -67,6 +89,10 @@ class ScriptPackage(BaseModel):
     sources: List[Source]
     timeline: Optional[List[TimelineEvent]] = None   # 2-4 dated events for the timeline graphic
     scale_fact: Optional[ScaleFact] = None           # one well-sourced size for the scale graphic
+    stat_cards: Optional[List[StatCard]] = None      # 1-2 headline figures for animated number cards
+    cross_section: Optional[CrossSection] = None     # underground or vertical structures with sourced depths
+    route: Optional[List[RouteStop]] = None          # 2-5 stops of a journey the story describes
+    photo_labels: Optional[List[str]] = None         # 2-4 visible features named in the narration, to label on a photo
     emphasis_words: Optional[List[str]] = None  # 1-3 key words/names from the narration, emphasised on screen
     carousel_caption: Optional[str] = None  # its own text: Meta/Upload-Post flag duplicate captions
 

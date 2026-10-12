@@ -71,6 +71,10 @@ Requirements:
 - emphasis_words: 1-3 words or short names copied exactly from the narration that carry the story (a striking number, a name, a place). They get a gold highlight on screen, so choose sparingly.
 - timeline: 2-4 dated events from the story, oldest first, only dates the research supports (approximate=true for estimates; negative years for BC; labels at most 40 characters). Omit (null) if the story has fewer than two solid dates.
 - scale_fact: one striking, well-sourced size (depth, height or length) of the subject, for an on-screen comparison with a famous landmark; null if no reliable figure.
+- stat_cards: 1-2 headline figures from the research (value as it should appear, US units first, plus a short label); null if none is striking and solid.
+- cross_section: only for underground or vertical structures where the research gives the total depth and the depth of 2-5 levels or features; otherwise null.
+- route: only when the story follows a journey or movement between real places (2-5 stops, in order, each with a short label); otherwise null.
+- photo_labels: 2-4 physical features named in the narration that a photo of the site could show (e.g. "ventilation shaft", "rolling stone door"); null if none.
 - story_slides: exactly 3 (hook, revelation, question).
 - poll: one question with exactly 2 short options (posted manually as a native Story poll sticker).
 - carousel_slides: exactly 7 (title slide, five fact slides, closing call-to-comment slide).
@@ -156,6 +160,20 @@ def validate_structure(pkg: ScriptPackage) -> List[str]:
             problems.append("timeline events must be in chronological order.")
     if pkg.scale_fact is not None and (pkg.scale_fact.value <= 0 or len(pkg.scale_fact.subject) > 28):
         problems.append("scale_fact needs a positive value and a subject of at most 28 characters.")
+    for card in pkg.stat_cards or []:
+        if len(card.label) > 40 or len(card.value) > 14:
+            problems.append("stat_cards need a value of at most 14 and a label of at most 40 characters.")
+    if pkg.stat_cards is not None and not 1 <= len(pkg.stat_cards) <= 2:
+        problems.append("stat_cards needs 1-2 entries (or null).")
+    if pkg.cross_section is not None:
+        cs = pkg.cross_section
+        depths = [lv.depth_ft for lv in cs.levels]
+        if not 2 <= len(cs.levels) <= 5 or depths != sorted(depths) or any(d < 0 or d > cs.total_depth_ft for d in depths):
+            problems.append("cross_section needs 2-5 levels ordered top to bottom, within the total depth.")
+    if pkg.route is not None and not 2 <= len(pkg.route) <= 5:
+        problems.append("route needs 2-5 stops (or null).")
+    if pkg.photo_labels is not None and (not 2 <= len(pkg.photo_labels) <= 4 or any(len(x) > 28 for x in pkg.photo_labels)):
+        problems.append("photo_labels needs 2-4 short labels (at most 28 characters each).")
     for term in pkg.emphasis_words or []:
         if term.lower() not in pkg.narration_script.lower():
             problems.append(f"emphasis word '{term}' does not appear in the narration.")

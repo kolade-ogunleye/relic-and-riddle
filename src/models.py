@@ -69,3 +69,17 @@ class ClaimAudit(BaseModel):
 class FactCheckReport(BaseModel):
     claims: List[ClaimAudit]
     summary: str
+
+
+class PolicyChange(BaseModel):
+    date: str            # when the change was announced or took effect (YYYY-MM-DD if known)
+    area: str            # e.g. "Content monetization", "Community Standards", "AI labeling", "Graph API"
+    summary: str
+    impact: str          # what it means for a faceless, AI-assisted history Reels channel
+    action_needed: bool
+    action: str          # what to do, or "" if nothing
+    source_url: str
+
+
+class PolicyDigest(BaseModel):
+    changes: List[PolicyChange]

@@ -9,6 +9,7 @@ Usage:
   python main.py daemon [--time 09:00]
   python main.py bot                                          (Telegram commands only; no scheduled runs)
   python main.py update [--apply]                             (outdated / vulnerable packages; test-gated apply)
+  python main.py policy [--telegram]                          (new Meta policy changes, sourced)
   python main.py review list
   python main.py review approve|reject|regenerate <run_id>   (while a run is waiting)
   python main.py review publish <run_id> [--dry-run]         (publish a finished, unpublished run)
@@ -336,6 +337,8 @@ def main(argv=None) -> int:
     resume_p.add_argument("--dry-run", action="store_true")
 
     sub.add_parser("bot", help="Run only the Telegram bot (image review, approvals, /status); no scheduled runs")
+    policy_p = sub.add_parser("policy", help="Check for new Meta policy changes now (web-searched, sourced)")
+    policy_p.add_argument("--telegram", action="store_true", help="Also send the digest to Telegram")
     update_p = sub.add_parser("update", help="Check pinned packages for updates and known vulnerabilities")
     update_p.add_argument("--apply", action="store_true", help="Apply safe/security updates (test-gated, on a branch)")
     daemon_p = sub.add_parser("daemon", help="Run the daily scheduler")
@@ -389,6 +392,18 @@ def main(argv=None) -> int:
             return 1  # already logged and recorded on the run
         print(json.dumps({k: res.get(k) for k in ("status", "run_id", "master_video")}, indent=2))
         return 0 if res["status"] in ("published", "simulated") else 1
+
+    if args.command == "policy":
+        import re
+        from src import llm, policy_watch
+        db = PipelineDatabase()
+        llm.configure_usage(db.record_llm_usage, db.llm_spend)
+        text = policy_watch.digest_text(policy_watch.check(db))
+        print(html.unescape(re.sub(r"<[^>]+>", "", text)))
+        if args.telegram:
+            from src.telegram_bot import TelegramApprovalBot
+            TelegramApprovalBot(db=db).notify(text)
+        return 0
 
     if args.command == "update":
         import re
@@ -492,6 +507,18 @@ def main(argv=None) -> int:
 
         scheduler.add_job(weekly_update_check, CronTrigger(day_of_week="mon", hour=hb_hour, minute=hb_minute + 5 if hb_minute < 55 else 0,
                                                            timezone=TIMEZONE), max_instances=1, coalesce=True, misfire_grace_time=3600)
+
+        from src import policy_watch
+
+        def weekly_policy_watch():
+            try:
+                bot.notify(policy_watch.digest_text(policy_watch.check(coordinator.db)))
+            except Exception as e:
+                bot.notify(f"📜 Weekly policy watch failed: {html.escape(str(e))[:300]}")
+
+        scheduler.add_job(weekly_policy_watch, CronTrigger(day_of_week="wed", hour=hb_hour, minute=hb_minute,
+                                                           timezone=TIMEZONE), max_instances=1, coalesce=True,
+                          misfire_grace_time=3600)
 
         def apply_updates() -> str:
             if run_lock.locked():

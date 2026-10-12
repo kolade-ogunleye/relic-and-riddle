@@ -77,6 +77,8 @@ While `python main.py daemon` runs, the bot also:
 
 - **Checks dependencies weekly** (Mondays): outdated pinned packages and known vulnerabilities (`pip-audit`). **Apply updates** installs minor/patch and security fixes on a git branch and merges only if every test passes, otherwise rolls back. Major versions are left for manual review. CLI: `python main.py update [--apply]`.
 
+- **Watches Meta policy weekly** (Wednesdays): Claude searches for changes to the Community Standards, monetisation, AI-labelling, Reels and Graph API rules since the last check. You get each change once, with its source, its impact on this channel and any action needed. Meta's policy pages are JavaScript-rendered, so a plain page comparison can't work. CLI: `python main.py policy [--telegram]`.
+
 `python main.py bot` runs only the Telegram side (commands, image review, approvals), with no scheduled runs. Use it to review images before switching the daemon on.
 
 ## Adding a topic

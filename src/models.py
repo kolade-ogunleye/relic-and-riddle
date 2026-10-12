@@ -74,7 +74,8 @@ class RouteStop(BaseModel):
     label: str                # at most 32 characters, e.g. "Built in Rhodes?" or "1902: found by divers"
 
 
-class ScriptPackage(BaseModel):
+class ScriptCore(BaseModel):
+    """What the script writer produces in one structured call."""
     title: str
     hook_sentence: str
     narration_script: str
@@ -87,14 +88,23 @@ class ScriptPackage(BaseModel):
     poll: Poll
     carousel_slides: List[CarouselSlide]
     sources: List[Source]
+    carousel_caption: Optional[str] = None  # its own text: Meta/Upload-Post flag duplicate captions
+
+
+class GraphicsPlan(BaseModel):
+    """Planned in a second call from the finished script (one schema with everything was too large
+    for structured outputs: "compiled grammar is too large")."""
     timeline: Optional[List[TimelineEvent]] = None   # 2-4 dated events for the timeline graphic
     scale_fact: Optional[ScaleFact] = None           # one well-sourced size for the scale graphic
     stat_cards: Optional[List[StatCard]] = None      # 1-2 headline figures for animated number cards
     cross_section: Optional[CrossSection] = None     # underground or vertical structures with sourced depths
     route: Optional[List[RouteStop]] = None          # 2-5 stops of a journey the story describes
     photo_labels: Optional[List[str]] = None         # 2-4 visible features named in the narration, to label on a photo
-    emphasis_words: Optional[List[str]] = None  # 1-3 key words/names from the narration, emphasised on screen
-    carousel_caption: Optional[str] = None  # its own text: Meta/Upload-Post flag duplicate captions
+    emphasis_words: Optional[List[str]] = None       # 1-3 key words/names from the narration, emphasised on screen
+
+
+class ScriptPackage(ScriptCore, GraphicsPlan):
+    """The full package: the script plus its graphics plan (validated and fact-checked together)."""
 
 
 # Structured outputs may vary enum casing ("Supported"), so normalize before validating.

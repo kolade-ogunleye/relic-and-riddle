@@ -27,48 +27,71 @@ LIGHT = (225, 225, 225)
 
 
 class MultiFormatGenerator:
-    def generate_story_sequence(self, hero_img_path: Path, script_payload: Dict[str, Any], output_dir: Path) -> List[Path]:
+    def generate_story_sequence(self, hero_img_path: Path, script_payload: Dict[str, Any], output_dir: Path,
+                                scene_images: List[Path] = None) -> List[Path]:
+        """Three Story frames, each on its own matched photo: hook, reveal, and an A-or-B question
+        (the native poll sticker can't be posted through the API, so the question invites replies).
+        Text sits on the calmest band of the photo inside Story-safe zones (clear of the profile bar
+        at the top and the reply bar at the bottom), over a soft gradient rather than a box."""
+        from .visual_engine import calm_center_y
         out_dir = output_dir / "stories"
         out_dir.mkdir(parents=True, exist_ok=True)
-        base = cover_crop(hero_img_path, (VIDEO_WIDTH, VIDEO_HEIGHT))
-        max_w = VIDEO_WIDTH - 2 * 130
+        stills = [p for p in (scene_images or []) if not is_video(p)] or [hero_img_path]
+        slides_data = script_payload["story_slides"]
+        cards = [{"heading": f"{s['line1']} {s['line2']}", "body": s["body"]} for s in slides_data]
+        photos = self._match_photos(cards, stills) if len(stills) > 1 else [hero_img_path] * len(cards)
+        max_w = VIDEO_WIDTH - 2 * 110
         names = ["story_01_hook.jpg", "story_02_reveal.jpg", "story_03_question.jpg"]
+        poll = script_payload.get("poll") or {}
 
         slides = []
-        for i, (slide, name) in enumerate(zip(script_payload["story_slides"], names)):
-            im = Image.alpha_composite(base.copy(), Image.new("RGBA", base.size, (0, 0, 0, 140 + 15 * i)))
-            d = ImageDraw.Draw(im)
+        for i, (slide, name) in enumerate(zip(slides_data, names)):
+            base = cover_crop(photos[i], (VIDEO_WIDTH, VIDEO_HEIGHT)).convert("RGB")
+            cy = calm_center_y(base, candidates=(700, 960, 1200), band=520)
+            d = ImageDraw.Draw(base, "RGBA")
+            for y in range(VIDEO_HEIGHT):  # soft vignette band behind the text, darkest at its centre
+                k = max(0.0, 1 - abs(y - cy) / 520)
+                d.line([(0, y), (VIDEO_WIDTH, y)], fill=(6, 6, 8, int(200 * k ** 1.3)))
             kicker, l1, l2 = slide["kicker"].upper(), slide["line1"].upper(), slide["line2"].upper()
-            font_k = fit_font(d, kicker, "Montserrat", 30, max_w, 20)
-            size = min(fit_font(d, l1, "Anton", 80, max_w, 48).size, fit_font(d, l2, "Anton", 80, max_w, 48).size)
-            font_t = get_font("Anton", size)
-            font_b = get_font("Montserrat", 34)
+            font_k = fit_font(d, kicker, "Montserrat", 34, max_w, 22)
+            size = min(fit_font(d, l1, "Anton", 104, max_w, 56).size, fit_font(d, l2, "Anton", 104, max_w, 56).size)
+            font_t, font_b = get_font("Anton", size), get_font("Montserrat", 40)
             body_lines = wrap_text(d, slide["body"], font_b, max_w)[:3]
-
-            top = 420
-            box_h = 70 + 2 * (size + 14) + 30 + len(body_lines) * 46 + 40
-            d.rounded_rectangle([90, top, VIDEO_WIDTH - 90, top + box_h], radius=24,
-                                fill=(16, 16, 16, 225), outline=(255, 215, 0, 240), width=2)
-            y = top + 50
-            d.text((VIDEO_WIDTH // 2, y), kicker, font=font_k, fill=GOLD, anchor="mm")
-            y += 30 + size // 2 + 10
-            d.text((VIDEO_WIDTH // 2, y), l1, font=font_t, fill=WHITE, anchor="mm")
-            y += size + 14
-            d.text((VIDEO_WIDTH // 2, y), l2, font=font_t, fill=GOLD, anchor="mm")
-            y += size // 2 + 40
+            has_options = i == len(slides_data) - 1 and len(poll.get("options", [])) >= 2
+            block = 60 + 2 * (size + 12) + 40 + len(body_lines) * 54 + (40 + 2 * 120 + 50 if has_options else 70)
+            # Keep the whole block (with options or the Reel pointer) inside the Story-safe area.
+            y = max(280, min(cy - block // 2, VIDEO_HEIGHT - 340 - block))
+            d.text((VIDEO_WIDTH // 2, y), kicker, font=font_k, fill=GOLD, anchor="mt")
+            y += 60
+            d.text((VIDEO_WIDTH // 2, y), l1, font=font_t, fill=WHITE, anchor="mt")
+            y += size + 12
+            d.text((VIDEO_WIDTH // 2, y), l2, font=font_t, fill=GOLD, anchor="mt")
+            y += size + 40
             for line in body_lines:
-                d.text((VIDEO_WIDTH // 2, y), line, font=font_b, fill=LIGHT, anchor="mm")
-                y += 46
-
+                d.text((VIDEO_WIDTH // 2, y), line, font=font_b, fill=LIGHT, anchor="mt")
+                y += 54
+            if i == 0:
+                d.text((VIDEO_WIDTH // 2, y + 30), "FULL STORY IN OUR NEW REEL  →", font=get_font("Montserrat", 32),
+                       fill=GOLD, anchor="mt")
+            if has_options:
+                font_o = get_font("Anton", 52)
+                for j, (letter, option) in enumerate(zip("AB", poll["options"][:2])):
+                    oy = y + 40 + j * 120
+                    d.rounded_rectangle([140, oy, VIDEO_WIDTH - 140, oy + 96], radius=48, fill=(10, 10, 12, 210),
+                                        outline=(255, 215, 0, 230), width=3)
+                    d.text((190, oy + 48), letter, font=font_o, fill=GOLD, anchor="lm")
+                    d.text((250, oy + 48), option.upper()[:28], font=get_font("Montserrat", 38), fill=WHITE, anchor="lm")
+                d.text((VIDEO_WIDTH // 2, y + 40 + 2 * 120 + 20), "REPLY WITH A OR B", font=get_font("Montserrat", 32),
+                       fill=LIGHT, anchor="mt")
             path = out_dir / name
-            im.convert("RGB").save(path, quality=95)
+            base.save(path, quality=95)
             slides.append(path)
 
         with open(output_dir / "companion_posting.json", "w", encoding="utf-8") as f:
             json.dump({
                 "story_poll_sticker": script_payload["poll"],
                 "story_frames": [p.name for p in slides],
-                "note": "Add the poll as a native sticker on the last frame when posting.",
+                "note": "The API cannot add a native poll sticker; frame 3 shows the question with A/B options and invites replies.",
             }, f, indent=2, ensure_ascii=False)
 
         log.info("Generated %d Story frames -> %s", len(slides), out_dir)

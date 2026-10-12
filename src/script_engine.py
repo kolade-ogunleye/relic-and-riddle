@@ -23,7 +23,7 @@ from pydantic import ValidationError
 from .config import CURATED_SCRIPTS_DIR, SECOND_CHECK_ENABLED, TARGET_WORD_COUNT_MIN, TARGET_WORD_COUNT_MAX
 from .fact_checker import ClaimFactChecker
 from .llm import LLMError, claude_available, format_sources, research, structured_call, task as llm_task
-from .models import ScriptPackage
+from .models import GraphicsPlan, ScriptCore, ScriptPackage
 
 log = logging.getLogger(__name__)
 
@@ -69,18 +69,23 @@ Requirements:
 - caption: written like a magazine editor, not a template. First line: a curiosity-driven line of at most 125 characters (the part shown before "more") that is NOT the narration's hook sentence. Then 2-3 short sentences that add context the video doesn't say (a detail, a consequence, a name), with the place worked naturally into the prose. Then one genuine question to the audience. Then the hashtags on the last line. Use 1-3 relevant emoji where they add warmth or meaning (for example one at the end of the first line and one on the question), never as labels or bullet markers, and no "📍" lines. Under 1,600 characters.
 - carousel_caption: a separate caption for the 7-slide carousel of the same topic, different wording from the Reel caption (not a rephrase of its first line): a short invitation to swipe, one fresh detail, one question, then the same hashtags. Under 800 characters.
 - hashtags: 3-5 (Instagram allows at most 5), each starting with "#": specific to the place, era or subject (e.g. "#Cappadocia", "#ByzantineHistory"); no generic engagement tags like "#viral", "#fyp", "#ReelsViral", "#explore".
+- story_slides: exactly 3 (hook, revelation, question).
+- poll: one question with exactly 2 short options (posted manually as a native Story poll sticker).
+- carousel_slides: exactly 7 (title slide, five fact slides, closing call-to-comment slide).
+- first_comment: a debate-starting question, with no hashtags (Instagram's 5-hashtag cap covers the whole post).
+- sources: the pages you used, with real URLs."""
+
+GRAPHICS_SYSTEM = """You plan the on-screen graphics for a finished, fact-checked history Reel script. Use only facts stated in the narration or the research notes; never add new claims. Leave a field null when the facts don't support it."""
+
+GRAPHICS_PROMPT = """Plan the graphics for this script.
+
 - emphasis_words: 1-3 words or short names copied exactly from the narration that carry the story (a striking number, a name, a place). They get a gold highlight on screen, so choose sparingly.
 - timeline: 2-4 dated events from the story, oldest first, only dates the research supports (approximate=true for estimates; negative years for BC; labels at most 40 characters). Omit (null) if the story has fewer than two solid dates.
 - scale_fact: one striking, well-sourced size (depth, height or length) of the subject, for an on-screen comparison with a famous landmark; null if no reliable figure.
 - stat_cards: 1-2 headline figures from the research (value as it should appear, US units first, plus a short label); null if none is striking and solid.
 - cross_section: only for underground or vertical structures where the research gives the total depth and the depth of 2-5 levels or features; otherwise null.
 - route: only when the story follows a journey or movement between real places (2-5 stops, in order, each with a short label); otherwise null.
-- photo_labels: 2-4 physical features named in the narration that a photo of the site could show (e.g. "ventilation shaft", "rolling stone door"); null if none.
-- story_slides: exactly 3 (hook, revelation, question).
-- poll: one question with exactly 2 short options (posted manually as a native Story poll sticker).
-- carousel_slides: exactly 7 (title slide, five fact slides, closing call-to-comment slide).
-- first_comment: a debate-starting question, with no hashtags (Instagram's 5-hashtag cap covers the whole post).
-- sources: the pages you used, with real URLs."""
+- photo_labels: 2-4 physical features named in the narration that a photo of the site could show (e.g. "ventilation shaft", "rolling stone door"); null if none."""
 
 BANNED_ENDINGS = {"when", "until", "because", "and", "or", "so", "that", "while", "as", "but", "if", "the", "a", "of"}
 BANNED_TROPES = [
@@ -269,7 +274,16 @@ class ScriptEngine:
             + "Use only facts supported by the research notes. List sources only from retrieved_sources."
             + feedback
         )
-        pkg = structured_call(SYSTEM_PROMPT, prompt, ScriptPackage, effort="high")
+        core = structured_call(SYSTEM_PROMPT, prompt, ScriptCore, effort="high")
+        try:  # graphics are planned from the finished script; optional, so a failure leaves them out
+            extras = structured_call(
+                GRAPHICS_SYSTEM,
+                f"<narration>\n{core.narration_script}\n</narration>\n\n<research_notes>\n{notes}\n</research_notes>\n\n"
+                + GRAPHICS_PROMPT, GraphicsPlan, effort="medium")
+        except LLMError as e:
+            log.warning("Graphics planning failed (%s); this script has no planned graphics.", e)
+            extras = GraphicsPlan()
+        pkg = ScriptPackage(**{**core.model_dump(), **{k: v for k, v in extras.model_dump().items() if v is not None}})
         retrieved_urls = {s.url for s in retrieved}
         pkg.sources = [s for s in pkg.sources if s.url in retrieved_urls] or retrieved
         return pkg

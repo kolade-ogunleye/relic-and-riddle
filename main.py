@@ -298,7 +298,7 @@ class PipelineCoordinator:
         key = self.db.run_key(run_id)  # rotate cover layouts so neighbouring grid posts differ
         style = COVER_STYLES[int(key) % len(COVER_STYLES)] if key.isdigit() else COVER_STYLES[0]
         thumb_916, thumb_1x1 = self.visual_engine.generate_thumbnails(hero_img, payload, run_dir, style=style)
-        story_slides = self.multiformat_gen.generate_story_sequence(hero_img, payload, run_dir)
+        story_slides = self.multiformat_gen.generate_story_sequence(hero_img, payload, run_dir, scene_images=scene_media)
         carousel_slides = self.multiformat_gen.generate_carousel_sequence(scene_media, payload, run_dir)
 
         # 7. Master render

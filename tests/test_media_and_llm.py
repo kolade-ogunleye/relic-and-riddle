@@ -142,7 +142,9 @@ def test_revision_edits_previous_draft_and_reuses_research(monkeypatch, curated_
     first = eng.generate_script({"id": "t", "title": "T"})
     eng.generate_script({"id": "t", "title": "T"}, revision_notes="'X' (false: wrong)", previous=first)
     assert calls["research"] == 1
-    assert "<previous_draft>" in calls["prompts"][1] and "'X' (false: wrong)" in calls["prompts"][1]
+    script_prompts = [p for p in calls["prompts"] if "Plan the graphics" not in p]  # each draft also plans graphics
+    assert len(script_prompts) == 2
+    assert "<previous_draft>" in script_prompts[1] and "'X' (false: wrong)" in script_prompts[1]
 
 
 def test_long_caption_bursts_shrink_to_safe_width(tmp_path):

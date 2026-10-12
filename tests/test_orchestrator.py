@@ -163,7 +163,7 @@ def test_render_adds_beat_images_and_replans_once_on_picture_mismatch(db, monkey
                     QAReport(summary="", issues=[])])
     monkeypatch.setattr(main, "review_render", lambda *a: next(reports))
     monkeypatch.setattr(coord.visual_engine, "generate_thumbnails", lambda *a, **k: (tmp_path / "c.jpg", tmp_path / "g.jpg"))
-    monkeypatch.setattr(coord.multiformat_gen, "generate_story_sequence", lambda *a: [])
+    monkeypatch.setattr(coord.multiformat_gen, "generate_story_sequence", lambda *a, **k: [])
     monkeypatch.setattr(coord.multiformat_gen, "generate_carousel_sequence", lambda *a: [])
     renders = []
     monkeypatch.setattr(coord.video_composer, "compose_video", lambda *a, **k: renders.append(1))

@@ -180,7 +180,9 @@ MAX_BURST_WORDS = 2
 MAX_BURST_CHARS = 13
 
 # Caption Colors (ASS BGR Hex)
-COL_ACTIVE = r"&H0000D7FF&"    # Warm Gold #FFD700
+COL_ACTIVE = r"&H00FFFFFF&"    # Clean White (spoken word)
+COL_EMPHASIS = r"&H0000D7FF&"  # Warm Gold #FFD700, only for the script's 1-3 key words
+EMPHASIS_POP = 112             # % scale the key word starts at, settling to 100% in 140 ms
 COL_PAST = r"&H00FFFFFF&"      # Clean White
 COL_FUTURE = r"&H00909090&"    # Soft Gray
 COL_BACK = r"&HC8101010&"      # Translucent Charcoal Pill

@@ -68,6 +68,7 @@ Requirements:
 - caption: written like a magazine editor, not a template. First line: a curiosity-driven line that is NOT the narration's hook sentence. Then 2-3 short sentences that add context the video doesn't say (a detail, a consequence, a name), with the place worked naturally into the prose. Then one genuine question to the audience. Then the hashtags on the last line. No emoji labels or "📍" lines. Under 1,600 characters.
 - carousel_caption: a separate caption for the 7-slide carousel of the same topic, different wording from the Reel caption (not a rephrase of its first line): a short invitation to swipe, one fresh detail, one question, then the same hashtags. Under 800 characters.
 - hashtags: exactly 5, each starting with "#": specific to the place, era or subject (e.g. "#Cappadocia", "#ByzantineHistory"); no generic engagement tags like "#viral", "#fyp", "#ReelsViral", "#explore".
+- emphasis_words: 1-3 words or short names copied exactly from the narration that carry the story (a striking number, a name, a place). They get a gold highlight on screen, so choose sparingly.
 - story_slides: exactly 3 (hook, revelation, question).
 - poll: one question with exactly 2 short options (posted manually as a native Story poll sticker).
 - carousel_slides: exactly 7 (title slide, five fact slides, closing call-to-comment slide).
@@ -135,6 +136,11 @@ def validate_structure(pkg: ScriptPackage) -> List[str]:
     ai_isms = [p for p in AI_PHRASES if re.search(r"\b" + re.escape(p) + r"\b", public_text, re.IGNORECASE)]
     if ai_isms:
         problems.append(f"Uses machine-sounding phrasing ({', '.join(ai_isms)}); rewrite in plain documentary language.")
+    for term in pkg.emphasis_words or []:
+        if term.lower() not in pkg.narration_script.lower():
+            problems.append(f"emphasis word '{term}' does not appear in the narration.")
+    if pkg.emphasis_words is not None and not 1 <= len(pkg.emphasis_words) <= 3:
+        problems.append("emphasis_words needs 1-3 entries.")
     if "📍" in pkg.caption:
         problems.append("Caption uses the '📍 location' template line; work the place into the prose instead.")
     first_line = next((ln for ln in pkg.caption.splitlines() if ln.strip()), "")

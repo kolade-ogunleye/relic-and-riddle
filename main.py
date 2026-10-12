@@ -325,7 +325,8 @@ class PipelineCoordinator:
                 scenes = render_parallax(scenes, durations, run_dir / "parallax", TRANS_DUR) or scenes
             except Exception as e:
                 log.warning("Parallax rendering failed (%s); using flat camera moves.", e)
-            self.video_composer.compose_video(scenes, vo_path, bed_path, words, vo_dur, master_mp4, durations=durations)
+            self.video_composer.compose_video(scenes, vo_path, bed_path, words, vo_dur, master_mp4, durations=durations,
+                                              emphasis=payload.get("emphasis_words"))
             # Automated look at the finished video; findings go on the review card.
             qa = review_render(master_mp4, beats, thumb_916, run_dir)
             feedback = beat_images.picture_issues(qa)

@@ -52,6 +52,7 @@ class ScriptPackage(BaseModel):
     poll: Poll
     carousel_slides: List[CarouselSlide]
     sources: List[Source]
+    emphasis_words: Optional[List[str]] = None  # 1-3 key words/names from the narration, emphasised on screen
     carousel_caption: Optional[str] = None  # its own text: Meta/Upload-Post flag duplicate captions
 
 

@@ -18,7 +18,7 @@ import os
 import re
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from .config import (
     AUDIO_SAMPLE_RATE,
@@ -29,6 +29,8 @@ from .config import (
     MAX_BURST_WORDS,
     MAX_BURST_CHARS,
     COL_ACTIVE,
+    COL_EMPHASIS,
+    EMPHASIS_POP,
     COL_PAST,
     COL_FUTURE,
     COL_BACK,
@@ -72,15 +74,35 @@ def _ass_escape(text: str) -> str:
 MAX_CAPTION_WIDTH = 860  # px: inside Meta's ~6% side margins and clear of the right-hand button rail
 
 
-def _caption_fit_size(text: str) -> int:
-    """Largest font size <= FONT_SIZE at which `text` renders within MAX_CAPTION_WIDTH."""
+def _caption_fit_size(text: str, scale: float = 1.0) -> int:
+    """Largest font size <= FONT_SIZE at which `text` (shown at up to `scale`) fits MAX_CAPTION_WIDTH."""
     from .typography import get_font
     from PIL import Image, ImageDraw
     draw = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    width = draw.textlength(text, font=get_font("Anton", FONT_SIZE))
+    width = draw.textlength(text, font=get_font("Anton", FONT_SIZE)) * scale
     if width <= MAX_CAPTION_WIDTH:
         return FONT_SIZE
     return max(48, int(FONT_SIZE * MAX_CAPTION_WIDTH / width))
+
+
+def _norm(word: str) -> str:
+    return re.sub(r"[^\w]", "", word.lower())
+
+
+def emphasis_indices(words: List[Dict[str, Any]], terms: Optional[List[str]]) -> Set[int]:
+    """Word positions to emphasise: the first occurrence of each key term (multi-word terms
+    match as a sequence). Without terms, the first two words containing a digit."""
+    tokens = [_norm(w["word"]) for w in words]
+    picked: Set[int] = set()
+    for term in (terms or [])[:3]:
+        seq = [t for t in (_norm(x) for x in term.split()) if t]
+        for i in range(len(tokens) - len(seq) + 1):
+            if seq and tokens[i:i + len(seq)] == seq:
+                picked.update(range(i, i + len(seq)))
+                break
+    if not terms:
+        picked = set([i for i, w in enumerate(words) if any(c.isdigit() for c in w["word"])][:2])
+    return picked
 
 
 def _audio_chain(vo_idx: int, bg_idx: int) -> str:
@@ -115,7 +137,9 @@ class VideoComposer:
         s, cs = divmod(rem, 100)
         return f"{h}:{m:02d}:{s:02d}.{cs:02d}"
 
-    def build_subtitles(self, words: List[Dict[str, Any]], ass_path: Path) -> Path:
+    def build_subtitles(self, words: List[Dict[str, Any]], ass_path: Path, emphasis: Optional[List[str]] = None) -> Path:
+        """Two-word bursts: spoken words white, upcoming words grey. Only the script's 1-3 key
+        words turn gold, with a short scale pop when spoken (not the uniform gold template)."""
         header = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {VIDEO_WIDTH}
@@ -142,22 +166,37 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         if cur:
             phrases.append(cur)
 
+        key = emphasis_indices(words, emphasis)
         raw = []
+        base = 0  # index of the phrase's first word in `words`
         for pi, phrase in enumerate(phrases):
             if pi < len(phrases) - 1:
                 next_start = phrases[pi + 1][0]["start"]
             else:
                 next_start = phrase[-1]["start"] + phrase[-1]["dur"] + 0.10
-            # Shrink a burst that would run wider than the safe caption width (long single words).
-            fit = _caption_fit_size(" ".join(_ass_escape(w["word"].upper()) for w in phrase))
+            has_key = any(base + j in key for j in range(len(phrase)))
+            # Shrink a burst that would run wider than the safe caption width (long single words),
+            # allowing for the pop scale when it holds a key word.
+            fit = _caption_fit_size(" ".join(_ass_escape(w["word"].upper()) for w in phrase),
+                                    EMPHASIS_POP / 100 if has_key else 1.0)
             size_tag = f"{{\\fs{fit}}}" if fit < FONT_SIZE else ""
             for wi, target in enumerate(phrase):
                 t_end = phrase[wi + 1]["start"] if wi < len(phrase) - 1 else next_start
                 parts = []
                 for ji, w in enumerate(phrase):
-                    colour = COL_PAST if ji < wi else COL_ACTIVE if ji == wi else COL_FUTURE
-                    parts.append(f"{{\\c{colour}}}{_ass_escape(w['word'].upper())}")
+                    is_key = base + ji in key
+                    if ji > wi:
+                        colour = COL_FUTURE
+                    else:
+                        colour = COL_EMPHASIS if is_key else COL_PAST if ji < wi else COL_ACTIVE
+                    pop = ""
+                    if is_key and ji == wi:  # the key word lands: brief scale pop, settling to 100%
+                        pop = f"\\fscx{EMPHASIS_POP}\\fscy{EMPHASIS_POP}\\t(0,140,\\fscx100\\fscy100)"
+                    elif has_key:
+                        pop = "\\fscx100\\fscy100"
+                    parts.append(f"{{\\c{colour}{pop}}}{_ass_escape(w['word'].upper())}")
                 raw.append((target["start"], t_end, size_tag + " ".join(parts)))
+            base += len(phrase)
 
         raw.sort(key=lambda e: e[0])
         lines = [header]
@@ -220,6 +259,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         vo_dur: float,
         output_mp4_path: Path,
         durations: Optional[List[float]] = None,
+        emphasis: Optional[List[str]] = None,
     ) -> Path:
         """
         durations: seconds on screen per scene (e.g. from scene_planner beats). Each cut is
@@ -227,7 +267,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         the narration equally.
         """
         ass_path = output_mp4_path.parent / (output_mp4_path.stem + "_captions.ass")
-        self.build_subtitles(words, ass_path)
+        self.build_subtitles(words, ass_path, emphasis=emphasis)
 
         n = len(scene_images)
         if not durations or len(durations) != n:

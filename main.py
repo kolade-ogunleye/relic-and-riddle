@@ -35,7 +35,8 @@ from src.config import ASSETS_DIR, DAILY_RUN_TIME, HARD_DURATION_CEILING, OUTPUT
 from src.credits import caption_credit_line, load_credits
 from src.db import PipelineDatabase, QueueEmpty
 from src.control import heartbeat_text, is_paused, make_command_handler, ping_healthcheck
-from src import beat_images, graphics, post_schedule
+from src import beat_images, footage, graphics, post_schedule
+from src.llm import claude_available as llm_available
 from src.scene_planner import plan_scenes, segment_beats
 from src.upscale import ensure_all, ensure_resolution
 from src.music import mark_used as mark_track_used, music_for
@@ -304,26 +305,42 @@ class PipelineCoordinator:
         # Match pictures to narration beats; cuts land on the beat boundaries.
         beats = segment_beats(words, vo_dur)
         # Extra candidates searched for the concrete subject of individual beats (openly licensed).
-        beat_paths, beat_credits = beat_images.source(beats, topic, run_dir / "beat_images")
+        # One query plan (picture subjects per beat) serves both beat images and real footage.
+        query_plan = None
+        if llm_available():
+            try:
+                query_plan = beat_images.plan_queries(beats, topic)
+            except Exception as e:
+                log.warning("Beat query planning failed (%s); no beat images or footage this run.", e)
+        beat_paths, beat_credits = (beat_images.source(beats, topic, run_dir / "beat_images", plan=query_plan)
+                                    if query_plan else ([], []))
+        footage_clips, footage_credits = (footage.source(beats, topic, run_dir / "footage", plan=query_plan)
+                                          if query_plan else ([], []))
         for cred, path in zip(beat_credits, beat_paths):
             cred["upscaled"] = str(ensure_resolution(path))
         # The channel's own animated graphics (map, timeline, scale) as further candidates.
         own_graphics = graphics.make_all(payload, topic, run_dir / "graphics")
-        candidates = scene_media + [Path(c["upscaled"]) for c in beat_credits] + own_graphics
+        candidates = scene_media + [Path(c["upscaled"]) for c in beat_credits] + own_graphics + footage_clips
         master_mp4 = run_dir / f"{tid}_master.mp4"
         caption_base, feedback, qa = payload["caption"], "", None
         for attempt in (1, 2):  # a second pass only if the video check finds a picture mismatch
             scenes, durations, plan_notes = plan_scenes(beats, candidates, feedback=feedback)
             log.info("Scene plan: %d beats (%s).", len(beats), plan_notes[:120])
             used = beat_images.used_credits(scenes, beat_credits)
+            used_footage = [c for c in footage_credits if Path(c["file"]) in scenes]
             caption = beat_images.credit_caption(caption_base, load_credits(ASSETS_DIR / tid), used)
+            caption = footage.with_credits(caption, used_footage)
             if len(caption) > 2200:  # can't credit them within Instagram's limit, so don't use them
-                log.warning("Beat image credits would overflow the caption; using the topic's images only.")
-                candidates, used, caption = scene_media, [], caption_base
+                log.warning("Image/footage credits would overflow the caption; using the topic's images and our graphics only.")
+                candidates, used, used_footage, caption = scene_media + own_graphics, [], [], caption_base
                 scenes, durations, plan_notes = plan_scenes(beats, candidates, feedback=feedback)
             payload["caption"] = caption
             used_graphics = [p.stem.replace("graphic_", "") for p in own_graphics if p in scenes]
             payload["graphics_note"] = ("🗺 Original graphics in this video: " + ", ".join(used_graphics)) if used_graphics else ""
+            payload["footage_credits"] = used_footage
+            payload["footage_note"] = (f"🎥 {len(used_footage)} real footage clip(s) "
+                                       f"({sum(c['place_specific'] for c in used_footage)} of the actual site): "
+                                       + "; ".join(f"{c['provider']}: {c['source_url']}" for c in used_footage)) if used_footage else ""
             payload["beat_image_credits"] = used
             payload["beat_image_note"] = (f"🔍 {len(used)} beat-specific image(s) auto-sourced from Wikimedia Commons; "
                                           "check they show the right thing" if used else "")

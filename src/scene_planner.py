@@ -10,10 +10,12 @@ Matches pictures to what is being said.
 The result is one (image, duration) per beat for the video composer.
 """
 
+import json
 import logging
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
+from .config import FOOTAGE_MAX_SHARE
 from .llm import LLMError, claude_available, image_block, structured_call, task as llm_task
 from .models import ScenePlan
 from .typography import is_video
@@ -22,7 +24,7 @@ log = logging.getLogger(__name__)
 
 MIN_BEAT, TARGET_BEAT, MAX_BEAT = 2.5, 3.2, 4.5
 
-SYSTEM = """You are a documentary film editor. Choose the best picture for each line of narration in a short vertical history video. Prefer images that literally show what the line describes; for abstract lines, pick an atmospheric image that fits. Use each image at most once where possible, start strong (the first beat is the hook), and avoid placing two near-identical images back to back. Never pick an image that contradicts the narration.
+SYSTEM = """You are a documentary film editor. Choose the best picture for each line of narration in a short vertical history video. Prefer images that literally show what the line describes; for abstract lines, pick an atmospheric image that fits. Use each image at most once where possible, start strong (the first beat is the hook), and avoid placing two near-identical images back to back. Never pick an image that contradicts the narration; real footage labelled GENERIC must never stand in for the named place.
 Some candidates are the channel's own animated graphics (a locator map, a timeline, a scale comparison). Use each at most once, on the beat it fits: the map where the place is introduced, the timeline where the dates are told, the scale graphic where the size is stated. They add information the photos can't, so use the ones that fit; don't open the video with one unless no photo makes a stronger hook."""
 
 
@@ -53,8 +55,26 @@ def segment_beats(words: List[Dict[str, Any]], total: float) -> List[Dict[str, A
 
 
 def _is_graphic(p: Path) -> bool:
-    """An original animated graphic from src/graphics.py (has a poster frame beside it)."""
-    return is_video(p) and Path(p).stem.startswith("graphic_") and Path(p).with_suffix(".jpg").exists()
+    """A clip the planner may place: an original graphic (src/graphics.py) or a real footage
+    segment (src/footage.py). Both have a poster frame beside them."""
+    return is_video(p) and Path(p).stem.startswith(("graphic_", "footage_")) and Path(p).with_suffix(".jpg").exists()
+
+
+def _clip_label(p: Path) -> str:
+    if p.stem.startswith("graphic_"):
+        return f"animated {p.stem.replace('graphic_', '')} graphic, use at most once"
+    try:
+        meta = json.loads(p.with_suffix(".json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        meta = {}
+    if meta.get("place_specific"):
+        return "real video footage of the actual site, use at most once"
+    return "real video footage, GENERIC (not the actual site): only for atmosphere, never where the narration names the place"
+
+
+def _footage_share(chosen: List[Path], durations: List[float]) -> float:
+    total = sum(durations) or 1.0
+    return sum(d for c, d in zip(chosen, durations) if Path(c).stem.startswith("footage_")) / total
 
 
 @llm_task("scene_plan")
@@ -75,9 +95,7 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
             content: List[dict] = []
             for i, p in enumerate(options, 1):
                 if p in graphics:
-                    kind = p.stem.replace("graphic_", "")
-                    content += [{"type": "text", "text": f"Image {i} (animated {kind} graphic, use at most once):"},
-                                image_block(p.with_suffix(".jpg"))]
+                    content += [{"type": "text", "text": f"Image {i} ({_clip_label(p)}):"}, image_block(p.with_suffix(".jpg"))]
                 else:
                     content += [{"type": "text", "text": f"Image {i}:"}, image_block(p)]
             lines = "\n".join(f"Beat {i}: {b['text']}" for i, b in enumerate(beats, 1))
@@ -104,6 +122,13 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
                 pick = stills[k % len(stills)]
             used_graphics.add(pick)
         chosen.append(pick)
+    # Footage supports the narration, never dominates it (Meta's originality rules): over the
+    # cap, the latest footage picks become photos.
+    k = len(chosen) - 1
+    while _footage_share(chosen, durations) > FOOTAGE_MAX_SHARE and k >= 0:
+        if Path(chosen[k]).stem.startswith("footage_"):
+            chosen[k] = stills[k % len(stills)]
+        k -= 1
     if hook is not None:
         chosen[0] = hook
     return chosen, durations, notes

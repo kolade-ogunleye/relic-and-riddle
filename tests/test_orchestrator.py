@@ -146,7 +146,10 @@ def test_render_adds_beat_images_and_replans_once_on_picture_mismatch(db, monkey
     monkeypatch.setattr(main, "ensure_all", lambda paths: (paths, 0))
     monkeypatch.setattr(main, "ensure_resolution", lambda p: p)
     monkeypatch.setattr(main, "load_credits", lambda d: {"images": []})
-    monkeypatch.setattr(main.beat_images, "source", lambda beats, topic, d: (
+    monkeypatch.setattr(main, "llm_available", lambda: True)
+    monkeypatch.setattr(main.beat_images, "plan_queries", lambda beats, topic: "plan")
+    monkeypatch.setattr(main.footage, "source", lambda beats, topic, d, plan=None: ([], []))
+    monkeypatch.setattr(main.beat_images, "source", lambda beats, topic, d, plan=None: (
         [beat_img], [{"file": str(beat_img), "beat": 1, "artist": "Bob", "license": "CC BY 4.0", "attribution_required": True}]))
     plans = []
 

@@ -40,15 +40,16 @@ def plan_queries(beats: List[Dict[str, Any]], topic: Dict[str, Any]) -> BeatQuer
                            models=config.LIGHT_TASK_MODELS)
 
 
-def source(beats: List[Dict[str, Any]], topic: Dict[str, Any], work_dir: Path) -> Tuple[List[Path], List[Dict[str, Any]]]:
+def source(beats: List[Dict[str, Any]], topic: Dict[str, Any], work_dir: Path, plan=None) -> Tuple[List[Path], List[Dict[str, Any]]]:
     """Returns (downloaded image paths, their credit records). Never raises: extra images are optional."""
     if not config.BEAT_IMAGES_ENABLED or not claude_available():
         return [], []
-    try:
-        plan = plan_queries(beats, topic)
-    except LLMError as e:
-        log.warning("Beat image planning failed: %s", e)
-        return [], []
+    if plan is None:
+        try:
+            plan = plan_queries(beats, topic)
+        except LLMError as e:
+            log.warning("Beat image planning failed: %s", e)
+            return [], []
     work_dir.mkdir(parents=True, exist_ok=True)
     paths, credits, seen = [], [], set()
     for item in plan.items[:MAX_BEATS]:

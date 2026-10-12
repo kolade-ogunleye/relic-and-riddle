@@ -160,7 +160,15 @@ REALESRGAN_BIN = os.getenv("REALESRGAN_BIN", str(BASE_DIR / "tools" / "realesrga
 # Per-beat images searched on Wikimedia Commons during a run. CC BY-SA images are excluded by
 # default: share-alike asks that adaptations (the video) be released under the same licence.
 BEAT_IMAGES_ENABLED = os.getenv("BEAT_IMAGES_ENABLED", "true").lower() in ("true", "1", "yes")
-BEAT_IMAGES_ALLOW_SHARE_ALIKE = os.getenv("BEAT_IMAGES_ALLOW_SHARE_ALIKE", "false").lower() in ("true", "1", "yes")
+# Real public footage (src/footage.py). Share of runtime footage may take (Meta's originality
+# rules: third-party clips support our narration, never replace it), and the quality bar.
+FOOTAGE_ENABLED = os.getenv("FOOTAGE_ENABLED", "true").lower() in ("true", "1", "yes")
+FOOTAGE_MAX_SHARE = float(os.getenv("FOOTAGE_MAX_SHARE", "0.4"))
+FOOTAGE_MIN_CROP_WIDTH = int(os.getenv("FOOTAGE_MIN_CROP_WIDTH", "1080"))  # px after the 9:16 crop: 4K landscape or vertical
+FOOTAGE_MAX_MB = int(os.getenv("FOOTAGE_MAX_MB", "600"))  # per original download (4K originals are large)
+PEXELS_API_KEY = os.getenv("PEXELS_API_KEY", "")
+PIXABAY_API_KEY = os.getenv("PIXABAY_API_KEY", "")
+BEAT_IMAGES_ALLOW_SHARE_ALIKE =os.getenv("BEAT_IMAGES_ALLOW_SHARE_ALIKE", "false").lower() in ("true", "1", "yes")
 
 # Narration & Voiceover (edge-tts)
 NARRATOR_VOICE = "en-US-ChristopherNeural"

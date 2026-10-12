@@ -143,3 +143,17 @@ def test_revision_edits_previous_draft_and_reuses_research(monkeypatch, curated_
     eng.generate_script({"id": "t", "title": "T"}, revision_notes="'X' (false: wrong)", previous=first)
     assert calls["research"] == 1
     assert "<previous_draft>" in calls["prompts"][1] and "'X' (false: wrong)" in calls["prompts"][1]
+
+
+def test_long_caption_bursts_shrink_to_safe_width(tmp_path):
+    from src.video_composer import FONT_SIZE, _caption_fit_size
+    assert _caption_fit_size("85 METRES") == FONT_SIZE
+    assert _caption_fit_size("PSEUDOARCHAEOASTRONOMICAL") < FONT_SIZE
+    words = [{"word": "Pseudoarchaeoastronomical", "start": 0.0, "dur": 0.8}]
+    text = VideoComposer().build_subtitles(words, tmp_path / "c.ass").read_text(encoding="utf-8")
+    assert r"{\fs" in text.split("[Events]")[1]
+
+
+def test_captions_sit_above_meta_bottom_safe_zone():
+    from src.config import CAPTION_MARGIN_V, VIDEO_HEIGHT
+    assert CAPTION_MARGIN_V >= 0.35 * VIDEO_HEIGHT

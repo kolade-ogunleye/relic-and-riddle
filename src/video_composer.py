@@ -69,6 +69,20 @@ def _ass_escape(text: str) -> str:
     return text.replace("\\", "").replace("{", "(").replace("}", ")").replace("\n", " ")
 
 
+MAX_CAPTION_WIDTH = 860  # px: inside Meta's ~6% side margins and clear of the right-hand button rail
+
+
+def _caption_fit_size(text: str) -> int:
+    """Largest font size <= FONT_SIZE at which `text` renders within MAX_CAPTION_WIDTH."""
+    from .typography import get_font
+    from PIL import Image, ImageDraw
+    draw = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    width = draw.textlength(text, font=get_font("Anton", FONT_SIZE))
+    if width <= MAX_CAPTION_WIDTH:
+        return FONT_SIZE
+    return max(48, int(FONT_SIZE * MAX_CAPTION_WIDTH / width))
+
+
 def _audio_chain(vo_idx: int, bg_idx: int) -> str:
     """Voice cleanup + ducked bed + sum at the delivery sample rate, before mastering."""
     return (
@@ -134,13 +148,16 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 next_start = phrases[pi + 1][0]["start"]
             else:
                 next_start = phrase[-1]["start"] + phrase[-1]["dur"] + 0.10
+            # Shrink a burst that would run wider than the safe caption width (long single words).
+            fit = _caption_fit_size(" ".join(_ass_escape(w["word"].upper()) for w in phrase))
+            size_tag = f"{{\\fs{fit}}}" if fit < FONT_SIZE else ""
             for wi, target in enumerate(phrase):
                 t_end = phrase[wi + 1]["start"] if wi < len(phrase) - 1 else next_start
                 parts = []
                 for ji, w in enumerate(phrase):
                     colour = COL_PAST if ji < wi else COL_ACTIVE if ji == wi else COL_FUTURE
                     parts.append(f"{{\\c{colour}}}{_ass_escape(w['word'].upper())}")
-                raw.append((target["start"], t_end, " ".join(parts)))
+                raw.append((target["start"], t_end, size_tag + " ".join(parts)))
 
         raw.sort(key=lambda e: e[0])
         lines = [header]

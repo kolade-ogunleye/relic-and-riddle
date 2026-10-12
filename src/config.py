@@ -138,7 +138,9 @@ NARRATOR_PITCH = "-2Hz"
 # Subtitle / Caption Typography (Anton Locked Standard)
 FONT_NAME = "Anton"
 FONT_SIZE = 92
-CAPTION_MARGIN_V = 540  # y = 1380px, strictly above native Meta UI overlays
+# Bottom 35% of the frame (672 px) is Meta's Reels safe zone for its own UI (username,
+# caption, audio row); captions sit just above it, baseline at y = 1248.
+CAPTION_MARGIN_V = 672
 MAX_BURST_WORDS = 2
 MAX_BURST_CHARS = 13
 

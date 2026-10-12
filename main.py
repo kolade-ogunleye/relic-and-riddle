@@ -42,6 +42,7 @@ from src.music import mark_used as mark_track_used, music_for
 from src.parallax import render_scenes as render_parallax
 from src.video_composer import TRANS_DUR
 from src.video_qa import qa_summary_html, review_render
+from src.visual_engine import COVER_STYLES
 from src.ops import AssetLifecycleManager, PreFlightHealthChecker, setup_logging
 
 log = logging.getLogger("pipeline")
@@ -293,7 +294,9 @@ class PipelineCoordinator:
             log.info(payload["source_note"])
 
         # Stills
-        thumb_916, thumb_1x1 = self.visual_engine.generate_thumbnails(hero_img, payload, run_dir)
+        key = self.db.run_key(run_id)  # rotate cover layouts so neighbouring grid posts differ
+        style = COVER_STYLES[int(key) % len(COVER_STYLES)] if key.isdigit() else COVER_STYLES[0]
+        thumb_916, thumb_1x1 = self.visual_engine.generate_thumbnails(hero_img, payload, run_dir, style=style)
         story_slides = self.multiformat_gen.generate_story_sequence(hero_img, payload, run_dir)
         carousel_slides = self.multiformat_gen.generate_carousel_sequence(scene_media, payload, run_dir)
 

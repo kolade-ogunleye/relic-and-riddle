@@ -34,6 +34,7 @@ log = logging.getLogger(__name__)
 GOLD = (255, 215, 0, 255)
 WHITE = (255, 255, 255, 255)
 SAFE_TEXT_WIDTH = VIDEO_WIDTH - 2 * 110
+COVER_STYLES = ("badge", "lower_third", "minimal")
 
 # The shared Cappadocia photo suite in assets/ only depicts the Derinkuyu topic.
 SHARED_SUITE = {
@@ -101,18 +102,80 @@ class VisualEngine:
         """First still image in the sequence (a motion hook clip can't be a cover)."""
         return next(p for p in scene_media if not is_video(p))
 
-    def generate_thumbnails(self, hero_image_path: Path, script_payload: Dict[str, Any], output_dir: Path) -> Tuple[Path, Path]:
+    def generate_thumbnails(self, hero_image_path: Path, script_payload: Dict[str, Any], output_dir: Path,
+                            style: str = "badge") -> Tuple[Path, Path]:
+        """Cover in one of COVER_STYLES (rotated per run so neighbouring grid posts differ).
+        Every layout keeps its text inside the centre 1080x1080 square, which survives both the
+        1:1 and the 3:4 profile-grid crops."""
         output_dir.mkdir(parents=True, exist_ok=True)
         out_916_path = output_dir / "thumbnail_cover.jpg"
         out_1x1_path = output_dir / "thumbnail_profile_grid.jpg"
-
         copy = script_payload["thumbnail"]
+        im = cover_crop(hero_image_path, (VIDEO_WIDTH, VIDEO_HEIGHT))
+        render = {"lower_third": self._cover_lower_third, "minimal": self._cover_minimal}.get(style, self._cover_badge)
+        final_916 = render(im, copy).convert("RGB")
+        final_916.save(out_916_path, quality=95)
+        center_y = VIDEO_HEIGHT // 2
+        top = max(0, min(VIDEO_HEIGHT - VIDEO_WIDTH, center_y - VIDEO_WIDTH // 2))
+        final_916.crop((0, top, VIDEO_WIDTH, top + VIDEO_WIDTH)).save(out_1x1_path, quality=95)
+        log.info("Thumbnails generated (%s): %s, %s", style, out_916_path.name, out_1x1_path.name)
+        return out_916_path, out_1x1_path
+
+    @staticmethod
+    def _shadowed_text(im: Image.Image, xy, text: str, font, fill, anchor: str) -> Image.Image:
+        """Text with a soft drop shadow, for layouts without a backing box."""
+        shadow = Image.new("RGBA", im.size, (0, 0, 0, 0))
+        ImageDraw.Draw(shadow).text((xy[0] + 3, xy[1] + 5), text, font=font, fill=(0, 0, 0, 200), anchor=anchor)
+        im = Image.alpha_composite(im, shadow.filter(ImageFilter.GaussianBlur(8)))
+        ImageDraw.Draw(im).text(xy, text, font=font, fill=fill, anchor=anchor)
+        return im
+
+    def _cover_lower_third(self, im: Image.Image, copy: Dict[str, str]) -> Image.Image:
+        """Cinematic: dark gradient rising from the bottom of the square, left-aligned title."""
+        eyebrow, line1, line2 = copy["eyebrow"].upper(), copy["line1"].upper(), copy["line2"].upper()
+        square_bottom = VIDEO_HEIGHT // 2 + VIDEO_WIDTH // 2
+        grad = Image.new("L", (1, VIDEO_HEIGHT), 0)
+        for y in range(VIDEO_HEIGHT):  # 0 above the middle, up to ~80% at the square's bottom and below
+            grad.putpixel((0, y), int(205 * min(1.0, max(0.0, (y - VIDEO_HEIGHT * 0.45) / (square_bottom - VIDEO_HEIGHT * 0.45)))))
+        shade = Image.new("RGBA", im.size, (0, 0, 0, 255))
+        shade.putalpha(grad.resize(im.size))
+        im = Image.alpha_composite(im, shade)
+        draw = ImageDraw.Draw(im)
+        x0, width = 110, SAFE_TEXT_WIDTH
+        size = min(fit_font(draw, line1, "Anton", 118, width, 56).size, fit_font(draw, line2, "Anton", 118, width, 56).size)
+        font_title, font_eye = get_font("Anton", size), fit_font(draw, eyebrow, "Montserrat", 34, width, 22)
+        y2 = square_bottom - 150  # clear of the square crop's bottom edge
+        y1 = y2 - size - 10
+        ye = y1 - size // 2 - 40
+        draw.rectangle([x0, ye - 4, x0 + 8, ye + 40], fill=GOLD)
+        draw.text((x0 + 26, ye), eyebrow, font=font_eye, fill=GOLD, anchor="lt")
+        draw.text((x0, y1), line1, font=font_title, fill=WHITE, anchor="lm")
+        draw.text((x0, y2), line2, font=font_title, fill=GOLD, anchor="lm")
+        return im
+
+    def _cover_minimal(self, im: Image.Image, copy: Dict[str, str]) -> Image.Image:
+        """Minimal: no boxes; a thin gold rule, eyebrow and title with soft shadows, centred."""
+        eyebrow, line1, line2 = copy["eyebrow"].upper(), copy["line1"].upper(), copy["line2"].upper()
+        veil = Image.new("RGBA", im.size, (0, 0, 0, 70))  # light overall dim keeps white text readable
+        im = Image.alpha_composite(im, veil)
+        draw = ImageDraw.Draw(im)
+        size = min(fit_font(draw, line1, "Anton", 104, SAFE_TEXT_WIDTH, 56).size,
+                   fit_font(draw, line2, "Anton", 104, SAFE_TEXT_WIDTH, 56).size)
+        font_title, font_eye = get_font("Anton", size), fit_font(draw, eyebrow, "Montserrat", 32, SAFE_TEXT_WIDTH, 22)
+        cx, cy = VIDEO_WIDTH // 2, VIDEO_HEIGHT // 2
+        draw.line([cx - 70, cy - size - 70, cx + 70, cy - size - 70], fill=GOLD, width=4)
+        im = self._shadowed_text(im, (cx, cy - size - 30), eyebrow, font_eye, GOLD, "mm")
+        im = self._shadowed_text(im, (cx, cy - size // 2), line1, font_title, WHITE, "mm")
+        im = self._shadowed_text(im, (cx, cy + size // 2 + 40), line2, font_title, WHITE, "mm")
+        return im
+
+    def _cover_badge(self, im: Image.Image, copy: Dict[str, str]) -> Image.Image:
+        """The original Variant B: centred title on an 85% halo, gold-outlined eyebrow and tagline pills."""
         eyebrow = copy["eyebrow"].upper()
         line1 = copy["line1"].upper()
         line2 = copy["line2"].upper()
         tagline = copy["tagline"].upper()
 
-        im = cover_crop(hero_image_path, (VIDEO_WIDTH, VIDEO_HEIGHT))
         measure = ImageDraw.Draw(im)
         font_eye = fit_font(measure, eyebrow, "Montserrat", THUMB_EYEBROW_FONT_SIZE, SAFE_TEXT_WIDTH, 22)
         title_size = min(
@@ -164,13 +227,4 @@ class VisualEngine:
             radius=12, fill=(14, 14, 14, 225), outline=(255, 215, 0, 240), width=2,
         )
         draw.text((cx, tag_y0 + tag_box_h // 2), tagline, font=font_tag, fill=WHITE, anchor="mm")
-
-        final_916 = im.convert("RGB")
-        final_916.save(out_916_path, quality=95)
-
-        # Square crop centered on the text block
-        top = max(0, min(VIDEO_HEIGHT - VIDEO_WIDTH, center_y - VIDEO_WIDTH // 2))
-        final_916.crop((0, top, VIDEO_WIDTH, top + VIDEO_WIDTH)).save(out_1x1_path, quality=95)
-
-        log.info("Thumbnails generated: %s, %s", out_916_path.name, out_1x1_path.name)
-        return out_916_path, out_1x1_path
+        return im

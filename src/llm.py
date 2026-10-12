@@ -14,15 +14,30 @@ Grounded calls run in two phases:
 Keeping web search (whose citations are always on) separate from structured output
 avoids combining two features in one request, and gives callers a trustworthy set of
 retrieved URLs to check model-reported sources against.
+
+Resilience and cost control:
+  - Model chain: CLAUDE_MODEL first, then CLAUDE_FALLBACK_MODELS when a model is
+    overloaded, unavailable or rate-limited. (Credit is per account, so an exhausted
+    balance fails every Claude model; that is reported as CreditExhausted.)
+  - Every call's token and search usage is priced and recorded (see configure_usage).
+  - Optional monthly budget: once reached, use CLAUDE_BUDGET_MODEL, or stop if unset.
 """
 
 import logging
-from typing import List, Tuple, Type, TypeVar
+from datetime import datetime, timezone
+from typing import Callable, List, Optional, Tuple, Type, TypeVar
 
 import anthropic
 from pydantic import BaseModel
 
-from .config import ANTHROPIC_API_KEY, CLAUDE_MODEL, is_configured
+from .config import (
+    ANTHROPIC_API_KEY,
+    CLAUDE_BUDGET_MODEL,
+    CLAUDE_FALLBACK_MODELS,
+    CLAUDE_MODEL,
+    CLAUDE_MONTHLY_BUDGET_USD,
+    is_configured,
+)
 from .models import Source
 
 log = logging.getLogger(__name__)
@@ -30,13 +45,43 @@ log = logging.getLogger(__name__)
 T = TypeVar("T", bound=BaseModel)
 
 # Server-side refusal fallback: on a policy decline the API re-runs the request on a
-# fallback model chosen by refusal category, inside the same call.
+# fallback model chosen by refusal category, inside the same call. Not every model
+# supports it (Claude Haiku 5.5 has none), so it is only sent where accepted.
 _FALLBACK_BETA = "server-side-fallback-2026-07-01"
+_REFUSAL_FALLBACK_MODELS = ("claude-opus-5-5", "claude-opus-5", "claude-fable-5", "claude-sonnet-5-5")
 _MAX_CONTINUATIONS = 5
+
+# USD per million tokens (input, output); web search is $10 per 1,000 searches.
+MODEL_PRICES = {
+    "claude-fable-5-1": (10.00, 50.00),
+    "claude-opus-5-5": (4.00, 20.00),
+    "claude-opus-5": (5.00, 25.00),
+    "claude-sonnet-5-5": (2.00, 10.00),
+    "claude-haiku-5-5": (0.10, 0.50),
+}
+WEB_SEARCH_PRICE = 0.01
 
 
 class LLMError(RuntimeError):
     pass
+
+
+class CreditExhausted(LLMError):
+    pass
+
+
+class BudgetExceeded(LLMError):
+    pass
+
+
+# Hooks wired by the application (main.py) to the database.
+_record_usage: Optional[Callable[..., None]] = None
+_month_spend: Optional[Callable[[str], float]] = None
+
+
+def configure_usage(record: Callable[..., None], month_spend: Callable[[str], float]) -> None:
+    global _record_usage, _month_spend
+    _record_usage, _month_spend = record, month_spend
 
 
 def claude_available() -> bool:
@@ -47,6 +92,67 @@ def _client() -> anthropic.Anthropic:
     if not claude_available():
         raise LLMError("ANTHROPIC_API_KEY is not configured.")
     return anthropic.Anthropic(api_key=ANTHROPIC_API_KEY, max_retries=3)
+
+
+def call_cost(model: str, usage) -> float:
+    in_price, out_price = MODEL_PRICES.get(model, MODEL_PRICES["claude-opus-5-5"])
+    inputs = (getattr(usage, "input_tokens", 0) or 0) + (getattr(usage, "cache_creation_input_tokens", 0) or 0) * 1.25 \
+        + (getattr(usage, "cache_read_input_tokens", 0) or 0) * 0.1
+    searches = getattr(getattr(usage, "server_tool_use", None), "web_search_requests", 0) or 0
+    return inputs / 1e6 * in_price + (getattr(usage, "output_tokens", 0) or 0) / 1e6 * out_price + searches * WEB_SEARCH_PRICE
+
+
+def _record(response) -> None:
+    usage = getattr(response, "usage", None)
+    if usage is None or _record_usage is None:
+        return
+    model = getattr(response, "model", CLAUDE_MODEL)
+    searches = getattr(getattr(usage, "server_tool_use", None), "web_search_requests", 0) or 0
+    try:
+        _record_usage(model=model, input_tokens=getattr(usage, "input_tokens", 0) or 0,
+                      output_tokens=getattr(usage, "output_tokens", 0) or 0,
+                      web_searches=searches, cost_usd=round(call_cost(model, usage), 6))
+    except Exception as e:  # accounting must never break a run
+        log.warning("Could not record Claude usage: %s", e)
+
+
+def model_chain() -> List[str]:
+    """Models to try, best first, honouring the monthly budget."""
+    chain = [CLAUDE_MODEL] + [m for m in CLAUDE_FALLBACK_MODELS if m != CLAUDE_MODEL]
+    if CLAUDE_MONTHLY_BUDGET_USD > 0 and _month_spend is not None:
+        month = datetime.now(timezone.utc).strftime("%Y-%m")
+        spent = _month_spend(month)
+        if spent >= CLAUDE_MONTHLY_BUDGET_USD:
+            if not CLAUDE_BUDGET_MODEL:
+                raise BudgetExceeded(f"Monthly Claude budget reached (${spent:.2f} of ${CLAUDE_MONTHLY_BUDGET_USD:.2f}).")
+            log.warning("Monthly budget reached ($%.2f); using %s.", spent, CLAUDE_BUDGET_MODEL)
+            chain = [CLAUDE_BUDGET_MODEL]
+    return chain
+
+
+def _model_kwargs(model: str) -> dict:
+    if model in _REFUSAL_FALLBACK_MODELS:
+        return {"betas": [_FALLBACK_BETA], "fallbacks": "default"}
+    return {}
+
+
+def _first_request(send: Callable[[str], object]) -> Tuple[object, str]:
+    """Sends the first request down the model chain. Returns (response, model used)."""
+    last: Optional[Exception] = None
+    for model in model_chain():
+        try:
+            return send(model), model
+        except anthropic.BadRequestError as e:
+            if "credit" in str(e).lower():
+                raise CreditExhausted("Anthropic credit balance is too low; add credit in the Claude Console.") from e
+            raise LLMError(f"Claude rejected the request: {e}") from e
+        except (anthropic.InternalServerError, anthropic.NotFoundError, anthropic.RateLimitError,
+                anthropic.APIConnectionError) as e:
+            log.warning("%s unavailable (%s); trying the next model.", model, type(e).__name__)
+            last = e
+        except anthropic.AuthenticationError as e:
+            raise LLMError("ANTHROPIC_API_KEY was rejected.") from e
+    raise LLMError(f"All Claude models failed; last error: {last}")
 
 
 def _check_stop(response) -> None:
@@ -88,15 +194,21 @@ def research(system: str, prompt: str, *, web_search_uses: int, effort: str = "h
     tools = [{"type": "web_search_20260209", "name": "web_search", "max_uses": web_search_uses}]
     sources: List[Source] = []
     seen: set = set()
-    for _ in range(_MAX_CONTINUATIONS):
-        response = client.beta.messages.create(
-            model=CLAUDE_MODEL, max_tokens=max_tokens, system=system, messages=messages, tools=tools,
-            output_config={"effort": effort}, betas=[_FALLBACK_BETA], fallbacks="default",
+
+    def send(model: str):
+        return client.beta.messages.create(
+            model=model, max_tokens=max_tokens, system=system, messages=messages, tools=tools,
+            output_config={"effort": effort}, **_model_kwargs(model),
         )
+
+    response, model = _first_request(send)
+    for _ in range(_MAX_CONTINUATIONS):
+        _record(response)
         _collect_sources(response.content, sources, seen)
         if response.stop_reason == "pause_turn":
-            # Long server-tool turn: send the partial turn back unchanged so Claude can resume.
+            # Long server-tool turn: resume on the same model with the partial turn unchanged.
             messages.append({"role": "assistant", "content": response.content})
+            response = send(model)
             continue
         _check_stop(response)
 
@@ -109,12 +221,17 @@ def research(system: str, prompt: str, *, web_search_uses: int, effort: str = "h
 
 def structured_call(system: str, prompt: str, schema: Type[T], *, effort: str = "high", max_tokens: int = 16000) -> T:
     """One Claude request whose answer must validate against `schema` (no tools)."""
-    response = _client().beta.messages.parse(
-        model=CLAUDE_MODEL, max_tokens=max_tokens, system=system,
-        messages=[{"role": "user", "content": prompt}],
-        output_config={"effort": effort}, output_format=schema,
-        betas=[_FALLBACK_BETA], fallbacks="default",
-    )
+    client = _client()
+
+    def send(model: str):
+        return client.beta.messages.parse(
+            model=model, max_tokens=max_tokens, system=system,
+            messages=[{"role": "user", "content": prompt}],
+            output_config={"effort": effort}, output_format=schema, **_model_kwargs(model),
+        )
+
+    response, _ = _first_request(send)
+    _record(response)
     _check_stop(response)
     if response.parsed_output is None:
         raise LLMError(f"No structured output returned (stop_reason={response.stop_reason}).")

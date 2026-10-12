@@ -100,13 +100,23 @@ class AudioEngine:
         words.sort(key=lambda w: w["start"])
         return words
 
+    # Set after each narration: which provider voiced it, and why the primary was skipped.
+    last_provider: str = ""
+    fallback_reason: str = ""
+
     def generate_narration(self, text: str, output_path: Path) -> Words:
+        self.fallback_reason = ""
         if is_configured(self.eleven_key):
             try:
                 log.info("Synthesizing voiceover via ElevenLabs (%s)...", self.eleven_voice)
-                return self._generate_elevenlabs(text, output_path)
+                words = self._generate_elevenlabs(text, output_path)
+                self.last_provider = "elevenlabs"
+                return words
             except Exception as e:
+                status = getattr(getattr(e, "response", None), "status_code", None)
+                self.fallback_reason = f"HTTP {status}" if status else type(e).__name__
                 log.warning("ElevenLabs failed (%s); falling back to edge-tts.", e)
+        self.last_provider = "edge-tts"
 
         log.info("Synthesizing voiceover via edge-tts (%s)...", self.voice)
         words = asyncio.run(self._generate_edge_tts(text, output_path))

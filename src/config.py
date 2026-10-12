@@ -60,6 +60,11 @@ def is_configured(value: str) -> bool:
 # Claude (script writing + search-grounded fact checking)
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-opus-5-5")
+# Tried in order when CLAUDE_MODEL is overloaded/unavailable (same account credit).
+CLAUDE_FALLBACK_MODELS = [m.strip() for m in os.getenv("CLAUDE_FALLBACK_MODELS", "claude-sonnet-5-5").split(",") if m.strip()]
+# Optional monthly spend cap in USD (0 = no cap). When reached: use CLAUDE_BUDGET_MODEL, or stop if empty.
+CLAUDE_MONTHLY_BUDGET_USD = float(os.getenv("CLAUDE_MONTHLY_BUDGET_USD", "0") or 0)
+CLAUDE_BUDGET_MODEL = os.getenv("CLAUDE_BUDGET_MODEL", "").strip()
 
 # Voice
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")

@@ -7,7 +7,7 @@ and CLI review commands can safely run at the same time.
 
 Topic statuses: queued -> in_production -> published | failed | rejected
 Run statuses:   producing -> pending_approval -> approved -> published | simulated
-                                              \-> rejected | regenerate | timeout
+                                              +-> rejected | regenerate | timeout
                 (any stage) -> failed;  publish outcome unknown -> publish_unknown
 """
 
@@ -105,6 +105,14 @@ class PipelineDatabase:
             self._add_column(conn, "runs", "error", "TEXT")
             self._add_column(conn, "approvals", "decided_by", "TEXT")
             conn.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT, updated_at TEXT)")
+            conn.execute("""
+            CREATE TABLE IF NOT EXISTS llm_usage (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                model TEXT NOT NULL,
+                input_tokens INTEGER, output_tokens INTEGER, web_searches INTEGER,
+                cost_usd REAL NOT NULL,
+                created_at TEXT NOT NULL
+            )""")
         self._seed_topics_from_json()
 
     @staticmethod
@@ -291,6 +299,21 @@ class PipelineDatabase:
             INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?)
             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
             """, (key, value, _now()))
+
+    # ------------------------------------------------------------- llm usage
+    def record_llm_usage(self, model: str, input_tokens: int, output_tokens: int, web_searches: int, cost_usd: float):
+        with self._conn() as conn:
+            conn.execute("""
+            INSERT INTO llm_usage (model, input_tokens, output_tokens, web_searches, cost_usd, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """, (model, input_tokens, output_tokens, web_searches, cost_usd, _now()))
+
+    def llm_spend(self, month: str) -> float:
+        """Total estimated Claude spend (USD) for a month given as 'YYYY-MM' (UTC)."""
+        with self._conn() as conn:
+            row = conn.execute("SELECT COALESCE(SUM(cost_usd), 0) AS s FROM llm_usage WHERE substr(created_at, 1, 7) = ?",
+                               (month,)).fetchone()
+        return float(row["s"])
 
     def list_recent_runs(self, limit: int = 5) -> List[Dict[str, Any]]:
         with self._conn() as conn:

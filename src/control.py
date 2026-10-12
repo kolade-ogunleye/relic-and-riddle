@@ -14,11 +14,12 @@ Commands (approvers only, in the configured chat):
 
 import html
 import logging
+from datetime import datetime, timezone
 from typing import Callable, Optional
 
 import requests
 
-from .config import HEALTHCHECK_PING_URL, is_configured
+from .config import CLAUDE_MONTHLY_BUDGET_USD, HEALTHCHECK_PING_URL, is_configured
 from .db import PipelineDatabase
 
 log = logging.getLogger(__name__)
@@ -66,6 +67,11 @@ def status_text(db: PipelineDatabase, next_run: Optional[str]) -> str:
             lines.append(f"  • {e(r['status'])} — {e(r['topic_id'])}")
     topics = db.list_all_topics()
     lines.append(f"Topics: {sum(1 for t in topics if t['times_published'])} published / {len(topics)}")
+    month = datetime.now(timezone.utc).strftime("%Y-%m")
+    spend = f"Claude spend this month: ${db.llm_spend(month):.2f}"
+    if CLAUDE_MONTHLY_BUDGET_USD > 0:
+        spend += f" of ${CLAUDE_MONTHLY_BUDGET_USD:.2f} budget"
+    lines.append(spend)
     return "\n".join(lines)
 
 

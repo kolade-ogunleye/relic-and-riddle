@@ -44,6 +44,7 @@ class PipelineCoordinator:
         from src.audio_engine import AudioEngine
         from src.multi_format import MultiFormatGenerator
         from src.publisher import MetaPublisher
+        from src import llm
         from src.script_engine import ScriptEngine
         from src.telegram_bot import TelegramApprovalBot
         from src.topic_engine import TopicEngine
@@ -51,6 +52,7 @@ class PipelineCoordinator:
         from src.visual_engine import VisualEngine
 
         self.db = db or PipelineDatabase()
+        llm.configure_usage(self.db.record_llm_usage, self.db.llm_spend)
         self.health_checker = PreFlightHealthChecker()
         self.lifecycle_manager = AssetLifecycleManager()
         self.topic_engine = TopicEngine(db=self.db)
@@ -186,6 +188,9 @@ class PipelineCoordinator:
         else:
             words = self.audio_engine.generate_narration(payload["narration_script"], vo_path)
             words_path.write_text(json.dumps(words), encoding="utf-8")
+            if self.audio_engine.fallback_reason:
+                self._alert(f"🔁 ElevenLabs failed ({html.escape(self.audio_engine.fallback_reason)}); this run uses the free "
+                            "edge-tts voice. Check your ElevenLabs quota if this repeats.")
         vo_dur = self.audio_engine.get_duration(vo_path)
         log.info("Voiceover: %.2fs, %d words timed.", vo_dur, len(words))
         if vo_dur > HARD_DURATION_CEILING:

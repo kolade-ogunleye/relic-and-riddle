@@ -541,7 +541,7 @@ def main(argv=None) -> int:
         handler = make_command_handler(
             db, lambda: "none (bot-only mode)",
             lambda: "Production runs are disabled in bot-only mode. Use the daemon or `python main.py run`.",
-            send_photo=bot.send_photo, send_audio=bot.send_audio, voice_quota=AudioEngine().voice_quota,
+            send_photo=bot.send_photo, send_audio=bot.send_audio, send_message=bot.notify, voice_quota=AudioEngine().voice_quota,
             propose_topics=_proposal_trigger(db, bot),
         )
         bot.notify("🤖 <b>Bot-only mode</b>: image review, approvals and /status are live; no runs are scheduled. "
@@ -673,7 +673,7 @@ def main(argv=None) -> int:
             scheduler.add_job(production_run, kwargs={"manual": True})
             return "🎬 Starting a run now. You'll get the review card when it's rendered; nothing posts without your approval."
 
-        handler = make_command_handler(coordinator.db, next_run, trigger_run, send_photo=bot.send_photo, send_audio=bot.send_audio,
+        handler = make_command_handler(coordinator.db, next_run, trigger_run, send_photo=bot.send_photo, send_audio=bot.send_audio, send_message=bot.notify,
                                        voice_quota=coordinator.audio_engine.voice_quota,
                                        apply_updates=apply_updates, propose_topics=propose_topics,
                                        run_actions={"pubok": coordinator.confirm_posted,

@@ -41,6 +41,7 @@ HELP = (
     "/images — image sets waiting for review\n"
     "/review N — contact sheet for topic N, with an Approve button\n"
     "/drop N 2 5 — remove images 2 and 5 from topic N\n"
+    "/proposals — topic ideas waiting for your Add/Skip\n"
     "/propose — research 3 new topic ideas (Add/Skip buttons)\n"
     "/music — listen to and approve free music tracks\n"
     "/help — this list"
@@ -173,7 +174,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                          apply_updates: Optional[Callable[[], str]] = None,
                          propose_topics: Optional[Callable[[], str]] = None,
                          run_actions: Optional[dict] = None,
-                         send_audio: Optional[SendPhoto] = None) -> Callable[[str, str], str]:
+                         send_audio: Optional[SendPhoto] = None,
+                         send_message: Optional[Callable[[str, Optional[list]], bool]] = None) -> Callable[[str, str], str]:
     """run_actions: button actions on a run, e.g. {"pubok": fn(run_id) -> reply, "pubno": ..., "resend": ...}."""
     def send_sheet(topic_dir: Path) -> bool:
         if send_photo is None:
@@ -224,6 +226,19 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             if action is None:
                 return "That button only works while the daemon is running."
             return action(db.resolve_run(args))
+        if command == "proposals":
+            from . import topic_proposer
+            from .models import TopicProposal
+            waiting = topic_proposer.pending(db)
+            if not waiting:
+                return "💡 No topic proposals waiting. Send /propose to research new ones."
+            for slug, data in waiting.items():
+                p = TopicProposal.model_validate(data)
+                if send_message is not None:
+                    send_message(topic_proposer.proposal_text(p),
+                                 [{"text": "➕ Add", "callback_data": f"tadd:{slug}"},
+                                  {"text": "✖ Skip", "callback_data": f"tskip:{slug}"}])
+            return f"💡 {len(waiting)} proposal(s) sent above."
         if command == "propose":
             return propose_topics() if propose_topics else "Topic proposals need the bot or daemon running with Claude configured."
         if command == "tadd":

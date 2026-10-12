@@ -84,3 +84,16 @@ def test_propose_rejects_near_duplicate_of_bank(wired, monkeypatch):
     monkeypatch.setattr(tp, "structured_call", lambda *a, **k: TopicProposals(topics=[
         _proposal("hidden_derinkuyu", title="The Hidden City of Derinkuyu"), _proposal("eupalinos", title="Tunnel of Eupalinos")]))
     assert [p.slug for p in tp.propose(db)] == ["eupalinos"]
+
+
+def test_proposals_command_resends_pending(wired, monkeypatch):
+    from src.control import make_command_handler
+    db, _ = wired
+    monkeypatch.setattr(tp, "structured_call", lambda *a, **k: TopicProposals(topics=[_proposal("eupalinos", title="Tunnel of Eupalinos")]))
+    tp.propose(db)
+    sent = []
+    h = make_command_handler(db, lambda: None, lambda: "", send_message=lambda text, buttons: sent.append(buttons) or True)
+    assert "1 proposal" in h("proposals", "")
+    assert sent[0][0]["callback_data"] == "tadd:eupalinos"
+    tp.skip(db, "eupalinos")
+    assert "No topic proposals waiting" in h("proposals", "")

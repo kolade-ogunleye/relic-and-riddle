@@ -96,3 +96,43 @@ def test_resume_refuses_published_run(rendered_run):
     rendered_run.db.update_run("r1", "published")
     with pytest.raises(ValueError, match="can't be resumed"):
         rendered_run.resume_run("r1")
+
+
+def test_run_label_and_short_keys(rendered_run):
+    db = rendered_run.db
+    label = db.run_label("r1")
+    assert "City Hidden Behind One Basement Wall" in label and "r1" not in label
+    key = db.run_key("r1")
+    assert key.isdigit() and db.resolve_run(key) == "r1" and db.resolve_run("r1") == "r1"
+
+
+def test_unknown_publish_buttons(rendered_run, monkeypatch):
+    monkeypatch.setattr(rendered_run.publisher, "publish_reel", lambda env, dry_run=False: {"status": "unknown"})
+    rendered_run.publish_run("r1")
+    assert "Recorded as published" in rendered_run.confirm_posted("r1")
+    t = rendered_run.db.get_topic_by_id("01_topic")
+    assert (t["status"], t["times_published"]) == ("published", 1)
+    with pytest.raises(ValueError):
+        rendered_run.confirm_not_posted("r1")  # already answered
+
+
+def test_not_posted_requeues(rendered_run, monkeypatch):
+    monkeypatch.setattr(rendered_run.publisher, "publish_reel", lambda env, dry_run=False: {"status": "unknown"})
+    rendered_run.publish_run("r1")
+    rendered_run.confirm_not_posted("r1")
+    assert rendered_run.db.get_topic_by_id("01_topic")["status"] == "queued"
+    assert rendered_run.db.get_run("r1")["status"] == "failed"
+
+
+def test_approval_button_uses_short_key(db, monkeypatch):
+    from src.telegram_bot import TelegramApprovalBot
+    db.create_run("run_12_flannan_isle_lighthouse_disappearance_1791781280", "01_topic")
+    rid = "run_12_flannan_isle_lighthouse_disappearance_1791781280"
+    db.record_approval(rid, "01_topic")
+    bot = TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
+    monkeypatch.setattr(bot, "_api", lambda method, **kw: {})
+    key = db.run_key(rid)
+    assert len(f"approve:{key}".encode()) <= 64
+    cq = {"id": "q", "data": f"approve:{key}", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 1}}
+    assert bot._handle_callback(cq) == "approved"
+    assert db.get_approval(rid)["decision"] == "approved"

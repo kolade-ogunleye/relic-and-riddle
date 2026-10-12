@@ -274,6 +274,39 @@ class PipelineDatabase:
             if cur.rowcount == 0:
                 raise KeyError(f"Unknown run '{run_id}'")
 
+    def run_key(self, run_id: str) -> str:
+        """Short, stable key for a run (its row number), for Telegram buttons (64-byte limit)."""
+        with self._conn() as conn:
+            row = conn.execute("SELECT rowid FROM runs WHERE run_id = ?", (run_id,)).fetchone()
+        return str(row["rowid"]) if row else run_id
+
+    def resolve_run(self, ref: str) -> str:
+        """Accepts a run key (row number) or a full run ID; returns the run ID."""
+        if ref.isdigit():
+            with self._conn() as conn:
+                row = conn.execute("SELECT run_id FROM runs WHERE rowid = ?", (int(ref),)).fetchone()
+            if row:
+                return row["run_id"]
+        return ref
+
+    def run_label(self, run_id: str) -> str:
+        """Human-readable name for a run: "Title" (topic) · date."""
+        run = self.get_run(run_id)
+        if not run:
+            return run_id
+        topic = self.get_topic_by_id(run["topic_id"]) or {}
+        title = run["script_payload"].get("title") or topic.get("title") or run["topic_id"]
+        place = (topic.get("location") or {}).get("name") or topic.get("title", "")
+        when = ""
+        try:
+            when = datetime.fromisoformat(run["created_at"]).astimezone().strftime("%d %b %H:%M")
+        except (TypeError, ValueError):
+            pass
+        label = f"“{title}”"
+        if place and place.lower() not in title.lower():
+            label += f" ({place})"
+        return label + (f" · {when}" if when else "")
+
     def get_run(self, run_id: str) -> Optional[Dict[str, Any]]:
         with self._conn() as conn:
             row = conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()

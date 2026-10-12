@@ -101,7 +101,8 @@ class PipelineCoordinator:
             self.db.update_run(run_id, "failed", error=f"{type(e).__name__}: {e}")
             self.topic_engine.record_status(tid, "failed", run_id=run_id)
             log.error("Run %s failed: %s", run_id, e)
-            self._alert(f"❌ <b>Run failed</b> <code>{html.escape(run_id)}</code>\n{html.escape(str(e))[:600]}")
+            self._alert(f"❌ <b>Couldn't make a Reel</b>: {html.escape(self.db.run_label(run_id))}\n"
+                        f"{html.escape(str(e))[:600]}\nNothing was posted. The topic will be retried on a later run.")
             ping_healthcheck("/fail")
             raise
 
@@ -113,8 +114,27 @@ class PipelineCoordinator:
             self.topic_engine.record_status(tid, "failed", run_id=run_id)
         return result
 
-    def _alert(self, text: str) -> None:
-        self.telegram_bot.notify(text)
+    def _alert(self, text: str, buttons: Optional[list] = None) -> None:
+        self.telegram_bot.notify(text, buttons)
+
+    def confirm_posted(self, run_id: str) -> str:
+        """Human confirmed an 'unknown' publish did go live: count it as published."""
+        run = self.db.get_run(run_id)
+        if not run or run["status"] != "publish_unknown":
+            raise ValueError("That Reel isn't waiting for a posted/not-posted answer.")
+        self.db.update_run(run_id, "published")
+        self.db.record_publication(run["topic_id"], run_id, "manual-confirmation", "published", {"confirmed_by": "human"})
+        self.topic_engine.record_status(run["topic_id"], "published", run_id=run_id)
+        return f"✅ Recorded as published: {html.escape(self.db.run_label(run_id))}"
+
+    def confirm_not_posted(self, run_id: str) -> str:
+        """Human confirmed an 'unknown' publish did not go live: requeue the topic for a retry."""
+        run = self.db.get_run(run_id)
+        if not run or run["status"] != "publish_unknown":
+            raise ValueError("That Reel isn't waiting for a posted/not-posted answer.")
+        self.db.update_run(run_id, "failed", error="Confirmed by a human: not posted")
+        self.topic_engine.record_status(run["topic_id"], "queued", run_id=run_id)
+        return f"🔁 Not posted, so the topic is back in the queue: {html.escape(self.db.run_label(run_id))}"
 
     def request_approval(self, run_id: str, dry_run: bool = False) -> Dict[str, Any]:
         """Re-sends the review card for a rendered run whose approval timed out, then acts on the decision."""
@@ -164,7 +184,8 @@ class PipelineCoordinator:
             self.db.update_run(run_id, "failed", error=f"{type(e).__name__}: {e}")
             self.topic_engine.record_status(topic["id"], "failed", run_id=run_id)
             log.error("Run %s failed: %s", run_id, e)
-            self._alert(f"❌ <b>Run failed</b> <code>{html.escape(run_id)}</code>\n{html.escape(str(e))[:600]}")
+            self._alert(f"❌ <b>Couldn't make a Reel</b>: {html.escape(self.db.run_label(run_id))}\n"
+                        f"{html.escape(str(e))[:600]}\nNothing was posted. The topic will be retried on a later run.")
             ping_healthcheck("/fail")
             raise
 
@@ -279,8 +300,10 @@ class PipelineCoordinator:
                 self.topic_engine.record_status(tid, topic_status, run_id=run_id)
             log.info("Not publishing: decision was '%s'.", decision)
             if decision == "timeout":
-                self._alert(f"⏰ <b>Approval timed out</b> for <code>{html.escape(run_id)}</code>. The video is kept; "
-                            f"re-send it with <code>python main.py review send {html.escape(run_id)}</code>")
+                key = self.db.run_key(run_id)
+                self._alert(f"⏰ <b>No decision in time</b> on {html.escape(self.db.run_label(run_id))}. "
+                            "The finished video is kept, so nothing needs re-making.",
+                            [{"text": "📨 Send it again for review", "callback_data": f"resend:{key}"}])
             result["status"] = decision
             return result
 
@@ -320,13 +343,20 @@ class PipelineCoordinator:
             self.db.update_run(run_id, "publish_unknown", error=pub.get("error"))
             self.topic_engine.record_status(tid, "publish_unknown", run_id=run_id)
             log.error("Publish outcome UNKNOWN for %s. Check the accounts, then `topic requeue %s` if it did not post.", run_id, tid)
-            self._alert(f"⚠️ <b>Publish outcome unknown</b> for <code>{html.escape(run_id)}</code>. Check Facebook/Instagram "
-                        f"before retrying; if it did not post: <code>python main.py topic requeue {html.escape(tid)}</code>")
+            key = self.db.run_key(run_id)
+            self._alert(
+                f"⚠️ <b>Not sure it posted</b>: {html.escape(self.db.run_label(run_id))}\n"
+                f"The upload may have gone through ({html.escape(str(pub.get('error') or 'no confirmation received'))[:200]}). "
+                "I won't retry automatically, to avoid a duplicate post. Check Facebook and Instagram, then tell me:",
+                [{"text": "✅ It posted", "callback_data": f"pubok:{key}"},
+                 {"text": "🔁 It didn't post", "callback_data": f"pubno:{key}"}])
         else:
             self.db.update_run(run_id, "failed", error=pub.get("error"))
             self.topic_engine.record_status(tid, "failed", run_id=run_id)
             log.error("Publishing failed for %s: %s", run_id, pub.get("error"))
-            self._alert(f"❌ <b>Publishing failed</b> for <code>{html.escape(run_id)}</code>: {html.escape(str(pub.get('error')))[:500]}")
+            self._alert(f"❌ <b>Publishing failed</b>: {html.escape(self.db.run_label(run_id))}\n"
+                        f"{html.escape(str(pub.get('error') or 'no error details were returned'))[:500]}\n"
+                        "Nothing was posted. The topic goes back in the queue for a retry.")
         return {"status": status, "publish_result": pub}
 
 
@@ -575,6 +605,16 @@ def main(argv=None) -> int:
                                                            timezone=TIMEZONE), max_instances=1, coalesce=True,
                           misfire_grace_time=3600)
 
+        def resend_for_review(run_id: str) -> str:
+            """Re-sends a timed-out Reel's review card (in the background; the wait can be long)."""
+            def work():
+                try:
+                    coordinator.request_approval(run_id)
+                except Exception as e:
+                    bot.notify(f"⚠️ Couldn't re-send for review: {html.escape(str(e))[:300]}")
+            threading.Thread(target=work, name="resend-review", daemon=True).start()
+            return f"📨 Sending {html.escape(coordinator.db.run_label(run_id))} for review again…"
+
         propose_topics = _proposal_trigger(coordinator.db, bot)
         scheduler.add_job(propose_topics.run_now, CronTrigger(day_of_week="fri", hour=hb_hour, minute=hb_minute,
                                                               timezone=TIMEZONE), max_instances=1, coalesce=True,
@@ -602,7 +642,10 @@ def main(argv=None) -> int:
 
         handler = make_command_handler(coordinator.db, next_run, trigger_run, send_photo=bot.send_photo,
                                        voice_quota=coordinator.audio_engine.voice_quota,
-                                       apply_updates=apply_updates, propose_topics=propose_topics)
+                                       apply_updates=apply_updates, propose_topics=propose_topics,
+                                       run_actions={"pubok": coordinator.confirm_posted,
+                                                    "pubno": coordinator.confirm_not_posted,
+                                                    "resend": resend_for_review})
 
         def poll_telegram():
             while True:

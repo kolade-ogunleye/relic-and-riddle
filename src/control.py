@@ -47,6 +47,14 @@ HELP = (
 
 SendPhoto = Callable[[Path, str, Optional[list]], bool]
 
+# Plain-language names for run statuses in Telegram.
+STATUS_WORDS = {
+    "producing": "being made", "pending_approval": "waiting for you", "approved": "approved",
+    "published": "published", "simulated": "test run (not posted)", "rejected": "rejected",
+    "regenerate": "regenerated", "timeout": "no decision in time", "failed": "failed",
+    "publish_unknown": "not sure it posted",
+}
+
 
 def _fetched_sets(assets_dir: Path) -> List[Path]:
     return sorted(d for d in assets_dir.iterdir() if d.is_dir() and (d / CREDITS_FILE).exists())
@@ -136,12 +144,12 @@ def status_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Opti
     pending = db.list_pending_approvals()
     lines.append(f"Awaiting approval: {len(pending)}")
     for p in pending[:3]:
-        lines.append(f"  • <code>{e(p['run_id'])}</code>")
+        lines.append(f"  • {e(db.run_label(p['run_id']))}")
     recent = db.list_recent_runs(5)
     if recent:
         lines.append("Recent runs:")
         for r in recent:
-            lines.append(f"  • {e(r['status'])} — {e(r['topic_id'])}")
+            lines.append(f"  • {e(STATUS_WORDS.get(r['status'], r['status']))} — {e(db.run_label(r['run_id']))}")
     topics = db.list_all_topics()
     lines.append(f"Topics: {sum(1 for t in topics if t['times_published'])} published / {len(topics)}")
     month = datetime.now(timezone.utc).strftime("%Y-%m")
@@ -162,7 +170,9 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                          assets_dir: Path = ASSETS_DIR,
                          voice_quota: Callable[[], Optional[dict]] = lambda: None,
                          apply_updates: Optional[Callable[[], str]] = None,
-                         propose_topics: Optional[Callable[[], str]] = None) -> Callable[[str, str], str]:
+                         propose_topics: Optional[Callable[[], str]] = None,
+                         run_actions: Optional[dict] = None) -> Callable[[str, str], str]:
+    """run_actions: button actions on a run, e.g. {"pubok": fn(run_id) -> reply, "pubno": ..., "resend": ...}."""
     def send_sheet(topic_dir: Path) -> bool:
         if send_photo is None:
             return False
@@ -187,6 +197,11 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             if load_credits(topic_dir)["images"]:
                 send_sheet(topic_dir)
             return html.escape(msg)
+        if command in ("pubok", "pubno", "resend"):
+            action = (run_actions or {}).get(command)
+            if action is None:
+                return "That button only works while the daemon is running."
+            return action(db.resolve_run(args))
         if command == "propose":
             return propose_topics() if propose_topics else "Topic proposals need the bot or daemon running with Claude configured."
         if command == "tadd":

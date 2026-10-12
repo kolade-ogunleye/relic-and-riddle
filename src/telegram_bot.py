@@ -68,8 +68,7 @@ class TelegramApprovalBot:
         flagged = [a for a in audits if a.get("verdict") != "supported"]
         sources = script_payload.get("sources", [])[:4]
         text = (
-            f"🎬 <b>Reel ready for review</b>\n"
-            f"🆔 <code>{e(run_id)}</code>\n\n"
+            f"🎬 <b>Reel ready for review</b>\n\n"
             f"📌 <b>{e(script_payload.get('title', ''))}</b>\n"
             f"📍 {e(loc.get('name', ''))}, {e(loc.get('country', ''))}\n"
             f"⏱️ {script_payload.get('word_count', 0)} words · source: {e(script_payload.get('origin', '?'))}\n"
@@ -83,7 +82,7 @@ class TelegramApprovalBot:
             text += "\n" + script_payload["qa_summary"] + "\n"  # already HTML-escaped by video_qa
         if sources:
             text += "\n📚 " + "\n📚 ".join(e(s.get("url", "")) for s in sources) + "\n"
-        return text[:4000]
+        return text[:3900] + f"\n<i>Run ID (for the command line): {e(run_id)}</i>"
 
     def send_approval_request(self, video_path: Path, thumbnail_path: Path, script_payload: Dict[str, Any], run_id: str) -> Optional[int]:
         self.db.record_approval(run_id, script_payload.get("topic_id", ""), None)
@@ -93,7 +92,7 @@ class TelegramApprovalBot:
 
         try:
             with open(thumbnail_path, "rb") as photo:
-                self._api("sendPhoto", data={"chat_id": self.chat_id, "caption": f"Cover · {run_id}"}, files={"photo": photo})
+                self._api("sendPhoto", data={"chat_id": self.chat_id, "caption": f"Cover · {script_payload.get('title', '')}"}, files={"photo": photo})
 
             size_mb = os.path.getsize(video_path) / (1024 * 1024)
             if size_mb <= TELEGRAM_VIDEO_LIMIT_MB:
@@ -103,10 +102,11 @@ class TelegramApprovalBot:
             else:
                 log.warning("Video is %.1f MB, over Telegram's bot upload limit; review it locally: %s", size_mb, video_path)
 
+            key = self.db.run_key(run_id)  # short: Telegram limits button data to 64 bytes
             markup = {"inline_keyboard": [[
-                {"text": "✅ Approve & Publish", "callback_data": f"approve:{run_id}"},
-                {"text": "🔄 Regenerate", "callback_data": f"regen:{run_id}"},
-                {"text": "❌ Reject", "callback_data": f"reject:{run_id}"},
+                {"text": "✅ Approve & Publish", "callback_data": f"approve:{key}"},
+                {"text": "🔄 Regenerate", "callback_data": f"regen:{key}"},
+                {"text": "❌ Reject", "callback_data": f"reject:{key}"},
             ]]}
             msg = self._api("sendMessage", data={
                 "chat_id": self.chat_id,
@@ -137,9 +137,9 @@ class TelegramApprovalBot:
     def _handle_callback(self, cq: Dict[str, Any], run_id: Optional[str] = None) -> Optional[str]:
         """Applies an approval button press. With run_id, ignores presses for other runs."""
         action, _, target = cq.get("data", "").partition(":")
-        if action not in ACTIONS or (run_id is not None and target != run_id):
+        if action not in ACTIONS or (run_id is not None and self.db.resolve_run(target) != run_id):
             return None
-        run_id = target
+        run_id = self.db.resolve_run(target)
         user_id = str(cq.get("from", {}).get("id", ""))
         msg = cq.get("message") or {}
         if not self._authorized(user_id, msg.get("chat", {}).get("id", "")):
@@ -161,20 +161,23 @@ class TelegramApprovalBot:
                 "reply_markup": json.dumps({"inline_keyboard": []}),
             })
             self._api("sendMessage", data={"chat_id": self.chat_id, "parse_mode": "HTML",
-                                           "text": f"Decision recorded: <b>{html.escape(decision.upper())}</b> for <code>{html.escape(run_id)}</code>"})
+                                           "text": f"Decision recorded: <b>{html.escape(decision.upper())}</b> for {html.escape(self.db.run_label(run_id))}"})
         except Exception as e:
             log.warning("Could not update Telegram card: %s", e)
         return decision
 
     # ------------------------------------------------------------ notifications
-    def notify(self, text: str) -> bool:
-        """Sends an operational message (HTML). Never raises: alerts must not break a run."""
+    def notify(self, text: str, buttons: Optional[list] = None) -> bool:
+        """Sends an operational message (HTML), optionally with one row of inline buttons.
+        Never raises: alerts must not break a run."""
         if not self.is_configured():
             log.info("Notification (Telegram not configured): %s", text)
             return False
+        data = {"chat_id": self.chat_id, "text": text[:4000], "parse_mode": "HTML", "disable_web_page_preview": "true"}
+        if buttons:
+            data["reply_markup"] = json.dumps({"inline_keyboard": [buttons]})
         try:
-            self._api("sendMessage", data={"chat_id": self.chat_id, "text": text[:4000],
-                                           "parse_mode": "HTML", "disable_web_page_preview": "true"})
+            self._api("sendMessage", data=data)
             return True
         except Exception as e:
             log.warning("Could not send Telegram notification: %s", e)

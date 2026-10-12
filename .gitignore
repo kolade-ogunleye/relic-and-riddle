@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# Secrets
+.env
+
+# Runtime state & generated media
+data/pipeline.db
+data/pipeline.db-*
+data/approval_queue.json
+data/publishing_log.json
+data/topics/history.json
+output/
+archive/media/
+*.mp4
+*.mp3
+*.aac
+*.wav
+!data/sfx/*.wav

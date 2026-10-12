@@ -1,0 +1,18 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: RunningSpeech,Impact,74,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,2,0,1,5,3,2,60,60,540,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.10,0:00:00.50,RunningSpeech,,0,0,0,,{\c&H0000E6FF&\fscx115\fscy115}IN{\c&H00FFFFFF&\fscx100\fscy100} {\c&H00A0A0A0&}1963, {\c&H00A0A0A0&}A {\c&H00A0A0A0&}MAN {\c&H00A0A0A0&}IN {\c&H00A0A0A0&}TURKEY
+Dialogue: 0,0:00:00.50,0:00:01.86,RunningSpeech,,0,0,0,,{\c&H00FFFFFF&}IN {\c&H0000E6FF&\fscx115\fscy115}1963,{\c&H00FFFFFF&\fscx100\fscy100} {\c&H00A0A0A0&}A {\c&H00A0A0A0&}MAN {\c&H00A0A0A0&}IN {\c&H00A0A0A0&}TURKEY
+Dialogue: 0,0:00:01.86,0:00:01.90,RunningSpeech,,0,0,0,,{\c&H00FFFFFF&}IN {\c&H00FFFFFF&}1963, {\c&H0000E6FF&\fscx115\fscy115}A{\c&H00FFFFFF&\fscx100\fscy100} {\c&H00A0A0A0&}MAN {\c&H00A0A0A0&}IN {\c&H00A0A0A0&}TURKEY
+Dialogue: 0,0:00:01.90,0:00:02.20,RunningSpeech,,0,0,0,,{\c&H00FFFFFF&}IN {\c&H00FFFFFF&}1963, {\c&H00FFFFFF&}A {\c&H0000E6FF&\fscx115\fscy115}MAN{\c&H00FFFFFF&\fscx100\fscy100} {\c&H00A0A0A0&}IN {\c&H00A0A0A0&}TURKEY
+Dialogue: 0,0:00:02.20,0:00:02.32,RunningSpeech,,0,0,0,,{\c&H00FFFFFF&}IN {\c&H00FFFFFF&}1963, {\c&H00FFFFFF&}A {\c&H00FFFFFF&}MAN {\c&H0000E6FF&\fscx115\fscy115}IN{\c&H00FFFFFF&\fscx100\fscy100} {\c&H00A0A0A0&}TURKEY
+Dialogue: 0,0:00:02.32,0:00:02.85,RunningSpeech,,0,0,0,,{\c&H00FFFFFF&}IN {\c&H00FFFFFF&}1963, {\c&H00FFFFFF&}A {\c&H00FFFFFF&}MAN {\c&H00FFFFFF&}IN {\c&H0000E6FF&\fscx115\fscy115}TURKEY{\c&H00FFFFFF&\fscx100\fscy100}

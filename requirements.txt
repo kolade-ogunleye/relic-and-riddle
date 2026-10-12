@@ -1,0 +1,11 @@
+anthropic==1.13.0
+pydantic==2.14.1
+APScheduler==3.11.3
+edge-tts==7.2.8
+numpy==2.4.4
+pillow==12.2.0
+requests==2.32.3
+soundfile==0.13.1
+
+# dev
+pytest==8.3.5

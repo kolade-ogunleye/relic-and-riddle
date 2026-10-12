@@ -1,0 +1,975 @@
+{
+  "total": 30,
+  "topics": [
+    {
+      "id": "01_derinkuyu_underground_city",
+      "title": "The Underground City of Derinkuyu",
+      "sub_theme": "Lost Civilizations",
+      "hook": "In 1963, a simple basement renovation in Turkey uncovered the largest underground city in human history.",
+      "location": {
+        "name": "Derinkuyu Underground City",
+        "city": "Derinkuyu",
+        "region": "Nev\u015fehir / Cappadocia",
+        "country": "Turkey",
+        "latitude": 38.3736,
+        "longitude": 34.7347
+      },
+      "key_facts": [
+        "18 subterranean stories carved 280 feet into solid volcanic rock",
+        "Sheltered over 20,000 citizens from surface invaders or catastrophes",
+        "Equipped with thousands of ventilation shafts, freshwater wells, and chapels",
+        "1,000-pound rolling stone disc doors that could only be locked from the inside",
+        "Still unknown who originally engineered the earliest levels"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Architecture & Interior Design",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#AncientMysteries",
+        "#Derinkuyu",
+        "#Archaeology",
+        "#HistoricalCuriosities",
+        "#HistoryUncovered",
+        "#AncientCivilizations",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "02_roman_self_healing_concrete",
+      "title": "The Mystery of Roman Self-Healing Concrete",
+      "sub_theme": "Ancient Materials",
+      "hook": "Modern concrete cracks in 50 years, but Roman harbors have sat in saltwater for two millennia and actually get stronger.",
+      "location": {
+        "name": "Portus Cosanus Roman Harbor",
+        "city": "Orbetello",
+        "region": "Tuscany",
+        "country": "Italy",
+        "latitude": 42.4419,
+        "longitude": 11.2882
+      },
+      "key_facts": [
+        "Engineered with volcanic ash (pozzolana) and quicklime clasts",
+        "When cracks form, rainwater dissolves the lime, reacting with seawater to crystallize into aluminous tobermorite",
+        "The chemical reaction heals microcracks spontaneously over centuries",
+        "Modern material scientists only unlocked the exact hot-mixing recipe in 2023",
+        "Outlasts modern reinforced Portland cement by over 40 times"
+      ],
+      "meta_categories": [
+        "Science & Tech",
+        "History & Philosophy",
+        "Architecture & Interior Design"
+      ],
+      "hashtags": [
+        "#AncientEngineering",
+        "#RomanEmpire",
+        "#AncientTech",
+        "#HistoryUncovered",
+        "#MaterialsScience",
+        "#Archaeology",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "03_kailasa_temple_monolith",
+      "title": "The Kailasa Temple Monolith",
+      "sub_theme": "Architectural Enigma",
+      "hook": "This 100-foot temple was not built from the ground up\u2014it was carved out of a single mountain from top to bottom.",
+      "location": {
+        "name": "Kailasa Temple, Ellora Caves",
+        "city": "Aurangabad",
+        "region": "Maharashtra",
+        "country": "India",
+        "latitude": 20.0238,
+        "longitude": 75.1793
+      },
+      "key_facts": [
+        "Over 200,000 tons of solid basalt rock were chiseled away with hand tools",
+        "Carved vertically from top to bottom with zero room for architectural error",
+        "Features intricate life-sized elephants, multi-story courtyards, and monolithic obelisks",
+        "Built in the 8th century under King Krishna I of the Rashtrakuta dynasty",
+        "Legend claims it was finished in just 18 years, an impossible feat for hand chisels"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Architecture & Interior Design",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#KailasaTemple",
+        "#AncientMonoliths",
+        "#IncredibleIndia",
+        "#AncientArchitecture",
+        "#HistoricalCuriosities",
+        "#Archaeology",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "04_antikythera_mechanism",
+      "title": "The Antikythera Mechanism: 2,000-Year-Old Analog Computer",
+      "sub_theme": "Astronomical Feat",
+      "hook": "Divers pulled a corroded lump of bronze from an ancient shipwreck, only to discover an analog computer that predicted eclipses.",
+      "location": {
+        "name": "Antikythera Shipwreck",
+        "city": "Antikythera",
+        "region": "Aegean Sea",
+        "country": "Greece",
+        "latitude": 35.8833,
+        "longitude": 23.3
+      },
+      "key_facts": [
+        "Discovered in 1901 by sponge divers off the Greek island of Antikythera",
+        "Contains over 30 intricate precision bronze gears in a wooden box",
+        "Accurately predicted solar and lunar eclipses, planetary orbits, and Olympic cycles",
+        "Dating back to roughly 150 to 100 BC",
+        "Clockwork complexity of this caliber was not seen again until 1,400 years later in 14th-century Europe"
+      ],
+      "meta_categories": [
+        "Science & Tech",
+        "History & Philosophy",
+        "Archaeology"
+      ],
+      "hashtags": [
+        "#Antikythera",
+        "#AncientComputer",
+        "#AncientGreece",
+        "#LostTechnology",
+        "#HistoryUncovered",
+        "#Archaeology",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "05_gobekli_tepe",
+      "title": "G\u00f6bekli Tepe: The 11,000-Year-Old Sanctuary",
+      "sub_theme": "Prehistoric Marvel",
+      "hook": "Built 6,000 years before Stonehenge, this massive stone sanctuary proved human hunters organized societies long before farming began.",
+      "location": {
+        "name": "G\u00f6bekli Tepe",
+        "city": "\u015eanl\u0131urfa",
+        "region": "Southeastern Anatolia",
+        "country": "Turkey",
+        "latitude": 37.2231,
+        "longitude": 38.9225
+      },
+      "key_facts": [
+        "Dating to 9500 BC\u2014predating agriculture, pottery, the wheel, and metal tools",
+        "Massive T-shaped limestone pillars weighing up to 20 tons carved with low-relief predators",
+        "Overturned the classical archaeological timeline that farming preceded monument building",
+        "Intentionally buried and backfilled with dirt thousands of years after construction",
+        "Only an estimated 5% of the total underground temple complex has been excavated"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Archaeology",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#GobekliTepe",
+        "#AncientCivilizations",
+        "#HumanOrigins",
+        "#Archaeology",
+        "#HistoricalCuriosities",
+        "#Anatolia",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "06_damascus_steel_nanotubes",
+      "title": "Damascus Steel & Ancient Carbon Nanotubes",
+      "sub_theme": "Lost Metallurgy",
+      "hook": "Crusaders claimed these legendary swords could slice a falling silk ribbon in half\u2014modern electron microscopes revealed carbon nanotubes.",
+      "location": {
+        "name": "Damascus Old City",
+        "city": "Damascus",
+        "region": "Levant",
+        "country": "Syria",
+        "latitude": 33.5138,
+        "longitude": 36.2765
+      },
+      "key_facts": [
+        "Forged from wootz crucible steel originally mined in ancient southern India",
+        "Recognized by characteristic swirling water patterns (damask) on the blade face",
+        "In 2006, German researchers discovered carbon nanotubes and cementite nanowires inside the steel",
+        "The precise thermal cycling and plant impurity recipe was lost by the 18th century",
+        "Provided unmatched flexibility and razor sharpness far beyond European medieval steel"
+      ],
+      "meta_categories": [
+        "Science & Tech",
+        "History & Philosophy",
+        "Military History"
+      ],
+      "hashtags": [
+        "#DamascusSteel",
+        "#AncientNanotech",
+        "#LostArts",
+        "#MedievalHistory",
+        "#Metallurgy",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "07_camp_century_nuclear_ice_city",
+      "title": "Camp Century: The Nuclear City Under the Ice",
+      "sub_theme": "Declassified History",
+      "hook": "During the Cold War, the US Army built an entire nuclear-powered city hidden under the Greenland ice sheet.",
+      "location": {
+        "name": "Camp Century",
+        "city": "Thule Region",
+        "region": "Greenland Ice Sheet",
+        "country": "Greenland",
+        "latitude": 77.1667,
+        "longitude": -61.1333
+      },
+      "key_facts": [
+        "Constructed in 1959 under the guise of an Arctic polar science station",
+        "Secretly designed for Project Iceworm: storing 600 nuclear missiles targeted at the USSR",
+        "Powered by a portable PM-2A nuclear reactor buried inside snow trenches",
+        "Contained a hospital, movie theater, barbershop, and living quarters for 200 soldiers",
+        "Abandoned in 1967 when glacier movements crushed the tunnels; left behind radioactive waste"
+      ],
+      "meta_categories": [
+        "Military History",
+        "History & Philosophy",
+        "Science & Tech"
+      ],
+      "hashtags": [
+        "#ColdWarSecrets",
+        "#CampCentury",
+        "#Declassified",
+        "#MilitaryHistory",
+        "#Greenland",
+        "#HistoricalCuriosities",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "08_hypogeum_of_hal_saflieni",
+      "title": "The Hypogeum of Hal Saflieni",
+      "sub_theme": "Subterranean Relic",
+      "hook": "Beneath Malta lies a 5,000-year-old burial sanctuary with an acoustic chamber that alters the human brainwave frequency.",
+      "location": {
+        "name": "\u0126al Saflieni Hypogeum",
+        "city": "Paola",
+        "region": "Southern Harbour",
+        "country": "Malta",
+        "latitude": 35.8697,
+        "longitude": 14.5069
+      },
+      "key_facts": [
+        "Three subterranean levels hand-carved out of globigerina limestone around 3300 BC",
+        "Discovered accidentally in 1902 by stone masons cutting cisterns",
+        "The 'Oracle Chamber' resonates powerfully at 110 Hz, a frequency known to stimulate emotional and creative brain processing",
+        "Yielded remains of an estimated 7,000 individuals alongside the famous 'Sleeping Lady' statuette",
+        "One of the best-preserved Neolithic underground architecture sites in the world"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Archaeology",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#HalSaflieni",
+        "#AcousticAnomalies",
+        "#AncientMalta",
+        "#Archaeology",
+        "#HistoricalCuriosities",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "09_greek_fire_byzantine_weapon",
+      "title": "Byzantine Greek Fire: The Lost Thermal Weapon",
+      "sub_theme": "Medieval Warfare",
+      "hook": "For 500 years, the Byzantine Empire possessed a liquid weapon that burned on top of water, and its secret recipe vanished forever.",
+      "location": {
+        "name": "The Golden Horn",
+        "city": "Constantinople / Istanbul",
+        "region": "Marmara",
+        "country": "Turkey",
+        "latitude": 41.0256,
+        "longitude": 28.9669
+      },
+      "key_facts": [
+        "Invented around 672 AD by the Syrian Christian engineer Kallinikos",
+        "Pumped through pressurized siphon bronze tubes mounted on Byzantine dromon warships",
+        "Continued burning upon contact with seawater and could only be extinguished by vinegar or sand",
+        "Saved Constantinople from multiple Arab naval sieges in 674 and 717 AD",
+        "State secret punishable by death if shared; the precise chemical formula was lost with the fall of the empire"
+      ],
+      "meta_categories": [
+        "Military History",
+        "History & Philosophy",
+        "Science & Tech"
+      ],
+      "hashtags": [
+        "#GreekFire",
+        "#ByzantineEmpire",
+        "#MedievalWeapons",
+        "#LostSecrets",
+        "#MilitaryHistory",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "10_unfinished_obelisk_aswan",
+      "title": "The Unfinished Obelisk of Aswan",
+      "sub_theme": "Ancient Megaliths",
+      "hook": "Lying flat in an Egyptian quarry is a 1,200-ton block of solid granite that modern cranes still cannot lift.",
+      "location": {
+        "name": "Aswan Granite Quarries",
+        "city": "Aswan",
+        "region": "Upper Egypt",
+        "country": "Egypt",
+        "latitude": 24.0769,
+        "longitude": 32.8953
+      },
+      "key_facts": [
+        "Would have stood 137 feet (42 meters) tall if erected\u2014a third taller than any ancient obelisk",
+        "Estimated weight: approximately 1,200 metric tons (equivalent to 3 Boeing 747s)",
+        "Chiseled directly out of bedrock using hard diorite pounder stones",
+        "Work was abruptly abandoned when a fatal stress crack developed through the stone",
+        "Offers unparalleled direct evidence of ancient Egyptian stone-quarrying techniques"
+      ],
+      "meta_categories": [
+        "Archaeology",
+        "History & Philosophy",
+        "Architecture & Interior Design"
+      ],
+      "hashtags": [
+        "#AncientEgypt",
+        "#AswanObelisk",
+        "#MegalithicArchitecture",
+        "#Archaeology",
+        "#HistoricalCuriosities",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "11_piri_reis_antarctica_map",
+      "title": "The Piri Reis Map of 1513",
+      "sub_theme": "Cartographic Mystery",
+      "hook": "In 1929, historians found a 1513 map showing the coastline of Antarctica 300 years before it was officially discovered.",
+      "location": {
+        "name": "Topkapi Palace",
+        "city": "Istanbul",
+        "region": "Istanbul",
+        "country": "Turkey",
+        "latitude": 0.0,
+        "longitude": 0.0
+      },
+      "key_facts": [
+        "Core historical phenomenon: The Piri Reis Map of 1513",
+        "Geographic origin: Topkapi Palace, Istanbul, Turkey",
+        "Unresolved historical enigma verified by archival documentation"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Science & Tech",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#CartographicMystery",
+        "#AncientMysteries",
+        "#HistoricalCuriosities",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "12_flannan_isle_lighthouse_disappearance",
+      "title": "The Flannan Isle Lighthouse Vanishing",
+      "sub_theme": "Unsolved Disappearance",
+      "hook": "In 1900, a supply boat arrived at a Scottish lighthouse to find a set dinner table, a stopped clock, and three keepers vanished into thin air.",
+      "location": {
+        "name": "Flannan Isles",
+        "city": "Outer Hebrides",
+        "region": "Outer Hebrides",
+        "country": "Scotland",
+        "latitude": 0.0,
+        "longitude": 0.0
+      },
+      "key_facts": [
+        "Core historical phenomenon: The Flannan Isle Lighthouse Vanishing",
+        "Geographic origin: Flannan Isles, Outer Hebrides, Scotland",
+        "Unresolved historical enigma verified by archival documentation"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Science & Tech",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#UnsolvedDisappearance",
+        "#AncientMysteries",
+        "#HistoricalCuriosities",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "13_trepanation_miracle",
+      "title": "Ancient Skull Surgery (Trepanation)",
+      "sub_theme": "Ancient Medicine",
+      "hook": "Archaeologists found 7,000-year-old human skulls with neat geometric holes drilled into them\u2014and the bone had completely healed.",
+      "location": {
+        "name": "Paracas Peninsula",
+        "city": "Ica",
+        "region": "Ica",
+        "country": "Peru",
+        "latitude": 0.0,
+        "longitude": 0.0
+      },
+      "key_facts": [
+        "Core historical phenomenon: Ancient Skull Surgery (Trepanation)",
+        "Geographic origin: Paracas Peninsula, Ica, Peru",
+        "Unresolved historical enigma verified by archival documentation"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Science & Tech",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#AncientMedicine",
+        "#AncientMysteries",
+        "#HistoricalCuriosities",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "14_nazca_lines_runway_paradox",
+      "title": "The Nazca Lines Runway Paradox",
+      "sub_theme": "Geoglyphs",
+      "hook": "Miles of geometric lines etched into the Peruvian desert can only be recognized from an airplane that wasn't invented for 1,500 years.",
+      "location": {
+        "name": "Nazca Desert",
+        "city": "Nazca",
+        "region": "Nazca",
+        "country": "Peru",
+        "latitude": 0.0,
+        "longitude": 0.0
+      },
+      "key_facts": [
+        "Core historical phenomenon: The Nazca Lines Runway Paradox",
+        "Geographic origin: Nazca Desert, Nazca, Peru",
+        "Unresolved historical enigma verified by archival documentation"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Science & Tech",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#Geoglyphs",
+        "#AncientMysteries",
+        "#HistoricalCuriosities",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "15_sunken_city_of_heracleion",
+      "title": "The Sunken City of Thonis-Heracleion",
+      "sub_theme": "Submerged City",
+      "hook": "For 1,200 years, historians believed it was a myth until a diver spotted a colossal 16-foot statue submerged in the Mediterranean.",
+      "location": {
+        "name": "Abukir Bay",
+        "city": "Alexandria",
+        "region": "Alexandria",
+        "country": "Egypt",
+        "latitude": 0.0,
+        "longitude": 0.0
+      },
+      "key_facts": [
+        "Core historical phenomenon: The Sunken City of Thonis-Heracleion",
+        "Geographic origin: Abukir Bay, Alexandria, Egypt",
+        "Unresolved historical enigma verified by archival documentation"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Science & Tech",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#SubmergedCity",
+        "#AncientMysteries",
+        "#HistoricalCuriosities",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "16_zhang_heng_132ad_seismoscope",
+      "title": "Zhang Heng's 132 AD Earthquake Detector",
+      "sub_theme": "Lost Engineering",
+      "hook": "Nearly 2,000 years ago, a Chinese bronze urn could detect earthquakes 400 miles away before anyone felt the ground shake.",
+      "location": {
+        "name": "Luoyang",
+        "city": "Henan",
+        "region": "Henan",
+        "country": "China",
+        "latitude": 0.0,
+        "longitude": 0.0
+      },
+      "key_facts": [
+        "Core historical phenomenon: Zhang Heng's 132 AD Earthquake Detector",
+        "Geographic origin: Luoyang, Henan, China",
+        "Unresolved historical enigma verified by archival documentation"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Science & Tech",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#LostEngineering",
+        "#AncientMysteries",
+        "#HistoricalCuriosities",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "17_voynich_manuscript",
+      "title": "The Unsolved Voynich Manuscript",
+      "sub_theme": "Bizarre Relic",
+      "hook": "Written in an undecipherable script with illustrations of plants that don't exist on Earth, WWII codebreakers failed to crack a single word.",
+      "location": {
+        "name": "Beinecke Rare Book Library",
+        "city": "New Haven",
+        "region": "New Haven",
+        "country": "USA",
+        "latitude": 0.0,
+        "longitude": 0.0
+      },
+      "key_facts": [
+        "Core historical phenomenon: The Unsolved Voynich Manuscript",
+        "Geographic origin: Beinecke Rare Book Library, New Haven, USA",
+        "Unresolved historical enigma verified by archival documentation"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Science & Tech",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#BizarreRelic",
+        "#AncientMysteries",
+        "#HistoricalCuriosities",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "18_odessa_catacombs_labyrinth",
+      "title": "The 1,500-Mile Odessa Catacombs",
+      "sub_theme": "Hidden Infrastructure",
+      "hook": "Beneath Ukraine lies a 1,500-mile subterranean labyrinth deeper, darker, and more dangerous than the Paris catacombs.",
+      "location": {
+        "name": "Odessa",
+        "city": "Odesa Oblast",
+        "region": "Odesa Oblast",
+        "country": "Ukraine",
+        "latitude": 0.0,
+        "longitude": 0.0
+      },
+      "key_facts": [
+        "Core historical phenomenon: The 1,500-Mile Odessa Catacombs",
+        "Geographic origin: Odessa, Odesa Oblast, Ukraine",
+        "Unresolved historical enigma verified by archival documentation"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Science & Tech",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#HiddenInfrastructure",
+        "#AncientMysteries",
+        "#HistoricalCuriosities",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "19_richat_structure_sahara_eye",
+      "title": "The Richat Structure: The Eye of the Sahara",
+      "sub_theme": "Geological Mystery",
+      "hook": "A 25-mile concentric circle in the Sahara desert matches Plato's exact description and dimensions of the lost city of Atlantis.",
+      "location": {
+        "name": "Ouadane",
+        "city": "Adrar Plateau",
+        "region": "Adrar Plateau",
+        "country": "Mauritania",
+        "latitude": 0.0,
+        "longitude": 0.0
+      },
+      "key_facts": [
+        "Core historical phenomenon: The Richat Structure: The Eye of the Sahara",
+        "Geographic origin: Ouadane, Adrar Plateau, Mauritania",
+        "Unresolved historical enigma verified by archival documentation"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Science & Tech",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#GeologicalMystery",
+        "#AncientMysteries",
+        "#HistoricalCuriosities",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "20_amber_room_heist",
+      "title": "The Disappearance of the Amber Room",
+      "sub_theme": "Historical Heist",
+      "hook": "An entire palace room made of six tons of pure amber and gold was packed into crates in 1945 and has never been seen again.",
+      "location": {
+        "name": "Catherine Palace",
+        "city": "Pushkin",
+        "region": "Pushkin",
+        "country": "Russia",
+        "latitude": 0.0,
+        "longitude": 0.0
+      },
+      "key_facts": [
+        "Core historical phenomenon: The Disappearance of the Amber Room",
+        "Geographic origin: Catherine Palace, Pushkin, Russia",
+        "Unresolved historical enigma verified by archival documentation"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Science & Tech",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#HistoricalHeist",
+        "#AncientMysteries",
+        "#HistoricalCuriosities",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "21_gol_gumbaz_whispering_gallery",
+      "title": "The Whispering Gallery of Gol Gumbaz",
+      "sub_theme": "Acoustic Wonder",
+      "hook": "In this 17th-century Indian dome, the quietest whisper can be heard 125 feet away and echoes exactly ten times.",
+      "location": {
+        "name": "Bijapur",
+        "city": "Karnataka",
+        "region": "Karnataka",
+        "country": "India",
+        "latitude": 0.0,
+        "longitude": 0.0
+      },
+      "key_facts": [
+        "Core historical phenomenon: The Whispering Gallery of Gol Gumbaz",
+        "Geographic origin: Bijapur, Karnataka, India",
+        "Unresolved historical enigma verified by archival documentation"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Science & Tech",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#AcousticWonder",
+        "#AncientMysteries",
+        "#HistoricalCuriosities",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "22_tunguska_event_1908",
+      "title": "The Tunguska Event of 1908",
+      "sub_theme": "Unexplained Event",
+      "hook": "An explosion 1,000 times stronger than Hiroshima flattened 80 million trees in Siberia, yet left behind zero impact crater.",
+      "location": {
+        "name": "Podkamennaya Tunguska",
+        "city": "Siberia",
+        "region": "Siberia",
+        "country": "Russia",
+        "latitude": 0.0,
+        "longitude": 0.0
+      },
+      "key_facts": [
+        "Core historical phenomenon: The Tunguska Event of 1908",
+        "Geographic origin: Podkamennaya Tunguska, Siberia, Russia",
+        "Unresolved historical enigma verified by archival documentation"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Science & Tech",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#UnexplainedEvent",
+        "#AncientMysteries",
+        "#HistoricalCuriosities",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "23_claw_of_archimedes",
+      "title": "The Claw of Archimedes",
+      "sub_theme": "Ancient Weapons",
+      "hook": "When Roman warships attacked Syracuse, giant hidden crane arms swung out from the cliffs and lifted whole ships straight out of the water.",
+      "location": {
+        "name": "Syracuse",
+        "city": "Sicily",
+        "region": "Sicily",
+        "country": "Italy",
+        "latitude": 0.0,
+        "longitude": 0.0
+      },
+      "key_facts": [
+        "Core historical phenomenon: The Claw of Archimedes",
+        "Geographic origin: Syracuse, Sicily, Italy",
+        "Unresolved historical enigma verified by archival documentation"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Science & Tech",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#AncientWeapons",
+        "#AncientMysteries",
+        "#HistoricalCuriosities",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "24_dyatlov_pass_incident",
+      "title": "The Dyatlov Pass Mystery",
+      "sub_theme": "Lost Expedition",
+      "hook": "Nine experienced hikers fled their tent in sub-zero weather wearing no shoes, leaving behind cracked ribs and radioactive clothing.",
+      "location": {
+        "name": "Kholat Syakhl",
+        "city": "Ural Mountains",
+        "region": "Ural Mountains",
+        "country": "Russia",
+        "latitude": 0.0,
+        "longitude": 0.0
+      },
+      "key_facts": [
+        "Core historical phenomenon: The Dyatlov Pass Mystery",
+        "Geographic origin: Kholat Syakhl, Ural Mountains, Russia",
+        "Unresolved historical enigma verified by archival documentation"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Science & Tech",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#LostExpedition",
+        "#AncientMysteries",
+        "#HistoricalCuriosities",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "25_lycurgus_cup_nanotech",
+      "title": "The 4th-Century Lycurgus Cup",
+      "sub_theme": "Microscopic Wonder",
+      "hook": "A Roman glass goblet that glows green in normal light turns blood red when light shines through it, crafted with embedded gold nanoparticles.",
+      "location": {
+        "name": "British Museum",
+        "city": "London",
+        "region": "London",
+        "country": "UK",
+        "latitude": 0.0,
+        "longitude": 0.0
+      },
+      "key_facts": [
+        "Core historical phenomenon: The 4th-Century Lycurgus Cup",
+        "Geographic origin: British Museum, London, UK",
+        "Unresolved historical enigma verified by archival documentation"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Science & Tech",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#MicroscopicWonder",
+        "#AncientMysteries",
+        "#HistoricalCuriosities",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "26_wieliczka_salt_cathedral",
+      "title": "The Wieliczka Underground Salt Cathedral",
+      "sub_theme": "Subterranean Marvel",
+      "hook": "Polish miners spent centuries carving an underground world 1,000 feet deep, complete with crystal chandeliers made entirely of salt.",
+      "location": {
+        "name": "Wieliczka",
+        "city": "Lesser Poland",
+        "region": "Lesser Poland",
+        "country": "Poland",
+        "latitude": 0.0,
+        "longitude": 0.0
+      },
+      "key_facts": [
+        "Core historical phenomenon: The Wieliczka Underground Salt Cathedral",
+        "Geographic origin: Wieliczka, Lesser Poland, Poland",
+        "Unresolved historical enigma verified by archival documentation"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Science & Tech",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#SubterraneanMarvel",
+        "#AncientMysteries",
+        "#HistoricalCuriosities",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "27_great_wall_of_gorgan",
+      "title": "The Red Snake: The Great Wall of Gorgan",
+      "sub_theme": "Ancient Defense",
+      "hook": "The second-longest defensive wall in the ancient world was made of 200 million red bricks and equipped with an advanced canal system.",
+      "location": {
+        "name": "Golestan",
+        "city": "Gorgan Plain",
+        "region": "Gorgan Plain",
+        "country": "Iran",
+        "latitude": 0.0,
+        "longitude": 0.0
+      },
+      "key_facts": [
+        "Core historical phenomenon: The Red Snake: The Great Wall of Gorgan",
+        "Geographic origin: Golestan, Gorgan Plain, Iran",
+        "Unresolved historical enigma verified by archival documentation"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Science & Tech",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#AncientDefense",
+        "#AncientMysteries",
+        "#HistoricalCuriosities",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "28_dancing_plague_1518",
+      "title": "The Dancing Plague of 1518",
+      "sub_theme": "Historical Paradox",
+      "hook": "In July 1518, a woman stepped into a street in Strasbourg and started dancing until her heart gave out\u2014and then 400 people joined her.",
+      "location": {
+        "name": "Strasbourg",
+        "city": "Alsace",
+        "region": "Alsace",
+        "country": "France",
+        "latitude": 0.0,
+        "longitude": 0.0
+      },
+      "key_facts": [
+        "Core historical phenomenon: The Dancing Plague of 1518",
+        "Geographic origin: Strasbourg, Alsace, France",
+        "Unresolved historical enigma verified by archival documentation"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Science & Tech",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#HistoricalParadox",
+        "#AncientMysteries",
+        "#HistoricalCuriosities",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "29_baltic_sea_anomaly",
+      "title": "The Baltic Sea Anomaly",
+      "sub_theme": "Maritime Enigma",
+      "hook": "In 2011, sonar divers found a 200-foot disc resting 300 feet deep that knocked out all electronic equipment within 200 meters.",
+      "location": {
+        "name": "Bothnian Sea",
+        "city": "Baltic Sea",
+        "region": "Baltic Sea",
+        "country": "Sweden",
+        "latitude": 0.0,
+        "longitude": 0.0
+      },
+      "key_facts": [
+        "Core historical phenomenon: The Baltic Sea Anomaly",
+        "Geographic origin: Bothnian Sea, Baltic Sea, Sweden",
+        "Unresolved historical enigma verified by archival documentation"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Science & Tech",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#MaritimeEnigma",
+        "#AncientMysteries",
+        "#HistoricalCuriosities",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    },
+    {
+      "id": "30_acoustic_kitty_cia",
+      "title": "Operation Acoustic Kitty",
+      "sub_theme": "Declassified History",
+      "hook": "In the 1960s, the CIA spent $20 million turning a living cat into a walking spy microphone.",
+      "location": {
+        "name": "CIA Headquarters",
+        "city": "Langley / Virginia",
+        "region": "Langley / Virginia",
+        "country": "USA",
+        "latitude": 0.0,
+        "longitude": 0.0
+      },
+      "key_facts": [
+        "Core historical phenomenon: Operation Acoustic Kitty",
+        "Geographic origin: CIA Headquarters, Langley / Virginia, USA",
+        "Unresolved historical enigma verified by archival documentation"
+      ],
+      "meta_categories": [
+        "History & Philosophy",
+        "Science & Tech",
+        "Travel & Culture"
+      ],
+      "hashtags": [
+        "#DeclassifiedHistory",
+        "#AncientMysteries",
+        "#HistoricalCuriosities",
+        "#HistoryUncovered",
+        "#ReelsViral"
+      ]
+    }
+  ]
+}

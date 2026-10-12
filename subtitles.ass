@@ -1,0 +1,22 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: ReelsStyle,Arial,64,&H0000FFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,1,0,1,5,3,2,60,60,340,1
+Style: ReelsWhite,Arial,60,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,-1,0,0,0,100,100,1,0,1,5,3,2,60,60,340,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.10,0:00:04.20,ReelsStyle,,0,0,0,,In 1963, a man in Turkey\nknocked down a basement wall...
+Dialogue: 0,0:00:04.20,0:00:08.30,ReelsWhite,,0,0,0,,...and uncovered a tunnel\nleading into darkness.
+Dialogue: 0,0:00:08.30,0:00:12.50,ReelsStyle,,0,0,0,,What he found was DERINKUYU:
+Dialogue: 0,0:00:12.50,0:00:16.70,ReelsWhite,,0,0,0,,An 18-story underground city\n300 feet inside solid rock.
+Dialogue: 0,0:00:16.70,0:00:21.40,ReelsStyle,,0,0,0,,Engineered with ventilation shafts\nand fresh water wells...
+Dialogue: 0,0:00:21.40,0:00:26.10,ReelsWhite,,0,0,0,,...and 1,000-pound stone doors\nlockable only from the INSIDE.
+Dialogue: 0,0:00:26.10,0:00:29.90,ReelsStyle,,0,0,0,,Over 20,000 people\ncould vanish here for months.
+Dialogue: 0,0:00:29.90,0:00:33.80,ReelsWhite,,0,0,0,,Yet historians still cannot agree\nwho engineered it...
+Dialogue: 0,0:00:33.80,0:00:37.56,ReelsStyle,,0,0,0,,What were they hiding from?\nTell us your theory below.

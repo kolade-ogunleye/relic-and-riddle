@@ -102,3 +102,21 @@ def test_generated_script_sources_are_limited_to_retrieved(monkeypatch, curated_
     monkeypatch.setattr(script_engine, "structured_call", lambda *a, **k: pkg)
     out = script_engine.ScriptEngine()._generate_with_claude({"id": "t", "title": "T"}, "")
     assert [s.url for s in out.sources] == ["https://real.org"]
+
+
+def test_research_collects_sources_from_search_result_blocks(monkeypatch):
+    results = SimpleNamespace(type="web_search_tool_result", content=[
+        SimpleNamespace(type="web_search_result", url="https://r1.org", title="R1"),
+        SimpleNamespace(type="web_search_result", url="https://r2.org", title="R2"),
+    ])
+    content = [results, _text("Fact with no citation metadata.")]
+    fake = _patch_client(monkeypatch, [_resp("end_turn", content=content)])
+    text, sources = llm.research("sys", "p", web_search_uses=2)
+    assert [s.url for s in sources] == ["https://r1.org", "https://r2.org"]
+    assert "Always use the web search tool" in fake.calls[0]["system"]
+
+
+def test_research_keeps_sources_from_paused_turns(monkeypatch):
+    early = SimpleNamespace(type="web_search_tool_result", content=[SimpleNamespace(url="https://early.org", title="E")])
+    _patch_client(monkeypatch, [_resp("pause_turn", content=[early]), _resp("end_turn", content=[_text("done")])])
+    assert [s.url for s in llm.research("s", "p", web_search_uses=1)[1]] == ["https://early.org"]

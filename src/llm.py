@@ -5,8 +5,11 @@ Thin wrapper around the Anthropic SDK.
 
 Grounded calls run in two phases:
   1. research()        - Claude with the server-side web search tool, plain-text answer.
-                         Sources are taken from the API's citation metadata (URLs the
-                         search actually returned), never from model-written text.
+                         Sources are the URLs the search actually returned (from
+                         web_search_tool_result blocks, plus any citation metadata),
+                         never from model-written text. With web_search_20260209 the
+                         results pass through dynamic filtering, and the final text
+                         often carries no citations, so result blocks are the main source.
   2. structured_call() - no tools; the answer is constrained to a Pydantic schema.
 Keeping web search (whose citations are always on) separate from structured output
 avoids combining two features in one request, and gives callers a trustworthy set of
@@ -54,34 +57,50 @@ def _check_stop(response) -> None:
         raise LLMError("Claude hit max_tokens before finishing.")
 
 
+_MUST_SEARCH = (
+    "\n\nAlways use the web search tool before answering, even for well-known topics; "
+    "do not answer from memory alone."
+)
+
+
+def _collect_sources(blocks, sources: List[Source], seen: set) -> None:
+    """Adds every URL the search returned (result blocks) or the text cited."""
+    for block in blocks:
+        btype = getattr(block, "type", None)
+        if btype == "web_search_tool_result" and isinstance(getattr(block, "content", None), list):
+            items = [(getattr(r, "url", None), getattr(r, "title", "")) for r in block.content]
+        elif btype == "text":
+            items = [(getattr(c, "url", None), getattr(c, "title", "")) for c in (block.citations or [])]
+        else:
+            continue
+        for url, title in items:
+            if url and url not in seen:
+                seen.add(url)
+                sources.append(Source(title=title or url, url=url))
+
+
 def research(system: str, prompt: str, *, web_search_uses: int, effort: str = "high",
              max_tokens: int = 16000) -> Tuple[str, List[Source]]:
-    """Web-search-grounded answer. Returns (text, sources actually cited by the API)."""
+    """Web-search-grounded answer. Returns (text, sources the search actually returned)."""
     client = _client()
+    system = system + _MUST_SEARCH
     messages = [{"role": "user", "content": prompt}]
     tools = [{"type": "web_search_20260209", "name": "web_search", "max_uses": web_search_uses}]
+    sources: List[Source] = []
+    seen: set = set()
     for _ in range(_MAX_CONTINUATIONS):
         response = client.beta.messages.create(
             model=CLAUDE_MODEL, max_tokens=max_tokens, system=system, messages=messages, tools=tools,
             output_config={"effort": effort}, betas=[_FALLBACK_BETA], fallbacks="default",
         )
+        _collect_sources(response.content, sources, seen)
         if response.stop_reason == "pause_turn":
             # Long server-tool turn: send the partial turn back unchanged so Claude can resume.
             messages.append({"role": "assistant", "content": response.content})
             continue
         _check_stop(response)
 
-        parts, sources, seen = [], [], set()
-        for block in response.content:
-            if block.type != "text":
-                continue
-            parts.append(block.text)
-            for c in block.citations or []:
-                url = getattr(c, "url", None)
-                if url and url not in seen:
-                    seen.add(url)
-                    sources.append(Source(title=getattr(c, "title", "") or url, url=url))
-        text = "".join(parts).strip()
+        text = "".join(b.text for b in response.content if b.type == "text").strip()
         if not text:
             raise LLMError("Research returned no text.")
         return text, sources

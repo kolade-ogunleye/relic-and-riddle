@@ -278,6 +278,15 @@ class PipelineDatabase:
             """, (decision, _now(), decided_by, run_id))
             return cur.rowcount == 1
 
+    def reopen_approval(self, run_id: str) -> bool:
+        """Puts a timed-out approval back to pending so the run can be reviewed again."""
+        with self._conn() as conn:
+            cur = conn.execute("""
+            UPDATE approvals SET decision = 'pending', decision_timestamp = NULL, decided_by = NULL
+            WHERE run_id = ? AND decision = 'timeout'
+            """, (run_id,))
+            return cur.rowcount == 1
+
     def get_approval(self, run_id: str) -> Optional[Dict[str, Any]]:
         with self._conn() as conn:
             row = conn.execute("SELECT * FROM approvals WHERE run_id = ?", (run_id,)).fetchone()

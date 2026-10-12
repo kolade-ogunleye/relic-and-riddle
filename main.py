@@ -100,6 +100,30 @@ class PipelineCoordinator:
             self.topic_engine.record_status(tid, "failed", run_id=run_id)
         return result
 
+    def request_approval(self, run_id: str, dry_run: bool = False) -> Dict[str, Any]:
+        """Re-sends the review card for a rendered run whose approval timed out, then acts on the decision."""
+        run = self.db.get_run(run_id)
+        if not run or run["status"] not in ("timeout", "pending_approval"):
+            raise ValueError(f"Run status '{run and run['status']}' has no approval to re-send.")
+        appr = self.db.get_approval(run_id)
+        if appr and appr["decision"] == "timeout":
+            self.db.reopen_approval(run_id)
+        elif not appr:
+            self.db.record_approval(run_id, run["topic_id"])
+        self.db.update_run(run_id, "pending_approval")
+        run_dir = OUTPUT_DIR / run_id
+        proxy = run_dir / "review_proxy.mp4"
+        video = proxy if proxy.exists() else Path(run["master_video_path"])
+        self.telegram_bot.send_approval_request(video, Path(run["thumbnail_cover_path"]), run["script_payload"], run_id)
+        decision = self.telegram_bot.wait_for_decision(run_id)
+        if decision == "approved":
+            return {"run_id": run_id, "decision": decision, **self.publish_run(run_id, dry_run=dry_run)}
+        status = {"rejected": "rejected", "regenerate": "regenerate"}.get(decision, "timeout")
+        self.db.update_run(run_id, status)
+        if decision == "rejected":
+            self.topic_engine.record_status(run["topic_id"], "rejected", run_id=run_id)
+        return {"run_id": run_id, "decision": decision, "status": decision}
+
     def resume_run(self, run_id: str, auto_approve: bool = False, dry_run: bool = False) -> Dict[str, Any]:
         """
         Continues a failed run from where it stopped, reusing its approved script and
@@ -293,6 +317,9 @@ def main(argv=None) -> int:
     review_sub.add_parser("list")
     for action in ("approve", "reject", "regenerate"):
         review_sub.add_parser(action).add_argument("run_id")
+    send_p = review_sub.add_parser("send", help="Re-send the Telegram review card for a timed-out run and wait")
+    send_p.add_argument("run_id")
+    send_p.add_argument("--dry-run", action="store_true")
     pub_p = review_sub.add_parser("publish", help="Publish a rendered run that was never published")
     pub_p.add_argument("run_id")
     pub_p.add_argument("--dry-run", action="store_true")
@@ -373,6 +400,14 @@ def main(argv=None) -> int:
                 print(f"{args.run_id}: no pending approval (current: {appr and appr['decision']}). "
                       f"To publish a finished run, use `review publish {args.run_id}`.")
                 return 1
+        elif args.review_action == "send":
+            try:
+                res = PipelineCoordinator(db).request_approval(args.run_id, dry_run=args.dry_run)
+            except ValueError as e:
+                print(f"Refusing: {e}")
+                return 1
+            print(json.dumps(res, indent=2, default=str))
+            return 0 if res["status"] in ("published", "simulated") else 1
         elif args.review_action == "publish":
             run = db.get_run(args.run_id)
             if not run:

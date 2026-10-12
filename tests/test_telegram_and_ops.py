@@ -54,3 +54,26 @@ def test_placeholder_chat_id_is_not_an_approver():
     from src.config import _approver_ids
     assert _approver_ids("your_telegram_chat_id_here") == set()
     assert _approver_ids("123, 456 ,abc") == {"123", "456"}
+
+
+def test_health_flags_chat_id_equal_to_bot_id(monkeypatch):
+    from src import config
+    from src.ops import PreFlightHealthChecker
+    monkeypatch.setattr(config, "ANTHROPIC_API_KEY", "sk-real")
+    monkeypatch.setattr(config, "UPLOAD_POST_API_KEY", "k"); monkeypatch.setattr(config, "UPLOAD_POST_USER", "u")
+    monkeypatch.setattr(config, "TELEGRAM_BOT_TOKEN", "123456:ABCDEF")
+    monkeypatch.setattr(config, "TELEGRAM_CHAT_ID", "123456")
+    ok, msg = PreFlightHealthChecker().check_live_credentials()
+    assert not ok and "bot's own ID" in msg
+    monkeypatch.setattr(config, "TELEGRAM_CHAT_ID", "987654")
+    assert PreFlightHealthChecker().check_live_credentials()[0]
+
+
+def test_timed_out_approval_can_be_reopened(db):
+    db.create_run("r1", "01_topic")
+    db.record_approval("r1", "01_topic")
+    db.update_approval_decision("r1", "timeout", decided_by="system")
+    assert db.reopen_approval("r1")
+    assert db.get_approval("r1")["decision"] == "pending"
+    db.update_approval_decision("r1", "approved", decided_by="cli")
+    assert not db.reopen_approval("r1")  # only timeouts can be reopened

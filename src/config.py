@@ -86,7 +86,8 @@ def _approver_ids(raw: str) -> set:
     return {s.strip() for s in raw.split(",") if s.strip().lstrip("-").isdigit()}
 
 
-TELEGRAM_APPROVER_IDS = _approver_ids(os.getenv("TELEGRAM_APPROVER_IDS", TELEGRAM_CHAT_ID))
+# The bot's own ID (token prefix) can never be an approver.
+TELEGRAM_APPROVER_IDS = _approver_ids(os.getenv("TELEGRAM_APPROVER_IDS", TELEGRAM_CHAT_ID)) - {TELEGRAM_BOT_TOKEN.split(":")[0]}
 APPROVAL_TIMEOUT_SECONDS = int(os.getenv("APPROVAL_TIMEOUT_SECONDS", "3600"))
 
 # Publishing defaults

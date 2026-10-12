@@ -56,8 +56,10 @@ def _get(url: str, params: dict = None, timeout: float = 60) -> requests.Respons
             return resp
         retry_after = resp.headers.get("Retry-After", "")
         wait = int(retry_after) if retry_after.isdigit() else 15 * 2 ** attempt
-        print(f"    rate limited; waiting {wait}s")
-        time.sleep(min(wait, 300))
+        if wait > 1800:
+            break  # don't hang for hours; re-run later (or set COMMONS_CONTACT) to resume
+        print(f"    rate limited; waiting {wait}s as requested")
+        time.sleep(wait + 1)  # retrying before Retry-After expires only extends the block
     resp.raise_for_status()
     return resp
 

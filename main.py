@@ -36,6 +36,7 @@ from src.db import PipelineDatabase, QueueEmpty
 from src.control import heartbeat_text, is_paused, make_command_handler, ping_healthcheck
 from src.scene_planner import plan_scenes, segment_beats
 from src.upscale import ensure_all, ensure_resolution
+from src.music import mark_used as mark_track_used, music_for
 from src.parallax import render_scenes as render_parallax
 from src.video_composer import TRANS_DUR
 from src.video_qa import qa_summary_html, review_render
@@ -226,7 +227,16 @@ class PipelineCoordinator:
         if vo_dur > HARD_DURATION_CEILING:
             raise RuntimeError(f"Voiceover is {vo_dur:.1f}s; hard ceiling is {HARD_DURATION_CEILING}s.")
         bed_path = run_dir / "ambient_bed.wav"
-        self.audio_engine.generate_ambient_bed(vo_dur + 0.5, bed_path, words=words)
+        # Music: ElevenLabs score (paid plan) -> approved free library track -> synthesized drone.
+        music = music_for(payload, vo_dur + 0.5, run_dir, self.audio_engine.voice_quota())
+        self.audio_engine.generate_ambient_bed(vo_dur + 0.5, bed_path, words=words, music_path=music["path"])
+        payload["music_note"] = {"elevenlabs": f"🎵 Music: ElevenLabs score ({music['mood']})",
+                                 "library": f"🎵 Music: free library track ({music['mood']})",
+                                 "none": "🎵 Music: none available; synthesized drone used"}[music["source"]]
+        if music["credit"] and music["credit"] not in payload["caption"]:  # CC BY needs attribution
+            payload["caption"] = f"{payload['caption']}\n{music['credit']}"
+        if music["file"]:
+            mark_track_used(music["file"])
         return self._render_approve_publish(topic, run_id, run_dir, payload, scene_media, hero_img,
                                             vo_path, bed_path, words, vo_dur, auto_approve, dry_run, previous_status)
 
@@ -288,8 +298,10 @@ class PipelineCoordinator:
         payload["qa_summary"] = qa_summary_html(qa)
         (run_dir / "qa_report.json").write_text(qa.model_dump_json(indent=2) if qa else "null", encoding="utf-8")
         log.info("%s", re.sub(r"<[^>]+>", "", payload["qa_summary"]).replace("\n", " | "))
-        self.db.update_run(run_id, "pending_approval", master_video_path=master_mp4,
+        # Persist the final payload: publishing reads it back (caption incl. music/image credits).
+        self.db.update_run(run_id, "pending_approval", master_video_path=master_mp4, script_payload=payload,
                            thumbnail_cover_path=thumb_916, thumbnail_grid_path=thumb_1x1)
+        (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
 
         # 8-9. Human approval (never implicit)
         if auto_approve:
@@ -529,7 +541,7 @@ def main(argv=None) -> int:
         handler = make_command_handler(
             db, lambda: "none (bot-only mode)",
             lambda: "Production runs are disabled in bot-only mode. Use the daemon or `python main.py run`.",
-            send_photo=bot.send_photo, voice_quota=AudioEngine().voice_quota,
+            send_photo=bot.send_photo, send_audio=bot.send_audio, voice_quota=AudioEngine().voice_quota,
             propose_topics=_proposal_trigger(db, bot),
         )
         bot.notify("🤖 <b>Bot-only mode</b>: image review, approvals and /status are live; no runs are scheduled. "
@@ -661,7 +673,7 @@ def main(argv=None) -> int:
             scheduler.add_job(production_run, kwargs={"manual": True})
             return "🎬 Starting a run now. You'll get the review card when it's rendered; nothing posts without your approval."
 
-        handler = make_command_handler(coordinator.db, next_run, trigger_run, send_photo=bot.send_photo,
+        handler = make_command_handler(coordinator.db, next_run, trigger_run, send_photo=bot.send_photo, send_audio=bot.send_audio,
                                        voice_quota=coordinator.audio_engine.voice_quota,
                                        apply_updates=apply_updates, propose_topics=propose_topics,
                                        run_actions={"pubok": coordinator.confirm_posted,

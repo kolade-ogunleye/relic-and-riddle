@@ -78,6 +78,8 @@ class TelegramApprovalBot:
             f"💬 First comment: <i>{e(script_payload.get('first_comment', ''))}</i>\n"
             f"🏷️ {e(' '.join(script_payload.get('hashtags', [])))}\n"
         )
+        if script_payload.get("music_note"):
+            text += "\n" + e(script_payload["music_note"])
         if script_payload.get("source_note"):
             text += "\n" + e(script_payload["source_note"]) + "\n"
         if script_payload.get("qa_summary"):
@@ -183,6 +185,21 @@ class TelegramApprovalBot:
             return True
         except Exception as e:
             log.warning("Could not send Telegram notification: %s", e)
+            return False
+
+    def send_audio(self, path: Path, caption: str, buttons: Optional[list] = None) -> bool:
+        """Sends a playable audio file with an HTML caption and optional inline buttons."""
+        if not self.is_configured():
+            return False
+        data = {"chat_id": self.chat_id, "caption": caption[:1024], "parse_mode": "HTML"}
+        if buttons:
+            data["reply_markup"] = json.dumps({"inline_keyboard": [buttons]})
+        try:
+            with open(path, "rb") as f:
+                self._api("sendAudio", timeout=120, data=data, files={"audio": f})
+            return True
+        except Exception as e:
+            log.warning("Could not send audio: %s", e)
             return False
 
     def send_photo(self, path: Path, caption: str, buttons: Optional[list] = None) -> bool:

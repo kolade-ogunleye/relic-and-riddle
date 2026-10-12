@@ -42,6 +42,7 @@ HELP = (
     "/review N — contact sheet for topic N, with an Approve button\n"
     "/drop N 2 5 — remove images 2 and 5 from topic N\n"
     "/propose — research 3 new topic ideas (Add/Skip buttons)\n"
+    "/music — listen to and approve free music tracks\n"
     "/help — this list"
 )
 
@@ -171,7 +172,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                          voice_quota: Callable[[], Optional[dict]] = lambda: None,
                          apply_updates: Optional[Callable[[], str]] = None,
                          propose_topics: Optional[Callable[[], str]] = None,
-                         run_actions: Optional[dict] = None) -> Callable[[str, str], str]:
+                         run_actions: Optional[dict] = None,
+                         send_audio: Optional[SendPhoto] = None) -> Callable[[str, str], str]:
     """run_actions: button actions on a run, e.g. {"pubok": fn(run_id) -> reply, "pubno": ..., "resend": ...}."""
     def send_sheet(topic_dir: Path) -> bool:
         if send_photo is None:
@@ -197,6 +199,26 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             if load_credits(topic_dir)["images"]:
                 send_sheet(topic_dir)
             return html.escape(msg)
+        if command in ("music", "mkeep", "mdel"):
+            from . import music
+            reply = ""
+            if command == "mkeep":
+                reply = "✅ " + html.escape(music.approve_track(args))
+            elif command == "mdel":
+                reply = "🗑 " + html.escape(music.remove_track(args))
+            pending = music.pending_tracks()
+            if not pending:
+                approved = sum(1 for t in music.load_library() if t.get("reviewed"))
+                return (reply + "\n" if reply else "") + (
+                    f"🎵 No tracks waiting for review ({approved} approved). "
+                    "Fetch more with <code>python scripts/fetch_music.py</code>.")
+            nxt = pending[0]
+            key = music.track_key(nxt)
+            if send_audio is None or not send_audio(music.MUSIC_DIR / nxt["file"], music.review_caption(nxt, len(pending)),
+                                                    [{"text": "✅ Keep", "callback_data": f"mkeep:{key}"},
+                                                     {"text": "🗑 Remove", "callback_data": f"mdel:{key}"}]):
+                return (reply + "\n" if reply else "") + music.review_caption(nxt, len(pending))
+            return reply or "🎵 Track sent above."
         if command in ("pubok", "pubno", "resend"):
             action = (run_actions or {}).get(command)
             if action is None:

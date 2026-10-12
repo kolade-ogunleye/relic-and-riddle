@@ -150,32 +150,56 @@ class AudioEngine:
         data, _ = sf.read(str(path))
         return data[:, 0] if data.ndim > 1 else data
 
-    def generate_ambient_bed(self, duration: float, output_path: Path, words: Optional[Words] = None, sr: int = 48000) -> Path:
+    # Sound effects play only where the narration mentions them (first matching word).
+    SFX_CUES = {
+        "sfx_hammer.wav": (("knock", "hammer", "smash", "broke", "chisel", "wall"), 0.40),
+        "sfx_stone_door.wav": (("door", "rolling"), 0.45),
+    }
+    MUSIC_RMS = 0.05  # bed level for music (about -26 dBFS); the mix ducks it further under speech
+
+    @staticmethod
+    def _decode(path: Path, sr: int) -> np.ndarray:
+        """Any audio file -> stereo float32 at `sr` (via ffmpeg)."""
+        out = subprocess.run(["ffmpeg", "-v", "error", "-i", str(path), "-f", "f32le", "-ac", "2", "-ar", str(sr), "-"],
+                             capture_output=True, check=True, timeout=120).stdout
+        return np.frombuffer(out, dtype=np.float32).reshape(-1, 2)
+
+    def generate_ambient_bed(self, duration: float, output_path: Path, words: Optional[Words] = None, sr: int = 48000,
+                             music_path: Optional[Path] = None) -> Path:
+        """Music (if given) or a synthesized drone, plus narration-cued sound effects."""
         total = int(sr * duration)
-        t = np.arange(total) / sr
-        bed = 0.24 * np.sin(2 * np.pi * 55.0 * t) + 0.16 * np.sin(2 * np.pi * 82.5 * t)
-        # Short drone fades so the loop point (end -> start) doesn't click; SFX are added after.
-        fade = min(int(0.05 * sr), total // 2)
-        if fade:
-            ramp = np.linspace(0.0, 1.0, fade)
-            bed[:fade] *= ramp
-            bed[-fade:] *= ramp[::-1]
+        if music_path is not None:
+            music = self._decode(Path(music_path), sr)
+            if len(music) < total:  # too short: loop it
+                music = np.tile(music, (total // max(1, len(music)) + 1, 1))
+            bed = music[:total].copy()
+            rms = float(np.sqrt(np.mean(bed ** 2))) or 1.0
+            bed *= self.MUSIC_RMS / rms
+            fin, fout = min(int(1.0 * sr), total // 4), min(int(2.5 * sr), total // 4)
+            bed[:fin] *= np.linspace(0.0, 1.0, fin)[:, None]
+            bed[-fout:] *= np.linspace(1.0, 0.0, fout)[:, None]
+        else:
+            t = np.arange(total) / sr
+            drone = 0.24 * np.sin(2 * np.pi * 55.0 * t) + 0.16 * np.sin(2 * np.pi * 82.5 * t)
+            fade = min(int(0.05 * sr), total // 2)  # no click at the loop point
+            if fade:
+                ramp = np.linspace(0.0, 1.0, fade)
+                drone[:fade] *= ramp
+                drone[-fade:] *= ramp[::-1]
+            bed = np.column_stack((drone, drone)) * 0.22
 
-        hammer = SFX_DIR / "sfx_hammer.wav"
-        if hammer.exists():
-            h = self._load_mono(hammer)[:total]
-            bed[:len(h)] += h * 0.40
+        for name, (keywords, gain) in self.SFX_CUES.items():
+            sfx_file = SFX_DIR / name
+            if not (sfx_file.exists() and words):
+                continue
+            cue = next((w["start"] for w in words if any(k in w["word"].lower() for k in keywords)), None)
+            if cue is None:
+                continue
+            s = self._decode(sfx_file, sr)[:, 0]  # resampled to the bed's rate
+            i0 = int(cue * sr)
+            n = max(0, min(len(s), total - i0))
+            bed[i0:i0 + n] += (s[:n] * gain * 0.22)[:, None]
 
-        door = SFX_DIR / "sfx_stone_door.wav"
-        if door.exists() and words:
-            cue = next((w["start"] for w in words if any(k in w["word"].lower() for k in ("door", "stone", "rolling"))), None)
-            if cue is not None:
-                s = self._load_mono(door)
-                i0 = int(cue * sr)
-                n = max(0, min(len(s), total - i0))
-                bed[i0:i0 + n] += s[:n] * 0.45
-
-        audio = np.clip(bed * 0.22, -1.0, 1.0)
-        sf.write(str(output_path), np.column_stack((audio, audio)), sr)
-        log.info("Ambient bed (%.2fs) -> %s", duration, output_path.name)
+        sf.write(str(output_path), np.clip(bed, -1.0, 1.0), sr)
+        log.info("Ambient bed (%.2fs, %s) -> %s", duration, "music" if music_path else "drone", output_path.name)
         return output_path

@@ -29,3 +29,6 @@ assets/*/*.png
 tools/
 # Cache of upscaled images
 cache/
+
+# Downloaded music (re-fetchable; library.json stays tracked)
+data/music/*/

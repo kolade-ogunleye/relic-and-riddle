@@ -6,7 +6,7 @@ Contains the pre-vetted 30-day high-retention topic bank for Historical Curiosit
 import json
 from pathlib import Path
 
-DATA_DIR = Path(r"C:\Users\omokolade\GitHub\New folder\data\topics")
+DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "topics"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 TOPICS = [

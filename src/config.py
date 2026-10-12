@@ -1,7 +1,7 @@
 """
 src/config.py
 =============
-Centralized configuration manager for the Autonomous Meta Content Creation Pipeline.
+Centralized configuration for the Autonomous Meta Content Creation Pipeline.
 Handles environment variables, directory paths, and locked video/thumbnail specs.
 """
 
@@ -19,51 +19,74 @@ if sys.stdout and hasattr(sys.stdout, "reconfigure"):
 
 # Base Paths
 BASE_DIR = Path(__file__).resolve().parent.parent
-CONFIG_DIR = BASE_DIR / "config"
 DATA_DIR = BASE_DIR / "data"
 TOPICS_DIR = DATA_DIR / "topics"
+CURATED_SCRIPTS_DIR = DATA_DIR / "scripts"
 SFX_DIR = DATA_DIR / "sfx"
 ASSETS_DIR = BASE_DIR / "assets"
 FONTS_DIR = BASE_DIR / "fonts"
 OUTPUT_DIR = BASE_DIR / "output"
 
-# Ensure all critical runtime directories exist
-for p in [CONFIG_DIR, DATA_DIR, TOPICS_DIR, SFX_DIR, ASSETS_DIR, FONTS_DIR, OUTPUT_DIR]:
+for p in [DATA_DIR, TOPICS_DIR, CURATED_SCRIPTS_DIR, SFX_DIR, ASSETS_DIR, FONTS_DIR, OUTPUT_DIR]:
     p.mkdir(parents=True, exist_ok=True)
 
-# Load .env manually if python-dotenv is present or parse simple KEY=VALUE
-ENV_FILE = BASE_DIR / ".env"
-if ENV_FILE.exists():
-    with open(ENV_FILE, "r", encoding="utf-8") as f:
+
+def _load_env_file(path: Path) -> None:
+    """Minimal KEY=VALUE .env loader. Real environment variables always win."""
+    if not path.exists():
+        return
+    with open(path, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                k, v = line.split("=", 1)
-                os.environ.setdefault(k.strip(), v.strip())
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            k, v = k.strip(), v.strip()
+            if k.startswith("export "):
+                k = k[len("export "):].strip()
+            if len(v) >= 2 and v[0] == v[-1] and v[0] in ("'", '"'):
+                v = v[1:-1]
+            os.environ.setdefault(k, v)
 
-# Tier 1 Publisher: Upload-Post.com
+
+_load_env_file(BASE_DIR / ".env")
+
+
+def is_configured(value: str) -> bool:
+    """True when a credential is present and is not an .env.example placeholder."""
+    return bool(value) and not value.startswith("your_")
+
+
+# Claude (script writing + search-grounded fact checking)
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-opus-5-5")
+
+# Voice
+ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
+ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "pNInz6obpgDQGcFmaJgB")
+
+# Publisher 1: Upload-Post.com (https://docs.upload-post.com/api/upload-video/)
 UPLOAD_POST_API_KEY = os.getenv("UPLOAD_POST_API_KEY", "")
-UPLOAD_POST_BASE_URL = os.getenv("UPLOAD_POST_BASE_URL", "https://api.upload-post.com/api/upload")
+UPLOAD_POST_USER = os.getenv("UPLOAD_POST_USER", "")
+UPLOAD_POST_BASE_URL = os.getenv("UPLOAD_POST_BASE_URL", "https://api.upload-post.com/api")
+UPLOAD_POST_FACEBOOK_PAGE_ID = os.getenv("UPLOAD_POST_FACEBOOK_PAGE_ID", "")
 
-# Tier 2 Failover: Postiz (Self-Hosted Open-Source)
-POSTIZ_API_KEY = os.getenv("POSTIZ_API_KEY", "")
-POSTIZ_BASE_URL = os.getenv("POSTIZ_BASE_URL", "http://localhost:5000/api/v1")
-
-# Tier 3 Failover: Direct Meta Graph API
+# Publisher 2: Direct Instagram Graph API (Reels, resumable upload)
 META_ACCESS_TOKEN = os.getenv("META_ACCESS_TOKEN", "")
-META_PAGE_ID = os.getenv("META_PAGE_ID", "")
 META_IG_ACCOUNT_ID = os.getenv("META_IG_ACCOUNT_ID", "")
+META_GRAPH_VERSION = os.getenv("META_GRAPH_VERSION", "v26.0")
 
+# Telegram HITL approval
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+# Comma-separated Telegram user IDs allowed to approve. Defaults to the chat ID,
+# which is the approver's user ID when the bot talks to them in a private chat.
+TELEGRAM_APPROVER_IDS = {
+    s.strip() for s in os.getenv("TELEGRAM_APPROVER_IDS", TELEGRAM_CHAT_ID).split(",") if s.strip()
+}
+APPROVAL_TIMEOUT_SECONDS = int(os.getenv("APPROVAL_TIMEOUT_SECONDS", "3600"))
 
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-KLING_API_KEY = os.getenv("KLING_API_KEY", "")
-ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
-ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "pNInz6obpgDQGcFmaJgB")  # Default Adam / Documentary deep baritone
-
-# Publishing Defaults
+# Publishing defaults
 META_IS_AI_GENERATED = os.getenv("META_IS_AI_GENERATED", "true").lower() in ("true", "1", "yes")
 DAILY_RUN_TIME = os.getenv("SCHEDULE_DAILY_RUN_TIME", "09:00")
 TIMEZONE = os.getenv("DEFAULT_TIMEZONE", "America/New_York")
@@ -71,19 +94,21 @@ TIMEZONE = os.getenv("DEFAULT_TIMEZONE", "America/New_York")
 # ------------------------------------------------------------------------------
 # LOCKED PRODUCTION SPECIFICATIONS
 # ------------------------------------------------------------------------------
-# Video Dimensions & Encoding
 VIDEO_WIDTH = 1080
 VIDEO_HEIGHT = 1920
 VIDEO_FPS = 30
 VIDEO_CRF = 18
 VIDEO_PRESET = "slow"
+AUDIO_SAMPLE_RATE = 48000
+TARGET_LUFS = -14.0
+TARGET_TRUE_PEAK = -1.5
 
-# Duration Target & Limits
 TARGET_DURATION_MIN = 38.0
 TARGET_DURATION_MAX = 50.0
 HARD_DURATION_CEILING = 58.0
 TARGET_WORD_COUNT_MIN = 95
 TARGET_WORD_COUNT_MAX = 115
+MIN_SCENE_IMAGES = 5
 
 # Narration & Voiceover (edge-tts)
 NARRATOR_VOICE = "en-US-ChristopherNeural"

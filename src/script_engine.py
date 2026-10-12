@@ -1,218 +1,217 @@
 """
 src/script_engine.py
 ====================
-Generates high-retention, documentary-grade 42-second scripts with:
-1. 4-Beat Compressed Narrative Arc.
-2. Self-Contained Circular Narrative (no trailing words like 'when', 'until', 'because').
-3. Stage 2.5 Claim Verification Guardrail (fact-checking & hallucination prevention).
-4. Complete Meta Publishing Metadata (Title, 3-tier caption, location, 7 hashtags, first comment).
+Produces the complete script package for one Reel:
+1. 4-beat, ~42-second circular narration (hook -> scale -> enigma -> loop-back insight).
+2. All on-screen copy (thumbnail, 3 story frames, poll, 7 carousel slides) and Meta metadata.
+3. Stage 2.5 guardrail: structural checks + search-grounded claim verification.
+
+Source of scripts, in order:
+  a) Claude, researching the topic with web search and returning schema-validated JSON.
+  b) A human-curated script in data/scripts/<topic_id>.json.
+There is deliberately no template fallback: a topic with neither fails the run.
 """
 
 import json
+import logging
 import re
-from typing import Dict, Any, Tuple, Optional
+from typing import Dict, Any, List, Optional, Tuple
 
-from .config import (
-    ANTHROPIC_API_KEY,
-    GEMINI_API_KEY,
-    TARGET_WORD_COUNT_MIN,
-    TARGET_WORD_COUNT_MAX,
-    TARGET_DURATION_MIN,
-    TARGET_DURATION_MAX,
-)
+from pydantic import ValidationError
+
+from .config import CURATED_SCRIPTS_DIR, TARGET_WORD_COUNT_MIN, TARGET_WORD_COUNT_MAX
 from .fact_checker import ClaimFactChecker
+from .llm import LLMError, claude_available, format_sources, research, structured_call
+from .models import ScriptPackage
+
+log = logging.getLogger(__name__)
 
 
-SYSTEM_PROMPT = """You are a Master Documentary Director and Investigative Scriptwriter producing viral, elite-tier short-form Reels (1080x1920) for Facebook and Instagram in the 'Historical Curiosities & Ancient Marvels' niche.
-
-CRITICAL EDITORIAL & ALGORITHMIC RULES:
-1. TARGET DURATION & WORD COUNT: Target exactly 95 to 112 words (approx. 40 to 45 seconds when spoken at 145 wpm). Hard maximum is 115 words.
-2. 4-BEAT NARRATIVE STRUCTURE:
-   - Beat 1: The Hook (0-5s): High-stakes, sensory opening. Never say "Hey guys" or "Have you ever wondered".
-   - Beat 2: The Impossible Engineering & Scale (6-22s): Hard, verifiable architectural and physical facts.
-   - Beat 3: The Historical Enigma (23-35s): Why it was built, who built it, or what ancient threat forced it.
-   - Beat 4: Complete Insight & Circular Bridge (36-43s): A profound, self-contained closing statement that naturally and logically connects back to Beat 1 on loop.
-3. THE CIRCULAR LOOP RULE:
-   - The final sentence MUST be 100% grammatically complete on its own.
-   - NEVER end on trailing prepositions or conjunctions like 'when', 'until', 'because'.
-   - The final sentence must logically and thematic reset the premise so a repeat viewer hears an unbroken circle.
-4. CLAIM INTEGRITY: 100% factual accuracy. Distinguish between confirmed archaeological evidence and unsolved mysteries.
-5. MSI COMMENT SPARK: Include an open-ended debate question in the description to provoke active comments.
-
-OUTPUT FORMAT: Return ONLY valid, raw JSON with no markdown wrapping or backticks."""
+class ScriptUnavailableError(RuntimeError):
+    pass
 
 
-USER_PROMPT_TEMPLATE = """Write the complete master documentary script package for this topic:
-Topic Title: {title}
-Sub-Theme: {sub_theme}
-Opening Hook: {hook}
+SYSTEM_PROMPT = """You are a documentary scriptwriter producing short vertical Reels (1080x1920) for Facebook and Instagram in the "Historical Curiosities & Ancient Marvels" niche. Accuracy is the brand: viewers and Meta's integrity systems punish fabricated or exaggerated history, so every factual statement you write must be something you have confirmed with web search.
+
+Editorial rules:
+- Narration is 95-112 spoken words (about 40-45 seconds at 145 wpm). Hard maximum 115.
+- Four beats: (1) a concrete, sensory hook in the first sentence - never "Hey guys" or "Have you ever wondered"; (2) verifiable scale and engineering facts; (3) the genuine open question or historical context; (4) a closing sentence that is grammatically complete on its own and leads naturally back into the hook, so the video loops.
+- Never end on a trailing word such as "when", "until", "because", "and".
+- Use numbers only when sources support them. Where sources disagree, say "about", "up to", "estimated", or name the range. Do not call something unexplained if historians have a well-supported explanation; present real debates as debates.
+- No conspiracy or pseudo-archaeology framing (aliens, lost super-civilizations, etc.).
+- Topic notes supplied by the user may contain errors or exaggerations. Check them; do not repeat them unverified.
+- On-screen copy is short and uppercase-friendly: thumbnail lines at most 22 characters, story and carousel headings at most 26 characters, bodies at most 90 characters.
+- Return the sources you relied on."""
+
+RESEARCH_SYSTEM = """You are a research assistant for a history documentary team. Use web search to establish what reliable sources (scholarship, museums, heritage bodies, reputable encyclopedias and press) say about the topic. Report concrete, citable facts with numbers and dates, note where sources disagree and give the range, flag popular claims that are myths or exaggerations, and identify the genuine open questions. Be concise and factual."""
+
+RESEARCH_PROMPT = """Research this topic for a 45-second documentary Reel.
+
+Topic: {title}
 Location: {location}
-Key Historical Facts: {key_facts}
+Claims to check (unverified, may be wrong): {key_facts}
+Suggested hook (verify): {hook}"""
 
-Return a JSON object with this exact structure:
-{{
-  "title": "A punchy, high-curiosity SEO title (max 60 chars)",
-  "hook_sentence": "The opening sentence of the script",
-  "narration_script": "The complete 95-112 word spoken script",
-  "closing_sentence": "The final complete sentence that loops naturally into the hook",
-  "caption": "The 3-tier description (Line 1: hook teaser; Lines 2-4: 3-sentence micro-documentary summary; Line 5: open-ended debate question; Line 6: location tag; Line 7: hashtags)",
-  "first_comment": "A thought-provoking question to post as the first comment to spark community debate",
-  "location": {{
-    "name": "{location_name}",
-    "city": "{location_city}",
-    "region": "{location_region}",
-    "country": "{location_country}"
-  }},
-  "hashtags": ["#Tag1", "#Tag2", "#Tag3", "#Tag4", "#Tag5", "#Tag6", "#Tag7"],
-  "meta_topic_categories": ["History & Philosophy", "Architecture & Interior Design", "Travel & Culture"]
-}}"""
+USER_PROMPT_TEMPLATE = """Write the complete script package for this topic.
+
+Topic title: {title}
+Sub-theme: {sub_theme}
+Suggested hook (verify before using): {hook}
+Location: {location}
+Topic notes (unverified): {key_facts}
+
+Requirements:
+- caption: line 1 hook teaser; then a 3-sentence micro-documentary; then an open-ended question; then "📍 <location>"; then the hashtags. Under 2,000 characters.
+- hashtags: exactly 7, each starting with "#".
+- story_slides: exactly 3 (hook, revelation, question).
+- poll: one question with exactly 2 short options (posted manually as a native Story poll sticker).
+- carousel_slides: exactly 7 (title slide, five fact slides, closing call-to-comment slide).
+- first_comment: a debate-starting question.
+- sources: the pages you used, with real URLs."""
+
+BANNED_ENDINGS = {"when", "until", "because", "and", "or", "so", "that", "while", "as", "but", "if", "the", "a", "of"}
+BANNED_TROPES = [
+    "alien", "aliens", "extraterrestrial", "illuminati", "reptilian", "magic portal",
+    "time travel portal", "atlantis technology", "levitation ray", "levitation rays",
+]
+
+
+def find_banned_tropes(text: str) -> List[str]:
+    return [t for t in BANNED_TROPES if re.search(r"\b" + re.escape(t) + r"\b", text, re.IGNORECASE)]
+
+
+def validate_structure(pkg: ScriptPackage) -> List[str]:
+    """Returns a list of problems; empty means the package is structurally publishable."""
+    problems = []
+    words = pkg.narration_script.split()
+    if not TARGET_WORD_COUNT_MIN <= len(words) <= TARGET_WORD_COUNT_MAX:
+        problems.append(f"Narration is {len(words)} words; must be {TARGET_WORD_COUNT_MIN}-{TARGET_WORD_COUNT_MAX}.")
+    if words:
+        last = words[-1].strip(".,!?:;\"'”’").lower()
+        if last in BANNED_ENDINGS:
+            problems.append(f"Narration ends on trailing word '{last}'.")
+        if not pkg.narration_script.rstrip().endswith((".", "!", "?")):
+            problems.append("Narration does not end with terminal punctuation.")
+    if not pkg.narration_script.strip().endswith(pkg.closing_sentence.strip()):
+        problems.append("closing_sentence is not the final sentence of the narration.")
+    if len(pkg.title) > 60:
+        problems.append(f"Title is {len(pkg.title)} characters; max 60.")
+    if len(pkg.caption) > 2200:
+        problems.append(f"Caption is {len(pkg.caption)} characters; Instagram max is 2,200.")
+    if not 3 <= len(pkg.hashtags) <= 30 or not all(h.startswith("#") and " " not in h for h in pkg.hashtags):
+        problems.append("Hashtags must be 3-30 single-word tags starting with '#'.")
+    if len(pkg.story_slides) != 3:
+        problems.append(f"Expected 3 story slides, got {len(pkg.story_slides)}.")
+    if len(pkg.carousel_slides) != 7:
+        problems.append(f"Expected 7 carousel slides, got {len(pkg.carousel_slides)}.")
+    if not 2 <= len(pkg.poll.options) <= 4:
+        problems.append("Poll needs 2-4 options.")
+    public_text = " ".join([
+        pkg.title, pkg.narration_script, pkg.caption, pkg.first_comment,
+        *(s.line1 + " " + s.line2 + " " + s.body for s in pkg.story_slides),
+        *(c.heading + " " + c.body for c in pkg.carousel_slides),
+    ])
+    for trope in find_banned_tropes(public_text):
+        problems.append(f"Contains pseudo-archaeology trope '{trope}'.")
+    return problems
 
 
 class ScriptEngine:
-    def __init__(self):
-        self.anthropic_key = ANTHROPIC_API_KEY
-        self.gemini_key = GEMINI_API_KEY
+    def __init__(self, fact_checker: Optional[ClaimFactChecker] = None):
+        self.fact_checker = fact_checker or ClaimFactChecker()
 
-    def generate_script(self, topic: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Generates the script package via LLM API, or falls back to the deterministic
-        pre-vetted high-retention generator if no external API key is active.
-        """
-        # 1. Try Anthropic Claude if key available
-        if self.anthropic_key and self.anthropic_key != "your_anthropic_api_key_here":
-            try:
-                return self._generate_with_anthropic(topic)
-            except Exception as e:
-                print(f"[SCRIPT ENGINE] Anthropic generation failed: {e}. Trying fallback...")
+    def generate_script(self, topic: Dict[str, Any], max_attempts: int = 2) -> Dict[str, Any]:
+        if claude_available():
+            feedback = ""
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    pkg = self._generate_with_claude(topic, feedback)
+                except LLMError as e:
+                    log.error("Claude script generation failed: %s", e)
+                    break
+                problems = validate_structure(pkg)
+                if not problems:
+                    return self._finalize(pkg, topic, origin="claude")
+                log.warning("Attempt %d failed structural checks: %s", attempt, problems)
+                feedback = "\n\nA previous draft was rejected for: " + " ".join(problems) + " Fix these."
+            log.warning("Claude did not produce a usable script; trying curated script.")
 
-        # 2. Try Gemini if key available
-        if self.gemini_key and self.gemini_key != "your_gemini_api_key_here":
-            try:
-                return self._generate_with_gemini(topic)
-            except Exception as e:
-                print(f"[SCRIPT ENGINE] Gemini generation failed: {e}. Trying fallback...")
+        curated = self._load_curated(topic["id"])
+        if curated:
+            log.info("Using human-curated script for '%s'.", topic["id"])
+            return self._finalize(curated, topic, origin="curated")
 
-        # 3. High-Quality Deterministic Engine (Zero failure rate)
-        print("[SCRIPT ENGINE] Using pre-vetted deterministic documentary script engine.")
-        return self._generate_deterministic(topic)
-
-    def _generate_deterministic(self, topic: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Generates a perfectly calibrated 100-word circular documentary script
-        from the topic's vetted facts. Guarantees 0% failure and exact timing.
-        """
-        tid = topic.get("id", "")
-        title = topic.get("title", "")
-        hook = topic.get("hook", "")
-        facts = topic.get("key_facts", [])
-        loc = topic.get("location", {})
-        loc_name = loc.get("name", "Ancient Site")
-        loc_country = loc.get("country", "Unknown")
-
-        if "derinkuyu" in tid:
-            script_text = (
-                "In 1963, a simple basement renovation in Turkey uncovered the largest underground city in human history. "
-                "Behind a knocked-down wall lay Derinkuyu: an 18-story subterranean metropolis carved 280 feet into solid volcanic rock. "
-                "It was engineered with thousands of fresh air ventilation shafts, underground water wells, "
-                "and massive 1,000-pound rolling stone doors lockable only from the inside. "
-                "It was built to shelter twenty thousand people from an unknown surface catastrophe—"
-                "yet archaeologists still cannot agree who engineered it, or why an entire population fled into the dark. "
-                "To this day, nobody knows who built this impossible world—all we know is how it was found."
-            )
-            title_clean = "The 18-Story City Hidden Beneath a Basement"
-            first_comm = "Archaeologists believe dozens of similar cities are still hidden beneath Cappadocia, completely unmapped. Would you explore one?"
-        else:
-            # Universal circular template tailored to topic facts
-            f1 = facts[0] if len(facts) > 0 else "an ancient architectural enigma"
-            f2 = facts[1] if len(facts) > 1 else "carved with impossible precision"
-            f3 = facts[2] if len(facts) > 2 else "built to endure centuries"
-            
-            script_text = (
-                f"{hook} "
-                f"Located in {loc_name}, this extraordinary site reveals {f1}. "
-                f"Archaeologists found it was {f2}, engineered using methods that continue to baffle modern engineers. "
-                f"Evidence suggests it was {f3}—yet historians still debate who originally built it, or what lost knowledge they possessed. "
-                f"To this day, the true origins remain a mystery—all we have left is the incredible evidence of what they achieved."
-            )
-            title_clean = f"The Unsolved Mystery of {title}"
-            first_comm = f"What do you think is the real explanation behind {title}? Drop your theory below."
-
-        words = script_text.split()
-        word_count = len(words)
-
-        caption = (
-            f"{hook}\n\n"
-            f"{title} in {loc_country} remains one of the most enigmatic archaeological achievements in human history. "
-            f"Built with engineering precision that baffles modern experts, its true purpose continues to divide historians.\n\n"
-            f"If you stood before this ancient site today... what would you ask its creators?\n\n"
-            f"📍 {loc_name}, {loc_country}\n\n"
-            f"{' '.join(topic.get('hashtags', ['#AncientMysteries', '#HistoryUncovered', '#Archaeology']))}"
+        raise ScriptUnavailableError(
+            f"No script source for topic '{topic['id']}': configure ANTHROPIC_API_KEY "
+            f"or add a curated script at data/scripts/{topic['id']}.json."
         )
 
-        return {
-            "title": title_clean,
-            "hook_sentence": hook,
-            "narration_script": script_text,
-            "closing_sentence": script_text.split(".")[-2].strip() + ".",
-            "word_count": word_count,
-            "caption": caption,
-            "first_comment": first_comm,
-            "location": loc,
-            "hashtags": topic.get("hashtags", ["#AncientMysteries", "#HistoryUncovered"]),
-            "meta_topic_categories": topic.get("meta_categories", ["History & Philosophy", "Architecture & Interior Design"])
-        }
+    def _generate_with_claude(self, topic: Dict[str, Any], feedback: str) -> ScriptPackage:
+        loc = topic.get("location", {})
+        fields = dict(
+            title=topic.get("title", ""),
+            sub_theme=topic.get("sub_theme", ""),
+            hook=topic.get("hook", ""),
+            location=", ".join(v for v in (loc.get("name"), loc.get("city"), loc.get("country")) if v),
+            key_facts="; ".join(topic.get("key_facts", [])),
+        )
+        notes, retrieved = research(RESEARCH_SYSTEM, RESEARCH_PROMPT.format(**fields), web_search_uses=6)
+        if not retrieved:
+            raise LLMError("Research cited no sources; refusing to write an ungrounded script.")
+        prompt = (
+            USER_PROMPT_TEMPLATE.format(**fields)
+            + f"\n\n<research_notes>\n{notes}\n</research_notes>\n\n"
+            + f"<retrieved_sources>\n{format_sources(retrieved)}\n</retrieved_sources>\n"
+            + "Use only facts supported by the research notes. List sources only from retrieved_sources."
+            + feedback
+        )
+        pkg = structured_call(SYSTEM_PROMPT, prompt, ScriptPackage, effort="high")
+        retrieved_urls = {s.url for s in retrieved}
+        pkg.sources = [s for s in pkg.sources if s.url in retrieved_urls] or retrieved
+        return pkg
+
+    @staticmethod
+    def _load_curated(topic_id: str) -> Optional[ScriptPackage]:
+        path = CURATED_SCRIPTS_DIR / f"{topic_id}.json"
+        if not path.exists():
+            return None
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        try:
+            return ScriptPackage.model_validate({k: v for k, v in data.items() if not k.startswith("_")})
+        except ValidationError as e:
+            raise ScriptUnavailableError(f"Curated script {path.name} is invalid: {e}") from e
+
+    @staticmethod
+    def _finalize(pkg: ScriptPackage, topic: Dict[str, Any], origin: str) -> Dict[str, Any]:
+        payload = pkg.model_dump()
+        payload.update({
+            "topic_id": topic["id"],
+            "origin": origin,
+            "word_count": len(pkg.narration_script.split()),
+            "location": topic.get("location", {}),
+            "meta_topic_categories": topic.get("meta_categories", []),
+        })
+        return payload
 
     def verify_claims(self, script_payload: Dict[str, Any], topic: Optional[Dict[str, Any]] = None) -> Tuple[bool, Dict[str, Any], str]:
         """
-        Stage 2.5 Claim Verification Guardrail:
-        Scans script for banned clickbait tropes, verifies word count limits,
-        checks circular loop integrity, and audits historical assertions against consensus.
+        Stage 2.5 guardrail. Fails closed: a script is publishable only if it passes the
+        structural checks AND every factual claim is verified (or, for curated scripts,
+        a human has attached sources).
         """
-        script = script_payload.get("narration_script", "")
-        words = script.split()
-        word_count = len(words)
-        notes = []
+        try:
+            pkg = ScriptPackage.model_validate(script_payload)
+        except ValidationError as e:
+            return False, script_payload, f"REJECTED: payload does not match schema: {e.error_count()} errors."
 
-        # 1. Word count check
-        if word_count < TARGET_WORD_COUNT_MIN:
-            notes.append(f"Word count too low ({word_count} words; target {TARGET_WORD_COUNT_MIN}-{TARGET_WORD_COUNT_MAX}).")
-        elif word_count > TARGET_WORD_COUNT_MAX:
-            notes.append(f"Word count too high ({word_count} words; target {TARGET_WORD_COUNT_MIN}-{TARGET_WORD_COUNT_MAX}).")
-        else:
-            notes.append(f"Word count optimal ({word_count} words).")
+        problems = validate_structure(pkg)
+        if problems:
+            return False, script_payload, "REJECTED: " + " ".join(problems)
 
-        # 2. Check loop ending
-        last_word = words[-1].strip(".,!?:;").lower()
-        banned_endings = ["when", "until", "because", "and", "or", "so", "that", "while", "as"]
-        if last_word in banned_endings:
-            return False, script_payload, f"REJECTED: Script ends on trailing conjunction '{last_word}'."
-
-        # 3. Automated Claim Fact Checker
-        checker = ClaimFactChecker()
-        passed, confidence, audits, fact_msg = checker.verify_against_academic_consensus(script_payload, topic)
+        passed, confidence, audits, msg = self.fact_checker.verify(script_payload, topic)
         script_payload["fact_audits"] = audits
         script_payload["consensus_confidence"] = confidence
-
         if not passed:
-            return False, script_payload, f"REJECTED by Fact Checker: {fact_msg}"
-
-        notes.append(f"Consensus Audit: {fact_msg}")
-        notes.append("Stage 2.5 Claim Verification PASSED. 100% compliant with Meta PMP guidelines.")
-        return True, script_payload, " | ".join(notes)
-
-
-if __name__ == "__main__":
-    from .topic_engine import TopicEngine
-    te = TopicEngine()
-    topic = te.get_next_topic()
-    
-    se = ScriptEngine()
-    script_data = se.generate_script(topic)
-    verified, clean_payload, notes = se.verify_claims(script_data, topic=topic)
-    
-    print("\n--- SCRIPT ENGINE VERIFICATION ---")
-    print(f"Title: {clean_payload['title']}")
-    print(f"Word Count: {clean_payload['word_count']}")
-    print(f"Verified: {verified}")
-    print(f"Notes: {notes}")
-    print(f"\nScript:\n{clean_payload['narration_script']}")
+            return False, script_payload, f"REJECTED by fact checker: {msg}"
+        return True, script_payload, f"Structure OK ({pkg.narration_script.count(' ') + 1} words) | {msg}"

@@ -1,22 +1,27 @@
 """
 src/video_composer.py
 =====================
-Programmatic FFmpeg assembly pipeline embodying all locked production standards:
-1. Anton 92pt running-speech kinetic captions (Warm Gold active, White past, Gray future).
-2. Zero-overlap ASS dialogue event architecture.
-3. Meta UI Safe Zone alignment (MarginV = 540px / y = 1380px).
-4. Varied camera motion with opening/ending forward match-cut camera drift.
-5. Dynamic sidechain audio ducking of ambient score under voiceover.
-6. Cinematic grading (contrast, saturation, film grain, vignette).
-7. H.264 CRF 18 slow preset master encode.
+FFmpeg assembly embodying the locked production standards:
+1. Anton 92pt running-speech kinetic captions (gold active, white past, gray upcoming),
+   zero-overlap ASS events, Meta UI safe zone (MarginV = 540px / y = 1380px).
+2. Varied Ken Burns motion (rendered at 2x then downscaled to avoid zoompan jitter)
+   with matching forward drift on the opening and closing shots for the loop.
+3. Voice cleanup, sidechain ducking of the ambient bed under speech, then measured
+   gain + 4x-oversampled brickwall limiting to hit -14 LUFS (EBU R128) with true peak
+   below -1.5 dBTP. (Single-filter loudnorm undershoots when the hammer transient makes
+   linear mode impossible, and overshoots true peak in its dynamic mode.)
+4. H.264 CRF 18 (slow), TV-range yuv420p, AAC 48 kHz, +faststart for streaming.
 """
 
+import logging
 import os
+import re
 import subprocess
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 
 from .config import (
+    AUDIO_SAMPLE_RATE,
     FONTS_DIR,
     FONT_NAME,
     FONT_SIZE,
@@ -27,32 +32,76 @@ from .config import (
     COL_PAST,
     COL_FUTURE,
     COL_BACK,
+    TARGET_LUFS,
+    TARGET_TRUE_PEAK,
     VIDEO_WIDTH,
     VIDEO_HEIGHT,
     VIDEO_FPS,
     VIDEO_CRF,
     VIDEO_PRESET,
 )
+from .typography import is_video
+
+log = logging.getLogger(__name__)
+
+TRANSITIONS = [
+    "zoomin", "dissolve", "smoothleft", "fadeblack",
+    "zoomin", "dissolve", "smoothright", "fade",
+    "zoomin", "dissolve", "smoothleft", "fadeblack",
+]
+TRANS_DUR = 0.40
+
+
+class RenderError(RuntimeError):
+    pass
+
+
+def _run_ffmpeg(cmd: List[str]) -> subprocess.CompletedProcess:
+    res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    if res.returncode != 0:
+        tail = "\n".join(res.stderr.strip().splitlines()[-15:])
+        raise RenderError(f"ffmpeg failed (exit {res.returncode}):\n{tail}")
+    return res
+
+
+def _ass_escape(text: str) -> str:
+    """Neutralizes ASS override syntax so caption text can't inject styling tags."""
+    return text.replace("\\", "").replace("{", "(").replace("}", ")").replace("\n", " ")
+
+
+def _audio_chain(vo_idx: int, bg_idx: int) -> str:
+    """Voice cleanup + ducked bed + sum at the delivery sample rate, before mastering."""
+    return (
+        f"[{vo_idx}:a]aresample={AUDIO_SAMPLE_RATE},highpass=f=80,equalizer=f=3200:width_type=q:w=1.5:g=-2.5,"
+        f"asplit[v_main][v_sc];"
+        f"[{bg_idx}:a]aresample={AUDIO_SAMPLE_RATE}[bg_rs];"
+        f"[bg_rs][v_sc]sidechaincompress=threshold=0.08:ratio=7:attack=15:release=220[bg_ducked];"
+        f"[v_main][bg_ducked]amix=inputs=2:duration=first:dropout_transition=2:normalize=0"
+    )
+
+
+def _master_chain(gain_db: float) -> str:
+    """Gain + true-peak-safe limiter (limiting at 4x rate catches inter-sample peaks)."""
+    return (
+        f",volume={gain_db:.2f}dB,aresample={AUDIO_SAMPLE_RATE * 4},"
+        f"alimiter=limit=0.79:attack=1:release=50:level=disabled:asc=1,"
+        f"aresample={AUDIO_SAMPLE_RATE}"
+    )
 
 
 class VideoComposer:
     def __init__(self, fonts_dir: Path = FONTS_DIR):
         self.fonts_dir = fonts_dir
 
-    def _format_ass_time(self, sec: float) -> str:
-        sec = max(0.0, sec)
-        h = int(sec // 3600)
-        m = int((sec % 3600) // 60)
-        s = int(sec % 60)
-        cs = int(round((sec - int(sec)) * 100))
-        if cs >= 100:
-            cs = 99
+    @staticmethod
+    def _format_ass_time(sec: float) -> str:
+        cs_total = int(round(max(0.0, sec) * 100))
+        h, rem = divmod(cs_total, 360000)
+        m, rem = divmod(rem, 6000)
+        s, cs = divmod(rem, 100)
         return f"{h}:{m:02d}:{s:02d}.{cs:02d}"
 
     def build_subtitles(self, words: List[Dict[str, Any]], ass_path: Path) -> Path:
-        """
-        Compiles the zero-overlap ASS subtitle file strictly following locked standards.
-        """
         header = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {VIDEO_WIDTH}
@@ -66,14 +115,13 @@ Style: Cap,{FONT_NAME},{FONT_SIZE},{COL_PAST},&H000000FF,&H00000000,{COL_BACK},-
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
-        # Chunk into short bursts (max 2 words or 13 chars) for large Anton font
-        phrases = []
-        cur = []
+        # Short bursts (max 2 words / 13 chars) for the large Anton font
+        phrases: List[List[Dict[str, Any]]] = []
+        cur: List[Dict[str, Any]] = []
         for w in words:
             candidate = " ".join(x["word"] for x in cur + [w])
-            if len(cur) >= MAX_BURST_WORDS or len(candidate) > MAX_BURST_CHARS:
-                if cur:
-                    phrases.append(cur)
+            if cur and (len(cur) >= MAX_BURST_WORDS or len(candidate) > MAX_BURST_CHARS):
+                phrases.append(cur)
                 cur = [w]
             else:
                 cur.append(w)
@@ -83,43 +131,55 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         raw = []
         for pi, phrase in enumerate(phrases):
             if pi < len(phrases) - 1:
-                next_phrase_start = phrases[pi + 1][0]["start"]
+                next_start = phrases[pi + 1][0]["start"]
             else:
-                next_phrase_start = phrase[-1]["start"] + phrase[-1]["dur"] + 0.10
-
+                next_start = phrase[-1]["start"] + phrase[-1]["dur"] + 0.10
             for wi, target in enumerate(phrase):
-                t_start = target["start"]
-                t_end_raw = phrase[wi + 1]["start"] if wi < len(phrase) - 1 else next_phrase_start
-
+                t_end = phrase[wi + 1]["start"] if wi < len(phrase) - 1 else next_start
                 parts = []
                 for ji, w in enumerate(phrase):
-                    word_clean = w["word"].upper()
-                    if ji < wi:
-                        parts.append(f"{{\\c{COL_PAST}}}{word_clean}")
-                    elif ji == wi:
-                        parts.append(f"{{\\c{COL_ACTIVE}}}{word_clean}")
-                    else:
-                        parts.append(f"{{\\c{COL_FUTURE}}}{word_clean}")
-                raw.append((t_start, t_end_raw, " ".join(parts)))
+                    colour = COL_PAST if ji < wi else COL_ACTIVE if ji == wi else COL_FUTURE
+                    parts.append(f"{{\\c{colour}}}{_ass_escape(w['word'].upper())}")
+                raw.append((target["start"], t_end, " ".join(parts)))
 
-        # Enforce strict zero-overlap
         raw.sort(key=lambda e: e[0])
-        safe = []
+        lines = [header]
         for i, (ts, te, txt) in enumerate(raw):
             if i < len(raw) - 1:
-                te = min(te, raw[i + 1][0] - 0.001)
-            te = max(te, ts + 0.020)
-            safe.append((ts, te, txt))
-
-        lines = [header]
-        for ts, te, txt in safe:
+                te = min(te, raw[i + 1][0] - 0.01)
+            te = max(te, ts + 0.02)
             lines.append(f"Dialogue: 0,{self._format_ass_time(ts)},{self._format_ass_time(te)},Cap,,0,0,0,,{txt}")
 
-        with open(ass_path, "w", encoding="utf-8") as f:
-            f.write("\n".join(lines) + "\n")
-
-        print(f"[VIDEO COMPOSER] Wrote {len(safe)} zero-overlap ASS subtitle events -> {ass_path}")
+        ass_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        log.info("Wrote %d caption events -> %s", len(raw), ass_path.name)
         return ass_path
+
+    @staticmethod
+    def _measure(vo_path: Path, bed_path: Path, chain: str) -> Tuple[float, float]:
+        """Integrated loudness (LUFS) and true peak (dBTP) of the mixed program."""
+        res = _run_ffmpeg(["ffmpeg", "-hide_banner", "-nostats", "-i", str(vo_path), "-i", str(bed_path),
+                           "-filter_complex", chain + ",ebur128=peak=true", "-f", "null", "-"])
+        summary = res.stderr[res.stderr.rfind("Summary:"):]
+        i_match = re.search(r"I:\s+(-?[\d.]+|-inf) LUFS", summary)
+        p_match = re.search(r"Peak:\s+(-?[\d.]+|-inf) dBFS", summary)
+        if not i_match or not p_match or "inf" in i_match.group(1):
+            raise RenderError("Could not measure program loudness (silent audio?).")
+        return float(i_match.group(1)), float(p_match.group(1))
+
+    def calibrate_gain(self, vo_path: Path, bed_path: Path, tolerance: float = 0.3, max_iter: int = 4) -> float:
+        """Finds the gain that lands the limited mix on TARGET_LUFS."""
+        base = _audio_chain(0, 1)
+        integrated, _ = self._measure(vo_path, bed_path, base)
+        gain = TARGET_LUFS - integrated
+        for _ in range(max_iter):
+            integrated, peak = self._measure(vo_path, bed_path, base + _master_chain(gain))
+            log.info("Mastering: gain %+.2f dB -> %.1f LUFS, %.1f dBTP", gain, integrated, peak)
+            if peak > TARGET_TRUE_PEAK:
+                raise RenderError(f"True peak {peak} dBTP exceeds {TARGET_TRUE_PEAK} after limiting.")
+            if abs(integrated - TARGET_LUFS) <= tolerance:
+                return gain
+            gain += TARGET_LUFS - integrated
+        raise RenderError(f"Loudness did not converge to {TARGET_LUFS} LUFS (last {integrated}).")
 
     def compose_video(
         self,
@@ -130,108 +190,75 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         vo_dur: float,
         output_mp4_path: Path,
     ) -> Path:
-        """
-        Executes the master FFmpeg render assembling video, transitions, subtitles, and ducked audio.
-        """
         ass_path = output_mp4_path.parent / (output_mp4_path.stem + "_captions.ass")
         self.build_subtitles(words, ass_path)
 
         n = len(scene_images)
-        trans_dur = 0.40
-        step = (vo_dur + trans_dur) / n
-        clip_dur = step + trans_dur
-        offsets = [round((k + 1) * step, 3) for k in range(n - 1)]
-        frames = int(clip_dur * VIDEO_FPS)
+        step = (vo_dur + TRANS_DUR) / n
+        clip_dur = step + TRANS_DUR
+        frames = int(clip_dur * VIDEO_FPS) + 1
+        w2, h2 = VIDEO_WIDTH * 2, VIDEO_HEIGHT * 2
 
-        input_args = []
-        filter_parts = []
-
+        input_args: List[str] = []
+        filter_parts: List[str] = []
         for i, item in enumerate(scene_images):
-            item_path = Path(item)
-            is_video = item_path.suffix.lower() in (".mp4", ".mov", ".mkv", ".webm")
-
-            if is_video:
-                input_args.extend(["-t", f"{clip_dur:.3f}", "-i", str(item_path)])
+            item = Path(item)
+            if is_video(item):
+                input_args += ["-t", f"{clip_dur:.3f}", "-i", str(item)]
                 filter_parts.append(
                     f"[{i}:v]scale={VIDEO_WIDTH}:{VIDEO_HEIGHT}:force_original_aspect_ratio=increase,"
-                    f"crop={VIDEO_WIDTH}:{VIDEO_HEIGHT},fps={VIDEO_FPS},"
-                    f"format=yuv420p[v{i}]"
+                    f"crop={VIDEO_WIDTH}:{VIDEO_HEIGHT},fps={VIDEO_FPS},setsar=1,scale=out_range=tv,format=yuv420p[v{i}]"
                 )
+                continue
+
+            input_args += ["-loop", "1", "-t", f"{clip_dur:.3f}", "-i", str(item)]
+            if i == 0 or i == n - 1:  # matching forward drift for the loop seam
+                z, x, y = "min(pzoom+0.0016,1.24)", "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
+            elif i % 2 == 1:
+                z, x, y = "max(1.20-0.0014*on,1.0)", "iw/2-(iw/zoom/2)+sin(on/35)*32", "ih/2-(ih/zoom/2)"
             else:
-                input_args.extend(["-loop", "1", "-t", f"{clip_dur:.3f}", "-i", str(item_path)])
-                # Symmetrical match-cut forward drift on opening and ending shots
-                if i == 0 or i == n - 1:
-                    z_expr = "min(pzoom+0.0016,1.24)"
-                    x_expr = "iw/2-(iw/zoom/2)"
-                    y_expr = "ih/2-(ih/zoom/2)"
-                elif i % 2 == 1:
-                    z_expr = "max(1.20-0.0014*on,1.0)"
-                    x_expr = "iw/2-(iw/zoom/2)+sin(on/35)*16"
-                    y_expr = "ih/2-(ih/zoom/2)"
-                else:
-                    z_expr = "min(pzoom+0.0013,1.18)"
-                    x_expr = "iw/2-(iw/zoom/2)-sin(on/35)*14"
-                    y_expr = "ih/2-(ih/zoom/2)+sin(on/45)*8"
-
-                filter_parts.append(
-                    f"[{i}:v]scale={VIDEO_WIDTH}:{VIDEO_HEIGHT}:force_original_aspect_ratio=increase,"
-                    f"crop={VIDEO_WIDTH}:{VIDEO_HEIGHT},zoompan=z='{z_expr}':x='{x_expr}':y='{y_expr}':d={frames}:s={VIDEO_WIDTH}x{VIDEO_HEIGHT}:fps={VIDEO_FPS},"
-                    f"format=yuv420p[v{i}]"
-                )
-
-        transitions = [
-            "zoomin", "dissolve", "smoothleft", "fadeblack",
-            "zoomin", "dissolve", "smoothright", "fade",
-            "zoomin", "dissolve", "smoothleft", "fadeblack"
-        ]
+                z, x, y = "min(pzoom+0.0013,1.18)", "iw/2-(iw/zoom/2)-sin(on/35)*28", "ih/2-(ih/zoom/2)+sin(on/45)*16"
+            filter_parts.append(
+                f"[{i}:v]scale={w2}:{h2}:force_original_aspect_ratio=increase,crop={w2}:{h2},"
+                f"zoompan=z='{z}':x='{x}':y='{y}':d={frames}:s={VIDEO_WIDTH}x{VIDEO_HEIGHT}:fps={VIDEO_FPS},"
+                f"setsar=1,scale=out_range=tv,format=yuv420p[v{i}]"
+            )
 
         curr = "[v0]"
         for k in range(n - 1):
-            nxt = f"[v{k+1}]"
             out = f"[x{k}]" if k < n - 2 else "[video_raw]"
-            tt = transitions[k % len(transitions)]
-            off = offsets[k]
-            filter_parts.append(f"{curr}{nxt}xfade=transition={tt}:duration={trans_dur}:offset={off}{out}")
+            off = round((k + 1) * step, 3)
+            filter_parts.append(f"{curr}[v{k + 1}]xfade=transition={TRANSITIONS[k % len(TRANSITIONS)]}:duration={TRANS_DUR}:offset={off}{out}")
             curr = out
+        if n == 1:
+            filter_parts.append("[v0]null[video_raw]")
 
-        # Audio inputs
-        input_args.extend(["-i", str(vo_path), "-i", str(bed_path)])
-        vo_idx = n
-        bg_idx = n + 1
-
-        filter_parts.append(
-            f"[{vo_idx}:a]highpass=f=80,equalizer=f=3200:width_type=q:w=1.5:g=-2.5,asplit[v_main][v_sc];"
-            f"[{bg_idx}:a][v_sc]sidechaincompress=threshold=0.08:ratio=7:attack=15:release=220[bg_ducked];"
-            f"[v_main][bg_ducked]amix=inputs=2:duration=first:dropout_transition=2,"
-            f"loudnorm=I=-14:LRA=7:tp=-1.5[a_final]"
-        )
+        input_args += ["-i", str(vo_path), "-i", str(bed_path)]
+        gain = self.calibrate_gain(vo_path, bed_path)
+        filter_parts.append(_audio_chain(n, n + 1) + _master_chain(gain) + "[a_final]")
 
         ass_str = str(ass_path.resolve()).replace("\\", "/").replace(":", "\\:")
-        fonts_dir_str = str(self.fonts_dir.resolve()).replace("\\", "/").replace(":", "\\:")
-
+        fonts_str = str(self.fonts_dir.resolve()).replace("\\", "/").replace(":", "\\:")
         filter_parts.append(
-            f"[video_raw]eq=contrast=1.07:brightness=0.008:saturation=1.08,"
-            f"noise=alls=7:allf=t+u,"
-            f"vignette=PI/4.2:aspect=9/16,"
-            f"subtitles='{ass_str}':fontsdir='{fonts_dir_str}'[v_final]"
+            "[video_raw]eq=contrast=1.07:brightness=0.008:saturation=1.08,"
+            "noise=alls=7:allf=t+u,vignette=PI/4.2:aspect=9/16,"
+            f"subtitles='{ass_str}':fontsdir='{fonts_str}',scale=out_range=tv,format=yuv420p[v_final]"
         )
 
-        full_filter = ";".join(filter_parts)
-
         cmd = [
-            "ffmpeg", "-y",
+            "ffmpeg", "-y", "-hide_banner", "-nostats",
             *input_args,
-            "-filter_complex", full_filter,
-            "-map", "[v_final]",
-            "-map", "[a_final]",
+            "-filter_complex", ";".join(filter_parts),
+            "-map", "[v_final]", "-map", "[a_final]",
             "-c:v", "libx264", "-preset", VIDEO_PRESET, "-crf", str(VIDEO_CRF),
-            "-c:a", "aac", "-b:a", "192k",
+            "-pix_fmt", "yuv420p", "-color_range", "tv", "-r", str(VIDEO_FPS),
+            "-c:a", "aac", "-b:a", "192k", "-ar", str(AUDIO_SAMPLE_RATE),
+            "-movflags", "+faststart",
             "-t", f"{vo_dur:.2f}",
-            str(output_mp4_path)
+            str(output_mp4_path),
         ]
-
-        print(f"[VIDEO COMPOSER] Executing master render -> {output_mp4_path}...")
-        subprocess.run(cmd, check=True)
+        log.info("Rendering master -> %s", output_mp4_path.name)
+        _run_ffmpeg(cmd)
         size_mb = os.path.getsize(output_mp4_path) / (1024 * 1024)
-        print(f"[VIDEO COMPOSER] SUCCESS! Master video rendered: {output_mp4_path} ({size_mb:.2f} MB)")
+        log.info("Master rendered: %s (%.2f MB)", output_mp4_path.name, size_mb)
         return output_mp4_path

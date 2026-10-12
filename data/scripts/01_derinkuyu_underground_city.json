@@ -1,0 +1,35 @@
+{
+  "_review": "Human-curated fallback used only when Claude is unavailable. Claims are hedged where sources disagree (depth, door weight, dating). Re-review before reuse.",
+  "title": "The City Hidden Behind One Basement Wall",
+  "hook_sentence": "In 1963, a man renovating his house in Cappadocia knocked through a wall and found a tunnel.",
+  "narration_script": "In 1963, a man renovating his house in Cappadocia knocked through a wall and found a tunnel. It led into Derinkuyu, an underground city carved roughly eighty-five metres down into soft volcanic rock. Its levels held stables, wells, chapels and food stores, while dozens of ventilation shafts carried fresh air to the deepest rooms. Rolling stone doors, some weighing up to half a ton, sealed each level from the inside. Its earliest tunnels may be nearly three thousand years old, and Byzantine-era Christians later expanded it to hide from raids. For centuries, an entire city lay hidden beneath ordinary homes, waiting behind a single wall.",
+  "closing_sentence": "For centuries, an entire city lay hidden beneath ordinary homes, waiting behind a single wall.",
+  "caption": "One renovation. One wall. One forgotten city.\n\nIn 1963, a resident of Derinkuyu in central Turkey broke through a wall in his home and found the entrance to a vast underground settlement. Carved into soft volcanic tuff, it held stables, wells, chapels and storerooms, sealed by rolling stone doors. Its earliest phases may date back to the first millennium BC, and it was greatly expanded in the Byzantine era as a refuge from raids.\n\nCould you spend weeks underground to stay safe?\n\n📍 Derinkuyu, Nevşehir, Turkey\n\n#AncientMysteries #Derinkuyu #Archaeology #HistoricalCuriosities #HistoryUncovered #AncientCivilizations #Cappadocia",
+  "first_comment": "Cappadocia has dozens of underground settlements, and new ones are still being found. Would you go down into one?",
+  "hashtags": ["#AncientMysteries", "#Derinkuyu", "#Archaeology", "#HistoricalCuriosities", "#HistoryUncovered", "#AncientCivilizations", "#Cappadocia"],
+  "thumbnail": {
+    "eyebrow": "BURIED HISTORY",
+    "line1": "BEHIND ONE WALL...",
+    "line2": "A WHOLE LOST CITY",
+    "tagline": "DERINKUYU, 1963"
+  },
+  "story_slides": [
+    {"kicker": "DID YOU KNOW?", "line1": "ONE MAN KNOCKED", "line2": "THROUGH HIS WALL...", "body": "Cappadocia, Turkey, 1963"},
+    {"kicker": "WHAT HE FOUND", "line1": "AN UNDERGROUND CITY", "line2": "~85 METRES DEEP", "body": "Stables, wells, chapels and stone doors."},
+    {"kicker": "YOUR TURN", "line1": "WOULD YOU HIDE", "line2": "DOWN THERE?", "body": "Full story in our latest Reel."}
+  ],
+  "poll": {"question": "Would you hide underground for weeks?", "options": ["Yes, safety first", "No, I need daylight"]},
+  "carousel_slides": [
+    {"heading": "BEHIND ONE WALL...", "body": "How a 1963 home renovation revealed Derinkuyu."},
+    {"heading": "THE DISCOVERY", "body": "A resident broke through a wall and found a passage leading down."},
+    {"heading": "CARVED, NOT BUILT", "body": "Dug into soft volcanic tuff, roughly 85 metres at its deepest."},
+    {"heading": "BUILT TO LIVE IN", "body": "Stables, wells, chapels and storerooms on many levels."},
+    {"heading": "STONE DOORS", "body": "Rolling stone wheels, some up to half a ton, sealed levels from inside."},
+    {"heading": "WHO DUG IT?", "body": "Begun possibly in the first millennium BC; expanded in Byzantine times."},
+    {"heading": "YOUR THEORY?", "body": "Tell us in the comments and follow for more history."}
+  ],
+  "sources": [
+    {"title": "Derinkuyu underground city (Wikipedia)", "url": "https://en.wikipedia.org/wiki/Derinkuyu_underground_city"},
+    {"title": "UNESCO: Göreme National Park and the Rock Sites of Cappadocia", "url": "https://whc.unesco.org/en/list/357/"}
+  ]
+}

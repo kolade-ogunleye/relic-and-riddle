@@ -1,167 +1,108 @@
 """
 src/multi_format.py
 ===================
-Modular Multi-Format Monetization Multiplier.
-Derives companion assets from the locked Reel topic package:
-1. 3-Frame Interactive Story Teaser Sequence (9:16 Vertical, 1080x1920)
-   - Slide 1: The Sensory Hook & Curated Question
-   - Slide 2: The Core Architectural Revelation
-   - Slide 3: The Interactive Poll/Debate Sticker Prompt
-2. 7-Slide High-Retention Educational Instagram Carousel (1:1 Square, 1080x1080)
-   - Engineered for deep dwell-time, carousel bookmarking, and save/share velocity.
+Companion assets derived from the Reel's script package, for manual posting:
+1. 3-frame Story sequence (1080x1920): hook, revelation, question. The poll itself is
+   added as a native Instagram poll sticker when posting; frame 3 leaves room for it and
+   the question/options are saved in companion_posting.json.
+2. 7-slide carousel (1080x1080).
+Stories and carousels are not auto-published (the Reel publishers don't support them).
 """
 
+import json
+import logging
 from pathlib import Path
-from typing import Dict, Any, List, Tuple
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from typing import Dict, Any, List
 
-from .config import FONTS_DIR, VIDEO_WIDTH, VIDEO_HEIGHT
+from PIL import Image, ImageDraw
+
+from .config import VIDEO_WIDTH, VIDEO_HEIGHT
+from .typography import cover_crop, fit_font, get_font, is_video, wrap_text
+
+log = logging.getLogger(__name__)
+
+GOLD = (255, 215, 0)
+WHITE = (255, 255, 255)
+LIGHT = (225, 225, 225)
 
 
 class MultiFormatGenerator:
-    def __init__(self, fonts_dir: Path = FONTS_DIR):
-        self.fonts_dir = fonts_dir
-
-    def _get_font(self, font_name: str, size: int) -> ImageFont.FreeTypeFont:
-        ttf_file = "Anton-Regular.ttf" if font_name == "Anton" else "Montserrat-Variable.ttf"
-        p = self.fonts_dir / ttf_file
-        if p.exists():
-            return ImageFont.truetype(str(p), size)
-        return ImageFont.load_default()
-
-    # --------------------------------------------------------------------------
-    # 3-FRAME INTERACTIVE STORY TEASER (9:16)
-    # --------------------------------------------------------------------------
-    def generate_story_sequence(
-        self,
-        hero_img_path: Path,
-        script_payload: Dict[str, Any],
-        output_dir: Path,
-    ) -> List[Path]:
-        """
-        Renders a 3-part interactive 9:16 Story sequence.
-        """
-        out_story_dir = output_dir / "stories"
-        out_story_dir.mkdir(parents=True, exist_ok=True)
-        raw_bg = Image.open(hero_img_path).convert("RGBA").resize((VIDEO_WIDTH, VIDEO_HEIGHT), Image.LANCZOS)
-
-        font_anton = self._get_font("Anton", 80)
-        font_mont = self._get_font("Montserrat", 36)
-        font_badge = self._get_font("Montserrat", 30)
+    def generate_story_sequence(self, hero_img_path: Path, script_payload: Dict[str, Any], output_dir: Path) -> List[Path]:
+        out_dir = output_dir / "stories"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        base = cover_crop(hero_img_path, (VIDEO_WIDTH, VIDEO_HEIGHT))
+        max_w = VIDEO_WIDTH - 2 * 130
+        names = ["story_01_hook.jpg", "story_02_reveal.jpg", "story_03_question.jpg"]
 
         slides = []
+        for i, (slide, name) in enumerate(zip(script_payload["story_slides"], names)):
+            im = Image.alpha_composite(base.copy(), Image.new("RGBA", base.size, (0, 0, 0, 140 + 15 * i)))
+            d = ImageDraw.Draw(im)
+            kicker, l1, l2 = slide["kicker"].upper(), slide["line1"].upper(), slide["line2"].upper()
+            font_k = fit_font(d, kicker, "Montserrat", 30, max_w, 20)
+            size = min(fit_font(d, l1, "Anton", 80, max_w, 48).size, fit_font(d, l2, "Anton", 80, max_w, 48).size)
+            font_t = get_font("Anton", size)
+            font_b = get_font("Montserrat", 34)
+            body_lines = wrap_text(d, slide["body"], font_b, max_w)[:3]
 
-        # Slide 1: Hook Teaser
-        s1 = raw_bg.copy()
-        draw1 = ImageDraw.Draw(s1)
-        # Dark vignette overlay
-        overlay1 = Image.new("RGBA", (VIDEO_WIDTH, VIDEO_HEIGHT), (0, 0, 0, 140))
-        s1 = Image.alpha_composite(s1, overlay1)
-        d1 = ImageDraw.Draw(s1)
-        d1.rounded_rectangle([100, 400, VIDEO_WIDTH - 100, 680], radius=24, fill=(16, 16, 16, 220), outline=(255, 215, 0, 240), width=2)
-        d1.text((VIDEO_WIDTH // 2, 450), "DID YOU KNOW?", font=font_badge, fill=(255, 215, 0), anchor="mm")
-        d1.text((VIDEO_WIDTH // 2, 540), "A MAN KNOCKED DOWN", font=font_anton, fill=(255, 255, 255), anchor="mm")
-        d1.text((VIDEO_WIDTH // 2, 620), "HIS BASEMENT WALL...", font=font_anton, fill=(255, 215, 0), anchor="mm")
-        # Bottom swipe-up indicator
-        d1.text((VIDEO_WIDTH // 2, 1650), "Tap Next to Reveal →", font=font_mont, fill=(240, 240, 240), anchor="mm")
-        p1 = out_story_dir / "story_01_hook.jpg"
-        s1.convert("RGB").save(p1, quality=95)
-        slides.append(p1)
+            top = 420
+            box_h = 70 + 2 * (size + 14) + 30 + len(body_lines) * 46 + 40
+            d.rounded_rectangle([90, top, VIDEO_WIDTH - 90, top + box_h], radius=24,
+                                fill=(16, 16, 16, 225), outline=(255, 215, 0, 240), width=2)
+            y = top + 50
+            d.text((VIDEO_WIDTH // 2, y), kicker, font=font_k, fill=GOLD, anchor="mm")
+            y += 30 + size // 2 + 10
+            d.text((VIDEO_WIDTH // 2, y), l1, font=font_t, fill=WHITE, anchor="mm")
+            y += size + 14
+            d.text((VIDEO_WIDTH // 2, y), l2, font=font_t, fill=GOLD, anchor="mm")
+            y += size // 2 + 40
+            for line in body_lines:
+                d.text((VIDEO_WIDTH // 2, y), line, font=font_b, fill=LIGHT, anchor="mm")
+                y += 46
 
-        # Slide 2: The Core Revelation
-        s2 = raw_bg.copy()
-        overlay2 = Image.new("RGBA", (VIDEO_WIDTH, VIDEO_HEIGHT), (0, 0, 0, 160))
-        s2 = Image.alpha_composite(s2, overlay2)
-        d2 = ImageDraw.Draw(s2)
-        d2.rounded_rectangle([80, 450, VIDEO_WIDTH - 80, 800], radius=24, fill=(16, 16, 16, 225), outline=(255, 215, 0, 240), width=2)
-        d2.text((VIDEO_WIDTH // 2, 510), "THE 18-STORY FORBIDDEN CITY", font=font_badge, fill=(255, 215, 0), anchor="mm")
-        d2.text((VIDEO_WIDTH // 2, 600), "SHELTERED 20,000 PEOPLE", font=font_anton, fill=(255, 255, 255), anchor="mm")
-        d2.text((VIDEO_WIDTH // 2, 680), "280 FEET UNDERGROUND", font=font_anton, fill=(255, 215, 0), anchor="mm")
-        d2.text((VIDEO_WIDTH // 2, 750), "With water wells & 15,000 ventilation shafts.", font=font_mont, fill=(220, 220, 220), anchor="mm")
-        p2 = out_story_dir / "story_02_scale.jpg"
-        s2.convert("RGB").save(p2, quality=95)
-        slides.append(p2)
+            path = out_dir / name
+            im.convert("RGB").save(path, quality=95)
+            slides.append(path)
 
-        # Slide 3: Interactive Poll Sticker Prompt
-        s3 = raw_bg.copy()
-        overlay3 = Image.new("RGBA", (VIDEO_WIDTH, VIDEO_HEIGHT), (0, 0, 0, 175))
-        s3 = Image.alpha_composite(s3, overlay3)
-        d3 = ImageDraw.Draw(s3)
-        d3.rounded_rectangle([80, 500, VIDEO_WIDTH - 80, 950], radius=24, fill=(16, 16, 16, 230), outline=(255, 215, 0, 240), width=2)
-        d3.text((VIDEO_WIDTH // 2, 570), "THE ULTIMATE QUESTION:", font=font_badge, fill=(255, 215, 0), anchor="mm")
-        d3.text((VIDEO_WIDTH // 2, 650), "WOULD YOU VENTURE INSIDE?", font=font_anton, fill=(255, 255, 255), anchor="mm")
-        # Simulated native voting buttons
-        d3.rounded_rectangle([140, 720, VIDEO_WIDTH - 140, 800], radius=16, fill=(35, 35, 35, 240), outline=(255, 255, 255, 180), width=1)
-        d3.text((VIDEO_WIDTH // 2, 760), "YES — I must explore it!", font=font_mont, fill=(255, 255, 255), anchor="mm")
-        d3.rounded_rectangle([140, 830, VIDEO_WIDTH - 140, 910], radius=16, fill=(35, 35, 35, 240), outline=(255, 255, 255, 180), width=1)
-        d3.text((VIDEO_WIDTH // 2, 870), "NO WAY — Leave it sealed!", font=font_mont, fill=(255, 255, 255), anchor="mm")
-        d3.text((VIDEO_WIDTH // 2, 1650), "Watch the full documentary in our latest Reel 🎬", font=font_mont, fill=(240, 240, 240), anchor="mm")
-        p3 = out_story_dir / "story_03_poll.jpg"
-        s3.convert("RGB").save(p3, quality=95)
-        slides.append(p3)
+        with open(output_dir / "companion_posting.json", "w", encoding="utf-8") as f:
+            json.dump({
+                "story_poll_sticker": script_payload["poll"],
+                "story_frames": [p.name for p in slides],
+                "note": "Add the poll as a native sticker on the last frame when posting.",
+            }, f, indent=2, ensure_ascii=False)
 
-        print(f"[MULTI-FORMAT] Generated {len(slides)} companion Story slides -> {out_story_dir}")
+        log.info("Generated %d Story frames -> %s", len(slides), out_dir)
         return slides
 
-    # --------------------------------------------------------------------------
-    # 7-SLIDE HIGH-RETENTION CAROUSEL (1:1)
-    # --------------------------------------------------------------------------
-    def generate_carousel_sequence(
-        self,
-        scene_images: List[Path],
-        script_payload: Dict[str, Any],
-        output_dir: Path,
-    ) -> List[Path]:
-        """
-        Renders a 7-slide educational Instagram Carousel (1080x1080).
-        """
-        out_car_dir = output_dir / "carousel"
-        out_car_dir.mkdir(parents=True, exist_ok=True)
-
-        font_title = self._get_font("Anton", 72)
-        font_body = self._get_font("Montserrat", 32)
-        font_num = self._get_font("Anton", 36)
+    def generate_carousel_sequence(self, scene_images: List[Path], script_payload: Dict[str, Any], output_dir: Path) -> List[Path]:
+        out_dir = output_dir / "carousel"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        stills = [p for p in scene_images if not is_video(p)]
+        cards = script_payload["carousel_slides"]
+        total = len(cards)
+        max_w = 1080 - 2 * 130
 
         slides = []
-        texts = [
-            ("BEHIND A FAKE WALL...", "The 1963 discovery of the 18-story underground city.", "01/07"),
-            ("THE ACCIDENTAL DISCOVERY", "A Turkish homeowner noticed his chickens disappearing into a crevice in the wall.", "02/07"),
-            ("IMPOSSIBLE DEPTH", "Descends 280 feet into solid volcanic rock across 18 subterranean tiers.", "03/07"),
-            ("FRESH AIR AT 280 FEET", "Over 15,000 stone ventilation shafts kept air circulating to the lowest depths.", "04/07"),
-            ("1,000-POUND ROLLING DOORS", "Massive stone wheels could only be opened or locked from the inside.", "05/07"),
-            ("AN UNSOLVED THREAT", "Who forced 20,000 citizens to flee into complete darkness?", "06/07"),
-            ("WHAT IS YOUR THEORY?", "Drop your theory below and follow for daily ancient marvels.", "07/07"),
-        ]
+        for i, card in enumerate(cards):
+            im = cover_crop(stills[i % len(stills)], (1080, 1080))
+            im = Image.alpha_composite(im, Image.new("RGBA", im.size, (0, 0, 0, 155)))
+            d = ImageDraw.Draw(im)
+            heading = card["heading"].upper()
+            font_h = fit_font(d, heading, "Anton", 72, max_w, 44)
+            font_b = get_font("Montserrat", 34)
+            body_lines = wrap_text(d, card["body"], font_b, max_w)[:4]
 
-        for i, (heading, body, counter) in enumerate(texts):
-            bg_source = scene_images[i % len(scene_images)]
-            im = Image.open(bg_source).convert("RGBA").resize((1080, 1080), Image.LANCZOS)
-            # Dark card overlay
-            overlay = Image.new("RGBA", (1080, 1080), (0, 0, 0, 155))
-            im = Image.alpha_composite(im, overlay)
-            draw = ImageDraw.Draw(im)
+            d.rounded_rectangle([70, 300, 1010, 780], radius=24, fill=(14, 14, 14, 225), outline=(255, 215, 0, 230), width=2)
+            d.text((950, 340), f"{i + 1:02d}/{total:02d}", font=get_font("Anton", 36), fill=GOLD, anchor="rt")
+            d.text((540, 460), heading, font=font_h, fill=WHITE, anchor="mm")
+            y = 590 - (len(body_lines) - 1) * 24
+            for line in body_lines:
+                d.text((540, y), line, font=font_b, fill=LIGHT, anchor="mm")
+                y += 48
 
-            # Card Box
-            draw.rounded_rectangle([70, 220, 1010, 860], radius=24, fill=(14, 14, 14, 225), outline=(255, 215, 0, 230), width=2)
-            # Counter Badge
-            draw.text((950, 260), counter, font=font_num, fill=(255, 215, 0), anchor="rt")
-            # Heading
-            draw.text((540, 380), heading, font=font_title, fill=(255, 255, 255), anchor="mm")
-            # Body text
-            draw.text((540, 560), body, font=font_body, fill=(230, 230, 230), anchor="mm")
+            path = out_dir / f"carousel_slide_{i + 1:02d}.jpg"
+            im.convert("RGB").save(path, quality=95)
+            slides.append(path)
 
-            p = out_car_dir / f"carousel_slide_{i+1:02d}.jpg"
-            im.convert("RGB").save(p, quality=95)
-            slides.append(p)
-
-        print(f"[MULTI-FORMAT] Generated {len(slides)} companion Carousel slides -> {out_car_dir}")
+        log.info("Generated %d carousel slides -> %s", len(slides), out_dir)
         return slides
-
-
-if __name__ == "__main__":
-    gen = MultiFormatGenerator()
-    test_hero = Path("output/test_visual/thumbnail_cover.jpg")
-    mock_payload = {"title": "The 18-Story City"}
-    s_slides = gen.generate_story_sequence(test_hero, mock_payload, Path("output/test_multiformat"))
-    c_slides = gen.generate_carousel_sequence([test_hero] * 7, mock_payload, Path("output/test_multiformat"))
-    print(f"MultiFormat test passed: {len(s_slides)} stories, {len(c_slides)} carousel slides.")

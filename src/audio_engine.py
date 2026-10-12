@@ -1,27 +1,25 @@
 """
 src/audio_engine.py
 ===================
-Enterprise Multi-Tier Voice Engine & Broadcast Audio Mastering.
-1. Multi-Tier Voice Dispatcher:
-   - Primary: ElevenLabs (Deep documentary baritone clone with human cadence & breaths).
-   - Resilient Failover: edge-tts (ChristopherNeural) ensuring 100% zero-downtime execution.
-2. Timestamp extraction: Millisecond-accurate word boundaries for kinetic karaoke ASS subtitles.
-3. Subterranean Ambient Bed: 55Hz & 82.5Hz drone mixed with diegetic hammer (0.0s) & stone door grind.
-4. Broadcast Mastering: High-pass rumble filter (80Hz), de-esser EQ, sidechain ducking, and -14.0 LUFS EBU R128 loudness.
+Narration and ambient bed.
+1. Voice: ElevenLabs (with character timestamps) when configured, else edge-tts
+   (ChristopherNeural) with word-boundary events.
+2. Word timings for the kinetic karaoke captions.
+3. Ambient bed: 55 Hz + 82.5 Hz drone with diegetic hammer (t=0) and stone-door SFX.
+Final mixing, ducking and loudness mastering happen in src/video_composer.py.
 """
 
 import asyncio
 import base64
-import json
-import os
+import logging
 import subprocess
 from pathlib import Path
-from typing import List, Dict, Any, Tuple, Optional
+from typing import List, Dict, Any, Optional
 
+import edge_tts
 import numpy as np
 import requests
 import soundfile as sf
-import edge_tts
 
 from .config import (
     NARRATOR_VOICE,
@@ -30,7 +28,12 @@ from .config import (
     ELEVENLABS_API_KEY,
     ELEVENLABS_VOICE_ID,
     SFX_DIR,
+    is_configured,
 )
+
+log = logging.getLogger(__name__)
+
+Words = List[Dict[str, Any]]
 
 
 class AudioEngine:
@@ -48,67 +51,42 @@ class AudioEngine:
         self.eleven_key = eleven_key if eleven_key is not None else ELEVENLABS_API_KEY
         self.eleven_voice = eleven_voice if eleven_voice is not None else ELEVENLABS_VOICE_ID
 
-    def _generate_elevenlabs(self, text: str, output_path: Path) -> List[Dict[str, Any]]:
-        """
-        Synthesizes speech using ElevenLabs with timestamp alignment.
-        """
-        if not self.eleven_key or "your_" in self.eleven_key:
-            raise ValueError("ElevenLabs API key not configured.")
-
+    def _generate_elevenlabs(self, text: str, output_path: Path) -> Words:
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{self.eleven_voice}/with-timestamps"
-        headers = {
-            "xi-api-key": self.eleven_key,
-            "Content-Type": "application/json",
-        }
         payload = {
             "text": text,
             "model_id": "eleven_multilingual_v2",
-            "voice_settings": {
-                "stability": 0.50,
-                "similarity_boost": 0.85,
-                "style": 0.35,
-                "use_speaker_boost": True,
-            }
+            "voice_settings": {"stability": 0.50, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True},
         }
-        resp = requests.post(url, headers=headers, json=payload, timeout=60)
+        resp = requests.post(url, headers={"xi-api-key": self.eleven_key}, json=payload, timeout=120)
         resp.raise_for_status()
         data = resp.json()
 
-        # Audio base64
-        audio_bytes = base64.b64decode(data["audio_base64"])
-        with open(output_path, "wb") as f:
-            f.write(audio_bytes)
+        alignment = data.get("alignment") or {}
+        chars = alignment.get("characters") or []
+        starts = alignment.get("character_start_times_seconds") or []
+        ends = alignment.get("character_end_times_seconds") or []
+        if not chars or len(chars) != len(starts) or len(chars) != len(ends):
+            raise ValueError("ElevenLabs response is missing usable character alignment.")
 
-        # Word boundary alignment from alignment characters
-        alignment = data.get("alignment", {})
-        chars = alignment.get("characters", [])
-        char_starts = alignment.get("character_start_times_seconds", [])
-        char_ends = alignment.get("character_end_times_seconds", [])
+        output_path.write_bytes(base64.b64decode(data["audio_base64"]))
 
-        words = []
-        cur_word = []
+        words: Words = []
+        cur: List[str] = []
         w_start = 0.0
-        for i, ch in enumerate(chars):
+        for i, ch in enumerate(chars + [" "]):
             if ch.strip():
-                if not cur_word:
-                    w_start = char_starts[i] if i < len(char_starts) else 0.0
-                cur_word.append(ch)
-            else:
-                if cur_word:
-                    w_text = "".join(cur_word)
-                    w_end = char_ends[i - 1] if i - 1 < len(char_ends) else w_start + 0.2
-                    words.append({"word": w_text, "start": w_start, "dur": max(0.05, w_end - w_start)})
-                    cur_word = []
-        if cur_word:
-            w_text = "".join(cur_word)
-            w_end = char_ends[-1] if char_ends else w_start + 0.2
-            words.append({"word": w_text, "start": w_start, "dur": max(0.05, w_end - w_start)})
-
+                if not cur:
+                    w_start = starts[i]
+                cur.append(ch)
+            elif cur:
+                words.append({"word": "".join(cur), "start": w_start, "dur": max(0.05, ends[i - 1] - w_start)})
+                cur = []
         return words
 
-    async def _generate_voiceover_async(self, text: str, output_path: Path) -> List[Dict[str, Any]]:
+    async def _generate_edge_tts(self, text: str, output_path: Path) -> Words:
         c = edge_tts.Communicate(text, self.voice, rate=self.rate, pitch=self.pitch, boundary="WordBoundary")
-        words = []
+        words: Words = []
         with open(output_path, "wb") as f:
             async for chunk in c.stream():
                 if chunk["type"] == "audio":
@@ -116,106 +94,63 @@ class AudioEngine:
                 elif chunk["type"] == "WordBoundary":
                     words.append({
                         "word": chunk["text"],
-                        "start": chunk["offset"] / 10000000.0,
-                        "dur": chunk["duration"] / 10000000.0
+                        "start": chunk["offset"] / 10_000_000.0,
+                        "dur": chunk["duration"] / 10_000_000.0,
                     })
         words.sort(key=lambda w: w["start"])
         return words
 
-    def generate_narration(self, text: str, output_path: Path) -> List[Dict[str, Any]]:
-        """
-        Dispatches narration generation across the multi-tier hierarchy:
-        1. ElevenLabs (if configured)
-        2. edge-tts (Resilient fallback)
-        """
-        # Tier 1: ElevenLabs
-        if self.eleven_key and "your_" not in self.eleven_key:
+    def generate_narration(self, text: str, output_path: Path) -> Words:
+        if is_configured(self.eleven_key):
             try:
-                print(f"[AUDIO ENGINE] Synthesizing primary voiceover via ElevenLabs ({self.eleven_voice})...")
-                words = self._generate_elevenlabs(text, output_path)
-                print(f"[AUDIO ENGINE] ElevenLabs synthesis SUCCESS! {len(words)} word boundaries extracted.")
-                return words
+                log.info("Synthesizing voiceover via ElevenLabs (%s)...", self.eleven_voice)
+                return self._generate_elevenlabs(text, output_path)
             except Exception as e:
-                print(f"[AUDIO ENGINE] ElevenLabs primary failed: {e}. Activating edge-tts failover...")
+                log.warning("ElevenLabs failed (%s); falling back to edge-tts.", e)
 
-        # Tier 2: Resilient edge-tts Fallback
-        print(f"[AUDIO ENGINE] Synthesizing narration via edge-tts ({self.voice})...")
-        words = asyncio.run(self._generate_voiceover_async(text, output_path))
-        print(f"[AUDIO ENGINE] Narration saved to {output_path} with {len(words)} word boundaries.")
+        log.info("Synthesizing voiceover via edge-tts (%s)...", self.voice)
+        words = asyncio.run(self._generate_edge_tts(text, output_path))
+        if not words:
+            raise RuntimeError("edge-tts returned no word boundaries; captions cannot be timed.")
         return words
 
-    def get_duration(self, audio_path: Path) -> float:
-        cmd = [
-            "ffprobe", "-v", "error",
-            "-show_entries", "format=duration",
-            "-of", "default=noprint_wrappers=1:nokey=1",
-            str(audio_path)
-        ]
-        res = subprocess.check_output(cmd).decode().strip()
-        return float(res)
+    @staticmethod
+    def get_duration(audio_path: Path) -> float:
+        cmd = ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+               "-of", "default=noprint_wrappers=1:nokey=1", str(audio_path)]
+        return float(subprocess.check_output(cmd, timeout=60).decode().strip())
 
-    def generate_ambient_bed(self, duration: float, output_path: Path, words: List[Dict[str, Any]] = None) -> Path:
-        """
-        Synthesizes subterranean continuous drone engineered to loop seamlessly.
-        Mixes diegetic Foley SFX:
-        - Hammer strike at t=0.0s (restart impact)
-        - Rolling stone door at timestamp of 'rolling' or 'doors'
-        """
-        sr = 44100
-        total_samples = int(sr * duration)
-        t = np.linspace(0, duration, total_samples, endpoint=False)
+    @staticmethod
+    def _load_mono(path: Path) -> np.ndarray:
+        data, _ = sf.read(str(path))
+        return data[:, 0] if data.ndim > 1 else data
 
-        # 55Hz (A1) and 82.5Hz (E2) harmonic drone
-        drone = 0.24 * np.sin(2 * np.pi * 55.0 * t) + 0.16 * np.sin(2 * np.pi * 82.5 * t)
+    def generate_ambient_bed(self, duration: float, output_path: Path, words: Optional[Words] = None, sr: int = 48000) -> Path:
+        total = int(sr * duration)
+        t = np.arange(total) / sr
+        bed = 0.24 * np.sin(2 * np.pi * 55.0 * t) + 0.16 * np.sin(2 * np.pi * 82.5 * t)
+        # Short drone fades so the loop point (end -> start) doesn't click; SFX are added after.
+        fade = min(int(0.05 * sr), total // 2)
+        if fade:
+            ramp = np.linspace(0.0, 1.0, fade)
+            bed[:fade] *= ramp
+            bed[-fade:] *= ramp[::-1]
 
-        # 1. Diegetic Sledgehammer at t=0.0s
-        hammer_file = SFX_DIR / "sfx_hammer.wav"
-        if hammer_file.exists():
-            h_data, _ = sf.read(str(hammer_file))
-            if len(h_data.shape) > 1:
-                h_data = h_data[:, 0]
-            h_len = min(len(h_data), total_samples)
-            drone[:h_len] += h_data[:h_len] * 0.40
+        hammer = SFX_DIR / "sfx_hammer.wav"
+        if hammer.exists():
+            h = self._load_mono(hammer)[:total]
+            bed[:len(h)] += h * 0.40
 
-        # 2. Diegetic Stone Rolling Door
-        door_file = SFX_DIR / "sfx_stone_door.wav"
-        if door_file.exists() and words:
-            door_time = 18.0
-            for w in words:
-                word_lower = w["word"].lower()
-                if "rolling" in word_lower or "doors" in word_lower or "stone" in word_lower:
-                    door_time = w["start"]
-                    break
+        door = SFX_DIR / "sfx_stone_door.wav"
+        if door.exists() and words:
+            cue = next((w["start"] for w in words if any(k in w["word"].lower() for k in ("door", "stone", "rolling"))), None)
+            if cue is not None:
+                s = self._load_mono(door)
+                i0 = int(cue * sr)
+                n = max(0, min(len(s), total - i0))
+                bed[i0:i0 + n] += s[:n] * 0.45
 
-            s_data, _ = sf.read(str(door_file))
-            if len(s_data.shape) > 1:
-                s_data = s_data[:, 0]
-            start_idx = int(door_time * sr)
-            s_len = min(len(s_data), total_samples - start_idx)
-            if s_len > 0:
-                drone[start_idx:start_idx + s_len] += s_data[:s_len] * 0.45
-
-        audio = drone * 0.22
-        stereo = np.column_stack((audio, audio))
-        sf.write(str(output_path), stereo, sr)
-        print(f"[AUDIO ENGINE] Master ambient bed ({duration:.2f}s) generated -> {output_path}")
+        audio = np.clip(bed * 0.22, -1.0, 1.0)
+        sf.write(str(output_path), np.column_stack((audio, audio)), sr)
+        log.info("Ambient bed (%.2fs) -> %s", duration, output_path.name)
         return output_path
-
-    def produce_audio_package(self, script_text: str, work_dir: Path) -> Tuple[Path, Path, List[Dict[str, Any]], float]:
-        work_dir.mkdir(parents=True, exist_ok=True)
-        vo_path = work_dir / "voiceover.mp3"
-        bed_path = work_dir / "ambient_bed.wav"
-
-        words = self.generate_narration(script_text, vo_path)
-        duration = self.get_duration(vo_path)
-        self.generate_ambient_bed(duration, bed_path, words)
-
-        return vo_path, bed_path, words, duration
-
-
-if __name__ == "__main__":
-    ae = AudioEngine()
-    test_text = "In 1963, a simple basement renovation uncovered the largest underground city in human history."
-    test_dir = Path("output/test_audio")
-    vo, bed, words, dur = ae.produce_audio_package(test_text, test_dir)
-    print(f"Produced test audio package: {dur:.2f}s, {len(words)} words.")

@@ -158,7 +158,8 @@ def heartbeat_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: O
 def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[str]],
                          trigger_run: Callable[[], str], send_photo: Optional[SendPhoto] = None,
                          assets_dir: Path = ASSETS_DIR,
-                         voice_quota: Callable[[], Optional[dict]] = lambda: None) -> Callable[[str, str], str]:
+                         voice_quota: Callable[[], Optional[dict]] = lambda: None,
+                         apply_updates: Optional[Callable[[], str]] = None) -> Callable[[str, str], str]:
     def send_sheet(topic_dir: Path) -> bool:
         if send_photo is None:
             return False
@@ -183,6 +184,10 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             if load_credits(topic_dir)["images"]:
                 send_sheet(topic_dir)
             return html.escape(msg)
+        if command == "upd":
+            if apply_updates is None:
+                return "Updates can only be applied while the daemon is running."
+            return apply_updates()
         if command == "imgok":
             return "✅ " + html.escape(approve_set(_resolve_topic_dir(args, assets_dir), MIN_SCENE_IMAGES))
         if command == "status":

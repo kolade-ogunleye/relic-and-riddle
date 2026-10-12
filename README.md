@@ -75,6 +75,8 @@ While `python main.py daemon` runs, the bot also:
 - **Answers commands** from approvers only, in your chat: `/status`, `/next`, `/pause`, `/resume`, `/run` (a run still needs your approval before anything posts), `/help`.
 - **Reviews image sets**: `/images` lists the sets, `/review N` sends topic N's numbered contact sheet with an **Approve set** button, and `/drop N 2 5` removes wrong images.
 
+- **Checks dependencies weekly** (Mondays): outdated pinned packages and known vulnerabilities (`pip-audit`). **Apply updates** installs minor/patch and security fixes on a git branch and merges only if every test passes, otherwise rolls back. Major versions are left for manual review. CLI: `python main.py update [--apply]`.
+
 `python main.py bot` runs only the Telegram side (commands, image review, approvals), with no scheduled runs. Use it to review images before switching the daemon on.
 
 ## Adding a topic

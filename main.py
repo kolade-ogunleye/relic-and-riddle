@@ -8,6 +8,7 @@ Usage:
   python main.py resume <run_id> [--auto-approve] [--dry-run]   (continue a failed run without re-paying)
   python main.py daemon [--time 09:00]
   python main.py bot                                          (Telegram commands only; no scheduled runs)
+  python main.py update [--apply]                             (outdated / vulnerable packages; test-gated apply)
   python main.py review list
   python main.py review approve|reject|regenerate <run_id>   (while a run is waiting)
   python main.py review publish <run_id> [--dry-run]         (publish a finished, unpublished run)
@@ -335,6 +336,8 @@ def main(argv=None) -> int:
     resume_p.add_argument("--dry-run", action="store_true")
 
     sub.add_parser("bot", help="Run only the Telegram bot (image review, approvals, /status); no scheduled runs")
+    update_p = sub.add_parser("update", help="Check pinned packages for updates and known vulnerabilities")
+    update_p.add_argument("--apply", action="store_true", help="Apply safe/security updates (test-gated, on a branch)")
     daemon_p = sub.add_parser("daemon", help="Run the daily scheduler")
     daemon_p.add_argument("--time", default=DAILY_RUN_TIME, help="Daily run time HH:MM")
 
@@ -386,6 +389,19 @@ def main(argv=None) -> int:
             return 1  # already logged and recorded on the run
         print(json.dumps({k: res.get(k) for k in ("status", "run_id", "master_video")}, indent=2))
         return 0 if res["status"] in ("published", "simulated") else 1
+
+    if args.command == "update":
+        import re
+        from src import maintenance
+        plan = maintenance.check()
+        print(re.sub(r"<[^>]+>", "", maintenance.report_text(plan)))
+        if args.apply:
+            try:
+                print(maintenance.apply(plan))
+            except Exception as e:
+                print(f"Not applied (rolled back): {e}")
+                return 1
+        return 0
 
     if args.command == "bot":
         db = PipelineDatabase()
@@ -458,6 +474,39 @@ def main(argv=None) -> int:
         scheduler.add_job(heartbeat, CronTrigger(hour=hb_hour, minute=hb_minute, timezone=TIMEZONE),
                           max_instances=1, coalesce=True, misfire_grace_time=3600)
 
+        from src import maintenance
+
+        def weekly_update_check():
+            try:
+                plan = maintenance.check()
+            except Exception as e:
+                bot.notify(f"🧰 Weekly update check failed: {html.escape(str(e))[:300]}")
+                return
+            buttons = [{"text": "🧰 Apply updates", "callback_data": "upd:apply"}] if plan.applicable else None
+            if buttons:
+                bot._api("sendMessage", data={"chat_id": bot.chat_id, "parse_mode": "HTML",
+                                              "text": maintenance.report_text(plan),
+                                              "reply_markup": json.dumps({"inline_keyboard": [buttons]})})
+            else:
+                bot.notify(maintenance.report_text(plan))
+
+        scheduler.add_job(weekly_update_check, CronTrigger(day_of_week="mon", hour=hb_hour, minute=hb_minute + 5 if hb_minute < 55 else 0,
+                                                           timezone=TIMEZONE), max_instances=1, coalesce=True, misfire_grace_time=3600)
+
+        def apply_updates() -> str:
+            if run_lock.locked():
+                return "A production run is in progress; try again when it finishes."
+
+            def work():
+                with run_lock:  # never update packages under a running production cycle
+                    try:
+                        bot.notify(maintenance.apply(maintenance.check()))
+                    except Exception as e:
+                        bot.notify(f"❌ Updates not applied (rolled back): {html.escape(str(e))[:500]}")
+
+            threading.Thread(target=work, name="apply-updates", daemon=True).start()
+            return "🧰 Applying updates on a branch and running the tests. I'll report back."
+
         def trigger_run() -> str:
             if run_lock.locked():
                 return "A run is already in progress."
@@ -465,7 +514,8 @@ def main(argv=None) -> int:
             return "🎬 Starting a run now. You'll get the review card when it's rendered; nothing posts without your approval."
 
         handler = make_command_handler(coordinator.db, next_run, trigger_run, send_photo=bot.send_photo,
-                                       voice_quota=coordinator.audio_engine.voice_quota)
+                                       voice_quota=coordinator.audio_engine.voice_quota,
+                                       apply_updates=apply_updates)
 
         def poll_telegram():
             while True:

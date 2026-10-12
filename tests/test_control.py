@@ -171,3 +171,10 @@ def test_quota_lines_warn_when_low():
 def test_status_includes_voice_quota(db):
     h = make_command_handler(db, lambda: None, lambda: "", voice_quota=lambda: {"tier": "free", "used": 0, "limit": 10000})
     assert "ElevenLabs (free): 10,000 of 10,000" in h("status", "")
+
+
+def test_update_command_requires_daemon_and_delegates(db):
+    h = make_command_handler(db, lambda: None, lambda: "")
+    assert "only be applied while the daemon" in h("upd", "apply")
+    h2 = make_command_handler(db, lambda: None, lambda: "", apply_updates=lambda: "applying")
+    assert h2("upd", "apply") == "applying"

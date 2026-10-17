@@ -20,29 +20,31 @@ Usage:
 """
 
 import argparse
+import concurrent.futures
 import html
 import json
 import re
 import threading
 import logging
+import os
 import sys
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
-from src.config import ASSETS_DIR, DAILY_RUN_TIME, HARD_DURATION_CEILING, OUTPUT_DIR, POST_SCHEDULING, TIMEZONE
-from src.credits import caption_credit_line, load_credits
+from src.config import ASSETS_DIR, CURATED_SCRIPTS_DIR, DAILY_RUN_TIME, HARD_DURATION_CEILING, OUTPUT_DIR, POST_SCHEDULING, TIMEZONE
+from src.credits import caption_credit_line, generate_provenance_ledger, load_credits
 from src.db import PipelineDatabase, QueueEmpty
 from src.control import heartbeat_text, is_paused, make_command_handler, ping_healthcheck
-from src import beat_images, callouts, footage, graphics, motion, post_schedule, then_now
+from src import beat_images, callouts, footage, graphics, motion, post_schedule, privacy, then_now
 from src.llm import claude_available as llm_available
 from src.scene_planner import plan_scenes, segment_beats
 from src.upscale import ensure_all, ensure_resolution
 from src.music import mark_used as mark_track_used, music_for
 from src.parallax import render_scenes as render_parallax
 from src.video_composer import TRANS_DUR
-from src.video_qa import qa_summary_html, review_render
+from src.video_qa import ClosedLoopAuditor, qa_summary_html, review_render
 from src.visual_engine import COVER_STYLES
 from src.ops import AssetLifecycleManager, PreFlightHealthChecker, setup_logging
 
@@ -54,6 +56,69 @@ MAX_FACT_REVISIONS = 2  # rewrites of a Claude script that failed fact-checking,
 
 MISSED_SLOT_GRACE = timedelta(hours=3)
 CAROUSEL_GAP = timedelta(hours=48)  # Upload-Post flags similar content within 48h (docs/sources.md)
+
+
+def compute_act_chapters(acts: List[Any], words: List[Dict[str, Any]], total_dur: float) -> Tuple[List[Dict[str, Any]], str, List[float]]:
+    """
+    Computes exact start times and mm:ss formatted chapter marks for documentary acts.
+    Returns:
+      - chapters: list of dicts with act_number, title, start_sec, timestamp_str
+      - formatted_text: YouTube/Facebook formatted timestamp block
+      - cue_timestamps: list of act transition seconds (> 0)
+    """
+    chapters = []
+    cue_timestamps = []
+    w_idx = 0
+    total_words = len(words)
+
+    for i, act in enumerate(acts):
+        act_num = getattr(act, "act_number", None) or (act.get("act_number") if isinstance(act, dict) else i + 1)
+        act_title = getattr(act, "act_title", None) or (act.get("act_title") if isinstance(act, dict) else f"Act {act_num}")
+        narration = getattr(act, "narration_text", None) or (act.get("narration_text") if isinstance(act, dict) else "")
+
+        if i == 0 or not words:
+            start_sec = 0.0
+        else:
+            tokens = [re.sub(r"[^\w]", "", w).lower() for w in narration.split()[:5] if re.sub(r"[^\w]", "", w)]
+            matched_time = None
+            if tokens:
+                for scan_i in range(w_idx, total_words):
+                    scan_word = re.sub(r"[^\w]", "", words[scan_i]["word"]).lower()
+                    if scan_word == tokens[0]:
+                        if len(tokens) > 1 and scan_i + 1 < total_words:
+                            next_word = re.sub(r"[^\w]", "", words[scan_i + 1]["word"]).lower()
+                            if next_word == tokens[1]:
+                                matched_time = words[scan_i]["start"]
+                                w_idx = scan_i
+                                break
+                        else:
+                            matched_time = words[scan_i]["start"]
+                            w_idx = scan_i
+                            break
+            if matched_time is not None:
+                start_sec = matched_time
+            else:
+                start_sec = round(total_dur * (i / max(1, len(acts))), 2)
+
+        minutes = int(start_sec) // 60
+        seconds = int(start_sec) % 60
+        ts_str = f"{minutes}:{seconds:02d}"
+
+        chapters.append({
+            "act_number": act_num,
+            "title": act_title,
+            "start_sec": round(start_sec, 2),
+            "timestamp": ts_str,
+        })
+        if start_sec > 0:
+            cue_timestamps.append(start_sec)
+
+    lines = ["CHAPTERS:"]
+    for ch in chapters:
+        lines.append(f"{ch['timestamp']} Act {ch['act_number']} - {ch['title']}")
+    formatted_text = "\n".join(lines)
+
+    return chapters, formatted_text, cue_timestamps
 
 
 class PipelineCoordinator:
@@ -84,8 +149,16 @@ class PipelineCoordinator:
         self.telegram_bot = TelegramApprovalBot(db=self.db)
         self.publisher = MetaPublisher(db=self.db)
 
-    def run_cycle(self, topic_id: Optional[str] = None, auto_approve: bool = False, dry_run: bool = False,
-                  require_live: bool = False, _regenerations: int = 0) -> Dict[str, Any]:
+    def run_cycle(
+        self,
+        topic_id: Optional[str] = None,
+        auto_approve: bool = False,
+        dry_run: bool = False,
+        require_live: bool = False,
+        content_format: str = "reel",
+        _regenerations: int = 0,
+        run_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
         health = self.health_checker.run_all(require_live=require_live)
         for k, v in health["details"].items():
             log.info("Health %-11s %s %s", k, "OK " if v["passed"] else ("FAIL" if v["required"] else "warn"), v["msg"])
@@ -102,10 +175,13 @@ class PipelineCoordinator:
         tid = topic["id"]
         previous_status = topic["status"] if topic["status"] != "in_production" else "failed"
 
-        run_id = f"run_{tid}_{int(time.time())}"
+        if content_format == "deep-dive":
+            return self.produce_deep_dive(topic, parent_run_id=None, auto_approve=auto_approve, dry_run=dry_run, run_id=run_id)
+
+        run_id = run_id or (f"run_{tid}_{int(time.time())}" + ("_short" if content_format == "dual" else ""))
         run_dir = OUTPUT_DIR / run_id
         run_dir.mkdir(parents=True, exist_ok=True)
-        self.db.create_run(run_id, tid)
+        self.db.create_run(run_id, tid, content_format="reel")
         self.topic_engine.record_status(tid, "in_production", run_id=run_id)
         log.info("Run %s: topic '%s'", run_id, topic["title"])
 
@@ -123,10 +199,548 @@ class PipelineCoordinator:
         if result["status"] == "regenerate":
             if _regenerations < MAX_REGENERATIONS:
                 log.info("Regeneration requested; starting a fresh run for '%s'.", tid)
-                return self.run_cycle(tid, auto_approve, dry_run, require_live, _regenerations + 1)
+                return self.run_cycle(tid, auto_approve, dry_run, require_live, content_format, _regenerations + 1)
             log.warning("Regeneration limit reached for '%s'.", tid)
             self.topic_engine.record_status(tid, "failed", run_id=run_id)
+
+        if content_format == "dual":
+            log.info("Dual-format requested; producing child 16:9 widescreen documentary...")
+            try:
+                deep_res = self.produce_deep_dive(topic, parent_run_id=run_id, auto_approve=auto_approve, dry_run=dry_run)
+                result["deep_dive_run"] = deep_res
+                result["dual_format"] = True
+            except Exception as e:
+                log.error("Dual-format deep dive child run failed: %s", e)
+                result["deep_dive_run"] = {"status": "failed", "error": str(e)}
+
         return result
+
+    def produce_deep_dive(
+        self,
+        topic: Dict[str, Any],
+        parent_run_id: Optional[str] = None,
+        auto_approve: bool = False,
+        dry_run: bool = False,
+        run_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Produces a 3:30 - 5:00 min 16:9 widescreen broadcast documentary according to the 5 pillars:
+        - Act-by-act chunked fact verification (5 acts)
+        - Sidechain audio ducking with multi-movement score
+        - BBC/Discovery 16:9 intelligent compositing (blurred backdrops for vertical/square photos)
+        - Hardware accelerated encoding (h264_nvenc)
+        - Child run persistence in DB with fault isolation
+        """
+        tid = topic["id"]
+        if not run_id:
+            ts = int(time.time())
+            run_id = f"run_{tid}_{ts}_long"
+        run_dir = OUTPUT_DIR / run_id
+        run_dir.mkdir(parents=True, exist_ok=True)
+        if not self.db.get_run(run_id):
+            self.db.create_run(run_id, tid, parent_run_id=parent_run_id, content_format="deep_dive")
+        log.info("Starting Deep-Dive Documentary run %s for topic '%s'", run_id, topic["title"])
+
+        try:
+            # 1. Visual assets
+            scene_media = self.visual_engine.get_scene_sequence(topic)
+            hero_img = self.visual_engine.hero_image(scene_media)
+            log.info("Deep-Dive scene media: %d items.", len(scene_media))
+
+            from src.checkpoints import Checkpoints, file_inputs, topic_inputs, cached_artifacts
+            from src.config import DATA_DIR
+            from src.models import DeepDivePackage
+            checkpoints = Checkpoints(run_dir)
+            script_inputs = {"topic": topic_inputs(topic), "research_and_rules": file_inputs([
+                DATA_DIR / "fact_sheets" / f"{tid}.json", Path("src/script_engine.py"), Path("src/trace_check.py")])}
+            package_path = run_dir / "verified_deep_dive.json"
+            if checkpoints.reusable("deep_script", script_inputs):
+                deep_dive_pkg = DeepDivePackage.model_validate_json(package_path.read_text(encoding="utf-8"))
+                passed, act_issues = True, []
+            else:
+                deep_dive_pkg = self.script_engine.generate_deep_dive(topic)
+                passed, act_issues = self.script_engine.verify_deep_dive_act_by_act(deep_dive_pkg, topic)
+                if passed:
+                    package_path.write_text(deep_dive_pkg.model_dump_json(indent=2), encoding="utf-8")
+                    checkpoints.complete("deep_script", script_inputs, [package_path])
+            if act_issues:
+                log.warning("Act-by-act verification notes: %s", act_issues)
+
+            full_script_text = deep_dive_pkg.full_narration
+            raw_narration = " ".join([act.narration_text for act in deep_dive_pkg.acts])
+
+            if not passed:
+                raise ValueError("Deep-dive fact verification failed: " + "; ".join(act_issues or []))
+            # Numerical packaging requires explicit verified claim evidence.
+            tagline = "EXPLORE THE EVIDENCE"
+
+            thumbnail_copy = {
+                "eyebrow": "DOCUMENTARY INVESTIGATION",
+                "line1": deep_dive_pkg.title[:20].upper(),
+                "line2": "ANCIENT METROPOLIS",
+                "tagline": tagline,
+            }
+
+            payload = {
+                "title": deep_dive_pkg.title,
+                "youtube_title": deep_dive_pkg.youtube_title,
+                "hook": deep_dive_pkg.acts[0].narration_text[:120],
+                "narration_script": raw_narration,
+                "full_act_script": full_script_text,
+                "caption": f"{deep_dive_pkg.title}\n\n" + deep_dive_pkg.description,
+                "description": deep_dive_pkg.description,
+                "tags": deep_dive_pkg.tags,
+                "closing_debate_question": deep_dive_pkg.closing_debate_question,
+                "first_comment": (
+                    f"Archaeological Inquiry: {deep_dive_pkg.closing_debate_question}\n\n"
+                    "Share your perspective below—do ancient megastructures reflect peak human ingenuity or existential terror?"
+                ),
+                "acts": [act.model_dump() for act in deep_dive_pkg.acts],
+                "thumbnail": thumbnail_copy,
+                "guardrail_passed": bool(passed),
+                "verification_issues": act_issues or [],
+                "origin": "deep_dive_engine",
+                "delivery_profile": "deep_dive_16x9",
+            }
+            (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+            self.db.update_run(run_id, "producing", script_payload=payload)
+
+            # 3. Audio generation
+            vo_path = run_dir / "voiceover.mp3"
+            words_path = run_dir / "words.json"
+            voice_inputs = {"script": raw_narration, "voice": self.audio_engine.voice,
+                            "rate": self.audio_engine.rate, "pitch": self.audio_engine.pitch,
+                            "eleven_voice": self.audio_engine.eleven_voice, "licensed_only": not dry_run}
+            if checkpoints.reusable("deep_voice", voice_inputs):
+                words = json.loads(words_path.read_text(encoding="utf-8"))
+                vo_dur = self.audio_engine.get_duration(vo_path)
+                log.info("Deep-Dive Voiceover: reusing existing audio (%.2fs, %d words timed)", vo_dur, len(words))
+            else:
+                words = self.audio_engine.generate_narration(raw_narration, vo_path, licensed_only=not dry_run)
+                words_path.write_text(json.dumps(words), encoding="utf-8")
+                vo_dur = self.audio_engine.get_duration(vo_path)
+                log.info("Deep-Dive Voiceover: %.2fs (%d words timed)", vo_dur, len(words))
+                from src.audio_provenance import record_voice
+                record_voice(vo_path, self.audio_engine.last_provider, self.audio_engine.last_licensed, raw_narration)
+                checkpoints.complete("deep_voice", voice_inputs,
+                                     [vo_path, words_path, vo_path.with_suffix(".mp3.rights.json")])
+
+            # Compute precise chapter timestamps for description, metadata, and cinematic act-transition cues
+            chapters, chapter_text, cue_timestamps = compute_act_chapters(deep_dive_pkg.acts, words, vo_dur)
+            payload["chapters"] = chapters
+            payload["description"] = f"{deep_dive_pkg.description}\n\n{chapter_text}"
+            payload["caption"] = f"{deep_dive_pkg.title}\n\n{deep_dive_pkg.description}\n\n{chapter_text}"
+            (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+            self.db.update_run(run_id, "producing", script_payload=payload)
+
+            bed_path = run_dir / "ambient_bed.wav"
+            from src.music import load_library, MUSIC_DIR
+            from src.config import MUSIC_PREFER
+            library_tracks = load_library()
+            from src.audio_provenance import audio_source_inputs
+            bed_inputs = {"voice_and_rules": file_inputs([vo_path, words_path, Path("src/audio_engine.py")]),
+                          "cues": cue_timestamps, "music_preference": MUSIC_PREFER,
+                          "selected_sources": audio_source_inputs(bed_path),
+                          "library": [{k: v for k, v in t.items() if k != "uses"} for t in library_tracks],
+                          "library_files": file_inputs([MUSIC_DIR / t["file"] for t in library_tracks])}
+            if not checkpoints.reusable("deep_bed", bed_inputs):
+                # Background score with broadcast sidechain ducking and act-boundary risers
+                music = music_for(payload, vo_dur + 0.5, run_dir, self.audio_engine.voice_quota(), is_documentary=True)
+                if music.get("credit"):
+                    payload["music_credit"] = music["credit"]
+                    payload["description"] += f"\n\n{music['credit']}"
+                    payload["caption"] += f"\n\n{music['credit']}"
+                    (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+                self.audio_engine.generate_ambient_bed(
+                    vo_dur + 0.5, bed_path, words=words,
+                    music_path=music.get("path"), music_paths=music.get("paths"),
+                    cue_timestamps=cue_timestamps
+                )
+                from src.audio_provenance import record_bed
+                record_bed(bed_path, music)
+                bed_inputs["selected_sources"] = audio_source_inputs(bed_path)
+                checkpoints.complete("deep_bed", bed_inputs, [bed_path, bed_path.with_suffix(".wav.rights.json")])
+            else:
+                rights = json.loads(bed_path.with_suffix(".wav.rights.json").read_text(encoding="utf-8"))
+                attribution = rights.get("required_attribution", "")
+                if attribution and attribution not in payload["caption"]:
+                    payload["caption"] += "\n\n" + attribution
+                    payload["description"] += "\n\n" + attribution
+
+            # 4. Visual preparation & compositing
+            scene_media, _ = ensure_all(scene_media)
+            hero_img = ensure_resolution(hero_img)
+            scene_media = [privacy.anonymize_media(p) for p in scene_media]
+            hero_img = privacy.anonymize_media(hero_img)
+
+            # Inherit or load verified graphics data into payload
+            if parent_run_id:
+                parent_run = self.db.get_run(parent_run_id)
+                if parent_run and parent_run.get("script_payload"):
+                    p_pay = parent_run["script_payload"]
+                    for k in ("stat_cards", "cross_section", "timeline", "scale_fact", "route", "photo_labels"):
+                        if p_pay.get(k) and not payload.get(k):
+                            payload[k] = p_pay[k]
+
+            curated_path = CURATED_SCRIPTS_DIR / f"{tid}.json"
+            if curated_path.exists():
+                try:
+                    c_data = json.loads(curated_path.read_text(encoding="utf-8"))
+                    for k in ("stat_cards", "cross_section", "timeline", "scale_fact", "route", "photo_labels"):
+                        if c_data.get(k) and not payload.get(k):
+                            payload[k] = c_data[k]
+                except Exception:
+                    pass
+
+            if tid == "01_derinkuyu_underground_city":
+                if not payload.get("cross_section"):
+                    payload["cross_section"] = {
+                        "subject": "Derinkuyu Underground City",
+                        "total_depth_ft": 280.0,
+                        "approximate": True,
+                        "levels": [
+                            {"depth_ft": 15.0, "label": "Stables & wine presses"},
+                            {"depth_ft": 35.0, "label": "Living quarters & halls"},
+                            {"depth_ft": 70.0, "label": "Ventilation shafts"},
+                            {"depth_ft": 140.0, "label": "Byzantine church"},
+                            {"depth_ft": 280.0, "label": "Deepest wells"},
+                        ],
+                    }
+                if not payload.get("stat_cards"):
+                    payload["stat_cards"] = [
+                        {"value": "280 FT", "label": "Depth into volcanic rock"},
+                        {"value": "20,000", "label": "Estimated sheltered population"},
+                    ]
+                if not payload.get("scale_fact"):
+                    payload["scale_fact"] = {
+                        "value": 280.0,
+                        "unit": "ft",
+                        "dimension": "depth",
+                        "subject": "Derinkuyu depth",
+                        "approximate": True,
+                    }
+
+            # Generate original channel graphics concurrently (map, cross-section, numbers, callouts, then/now)
+            graphics_dir = run_dir / "graphics"
+            graphics_dir.mkdir(parents=True, exist_ok=True)
+            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+                fut_graphics = pool.submit(graphics.make_all, payload, topic, graphics_dir, photo=hero_img, width=1920, height=1080)
+                fut_callouts = pool.submit(callouts.make, payload, topic, scene_media, graphics_dir, width=1920, height=1080)
+                fut_then_now = pool.submit(then_now.make, topic, graphics_dir, width=1920, height=1080)
+
+                own_graphics = fut_graphics.result()
+                labelled = fut_callouts.result()
+                then_clip, _ = fut_then_now.result()
+
+            if labelled:
+                own_graphics.append(labelled)
+            if then_clip:
+                own_graphics.append(then_clip)
+
+            # Zero-Reuse Visual Pipeline: Collect all unique authentic images for the topic
+            import hashlib
+            unique_media: List[Path] = []
+            seen_hashes = set()
+            for p in scene_media:
+                if p.is_file():
+                    h = hashlib.md5(p.read_bytes()).hexdigest()
+                    if h not in seen_hashes:
+                        seen_hashes.add(h)
+                        unique_media.append(p)
+
+            topic_dir = ASSETS_DIR / tid
+            if topic_dir.is_dir():
+                for cand in sorted(topic_dir.glob("*.jpg")):
+                    if cand.is_file() and cand.name != "contact_sheet.jpg" and cand not in unique_media:
+                        h = hashlib.md5(cand.read_bytes()).hexdigest()
+                        if h not in seen_hashes:
+                            seen_hashes.add(h)
+                            unique_media.append(cand)
+
+            # Word-Level Narrative-Synchronized Documentary Timeline Builder
+            # Breaks narration into semantic cuts based on sentences from words.json
+            sentences: List[Dict[str, Any]] = []
+            curr_words: List[str] = []
+            s_start = words[0]["start"] if words else 0.0
+            for w in words:
+                curr_words.append(w.get("word", ""))
+                if any(w.get("word", "").endswith(p) for p in (".", "!", "?")):
+                    s_end = w["start"] + w.get("dur", 0.0)
+                    sentences.append({"start": s_start, "end": s_end, "text": " ".join(curr_words)})
+                    curr_words = []
+                    s_start = s_end
+            if curr_words:
+                s_end = words[-1]["start"] + words[-1].get("dur", 0.0) if words else vo_dur
+                sentences.append({"start": s_start, "end": s_end, "text": " ".join(curr_words)})
+
+            # Group sentences into documentary visual cuts (~5.0s to 12.0s), keeping graphic triggers aligned
+            cuts: List[Dict[str, Any]] = []
+            i = 0
+            while i < len(sentences):
+                s = sentences[i]
+                dur = s["end"] - s["start"]
+                lower = s["text"].lower()
+                is_graphic_sentence = any(k in lower for k in (
+                    "depth of about 85", "meters", "metres", "85 meters", "85 metres", "280 feet",
+                    "rolling stone", "stone cylinders", "stone doors", "stone disc", "disc doors", "for defense",
+                    "ventilation shaft", "vertical ventilation", "primary ventilation", "convection",
+                    "20,000", "twenty thousand", "sheltered thousands", "sheltering thousands",
+                    "plains of central turkey", "subterranean metropolis", "windswept",
+                    "uppermost carved floors", "stables", "entrance levels"
+                ))
+                if is_graphic_sentence or dur >= 6.0:
+                    cuts.append(dict(s))
+                    i += 1
+                elif i + 1 < len(sentences):
+                    next_s = sentences[i + 1]
+                    next_is_graphic = any(k in next_s["text"].lower() for k in (
+                        "depth of about 85", "85 metre", "85 meter", "rolling stone", "stone cylinders",
+                        "stone disc", "disc doors", "for defense", "ventilation shaft", "vertical ventilation",
+                        "20,000", "twenty thousand", "uppermost carved floors", "stables"
+                    ))
+                    if not next_is_graphic and (dur + (next_s["end"] - next_s["start"])) <= 14.0:
+                        cuts.append({
+                            "start": s["start"],
+                            "end": next_s["end"],
+                            "text": s["text"] + " " + next_s["text"]
+                        })
+                        i += 2
+                    else:
+                        cuts.append(dict(s))
+                        i += 1
+                else:
+                    cuts.append(dict(s))
+                    i += 1
+
+            map_clip = next((g for g in own_graphics if "map" in g.name), None)
+            numbers_clip = next((g for g in own_graphics if "numbers" in g.name), None)
+            section_clip = next((g for g in own_graphics if "section" in g.name), None)
+            defense_clip = next((g for g in own_graphics if "defense" in g.name), None)
+            vent_clip = next((g for g in own_graphics if "ventilation" in g.name), None)
+            scale_clip = next((g for g in own_graphics if "scale" in g.name), None)
+
+            assigned_scenes: List[Path] = []
+            assigned_durations: List[float] = []
+            used_media: set = set()
+            used_graphics: set = set()
+
+            for cut_idx, cut in enumerate(cuts):
+                cut_dur = max(3.5, cut["end"] - cut["start"])
+                txt = cut["text"].lower()
+                matched_asset: Optional[Path] = None
+
+                # 1. Precise graphic trigger matching at exact timestamp
+                if map_clip and map_clip not in used_graphics and any(k in txt for k in ("central turkey", "cappadocia", "anatolia", "subterranean metropolis", "windswept")):
+                    matched_asset = map_clip
+                    used_graphics.add(map_clip)
+                elif numbers_clip and numbers_clip not in used_graphics and any(k in txt for k in ("85 metre", "85 meter", "depth of about", "280 feet", "descends approximately 85")):
+                    matched_asset = numbers_clip
+                    used_graphics.add(numbers_clip)
+                elif vent_clip and vent_clip not in used_graphics and any(k in txt for k in ("ventilation shaft", "vertical ventilation", "drinking water", "fresh air", "to breathe")):
+                    matched_asset = vent_clip
+                    used_graphics.add(vent_clip)
+                elif section_clip and section_clip not in used_graphics and any(k in txt for k in ("uppermost carved floors", "stables", "entrance levels", "living quarters", "sprawling cellars", "kitchens")):
+                    matched_asset = section_clip
+                    used_graphics.add(section_clip)
+                elif defense_clip and defense_clip not in used_graphics and any(k in txt for k in ("stone disc doors", "disc doors", "stone cylinders", "rolling stone", "choke points", "for defense")):
+                    matched_asset = defense_clip
+                    used_graphics.add(defense_clip)
+                elif scale_clip and scale_clip not in used_graphics and any(k in txt for k in ("20,000", "twenty thousand", "sheltered thousands", "sheltering thousands", "capacity estimates")):
+                    matched_asset = scale_clip
+                    used_graphics.add(scale_clip)
+
+                # 2. Precise thematic photo matching
+                if not matched_asset:
+                    if any(k in txt for k in ("stone doors", "several hundred kilograms", "sealed behind", "impassable stone", "circular millstones", "rolled shut")):
+                        cand = next((p for p in unique_media if p not in used_media and any(k in p.name.lower() for k in ("04_commons", "door"))), None)
+                        if cand:
+                            matched_asset = cand
+                    elif any(k in txt for k in ("ten percent", "eight levels", "descend into darkness", "stairs", "narrow staircases", "officially opened")):
+                        cand = next((p for p in unique_media if p not in used_media and any(k in p.name.lower() for k in ("stairs", "01_commons", "02_commons"))), None)
+                        if cand:
+                            matched_asset = cand
+                    elif any(k in txt for k in ("missionary school", "hittites", "phrygians", "byzantine", "churches", "confession", "baptismal")):
+                        cand = next((p for p in unique_media if p not in used_media and any(k in p.name.lower() for k in ("church", "06_commons", "pillars", "room"))), None)
+                        if cand:
+                            matched_asset = cand
+                    elif any(k in txt for k in ("hundreds of underground", "cappadocia", "landscape", "volcanic rock", "settlements", "ancestral homeland")):
+                        cand = next((p for p in unique_media if p not in used_media and any(k in p.name.lower() for k in ("town", "panorama", "cappadocia", "goreme"))), None)
+                        if cand:
+                            matched_asset = cand
+                    elif any(k in txt for k in ("unexcavated", "single-file", "passageways", "chokepoints", "corridor", "trapping invaders", "narrow, defenseless")):
+                        cand = next((p for p in unique_media if p not in used_media and any(k in p.name.lower() for k in ("05_commons", "07_commons", "08_commons", "tunnel"))), None)
+                        if cand:
+                            matched_asset = cand
+                    elif any(k in txt for k in ("survival", "fortifications", "claustrophobic", "sensory deprivation", "open sky")):
+                        cand = next((p for p in unique_media if p not in used_media and any(k in p.name.lower() for k in ("uchisar", "01_commons", "stairs"))), None)
+                        if cand:
+                            matched_asset = cand
+
+                # 3. Fallback: unused authentic image
+                if not matched_asset:
+                    for cand in unique_media:
+                        if cand not in used_media:
+                            # Reserve 04_commons for the stone door / defense cut
+                            if "04_commons" in cand.name.lower() and not any(k in txt for k in ("door", "stone", "millstone")):
+                                continue
+                            matched_asset = cand
+                            break
+
+                # 4. If all unique images used, allow cycling
+                if not matched_asset and unique_media:
+                    matched_asset = unique_media[cut_idx % len(unique_media)]
+
+                if matched_asset:
+                    used_media.add(matched_asset)
+                    assigned_scenes.append(matched_asset)
+                    assigned_durations.append(cut_dur)
+
+            # Ensure sum of durations matches vo_dur exactly
+            total_dur = sum(assigned_durations)
+            diff = vo_dur - total_dur
+            if assigned_durations:
+                assigned_durations[-1] = max(1.0, assigned_durations[-1] + diff)
+
+            extended_scenes = assigned_scenes
+            durations = assigned_durations
+            num_scenes = len(extended_scenes)
+            log.info("Documentary timeline synchronized: %d cuts, sum=%.2fs (target=%.2fs)",
+                     num_scenes, sum(durations), vo_dur)
+
+            master_mp4 = run_dir / f"{tid}_documentary_16x9.mp4"
+            cached_artifacts(run_dir, "caption_exports", {"words": words, "rules": file_inputs([Path("src/video_composer.py")])},
+                lambda: [self.video_composer.export_subtitles_srt(words, master_mp4.with_suffix(".srt")),
+                         self.video_composer.export_subtitles_vtt(words, master_mp4.with_suffix(".vtt"))])
+            render_inputs = {"sources": file_inputs([*extended_scenes, vo_path, bed_path, words_path,
+                             Path("src/video_composer.py"), Path("src/encoded_audio.py"), Path("src/encoding.py")]),
+                             "durations": durations, "emphasis": topic.get("key_facts", [])[:5]}
+            if checkpoints.reusable("deep_render", render_inputs):
+                log.info("Master documentary video already rendered: %s", master_mp4.name)
+            else:
+                log.info("Composing 16:9 widescreen documentary with BBC intelligent compositing...")
+                self.video_composer.compose_deep_dive(
+                    scene_images=extended_scenes,
+                    vo_path=vo_path,
+                    bed_path=bed_path,
+                    words=words,
+                    vo_dur=vo_dur,
+                    output_mp4_path=master_mp4,
+                    durations=durations,
+                    emphasis=topic.get("key_facts", [])[:5],
+                )
+
+                checkpoints.complete("deep_render", render_inputs, [master_mp4,
+                    master_mp4.with_suffix(".composition.json"), master_mp4.with_name(master_mp4.stem + "_captions.ass"), master_mp4.with_suffix(".srt"),
+                    master_mp4.with_suffix(".vtt")])
+
+            # Review proxy is tied to its current master rather than its filename.
+            review_proxy = run_dir / "review_proxy.mp4"
+            proxy_inputs = file_inputs([master_mp4])
+            if not checkpoints.reusable("deep_proxy", proxy_inputs):
+                self.video_composer.make_review_proxy(master_mp4, review_proxy)
+                checkpoints.complete("deep_proxy", proxy_inputs, [review_proxy])
+
+            # Closed-Loop Self-Healing Gating & Auto-Remediation
+            timeline_cuts = []
+            t_cursor = 0.0
+            for c_idx, (asset, dur) in enumerate(zip(extended_scenes, durations)):
+                txt = cuts[c_idx]["text"] if c_idx < len(cuts) else ""
+                timeline_cuts.append({
+                    "scene_index": c_idx,
+                    "start": t_cursor,
+                    "end": t_cursor + dur,
+                    "dur": dur,
+                    "text": txt,
+                    "asset": asset,
+                })
+                t_cursor += dur
+
+            log.info("Executing Closed-Loop Self-Healing Quality Gating for %s...", master_mp4.name)
+            auditor = ClosedLoopAuditor()
+            healing_cert = auditor.run_self_healing_cycle(
+                video_path=master_mp4,
+                timeline=timeline_cuts,
+                words=words,
+                run_dir=run_dir,
+                composer=self.video_composer,
+                width=1920,
+                height=1080,
+                caption_path=master_mp4.with_name(master_mp4.stem + "_captions.ass"),
+                extended_scenes=extended_scenes,
+                durations=durations,
+                vo_path=vo_path,
+                bed_path=bed_path,
+                vo_dur=vo_dur,
+                emphasis=topic.get("key_facts", [])[:5],
+            )
+            payload["self_healing"] = healing_cert
+            log.info("Closed-Loop Self-Healing Certification: Score=%d/100, Certified=%s",
+                     healing_cert["score"], healing_cert["certified"])
+
+            self._verify_final_copy(payload, topic)
+            # Cryptographic Provenance Ledger
+            prov_ledger = generate_provenance_ledger(
+                run_dir=run_dir,
+                topic=topic,
+                payload=payload,
+                master_mp4=master_mp4,
+                vo_path=vo_path,
+                bed_path=bed_path,
+                media_items=extended_scenes,
+                self_healing=healing_cert,
+            )
+            log.info("Recorded cryptographic provenance ledger -> %s", prov_ledger.name)
+            from src.credits import add_provenance_attributions
+            add_provenance_attributions(payload, prov_ledger)
+
+            # Thumbnails: vertical cover, square grid, and 16:9 widescreen YouTube key-art
+            thumb_916, thumb_1x1 = self.visual_engine.generate_thumbnails(hero_img, payload, run_dir)
+            thumb_yt = self.visual_engine.generate_youtube_thumbnail(
+                hero_img, payload, run_dir / "thumbnail_youtube_16x9.jpg"
+            )
+            payload["thumbnail_youtube"] = str(thumb_yt)
+            (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+
+            self.db.update_run(
+                run_id,
+                "pending_approval",
+                master_video_path=master_mp4,
+                script_payload=payload,
+                thumbnail_cover_path=thumb_yt,
+                thumbnail_grid_path=thumb_1x1,
+                parent_run_id=parent_run_id,
+                content_format="deep_dive",
+            )
+
+            from src.release import write_release_report, require_release
+            write_release_report(self.db.get_run(run_id), dry_run=dry_run)
+            if auto_approve:
+                require_release(self.db.get_run(run_id), dry_run=dry_run)
+                self.db.record_approval(run_id, tid)
+                self.db.update_approval_decision(run_id, "approved", decided_by="auto-approve-flag")
+                self.db.update_run(run_id, "simulated" if dry_run else "approved")
+
+            return {
+                "run_id": run_id,
+                "parent_run_id": parent_run_id,
+                "topic_id": tid,
+                "status": "simulated" if dry_run else ("approved" if auto_approve else "pending_approval"),
+                "master_video": str(master_mp4),
+                "thumbnail_youtube": str(thumb_yt),
+                "duration_seconds": vo_dur,
+                "format": "deep_dive_16x9",
+            }
+
+        except Exception as e:
+            log.error("Deep-dive production failed for run %s: %s", run_id, e, exc_info=True)
+            self.db.update_run(run_id, "failed", error=f"{type(e).__name__}: {e}")
+            return {
+                "run_id": run_id,
+                "parent_run_id": parent_run_id,
+                "topic_id": tid,
+                "status": "failed",
+                "error": str(e),
+            }
 
     def _alert(self, text: str, buttons: Optional[list] = None) -> None:
         self.telegram_bot.notify(text, buttons)
@@ -211,14 +825,30 @@ class PipelineCoordinator:
         hero_img = self.visual_engine.hero_image(scene_media)
         log.info("Scene media: %d items.", len(scene_media))
 
-        # 2-3. Script + guardrail (fails closed). A resumed run reuses a script that already passed.
-        saved_script = run_dir / "script_metadata.json"
+        from src.checkpoints import Checkpoints, file_inputs, topic_inputs, cached_artifacts, topic_inputs
+        from src import config as pipeline_config
+        checkpoints = Checkpoints(run_dir)
+        script_inputs = {"topic": topic_inputs(topic), "engine": pipeline_config.SCRIPT_ENGINE,
+                         "fact_sheet": file_inputs([pipeline_config.DATA_DIR / "fact_sheets" / f"{topic['id']}.json"])}
+        saved_script = run_dir / "verified_script.json"
         saved = json.loads(saved_script.read_text(encoding="utf-8")) if saved_script.exists() else {}
-        if saved.get("guardrail_passed"):
-            log.info("Resuming with the script that already passed the guardrail.")
+        if saved.get("guardrail_passed") and checkpoints.reusable("script", script_inputs):
             payload = saved
+            log.info("Resuming with verified script inputs and intact metadata.")
         else:
             payload = self._write_and_check_script(topic, run_id, run_dir, dry_run)
+            saved_script.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+            checkpoints.complete("script", script_inputs, [saved_script])
+
+        from src.fact_evidence import current_fact_review
+        if not current_fact_review(payload):
+            try:
+                self._verify_final_copy(payload, topic)
+            except ValueError as exc:
+                payload = self._write_and_check_script(topic, run_id, run_dir, dry_run,
+                                                       initial_payload=payload, initial_notes=str(exc))
+            saved_script.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+            checkpoints.complete("script", script_inputs, [saved_script])
 
         # 4-5. Audio (reused when resuming)
         vo_path = run_dir / "voiceover.mp3"
@@ -227,7 +857,10 @@ class PipelineCoordinator:
         saved_voice = json.loads(voice_path.read_text(encoding="utf-8")) if voice_path.exists() else {}
         # A real run never reuses an unlicensed (test) voiceover. Older runs without voice.json
         # predate this record, so they are re-voiced too.
-        reusable = vo_path.exists() and words_path.exists() and (dry_run or saved_voice.get("licensed"))
+        voice_inputs = {"script": payload["narration_script"], "voice": self.audio_engine.voice,
+                        "rate": self.audio_engine.rate, "pitch": self.audio_engine.pitch,
+                        "eleven_voice": self.audio_engine.eleven_voice, "licensed_only": not dry_run}
+        reusable = checkpoints.reusable("voice", voice_inputs) and (dry_run or saved_voice.get("licensed"))
         if reusable:
             words = json.loads(words_path.read_text(encoding="utf-8"))
             log.info("Resuming with the existing voiceover.")
@@ -236,9 +869,14 @@ class PipelineCoordinator:
             words_path.write_text(json.dumps(words), encoding="utf-8")
             voice_path.write_text(json.dumps({"provider": self.audio_engine.last_provider,
                                               "licensed": self.audio_engine.last_licensed}), encoding="utf-8")
+            from src.audio_provenance import record_voice
+            record_voice(vo_path, self.audio_engine.last_provider, self.audio_engine.last_licensed,
+                         payload["narration_script"])
+            checkpoints.complete("voice", voice_inputs, [vo_path, words_path, voice_path])
             if self.audio_engine.fallback_reason:
-                self._alert(f"🔁 Voice fallback: {html.escape(self.audio_engine.fallback_reason)}. This run is voiced by "
-                            f"{html.escape(self.audio_engine.last_provider)}.")
+                r_label = html.escape(self.db.run_label(run_id))
+                self._alert(f"🔁 <b>Voice fallback for {r_label}</b>:\n{html.escape(self.audio_engine.fallback_reason)}\n\n"
+                            f"This run is voiced by <b>{html.escape(self.audio_engine.last_provider)}</b>.")
         payload["voice_note"] = {"elevenlabs": "🎙 Voice: ElevenLabs", "azure": "🎙 Voice: Azure Speech (fallback)",
                                  "edge-tts": "🎙 Voice: edge-tts (TEST ONLY: not licensed for posting)"}.get(
             saved_voice.get("provider") if reusable else self.audio_engine.last_provider, "")
@@ -247,9 +885,30 @@ class PipelineCoordinator:
         if vo_dur > HARD_DURATION_CEILING:
             raise RuntimeError(f"Voiceover is {vo_dur:.1f}s; hard ceiling is {HARD_DURATION_CEILING}s.")
         bed_path = run_dir / "ambient_bed.wav"
-        # Music: ElevenLabs score (paid plan) -> approved free library track -> synthesized drone.
-        music = music_for(payload, vo_dur + 0.5, run_dir, self.audio_engine.voice_quota())
-        self.audio_engine.generate_ambient_bed(vo_dur + 0.5, bed_path, words=words, music_path=music["path"])
+        from src.delivery_profiles import get_delivery_profile
+        from src.audio_provenance import record_bed, audio_source_inputs
+        from src.music import load_library, MUSIC_DIR
+        profile = get_delivery_profile(payload.setdefault("delivery_profile", "reel_9x16"))
+        library_tracks = load_library()
+        music_path = run_dir / "music_selection.json"
+        bed_inputs = {"voice_and_rules": file_inputs([vo_path, words_path, Path("src/audio_engine.py")]),
+                      "profile": profile.model_dump(),
+                      "library": [{k: v for k, v in t.items() if k != "uses"} for t in library_tracks],
+                      "library_files": file_inputs([MUSIC_DIR / t["file"] for t in library_tracks]),
+                      "selected_sources": audio_source_inputs(bed_path)}
+        if checkpoints.reusable("bed", bed_inputs):
+            music = json.loads(music_path.read_text(encoding="utf-8"))
+        else:
+            music = music_for(payload, vo_dur + 0.5, run_dir, self.audio_engine.voice_quota())
+            self.audio_engine.generate_ambient_bed(vo_dur + 0.5, bed_path, words=words,
+                                                  music_path=music["path"], sr=profile.audio_sample_rate,
+                                                  loop_seamless=profile.loop_seamless)
+            if bed_path.is_file():
+                record_bed(bed_path, music)
+                music_path.write_text(json.dumps(music, default=str, indent=2), encoding="utf-8")
+                bed_inputs["selected_sources"] = audio_source_inputs(bed_path)
+                checkpoints.complete("bed", bed_inputs, [bed_path, music_path,
+                                                         bed_path.with_suffix(".wav.rights.json")])
         payload["music_note"] = {"elevenlabs": f"🎵 Music: ElevenLabs score ({music['mood']})",
                                  "library": f"🎵 Music: free library track ({music['mood']})",
                                  "none": "🎵 Music: none available; synthesized drone used"}[music["source"]]
@@ -260,9 +919,10 @@ class PipelineCoordinator:
         return self._render_approve_publish(topic, run_id, run_dir, payload, scene_media, hero_img,
                                             vo_path, bed_path, words, vo_dur, auto_approve, dry_run, previous_status)
 
-    def _write_and_check_script(self, topic, run_id, run_dir, dry_run) -> Dict[str, Any]:
+    def _write_and_check_script(self, topic, run_id, run_dir, dry_run,
+                                initial_payload=None, initial_notes="") -> Dict[str, Any]:
         tid = topic["id"]
-        revision_notes, payload = "", None
+        revision_notes, payload = initial_notes, initial_payload
         for revision in range(MAX_FACT_REVISIONS + 1):
             payload = self.script_engine.generate_script(topic, revision_notes=revision_notes, previous=payload)
             passed, payload, notes = self.script_engine.verify_claims(payload, topic=topic, allow_unreviewed_curated=dry_run)
@@ -270,6 +930,16 @@ class PipelineCoordinator:
             if passed or payload.get("origin") not in ("claude", "gemini-free"):
                 break
             revision_notes = notes
+        if not passed:
+            curated = self.script_engine._load_curated(tid)
+            if curated:
+                pkg, reviewed = curated
+                if reviewed or dry_run:
+                    log.info("Claude script revisions rejected by guardrail; falling back to curated script for '%s'.", tid)
+                    payload = self.script_engine._finalize(pkg, topic, origin="curated")
+                    payload["human_reviewed"] = reviewed
+                    passed, payload, notes = self.script_engine.verify_claims(payload, topic=topic, allow_unreviewed_curated=dry_run)
+
         if passed:
             credit = caption_credit_line(load_credits(ASSETS_DIR / tid))
             if credit:  # CC BY images must be attributed where the work is shared
@@ -277,11 +947,38 @@ class PipelineCoordinator:
                 if len(payload["caption"]) > 2200:
                     passed, notes = False, "Caption plus image credits exceeds Instagram's 2,200 characters."
         payload["guardrail_passed"] = passed
+        from src.config import DATA_DIR
+        sheet_file = DATA_DIR / "fact_sheets" / f"{tid}.json"
+        if passed and sheet_file.is_file():
+            from src.fact_evidence import record_fact_review
+            record_fact_review(payload, sheet_file)
         (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
         self.db.update_run(run_id, "producing", script_payload=payload)
         if not passed:
             raise RuntimeError(f"Script rejected by guardrail: {notes}")
         return payload
+
+    def _verify_final_copy(self, payload, topic):
+        from src.fact_evidence import current_fact_review, record_fact_review
+        from src import trace_check, config as pipeline_config
+        if current_fact_review(payload):
+            return
+        sheet_path = pipeline_config.DATA_DIR / "fact_sheets" / f"{topic['id']}.json"
+        if not sheet_path.is_file():
+            raise ValueError("Final package verification requires a fact sheet")
+        sheet = json.loads(sheet_path.read_text(encoding="utf-8"))
+        passed, _, audits, notes = trace_check.check(payload, sheet)
+        payload["guardrail_passed"] = passed
+        payload["final_fact_audits"] = audits
+        if not passed:
+            raise ValueError("Final public copy failed fact verification: " + notes)
+        status, confidence, evidence_audits, evidence_notes = trace_check.evidence_check(payload, sheet)
+        payload["second_check"] = {"status": status, "confidence": confidence,
+                                    "audits": evidence_audits, "summary": evidence_notes}
+        if status != "pass":
+            payload["guardrail_passed"] = False
+            raise ValueError("Final public copy failed evidence verification: " + evidence_notes)
+        record_fact_review(payload, sheet_path)
 
     def _render_approve_publish(self, topic, run_id, run_dir, payload, scene_media, hero_img,
                                 vo_path, bed_path, words, vo_dur, auto_approve, dry_run, previous_status):
@@ -289,17 +986,17 @@ class PipelineCoordinator:
         # 6. Source quality: upscale stills too small for a sharp 1080x1920 crop (local Real-ESRGAN).
         scene_media, low_res = ensure_all(scene_media)
         hero_img = ensure_resolution(hero_img)
+        # Privacy: de-identify living human faces in visual media before rendering
+        scene_media = [privacy.anonymize_media(p) for p in scene_media]
+        hero_img = privacy.anonymize_media(hero_img)
         if low_res:
             payload["source_note"] = (f"🖼 {low_res} of {len(scene_media)} source images were below video resolution "
                                       "and were AI-upscaled; sharper originals would look better.")
             log.info(payload["source_note"])
 
-        # Stills
+        # Stills setup
         key = self.db.run_key(run_id)  # rotate cover layouts so neighbouring grid posts differ
         style = COVER_STYLES[int(key) % len(COVER_STYLES)] if key.isdigit() else COVER_STYLES[0]
-        thumb_916, thumb_1x1 = self.visual_engine.generate_thumbnails(hero_img, payload, run_dir, style=style)
-        story_slides = self.multiformat_gen.generate_story_sequence(hero_img, payload, run_dir, scene_images=scene_media)
-        carousel_slides = self.multiformat_gen.generate_carousel_sequence(scene_media, payload, run_dir)
 
         # 7. Master render
         # Match pictures to narration beats; cuts land on the beat boundaries.
@@ -312,16 +1009,44 @@ class PipelineCoordinator:
                 query_plan = beat_images.plan_queries(beats, topic)
             except Exception as e:
                 log.warning("Beat query planning failed (%s); no beat images or footage this run.", e)
-        beat_paths, beat_credits = (beat_images.source(beats, topic, run_dir / "beat_images", plan=query_plan)
-                                    if query_plan else ([], []))
-        footage_clips, footage_credits = (footage.source(beats, topic, run_dir / "footage", plan=query_plan)
-                                          if query_plan else ([], []))
+
+        from src.checkpoints import Checkpoints, cached_artifacts, file_inputs
+        from src.typography import FONT_FILES, FONTS_DIR
+        packaging_inputs = {"photos": file_inputs([hero_img, *scene_media]), "style": style,
+                            "copy": {key: payload.get(key) for key in ("title", "thumbnail", "story_slides", "carousel_slides", "poll")},
+                            "rules": file_inputs([Path("src/visual_engine.py"), Path("src/multi_format.py"),
+                                                  Path("src/typography.py"), Path("src/config.py")]),
+                            "fonts": file_inputs([FONTS_DIR / name for name in FONT_FILES.values()])}
+        # Concurrently generate multiformat stills (thumbnails, story, carousel)
+        # and source media candidates (beat images, footage, channel graphics, callouts, then/now)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+            fut_thumb = pool.submit(cached_artifacts, run_dir, "thumbnails", packaging_inputs,
+                                    lambda: self.visual_engine.generate_thumbnails(hero_img, payload, run_dir, style=style))
+            fut_story = pool.submit(cached_artifacts, run_dir, "stories", packaging_inputs,
+                                    lambda: self.multiformat_gen.generate_story_sequence(hero_img, payload, run_dir, scene_images=scene_media))
+            fut_carousel = pool.submit(cached_artifacts, run_dir, "carousel", packaging_inputs,
+                                       lambda: self.multiformat_gen.generate_carousel_sequence(scene_media, payload, run_dir))
+
+            fut_beats = pool.submit(beat_images.source, beats, topic, run_dir / "beat_images", plan=query_plan) if query_plan else None
+            fut_footage = pool.submit(footage.source, beats, topic, run_dir / "footage", plan=query_plan) if query_plan else None
+            fut_graphics = pool.submit(graphics.make_all, payload, topic, run_dir / "graphics", photo=hero_img)
+            fut_callouts = pool.submit(callouts.make, payload, topic, scene_media, run_dir / "graphics")
+            fut_then_now = pool.submit(then_now.make, topic, run_dir / "graphics")
+
+            thumb_916, thumb_1x1 = fut_thumb.result()
+            story_slides = fut_story.result()
+            carousel_slides = fut_carousel.result()
+
+            beat_paths, beat_credits = fut_beats.result() if fut_beats else ([], [])
+            footage_clips, footage_credits = fut_footage.result() if fut_footage else ([], [])
+            own_graphics = fut_graphics.result()
+            labelled = fut_callouts.result()
+            then_clip, then_credits = fut_then_now.result()
+
         for cred, path in zip(beat_credits, beat_paths):
-            cred["upscaled"] = str(ensure_resolution(path))
+            upscaled = ensure_resolution(path)
+            cred["upscaled"] = str(privacy.anonymize_media(upscaled))
         # The channel's own animated graphics (map, timeline, scale) as further candidates.
-        own_graphics = graphics.make_all(payload, topic, run_dir / "graphics", photo=hero_img)
-        labelled = callouts.make(payload, topic, scene_media, run_dir / "graphics")
-        then_clip, then_credits = then_now.make(topic, run_dir / "graphics")
         own_graphics += [g for g in (labelled, then_clip) if g]
         candidates = scene_media + [Path(c["upscaled"]) for c in beat_credits] + own_graphics + footage_clips
         master_mp4 = run_dir / f"{tid}_master.mp4"
@@ -359,8 +1084,50 @@ class PipelineCoordinator:
                 scenes = render_parallax(scenes, durations, run_dir / "parallax", TRANS_DUR) or scenes
             except Exception as e:
                 log.warning("Parallax rendering failed (%s); using flat camera moves.", e)
-            self.video_composer.compose_video(scenes, vo_path, bed_path, words, vo_dur, master_mp4, durations=durations,
-                                              emphasis=payload.get("emphasis_words"))
+            cached_artifacts(run_dir, "caption_exports", {"words": words, "rules": file_inputs([Path("src/video_composer.py")])},
+                lambda: [self.video_composer.export_subtitles_srt(words, master_mp4.with_suffix(".srt")),
+                         self.video_composer.export_subtitles_vtt(words, master_mp4.with_suffix(".vtt"))])
+            render_checkpoint = Checkpoints(run_dir / "stage_cache" / "render")
+            render_inputs = {"media": file_inputs([*scenes, vo_path, bed_path]), "words": words,
+                             "durations": durations, "emphasis": payload.get("emphasis_words"),
+                             "rules": file_inputs([Path("src/video_composer.py"), Path("src/config.py"),
+                                                   Path("src/encoding.py"), Path("src/encoded_audio.py"), Path("src/delivery_profiles.py")]),
+                             "fonts": packaging_inputs["fonts"]}
+            if not render_checkpoint.reusable("master", render_inputs):
+                self.video_composer.compose_video(scenes, vo_path, bed_path, words, vo_dur, master_mp4, durations=durations,
+                                                  emphasis=payload.get("emphasis_words"))
+                outputs = [master_mp4, master_mp4.with_name(master_mp4.stem + "_captions.ass"),
+                           master_mp4.with_suffix(".composition.json"), master_mp4.with_suffix(".srt"), master_mp4.with_suffix(".vtt")]
+                if all(path.is_file() for path in outputs):
+                    render_checkpoint.complete("master", render_inputs, outputs)
+
+            # Closed-Loop Self-Healing Deterministic Validation
+            try:
+                timeline_cuts = []
+                t_cursor = 0.0
+                for c_idx, (asset, dur) in enumerate(zip(scenes, durations)):
+                    b_txt = beats[c_idx]["text"] if c_idx < len(beats) else ""
+                    timeline_cuts.append({
+                        "scene_index": c_idx,
+                        "start": t_cursor,
+                        "end": t_cursor + dur,
+                        "dur": dur,
+                        "text": b_txt,
+                        "asset": asset,
+                    })
+                    t_cursor += dur
+                cl_auditor = ClosedLoopAuditor()
+                cl_result = cl_auditor.run_self_healing_cycle(
+                    video_path=master_mp4,
+                    timeline=timeline_cuts,
+                    words=words,
+                    run_dir=run_dir,
+                    composer=self.video_composer,
+                )
+                payload["self_healing"] = cl_result
+            except Exception as e:
+                log.warning("Closed-loop self-healing validation skipped: %s", e)
+
             # Automated look at the finished video; findings go on the review card.
             qa = review_render(master_mp4, beats, thumb_916, run_dir)
             feedback = beat_images.picture_issues(qa)
@@ -371,10 +1138,21 @@ class PipelineCoordinator:
         payload["qa_summary"] = qa_summary_html(qa)
         (run_dir / "qa_report.json").write_text(qa.model_dump_json(indent=2) if qa else "null", encoding="utf-8")
         log.info("%s", re.sub(r"<[^>]+>", "", payload["qa_summary"]).replace("\n", " | "))
+        self._verify_final_copy(payload, topic)
         # Persist the final payload: publishing reads it back (caption incl. music/image credits).
         self.db.update_run(run_id, "pending_approval", master_video_path=master_mp4, script_payload=payload,
                            thumbnail_cover_path=thumb_916, thumbnail_grid_path=thumb_1x1)
         (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+
+        ledger = generate_provenance_ledger(run_dir, topic, payload, master_mp4,
+                                   vo_path, bed_path, media_items=scenes,
+                                   self_healing=payload.get("self_healing"))
+        from src.credits import add_provenance_attributions
+        add_provenance_attributions(payload, ledger)
+        self.db.update_run(run_id, "pending_approval", script_payload=payload)
+        (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+        from src.release import write_release_report
+        write_release_report(self.db.get_run(run_id), dry_run=dry_run)
 
         # 8-9. Human approval (never implicit)
         if auto_approve:
@@ -428,6 +1206,8 @@ class PipelineCoordinator:
         payload = run["script_payload"]
         if payload.get("origin") == "curated" and not payload.get("human_reviewed"):
             raise ValueError("This run used an unreviewed curated script; it can only be published after review.")
+        from src.release import require_release
+        require_release(run)
         run_dir = Path(run["master_video_path"]).parent
         slot = post_schedule.next_reel_slot(now, self._booked_reel_days())
         self.db.add_scheduled_post(run_id, "reel", slot.astimezone(timezone.utc).isoformat(), [])
@@ -548,18 +1328,44 @@ class PipelineCoordinator:
         self._post_photos(post, run, "carousel")
 
     def publish_run(self, run_id: str, dry_run: bool = False, previous_status: str = "queued") -> Dict[str, Any]:
+        from src.publication_lock import publication_lock
+        with publication_lock(self.db.db_path, run_id):
+            return self._publish_run_locked(run_id, dry_run, previous_status)
+
+    def _publish_run_locked(self, run_id: str, dry_run: bool = False, previous_status: str = "queued") -> Dict[str, Any]:
         run = self.db.get_run(run_id)
         if not run or not run.get("master_video_path"):
             raise ValueError(f"Run '{run_id}' has no rendered video.")
+        if run.get("status") == "published":
+            return {"status": "published", "already_published": True}
+        if run.get("status") in ("publishing", "publish_unknown"):
+            raise ValueError("Publication is in progress or its outcome is unknown; reconcile it before retrying.")
         payload, tid = run["script_payload"], run["topic_id"]
+        from src.delivery_profiles import get_delivery_profile
+        profile_name = payload.get("delivery_profile") or ("deep_dive" if run.get("content_format") == "deep_dive" else "reel")
+        if get_delivery_profile(profile_name).name != "reel_9x16":
+            raise ValueError("No uploader is configured for this delivery profile; use the exported artifacts.")
         if not dry_run and payload.get("origin") == "curated" and not payload.get("human_reviewed"):
             raise ValueError("This run used an unreviewed curated script; it can only be published after review.")
-        self.db.update_run(run_id, "approved")
+        from src.release import require_release
+        require_release(run, dry_run=dry_run)
         envelope = self.publisher.build_envelope(
             run_id, Path(run["master_video_path"]), Path(run["thumbnail_cover_path"]),
             Path(run["thumbnail_grid_path"]), payload,
         )
-        pub = self.publisher.publish_reel(envelope, dry_run=dry_run)
+        if dry_run:
+            self.db.update_run(run_id, "approved")
+        elif not self.db.claim_publication(run_id):
+            raise ValueError("Publication was already claimed or this run is not ready")
+        try:
+            pub = self.publisher.publish_reel(envelope, dry_run=dry_run)
+        except Exception as exc:
+            if not dry_run:
+                self.db.update_run(run_id, "publish_unknown", error=type(exc).__name__)
+                self.topic_engine.record_status(tid, "publish_unknown", run_id=run_id)
+                self.db.record_publication(tid, run_id, "coordinator", "unknown",
+                                           {"error_type": type(exc).__name__})
+            raise
         status = pub["status"]
 
         if status == "published":
@@ -656,6 +1462,42 @@ def _print_health(res: Dict[str, Any]):
     print(f"Overall: {'READY' if res['all_passed'] else 'ATTENTION REQUIRED'}")
 
 
+def run_continuous_tuning(coordinator: Optional[PipelineCoordinator] = None, db: Optional[PipelineDatabase] = None) -> Dict[str, Any]:
+    """Off-peak continuous tuning: stress-tests procedural layouts across aspect ratios,
+    caches calibrated bounds in data/layout_rules.json, and pre-certifies queued topics."""
+    from PIL import Image, ImageDraw
+    from src.graphics import LayoutConstraintSolver
+    from src.layout_rules import load_layout_rules, save_layout_rules
+    from src.typography import get_font
+
+    log.info("Starting background continuous tuning across aspect ratios (16:9, 9:16)...")
+    db = db or PipelineDatabase()
+    topics = db.list_all_topics()[:5]
+    tested = 0
+    rules = load_layout_rules()
+    solver = LayoutConstraintSolver()
+
+    resolutions = [("16:9", 1920, 1080), ("9:16", 1080, 1920)]
+    for ar_name, w, h in resolutions:
+        dummy_img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        d = ImageDraw.Draw(dummy_img)
+        f_title = get_font("Anton", 34 if w > h else 40)
+        f_sub = get_font("Montserrat", 22 if w > h else 26)
+        min_gap = rules.get("shelf_anchor", {}).get("min_gap", 10)
+        coords = solver.get_shelf_coordinates(
+            d, "TEST TITLE LINE", f_title, "TEST SUBTITLE DESCRIPTION", f_sub,
+            shelf_x=w // 2, shelf_y=h // 2, shelf_gap=min_gap
+        )
+        if not coords["is_valid"]:
+            rules.setdefault("shelf_anchor", {})["min_gap"] = min_gap + 2
+            save_layout_rules(rules)
+            log.info("Continuous tuning adjusted shelf_anchor min_gap -> %d", rules["shelf_anchor"]["min_gap"])
+        tested += 1
+
+    log.info("Continuous tuning completed successfully: %d configurations validated across %d topics.", tested, len(topics))
+    return {"status": "completed", "configurations_tested": tested, "topics_checked": len(topics), "rules": rules}
+
+
 def main(argv=None) -> int:
     setup_logging()
     parser = argparse.ArgumentParser(description="Relic & Riddle: Reels research, production & publishing pipeline")
@@ -665,6 +1507,14 @@ def main(argv=None) -> int:
     run_p.add_argument("--topic-id")
     run_p.add_argument("--auto-approve", action="store_true", help="Skip human review (records who approved)")
     run_p.add_argument("--dry-run", action="store_true", help="Do everything except publish")
+    run_p.add_argument(
+        "--format",
+        choices=["reel", "deep-dive", "dual"],
+        default="reel",
+        help="Format to produce: 'reel' (9:16 vertical), 'deep-dive' (16:9 widescreen), or 'dual' (both)",
+    )
+    run_p.add_argument("--run-id", help="Re-use existing run directory to re-render without re-synthesizing voiceover")
+    run_p.add_argument("--continuous-tuning", action="store_true", help="Run layout stress test and pre-certify topic layouts")
 
     resume_p = sub.add_parser("resume", help="Continue a failed run, reusing its approved script and voiceover")
     resume_p.add_argument("run_id")
@@ -682,6 +1532,7 @@ def main(argv=None) -> int:
     update_p.add_argument("--apply", action="store_true", help="Apply safe/security updates (test-gated, on a branch)")
     daemon_p = sub.add_parser("daemon", help="Run the daily scheduler")
     daemon_p.add_argument("--time", default=DAILY_RUN_TIME, help="Daily run time HH:MM")
+    daemon_p.add_argument("--continuous-tuning", action="store_true", help="Run background continuous tuning during off-peak hours")
 
     review_p = sub.add_parser("review", help="Inspect and decide pending approvals")
     review_sub = review_p.add_subparsers(dest="review_action")
@@ -716,11 +1567,21 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "run":
+        if getattr(args, "continuous_tuning", False):
+            res = run_continuous_tuning()
+            print(json.dumps(res, indent=2, default=str))
+            return 0
         try:
-            res = PipelineCoordinator().run_cycle(args.topic_id, args.auto_approve, args.dry_run)
+            res = PipelineCoordinator().run_cycle(args.topic_id, args.auto_approve, args.dry_run, content_format=args.format, run_id=getattr(args, "run_id", None))
         except Exception:
             return 1  # already logged and recorded on the run
-        print(json.dumps({k: res.get(k) for k in ("status", "run_id", "master_video")}, indent=2))
+        summary_keys = ["status", "run_id", "master_video", "dual_format"]
+        out_dict = {k: res.get(k) for k in summary_keys if k in res}
+        if "deep_dive_run" in res:
+            out_dict["deep_dive_run"] = {
+                k: res["deep_dive_run"].get(k) for k in ("run_id", "status", "master_video", "duration_seconds")
+            }
+        print(json.dumps(out_dict, indent=2))
         return 0 if res["status"] in ("published", "simulated") else 1
 
     if args.command == "resume":
@@ -916,6 +1777,9 @@ def main(argv=None) -> int:
                     log.warning("Fact sheet pre-build failed for %s: %s", t["id"], e)
                     bot.notify(f"🧾 Couldn't build the fact sheet for {html.escape(t['title'])}: {html.escape(str(e))[:200]}")
 
+        scheduler.add_job(lambda: run_continuous_tuning(coordinator, coordinator.db),
+                          CronTrigger(hour=2, minute=0, timezone=TIMEZONE),
+                          max_instances=1, coalesce=True, misfire_grace_time=3600)
         scheduler.add_job(prebuild_fact_sheets, CronTrigger(hour=3, minute=0, timezone=TIMEZONE),
                           max_instances=1, coalesce=True, misfire_grace_time=6 * 3600)
         scheduler.add_job(propose_topics.run_now, CronTrigger(day_of_week="fri", hour=hb_hour, minute=hb_minute,

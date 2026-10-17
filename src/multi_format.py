@@ -13,12 +13,12 @@ import json
 import logging
 import re
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Any, Dict, List, Optional, Tuple
 
 from PIL import Image, ImageDraw, ImageFilter
 
 from .config import VIDEO_WIDTH, VIDEO_HEIGHT
-from .typography import cover_crop, fit_font, get_font, is_video, wrap_text
+from .typography import cover_crop, fit_font, get_font, is_video, wrap_text, text_size
 
 log = logging.getLogger(__name__)
 
@@ -143,6 +143,33 @@ class MultiFormatGenerator:
             return "blueprint"
         return "immersive" if index % 2 == 1 else "editorial_split"
 
+    @staticmethod
+    def _draw_badge(
+        d: ImageDraw.ImageDraw,
+        text: str,
+        x0: int,
+        y0: int,
+        font: Any,
+        text_color: Any = GOLD,
+        border_color: Any = GOLD,
+        fill_color: Any = (12, 16, 22, 230),
+        pad_x: int = 18,
+        pad_y: int = 8,
+        radius: int = 4,
+        border_width: int = 1,
+    ) -> Tuple[int, int, int, int]:
+        """Draws an editorial badge/pill with mathematically centered horizontal and vertical text alignment."""
+        bbox = d.textbbox((0, 0), text, font=font, anchor="mm")
+        tw = bbox[2] - bbox[0]
+        th = bbox[3] - bbox[1]
+        x1 = x0 + tw + 2 * pad_x
+        y1 = y0 + th + 2 * pad_y
+        cx = (x0 + x1) / 2
+        cy = (y0 + y1) / 2
+        d.rounded_rectangle([x0, y0, x1, y1], radius=radius, fill=fill_color, outline=border_color, width=border_width)
+        d.text((cx, cy), text, font=font, fill=text_color, anchor="mm")
+        return (int(x0), int(y0), int(x1), int(y1))
+
     def _render_cover(self, photo: Path, card: Dict[str, Any], cw: int, chh: int) -> Image.Image:
         heading, body = card["heading"].upper(), card["body"]
         im = cover_crop(photo, self.CAROUSEL_SIZE).convert("RGB")
@@ -172,9 +199,7 @@ class MultiFormatGenerator:
             d.line([(0, y), (cw, y)], fill=(8, 10, 14, a))
         tag = f"EXPLORATION // {index + 1:02d}"
         f_tag = get_font("Montserrat", 26)
-        bbox = d.textbbox((120, chh - 520), tag, font=f_tag)
-        d.rounded_rectangle([bbox[0] - 18, bbox[1] - 8, bbox[2] + 18, bbox[3] + 8], radius=8, fill=(12, 14, 18, 225), outline=GOLD, width=2)
-        d.text((120, chh - 520), tag, font=f_tag, fill=GOLD, anchor="lt")
+        self._draw_badge(d, tag, 80, chh - 530, f_tag, text_color=GOLD, border_color=GOLD, border_width=2, radius=8)
         font_h = fit_font(d, heading, "Anton", 76, cw - 160, 44)
         h_lines = wrap_text(d, heading, font_h, cw - 160)[:2]
         y = chh - 440
@@ -199,10 +224,12 @@ class MultiFormatGenerator:
         d.line([(0, h_half), (cw, h_half)], fill=GOLD, width=3)
         d.line([(0, 2 * h_half), (cw, 2 * h_half)], fill=GOLD, width=2)
         f_sub = get_font("Montserrat", 24)
-        d.rounded_rectangle([60, 40, 360, 80], radius=6, fill=(10, 12, 16, 220), outline=GOLD, width=1)
-        d.text((80, 50), "REF A // SURFACE CONTEXT", font=f_sub, fill=WHITE, anchor="lt")
-        d.rounded_rectangle([60, h_half + 40, 420, h_half + 80], radius=6, fill=(10, 12, 16, 220), outline=GOLD, width=1)
-        d.text((80, h_half + 50), "REF B // SUBTERRANEAN DEPTH", font=f_sub, fill=GOLD, anchor="lt")
+        t_ref_a = "REF A // SURFACE CONTEXT"
+        self._draw_badge(d, t_ref_a, 60, 40, f_sub, text_color=WHITE, border_color=GOLD, fill_color=(10, 12, 16, 220), radius=6)
+
+        t_ref_b = "REF B // SUBTERRANEAN DEPTH"
+        self._draw_badge(d, t_ref_b, 60, h_half + 40, f_sub, text_color=GOLD, border_color=GOLD, fill_color=(10, 12, 16, 220), radius=6)
+
         d.text((80, 2 * h_half + 30), f"{index + 1:02d}", font=get_font("Anton", 60), fill=GOLD, anchor="lt")
         font_h = fit_font(d, heading, "Anton", 64, cw - 260, 38)
         d.text((180, 2 * h_half + 60), heading, font=font_h, fill=WHITE, anchor="lm")
@@ -226,8 +253,8 @@ class MultiFormatGenerator:
             d.line([(0, y_g), (cw, y_g)], fill=(20, 36, 52, 70), width=1)
         d.line([(0, p_h), (cw, p_h)], fill=GOLD, width=3)
         f_tech = get_font("Montserrat", 24)
-        d.rounded_rectangle([80, p_h + 30, 480, p_h + 70], radius=4, fill=(8, 12, 18, 230), outline=GOLD, width=1)
-        d.text((95, p_h + 40), "[ ARCHITECTURAL BLUEPRINT // METRIC ]", font=f_tech, fill=GOLD, anchor="lt")
+        t_bp = "ARCHITECTURAL BLUEPRINT // METRIC"
+        self._draw_badge(d, t_bp, 80, p_h + 30, f_tech, text_color=GOLD, border_color=GOLD, fill_color=(8, 12, 18, 230), radius=4)
         d.text((80, p_h + 90), f"{index + 1:02d}", font=get_font("Anton", 60), fill=GOLD, anchor="lt")
         font_h = fit_font(d, heading, "Anton", 64, cw - 260, 38)
         d.text((180, p_h + 120), heading, font=font_h, fill=WHITE, anchor="lm")
@@ -260,8 +287,9 @@ class MultiFormatGenerator:
         for line in wrap_text(d, body, font_b, cw - 160)[:4]:
             d.text((80, y), line, font=font_b, fill=LIGHT, anchor="lt")
             y += 52
-        d.rounded_rectangle([80, chh - 140, 540, chh - 95], radius=6, fill=(16, 20, 26, 230), outline=(255, 215, 0, 180), width=1)
-        d.text((100, chh - 128), "VERIFIED BY ARCHEOLOGICAL RECORD", font=get_font("Montserrat", 22), fill=GOLD, anchor="lt")
+        ver_font = get_font("Montserrat", 22)
+        t_ver = "VERIFIED BY ARCHEOLOGICAL RECORD"
+        self._draw_badge(d, t_ver, 80, chh - 140, ver_font, text_color=GOLD, border_color=(255, 215, 0, 180), fill_color=(16, 20, 26, 230), radius=6)
         return im
 
     def _render_debate(self, photo: Path, card: Dict[str, Any], index: int, total: int, cw: int, chh: int, poll: Dict[str, Any], f_small) -> Image.Image:
@@ -275,8 +303,8 @@ class MultiFormatGenerator:
             a = int(255 * ((y - (p_h - 160)) / 160) ** 1.5)
             d.line([(0, y), (cw, y)], fill=(12, 14, 18, a))
         f_tag = get_font("Montserrat", 24)
-        d.rounded_rectangle([80, p_h + 20, 480, p_h + 60], radius=6, fill=(16, 18, 22, 230), outline=GOLD, width=1)
-        d.text((95, p_h + 30), "FORENSIC DEBATE // THE FINAL QUESTION", font=f_tag, fill=GOLD, anchor="lt")
+        t_deb = "FORENSIC DEBATE // THE FINAL QUESTION"
+        self._draw_badge(d, t_deb, 80, p_h + 20, f_tag, text_color=GOLD, border_color=GOLD, fill_color=(16, 18, 22, 230), radius=6)
         font_h = fit_font(d, heading, "Anton", 68, cw - 160, 42)
         d.text((80, p_h + 80), heading, font=font_h, fill=WHITE, anchor="lt")
         font_b = get_font("Montserrat", 40)

@@ -161,10 +161,10 @@ AUDIO_SAMPLE_RATE = 48000
 TARGET_LUFS = -14.0
 TARGET_TRUE_PEAK = -1.5
 
-TARGET_DURATION_MIN = 38.0
-TARGET_DURATION_MAX = 50.0
-HARD_DURATION_CEILING = 58.0
-TARGET_WORD_COUNT_MIN = 95
+TARGET_DURATION_MIN = 42.0
+TARGET_DURATION_MAX = 48.0
+HARD_DURATION_CEILING = 52.0
+TARGET_WORD_COUNT_MIN = 105
 TARGET_WORD_COUNT_MAX = 115
 MIN_SCENE_IMAGES = 5
 # Local AI upscaler for low-resolution stills (https://github.com/xinntao/Real-ESRGAN, portable Vulkan build).
@@ -180,32 +180,47 @@ FOOTAGE_MIN_CROP_WIDTH = int(os.getenv("FOOTAGE_MIN_CROP_WIDTH", "1080"))  # px 
 FOOTAGE_MAX_MB = int(os.getenv("FOOTAGE_MAX_MB", "600"))  # per original download (4K originals are large)
 PEXELS_API_KEY = os.getenv("PEXELS_API_KEY", "")
 PIXABAY_API_KEY = os.getenv("PIXABAY_API_KEY", "")
-BEAT_IMAGES_ALLOW_SHARE_ALIKE =os.getenv("BEAT_IMAGES_ALLOW_SHARE_ALIKE", "false").lower() in ("true", "1", "yes")
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY", "")
+YOUTUBE_FOOTAGE_ENABLED = os.getenv("YOUTUBE_FOOTAGE_ENABLED", "true").lower() in ("true", "1", "yes")
+BEAT_IMAGES_ALLOW_SHARE_ALIKE = os.getenv("BEAT_IMAGES_ALLOW_SHARE_ALIKE", "false").lower() in ("true", "1", "yes")
+CALLOUTS_ENABLED = os.getenv("CALLOUTS_ENABLED", "false").lower() in ("true", "1", "yes")
+FACE_PRIVACY_ENABLED = os.getenv("FACE_PRIVACY_ENABLED", "true").lower() in ("true", "1", "yes")
+FACE_PRIVACY_SKIN_THRESHOLD = float(os.getenv("FACE_PRIVACY_SKIN_THRESHOLD", "0.35"))
 
-# Narration & Voiceover (edge-tts)
-NARRATOR_VOICE = "en-US-ChristopherNeural"
+# Narration & Voiceover (edge-tts and Azure Speech)
+NARRATOR_VOICE = os.getenv("NARRATOR_VOICE", "en-US-BrianMultilingualNeural")
 # Licensed free voice fallback: Azure Speech (F0 tier: 0.5M characters/month), same voice.
 AZURE_SPEECH_KEY = os.getenv("AZURE_SPEECH_KEY", "")
 AZURE_SPEECH_REGION = os.getenv("AZURE_SPEECH_REGION", "")
-NARRATOR_RATE = "-2%"
-NARRATOR_PITCH = "-2Hz"
+NARRATOR_RATE = os.getenv("NARRATOR_RATE", "-2%")
+NARRATOR_PITCH = os.getenv("NARRATOR_PITCH", "-2Hz")
 
 # Subtitle / Caption Typography (Anton Locked Standard)
 FONT_NAME = "Anton"
-FONT_SIZE = 92
+FONT_SIZE = 72
+FONT_SIZE_ASS = 128  # Compensates for libass PlayResX/PlayResY scale to deliver exact 72px rendered height
 # Bottom 35% of the frame (672 px) is Meta's Reels safe zone for its own UI (username,
 # caption, audio row); captions sit just above it, baseline at y = 1248.
 CAPTION_MARGIN_V = 672
-MAX_BURST_WORDS = 2
-MAX_BURST_CHARS = 13
+MIN_BURST_WORDS = 2
+TARGET_BURST_WORDS = 3
+MAX_BURST_WORDS = 5
+MAX_BURST_CHARS = 28
+CAPTION_SMALL_CAPS = True
+CAPTION_SC_SCALE = 82  # % scale for small capitals (82% of font size)
+
+# Caption Pill Background (Equal Margins & Subtle Border Radius)
+CAPTION_PAD_X = 28
+CAPTION_PAD_Y = 16
+CAPTION_BORDER_RADIUS = 14
 
 # Caption Colors (ASS BGR Hex)
 COL_ACTIVE = r"&H00FFFFFF&"    # Clean White (spoken word)
 COL_EMPHASIS = r"&H0000D7FF&"  # Warm Gold #FFD700, only for the script's 1-3 key words
-EMPHASIS_POP = 112             # % scale the key word starts at, settling to 100% in 140 ms
+EMPHASIS_POP = 100             # 100% scale (no animated size pop; eliminates line jitter & glitching)
 COL_PAST = r"&H00FFFFFF&"      # Clean White
 COL_FUTURE = r"&H00909090&"    # Soft Gray
-COL_BACK = r"&HC8101010&"      # Translucent Charcoal Pill
+COL_BACK = r"&H20101010&"      # Translucent Charcoal Pill (alpha 0x20 = ~87% opacity)
 
 # Thumbnail Specifications (Variant B Locked Standard)
 THUMB_OPACITY = 215            # ~85% opacity

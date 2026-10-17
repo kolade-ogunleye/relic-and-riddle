@@ -15,6 +15,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
+from . import free_llm
 from .config import FOOTAGE_MAX_SHARE
 from .llm import LLMError, claude_available, image_block, structured_call, task as llm_task
 from .models import ScenePlan
@@ -89,6 +90,58 @@ def _footage_share(chosen: List[Path], durations: List[float]) -> float:
     return sum(d for c, d in zip(chosen, durations) if Path(c).stem.startswith("footage_")) / total
 
 
+def lock_narrative_graphics(beats: List[Dict[str, Any]], graphics: List[Path]) -> Dict[int, Path]:
+    """
+    Directly locks channel graphics onto the exact beat where the narrator speaks about them.
+    - Scale / Cross-section / Stat cards / Numbers: where depth/dimensions/capacity/levels are stated
+    - Map: where location/discovery/geography is introduced (e.g. 1963, Cappadocia, Turkey, village, entrance, wall)
+    - Timeline: where historical dates / eras / dynasties are stated (e.g. century, bc, ad, byzantine, hittites, phrygians, years old)
+    - Rolling doors / defense / mechanisms: where stone doors / locks are stated (e.g. rolling stone, doors, sealed, tons)
+    - Ventilation / shaft / airflow: where ventilation or breathing is stated
+    """
+    locked: Dict[int, Path] = {}
+    used_g: set = set()
+
+    for idx, b in enumerate(beats):
+        txt = b.get("text", "").lower()
+        # 1. Depth & Scale & Numbers graphics
+        if any(w in txt for w in ("deep", "depth", "metre", "meter", "feet", "levels", "stories", "280", "85", "capacity", "thousand", "population", "people")):
+            scale_g = next((g for g in graphics if g not in used_g and any(k in g.stem for k in ("section", "scale", "stat", "numbers"))), None)
+            if scale_g:
+                locked[idx] = scale_g
+                used_g.add(scale_g)
+                continue
+        # 2. Map & Geographic context (skip beat 0 so hook still gets a photo/video hook)
+        if idx > 0 and any(w in txt for w in ("1963", "cappadocia", "turkey", "renovating", "wall", "region", "village", "anatolian", "plains")):
+            map_g = next((g for g in graphics if g not in used_g and "map" in g.stem), None)
+            if map_g:
+                locked[idx] = map_g
+                used_g.add(map_g)
+                continue
+        # 3. Timeline & Historical dynasties
+        if any(w in txt for w in ("years old", "century", " bc", " ad", "byzantine", "hittite", "phrygian", "dynasty")):
+            time_g = next((g for g in graphics if g not in used_g and any(k in g.stem for k in ("timeline", "dates"))), None)
+            if time_g:
+                locked[idx] = time_g
+                used_g.add(time_g)
+                continue
+        # 4. Mechanism & Defense (doors, rooms)
+        if any(w in txt for w in ("rolling", "doors", "sealed", "choke point", "stoneware", "millstone", "defense", "defensive", "basalt")):
+            callout_g = next((g for g in graphics if g not in used_g and any(k in g.stem for k in ("defense", "labels", "callout", "door"))), None)
+            if callout_g:
+                locked[idx] = callout_g
+                used_g.add(callout_g)
+                continue
+        # 5. Ventilation & Airflow
+        if any(w in txt for w in ("ventilation", "shaft", "air", "breathe", "convection", "airflow", "oxygen")):
+            vent_g = next((g for g in graphics if g not in used_g and any(k in g.stem for k in ("ventilation", "shaft", "air"))), None)
+            if vent_g:
+                locked[idx] = vent_g
+                used_g.add(vent_g)
+                continue
+    return locked
+
+
 @llm_task("scene_plan")
 def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = "") -> Tuple[List[Path], List[float], str]:
     """Returns (media per beat, duration per beat, notes). A motion hook clip stays first.
@@ -102,7 +155,7 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
 
     order = list(range(n))  # default: filename order of the photos, cycling if there are more beats than photos
     notes = "filename order"
-    if claude_available() and stills:
+    if (free_llm.available() if free_llm.enabled() else claude_available()) and stills:
         try:
             content: List[dict] = []
             for i, p in enumerate(options, 1):
@@ -115,7 +168,8 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
             content.append({"type": "text", "text": (
                 f"Narration beats ({n}):\n{lines}{fix}\n\n"
                 f"Return exactly {n} image numbers (1-{len(options)}), one per beat, in order.")})
-            plan = structured_call(SYSTEM, content, ScenePlan, effort="low", max_tokens=4000)
+            plan = (free_llm.call(SYSTEM, content, ScenePlan, effort="low", max_tokens=4000)
+                    if free_llm.enabled() else structured_call(SYSTEM, content, ScenePlan, effort="low", max_tokens=4000))
             picks = [i - 1 for i in plan.images]
             if len(picks) == n and all(0 <= i < len(options) for i in picks):
                 order, notes = picks, plan.notes
@@ -134,6 +188,13 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
                 pick = stills[k % len(stills)]
             used_graphics.add(pick)
         chosen.append(pick)
+
+    # Hard-lock narrative-matching graphics to their corresponding spoken beats
+    locked = lock_narrative_graphics(beats, graphics)
+    for idx, g in locked.items():
+        if idx < len(chosen):
+            chosen[idx] = g
+
     # Footage supports the narration, never dominates it (Meta's originality rules): over the
     # cap, the latest footage picks become photos.
     k = len(chosen) - 1

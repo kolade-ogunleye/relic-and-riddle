@@ -20,9 +20,11 @@ Rules that keep it within Meta's originality guidelines and honest:
   re-encoded; API keys never appear in logs.
 """
 
+import concurrent.futures
 import hashlib
 import json
 import logging
+import os
 import subprocess
 import time
 from pathlib import Path
@@ -43,9 +45,8 @@ MAX_BYTES = config.FOOTAGE_MAX_MB * 1_000_000  # originals are deleted once the 
 PER_QUERY = 2                  # candidates examined per query, after filters
 ALLOWED_HOSTS = {
     "commons": {"upload.wikimedia.org"},
-    "pexels": {"videos.pexels.com", "player.vimeo.com"},
-    "pixabay": {"cdn.pixabay.com"},
     "nasa": {"images-assets.nasa.gov"},
+    "youtube": {"www.youtube.com", "youtube.com", "youtu.be", ".googlevideo.com"},
     # AI motion results (src/motion.py). A leading dot allows that domain's subdomains.
     "veo": {"generativelanguage.googleapis.com", ".googleusercontent.com", ".googleapis.com"},
     "kling": {".klingai.com"},
@@ -66,6 +67,7 @@ GENERIC_WORDS = {"city", "town", "village", "underground", "ancient", "old", "gr
 class FootageCheck(BaseModel):
     matches_search: bool              # does it show what the SEARCH asked for (e.g. "Cappadocia" landscape)?
     place_matches: Literal["yes", "no", "unsure"]  # is it recognisably the NAMED place itself?
+    has_anachronism: bool = False     # modern steel rebar, machinery, asphalt, modern boats, modern building tools
     burned_in_text_or_watermark: bool
     brand_logo: bool
     identifiable_person_focus: bool
@@ -180,12 +182,92 @@ def search_nasa(query: str, keywords: List[str]) -> List[Dict[str, Any]]:
     return out
 
 
-PROVIDERS = [("commons", search_commons), ("pexels", search_pexels), ("pixabay", search_pixabay), ("nasa", search_nasa)]
+def search_youtube_cc(query: str, keywords: List[str]) -> List[Dict[str, Any]]:
+    """Searches YouTube for Creative Commons (CC-BY) videos via YouTube Data API v3."""
+    if not getattr(config, "YOUTUBE_FOOTAGE_ENABLED", False):
+        return []
+    api_key = getattr(config, "YOUTUBE_API_KEY", "")
+    if not api_key:
+        return []
+    url = "https://www.googleapis.com/youtube/v3/search"
+    params = {
+        "key": api_key,
+        "q": query,
+        "part": "snippet",
+        "type": "video",
+        "videoLicense": "creativeCommon",
+        "videoDefinition": "high",
+        "maxResults": 10,
+    }
+    try:
+        data = _cached_get(url, params)
+    except Exception as e:
+        log.warning("YouTube CC search error: %s", e)
+        return []
+
+    out = []
+    for item in data.get("items", []):
+        vid_id = item.get("id", {}).get("videoId")
+        if not vid_id:
+            continue
+        snippet = item.get("snippet", {})
+        title = snippet.get("title", "")
+        desc = snippet.get("description", "")
+        channel = snippet.get("channelTitle", "Unknown")
+        video_url = f"https://www.youtube.com/watch?v={vid_id}"
+        out.append({
+            "provider": "youtube",
+            "title": title,
+            "text": f"{title} {desc}",
+            "download_url": video_url,
+            "source_url": video_url,
+            "license": "Creative Commons Attribution (reuse allowed)",
+            "artist": channel,
+            "attribution_required": True,
+            "width": 1920,
+            "height": 1080,
+            "duration": 0.0,
+        })
+    return out
+
+
+PROVIDERS = [("commons", search_commons), ("nasa", search_nasa), ("youtube", search_youtube_cc)]
 
 
 # ----------------------------------------------------------- download & clip
+def _download_youtube(url: str, dest: Path) -> Path:
+    """Downloads a YouTube video using yt-dlp constrained to 1080p and max size."""
+    try:
+        import yt_dlp
+    except ImportError:
+        raise ValueError("yt-dlp is required to download YouTube footage")
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or not _host_allowed(parsed.hostname or "", "youtube"):
+        raise ValueError(f"refusing to download from {parsed.scheme}://{parsed.hostname}")
+    dest_template = str(dest.parent / f"{dest.stem}_ytdl.%(ext)s")
+    ydl_opts = {
+        "format": "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best",
+        "outtmpl": dest_template,
+        "max_filesize": MAX_BYTES,
+        "quiet": True,
+        "no_warnings": True,
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
+    matches = list(dest.parent.glob(f"{dest.stem}_ytdl.*"))
+    if not matches:
+        raise ValueError(f"yt-dlp downloaded no files for {url}")
+    target = matches[0]
+    if dest.exists():
+        dest.unlink()
+    target.rename(dest)
+    return dest
+
+
 def download(url: str, provider: str, dest: Path, extra_headers: Optional[dict] = None) -> Path:
     """HTTPS from the provider's media hosts only, streamed with a size cap."""
+    if provider == "youtube":
+        return _download_youtube(url, dest)
     parsed = urlparse(url)
     if parsed.scheme != "https" or not _host_allowed(parsed.hostname or "", provider):
         raise ValueError(f"refusing to download from {parsed.scheme}://{parsed.hostname}")
@@ -256,11 +338,12 @@ def _frames(clip: Path) -> List[Path]:
 
 
 CHECK = """You vet stock and archive video for a history documentary. Judge only what you see in these
-three frames from one clip. Answer two separate questions:
-- matches_search: does the clip genuinely show what the search asked for? Regional or atmospheric
-  footage counts when the search was for the region or an atmosphere (it will be labelled as generic).
+three frames from one clip. Answer these questions:
+- matches_search: does the clip genuinely show what the search asked for?
 - place_matches: is it recognisably the named place itself ("yes"), clearly somewhere else ("no"),
   or could it be anywhere similar ("unsure")?
+- has_anachronism: does the clip show modern steel rebar/reinforcement, contemporary heavy machinery,
+  power tools, asphalt, plastic, modern boats, or contemporary construction workers? (true if any present)
 Be strict about watermarks, burned-in text or subtitles, channel logos and brand logos."""
 
 
@@ -271,6 +354,42 @@ def verify(clip: Path, query: str, place: str) -> FootageCheck:
         content.append(image_block(p, 768))
     content.append({"type": "text", "text": f"Search: {query}\nNamed place: {place}"})
     return structured_call(CHECK, content, FootageCheck, effort="low", max_tokens=1500)
+
+
+def _vet_candidate(
+    cand: Dict[str, Any],
+    cand_idx: int,
+    query: str,
+    place: str,
+    work_dir: Path,
+) -> Optional[Tuple[Dict[str, Any], Path, Any]]:
+    """Downloads, probes, trims, and LLM-verifies a candidate clip in an isolated worker thread."""
+    raw = work_dir / f"tmp_raw_{cand_idx}_{cand.get('provider', 'cand')}"
+    clip = work_dir / f"tmp_clip_{cand_idx}_{cand.get('provider', 'cand')}.mp4"
+    try:
+        download(cand["download_url"], cand["provider"], raw)
+        info = probe(raw)
+        if not _good_size(info["width"], info["height"]):
+            raise ValueError(f"{info['width']}x{info['height']} is below the quality bar")
+        make_segment(raw, info, clip)
+        check = verify(clip, query, place)
+    except (requests.RequestException, ValueError, OSError, subprocess.SubprocessError, LLMError) as e:
+        log.info("Footage candidate skipped (%s): %s", cand["title"][:60], e)
+        clip.unlink(missing_ok=True)
+        for p in work_dir.glob(f"{clip.stem}_check*.jpg"):
+            p.unlink(missing_ok=True)
+        return None
+    finally:
+        raw.unlink(missing_ok=True)
+
+    if not check.matches_search or check.burned_in_text_or_watermark or check.brand_logo or check.identifiable_person_focus or check.has_anachronism or check.place_matches == "no":
+        log.info("Footage rejected by the check (%s): %s (anachronism=%s, place=%s)", cand["title"][:60], check.note, check.has_anachronism, check.place_matches)
+        clip.unlink(missing_ok=True)
+        for p in work_dir.glob(f"{clip.stem}_check*.jpg"):
+            p.unlink(missing_ok=True)
+        return None
+
+    return cand, clip, check
 
 
 # --------------------------------------------------------------------- main
@@ -304,41 +423,62 @@ def source(beats: List[Dict[str, Any]], topic: Dict[str, Any], work_dir: Path, p
                 log.warning("Footage search via %s failed (%s).", provider, e)
                 continue
             query_words = [w for w in (normalize(x) for x in query.split()) if len(w) > 3 and w not in GENERIC_WORDS]
+
+            eligible: List[Dict[str, Any]] = []
             for cand in candidates:
-                if found >= PER_QUERY or cand["source_url"] in seen:
+                if cand["source_url"] in seen:
                     continue
                 # Free relevance filter before any download: stock search returns unrelated clips
                 # when nothing matches, so the clip's own title/tags must mention the search.
                 if query_words and not any(w in normalize(cand["text"]) for w in query_words):
                     continue
                 seen.add(cand["source_url"])
+                eligible.append(cand)
+                if len(eligible) >= PER_QUERY * 3:
+                    break
+
+            if not eligible:
+                continue
+
+            results = []
+            max_workers = min(int(os.getenv("FOOTAGE_MAX_WORKERS", "1")), len(eligible))
+            if max_workers > 1:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+                    futs = [
+                        executor.submit(_vet_candidate, cand, i, query, place, work_dir)
+                        for i, cand in enumerate(eligible)
+                    ]
+                    for fut in futs:
+                        res = fut.result()
+                        if res:
+                            results.append(res)
+            else:
+                for i, cand in enumerate(eligible):
+                    res = _vet_candidate(cand, i, query, place, work_dir)
+                    if res:
+                        results.append(res)
+
+            for cand, temp_clip, check in results:
+                if found >= PER_QUERY:
+                    break
                 n = len(clips) + 1
-                raw = work_dir / f"raw_{n:02d}"
-                clip = work_dir / f"footage_{n:02d}.mp4"
-                try:
-                    download(cand["download_url"], cand["provider"], raw)
-                    info = probe(raw)
-                    if not _good_size(info["width"], info["height"]):
-                        raise ValueError(f"{info['width']}x{info['height']} is below the quality bar")
-                    make_segment(raw, info, clip)
-                    check = verify(clip, query, place)
-                except (requests.RequestException, ValueError, OSError, subprocess.SubprocessError, LLMError) as e:
-                    log.info("Footage candidate skipped (%s): %s", cand["title"][:60], e)
-                    continue
-                finally:
-                    raw.unlink(missing_ok=True)  # never keep the original download
-                if not check.matches_search or check.burned_in_text_or_watermark or check.brand_logo or check.identifiable_person_focus:
-                    log.info("Footage rejected by the check (%s): %s", cand["title"][:60], check.note)
-                    clip.unlink(missing_ok=True)
-                    continue
+                final_clip = work_dir / f"footage_{n:02d}.mp4"
+                temp_clip.replace(final_clip)
+                for p in work_dir.glob(f"{temp_clip.stem}_check*.jpg"):
+                    p.unlink(missing_ok=True)
+
                 named = any(w and w in normalize(cand["text"]) for w in site_words)
-                cand.update(file=str(clip), query=query, place_specific=named and check.place_matches == "yes",
+                cand.update(file=str(final_clip), query=query, place_specific=named and check.place_matches == "yes",
                             check_note=check.note, downloaded_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
                 cand.pop("text", None)
-                clip.with_suffix(".json").write_text(json.dumps(cand, indent=1, ensure_ascii=False), encoding="utf-8")
-                clips.append(clip)
+                final_clip.with_suffix(".json").write_text(json.dumps(cand, indent=1, ensure_ascii=False), encoding="utf-8")
+                clips.append(final_clip)
                 credits.append(cand)
                 found += 1
+
+    for leftover in work_dir.glob("tmp_*"):
+        leftover.unlink(missing_ok=True)
+
     (work_dir / "credits.json").write_text(json.dumps(credits, indent=1, ensure_ascii=False), encoding="utf-8")  # provenance
     log.info("Footage: %d clip(s) passed (%d place-specific).", len(clips), sum(c["place_specific"] for c in credits))
     return clips, credits
@@ -352,6 +492,8 @@ def credit_line(used: List[Dict[str, Any]]) -> str:
             text = f"{c['artist']} ({c['license']}) via Wikimedia Commons"
         elif c["provider"] == "nasa":
             text = "NASA"
+        elif c["provider"] == "youtube":
+            text = f"{c['artist']} via YouTube (CC-BY)"
         else:
             text = f"{c['artist']} / {c['provider'].capitalize()}"
         if text not in seen:

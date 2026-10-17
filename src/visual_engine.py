@@ -262,20 +262,6 @@ class VisualEngine:
         text_layer = Image.new("RGBA", bg.size, (0, 0, 0, 0))
         tdraw = ImageDraw.Draw(text_layer)
 
-        # Architectural bracket frames strictly inside safe zone [450, 1470]
-        b_len = 50
-        b_margin = 120
-        y_top_safe = max(450, cy - 260)
-        y_bot_safe = min(1470, cy + 260)
-        tdraw.line([(b_margin, y_top_safe), (b_margin + b_len, y_top_safe)], fill=GOLD, width=3)
-        tdraw.line([(b_margin, y_top_safe), (b_margin, y_top_safe + b_len)], fill=GOLD, width=3)
-        tdraw.line([(VIDEO_WIDTH - b_margin - b_len, y_top_safe), (VIDEO_WIDTH - b_margin, y_top_safe)], fill=GOLD, width=3)
-        tdraw.line([(VIDEO_WIDTH - b_margin, y_top_safe), (VIDEO_WIDTH - b_margin, y_top_safe + b_len)], fill=GOLD, width=3)
-        tdraw.line([(b_margin, y_bot_safe), (b_margin + b_len, y_bot_safe)], fill=GOLD, width=3)
-        tdraw.line([(b_margin, y_bot_safe - b_len), (b_margin, y_bot_safe)], fill=GOLD, width=3)
-        tdraw.line([(VIDEO_WIDTH - b_margin - b_len, y_bot_safe), (VIDEO_WIDTH - b_margin, y_bot_safe)], fill=GOLD, width=3)
-        tdraw.line([(VIDEO_WIDTH - b_margin, y_bot_safe - b_len), (VIDEO_WIDTH - b_margin, y_bot_safe)], fill=GOLD, width=3)
-
         shadow_layer = Image.new("RGBA", bg.size, (0, 0, 0, 0))
         sdraw = ImageDraw.Draw(shadow_layer)
         sdraw.text((cx + 4, cy - title_size - 40 + 6), eyebrow, font=font_eye, fill=(0, 0, 0, 220), anchor="mm")
@@ -295,19 +281,16 @@ class VisualEngine:
         sandwich = Image.alpha_composite(bg, text_layer)
 
         if 0.15 <= coverage <= 0.60:
-            feathered_mask = cv2.GaussianBlur(mask, (9, 9), 0)
-            fg_alpha = Image.fromarray(feathered_mask, mode="L")
-            fg_im = im.convert("RGBA")
-            fg_im.putalpha(fg_alpha)
-
-            canny = cv2.Canny(feathered_mask, 80, 160)
-            canny = cv2.dilate(canny, np.ones((3, 3), np.uint8), iterations=1)
-            canny_blur = cv2.GaussianBlur(canny, (5, 5), 0)
-            rim_layer = Image.new("RGBA", bg.size, (255, 215, 0, 0))
-            rim_layer.putalpha(Image.fromarray(canny_blur, mode="L"))
-
-            sandwich = Image.alpha_composite(sandwich, fg_im)
-            sandwich = Image.alpha_composite(sandwich, rim_layer)
+            text_box_y0 = max(0, cy - title_size - 60)
+            text_box_y1 = min(mask.shape[0], cy + title_size + 60)
+            box_slice = mask[text_box_y0:text_box_y1, :]
+            occlusion = float(np.count_nonzero(box_slice)) / (box_slice.size + 1e-6)
+            if occlusion <= 0.35:
+                feathered_mask = cv2.GaussianBlur(mask, (15, 15), 0)
+                fg_alpha = Image.fromarray(feathered_mask, mode="L")
+                fg_im = im.convert("RGBA")
+                fg_im.putalpha(fg_alpha)
+                sandwich = Image.alpha_composite(sandwich, fg_im)
 
         return sandwich
 
@@ -456,19 +439,16 @@ class VisualEngine:
         # Layer 3: Foreground extraction with adaptive gating (15% to 60%)
         mask, coverage = extract_foreground_mask(im)
         if 0.15 <= coverage <= 0.60:
-            feathered_mask = cv2.GaussianBlur(mask, (9, 9), 0)
-            fg_alpha = Image.fromarray(feathered_mask, mode="L")
-            fg_im = im.convert("RGBA")
-            fg_im.putalpha(fg_alpha)
-
-            canny = cv2.Canny(feathered_mask, 80, 160)
-            canny = cv2.dilate(canny, np.ones((3, 3), np.uint8), iterations=1)
-            canny_blur = cv2.GaussianBlur(canny, (5, 5), 0)
-            rim_layer = Image.new("RGBA", (w, h), (255, 215, 0, 0))
-            rim_layer.putalpha(Image.fromarray(canny_blur, mode="L"))
-
-            sandwich = Image.alpha_composite(sandwich, fg_im)
-            sandwich = Image.alpha_composite(sandwich, rim_layer)
+            text_box_y0 = max(0, y0 - 20)
+            text_box_y1 = min(mask.shape[0], y0 + title_font_size * 2 + 60)
+            box_slice = mask[text_box_y0:text_box_y1, x0:min(mask.shape[1], x0 + max_text_w)]
+            occlusion = float(np.count_nonzero(box_slice)) / (box_slice.size + 1e-6)
+            if occlusion <= 0.35:
+                feathered_mask = cv2.GaussianBlur(mask, (15, 15), 0)
+                fg_alpha = Image.fromarray(feathered_mask, mode="L")
+                fg_im = im.convert("RGBA")
+                fg_im.putalpha(fg_alpha)
+                sandwich = Image.alpha_composite(sandwich, fg_im)
 
         # Layer 4: Badges (Eyebrow & Tagline) crisp on top
         badge_layer = Image.new("RGBA", (w, h), (0, 0, 0, 0))

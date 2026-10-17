@@ -156,3 +156,51 @@ def test_planner_caps_footage_share(tmp_path, monkeypatch):
     chosen, durations, _ = scene_planner.plan_scenes(beats, stills + clips)
     assert scene_planner._footage_share(chosen, durations) <= 0.4
     assert any("actual site" in t for t in seen_labels) and any("GENERIC" in t for t in seen_labels)
+
+
+def test_anachronism_rejected(tmp_path, monkeypatch):
+    monkeypatch.setattr(footage, "claude_available", lambda: True)
+    cands = [{"provider": "commons", "title": "Modern concrete mixer", "text": "Roman concrete", "download_url": "u1",
+              "source_url": "s1", "license": "CC BY 4.0", "artist": "Ann", "attribution_required": True, "width": 3840, "height": 2160, "duration": 60}]
+    monkeypatch.setattr(footage, "PROVIDERS", [("commons", lambda q, k: list(cands))])
+    monkeypatch.setattr(footage, "PER_QUERY", 1)
+    monkeypatch.setattr(footage, "download", lambda url, prov, dest: dest.write_bytes(b"x") or dest)
+    monkeypatch.setattr(footage, "probe", lambda p: {"width": 3840, "height": 2160, "duration": 60})
+    monkeypatch.setattr(footage, "make_segment", lambda s, i, o: o.write_bytes(b"0") or o)
+    monkeypatch.setattr(footage, "verify", lambda c, q, p: FootageCheck(matches_search=True, place_matches="yes",
+                                                                        has_anachronism=True, burned_in_text_or_watermark=False,
+                                                                        brand_logo=False, identifiable_person_focus=False, note="modern machinery"))
+    clips, credits = footage.source([], {"location": {"name": "Roman Port", "country": "Italy"}}, tmp_path)
+    assert len(clips) == 0 and len(credits) == 0
+
+
+def test_search_youtube_cc_and_credit_line(monkeypatch):
+    # 1. Missing key returns empty list safely
+    monkeypatch.setattr(footage.config, "YOUTUBE_API_KEY", "")
+    assert footage.search_youtube_cc("Derinkuyu", []) == []
+
+    # 2. Configured key parses items correctly
+    monkeypatch.setattr(footage.config, "YOUTUBE_API_KEY", "fake-yt-key")
+    fake_response = {
+        "items": [
+            {
+                "id": {"videoId": "test_vid_123"},
+                "snippet": {
+                    "title": "Ancient Derinkuyu Tunnels",
+                    "description": "Exploration of Cappadocia underground city",
+                    "channelTitle": "History Channel CC",
+                },
+            }
+        ]
+    }
+    monkeypatch.setattr(footage, "_cached_get", lambda url, params: fake_response)
+    results = footage.search_youtube_cc("Derinkuyu", [])
+    assert len(results) == 1
+    assert results[0]["provider"] == "youtube"
+    assert results[0]["download_url"] == "https://www.youtube.com/watch?v=test_vid_123"
+    assert results[0]["artist"] == "History Channel CC"
+
+    # 3. Credit line formatting
+    line = footage.credit_line(results)
+    assert "History Channel CC via YouTube (CC-BY)" in line
+

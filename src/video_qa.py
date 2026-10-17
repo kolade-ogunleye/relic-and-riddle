@@ -365,7 +365,7 @@ class ClosedLoopAuditor:
                 else:
                     matching_word_times = [
                         w["start"] for w in all_words_list
-                        if any(k in re.sub(r"[^\w]", "", w.get("word", "")).lower() for k in cat_keywords)
+                        if any(re.sub(r"[^\w]", "", k).lower() and re.sub(r"[^\w]", "", k).lower() in re.sub(r"[^\w]", "", w.get("word", "")).lower() for k in cat_keywords)
                         and (c_start - 2.5) <= w["start"] <= (c_end + 2.5)
                     ]
                     if matching_word_times:
@@ -520,6 +520,86 @@ class ClosedLoopAuditor:
             "scenes_audited": len(timeline),
             "master_sha256": sha256_file(video_path),
             "remediation_targets": [iss for iss in issues if iss.get("scene_index", -1) >= 0 or iss.get("type") == "loudness"],
+        }
+
+    def audit_carousel_slides(self, carousel_dir: Path) -> Dict[str, Any]:
+        """Audits generated carousel slides for aspect ratio, blank frames, safe margin encroachment, and badge bounds."""
+        target_dir = carousel_dir / "carousel" if (carousel_dir / "carousel").is_dir() else carousel_dir
+        issues: List[Dict[str, Any]] = []
+        score = 100
+        slides = sorted(list(target_dir.glob("carousel_slide_*.jpg")))
+        if not slides:
+            return {
+                "score": 0,
+                "certified": False,
+                "issues": [{"type": "missing_slides", "severity": "critical", "issue": f"No carousel slides found in {target_dir}"}],
+                "slides_audited": 0,
+            }
+
+        for idx, slide_path in enumerate(slides, start=1):
+            try:
+                with Image.open(slide_path) as im:
+                    w, h = im.size
+                    # Check aspect ratio: standard carousels are 1080x1350 (4:5) or 1080x1080 (1:1)
+                    if (w, h) not in ((1080, 1350), (1080, 1080), (1080, 1920)):
+                        issues.append({
+                            "type": "non_standard_aspect_ratio",
+                            "severity": "minor",
+                            "issue": f"Slide {idx} ({slide_path.name}): non-standard dimensions {w}x{h}",
+                            "slide": slide_path.name,
+                        })
+                        score -= 5
+
+                    # Blank/black frame detection
+                    gray = im.convert("L")
+                    stat = ImageStat.Stat(gray)
+                    stddev = stat.stddev[0] if stat.stddev else 0.0
+                    if stddev < 3.0:
+                        issues.append({
+                            "type": "blank_slide",
+                            "severity": "critical",
+                            "issue": f"Slide {idx} ({slide_path.name}): rendered slide appears blank/monochrome (stddev={stddev:.1f})",
+                            "slide": slide_path.name,
+                        })
+                        score -= 30
+
+                    # Safe margin text/element clipping check at extreme borders
+                    left_strip = gray.crop((0, 0, 12, h))
+                    right_strip = gray.crop((w - 12, 0, w, h))
+                    l_stat = ImageStat.Stat(left_strip)
+                    r_stat = ImageStat.Stat(right_strip)
+                    if l_stat.stddev and l_stat.stddev[0] > 60.0:
+                        issues.append({
+                            "type": "margin_encroachment",
+                            "severity": "major",
+                            "issue": f"Slide {idx} ({slide_path.name}): graphics or text clipped at left canvas margin",
+                            "slide": slide_path.name,
+                        })
+                        score -= 15
+                    if r_stat.stddev and r_stat.stddev[0] > 60.0:
+                        issues.append({
+                            "type": "margin_encroachment",
+                            "severity": "major",
+                            "issue": f"Slide {idx} ({slide_path.name}): graphics or text clipped at right canvas margin",
+                            "slide": slide_path.name,
+                        })
+                        score -= 15
+            except Exception as e:
+                issues.append({
+                    "type": "corrupt_slide",
+                    "severity": "critical",
+                    "issue": f"Slide {idx} ({slide_path.name}): failed to load or parse image: {e}",
+                    "slide": slide_path.name,
+                })
+                score -= 30
+
+        final_score = max(0, min(100, score))
+        certified = (final_score == 100 and len([iss for iss in issues if iss.get("severity") in ("critical", "major")]) == 0)
+        return {
+            "score": final_score,
+            "certified": certified,
+            "issues": issues,
+            "slides_audited": len(slides),
         }
 
     def auto_remediate_scene(

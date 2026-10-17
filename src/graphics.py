@@ -1225,7 +1225,59 @@ def make_stratigraphy(
 
             yield im
 
+    svg_path = out.with_suffix(".svg")
+    _export_schematic_svg(spec, svg_path, width=width, height=height)
     return _encode(frames(), out, n, width=width, height=height)
+
+
+def _export_schematic_svg(spec: Dict[str, Any], svg_path: Path, width: int = 1080, height: int = 1920) -> Path:
+    """Exports a resolution-independent vector SVG technical schematic with calipers, cross-hatching, and glow."""
+    title = (spec.get("title") or "GEOLOGICAL STRATIGRAPHY & CHRONOLOGY").upper()
+    total_depth_ft = float(spec.get("total_depth_ft", 280))
+    strata = spec.get("strata") or [
+        {"depth_ft": 40, "epoch": "QUATERNARY", "label": "Basaltic Surface Cap", "color": "#34302a"},
+        {"depth_ft": 110, "epoch": "c. 600-1000 AD", "label": "Byzantine Refuge Strata", "color": "#40382e"},
+        {"depth_ft": 200, "epoch": "c. 800 BC", "label": "Phrygian Soft Tuff Horizon", "color": "#4e4436"},
+        {"depth_ft": 280, "epoch": "MIOCENE", "label": "Basal Ignimbrite Bedrock", "color": "#2c2824"},
+    ]
+    svg_lines = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="{width}" height="{height}">',
+        '  <defs>',
+        '    <pattern id="crosshatch" width="14" height="14" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">',
+        '      <line x1="0" y1="0" x2="0" y2="14" stroke="#b4aa96" stroke-width="1" stroke-opacity="0.3" />',
+        '    </pattern>',
+        '    <filter id="laserGlow" x="-20%" y="-20%" width="140%" height="140%">',
+        '      <feGaussianBlur stdDeviation="4" result="blur" />',
+        '      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>',
+        '    </filter>',
+        '  </defs>',
+        f'  <rect width="{width}" height="{height}" fill="#0a0c10"/>',
+        f'  <text x="{width // 2}" y="380" fill="#ffffff" font-family="Anton, sans-serif" font-size="44" text-anchor="middle">{title}</text>',
+    ]
+    y0 = 440
+    total_h = 600
+    prev_y = y0
+    for st in strata:
+        depth = st["depth_ft"]
+        cur_y = y0 + total_h * (depth / total_depth_ft)
+        color = st.get("color")
+        if isinstance(color, tuple):
+            color = f"#{color[0]:02x}{color[1]:02x}{color[2]:02x}"
+        svg_lines.append(f'  <rect x="{int(width * 0.12)}" y="{int(prev_y)}" width="{int(width * 0.40)}" height="{int(cur_y - prev_y)}" fill="{color}" stroke="#282420"/>')
+        svg_lines.append(f'  <rect x="{int(width * 0.12)}" y="{int(prev_y)}" width="{int(width * 0.40)}" height="{int(cur_y - prev_y)}" fill="url(#crosshatch)"/>')
+        mid_y = int((prev_y + cur_y) / 2)
+        svg_lines.append(f'  <line x1="{int(width * 0.52)}" y1="{mid_y}" x2="{int(width * 0.56)}" y2="{mid_y}" stroke="#FFD700" stroke-width="2" filter="url(#laserGlow)"/>')
+        svg_lines.append(f'  <text x="{int(width * 0.58)}" y="{mid_y - 4}" fill="#ffffff" font-family="Montserrat, sans-serif" font-size="20">{st["label"]}</text>')
+        svg_lines.append(f'  <text x="{int(width * 0.58)}" y="{mid_y + 18}" fill="#FFD700" font-family="Montserrat, sans-serif" font-size="16">EPOCH: {st["epoch"]} // {depth} FT</text>')
+        prev_y = cur_y
+    caliper_x = int(width * 0.08)
+    svg_lines.append(f'  <line x1="{caliper_x}" y1="{y0}" x2="{caliper_x}" y2="{y0 + total_h}" stroke="#8c96aa" stroke-width="2"/>')
+    svg_lines.append(f'  <line x1="{int(width * 0.04)}" y1="{y0 + total_h}" x2="{int(width * 0.54)}" y2="{y0 + total_h}" stroke="#FFD700" stroke-width="3" filter="url(#laserGlow)"/>')
+    svg_lines.append(f'  <text x="{int(width * 0.05)}" y="{y0 + total_h + 8}" fill="#FFD700" font-family="Anton, sans-serif" font-size="30" text-anchor="end">{total_depth_ft:.0f} FT</text>')
+    svg_lines.append('</svg>')
+    svg_path.parent.mkdir(parents=True, exist_ok=True)
+    svg_path.write_text("\n".join(svg_lines), encoding="utf-8")
+    return svg_path
 
 
 # ----------------------------------------------- 3D Isometric Structural Cutaway

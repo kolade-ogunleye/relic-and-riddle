@@ -521,6 +521,21 @@ class AudioEngine:
                     if n_b > 0:
                         bed[cue_idx:cue_idx + n_b] += braam[:n_b]
 
+        # Triple-stem foley: Cinematic revelation sub-bass braams hitting on major story revelations
+        if words:
+            revelation_words = {"discovered", "secret", "impossible", "abyss", "depth", "never", "uncovered"}
+            for w in words:
+                cw = re.sub(r"[^\w]", "", w.get("word", "").lower())
+                if cw in revelation_words:
+                    cue_t = float(w.get("start", 0.0))
+                    if 0 < cue_t < duration - 1.0:
+                        cue_idx = int(cue_t * sr)
+                        braam = self._synth_sub_bass_braam(duration_sec=1.8, sr=sr)
+                        n_b = min(len(braam), total - cue_idx)
+                        if n_b > 0:
+                            bed[cue_idx:cue_idx + n_b] += braam[:n_b] * 0.75
+                    break  # primary narrative revelation hit
+
         for name, (keywords, gain) in self.SFX_CUES.items():
             if not words:
                 continue

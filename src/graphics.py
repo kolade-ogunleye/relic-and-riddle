@@ -868,6 +868,10 @@ def render_rolling_stone_defense(
         k = (y - floor_y) / max(1, height - floor_y)
         d0.line([(0, y), (width, y)], fill=(int(55 - 20 * k), int(44 - 16 * k), int(34 - 12 * k), 255))
 
+    # Architectural blueprint cross-hatching across solid bedrock
+    _draw_cross_hatching(d0, 0, top + 40, width, ceiling_y, spacing=16, fill=(130, 115, 95, 40))
+    _draw_cross_hatching(d0, 0, floor_y, width, height, spacing=16, fill=(120, 105, 85, 40))
+
     # Corridor walls
     d0.line([(0, ceiling_y), (width, ceiling_y)], fill=(*MUTED, 255), width=3)
     d0.line([(0, floor_y), (width, floor_y)], fill=(*MUTED, 255), width=3)
@@ -980,6 +984,7 @@ def render_ventilation_airflow(
     for y in range(ground_y, height):
         k = (y - ground_y) / max(1, height - ground_y)
         d0.line([(0, y), (width, y)], fill=(int(60 - 25 * k), int(48 - 20 * k), int(38 - 16 * k), 255))
+    _draw_cross_hatching(d0, 0, ground_y, width, height, spacing=18, fill=(110, 95, 75, 40))
     d0.line([(0, ground_y), (width, ground_y)], fill=(*MUTED, 255), width=3)
     _text(d0, (width - int(width * 0.08), ground_y - 24), "GROUND LEVEL", font=get_font("Montserrat", 22), fill=(*MUTED, 255), anchor="rm")
     _text(d0, (int(width * 0.08), top + 16), title, font=f_title, fill=(*WHITE, 255), anchor="lm")

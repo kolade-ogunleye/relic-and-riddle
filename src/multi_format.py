@@ -84,13 +84,13 @@ class MultiFormatGenerator:
                 d.text((VIDEO_WIDTH // 2, y + 30), "FULL STORY IN OUR NEW REEL  →", font=get_font("Montserrat", 32),
                        fill=GOLD, anchor="mt", stroke_width=2, stroke_fill=(10, 10, 12, 220))
             if has_options:
-                font_o = get_font("Anton", 52)
-                for j, (letter, option) in enumerate(zip("AB", poll["options"][:2])):
+                font_o = get_font("Anton", 42)
+                for j, (prefix, option) in enumerate(zip(["THEORY 1", "THEORY 2"], poll["options"][:2])):
                     oy = y + 40 + j * 120
-                    d.rounded_rectangle([140, oy, VIDEO_WIDTH - 140, oy + 96], radius=48, fill=(10, 10, 12, 210),
-                                        outline=(255, 215, 0, 230), width=3)
-                    d.text((190, oy + 48), letter, font=font_o, fill=GOLD, anchor="lm")
-                    d.text((250, oy + 48), option.upper()[:28], font=get_font("Montserrat", 38), fill=WHITE, anchor="lm")
+                    d.rounded_rectangle([120, oy, VIDEO_WIDTH - 120, oy + 96], radius=24, fill=(10, 10, 12, 215),
+                                        outline=(255, 215, 0, 230), width=2)
+                    d.text((150, oy + 48), prefix, font=font_o, fill=GOLD, anchor="lm")
+                    d.text((360, oy + 48), option.upper()[:24], font=get_font("Montserrat", 34), fill=WHITE, anchor="lm")
                 d.text((VIDEO_WIDTH // 2, y + 40 + 2 * 120 + 20), "WEIGH IN BELOW  ↓", font=get_font("Montserrat", 32),
                        fill=LIGHT, anchor="mt", stroke_width=2, stroke_fill=(10, 10, 12, 220))
             path = out_dir / name

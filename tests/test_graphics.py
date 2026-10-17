@@ -35,7 +35,7 @@ def test_year_text_and_reference_choice():
     assert graphics.year_text(-800, True) == "c. 800 BC"
     assert graphics.year_text(780, True) == "c. AD 780"
     assert graphics.year_text(1963, False) == "1963"
-    assert graphics.pick_reference(280)[0] == "Statue of Liberty"
+    assert graphics.pick_reference(280)[0] == "Statue of Liberty (total)"
     assert graphics.pick_reference(20) is None  # no honest comparison at 1/15 scale
 
 
@@ -123,3 +123,65 @@ def test_planner_caps_graphics(tmp_path, monkeypatch):
     monkeypatch.setattr(scene_planner, "structured_call", lambda *a, **k: ScenePlan(images=[1, 3, 4, 5, 6, 7, 2, 1, 2, 1], notes="n"))
     chosen, durations, _ = scene_planner.plan_scenes(beats, stills + gfx)
     assert scene_planner._graphics_count(chosen) <= 3 and scene_planner._graphics_share(chosen, durations) <= 0.35
+
+
+def test_cross_section_landscape_and_vertical(tmp_path):
+    cs = {
+        "subject": "Derinkuyu underground city",
+        "total_depth_ft": 280.0,
+        "approximate": True,
+        "levels": [
+            {"depth_ft": 15.0, "label": "Stables & wine presses"},
+            {"depth_ft": 35.0, "label": "Living quarters & halls"},
+            {"depth_ft": 140.0, "label": "Byzantine church"},
+            {"depth_ft": 280.0, "label": "Deepest wells"},
+        ],
+    }
+    # Landscape 1920x1080
+    clip_ls = graphics.render_cross_section(cs, tmp_path / "section_ls.mp4", width=1920, height=1080)
+    assert clip_ls.exists() and clip_ls.with_suffix(".jpg").exists()
+    # Vertical 1080x1920
+    clip_vert = graphics.render_cross_section(cs, tmp_path / "section_vert.mp4", width=1080, height=1920)
+    assert clip_vert.exists() and clip_vert.with_suffix(".jpg").exists()
+
+
+def test_stat_cards_and_scale_landscape(tmp_path):
+    cards = [
+        {"value": "280 FT", "label": "Depth into volcanic rock"},
+        {"value": "20,000", "label": "Estimated sheltered population"},
+    ]
+    clip_cards = graphics.render_stat_cards(cards, tmp_path / "cards_ls.mp4", width=1920, height=1080)
+    assert clip_cards.exists()
+
+    scale_fact = {
+        "value": 280.0,
+        "unit": "ft",
+        "dimension": "depth",
+        "subject": "Derinkuyu depth",
+        "approximate": True,
+    }
+    clip_scale = graphics.render_scale(scale_fact, tmp_path / "scale_ls.mp4", width=1920, height=1080)
+    assert clip_scale.exists()
+
+
+def test_ancient_engineering_graphics_landscape(tmp_path):
+    # Rolling stone defense graphic
+    defense_spec = {"title": "Rolling Stone Door Defense Mechanism"}
+    clip_def = graphics.render_rolling_stone_defense(defense_spec, tmp_path / "defense_ls.mp4", width=1920, height=1080)
+    assert clip_def.exists() and clip_def.with_suffix(".jpg").exists()
+
+    # Ventilation airflow graphic
+    vent_spec = {"title": "Subterranean Ventilation & Convection Dynamics"}
+    clip_vent = graphics.render_ventilation_airflow(vent_spec, tmp_path / "vent_ls.mp4", width=1920, height=1080)
+    assert clip_vent.exists() and clip_vent.with_suffix(".jpg").exists()
+
+
+def test_stratigraphy_schematics_and_cross_hatching(tmp_path):
+    strat_spec = {
+        "title": "Geological Stratigraphy & Chronology",
+        "total_depth_ft": 280,
+    }
+    clip_strat = graphics.make_stratigraphy(strat_spec, tmp_path / "strat.mp4", width=1080, height=1920)
+    assert clip_strat.exists() and clip_strat.with_suffix(".jpg").exists()
+
+

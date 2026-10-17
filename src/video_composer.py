@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from PIL import Image, ImageDraw
 
 from .config import (
+    BASE_DIR,
     AUDIO_SAMPLE_RATE,
     FONTS_DIR,
     FONT_NAME,
@@ -799,11 +800,16 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         ass_str = str(ass_path.resolve()).replace("\\", "/").replace(":", "\\:")
         fonts_str = str(self.fonts_dir.resolve()).replace("\\", "/").replace(":", "\\:")
         vignette_aspect = "16/9" if width > height else "9/16"
-        # Studio-grade cinema grade: Kodak 2383 soft-knee roll-off (lifts subterranean blacks above clipping, rolls highlights)
-        cinema_curve = "curves=master='0/0.02 0.2/0.19 0.5/0.51 0.8/0.82 1/0.98':red='0/0.01 0.5/0.50 1/0.99':blue='0/0.04 0.5/0.49 1/0.94'"
+        # Studio-grade cinema grade: Kodak 2383 3D film print LUT emulation
+        lut_path = BASE_DIR / "assets" / "luts" / "kodak_2383.cube"
+        if lut_path.exists():
+            lut_str = str(lut_path.resolve()).replace("\\", "/").replace(":", "\\:")
+            film_grade = f"lut3d='{lut_str}'"
+        else:
+            film_grade = "eq=contrast=1.07:brightness=0.008:saturation=1.08,curves=master='0/0.02 0.2/0.19 0.5/0.51 0.8/0.82 1/0.98':red='0/0.01 0.5/0.50 1/0.99':blue='0/0.04 0.5/0.49 1/0.94'"
         filter_parts.append(
-            f"[video_raw]eq=contrast=1.07:brightness=0.008:saturation=1.08,{cinema_curve},"
-            f"noise=alls=7:allf=t+u,vignette=PI/4.2:aspect={vignette_aspect},"
+            f"[video_raw]{film_grade},"
+            f"noise=alls=8:allf=t+u,vignette=PI/4.2:aspect={vignette_aspect},"
             f"subtitles='{ass_str}':fontsdir='{fonts_str}',scale=out_range=tv,format=yuv420p[v_final]"
         )
 

@@ -66,6 +66,24 @@ def _text(d: ImageDraw.ImageDraw, xy, text: str, font, fill, anchor: str = "la")
     d._image.paste(tuple(fill[:3]), (l, t, r, b), mask)
 
 
+def _draw_cross_hatching(d: ImageDraw.ImageDraw, x0: int, y0: int, x1: int, y1: int, spacing: int = 14, fill=(100, 115, 130, 50), width: int = 1) -> None:
+    """Architectural blueprint 45-degree drafting cross-hatching for technical schematics."""
+    h = y1 - y0
+    w = x1 - x0
+    if h <= 0 or w <= 0:
+        return
+    for k in range(x0 - h, x1, spacing):
+        lx0, ly0 = k, y0
+        lx1, ly1 = k + h, y1
+        if lx1 > x0 and lx0 < x1:
+            sx = max(x0, lx0)
+            sy = y0 + (sx - lx0)
+            ex = min(x1, lx1)
+            ey = y1 - (lx1 - ex)
+            if ex > sx and ey > sy:
+                d.line([(sx, sy), (ex, ey)], fill=fill, width=width)
+
+
 class LayoutConstraintSolver:
     """Enforces non-overlapping bounding-box invariants and minimum margins across graphic elements."""
 
@@ -1165,14 +1183,19 @@ def make_stratigraphy(
             for i, st in enumerate(strata):
                 layer_depth = st["depth_ft"]
                 layer_y = strata_y0 + strata_h * (layer_depth / total_depth_ft)
-                d.rectangle([(int(width * 0.12), int(prev_y)), (int(width * 0.52), int(layer_y))],
-                            fill=st["color"], outline=(30, 28, 24), width=1)
+                layer_x0, layer_x1 = int(width * 0.12), int(width * 0.52)
+                d.rectangle([(layer_x0, int(prev_y)), (layer_x1, int(layer_y))],
+                            fill=st["color"], outline=(40, 38, 34), width=1)
+                # Blueprint architectural cross-hatching
+                _draw_cross_hatching(d, layer_x0, int(prev_y), layer_x1, int(layer_y), spacing=14, fill=(180, 170, 150, 40))
                 for sx in range(int(width * 0.14), int(width * 0.50), 30):
                     sy = int((prev_y + layer_y) / 2 + 8 * math.sin(sx * 0.05 + i))
                     d.line([(sx, sy), (sx + 15, sy)], fill=(120, 110, 95, 80), width=1)
 
                 lbl_y = int((prev_y + layer_y) / 2)
-                d.line([(int(width * 0.52), lbl_y), (int(width * 0.56), lbl_y)], fill=GOLD, width=2)
+                # Glowing stratigraphy measurement line
+                d.line([(layer_x1, lbl_y), (int(width * 0.56), lbl_y)], fill=(255, 215, 0, 90), width=5)
+                d.line([(layer_x1, lbl_y), (int(width * 0.56), lbl_y)], fill=GOLD, width=2)
                 _text(d, (int(width * 0.58), lbl_y - 12), st["label"].upper(), font=f_lab, fill=(*WHITE, 240), anchor="la")
                 _text(d, (int(width * 0.58), lbl_y + 12), f"EPOCH: {st['epoch']} // {layer_depth} FT", font=f_sub, fill=(*GOLD, 230), anchor="la")
 
@@ -1180,10 +1203,25 @@ def make_stratigraphy(
 
             progress = min(1.0, t / (CLIP_SECONDS * 0.7))
             caliper_y = strata_y0 + strata_h * progress
-            d.line([(int(width * 0.08), strata_y0), (int(width * 0.08), strata_y1)], fill=(180, 180, 180, 180), width=2)
-            d.line([(int(width * 0.06), int(caliper_y)), (int(width * 0.12), int(caliper_y))], fill=GOLD, width=3)
+            caliper_x = int(width * 0.08)
+            # Precision vertical vernier scale axis
+            d.line([(caliper_x, strata_y0), (caliper_x, strata_y1)], fill=(140, 150, 170, 200), width=2)
+            # Vernier scale millimeter tick marks every 20 ft
+            for tick_ft in range(0, int(total_depth_ft) + 1, 20):
+                ty = int(strata_y0 + strata_h * (tick_ft / total_depth_ft))
+                tw = 10 if tick_ft % 40 == 0 else 5
+                d.line([(caliper_x - tw, ty), (caliper_x, ty)], fill=(160, 175, 195, 180), width=1)
+            # Sub-pixel animated caliper jaw bracket
+            jaw_y = int(caliper_y)
+            # Glowing laser beam across stratum depth
+            d.line([(int(width * 0.04), jaw_y), (int(width * 0.54), jaw_y)], fill=(255, 215, 0, 75), width=5)
+            d.line([(int(width * 0.04), jaw_y), (int(width * 0.54), jaw_y)], fill=(255, 255, 255, 230), width=1)
+            # Caliper prongs / brackets
+            d.line([(caliper_x - 12, jaw_y - 10), (caliper_x + 6, jaw_y - 10)], fill=GOLD, width=2)
+            d.line([(caliper_x - 12, jaw_y + 10), (caliper_x + 6, jaw_y + 10)], fill=GOLD, width=2)
+            d.line([(caliper_x - 12, jaw_y - 10), (caliper_x - 12, jaw_y + 10)], fill=GOLD, width=2)
             cur_ft = progress * total_depth_ft
-            _text(d, (int(width * 0.05), int(caliper_y)), f"{cur_ft:.0f} FT", font=f_stat, fill=(*GOLD, 255), anchor="rm")
+            _text(d, (int(width * 0.05), jaw_y), f"{cur_ft:.0f} FT", font=f_stat, fill=(*GOLD, 255), anchor="rm")
 
             yield im
 

@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from src.audio_engine import AudioEngine, NoLicensedVoice
@@ -131,4 +132,31 @@ def test_ambient_bed_with_cue_timestamps(tmp_path):
     assert sr == 48000
     assert len(data) == int(3.0 * 48000)
     assert data.ndim == 2
+
+
+def test_ssml_pacing_preserved():
+    from src.audio_engine import escape_ssml_preserving_tags, strip_ssml_tags
+    raw = 'Beneath the earth <break time="200ms"/> lies a fortress & sanctuary.'
+    escaped = escape_ssml_preserving_tags(raw)
+    assert '<break time="200ms"/>' in escaped
+    assert "&amp;" in escaped
+    stripped = strip_ssml_tags(raw)
+    assert "<break" not in stripped
+    assert "Beneath the earth  lies a fortress" in stripped
+
+
+def test_triple_stem_foley_synthesis():
+    eng = AudioEngine()
+    braam = eng._synth_sub_bass_braam(duration_sec=1.5, sr=48000)
+    assert braam.shape == (int(1.5 * 48000), 2)
+    assert 0.05 < np.max(np.abs(braam)) < 0.50
+
+    draft = eng._synth_cavern_draft(total_samples=48000, sr=48000)
+    assert draft.shape == (48000, 2)
+    assert np.max(np.abs(draft)) > 0.001
+
+    stone = eng._synth_stone_grind(duration_sec=1.0, sr=48000)
+    assert stone.shape == (48000, 2)
+    assert np.max(np.abs(stone)) > 0.01
+
 

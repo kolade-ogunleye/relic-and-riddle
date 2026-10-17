@@ -115,11 +115,29 @@ def split_boundary(text: str, start: float, dur: float) -> Words:
     return out
 
 
+def strip_ssml_tags(text: str) -> str:
+    """Strips XML/SSML tags (e.g. <break time="200ms"/>) to obtain clean words for caption timing."""
+    return re.sub(r"<[^>]+>", "", text)
+
+
+def escape_ssml_preserving_tags(text: str) -> str:
+    """Escapes XML entities in narration text while preserving valid SSML pacing tags (e.g. <break time="200ms"/>)."""
+    import html as _html
+    parts = re.split(r"(<[^>]+>)", text)
+    out = []
+    for part in parts:
+        if re.match(r"^<(?:break\s+time=\"\d+m?s\"|/?[a-z]+(?:\s+[a-z]+=\"[^\"]*\")*)\s*/?>$", part, re.IGNORECASE):
+            out.append(part)
+        else:
+            out.append(_html.escape(part))
+    return "".join(out)
+
+
 def align_words_with_script(script_text: str, timed_words: Words) -> Words:
     """Restores full grammatical punctuation and casing from the script to timed TTS words."""
     if not timed_words or not script_text:
         return timed_words
-    norm_text = normalize_speech_text(script_text)
+    norm_text = strip_ssml_tags(normalize_speech_text(script_text))
     tokens = norm_text.split()
     clean_tokens = [re.sub(r"[^\w]", "", t.lower()) for t in tokens]
     clean_words = [re.sub(r"[^\w]", "", w.get("word", "").lower()) for w in timed_words]
@@ -245,9 +263,10 @@ class AudioEngine:
                 words.extend(split_boundary(evt.text, evt.audio_offset / 10_000_000.0, max(0.05, evt.duration.total_seconds())))
 
         synth.synthesis_word_boundary.connect(on_boundary)
+        escaped_text = escape_ssml_preserving_tags(text)
         ssml = (f'<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">'
                 f'<voice name="{self.voice}"><prosody rate="{self.rate}" pitch="{self.pitch}">'
-                f"{_html.escape(text)}</prosody></voice></speak>")
+                f"{escaped_text}</prosody></voice></speak>")
         result = synth.speak_ssml_async(ssml).get()
         if result.reason != speechsdk.ResultReason.SynthesizingAudioCompleted:
             details = getattr(result, "cancellation_details", None)
@@ -351,6 +370,49 @@ class AudioEngine:
     MUSIC_RMS = 0.05  # bed level for music (about -26 dBFS); the mix ducks it further under speech
 
     @staticmethod
+    def _synth_sub_bass_braam(duration_sec: float = 2.0, sr: int = 48000, f0: float = 46.0) -> np.ndarray:
+        """Triple-stem foley stem 1: Cinematic revelation sub-bass impact / braam."""
+        n = int(duration_sec * sr)
+        t = np.arange(n) / sr
+        pitch_env = f0 * (1.0 + 0.35 * np.exp(-t / 0.15))
+        phase = 2 * np.pi * np.cumsum(pitch_env) / sr
+        amp_env = (1.0 - np.exp(-t / 0.04)) * np.exp(-t / 0.8)
+        braam = np.tanh(1.8 * np.sin(phase)) * amp_env * 0.16
+        shift = int(0.002 * sr)
+        left = braam
+        right = np.roll(braam, shift)
+        return np.column_stack((left, right))
+
+    @staticmethod
+    def _synth_cavern_draft(total_samples: int, sr: int = 48000) -> np.ndarray:
+        """Triple-stem foley stem 2: Whistling cavern draft winds through subterranean shafts."""
+        rng = np.random.default_rng(101)
+        white_l = rng.standard_normal(total_samples)
+        white_r = rng.standard_normal(total_samples)
+        brown_l = np.cumsum(white_l)
+        brown_l -= np.mean(brown_l)
+        brown_l /= max(1e-6, np.max(np.abs(brown_l)))
+        brown_r = np.cumsum(white_r)
+        brown_r -= np.mean(brown_r)
+        brown_r /= max(1e-6, np.max(np.abs(brown_r)))
+        t = np.arange(total_samples) / sr
+        lfo = 0.5 + 0.5 * np.sin(2 * np.pi * 0.20 * t)
+        draft_l = brown_l * lfo * 0.012
+        draft_r = brown_r * (1.0 - lfo) * 0.012
+        return np.column_stack((draft_l, draft_r))
+
+    @staticmethod
+    def _synth_stone_grind(duration_sec: float = 1.8, sr: int = 48000) -> np.ndarray:
+        """Triple-stem foley stem 3: Procedural stone-on-stone friction rumble and scrape."""
+        n = int(duration_sec * sr)
+        t = np.arange(n) / sr
+        rng = np.random.default_rng(202)
+        noise = rng.standard_normal(n)
+        env = (1.0 - np.exp(-t / 0.08)) * np.exp(-t / 0.65)
+        rumble = np.sin(2 * np.pi * 85.0 * t) * (1.0 + 0.5 * noise) * env * 0.10
+        return np.column_stack((rumble, rumble))
+
+    @staticmethod
     def _decode(path: Path, sr: int) -> np.ndarray:
         """Any audio file -> stereo float32 at `sr` (via ffmpeg)."""
         out = subprocess.run(["ffmpeg", "-v", "error", "-i", str(path), "-f", "f32le", "-ac", "2", "-ar", str(sr), "-"],
@@ -432,6 +494,14 @@ class AudioEngine:
                 drone[-fade:] *= ramp[::-1]
             bed = np.column_stack((drone, drone)) * 0.22
 
+        # Triple-stem foley stem 2: Continuous subterranean cavern draft wind
+        cavern_draft = self._synth_cavern_draft(total, sr)
+        fin_d, fout_d = min(int(1.0 * sr), total // 4), min(int(2.0 * sr), total // 4)
+        if fin_d and fout_d:
+            cavern_draft[:fin_d] *= np.linspace(0.0, 1.0, fin_d)[:, None]
+            cavern_draft[-fout_d:] *= np.linspace(1.0, 0.0, fout_d)[:, None]
+        bed += cavern_draft
+
         if cue_timestamps:
             for cue_t in cue_timestamps:
                 if 0 < cue_t < duration - 1.0:
@@ -445,18 +515,30 @@ class AudioEngine:
                         riser = 0.08 * np.sin(phase) * env
                         bed[cue_idx:cue_idx + n, 0] += riser
                         bed[cue_idx:cue_idx + n, 1] += riser
+                    # Triple-stem foley stem 1: Cinematic revelation sub-bass braam impact
+                    braam = self._synth_sub_bass_braam(duration_sec=2.0, sr=sr)
+                    n_b = min(len(braam), total - cue_idx)
+                    if n_b > 0:
+                        bed[cue_idx:cue_idx + n_b] += braam[:n_b]
 
         for name, (keywords, gain) in self.SFX_CUES.items():
-            sfx_file = SFX_DIR / name
-            if not (sfx_file.exists() and words):
+            if not words:
                 continue
             cue = next((w["start"] for w in words if any(k in w["word"].lower() for k in keywords)), None)
             if cue is None:
                 continue
-            s = self._decode(sfx_file, sr)[:, 0]  # resampled to the bed's rate
-            i0 = int(cue * sr)
-            n = max(0, min(len(s), total - i0))
-            bed[i0:i0 + n] += (s[:n] * gain * 0.22)[:, None]
+            sfx_file = SFX_DIR / name
+            if sfx_file.exists():
+                s = self._decode(sfx_file, sr)[:, 0]  # resampled to the bed's rate
+                i0 = int(cue * sr)
+                n = max(0, min(len(s), total - i0))
+                bed[i0:i0 + n] += (s[:n] * gain * 0.22)[:, None]
+            else:
+                # Triple-stem foley stem 3: Procedural stone grind when physical SFX WAV is not on disk
+                stone_sfx = self._synth_stone_grind(sr=sr)
+                i0 = int(cue * sr)
+                n = max(0, min(len(stone_sfx), total - i0))
+                bed[i0:i0 + n] += stone_sfx[:n] * (gain * 0.5)
 
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         sf.write(str(output_path), np.clip(bed, -1.0, 1.0), sr)

@@ -95,6 +95,10 @@ def preset_for(index: int, total: int) -> str:
     return SEQUENCE[(index - 1) % len(SEQUENCE)]
 
 
+from .encoding import bounded_encode
+
+
+@bounded_encode
 def render_clip(image_path: Path, out_path: Path, duration: float, preset: str = "push",
                 fps: int = VIDEO_FPS, size=(VIDEO_WIDTH, VIDEO_HEIGHT)) -> Path:
     """Renders a parallax clip of `duration` seconds from one still."""
@@ -115,7 +119,10 @@ def render_clip(image_path: Path, out_path: Path, duration: float, preset: str =
     cx, cy = bw / 2, bh / 2
     s0 = 1.0 / OVERSCAN * (bw / out_w)  # output pixel -> base pixel at rest (fills the frame)
     d = cv2.remap(depth, (cx + u * s0).astype(np.float32), (cy + v * s0).astype(np.float32), cv2.INTER_LINEAR)
-    weight = 0.35 + 0.65 * d  # near surfaces move more than far ones
+    # 2.5D Depth Displacement: Slicing foreground stone doorways from background tunnels for 3D travel with occlusion
+    d_norm = np.clip(d, 0.0, 1.0)
+    fg_mask = np.clip((d_norm - 0.50) / 0.50, 0.0, 1.0)
+    weight = 0.20 + 0.80 * (d_norm ** 1.35) + 0.25 * (fg_mask ** 2)
 
     frames = max(2, int(round(duration * fps)))
     proc = subprocess.Popen(
@@ -138,6 +145,8 @@ def render_clip(image_path: Path, out_path: Path, duration: float, preset: str =
         proc.wait(timeout=300)
     if proc.returncode != 0:
         raise RuntimeError(f"ffmpeg failed encoding {out_path.name}")
+    from .lineage import record_derived
+    record_derived(out_path, [image_path], "parallax", {"preset": preset, "duration": duration, "fps": fps})
     return out_path
 
 

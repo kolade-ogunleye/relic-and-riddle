@@ -91,7 +91,7 @@ class MultiFormatGenerator:
                                         outline=(255, 215, 0, 230), width=3)
                     d.text((190, oy + 48), letter, font=font_o, fill=GOLD, anchor="lm")
                     d.text((250, oy + 48), option.upper()[:28], font=get_font("Montserrat", 38), fill=WHITE, anchor="lm")
-                d.text((VIDEO_WIDTH // 2, y + 40 + 2 * 120 + 20), "REPLY WITH A OR B", font=get_font("Montserrat", 32),
+                d.text((VIDEO_WIDTH // 2, y + 40 + 2 * 120 + 20), "WEIGH IN BELOW  ↓", font=get_font("Montserrat", 32),
                        fill=LIGHT, anchor="mt", stroke_width=2, stroke_fill=(10, 10, 12, 220))
             path = out_dir / name
             base.save(path, quality=95)
@@ -407,7 +407,15 @@ class MultiFormatGenerator:
                 im = self._render_editorial_split(photo, card, i, cw, chh)
 
             d = ImageDraw.Draw(im, "RGBA")
-            d.text((cw - 80, 70), "RELIC & RIDDLE", font=f_small, fill=(235, 235, 235, 210), anchor="rt")
+            f_dossier = get_font("Montserrat", 20)
+            d.text((80, 70), f"ARCHIVAL RECORD // {i + 1:02d} OF {total:02d}", font=f_dossier, fill=(212, 175, 55, 220), anchor="lt", stroke_width=2, stroke_fill=(8, 10, 14, 230))
+            d.text((cw - 80, 70), "RELIC & RIDDLE", font=f_small, fill=(235, 235, 235, 210), anchor="rt", stroke_width=2, stroke_fill=(8, 10, 14, 230))
+
+            # Continuous panoramic progress timeline
+            bar_y = chh - 45
+            d.line([(80, bar_y), (cw - 80, bar_y)], fill=(50, 60, 75, 140), width=2)
+            seg_w = (cw - 160) / total
+            d.line([(80 + i * seg_w, bar_y), (80 + (i + 1) * seg_w, bar_y)], fill=GOLD, width=3)
             dots(d, i)
 
             path = out_dir / f"carousel_slide_{i + 1:02d}.jpg"

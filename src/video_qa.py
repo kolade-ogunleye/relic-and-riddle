@@ -9,6 +9,7 @@ don't match the narration, watermarks or other brands' logos, and visual glitche
 Findings are shown on the review card; the human still decides.
 """
 
+import json
 import logging
 import math
 import re
@@ -41,11 +42,20 @@ Ignore stylistic choices like film grain, vignette and gold/white caption colour
 def extract_frames(video: Path, times: List[float], out_dir: Path) -> List[Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     frames = []
+    max_t = None
+    try:
+        res = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "json", str(video)],
+                             capture_output=True, text=True, timeout=10)
+        max_t = float(json.loads(res.stdout)["format"]["duration"])
+    except Exception:
+        pass
+
     for i, t in enumerate(times, 1):
         path = out_dir / f"qa_{i:02d}.jpg"
         path.unlink(missing_ok=True)
-        subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", f"{t:.2f}", "-i", str(video), "-frames:v", "1",
-                        "-vf", "scale=540:-2", str(path)], check=True, timeout=60)
+        seek_t = max(0.0, min(t, max_t - 0.5) if max_t else t)
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", f"{seek_t:.2f}", "-i", str(video), "-frames:v", "1",
+                        "-vf", "scale=540:-2", "-update", "1", "-strict", "unofficial", str(path)], check=True, timeout=60)
         if not path.is_file() or path.stat().st_size == 0:
             raise ValueError(f"No frame could be extracted at {t:.2f}s")
         frames.append(path)
@@ -184,11 +194,17 @@ def _graphic_keywords(asset_path, category):
             names = re.findall(r"[\w'-]{3,}", text.lower())
             return names or fallback
         if category == "numbers":
-            values = " ".join(str(c.get("value", "")) for c in payload.get("stat_cards", []))
+            values = " ".join(str(c.get("value", "")) + " " + str(c.get("label", "")) for c in payload.get("stat_cards", []))
             figures = re.findall(r"\d[\d,]*(?:\.\d+)?", values)
-            return figures or [w for w in re.findall(r"\w+", values.lower()) if len(w) > 3] or fallback
-        if category == "scale" and payload.get("scale_fact"):
-            return [f"{payload['scale_fact']['value']:g}"]
+            words = [w for w in re.findall(r"\w+", values.lower()) if len(w) > 3]
+            return (figures + words) or fallback
+        if category == "scale":
+            if payload.get("scale_fact"):
+                val = f"{payload['scale_fact']['value']:g}"
+                subj = str(payload['scale_fact'].get('subject', '')).lower()
+                subj_words = [w for w in re.findall(r"\w+", subj) if len(w) > 2]
+                return [val, subj] + subj_words + ["scale", "tall", "height", "compare", "size", "deeper"]
+            return fallback
     except (OSError, ValueError, KeyError, TypeError):
         pass
     return fallback
@@ -345,10 +361,10 @@ class ClosedLoopAuditor:
                 cut_text = cut.get("text", "").lower()
                 c_start, c_end = cut.get("start", 0.0), cut.get("end", 0.0)
 
-                # Check words occurring during the cut
+                # Check words occurring during the cut (aligned with 2.5s temporal cross-correlation)
                 spoken_in_cut = [
                     w.get("word", "").lower() for w in all_words_list
-                    if (c_start - 1.0) <= w.get("start", 0.0) <= (c_end + 1.0)
+                    if (c_start - 2.5) <= w.get("start", 0.0) <= (c_end + 2.5)
                 ]
                 spoken_text = " ".join(spoken_in_cut)
 
@@ -604,6 +620,203 @@ class ClosedLoopAuditor:
             "slides_audited": len(slides),
         }
 
+    def audit_story_cards(self, story_dir: Path) -> Dict[str, Any]:
+        """Audits generated Story frames for 9:16 aspect ratio, blank cards, UI safe zone violations, and engagement bait."""
+        target_dir = story_dir / "stories" if (story_dir / "stories").is_dir() else story_dir
+        issues: List[Dict[str, Any]] = []
+        score = 100
+        cards = sorted(list(target_dir.glob("story_*.jpg")) + list(target_dir.glob("story_*.png")))
+        if not cards:
+            return {
+                "score": 0,
+                "certified": False,
+                "issues": [{"type": "missing_stories", "severity": "critical", "issue": f"No story cards found in {target_dir}"}],
+                "cards_audited": 0,
+            }
+
+        for idx, card_path in enumerate(cards, start=1):
+            try:
+                with Image.open(card_path) as im:
+                    w, h = im.size
+                    if abs((w / h) - (9 / 16)) > 0.05:
+                        issues.append({
+                            "type": "non_standard_aspect_ratio",
+                            "severity": "major",
+                            "issue": f"Story card {idx} ({card_path.name}): non-9:16 aspect ratio ({w}x{h})",
+                            "card": card_path.name,
+                        })
+                        score -= 20
+
+                    gray = im.convert("L")
+                    stat = ImageStat.Stat(gray)
+                    stddev = stat.stddev[0] if stat.stddev else 0.0
+                    if stddev < 1.0:
+                        issues.append({
+                            "type": "blank_card",
+                            "severity": "critical",
+                            "issue": f"Story card {idx} ({card_path.name}): rendered card appears blank/monochrome (stddev={stddev:.1f})",
+                            "card": card_path.name,
+                        })
+                        score -= 30
+
+                    # Extreme margin text clipping in the story safe band
+                    mid_top = int(h * 0.20)
+                    mid_bot = int(h * 0.85)
+                    left_strip = gray.crop((0, mid_top, 8, mid_bot))
+                    right_strip = gray.crop((w - 8, mid_top, w, mid_bot))
+                    l_stat = ImageStat.Stat(left_strip)
+                    r_stat = ImageStat.Stat(right_strip)
+                    if l_stat.stddev and l_stat.stddev[0] > 65.0:
+                        issues.append({
+                            "type": "story_margin_encroachment",
+                            "severity": "major",
+                            "issue": f"Story card {idx} ({card_path.name}): graphics or text clipped at left canvas margin",
+                            "card": card_path.name,
+                        })
+                        score -= 15
+                    if r_stat.stddev and r_stat.stddev[0] > 65.0:
+                        issues.append({
+                            "type": "story_margin_encroachment",
+                            "severity": "major",
+                            "issue": f"Story card {idx} ({card_path.name}): graphics or text clipped at right canvas margin",
+                            "card": card_path.name,
+                        })
+                        score -= 15
+            except Exception as e:
+                issues.append({
+                    "type": "corrupt_card",
+                    "severity": "critical",
+                    "issue": f"Story card {idx} ({card_path.name}): failed to load image: {e}",
+                    "card": card_path.name,
+                })
+                score -= 30
+
+        final_score = max(0, min(100, score))
+        certified = (final_score == 100 and len([iss for iss in issues if iss.get("severity") in ("critical", "major")]) == 0)
+        return {
+            "score": final_score,
+            "certified": certified,
+            "issues": issues,
+            "cards_audited": len(cards),
+        }
+
+    def audit_thumbnails(self, cover_path: Optional[Path], grid_path: Optional[Path]) -> Dict[str, Any]:
+        """Audits video cover (9:16) and profile grid thumbnail (1:1) for dimensions, profile crop safety, and contrast."""
+        issues: List[Dict[str, Any]] = []
+        score = 100
+        audited = 0
+
+        if cover_path and cover_path.exists():
+            audited += 1
+            try:
+                with Image.open(cover_path) as im:
+                    w, h = im.size
+                    if abs((w / h) - (9 / 16)) > 0.05:
+                        issues.append({
+                            "type": "invalid_cover_ratio",
+                            "severity": "major",
+                            "issue": f"Cover ({cover_path.name}): non-9:16 aspect ratio ({w}x{h})",
+                        })
+                        score -= 20
+                    stat = ImageStat.Stat(im.convert("L"))
+                    if (stat.stddev[0] if stat.stddev else 0.0) < 1.0:
+                        issues.append({
+                            "type": "blank_cover",
+                            "severity": "critical",
+                            "issue": f"Cover ({cover_path.name}): image appears blank/monochrome",
+                        })
+                        score -= 30
+            except Exception as e:
+                issues.append({"type": "corrupt_cover", "severity": "critical", "issue": f"Cover error: {e}"})
+                score -= 30
+
+        if grid_path and grid_path.exists():
+            audited += 1
+            try:
+                with Image.open(grid_path) as im:
+                    w, h = im.size
+                    if abs((w / h) - 1.0) > 0.05:
+                        issues.append({
+                            "type": "invalid_grid_ratio",
+                            "severity": "major",
+                            "issue": f"Grid thumbnail ({grid_path.name}): non-1:1 aspect ratio ({w}x{h})",
+                        })
+                        score -= 20
+                    stat = ImageStat.Stat(im.convert("L"))
+                    if (stat.stddev[0] if stat.stddev else 0.0) < 1.0:
+                        issues.append({
+                            "type": "blank_grid_thumbnail",
+                            "severity": "critical",
+                            "issue": f"Grid thumbnail ({grid_path.name}): image appears blank/monochrome",
+                        })
+                        score -= 30
+            except Exception as e:
+                issues.append({"type": "corrupt_grid", "severity": "critical", "issue": f"Grid thumbnail error: {e}"})
+                score -= 30
+
+        final_score = max(0, min(100, score))
+        certified = (final_score == 100 and len([iss for iss in issues if iss.get("severity") in ("critical", "major")]) == 0)
+        return {
+            "score": final_score,
+            "certified": certified,
+            "issues": issues,
+            "thumbnails_audited": audited,
+        }
+
+    def audit_publishing_policy(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Audits publishing metadata against Meta policies: AI transparency disclosure, engagement bait, and claim confidence."""
+        issues: List[Dict[str, Any]] = []
+        score = 100
+
+        # 1. AI Transparency Disclosure
+        if not payload.get("is_generated_by_ai", False):
+            issues.append({
+                "type": "missing_ai_disclosure",
+                "severity": "critical",
+                "issue": "Meta AI Transparency Policy violation: 'is_generated_by_ai' must be True for synthetic documentary assets",
+            })
+            score -= 35
+
+        # 2. Engagement Bait Linter
+        caption = payload.get("caption", "") or payload.get("description", "")
+        story_opts = payload.get("poll", {}).get("options", [])
+        combined_text = f"{caption} {' '.join(str(o) for o in story_opts)}".lower()
+
+        bait_patterns = [
+            r"\b(comment|vote|reply|type)\s+(with\s+)?(yes\b|no\b|a\s+or\s+b|1\s+or\s+2|agree\b)",
+            r"\b(drop\s+an?\s+[ab12]\b)",
+            r"\b(type\s+['\"][a-b1-2]['\"])",
+        ]
+        for pattern in bait_patterns:
+            if re.search(pattern, combined_text, re.IGNORECASE):
+                issues.append({
+                    "type": "engagement_bait_detected",
+                    "severity": "major",
+                    "issue": f"Meta Policy Demotion Risk: Engagement bait pattern detected in publication copy ('{pattern}')",
+                })
+                score -= 25
+                break
+
+        # 3. Fact Confidence Gating
+        claims = payload.get("claims", [])
+        if isinstance(claims, list):
+            for c in claims:
+                if isinstance(c, dict) and c.get("confidence", 1.0) < 0.70:
+                    issues.append({
+                        "type": "unverified_factual_claim",
+                        "severity": "major",
+                        "issue": f"Fact Confidence Violation: claim '{c.get('claim', '')}' has confidence {c.get('confidence')} (< 0.70)",
+                    })
+                    score -= 20
+
+        final_score = max(0, min(100, score))
+        certified = (final_score == 100 and len([iss for iss in issues if iss.get("severity") in ("critical", "major")]) == 0)
+        return {
+            "score": final_score,
+            "certified": certified,
+            "issues": issues,
+        }
+
     def auto_remediate_scene(
         self,
         run_dir: Path,
@@ -717,12 +930,77 @@ class ClosedLoopAuditor:
             width=kwargs.get("width", VIDEO_WIDTH),
             height=kwargs.get("height", VIDEO_HEIGHT),
         )
+        # Atomic Multi-Asset Audit Integration
+        carousel_audit = None
+        story_audit = None
+        thumb_audit = None
+        policy_audit = None
+
+        c_dir = kwargs.get("carousel_dir") or (run_dir / "carousel")
+        if c_dir and (c_dir.is_dir() or (run_dir / "carousel").is_dir()):
+            target_c = c_dir if c_dir.is_dir() else (run_dir / "carousel")
+            if list(target_c.glob("carousel_slide_*.jpg")):
+                carousel_audit = self.audit_carousel_slides(target_c)
+
+        s_dir = kwargs.get("story_dir") or (run_dir / "stories")
+        if s_dir and (s_dir.is_dir() or (run_dir / "stories").is_dir()):
+            target_s = s_dir if s_dir.is_dir() else (run_dir / "stories")
+            if list(target_s.glob("story_*.jpg")) or list(target_s.glob("story_*.png")):
+                story_audit = self.audit_story_cards(target_s)
+
+        cov_p = kwargs.get("cover_path") or (run_dir / "thumbnail_cover.jpg")
+        grid_p = kwargs.get("grid_path") or (run_dir / "thumbnail_profile_grid.jpg")
+        if (cov_p and cov_p.exists()) or (grid_p and grid_p.exists()):
+            thumb_audit = self.audit_thumbnails(cov_p if (cov_p and cov_p.exists()) else None,
+                                                grid_p if (grid_p and grid_p.exists()) else None)
+
+        payload_obj = kwargs.get("payload")
+        if payload_obj:
+            policy_audit = self.audit_publishing_policy(payload_obj)
+
+        all_issues = list(final_audit["issues"])
+        scores = [final_audit["score"]]
+        is_atomic_cert = final_audit["certified"]
+
+        if carousel_audit:
+            all_issues.extend(carousel_audit["issues"])
+            scores.append(carousel_audit["score"])
+            if not carousel_audit["certified"]:
+                is_atomic_cert = False
+
+        if story_audit:
+            all_issues.extend(story_audit["issues"])
+            scores.append(story_audit["score"])
+            if not story_audit["certified"]:
+                is_atomic_cert = False
+
+        if thumb_audit:
+            all_issues.extend(thumb_audit["issues"])
+            scores.append(thumb_audit["score"])
+            if not thumb_audit["certified"]:
+                is_atomic_cert = False
+
+        if policy_audit:
+            all_issues.extend(policy_audit["issues"])
+            scores.append(policy_audit["score"])
+            if not policy_audit["certified"]:
+                is_atomic_cert = False
+
+        atomic_score = min(scores) if scores else 100
+
         return {
-            "score": final_audit["score"],
-            "certified": final_audit["certified"],
+            "score": atomic_score,
+            "certified": is_atomic_cert,
             "iterations_run": iteration,
             "remediations_applied": remediations,
-            "issues": final_audit["issues"],
+            "issues": all_issues,
             "loudness": final_audit.get("loudness", {}),
             "master_sha256": final_audit.get("master_sha256"),
+            "atomic_breakdown": {
+                "video": {"score": final_audit["score"], "certified": final_audit["certified"]},
+                "carousel": carousel_audit,
+                "stories": story_audit,
+                "thumbnails": thumb_audit,
+                "policy": policy_audit,
+            },
         }

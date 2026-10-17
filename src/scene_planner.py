@@ -104,35 +104,42 @@ def lock_narrative_graphics(beats: List[Dict[str, Any]], graphics: List[Path]) -
 
     for idx, b in enumerate(beats):
         txt = b.get("text", "").lower()
-        # 1. Depth & Scale & Numbers graphics (skip beat 0: hook requires visual photo/video immersion)
-        if idx > 0 and any(w in txt for w in ("depth", "metre", "meter", "feet", "levels", "stories", "280", "180", "85", "capacity", "thousand", "population", "people")):
-            scale_g = next((g for g in graphics if g not in used_g and any(k in g.stem for k in ("section", "scale", "stat", "numbers"))), None)
+        # 1. Depth & Vertical Scale (skip beat 0: hook requires visual photo/video immersion)
+        if idx > 0 and any(w in txt for w in ("depth", "metre", "meter", "feet", "levels", "stories", "280", "180", "85", "descend")):
+            scale_g = next((g for g in graphics if g not in used_g and any(k in g.stem for k in ("scale", "section"))), None)
             if scale_g:
                 locked[idx] = scale_g
                 used_g.add(scale_g)
                 continue
-        # 2. Map & Geographic context (skip beat 0 so hook still gets a photo/video hook)
+        # 2. Population & Capacity Stats
+        if idx > 0 and any(w in txt for w in ("capacity", "thousand", "population", "people", "inhabitants", "shelter", "20,000", "twenty thousand")):
+            num_g = next((g for g in graphics if g not in used_g and any(k in g.stem for k in ("numbers", "stat"))), None)
+            if num_g:
+                locked[idx] = num_g
+                used_g.add(num_g)
+                continue
+        # 3. Map & Geographic context (skip beat 0 so hook still gets a photo/video hook)
         if idx > 0 and any(w in txt for w in ("1963", "cappadocia", "turkey", "renovating", "wall", "region", "village", "anatolian", "plains")):
             map_g = next((g for g in graphics if g not in used_g and "map" in g.stem), None)
             if map_g:
                 locked[idx] = map_g
                 used_g.add(map_g)
                 continue
-        # 3. Timeline & Historical dynasties
+        # 4. Timeline & Historical dynasties
         if any(w in txt for w in ("years old", "century", " bc", " ad", "byzantine", "hittite", "phrygian", "dynasty")):
             time_g = next((g for g in graphics if g not in used_g and any(k in g.stem for k in ("timeline", "dates"))), None)
             if time_g:
                 locked[idx] = time_g
                 used_g.add(time_g)
                 continue
-        # 4. Mechanism & Defense (doors, rooms)
-        if any(w in txt for w in ("rolling", "doors", "sealed", "choke point", "stoneware", "millstone", "defense", "defensive", "basalt")):
+        # 5. Mechanism & Defense (rolling stone doors, rooms)
+        if any(w in txt for w in ("rolling", "doors", "sealed", "cylinder", "choke point", "stoneware", "millstone", "defense", "defensive", "basalt")):
             callout_g = next((g for g in graphics if g not in used_g and any(k in g.stem for k in ("defense", "labels", "callout", "door"))), None)
             if callout_g:
                 locked[idx] = callout_g
                 used_g.add(callout_g)
                 continue
-        # 5. Ventilation & Airflow
+        # 6. Ventilation & Airflow
         if any(w in txt for w in ("ventilation", "shaft", "air", "breathe", "convection", "airflow", "oxygen")):
             vent_g = next((g for g in graphics if g not in used_g and any(k in g.stem for k in ("ventilation", "shaft", "air"))), None)
             if vent_g:

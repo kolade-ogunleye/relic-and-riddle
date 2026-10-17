@@ -83,3 +83,52 @@ def test_azure_multiword_boundaries_split_into_words():
     assert words[0]["start"] == 0.05 and abs(words[-1]["start"] + words[-1]["dur"] - 1.55) < 1e-9
     single = split_boundary("tunnel", 2.0, 0.4)
     assert len(single) == 1 and single[0]["word"] == "tunnel" and abs(single[0]["dur"] - 0.4) < 1e-9
+
+
+def test_elevenlabs_quota_exhausted_routes_to_azure(monkeypatch, tmp_path):
+    eng = AudioEngine(eleven_key="k" * 20, eleven_voice="v",
+                      azure_key="a" * 20, azure_region="eastus")
+    calls = []
+    # Only 50 characters remaining in ElevenLabs paid account
+    monkeypatch.setattr(eng, "voice_quota", lambda: {"tier": "creator", "used": 9950, "limit": 10000})
+
+    def eleven(text, out):
+        calls.append("elevenlabs")
+        return WORDS
+
+    def az(text, out):
+        calls.append("azure")
+        return WORDS
+
+    monkeypatch.setattr(eng, "_generate_elevenlabs", eleven)
+    monkeypatch.setattr(eng, "_generate_azure", az)
+
+    # 150 characters of narration exceeds 50 characters remaining
+    text = "A" * 150
+    eng.generate_narration(text, tmp_path / "v.mp3", licensed_only=True)
+    # ElevenLabs should NOT have been called; cleanly routed to Azure
+    assert calls == ["azure"]
+    assert eng.last_provider == "azure"
+    assert "balance exhausted" in eng.fallback_reason
+
+
+def test_normalize_speech_text_parenthetical_metric_units():
+    from src.audio_engine import normalize_speech_text
+    raw = "Carved roughly 280 FEET (85 M), down into soft volcanic rock."
+    normalized = normalize_speech_text(raw)
+    assert "280 FEET, down into" in normalized
+    assert "(85 M)" not in normalized
+    assert "85 meters" not in normalized
+
+
+def test_ambient_bed_with_cue_timestamps(tmp_path):
+    eng = AudioEngine()
+    out_bed = tmp_path / "test_ambient.wav"
+    eng.generate_ambient_bed(duration=3.0, output_path=out_bed, cue_timestamps=[1.0])
+    assert out_bed.exists()
+    import soundfile as sf
+    data, sr = sf.read(str(out_bed))
+    assert sr == 48000
+    assert len(data) == int(3.0 * 48000)
+    assert data.ndim == 2
+

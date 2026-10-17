@@ -363,3 +363,100 @@ def test_audit_carousel_slides(tmp_path):
     res_blank = auditor.audit_carousel_slides(carousel_dir)
     assert res_blank["certified"] is False
     assert any(i["type"] == "blank_slide" for i in res_blank["issues"])
+
+
+def test_audit_story_cards(tmp_path):
+    auditor = ClosedLoopAuditor()
+
+    # 1. Missing stories
+    res_empty = auditor.audit_story_cards(tmp_path)
+    assert res_empty["certified"] is False
+    assert any(i["type"] == "missing_stories" for i in res_empty["issues"])
+
+    # 2. Valid story frames (1080x1920)
+    story_dir = tmp_path / "stories"
+    story_dir.mkdir()
+    for idx in range(1, 4):
+        img = Image.new("RGB", (1080, 1920), color=(20, 24, 32))
+        d = ImageDraw.Draw(img)
+        d.rectangle([100, 200, 800, 1000], fill=(50, 50, 70))
+        d.text((200, 500), f"Valid Story Card {idx}", fill=(255, 215, 0))
+        img.save(story_dir / f"story_{idx}_card.jpg")
+
+    res_valid = auditor.audit_story_cards(tmp_path)
+    assert res_valid["certified"] is True
+    assert res_valid["score"] == 100
+    assert res_valid["cards_audited"] == 3
+
+    # 3. Blank card
+    blank = Image.new("RGB", (1080, 1920), color=(0, 0, 0))
+    blank.save(story_dir / "story_4_blank.jpg")
+    res_blank = auditor.audit_story_cards(story_dir)
+    assert res_blank["certified"] is False
+    assert any(i["type"] == "blank_card" for i in res_blank["issues"])
+
+
+def test_audit_thumbnails(tmp_path):
+    auditor = ClosedLoopAuditor()
+
+    # Valid cover 1080x1920, valid grid 1080x1080
+    cover = tmp_path / "thumbnail_cover.jpg"
+    grid = tmp_path / "thumbnail_profile_grid.jpg"
+
+    cov_im = Image.new("RGB", (1080, 1920), color=(25, 28, 36))
+    d1 = ImageDraw.Draw(cov_im)
+    d1.rectangle([100, 200, 800, 1000], fill=(50, 50, 70))
+    d1.text((300, 800), "Ancient Mystery", fill=(255, 215, 0))
+    cov_im.save(cover)
+
+    grid_im = Image.new("RGB", (1080, 1080), color=(25, 28, 36))
+    d2 = ImageDraw.Draw(grid_im)
+    d2.rectangle([100, 200, 800, 800], fill=(50, 50, 70))
+    d2.text((300, 500), "Ancient Mystery", fill=(255, 215, 0))
+    grid_im.save(grid)
+
+    res = auditor.audit_thumbnails(cover, grid)
+    assert res["certified"] is True
+    assert res["score"] == 100
+    assert res["thumbnails_audited"] == 2
+
+    # Invalid ratio cover
+    bad_cover = tmp_path / "bad_cover.jpg"
+    Image.new("RGB", (800, 800), color=(30, 30, 30)).save(bad_cover)
+    res_bad = auditor.audit_thumbnails(bad_cover, grid)
+    assert res_bad["certified"] is False
+    assert any(i["type"] == "invalid_cover_ratio" for i in res_bad["issues"])
+
+
+def test_audit_publishing_policy():
+    auditor = ClosedLoopAuditor()
+
+    # 1. Missing AI disclosure
+    payload_no_ai = {
+        "caption": "A deep dive into ancient subterranean architecture. What does the evidence suggest?",
+        "is_generated_by_ai": False,
+    }
+    res_ai = auditor.audit_publishing_policy(payload_no_ai)
+    assert res_ai["certified"] is False
+    assert any(i["type"] == "missing_ai_disclosure" for i in res_ai["issues"])
+
+    # 2. Engagement bait detected
+    payload_bait = {
+        "caption": "Was this built by ancient engineers? Comment YES or NO below!",
+        "is_generated_by_ai": True,
+    }
+    res_bait = auditor.audit_publishing_policy(payload_bait)
+    assert res_bait["certified"] is False
+    assert any(i["type"] == "engagement_bait_detected" for i in res_bait["issues"])
+
+    # 3. Clean compliant payload
+    payload_clean = {
+        "caption": "Did ancient builders design Derinkuyu as an emergency fortress, or a permanent underground city? What does the volcanic geology suggest?",
+        "is_generated_by_ai": True,
+        "claims": [{"claim": "Excavated in volcanic tuff", "confidence": 0.95}],
+    }
+    res_clean = auditor.audit_publishing_policy(payload_clean)
+    assert res_clean["certified"] is True
+    assert res_clean["score"] == 100
+    assert len(res_clean["issues"]) == 0
+

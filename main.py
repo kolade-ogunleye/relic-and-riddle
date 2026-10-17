@@ -1116,6 +1116,7 @@ class PipelineCoordinator:
                         "asset": asset,
                     })
                     t_cursor += dur
+                payload["is_generated_by_ai"] = True
                 cl_auditor = ClosedLoopAuditor()
                 cl_result = cl_auditor.run_self_healing_cycle(
                     video_path=master_mp4,
@@ -1123,6 +1124,11 @@ class PipelineCoordinator:
                     words=words,
                     run_dir=run_dir,
                     composer=self.video_composer,
+                    carousel_dir=run_dir / "carousel",
+                    story_dir=run_dir / "stories",
+                    cover_path=thumb_916,
+                    grid_path=thumb_1x1,
+                    payload=payload,
                 )
                 payload["self_healing"] = cl_result
             except Exception as e:

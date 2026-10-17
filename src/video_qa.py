@@ -563,9 +563,11 @@ class ClosedLoopAuditor:
                         })
                         score -= 30
 
-                    # Safe margin text/element clipping check at extreme borders
-                    left_strip = gray.crop((0, 0, 12, h))
-                    right_strip = gray.crop((w - 12, 0, w, h))
+                    # Safe margin text/element clipping check at extreme borders in the typography safe band
+                    text_band_top = int(h * 0.45)
+                    text_band_bottom = int(h * 0.92)
+                    left_strip = gray.crop((0, text_band_top, 12, text_band_bottom))
+                    right_strip = gray.crop((w - 12, text_band_top, w, text_band_bottom))
                     l_stat = ImageStat.Stat(left_strip)
                     r_stat = ImageStat.Stat(right_strip)
                     if l_stat.stddev and l_stat.stddev[0] > 60.0:

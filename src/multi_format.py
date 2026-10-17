@@ -144,6 +144,26 @@ class MultiFormatGenerator:
         return "immersive" if index % 2 == 1 else "editorial_split"
 
     @staticmethod
+    def _get_card_category(card: Dict[str, Any], archetype: str) -> str:
+        """Derives a dynamic editorial category label for the slide badge."""
+        text = (card.get("heading", "") + " " + card.get("body", "")).lower()
+        if archetype == "debate":
+            return "FORENSIC DEBATE"
+        if archetype == "blueprint" or any(w in text for w in ("blueprint", "metric", "engineered", "shaft", "ventilation", "channel", "door")):
+            return "ENGINEERING BLUEPRINT"
+        if archetype == "comparison" or any(w in text for w in ("versus", "vs", "compare", "surface", "contrast", "above and below")):
+            return "COMPARATIVE EVIDENCE"
+        if archetype == "colossal_stat" or any(w in text for w in ("tons", "feet", "meters", "capacity", "levels", "stories")):
+            return "ARCHAEOLOGICAL METRIC"
+        if any(w in text for w in ("carved", "rock", "stone", "tuff", "excavated", "cut")):
+            return "ARCHIVAL EVIDENCE"
+        if any(w in text for w in ("who", "built", "dug", "phrygian", "hittite", "byzantine", "mystery", "enigma")):
+            return "HISTORICAL ENIGMA"
+        if any(w in text for w in ("discovery", "found", "breach", "basement", "revealed", "chickens", "wall")):
+            return "DISCOVERY RECORD"
+        return "FIELD INVESTIGATION"
+
+    @staticmethod
     def _draw_badge(
         d: ImageDraw.ImageDraw,
         text: str,
@@ -197,8 +217,9 @@ class MultiFormatGenerator:
         for y in range(chh // 2, chh):
             a = int(220 * ((y - chh / 2) / (chh / 2)) ** 1.3)
             d.line([(0, y), (cw, y)], fill=(8, 10, 14, a))
-        tag = f"EXPLORATION // {index + 1:02d}"
-        f_tag = get_font("Montserrat", 26)
+        category = self._get_card_category(card, "immersive")
+        tag = f"{category} // {index + 1:02d}"
+        f_tag = get_font("Montserrat", 24)
         self._draw_badge(d, tag, 80, chh - 530, f_tag, text_color=GOLD, border_color=GOLD, border_width=2, radius=8)
         font_h = fit_font(d, heading, "Anton", 76, cw - 160, 44)
         h_lines = wrap_text(d, heading, font_h, cw - 160)[:2]
@@ -223,18 +244,21 @@ class MultiFormatGenerator:
         d = ImageDraw.Draw(im, "RGBA")
         d.line([(0, h_half), (cw, h_half)], fill=GOLD, width=3)
         d.line([(0, 2 * h_half), (cw, 2 * h_half)], fill=GOLD, width=2)
-        f_sub = get_font("Montserrat", 24)
+        f_sub = get_font("Montserrat", 22)
         t_ref_a = "REF A // SURFACE CONTEXT"
-        self._draw_badge(d, t_ref_a, 60, 40, f_sub, text_color=WHITE, border_color=GOLD, fill_color=(10, 12, 16, 220), radius=6)
+        self._draw_badge(d, t_ref_a, 60, 35, f_sub, text_color=WHITE, border_color=GOLD, fill_color=(10, 12, 16, 220), radius=6)
 
         t_ref_b = "REF B // SUBTERRANEAN DEPTH"
-        self._draw_badge(d, t_ref_b, 60, h_half + 40, f_sub, text_color=GOLD, border_color=GOLD, fill_color=(10, 12, 16, 220), radius=6)
+        self._draw_badge(d, t_ref_b, 60, h_half + 35, f_sub, text_color=GOLD, border_color=GOLD, fill_color=(10, 12, 16, 220), radius=6)
 
-        d.text((80, 2 * h_half + 30), f"{index + 1:02d}", font=get_font("Anton", 60), fill=GOLD, anchor="lt")
-        font_h = fit_font(d, heading, "Anton", 64, cw - 260, 38)
-        d.text((180, 2 * h_half + 60), heading, font=font_h, fill=WHITE, anchor="lm")
+        category = self._get_card_category(card, "comparison")
+        tag = f"{category} // {index + 1:02d}"
+        f_tag = get_font("Montserrat", 24)
+        self._draw_badge(d, tag, 80, 2 * h_half + 25, f_tag, text_color=GOLD, border_color=GOLD, radius=6)
+        font_h = fit_font(d, heading, "Anton", 64, cw - 160, 38)
+        d.text((80, 2 * h_half + 85), heading, font=font_h, fill=WHITE, anchor="lt")
         font_b = get_font("Montserrat", 38)
-        y = 2 * h_half + 130
+        y = 2 * h_half + 155
         for line in wrap_text(d, body, font_b, cw - 160)[:4]:
             d.text((80, y), line, font=font_b, fill=LIGHT, anchor="lt")
             y += 52
@@ -252,14 +276,14 @@ class MultiFormatGenerator:
         for y_g in range(p_h, chh, 70):
             d.line([(0, y_g), (cw, y_g)], fill=(20, 36, 52, 70), width=1)
         d.line([(0, p_h), (cw, p_h)], fill=GOLD, width=3)
+        category = self._get_card_category(card, "blueprint")
+        tag = f"{category} // {index + 1:02d}"
         f_tech = get_font("Montserrat", 24)
-        t_bp = "ARCHITECTURAL BLUEPRINT // METRIC"
-        self._draw_badge(d, t_bp, 80, p_h + 30, f_tech, text_color=GOLD, border_color=GOLD, fill_color=(8, 12, 18, 230), radius=4)
-        d.text((80, p_h + 90), f"{index + 1:02d}", font=get_font("Anton", 60), fill=GOLD, anchor="lt")
-        font_h = fit_font(d, heading, "Anton", 64, cw - 260, 38)
-        d.text((180, p_h + 120), heading, font=font_h, fill=WHITE, anchor="lm")
+        self._draw_badge(d, tag, 80, p_h + 25, f_tech, text_color=GOLD, border_color=GOLD, fill_color=(8, 12, 18, 230), radius=4)
+        font_h = fit_font(d, heading, "Anton", 64, cw - 160, 38)
+        d.text((80, p_h + 85), heading, font=font_h, fill=WHITE, anchor="lt")
         font_b = get_font("Montserrat", 40)
-        y = p_h + 180
+        y = p_h + 155
         for line in wrap_text(d, body, font_b, cw - 160)[:5]:
             d.text((80, y), line, font=font_b, fill=LIGHT, anchor="lt")
             y += 56
@@ -275,11 +299,15 @@ class MultiFormatGenerator:
         for y in range(p_h - 140, p_h):
             a = int(255 * ((y - (p_h - 140)) / 140) ** 1.5)
             d.line([(0, y), (cw, y)], fill=(11, 14, 18, a))
+        category = self._get_card_category(card, "colossal_stat")
+        tag = f"{category} // {index + 1:02d}"
+        f_tag = get_font("Montserrat", 24)
+        self._draw_badge(d, tag, 80, p_h + 10, f_tag, text_color=GOLD, border_color=GOLD, fill_color=(16, 20, 26, 230), radius=6)
         stat_match = re.search(r"(\b\d+[\d,]*\+?(?:\s*(?:TONS?|PEOPLE|FEET|FT|METERS?|M|STORIES|LEVELS))?)\b", f"{heading} {body}", re.IGNORECASE)
         stat_text = stat_match.group(1).upper() if stat_match else f"{index + 1:02d} DATA"
-        f_stat = fit_font(d, stat_text, "Anton", 120, cw - 160, 72)
-        d.text((80, p_h + 10), stat_text, font=f_stat, fill=GOLD, anchor="lt")
-        y = p_h + 10 + int(f_stat.size * 1.1)
+        f_stat = fit_font(d, stat_text, "Anton", 110, cw - 160, 68)
+        d.text((80, p_h + 65), stat_text, font=f_stat, fill=GOLD, anchor="lt")
+        y = p_h + 65 + int(f_stat.size * 1.1)
         font_h = fit_font(d, heading, "Anton", 62, cw - 160, 38)
         d.text((80, y), heading, font=font_h, fill=WHITE, anchor="lt")
         y += int(font_h.size * 1.15)
@@ -302,9 +330,10 @@ class MultiFormatGenerator:
         for y in range(p_h - 160, p_h):
             a = int(255 * ((y - (p_h - 160)) / 160) ** 1.5)
             d.line([(0, y), (cw, y)], fill=(12, 14, 18, a))
+        category = self._get_card_category(card, "debate")
+        tag = f"{category} // {index + 1:02d}"
         f_tag = get_font("Montserrat", 24)
-        t_deb = "FORENSIC DEBATE // THE FINAL QUESTION"
-        self._draw_badge(d, t_deb, 80, p_h + 20, f_tag, text_color=GOLD, border_color=GOLD, fill_color=(16, 18, 22, 230), radius=6)
+        self._draw_badge(d, tag, 80, p_h + 20, f_tag, text_color=GOLD, border_color=GOLD, fill_color=(16, 18, 22, 230), radius=6)
         font_h = fit_font(d, heading, "Anton", 68, cw - 160, 42)
         d.text((80, p_h + 80), heading, font=font_h, fill=WHITE, anchor="lt")
         font_b = get_font("Montserrat", 40)
@@ -322,11 +351,14 @@ class MultiFormatGenerator:
         d = ImageDraw.Draw(im, "RGBA")
         for y in range(self.PHOTO_H - 180, self.PHOTO_H):
             d.line([(0, y), (cw, y)], fill=(13, 16, 21, int(255 * ((y - (self.PHOTO_H - 180)) / 180) ** 1.6)))
-        d.text((80, self.PHOTO_H + 30), f"{index + 1:02d}", font=get_font("Anton", 64), fill=GOLD, anchor="lt")
-        font_h = fit_font(d, heading, "Anton", 66, cw - 280, 40)
-        d.text((200, self.PHOTO_H + 64), heading, font=font_h, fill=WHITE, anchor="lm")
+        category = self._get_card_category(card, "editorial_split")
+        tag = f"{category} // {index + 1:02d}"
+        f_tag = get_font("Montserrat", 24)
+        self._draw_badge(d, tag, 80, self.PHOTO_H + 25, f_tag, text_color=GOLD, border_color=GOLD, radius=6)
+        font_h = fit_font(d, heading, "Anton", 66, cw - 160, 40)
+        d.text((80, self.PHOTO_H + 85), heading, font=font_h, fill=WHITE, anchor="lt")
         font_b = get_font("Montserrat", 42)
-        y = self.PHOTO_H + 150
+        y = self.PHOTO_H + 155
         for line in wrap_text(d, body, font_b, cw - 160)[:5]:
             d.text((80, y), line, font=font_b, fill=LIGHT, anchor="lt")
             y += 58

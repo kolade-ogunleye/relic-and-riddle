@@ -25,6 +25,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -182,53 +183,112 @@ def search_nasa(query: str, keywords: List[str]) -> List[Dict[str, Any]]:
     return out
 
 
+NEGATIVE_VLOG_KEYWORDS = {
+    "vlog", "reaction", "review", "my trip", "how to visit", "travel guide",
+    "top 10", "top 5", "podcast", "interview", "haul", "q&a", "unboxing", "tiktok",
+}
+
+
+def _is_vlog_or_reaction(title: str) -> bool:
+    t_lower = title.lower()
+    return any(re.search(r"\b" + re.escape(w) + r"\b", t_lower) for w in NEGATIVE_VLOG_KEYWORDS)
+
+
+def _search_youtube_ytdlp(query: str, keywords: List[str]) -> List[Dict[str, Any]]:
+    """Zero-credential yt-dlp search fallback targeting Creative Commons high-definition footage."""
+    try:
+        import yt_dlp
+    except ImportError:
+        return []
+    ydl_opts = {
+        "quiet": True,
+        "extract_flat": "in_playlist",
+        "no_warnings": True,
+    }
+    search_str = f"ytsearch6:{query} 4k creative commons"
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            res = ydl.extract_info(search_str, download=False)
+            entries = res.get("entries", []) or []
+            out = []
+            for e in entries:
+                vid_id = e.get("id")
+                title = e.get("title", "")
+                if not vid_id or _is_vlog_or_reaction(title):
+                    continue
+                channel = e.get("uploader") or e.get("channel") or "Unknown"
+                video_url = f"https://www.youtube.com/watch?v={vid_id}"
+                out.append({
+                    "provider": "youtube",
+                    "title": title,
+                    "text": f"{title} {channel}",
+                    "download_url": video_url,
+                    "source_url": video_url,
+                    "license": "Creative Commons Attribution (reuse allowed)",
+                    "artist": channel,
+                    "attribution_required": True,
+                    "width": int(e.get("width") or 3840),
+                    "height": int(e.get("height") or 2160),
+                    "duration": float(e.get("duration") or 0.0),
+                })
+            return out
+    except Exception as e:
+        log.warning("yt-dlp search fallback error: %s", e)
+        return []
+
+
 def search_youtube_cc(query: str, keywords: List[str]) -> List[Dict[str, Any]]:
-    """Searches YouTube for Creative Commons (CC-BY) videos via YouTube Data API v3."""
+    """Searches YouTube for Creative Commons (CC-BY) videos via YouTube Data API v3,
+    with zero-credential yt-dlp search fallback when YOUTUBE_API_KEY is not configured."""
     if not getattr(config, "YOUTUBE_FOOTAGE_ENABLED", False):
         return []
     api_key = getattr(config, "YOUTUBE_API_KEY", "")
-    if not api_key:
-        return []
-    url = "https://www.googleapis.com/youtube/v3/search"
-    params = {
-        "key": api_key,
-        "q": query,
-        "part": "snippet",
-        "type": "video",
-        "videoLicense": "creativeCommon",
-        "videoDefinition": "high",
-        "maxResults": 10,
-    }
-    try:
-        data = _cached_get(url, params)
-    except Exception as e:
-        log.warning("YouTube CC search error: %s", e)
-        return []
+    if api_key:
+        url = "https://www.googleapis.com/youtube/v3/search"
+        params = {
+            "key": api_key,
+            "q": f"{query} 4k",
+            "part": "snippet",
+            "type": "video",
+            "videoLicense": "creativeCommon",
+            "videoDefinition": "high",
+            "maxResults": 10,
+        }
+        try:
+            data = _cached_get(url, params)
+            out = []
+            for item in data.get("items", []):
+                vid_id = item.get("id", {}).get("videoId")
+                if not vid_id:
+                    continue
+                snippet = item.get("snippet", {})
+                title = snippet.get("title", "")
+                if _is_vlog_or_reaction(title):
+                    continue
+                desc = snippet.get("description", "")
+                channel = snippet.get("channelTitle", "Unknown")
+                video_url = f"https://www.youtube.com/watch?v={vid_id}"
+                out.append({
+                    "provider": "youtube",
+                    "title": title,
+                    "text": f"{title} {desc}",
+                    "download_url": video_url,
+                    "source_url": video_url,
+                    "license": "Creative Commons Attribution (reuse allowed)",
+                    "artist": channel,
+                    "attribution_required": True,
+                    "width": 3840,
+                    "height": 2160,
+                    "duration": 0.0,
+                })
+            if out:
+                return out
+        except Exception as e:
+            log.warning("YouTube CC search error: %s", e)
 
-    out = []
-    for item in data.get("items", []):
-        vid_id = item.get("id", {}).get("videoId")
-        if not vid_id:
-            continue
-        snippet = item.get("snippet", {})
-        title = snippet.get("title", "")
-        desc = snippet.get("description", "")
-        channel = snippet.get("channelTitle", "Unknown")
-        video_url = f"https://www.youtube.com/watch?v={vid_id}"
-        out.append({
-            "provider": "youtube",
-            "title": title,
-            "text": f"{title} {desc}",
-            "download_url": video_url,
-            "source_url": video_url,
-            "license": "Creative Commons Attribution (reuse allowed)",
-            "artist": channel,
-            "attribution_required": True,
-            "width": 1920,
-            "height": 1080,
-            "duration": 0.0,
-        })
-    return out
+    if getattr(config, "YOUTUBE_FALLBACK_TO_YTDLP", False):
+        return _search_youtube_ytdlp(query, keywords)
+    return []
 
 
 PROVIDERS = [("commons", search_commons), ("nasa", search_nasa), ("youtube", search_youtube_cc)]
@@ -313,11 +373,17 @@ def probe(path: Path) -> Dict[str, Any]:
 
 
 def make_segment(src: Path, info: Dict[str, Any], out: Path) -> Path:
-    """A muted 1080x1920 H.264 segment from the middle part of the video, plus a poster frame."""
+    """A muted 1080x1920 H.264 segment from the core b-roll part of the video, plus a poster frame."""
     dur = info["duration"]
     if dur < SEGMENT_SECONDS:
         raise ValueError(f"too short ({dur:.1f}s)")
-    start = dur * 0.1 if dur * 0.8 >= SEGMENT_SECONDS else (dur - SEGMENT_SECONDS) / 2  # skip intros/outros
+    # Target 35% into video to capture core documentary b-roll (skipping intros and outros)
+    if dur * 0.7 >= SEGMENT_SECONDS:
+        start = dur * 0.35
+    elif dur * 0.8 >= SEGMENT_SECONDS:
+        start = dur * 0.15
+    else:
+        start = max(0.0, (dur - SEGMENT_SECONDS) / 2)
     subprocess.run(["ffmpeg", "-y", "-v", "error", "-protocol_whitelist", "file", "-ss", f"{start:.2f}", "-t", f"{SEGMENT_SECONDS:.2f}",
                     "-i", str(src), "-an", "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30",
                     "-c:v", "libx264", "-preset", "medium", "-crf", "17", "-pix_fmt", "yuv420p", str(out)],
@@ -344,7 +410,7 @@ three frames from one clip. Answer these questions:
   or could it be anywhere similar ("unsure")?
 - has_anachronism: does the clip show modern steel rebar/reinforcement, contemporary heavy machinery,
   power tools, asphalt, plastic, modern boats, or contemporary construction workers? (true if any present)
-Be strict about watermarks, burned-in text or subtitles, channel logos and brand logos."""
+Be strict about watermarks, burned-in text or subtitles, TV network logos (e.g. BBC, NatGeo, Discovery, History Channel), channel bugs and brand logos."""
 
 
 @llm_task("footage_check")

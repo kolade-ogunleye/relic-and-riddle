@@ -175,8 +175,9 @@ def test_anachronism_rejected(tmp_path, monkeypatch):
 
 
 def test_search_youtube_cc_and_credit_line(monkeypatch):
-    # 1. Missing key returns empty list safely
+    # 1. Missing key and disabled fallback returns empty list safely
     monkeypatch.setattr(footage.config, "YOUTUBE_API_KEY", "")
+    monkeypatch.setattr(footage.config, "YOUTUBE_FALLBACK_TO_YTDLP", False)
     assert footage.search_youtube_cc("Derinkuyu", []) == []
 
     # 2. Configured key parses items correctly
@@ -203,4 +204,32 @@ def test_search_youtube_cc_and_credit_line(monkeypatch):
     # 3. Credit line formatting
     line = footage.credit_line(results)
     assert "History Channel CC via YouTube (CC-BY)" in line
+
+
+def test_negative_vlog_filtering():
+    assert footage._is_vlog_or_reaction("My Travel Vlog in Cappadocia")
+    assert footage._is_vlog_or_reaction("Reacting to Ancient Underground Cities - Reaction")
+    assert not footage._is_vlog_or_reaction("Derinkuyu Ancient Underground City Drone Walkthrough")
+
+
+def test_search_youtube_ytdlp_fallback(monkeypatch):
+    fake_res = {
+        "entries": [
+            {"id": "yt_vid_999", "title": "Derinkuyu 4K Cinematic B-Roll", "uploader": "Drone Docs", "duration": 240.0},
+            {"id": "yt_vlog_1", "title": "My Vlog at the Underground City", "uploader": "Traveler"}
+        ]
+    }
+    class FakeYDL:
+        def __init__(self, opts): pass
+        def __enter__(self): return self
+        def __exit__(self, *a): pass
+        def extract_info(self, q, download=False): return fake_res
+
+    import yt_dlp
+    monkeypatch.setattr(yt_dlp, "YoutubeDL", FakeYDL)
+    results = footage._search_youtube_ytdlp("Derinkuyu", [])
+    assert len(results) == 1
+    assert results[0]["download_url"] == "https://www.youtube.com/watch?v=yt_vid_999"
+    assert results[0]["artist"] == "Drone Docs"
+
 

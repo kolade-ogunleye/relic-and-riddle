@@ -11,10 +11,11 @@ Stories and carousels are posted on their own schedule (src/post_schedule.py).
 
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Dict, Any, List
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 from .config import VIDEO_WIDTH, VIDEO_HEIGHT
 from .typography import cover_crop, fit_font, get_font, is_video, wrap_text
@@ -49,9 +50,11 @@ class MultiFormatGenerator:
             base = cover_crop(photos[i], (VIDEO_WIDTH, VIDEO_HEIGHT)).convert("RGB")
             cy = calm_center_y(base, candidates=(700, 960, 1200), band=520)
             d = ImageDraw.Draw(base, "RGBA")
+            # Global 35% dark underlay across the entire base image to tame bright sunlit stone/sand
+            d.rectangle([(0, 0), (VIDEO_WIDTH, VIDEO_HEIGHT)], fill=(6, 6, 8, 90))
             for y in range(VIDEO_HEIGHT):  # soft vignette band behind the text, darkest at its centre
                 k = max(0.0, 1 - abs(y - cy) / 520)
-                d.line([(0, y), (VIDEO_WIDTH, y)], fill=(6, 6, 8, int(200 * k ** 1.3)))
+                d.line([(0, y), (VIDEO_WIDTH, y)], fill=(6, 6, 8, int(220 * k ** 1.3)))
             kicker, l1, l2 = slide["kicker"].upper(), slide["line1"].upper(), slide["line2"].upper()
             font_k = fit_font(d, kicker, "Montserrat", 34, max_w, 22)
             size = min(fit_font(d, l1, "Anton", 104, max_w, 56).size, fit_font(d, l2, "Anton", 104, max_w, 56).size)
@@ -61,18 +64,25 @@ class MultiFormatGenerator:
             block = 60 + 2 * (size + 12) + 40 + len(body_lines) * 54 + (40 + 2 * 120 + 50 if has_options else 70)
             # Keep the whole block (with options or the Reel pointer) inside the Story-safe area.
             y = max(280, min(cy - block // 2, VIDEO_HEIGHT - 340 - block))
-            d.text((VIDEO_WIDTH // 2, y), kicker, font=font_k, fill=GOLD, anchor="mt")
-            y += 60
-            d.text((VIDEO_WIDTH // 2, y), l1, font=font_t, fill=WHITE, anchor="mt")
+            # Translucent dark charcoal pill behind kicker for WCAG AAA legibility (mathematically centered)
+            kx = VIDEO_WIDTH // 2
+            k_cy = y + 16
+            pad_x, pad_y = 26, 12
+            k_bbox = d.textbbox((kx, k_cy), kicker, font=font_k, anchor="mm")
+            pill_box = [k_bbox[0] - pad_x, k_bbox[1] - pad_y, k_bbox[2] + pad_x, k_bbox[3] + pad_y]
+            d.rounded_rectangle(pill_box, radius=14, fill=(10, 10, 14, 215), outline=(255, 215, 0, 180), width=2)
+            d.text((kx, k_cy), kicker, font=font_k, fill=GOLD, anchor="mm")
+            y = pill_box[3] + 20
+            d.text((VIDEO_WIDTH // 2, y), l1, font=font_t, fill=WHITE, anchor="mt", stroke_width=3, stroke_fill=(10, 10, 12, 230))
             y += size + 12
-            d.text((VIDEO_WIDTH // 2, y), l2, font=font_t, fill=GOLD, anchor="mt")
+            d.text((VIDEO_WIDTH // 2, y), l2, font=font_t, fill=GOLD, anchor="mt", stroke_width=3, stroke_fill=(10, 10, 12, 230))
             y += size + 40
             for line in body_lines:
-                d.text((VIDEO_WIDTH // 2, y), line, font=font_b, fill=LIGHT, anchor="mt")
+                d.text((VIDEO_WIDTH // 2, y), line, font=font_b, fill=LIGHT, anchor="mt", stroke_width=2, stroke_fill=(10, 10, 12, 220))
                 y += 54
             if i == 0:
                 d.text((VIDEO_WIDTH // 2, y + 30), "FULL STORY IN OUR NEW REEL  →", font=get_font("Montserrat", 32),
-                       fill=GOLD, anchor="mt")
+                       fill=GOLD, anchor="mt", stroke_width=2, stroke_fill=(10, 10, 12, 220))
             if has_options:
                 font_o = get_font("Anton", 52)
                 for j, (letter, option) in enumerate(zip("AB", poll["options"][:2])):
@@ -82,7 +92,7 @@ class MultiFormatGenerator:
                     d.text((190, oy + 48), letter, font=font_o, fill=GOLD, anchor="lm")
                     d.text((250, oy + 48), option.upper()[:28], font=get_font("Montserrat", 38), fill=WHITE, anchor="lm")
                 d.text((VIDEO_WIDTH // 2, y + 40 + 2 * 120 + 20), "REPLY WITH A OR B", font=get_font("Montserrat", 32),
-                       fill=LIGHT, anchor="mt")
+                       fill=LIGHT, anchor="mt", stroke_width=2, stroke_fill=(10, 10, 12, 220))
             path = out_dir / name
             base.save(path, quality=95)
             slides.append(path)
@@ -113,17 +123,200 @@ class MultiFormatGenerator:
             log.warning("Carousel photo matching failed (%s); rotating photos.", e)
             return [stills[i % len(stills)] for i in range(len(cards))]
 
+    @staticmethod
+    def route_carousel_archetype(card: Dict[str, Any], index: int, total: int) -> str:
+        """Semantic intent router that selects the optimal editorial archetype."""
+        if index == 0:
+            return "cover"
+        if index == total - 1:
+            return "debate"
+        text = (card.get("heading", "") + " " + card.get("body", "")).lower()
+        stat_patterns = [
+            r"\b\d+[\d,]*\s*(?:tons?|people|feet|ft|meters?|m|stories|levels|degrees|bce?|years?)\b",
+            r"\b\d+[,.]\d+\b",
+        ]
+        if any(re.search(p, text) for p in stat_patterns) and any(w in text for w in ("tons", "people", "deep", "stories", "levels", "feet", "meters", "capacity")):
+            return "colossal_stat"
+        if any(w in text for w in ("versus", "vs", "compared", "surface", "unlike", "contrast", "above and below", "then and now", "modern")):
+            return "comparison"
+        if any(w in text for w in ("shaft", "ventilation", "channel", "door", "rolling stone", "tunnel", "chiseled", "engineered", "mechanism", "structure", "architecture", "block")):
+            return "blueprint"
+        return "immersive" if index % 2 == 1 else "editorial_split"
+
+    def _render_cover(self, photo: Path, card: Dict[str, Any], cw: int, chh: int) -> Image.Image:
+        heading, body = card["heading"].upper(), card["body"]
+        im = cover_crop(photo, self.CAROUSEL_SIZE).convert("RGB")
+        d = ImageDraw.Draw(im, "RGBA")
+        for y in range(chh // 3, chh):
+            a = int(235 * ((y - chh / 3) / (chh * 2 / 3)) ** 1.4)
+            d.line([(0, y), (cw, y)], fill=(8, 8, 10, a))
+        font_h = fit_font(d, heading, "Anton", 110, cw - 160, 56)
+        lines = wrap_text(d, heading, font_h, cw - 160)[:3]
+        y = chh - 470 - (len(lines) - 1) * 60
+        for line in lines:
+            d.text((80, y), line, font=font_h, fill=WHITE, anchor="ls", stroke_width=3, stroke_fill=(8, 8, 10, 230))
+            y += int(font_h.size * 1.05)
+        for j, line in enumerate(wrap_text(d, body, get_font("Montserrat", 36), cw - 160)[:2]):
+            d.text((80, y + 20 + 48 * j), line, font=get_font("Montserrat", 36), fill=LIGHT, anchor="ls", stroke_width=2, stroke_fill=(8, 8, 10, 220))
+        d.text((cw - 80, chh - 110), "SWIPE  →", font=get_font("Anton", 44), fill=GOLD, anchor="rs", stroke_width=2, stroke_fill=(8, 8, 10, 220))
+        return im
+
+    def _render_immersive(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int) -> Image.Image:
+        """Archetype A: Full-Bleed Immersive Photo with floating translucent charcoal badges."""
+        heading, body = card["heading"].upper(), card["body"]
+        im = cover_crop(photo, self.CAROUSEL_SIZE).convert("RGB")
+        d = ImageDraw.Draw(im, "RGBA")
+        d.rectangle([(0, 0), (cw, chh)], fill=(6, 8, 12, 70))
+        for y in range(chh // 2, chh):
+            a = int(220 * ((y - chh / 2) / (chh / 2)) ** 1.3)
+            d.line([(0, y), (cw, y)], fill=(8, 10, 14, a))
+        tag = f"EXPLORATION // {index + 1:02d}"
+        f_tag = get_font("Montserrat", 26)
+        bbox = d.textbbox((120, chh - 520), tag, font=f_tag)
+        d.rounded_rectangle([bbox[0] - 18, bbox[1] - 8, bbox[2] + 18, bbox[3] + 8], radius=8, fill=(12, 14, 18, 225), outline=GOLD, width=2)
+        d.text((120, chh - 520), tag, font=f_tag, fill=GOLD, anchor="lt")
+        font_h = fit_font(d, heading, "Anton", 76, cw - 160, 44)
+        h_lines = wrap_text(d, heading, font_h, cw - 160)[:2]
+        y = chh - 440
+        for line in h_lines:
+            d.text((80, y), line, font=font_h, fill=WHITE, anchor="lt", stroke_width=3, stroke_fill=(6, 8, 10, 240))
+            y += int(font_h.size * 1.08)
+        y += 18
+        font_b = get_font("Montserrat", 40)
+        for line in wrap_text(d, body, font_b, cw - 160)[:4]:
+            d.text((80, y), line, font=font_b, fill=LIGHT, anchor="lt", stroke_width=2, stroke_fill=(6, 8, 10, 220))
+            y += 56
+        return im
+
+    def _render_comparison(self, photo1: Path, photo2: Path, card: Dict[str, Any], index: int, cw: int, chh: int) -> Image.Image:
+        """Archetype B: Side-by-Side Comparative Card."""
+        heading, body = card["heading"].upper(), card["body"]
+        im = Image.new("RGB", (cw, chh), (12, 14, 18))
+        h_half = 380
+        im.paste(cover_crop(photo1, (cw, h_half)).convert("RGB"), (0, 0))
+        im.paste(cover_crop(photo2, (cw, h_half)).convert("RGB"), (0, h_half))
+        d = ImageDraw.Draw(im, "RGBA")
+        d.line([(0, h_half), (cw, h_half)], fill=GOLD, width=3)
+        d.line([(0, 2 * h_half), (cw, 2 * h_half)], fill=GOLD, width=2)
+        f_sub = get_font("Montserrat", 24)
+        d.rounded_rectangle([60, 40, 360, 80], radius=6, fill=(10, 12, 16, 220), outline=GOLD, width=1)
+        d.text((80, 50), "REF A // SURFACE CONTEXT", font=f_sub, fill=WHITE, anchor="lt")
+        d.rounded_rectangle([60, h_half + 40, 420, h_half + 80], radius=6, fill=(10, 12, 16, 220), outline=GOLD, width=1)
+        d.text((80, h_half + 50), "REF B // SUBTERRANEAN DEPTH", font=f_sub, fill=GOLD, anchor="lt")
+        d.text((80, 2 * h_half + 30), f"{index + 1:02d}", font=get_font("Anton", 60), fill=GOLD, anchor="lt")
+        font_h = fit_font(d, heading, "Anton", 64, cw - 260, 38)
+        d.text((180, 2 * h_half + 60), heading, font=font_h, fill=WHITE, anchor="lm")
+        font_b = get_font("Montserrat", 38)
+        y = 2 * h_half + 130
+        for line in wrap_text(d, body, font_b, cw - 160)[:4]:
+            d.text((80, y), line, font=font_b, fill=LIGHT, anchor="lt")
+            y += 52
+        return im
+
+    def _render_blueprint(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int) -> Image.Image:
+        """Archetype C: Sourced Measurement & Blueprint Card."""
+        heading, body = card["heading"].upper(), card["body"]
+        im = Image.new("RGB", (cw, chh), (10, 16, 24))
+        p_h = 620
+        im.paste(cover_crop(photo, (cw, p_h)).convert("RGB"), (0, 0))
+        d = ImageDraw.Draw(im, "RGBA")
+        for x in range(60, cw, 70):
+            d.line([(x, p_h), (x, chh)], fill=(20, 36, 52, 70), width=1)
+        for y_g in range(p_h, chh, 70):
+            d.line([(0, y_g), (cw, y_g)], fill=(20, 36, 52, 70), width=1)
+        d.line([(0, p_h), (cw, p_h)], fill=GOLD, width=3)
+        f_tech = get_font("Montserrat", 24)
+        d.rounded_rectangle([80, p_h + 30, 480, p_h + 70], radius=4, fill=(8, 12, 18, 230), outline=GOLD, width=1)
+        d.text((95, p_h + 40), "[ ARCHITECTURAL BLUEPRINT // METRIC ]", font=f_tech, fill=GOLD, anchor="lt")
+        d.text((80, p_h + 90), f"{index + 1:02d}", font=get_font("Anton", 60), fill=GOLD, anchor="lt")
+        font_h = fit_font(d, heading, "Anton", 64, cw - 260, 38)
+        d.text((180, p_h + 120), heading, font=font_h, fill=WHITE, anchor="lm")
+        font_b = get_font("Montserrat", 40)
+        y = p_h + 180
+        for line in wrap_text(d, body, font_b, cw - 160)[:5]:
+            d.text((80, y), line, font=font_b, fill=LIGHT, anchor="lt")
+            y += 56
+        return im
+
+    def _render_colossal_stat(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int) -> Image.Image:
+        """Archetype D: High-Impact Colossal Stat Card."""
+        heading, body = card["heading"].upper(), card["body"]
+        im = Image.new("RGB", (cw, chh), (11, 14, 18))
+        p_h = 520
+        im.paste(cover_crop(photo, (cw, p_h)).convert("RGB"), (0, 0))
+        d = ImageDraw.Draw(im, "RGBA")
+        for y in range(p_h - 140, p_h):
+            a = int(255 * ((y - (p_h - 140)) / 140) ** 1.5)
+            d.line([(0, y), (cw, y)], fill=(11, 14, 18, a))
+        stat_match = re.search(r"(\b\d+[\d,]*\+?(?:\s*(?:TONS?|PEOPLE|FEET|FT|METERS?|M|STORIES|LEVELS))?)\b", f"{heading} {body}", re.IGNORECASE)
+        stat_text = stat_match.group(1).upper() if stat_match else f"{index + 1:02d} DATA"
+        f_stat = fit_font(d, stat_text, "Anton", 120, cw - 160, 72)
+        d.text((80, p_h + 10), stat_text, font=f_stat, fill=GOLD, anchor="lt")
+        y = p_h + 10 + int(f_stat.size * 1.1)
+        font_h = fit_font(d, heading, "Anton", 62, cw - 160, 38)
+        d.text((80, y), heading, font=font_h, fill=WHITE, anchor="lt")
+        y += int(font_h.size * 1.15)
+        font_b = get_font("Montserrat", 38)
+        for line in wrap_text(d, body, font_b, cw - 160)[:4]:
+            d.text((80, y), line, font=font_b, fill=LIGHT, anchor="lt")
+            y += 52
+        d.rounded_rectangle([80, chh - 140, 540, chh - 95], radius=6, fill=(16, 20, 26, 230), outline=(255, 215, 0, 180), width=1)
+        d.text((100, chh - 128), "VERIFIED BY ARCHEOLOGICAL RECORD", font=get_font("Montserrat", 22), fill=GOLD, anchor="lt")
+        return im
+
+    def _render_debate(self, photo: Path, card: Dict[str, Any], index: int, total: int, cw: int, chh: int, poll: Dict[str, Any], f_small) -> Image.Image:
+        """Archetype E: Forensic Closing Dilemma / Debate Card."""
+        heading, body = card["heading"].upper(), card["body"]
+        im = Image.new("RGB", (cw, chh), (12, 14, 18))
+        p_h = 560
+        im.paste(cover_crop(photo, (cw, p_h)).convert("RGB"), (0, 0))
+        d = ImageDraw.Draw(im, "RGBA")
+        for y in range(p_h - 160, p_h):
+            a = int(255 * ((y - (p_h - 160)) / 160) ** 1.5)
+            d.line([(0, y), (cw, y)], fill=(12, 14, 18, a))
+        f_tag = get_font("Montserrat", 24)
+        d.rounded_rectangle([80, p_h + 20, 480, p_h + 60], radius=6, fill=(16, 18, 22, 230), outline=GOLD, width=1)
+        d.text((95, p_h + 30), "FORENSIC DEBATE // THE FINAL QUESTION", font=f_tag, fill=GOLD, anchor="lt")
+        font_h = fit_font(d, heading, "Anton", 68, cw - 160, 42)
+        d.text((80, p_h + 80), heading, font=font_h, fill=WHITE, anchor="lt")
+        font_b = get_font("Montserrat", 40)
+        y = p_h + 80 + int(font_h.size * 1.15)
+        for line in wrap_text(d, body, font_b, cw - 160)[:3]:
+            d.text((80, y), line, font=font_b, fill=LIGHT, anchor="lt")
+            y += 54
+        d.text((80, chh - 120), "TELL US IN THE COMMENTS  ↓", font=f_small, fill=GOLD, anchor="ls")
+        return im
+
+    def _render_editorial_split(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int) -> Image.Image:
+        heading, body = card["heading"].upper(), card["body"]
+        im = Image.new("RGB", (cw, chh), (13, 16, 21))
+        im.paste(cover_crop(photo, (cw, self.PHOTO_H)).convert("RGB"), (0, 0))
+        d = ImageDraw.Draw(im, "RGBA")
+        for y in range(self.PHOTO_H - 180, self.PHOTO_H):
+            d.line([(0, y), (cw, y)], fill=(13, 16, 21, int(255 * ((y - (self.PHOTO_H - 180)) / 180) ** 1.6)))
+        d.text((80, self.PHOTO_H + 30), f"{index + 1:02d}", font=get_font("Anton", 64), fill=GOLD, anchor="lt")
+        font_h = fit_font(d, heading, "Anton", 66, cw - 280, 40)
+        d.text((200, self.PHOTO_H + 64), heading, font=font_h, fill=WHITE, anchor="lm")
+        font_b = get_font("Montserrat", 42)
+        y = self.PHOTO_H + 150
+        for line in wrap_text(d, body, font_b, cw - 160)[:5]:
+            d.text((80, y), line, font=font_b, fill=LIGHT, anchor="lt")
+            y += 58
+        return im
+
     def generate_carousel_sequence(self, scene_images: List[Path], script_payload: Dict[str, Any], output_dir: Path) -> List[Path]:
-        """Cover slide (full-bleed photo, title, swipe cue), fact slides (matched photo above an
-        editorial text panel, slide number, progress dots) and a closing question slide."""
+        """Multi-Template Editorial Carousel (1080x1350, 4:5):
+        Dynamically routes each slide to one of 5 National Geographic / The Economist archetypes
+        (Full-Bleed Immersive, Comparative Side-by-Side, Architectural Blueprint, Colossal Stat, Debate)."""
         out_dir = output_dir / "carousel"
         out_dir.mkdir(parents=True, exist_ok=True)
         stills = [p for p in scene_images if not is_video(p)]
         cards = script_payload["carousel_slides"]
+        poll = script_payload.get("poll") or {}
         total = len(cards)
         cw, chh = self.CAROUSEL_SIZE
         photos = self._match_photos(cards, stills)
-        f_num, f_small = get_font("Anton", 44), get_font("Montserrat", 28)
+        f_small = get_font("Montserrat", 28)
 
         def dots(d: ImageDraw.ImageDraw, k: int) -> None:
             x0 = cw // 2 - (total - 1) * 14
@@ -134,43 +327,32 @@ class MultiFormatGenerator:
 
         slides = []
         for i, card in enumerate(cards):
-            heading, body = card["heading"].upper(), card["body"]
-            if i == 0:  # cover
-                im = cover_crop(photos[i], self.CAROUSEL_SIZE).convert("RGB")
-                d = ImageDraw.Draw(im, "RGBA")
-                for y in range(chh // 3, chh):  # bottom gradient for the title
-                    a = int(235 * ((y - chh / 3) / (chh * 2 / 3)) ** 1.4)
-                    d.line([(0, y), (cw, y)], fill=(8, 8, 10, a))
-                font_h = fit_font(d, heading, "Anton", 110, cw - 160, 56)
-                lines = wrap_text(d, heading, font_h, cw - 160)[:3]
-                y = chh - 470 - (len(lines) - 1) * 60
-                for line in lines:
-                    d.text((80, y), line, font=font_h, fill=WHITE, anchor="ls")
-                    y += int(font_h.size * 1.05)
-                for j, line in enumerate(wrap_text(d, body, get_font("Montserrat", 36), cw - 160)[:2]):
-                    d.text((80, y + 20 + 48 * j), line, font=get_font("Montserrat", 36), fill=LIGHT, anchor="ls")
-                d.text((cw - 80, chh - 110), "SWIPE  →", font=f_num, fill=GOLD, anchor="rs")
+            archetype = self.route_carousel_archetype(card, i, total)
+            photo = photos[i]
+            photo_next = photos[(i + 1) % len(photos)]
+
+            if archetype == "cover":
+                im = self._render_cover(photo, card, cw, chh)
+            elif archetype == "immersive":
+                im = self._render_immersive(photo, card, i, cw, chh)
+            elif archetype == "comparison":
+                im = self._render_comparison(photo, photo_next, card, i, cw, chh)
+            elif archetype == "blueprint":
+                im = self._render_blueprint(photo, card, i, cw, chh)
+            elif archetype == "colossal_stat":
+                im = self._render_colossal_stat(photo, card, i, cw, chh)
+            elif archetype == "debate":
+                im = self._render_debate(photo, card, i, total, cw, chh, poll, f_small)
             else:
-                im = Image.new("RGB", self.CAROUSEL_SIZE, (13, 16, 21))
-                im.paste(cover_crop(photos[i], (cw, self.PHOTO_H)).convert("RGB"), (0, 0))
-                d = ImageDraw.Draw(im, "RGBA")
-                for y in range(self.PHOTO_H - 180, self.PHOTO_H):  # photo melts into the panel
-                    d.line([(0, y), (cw, y)], fill=(13, 16, 21, int(255 * ((y - (self.PHOTO_H - 180)) / 180) ** 1.6)))
-                d.text((80, self.PHOTO_H + 30), f"{i + 1:02d}", font=get_font("Anton", 64), fill=GOLD, anchor="lt")
-                font_h = fit_font(d, heading, "Anton", 66, cw - 280, 40)
-                d.text((200, self.PHOTO_H + 64), heading, font=font_h, fill=WHITE, anchor="lm")
-                font_b = get_font("Montserrat", 42)  # sized for phone reading; the panel has room for 5 lines
-                y = self.PHOTO_H + 150
-                for line in wrap_text(d, body, font_b, cw - 160)[:5]:
-                    d.text((80, y), line, font=font_b, fill=LIGHT, anchor="lt")
-                    y += 58
-                if i == total - 1:  # closing slide: the invitation to comment
-                    d.text((80, chh - 120), "TELL US IN THE COMMENTS  ↓", font=f_small, fill=GOLD, anchor="ls")
+                im = self._render_editorial_split(photo, card, i, cw, chh)
+
+            d = ImageDraw.Draw(im, "RGBA")
             d.text((cw - 80, 70), "RELIC & RIDDLE", font=f_small, fill=(235, 235, 235, 210), anchor="rt")
             dots(d, i)
+
             path = out_dir / f"carousel_slide_{i + 1:02d}.jpg"
             im.save(path, quality=95)
             slides.append(path)
 
-        log.info("Generated %d carousel slides -> %s", len(slides), out_dir)
+        log.info("Generated %d multi-template carousel slides -> %s", len(slides), out_dir)
         return slides

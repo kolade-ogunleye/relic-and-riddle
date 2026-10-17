@@ -104,8 +104,8 @@ def lock_narrative_graphics(beats: List[Dict[str, Any]], graphics: List[Path]) -
 
     for idx, b in enumerate(beats):
         txt = b.get("text", "").lower()
-        # 1. Depth & Scale & Numbers graphics
-        if any(w in txt for w in ("deep", "depth", "metre", "meter", "feet", "levels", "stories", "280", "85", "capacity", "thousand", "population", "people")):
+        # 1. Depth & Scale & Numbers graphics (skip beat 0: hook requires visual photo/video immersion)
+        if idx > 0 and any(w in txt for w in ("depth", "metre", "meter", "feet", "levels", "stories", "280", "180", "85", "capacity", "thousand", "population", "people")):
             scale_g = next((g for g in graphics if g not in used_g and any(k in g.stem for k in ("section", "scale", "stat", "numbers"))), None)
             if scale_g:
                 locked[idx] = scale_g

@@ -2,28 +2,6 @@
   "reviewed": true,
   "images": [
     {
-      "title": "File:Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura 08.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/6/6d/Gol_Gumbaz%2C_the_mausoleum_of_Mohammed_Adil_Shah%2C_in_Vijaypura_08.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Gol_Gumbaz,_the_mausoleum_of_Mohammed_Adil_Shah,_in_Vijaypura_08.jpg",
-      "artist": "Pinakpani",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2025,
-      "width": 4080,
-      "height": 1836,
-      "grade": 0,
-      "description": "Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura",
-      "categories": [
-        "Gol Gumbaz",
-        "Self-published work"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "01_commons.jpg"
-    },
-    {
       "title": "File:Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura 01.jpg",
       "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/fc/Gol_Gumbaz%2C_the_mausoleum_of_Mohammed_Adil_Shah%2C_in_Vijaypura_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "source_url": "https://commons.wikimedia.org/wiki/File:Gol_Gumbaz,_the_mausoleum_of_Mohammed_Adil_Shah,_in_Vijaypura_01.jpg",
@@ -43,7 +21,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "02_commons.jpg"
+      "file": "02_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Clear exterior view of Gol Gumbaz and its massive dome over the entrance wall.",
+        "kept": true
+      }
     },
     {
       "title": "File:Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura 12.jpg",
@@ -65,7 +52,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "03_commons.jpg"
+      "file": "03_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Closer exterior view focusing on the upper facade, corner minarets, and dome.",
+        "kept": true
+      }
     },
     {
       "title": "File:Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura 15.jpg",
@@ -87,7 +83,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "04_commons.jpg"
+      "file": "04_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Wide shot showing Gol Gumbaz and the adjoining grounds and mosque.",
+        "kept": true
+      }
     },
     {
       "title": "File:Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura 09.jpg",
@@ -109,183 +114,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "05_commons.jpg"
-    },
-    {
-      "title": "File:Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura 10.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/5e/Gol_Gumbaz%2C_the_mausoleum_of_Mohammed_Adil_Shah%2C_in_Vijaypura_10.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Gol_Gumbaz,_the_mausoleum_of_Mohammed_Adil_Shah,_in_Vijaypura_10.jpg",
-      "artist": "Pinakpani",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2025,
-      "width": 3073,
-      "height": 1398,
-      "grade": 0,
-      "description": "Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura",
-      "categories": [
-        "Gol Gumbaz",
-        "Self-published work"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "06_commons.jpg"
-    },
-    {
-      "title": "File:Mosque in the Gol Gumbaz complex 06.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/f2/Mosque_in_the_Gol_Gumbaz_complex_06.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Mosque_in_the_Gol_Gumbaz_complex_06.jpg",
-      "artist": "Pinakpani",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2025,
-      "width": 4080,
-      "height": 1836,
-      "grade": 0,
-      "description": "Mosque in the Gol Gumbaz complex",
-      "categories": [
-        "Gol Gumbaz Mosque",
-        "Self-published work"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "07_commons.jpg"
-    },
-    {
-      "title": "File:Mosque in the Gol Gumbaz complex 05.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/78/Mosque_in_the_Gol_Gumbaz_complex_05.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Mosque_in_the_Gol_Gumbaz_complex_05.jpg",
-      "artist": "Pinakpani",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2025,
-      "width": 4080,
-      "height": 1836,
-      "grade": 0,
-      "description": "Mosque in the Gol Gumbaz complex",
-      "categories": [
-        "Gol Gumbaz Mosque",
-        "Self-published work"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "08_commons.jpg"
-    },
-    {
-      "title": "File:Mosque in the Gol Gumbaz complex 01.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/a/a7/Mosque_in_the_Gol_Gumbaz_complex_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Mosque_in_the_Gol_Gumbaz_complex_01.jpg",
-      "artist": "Pinakpani",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2025,
-      "width": 4080,
-      "height": 1836,
-      "grade": 0,
-      "description": "Mosque in the Gol Gumbaz complex",
-      "categories": [
-        "Gol Gumbaz Mosque",
-        "Self-published work"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "09_commons.jpg"
-    },
-    {
-      "title": "File:Mosque in the Gol Gumbaz complex 02.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Mosque_in_the_Gol_Gumbaz_complex_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Mosque_in_the_Gol_Gumbaz_complex_02.jpg",
-      "artist": "Pinakpani",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2025,
-      "width": 4080,
-      "height": 1836,
-      "grade": 0,
-      "description": "Mosque in the Gol Gumbaz complex",
-      "categories": [
-        "Gol Gumbaz Mosque",
-        "Self-published work"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "10_commons.jpg"
-    },
-    {
-      "title": "File:Mosque in the Gol Gumbaz complex 04.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/1/17/Mosque_in_the_Gol_Gumbaz_complex_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Mosque_in_the_Gol_Gumbaz_complex_04.jpg",
-      "artist": "Pinakpani",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2025,
-      "width": 4080,
-      "height": 1836,
-      "grade": 0,
-      "description": "Mosque in the Gol Gumbaz complex",
-      "categories": [
-        "Gol Gumbaz Mosque",
-        "Self-published work"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "11_commons.jpg"
-    },
-    {
-      "title": "File:Mosque in the Gol Gumbaz complex 03.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/b/b6/Mosque_in_the_Gol_Gumbaz_complex_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Mosque_in_the_Gol_Gumbaz_complex_03.jpg",
-      "artist": "Pinakpani",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2025,
-      "width": 4080,
-      "height": 1836,
-      "grade": 0,
-      "description": "Mosque in the Gol Gumbaz complex",
-      "categories": [
-        "Gol Gumbaz Mosque",
-        "Self-published work"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "12_commons.jpg"
-    },
-    {
-      "title": "File:Mosque in the Gol Gumbaz complex 07.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/c/c4/Mosque_in_the_Gol_Gumbaz_complex_07.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Mosque_in_the_Gol_Gumbaz_complex_07.jpg",
-      "artist": "Pinakpani",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2025,
-      "width": 3192,
-      "height": 1772,
-      "grade": 0,
-      "description": "Mosque in the Gol Gumbaz complex",
-      "categories": [
-        "Gol Gumbaz Mosque",
-        "Self-published work"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "13_commons.jpg"
+      "file": "05_commons.jpg",
+      "vision_review": {
+        "index": 5,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Gol Gumbaz framed through an entrance archway.",
+        "kept": true
+      }
     },
     {
       "title": "File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 12.jpg",
@@ -307,7 +145,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "14_commons.jpg"
+      "file": "14_commons.jpg",
+      "vision_review": {
+        "index": 14,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Direct view of the whispering gallery running around the base of the great dome.",
+        "kept": true
+      }
     },
     {
       "title": "File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 14.jpg",
@@ -329,95 +176,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "15_commons.jpg"
-    },
-    {
-      "title": "File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 18.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/a/ae/Interior_of_Gol_Gumbaz_building_in_Vijaypura%2C_Karnataka_18.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_18.jpg",
-      "artist": "Pinakpani",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2025,
-      "width": 4080,
-      "height": 1836,
-      "grade": 0,
-      "description": "Interior of Gol Gumbaz building in Vijaypura, Karnataka",
-      "categories": [
-        "Interior of Gol Gumbaz",
-        "Self-published work"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "16_commons.jpg"
-    },
-    {
-      "title": "File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 11.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/e/e5/Interior_of_Gol_Gumbaz_building_in_Vijaypura%2C_Karnataka_11.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_11.jpg",
-      "artist": "Pinakpani",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2025,
-      "width": 4080,
-      "height": 1836,
-      "grade": 0,
-      "description": "Interior of Gol Gumbaz building in Vijaypura, Karnataka",
-      "categories": [
-        "Interior of Gol Gumbaz",
-        "Self-published work"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "17_commons.jpg"
-    },
-    {
-      "title": "File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 15.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/0/09/Interior_of_Gol_Gumbaz_building_in_Vijaypura%2C_Karnataka_15.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_15.jpg",
-      "artist": "Pinakpani",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2025,
-      "width": 4080,
-      "height": 1836,
-      "grade": 0,
-      "description": "Interior of Gol Gumbaz building in Vijaypura, Karnataka",
-      "categories": [
-        "Interior of Gol Gumbaz",
-        "Self-published work"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "18_commons.jpg"
-    },
-    {
-      "title": "File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 17.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/5c/Interior_of_Gol_Gumbaz_building_in_Vijaypura%2C_Karnataka_17.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_17.jpg",
-      "artist": "Pinakpani",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2025,
-      "width": 4080,
-      "height": 1836,
-      "grade": 0,
-      "description": "Interior of Gol Gumbaz building in Vijaypura, Karnataka",
-      "categories": [
-        "Interior of Gol Gumbaz",
-        "Self-published work"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "19_commons.jpg"
+      "file": "15_commons.jpg",
+      "vision_review": {
+        "index": 15,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows the central cenotaph canopy inside the main hall of Gol Gumbaz.",
+        "kept": true
+      }
     },
     {
       "title": "File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 05.jpg",
@@ -439,8 +207,423 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "20_commons.jpg"
+      "file": "20_commons.jpg",
+      "vision_review": {
+        "index": 20,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Wide shot showing the central tomb platform and towering intersecting arches of the interior hall.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Mosque in the Gol Gumbaz complex 06.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/f2/Mosque_in_the_Gol_Gumbaz_complex_06.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Mosque_in_the_Gol_Gumbaz_complex_06.jpg",
+      "artist": "Pinakpani",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 4080,
+      "height": 1836,
+      "grade": 0,
+      "description": "Mosque in the Gol Gumbaz complex",
+      "categories": [
+        "Gol Gumbaz Mosque",
+        "Self-published work"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "07_commons.jpg",
+      "vision_review": {
+        "index": 7,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows the adjacent mosque in the Gol Gumbaz complex.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Mosque in the Gol Gumbaz complex 05.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/78/Mosque_in_the_Gol_Gumbaz_complex_05.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Mosque_in_the_Gol_Gumbaz_complex_05.jpg",
+      "artist": "Pinakpani",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 4080,
+      "height": 1836,
+      "grade": 0,
+      "description": "Mosque in the Gol Gumbaz complex",
+      "categories": [
+        "Gol Gumbaz Mosque",
+        "Self-published work"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "08_commons.jpg",
+      "vision_review": {
+        "index": 8,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows the complex mosque with the corner octagonal tower of Gol Gumbaz on the right.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Mosque in the Gol Gumbaz complex 01.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/a/a7/Mosque_in_the_Gol_Gumbaz_complex_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Mosque_in_the_Gol_Gumbaz_complex_01.jpg",
+      "artist": "Pinakpani",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 4080,
+      "height": 1836,
+      "grade": 0,
+      "description": "Mosque in the Gol Gumbaz complex",
+      "categories": [
+        "Gol Gumbaz Mosque",
+        "Self-published work"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "09_commons.jpg",
+      "vision_review": {
+        "index": 9,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Elevated view overlooking the complex mosque and surrounding city.",
+        "kept": true
+      }
     }
   ],
-  "review_note": "Reviewed 2026-10-20: kept 20 of 20"
+  "review_note": "Vision review 2026-10-20: kept 10 of 20",
+  "reviewed_by": "vision",
+  "rejected_by_review": [
+    {
+      "title": "File:Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura 08.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/6/6d/Gol_Gumbaz%2C_the_mausoleum_of_Mohammed_Adil_Shah%2C_in_Vijaypura_08.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Gol_Gumbaz,_the_mausoleum_of_Mohammed_Adil_Shah,_in_Vijaypura_08.jpg",
+      "artist": "Pinakpani",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 4080,
+      "height": 1836,
+      "grade": 0,
+      "description": "Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura",
+      "categories": [
+        "Gol Gumbaz",
+        "Self-published work"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "01_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 2,
+        "reason": "Shows the exterior and dome of Gol Gumbaz, though nearly identical to Photo 2.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura 10.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/5e/Gol_Gumbaz%2C_the_mausoleum_of_Mohammed_Adil_Shah%2C_in_Vijaypura_10.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Gol_Gumbaz,_the_mausoleum_of_Mohammed_Adil_Shah,_in_Vijaypura_10.jpg",
+      "artist": "Pinakpani",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 3073,
+      "height": 1398,
+      "grade": 0,
+      "description": "Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura",
+      "categories": [
+        "Gol Gumbaz",
+        "Self-published work"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "06_commons.jpg",
+      "vision_review": {
+        "index": 6,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 5,
+        "reason": "Nearly identical framed shot of Gol Gumbaz through the archway.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Mosque in the Gol Gumbaz complex 02.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Mosque_in_the_Gol_Gumbaz_complex_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Mosque_in_the_Gol_Gumbaz_complex_02.jpg",
+      "artist": "Pinakpani",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 4080,
+      "height": 1836,
+      "grade": 0,
+      "description": "Mosque in the Gol Gumbaz complex",
+      "categories": [
+        "Gol Gumbaz Mosque",
+        "Self-published work"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "10_commons.jpg",
+      "vision_review": {
+        "index": 10,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 9,
+        "reason": "Near-identical aerial view of the complex mosque.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Mosque in the Gol Gumbaz complex 04.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/1/17/Mosque_in_the_Gol_Gumbaz_complex_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Mosque_in_the_Gol_Gumbaz_complex_04.jpg",
+      "artist": "Pinakpani",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 4080,
+      "height": 1836,
+      "grade": 0,
+      "description": "Mosque in the Gol Gumbaz complex",
+      "categories": [
+        "Gol Gumbaz Mosque",
+        "Self-published work"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "11_commons.jpg",
+      "vision_review": {
+        "index": 11,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 9,
+        "reason": "Near-identical aerial view of the complex mosque.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Mosque in the Gol Gumbaz complex 03.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/b/b6/Mosque_in_the_Gol_Gumbaz_complex_03.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Mosque_in_the_Gol_Gumbaz_complex_03.jpg",
+      "artist": "Pinakpani",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 4080,
+      "height": 1836,
+      "grade": 0,
+      "description": "Mosque in the Gol Gumbaz complex",
+      "categories": [
+        "Gol Gumbaz Mosque",
+        "Self-published work"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "12_commons.jpg",
+      "vision_review": {
+        "index": 12,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 9,
+        "reason": "Near-identical aerial view of the complex mosque.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Mosque in the Gol Gumbaz complex 07.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/c/c4/Mosque_in_the_Gol_Gumbaz_complex_07.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Mosque_in_the_Gol_Gumbaz_complex_07.jpg",
+      "artist": "Pinakpani",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 3192,
+      "height": 1772,
+      "grade": 0,
+      "description": "Mosque in the Gol Gumbaz complex",
+      "categories": [
+        "Gol Gumbaz Mosque",
+        "Self-published work"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "13_commons.jpg",
+      "vision_review": {
+        "index": 13,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 7,
+        "reason": "Near-identical ground perspective of the complex mosque.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 18.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/a/ae/Interior_of_Gol_Gumbaz_building_in_Vijaypura%2C_Karnataka_18.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_18.jpg",
+      "artist": "Pinakpani",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 4080,
+      "height": 1836,
+      "grade": 0,
+      "description": "Interior of Gol Gumbaz building in Vijaypura, Karnataka",
+      "categories": [
+        "Interior of Gol Gumbaz",
+        "Self-published work"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "16_commons.jpg",
+      "vision_review": {
+        "index": 16,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 15,
+        "reason": "Interior view of the cenotaph canopy with strong glare and similar framing to Photo 15.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 11.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/e/e5/Interior_of_Gol_Gumbaz_building_in_Vijaypura%2C_Karnataka_11.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_11.jpg",
+      "artist": "Pinakpani",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 4080,
+      "height": 1836,
+      "grade": 0,
+      "description": "Interior of Gol Gumbaz building in Vijaypura, Karnataka",
+      "categories": [
+        "Interior of Gol Gumbaz",
+        "Self-published work"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "17_commons.jpg",
+      "vision_review": {
+        "index": 17,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 14,
+        "reason": "Shows the whispering gallery walkway around the dome; almost identical composition to Photo 14.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 15.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/0/09/Interior_of_Gol_Gumbaz_building_in_Vijaypura%2C_Karnataka_15.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_15.jpg",
+      "artist": "Pinakpani",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 4080,
+      "height": 1836,
+      "grade": 0,
+      "description": "Interior of Gol Gumbaz building in Vijaypura, Karnataka",
+      "categories": [
+        "Interior of Gol Gumbaz",
+        "Self-published work"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "18_commons.jpg",
+      "vision_review": {
+        "index": 18,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 15,
+        "reason": "View of the central cenotaph canopy, cropped and partially obstructed by a sign.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Interior of Gol Gumbaz building in Vijaypura, Karnataka 17.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/5c/Interior_of_Gol_Gumbaz_building_in_Vijaypura%2C_Karnataka_17.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Interior_of_Gol_Gumbaz_building_in_Vijaypura,_Karnataka_17.jpg",
+      "artist": "Pinakpani",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 4080,
+      "height": 1836,
+      "grade": 0,
+      "description": "Interior of Gol Gumbaz building in Vijaypura, Karnataka",
+      "categories": [
+        "Interior of Gol Gumbaz",
+        "Self-published work"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "19_commons.jpg",
+      "vision_review": {
+        "index": 19,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 15,
+        "reason": "Low-angle perspective of the cenotaph canopy inside the mausoleum.",
+        "kept": false
+      }
+    }
+  ]
 }

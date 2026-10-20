@@ -27,7 +27,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "01_commons.jpg"
+      "file": "01_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Archival photograph from Leonid Kulik's early expedition showing trees knocked down by the 1908 blast.",
+        "kept": true
+      }
     },
     {
       "title": "File:Moscow State University Tunguska event 2014-01 1389528699.JPG",
@@ -60,7 +69,16 @@
       "lat": 55.702946,
       "lon": 37.530817,
       "relevance": 7.0,
-      "file": "02_commons.jpg"
+      "file": "02_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Museum specimen showing a tree cross-section from the blast site displaying accelerated growth after 1908.",
+        "kept": true
+      }
     },
     {
       "title": "File:Moscow State University Tunguska event 2014-01 1389528722.JPG",
@@ -93,7 +111,16 @@
       "lat": 55.702946,
       "lon": 37.530817,
       "relevance": 7.0,
-      "file": "03_commons.jpg"
+      "file": "03_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Museum display of tree roots from a tree felled during the Tunguska event.",
+        "kept": true
+      }
     },
     {
       "title": "File:Moscow State University Tunguska event 2014-01 1389528710.JPG",
@@ -126,7 +153,16 @@
       "lat": 55.702946,
       "lon": 37.530817,
       "relevance": 7.0,
-      "file": "04_commons.jpg"
+      "file": "04_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Museum display of a tree disk exhibiting thermal radiation burn damage from the explosion.",
+        "kept": true
+      }
     },
     {
       "title": "File:Tunguska event in east siberia map 2.png",
@@ -149,7 +185,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "05_commons.jpg"
+      "file": "05_commons.jpg",
+      "vision_review": {
+        "index": 5,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Thematic map showing the location and blast effects across Eastern Siberia.",
+        "kept": true
+      }
     },
     {
       "title": "File:Moscow State University Tunguska event 2014-01 1389528719.JPG",
@@ -182,8 +227,151 @@
       "lat": 55.702946,
       "lon": 37.530817,
       "relevance": 7.0,
-      "file": "06_commons.jpg"
+      "file": "06_commons.jpg",
+      "vision_review": {
+        "index": 6,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Museum display of a basalt specimen from the blast area showing thermoluminescence caused by the shockwave.",
+        "kept": true
+      }
     },
+    {
+      "title": "File:Tunguska event effect areas 3.png",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/8/84/Tunguska_event_effect_areas_3.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Tunguska_event_effect_areas_3.png",
+      "artist": "own work and chatGPT 4o and 3 AI",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": 2024,
+      "width": 1778,
+      "height": 2012,
+      "grade": 0,
+      "description": "Red area: burning, gray tree fallinner grey line: almost all tree fallen\nred ellipse. Strong radiant burning insize this in many plaves",
+      "categories": [
+        "Self-published work",
+        "PD-algorithm",
+        "Maps of Tunguska event"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 5.0,
+      "file": "10_commons.jpg",
+      "vision_review": {
+        "index": 10,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Topographic map illustrating the zones of tree devastation and forest burning at the epicenter.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Tunguska explosion effect areas 1.png",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Tunguska_explosion_effect_areas_1.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Tunguska_explosion_effect_areas_1.png",
+      "artist": "Merikanto",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2024,
+      "width": 1955,
+      "height": 1641,
+      "grade": 0,
+      "description": "inner red circle. 15 km Widespread fire, almost all trees are fallen.\nOuter circle, ca 35 km maximum distance to frees fall\n\nVanavara is 65 km from site.",
+      "categories": [
+        "Self-published work",
+        "Maps of Tunguska event"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 5.0,
+      "file": "11_commons.jpg",
+      "vision_review": {
+        "index": 11,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Regional relief map displaying the epicenter and shock zones relative to Vanavara.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Tunguska explosion area map 4.png",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/38/Tunguska_explosion_area_map_4.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Tunguska_explosion_area_map_4.png",
+      "artist": "User:Merikanto",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": 2024,
+      "width": 1778,
+      "height": 1790,
+      "grade": 0,
+      "description": "Red circle: Explosion site, ground zero.\nRed dashed ellipse: very strong burning effect.\nYellow area: forest fire.\nBlack line: almost all trees fallen on most areas.\nGrey area: Trees fallen in many areas.\nBlack dashed line: Trees maybe fallen.\nBlack triangles: mainly habitated tents, some maybe storage tents.\n\nBlue triangles:  mainly unhabitated storage tents.",
+      "categories": [
+        "Self-published work",
+        "PD-algorithm",
+        "Maps of Tunguska event"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 5.0,
+      "file": "12_commons.jpg",
+      "vision_review": {
+        "index": 12,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Schematic diagram depicting the butterfly-shaped tree-fall zone and forest fire boundary.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Srednesibirskoe ploskogorie vid s reki Tunguska 01.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/b/b1/Srednesibirskoe_ploskogorie_vid_s_reki_Tunguska_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Srednesibirskoe_ploskogorie_vid_s_reki_Tunguska_01.jpg",
+      "artist": "jxandreani",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "attribution_required": true,
+      "year": 2008,
+      "width": 2816,
+      "height": 2112,
+      "grade": 0,
+      "description": "On Toungouska",
+      "categories": [
+        "Central Siberian Plateau",
+        "Taken with Panasonic Lumix DMC-TZ2",
+        "Nizhnyaya Tunguska",
+        "Flickr images reviewed by trusted users",
+        "Flickr images missing SDC creator",
+        "Flickr images missing SDC source of file"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 5.0,
+      "file": "15_commons.jpg",
+      "vision_review": {
+        "index": 15,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Modern landscape view of the Central Siberian taiga and plateau in the Tunguska region.",
+        "kept": true
+      }
+    }
+  ],
+  "review_note": "Vision review 2026-10-20: kept 10 of 15",
+  "reviewed_by": "vision",
+  "rejected_by_review": [
     {
       "title": "File:Tunguska and Los Angeles (4093217182).jpg",
       "download_url": "https://upload.wikimedia.org/wikipedia/commons/2/2d/Tunguska_and_Los_Angeles_%284093217182%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
@@ -207,7 +395,16 @@
       "lat": 52.6539,
       "lon": 102.773101,
       "relevance": 5.0,
-      "file": "07_commons.jpg"
+      "file": "07_commons.jpg",
+      "vision_review": {
+        "index": 7,
+        "shows_topic": "no",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Modern comparison diagram superimposing the blast damage footprint over a map of Los Angeles.",
+        "kept": false
+      }
     },
     {
       "title": "File:Tunguska and Phoenix (4093217242).jpg",
@@ -232,7 +429,16 @@
       "lat": 52.6539,
       "lon": 102.773101,
       "relevance": 5.0,
-      "file": "08_commons.jpg"
+      "file": "08_commons.jpg",
+      "vision_review": {
+        "index": 8,
+        "shows_topic": "no",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Modern comparison diagram superimposing the blast damage footprint over a map of Phoenix.",
+        "kept": false
+      }
     },
     {
       "title": "File:Tunguska and Washington, DC (4092451981).jpg",
@@ -257,75 +463,16 @@
       "lat": 52.6539,
       "lon": 102.773101,
       "relevance": 5.0,
-      "file": "09_commons.jpg"
-    },
-    {
-      "title": "File:Tunguska event effect areas 3.png",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/8/84/Tunguska_event_effect_areas_3.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Tunguska_event_effect_areas_3.png",
-      "artist": "own work and chatGPT 4o and 3 AI",
-      "license": "Public domain",
-      "license_url": "",
-      "attribution_required": false,
-      "year": 2024,
-      "width": 1778,
-      "height": 2012,
-      "grade": 0,
-      "description": "Red area: burning, gray tree fallinner grey line: almost all tree fallen\nred ellipse. Strong radiant burning insize this in many plaves",
-      "categories": [
-        "Self-published work",
-        "PD-algorithm",
-        "Maps of Tunguska event"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 5.0,
-      "file": "10_commons.jpg"
-    },
-    {
-      "title": "File:Tunguska explosion effect areas 1.png",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Tunguska_explosion_effect_areas_1.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Tunguska_explosion_effect_areas_1.png",
-      "artist": "Merikanto",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2024,
-      "width": 1955,
-      "height": 1641,
-      "grade": 0,
-      "description": "inner red circle. 15 km Widespread fire, almost all trees are fallen.\nOuter circle, ca 35 km maximum distance to frees fall\n\nVanavara is 65 km from site.",
-      "categories": [
-        "Self-published work",
-        "Maps of Tunguska event"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 5.0,
-      "file": "11_commons.jpg"
-    },
-    {
-      "title": "File:Tunguska explosion area map 4.png",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/38/Tunguska_explosion_area_map_4.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Tunguska_explosion_area_map_4.png",
-      "artist": "User:Merikanto",
-      "license": "Public domain",
-      "license_url": "",
-      "attribution_required": false,
-      "year": 2024,
-      "width": 1778,
-      "height": 1790,
-      "grade": 0,
-      "description": "Red circle: Explosion site, ground zero.\nRed dashed ellipse: very strong burning effect.\nYellow area: forest fire.\nBlack line: almost all trees fallen on most areas.\nGrey area: Trees fallen in many areas.\nBlack dashed line: Trees maybe fallen.\nBlack triangles: mainly habitated tents, some maybe storage tents.\n\nBlue triangles:  mainly unhabitated storage tents.",
-      "categories": [
-        "Self-published work",
-        "PD-algorithm",
-        "Maps of Tunguska event"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 5.0,
-      "file": "12_commons.jpg"
+      "file": "09_commons.jpg",
+      "vision_review": {
+        "index": 9,
+        "shows_topic": "no",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Modern comparison diagram superimposing the blast damage footprint over a map of Washington, D.C.",
+        "kept": false
+      }
     },
     {
       "title": "File:Tunguska explosion area map 3.png",
@@ -348,7 +495,16 @@
       "lat": null,
       "lon": null,
       "relevance": 3.0,
-      "file": "13_commons.jpg"
+      "file": "13_commons.jpg",
+      "vision_review": {
+        "index": 13,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 10,
+        "reason": "Map of the epicenter effect zones, nearly identical in framing and content to Photo 10.",
+        "kept": false
+      }
     },
     {
       "title": "File:Untere Tunguska.jpg",
@@ -375,34 +531,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "14_commons.jpg"
-    },
-    {
-      "title": "File:Srednesibirskoe ploskogorie vid s reki Tunguska 01.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/b/b1/Srednesibirskoe_ploskogorie_vid_s_reki_Tunguska_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Srednesibirskoe_ploskogorie_vid_s_reki_Tunguska_01.jpg",
-      "artist": "jxandreani",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "attribution_required": true,
-      "year": 2008,
-      "width": 2816,
-      "height": 2112,
-      "grade": 0,
-      "description": "On Toungouska",
-      "categories": [
-        "Central Siberian Plateau",
-        "Taken with Panasonic Lumix DMC-TZ2",
-        "Nizhnyaya Tunguska",
-        "Flickr images reviewed by trusted users",
-        "Flickr images missing SDC creator",
-        "Flickr images missing SDC source of file"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 5.0,
-      "file": "15_commons.jpg"
+      "file": "14_commons.jpg",
+      "vision_review": {
+        "index": 14,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows cliffs on the Lower Tunguska River (Nizhnyaya Tunguska), a completely different river from the Podkamennaya Tunguska site.",
+        "kept": false
+      }
     }
-  ],
-  "review_note": "Reviewed 2026-10-20: kept 15 of 15"
+  ]
 }

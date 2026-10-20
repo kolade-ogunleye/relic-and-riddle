@@ -24,7 +24,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "01_commons.jpg"
+      "file": "01_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Clear view of the reconstructed Amber Room in Catherine Palace.",
+        "kept": true
+      }
     },
     {
       "title": "File:Russland - St. Petersburg - Das Bernsteinzimmer - Panoramafoto vom 11.Mai 2012 - The Amber Room panoramic photo from May 11, 2012 - Панорамные фото Янтарная комната с 11 мая 2012 го - panoramio.jpg",
@@ -51,29 +60,16 @@
       "lat": 59.715806,
       "lon": 30.395161,
       "relevance": 7.0,
-      "file": "02_commons.jpg"
-    },
-    {
-      "title": "File:Reconstructed Amber Room IMG 6182 16.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/f3/Reconstructed_Amber_Room_IMG_6182_16.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Reconstructed_Amber_Room_IMG_6182_16.jpg",
-      "artist": "Sunny365days",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2024,
-      "width": 6000,
-      "height": 4000,
-      "grade": 0,
-      "description": "Reconstructed Amber Room",
-      "categories": [
-        "Reconstructed Amber Room",
-        "Self-published work"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "03_commons.jpg"
+      "file": "02_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Panoramic view of the reconstructed Amber Room.",
+        "kept": true
+      }
     },
     {
       "title": "File:Reconstructed Amber Room IMG 6163 11.jpg",
@@ -98,7 +94,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "04_commons.jpg"
+      "file": "04_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Clear view of the reconstructed Amber Room corner and wall panels.",
+        "kept": true
+      }
     },
     {
       "title": "File:Catherine Palace interior - Amber Room (2).jpg",
@@ -123,7 +128,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "05_commons.jpg"
+      "file": "05_commons.jpg",
+      "vision_review": {
+        "index": 5,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Historic 1931 color autochrome photograph of the original Amber Room before its disappearance in World War II.",
+        "kept": true
+      }
     },
     {
       "title": "File:Reconstructed Amber Room IMG 6182 01.jpg",
@@ -148,7 +162,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "06_commons.jpg"
+      "file": "06_commons.jpg",
+      "vision_review": {
+        "index": 6,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Detailed view of the upper frieze and amber paneling in the reconstructed Amber Room.",
+        "kept": true
+      }
     },
     {
       "title": "File:Catherine Palace interior - Amber Room (1).jpg",
@@ -173,7 +196,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "07_commons.jpg"
+      "file": "07_commons.jpg",
+      "vision_review": {
+        "index": 7,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Historic 1931 color autochrome photograph of the original Amber Room corner before WWII.",
+        "kept": true
+      }
     },
     {
       "title": "File:Reconstructed Amber Room IMG 6222 07.jpg",
@@ -195,7 +227,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "08_commons.jpg"
+      "file": "08_commons.jpg",
+      "vision_review": {
+        "index": 8,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Upper wall and ceiling detail of the reconstructed Amber Room.",
+        "kept": true
+      }
     },
     {
       "title": "File:20230518 Reconstructed Amber Room 12.jpg",
@@ -217,7 +258,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "09_commons.jpg"
+      "file": "09_commons.jpg",
+      "vision_review": {
+        "index": 9,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Wall detail showing amber mosaic paneling in the reconstructed Amber Room.",
+        "kept": true
+      }
     },
     {
       "title": "File:20230518 Reconstructed Amber Room 14.jpg",
@@ -239,7 +289,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "10_commons.jpg"
+      "file": "10_commons.jpg",
+      "vision_review": {
+        "index": 10,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Amber mosaic wall panels with mirrored sconces in the reconstructed room.",
+        "kept": true
+      }
     },
     {
       "title": "File:20230518 Reconstructed Amber Room 02.jpg",
@@ -261,7 +320,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "11_commons.jpg"
+      "file": "11_commons.jpg",
+      "vision_review": {
+        "index": 11,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Upward view toward the painted ceiling and gilded cornice of the Amber Room.",
+        "kept": true
+      }
     },
     {
       "title": "File:Reconstructed Amber Room IMG 6182 15.jpg",
@@ -286,7 +354,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "12_commons.jpg"
+      "file": "12_commons.jpg",
+      "vision_review": {
+        "index": 12,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "View of the upper wall, windows, and ornate doorway in the reconstructed Amber Room.",
+        "kept": true
+      }
     },
     {
       "title": "File:20230518 Reconstructed Amber Room 08.jpg",
@@ -308,7 +385,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "13_commons.jpg"
+      "file": "13_commons.jpg",
+      "vision_review": {
+        "index": 13,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Upper gilded frieze and amber panels of the reconstructed Amber Room.",
+        "kept": true
+      }
     },
     {
       "title": "File:20230518 Reconstructed Amber Room 24.jpg",
@@ -330,7 +416,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "14_commons.jpg"
+      "file": "14_commons.jpg",
+      "vision_review": {
+        "index": 14,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "View above the doorway showing gilded carvings and amber paneling.",
+        "kept": true
+      }
     },
     {
       "title": "File:Reconstructed Amber Room IMG 6182 20.jpg",
@@ -352,7 +447,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "15_commons.jpg"
+      "file": "15_commons.jpg",
+      "vision_review": {
+        "index": 15,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Florentine mosaic within amber frame and corner table in the reconstructed Amber Room.",
+        "kept": true
+      }
     },
     {
       "title": "File:Reconstructed Amber Room IMG 6163 15.jpg",
@@ -377,7 +481,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "16_commons.jpg"
+      "file": "16_commons.jpg",
+      "vision_review": {
+        "index": 16,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Close-up of the ornate corner clock and amber wall mosaic in the reconstructed room.",
+        "kept": true
+      }
     },
     {
       "title": "File:20230518 Reconstructed Amber Room 20.jpg",
@@ -399,7 +512,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "17_commons.jpg"
+      "file": "17_commons.jpg",
+      "vision_review": {
+        "index": 17,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Wide shot of the corner of the reconstructed Amber Room with mosaic panels and clock.",
+        "kept": true
+      }
     },
     {
       "title": "File:20230518 Reconstructed Amber Room 09.jpg",
@@ -421,7 +543,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "18_commons.jpg"
+      "file": "18_commons.jpg",
+      "vision_review": {
+        "index": 18,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Arched windows and gilded mirrors on the window wall of the Amber Room.",
+        "kept": true
+      }
     },
     {
       "title": "File:Mosaik im Bernsteinzimmer - Mosaic in the Amber Room - Мозаика Янтарной комнаты - panoramio.jpg",
@@ -454,7 +585,51 @@
       "lat": 59.715586,
       "lon": 30.394936,
       "relevance": 7.0,
-      "file": "19_commons.jpg"
+      "file": "19_commons.jpg",
+      "vision_review": {
+        "index": 19,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Close-up of a reconstructed Florentine mosaic set in an intricate amber frame.",
+        "kept": true
+      }
+    }
+  ],
+  "review_note": "Vision review 2026-10-20: kept 18 of 20",
+  "reviewed_by": "vision",
+  "rejected_by_review": [
+    {
+      "title": "File:Reconstructed Amber Room IMG 6182 16.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/f3/Reconstructed_Amber_Room_IMG_6182_16.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Reconstructed_Amber_Room_IMG_6182_16.jpg",
+      "artist": "Sunny365days",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2024,
+      "width": 6000,
+      "height": 4000,
+      "grade": 0,
+      "description": "Reconstructed Amber Room",
+      "categories": [
+        "Reconstructed Amber Room",
+        "Self-published work"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "03_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Image suffers from significant camera shake and blur.",
+        "kept": false
+      }
     },
     {
       "title": "File:20230518 Reconstructed Amber Room 21.jpg",
@@ -476,8 +651,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "20_commons.jpg"
+      "file": "20_commons.jpg",
+      "vision_review": {
+        "index": 20,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 17,
+        "reason": "Nearly identical view and framing of the same corner as Photo 17.",
+        "kept": false
+      }
     }
-  ],
-  "review_note": "Reviewed 2026-10-20: kept 20 of 20"
+  ]
 }

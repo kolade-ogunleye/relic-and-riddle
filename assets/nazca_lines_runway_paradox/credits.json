@@ -2,30 +2,6 @@
   "reviewed": true,
   "images": [
     {
-      "title": "File:Nazca Lines Labyrinth Peru.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/1/1b/Nazca_Lines_Labyrinth_Peru.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_Labyrinth_Peru.jpg",
-      "artist": "SiGarb",
-      "license": "Public domain",
-      "license_url": "",
-      "attribution_required": false,
-      "year": 2009,
-      "width": 2480,
-      "height": 3508,
-      "grade": 0,
-      "description": "A diagram of one of the many intricate geoglyphs, patterns created on the plains northwest of Nazca (or Nasca), Peru, by the indigenous peoples, probably between 200BCE and 700CE. This is one of the smaller figures and has been variously described as a  (\"flower\") or a \"key\", but it is clearly a simple unicursal labyrinth, a figure found in ancient cultures around the world, from the Mediterranean",
-      "categories": [
-        "Nazca lines",
-        "Self-published work",
-        "PD-self",
-        "Graphic labyrinths"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "01_commons.jpg"
-    },
-    {
       "title": "File:Nasca - Colibri - kolibřík - panoramio.jpg",
       "download_url": "https://upload.wikimedia.org/wikipedia/commons/9/96/Nasca_-_Colibri_-_kolib%C5%99%C3%ADk_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "source_url": "https://commons.wikimedia.org/wiki/File:Nasca_-_Colibri_-_kolib%C5%99%C3%ADk_-_panoramio.jpg",
@@ -50,83 +26,16 @@
       "lat": -14.692123,
       "lon": -75.148882,
       "relevance": 5.0,
-      "file": "02_commons.jpg"
-    },
-    {
-      "title": "File:Nazca Lines from 3m in height.JPG",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/58/Nazca_Lines_from_3m_in_height.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_from_3m_in_height.JPG",
-      "artist": "Y.Shishido",
-      "license": "CC BY 2.5",
-      "license_url": "https://creativecommons.org/licenses/by/2.5",
-      "attribution_required": true,
-      "year": 2007,
-      "width": 1600,
-      "height": 1067,
-      "grade": 0,
-      "description": "Nazca Lines from 5m in height. Title is mistake. Tree image is taken in this picture from Mirador.",
-      "categories": [
-        "GFDL",
-        "Taken with Canon EOS 5D",
-        "Nazca lines",
-        "License migration redundant",
-        "Self-published work"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "03_commons.jpg"
-    },
-    {
-      "title": "File:Vessel with hummingbirds, Nasca, Peru, ceramic - Meso-American collection - Peabody Museum, Harvard University - DSC05943.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/fc/Vessel_with_hummingbirds%2C_Nasca%2C_Peru%2C_ceramic_-_Meso-American_collection_-_Peabody_Museum%2C_Harvard_University_-_DSC05943.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Vessel_with_hummingbirds,_Nasca,_Peru,_ceramic_-_Meso-American_collection_-_Peabody_Museum,_Harvard_University_-_DSC05943.jpg",
-      "artist": "Daderot",
-      "license": "Public domain",
-      "license_url": "",
-      "attribution_required": false,
-      "year": 2017,
-      "width": 3395,
-      "height": 2952,
-      "grade": 0,
-      "description": "Exhibit from the Meso-American Collection, Peabody Museum, Harvard University, Cambridge, Massachusetts, USA. Photography was permitted without restriction; exhibit is old enough so that it is in the public domain.",
-      "categories": [
-        "CC-Zero",
-        "Author died more than 100 years ago public domain images",
-        "Self-published work",
-        "CC-PD-Mark",
-        "Files uploaded by Daderot",
-        "Nazca pottery in the Peabody Museum, Harvard University"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 5.0,
-      "file": "04_commons.jpg"
-    },
-    {
-      "title": "File:Nazca Lines from 1 5m in height.JPG",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/b/b8/Nazca_Lines_from_1_5m_in_height.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_from_1_5m_in_height.JPG",
-      "artist": "Y.Shishido",
-      "license": "CC BY 2.5",
-      "license_url": "https://creativecommons.org/licenses/by/2.5",
-      "attribution_required": true,
-      "year": 2007,
-      "width": 1600,
-      "height": 1067,
-      "grade": 0,
-      "description": "Nazca Lines from 1.5m in height. Tree image is taken in this picture from Mirador.",
-      "categories": [
-        "GFDL",
-        "Taken with Canon EOS 5D",
-        "Nazca lines",
-        "License migration redundant",
-        "Self-published work"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "05_commons.jpg"
+      "file": "02_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Clear, well-framed aerial photograph of the famous Hummingbird geoglyph.",
+        "kept": true
+      }
     },
     {
       "title": "File:Nazca Lines Hummingbird.jpg",
@@ -150,35 +59,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "06_commons.jpg"
-    },
-    {
-      "title": "File:Náhorní plošina Nasca - panoramio.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/d/de/N%C3%A1horn%C3%AD_plo%C5%A1ina_Nasca_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:N%C3%A1horn%C3%AD_plo%C5%A1ina_Nasca_-_panoramio.jpg",
-      "artist": "Pavel Špindler",
-      "license": "CC BY 3.0",
-      "license_url": "https://creativecommons.org/licenses/by/3.0",
-      "attribution_required": true,
-      "year": 2008,
-      "width": 3872,
-      "height": 2592,
-      "grade": 0,
-      "description": "Náhorní plošina Nasca",
-      "categories": [
-        "Nazca lines",
-        "Panoramio files uploaded by Panoramio upload bot",
-        "Road signs in Peru",
-        "Panoramio images reviewed by trusted users",
-        "Photos from Panoramio",
-        "Files with coordinates missing SDC location of creation",
-        "Peru photographs taken on 2008-09-18",
-        "Photos from Panoramio ID 4062248"
-      ],
-      "lat": -14.686768,
-      "lon": -75.120928,
-      "relevance": 7.0,
-      "file": "07_commons.jpg"
+      "file": "06_commons.jpg",
+      "vision_review": {
+        "index": 6,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Wide aerial view showing the Hummingbird geoglyph together with adjacent trapezoid lines.",
+        "kept": true
+      }
     },
     {
       "title": "File:Nasca - Triangulos - panoramio.jpg",
@@ -205,7 +95,121 @@
       "lat": -14.788783,
       "lon": -75.034218,
       "relevance": 7.0,
-      "file": "08_commons.jpg"
+      "file": "08_commons.jpg",
+      "vision_review": {
+        "index": 8,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Clear aerial view showing prominent trapezoidal and geometric geoglyphs in the Nazca plain.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Nasca - Astronaut - panoramio.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/e/ea/Nasca_-_Astronaut_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Nasca_-_Astronaut_-_panoramio.jpg",
+      "artist": "Pavel Špindler",
+      "license": "CC BY 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0",
+      "attribution_required": true,
+      "year": 2008,
+      "width": 3872,
+      "height": 2592,
+      "grade": 0,
+      "description": "Nasca - Astronaut",
+      "categories": [
+        "El hombre-búho",
+        "Panoramio files uploaded by Panoramio upload bot",
+        "Panoramio images reviewed by trusted users",
+        "Photos from Panoramio",
+        "Files with coordinates missing SDC location of creation",
+        "Peru photographs taken on 2008-09-18",
+        "Photos from Panoramio ID 4062248"
+      ],
+      "lat": -14.745227,
+      "lon": -75.079903,
+      "relevance": 5.0,
+      "file": "10_commons.jpg",
+      "vision_review": {
+        "index": 10,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Clear, centered aerial view of the hillside geoglyph known as the Astronaut.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Nazca Lines from 3m in height.JPG",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/58/Nazca_Lines_from_3m_in_height.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_from_3m_in_height.JPG",
+      "artist": "Y.Shishido",
+      "license": "CC BY 2.5",
+      "license_url": "https://creativecommons.org/licenses/by/2.5",
+      "attribution_required": true,
+      "year": 2007,
+      "width": 1600,
+      "height": 1067,
+      "grade": 0,
+      "description": "Nazca Lines from 5m in height. Title is mistake. Tree image is taken in this picture from Mirador.",
+      "categories": [
+        "GFDL",
+        "Taken with Canon EOS 5D",
+        "Nazca lines",
+        "License migration redundant",
+        "Self-published work"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "03_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows the desert ground and how difficult the geoglyphs are to discern from ground level.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Vessel with hummingbirds, Nasca, Peru, ceramic - Meso-American collection - Peabody Museum, Harvard University - DSC05943.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/fc/Vessel_with_hummingbirds%2C_Nasca%2C_Peru%2C_ceramic_-_Meso-American_collection_-_Peabody_Museum%2C_Harvard_University_-_DSC05943.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Vessel_with_hummingbirds,_Nasca,_Peru,_ceramic_-_Meso-American_collection_-_Peabody_Museum,_Harvard_University_-_DSC05943.jpg",
+      "artist": "Daderot",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": 2017,
+      "width": 3395,
+      "height": 2952,
+      "grade": 0,
+      "description": "Exhibit from the Meso-American Collection, Peabody Museum, Harvard University, Cambridge, Massachusetts, USA. Photography was permitted without restriction; exhibit is old enough so that it is in the public domain.",
+      "categories": [
+        "CC-Zero",
+        "Author died more than 100 years ago public domain images",
+        "Self-published work",
+        "CC-PD-Mark",
+        "Files uploaded by Daderot",
+        "Nazca pottery in the Peabody Museum, Harvard University"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 5.0,
+      "file": "04_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Museum display of an ancient Nazca culture ceramic vessel depicting hummingbirds, providing cultural and artistic context.",
+        "kept": true
+      }
     },
     {
       "title": "File:Náhorní plošina Nasca - panoramio (1).jpg",
@@ -234,12 +238,92 @@
       "lat": -14.687951,
       "lon": -75.119662,
       "relevance": 7.0,
-      "file": "09_commons.jpg"
+      "file": "09_commons.jpg",
+      "vision_review": {
+        "index": 9,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows the Pan-American Highway running through the protected Nazca lines desert reserve.",
+        "kept": true
+      }
+    }
+  ],
+  "review_note": "Vision review 2026-10-20: kept 7 of 11",
+  "reviewed_by": "vision",
+  "rejected_by_review": [
+    {
+      "title": "File:Nazca Lines Labyrinth Peru.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/1/1b/Nazca_Lines_Labyrinth_Peru.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_Labyrinth_Peru.jpg",
+      "artist": "SiGarb",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": 2009,
+      "width": 2480,
+      "height": 3508,
+      "grade": 0,
+      "description": "A diagram of one of the many intricate geoglyphs, patterns created on the plains northwest of Nazca (or Nasca), Peru, by the indigenous peoples, probably between 200BCE and 700CE. This is one of the smaller figures and has been variously described as a  (\"flower\") or a \"key\", but it is clearly a simple unicursal labyrinth, a figure found in ancient cultures around the world, from the Mediterranean",
+      "categories": [
+        "Nazca lines",
+        "Self-published work",
+        "PD-self",
+        "Graphic labyrinths"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "01_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Crude digital line tracing rather than an authentic archival document or photograph; would look poor full-screen.",
+        "kept": false
+      }
     },
     {
-      "title": "File:Nasca - Astronaut - panoramio.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/e/ea/Nasca_-_Astronaut_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Nasca_-_Astronaut_-_panoramio.jpg",
+      "title": "File:Nazca Lines from 1 5m in height.JPG",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/b/b8/Nazca_Lines_from_1_5m_in_height.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Nazca_Lines_from_1_5m_in_height.JPG",
+      "artist": "Y.Shishido",
+      "license": "CC BY 2.5",
+      "license_url": "https://creativecommons.org/licenses/by/2.5",
+      "attribution_required": true,
+      "year": 2007,
+      "width": 1600,
+      "height": 1067,
+      "grade": 0,
+      "description": "Nazca Lines from 1.5m in height. Tree image is taken in this picture from Mirador.",
+      "categories": [
+        "GFDL",
+        "Taken with Canon EOS 5D",
+        "Nazca lines",
+        "License migration redundant",
+        "Self-published work"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "05_commons.jpg",
+      "vision_review": {
+        "index": 5,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 3,
+        "reason": "Nearly identical ground-level desert view to Photo 3.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Náhorní plošina Nasca - panoramio.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/d/de/N%C3%A1horn%C3%AD_plo%C5%A1ina_Nasca_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:N%C3%A1horn%C3%AD_plo%C5%A1ina_Nasca_-_panoramio.jpg",
       "artist": "Pavel Špindler",
       "license": "CC BY 3.0",
       "license_url": "https://creativecommons.org/licenses/by/3.0",
@@ -248,20 +332,30 @@
       "width": 3872,
       "height": 2592,
       "grade": 0,
-      "description": "Nasca - Astronaut",
+      "description": "Náhorní plošina Nasca",
       "categories": [
-        "El hombre-búho",
+        "Nazca lines",
         "Panoramio files uploaded by Panoramio upload bot",
+        "Road signs in Peru",
         "Panoramio images reviewed by trusted users",
         "Photos from Panoramio",
         "Files with coordinates missing SDC location of creation",
         "Peru photographs taken on 2008-09-18",
         "Photos from Panoramio ID 4062248"
       ],
-      "lat": -14.745227,
-      "lon": -75.079903,
-      "relevance": 5.0,
-      "file": "10_commons.jpg"
+      "lat": -14.686768,
+      "lon": -75.120928,
+      "relevance": 7.0,
+      "file": "07_commons.jpg",
+      "vision_review": {
+        "index": 7,
+        "shows_topic": "no",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Main subject is the back of a truck emitting exhaust beside a roadside sign, rather than the lines or site itself.",
+        "kept": false
+      }
     },
     {
       "title": "File:Nazca Lines Astronaut.jpg",
@@ -285,8 +379,16 @@
       "lat": -14.745199,
       "lon": -75.079785,
       "relevance": 5.0,
-      "file": "11_commons.jpg"
+      "file": "11_commons.jpg",
+      "vision_review": {
+        "index": 11,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 10,
+        "reason": "Aerial view of the Astronaut geoglyph, but heavily obstructed by the aircraft wing and much farther away than Photo 10.",
+        "kept": false
+      }
     }
-  ],
-  "review_note": "Reviewed 2026-10-20: kept 11 of 20; dropped 9 (the modern town, roads, dunes and a cemetery)"
+  ]
 }

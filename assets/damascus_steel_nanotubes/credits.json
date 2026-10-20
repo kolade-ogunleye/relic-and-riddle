@@ -1,5 +1,5 @@
 {
-  "reviewed": false,
+  "reviewed": true,
   "images": [
     {
       "title": "Knife with an Ivory Handle and Qur'anic Inscriptions (The Met 444626)",
@@ -19,7 +19,16 @@
       "lon": null,
       "provider": "met",
       "relevance": 2.0,
-      "file": "10_commons.jpg"
+      "file": "10_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Authentic historical dagger featuring a blade crafted from watered (Damascus/wootz) steel.",
+        "kept": true
+      }
     },
     {
       "title": "Sword (Shamshir) with Scabbard and Belt (The Met 31130)",
@@ -39,7 +48,16 @@
       "lon": null,
       "provider": "met",
       "relevance": 3.0,
-      "file": "11_commons.jpg"
+      "file": "11_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Authentic 18th-century shamshir saber with an original watered (Damascus) steel blade.",
+        "kept": true
+      }
     },
     {
       "title": "Sword (Shamshir) (The Met 30975)",
@@ -59,27 +77,16 @@
       "lon": null,
       "provider": "met",
       "relevance": 3.0,
-      "file": "12_commons.jpg"
-    },
-    {
-      "title": "Helmet with Talismanic Inscriptions (The Met 444625)",
-      "download_url": "https://images.metmuseum.org/CRDImages/is/original/DP-17261-001.jpg",
-      "source_url": "https://www.metmuseum.org/art/collection/search/444625",
-      "artist": "The Metropolitan Museum of Art",
-      "license": "CC0",
-      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "attribution_required": false,
-      "year": null,
-      "width": 0,
-      "height": 0,
-      "grade": 0,
-      "description": "18th–early 19th century, Iran, Steel; damascened with gold, Islamic Art",
-      "categories": [],
-      "lat": null,
-      "lon": null,
-      "provider": "met",
-      "relevance": 2.0,
-      "file": "13_commons.jpg"
+      "file": "12_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Historical Indian shamshir saber with a wootz crucible (Damascus) steel blade.",
+        "kept": true
+      }
     },
     {
       "title": "Sword (Shamshir) (The Met 30903)",
@@ -99,7 +106,16 @@
       "lon": null,
       "provider": "met",
       "relevance": 3.0,
-      "file": "14_commons.jpg"
+      "file": "14_commons.jpg",
+      "vision_review": {
+        "index": 5,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Historical Persian shamshir saber made with a watered (Damascus) steel blade.",
+        "kept": true
+      }
     },
     {
       "title": "Sword (Shamshir) (The Met 31024)",
@@ -119,7 +135,16 @@
       "lon": null,
       "provider": "met",
       "relevance": 3.0,
-      "file": "15_commons.jpg"
+      "file": "15_commons.jpg",
+      "vision_review": {
+        "index": 6,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Dated 18th-century Indian shamshir sword made with a wootz/watered steel blade.",
+        "kept": true
+      }
     },
     {
       "title": "Sword (Shamshir) with Scabbard (The Met 30905)",
@@ -139,7 +164,16 @@
       "lon": null,
       "provider": "met",
       "relevance": 3.0,
-      "file": "16_commons.jpg"
+      "file": "16_commons.jpg",
+      "vision_review": {
+        "index": 7,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Persian shamshir sword and scabbard with a crucible Damascus steel blade.",
+        "kept": true
+      }
     },
     {
       "title": "Sword (Shamshir) with Scabbard (The Met 30970)",
@@ -159,7 +193,16 @@
       "lon": null,
       "provider": "met",
       "relevance": 3.0,
-      "file": "17_commons.jpg"
+      "file": "17_commons.jpg",
+      "vision_review": {
+        "index": 8,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Historical Persian shamshir featuring a watered (Damascus) steel blade and scabbard.",
+        "kept": true
+      }
     },
     {
       "title": "Saber (Shamshir) with Scabbard (The Met 31128)",
@@ -179,7 +222,16 @@
       "lon": null,
       "provider": "met",
       "relevance": 3.0,
-      "file": "18_commons.jpg"
+      "file": "18_commons.jpg",
+      "vision_review": {
+        "index": 9,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "18th-century Indian shamshir featuring a watered (Damascus) steel blade.",
+        "kept": true
+      }
     },
     {
       "title": "Sword (Shamshir) with Scabbard Chape and Sling Straps (The Met 30986)",
@@ -199,8 +251,49 @@
       "lon": null,
       "provider": "met",
       "relevance": 3.0,
-      "file": "19_commons.jpg"
+      "file": "19_commons.jpg",
+      "vision_review": {
+        "index": 10,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "19th-century Indian shamshir saber forged from crucible wootz (Damascus) steel.",
+        "kept": true
+      }
     }
   ],
-  "review_note": "Reviewed 2026-10-20: kept 0 of 9; dropped 9 (modern pattern-welded knives, not historical wootz steel); NOT approved: fewer than 5 usable images"
+  "review_note": "Vision review 2026-10-20: kept 9 of 10",
+  "reviewed_by": "vision",
+  "rejected_by_review": [
+    {
+      "title": "Helmet with Talismanic Inscriptions (The Met 444625)",
+      "download_url": "https://images.metmuseum.org/CRDImages/is/original/DP-17261-001.jpg",
+      "source_url": "https://www.metmuseum.org/art/collection/search/444625",
+      "artist": "The Metropolitan Museum of Art",
+      "license": "CC0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "attribution_required": false,
+      "year": null,
+      "width": 0,
+      "height": 0,
+      "grade": 0,
+      "description": "18th–early 19th century, Iran, Steel; damascened with gold, Islamic Art",
+      "categories": [],
+      "lat": null,
+      "lon": null,
+      "provider": "met",
+      "relevance": 2.0,
+      "file": "13_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "'Damascened' here refers to decorative gold wire inlay (koftgari), not Damascus (wootz crucible) steel.",
+        "kept": false
+      }
+    }
+  ]
 }

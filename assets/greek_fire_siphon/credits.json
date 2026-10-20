@@ -34,34 +34,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "01_commons.jpg"
-    },
-    {
-      "title": "File:Model of a Byzantine warship (dromon) at Athens War Museum on 12 April 2019.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/1/1c/Model_of_a_Byzantine_warship_%28dromon%29_at_Athens_War_Museum_on_12_April_2019.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Model_of_a_Byzantine_warship_(dromon)_at_Athens_War_Museum_on_12_April_2019.jpg",
-      "artist": "George E. Koronaios",
-      "license": "CC0",
-      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-      "attribution_required": false,
-      "year": 2019,
-      "width": 3895,
-      "height": 2417,
-      "grade": 0,
-      "description": "Scale model of a Byzantine \"dromon\".\nText: Museum inscription. Athens War Museum, Athens, Greece\n\nByzantine warship with oars. In its prow, it had an embolus and a mechanism of firing \"Ygro Pir\" (Liquid Fire). During the ages of its use, there were different types of \"dromon,\" both smaller and larger. Text: Museum inscription. Athens War Museum, Athens, Greece.",
-      "categories": [
-        "CC-Zero",
-        "Scale models",
-        "Dromons",
-        "Byzantine ships",
-        "Self-published work",
-        "Scale models in Greece",
-        "Collections of the Athens War Museum"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "03_commons.jpg"
+      "file": "01_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Iconic manuscript illumination from the Madrid Skylitzes explicitly depicting a Byzantine ship projecting Greek fire from a siphon.",
+        "kept": true
+      }
     },
     {
       "title": "File:MadridSkylitzesFol34v.jpg",
@@ -92,8 +74,151 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "04_commons.jpg"
+      "file": "04_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Full folio page of the Madrid Skylitzes featuring the famous miniature depicting Greek fire.",
+        "kept": true
+      }
     },
+    {
+      "title": "File:Model of a Byzantine warship (dromon) at Athens War Museum on 12 April 2019.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/1/1c/Model_of_a_Byzantine_warship_%28dromon%29_at_Athens_War_Museum_on_12_April_2019.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Model_of_a_Byzantine_warship_(dromon)_at_Athens_War_Museum_on_12_April_2019.jpg",
+      "artist": "George E. Koronaios",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "attribution_required": false,
+      "year": 2019,
+      "width": 3895,
+      "height": 2417,
+      "grade": 0,
+      "description": "Scale model of a Byzantine \"dromon\".\nText: Museum inscription. Athens War Museum, Athens, Greece\n\nByzantine warship with oars. In its prow, it had an embolus and a mechanism of firing \"Ygro Pir\" (Liquid Fire). During the ages of its use, there were different types of \"dromon,\" both smaller and larger. Text: Museum inscription. Athens War Museum, Athens, Greece.",
+      "categories": [
+        "CC-Zero",
+        "Scale models",
+        "Dromons",
+        "Byzantine ships",
+        "Self-published work",
+        "Scale models in Greece",
+        "Collections of the Athens War Museum"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "03_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Clear museum display model of a Byzantine dromon warship, the vessel class that deployed Greek fire.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:DromonEB01.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/b/b2/DromonEB01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:DromonEB01.jpg",
+      "artist": "Eva Mária Ondová",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 1500,
+      "height": 1091,
+      "grade": 0,
+      "description": "Dromon, ilustrácia",
+      "categories": [
+        "Dromons"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "06_commons.jpg",
+      "vision_review": {
+        "index": 5,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Modern profile illustration of a Byzantine dromon, the warship designed to carry the Greek fire siphon.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Haifa-maritime-museum-Byzantine-Dromon-9c-2.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/f5/Haifa-maritime-museum-Byzantine-Dromon-9c-2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Haifa-maritime-museum-Byzantine-Dromon-9c-2.jpg",
+      "artist": "Bukvoed",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2006,
+      "width": 2592,
+      "height": 1944,
+      "grade": 0,
+      "description": "National Maritime Museum,Haifa, Israel",
+      "categories": [
+        "Dromons",
+        "Self-published work",
+        "National Maritime Museum, Israel - Ship Models"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 5.0,
+      "file": "11_commons.jpg",
+      "vision_review": {
+        "index": 7,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Museum model of a Byzantine dromon showing the bow-mounted siphon tube for discharging Greek fire.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Haifa-maritime-museum-Byzantine-Dromon-9c-3.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/ff/Haifa-maritime-museum-Byzantine-Dromon-9c-3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Haifa-maritime-museum-Byzantine-Dromon-9c-3.jpg",
+      "artist": "Bukvoed",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2006,
+      "width": 2592,
+      "height": 1944,
+      "grade": 0,
+      "description": "National Maritime Museum,Haifa, Israel",
+      "categories": [
+        "Dromons",
+        "Self-published work",
+        "National Maritime Museum, Israel - Ship Models"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 5.0,
+      "file": "13_commons.jpg",
+      "vision_review": {
+        "index": 8,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Profile view of the museum model of a 9th-century Byzantine dromon warship.",
+        "kept": true
+      }
+    }
+  ],
+  "review_note": "Vision review 2026-10-20: kept 6 of 8",
+  "reviewed_by": "vision",
+  "rejected_by_review": [
     {
       "title": "File:MadridSkylitzesFol111v.jpg",
       "download_url": "https://upload.wikimedia.org/wikipedia/commons/6/68/MadridSkylitzesFol111v.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
@@ -116,28 +241,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "05_commons.jpg"
-    },
-    {
-      "title": "File:DromonEB01.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/b/b2/DromonEB01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:DromonEB01.jpg",
-      "artist": "Eva Mária Ondová",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2025,
-      "width": 1500,
-      "height": 1091,
-      "grade": 0,
-      "description": "Dromon, ilustrácia",
-      "categories": [
-        "Dromons"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "06_commons.jpg"
+      "file": "05_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "no",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Depicts the 904 AD Sack of Thessalonica, unrelated to Greek fire or its deployment.",
+        "kept": false
+      }
     },
     {
       "title": "File:MadridSkylitzesFol29v.jpg",
@@ -167,54 +280,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "07_commons.jpg"
-    },
-    {
-      "title": "File:Haifa-maritime-museum-Byzantine-Dromon-9c-2.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/f5/Haifa-maritime-museum-Byzantine-Dromon-9c-2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Haifa-maritime-museum-Byzantine-Dromon-9c-2.jpg",
-      "artist": "Bukvoed",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2006,
-      "width": 2592,
-      "height": 1944,
-      "grade": 0,
-      "description": "National Maritime Museum,Haifa, Israel",
-      "categories": [
-        "Dromons",
-        "Self-published work",
-        "National Maritime Museum, Israel - Ship Models"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 5.0,
-      "file": "11_commons.jpg"
-    },
-    {
-      "title": "File:Haifa-maritime-museum-Byzantine-Dromon-9c-3.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/ff/Haifa-maritime-museum-Byzantine-Dromon-9c-3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Haifa-maritime-museum-Byzantine-Dromon-9c-3.jpg",
-      "artist": "Bukvoed",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2006,
-      "width": 2592,
-      "height": 1944,
-      "grade": 0,
-      "description": "National Maritime Museum,Haifa, Israel",
-      "categories": [
-        "Dromons",
-        "Self-published work",
-        "National Maritime Museum, Israel - Ship Models"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 5.0,
-      "file": "13_commons.jpg"
+      "file": "07_commons.jpg",
+      "vision_review": {
+        "index": 6,
+        "shows_topic": "no",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Manuscript miniature depicting Thomas the Slav fleeing to the Arabs; does not depict Greek fire.",
+        "kept": false
+      }
     }
-  ],
-  "review_note": "Reviewed 2026-10-20: kept 8 of 20; dropped 12 (court and cavalry scenes, a papyrus letter by a man named Dromon)"
+  ]
 }

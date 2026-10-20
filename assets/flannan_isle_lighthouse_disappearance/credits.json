@@ -29,7 +29,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "01_commons.jpg"
+      "file": "01_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Official British Admiralty chart of the Flannan Isles published in 1903, showing the geographical context of Eilean Mòr shortly after the disappearance.",
+        "kept": true
+      }
     },
     {
       "title": "File:Flannan isles.jpg",
@@ -53,10 +62,19 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "02_commons.jpg"
+      "file": "02_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "1898 hydrographic chart and coastal elevation sketches of the Flannan Isles, showing the island group around the time the lighthouse was established.",
+        "kept": true
+      }
     }
   ],
-  "review_note": "Reviewed 2026-10-20: kept 2 of 5; dropped 3 (stained glass of Saint Flannan, a different subject); NOT approved: fewer than 5 usable images",
+  "review_note": "Vision review 2026-10-20: kept 2 of 2; held: fewer than 5",
   "rejected_by_review": [
     {
       "title": "File:03 St. Patrick, The Ryan Window, by J. Clarke & Sons, St. Flannan's Church Killaloe.png",
@@ -145,5 +163,6 @@
         "kept": false
       }
     }
-  ]
+  ],
+  "reviewed_by": null
 }

@@ -1,6 +1,79 @@
 {
-  "reviewed": true,
+  "reviewed": false,
   "images": [
+    {
+      "title": "File:Piri Reis world map for annotations.png",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/37/Piri_Reis_world_map_for_annotations.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Piri_Reis_world_map_for_annotations.png",
+      "artist": "Piri Reis",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": null,
+      "width": 2094,
+      "height": 2706,
+      "grade": 0,
+      "description": "This is a version of the Piri Reis world map with a transparent background and slightly reduced contrast for use with annotation overlays.",
+      "categories": [
+        "Author died more than 100 years ago public domain images",
+        "CC-PD-Mark",
+        "PD-old missing SDC copyright status",
+        "Piri Reis Map, 1513"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "04_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Clear depiction of the surviving fragment of the 1513 Piri Reis map.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Piri reis world map 01.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/70/Piri_reis_world_map_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Piri_reis_world_map_01.jpg",
+      "artist": "Piri Reis",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": null,
+      "width": 1964,
+      "height": 2619,
+      "grade": 0,
+      "description": "Map of the world by Ottoman admiral Piri Reis, drawn in 1513. Only part of the original map survives and is held at the Topkapi Museum in Istanbul. The map synthesizes information from many maps, including one drawn by Christopher Columbus of the Caribbean.",
+      "categories": [
+        "PD-old-100-expired",
+        "PD-Art (PD-old-auto-expired)",
+        "Featured pictures on Wikipedia, Turkish",
+        "CC-PD-Mark",
+        "Files with Assessments template missing SDC Commons no value quality assessment",
+        "Featured pictures on Wikipedia, Arabic",
+        "Piri Reis Map, 1513"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 3.0,
+      "file": "08_commons.jpg",
+      "vision_review": {
+        "index": 8,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "High-quality, clear scan of the surviving 1513 Piri Reis map fragment on a white background.",
+        "kept": true
+      }
+    }
+  ],
+  "review_note": "Vision review 2026-10-20: kept 2 of 20; held: fewer than 5",
+  "reviewed_by": null,
+  "rejected_by_review": [
     {
       "title": "File:Ottoman Manuscript Atlas, by Piri Reis (W658 000750a).jpg",
       "download_url": "https://upload.wikimedia.org/wikipedia/commons/6/62/Ottoman_Manuscript_Atlas%2C_by_Piri_Reis_%28W658_000750a%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
@@ -24,7 +97,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "01_commons.jpg"
+      "file": "01_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "no",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows a blank manuscript page from the Kitab-ı Bahriye rather than the 1513 world map.",
+        "kept": false
+      }
     },
     {
       "title": "File:Венеция. План 1525г с араб. Piri Reis big fddec.jpg",
@@ -49,7 +131,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "02_commons.jpg"
+      "file": "02_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows a 1525 map of Venice from Piri Reis's Kitab-ı Bahriye, not the 1513 world map.",
+        "kept": false
+      }
     },
     {
       "title": "File:Ottoman Manuscript Atlas, by Piri Reis (W658 000750b).jpg",
@@ -74,31 +165,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "03_commons.jpg"
-    },
-    {
-      "title": "File:Piri Reis world map for annotations.png",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/37/Piri_Reis_world_map_for_annotations.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Piri_Reis_world_map_for_annotations.png",
-      "artist": "Piri Reis",
-      "license": "Public domain",
-      "license_url": "",
-      "attribution_required": false,
-      "year": null,
-      "width": 2094,
-      "height": 2706,
-      "grade": 0,
-      "description": "This is a version of the Piri Reis world map with a transparent background and slightly reduced contrast for use with annotation overlays.",
-      "categories": [
-        "Author died more than 100 years ago public domain images",
-        "CC-PD-Mark",
-        "PD-old missing SDC copyright status",
-        "Piri Reis Map, 1513"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "04_commons.jpg"
+      "file": "03_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "no",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows a blank manuscript page from the Kitab-ı Bahriye rather than the 1513 world map.",
+        "kept": false
+      }
     },
     {
       "title": "File:1513 Piri Reis.jpg",
@@ -121,7 +197,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "05_commons.jpg"
+      "file": "05_commons.jpg",
+      "vision_review": {
+        "index": 5,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 4,
+        "reason": "Duplicate view of the 1513 Piri Reis map.",
+        "kept": false
+      }
     },
     {
       "title": "File:1513 map by Piri Reis (detail fictional creature (human body without head on top, instead, the head is located on the chest).jpg",
@@ -150,7 +235,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "06_commons.jpg"
+      "file": "06_commons.jpg",
+      "vision_review": {
+        "index": 6,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Close-up detail of a mythical blemmyae figure from the 1513 map, but too low-resolution and blurry for full-screen display.",
+        "kept": false
+      }
     },
     {
       "title": "File:Piri Reis - Oval World Map - Google Art Project.jpg",
@@ -185,34 +279,16 @@
       "lat": null,
       "lon": null,
       "relevance": 3.0,
-      "file": "07_commons.jpg"
-    },
-    {
-      "title": "File:Piri reis world map 01.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/70/Piri_reis_world_map_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Piri_reis_world_map_01.jpg",
-      "artist": "Piri Reis",
-      "license": "Public domain",
-      "license_url": "",
-      "attribution_required": false,
-      "year": null,
-      "width": 1964,
-      "height": 2619,
-      "grade": 0,
-      "description": "Map of the world by Ottoman admiral Piri Reis, drawn in 1513. Only part of the original map survives and is held at the Topkapi Museum in Istanbul. The map synthesizes information from many maps, including one drawn by Christopher Columbus of the Caribbean.",
-      "categories": [
-        "PD-old-100-expired",
-        "PD-Art (PD-old-auto-expired)",
-        "Featured pictures on Wikipedia, Turkish",
-        "CC-PD-Mark",
-        "Files with Assessments template missing SDC Commons no value quality assessment",
-        "Featured pictures on Wikipedia, Arabic",
-        "Piri Reis Map, 1513"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 3.0,
-      "file": "08_commons.jpg"
+      "file": "07_commons.jpg",
+      "vision_review": {
+        "index": 7,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows an oval world map from a manuscript of the Kitab-ı Bahriye, not the 1513 world map.",
+        "kept": false
+      }
     },
     {
       "title": "File:Piri Reis-Mappa della costa italiana da Pisa alla Francia con Genova e Savona (bis) -Walters W658.246A.jpg",
@@ -237,7 +313,16 @@
       "lat": null,
       "lon": null,
       "relevance": 3.0,
-      "file": "09_commons.jpg"
+      "file": "09_commons.jpg",
+      "vision_review": {
+        "index": 9,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Chart of the Italian coastline from the Kitab-ı Bahriye, not the 1513 world map.",
+        "kept": false
+      }
     },
     {
       "title": "File:Piri Reis - Map of the River Nile From Its Estuary South - Google Art Project.jpg",
@@ -270,7 +355,16 @@
       "lat": null,
       "lon": null,
       "relevance": 1.0,
-      "file": "10_commons.jpg"
+      "file": "10_commons.jpg",
+      "vision_review": {
+        "index": 10,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Chart of the River Nile from the Kitab-ı Bahriye, not the 1513 world map.",
+        "kept": false
+      }
     },
     {
       "title": "File:Map of Nafplion by Piri Reis.jpg",
@@ -296,7 +390,16 @@
       "lat": null,
       "lon": null,
       "relevance": 1.0,
-      "file": "11_commons.jpg"
+      "file": "11_commons.jpg",
+      "vision_review": {
+        "index": 11,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Map of Nafplion from the Kitab-ı Bahriye, not the 1513 world map.",
+        "kept": false
+      }
     },
     {
       "title": "File:Piri Reis map of Europe and the Mediterranean Sea.jpg",
@@ -324,7 +427,16 @@
       "lat": null,
       "lon": null,
       "relevance": 1.0,
-      "file": "12_commons.jpg"
+      "file": "12_commons.jpg",
+      "vision_review": {
+        "index": 12,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Portolan chart of Europe and the Mediterranean from the Kitab-ı Bahriye, not the 1513 world map.",
+        "kept": false
+      }
     },
     {
       "title": "File:Piri Reis - Map of the City of Ferrara with the Six Rivers Flowing into the Gulf of Venice - Walters W658187A - Full Page.jpg",
@@ -357,7 +469,16 @@
       "lat": null,
       "lon": null,
       "relevance": 1.0,
-      "file": "13_commons.jpg"
+      "file": "13_commons.jpg",
+      "vision_review": {
+        "index": 13,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Map of Ferrara from the Kitab-ı Bahriye, not the 1513 world map.",
+        "kept": false
+      }
     },
     {
       "title": "File:Piri Reis - Map of the Calabrian Coast From Catanzaro to Squillace - Walters W658212B - Full Page.jpg",
@@ -391,7 +512,16 @@
       "lat": null,
       "lon": null,
       "relevance": 1.0,
-      "file": "14_commons.jpg"
+      "file": "14_commons.jpg",
+      "vision_review": {
+        "index": 14,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Map of the Calabrian coast from the Kitab-ı Bahriye, not the 1513 world map.",
+        "kept": false
+      }
     },
     {
       "title": "File:Piri Reis - Map of the City of Alexandria - Walters W658302A - Full Page.jpg",
@@ -424,7 +554,16 @@
       "lat": null,
       "lon": null,
       "relevance": 1.0,
-      "file": "15_commons.jpg"
+      "file": "15_commons.jpg",
+      "vision_review": {
+        "index": 15,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Map of Alexandria from the Kitab-ı Bahriye, not the 1513 world map.",
+        "kept": false
+      }
     },
     {
       "title": "File:Piri Reis - Map of Rhodes Island - Walters W658103A - Full Page.jpg",
@@ -458,7 +597,16 @@
       "lat": null,
       "lon": null,
       "relevance": 1.0,
-      "file": "16_commons.jpg"
+      "file": "16_commons.jpg",
+      "vision_review": {
+        "index": 16,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Map of Rhodes from the Kitab-ı Bahriye, not the 1513 world map.",
+        "kept": false
+      }
     },
     {
       "title": "File:Piri Reis - Map of Tinos Island in the Aegean Sea - Walters W658117A - Full Page.jpg",
@@ -490,7 +638,16 @@
       "lat": null,
       "lon": null,
       "relevance": 1.0,
-      "file": "17_commons.jpg"
+      "file": "17_commons.jpg",
+      "vision_review": {
+        "index": 17,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Map of Tinos from the Kitab-ı Bahriye, not the 1513 world map.",
+        "kept": false
+      }
     },
     {
       "title": "File:Piri Reis - Map of the Eastern Mediterranean, Aegean and the Black Sea - Walters W65863B - Full Page.jpg",
@@ -524,7 +681,16 @@
       "lat": null,
       "lon": null,
       "relevance": 1.0,
-      "file": "18_commons.jpg"
+      "file": "18_commons.jpg",
+      "vision_review": {
+        "index": 18,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Map of the Aegean and Black Seas from the Kitab-ı Bahriye, not the 1513 world map.",
+        "kept": false
+      }
     },
     {
       "title": "File:Piri Reis - Map of the Island of Patmos - Walters W65884B - Full Page.jpg",
@@ -557,7 +723,16 @@
       "lat": null,
       "lon": null,
       "relevance": 1.0,
-      "file": "19_commons.jpg"
+      "file": "19_commons.jpg",
+      "vision_review": {
+        "index": 19,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Map of Patmos from the Kitab-ı Bahriye, not the 1513 world map.",
+        "kept": false
+      }
     },
     {
       "title": "File:Piri Reis - Map of Two Small Islands Off the Coast of Anatolia - Walters W65880B - Full Page.jpg",
@@ -590,8 +765,16 @@
       "lat": null,
       "lon": null,
       "relevance": 1.0,
-      "file": "20_commons.jpg"
+      "file": "20_commons.jpg",
+      "vision_review": {
+        "index": 20,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Map of the Anatolian coastline from the Kitab-ı Bahriye, not the 1513 world map.",
+        "kept": false
+      }
     }
-  ],
-  "review_note": "Reviewed 2026-10-20: kept 20 of 20"
+  ]
 }

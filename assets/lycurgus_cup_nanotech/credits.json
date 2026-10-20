@@ -22,55 +22,16 @@
       "lat": 51.519342,
       "lon": -0.126228,
       "relevance": 7.0,
-      "file": "01_commons.jpg"
-    },
-    {
-      "title": "File:Photo of the 4th c. CE Lycurgus Cup, side view with satyr, British Museum (1958,1202.1).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/5d/Photo_of_the_4th_c._CE_Lycurgus_Cup%2C_side_view_with_satyr%2C_British_Museum_%281958%2C1202.1%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Photo_of_the_4th_c._CE_Lycurgus_Cup,_side_view_with_satyr,_British_Museum_(1958,1202.1).jpg",
-      "artist": "Chappsnet",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2023,
-      "width": 3024,
-      "height": 4032,
-      "grade": 0,
-      "description": "Side view of the Lycurgus Cup, the most magnificent of all Roman ‘cage cups’, where the glass is carved away to create almost free-standing relief characters. It’s made of dichroic glass, with nanoparticles of gold and silver, which means that in normal light, the glass appears milky green, and when backlit, it glows a ruby red. Here, we see one of Dionysus’ satyrs about to hurt a stone at King Ly",
-      "categories": [
-        "Lycurgus cup, British Museum",
-        "Self-published work",
-        "Images with extracted images",
-        "Files with coordinates missing SDC location of creation (51° N, 1° W)"
-      ],
-      "lat": 51.519394,
-      "lon": -0.126114,
-      "relevance": 7.0,
-      "file": "02_commons.jpg"
-    },
-    {
-      "title": "File:British Museum The Lycurgus Cup 03 15022019 4320.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/8/86/British_Museum_The_Lycurgus_Cup_03_15022019_4320.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:British_Museum_The_Lycurgus_Cup_03_15022019_4320.jpg",
-      "artist": "Vassil",
-      "license": "CC0",
-      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-      "attribution_required": false,
-      "year": 2019,
-      "width": 2909,
-      "height": 4183,
-      "grade": 0,
-      "description": "The Lycurgus Cup, a cage-cup ( diatreta ) made of dichroic glass, Late Roman Empire, 300s AD. Gilded silver rim and foot were probably added in the late 1700s.\nInformation provided by the British Museum : \"its glass contains tiny amount of gold and silver which cause it to turn from opaque green to translucent red when light is shone through.\"\nRoom 41, British Museum.",
-      "categories": [
-        "Taken with Canon EOS-1D Mark IV",
-        "CC-Zero",
-        "Lycurgus cup, British Museum",
-        "Self-published work"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "03_commons.jpg"
+      "file": "01_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Top view looking into the Lycurgus Cup, showing the interior hollowing and dichroic glass effect.",
+        "kept": true
+      }
     },
     {
       "title": "File:British Museum The Lycurgus Cup 04 15022019 4330.jpg",
@@ -94,7 +55,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "04_commons.jpg"
+      "file": "04_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Sharp and well-lit side view showing a youth throwing a stone and a reclining nymph.",
+        "kept": true
+      }
     },
     {
       "title": "File:Front of 4th century CE Roman Lycurgus Cup, British Museum (1958,1202.1).jpg",
@@ -117,7 +87,16 @@
       "lat": 51.519325,
       "lon": -0.126069,
       "relevance": 7.0,
-      "file": "05_commons.jpg"
+      "file": "05_commons.jpg",
+      "vision_review": {
+        "index": 5,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Good view of King Lycurgus entrapped in the grapevine with interior red transmission.",
+        "kept": true
+      }
     },
     {
       "title": "File:British Museum The Lycurgus Cup 02 15022019 4362.jpg",
@@ -142,31 +121,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "06_commons.jpg"
-    },
-    {
-      "title": "File:British Museum The Lycurgus Cup 05 15022019 4337.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/7f/British_Museum_The_Lycurgus_Cup_05_15022019_4337.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:British_Museum_The_Lycurgus_Cup_05_15022019_4337.jpg",
-      "artist": "Vassil",
-      "license": "CC0",
-      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-      "attribution_required": false,
-      "year": 2019,
-      "width": 2551,
-      "height": 3317,
-      "grade": 0,
-      "description": "The Lycurgus Cup, a cage-cup ( diatreta ) made of dichroic glass, Late Roman Empire, 300s AD. Gilded silver rim and foot were probably added in the late 1700s.\nInformation provided by the British Museum : \"its glass contains tiny amount of gold and silver which cause it to turn from opaque green to translucent red when light is shone through.\"\nRoom 41, British Museum.",
-      "categories": [
-        "Taken with Canon EOS-1D Mark IV",
-        "CC-Zero",
-        "Lycurgus cup, British Museum",
-        "Self-published work"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "07_commons.jpg"
+      "file": "06_commons.jpg",
+      "vision_review": {
+        "index": 6,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Clear view of the side depicting the goat-legged Pan and a panther.",
+        "kept": true
+      }
     },
     {
       "title": "File:British Museum The Lycurgus Cup 06 15022019 4350.jpg",
@@ -190,31 +154,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "08_commons.jpg"
-    },
-    {
-      "title": "File:British Museum The Lycurgus Cup 01 15022019 4376.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/3e/British_Museum_The_Lycurgus_Cup_01_15022019_4376.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:British_Museum_The_Lycurgus_Cup_01_15022019_4376.jpg",
-      "artist": "Vassil",
-      "license": "CC0",
-      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-      "attribution_required": false,
-      "year": 2019,
-      "width": 2268,
-      "height": 3667,
-      "grade": 0,
-      "description": "The Lycurgus Cup, a cage-cup ( diatreta ) made of dichroic glass, Late Roman Empire, 300s AD. Gilded silver rim and foot were probably added in the late 1700s.\nInformation provided by the British Museum : \"its glass contains tiny amount of gold and silver which cause it to turn from opaque green to translucent red when light is shone through.\"\n\nRoom 41, British Museum.",
-      "categories": [
-        "Taken with Canon EOS-1D Mark IV",
-        "CC-Zero",
-        "Lycurgus cup, British Museum",
-        "Self-published work"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "09_commons.jpg"
+      "file": "08_commons.jpg",
+      "vision_review": {
+        "index": 8,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Sharp, well-focused view of King Lycurgus being ensnared by ambrosia vines.",
+        "kept": true
+      }
     },
     {
       "title": "File:Lycurgus Cup (British Museum).jpg",
@@ -237,7 +186,16 @@
       "lat": 41.879333,
       "lon": -87.621833,
       "relevance": 7.0,
-      "file": "10_commons.jpg"
+      "file": "10_commons.jpg",
+      "vision_review": {
+        "index": 10,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Detailed close view of King Lycurgus under warm reflected light.",
+        "kept": true
+      }
     },
     {
       "title": "File:Dionysus, Lycurgus Cup (British Museum).jpg",
@@ -260,7 +218,16 @@
       "lat": 41.8795,
       "lon": -87.622,
       "relevance": 7.0,
-      "file": "11_commons.jpg"
+      "file": "11_commons.jpg",
+      "vision_review": {
+        "index": 11,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Clear view of the figure holding a staff (Dionysus/maenad).",
+        "kept": true
+      }
     },
     {
       "title": "File:Pan, Lycurgus Cup (British Museum).jpg",
@@ -283,7 +250,16 @@
       "lat": 41.879333,
       "lon": -87.621833,
       "relevance": 7.0,
-      "file": "12_commons.jpg"
+      "file": "12_commons.jpg",
+      "vision_review": {
+        "index": 12,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Close-up of the Pan figure on the cup.",
+        "kept": true
+      }
     },
     {
       "title": "File:British Museum The Lycurgus Cup 07 15022019 4359.jpg",
@@ -306,30 +282,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "13_commons.jpg"
-    },
-    {
-      "title": "File:British Museum The Lycurgus Cup 08 15022019 4361.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/2/29/British_Museum_The_Lycurgus_Cup_08_15022019_4361.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:British_Museum_The_Lycurgus_Cup_08_15022019_4361.jpg",
-      "artist": "Vassil",
-      "license": "CC0",
-      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-      "attribution_required": false,
-      "year": 2019,
-      "width": 3402,
-      "height": 2057,
-      "grade": 0,
-      "description": "The Lycurgus Cup : view of the inside, showing that the figures are hollow. Room 41, British Museum.",
-      "categories": [
-        "CC-Zero",
-        "Lycurgus cup, British Museum",
-        "Self-published work"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "14_commons.jpg"
+      "file": "13_commons.jpg",
+      "vision_review": {
+        "index": 13,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Detailed close-up of the upper rim and interior hollows.",
+        "kept": true
+      }
     },
     {
       "title": "File:The axe, Lycurgus Cup (British Museum).jpg",
@@ -352,7 +314,16 @@
       "lat": 41.879333,
       "lon": -87.621833,
       "relevance": 7.0,
-      "file": "15_commons.jpg"
+      "file": "15_commons.jpg",
+      "vision_review": {
+        "index": 15,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Clear view of the grapevine and pan figures on the cup.",
+        "kept": true
+      }
     },
     {
       "title": "File:Lycurgus Cup red BM MME1958.12-2.1.jpg",
@@ -377,7 +348,184 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "16_commons.jpg"
+      "file": "16_commons.jpg",
+      "vision_review": {
+        "index": 16,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "High-quality, vibrant museum photograph demonstrating the cup's red light transmission.",
+        "kept": true
+      }
+    }
+  ],
+  "review_note": "Vision review 2026-10-20: kept 11 of 17",
+  "reviewed_by": "vision",
+  "rejected_by_review": [
+    {
+      "title": "File:Photo of the 4th c. CE Lycurgus Cup, side view with satyr, British Museum (1958,1202.1).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/5d/Photo_of_the_4th_c._CE_Lycurgus_Cup%2C_side_view_with_satyr%2C_British_Museum_%281958%2C1202.1%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Photo_of_the_4th_c._CE_Lycurgus_Cup,_side_view_with_satyr,_British_Museum_(1958,1202.1).jpg",
+      "artist": "Chappsnet",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2023,
+      "width": 3024,
+      "height": 4032,
+      "grade": 0,
+      "description": "Side view of the Lycurgus Cup, the most magnificent of all Roman ‘cage cups’, where the glass is carved away to create almost free-standing relief characters. It’s made of dichroic glass, with nanoparticles of gold and silver, which means that in normal light, the glass appears milky green, and when backlit, it glows a ruby red. Here, we see one of Dionysus’ satyrs about to hurt a stone at King Ly",
+      "categories": [
+        "Lycurgus cup, British Museum",
+        "Self-published work",
+        "Images with extracted images",
+        "Files with coordinates missing SDC location of creation (51° N, 1° W)"
+      ],
+      "lat": 51.519394,
+      "lon": -0.126114,
+      "relevance": 7.0,
+      "file": "02_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 4,
+        "reason": "Clear shot of the side showing the satyr and nymph, though photo 4 offers a sharper non-portrait-mode view of the exact same angle.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:British Museum The Lycurgus Cup 03 15022019 4320.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/8/86/British_Museum_The_Lycurgus_Cup_03_15022019_4320.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:British_Museum_The_Lycurgus_Cup_03_15022019_4320.jpg",
+      "artist": "Vassil",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "attribution_required": false,
+      "year": 2019,
+      "width": 2909,
+      "height": 4183,
+      "grade": 0,
+      "description": "The Lycurgus Cup, a cage-cup ( diatreta ) made of dichroic glass, Late Roman Empire, 300s AD. Gilded silver rim and foot were probably added in the late 1700s.\nInformation provided by the British Museum : \"its glass contains tiny amount of gold and silver which cause it to turn from opaque green to translucent red when light is shone through.\"\nRoom 41, British Museum.",
+      "categories": [
+        "Taken with Canon EOS-1D Mark IV",
+        "CC-Zero",
+        "Lycurgus cup, British Museum",
+        "Self-published work"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "03_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 8,
+        "reason": "Shows King Lycurgus ensnared by the grapevine, but nearly identical to photo 8 from the same series.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:British Museum The Lycurgus Cup 05 15022019 4337.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/7f/British_Museum_The_Lycurgus_Cup_05_15022019_4337.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:British_Museum_The_Lycurgus_Cup_05_15022019_4337.jpg",
+      "artist": "Vassil",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "attribution_required": false,
+      "year": 2019,
+      "width": 2551,
+      "height": 3317,
+      "grade": 0,
+      "description": "The Lycurgus Cup, a cage-cup ( diatreta ) made of dichroic glass, Late Roman Empire, 300s AD. Gilded silver rim and foot were probably added in the late 1700s.\nInformation provided by the British Museum : \"its glass contains tiny amount of gold and silver which cause it to turn from opaque green to translucent red when light is shone through.\"\nRoom 41, British Museum.",
+      "categories": [
+        "Taken with Canon EOS-1D Mark IV",
+        "CC-Zero",
+        "Lycurgus cup, British Museum",
+        "Self-published work"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "07_commons.jpg",
+      "vision_review": {
+        "index": 7,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 8,
+        "reason": "Darker, near-identical duplicate shot of photo 8.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:British Museum The Lycurgus Cup 01 15022019 4376.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/3e/British_Museum_The_Lycurgus_Cup_01_15022019_4376.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:British_Museum_The_Lycurgus_Cup_01_15022019_4376.jpg",
+      "artist": "Vassil",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "attribution_required": false,
+      "year": 2019,
+      "width": 2268,
+      "height": 3667,
+      "grade": 0,
+      "description": "The Lycurgus Cup, a cage-cup ( diatreta ) made of dichroic glass, Late Roman Empire, 300s AD. Gilded silver rim and foot were probably added in the late 1700s.\nInformation provided by the British Museum : \"its glass contains tiny amount of gold and silver which cause it to turn from opaque green to translucent red when light is shone through.\"\n\nRoom 41, British Museum.",
+      "categories": [
+        "Taken with Canon EOS-1D Mark IV",
+        "CC-Zero",
+        "Lycurgus cup, British Museum",
+        "Self-published work"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "09_commons.jpg",
+      "vision_review": {
+        "index": 9,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 4,
+        "reason": "Underexposed duplicate shot of the same view shown in photo 4.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:British Museum The Lycurgus Cup 08 15022019 4361.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/2/29/British_Museum_The_Lycurgus_Cup_08_15022019_4361.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:British_Museum_The_Lycurgus_Cup_08_15022019_4361.jpg",
+      "artist": "Vassil",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "attribution_required": false,
+      "year": 2019,
+      "width": 3402,
+      "height": 2057,
+      "grade": 0,
+      "description": "The Lycurgus Cup : view of the inside, showing that the figures are hollow. Room 41, British Museum.",
+      "categories": [
+        "CC-Zero",
+        "Lycurgus cup, British Museum",
+        "Self-published work"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "14_commons.jpg",
+      "vision_review": {
+        "index": 14,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Blurry and out of focus.",
+        "kept": false
+      }
     },
     {
       "title": "File:British Museum The Lycurgus Cup 02 15022019 4362 B.jpg",
@@ -402,8 +550,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "17_commons.jpg"
+      "file": "17_commons.jpg",
+      "vision_review": {
+        "index": 17,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": 6,
+        "reason": "Digitally over-processed and over-saturated duplicate of photo 6.",
+        "kept": false
+      }
     }
-  ],
-  "review_note": "Reviewed 2026-10-20: kept 17 of 17"
+  ]
 }

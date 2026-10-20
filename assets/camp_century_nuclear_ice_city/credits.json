@@ -21,7 +21,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "01_commons.jpg"
+      "file": "01_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Archival site plan schematic of Camp Century showing the trench network, reactor, and living quarters.",
+        "kept": true
+      }
     },
     {
       "title": "File:Camp Century trench deformation.png",
@@ -46,8 +55,19 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "02_commons.jpg"
+      "file": "02_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Technical report diagram showing the progressive deformation and closure of the ice trenches at Camp Century over time.",
+        "kept": true
+      }
     }
   ],
-  "review_note": "Reviewed 2026-10-20: kept 2 of 3; dropped 1 (a photo of Palermo); NOT approved: fewer than 5 usable images"
+  "review_note": "Vision review 2026-10-20: kept 2 of 2; held: fewer than 5",
+  "reviewed_by": null,
+  "rejected_by_review": []
 }

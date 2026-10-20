@@ -24,7 +24,16 @@
       "lat": 24.077019,
       "lon": 32.894879,
       "relevance": 10.0,
-      "file": "01_commons.jpg"
+      "file": "01_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Clear perspective looking along the length of the obelisk showing quarrying trenches and extraction marks.",
+        "kept": true
+      }
     },
     {
       "title": "File:The Unfinished Obelisk, Aswan, AG, EGY (48027107416).jpg",
@@ -49,57 +58,16 @@
       "lat": 24.077019,
       "lon": 32.894879,
       "relevance": 10.0,
-      "file": "02_commons.jpg"
-    },
-    {
-      "title": "File:The Unfinished Obelisk, Aswan, AG, EGY (48027108926).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/3d/The_Unfinished_Obelisk%2C_Aswan%2C_AG%2C_EGY_%2848027108926%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:The_Unfinished_Obelisk,_Aswan,_AG,_EGY_(48027108926).jpg",
-      "artist": "Warren LeMay from Cullowhee, NC, United States",
-      "license": "CC0",
-      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-      "attribution_required": false,
-      "year": 2019,
-      "width": 3024,
-      "height": 4032,
-      "grade": 0,
-      "description": "The Unfinished Obelisk, Aswan, AG, EGY",
-      "categories": [
-        "CC-Zero",
-        "Unfinished obelisk in Aswan",
-        "Files from Warren LeMay Flickr stream",
-        "Files with coordinates missing SDC location of creation",
-        "Flickr images reviewed by FlickreviewR 2"
-      ],
-      "lat": 24.077019,
-      "lon": 32.894879,
-      "relevance": 10.0,
-      "file": "03_commons.jpg"
-    },
-    {
-      "title": "File:The Unfinished Obelisk, Aswan, AG, EGY (48027227302).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/2/20/The_Unfinished_Obelisk%2C_Aswan%2C_AG%2C_EGY_%2848027227302%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:The_Unfinished_Obelisk,_Aswan,_AG,_EGY_(48027227302).jpg",
-      "artist": "Warren LeMay from Cullowhee, NC, United States",
-      "license": "CC0",
-      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-      "attribution_required": false,
-      "year": 2019,
-      "width": 3024,
-      "height": 4032,
-      "grade": 0,
-      "description": "The Unfinished Obelisk, Aswan, AG, EGY",
-      "categories": [
-        "CC-Zero",
-        "Unfinished obelisk in Aswan",
-        "Files from Warren LeMay Flickr stream",
-        "Files with coordinates missing SDC location of creation",
-        "Flickr images reviewed by FlickreviewR 2"
-      ],
-      "lat": 24.077019,
-      "lon": 32.894879,
-      "relevance": 10.0,
-      "file": "04_commons.jpg"
+      "file": "02_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Wide overview of the obelisk in its quarry pit from an elevated viewpoint.",
+        "kept": true
+      }
     },
     {
       "title": "File:The Unfinished Obelisk, Aswan, AG, EGY (48027219692).jpg",
@@ -124,7 +92,287 @@
       "lat": 24.077019,
       "lon": 32.894879,
       "relevance": 10.0,
-      "file": "05_commons.jpg"
+      "file": "05_commons.jpg",
+      "vision_review": {
+        "index": 5,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Clear view of the obelisk from the side showing the main fracture line and the surrounding trench.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Unfinished Obelisk - Aswan - Egypt (4058821616).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/c/ce/Unfinished_Obelisk_-_Aswan_-_Egypt_%284058821616%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058821616).jpg",
+      "artist": "David Berkowitz from New York, NY, USA",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "attribution_required": true,
+      "year": 2009,
+      "width": 3000,
+      "height": 4000,
+      "grade": 0,
+      "description": "The Unfinished Obelisk\n\n(cc) David Berkowitz <a href=\"http://www.marketersstudio.com\" rel=\"nofollow\">www.marketersstudio.com</a>",
+      "categories": [
+        "Unfinished obelisk in Aswan",
+        "Flickr images reviewed by FlickreviewR 2",
+        "Files uploaded by Orizan",
+        "Photographs by David Berkowitz"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "10_commons.jpg",
+      "vision_review": {
+        "index": 10,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Good view looking down the side trench showing dolerite ball pounding marks along the granite wall.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Unfinished Obelisk - Aswan - Egypt (4058823772).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/72/Unfinished_Obelisk_-_Aswan_-_Egypt_%284058823772%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058823772).jpg",
+      "artist": "David Berkowitz from New York, NY, USA",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "attribution_required": true,
+      "year": 2009,
+      "width": 4000,
+      "height": 3000,
+      "grade": 0,
+      "description": "(cc) David Berkowitz <a href=\"http://www.marketersstudio.com\" rel=\"nofollow\">www.marketersstudio.com</a>",
+      "categories": [
+        "Unfinished obelisk in Aswan",
+        "Flickr images reviewed by FlickreviewR 2",
+        "Files uploaded by Orizan",
+        "Photographs by David Berkowitz"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 5.0,
+      "file": "12_commons.jpg",
+      "vision_review": {
+        "index": 12,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "High-angle view of the obelisk in its quarry trench with visitors providing scale.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Unfinished Obelisk - Aswan - Egypt (4058822838).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/d/d7/Unfinished_Obelisk_-_Aswan_-_Egypt_%284058822838%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058822838).jpg",
+      "artist": "David Berkowitz from New York, NY, USA",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "attribution_required": true,
+      "year": 2009,
+      "width": 4000,
+      "height": 3000,
+      "grade": 0,
+      "description": "(cc) David Berkowitz <a href=\"http://www.marketersstudio.com\" rel=\"nofollow\">www.marketersstudio.com</a>",
+      "categories": [
+        "Unfinished obelisk in Aswan",
+        "Flickr images reviewed by FlickreviewR 2",
+        "Files uploaded by Orizan",
+        "Photographs by David Berkowitz"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 5.0,
+      "file": "14_commons.jpg",
+      "vision_review": {
+        "index": 14,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Wide shot showing the obelisk in situ with visitors on the surrounding bedrock giving a sense of scale.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Unfinished Obelisk - Aswan - Egypt (4058081723).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/0/05/Unfinished_Obelisk_-_Aswan_-_Egypt_%284058081723%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058081723).jpg",
+      "artist": "David Berkowitz from New York, NY, USA",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "attribution_required": true,
+      "year": 2009,
+      "width": 4000,
+      "height": 3000,
+      "grade": 0,
+      "description": "(cc) David Berkowitz <a href=\"http://www.marketersstudio.com\" rel=\"nofollow\">www.marketersstudio.com</a>",
+      "categories": [
+        "Unfinished obelisk in Aswan",
+        "Flickr images reviewed by FlickreviewR 2",
+        "Files uploaded by Orizan",
+        "Photographs by David Berkowitz"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 5.0,
+      "file": "15_commons.jpg",
+      "vision_review": {
+        "index": 15,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Clear landscape view displaying the fracture across the shaft and the quarry environment.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:The largest know ancient obelisk - Unfinished Obelisk would have been 32m. high (14284036359).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/1/1e/The_largest_know_ancient_obelisk_-_Unfinished_Obelisk_would_have_been_32m._high_%2814284036359%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:The_largest_know_ancient_obelisk_-_Unfinished_Obelisk_would_have_been_32m._high_(14284036359).jpg",
+      "artist": "Jorge Láscar from Melbourne, Australia",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "attribution_required": true,
+      "year": 2012,
+      "width": 4288,
+      "height": 2848,
+      "grade": 0,
+      "description": "The unfinished obelisk is the largest known ancient obelisk and is located in the northern region of the stone quarries of ancient Egypt in Aswan, Egypt. Archaeologists claim the pharaoh known as Hatshepsut sanctioned its construction. It is nearly one third larger than any ancient Egyptian obelisk ever erected. If finished it would have measured around 42 m (approximately 137 feet) and would have",
+      "categories": [
+        "Unfinished obelisk in Aswan",
+        "Files with coordinates missing SDC location of creation",
+        "Flickr images reviewed by FlickreviewR 2",
+        "Egypt photographs taken on 2012-09-13",
+        "Files from Jorge Láscar Flickr stream"
+      ],
+      "lat": 24.077,
+      "lon": 32.895666,
+      "relevance": 10.0,
+      "file": "19_commons.jpg",
+      "vision_review": {
+        "index": 19,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Excellent, well-lit horizontal wide shot along the entire length of the obelisk in bedrock.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Unfinished Obelisk - Aswan - Egypt (4058083713).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/2/23/Unfinished_Obelisk_-_Aswan_-_Egypt_%284058083713%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058083713).jpg",
+      "artist": "David Berkowitz from New York, NY, USA",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "attribution_required": true,
+      "year": 2009,
+      "width": 4000,
+      "height": 3000,
+      "grade": 0,
+      "description": "(cc) David Berkowitz <a href=\"http://www.marketersstudio.com\" rel=\"nofollow\">www.marketersstudio.com</a>",
+      "categories": [
+        "Unfinished obelisk in Aswan",
+        "Flickr images reviewed by FlickreviewR 2",
+        "Files uploaded by Orizan",
+        "Photographs by David Berkowitz"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 5.0,
+      "file": "17_commons.jpg",
+      "vision_review": {
+        "index": 17,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows the modern tourist path, stairs, and landscape surrounding the quarry rather than the obelisk itself.",
+        "kept": true
+      }
+    }
+  ],
+  "review_note": "Vision review 2026-10-20: kept 9 of 20",
+  "reviewed_by": "vision",
+  "rejected_by_review": [
+    {
+      "title": "File:The Unfinished Obelisk, Aswan, AG, EGY (48027108926).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/3d/The_Unfinished_Obelisk%2C_Aswan%2C_AG%2C_EGY_%2848027108926%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:The_Unfinished_Obelisk,_Aswan,_AG,_EGY_(48027108926).jpg",
+      "artist": "Warren LeMay from Cullowhee, NC, United States",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "attribution_required": false,
+      "year": 2019,
+      "width": 3024,
+      "height": 4032,
+      "grade": 0,
+      "description": "The Unfinished Obelisk, Aswan, AG, EGY",
+      "categories": [
+        "CC-Zero",
+        "Unfinished obelisk in Aswan",
+        "Files from Warren LeMay Flickr stream",
+        "Files with coordinates missing SDC location of creation",
+        "Flickr images reviewed by FlickreviewR 2"
+      ],
+      "lat": 24.077019,
+      "lon": 32.894879,
+      "relevance": 10.0,
+      "file": "03_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 2,
+        "reason": "Nearly identical framing and angle to Photo 2 in a vertical crop.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:The Unfinished Obelisk, Aswan, AG, EGY (48027227302).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/2/20/The_Unfinished_Obelisk%2C_Aswan%2C_AG%2C_EGY_%2848027227302%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:The_Unfinished_Obelisk,_Aswan,_AG,_EGY_(48027227302).jpg",
+      "artist": "Warren LeMay from Cullowhee, NC, United States",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "attribution_required": false,
+      "year": 2019,
+      "width": 3024,
+      "height": 4032,
+      "grade": 0,
+      "description": "The Unfinished Obelisk, Aswan, AG, EGY",
+      "categories": [
+        "CC-Zero",
+        "Unfinished obelisk in Aswan",
+        "Files from Warren LeMay Flickr stream",
+        "Files with coordinates missing SDC location of creation",
+        "Flickr images reviewed by FlickreviewR 2"
+      ],
+      "lat": 24.077019,
+      "lon": 32.894879,
+      "relevance": 10.0,
+      "file": "04_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "A prominent shadow of the photographer taking the picture covers the lower foreground.",
+        "kept": false
+      }
     },
     {
       "title": "File:The Unfinished Obelisk, Aswan, AG, EGY (48027121136).jpg",
@@ -149,7 +397,16 @@
       "lat": 24.077019,
       "lon": 32.894879,
       "relevance": 10.0,
-      "file": "06_commons.jpg"
+      "file": "06_commons.jpg",
+      "vision_review": {
+        "index": 6,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Large, distracting shadows of tourists are cast across the foreground trench.",
+        "kept": false
+      }
     },
     {
       "title": "File:Unfinished Obelisk, Aswan (9797405556).jpg",
@@ -176,7 +433,16 @@
       "lat": 24.077025,
       "lon": 32.894911,
       "relevance": 8.0,
-      "file": "07_commons.jpg"
+      "file": "07_commons.jpg",
+      "vision_review": {
+        "index": 7,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Overexposed, low-resolution scan with severely washed-out highlights and poor contrast.",
+        "kept": false
+      }
     },
     {
       "title": "File:Unfinished Obelisk, Aswan (9797463993).jpg",
@@ -203,7 +469,16 @@
       "lat": 24.077025,
       "lon": 32.894911,
       "relevance": 8.0,
-      "file": "08_commons.jpg"
+      "file": "08_commons.jpg",
+      "vision_review": {
+        "index": 8,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Low-quality, washed-out scan from an old photographic print.",
+        "kept": false
+      }
     },
     {
       "title": "File:Unfinished Obelisk, Aswan (9797382426).jpg",
@@ -230,31 +505,16 @@
       "lat": 24.077025,
       "lon": 32.894911,
       "relevance": 8.0,
-      "file": "09_commons.jpg"
-    },
-    {
-      "title": "File:Unfinished Obelisk - Aswan - Egypt (4058821616).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/c/ce/Unfinished_Obelisk_-_Aswan_-_Egypt_%284058821616%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058821616).jpg",
-      "artist": "David Berkowitz from New York, NY, USA",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "attribution_required": true,
-      "year": 2009,
-      "width": 3000,
-      "height": 4000,
-      "grade": 0,
-      "description": "The Unfinished Obelisk\n\n(cc) David Berkowitz <a href=\"http://www.marketersstudio.com\" rel=\"nofollow\">www.marketersstudio.com</a>",
-      "categories": [
-        "Unfinished obelisk in Aswan",
-        "Flickr images reviewed by FlickreviewR 2",
-        "Files uploaded by Orizan",
-        "Photographs by David Berkowitz"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "10_commons.jpg"
+      "file": "09_commons.jpg",
+      "vision_review": {
+        "index": 9,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Murky, low-contrast scan of an old slide with poor clarity.",
+        "kept": false
+      }
     },
     {
       "title": "File:Unfinished Obelisk - Aswan - Egypt (4058823338).jpg",
@@ -278,31 +538,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "11_commons.jpg"
-    },
-    {
-      "title": "File:Unfinished Obelisk - Aswan - Egypt (4058823772).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/72/Unfinished_Obelisk_-_Aswan_-_Egypt_%284058823772%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058823772).jpg",
-      "artist": "David Berkowitz from New York, NY, USA",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "attribution_required": true,
-      "year": 2009,
-      "width": 4000,
-      "height": 3000,
-      "grade": 0,
-      "description": "(cc) David Berkowitz <a href=\"http://www.marketersstudio.com\" rel=\"nofollow\">www.marketersstudio.com</a>",
-      "categories": [
-        "Unfinished obelisk in Aswan",
-        "Flickr images reviewed by FlickreviewR 2",
-        "Files uploaded by Orizan",
-        "Photographs by David Berkowitz"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 5.0,
-      "file": "12_commons.jpg"
+      "file": "11_commons.jpg",
+      "vision_review": {
+        "index": 11,
+        "shows_topic": "no",
+        "usable": false,
+        "safe": false,
+        "duplicate_of": null,
+        "reason": "Portrait of an identifiable tourist against a generic boulder; the obelisk is not shown.",
+        "kept": false
+      }
     },
     {
       "title": "File:Unfinished Obelisk - Aswan - Egypt (4058082285).jpg",
@@ -326,55 +571,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "13_commons.jpg"
-    },
-    {
-      "title": "File:Unfinished Obelisk - Aswan - Egypt (4058822838).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/d/d7/Unfinished_Obelisk_-_Aswan_-_Egypt_%284058822838%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058822838).jpg",
-      "artist": "David Berkowitz from New York, NY, USA",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "attribution_required": true,
-      "year": 2009,
-      "width": 4000,
-      "height": 3000,
-      "grade": 0,
-      "description": "(cc) David Berkowitz <a href=\"http://www.marketersstudio.com\" rel=\"nofollow\">www.marketersstudio.com</a>",
-      "categories": [
-        "Unfinished obelisk in Aswan",
-        "Flickr images reviewed by FlickreviewR 2",
-        "Files uploaded by Orizan",
-        "Photographs by David Berkowitz"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 5.0,
-      "file": "14_commons.jpg"
-    },
-    {
-      "title": "File:Unfinished Obelisk - Aswan - Egypt (4058081723).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/0/05/Unfinished_Obelisk_-_Aswan_-_Egypt_%284058081723%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058081723).jpg",
-      "artist": "David Berkowitz from New York, NY, USA",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "attribution_required": true,
-      "year": 2009,
-      "width": 4000,
-      "height": 3000,
-      "grade": 0,
-      "description": "(cc) David Berkowitz <a href=\"http://www.marketersstudio.com\" rel=\"nofollow\">www.marketersstudio.com</a>",
-      "categories": [
-        "Unfinished obelisk in Aswan",
-        "Flickr images reviewed by FlickreviewR 2",
-        "Files uploaded by Orizan",
-        "Photographs by David Berkowitz"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 5.0,
-      "file": "15_commons.jpg"
+      "file": "13_commons.jpg",
+      "vision_review": {
+        "index": 13,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": false,
+        "duplicate_of": null,
+        "reason": "An identifiable tourist posing in the foreground is the primary subject of the photo.",
+        "kept": false
+      }
     },
     {
       "title": "File:Unfinished Obelisk - Aswan - Egypt (4058822336).jpg",
@@ -398,31 +604,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "16_commons.jpg"
-    },
-    {
-      "title": "File:Unfinished Obelisk - Aswan - Egypt (4058083713).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/2/23/Unfinished_Obelisk_-_Aswan_-_Egypt_%284058083713%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Unfinished_Obelisk_-_Aswan_-_Egypt_(4058083713).jpg",
-      "artist": "David Berkowitz from New York, NY, USA",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "attribution_required": true,
-      "year": 2009,
-      "width": 4000,
-      "height": 3000,
-      "grade": 0,
-      "description": "(cc) David Berkowitz <a href=\"http://www.marketersstudio.com\" rel=\"nofollow\">www.marketersstudio.com</a>",
-      "categories": [
-        "Unfinished obelisk in Aswan",
-        "Flickr images reviewed by FlickreviewR 2",
-        "Files uploaded by Orizan",
-        "Photographs by David Berkowitz"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 5.0,
-      "file": "17_commons.jpg"
+      "file": "16_commons.jpg",
+      "vision_review": {
+        "index": 16,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": false,
+        "duplicate_of": null,
+        "reason": "Posed snapshot dominated by an identifiable tourist in the foreground.",
+        "kept": false
+      }
     },
     {
       "title": "File:The largest know ancient obelisk - Unfinished Obelisk would have been 32m. high (14470651075).jpg",
@@ -447,32 +638,16 @@
       "lat": 24.077,
       "lon": 32.895666,
       "relevance": 10.0,
-      "file": "18_commons.jpg"
-    },
-    {
-      "title": "File:The largest know ancient obelisk - Unfinished Obelisk would have been 32m. high (14284036359).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/1/1e/The_largest_know_ancient_obelisk_-_Unfinished_Obelisk_would_have_been_32m._high_%2814284036359%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:The_largest_know_ancient_obelisk_-_Unfinished_Obelisk_would_have_been_32m._high_(14284036359).jpg",
-      "artist": "Jorge Láscar from Melbourne, Australia",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "attribution_required": true,
-      "year": 2012,
-      "width": 4288,
-      "height": 2848,
-      "grade": 0,
-      "description": "The unfinished obelisk is the largest known ancient obelisk and is located in the northern region of the stone quarries of ancient Egypt in Aswan, Egypt. Archaeologists claim the pharaoh known as Hatshepsut sanctioned its construction. It is nearly one third larger than any ancient Egyptian obelisk ever erected. If finished it would have measured around 42 m (approximately 137 feet) and would have",
-      "categories": [
-        "Unfinished obelisk in Aswan",
-        "Files with coordinates missing SDC location of creation",
-        "Flickr images reviewed by FlickreviewR 2",
-        "Egypt photographs taken on 2012-09-13",
-        "Files from Jorge Láscar Flickr stream"
-      ],
-      "lat": 24.077,
-      "lon": 32.895666,
-      "relevance": 10.0,
-      "file": "19_commons.jpg"
+      "file": "18_commons.jpg",
+      "vision_review": {
+        "index": 18,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "The image is incorrectly rotated 90 degrees counterclockwise.",
+        "kept": false
+      }
     },
     {
       "title": "File:The Unfinished Obelisk, Aswan, AG, EGY (48027156528).jpg",
@@ -497,8 +672,16 @@
       "lat": 24.077019,
       "lon": 32.894879,
       "relevance": 10.0,
-      "file": "20_commons.jpg"
+      "file": "20_commons.jpg",
+      "vision_review": {
+        "index": 20,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 15,
+        "reason": "Shows the obelisk shaft and quarry context, but Photo 15 provides a cleaner view of the exact same angle without photographer shadows.",
+        "kept": false
+      }
     }
-  ],
-  "review_note": "Reviewed 2026-10-20: kept 20 of 20"
+  ]
 }

@@ -2,58 +2,6 @@
   "reviewed": true,
   "images": [
     {
-      "title": "File:Parts of instrument for trepanning of the skull. Wellcome L0016674.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/f6/Parts_of_instrument_for_trepanning_of_the_skull._Wellcome_L0016674.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Parts_of_instrument_for_trepanning_of_the_skull._Wellcome_L0016674.jpg",
-      "artist": "Unknown",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": null,
-      "width": 3728,
-      "height": 4944,
-      "grade": 0,
-      "description": "Parts of instrument for trepanning of the skull.\n\nWellcome Images\nKeywords: Head; Samuel Croker King",
-      "categories": [
-        "Surgical instruments",
-        "Files with no machine-readable author",
-        "Trepanation",
-        "Images uploaded by Fæ",
-        "Artworks without Wikidata item",
-        "Files from Wellcome Images"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "01_commons.jpg"
-    },
-    {
-      "title": "File:Instrument for operation of trepanning of the skull. Wellcome L0016675.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/9/90/Instrument_for_operation_of_trepanning_of_the_skull._Wellcome_L0016675.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Instrument_for_operation_of_trepanning_of_the_skull._Wellcome_L0016675.jpg",
-      "artist": "Unknown",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": null,
-      "width": 3886,
-      "height": 4818,
-      "grade": 0,
-      "description": "Instrument for operation of trepanning of the skull.\n\nWellcome Images\nKeywords: Head; Samuel Croker King",
-      "categories": [
-        "Files with no machine-readable author",
-        "Trephines",
-        "Images uploaded by Fæ",
-        "Artworks without Wikidata item",
-        "Files from Wellcome Images",
-        "Historical surgical instruments"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "02_commons.jpg"
-    },
-    {
       "title": "File:Trepanned skull, New Britain Wellcome M0005286.jpg",
       "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/fe/Trepanned_skull%2C_New_Britain_Wellcome_M0005286.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "source_url": "https://commons.wikimedia.org/wiki/File:Trepanned_skull,_New_Britain_Wellcome_M0005286.jpg",
@@ -77,7 +25,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "04_commons.jpg"
+      "file": "04_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows a skull with a trepanation aperture from New Britain, preserved in a museum collection.",
+        "kept": true
+      }
     },
     {
       "title": "File:Diorama showing trephination in Neolithic times, England, 19 Wellcome L0058021.jpg",
@@ -103,7 +60,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "05_commons.jpg"
+      "file": "05_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Museum diorama depicting a reconstruction of trepanation in Neolithic times.",
+        "kept": true
+      }
     },
     {
       "title": "File:Stone chisel used for trepanning, New Britain Wellcome M0005285.jpg",
@@ -131,7 +97,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "06_commons.jpg"
+      "file": "06_commons.jpg",
+      "vision_review": {
+        "index": 5,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows a traditional stone chisel used for cranial trepanation.",
+        "kept": true
+      }
     },
     {
       "title": "File:Trepanned skull, New Britain Wellcome M0005287.jpg",
@@ -157,32 +132,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "07_commons.jpg"
-    },
-    {
-      "title": "File:13th century trepanation. Wellcome M0010165.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/2/2a/13th_century_trepanation._Wellcome_M0010165.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:13th_century_trepanation._Wellcome_M0010165.jpg",
-      "artist": "Unknown",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": null,
-      "width": 3250,
-      "height": 3484,
-      "grade": 0,
-      "description": "Mediaeval surgeon trepanning.\n\nGeneral Collections\nKeywords: trepanning; surgical operations",
-      "categories": [
-        "Files with no machine-readable author",
-        "Images uploaded by Fæ",
-        "Artworks without Wikidata item",
-        "Files from Wellcome Images",
-        "Trepanation in art"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "08_commons.jpg"
+      "file": "07_commons.jpg",
+      "vision_review": {
+        "index": 6,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows a trepanned skull exhibiting a large cranial opening with healed margins.",
+        "kept": true
+      }
     },
     {
       "title": "File:Trepanned skull, New Britain Wellcome M0005288.jpg",
@@ -208,7 +167,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "09_commons.jpg"
+      "file": "09_commons.jpg",
+      "vision_review": {
+        "index": 8,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows a skull showing evidence of trepanation.",
+        "kept": true
+      }
     },
     {
       "title": "File:Edinburgh Skull, trepanning showing hole in back of skull Wellcome M0009393.jpg",
@@ -234,86 +202,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "10_commons.jpg"
-    },
-    {
-      "title": "File:Human skull illustrating different methods of trephination o Wellcome L0058796.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/d/de/Human_skull_illustrating_different_methods_of_trephination_o_Wellcome_L0058796.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Human_skull_illustrating_different_methods_of_trephination_o_Wellcome_L0058796.jpg",
-      "artist": "Unknown",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": null,
-      "width": 4256,
-      "height": 2832,
-      "grade": 0,
-      "description": "Human skull illustrating different methods of trephination owned by Dr. T. Wilson Parry, skull of Guanche, Canary Islands, 1871-1930 (approx). Detail on black background.\n\nWellcome Images",
-      "categories": [
-        "Files with no machine-readable author",
-        "Images uploaded by Fæ",
-        "Artworks without Wikidata item",
-        "Files from Wellcome Images",
-        "Prehistoric Trepanation methods"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "11_commons.jpg"
-    },
-    {
-      "title": "File:Trepanning being performed Wellcome L0041513.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/5e/Trepanning_being_performed_Wellcome_L0041513.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Trepanning_being_performed_Wellcome_L0041513.jpg",
-      "artist": "Unknown",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": null,
-      "width": 3416,
-      "height": 2628,
-      "grade": 0,
-      "description": "One patient lies still as trepanning is performed on his skull. Another apprehensive looking man sits beside him being prepared to undergo the same operation.\n\nRare Books\nKeywords: Trepanation; Trephination; Operation; General Surgery",
-      "categories": [
-        "Jacques Guillemeau",
-        "Files with no machine-readable author",
-        "Images uploaded by Fæ",
-        "Artworks without Wikidata item",
-        "Files from Wellcome Images",
-        "Wellcome Rare Books Collection",
-        "Surgery in the Wellcome Collection",
-        "Trepanation in art"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "12_commons.jpg"
-    },
-    {
-      "title": "File:Human skull illustrating different methods of trephination o Wellcome L0058798.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/75/Human_skull_illustrating_different_methods_of_trephination_o_Wellcome_L0058798.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Human_skull_illustrating_different_methods_of_trephination_o_Wellcome_L0058798.jpg",
-      "artist": "Unknown",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": null,
-      "width": 4256,
-      "height": 2832,
-      "grade": 0,
-      "description": "Human skull illustrating different methods of trephination owned by Dr. T. Wilson Parry, skull of Guanche, Canary Islands, 1871-1930 (approx). Detail, on black background.\n\nWellcome Images",
-      "categories": [
-        "Files with no machine-readable author",
-        "Images uploaded by Fæ",
-        "Artworks without Wikidata item",
-        "Files from Wellcome Images",
-        "Prehistoric Trepanation methods",
-        "Thomas Wilson Parry"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "13_commons.jpg"
+      "file": "10_commons.jpg",
+      "vision_review": {
+        "index": 9,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows a human skull with a prominent trepanning opening.",
+        "kept": true
+      }
     },
     {
       "title": "File:A human skull showing signs of Trepanning. Wellcome L0035690.jpg",
@@ -342,7 +240,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "14_commons.jpg"
+      "file": "14_commons.jpg",
+      "vision_review": {
+        "index": 13,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "High-angle view of a museum skull from New Ireland displaying multiple trepanned holes.",
+        "kept": true
+      }
     },
     {
       "title": "File:Trephined skull, Neolithic period. Wellcome M0014688.jpg",
@@ -368,35 +275,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "15_commons.jpg"
-    },
-    {
-      "title": "File:Human skull illustrating different methods of trephination o Wellcome L0058797.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/a/ae/Human_skull_illustrating_different_methods_of_trephination_o_Wellcome_L0058797.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Human_skull_illustrating_different_methods_of_trephination_o_Wellcome_L0058797.jpg",
-      "artist": "Unknown",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": null,
-      "width": 4256,
-      "height": 2832,
-      "grade": 0,
-      "description": "Human skull illustrating different methods of trephination owned by Dr. T. Wilson Parry, skull of Guanche, Canary Islands, 1871-1930 (approx). Detail, black perspex background.\n\nWellcome Images",
-      "categories": [
-        "Files with no machine-readable author",
-        "Images uploaded by Fæ",
-        "Artworks without Wikidata item",
-        "Files from Wellcome Images",
-        "Photographs of human parietal bone",
-        "Human parietal bones",
-        "Prehistoric Trepanation methods",
-        "Thomas Wilson Parry"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "16_commons.jpg"
+      "file": "15_commons.jpg",
+      "vision_review": {
+        "index": 14,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Neolithic trephined skull with healed bone edges indicating long-term patient survival.",
+        "kept": true
+      }
     },
     {
       "title": "File:A human skull showing signs of Trepanning. Wellcome L0035689.jpg",
@@ -425,7 +313,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "17_commons.jpg"
+      "file": "17_commons.jpg",
+      "vision_review": {
+        "index": 16,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Frontal view of a skull showing signs of trepanation.",
+        "kept": true
+      }
     },
     {
       "title": "File:Skull showing square trephining opening Wellcome M0003709.jpg",
@@ -451,34 +348,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "18_commons.jpg"
-    },
-    {
-      "title": "File:Piece of skull used in a trephination experiment with an obs Wellcome L0058784.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/b/ba/Piece_of_skull_used_in_a_trephination_experiment_with_an_obs_Wellcome_L0058784.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Piece_of_skull_used_in_a_trephination_experiment_with_an_obs_Wellcome_L0058784.jpg",
-      "artist": "Unknown",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": null,
-      "width": 4108,
-      "height": 2832,
-      "grade": 0,
-      "description": "This piece of skull was part of a trephination experiment which used an obsidian knife. Obsidian is a naturally occurring volcanic glass. It is a hard wearing material and can cut through materials such as marble and bone. The hole produced is 19 mm in diameter. The inscriptions tells us that it took half an hour to produce the hole and that the skull belonged to a 44-year-old male. This experimen",
-      "categories": [
-        "Files with no machine-readable author",
-        "Images uploaded by Fæ",
-        "Artworks without Wikidata item",
-        "Files from Wellcome Images (check needed)",
-        "Files from Wellcome Images",
-        "Archaeological objects made from obsidian",
-        "Prehistoric Trepanation methods"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "19_commons.jpg"
+      "file": "18_commons.jpg",
+      "vision_review": {
+        "index": 17,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Ancient Peruvian skull from Chucuito showing characteristic rectangular cross-cut trepanation.",
+        "kept": true
+      }
     },
     {
       "title": "File:A human skull showing signs of Trepanning. Wellcome L0035688.jpg",
@@ -507,8 +386,303 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "20_commons.jpg"
+      "file": "20_commons.jpg",
+      "vision_review": {
+        "index": 19,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Three-quarter perspective of a trepanned skull showing cranial perforations.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Human skull illustrating different methods of trephination o Wellcome L0058796.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/d/de/Human_skull_illustrating_different_methods_of_trephination_o_Wellcome_L0058796.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Human_skull_illustrating_different_methods_of_trephination_o_Wellcome_L0058796.jpg",
+      "artist": "Unknown",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": null,
+      "width": 4256,
+      "height": 2832,
+      "grade": 0,
+      "description": "Human skull illustrating different methods of trephination owned by Dr. T. Wilson Parry, skull of Guanche, Canary Islands, 1871-1930 (approx). Detail on black background.\n\nWellcome Images",
+      "categories": [
+        "Files with no machine-readable author",
+        "Images uploaded by Fæ",
+        "Artworks without Wikidata item",
+        "Files from Wellcome Images",
+        "Prehistoric Trepanation methods"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "11_commons.jpg",
+      "vision_review": {
+        "index": 10,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Modern experimental skull by Dr. T. Wilson Parry demonstrating ancient trephination methods (flint scraper and obsidian).",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Human skull illustrating different methods of trephination o Wellcome L0058798.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/75/Human_skull_illustrating_different_methods_of_trephination_o_Wellcome_L0058798.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Human_skull_illustrating_different_methods_of_trephination_o_Wellcome_L0058798.jpg",
+      "artist": "Unknown",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": null,
+      "width": 4256,
+      "height": 2832,
+      "grade": 0,
+      "description": "Human skull illustrating different methods of trephination owned by Dr. T. Wilson Parry, skull of Guanche, Canary Islands, 1871-1930 (approx). Detail, on black background.\n\nWellcome Images",
+      "categories": [
+        "Files with no machine-readable author",
+        "Images uploaded by Fæ",
+        "Artworks without Wikidata item",
+        "Files from Wellcome Images",
+        "Prehistoric Trepanation methods",
+        "Thomas Wilson Parry"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "13_commons.jpg",
+      "vision_review": {
+        "index": 12,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Modern experimental specimen demonstrating ancient trephination using a shark's tooth.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Human skull illustrating different methods of trephination o Wellcome L0058797.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/a/ae/Human_skull_illustrating_different_methods_of_trephination_o_Wellcome_L0058797.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Human_skull_illustrating_different_methods_of_trephination_o_Wellcome_L0058797.jpg",
+      "artist": "Unknown",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": null,
+      "width": 4256,
+      "height": 2832,
+      "grade": 0,
+      "description": "Human skull illustrating different methods of trephination owned by Dr. T. Wilson Parry, skull of Guanche, Canary Islands, 1871-1930 (approx). Detail, black perspex background.\n\nWellcome Images",
+      "categories": [
+        "Files with no machine-readable author",
+        "Images uploaded by Fæ",
+        "Artworks without Wikidata item",
+        "Files from Wellcome Images",
+        "Photographs of human parietal bone",
+        "Human parietal bones",
+        "Prehistoric Trepanation methods",
+        "Thomas Wilson Parry"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "16_commons.jpg",
+      "vision_review": {
+        "index": 15,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Modern experimental skull demonstrating ancient trephination via a flint-pointed bow-drill.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Piece of skull used in a trephination experiment with an obs Wellcome L0058784.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/b/ba/Piece_of_skull_used_in_a_trephination_experiment_with_an_obs_Wellcome_L0058784.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Piece_of_skull_used_in_a_trephination_experiment_with_an_obs_Wellcome_L0058784.jpg",
+      "artist": "Unknown",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": null,
+      "width": 4108,
+      "height": 2832,
+      "grade": 0,
+      "description": "This piece of skull was part of a trephination experiment which used an obsidian knife. Obsidian is a naturally occurring volcanic glass. It is a hard wearing material and can cut through materials such as marble and bone. The hole produced is 19 mm in diameter. The inscriptions tells us that it took half an hour to produce the hole and that the skull belonged to a 44-year-old male. This experimen",
+      "categories": [
+        "Files with no machine-readable author",
+        "Images uploaded by Fæ",
+        "Artworks without Wikidata item",
+        "Files from Wellcome Images (check needed)",
+        "Files from Wellcome Images",
+        "Archaeological objects made from obsidian",
+        "Prehistoric Trepanation methods"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "19_commons.jpg",
+      "vision_review": {
+        "index": 18,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Cranial bone fragment from an archaeological experiment testing ancient obsidian trepanation.",
+        "kept": true
+      }
     }
   ],
-  "review_note": "Reviewed 2026-10-20: kept 19 of 20; dropped 1 (a 19th-century animal experiment)"
+  "review_note": "Vision review 2026-10-20: kept 15 of 19",
+  "reviewed_by": "vision",
+  "rejected_by_review": [
+    {
+      "title": "File:Parts of instrument for trepanning of the skull. Wellcome L0016674.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/f6/Parts_of_instrument_for_trepanning_of_the_skull._Wellcome_L0016674.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Parts_of_instrument_for_trepanning_of_the_skull._Wellcome_L0016674.jpg",
+      "artist": "Unknown",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": null,
+      "width": 3728,
+      "height": 4944,
+      "grade": 0,
+      "description": "Parts of instrument for trepanning of the skull.\n\nWellcome Images\nKeywords: Head; Samuel Croker King",
+      "categories": [
+        "Surgical instruments",
+        "Files with no machine-readable author",
+        "Trepanation",
+        "Images uploaded by Fæ",
+        "Artworks without Wikidata item",
+        "Files from Wellcome Images"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "01_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Depicts early modern (18th-century) European surgical instruments rather than ancient trepanation.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Instrument for operation of trepanning of the skull. Wellcome L0016675.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/9/90/Instrument_for_operation_of_trepanning_of_the_skull._Wellcome_L0016675.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Instrument_for_operation_of_trepanning_of_the_skull._Wellcome_L0016675.jpg",
+      "artist": "Unknown",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": null,
+      "width": 3886,
+      "height": 4818,
+      "grade": 0,
+      "description": "Instrument for operation of trepanning of the skull.\n\nWellcome Images\nKeywords: Head; Samuel Croker King",
+      "categories": [
+        "Files with no machine-readable author",
+        "Trephines",
+        "Images uploaded by Fæ",
+        "Artworks without Wikidata item",
+        "Files from Wellcome Images",
+        "Historical surgical instruments"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "02_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Depicts an assembled 18th-century European mechanical trepanning brace rather than ancient skull surgery.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:13th century trepanation. Wellcome M0010165.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/2/2a/13th_century_trepanation._Wellcome_M0010165.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:13th_century_trepanation._Wellcome_M0010165.jpg",
+      "artist": "Unknown",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": null,
+      "width": 3250,
+      "height": 3484,
+      "grade": 0,
+      "description": "Mediaeval surgeon trepanning.\n\nGeneral Collections\nKeywords: trepanning; surgical operations",
+      "categories": [
+        "Files with no machine-readable author",
+        "Images uploaded by Fæ",
+        "Artworks without Wikidata item",
+        "Files from Wellcome Images",
+        "Trepanation in art"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "08_commons.jpg",
+      "vision_review": {
+        "index": 7,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows a medieval (13th-century) manuscript illustration of trepanning rather than ancient skull surgery.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Trepanning being performed Wellcome L0041513.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/5e/Trepanning_being_performed_Wellcome_L0041513.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Trepanning_being_performed_Wellcome_L0041513.jpg",
+      "artist": "Unknown",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": null,
+      "width": 3416,
+      "height": 2628,
+      "grade": 0,
+      "description": "One patient lies still as trepanning is performed on his skull. Another apprehensive looking man sits beside him being prepared to undergo the same operation.\n\nRare Books\nKeywords: Trepanation; Trephination; Operation; General Surgery",
+      "categories": [
+        "Jacques Guillemeau",
+        "Files with no machine-readable author",
+        "Images uploaded by Fæ",
+        "Artworks without Wikidata item",
+        "Files from Wellcome Images",
+        "Wellcome Rare Books Collection",
+        "Surgery in the Wellcome Collection",
+        "Trepanation in art"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "12_commons.jpg",
+      "vision_review": {
+        "index": 11,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows an early modern European surgical scene rather than ancient trepanation.",
+        "kept": false
+      }
+    }
+  ]
 }

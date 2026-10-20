@@ -24,7 +24,16 @@
       "lat": 37.223342,
       "lon": 38.922505,
       "relevance": 10.0,
-      "file": "01_commons.jpg"
+      "file": "01_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Clear wide shot of the excavated enclosures and T-pillars beneath the protective canopy.",
+        "kept": true
+      }
     },
     {
       "title": "File:Göbekli Tepe (1).jpg",
@@ -49,7 +58,215 @@
       "lat": 37.222997,
       "lon": 38.922429,
       "relevance": 10.0,
-      "file": "02_commons.jpg"
+      "file": "02_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "View of the excavated stone walls and megalithic pillars from the visitor walkway.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Göbekli Tepe (2).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/1/1e/G%C3%B6bekli_Tepe_%282%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:G%C3%B6bekli_Tepe_(2).jpg",
+      "artist": "Radosław Botev",
+      "license": "CC BY 3.0 pl",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/pl/deed.en",
+      "attribution_required": true,
+      "year": 2022,
+      "width": 4000,
+      "height": 3000,
+      "grade": 0,
+      "description": "Göbekli Tepe archaeological site, Turkey",
+      "categories": [
+        "Göbekli Tepe",
+        "Reliefs of animals in Turkey",
+        "Turkey photographs taken on 2022-07-21",
+        "Self-published work",
+        "Files with coordinates missing SDC location of creation",
+        "Fundacja Kontroli Społecznej Nomos - Turcja"
+      ],
+      "lat": 37.222963,
+      "lon": 38.922409,
+      "relevance": 10.0,
+      "file": "04_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Detailed close-up of a T-shaped limestone pillar with animal relief carvings.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Göbekli Tepe (4).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/49/G%C3%B6bekli_Tepe_%284%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:G%C3%B6bekli_Tepe_(4).jpg",
+      "artist": "Radosław Botev",
+      "license": "CC BY 3.0 pl",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/pl/deed.en",
+      "attribution_required": true,
+      "year": 2022,
+      "width": 4000,
+      "height": 3000,
+      "grade": 0,
+      "description": "Göbekli Tepe archaeological site, Turkey",
+      "categories": [
+        "Göbekli Tepe",
+        "Turkey photographs taken on 2022-07-21",
+        "Self-published work",
+        "Files with coordinates missing SDC location of creation",
+        "Fundacja Kontroli Społecznej Nomos - Turcja"
+      ],
+      "lat": 37.223119,
+      "lon": 38.92232,
+      "relevance": 10.0,
+      "file": "05_commons.jpg",
+      "vision_review": {
+        "index": 5,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "High-angle view of the central excavation area and T-pillars from the perimeter walkway.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Göbekli Tepe (3).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/a/a5/G%C3%B6bekli_Tepe_%283%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:G%C3%B6bekli_Tepe_(3).jpg",
+      "artist": "Radosław Botev",
+      "license": "CC BY 3.0 pl",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/pl/deed.en",
+      "attribution_required": true,
+      "year": 2022,
+      "width": 3645,
+      "height": 2018,
+      "grade": 0,
+      "description": "Göbekli Tepe archaeological site, Turkey",
+      "categories": [
+        "Göbekli Tepe",
+        "Turkey photographs taken on 2022-07-21",
+        "Self-published work",
+        "Files with coordinates missing SDC location of creation",
+        "Fundacja Kontroli Społecznej Nomos - Turcja"
+      ],
+      "lat": 37.223129,
+      "lon": 38.922316,
+      "relevance": 10.0,
+      "file": "06_commons.jpg",
+      "vision_review": {
+        "index": 6,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Overhead view into an excavated enclosure showing central T-pillars, surrounding wall pillars, and a stone basin.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:The archaeological site of Göbekli Tepe - main excavation area.png",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/3e/The_archaeological_site_of_G%C3%B6bekli_Tepe_-_main_excavation_area.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:The_archaeological_site_of_G%C3%B6bekli_Tepe_-_main_excavation_area.png",
+      "artist": "German Archaeological Institute, photo E. Kücük.",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2019,
+      "width": 1722,
+      "height": 2269,
+      "grade": 0,
+      "description": "The archaeological site of Göbekli Tepe: main excavation area with four monumental circular buildings and adjacent rectangular buildings (German Archaeological Institute, photo E. Kücük).",
+      "categories": [
+        "Media from PLOS ONE",
+        "Images with extracted images",
+        "Göbekli Tepe before the roof cover"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "08_commons.jpg",
+      "vision_review": {
+        "index": 8,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Aerial archaeological view showing the layout of the circular enclosures in the main excavation area.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Unique engraving of a female on a stone slab from Göbekli Tepe, Urfa Museum.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/8/8b/Unique_engraving_of_a_female_on_a_stone_slab_from_G%C3%B6bekli_Tepe%2C_Urfa_Museum.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Unique_engraving_of_a_female_on_a_stone_slab_from_G%C3%B6bekli_Tepe,_Urfa_Museum.jpg",
+      "artist": "Emre Deniz Yurttaş",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 1193,
+      "height": 1338,
+      "grade": 0,
+      "description": "\"The image discovered on a stone slab between the so-called Lion Pillars from Layer II has been identified as the only ‘female’ representation at the site (Schmidt Reference Schmidt2010, 246) (Fig. 14). The scene includes a figure with sagging breasts on either side. One arm is positioned nearly parallel to the head, while the other is bent near the waist. The legs are shown spread apart, which ex",
+      "categories": [
+        "Göbekli Tepe finds in Şanlıurfa Museum Neolithic Age Hall",
+        "Göbekli Tepe finds in old Şanlıurfa Museum"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 5.0,
+      "file": "10_commons.jpg",
+      "vision_review": {
+        "index": 9,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Stone slab graffito of a female figure excavated at the site, exhibited in the Urfa Museum.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Göbeklitepe Ören Yeri 2023.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/1/18/G%C3%B6beklitepe_%C3%96ren_Yeri_2023.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:G%C3%B6beklitepe_%C3%96ren_Yeri_2023.jpg",
+      "artist": "Bjelica",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2023,
+      "width": 4032,
+      "height": 3024,
+      "grade": 0,
+      "description": "Göbeklitpe",
+      "categories": [
+        "Göbekli Tepe",
+        "Self-published work",
+        "Files with coordinates missing SDC location of creation",
+        "Taken with iPhone 15 Pro Max"
+      ],
+      "lat": 37.223122,
+      "lon": 38.922869,
+      "relevance": 10.0,
+      "file": "11_commons.jpg",
+      "vision_review": {
+        "index": 10,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Exterior wide view of the modern tensile membrane canopy covering the excavation site.",
+        "kept": true
+      }
     },
     {
       "title": "File:Göbekli Tepe - landscape.jpg",
@@ -76,84 +293,21 @@
       "lat": 37.223505,
       "lon": 38.922842,
       "relevance": 10.0,
-      "file": "03_commons.jpg"
-    },
-    {
-      "title": "File:Göbekli Tepe (2).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/1/1e/G%C3%B6bekli_Tepe_%282%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:G%C3%B6bekli_Tepe_(2).jpg",
-      "artist": "Radosław Botev",
-      "license": "CC BY 3.0 pl",
-      "license_url": "https://creativecommons.org/licenses/by/3.0/pl/deed.en",
-      "attribution_required": true,
-      "year": 2022,
-      "width": 4000,
-      "height": 3000,
-      "grade": 0,
-      "description": "Göbekli Tepe archaeological site, Turkey",
-      "categories": [
-        "Göbekli Tepe",
-        "Reliefs of animals in Turkey",
-        "Turkey photographs taken on 2022-07-21",
-        "Self-published work",
-        "Files with coordinates missing SDC location of creation",
-        "Fundacja Kontroli Społecznej Nomos - Turcja"
-      ],
-      "lat": 37.222963,
-      "lon": 38.922409,
-      "relevance": 10.0,
-      "file": "04_commons.jpg"
-    },
-    {
-      "title": "File:Göbekli Tepe (4).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/49/G%C3%B6bekli_Tepe_%284%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:G%C3%B6bekli_Tepe_(4).jpg",
-      "artist": "Radosław Botev",
-      "license": "CC BY 3.0 pl",
-      "license_url": "https://creativecommons.org/licenses/by/3.0/pl/deed.en",
-      "attribution_required": true,
-      "year": 2022,
-      "width": 4000,
-      "height": 3000,
-      "grade": 0,
-      "description": "Göbekli Tepe archaeological site, Turkey",
-      "categories": [
-        "Göbekli Tepe",
-        "Turkey photographs taken on 2022-07-21",
-        "Self-published work",
-        "Files with coordinates missing SDC location of creation",
-        "Fundacja Kontroli Społecznej Nomos - Turcja"
-      ],
-      "lat": 37.223119,
-      "lon": 38.92232,
-      "relevance": 10.0,
-      "file": "05_commons.jpg"
-    },
-    {
-      "title": "File:Göbekli Tepe (3).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/a/a5/G%C3%B6bekli_Tepe_%283%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:G%C3%B6bekli_Tepe_(3).jpg",
-      "artist": "Radosław Botev",
-      "license": "CC BY 3.0 pl",
-      "license_url": "https://creativecommons.org/licenses/by/3.0/pl/deed.en",
-      "attribution_required": true,
-      "year": 2022,
-      "width": 3645,
-      "height": 2018,
-      "grade": 0,
-      "description": "Göbekli Tepe archaeological site, Turkey",
-      "categories": [
-        "Göbekli Tepe",
-        "Turkey photographs taken on 2022-07-21",
-        "Self-published work",
-        "Files with coordinates missing SDC location of creation",
-        "Fundacja Kontroli Społecznej Nomos - Turcja"
-      ],
-      "lat": 37.223129,
-      "lon": 38.922316,
-      "relevance": 10.0,
-      "file": "06_commons.jpg"
-    },
+      "file": "03_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows the surrounding landscape and terrain of the Germuş mountain ridge near Göbekli Tepe.",
+        "kept": true
+      }
+    }
+  ],
+  "review_note": "Vision review 2026-10-20: kept 9 of 10",
+  "reviewed_by": "vision",
+  "rejected_by_review": [
     {
       "title": "File:Stratigraphy of Göbekli Tepe.png",
       "download_url": "https://upload.wikimedia.org/wikipedia/commons/c/c3/Stratigraphy_of_G%C3%B6bekli_Tepe.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
@@ -173,77 +327,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "07_commons.jpg"
-    },
-    {
-      "title": "File:The archaeological site of Göbekli Tepe - main excavation area.png",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/3e/The_archaeological_site_of_G%C3%B6bekli_Tepe_-_main_excavation_area.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:The_archaeological_site_of_G%C3%B6bekli_Tepe_-_main_excavation_area.png",
-      "artist": "German Archaeological Institute, photo E. Kücük.",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2019,
-      "width": 1722,
-      "height": 2269,
-      "grade": 0,
-      "description": "The archaeological site of Göbekli Tepe: main excavation area with four monumental circular buildings and adjacent rectangular buildings (German Archaeological Institute, photo E. Kücük).",
-      "categories": [
-        "Media from PLOS ONE",
-        "Images with extracted images",
-        "Göbekli Tepe before the roof cover"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "08_commons.jpg"
-    },
-    {
-      "title": "File:Unique engraving of a female on a stone slab from Göbekli Tepe, Urfa Museum.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/8/8b/Unique_engraving_of_a_female_on_a_stone_slab_from_G%C3%B6bekli_Tepe%2C_Urfa_Museum.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Unique_engraving_of_a_female_on_a_stone_slab_from_G%C3%B6bekli_Tepe,_Urfa_Museum.jpg",
-      "artist": "Emre Deniz Yurttaş",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2025,
-      "width": 1193,
-      "height": 1338,
-      "grade": 0,
-      "description": "\"The image discovered on a stone slab between the so-called Lion Pillars from Layer II has been identified as the only ‘female’ representation at the site (Schmidt Reference Schmidt2010, 246) (Fig. 14). The scene includes a figure with sagging breasts on either side. One arm is positioned nearly parallel to the head, while the other is bent near the waist. The legs are shown spread apart, which ex",
-      "categories": [
-        "Göbekli Tepe finds in Şanlıurfa Museum Neolithic Age Hall",
-        "Göbekli Tepe finds in old Şanlıurfa Museum"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 5.0,
-      "file": "10_commons.jpg"
-    },
-    {
-      "title": "File:Göbeklitepe Ören Yeri 2023.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/1/18/G%C3%B6beklitepe_%C3%96ren_Yeri_2023.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:G%C3%B6beklitepe_%C3%96ren_Yeri_2023.jpg",
-      "artist": "Bjelica",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2023,
-      "width": 4032,
-      "height": 3024,
-      "grade": 0,
-      "description": "Göbeklitpe",
-      "categories": [
-        "Göbekli Tepe",
-        "Self-published work",
-        "Files with coordinates missing SDC location of creation",
-        "Taken with iPhone 15 Pro Max"
-      ],
-      "lat": 37.223122,
-      "lon": 38.922869,
-      "relevance": 10.0,
-      "file": "11_commons.jpg"
+      "file": "07_commons.jpg",
+      "vision_review": {
+        "index": 7,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Schematic diagram with low resolution and small text that would look poor full-screen.",
+        "kept": false
+      }
     }
-  ],
-  "review_note": "Reviewed 2026-10-20: kept 10 of 11; dropped 1 (a rotated duplicate)"
+  ]
 }

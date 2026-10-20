@@ -1,6 +1,9 @@
 {
-  "reviewed": true,
-  "images": [
+  "reviewed": false,
+  "images": [],
+  "review_note": "Vision review 2026-10-20: kept 0 of 10; held: fewer than 5",
+  "reviewed_by": null,
+  "rejected_by_review": [
     {
       "title": "File:Dyatlov.Volume 1.Page 370.jpg",
       "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/f6/Dyatlov.Volume_1.Page_370.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
@@ -21,7 +24,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "01_commons.jpg"
+      "file": "01_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Archival investigation document from the case, but it is low-resolution and consists entirely of text, making it unsuitable for full-screen display.",
+        "kept": false
+      }
     },
     {
       "title": "File:Dyatlov.Volume 1.Page 340.jpg",
@@ -43,7 +55,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "02_commons.jpg"
+      "file": "02_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Official case document page, but it is low-resolution and mostly text.",
+        "kept": false
+      }
     },
     {
       "title": "File:Dyatlov.Volume 1.Page 387.jpg",
@@ -65,7 +86,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "03_commons.jpg"
+      "file": "03_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Official case document page, but it is low-resolution and mostly text.",
+        "kept": false
+      }
     },
     {
       "title": "File:Dyatlov.Volume 1.Page 385.jpg",
@@ -87,7 +117,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "04_commons.jpg"
+      "file": "04_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Official case document page, but it is low-resolution and mostly text.",
+        "kept": false
+      }
     },
     {
       "title": "File:Dyatlov.Volume 1.Page 386.jpg",
@@ -109,7 +148,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "05_commons.jpg"
+      "file": "05_commons.jpg",
+      "vision_review": {
+        "index": 5,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Official case document page, but it is low-resolution and mostly text.",
+        "kept": false
+      }
     },
     {
       "title": "File:Dyatlov.Volume 1.Page 384.jpg",
@@ -131,7 +179,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "06_commons.jpg"
+      "file": "06_commons.jpg",
+      "vision_review": {
+        "index": 6,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Official case document page, but it is low-resolution and mostly text.",
+        "kept": false
+      }
     },
     {
       "title": "File:Dyatlov.Volume 1.Page 301 verso.jpg",
@@ -153,7 +210,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "07_commons.jpg"
+      "file": "07_commons.jpg",
+      "vision_review": {
+        "index": 7,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Official case document page, but it is low-resolution and mostly text.",
+        "kept": false
+      }
     },
     {
       "title": "File:Dyatlov.Volume 1.Page 301.jpg",
@@ -175,7 +241,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "08_commons.jpg"
+      "file": "08_commons.jpg",
+      "vision_review": {
+        "index": 8,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Official case document page, but it is low-resolution and mostly text.",
+        "kept": false
+      }
     },
     {
       "title": "File:Dyatlov.Volume 1.Page 1.jpg",
@@ -197,7 +272,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "09_commons.jpg"
+      "file": "09_commons.jpg",
+      "vision_review": {
+        "index": 9,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Official case document page, but it is low-resolution and mostly text.",
+        "kept": false
+      }
     },
     {
       "title": "File:Dyatlov.Volume 1.Page 1 verso.jpg",
@@ -219,8 +303,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "10_commons.jpg"
+      "file": "10_commons.jpg",
+      "vision_review": {
+        "index": 10,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Official case document page, but it is low-resolution and mostly text.",
+        "kept": false
+      }
     }
-  ],
-  "review_note": "Reviewed 2026-10-20: kept 10 of 10"
+  ]
 }

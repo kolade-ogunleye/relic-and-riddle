@@ -25,7 +25,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "01_commons.jpg"
+      "file": "01_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Authentic page from the Voynich manuscript depicting nymphs and streams in the balneological section.",
+        "kept": true
+      }
     },
     {
       "title": "File:Voynich manuscript (tail).jpg",
@@ -50,7 +59,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "02_commons.jpg"
+      "file": "02_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Photograph showing the tail edge and binding of the Voynich manuscript.",
+        "kept": true
+      }
     },
     {
       "title": "File:Voynich manuscript (head).jpg",
@@ -75,32 +93,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "03_commons.jpg"
-    },
-    {
-      "title": "File:Voynich Manuscript (192).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/78/Voynich_Manuscript_%28192%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Voynich_Manuscript_(192).jpg",
-      "artist": "Unknown authorUnknown author",
-      "license": "Public domain",
-      "license_url": "",
-      "attribution_required": false,
-      "year": null,
-      "width": 1268,
-      "height": 1536,
-      "grade": 0,
-      "description": "A page from the mysterious Voynich manuscript, which is undeciphered to this day.",
-      "categories": [
-        "Voynich manuscript",
-        "PD Old auto: no death date",
-        "PD-Art (PD-old-auto-expired)",
-        "PD US expired",
-        "Template Unknown (author)"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "04_commons.jpg"
+      "file": "03_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Photograph showing the head edge and binding of the Voynich manuscript.",
+        "kept": true
+      }
     },
     {
       "title": "File:Voynich Manuscript (146).jpg",
@@ -129,7 +131,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "05_commons.jpg"
+      "file": "05_commons.jpg",
+      "vision_review": {
+        "index": 5,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Authentic illustrated page from the balneological section of the Voynich manuscript.",
+        "kept": true
+      }
     },
     {
       "title": "File:Voynich Manuscript (154).jpg",
@@ -158,7 +169,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "06_commons.jpg"
+      "file": "06_commons.jpg",
+      "vision_review": {
+        "index": 6,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Authentic page from the Voynich manuscript showing circular pools with figures.",
+        "kept": true
+      }
     },
     {
       "title": "File:Voynich Manuscript (150).jpg",
@@ -187,7 +207,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "07_commons.jpg"
+      "file": "07_commons.jpg",
+      "vision_review": {
+        "index": 7,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Authentic page from the Voynich manuscript featuring balneological illustrations.",
+        "kept": true
+      }
     },
     {
       "title": "File:Voynich Manuscript (152).jpg",
@@ -216,7 +245,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "08_commons.jpg"
+      "file": "08_commons.jpg",
+      "vision_review": {
+        "index": 8,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Authentic page from the Voynich manuscript depicting green containers/tubes with bathing figures.",
+        "kept": true
+      }
     },
     {
       "title": "File:Voynich Manuscript (148).jpg",
@@ -245,7 +283,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "09_commons.jpg"
+      "file": "09_commons.jpg",
+      "vision_review": {
+        "index": 9,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Authentic page from the Voynich manuscript depicting an array of bathing figures in a green pool.",
+        "kept": true
+      }
     },
     {
       "title": "File:Voynich Manuscript (142).jpg",
@@ -274,7 +321,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "10_commons.jpg"
+      "file": "10_commons.jpg",
+      "vision_review": {
+        "index": 10,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Authentic page from the Voynich manuscript showing nymphs in a bath.",
+        "kept": true
+      }
     },
     {
       "title": "File:Voynich Manuscript (140).jpg",
@@ -303,7 +359,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "11_commons.jpg"
+      "file": "11_commons.jpg",
+      "vision_review": {
+        "index": 11,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Authentic page from the Voynich manuscript showing figures in interconnected vessels.",
+        "kept": true
+      }
     },
     {
       "title": "File:Voynich Manuscript (122).jpg",
@@ -331,7 +396,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "12_commons.jpg"
+      "file": "12_commons.jpg",
+      "vision_review": {
+        "index": 12,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Authentic astronomical/cosmological foldout page from the Voynich manuscript featuring a sun diagram.",
+        "kept": true
+      }
     },
     {
       "title": "File:Voynich Manuscript (66).jpg",
@@ -360,7 +434,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "13_commons.jpg"
+      "file": "13_commons.jpg",
+      "vision_review": {
+        "index": 13,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Authentic botanical page from the Voynich manuscript showing unidentified plants.",
+        "kept": true
+      }
     },
     {
       "title": "File:Voynich Manuscript (82).jpg",
@@ -385,7 +468,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "14_commons.jpg"
+      "file": "14_commons.jpg",
+      "vision_review": {
+        "index": 14,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Authentic botanical page from the Voynich manuscript with an unidentified plant and roots.",
+        "kept": true
+      }
     },
     {
       "title": "File:Voynich Manuscript (80).jpg",
@@ -413,33 +505,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "15_commons.jpg"
-    },
-    {
-      "title": "File:Voynich Manuscript (119).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/e/e7/Voynich_Manuscript_%28119%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Voynich_Manuscript_(119).jpg",
-      "artist": "Unknown authorUnknown author",
-      "license": "Public domain",
-      "license_url": "",
-      "attribution_required": false,
-      "year": null,
-      "width": 1171,
-      "height": 1536,
-      "grade": 0,
-      "description": "A page from the mysterious Voynich manuscript, which is undeciphered to this day.",
-      "categories": [
-        "Voynich manuscript",
-        "PD-Art (PD-old-100)",
-        "Template Unknown (author)",
-        "CC-PD-Mark",
-        "PD-Art missing SDC copyright status",
-        "PD-old missing SDC copyright status"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "16_commons.jpg"
+      "file": "15_commons.jpg",
+      "vision_review": {
+        "index": 15,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Authentic botanical page from the Voynich manuscript illustrating a large flower head and root system.",
+        "kept": true
+      }
     },
     {
       "title": "File:Voynich Manuscript (56).jpg",
@@ -467,7 +542,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "17_commons.jpg"
+      "file": "17_commons.jpg",
+      "vision_review": {
+        "index": 17,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Authentic botanical page from the Voynich manuscript showing a white and green blossom.",
+        "kept": true
+      }
     },
     {
       "title": "File:Voynich Manuscript (58).jpg",
@@ -495,7 +579,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "18_commons.jpg"
+      "file": "18_commons.jpg",
+      "vision_review": {
+        "index": 18,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Authentic botanical illustration from the Voynich manuscript.",
+        "kept": true
+      }
     },
     {
       "title": "File:Voynich Manuscript (84).jpg",
@@ -520,7 +613,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "19_commons.jpg"
+      "file": "19_commons.jpg",
+      "vision_review": {
+        "index": 19,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Authentic botanical illustration from the Voynich manuscript.",
+        "kept": true
+      }
     },
     {
       "title": "File:Voynich Manuscript (133).jpg",
@@ -548,8 +650,89 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "20_commons.jpg"
+      "file": "20_commons.jpg",
+      "vision_review": {
+        "index": 20,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Authentic astrological/zodiac diagram page from the Voynich manuscript.",
+        "kept": true
+      }
     }
   ],
-  "review_note": "Reviewed 2026-10-20: kept 20 of 20"
+  "review_note": "Vision review 2026-10-20: kept 18 of 20",
+  "reviewed_by": "vision",
+  "rejected_by_review": [
+    {
+      "title": "File:Voynich Manuscript (192).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/78/Voynich_Manuscript_%28192%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Voynich_Manuscript_(192).jpg",
+      "artist": "Unknown authorUnknown author",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": null,
+      "width": 1268,
+      "height": 1536,
+      "grade": 0,
+      "description": "A page from the mysterious Voynich manuscript, which is undeciphered to this day.",
+      "categories": [
+        "Voynich manuscript",
+        "PD Old auto: no death date",
+        "PD-Art (PD-old-auto-expired)",
+        "PD US expired",
+        "Template Unknown (author)"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "04_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Authentic page from the Voynich manuscript, but it consists almost entirely of text and would look poor full-screen.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Voynich Manuscript (119).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/e/e7/Voynich_Manuscript_%28119%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Voynich_Manuscript_(119).jpg",
+      "artist": "Unknown authorUnknown author",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": null,
+      "width": 1171,
+      "height": 1536,
+      "grade": 0,
+      "description": "A page from the mysterious Voynich manuscript, which is undeciphered to this day.",
+      "categories": [
+        "Voynich manuscript",
+        "PD-Art (PD-old-100)",
+        "Template Unknown (author)",
+        "CC-PD-Mark",
+        "PD-Art missing SDC copyright status",
+        "PD-old missing SDC copyright status"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "16_commons.jpg",
+      "vision_review": {
+        "index": 16,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Authentic page from the Voynich manuscript, but it is almost entirely plain text with only a tiny marginal doodle, making it unsuitable for a full-screen display.",
+        "kept": false
+      }
+    }
+  ]
 }

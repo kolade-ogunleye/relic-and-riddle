@@ -1,6 +1,9 @@
 {
-  "reviewed": true,
-  "images": [
+  "reviewed": false,
+  "images": [],
+  "review_note": "Vision review 2026-10-20: kept 0 of 5; held: fewer than 5",
+  "reviewed_by": null,
+  "rejected_by_review": [
     {
       "title": "File:The dancing mania Wellcome M0014846.jpg",
       "download_url": "https://upload.wikimedia.org/wikipedia/commons/9/97/The_dancing_mania_Wellcome_M0014846.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
@@ -29,7 +32,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "01_commons.jpg"
+      "file": "01_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 2,
+        "reason": "Depicts the 1564 pilgrimage of dancers/epileptics to Sint-Jans-Molenbeek near Brussels (engraving by Hondius after Bruegel), not the 1518 Dancing Plague of Strasbourg.",
+        "kept": false
+      }
     },
     {
       "title": "File:Epileptici en hun begeleiders op weg naar de brug bij Molenbeek Pelgrimage naar Molenbeek (serietitel), RP-P-1904-526.jpg",
@@ -54,7 +66,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "02_commons.jpg"
+      "file": "02_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Depicts the 1564 pilgrimage of dancers to Sint-Jans-Molenbeek near Brussels, not the 1518 Dancing Plague in Strasbourg.",
+        "kept": false
+      }
     },
     {
       "title": "File:The dancing mania, by Hondius Wellcome M0013485.jpg",
@@ -84,7 +105,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "03_commons.jpg"
+      "file": "03_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 2,
+        "reason": "Same engraving as Photo 2; depicts the 1564 Molenbeek pilgrimage rather than the 1518 Strasbourg dancing plague.",
+        "kept": false
+      }
     },
     {
       "title": "File:Twee epileptici en hun begeleiders op weg naar Molenbeek Pelgrimage naar Molenbeek (serietitel), RP-P-1904-525.jpg",
@@ -109,7 +139,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "04_commons.jpg"
+      "file": "04_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Another plate from the 1564 Molenbeek pilgrimage print series by Hondius after Bruegel, not the 1518 Strasbourg event.",
+        "kept": false
+      }
     },
     {
       "title": "File:Twee doedelzakspelers Pelgrimage naar Molenbeek (serietitel), RP-P-OB-75.242.jpg",
@@ -134,8 +173,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "05_commons.jpg"
+      "file": "05_commons.jpg",
+      "vision_review": {
+        "index": 5,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Depicts bagpipers from the 1564 Molenbeek pilgrimage series, not the 1518 Strasbourg dancing plague.",
+        "kept": false
+      }
     }
-  ],
-  "review_note": "Reviewed 2026-10-20: kept 5 of 5"
+  ]
 }

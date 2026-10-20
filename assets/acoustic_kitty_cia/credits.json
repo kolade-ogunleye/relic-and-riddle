@@ -23,7 +23,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "01_commons.jpg"
+      "file": "01_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows the CIA Original Headquarters Building, providing institutional context for the CIA project.",
+        "kept": true
+      }
     },
     {
       "title": "File:Original Headquarters Building (OHB) - Flickr - The Central Intelligence Agency (1).jpg",
@@ -47,7 +56,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "03_commons.jpg"
+      "file": "03_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows the entrance of the CIA Original Headquarters Building at dusk, providing institutional context for the project.",
+        "kept": true
+      }
     },
     {
       "title": "File:Original Headquarters Building (OHB) - Flickr - The Central Intelligence Agency (2).jpg",
@@ -71,8 +89,19 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "05_commons.jpg"
+      "file": "05_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows a wide view of the CIA Original Headquarters Building, providing institutional context for the project.",
+        "kept": true
+      }
     }
   ],
-  "review_note": "Reviewed 2026-10-20: kept 3 of 10; dropped 7 (presidential visits and staff with identifiable people, unrelated to the story); NOT approved: fewer than 5 usable images"
+  "review_note": "Vision review 2026-10-20: kept 3 of 3; held: fewer than 5",
+  "reviewed_by": null,
+  "rejected_by_review": []
 }

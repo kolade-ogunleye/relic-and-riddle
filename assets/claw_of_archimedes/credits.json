@@ -1,31 +1,6 @@
 {
-  "reviewed": true,
+  "reviewed": false,
   "images": [
-    {
-      "title": "File:Dood van Archimedes De dood van Archimedes (titel op object), RP-P-1907-4791.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/9/96/Dood_van_Archimedes_De_dood_van_Archimedes_%28titel_op_object%29%2C_RP-P-1907-4791.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Dood_van_Archimedes_De_dood_van_Archimedes_(titel_op_object),_RP-P-1907-4791.jpg",
-      "artist": "Rijksmuseum",
-      "license": "CC0",
-      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-      "attribution_required": false,
-      "year": null,
-      "width": 3510,
-      "height": 6128,
-      "grade": 0,
-      "description": "IdentificatieTitel(s): Dood van Archimedes. De dood van Archimedes (titel op object)Objecttype: prent boekillustratie Objectnummer: RP-P-1907-4791Catalogusreferentie: Collectie Rijksmuseum-2(2). Opmerking: staat bepaald aan de hand van aanwezige prenten in RijksprentenkabinetOpschriften / Merken: verzamelaarsmerk, verso, gestempeld: Lugt 2228Omschrijving: Bij de inname van Syracuse wordt Archimede",
-      "categories": [
-        "CC-Zero",
-        "Archimedes in art",
-        "Romeinsche Geschiedenissen (Martinus Stuart)",
-        "Prints after Jacobus Buys in the Rijksmuseum Amsterdam",
-        "Prints by Ludwig Gottlieb Portman in the Rijksmuseum Amsterdam"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "01_commons.jpg"
-    },
     {
       "title": "File:Archimedes Directing the Defenses of Syracuse.jpg",
       "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/3f/Archimedes_Directing_the_Defenses_of_Syracuse.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
@@ -52,7 +27,54 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "02_commons.jpg"
+      "file": "02_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Depicts Archimedes directing the defensive crane and claw engines on the walls of Syracuse.",
+        "kept": true
+      }
+    }
+  ],
+  "review_note": "Vision review 2026-10-20: kept 1 of 10; held: fewer than 5",
+  "reviewed_by": null,
+  "rejected_by_review": [
+    {
+      "title": "File:Dood van Archimedes De dood van Archimedes (titel op object), RP-P-1907-4791.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/9/96/Dood_van_Archimedes_De_dood_van_Archimedes_%28titel_op_object%29%2C_RP-P-1907-4791.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Dood_van_Archimedes_De_dood_van_Archimedes_(titel_op_object),_RP-P-1907-4791.jpg",
+      "artist": "Rijksmuseum",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "attribution_required": false,
+      "year": null,
+      "width": 3510,
+      "height": 6128,
+      "grade": 0,
+      "description": "IdentificatieTitel(s): Dood van Archimedes. De dood van Archimedes (titel op object)Objecttype: prent boekillustratie Objectnummer: RP-P-1907-4791Catalogusreferentie: Collectie Rijksmuseum-2(2). Opmerking: staat bepaald aan de hand van aanwezige prenten in RijksprentenkabinetOpschriften / Merken: verzamelaarsmerk, verso, gestempeld: Lugt 2228Omschrijving: Bij de inname van Syracuse wordt Archimede",
+      "categories": [
+        "CC-Zero",
+        "Archimedes in art",
+        "Romeinsche Geschiedenissen (Martinus Stuart)",
+        "Prints after Jacobus Buys in the Rijksmuseum Amsterdam",
+        "Prints by Ludwig Gottlieb Portman in the Rijksmuseum Amsterdam"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "01_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Depicts the death of Archimedes rather than the Claw of Archimedes siege engine.",
+        "kept": false
+      }
     },
     {
       "title": "File:A page from Archimedes' On Conoids and Spheroids.jpg",
@@ -78,7 +100,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "04_commons.jpg"
+      "file": "04_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "no",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows a printed page of Archimedes' mathematical treatise 'On Conoids and Spheroids'; mostly text and unrelated to the claw.",
+        "kept": false
+      }
     },
     {
       "title": "File:A page from Archimedes' Measurement of a Circle.jpg",
@@ -104,7 +135,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "06_commons.jpg"
+      "file": "06_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "no",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows a printed page of Archimedes' mathematical treatise 'Measurement of a Circle'; mostly text and unrelated to the claw.",
+        "kept": false
+      }
     },
     {
       "title": "File:Sculpture of Archimedes.jpg",
@@ -134,7 +174,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "09_commons.jpg"
+      "file": "09_commons.jpg",
+      "vision_review": {
+        "index": 5,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Statue of Archimedes referencing the burning mirror legend rather than the Claw.",
+        "kept": false
+      }
     },
     {
       "title": "File:Archimedes Sand-Rechnung 1667.png",
@@ -158,7 +207,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "11_commons.jpg"
+      "file": "11_commons.jpg",
+      "vision_review": {
+        "index": 6,
+        "shows_topic": "no",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Title page of the Sand Reckoner; mostly text and unrelated to the Claw of Archimedes.",
+        "kept": false
+      }
     },
     {
       "title": "File:Death of Archimedes - Henri Girardet after Gustave Courtois - 1877.jpg",
@@ -182,7 +240,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "13_commons.jpg"
+      "file": "13_commons.jpg",
+      "vision_review": {
+        "index": 7,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Depicts the death of Archimedes, not the Claw.",
+        "kept": false
+      }
     },
     {
       "title": "File:Ricci - Archimedes and Hiero at the Siege of Syracuse, BELUM.U145.jpg",
@@ -206,7 +273,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "15_commons.jpg"
+      "file": "15_commons.jpg",
+      "vision_review": {
+        "index": 8,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Depicts Archimedes and Hiero without showing the Claw or siege machinery.",
+        "kept": false
+      }
     },
     {
       "title": "File:Archimedes (Dupuis, 1900).jpg",
@@ -229,7 +305,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "17_commons.jpg"
+      "file": "17_commons.jpg",
+      "vision_review": {
+        "index": 9,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Portrait statue of Archimedes seated with a tablet; does not depict the Claw.",
+        "kept": false
+      }
     },
     {
       "title": "File:Archimedes – Opere, 1615 – BEIC 9741168.jpg",
@@ -257,8 +342,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "19_commons.jpg"
+      "file": "19_commons.jpg",
+      "vision_review": {
+        "index": 10,
+        "shows_topic": "no",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Book frontispiece of Archimedes' collected works; mostly text and does not show the Claw.",
+        "kept": false
+      }
     }
-  ],
-  "review_note": "Reviewed 2026-10-20: kept 10 of 20; dropped 10 (modern Syracuse tourism)"
+  ]
 }

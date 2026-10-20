@@ -26,7 +26,16 @@
       "lat": 35.870011,
       "lon": 14.506414,
       "relevance": 10.0,
-      "file": "01_commons.jpg"
+      "file": "01_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Clear photograph of the Holy of Holies inside the Hal Saflieni Hypogeum.",
+        "kept": true
+      }
     },
     {
       "title": "File:Hal Saflieni Hypogeum – Oracle Chamber – The Oracle Hole.jpg",
@@ -53,7 +62,16 @@
       "lat": 35.870011,
       "lon": 14.506414,
       "relevance": 10.0,
-      "file": "02_commons.jpg"
+      "file": "02_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows the acoustic niche / oracle hole inside the Oracle Chamber.",
+        "kept": true
+      }
     },
     {
       "title": "File:Hal Saflieni Hypogeum – Middle Level – The Central Chamber.jpg",
@@ -80,7 +98,16 @@
       "lat": 35.870011,
       "lon": 14.506414,
       "relevance": 10.0,
-      "file": "03_commons.jpg"
+      "file": "03_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Clear view of the carved architectural features in the Central Chamber.",
+        "kept": true
+      }
     },
     {
       "title": "File:Hal Saflieni Hypogeum – Upper Level.jpg",
@@ -107,7 +134,16 @@
       "lat": 35.870011,
       "lon": 14.506414,
       "relevance": 10.0,
-      "file": "04_commons.jpg"
+      "file": "04_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows the modern protective enclosure and walkways overlooking the Upper Level of the site.",
+        "kept": true
+      }
     },
     {
       "title": "File:Hal Saflieni Hypogeum – Middle Level – The Decorated Chamber.jpg",
@@ -134,7 +170,16 @@
       "lat": 35.870011,
       "lon": 14.506414,
       "relevance": 10.0,
-      "file": "05_commons.jpg"
+      "file": "05_commons.jpg",
+      "vision_review": {
+        "index": 5,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Clear photograph of the Decorated Chamber within the hypogeum.",
+        "kept": true
+      }
     },
     {
       "title": "File:Hal Saflieni Hypogeum – Wall paintings in the Oracle Chamber.jpg",
@@ -161,7 +206,16 @@
       "lat": 35.870011,
       "lon": 14.506414,
       "relevance": 10.0,
-      "file": "06_commons.jpg"
+      "file": "06_commons.jpg",
+      "vision_review": {
+        "index": 6,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Close-up of the prehistoric red ochre painted spiral motifs on the ceiling.",
+        "kept": true
+      }
     },
     {
       "title": "File:Hypogeum enter.JPG",
@@ -185,31 +239,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "07_commons.jpg"
-    },
-    {
-      "title": "File:Hal hypogeum.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/6/6b/Hal_hypogeum.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Hal_hypogeum.jpg",
-      "artist": "Original uploader was 320rwekfpl at sv.wikipedia",
-      "license": "Public domain",
-      "license_url": "",
-      "attribution_required": false,
-      "year": 2006,
-      "width": 2864,
-      "height": 1438,
-      "grade": 0,
-      "description": "A model of Hypogeum that is a part of the exhibition at the National Museum of Archeology in Valetta.",
-      "categories": [
-        "PD-user",
-        "Collections of the National Museum of Archaeology (Malta)",
-        "Hypogeum of Ħal-Saflieni",
-        "Architectural models of Malta"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "08_commons.jpg"
+      "file": "07_commons.jpg",
+      "vision_review": {
+        "index": 7,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Exterior facade and entrance building to the Hal Saflieni Hypogeum.",
+        "kept": true
+      }
     },
     {
       "title": "File:Richard Ellis, Hal Saflieni Hypogeum (one of the painted rooms).jpg",
@@ -238,7 +277,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "09_commons.jpg"
+      "file": "09_commons.jpg",
+      "vision_review": {
+        "index": 9,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Historic archival photograph by Richard Ellis showing the decorated chamber.",
+        "kept": true
+      }
     },
     {
       "title": "File:Richard Ellis, Hal Saflieni Hypogeum (large room with painted ceiling).jpg",
@@ -267,7 +315,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "10_commons.jpg"
+      "file": "10_commons.jpg",
+      "vision_review": {
+        "index": 10,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Historic archival photograph by Richard Ellis showing the painted ceiling and oracle niche.",
+        "kept": true
+      }
     },
     {
       "title": "File:Plan des Hypogaeums von Hal Saflieni.png",
@@ -289,54 +346,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "11_commons.jpg"
-    },
-    {
-      "title": "File:Plan de l'hypogée de Hal Saflieni.png",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/9/95/Plan_de_l%27hypog%C3%A9e_de_Hal_Saflieni.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Plan_de_l%27hypog%C3%A9e_de_Hal_Saflieni.png",
-      "artist": "Hamelin de Guettelet",
-      "license": "Public domain",
-      "license_url": "",
-      "attribution_required": false,
-      "year": 2008,
-      "width": 1687,
-      "height": 1106,
-      "grade": 0,
-      "description": "Plan de l'hypogée de Hal Saflieni",
-      "categories": [
-        "Self-published work",
-        "PD-self",
-        "Floor plans of Hypogeum of Ħal-Saflieni"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "12_commons.jpg"
-    },
-    {
-      "title": "File:Plan de l'hypogée de Hal Saflieni.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/33/Plan_de_l%27hypog%C3%A9e_de_Hal_Saflieni.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Plan_de_l%27hypog%C3%A9e_de_Hal_Saflieni.jpg",
-      "artist": "Hamelin de Guettelet",
-      "license": "Public domain",
-      "license_url": "",
-      "attribution_required": false,
-      "year": 2008,
-      "width": 1687,
-      "height": 1106,
-      "grade": 0,
-      "description": "Plan de l'hypogée de Hal Saflieni",
-      "categories": [
-        "Self-published work",
-        "PD-self",
-        "Photographs taken on 2008-04-12",
-        "Floor plans of Hypogeum of Ħal-Saflieni"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "13_commons.jpg"
+      "file": "11_commons.jpg",
+      "vision_review": {
+        "index": 11,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Site plan and layout diagram of the three subterranean levels of the hypogeum.",
+        "kept": true
+      }
     },
     {
       "title": "File:Richard Ellis, Hal Saflieni Hypogeum (passage in lower storey).jpg",
@@ -364,8 +383,118 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "14_commons.jpg"
+      "file": "14_commons.jpg",
+      "vision_review": {
+        "index": 14,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Historic archival photograph by Richard Ellis showing a passage in the lower storey.",
+        "kept": true
+      }
     }
   ],
-  "review_note": "Reviewed 2026-10-20: kept 14 of 14"
+  "review_note": "Vision review 2026-10-20: kept 11 of 14",
+  "reviewed_by": "vision",
+  "rejected_by_review": [
+    {
+      "title": "File:Hal hypogeum.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/6/6b/Hal_hypogeum.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Hal_hypogeum.jpg",
+      "artist": "Original uploader was 320rwekfpl at sv.wikipedia",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": 2006,
+      "width": 2864,
+      "height": 1438,
+      "grade": 0,
+      "description": "A model of Hypogeum that is a part of the exhibition at the National Museum of Archeology in Valetta.",
+      "categories": [
+        "PD-user",
+        "Collections of the National Museum of Archaeology (Malta)",
+        "Hypogeum of Ħal-Saflieni",
+        "Architectural models of Malta"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "08_commons.jpg",
+      "vision_review": {
+        "index": 8,
+        "shows_topic": "partly",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Museum model of the hypogeum, but the image is very blurry, washed out in blue lighting, and poor quality.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Plan de l'hypogée de Hal Saflieni.png",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/9/95/Plan_de_l%27hypog%C3%A9e_de_Hal_Saflieni.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Plan_de_l%27hypog%C3%A9e_de_Hal_Saflieni.png",
+      "artist": "Hamelin de Guettelet",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": 2008,
+      "width": 1687,
+      "height": 1106,
+      "grade": 0,
+      "description": "Plan de l'hypogée de Hal Saflieni",
+      "categories": [
+        "Self-published work",
+        "PD-self",
+        "Floor plans of Hypogeum of Ħal-Saflieni"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "12_commons.jpg",
+      "vision_review": {
+        "index": 12,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 11,
+        "reason": "Near-identical version of the site plan with French labels.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Plan de l'hypogée de Hal Saflieni.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/33/Plan_de_l%27hypog%C3%A9e_de_Hal_Saflieni.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Plan_de_l%27hypog%C3%A9e_de_Hal_Saflieni.jpg",
+      "artist": "Hamelin de Guettelet",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": 2008,
+      "width": 1687,
+      "height": 1106,
+      "grade": 0,
+      "description": "Plan de l'hypogée de Hal Saflieni",
+      "categories": [
+        "Self-published work",
+        "PD-self",
+        "Photographs taken on 2008-04-12",
+        "Floor plans of Hypogeum of Ħal-Saflieni"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "13_commons.jpg",
+      "vision_review": {
+        "index": 13,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 11,
+        "reason": "Near-identical version of the site plan.",
+        "kept": false
+      }
+    }
+  ]
 }

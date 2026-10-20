@@ -23,32 +23,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "01_commons.jpg"
-    },
-    {
-      "title": "File:Kopalnia soli Wieliczka (3790545944).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/e/ea/Kopalnia_soli_Wieliczka_%283790545944%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Kopalnia_soli_Wieliczka_(3790545944).jpg",
-      "artist": "Klearchos Kapoutsis from Santorini, Greece",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "attribution_required": true,
-      "year": 2009,
-      "width": 4272,
-      "height": 2848,
-      "grade": 0,
-      "description": "In the famous Salt mines of village Wieliczka near the Polish city Cracow...\n\nKopalnia soli Wieliczka",
-      "categories": [
-        "Taken with Canon EOS 450D",
-        "Wieliczka salt mine",
-        "Flickr images reviewed by File Upload Bot (Magnus Manske)",
-        "Files with coordinates missing SDC location of creation",
-        "Photographs by Klearchos Kapoutsis"
-      ],
-      "lat": 49.982979,
-      "lon": 20.055448,
-      "relevance": 7.0,
-      "file": "02_commons.jpg"
+      "file": "01_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Statue carved underground in the Wieliczka salt mine chapels.",
+        "kept": true
+      }
     },
     {
       "title": "File:Wieliczka, St Kingas Chapel (6467348331).jpg",
@@ -72,7 +56,16 @@
       "lat": 49.979167,
       "lon": 20.063889,
       "relevance": 7.0,
-      "file": "03_commons.jpg"
+      "file": "03_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Elevated view of St. Kinga's Chapel with its salt crystal chandeliers.",
+        "kept": true
+      }
     },
     {
       "title": "File:Salzbergwerk Wieliczka-38-Kirche-2014-gje.jpg",
@@ -96,32 +89,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "04_commons.jpg"
-    },
-    {
-      "title": "File:Kopalnia soli Wieliczka 001.JPG",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/73/Kopalnia_soli_Wieliczka_001.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Kopalnia_soli_Wieliczka_001.JPG",
-      "artist": "Janericloebe",
-      "license": "Public domain",
-      "license_url": "",
-      "attribution_required": false,
-      "year": 2008,
-      "width": 1536,
-      "height": 2048,
-      "grade": 0,
-      "description": "Kopalnia soli Wieliczka",
-      "categories": [
-        "Taken with Olympus FE-320 / X-835 / C-540",
-        "Wieliczka salt mine",
-        "Self-published work",
-        "PD-self",
-        "Roof support at Wieliczka mine"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "05_commons.jpg"
+      "file": "04_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Underground wooden chapel chamber in the Wieliczka mine complex.",
+        "kept": true
+      }
     },
     {
       "title": "File:Wieliczka - kaplica sw. Kingi - The chapel of st. Kunigund przed 1939 (87073520).jpg",
@@ -150,31 +127,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "06_commons.jpg"
-    },
-    {
-      "title": "File:Kopalnia soli Wieliczka 002.JPG",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/46/Kopalnia_soli_Wieliczka_002.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Kopalnia_soli_Wieliczka_002.JPG",
-      "artist": "Janericloebe",
-      "license": "Public domain",
-      "license_url": "",
-      "attribution_required": false,
-      "year": 2008,
-      "width": 1401,
-      "height": 1977,
-      "grade": 0,
-      "description": "Kopalnia soli Wieliczka",
-      "categories": [
-        "Taken with Olympus FE-320 / X-835 / C-540",
-        "Wieliczka salt mine",
-        "Self-published work",
-        "PD-self"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "07_commons.jpg"
+      "file": "06_commons.jpg",
+      "vision_review": {
+        "index": 6,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Historical postcard depiction of St. Kinga's Chapel before 1939.",
+        "kept": true
+      }
     },
     {
       "title": "File:Wieliczka - kaplica sw. Antoniego - The Chapel of St. Anthony 1916-1939 (73474639).jpg",
@@ -204,96 +166,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "08_commons.jpg"
-    },
-    {
-      "title": "File:Wieliczka - kaplica sw. Kingi - The chapel of st. Kunigund 1923-1926 (73472428).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/0/05/Wieliczka_-_kaplica_sw._Kingi_-_The_chapel_of_st._Kunigund_1923-1926_%2873472428%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Wieliczka_-_kaplica_sw._Kingi_-_The_chapel_of_st._Kunigund_1923-1926_(73472428).jpg",
-      "artist": "Unknown authorUnknown author",
-      "license": "Public domain",
-      "license_url": "",
-      "attribution_required": false,
-      "year": null,
-      "width": 3375,
-      "height": 2220,
-      "grade": 0,
-      "description": "Tytuł: Wieliczka : kaplica św. Kingi = la chapelle de st. Cunégonde = Kapelle der hl. Kunegunde = the chapel of st. KunigundAdres wydawniczy: Wieliczka : Wyd. [...] Wład. Gargul, [1923-1926] (Kraków : Zakłady Reprodukcyjne \"Akropol\")Gatunek: pocztówkaForma i typ: pocztówkiOpis fizyczny: [1] karta : ilustracja ; 9x14 cmWspółtwórcy: Gargul, Władysław (1883-1946). Ilustracje WydawcaNa rewersie oznacz",
-      "categories": [
-        "Images contributed by the National Library in Warsaw",
-        "Author died more than 70 years ago public domain images",
-        "Patrimonium (project)",
-        "Template Unknown (author)",
-        "CC-PD-Mark",
-        "Files from Polona",
-        "PD-old missing SDC copyright status",
-        "Historical images of Wieliczka salt mine",
-        "Images contributed by the National Library in Warsaw - Wieliczka",
-        "Images contributed by the National Library in Warsaw - industry"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "09_commons.jpg"
-    },
-    {
-      "title": "File:Wieliczka - kaplica sw. Kingi - The chapel of st. Cunegond 1922 (73411568).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Wieliczka_-_kaplica_sw._Kingi_-_The_chapel_of_st._Cunegond_1922_%2873411568%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Wieliczka_-_kaplica_sw._Kingi_-_The_chapel_of_st._Cunegond_1922_(73411568).jpg",
-      "artist": "Unknown authorUnknown author",
-      "license": "Public domain",
-      "license_url": "",
-      "attribution_required": false,
-      "year": 1922,
-      "width": 3359,
-      "height": 2226,
-      "grade": 0,
-      "description": "Tytuł: Wieliczka : kaplica św. Kingi = la chapelle de st. Cunégonde = Kapelle der hl. Kunegunde = the chapel of st. CunegondAdres wydawniczy: Wieliczka : Wydawnictwo [...] firmy Wład. Gargul, 1922 (Poznań : Rotograwura Drukarni i Księgarni św. Wojciecha)Gatunek: pocztówkaForma i typ: pocztówkiOpis fizyczny: [1] karta : ilustracja ; 9x14 cmWspółtwórcy: Gargul, Władysław (1883-1946). Ilustracje Wyda",
-      "categories": [
-        "Images contributed by the National Library in Warsaw",
-        "Author died more than 70 years ago public domain images",
-        "Patrimonium (project)",
-        "Template Unknown (author)",
-        "CC-PD-Mark",
-        "Files from Polona",
-        "Historical images of Wieliczka salt mine",
-        "Images contributed by the National Library in Warsaw - Wieliczka",
-        "Images contributed by the National Library in Warsaw - industry"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "10_commons.jpg"
-    },
-    {
-      "title": "File:Wieliczka - kaplica sw. Antoniego - The chapel of st. Anthony 1922 (73411652).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/2/23/Wieliczka_-_kaplica_sw._Antoniego_-_The_chapel_of_st._Anthony_1922_%2873411652%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Wieliczka_-_kaplica_sw._Antoniego_-_The_chapel_of_st._Anthony_1922_(73411652).jpg",
-      "artist": "Unknown authorUnknown author",
-      "license": "Public domain",
-      "license_url": "",
-      "attribution_required": false,
-      "year": 1922,
-      "width": 2182,
-      "height": 3424,
-      "grade": 0,
-      "description": "Tytuł: Wieliczka : kaplica św. Antoniego = La chapelle de st. Antoine = St. Antonius-Kapelle = The chapel of st. AnthonyAdres wydawniczy: Wieliczka : Wydawnictwo [...] firmy Wład. Gargul, 1922 (Poznań : Rotograwura Drukarni i Księgarni św. Wojciecha)Gatunek: pocztówkaForma i typ: pocztówkiOpis fizyczny: [1] karta : ilustracja ; 14x9 cmWspółtwórcy: Gargul, Władysław (1883-1946). Ilustracje WydawcaN",
-      "categories": [
-        "Images contributed by the National Library in Warsaw",
-        "Author died more than 70 years ago public domain images",
-        "Patrimonium (project)",
-        "Template Unknown (author)",
-        "CC-PD-Mark",
-        "Files from Polona",
-        "PD-old missing SDC copyright status",
-        "Historical images of Wieliczka salt mine",
-        "Images contributed by the National Library in Warsaw - Wieliczka",
-        "Images contributed by the National Library in Warsaw - industry"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "11_commons.jpg"
+      "file": "08_commons.jpg",
+      "vision_review": {
+        "index": 8,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Historical postcard of the 17th-century underground Chapel of St. Anthony in Wieliczka.",
+        "kept": true
+      }
     },
     {
       "title": "File:Wieliczka - glowny oltarz w Kaplicy sw. Kingi - Great altar in the chapel of st. Cunegond 1922 (73411892).jpg",
@@ -323,7 +205,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "12_commons.jpg"
+      "file": "12_commons.jpg",
+      "vision_review": {
+        "index": 12,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Historical postcard of the main altar in St. Kinga's Chapel.",
+        "kept": true
+      }
     },
     {
       "title": "File:Wieliczka Salt Mine (35322151183).jpg",
@@ -348,7 +239,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "13_commons.jpg"
+      "file": "13_commons.jpg",
+      "vision_review": {
+        "index": 13,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Underground chandelier made of natural rock salt crystals.",
+        "kept": true
+      }
     },
     {
       "title": "File:Kopalnia soli Wieliczka 003.JPG",
@@ -374,8 +274,237 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "14_commons.jpg"
+      "file": "14_commons.jpg",
+      "vision_review": {
+        "index": 14,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Close-up of a carved Madonna and Child sculpture inside the mine chapels.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Kopalnia soli Wieliczka (3790545944).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/e/ea/Kopalnia_soli_Wieliczka_%283790545944%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Kopalnia_soli_Wieliczka_(3790545944).jpg",
+      "artist": "Klearchos Kapoutsis from Santorini, Greece",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "attribution_required": true,
+      "year": 2009,
+      "width": 4272,
+      "height": 2848,
+      "grade": 0,
+      "description": "In the famous Salt mines of village Wieliczka near the Polish city Cracow...\n\nKopalnia soli Wieliczka",
+      "categories": [
+        "Taken with Canon EOS 450D",
+        "Wieliczka salt mine",
+        "Flickr images reviewed by File Upload Bot (Magnus Manske)",
+        "Files with coordinates missing SDC location of creation",
+        "Photographs by Klearchos Kapoutsis"
+      ],
+      "lat": 49.982979,
+      "lon": 20.055448,
+      "relevance": 7.0,
+      "file": "02_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows a timber-supported tunnel in the mine, providing context for the underground complex.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Kopalnia soli Wieliczka 001.JPG",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/73/Kopalnia_soli_Wieliczka_001.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Kopalnia_soli_Wieliczka_001.JPG",
+      "artist": "Janericloebe",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": 2008,
+      "width": 1536,
+      "height": 2048,
+      "grade": 0,
+      "description": "Kopalnia soli Wieliczka",
+      "categories": [
+        "Taken with Olympus FE-320 / X-835 / C-540",
+        "Wieliczka salt mine",
+        "Self-published work",
+        "PD-self",
+        "Roof support at Wieliczka mine"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "05_commons.jpg",
+      "vision_review": {
+        "index": 5,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Underground drift with rails and timbering, showing the mine context.",
+        "kept": true
+      }
+    },
+    {
+      "title": "File:Kopalnia soli Wieliczka 002.JPG",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/46/Kopalnia_soli_Wieliczka_002.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Kopalnia_soli_Wieliczka_002.JPG",
+      "artist": "Janericloebe",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": 2008,
+      "width": 1401,
+      "height": 1977,
+      "grade": 0,
+      "description": "Kopalnia soli Wieliczka",
+      "categories": [
+        "Taken with Olympus FE-320 / X-835 / C-540",
+        "Wieliczka salt mine",
+        "Self-published work",
+        "PD-self"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "07_commons.jpg",
+      "vision_review": {
+        "index": 7,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Brine trough encrusted with salt inside the mine passages.",
+        "kept": true
+      }
     }
   ],
-  "review_note": "Reviewed 2026-10-20: kept 14 of 20; dropped 6 (the town's courthouse, a street and a park)"
+  "review_note": "Vision review 2026-10-20: kept 11 of 14",
+  "reviewed_by": "vision",
+  "rejected_by_review": [
+    {
+      "title": "File:Wieliczka - kaplica sw. Kingi - The chapel of st. Kunigund 1923-1926 (73472428).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/0/05/Wieliczka_-_kaplica_sw._Kingi_-_The_chapel_of_st._Kunigund_1923-1926_%2873472428%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Wieliczka_-_kaplica_sw._Kingi_-_The_chapel_of_st._Kunigund_1923-1926_(73472428).jpg",
+      "artist": "Unknown authorUnknown author",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": null,
+      "width": 3375,
+      "height": 2220,
+      "grade": 0,
+      "description": "Tytuł: Wieliczka : kaplica św. Kingi = la chapelle de st. Cunégonde = Kapelle der hl. Kunegunde = the chapel of st. KunigundAdres wydawniczy: Wieliczka : Wyd. [...] Wład. Gargul, [1923-1926] (Kraków : Zakłady Reprodukcyjne \"Akropol\")Gatunek: pocztówkaForma i typ: pocztówkiOpis fizyczny: [1] karta : ilustracja ; 9x14 cmWspółtwórcy: Gargul, Władysław (1883-1946). Ilustracje WydawcaNa rewersie oznacz",
+      "categories": [
+        "Images contributed by the National Library in Warsaw",
+        "Author died more than 70 years ago public domain images",
+        "Patrimonium (project)",
+        "Template Unknown (author)",
+        "CC-PD-Mark",
+        "Files from Polona",
+        "PD-old missing SDC copyright status",
+        "Historical images of Wieliczka salt mine",
+        "Images contributed by the National Library in Warsaw - Wieliczka",
+        "Images contributed by the National Library in Warsaw - industry"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "09_commons.jpg",
+      "vision_review": {
+        "index": 9,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 6,
+        "reason": "Historical postcard showing St. Kinga's Chapel.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Wieliczka - kaplica sw. Kingi - The chapel of st. Cunegond 1922 (73411568).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Wieliczka_-_kaplica_sw._Kingi_-_The_chapel_of_st._Cunegond_1922_%2873411568%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Wieliczka_-_kaplica_sw._Kingi_-_The_chapel_of_st._Cunegond_1922_(73411568).jpg",
+      "artist": "Unknown authorUnknown author",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": 1922,
+      "width": 3359,
+      "height": 2226,
+      "grade": 0,
+      "description": "Tytuł: Wieliczka : kaplica św. Kingi = la chapelle de st. Cunégonde = Kapelle der hl. Kunegunde = the chapel of st. CunegondAdres wydawniczy: Wieliczka : Wydawnictwo [...] firmy Wład. Gargul, 1922 (Poznań : Rotograwura Drukarni i Księgarni św. Wojciecha)Gatunek: pocztówkaForma i typ: pocztówkiOpis fizyczny: [1] karta : ilustracja ; 9x14 cmWspółtwórcy: Gargul, Władysław (1883-1946). Ilustracje Wyda",
+      "categories": [
+        "Images contributed by the National Library in Warsaw",
+        "Author died more than 70 years ago public domain images",
+        "Patrimonium (project)",
+        "Template Unknown (author)",
+        "CC-PD-Mark",
+        "Files from Polona",
+        "Historical images of Wieliczka salt mine",
+        "Images contributed by the National Library in Warsaw - Wieliczka",
+        "Images contributed by the National Library in Warsaw - industry"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "10_commons.jpg",
+      "vision_review": {
+        "index": 10,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 6,
+        "reason": "Historical postcard showing St. Kinga's Chapel.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Wieliczka - kaplica sw. Antoniego - The chapel of st. Anthony 1922 (73411652).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/2/23/Wieliczka_-_kaplica_sw._Antoniego_-_The_chapel_of_st._Anthony_1922_%2873411652%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Wieliczka_-_kaplica_sw._Antoniego_-_The_chapel_of_st._Anthony_1922_(73411652).jpg",
+      "artist": "Unknown authorUnknown author",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": 1922,
+      "width": 2182,
+      "height": 3424,
+      "grade": 0,
+      "description": "Tytuł: Wieliczka : kaplica św. Antoniego = La chapelle de st. Antoine = St. Antonius-Kapelle = The chapel of st. AnthonyAdres wydawniczy: Wieliczka : Wydawnictwo [...] firmy Wład. Gargul, 1922 (Poznań : Rotograwura Drukarni i Księgarni św. Wojciecha)Gatunek: pocztówkaForma i typ: pocztówkiOpis fizyczny: [1] karta : ilustracja ; 14x9 cmWspółtwórcy: Gargul, Władysław (1883-1946). Ilustracje WydawcaN",
+      "categories": [
+        "Images contributed by the National Library in Warsaw",
+        "Author died more than 70 years ago public domain images",
+        "Patrimonium (project)",
+        "Template Unknown (author)",
+        "CC-PD-Mark",
+        "Files from Polona",
+        "PD-old missing SDC copyright status",
+        "Historical images of Wieliczka salt mine",
+        "Images contributed by the National Library in Warsaw - Wieliczka",
+        "Images contributed by the National Library in Warsaw - industry"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "11_commons.jpg",
+      "vision_review": {
+        "index": 11,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 8,
+        "reason": "Historical postcard of St. Anthony's Chapel.",
+        "kept": false
+      }
+    }
+  ]
 }

@@ -28,17 +28,17 @@
       "relevance": 10.0,
       "file": "04_commons.jpg",
       "vision_review": {
-        "index": 4,
+        "index": 1,
         "shows_topic": "partly",
         "usable": true,
         "safe": true,
         "duplicate_of": null,
-        "reason": "Shows modern visitor exit infrastructure and turnstiles at the surface entrance to Derinkuyu Underground City.",
+        "reason": "Shows the modern above-ground visitor exit and turnstiles at the Derinkuyu archaeological site rather than the underground city itself.",
         "kept": true
       }
     }
   ],
-  "review_note": "Vision review 2026-10-20: kept 1 of 10; held: fewer than 5",
+  "review_note": "Vision review 2026-10-20: kept 1 of 1; held: fewer than 5",
   "reviewed_by": null,
   "rejected_by_review": [
     {

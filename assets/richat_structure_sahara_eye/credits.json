@@ -25,7 +25,16 @@
       "lat": 21.148126,
       "lon": -11.414108,
       "relevance": 7.0,
-      "file": "01_commons.jpg"
+      "file": "01_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Clear true-color satellite image of the Richat Structure from Sentinel-2.",
+        "kept": true
+      }
     },
     {
       "title": "File:Eye of the Sahara (49141999011).png",
@@ -55,7 +64,16 @@
       "lat": 21.118303,
       "lon": -11.40192,
       "relevance": 7.0,
-      "file": "02_commons.jpg"
+      "file": "02_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Modified true-color satellite view of the Richat Structure highlighting rock layer differences.",
+        "kept": true
+      }
     },
     {
       "title": "File:Richat Structure S2A 432 crop 10 (32159877843).jpg",
@@ -78,7 +96,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "03_commons.jpg"
+      "file": "03_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "High-resolution natural-color satellite view of the structure.",
+        "kept": true
+      }
     },
     {
       "title": "File:Richat Structure S2A 1282 crop 10 (32820057612).jpg",
@@ -101,7 +128,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "04_commons.jpg"
+      "file": "04_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Infrared/SWIR satellite view showing geologic bands of the structure.",
+        "kept": true
+      }
     },
     {
       "title": "File:Richat Structure, Mauritania - 6 January 2023 (52616008386).jpg",
@@ -130,7 +166,16 @@
       "lat": 21.118303,
       "lon": -11.40192,
       "relevance": 7.0,
-      "file": "05_commons.jpg"
+      "file": "05_commons.jpg",
+      "vision_review": {
+        "index": 5,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Detailed enhanced satellite view of the entire structure and surrounding plateau.",
+        "kept": true
+      }
     },
     {
       "title": "File:The \"Eye of the Sahara\" in the African nation of Mauritania (iss069e005536).jpg",
@@ -156,7 +201,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "06_commons.jpg"
+      "file": "06_commons.jpg",
+      "vision_review": {
+        "index": 6,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Wide orbital photograph from the ISS showing the station hardware and the Richat Structure as an astronaut landmark.",
+        "kept": true
+      }
     },
     {
       "title": "File:The \"Eye of the Sahara\" in the African nation of Mauritania (iss069e005471).jpg",
@@ -182,7 +236,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "07_commons.jpg"
+      "file": "07_commons.jpg",
+      "vision_review": {
+        "index": 7,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Clear, detailed oblique view of the circular dome taken by an ISS astronaut.",
+        "kept": true
+      }
     },
     {
       "title": "File:The \"Eye of the Sahara\" in the African nation of Mauritania (iss069e005526).jpg",
@@ -208,7 +271,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "08_commons.jpg"
+      "file": "08_commons.jpg",
+      "vision_review": {
+        "index": 8,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Distant oblique view of the Richat Structure from orbit.",
+        "kept": true
+      }
     },
     {
       "title": "File:ISS-59 Richat Structure (2).jpg",
@@ -236,7 +308,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "09_commons.jpg"
+      "file": "09_commons.jpg",
+      "vision_review": {
+        "index": 9,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "High-resolution oblique photograph of the structure taken from the International Space Station.",
+        "kept": true
+      }
     },
     {
       "title": "File:ISS-59 Eye of Sahara with the Richat Structure in Mauritania.jpg",
@@ -265,7 +346,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "10_commons.jpg"
+      "file": "10_commons.jpg",
+      "vision_review": {
+        "index": 10,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Wide oblique ISS view showing the structure set against the Sahara desert and the Earth's curvature.",
+        "kept": true
+      }
     },
     {
       "title": "File:ISS-61 Richat Structure (1).jpg",
@@ -293,7 +383,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "11_commons.jpg"
+      "file": "11_commons.jpg",
+      "vision_review": {
+        "index": 11,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Overhead astronaut photograph of the circular dome within its surrounding dark geological formation.",
+        "kept": true
+      }
     },
     {
       "title": "File:ISS-59 Richat Structure (1).jpg",
@@ -321,7 +420,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "12_commons.jpg"
+      "file": "12_commons.jpg",
+      "vision_review": {
+        "index": 12,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Excellent, crisp high-resolution ISS photograph centered on the concentric rings.",
+        "kept": true
+      }
     },
     {
       "title": "File:Richat Structure by Landsat 7.jpg",
@@ -347,7 +455,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "13_commons.jpg"
+      "file": "13_commons.jpg",
+      "vision_review": {
+        "index": 13,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Landsat 7 false-color image demonstrating the distinct concentric rock bands.",
+        "kept": true
+      }
     },
     {
       "title": "File:AS09-19-3050 Richat Structure.jpg",
@@ -375,7 +492,16 @@
       "lat": 20.716667,
       "lon": -11.133333,
       "relevance": 7.0,
-      "file": "14_commons.jpg"
+      "file": "14_commons.jpg",
+      "vision_review": {
+        "index": 14,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Historic 1969 orbital photograph taken during the Apollo 9 mission.",
+        "kept": true
+      }
     },
     {
       "title": "File:ISS-42 Richat Structure, Eye of the Sahara.jpg",
@@ -402,7 +528,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "15_commons.jpg"
+      "file": "15_commons.jpg",
+      "vision_review": {
+        "index": 15,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Wide-angle ISS photograph showing the Eye of the Sahara amid desert dunes and clouds.",
+        "kept": true
+      }
     },
     {
       "title": "File:ISS-42 Richat Structure.jpg",
@@ -428,33 +563,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "16_commons.jpg"
-    },
-    {
-      "title": "File:Eye of the Sahara.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/3d/Eye_of_the_Sahara.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Eye_of_the_Sahara.jpg",
-      "artist": "U.S. Geological Survey",
-      "license": "CC0",
-      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-      "attribution_required": false,
-      "year": 2015,
-      "width": 5288,
-      "height": 3000,
-      "grade": 0,
-      "description": "Eye of the Sahara —  Near the western edge of the Sahara Desert in Mauritania is a feature that resembles a large eye when viewed from space. The Eye of the Sahara, also known as the Richat Structure or Guelb er Richat, is a symmetrical dome of eroded sedimentary and volcanic rock. The outermost rings measure approximately 40 km (25 miles) across. Persistent northeasterly winds keep much of the do",
-      "categories": [
-        "CC-Zero",
-        "Sahara",
-        "Satellite pictures by Landsat 8",
-        "Flickr images reviewed by FlickreviewR 2",
-        "2015 photographs of Mauritania",
-        "Satellite pictures of Richat Structure"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "17_commons.jpg"
+      "file": "16_commons.jpg",
+      "vision_review": {
+        "index": 16,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Detailed astronaut photo capturing the eroded concentric rings from orbit.",
+        "kept": true
+      }
     },
     {
       "title": "File:ISS-66 Richat structure, Mauritania.jpg",
@@ -482,7 +600,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "18_commons.jpg"
+      "file": "18_commons.jpg",
+      "vision_review": {
+        "index": 18,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Oblique low-angle astronaut photograph highlighting the topography of the eroded dome.",
+        "kept": true
+      }
     },
     {
       "title": "File:Richat Structure ISS030-E-12516.jpg",
@@ -509,7 +636,16 @@
       "lat": 21.1,
       "lon": -11.4,
       "relevance": 7.0,
-      "file": "19_commons.jpg"
+      "file": "19_commons.jpg",
+      "vision_review": {
+        "index": 19,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Spectacular close-up nadir view from the ISS detailing the central ridges and rings.",
+        "kept": true
+      }
     },
     {
       "title": "File:Richat Structure from Gemini IV.jpg",
@@ -541,8 +677,55 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "20_commons.jpg"
+      "file": "20_commons.jpg",
+      "vision_review": {
+        "index": 20,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Historic 1965 Gemini IV astronaut photograph showing the structure through the spacecraft window.",
+        "kept": true
+      }
     }
   ],
-  "review_note": "Reviewed 2026-10-20: kept 20 of 20"
+  "review_note": "Vision review 2026-10-20: kept 19 of 20",
+  "reviewed_by": "vision",
+  "rejected_by_review": [
+    {
+      "title": "File:Eye of the Sahara.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/3d/Eye_of_the_Sahara.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Eye_of_the_Sahara.jpg",
+      "artist": "U.S. Geological Survey",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "attribution_required": false,
+      "year": 2015,
+      "width": 5288,
+      "height": 3000,
+      "grade": 0,
+      "description": "Eye of the Sahara —  Near the western edge of the Sahara Desert in Mauritania is a feature that resembles a large eye when viewed from space. The Eye of the Sahara, also known as the Richat Structure or Guelb er Richat, is a symmetrical dome of eroded sedimentary and volcanic rock. The outermost rings measure approximately 40 km (25 miles) across. Persistent northeasterly winds keep much of the do",
+      "categories": [
+        "CC-Zero",
+        "Sahara",
+        "Satellite pictures by Landsat 8",
+        "Flickr images reviewed by FlickreviewR 2",
+        "2015 photographs of Mauritania",
+        "Satellite pictures of Richat Structure"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "17_commons.jpg",
+      "vision_review": {
+        "index": 17,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Informational poster layout heavily dominated by text, diagrams, and logos.",
+        "kept": false
+      }
+    }
+  ]
 }

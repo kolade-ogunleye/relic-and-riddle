@@ -9,6 +9,8 @@ safe zones, packaging assets, and platform compliance.
 from typing import Dict, List, Literal, Optional
 from pydantic import BaseModel
 
+from .config import RELEASE_DURATION_MAX, TARGET_DURATION_MIN
+
 
 class DeliveryProfile(BaseModel):
     name: str
@@ -50,8 +52,8 @@ PROFILES: Dict[str, DeliveryProfile] = {
         aspect_ratio="9:16",
         width=1080,
         height=1920,
-        duration_min=42.0,
-        duration_max=58.0,
+        duration_min=TARGET_DURATION_MIN,
+        duration_max=RELEASE_DURATION_MAX,
         target_lufs=-14.0,
         target_true_peak=-1.5,
         audio_channels=2,

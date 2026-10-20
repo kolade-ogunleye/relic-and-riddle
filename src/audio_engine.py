@@ -103,6 +103,28 @@ def normalize_speech_text(text: str) -> str:
     return normalized
 
 
+def measure_spoken_seconds(text: str) -> Optional[float]:
+    """How long the narration runs when spoken: one edge-tts pass of exactly what the voiceover will
+    say (normalized text, narrator voice, rate and pitch), measured like the real voiceover. The
+    voice is deterministic, so this is a measurement, not an estimate. None if it can't be made."""
+    import tempfile
+
+    tmp = Path(tempfile.mkdtemp(prefix="spoken_len_")) / "probe.mp3"
+    try:
+        c = edge_tts.Communicate(normalize_speech_text(text), NARRATOR_VOICE, rate=NARRATOR_RATE, pitch=NARRATOR_PITCH)
+        asyncio.run(asyncio.wait_for(c.save(str(tmp)), timeout=60))  # a stalled service must not hang the stage
+        return AudioEngine.get_duration(tmp)
+    except Exception as e:  # offline or the service is down: the post-voiceover check still guards
+        log.warning("Could not measure the narration's spoken length (%s).", e)
+        return None
+    finally:
+        try:
+            tmp.unlink(missing_ok=True)
+            tmp.parent.rmdir()
+        except OSError:
+            pass
+
+
 def split_boundary(text: str, start: float, dur: float) -> Words:
     """Azure can report "In 1963" as one word boundary; captions need single words, so the
     time is shared out by character count."""

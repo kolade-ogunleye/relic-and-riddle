@@ -7,6 +7,7 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from src import audio_engine  # noqa: E402
 from src.db import PipelineDatabase  # noqa: E402
 
 CURATED = ROOT / "data" / "scripts" / "derinkuyu_underground_city.json"
@@ -48,6 +49,17 @@ def no_real_services(monkeypatch):
 
     monkeypatch.setattr(socket.socket, "connect", blocked)
     monkeypatch.setattr(socket, "create_connection", blocked)
+    # Scripts are measured by speaking them (edge-tts); offline that is "unmeasurable". Tests of the
+    # measurement itself use the real_measure fixture.
+    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text: None)
+
+
+_REAL_MEASURE = audio_engine.measure_spoken_seconds
+
+
+@pytest.fixture
+def real_measure():
+    return _REAL_MEASURE
 
 
 @pytest.fixture(autouse=True)

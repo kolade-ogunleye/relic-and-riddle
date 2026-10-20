@@ -15,12 +15,15 @@ There is deliberately no template fallback: a topic with neither fails the run.
 import difflib
 import json
 import logging
+import math
 import re
 from typing import Dict, Any, List, Optional, Tuple
 
 from pydantic import BaseModel, ValidationError
 
-from .config import CURATED_SCRIPTS_DIR, SECOND_CHECK_ENABLED, TARGET_WORD_COUNT_MIN, TARGET_WORD_COUNT_MAX
+from .config import (CURATED_SCRIPTS_DIR, HARD_DURATION_CEILING, SECOND_CHECK_ENABLED, TARGET_DURATION_MAX,
+                     TARGET_DURATION_MIN, TARGET_WORD_COUNT_MIN, TARGET_WORD_COUNT_MAX)
+from . import audio_engine
 from .fact_checker import ClaimFactChecker
 from . import free_llm
 from .llm import LLMError, claude_available, format_sources, research, structured_call, task as llm_task
@@ -38,7 +41,7 @@ class ScriptUnavailableError(RuntimeError):
 SYSTEM_PROMPT = """You are a documentary scriptwriter producing short vertical Reels (1080x1920) for Facebook and Instagram in the "Historical Curiosities & Ancient Marvels" niche. Accuracy is the brand: viewers and Meta's integrity systems punish fabricated or exaggerated history, so every factual statement you write must be something you have confirmed with web search.
 
 Editorial rules:
-- Narration is 105-115 spoken words (about 42-48 seconds at 145 wpm). Hard maximum 115.
+- Narration is {WORDS_MIN}-{WORDS_MAX} spoken words (about {SECONDS_MIN}-{SECONDS_MAX} seconds spoken). Hard maximum {WORDS_MAX}. Long words take longer to say: prefer plain, short words, or the script runs long even inside the word range.
 - Five beats tailored to topic archetype (Knowledge Bomb & Forensic Reality schema):
   (1) Category-Aware Cinematic Hook in the first 3 seconds (Beat 1):
       - Megastructures: Impossible Architectural Contrast or Subterranean Paradox (e.g. ancient structures enduring while modern buildings crumble, or thousands living 280 feet under solid volcanic rock).
@@ -63,6 +66,11 @@ Editorial rules:
 - Hard ban on dictionary etymologies (e.g. "originates from the Greek word...", "meaning single and stone"). Focus 100% on physical, engineering, and historical realities.
 - Hard ban on academic historian name-dropping (e.g. "Art historian X theorized...", "Scholars debate whether..."). Narrate the factual and physical reality directly.
 - Return the sources you relied on."""
+# The prompt holds literal braces elsewhere, so the numbers are substituted rather than f-formatted.
+SYSTEM_PROMPT = (SYSTEM_PROMPT.replace("{WORDS_MIN}", str(TARGET_WORD_COUNT_MIN))
+                 .replace("{WORDS_MAX}", str(TARGET_WORD_COUNT_MAX))
+                 .replace("{SECONDS_MIN}", f"{TARGET_DURATION_MIN:g}")
+                 .replace("{SECONDS_MAX}", f"{TARGET_DURATION_MAX:g}"))
 
 RESEARCH_SYSTEM = """You are a research assistant for a history documentary team. Use web search to establish what reliable sources (scholarship, museums, heritage bodies, reputable encyclopedias and press) say about the topic. Report concrete, citable facts with numbers and dates, note where sources disagree and give the range, flag popular claims that are myths or exaggerations, and identify the genuine open questions. Be concise and factual."""
 
@@ -185,6 +193,39 @@ def _similar(a: str, b: str) -> float:
 
 def find_banned_tropes(text: str) -> List[str]:
     return [t for t in BANNED_TROPES if re.search(r"\b" + re.escape(t) + r"\b", text, re.IGNORECASE)]
+
+
+# The licensed voice (Azure) may differ slightly from the edge-tts measurement of the same neural
+# voice, so a script must measure a little inside the ceiling.
+_MEASURE_MARGIN_SEC = 0.5
+
+
+def spoken_length_problems(pkg: ScriptPackage) -> List[str]:
+    """Measures how long the narration will run when spoken (the narrator voice is deterministic) and
+    says how to fix it if the voiceover would be too long or short. Empty when fine or unmeasurable
+    (offline); the check after the real voiceover still guards the run."""
+    seconds = audio_engine.measure_spoken_seconds(pkg.narration_script)
+    if seconds is None:
+        return []
+    words = len(pkg.narration_script.split()) or 1
+    per_word = seconds / words
+    longest = HARD_DURATION_CEILING - _MEASURE_MARGIN_SEC
+    if seconds > longest:
+        return [f"Narration runs {seconds:.1f}s when spoken (limit {longest:g}s); cut about "
+                f"{math.ceil((seconds - longest) / per_word)} words or use shorter, plainer words."]
+    if seconds < TARGET_DURATION_MIN:
+        return [f"Narration runs {seconds:.1f}s when spoken (minimum {TARGET_DURATION_MIN:g}s); add about "
+                f"{math.ceil((TARGET_DURATION_MIN - seconds) / per_word) + 1} words of verified facts."]
+    return []
+
+
+def duration_problem(seconds: float) -> Optional[str]:
+    """Why a measured voiceover can't make a Reel (the master is exactly as long), or None."""
+    if seconds < TARGET_DURATION_MIN:
+        return f"Voiceover is {seconds:.1f}s; too short for the {TARGET_DURATION_MIN:g}s minimum."
+    if seconds > HARD_DURATION_CEILING:
+        return f"Voiceover is {seconds:.1f}s; hard ceiling is {HARD_DURATION_CEILING:g}s."
+    return None
 
 
 def validate_structure(pkg: ScriptPackage) -> List[str]:
@@ -319,7 +360,7 @@ class ScriptEngine:
                     pkg = None
                 if pkg is not None:
                     pkg = prune_graphics(pkg)
-                    problems = validate_structure(pkg)
+                    problems = validate_structure(pkg) or spoken_length_problems(pkg)
                     if not problems:
                         log.info("Revised surgically: only the rejected sentences changed.")
                         return self._finalize(pkg, topic, origin=writer_origin(), fact_sheet_used=True)
@@ -347,7 +388,7 @@ class ScriptEngine:
                     log.error("Claude script generation failed: %s", e)
                     break
                 pkg = prune_graphics(pkg)  # an invalid graphic is dropped, not allowed to sink the script
-                problems = validate_structure(pkg)
+                problems = validate_structure(pkg) or spoken_length_problems(pkg)
                 if not problems:
                     return self._finalize(pkg, topic, origin=writer_origin(), fact_sheet_used=self._sheet(topic) is not None)
                 log.warning("Attempt %d failed structural checks: %s", attempt, problems)
@@ -552,7 +593,7 @@ class ScriptEngine:
         except ValidationError as e:
             return False, script_payload, f"REJECTED: payload does not match schema: {e.error_count()} errors."
 
-        problems = validate_structure(pkg)
+        problems = validate_structure(pkg) or spoken_length_problems(pkg)
         if problems:
             return False, script_payload, "REJECTED: " + " ".join(problems)
 

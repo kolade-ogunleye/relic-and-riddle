@@ -168,7 +168,8 @@ TARGET_TRUE_PEAK = -1.5
 
 TARGET_DURATION_MIN = 42.0
 TARGET_DURATION_MAX = 48.0
-HARD_DURATION_CEILING = 52.0
+HARD_DURATION_CEILING = 52.0  # longest voiceover allowed; the master is exactly as long as the voiceover
+RELEASE_DURATION_MAX = 58.0  # release-gate tolerance for the Reel master (re-measured at publish time)
 TARGET_WORD_COUNT_MIN = 105
 TARGET_WORD_COUNT_MAX = 115
 MIN_SCENE_IMAGES = 5

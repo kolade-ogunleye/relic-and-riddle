@@ -34,7 +34,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from src.config import ASSETS_DIR, CURATED_SCRIPTS_DIR, DAILY_RUN_TIME, HARD_DURATION_CEILING, OUTPUT_DIR, POST_SCHEDULING, TIMEZONE
+from src.config import ASSETS_DIR, CURATED_SCRIPTS_DIR, DAILY_RUN_TIME, OUTPUT_DIR, POST_SCHEDULING, TIMEZONE
 from src.credits import caption_credit_line, generate_provenance_ledger, load_credits
 from src.db import PipelineDatabase, QueueEmpty
 from src.control import heartbeat_text, is_paused, make_command_handler, ping_healthcheck
@@ -784,8 +784,11 @@ class PipelineCoordinator:
                 self.telegram_bot.update_progress_card(self.progress_msg_id, 2, 5, topic["title"], run_id, f"Voiceover mastered ({vo_dur:.1f}s)")
             except Exception:
                 pass
-        if vo_dur > HARD_DURATION_CEILING:
-            raise RuntimeError(f"Voiceover is {vo_dur:.1f}s; hard ceiling is {HARD_DURATION_CEILING}s.")
+        # Checked before any rendering: the master is exactly as long as the voiceover.
+        from src.script_engine import duration_problem
+        too_long_or_short = duration_problem(vo_dur)
+        if too_long_or_short:
+            raise RuntimeError(too_long_or_short)
         # Image preparation (upscaling, face privacy) needs neither music nor the bed, so it runs
         # while they are made. It starts only once the voiceover has passed, as before.
         prep_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="image-prep")

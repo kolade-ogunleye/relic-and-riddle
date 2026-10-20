@@ -43,22 +43,12 @@ def test_extract_material_substrate():
 
 
 def test_build_motion_prompts_by_archetype():
-    p_mega = motion.build_motion_prompt("megastructure", "Kailasa Temple", "tholeiitic basalt")
-    assert "24mm wide-angle" in p_mega
-    assert "tholeiitic basalt" in p_mega
-    assert "Strict rigidity constraint" in p_mega
-    assert "Zero morphological drift" in p_mega
-
-    p_relic = motion.build_motion_prompt("relic_artifact", "Antikythera Mechanism", "corroded bronze alloy")
-    assert "100mm" in p_relic
-    assert "macro probe lens" in p_relic
-    assert "corroded bronze alloy" in p_relic
-    assert "gear tooth" in p_relic
-    assert "Zero morphological warping" in p_relic
-
-    p_riddle = motion.build_motion_prompt("riddle_event", "Bronze Age Collapse", "archival cartography")
-    assert "macro sweep" in p_riddle
-    assert "archival cartography" in p_riddle
+    # A locked camera and an unchanged subject: the pilot showed camera-move prompts warp architecture.
+    for arch, title in (("megastructure", "Kailasa Temple"), ("relic_artifact", "Antikythera Mechanism"),
+                        ("riddle_event", "Bronze Age Collapse")):
+        p = motion.build_motion_prompt(arch, title, "basalt")
+        assert "Locked-off tripod camera" in p and title in p and "nothing new appears" in p
+    assert "museum light" in motion.build_motion_prompt("relic_artifact", "Cup", "glass")
 
 
 def test_pre_condition_anchor_frame(tmp_path):

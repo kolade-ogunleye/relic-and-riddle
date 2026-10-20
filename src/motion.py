@@ -127,27 +127,19 @@ def extract_material_substrate(topic: Optional[Dict[str, Any]] = None, fact_shee
 
 
 def build_motion_prompt(archetype: str, title: str, substrate: str) -> str:
-    """Constructs archetype-tailored motion prompt with strict rigidity and anti-hallucination constraints."""
+    """A "living photograph": the camera stays locked and every solid thing stays exactly as photographed;
+    only light and natural elements move. In the 2026-10-20 pilot this kept Kling faithful in 3 of 3
+    clips, where camera-move prompts had produced warped architecture (2 of 2 rejected)."""
+    keep = (f"Locked-off tripod camera, no camera movement. Everything solid stays exactly as in the photo: no change "
+            f"to the shape, edges, carvings, inscriptions or proportions of {title} ({substrate}), and nothing new appears.")
     if archetype == "relic_artifact":
-        return (
-            f"Extreme macro probe lens shot (100mm) of {title}. Smooth forward focus-pull gliding over intricate "
-            f"micro-details and textures. Material substrate: {substrate}. Strict rigidity constraint: Solid unyielding "
-            f"historical artifact, preserve every tooth, gear tooth, inscription, and patina fissure with microscopic fidelity. "
-            f"Zero morphological warping, zero phantom objects. Photorealistic museum lighting. Do not add, remove or change anything."
-        )
-    if archetype == "riddle_event":
-        return (
-            f"Cinematic historical documentary macro sweep across authentic archival documentation and cartographic details for {title}. "
-            f"Substrate: {substrate}. Smooth steady horizontal drift with subtle depth of field. Strict fidelity: Solid historical "
-            f"record, zero morphing, crisp legible details. Do not add, remove or change anything."
-        )
-    # Default megastructure
-    return (
-        f"High-altitude 24mm wide-angle documentary shot of {title}. Executing a continuous, smooth forward descending camera push-in. "
-        f"Geological substrate: {substrate}. Strict rigidity constraint: Solid ancient geological and architectural structure, "
-        f"maintain every relief, cliff face, and chisel mark exactly as in the photo. Zero morphological drift, zero structural changes, "
-        f"no added objects or buildings. Steady cinematic camera motion. Do not add, remove or change anything."
-    )
+        motion_ = "Only a slow, soft sweep of museum light across the surface and faint dust drifting in the air."
+    elif archetype == "riddle_event":
+        motion_ = "Only a gentle change of light across the scene and faint dust drifting in the air."
+    else:
+        motion_ = ("Only gentle natural motion that is already in the photo: moving light and soft shadows, faint dust, "
+                   "and any clouds, water, foliage or people present moving naturally.")
+    return f"Living photograph. {keep} {motion_} No text, no new objects, silent."
 
 
 PROMPT = build_motion_prompt("megastructure", "historical monument", "weathered stone masonry")
@@ -197,6 +189,46 @@ def _jpeg_b64(image: Path) -> str:
     return base64.b64encode(buf.getvalue()).decode()
 
 
+# Share of 30x30 regions (on a 270x480 thumbnail) whose content may change across the clip. Calibrated
+# on the 2026-10-20 pilot: faithful clips (including moving sunlight and walking visitors) stayed at or
+# below 24%; the one that rewrote the scene reached 64%. Six clips is a small sample: this catches large
+# rewrites, not subtle ones, so a person still watches the hook before approval.
+MAX_CONTENT_CHANGE = 0.40
+
+
+def changed_share(first: Any, later: List[Any], threshold: float = 18.0) -> float:
+    """Worst share of regions whose mean absolute difference from the first frame exceeds threshold."""
+    import numpy as np
+    h, w = first.shape
+    th, tw = h // 30, w // 30
+    worst = 0.0
+    for frame in later:
+        diff = np.abs(frame[:th * 30, :tw * 30] - first[:th * 30, :tw * 30])
+        tiles = diff.reshape(th, 30, tw, 30).mean(axis=(1, 3))
+        worst = max(worst, float((tiles > threshold).mean()))
+    return worst
+
+
+def content_change_share(clip: Path) -> float:
+    """How much of the frame's content changes across the clip (see MAX_CONTENT_CHANGE)."""
+    import io
+    import numpy as np
+    from PIL import ImageFilter
+
+    def grab(t: float):
+        png = subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{t:.2f}", "-i", str(clip), "-frames:v", "1",
+                              "-f", "image2pipe", "-vcodec", "png", "-"], capture_output=True, timeout=60).stdout
+        im = Image.open(io.BytesIO(png)).convert("L").resize((270, 480)).filter(ImageFilter.GaussianBlur(2))
+        return np.asarray(im, dtype=np.float32)
+
+    try:
+        times = [SECONDS_OUT * f for f in (0.25, 0.5, 0.75, 0.95)]
+        return changed_share(grab(0.1), [grab(t) for t in times])
+    except Exception as e:  # unmeasurable: treat as changed, never as faithful
+        log.warning("Could not measure the clip's content change (%s).", e)
+        return 1.0
+
+
 def _keep_rejected(clip: Path, frames: List[Path], qa: Dict[str, Any]) -> None:
     """A rejected clip was paid for: keep it, the frames the check compared and its measurements in
     rejected/ beside it, so the geometry threshold can be calibrated from real cases (and the
@@ -242,7 +274,16 @@ def _finish(raw: Path, out: Path, archetype: str = "megastructure") -> Path:
             log.warning("AI video motion hook failed anti-hallucination verification: %s", qa.get("reason"))
             _keep_rejected(out, [f0, f_end], qa)
             raise MotionError(f"Anti-hallucination homography check failed: {qa.get('reason')}")
-        log.info("AI motion hook verified: %s (inliers=%d, ratio=%.2f)", qa.get("reason"), qa.get("inliers", 0), qa.get("inlier_ratio", 0.0))
+        changed = content_change_share(out)
+        qa["content_change_share"] = round(changed, 3)
+        if changed > MAX_CONTENT_CHANGE:
+            # The homography check passed a clip that painted sky over Kailasa's rock overhang: the
+            # camera geometry held while the content was rewritten. Large regional change is rejected.
+            qa["pass"], qa["reason"] = False, f"{changed:.0%} of the frame's regions changed content"
+            _keep_rejected(out, [f0, f_end], qa)
+            raise MotionError(f"Content-fidelity check failed: {qa['reason']}")
+        log.info("AI motion hook verified: %s (inliers=%d, ratio=%.2f, content change %.0f%%)", qa.get("reason"),
+                 qa.get("inliers", 0), qa.get("inlier_ratio", 0.0), 100 * changed)
     finally:
         f0.unlink(missing_ok=True)
         f_end.unlink(missing_ok=True)

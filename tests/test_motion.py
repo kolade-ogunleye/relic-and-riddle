@@ -98,3 +98,14 @@ def test_rejected_clip_is_kept_with_its_measurements(monkeypatch, tmp_path):
     assert not out.exists() and (kept / "motion_01.mp4").is_file()
     assert json.loads((kept / "motion_01.qa.json").read_text())["inlier_ratio"] == 0.19
     assert (kept / "motion_01_verify_f0.jpg").is_file() and (kept / "motion_01_verify_fend.jpg").is_file()
+
+
+def test_content_rewrite_is_caught_where_moving_light_is_not():
+    import numpy as np
+    rng = np.random.default_rng(1)
+    first = rng.uniform(0, 255, (480, 270)).astype(np.float32)
+    light = first * 1.05                       # a gentle lighting change across the frame
+    rewrite = first.copy()
+    rewrite[:300] = rng.uniform(0, 255, (300, 270))  # the top 60% replaced by new content
+    assert motion.changed_share(first, [light]) <= motion.MAX_CONTENT_CHANGE
+    assert motion.changed_share(first, [light, rewrite]) > motion.MAX_CONTENT_CHANGE

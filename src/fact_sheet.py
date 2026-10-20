@@ -38,6 +38,10 @@ SHEETS_DIR = DATA_DIR / "fact_sheets"
 FACT_SHEET_MAX_AGE_DAYS = 60
 MAX_QUOTES = 80
 MIN_VERIFIED_FACTS = 6
+# Bump when the evidence rules change: sheets built under older rules are rebuilt on next use.
+# 2: venue-based tiers (a DOI alone is not tier 1), dates need a reference work or two sites,
+#    source-neutral hedges, UNESCO evidence only from the topic's own site.
+RULES_VERSION = 2
 
 
 class FactStarvedTopicError(ValueError):
@@ -274,6 +278,7 @@ def path_for(topic_id: str) -> Path:
 
 
 def save(sheet: Dict[str, Any]) -> None:
+    sheet["rules_version"] = RULES_VERSION
     SHEETS_DIR.mkdir(parents=True, exist_ok=True)
     path_for(sheet["topic_id"]).write_text(json.dumps(sheet, indent=1, ensure_ascii=False), encoding="utf-8")
 
@@ -283,6 +288,9 @@ def load(topic_id: str, max_age_days: int = FACT_SHEET_MAX_AGE_DAYS) -> Optional
     if not p.exists():
         return None
     sheet = json.loads(p.read_text(encoding="utf-8"))
+    if sheet.get("rules_version") != RULES_VERSION:
+        log.info("Fact sheet %s was built under older evidence rules; it will be rebuilt.", topic_id)
+        return None
     built = datetime.fromisoformat(sheet["built_at"])
     if datetime.now(timezone.utc) - built > timedelta(days=max_age_days):
         return None

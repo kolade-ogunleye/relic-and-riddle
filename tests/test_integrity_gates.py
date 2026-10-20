@@ -202,3 +202,14 @@ def test_a_clip_the_provider_refused_costs_nothing(db, monkeypatch, tmp_path):
     monkeypatch.setattr(motion, "providers", lambda *a, **k: [("veo", lambda: True, refused, 3.2)])
     assert motion.animate(db, still, tmp_path / "m.mp4") is None
     assert db.media_spend(motion.media_budget._month()) == 0
+
+
+def test_sheets_built_under_older_evidence_rules_are_rebuilt(monkeypatch, tmp_path):
+    from datetime import datetime, timezone
+    from src import fact_sheet
+    monkeypatch.setattr(fact_sheet, "SHEETS_DIR", tmp_path)
+    sheet = {"topic_id": "t", "built_at": datetime.now(timezone.utc).isoformat(), "facts": [], "dropped": [], "sources": []}
+    (tmp_path / "t.json").write_text(json.dumps(sheet), encoding="utf-8")
+    assert fact_sheet.load("t") is None  # no rules_version: built before the current evidence rules
+    fact_sheet.save(dict(sheet))
+    assert fact_sheet.load("t") is not None and json.loads((tmp_path / "t.json").read_text())["rules_version"] == fact_sheet.RULES_VERSION

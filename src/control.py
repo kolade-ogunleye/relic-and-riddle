@@ -35,31 +35,26 @@ log = logging.getLogger(__name__)
 PAUSED_KEY = "scheduler_paused"
 HELP = (
     "<b>Relic &amp; Riddle commands</b>\n"
-    "/dashboard — touch cockpit & quick actions\n"
-    "/progress — live production progress, ETA & render bar\n"
-    "/status — schedule, approvals, recent runs\n"
-    "/next — next topic\n"
-    "/pause — stop scheduled runs and posts\n"
-    "/resume — re-enable scheduled runs\n"
-    "/run — start a run now (you still approve before anything posts)\n"
-    "/queue — view upcoming queue with in-place Bump/Drop controls\n"
-    "/bump &lt;number or id&gt; — prioritize topic to #1 in queue\n"
-    "/covers [N] — view and select 3-variant thumbnail covers\n"
-    "/undo — restore last skipped item or dropped topic\n"
-    "/requeue [list|&lt;id&gt;] — restore a rejected/archived topic to the queue\n"
-    "/add &lt;title&gt; — propose a new topic directly with deduplication check\n"
-    "/issue &lt;critique&gt; — log an issue/critique (supports photo/video evidence)\n"
-    "/ask &lt;question&gt; — probe AGY on pipeline decisions, diagnostics & issues\n"
-    "/alerts [N] — view recent alerts/logs (persisted in SQLite)\n"
-    "/clear — sweep and declutter chat history, restore clean cockpit\n"
-    "/images — image sets waiting for review\n"
-    "/review N (or /storyboard N) — storyboard contact sheet for topic N, with an Approve button\n"
-    "/drop N 2 5 — remove images 2 and 5 from topic N\n"
-    "/swap N 2 4 — swap images assigned to Beat 2 and Beat 4 in topic N\n"
-    "/proposals — topic ideas waiting for your Add/Skip\n"
-    "/propose — research 3 new topic ideas (Add/Skip buttons)\n"
-    "/discover [theme] — discover UNESCO engineering marvels (Add/Skip buttons)\n"
-    "/music — listen to and approve free music tracks\n"
+    "\n<b>Everyday</b>\n"
+    "/dashboard — overview with quick-action buttons\n"
+    "/status — schedule, reviews waiting, recent runs\n"
+    "/progress — the run in production\n"
+    "/run — start a run now (nothing posts without your approval)\n"
+    "/pause · /resume — stop or restart scheduled runs and posts\n"
+    "\n<b>Topics</b>\n"
+    "/queue — upcoming topics with Bump/Drop · /next — the next one\n"
+    "/bump &lt;number or id&gt; · /undo · /requeue [list|&lt;id&gt;]\n"
+    "/add &lt;title&gt; · /proposals · /propose · /discover [theme]\n"
+    "\n<b>Pictures, covers, music</b>\n"
+    "/images — photo sets waiting · /review N — a set's contact sheet\n"
+    "/drop N 2 5 — remove photos 2 and 5 · /swap N 2 4 — swap beats 2 and 4\n"
+    "/covers [N] — the three cover variants · /music — approve music tracks\n"
+    "/footage (as a clip's caption) — &lt;topic&gt; | source: URL | licence: name | licence_url: URL\n"
+    "\n<b>Improving the system</b>\n"
+    "/improve — improvement proposals waiting for you\n"
+    "/issue &lt;what's wrong&gt; — report a problem (attach a photo or clip)\n"
+    "/ask &lt;question&gt; — why did the system do something? (answers from the run's records)\n"
+    "/alerts [N] — recent alerts · /clear — tidy the chat (keeps cards waiting for you)\n"
     "/help — this list"
 )
 
@@ -455,7 +450,7 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         f"{active_run_str}"
         f"{next_line}"
         f"{last_run_str}"
-        f"🛡️ <b>Security:</b> <i>Zero-Trust RBAC Active</i>\n\n"
+        f"🛡️ <b>Access:</b> <i>approvers only, every action logged</i>\n\n"
         f"<i>Select an executive command below:</i>"
     )
 
@@ -522,7 +517,7 @@ def startup_dashboard_card(db: PipelineDatabase, mode: str = "bot", time_str: Op
         f"⚙️ <b>Execution Mode:</b> {mode_label}\n"
         f"⏯️ <b>Scheduler State:</b> {sched_label}\n"
         f"📋 <b>Production Slate:</b> {slate_summary}\n"
-        f"🛡️ <b>Security:</b> Zero-Trust RBAC Active (Audit Logging enabled)\n\n"
+        f"🛡️ <b>Access:</b> approvers only, every action logged\n\n"
         f"<i>Tap below or send /help for command directory.</i>"
     )
     buttons = [
@@ -536,7 +531,7 @@ def startup_dashboard_card(db: PipelineDatabase, mode: str = "bot", time_str: Op
         ],
         [
             {"text": "🏛️ Discover Marvels", "callback_data": "cdisc:"},
-            {"text": "🛡️ Zero-Trust Audit", "callback_data": "caudit:"},
+            {"text": "🛡️ Activity log", "callback_data": "caudit:"},
         ]
     ]
     return text, buttons
@@ -833,7 +828,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             dash_text, _ = dashboard_text_and_buttons(db, next_run(), assets_dir=assets_dir)
             return dash_text
         if command == "help":
-            return HELP + "\n\n💡 <i>Send /dashboard or /start to open the interactive touch cockpit.</i>"
+            return HELP
         if command in ("progress", "prog", "cprog"):
             active_prog = db.get_active_progress() if hasattr(db, "get_active_progress") else None
             if not active_prog:

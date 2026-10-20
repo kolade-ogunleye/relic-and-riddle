@@ -645,7 +645,7 @@ class PipelineCoordinator:
     def simulate_publish(self, run_id: str) -> str:
         """Execute a simulated publish for a rendered run without broadcasting live to Meta."""
         self.publish_run(run_id, dry_run=True)
-        return f"🧪 <b>Simulated Publish Complete</b> for {html.escape(self.db.run_label(run_id))}. Artifacts certified without live broadcast."
+        return f"🧪 <b>Simulated Publish Complete</b> for {html.escape(self.db.run_label(run_id))}. Nothing was posted."
 
     def request_approval(self, run_id: str, dry_run: bool = False) -> Dict[str, Any]:
         """Re-sends the review card for a rendered run whose approval timed out, then acts on the decision."""

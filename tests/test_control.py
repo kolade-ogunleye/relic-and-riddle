@@ -767,7 +767,6 @@ def test_bulk_delete_messages_and_clear_command(db, monkeypatch):
         }
     }
     bot._offset = 1
-    monkeypatch.setattr(bot, "_latest_update_id", lambda: 0)
 
     # Mock getUpdates to return our /clear update
     def get_updates(**kw):
@@ -845,7 +844,6 @@ def test_dashboard_command_no_redundant_sent_above_message(db, monkeypatch):
         }
     }
     bot._offset = 99
-    monkeypatch.setattr(bot, "_latest_update_id", lambda: 0)
     monkeypatch.setattr(bot, "_api", lambda m, **kw: [update] if m == "getUpdates" and bot._offset <= 99 else api_mock(m, **kw))
 
     bot.poll_once(h_bot)

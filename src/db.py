@@ -639,7 +639,7 @@ class PipelineDatabase:
     def list_pending_approvals(self) -> List[Dict[str, Any]]:
         with self._conn() as conn:
             rows = conn.execute("""
-            SELECT a.run_id, a.topic_id, a.created_at, r.script_payload_json
+            SELECT a.run_id, a.topic_id, a.created_at, a.telegram_message_id, r.script_payload_json
             FROM approvals a LEFT JOIN runs r ON a.run_id = r.run_id
             WHERE a.decision = 'pending'
             ORDER BY a.rowid DESC
@@ -649,6 +649,7 @@ class PipelineDatabase:
                 "run_id": r["run_id"],
                 "topic_id": r["topic_id"],
                 "created_at": r["created_at"],
+                "telegram_message_id": r["telegram_message_id"],
                 "script_payload": json.loads(r["script_payload_json"] or "{}"),
             }
             for r in rows

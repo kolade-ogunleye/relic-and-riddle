@@ -396,6 +396,7 @@ def animate(
 
         try:
             clip = run(anchor_img, out, on_billed=on_billed)
+            _record_lineage(image, anchor_img, clip, name)
             if fallback_reasons:
                 last_fallback_reason = "; ".join(fallback_reasons)
             on_billed()  # providers that don't report billing are charged on success, as before
@@ -408,6 +409,18 @@ def animate(
     if fallback_reasons:
         last_fallback_reason = "; ".join(fallback_reasons)
     return None
+
+
+def _record_lineage(photo: Path, anchor: Path, clip, provider: str) -> None:
+    """Clip <- anchor frame <- photo, so the clip's rights and credit resolve to the photo's."""
+    from .lineage import record_derived
+    clip_path = Path(clip[0] if isinstance(clip, tuple) else clip)
+    try:
+        if Path(anchor).resolve() != Path(photo).resolve():
+            record_derived(anchor, [photo], "motion_anchor_frame")
+        record_derived(clip_path, [anchor], "ai_motion", {"provider": provider, "ai_generated": True})
+    except (ValueError, OSError) as e:
+        log.warning("Could not record the motion clip's lineage (%s); the release gate will hold it.", e)
 
 
 def apply(
@@ -429,15 +442,19 @@ def apply(
     scenes, used = list(scenes), []
     work_dir.mkdir(parents=True, exist_ok=True)
 
-    # Zero-waste guard: if an AI motion clip was already generated in this run (e.g. earlier attempt),
-    # reuse it immediately rather than spending money and quota on a second generation.
+    # Zero-waste guard: a clip already made in this run (e.g. before a re-plan) is reused, but only
+    # where its own photo still appears: placed on another beat it would show the wrong subject.
     if memo:
-        for existing_clip, provider in memo.values():
-            if existing_clip.is_file():
+        reused = []
+        for photo, (existing_clip, provider) in memo.items():
+            if Path(existing_clip).is_file():
                 for i in range(len(scenes)):
-                    if not is_video(scenes[i]):
+                    if str(scenes[i]) == photo:
                         scenes[i] = existing_clip
-                        return scenes, [provider]
+                        reused.append(provider)
+                        break
+        if reused:
+            return scenes, reused
 
     for i in range(len(scenes)):  # the opening beat first, then in order
         if len(used) >= config.MOTION_MAX_CLIPS:

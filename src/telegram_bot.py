@@ -30,11 +30,16 @@ from .config import (
     is_configured,
 )
 from .db import PipelineDatabase
+from .ops import SecretMasker
 
 log = logging.getLogger(__name__)
 
 ACTIONS = {"approve": "approved", "regen": "regenerate", "reject": "rejected", "cancel": "cancelled"}
 TELEGRAM_VIDEO_LIMIT_MB = 49.0
+STALE_COMMAND_SECONDS = 600  # commands queued while the bot was down longer than this are not replayed
+SLOW_COMMANDS = {"ask", "probe", "query", "why", "discover", "umore", "propose", "review", "storyboard", "covers"}
+
+_MASKER = SecretMasker()
 
 
 def _second_check_line(second: Optional[Dict[str, Any]]) -> str:
@@ -238,31 +243,20 @@ class TelegramApprovalBot:
         """Registers bot commands with Telegram for native autocomplete and the Menu button."""
         if not self.is_configured():
             return False
+        # The menu holds the everyday commands; the rest still work and are listed by /help.
         commands = [
-            {"command": "dashboard", "description": "Executive touch cockpit & quick actions"},
-            {"command": "progress", "description": "Live production progress, ETA & render bar"},
-            {"command": "status", "description": "Schedule, approvals & recent runs"},
-            {"command": "queue", "description": "View queue with Bump/Drop buttons"},
-            {"command": "next", "description": "Preview the next topic in queue"},
-            {"command": "covers", "description": "Select 3-variant thumbnail cover"},
-            {"command": "run", "description": "Start an on-demand production run"},
-            {"command": "pause", "description": "Stop scheduled runs and auto-posts"},
-            {"command": "resume", "description": "Re-enable scheduled production runs"},
-            {"command": "propose", "description": "Research 3 new topic ideas"},
-            {"command": "proposals", "description": "View pending topic proposal cards"},
-            {"command": "discover", "description": "Discover UNESCO engineering marvels"},
-            {"command": "music", "description": "Listen to and approve music tracks"},
-            {"command": "review", "description": "Storyboard contact sheet (e.g. /review 1)"},
-            {"command": "images", "description": "Image sets waiting for review"},
-            {"command": "add", "description": "Propose topic manually (e.g. /add Title)"},
-            {"command": "undo", "description": "Restore last dropped or skipped item"},
-            {"command": "requeue", "description": "Restore an archived topic to queue"},
-            {"command": "audit", "description": "Zero-Trust RBAC security audit log"},
-            {"command": "issue", "description": "Log an issue/critique (attach photo/video)"},
-            {"command": "ask", "description": "Probe AGY system intelligence, decisions & diagnostics"},
-            {"command": "clear", "description": "Sweep and declutter chat history, restore clean cockpit"},
-            {"command": "alerts", "description": "View recent system alerts and logs"},
-            {"command": "help", "description": "Show all available commands"},
+            {"command": "dashboard", "description": "Overview with quick-action buttons"},
+            {"command": "status", "description": "Schedule, reviews waiting and recent runs"},
+            {"command": "progress", "description": "Progress of the run in production"},
+            {"command": "queue", "description": "Upcoming topics (bump or drop)"},
+            {"command": "run", "description": "Start a production run now"},
+            {"command": "images", "description": "Photo sets waiting for review"},
+            {"command": "improve", "description": "Improvement proposals waiting for you"},
+            {"command": "ask", "description": "Ask why the system did something"},
+            {"command": "issue", "description": "Report a problem (attach a photo or clip)"},
+            {"command": "pause", "description": "Stop scheduled runs and posts"},
+            {"command": "resume", "description": "Restart scheduled runs and posts"},
+            {"command": "help", "description": "All commands"},
         ]
         try:
             self._api("setMyCommands", json={"commands": commands})
@@ -272,14 +266,56 @@ class TelegramApprovalBot:
             return False
 
     def _api(self, method: str, timeout: float = 30, **kwargs) -> Dict[str, Any]:
-        resp = requests.post(f"{self.base_url}/{method}", timeout=timeout, **kwargs)
-        data = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
-        if not resp.ok or not data.get("ok"):
-            raise RuntimeError(f"Telegram {method} failed: HTTP {resp.status_code} {data.get('description', '')}")
-        return data["result"]
+        for attempt in range(3):
+            try:
+                resp = requests.post(f"{self.base_url}/{method}", timeout=timeout, **kwargs)
+            except requests.RequestException as e:  # its message carries the URL, and so the token
+                raise RuntimeError(f"Telegram {method} failed: {_MASKER.mask(str(e))}") from None
+            data = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
+            retry_after = (data.get("parameters") or {}).get("retry_after")
+            # Flood control (HTTP 429): wait as told, briefly, then retry. Uploads are not resent (their
+            # file handles are consumed), and a long wait is left to the caller.
+            if resp.status_code == 429 and retry_after and retry_after <= 30 and attempt < 2 and "files" not in kwargs:
+                log.info("Telegram %s rate-limited; retrying in %ss.", method, retry_after)
+                time.sleep(float(retry_after))
+                continue
+            if not resp.ok or not data.get("ok"):
+                raise RuntimeError(f"Telegram {method} failed: HTTP {resp.status_code} {data.get('description', '')}")
+            return data["result"]
+        raise RuntimeError(f"Telegram {method} failed: still rate-limited")
 
     @staticmethod
-    def format_card_text(script_payload: Dict[str, Any], run_id: str) -> str:
+    def release_lines(report: Optional[Dict[str, Any]]) -> str:
+        """The release gate's measured values and verdict, for the review card (nothing assumed)."""
+        if not report:
+            return "🚦 <b>Release gate:</b> <i>not run yet</i>\n"
+        e = html.escape
+        checks = {c["name"]: c for c in report.get("checks", [])}
+        measured = []
+        dur = re.search(r"Measured ([\d.]+)s", str((checks.get("duration") or {}).get("detail", "")))
+        if dur:
+            measured.append(f"{float(dur.group(1)):.1f} s")
+        loud = (checks.get("loudness") or {}).get("detail")
+        if isinstance(loud, dict) and loud.get("integrated_lufs") is not None:
+            measured.append(f"{loud['integrated_lufs']} LUFS, peak {loud.get('true_peak_dbtp')} dBTP")
+        drift = re.search(r"Measured ([\d.]+)ms", str((checks.get("sync_drift") or {}).get("detail", "")))
+        if drift:
+            measured.append(f"A/V drift {float(drift.group(1)):.0f} ms")
+        open_checks = [c for c in report.get("checks", []) if c.get("status") != "pass"]
+        if not open_checks:
+            verdict = "✅ all checks pass"
+        else:
+            verdict = "⚠️ " + "; ".join(
+                f"{e(c['name'])}: {e(c['status'])}"
+                + (f" ({e(', '.join(Path(str(p)).name for p in c['detail'][:3]))})" if isinstance(c.get("detail"), list) and c["detail"] else "")
+                for c in open_checks)
+        line = f"🚦 <b>Release gate:</b> {verdict}\n"
+        if measured:
+            line += f"📏 <b>Measured:</b> <code>{e(' · '.join(measured))}</code>\n"
+        return line
+
+    @staticmethod
+    def format_card_text(script_payload: Dict[str, Any], run_id: str, release: Optional[Dict[str, Any]] = None) -> str:
         """HTML review card (Telegram message limit is 4,096 characters)."""
         e = html.escape
         loc = script_payload.get("location", {})
@@ -296,7 +332,7 @@ class TelegramApprovalBot:
             f"⏱️ <code>{script_payload.get('word_count', 0)} words</code> · source: <i>{e(script_payload.get('origin', '?'))}</i>\n"
             f"{integrity}\n"
             + _second_check_line(script_payload.get("second_check"))
-            + "🎵 <b>Audio Mastering:</b> <code>EBU R128 (-14.0 LUFS)</code> · <i>Balanced Sub-Bass & Foley</i>\n\n"
+            + TelegramApprovalBot.release_lines(release) + "\n"
             f"<blockquote expandable><b>Narration Script & Timings:</b>\n<i>{e(script_payload.get('narration_script', ''))}</i>\n\n"
             f"<b>First Comment:</b> <i>{e(script_payload.get('first_comment', ''))}</i>\n"
             f"<b>Hashtags:</b> {e(' '.join(script_payload.get('hashtags', [])))}</blockquote>\n"
@@ -345,6 +381,13 @@ class TelegramApprovalBot:
             log.warning("Telegram not configured. Review with: python main.py review approve|reject %s", run_id)
             return None
 
+        release = None
+        try:
+            report_file = Path(video_path).parent / "release_report.json"
+            release = json.loads(report_file.read_text(encoding="utf-8")) if report_file.exists() else None
+        except (OSError, ValueError) as e:
+            log.warning("Could not read the release report for the review card: %s", e)
+        card_text = self.format_card_text(script_payload, run_id, release=release)
         try:
             with open(thumbnail_path, "rb") as photo:
                 self._api("sendPhoto", data={"chat_id": self.chat_id, "caption": f"Cover · {script_payload.get('title', '')}"}, files={"photo": photo})
@@ -372,7 +415,7 @@ class TelegramApprovalBot:
             try:
                 msg = self._api("sendMessage", data={
                     "chat_id": self.chat_id,
-                    "text": self.format_card_text(script_payload, run_id),
+                    "text": card_text,
                     "parse_mode": "HTML",
                     "disable_web_page_preview": "true",
                     "reply_markup": json.dumps(markup),
@@ -381,7 +424,7 @@ class TelegramApprovalBot:
             except Exception as e:
                 if "can't parse entities" in str(e).lower() or "bad request" in str(e).lower():
                     log.warning("Telegram parse error on approval card (%s); retrying plain text", e)
-                    plain_text = re.sub(r"<[^>]+>", "", self.format_card_text(script_payload, run_id))[:4000]
+                    plain_text = re.sub(r"<[^>]+>", "", card_text)[:4000]
                     msg = self._api("sendMessage", data={
                         "chat_id": self.chat_id,
                         "text": plain_text,
@@ -397,14 +440,6 @@ class TelegramApprovalBot:
         except Exception as e:
             log.error("Failed to send Telegram approval request: %s. Use the CLI to review %s.", e, run_id)
             return None
-
-    def _latest_update_id(self) -> int:
-        try:
-            updates = self._api("getUpdates", data={"offset": -1, "timeout": 0})
-            return updates[-1]["update_id"] if updates else 0
-        except Exception as e:
-            log.warning("Could not read Telegram update offset: %s", e)
-            return 0
 
     def _authorized(self, user_id: Any, chat_id: Any) -> bool:
         return str(user_id) in self.approver_ids and str(chat_id) == str(self.chat_id)
@@ -457,7 +492,15 @@ class TelegramApprovalBot:
             else f"\n\n❌ <b>REJECTED</b> (by {user_id})" if decision == "rejected"
             else f"\n\n✖ <b>CANCELLED / DISMISSED</b> (by {user_id})"
         )
-        updated_text = (orig_text + badge) if orig_text else f"Decision: <b>{html.escape(decision.upper())}</b> for {html.escape(self.db.run_label(run_id))}"
+        # The card is rebuilt from the run's payload (the message text Telegram returns has lost its
+        # formatting, and re-sending it as HTML could break on a stray "<").
+        run = self.db.get_run(run_id) if hasattr(self.db, "get_run") else None
+        if run and run.get("script_payload"):
+            updated_text = self.format_card_text(run["script_payload"], run_id) + badge
+        elif orig_text:
+            updated_text = html.escape(orig_text) + badge
+        else:
+            updated_text = f"Decision: <b>{html.escape(decision.upper())}</b> for {html.escape(self.db.run_label(run_id))}"
         try:
             self._api("editMessageReplyMarkup", data={
                 "chat_id": self.chat_id, "message_id": msg_id,
@@ -480,6 +523,7 @@ class TelegramApprovalBot:
             if record_alert and hasattr(self.db, "record_alert"):
                 self.db.record_alert(text, message_id=None, kind="transient" if transient else "persistent")
             return False
+        text = _MASKER.mask(text)  # error details can carry a credential; the chat never sees one
         truncated_text = safe_html_truncate(text, max_chars=4000)
         data = {"chat_id": self.chat_id, "text": truncated_text, "parse_mode": "HTML", "disable_web_page_preview": "true"}
         if silent:
@@ -742,6 +786,7 @@ class TelegramApprovalBot:
         if not self.is_configured() or not message_id:
             return False
         markup = {"inline_keyboard": format_responsive_keyboard(buttons) if buttons else []}
+        text = _MASKER.mask(text)
         data = {
             "chat_id": self.chat_id,
             "message_id": message_id,
@@ -955,14 +1000,19 @@ class TelegramApprovalBot:
         """One long-poll: applies approval clicks for any run and answers authorized /commands."""
         self.cleanup_transient_messages()
         self.cleanup_stale_approvals()
-        if self._offset is None:
-            self._offset = self._latest_update_id() + 1
-        updates = self._api("getUpdates", timeout=timeout + 10, data={
-            "offset": self._offset, "timeout": timeout,
-            "allowed_updates": json.dumps(["callback_query", "message"]),
-        })
+        # Updates that arrived while the bot was down are processed, not skipped: an Approve tap
+        # during a restart must not be lost (decisions are first-wins, so a replay is harmless).
+        # Only commands older than STALE_COMMAND_SECONDS are dropped, so a day-old /run doesn't fire.
+        data = {"timeout": timeout, "allowed_updates": json.dumps(["callback_query", "message"])}
+        if self._offset is not None:
+            data["offset"] = self._offset
+        updates = self._api("getUpdates", timeout=timeout + 10, data=data)
         for update in updates:
             self._offset = update["update_id"] + 1
+            sent = (update.get("message") or {}).get("date")
+            if sent and time.time() - sent > STALE_COMMAND_SECONDS:
+                log.info("Skipping a message sent %d min ago while the bot was offline.", (time.time() - sent) // 60)
+                continue
             cq = update.get("callback_query")
             if cq:
                 user_id = str(cq.get("from", {}).get("id", ""))
@@ -1079,7 +1129,16 @@ class TelegramApprovalBot:
             caption = (msg.get("caption") or "").strip()
             if doc_or_vid and caption.startswith("/footage") and self._authorized(msg.get("from", {}).get("id", ""), msg.get("chat", {}).get("id", "")):
                 _, _, args = caption[1:].partition(" ")
-                topic_ref = args.strip()
+                # "/footage <topic> | source: <url> | licence: <name> | licence_url: <url>"; without the
+                # three rights fields the clip is saved but the release gate holds it for review.
+                parts = [s.strip() for s in args.split("|")]
+                topic_ref = parts[0]
+                rights = {}
+                for part in parts[1:]:
+                    key, _, value = part.partition(":")
+                    key = key.strip().lower().replace("license", "licence")
+                    if key in ("source", "licence", "licence_url", "author") and value.strip():
+                        rights[key] = value.strip()
                 if topic_ref:
                     try:
                         file_id = doc_or_vid.get("file_id")
@@ -1101,12 +1160,18 @@ class TelegramApprovalBot:
                             cand = {
                                 "provider": "curated",
                                 "title": "Telegram Curated Clip",
-                                "artist": f"Telegram User {msg.get('from', {}).get('first_name', 'Approver')}",
-                                "license": "Curated Documentary Footage",
-                                "attribution_required": False,
+                                "artist": rights.get("author") or "unknown",
+                                "license": rights.get("licence", "unverified"),
+                                "source_url": rights.get("source", ""),
+                                "license_url": rights.get("licence_url", ""),
+                                "uploaded_by": f"telegram:{msg.get('from', {}).get('id', '')}",
                             }
                             (footage_dir / "curated_footage.json").write_text(json.dumps(cand, indent=2, ensure_ascii=False), encoding="utf-8")
-                            self.notify(f"✅ Video clip received and saved for <b>{html.escape(topic_dir.name)}</b>.")
+                            missing = [k for k in ("source", "licence", "licence_url") if k not in rights]
+                            note = ("" if not missing else
+                                    f"\n⚠️ No {', '.join(missing)} given, so the release gate will hold any video using it. "
+                                    "Resend with <code>/footage topic | source: URL | licence: CC BY 4.0 | licence_url: URL</code>.")
+                            self.notify(f"✅ Video clip received and saved for <b>{html.escape(topic_dir.name)}</b>.{note}")
                     except Exception:
                         log.exception("Direct video download from Telegram failed")
                 continue
@@ -1200,12 +1265,17 @@ class TelegramApprovalBot:
 
                 active_prog = self.db.get_active_progress() if hasattr(self.db, "get_active_progress") else None
                 active_mid = (active_prog or {}).get("message_id")
+                # Review cards still waiting for a decision are kept: deleting one leaves the run
+                # pending with no buttons until it times out.
+                keep = {a.get("telegram_message_id") for a in (self.db.list_pending_approvals()
+                                                                 if hasattr(self.db, "list_pending_approvals") else [])}
+                keep.discard(None)
 
                 # 3. Collect candidate IDs in reverse order
                 candidate_ids: List[int] = []
                 if hasattr(self.db, "list_known_message_ids"):
                     for kid in self.db.list_known_message_ids():
-                        if active_mid and kid == active_mid:
+                        if (active_mid and kid == active_mid) or kid in keep:
                             continue
                         candidate_ids.append(kid)
 
@@ -1213,7 +1283,7 @@ class TelegramApprovalBot:
                     start_id = cmd_mid - 1
                     min_id = max(1, cmd_mid - depth)
                     for mid in range(start_id, min_id - 1, -1):
-                        if active_mid and mid == active_mid:
+                        if (active_mid and mid == active_mid) or mid in keep:
                             continue
                         if mid not in candidate_ids:
                             candidate_ids.append(mid)
@@ -1252,21 +1322,36 @@ class TelegramApprovalBot:
                         )
                 continue
 
-            if command in ("ask", "probe", "query", "why"):
+            if command in SLOW_COMMANDS:
+                # Model calls and searches take seconds to minutes; they run beside the poller so
+                # approval taps and other commands are answered meanwhile.
                 self.send_chat_action("typing")
-            try:
-                reply = command_handler(command, args.strip())
-            except Exception as e:
-                log.exception("Command /%s failed", command)
-                reply = f"⚠️ /{html.escape(command)} failed: {html.escape(str(e))[:300]}"
-            if reply:
-                self.notify(reply, record_alert=False)
+                self._background().submit(self._run_command, command_handler, command, args.strip())
+            else:
+                self._run_command(command_handler, command, args.strip())
+
+    _workers = None
+
+    def _background(self):
+        import concurrent.futures
+        if self._workers is None:
+            self._workers = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="tg-command")
+        return self._workers
+
+    def _run_command(self, command_handler: Callable[[str, str], str], command: str, args: str) -> None:
+        try:
+            reply = command_handler(command, args)
+        except Exception as e:
+            log.exception("Command /%s failed", command)
+            reply = f"⚠️ /{html.escape(command)} failed: {html.escape(str(e))[:300]}"
+        if reply:
+            self.notify(reply, record_alert=False)
 
     def wait_for_decision(self, run_id: str, timeout_seconds: int = APPROVAL_TIMEOUT_SECONDS, poll_interval: int = 5) -> str:
         """Returns 'approved', 'rejected', 'regenerate', or 'timeout'. Never auto-approves."""
         log.info("Awaiting human decision for %s (timeout %ss)...", run_id, timeout_seconds)
         deadline = time.monotonic() + timeout_seconds
-        offset = self._latest_update_id() + 1 if self.is_configured() and not self.background_polling else 0
+        offset: Optional[int] = None  # unconfirmed taps (e.g. made just before this wait) still count
 
         while time.monotonic() < deadline:
             self.cleanup_transient_messages()
@@ -1281,9 +1366,10 @@ class TelegramApprovalBot:
 
             try:
                 long_poll = int(max(1, min(25, deadline - time.monotonic())))
-                updates = self._api("getUpdates", timeout=long_poll + 10, data={
-                    "offset": offset, "timeout": long_poll, "allowed_updates": json.dumps(["callback_query"]),
-                })
+                req = {"timeout": long_poll, "allowed_updates": json.dumps(["callback_query"])}
+                if offset is not None:
+                    req["offset"] = offset
+                updates = self._api("getUpdates", timeout=long_poll + 10, data=req)
                 for update in updates:
                     offset = update["update_id"] + 1
                     cq = update.get("callback_query")

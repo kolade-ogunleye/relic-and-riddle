@@ -76,7 +76,7 @@ def test_fact_sheet_auto_hedge_weak_numbers():
     kept, dropped = _apply_rules([DraftFact(id="F1", statement="200,000 tons of rock", kind="number", quote_ids=[1], disputed=False, hedge="")], quotes, auto_hedge=True)
     assert len(kept) == 1
     assert kept[0]["disputed"] is True
-    assert "estimated" in kept[0]["hedge"]
+    assert "by one estimate" in kept[0]["hedge"]  # source-neutral: credits no one the evidence doesn't name
 
 
 def test_vps_calculation():

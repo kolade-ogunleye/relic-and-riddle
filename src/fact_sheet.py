@@ -10,8 +10,10 @@ the same verdict every time instead of depending on which pages a fresh search h
 
 Rules (journalism practice):
 - Every fact cites at least one evidence quote, and every number in a fact must appear in its quotes.
-- Numbers and dates need one tier-1 source or two sources on different sites; otherwise the fact
-  is kept only as disputed (hedged) or dropped.
+- Numbers need one tier-1 source or two sources on different sites; dates need a tier-1 or tier-2
+  source (an established reference work) or two sites. Otherwise the fact is kept only as
+  disputed, with a source-neutral hedge ("by one estimate", "by one account"), or dropped.
+- A DOI link is not a tier by itself: scholarly quotes carry the tier their venue earns.
 - Disagreeing sources make a fact "disputed" and it carries the hedge wording to use.
 - Web pages are untrusted input: quotes are stored and used as data only, never as instructions.
 Sheets are cached in data/fact_sheets/<topic_id>.json and rebuilt when older than FACT_SHEET_MAX_AGE_DAYS.
@@ -49,7 +51,7 @@ TIER1_DOMAINS = {"unesco.org", "whc.unesco.org", "britannica.com", "smithsonianm
                  "jstor.org", "nature.com", "science.org", "sciencedirect.com", "cambridge.org", "academic.oup.com",
                  "metmuseum.org", "britishmuseum.org", "louvre.fr", "worldhistory.org", "archaeology.org", "ktb.gov.tr",
                  "muze.gov.tr", "loc.gov", "nasa.gov", "springer.com", "tandfonline.com", "wiley.com", "pnas.org",
-                 "doi.org", "openalex.org", "wikidata.org"}
+                 "wikidata.org"}
 TIER2_DOMAINS = {"wikipedia.org", "history.com", "bbc.com", "bbc.co.uk", "nytimes.com", "theguardian.com", "reuters.com",
                  "apnews.com", "newscientist.com", "livescience.com", "atlasobscura.com", "washingtonpost.com",
                  "independent.co.uk", "telegraph.co.uk", "cnn.com", "npr.org", "scientificamerican.com", "dailysabah.com",
@@ -79,6 +81,30 @@ def tier(url: str) -> int:
     if host in TIER2_DOMAINS or base in TIER2_DOMAINS or host.endswith(".wikipedia.org"):
         return 2
     return 3
+
+
+def quote_tier(q: Dict[str, Any]) -> int:
+    """A quote's tier: its own (set where the venue is known, e.g. a journal article), else its site's."""
+    return int(q["tier"]) if q.get("tier") in (1, 2, 3) else tier(q["url"])
+
+
+def _neutral_hedge(statement: str, kind: str) -> str:
+    """Hedge a weakly sourced fact without crediting anyone the evidence does not name."""
+    stmt = statement.rstrip(".")
+    lead = "by one account" if kind == "date" else "by one estimate"
+    return f"{lead}, {stmt[:1].lower() + stmt[1:]}."
+
+
+def _unesco_evidence(topic: Dict[str, Any]):
+    """(quotes, source) from the official UNESCO record of the site the topic is about, or ([], None)."""
+    from .unesco import UNESCOEngine
+    engine = UNESCOEngine()
+    site = engine.match_topic(topic)
+    if not site:
+        return [], None
+    url = site.url or f"https://whc.unesco.org/en/list/{site.id_number}/"
+    log.info("Fact sheet: official UNESCO evidence for site #%s (%s)", site.id_number, site.site)
+    return engine.as_evidence(site), Source(title=f"UNESCO World Heritage Centre - {site.site}", url=url)
 
 
 def numbers_in(text: str) -> List[float]:
@@ -128,17 +154,13 @@ def build(topic: Dict[str, Any], web_search_uses: int = 10) -> Dict[str, Any]:
             "You are a meticulous researcher for a history documentary. Prefer primary and authoritative sources.",
             prompt, web_search_uses=web_search_uses, effort="high")
 
-    # Ingest authoritative UNESCO World Heritage Centre evidence when site matches
+    # Ingest authoritative UNESCO World Heritage Centre evidence when the topic is an inscribed site
     try:
-        from .unesco import UNESCOEngine
-        u_site = UNESCOEngine().match_topic(topic)
-        if u_site:
-            u_quotes = u_engine.as_evidence(u_site)
+        u_quotes, u_source = _unesco_evidence(topic)
+        if u_source:
             quotes = u_quotes + quotes
-            u_url = u_site.url or f"https://whc.unesco.org/en/list/{u_site.id_number}/"
-            sources.insert(0, Source(title=f"UNESCO World Heritage Centre - {u_site.site}", url=u_url))
-            log.info("Fact sheet: injected official UNESCO evidence for site #%s (%s)", u_site.id_number, u_site.site)
-    except Exception as e:
+            sources.insert(0, u_source)
+    except Exception as e:  # optional evidence: research can proceed without it
         log.warning("Fact sheet: UNESCO lookup failed: %s", e)
 
     quotes = quotes[:MAX_QUOTES]
@@ -147,7 +169,7 @@ def build(topic: Dict[str, Any], web_search_uses: int = 10) -> Dict[str, Any]:
     topic_focus = (f"Topic Title: {topic.get('title', '')}\n"
                    f"Hook: {topic.get('hook', '')}\n"
                    f"Core Key Facts / Thesis: {'; '.join(topic.get('key_facts', []))}\n")
-    listing = "\n".join(f"Q{i}: [{_host(q['url'])}, tier {tier(q['url'])}] {q['quote'][:600]}" for i, q in enumerate(quotes, 1))
+    listing = "\n".join(f"Q{i}: [{_host(q['url'])}, tier {quote_tier(q)}] {q['quote'][:600]}" for i, q in enumerate(quotes, 1))
     draft = free_llm.call(SYSTEM, f"<topic_focus>\n{topic_focus}</topic_focus>\n\n<research_notes>\n{notes}\n</research_notes>\n\n<evidence_quotes>\n{listing}\n</evidence_quotes>",
                           FactSheetDraft, effort="high", max_tokens=12000)
     facts, dropped = _apply_rules(draft.facts, quotes, auto_hedge=True)
@@ -160,7 +182,7 @@ def build(topic: Dict[str, Any], web_search_uses: int = 10) -> Dict[str, Any]:
             "Verify each of these with strong sources (quote them):\n" + "\n".join(f"- {f.statement}" for f in weak),
             web_search_uses=4, effort="medium")
         quotes = (quotes + [q for q in more if q not in quotes])[: MAX_QUOTES + 40]
-        listing = "\n".join(f"Q{i}: [{_host(q['url'])}, tier {tier(q['url'])}] {q['quote'][:600]}" for i, q in enumerate(quotes, 1))
+        listing = "\n".join(f"Q{i}: [{_host(q['url'])}, tier {quote_tier(q)}] {q['quote'][:600]}" for i, q in enumerate(quotes, 1))
         retry = structured_call(
             SYSTEM,
             f"<research_notes>\n{more_notes}\n</research_notes>\n\n<evidence_quotes>\n{listing}\n</evidence_quotes>\n\n"
@@ -202,26 +224,24 @@ def _apply_rules(draft_facts, quotes: List[dict], auto_hedge: bool = False):
         if named and not any(any(n in _host(q["url"]) for n in named) for q in cited):
             dropped.append((f.id, f"attributes to {sorted(named)} but no cited quote comes from that source"))
             continue
-        tiers = [tier(q["url"]) for q in cited]
+        tiers = [quote_tier(q) for q in cited]
         hosts = {_host(q["url"]) for q in cited}
-        strong = 1 in tiers or len(hosts) >= 2
+        two_sites = len(hosts) >= 2
+        # Dates may rest on an established reference work (tier 2: Wikipedia, museums, quality
+        # press) as chronological anchors; numbers need a tier-1 source. Either way, two sites do.
+        strong = two_sites or (min(tiers) <= (2 if f.kind == "date" else 1))
         disputed = f.disputed
-        if f.kind == "date":
-            # Well-sourced dates from established reference sites (Wikipedia/museums) are chronological anchors
-            pass
-        elif f.kind == "number" and not strong:
+        if f.kind in ("number", "date") and not strong:
             if not f.hedge:
                 if auto_hedge:
-                    stmt = f.statement.rstrip(".")
-                    first_char_lower = stmt[0].lower() + stmt[1:] if len(stmt) > 1 else stmt.lower()
-                    f.hedge = f"researchers have estimated that {first_char_lower}."
+                    f.hedge = _neutral_hedge(f.statement, f.kind)
                 else:
-                    dropped.append((f.id, "a number with one weak source and no hedge"))
+                    dropped.append((f.id, f"a {f.kind} with one weak source and no hedge"))
                     continue
             disputed = True  # usable only with its hedge
         facts.append({"id": f.id, "statement": f.statement, "kind": f.kind, "disputed": disputed,
                       "hedge": f.hedge if disputed else (f.hedge or ""),
-                      "evidence": [{"url": q["url"], "tier": tier(q["url"]), "quote": q["quote"][:600]} for q in cited]})
+                      "evidence": [{"url": q["url"], "tier": quote_tier(q), "quote": q["quote"][:600]} for q in cited]})
     return facts, dropped
 
 

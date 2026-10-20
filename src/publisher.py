@@ -435,15 +435,15 @@ class MetaPublisher:
                 )
                 log.warning("Publishing BLOCKED for %s: %s", run_id, err_msg)
                 try:
-                    self.db.record_audit(
+                    self.db.record_audit_event(
                         user_id="system",
                         action="publish_blocked_unlicensed_voice",
                         status="blocked",
                         payload=json.dumps({"run_id": run_id, "provider": provider, "reason": err_msg}),
                         username="publisher_gate",
                     )
-                except Exception:
-                    pass
+                except Exception as e:  # auditing must not change the publish outcome, but say so
+                    log.warning("Could not record the blocked publish in the audit log: %s", e)
                 return {"status": "blocked_unlicensed", "error": err_msg, "provider": provider}
 
         # Each requested platform is posted at most once: a publisher only handles the

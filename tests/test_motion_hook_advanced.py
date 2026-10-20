@@ -117,7 +117,7 @@ def test_motion_fails_safe_to_fallback_on_qa_rejection(monkeypatch, tmp_path):
     monkeypatch.setattr("src.config.MEDIA_MONTHLY_BUDGET_USD", 10.0)
 
     # Mock provider that fails the verification check
-    def mock_animate_failing(img, out, prompt=None, archetype="megastructure"):
+    def mock_animate_failing(img, out, prompt=None, archetype="megastructure", on_billed=None):
         raise motion.MotionError("Anti-hallucination homography check failed: inlier ratio 0.08 < 0.25")
 
     monkeypatch.setattr(motion, "providers", lambda topic=None, fact_sheet=None: [

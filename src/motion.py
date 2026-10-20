@@ -239,7 +239,8 @@ def veo_available() -> bool:
     return config.is_configured(config.GEMINI_API_KEY)
 
 
-def animate_veo(image: Path, out: Path, prompt: Optional[str] = None, archetype: str = "megastructure") -> Path:
+def animate_veo(image: Path, out: Path, prompt: Optional[str] = None, archetype: str = "megastructure",
+                on_billed: Optional[Callable[[], None]] = None) -> Path:
     model = config.MOTION_VEO_MODEL
     base = "https://generativelanguage.googleapis.com/v1beta"
     headers = {"x-goog-api-key": config.GEMINI_API_KEY, "Content-Type": "application/json"}
@@ -265,6 +266,8 @@ def animate_veo(image: Path, out: Path, prompt: Optional[str] = None, archetype:
             samples = state.get("response", {}).get("generateVideoResponse", {}).get("generatedSamples", [])
             if not samples:
                 raise MotionError(f"Veo returned no video (possibly filtered): {str(state)[:300]}")
+            if on_billed:
+                on_billed()  # Veo bills a generated clip whether or not our checks accept it
             raw = out.with_name(out.stem + "_raw.mp4")
             download(samples[0]["video"]["uri"], "veo", raw, extra_headers={"x-goog-api-key": config.GEMINI_API_KEY})
             try:
@@ -279,7 +282,8 @@ def kling_available() -> bool:
     return config.is_configured(config.KLING_API_KEY)
 
 
-def animate_kling(image: Path, out: Path, prompt: Optional[str] = None, archetype: str = "megastructure") -> Path:
+def animate_kling(image: Path, out: Path, prompt: Optional[str] = None, archetype: str = "megastructure",
+                  on_billed: Optional[Callable[[], None]] = None) -> Path:
     base = "https://api-singapore.klingai.com"
     headers = {"Authorization": f"Bearer {config.KLING_API_KEY}", "Content-Type": "application/json"}
     active_prompt = prompt or PROMPT
@@ -306,6 +310,8 @@ def animate_kling(image: Path, out: Path, prompt: Optional[str] = None, archetyp
             video = next((o for o in task.get("outputs", []) if o.get("type") == "video" and o.get("url")), None)
             if not video:
                 raise MotionError("Kling returned no video")
+            if on_billed:
+                on_billed()  # Kling bills a generated clip whether or not our checks accept it
             raw = out.with_name(out.stem + "_raw.mp4")
             download(video["url"], "kling", raw)
             try:
@@ -330,8 +336,10 @@ def providers(
     kling_cost = 6 * KLING_EST_PRICE_PER_SEC
 
     return [
-        ("kling-3.0", kling_available, lambda img, out: animate_kling(img, out, prompt=prompt, archetype=archetype), kling_cost),
-        (config.MOTION_VEO_MODEL, veo_available, lambda img, out: animate_veo(img, out, prompt=prompt, archetype=archetype), veo_cost),
+        ("kling-3.0", kling_available, lambda img, out, on_billed=None: animate_kling(
+            img, out, prompt=prompt, archetype=archetype, on_billed=on_billed), kling_cost),
+        (config.MOTION_VEO_MODEL, veo_available, lambda img, out, on_billed=None: animate_veo(
+            img, out, prompt=prompt, archetype=archetype, on_billed=on_billed), veo_cost),
     ]
 
 
@@ -364,11 +372,20 @@ def animate(
             log.info("Motion: %s skipped (media budget).", name)
             fallback_reasons.append(f"{name}: media budget limit reached")
             continue
+        billed: List[bool] = []
+
+        def on_billed(name=name, cost=cost, billed=billed):
+            # Record spend the moment the provider has made (and charged for) a clip, so a clip
+            # our checks then reject still counts against the monthly budget.
+            if not billed:
+                billed.append(True)
+                media_budget.record(db, name, out.name, cost)
+
         try:
-            clip = run(anchor_img, out)
+            clip = run(anchor_img, out, on_billed=on_billed)
             if fallback_reasons:
                 last_fallback_reason = "; ".join(fallback_reasons)
-            media_budget.record(db, name, out.name, cost)
+            on_billed()  # providers that don't report billing are charged on success, as before
             return clip, name
         except (MotionError, requests.RequestException, ValueError, OSError, subprocess.SubprocessError) as e:
             log.warning("Motion via %s failed (%s); trying the next option.", name, e)

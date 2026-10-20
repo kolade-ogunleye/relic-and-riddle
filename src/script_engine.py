@@ -585,8 +585,9 @@ class ScriptEngine:
             else:
                 status, conf2, audits2, msg2 = self.fact_checker.second_opinion(script_payload)
             script_payload["second_check"] = {"status": status, "confidence": conf2, "audits": audits2, "summary": msg2}
-            if status == "fail":
-                return False, script_payload, f"REJECTED by second fact checker: {msg2}"
+            if status != "pass":  # fail closed: a check that could not run proves nothing
+                reason = "second fact checker" if status == "fail" else "second fact check, which could not run"
+                return False, script_payload, f"REJECTED by {reason}: {msg2}"
             msg = f"{msg} | 2nd check: {msg2}"
         return True, script_payload, f"Structure OK ({pkg.narration_script.count(' ') + 1} words) | {msg}"
 

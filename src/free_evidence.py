@@ -78,11 +78,24 @@ def sentences(text: str) -> List[str]:
     return [s.strip() for s in re.split(r"(?<=[.!?])\s+(?=[A-Z0-9\"'])", text) if 30 <= len(s.strip()) <= 500]
 
 
+STOPWORDS = {"the", "and", "with", "from", "that", "this", "into", "over", "were", "what", "when", "which", "their"}
+
+
+def _topic_words(text: str) -> set:
+    return {w for w in re.findall(r"[a-z0-9]+", text.lower()) if len(w) > 3 and w not in STOPWORDS}
+
+
 def fetch_openalex_scholarly_evidence(query: str, max_works: int = 3) -> Tuple[List[dict], List[dict]]:
-    """Fetches peer-reviewed paper evidence from the open OpenAlex scholarly API."""
+    """Abstract sentences from scholarly works about the topic (open OpenAlex API).
+
+    A work counts as tier-1 evidence only when OpenAlex lists it as an article or review in a
+    journal; other venues (trade magazines, repositories, preprints) are tier 3 and never
+    labelled peer-reviewed. Works that share no meaningful word with the topic are skipped:
+    search relevance alone returns unrelated papers."""
     import urllib.parse
     url = f"https://api.openalex.org/works?search={urllib.parse.quote(query)}&per-page={max_works}"
-    headers = {"User-Agent": "RelicAndRiddleStudioBot/1.0 (historical research; contact: studio@relicriddle.org)"}
+    headers = {"User-Agent": HEADERS["User-Agent"]}
+    wanted = _topic_words(query)
     quotes, sources = [], []
     try:
         r = requests.get(url, headers=headers, timeout=8)
@@ -91,18 +104,18 @@ def fetch_openalex_scholarly_evidence(query: str, max_works: int = 3) -> Tuple[L
                 title = w.get("title") or ""
                 doi = w.get("doi") or ""
                 abstract_inverted = w.get("abstract_inverted_index") or {}
-                if abstract_inverted:
-                    word_pos = []
-                    for word, positions in abstract_inverted.items():
-                        for p in positions:
-                            word_pos.append((p, word))
-                    word_pos.sort()
-                    abstract_text = " ".join(word for _, word in word_pos)
-                    sents = [s.strip() for s in re.split(r"(?<=[.!?])\s+", abstract_text) if len(s.strip()) >= 30]
-                    for s in sents[:3]:
-                        quotes.append({"url": doi or "https://openalex.org", "title": f"Peer-Reviewed Scholarly Paper: {title}", "quote": s})
-                if doi:
-                    sources.append({"title": f"Peer-Reviewed Work: {title}", "url": doi})
+                word_pos = sorted((p, word) for word, positions in abstract_inverted.items() for p in positions)
+                abstract_text = " ".join(word for _, word in word_pos)
+                if not doi or not abstract_text or not (wanted & _topic_words(title + " " + abstract_text)):
+                    continue
+                venue = ((w.get("primary_location") or {}).get("source") or {})
+                journal = w.get("type") in ("article", "review") and venue.get("type") == "journal"
+                label = (f"Peer-reviewed journal article ({venue.get('display_name')}): {title}" if journal
+                         else f"Scholarly work: {title}")
+                sents = [s.strip() for s in re.split(r"(?<=[.!?])\s+", abstract_text) if len(s.strip()) >= 30]
+                for s in sents[:3]:
+                    quotes.append({"url": doi, "title": label, "quote": s, "tier": 1 if journal else 3})
+                sources.append({"title": label, "url": doi})
     except Exception as e:
         log.warning("OpenAlex scholarly evidence lookup failed: %s", e)
     return quotes, sources

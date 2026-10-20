@@ -93,23 +93,18 @@ def research(system: str, prompt: str) -> Tuple[str, List[Source]]:
                             if url not in seen:
                                 seen.add(url)
                                 sources.append(Source(title=a.get("title") or url, url=url))
-        if not sources and text:
-            import re
-            for m in re.finditer(r'https?://[^\s)\]">]+', text):
-                url = m.group(0).rstrip(".,;")
-                if url not in seen:
-                    seen.add(url)
-                    sources.append(Source(title=url, url=url))
+        # URLs the model wrote into its text are not sources: only citations the search
+        # returned count (a claim's source must be a page the search actually found).
         if text and sources:
             break
     if not sources and is_configured(GEMINI_API_KEY):
         try:
-            gc_url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+            gc_url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
             gc_body = {
                 "contents": [{"parts": [{"text": f"{system}\n\n{prompt}"}]}],
                 "tools": [{"googleSearch": {}}]
             }
-            gc_resp = requests.post(gc_url, json=gc_body, timeout=60)
+            gc_resp = requests.post(gc_url, headers={"x-goog-api-key": GEMINI_API_KEY}, json=gc_body, timeout=60)
             if gc_resp.ok:
                 gc_data = gc_resp.json()
                 cands = gc_data.get("candidates", [])
@@ -188,7 +183,9 @@ def structured(system: str, prompt: Union[str, list], schema: Type[T], model: st
             elif isinstance(b, str):
                 parts.append({"text": b})
         target_key = key if key is not None else GEMINI_API_KEY
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={target_key}"
+        if not is_configured(target_key):
+            raise GeminiError("No Gemini API key is configured for this call.")
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model or GEMINI_MODEL}:generateContent"
         body = {
             "system_instruction": {"parts": [{"text": system}]},
             "contents": [{"parts": parts}],
@@ -197,17 +194,24 @@ def structured(system: str, prompt: Union[str, list], schema: Type[T], model: st
                 "response_schema": _inline_refs(schema.model_json_schema())
             }
         }
+        # Images are the point of this call: if it fails, the caller learns it failed. A text-only
+        # retry would answer questions about pictures it never saw.
         try:
-            resp = requests.post(url, json=body, timeout=60)
-            if resp.status_code == 200:
-                data = resp.json()
-                text = data["candidates"][0]["content"]["parts"][0]["text"]
-                return schema.model_validate(json.loads(text))
-            log.warning("Gemini multimodal generateContent failed (%d: %s); falling back to text.", resp.status_code, resp.text[:200])
-        except Exception as e:
-            log.warning("Gemini multimodal call error: %s; falling back to text.", e)
-        # fallback prompt string
-        prompt = "\n".join(b.get("text", "") for b in prompt if isinstance(b, dict) and b.get("type") == "text") or str(prompt)
+            resp = requests.post(url, headers={"x-goog-api-key": target_key, "Content-Type": "application/json"},
+                                 json=body, timeout=120)
+        except requests.RequestException as e:
+            raise GeminiError(f"Gemini vision request failed: {e}") from e
+        if resp.status_code == 429:
+            raise QuotaExhausted("Gemini quota exceeded (HTTP 429).")
+        if resp.status_code == 503:
+            raise GeminiError("Gemini is temporarily overloaded (HTTP 503); try again later.")
+        if resp.status_code != 200:
+            raise GeminiError(f"Gemini vision call failed (HTTP {resp.status_code}): {resp.text[:200]}")
+        try:
+            text = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+            return schema.model_validate(json.loads(text))
+        except (KeyError, IndexError, ValueError) as e:
+            raise GeminiError(f"Gemini vision output did not match the schema: {e}") from e
 
     data = _post({
         "model": model or GEMINI_MODEL,

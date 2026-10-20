@@ -43,12 +43,12 @@ _DETECTOR_LOCK = threading.Lock()
 MAX_PARALLEL_IMAGES = 3
 
 
-def _post_vision(url: str, body: dict, timeout: float):
+def _post_vision(url: str, body: dict, timeout: float, key: str = ""):
     """POST with a short backoff on rate limits and transient errors, so a busy API is not
     mistaken for "no faces found"."""
     import requests
     for attempt in range(3):
-        r = requests.post(url, json=body, timeout=timeout)
+        r = requests.post(url, json=body, timeout=timeout, headers={"x-goog-api-key": key})  # never in the URL
         if r.status_code not in (429, 500, 502, 503, 504) or attempt == 2:
             return r
         retry_after = r.headers.get("Retry-After", "")
@@ -99,7 +99,7 @@ def _cache_path(path: Path) -> Path:
 
 def _detect_faces_cognitive_gemini(img: np.ndarray) -> List[Tuple[int, int, int, int]]:
     """Uses Gemini vision to detect living human faces/heads with 2D bounding boxes."""
-    from .config import GEMINI_API_KEY, is_configured
+    from .config import GEMINI_API_KEY, GEMINI_MODEL, is_configured
     if not is_configured(GEMINI_API_KEY) or img is None or img.size == 0:
         return []
 
@@ -115,7 +115,7 @@ def _detect_faces_cognitive_gemini(img: np.ndarray) -> List[Tuple[int, int, int,
         import base64, json, requests
         _, buf = cv2.imencode(".jpg", disp, [cv2.IMWRITE_JPEG_QUALITY, 90])
         data = base64.b64encode(buf.tobytes()).decode("utf-8")
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={GEMINI_API_KEY}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
         prompt = (
             "Detect EVERY SINGLE living human head and face in this photograph with zero omissions. "
             "Include foreground visitors, distant background pedestrians, people in crowds, and partially occluded faces. "
@@ -133,7 +133,7 @@ def _detect_faces_cognitive_gemini(img: np.ndarray) -> List[Tuple[int, int, int,
             }],
             "generationConfig": {"response_mime_type": "application/json"}
         }
-        r = _post_vision(url, body, timeout=25)
+        r = _post_vision(url, body, timeout=25, key=GEMINI_API_KEY)
         if r.status_code == 200:
             text = r.json()["candidates"][0]["content"]["parts"][0]["text"]
             boxes = json.loads(text)
@@ -168,13 +168,13 @@ def _is_living_human_candidate(img: np.ndarray, box: Tuple[int, int, int, int]) 
         return False
 
     # Stage 2A: Multimodal Gemini Vision Check (fastest & highly discriminative)
-    from .config import GEMINI_API_KEY, is_configured
+    from .config import GEMINI_API_KEY, GEMINI_MODEL, is_configured
     if is_configured(GEMINI_API_KEY):
         try:
             import base64, json, requests
             _, buf = cv2.imencode(".jpg", crop, [cv2.IMWRITE_JPEG_QUALITY, 85])
             data = base64.b64encode(buf.tobytes()).decode("utf-8")
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={GEMINI_API_KEY}"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
             prompt_text = (
                 "Is there a real modern living human person in this crop whose face is visible? "
                 "Distinguish living humans from ancient stone/rock carvings, statues, or reliefs. "
@@ -189,7 +189,7 @@ def _is_living_human_candidate(img: np.ndarray, box: Tuple[int, int, int, int]) 
                 }],
                 "generationConfig": {"response_mime_type": "application/json"}
             }
-            r = _post_vision(url, body, timeout=15)
+            r = _post_vision(url, body, timeout=15, key=GEMINI_API_KEY)
             if r.status_code == 200:
                 text = r.json()["candidates"][0]["content"]["parts"][0]["text"]
                 verdict = json.loads(text)

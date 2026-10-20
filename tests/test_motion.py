@@ -73,11 +73,11 @@ def test_chain_falls_through_and_respects_budget(monkeypatch, db, photo, tmp_pat
     monkeypatch.setattr("src.config.MEDIA_MONTHLY_BUDGET_USD", 2.0)
     calls = []
 
-    def veo(img, out):
+    def veo(img, out, on_billed=None):
         calls.append("veo")
         raise motion.MotionError("filtered")
 
-    def kling(img, out):
+    def kling(img, out, on_billed=None):
         calls.append("kling")
         return out
     monkeypatch.setattr(motion, "providers", lambda: [("veo", lambda: True, veo, 0.96), ("kling", lambda: True, kling, 0.84)])

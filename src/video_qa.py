@@ -225,47 +225,6 @@ def verify_provenance_integrity(provenance_path: Path) -> bool:
         return False
 
 
-SEMANTIC_GRAPHIC_MAP = {
-    "defense": ["stone", "door", "disc", "doors", "defense", "defensive", "basalt", "seal", "passage", "millstone", "rolling"],
-    "ventilation": ["ventilation", "shaft", "air", "breathe", "convection", "airflow", "oxygen", "stale", "fresh", "suffocating"],
-    "section": ["depth", "meter", "metre", "deep", "floor", "level", "feet", "layer", "85", "stables", "uppermost", "living"],
-    "scale": ["scale", "tall", "height", "pyramid", "liberty", "compare", "size", "thousand", "twenty thousand", "20,000", "refugees", "shelter", "population", "capacity"],
-    "map": ["located", "cappadocia", "turkey", "anatolia", "region", "plain", "map", "subterranean metropolis", "windswept"],
-    "numbers": ["thousand", "capacity", "people", "metric", "stat", "population", "inhabitants", "depth", "85"],
-}
-
-
-def _graphic_keywords(asset_path, category):
-    """Use the graphic's own declared place or figures instead of one topic's vocabulary."""
-    import json
-    from .lineage import sidecar
-    fallback = SEMANTIC_GRAPHIC_MAP[category]
-    try:
-        declaration = json.loads(sidecar(asset_path).read_text(encoding="utf-8"))
-        inputs = declaration["settings"]["inputs"]
-        payload = inputs.get("payload", {})
-        if category == "map":
-            place = inputs.get("place", {})
-            text = " ".join(str(place.get(k, "")) for k in ("label", "country"))
-            names = re.findall(r"[\w'-]{3,}", text.lower())
-            return names or fallback
-        if category == "numbers":
-            values = " ".join(str(c.get("value", "")) + " " + str(c.get("label", "")) for c in payload.get("stat_cards", []))
-            figures = re.findall(r"\d[\d,]*(?:\.\d+)?", values)
-            words = [w for w in re.findall(r"\w+", values.lower()) if len(w) > 3]
-            return (figures + words) or fallback
-        if category == "scale":
-            if payload.get("scale_fact"):
-                val = f"{payload['scale_fact']['value']:g}"
-                subj = str(payload['scale_fact'].get('subject', '')).lower()
-                subj_words = [w for w in re.findall(r"\w+", subj) if len(w) > 2]
-                return [val, subj] + subj_words + ["scale", "tall", "height", "compare", "size", "deeper"]
-            return fallback
-    except (OSError, ValueError, KeyError, TypeError):
-        pass
-    return fallback
-
-
 class ClosedLoopAuditor:
     """Active Closed-Loop Auto-Remediation and Quality Gate Engine.
     Executes shift-left deterministic audits across loudness, semantic cross-correlation,
@@ -401,60 +360,47 @@ class ClosedLoopAuditor:
                 issues.append({"type": "measurement_failed", "severity": "critical", "issue": str(e), "scene_index": -1})
                 score -= 30
 
-        # 2. Temporal Semantic Cross-Correlation Audit
+        # 2. Temporal Semantic Cross-Correlation Audit: each original graphic must sit where the
+        # narration says what it shows (src/graphic_match.py), within 2.5 s of its cut.
+        from . import graphic_match
         all_words_list = words or []
         for i, cut in enumerate(timeline):
             asset_path = Path(cut.get("asset", ""))
             asset_name = asset_path.name.lower()
-            matched_category = None
-            for cat, keywords in SEMANTIC_GRAPHIC_MAP.items():
-                if f"graphic_{cat}" in asset_name or (cat in asset_name and "graphic" in asset_name):
-                    matched_category = cat
-                    break
-
-            if matched_category:
-                cat_keywords = _graphic_keywords(asset_path, matched_category)
-                cut_text = cut.get("text", "").lower()
-                c_start, c_end = cut.get("start", 0.0), cut.get("end", 0.0)
-
-                # Check words occurring during the cut (aligned with 2.5s temporal cross-correlation)
-                spoken_in_cut = [
-                    w.get("word", "").lower() for w in all_words_list
-                    if (c_start - 2.5) <= w.get("start", 0.0) <= (c_end + 2.5)
-                ]
-                spoken_text = " ".join(spoken_in_cut)
-
-                has_keyword = any(k in cut_text or k in spoken_text for k in cat_keywords)
-                if not has_keyword:
+            if not asset_name.startswith("graphic_"):
+                continue
+            terms = graphic_match.terms(asset_path)
+            if not terms:  # declares nothing to judge it by
+                continue
+            c_start, c_end = cut.get("start", 0.0), cut.get("end", 0.0)
+            in_window = [w for w in all_words_list if (c_start - 2.5) <= w.get("start", 0.0) <= (c_end + 2.5)]
+            heard = cut.get("text", "") + " " + " ".join(w.get("word", "") for w in in_window)
+            if graphic_match.score(asset_path, heard) < graphic_match.THRESHOLD:
+                issues.append({
+                    "type": "semantic_desync",
+                    "severity": "major",
+                    "issue": f"Scene {i}: Graphic '{asset_name}' missing narration keywords {sorted(terms)[:4]}",
+                    "scene_index": i,
+                    "asset": str(asset_path),
+                })
+                score -= 15
+                continue
+            matching_word_times = [w["start"] for w in in_window if graphic_match.tokens(w.get("word", "")) & terms.keys()]
+            if matching_word_times:
+                distance = lambda t: max(c_start - t, t - c_end, 0.0)  # noqa: E731
+                t_first = min(matching_word_times, key=distance)
+                offset = distance(t_first)
+                if offset > 1.2:
                     issues.append({
-                        "type": "semantic_desync",
-                        "severity": "major",
-                        "issue": f"Scene {i}: Graphic '{asset_name}' missing narration keywords {cat_keywords[:4]}",
+                        "type": "temporal_desync",
+                        "severity": "minor",
+                        "issue": f"Scene {i}: Graphic '{asset_name}' keyword is {offset:.2f}s outside its cut (>1.2s)",
                         "scene_index": i,
+                        "trigger_time": t_first,
+                        "cut_start": c_start,
                         "asset": str(asset_path),
                     })
-                    score -= 15
-                else:
-                    matching_word_times = [
-                        w["start"] for w in all_words_list
-                        if any(re.sub(r"[^\w]", "", k).lower() and re.sub(r"[^\w]", "", k).lower() in re.sub(r"[^\w]", "", w.get("word", "")).lower() for k in cat_keywords)
-                        and (c_start - 2.5) <= w["start"] <= (c_end + 2.5)
-                    ]
-                    if matching_word_times:
-                        distance = lambda t: max(c_start - t, t - c_end, 0.0)
-                        t_first = min(matching_word_times, key=distance)
-                        offset = distance(t_first)
-                        if offset > 1.2:
-                            issues.append({
-                                "type": "temporal_desync",
-                                "severity": "minor",
-                                "issue": f"Scene {i}: Graphic '{asset_name}' keyword is {offset:.2f}s outside its cut (>1.2s)",
-                                "scene_index": i,
-                                "trigger_time": t_first,
-                                "cut_start": c_start,
-                                "asset": str(asset_path),
-                            })
-                            score -= 5
+                    score -= 5
 
         # 3. Graphic Motion Freeze Audit
         if video_path.exists():

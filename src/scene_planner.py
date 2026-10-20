@@ -15,7 +15,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-from . import free_llm
+from . import free_llm, graphic_match
 from .config import FOOTAGE_MAX_SHARE
 from .llm import LLMError, claude_available, image_block, structured_call, task as llm_task
 from .models import ScenePlan
@@ -128,69 +128,29 @@ def _footage_share(chosen: List[Path], durations: List[float]) -> float:
 
 
 def lock_narrative_graphics(beats: List[Dict[str, Any]], graphics: List[Path]) -> Dict[int, Path]:
-    """
-    Directly locks channel graphics onto the exact beat where the narrator speaks about them.
-    - Scale / Cross-section / Stat cards / Numbers: where depth/dimensions/capacity/levels are stated
-    - Map: where location/discovery/geography is introduced (e.g. 1963, Cappadocia, Turkey, village, entrance, wall)
-    - Timeline: where historical dates / eras / dynasties are stated (e.g. century, bc, ad, byzantine, hittites, phrygians, years old)
-    - Rolling doors / defense / mechanisms: where stone doors / locks are stated (e.g. rolling stone, doors, sealed, tons)
-    - Ventilation / shaft / airflow: where ventilation or breathing is stated
-    """
+    """Puts each original graphic on the beat that says what it shows (its declared figures, names
+    and labels, as whole words; see src/graphic_match.py), best matches first, one graphic per beat.
+    Beat 0 is the hook and keeps its photo or video."""
+    pairs = sorted(((graphic_match.score(g, b.get("text", "")), idx, gi)
+                    for gi, g in enumerate(graphics) if Path(g).stem.startswith("graphic_")
+                    for idx, b in enumerate(beats) if idx > 0), reverse=True)
     locked: Dict[int, Path] = {}
-    used_g: set = set()
-
-    for idx, b in enumerate(beats):
-        txt = b.get("text", "").lower()
-        # 1. Depth & Vertical Scale (skip beat 0: hook requires visual photo/video immersion)
-        if idx > 0 and any(w in txt for w in ("depth", "metre", "meter", "feet", "levels", "stories", "280", "180", "85", "descend")):
-            scale_g = next((g for g in graphics if g not in used_g and any(k in g.stem for k in ("scale", "section"))), None)
-            if scale_g:
-                locked[idx] = scale_g
-                used_g.add(scale_g)
-                continue
-        # 2. Population & Capacity Stats
-        if idx > 0 and any(w in txt for w in ("capacity", "thousand", "population", "people", "inhabitants", "shelter", "20,000", "twenty thousand")):
-            num_g = next((g for g in graphics if g not in used_g and any(k in g.stem for k in ("numbers", "stat"))), None)
-            if num_g:
-                locked[idx] = num_g
-                used_g.add(num_g)
-                continue
-        # 3. Map & Geographic context (skip beat 0 so hook still gets a photo/video hook)
-        if idx > 0:
-            map_g = next((g for g in graphics if g not in used_g and "map" in g.stem), None)
-            if map_g:
-                from .video_qa import _graphic_keywords
-                map_kws = [k.lower() for k in _graphic_keywords(map_g, "map")]
-                if map_kws and any(w in txt for w in map_kws):
-                    locked[idx] = map_g
-                    used_g.add(map_g)
-                    continue
-                elif not map_kws and any(w in txt for w in ("cappadocia", "turkey", "antikythera", "shipwreck", "greece", "located", "coast", "island")):
-                    locked[idx] = map_g
-                    used_g.add(map_g)
-                    continue
-        # 4. Timeline & Historical dynasties (skip beat 0: hook requires visual photo/video immersion)
-        if idx > 0 and any(w in txt for w in ("years old", "century", " bc", " ad", "byzantine", "hittite", "phrygian", "dynasty", "ancient", "era")):
-            time_g = next((g for g in graphics if g not in used_g and any(k in g.stem for k in ("timeline", "dates"))), None)
-            if time_g:
-                locked[idx] = time_g
-                used_g.add(time_g)
-                continue
-        # 5. Mechanism & Defense (skip beat 0)
-        if idx > 0 and any(w in txt for w in ("rolling", "doors", "sealed", "cylinder", "choke point", "stoneware", "millstone", "defense", "defensive", "basalt")):
-            callout_g = next((g for g in graphics if g not in used_g and any(k in g.stem for k in ("defense", "labels", "callout", "door"))), None)
-            if callout_g:
-                locked[idx] = callout_g
-                used_g.add(callout_g)
-                continue
-        # 6. Ventilation & Airflow (skip beat 0)
-        if idx > 0 and any(w in txt for w in ("ventilation", "shaft", "air", "breathe", "convection", "airflow", "oxygen")):
-            vent_g = next((g for g in graphics if g not in used_g and any(k in g.stem for k in ("ventilation", "shaft", "air"))), None)
-            if vent_g:
-                locked[idx] = vent_g
-                used_g.add(vent_g)
-                continue
+    placed: set = set()
+    for s, idx, gi in pairs:
+        if s < graphic_match.THRESHOLD:
+            break
+        if idx not in locked and gi not in placed:
+            locked[idx] = graphics[gi]
+            placed.add(gi)
     return locked
+
+
+def keep_if_it_matches(pick: Path, text: str, fallback: Path) -> Path:
+    """An original graphic stays only on a beat that says what it shows; one that declares nothing
+    to judge it by stays as chosen."""
+    if not Path(pick).stem.startswith("graphic_") or not graphic_match.judgeable(pick):
+        return pick
+    return pick if graphic_match.score(pick, text) >= graphic_match.THRESHOLD else fallback
 
 
 @llm_task("scene_plan")
@@ -279,25 +239,11 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
         if idx < len(chosen):
             chosen[idx] = g
 
-    # Ensure any procedural graphic in chosen actually matches the narrative spoken during that beat,
-    # otherwise fall back to archival still photos to prevent semantic desync.
-    is_mock_beats = all(len(b.get("text", "").split()) <= 2 for b in beats)
-    if not is_mock_beats:
-        locked_indices = set(locked.keys())
+    # A graphic the planner placed where the narration doesn't say what it shows becomes a photo.
+    if stills:
         for k in range(len(chosen)):
-            p = Path(chosen[k])
-            if _is_graphic(p) and k not in locked_indices:
-                from .video_qa import SEMANTIC_GRAPHIC_MAP, _graphic_keywords
-                matched = False
-                b_txt = beats[k]["text"].lower() if k < len(beats) else ""
-                for cat in SEMANTIC_GRAPHIC_MAP:
-                    if f"graphic_{cat}" in p.stem or cat in p.stem:
-                        kws = _graphic_keywords(p, cat)
-                        if any(w.lower() in b_txt for w in kws):
-                            matched = True
-                            break
-                if not matched and stills:
-                    chosen[k] = stills[k % len(stills)]
+            if k not in locked and k < len(beats):
+                chosen[k] = keep_if_it_matches(Path(chosen[k]), beats[k].get("text", ""), stills[k % len(stills)])
 
     # Footage supports the narration, never dominates it (Meta's originality rules): over the
     # cap, the latest footage picks become photos.

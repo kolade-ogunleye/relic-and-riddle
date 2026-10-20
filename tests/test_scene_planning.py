@@ -61,24 +61,6 @@ def test_bad_plan_falls_back(monkeypatch, tmp_path):
     assert scenes == [p] and notes == "filename order"
 
 
-def test_lock_narrative_graphics():
-    beats = [
-        {"start": 0.0, "end": 3.0, "text": "An ancient subterranean wonder awaits."},
-        {"start": 3.0, "end": 6.5, "text": "In 1963, a man in Cappadocia knocked through his wall."},
-        {"start": 6.5, "end": 10.0, "text": "It plunges roughly 85 metres deep into volcanic rock."},
-        {"start": 10.0, "end": 14.0, "text": "Massive rolling stone doors sealed each corridor."},
-    ]
-    graphics = [
-        Path("graphic_map.mp4"),
-        Path("graphic_section.mp4"),
-        Path("graphic_labels_door.mp4"),
-    ]
-    locked = sp.lock_narrative_graphics(beats, graphics)
-    assert locked[1] == Path("graphic_map.mp4")
-    assert locked[2] == Path("graphic_section.mp4")
-    assert locked[3] == Path("graphic_labels_door.mp4")
-
-
 def test_qa_summary_orders_by_severity_and_escapes():
     report = QAReport(summary="", issues=[QAIssue(beat=2, severity="minor", issue="<tiny>"),
                                           QAIssue(beat=0, severity="Critical", issue="watermark")])
@@ -141,6 +123,9 @@ def test_storyboard_lock_preserves_motion_hook_and_animated_graphics(tmp_path):
     map_vid = tmp_path / "graphic_map.mp4"
     map_vid.write_bytes(b"video")
     (tmp_path / "graphic_map.jpg").write_bytes(b"poster")
+    from src.lineage import record_graphic
+    (tmp_path / "draw.py").write_bytes(b"code")
+    record_graphic(map_vid, tmp_path / "draw.py", {"builder": "map", "place": {"label": "Cappadocia", "country": "Turkey"}})
 
     media = [hook_vid, map_vid] + imgs
     beats = [
@@ -151,7 +136,7 @@ def test_storyboard_lock_preserves_motion_hook_and_animated_graphics(tmp_path):
     scenes, durations, notes = sp.plan_scenes(beats, media)
     # Beat 0 gets motion hook video
     assert scenes[0] == hook_vid
-    # Beat 1 gets animated map graphic locked to Cappadocia Turkey
+    # Beat 1 gets the map, which declares Cappadocia, Turkey
     assert scenes[1] == map_vid
     # Beat 2 gets locked storyboard image img_3
     assert scenes[2] == imgs[2]

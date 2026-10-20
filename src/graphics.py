@@ -825,6 +825,15 @@ DIAGRAM_LABELS = {
 }
 
 
+# Shown when a spec gives no title of its own.
+DIAGRAM_TITLES = {"defense": "ROLLING STONE DOOR DEFENSE MECHANISM",
+                  "ventilation": "SUBTERRANEAN VENTILATION & CONVECTION DYNAMICS"}
+
+
+def diagram_title(kind, spec):
+    return (spec.get("title") or DIAGRAM_TITLES[kind]).upper()
+
+
 def diagram_labels(kind, spec):
     overrides = spec.get("labels") or {}
     return {key: str(overrides.get(key, value)) for key, value in DIAGRAM_LABELS[kind].items()}
@@ -842,7 +851,7 @@ def render_rolling_stone_defense(
     labels = diagram_labels("defense", spec)
     n = int(CLIP_SECONDS * VIDEO_FPS)
     top, bottom_bound = get_text_bounds(width, height)
-    title = (spec.get("title") or "ROLLING STONE DOOR DEFENSE MECHANISM").upper()
+    title = diagram_title("defense", spec)
 
     f_title = fit_font(ImageDraw.Draw(Image.new("RGB", (10, 10))), title, "Anton", 42 if width > height else 34, int(width * 0.84), 22)
     f_stat = get_font("Anton", 30 if width > height else 24)
@@ -964,7 +973,7 @@ def render_ventilation_airflow(
     labels = diagram_labels("ventilation", spec)
     n = int(CLIP_SECONDS * VIDEO_FPS)
     top, bottom_bound = get_text_bounds(width, height)
-    title = (spec.get("title") or "SUBTERRANEAN VENTILATION & CONVECTION DYNAMICS").upper()
+    title = diagram_title("ventilation", spec)
 
     f_title = fit_font(ImageDraw.Draw(Image.new("RGB", (10, 10))), title, "Anton", 44 if width > height else 50, int(width * 0.84), 26)
     f_stat = get_font("Anton", 32 if width > height else 28)
@@ -1374,9 +1383,11 @@ def make_all(payload: Dict[str, Any], topic: Dict[str, Any], work_dir: Path, pho
         jobs.append(("cross-section", lambda: render_cross_section(payload["cross_section"], work_dir / "graphic_section.mp4", width=width, height=height)))
     if payload.get("route"):
         jobs.append(("route", lambda: render_route(payload["route"], work_dir / "graphic_route.mp4", width=width, height=height)))
-    if payload.get("rolling_stone_defense") or any(k in topic.get("id", "") for k in ("derinkuyu", "door", "fortress", "defense")):
+    # Diagrams only when the script declares them (and so the fact check sees their text); a topic-ID
+    # substring used to add them to any topic named "door", "fortress", "hypogeum" or "catacomb".
+    if payload.get("rolling_stone_defense"):
         jobs.append(("defense", lambda: render_rolling_stone_defense(payload.get("rolling_stone_defense") or {}, work_dir / "graphic_defense.mp4", width=width, height=height)))
-    if payload.get("ventilation_airflow") or any(k in topic.get("id", "") for k in ("derinkuyu", "ventilation", "shaft", "hypogeum", "catacomb")):
+    if payload.get("ventilation_airflow"):
         jobs.append(("ventilation", lambda: render_ventilation_airflow(payload.get("ventilation_airflow") or {}, work_dir / "graphic_ventilation.mp4", width=width, height=height)))
     if payload.get("lidar_scan"):
         jobs.append(("lidar", lambda: make_lidar_scan(payload["lidar_scan"], work_dir / "graphic_lidar.mp4", width=width, height=height)))

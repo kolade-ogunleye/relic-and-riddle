@@ -1,5 +1,5 @@
 {
-  "reviewed": false,
+  "reviewed": true,
   "images": [
     {
       "title": "File:Underground city of Derinkuyu - Cappadocia, Turkey - panoramio.jpg",
@@ -160,76 +160,6 @@
       "file": "06_commons.jpg"
     },
     {
-      "title": "File:DerinkuyuKirche.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/40/DerinkuyuKirche.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:DerinkuyuKirche.jpg",
-      "artist": "Klaus-Peter Simon",
-      "license": "CC BY 3.0",
-      "license_url": "https://creativecommons.org/licenses/by/3.0",
-      "attribution_required": true,
-      "year": 1995,
-      "width": 1503,
-      "height": 1027,
-      "grade": 0,
-      "description": "Kirche in Derinkuyu, Kappadokien, Zentraltürkei",
-      "categories": [
-        "GFDL",
-        "Saint Theodore Church (Derinkuyu)",
-        "License migration redundant",
-        "Self-published work"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "07_commons.jpg"
-    },
-    {
-      "title": "File:DerinkuyuKircheInnen.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/8/80/DerinkuyuKircheInnen.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:DerinkuyuKircheInnen.jpg",
-      "artist": "Klaus-Peter Simon",
-      "license": "CC BY 3.0",
-      "license_url": "https://creativecommons.org/licenses/by/3.0",
-      "attribution_required": true,
-      "year": 1995,
-      "width": 1009,
-      "height": 1515,
-      "grade": 0,
-      "description": "Seitenschiff der Kirche in Derinkuyu, Kappadokien, Zentraltürkei",
-      "categories": [
-        "GFDL",
-        "Saint Theodore Church (Derinkuyu)",
-        "License migration redundant",
-        "Self-published work"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "08_commons.jpg"
-    },
-    {
-      "title": "File:Saint Theodore Church Derinkuyu Front Entrance.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/fc/Saint_Theodore_Church_Derinkuyu_Front_Entrance.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Saint_Theodore_Church_Derinkuyu_Front_Entrance.jpg",
-      "artist": "Travel Turkey",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "attribution_required": true,
-      "year": 2008,
-      "width": 2592,
-      "height": 3872,
-      "grade": 0,
-      "description": "Turkey is a melting pot of many cultures and religions and bridge between continents. With more Greek ruins than Greece, more ancient Roman sites than Italy, irrefutably Turkey is the cradle of civilization. \nHowever, Turkey is much more than its history with over 7000km of coastline it's an excellent destination for a sunny holiday and water sports.\n\nFor more information about Turkey's travel des",
-      "categories": [
-        "Saint Theodore Church (Derinkuyu)",
-        "Flickr images reviewed by FlickreviewR 2"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 5.0,
-      "file": "09_commons.jpg"
-    },
-    {
       "title": "File:Derinkuyu-17-Verity-Cridland.jpg",
       "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/3f/Derinkuyu-17-Verity-Cridland.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "source_url": "https://commons.wikimedia.org/wiki/File:Derinkuyu-17-Verity-Cridland.jpg",
@@ -334,5 +264,6 @@
       "relevance": 5.0,
       "file": "13_commons.jpg"
     }
-  ]
+  ],
+  "review_note": "Reviewed 2026-10-20: kept 10 of 13; dropped 3 (the town's 19th-century church above ground)"
 }

@@ -16,32 +16,5 @@
     "file": "02_commons.jpg",
     "title": "File:Great Wall of Gorgan - panoramio (1).jpg",
     "license": "CC BY 3.0"
-  },
-  {
-    "beat": 3,
-    "type": "INTERIOR",
-    "label": "Inner Structure",
-    "text": "Built by the Sasanian Empire, probably in the 5th-6th century AD About 195 km long, with more than 30 forts Made of fired red bricks and fed by a canal system, hence the nickname 'Red Snake' Possibly garrisoned by tens of thousands of soldiers Among the longest defensive walls of the ancient world",
-    "file": "03_commons.jpg",
-    "title": "File:Gorgan, Golestan Province, Iran - panoramio (1).jpg",
-    "license": "CC BY 3.0"
-  },
-  {
-    "beat": 4,
-    "type": "ARTIFACT",
-    "label": "Physical Evidence",
-    "text": "Built by the Sasanian Empire, probably in the 5th-6th century AD About 195 km long, with more than 30 forts Made of fired red bricks and fed by a canal system, hence the nickname 'Red Snake' Possibly garrisoned by tens of thousands of soldiers Among the longest defensive walls of the ancient world",
-    "file": "04_commons.jpg",
-    "title": "File:20260211 Gorgan skyline.jpg",
-    "license": "CC BY 4.0"
-  },
-  {
-    "beat": 5,
-    "type": "SCHEMATIC",
-    "label": "Survey / Blueprint",
-    "text": "Built by the Sasanian Empire, probably in the 5th-6th century AD About 195 km long, with more than 30 forts Made of fired red bricks and fed by a canal system, hence the nickname 'Red Snake' Possibly garrisoned by tens of thousands of soldiers Among the longest defensive walls of the ancient world",
-    "file": "05_commons.jpg",
-    "title": "File:Gorgan in Ettelaat newspaper.jpg",
-    "license": "Public domain"
   }
 ]

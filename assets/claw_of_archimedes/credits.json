@@ -1,5 +1,5 @@
 {
-  "reviewed": false,
+  "reviewed": true,
   "images": [
     {
       "title": "File:Dood van Archimedes De dood van Archimedes (titel op object), RP-P-1907-4791.jpg",
@@ -55,33 +55,6 @@
       "file": "02_commons.jpg"
     },
     {
-      "title": "File:Ortygia (38839759874).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/d/d0/Ortygia_%2838839759874%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Ortygia_(38839759874).jpg",
-      "artist": "Andrea Schaffer from Sydney, Australia",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "attribution_required": true,
-      "year": 2017,
-      "width": 4390,
-      "height": 2927,
-      "grade": 0,
-      "description": "Ortygia",
-      "categories": [
-        "Ortigia",
-        "Files with coordinates missing SDC location of creation",
-        "Flickr images reviewed by FlickreviewR 2",
-        "December 2017 in Sicily",
-        "Italy photographs taken on 2017-12-26",
-        "Photographs by Andrea Schaffer",
-        "Sunsets of Syracuse"
-      ],
-      "lat": 37.06206,
-      "lon": 15.294427,
-      "relevance": 7.0,
-      "file": "03_commons.jpg"
-    },
-    {
       "title": "File:A page from Archimedes' On Conoids and Spheroids.jpg",
       "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/3b/A_page_from_Archimedes%27_On_Conoids_and_Spheroids.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "source_url": "https://commons.wikimedia.org/wiki/File:A_page_from_Archimedes%27_On_Conoids_and_Spheroids.jpg",
@@ -108,30 +81,6 @@
       "file": "04_commons.jpg"
     },
     {
-      "title": "File:Spiaggia in Ortigia, Siracusa, Sicilia.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/8/8a/Spiaggia_in_Ortigia%2C_Siracusa%2C_Sicilia.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Spiaggia_in_Ortigia,_Siracusa,_Sicilia.jpg",
-      "artist": "David Evers",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "attribution_required": true,
-      "year": 2008,
-      "width": 2986,
-      "height": 1978,
-      "grade": 0,
-      "description": "Beach in Ortygia, Syracuse (Sicily, Italy)",
-      "categories": [
-        "Ortigia",
-        "Views of Syracuse",
-        "Flickr images reviewed by FlickreviewR",
-        "Beaches of Syracuse"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "05_commons.jpg"
-    },
-    {
       "title": "File:A page from Archimedes' Measurement of a Circle.jpg",
       "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/5f/A_page_from_Archimedes%27_Measurement_of_a_Circle.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "source_url": "https://commons.wikimedia.org/wiki/File:A_page_from_Archimedes%27_Measurement_of_a_Circle.jpg",
@@ -156,60 +105,6 @@
       "lon": null,
       "relevance": 7.0,
       "file": "06_commons.jpg"
-    },
-    {
-      "title": "File:Ortygia (27772497989).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/e/e2/Ortygia_%2827772497989%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Ortygia_(27772497989).jpg",
-      "artist": "Andrea Schaffer from Sydney, Australia",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "attribution_required": true,
-      "year": 2017,
-      "width": 5270,
-      "height": 3162,
-      "grade": 0,
-      "description": "Ortygia",
-      "categories": [
-        "Graffiti in Italy",
-        "Files with coordinates missing SDC location of creation",
-        "Flickr images reviewed by FlickreviewR 2",
-        "December 2017 in Sicily",
-        "Italy photographs taken on 2017-12-26",
-        "Photographs by Andrea Schaffer",
-        "Sunsets of Syracuse"
-      ],
-      "lat": 37.06206,
-      "lon": 15.294427,
-      "relevance": 5.0,
-      "file": "07_commons.jpg"
-    },
-    {
-      "title": "File:Ortygia (39702463571).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/f3/Ortygia_%2839702463571%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Ortygia_(39702463571).jpg",
-      "artist": "Andrea Schaffer from Sydney, Australia",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "attribution_required": true,
-      "year": 2017,
-      "width": 5007,
-      "height": 3004,
-      "grade": 0,
-      "description": "Ortygia",
-      "categories": [
-        "Piazza Duomo (Syracuse)",
-        "Christmas trees in Italy",
-        "Christmas 2017 in Italy",
-        "Flickr images reviewed by FlickreviewR 2",
-        "December 2017 in Sicily",
-        "Italy photographs taken on 2017-12-25",
-        "Photographs by Andrea Schaffer"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 5.0,
-      "file": "08_commons.jpg"
     },
     {
       "title": "File:Sculpture of Archimedes.jpg",
@@ -242,30 +137,6 @@
       "file": "09_commons.jpg"
     },
     {
-      "title": "File:Siracusa's Ortygia Island (2).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/48/Siracusa%27s_Ortygia_Island_%282%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Siracusa%27s_Ortygia_Island_(2).jpg",
-      "artist": "cattan2011",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "attribution_required": true,
-      "year": 2019,
-      "width": 3954,
-      "height": 2966,
-      "grade": 0,
-      "description": "Siracusa's Ortygia Island",
-      "categories": [
-        "Flickr images reviewed by FlickreviewR 2",
-        "Italy photographs taken on 2019-10-21",
-        "Photographs of Sicily by Catherine Poh Huay Tan",
-        "Harbour of Syracuse at sunset"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 5.0,
-      "file": "10_commons.jpg"
-    },
-    {
       "title": "File:Archimedes Sand-Rechnung 1667.png",
       "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/56/Archimedes_Sand-Rechnung_1667.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "source_url": "https://commons.wikimedia.org/wiki/File:Archimedes_Sand-Rechnung_1667.png",
@@ -288,34 +159,6 @@
       "lon": null,
       "relevance": 5.0,
       "file": "11_commons.jpg"
-    },
-    {
-      "title": "File:Piazza Duomo (Cathedral Place) in Ortygia,Syracuse, Sicily, Italy. (49435695597).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/b/b7/Piazza_Duomo_%28Cathedral_Place%29_in_Ortygia%2CSyracuse%2C_Sicily%2C_Italy._%2849435695597%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Piazza_Duomo_(Cathedral_Place)_in_Ortygia,Syracuse,_Sicily,_Italy._(49435695597).jpg",
-      "artist": "Ralf Steinberger from Milan, Berlin + Munich, Italy + Germany",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "attribution_required": true,
-      "year": 2019,
-      "width": 3000,
-      "height": 2000,
-      "grade": 0,
-      "description": "Ortygia, which is part of the city of Syracuse, is a small island. Like many other cities in Eastern Sicily, it was built in Baroque style, after an earthquake distroyed most cities in 1693.",
-      "categories": [
-        "Piazza Duomo (Syracuse)",
-        "Uploads by Matlin",
-        "Files with coordinates missing SDC location of creation",
-        "Flickr images reviewed by FlickreviewR 2",
-        "Italy photographs taken on 2019-12-30",
-        "Night in Syracuse",
-        "December 2019 in Syracuse",
-        "Files from Ralf Steinberger Flickr stream"
-      ],
-      "lat": 37.059252,
-      "lon": 15.293354,
-      "relevance": 5.0,
-      "file": "12_commons.jpg"
     },
     {
       "title": "File:Death of Archimedes - Henri Girardet after Gustave Courtois - 1877.jpg",
@@ -342,31 +185,6 @@
       "file": "13_commons.jpg"
     },
     {
-      "title": "File:Seafront at Ortygia.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/5f/Seafront_at_Ortygia.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Seafront_at_Ortygia.jpg",
-      "artist": "Michael Wilson",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "attribution_required": true,
-      "year": 2007,
-      "width": 2800,
-      "height": 1866,
-      "grade": 0,
-      "description": "The seafront at Ortygia, Siracusa, Sicily with buildings dating back over 1000 years including the Castello Maniaces - left - (named after a Byzantine general who briefly reconquered the island from the Arabs in 1030 AD before dying in a failed coup d'etait against the Emporer Constantine IX) and the dome and facade of the Church of the Holy Spirit, headquarters of the Confraternity of the Holy Sp",
-      "categories": [
-        "Taken with Canon EOS 400D",
-        "Arab–Byzantine wars",
-        "Flickr images uploaded by Flickr upload bot",
-        "Information field template with formatting",
-        "Seafront (Syracuse)"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 5.0,
-      "file": "14_commons.jpg"
-    },
-    {
       "title": "File:Ricci - Archimedes and Hiero at the Siege of Syracuse, BELUM.U145.jpg",
       "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/fe/Ricci_-_Archimedes_and_Hiero_at_the_Siege_of_Syracuse%2C_BELUM.U145.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "source_url": "https://commons.wikimedia.org/wiki/File:Ricci_-_Archimedes_and_Hiero_at_the_Siege_of_Syracuse,_BELUM.U145.jpg",
@@ -391,31 +209,6 @@
       "file": "15_commons.jpg"
     },
     {
-      "title": "File:Siracusa's Ortygia Island - 49466717222.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Siracusa%27s_Ortygia_Island_-_49466717222.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Siracusa%27s_Ortygia_Island_-_49466717222.jpg",
-      "artist": "cattan2011",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "attribution_required": true,
-      "year": 2019,
-      "width": 2592,
-      "height": 1728,
-      "grade": 0,
-      "description": "Siracusa's Ortygia Island",
-      "categories": [
-        "Syracuse",
-        "Flickr images reviewed by FlickreviewR 2",
-        "Photographs of Sicily by Catherine Poh Huay Tan",
-        "Uploads by Killarnee",
-        "Sunsets of Syracuse"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 5.0,
-      "file": "16_commons.jpg"
-    },
-    {
       "title": "File:Archimedes (Dupuis, 1900).jpg",
       "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/43/Archimedes_%28Dupuis%2C_1900%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "source_url": "https://commons.wikimedia.org/wiki/File:Archimedes_(Dupuis,_1900).jpg",
@@ -437,32 +230,6 @@
       "lon": null,
       "relevance": 5.0,
       "file": "17_commons.jpg"
-    },
-    {
-      "title": "File:Siracusa's Ortygia Island - 2.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/d/dc/Siracusa%27s_Ortygia_Island_-_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Siracusa%27s_Ortygia_Island_-_2.jpg",
-      "artist": "cattan2011",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "attribution_required": true,
-      "year": 2019,
-      "width": 2472,
-      "height": 1648,
-      "grade": 0,
-      "description": "Siracusa's Ortygia Island",
-      "categories": [
-        "Syracuse",
-        "Flickr images reviewed by FlickreviewR 2",
-        "Photographs of Sicily by Catherine Poh Huay Tan",
-        "Uploads by Killarnee",
-        "Sunsets of Syracuse",
-        "Flickr images missing SDC published in"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 5.0,
-      "file": "18_commons.jpg"
     },
     {
       "title": "File:Archimedes – Opere, 1615 – BEIC 9741168.jpg",
@@ -491,29 +258,7 @@
       "lon": null,
       "relevance": 5.0,
       "file": "19_commons.jpg"
-    },
-    {
-      "title": "File:Fountain of Diana (Artemis), Archimedes Square.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/9/98/Fountain_of_Diana_%28Artemis%29%2C_Archimedes_Square.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Fountain_of_Diana_(Artemis),_Archimedes_Square.jpg",
-      "artist": "MeRyan",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "attribution_required": true,
-      "year": 2001,
-      "width": 1856,
-      "height": 1392,
-      "grade": 0,
-      "description": "Fountain of Diana (Artemis), Archimedes Square",
-      "categories": [
-        "Fontana di Diana (Syracuse)",
-        "Files with coordinates missing SDC location of creation",
-        "Flickr images reviewed by FlickreviewR 2"
-      ],
-      "lat": 37.061234,
-      "lon": 15.293773,
-      "relevance": 5.0,
-      "file": "20_commons.jpg"
     }
-  ]
+  ],
+  "review_note": "Reviewed 2026-10-20: kept 10 of 20; dropped 10 (modern Syracuse tourism)"
 }

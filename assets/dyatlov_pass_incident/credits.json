@@ -1,5 +1,5 @@
 {
-  "reviewed": false,
+  "reviewed": true,
   "images": [
     {
       "title": "File:Dyatlov.Volume 1.Page 370.jpg",
@@ -221,5 +221,6 @@
       "relevance": 7.0,
       "file": "10_commons.jpg"
     }
-  ]
+  ],
+  "review_note": "Reviewed 2026-10-20: kept 10 of 10"
 }

@@ -1,5 +1,5 @@
 {
-  "reviewed": false,
+  "reviewed": true,
   "images": [
     {
       "title": "File:The Antikythera Mechanism3.jpg",
@@ -299,31 +299,6 @@
       "file": "12_commons.jpg"
     },
     {
-      "title": "File:Antikythera Castle.JPG",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/4b/Antikythera_Castle.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Antikythera_Castle.JPG",
-      "artist": "Soviof",
-      "license": "CC BY 3.0",
-      "license_url": "https://creativecommons.org/licenses/by/3.0",
-      "attribution_required": true,
-      "year": 2009,
-      "width": 4288,
-      "height": 2848,
-      "grade": 0,
-      "description": "Ο λόφος του κάστρου των Αντικυθήρων",
-      "categories": [
-        "Archaeological sites in Greece",
-        "Landscapes of Greece",
-        "Images with annotations",
-        "Antikythera",
-        "Self-published work"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 5.0,
-      "file": "13_commons.jpg"
-    },
-    {
       "title": "File:Antikythera.JPG",
       "download_url": "https://upload.wikimedia.org/wikipedia/commons/9/9f/Antikythera.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "source_url": "https://commons.wikimedia.org/wiki/File:Antikythera.JPG",
@@ -502,5 +477,6 @@
       "relevance": 5.0,
       "file": "20_commons.jpg"
     }
-  ]
+  ],
+  "review_note": "Reviewed 2026-10-20: kept 19 of 20; dropped 1 (a castle on the island, not the mechanism or wreck)"
 }

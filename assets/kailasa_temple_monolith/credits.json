@@ -1,5 +1,5 @@
 {
-  "reviewed": false,
+  "reviewed": true,
   "images": [
     {
       "title": "File:Small temple in side the Kailasa Temple, Ellora, cave (16).jpg",
@@ -532,5 +532,6 @@
       "relevance": 10.0,
       "file": "20_commons.jpg"
     }
-  ]
+  ],
+  "review_note": "Reviewed 2026-10-20: kept 20 of 20"
 }

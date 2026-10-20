@@ -1,5 +1,5 @@
 {
-  "reviewed": false,
+  "reviewed": true,
   "images": [
     {
       "title": "File:Top view of the famed Lycurgus Cup in the British Museum, showing the glass both green and ruby red.jpg",
@@ -404,5 +404,6 @@
       "relevance": 5.0,
       "file": "17_commons.jpg"
     }
-  ]
+  ],
+  "review_note": "Reviewed 2026-10-20: kept 17 of 17"
 }

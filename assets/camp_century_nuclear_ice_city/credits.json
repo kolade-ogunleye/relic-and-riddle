@@ -47,17 +47,7 @@
       "lon": null,
       "relevance": 7.0,
       "file": "02_commons.jpg"
-    },
-    {
-      "title": "File:Palermo02 flickr.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/e/ed/Palermo02_flickr.jpg",
-      "source_url": "https://commons.wikimedia.org/w/index.php?curid=1613555",
-      "artist": "Xerones",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "provider": "openverse",
-      "year": null,
-      "file": "03_commons.jpg"
     }
-  ]
+  ],
+  "review_note": "Reviewed 2026-10-20: kept 2 of 3; dropped 1 (a photo of Palermo); NOT approved: fewer than 5 usable images"
 }

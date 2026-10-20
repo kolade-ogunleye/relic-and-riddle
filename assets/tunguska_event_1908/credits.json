@@ -1,5 +1,5 @@
 {
-  "reviewed": false,
+  "reviewed": true,
   "images": [
     {
       "title": "File:Tunguska Ereignis-1.jpg",
@@ -403,5 +403,6 @@
       "relevance": 5.0,
       "file": "15_commons.jpg"
     }
-  ]
+  ],
+  "review_note": "Reviewed 2026-10-20: kept 15 of 15"
 }

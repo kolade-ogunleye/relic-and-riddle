@@ -1,5 +1,5 @@
 {
-  "reviewed": false,
+  "reviewed": true,
   "images": [
     {
       "title": "File:Parts of instrument for trepanning of the skull. Wellcome L0016674.jpg",
@@ -52,32 +52,6 @@
       "lon": null,
       "relevance": 7.0,
       "file": "02_commons.jpg"
-    },
-    {
-      "title": "File:Louis Pasteur-trépanation d'un lapin.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/d/d0/Louis_Pasteur-tr%C3%A9panation_d%27un_lapin.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Louis_Pasteur-tr%C3%A9panation_d%27un_lapin.jpg",
-      "artist": "auteur inconnu",
-      "license": "Public domain",
-      "license_url": "",
-      "attribution_required": false,
-      "year": 1905,
-      "width": 4141,
-      "height": 3108,
-      "grade": 0,
-      "description": "Dessin de la trépanation d'un lapin par Louis Pasteur",
-      "categories": [
-        "Louis Pasteur",
-        "PD-old-70-expired",
-        "Trepanation",
-        "CC-PD-Mark",
-        "Veterinary neurology",
-        "PD-old missing SDC copyright status"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "03_commons.jpg"
     },
     {
       "title": "File:Trepanned skull, New Britain Wellcome M0005286.jpg",
@@ -535,5 +509,6 @@
       "relevance": 7.0,
       "file": "20_commons.jpg"
     }
-  ]
+  ],
+  "review_note": "Reviewed 2026-10-20: kept 19 of 20; dropped 1 (a 19th-century animal experiment)"
 }

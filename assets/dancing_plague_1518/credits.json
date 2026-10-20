@@ -1,5 +1,5 @@
 {
-  "reviewed": false,
+  "reviewed": true,
   "images": [
     {
       "title": "File:The dancing mania Wellcome M0014846.jpg",
@@ -136,5 +136,6 @@
       "relevance": 7.0,
       "file": "05_commons.jpg"
     }
-  ]
+  ],
+  "review_note": "Reviewed 2026-10-20: kept 5 of 5"
 }

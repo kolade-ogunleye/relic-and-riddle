@@ -58,3 +58,6 @@ archive/db_reset/
 # Local copies of the secrets file (the template stays tracked)
 .env.*
 !.env.example
+
+# Fresh asset sets fetched for comparison before swapping in
+staging/

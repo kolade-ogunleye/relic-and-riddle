@@ -31,11 +31,6 @@ def test_topic_without_own_assets_fails_fast(tmp_path):
         VisualEngine(assets_dir=tmp_path).get_scene_sequence({"id": "roman_self_healing_concrete"})
 
 
-def test_derinkuyu_uses_shared_suite():
-    scenes = VisualEngine().get_scene_sequence({"id": "derinkuyu_underground_city"})
-    assert len(scenes) >= 5
-
-
 class _FakeMessages:
     def __init__(self, responses):
         self.responses = list(responses)

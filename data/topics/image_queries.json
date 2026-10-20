@@ -1,5 +1,9 @@
 {
   "_doc": "Wikimedia Commons search terms per topic for scripts/fetch_commons_images.py. A file is kept only if its title contains one of the keywords (case- and accent-insensitive). Topics without an entry are skipped.",
+  "derinkuyu_underground_city": {
+    "queries": ["Derinkuyu underground city", "Derinkuyu tunnel", "Derinkuyu rolling stone door", "Derinkuyu ventilation shaft"],
+    "keywords": ["derinkuyu"]
+  },
   "roman_self_healing_concrete": {
     "queries": ["Roman concrete", "opus caementicium", "Caesarea Maritima harbour", "Pantheon Rome dome interior"],
     "keywords": ["roman concrete", "opus caementicium", "caementicium", "caesarea", "pantheon", "pozzolan"]

@@ -12,10 +12,11 @@ The result is one (image, duration) per beat for the video composer.
 
 import json
 import logging
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from . import free_llm, graphic_match
+from . import commons, free_llm, graphic_match
 from .config import FOOTAGE_MAX_SHARE
 from .llm import LLMError, claude_available, image_block, structured_call, task as llm_task
 from .models import ScenePlan
@@ -25,7 +26,7 @@ log = logging.getLogger(__name__)
 
 MIN_BEAT, TARGET_BEAT, MAX_BEAT = 2.5, 3.2, 4.5
 
-SYSTEM = """You are a documentary film editor. Choose the best picture for each line of narration in a short vertical history video. Prefer images that literally show what the line describes; for abstract lines, pick an atmospheric image that fits. Use each image at most once where possible, start strong (the first beat is the hook), and avoid placing two near-identical images back to back. Never pick an image that contradicts the narration; real footage labelled GENERIC must never stand in for the named place.
+SYSTEM = """You are a documentary film editor. Choose the best picture for each line of narration in a short vertical history video. Prefer images that literally show what the line describes; for abstract lines, pick an atmospheric image that fits. Use each image at most once where possible, start strong (the first beat is the hook), and avoid placing two near-identical images back to back. Never pick an image that contradicts the narration; real footage labelled GENERIC must never stand in for the named place. A photo's label carries its archive caption (title, description, date): use it to know what and where the photo shows, and never place a photo whose caption names a different site, object or era where the narration names this one.
 Some candidates are the channel's own animated graphics (a locator map, a timeline, a scale comparison). Use each at most once, on the beat it fits: the map where the place is introduced, the timeline where the dates are told, the scale graphic where the size is stated. They add information the photos can't, so use the ones that fit; don't open the video with one unless no photo makes a stronger hook."""
 
 
@@ -96,6 +97,20 @@ def _is_graphic(p: Path) -> bool:
     """A clip the planner may place: an original graphic (src/graphics.py) or a real footage
     segment (src/footage.py). Both have a poster frame beside them."""
     return is_video(p) and Path(p).stem.startswith(("graphic_", "footage_")) and Path(p).with_suffix(".jpg").exists()
+
+
+def _photo_caption(p: Path) -> str:
+    """The archive caption of a sourced photo, from the credits.json beside it ("" if none)."""
+    entry = next((e for e in _folder_credits(str(Path(p).parent)) if e.get("file") == Path(p).name), None)
+    return commons.caption(entry) if entry else ""
+
+
+@lru_cache(maxsize=64)
+def _folder_credits(folder: str) -> tuple:
+    try:
+        return tuple(json.loads((Path(folder) / "credits.json").read_text(encoding="utf-8")).get("images", []))
+    except (OSError, ValueError):
+        return ()
 
 
 def _clip_label(p: Path) -> str:
@@ -228,7 +243,8 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
                 if p in graphics:
                     content += [{"type": "text", "text": f"Image {i} ({_clip_label(p)}):"}, image_block(p.with_suffix(".jpg"))]
                 else:
-                    content += [{"type": "text", "text": f"Image {i}:"}, image_block(p)]
+                    cap = _photo_caption(p)
+                    content += [{"type": "text", "text": f"Image {i}" + (f" ({cap}):" if cap else ":")}, image_block(p)]
             lines = "\n".join(f"Beat {i}: {b['text']}" for i, b in enumerate(beats, 1))
             fix = f"\n\nA reviewer found these problems with the previous choice; fix them:\n{feedback}" if feedback else ""
             content.append({"type": "text", "text": (

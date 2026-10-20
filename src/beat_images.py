@@ -67,14 +67,20 @@ def source(beats: List[Dict[str, Any]], topic: Dict[str, Any], work_dir: Path, p
             log.warning("Beat image planning failed: %s", e)
             return [], []
     work_dir.mkdir(parents=True, exist_ok=True)
+    loc = topic.get("location") or {}
+    place = ({"lat": loc["latitude"], "lon": loc["longitude"]}
+             if loc.get("latitude") and loc.get("longitude") else None)
     paths, credits, seen = [], [], set()
     for item in plan.items[:MAX_BEATS]:
         try:
             found = 0
-            # Short wait cap: a rate-limited Commons shouldn't stall a production run.
-            for cand in commons.candidates(commons.search(item.query, limit=30, max_wait=60), item.keywords,
-                                            config.BEAT_IMAGES_ALLOW_SHARE_ALIKE):
-                if cand["title"] in seen:
+            # Short wait cap: a rate-limited Commons shouldn't stall a production run. Results are
+            # ranked by what their metadata says they show (commons.relevance), best first.
+            ranked = commons.best_first(list(commons.candidates(commons.search(item.query, limit=30, max_wait=60),
+                                                                item.keywords, config.BEAT_IMAGES_ALLOW_SHARE_ALIKE)),
+                                        item.keywords, place)
+            for cand in ranked:
+                if cand["title"] in seen or cand["relevance"] <= 0:
                     continue
                 if not verify_visual_relevance(cand["title"], item.query):
                     continue
@@ -89,6 +95,11 @@ def source(beats: List[Dict[str, Any]], topic: Dict[str, Any], work_dir: Path, p
                     break
         except (requests.RequestException, OSError, Image.DecompressionBombError) as e:
             log.warning("Beat %d image search failed (%s); continuing.", item.beat, e)
+    if credits:  # the same record a topic folder keeps, so the scene planner can caption these too
+        import json
+        (work_dir / "credits.json").write_text(json.dumps(
+            {"reviewed": False, "images": [{**c, "file": Path(c["file"]).name} for c in credits]},
+            indent=2, ensure_ascii=False), encoding="utf-8")
     log.info("Beat images: %d candidates for %d beats.", len(paths), len(plan.items))
     return paths, credits
 

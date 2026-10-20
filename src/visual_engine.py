@@ -34,18 +34,6 @@ WHITE = (255, 255, 255, 255)
 SAFE_TEXT_WIDTH = VIDEO_WIDTH - 2 * 110
 COVER_STYLES = ("badge", "lower_third", "minimal", "depth_sandwich")
 
-# The shared Cappadocia photo suite in assets/ only depicts the Derinkuyu topic.
-SHARED_SUITE = {
-    "derinkuyu_underground_city": [
-        "scene1_stairs.jpg", "scene07_ozkonak_entrance.jpg", "scene2_tunnel.jpg",
-        "scene08_ozkonak_tunnel.jpg", "scene3_door.jpg", "scene09_kaymakli_arch.jpg",
-        "scene4_pillars.jpg", "scene5_room.jpg", "scene13_derinkuyu_church.jpg",
-        "scene10_goreme_town.jpg", "scene11_panorama.jpg", "scene12_uchisar.jpg",
-        "scene2_tunnel.jpg",  # match-cut ending
-    ],
-}
-
-
 class MissingAssetsError(FileNotFoundError):
     pass
 
@@ -156,8 +144,6 @@ class VisualEngine:
                 p for p in topic_dir.iterdir()
                 if p.suffix.lower() in (".jpg", ".jpeg", ".png") and p.name != CONTACT_SHEET
             )
-        if len(resolved) < MIN_SCENE_IMAGES and tid in SHARED_SUITE:
-            resolved = [self.assets_dir / name for name in SHARED_SUITE[tid] if (self.assets_dir / name).exists()]
 
         if len(resolved) < MIN_SCENE_IMAGES:
             raise MissingAssetsError(

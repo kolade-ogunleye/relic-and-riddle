@@ -12,7 +12,8 @@ TOPIC = {"title": "Derinkuyu", "location": {"name": "Derinkuyu", "country": "Tur
 
 def _cand(title, licence="CC BY 4.0"):
     return {"title": title, "download_url": f"https://x/{title}", "source_url": "", "artist": "Ann",
-            "license": licence, "license_url": "", "attribution_required": True}
+            "license": licence, "license_url": "", "attribution_required": True,
+            "description": "Derinkuyu underground city"}  # real candidates always name the subject
 
 
 def test_source_downloads_up_to_two_per_beat_and_skips_duplicates(monkeypatch, tmp_path):

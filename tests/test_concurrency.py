@@ -174,9 +174,7 @@ def _resumable_run(db, monkeypatch, tmp_path, curated_payload):
     checkpoints = Checkpoints(run_dir)
     checkpoints.complete("script", {"topic": topic_inputs(topic), "engine": test_config.SCRIPT_ENGINE,
                                     "fact_sheet": file_inputs([sheet])}, [run_dir / "verified_script.json"])
-    checkpoints.complete("voice", {"script": curated_payload["narration_script"],
-        "voice": coord.audio_engine.voice, "rate": coord.audio_engine.rate, "pitch": coord.audio_engine.pitch,
-        "eleven_voice": coord.audio_engine.eleven_voice, "licensed_only": False},
+    checkpoints.complete("voice", coord.voice_inputs(curated_payload["narration_script"], dry_run=True),
         [run_dir / "voiceover.mp3", run_dir / "words.json", run_dir / "voice.json"])
     monkeypatch.setattr(coord.audio_engine, "get_duration", lambda p: 44.0)
     monkeypatch.setattr(coord.audio_engine, "generate_ambient_bed", lambda *a, **k: None)

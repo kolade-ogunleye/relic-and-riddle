@@ -105,6 +105,13 @@ GEMINI_MODEL = (os.getenv("GEMINI_MODEL") or "gemini-3.8-flash").strip()
 # Voice
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
 ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "pNInz6obpgDQGcFmaJgB")
+# eleven_v4: ElevenLabs' recommended narration model (same credit rate as multilingual_v2). If it
+# rejects the timestamped request, the call falls back to ELEVENLABS_FALLBACK_MODEL.
+ELEVENLABS_MODEL = (os.getenv("ELEVENLABS_MODEL") or "eleven_v4").strip()
+ELEVENLABS_FALLBACK_MODEL = (os.getenv("ELEVENLABS_FALLBACK_MODEL") or "eleven_multilingual_v2").strip()
+ELEVENLABS_SPEED = float(os.getenv("ELEVENLABS_SPEED") or 1.0)
+# Dry runs voice with the free licensed voice (Azure F0) so tests don't spend ElevenLabs credits.
+ELEVENLABS_IN_DRY_RUNS = os.getenv("ELEVENLABS_IN_DRY_RUNS", "false").lower() in ("true", "1", "yes")
 
 # Publisher 1: Upload-Post.com (https://docs.upload-post.com/api/upload-video/)
 UPLOAD_POST_API_KEY = os.getenv("UPLOAD_POST_API_KEY", "")

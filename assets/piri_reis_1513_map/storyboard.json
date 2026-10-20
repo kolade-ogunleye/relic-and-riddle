@@ -1,0 +1,47 @@
+[
+  {
+    "beat": 1,
+    "type": "HOOK",
+    "label": "Opening Hook",
+    "text": "In 1929, a 1513 Ottoman world map turned up in Istanbul, partly copied from a lost map by Christopher Columbus.",
+    "file": "01_commons.jpg",
+    "title": "File:Piri reis world map 01.jpg",
+    "license": "Public domain"
+  },
+  {
+    "beat": 2,
+    "type": "LANDSCAPE",
+    "label": "Terrain & Scale",
+    "text": "Compiled in 1513 by Ottoman admiral Piri Reis from about 20 source maps Rediscovered in 1929 in the Topkapi Palace library Piri Reis noted that he used a map drawn by Columbus, which has never been found Claims that it shows ice-free Antarctica are rejected by historians; the southern coast is usually read as a distorted South American coastline Only about a third of the original map survives",
+    "file": "03_commons.jpg",
+    "title": "File:Piri Reis - Map of the Coastline from Piran as Far as Izola - Walters W658178B - Full Page-edit.jpg",
+    "license": "Public domain"
+  },
+  {
+    "beat": 3,
+    "type": "INTERIOR",
+    "label": "Inner Structure",
+    "text": "Compiled in 1513 by Ottoman admiral Piri Reis from about 20 source maps Rediscovered in 1929 in the Topkapi Palace library Piri Reis noted that he used a map drawn by Columbus, which has never been found Claims that it shows ice-free Antarctica are rejected by historians; the southern coast is usually read as a distorted South American coastline Only about a third of the original map survives",
+    "file": "06_commons.jpg",
+    "title": "File:Ottoman Manuscript Atlas, by Piri Reis (W658 000750a).jpg",
+    "license": "Public domain"
+  },
+  {
+    "beat": 4,
+    "type": "ARTIFACT",
+    "label": "Physical Evidence",
+    "text": "Compiled in 1513 by Ottoman admiral Piri Reis from about 20 source maps Rediscovered in 1929 in the Topkapi Palace library Piri Reis noted that he used a map drawn by Columbus, which has never been found Claims that it shows ice-free Antarctica are rejected by historians; the southern coast is usually read as a distorted South American coastline Only about a third of the original map survives",
+    "file": "07_commons.jpg",
+    "title": "File:Ottoman Manuscript Atlas, by Piri Reis (W658 000750b).jpg",
+    "license": "Public domain"
+  },
+  {
+    "beat": 5,
+    "type": "SCHEMATIC",
+    "label": "Survey / Blueprint",
+    "text": "Compiled in 1513 by Ottoman admiral Piri Reis from about 20 source maps Rediscovered in 1929 in the Topkapi Palace library Piri Reis noted that he used a map drawn by Columbus, which has never been found Claims that it shows ice-free Antarctica are rejected by historians; the southern coast is usually read as a distorted South American coastline Only about a third of the original map survives",
+    "file": "02_commons.jpg",
+    "title": "File:Piri Reis - Oval World Map - Google Art Project.jpg",
+    "license": "Public domain"
+  }
+]

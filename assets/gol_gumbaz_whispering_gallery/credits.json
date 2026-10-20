@@ -1,4 +1,109 @@
 {
   "reviewed": false,
-  "images": []
+  "images": [
+    {
+      "title": "File:Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura 08.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/6/6d/Gol_Gumbaz%2C_the_mausoleum_of_Mohammed_Adil_Shah%2C_in_Vijaypura_08.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Gol_Gumbaz,_the_mausoleum_of_Mohammed_Adil_Shah,_in_Vijaypura_08.jpg",
+      "artist": "Pinakpani",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 4080,
+      "height": 1836,
+      "file": "01_commons.jpg"
+    },
+    {
+      "title": "File:Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura 01.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/fc/Gol_Gumbaz%2C_the_mausoleum_of_Mohammed_Adil_Shah%2C_in_Vijaypura_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Gol_Gumbaz,_the_mausoleum_of_Mohammed_Adil_Shah,_in_Vijaypura_01.jpg",
+      "artist": "Pinakpani",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 4080,
+      "height": 1836,
+      "file": "02_commons.jpg"
+    },
+    {
+      "title": "File:Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura 10.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/5e/Gol_Gumbaz%2C_the_mausoleum_of_Mohammed_Adil_Shah%2C_in_Vijaypura_10.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Gol_Gumbaz,_the_mausoleum_of_Mohammed_Adil_Shah,_in_Vijaypura_10.jpg",
+      "artist": "Pinakpani",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 3073,
+      "height": 1398,
+      "file": "03_commons.jpg"
+    },
+    {
+      "title": "File:Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura 12.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/5a/Gol_Gumbaz%2C_the_mausoleum_of_Mohammed_Adil_Shah%2C_in_Vijaypura_12.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Gol_Gumbaz,_the_mausoleum_of_Mohammed_Adil_Shah,_in_Vijaypura_12.jpg",
+      "artist": "Pinakpani",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 4080,
+      "height": 1836,
+      "file": "04_commons.jpg"
+    },
+    {
+      "title": "File:Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura 09.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/50/Gol_Gumbaz%2C_the_mausoleum_of_Mohammed_Adil_Shah%2C_in_Vijaypura_09.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Gol_Gumbaz,_the_mausoleum_of_Mohammed_Adil_Shah,_in_Vijaypura_09.jpg",
+      "artist": "Pinakpani",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 2951,
+      "height": 1468,
+      "file": "05_commons.jpg"
+    },
+    {
+      "title": "File:Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura 15.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/35/Gol_Gumbaz%2C_the_mausoleum_of_Mohammed_Adil_Shah%2C_in_Vijaypura_15.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Gol_Gumbaz,_the_mausoleum_of_Mohammed_Adil_Shah,_in_Vijaypura_15.jpg",
+      "artist": "Pinakpani",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 3264,
+      "height": 1468,
+      "file": "06_commons.jpg"
+    },
+    {
+      "title": "File:Mosque in the Gol Gumbaz complex 06.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/f2/Mosque_in_the_Gol_Gumbaz_complex_06.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Mosque_in_the_Gol_Gumbaz_complex_06.jpg",
+      "artist": "Pinakpani",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 4080,
+      "height": 1836,
+      "file": "07_commons.jpg"
+    },
+    {
+      "title": "File:Mosque in the Gol Gumbaz complex 05.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/78/Mosque_in_the_Gol_Gumbaz_complex_05.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Mosque_in_the_Gol_Gumbaz_complex_05.jpg",
+      "artist": "Pinakpani",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 4080,
+      "height": 1836,
+      "file": "08_commons.jpg"
+    }
+  ]
 }

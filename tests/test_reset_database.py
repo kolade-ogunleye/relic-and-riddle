@@ -35,3 +35,13 @@ def test_apply_backs_up_rebuilds_and_keeps_this_months_spend(db, tmp_path):
     settings = dict(new.execute("SELECT key, value FROM settings").fetchall())
     assert settings.get("topic_proposals_pending") == '{"x": 1}' and "scheduler_paused" not in settings
     assert {s for (s,) in new.execute("SELECT DISTINCT status FROM topics")} == {"queued"}
+
+
+def test_wipe_keeps_nothing_and_makes_no_backup(db, tmp_path):
+    _seed(db)
+    assert reset(db.db_path, tmp_path / "archive", apply=True, wipe=True) is None
+    assert not (tmp_path / "archive").exists()
+    new = sqlite3.connect(db.db_path)
+    assert new.execute("SELECT COUNT(*) FROM media_usage").fetchone()[0] == 0
+    assert new.execute("SELECT COUNT(*) FROM settings").fetchone()[0] == 0
+    assert new.execute("SELECT COUNT(*) FROM sqlite_sequence WHERE seq > 0").fetchone()[0] == 0

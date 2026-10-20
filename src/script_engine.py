@@ -209,6 +209,7 @@ def spoken_length_problems(pkg: ScriptPackage) -> List[str]:
     seconds = audio_engine.measure_spoken_seconds(pkg.narration_script)
     if seconds is None:
         return []
+    seconds *= audio_engine.pace_ratio(audio_engine.production_voice_key())  # the real voice's pace
     words = len(pkg.narration_script.split()) or 1
     per_word = seconds / words
     longest = HARD_DURATION_CEILING - _MEASURE_MARGIN_SEC

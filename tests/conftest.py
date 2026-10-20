@@ -36,6 +36,9 @@ def no_real_services(monkeypatch):
     monkeypatch.setattr("src.config.TELEGRAM_APPROVER_IDS", set())
     monkeypatch.setattr("src.config.GEMINI_FREE_API_KEY", "")
     monkeypatch.setattr("src.config.SCRIPT_ENGINE", "claude")  # free-engine tests opt in explicitly
+    # Settings a developer's .env changes must not change test outcomes; tests opt in explicitly.
+    monkeypatch.setattr("src.config.VOICE_REQUIRE_LICENSED", False)
+    monkeypatch.setattr("src.audio_engine.VOICE_PREFER", "elevenlabs")  # the code's default
     monkeypatch.setattr("src.telegram_bot.TELEGRAM_BOT_TOKEN", "")
     monkeypatch.setattr("src.telegram_bot.TELEGRAM_CHAT_ID", "")
     monkeypatch.setattr("src.telegram_bot.TELEGRAM_APPROVER_IDS", set())
@@ -71,6 +74,7 @@ def no_repo_writes(monkeypatch, tmp_path_factory):
     sandbox = tmp_path_factory.mktemp("repo_writes")
     monkeypatch.setattr("src.config.ISSUES_DIR", sandbox / "issues")
     monkeypatch.setattr("src.config.LOG_DIR", sandbox / "logs")
+    monkeypatch.setattr("src.audio_engine.PACE_FILE", sandbox / "voice_pace.json")
     library = sandbox / "library.json"
     if music.LIBRARY.exists():
         library.write_bytes(music.LIBRARY.read_bytes())

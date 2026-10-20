@@ -33,7 +33,11 @@ from .config import (
     NARRATOR_VOICE,
     NARRATOR_RATE,
     NARRATOR_PITCH,
+    DATA_DIR,
     ELEVENLABS_API_KEY,
+    ELEVENLABS_FALLBACK_MODEL,
+    ELEVENLABS_MODEL,
+    ELEVENLABS_SPEED,
     ELEVENLABS_VOICE_ID,
     VOICE_PREFER,
     SFX_DIR,
@@ -125,6 +129,57 @@ def measure_spoken_seconds(text: str) -> Optional[float]:
             pass
 
 
+PACE_FILE = DATA_DIR / "voice_pace.json"
+
+
+def voice_key(provider: str, voice: str, model: str = "") -> str:
+    return ":".join(p for p in (provider, voice, model) if p)
+
+
+def production_voice_key() -> str:
+    """The voice a real run will use first (VOICE_PREFER), for its measured pace."""
+    if VOICE_PREFER == "elevenlabs" and is_configured(ELEVENLABS_API_KEY):
+        return voice_key("elevenlabs", ELEVENLABS_VOICE_ID, ELEVENLABS_MODEL)
+    return voice_key("azure", NARRATOR_VOICE)
+
+
+def record_pace(key: str, measured: float, actual: float) -> None:
+    """Remembers how a real voice's length compares with the free measurement (last 10)."""
+    import json
+    if measured <= 0 or actual <= 0:
+        return
+    try:
+        data = json.loads(PACE_FILE.read_text(encoding="utf-8")) if PACE_FILE.exists() else {}
+    except (OSError, ValueError):
+        data = {}
+    data[key] = (data.get(key, []) + [round(actual / measured, 4)])[-10:]
+    PACE_FILE.write_text(json.dumps(data, indent=1), encoding="utf-8")
+
+
+def calibrate_pace(provider: str, voice: str, text: str, actual_seconds: float) -> None:
+    """After a real voiceover: record its length against the free measurement of the same text."""
+    if provider == "edge-tts":
+        return  # the measurement itself
+    key = voice_key("elevenlabs", voice, ELEVENLABS_MODEL) if provider == "elevenlabs" else voice_key(provider, voice)
+    try:
+        measured = measure_spoken_seconds(text)
+        if measured:
+            record_pace(key, measured, actual_seconds)
+    except Exception as e:  # calibration must never fail a run
+        log.warning("Could not record the voice pace: %s", e)
+
+
+def pace_ratio(key: str) -> float:
+    """Median real/measured length ratio for this voice; 1.0 until it has been measured."""
+    import json
+    import statistics
+    try:
+        ratios = json.loads(PACE_FILE.read_text(encoding="utf-8")).get(key, [])
+    except (OSError, ValueError):
+        return 1.0
+    return statistics.median(ratios) if ratios else 1.0
+
+
 def split_boundary(text: str, start: float, dur: float) -> Words:
     """Azure can report "In 1963" as one word boundary; captions need single words, so the
     time is shared out by character count."""
@@ -211,14 +266,24 @@ class AudioEngine:
         self.azure_key = azure_key if azure_key is not None else AZURE_SPEECH_KEY
         self.azure_region = azure_region if azure_region is not None else AZURE_SPEECH_REGION
 
+    @staticmethod
+    def eleven_payload(text: str, model: str) -> Dict[str, Any]:
+        """Request body for one model: style and speaker boost exist only on the v2 models."""
+        settings: Dict[str, Any] = {"stability": 0.50, "similarity_boost": 0.85, "speed": ELEVENLABS_SPEED}
+        if model.startswith(("eleven_multilingual_v2", "eleven_monolingual")):
+            settings.update(style=0.35, use_speaker_boost=True)
+        return {"text": text, "model_id": model, "voice_settings": settings}
+
     def _generate_elevenlabs(self, text: str, output_path: Path) -> Words:
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{self.eleven_voice}/with-timestamps"
-        payload = {
-            "text": text,
-            "model_id": "eleven_multilingual_v2",
-            "voice_settings": {"stability": 0.50, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True},
-        }
-        resp = requests.post(url, headers={"xi-api-key": self.eleven_key}, json=payload, timeout=120)
+        resp = requests.post(url, headers={"xi-api-key": self.eleven_key},
+                             json=self.eleven_payload(text, ELEVENLABS_MODEL), timeout=120)
+        if resp.status_code in (400, 422) and ELEVENLABS_FALLBACK_MODEL and ELEVENLABS_FALLBACK_MODEL != ELEVENLABS_MODEL:
+            # The model may not support timestamped output (or these settings); a rejected request is not billed.
+            log.warning("ElevenLabs %s rejected the request (HTTP %d); using %s.", ELEVENLABS_MODEL,
+                        resp.status_code, ELEVENLABS_FALLBACK_MODEL)
+            resp = requests.post(url, headers={"xi-api-key": self.eleven_key},
+                                 json=self.eleven_payload(text, ELEVENLABS_FALLBACK_MODEL), timeout=120)
         resp.raise_for_status()
         data = resp.json()
 
@@ -314,8 +379,10 @@ class AudioEngine:
         quota = self.voice_quota()
         return bool(quota and quota.get("tier") and quota["tier"] != "free")
 
-    def generate_narration(self, text: str, output_path: Path, licensed_only: bool = False) -> Words:
-        """licensed_only (real runs): skip unlicensed voices; raise NoLicensedVoice if none is left."""
+    def generate_narration(self, text: str, output_path: Path, licensed_only: bool = False,
+                           allow_paid: bool = True) -> Words:
+        """licensed_only (real runs): skip unlicensed voices; raise NoLicensedVoice if none is left.
+        allow_paid=False (dry runs): don't spend ElevenLabs credits."""
         orig_text = text
         text = normalize_speech_text(text)
         self.fallback_reason = ""
@@ -323,6 +390,8 @@ class AudioEngine:
 
         def _try_elevenlabs():
             if not is_configured(self.eleven_key):
+                return None
+            if not allow_paid:  # a test run on the free voice by design, not a fallback
                 return None
             quota = self.voice_quota()
             licensed = bool(quota and quota.get("tier") and quota["tier"] != "free")

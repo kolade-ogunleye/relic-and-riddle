@@ -54,3 +54,7 @@ archive/legacy_data/
 
 # Database backups made by scripts/reset_database.py
 archive/db_reset/
+
+# Local copies of the secrets file (the template stays tracked)
+.env.*
+!.env.example

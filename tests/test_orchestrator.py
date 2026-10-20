@@ -119,10 +119,8 @@ def test_resume_reuses_passed_script_and_voiceover(db, monkeypatch, tmp_path, cu
         "fact_sheet": file_inputs([pipeline_config.DATA_DIR / "fact_sheets" / "01_topic.json"])},
         [run_dir / "verified_script.json"])
     (run_dir / "voice.json").write_text(json.dumps({"provider": "edge-tts", "licensed": False}))
-    checkpoints.complete("voice", {"script": curated_payload["narration_script"],
-        "voice": coord.audio_engine.voice, "rate": coord.audio_engine.rate,
-        "pitch": coord.audio_engine.pitch, "eleven_voice": coord.audio_engine.eleven_voice,
-        "licensed_only": False}, [run_dir / "voiceover.mp3", run_dir / "words.json", run_dir / "voice.json"])
+    checkpoints.complete("voice", coord.voice_inputs(curated_payload["narration_script"], dry_run=True),
+        [run_dir / "voiceover.mp3", run_dir / "words.json", run_dir / "voice.json"])
     for name in ("generate_script", "verify_claims"):
         monkeypatch.setattr(coord.script_engine, name, lambda *a, **k: pytest.fail("script was regenerated"))
     monkeypatch.setattr(coord.audio_engine, "generate_narration", lambda *a, **k: pytest.fail("voice was regenerated"))

@@ -1,0 +1,47 @@
+[
+  {
+    "beat": 1,
+    "type": "HOOK",
+    "label": "Opening Hook",
+    "text": "Under one of the largest domes of the pre-modern world, in Vijayapura, India, a whisper can carry right across the gallery.",
+    "file": "01_commons.jpg",
+    "title": "File:Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura 08.jpg",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 2,
+    "type": "LANDSCAPE",
+    "label": "Terrain & Scale",
+    "text": "Mausoleum of Sultan Mohammed Adil Shah, completed in 1656 Its dome is about 44 m across externally, among the largest pre-modern domes A whispering gallery runs around the base of the dome Sounds are said to echo many times, often quoted as seven or more Located in Vijayapura (formerly Bijapur), Karnataka",
+    "file": "02_commons.jpg",
+    "title": "File:Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura 01.jpg",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 3,
+    "type": "INTERIOR",
+    "label": "Inner Structure",
+    "text": "Mausoleum of Sultan Mohammed Adil Shah, completed in 1656 Its dome is about 44 m across externally, among the largest pre-modern domes A whispering gallery runs around the base of the dome Sounds are said to echo many times, often quoted as seven or more Located in Vijayapura (formerly Bijapur), Karnataka",
+    "file": "03_commons.jpg",
+    "title": "File:Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura 10.jpg",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 4,
+    "type": "ARTIFACT",
+    "label": "Physical Evidence",
+    "text": "Mausoleum of Sultan Mohammed Adil Shah, completed in 1656 Its dome is about 44 m across externally, among the largest pre-modern domes A whispering gallery runs around the base of the dome Sounds are said to echo many times, often quoted as seven or more Located in Vijayapura (formerly Bijapur), Karnataka",
+    "file": "04_commons.jpg",
+    "title": "File:Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura 12.jpg",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 5,
+    "type": "SCHEMATIC",
+    "label": "Survey / Blueprint",
+    "text": "Mausoleum of Sultan Mohammed Adil Shah, completed in 1656 Its dome is about 44 m across externally, among the largest pre-modern domes A whispering gallery runs around the base of the dome Sounds are said to echo many times, often quoted as seven or more Located in Vijayapura (formerly Bijapur), Karnataka",
+    "file": "05_commons.jpg",
+    "title": "File:Gol Gumbaz, the mausoleum of Mohammed Adil Shah, in Vijaypura 09.jpg",
+    "license": "CC BY 4.0"
+  }
+]

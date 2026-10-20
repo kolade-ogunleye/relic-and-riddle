@@ -60,6 +60,32 @@
       "license_url": "",
       "attribution_required": false,
       "file": "06_commons.jpg"
+    },
+    {
+      "title": "File:Náhorní plošina Nasca - panoramio.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/d/de/N%C3%A1horn%C3%AD_plo%C5%A1ina_Nasca_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:N%C3%A1horn%C3%AD_plo%C5%A1ina_Nasca_-_panoramio.jpg",
+      "artist": "Pavel Špindler",
+      "license": "CC BY 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0",
+      "attribution_required": true,
+      "year": 2008,
+      "width": 3872,
+      "height": 2592,
+      "file": "07_commons.jpg"
+    },
+    {
+      "title": "File:Nasca - Triangulos - panoramio.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/0/08/Nasca_-_Triangulos_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Nasca_-_Triangulos_-_panoramio.jpg",
+      "artist": "Pavel Špindler",
+      "license": "CC BY 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0",
+      "attribution_required": true,
+      "year": 2008,
+      "width": 3872,
+      "height": 2592,
+      "file": "08_commons.jpg"
     }
   ]
 }

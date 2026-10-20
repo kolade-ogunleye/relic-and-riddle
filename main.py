@@ -343,16 +343,15 @@ class PipelineCoordinator:
             # 3. Audio generation
             vo_path = run_dir / "voiceover.mp3"
             words_path = run_dir / "words.json"
-            licensed_req = (not dry_run) and config.VOICE_REQUIRE_LICENSED
-            voice_inputs = {"script": raw_narration, "voice": self.audio_engine.voice,
-                            "rate": self.audio_engine.rate, "pitch": self.audio_engine.pitch,
-                            "eleven_voice": self.audio_engine.eleven_voice, "licensed_only": licensed_req}
+            voice_inputs = self.voice_inputs(raw_narration, dry_run)
+            licensed_req, allow_paid = voice_inputs["licensed_only"], voice_inputs["allow_paid"]
             if checkpoints.reusable("deep_voice", voice_inputs):
                 words = json.loads(words_path.read_text(encoding="utf-8"))
                 vo_dur = self.audio_engine.get_duration(vo_path)
                 log.info("Deep-Dive Voiceover: reusing existing audio (%.2fs, %d words timed)", vo_dur, len(words))
             else:
-                words = self.audio_engine.generate_narration(raw_narration, vo_path, licensed_only=licensed_req)
+                words = self.audio_engine.generate_narration(raw_narration, vo_path, licensed_only=licensed_req,
+                                                             allow_paid=allow_paid)
                 words_path.write_text(json.dumps(words), encoding="utf-8")
                 vo_dur = self.audio_engine.get_duration(vo_path)
                 log.info("Deep-Dive Voiceover: %.2fs (%d words timed)", vo_dur, len(words))
@@ -690,6 +689,15 @@ class PipelineCoordinator:
             ping_healthcheck("/fail")
             raise
 
+    def voice_inputs(self, script: str, dry_run: bool) -> Dict[str, Any]:
+        """What a voiceover depends on (its checkpoint inputs): a change to any of these re-voices.
+        Real runs need a licensed voice; dry runs don't spend ElevenLabs credits."""
+        return {"script": script, "voice": self.audio_engine.voice, "rate": self.audio_engine.rate,
+                "pitch": self.audio_engine.pitch, "eleven_voice": self.audio_engine.eleven_voice,
+                "eleven_model": config.ELEVENLABS_MODEL,
+                "licensed_only": (not dry_run) and config.VOICE_REQUIRE_LICENSED,
+                "allow_paid": (not dry_run) or config.ELEVENLABS_IN_DRY_RUNS}
+
     def _produce_and_publish(self, topic, run_id, run_dir, auto_approve, dry_run, previous_status) -> Dict[str, Any]:
         self.progress_msg_id = None
         try:
@@ -742,17 +750,20 @@ class PipelineCoordinator:
         saved_voice = json.loads(voice_path.read_text(encoding="utf-8")) if voice_path.exists() else {}
         # A real run never reuses an unlicensed (test) voiceover. Older runs without voice.json
         # predate this record, so they are re-voiced too.
-        licensed_req = (not dry_run) and config.VOICE_REQUIRE_LICENSED
-        voice_inputs = {"script": payload["narration_script"], "voice": self.audio_engine.voice,
-                        "rate": self.audio_engine.rate, "pitch": self.audio_engine.pitch,
-                        "eleven_voice": self.audio_engine.eleven_voice, "licensed_only": licensed_req}
+        voice_inputs = self.voice_inputs(payload["narration_script"], dry_run)
+        licensed_req, allow_paid = voice_inputs["licensed_only"], voice_inputs["allow_paid"]
         t0 = time.perf_counter()
         reusable = checkpoints.reusable("voice", voice_inputs) and (dry_run or not config.VOICE_REQUIRE_LICENSED or saved_voice.get("licensed"))
         if reusable:
             words = json.loads(words_path.read_text(encoding="utf-8"))
             log.info("Resuming with the existing voiceover.")
         else:
-            words = self.audio_engine.generate_narration(payload["narration_script"], vo_path, licensed_only=licensed_req)
+            words = self.audio_engine.generate_narration(payload["narration_script"], vo_path, licensed_only=licensed_req,
+                                                         allow_paid=allow_paid)
+            from src.audio_engine import calibrate_pace
+            calibrate_pace(self.audio_engine.last_provider,
+                           self.audio_engine.eleven_voice if self.audio_engine.last_provider == "elevenlabs" else self.audio_engine.voice,
+                           payload["narration_script"], self.audio_engine.get_duration(vo_path))
             words_path.write_text(json.dumps(words), encoding="utf-8")
             voice_path.write_text(json.dumps({"provider": self.audio_engine.last_provider,
                                               "licensed": self.audio_engine.last_licensed}), encoding="utf-8")

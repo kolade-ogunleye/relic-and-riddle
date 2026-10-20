@@ -5,6 +5,8 @@ from PIL import Image
 
 from src import media_budget, motion
 
+_REAL_FINISH = motion._finish  # the autouse fixture below stubs it for the API tests
+
 
 class R:
     def __init__(self, data, status=200):
@@ -78,3 +80,22 @@ def test_apply_is_off_without_budget_and_skips_videos(monkeypatch, db, photo, tm
     assert scenes[0] == clip and scenes[1].name.startswith("motion_") and used == ["veo"]
     motion.apply(db, [clip, photo], tmp_path / "m", memo=memo)  # a re-plan with the same photo
     assert len(paid) == 1  # reused, not paid twice
+
+
+def test_rejected_clip_is_kept_with_its_measurements(monkeypatch, tmp_path):
+    # A rejected clip was paid for; keeping it and the geometry numbers is what lets the threshold
+    # be calibrated from real cases instead of guessed.
+    import json
+    import subprocess
+    raw = tmp_path / "raw.mp4"
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", "testsrc=size=320x568:rate=30:duration=6.5",
+                    "-pix_fmt", "yuv420p", str(raw)], check=True)
+    qa = {"pass": False, "reason": "Inlier ratio below threshold (0.19 < 0.25)", "inlier_ratio": 0.19, "inliers": 40}
+    monkeypatch.setattr(motion, "verify_motion_hook_integrity", lambda f0, f1, archetype: qa)
+    out = tmp_path / "motion_01.mp4"
+    with pytest.raises(motion.MotionError):
+        _REAL_FINISH(raw, out)
+    kept = tmp_path / "rejected"
+    assert not out.exists() and (kept / "motion_01.mp4").is_file()
+    assert json.loads((kept / "motion_01.qa.json").read_text())["inlier_ratio"] == 0.19
+    assert (kept / "motion_01_verify_f0.jpg").is_file() and (kept / "motion_01_verify_fend.jpg").is_file()

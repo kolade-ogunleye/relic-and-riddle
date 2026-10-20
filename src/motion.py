@@ -197,6 +197,23 @@ def _jpeg_b64(image: Path) -> str:
     return base64.b64encode(buf.getvalue()).decode()
 
 
+def _keep_rejected(clip: Path, frames: List[Path], qa: Dict[str, Any]) -> None:
+    """A rejected clip was paid for: keep it, the frames the check compared and its measurements in
+    rejected/ beside it, so the geometry threshold can be calibrated from real cases (and the
+    operator can see what was refused). It is never used in a video from there."""
+    kept = clip.parent / "rejected"
+    kept.mkdir(exist_ok=True)
+    try:
+        clip.replace(kept / clip.name)
+        for frame in frames:
+            if frame.exists():
+                frame.replace(kept / frame.name)
+        (kept / f"{clip.stem}.qa.json").write_text(json.dumps(qa, indent=1, default=str), encoding="utf-8")
+    except OSError as e:
+        log.warning("Could not keep the rejected clip (%s); deleting it.", e)
+        clip.unlink(missing_ok=True)
+
+
 def _finish(raw: Path, out: Path, archetype: str = "megastructure") -> Path:
     """Probe locally, keep SECONDS_OUT, drop audio, re-encode to 1080x1920 H.264, and verify homography."""
     info = probe(raw)
@@ -218,12 +235,12 @@ def _finish(raw: Path, out: Path, archetype: str = "megastructure") -> Path:
     f0 = out.with_name(f"{out.stem}_verify_f0.jpg")
     f_end = out.with_name(f"{out.stem}_verify_fend.jpg")
     try:
-        subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", "00:00:00.2", "-i", str(out), "-frames:v", "1", str(f0)], check=True)
-        subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", f"00:00:0{int(SECONDS_OUT - 1.2)}", "-i", str(out), "-frames:v", "1", str(f_end)], check=True)
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", "0.2", "-i", str(out), "-frames:v", "1", str(f0)], check=True)
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", f"{SECONDS_OUT - 1.2:.2f}", "-i", str(out), "-frames:v", "1", str(f_end)], check=True)
         qa = verify_motion_hook_integrity(f0, f_end, archetype=archetype)
         if not qa.get("pass", False):
             log.warning("AI video motion hook failed anti-hallucination verification: %s", qa.get("reason"))
-            out.unlink(missing_ok=True)
+            _keep_rejected(out, [f0, f_end], qa)
             raise MotionError(f"Anti-hallucination homography check failed: {qa.get('reason')}")
         log.info("AI motion hook verified: %s (inliers=%d, ratio=%.2f)", qa.get("reason"), qa.get("inliers", 0), qa.get("inlier_ratio", 0.0))
     finally:

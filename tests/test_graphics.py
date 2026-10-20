@@ -184,3 +184,21 @@ def test_stratigraphy_schematics_and_cross_hatching(tmp_path):
     assert clip_strat.exists() and clip_strat.with_suffix(".jpg").exists()
 
 
+
+
+def test_cross_section_shows_a_level_at_the_full_depth(tmp_path):
+    # A label faded in over the next 8% of digging after the shaft reached it, so a level at the
+    # total depth (usually the deepest, headline feature) never became visible.
+    import subprocess
+    from PIL import Image, ImageChops
+    base = {"subject": "Derinkuyu", "total_depth_ft": 280,
+            "levels": [{"depth_ft": 20, "label": "Stables"}, {"depth_ft": 150, "label": "Chapel"}]}
+    wells = {**base, "levels": base["levels"] + [{"depth_ft": 280, "label": "Wells"}]}
+    cisterns = {**base, "levels": base["levels"] + [{"depth_ft": 280, "label": "Cisterns"}]}
+    frames = []  # same layout, different label: identical frames mean the label is invisible
+    for name, spec in (("wells", wells), ("cisterns", cisterns)):
+        out = graphics.render_cross_section(spec, tmp_path / f"{name}.mp4", width=540, height=960)
+        png = tmp_path / f"{name}.png"
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-sseof", "-0.5", "-i", str(out), "-frames:v", "1", str(png)], check=True)
+        frames.append(Image.open(png).convert("L"))
+    assert ImageChops.difference(*frames).getbbox() is not None  # the deepest label is drawn

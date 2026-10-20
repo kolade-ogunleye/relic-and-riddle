@@ -723,11 +723,14 @@ def render_cross_section(cs: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH
             y_now = ground + depth_now * scale
             d.rectangle([shaft_x - 22, ground, shaft_x + 22, y_now], fill=(18, 16, 14, 255))
             for idx, lv in enumerate(levels):
-                if lv["depth_ft"] > depth_now:
+                # A label fades in over the next 8% of the dig; one at the very bottom starts that
+                # fade 8% earlier, or it would never become visible.
+                reveal_at = min(lv["depth_ft"], total * 0.92)
+                if reveal_at > depth_now:
                     continue
                 y_phys = phys_ys[idx]
                 y_t = target_ys[idx]
-                a = int(255 * _ease((depth_now - lv["depth_ft"]) / (total * 0.08) if total else 1))
+                a = int(255 * _ease((depth_now - reveal_at) / (total * 0.08) if total else 1))
 
                 # Chamber rect & leader line
                 if abs(y_t - y_phys) > 4:

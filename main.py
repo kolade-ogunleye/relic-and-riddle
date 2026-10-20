@@ -216,6 +216,7 @@ class PipelineCoordinator:
 
         try:
             result = self._produce_and_publish(topic, run_id, run_dir, auto_approve, dry_run, previous_status)
+            self._finish_progress(topic.get("title", tid), run_id, success=True)
             self._collect_findings(run_id, run_dir, tid)
         except FactStarvedTopicError as e:
             self._collect_findings(run_id, run_dir, tid, error=f"FactStarvedTopicError: {e}")
@@ -271,6 +272,18 @@ class PipelineCoordinator:
                 result["deep_dive_run"] = {"status": "failed", "error": str(e)}
 
         return result
+
+    def _finish_progress(self, title: str, run_id: str, success: bool, error: str = "") -> None:
+        """Ends the run's progress card and its 'in production' record (idempotent)."""
+        mid, self.progress_msg_id = getattr(self, "progress_msg_id", None), None
+        try:
+            if mid:
+                self.telegram_bot.finish_progress_card(mid, title, run_id, success=success, error=error)
+            active = self.db.get_active_progress() if hasattr(self.db, "get_active_progress") else None
+            if active and active.get("run_id") == run_id:
+                self.db.clear_active_progress()
+        except Exception as e:
+            log.debug("Could not finish the progress card: %s", e)
 
     def _collect_findings(self, run_id: str, run_dir: Path, topic_id: str, error: Optional[str] = None) -> None:
         """Files what this run found into the improvement ledger (never fails the run)."""
@@ -1247,18 +1260,13 @@ class PipelineCoordinator:
         from src.release import write_release_report
         write_release_report(self.db.get_run(run_id), dry_run=dry_run)
 
-        # 8-9. Human approval (never implicit)
+        # 8-9. Human approval (never implicit). The production card is finished either way.
+        self._finish_progress(topic.get("title", tid), run_id, success=True)
         if auto_approve:
             self.db.record_approval(run_id, tid)
             self.db.update_approval_decision(run_id, "approved", decided_by="auto-approve-flag")
             decision = "approved"
         else:
-            if getattr(self, "progress_msg_id", None):
-                try:
-                    self.telegram_bot.finish_progress_card(self.progress_msg_id, topic["title"], run_id, success=True)
-                except Exception:
-                    pass
-                self.progress_msg_id = None
             self.telegram_bot.send_approval_request(review_mp4, thumb_916, payload, run_id)
             decision = self.telegram_bot.wait_for_decision(run_id, self._approval_window())
 

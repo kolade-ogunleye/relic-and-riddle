@@ -122,3 +122,10 @@ def test_a_graphic_is_never_shown_twice(tmp_path, monkeypatch):
     monkeypatch.setattr(sp, "structured_call", lambda *a, **k: sp.ScenePlan(images=[1, 4, 2], notes="planner"))
     scenes, _, _ = sp.plan_scenes(beats, photos + [place])
     assert scenes.count(place) == 1 and scenes[2] == place  # kept where the narration names the place
+
+
+def test_no_picture_repeats_while_unused_photos_remain():
+    from pathlib import Path
+    a, b, c, d, g = (Path(x) for x in ("a.jpg", "b.jpg", "c.jpg", "d.jpg", "graphic_map.mp4"))
+    assert sp.no_repeats([a, g, b, a, g, b], [a, b, c, d]) == [a, g, b, c, d, b]  # 2 unused photos fill 2 repeats
+    assert sp.no_repeats([a, b, a], [a, b]) == [a, b, a]                          # too few photos: a repeat stays

@@ -566,9 +566,18 @@ class PipelineDatabase:
         self.set_setting("active_progress", json.dumps(payload))
 
     def get_active_progress(self) -> Optional[Dict[str, Any]]:
-        """Returns the active running render state, or None if idle."""
+        """Returns the active running render state, or None if idle. A record whose run is no longer
+        being made (it finished, failed or was approved) is stale: it is cleared and None returned."""
         val = self.get_setting("active_progress")
         if not val:
+            return None
+        try:
+            run_id = json.loads(val).get("run_id")
+        except (ValueError, AttributeError):
+            run_id = None
+        run = self.get_run(run_id) if run_id else None
+        if run is not None and run.get("status") != "producing":
+            self.clear_active_progress()
             return None
         try:
             return json.loads(val)

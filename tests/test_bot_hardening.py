@@ -90,3 +90,13 @@ def test_a_reused_clip_stays_on_its_own_photo(monkeypatch, db, tmp_path):
     memo = {str(a): (clip, "kling")}
     scenes, used = motion.apply(db, [b, a], tmp_path / "m", memo=memo)  # the re-plan moved photo a to beat 2
     assert scenes == [b, clip] and used == ["kling"]
+
+
+def test_progress_of_a_finished_run_is_not_kept_alive(db):
+    # The Kailasa dry run ended as "simulated" but its card stayed "in production", and /clear
+    # kept re-posting it. A record whose run is no longer being made is stale and cleared.
+    db.create_run("run_a", "01_topic")
+    db.set_active_progress(run_id="run_a", topic_title="T", step=4, total_steps=5, message_id=696)
+    assert db.get_active_progress()["message_id"] == 696      # still producing: kept
+    db.update_run("run_a", "simulated")
+    assert db.get_active_progress() is None and db.get_setting("active_progress") is None

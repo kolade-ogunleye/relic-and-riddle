@@ -308,6 +308,23 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
             if Path(chosen[k]).stem.startswith("graphic_") and not (keep_locked and k in locked):
                 chosen[k] = stills[k % len(stills)]
             k -= 1
+    chosen = no_repeats(chosen, stills)
     if hook is not None:
         chosen[0] = hook
     return chosen, durations, notes
+
+
+def no_repeats(chosen: List[Path], stills: List[Path]) -> List[Path]:
+    """No picture is shown twice while the pool still has unused photos: a repeat reads as padding.
+    The swaps above take stills[k % n], which can be a photo already on another beat. Later copies
+    get the pool's next unused photo (the pool is ordered best-first); with fewer photos than beats,
+    repeats are unavoidable and stay."""
+    unused = [s for s in stills if s not in chosen]
+    seen = set()
+    out = []
+    for p in chosen:
+        if p in seen and unused:
+            p = unused.pop(0)
+        seen.add(p)
+        out.append(p)
+    return out

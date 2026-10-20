@@ -1136,45 +1136,12 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             db.set_setting(PAUSED_KEY, "false")
             return f"▶️ Scheduled runs and posts resumed. Next: {html.escape(next_run() or 'not scheduled')}"
         if command == "footage":
-            parts = args.split(None, 1)
-            if not parts:
-                return "Usage: /footage &lt;topic_id_or_number&gt; &lt;url&gt;\nExample: /footage 1 https://www.youtube.com/watch?v=..."
-            topic_ref = parts[0]
-            url = parts[1].strip() if len(parts) > 1 else ""
-            try:
-                topic_dir = _resolve_topic_dir(topic_ref, assets_dir, db=db)
-            except Exception as e:
-                return f"⚠️ Could not resolve topic '{html.escape(topic_ref)}': {html.escape(str(e))}"
-            if not url:
-                return "Please provide a video URL.\nUsage: /footage &lt;topic_id_or_number&gt; &lt;url&gt;"
-            footage_dir = topic_dir / "footage"
-            footage_dir.mkdir(parents=True, exist_ok=True)
-            try:
-                import yt_dlp
-                ydl_opts = {
-                    "format": "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best",
-                    "outtmpl": str(footage_dir / "curated_footage.%(ext)s"),
-                    "max_filesize": 150_000_000,
-                    "quiet": True,
-                    "no_warnings": True,
-                }
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    info = ydl.extract_info(url, download=True)
-                    title = info.get("title", "Curated Clip")
-                    uploader = info.get("uploader") or info.get("channel") or "Unknown"
-                cand = {
-                    "provider": "curated",
-                    "title": title,
-                    "artist": uploader,
-                    "source_url": url,
-                    "license": "Curated Documentary Footage",
-                    "attribution_required": True,
-                }
-                (footage_dir / "curated_footage.json").write_text(json.dumps(cand, indent=2, ensure_ascii=False), encoding="utf-8")
-                return f"✅ Footage saved for <b>{html.escape(topic_dir.name)}</b>: <i>{html.escape(title)}</i> ({html.escape(uploader)})"
-            except Exception as e:
-                log.exception("Footage download failed")
-                return f"⚠️ Failed to download footage: {html.escape(str(e))[:300]}"
+            # Footage is supplied as a file the operator holds the rights to (send the video with the
+            # caption "/footage <topic>"). Links are not downloaded: a downloaded clip carries no licence
+            # evidence, and downloading from YouTube conflicts with its Terms of Service.
+            return ("🎥 <b>Add footage:</b> send the video file itself to this chat with the caption "
+                    "<code>/footage &lt;topic_id_or_number&gt;</code>.\n"
+                    "<i>Links aren't downloaded: their rights can't be verified, and YouTube's terms prohibit downloading.</i>")
         if command == "queue":
             ref = args.strip().lower()
             q_text, q_buttons = render_queue_text_and_buttons(show_all=(ref in ("all", "full")))

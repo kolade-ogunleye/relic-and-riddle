@@ -177,17 +177,11 @@ REALESRGAN_BIN = os.getenv("REALESRGAN_BIN", str(BASE_DIR / "tools" / "realesrga
 # Per-beat images searched on Wikimedia Commons during a run. CC BY-SA images are excluded by
 # default: share-alike asks that adaptations (the video) be released under the same licence.
 BEAT_IMAGES_ENABLED = os.getenv("BEAT_IMAGES_ENABLED", "true").lower() in ("true", "1", "yes")
-# Real public footage (src/footage.py). Share of runtime footage may take (Meta's originality
+# Operator-supplied footage (src/footage.py). Share of runtime footage may take (Meta's originality
 # rules: third-party clips support our narration, never replace it), and the quality bar.
 FOOTAGE_ENABLED = os.getenv("FOOTAGE_ENABLED", "true").lower() in ("true", "1", "yes")
 FOOTAGE_MAX_SHARE = float(os.getenv("FOOTAGE_MAX_SHARE") or 0.4)
-FOOTAGE_MIN_CROP_WIDTH = int(os.getenv("FOOTAGE_MIN_CROP_WIDTH") or 1080)  # px after the 9:16 crop: 4K landscape or vertical
-FOOTAGE_MAX_MB = int(os.getenv("FOOTAGE_MAX_MB") or 600)  # per original download (4K originals are large)
-PEXELS_API_KEY = (os.getenv("PEXELS_API_KEY") or "").strip()
-PIXABAY_API_KEY = (os.getenv("PIXABAY_API_KEY") or "").strip()
-YOUTUBE_API_KEY = (os.getenv("YOUTUBE_API_KEY") or "").strip()
-YOUTUBE_FOOTAGE_ENABLED = (os.getenv("YOUTUBE_FOOTAGE_ENABLED") or "true").lower() in ("true", "1", "yes")
-YOUTUBE_FALLBACK_TO_YTDLP = (os.getenv("YOUTUBE_FALLBACK_TO_YTDLP") or "true").lower() in ("true", "1", "yes")
+FOOTAGE_MAX_MB = int(os.getenv("FOOTAGE_MAX_MB") or 600)  # per download (AI motion results)
 BEAT_IMAGES_ALLOW_SHARE_ALIKE = (os.getenv("BEAT_IMAGES_ALLOW_SHARE_ALIKE") or "false").lower() in ("true", "1", "yes")
 CALLOUTS_ENABLED = (os.getenv("CALLOUTS_ENABLED") or "false").lower() in ("true", "1", "yes")
 FACE_PRIVACY_ENABLED = (os.getenv("FACE_PRIVACY_ENABLED") or "true").lower() in ("true", "1", "yes")

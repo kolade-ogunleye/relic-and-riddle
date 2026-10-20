@@ -1,11 +1,9 @@
 import json
-from pathlib import Path
 
 import pytest
 from PIL import Image
 
 from src import footage
-from src.footage import FootageCheck
 
 
 class FakeResp:
@@ -57,69 +55,6 @@ def test_probe_refuses_playlists(tmp_path):
         footage.probe(playlist)
 
 
-def test_quality_bar_needs_4k_landscape_or_vertical():
-    assert not footage._good_size(1920, 1080)   # 1080p landscape: 607 px wide after the 9:16 crop
-    assert not footage._good_size(2560, 1440)   # 1440p: 810 px
-    assert footage._good_size(3840, 2160)       # 4K: 1215 px
-    assert footage._good_size(1080, 1920)       # vertical HD
-
-
-def test_commons_search_filters_licence_and_size(monkeypatch):
-    pages = {"1": {"title": "File:Derinkuyu 4K.webm", "index": 1, "imageinfo": [{
-                 "width": 3840, "height": 2160, "duration": 60, "url": "https://upload.wikimedia.org/d.webm",
-                 "extmetadata": {"LicenseShortName": {"value": "CC BY 4.0"}, "Artist": {"value": "Ann"}}}]},
-             "2": {"title": "File:Small.webm", "index": 2, "imageinfo": [{
-                 "width": 1280, "height": 720, "duration": 60, "url": "https://upload.wikimedia.org/s.webm",
-                 "extmetadata": {"LicenseShortName": {"value": "CC BY 4.0"}}}]},
-             "3": {"title": "File:NC.webm", "index": 3, "imageinfo": [{
-                 "width": 3840, "height": 2160, "duration": 60, "url": "https://upload.wikimedia.org/n.webm",
-                 "extmetadata": {"LicenseShortName": {"value": "CC BY-NC 4.0"}}}]}}
-
-    class R:
-        def json(self):
-            return {"query": {"pages": pages}}
-    monkeypatch.setattr(footage.commons, "_get", lambda *a, **k: R())
-    found = footage.search_commons("Derinkuyu", ["derinkuyu"])
-    assert [c["title"] for c in found] == ["File:Derinkuyu 4K.webm"]
-
-
-def test_source_labels_place_specific_only_when_named_and_seen(tmp_path, monkeypatch):
-    monkeypatch.setattr(footage, "claude_available", lambda: True)
-    cands = [
-        {"provider": "commons", "title": "Derinkuyu tunnels", "text": "Derinkuyu underground city tunnels", "download_url": "u1",
-         "source_url": "s1", "license": "CC BY 4.0", "artist": "Ann", "attribution_required": True, "width": 3840, "height": 2160, "duration": 60},
-        {"provider": "commons", "title": "Generic cave", "text": "a cave in Cappadocia", "download_url": "u2",
-         "source_url": "s2", "license": "CC0", "artist": "Bob", "attribution_required": False, "width": 3840, "height": 2160, "duration": 60},
-        {"provider": "commons", "title": "Watermarked", "text": "Derinkuyu", "download_url": "u3",
-         "source_url": "s3", "license": "CC0", "artist": "C", "attribution_required": False, "width": 3840, "height": 2160, "duration": 60},
-    ]
-    monkeypatch.setattr(footage, "PROVIDERS", [("commons", lambda q, k: list(cands))])
-    monkeypatch.setattr(footage, "PER_QUERY", 3)
-    monkeypatch.setattr(footage, "download", lambda url, prov, dest: dest.write_bytes(b"x") or dest)
-    monkeypatch.setattr(footage, "probe", lambda p: {"width": 3840, "height": 2160, "duration": 60})
-
-    def segment(src, info, out):
-        out.write_bytes(b"0")
-        Image.new("RGB", (10, 10)).save(out.with_suffix(".jpg"))
-        return out
-    monkeypatch.setattr(footage, "make_segment", segment)
-    verdicts = iter([("yes", False), ("yes", True), ("yes", False)])  # in call order: tunnels, watermarked, cave
-
-    def check(clip, q, place):
-        pm, wm = next(verdicts)
-        return FootageCheck(matches_search=True, place_matches=pm, burned_in_text_or_watermark=wm,
-                            brand_logo=False, identifiable_person_focus=False, note="")
-    monkeypatch.setattr(footage, "verify", check)
-    topic = {"location": {"name": "Derinkuyu Underground City", "country": "Turkey", "region": "Cappadocia"}}
-    clips, credits = footage.source([], topic, tmp_path)
-    assert [c["title"] for c in credits] == ["Derinkuyu tunnels", "Generic cave"]  # watermarked one dropped
-    assert credits[0]["place_specific"] is True
-    assert credits[1]["place_specific"] is False  # found via the region search; its metadata doesn't name the site
-    assert credits[1]["query"] == "Cappadocia"
-    assert not any(tmp_path.glob("raw_*"))  # original downloads are never kept
-    assert json.loads((tmp_path / "credits.json").read_text(encoding="utf-8"))[0]["source_url"] == "s1"
-
-
 def test_credit_line_per_licence_and_idempotent():
     used = [{"provider": "commons", "artist": "Ann", "license": "CC BY 4.0"},
             {"provider": "pexels", "artist": "Bo", "license": "Pexels License"},
@@ -156,81 +91,6 @@ def test_planner_caps_footage_share(tmp_path, monkeypatch):
     chosen, durations, _ = scene_planner.plan_scenes(beats, stills + clips)
     assert scene_planner._footage_share(chosen, durations) <= 0.4
     assert any("actual site" in t for t in seen_labels) and any("GENERIC" in t for t in seen_labels)
-
-
-def test_anachronism_rejected(tmp_path, monkeypatch):
-    monkeypatch.setattr(footage, "claude_available", lambda: True)
-    cands = [{"provider": "commons", "title": "Modern concrete mixer", "text": "Roman concrete", "download_url": "u1",
-              "source_url": "s1", "license": "CC BY 4.0", "artist": "Ann", "attribution_required": True, "width": 3840, "height": 2160, "duration": 60}]
-    monkeypatch.setattr(footage, "PROVIDERS", [("commons", lambda q, k: list(cands))])
-    monkeypatch.setattr(footage, "PER_QUERY", 1)
-    monkeypatch.setattr(footage, "download", lambda url, prov, dest: dest.write_bytes(b"x") or dest)
-    monkeypatch.setattr(footage, "probe", lambda p: {"width": 3840, "height": 2160, "duration": 60})
-    monkeypatch.setattr(footage, "make_segment", lambda s, i, o: o.write_bytes(b"0") or o)
-    monkeypatch.setattr(footage, "verify", lambda c, q, p: FootageCheck(matches_search=True, place_matches="yes",
-                                                                        has_anachronism=True, burned_in_text_or_watermark=False,
-                                                                        brand_logo=False, identifiable_person_focus=False, note="modern machinery"))
-    clips, credits = footage.source([], {"location": {"name": "Roman Port", "country": "Italy"}}, tmp_path)
-    assert len(clips) == 0 and len(credits) == 0
-
-
-def test_search_youtube_cc_and_credit_line(monkeypatch):
-    # 1. Missing key and disabled fallback returns empty list safely
-    monkeypatch.setattr(footage.config, "YOUTUBE_API_KEY", "")
-    monkeypatch.setattr(footage.config, "YOUTUBE_FALLBACK_TO_YTDLP", False)
-    assert footage.search_youtube_cc("Derinkuyu", []) == []
-
-    # 2. Configured key parses items correctly
-    monkeypatch.setattr(footage.config, "YOUTUBE_API_KEY", "fake-yt-key")
-    fake_response = {
-        "items": [
-            {
-                "id": {"videoId": "test_vid_123"},
-                "snippet": {
-                    "title": "Ancient Derinkuyu Tunnels",
-                    "description": "Exploration of Cappadocia underground city",
-                    "channelTitle": "History Channel CC",
-                },
-            }
-        ]
-    }
-    monkeypatch.setattr(footage, "_cached_get", lambda url, params: fake_response)
-    results = footage.search_youtube_cc("Derinkuyu", [])
-    assert len(results) == 1
-    assert results[0]["provider"] == "youtube"
-    assert results[0]["download_url"] == "https://www.youtube.com/watch?v=test_vid_123"
-    assert results[0]["artist"] == "History Channel CC"
-
-    # 3. Credit line formatting
-    line = footage.credit_line(results)
-    assert "History Channel CC via YouTube (CC-BY)" in line
-
-
-def test_negative_vlog_filtering():
-    assert footage._is_vlog_or_reaction("My Travel Vlog in Cappadocia")
-    assert footage._is_vlog_or_reaction("Reacting to Ancient Underground Cities - Reaction")
-    assert not footage._is_vlog_or_reaction("Derinkuyu Ancient Underground City Drone Walkthrough")
-
-
-def test_search_youtube_ytdlp_fallback(monkeypatch):
-    fake_res = {
-        "entries": [
-            {"id": "yt_vid_999", "title": "Derinkuyu 4K Cinematic B-Roll", "uploader": "Drone Docs", "duration": 240.0},
-            {"id": "yt_vlog_1", "title": "My Vlog at the Underground City", "uploader": "Traveler"}
-        ]
-    }
-    class FakeYDL:
-        def __init__(self, opts): pass
-        def __enter__(self): return self
-        def __exit__(self, *a): pass
-        def extract_info(self, q, download=False): return fake_res
-
-    import yt_dlp
-    monkeypatch.setattr(yt_dlp, "YoutubeDL", FakeYDL)
-    results = footage._search_youtube_ytdlp("Derinkuyu", [])
-    assert len(results) == 1
-    assert results[0]["download_url"] == "https://www.youtube.com/watch?v=yt_vid_999"
-    assert results[0]["artist"] == "Drone Docs"
 
 
 def test_curated_footage_ingestion(tmp_path, monkeypatch):
@@ -276,7 +136,6 @@ def test_source_empty_when_no_curated_footage(tmp_path, monkeypatch):
     topic_id = "empty_topic"
     assets_dir = tmp_path / "assets"
     monkeypatch.setattr(footage.config, "ASSETS_DIR", assets_dir)
-    monkeypatch.setattr(footage, "PROVIDERS", [])
     topic = {"id": topic_id, "location": {"name": "Nowhere"}}
     clips, credits = footage.source([], topic, tmp_path / "work")
     assert clips == []

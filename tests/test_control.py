@@ -169,25 +169,12 @@ def test_quota_lines_warn_when_low():
     assert low[0].startswith("⚠️") and "edge-tts" in low[0]
 
 
-def test_footage_command_handler(db, tmp_path, monkeypatch):
+def test_footage_command_does_not_download_links(db, tmp_path):
     _image_set(tmp_path)
-    fake_info = {"title": "Drone 4K", "uploader": "Aerial Team"}
-    class FakeYDL:
-        def __init__(self, opts): pass
-        def __enter__(self): return self
-        def __exit__(self, *a): pass
-        def extract_info(self, url, download=True): return fake_info
-
-    import yt_dlp
-    monkeypatch.setattr(yt_dlp, "YoutubeDL", FakeYDL)
-
     h = make_command_handler(db, lambda: None, lambda: "", assets_dir=tmp_path)
     res = h("footage", "03_kailasa_temple https://www.youtube.com/watch?v=123")
-    assert "Footage saved" in res
-    assert "Drone 4K" in res
-    curated_meta = tmp_path / "03_kailasa_temple" / "footage" / "curated_footage.json"
-    assert curated_meta.exists()
-    assert json.loads(curated_meta.read_text(encoding="utf-8"))["artist"] == "Aerial Team"
+    assert "send the video file itself" in res and "/footage" in res
+    assert not (tmp_path / "03_kailasa_temple" / "footage").exists()
 
 
 def test_status_includes_voice_quota(db):

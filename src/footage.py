@@ -1,334 +1,53 @@
 """
 src/footage.py
 ==============
-Real public footage as supporting cuts (plan item 6; rules and sources in docs/sources.md).
+Real footage as supporting cuts, from clips an operator supplies (Telegram: send the video file
+with the caption "/footage <topic>"). They live in assets/<topic>/footage/ and the operator vouches
+for their rights. Automated stock/YouTube scrapers were retired: they could not prove a licence
+for what they fetched, and downloading from YouTube conflicts with its Terms of Service.
 
-Sources, best first: Wikimedia Commons video (CC0/PD/CC BY; BY-SA only with the opt-in),
-Pexels and Pixabay (free API keys; their licences allow modification and social use, and
-their API terms ask for a visible credit), NASA (public domain; NASA-produced items only).
+Also the shared, guarded downloader and ffprobe used for AI motion results (src/motion.py).
 
-Rules that keep it within Meta's originality guidelines and honest:
+Rules that keep footage within Meta's originality guidelines and honest:
 - Footage is evidence for our narration, never the video: the scene planner caps it at
   FOOTAGE_MAX_SHARE of the runtime, one segment per source video, original audio removed.
-- A clip may illustrate a *specific* place only if its metadata names that place AND a
-  vision check agrees; otherwise it is offered as generic atmosphere and labelled so.
-  Clips with burned-in text, watermarks, logos or identifiable people as the focus are dropped.
-- Quality: at least FOOTAGE_MIN_CROP_WIDTH px wide after the 9:16 crop (4K landscape or
-  vertical footage); lower resolutions are skipped, never upscaled.
 - Security: downloads are HTTPS from each provider's media hosts only, streamed with a
   size cap; ffmpeg reads local files only (-protocol_whitelist file) and every clip is
-  re-encoded; API keys never appear in logs.
+  re-encoded.
 """
 
-import concurrent.futures
-import hashlib
 import json
 import logging
-import os
-import re
 import subprocess
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import requests
-from pydantic import BaseModel
 
 from . import commons, config
-from .credits import license_allowed, normalize
-from .llm import LLMError, claude_available, image_block, structured_call, task as llm_task
 
 log = logging.getLogger(__name__)
 
 SEGMENT_SECONDS = 6.0          # longest beat plus transitions (matches graphics.CLIP_SECONDS)
 MAX_BYTES = config.FOOTAGE_MAX_MB * 1_000_000  # originals are deleted once the segment is cut
-PER_QUERY = 2                  # candidates examined per query, after filters
 ALLOWED_HOSTS = {
     "commons": {"upload.wikimedia.org"},
-    "nasa": {"images-assets.nasa.gov"},
-    "youtube": {"www.youtube.com", "youtube.com", "youtu.be", ".googlevideo.com"},
     # AI motion results (src/motion.py). A leading dot allows that domain's subdomains.
     "veo": {"generativelanguage.googleapis.com", ".googleusercontent.com", ".googleapis.com"},
     "kling": {".klingai.com"},
 }
+CREDIT_PREFIX = "🎥 Footage:"
 
 
 def _host_allowed(host: str, provider: str) -> bool:
     return any(host == h or (h.startswith(".") and host.endswith(h)) for h in ALLOWED_HOSTS[provider])
-CACHE_DIR = config.BASE_DIR / "cache" / "footage_api"  # Pixabay asks for 24 h response caching
-CREDIT_PREFIX = "🎥 Footage:"
-# Words too common to show a stock clip is about the search ("city" matched a Dutch canal).
-GENERIC_WORDS = {"city", "town", "village", "underground", "ancient", "old", "great", "temple", "palace", "museum",
-                 "ruins", "valley", "lake", "river", "mountain", "island", "islands", "desert", "harbor", "harbour",
-                 "cave", "caves", "church", "cathedral", "castle", "fort", "wall", "site", "region", "province",
-                 "national", "park", "north", "south", "east", "west", "central", "upper", "lower", "roman", "greek"}
-
-
-class FootageCheck(BaseModel):
-    matches_search: bool              # does it show what the SEARCH asked for (e.g. "Cappadocia" landscape)?
-    place_matches: Literal["yes", "no", "unsure"]  # is it recognisably the NAMED place itself?
-    has_anachronism: bool = False     # modern steel rebar, machinery, asphalt, modern boats, modern building tools
-    burned_in_text_or_watermark: bool
-    brand_logo: bool
-    identifiable_person_focus: bool
-    note: str
-
-
-# ------------------------------------------------------------------ providers
-def _crop_width(w: int, h: int) -> float:
-    return min(w, h * 9 / 16)
-
-
-def _good_size(w: int, h: int) -> bool:
-    return _crop_width(w, h) >= config.FOOTAGE_MIN_CROP_WIDTH
-
-
-def _cached_get(url: str, params: dict, headers: Optional[dict] = None) -> dict:
-    """GET with a 24-hour on-disk cache (Pixabay's API terms; kind to the others too)."""
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    safe = {k: v for k, v in params.items() if k != "key"}  # never key the cache (or logs) on secrets
-    key = hashlib.sha1(json.dumps([url, safe], sort_keys=True).encode()).hexdigest()
-    path = CACHE_DIR / f"{key}.json"
-    if path.exists() and time.time() - path.stat().st_mtime < 86400:
-        return json.loads(path.read_text(encoding="utf-8"))
-    resp = requests.get(url, params=params, headers=headers or {}, timeout=30)
-    if resp.status_code == 429:
-        raise requests.HTTPError(f"{urlparse(url).netloc} rate limit reached")
-    resp.raise_for_status()
-    data = resp.json()
-    path.write_text(json.dumps(data), encoding="utf-8")
-    return data
-
-
-def search_commons(query: str, keywords: List[str]) -> List[Dict[str, Any]]:
-    params = {"action": "query", "format": "json", "generator": "search", "gsrsearch": f"{query} filetype:video",
-              "gsrnamespace": 6, "gsrlimit": 20, "prop": "imageinfo", "iiprop": "url|size|mime|extmetadata",
-              "iiextmetadatafilter": "LicenseShortName|Artist|LicenseUrl|AttributionRequired|ImageDescription"}
-    pages = commons._get(commons.API, params=params, timeout=30, max_wait=60).json().get("query", {}).get("pages", {})
-    out = []
-    for p in sorted(pages.values(), key=lambda p: p.get("index", 0)):
-        info = (p.get("imageinfo") or [{}])[0]
-        meta = info.get("extmetadata", {})
-        licence = meta.get("LicenseShortName", {}).get("value", "")
-        if not license_allowed(licence, config.BEAT_IMAGES_ALLOW_SHARE_ALIKE):
-            continue
-        if not _good_size(info.get("width", 0), info.get("height", 0)):
-            continue
-        text = f"{p['title']} {commons._plain(meta.get('ImageDescription', {}).get('value', ''))}"
-        out.append({"provider": "commons", "title": p["title"], "text": text, "download_url": info["url"],
-                    "source_url": info.get("descriptionurl", ""), "license": licence,
-                    "artist": commons._plain(meta.get("Artist", {}).get("value", "")) or "Unknown",
-                    "attribution_required": meta.get("AttributionRequired", {}).get("value", "true") != "false",
-                    "width": info.get("width", 0), "height": info.get("height", 0), "duration": float(info.get("duration") or 0)})
-    return out
-
-
-def search_pexels(query: str, keywords: List[str]) -> List[Dict[str, Any]]:
-    if not config.is_configured(config.PEXELS_API_KEY):
-        return []
-    data = _cached_get("https://api.pexels.com/v1/videos/search", {"query": query, "per_page": 20, "size": "large"},
-                       headers={"Authorization": config.PEXELS_API_KEY})
-    out = []
-    for v in data.get("videos", []):
-        files = sorted((f for f in v.get("video_files", []) if f.get("link") and f.get("width") and f.get("height")
-                        and _good_size(f["width"], f["height"])), key=lambda f: f["width"] * f["height"])
-        if not files:
-            continue
-        f = files[0]  # the smallest rendition that still meets the bar
-        slug = urlparse(v.get("url", "")).path.replace("-", " ")
-        out.append({"provider": "pexels", "title": f"Pexels video {v['id']}", "text": slug, "download_url": f["link"],
-                    "source_url": v.get("url", ""), "license": "Pexels License", "artist": v.get("user", {}).get("name", "Unknown"),
-                    "attribution_required": True, "width": f["width"], "height": f["height"], "duration": float(v.get("duration") or 0)})
-    return out
-
-
-def search_pixabay(query: str, keywords: List[str]) -> List[Dict[str, Any]]:
-    if not config.is_configured(config.PIXABAY_API_KEY):
-        return []
-    data = _cached_get("https://pixabay.com/api/videos/", {"key": config.PIXABAY_API_KEY, "q": query[:100], "per_page": 20,
-                                                           "safesearch": "true"})
-    out = []
-    for h in data.get("hits", []):
-        renditions = [r for r in (h.get("videos") or {}).values() if r.get("url") and _good_size(r.get("width", 0), r.get("height", 0))]
-        if not renditions:
-            continue
-        r = min(renditions, key=lambda r: r["width"] * r["height"])
-        out.append({"provider": "pixabay", "title": f"Pixabay video {h['id']}", "text": h.get("tags", ""), "download_url": r["url"],
-                    "source_url": h.get("pageURL", ""), "license": "Pixabay Content License", "artist": h.get("user", "Unknown"),
-                    "attribution_required": True, "width": r["width"], "height": r["height"], "duration": float(h.get("duration") or 0)})
-    return out
-
-
-def search_nasa(query: str, keywords: List[str]) -> List[Dict[str, Any]]:
-    data = _cached_get("https://images-api.nasa.gov/search", {"q": query, "media_type": "video"})
-    out = []
-    for item in data.get("collection", {}).get("items", [])[:10]:
-        meta = (item.get("data") or [{}])[0]
-        blob = json.dumps(meta).lower()
-        if "courtesy" in blob or "©" in blob or "copyright" in blob:  # third-party material isn't covered
-            continue
-        try:
-            assets = _cached_get(item["href"], {})
-        except (requests.RequestException, ValueError):
-            continue
-        mp4s = [a for a in assets if isinstance(a, str) and a.endswith(".mp4") and "~orig" in a]
-        if not mp4s:
-            continue
-        # Size is unknown until probed; resolution is checked after download.
-        out.append({"provider": "nasa", "title": meta.get("title", "NASA video"), "text": f"{meta.get('title', '')} {meta.get('description', '')}",
-                    "download_url": mp4s[0].replace("http://", "https://"), "source_url": f"https://images.nasa.gov/details/{meta.get('nasa_id', '')}",
-                    "license": "Public domain (NASA)", "artist": "NASA", "attribution_required": True,
-                    "width": 0, "height": 0, "duration": 0.0})
-    return out
-
-
-NEGATIVE_VLOG_KEYWORDS = {
-    "vlog", "reaction", "review", "my trip", "how to visit", "travel guide",
-    "top 10", "top 5", "podcast", "interview", "haul", "q&a", "unboxing", "tiktok",
-}
-
-
-def _is_vlog_or_reaction(title: str) -> bool:
-    t_lower = title.lower()
-    return any(re.search(r"\b" + re.escape(w) + r"\b", t_lower) for w in NEGATIVE_VLOG_KEYWORDS)
-
-
-def _search_youtube_ytdlp(query: str, keywords: List[str]) -> List[Dict[str, Any]]:
-    """Zero-credential yt-dlp search fallback targeting Creative Commons high-definition footage."""
-    try:
-        import yt_dlp
-    except ImportError:
-        return []
-    ydl_opts = {
-        "quiet": True,
-        "extract_flat": "in_playlist",
-        "no_warnings": True,
-    }
-    search_str = f"ytsearch6:{query} 4k creative commons"
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            res = ydl.extract_info(search_str, download=False)
-            entries = res.get("entries", []) or []
-            out = []
-            for e in entries:
-                vid_id = e.get("id")
-                title = e.get("title", "")
-                if not vid_id or _is_vlog_or_reaction(title):
-                    continue
-                channel = e.get("uploader") or e.get("channel") or "Unknown"
-                video_url = f"https://www.youtube.com/watch?v={vid_id}"
-                out.append({
-                    "provider": "youtube",
-                    "title": title,
-                    "text": f"{title} {channel}",
-                    "download_url": video_url,
-                    "source_url": video_url,
-                    "license": "Creative Commons Attribution (reuse allowed)",
-                    "artist": channel,
-                    "attribution_required": True,
-                    "width": int(e.get("width") or 3840),
-                    "height": int(e.get("height") or 2160),
-                    "duration": float(e.get("duration") or 0.0),
-                })
-            return out
-    except Exception as e:
-        log.warning("yt-dlp search fallback error: %s", e)
-        return []
-
-
-def search_youtube_cc(query: str, keywords: List[str]) -> List[Dict[str, Any]]:
-    """Searches YouTube for Creative Commons (CC-BY) videos via YouTube Data API v3,
-    with zero-credential yt-dlp search fallback when YOUTUBE_API_KEY is not configured."""
-    if not getattr(config, "YOUTUBE_FOOTAGE_ENABLED", False):
-        return []
-    api_key = getattr(config, "YOUTUBE_API_KEY", "")
-    if api_key:
-        url = "https://www.googleapis.com/youtube/v3/search"
-        params = {
-            "key": api_key,
-            "q": f"{query} 4k",
-            "part": "snippet",
-            "type": "video",
-            "videoLicense": "creativeCommon",
-            "videoDefinition": "high",
-            "maxResults": 10,
-        }
-        try:
-            data = _cached_get(url, params)
-            out = []
-            for item in data.get("items", []):
-                vid_id = item.get("id", {}).get("videoId")
-                if not vid_id:
-                    continue
-                snippet = item.get("snippet", {})
-                title = snippet.get("title", "")
-                if _is_vlog_or_reaction(title):
-                    continue
-                desc = snippet.get("description", "")
-                channel = snippet.get("channelTitle", "Unknown")
-                video_url = f"https://www.youtube.com/watch?v={vid_id}"
-                out.append({
-                    "provider": "youtube",
-                    "title": title,
-                    "text": f"{title} {desc}",
-                    "download_url": video_url,
-                    "source_url": video_url,
-                    "license": "Creative Commons Attribution (reuse allowed)",
-                    "artist": channel,
-                    "attribution_required": True,
-                    "width": 3840,
-                    "height": 2160,
-                    "duration": 0.0,
-                })
-            if out:
-                return out
-        except Exception as e:
-            log.warning("YouTube CC search error: %s", e)
-
-    if getattr(config, "YOUTUBE_FALLBACK_TO_YTDLP", False):
-        return _search_youtube_ytdlp(query, keywords)
-    return []
-
-
-# Hardcoded automated scrapers decommissioned in favor of human curation and Telegram ingestion
-PROVIDERS: List[Tuple[str, Any]] = []
 
 
 # ----------------------------------------------------------- download & clip
-def _download_youtube(url: str, dest: Path) -> Path:
-    """Downloads a YouTube video using yt-dlp constrained to 1080p and max size."""
-    try:
-        import yt_dlp
-    except ImportError:
-        raise ValueError("yt-dlp is required to download YouTube footage")
-    parsed = urlparse(url)
-    if parsed.scheme != "https" or not _host_allowed(parsed.hostname or "", "youtube"):
-        raise ValueError(f"refusing to download from {parsed.scheme}://{parsed.hostname}")
-    dest_template = str(dest.parent / f"{dest.stem}_ytdl.%(ext)s")
-    ydl_opts = {
-        "format": "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best",
-        "outtmpl": dest_template,
-        "max_filesize": MAX_BYTES,
-        "quiet": True,
-        "no_warnings": True,
-    }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
-    matches = list(dest.parent.glob(f"{dest.stem}_ytdl.*"))
-    if not matches:
-        raise ValueError(f"yt-dlp downloaded no files for {url}")
-    target = matches[0]
-    if dest.exists():
-        dest.unlink()
-    target.rename(dest)
-    return dest
-
-
 def download(url: str, provider: str, dest: Path, extra_headers: Optional[dict] = None) -> Path:
     """HTTPS from the provider's media hosts only, streamed with a size cap."""
-    if provider == "youtube":
-        return _download_youtube(url, dest)
     parsed = urlparse(url)
     if parsed.scheme != "https" or not _host_allowed(parsed.hostname or "", provider):
         raise ValueError(f"refusing to download from {parsed.scheme}://{parsed.hostname}")
@@ -394,71 +113,6 @@ def make_segment(src: Path, info: Dict[str, Any], out: Path) -> Path:
     return out
 
 
-def _frames(clip: Path) -> List[Path]:
-    paths = []
-    for k, t in enumerate((1.0, 3.0, 5.0)):
-        p = clip.with_name(f"{clip.stem}_check{k}.jpg")
-        subprocess.run(["ffmpeg", "-y", "-v", "error", "-protocol_whitelist", "file", "-ss", str(t), "-i", str(clip),
-                        "-frames:v", "1", "-vf", "scale=540:-2", str(p)], check=True, timeout=60, capture_output=True)
-        paths.append(p)
-    return paths
-
-
-CHECK = """You vet stock and archive video for a history documentary. Judge only what you see in these
-three frames from one clip. Answer these questions:
-- matches_search: does the clip genuinely show what the search asked for?
-- place_matches: is it recognisably the named place itself ("yes"), clearly somewhere else ("no"),
-  or could it be anywhere similar ("unsure")?
-- has_anachronism: does the clip show modern steel rebar/reinforcement, contemporary heavy machinery,
-  power tools, asphalt, plastic, modern boats, or contemporary construction workers? (true if any present)
-Be strict about watermarks, burned-in text or subtitles, TV network logos (e.g. BBC, NatGeo, Discovery, History Channel), channel bugs and brand logos."""
-
-
-@llm_task("footage_check")
-def verify(clip: Path, query: str, place: str) -> FootageCheck:
-    content: List[dict] = []
-    for p in _frames(clip):
-        content.append(image_block(p, 768))
-    content.append({"type": "text", "text": f"Search: {query}\nNamed place: {place}"})
-    return structured_call(CHECK, content, FootageCheck, effort="low", max_tokens=1500)
-
-
-def _vet_candidate(
-    cand: Dict[str, Any],
-    cand_idx: int,
-    query: str,
-    place: str,
-    work_dir: Path,
-) -> Optional[Tuple[Dict[str, Any], Path, Any]]:
-    """Downloads, probes, trims, and LLM-verifies a candidate clip in an isolated worker thread."""
-    raw = work_dir / f"tmp_raw_{cand_idx}_{cand.get('provider', 'cand')}"
-    clip = work_dir / f"tmp_clip_{cand_idx}_{cand.get('provider', 'cand')}.mp4"
-    try:
-        download(cand["download_url"], cand["provider"], raw)
-        info = probe(raw)
-        if not _good_size(info["width"], info["height"]):
-            raise ValueError(f"{info['width']}x{info['height']} is below the quality bar")
-        make_segment(raw, info, clip)
-        check = verify(clip, query, place)
-    except (requests.RequestException, ValueError, OSError, subprocess.SubprocessError, LLMError) as e:
-        log.info("Footage candidate skipped (%s): %s", cand["title"][:60], e)
-        clip.unlink(missing_ok=True)
-        for p in work_dir.glob(f"{clip.stem}_check*.jpg"):
-            p.unlink(missing_ok=True)
-        return None
-    finally:
-        raw.unlink(missing_ok=True)
-
-    if not check.matches_search or check.burned_in_text_or_watermark or check.brand_logo or check.identifiable_person_focus or check.has_anachronism or check.place_matches == "no":
-        log.info("Footage rejected by the check (%s): %s (anachronism=%s, place=%s)", cand["title"][:60], check.note, check.has_anachronism, check.place_matches)
-        clip.unlink(missing_ok=True)
-        for p in work_dir.glob(f"{clip.stem}_check*.jpg"):
-            p.unlink(missing_ok=True)
-        return None
-
-    return cand, clip, check
-
-
 def get_curated_footage(topic_id: str, work_dir: Path) -> Tuple[List[Path], List[Dict[str, Any]]]:
     """Ingests human-curated video clips dropped into assets/<topic_id>/footage/."""
     if not topic_id:
@@ -514,104 +168,12 @@ def get_curated_footage(topic_id: str, work_dir: Path) -> Tuple[List[Path], List
     return clips, credits
 
 
-# --------------------------------------------------------------------- main
 def source(beats: List[Dict[str, Any]], topic: Dict[str, Any], work_dir: Path, plan=None) -> Tuple[List[Path], List[Dict[str, Any]]]:
-    """Returns (clip paths, their credit records). Never raises: footage is optional.
-    Checks curated assets/<topic_id>/footage/ first. Automated scrapers are decommissioned."""
+    """Returns (clip paths, their credit records) for the topic's operator-supplied footage.
+    Never raises: footage is optional. `beats` and `plan` are accepted for the caller's interface."""
     if not config.FOOTAGE_ENABLED:
         return [], []
-    tid = topic.get("id", "")
-    curated_clips, curated_credits = get_curated_footage(tid, work_dir)
-    if curated_clips:
-        return curated_clips, curated_credits
-
-    if not PROVIDERS or not claude_available():
-        return [], []
-
-    loc = topic.get("location", {})
-    place = ", ".join(v for v in (loc.get("name"), loc.get("country")) if v)
-    site_words = [normalize(w) for w in (loc.get("name") or "").split() if len(w) > 3]
-    # Place b-roll first: the site, then its town and region (regional footage can only ever be
-    # "generic": its metadata won't name the site), then the per-beat subjects.
-    places = [loc.get("name"), loc.get("city")] + [r.strip() for r in (loc.get("region") or "").split("/")]
-    queries: List[Tuple[str, List[str]]] = []
-    for q in places:
-        if q and q.lower() not in {x.lower() for x, _ in queries}:
-            queries.append((q, site_words))
-    if plan is not None:
-        queries += [(item.query, item.keywords) for item in plan.items]
-    work_dir.mkdir(parents=True, exist_ok=True)
-    clips, credits, seen = [], [], set()
-    for query, keywords in queries[:8]:
-        found = 0
-        for provider, search in PROVIDERS:
-            if found >= PER_QUERY:
-                break
-            try:
-                candidates = search(query, keywords)
-            except (requests.RequestException, ValueError) as e:
-                log.warning("Footage search via %s failed (%s).", provider, e)
-                continue
-            query_words = [w for w in (normalize(x) for x in query.split()) if len(w) > 3 and w not in GENERIC_WORDS]
-
-            eligible: List[Dict[str, Any]] = []
-            for cand in candidates:
-                if cand["source_url"] in seen:
-                    continue
-                # Free relevance filter before any download: stock search returns unrelated clips
-                # when nothing matches, so the clip's own title/tags must mention the search.
-                if query_words and not any(w in normalize(cand["text"]) for w in query_words):
-                    continue
-                seen.add(cand["source_url"])
-                eligible.append(cand)
-                if len(eligible) >= PER_QUERY * 3:
-                    break
-
-            if not eligible:
-                continue
-
-            results = []
-            max_workers = min(int(os.getenv("FOOTAGE_MAX_WORKERS", "1")), len(eligible))
-            if max_workers > 1:
-                with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-                    futs = [
-                        executor.submit(_vet_candidate, cand, i, query, place, work_dir)
-                        for i, cand in enumerate(eligible)
-                    ]
-                    for fut in futs:
-                        res = fut.result()
-                        if res:
-                            results.append(res)
-            else:
-                for i, cand in enumerate(eligible):
-                    res = _vet_candidate(cand, i, query, place, work_dir)
-                    if res:
-                        results.append(res)
-
-            for cand, temp_clip, check in results:
-                if found >= PER_QUERY:
-                    break
-                n = len(clips) + 1
-                final_clip = work_dir / f"footage_{n:02d}.mp4"
-                temp_clip.replace(final_clip)
-                for p in work_dir.glob(f"{temp_clip.stem}_check*.jpg"):
-                    p.unlink(missing_ok=True)
-
-                named = any(w and w in normalize(cand["text"]) for w in site_words)
-                cand.update(file=str(final_clip), query=query, place_specific=named and check.place_matches == "yes",
-                            check_note=check.note, downloaded_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
-                cand.pop("text", None)
-                final_clip.with_suffix(".json").write_text(json.dumps(cand, indent=1, ensure_ascii=False), encoding="utf-8")
-                clips.append(final_clip)
-                credits.append(cand)
-                found += 1
-
-    for leftover in work_dir.glob("tmp_*"):
-        leftover.unlink(missing_ok=True)
-
-    (work_dir / "credits.json").write_text(json.dumps(credits, indent=1, ensure_ascii=False), encoding="utf-8")  # provenance
-    log.info("Footage: %d clip(s) passed (%d place-specific).", len(clips), sum(c["place_specific"] for c in credits))
-    return clips, credits
+    return get_curated_footage(topic.get("id", ""), work_dir)
 
 
 def credit_line(used: List[Dict[str, Any]]) -> str:

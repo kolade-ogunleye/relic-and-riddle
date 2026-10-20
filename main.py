@@ -42,7 +42,7 @@ from src import backup, beat_images, callouts, config, encoding, footage, graphi
 from src.llm import claude_available as llm_available
 from src.scene_planner import documentary_cuts, plan_scenes, segment_beats
 from src.upscale import ensure_all, ensure_resolution
-from src.music import mark_used as mark_track_used, music_for
+from src.music import music_for
 from src.parallax import render_scenes as render_parallax
 from src.video_composer import TRANS_DUR
 from src.video_qa import ClosedLoopAuditor, qa_summary_html, review_render
@@ -845,8 +845,7 @@ class PipelineCoordinator:
                                  "none": "🎵 Music: none available; synthesized drone used"}[music["source"]]
         if music["credit"] and music["credit"] not in payload["caption"]:  # CC BY needs attribution
             payload["caption"] = f"{payload['caption']}\n{music['credit']}"
-        if music["file"]:
-            mark_track_used(music["file"])
+        # music_for() counts the track's use when it picks it (a reused bed is not a new use)
         StageTimer(run_dir).record("music_and_bed", time.perf_counter() - t0)
         return self._render_approve_publish(topic, run_id, run_dir, payload, scene_media, hero_img,
                                             vo_path, bed_path, words, vo_dur, auto_approve, dry_run, previous_status,

@@ -40,6 +40,10 @@ class NotConfigured(Exception):
 class PublishFailed(Exception):
     """Definitely not published; safe to try the next publisher."""
 
+    def __init__(self, message: str = "", status: Optional[int] = None):
+        super().__init__(message)
+        self.status = status
+
 
 class PublishUnknown(Exception):
     """May or may not have been published; do not fail over."""
@@ -238,7 +242,8 @@ class InstagramGraphPublisher:
         except ValueError:
             body = {"raw": resp.text[:500]}
         if not resp.ok or "error" in body:
-            raise PublishFailed(f"Graph {method} {url.split('?')[0].replace(self.token, '***')} -> {resp.status_code}: {body.get('error', body)}")
+            raise PublishFailed(f"Graph {method} {url.split('?')[0].replace(self.token, '***')} -> {resp.status_code}: {body.get('error', body)}",
+                                status=resp.status_code)
         return body
 
     def publish(self, envelope: Dict[str, Any]) -> Dict[str, Any]:
@@ -271,6 +276,10 @@ class InstagramGraphPublisher:
                                    data={"creation_id": container_id, "access_token": self.token})
         except (requests.Timeout, requests.ConnectionError) as e:
             raise PublishUnknown(f"media_publish outcome unknown: {e}") from e
+        except PublishFailed as e:
+            if e.status is not None and e.status >= 500:  # a server error here may still have posted
+                raise PublishUnknown(f"media_publish outcome unknown (server error): {e}") from e
+            raise
         media_id = published["id"]
 
         comment_status = "skipped"
@@ -326,7 +335,8 @@ class FacebookPageReelsPublisher:
         except ValueError:
             body = {"raw": resp.text[:500]}
         if not resp.ok or "error" in body:
-            raise PublishFailed(f"Graph {method} {url.split('?')[0]} -> {resp.status_code}: {body.get('error', body)}")
+            raise PublishFailed(f"Graph {method} {url.split('?')[0]} -> {resp.status_code}: {body.get('error', body)}",
+                                status=resp.status_code)
         return body
 
     def publish(self, envelope: Dict[str, Any]) -> Dict[str, Any]:
@@ -357,6 +367,10 @@ class FacebookPageReelsPublisher:
             })
         except (requests.Timeout, requests.ConnectionError) as e:
             raise PublishUnknown(f"Facebook Reel finish outcome unknown: {e}") from e
+        except PublishFailed as e:
+            if e.status is not None and e.status >= 500:  # a server error here may still have posted
+                raise PublishUnknown(f"Facebook Reel finish outcome unknown (server error): {e}") from e
+            raise
         return {"status": "published", "post_ids": {"facebook": video_id},
                 "note": "First comment is not posted by this publisher."}
 

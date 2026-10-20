@@ -444,12 +444,13 @@ class PipelineDatabase:
                 raise KeyError(f"Unknown run '{run_id}'")
 
     def claim_publication(self, run_id: str) -> bool:
-        """Only one caller may initiate an upload for a finished run."""
+        """Only one caller may initiate an upload for a finished run. A run a human rejected (or
+        sent back for regeneration) can never be claimed, whatever code path asks."""
         with self._conn() as conn:
             result = conn.execute(
                 "UPDATE runs SET status = 'publishing', updated_at = ? WHERE run_id = ? "
                 "AND status IN ('approved', 'pending_approval', 'scheduled', 'failed', "
-                "'simulated', 'timeout', 'rejected', 'regenerate')", (_now(), run_id))
+                "'simulated', 'timeout')", (_now(), run_id))
             return result.rowcount == 1
 
     def recover_interrupted_publication(self, run_id: str) -> bool:

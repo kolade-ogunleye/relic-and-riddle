@@ -213,3 +213,110 @@ def test_sheets_built_under_older_evidence_rules_are_rebuilt(monkeypatch, tmp_pa
     assert fact_sheet.load("t") is None  # no rules_version: built before the current evidence rules
     fact_sheet.save(dict(sheet))
     assert fact_sheet.load("t") is not None and json.loads((tmp_path / "t.json").read_text())["rules_version"] == fact_sheet.RULES_VERSION
+
+
+def test_a_reel_counts_its_music_track_once(db, monkeypatch, tmp_path, curated_payload):
+    import json as _json
+    from src import music
+    from tests.test_concurrency import _resumable_run
+    lib = music.LIBRARY
+    tracks = _json.loads(lib.read_text(encoding="utf-8"))
+    track = next(t for t in tracks if t.get("reviewed"))
+    monkeypatch.setattr(music, "choose_mood", lambda p: track["mood"])
+    before = track.get("uses", 0)
+    coord = _resumable_run(db, monkeypatch, tmp_path, curated_payload)
+    monkeypatch.setattr(music, "pick_library_track", lambda mood, seconds=0, exclude=None: track)
+    monkeypatch.setattr(coord, "_render_approve_publish", lambda *a: {"status": "simulated"})
+    coord.resume_run("r5", dry_run=True)
+    after = next(t for t in _json.loads(lib.read_text(encoding="utf-8")) if t["file"] == track["file"]).get("uses", 0)
+    assert after == before + 1
+
+
+@pytest.mark.parametrize("status, claimable", [("rejected", False), ("regenerate", False), ("approved", True),
+                                               ("scheduled", True), ("failed", True), ("published", False)])
+def test_a_human_rejection_cannot_be_published(db, status, claimable):
+    db.create_run("r1", "01_topic")
+    db.update_run("r1", status)
+    assert db.claim_publication("r1") is claimable
+
+
+def _graph_reply(status, body):
+    return SimpleNamespace(status_code=status, ok=status < 400, json=lambda: body, text=json.dumps(body))
+
+
+@pytest.mark.parametrize("status, outcome", [(500, "PublishUnknown"), (503, "PublishUnknown"), (400, "PublishFailed")])
+def test_server_error_at_the_point_of_no_return_is_unknown(monkeypatch, tmp_path, status, outcome):
+    from src import publisher
+    video = tmp_path / "v.mp4"
+    video.write_bytes(b"0" * 10)
+    replies = iter([_graph_reply(200, {"id": "c1"}), _graph_reply(200, {}), _graph_reply(200, {"status_code": "FINISHED"}),
+                    _graph_reply(status, {"error": {"message": "boom"}})])
+    monkeypatch.setattr(publisher.requests, "request", lambda *a, **k: next(replies))
+    pub = publisher.InstagramGraphPublisher(token="t" * 20, ig_user_id="123", poll_interval=0)
+    env = {"platforms": ["instagram"], "metadata": {"caption": "c", "first_comment": ""}, "media": {"video_path": str(video)}}
+    with pytest.raises(getattr(publisher, outcome)):
+        pub.publish(env)
+
+
+def test_backup_keeps_documentaries_and_audio_evidence(tmp_path):
+    from src.backup import backup_run
+    run = tmp_path / "run_x"
+    run.mkdir()
+    names = ["t_documentary_16x9.mp4", "t_documentary_16x9.srt", "t_documentary_16x9_captions.ass",
+             "thumbnail_youtube_16x9.jpg", "voiceover.mp3", "voiceover.mp3.rights.json", "ambient_bed.wav",
+             "ambient_bed.wav.rights.json", "words.json", "t_master.mp4"]
+    for n in names:
+        (run / n).write_bytes(b"x")
+    res = backup_run(run, dest_base=tmp_path / "backup")
+    archived = {p.name for p in (tmp_path / "backup" / "run_x").iterdir()}
+    assert res["status"] == "success" and set(names) <= archived
+
+
+def test_purge_keeps_the_audio_a_release_check_needs(tmp_path):
+    import os, time
+    from src.ops import AssetLifecycleManager
+    run = tmp_path / "run_old"
+    (run / "parallax").mkdir(parents=True)
+    for name in ("voiceover.mp3", "ambient_bed.wav", "x_master.mp4", "render.tmp"):
+        (run / name).write_bytes(b"x")
+    (run / "parallax" / "scene_01.mp4").write_bytes(b"x")
+    old = time.time() - 30 * 86400
+    os.utime(run, (old, old))
+    AssetLifecycleManager(output_dir=tmp_path).purge_intermediate_assets()
+    assert (run / "voiceover.mp3").exists() and (run / "ambient_bed.wav").exists() and (run / "x_master.mp4").exists()
+    assert not (run / "render.tmp").exists() and not (run / "parallax").exists()  # true scratch still goes
+
+
+def test_masker_hides_every_configured_secret(monkeypatch):
+    from src import config
+    from src.ops import SecretMasker
+    secrets = {"KLING_API_KEY": "kling-secret-123456", "GEMINI_FREE_API_KEY": "AIzaFreeKey1234567890",
+               "HEALTHCHECK_PING_URL": "https://hc-ping.com/very-secret-uuid"}
+    for k, v in secrets.items():
+        monkeypatch.setattr(config, k, v)
+    masked = SecretMasker().mask(" ".join(secrets.values()) + " https://x.googleapis.com/v1/m?key=AIzaSyOtherKey98765432109876543210abcde")
+    for v in secrets.values():
+        assert v not in masked
+    assert "AIzaSyOtherKey98765432109876543210abcde" not in masked  # any Gemini-style key in a URL
+
+
+def test_logs_persist_to_a_masked_rotating_file(monkeypatch, tmp_path):
+    import logging
+    from src import config, ops
+    monkeypatch.setattr(config, "LOG_DIR", tmp_path / "logs")
+    monkeypatch.setattr(config, "KLING_API_KEY", "kling-secret-123456")
+    root = logging.getLogger()
+    monkeypatch.setattr(root, "_pipeline_configured", False, raising=False)
+    before = list(root.handlers)
+    try:
+        ops.setup_logging()
+        logging.getLogger("t").warning("token kling-secret-123456 used")
+        for h in root.handlers:
+            h.flush()
+        text = (tmp_path / "logs" / "pipeline.log").read_text(encoding="utf-8")
+        assert "token" in text and "kling-secret-123456" not in text
+    finally:
+        for h in list(root.handlers):
+            if h not in before:
+                root.removeHandler(h)
+                h.close()

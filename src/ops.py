@@ -3,8 +3,8 @@ src/ops.py
 ==========
 Operations & maintenance suite for the Autonomous Meta Content Pipeline.
 1. Logging with secret masking applied to every record (tokens never reach logs).
-2. Asset Lifecycle Manager: prunes intermediate scratch audio (> 7 days) while
-   preserving master MP4 cuts, thumbnails, ASS captions, and metadata.
+2. Asset Lifecycle Manager: prunes intermediate scratch (> 7 days) while preserving masters,
+   narration, beds, thumbnails, captions and metadata.
 3. Pre-Flight Health Checker: FFmpeg/ffprobe, disk space, fonts, connectivity, credentials.
 """
 
@@ -14,6 +14,7 @@ import shutil
 import socket
 import subprocess
 import time
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Dict, Any, Tuple
 
@@ -24,6 +25,8 @@ from .config import BASE_DIR, OUTPUT_DIR, FONTS_DIR, is_configured
 
 # Telegram bot tokens appear inside request URLs (".../bot<id>:<secret>/sendPhoto").
 _TELEGRAM_TOKEN_RE = re.compile(r"bot\d+:[A-Za-z0-9_-]{20,}")
+# Google API keys (Gemini) can appear in library-built URLs even though our own calls send a header.
+_GOOGLE_KEY_RE = re.compile(r"AIza[0-9A-Za-z_-]{20,}")
 
 
 class SecretMasker:
@@ -38,6 +41,9 @@ class SecretMasker:
         "AZURE_SPEECH_KEY",
         "GEMINI_API_KEY",
         "META_PAGE_ACCESS_TOKEN",
+        "GEMINI_FREE_API_KEY",
+        "KLING_API_KEY",
+        "HEALTHCHECK_PING_URL",  # the ping URL itself is the credential
     )
 
     def __init__(self):
@@ -53,6 +59,7 @@ class SecretMasker:
         for token in self.sensitive_tokens:
             replacement = token[:3] + "..." + token[-3:] if len(token) > 12 else "***"
             sanitized = sanitized.replace(token, replacement)
+        sanitized = _GOOGLE_KEY_RE.sub("AIza***", sanitized)
         return _TELEGRAM_TOKEN_RE.sub("bot***", sanitized)
 
 
@@ -75,10 +82,21 @@ def setup_logging(level: int = logging.INFO) -> None:
     root = logging.getLogger()
     if getattr(root, "_pipeline_configured", False):
         return
+    masking = _MaskingFilter(SecretMasker())
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)-7s %(name)s: %(message)s", "%H:%M:%S"))
-    handler.addFilter(_MaskingFilter(SecretMasker()))
+    handler.addFilter(masking)
     root.addHandler(handler)
+    # A persistent, rotating copy so a daemon or bot failure can be diagnosed after the console is gone.
+    try:
+        config.LOG_DIR.mkdir(parents=True, exist_ok=True)
+        file_handler = RotatingFileHandler(config.LOG_DIR / "pipeline.log", maxBytes=5_000_000,
+                                           backupCount=5, encoding="utf-8")
+        file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)-7s %(name)s: %(message)s"))
+        file_handler.addFilter(masking)
+        root.addHandler(file_handler)
+    except OSError as e:
+        root.warning("File logging unavailable (%s); console only.", e)
     root.setLevel(level)
     # Library debug output can include full request URLs; keep it quiet.
     for noisy in ("urllib3", "httpx", "httpx2", "apscheduler.executors"):
@@ -92,7 +110,9 @@ log = logging.getLogger(__name__)
 class AssetLifecycleManager:
     """Maintains storage hygiene by pruning intermediate scratch files older than retention_days."""
 
-    SCRATCH_PATTERNS = ("ambient_bed.wav", "voiceover.mp3", "*temp*", "*.tmp")
+    # Narration and bed are kept: a run's release check and rights evidence need them (a run can
+    # wait weeks for approval or a slot, and published runs may need them in a dispute).
+    SCRATCH_PATTERNS = ("*temp*", "*.tmp")
     SCRATCH_DIRS = ("motion", "parallax", "qa_frames", "stage_cache", "audit")
 
     def __init__(self, output_dir: Path = OUTPUT_DIR, retention_days: int = 7):

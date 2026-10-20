@@ -58,6 +58,7 @@ def no_repo_writes(monkeypatch, tmp_path_factory):
     from src import music
     sandbox = tmp_path_factory.mktemp("repo_writes")
     monkeypatch.setattr("src.config.ISSUES_DIR", sandbox / "issues")
+    monkeypatch.setattr("src.config.LOG_DIR", sandbox / "logs")
     library = sandbox / "library.json"
     if music.LIBRARY.exists():
         library.write_bytes(music.LIBRARY.read_bytes())

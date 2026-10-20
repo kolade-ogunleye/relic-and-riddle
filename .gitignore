@@ -45,3 +45,6 @@ test_online_media/
 
 # Local backups made by scripts/migrate_topic_ids.py (contain the database)
 archive/topic_id_migration/
+
+# Rotating pipeline logs
+logs/

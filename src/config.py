@@ -27,6 +27,7 @@ ASSETS_DIR = BASE_DIR / "assets"
 FONTS_DIR = BASE_DIR / "fonts"
 OUTPUT_DIR = BASE_DIR / "output"
 ISSUES_DIR = BASE_DIR / "docs" / "issues"  # operator /issue reports and their evidence
+LOG_DIR = BASE_DIR / "logs"  # rotating, secret-masked pipeline.log
 
 for p in [DATA_DIR, TOPICS_DIR, CURATED_SCRIPTS_DIR, SFX_DIR, ASSETS_DIR, FONTS_DIR, OUTPUT_DIR]:
     p.mkdir(parents=True, exist_ok=True)

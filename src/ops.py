@@ -44,6 +44,7 @@ class SecretMasker:
         "GEMINI_FREE_API_KEY",
         "KLING_API_KEY",
         "HEALTHCHECK_PING_URL",  # the ping URL itself is the credential
+        "SMITHSONIAN_API_KEY",
     )
 
     def __init__(self):

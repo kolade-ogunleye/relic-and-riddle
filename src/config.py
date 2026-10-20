@@ -100,6 +100,11 @@ GEMINI_FREE_API_KEY = (os.getenv("GEMINI_FREE_API_KEY") or "").strip()
 FREE_WRITER_MODEL = (os.getenv("FREE_WRITER_MODEL") or "gemini-3.8-flash").strip()
 FREE_CHECKER_MODEL = (os.getenv("FREE_CHECKER_MODEL") or "gemini-3.7-flash").strip()  # a different model checks the writer's work
 GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
+# When the free Gemini quota is used up, these task classes may use the billed GEMINI_API_KEY up to a
+# monthly cap in USD (0 = never): light = photo review and sound plan; heavy = writing and fact checks.
+PAID_FALLBACK_LIGHT_MONTHLY_USD = float(os.getenv("PAID_FALLBACK_LIGHT_MONTHLY_USD") or 0)
+PAID_FALLBACK_HEAVY_MONTHLY_USD = float(os.getenv("PAID_FALLBACK_HEAVY_MONTHLY_USD") or 0)
+SMITHSONIAN_API_KEY = (os.getenv("SMITHSONIAN_API_KEY") or "").strip()  # api.data.gov key (free); masked in logs
 GEMINI_MODEL = (os.getenv("GEMINI_MODEL") or "gemini-3.8-flash").strip()
 
 # Voice

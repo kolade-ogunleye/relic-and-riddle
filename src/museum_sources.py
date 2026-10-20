@@ -36,10 +36,10 @@ SI = "https://api.si.edu/openaccess/api/v1.0/search"
 PAUSE = 1.0
 
 
-def _get(url: str, params: Optional[dict] = None, timeout: float = 30) -> Optional[dict]:
+def _get(url: str, params: Optional[dict] = None, timeout: float = 30, headers: Optional[dict] = None) -> Optional[dict]:
     time.sleep(PAUSE)
     try:
-        r = requests.get(url, params=params, headers=HEADERS, timeout=timeout)
+        r = requests.get(url, params=params, headers={**HEADERS, **(headers or {})}, timeout=timeout)
         if r.status_code != 200 or "json" not in r.headers.get("Content-Type", ""):
             log.info("%s answered HTTP %s; skipping.", url.split("/")[2], r.status_code)
             return None
@@ -99,7 +99,8 @@ def nasa_search(query: str, limit: int = 12) -> List[Dict]:
 
 def smithsonian_search(query: str, limit: int = 12) -> List[Dict]:
     key = os.getenv("SMITHSONIAN_API_KEY", "").strip() or "DEMO_KEY"
-    found = _get(SI, {"q": f"{query} AND online_media_type:Images", "api_key": key, "rows": limit})
+    # The key goes in the X-Api-Key header (api.data.gov accepts it there), never in the URL or logs.
+    found = _get(SI, {"q": f"{query} AND online_media_type:Images", "rows": limit}, headers={"X-Api-Key": key})
     out = []
     for row in ((found or {}).get("response") or {}).get("rows", []):
         content = row.get("content") or {}

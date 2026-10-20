@@ -1859,8 +1859,13 @@ def main(argv=None) -> int:
             from src import fact_sheet
             from src.asset_pipeline import ensure_pool
             try:  # photo pools for the next topics too, so a run never waits on review
-                for t in coordinator.db.ranked_topics()[:3]:
-                    ensure_pool(t)
+                not_ready = [t for t in coordinator.db.ranked_topics()[:3] if not ensure_pool(t)]
+                if not_ready:  # skipped topics should never go unnoticed
+                    from src.credits import load_credits
+                    lines = [f"• {html.escape(t['title'])}: {html.escape(load_credits(config.ASSETS_DIR / t['id']).get('review_note') or 'no usable photos yet')}"
+                             for t in not_ready]
+                    bot.notify("🖼 <b><u>PHOTO POOLS NOT READY</u></b>\n\nThese upcoming topics will be skipped until "
+                               "they have approved photos:\n" + "\n".join(lines), silent=True)
             except Exception as e:
                 log.warning("Nightly photo pool preparation failed: %s", e)
             for t in prebuild_candidates(coordinator.db, 3):

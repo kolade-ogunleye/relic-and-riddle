@@ -3,7 +3,7 @@ from src import museum_sources as ms
 
 
 def _replies(monkeypatch, mapping):
-    def get(url, params=None, timeout=30):
+    def get(url, params=None, timeout=30, headers=None):
         for key, value in mapping.items():
             if key in url:
                 return value(params) if callable(value) else value
@@ -39,3 +39,15 @@ def test_smithsonian_takes_cc0_media_only(monkeypatch):
                           "online_media": {"media": [{"usage": {"access": access}, "content": "https://ids/1.jpg"}]}}}}
     _replies(monkeypatch, {"api.si.edu": {"response": {"rows": [row("CC0"), row("Usage conditions apply")]}}})
     assert [c["license"] for c in ms.smithsonian_search("x")] == ["CC0"]
+
+
+def test_smithsonian_key_travels_in_a_header_not_the_url(monkeypatch):
+    seen = {}
+
+    def get(url, params=None, timeout=30, headers=None):
+        seen.update(params=params, headers=headers)
+        return {"response": {"rows": []}}
+    monkeypatch.setattr(ms, "_get", get)
+    monkeypatch.setenv("SMITHSONIAN_API_KEY", "secret-key")
+    ms.smithsonian_search("x")
+    assert seen["headers"] == {"X-Api-Key": "secret-key"} and "secret-key" not in str(seen["params"])

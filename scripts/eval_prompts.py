@@ -90,6 +90,8 @@ def main() -> int:
     ap.add_argument("--summary", action="store_true")
     args = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
+    from src import free_llm
+    free_llm.ALLOW_PAID_FALLBACK = False  # the test runs on the free quota only, never on the billed key
     rows = [json.loads(line) for line in RESULTS.read_text(encoding="utf-8").splitlines()] if RESULTS.exists() else []
     if args.summary:
         print(summarize(rows))

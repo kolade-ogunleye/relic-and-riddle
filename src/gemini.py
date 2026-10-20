@@ -11,6 +11,7 @@ Docs: ai.google.dev/gemini-api/docs/google-search, .../structured-output, ai.goo
 """
 
 import json
+import threading
 import logging
 from typing import Any, Dict, List, Tuple, Type, TypeVar, Union
 
@@ -63,6 +64,18 @@ def _post(body: Dict[str, Any], timeout: float = 300, key: str = None) -> Dict[s
     if data.get("status") not in ("completed",):
         raise GeminiError(f"Gemini interaction ended with status '{data.get('status')}'.")
     return data
+
+
+_usage = threading.local()
+
+
+def _set_usage(input_tokens: int, output_tokens: int) -> None:
+    _usage.value = (int(input_tokens or 0), int(output_tokens or 0))
+
+
+def last_usage() -> tuple:
+    """(input tokens, output tokens) of this thread's last structured call, for cost accounting."""
+    return getattr(_usage, "value", (0, 0))
 
 
 def _text_blocks(data: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -208,7 +221,11 @@ def structured(system: str, prompt: Union[str, list], schema: Type[T], model: st
         if resp.status_code != 200:
             raise GeminiError(f"Gemini vision call failed (HTTP {resp.status_code}): {resp.text[:200]}")
         try:
-            text = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+            body_json = resp.json()
+            meta = body_json.get("usageMetadata") or {}
+            _set_usage(meta.get("promptTokenCount", 0),
+                       meta.get("candidatesTokenCount", 0) + meta.get("thoughtsTokenCount", 0))
+            text = body_json["candidates"][0]["content"]["parts"][0]["text"]
             return schema.model_validate(json.loads(text))
         except (KeyError, IndexError, ValueError) as e:
             raise GeminiError(f"Gemini vision output did not match the schema: {e}") from e
@@ -219,6 +236,8 @@ def structured(system: str, prompt: Union[str, list], schema: Type[T], model: st
         "response_format": {"type": "text", "mime_type": "application/json",
                             "schema": _inline_refs(schema.model_json_schema())},
     }, key=key)
+    usage = data.get("usage") or {}
+    _set_usage(usage.get("total_input_tokens", 0), usage.get("total_output_tokens", 0))
     text = "".join(b.get("text", "") for b in _text_blocks(data)).strip()
     try:
         return schema.model_validate(json.loads(text))

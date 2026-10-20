@@ -48,7 +48,7 @@ def plan(words: List[Dict[str, Any]], topic_title: str = "") -> Optional[Dict[st
         return None
     numbered = " ".join(f"[{i}]{w.get('word', '')}" for i, w in enumerate(words, 1))
     try:
-        raw = free_llm.call(SYSTEM, f"Topic: {topic_title}\n\nNarration:\n{numbered}", SoundPlan, role="writer",
+        raw = free_llm.call(SYSTEM, f"Topic: {topic_title}\n\nNarration:\n{numbered}", SoundPlan, role="writer", task_class="light",
                             effort="low", max_tokens=2000)
     except (LLMError, OSError) as e:
         log.info("Sound plan unavailable (%s); using word cues.", e)

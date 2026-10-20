@@ -77,7 +77,8 @@ def review_pool(topic: Dict[str, Any], topic_dir: Path, apply: bool = True) -> D
     review = None
     for role in ("checker", "writer"):  # either free model will do; one is often overloaded
         try:
-            review = free_llm.call(SYSTEM, content, PoolReview, role=role, effort="medium", max_tokens=6000)
+            review = free_llm.call(SYSTEM, content, PoolReview, role=role, task_class="light",
+                                    effort="medium", max_tokens=6000)
             break
         except (LLMError, OSError) as e:
             log.warning("Photo review for %s on the %s model failed (%s).", topic["id"], role, e)

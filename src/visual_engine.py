@@ -38,7 +38,7 @@ COVER_STYLES = ("badge", "lower_third", "minimal", "depth_sandwich")
 
 # The shared Cappadocia photo suite in assets/ only depicts the Derinkuyu topic.
 SHARED_SUITE = {
-    "01_derinkuyu_underground_city": [
+    "derinkuyu_underground_city": [
         "scene1_stairs.jpg", "scene07_ozkonak_entrance.jpg", "scene2_tunnel.jpg",
         "scene08_ozkonak_tunnel.jpg", "scene3_door.jpg", "scene09_kaymakli_arch.jpg",
         "scene4_pillars.jpg", "scene5_room.jpg", "scene13_derinkuyu_church.jpg",

@@ -118,7 +118,7 @@ def _image_set(tmp_path, name="03_kailasa_temple", n=6, reviewed=False):
 def test_images_review_drop_approve_flow(db, tmp_path):
     from src.credits import load_credits
     d = _image_set(tmp_path)
-    _image_set(tmp_path, "29_baltic_sea_anomaly", n=2)
+    _image_set(tmp_path, "baltic_sea_anomaly", n=2)
     sent = []
     h = make_command_handler(db, lambda: None, lambda: "", send_photo=lambda p, cap, btns: sent.append((p.name, cap, btns)) or True,
                              assets_dir=tmp_path)
@@ -128,7 +128,9 @@ def test_images_review_drop_approve_flow(db, tmp_path):
     assert h("review", "3") == ""
     name, caption, buttons = sent[-1]
     assert name == "contact_sheet.jpg" or name.endswith(".jpg")
-    assert "1. Img 0.jpg" in caption and buttons[0]["callback_data"] == "imgok:03_kailasa_temple"
+    assert "Storyboard Beat Direction" in caption and "<code>" in caption  # each beat names its image
+    assert buttons[0]["callback_data"] == "imgok:03_kailasa_temple"
+    assert (d / "storyboard.json").is_file()  # written beside the reviewed images, never into real assets
 
     assert "Removed 1; 5 images remain" in h("drop", "03 2")
     assert len(load_credits(d)["images"]) == 5

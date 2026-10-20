@@ -94,7 +94,7 @@ def test_planner_caps_footage_share(tmp_path, monkeypatch):
 
 
 def test_curated_footage_ingestion(tmp_path, monkeypatch):
-    topic_id = "01_derinkuyu_underground_city"
+    topic_id = "derinkuyu_underground_city"
     assets_dir = tmp_path / "assets"
     curated_dir = assets_dir / topic_id / "footage"
     curated_dir.mkdir(parents=True)

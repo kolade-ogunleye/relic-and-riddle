@@ -23,7 +23,7 @@ from src import fact_checker, llm, script_engine, trace_check  # noqa: E402
 from src.db import PipelineDatabase  # noqa: E402
 from scripts.eval_models import PLANT, Corruption, SONNET, OPUS, Spend, BudgetStop  # noqa: E402
 
-TOPICS = ["01_derinkuyu_underground_city", "02_roman_self_healing_concrete", "05_gobekli_tepe", "07_camp_century_nuclear_ice_city"]
+TOPICS = ["derinkuyu_underground_city", "roman_self_healing_concrete", "gobekli_tepe_enclosure_d", "camp_century_nuclear_ice_city"]
 MAX_REVISIONS = 2
 
 

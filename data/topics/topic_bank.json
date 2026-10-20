@@ -2,7 +2,7 @@
   "total": 30,
   "topics": [
     {
-      "id": "01_derinkuyu_underground_city",
+      "id": "derinkuyu_underground_city",
       "title": "The Underground City of Derinkuyu",
       "sub_theme": "Lost Civilizations",
       "hook": "In 1963, a man renovating his house in Cappadocia knocked through a wall and found a tunnel leading down into an underground city.",
@@ -37,7 +37,7 @@
       ]
     },
     {
-      "id": "02_roman_self_healing_concrete",
+      "id": "roman_self_healing_concrete",
       "title": "The Mystery of Roman Self-Healing Concrete",
       "sub_theme": "Ancient Materials",
       "hook": "Modern concrete cracks in 50 years, but Roman harbors have sat in saltwater for two millennia and actually get stronger.",
@@ -73,7 +73,7 @@
       ]
     },
     {
-      "id": "03_kailasa_temple_monolith",
+      "id": "kailasa_temple_monolith",
       "title": "The Kailasa Temple Monolith",
       "sub_theme": "Architectural Enigma",
       "hook": "This 100-foot temple was not built from the ground up—it was carved out of a single mountain from top to bottom.",
@@ -108,7 +108,7 @@
       ]
     },
     {
-      "id": "04_antikythera_mechanism",
+      "id": "antikythera_mechanism",
       "title": "The Antikythera Mechanism: 2,000-Year-Old Analog Computer",
       "sub_theme": "Astronomical Feat",
       "hook": "Divers pulled a corroded lump of bronze from an ancient shipwreck, only to discover an analog computer that predicted eclipses.",
@@ -143,7 +143,7 @@
       ]
     },
     {
-      "id": "05_gobekli_tepe",
+      "id": "gobekli_tepe_enclosure_d",
       "title": "Göbekli Tepe: The 11,000-Year-Old Sanctuary",
       "sub_theme": "Prehistoric Marvel",
       "hook": "Built 6,000 years before Stonehenge, this massive stone sanctuary proved human hunters organized societies long before farming began.",
@@ -178,7 +178,7 @@
       ]
     },
     {
-      "id": "06_damascus_steel_nanotubes",
+      "id": "damascus_steel_nanotubes",
       "title": "Damascus Steel & Ancient Carbon Nanotubes",
       "sub_theme": "Lost Metallurgy",
       "hook": "Damascus steel blades were famed for their watery patterns and sharpness, and in 2006 scientists found carbon nanotubes inside one.",
@@ -214,7 +214,7 @@
       ]
     },
     {
-      "id": "07_camp_century_nuclear_ice_city",
+      "id": "camp_century_nuclear_ice_city",
       "title": "Camp Century: The Nuclear City Under the Ice",
       "sub_theme": "Declassified History",
       "hook": "During the Cold War, the US Army built an entire nuclear-powered city hidden under the Greenland ice sheet.",
@@ -249,7 +249,7 @@
       ]
     },
     {
-      "id": "08_hypogeum_of_hal_saflieni",
+      "id": "hal_saflieni_hypogeum",
       "title": "The Hypogeum of Hal Saflieni",
       "sub_theme": "Subterranean Relic",
       "hook": "Beneath an ordinary street in Malta lies a 5,000-year-old underground burial complex carved by hand from solid rock.",
@@ -284,7 +284,7 @@
       ]
     },
     {
-      "id": "09_greek_fire_byzantine_weapon",
+      "id": "greek_fire_siphon",
       "title": "Byzantine Greek Fire: The Lost Thermal Weapon",
       "sub_theme": "Medieval Warfare",
       "hook": "For 500 years, the Byzantine Empire possessed a liquid weapon that burned on top of water, and its secret recipe vanished forever.",
@@ -319,7 +319,7 @@
       ]
     },
     {
-      "id": "10_unfinished_obelisk_aswan",
+      "id": "unfinished_obelisk_aswan",
       "title": "The Unfinished Obelisk of Aswan",
       "sub_theme": "Ancient Megaliths",
       "hook": "In an Aswan granite quarry lies an obelisk that would have been the largest ever raised in ancient Egypt, abandoned when it cracked.",
@@ -354,7 +354,7 @@
       ]
     },
     {
-      "id": "11_piri_reis_antarctica_map",
+      "id": "piri_reis_1513_map",
       "title": "The Piri Reis Map of 1513",
       "sub_theme": "Cartographic Mystery",
       "hook": "In 1929, a 1513 Ottoman world map turned up in Istanbul, partly copied from a lost map by Christopher Columbus.",
@@ -387,7 +387,7 @@
       ]
     },
     {
-      "id": "12_flannan_isle_lighthouse_disappearance",
+      "id": "flannan_isle_lighthouse_disappearance",
       "title": "The Flannan Isle Lighthouse Vanishing",
       "sub_theme": "Unsolved Disappearance",
       "hook": "In December 1900, three lighthouse keepers vanished from a remote Scottish island, and no trace of them was ever found.",
@@ -420,7 +420,7 @@
       ]
     },
     {
-      "id": "13_trepanation_miracle",
+      "id": "trepanation_miracle",
       "title": "Ancient Skull Surgery (Trepanation)",
       "sub_theme": "Ancient Medicine",
       "hook": "Thousands of years ago, people cut holes in living patients' skulls, and many of those patients survived.",
@@ -453,7 +453,7 @@
       ]
     },
     {
-      "id": "14_nazca_lines_runway_paradox",
+      "id": "nazca_lines_runway_paradox",
       "title": "The Nazca Lines",
       "sub_theme": "Geoglyphs",
       "hook": "In the desert of southern Peru, hundreds of giant figures and lines were drawn into the ground about 2,000 years ago.",
@@ -487,7 +487,7 @@
       ]
     },
     {
-      "id": "15_sunken_city_of_heracleion",
+      "id": "sunken_city_of_heracleion",
       "title": "The Sunken City of Thonis-Heracleion",
       "sub_theme": "Submerged City",
       "hook": "For centuries, the great Egyptian port of Thonis-Heracleion was known only from ancient texts, until divers found it underwater in 2000.",
@@ -520,7 +520,7 @@
       ]
     },
     {
-      "id": "16_zhang_heng_132ad_seismoscope",
+      "id": "zhang_heng_seismoscope",
       "title": "Zhang Heng's Earthquake Detector (AD 132)",
       "sub_theme": "Lost Engineering",
       "hook": "In AD 132, a Chinese inventor built a bronze vessel that, records say, signalled an earthquake hundreds of miles away.",
@@ -553,7 +553,7 @@
       ]
     },
     {
-      "id": "17_voynich_manuscript",
+      "id": "voynich_manuscript",
       "title": "The Unsolved Voynich Manuscript",
       "sub_theme": "Bizarre Relic",
       "hook": "A 600-year-old book written in an unknown script has defeated every attempt to read it.",
@@ -586,7 +586,7 @@
       ]
     },
     {
-      "id": "18_odessa_catacombs_labyrinth",
+      "id": "odessa_catacombs",
       "title": "The 1,500-Mile Odessa Catacombs",
       "sub_theme": "Hidden Infrastructure",
       "hook": "Beneath the city of Odesa runs one of the largest tunnel networks in the world, dug mostly by limestone miners.",
@@ -619,7 +619,7 @@
       ]
     },
     {
-      "id": "19_richat_structure_sahara_eye",
+      "id": "richat_structure_sahara_eye",
       "title": "The Richat Structure: The Eye of the Sahara",
       "sub_theme": "Geological Mystery",
       "hook": "Seen from space, a 40-kilometre bullseye in the Sahara looks like a giant eye, and it was made by geology, not people.",
@@ -652,7 +652,7 @@
       ]
     },
     {
-      "id": "20_amber_room_heist",
+      "id": "amber_room_heist",
       "title": "The Disappearance of the Amber Room",
       "sub_theme": "Historical Heist",
       "hook": "In 1941, German troops dismantled a palace room made of amber and shipped it away, and it has not been seen since 1945.",
@@ -685,7 +685,7 @@
       ]
     },
     {
-      "id": "21_gol_gumbaz_whispering_gallery",
+      "id": "gol_gumbaz_whispering_gallery",
       "title": "The Whispering Gallery of Gol Gumbaz",
       "sub_theme": "Acoustic Wonder",
       "hook": "Under one of the largest domes of the pre-modern world, in Vijayapura, India, a whisper can carry right across the gallery.",
@@ -718,7 +718,7 @@
       ]
     },
     {
-      "id": "22_tunguska_event_1908",
+      "id": "tunguska_event_1908",
       "title": "The Tunguska Event of 1908",
       "sub_theme": "Unexplained Event",
       "hook": "In 1908, an explosion over Siberia flattened about 80 million trees across 2,000 square kilometres, without leaving a crater.",
@@ -751,7 +751,7 @@
       ]
     },
     {
-      "id": "23_claw_of_archimedes",
+      "id": "claw_of_archimedes",
       "title": "The Claw of Archimedes",
       "sub_theme": "Ancient Weapons",
       "hook": "When Rome besieged Syracuse, ancient writers say Archimedes built a giant claw that lifted enemy ships out of the sea.",
@@ -784,7 +784,7 @@
       ]
     },
     {
-      "id": "24_dyatlov_pass_incident",
+      "id": "dyatlov_pass_incident",
       "title": "The Dyatlov Pass Mystery",
       "sub_theme": "Lost Expedition",
       "hook": "In 1959, nine hikers cut their way out of their tent and fled into the snow at night, and none of them survived.",
@@ -817,7 +817,7 @@
       ]
     },
     {
-      "id": "25_lycurgus_cup_nanotech",
+      "id": "lycurgus_cup_nanotech",
       "title": "The 4th-Century Lycurgus Cup",
       "sub_theme": "Microscopic Wonder",
       "hook": "A 1,600-year-old Roman cup glows green in reflected light and turns red when lit from behind.",
@@ -850,7 +850,7 @@
       ]
     },
     {
-      "id": "26_wieliczka_salt_cathedral",
+      "id": "wieliczka_salt_mine",
       "title": "The Wieliczka Underground Salt Cathedral",
       "sub_theme": "Subterranean Marvel",
       "hook": "Deep underground in Poland, miners carved an entire chapel from rock salt, down to the chandeliers.",
@@ -883,7 +883,7 @@
       ]
     },
     {
-      "id": "27_great_wall_of_gorgan",
+      "id": "great_wall_of_gorgan",
       "title": "The Red Snake: The Great Wall of Gorgan",
       "sub_theme": "Ancient Defense",
       "hook": "In northern Iran runs a 195-kilometre ancient wall of red brick that few people have ever heard of.",
@@ -916,7 +916,7 @@
       ]
     },
     {
-      "id": "28_dancing_plague_1518",
+      "id": "dancing_plague_1518",
       "title": "The Dancing Plague of 1518",
       "sub_theme": "Historical Paradox",
       "hook": "In July 1518, a woman began dancing in a Strasbourg street and could not stop, and within weeks dozens more joined her.",
@@ -949,7 +949,7 @@
       ]
     },
     {
-      "id": "29_baltic_sea_anomaly",
+      "id": "baltic_sea_anomaly",
       "title": "The Baltic Sea Anomaly",
       "sub_theme": "Maritime Enigma",
       "hook": "In 2011, Swedish treasure hunters released a blurry sonar image of a round shape on the Baltic seabed, and the internet went wild.",
@@ -982,7 +982,7 @@
       ]
     },
     {
-      "id": "30_acoustic_kitty_cia",
+      "id": "acoustic_kitty_cia",
       "title": "Operation Acoustic Kitty",
       "sub_theme": "Declassified History",
       "hook": "In the 1960s, the CIA reportedly tried to turn a cat into a walking microphone.",

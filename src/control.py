@@ -234,7 +234,7 @@ def review_caption(topic_dir: Path, ref_hint: Optional[str] = None) -> str:
     sb = load_storyboard(topic_dir)
     if not sb and cr.get("images"):
         try:
-            sb = generate_storyboard(topic_dir.name)
+            sb = generate_storyboard(topic_dir.name, topic_dir)
         except Exception:
             sb = None
 

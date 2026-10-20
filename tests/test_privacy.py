@@ -64,7 +64,7 @@ def test_anonymize_media_non_image(tmp_path):
 
 def test_kailasa_stone_carving_not_blurred():
     # If 03_commons.jpg exists, test that stone carving faces are not flagged as living humans
-    kailasa_stone = BASE_DIR / "assets" / "03_kailasa_temple_monolith" / "03_commons.jpg"
+    kailasa_stone = BASE_DIR / "assets" / "kailasa_temple_monolith" / "03_commons.jpg"
     if kailasa_stone.exists():
         img = cv2.imread(str(kailasa_stone))
         faces = privacy.detect_human_faces(img)

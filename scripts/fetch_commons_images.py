@@ -12,7 +12,7 @@ Re-running this script refills gaps left by deleted images.
 
 Usage:
   python scripts/fetch_commons_images.py                 # every topic short of images
-  python scripts/fetch_commons_images.py --topic-id 03_kailasa_temple_monolith
+  python scripts/fetch_commons_images.py --topic-id kailasa_temple_monolith
   python scripts/fetch_commons_images.py --allow-share-alike
 """
 
@@ -193,7 +193,7 @@ def main() -> int:
     for t in topics:
         spec = specs.get(t["id"])
         if not spec:
-            if t["id"] != "01_derinkuyu_underground_city":  # Derinkuyu uses the curated shared suite
+            if t["id"] != "derinkuyu_underground_city":  # Derinkuyu uses the curated shared suite
                 print(f"  {t['id']}: no entry in image_queries.json, skipping")
             continue
         try:

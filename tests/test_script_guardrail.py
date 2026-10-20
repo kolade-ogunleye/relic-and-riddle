@@ -47,7 +47,7 @@ def test_uncurated_script_fails_closed_without_claude(curated_payload):
 
 def test_topic_without_any_script_source_raises():
     with pytest.raises(ScriptUnavailableError):
-        ScriptEngine().generate_script({"id": "02_roman_self_healing_concrete", "title": "Roman concrete"})
+        ScriptEngine().generate_script({"id": "roman_self_healing_concrete", "title": "Roman concrete"})
 
 
 def _claim(verdict, hedged=False, sources=True):

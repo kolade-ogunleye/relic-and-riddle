@@ -70,18 +70,18 @@ def _unesco():
 def test_unesco_never_injects_evidence_from_another_site():
     engine = _unesco()
     # Its location name is a province; Golestan Palace in Tehran is a different property.
-    assert engine.match_topic(_bank_topic("27_great_wall_of_gorgan")) is None
+    assert engine.match_topic(_bank_topic("great_wall_of_gorgan")) is None
     # "Zhang" is not "Chang'an", "Roman" is not "Villa Romana"; context sites are not the subject.
-    assert engine.match_topic(_bank_topic("16_zhang_heng_132ad_seismoscope")) is None
-    assert engine.match_topic(_bank_topic("19_richat_structure_sahara_eye")) is None
-    assert engine.match_topic(_bank_topic("06_damascus_steel_nanotubes")) is None  # pinned: metallurgy, not the city
+    assert engine.match_topic(_bank_topic("zhang_heng_seismoscope")) is None
+    assert engine.match_topic(_bank_topic("richat_structure_sahara_eye")) is None
+    assert engine.match_topic(_bank_topic("damascus_steel_nanotubes")) is None  # pinned: metallurgy, not the city
 
 
 def test_unesco_finds_the_real_site():
     engine = _unesco()
-    expected = {"03_kailasa_temple_monolith": 243, "05_gobekli_tepe": 1572,  # Türkiye spelled as Turkey
-                "08_hypogeum_of_hal_saflieni": 130, "26_wieliczka_salt_cathedral": 32,
-                "02_roman_self_healing_concrete": 91, "14_nazca_lines_runway_paradox": 700}  # pinned
+    expected = {"kailasa_temple_monolith": 243, "gobekli_tepe_enclosure_d": 1572,  # Türkiye spelled as Turkey
+                "hal_saflieni_hypogeum": 130, "wieliczka_salt_mine": 32,
+                "roman_self_healing_concrete": 91, "nazca_lines_runway_paradox": 700}  # pinned
     for topic_id, site_id in expected.items():
         site = engine.match_topic(_bank_topic(topic_id))
         assert site is not None and site.id_number == site_id, topic_id

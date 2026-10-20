@@ -32,7 +32,7 @@ def test_documentary_act_and_package_models():
     assert "Turkish" in act1.narration_text
 
     pkg = DeepDivePackage(
-        topic_id="01_derinkuyu_underground_city",
+        topic_id="derinkuyu_underground_city",
         title="Derinkuyu Underground City",
         youtube_title="The 18-Story Subterranean Metropolis: How Derinkuyu Protected 20,000 People",
         description="Comprehensive investigative documentary with chapter timestamps.",
@@ -47,7 +47,7 @@ def test_documentary_act_and_package_models():
 
 def test_check_act_fact_verification(monkeypatch):
     sheet = {
-        "topic_id": "01_derinkuyu_underground_city",
+        "topic_id": "derinkuyu_underground_city",
         "facts": [
             {
                 "id": "F1",

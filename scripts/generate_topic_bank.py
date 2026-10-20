@@ -26,7 +26,7 @@ TOPICS = [
     # 01. Subterranean Engineering
     # -------------------------------------------------------------------------
     {
-        "id": "01_derinkuyu_underground_city",
+        "id": "derinkuyu_underground_city",
         "title": "The Underground City of Derinkuyu",
         "sub_theme": "Subterranean Engineering",
         "hook": "In 1963, a man renovating his house in Cappadocia knocked through a basement wall and found a tunnel leading into an 18-story underground metropolis.",
@@ -53,7 +53,7 @@ TOPICS = [
     # 02. Ancient Materials & Metallurgy
     # -------------------------------------------------------------------------
     {
-        "id": "02_roman_self_healing_concrete",
+        "id": "roman_self_healing_concrete",
         "title": "The Mystery of Roman Self-Healing Concrete",
         "sub_theme": "Ancient Materials & Metallurgy",
         "hook": "Modern concrete crumbles in 50 years, but Roman marine breakwaters have sat in pounding saltwater for 2,000 years and actually grow stronger.",
@@ -80,7 +80,7 @@ TOPICS = [
     # 03. Megalithic Architecture
     # -------------------------------------------------------------------------
     {
-        "id": "03_kailasa_temple_monolith",
+        "id": "kailasa_temple_monolith",
         "title": "The Kailasa Temple Monolith",
         "sub_theme": "Megalithic Architecture",
         "hook": "This 100-foot-tall Indian temple was not built from stone blocks—architects carved an entire multi-story cathedral out of a solid basalt cliff from the top down.",
@@ -107,7 +107,7 @@ TOPICS = [
     # 04. Ancient Computing & Astronomy
     # -------------------------------------------------------------------------
     {
-        "id": "04_antikythera_mechanism",
+        "id": "antikythera_mechanism",
         "title": "The Antikythera Mechanism: 2,000-Year-Old Analog Computer",
         "sub_theme": "Ancient Computing & Astronomy",
         "hook": "In 1901, sponge divers retrieved a corroded bronze artifact that revealed Greek engineers built precision analog clockwork computers 1,400 years before Europe.",
@@ -404,7 +404,7 @@ TOPICS = [
     # 15. Historical Curiosities & Enigmas
     # -------------------------------------------------------------------------
     {
-        "id": "15_sunken_city_of_heracleion",
+        "id": "sunken_city_of_heracleion",
         "title": "The Sunken City of Thonis-Heracleion",
         "sub_theme": "Historical Curiosities & Enigmas",
         "hook": "Regarded as a Greek myth for over a thousand years, an entire metropolis was found submerged beneath 30 feet of Mediterranean silt.",

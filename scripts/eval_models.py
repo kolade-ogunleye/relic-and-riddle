@@ -286,7 +286,7 @@ def main() -> int:
     llm.configure_usage(spend.record, db.llm_spend)
     out = ROOT / "evals" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     out.mkdir(parents=True, exist_ok=True)
-    topics = [t for t in db.list_all_topics() if t["id"] != "01_derinkuyu_underground_city"][:EVAL_TOPICS]
+    topics = [t for t in db.list_all_topics() if t["id"] != "derinkuyu_underground_city"][:EVAL_TOPICS]
     res: Dict[str, Any] = {"at": out.name}
     try:
         if args.scripts_from:

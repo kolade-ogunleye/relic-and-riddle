@@ -416,7 +416,7 @@ class PipelineCoordinator:
                 except Exception:
                     pass
 
-            if tid == "01_derinkuyu_underground_city":
+            if tid == "derinkuyu_underground_city":
                 if not payload.get("cross_section"):
                     payload["cross_section"] = {
                         "subject": "Derinkuyu Underground City",
@@ -2196,7 +2196,7 @@ def main(argv=None) -> int:
 
     if args.command == "test":
         try:
-            res = PipelineCoordinator().run_cycle("01_derinkuyu_underground_city", auto_approve=True, dry_run=True)
+            res = PipelineCoordinator().run_cycle("derinkuyu_underground_city", auto_approve=True, dry_run=True)
         except Exception:
             return 1
         print(json.dumps({k: res.get(k) for k in ("status", "master_video", "thumbnails")}, indent=2))

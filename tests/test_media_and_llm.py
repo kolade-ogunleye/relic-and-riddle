@@ -28,11 +28,11 @@ def test_subtitles_never_overlap(tmp_path):
 
 def test_topic_without_own_assets_fails_fast(tmp_path):
     with pytest.raises(MissingAssetsError):
-        VisualEngine(assets_dir=tmp_path).get_scene_sequence({"id": "02_roman_self_healing_concrete"})
+        VisualEngine(assets_dir=tmp_path).get_scene_sequence({"id": "roman_self_healing_concrete"})
 
 
 def test_derinkuyu_uses_shared_suite():
-    scenes = VisualEngine().get_scene_sequence({"id": "01_derinkuyu_underground_city"})
+    scenes = VisualEngine().get_scene_sequence({"id": "derinkuyu_underground_city"})
     assert len(scenes) >= 5
 
 

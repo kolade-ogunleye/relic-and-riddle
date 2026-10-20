@@ -1,94 +1,94 @@
 {
   "_doc": "Wikimedia Commons search terms per topic for scripts/fetch_commons_images.py. A file is kept only if its title contains one of the keywords (case- and accent-insensitive). Topics without an entry are skipped.",
-  "02_roman_self_healing_concrete": {
+  "roman_self_healing_concrete": {
     "queries": ["Roman concrete", "opus caementicium", "Caesarea Maritima harbour", "Pantheon Rome dome interior"],
     "keywords": ["roman concrete", "opus caementicium", "caementicium", "caesarea", "pantheon", "pozzolan"]
   },
-  "03_kailasa_temple_monolith": {
+  "kailasa_temple_monolith": {
     "queries": ["Kailasa temple Ellora", "Ellora Cave 16", "Kailasanatha Ellora"],
     "keywords": ["kailasa", "kailash", "ellora"]
   },
-  "04_antikythera_mechanism": {"queries": ["Antikythera mechanism"], "keywords": ["antikythera"]},
-  "05_gobekli_tepe": {"queries": ["Göbekli Tepe"], "keywords": ["gobekli"]},
-  "06_damascus_steel_nanotubes": {
+  "antikythera_mechanism": {"queries": ["Antikythera mechanism"], "keywords": ["antikythera"]},
+  "gobekli_tepe_enclosure_d": {"queries": ["Göbekli Tepe"], "keywords": ["gobekli"]},
+  "damascus_steel_nanotubes": {
     "queries": ["Damascus steel", "wootz steel", "Damascus steel blade"],
     "keywords": ["damascus steel", "wootz", "damascene", "damast", "pattern welded", "pattern-welded"]
   },
-  "07_camp_century_nuclear_ice_city": {"queries": ["Camp Century", "Project Iceworm"], "keywords": ["camp century", "iceworm"]},
-  "08_hypogeum_of_hal_saflieni": {
+  "camp_century_nuclear_ice_city": {"queries": ["Camp Century", "Project Iceworm"], "keywords": ["camp century", "iceworm"]},
+  "hal_saflieni_hypogeum": {
     "queries": ["Hal Saflieni Hypogeum", "Hypogeum Paola Malta"],
     "keywords": ["hypogeum", "saflieni"]
   },
-  "09_greek_fire_byzantine_weapon": {
+  "greek_fire_siphon": {
     "queries": ["Madrid Skylitzes Greek fire", "Skylitzes Matritensis", "Byzantine dromon", "Byzantine navy"],
     "keywords": ["skylitzes", "dromon", "byzantine navy", "byzantine ship", "byzantine fleet"]
   },
-  "10_unfinished_obelisk_aswan": {"queries": ["Unfinished obelisk Aswan"], "keywords": ["unfinished obelisk"]},
-  "11_piri_reis_antarctica_map": {"queries": ["Piri Reis map"], "keywords": ["piri reis"]},
-  "12_flannan_isle_lighthouse_disappearance": {
+  "unfinished_obelisk_aswan": {"queries": ["Unfinished obelisk Aswan"], "keywords": ["unfinished obelisk"]},
+  "piri_reis_1513_map": {"queries": ["Piri Reis map"], "keywords": ["piri reis"]},
+  "flannan_isle_lighthouse_disappearance": {
     "queries": ["Flannan Isles lighthouse", "Flannan Isles", "Eilean Mor Flannan"],
     "keywords": ["flannan", "eilean mor"]
   },
-  "13_trepanation_miracle": {
+  "trepanation_miracle": {
     "queries": ["trepanation skull", "trepanned skull", "trephination skull", "trepanation"],
     "keywords": ["trepan", "trephin"]
   },
-  "14_nazca_lines_runway_paradox": {
+  "nazca_lines_runway_paradox": {
     "queries": ["Nazca lines", "Nazca hummingbird", "Nasca lines aerial"],
     "keywords": ["nazca", "nasca"]
   },
-  "15_sunken_city_of_heracleion": {
+  "sunken_city_of_heracleion": {
     "queries": ["Thonis-Heracleion", "Heracleion", "Sunken cities Egypt exhibition", "Abu Qir Bay"],
     "keywords": ["heracleion", "herakleion", "thonis", "abu qir", "aboukir", "sunken cities", "canopus"]
   },
-  "16_zhang_heng_132ad_seismoscope": {
+  "zhang_heng_seismoscope": {
     "queries": ["Zhang Heng seismoscope", "Houfeng Didong Yi", "Zhang Heng"],
     "keywords": ["zhang heng", "seismoscope", "houfeng", "seismograph"]
   },
-  "17_voynich_manuscript": {"queries": ["Voynich manuscript"], "keywords": ["voynich"]},
-  "18_odessa_catacombs_labyrinth": {
+  "voynich_manuscript": {"queries": ["Voynich manuscript"], "keywords": ["voynich"]},
+  "odessa_catacombs": {
     "queries": ["Odessa catacombs", "Odesa catacombs"],
     "keywords": ["catacomb"]
   },
-  "19_richat_structure_sahara_eye": {
+  "richat_structure_sahara_eye": {
     "queries": ["Richat Structure", "Eye of the Sahara"],
     "keywords": ["richat", "eye of the sahara", "guelb"]
   },
-  "20_amber_room_heist": {
+  "amber_room_heist": {
     "queries": ["Amber Room", "Amber Room Catherine Palace", "Bernsteinzimmer"],
     "keywords": ["amber room", "bernsteinzimmer"]
   },
-  "21_gol_gumbaz_whispering_gallery": {"queries": ["Gol Gumbaz"], "keywords": ["gol gumbaz", "gol gumbad"]},
-  "22_tunguska_event_1908": {
+  "gol_gumbaz_whispering_gallery": {"queries": ["Gol Gumbaz"], "keywords": ["gol gumbaz", "gol gumbad"]},
+  "tunguska_event_1908": {
     "queries": ["Tunguska event", "Tunguska 1908", "Tunguska Kulik expedition"],
     "keywords": ["tunguska"]
   },
-  "23_claw_of_archimedes": {
+  "claw_of_archimedes": {
     "queries": ["Claw of Archimedes", "Archimedes Syracuse", "Siege of Syracuse 212 BC", "Ortygia Syracuse Sicily"],
     "keywords": ["archimedes", "ortygia", "ortigia", "siracusa", "siege of syracuse"]
   },
-  "24_dyatlov_pass_incident": {
+  "dyatlov_pass_incident": {
     "queries": ["Dyatlov Pass", "Dyatlov group", "Kholat Syakhl"],
     "keywords": ["dyatlov", "kholat"]
   },
-  "25_lycurgus_cup_nanotech": {"queries": ["Lycurgus Cup"], "keywords": ["lycurgus cup"]},
-  "26_wieliczka_salt_cathedral": {
+  "lycurgus_cup_nanotech": {"queries": ["Lycurgus Cup"], "keywords": ["lycurgus cup"]},
+  "wieliczka_salt_mine": {
     "queries": ["Wieliczka salt mine chapel", "Wieliczka Salt Mine", "St. Kinga's Chapel Wieliczka"],
     "keywords": ["wieliczka"]
   },
-  "27_great_wall_of_gorgan": {
+  "great_wall_of_gorgan": {
     "queries": ["Great Wall of Gorgan", "Gorgan Wall", "Alexander's Wall Gorgan"],
     "keywords": ["gorgan"]
   },
-  "28_dancing_plague_1518": {
+  "dancing_plague_1518": {
     "queries": ["dancing mania", "Pilgrims dancing Molenbeek", "dancing plague 1518", "choreomania"],
     "keywords": ["dancing mania", "dance mania", "dancing plague", "choreomania", "molenbeek", "st. vitus dance", "saint vitus dance"]
   },
-  "29_baltic_sea_anomaly": {
+  "baltic_sea_anomaly": {
     "queries": ["Baltic Sea anomaly", "Ocean X Team"],
     "keywords": ["baltic sea anomaly", "ocean x"]
   },
-  "30_acoustic_kitty_cia": {
+  "acoustic_kitty_cia": {
     "queries": ["CIA Original Headquarters Building", "CIA headquarters Langley"],
     "keywords": ["original headquarters building", "cia headquarters", "acoustic kitty"]
   }

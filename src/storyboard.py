@@ -66,12 +66,12 @@ def _split_narration_sentences(narration: str) -> List[str]:
     return sentences
 
 
-def generate_storyboard(topic_id: str) -> List[Dict[str, Any]]:
+def generate_storyboard(topic_id: str, topic_dir: Optional[Path] = None) -> List[Dict[str, Any]]:
     """
     Generates a script-first storyboard for a topic by aligning narration beats
-    with reviewed or fetched archival assets.
+    with reviewed or fetched archival assets. `topic_dir` defaults to assets/<topic_id>.
     """
-    topic_dir = ASSETS_DIR / topic_id
+    topic_dir = Path(topic_dir) if topic_dir is not None else ASSETS_DIR / topic_id
     if not topic_dir.is_dir():
         raise FileNotFoundError(f"Topic directory does not exist: {topic_dir}")
 

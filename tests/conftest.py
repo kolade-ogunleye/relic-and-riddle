@@ -9,7 +9,7 @@ sys.path.insert(0, str(ROOT))
 
 from src.db import PipelineDatabase  # noqa: E402
 
-CURATED = ROOT / "data" / "scripts" / "01_derinkuyu_underground_city.json"
+CURATED = ROOT / "data" / "scripts" / "derinkuyu_underground_city.json"
 
 
 @pytest.fixture(autouse=True)
@@ -78,6 +78,6 @@ def db(tmp_path):
 def curated_payload():
     data = json.loads(CURATED.read_text(encoding="utf-8"))
     payload = {k: v for k, v in data.items() if not k.startswith("_")}
-    payload.update({"topic_id": "01_derinkuyu_underground_city", "origin": "curated",
+    payload.update({"topic_id": "derinkuyu_underground_city", "origin": "curated",
                     "location": {"name": "Derinkuyu", "country": "Turkey"}})
     return payload

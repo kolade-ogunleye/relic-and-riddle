@@ -136,13 +136,13 @@ python main.py health --live
 python main.py test
 
 # Produce one Reel for a specific topic (waits for approval)
-python main.py run --topic-id 01_derinkuyu_underground_city
+python main.py run --topic-id derinkuyu_underground_city
 
 # Produce and auto-approve without Telegram interaction
-python main.py run --topic-id 01_derinkuyu_underground_city --auto-approve --dry-run
+python main.py run --topic-id derinkuyu_underground_city --auto-approve --dry-run
 
 # Produce in dual format (9:16 vertical Reel + 16:9 widescreen documentary)
-python main.py run --topic-id 01_derinkuyu_underground_city --format dual
+python main.py run --topic-id derinkuyu_underground_city --format dual
 
 # Resume a failed run reusing verified script and voiceover
 python main.py resume <run_id> [--auto-approve] [--dry-run]

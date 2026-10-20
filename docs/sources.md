@@ -62,7 +62,9 @@ https://elevenlabs.io/pricing
 - **Creator:** 121k credits, adds professional voice cloning. FAQ $22/mo.
 - **For us:** narration on the Free plan is not licensed for monetized posting. Starter (or Azure Speech) is required before launch. A *designed* voice avoids any cloning-consent question.
 
-## Google Veo 3.1 (Gemini API)
+## Google Veo 3.1 (Gemini API): retired, not used
+> Removed from the pipeline on 2026-10-20: Google shuts down the Veo 3.1 Preview models on
+> 2026-10-22. Kept as a record of what was checked.
 https://ai.google.dev/gemini-api/docs/pricing
 - Prices per second, with audio by default; there is no free tier:
 
@@ -95,7 +97,7 @@ https://ai.google.dev/gemini-api/docs/pricing
   Pyramid of Giza about 138.5 m / 454 ft today.
 
 ## AI motion APIs (src/motion.py)
-- Veo 3.1 (https://ai.google.dev/gemini-api/docs/veo): `POST .../v1beta/models/<model>:predictLongRunning`
+- Veo 3.1 (retired 2026-10-20, see above) (https://ai.google.dev/gemini-api/docs/veo): `POST .../v1beta/models/<model>:predictLongRunning`
   with `x-goog-api-key`; poll `GET .../v1beta/<operation>` until `done`; video at
   `response.generateVideoResponse.generatedSamples[0].video.uri`. Models `veo-3.1-generate-preview`,
   `veo-3.1-fast-generate-preview`, `veo-3.1-lite-generate-preview`. `9:16` allowed; 1080p requires 8 s;

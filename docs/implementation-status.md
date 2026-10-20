@@ -17,13 +17,19 @@ of platform eligibility are not acceptance criteria.
 | Generated graphics | Exact generator code archived; maps retain Natural Earth sources/terms; comparison references retain primary evidence | `src/graphics.py`, `src/reference_facts.py`, `data/reference_facts.json`, `graphics/source_versions/` |
 | Voice, music and fonts | Narration rights bind script/audio; music records actual source files and clearance; font binaries bind OFL notices | `src/audio_provenance.py`, `fonts/license_evidence.json`, `fonts/licenses/`, corresponding regression tests |
 | Measured audio | Stereo 48 kHz; final encoded loudness and true peak checked; AAC overshoots corrected with video stream copied | `src/encoded_audio.py`, `tests/test_encoded_audio.py`, final release reports |
-| Captions and layout | Format-specific captions, SRT/VTT exports, all-cut frame sampling, collision/bounds checks; unapplied fixes stay blocking | `src/video_composer.py`, `src/video_qa.py`, `tests/test_self_healing.py`, final contact sheets |
+| Captions and layout | Format-specific captions, SRT/VTT exports, all-cut frame sampling, collision/bounds checks; unapplied fixes stay blocking | `src/video_composer.py`, `src/video_qa.py`, `tests/test_quality_audit.py`, final contact sheets |
 | Delivery and capabilities | Explicit Reel, documentary and extended-vertical profiles; unsupported upload profiles rejected | `src/delivery_profiles.py`, `main.py:publish_run`, `tests/test_delivery_and_visual.py` |
 | Resumability | Atomic stage checkpoints bind inputs/output hashes for scripts, narration, beds, graphics, rendering and packaging | `src/checkpoints.py`, `main.py`, `tests/test_checkpoints.py`, `tests/test_graphic_cache.py` |
 | Encoding and caching | Shared actual hardware probe with CPU fallback; bounded worker count; content/model-based upscale invalidation | `src/encoding.py`, `src/upscale.py`, `tests/test_encoding.py`, `output/validation/encoder_benchmark/benchmark.json` |
 | Publication safety | Fresh release gate, OS-owned upload lock, atomic claim, no repeat confirmed uploads, unknown outcomes block retries | `main.py`, `src/db.py`, `src/publication_lock.py`, `tests/test_publication_recovery.py`, `tests/test_orchestrator.py` |
 | Interrupted uploads | Explicit local recovery checks lock ownership, then quarantines abandoned claims for account reconciliation | `scripts/recover_publication.py`, [operating instructions](release-validation.md) |
 | Representative validation | Full Derinkuyu documentary plus Roman and Kailasa Reels, packaging, sample, measured release reports and listening reviews | `output/validation/fresh_derinkuyu_v3/`, `fresh_roman/`, `fresh_kailasa/` |
+
+> **Evidence on disk (2026-10-20):** the `output/validation/` folders cited above were deleted
+> after this record was written; regenerate them with `scripts/prepare_validation.py` and
+> `scripts/render_validation.py` (documentary) or `scripts/prepare_reel_validation.py` and
+> `scripts/render_reel_validation.py` (Reels) before relying on them. The quality audit is
+> `QualityAuditor.certify` (formerly described as "self-healing"); it reports and repairs nothing.
 
 ## Scope and operating limits
 

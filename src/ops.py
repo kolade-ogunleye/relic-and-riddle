@@ -247,7 +247,9 @@ class PreFlightHealthChecker:
             left = quota.get("limit", 0) - quota.get("used", 0)
             paid = bool(quota.get("tier")) and quota["tier"] != "free"
             eleven_ok = paid and left >= self.NARRATION_CHARS
-            if not eleven_ok:
+            if eleven_ok:
+                notes.append(f"ElevenLabs {quota['tier']} plan OK ({left} characters left)")
+            else:
                 problems.append(f"ElevenLabs is not usable for a licensed voice ({quota.get('tier') or 'unknown'} plan, "
                                 f"{left} characters left)")
         if not (azure_ok or eleven_ok):
@@ -264,6 +266,8 @@ class PreFlightHealthChecker:
                                  headers={"x-goog-api-key": key}, timeout=15)
                 if r.status_code != 200:
                     problems.append(f"{name} rejected (HTTP {r.status_code})")
+                else:
+                    notes.append(f"{name} OK")
             except requests.RequestException as e:
                 problems.append(f"{name} unreachable ({type(e).__name__})")
         if problems:

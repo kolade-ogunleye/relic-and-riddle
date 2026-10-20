@@ -51,3 +51,6 @@ logs/
 
 # Legacy pre-SQLite state and old DB backup, kept locally (contains the database)
 archive/legacy_data/
+
+# Database backups made by scripts/reset_database.py
+archive/db_reset/

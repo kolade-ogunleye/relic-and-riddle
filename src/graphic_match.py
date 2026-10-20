@@ -21,8 +21,7 @@ NUMBER_WEIGHT, NAME_WEIGHT, WORD_WEIGHT = 2, 2, 1
 
 # Payload field each builder draws from (src/graphics.py make_all).
 SPEC_KEYS = {"numbers": "stat_cards", "cross-section": "cross_section", "route": "route", "timeline": "timeline",
-             "scale": "scale_fact", "defense": "rolling_stone_defense", "ventilation": "ventilation_airflow",
-             "lidar": "lidar_scan", "stratigraphy": "stratigraphy", "isometric": "isometric_cutaway"}
+             "scale": "scale_fact", "defense": "rolling_stone_defense", "ventilation": "ventilation_airflow"}
 _STEM_KINDS = {"section": "cross-section"}
 
 STOPWORDS = {

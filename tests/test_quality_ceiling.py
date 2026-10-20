@@ -6,14 +6,12 @@ Validates:
 1. Kodak 2383 soft-knee cinema tone curves and BT.709 broadcast tagging.
 2. 3D depth-layered key-art compositing with adaptive saliency gating (15-60%).
 3. Multi-template 5-archetype magazine editorial carousels with semantic intent routing.
-4. Ancient history procedural graphics suite (LiDAR scan, stratigraphy, isometric cutaway).
 5. Closed-loop WCAG AAA contrast gating and subject non-occlusion auditing.
 """
 
 import subprocess
 from PIL import Image
 
-from src.graphics import make_lidar_scan, make_stratigraphy, make_isometric_cutaway
 from src.multi_format import MultiFormatGenerator
 from src.video_qa import QualityAuditor
 from src.visual_engine import COVER_STYLES, VisualEngine, extract_foreground_mask
@@ -150,27 +148,6 @@ def test_multi_template_carousel_generation(tmp_path):
         assert Image.open(slide).size == (1080, 1350)
 
 
-def test_procedural_graphics_catalog(tmp_path):
-    """Verify that LiDAR scan, Stratigraphy, and Isometric Cutaway generate clips with poster frames."""
-    # 1. LiDAR Scan
-    lidar_out = tmp_path / "graphic_lidar.mp4"
-    res_lidar = make_lidar_scan({"depth_ft": 280, "title": "TEST LIDAR SCAN"}, lidar_out, width=540, height=960)
-    assert res_lidar is not None and res_lidar.exists()
-    assert res_lidar.with_suffix(".jpg").exists()
-
-    # 2. Geological Stratigraphy
-    strat_out = tmp_path / "graphic_stratigraphy.mp4"
-    res_strat = make_stratigraphy({"total_depth_ft": 280, "title": "TEST STRATIGRAPHY"}, strat_out, width=540, height=960)
-    assert res_strat is not None and res_strat.exists()
-    assert res_strat.with_suffix(".jpg").exists()
-
-    # 3. 3D Isometric Cutaway
-    iso_out = tmp_path / "graphic_isometric.mp4"
-    res_iso = make_isometric_cutaway({"title": "TEST ISOMETRIC CUTAWAY"}, iso_out, width=540, height=960)
-    assert res_iso is not None and res_iso.exists()
-    assert res_iso.with_suffix(".jpg").exists()
-
-
 def test_wcag_aaa_contrast_and_occlusion_auditing():
     """Verify WCAG relative luminance contrast formula and non-occlusion auditing."""
     auditor = QualityAuditor()
@@ -211,4 +188,3 @@ def test_measure_caption_wcag_contrast(tmp_path):
     res = measure_caption_wcag_contrast(fpath, caption_band=(90, 550, 450, 750))
     assert res["wcag_aa_passed"] is True
     assert res["contrast_ratio"] >= 4.5
-

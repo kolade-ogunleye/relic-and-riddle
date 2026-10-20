@@ -175,17 +175,6 @@ def test_ancient_engineering_graphics_landscape(tmp_path):
     assert clip_vent.exists() and clip_vent.with_suffix(".jpg").exists()
 
 
-def test_stratigraphy_schematics_and_cross_hatching(tmp_path):
-    strat_spec = {
-        "title": "Geological Stratigraphy & Chronology",
-        "total_depth_ft": 280,
-    }
-    clip_strat = graphics.make_stratigraphy(strat_spec, tmp_path / "strat.mp4", width=1080, height=1920)
-    assert clip_strat.exists() and clip_strat.with_suffix(".jpg").exists()
-
-
-
-
 def test_cross_section_shows_a_level_at_the_full_depth(tmp_path):
     # A label faded in over the next 8% of digging after the shaft reached it, so a level at the
     # total depth (usually the deepest, headline feature) never became visible.

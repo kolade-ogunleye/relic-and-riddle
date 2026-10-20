@@ -1030,3 +1030,21 @@ def test_motion_fallback_tracking(db, monkeypatch, tmp_path):
 
     assert motion.animate(db, photo, tmp_path / "out.mp4") is None  # the still keeps its parallax treatment
     assert "kling-3.0 failed (Kling credit expired)" in motion.last_fallback_reason
+
+
+def test_dashboard_cover_studio_opens_the_latest_render(db, tmp_path, monkeypatch):
+    # The dashboard button asked for topic #1's covers, so it failed whenever topic #1 had no
+    # render ("No rendered runs found for 01_derinkuyu...") even though other runs had covers.
+    import os
+    import time as _time
+    monkeypatch.chdir(tmp_path)
+    old, new = tmp_path / "output" / "run_other_topic_1", tmp_path / "output" / "run_other_topic_2"
+    for run in (old, new):
+        run.mkdir(parents=True)
+        (run / "thumbnail_variant_b_intrigue.jpg").write_bytes(b"jpg")
+    os.utime(old, (_time.time() - 3600, _time.time() - 3600))
+    shown = []
+    h = make_command_handler(db, lambda: None, lambda: "",
+                             send_photo=lambda path, caption, buttons=None, cache_key=None: shown.append(caption))
+    assert h("ccov", "") == "" and "run_other_topic_2" in shown[-1]
+

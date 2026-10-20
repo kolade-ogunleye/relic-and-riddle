@@ -728,7 +728,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             if ref:
                 topic_dir = _resolve_topic_dir(ref, assets_dir, db=db)
                 runs = [p for p in Path("output").rglob(f"run_{topic_dir.name}_*") if p.is_dir()]
-                run_dir = runs[-1] if runs else None
+                run_dir = max(runs, key=lambda p: p.stat().st_mtime) if runs else None  # the newest
                 if not run_dir:
                     return f"⚠️ No rendered runs found for <b>{html.escape(topic_dir.name)}</b>. Produce it first with /run."
             else:
@@ -894,7 +894,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command == "caudit":
             return handle("audit", "10")
         if command == "ccov":
-            return handle("covers", "1")
+            return handle("covers", "")  # the latest render, whichever topic it is
         if command == "cprop":
             return handle("proposals", "")
         if command == "cdisc":

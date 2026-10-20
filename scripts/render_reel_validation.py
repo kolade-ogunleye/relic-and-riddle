@@ -16,7 +16,7 @@ from src.multi_format import MultiFormatGenerator
 from src.release import write_release_report
 from src.scene_planner import plan_scenes, segment_beats
 from src.video_composer import VideoComposer
-from src.video_qa import ClosedLoopAuditor
+from src.video_qa import QualityAuditor
 from src.visual_engine import VisualEngine
 
 
@@ -57,7 +57,7 @@ def main():
                          "end": cursor + length, "dur": length, "text": beats[index]["text"]})
         cursor += length
     (root / "timeline.json").write_text(json.dumps(timeline, indent=2), encoding="utf-8")
-    audit = ClosedLoopAuditor().audit_rendered_timeline(master, timeline, words, out_dir=root / "audit",
+    audit = QualityAuditor().audit_rendered_timeline(master, timeline, words, out_dir=root / "audit",
                                                       caption_path=root / "reel_master_captions.ass")
     payload["self_healing"] = audit
     visual = VisualEngine()

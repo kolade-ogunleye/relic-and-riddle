@@ -1,5 +1,5 @@
 from src.lineage import record_graphic
-from src.video_qa import ClosedLoopAuditor
+from src.video_qa import QualityAuditor
 
 
 def make_graphic(tmp_path, name, inputs):
@@ -13,7 +13,7 @@ def make_graphic(tmp_path, name, inputs):
 
 def semantic_issues(tmp_path, graphic, text, word, timestamp):
     timeline = [{"asset": str(graphic), "start": 0, "end": 8, "text": text}]
-    report = ClosedLoopAuditor().audit_rendered_timeline(tmp_path / "absent.mp4", timeline,
+    report = QualityAuditor().audit_rendered_timeline(tmp_path / "absent.mp4", timeline,
         [{"word": word, "start": timestamp, "dur": 0.3}])
     return [i for i in report["issues"] if i["type"] in ("semantic_desync", "temporal_desync")]
 

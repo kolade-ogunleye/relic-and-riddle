@@ -45,7 +45,7 @@ from src.upscale import ensure_all, ensure_resolution
 from src.music import music_for
 from src.parallax import render_scenes as render_parallax
 from src.video_composer import TRANS_DUR
-from src.video_qa import ClosedLoopAuditor, qa_summary_html, review_render
+from src.video_qa import QualityAuditor, qa_summary_html, review_render
 from src.visual_engine import COVER_STYLES
 from src.ops import AssetLifecycleManager, PreFlightHealthChecker, setup_logging
 from src.fact_sheet import FactStarvedTopicError
@@ -530,7 +530,8 @@ class PipelineCoordinator:
             self.video_composer.make_review_proxy(master_mp4, review_proxy)
             checkpoints.complete("deep_proxy", proxy_inputs, [review_proxy])
 
-        # Closed-Loop Self-Healing Gating & Auto-Remediation
+        # Quality audit of the master (stored under the payload's historical "self_healing" key,
+        # which the release gate and existing runs read)
         timeline_cuts = []
         t_cursor = 0.0
         for c_idx, (asset, dur) in enumerate(zip(extended_scenes, durations)):
@@ -545,29 +546,20 @@ class PipelineCoordinator:
             })
             t_cursor += dur
 
-        log.info("Executing Closed-Loop Self-Healing Quality Gating for %s...", master_mp4.name)
         t0 = time.perf_counter()
-        auditor = ClosedLoopAuditor()
-        healing_cert = auditor.run_self_healing_cycle(
+        quality_audit = QualityAuditor().certify(
             video_path=master_mp4,
             timeline=timeline_cuts,
             words=words,
             run_dir=run_dir,
-            composer=self.video_composer,
             width=1920,
             height=1080,
             caption_path=master_mp4.with_name(master_mp4.stem + "_captions.ass"),
-            extended_scenes=extended_scenes,
-            durations=durations,
-            vo_path=vo_path,
-            bed_path=bed_path,
-            vo_dur=vo_dur,
-            emphasis=topic.get("key_facts", [])[:5],
         )
-        payload["self_healing"] = healing_cert
+        payload["self_healing"] = quality_audit
         timer.record("deep_qa", time.perf_counter() - t0)
-        log.info("Closed-Loop Self-Healing Certification: Score=%d/100, Certified=%s",
-                 healing_cert["score"], healing_cert["certified"])
+        log.info("Documentary quality audit: score=%d/100, certified=%s",
+                 quality_audit["score"], quality_audit["certified"])
 
         self._verify_final_copy(payload, topic)
         # Cryptographic Provenance Ledger
@@ -579,7 +571,7 @@ class PipelineCoordinator:
             vo_path=vo_path,
             bed_path=bed_path,
             media_items=extended_scenes,
-            self_healing=healing_cert,
+            self_healing=quality_audit,
         )
         log.info("Recorded cryptographic provenance ledger -> %s", prov_ledger.name)
         from src.credits import add_provenance_attributions
@@ -1064,7 +1056,7 @@ class PipelineCoordinator:
             t0 = time.perf_counter()
             qa_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
             fut_qa = qa_pool.submit(review_render, master_mp4, beats, thumb_916, run_dir)
-            # Closed-Loop Self-Healing Deterministic Validation
+            # Deterministic quality audit (payload key "self_healing" kept for existing runs)
             try:
                 timeline_cuts = []
                 t_cursor = 0.0
@@ -1080,22 +1072,20 @@ class PipelineCoordinator:
                     })
                     t_cursor += dur
                 payload["is_generated_by_ai"] = True
-                cl_auditor = ClosedLoopAuditor()
-                cl_result = cl_auditor.run_self_healing_cycle(
+                quality_audit = QualityAuditor().certify(
                     video_path=master_mp4,
                     timeline=timeline_cuts,
                     words=words,
                     run_dir=run_dir,
-                    composer=self.video_composer,
                     carousel_dir=run_dir / "carousel",
                     story_dir=run_dir / "stories",
                     cover_path=thumb_916,
                     grid_path=thumb_1x1,
                     payload=payload,
                 )
-                payload["self_healing"] = cl_result
+                payload["self_healing"] = quality_audit
             except Exception as e:
-                log.warning("Closed-loop self-healing validation skipped: %s", e)
+                log.warning("Quality audit could not run: %s", e)
 
             # Automated look at the finished video; findings go on the review card.
             try:

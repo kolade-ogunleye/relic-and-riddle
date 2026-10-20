@@ -225,14 +225,12 @@ def verify_provenance_integrity(provenance_path: Path) -> bool:
         return False
 
 
-class ClosedLoopAuditor:
-    """Active Closed-Loop Auto-Remediation and Quality Gate Engine.
-    Executes shift-left deterministic audits across loudness, semantic cross-correlation,
-    graphic motion freeze, and bounding-box clearance before release.
-    """
+class QualityAuditor:
+    """Deterministic release audits: loudness, graphic/narration sync, graphic motion freeze,
+    caption contrast and clearance, plus the carousel, story, thumbnail and policy checks.
+    It reports; it repairs nothing (a defect is fixed by re-running the stage that made it)."""
 
-    def __init__(self, max_healing_iterations: int = 3):
-        self.max_healing_iterations = max_healing_iterations
+    def __init__(self):
         self.layout_solver = LayoutConstraintSolver()
 
     @staticmethod
@@ -537,7 +535,6 @@ class ClosedLoopAuditor:
             "loudness": loudness,
             "scenes_audited": len(timeline),
             "master_sha256": sha256_file(video_path),
-            "remediation_targets": [iss for iss in issues if iss.get("scene_index", -1) >= 0 or iss.get("type") == "loudness"],
         }
 
     def audit_carousel_slides(self, carousel_dir: Path) -> Dict[str, Any]:
@@ -819,126 +816,27 @@ class ClosedLoopAuditor:
             "issues": issues,
         }
 
-    def auto_remediate_scene(
-        self,
-        run_dir: Path,
-        scene_index: int,
-        defect_type: str,
-        context: Dict[str, Any],
-        composer: Any = None,
-    ) -> bool:
-        """Applies targeted calibration and re-synthesis to resolve detected defects."""
-        log.info("Auto-remediating defect [%s] on scene %s...", defect_type, scene_index)
-        try:
-            if defect_type in ("layout_overlap", "clearance_violation", "layout_collision", "caption_collision"):
-                # Global calibration cannot repair already encoded scene assets.
-                # Leave the defect blocking until those assets are regenerated.
-                log.info("Layout correction requires regenerated scene assets; no correction applied.")
-                return False
-
-            elif defect_type == "temporal_desync":
-                trigger_time = context.get("trigger_time")
-                # Editing audit metadata cannot move the content in an encoded video.
-                return False
-
-            elif defect_type == "motion_loop":
-                # Replacing a cached source in place loses its provenance and may
-                # truncate a scene. Regenerate it through the stage pipeline instead.
-                return False
-
-            elif defect_type == "loudness":
-                log.info("Loudness correction requires a new mastered render; no correction applied.")
-                return False
-
-            return False
-        except Exception as e:
-            log.warning("Auto-remediation failed for [%s]: %s", defect_type, e)
-            return False
-
-    def run_self_healing_cycle(
+    def certify(
         self,
         video_path: Path,
         timeline: List[Dict[str, Any]],
         words: List[Dict[str, Any]],
         run_dir: Path,
-        composer: Any = None,
-        max_iterations: Optional[int] = None,
         **kwargs,
     ) -> Dict[str, Any]:
-        """Cybernetic closed-loop: audits, recalibrates failing components, and re-certifies until 100/100."""
-        limit = max_iterations or self.max_healing_iterations
-        remediations: List[Dict[str, Any]] = []
-        iteration = 1
-        audit_res: Optional[Dict[str, Any]] = None
-        recomposited = False  # the last audit stays valid until the master is re-rendered
-
-        for iteration in range(1, limit + 1):
-            recomposited = False
-            audit_res = self.audit_rendered_timeline(
-                video_path,
-                timeline,
-                words,
-                out_dir=run_dir / "audit",
-                caption_path=kwargs.get("caption_path"),
-                width=kwargs.get("width", VIDEO_WIDTH),
-                height=kwargs.get("height", VIDEO_HEIGHT),
-            )
-            log.info("Self-Healing Audit (Iteration %d/%d): Score=%d/100, Certified=%s, Issues=%d",
-                     iteration, limit, audit_res["score"], audit_res["certified"], len(audit_res["issues"]))
-
-            if audit_res["certified"]:
-                break
-
-            targets = audit_res.get("remediation_targets", [])
-            if not targets:
-                break
-
-            applied_this_iteration = False
-            for target in targets:
-                idx = target.get("scene_index", -1)
-                dtype = target.get("type", "unknown")
-                success = self.auto_remediate_scene(run_dir, idx, dtype, {**target, "timeline": timeline}, composer=composer)
-                if success:
-                    applied_this_iteration = True
-                    remediations.append({
-                        "iteration": iteration,
-                        "scene_index": idx,
-                        "defect_type": dtype,
-                        "remediated": True,
-                    })
-
-            if not applied_this_iteration:
-                break
-
-            if applied_this_iteration and composer and "extended_scenes" in kwargs and "durations" in kwargs:
-                try:
-                    log.info("Re-compositing timeline following auto-remediation...")
-                    composer.compose_deep_dive(
-                        scene_images=kwargs["extended_scenes"],
-                        vo_path=kwargs.get("vo_path"),
-                        bed_path=kwargs.get("bed_path"),
-                        words=words,
-                        vo_dur=kwargs.get("vo_dur", 0.0),
-                        output_mp4_path=video_path,
-                        durations=kwargs["durations"],
-                        emphasis=kwargs.get("emphasis", []),
-                    )
-                except Exception as e:
-                    log.warning("Re-compositing failed: %s", e)
-                recomposited = True  # even a failed attempt may have touched the file
-
-        if audit_res is not None and not recomposited:
-            final_audit = audit_res  # same master, same inputs: re-auditing would repeat every measurement
-        else:
-            final_audit = self.audit_rendered_timeline(
-                video_path,
-                timeline,
-                words,
-                out_dir=run_dir / "audit",
-                caption_path=kwargs.get("caption_path"),
-                width=kwargs.get("width", VIDEO_WIDTH),
-                height=kwargs.get("height", VIDEO_HEIGHT),
-            )
+        """Audits the master once, plus the carousel, stories, thumbnails and publishing policy.
+        Certified only if every audit passes; the score is the lowest of them."""
+        final_audit = self.audit_rendered_timeline(
+            video_path,
+            timeline,
+            words,
+            out_dir=run_dir / "audit",
+            caption_path=kwargs.get("caption_path"),
+            width=kwargs.get("width", VIDEO_WIDTH),
+            height=kwargs.get("height", VIDEO_HEIGHT),
+        )
+        log.info("Quality audit: score=%d/100, certified=%s, issues=%d",
+                 final_audit["score"], final_audit["certified"], len(final_audit["issues"]))
         # Atomic Multi-Asset Audit Integration
         carousel_audit = None
         story_audit = None
@@ -1000,8 +898,6 @@ class ClosedLoopAuditor:
         return {
             "score": atomic_score,
             "certified": is_atomic_cert,
-            "iterations_run": iteration,
-            "remediations_applied": remediations,
             "issues": all_issues,
             "loudness": final_audit.get("loudness", {}),
             "master_sha256": final_audit.get("master_sha256"),

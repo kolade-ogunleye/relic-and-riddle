@@ -13,7 +13,7 @@ import pytest
 
 from src import encoding, parallax, privacy, video_qa
 from src.video_composer import VideoComposer
-from src.video_qa import ClosedLoopAuditor
+from src.video_qa import QualityAuditor
 
 
 def test_encoder_probe_runs_once_under_concurrent_first_use(monkeypatch):
@@ -63,7 +63,7 @@ def test_vision_post_retries_rate_limits_instead_of_reporting_no_faces(monkeypat
     assert privacy._post_vision("https://example.invalid", {}, timeout=1).status_code == 200
 
 
-def test_final_audit_reuses_unchanged_master(monkeypatch, tmp_path):
+def test_certify_audits_the_master_once(monkeypatch, tmp_path):
     video = tmp_path / "master.mp4"
     video.write_bytes(b"x")
     calls = []
@@ -71,27 +71,9 @@ def test_final_audit_reuses_unchanged_master(monkeypatch, tmp_path):
     def audit(self, *args, **kwargs):
         calls.append(1)
         return {"score": 100, "certified": True, "issues": [], "loudness": {}, "remediation_targets": []}
-    monkeypatch.setattr(ClosedLoopAuditor, "audit_rendered_timeline", audit)
-    result = ClosedLoopAuditor().run_self_healing_cycle(video_path=video, timeline=[], words=[], run_dir=tmp_path)
+    monkeypatch.setattr(QualityAuditor, "audit_rendered_timeline", audit)
+    result = QualityAuditor().certify(video_path=video, timeline=[], words=[], run_dir=tmp_path)
     assert len(calls) == 1 and result["certified"] is True
-
-
-def test_final_audit_repeats_after_a_recomposite(monkeypatch, tmp_path):
-    video = tmp_path / "master.mp4"
-    video.write_bytes(b"x")
-    calls = []
-
-    def audit(self, *args, **kwargs):
-        calls.append(1)
-        target = {"type": "loudness", "scene_index": -1}
-        return {"score": 80, "certified": False, "issues": [target], "loudness": {}, "remediation_targets": [target]}
-    monkeypatch.setattr(ClosedLoopAuditor, "audit_rendered_timeline", audit)
-    monkeypatch.setattr(ClosedLoopAuditor, "auto_remediate_scene", lambda *a, **k: True)
-    composer = SimpleNamespace(compose_deep_dive=lambda **k: None)
-    ClosedLoopAuditor(max_healing_iterations=1).run_self_healing_cycle(
-        video_path=video, timeline=[], words=[], run_dir=tmp_path, composer=composer,
-        extended_scenes=[], durations=[])
-    assert len(calls) == 2  # the re-rendered master is audited again
 
 
 def test_extract_frames_parallel_keeps_order_and_first_error(monkeypatch, tmp_path):

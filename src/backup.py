@@ -120,15 +120,22 @@ def generate_dispute_summary(run_dir: Path, archive_dir: Path) -> Path:
         lines.append("  All assets verified procedural or open access.")
 
     # Audio Mastering Verification
-    sh_loudness = prov_data.get("self_healing", {}).get("loudness", {})
+    # Only what was measured: a missing figure says so instead of showing the target as if met.
+    audit = prov_data.get("self_healing") or {}
+    loudness = audit.get("loudness") or {}
+    lufs, peak = loudness.get("integrated_lufs"), loudness.get("true_peak_dbtp")
+    if "score" in audit:
+        verdict = f"{audit['score']}/100, {'certified' if audit.get('certified') else 'NOT certified'}"
+    else:
+        verdict = "not run"
     lines.extend([
         "--------------------------------------------------------------------------------",
         "3. BROADCAST COMPLIANCE & ORIGINALITY METRICS",
         "--------------------------------------------------------------------------------",
-        f"Integrated Loudness: {sh_loudness.get('integrated_lufs', -14.0)} LUFS (EBU R128 Compliant)",
-        f"True Peak:           {sh_loudness.get('true_peak_dbtp', -1.5)} dBTP",
+        f"Integrated Loudness: {f'{lufs} LUFS' if lufs is not None else 'not measured'}",
+        f"True Peak:           {f'{peak} dBTP' if peak is not None else 'not measured'}",
         "AI Synthetic Media:  Tagged as synthetic/AI-narrated in Meta publication payload",
-        "Self-Healing Audit:  100/100 Certified Clean",
+        f"Quality Audit:       {verdict}",
         "=" * 80,
     ])
 

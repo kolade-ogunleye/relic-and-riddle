@@ -1,5 +1,5 @@
 """
-tests/test_self_healing.py
+tests/test_quality_audit.py
 ==========================
 Comprehensive test suite verifying the Autonomous Closed-Loop Self-Healing &
 Continuous Improvement Architecture across layout constraints, deterministic
@@ -21,7 +21,7 @@ from src.layout_rules import (
     save_layout_rules,
 )
 from src.typography import get_font
-from src.video_qa import ClosedLoopAuditor, verify_provenance_integrity
+from src.video_qa import QualityAuditor, verify_provenance_integrity
 
 
 # -----------------------------------------------------------------------------
@@ -140,10 +140,10 @@ def test_layout_rules_ledger_io(tmp_path):
 
 
 # -----------------------------------------------------------------------------
-# 3. ClosedLoopAuditor Deterministic Audits
+# 3. QualityAuditor Deterministic Audits
 # -----------------------------------------------------------------------------
 def test_auditor_semantic_cross_correlation_pass():
-    auditor = ClosedLoopAuditor()
+    auditor = QualityAuditor()
     timeline = [
         {
             "scene_index": 0,
@@ -166,7 +166,7 @@ def test_auditor_semantic_cross_correlation_pass():
 
 
 def test_auditor_semantic_cross_correlation_fail():
-    auditor = ClosedLoopAuditor()
+    auditor = QualityAuditor()
     timeline = [
         {
             "scene_index": 0,
@@ -190,7 +190,7 @@ def test_auditor_semantic_cross_correlation_fail():
 
 
 def test_auditor_loudness_gate():
-    auditor = ClosedLoopAuditor()
+    auditor = QualityAuditor()
     dummy_video = Path("dummy.mp4")
 
     # Mock measure_program_loudness to return compliant audio
@@ -210,38 +210,8 @@ def test_auditor_loudness_gate():
             assert report["certified"] is False
 
 
-def test_auditor_auto_remediate_scene(tmp_path):
-    auditor = ClosedLoopAuditor()
-    run_dir = tmp_path / "test_run"
-    run_dir.mkdir(parents=True, exist_ok=True)
-
-    # 1. Remediate layout overlap
-    with patch("src.layout_rules.LAYOUT_RULES_PATH", tmp_path / "layout_rules.json"):
-        success = auditor.auto_remediate_scene(
-            run_dir=run_dir,
-            scene_index=0,
-            defect_type="layout_overlap",
-            context={"issue": "text collision"},
-        )
-        assert success is False
-        assert not (tmp_path / "layout_rules.json").exists()
-        rules = load_layout_rules()
-        assert rules["shelf_anchor"]["min_gap"] == 10
-
-    # 2. Remediate temporal desync
-    timeline = [{"scene_index": 1, "start": 10.0, "end": 16.0}]
-    success_sync = auditor.auto_remediate_scene(
-        run_dir=run_dir,
-        scene_index=0,
-        defect_type="temporal_desync",
-        context={"trigger_time": 8.5, "timeline": timeline},
-    )
-    assert success_sync is False
-    assert timeline[0]["start"] == 10.0
-
-
-def test_auditor_closed_loop_cycle(tmp_path):
-    auditor = ClosedLoopAuditor(max_healing_iterations=3)
+def test_certify_reports_the_audit(tmp_path):
+    auditor = QualityAuditor()
     dummy_video = tmp_path / "master.mp4"
     dummy_video.write_bytes(b"dummy_mp4_bytes")
 
@@ -262,7 +232,7 @@ def test_auditor_closed_loop_cycle(tmp_path):
     ]
 
     with patch("src.video_qa.measure_program_loudness", return_value={"integrated_lufs": -14.4, "true_peak_dbtp": -2.2}):
-        cycle_result = auditor.run_self_healing_cycle(
+        cycle_result = auditor.certify(
             video_path=dummy_video,
             timeline=timeline,
             words=words,
@@ -271,7 +241,6 @@ def test_auditor_closed_loop_cycle(tmp_path):
 
         assert cycle_result["score"] == 100
         assert cycle_result["certified"] is False
-        assert cycle_result["iterations_run"] == 1
         assert any(i["type"] == "visual_check_failed" for i in cycle_result["issues"])
 
 
@@ -296,23 +265,6 @@ def test_provenance_integrity_with_self_healing(tmp_path):
     assert verify_provenance_integrity(prov_file) is False
 
 
-def test_caption_collision_detection_and_remediation(tmp_path):
-    auditor = ClosedLoopAuditor(max_healing_iterations=2)
-    # Test remediation handler for caption_collision
-    with patch("src.video_qa.load_layout_rules", return_value={"safe_zone": {"bottom_bound_reduction": 0}}), \
-         patch("src.video_qa.save_layout_rules") as mock_save, \
-         patch("src.video_qa.record_learned_adjustment") as mock_record:
-        success = auditor.auto_remediate_scene(
-            run_dir=tmp_path,
-            scene_index=3,
-            defect_type="caption_collision",
-            context={"asset": "graphic_ventilation.mp4"},
-        )
-        assert success is False
-        mock_save.assert_not_called()
-        mock_record.assert_not_called()
-
-
 def test_standards_compliance_in_provenance(tmp_path):
     from src.credits import generate_provenance_ledger
     master = tmp_path / "test_master.mp4"
@@ -331,7 +283,7 @@ def test_standards_compliance_in_provenance(tmp_path):
 
 
 def test_audit_carousel_slides(tmp_path):
-    auditor = ClosedLoopAuditor()
+    auditor = QualityAuditor()
 
     # 1. Missing directory/slides
     res_empty = auditor.audit_carousel_slides(tmp_path)
@@ -366,7 +318,7 @@ def test_audit_carousel_slides(tmp_path):
 
 
 def test_audit_story_cards(tmp_path):
-    auditor = ClosedLoopAuditor()
+    auditor = QualityAuditor()
 
     # 1. Missing stories
     res_empty = auditor.audit_story_cards(tmp_path)
@@ -397,7 +349,7 @@ def test_audit_story_cards(tmp_path):
 
 
 def test_audit_thumbnails(tmp_path):
-    auditor = ClosedLoopAuditor()
+    auditor = QualityAuditor()
 
     # Valid cover 1080x1920, valid grid 1080x1080
     cover = tmp_path / "thumbnail_cover.jpg"
@@ -429,7 +381,7 @@ def test_audit_thumbnails(tmp_path):
 
 
 def test_audit_publishing_policy():
-    auditor = ClosedLoopAuditor()
+    auditor = QualityAuditor()
 
     # 1. Missing AI disclosure
     payload_no_ai = {
@@ -460,3 +412,17 @@ def test_audit_publishing_policy():
     assert res_clean["score"] == 100
     assert len(res_clean["issues"]) == 0
 
+
+
+def test_backup_summary_reports_only_what_was_measured(tmp_path):
+    from src.backup import generate_dispute_summary
+    run = tmp_path / "run"
+    run.mkdir()
+    (tmp_path / "archive").mkdir()
+    (run / "provenance.json").write_text(json.dumps({"master_video": {"sha256": "x"}}), encoding="utf-8")
+    text = generate_dispute_summary(run, tmp_path / "archive").read_text(encoding="utf-8")
+    assert "Certified Clean" not in text and "not run" in text and "-14.0" not in text
+    (run / "provenance.json").write_text(json.dumps({"self_healing": {"score": 70, "certified": False,
+        "loudness": {"integrated_lufs": -15.2, "true_peak_dbtp": -1.9}}}), encoding="utf-8")
+    text = generate_dispute_summary(run, tmp_path / "archive").read_text(encoding="utf-8")
+    assert "70/100, NOT certified" in text and "-15.2 LUFS" in text

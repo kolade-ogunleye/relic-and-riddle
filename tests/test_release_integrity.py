@@ -4,11 +4,11 @@ from pathlib import Path
 import pytest
 
 from src.credits import generate_provenance_ledger, resolve_asset_path
-from src.video_qa import ClosedLoopAuditor, measure_program_loudness, verify_provenance_integrity
+from src.video_qa import QualityAuditor, measure_program_loudness, verify_provenance_integrity
 
 
 def test_missing_video_cannot_be_certified(tmp_path):
-    report = ClosedLoopAuditor().audit_rendered_timeline(tmp_path / "absent.mp4", [])
+    report = QualityAuditor().audit_rendered_timeline(tmp_path / "absent.mp4", [])
     assert report["certified"] is False
     assert report["loudness"] == {}
     assert any(i["type"] == "missing_video" for i in report["issues"])
@@ -51,13 +51,9 @@ def test_measurement_failure_is_not_success(tmp_path, monkeypatch):
     def fail(*args, **kwargs):
         raise ValueError("measurement failed")
     monkeypatch.setattr("src.video_qa.measure_program_loudness", fail)
-    result = ClosedLoopAuditor().audit_rendered_timeline(video, [])
+    result = QualityAuditor().audit_rendered_timeline(video, [])
     assert not result["certified"]
     assert any(i["type"] == "measurement_failed" for i in result["issues"])
-
-
-def test_loudness_remediation_cannot_claim_a_noop(tmp_path):
-    assert not ClosedLoopAuditor().auto_remediate_scene(tmp_path, -1, "loudness", {})
 
 
 def test_empty_composition_manifest_is_not_verified(tmp_path):

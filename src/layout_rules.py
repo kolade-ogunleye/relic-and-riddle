@@ -30,7 +30,6 @@ DEFAULT_RULES: Dict[str, Any] = {
         "caption_margin_v_16x9": 1100,
         "caption_margin_v_9x16": 1380,
         "edge_safe_margin": 60,
-        "max_healing_iterations": 3,
     },
     "aspect_ratio_rules": {
         "16:9": {

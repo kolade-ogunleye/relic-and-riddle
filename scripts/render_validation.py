@@ -16,7 +16,7 @@ from src.fact_evidence import current_fact_review, record_fact_review
 from src.release import write_release_report
 from src.trace_check import check, evidence_check
 from src.video_composer import VideoComposer
-from src.video_qa import ClosedLoopAuditor
+from src.video_qa import QualityAuditor
 from src.visual_engine import VisualEngine
 
 
@@ -90,7 +90,7 @@ def main():
     composer.compose_deep_dive(scenes, root / "voiceover.mp3", root / "ambient_bed.wav",
                               words, duration, master, durations=durations)
     print("Render complete; auditing", flush=True)
-    audit = ClosedLoopAuditor().audit_rendered_timeline(master, timeline, words,
+    audit = QualityAuditor().audit_rendered_timeline(master, timeline, words,
         out_dir=root / "audit", caption_path=root / "documentary_master_captions.ass", width=1920, height=1080)
     payload["self_healing"] = audit
     hero = photos[-1]

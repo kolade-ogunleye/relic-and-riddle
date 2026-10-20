@@ -115,6 +115,7 @@ def test_namesakes_and_off_topic_fallbacks_are_refused(monkeypatch, tmp_path):
     boatman = page("Senkaji Choo (Zhang Heng) boatman print", 3000, 2000)
     monkeypatch.setattr(fetch, "search", lambda q, **k: [good, boatman])
     monkeypatch.setattr(fetch, "search_graded", lambda q, **k: [])
+    monkeypatch.setattr("src.museum_sources.search_all", lambda q, kws: [])
     monkeypatch.setattr(fetch, "find_categories", lambda *a, **k: [])
     monkeypatch.setattr(fetch, "search_openverse", lambda q, limit=15: [
         {"title": "Egyptian bowl from Zakros", "download_url": "u", "license": "CC0"}])

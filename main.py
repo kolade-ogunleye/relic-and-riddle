@@ -2037,6 +2037,8 @@ def main(argv=None) -> int:
             topics = [db.get_topic_by_id(args.topic_id)] if args.topic_id else db.list_all_topics()
             for t in topics:
                 if t and (ASSETS_DIR / t["id"] / "credits.json").exists():
+                    if not args.topic_id and load_credits(ASSETS_DIR / t["id"]).get("reviewed_by") == "vision":
+                        continue  # already reviewed on merit; name the topic to review it again
                     s = review_pool(t, ASSETS_DIR / t["id"])
                     print(f"{s['status']:26} {t['id']:40} kept {s['kept']}"
                           + "".join(f"\n    - {f}: {why}" for f, why in s.get("dropped", [])))

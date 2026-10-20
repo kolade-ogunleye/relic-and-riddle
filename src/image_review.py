@@ -74,10 +74,15 @@ def review_pool(topic: Dict[str, Any], topic_dir: Path, apply: bool = True) -> D
     for i, img in enumerate(images, 1):
         content += [{"type": "text", "text": f"Photo {i}: {commons.caption(img)}"}, image_block(topic_dir / img["file"])]
     content.append({"type": "text", "text": f"Return one verdict for each of the {len(images)} photos."})
-    try:
-        review = free_llm.call(SYSTEM, content, PoolReview, role="checker", effort="medium", max_tokens=6000)
-    except (LLMError, OSError) as e:
-        log.warning("Photo review for %s could not run (%s); pool stays unapproved.", topic["id"], e)
+    review = None
+    for role in ("checker", "writer"):  # either free model will do; one is often overloaded
+        try:
+            review = free_llm.call(SYSTEM, content, PoolReview, role=role, effort="medium", max_tokens=6000)
+            break
+        except (LLMError, OSError) as e:
+            log.warning("Photo review for %s on the %s model failed (%s).", topic["id"], role, e)
+    if review is None:
+        log.warning("Photo review for %s could not run; pool stays unapproved.", topic["id"])
         return {"topic": topic["id"], "status": "review unavailable", "kept": 0}
     by_index = {v.index: v for v in review.verdicts}
     kept, dropped = [], []

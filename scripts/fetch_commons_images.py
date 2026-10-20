@@ -126,8 +126,14 @@ def fetch_topic(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
                 pages.append(p)
         return pages
 
-    for cand in interleave([best_first(list(candidates(query_pages(q), keywords, allow_sa)), keywords, place)
-                            for q in spec["queries"]]):
+    # Museum and agency archives (The Met, NASA, Smithsonian) alongside Commons for each search.
+    from src.museum_sources import search_all
+    ranked_lists = []
+    for q in spec["queries"]:
+        ranked_lists.append(best_first(list(candidates(query_pages(q), keywords, allow_sa)), keywords, place))
+        if spec.get("museums", True):
+            ranked_lists.append(best_first(search_all(q, keywords), keywords, place))
+    for cand in interleave(ranked_lists):
         if cand["relevance"] <= 0 or namesake(cand):
             continue  # metadata says off-subject, nowhere near the site, or a namesake
         if len(images) >= target_images:

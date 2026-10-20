@@ -15,8 +15,9 @@
   "antikythera_mechanism": {"queries": ["Antikythera mechanism"], "keywords": ["antikythera"]},
   "gobekli_tepe_enclosure_d": {"queries": ["Göbekli Tepe"], "keywords": ["gobekli"]},
   "damascus_steel_nanotubes": {
-    "queries": ["Damascus steel", "wootz steel", "Damascus steel blade"],
-    "keywords": ["damascus steel", "wootz", "damascene", "damast", "pattern welded", "pattern-welded"]
+    "queries": ["Damascus steel", "wootz steel", "watered steel", "shamshir", "crucible steel blade"],
+    "keywords": ["damascus steel", "wootz", "damascene", "watered steel", "shamshir", "crucible steel"],
+    "exclude": ["pattern welded", "pattern-welded", "hunting knife", "dragon blade", "kitchen", "modern"]
   },
   "camp_century_nuclear_ice_city": {"queries": ["Camp Century", "Project Iceworm"], "keywords": ["camp century", "iceworm"]},
   "hal_saflieni_hypogeum": {

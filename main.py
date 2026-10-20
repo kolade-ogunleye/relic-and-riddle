@@ -40,7 +40,7 @@ from src.db import PipelineDatabase, QueueEmpty
 from src.control import heartbeat_text, is_paused, make_command_handler, ping_healthcheck
 from src import backup, beat_images, callouts, config, encoding, footage, graphics, motion, post_schedule, privacy, then_now
 from src.llm import claude_available as llm_available
-from src.scene_planner import plan_scenes, segment_beats
+from src.scene_planner import documentary_cuts, plan_scenes, segment_beats
 from src.upscale import ensure_all, ensure_resolution
 from src.music import mark_used as mark_track_used, music_for
 from src.parallax import render_scenes as render_parallax
@@ -122,6 +122,24 @@ def compute_act_chapters(acts: List[Any], words: List[Dict[str, Any]], total_dur
     formatted_text = "\n".join(lines)
 
     return chapters, formatted_text, cue_timestamps
+
+
+def documentary_cover(title: str, max_line: int = 22) -> Dict[str, str]:
+    """Documentary cover text: the fact-checked title over two lines (word-wrapped, at most
+    max_line characters each), with an eyebrow and tagline that make no factual claim."""
+    words, lines = title.upper().split(), ["", ""]
+    k = 0
+    for w in words:
+        candidate = (lines[k] + " " + w).strip()
+        if len(candidate) <= max_line:
+            lines[k] = candidate
+        elif k == 0 and lines[0]:
+            k = 1
+            lines[1] = w[:max_line]
+        else:
+            lines[1] = (lines[1][: max_line - 1] + "…") if lines[1] else w[: max_line - 1] + "…"
+            break
+    return {"eyebrow": "DOCUMENTARY", "line1": lines[0], "line2": lines[1], "tagline": "EXPLORE THE EVIDENCE"}
 
 
 class PipelineCoordinator:
@@ -295,15 +313,8 @@ class PipelineCoordinator:
 
             if not passed:
                 raise ValueError("Deep-dive fact verification failed: " + "; ".join(act_issues or []))
-            # Numerical packaging requires explicit verified claim evidence.
-            tagline = "EXPLORE THE EVIDENCE"
-
-            thumbnail_copy = {
-                "eyebrow": "DOCUMENTARY INVESTIGATION",
-                "line1": deep_dive_pkg.title[:20].upper(),
-                "line2": "ANCIENT METROPOLIS",
-                "tagline": tagline,
-            }
+            # Cover copy is the fact-checked title only; the eyebrow and tagline assert nothing.
+            thumbnail_copy = documentary_cover(deep_dive_pkg.title)
 
             payload = {
                 "title": deep_dive_pkg.title,
@@ -416,34 +427,6 @@ class PipelineCoordinator:
                 except Exception:
                     pass
 
-            if tid == "derinkuyu_underground_city":
-                if not payload.get("cross_section"):
-                    payload["cross_section"] = {
-                        "subject": "Derinkuyu Underground City",
-                        "total_depth_ft": 280.0,
-                        "approximate": True,
-                        "levels": [
-                            {"depth_ft": 15.0, "label": "Stables & wine presses"},
-                            {"depth_ft": 35.0, "label": "Living quarters & halls"},
-                            {"depth_ft": 70.0, "label": "Ventilation shafts"},
-                            {"depth_ft": 140.0, "label": "Byzantine church"},
-                            {"depth_ft": 280.0, "label": "Deepest wells"},
-                        ],
-                    }
-                if not payload.get("stat_cards"):
-                    payload["stat_cards"] = [
-                        {"value": "280 FT", "label": "Depth into volcanic rock"},
-                        {"value": "20,000", "label": "Estimated sheltered population"},
-                    ]
-                if not payload.get("scale_fact"):
-                    payload["scale_fact"] = {
-                        "value": 280.0,
-                        "unit": "ft",
-                        "dimension": "depth",
-                        "subject": "Derinkuyu depth",
-                        "approximate": True,
-                    }
-
             # Generate original channel graphics concurrently (map, cross-section, numbers, callouts, then/now)
             graphics_dir = run_dir / "graphics"
             graphics_dir.mkdir(parents=True, exist_ok=True)
@@ -464,175 +447,22 @@ class PipelineCoordinator:
             if then_clip:
                 own_graphics.append(then_clip)
 
-            # Zero-Reuse Visual Pipeline: Collect all unique authentic images for the topic
+            # Pictures: the topic's reviewed images (each distinct file once) and the channel's own
+            # graphics, matched to the narration by the scene planner, exactly as for Reels.
             import hashlib
             unique_media: List[Path] = []
             seen_hashes = set()
             for p in scene_media:
                 if p.is_file():
-                    h = hashlib.md5(p.read_bytes()).hexdigest()
+                    h = hashlib.sha256(p.read_bytes()).hexdigest()
                     if h not in seen_hashes:
                         seen_hashes.add(h)
                         unique_media.append(p)
 
-            topic_dir = ASSETS_DIR / tid
-            if topic_dir.is_dir():
-                for cand in sorted(topic_dir.glob("*.jpg")):
-                    if cand.is_file() and cand.name != "contact_sheet.jpg" and cand not in unique_media:
-                        h = hashlib.md5(cand.read_bytes()).hexdigest()
-                        if h not in seen_hashes:
-                            seen_hashes.add(h)
-                            unique_media.append(cand)
-
-            # Word-Level Narrative-Synchronized Documentary Timeline Builder
-            # Breaks narration into semantic cuts based on sentences from words.json
-            sentences: List[Dict[str, Any]] = []
-            curr_words: List[str] = []
-            s_start = words[0]["start"] if words else 0.0
-            for w in words:
-                curr_words.append(w.get("word", ""))
-                if any(w.get("word", "").endswith(p) for p in (".", "!", "?")):
-                    s_end = w["start"] + w.get("dur", 0.0)
-                    sentences.append({"start": s_start, "end": s_end, "text": " ".join(curr_words)})
-                    curr_words = []
-                    s_start = s_end
-            if curr_words:
-                s_end = words[-1]["start"] + words[-1].get("dur", 0.0) if words else vo_dur
-                sentences.append({"start": s_start, "end": s_end, "text": " ".join(curr_words)})
-
-            # Group sentences into documentary visual cuts (~5.0s to 12.0s), keeping graphic triggers aligned
-            cuts: List[Dict[str, Any]] = []
-            i = 0
-            while i < len(sentences):
-                s = sentences[i]
-                dur = s["end"] - s["start"]
-                lower = s["text"].lower()
-                is_graphic_sentence = any(k in lower for k in (
-                    "depth of about 85", "meters", "metres", "85 meters", "85 metres", "280 feet",
-                    "rolling stone", "stone cylinders", "stone doors", "stone disc", "disc doors", "for defense",
-                    "ventilation shaft", "vertical ventilation", "primary ventilation", "convection",
-                    "20,000", "twenty thousand", "sheltered thousands", "sheltering thousands",
-                    "plains of central turkey", "subterranean metropolis", "windswept",
-                    "uppermost carved floors", "stables", "entrance levels"
-                ))
-                if is_graphic_sentence or dur >= 6.0:
-                    cuts.append(dict(s))
-                    i += 1
-                elif i + 1 < len(sentences):
-                    next_s = sentences[i + 1]
-                    next_is_graphic = any(k in next_s["text"].lower() for k in (
-                        "depth of about 85", "85 metre", "85 meter", "rolling stone", "stone cylinders",
-                        "stone disc", "disc doors", "for defense", "ventilation shaft", "vertical ventilation",
-                        "20,000", "twenty thousand", "uppermost carved floors", "stables"
-                    ))
-                    if not next_is_graphic and (dur + (next_s["end"] - next_s["start"])) <= 14.0:
-                        cuts.append({
-                            "start": s["start"],
-                            "end": next_s["end"],
-                            "text": s["text"] + " " + next_s["text"]
-                        })
-                        i += 2
-                    else:
-                        cuts.append(dict(s))
-                        i += 1
-                else:
-                    cuts.append(dict(s))
-                    i += 1
-
-            map_clip = next((g for g in own_graphics if "map" in g.name), None)
-            numbers_clip = next((g for g in own_graphics if "numbers" in g.name), None)
-            section_clip = next((g for g in own_graphics if "section" in g.name), None)
-            defense_clip = next((g for g in own_graphics if "defense" in g.name), None)
-            vent_clip = next((g for g in own_graphics if "ventilation" in g.name), None)
-            scale_clip = next((g for g in own_graphics if "scale" in g.name), None)
-
-            assigned_scenes: List[Path] = []
-            assigned_durations: List[float] = []
-            used_media: set = set()
-            used_graphics: set = set()
-
-            for cut_idx, cut in enumerate(cuts):
-                cut_dur = max(3.5, cut["end"] - cut["start"])
-                txt = cut["text"].lower()
-                matched_asset: Optional[Path] = None
-
-                # 1. Precise graphic trigger matching at exact timestamp
-                if map_clip and map_clip not in used_graphics and any(k in txt for k in ("central turkey", "cappadocia", "anatolia", "subterranean metropolis", "windswept")):
-                    matched_asset = map_clip
-                    used_graphics.add(map_clip)
-                elif numbers_clip and numbers_clip not in used_graphics and any(k in txt for k in ("85 metre", "85 meter", "depth of about", "280 feet", "descends approximately 85")):
-                    matched_asset = numbers_clip
-                    used_graphics.add(numbers_clip)
-                elif vent_clip and vent_clip not in used_graphics and any(k in txt for k in ("ventilation shaft", "vertical ventilation", "drinking water", "fresh air", "to breathe")):
-                    matched_asset = vent_clip
-                    used_graphics.add(vent_clip)
-                elif section_clip and section_clip not in used_graphics and any(k in txt for k in ("uppermost carved floors", "stables", "entrance levels", "living quarters", "sprawling cellars", "kitchens")):
-                    matched_asset = section_clip
-                    used_graphics.add(section_clip)
-                elif defense_clip and defense_clip not in used_graphics and any(k in txt for k in ("stone disc doors", "disc doors", "stone cylinders", "rolling stone", "choke points", "for defense")):
-                    matched_asset = defense_clip
-                    used_graphics.add(defense_clip)
-                elif scale_clip and scale_clip not in used_graphics and any(k in txt for k in ("20,000", "twenty thousand", "sheltered thousands", "sheltering thousands", "capacity estimates")):
-                    matched_asset = scale_clip
-                    used_graphics.add(scale_clip)
-
-                # 2. Precise thematic photo matching
-                if not matched_asset:
-                    if any(k in txt for k in ("stone doors", "several hundred kilograms", "sealed behind", "impassable stone", "circular millstones", "rolled shut")):
-                        cand = next((p for p in unique_media if p not in used_media and any(k in p.name.lower() for k in ("04_commons", "door"))), None)
-                        if cand:
-                            matched_asset = cand
-                    elif any(k in txt for k in ("ten percent", "eight levels", "descend into darkness", "stairs", "narrow staircases", "officially opened")):
-                        cand = next((p for p in unique_media if p not in used_media and any(k in p.name.lower() for k in ("stairs", "01_commons", "02_commons"))), None)
-                        if cand:
-                            matched_asset = cand
-                    elif any(k in txt for k in ("missionary school", "hittites", "phrygians", "byzantine", "churches", "confession", "baptismal")):
-                        cand = next((p for p in unique_media if p not in used_media and any(k in p.name.lower() for k in ("church", "06_commons", "pillars", "room"))), None)
-                        if cand:
-                            matched_asset = cand
-                    elif any(k in txt for k in ("hundreds of underground", "cappadocia", "landscape", "volcanic rock", "settlements", "ancestral homeland")):
-                        cand = next((p for p in unique_media if p not in used_media and any(k in p.name.lower() for k in ("town", "panorama", "cappadocia", "goreme"))), None)
-                        if cand:
-                            matched_asset = cand
-                    elif any(k in txt for k in ("unexcavated", "single-file", "passageways", "chokepoints", "corridor", "trapping invaders", "narrow, defenseless")):
-                        cand = next((p for p in unique_media if p not in used_media and any(k in p.name.lower() for k in ("05_commons", "07_commons", "08_commons", "tunnel"))), None)
-                        if cand:
-                            matched_asset = cand
-                    elif any(k in txt for k in ("survival", "fortifications", "claustrophobic", "sensory deprivation", "open sky")):
-                        cand = next((p for p in unique_media if p not in used_media and any(k in p.name.lower() for k in ("uchisar", "01_commons", "stairs"))), None)
-                        if cand:
-                            matched_asset = cand
-
-                # 3. Fallback: unused authentic image
-                if not matched_asset:
-                    for cand in unique_media:
-                        if cand not in used_media:
-                            # Reserve 04_commons for the stone door / defense cut
-                            if "04_commons" in cand.name.lower() and not any(k in txt for k in ("door", "stone", "millstone")):
-                                continue
-                            matched_asset = cand
-                            break
-
-                # 4. If all unique images used, allow cycling
-                if not matched_asset and unique_media:
-                    matched_asset = unique_media[cut_idx % len(unique_media)]
-
-                if matched_asset:
-                    used_media.add(matched_asset)
-                    assigned_scenes.append(matched_asset)
-                    assigned_durations.append(cut_dur)
-
-            # Ensure sum of durations matches vo_dur exactly
-            total_dur = sum(assigned_durations)
-            diff = vo_dur - total_dur
-            if assigned_durations:
-                assigned_durations[-1] = max(1.0, assigned_durations[-1] + diff)
-
-            extended_scenes = assigned_scenes
-            durations = assigned_durations
-            num_scenes = len(extended_scenes)
-            log.info("Documentary timeline synchronized: %d cuts, sum=%.2fs (target=%.2fs)",
-                     num_scenes, sum(durations), vo_dur)
+            cuts = documentary_cuts(words, vo_dur)
+            extended_scenes, durations, plan_notes = plan_scenes(cuts, unique_media + own_graphics, use_storyboard=False)
+            log.info("Documentary timeline: %d cuts, sum=%.2fs (target=%.2fs); %s",
+                     len(extended_scenes), sum(durations), vo_dur, plan_notes[:120])
 
             master_mp4 = run_dir / f"{tid}_documentary_16x9.mp4"
             # Thumbnails need only the hero photo and the cover copy, which nothing below changes,
@@ -881,7 +711,7 @@ class PipelineCoordinator:
         hero_img = self.visual_engine.hero_image(scene_media)
         log.info("Scene media: %d items.", len(scene_media))
 
-        from src.checkpoints import Checkpoints, file_inputs, topic_inputs, cached_artifacts, topic_inputs
+        from src.checkpoints import Checkpoints, file_inputs, topic_inputs, cached_artifacts
         from src import config as pipeline_config
         checkpoints = Checkpoints(run_dir)
         timer, t0 = StageTimer(run_dir), time.perf_counter()

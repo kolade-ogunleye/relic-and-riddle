@@ -55,6 +55,43 @@ def segment_beats(words: List[Dict[str, Any]], total: float) -> List[Dict[str, A
     return beats
 
 
+MIN_CUT, MAX_CUT = 5.0, 12.0  # documentary cuts: long enough to read a picture, short enough to keep pace
+
+
+def documentary_cuts(words: List[Dict[str, Any]], total: float) -> List[Dict[str, Any]]:
+    """Cuts for the 16:9 documentary, one picture each: the narration's sentences, with short
+    ones merged until a cut lasts MIN_CUT seconds (never past MAX_CUT). Cuts are contiguous and
+    cover the whole narration, so their durations add up to it exactly."""
+    sentences: List[Dict[str, Any]] = []
+    current: List[Dict[str, Any]] = []
+    for w in words:
+        current.append(w)
+        if w["word"].rstrip()[-1:] in ".!?" and len(current) > 0:
+            sentences.append({"start": current[0]["start"], "end": w["start"] + w.get("dur", 0.0),
+                              "text": " ".join(x["word"] for x in current)})
+            current = []
+    if current:
+        sentences.append({"start": current[0]["start"], "end": current[-1]["start"] + current[-1].get("dur", 0.0),
+                          "text": " ".join(x["word"] for x in current)})
+    cuts: List[Dict[str, Any]] = []
+    for s in sentences:
+        last = cuts[-1] if cuts else None
+        if last and last["end"] - last["start"] < MIN_CUT and s["end"] - last["start"] <= MAX_CUT:
+            last["end"], last["text"] = s["end"], last["text"] + " " + s["text"]
+        else:
+            cuts.append(dict(s))
+    if not cuts:
+        return [{"start": 0.0, "end": total, "text": ""}]
+    if len(cuts) > 1 and cuts[-1]["end"] - cuts[-1]["start"] < MIN_CUT / 2:  # a stub at the end joins the cut before
+        stub = cuts.pop()
+        cuts[-1]["text"] += " " + stub["text"]
+    cuts[0]["start"] = 0.0
+    for a, b in zip(cuts, cuts[1:]):
+        a["end"] = b["start"]
+    cuts[-1]["end"] = total
+    return cuts
+
+
 def _is_graphic(p: Path) -> bool:
     """A clip the planner may place: an original graphic (src/graphics.py) or a real footage
     segment (src/footage.py). Both have a poster frame beside them."""
@@ -157,9 +194,12 @@ def lock_narrative_graphics(beats: List[Dict[str, Any]], graphics: List[Path]) -
 
 
 @llm_task("scene_plan")
-def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = "") -> Tuple[List[Path], List[float], str]:
+def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = "",
+                use_storyboard: bool = True) -> Tuple[List[Path], List[float], str]:
     """Returns (media per beat, duration per beat, notes). A motion hook clip stays first.
-    `feedback` lists problems a reviewer found with a previous plan, so they are avoided."""
+    `feedback` lists problems a reviewer found with a previous plan, so they are avoided.
+    `use_storyboard`: honour an approved Reel storyboard (its beats are numbered for a Reel; a
+    documentary's many cuts are planned from the narration instead)."""
     durations = [b["end"] - b["start"] for b in beats]
     hook = media[0] if media and is_video(media[0]) and not _is_graphic(media[0]) else None
     stills = [p for p in media if not is_video(p)]
@@ -174,7 +214,7 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
     # If the creator approved a storyboard in Telegram, lock those exact approved assets directly,
     # ensuring zero API cost, zero flakiness, and 100% fidelity to what was reviewed.
     storyboard = None
-    if not feedback:
+    if not feedback and use_storyboard:
         for p in stills:
             sb_candidate = p.parent / "storyboard.json"
             if sb_candidate.is_file():

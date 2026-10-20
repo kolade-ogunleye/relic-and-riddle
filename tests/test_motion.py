@@ -28,29 +28,6 @@ def fast(monkeypatch):
     monkeypatch.setattr(motion, "_finish", lambda raw, out: (out.write_bytes(b"clip"), out)[1])
 
 
-def test_veo_request_and_poll(monkeypatch, photo, tmp_path):
-    monkeypatch.setattr("src.config.GEMINI_API_KEY", "g" * 30)
-    sent = {}
-
-    def post(url, headers, json, timeout):
-        sent.update(url=url, body=json, headers=headers)
-        return R({"name": "operations/abc"})
-    polls = iter([R({"done": False}), R({"done": True, "response": {"generateVideoResponse": {"generatedSamples": [
-        {"video": {"uri": "https://generativelanguage.googleapis.com/v1beta/files/x:download"}}]}}})])
-    monkeypatch.setattr(motion.requests, "post", post)
-    monkeypatch.setattr(motion.requests, "get", lambda *a, **k: next(polls))
-    got = {}
-    monkeypatch.setattr(motion, "download", lambda url, prov, dest, extra_headers=None: got.update(url=url, prov=prov) or dest)
-    out = motion.animate_veo(photo, tmp_path / "m.mp4")
-    assert out.exists() and sent["url"].endswith("/models/veo-3.1-fast-generate-preview:predictLongRunning")
-    params = sent["body"]["parameters"]
-    assert params["aspectRatio"] == "9:16" and params["resolution"] == "1080p" and params["durationSeconds"] == 8
-    assert sent["body"]["instances"][0]["image"]["bytesBase64Encoded"]
-    assert sent["body"]["instances"][0]["image"]["mimeType"] == "image/jpeg"
-    assert "Do not add, remove or change anything" in sent["body"]["instances"][0]["prompt"]
-    assert got["prov"] == "veo"
-
-
 def test_kling_request_and_poll(monkeypatch, photo, tmp_path):
     monkeypatch.setattr("src.config.KLING_API_KEY", "k" * 30)
     sent = {}

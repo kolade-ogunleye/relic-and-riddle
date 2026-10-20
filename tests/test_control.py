@@ -1024,20 +1024,10 @@ def test_motion_fallback_tracking(db, monkeypatch, tmp_path):
     def fail_kling(*a, **k):
         raise motion.MotionError("Kling credit expired")
 
-    def succ_veo(*a, **k):
-        out = tmp_path / "veo.mp4"
-        out.write_bytes(b"dummy_video")
-        return out
-
     monkeypatch.setattr(motion, "kling_available", lambda: True)
-    monkeypatch.setattr(motion, "veo_available", lambda: True)
     monkeypatch.setattr(motion, "animate_kling", fail_kling)
-    monkeypatch.setattr(motion, "animate_veo", succ_veo)
     monkeypatch.setattr(motion.media_budget, "allow", lambda *a: True)
     monkeypatch.setattr(motion.media_budget, "record", lambda *a: None)
 
-    clip, name = motion.animate(db, photo, tmp_path / "out.mp4")
-    assert clip is not None
-    assert name == "veo-3.1-fast-generate-preview"
-    assert motion.last_fallback_reason is not None
+    assert motion.animate(db, photo, tmp_path / "out.mp4") is None  # the still keeps its parallax treatment
     assert "kling-3.0 failed (Kling credit expired)" in motion.last_fallback_reason

@@ -42,7 +42,6 @@ log = logging.getLogger(__name__)
 last_fallback_reason: Optional[str] = None
 
 SECONDS_OUT = 6.0  # trimmed length used in the video (longest beat plus transitions)
-VEO_PRICE_PER_SEC = {"veo-3.1-fast-generate-preview": 0.12, "veo-3.1-lite-generate-preview": 0.08, "veo-3.1-generate-preview": 0.40}
 KLING_EST_PRICE_PER_SEC = 0.14  # estimate for the budget guard; Kling bills per task
 POLL_SECONDS, TIMEOUT_SECONDS = 10, 600
 
@@ -234,49 +233,6 @@ def _finish(raw: Path, out: Path, archetype: str = "megastructure") -> Path:
     return out
 
 
-# ------------------------------------------------------------------- Veo
-def veo_available() -> bool:
-    return config.is_configured(config.GEMINI_API_KEY)
-
-
-def animate_veo(image: Path, out: Path, prompt: Optional[str] = None, archetype: str = "megastructure",
-                on_billed: Optional[Callable[[], None]] = None) -> Path:
-    model = config.MOTION_VEO_MODEL
-    base = "https://generativelanguage.googleapis.com/v1beta"
-    headers = {"x-goog-api-key": config.GEMINI_API_KEY, "Content-Type": "application/json"}
-    active_prompt = prompt or PROMPT
-    # Google predictLongRunning video endpoints expect bytesBase64Encoded in the image instance
-    body = {
-        "instances": [{"prompt": active_prompt, "image": {"bytesBase64Encoded": _jpeg_b64(image), "mimeType": "image/jpeg"}}],
-        "parameters": {"aspectRatio": "9:16", "durationSeconds": 8, "resolution": "1080p", "personGeneration": "allow_adult"}
-    }
-    resp = requests.post(f"{base}/models/{model}:predictLongRunning", headers=headers, json=body, timeout=60)
-    if resp.status_code >= 400:
-        raise MotionError(f"Veo rejected the request ({resp.status_code}): {resp.text[:300]}")
-    op = resp.json().get("name")
-    if not op:
-        raise MotionError("Veo returned no operation name")
-    deadline = time.monotonic() + TIMEOUT_SECONDS
-    while time.monotonic() < deadline:
-        time.sleep(POLL_SECONDS)
-        state = requests.get(f"{base}/{op}", headers=headers, timeout=30).json()
-        if state.get("error"):
-            raise MotionError(f"Veo failed: {state['error'].get('message', state['error'])}")
-        if state.get("done"):
-            samples = state.get("response", {}).get("generateVideoResponse", {}).get("generatedSamples", [])
-            if not samples:
-                raise MotionError(f"Veo returned no video (possibly filtered): {str(state)[:300]}")
-            if on_billed:
-                on_billed()  # Veo bills a generated clip whether or not our checks accept it
-            raw = out.with_name(out.stem + "_raw.mp4")
-            download(samples[0]["video"]["uri"], "veo", raw, extra_headers={"x-goog-api-key": config.GEMINI_API_KEY})
-            try:
-                return _finish(raw, out, archetype=archetype)
-            except TypeError:
-                return _finish(raw, out)
-    raise MotionError("Veo did not finish in time")
-
-
 # ----------------------------------------------------------------- Kling
 def kling_available() -> bool:
     return config.is_configured(config.KLING_API_KEY)
@@ -332,14 +288,13 @@ def providers(
     title = topic.get("title", "historical subject") if topic else "historical subject"
     prompt = build_motion_prompt(archetype, title, substrate)
 
-    veo_cost = 8 * VEO_PRICE_PER_SEC.get(config.MOTION_VEO_MODEL, 0.40)
     kling_cost = 6 * KLING_EST_PRICE_PER_SEC
 
     return [
         ("kling-3.0", kling_available, lambda img, out, on_billed=None: animate_kling(
             img, out, prompt=prompt, archetype=archetype, on_billed=on_billed), kling_cost),
-        (config.MOTION_VEO_MODEL, veo_available, lambda img, out, on_billed=None: animate_veo(
-            img, out, prompt=prompt, archetype=archetype, on_billed=on_billed), veo_cost),
+        # Veo 3.1 Preview was retired by Google (shut down 2026-10-22). Its successor, Gemini Omni
+        # Flash, uses a different API and has no published per-second price yet; not wired in.
     ]
 
 

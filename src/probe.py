@@ -91,11 +91,10 @@ def gather_system_telemetry(db: PipelineDatabase, assets_dir: Path, query: str =
                     pass
 
     # 3. Provider availability & credentials
-    from .motion import kling_available, veo_available, last_fallback_reason as motion_fallback
+    from .motion import kling_available, last_fallback_reason as motion_fallback
     telemetry["motion_fallback_reason"] = motion_fallback
     telemetry["providers"] = {
         "kling_configured": kling_available(),
-        "veo_configured": veo_available(),
         "claude_configured": bool(config.ANTHROPIC_API_KEY),
         "gemini_configured": bool(config.GEMINI_API_KEY),
         "elevenlabs_configured": bool(config.ELEVENLABS_API_KEY),
@@ -208,10 +207,7 @@ def _deterministic_diagnose(query: str, telemetry: Dict[str, Any]) -> str:
             else:
                 lines.append("• <b>Kling API Status:</b> <code>Configured & Active</code>.")
         if "veo" in q:
-            if not providers.get("veo_configured"):
-                lines.append("• <b>Veo API Status:</b> <code>Unconfigured</code> (missing <code>GEMINI_API_KEY</code>).")
-            else:
-                lines.append("• <b>Veo API Status:</b> <code>Configured</code> (format: <code>mimeType=image/jpeg</code>).")
+            lines.append("• <b>Veo:</b> retired (Google shut down Veo 3.1 Preview on 22 Oct 2026); Kling is the AI motion provider.")
         
         motion_note = notes.get("motion_note")
         if motion_note:

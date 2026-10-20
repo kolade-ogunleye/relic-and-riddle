@@ -35,7 +35,6 @@ MAX_BYTES = config.FOOTAGE_MAX_MB * 1_000_000  # originals are deleted once the 
 ALLOWED_HOSTS = {
     "commons": {"upload.wikimedia.org"},
     # AI motion results (src/motion.py). A leading dot allows that domain's subdomains.
-    "veo": {"generativelanguage.googleapis.com", ".googleusercontent.com", ".googleapis.com"},
     "kling": {".klingai.com"},
 }
 CREDIT_PREFIX = "🎥 Footage:"

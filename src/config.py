@@ -89,7 +89,6 @@ MUSIC_PREFER = (os.getenv("MUSIC_PREFER") or "library").strip().lower()
 MEDIA_MONTHLY_BUDGET_USD = float(os.getenv("MEDIA_MONTHLY_BUDGET_USD") or 0)
 # AI motion (src/motion.py): Veo through the Gemini API (billing on), then Kling. Runs only when
 # MEDIA_MONTHLY_BUDGET_USD > 0. Veo Fast is the default: Standard costs about 3x more per second.
-MOTION_VEO_MODEL = (os.getenv("MOTION_VEO_MODEL") or "veo-3.1-fast-generate-preview").strip()
 MOTION_MAX_CLIPS = int(os.getenv("MOTION_MAX_CLIPS") or 1)  # the opening still; 2 = also one more
 KLING_API_KEY = (os.getenv("KLING_API_KEY") or "").strip()
 # Script research, writing and fact checks: "free" = Gemini free tier on GEMINI_FREE_API_KEY (a key from a

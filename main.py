@@ -679,6 +679,60 @@ class PipelineCoordinator:
         self.publish_run(run_id, dry_run=True)
         return f"🧪 <b>Simulated Publish Complete</b> for {html.escape(self.db.run_label(run_id))}. Nothing was posted."
 
+    def _approval_window(self) -> int:
+        """How long a review card stays open: with scheduled posting, until 20 minutes before the next
+        free Reel slot (an approval then still makes that slot), between the configured timeout and 24 h."""
+        from src.config import APPROVAL_TIMEOUT_SECONDS
+        if not POST_SCHEDULING:
+            return APPROVAL_TIMEOUT_SECONDS
+        now = datetime.now(timezone.utc)
+        slot = post_schedule.next_reel_slot(now, self._booked_reel_days())
+        until_slot = (slot - now).total_seconds() - 20 * 60
+        # ...and never into the next daily run, which needs the production lock this wait holds.
+        from zoneinfo import ZoneInfo
+        hour, minute = (int(x) for x in DAILY_RUN_TIME.split(":"))
+        local = now.astimezone(ZoneInfo(TIMEZONE))
+        next_daily = local.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        if next_daily <= local:
+            next_daily += timedelta(days=1)
+        until_daily = (next_daily - local).total_seconds() - 10 * 60
+        return int(max(APPROVAL_TIMEOUT_SECONDS, min(until_slot, until_daily, 24 * 3600)))
+
+    EDITABLE_FIELDS = ("caption", "title", "first_comment", "carousel_caption")
+
+    def edit_copy(self, run_id: str, field: str, text: str) -> str:
+        """✏️ Edit text on a review card: the new wording is fact-checked like the rest of the public copy;
+        if it passes, the payload, metadata and release report are updated and a fresh card replaces the old
+        one. Credit lines the caption must carry (music, CC BY images) are kept by the release gate check."""
+        run = self.db.get_run(run_id)
+        appr = self.db.get_approval(run_id) or {}
+        if not run or appr.get("decision") != "pending":
+            return "That run is no longer waiting for review."
+        if field not in self.EDITABLE_FIELDS or not text.strip():
+            return "Nothing to change."
+        if field == "title" and len(text) > 60:
+            return f"Titles are at most 60 characters (this one is {len(text)})."
+        payload = dict(run["script_payload"])
+        old = payload.get(field, "")
+        payload[field] = text.strip()
+        topic = self.topic_engine.get_topic_by_id(run["topic_id"]) or {"id": run["topic_id"]}
+        try:
+            self._verify_final_copy(payload, topic)
+        except ValueError as e:
+            return f"❌ Not changed: the new {field.replace('_', ' ')} failed the fact check.\n<i>{html.escape(str(e))[:500]}</i>"
+        self.db.update_run(run_id, "pending_approval", script_payload=payload)
+        run_dir = Path(run["master_video_path"]).parent
+        (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+        from src.release import write_release_report
+        report = write_release_report(self.db.get_run(run_id))
+        if appr.get("telegram_message_id"):
+            self.telegram_bot._strip_buttons(appr["telegram_message_id"])
+        self.telegram_bot.send_review_card(run_id, payload, report)
+        log.info("Edited %s of %s: %r -> %r", field, run_id, old[:60], text[:60])
+        open_checks = [c["name"] for c in report.get("checks", []) if c.get("status") != "pass"]
+        return (f"✅ {field.replace('_', ' ').capitalize()} updated and fact-checked; the new card is below."
+                + (f" Release gate still open: {', '.join(open_checks)}." if open_checks else ""))
+
     def request_approval(self, run_id: str, dry_run: bool = False) -> Dict[str, Any]:
         """Re-sends the review card for a rendered run whose approval timed out, then acts on the decision."""
         run = self.db.get_run(run_id)
@@ -694,7 +748,7 @@ class PipelineCoordinator:
         proxy = run_dir / "review_proxy.mp4"
         video = proxy if proxy.exists() else Path(run["master_video_path"])
         self.telegram_bot.send_approval_request(video, Path(run["thumbnail_cover_path"]), run["script_payload"], run_id)
-        decision = self.telegram_bot.wait_for_decision(run_id)
+        decision = self.telegram_bot.wait_for_decision(run_id, self._approval_window())
         if decision == "approved":
             return {"run_id": run_id, "decision": decision, **self._after_approval(run_id, dry_run=dry_run)}
         status = {"rejected": "rejected", "regenerate": "regenerate"}.get(decision, "timeout")
@@ -1206,7 +1260,7 @@ class PipelineCoordinator:
                     pass
                 self.progress_msg_id = None
             self.telegram_bot.send_approval_request(review_mp4, thumb_916, payload, run_id)
-            decision = self.telegram_bot.wait_for_decision(run_id)
+            decision = self.telegram_bot.wait_for_decision(run_id, self._approval_window())
 
         result: Dict[str, Any] = {
             "run_id": run_id, "topic_id": tid, "decision": decision,
@@ -1780,6 +1834,7 @@ def main(argv=None) -> int:
             run_actions={"pubok": coordinator.confirm_posted,
                          "pubno": coordinator.confirm_not_posted,
                          "resend": resend_for_review,
+                         "edit": getattr(coordinator, "edit_copy", None),
                          "simpub": coordinator.simulate_publish}
         )
         if POST_SCHEDULING:  # what this mode books, it also posts when due
@@ -1938,7 +1993,14 @@ def main(argv=None) -> int:
             """Nightly: recurring findings become proposals; candidate writing rules are tested on the
             eval (free quota only, a few drafts a night, never during a production run); a rule that
             wins, and any code-level proposal, is put to you as a card. Nothing is adopted without you."""
-            from src import improve
+            from src import accounts, improve
+            try:  # the publishing accounts really work (not just "a key is set")
+                problems = accounts.check(coordinator.db, force=True).get("problems") or []
+                if problems:
+                    bot.notify("⚠️ <b>Publishing accounts</b>\n" + "\n".join(f"• {html.escape(p)}" for p in problems),
+                               silent=True)
+            except Exception as e:
+                log.warning("Account check failed: %s", e)
             try:
                 for p in improve.make_proposals(coordinator.db):
                     if p["status"] == "ready":
@@ -1980,6 +2042,14 @@ def main(argv=None) -> int:
         scheduler.add_job(collect_audience, CronTrigger(hour="*/6", minute=20, timezone=TIMEZONE),
                           max_instances=1, coalesce=True, misfire_grace_time=3 * 3600)
 
+        def check_accounts_now():  # so status and the dashboard show real account state from the start
+            try:
+                from src import accounts
+                accounts.check(coordinator.db, force=True)
+            except Exception as e:
+                log.warning("Account check failed: %s", e)
+        threading.Thread(target=check_accounts_now, name="account-check", daemon=True).start()
+
         def apply_updates() -> str:
             if run_lock.locked():
                 return "A production run is in progress; try again when it finishes."
@@ -2006,6 +2076,7 @@ def main(argv=None) -> int:
                                        run_actions={"pubok": coordinator.confirm_posted,
                                                     "pubno": coordinator.confirm_not_posted,
                                                     "resend": resend_for_review,
+                                                    "edit": getattr(coordinator, "edit_copy", None),
                                                     "simpub": coordinator.simulate_publish})
 
         def poll_telegram():

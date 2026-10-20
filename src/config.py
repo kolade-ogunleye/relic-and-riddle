@@ -98,6 +98,10 @@ KLING_API_KEY = (os.getenv("KLING_API_KEY") or "").strip()
 SCRIPT_ENGINE = (os.getenv("SCRIPT_ENGINE") or "free").strip().lower()
 GEMINI_FREE_API_KEY = (os.getenv("GEMINI_FREE_API_KEY") or "").strip()
 FREE_WRITER_MODEL = (os.getenv("FREE_WRITER_MODEL") or "gemini-3.8-flash").strip()
+# Second free model for light, text-only tasks (src/groq.py); off until measured against Gemini.
+GROQ_API_KEY = (os.getenv("GROQ_API_KEY") or "").strip()
+GROQ_MODEL = (os.getenv("GROQ_MODEL") or "openai/gpt-oss-120b").strip()
+GROQ_LIGHT_FALLBACK = (os.getenv("GROQ_LIGHT_FALLBACK") or "false").strip().lower() in ("1", "true", "yes")
 FREE_CHECKER_MODEL = (os.getenv("FREE_CHECKER_MODEL") or "gemini-3.7-flash").strip()  # a different model checks the writer's work
 GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
 # When the free Gemini quota is used up, these task classes may use the billed GEMINI_API_KEY up to a

@@ -37,7 +37,7 @@ log = logging.getLogger(__name__)
 ACTIONS = {"approve": "approved", "regen": "regenerate", "reject": "rejected", "cancel": "cancelled"}
 TELEGRAM_VIDEO_LIMIT_MB = 49.0
 STALE_COMMAND_SECONDS = 600  # commands queued while the bot was down longer than this are not replayed
-SLOW_COMMANDS = {"ask", "probe", "query", "why", "discover", "umore", "propose", "review", "storyboard", "covers"}
+SLOW_COMMANDS = {"ask", "discover", "umore", "propose", "review", "covers", "edittext"}
 
 _MASKER = SecretMasker()
 
@@ -172,6 +172,44 @@ def format_responsive_keyboard(buttons: Optional[Any], max_per_row: int = 2, max
     return out_rows
 
 
+def scene_strip(video: Path, out: Path, frames: int = 12, cols: int = 6) -> Optional[Path]:
+    """One frame every few seconds of the review video, tiled with timestamps, so picture choices
+    can be judged at a glance. None if ffmpeg can't read the video."""
+    import subprocess
+    from PIL import Image, ImageDraw
+    try:
+        dur = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(video)],
+                                   capture_output=True, text=True, timeout=30, check=True).stdout.strip())
+    except (subprocess.SubprocessError, ValueError, OSError):
+        return None
+    tile_w, tiles = 270, []
+    for k in range(frames):
+        t = dur * (k + 0.5) / frames
+        frame = out.with_name(f"_strip_{k:02d}.jpg")
+        try:
+            subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t:.2f}", "-i", str(video), "-frames:v", "1",
+                            "-vf", f"scale={tile_w}:-2", str(frame)], timeout=60, check=True)
+            with Image.open(frame) as im:
+                tiles.append((t, im.convert("RGB")))
+        except (subprocess.SubprocessError, OSError):
+            continue
+        finally:
+            frame.unlink(missing_ok=True)
+    if not tiles:
+        return None
+    tile_h = tiles[0][1].height
+    rows = (len(tiles) + cols - 1) // cols
+    sheet = Image.new("RGB", (cols * tile_w, rows * tile_h), (12, 12, 14))
+    d = ImageDraw.Draw(sheet)
+    for k, (t, im) in enumerate(tiles):
+        x, y = (k % cols) * tile_w, (k // cols) * tile_h
+        sheet.paste(im, (x, y))
+        d.rectangle([x, y, x + 64, y + 26], fill=(0, 0, 0))
+        d.text((x + 6, y + 6), f"{int(t // 60)}:{int(t % 60):02d}", fill=(255, 215, 0))
+    sheet.save(out, quality=85)
+    return out
+
+
 class TelegramApprovalBot:
     def __init__(
         self,
@@ -251,6 +289,7 @@ class TelegramApprovalBot:
             {"command": "queue", "description": "Upcoming topics (bump or drop)"},
             {"command": "run", "description": "Start a production run now"},
             {"command": "images", "description": "Photo sets waiting for review"},
+            {"command": "ideas", "description": "Find new topic ideas"},
             {"command": "improve", "description": "Improvement proposals waiting for you"},
             {"command": "ask", "description": "Ask why the system did something"},
             {"command": "issue", "description": "Report a problem (attach a photo or clip)"},
@@ -376,70 +415,113 @@ class TelegramApprovalBot:
         return safe_html_truncate(full, max_chars=3900)
 
     def send_approval_request(self, video_path: Path, thumbnail_path: Path, script_payload: Dict[str, Any], run_id: str) -> Optional[int]:
+        """Everything one Approve publishes, then the card: an album with the cover, a scene strip and
+        the review video; an album with the Story frames and carousel slides; the review card.
+        Review media is protected (no forwarding or saving of unreleased work)."""
+        previous = self.db.get_approval(run_id) if hasattr(self.db, "get_approval") else None
         self.db.record_approval(run_id, script_payload.get("topic_id", ""), None)
         if not self.is_configured():
             log.warning("Telegram not configured. Review with: python main.py review approve|reject %s", run_id)
             return None
-
+        if previous and previous.get("telegram_message_id"):
+            self._strip_buttons(previous["telegram_message_id"])  # a resend leaves one live card
         release = None
         try:
             report_file = Path(video_path).parent / "release_report.json"
             release = json.loads(report_file.read_text(encoding="utf-8")) if report_file.exists() else None
         except (OSError, ValueError) as e:
             log.warning("Could not read the release report for the review card: %s", e)
-        card_text = self.format_card_text(script_payload, run_id, release=release)
         try:
-            with open(thumbnail_path, "rb") as photo:
-                self._api("sendPhoto", data={"chat_id": self.chat_id, "caption": f"Cover · {script_payload.get('title', '')}"}, files={"photo": photo})
-
-            size_mb = os.path.getsize(video_path) / (1024 * 1024)
-            if size_mb <= TELEGRAM_VIDEO_LIMIT_MB:
-                with open(video_path, "rb") as vid:
-                    self._api("sendVideo", timeout=300, data={"chat_id": self.chat_id, "caption": f"Review copy, 720p ({size_mb:.1f} MB)"},
-                              files={"video": vid})
-            else:
-                log.warning("Video is %.1f MB, over Telegram's bot upload limit; review it locally: %s", size_mb, video_path)
-
-            key = self.db.run_key(run_id)  # short: Telegram limits button data to 64 bytes
-            topic_id = script_payload.get("topic_id", "")
-            markup = {"inline_keyboard": format_responsive_keyboard([
-                [
-                    {"text": "🚀 Approve & Post", "callback_data": f"approve:{key}"},
-                    {"text": "🎨 Flip Cover", "callback_data": f"cov:{topic_id}:b"},
-                ],
-                [
-                    {"text": "🔄 Regenerate", "callback_data": f"regen:{key}"},
-                    {"text": "❌ Reject", "callback_data": f"reject:{key}"},
-                ],
-            ])}
-            try:
-                msg = self._api("sendMessage", data={
-                    "chat_id": self.chat_id,
-                    "text": card_text,
-                    "parse_mode": "HTML",
-                    "disable_web_page_preview": "true",
-                    "reply_markup": json.dumps(markup),
-                })
-                message_id = msg["message_id"]
-            except Exception as e:
-                if "can't parse entities" in str(e).lower() or "bad request" in str(e).lower():
-                    log.warning("Telegram parse error on approval card (%s); retrying plain text", e)
-                    plain_text = re.sub(r"<[^>]+>", "", card_text)[:4000]
-                    msg = self._api("sendMessage", data={
-                        "chat_id": self.chat_id,
-                        "text": plain_text,
-                        "disable_web_page_preview": "true",
-                        "reply_markup": json.dumps(markup),
-                    })
-                    message_id = msg["message_id"]
-                else:
-                    raise
-            self.db.record_approval(run_id, script_payload.get("topic_id", ""), message_id)
-            log.info("Approval request sent to Telegram (message %s).", message_id)
-            return message_id
+            self._send_review_media(Path(video_path), Path(thumbnail_path), script_payload)
+        except Exception as e:  # the card (with Approve) must still arrive
+            log.warning("Could not send the review media: %s", e)
+        try:
+            return self.send_review_card(run_id, script_payload, release)
         except Exception as e:
             log.error("Failed to send Telegram approval request: %s. Use the CLI to review %s.", e, run_id)
             return None
+
+    def _strip_buttons(self, message_id: int) -> None:
+        try:
+            self._api("editMessageReplyMarkup", data={"chat_id": self.chat_id, "message_id": message_id,
+                                                      "reply_markup": json.dumps({"inline_keyboard": []})})
+        except Exception as e:
+            log.debug("Could not remove buttons from %s: %s", message_id, e)
+
+    def _album(self, items: List[Dict[str, Any]]) -> None:
+        """sendMediaGroup (2-10 items, photos and videos mixed); a single item is sent on its own."""
+        files, media = {}, []
+        for k, it in enumerate(items):
+            name = f"f{k}"
+            files[name] = open(it["path"], "rb")
+            entry = {"type": it["type"], "media": f"attach://{name}"}
+            if it.get("caption"):
+                entry.update(caption=it["caption"][:1024], parse_mode="HTML")
+            if it["type"] == "video":
+                entry["supports_streaming"] = True
+            media.append(entry)
+        try:
+            if len(media) == 1:
+                kind = media[0]["type"]
+                self._api("send" + kind.capitalize(), timeout=300, files={kind: files["f0"]},
+                          data={"chat_id": self.chat_id, "caption": media[0].get("caption", ""), "parse_mode": "HTML",
+                                "protect_content": "true"})
+            else:
+                self._api("sendMediaGroup", timeout=300, files=files,
+                          data={"chat_id": self.chat_id, "media": json.dumps(media), "protect_content": "true"})
+        finally:
+            for f in files.values():
+                f.close()
+
+    def _send_review_media(self, video_path: Path, thumbnail_path: Path, payload: Dict[str, Any]) -> None:
+        run_dir = video_path.parent
+        e = html.escape
+        first: List[Dict[str, Any]] = []
+        if thumbnail_path.is_file():
+            first.append({"type": "photo", "path": thumbnail_path, "caption": f"Cover · {e(payload.get('title', ''))}"})
+        strip = scene_strip(video_path, run_dir / "review_scene_strip.jpg")
+        if strip:
+            first.append({"type": "photo", "path": strip, "caption": "One frame every few seconds, in order"})
+        size_mb = os.path.getsize(video_path) / (1024 * 1024) if video_path.is_file() else 0
+        if 0 < size_mb <= TELEGRAM_VIDEO_LIMIT_MB:
+            first.append({"type": "video", "path": video_path, "caption": f"Review copy, 720p ({size_mb:.1f} MB)"})
+        elif size_mb:
+            log.warning("Video is %.1f MB, over Telegram's bot upload limit; review it locally: %s", size_mb, video_path)
+        if first:
+            self._album(first)
+        stills = sorted((run_dir / "stories").glob("story_*.jpg")) + sorted((run_dir / "carousel").glob("carousel_slide_*.jpg"))
+        n_story = len(list((run_dir / "stories").glob("story_*.jpg")))
+        for start in range(0, len(stills), 10):
+            batch = stills[start:start + 10]
+            items = [{"type": "photo", "path": p} for p in batch]
+            if start == 0:
+                items[0]["caption"] = (f"Also posted on approval: {n_story} Story frame(s), then the "
+                                       f"{len(stills) - n_story}-slide carousel")
+            self._album(items)
+
+    def send_review_card(self, run_id: str, script_payload: Dict[str, Any], release: Optional[Dict[str, Any]] = None) -> Optional[int]:
+        key = self.db.run_key(run_id)  # short: Telegram limits button data to 64 bytes
+        card_text = self.format_card_text(script_payload, run_id, release=release)
+        markup = {"inline_keyboard": format_responsive_keyboard([
+            [{"text": "🚀 Approve & Post", "callback_data": f"approve:{key}"},
+             {"text": "✏️ Edit text", "callback_data": f"edit:{key}"}],
+            [{"text": "🔄 Regenerate", "callback_data": f"regen:{key}"},
+             {"text": "❌ Reject", "callback_data": f"reject:{key}"}],
+            [{"text": "🎨 Covers", "callback_data": "ccov:"}],
+        ])}
+        try:
+            msg = self._api("sendMessage", data={"chat_id": self.chat_id, "text": card_text, "parse_mode": "HTML",
+                                                 "disable_web_page_preview": "true", "reply_markup": json.dumps(markup)})
+        except Exception as e:
+            if "can't parse entities" not in str(e).lower() and "bad request" not in str(e).lower():
+                raise
+            log.warning("Telegram parse error on approval card (%s); retrying plain text", e)
+            msg = self._api("sendMessage", data={"chat_id": self.chat_id, "text": re.sub(r"<[^>]+>", "", card_text)[:4000],
+                                                 "disable_web_page_preview": "true", "reply_markup": json.dumps(markup)})
+        message_id = msg["message_id"]
+        self.db.record_approval(run_id, script_payload.get("topic_id", ""), message_id)
+        log.info("Approval request sent to Telegram (message %s).", message_id)
+        return message_id
 
     def _authorized(self, user_id: Any, chat_id: Any) -> bool:
         return str(user_id) in self.approver_ids and str(chat_id) == str(self.chat_id)
@@ -859,7 +941,7 @@ class TelegramApprovalBot:
             log.debug("Could not dismiss approval buttons for %s: %s", run_id, e)
             return False
 
-    def cleanup_stale_approvals(self, max_age_hours: int = 2) -> int:
+    def cleanup_stale_approvals(self, max_age_hours: int = 26) -> int:  # past the longest review window (24 h)
         """Sweeps any pending approvals older than max_age_hours, marks them timed out, and strips buttons."""
         if not hasattr(self.db, "list_pending_approvals"):
             return 0
@@ -1081,7 +1163,7 @@ class TelegramApprovalBot:
 
                     if msg_id and action in ("mnext", "mcancel", "umore", "umoredone", "uskip", "tskip", "mdel", "imgcancel"):
                         self.delete_message(msg_id)
-                    elif msg_id and action not in ("qrender",):
+                    elif msg_id and action not in ("qrender", "edit"):  # Edit keeps the review card live
                         try:
                             self._api("editMessageReplyMarkup", data={
                                 "chat_id": self.chat_id,
@@ -1198,7 +1280,7 @@ class TelegramApprovalBot:
             photos = msg.get("photo")
             media_item = (photos[-1] if photos else None) or msg.get("document") or msg.get("video") or msg.get("audio") or msg.get("voice")
             caption = (msg.get("caption") or "").strip()
-            if media_item and caption.startswith(("/issue", "/critique", "/bug")) and self._authorized(msg.get("from", {}).get("id", ""), msg.get("chat", {}).get("id", "")):
+            if media_item and caption.startswith("/issue") and self._authorized(msg.get("from", {}).get("id", ""), msg.get("chat", {}).get("id", "")):
                 command, _, critique_text = caption[1:].partition(" ")
                 command = command.split("@")[0].lower()
                 try:
@@ -1241,6 +1323,11 @@ class TelegramApprovalBot:
                 command, _, args = text[1:].partition(" ")
                 command = command.split("@")[0].lower()
                 audit_payload = text
+            elif reply_to and re.search(r"\[edit run (\d+)\]", reply_to.get("text") or ""):
+                # A reply to "✏️ Edit text": the new wording for that run's caption, title or comment
+                command = "edittext"
+                args = re.search(r"\[edit run (\d+)\]", reply_to["text"]).group(1) + " " + text
+                audit_payload = f"/edittext {text[:80]}"
             elif reply_to and re.search(r"\[run (\d+)\]", reply_to.get("text") or "") and \
                     (reply_to.get("text") or "").startswith(("📝", "✅ Reason")):
                 # A reply to a "Why reject/regenerate?" card: the details of that reason
@@ -1272,7 +1359,7 @@ class TelegramApprovalBot:
                 log.warning("Ignoring command from unauthorized user %s.", user_id)
                 continue  # "/status@relicandriddle_bot" -> "status"
 
-            if command in ("clear", "clean", "purge"):
+            if command == "clear":
                 cmd_mid = msg.get("message_id")
                 # 1. Immediate responsiveness feedback
                 self.send_chat_action("typing")
@@ -1371,14 +1458,26 @@ class TelegramApprovalBot:
         if reply:
             self.notify(reply, record_alert=False)
 
-    def wait_for_decision(self, run_id: str, timeout_seconds: int = APPROVAL_TIMEOUT_SECONDS, poll_interval: int = 5) -> str:
-        """Returns 'approved', 'rejected', 'regenerate', or 'timeout'. Never auto-approves."""
+    def wait_for_decision(self, run_id: str, timeout_seconds: Optional[int] = None, poll_interval: int = 5,
+                          reminder_after: int = 1800) -> str:
+        """Returns 'approved', 'rejected', 'regenerate', or 'timeout'. Never auto-approves. One reminder
+        after `reminder_after` seconds when the window is long enough; on timeout, a Resend button."""
+        timeout_seconds = timeout_seconds or APPROVAL_TIMEOUT_SECONDS
         log.info("Awaiting human decision for %s (timeout %ss)...", run_id, timeout_seconds)
-        deadline = time.monotonic() + timeout_seconds
+        started = time.monotonic()
+        deadline = started + timeout_seconds
+        reminded = timeout_seconds < reminder_after + 600  # no reminder for a short window
         offset: Optional[int] = None  # unconfirmed taps (e.g. made just before this wait) still count
 
         while time.monotonic() < deadline:
             self.cleanup_transient_messages()
+            if not reminded and time.monotonic() - started >= reminder_after:
+                reminded = True
+                closes = (datetime.now() + timedelta(seconds=deadline - time.monotonic())).strftime("%H:%M")
+                self.notify(f"⏰ Still waiting for your review of {html.escape(self.db.run_label(run_id))} "
+                            f"(the card stays open until {closes}).",
+                            buttons=[{"text": "📨 Bring the card down", "callback_data": f"resend:{self.db.run_key(run_id)}"}],
+                            transient=True, ttl_minutes=int((deadline - time.monotonic()) / 60) + 1)
             approval = self.db.get_approval(run_id)
             if approval and approval["decision"] != "pending":
                 log.info("Decision for %s: %s (by %s)", run_id, approval["decision"], approval.get("decided_by"))
@@ -1408,6 +1507,9 @@ class TelegramApprovalBot:
         if self.db.update_approval_decision(run_id, "timeout", decided_by="system"):
             log.warning("No decision for %s within %ss.", run_id, timeout_seconds)
             self.dismiss_approval_buttons(run_id)
+            self.notify(f"⌛ No decision on {html.escape(self.db.run_label(run_id))}; nothing was posted. "
+                        "The render is kept: resend it whenever you're ready.",
+                        buttons=[{"text": "📨 Resend for review", "callback_data": f"resend:{self.db.run_key(run_id)}"}])
             return "timeout"
         return (self.db.get_approval(run_id) or {}).get("decision", "timeout")
 

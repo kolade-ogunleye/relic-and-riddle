@@ -59,6 +59,16 @@ def _paid_spend(task_class: str) -> float:
 
 
 def _paid_fallback(system, prompt, schema: Type[T], model: str, task_class: str, why: str) -> T:
+    # A light, text-only task first tries the second free model (when enabled after measurement).
+    if task_class == "light" and isinstance(prompt, str) and config.GROQ_LIGHT_FALLBACK:
+        from . import groq
+        if groq.available():
+            try:
+                result = groq.structured(system, prompt, schema)
+                log.info("Free Gemini unavailable (%s); answered by the free Groq model.", why)
+                return result
+            except groq.GroqError as e:
+                log.info("Free Groq model unavailable too (%s).", e)
     if not (ALLOW_PAID_FALLBACK and config.is_configured(config.GEMINI_API_KEY) and _paid_cap(task_class) > 0):
         raise FreeQuotaUnavailable(why)
     if config.GEMINI_API_KEY == config.GEMINI_FREE_API_KEY:

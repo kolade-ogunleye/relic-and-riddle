@@ -803,13 +803,13 @@ def test_dashboard_command_no_redundant_sent_above_message(db, monkeypatch):
     assert reply == ""
     assert len(sent) == 1
     dash_txt, dash_btns = sent[-1]
-    assert "EXECUTIVE COCKPIT" in dash_txt or "Relic & Riddle" in dash_txt
+    assert "RELIC &amp; RIDDLE" in dash_txt
     assert dash_btns is not None
 
     # 2. Handler without send_message returns dash_text directly
     h_plain = make_command_handler(db, lambda: None, lambda: "")
     reply_plain = h_plain("dashboard", "")
-    assert "EXECUTIVE COCKPIT" in reply_plain or "Relic & Riddle" in reply_plain
+    assert "RELIC &amp; RIDDLE" in reply_plain
 
     # 3. bot.poll_once receiving /dashboard should only send 1 message (the card), never 'Dashboard sent above.'
     calls = []

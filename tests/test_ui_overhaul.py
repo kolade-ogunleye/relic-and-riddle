@@ -230,13 +230,12 @@ def test_startup_dashboard_card_and_cockpit(tmp_path):
 
     # 1. Startup dashboard card in bot-only mode
     card_txt, card_btns = startup_dashboard_card(db, mode="bot")
-    assert "Studio Control Center Online" in card_txt
-    assert "Interactive Control Center (Bot-only)" in card_txt
+    assert "Bot started" in card_txt and "RELIC &amp; RIDDLE" in card_txt
     assert len(card_btns) >= 2
 
     # 2. Startup dashboard card in daemon mode
     daemon_txt, _ = startup_dashboard_card(db, mode="daemon", time_str="09:00", timezone_str="America/Edmonton")
-    assert "Full Autonomous Daemon" in daemon_txt
+    assert "Daemon started" in daemon_txt
     assert "09:00 America/Edmonton" in daemon_txt
 
     # 3. Touch-first Executive Cockpit (/dashboard)
@@ -248,7 +247,7 @@ def test_startup_dashboard_card_and_cockpit(tmp_path):
     assert dash_reply == ""
     assert len(sent_msgs) == 1
     d_txt, d_btns = sent_msgs[-1]
-    assert "EXECUTIVE COCKPIT" in d_txt
+    assert "RELIC &amp; RIDDLE" in d_txt
     assert "Kailasa Monolith" in d_txt
     assert any("qrefresh:" in b["callback_data"] for row in d_btns for b in row)
     assert any("ccov:" in b["callback_data"] for row in d_btns for b in row)
@@ -256,11 +255,11 @@ def test_startup_dashboard_card_and_cockpit(tmp_path):
     # 4. Cockpit pause and resume toggle
     pause_reply = h("cpause", "")
     assert "Scheduler Paused!" in pause_reply
-    assert "PAUSED" in pause_reply
+    assert "paused" in pause_reply
 
     resume_reply = h("cresume", "")
     assert "Scheduler Resumed!" in resume_reply
-    assert "ACTIVE" in resume_reply
+    assert "active" in resume_reply
 
     # 5. /help includes cockpit pointer
     help_reply = h("help", "")

@@ -44,7 +44,7 @@ HELP = (
     "\n<b>Topics</b>\n"
     "/queue — upcoming topics with Bump/Drop · /next — the next one\n"
     "/bump &lt;number or id&gt; · /undo · /requeue [list|&lt;id&gt;]\n"
-    "/add &lt;title&gt; · /proposals · /propose · /discover [theme]\n"
+    "/ideas — research new topics, browse UNESCO marvels, decide waiting ideas · /add &lt;title&gt;\n"
     "\n<b>Pictures, covers, music</b>\n"
     "/images — photo sets waiting · /review N — a set's contact sheet\n"
     "/drop N 2 5 — remove photos 2 and 5 · /swap N 2 4 — swap beats 2 and 4\n"
@@ -298,7 +298,7 @@ def quota_lines(voice_quota: Optional[dict]) -> List[str]:
         if az.get("configured"):
             lines.append(f"Azure Speech: {az['status']}")
             if not az.get("ok"):
-                lines.append("🚨 <b>Voice Alert:</b> Azure Speech has auth errors and ElevenLabs is unconfigured. Runs will fall back to edge-tts (unlicensed for commercial monetization).")
+                lines.append("🚨 <b>Voice Alert:</b> Azure Speech has auth errors and ElevenLabs is unconfigured. " + _unlicensed_consequence())
         return lines
 
     left = max(0, voice_quota["limit"] - voice_quota["used"])
@@ -312,16 +312,50 @@ def quota_lines(voice_quota: Optional[dict]) -> List[str]:
         if az.get("ok"):
             lines.append(f"⚠️ {line}. Falls back to Azure Speech ({az.get('region')}) when exhausted.")
         else:
-            lines.append(f"⚠️ {line}. Runs will fall back to the free edge-tts voice when it runs out.")
+            lines.append(f"⚠️ {line}. When it runs out: " + _unlicensed_consequence())
     else:
         lines.append(line)
 
     if az.get("configured"):
         lines.append(f"Azure Speech: {az['status']}")
         if left < 3 * SCRIPT_CHARS and not az.get("ok"):
-            lines.append("🚨 <b>Commercial License Alert:</b> Both ElevenLabs and Azure Speech are unavailable! Video generation risks using edge-tts.")
+            lines.append("🚨 <b>Licence Alert:</b> both ElevenLabs and Azure Speech are unavailable. " + _unlicensed_consequence())
 
     return lines
+
+
+def _unlicensed_consequence() -> str:
+    from . import config
+    return ("real runs stop (a licensed voice is required); dry runs use the free test voice."
+            if config.VOICE_REQUIRE_LICENSED else "runs use the free edge-tts voice, which is not licensed for monetized posts.")
+
+
+def spend_lines(db: PipelineDatabase) -> List[str]:
+    """This month's spend by what it is, against each cap."""
+    from . import config
+    month = datetime.now(timezone.utc).strftime("%Y-%m")
+    by_task = {r["task"]: r["cost"] for r in db.llm_spend_by_task(month)}
+    light, heavy = by_task.pop("paid-fallback:light", 0.0), by_task.pop("paid-fallback:heavy", 0.0)
+    lines = [f"Paid model fallback this month: light ${light:.2f} of ${config.PAID_FALLBACK_LIGHT_MONTHLY_USD:.2f}, "
+             f"heavy ${heavy:.2f} of ${config.PAID_FALLBACK_HEAVY_MONTHLY_USD:.2f}"]
+    claude = sum(c for task, c in by_task.items() if not task.startswith(("paid-fallback", "groq")))
+    if claude or config.SCRIPT_ENGINE == "claude":
+        lines.append(f"Claude this month: ${claude:.2f}" + (f" of ${CLAUDE_MONTHLY_BUDGET_USD:.2f}" if CLAUDE_MONTHLY_BUDGET_USD > 0 else ""))
+    media = db.media_spend(month)
+    lines.append(f"AI motion this month: ${media:.2f} of ${MEDIA_MONTHLY_BUDGET_USD:.2f}")
+    return lines
+
+
+def ready_pools(db: PipelineDatabase, topics: List[Dict[str, Any]]) -> int:
+    """Queued topics whose photo pool passes the same readiness rule production uses."""
+    from .asset_pipeline import pool_ready
+    n = 0
+    for t in topics:
+        try:
+            n += bool(pool_ready(t["id"]))
+        except Exception:
+            pass
+    return n
 
 
 def status_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Optional[dict] = None) -> str:
@@ -365,34 +399,19 @@ def status_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Opti
     queued_count = sum(1 for t in topics if t.get("status") == "queued")
     lines.append(f"Topics: {queued_count} queued · {pub_count} published / {len(topics)} total")
 
-    month = datetime.now(timezone.utc).strftime("%Y-%m")
-    spend = f"Claude spend this month: ${db.llm_spend(month):.2f}"
-    if CLAUDE_MONTHLY_BUDGET_USD > 0:
-        spend += f" of ${CLAUDE_MONTHLY_BUDGET_USD:.2f} budget"
-    lines.append(spend)
-    by_task = db.llm_spend_by_task(month)
-    if by_task:
-        lines.append("  by task: " + ", ".join(f"{e(t['task'].replace('_', ' '))} ${t['cost']:.2f}" for t in by_task[:5]))
-    media = db.media_spend(month)
-    if media or MEDIA_MONTHLY_BUDGET_USD > 0:
-        lines.append(f"Paid media this month: ${media:.2f}" + (f" of ${MEDIA_MONTHLY_BUDGET_USD:.2f} budget" if MEDIA_MONTHLY_BUDGET_USD > 0 else ""))
+    lines += spend_lines(db)
 
     lines += quota_lines(voice_quota)
 
     try:
         open_issues = db.list_open_issues()
         if open_issues:
-            lines.append(f"⚠️ Open issues/critiques: {len(open_issues)} (send /alerts or check docs/issues)")
+            lines.append(f"⚠️ Open issues: {len(open_issues)} (see /improve)")
     except Exception:
         pass
 
-    from .config import UPLOAD_POST_API_KEY, META_ACCESS_TOKEN, is_configured
-    if is_configured(UPLOAD_POST_API_KEY):
-        lines.append("Social Publisher: Upload-Post.com (connected)")
-    elif is_configured(META_ACCESS_TOKEN):
-        lines.append("Social Publisher: Meta Graph Direct (connected)")
-    else:
-        lines.append("Social Publisher: Simulated mode (local only)")
+    from . import accounts
+    lines.append(accounts.status_line(db))
 
     return "\n".join(lines)
 
@@ -402,139 +421,72 @@ def heartbeat_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: O
 
 
 def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = None, assets_dir: Path = ASSETS_DIR) -> Tuple[str, List[List[Dict[str, str]]]]:
+    """What needs you first (reviews, proposals, problems), then the state of production."""
+    e = html.escape
     paused = is_paused(db)
-    sched_state = "⏸️ <b>PAUSED</b>" if paused else "▶️ <b>ACTIVE</b>"
-    next_sched = f" • Next: <code>{html.escape(next_run)}</code>" if (next_run and not paused) else ""
-
     topics = db.list_all_topics()
     queued = [t for t in topics if t.get("status") == "queued"]
+    ready = ready_pools(db, queued)
+    pending = db.list_pending_approvals()
+    try:
+        from . import improve
+        waiting_proposals = [p for p in improve.proposals(db) if p["status"] == "ready"]
+    except Exception:
+        waiting_proposals = []
+    from . import accounts
+    account_problems = accounts.cached(db).get("problems") or []
     next_t = None
     try:
         next_t = db.get_next_topic()
     except Exception:
         pass
 
-    ready_count = 0
-    for t in queued:
-        try:
-            td = _resolve_topic_dir(t["id"], assets_dir, db=db)
-            if td.exists():
-                cr = load_credits(td)
-                if cr.get("reviewed") and len(cr.get("images", [])) >= MIN_SCENE_IMAGES:
-                    ready_count += 1
-        except Exception:
-            pass
+    needs = []
+    if pending:
+        needs.append(f"🎬 <b>{len(pending)} review(s) waiting</b>: " + ", ".join(e(db.run_label(p['run_id'])) for p in pending[:2]))
+    if waiting_proposals:
+        needs.append(f"🧭 <b>{len(waiting_proposals)} improvement proposal(s)</b> — /improve")
+    if account_problems:
+        needs.append("⚠️ " + e(account_problems[0]))
+    if queued and ready < len(queued) and ready < 3:
+        needs.append(f"🖼 Only {ready} queued topic(s) have photos ready")
+    recent = db.list_recent_runs(limit=1)
+    if recent and recent[0].get("status") == "failed":
+        needs.append(f"❌ Last run failed: {e((recent[0].get('error') or '')[:120])}")
 
-    next_line = f"🎯 <b>Next Topic:</b> <b>{html.escape(next_t['title'])}</b> (<code>{html.escape(next_t['id'])}</code>)\n" if next_t else "🎯 <b>Next Topic:</b> <i>(Queue empty)</i>\n"
+    active = db.get_active_progress() if hasattr(db, "get_active_progress") else None
+    lines = ["🏛️ <b><u>RELIC &amp; RIDDLE</u></b>", ""]
+    lines += (["<b>Needs you</b>"] + needs + [""]) if needs else ["✅ <b>Nothing needs you right now.</b>", ""]
+    lines.append(f"⏯️ Schedule: {'⏸ <b>paused</b>' if paused else '▶️ active'}"
+                 + (f" · next run {e(next_run)}" if next_run and not paused else ""))
+    if active:
+        lines.append(f"⏳ Making: {e(db.run_label(active['run_id']))} · step {active.get('step', 1)}/{active.get('total_steps', 5)}")
+    lines.append(f"📋 Queue: {len(queued)} topics · {ready} with photos ready"
+                 + (f" · next: <b>{e(next_t['title'])}</b>" if next_t else ""))
+    lines += spend_lines(db)
 
-    active_prog = db.get_active_progress() if hasattr(db, "get_active_progress") else None
-    active_run_str = ""
-    if active_prog:
-        st_num = active_prog.get("step", 1)
-        tot_num = active_prog.get("total_steps", 5)
-        pct_num = int((st_num / tot_num) * 100)
-        active_run_str = f"⏳ <b>Active Production:</b> <code>[{html.escape(db.run_label(active_prog['run_id']))}]</code> • Step {st_num}/{tot_num} ({pct_num}%)\n"
-
-    recent_runs = db.list_recent_runs(limit=1)
-    last_run_str = ""
-    if recent_runs:
-        lr = recent_runs[0]
-        st = lr.get("status", "unknown")
-        rid = lr.get("run_id", "")
-        last_run_str = f"🎬 <b>Last Production:</b> <code>{html.escape(db.run_label(rid))}</code> [{st}]\n"
-
-    text = (
-        f"🏛️ <b><u>EXECUTIVE COCKPIT</u></b>\n\n"
-        f"⏯️ <b>Scheduler:</b> <i>{sched_state}</i>{next_sched}\n"
-        f"📋 <b>Production Slate:</b> <code>{len(queued)}</code> queued • <b>{ready_count} ready</b>\n"
-        f"{active_run_str}"
-        f"{next_line}"
-        f"{last_run_str}"
-        f"🛡️ <b>Access:</b> <i>approvers only, every action logged</i>\n\n"
-        f"<i>Select an executive command below:</i>"
-    )
-
-    if active_prog:
-        row1 = [
-            {"text": "⚡ Live Progress", "callback_data": "cprog:"},
-            {"text": "📋 Production Queue", "callback_data": "qrefresh:"},
-        ]
-    else:
-        row1 = [
-            {"text": "📋 Production Queue", "callback_data": "qrefresh:"},
-            {"text": "⚡ Render #1 Now", "callback_data": f"qrender:{next_t['id']}" if next_t else "qrender:1"},
-        ]
-
-    buttons = [
-        row1,
-        [
-            {"text": "🎨 Cover Studio", "callback_data": "ccov:"},
-            {"text": "💡 Topic Proposals", "callback_data": "cprop:"},
-        ],
-        [
-            {"text": "🏛️ Discover Marvels", "callback_data": "cdisc:"},
-            {"text": "🎵 Audio Library", "callback_data": "cmusic:"},
-        ],
-        [
-            {"text": "📊 Full Status", "callback_data": "cstat:"},
-            {"text": "🛡️ Audit Log", "callback_data": "caudit:"},
-        ],
-        [
-            {"text": "▶️ Resume Scheduler" if paused else "⏸️ Pause Scheduler", "callback_data": "cresume:" if paused else "cpause:"},
-        ],
+    row1 = [{"text": f"🎬 Reviews ({len(pending)})", "callback_data": "creviews:"}] if pending else []
+    if waiting_proposals:
+        row1.append({"text": f"🧭 Proposals ({len(waiting_proposals)})", "callback_data": "cimprove:"})
+    buttons = [row1] if row1 else []
+    buttons += [
+        [{"text": "⚡ Progress" if active else "⚡ Make #1 now",
+          "callback_data": "cprog:" if active else (f"qrender:{next_t['id']}" if next_t else "qrender:1")},
+         {"text": "📋 Queue", "callback_data": "qrefresh:"}],
+        [{"text": "💡 Topic ideas", "callback_data": "cideas:"}, {"text": "🎨 Covers", "callback_data": "ccov:"}],
+        [{"text": "🎵 Music", "callback_data": "cmusic:"}, {"text": "📊 Full status", "callback_data": "cstat:"}],
+        [{"text": "▶️ Resume" if paused else "⏸️ Pause", "callback_data": "cresume:" if paused else "cpause:"}],
     ]
-    return text, buttons
+    return "\n".join(lines), buttons
 
 
 def startup_dashboard_card(db: PipelineDatabase, mode: str = "bot", time_str: Optional[str] = None,
                            timezone_str: Optional[str] = None, assets_dir: Path = ASSETS_DIR) -> Tuple[str, List[List[Dict[str, str]]]]:
-    paused = is_paused(db)
-    if mode == "daemon":
-        mode_label = f"Full Autonomous Daemon (Daily at {html.escape(time_str or '09:00')} {html.escape(timezone_str or 'UTC')})"
-    else:
-        mode_label = "Interactive Control Center (Bot-only)"
-
-    sched_label = "⏸️ <b>PAUSED</b> <i>(send /resume to enable)</i>" if paused else "▶️ <b>ACTIVE</b> <i>(automated runs enabled)</i>"
-
-    topics = db.list_all_topics()
-    queued = [t for t in topics if t.get("status") == "queued"]
-    ready_count = 0
-    for t in queued:
-        try:
-            td = _resolve_topic_dir(t["id"], assets_dir, db=db)
-            if td.exists():
-                cr = load_credits(td)
-                if cr.get("reviewed") and len(cr.get("images", [])) >= MIN_SCENE_IMAGES:
-                    ready_count += 1
-        except Exception:
-            pass
-
-    slate_summary = f"{len(queued)} queued • <b>{ready_count} ready to render</b>"
-
-    text = (
-        f"🟢 <b>Studio Control Center Online</b> • <code>Relic &amp; Riddle</code>\n"
-        f"━━━━━━━━━━━━━━━━━━━━\n"
-        f"⚙️ <b>Execution Mode:</b> {mode_label}\n"
-        f"⏯️ <b>Scheduler State:</b> {sched_label}\n"
-        f"📋 <b>Production Slate:</b> {slate_summary}\n"
-        f"🛡️ <b>Access:</b> approvers only, every action logged\n\n"
-        f"<i>Tap below or send /help for command directory.</i>"
-    )
-    buttons = [
-        [
-            {"text": "📋 Production Queue", "callback_data": "qrefresh:"},
-            {"text": "📊 System Status", "callback_data": "cstat:"},
-        ],
-        [
-            {"text": "💡 Topic Proposals", "callback_data": "cprop:"},
-            {"text": "🎨 Cover Studio", "callback_data": "ccov:"},
-        ],
-        [
-            {"text": "🏛️ Discover Marvels", "callback_data": "cdisc:"},
-            {"text": "🛡️ Activity log", "callback_data": "caudit:"},
-        ]
-    ]
-    return text, buttons
+    """The dashboard, headed by what just started."""
+    started = (f"🟢 Daemon started: daily run at {html.escape(time_str or '09:00')} {html.escape(timezone_str or 'UTC')}"
+               if mode == "daemon" else "🟢 Bot started (commands and reviews; no scheduled runs)")
+    text, buttons = dashboard_text_and_buttons(db, None, assets_dir=assets_dir)
+    return started + "\n\n" + text, buttons
 
 
 def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[str]],
@@ -788,7 +740,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     action_word = "locked" if command == "covlock" else "selected and locked"
                     return f"✅ Cover {action_word}: <b>Variant {var_letter.upper()} ({style_name})</b> for <code>{html.escape(r_name)}</code>!"
             return "✅ Cover updated."
-        if command in ("audit", "auditlog"):
+        if command == "audit":
             limit = 10
             if args.strip().isdigit():
                 limit = min(50, max(1, int(args.strip())))
@@ -818,7 +770,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 else:
                     lines.append(f"{header}:\n<blockquote expandable>{html.escape(raw_pl)}</blockquote>")
             return "\n".join(lines)
-        if command in ("start", "dashboard", "dash"):
+        if command in ("start", "dashboard"):  # /start is Telegram's own first command
             dash_text, dash_buttons = dashboard_text_and_buttons(db, next_run(), assets_dir=assets_dir)
             if send_message:
                 send_message(dash_text, dash_buttons)
@@ -829,7 +781,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             return dash_text
         if command == "help":
             return HELP
-        if command in ("progress", "prog", "cprog"):
+        if command in ("progress", "cprog"):
             active_prog = db.get_active_progress() if hasattr(db, "get_active_progress") else None
             if not active_prog:
                 dash_text, _ = dashboard_text_and_buttons(db, next_run(), assets_dir=assets_dir)
@@ -884,6 +836,53 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             lines.append(f"\nProgress: <code>[{bar}] {pct}%</code>")
             lines.append(f"⏱ <b>Elapsed:</b> {elapsed_fmt} • <b>ETA:</b> {eta_fmt}")
             return "\n".join(lines)
+        if command in ("ideas", "cideas"):
+            text = ("💡 <b>Topic ideas</b>\n\nResearch new ones, browse UNESCO marvels, or decide on ideas "
+                    "already waiting (each has Add/Skip).")
+            buttons = [[{"text": "🔬 Research 3 new ideas", "callback_data": "propose:"}],
+                       [{"text": "🏛️ UNESCO marvels", "callback_data": "cdisc:"},
+                        {"text": "📥 Waiting ideas", "callback_data": "cprop:"}]]
+            if send_message:
+                send_message(text, buttons)
+                return ""
+            return text
+        if command == "edit":
+            run_id = db.resolve_run(args.strip())
+            payload = (db.get_run(run_id) or {}).get("script_payload") or {}
+            return ("✏️ <b>Edit text</b> — reply to this message with the new wording. Start with <code>title:</code>, "
+                    "<code>first comment:</code> or <code>carousel caption:</code> to change those; otherwise it replaces "
+                    "the caption. The fact check runs again on it before the card updates. On-screen text and narration "
+                    "can't be edited here (they are rendered); use Regenerate for those.\n\n"
+                    f"<b>Current title:</b> {html.escape(payload.get('title', ''))}\n"
+                    f"<b>Current caption:</b>\n<blockquote expandable>{html.escape(payload.get('caption', ''))}</blockquote>\n"
+                    f"[edit run {html.escape(args.strip())}]")
+        if command == "edittext":
+            key, _, text = args.partition(" ")
+            fields = {"title": "title", "first comment": "first_comment", "carousel caption": "carousel_caption",
+                      "caption": "caption"}
+            field, body = "caption", text.strip()
+            m = re.match(r"^(title|first comment|carousel caption|caption)\s*:\s*(.+)$", body, re.IGNORECASE | re.DOTALL)
+            if m:
+                field, body = fields[m.group(1).lower()], m.group(2).strip()
+            action = (run_actions or {}).get("edit")
+            if action is None:
+                return "Editing works while the bot or daemon is running."
+            return action(db.resolve_run(key), field, body)
+        if command == "cimprove":
+            return handle("improve", "")
+        if command == "creviews":
+            pending = db.list_pending_approvals()
+            if not pending:
+                return "No reviews are waiting."
+            lines = ["🎬 <b>Reviews waiting</b> (the review card is in the chat above; Resend brings it to the bottom):"]
+            buttons = []
+            for p in pending[:5]:
+                lines.append(f"• {html.escape(db.run_label(p['run_id']))}")
+                buttons.append([{"text": f"📨 Resend {db.run_key(p['run_id'])}", "callback_data": f"resend:{db.run_key(p['run_id'])}"}])
+            if send_message:
+                send_message("\n".join(lines), buttons)
+                return ""
+            return "\n".join(lines)
         if command == "cstat":
             return status_text(db, next_run(), voice_quota())
         if command == "caudit":
@@ -906,7 +905,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             return f"▶️ <b>Scheduler Resumed!</b>\n\n{dash_text}"
         if command == "images":
             return images_text(assets_dir, db=db)
-        if command in ("review", "storyboard"):
+        if command == "review":
             ref = args.strip()
             if not ref:
                 queued = [t for t in db.list_all_topics() if t.get("status") == "queued"]
@@ -1170,7 +1169,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 return f"⚠️ Topic '{html.escape(ref)}' not found in database. Send /queue for list."
             db.requeue_topic(match["id"])
             return f"🔄 Topic <b>{html.escape(match['title'])}</b> (<code>{html.escape(match['id'])}</code>) restored to the queue."
-        if command in ("alerts", "logs"):
+        if command == "alerts":
             limit = 10
             if args.strip().isdigit():
                 limit = min(50, max(1, int(args.strip())))
@@ -1311,11 +1310,11 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     f"Fetch images with: <code>python scripts/fetch_commons_images.py --topic-id {html.escape(topic_id)}</code>")
         if command == "uskip":
             return f"✖ Skipped UNESCO site #{html.escape(args.strip())}."
-        if command in ("ask", "probe", "query", "why"):
+        if command == "ask":
             from .probe import probe_system
             return probe_system(args.strip(), db=db, assets_dir=assets_dir)
 
-        if command in ("issue", "critique", "bug"):
+        if command == "issue":
             raw_input = args.strip()
             if not raw_input:
                 return ("🛠️ <b>Report a problem</b>\n\n<code>/issue run 12 the map label covers the pin</code>\n\n"

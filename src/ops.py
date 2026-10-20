@@ -17,6 +17,8 @@ import time
 from pathlib import Path
 from typing import Dict, Any, Tuple
 
+import requests
+
 from . import config
 from .config import BASE_DIR, OUTPUT_DIR, FONTS_DIR, is_configured
 
@@ -179,8 +181,10 @@ class PreFlightHealthChecker:
     def check_live_credentials(self) -> Tuple[bool, str]:
         """Everything an unattended production cycle needs."""
         missing = []
-        if not is_configured(config.ANTHROPIC_API_KEY):
+        if config.SCRIPT_ENGINE == "claude" and not is_configured(config.ANTHROPIC_API_KEY):
             missing.append("ANTHROPIC_API_KEY (script writing + fact checking)")
+        if config.SCRIPT_ENGINE != "claude" and not is_configured(config.GEMINI_FREE_API_KEY):
+            missing.append("GEMINI_FREE_API_KEY (free script writing + fact checking)")
         if not (is_configured(config.TELEGRAM_BOT_TOKEN) and is_configured(config.TELEGRAM_CHAT_ID)):
             missing.append("TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID (human approval)")
         elif config.TELEGRAM_CHAT_ID.strip() == config.TELEGRAM_BOT_TOKEN.split(":")[0]:
@@ -200,6 +204,52 @@ class PreFlightHealthChecker:
             return False, "Missing: " + "; ".join(missing)
         return True, "Script, approval and publishing credentials configured"
 
+    NARRATION_CHARS = 900  # a 115-word script with its punctuation, rounded up
+
+    def probe_live_services(self) -> Tuple[bool, str]:
+        """Light real calls proving the credentials work (presence alone said "OK" while Azure
+        returned 401). Nothing is generated or billed."""
+        problems, notes = [], []
+        azure_ok = False
+        if is_configured(config.AZURE_SPEECH_KEY) and is_configured(config.AZURE_SPEECH_REGION):
+            try:
+                r = requests.post(f"https://{config.AZURE_SPEECH_REGION}.api.cognitive.microsoft.com/sts/v1.0/issueToken",
+                                  headers={"Ocp-Apim-Subscription-Key": config.AZURE_SPEECH_KEY}, timeout=15)
+                azure_ok = r.status_code == 200
+                (notes if azure_ok else problems).append(
+                    "Azure Speech key OK" if azure_ok else f"Azure Speech rejected the key/region (HTTP {r.status_code})")
+            except requests.RequestException as e:
+                problems.append(f"Azure Speech unreachable ({type(e).__name__})")
+        eleven_ok = False
+        if is_configured(config.ELEVENLABS_API_KEY):
+            from .audio_engine import AudioEngine
+            quota = AudioEngine().voice_quota() or {}
+            left = quota.get("limit", 0) - quota.get("used", 0)
+            paid = bool(quota.get("tier")) and quota["tier"] != "free"
+            eleven_ok = paid and left >= self.NARRATION_CHARS
+            if not eleven_ok:
+                problems.append(f"ElevenLabs is not usable for a licensed voice ({quota.get('tier') or 'unknown'} plan, "
+                                f"{left} characters left)")
+        if not (azure_ok or eleven_ok):
+            problems.insert(0, "No working commercially licensed voice")
+        if is_configured(config.GEMINI_API_KEY) and config.GEMINI_API_KEY == config.GEMINI_FREE_API_KEY:
+            problems.append("GEMINI_API_KEY and GEMINI_FREE_API_KEY are the same key: the free path could be billed, "
+                            "or paid features run on free-tier limits")
+        for name in ("GEMINI_FREE_API_KEY", "GEMINI_API_KEY"):
+            key = getattr(config, name)
+            if not is_configured(key):
+                continue
+            try:
+                r = requests.get("https://generativelanguage.googleapis.com/v1beta/models", params={"pageSize": 1},
+                                 headers={"x-goog-api-key": key}, timeout=15)
+                if r.status_code != 200:
+                    problems.append(f"{name} rejected (HTTP {r.status_code})")
+            except requests.RequestException as e:
+                problems.append(f"{name} unreachable ({type(e).__name__})")
+        if problems:
+            return False, "; ".join(problems)
+        return True, "; ".join(notes) or "Live services answered"
+
     def run_all(self, require_live: bool = False) -> Dict[str, Any]:
         results = {
             "ffmpeg": self.check_ffmpeg(),
@@ -209,6 +259,8 @@ class PreFlightHealthChecker:
             "network": self.check_network(),
             "credentials": self.check_live_credentials(),
         }
+        if require_live:  # prove the credentials work before a live run spends anything
+            results["services"] = self.probe_live_services()
         required = [k for k in results if k != "credentials" or require_live]
         return {
             "all_passed": all(results[k][0] for k in required),

@@ -189,7 +189,7 @@ FACE_PRIVACY_SKIN_THRESHOLD = float(os.getenv("FACE_PRIVACY_SKIN_THRESHOLD") or 
 
 # Narration & Voiceover (edge-tts and Azure Speech)
 VOICE_PREFER = (os.getenv("VOICE_PREFER") or "elevenlabs").strip().lower()  # "elevenlabs" or "azure"
-VOICE_REQUIRE_LICENSED = os.getenv("VOICE_REQUIRE_LICENSED", "false").lower() in ("true", "1", "yes")
+VOICE_REQUIRE_LICENSED = os.getenv("VOICE_REQUIRE_LICENSED", "true").lower() in ("true", "1", "yes")  # real runs need a commercial voice licence
 NARRATOR_VOICE = (os.getenv("NARRATOR_VOICE") or "en-US-BrianMultilingualNeural").strip()
 # Licensed free voice fallback: Azure Speech (F0 tier: 0.5M characters/month), same voice.
 AZURE_SPEECH_KEY = (os.getenv("AZURE_SPEECH_KEY") or "").strip()

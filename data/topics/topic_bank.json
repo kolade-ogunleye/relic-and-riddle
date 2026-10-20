@@ -47,7 +47,8 @@
         "region": "Lazio",
         "country": "Italy",
         "latitude": 41.8986,
-        "longitude": 12.4769
+        "longitude": 12.4769,
+        "unesco_id": 91
       },
       "key_facts": [
         "Engineered with volcanic ash (pozzolana) and quicklime clasts",
@@ -187,7 +188,8 @@
         "region": "Levant",
         "country": "Syria",
         "latitude": 33.5138,
-        "longitude": 36.2765
+        "longitude": 36.2765,
+        "unesco_id": null
       },
       "key_facts": [
         "Made from wootz crucible steel produced in South India and Sri Lanka",
@@ -461,7 +463,8 @@
         "region": "Nazca",
         "country": "Peru",
         "latitude": 0.0,
-        "longitude": 0.0
+        "longitude": 0.0,
+        "unesco_id": 700
       },
       "key_facts": [
         "Made by the Nazca culture between roughly 500 BC and AD 500",

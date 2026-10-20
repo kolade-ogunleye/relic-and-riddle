@@ -496,8 +496,8 @@ class VisualEngine:
         # Layer 3: Foreground extraction with adaptive gating (15% to 60%)
         mask, coverage = extract_foreground_mask(im)
         if 0.15 <= coverage <= 0.60:
-            text_box_y0 = max(0, y0 - 20)
-            text_box_y1 = min(mask.shape[0], y0 + title_font_size * 2 + 60)
+            text_box_y0 = max(0, y_l1 - 20)  # the title block: both lines and the gap between them
+            text_box_y1 = min(mask.shape[0], y_l1 + title_font_size * 2 + 60)
             box_slice = mask[text_box_y0:text_box_y1, x0:min(mask.shape[1], x0 + max_text_w)]
             occlusion = float(np.count_nonzero(box_slice)) / (box_slice.size + 1e-6)
             if occlusion <= 0.35:

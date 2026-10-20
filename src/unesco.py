@@ -13,7 +13,6 @@ Provides:
 
 import difflib
 import logging
-import math
 import re
 import time
 import xml.etree.ElementTree as ET
@@ -32,6 +31,43 @@ UNESCO_XML_URL = "https://whc.unesco.org/en/list/xml/"
 CACHE_DIR = config.BASE_DIR / "cache" / "unesco"
 CACHE_FILE = CACHE_DIR / "sites.xml"
 CACHE_TTL_DAYS = 30
+
+
+# Topic country names as UNESCO's registry spells them (it uses official UN names).
+COUNTRY_ALIASES = {
+    "turkey": "turkiye", "usa": "united states of america", "us": "united states of america",
+    "united states": "united states of america", "uk": "united kingdom", "england": "united kingdom",
+    "scotland": "united kingdom", "wales": "united kingdom", "britain": "united kingdom",
+    "russia": "russian federation", "iran": "iran", "syria": "syrian arab republic",
+    "czech republic": "czechia", "south korea": "republic of korea", "vietnam": "viet nam",
+    "netherlands": "netherlands", "bolivia": "bolivia", "tanzania": "united republic of tanzania",
+}
+# Words that name a kind of place rather than a particular one; they never identify a site.
+GENERIC_WORDS = {
+    "ancient", "historic", "historical", "centre", "center", "city", "cities", "old", "town", "temple", "temples",
+    "palace", "palaces", "church", "churches", "cathedral", "monument", "monuments", "national", "park", "site",
+    "sites", "area", "areas", "great", "wall", "walls", "royal", "rock", "rocks", "cave", "caves", "island",
+    "islands", "lines", "sea", "bay", "desert", "mountain", "mountains", "library", "museum", "underground",
+    "related", "property", "properties", "complex", "group", "groups", "remains", "ruins", "archaeological",
+    "cultural", "landscape", "region", "province", "valley", "river", "lake", "structure", "mystery", "secret",
+    "paradox", "anomaly", "event", "miracle", "incident", "heist", "self", "healing", "concrete", "steel",
+    "monolith", "manuscript", "mechanism", "headquarters", "peninsula", "shipwreck", "plain", "plateau",
+}
+
+
+def _fold(text: str) -> str:
+    import unicodedata
+    text = unicodedata.normalize("NFKD", text.replace("ı", "i").replace("Ħ", "H").replace("ħ", "h"))
+    return "".join(c for c in text if not unicodedata.combining(c)).lower()
+
+
+def _distinctive(text: str) -> set:
+    return {w for w in re.findall(r"[a-z0-9]+", _fold(text)) if len(w) > 3 and w not in GENERIC_WORDS}
+
+
+def _country_key(states: str) -> str:
+    folded = _fold(states).strip()
+    return COUNTRY_ALIASES.get(folded, folded)
 
 
 class UNESCOSite(BaseModel):
@@ -141,63 +177,48 @@ class UNESCOEngine:
     def get_site_by_id(self, site_id: int) -> Optional[UNESCOSite]:
         return self.load_sites().get(site_id)
 
-    @staticmethod
-    def _haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-        """Great circle distance in kilometers."""
-        r = 6371.0
-        phi1, phi2 = math.radians(lat1), math.radians(lat2)
-        dphi = math.radians(lat2 - lat1)
-        dlam = math.radians(lon2 - lon1)
-        a = math.sin(dphi / 2.0) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlam / 2.0) ** 2
-        return 2.0 * r * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
-
     def find_site(
         self,
         name: str,
         country: Optional[str] = None,
         lat: Optional[float] = None,
         lon: Optional[float] = None,
-        max_dist_km: float = 60.0,
     ) -> Optional[UNESCOSite]:
-        """
-        Matches a topic to an official UNESCO World Heritage site using:
-        1. Exact or near name matching.
-        2. Geo-distance matching if latitude/longitude are provided.
-        """
-        sites = self.load_sites().values()
-        if not sites:
+        """The inscribed site a free-text name refers to (same rules as match_topic)."""
+        location = {"name": name, "country": country, "latitude": lat, "longitude": lon}
+        return self.match_topic({"title": name, "location": location})
+
+    def match_topic(self, topic: Dict[str, Any]) -> Optional[UNESCOSite]:
+        """The inscribed site a topic is actually about, or None. Evidence from the wrong site is
+        worse than none, so a match needs the site's own name to share a distinctive word with the
+        topic's title, or with its location name when the topic has real coordinates (a location
+        name without them can be a whole province). Cities and regions never match on their own:
+        they find the site's surroundings, not the site. A topic can pin the answer with
+        location.unesco_id (a number, or null for "none")."""
+        loc = topic.get("location") or {}
+        if "unesco_id" in loc:
+            return self.get_site_by_id(int(loc["unesco_id"])) if loc["unesco_id"] is not None else None
+        country = _country_key(loc.get("country") or "")
+        lat, lon = loc.get("latitude", loc.get("lat")), loc.get("longitude", loc.get("lon"))
+        located = lat is not None and lon is not None and (abs(float(lat)) > 1e-6 or abs(float(lon)) > 1e-6)
+        wanted = _distinctive(topic.get("title", ""))
+        if located:
+            wanted |= _distinctive(loc.get("name") or "")
+        if not wanted:
             return None
-
-        clean_name = re.sub(r"[^a-z0-9 ]", "", name.lower())
-        tokens = {w for w in clean_name.split() if len(w) > 3}
-
-        best_match: Optional[UNESCOSite] = None
-        best_score = 0.0
-
-        for s in sites:
-            s_name = re.sub(r"[^a-z0-9 ]", "", s.site.lower())
-            s_tokens = {w for w in s_name.split() if len(w) > 3}
-
-            # Check Country consistency if provided
-            if country and country.lower() not in s.states.lower():
+        best, best_key = None, None
+        for site in self.load_sites().values():
+            if country and country not in _country_key(site.states):
                 continue
-
-            # Geo-distance check
-            if lat is not None and lon is not None and s.latitude is not None and s.longitude is not None:
-                dist = self._haversine(lat, lon, s.latitude, s.longitude)
-                if dist <= max_dist_km:
-                    return s
-
-            # Token overlap score
-            overlap = len(tokens & s_tokens)
-            ratio = difflib.SequenceMatcher(None, clean_name, s_name).ratio()
-            score = (overlap * 0.4) + (ratio * 0.6)
-
-            if score > best_score and (overlap >= 1 or ratio >= 0.60):
-                best_score = score
-                best_match = s
-
-        return best_match if best_score >= 0.50 else None
+            # Exact words only: a one-letter difference can be a transliteration (Nazca/Nasca)
+            # or a different place (Zhang/Chang'an); such topics pin location.unesco_id instead.
+            hits = _distinctive(site.site) & wanted
+            if not hits:
+                continue
+            key = (len(hits), difflib.SequenceMatcher(None, _fold(topic.get("title", "")), _fold(site.site)).ratio())
+            if best_key is None or key > best_key:
+                best, best_key = site, key
+        return best
 
     def as_evidence(self, site: UNESCOSite) -> List[Dict[str, Any]]:
         """

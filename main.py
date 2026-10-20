@@ -1800,18 +1800,6 @@ def main(argv=None) -> int:
 
     if args.command == "update":
         import re
-        def post_due():
-            if is_paused(coordinator.db):
-                return  # held; slots missed while paused move to the next free slot on resume
-            try:
-                coordinator.post_due()
-            except Exception as e:
-                log.exception("Posting scheduled items failed: %s", e)
-                bot.notify(f"⚠️ Scheduled posting hit an error: {html.escape(str(e))[:300]}")
-
-        if POST_SCHEDULING:
-            scheduler.add_job(post_due, "interval", minutes=1, max_instances=1, coalesce=True)
-
         from src import maintenance
         plan = maintenance.check()
         print(re.sub(r"<[^>]+>", "", maintenance.report_text(plan)))
@@ -1958,6 +1946,18 @@ def main(argv=None) -> int:
 
         scheduler.add_job(heartbeat, CronTrigger(hour=hb_hour, minute=hb_minute, timezone=TIMEZONE),
                           max_instances=1, coalesce=True, misfire_grace_time=3600)
+
+        def post_due():
+            if is_paused(coordinator.db):
+                return  # held; slots missed while paused move to the next free slot on resume
+            try:
+                coordinator.post_due()
+            except Exception as e:
+                log.exception("Posting scheduled items failed: %s", e)
+                bot.notify(f"⚠️ Scheduled posting hit an error: {html.escape(str(e))[:300]}")
+
+        if POST_SCHEDULING:  # approved Reels are booked into slots; this publishes them when due
+            scheduler.add_job(post_due, "interval", minutes=1, max_instances=1, coalesce=True)
 
         from src import maintenance
 
@@ -2201,6 +2201,8 @@ def main(argv=None) -> int:
             return 1
         print(json.dumps({k: res.get(k) for k in ("status", "master_video", "thumbnails")}, indent=2))
         print(f"Stories: {len(res.get('stories', []))}, carousel slides: {len(res.get('carousel', []))}")
+        return 0 if res.get("status") in ("published", "simulated") else 1
+
     if args.command == "backup":
         from src.backup import backup_run
         db = PipelineDatabase()

@@ -131,14 +131,7 @@ def build(topic: Dict[str, Any], web_search_uses: int = 10) -> Dict[str, Any]:
     # Ingest authoritative UNESCO World Heritage Centre evidence when site matches
     try:
         from .unesco import UNESCOEngine
-        u_engine = UNESCOEngine()
-        u_site = None
-        lat = loc.get("latitude") if loc.get("latitude") is not None else loc.get("lat")
-        lon = loc.get("longitude") if loc.get("longitude") is not None else loc.get("lon")
-        if loc.get("name"):
-            u_site = u_engine.find_site(loc.get("name", ""), loc.get("country"), lat, lon)
-        if not u_site and topic.get("title"):
-            u_site = u_engine.find_site(topic.get("title", ""), loc.get("country"), lat, lon)
+        u_site = UNESCOEngine().match_topic(topic)
         if u_site:
             u_quotes = u_engine.as_evidence(u_site)
             quotes = u_quotes + quotes

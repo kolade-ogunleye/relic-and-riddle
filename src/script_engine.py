@@ -300,6 +300,7 @@ class ScriptEngine:
         self.fact_checker = fact_checker or ClaimFactChecker()
         self._research_cache: Dict[str, Tuple[str, list]] = {}  # topic_id -> (notes, retrieved sources)
         self._sheets: Dict[str, Optional[Dict[str, Any]]] = {}    # topic_id -> verified fact sheet
+        self._starved: Dict[str, fact_sheet.FactStarvedTopicError] = {}  # topics research couldn't sustain
 
     @llm_task("script_writing")
     def generate_script(self, topic: Dict[str, Any], max_attempts: int = 2, revision_notes: str = "",
@@ -360,6 +361,8 @@ class ScriptEngine:
             payload = self._finalize(pkg, topic, origin="curated")
             payload["human_reviewed"] = reviewed
             return payload
+        if topic["id"] in self._starved:  # too few verified facts and no curated script: skip the topic
+            raise self._starved[topic["id"]]
 
         raise ScriptUnavailableError(
             f"No script source for topic '{topic['id']}': configure ANTHROPIC_API_KEY "
@@ -371,6 +374,10 @@ class ScriptEngine:
         if topic["id"] not in self._sheets:
             try:
                 self._sheets[topic["id"]] = fact_sheet.ensure(topic) if _ready() else None
+            except fact_sheet.FactStarvedTopicError as e:
+                log.warning("Fact sheet for %s is too thin (%s).", topic["id"], e)
+                self._starved[topic["id"]] = e
+                self._sheets[topic["id"]] = None
             except (LLMError, ValueError) as e:
                 log.warning("No fact sheet for %s (%s); writing from research notes.", topic["id"], e)
                 self._sheets[topic["id"]] = None

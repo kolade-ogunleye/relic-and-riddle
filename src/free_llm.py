@@ -69,7 +69,10 @@ def _paid_fallback(system, prompt, schema: Type[T], model: str, task_class: str,
                                    f"${cap:.2f} monthly cap (${spent:.2f} spent).")
     log.info("Free Gemini unavailable (%s); using the billed key for this %s task (${spent:.2f} of ${cap:.2f}).",
              why, task_class)
-    result = gemini.structured(system, prompt, schema, model=model, key=config.GEMINI_API_KEY)
+    try:
+        result = gemini.structured(system, prompt, schema, model=model, key=config.GEMINI_API_KEY)
+    except gemini.GeminiError as e:  # the billed key failed too (its own quota, an outage)
+        raise LLMError(f"{why} The paid fallback also failed: {e}") from e
     tokens_in, tokens_out = gemini.last_usage()
     price_in, price_out = PAID_PRICES.get(model, PAID_PRICES["gemini-3.8-flash"])
     cost = round(tokens_in / 1e6 * price_in + tokens_out / 1e6 * price_out, 6)

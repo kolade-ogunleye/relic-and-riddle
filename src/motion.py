@@ -416,13 +416,15 @@ def apply(
     work_dir: Path,
     memo: Optional[dict] = None,
     topic: Optional[Dict[str, Any]] = None,
-    fact_sheet: Optional[Dict[str, Any]] = None
+    fact_sheet: Optional[Dict[str, Any]] = None,
+    allow_paid: bool = True,
 ) -> Tuple[List[Path], List[str]]:
     """Animates up to MOTION_MAX_CLIPS photos, the opening beat first. Returns (scenes, providers used).
-    `memo` ({photo: (clip, provider)}) carries clips across a re-plan so nothing is paid for twice."""
+    `memo` ({photo: (clip, provider)}) carries clips across a re-plan so nothing is paid for twice.
+    allow_paid=False (dry runs without --paid-motion): no paid clips, local parallax only."""
     memo = {} if memo is None else memo
     from .typography import is_video
-    if config.MEDIA_MONTHLY_BUDGET_USD <= 0 or config.MOTION_MAX_CLIPS <= 0:
+    if not allow_paid or config.MEDIA_MONTHLY_BUDGET_USD <= 0 or config.MOTION_MAX_CLIPS <= 0:
         return scenes, []
     scenes, used = list(scenes), []
     work_dir.mkdir(parents=True, exist_ok=True)

@@ -147,6 +147,7 @@ class PipelineCoordinator:
         # schedule_posts: approved Reels wait for their posting slot (daemon); otherwise post at once (CLI).
         self.schedule_posts = schedule_posts
         self.paid_voice_in_dry_run = False  # `--paid-voice`: this dry run may use ElevenLabs
+        self.paid_motion_in_dry_run = False  # `--paid-motion`: this dry run may buy a motion clip
         # Imported here so `health`/`topic`/`review` work even if a media dependency is broken.
         from src.audio_engine import AudioEngine
         from src.multi_format import MultiFormatGenerator
@@ -1039,7 +1040,8 @@ class PipelineCoordinator:
             payload["beat_image_note"] = (f"🔍 {len(used)} beat-specific image(s) auto-sourced from Wikimedia Commons; "
                                           "check they show the right thing" if used else "")
             # AI motion for the opening photo (only with a media budget; real footage and our graphics come first).
-            scenes, motion_used = motion.apply(self.db, scenes, run_dir / "motion", memo=motion_memo, topic=topic)
+            scenes, motion_used = motion.apply(self.db, scenes, run_dir / "motion", memo=motion_memo, topic=topic,
+                                               allow_paid=(not dry_run) or self.paid_motion_in_dry_run)
             payload["motion_note"] = (f"🤖 AI motion ({', '.join(motion_used)}) animates {len(motion_used)} real photo(s); "
                                       "the Reel carries the AI label") if motion_used else ""
             # 2.5D parallax clips for the stills (local GPU); falls back to flat camera moves.
@@ -1545,6 +1547,8 @@ def main(argv=None) -> int:
     run_p.add_argument("--background-polling", action="store_true", help="Tell bot that supervisor is polling getUpdates")
     run_p.add_argument("--paid-voice", action="store_true",
                        help="With --dry-run: voice with ElevenLabs anyway (spends credits); real runs always may")
+    run_p.add_argument("--paid-motion", action="store_true",
+                       help="With --dry-run: buy a motion clip anyway (spends media budget); real runs always may")
     run_p.add_argument("--schedule-posts", action="store_true",
                        help="Once approved, book the Reel into the next posting slot instead of posting at once")
 
@@ -1597,6 +1601,7 @@ def main(argv=None) -> int:
     health_p.add_argument("--live", action="store_true", help="Also require production credentials")
     test_p = sub.add_parser("test", help="End-to-end dry run on the Derinkuyu topic (publishes nothing)")
     test_p.add_argument("--paid-voice", action="store_true", help="Voice this dry run with ElevenLabs (spends credits)")
+    test_p.add_argument("--paid-motion", action="store_true", help="Let this dry run buy a motion clip (spends media budget)")
     backup_p = sub.add_parser("backup", help="Sync completed runs to OneDrive / Cloud archive")
     backup_p.add_argument("--run-id", help="Specific run ID to backup")
     backup_p.add_argument("--all", action="store_true", help="Backup all finished runs in output/")
@@ -1607,6 +1612,7 @@ def main(argv=None) -> int:
         try:
             coordinator = PipelineCoordinator(schedule_posts=True) if args.schedule_posts else PipelineCoordinator()
             coordinator.paid_voice_in_dry_run = args.paid_voice
+            coordinator.paid_motion_in_dry_run = args.paid_motion
             if getattr(args, "background_polling", False):
                 coordinator.telegram_bot.background_polling = True
             res = coordinator.run_cycle(args.topic_id, args.auto_approve, args.dry_run, require_live=getattr(args, "require_live", False), content_format=args.format, run_id=getattr(args, "run_id", None))
@@ -2071,6 +2077,7 @@ def main(argv=None) -> int:
         try:
             coordinator = PipelineCoordinator()
             coordinator.paid_voice_in_dry_run = args.paid_voice
+            coordinator.paid_motion_in_dry_run = args.paid_motion
             res = coordinator.run_cycle("derinkuyu_underground_city", auto_approve=True, dry_run=True)
         except Exception:
             return 1

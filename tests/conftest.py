@@ -38,6 +38,9 @@ def no_real_services(monkeypatch):
     monkeypatch.setattr("src.config.SCRIPT_ENGINE", "claude")  # free-engine tests opt in explicitly
     # Settings a developer's .env changes must not change test outcomes; tests opt in explicitly.
     monkeypatch.setattr("src.config.VOICE_REQUIRE_LICENSED", False)
+    monkeypatch.setattr("src.config.PAID_FALLBACK_LIGHT_MONTHLY_USD", 0.0)
+    monkeypatch.setattr("src.config.PAID_FALLBACK_HEAVY_MONTHLY_USD", 0.0)
+    monkeypatch.setattr("src.config.MEDIA_MONTHLY_BUDGET_USD", 0.0)
     monkeypatch.setattr("src.audio_engine.VOICE_PREFER", "elevenlabs")  # the code's default
     monkeypatch.setattr("src.telegram_bot.TELEGRAM_BOT_TOKEN", "")
     monkeypatch.setattr("src.telegram_bot.TELEGRAM_CHAT_ID", "")

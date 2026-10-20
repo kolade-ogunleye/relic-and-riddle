@@ -109,3 +109,10 @@ def test_content_rewrite_is_caught_where_moving_light_is_not():
     rewrite[:300] = rng.uniform(0, 255, (300, 270))  # the top 60% replaced by new content
     assert motion.changed_share(first, [light]) <= motion.MAX_CONTENT_CHANGE
     assert motion.changed_share(first, [light, rewrite]) > motion.MAX_CONTENT_CHANGE
+
+
+def test_dry_runs_buy_no_motion_unless_asked(monkeypatch, tmp_path):
+    monkeypatch.setattr(motion.config, "MEDIA_MONTHLY_BUDGET_USD", 30.0)
+    monkeypatch.setattr(motion, "providers", lambda *a, **k: pytest.fail("a dry run bought a clip"))
+    scenes = [tmp_path / "a.jpg"]
+    assert motion.apply(None, scenes, tmp_path, allow_paid=False) == (scenes, [])

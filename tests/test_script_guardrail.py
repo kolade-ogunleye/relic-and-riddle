@@ -208,3 +208,18 @@ def test_poll_options_must_answer_the_question():
     assert not poll_problems("Could modern tools match this speed?", ["Yes", "No way"])
     assert poll_problems("Which took more work?", ["Carving downward from the summit", "Hauling"])  # too long to show
     assert poll_problems("Which took more work?", ["Carving", "Hauling", "Both"])                   # not exactly 2
+
+
+def test_over_long_graphic_labels_are_shortened_before_any_is_dropped(curated_payload, monkeypatch):
+    from src import free_llm, script_engine
+    curated_payload["stat_cards"] = [
+        {"value": "200,000 tons", "label": "of basalt rock removed from the hillside by hand over the years"},
+        {"value": "1,200 years", "label": "standing"}]
+    pkg = ScriptPackage.model_validate(curated_payload)
+    monkeypatch.setattr(free_llm, "ready", lambda: True)
+    monkeypatch.setattr(free_llm, "call", lambda *a, **k: script_engine._Shortened(texts=["of basalt removed by hand"]))
+    out = script_engine.prune_graphics(pkg)
+    assert [c.label for c in out.stat_cards] == ["of basalt removed by hand", "standing"]
+    # A rewrite that still doesn't fit drops only that card; the other stays.
+    monkeypatch.setattr(free_llm, "call", lambda *a, **k: script_engine._Shortened(texts=["x" * 41]))
+    assert [c.label for c in script_engine.prune_graphics(pkg).stat_cards] == ["standing"]

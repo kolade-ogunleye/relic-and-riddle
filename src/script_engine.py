@@ -162,8 +162,8 @@ GRAPHICS_PROMPT = """Plan the graphics for this script.
 
 - emphasis_words: 1-3 words or short names copied exactly from the narration that carry the story (a striking number, a name, a place). They get a gold highlight on screen, so choose sparingly.
 - timeline: 2-4 dated events from the story, oldest first, only dates the research supports (approximate=true for estimates; negative years for BC; labels at most 40 characters). Omit (null) if the story has fewer than two solid dates.
-- scale_fact: one striking, well-sourced size (depth, height or length) of the subject, for an on-screen comparison with a famous landmark; null if no reliable figure.
-- stat_cards: 1-2 headline figures from the research (value as it should appear, US units first, plus a short label); null if none is striking and solid.
+- scale_fact: one striking, well-sourced size (depth, height or length) of the subject, for an on-screen comparison with a famous landmark (subject at most 28 characters); null if no reliable figure.
+- stat_cards: 1-2 headline figures from the research (value as it should appear, US units first, at most 22 characters, plus a label of at most 40 characters); null if none is striking and solid.
 - cross_section: only for underground or vertical structures where the research gives the total depth and the depth of 2-5 levels or features; otherwise null.
 - route: only when the story follows a journey or movement between real places (2-5 stops, in order, each with a short label); otherwise null.
 - photo_labels: 2-4 physical features named in the narration that a photo of the site could show (e.g. "ventilation shaft", "rolling stone door"); null if none."""
@@ -347,9 +347,55 @@ def validate_structure(pkg: ScriptPackage) -> List[str]:
 GRAPHICS_FIELDS = ("timeline", "scale_fact", "stat_cards", "cross_section", "route", "photo_labels", "emphasis_words")
 
 
+class _Shortened(BaseModel):
+    texts: List[str]
+
+
+SHORTEN_SYSTEM = """You shorten on-screen labels of a history documentary's graphics to fit their character limits. Keep each label's meaning and facts exactly: drop words, use a shorter phrasing, never add a fact, a number or a name, never change one. Return the labels in the same order."""
+
+
+def shorten_graphic_text(pkg: ScriptPackage) -> ScriptPackage:
+    """Graphic labels over their limits get one light "shorten only" rewrite before prune_graphics
+    would drop them. The result is fact-checked later like the rest of the on-screen copy; a label
+    that still doesn't fit is left for pruning."""
+    items = [("stat_cards", i, "label", 40, c.label) for i, c in enumerate(pkg.stat_cards or []) if len(c.label) > 40]
+    items += [("timeline", i, "label", 40, e.label) for i, e in enumerate(pkg.timeline or []) if len(e.label) > 40]
+    if pkg.scale_fact is not None and len(pkg.scale_fact.subject) > 28:
+        items.append(("scale_fact", None, "subject", 28, pkg.scale_fact.subject))
+    if not items or not free_llm.ready():
+        return pkg
+    prompt = "\n".join(f"{k}. (at most {limit} characters) {text}" for k, (*_, limit, text) in enumerate(items, 1))
+    try:
+        out = free_llm.call(SHORTEN_SYSTEM, prompt, _Shortened, role="writer", task_class="light", effort="low", max_tokens=800)
+    except (LLMError, OSError) as e:
+        log.info("Could not shorten graphic labels (%s); over-long ones will be dropped.", e)
+        return pkg
+    if len(out.texts) != len(items):
+        return pkg
+    for (field, i, attr, limit, old), new in zip(items, out.texts):
+        new = new.strip()
+        if not new or len(new) > limit:
+            continue
+        if field == "scale_fact":
+            pkg = pkg.model_copy(update={field: pkg.scale_fact.model_copy(update={attr: new})})
+        else:
+            entries = list(getattr(pkg, field))
+            entries[i] = entries[i].model_copy(update={attr: new})
+            pkg = pkg.model_copy(update={field: entries})
+        log.info("Shortened %s label: %r -> %r", field, old, new)
+    return pkg
+
+
 def prune_graphics(pkg: ScriptPackage) -> ScriptPackage:
     """Drops each planned graphic that fails its structural checks (logged), keeping the script.
-    Graphics are optional; one bad field shouldn't cost a whole script attempt."""
+    Graphics are optional; one bad field shouldn't cost a whole script attempt. Over-long labels are
+    first shortened; of the stat cards, only the ones that still don't fit are dropped."""
+    pkg = shorten_graphic_text(pkg)
+    if pkg.stat_cards:
+        fitting = [c for c in pkg.stat_cards if len(c.label) <= 40 and len(c.value) <= 22]
+        if fitting and len(fitting) < len(pkg.stat_cards):
+            log.warning("Dropping %d stat card(s) over the length limits.", len(pkg.stat_cards) - len(fitting))
+            pkg = pkg.model_copy(update={"stat_cards": fitting})
     for field in GRAPHICS_FIELDS:
         if getattr(pkg, field) is None:
             continue

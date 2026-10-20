@@ -2,12 +2,14 @@
 src/script_engine.py
 ====================
 Produces the complete script package for one Reel:
-1. 4-beat, ~42-second circular narration (hook -> scale -> enigma -> loop-back insight).
+1. 5-beat, 42-48 second narration (hook -> evidence -> hypotheses -> relevance -> loop-back takeaway),
+   measured by speaking it before the real voiceover.
 2. All on-screen copy (thumbnail, 3 story frames, poll, 7 carousel slides) and Meta metadata.
 3. Stage 2.5 guardrail: structural checks + search-grounded claim verification.
 
 Source of scripts, in order:
-  a) Claude, researching the topic with web search and returning schema-validated JSON.
+  a) The configured writer (free Gemini engine, or Claude with web search), from the topic's verified
+     fact sheet, returning schema-validated JSON.
   b) A human-curated script in data/scripts/<topic_id>.json.
 There is deliberately no template fallback: a topic with neither fails the run.
 """
@@ -42,19 +44,19 @@ SYSTEM_PROMPT = """You are a documentary scriptwriter producing short vertical R
 
 Editorial rules:
 - Narration is {WORDS_MIN}-{WORDS_MAX} spoken words (about {SECONDS_MIN}-{SECONDS_MAX} seconds spoken). Hard maximum {WORDS_MAX}. Long words take longer to say: prefer plain, short words, or the script runs long even inside the word range.
-- Five beats tailored to topic archetype (Knowledge Bomb & Forensic Reality schema):
+- Exactly five beats, tailored to the topic archetype (Knowledge Bomb & Forensic Reality schema):
   (1) Category-Aware Cinematic Hook in the first 3 seconds (Beat 1):
-      - Megastructures: Impossible Architectural Contrast or Subterranean Paradox (e.g. ancient structures enduring while modern buildings crumble, or thousands living 280 feet under solid volcanic rock).
-      - Relic Artifacts: Lost Technology Anomaly (precision micro-mechanics, astronomical gear trains, or ancient nanotechnology that shouldn't exist for 1,500 years).
+      - Megastructures: Impossible Architectural Contrast or Subterranean Paradox (e.g. ancient structures enduring while modern ones crumble, or whole communities living deep underground).
+      - Relic Artifacts: Precision Beyond Its Era (micro-mechanics, astronomical gear trains, or metallurgy more refined than its period is known for), stated as documented fact, never as "lost" or impossible technology.
       - Riddle Events & Cataclysms: Sudden Forensic Anomaly (stark physical devastation, colossal atmospheric shockwave, zero impact crater, or vanished expeditions).
       NEVER start Beat 1 with greetings ('Hey guys'), generic rhetorical questions ('Have you ever wondered'), or robotic hedge words ('Estimated,', 'Approximately,'). Hook the audience immediately with an arresting, tangible reality.
-  (2) Forensic Evidence & Underlying Mechanism (Beats 2-3): Concrete physical evidence, exact metrics, tree rings, seismic data, metallurgy, materials, or gears.
-  (3) Epistemic Integrity & Leading Hypotheses (Beat 4): Where figures or causes are debated, present the leading scientific hypotheses with fluent, natural phrasing (e.g. 'physicists calculate that...', 'physical models suggest roughly...', 'ranging between X and Y').
-  (4) Civilizational / Modern Relevance & High Stakes: Why this anomaly matters to modern science, engineering, or planetary resilience.
+  (2) Forensic Evidence & Underlying Mechanism (Beat 2): Concrete physical evidence, exact metrics, tree rings, seismic data, metallurgy, materials, or gears.
+  (3) Epistemic Integrity & Leading Hypotheses (Beat 3): Where figures or causes are debated, present the leading scientific hypotheses with fluent, natural phrasing (e.g. 'physicists calculate that...', 'physical models suggest roughly...', 'ranging between X and Y').
+  (4) Civilizational / Modern Relevance & High Stakes (Beat 4): Why this anomaly matters to modern science, engineering, or planetary resilience.
   (5) Standalone Loop Takeaway (Beat 5): An impactful concluding sentence leading back naturally into the opening hook so the video loops seamlessly.
 - Hard ban on robotic sentence prefixes: NEVER start sentences with 'Estimated,' or 'Approximately,'. Integrate hedges naturally into the narrative flow.
 - Hard ban on academic paper citation chaff: do NOT use phrases like "A study in [year] reported...", "Researchers drilled...", "Geologist [Name] stated...", or "According to historians...". Present verified physical, chemical, and historical facts directly and authoritatively.
-- Hard ban on research meta-commentary: NEVER discuss the state of records, studies, or sources in the narration (e.g. do NOT say "popular sources give shallower figures", "there is no official figure for...", "records do not specify", or "sources disagree"). Instead, present the physical and historical realities directly with natural in-situ hedges (e.g. say "carved roughly 280 feet or 85 meters down", "an estimated 20,000 residents", or "ranging between 60 and 85 meters").
+- Hard ban on research meta-commentary: NEVER discuss the state of records, studies, or sources in the narration (e.g. do NOT say "popular sources give shallower figures", "there is no official figure for...", "records do not specify", or "sources disagree"). Instead, present the physical and historical realities directly with natural in-situ hedges (e.g. "carved roughly X feet (Y m) down", "an estimated N residents", or "ranging between A and B meters", using the sourced figures).
 - Never end on a trailing word such as "when", "until", "because", "and".
 - Use numbers only when sources support them. Where sources disagree, say "about", "up to", "estimated", or name the range. State the hedged physical reality directly.
 - No conspiracy or pseudo-archaeology framing (aliens, lost super-civilizations, etc.).

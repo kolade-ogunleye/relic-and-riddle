@@ -27,6 +27,48 @@ WHITE = (255, 255, 255)
 LIGHT = (225, 225, 225)
 
 
+def _rel_luminance(rgb) -> float:
+    def ch(v):
+        v = v / 255.0
+        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+    r, g, b = rgb[:3]
+    return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
+
+
+def ensure_legible(im: Image.Image, box: Tuple[int, int, int, int], text_rgb=(235, 235, 235),
+                   target: float = 4.5, feather: int = 60) -> Image.Image:
+    """Darkens the area behind a block of light text until the text reaches WCAG contrast `target`
+    against the bright end of the background there (its 90th-percentile luminance), with feathered
+    edges so no box shows. Bright photos get a deeper shade; dark ones are left alone."""
+    import numpy as np
+    x0, y0, x1, y1 = [int(v) for v in box]
+    region = np.asarray(im.convert("RGB").crop((x0, y0, x1, y1)), dtype=np.float32) / 255.0
+    weights = np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
+
+    def bright_end(alpha: float) -> float:  # 90th-percentile luminance once shaded by `alpha`
+        v = region * (1.0 - alpha)
+        lin = np.where(v <= 0.03928, v / 12.92, ((v + 0.055) / 1.055) ** 2.4)
+        return float(np.percentile(lin @ weights, 90))
+
+    needed = (_rel_luminance(text_rgb) + 0.05) / target - 0.05  # the brightest background that still gives `target`
+    if bright_end(0.0) <= needed:
+        return im
+    lo, hi = 0.0, 0.92
+    for _ in range(12):
+        mid = (lo + hi) / 2
+        lo, hi = (lo, mid) if bright_end(mid) <= needed else (mid, hi)
+    alpha = min(0.92, hi + 0.03)
+    from PIL import ImageChops, ImageFilter
+    level = int(round(255 * alpha))
+    box_only, grown = Image.new("L", im.size, 0), Image.new("L", im.size, 0)
+    ImageDraw.Draw(box_only).rectangle([x0, y0, x1, y1], fill=level)
+    ImageDraw.Draw(grown).rectangle([x0 - feather, y0 - feather, x1 + feather, y1 + feather], fill=level)
+    # Full strength over the whole box (text may sit at its edges), fading out over `feather` px outside it
+    shade = ImageChops.lighter(grown.filter(ImageFilter.GaussianBlur(feather / 3)), box_only)
+    black = Image.new("RGB", im.size, (0, 0, 0))
+    return Image.composite(black, im.convert("RGB"), shade)
+
+
 class MultiFormatGenerator:
     def generate_story_sequence(self, hero_img_path: Path, script_payload: Dict[str, Any], output_dir: Path,
                                 scene_images: List[Path] = None) -> List[Path]:
@@ -233,6 +275,8 @@ class MultiFormatGenerator:
         for y in range(chh // 3, chh):
             a = int(235 * ((y - chh / 3) / (chh * 2 / 3)) ** 1.4)
             d.line([(0, y), (cw, y)], fill=(8, 8, 10, a))
+        im = ensure_legible(im, (40, chh - 720, cw - 40, chh - 80))  # up to 3 heading lines, body and swipe
+        d = ImageDraw.Draw(im, "RGBA")
         font_h = fit_font(d, heading, "Anton", 110, cw - 160, 56)
         lines = wrap_text(d, heading, font_h, cw - 160)[:3]
         y = chh - 470 - (len(lines) - 1) * 60
@@ -253,6 +297,8 @@ class MultiFormatGenerator:
         for y in range(chh // 2, chh):
             a = int(220 * ((y - chh / 2) / (chh / 2)) ** 1.3)
             d.line([(0, y), (cw, y)], fill=(8, 10, 14, a))
+        im = ensure_legible(im, (40, chh - 560, cw - 40, chh - 50))  # badge, heading and up to 4 body lines
+        d = ImageDraw.Draw(im, "RGBA")
         category = self._get_card_category(card, "immersive")
         tag = f"{category} // {index + 1:02d}"
         f_tag = get_font("Montserrat", 24)
@@ -442,10 +488,11 @@ class MultiFormatGenerator:
             else:
                 im = self._render_editorial_split(photo, card, i, cw, chh)
 
+            im = ensure_legible(im, (0, 0, cw, 110), text_rgb=(212, 175, 55), feather=90)  # a full-width header band, no corners
             d = ImageDraw.Draw(im, "RGBA")
             f_dossier = get_font("Montserrat", 20)
-            d.text((80, 70), f"ARCHIVAL RECORD // {i + 1:02d} OF {total:02d}", font=f_dossier, fill=(212, 175, 55, 220), anchor="lt", stroke_width=2, stroke_fill=(8, 10, 14, 230))
-            d.text((cw - 80, 70), "RELIC & RIDDLE", font=f_small, fill=(235, 235, 235, 210), anchor="rt", stroke_width=2, stroke_fill=(8, 10, 14, 230))
+            d.text((80, 70), f"ARCHIVAL RECORD // {i + 1:02d} OF {total:02d}", font=f_dossier, fill=(212, 175, 55, 255), anchor="lt", stroke_width=2, stroke_fill=(8, 10, 14, 230))
+            d.text((cw - 80, 70), "RELIC & RIDDLE", font=f_small, fill=(235, 235, 235, 255), anchor="rt", stroke_width=2, stroke_fill=(8, 10, 14, 230))
 
             # Continuous panoramic progress timeline
             bar_y = chh - 45

@@ -76,3 +76,17 @@ def test_dropped_photos_are_never_fetched_again(tmp_path):
     drop_images(tmp_path, [2])
     rejected = [r["title"] for r in load_credits(tmp_path).get("rejected_by_review", [])]
     assert rejected == ["File:Kailasa 2.jpg"]  # the fetcher skips these titles
+
+
+def test_crowded_photos_rank_last_and_are_flagged_to_the_planner(monkeypatch, tmp_path):
+    from src import scene_planner as sp
+    _pool(tmp_path, 6)
+    good = {"shows_topic": "yes", "usable": True, "safe": True}
+    spec = {i: dict(good) for i in range(1, 7)}
+    spec[1] = {**good, "people_prominent": True}
+    monkeypatch.setattr(image_review.free_llm, "call", lambda *a, **k: _verdicts(spec))
+    image_review.review_pool(TOPIC, tmp_path)
+    images = load_credits(tmp_path)["images"]
+    assert images[-1]["file"] == "01_commons.jpg"
+    sp._folder_credits.cache_clear()
+    assert "faces blurred" in sp._photo_caption(tmp_path / "01_commons.jpg")

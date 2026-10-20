@@ -93,3 +93,20 @@ def test_3_variant_thumbnail_suite_generation(tmp_path):
     assert var_b.exists() and Image.open(var_b).size == (1080, 1920)
     assert var_c.exists() and Image.open(var_c).size == (1080, 1920)
 
+
+
+def test_ensure_legible_reaches_wcag_contrast_on_bright_photos_and_leaves_dark_ones():
+    import numpy as np
+    from src.multi_format import _rel_luminance, ensure_legible
+
+    def ratio(text, px):
+        return (_rel_luminance(text) + 0.05) / (_rel_luminance(px) + 0.05)
+
+    for text in ((235, 235, 235), (212, 175, 55)):
+        for shade in (250, 180, 120):
+            out = ensure_legible(Image.new("RGB", (500, 400), (shade,) * 3), (50, 50, 350, 250), text_rgb=text, feather=30)
+            a = np.asarray(out)
+            assert ratio(text, a[150, 200]) >= 4.5 and ratio(text, a[52, 52]) >= 4.5  # centre and edge of the box
+            assert tuple(a[-1, -1]) == (shade,) * 3                                    # far outside is untouched
+    dark = Image.new("RGB", (400, 300), (30, 30, 30))
+    assert np.array_equal(np.asarray(ensure_legible(dark, (50, 50, 350, 250))), np.asarray(dark))

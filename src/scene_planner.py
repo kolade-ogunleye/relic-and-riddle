@@ -102,7 +102,10 @@ def _is_graphic(p: Path) -> bool:
 def _photo_caption(p: Path) -> str:
     """The archive caption of a sourced photo, from the credits.json beside it ("" if none)."""
     entry = next((e for e in _folder_credits(str(Path(p).parent)) if e.get("file") == Path(p).name), None)
-    return commons.caption(entry) if entry else ""
+    if not entry:
+        return ""
+    crowded = (entry.get("vision_review") or {}).get("people_prominent")
+    return commons.caption(entry) + ("; prominent visitors, faces blurred: avoid for the hook" if crowded else "")
 
 
 @lru_cache(maxsize=64)

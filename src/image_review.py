@@ -39,6 +39,7 @@ class PhotoVerdict(BaseModel):
     usable: bool                                 # sharp enough, not a tiny crop, no heavy watermark/text overlay
     safe: bool                                   # no human remains on display, no identifiable bystanders as subject
     duplicate_of: Optional[int] = None           # a better photo of nearly the same view, if any
+    people_prominent: bool = False               # visitors are a prominent part of it (their faces get blurred)
     reason: str                                  # one short sentence
 
 
@@ -51,6 +52,7 @@ SYSTEM = """You review the photo pool for one topic of a fact-checked history do
 - usable: false for blurry, tiny, heavily watermarked, or mostly-text images that would look poor full-screen.
 - safe: false for photos whose subject is human remains (other than ancient skulls or bones displayed as museum artefacts), injuries, or identifiable private people who are the main subject.
 - duplicate_of: the number of a better photo showing nearly the same view, else null.
+- people_prominent: true if present-day visitors or bystanders are a prominent part of the picture (their faces will be blurred, which draws the eye).
 Judge from what you see; the caption tells you what the archive says it is. Be strict: a wrong picture is worse than no picture."""
 
 
@@ -92,8 +94,9 @@ def review_pool(topic: Dict[str, Any], topic_dir: Path, apply: bool = True) -> D
         ok = bool(v and v.shows_topic in ("yes", "partly") and v.usable and v.safe and not v.duplicate_of)
         img["vision_review"] = (v.model_dump() if v else {"reason": "no verdict returned"}) | {"kept": ok}
         (kept if ok else dropped).append(img)
-    # Photos that show the topic itself come first; the immediate context follows.
-    kept.sort(key=lambda im: 0 if im["vision_review"].get("shows_topic") == "yes" else 1)
+    # Photos that show the topic itself come first, then context; crowded ones (blurred faces) last.
+    kept.sort(key=lambda im: (im["vision_review"].get("people_prominent", False),
+                              0 if im["vision_review"].get("shows_topic") == "yes" else 1))
     approved = len(kept) >= MIN_SCENE_IMAGES
     summary = {"topic": topic["id"], "status": "approved" if approved else "held", "kept": len(kept),
                "dropped": [(d["file"], d["vision_review"].get("reason", "")) for d in dropped]}

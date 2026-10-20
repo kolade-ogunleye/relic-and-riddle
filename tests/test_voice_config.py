@@ -64,3 +64,14 @@ def test_calibration_records_real_voices_only(monkeypatch):
     assert not audio_engine.PACE_FILE.exists()
     audio_engine.calibrate_pace("azure", "en-US-BrianMultilingualNeural", "text", 44.0)
     assert audio_engine.pace_ratio(audio_engine.voice_key("azure", "en-US-BrianMultilingualNeural")) == pytest.approx(1.1)
+
+
+def test_a_dry_run_can_opt_in_to_elevenlabs():
+    import main
+    coord = main.PipelineCoordinator.__new__(main.PipelineCoordinator)
+    coord.audio_engine = AudioEngine()
+    coord.paid_voice_in_dry_run = False
+    assert coord.voice_inputs("x", dry_run=True)["allow_paid"] is False
+    coord.paid_voice_in_dry_run = True  # `run --dry-run --paid-voice` / `test --paid-voice`
+    assert coord.voice_inputs("x", dry_run=True)["allow_paid"] is True
+    assert main.PipelineCoordinator.voice_inputs(coord, "x", dry_run=False)["allow_paid"] is True

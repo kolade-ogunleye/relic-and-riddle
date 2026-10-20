@@ -18,7 +18,33 @@ def record_voice(path, provider, licensed, script):
     return record
 
 
-def record_bed(path, music):
+def record_sfx(path, provider, prompt, plan, commercial):
+    """Rights evidence for one sound-effect file, bound to its exact bytes."""
+    path = Path(path)
+    record = {"path": str(path.resolve()), "sha256": sha256_file(path), "provider": provider, "plan": plan,
+              "prompt": prompt, "commercial_license_recorded": commercial is True}
+    if not record["sha256"]:
+        raise ValueError("Cannot record an absent sound effect")
+    path.with_suffix(path.suffix + ".rights.json").write_text(json.dumps(record, indent=2), encoding="utf-8")
+    return record
+
+
+def sfx_rights(path):
+    """The file's rights record if it is intact and commercially licensed, else None (then the
+    synthesized effect is used instead: a sound of unknown origin never enters a mix)."""
+    path = Path(path)
+    try:
+        record = json.loads(path.with_suffix(path.suffix + ".rights.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if record.get("sha256") != sha256_file(path) or record.get("commercial_license_recorded") is not True:
+        return None
+    return record
+
+
+def record_bed(path, music, sfx=None):
+    """sfx: the effect files mixed into the bed (their rights records), so the bed's evidence
+    covers every sound in it, not only the music."""
     path = Path(path)
     sources = []
     for track in music.get("tracks", []):
@@ -35,14 +61,17 @@ def record_bed(path, music):
             source = Path(item)
             sources.append({"path": str(source.resolve()), "sha256": sha256_file(source),
                             "rights_status": "unverified", "provider": music["source"]})
+    effects = [{**r, "rights_status": "verified" if sfx_rights(r["path"]) else "unverified"} for r in (sfx or [])]
     record = {"path": str(path.resolve()), "sha256": sha256_file(path),
-              "origin": music["source"], "sources": sources,
+              "origin": music["source"], "sources": sources, "sound_effects": effects,
               "required_attribution": music.get("credit", "")}
     # The drone is synthesized locally. Provider music requires its own license evidence;
     # a paid text-to-speech account does not prove music clearance.
     record["rights_status"] = "verified" if music["source"] == "none" or (
         music["source"] == "library" and sources and
         all(s["rights_status"] == "verified" and s["sha256"] for s in sources)) else "unverified"
+    if any(e["rights_status"] != "verified" for e in effects):
+        record["rights_status"] = "unverified"
     if not record["sha256"]:
         raise ValueError("Cannot record absent music bed")
     path.with_suffix(path.suffix + ".rights.json").write_text(json.dumps(record, indent=2), encoding="utf-8")

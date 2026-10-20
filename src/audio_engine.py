@@ -259,6 +259,7 @@ class AudioEngine:
         azure_region: Optional[str] = None,
     ):
         self.voice = voice
+        self.last_sfx_sources: List[Dict[str, Any]] = []
         self.rate = rate
         self.pitch = pitch
         self.eleven_key = eleven_key if eleven_key is not None else ELEVENLABS_API_KEY
@@ -635,6 +636,25 @@ class AudioEngine:
                              capture_output=True, check=True, timeout=120).stdout
         return np.frombuffer(out, dtype=np.float32).reshape(-1, 2).copy()
 
+    def _effect(self, name: str, synth: np.ndarray, sr: int, loop_to: Optional[int] = None) -> np.ndarray:
+        """The licensed recording `name` from data/sfx when its rights record checks out, at the
+        loudness of the synthesized `synth` it replaces (so the mix balance is unchanged);
+        otherwise `synth`. Every recording used is listed in last_sfx_sources for the bed's evidence."""
+        from .audio_provenance import sfx_rights
+        path = SFX_DIR / name
+        record = sfx_rights(path) if path.exists() else None
+        if record is None:
+            return synth
+        audio = self._decode(path, sr)
+        if loop_to:
+            audio = self._loop_with_crossfade(audio, loop_to, xfade_samples=int(0.5 * sr))
+        target = float(np.sqrt(np.mean(np.square(synth)))) if synth.size else 0.0
+        level = float(np.sqrt(np.mean(np.square(audio)))) or 1.0
+        if name not in {s["name"] for s in self.last_sfx_sources}:
+            self.last_sfx_sources.append({"name": name, "path": str(path.resolve()), "sha256": record["sha256"],
+                                          "provider": record.get("provider")})
+        return audio * (target / level)
+
     @staticmethod
     def _loop_with_crossfade(audio: np.ndarray, target_samples: int, xfade_samples: int = 48000 * 3) -> np.ndarray:
         """Seamlessly loops audio to target_samples with overlap-add crossfade, eliminating hard seams."""
@@ -680,6 +700,7 @@ class AudioEngine:
                              cue_timestamps: Optional[List[float]] = None, loop_seamless: bool = False) -> Path:
         """Music (if given, with seamless crossfades/movements) or a synthesized drone, plus narration SFX and act boundary risers."""
         total = int(sr * duration)
+        self.last_sfx_sources = []  # licensed effect recordings mixed into this bed
         valid_paths = [Path(p) for p in (music_paths or []) if Path(p).exists()]
         if not valid_paths and music_path is not None and Path(music_path).exists():
             valid_paths = [Path(music_path)]
@@ -712,7 +733,7 @@ class AudioEngine:
 
         # Triple-stem foley stem 2: continuous cavern draft wind, only for a story told underground
         if self.is_underground(words):
-            cavern_draft = self._synth_cavern_draft(total, sr)
+            cavern_draft = self._effect("sfx_cavern_wind.wav", self._synth_cavern_draft(total, sr), sr, loop_to=total)
             fin_d, fout_d = min(int(1.0 * sr), total // 4), min(int(2.0 * sr), total // 4)
             if fin_d and fout_d:
                 cavern_draft[:fin_d] *= np.linspace(0.0, 1.0, fin_d)[:, None]
@@ -721,7 +742,7 @@ class AudioEngine:
 
         # Procedural Foley: Opening hook reveal impact at ~0.15s
         if total > int(0.20 * sr):
-            hook_braam = self._synth_sub_bass_braam(duration_sec=1.5, sr=sr, f0=45.0)
+            hook_braam = self._effect("sfx_impact_braam.wav", self._synth_sub_bass_braam(duration_sec=1.5, sr=sr, f0=45.0), sr)
             hook_start = int(0.15 * sr)
             n_h = min(len(hook_braam), total - hook_start)
             if n_h > 0:
@@ -741,7 +762,7 @@ class AudioEngine:
                         bed[cue_idx:cue_idx + n, 0] += riser
                         bed[cue_idx:cue_idx + n, 1] += riser
                     # Triple-stem foley stem 1: Cinematic revelation sub-bass braam impact
-                    braam = self._synth_sub_bass_braam(duration_sec=2.0, sr=sr)
+                    braam = self._effect("sfx_impact_braam.wav", self._synth_sub_bass_braam(duration_sec=2.0, sr=sr), sr)
                     n_b = min(len(braam), total - cue_idx)
                     if n_b > 0:
                         bed[cue_idx:cue_idx + n_b] += braam[:n_b]
@@ -764,7 +785,7 @@ class AudioEngine:
         for t_trans in transition_times:
             if 0.5 <= t_trans <= duration - 0.5:
                 w_start = max(0, int((t_trans - 0.15) * sr))
-                whoosh = self._synth_transition_whoosh(duration_sec=0.45, sr=sr)
+                whoosh = self._effect("sfx_whoosh.wav", self._synth_transition_whoosh(duration_sec=0.45, sr=sr), sr)
                 n_w = min(len(whoosh), total - w_start)
                 if n_w > 0:
                     bed[w_start:w_start + n_w] += whoosh[:n_w]
@@ -773,7 +794,7 @@ class AudioEngine:
         cue_t = self.revelation_time(words)
         if cue_t is not None and 0 < cue_t < duration - 1.0:
             cue_idx = int(cue_t * sr)
-            braam = self._synth_sub_bass_braam(duration_sec=1.8, sr=sr)
+            braam = self._effect("sfx_impact_braam.wav", self._synth_sub_bass_braam(duration_sec=1.8, sr=sr), sr)
             n_b = min(len(braam), total - cue_idx)
             if n_b > 0:
                 bed[cue_idx:cue_idx + n_b] += braam[:n_b] * 0.75
@@ -782,20 +803,13 @@ class AudioEngine:
             cue_spec = self.SFX_CUES[name]
             gain = cue_spec[1]
             synth_func = cue_spec[2] if len(cue_spec) > 2 else "_synth_stone_grind"
-            sfx_file = SFX_DIR / name
-            if sfx_file.exists():
-                s = self._decode(sfx_file, sr)[:, 0]  # resampled to the bed's rate
-                i0 = int(cue * sr)
-                n = max(0, min(len(s), total - i0))
-                bed[i0:i0 + n] += (s[:n] * gain * 0.22)[:, None]
-            else:
-                synth_method = getattr(self, synth_func, self._synth_stone_grind)
-                synth_sfx = synth_method(sr=sr)
-                if synth_sfx.ndim == 1:
-                    synth_sfx = np.column_stack((synth_sfx, synth_sfx))
-                i0 = int(cue * sr)
-                n = max(0, min(len(synth_sfx), total - i0))
-                bed[i0:i0 + n] += synth_sfx[:n] * (gain * 0.40)
+            synth_sfx = getattr(self, synth_func, self._synth_stone_grind)(sr=sr)
+            if synth_sfx.ndim == 1:
+                synth_sfx = np.column_stack((synth_sfx, synth_sfx))
+            effect = self._effect(name, synth_sfx, sr)  # licensed recording if present, else synthesized
+            i0 = int(cue * sr)
+            n = max(0, min(len(effect), total - i0))
+            bed[i0:i0 + n] += effect[:n] * (gain * 0.40)
 
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         sf.write(str(output_path), np.clip(bed, -1.0, 1.0), sr)

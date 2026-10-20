@@ -146,6 +146,7 @@ class PipelineCoordinator:
     def __init__(self, db: Optional[PipelineDatabase] = None, schedule_posts: bool = False):
         # schedule_posts: approved Reels wait for their posting slot (daemon); otherwise post at once (CLI).
         self.schedule_posts = schedule_posts
+        self.paid_voice_in_dry_run = False  # `--paid-voice`: this dry run may use ElevenLabs
         # Imported here so `health`/`topic`/`review` work even if a media dependency is broken.
         from src.audio_engine import AudioEngine
         from src.multi_format import MultiFormatGenerator
@@ -392,7 +393,7 @@ class PipelineCoordinator:
                     cue_timestamps=cue_timestamps
                 )
                 from src.audio_provenance import record_bed
-                record_bed(bed_path, music)
+                record_bed(bed_path, music, sfx=self.audio_engine.last_sfx_sources)
                 bed_inputs["selected_sources"] = audio_source_inputs(bed_path)
                 checkpoints.complete("deep_bed", bed_inputs, [bed_path, bed_path.with_suffix(".wav.rights.json")])
             else:
@@ -696,7 +697,7 @@ class PipelineCoordinator:
                 "pitch": self.audio_engine.pitch, "eleven_voice": self.audio_engine.eleven_voice,
                 "eleven_model": config.ELEVENLABS_MODEL,
                 "licensed_only": (not dry_run) and config.VOICE_REQUIRE_LICENSED,
-                "allow_paid": (not dry_run) or config.ELEVENLABS_IN_DRY_RUNS}
+                "allow_paid": (not dry_run) or config.ELEVENLABS_IN_DRY_RUNS or self.paid_voice_in_dry_run}
 
     def _produce_and_publish(self, topic, run_id, run_dir, auto_approve, dry_run, previous_status) -> Dict[str, Any]:
         self.progress_msg_id = None
@@ -840,7 +841,7 @@ class PipelineCoordinator:
                                                   music_path=music["path"], sr=profile.audio_sample_rate,
                                                   loop_seamless=profile.loop_seamless)
             if bed_path.is_file():
-                record_bed(bed_path, music)
+                record_bed(bed_path, music, sfx=self.audio_engine.last_sfx_sources)
                 music_path.write_text(json.dumps(music, default=str, indent=2), encoding="utf-8")
                 bed_inputs["selected_sources"] = audio_source_inputs(bed_path)
                 checkpoints.complete("bed", bed_inputs, [bed_path, music_path,
@@ -1526,6 +1527,8 @@ def main(argv=None) -> int:
     run_p.add_argument("--require-live", action="store_true", help="Enforce production preflight credentials check")
     run_p.add_argument("--run-id", help="Re-use existing run directory to re-render without re-synthesizing voiceover")
     run_p.add_argument("--background-polling", action="store_true", help="Tell bot that supervisor is polling getUpdates")
+    run_p.add_argument("--paid-voice", action="store_true",
+                       help="With --dry-run: voice with ElevenLabs anyway (spends credits); real runs always may")
     run_p.add_argument("--schedule-posts", action="store_true",
                        help="Once approved, book the Reel into the next posting slot instead of posting at once")
 
@@ -1574,7 +1577,8 @@ def main(argv=None) -> int:
 
     health_p = sub.add_parser("health", help="Pre-flight checks")
     health_p.add_argument("--live", action="store_true", help="Also require production credentials")
-    sub.add_parser("test", help="End-to-end dry run on the Derinkuyu topic (publishes nothing)")
+    test_p = sub.add_parser("test", help="End-to-end dry run on the Derinkuyu topic (publishes nothing)")
+    test_p.add_argument("--paid-voice", action="store_true", help="Voice this dry run with ElevenLabs (spends credits)")
     backup_p = sub.add_parser("backup", help="Sync completed runs to OneDrive / Cloud archive")
     backup_p.add_argument("--run-id", help="Specific run ID to backup")
     backup_p.add_argument("--all", action="store_true", help="Backup all finished runs in output/")
@@ -1584,6 +1588,7 @@ def main(argv=None) -> int:
     if args.command == "run":
         try:
             coordinator = PipelineCoordinator(schedule_posts=True) if args.schedule_posts else PipelineCoordinator()
+            coordinator.paid_voice_in_dry_run = args.paid_voice
             if getattr(args, "background_polling", False):
                 coordinator.telegram_bot.background_polling = True
             res = coordinator.run_cycle(args.topic_id, args.auto_approve, args.dry_run, require_live=getattr(args, "require_live", False), content_format=args.format, run_id=getattr(args, "run_id", None))
@@ -2020,7 +2025,9 @@ def main(argv=None) -> int:
 
     if args.command == "test":
         try:
-            res = PipelineCoordinator().run_cycle("derinkuyu_underground_city", auto_approve=True, dry_run=True)
+            coordinator = PipelineCoordinator()
+            coordinator.paid_voice_in_dry_run = args.paid_voice
+            res = coordinator.run_cycle("derinkuyu_underground_city", auto_approve=True, dry_run=True)
         except Exception:
             return 1
         print(json.dumps({k: res.get(k) for k in ("status", "master_video", "thumbnails")}, indent=2))

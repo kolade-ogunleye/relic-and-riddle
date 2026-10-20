@@ -20,7 +20,7 @@ from pydantic import BaseModel
 
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
 from .graphics import _text, CLIP_SECONDS, GOLD, TEXT_BOTTOM, TEXT_TOP, WHITE, _ease, _encode, _wrap
-from .llm import LLMError, claude_available, image_block, structured_call, task as llm_task
+from .llm import LLMError, image_block, task as llm_task
 from .typography import cover_crop, get_font, is_video
 
 log = logging.getLogger(__name__)
@@ -52,8 +52,8 @@ what you are pointing at; never guess. If no photo clearly shows at least two fe
 def plan(photos: List[Path], labels: List[str], topic_title: str, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> Optional[tuple]:
     """(photo, [(label, x_px, y_px)]) for confidently located features, or None."""
     stills = [p for p in photos if not is_video(p)][:MAX_PHOTOS]
-    from . import gemini
-    if not ((claude_available() or gemini.available()) and stills and labels):
+    from . import free_llm
+    if not (free_llm.ready() and stills and labels):
         return None
     crops = []
     content: List[dict] = []
@@ -65,7 +65,8 @@ def plan(photos: List[Path], labels: List[str], topic_title: str, width: int = V
         content += [{"type": "text", "text": f"Photo {i}:"}, image_block(tmp, 1024)]
     content.append({"type": "text", "text": f"Site: {topic_title}\nFeatures: " + "; ".join(labels)})
     try:
-        result = structured_call(SYSTEM, content, CalloutPlan, effort="medium", max_tokens=3000)
+        result = free_llm.call(SYSTEM, content, CalloutPlan, role="checker", task_class="light",
+                               effort="medium", max_tokens=3000)
     except LLMError as e:
         log.warning("Callout planning failed: %s", e)
         return None

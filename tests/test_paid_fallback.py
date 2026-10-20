@@ -51,3 +51,19 @@ def test_evals_never_spend(keys, monkeypatch):
     monkeypatch.setattr(free_llm, "ALLOW_PAID_FALLBACK", False)
     with pytest.raises(free_llm.FreeQuotaUnavailable):
         free_llm.structured("s", "p", object, task_class="light")
+
+
+def test_free_engine_never_uses_claude_just_because_a_key_exists(monkeypatch):
+    from src import beat_images, music
+    monkeypatch.setattr("src.config.SCRIPT_ENGINE", "free")
+    monkeypatch.setattr("src.llm.ANTHROPIC_API_KEY", "sk-real-key")      # present, but not the engine
+    monkeypatch.setattr("src.config.GEMINI_FREE_API_KEY", "free-key")
+    assert free_llm.claude_engine() is False
+    monkeypatch.setattr("src.llm.structured_call", lambda *a, **k: pytest.fail("called Claude"))
+    used = []
+    monkeypatch.setattr(free_llm, "structured", lambda *a, **k: used.append(k.get("task_class")) or
+                        beat_images.BeatQueries(items=[]))
+    beat_images.plan_queries([{"text": "x"}], {"title": "T"})
+    assert used == ["light"]
+    monkeypatch.setattr(free_llm, "structured", lambda *a, **k: music.MoodChoice(mood="epic"))
+    assert music.choose_mood({"title": "T", "narration_script": "x"}) == "epic"

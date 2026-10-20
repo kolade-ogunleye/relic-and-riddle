@@ -117,6 +117,15 @@ def call(system: str, prompt, schema: Type[T], role: str = "writer", task_class:
     return structured_call(system, prompt, schema, **claude_kwargs)
 
 
+def claude_engine() -> bool:
+    """Claude is used only when SCRIPT_ENGINE=claude (and a key exists). Having an Anthropic key is not
+    a reason to use it: on the free engine every task goes through this module and its capped fallback."""
+    if enabled():
+        return False
+    from .llm import claude_available
+    return claude_available()
+
+
 def ready() -> bool:
     """Can script work run at all on the configured engine?"""
     if enabled():

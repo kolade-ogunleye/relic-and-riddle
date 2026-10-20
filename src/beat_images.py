@@ -19,7 +19,7 @@ from PIL import Image
 
 from . import commons
 from . import config
-from .llm import LLMError, claude_available, structured_call, task as llm_task
+from .llm import LLMError, structured_call, task as llm_task
 from .models import BeatQueries
 
 log = logging.getLogger(__name__)
@@ -43,23 +43,20 @@ def plan_queries(beats: List[Dict[str, Any]], topic: Dict[str, Any]) -> BeatQuer
     lines = "\n".join(f"Beat {i}: {b['text']}" for i, b in enumerate(beats, 1))
     loc = topic.get("location", {})
     prompt = f"Topic: {topic.get('title', '')} ({loc.get('name', '')}, {loc.get('country', '')})\n{lines}\n\nAt most {MAX_BEATS} beats."
-    if claude_available():
+    from . import free_llm
+    if free_llm.claude_engine():
         return structured_call(SYSTEM, prompt, BeatQueries, effort="low", max_tokens=3000,
                                models=config.LIGHT_TASK_MODELS)
-    from . import free_llm
-    if free_llm.available():
-        return free_llm.structured(SYSTEM, prompt, BeatQueries, role="writer")
-    raise LLMError("Neither Claude nor Gemini is available for beat query planning.")
+    return free_llm.structured(SYSTEM, prompt, BeatQueries, role="writer", task_class="light")
 
 
 def source(beats: List[Dict[str, Any]], topic: Dict[str, Any], work_dir: Path, plan=None) -> Tuple[List[Path], List[Dict[str, Any]]]:
     """Returns (downloaded image paths, their credit records). Never raises: extra images are optional."""
     if not config.BEAT_IMAGES_ENABLED:
         return [], []
-    if not claude_available():
-        from . import free_llm
-        if not free_llm.available():
-            return [], []
+    from . import free_llm
+    if not free_llm.ready():
+        return [], []
     if plan is None:
         try:
             plan = plan_queries(beats, topic)

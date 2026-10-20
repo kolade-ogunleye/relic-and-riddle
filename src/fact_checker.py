@@ -65,7 +65,8 @@ class ClaimFactChecker:
         allow_unreviewed_curated: bool = False,
     ) -> Tuple[bool, float, List[Dict[str, Any]], str]:
         """Returns (passed, confidence_percent, claim_audits, summary)."""
-        if claude_available():
+        from . import free_llm
+        if free_llm.claude_engine():
             try:
                 report, retrieved_urls = self._check_with_claude(script_payload)
             except LLMError as e:

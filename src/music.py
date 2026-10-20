@@ -22,7 +22,7 @@ import requests
 from pydantic import BaseModel
 
 from .config import DATA_DIR, ELEVENLABS_API_KEY, LIGHT_TASK_MODELS, MUSIC_PREFER, is_configured
-from .llm import LLMError, claude_available, structured_call, task as llm_task
+from .llm import LLMError, task as llm_task
 
 log = logging.getLogger(__name__)
 
@@ -44,13 +44,14 @@ class MoodChoice(BaseModel):
 
 @llm_task("music_mood")
 def choose_mood(payload: Dict[str, Any]) -> str:
-    if not claude_available():
+    from . import free_llm
+    if not free_llm.ready():
         return "mysterious"
     try:
-        choice = structured_call(
+        choice = free_llm.call(
             "Pick the background-music mood that best fits this short history documentary narration.",
             f"Title: {payload.get('title', '')}\nNarration: {payload.get('narration_script', '')}\n"
-            f"Moods: {', '.join(MOODS)}.", MoodChoice, effort="low", max_tokens=1000,
+            f"Moods: {', '.join(MOODS)}.", MoodChoice, task_class="light", effort="low", max_tokens=1000,
             models=LIGHT_TASK_MODELS)
         return choice.mood
     except LLMError as e:

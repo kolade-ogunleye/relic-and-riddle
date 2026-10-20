@@ -22,7 +22,7 @@ from . import commons, config
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
 from .credits import normalize
 from .graphics import _text, CLIP_SECONDS, GOLD, TEXT_TOP, WHITE, _ease, _encode
-from .llm import LLMError, claude_available, image_block, structured_call, task as llm_task
+from .llm import LLMError, image_block, task as llm_task
 from .typography import cover_crop, get_font
 from .upscale import ensure_resolution
 
@@ -52,8 +52,9 @@ def _pick(old: Path, recents: List[Path], place: str) -> PairPick:
         "image show dead or injured people or other graphic or sensitive content? Which recent "
         "photo, if any, shows the same place from a comparable viewpoint, so a 'then and now' comparison is honest? "
         "Be strict; answer 0 if none.")})
-    return structured_call("You verify archive photo pairs for a history documentary.", content, PairPick,
-                           effort="low", max_tokens=1000)
+    from . import free_llm
+    return free_llm.call("You verify archive photo pairs for a history documentary.", content, PairPick,
+                         role="checker", task_class="light", effort="low", max_tokens=1000)
 
 
 def _candidates(query: str, keywords: List[str], old: bool) -> List[Dict[str, Any]]:
@@ -67,7 +68,8 @@ def source(topic: Dict[str, Any], work_dir: Path) -> Optional[Tuple[Path, Dict[s
     """(old photo, its credit, new photo, its credit) for a verified pair, or None."""
     loc = topic.get("location", {})
     name = (loc.get("name") or "").strip()
-    if not (name and claude_available()):
+    from . import free_llm
+    if not (name and free_llm.ready()):
         return None
     keywords = [normalize(w) for w in name.split() if len(w) > 3]
     try:

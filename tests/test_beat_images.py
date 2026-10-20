@@ -17,7 +17,7 @@ def _cand(title, licence="CC BY 4.0"):
 
 
 def test_source_downloads_up_to_two_per_beat_and_skips_duplicates(monkeypatch, tmp_path):
-    monkeypatch.setattr(beat_images, "claude_available", lambda: True)
+    monkeypatch.setattr("src.free_llm.ready", lambda: True)
     monkeypatch.setattr(beat_images, "plan_queries", lambda b, t: BeatQueries(items=[
         BeatQuery(beat=2, query="Derinkuyu stone door", keywords=["derinkuyu"]),
         BeatQuery(beat=1, query="Derinkuyu", keywords=["derinkuyu"])]))
@@ -40,7 +40,7 @@ def test_source_is_optional_without_claude(tmp_path):
 
 def test_source_survives_commons_failure(monkeypatch, tmp_path):
     import requests
-    monkeypatch.setattr(beat_images, "claude_available", lambda: True)
+    monkeypatch.setattr("src.free_llm.ready", lambda: True)
     monkeypatch.setattr(beat_images, "plan_queries", lambda b, t: BeatQueries(items=[
         BeatQuery(beat=1, query="q", keywords=["k"])]))
 

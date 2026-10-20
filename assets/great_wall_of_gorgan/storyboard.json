@@ -16,5 +16,32 @@
     "file": "02_commons.jpg",
     "title": "File:Great Wall of Gorgan - panoramio (1).jpg",
     "license": "CC BY 3.0"
+  },
+  {
+    "beat": 3,
+    "type": "INTERIOR",
+    "label": "Inner Structure",
+    "text": "Built by the Sasanian Empire, probably in the 5th-6th century AD About 195 km long, with more than 30 forts Made of fired red bricks and fed by a canal system, hence the nickname 'Red Snake' Possibly garrisoned by tens of thousands of soldiers Among the longest defensive walls of the ancient world",
+    "file": "21_commons.jpg",
+    "title": "File:Folio 17a. Sadd-i Iskandar (Bodleian Library, MS. Elliot 339).jpg",
+    "license": "Public domain"
+  },
+  {
+    "beat": 4,
+    "type": "ARTIFACT",
+    "label": "Physical Evidence",
+    "text": "Built by the Sasanian Empire, probably in the 5th-6th century AD About 195 km long, with more than 30 forts Made of fired red bricks and fed by a canal system, hence the nickname 'Red Snake' Possibly garrisoned by tens of thousands of soldiers Among the longest defensive walls of the ancient world",
+    "file": "22_commons.jpg",
+    "title": "File:Mystics in a garden. Sadd-i Iskandar, 1485, Herat (Bodleian Library MS. Elliott 339).jpg",
+    "license": "Public domain"
+  },
+  {
+    "beat": 5,
+    "type": "SCHEMATIC",
+    "label": "Survey / Blueprint",
+    "text": "Built by the Sasanian Empire, probably in the 5th-6th century AD About 195 km long, with more than 30 forts Made of fired red bricks and fed by a canal system, hence the nickname 'Red Snake' Possibly garrisoned by tens of thousands of soldiers Among the longest defensive walls of the ancient world",
+    "file": "23_commons.jpg",
+    "title": "File:Brown Red Snake Resting on Fallen Tree.jpg",
+    "license": "CC BY 2.0"
   }
 ]

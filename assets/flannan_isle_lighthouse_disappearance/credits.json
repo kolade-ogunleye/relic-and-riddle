@@ -56,5 +56,94 @@
       "file": "02_commons.jpg"
     }
   ],
-  "review_note": "Reviewed 2026-10-20: kept 2 of 5; dropped 3 (stained glass of Saint Flannan, a different subject); NOT approved: fewer than 5 usable images"
+  "review_note": "Reviewed 2026-10-20: kept 2 of 5; dropped 3 (stained glass of Saint Flannan, a different subject); NOT approved: fewer than 5 usable images",
+  "rejected_by_review": [
+    {
+      "title": "File:03 St. Patrick, The Ryan Window, by J. Clarke & Sons, St. Flannan's Church Killaloe.png",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/41/03_St._Patrick%2C_The_Ryan_Window%2C_by_J._Clarke_%26_Sons%2C_St._Flannan%27s_Church_Killaloe.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:03_St._Patrick,_The_Ryan_Window,_by_J._Clarke_%26_Sons,_St._Flannan%27s_Church_Killaloe.png",
+      "artist": "NateBergin",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 1665,
+      "height": 5992,
+      "grade": 0,
+      "description": "03 St. Flannan (or St. Patrick), The Ryan Window, by J. Clarke & Sons, St. Flannan's Church Killaloe",
+      "categories": [
+        "Self-published work",
+        "St. Flannan's Church, Killaloe",
+        "Saint Patrick on stained-glass windows in Ireland",
+        "J. Clarke & Sons",
+        "Saint Flannan"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "06_commons.jpg",
+      "vision_review": {
+        "reason": "operator-assistant review: off-subject",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:33 St Flannan, Catherine O'Brien, Honan Chapel Stained Glass.png",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/4f/33_St_Flannan%2C_Catherine_O%27Brien%2C_Honan_Chapel_Stained_Glass.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:33_St_Flannan,_Catherine_O%27Brien,_Honan_Chapel_Stained_Glass.png",
+      "artist": "NateBergin",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 938,
+      "height": 4011,
+      "grade": 0,
+      "description": "33 St Flannan, Catherine O'Brien, Honan Chapel Stained Glass",
+      "categories": [
+        "Catherine O'Brien",
+        "An Túr Gloine",
+        "Honan Chapel",
+        "Self-published work",
+        "Saint Flannan"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "07_commons.jpg",
+      "vision_review": {
+        "reason": "operator-assistant review: off-subject",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:32 St Flannan detail, Catherine O'Brien, Honan Chapel Stained Glass.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/47/32_St_Flannan_detail%2C_Catherine_O%27Brien%2C_Honan_Chapel_Stained_Glass.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:32_St_Flannan_detail,_Catherine_O%27Brien,_Honan_Chapel_Stained_Glass.jpg",
+      "artist": "NateBergin",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 880,
+      "height": 2628,
+      "grade": 0,
+      "description": "32 St Flannan detail, Catherine O'Brien, Honan Chapel Stained Glass",
+      "categories": [
+        "Catherine O'Brien",
+        "An Túr Gloine",
+        "Honan Chapel",
+        "Self-published work",
+        "Saint Flannan"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "08_commons.jpg",
+      "vision_review": {
+        "reason": "operator-assistant review: off-subject",
+        "kept": false
+      }
+    }
+  ]
 }

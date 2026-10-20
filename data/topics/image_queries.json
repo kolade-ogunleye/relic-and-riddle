@@ -2,7 +2,8 @@
   "_doc": "Wikimedia Commons search terms per topic for scripts/fetch_commons_images.py. A file is kept only if its title contains one of the keywords (case- and accent-insensitive) and no 'exclude' term appears in its title, description or categories (for namesakes, e.g. Zhang Heng the boatman). Topics without an entry are skipped.",
   "derinkuyu_underground_city": {
     "queries": ["Derinkuyu underground city", "Derinkuyu tunnel", "Derinkuyu rolling stone door", "Derinkuyu ventilation shaft"],
-    "keywords": ["derinkuyu"]
+    "keywords": ["derinkuyu"],
+    "exclude": ["kirche", "church", "telephone", "street", "mosque"]
   },
   "roman_self_healing_concrete": {
     "queries": ["Roman concrete", "opus caementicium", "Caesarea Maritima harbour", "Pantheon Rome dome interior"],
@@ -32,7 +33,8 @@
   "piri_reis_1513_map": {"queries": ["Piri Reis map"], "keywords": ["piri reis"]},
   "flannan_isle_lighthouse_disappearance": {
     "queries": ["Flannan Isles lighthouse", "Flannan Isles", "Eilean Mor Flannan"],
-    "keywords": ["flannan", "eilean mor"]
+    "keywords": ["flannan isle", "flannan lighthouse", "eilean mor"],
+    "exclude": ["st. patrick", "st flannan", "saint flannan", "stained glass", "honan", "killaloe"]
   },
   "trepanation_miracle": {
     "queries": ["trepanation skull", "trepanned skull", "trephination skull", "trepanation"],
@@ -86,9 +88,9 @@
     "exclude": ["court", "street", "city park", "railway station", "town hall", "market square"]
   },
   "great_wall_of_gorgan": {
-    "queries": ["Great Wall of Gorgan", "Gorgan Wall", "Alexander's Wall Gorgan", "Sadd-i Iskandar", "Red Snake wall"],
-    "keywords": ["great wall of gorgan", "gorgan wall", "wall of gorgan", "sadd-i iskandar", "red snake"],
-    "exclude": ["skyline", "forest", "jangal", "newspaper", "igor", "shahrood", "alangdarre", "street", "university"]
+    "queries": ["Great Wall of Gorgan", "Gorgan Wall", "Alexander's Wall Gorgan"],
+    "keywords": ["great wall of gorgan", "gorgan wall", "wall of gorgan"],
+    "exclude": ["skyline", "forest", "jangal", "newspaper", "igor", "shahrood", "alangdarre", "street", "university", "snake", "folio", "bodleian"]
   },
   "dancing_plague_1518": {
     "queries": ["dancing mania", "Pilgrims dancing Molenbeek", "dancing plague 1518", "choreomania"],

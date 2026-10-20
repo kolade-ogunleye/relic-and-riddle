@@ -383,6 +383,10 @@ def drop_images(topic_dir: Path, numbers: List[int]) -> str:
     doomed = {shown[n - 1]["file"] for n in set(numbers)}
     for f in doomed:
         (topic_dir / f).unlink(missing_ok=True)
+    # Remembered as rejected, so a later refill never fetches the same photo again.
+    credits["rejected_by_review"] = credits.get("rejected_by_review", []) + [
+        {**im, "vision_review": {"reason": "dropped by the operator", "kept": False}}
+        for im in images if im["file"] in doomed]
     images[:] = [im for im in images if im["file"] not in doomed]
     credits["reviewed"] = False
     save_credits(topic_dir, credits)

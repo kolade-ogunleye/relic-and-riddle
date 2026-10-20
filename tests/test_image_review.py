@@ -68,3 +68,11 @@ def test_drop_numbers_match_the_contact_sheet(tmp_path):
     write_contact_sheet(tmp_path, imgs)
     drop_images(tmp_path, [1])
     assert not (tmp_path / "03_commons.jpg").exists() and (tmp_path / "01_commons.jpg").exists()
+
+
+def test_dropped_photos_are_never_fetched_again(tmp_path):
+    imgs = _pool(tmp_path, 3)
+    write_contact_sheet(tmp_path, imgs)
+    drop_images(tmp_path, [2])
+    rejected = [r["title"] for r in load_credits(tmp_path).get("rejected_by_review", [])]
+    assert rejected == ["File:Kailasa 2.jpg"]  # the fetcher skips these titles

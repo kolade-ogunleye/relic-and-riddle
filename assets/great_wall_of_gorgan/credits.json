@@ -55,5 +55,313 @@
       "file": "02_commons.jpg"
     }
   ],
-  "review_note": "Reviewed 2026-10-20: kept 2 of 20; dropped 18 (Gorgan city, forests, a newspaper and a namesake person); NOT approved: fewer than 5 usable images"
+  "review_note": "Reviewed 2026-10-20: kept 2 of 20; dropped 18 (Gorgan city, forests, a newspaper and a namesake person); NOT approved: fewer than 5 usable images",
+  "rejected_by_review": [
+    {
+      "title": "File:Folio 17a. Sadd-i Iskandar (Bodleian Library, MS. Elliot 339).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/2/2a/Folio_17a._Sadd-i_Iskandar_%28Bodleian_Library%2C_MS._Elliot_339%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Folio_17a._Sadd-i_Iskandar_(Bodleian_Library,_MS._Elliot_339).jpg",
+      "artist": "1485 artist, Herat",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": null,
+      "width": 2998,
+      "height": 4444,
+      "grade": 0,
+      "description": "Folio 17a. Sadd-i Iskandar (Bodleian Library, MS. Elliot 339)",
+      "categories": [
+        "PD-old-100-expired",
+        "PD-Art (PD-old-100-expired)",
+        "CC-PD-Mark",
+        "PD-Art missing SDC copyright status",
+        "PD-old missing SDC copyright status",
+        "Sadd-i Iskandari, by Ali-Shir Nava'i (1441–1501), Herat c. 1485 (Bodleian Library, Elliott 339)",
+        "Khamsa of Ali-Shir Nava'i"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "21_commons.jpg",
+      "vision_review": {
+        "reason": "operator-assistant review: off-subject",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Mystics in a garden. Sadd-i Iskandar, 1485, Herat (Bodleian Library MS. Elliott 339).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/2/22/Mystics_in_a_garden._Sadd-i_Iskandar%2C_1485%2C_Herat_%28Bodleian_Library_MS._Elliott_339%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Mystics_in_a_garden._Sadd-i_Iskandar,_1485,_Herat_(Bodleian_Library_MS._Elliott_339).jpg",
+      "artist": "1485 artist, Herat",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": null,
+      "width": 3095,
+      "height": 3855,
+      "grade": 0,
+      "description": "Mystics in a garden. Sadd-i Iskandar, 1485, Herat (Bodleian Library MS. Elliott 339)",
+      "categories": [
+        "Qasim Ali",
+        "PD-old-100-expired",
+        "PD-Art (PD-old-100-expired)",
+        "CC-PD-Mark",
+        "PD-Art missing SDC copyright status",
+        "PD-old missing SDC copyright status",
+        "Sadd-i Iskandari, by Ali-Shir Nava'i (1441–1501), Herat c. 1485 (Bodleian Library, Elliott 339)"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "22_commons.jpg",
+      "vision_review": {
+        "reason": "operator-assistant review: off-subject",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Brown Red Snake Resting on Fallen Tree.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/53/Brown_Red_Snake_Resting_on_Fallen_Tree.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Brown_Red_Snake_Resting_on_Fallen_Tree.jpg",
+      "artist": "Amaury Laporte",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "attribution_required": true,
+      "year": 2023,
+      "width": 6000,
+      "height": 4000,
+      "grade": 0,
+      "description": "At Huntley Meadows Park",
+      "categories": [
+        "Huntley Meadows Park",
+        "Flickr images reviewed by FlickreviewR 2"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 3.0,
+      "file": "23_commons.jpg",
+      "vision_review": {
+        "reason": "operator-assistant review: off-subject",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Folio 77b. Sadd-i Iskandar (Bodleian Library, MS. Elliot 339).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/2/29/Folio_77b._Sadd-i_Iskandar_%28Bodleian_Library%2C_MS._Elliot_339%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Folio_77b._Sadd-i_Iskandar_(Bodleian_Library,_MS._Elliot_339).jpg",
+      "artist": "1485 artist, Herat",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": null,
+      "width": 2972,
+      "height": 3428,
+      "grade": 0,
+      "description": "Folio 77b. Sadd-i Iskandar (Bodleian Library, MS. Elliot 339)",
+      "categories": [
+        "PD-old-100-expired",
+        "PD-Art (PD-old-100-expired)",
+        "CC-PD-Mark",
+        "PD-Art missing SDC copyright status",
+        "PD-old missing SDC copyright status",
+        "Sadd-i Iskandari, by Ali-Shir Nava'i (1441–1501), Herat c. 1485 (Bodleian Library, Elliott 339)",
+        "Khamsa of Ali-Shir Nava'i"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "24_commons.jpg",
+      "vision_review": {
+        "reason": "operator-assistant review: off-subject",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Brown Red Snake Head Emerging from Water.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/5d/Brown_Red_Snake_Head_Emerging_from_Water.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Brown_Red_Snake_Head_Emerging_from_Water.jpg",
+      "artist": "Amaury Laporte",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "attribution_required": true,
+      "year": 2023,
+      "width": 6000,
+      "height": 4000,
+      "grade": 0,
+      "description": "At Huntley Meadows Park",
+      "categories": [
+        "Huntley Meadows Park",
+        "Flickr images reviewed by FlickreviewR 2"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 3.0,
+      "file": "25_commons.jpg",
+      "vision_review": {
+        "reason": "operator-assistant review: off-subject",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Folio 39a. Sadd-i Iskandar (Bodleian Library, MS. Elliot 339).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/c/c9/Folio_39a._Sadd-i_Iskandar_%28Bodleian_Library%2C_MS._Elliot_339%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Folio_39a._Sadd-i_Iskandar_(Bodleian_Library,_MS._Elliot_339).jpg",
+      "artist": "1485 artist, Herat",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": null,
+      "width": 1460,
+      "height": 2060,
+      "grade": 0,
+      "description": "Folio 39a. Sadd-i Iskandar (Bodleian Library, MS. Elliot 339).jpg",
+      "categories": [
+        "PD-old-100-expired",
+        "PD-Art (PD-old-100-expired)",
+        "CC-PD-Mark",
+        "PD-Art missing SDC copyright status",
+        "PD-old missing SDC copyright status",
+        "Sadd-i Iskandari, by Ali-Shir Nava'i (1441–1501), Herat c. 1485 (Bodleian Library, Elliott 339)"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "26_commons.jpg",
+      "vision_review": {
+        "reason": "operator-assistant review: off-subject",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Brown Red Snake Flicking Forked Tongue 4.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/53/Brown_Red_Snake_Flicking_Forked_Tongue_4.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Brown_Red_Snake_Flicking_Forked_Tongue_4.jpg",
+      "artist": "Amaury Laporte",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "attribution_required": true,
+      "year": 2023,
+      "width": 6000,
+      "height": 4000,
+      "grade": 0,
+      "description": "At Huntley Meadows Park",
+      "categories": [
+        "Huntley Meadows Park",
+        "Flickr images reviewed by FlickreviewR 2"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 3.0,
+      "file": "27_commons.jpg",
+      "vision_review": {
+        "reason": "operator-assistant review: off-subject",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Brown Red Snake Flicking Forked Tongue 2.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/b/b0/Brown_Red_Snake_Flicking_Forked_Tongue_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Brown_Red_Snake_Flicking_Forked_Tongue_2.jpg",
+      "artist": "Amaury Laporte",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "attribution_required": true,
+      "year": 2023,
+      "width": 6000,
+      "height": 4000,
+      "grade": 0,
+      "description": "At Huntley Meadows Park",
+      "categories": [
+        "Huntley Meadows Park",
+        "Flickr images missing SDC inception",
+        "Flickr images reviewed by FlickreviewR 2"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 3.0,
+      "file": "28_commons.jpg",
+      "vision_review": {
+        "reason": "operator-assistant review: off-subject",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Brown Red Snake Flicking Forked Tongue 5.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/9/99/Brown_Red_Snake_Flicking_Forked_Tongue_5.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Brown_Red_Snake_Flicking_Forked_Tongue_5.jpg",
+      "artist": "Amaury Laporte",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "attribution_required": true,
+      "year": 2023,
+      "width": 6000,
+      "height": 4000,
+      "grade": 0,
+      "description": "At Huntley Meadows Park",
+      "categories": [
+        "Huntley Meadows Park",
+        "Flickr images reviewed by FlickreviewR 2"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 3.0,
+      "file": "29_commons.jpg",
+      "vision_review": {
+        "reason": "operator-assistant review: off-subject",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Brown Red Snake Flicking Forked Tongue 1.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/2/2c/Brown_Red_Snake_Flicking_Forked_Tongue_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Brown_Red_Snake_Flicking_Forked_Tongue_1.jpg",
+      "artist": "Amaury Laporte",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "attribution_required": true,
+      "year": 2023,
+      "width": 6000,
+      "height": 4000,
+      "grade": 0,
+      "description": "At Huntley Meadows Park",
+      "categories": [
+        "Huntley Meadows Park",
+        "Flickr images reviewed by FlickreviewR 2"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 3.0,
+      "file": "30_commons.jpg",
+      "vision_review": {
+        "reason": "operator-assistant review: off-subject",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Brown Red Snake Flicking Forked Tongue 3.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/3e/Brown_Red_Snake_Flicking_Forked_Tongue_3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Brown_Red_Snake_Flicking_Forked_Tongue_3.jpg",
+      "artist": "Amaury Laporte",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "attribution_required": true,
+      "year": 2023,
+      "width": 6000,
+      "height": 4000,
+      "grade": 0,
+      "description": "At Huntley Meadows Park",
+      "categories": [
+        "Huntley Meadows Park",
+        "Flickr images reviewed by FlickreviewR 2"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 3.0,
+      "file": "31_commons.jpg",
+      "vision_review": {
+        "reason": "operator-assistant review: off-subject",
+        "kept": false
+      }
+    }
+  ]
 }

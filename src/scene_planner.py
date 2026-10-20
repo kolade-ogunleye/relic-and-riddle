@@ -276,6 +276,11 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
     for idx, g in locked.items():
         if idx < len(chosen):
             chosen[idx] = g
+    # A locked graphic appears only on its beat: any other copy (the planner's own pick) becomes a photo.
+    if stills:
+        for k, p in enumerate(chosen):
+            if p in locked.values() and locked.get(k) != p:
+                chosen[k] = stills[k % len(stills)]
 
     # A graphic the planner placed where the narration doesn't say what it shows becomes a photo.
     if stills:
@@ -292,11 +297,14 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
         k -= 1
     # Our own graphics carry information, but a Reel of diagrams loses the place: at most
     # MAX_GRAPHICS of them and GRAPHICS_MAX_SHARE of the runtime; extras become photos.
-    k = len(chosen) - 1
-    while (_graphics_count(chosen) > MAX_GRAPHICS or _graphics_share(chosen, durations) > GRAPHICS_MAX_SHARE) and k >= 0:
-        if Path(chosen[k]).stem.startswith("graphic_"):
-            chosen[k] = stills[k % len(stills)]
-        k -= 1
+    # Unlocked graphics go first; a graphic locked to the beat that names it goes only if still over.
+    over = lambda: _graphics_count(chosen) > MAX_GRAPHICS or _graphics_share(chosen, durations) > GRAPHICS_MAX_SHARE  # noqa: E731
+    for keep_locked in (True, False):
+        k = len(chosen) - 1
+        while over() and k >= 0:
+            if Path(chosen[k]).stem.startswith("graphic_") and not (keep_locked and k in locked):
+                chosen[k] = stills[k % len(stills)]
+            k -= 1
     if hook is not None:
         chosen[0] = hook
     return chosen, durations, notes

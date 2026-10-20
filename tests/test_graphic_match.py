@@ -2,6 +2,8 @@
 declared spec (lineage sidecar), matched as whole words; the old substring locks fired on "air" in
 "stairs" and "era" in "several", and their vocabulary was Derinkuyu's."""
 
+from PIL import Image
+
 from src import graphic_match, scene_planner as sp
 from src.lineage import record_graphic
 
@@ -101,3 +103,22 @@ def test_storyboard_for_other_words_is_ignored(tmp_path):
              {"start": 3, "end": 6, "text": "Roman harbours still stand after two thousand years."}]
     _, _, notes = sp.plan_scenes(beats, imgs)
     assert "storyboard" not in notes
+
+
+def test_a_graphic_is_never_shown_twice(tmp_path, monkeypatch):
+    # The Kailasa dry run showed its map twice: the planner put it on one beat, the lock on another.
+    place = make_graphic(tmp_path, "graphic_map.mp4", {"builder": "map", "place": {"label": "Ellora", "country": "India"}})
+    Image.new("RGB", (64, 64), (0, 0, 200)).save(place.with_suffix(".jpg"))  # a real poster frame
+    photos = []
+    for i in range(3):
+        p = tmp_path / f"p{i}.jpg"
+        Image.new("RGB", (64, 64), (i * 40, 0, 0)).save(p)
+        photos.append(p)
+    beats = [{"start": 0, "end": 3, "text": "A temple carved from a cliff."},
+             {"start": 3, "end": 6, "text": "Builders at Ellora worked downward."},  # names the place too
+             {"start": 6, "end": 9, "text": "It stands at Ellora in India."}]
+    monkeypatch.setattr(sp, "claude_available", lambda: True)
+    monkeypatch.setattr(sp.free_llm, "enabled", lambda: False)
+    monkeypatch.setattr(sp, "structured_call", lambda *a, **k: sp.ScenePlan(images=[1, 4, 2], notes="planner"))
+    scenes, _, _ = sp.plan_scenes(beats, photos + [place])
+    assert scenes.count(place) == 1 and scenes[2] == place  # kept where the narration names the place

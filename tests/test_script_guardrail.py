@@ -21,6 +21,7 @@ def test_curated_script_offline_requires_human_review(curated_payload):
     (lambda p: p.update(narration_script="Too short.", closing_sentence="Too short."), "words"),
     (lambda p: p.update(narration_script=p["narration_script"][:-1] + " and", closing_sentence="x"), "trailing word"),
     (lambda p: p.update(caption=p["caption"] + " Built by aliens."), "trope"),
+    (lambda p: p.update(caption=p["caption"] + " A study reported discoveries."), "machine-sounding phrasing"),
     (lambda p: p.update(story_slides=p["story_slides"][:2]), "3 story slides"),
     (lambda p: p.update(title="x" * 61), "Title"),
 ])
@@ -156,3 +157,42 @@ def test_invalid_graphic_is_dropped_not_fatal(curated_payload):
     pruned = prune_graphics(pkg)
     assert pruned.stat_cards is None and pruned.timeline is not None  # only the bad graphic goes
     assert validate_structure(pruned) == []
+
+
+def test_fact_starved_topic_error():
+    from src.fact_sheet import FactStarvedTopicError, MIN_VERIFIED_FACTS
+    assert MIN_VERIFIED_FACTS == 6
+    import pytest
+    with pytest.raises(FactStarvedTopicError):
+        # Emulate build logic when facts < 6
+        facts = [{"id": "fact_1"}]
+        if len(facts) < MIN_VERIFIED_FACTS:
+            raise FactStarvedTopicError("Topic yielded only 1 verified fact (6 required).")
+
+
+def test_resilient_surgical_sentence_revision(curated_payload):
+    from src.script_engine import ScriptEngine
+    engine = ScriptEngine()
+    fake_sheet = {
+        "topic_id": "test_topic",
+        "facts": [
+            {"id": "fact_1", "statement": "Roman concrete stands intact.", "disputed": False, "hedge": "", "evidence": []}
+        ]
+    }
+    prev = dict(curated_payload)
+    prev["caption"] = "Ancient harbor seawalls resist ocean decay. Unverified petrographic claim was stated."
+    # Test normalized core match
+    class MockEdit:
+        find = "Unverified petrographic claim was stated."
+        replace = "Roman concrete stands intact."
+
+    class MockResult:
+        edits = [MockEdit()]
+
+    from unittest.mock import patch
+    with patch("src.script_engine._structured", return_value=MockResult()):
+        revised = engine._revise_surgically(prev, "Unverified claim", fake_sheet)
+        assert revised is not None
+        assert "Roman concrete stands intact." in revised.caption
+        assert "Unverified petrographic claim" not in revised.caption
+

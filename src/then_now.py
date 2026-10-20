@@ -125,47 +125,49 @@ def source(topic: Dict[str, Any], work_dir: Path) -> Optional[Tuple[Path, Dict[s
     return None
 
 
-def render(old: Path, old_year: int, new: Path, new_year: int, out: Path) -> Path:
+def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> Path:
     """The old photo first, then a gold line wipes across to reveal the recent one; year badges on each."""
-    a = cover_crop(old, (W, H)).convert("RGB")
-    b = cover_crop(new, (W, H)).convert("RGB")
+    a = cover_crop(old, (width, height)).convert("RGB")
+    b = cover_crop(new, (width, height)).convert("RGB")
     n = int(CLIP_SECONDS * VIDEO_FPS)
-    font = get_font("Anton", 72)
+    font = get_font("Anton", 60 if width > height else 72)
+    top = int(height * 0.12) if width > height else TEXT_TOP
+    badge_h = 80 if width > height else 100
 
     def badge(im: Image.Image, text: str, x: int, alpha: float) -> None:
         d = ImageDraw.Draw(im, "RGBA")
         tw = d.textlength(text, font=font)
-        d.rounded_rectangle([x, TEXT_TOP, x + tw + 50, TEXT_TOP + 100], radius=14, fill=(10, 10, 12, int(210 * alpha)),
+        d.rounded_rectangle([x, top, x + tw + 40, top + badge_h], radius=14, fill=(10, 10, 12, int(210 * alpha)),
                             outline=(*GOLD, int(230 * alpha)), width=3)
-        _text(d, (x + 25, TEXT_TOP + 50), text, font=font, fill=(*WHITE, int(255 * alpha)), anchor="lm")
+        _text(d, (x + 20, top + badge_h // 2), text, font=font, fill=(*WHITE, int(255 * alpha)), anchor="lm")
 
     def frames():
         for i in range(n):
             t = i / VIDEO_FPS
             p = _ease((t - 2.2) / 1.6)  # hold on "then", wipe to "now"
-            xw = int(W * p)
+            xw = int(width * p)
             im = a.copy()
             if xw > 0:
-                im.paste(b.crop((0, 0, xw, H)), (0, 0))
+                im.paste(b.crop((0, 0, xw, height)), (0, 0))
             im = im.convert("RGB")
             d = ImageDraw.Draw(im, "RGBA")
             if 0 < p < 1:
-                d.line([(xw, 0), (xw, H)], fill=(*GOLD, 255), width=6)
+                d.line([(xw, 0), (xw, height)], fill=(*GOLD, 255), width=6)
             badge(im, str(old_year), 70, 1 - p)
-            badge(im, str(new_year), W - 70 - int(ImageDraw.Draw(im, "RGBA").textlength(str(new_year), font=font)) - 50, p)
+            badge(im, str(new_year), width - 70 - int(ImageDraw.Draw(im, "RGBA").textlength(str(new_year), font=font)) - 40, p)
             yield im
 
-    return _encode(frames(), out, n)
+    return _encode(frames(), out, n, width=width, height=height)
 
 
-def make(topic: Dict[str, Any], work_dir: Path) -> Tuple[Optional[Path], List[Dict[str, Any]]]:
+def make(topic: Dict[str, Any], work_dir: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> Tuple[Optional[Path], List[Dict[str, Any]]]:
     """(clip, credits of both photos) or (None, [])."""
     try:
         found = source(topic, work_dir)
         if not found:
             return None, []
         old, old_c, new, new_c = found
-        return render(old, old_c["year"], new, new_c["year"], work_dir / "graphic_thennow.mp4"), [old_c, new_c]
+        return render(old, old_c["year"], new, new_c["year"], work_dir / "graphic_thennow.mp4", width=width, height=height), [old_c, new_c]
     except Exception as e:  # optional graphic
         log.warning("Then-and-now failed: %s", e)
         return None, []

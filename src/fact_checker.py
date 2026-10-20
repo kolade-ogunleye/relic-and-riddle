@@ -87,6 +87,12 @@ class ClaimFactChecker:
         on_screen = [payload["thumbnail"][k] for k in ("eyebrow", "line1", "line2", "tagline")]
         on_screen += [f"{s['line1']} {s['line2']}. {s['body']}" for s in payload["story_slides"]]
         on_screen += [f"{c['heading']}: {c['body']}" for c in payload["carousel_slides"]]
+        from .graphics import diagram_labels
+        for key, kind in (("rolling_stone_defense", "defense"), ("ventilation_airflow", "ventilation")):
+            if payload.get(key):
+                spec = payload[key]
+                on_screen.append("Diagram: " + str(spec.get("title", "")) + " " +
+                                 " | ".join(diagram_labels(kind, spec).values()))
         # Animated graphics (src/graphics.py) show these as fact; check them like any on-screen text.
         from .graphics import year_text
         on_screen += [f"Timeline: {year_text(e['year'], e.get('approximate', False))} - {e['label']}"
@@ -95,6 +101,10 @@ class ClaimFactChecker:
             f = payload["scale_fact"]
             on_screen.append(f"Scale graphic: {f['subject']} = {'about ' if f.get('approximate', True) else ''}"
                              f"{f['value']:g} {f['unit']} ({f['dimension']})")
+            from .reference_facts import selected_reference, measurement_text
+            reference = selected_reference(f)
+            if reference:
+                on_screen.append(f"Scale reference: {reference['label']} = ABOUT {measurement_text(reference['feet'])}; {reference['context']}")
         on_screen += [f"Number card: {c['value']} {c['label']}" for c in payload.get("stat_cards") or []]
         if payload.get("cross_section"):
             cs = payload["cross_section"]

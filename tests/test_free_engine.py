@@ -57,6 +57,35 @@ def test_free_mode_never_calls_claude_to_check(free, monkeypatch, curated_payloa
     monkeypatch.setattr(eng.fact_checker, "second_opinion", lambda *a, **k: pytest.fail("paid second check"))
     passed, out, msg = eng.verify_claims(dict(curated_payload, topic_id="t1", origin="gemini-free", fact_sheet=True))
     assert passed and "evidence ok" in msg
-    # Without a fact sheet, a model-written script fails closed (no paid fallback).
     passed, _, msg = eng.verify_claims(dict(curated_payload, topic_id="none", origin="gemini-free"))
     assert not passed and "fails closed" in msg
+
+
+def test_openalex_scholarly_evidence_synthesis(monkeypatch):
+    from src.free_evidence import fetch_openalex_scholarly_evidence
+    class MockWorkResp:
+        status_code = 200
+        def json(self):
+            return {
+                "results": [
+                    {
+                        "title": "Ancient Mechanical Calculator",
+                        "doi": "https://doi.org/10.1038/nature05357",
+                        "abstract_inverted_index": {
+                            "The": [0], "mechanism": [1], "was": [2], "constructed": [3], "in": [4],
+                            "ancient": [5], "Greece.": [6], "Scans": [7], "revealed": [8], "thirty": [9],
+                            "bronze": [10], "gears.": [11]
+                        }
+                    }
+                ]
+            }
+
+    import requests
+    monkeypatch.setattr(requests, "get", lambda *a, **k: MockWorkResp())
+    quotes, sources = fetch_openalex_scholarly_evidence("Antikythera mechanism")
+    assert len(quotes) >= 1
+    assert "https://doi.org/10.1038/nature05357" in quotes[0]["url"]
+    assert "gears" in quotes[0]["quote"] or "Greece" in quotes[0]["quote"]
+    assert len(sources) == 1
+    assert sources[0]["url"] == "https://doi.org/10.1038/nature05357"
+

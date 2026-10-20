@@ -19,7 +19,7 @@ import re
 import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 from .config import (
     BASE_DIR,
@@ -53,6 +53,7 @@ from .config import (
     VIDEO_PRESET,
 )
 from .typography import is_video
+from .parallax import preset_for
 
 log = logging.getLogger(__name__)
 
@@ -61,6 +62,13 @@ TRANSITIONS = [
     "zoomin", "dissolve", "smoothright", "fade",
     "zoomin", "dissolve", "smoothleft", "fadeblack",
 ]
+PARALLAX_TO_TRANSITION = {
+    "push": "zoomin",
+    "drift_left": "smoothleft",
+    "drift_right": "smoothright",
+    "rise": "smoothup",
+    "pull": "dissolve",
+}
 TRANS_DUR = 0.40
 
 
@@ -107,17 +115,50 @@ def rounded_rect_path(w: int, h: int, r: int) -> str:
     )
 
 
-ROMAN_NUMERALS = {"I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI"}
+ROMAN_NUMERALS = {
+    "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X",
+    "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX",
+    "XXI", "XXII", "XXIII", "XXIV", "XXV", "XXVI", "XXVII", "XXVIII", "XXIX", "XXX"
+}
+ERA_DESIGNATORS = {
+    "bc", "bce", "ad", "ce", "bp", "mya", "kya", "ya"
+}
+ORDINAL_WORDS = {
+    "first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth",
+    "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth", "sixteenth", "seventeenth",
+    "eighteenth", "nineteenth", "twentieth", "twenty-first"
+}
+SPELLED_NUMBERS = {
+    "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+    "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen",
+    "nineteen", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety",
+    "hundred", "thousand", "million", "billion"
+}
 MEASURE_UNITS = {
-    "tons", "ton", "feet", "ft", "meters", "m", "kilometres", "km", "miles", "years", "year",
-    "stories", "levels", "level", "kg", "lbs", "pounds", "inches", "centuries", "century",
-    "monasteries", "temples", "shafts", "first", "second", "third", "fourth", "fifth"
+    # Distance / Dimension
+    "feet", "ft", "meters", "meter", "m", "kilometres", "kilometre", "km", "miles", "mile",
+    "inches", "inch", "in", "cm", "centimeters", "centimeter", "centimetres", "centimetre",
+    "mm", "millimeters", "millimeter", "yards", "yard", "yd",
+    # Weight / Mass
+    "tons", "ton", "kg", "lbs", "pounds", "pound", "grams", "gram", "g", "ounces", "ounce", "oz",
+    # Time / Chronology
+    "years", "year", "centuries", "century", "decades", "decade", "millennia", "millennium",
+    "months", "month", "weeks", "week", "days", "day", "hours", "hour", "hr", "hrs",
+    "minutes", "minute", "min", "mins", "seconds", "second", "sec", "secs",
+    # Architecture / Archaeology Specifics
+    "stories", "story", "levels", "level", "shafts", "shaft", "chambers", "chamber",
+    "rooms", "room", "monasteries", "monastery", "temples", "temple", "gates", "gate",
+    "steps", "step", "tiers", "tier", "pillars", "pillar", "columns", "column",
+    "gears", "gear", "teeth", "tooth", "fragments", "fragment", "pieces", "piece",
+    "monoliths", "monolith", "blocks", "block", "slabs", "slab",
+    # Percentages & Angles
+    "percent", "pct", "degrees", "deg",
 }
 DESIGNATORS = {
     "cave", "caves", "level", "levels", "chamber", "chambers", "room", "rooms", "phase", "phases",
     "shaft", "shafts", "tier", "tiers", "gate", "gates", "tomb", "tombs", "site", "sites",
     "trench", "trenches", "layer", "layers", "step", "steps", "dynasty", "century", "centuries",
-    "chapter", "part", "no.", "number"
+    "chapter", "part", "no.", "number", "fragment", "fragments", "piece", "pieces"
 }
 TITLES = {"king", "queen", "emperor", "pope", "saint", "st.", "dr.", "mr.", "mrs.", "lord", "sir"}
 DANGLING_TAILS = {
@@ -148,22 +189,30 @@ def _is_atomic_boundary(w1_raw: str, w2_raw: str) -> bool:
     w2 = re.sub(r"[^\w]", "", w2_raw).lower()
     if not w1 or not w2:
         return False
-    # Entity Designator + Number/Code/Ordinal (e.g. 'Cave' + '16', 'Level' + '3', 'Dynasty' + '4')
-    if w1 in DESIGNATORS and (any(c.isdigit() for c in w2) or w2.upper() in ROMAN_NUMERALS or len(w2) <= 2 or w2 in {"first", "second", "third"}):
+    # Number / Spelled Number + Era Designator (e.g. '205' + 'BC', '87' + 'BC', '300' + 'BCE', '10,000' + 'BP')
+    if (any(c.isdigit() for c in w1) or w1 in SPELLED_NUMBERS) and w2 in ERA_DESIGNATORS:
         return True
-    # Number + Measurement Unit (e.g. '200,000' + 'tons', '100' + 'feet', '2' + 'kilometres')
-    if any(c.isdigit() for c in w1) and w2 in MEASURE_UNITS:
+    # Prefix Era / Circa + Number (e.g. 'AD' + '79', 'circa' + '1900', 'c.' + '200')
+    if w1 in {"ad", "circa", "c", "ca"} and any(c.isdigit() for c in w2):
+        return True
+    # Number / Spelled Number / Ordinal + Measurement Unit (e.g. '200,000' + 'tons', '100' + 'feet', '14th' + 'century', 'five' + 'inches')
+    if (any(c.isdigit() for c in w1) or w1 in SPELLED_NUMBERS or w1 in ORDINAL_WORDS) and (w2 in MEASURE_UNITS or w2 in {"century", "centuries", "millennium", "millennia", "era", "dynasty"}):
+        return True
+    # Entity Designator + Number / Single-letter Code / Roman Numeral / Ordinal (e.g. 'Cave' + '16', 'Fragment' + 'A', 'Dynasty' + 'IV')
+    # Note: Prepositions like 'in', 'at', 'of' are NOT codes and must not be bound here.
+    if w1 in DESIGNATORS and (any(c.isdigit() for c in w2) or (len(w2) == 1 and w2.isalpha()) or w2.upper() in ROMAN_NUMERALS or w2 in {"first", "second", "third"}):
         return True
     # Honorific/Title + Name (e.g. 'King' + 'Krishna')
     if w1 in TITLES:
         return True
     # Determiner + Ordinal / Regal (e.g. 'the' + 'first')
-    if w1 == "the" and w2 in {"first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth"}:
+    if w1 == "the" and w2 in ORDINAL_WORDS:
         return True
     # Name + Roman Numeral (e.g. 'Krishna' + 'I')
     if w2.upper() in ROMAN_NUMERALS:
         return True
     return False
+
 
 
 def partition_words_grammatical(
@@ -227,6 +276,7 @@ def partition_words_grammatical(
                         chunk = sent[i:i + size]
                         clean_chunk = [re.sub(r"[\,\;\.]+$", "", x.get("word", "")) for x in chunk]
                         txt = " ".join(clean_chunk)
+                        first_w = re.sub(r"[^\w]", "", clean_chunk[0]).lower()
                         last_w = re.sub(r"[^\w]", "", clean_chunk[-1]).lower()
                         score = 100
                         if len(txt) <= max_chars:
@@ -237,6 +287,10 @@ def partition_words_grammatical(
                             score -= 200  # Strictly penalize dangling prepositions/determiners/conjunctions at block ends
                         if last_w in CLAUSE_STARTERS:
                             score -= 300  # Conjunctions/clause starters must start a new block, never end one
+                        if first_w in ERA_DESIGNATORS:
+                            score -= 500  # Never start a block with an orphaned era designator (e.g. 'BC')
+                        if first_w in MEASURE_UNITS:
+                            score -= 400  # Never start a block with an orphaned measurement unit (e.g. 'feet')
                         if re.search(r"[\,\;]$", chunk[-1].get("word", "")):
                             score += 70   # Reward breaking at clause commas
                         # If next word begins a new subordinate clause, strongly reward cutting right before it!
@@ -390,13 +444,15 @@ def emphasis_indices(words: List[Dict[str, Any]], terms: Optional[List[str]]) ->
 
 
 def _audio_chain(vo_idx: int, bg_idx: int) -> str:
-    """Voice cleanup + centered stereo VO + ducked stereo bed + sum at delivery sample rate, before mastering."""
+    """Voice cleanup + optical vocal leveling + center spectral pocket carving + ducked stereo bed."""
     return (
         f"[{vo_idx}:a]aresample={AUDIO_SAMPLE_RATE},aformat=channel_layouts=stereo,"
-        f"highpass=f=85,equalizer=f=3500:width_type=q:w=1.2:g=1.5,equalizer=f=7000:width_type=q:w=2.0:g=-2.0,"
+        f"highpass=f=85,compand=attacks=0.02:decays=0.15:points=-80/-80|-40/-35|-20/-16|0/-10,"
+        f"equalizer=f=3500:width_type=q:w=1.2:g=1.8,equalizer=f=7000:width_type=q:w=2.0:g=-2.2,"
         f"asplit[v_main][v_sc];"
-        f"[{bg_idx}:a]aresample={AUDIO_SAMPLE_RATE},aformat=channel_layouts=stereo[bg_rs];"
-        f"[bg_rs][v_sc]sidechaincompress=threshold=0.08:ratio=7:attack=15:release=220[bg_ducked];"
+        f"[{bg_idx}:a]aresample={AUDIO_SAMPLE_RATE},aformat=channel_layouts=stereo,"
+        f"equalizer=f=3200:width_type=q:w=1.5:g=-3.0[bg_carved];"
+        f"[bg_carved][v_sc]sidechaincompress=threshold=0.08:ratio=7:attack=15:release=220[bg_ducked];"
         f"[v_main][bg_ducked]amix=inputs=2:duration=first:dropout_transition=2:normalize=0,aformat=channel_layouts=stereo"
     )
 
@@ -637,6 +693,21 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         are scaled up. If it never gets that close, the best result within `accept` LU is
         used with a warning; platforms re-normalize, so that is not worth failing a run.
         """
+        from .credits import sha256_file
+        # Same voice + bed + targets always converge to the same gain (each pass decodes the full
+        # mix), so a re-render (QA re-plan, deep-dive) reuses it instead of re-measuring.
+        key = (sha256_file(vo_path), sha256_file(bed_path), tolerance, accept, max_iter, target_lufs, target_true_peak)
+        cache = self.__dict__.setdefault("_gain_cache", {})
+        if all(key[:2]) and key in cache:
+            log.info("Mastering: reusing calibrated gain %+.2f dB for unchanged audio", cache[key])
+            return cache[key]
+        gain = self._calibrate_gain(vo_path, bed_path, tolerance, accept, max_iter, target_lufs, target_true_peak)
+        if all(key[:2]):
+            cache[key] = gain
+        return gain
+
+    def _calibrate_gain(self, vo_path: Path, bed_path: Path, tolerance: float, accept: float,
+                        max_iter: int, target_lufs: float, target_true_peak: float) -> float:
         base = _audio_chain(0, 1)
         integrated, _ = self._measure(vo_path, bed_path, base)
         gain = target_lufs - integrated
@@ -674,6 +745,34 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             pass
         return False
 
+
+    @staticmethod
+    def compute_focal_point(image_path: Path) -> Tuple[float, float]:
+        """
+        Computes normalized (cx, cy) focal center of mass in [0.15, 0.85] using edge-energy gradient.
+        Prevents off-center relics/monuments in wide 16:9 or 3:1 panoramas from getting cropped off
+        during 9:16 vertical crop and zoompan moves.
+        """
+        try:
+            with Image.open(image_path) as im:
+                small = im.convert("L").resize((128, 128))
+                edges = small.filter(ImageFilter.FIND_EDGES)
+                pixels = edges.tobytes()
+                total_mass = sum(pixels)
+                if total_mass == 0:
+                    return (0.5, 0.5)
+
+                x_mass = sum((idx % 128 + 0.5) * val for idx, val in enumerate(pixels))
+                y_mass = sum((idx // 128 + 0.5) * val for idx, val in enumerate(pixels))
+
+                cx = (x_mass / total_mass) / 128.0
+                cy = (y_mass / total_mass) / 128.0
+                cx = max(0.15, min(0.85, cx))
+                cy = max(0.15, min(0.85, cy))
+                return (cx, cy)
+        except Exception as e:
+            log.debug("Focal point computation fallback for %s: %s", image_path, e)
+            return (0.5, 0.5)
 
     @bounded_encode
     def compose_video(
@@ -777,8 +876,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     f"fps={VIDEO_FPS},setsar=1,scale=out_range=tv,format=yuv420p[v{i}]"
                 )
             else:
+                cx, cy = self.compute_focal_point(item)
+                crop_x = f"(in_w-out_w)*{cx:.3f}"
+                crop_y = f"(in_h-out_h)*{cy:.3f}"
                 filter_parts.append(
-                    f"[{i}:v]scale={w2}:{h2}:force_original_aspect_ratio=increase,crop={w2}:{h2},"
+                    f"[{i}:v]scale={w2}:{h2}:force_original_aspect_ratio=increase,crop={w2}:{h2}:{crop_x}:{crop_y},"
+                    f"curves=master='0/0.02 0.1/0.11 0.5/0.50 0.9/0.89 1/0.97',"
                     f"zoompan=z='{z}':x='{x}':y='{y}':d={frames}:s={width}x{height}:fps={VIDEO_FPS},"
                     f"setsar=1,scale=out_range=tv,format=yuv420p[v{i}]"
                 )
@@ -787,7 +890,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         for k in range(n - 1):
             out = f"[x{k}]" if k < n - 2 else "[video_raw]"
             off = round(offsets[k], 3)
-            filter_parts.append(f"{curr}[v{k + 1}]xfade=transition={TRANSITIONS[k % len(TRANSITIONS)]}:duration={TRANS_DUR}:offset={off}{out}")
+            preset_k = preset_for(k, n)
+            trans_k = PARALLAX_TO_TRANSITION.get(preset_k, "dissolve")
+            # Narrative punctuation: elevate the primary revelation cut (beat 2) to a dramatic punch
+            if k == 1 and n >= 4:
+                trans_k = "zoomin"
+            elif (k + 1) % 4 == 0:
+                trans_k = "fadeblack"
+            filter_parts.append(f"{curr}[v{k + 1}]xfade=transition={trans_k}:duration={TRANS_DUR}:offset={off}{out}")
             curr = out
         if n == 1:
             filter_parts.append("[v0]null[video_raw]")
@@ -800,15 +910,15 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         ass_str = str(ass_path.resolve()).replace("\\", "/").replace(":", "\\:")
         fonts_str = str(self.fonts_dir.resolve()).replace("\\", "/").replace(":", "\\:")
         vignette_aspect = "16/9" if width > height else "9/16"
-        # Studio-grade cinema grade: Kodak 2383 3D film print LUT emulation
+        # Studio-grade cinema grade: Kodak 2383 3D film print LUT emulation with pre-LUT luminance stabilization
         lut_path = BASE_DIR / "assets" / "luts" / "kodak_2383.cube"
         if lut_path.exists():
             lut_str = str(lut_path.resolve()).replace("\\", "/").replace(":", "\\:")
-            film_grade = f"lut3d='{lut_str}'"
+            film_grade = f"curves=master='0/0.02 0.5/0.50 1/0.98',lut3d='{lut_str}'"
         else:
             film_grade = "eq=contrast=1.07:brightness=0.008:saturation=1.08,curves=master='0/0.02 0.2/0.19 0.5/0.51 0.8/0.82 1/0.98':red='0/0.01 0.5/0.50 1/0.99':blue='0/0.04 0.5/0.49 1/0.94'"
         filter_parts.append(
-            f"[video_raw]{film_grade},"
+            f"[video_raw]format=yuv420p,{film_grade},format=yuv420p,"
             f"noise=alls=8:allf=t+u,vignette=PI/4.2:aspect={vignette_aspect},"
             f"subtitles='{ass_str}':fontsdir='{fonts_str}',scale=out_range=tv,format=yuv420p[v_final]"
         )

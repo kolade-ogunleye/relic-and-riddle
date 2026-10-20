@@ -259,3 +259,33 @@ def test_reel_fields_map_to_each_platform(monkeypatch, envelope):
     assert d["instagram_title"] == "C" * 2000 and d["facebook_description"] == "C" * 2000
     assert d["facebook_title"] == "T" and len(d["title"]) <= 255  # not the 2,000-char caption
     assert d["is_ai_generated"] == "true" and d["facebook_is_ai_generated"] == "true"
+
+
+def test_unlicensed_voice_blocks_live_publication(monkeypatch, run, envelope, tmp_path):
+    from src import config
+    monkeypatch.setattr(config, "VOICE_REQUIRE_LICENSED", True)
+    monkeypatch.setattr(config, "OUTPUT_DIR", tmp_path)
+    run_dir = tmp_path / "r1"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    import json
+    (run_dir / "voice.json").write_text(json.dumps({"provider": "edge-tts", "licensed": False}), encoding="utf-8")
+    pub = _stub("a")
+    res = MetaPublisher(run, [pub]).publish_reel(envelope, dry_run=False)
+    assert res["status"] == "blocked_unlicensed"
+    assert "Commercial Voice License Required" in res["error"]
+    pub.publish.assert_not_called()
+
+
+def test_licensed_voice_allows_live_publication(monkeypatch, run, envelope, tmp_path):
+    from src import config
+    monkeypatch.setattr(config, "VOICE_REQUIRE_LICENSED", True)
+    monkeypatch.setattr(config, "OUTPUT_DIR", tmp_path)
+    run_dir = tmp_path / "r1"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    import json
+    (run_dir / "voice.json").write_text(json.dumps({"provider": "azure", "licensed": True}), encoding="utf-8")
+    pub = _stub("a")
+    res = MetaPublisher(run, [pub]).publish_reel(envelope, dry_run=False)
+    assert res["status"] == "published"
+    pub.publish.assert_called_once()
+

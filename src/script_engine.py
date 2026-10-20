@@ -25,7 +25,8 @@ from .fact_checker import ClaimFactChecker
 from . import free_llm
 from .llm import LLMError, claude_available, format_sources, research, structured_call, task as llm_task
 from . import fact_sheet, trace_check
-from .models import GraphicsPlan, ScriptCore, ScriptPackage, Source
+from .models import DeepDivePackage, DocumentaryAct, GraphicsPlan, ScriptCore, ScriptPackage, Source
+
 
 log = logging.getLogger(__name__)
 
@@ -37,16 +38,30 @@ class ScriptUnavailableError(RuntimeError):
 SYSTEM_PROMPT = """You are a documentary scriptwriter producing short vertical Reels (1080x1920) for Facebook and Instagram in the "Historical Curiosities & Ancient Marvels" niche. Accuracy is the brand: viewers and Meta's integrity systems punish fabricated or exaggerated history, so every factual statement you write must be something you have confirmed with web search.
 
 Editorial rules:
-- Narration is 95-112 spoken words (about 40-45 seconds at 145 wpm). Hard maximum 115.
-- Four beats: (1) a concrete, sensory hook in the first sentence - never "Hey guys" or "Have you ever wondered"; (2) verifiable scale and engineering facts; (3) the genuine open question or historical context; (4) a closing sentence that is grammatically complete on its own and leads naturally back into the hook, so the video loops.
+- Narration is 105-115 spoken words (about 42-48 seconds at 145 wpm). Hard maximum 115.
+- Five beats tailored to topic archetype (Knowledge Bomb & Forensic Reality schema):
+  (1) Category-Aware Cinematic Hook in the first 3 seconds (Beat 1):
+      - Megastructures: Impossible Architectural Contrast or Subterranean Paradox (e.g. ancient structures enduring while modern buildings crumble, or thousands living 280 feet under solid volcanic rock).
+      - Relic Artifacts: Lost Technology Anomaly (precision micro-mechanics, astronomical gear trains, or ancient nanotechnology that shouldn't exist for 1,500 years).
+      - Riddle Events & Cataclysms: Sudden Forensic Anomaly (stark physical devastation, colossal atmospheric shockwave, zero impact crater, or vanished expeditions).
+      NEVER start Beat 1 with greetings ('Hey guys'), generic rhetorical questions ('Have you ever wondered'), or robotic hedge words ('Estimated,', 'Approximately,'). Hook the audience immediately with an arresting, tangible reality.
+  (2) Forensic Evidence & Underlying Mechanism (Beats 2-3): Concrete physical evidence, exact metrics, tree rings, seismic data, metallurgy, materials, or gears.
+  (3) Epistemic Integrity & Leading Hypotheses (Beat 4): Where figures or causes are debated, present the leading scientific hypotheses with fluent, natural phrasing (e.g. 'physicists calculate that...', 'physical models suggest roughly...', 'ranging between X and Y').
+  (4) Civilizational / Modern Relevance & High Stakes: Why this anomaly matters to modern science, engineering, or planetary resilience.
+  (5) Standalone Loop Takeaway (Beat 5): An impactful concluding sentence leading back naturally into the opening hook so the video loops seamlessly.
+- Hard ban on robotic sentence prefixes: NEVER start sentences with 'Estimated,' or 'Approximately,'. Integrate hedges naturally into the narrative flow.
+- Hard ban on academic paper citation chaff: do NOT use phrases like "A study in [year] reported...", "Researchers drilled...", "Geologist [Name] stated...", or "According to historians...". Present verified physical, chemical, and historical facts directly and authoritatively.
+- Hard ban on research meta-commentary: NEVER discuss the state of records, studies, or sources in the narration (e.g. do NOT say "popular sources give shallower figures", "there is no official figure for...", "records do not specify", or "sources disagree"). Instead, present the physical and historical realities directly with natural in-situ hedges (e.g. say "carved roughly 280 feet or 85 meters down", "an estimated 20,000 residents", or "ranging between 60 and 85 meters").
 - Never end on a trailing word such as "when", "until", "because", "and".
-- Use numbers only when sources support them. Where sources disagree, say "about", "up to", "estimated", or name the range. Do not call something unexplained if historians have a well-supported explanation; present real debates as debates.
+- Use numbers only when sources support them. Where sources disagree, say "about", "up to", "estimated", or name the range. State the hedged physical reality directly.
 - No conspiracy or pseudo-archaeology framing (aliens, lost super-civilizations, etc.).
 - Topic notes supplied by the user may contain errors or exaggerations. Check them; do not repeat them unverified.
 - On-screen copy is short and uppercase-friendly: thumbnail lines at most 22 characters, story and carousel headings at most 26 characters, bodies at most 90 characters.
 - Audience: primarily the United States, then the UK, Canada and Australia. Use American English spelling, and give measurements in US units first with metric in parentheses, e.g. "about 280 feet (85 m)", "half a ton (about 500 kg)".
 - The narration must add facts, context and interpretation a viewer could not get from the pictures alone (Meta treats voiceover that merely describes what is on screen as unoriginal). Never narrate the visuals ("here we see", "as you can see", "this photo shows").
 - Write like a sharp human documentary narrator: concrete nouns, active verbs, specific numbers and names. Avoid generic AI phrasing such as "delve", "testament to", "tapestry", "unveil", "unravel", "shrouded in mystery", "realm", "embark", "intricate", "a glimpse into", "stands as", "it's important to note".
+- Hard ban on dictionary etymologies (e.g. "originates from the Greek word...", "meaning single and stone"). Focus 100% on physical, engineering, and historical realities.
+- Hard ban on academic historian name-dropping (e.g. "Art historian X theorized...", "Scholars debate whether..."). Narrate the factual and physical reality directly.
 - Return the sources you relied on."""
 
 RESEARCH_SYSTEM = """You are a research assistant for a history documentary team. Use web search to establish what reliable sources (scholarship, museums, heritage bodies, reputable encyclopedias and press) say about the topic. Report concrete, citable facts with numbers and dates, note where sources disagree and give the range, flag popular claims that are myths or exaggerations, and identify the genuine open questions. Be concise and factual."""
@@ -73,7 +88,7 @@ Requirements:
 - hashtags: 3-5 (Instagram allows at most 5), each starting with "#": specific to the place, era or subject (e.g. "#Cappadocia", "#ByzantineHistory"); no generic engagement tags like "#viral", "#fyp", "#ReelsViral", "#explore".
 - story_slides: exactly 3 (hook, revelation, question).
 - poll: one question with exactly 2 short options (posted manually as a native Story poll sticker).
-- carousel_slides: exactly 7 (title slide, five fact slides, closing call-to-comment slide).
+- carousel_slides: exactly 7 (title slide, five fact slides, closing call-to-comment slide). Slide 7 MUST ask a humane, universally resonant, thought-provoking question that appeals to all demographics (e.g. human ingenuity, civilizational survival, what modern humans have forgotten, or enduring mysteries) rather than narrow academic trivia, compelling viewers to debate in the comments.
 - first_comment: a debate-starting question, with no hashtags (Instagram's 5-hashtag cap covers the whole post).
 - sources: the pages you used, with real URLs."""
 
@@ -97,16 +112,26 @@ def writer_origin() -> str:
 
 
 FACTS_ONLY_RULES = """Write from the verified facts ONLY. Every factual statement in the narration, caption, title,
-on-screen text, slides, stories and first comment must come from a listed fact; for a DISPUTED fact use its hedge
-wording (or something no stronger). Do not add details, names, causes, numbers or dates that are not in a fact,
-and do not derive new figures (no subtracting dates, no unit-free rounding). Never put words in a source's mouth:
-attribute or quote a source ("the Smithsonian calls it...") only if the fact itself names that source. Use at most 8 distinct facts and reuse
-the same wording for a fact wherever it appears. Questions and framing are fine if they assert nothing new.
+on-screen text, slides, stories and first comment must come from a listed fact; for a DISPUTED fact use natural, fluent
+hedging (e.g. 'physicists calculate that...', 'models suggest roughly...', 'ranging between X and Y').
+CRITICAL BAN ON ROBOTIC PREFIXES: NEVER start sentences with 'Estimated,' or 'Approximately,'. Integrate hedges seamlessly into verbs or clauses.
+Do not add details, names, causes, numbers or dates that are not in a fact, and do not derive new figures (no subtracting dates, no unit-free rounding).
+State verified physical, chemical, and historical facts directly and authoritatively. Do not use dictionary etymologies (no "monos meaning single and lithos meaning stone", no Latin/Greek roots). Do not quote individual researcher names or study publication dates (e.g. do not say 'Geologist X has said' or 'A July 2017 study reported') unless hedging a scientific hypothesis (e.g. 'Researchers propose that...').
+CRITICAL THEMATIC UNITY & ZERO-DRIFT RULE:
+Every single sentence in the narration must directly advance the central subject, engineering marvel, physical anomaly, chemical mechanism, or civilizational contrast of the topic.
+HARD BAN ON TOPIC DRIFT: NEVER pivot in later beats to regional municipal history, local colonial founding dates, territorial border conquests, or unrelated town elevations (e.g. never talk about 280 BC Etruscan land treaties when discussing concrete).
+GEOGRAPHIC CONCORDANCE: The narration's primary site and landmarks must align 100% with the topic's primary location. If scientific testing occurred on samples excavated from a secondary archaeological site (e.g. Pompeii or Privernum), that site must be explicitly subordinated as a material testing sample of the primary technique, NEVER treated as an unlinked narrative topic.
+Do not invent unprovable negative claims unless an evidence quote explicitly states that exact negative fact. Stick strictly to what IS documented.
+Do not assert factual claims about modern builders, modern technology, or modern construction practices unless explicitly listed in a verified fact; stick strictly to the ancient subject or frame contrasts as open questions.
+LITERAL SCIENTIFIC FIDELITY: When citing or referencing studies, analyses, or archaeological discoveries, state ONLY what the evidence quote literally states. NEVER extrapolate, hypothesize, or invent mechanisms beyond the text (e.g. do NOT turn 'provides lessons for sustainable construction' into 'demonstrates how historical mortars resist degradation').
+Use at most 8 distinct facts and reuse the same wording for a fact wherever it appears. Questions and framing are fine if they assert nothing new.
 List sources only from retrieved_sources."""
 
 REVISE_SYSTEM = """You fix a short history video package so it passes fact-checking. For each finding, replace ONLY
-the rejected sentence or phrase: hedge it using the verified fact's hedge wording, or replace it with a verified
-fact, or remove it. Return exact find/replace edits: "find" must be copied character-for-character from the draft
+the rejected sentence or phrase: hedge it naturally using fluent English (e.g. 'models suggest', 'scientists calculate', 'roughly'), or replace it with a verified
+fact, or remove it. CRITICAL: NEVER prepend robotic prefixes like 'Estimated,' or 'Approximately,' to fix a sentence.
+Titles and on-screen covers are intrigue headlines and must NEVER be hedged with 'Estimated'.
+Return exact find/replace edits: "find" must be copied character-for-character from the draft
 (a whole sentence or phrase), "replace" is its new text ("" to delete). Fix every place the claim appears
 (narration, caption, title, on-screen text, slides, stories, graphics). Never add facts that are not verified.
 If you change the narration's last sentence, apply the same edit to closing_sentence."""
@@ -140,10 +165,13 @@ BANNED_TROPES = [
 ]
 # Phrasing that reads as machine-written; a draft containing it is sent back for a rewrite.
 AI_PHRASES = [
+    "estimated,", "approximately,",
     "here we see", "as you can see", "this photo shows", "in this image", "in this video",
     "delve", "delves", "delving", "testament to", "tapestry", "unveil", "unveils", "unravel", "unravels",
     "shrouded in mystery", "realm of", "embark", "a glimpse into", "stands as a", "it's important to note",
     "in the annals of", "intricate dance", "beacon of",
+    "a study reported", "a study published", "a study found", "researchers drilled", "researchers found that",
+    "geologist marie jackson has said", "geologist marie jackson said", "according to researchers", "according to studies",
 ]
 EMOJI_RE = re.compile("[\U0001F300-\U0001FAFF☀-➿]")  # pictographs, symbols, dingbats
 GENERIC_HASHTAGS = {"#viral", "#fyp", "#foryou", "#foryoupage", "#reelsviral", "#explore", "#explorepage", "#trending",
@@ -359,11 +387,53 @@ class ScriptEngine:
             Edits, effort="medium", max_tokens=6000)
         text = json.dumps(draft, ensure_ascii=False)
         for e in result.edits:
-            old, new = json.dumps(e.find, ensure_ascii=False)[1:-1], json.dumps(e.replace, ensure_ascii=False)[1:-1]
-            if not old or old not in text:
-                log.warning("Surgical edit not found in the draft (%r); rewriting instead.", e.find[:60])
-                return None
-            text = text.replace(old, new)
+            find_str = e.find.strip()
+            replace_str = e.replace.strip()
+            if not find_str:
+                continue
+            old = json.dumps(find_str, ensure_ascii=False)[1:-1]
+            new = json.dumps(replace_str, ensure_ascii=False)[1:-1]
+            if old in text:
+                text = text.replace(old, new)
+            elif find_str in text:
+                text = text.replace(find_str, replace_str)
+            else:
+                # Scan individual draft string fields
+                found = False
+                for k, v in draft.items():
+                    if isinstance(v, str) and find_str in v:
+                        draft[k] = v.replace(find_str, replace_str)
+                        found = True
+                    elif isinstance(v, list):
+                        for item in v:
+                            if isinstance(item, dict):
+                                for sub_k, sub_v in item.items():
+                                    if isinstance(sub_v, str) and find_str in sub_v:
+                                        item[sub_k] = sub_v.replace(find_str, replace_str)
+                                        found = True
+                if found:
+                    text = json.dumps(draft, ensure_ascii=False)
+                else:
+                    # Resilient fallback: locate sentence by normalized core (ignoring quotation/punctuation diffs)
+                    core = re.sub(r"[^\w\s]", "", find_str).strip()
+                    if len(core) >= 15:
+                        for k, v in draft.items():
+                            if isinstance(v, str) and core in re.sub(r"[^\w\s]", "", v):
+                                sentences = re.split(r"(?<=[.!?])\s+", v)
+                                new_sentences = []
+                                for s in sentences:
+                                    if core in re.sub(r"[^\w\s]", "", s):
+                                        if replace_str:
+                                            new_sentences.append(replace_str)
+                                        found = True
+                                    else:
+                                        new_sentences.append(s)
+                                draft[k] = " ".join(new_sentences)
+                        if found:
+                            text = json.dumps(draft, ensure_ascii=False)
+                    if not found:
+                        log.warning("Surgical edit not found in the draft (%r); rewriting instead.", e.find[:60])
+                        return None
         try:
             return ScriptPackage.model_validate(json.loads(text))
         except (ValueError, ValidationError) as e:
@@ -384,10 +454,27 @@ class ScriptEngine:
             # Verify first, then write: the writer may use only the verified facts, with their hedges.
             notes = "VERIFIED FACTS (use only these; keep each DISPUTED fact's hedge wording):\n" + fact_sheet.as_prompt(sheet)
             retrieved = [Source(title=s["title"], url=s["url"]) for s in sorted(sheet["sources"], key=lambda s: s["tier"])]
+            
+            # Extract distinct raw evidence quotes so the writer sees the exact academic/encyclopedic text
+            evidence_listing = []
+            seen_q = set()
+            for f in sheet.get("facts", []):
+                for e in f.get("evidence", []):
+                    q_text = (e.get("quote") or "").strip()
+                    if q_text and q_text not in seen_q:
+                        seen_q.add(q_text)
+                        evidence_listing.append(f"- \"{q_text[:400]}\"")
+            evidence_block = "\n".join(evidence_listing[:35])
+            raw_evidence_str = (
+                f"\n\n<raw_evidence_quotes>\n{evidence_block}\n</raw_evidence_quotes>\n"
+                if evidence_block else ""
+            )
+
             prompt = (
                 USER_PROMPT_TEMPLATE.format(**fields)
-                + f"\n\n<verified_facts>\n{fact_sheet.as_prompt(sheet)}\n</verified_facts>\n\n"
-                + f"<retrieved_sources>\n{format_sources(retrieved)}\n</retrieved_sources>\n"
+                + f"\n\n<verified_facts>\n{fact_sheet.as_prompt(sheet)}\n</verified_facts>"
+                + raw_evidence_str
+                + f"\n<retrieved_sources>\n{format_sources(retrieved)}\n</retrieved_sources>\n"
                 + FACTS_ONLY_RULES + feedback
             )
         elif free_llm.enabled():
@@ -495,3 +582,114 @@ class ScriptEngine:
                 return False, script_payload, f"REJECTED by second fact checker: {msg2}"
             msg = f"{msg} | 2nd check: {msg2}"
         return True, script_payload, f"Structure OK ({pkg.narration_script.count(' ') + 1} words) | {msg}"
+
+    def is_deep_dive_eligible(self, topic: Dict[str, Any], visual_count: int = 0) -> bool:
+        """Determines if a topic has sufficient fact density and visual assets for a 4-minute documentary."""
+        sheet = self._sheet(topic)
+        facts_count = len(sheet.get("facts", [])) if sheet else len(topic.get("key_facts", []))
+        return facts_count >= 8 and (visual_count == 0 or visual_count >= 6)
+
+    def generate_deep_dive(self, topic: Dict[str, Any], feedback: str = "") -> DeepDivePackage:
+        """Generates a complete 5-act long-form documentary script package (~3:30 to 5:00 min)."""
+        sheet = self._sheet(topic)
+        if sheet is None:
+            raise ScriptUnavailableError(f"No verified fact sheet available for topic '{topic['id']}'.")
+
+        def _build_fallback() -> DeepDivePackage:
+            acts = []
+            facts = sheet.get("facts", [])
+            act_titles = [
+                "The Discovery and Initial Breach",
+                "Subterranean Engineering and Ventilation Architecture",
+                "Origins, Fortification and Siege Defense",
+                "Excavation and Modern Discoveries",
+                "Historical Significance and Debate",
+            ]
+            for i in range(5):
+                chunk = facts[i * 2 : (i + 1) * 2] if len(facts) >= 10 else facts[:2]
+                facts_text = " ".join(f.get("statement", "") for f in chunk) or "The ancient subterranean network descends deep into volcanic rock."
+                acts.append(DocumentaryAct(
+                    act_number=i + 1,
+                    act_title=act_titles[i],
+                    target_duration_sec=45,
+                    narration_text=f"Act {i+1} reveals the critical history. {facts_text}",
+                    visual_intent=f"Archival visuals illustrating {act_titles[i]}",
+                    graphic_type="none",
+                    claim_fact_ids=[f.get("id", f"F{i+1}") for f in chunk],
+                ))
+            return DeepDivePackage(
+                topic_id=topic["id"],
+                title=topic.get("title", ""),
+                youtube_title=f"{topic.get('title', '')}: The Complete Historical Documentary",
+                description=f"Investigative documentary exploring {topic.get('title', '')}.",
+                tags=["documentary", "history", "ancient"],
+                acts=acts,
+                closing_debate_question=f"What does {topic.get('title')} tell us about ancient survival?",
+                sources=[],
+            )
+
+        if not _ready():
+            return _build_fallback()
+
+        loc = topic.get("location", {})
+        location_str = ", ".join(v for v in (loc.get("name"), loc.get("city"), loc.get("country")) if v)
+        prompt = (
+            f"Topic title: {topic.get('title')}\n"
+            f"Sub-theme: {topic.get('sub_theme', '')}\n"
+            f"Location: {location_str}\n\n"
+            f"<verified_facts>\n{fact_sheet.as_prompt(sheet)}\n</verified_facts>\n\n"
+            f"Write the complete 5-act investigative documentary script for YouTube and Facebook In-Stream Video (16:9 widescreen).\n"
+            f"Target duration: 3:30 to 4:45 minutes (approx. 550 to 750 spoken words across 5 acts)."
+        )
+        if feedback:
+            prompt += f"\n\n<revision_feedback>\n{feedback}\n</revision_feedback>"
+
+        try:
+            pkg: DeepDivePackage = _structured(
+                DEEP_DIVE_SYSTEM_PROMPT,
+                prompt,
+                DeepDivePackage,
+                effort="high",
+                max_tokens=8000,
+            )
+            return pkg
+        except LLMError as e:
+            log.warning("Claude deep-dive generation failed (%s); building from verified fact sheet.", e)
+            return _build_fallback()
+
+    def verify_deep_dive_act_by_act(self, package: DeepDivePackage, topic: Dict[str, Any]) -> Tuple[bool, List[str]]:
+        """Verifies each act of a deep-dive script individually against the fact sheet."""
+        sheet = self._sheet(topic)
+        if sheet is None:
+            return False, ["No fact sheet available."]
+
+        all_findings = []
+        for act in package.acts:
+            passed, findings = trace_check.check_act(act.narration_text, sheet, act.act_number)
+            if not passed:
+                all_findings.extend(findings or [f"Act {act.act_number}: verification did not pass."])
+
+        return len(all_findings) == 0, all_findings
+
+
+DEEP_DIVE_SYSTEM_PROMPT = """Write a five-act historical documentary grounded exclusively in the supplied verified fact sheet.
+Every empirical claim in narration, titles, descriptions, and chapter headings must trace to a supplied fact.
+Preserve each disputed fact's required qualification, source attribution, uncertainty, and scope.
+Do not add causes, construction methods, threats, dates, quantities, or discoveries to make a story more dramatic.
+
+Use five acts organized around the strongest available facts:
+1. Introduce the subject through a supported observation or a question.
+2. Explain its documented physical features.
+3. Explore its documented history, clearly preserving uncertainty about origins.
+4. Examine the remaining documented evidence and limits of what it establishes.
+5. Reflect on those facts and close with a question that asserts no new factual premise.
+These are narrative roles, not requirements to invent rediscovery incidents, sieges, laser scans, tunnels, or mysteries.
+
+Aim for 550-750 spoken words when the evidence supports that depth. Do not repeat facts or invent details to reach a runtime.
+If the evidence supports less material, return a shorter complete narrative; duration validation will make the limitation visible.
+Use plain language. Retain necessary source attribution and disagreement even when it interrupts a dramatic hook.
+Use numbers exactly as supported. Do not convert units, round figures, or introduce comparison benchmarks without supporting facts.
+For each act, include claim_fact_ids identifying the facts it uses.
+Apply the same factual standard to the YouTube title, description, tags, and debate question.
+Descriptions may contain chapter labels, but timestamps must be derived from actual audio later rather than presented as measured timings.
+Return the requested structured documentary package."""

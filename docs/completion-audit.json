@@ -1,0 +1,127 @@
+{
+  "checked_at": "2026-10-17T03:19:24.661381+00:00",
+  "status": "complete",
+  "scope": "Corrective implementation and local validation; publication and subsequent integrations excluded",
+  "tests": {
+    "command": ".venv/Scripts/python.exe -m pytest -q",
+    "passed": 358,
+    "failed": 0,
+    "seconds": 106.52,
+    "checked_at": "2026-10-17T03:16:08.488564+00:00"
+  },
+  "code_fingerprint": "31176ab375b5cbfefd3a3929975ebbebe05838d39a187350504969649c87e736",
+  "batch": [
+    {
+      "package": "output\\validation\\fresh_derinkuyu_v3",
+      "master_sha256": "9ff11f0980aa99a9257d667b40f4a6102715078cc3422dcc68ef1505fe5e7feb",
+      "release": "pass",
+      "check_count": 20,
+      "measurements": {
+        "dimensions": "Measured 1920x1080; expected 1920x1080.",
+        "duration": "Measured 193.536s; expected 180.0-360.0s.",
+        "loudness": {
+          "integrated_lufs": -14.5,
+          "true_peak_dbtp": -1.9
+        },
+        "true_peak": {
+          "integrated_lufs": -14.5,
+          "true_peak_dbtp": -1.9
+        }
+      },
+      "visual_inspection": "pass",
+      "automated_listening": "pass"
+    },
+    {
+      "package": "output\\validation\\fresh_roman",
+      "master_sha256": "2052ae81567f27ebda3bc29f00a971ffef0efd3c1171a3952848c8196ae75ff8",
+      "release": "pass",
+      "check_count": 18,
+      "measurements": {
+        "dimensions": "Measured 1080x1920; expected 1080x1920.",
+        "duration": "Measured 43.267s; expected 42.0-58.0s.",
+        "loudness": {
+          "integrated_lufs": -14.1,
+          "true_peak_dbtp": -1.7
+        },
+        "true_peak": {
+          "integrated_lufs": -14.1,
+          "true_peak_dbtp": -1.7
+        }
+      },
+      "visual_inspection": "pass",
+      "automated_listening": "pass"
+    },
+    {
+      "package": "output\\validation\\fresh_kailasa",
+      "master_sha256": "4f0c47d3a9f738faad41455abc7394e160578090d46d118d90cd2b3710762e59",
+      "release": "pass",
+      "check_count": 18,
+      "measurements": {
+        "dimensions": "Measured 1080x1920; expected 1080x1920.",
+        "duration": "Measured 47.033s; expected 42.0-58.0s.",
+        "loudness": {
+          "integrated_lufs": -14.1,
+          "true_peak_dbtp": -1.8
+        },
+        "true_peak": {
+          "integrated_lufs": -14.1,
+          "true_peak_dbtp": -1.8
+        }
+      },
+      "visual_inspection": "pass",
+      "automated_listening": "pass"
+    }
+  ],
+  "benchmark": {
+    "source": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\validation\\fresh_derinkuyu_v3\\documentary_master.mp4",
+    "source_sha256": "9ff11f0980aa99a9257d667b40f4a6102715078cc3422dcc68ef1505fe5e7feb",
+    "sample_times": [
+      1.0,
+      50.0,
+      75.0
+    ],
+    "sample_duration": 6,
+    "results": [
+      {
+        "encoder": "cpu",
+        "arguments": [
+          "-c:v",
+          "libx264",
+          "-preset",
+          "slow",
+          "-crf",
+          "18"
+        ],
+        "seconds": 8.294277000008151,
+        "bytes": 5367085,
+        "ssim": 0.942638
+      },
+      {
+        "encoder": "nvenc",
+        "arguments": [
+          "-c:v",
+          "h264_nvenc",
+          "-preset",
+          "p4",
+          "-cq",
+          "21"
+        ],
+        "seconds": 2.917703500002972,
+        "bytes": 5852314,
+        "ssim": 0.944372
+      }
+    ]
+  },
+  "sample": {
+    "master_sha256": "9ff11f0980aa99a9257d667b40f4a6102715078cc3422dcc68ef1505fe5e7feb",
+    "sample_sha256": "8a2055015ba88663fdf03e53ed8d2cd3a48fbc57e75fee46a32cfca6fe85f34e",
+    "audio": {
+      "integrated_lufs": -14.7,
+      "true_peak_dbtp": -2.4
+    },
+    "purpose": "15-second inspection extract; not a standalone delivery-profile release"
+  },
+  "publication_performed": false,
+  "human_approval": false,
+  "requirements_matrix": "docs/implementation-status.md"
+}

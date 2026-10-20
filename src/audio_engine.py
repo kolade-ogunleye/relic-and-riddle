@@ -35,6 +35,7 @@ from .config import (
     NARRATOR_PITCH,
     ELEVENLABS_API_KEY,
     ELEVENLABS_VOICE_ID,
+    VOICE_PREFER,
     SFX_DIR,
     is_configured,
 )
@@ -223,8 +224,13 @@ class AudioEngine:
 
     async def _generate_edge_tts(self, text: str, output_path: Path) -> Words:
         last_err = None
-        for attempt in range(1, 4):
+        for attempt in range(1, 6):
             try:
+                if output_path.exists():
+                    try:
+                        output_path.unlink()
+                    except Exception:
+                        pass
                 c = edge_tts.Communicate(text, self.voice, rate=self.rate, pitch=self.pitch, boundary="WordBoundary")
                 words: Words = []
                 with open(output_path, "wb") as f:
@@ -242,9 +248,10 @@ class AudioEngine:
                     return words
             except Exception as e:
                 last_err = e
-                log.warning("edge-tts attempt %d failed (%s); retrying in %.1fs...", attempt, e, attempt * 1.5)
-                await asyncio.sleep(attempt * 1.5)
-        raise RuntimeError(f"edge-tts failed after 3 attempts: {last_err}")
+                backoff = attempt * 2.0
+                log.warning("edge-tts attempt %d failed (%s); retrying in %.1fs with fresh connection...", attempt, e, backoff)
+                await asyncio.sleep(backoff)
+        raise RuntimeError(f"edge-tts failed after 5 attempts: {last_err}")
 
     def _generate_azure(self, text: str, output_path: Path) -> Words:
         """Azure Speech via the official SDK; word timings from word-boundary events."""
@@ -292,27 +299,35 @@ class AudioEngine:
         text = normalize_speech_text(text)
         self.fallback_reason = ""
         reasons: List[str] = []
-        if is_configured(self.eleven_key):
+
+        def _try_elevenlabs():
+            if not is_configured(self.eleven_key):
+                return None
             quota = self.voice_quota()
             licensed = bool(quota and quota.get("tier") and quota["tier"] != "free")
             has_quota_nums = bool(quota and "limit" in quota and "used" in quota)
             remaining = (quota["limit"] - quota["used"]) if has_quota_nums else None
             if licensed_only and not licensed:
                 reasons.append("ElevenLabs is on the Free plan (no commercial licence)")
-            elif has_quota_nums and remaining is not None and remaining < len(text):
+                return None
+            if has_quota_nums and remaining is not None and remaining < len(text):
                 reasons.append(f"ElevenLabs balance exhausted ({remaining} chars left; need {len(text)})")
                 log.warning("ElevenLabs character balance exhausted (%d chars left; need %d); routing to next voice provider.", remaining, len(text))
-            else:
-                try:
-                    log.info("Synthesizing voiceover via ElevenLabs (%s)...", self.eleven_voice)
-                    words = self._generate_elevenlabs(text, output_path)
-                    self.last_provider, self.last_licensed = "elevenlabs", licensed
-                    return align_words_with_script(orig_text, words)
-                except Exception as e:
-                    status = getattr(getattr(e, "response", None), "status_code", None)
-                    reasons.append(f"ElevenLabs failed (HTTP {status})" if status else f"ElevenLabs failed ({type(e).__name__})")
-                    log.warning("ElevenLabs failed (%s); trying the next voice.", e)
-        if is_configured(self.azure_key) and is_configured(self.azure_region):
+                return None
+            try:
+                log.info("Synthesizing voiceover via ElevenLabs (%s)...", self.eleven_voice)
+                words = self._generate_elevenlabs(text, output_path)
+                self.last_provider, self.last_licensed = "elevenlabs", licensed
+                return align_words_with_script(orig_text, words)
+            except Exception as e:
+                status = getattr(getattr(e, "response", None), "status_code", None)
+                reasons.append(f"ElevenLabs failed (HTTP {status})" if status else f"ElevenLabs failed ({type(e).__name__})")
+                log.warning("ElevenLabs failed (%s); trying the next voice.", e)
+                return None
+
+        def _try_azure():
+            if not (is_configured(self.azure_key) and is_configured(self.azure_region)):
+                return None
             try:
                 log.info("Synthesizing voiceover via Azure Speech (%s)...", self.voice)
                 words = self._generate_azure(text, output_path)
@@ -324,6 +339,15 @@ class AudioEngine:
             except Exception as e:
                 reasons.append(f"Azure Speech failed ({e})"[:200])
                 log.warning("Azure Speech failed (%s); trying the next voice.", e)
+                return None
+
+        # Order providers by VOICE_PREFER ("azure" free commercial tier first vs "elevenlabs" paid score first)
+        providers_order = [_try_azure, _try_elevenlabs] if VOICE_PREFER == "azure" else [_try_elevenlabs, _try_azure]
+        for provider_fn in providers_order:
+            res = provider_fn()
+            if res is not None:
+                return res
+
         self.fallback_reason = "; ".join(reasons)
         if licensed_only:
             raise NoLicensedVoice("No commercially licensed voice is available: "
@@ -363,11 +387,70 @@ class AudioEngine:
         return data[:, 0] if data.ndim > 1 else data
 
     # Sound effects play only where the narration mentions them (first matching word).
+    # Tuple format: (keywords, gain, optional_procedural_synth_name)
     SFX_CUES = {
-        "sfx_hammer.wav": (("knock", "hammer", "smash", "broke", "chisel", "wall"), 0.40),
-        "sfx_stone_door.wav": (("door", "rolling"), 0.45),
+        "sfx_hammer.wav": (("knock", "hammer", "smash", "broke", "wall"), 0.40, "_synth_chisel_strike"),
+        "sfx_stone_door.wav": (("door", "rolling", "slab", "chamber"), 0.45, "_synth_stone_grind"),
+        "sfx_gear_ratchet.wav": (("gear", "gears", "mechanism", "clockwork", "pointer", "dial", "analog", "bronze", "interlocking", "astronomical"), 0.35, "_synth_gear_ratchet"),
+        "sfx_water_surge.wav": (("submerged", "sea", "ocean", "shipwreck", "wreck", "diver", "sponge", "abyss", "depth", "underwater"), 0.38, "_synth_water_surge"),
+        "sfx_chisel.wav": (("chisel", "carv", "hewn", "basalt", "quarry", "monolith", "granite", "limestone", "pillar"), 0.36, "_synth_chisel_strike"),
     }
     MUSIC_RMS = 0.05  # bed level for music (about -26 dBFS); the mix ducks it further under speech
+
+    @staticmethod
+    def _synth_gear_ratchet(duration_sec: float = 0.8, sr: int = 48000) -> np.ndarray:
+        """Procedural Foley: Clockwork bronze gear ratchet and interlocking wheel clicks."""
+        n = int(duration_sec * sr)
+        out = np.zeros((n, 2), dtype=np.float32)
+        clicks = [0.05, 0.18, 0.32, 0.48, 0.62]
+        rng = np.random.default_rng(404)
+        for i, c_t in enumerate(clicks):
+            c_idx = int(c_t * sr)
+            c_dur = int(0.04 * sr)
+            if c_idx + c_dur <= n:
+                tau = np.arange(c_dur) / sr
+                decay = np.exp(-tau / 0.008)
+                freq = 2400.0 + (i % 3) * 350.0
+                click = (np.sin(2 * np.pi * freq * tau) + 0.4 * rng.standard_normal(c_dur)) * decay * 0.12
+                pan_l = 0.4 + 0.1 * i
+                pan_r = 1.0 - pan_l
+                out[c_idx:c_idx + c_dur, 0] += (click * pan_l).astype(np.float32)
+                out[c_idx:c_idx + c_dur, 1] += (click * pan_r).astype(np.float32)
+        return out
+
+    @staticmethod
+    def _synth_water_surge(duration_sec: float = 2.0, sr: int = 48000) -> np.ndarray:
+        """Procedural Foley: Submerged ocean swell and deep undersea water wash."""
+        n = int(duration_sec * sr)
+        t = np.arange(n) / sr
+        rng = np.random.default_rng(505)
+        noise_l = rng.standard_normal(n)
+        noise_r = rng.standard_normal(n)
+        brown_l = np.cumsum(noise_l)
+        brown_l -= np.mean(brown_l)
+        brown_l /= max(1e-6, np.max(np.abs(brown_l)))
+        brown_r = np.cumsum(noise_r)
+        brown_r -= np.mean(brown_r)
+        brown_r /= max(1e-6, np.max(np.abs(brown_r)))
+        env = (np.sin(np.pi * t / duration_sec)) ** 2
+        sub = np.sin(2 * np.pi * 55.0 * t) * env * 0.08
+        surge_l = (brown_l * 0.10 + sub) * env
+        surge_r = (brown_r * 0.10 + sub) * env
+        return np.column_stack((surge_l, surge_r)).astype(np.float32)
+
+    @staticmethod
+    def _synth_chisel_strike(duration_sec: float = 1.0, sr: int = 48000) -> np.ndarray:
+        """Procedural Foley: Acoustic stone chisel strike with resonant masonry ping."""
+        n = int(duration_sec * sr)
+        t = np.arange(n) / sr
+        rng = np.random.default_rng(606)
+        noise = rng.standard_normal(n)
+        env_transient = np.exp(-t / 0.02) * (1.0 - np.exp(-t / 0.002))
+        env_ring = np.exp(-t / 0.25)
+        impact = noise * env_transient * 0.15
+        ring = np.sin(2 * np.pi * 1450.0 * t) * env_ring * 0.08
+        chisel = impact + ring
+        return np.column_stack((chisel, chisel)).astype(np.float32)
 
     @staticmethod
     def _synth_sub_bass_braam(duration_sec: float = 2.0, sr: int = 48000, f0: float = 46.0) -> np.ndarray:
@@ -411,6 +494,21 @@ class AudioEngine:
         env = (1.0 - np.exp(-t / 0.08)) * np.exp(-t / 0.65)
         rumble = np.sin(2 * np.pi * 85.0 * t) * (1.0 + 0.5 * noise) * env * 0.10
         return np.column_stack((rumble, rumble))
+
+    @staticmethod
+    def _synth_transition_whoosh(duration_sec: float = 0.45, sr: int = 48000) -> np.ndarray:
+        """Procedural Foley: Cinematic transition whoosh with resonant downward sweep (600 -> 120 Hz) and dynamic stereo pan."""
+        n = int(duration_sec * sr)
+        rng = np.random.default_rng(303)
+        noise = rng.standard_normal(n)
+        freq_sweep = np.linspace(600.0, 120.0, n)
+        phase = 2 * np.pi * np.cumsum(freq_sweep) / sr
+        sweep = np.sin(phase)
+        env = (np.sin(np.pi * np.linspace(0, 1, n))) ** 2
+        whoosh = (sweep * 0.45 + noise * 0.55) * env * 0.08
+        pan_l = np.linspace(0.8, 0.2, n)
+        pan_r = np.linspace(0.2, 0.8, n)
+        return np.column_stack((whoosh * pan_l, whoosh * pan_r))
 
     @staticmethod
     def _decode(path: Path, sr: int) -> np.ndarray:
@@ -502,6 +600,14 @@ class AudioEngine:
             cavern_draft[-fout_d:] *= np.linspace(1.0, 0.0, fout_d)[:, None]
         bed += cavern_draft
 
+        # Procedural Foley: Opening hook reveal impact at ~0.15s
+        if total > int(0.20 * sr):
+            hook_braam = self._synth_sub_bass_braam(duration_sec=1.5, sr=sr, f0=45.0)
+            hook_start = int(0.15 * sr)
+            n_h = min(len(hook_braam), total - hook_start)
+            if n_h > 0:
+                bed[hook_start:hook_start + n_h] += hook_braam[:n_h] * 0.70
+
         if cue_timestamps:
             for cue_t in cue_timestamps:
                 if 0 < cue_t < duration - 1.0:
@@ -521,6 +627,29 @@ class AudioEngine:
                     if n_b > 0:
                         bed[cue_idx:cue_idx + n_b] += braam[:n_b]
 
+        # Procedural Foley: Layer transition whooshes on scene cuts or sentence pauses
+        transition_times = list(cue_timestamps) if cue_timestamps else []
+        if not transition_times and words:
+            last_t = 0.0
+            for i in range(len(words) - 1):
+                w_curr = words[i]
+                w_next = words[i + 1]
+                end_curr = w_curr.get("start", 0.0) + w_curr.get("dur", 0.0)
+                start_next = w_next.get("start", 0.0)
+                gap = start_next - end_curr
+                has_punct = any(w_curr.get("word", "").endswith(p) for p in [".", "!", "?", ":", ";"])
+                if (gap >= 0.20 or has_punct) and (start_next - last_t >= 3.5):
+                    transition_times.append(start_next)
+                    last_t = start_next
+
+        for t_trans in transition_times:
+            if 0.5 <= t_trans <= duration - 0.5:
+                w_start = max(0, int((t_trans - 0.15) * sr))
+                whoosh = self._synth_transition_whoosh(duration_sec=0.45, sr=sr)
+                n_w = min(len(whoosh), total - w_start)
+                if n_w > 0:
+                    bed[w_start:w_start + n_w] += whoosh[:n_w]
+
         # Triple-stem foley: Cinematic revelation sub-bass braams hitting on major story revelations
         if words:
             revelation_words = {"discovered", "secret", "impossible", "abyss", "depth", "never", "uncovered"}
@@ -536,9 +665,11 @@ class AudioEngine:
                             bed[cue_idx:cue_idx + n_b] += braam[:n_b] * 0.75
                     break  # primary narrative revelation hit
 
-        for name, (keywords, gain) in self.SFX_CUES.items():
+        for name, cue_spec in self.SFX_CUES.items():
             if not words:
                 continue
+            keywords, gain = cue_spec[0], cue_spec[1]
+            synth_func = cue_spec[2] if len(cue_spec) > 2 else "_synth_stone_grind"
             cue = next((w["start"] for w in words if any(k in w["word"].lower() for k in keywords)), None)
             if cue is None:
                 continue
@@ -549,11 +680,13 @@ class AudioEngine:
                 n = max(0, min(len(s), total - i0))
                 bed[i0:i0 + n] += (s[:n] * gain * 0.22)[:, None]
             else:
-                # Triple-stem foley stem 3: Procedural stone grind when physical SFX WAV is not on disk
-                stone_sfx = self._synth_stone_grind(sr=sr)
+                synth_method = getattr(self, synth_func, self._synth_stone_grind)
+                synth_sfx = synth_method(sr=sr)
+                if synth_sfx.ndim == 1:
+                    synth_sfx = np.column_stack((synth_sfx, synth_sfx))
                 i0 = int(cue * sr)
-                n = max(0, min(len(stone_sfx), total - i0))
-                bed[i0:i0 + n] += stone_sfx[:n] * (gain * 0.5)
+                n = max(0, min(len(synth_sfx), total - i0))
+                bed[i0:i0 + n] += synth_sfx[:n] * (gain * 0.40)
 
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         sf.write(str(output_path), np.clip(bed, -1.0, 1.0), sr)

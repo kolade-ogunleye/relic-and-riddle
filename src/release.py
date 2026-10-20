@@ -44,6 +44,11 @@ def write_release_report(run, dry_run=False):
         measured = measure_program_loudness(master)
         add("loudness", abs(measured["integrated_lufs"] - profile.target_lufs) <= 1.0, measured)
         add("true_peak", measured["true_peak_dbtp"] <= profile.target_true_peak, measured)
+        v_dur = float(video.get("duration", duration))
+        a_dur = float(audio.get("duration", duration))
+        sync_drift_ms = round(abs(v_dur - a_dur) * 1000, 1)
+        add("sync_drift", sync_drift_ms <= 80.0,
+            f"Measured {sync_drift_ms:.1f}ms audio/video duration drift (must be <= 80ms for sync).")
     except (OSError, ValueError, KeyError, StopIteration, subprocess.SubprocessError) as exc:
         add("media_measurement", False, str(exc))
 

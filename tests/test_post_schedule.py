@@ -46,7 +46,8 @@ def test_carousel_only_tue_to_thu_at_the_other_reel_time():
 
 # ------------------------------------------------------------ coordinator flow
 @pytest.fixture
-def coord(db, tmp_path, curated_payload):
+def coord(db, tmp_path, curated_payload, monkeypatch):
+    monkeypatch.setattr("src.release.require_release", lambda *a, **k: {"status": "pass"})
     from main import PipelineCoordinator
     c = PipelineCoordinator(db, schedule_posts=True)
     run_dir = tmp_path / "r1"
@@ -77,7 +78,7 @@ def test_approval_books_slots_instead_of_posting(coord, monkeypatch):
     assert len(posts["story"]["files"]) == 2 and posts["carousel"]["status"] == "waiting"
     assert coord.db.get_run("r1")["status"] == "scheduled"
     assert coord.db.get_topic_by_id("01_topic")["status"] == "scheduled"
-    assert "Scheduled" in coord.alerts[-1]
+    assert "SCHEDULED" in coord.alerts[-1].upper()
 
 
 def test_cli_and_dry_runs_still_post_immediately(coord, monkeypatch):

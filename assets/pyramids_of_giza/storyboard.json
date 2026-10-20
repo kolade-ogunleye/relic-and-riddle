@@ -1,0 +1,47 @@
+[
+  {
+    "beat": 1,
+    "type": "HOOK",
+    "label": "Opening Hook",
+    "text": "What really lies within Pyramids of Giza?",
+    "file": "01_commons.jpg",
+    "title": "File:Camellos y jinete frente a las pirámides de Giza, 2024.jpg",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 2,
+    "type": "LANDSCAPE",
+    "label": "Terrain & Scale",
+    "text": "Documented historical site: Pyramids of Giza Architectural or archaeological significance recognized by researchers.",
+    "file": "02_commons.jpg",
+    "title": "File:Nazlet El-Semman, Al Haram, Giza Governorate, Egypt - panoramio (4).jpg",
+    "license": "CC BY 3.0"
+  },
+  {
+    "beat": 3,
+    "type": "INTERIOR",
+    "label": "Inner Structure",
+    "text": "Subject of ongoing academic and field study.",
+    "file": "03_commons.jpg",
+    "title": "File:Giza, grande piramide di cheope, 01.JPG",
+    "license": "CC BY 3.0"
+  },
+  {
+    "beat": 4,
+    "type": "ARTIFACT",
+    "label": "Physical Evidence",
+    "text": "Subject of ongoing academic and field study.",
+    "file": "04_commons.jpg",
+    "title": "File:Great Pyramid (Pyramid of Cheops Khufu), Giza, GG, EGY (47850686472).jpg",
+    "license": "CC0"
+  },
+  {
+    "beat": 5,
+    "type": "SCHEMATIC",
+    "label": "Survey / Blueprint",
+    "text": "Subject of ongoing academic and field study.",
+    "file": "05_commons.jpg",
+    "title": "File:Flickr - Gaspa - Giza, la piramide grande.jpg",
+    "license": "CC BY 2.0"
+  }
+]

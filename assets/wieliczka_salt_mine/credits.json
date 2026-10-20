@@ -1,0 +1,85 @@
+{
+  "reviewed": false,
+  "images": [
+    {
+      "title": "File:Wieliczka Salt Mine (35322151183).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/a/ab/Wieliczka_Salt_Mine_%2835322151183%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Wieliczka_Salt_Mine_(35322151183).jpg",
+      "artist": "Brian Dooley",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "file": "01_commons.jpg"
+    },
+    {
+      "title": "File:Salzbergwerk Wieliczka-40-Kirche-2014-gje.jpg",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f6/Salzbergwerk_Wieliczka-40-Kirche-2014-gje.jpg/3840px-Salzbergwerk_Wieliczka-40-Kirche-2014-gje.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Salzbergwerk_Wieliczka-40-Kirche-2014-gje.jpg",
+      "artist": "Gerd Eichmann",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "file": "02_commons.jpg"
+    },
+    {
+      "title": "File:Salzbergwerk Wieliczka-38-Kirche-2014-gje.jpg",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/35/Salzbergwerk_Wieliczka-38-Kirche-2014-gje.jpg/3840px-Salzbergwerk_Wieliczka-38-Kirche-2014-gje.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Salzbergwerk_Wieliczka-38-Kirche-2014-gje.jpg",
+      "artist": "Gerd Eichmann",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "file": "03_commons.jpg"
+    },
+    {
+      "title": "File:Wieliczka, St Kingas Chapel (6467348331).jpg",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/90/Wieliczka%2C_St_Kingas_Chapel_%286467348331%29.jpg/3840px-Wieliczka%2C_St_Kingas_Chapel_%286467348331%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Wieliczka,_St_Kingas_Chapel_(6467348331).jpg",
+      "artist": "Arian Zwegers",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "attribution_required": true,
+      "file": "04_commons.jpg"
+    },
+    {
+      "title": "File:Wieliczka - kaplica sw. Kingi - The chapel of st. Kunigund przed 1939 (87073520).jpg",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0f/Wieliczka_-_kaplica_sw._Kingi_-_The_chapel_of_st._Kunigund_przed_1939_%2887073520%29.jpg/3840px-Wieliczka_-_kaplica_sw._Kingi_-_The_chapel_of_st._Kunigund_przed_1939_%2887073520%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Wieliczka_-_kaplica_sw._Kingi_-_The_chapel_of_st._Kunigund_przed_1939_(87073520).jpg",
+      "artist": "Unknown authorUnknown author",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "file": "05_commons.jpg"
+    },
+    {
+      "title": "File:Wieliczka - kaplica sw. Kingi - The chapel of st. Cunegond 1922 (73411568).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Wieliczka_-_kaplica_sw._Kingi_-_The_chapel_of_st._Cunegond_1922_%2873411568%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Wieliczka_-_kaplica_sw._Kingi_-_The_chapel_of_st._Cunegond_1922_(73411568).jpg",
+      "artist": "Unknown authorUnknown author",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "file": "06_commons.jpg"
+    },
+    {
+      "title": "File:Wieliczka - kaplica sw. Antoniego - The chapel of st. Anthony 1922 (73411652).jpg",
+      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/23/Wieliczka_-_kaplica_sw._Antoniego_-_The_chapel_of_st._Anthony_1922_%2873411652%29.jpg/1920px-Wieliczka_-_kaplica_sw._Antoniego_-_The_chapel_of_st._Anthony_1922_%2873411652%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Wieliczka_-_kaplica_sw._Antoniego_-_The_chapel_of_st._Anthony_1922_(73411652).jpg",
+      "artist": "Unknown authorUnknown author",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "file": "07_commons.jpg"
+    },
+    {
+      "title": "File:Wieliczka - kaplica sw. Kingi - The chapel of st. Kunigund 1923-1926 (73472428).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/0/05/Wieliczka_-_kaplica_sw._Kingi_-_The_chapel_of_st._Kunigund_1923-1926_%2873472428%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Wieliczka_-_kaplica_sw._Kingi_-_The_chapel_of_st._Kunigund_1923-1926_(73472428).jpg",
+      "artist": "Unknown authorUnknown author",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "file": "08_commons.jpg"
+    }
+  ]
+}

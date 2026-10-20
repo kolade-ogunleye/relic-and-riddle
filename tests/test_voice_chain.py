@@ -160,3 +160,17 @@ def test_triple_stem_foley_synthesis():
     assert np.max(np.abs(stone)) > 0.01
 
 
+def test_voice_prefer_azure_selects_azure_first(monkeypatch, tmp_path):
+    monkeypatch.setattr("src.audio_engine.VOICE_PREFER", "azure")
+    eng = AudioEngine(eleven_key="key", eleven_voice="voice", azure_key="az_key", azure_region="eastus")
+    monkeypatch.setattr(eng, "voice_quota", lambda: {"tier": "starter", "limit": 30000, "used": 5000})
+
+    calls = []
+    monkeypatch.setattr(eng, "_generate_azure", lambda text, path: calls.append("azure") or [{"word": "Test", "start": 0.0, "dur": 0.5}])
+    monkeypatch.setattr(eng, "_generate_elevenlabs", lambda text, path: calls.append("elevenlabs") or [{"word": "Test", "start": 0.0, "dur": 0.5}])
+
+    res = eng.generate_narration("Test narration", tmp_path / "vo.wav", licensed_only=True)
+    assert eng.last_provider == "azure"
+    assert calls == ["azure"]
+
+

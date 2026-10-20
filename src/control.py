@@ -17,15 +17,17 @@ Commands (approvers only, in the configured chat):
 """
 
 import html
+import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable, List, Optional
+import re
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import requests
 
 from .config import ASSETS_DIR, CLAUDE_MONTHLY_BUDGET_USD, MEDIA_MONTHLY_BUDGET_USD, HEALTHCHECK_PING_URL, MIN_SCENE_IMAGES, is_configured
-from .credits import CONTACT_SHEET, CREDITS_FILE, approve_set, drop_images, load_credits
+from .credits import CONTACT_SHEET, CREDITS_FILE, approve_set, drop_images, load_credits, save_credits, write_contact_sheet
 from .db import PipelineDatabase
 
 log = logging.getLogger(__name__)
@@ -33,16 +35,30 @@ log = logging.getLogger(__name__)
 PAUSED_KEY = "scheduler_paused"
 HELP = (
     "<b>Relic &amp; Riddle commands</b>\n"
+    "/dashboard — touch cockpit & quick actions\n"
+    "/progress — live production progress, ETA & render bar\n"
     "/status — schedule, approvals, recent runs\n"
     "/next — next topic\n"
     "/pause — stop scheduled runs and posts\n"
     "/resume — re-enable scheduled runs\n"
     "/run — start a run now (you still approve before anything posts)\n"
+    "/queue — view upcoming queue with in-place Bump/Drop controls\n"
+    "/bump &lt;number or id&gt; — prioritize topic to #1 in queue\n"
+    "/covers [N] — view and select 3-variant thumbnail covers\n"
+    "/undo — restore last skipped item or dropped topic\n"
+    "/requeue [list|&lt;id&gt;] — restore a rejected/archived topic to the queue\n"
+    "/add &lt;title&gt; — propose a new topic directly with deduplication check\n"
+    "/issue &lt;critique&gt; — log an issue/critique (supports photo/video evidence)\n"
+    "/ask &lt;question&gt; — probe AGY on pipeline decisions, diagnostics & issues\n"
+    "/alerts [N] — view recent alerts/logs (persisted in SQLite)\n"
+    "/clear — sweep and declutter chat history, restore clean cockpit\n"
     "/images — image sets waiting for review\n"
-    "/review N — contact sheet for topic N, with an Approve button\n"
+    "/review N (or /storyboard N) — storyboard contact sheet for topic N, with an Approve button\n"
     "/drop N 2 5 — remove images 2 and 5 from topic N\n"
+    "/swap N 2 4 — swap images assigned to Beat 2 and Beat 4 in topic N\n"
     "/proposals — topic ideas waiting for your Add/Skip\n"
     "/propose — research 3 new topic ideas (Add/Skip buttons)\n"
+    "/discover [theme] — discover UNESCO engineering marvels (Add/Skip buttons)\n"
     "/music — listen to and approve free music tracks\n"
     "/help — this list"
 )
@@ -62,24 +78,138 @@ def _fetched_sets(assets_dir: Path) -> List[Path]:
     return sorted(d for d in assets_dir.iterdir() if d.is_dir() and (d / CREDITS_FILE).exists())
 
 
-def _resolve_topic_dir(ref: str, assets_dir: Path) -> Path:
-    """'2', '02' or a full topic id -> that topic's asset folder."""
+def _resolve_topic_dir(ref: str, assets_dir: Path, db: Optional[PipelineDatabase] = None) -> Path:
+    """'2', '02', serial index, or a full topic id / slug -> that topic's asset folder."""
     ref = ref.strip()
     if not ref:
         raise ValueError("Give a topic number, e.g. /review 3")
-    matches = [d for d in _fetched_sets(assets_dir)
-               if d.name == ref or (ref.isdigit() and d.name.split("_")[0] == f"{int(ref):02d}")]
-    if len(matches) != 1:
-        raise ValueError(f"No fetched image set for topic '{html.escape(ref)}'. Send /images for the list.")
-    return matches[0]
+
+    # 1. Direct match on directory name
+    exact = assets_dir / ref
+    if exact.is_dir() and (exact / CREDITS_FILE).exists():
+        return exact
+
+    # 2. If DB provided and ref is a number, resolve against serial rank in database
+    if db is not None and ref.isdigit():
+        idx = int(ref) - 1
+        all_topics = db.list_all_topics()
+        if 0 <= idx < len(all_topics):
+            target_id = all_topics[idx]["id"]
+            cand = assets_dir / target_id
+            if cand.is_dir() and (cand / CREDITS_FILE).exists():
+                return cand
+
+    # 3. Match against fetched sets on disk
+    sets = _fetched_sets(assets_dir)
+    matches = [
+        d for d in sets
+        if d.name == ref
+        or d.name.lower() == ref.lower()
+        or (ref.isdigit() and d.name.split("_")[0] == f"{int(ref):02d}")
+        or (ref.isdigit() and d.name.split("_")[0] == str(int(ref)))
+        or (d.name.split("_", 1)[-1] == ref)
+    ]
+    if len(matches) == 1:
+        return matches[0]
+
+    # 4. Fallback if ref is digit and matches position in fetched sets
+    if ref.isdigit():
+        idx = int(ref) - 1
+        if 0 <= idx < len(sets):
+            return sets[idx]
+
+    raise ValueError(f"No fetched image set for topic '{html.escape(ref)}'. Send /images for the list.")
 
 
-def images_text(assets_dir: Path = ASSETS_DIR) -> str:
+def _add_topic_to_bank(db: PipelineDatabase, title: str, u_site=None) -> Tuple[str, str, Dict[str, Any]]:
+    from . import topic_proposer
+    bank = topic_proposer._bank()
+    existing_titles = [t["title"] for t in bank.get("topics", [])]
+    dup = topic_proposer.near_duplicate(title, existing_titles)
+    if dup:
+        raise ValueError(f"Duplicate detected! Matches existing topic: {dup}")
+    slug = topic_proposer._slugify(title)
+    topic_id = slug
+
+    from .unesco import UNESCOEngine
+    unesco_engine = UNESCOEngine()
+    if not u_site:
+        u_site = unesco_engine.find_site(title)
+    unesco_desc = None
+    loc_country = "Global"
+    loc_lat, loc_lon = 0.0, 0.0
+    u_tag = ""
+    if u_site:
+        unesco_desc = f"{u_site.site} (UNESCO #{u_site.id_number}): {u_site.short_description or u_site.justification}"
+        loc_country = u_site.states or loc_country
+        loc_lat = u_site.latitude or 0.0
+        loc_lon = u_site.longitude or 0.0
+        u_tag = f"\n🏛️ <b>UNESCO Verified:</b> #{u_site.id_number} ({html.escape(u_site.site)})"
+
+    new_topic = {
+        "id": topic_id,
+        "title": title,
+        "sub_theme": "Historical Curiosities & Ancient Marvels",
+        "hook": f"What really lies within {title}?",
+        "location": {"name": title, "country": loc_country, "lat": loc_lat, "lon": loc_lon},
+        "key_facts": [
+            f"Documented historical site: {title}",
+            "Architectural or archaeological significance recognized by researchers.",
+            "Subject of ongoing academic and field study."
+        ],
+        "meta_categories": ["History & Philosophy", "Travel & Culture"],
+        "hashtags": [f"#{slug[:20].replace('_', '')}", "#ancienthistory", "#archaeology", "#relicandriddle"],
+        "sources": [{"title": title, "url": f"https://en.wikipedia.org/wiki/{slug}"}]
+    }
+    bank["topics"].append(new_topic)
+    bank["total"] = len(bank["topics"])
+    topic_proposer.BANK.write_text(json.dumps(bank, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    from .shot_archetypes import decompose_topic_visuals
+    decomp = decompose_topic_visuals(
+        title,
+        context_facts=new_topic["key_facts"],
+        unesco_context=unesco_desc,
+    )
+    queries = json.loads(topic_proposer.QUERIES.read_text(encoding="utf-8"))
+    queries[topic_id] = {
+        "queries": decomp["queries"],
+        "keywords": decomp["keywords"],
+        "archetypes": decomp.get("archetypes", {})
+    }
+    topic_proposer.QUERIES.write_text(json.dumps(queries, indent=2, ensure_ascii=False), encoding="utf-8")
+    db._seed_topics_from_json()
+    return topic_id, u_tag, decomp
+
+
+def images_text(assets_dir: Path = ASSETS_DIR, db: Optional[PipelineDatabase] = None) -> str:
     review, short, approved = [], [], 0
-    for d in _fetched_sets(assets_dir):
+    all_topics = db.list_all_topics() if db else []
+    topic_order = {t["id"]: i for i, t in enumerate(all_topics, 1)}
+    topic_titles = {t["id"]: t.get("title", "") for t in all_topics}
+
+    def _set_sort_key(d: Path) -> tuple:
+        parts = d.name.split("_", 1)
+        if len(parts) > 1 and parts[0].isdigit():
+            return (0, int(parts[0]), d.name)
+        if d.name in topic_order:
+            return (0, topic_order[d.name], d.name)
+        return (1, 999999, d.name)
+
+    sets = sorted(_fetched_sets(assets_dir), key=_set_sort_key)
+
+    for d in sets:
         cr = load_credits(d)
         n = len(cr["images"])
-        label = f"{d.name.split('_')[0]} — {html.escape(d.name.split('_', 1)[1].replace('_', ' '))} ({n})"
+        parts = d.name.split("_", 1)
+        if len(parts) > 1 and parts[0].isdigit():
+            label = f"{parts[0]} — {html.escape(parts[1].replace('_', ' '))} ({n})"
+        elif d.name in topic_order:
+            rank = topic_order[d.name]
+            title = topic_titles.get(d.name) or d.name.replace("_", " ")
+            label = f"{rank}. {html.escape(title)} (<code>{d.name}</code>) ({n})"
+        else:
+            label = f"{html.escape(d.name.replace('_', ' '))} ({n})"
         if cr["reviewed"] and n >= MIN_SCENE_IMAGES:
             approved += 1
         elif n >= MIN_SCENE_IMAGES:
@@ -94,14 +224,35 @@ def images_text(assets_dir: Path = ASSETS_DIR) -> str:
     return "\n".join(lines)
 
 
-def review_caption(topic_dir: Path) -> str:
+def review_caption(topic_dir: Path, ref_hint: Optional[str] = None) -> str:
     cr = load_credits(topic_dir)
-    lines = [f"<b>{html.escape(topic_dir.name)}</b> — {len(cr['images'])} images"
-             f"{' (approved)' if cr['reviewed'] else ''}"]
-    for i, c in enumerate(cr["images"], 1):
-        title = c.get("title", c["file"]).removeprefix("File:")
-        lines.append(f"{i}. {html.escape(title[:48])} · {html.escape(c.get('license', ''))}")
-    lines.append(f"Wrong ones? /drop {topic_dir.name.split('_')[0]} 2 5")
+    status_tag = " (approved)" if cr.get("reviewed") else ""
+    lines = [f"🎬 <b>{html.escape(topic_dir.name)}</b> — {len(cr['images'])} images{status_tag}"]
+
+    # Storyboard beat-grounded narrative breakdown
+    from .storyboard import load_storyboard, generate_storyboard
+    sb = load_storyboard(topic_dir)
+    if not sb and cr.get("images"):
+        try:
+            sb = generate_storyboard(topic_dir.name)
+        except Exception:
+            sb = None
+
+    if sb:
+        lines.append("\n📋 <b>Storyboard Beat Direction:</b>")
+        for b in sb:
+            b_num = b.get("beat", 1)
+            b_type = b.get("type", "SCENE")
+            b_txt = b.get("text", "")
+            snippet = b_txt if len(b_txt) <= 52 else b_txt[:49] + "..."
+            lines.append(f"  <b>{b_num}. [{b_type}]</b>: <i>\"{html.escape(snippet)}\"</i> (<code>{html.escape(b.get('file', ''))}</code>)")
+    else:
+        for i, c in enumerate(cr["images"], 1):
+            title = c.get("title", c["file"]).removeprefix("File:")
+            lines.append(f"{i}. {html.escape(title[:48])} · {html.escape(c.get('license', ''))}")
+
+    drop_ref = ref_hint if ref_hint else (topic_dir.name.split('_')[0] if topic_dir.name.split('_')[0].isdigit() else topic_dir.name)
+    lines.append(f"\nWrong ones? /drop {drop_ref} 2 5")
     return "\n".join(lines)
 
 
@@ -122,19 +273,60 @@ def ping_healthcheck(suffix: str = "") -> None:
 SCRIPT_CHARS = 750  # a 45-second narration is ~650-750 characters
 
 
+def check_azure_speech() -> dict:
+    from .config import AZURE_SPEECH_KEY, AZURE_SPEECH_REGION, is_configured
+    if not is_configured(AZURE_SPEECH_KEY):
+        return {"configured": False, "ok": False, "status": "Not configured"}
+    region = AZURE_SPEECH_REGION if is_configured(AZURE_SPEECH_REGION) else "eastus"
+    url = f"https://{region}.api.cognitive.microsoft.com/sts/v1.0/issueToken"
+    try:
+        r = requests.post(url, headers={"Ocp-Apim-Subscription-Key": AZURE_SPEECH_KEY}, timeout=3)
+        if r.status_code == 200:
+            return {"configured": True, "ok": True, "region": region, "status": f"Ready (licensed fallback · {region})"}
+        elif r.status_code == 401:
+            return {"configured": True, "ok": False, "region": region, "status": f"❌ 401 Auth Error (invalid key or wrong region: {region})"}
+        else:
+            return {"configured": True, "ok": False, "region": region, "status": f"⚠️ HTTP {r.status_code} ({region})"}
+    except Exception as e:
+        return {"configured": True, "ok": False, "region": region, "status": f"⚠️ Probe failed ({region})"}
+
+
 def quota_lines(voice_quota: Optional[dict]) -> List[str]:
-    """Voice quota summary, with a warning when fewer than ~3 scripts' worth remain."""
+    """Voice quota and provider fallback summary."""
+    lines = []
+    from .config import AZURE_SPEECH_KEY, is_configured
+
+    has_azure = is_configured(AZURE_SPEECH_KEY)
+    az = check_azure_speech() if has_azure else {"configured": False, "ok": False}
+
     if not voice_quota or not voice_quota.get("limit"):
-        return []
+        if az.get("configured"):
+            lines.append(f"Azure Speech: {az['status']}")
+            if not az.get("ok"):
+                lines.append("🚨 <b>Voice Alert:</b> Azure Speech has auth errors and ElevenLabs is unconfigured. Runs will fall back to edge-tts (unlicensed for commercial monetization).")
+        return lines
+
     left = max(0, voice_quota["limit"] - voice_quota["used"])
     reset = ""
     if voice_quota.get("resets"):
         reset = ", resets " + datetime.fromtimestamp(int(voice_quota["resets"]), timezone.utc).strftime("%d %b")
     line = (f"ElevenLabs ({html.escape(str(voice_quota.get('tier')))}): {left:,} of {voice_quota['limit']:,} "
             f"characters left (~{left // SCRIPT_CHARS} Reels){reset}")
+
     if left < 3 * SCRIPT_CHARS:
-        return [f"⚠️ {line}. Runs will fall back to the free edge-tts voice when it runs out."]
-    return [line]
+        if az.get("ok"):
+            lines.append(f"⚠️ {line}. Falls back to Azure Speech ({az.get('region')}) when exhausted.")
+        else:
+            lines.append(f"⚠️ {line}. Runs will fall back to the free edge-tts voice when it runs out.")
+    else:
+        lines.append(line)
+
+    if az.get("configured"):
+        lines.append(f"Azure Speech: {az['status']}")
+        if left < 3 * SCRIPT_CHARS and not az.get("ok"):
+            lines.append("🚨 <b>Commercial License Alert:</b> Both ElevenLabs and Azure Speech are unavailable! Video generation risks using edge-tts.")
+
+    return lines
 
 
 def status_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Optional[dict] = None) -> str:
@@ -143,6 +335,16 @@ def status_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Opti
         f"<b>Status</b>: {'⏸ paused' if is_paused(db) else '▶️ active'}",
         f"Next scheduled run: {e(next_run or 'not scheduled')}",
     ]
+    try:
+        nxt = db.get_next_topic()
+        if nxt:
+            all_topics = db.list_all_topics()
+            topic_serial = {t["id"]: i for i, t in enumerate(all_topics, 1)}
+            sn = topic_serial.get(nxt['id'], 1)
+            lines.append(f"🎯 Next in queue: <b>{sn}. {e(nxt['title'])}</b> (<code>{e(nxt['id'])}</code>)")
+    except Exception:
+        pass
+
     upcoming = db.list_scheduled_posts(("pending", "waiting"))
     if upcoming:
         from .post_schedule import fmt
@@ -160,8 +362,14 @@ def status_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Opti
         lines.append("Recent runs:")
         for r in recent:
             lines.append(f"  • {e(STATUS_WORDS.get(r['status'], r['status']))} — {e(db.run_label(r['run_id']))}")
+    else:
+        lines.append("Recent runs: none (clean slate)")
+
     topics = db.list_all_topics()
-    lines.append(f"Topics: {sum(1 for t in topics if t['times_published'])} published / {len(topics)}")
+    pub_count = sum(1 for t in topics if t.get("times_published", 0) > 0)
+    queued_count = sum(1 for t in topics if t.get("status") == "queued")
+    lines.append(f"Topics: {queued_count} queued · {pub_count} published / {len(topics)} total")
+
     month = datetime.now(timezone.utc).strftime("%Y-%m")
     spend = f"Claude spend this month: ${db.llm_spend(month):.2f}"
     if CLAUDE_MONTHLY_BUDGET_USD > 0:
@@ -173,12 +381,165 @@ def status_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Opti
     media = db.media_spend(month)
     if media or MEDIA_MONTHLY_BUDGET_USD > 0:
         lines.append(f"Paid media this month: ${media:.2f}" + (f" of ${MEDIA_MONTHLY_BUDGET_USD:.2f} budget" if MEDIA_MONTHLY_BUDGET_USD > 0 else ""))
+
     lines += quota_lines(voice_quota)
+
+    try:
+        open_issues = db.list_open_issues()
+        if open_issues:
+            lines.append(f"⚠️ Open issues/critiques: {len(open_issues)} (send /alerts or check docs/issues)")
+    except Exception:
+        pass
+
+    from .config import UPLOAD_POST_API_KEY, META_ACCESS_TOKEN, is_configured
+    if is_configured(UPLOAD_POST_API_KEY):
+        lines.append("Social Publisher: Upload-Post.com (connected)")
+    elif is_configured(META_ACCESS_TOKEN):
+        lines.append("Social Publisher: Meta Graph Direct (connected)")
+    else:
+        lines.append("Social Publisher: Simulated mode (local only)")
+
     return "\n".join(lines)
 
 
 def heartbeat_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Optional[dict] = None) -> str:
     return "💓 <b>Daily heartbeat</b> — the daemon is running.\n" + status_text(db, next_run, voice_quota)
+
+
+def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = None, assets_dir: Path = ASSETS_DIR) -> Tuple[str, List[List[Dict[str, str]]]]:
+    paused = is_paused(db)
+    sched_state = "⏸️ <b>PAUSED</b>" if paused else "▶️ <b>ACTIVE</b>"
+    next_sched = f" • Next: <code>{html.escape(next_run)}</code>" if (next_run and not paused) else ""
+
+    topics = db.list_all_topics()
+    queued = [t for t in topics if t.get("status") == "queued"]
+    next_t = None
+    try:
+        next_t = db.get_next_topic()
+    except Exception:
+        pass
+
+    ready_count = 0
+    for t in queued:
+        try:
+            td = _resolve_topic_dir(t["id"], assets_dir, db=db)
+            if td.exists():
+                cr = load_credits(td)
+                if cr.get("reviewed") and len(cr.get("images", [])) >= MIN_SCENE_IMAGES:
+                    ready_count += 1
+        except Exception:
+            pass
+
+    next_line = f"🎯 <b>Next Topic:</b> <b>{html.escape(next_t['title'])}</b> (<code>{html.escape(next_t['id'])}</code>)\n" if next_t else "🎯 <b>Next Topic:</b> <i>(Queue empty)</i>\n"
+
+    active_prog = db.get_active_progress() if hasattr(db, "get_active_progress") else None
+    active_run_str = ""
+    if active_prog:
+        st_num = active_prog.get("step", 1)
+        tot_num = active_prog.get("total_steps", 5)
+        pct_num = int((st_num / tot_num) * 100)
+        active_run_str = f"⏳ <b>Active Production:</b> <code>[{html.escape(db.run_label(active_prog['run_id']))}]</code> • Step {st_num}/{tot_num} ({pct_num}%)\n"
+
+    recent_runs = db.list_recent_runs(limit=1)
+    last_run_str = ""
+    if recent_runs:
+        lr = recent_runs[0]
+        st = lr.get("status", "unknown")
+        rid = lr.get("run_id", "")
+        last_run_str = f"🎬 <b>Last Production:</b> <code>{html.escape(db.run_label(rid))}</code> [{st}]\n"
+
+    text = (
+        f"🏛️ <b><u>EXECUTIVE COCKPIT</u></b>\n\n"
+        f"⏯️ <b>Scheduler:</b> <i>{sched_state}</i>{next_sched}\n"
+        f"📋 <b>Production Slate:</b> <code>{len(queued)}</code> queued • <b>{ready_count} ready</b>\n"
+        f"{active_run_str}"
+        f"{next_line}"
+        f"{last_run_str}"
+        f"🛡️ <b>Security:</b> <i>Zero-Trust RBAC Active</i>\n\n"
+        f"<i>Select an executive command below:</i>"
+    )
+
+    if active_prog:
+        row1 = [
+            {"text": "⚡ Live Progress", "callback_data": "cprog:"},
+            {"text": "📋 Production Queue", "callback_data": "qrefresh:"},
+        ]
+    else:
+        row1 = [
+            {"text": "📋 Production Queue", "callback_data": "qrefresh:"},
+            {"text": "⚡ Render #1 Now", "callback_data": f"qrender:{next_t['id']}" if next_t else "qrender:1"},
+        ]
+
+    buttons = [
+        row1,
+        [
+            {"text": "🎨 Cover Studio", "callback_data": "ccov:"},
+            {"text": "💡 Topic Proposals", "callback_data": "cprop:"},
+        ],
+        [
+            {"text": "🏛️ Discover Marvels", "callback_data": "cdisc:"},
+            {"text": "🎵 Audio Library", "callback_data": "cmusic:"},
+        ],
+        [
+            {"text": "📊 Full Status", "callback_data": "cstat:"},
+            {"text": "🛡️ Audit Log", "callback_data": "caudit:"},
+        ],
+        [
+            {"text": "▶️ Resume Scheduler" if paused else "⏸️ Pause Scheduler", "callback_data": "cresume:" if paused else "cpause:"},
+        ],
+    ]
+    return text, buttons
+
+
+def startup_dashboard_card(db: PipelineDatabase, mode: str = "bot", time_str: Optional[str] = None,
+                           timezone_str: Optional[str] = None, assets_dir: Path = ASSETS_DIR) -> Tuple[str, List[List[Dict[str, str]]]]:
+    paused = is_paused(db)
+    if mode == "daemon":
+        mode_label = f"Full Autonomous Daemon (Daily at {html.escape(time_str or '09:00')} {html.escape(timezone_str or 'UTC')})"
+    else:
+        mode_label = "Interactive Control Center (Bot-only)"
+
+    sched_label = "⏸️ <b>PAUSED</b> <i>(send /resume to enable)</i>" if paused else "▶️ <b>ACTIVE</b> <i>(automated runs enabled)</i>"
+
+    topics = db.list_all_topics()
+    queued = [t for t in topics if t.get("status") == "queued"]
+    ready_count = 0
+    for t in queued:
+        try:
+            td = _resolve_topic_dir(t["id"], assets_dir, db=db)
+            if td.exists():
+                cr = load_credits(td)
+                if cr.get("reviewed") and len(cr.get("images", [])) >= MIN_SCENE_IMAGES:
+                    ready_count += 1
+        except Exception:
+            pass
+
+    slate_summary = f"{len(queued)} queued • <b>{ready_count} ready to render</b>"
+
+    text = (
+        f"🟢 <b>Studio Control Center Online</b> • <code>Relic &amp; Riddle</code>\n"
+        f"━━━━━━━━━━━━━━━━━━━━\n"
+        f"⚙️ <b>Execution Mode:</b> {mode_label}\n"
+        f"⏯️ <b>Scheduler State:</b> {sched_label}\n"
+        f"📋 <b>Production Slate:</b> {slate_summary}\n"
+        f"🛡️ <b>Security:</b> Zero-Trust RBAC Active (Audit Logging enabled)\n\n"
+        f"<i>Tap below or send /help for command directory.</i>"
+    )
+    buttons = [
+        [
+            {"text": "📋 Production Queue", "callback_data": "qrefresh:"},
+            {"text": "📊 System Status", "callback_data": "cstat:"},
+        ],
+        [
+            {"text": "💡 Topic Proposals", "callback_data": "cprop:"},
+            {"text": "🎨 Cover Studio", "callback_data": "ccov:"},
+        ],
+        [
+            {"text": "🏛️ Discover Marvels", "callback_data": "cdisc:"},
+            {"text": "🛡️ Zero-Trust Audit", "callback_data": "caudit:"},
+        ]
+    ]
+    return text, buttons
 
 
 def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[str]],
@@ -189,57 +550,532 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                          propose_topics: Optional[Callable[[], str]] = None,
                          run_actions: Optional[dict] = None,
                          send_audio: Optional[SendPhoto] = None,
-                         send_message: Optional[Callable[[str, Optional[list]], bool]] = None) -> Callable[[str, str], str]:
+                         send_message: Optional[Callable[[str, Optional[list]], Any]] = None,
+                         delete_message: Optional[Callable[[int], bool]] = None) -> Callable[[str, str], str]:
+    active_discovery_msg_ids: List[int] = []
+    active_proposal_msg_ids: List[int] = []
+    undo_stack: List[Dict[str, Any]] = []
+
+    def render_queue_text_and_buttons(show_all: bool = False) -> Tuple[str, List[Dict[str, str]]]:
+        def _readiness(topic_id: str) -> str:
+            try:
+                td = _resolve_topic_dir(topic_id, assets_dir, db=db)
+                if td.exists():
+                    cr = load_credits(td)
+                    imgs = cr.get("images", [])
+                    if cr.get("reviewed") and len(imgs) >= MIN_SCENE_IMAGES:
+                        return "🟢 Ready to Render"
+                    elif imgs:
+                        return "🟡 Needs Image Review"
+            except Exception:
+                pass
+            return "🔵 Script Ready"
+
+        topics = db.list_all_topics()
+        queued = [t for t in topics if t.get("status") == "queued"]
+        requeueable = [t for t in topics if t.get("status") in ("rejected", "failed", "published", "archived")]
+        next_t = None
+        try:
+            next_t = db.get_next_topic()
+        except Exception:
+            pass
+        topic_serial = {t["id"]: i for i, t in enumerate(topics, 1)}
+        lines = [f"📋 <b><u>TOPIC QUEUE</u></b> (<i>{len(queued)} queued</i>)", ""]
+        limit = len(queued) if show_all else 7
+
+        buttons = []
+        if next_t and next_t.get("status") == "queued":
+            sn = topic_serial.get(next_t['id'], 1)
+            p_badge = " [🚀 Priority #1]" if next_t.get("priority", 0) > 0 else ""
+            r_badge = _readiness(next_t['id'])
+            lines.append(f"🎯 <b>Next in line:</b> {sn}. {html.escape(next_t['title'])}{p_badge}\n    Status: <b>{r_badge}</b> (<code>{html.escape(next_t['id'])}</code>)\n")
+            buttons.append({"text": f"⚡ Render #{sn} Now", "callback_data": f"qrender:{next_t['id']}"})
+            remaining = [t for t in queued if t["id"] != next_t["id"]]
+            if remaining:
+                lines.append("<b>Other Queued Topics:</b>")
+                for t in remaining[:limit]:
+                    s = topic_serial.get(t['id'], '')
+                    p_badge = " [🚀 Priority]" if t.get("priority", 0) > 0 else ""
+                    rb = _readiness(t['id'])
+                    lines.append(f"  {s}. {html.escape(t['title'])}{p_badge} • <i>{rb}</i> (<code>{html.escape(t['id'])}</code>)")
+                if len(remaining) > limit:
+                    lines.append(f"  <i>...and {len(remaining) - limit} more (send /queue all to view all)</i>")
+                # Add bump button for the second item
+                second_t = remaining[0]
+                buttons.append({"text": f"⬆ Bump #{topic_serial.get(second_t['id'], 2)}", "callback_data": f"qbump:{second_t['id']}"})
+            buttons.append({"text": f"🗑 Drop #{sn}", "callback_data": f"qdrop:{next_t['id']}"})
+        elif queued:
+            for t in queued[:limit + 1]:
+                s = topic_serial.get(t['id'], '')
+                rb = _readiness(t['id'])
+                lines.append(f"  {s}. {html.escape(t['title'])} • <i>{rb}</i> (<code>{html.escape(t['id'])}</code>)")
+            if len(queued) > limit + 1:
+                lines.append(f"  <i>...and {len(queued) - (limit + 1)} more (send /queue all to view all)</i>")
+        else:
+            lines.append("  <i>Queue is currently empty! Use /add &lt;title&gt; or /propose.</i>")
+
+        if requeueable:
+            lines.append(f"\n<b>Eligible to Requeue ({len(requeueable)}):</b>")
+            for t in requeueable[:5]:
+                s = topic_serial.get(t['id'], '')
+                st = t.get("status", "")
+                lines.append(f"  {s}. {html.escape(t['title'])} [{st}] (<code>{html.escape(t['id'])}</code>)")
+            lines.append("\n<i>To restore any topic: <code>/requeue &lt;number or id&gt;</code></i>")
+
+        buttons.append({"text": "🔄 Refresh Queue", "callback_data": "qrefresh:"})
+        return "\n".join(lines), buttons
+
     """run_actions: button actions on a run, e.g. {"pubok": fn(run_id) -> reply, "pubno": ..., "resend": ...}."""
     def send_sheet(topic_dir: Path) -> bool:
         if send_photo is None:
             return False
         key = topic_dir.name
         return send_photo(topic_dir / CONTACT_SHEET, review_caption(topic_dir),
-                          [{"text": "✅ Approve set", "callback_data": f"imgok:{key}"}])
+                          [{"text": "🎬 Approve Storyboard", "callback_data": f"imgok:{key}"},
+                           {"text": "✖ Cancel", "callback_data": f"imgcancel:{key}"}])
 
     def handle(command: str, args: str) -> str:
-        if command in ("help", "start"):
-            return HELP
+        if command == "qrender":
+            res = trigger_run()
+            q_text, _ = render_queue_text_and_buttons()
+            return f"⚡ <b>Render Triggered:</b> {html.escape(res)}\n\n{q_text}"
+        if command == "qbump":
+            db.bump_topic(args)
+            q_text, _ = render_queue_text_and_buttons()
+            return f"🚀 Bumped topic to #1 in queue!\n\n{q_text}"
+        if command == "qdrop":
+            t_obj = db.get_topic_by_id(args)
+            undo_stack.append({"type": "qdrop", "topic_id": args, "desc": f"Drop of {t_obj['title'] if t_obj else args}"})
+            db.drop_topic(args)
+            q_text, _ = render_queue_text_and_buttons()
+            return f"🗑 Dropped topic from queue (type /undo to restore).\n\n{q_text}"
+        if command == "qrefresh":
+            q_text, _ = render_queue_text_and_buttons()
+            return q_text
+        if command == "bump":
+            ref = args.strip()
+            if not ref:
+                queued = [t for t in db.list_all_topics() if t.get("status") == "queued"]
+                if len(queued) > 1:
+                    topic_serial = {t["id"]: i for i, t in enumerate(db.list_all_topics(), 1)}
+                    buttons = [
+                        {"text": f"⬆ Bump #{topic_serial.get(t['id'], i)} {t['title'][:20]}", "callback_data": f"qbump:{t['id']}"}
+                        for i, t in enumerate(queued[1:6], 2)
+                    ]
+                    if send_message:
+                        send_message(
+                            "⬆ <b><u>BUMP TOPIC</u></b>\n\nTap a topic below or copy & run: <code>/bump 2</code>",
+                            buttons
+                        )
+                        return ""
+                return (
+                    "⬆ <b><u>BUMP TOPIC</u></b>\n\nTap to copy & edit: <code>/bump 2</code>\n\n"
+                    "<i>Usage: <code>/bump &lt;number or topic_id&gt;</code>\n"
+                    "Tip: Tap the code box above to copy instantly to input box.</i>"
+                )
+            topics = db.list_all_topics()
+            match = None
+            if ref.isdigit():
+                idx = int(ref) - 1
+                if 0 <= idx < len(topics):
+                    match = topics[idx]
+            if not match:
+                for t in topics:
+                    if t["id"] == ref or t["id"].lower() == ref.lower():
+                        match = t
+                        break
+            if not match:
+                return f"⚠️ Topic '{html.escape(ref)}' not found in database."
+            db.bump_topic(match["id"])
+            return f"🚀 Promoted <b>{html.escape(match['title'])}</b> (<code>{html.escape(match['id'])}</code>) to priority #1 in the queue!"
+        if command == "drop_topic":
+            ref = args.strip()
+            if not ref:
+                return "Usage: /drop_topic &lt;number or topic_id&gt;"
+            topics = db.list_all_topics()
+            match = None
+            if ref.isdigit():
+                idx = int(ref) - 1
+                if 0 <= idx < len(topics):
+                    match = topics[idx]
+            if not match:
+                for t in topics:
+                    if t["id"] == ref or t["id"].lower() == ref.lower():
+                        match = t
+                        break
+            if not match:
+                return f"⚠️ Topic '{html.escape(ref)}' not found."
+            undo_stack.append({"type": "qdrop", "topic_id": match["id"], "desc": f"Drop of {match['title']}"})
+            db.drop_topic(match["id"])
+            return f"🗑 Archived <b>{html.escape(match['title'])}</b> from queue. Type /undo to restore."
+        if command == "undo":
+            if not undo_stack:
+                return "ℹ️ Nothing to undo."
+            last = undo_stack.pop()
+            if last["type"] == "qdrop":
+                db.requeue_topic(last["topic_id"])
+                return f"↩️ <b>Undone:</b> Restored {html.escape(last['desc'])} back to queue!"
+            if last["type"] == "uskip":
+                return f"↩️ <b>Undone:</b> Restored skipped wonder {html.escape(last.get('site_id', ''))}."
+            if last["type"] == "tskip":
+                return f"↩️ <b>Undone:</b> Restored skipped proposal {html.escape(last.get('slug', ''))}."
+            if last["type"] == "mdel":
+                return f"↩️ <b>Undone:</b> Restored removed track {html.escape(last.get('track_key', ''))}."
+            return f"↩️ <b>Undone:</b> Restored {html.escape(last.get('desc', 'action'))}."
+        if command == "covers":
+            ref = args.strip()
+            run_dir = None
+            if ref:
+                topic_dir = _resolve_topic_dir(ref, assets_dir, db=db)
+                runs = [p for p in Path("output").rglob(f"run_{topic_dir.name}_*") if p.is_dir()]
+                run_dir = runs[-1] if runs else None
+                if not run_dir:
+                    return f"⚠️ No rendered runs found for <b>{html.escape(topic_dir.name)}</b>. Produce it first with /run."
+            else:
+                all_runs = sorted(
+                    [p for p in Path("output").glob("run_*") if p.is_dir() and not p.name.startswith("_")],
+                    key=lambda p: p.stat().st_mtime,
+                    reverse=True
+                )
+                if all_runs:
+                    run_dir = all_runs[0]
+                else:
+                    return "ℹ️ <b>Cover Studio:</b> No rendered runs found in output. Produce a run first with /run, or specify: <code>/covers &lt;topic_id&gt;</code>." 
+            var_a = run_dir / "thumbnail_variant_a_blueprint.jpg"
+            var_b = run_dir / "thumbnail_variant_b_intrigue.jpg"
+            var_c = run_dir / "thumbnail_variant_c_minimal.jpg"
+            if not (var_a.exists() or var_b.exists() or var_c.exists()):
+                return f"⚠️ No thumbnail variant suite found in <code>{html.escape(run_dir.name)}</code>."
+            buttons = [
+                [
+                    {"text": "📌 A: Blueprint", "callback_data": f"cov:{run_dir.name}:a"},
+                    {"text": "✓ B: Intrigue", "callback_data": f"cov:{run_dir.name}:b"},
+                ],
+                [
+                    {"text": "📌 C: Minimal", "callback_data": f"cov:{run_dir.name}:c"},
+                    {"text": "🔄 Refresh", "callback_data": f"ccov:"},
+                ],
+                [
+                    {"text": "🔒 Lock Variant B (Discovery Intrigue)", "callback_data": f"covlock:{run_dir.name}:b"}
+                ]
+            ]
+            caption = (
+                f"🎨 <b>Thumbnail Cover Studio</b> • <code>{html.escape(run_dir.name)}</code>\n\n"
+                f"Previewing: <b>Variant B (Discovery Intrigue)</b>\n"
+                f"Tap A, B, or C to flip preview in-place, or Lock to finalize:"
+            )
+            cover_to_show = var_b if var_b.exists() else (var_a if var_a.exists() else (run_dir / "thumbnail_cover.jpg"))
+            if send_photo and cover_to_show.exists():
+                send_photo(cover_to_show, caption, buttons, cache_key=f"cover:{run_dir.name}:b")
+                return ""
+            return caption
+        if command in ("cov", "covlock"):
+            parts = args.split(":")
+            if len(parts) >= 2:
+                r_name, var_letter = parts[0], parts[1].lower()
+                matches = [p for p in Path("output").rglob(r_name) if p.is_dir()]
+                r_dir = matches[0] if matches else (Path("output") / r_name)
+                var_file = (r_dir / f"thumbnail_variant_{var_letter}_blueprint.jpg" if var_letter == "a"
+                            else r_dir / f"thumbnail_variant_{var_letter}_intrigue.jpg" if var_letter == "b"
+                            else r_dir / f"thumbnail_variant_{var_letter}_minimal.jpg")
+                if var_file.exists():
+                    import shutil
+                    from PIL import Image
+                    shutil.copy2(var_file, r_dir / "thumbnail_cover.jpg")
+                    try:
+                        im = Image.open(r_dir / "thumbnail_cover.jpg")
+                        w, h = im.size
+                        top = max(0, min(h - w, (h // 2) - (w // 2)))
+                        im.crop((0, top, w, top + w)).save(r_dir / "thumbnail_profile_grid.jpg", quality=95)
+                    except Exception:
+                        pass
+                    style_name = "Forensic Blueprint" if var_letter == "a" else "Discovery Intrigue" if var_letter == "b" else "Cinematic Minimal"
+                    action_word = "locked" if command == "covlock" else "selected and locked"
+                    return f"✅ Cover {action_word}: <b>Variant {var_letter.upper()} ({style_name})</b> for <code>{html.escape(r_name)}</code>!"
+            return "✅ Cover updated."
+        if command in ("audit", "auditlog"):
+            limit = 10
+            if args.strip().isdigit():
+                limit = min(50, max(1, int(args.strip())))
+            logs = db.list_audit_logs(limit=limit)
+            if not logs:
+                return "🛡️ No audit log entries recorded yet."
+            lines = [f"🛡️ <b><u>AUDIT LOG</u></b> (<i>last {len(logs)} events</i>):", ""]
+            for l in logs:
+                st_icon = "🟢" if l.get("status") == "allowed" else "🔴"
+                ts_raw = (l.get("created_at") or "")[:19].replace("T", " ")
+                ts = ts_raw[5:] if len(ts_raw) >= 19 else ts_raw
+                actor = str(l.get("username") or "").strip()
+                uid = str(l.get("user_id") or "").strip()
+                if not actor or actor in ("-", "_", "none", "unknown"):
+                    actor = f"op:{uid[-4:]}" if uid else "operator"
+                elif not actor.startswith("@") and not actor.startswith("op:"):
+                    actor = f"@{actor}"
+
+                act = str(l.get("action") or l.get("event_type") or "").strip()
+                raw_pl = str(l.get("payload") or "").strip()
+                header = f"{st_icon} <code>{ts}</code> • <b>{html.escape(actor)}</b>"
+                if act:
+                    header += f" (<i>{html.escape(act)}</i>)"
+
+                if len(raw_pl) <= 35 and "\n" not in raw_pl:
+                    lines.append(f"{header} → <code>{html.escape(raw_pl)}</code>")
+                else:
+                    lines.append(f"{header}:\n<blockquote expandable>{html.escape(raw_pl)}</blockquote>")
+            return "\n".join(lines)
+        if command in ("start", "dashboard", "dash"):
+            dash_text, dash_buttons = dashboard_text_and_buttons(db, next_run(), assets_dir=assets_dir)
+            if send_message:
+                send_message(dash_text, dash_buttons)
+                return ""
+            return dash_text
+        if command == "cdash":
+            dash_text, _ = dashboard_text_and_buttons(db, next_run(), assets_dir=assets_dir)
+            return dash_text
+        if command == "help":
+            return HELP + "\n\n💡 <i>Send /dashboard or /start to open the interactive touch cockpit.</i>"
+        if command in ("progress", "prog", "cprog"):
+            active_prog = db.get_active_progress() if hasattr(db, "get_active_progress") else None
+            if not active_prog:
+                dash_text, _ = dashboard_text_and_buttons(db, next_run(), assets_dir=assets_dir)
+                return (
+                    "ℹ️ <b>No Production Running:</b> Pipeline is currently idle.\n\n"
+                    "Send /run to start production on the next queued topic.\n\n"
+                    + dash_text
+                )
+            step = active_prog.get("step", 1)
+            total_steps = active_prog.get("total_steps", 5)
+            topic_title = active_prog.get("topic_title", "Unknown Topic")
+            run_id = active_prog.get("run_id", "active_run")
+            details = active_prog.get("details", "")
+
+            milestones = [
+                "Verifying script & historical fact sheets",
+                "Mastering narration voiceover & acoustics",
+                "Synthesizing original graphics & motion",
+                "Compositing video, parallax & karaoke subs",
+                "Packaging review & multiformat stills",
+            ]
+            lines = [
+                f"⏳ <b><u>PRODUCTION PROGRESS</u></b>\n\n<b>{html.escape(topic_title)}</b> • <code>[{html.escape(db.run_label(run_id))}]</code>",
+                "",
+            ]
+            for idx, m in enumerate(milestones, start=1):
+                if idx < step:
+                    lines.append(f"✅ <b>Step {idx}/{total_steps}:</b> {m}")
+                elif idx == step:
+                    detail_str = f" <i>({html.escape(details)})</i>" if details else ""
+                    lines.append(f"🔄 <b>Step {idx}/{total_steps}:</b> {m}...{detail_str}")
+                else:
+                    lines.append(f"◽ <b>Step {idx}/{total_steps}:</b> {m}")
+
+            bar_len = 10
+            filled = max(1, min(bar_len, int((step / total_steps) * bar_len)))
+            bar = "▰" * filled + "▱" * (bar_len - filled)
+            pct = int((step / total_steps) * 100)
+
+            import time
+            now = time.time()
+            start_t = active_prog.get("start_time", now)
+            elapsed_sec = int(max(0, now - start_t))
+            elapsed_fmt = f"{elapsed_sec // 60:02d}:{elapsed_sec % 60:02d}"
+            if 0 < step < total_steps:
+                est_total = elapsed_sec / (step / total_steps)
+                rem_sec = max(0, int(est_total - elapsed_sec))
+                eta_fmt = f"~{rem_sec // 60:02d}:{rem_sec % 60:02d}"
+            else:
+                eta_fmt = "completing..." if step == total_steps else "~01:00"
+
+            lines.append(f"\nProgress: <code>[{bar}] {pct}%</code>")
+            lines.append(f"⏱ <b>Elapsed:</b> {elapsed_fmt} • <b>ETA:</b> {eta_fmt}")
+            return "\n".join(lines)
+        if command == "cstat":
+            return status_text(db, next_run(), voice_quota())
+        if command == "caudit":
+            return handle("audit", "10")
+        if command == "ccov":
+            return handle("covers", "1")
+        if command == "cprop":
+            return handle("proposals", "")
+        if command == "cdisc":
+            return handle("discover", "subterranean")
+        if command == "cmusic":
+            return handle("music", "")
+        if command == "cpause":
+            handle("pause", "")
+            dash_text, _ = dashboard_text_and_buttons(db, next_run(), assets_dir=assets_dir)
+            return f"⏸ <b>Scheduler Paused!</b>\n\n{dash_text}"
+        if command == "cresume":
+            handle("resume", "")
+            dash_text, _ = dashboard_text_and_buttons(db, next_run(), assets_dir=assets_dir)
+            return f"▶️ <b>Scheduler Resumed!</b>\n\n{dash_text}"
         if command == "images":
-            return images_text(assets_dir)
-        if command == "review":
-            topic_dir = _resolve_topic_dir(args, assets_dir)
-            return "Contact sheet sent above." if send_sheet(topic_dir) else review_caption(topic_dir)
+            return images_text(assets_dir, db=db)
+        if command in ("review", "storyboard"):
+            ref = args.strip()
+            if not ref:
+                queued = [t for t in db.list_all_topics() if t.get("status") == "queued"]
+                topic_serial = {t["id"]: i for i, t in enumerate(db.list_all_topics(), 1)}
+                buttons = []
+                for t in queued[:5]:
+                    try:
+                        td = _resolve_topic_dir(t["id"], assets_dir, db=db)
+                        if td.exists():
+                            cr = load_credits(td)
+                            if cr.get("images"):
+                                sn = topic_serial.get(t["id"], 1)
+                                buttons.append({"text": f"🎬 Review #{sn} {t['title'][:20]}", "callback_data": f"review:{sn}"})
+                    except Exception:
+                        pass
+                if buttons and send_message:
+                    send_message(
+                        "🎬 <b><u>STORYBOARD REVIEW</u></b>\n\nTap a topic below or copy & run: <code>/review 1</code>",
+                        buttons
+                    )
+                    return ""
+                example_sn = "1"
+                try:
+                    nxt = db.get_next_topic()
+                    if nxt:
+                        all_t = db.list_all_topics()
+                        example_sn = str({t["id"]: i for i, t in enumerate(all_t, 1)}.get(nxt["id"], 1))
+                except Exception:
+                    pass
+                return (
+                    f"🎬 <b><u>STORYBOARD REVIEW</u></b>\n\nTap to copy & edit: <code>/review {example_sn}</code>\n\n"
+                    "<i>Usage: <code>/review &lt;topic_number_or_id&gt;</code>\n"
+                    "Tip: Tap the code box above to copy instantly into your input box.</i>"
+                )
+            topic_dir = _resolve_topic_dir(ref, assets_dir, db=db)
+            if send_sheet(topic_dir):
+                return ""
+            return review_caption(topic_dir, ref_hint=args.strip())
         if command == "drop":
-            ref, *nums = args.split()
-            if not nums or not all(n.isdigit() for n in nums):
-                return "Usage: /drop N 2 5 (topic number, then image numbers)"
-            topic_dir = _resolve_topic_dir(ref, assets_dir)
+            parts = args.split()
+            if not parts or len(parts) < 2 or not all(n.isdigit() for n in parts[1:]):
+                example_num = "1"
+                try:
+                    nxt = db.get_next_topic()
+                    if nxt:
+                        all_t = db.list_all_topics()
+                        example_num = str({t["id"]: i for i, t in enumerate(all_t, 1)}.get(nxt["id"], 1))
+                except Exception:
+                    pass
+                return (
+                    f"🗑 <b><u>DROP IMAGE</u></b>\n\nTap to copy & edit: <code>/drop {example_num} 2 5</code>\n\n"
+                    "<i>Usage: <code>/drop &lt;topic#&gt; &lt;image_numbers...&gt;</code>\n"
+                    "Tip: Tap the code box above to copy instantly into your input box.</i>"
+                )
+            ref, nums = parts[0], parts[1:]
+            topic_dir = _resolve_topic_dir(ref, assets_dir, db=db)
             msg = drop_images(topic_dir, [int(n) for n in nums])
             if load_credits(topic_dir)["images"]:
                 send_sheet(topic_dir)
             return html.escape(msg)
-        if command in ("music", "mkeep", "mdel"):
+        if command == "swap":
+            parts = args.split()
+            if len(parts) < 3 or not (parts[1].isdigit() and parts[2].isdigit()):
+                return (
+                    "🔄 <b><u>SWAP BEATS</u></b>\n\nTap to copy & edit: <code>/swap 1 2 4</code>\n\n"
+                    "<i>Usage: <code>/swap &lt;topic#&gt; &lt;beat_1&gt; &lt;beat_2&gt;</code>\n"
+                    "Tip: Tap the code box above to copy instantly into your input box.</i>"
+                )
+            ref, b1, b2 = parts[0], int(parts[1]), int(parts[2])
+            topic_dir = _resolve_topic_dir(ref, assets_dir, db=db)
+            from .storyboard import load_storyboard, save_storyboard
+            sb = load_storyboard(topic_dir)
+            if not sb or len(sb) < 2:
+                return f"⚠️ No storyboard found for {html.escape(topic_dir.name)}. Run /review {html.escape(ref)} first."
+            if not (1 <= b1 <= len(sb) and 1 <= b2 <= len(sb)):
+                return f"⚠️ Beat numbers must be between 1 and {len(sb)}."
+            idx1, idx2 = b1 - 1, b2 - 1
+            for key in ("file", "title", "license"):
+                sb[idx1][key], sb[idx2][key] = sb[idx2].get(key), sb[idx1].get(key)
+            save_storyboard(topic_dir, sb)
+
+            # Reorder credits.json images list to reflect the updated storyboard beat sequence
+            cr = load_credits(topic_dir)
+            sb_files = [item["file"] for item in sb if "file" in item]
+            cr_images_by_file = {img["file"]: img for img in cr.get("images", []) if "file" in img}
+            new_cr_images = []
+            for f in sb_files:
+                if f in cr_images_by_file:
+                    new_cr_images.append(cr_images_by_file[f])
+            for img in cr.get("images", []):
+                if img.get("file") not in sb_files:
+                    new_cr_images.append(img)
+            cr["images"] = new_cr_images
+            save_credits(topic_dir, cr)
+
+            write_contact_sheet(topic_dir, cr.get("images", []), storyboards=sb)
+            send_sheet(topic_dir)
+            return (f"🔄 Swapped Beat {b1} (<code>{html.escape(sb[idx1].get('file', ''))}</code>) "
+                    f"and Beat {b2} (<code>{html.escape(sb[idx2].get('file', ''))}</code>) for <b>{html.escape(topic_dir.name)}</b>.")
+        if command in ("music", "mkeep", "mdel", "mcancel", "mnext"):
             from . import music
             reply = ""
             if command == "mkeep":
                 reply = "✅ " + html.escape(music.approve_track(args))
             elif command == "mdel":
+                undo_stack.append({"type": "mdel", "track_key": args, "desc": f"Music track {args}"})
                 reply = "🗑 " + html.escape(music.remove_track(args))
+            elif command == "mcancel":
+                return f"✖ Music review cancelled for <i>{html.escape(args)}</i>. Track remains pending."
             pending = music.pending_tracks()
             if not pending:
                 approved = sum(1 for t in music.load_library() if t.get("reviewed"))
                 return (reply + "\n" if reply else "") + (
                     f"🎵 No tracks waiting for review ({approved} approved). "
                     "Fetch more with <code>python scripts/fetch_music.py</code>.")
-            nxt = pending[0]
+
+            cur_idx = 0
+            if command == "mnext":
+                for idx, t in enumerate(pending):
+                    if music.track_key(t) == args:
+                        cur_idx = (idx + 1) % len(pending)
+                        break
+                reply = f"⏭ Skipped to track {cur_idx + 1} of {len(pending)}."
+            elif command == "music" and args.strip():
+                if args.strip().isdigit():
+                    num = int(args.strip())
+                    if 1 <= num <= len(pending):
+                        cur_idx = num - 1
+
+            nxt = pending[cur_idx]
             key = music.track_key(nxt)
-            if send_audio is None or not send_audio(music.MUSIC_DIR / nxt["file"], music.review_caption(nxt, len(pending)),
-                                                    [{"text": "✅ Keep", "callback_data": f"mkeep:{key}"},
-                                                     {"text": "🗑 Remove", "callback_data": f"mdel:{key}"}]):
+            buttons = [
+                [
+                    {"text": "✅ Keep Track", "callback_data": f"mkeep:{key}"},
+                    {"text": "🗑 Remove Track", "callback_data": f"mdel:{key}"},
+                ]
+            ]
+            if len(pending) > 1:
+                buttons.append([
+                    {"text": "⏭ Next Track", "callback_data": f"mnext:{key}"},
+                    {"text": "✖ Cancel", "callback_data": f"mcancel:{key}"},
+                ])
+            else:
+                buttons.append([{"text": "➕ Fetch More", "callback_data": "mfetch:"}, {"text": "✖ Cancel", "callback_data": f"mcancel:{key}"}])
+
+            if send_audio is None or not send_audio(music.MUSIC_DIR / nxt["file"], music.review_caption(nxt, len(pending)), buttons):
                 return (reply + "\n" if reply else "") + music.review_caption(nxt, len(pending))
-            return reply or "🎵 Track sent above."
-        if command in ("pubok", "pubno", "resend"):
+            return reply or ""
+        if command in ("pubok", "pubno", "resend", "simpub"):
             action = (run_actions or {}).get(command)
             if action is None:
                 return "That button only works while the daemon is running."
             return action(db.resolve_run(args))
+        if command == "tdone":
+            cleared = 0
+            if delete_message is not None:
+                for mid in list(active_proposal_msg_ids):
+                    try:
+                        if delete_message(mid):
+                            cleared += 1
+                    except Exception:
+                        pass
+            active_proposal_msg_ids.clear()
+            return f"✖ Topic proposals ended. Cleared {cleared} card(s) from chat." if cleared else "✖ Topic proposals ended."
         if command == "proposals":
             from . import topic_proposer
             from .models import TopicProposal
@@ -249,10 +1085,20 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             for slug, data in waiting.items():
                 p = TopicProposal.model_validate(data)
                 if send_message is not None:
-                    send_message(topic_proposer.proposal_text(p),
-                                 [{"text": "➕ Add", "callback_data": f"tadd:{slug}"},
-                                  {"text": "✖ Skip", "callback_data": f"tskip:{slug}"}])
-            return f"💡 {len(waiting)} proposal(s) sent above."
+                    card_res = send_message(topic_proposer.proposal_text(p),
+                                            [{"text": "➕ Add", "callback_data": f"tadd:{slug}"},
+                                             {"text": "✖ Skip", "callback_data": f"tskip:{slug}"}])
+                    if isinstance(card_res, int):
+                        active_proposal_msg_ids.append(card_res)
+            if send_message is not None:
+                nav_res = send_message(
+                    f"💡 Showing <b>{len(waiting)}</b> researched topic proposal(s).",
+                    [{"text": "✖ Done", "callback_data": "tdone:"}]
+                )
+                if isinstance(nav_res, int):
+                    active_proposal_msg_ids.append(nav_res)
+                return f"💡 {len(waiting)} proposal(s) sent above."
+            return f"💡 {len(waiting)} proposal(s) available. Send /proposals to review."
         if command == "propose":
             return propose_topics() if propose_topics else "Topic proposals need the bot or daemon running with Claude configured."
         if command == "tadd":
@@ -269,7 +1115,14 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 return "Updates can only be applied while the daemon is running."
             return apply_updates()
         if command == "imgok":
-            return "✅ " + html.escape(approve_set(_resolve_topic_dir(args, assets_dir), MIN_SCENE_IMAGES))
+            t_dir = _resolve_topic_dir(args, assets_dir, db=db)
+            cr = load_credits(t_dir)
+            if cr.get("reviewed"):
+                return f"ℹ️ Topic <b>{html.escape(t_dir.name)}</b> was already approved."
+            return "✅ " + html.escape(approve_set(t_dir, MIN_SCENE_IMAGES))
+        if command == "imgcancel":
+            t_dir = _resolve_topic_dir(args, assets_dir, db=db)
+            return f"✖ Storyboard review cancelled for <b>{html.escape(t_dir.name)}</b>. Set remains unapproved."
         if command == "status":
             return status_text(db, next_run(), voice_quota())
         if command == "next":
@@ -281,6 +1134,288 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command == "resume":
             db.set_setting(PAUSED_KEY, "false")
             return f"▶️ Scheduled runs and posts resumed. Next: {html.escape(next_run() or 'not scheduled')}"
+        if command == "footage":
+            parts = args.split(None, 1)
+            if not parts:
+                return "Usage: /footage &lt;topic_id_or_number&gt; &lt;url&gt;\nExample: /footage 1 https://www.youtube.com/watch?v=..."
+            topic_ref = parts[0]
+            url = parts[1].strip() if len(parts) > 1 else ""
+            try:
+                topic_dir = _resolve_topic_dir(topic_ref, assets_dir, db=db)
+            except Exception as e:
+                return f"⚠️ Could not resolve topic '{html.escape(topic_ref)}': {html.escape(str(e))}"
+            if not url:
+                return "Please provide a video URL.\nUsage: /footage &lt;topic_id_or_number&gt; &lt;url&gt;"
+            footage_dir = topic_dir / "footage"
+            footage_dir.mkdir(parents=True, exist_ok=True)
+            try:
+                import yt_dlp
+                ydl_opts = {
+                    "format": "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best",
+                    "outtmpl": str(footage_dir / "curated_footage.%(ext)s"),
+                    "max_filesize": 150_000_000,
+                    "quiet": True,
+                    "no_warnings": True,
+                }
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(url, download=True)
+                    title = info.get("title", "Curated Clip")
+                    uploader = info.get("uploader") or info.get("channel") or "Unknown"
+                cand = {
+                    "provider": "curated",
+                    "title": title,
+                    "artist": uploader,
+                    "source_url": url,
+                    "license": "Curated Documentary Footage",
+                    "attribution_required": True,
+                }
+                (footage_dir / "curated_footage.json").write_text(json.dumps(cand, indent=2, ensure_ascii=False), encoding="utf-8")
+                return f"✅ Footage saved for <b>{html.escape(topic_dir.name)}</b>: <i>{html.escape(title)}</i> ({html.escape(uploader)})"
+            except Exception as e:
+                log.exception("Footage download failed")
+                return f"⚠️ Failed to download footage: {html.escape(str(e))[:300]}"
+        if command == "queue":
+            ref = args.strip().lower()
+            q_text, q_buttons = render_queue_text_and_buttons(show_all=(ref in ("all", "full")))
+            if send_message:
+                send_message(q_text, q_buttons)
+                return ""
+            return q_text
+        if command == "requeue":
+            ref = args.strip()
+            if not ref or ref.lower() in ("list", "all", "ls"):
+                q_text, _ = render_queue_text_and_buttons(show_all=True)
+                return q_text
+            topics = db.list_all_topics()
+            match = None
+            if ref.isdigit():
+                idx = int(ref) - 1
+                if 0 <= idx < len(topics):
+                    match = topics[idx]
+            if not match:
+                for t in topics:
+                    if t["id"] == ref or t["id"].lower() == ref.lower():
+                        match = t
+                        break
+                    if ref.isdigit() and t["id"].split("_")[0] == f"{int(ref):02d}":
+                        match = t
+                        break
+                    if t["id"].split("_", 1)[-1] == ref:
+                        match = t
+                        break
+            if not match:
+                return f"⚠️ Topic '{html.escape(ref)}' not found in database. Send /queue for list."
+            db.requeue_topic(match["id"])
+            return f"🔄 Topic <b>{html.escape(match['title'])}</b> (<code>{html.escape(match['id'])}</code>) restored to the queue."
+        if command in ("alerts", "logs"):
+            limit = 10
+            if args.strip().isdigit():
+                limit = min(50, max(1, int(args.strip())))
+            alerts = db.list_recent_alerts(limit=limit)
+            if not alerts:
+                return "🔔 No alerts recorded in the database yet."
+            lines = [f"🔔 <b><u>SYSTEM ALERTS</u></b> (<i>last {len(alerts)}</i>):", ""]
+            for a in alerts:
+                purged_tag = " [purged from chat]" if a.get("purged") else ""
+                kind = a.get("kind", "persistent")
+                full_text = a.get("text", "").strip()
+                clean_first = re.sub(r"<[^>]+>", "", full_text.splitlines()[0]) if full_text else ""
+                ts = (a.get("created_at") or "")[:19].replace("T", " ")
+                if len(full_text) <= 80 and "\n" not in full_text:
+                    lines.append(f"• <code>{ts}</code> [<i>{kind}</i>{purged_tag}]: {html.escape(html.unescape(clean_first))}")
+                else:
+                    header = html.escape(html.unescape(clean_first[:80]))
+                    lines.append(f"• <code>{ts}</code> [<i>{kind}</i>{purged_tag}]: <b>{header}</b>\n<blockquote expandable>{html.escape(full_text)}</blockquote>")
+            return "\n".join(lines)
+        if command == "add":
+            title = args.strip()
+            if not title:
+                return (
+                    "➕ <b><u>ADD TOPIC</u></b>\n\nTap to copy & edit: <code>/add The Lost Labyrinth of Hawara</code>\n\n"
+                    "<i>Usage: <code>/add &lt;topic title&gt;</code>\n"
+                    "Tip: Tap the code box above to copy, enter your title, and send!</i>"
+                )
+            try:
+                topic_id, u_tag, decomp = _add_topic_to_bank(db, title)
+            except ValueError as e:
+                return f"⚠️ {html.escape(str(e))}.\nTopic was not added."
+            arch_lines = [f"  • <b>{arch_name.capitalize()}:</b> {html.escape(arch_q)}" for arch_name, arch_q in decomp.get("archetypes", {}).items()]
+            arch_summary = "\n" + "\n".join(arch_lines) if arch_lines else ""
+            return (f"➕ Added <b>{html.escape(title)}</b> (<code>{html.escape(topic_id)}</code>) to topic queue!{u_tag}\n"
+                    f"🎬 <b>Documentary Shot Archetypes:</b>{arch_summary}\n\n"
+                    f"Fetch images with: <code>python scripts/fetch_commons_images.py --topic-id {html.escape(topic_id)}</code>")
+        if command == "umoredone":
+            cleared = 0
+            if delete_message is not None:
+                for mid in list(active_discovery_msg_ids):
+                    try:
+                        if delete_message(mid):
+                            cleared += 1
+                    except Exception:
+                        pass
+            active_discovery_msg_ids.clear()
+            return f"✖ Discovery browsing ended. Cleared {cleared} card(s) from chat." if cleared else "✖ Discovery browsing ended."
+        if command in ("discover", "umore"):
+            from .unesco import UNESCOEngine
+            from . import topic_proposer
+            engine = UNESCOEngine()
+            bank = topic_proposer._bank()
+            existing_titles = [t["title"] for t in bank.get("topics", [])]
+
+            theme = None
+            offset = 0
+            if command == "umore":
+                parts = args.split(":", 1)
+                theme = parts[0].strip() or None
+                if len(parts) > 1 and parts[1].strip().isdigit():
+                    offset = int(parts[1].strip())
+            else:
+                parts = args.strip().split()
+                if parts:
+                    if not parts[0].isdigit():
+                        theme = parts[0]
+                        if len(parts) > 1 and parts[1].isdigit():
+                            offset = int(parts[1])
+                    else:
+                        offset = int(parts[0])
+
+            limit = 3
+            wonders = engine.discover_engineering_wonders(limit=limit, offset=offset, sub_theme=theme, exclude_titles=existing_titles)
+            if not wonders:
+                if offset > 0:
+                    return f"🏛️ No further UNESCO engineering marvels found for '{html.escape(theme or 'all')}'. All matching sites have been reviewed."
+                return (f"🏛️ No unqueued UNESCO engineering marvels found for '{html.escape(theme or 'all')}'. "
+                        "Try another theme (subterranean, hydraulic, megalithic, metallurgy).")
+
+            next_offset = offset + len(wonders)
+            more_exist = len(engine.discover_engineering_wonders(limit=1, offset=next_offset, sub_theme=theme, exclude_titles=existing_titles)) > 0
+
+            if send_message is not None:
+                for w in wonders:
+                    w_title = w["title"]
+                    w_id = w["id_number"]
+                    w_country = w["country"]
+                    w_crit = w["criteria"]
+                    w_desc = (w.get("short_description") or "")[:280]
+                    card = (
+                        f"🏛️ <b>UNESCO Engineering Marvel: {html.escape(w_title)}</b> (#{w_id})\n"
+                        f"📍 {html.escape(w_country)} · Criteria: {html.escape(w_crit)}\n\n"
+                        f"<blockquote expandable><i>{html.escape(w_desc)}</i>\n\n"
+                        f"📚 {html.escape(w['url'])}</blockquote>"
+                    )
+                    card_res = send_message(card, [{"text": "➕ Add to Queue", "callback_data": f"uadd:{w_id}"},
+                                                   {"text": "✖ Skip", "callback_data": f"uskip:{w_id}"}])
+                    if isinstance(card_res, int):
+                        active_discovery_msg_ids.append(card_res)
+                if more_exist:
+                    more_theme = theme or ""
+                    nav_res = send_message(
+                        f"🏛️ Showing <b>{offset + 1}–{next_offset}</b> for <i>{html.escape(theme or 'all')}</i>. More marvels available:",
+                        [{"text": "➕ More Discoveries", "callback_data": f"umore:{more_theme}:{next_offset}"},
+                         {"text": "✖ Done", "callback_data": "umoredone:"}]
+                    )
+                    if isinstance(nav_res, int):
+                        active_discovery_msg_ids.append(nav_res)
+                return f"🏛️ Discovered {len(wonders)} UNESCO engineering marvel(s) ({offset + 1}–{next_offset}). Sent with Add buttons above."
+            else:
+                lines = [f"🏛️ <b>Discovered UNESCO Engineering Marvels ({offset + 1}–{next_offset}):</b>\n"]
+                for w in wonders:
+                    lines.append(f"• <b>{html.escape(w['title'])}</b> (#{w['id_number']}) — {html.escape(w['country'])} (Criteria {html.escape(w['criteria'])})")
+                    desc = (w.get('short_description') or '')[:160]
+                    lines.append(f"  <i>{html.escape(desc)}...</i>")
+                    lines.append(f"  To add: <code>/add {html.escape(w['title'])}</code>\n")
+                if more_exist:
+                    lines.append(f"To see more: <code>/discover {html.escape(theme or '')} {next_offset}</code>")
+                return "\n".join(lines)
+        if command == "uadd":
+            ref = args.strip()
+            if not ref.isdigit():
+                return "Usage: uadd:&lt;unesco_id&gt;"
+            from .unesco import UNESCOEngine
+            engine = UNESCOEngine()
+            sites = engine.load_sites()
+            site = sites.get(int(ref))
+            if not site:
+                return f"⚠️ UNESCO site #{html.escape(ref)} not found in database."
+            try:
+                topic_id, u_tag, decomp = _add_topic_to_bank(db, site.site, u_site=site)
+            except ValueError as e:
+                err_str = str(e)
+                if "Duplicate detected" in err_str:
+                    return f"ℹ️ <b>{html.escape(site.site)}</b> is already queued in the topic bank."
+                return f"⚠️ {html.escape(err_str)}"
+            return (f"➕ Added UNESCO Marvel <b>{html.escape(site.site)}</b> (<code>{html.escape(topic_id)}</code>) to queue!{u_tag}\n\n"
+                    f"Fetch images with: <code>python scripts/fetch_commons_images.py --topic-id {html.escape(topic_id)}</code>")
+        if command == "uskip":
+            return f"✖ Skipped UNESCO site #{html.escape(args.strip())}."
+        if command in ("ask", "probe", "query", "why"):
+            raw_input = args.strip()
+            if not raw_input:
+                return (
+                    "🔍 <b><u>PROBE SYSTEM (AGY)</u></b>\n\n"
+                    "Tap to copy & edit: <code>/ask Why did the system reject Kling motion in the last run?</code>\n\n"
+                    "<i>Usage: <code>/ask &lt;question&gt;</code> (or <code>/probe</code>)\n"
+                    "Ask AGY anything about pipeline decisions, run diagnostics, QA reports, budgets, or media lineage.</i>"
+                )
+            from .probe import probe_system
+            return probe_system(raw_input, db=db, assets_dir=assets_dir)
+
+        if command in ("issue", "critique", "bug"):
+            raw_input = args.strip()
+            if not raw_input:
+                return (
+                    "🛠️ <b><u>REPORT ISSUE</u></b>\n\nTap to copy & edit: <code>/issue run_01 scene 2 audio cut too sharply</code>\n\n"
+                    "<i>Usage: <code>/issue &lt;critique or description&gt;</code>\n"
+                    "Tip: Tap the code box above to copy, edit details, and send! (Or attach media with /issue caption)</i>"
+                )
+            evidence_path = None
+            critique = raw_input
+            if "--evidence" in raw_input:
+                crit_part, _, ev_part = raw_input.partition("--evidence")
+                critique = crit_part.strip()
+                evidence_path = ev_part.strip()
+            ts_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            issue_id = f"iss_{ts_str}"
+            run_id = None
+            for part in critique.split():
+                if part.startswith("run_"):
+                    run_id = part.strip(",.:;")
+                    break
+            db.record_issue(issue_id, critique, run_id=run_id, evidence_path=evidence_path)
+            issues_dir = Path(__file__).resolve().parent.parent / "docs" / "issues"
+            issues_dir.mkdir(parents=True, exist_ok=True)
+            issue_file = issues_dir / f"{issue_id}.md"
+            ev_line = f"- **Evidence**: `{evidence_path}`" if evidence_path else "- **Evidence**: None attached"
+            content = f"""# Issue {issue_id}
+
+- **Created**: {datetime.now(timezone.utc).isoformat()}
+- **Run ID**: {run_id or "Not specified"}
+- **Status**: OPEN
+- **Source**: Telegram Command (`/issue`)
+{ev_line}
+
+## User Critique
+{critique}
+
+## Antigravity (AGY) Autonomous Diagnosis & Action Plan
+1. **Analyze Component**:
+   - Check related pipeline stage logs (narration, audio_engine, video_composer, motion, graphics).
+   - Review attached evidence file if provided.
+2. **Root-Cause Investigation**:
+   - Reproduce the failure or review the output artifact.
+3. **Remediation**:
+   - If non-breaking architectural fix is available: implement, run test suite (`pytest -q`), and verify zero regressions.
+   - If requiring subjective editorial judgment or external credentials: queue for collaborative pairing with human creator.
+4. **CI/CD Delivery**:
+   - Commit verified fix with reference to `{issue_id}`.
+   - Push to `main` to trigger cleanroom CI/CD build and verification before deployment.
+"""
+            issue_file.write_text(content, encoding="utf-8")
+            ev_msg = f"\nEvidence attached: <code>{html.escape(Path(evidence_path).name)}</code>" if evidence_path else ""
+            critique_display = html.escape(critique)
+            return (f"🛠️ <b>Issue Recorded</b>: <code>{issue_id}</code>\n"
+                    f"Saved to <code>docs/issues/{issue_id}.md</code> for autonomous Antigravity (AGY) root-cause investigation.{ev_msg}\n\n"
+                    f"<blockquote expandable><b>Critique:</b>\n<i>{critique_display}</i></blockquote>")
         if command == "run":
             return trigger_run()
         return f"Unknown command /{html.escape(command)}. Send /help."

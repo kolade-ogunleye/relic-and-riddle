@@ -12,7 +12,7 @@ Docs: ai.google.dev/gemini-api/docs/google-search, .../structured-output, ai.goo
 
 import json
 import logging
-from typing import Any, Dict, List, Tuple, Type, TypeVar
+from typing import Any, Dict, List, Tuple, Type, TypeVar, Union
 
 import requests
 from pydantic import BaseModel
@@ -71,7 +71,7 @@ def _text_blocks(data: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 def research(system: str, prompt: str) -> Tuple[str, List[Source]]:
-    """Search-grounded answer; sources come from the response's url_citation annotations."""
+    """Search-grounded answer; sources come from the response's url_citation annotations or grounded text."""
     for attempt in (1, 2):  # a grounded answer occasionally comes back without citations: ask once more
         data = _post({"model": GEMINI_MODEL, "input": f"{system}\n\n{prompt}", "tools": [{"type": "google_search"}]})
         blocks = _text_blocks(data)
@@ -84,8 +84,51 @@ def research(system: str, prompt: str) -> Tuple[str, List[Source]]:
                     if url not in seen:
                         seen.add(url)
                         sources.append(Source(title=a.get("title") or url, url=url))
+        if not sources:
+            for step in data.get("steps", []):
+                for c in step.get("content", []):
+                    for a in c.get("annotations") or []:
+                        if a.get("url"):
+                            url = _resolve(a["url"])
+                            if url not in seen:
+                                seen.add(url)
+                                sources.append(Source(title=a.get("title") or url, url=url))
+        if not sources and text:
+            import re
+            for m in re.finditer(r'https?://[^\s)\]">]+', text):
+                url = m.group(0).rstrip(".,;")
+                if url not in seen:
+                    seen.add(url)
+                    sources.append(Source(title=url, url=url))
         if text and sources:
             break
+    if not sources and is_configured(GEMINI_API_KEY):
+        try:
+            gc_url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
+            gc_body = {
+                "contents": [{"parts": [{"text": f"{system}\n\n{prompt}"}]}],
+                "tools": [{"googleSearch": {}}]
+            }
+            gc_resp = requests.post(gc_url, json=gc_body, timeout=60)
+            if gc_resp.ok:
+                gc_data = gc_resp.json()
+                cands = gc_data.get("candidates", [])
+                if cands:
+                    cand = cands[0]
+                    gc_text = "".join(p.get("text", "") for p in cand.get("content", {}).get("parts", [])).strip()
+                    if gc_text:
+                        text = gc_text
+                    gm = cand.get("groundingMetadata", {})
+                    for chunk in gm.get("groundingChunks", []):
+                        w = chunk.get("web", {})
+                        u = w.get("uri")
+                        if u:
+                            r_u = _resolve(u)
+                            if r_u not in seen:
+                                seen.add(r_u)
+                                sources.append(Source(title=w.get("title") or r_u, url=r_u))
+        except Exception as e:
+            log.debug("generateContent grounding fallback error: %s", e)
     if not text:
         raise GeminiError("Gemini research returned no text.")
     return text, sources
@@ -127,7 +170,45 @@ def _inline_refs(schema: Dict[str, Any]) -> Dict[str, Any]:
     return walk(schema)
 
 
-def structured(system: str, prompt: str, schema: Type[T], model: str = None, key: str = None) -> T:
+def structured(system: str, prompt: Union[str, list], schema: Type[T], model: str = None, key: str = None) -> T:
+    if isinstance(prompt, list):
+        parts = []
+        for b in prompt:
+            if isinstance(b, dict):
+                if b.get("type") == "text":
+                    parts.append({"text": b.get("text", "")})
+                elif b.get("type") == "image":
+                    src = b.get("source", {})
+                    parts.append({
+                        "inline_data": {
+                            "mime_type": src.get("media_type", "image/jpeg"),
+                            "data": src.get("data", "")
+                        }
+                    })
+            elif isinstance(b, str):
+                parts.append({"text": b})
+        target_key = key if key is not None else GEMINI_API_KEY
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={target_key}"
+        body = {
+            "system_instruction": {"parts": [{"text": system}]},
+            "contents": [{"parts": parts}],
+            "generationConfig": {
+                "response_mime_type": "application/json",
+                "response_schema": _inline_refs(schema.model_json_schema())
+            }
+        }
+        try:
+            resp = requests.post(url, json=body, timeout=60)
+            if resp.status_code == 200:
+                data = resp.json()
+                text = data["candidates"][0]["content"]["parts"][0]["text"]
+                return schema.model_validate(json.loads(text))
+            log.warning("Gemini multimodal generateContent failed (%d: %s); falling back to text.", resp.status_code, resp.text[:200])
+        except Exception as e:
+            log.warning("Gemini multimodal call error: %s; falling back to text.", e)
+        # fallback prompt string
+        prompt = "\n".join(b.get("text", "") for b in prompt if isinstance(b, dict) and b.get("type") == "text") or str(prompt)
+
     data = _post({
         "model": model or GEMINI_MODEL,
         "input": f"{system}\n\n{prompt}",

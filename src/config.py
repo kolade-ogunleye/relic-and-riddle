@@ -46,6 +46,10 @@ def _load_env_file(path: Path) -> None:
                 k = k[len("export "):].strip()
             if len(v) >= 2 and v[0] == v[-1] and v[0] in ("'", '"'):
                 v = v[1:-1]
+            elif " #" in v:
+                v = v.split(" #", 1)[0].strip()
+            elif "\t#" in v:
+                v = v.split("\t#", 1)[0].strip()
             os.environ.setdefault(k, v)
 
 
@@ -58,44 +62,44 @@ def is_configured(value: str) -> bool:
 
 
 # Claude (script writing + search-grounded fact checking)
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
-CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-opus-5-5")
+ANTHROPIC_API_KEY = (os.getenv("ANTHROPIC_API_KEY") or "").strip()
+CLAUDE_MODEL = (os.getenv("CLAUDE_MODEL") or "claude-opus-5-5").strip()
 # Tried in order when CLAUDE_MODEL is overloaded/unavailable (same account credit).
-CLAUDE_FALLBACK_MODELS = [m.strip() for m in os.getenv("CLAUDE_FALLBACK_MODELS", "claude-sonnet-5-5").split(",") if m.strip()]
+CLAUDE_FALLBACK_MODELS = [m.strip() for m in (os.getenv("CLAUDE_FALLBACK_MODELS") or "claude-sonnet-5-5").split(",") if m.strip()]
 # Optional monthly spend cap in USD (0 = no cap). When reached: use CLAUDE_BUDGET_MODEL, or stop if empty.
-CLAUDE_MONTHLY_BUDGET_USD = float(os.getenv("CLAUDE_MONTHLY_BUDGET_USD", "0") or 0)
-CLAUDE_BUDGET_MODEL = os.getenv("CLAUDE_BUDGET_MODEL", "").strip()
+CLAUDE_MONTHLY_BUDGET_USD = float(os.getenv("CLAUDE_MONTHLY_BUDGET_USD") or 0)
+CLAUDE_BUDGET_MODEL = (os.getenv("CLAUDE_BUDGET_MODEL") or "").strip()
 
 # Second, independent fact check (runs after the first passes). Claude models in order of
 # ability; Gemini (free tier with a key from aistudio.google.com) is the last fallback.
-SECOND_CHECK_ENABLED = os.getenv("SECOND_CHECK_ENABLED", "true").lower() in ("true", "1", "yes")
-SECOND_CHECK_MODELS = [m.strip() for m in os.getenv("SECOND_CHECK_MODELS", "claude-fable-5-1,claude-opus-5-5").split(",")
+SECOND_CHECK_ENABLED = (os.getenv("SECOND_CHECK_ENABLED") or "true").lower() in ("true", "1", "yes")
+SECOND_CHECK_MODELS = [m.strip() for m in (os.getenv("SECOND_CHECK_MODELS") or "claude-fable-5-1,claude-opus-5-5").split(",")
                        if m.strip()]
 # When the second check disputes a claim the first passed, this model re-checks once and its
 # verdict stands, so the strongest reviewer decides contested facts ("" = no escalation).
-SECOND_CHECK_ESCALATION_MODEL = os.getenv("SECOND_CHECK_ESCALATION_MODEL", "claude-fable-5-1").strip()
+SECOND_CHECK_ESCALATION_MODEL = (os.getenv("SECOND_CHECK_ESCALATION_MODEL") or "claude-fable-5-1").strip()
 # Simple text tasks (picture search queries, music mood) where a top model adds nothing.
-LIGHT_TASK_MODELS = [m.strip() for m in os.getenv("LIGHT_TASK_MODELS", "claude-sonnet-5-5,claude-opus-5-5").split(",")
+LIGHT_TASK_MODELS = [m.strip() for m in (os.getenv("LIGHT_TASK_MODELS") or "claude-sonnet-5-5,claude-opus-5-5").split(",")
                      if m.strip()]
 # Music: "library" = approved free tracks first, ElevenLabs Music only if none fits;
 # "elevenlabs" = generated score first (paid plan).
-MUSIC_PREFER = os.getenv("MUSIC_PREFER", "library").strip().lower()
+MUSIC_PREFER = (os.getenv("MUSIC_PREFER") or "library").strip().lower()
 # Cap on pay-per-use media APIs (AI video), USD per month; 0 = paid media APIs disabled.
-MEDIA_MONTHLY_BUDGET_USD = float(os.getenv("MEDIA_MONTHLY_BUDGET_USD", "0") or 0)
+MEDIA_MONTHLY_BUDGET_USD = float(os.getenv("MEDIA_MONTHLY_BUDGET_USD") or 0)
 # AI motion (src/motion.py): Veo through the Gemini API (billing on), then Kling. Runs only when
 # MEDIA_MONTHLY_BUDGET_USD > 0. Veo Fast is the default: Standard costs about 3x more per second.
-MOTION_VEO_MODEL = os.getenv("MOTION_VEO_MODEL", "veo-3.1-fast-generate-preview")
-MOTION_MAX_CLIPS = int(os.getenv("MOTION_MAX_CLIPS", "1"))  # the opening still; 2 = also one more
-KLING_API_KEY = os.getenv("KLING_API_KEY", "")
+MOTION_VEO_MODEL = (os.getenv("MOTION_VEO_MODEL") or "veo-3.1-fast-generate-preview").strip()
+MOTION_MAX_CLIPS = int(os.getenv("MOTION_MAX_CLIPS") or 1)  # the opening still; 2 = also one more
+KLING_API_KEY = (os.getenv("KLING_API_KEY") or "").strip()
 # Script research, writing and fact checks: "free" = Gemini free tier on GEMINI_FREE_API_KEY (a key from a
 # Google project WITHOUT billing, so it can never be charged) with Wikipedia + cited pages as evidence;
 # "claude" = the paid Claude pipeline with web search. The free path never falls back to a paid key.
-SCRIPT_ENGINE = os.getenv("SCRIPT_ENGINE", "free").strip().lower()
-GEMINI_FREE_API_KEY = os.getenv("GEMINI_FREE_API_KEY", "")
-FREE_WRITER_MODEL = os.getenv("FREE_WRITER_MODEL", "gemini-3.8-flash")
-FREE_CHECKER_MODEL = os.getenv("FREE_CHECKER_MODEL", "gemini-3.7-flash")  # a different model checks the writer's work
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
+SCRIPT_ENGINE = (os.getenv("SCRIPT_ENGINE") or "free").strip().lower()
+GEMINI_FREE_API_KEY = (os.getenv("GEMINI_FREE_API_KEY") or "").strip()
+FREE_WRITER_MODEL = (os.getenv("FREE_WRITER_MODEL") or "gemini-3.8-flash").strip()
+FREE_CHECKER_MODEL = (os.getenv("FREE_CHECKER_MODEL") or "gemini-3.7-flash").strip()  # a different model checks the writer's work
+GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
+GEMINI_MODEL = (os.getenv("GEMINI_MODEL") or "gemini-3.8-flash").strip()
 
 # Voice
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
@@ -175,30 +179,32 @@ BEAT_IMAGES_ENABLED = os.getenv("BEAT_IMAGES_ENABLED", "true").lower() in ("true
 # Real public footage (src/footage.py). Share of runtime footage may take (Meta's originality
 # rules: third-party clips support our narration, never replace it), and the quality bar.
 FOOTAGE_ENABLED = os.getenv("FOOTAGE_ENABLED", "true").lower() in ("true", "1", "yes")
-FOOTAGE_MAX_SHARE = float(os.getenv("FOOTAGE_MAX_SHARE", "0.4"))
-FOOTAGE_MIN_CROP_WIDTH = int(os.getenv("FOOTAGE_MIN_CROP_WIDTH", "1080"))  # px after the 9:16 crop: 4K landscape or vertical
-FOOTAGE_MAX_MB = int(os.getenv("FOOTAGE_MAX_MB", "600"))  # per original download (4K originals are large)
-PEXELS_API_KEY = os.getenv("PEXELS_API_KEY", "")
-PIXABAY_API_KEY = os.getenv("PIXABAY_API_KEY", "")
-YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY", "")
-YOUTUBE_FOOTAGE_ENABLED = os.getenv("YOUTUBE_FOOTAGE_ENABLED", "true").lower() in ("true", "1", "yes")
-YOUTUBE_FALLBACK_TO_YTDLP = os.getenv("YOUTUBE_FALLBACK_TO_YTDLP", "true").lower() in ("true", "1", "yes")
-BEAT_IMAGES_ALLOW_SHARE_ALIKE = os.getenv("BEAT_IMAGES_ALLOW_SHARE_ALIKE", "false").lower() in ("true", "1", "yes")
-CALLOUTS_ENABLED = os.getenv("CALLOUTS_ENABLED", "false").lower() in ("true", "1", "yes")
-FACE_PRIVACY_ENABLED = os.getenv("FACE_PRIVACY_ENABLED", "true").lower() in ("true", "1", "yes")
-FACE_PRIVACY_SKIN_THRESHOLD = float(os.getenv("FACE_PRIVACY_SKIN_THRESHOLD", "0.35"))
+FOOTAGE_MAX_SHARE = float(os.getenv("FOOTAGE_MAX_SHARE") or 0.4)
+FOOTAGE_MIN_CROP_WIDTH = int(os.getenv("FOOTAGE_MIN_CROP_WIDTH") or 1080)  # px after the 9:16 crop: 4K landscape or vertical
+FOOTAGE_MAX_MB = int(os.getenv("FOOTAGE_MAX_MB") or 600)  # per original download (4K originals are large)
+PEXELS_API_KEY = (os.getenv("PEXELS_API_KEY") or "").strip()
+PIXABAY_API_KEY = (os.getenv("PIXABAY_API_KEY") or "").strip()
+YOUTUBE_API_KEY = (os.getenv("YOUTUBE_API_KEY") or "").strip()
+YOUTUBE_FOOTAGE_ENABLED = (os.getenv("YOUTUBE_FOOTAGE_ENABLED") or "true").lower() in ("true", "1", "yes")
+YOUTUBE_FALLBACK_TO_YTDLP = (os.getenv("YOUTUBE_FALLBACK_TO_YTDLP") or "true").lower() in ("true", "1", "yes")
+BEAT_IMAGES_ALLOW_SHARE_ALIKE = (os.getenv("BEAT_IMAGES_ALLOW_SHARE_ALIKE") or "false").lower() in ("true", "1", "yes")
+CALLOUTS_ENABLED = (os.getenv("CALLOUTS_ENABLED") or "false").lower() in ("true", "1", "yes")
+FACE_PRIVACY_ENABLED = (os.getenv("FACE_PRIVACY_ENABLED") or "true").lower() in ("true", "1", "yes")
+FACE_PRIVACY_SKIN_THRESHOLD = float(os.getenv("FACE_PRIVACY_SKIN_THRESHOLD") or 0.35)
 
 # Narration & Voiceover (edge-tts and Azure Speech)
-NARRATOR_VOICE = os.getenv("NARRATOR_VOICE", "en-US-BrianMultilingualNeural")
+VOICE_PREFER = (os.getenv("VOICE_PREFER") or "elevenlabs").strip().lower()  # "elevenlabs" or "azure"
+VOICE_REQUIRE_LICENSED = os.getenv("VOICE_REQUIRE_LICENSED", "false").lower() in ("true", "1", "yes")
+NARRATOR_VOICE = (os.getenv("NARRATOR_VOICE") or "en-US-BrianMultilingualNeural").strip()
 # Licensed free voice fallback: Azure Speech (F0 tier: 0.5M characters/month), same voice.
-AZURE_SPEECH_KEY = os.getenv("AZURE_SPEECH_KEY", "")
-AZURE_SPEECH_REGION = os.getenv("AZURE_SPEECH_REGION", "")
-NARRATOR_RATE = os.getenv("NARRATOR_RATE", "-2%")
-NARRATOR_PITCH = os.getenv("NARRATOR_PITCH", "-2Hz")
+AZURE_SPEECH_KEY = (os.getenv("AZURE_SPEECH_KEY") or "").strip()
+AZURE_SPEECH_REGION = (os.getenv("AZURE_SPEECH_REGION") or "eastus").strip()
+NARRATOR_RATE = (os.getenv("NARRATOR_RATE") or "-2%").strip()
+NARRATOR_PITCH = (os.getenv("NARRATOR_PITCH") or "-2Hz").strip()
 
 # Subtitle / Caption Typography (Anton Locked Standard)
-FONT_NAME = "Anton"
-FONT_SIZE = 72
+FONT_NAME = (os.getenv("FONT_NAME") or "Anton").strip()
+FONT_SIZE = int(os.getenv("FONT_SIZE") or 72)
 FONT_SIZE_ASS = 128  # Compensates for libass PlayResX/PlayResY scale to deliver exact 72px rendered height
 # Bottom 35% of the frame (672 px) is Meta's Reels safe zone for its own UI (username,
 # caption, audio row); captions sit just above it, baseline at y = 1248.
@@ -229,3 +235,8 @@ THUMB_BLUR_RADIUS = 10         # Soft feathered halo
 THUMB_EYEBROW_FONT_SIZE = 32
 THUMB_TITLE_FONT_SIZE = 92
 THUMB_TAGLINE_FONT_SIZE = 40
+
+# Production Archive & Tier 2 Backup
+BACKUP_ENABLED = (os.getenv("BACKUP_ENABLED") or "true").lower() in ("true", "1", "yes")
+_default_backup_dir = Path.home() / "OneDrive" / "Backups" / "Created Contents" / "RelicAndRiddle"
+BACKUP_ONEDRIVE_DIR = Path(os.getenv("BACKUP_ONEDRIVE_DIR") or _default_backup_dir)

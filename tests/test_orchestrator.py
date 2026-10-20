@@ -4,7 +4,8 @@ from main import PipelineCoordinator
 
 
 @pytest.fixture
-def rendered_run(db, tmp_path, curated_payload):
+def rendered_run(db, tmp_path, curated_payload, monkeypatch):
+    monkeypatch.setattr("src.release.require_release", lambda *a, **k: {"status": "pass"})
     video = tmp_path / "m.mp4"
     video.write_bytes(b"0")
     cover = tmp_path / "c.jpg"
@@ -36,6 +37,26 @@ def test_unknown_publish_topic_is_not_picked_again(rendered_run, monkeypatch):
     monkeypatch.setattr(rendered_run.publisher, "publish_reel", lambda env, dry_run=False: {"status": "unknown"})
     rendered_run.publish_run("r1")
     assert rendered_run.db.get_next_topic()["id"] != "01_topic"
+
+
+def test_confirmed_publication_cannot_upload_twice(rendered_run, monkeypatch):
+    calls = []
+    monkeypatch.setattr(rendered_run.publisher, "publish_reel",
+                        lambda *a, **k: calls.append(1) or {"status": "published"})
+    rendered_run.publish_run("r1")
+    assert rendered_run.publish_run("r1")["already_published"]
+    assert calls == [1]
+
+
+def test_unexpected_upload_exception_blocks_retry(rendered_run, monkeypatch):
+    def upload(*args, **kwargs):
+        raise RuntimeError("Connection lost after upload may have started")
+    monkeypatch.setattr(rendered_run.publisher, "publish_reel", upload)
+    with pytest.raises(RuntimeError):
+        rendered_run.publish_run("r1")
+    assert rendered_run.db.get_run("r1")["status"] == "publish_unknown"
+    with pytest.raises(ValueError, match="outcome is unknown"):
+        rendered_run.publish_run("r1")
 
 
 def test_unreviewed_curated_run_cannot_be_published(rendered_run):
@@ -73,7 +94,16 @@ def test_resume_reuses_passed_script_and_voiceover(db, monkeypatch, tmp_path, cu
     monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
     run_dir = tmp_path / "r5"
     run_dir.mkdir()
-    (run_dir / "script_metadata.json").write_text(json.dumps(dict(curated_payload, guardrail_passed=True)), encoding="utf-8")
+    from src.fact_evidence import record_fact_review
+    from src import config as test_config
+    data_dir = tmp_path / "data"
+    sheet = data_dir / "fact_sheets" / "01_topic.json"
+    sheet.parent.mkdir(parents=True)
+    sheet.write_text('{"facts": []}', encoding="utf-8")
+    monkeypatch.setattr(test_config, "DATA_DIR", data_dir)
+    saved_payload = dict(curated_payload, guardrail_passed=True)
+    record_fact_review(saved_payload, sheet)
+    (run_dir / "script_metadata.json").write_text(json.dumps(saved_payload), encoding="utf-8")
     (run_dir / "voiceover.mp3").write_bytes(b"x")
     (run_dir / "words.json").write_text("[]", encoding="utf-8")
     db.create_run("r5", "01_topic")
@@ -81,6 +111,19 @@ def test_resume_reuses_passed_script_and_voiceover(db, monkeypatch, tmp_path, cu
     coord = PipelineCoordinator(db)
     monkeypatch.setattr(coord.visual_engine, "get_scene_sequence", lambda t: [tmp_path / "a.jpg"])
     monkeypatch.setattr(main.VisualEngine if hasattr(main, "VisualEngine") else type(coord.visual_engine), "hero_image", staticmethod(lambda s: s[0]))
+    from src.checkpoints import Checkpoints, file_inputs, topic_inputs
+    from src import config as pipeline_config
+    checkpoints = Checkpoints(run_dir)
+    (run_dir / "verified_script.json").write_bytes((run_dir / "script_metadata.json").read_bytes())
+    topic = db.get_topic_by_id("01_topic")
+    checkpoints.complete("script", {"topic": topic_inputs(topic), "engine": pipeline_config.SCRIPT_ENGINE,
+        "fact_sheet": file_inputs([pipeline_config.DATA_DIR / "fact_sheets" / "01_topic.json"])},
+        [run_dir / "verified_script.json"])
+    (run_dir / "voice.json").write_text(json.dumps({"provider": "edge-tts", "licensed": False}))
+    checkpoints.complete("voice", {"script": curated_payload["narration_script"],
+        "voice": coord.audio_engine.voice, "rate": coord.audio_engine.rate,
+        "pitch": coord.audio_engine.pitch, "eleven_voice": coord.audio_engine.eleven_voice,
+        "licensed_only": False}, [run_dir / "voiceover.mp3", run_dir / "words.json", run_dir / "voice.json"])
     for name in ("generate_script", "verify_claims"):
         monkeypatch.setattr(coord.script_engine, name, lambda *a, **k: pytest.fail("script was regenerated"))
     monkeypatch.setattr(coord.audio_engine, "generate_narration", lambda *a, **k: pytest.fail("voice was regenerated"))
@@ -142,6 +185,7 @@ def test_render_adds_beat_images_and_replans_once_on_picture_mismatch(db, monkey
     import main
     from src.models import QAIssue, QAReport
     coord = PipelineCoordinator(db)
+    monkeypatch.setattr(coord, "_verify_final_copy", lambda *a: None)  # This test isolates scene planning.
     topic_img, beat_img = tmp_path / "t.jpg", tmp_path / "b.jpg"
     monkeypatch.setattr(main, "ensure_all", lambda paths: (paths, 0))
     monkeypatch.setattr(main, "ensure_resolution", lambda p: p)

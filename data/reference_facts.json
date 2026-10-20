@@ -1,0 +1,41 @@
+{
+  "checked_on": "2026-10-16",
+  "references": [
+    {
+      "id": "R_LIBERTY",
+      "label": "Statue of Liberty (total)",
+      "feet": 305.0,
+      "context": "Ground to torch tip, including pedestal and foundation; rounded to whole feet.",
+      "statement": "The Statue of Liberty measures 305 feet 1 inch (92.99 metres) from ground to torch tip, approximately 305 feet.",
+      "quote": "Ground to tip of torch 305'1\" 92.99m",
+      "source_url": "https://home.nps.gov/stli/learn/historyculture/statue-statistics.htm"
+    },
+    {
+      "id": "R_ELIZABETH",
+      "label": "Elizabeth Tower",
+      "feet": 316.0,
+      "context": "Tower height, approximately 316 feet.",
+      "statement": "UK Parliament gives Elizabeth Tower's height as 96.3 metres, or 316 feet.",
+      "quote": "Elizabeth Tower (96.3m, 316ft)",
+      "source_url": "https://www.parliament.uk/about/living-heritage/building/palace/architecture/palacestructure/towers-of-parliament/"
+    },
+    {
+      "id": "R_PYRAMID",
+      "label": "Great Pyramid (original)",
+      "feet": 480.6430446,
+      "context": "Original height, not its surviving height; converted from 146.5 metres and rounded for display.",
+      "statement": "Egypt's Ministry of Tourism and Antiquities gives the Great Pyramid's original height as 146.5 metres, approximately 481 feet.",
+      "quote": "with its original height of 146.5 meters",
+      "source_url": "https://egymonuments.gov.eg/monuments/the-great-pyramid/"
+    },
+    {
+      "id": "R_US_HEIGHT",
+      "label": "U.S. adult man (2021-23 mean)",
+      "feet": 5.75,
+      "context": "U.S. men ages 20 and older, measured in August 2021-August 2023; rounded to 5 feet 9 inches for display.",
+      "statement": "CDC reports mean height of U.S. adult men as 68.9 inches for August 2021-August 2023, approximately 69 inches or 5 feet 9 inches (about 1.75 metres).",
+      "quote": "Height in inches: 68.9",
+      "source_url": "https://www.cdc.gov/nchs/fastats/body-measurements.htm"
+    }
+  ]
+}

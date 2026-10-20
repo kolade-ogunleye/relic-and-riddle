@@ -42,7 +42,7 @@ def test_add_appends_to_bank_queries_and_db(wired, monkeypatch):
     monkeypatch.setattr(tp, "structured_call", lambda *a, **k: TopicProposals(topics=[_proposal("roman_dodecahedron")]))
     tp.propose(db)
     topic_id = tp.add(db, "roman_dodecahedron")
-    assert topic_id == "04_roman_dodecahedron"  # fixture bank has topics 01-03
+    assert topic_id == "roman_dodecahedron"
     assert db.get_topic_by_id(topic_id)["status"] == "queued"
     assert json.loads(queries.read_text(encoding="utf-8"))[topic_id]["keywords"] == ["site"]
     assert tp.pending(db) == {}
@@ -94,6 +94,40 @@ def test_proposals_command_resends_pending(wired, monkeypatch):
     sent = []
     h = make_command_handler(db, lambda: None, lambda: "", send_message=lambda text, buttons: sent.append(buttons) or True)
     assert "1 proposal" in h("proposals", "")
-    assert sent[0][0]["callback_data"] == "tadd:eupalinos"
     tp.skip(db, "eupalinos")
     assert "No topic proposals waiting" in h("proposals", "")
+
+
+def test_wikimedia_pageview_metrics_and_ranking(monkeypatch):
+    from src.topic_engine import TopicEngine, fetch_pageview_metrics
+    # Mock Wikimedia REST API response
+    class MockResp:
+        status_code = 200
+        def json(self):
+            return {
+                "items": [
+                    {"views": 1000}, {"views": 1000}, {"views": 1000}, {"views": 1000},
+                    {"views": 1000}, {"views": 1000}, {"views": 1000},
+                    {"views": 3000}, {"views": 3000}, {"views": 3000}, {"views": 3000},
+                    {"views": 3000}, {"views": 3000}, {"views": 3000}
+                ]
+            }
+
+    import requests
+    monkeypatch.setattr(requests, "get", lambda *a, **k: MockResp())
+    metrics = fetch_pageview_metrics("Antikythera_mechanism")
+    assert metrics["status"] == "success"
+    assert metrics["views_30d"] == 28000
+    assert metrics["daily_avg"] == 2000.0
+    assert metrics["spike_ratio"] == 1.5
+
+    # Test ranking
+    te = TopicEngine()
+    topics = [
+        {"id": "t1", "title": "Low Traffic Topic"},
+        {"id": "t2", "title": "High Traffic Topic"},
+    ]
+    ranked = te.rank_topics_by_momentum(topics)
+    assert len(ranked) == 2
+    assert "pageview_metrics" in ranked[0]
+

@@ -233,3 +233,53 @@ def test_search_youtube_ytdlp_fallback(monkeypatch):
     assert results[0]["artist"] == "Drone Docs"
 
 
+def test_curated_footage_ingestion(tmp_path, monkeypatch):
+    topic_id = "01_derinkuyu_underground_city"
+    assets_dir = tmp_path / "assets"
+    curated_dir = assets_dir / topic_id / "footage"
+    curated_dir.mkdir(parents=True)
+    fake_video = curated_dir / "drone_flyover.mp4"
+    fake_video.write_bytes(b"dummy_video_bytes")
+    (curated_dir / "drone_flyover.json").write_text(
+        json.dumps({"title": "4K Drone Flyover", "uploader": "Boutique Aerials", "license": "Custom License"}),
+        encoding="utf-8"
+    )
+
+    work_dir = tmp_path / "work"
+    monkeypatch.setattr(footage.config, "ASSETS_DIR", assets_dir)
+    monkeypatch.setattr(footage, "probe", lambda p: {"width": 1080, "height": 1920, "duration": 15.0})
+    def fake_make_segment(src, info, out):
+        out.write_bytes(b"segmented")
+        Image.new("RGB", (10, 10)).save(out.with_suffix(".jpg"))
+        return out
+    monkeypatch.setattr(footage, "make_segment", fake_make_segment)
+
+    clips, credits = footage.get_curated_footage(topic_id, work_dir)
+    assert len(clips) == 1
+    assert clips[0].name == "footage_01.mp4"
+    assert len(credits) == 1
+    assert credits[0]["title"] == "4K Drone Flyover"
+    assert credits[0]["artist"] == "Boutique Aerials"
+    assert credits[0]["provider"] == "curated"
+
+    line = footage.credit_line(credits)
+    assert "Boutique Aerials (Custom License)" in line
+
+    # Test source() picks up curated clips
+    topic = {"id": topic_id, "location": {"name": "Derinkuyu"}}
+    s_clips, s_credits = footage.source([], topic, work_dir)
+    assert len(s_clips) == 1
+    assert s_credits[0]["artist"] == "Boutique Aerials"
+
+
+def test_source_empty_when_no_curated_footage(tmp_path, monkeypatch):
+    topic_id = "empty_topic"
+    assets_dir = tmp_path / "assets"
+    monkeypatch.setattr(footage.config, "ASSETS_DIR", assets_dir)
+    monkeypatch.setattr(footage, "PROVIDERS", [])
+    topic = {"id": topic_id, "location": {"name": "Nowhere"}}
+    clips, credits = footage.source([], topic, tmp_path / "work")
+    assert clips == []
+    assert credits == []
+
+

@@ -71,16 +71,46 @@ def save_library(tracks: List[Dict[str, Any]]) -> None:
     LIBRARY.write_text(json.dumps(tracks, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
-def pick_library_track(mood: str, min_seconds: float, exclude: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
-    """An approved track in the mood (any approved track as a fallback), long enough for the Reel."""
+def pick_library_track(mood: str, min_seconds: float = 0, exclude: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
+    """An approved track in the mood (any approved track as a fallback), long enough if min_seconds > 0."""
     exclude = set(exclude or [])
-    tracks = [t for t in load_library() if t.get("reviewed") and t["duration_ms"] >= min_seconds * 1000
-              and t["file"] not in exclude]
+    tracks = [t for t in load_library() if t.get("reviewed") and t["file"] not in exclude]
+    if not tracks:
+        return None
     in_mood = [t for t in tracks if t["mood"] == mood]
     pool = in_mood or tracks
-    if not pool:
-        return None
-    return min(pool, key=lambda t: t.get("uses", 0))  # rotate: least-used first
+    long_enough = [t for t in pool if t["duration_ms"] >= min_seconds * 1000]
+    if min_seconds > 0:
+        if not long_enough:
+            return None
+        candidate_pool = long_enough
+    else:
+        candidate_pool = pool
+    return min(candidate_pool, key=lambda t: t.get("uses", 0))  # rotate: least-used first
+
+
+def pick_documentary_movements(primary_mood: str, num_movements: int = 3, exclude: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+    """Selects 2-3 distinct complementary movements across documentary acts (e.g. Mysterious -> Epic -> Tense)."""
+    exclude = set(exclude or [])
+    tracks = [t for t in load_library() if t.get("reviewed") and t["file"] not in exclude]
+    if not tracks:
+        return []
+    arc_order = [primary_mood]
+    complementary = ["epic", "mysterious", "tense", "melancholic"]
+    for c in complementary:
+        if c != primary_mood and c not in arc_order:
+            arc_order.append(c)
+
+    chosen: List[Dict[str, Any]] = []
+    used_files = set(exclude)
+    for m in arc_order:
+        tr = pick_library_track(m, min_seconds=0, exclude=list(used_files))
+        if tr:
+            chosen.append(tr)
+            used_files.add(tr["file"])
+        if len(chosen) >= num_movements:
+            break
+    return chosen or ([pick_library_track(primary_mood)] if pick_library_track(primary_mood) else [])
 
 
 def mark_used(file: str) -> None:
@@ -124,18 +154,36 @@ def generate_elevenlabs(mood: str, seconds: float, out_path: Path) -> Path:
     return out_path
 
 
-def music_for(payload: Dict[str, Any], seconds: float, work_dir: Path, voice_quota: Optional[dict]) -> Dict[str, Any]:
+def music_for(payload: Dict[str, Any], seconds: float, work_dir: Path, voice_quota: Optional[dict],
+              is_documentary: bool = False) -> Dict[str, Any]:
     """
-    Returns {"path": Path|None, "source": "elevenlabs"|"library"|"none", "mood": str, "credit": str, "file": str}.
+    Returns {"path": Path|None, "paths": List[Path]|None, "source": "elevenlabs"|"library"|"none", "mood": str, "credit": str, "file": str}.
     """
     mood = choose_mood(payload)
 
     def library():
+        can_eleven = bool(is_configured(ELEVENLABS_API_KEY) and elevenlabs_paid(voice_quota))
+        if is_documentary and not can_eleven:
+            movements = pick_documentary_movements(mood, num_movements=3)
+            if movements:
+                paths = [MUSIC_DIR / t["file"] for t in movements]
+                credits = [credit_line(t) for t in movements if credit_line(t)]
+                for t in movements:
+                    mark_used(t["file"])
+                log.info("Music: documentary multi-movement suite (%d tracks: %s).",
+                         len(movements), ", ".join(t["mood"] for t in movements))
+                return {"path": paths[0], "paths": paths, "source": "library", "mood": mood,
+                        "credit": " \n".join(credits), "file": movements[0]["file"],
+                        "tracks": [{**t, "path": str(MUSIC_DIR / t["file"])} for t in movements]}
         track = pick_library_track(mood, seconds)
+        if not track and not can_eleven:
+            track = pick_library_track(mood, 0)
         if track:
             log.info("Music: library track '%s' (%s).", track["title"], track["mood"])
-            return {"path": MUSIC_DIR / track["file"], "source": "library", "mood": mood,
-                    "credit": credit_line(track), "file": track["file"]}
+            mark_used(track["file"])
+            return {"path": MUSIC_DIR / track["file"], "paths": [MUSIC_DIR / track["file"]], "source": "library", "mood": mood,
+                    "credit": credit_line(track), "file": track["file"],
+                    "tracks": [{**track, "path": str(MUSIC_DIR / track["file"])}]}
         return None
 
     def elevenlabs():
@@ -144,20 +192,18 @@ def music_for(payload: Dict[str, Any], seconds: float, work_dir: Path, voice_quo
         try:
             path = generate_elevenlabs(mood, seconds + 1, work_dir / "music_elevenlabs.mp3")
             log.info("Music: ElevenLabs score (%s).", mood)
-            return {"path": path, "source": "elevenlabs", "mood": mood, "credit": "", "file": ""}
+            return {"path": path, "paths": [path], "source": "elevenlabs", "mood": mood, "credit": "", "file": ""}
         except (requests.RequestException, OSError) as e:
             log.warning("ElevenLabs Music failed (%s).", e)
             return None
 
-    # A reviewed bed under narration is close in quality to a generated score, so by default
-    # the free library goes first and ElevenLabs credits are kept for the voice (MUSIC_PREFER).
     order = (elevenlabs, library) if MUSIC_PREFER == "elevenlabs" else (library, elevenlabs)
     for option in order:
         result = option()
         if result:
             return result
     log.info("Music: no paid plan or approved library track; using the synthesized drone.")
-    return {"path": None, "source": "none", "mood": mood, "credit": "", "file": ""}
+    return {"path": None, "paths": None, "source": "none", "mood": mood, "credit": "", "file": ""}
 
 
 # ------------------------------------------------------------------ review

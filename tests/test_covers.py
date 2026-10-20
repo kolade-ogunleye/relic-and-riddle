@@ -32,3 +32,64 @@ def test_title_moves_away_from_busy_detail():
     bottom_busy = Image.fromarray(np.vstack([flat, busy])).convert("RGB")
     assert calm_center_y(top_busy) == 1160
     assert calm_center_y(bottom_busy) == 760
+
+
+def test_story_kicker_alignment(tmp_path):
+    from src.multi_format import MultiFormatGenerator
+    hero = tmp_path / "hero.jpg"
+    Image.new("RGB", (1080, 1920), (50, 50, 50)).save(hero)
+    payload = {
+        "title": "Ancient Engineering Marvel",
+        "narration_script": "Carvers started at the top and sculpted 200,000 tons of rock downward.",
+        "first_comment": "How do you think this was engineered?",
+        "hashtags": ["#Archaeology", "#AncientHistory"],
+        "story_slides": [
+            {"kicker": "ANCIENT MARVELS", "line1": "NOT BUILT FROM", "line2": "THE GROUND UP", "body": "Carvers started at the top."}
+        ],
+        "poll": {"options": ["Hand Tools", "Lost Technology"]}
+    }
+    gen = MultiFormatGenerator()
+    slides = gen.generate_story_sequence(hero, payload, tmp_path)
+    assert len(slides) == 1
+    assert Image.open(slides[0]).size == (1080, 1920)
+
+    # Verify multi-platform companion_posting.json
+    import json
+    comp_file = tmp_path / "companion_posting.json"
+    assert comp_file.exists()
+    comp_data = json.loads(comp_file.read_text(encoding="utf-8"))
+    assert "platforms" in comp_data
+    assert "instagram_reels" in comp_data["platforms"]
+    assert "facebook_reels" in comp_data["platforms"]
+    assert "youtube_shorts" in comp_data["platforms"]
+    assert comp_data["platforms"]["youtube_shorts"]["title"] == "Ancient Engineering Marvel"
+    assert comp_data["platforms"]["instagram_reels"]["hashtags"] == ["#Archaeology", "#AncientHistory"]
+
+
+def test_3_variant_thumbnail_suite_generation(tmp_path):
+    hero = tmp_path / "hero.jpg"
+    Image.new("RGB", (1080, 1920), (70, 60, 50)).save(hero)
+    payload = {
+        "title": "The Antikythera Mechanism",
+        "thumbnail": {
+            "eyebrow": "ANCIENT MARVEL",
+            "line1": "2,000-YEAR-OLD",
+            "line2": "ANALOG COMPUTER",
+            "tagline": "BRONZE GEAR REVELATION",
+        },
+        "stat_cards": [
+            {"value": "35 GEARS", "label": "Mechanism Complexity"}
+        ]
+    }
+    engine = VisualEngine()
+    cover_916, grid_1x1 = engine.generate_thumbnails(hero, payload, tmp_path)
+    assert cover_916.exists() and Image.open(cover_916).size == (1080, 1920)
+    assert grid_1x1.exists() and Image.open(grid_1x1).size == (1080, 1080)
+
+    var_a = tmp_path / "thumbnail_variant_a_blueprint.jpg"
+    var_b = tmp_path / "thumbnail_variant_b_intrigue.jpg"
+    var_c = tmp_path / "thumbnail_variant_c_minimal.jpg"
+    assert var_a.exists() and Image.open(var_a).size == (1080, 1920)
+    assert var_b.exists() and Image.open(var_b).size == (1080, 1920)
+    assert var_c.exists() and Image.open(var_c).size == (1080, 1920)
+

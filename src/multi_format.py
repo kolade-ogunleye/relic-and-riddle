@@ -97,12 +97,48 @@ class MultiFormatGenerator:
             base.save(path, quality=95)
             slides.append(path)
 
+        # Multi-platform publishing manifest with dedicated platform packages
+        hashtags_list = script_payload.get("hashtags") or ["#Archaeology", "#AncientHistory", "#HistoryBuff", "#AncientTechnology"]
+        hashtags_str = " ".join(hashtags_list)
+        first_comment = script_payload.get("first_comment", "")
+        title = script_payload.get("title", "")
+        clean_title = re.sub(r"[^\w\s\-\:\,\']", "", title).strip()
+        if len(clean_title) > 60:
+            clean_title = clean_title[:57].rstrip() + "..."
+
+        ig_caption = script_payload.get("caption", "")
+        fb_caption = f"{clean_title}\n\n{first_comment}\n\nWeigh in with your thoughts in the discussion below."
+        yt_desc = f"{title}\n\n{script_payload.get('narration_script', '')}\n\n{first_comment}\n\n{hashtags_str}"
+        yt_tags = [h.lstrip("#").lower() for h in hashtags_list] + ["archaeology", "ancient history", "documentary", "history mysteries"]
+
+        companion_manifest = {
+            "story_poll_sticker": script_payload.get("poll", {}),
+            "story_frames": [p.name for p in slides],
+            "first_comment": first_comment,
+            "platforms": {
+                "instagram_reels": {
+                    "caption": ig_caption,
+                    "hashtags": hashtags_list,
+                    "first_comment": first_comment,
+                    "recommended_sound": "Original Audio",
+                },
+                "facebook_reels": {
+                    "caption": fb_caption,
+                    "first_comment": first_comment,
+                    "discussion_prompt": first_comment,
+                },
+                "youtube_shorts": {
+                    "title": clean_title,
+                    "description": yt_desc,
+                    "tags": yt_tags,
+                    "pinned_comment": first_comment,
+                },
+            },
+            "note": "Multi-platform publishing manifest: native Instagram poll sticker specs, Facebook MSI discussion copy, and YouTube Shorts SEO metadata.",
+        }
+
         with open(output_dir / "companion_posting.json", "w", encoding="utf-8") as f:
-            json.dump({
-                "story_poll_sticker": script_payload["poll"],
-                "story_frames": [p.name for p in slides],
-                "note": "The API cannot add a native poll sticker; frame 3 shows the question with A/B options and invites replies.",
-            }, f, indent=2, ensure_ascii=False)
+            json.dump(companion_manifest, f, indent=2, ensure_ascii=False)
 
         log.info("Generated %d Story frames -> %s", len(slides), out_dir)
         return slides

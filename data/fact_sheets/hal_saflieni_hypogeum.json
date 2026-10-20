@@ -1,0 +1,364 @@
+{
+ "topic_id": "06_hal_saflieni_hypogeum",
+ "built_at": "2026-10-18T19:17:04.734610+00:00",
+ "facts": [
+  {
+   "id": "fact-1",
+   "statement": "The Ħal Saflieni Hypogeum was discovered by accident in 1902 when construction workers broke through its roof while cutting cisterns.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum",
+     "tier": 2,
+     "quote": "The Hypogeum was discovered by accident in 1902 when workers cutting cisterns for a new housing development broke through its roof."
+    },
+    {
+     "url": "https://whc.unesco.org/en/list/130",
+     "tier": 1,
+     "quote": "Source: unesco.nl English French Arabic Chinese Russian Spanish Japanese Dutch add Outstanding Universal Value Brief synthesis The Ħal Saflieni Hypogeum (underground cemetery) was discovered in 1902 on a hill overlooking the innermost part of the Grand Harbour of Valletta, in the town of Paola."
+    },
+    {
+     "url": "https://www.um.edu.mt/library/oar/handle/123456789/52805",
+     "tier": 3,
+     "quote": "Abstract: The Hypogeum was discovered by accident in 1902 when construction workers broke into the prehistoric site as they were cutting cisterns for a new housing development."
+    }
+   ]
+  },
+  {
+   "id": "fact-2",
+   "statement": "Estimates for the prehistoric use and excavation of the site vary across sources, spanning from roughly 4000 B.C. to 2500 B.C.",
+   "kind": "date",
+   "disputed": true,
+   "hedge": "roughly 4000 B.C. to 2500 B.C.",
+   "evidence": [
+    {
+     "url": "https://whc.unesco.org/en/list/130",
+     "tier": 1,
+     "quote": "UNESCO World Heritage Site #130 (Ħal Saflieni Hypogeum): The Hypogeum is an enormous subterranean structure excavated c. 2500 B.C., using cyclopean rigging to lift huge blocks of coralline limestone. Perhaps originally a sanctuary, it became a necropolis in prehistoric times."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum",
+     "tier": 2,
+     "quote": "The Hypogeum of Ħal Saflieni (Maltese: Ipoġew ta' Ħal Saflieni [ɪpɔˈd͡ʒɛʊ̯ tɐ ħɐl sɐfˈlɪːnɪ]) is a Neolithic subterranean structure dating to the Saflieni phase (3300 – 3000 BC) in Maltese prehistory, located in Paola, Malta."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum",
+     "tier": 2,
+     "quote": "The site may have first been used as early as 4000 BC, and was likely used until around 2500 BC, based on pottery sample analysis and examination of human remains."
+    },
+    {
+     "url": "https://whc.unesco.org/en/list/130",
+     "tier": 1,
+     "quote": "The cemetery was in use throughout the Żebbuġ, Ġgantija and Tarxien Phases of Maltese Prehistory, spanning from around 4000 B.C. to 2500 B.C."
+    }
+   ]
+  },
+  {
+   "id": "fact-3",
+   "statement": "UNESCO inscribed the Ħal Saflieni Hypogeum on the World Heritage List in 1980.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://whc.unesco.org/en/list/130",
+     "tier": 1,
+     "quote": "UNESCO World Heritage Site #130 (Ħal Saflieni Hypogeum): The Hypogeum is an enormous subterranean structure excavated c. 2500 B.C., using cyclopean rigging to lift huge blocks of coralline limestone. Perhaps originally a sanctuary, it became a necropolis in prehistoric times."
+    },
+    {
+     "url": "https://whc.unesco.org/en/list/130",
+     "tier": 1,
+     "quote": "Inscribed on the UNESCO World Heritage List in 1980 under criteria (iii)."
+    },
+    {
+     "url": "https://interestingengineering.com/temples-resonates-frequency-111-hz",
+     "tier": 3,
+     "quote": "According to reports of UNESCO , that added the Hypogeum into the World Heritage Site list in 1980: “In one of these decorated chambers, there is a small niche which echoes when someone speaks into it."
+    }
+   ]
+  },
+  {
+   "id": "fact-4",
+   "statement": "The name hypogeum literally translates to 'underground' in Greek.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum",
+     "tier": 2,
+     "quote": "It is often simply referred to as the Hypogeum, literally meaning \"underground\" in Greek."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum",
+     "tier": 2,
+     "quote": "This hypogeum (Hellenic Υπό+ Γαία  meaning Under+ Earth) is named for the locality under which it lies, namely Ħal Saflieni, a village that no longer exists. Ħal means \"village\" and saflieni means \"low\"; as both words are of Berber origin, the name \"Ħal Saflieni\" may have appeared after Muslims came to Malta."
+    }
+   ]
+  },
+  {
+   "id": "fact-5",
+   "statement": "Archaeologists estimate that the subterranean cemetery originally held the remains of approximately 7,000 individuals.",
+   "kind": "number",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum",
+     "tier": 2,
+     "quote": "The Hypogeum is thought to have been a sanctuary and necropolis, with the estimated remains of more than 7,000 people documented by archeologists, and is among the best preserved examples of the Maltese temple building culture that also produced the Megalithic Temples and Xagħra Stone Circle."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum",
+     "tier": 2,
+     "quote": "It is estimated that the remains of 7,000 individuals were found in the Hypogeum, and though many of the bones were lost early in excavation, most of the skulls were deposited at the National Museum."
+    },
+    {
+     "url": "https://whc.unesco.org/en/list/130",
+     "tier": 1,
+     "quote": "It is a unique prehistoric monument, which seems to have been conceived as an underground cemetery, originally containing the remains of about 7,000 individuals."
+    },
+    {
+     "url": "https://whc.unesco.org/pg.cfm?cid=31&id_site=130",
+     "tier": 1,
+     "quote": "It is a unique prehistoric monument, which seems to have been conceived as an underground cemetery, originally containing the remains of about 7,000 individuals."
+    }
+   ]
+  },
+  {
+   "id": "fact-6",
+   "statement": "Manuel Magri first directed excavations on behalf of the Museums Committee starting in November 1903.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum",
+     "tier": 2,
+     "quote": "The study of the structure was first conducted by Manuel Magri, who directed the excavations on behalf of the Museums Committee, starting from November 1903."
+    }
+   ]
+  },
+  {
+   "id": "fact-7",
+   "statement": "Manuel Magri died in Tunisia in 1907, and his original excavation report on the Hypogeum was lost.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum",
+     "tier": 2,
+     "quote": "Magri's death in 1907 while conducting missionary work in Tunisia further complicated matters and his report on the Hypogeum was lost."
+    }
+   ]
+  },
+  {
+   "id": "fact-8",
+   "statement": "The Hypogeum was first opened to visitors in 1908 while excavations were still underway.",
+   "kind": "date",
+   "disputed": true,
+   "hedge": "estimated The Hypogeum was first opened to visitors in 1908 while excavations were still underway.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum",
+     "tier": 2,
+     "quote": "The Hypogeum was first opened to visitors in 1908 while the excavations were ongoing."
+    }
+   ]
+  },
+  {
+   "id": "fact-9",
+   "statement": "The underground complex is carved into soft globigerina limestone across three superimposed levels.",
+   "kind": "number",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum",
+     "tier": 2,
+     "quote": "The Hypogeum is constructed entirely underground and consists of three superimposed levels hewn into soft globigerina limestone, with its halls and chambers interconnected through a labyrinthine series of steps, lintels and doorways."
+    },
+    {
+     "url": "https://whc.unesco.org/en/list/130",
+     "tier": 1,
+     "quote": "The plan of the Hypogeum itself is a series of three superimposed levels of chambers cut into soft globigerina limestone, using only chert, flint and obsidian tools and antlers."
+    },
+    {
+     "url": "https://whc.unesco.org/pg.cfm?cid=31&id_site=130",
+     "tier": 1,
+     "quote": "The plan of the Hypogeum itself is a series of three superimposed levels of chambers cut into soft globigerina limestone, using only chert, flint and obsidian tools and antlers."
+    }
+   ]
+  },
+  {
+   "id": "fact-10",
+   "statement": "Neolithic builders carved out the chambers using only chert, flint, and obsidian tools as well as antlers.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://whc.unesco.org/en/list/130",
+     "tier": 1,
+     "quote": "The plan of the Hypogeum itself is a series of three superimposed levels of chambers cut into soft globigerina limestone, using only chert, flint and obsidian tools and antlers."
+    },
+    {
+     "url": "https://whc.unesco.org/pg.cfm?cid=31&id_site=130",
+     "tier": 1,
+     "quote": "The plan of the Hypogeum itself is a series of three superimposed levels of chambers cut into soft globigerina limestone, using only chert, flint and obsidian tools and antlers."
+    }
+   ]
+  },
+  {
+   "id": "fact-11",
+   "statement": "Heritage Malta restricts public access to only 80 visitors per day to protect the site's microclimate.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "estimated Heritage Malta restricts public access to only 80 visitors per day to protect the site's microclimate.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum",
+     "tier": 2,
+     "quote": "The Hypogeum was then closed to visitors between 1991 and 2000 for restoration works and to arrange it for visits; and since its reopening, Heritage Malta (the government body that looks after historical sites) allows entry to only 80 people per day, while the site's microclimate is strictly regulated."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum",
+     "tier": 2,
+     "quote": "Due to conservation considerations, only very few visitors ( 80 ) are allowed in every day."
+    }
+   ]
+  },
+  {
+   "id": "fact-12",
+   "statement": "A carved resonance niche in the middle chamber, known as the Oracle Room, produces a powerful acoustic echo when vocalized into.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum",
+     "tier": 2,
+     "quote": "A resonance niche cut in the middle chamber, called the Oracle Room, was possibly designed to project chanting or drumming throughout the rest of the Hypogeum."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum",
+     "tier": 2,
+     "quote": "It has the peculiarity of producing a powerful acoustic resonance from any vocalization made inside it."
+    },
+    {
+     "url": "https://interestingengineering.com/temples-resonates-frequency-111-hz",
+     "tier": 3,
+     "quote": "According to reports of UNESCO , that added the Hypogeum into the World Heritage Site list in 1980: “In one of these decorated chambers, there is a small niche which echoes when someone speaks into it."
+    }
+   ]
+  },
+  {
+   "id": "fact-13",
+   "statement": "A small percentage of the human skulls recovered from the Hypogeum exhibited abnormal cranial elongation.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum",
+     "tier": 2,
+     "quote": "It is estimated that the remains of 7,000 individuals were found in the Hypogeum, and though many of the bones were lost early in excavation, most of the skulls were deposited at the National Museum."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum",
+     "tier": 2,
+     "quote": "A small percentage of the skulls have an abnormal cranial elongation, similar to priestly skulls from Ancient Egypt, fueling speculation about the people who occupied the Hypogeum, and their practices and beliefs."
+    }
+   ]
+  },
+  {
+   "id": "fact-14",
+   "statement": "The central structure known as the Holy of Holies appears to be aligned with the winter solstice.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum",
+     "tier": 2,
+     "quote": "Holy of Holies: Perhaps the central structure of the Hypogeum, this room appears to be oriented toward the winter solstice, which would have illuminated its facade from the original surface opening."
+    }
+   ]
+  },
+  {
+   "id": "fact-15",
+   "statement": "Following a 1.1 million euro renovation, the Hypogeum reopened to visitors in May 2017 with an updated climate control system.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum",
+     "tier": 2,
+     "quote": "The Hypogeum reopened in May 2017 after closing for a year to improve its environmental management system."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum",
+     "tier": 2,
+     "quote": "The site closed in September 2016 for a €1.1 million renovation partly financed by a grant from Iceland, Norway and Liechtenstein."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum",
+     "tier": 2,
+     "quote": "The renovated museum was inaugurated by the Maltese Minister for Culture  on 28 April 2017 and includes a new climate control system for the Hypogeum as well as an expanded visitor centre."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum",
+     "tier": 2,
+     "quote": "The site reopened to visitors on 15 May 2017."
+    }
+   ]
+  }
+ ],
+ "dropped": [],
+ "sources": [
+  {
+   "title": "UNESCO World Heritage Centre - Ħal Saflieni Hypogeum",
+   "url": "https://whc.unesco.org/en/list/130",
+   "tier": 1
+  },
+  {
+   "title": "Wikipedia: Ħal Saflieni Hypogeum",
+   "url": "https://en.wikipedia.org/wiki/Ħal_Saflieni_Hypogeum",
+   "tier": 2
+  },
+  {
+   "title": "interestingengineering.com",
+   "url": "https://interestingengineering.com/temples-resonates-frequency-111-hz",
+   "tier": 3
+  },
+  {
+   "title": "whc.unesco.org",
+   "url": "https://whc.unesco.org/en/list/130",
+   "tier": 1
+  },
+  {
+   "title": "whc.unesco.org",
+   "url": "https://whc.unesco.org/pg.cfm?cid=31&id_site=130",
+   "tier": 1
+  },
+  {
+   "title": "www.um.edu.mt",
+   "url": "https://www.um.edu.mt/library/oar/handle/123456789/52805",
+   "tier": 3
+  },
+  {
+   "title": "www.scientificamerican.com",
+   "url": "https://www.scientificamerican.com/article/the-death-cults-of-prehistoric-malt-2005-01/",
+   "tier": 2
+  },
+  {
+   "title": "www.smithsonianmag.com",
+   "url": "https://www.smithsonianmag.com/travel/maltas-hypogeum-one-worlds-best-preserved-prehistoric-sites-reopens-public-180963397/",
+   "tier": 1
+  }
+ ]
+}

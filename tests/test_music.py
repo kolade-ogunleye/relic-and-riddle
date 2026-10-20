@@ -65,10 +65,12 @@ def test_library_first_by_default_then_paid_score(library, monkeypatch):
 def test_music_review_flow(library, db):
     sent = []
     h = make_command_handler(db, lambda: None, lambda: "", send_audio=lambda p, cap, b: sent.append((cap, b)) or True)
-    assert h("music", "") == "🎵 Track sent above."
-    key = sent[-1][1][0]["callback_data"].split(":")[1]
+    assert h("music", "") == ""
+    btn = sent[-1][1][0][0] if isinstance(sent[-1][1][0], list) else sent[-1][1][0]
+    key = btn["callback_data"].split(":")[1]
     assert "Kept" in h("mkeep", key)
-    key2 = sent[-1][1][0]["callback_data"].split(":")[1]
+    btn2 = sent[-1][1][0][0] if isinstance(sent[-1][1][0], list) else sent[-1][1][0]
+    key2 = btn2["callback_data"].split(":")[1]
     assert key2 != key and "Removed" in h("mdel", key2)
     assert "No tracks waiting" in h("music", "")
     lib = json.loads((library / "library.json").read_text(encoding="utf-8"))
@@ -84,3 +86,48 @@ def test_bed_uses_music_and_cues_sfx_on_words(tmp_path):
     assert sr == 48000 and data.shape == (240000, 2)
     rms = float(np.sqrt(np.mean(data[48000:-120000] ** 2)))
     assert 0.03 < rms < 0.08  # music normalised to the bed level, looped to length
+
+
+def test_pick_documentary_movements(library):
+    # library fixture has approved tracks for 'mysterious' and 'epic'
+    movements = music.pick_documentary_movements("mysterious", num_movements=2)
+    assert len(movements) == 2
+    assert {m["mood"] for m in movements} == {"mysterious", "epic"}
+
+
+def test_ambient_bed_multi_movement_crossfade(tmp_path):
+    t1 = tmp_path / "m1.wav"
+    t2 = tmp_path / "m2.wav"
+    sf.write(str(t1), (np.random.default_rng(1).standard_normal((48000 * 2, 2)) * 0.2).astype(np.float32), 48000)
+    sf.write(str(t2), (np.random.default_rng(2).standard_normal((48000 * 2, 2)) * 0.2).astype(np.float32), 48000)
+    out = AudioEngine().generate_ambient_bed(6.0, tmp_path / "bed_multi.wav", music_paths=[t1, t2])
+    data, sr = sf.read(str(out))
+    assert sr == 48000 and data.shape == (int(6.0 * 48000), 2)
+    rms = float(np.sqrt(np.mean(data[48000:-48000] ** 2)))
+    assert 0.02 < rms < 0.10
+
+
+def test_procedural_foley_keyword_synthesis(tmp_path):
+    engine = AudioEngine()
+    words = [
+        {"word": "ancient", "start": 0.5, "dur": 0.3},
+        {"word": "bronze", "start": 1.2, "dur": 0.4},      # triggers gear ratchet
+        {"word": "submerged", "start": 2.5, "dur": 0.4},   # triggers water surge
+        {"word": "chisel", "start": 4.0, "dur": 0.3},      # triggers chisel strike
+    ]
+    out = engine.generate_ambient_bed(6.0, tmp_path / "bed_foley.wav", words=words)
+    assert out.exists()
+    data, sr = sf.read(str(out))
+    assert sr == 48000
+    assert data.shape == (int(6.0 * 48000), 2)
+    assert np.all(np.isfinite(data))
+    assert np.max(np.abs(data)) <= 1.0  # safe clipping bounds
+    # Check that individual synthesizers produce clean stereo output
+    gear = engine._synth_gear_ratchet(0.8, 48000)
+    water = engine._synth_water_surge(2.0, 48000)
+    chisel = engine._synth_chisel_strike(1.0, 48000)
+    assert gear.shape == (int(0.8 * 48000), 2)
+    assert water.shape == (int(2.0 * 48000), 2)
+    assert chisel.shape == (int(1.0 * 48000), 2)
+
+

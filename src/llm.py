@@ -215,10 +215,20 @@ def research(system: str, prompt: str, *, web_search_uses: int, effort: str = "h
     seen: set = set()
 
     def send(model: str):
-        return client.beta.messages.create(
-            model=model, max_tokens=max_tokens, system=system, messages=messages, tools=tools,
-            output_config={"effort": effort}, **_model_kwargs(model),
-        )
+        kw = _model_kwargs(model)
+        try:
+            return client.beta.messages.create(
+                model=model, max_tokens=max_tokens, system=system, messages=messages, tools=tools,
+                **kw,
+            )
+        except TypeError as e:
+            if "fallbacks" in str(e):
+                kw.pop("fallbacks", None)
+                return client.beta.messages.create(
+                    model=model, max_tokens=max_tokens, system=system, messages=messages, tools=tools,
+                    **kw,
+                )
+            raise
 
     response, model = _first_request(send, models)
     for _ in range(_MAX_CONTINUATIONS):
@@ -255,10 +265,20 @@ def research_with_evidence(system: str, prompt: str, *, web_search_uses: int, ef
     seen_quotes: set = set()
 
     def send(model: str):
-        return client.beta.messages.create(
-            model=model, max_tokens=max_tokens, system=system, messages=messages, tools=tools,
-            output_config={"effort": effort}, **_model_kwargs(model),
-        )
+        kw = _model_kwargs(model)
+        try:
+            return client.beta.messages.create(
+                model=model, max_tokens=max_tokens, system=system, messages=messages, tools=tools,
+                **kw,
+            )
+        except TypeError as e:
+            if "fallbacks" in str(e):
+                kw.pop("fallbacks", None)
+                return client.beta.messages.create(
+                    model=model, max_tokens=max_tokens, system=system, messages=messages, tools=tools,
+                    **kw,
+                )
+            raise
 
     response, model = _first_request(send, models)
     for _ in range(_MAX_CONTINUATIONS):
@@ -303,16 +323,32 @@ def image_block(path, max_side: int = 512) -> dict:
 
 def structured_call(system: str, prompt: Union[str, list], schema: Type[T], *, effort: str = "high",
                     max_tokens: int = 16000, models: Optional[List[str]] = None) -> T:
-    """One Claude request whose answer must validate against `schema` (no tools).
+    """One request whose answer must validate against `schema` (no tools).
     `prompt` may be a string or a list of content blocks (e.g. images then text)."""
     client = _client()
 
+    parse_fn = getattr(client.beta.messages, "parse", None)
+    if parse_fn is None:
+        from . import gemini
+        return gemini.structured(system, prompt, schema)
+
     def send(model: str):
-        return client.beta.messages.parse(
-            model=model, max_tokens=max_tokens, system=system,
-            messages=[{"role": "user", "content": prompt}],
-            output_config={"effort": effort}, output_format=schema, **_model_kwargs(model),
-        )
+        kw = _model_kwargs(model)
+        try:
+            return parse_fn(
+                model=model, max_tokens=max_tokens, system=system,
+                messages=[{"role": "user", "content": prompt}],
+                output_format=schema, **kw,
+            )
+        except TypeError as e:
+            if "fallbacks" in str(e):
+                kw.pop("fallbacks", None)
+                return parse_fn(
+                    model=model, max_tokens=max_tokens, system=system,
+                    messages=[{"role": "user", "content": prompt}],
+                    output_format=schema, **kw,
+                )
+            raise
 
     response, _ = _first_request(send, models)
     _record(response)

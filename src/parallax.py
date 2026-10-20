@@ -158,14 +158,36 @@ def render_scenes(scenes, durations, work_dir: Path, transition: float) -> Optio
     from .typography import is_video
     from concurrent.futures import ThreadPoolExecutor
 
+    from .checkpoints import Checkpoints, file_inputs
+    from .lineage import sidecar
+
     work_dir.mkdir(parents=True, exist_ok=True)
     _session()  # load the model once before the worker threads share it
+    renderer = file_inputs([Path(__file__), MODEL_PATH])
+
+    def clip_for(i, scene, duration, preset):
+        # A clip is reused (QA re-plan, resume) only for the same still, timing, move, size and
+        # renderer, and only while it and its lineage record are intact.
+        clip = work_dir / f"scene_{i + 1:02d}.mp4"
+        inputs = {"image": file_inputs([Path(scene)]), "duration": duration, "preset": preset,
+                  "fps": VIDEO_FPS, "size": [VIDEO_WIDTH, VIDEO_HEIGHT], "renderer": renderer}
+        checkpoint = Checkpoints(work_dir / "stage_cache" / clip.stem)
+        if checkpoint.reusable("clip", inputs):
+            return clip, False
+        render_clip(Path(scene), clip, duration, preset)
+        try:
+            checkpoint.complete("clip", inputs, [clip, sidecar(clip)])
+        except (OSError, ValueError) as e:  # caching is an optimisation; the fresh clip stands
+            log.debug("Parallax clip %s not cached: %s", clip.name, e)
+        return clip, True
+
     jobs = {}
     with ThreadPoolExecutor(max_workers=4) as pool:  # OpenCV/NumPy release the GIL while warping
         for i, (scene, dur) in enumerate(zip(scenes, durations)):
             if not is_video(scene):
-                clip = work_dir / f"scene_{i + 1:02d}.mp4"
-                jobs[i] = pool.submit(render_clip, Path(scene), clip, dur + 3 * transition, preset_for(i, len(scenes)))
-        out = [jobs[i].result() if i in jobs else scene for i, scene in enumerate(scenes)]
-    log.info("Rendered %d parallax scene clips.", len(jobs))
+                jobs[i] = pool.submit(clip_for, i, scene, dur + 3 * transition, preset_for(i, len(scenes)))
+        results = {i: job.result() for i, job in jobs.items()}
+        out = [results[i][0] if i in results else scene for i, scene in enumerate(scenes)]
+    rendered = sum(1 for _, fresh in results.values() if fresh)
+    log.info("Parallax scene clips: %d rendered, %d reused unchanged.", rendered, len(results) - rendered)
     return out

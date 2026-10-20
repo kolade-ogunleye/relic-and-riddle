@@ -61,6 +61,24 @@ def test_bad_plan_falls_back(monkeypatch, tmp_path):
     assert scenes == [p] and notes == "filename order"
 
 
+def test_lock_narrative_graphics():
+    beats = [
+        {"start": 0.0, "end": 3.0, "text": "An ancient subterranean wonder awaits."},
+        {"start": 3.0, "end": 6.5, "text": "In 1963, a man in Cappadocia knocked through his wall."},
+        {"start": 6.5, "end": 10.0, "text": "It plunges roughly 85 metres deep into volcanic rock."},
+        {"start": 10.0, "end": 14.0, "text": "Massive rolling stone doors sealed each corridor."},
+    ]
+    graphics = [
+        Path("graphic_map.mp4"),
+        Path("graphic_section.mp4"),
+        Path("graphic_labels_door.mp4"),
+    ]
+    locked = sp.lock_narrative_graphics(beats, graphics)
+    assert locked[1] == Path("graphic_map.mp4")
+    assert locked[2] == Path("graphic_section.mp4")
+    assert locked[3] == Path("graphic_labels_door.mp4")
+
+
 def test_qa_summary_orders_by_severity_and_escapes():
     report = QAReport(summary="", issues=[QAIssue(beat=2, severity="minor", issue="<tiny>"),
                                           QAIssue(beat=0, severity="Critical", issue="watermark")])
@@ -74,3 +92,66 @@ def test_card_includes_qa_summary():
     from src.telegram_bot import TelegramApprovalBot
     card = TelegramApprovalBot.format_card_text({"title": "T", "qa_summary": "🔎 Automated video check: no issues found"}, "r1")
     assert "Automated video check" in card
+
+
+def test_storyboard_lock_overrides_llm(tmp_path, monkeypatch):
+    import json
+    imgs = [tmp_path / f"img_{i}.jpg" for i in range(1, 4)]
+    for p in imgs:
+        p.write_bytes(b"data")
+
+    # Create approved storyboard locking beat 1 -> img_3, beat 2 -> img_1, beat 3 -> img_2
+    sb_data = [
+        {"beat": 1, "file": "img_3.jpg", "text": "beat 1"},
+        {"beat": 2, "file": "img_1.jpg", "text": "beat 2"},
+        {"beat": 3, "file": "img_2.jpg", "text": "beat 3"},
+    ]
+    (tmp_path / "storyboard.json").write_text(json.dumps(sb_data), encoding="utf-8")
+
+    # Ensure LLM would have picked something else if called
+    monkeypatch.setattr(sp, "claude_available", lambda: True)
+    monkeypatch.setattr(sp, "structured_call", lambda *a, **k: pytest.fail("LLM should not be called when storyboard exists"))
+
+    beats = [
+        {"start": 0, "end": 3, "text": "beat 1"},
+        {"start": 3, "end": 6, "text": "beat 2"},
+        {"start": 6, "end": 9, "text": "beat 3"},
+    ]
+    scenes, durations, notes = sp.plan_scenes(beats, imgs)
+    assert scenes == [imgs[2], imgs[0], imgs[1]]
+    assert notes == "approved storyboard contract lock"
+
+
+def test_storyboard_lock_preserves_motion_hook_and_animated_graphics(tmp_path):
+    import json
+    imgs = [tmp_path / f"img_{i}.jpg" for i in range(1, 4)]
+    for p in imgs:
+        p.write_bytes(b"data")
+
+    sb_data = [
+        {"beat": 1, "file": "img_1.jpg", "text": "opening hook"},
+        {"beat": 2, "file": "img_2.jpg", "text": "deep inside Cappadocia Turkey"},
+        {"beat": 3, "file": "img_3.jpg", "text": "final conclusion"},
+    ]
+    (tmp_path / "storyboard.json").write_text(json.dumps(sb_data), encoding="utf-8")
+
+    hook_vid = tmp_path / "hook_motion.mp4"
+    hook_vid.write_bytes(b"video")
+
+    map_vid = tmp_path / "graphic_map.mp4"
+    map_vid.write_bytes(b"video")
+    (tmp_path / "graphic_map.jpg").write_bytes(b"poster")
+
+    media = [hook_vid, map_vid] + imgs
+    beats = [
+        {"start": 0, "end": 3, "text": "opening hook"},
+        {"start": 3, "end": 6, "text": "deep inside Cappadocia Turkey"},
+        {"start": 6, "end": 9, "text": "final conclusion"},
+    ]
+    scenes, durations, notes = sp.plan_scenes(beats, media)
+    # Beat 0 gets motion hook video
+    assert scenes[0] == hook_vid
+    # Beat 1 gets animated map graphic locked to Cappadocia Turkey
+    assert scenes[1] == map_vid
+    # Beat 2 gets locked storyboard image img_3
+    assert scenes[2] == imgs[2]

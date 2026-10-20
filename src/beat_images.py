@@ -28,22 +28,38 @@ CREDIT_PREFIX = "📷 Images via Wikimedia Commons:"
 MAX_BEATS = 5          # only the most concrete beats get their own search
 PER_BEAT = 2           # candidates per beat
 
-SYSTEM = """You plan picture research for a short history documentary. For each narration beat that names a concrete, photographable subject (a specific place, structure, object, artefact or document), write one precise Wikimedia Commons search for it, plus 1-4 lowercase keywords that a relevant file title would contain (proper nouns are best). Skip abstract beats (ideas, numbers, open questions). Prefer the specific site over generic look-alikes."""
+SYSTEM = """You plan picture research for a short history documentary. For each narration beat that names a concrete, photographable subject (a specific place, structure, object, artefact or document), write one precise Wikimedia Commons search for it, plus 1-4 lowercase keywords that a relevant file title would contain (proper nouns are best). Skip abstract beats (ideas, numbers, open questions). Prefer the specific site, archaeological drill core, museum specimen, or scientific micrograph over generic scenic landscape look-alikes."""
+
+
+def verify_visual_relevance(cand_title: str, query: str = "") -> bool:
+    """Rejects modern tourist photos, gift shops, unrelated street scenes, or generic signage."""
+    text = (cand_title + " " + query).lower()
+    reject_patterns = ("tourist", "souvenir", "ticket", "restaurant", "hotel", "cafe", "bus", "parking", "gift shop", "selfie", "modern street")
+    return not any(p in text for p in reject_patterns)
 
 
 @llm_task("beat_queries")
 def plan_queries(beats: List[Dict[str, Any]], topic: Dict[str, Any]) -> BeatQueries:
     lines = "\n".join(f"Beat {i}: {b['text']}" for i, b in enumerate(beats, 1))
     loc = topic.get("location", {})
-    return structured_call(SYSTEM, f"Topic: {topic.get('title', '')} ({loc.get('name', '')}, {loc.get('country', '')})\n"
-                                   f"{lines}\n\nAt most {MAX_BEATS} beats.", BeatQueries, effort="low", max_tokens=3000,
-                           models=config.LIGHT_TASK_MODELS)
+    prompt = f"Topic: {topic.get('title', '')} ({loc.get('name', '')}, {loc.get('country', '')})\n{lines}\n\nAt most {MAX_BEATS} beats."
+    if claude_available():
+        return structured_call(SYSTEM, prompt, BeatQueries, effort="low", max_tokens=3000,
+                               models=config.LIGHT_TASK_MODELS)
+    from . import free_llm
+    if free_llm.available():
+        return free_llm.structured(SYSTEM, prompt, BeatQueries, role="writer")
+    raise LLMError("Neither Claude nor Gemini is available for beat query planning.")
 
 
 def source(beats: List[Dict[str, Any]], topic: Dict[str, Any], work_dir: Path, plan=None) -> Tuple[List[Path], List[Dict[str, Any]]]:
     """Returns (downloaded image paths, their credit records). Never raises: extra images are optional."""
-    if not config.BEAT_IMAGES_ENABLED or not claude_available():
+    if not config.BEAT_IMAGES_ENABLED:
         return [], []
+    if not claude_available():
+        from . import free_llm
+        if not free_llm.available():
+            return [], []
     if plan is None:
         try:
             plan = plan_queries(beats, topic)
@@ -59,6 +75,8 @@ def source(beats: List[Dict[str, Any]], topic: Dict[str, Any], work_dir: Path, p
             for cand in commons.candidates(commons.search(item.query, limit=30, max_wait=60), item.keywords,
                                             config.BEAT_IMAGES_ALLOW_SHARE_ALIKE):
                 if cand["title"] in seen:
+                    continue
+                if not verify_visual_relevance(cand["title"], item.query):
                     continue
                 dest = work_dir / f"beat{item.beat:02d}_{found + 1}.jpg"
                 commons.download_jpeg(cand["download_url"], dest)

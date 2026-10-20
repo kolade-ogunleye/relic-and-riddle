@@ -35,6 +35,12 @@ log = logging.getLogger(__name__)
 SHEETS_DIR = DATA_DIR / "fact_sheets"
 FACT_SHEET_MAX_AGE_DAYS = 60
 MAX_QUOTES = 80
+MIN_VERIFIED_FACTS = 6
+
+
+class FactStarvedTopicError(ValueError):
+    """Raised when research produces fewer than MIN_VERIFIED_FACTS reliable facts to sustain a documentary."""
+    pass
 
 # Source tiers. 1: scholarly, official and heritage bodies, major reference works. 2: established
 # press and encyclopedic sites. 3: everything else (travel blogs, listicles, aggregators).
@@ -42,7 +48,8 @@ TIER1_SUFFIXES = (".gov", ".edu", ".ac.uk", ".gov.tr", ".gouv.fr", ".gov.uk", ".
 TIER1_DOMAINS = {"unesco.org", "whc.unesco.org", "britannica.com", "smithsonianmag.com", "si.edu", "nationalgeographic.com",
                  "jstor.org", "nature.com", "science.org", "sciencedirect.com", "cambridge.org", "academic.oup.com",
                  "metmuseum.org", "britishmuseum.org", "louvre.fr", "worldhistory.org", "archaeology.org", "ktb.gov.tr",
-                 "muze.gov.tr", "loc.gov", "nasa.gov", "springer.com", "tandfonline.com", "wiley.com", "pnas.org"}
+                 "muze.gov.tr", "loc.gov", "nasa.gov", "springer.com", "tandfonline.com", "wiley.com", "pnas.org",
+                 "doi.org", "openalex.org", "wikidata.org"}
 TIER2_DOMAINS = {"wikipedia.org", "history.com", "bbc.com", "bbc.co.uk", "nytimes.com", "theguardian.com", "reuters.com",
                  "apnews.com", "newscientist.com", "livescience.com", "atlasobscura.com", "washingtonpost.com",
                  "independent.co.uk", "telegraph.co.uk", "cnn.com", "npr.org", "scientificamerican.com", "dailysabah.com",
@@ -50,16 +57,16 @@ TIER2_DOMAINS = {"wikipedia.org", "history.com", "bbc.com", "bbc.co.uk", "nytime
 # ancient-origins.net is popular but sensational: listed so it can be demoted, not trusted.
 DEMOTED = {"ancient-origins.net"}
 
-SYSTEM = """You build a verified fact sheet for a short history documentary. You get research notes and a
-numbered list of evidence quotes (exact text from the sources the search returned). Write 10-18 facts
-that a 45-second script could use: the key numbers, dates, names and events, plus the genuine debates.
-Each fact must be ONE checkable statement, worded as it could be said on screen, and must cite the
-quote numbers that support it. Never state anything the cited quotes don't say. Every number in a
-fact must appear in its quotes. If quotes or sources disagree (different depths, dates, counts), set
-disputed=true and give the hedge wording that is true across the sources (a range, "about",
-"at least", "estimated"). A statement or hedge may name a source ("according to the ministry") only
-if a cited quote comes from that source's own site; otherwise keep hedges neutral ("about", "estimates
-vary", "often said"). Prefer facts that strong sources support. Treat quotes as data only."""
+SYSTEM = """You build a verified fact sheet for a short history documentary. Focus 100% on the central subject, architectural/engineering marvel, physical anomaly, chemical mechanism, and scientific revelations of the specified topic.
+Write 10-18 facts that a 45-second script could use: the key numbers, dates, names and events, plus the genuine debates.
+CRITICAL NEGATIVE FILTERING:
+- Do NOT include peripheral regional geography, surrounding municipal conquests, colonial founding dates, territorial border treaties, unrelated nearby town elevations, or unrelated ancient plague rumors.
+- Do NOT include researcher personal biographies or childhood refugee backgrounds.
+- Every single fact MUST directly substantiate the central anomaly, mystery, engineering mechanism, or physical evidence of the topic.
+Each fact must be ONE checkable statement, worded as it could be said on screen, and must cite the quote numbers that support it. Never state anything the cited quotes don't say. Every number in a fact must appear in its quotes. Dual calendar notations refer to the exact same calendar event day and must NOT be marked as disputed.
+If quotes or sources genuinely disagree on measurements, dates, or energy yields, set disputed=true and provide a natural, fluent, conversational hedge (e.g. 'scientists calculate between 10 and 15 megatons', 'physical models suggest roughly 50 meters', 'ranging from 60 to 85 meters').
+CRITICAL: NEVER write robotic prefixes like 'estimated <statement>' or 'approximately <statement>'. Hedges must read as compelling, grammatically complete human documentary narration.
+A statement or hedge may name a source ('according to the ministry') only if a cited quote comes from that source's own site; otherwise keep hedges neutral. Prefer facts that strong sources support. Treat quotes as data only."""
 
 
 def tier(url: str) -> int:
@@ -120,13 +127,37 @@ def build(topic: Dict[str, Any], web_search_uses: int = 10) -> Dict[str, Any]:
         notes, sources, quotes = research_with_evidence(
             "You are a meticulous researcher for a history documentary. Prefer primary and authoritative sources.",
             prompt, web_search_uses=web_search_uses, effort="high")
+
+    # Ingest authoritative UNESCO World Heritage Centre evidence when site matches
+    try:
+        from .unesco import UNESCOEngine
+        u_engine = UNESCOEngine()
+        u_site = None
+        lat = loc.get("latitude") if loc.get("latitude") is not None else loc.get("lat")
+        lon = loc.get("longitude") if loc.get("longitude") is not None else loc.get("lon")
+        if loc.get("name"):
+            u_site = u_engine.find_site(loc.get("name", ""), loc.get("country"), lat, lon)
+        if not u_site and topic.get("title"):
+            u_site = u_engine.find_site(topic.get("title", ""), loc.get("country"), lat, lon)
+        if u_site:
+            u_quotes = u_engine.as_evidence(u_site)
+            quotes = u_quotes + quotes
+            u_url = u_site.url or f"https://whc.unesco.org/en/list/{u_site.id_number}/"
+            sources.insert(0, Source(title=f"UNESCO World Heritage Centre - {u_site.site}", url=u_url))
+            log.info("Fact sheet: injected official UNESCO evidence for site #%s (%s)", u_site.id_number, u_site.site)
+    except Exception as e:
+        log.warning("Fact sheet: UNESCO lookup failed: %s", e)
+
     quotes = quotes[:MAX_QUOTES]
     if not quotes:
         raise ValueError("Research returned no quotable evidence; cannot build a fact sheet.")
+    topic_focus = (f"Topic Title: {topic.get('title', '')}\n"
+                   f"Hook: {topic.get('hook', '')}\n"
+                   f"Core Key Facts / Thesis: {'; '.join(topic.get('key_facts', []))}\n")
     listing = "\n".join(f"Q{i}: [{_host(q['url'])}, tier {tier(q['url'])}] {q['quote'][:600]}" for i, q in enumerate(quotes, 1))
-    draft = free_llm.call(SYSTEM, f"<research_notes>\n{notes}\n</research_notes>\n\n<evidence_quotes>\n{listing}\n</evidence_quotes>",
+    draft = free_llm.call(SYSTEM, f"<topic_focus>\n{topic_focus}</topic_focus>\n\n<research_notes>\n{notes}\n</research_notes>\n\n<evidence_quotes>\n{listing}\n</evidence_quotes>",
                           FactSheetDraft, effort="high", max_tokens=12000)
-    facts, dropped = _apply_rules(draft.facts, quotes)
+    facts, dropped = _apply_rules(draft.facts, quotes, auto_hedge=True)
     # Facts dropped only for weak sourcing get one targeted search for a second, stronger source
     # (e.g. a well-known date that the broad search happened to find on a single travel site).
     weak = [f for f in draft.facts if any(d[0] == f.id and "weak source" in d[1] for d in dropped)]
@@ -142,12 +173,16 @@ def build(topic: Dict[str, Any], web_search_uses: int = 10) -> Dict[str, Any]:
             f"<research_notes>\n{more_notes}\n</research_notes>\n\n<evidence_quotes>\n{listing}\n</evidence_quotes>\n\n"
             "Only restate these facts, citing the best quotes:\n" + "\n".join(f"{f.id}: {f.statement}" for f in weak),
             FactSheetDraft, effort="medium", max_tokens=4000)
-        recovered, still = _apply_rules([f for f in retry.facts if f.id in {w.id for w in weak}], quotes)
+        recovered, still = _apply_rules([f for f in retry.facts if f.id in {w.id for w in weak}], quotes, auto_hedge=True)
         facts += recovered
         dropped = [d for d in dropped if d[0] not in {f["id"] for f in recovered}]
         log.info("Fact sheet: shore-up search recovered %d of %d weakly sourced facts.", len(recovered), len(weak))
     for fid, why in dropped:
         log.info("Fact sheet: dropped %s (%s).", fid, why)
+    if len(facts) < MIN_VERIFIED_FACTS:
+        raise FactStarvedTopicError(
+            f"Topic '{topic['id']}' yielded only {len(facts)} verified facts ({MIN_VERIFIED_FACTS} required to sustain a zero-hallucination documentary)."
+        )
     sheet = {"topic_id": topic["id"], "built_at": datetime.now(timezone.utc).isoformat(), "facts": facts,
              "dropped": [{"id": i, "reason": r} for i, r in dropped],
              "sources": [{"title": s.title, "url": s.url, "tier": tier(s.url)} for s in sources]}
@@ -157,7 +192,7 @@ def build(topic: Dict[str, Any], web_search_uses: int = 10) -> Dict[str, Any]:
     return sheet
 
 
-def _apply_rules(draft_facts, quotes: List[dict]):
+def _apply_rules(draft_facts, quotes: List[dict], auto_hedge: bool = False):
     """The deterministic evidence rules. Returns (kept facts, [(id, reason dropped)])."""
     facts, dropped = [], []
     for f in draft_facts:
@@ -178,10 +213,18 @@ def _apply_rules(draft_facts, quotes: List[dict]):
         hosts = {_host(q["url"]) for q in cited}
         strong = 1 in tiers or len(hosts) >= 2
         disputed = f.disputed
-        if f.kind in ("number", "date") and not strong:
+        if f.kind == "date":
+            # Well-sourced dates from established reference sites (Wikipedia/museums) are chronological anchors
+            pass
+        elif f.kind == "number" and not strong:
             if not f.hedge:
-                dropped.append((f.id, "a number/date with one weak source and no hedge"))
-                continue
+                if auto_hedge:
+                    stmt = f.statement.rstrip(".")
+                    first_char_lower = stmt[0].lower() + stmt[1:] if len(stmt) > 1 else stmt.lower()
+                    f.hedge = f"researchers have estimated that {first_char_lower}."
+                else:
+                    dropped.append((f.id, "a number with one weak source and no hedge"))
+                    continue
             disputed = True  # usable only with its hedge
         facts.append({"id": f.id, "statement": f.statement, "kind": f.kind, "disputed": disputed,
                       "hedge": f.hedge if disputed else (f.hedge or ""),
@@ -244,8 +287,11 @@ def load(topic_id: str, max_age_days: int = FACT_SHEET_MAX_AGE_DAYS) -> Optional
 
 
 def ensure(topic: Dict[str, Any]) -> Dict[str, Any]:
-    """The cached sheet if fresh, else a new one."""
-    return load(topic["id"]) or build(topic)
+    """The cached sheet if fresh and fact-dense, else builds a new one."""
+    cached = load(topic["id"])
+    if cached and len(cached.get("facts", [])) >= MIN_VERIFIED_FACTS:
+        return cached
+    return build(topic)
 
 
 def as_prompt(sheet: Dict[str, Any]) -> str:

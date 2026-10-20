@@ -1,0 +1,40 @@
+{
+  "fonts": [
+    {
+      "file": "Anton-Regular.ttf",
+      "sha256": "a4ba3a92350ebb031da0cb47630ac49eb265082ca1bc0450442f4a83ab947cab",
+      "copyright": "Copyright 2020 The Anton Project Authors (https://github.com/googlefonts/AntonFont.git)",
+      "version": "Version 2.116; ttfautohint (v1.8.3)",
+      "license_description": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: https://scripts.sil.org/OFL",
+      "license_url": "https://scripts.sil.org/OFL",
+      "license_file": "licenses/Anton-Regular.ttf.OFL.txt",
+      "license_sha256": "32052d3b021005f52d1d075ef90cf72a248b3d41e8b6fb0912c4702028367417",
+      "source_url": "https://raw.githubusercontent.com/google/fonts/main/ofl/anton/OFL.txt",
+      "checked_on": "2026-10-16"
+    },
+    {
+      "file": "Montserrat-Variable.ttf",
+      "sha256": "0f7b311b2f3279e4eef9b2f968bcdbab6e28f4daeb1f049f4f278a902bcd82f7",
+      "copyright": "Copyright 2011 The Montserrat Project Authors (https://github.com/JulietaUla/Montserrat)",
+      "version": "Version 9.000",
+      "license_description": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: https://openfontlicense.org",
+      "license_url": "https://openfontlicense.org",
+      "license_file": "licenses/Montserrat-Variable.ttf.OFL.txt",
+      "license_sha256": "41cbef8d8a37b9e58a3c613a8958014bfc58801569c40211dfb251f600c6d718",
+      "source_url": "https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/OFL.txt",
+      "checked_on": "2026-10-16"
+    },
+    {
+      "file": "BebasNeue-Regular.ttf",
+      "sha256": "08e4623805102d819f58601e46e345648846075e363b2ceb23313c2d1c83ec73",
+      "copyright": "Copyright 2019 The Bebas Neue Project Authors (https://github.com/dharmatype/Bebas-Neue)",
+      "version": "Version 2.000",
+      "license_description": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL",
+      "license_url": "http://scripts.sil.org/OFL",
+      "license_file": "licenses/BebasNeue-Regular.ttf.OFL.txt",
+      "license_sha256": "a6b230055933f80e5199eb909a67ebb04937a5b4172116d4bfb13a41f30ded38",
+      "source_url": "https://raw.githubusercontent.com/google/fonts/main/ofl/bebasneue/OFL.txt",
+      "checked_on": "2026-10-16"
+    }
+  ]
+}

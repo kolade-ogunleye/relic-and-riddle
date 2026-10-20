@@ -1,0 +1,271 @@
+{
+ "topic_id": "03_kailasa_temple_monolith",
+ "built_at": "2026-10-15T21:24:50.640431+00:00",
+ "facts": [
+  {
+   "id": "fact-1",
+   "statement": "The Ellora Caves complex in Maharashtra consists of 34 monasteries and temples extending over more than 2 kilometres along a basalt cliff.",
+   "kind": "number",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://whc.unesco.org/en/list/243",
+     "tier": 1,
+     "quote": "UNESCO World Heritage Site #243 (Ellora Caves): These 34 monasteries and temples, extending over more than 2 km, were dug side by side in the wall of a high basalt cliff, not far from Aurangabad, in Maharashtra. Ellora, with its uninterrupted sequence of monuments dating from A.D. 600 to 1000, brings the civilization of ancient India to life. Not only is the Ellora complex a unique artistic creation and a technological exploit but, with its sanctuaries devoted to Buddhism, Hinduism and Jainism, it illustrates the spirit of tolerance that was characteristic of ancient India."
+    }
+   ]
+  },
+  {
+   "id": "fact-2",
+   "statement": "The Ellora Caves were inscribed on the UNESCO World Heritage List in 1983.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://whc.unesco.org/en/list/243",
+     "tier": 1,
+     "quote": "Inscribed on the UNESCO World Heritage List in 1983 under criteria (i)(iii)(vi)."
+    }
+   ]
+  },
+  {
+   "id": "fact-3",
+   "statement": "The Kailasa temple, designated as Cave 16, is the largest rock-cut Hindu temple at the Ellora Caves.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "The Kailasha (IAST: Kailāśa) or Kailasha-natha (IAST: Kailāśa-nātha) temple is the largest of the rock-cut Hindu temples at the Ellora Caves in Chhatrapati Sambhaji Nagar district of Maharashtra, India."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "The Kailasa temple (Cave 16) is the largest of the 34 Hindu, Buddhist, and Jain cave temples and monasteries known collectively as the Ellora Caves, ranging for over two kilometres (1.2 mi) along the sloping basalt cliff at the site."
+    }
+   ]
+  },
+  {
+   "id": "fact-4",
+   "statement": "The top of the structure over the sanctuary of the Kailasa temple stands 32.6 metres (107 feet) above the courtyard below.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "estimated The top of the structure over the sanctuary of the Kailasa temple stands 32.6 metres (107 feet) above the courtyard below.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "The top of the structure over the sanctuary is 32.6 metres (107 ft) above the level of the court below."
+    }
+   ]
+  },
+  {
+   "id": "fact-5",
+   "statement": "The Kailasa temple was created through vertical excavation, with carvers starting at the top of the rock and working downwards.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "The Kailasa Temple is notable for its vertical excavation—carvers started at the top of the original rock and excavated downward."
+    }
+   ]
+  },
+  {
+   "id": "fact-6",
+   "statement": "Most of the excavation of the Kailasa temple is generally attributed to the eighth-century Rashtrakuta king Krishna I, who ruled around 756 to 773.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "Most of the excavation of the temple is generally attributed to the eighth century Rashtrakuta king Krishna I (r. c."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "756 – 773), with some elements completed later."
+    }
+   ]
+  },
+  {
+   "id": "fact-7",
+   "statement": "The attribution of the Kailasa temple to Krishna I is disputed among scholars because linking inscriptions are not physically attached to the caves and do not date his reign.",
+   "kind": "other",
+   "disputed": true,
+   "hedge": "attribution is not completely certain",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "The Kailasa temple lacks a dedicatory inscription, but there is no doubt that it was commissioned by a Rashtrakuta ruler."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "756–773 CE), based on two epigraphs that link the temple to \"Krishnaraja\" (IAST Kṛṣṇarāja):\n\nThe Vadodara copper-plate inscription (c."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "However, the attribution of the temple to Krishna I is not completely certain because these epigraphs are not physically connected to the caves, and do not date Krishnaraja's reign."
+    }
+   ]
+  },
+  {
+   "id": "fact-8",
+   "statement": "Art historian Hermann Goetz theorized that construction of the Kailasa temple began during the reign of Dantidurga.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "Based on this, art historian Hermann Goetz (1952) theorized that the construction of the Kailasa temple began during the reign of Dantidurga."
+    }
+   ]
+  },
+  {
+   "id": "fact-9",
+   "statement": "Archaeologist M. K. Dhavalikar estimated that 250 labourers could have excavated the Kailasa temple within 5.5 years assuming each cut about 4 cubic feet of rock per day.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "estimated Archaeologist M. K. Dhavalikar estimated that 250 labourers could have excavated the Kailasa temple within 5.5 years assuming each cut about 4 cubic feet of rock per day.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "Assuming that one person can cut around 4 cubic feet of rock every day, Dhavalikar estimated that 250 labourers would have managed to construct the Kailasa temple at Ellora within 5.5 years."
+    }
+   ]
+  },
+  {
+   "id": "fact-10",
+   "statement": "The main shrine of the Kailasa temple closely resembles the Virupaksha Temple at Pattadakal.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "The main shrine is very similar to (although much larger than) the Virupaksha Temple at Pattadakal, which itself is a replica of the Kailasa temple at Kanchi."
+    }
+   ]
+  },
+  {
+   "id": "fact-11",
+   "statement": "The Mingan Archipelago National Park Reserve was established in Quebec in 1984 to protect the largest concentration of erosion monoliths in Canada.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://www.nationalgeographic.com/travel/article/mingan-archipelago-canada-park",
+     "tier": 1,
+     "quote": "Photograph by Michael Melford, National Geographic TRAVEL Mingan Archipelago National Park Reserve 6 min read Location: Quebec Date Established: 1984 Size: 24,711 acres Famous for the largest concentration of erosion monoliths in Canada, the Mingan Archipelago National Park Reserve encompasses close to a thousand islands and islets sprinkled along 93 miles from east to west."
+    },
+    {
+     "url": "https://canadiangeographic.ca/articles/the-mingan-archipelago-a-land-shaped-by-time/",
+     "tier": 3,
+     "quote": "Many of these species aren’t found anywhere else in the region — one of the reasons why, in 1984, Parks Canada established Mingan Archipelago National Park Reserve to protect its rich biodiversity."
+    }
+   ]
+  },
+  {
+   "id": "fact-12",
+   "statement": "Sources disagree on the age of the limestone formations in the Mingan Archipelago, dating them to between 450 million and nearly 500 million years ago.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "between 450 million and nearly 500 million years",
+   "evidence": [
+    {
+     "url": "https://www.nationalgeographic.com/travel/article/mingan-archipelago-canada-park",
+     "tier": 1,
+     "quote": "Difficult to imagine today, the sedimentary rock formations date back almost 500 million years to a time when a warm, shallow tropical sea covered today’s St."
+    },
+    {
+     "url": "https://canadiangeographic.ca/articles/the-mingan-archipelago-a-land-shaped-by-time/",
+     "tier": 3,
+     "quote": "That 450-million-year-old limestone is still being shaped today, and when pieces break away, exposed fossils reveal the natural history and scientific significance of the archipelago dating back to when the first marine organisms evolved in the ancient Champlain Sea at the edge of the Canadian Shield."
+    }
+   ]
+  },
+  {
+   "id": "fact-13",
+   "statement": "The Mingan Archipelago spans approximately 93 miles (152 kilometres) and contains close to or more than 1,000 islands and islets.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "around 1,000",
+   "evidence": [
+    {
+     "url": "https://www.nationalgeographic.com/travel/article/mingan-archipelago-canada-park",
+     "tier": 1,
+     "quote": "Photograph by Michael Melford, National Geographic TRAVEL Mingan Archipelago National Park Reserve 6 min read Location: Quebec Date Established: 1984 Size: 24,711 acres Famous for the largest concentration of erosion monoliths in Canada, the Mingan Archipelago National Park Reserve encompasses close to a thousand islands and islets sprinkled along 93 miles from east to west."
+    },
+    {
+     "url": "https://canadiangeographic.ca/articles/the-mingan-archipelago-a-land-shaped-by-time/",
+     "tier": 3,
+     "quote": "The Mingan Archipelago, a coastal chain of more than 1,000 islands and islets spanning 152 kilometres, is an important haven for seabirds, rare plants, marine life and other wildlife, as well as home to the largest concentration of erosion monoliths in Canada."
+    }
+   ]
+  }
+ ],
+ "dropped": [],
+ "sources": [
+  {
+   "title": "UNESCO World Heritage Centre - Ellora Caves",
+   "url": "https://whc.unesco.org/en/list/243",
+   "tier": 1
+  },
+  {
+   "title": "Wikipedia: Monolith",
+   "url": "https://en.wikipedia.org/wiki/Monolith",
+   "tier": 2
+  },
+  {
+   "title": "Wikipedia: Kailasa Temple, Ellora",
+   "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+   "tier": 2
+  },
+  {
+   "title": "parks.canada.ca",
+   "url": "https://parks.canada.ca/pn-np/qc/mingan/nature/conservation/protection",
+   "tier": 3
+  },
+  {
+   "title": "www.nationalgeographic.com",
+   "url": "https://www.nationalgeographic.com/travel/article/mingan-archipelago-canada-park",
+   "tier": 1
+  },
+  {
+   "title": "canadiangeographic.ca",
+   "url": "https://canadiangeographic.ca/articles/the-mingan-archipelago-a-land-shaped-by-time/",
+   "tier": 3
+  },
+  {
+   "title": "www.abc.net.au",
+   "url": "https://www.abc.net.au/science/k2/moments/s1469595.htm",
+   "tier": 3
+  },
+  {
+   "title": "aleph.nkp.cz",
+   "url": "https://aleph.nkp.cz/F/?func=find-c&local_base=aut&ccl_term=ica=ko20191048418&CON_LNG=ENG",
+   "tier": 3
+  },
+  {
+   "title": "travelsofsamwise.substack.com",
+   "url": "https://travelsofsamwise.substack.com/p/the-absolute-insanity-of-ellora?utm_medium=web&triedRedirect=true",
+   "tier": 3
+  }
+ ]
+}

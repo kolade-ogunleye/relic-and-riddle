@@ -1,33 +1,177 @@
 {
  "topic_id": "01_derinkuyu_underground_city",
- "built_at": "2026-10-12T20:29:22.140015+00:00",
+ "built_at": "2026-10-20T00:54:26.868603+00:00",
  "facts": [
   {
-   "id": "F1",
-   "statement": "Turkey's Ministry of Culture and Tourism gives the Derinkuyu Underground City an approximate depth of 85 metres.",
-   "kind": "number",
-   "disputed": true,
-   "hedge": "About 85 metres deep, according to Turkey's culture ministry. Some popular sources give shallower figures.",
+   "id": "derinkuyu_discovery_1963",
+   "statement": "The subterranean city was accidentally rediscovered in 1963 when a local resident knocked through a basement wall during home renovations.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
    "evidence": [
     {
-     "url": "https://muze.gov.tr/muze-detay?DistId=DKY&SectionId=DKY01",
-     "tier": 1,
-     "quote": "Derinkuyu Underground City The Derinkuyu Underground City has an approximate depth of 85 metres."
+     "url": "https://en.wikipedia.org/wiki/Derinkuyu_underground_city",
+     "tier": 2,
+     "quote": "Knowledge of the city faded until 1963, when it was rediscovered after a resident of the area, while renovating his home, knocked through a basement wall and found a mysterious room behind it."
     },
     {
-     "url": "https://en.wikipedia.org/wiki/Derinkuyu",
+     "url": "https://dustyoldthing.com/derinkuyu/",
+     "tier": 3,
+     "quote": "Photo: Flickr / kmg1635 The subterranean suburb was rediscovered in 1963 as construction crews were renovating a house."
+    },
+    {
+     "url": "https://www.history.com/articles/derinkuyu-turkey-underground-city",
      "tier": 2,
-     "quote": "The Derinkuyu underground city has at least eight levels constructed to a depth of 85 metres (279 ft) and could have sheltered thousands of people."
+     "quote": "María de los Ángeles Orfila Getty Images/iStockphoto Published: May 12, 2026 Last Updated: May 15, 2026 In 1963, a Turkish resident who simply wanted to expand his house ended up making an unexpected and monumental discovery."
     }
    ]
   },
   {
-   "id": "F2",
-   "statement": "A ventilation shaft about 55 metres deep, connected to the surface, also served as a water well.",
+   "id": "derinkuyu_max_depth",
+   "statement": "The underground complex burrows to a depth of approximately 85 metres below the surface.",
    "kind": "number",
    "disputed": false,
    "hedge": "",
    "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Derinkuyu_underground_city",
+     "tier": 2,
+     "quote": "Derinkuyu (Turkish pronunciation: [deˈɾinkuju]), also known as Malakopi, is an ancient multi-level underground city near the modern town of Derinkuyu in Nevşehir Province, Turkey, extending to a depth of approximately 85 metres (280 ft)."
+    },
+    {
+     "url": "https://www.bbc.com/travel/article/20220810-derinkuyu-turkeys-underground-city-of-20000-people",
+     "tier": 2,
+     "quote": "The ancient city of Elengubu, known today as Derinkuyu, burrows more than 85m below the Earth's surface, encompassing 18 levels of tunnels."
+    },
+    {
+     "url": "https://muze.gov.tr/muze-detay?DistId=DKY&SectionId=DKY01",
+     "tier": 1,
+     "quote": "Derinkuyu Underground City The Derinkuyu Underground City has an approximate depth of 85 metres."
+    }
+   ]
+  },
+  {
+   "id": "derinkuyu_tunnel_levels",
+   "statement": "The subterranean city encompasses 18 levels of tunnels.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "researchers have estimated that the subterranean city encompasses 18 levels of tunnels.",
+   "evidence": [
+    {
+     "url": "https://www.bbc.com/travel/article/20220810-derinkuyu-turkeys-underground-city-of-20000-people",
+     "tier": 2,
+     "quote": "The ancient city of Elengubu, known today as Derinkuyu, burrows more than 85m below the Earth's surface, encompassing 18 levels of tunnels."
+    }
+   ]
+  },
+  {
+   "id": "derinkuyu_capacity",
+   "statement": "The complex was capable of sheltering up to 20,000 people alongside their livestock and food supplies.",
+   "kind": "number",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Derinkuyu_underground_city",
+     "tier": 2,
+     "quote": "It is large enough to have sheltered as many as 20,000 people together with their livestock and food stores."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Derinkuyu_underground_city",
+     "tier": 2,
+     "quote": "The city could accommodate up to 20,000 people and had amenities found in other underground complexes across Cappadocia, such as wine and oil presses, stables, cellars, storage rooms, refectories, and chapels."
+    },
+    {
+     "url": "https://www.nationalgeographic.com/adventure/article/150325-underground-city-cappadocia-turkey-archaeology",
+     "tier": 1,
+     "quote": "It is still largely unexplored, but initial studies suggest its size and features may rival those of Derinkuyu , the largest excavated underground city in Cappadocia, which could house 20,000 people."
+    },
+    {
+     "url": "https://www.bbc.com/travel/article/20220810-derinkuyu-turkeys-underground-city-of-20000-people",
+     "tier": 2,
+     "quote": "But beneath Cappadocia's crumbling surface, a marvel of equally gargantuan proportions lay hidden away for centuries; a subterranean city that could conceal the whereabouts of up to 20,000 inhabitants for months at a time."
+    },
+    {
+     "url": "https://www.history.com/articles/derinkuyu-turkey-underground-city",
+     "tier": 2,
+     "quote": "Without realizing it, he had uncovered the entrance to Derinkuyu : an underground city capable of housing up to 20,000 people beneath Cappadocia."
+    }
+   ]
+  },
+  {
+   "id": "derinkuyu_rock_material",
+   "statement": "The entire city was hand-hewn directly out of tuff, a pliable rock composed of compacted volcanic ash.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Derinkuyu_underground_city",
+     "tier": 2,
+     "quote": "The underground city at Derinkuyu was carved mostly into tuff, a rock formed from compacted volcanic ash which is widespread in the region."
+    },
+    {
+     "url": "https://www.nationalgeographic.com/adventure/article/150325-underground-city-cappadocia-turkey-archaeology",
+     "tier": 1,
+     "quote": "By Jennifer Pinkowski Published March 26, 2015 • 5 min read When the invaders came, Cappadocians knew where to hide: underground, in one of the 250 subterranean safe havens they had carved from pliable volcanic ash rock called tuff."
+    }
+   ]
+  },
+  {
+   "id": "derinkuyu_origins_phrygian",
+   "statement": "The earliest tunnels and chambers may date back to the 8th to 7th century BC, likely carved by the Phrygians.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Derinkuyu_underground_city",
+     "tier": 2,
+     "quote": "Tunnels and rooms might initially have been cut into the soft volcanic rock of the Cappadocia region by the Phrygians, in the 8th-7th century BC."
+    },
+    {
+     "url": "https://www.bbc.com/travel/article/20220810-derinkuyu-turkeys-underground-city-of-20000-people",
+     "tier": 2,
+     "quote": "The largest excavated underground city in the world, it was in near-constant use for thousands of years, changing hands from the Phrygians to the Persians to the Christians of the Byzantine Era."
+    },
+    {
+     "url": "https://www.history.com/articles/derinkuyu-turkey-underground-city",
+     "tier": 2,
+     "quote": "Derinkuyu’s origins may date back to around the eighth century B.C., with successive civilizations expanding it through at least the Byzantine era ."
+    }
+   ]
+  },
+  {
+   "id": "derinkuyu_byzantine_expansion",
+   "statement": "Derinkuyu was fully formed in the Byzantine era and substantially expanded during the Arab–Byzantine wars from roughly 780 to 1180 to protect local Christians.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Derinkuyu_underground_city",
+     "tier": 2,
+     "quote": "The city at Derinkuyu was fully formed in the Byzantine era."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Derinkuyu_underground_city",
+     "tier": 2,
+     "quote": "The city was significantly enlarged during the Arab–Byzantine wars from roughly 780 to 1180, when it sheltered the local Christians from Umayyad and later Abbasid raider armies."
+    }
+   ]
+  },
+  {
+   "id": "derinkuyu_central_ventilation_shaft",
+   "statement": "A central vertical ventilation shaft plunging 55 metres doubled as a water well serving both the subterranean inhabitants and the village above.",
+   "kind": "number",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Derinkuyu_underground_city",
+     "tier": 2,
+     "quote": "The complex possesses a large amount of vertical ventilation shafts, divided into the smaller air vents that link living quarters and other individual rooms, to the wider central shafts, of which a 55-metre (180 ft) one appears to have been used as a well, providing water to both the villagers above and, if the outside world was not accessible, to those in hiding."
+    },
     {
      "url": "https://muze.gov.tr/muze-detay?DistId=DKY&SectionId=DKY01",
      "tier": 1,
@@ -36,633 +180,180 @@
    ]
   },
   {
-   "id": "F3",
-   "statement": "Official Turkish sources describe Derinkuyu as an eight-storey underground city.",
-   "kind": "number",
-   "disputed": true,
-   "hedge": "At least eight levels, according to official sources. Claims of 18 levels are unverified.",
-   "evidence": [
-    {
-     "url": "http://dosim.kulturturizm.gov.tr/muze/60",
-     "tier": 1,
-     "quote": "Bu yeraltı şehri 8 kattır."
-    },
-    {
-     "url": "https://www.kulturportali.gov.tr/turkiye/nevsehir/gezilecekyer/derinkuyu-yeralti-sehri",
-     "tier": 1,
-     "quote": "Kapadokya bölgesinin jeolojik oluşumu sayesinde inşa edilmiş olan bu sekiz katlı yeraltı şehri, büyük bir topluluğu içinde barındıracak ve ihtiyaçları..."
-    },
-    {
-     "url": "https://en.wikipedia.org/wiki/Derinkuyu",
-     "tier": 2,
-     "quote": "The Derinkuyu underground city has at least eight levels constructed to a depth of 85 metres (279 ft) and could have sheltered thousands of people."
-    }
-   ]
-  },
-  {
-   "id": "F4",
-   "statement": "Only about ten percent of the underground city can be visited today.",
-   "kind": "number",
+   "id": "derinkuyu_airflow_engineering",
+   "statement": "The main ventilation shaft, measuring roughly 3 by 2.8 metres, was engineered so that openings on different subterranean levels never overlap, maximizing internal airflow.",
+   "kind": "other",
    "disputed": false,
    "hedge": "",
-   "evidence": [
-    {
-     "url": "https://muze.gov.tr/muze-detay?DistId=DKY&SectionId=DKY01",
-     "tier": 1,
-     "quote": "Only ten percent of the underground city of Derinkuyu, which was opened to the public in 1965, can be visited today."
-    }
-   ]
-  },
-  {
-   "id": "F5",
-   "statement": "Derinkuyu was opened to the public in 1965.",
-   "kind": "date",
-   "disputed": true,
-   "hedge": "Opened to visitors in the 1960s.",
-   "evidence": [
-    {
-     "url": "https://muze.gov.tr/muze-detay?DistId=DKY&SectionId=DKY01",
-     "tier": 1,
-     "quote": "Only ten percent of the underground city of Derinkuyu, which was opened to the public in 1965, can be visited today."
-    },
-    {
-     "url": "https://theculturetrip.com/europe/turkey/articles/the-story-behind-turkeys-underground-cities",
-     "tier": 3,
-     "quote": "Derinkuyu was opened to visitors in 1969 – albeit, with only half of the city available for viewing."
-    }
-   ]
-  },
-  {
-   "id": "F6",
-   "statement": "Derinkuyu is estimated to have been large enough to shelter as many as 20,000 people, along with their livestock and food stores.",
-   "kind": "number",
-   "disputed": true,
-   "hedge": "Estimates suggest it could have sheltered thousands of people, perhaps up to 20,000. This is a capacity estimate, not a measured headcount.",
    "evidence": [
     {
      "url": "https://en.wikipedia.org/wiki/Derinkuyu_underground_city",
      "tier": 2,
-     "quote": "It is large enough to have sheltered as many as 20,000 people together with their livestock and food stores."
-    },
-    {
-     "url": "https://exploreanatolia.com/derinkuyu-underground-city/",
-     "tier": 3,
-     "quote": "Archaeologists estimate that Derinkuyu could shelter between 15,000 and 20,000 individuals along with livestock, food, and water reserves."
-    },
-    {
-     "url": "https://en.wikipedia.org/wiki/Derinkuyu",
-     "tier": 2,
-     "quote": "The Derinkuyu underground city has at least eight levels constructed to a depth of 85 metres (279 ft) and could have sheltered thousands of people."
+     "quote": "The main central shaft which measures roughly 3 m by 2.8 m and connects to several levels, never has the openings of two different levels overlapping one another, in a layout that appears deliberately engineered to maximise airflow."
     }
    ]
   },
   {
-   "id": "F7",
-   "statement": "The first carved floors served as entrance floors and were mostly used as stables, because it was difficult to get animals to the lower floors.",
-   "kind": "event",
-   "disputed": false,
-   "hedge": "",
-   "evidence": [
-    {
-     "url": "https://muze.gov.tr/muze-detay?DistId=DKY&SectionId=DKY01",
-     "tier": 1,
-     "quote": "The first carved floors of the underground cities are also the entrance floors, which were mostly used as stables. This is due to the difficulty of ge..."
-    }
-   ]
-  },
-  {
-   "id": "F8",
-   "statement": "The city had cisterns, churches, rooms, stables, cellars, food stores, ventilation shafts and wineries.",
+   "id": "derinkuyu_barrel_vaulted_room",
+   "statement": "Located on the second floor of the complex is a spacious room distinguished by a barrel-vaulted ceiling.",
    "kind": "other",
    "disputed": false,
    "hedge": "",
    "evidence": [
-    {
-     "url": "https://turkishmuseums.kprod.kultur.gov.tr/Uploads/M%C3%BCze/Dosya/57dbff8e-157e-442d-a48f-aa4a62d4dfc6.pdf",
-     "tier": 1,
-     "quote": "ihtiyaca yönelik olarak sarnıç, kilise, oda, ahır, kiler, erzak deposu, havalandırma bacaları, şaraphaneler,\n\nbakır ve benzeri metallerin işlendiği ye..."
-    }
-   ]
-  },
-  {
-   "id": "F9",
-   "statement": "Derinkuyu has a missionary school on its second floor.",
-   "kind": "other",
-   "disputed": false,
-   "hedge": "",
-   "evidence": [
-    {
-     "url": "https://muze.gov.tr/muze-detay?DistId=DKY&SectionId=DKY01",
-     "tier": 1,
-     "quote": "Derinkuyu Underground City The Derinkuyu Underground City has an approximate depth of 85 metres.  Additionally, there is a missionary school on the se..."
-    },
-    {
-     "url": "https://muze.gov.tr/muze-detay?DistId=DKY&SectionId=DKY01",
-     "tier": 1,
-     "quote": "Additionally, there is a missionary school on the second floor."
-    },
-    {
-     "url": "http://dosim.kulturturizm.gov.tr/muze/60",
-     "tier": 1,
-     "quote": "Kaymaklı yeraltı şehrinden farklı olarak burada misyonerler okulu, günah çıkartma yeri, vaftiz havuzu ve ziyaretçilerin ilgisini çeken kuyu mevcuttur...."
-    }
-   ]
-  },
-  {
-   "id": "F10",
-   "statement": "Unlike Kaymaklı, Derinkuyu has a confession room and a baptismal pool.",
-   "kind": "other",
-   "disputed": false,
-   "hedge": "",
-   "evidence": [
-    {
-     "url": "http://dosim.kulturturizm.gov.tr/muze/60",
-     "tier": 1,
-     "quote": "Kaymaklı yeraltı şehrinden farklı olarak burada misyonerler okulu, günah çıkartma yeri, vaftiz havuzu ve ziyaretçilerin ilgisini çeken kuyu mevcuttur...."
-    }
-   ]
-  },
-  {
-   "id": "F11",
-   "statement": "Large stone cylinders at tunnel entrances and exits were used to close them off for security.",
-   "kind": "event",
-   "disputed": false,
-   "hedge": "",
-   "evidence": [
-    {
-     "url": "https://www.kulturportali.gov.tr/turkiye/nevsehir/gezilecekyer/derinkuyu-yeralti-sehri",
-     "tier": 1,
-     "quote": "Tünellerin giriş ve çıkışlarında güvenlik nedeniyle tüneli kapatmak için kullanılan büyük taş silindirler bulunmaktadır."
-    },
     {
      "url": "https://en.wikipedia.org/wiki/Derinkuyu_underground_city",
      "tier": 2,
-     "quote": "[[3]](./Derinkuyu_underground_city#cite_note-History2026-5) [[4]](./Derinkuyu_underground_city#cite_note-AydanUlusay2013-6) It could be closed from th..."
+     "quote": "Unique to the Derinkuyu complex is a spacious room with a barrel-vaulted ceiling located on the second floor."
     }
    ]
   },
   {
-   "id": "F12",
-   "statement": "Tour sources claim the rolling stone doors weighed 200–500 kg.",
-   "kind": "number",
-   "disputed": true,
-   "hedge": "The doors are often said to weigh several hundred kilograms, but there is no official figure.",
-   "evidence": [
-    {
-     "url": "http://www.ephesustoursguide.com/cappadocia-turkey/derinkuyu-underground-city-cappadocia/attachment/stone-doors-derinkuyu-underground-city-cappadocia",
-     "tier": 3,
-     "quote": "They have a height of 1–1,5 m, 30–50 cm in width and weigh 200–500 kg."
-    },
-    {
-     "url": "https://www.ancient-origins.net/ancient-places-asia/derinkuyu-0073",
-     "tier": 3,
-     "quote": "The passageways are “secured” by 1,000 pound (454 kg) stone doors that could only be opened from the inside."
-    }
-   ]
-  },
-  {
-   "id": "F13",
-   "statement": "Who first dug the underground settlements is uncertain. Claims range from the Hittites to the Phrygians in the 8th–7th centuries BC.",
+   "id": "derinkuyu_internal_amenities",
+   "statement": "The subterranean settlement was engineered with dedicated stables, cellars, refectories, wineries, oil presses, and chapels.",
    "kind": "other",
-   "disputed": true,
-   "hedge": "Its origins are uncertain. Some attribute the first digging to the Hittites, others to the Phrygians.",
-   "evidence": [
-    {
-     "url": "https://brilliantmaps.com/derinkuyu/",
-     "tier": 3,
-     "quote": "> Caves may have been built initially in the soft volcanic rock of the Cappadocia region by the Phrygians, an Indo-European people, in the 8th–7th cen..."
-    },
-    {
-     "url": "https://turkishmuseums.kprod.kultur.gov.tr/Uploads/M%C3%BCze/Dosya/57dbff8e-157e-442d-a48f-aa4a62d4dfc6.pdf",
-     "tier": 1,
-     "quote": "Hitit döneminde inşa edilen bazı yeraltı yerleşimleri, Hristiyanlığın ilk dönemlerinde Roma baskılarına\n\nkarşı yerel halkın en büyük sığınağı olmuş, b..."
-    },
-    {
-     "url": "https://madeinturkeytours.com/cappadocia/derinkuyu-underground-city/",
-     "tier": 3,
-     "quote": "While some speculate that the Cappadocian Hittites dug this impressive town around the 15th century BCE, others believe that it is Phrygians’ work in ..."
-    }
-   ]
-  },
-  {
-   "id": "F15",
-   "statement": "The underground city was greatly expanded in the middle Byzantine period to serve as a refuge from raids.",
-   "kind": "event",
    "disputed": false,
    "hedge": "",
    "evidence": [
     {
-     "url": "https://en.wikipedia.org/wiki/Derinkuyu",
+     "url": "https://en.wikipedia.org/wiki/Derinkuyu_underground_city",
      "tier": 2,
-     "quote": "[[8]](./Derinkuyu#cite_note-8) The underground city was greatly expanded in the middle Byzantine period to serve as a refuge from the raids of the [Um..."
+     "quote": "The city could accommodate up to 20,000 people and had amenities found in other underground complexes across Cappadocia, such as wine and oil presses, stables, cellars, storage rooms, refectories, and chapels."
     },
     {
-     "url": "https://whc.unesco.org/document/216603",
-     "tier": 1,
-     "quote": "In later periods, in order to resist Arab invasions, they began banding together into\n\n\n\ntroglodyte villages or subterranean towns such as Kaymakli or..."
-    }
-   ]
-  },
-  {
-   "id": "F17",
-   "statement": "Cappadocia has hundreds of underground settlements. Counts range from 257 to more than 360.",
-   "kind": "number",
-   "disputed": true,
-   "hedge": "Hundreds of underground settlements have been found in Cappadocia.",
-   "evidence": [
-    {
-     "url": "https://www.trtworld.com/article/18199105",
-     "tier": 3,
-     "quote": "According to the Obruk Cave Research Group, which works alongside local authorities to map these subterranean structures, a total of 257 underground s..."
+     "url": "https://www.bbc.com/travel/article/20220810-derinkuyu-turkeys-underground-city-of-20000-people",
+     "tier": 2,
+     "quote": "Excavation began immediately, revealing a tangled network of underground dwellings, dry food storage, cattle stables, schools, wineries and even a chapel."
     },
     {
      "url": "https://www.history.com/articles/derinkuyu-turkey-underground-city",
      "tier": 2,
-     "quote": "More than 360 ancient underground settlements have been geolocated in Cappadocia, spread across a vast area of volcanic tuff covering more than 7,700 ..."
+     "quote": "The result is a vast underground complex with rooms, stables, cellars, tombs, schools and even churches with refectories."
+    }
+   ]
+  },
+  {
+   "id": "derinkuyu_defensive_design",
+   "statement": "The architectural layout allowed individual subterranean sections to be sealed off, enabling organized counterattacks if outer defenses were breached.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Derinkuyu_underground_city",
+     "tier": 2,
+     "quote": "The site's defensive underground design permitted not only concealment but the isolation of individual sections, internal movement of inhabitants, and even organised counterattacks if part of the city was breached."
+    }
+   ]
+  },
+  {
+   "id": "derinkuyu_kaymakli_connection",
+   "statement": "Derinkuyu was linked to the neighboring underground city of Kaymakli across 8 to 9 kilometres of connecting tunnels.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "researchers have estimated that derinkuyu was linked to the neighboring underground city of Kaymakli across 8 to 9 kilometres of connecting tunnels.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Derinkuyu_underground_city",
+     "tier": 2,
+     "quote": "The city was connected with another underground city, Kaymakli, through 8–9 km (5.0–5.6 mi) of tunnels."
+    }
+   ]
+  },
+  {
+   "id": "derinkuyu_private_entrances",
+   "statement": "Archaeologists have identified more than 600 separate entrances leading into the subterranean network, many hidden in private home basements.",
+   "kind": "number",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Derinkuyu_underground_city",
+     "tier": 2,
+     "quote": "More than 600 separate tunnel entrances to the complex have since been discovered, some concealed under the basements of private houses in the above town."
+    },
+    {
+     "url": "https://www.bbc.com/travel/article/20220810-derinkuyu-turkeys-underground-city-of-20000-people",
+     "tier": 2,
+     "quote": "It was the first of more than 600 entrances found within private homes leading to the subterrestrial city of Derinkuyu."
+    }
+   ]
+  },
+  {
+   "id": "derinkuyu_1923_abandonment",
+   "statement": "The underground complex was continuously used for shelter until it was completely abandoned following the 1923 population exchange between Greece and Turkey.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Derinkuyu_underground_city",
+     "tier": 2,
+     "quote": "In the 20th century, the underground cities were still used by Cappadocian Greeks and Armenians to escape periodic persecutions."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Derinkuyu_underground_city",
+     "tier": 2,
+     "quote": "In 1923, the Christian inhabitants of the region were expelled from Turkey and moved to Greece in the population exchange between Greece and Turkey, whereupon the underground city was abandoned."
+    },
+    {
+     "url": "https://www.bbc.com/travel/article/20220810-derinkuyu-turkeys-underground-city-of-20000-people",
+     "tier": 2,
+     "quote": "It was finally abandoned in the 1920s by the Cappadocian Greeks when they faced defeat during the Greco-Turkish war and fled abruptly en masse to Greece."
     }
    ]
   }
  ],
- "dropped": [
-  {
-   "id": "F14",
-   "reason": "a number/date with one weak source and no hedge"
-  },
-  {
-   "id": "F16",
-   "reason": "a number/date with one weak source and no hedge"
-  }
- ],
+ "dropped": [],
  "sources": [
   {
-   "title": "Derinkuyu underground city",
+   "title": "Peer-Reviewed Work: Space Syntax Study for Underground City Example: Derinkuyu",
+   "url": "https://doi.org/10.7827/turkishstudies.75098",
+   "tier": 1
+  },
+  {
+   "title": "Peer-Reviewed Work: Resilient depths, the architecture of defence : to what extent can the defensive strategies of the ancient underground city of Derinkuyu inform the planning of Helsinki’s underground city for sustainable disaster resilience?",
+   "url": "https://doi.org/10.24384/hznm-ap02",
+   "tier": 1
+  },
+  {
+   "title": "Peer-Reviewed Work: Exploring conceptual framework of the soundscape of Derinkuyu Underground City",
+   "url": "https://doi.org/10.1121/2.0002157",
+   "tier": 1
+  },
+  {
+   "title": "Wikipedia: Derinkuyu underground city",
    "url": "https://en.wikipedia.org/wiki/Derinkuyu_underground_city",
    "tier": 2
   },
   {
-   "title": "Derinkuyu: the Deepest Underground City of Cappadocia",
-   "url": "https://madeinturkeytours.com/cappadocia/derinkuyu-underground-city/",
+   "title": "www.nationalgeographic.com",
+   "url": "https://www.nationalgeographic.com/adventure/article/150325-underground-city-cappadocia-turkey-archaeology",
+   "tier": 1
+  },
+  {
+   "title": "dustyoldthing.com",
+   "url": "https://dustyoldthing.com/derinkuyu/",
    "tier": 3
   },
   {
-   "title": "Derinkuyu",
-   "url": "https://en.wikipedia.org/wiki/Derinkuyu",
+   "title": "www.bbc.com",
+   "url": "https://www.bbc.com/travel/article/20220810-derinkuyu-turkeys-underground-city-of-20000-people",
    "tier": 2
   },
   {
-   "title": "Derinkuyu: Home of the World's Largest Underground City",
-   "url": "https://www.nomadicniko.com/turkey/cappadocia/derinkuyu",
-   "tier": 3
+   "title": "www.history.com",
+   "url": "https://www.history.com/news/8-mysterious-underground-cities",
+   "tier": 2
   },
   {
-   "title": "Why Is There a Massive Ancient City Hidden Beneath Turkey?",
+   "title": "www.history.com",
    "url": "https://www.history.com/articles/derinkuyu-turkey-underground-city",
    "tier": 2
   },
   {
-   "title": "Home to 20,000, But Who Built it? The Underground City of Derinkuyu",
-   "url": "https://www.ancient-origins.net/ancient-places-asia/derinkuyu-0073",
-   "tier": 3
-  },
-  {
-   "title": "Built to Disappear: The Underground City of Derinkuyu",
-   "url": "https://goldandmarble.com/underground-city-of-derinkuyu/",
-   "tier": 3
-  },
-  {
-   "title": "What is special about Derinkuyu Underground City?Guided Cappadocia Tours",
-   "url": "https://www.guidedcappadociatours.com/blog/what-is-special-about-derinkuyu-underground-city",
-   "tier": 3
-  },
-  {
-   "title": "Derinkuyu Underground City - CHO",
-   "url": "https://culturalheritageonline.com/places/derinkuyu-underground-city/",
-   "tier": 3
-  },
-  {
-   "title": "derinkuyu underground city tour.a4751907.activity details",
-   "url": "https://www.expedia.com.my/things-to-do/derinkuyu-underground-city-tour.a4751907.activity-details",
-   "tier": 3
-  },
-  {
-   "title": "Derinkuyu Underground City: Turkey's Cappadocia Cave",
-   "url": "https://www.atlasobscura.com/articles/derinkuyu-turkey-underground-city-strange-maps",
-   "tier": 2
-  },
-  {
-   "title": "Derinkuyu: Mysterious underground city in Turkey found in man's basement",
-   "url": "https://bigthink.com/strange-maps/derinkuyu-underground-city/",
-   "tier": 3
-  },
-  {
-   "title": "The Story Behind The Underground Cities Of Turkey, And How To Visit Them",
-   "url": "https://theculturetrip.com/europe/turkey/articles/the-story-behind-turkeys-underground-cities",
-   "tier": 3
-  },
-  {
-   "title": "Derinkuyu Underground City",
-   "url": "https://myturkeyadventure.com/blog/derinkuyu-underground-city-cappadocia-guide",
-   "tier": 3
-  },
-  {
-   "title": "Derinkuyu Underground City: The Complete 2026 Guide",
-   "url": "https://www.dailytoursincappadocia.com/en/blog/derinkuyu-underground-city/",
-   "tier": 3
-  },
-  {
-   "title": "Derinkuyu: The Hidden City Beneath Cappadocia. A Testament to Ancient Underground Architecture ArchUp Building",
-   "url": "https://archup.net/derinkuyu-the-hidden-city-beneath-cappadocia/",
-   "tier": 3
-  },
-  {
-   "title": "Derinkuyu Underground City: life, history, and survival beneath Cappadocia’s surface",
-   "url": "https://nomadearthcatalog.com/derinkuyu/",
-   "tier": 3
-  },
-  {
-   "title": "stone-doors-derinkuyu-underground-city-cappadocia - Ephesus Tours",
-   "url": "http://www.ephesustoursguide.com/cappadocia-turkey/derinkuyu-underground-city-cappadocia/attachment/stone-doors-derinkuyu-underground-city-cappadocia",
-   "tier": 3
-  },
-  {
-   "title": "Aside from 18 stories deep and fitting 20,000 people, the ancient underground city of Derinkuyu had massive stone blast doors that only locked from the inside. What were they hiding from? - Quora",
-   "url": "https://www.quora.com/Aside-from-18-stories-deep-and-fitting-20-000-people-the-ancient-underground-city-of-Derinkuyu-had-massive-stone-blast-doors-that-only-locked-from-the-inside-What-were-they-hiding-from",
-   "tier": 3
-  },
-  {
-   "title": "Derinkuyu — Grokipedia",
-   "url": "https://grokipedia.com/page/Derinkuyu",
-   "tier": 3
-  },
-  {
-   "title": "Derinkuyu Underground City: 7 Incredible Facts about Cappadocia’s Hidden World",
-   "url": "https://exploreanatolia.com/derinkuyu-underground-city/",
-   "tier": 3
-  },
-  {
-   "title": "Deep Inside Derinkuyu Underground City",
-   "url": "https://thetravelbunny.com/deep-derinkuyu-underground-city-turkey/",
-   "tier": 3
-  },
-  {
-   "title": "Derinkuyu Yeraltı Şehri E-Bilet - muze.gov.tr",
-   "url": "https://muze.gov.tr/urun-detay?CatalogNo=WEB-DKY01-01-009",
-   "tier": 1
-  },
-  {
-   "title": "Derinkuyu Yeraltı Şehri - Müze Kart",
+   "title": "muze.gov.tr",
    "url": "https://muze.gov.tr/muze-detay?DistId=DKY&SectionId=DKY01",
    "tier": 1
-  },
-  {
-   "title": "DERİNKUYU YERALTI ŞEHRİ",
-   "url": "https://www.kulturportali.gov.tr/turkiye/nevsehir/gezilecekyer/derinkuyu-yeralti-sehri",
-   "tier": 1
-  },
-  {
-   "title": "DOSİMM",
-   "url": "http://dosim.kulturturizm.gov.tr/muze/60",
-   "tier": 1
-  },
-  {
-   "title": "DERİNKUYU YERALTI ŞEHRİ YERALTINDA BAŞKA BİR DÜNYA Ziyaret Saatleri",
-   "url": "https://turkishmuseums.kprod.kultur.gov.tr/Uploads/M%C3%BCze/Dosya/57dbff8e-157e-442d-a48f-aa4a62d4dfc6.pdf",
-   "tier": 1
-  },
-  {
-   "title": "Derinkuyu Yeraltı Şehri, Kapadokya",
-   "url": "https://yoldaolmak.com/derinkuyu-yeralti-sehri",
-   "tier": 3
-  },
-  {
-   "title": "Derinkuyu Yeraltı Şehri: Kapadokya’nın En Büyük ve En Gizemli Yeraltı Kenti",
-   "url": "https://www.rehbername.com/kesfet/kapadokya-derinkuyu-yeralti-sehri",
-   "tier": 3
-  },
-  {
-   "title": "Derinkuyu District",
-   "url": "https://en.wikipedia.org/wiki/Derinkuyu_District",
-   "tier": 2
-  },
-  {
-   "title": "Nevşehir Yeraltı Şehirleri Nasıl Gidilir, Nerededir, Giriş Ücretleri, Müze Kart",
-   "url": "https://mdchotel.com/blog/nevsehir-yeralti-sehirleri/",
-   "tier": 3
-  },
-  {
-   "title": "Derinkuyu Yeraltı Şehri - Kapadokya (Nerede? Nasıl Gidilir?) - Kapadokya Wiki",
-   "url": "https://kapadokyawiki.com/derinkuyu-yeralti-sehri/",
-   "tier": 3
-  },
-  {
-   "title": "Inside Derinkuyu, The Ancient Underground City In Turkey That Once Housed 20,000 People",
-   "url": "https://allthatsinteresting.com/derinkuyu-underground-city",
-   "tier": 3
-  },
-  {
-   "title": "Derinkuyu: Mysterious underground city in Turkey found in man’s basement",
-   "url": "https://thepremierdaily.com/derinkuyu/",
-   "tier": 3
-  },
-  {
-   "title": "How to Visit Turkey's Derinkuyu Underground City - PastPathways",
-   "url": "https://www.pastpathways.com/turkey/how-to-visit-derinkuyu-underground-city/",
-   "tier": 3
-  },
-  {
-   "title": "Trips Places Foods Stories Newsletters",
-   "url": "https://atlasobscura.com/places/derinkuyu-underground-city",
-   "tier": 2
-  },
-  {
-   "title": "Underground Cities of Cappadocia, Turkey",
-   "url": "https://turkeytravelplanner.com/go/CentralAnatolia/Cappadocia/yeralti/index.html",
-   "tier": 3
-  },
-  {
-   "title": "Underground Cities of Cappadocia, Turkey",
-   "url": "https://www.turkeytravelcentre.com/blog/underground-cities-of-cappadocia/",
-   "tier": 3
-  },
-  {
-   "title": "Derinkuyu and Kaymakli Underground Cities",
-   "url": "https://www.intofarlands.com/explore/derinkuyu-and-kaymakli-underground-cities-turkey",
-   "tier": 3
-  },
-  {
-   "title": "Kaymakli Hidden Underground City: Connected to Derinkuyu",
-   "url": "https://worldbelow.org/kaymakli-underground-city/",
-   "tier": 3
-  },
-  {
-   "title": "Cappadocia's Underground Cities: Derinkuyu & Kaymaklı Guide",
-   "url": "https://visitcappadocia.com/underground-cities-cappadocia/",
-   "tier": 3
-  },
-  {
-   "title": "Cappadocia’s underground cities: Derinkuyu & Kaymaklı",
-   "url": "https://askcappadocia.com/guide/underground-cities",
-   "tier": 3
-  },
-  {
-   "title": "Cappadocia’s Underground Cities — Who Dug Them & Why",
-   "url": "https://cappadociatoursbylocals.com/articles/underground-cities-history/",
-   "tier": 3
-  },
-  {
-   "title": "cappadocia private underground city tour drinkuyu kaymakli.a49041201.activity details",
-   "url": "https://www.expedia.com/things-to-do/cappadocia-private-underground-city-tour-drinkuyu-kaymakli.a49041201.activity-details",
-   "tier": 3
-  },
-  {
-   "title": "Göreme National Park and the Rock Sites of Cappadocia",
-   "url": "https://worldheritageoutlook.iucn.org/explore-sites/goreme-national-park-and-rock-sites-cappadocia",
-   "tier": 3
-  },
-  {
-   "title": "The UNESCO Sites of Türkiye: Göreme Open Air Museum and Cappadocia",
-   "url": "https://www.turkishmuseums.com/blog/detail/the-unesco-sites-of-turkiye-goreme-open-air-museum-and-cappadocia/10110/4",
-   "tier": 3
-  },
-  {
-   "title": "Göreme National Park and the Rock Sites of Cappadocia",
-   "url": "https://whc.unesco.org/document/216603",
-   "tier": 1
-  },
-  {
-   "title": "Discover Turkey's Astonishing Ancient Underground Cities",
-   "url": "https://www.artandobject.com/news/ancient-underground-cities-cappadocia-turkey",
-   "tier": 3
-  },
-  {
-   "title": "Göreme National Park and the Rock Sites of Cappadocia",
-   "url": "https://worldheritageexplorer.org/sites/g%C3%B6reme_national_park_and_the_rock_sites_of_cappadocia.html",
-   "tier": 3
-  },
-  {
-   "title": "GOREME NATIONAL PARK AND THE ROCK SITES OF CAPPADOCIA",
-   "url": "https://nationalparksofturkey.com/goreme-national-park-and-the-rock-sites-of-cappadocia/",
-   "tier": 3
-  },
-  {
-   "title": "Göreme National Park And The Rock Sites Of Cappadocia: A Fairy Tale Unesco Site ⋆ Bébé Voyage",
-   "url": "https://bebevoyage.com/goreme-national-park-and-the-rock-sites-of-cappadocia-a-unesco-site-straight-out-of-a-fairy-tale/",
-   "tier": 3
-  },
-  {
-   "title": "Turkey: Göreme National Park and the Rock Sites of Cappadocia - Hoblets On The Go",
-   "url": "https://hobletsonthego.com/where-weve-been/europe/turkey/cappadocia/",
-   "tier": 3
-  },
-  {
-   "title": "Derinkuyu Underground City",
-   "url": "https://archiqoo.com/locations/derinkuyu_underground_city.php",
-   "tier": 3
-  },
-  {
-   "title": "(PDF) UNDERGROUND SHELTERS IN CAPPADOCIA",
-   "url": "https://www.academia.edu/107588072/UNDERGROUND_SHELTERS_IN_CAPPADOCIA",
-   "tier": 1
-  },
-  {
-   "title": "The incredible rock houses and underground cities of Cappadocia",
-   "url": "https://www.ancient-origins.net/ancient-places-europe/incredible-rock-houses-and-underground-cities-cappadocia-001394",
-   "tier": 3
-  },
-  {
-   "title": "Lost Underground City",
-   "url": "https://www.earthdate.org/episodes/lost-underground-city",
-   "tier": 3
-  },
-  {
-   "title": "Ortak%C3%B6y, Aksaray",
-   "url": "https://en.wikipedia.org/wiki/Ortak%C3%B6y,_Aksaray",
-   "tier": 2
-  },
-  {
-   "title": "List of World Heritage Sites in Turkey",
-   "url": "https://en.wikipedia.org/wiki/List_of_World_Heritage_Sites_in_Turkey",
-   "tier": 2
-  },
-  {
-   "title": "Iu",
-   "url": "https://scholarworks.iu.edu/journals/index.php/tmr/article/download/24817/30788",
-   "tier": 1
-  },
-  {
-   "title": "TRT World - Aliens and priests: The many myths of Cappadocia’s hidden world",
-   "url": "https://www.trtworld.com/article/18199105",
-   "tier": 3
-  },
-  {
-   "title": "Nev%C5%9Fehir",
-   "url": "https://en.wikipedia.org/wiki/Nev%C5%9Fehir",
-   "tier": 2
-  },
-  {
-   "title": "Kaymakli underground city",
-   "url": "https://en.wikipedia.org/wiki/Kaymakli_underground_city",
-   "tier": 2
-  },
-  {
-   "title": "The Underground City of Derinkuyu Could Shelter As Many As 20,000 People & Reached A Depth of 60m - Brilliant Maps",
-   "url": "https://brilliantmaps.com/derinkuyu/",
-   "tier": 3
-  },
-  {
-   "title": "Greeks of Cappadocia Left Indelible Mark on History - GreekReporter.com",
-   "url": "https://greekreporter.com/2026/02/07/greeks-of-cappadocia-turkey/",
-   "tier": 3
-  },
-  {
-   "title": "Cappadocian Greeks - Wikiwand",
-   "url": "https://wikiwand.com/en/articles/Cappadocian_Greeks",
-   "tier": 3
-  },
-  {
-   "title": "Kaymakli underground city",
-   "url": "https://en.wikipedia.org/wiki/Kaymakli_Underground_City",
-   "tier": 2
-  },
-  {
-   "title": "Underground City",
-   "url": "https://www.imperialcavesuites.com/places/underground-city/",
-   "tier": 3
-  },
-  {
-   "title": "Derinkuyu - The Reader Wiki",
-   "url": "https://thereaderwiki.com/en/Derinkuyu",
-   "tier": 3
-  },
-  {
-   "title": "Adana massacre",
-   "url": "https://en.wikipedia.org/wiki/Adana_massacre",
-   "tier": 2
-  },
-  {
-   "title": "Derinkuyu underground city: A 2,000-year-old subterranean wonder",
-   "url": "https://interestingengineering.com/culture/derinkuyu-underground-city-turkey",
-   "tier": 3
-  },
-  {
-   "title": "Derinkuyu - The Underground City",
-   "url": "https://www.heritagedaily.com/2020/04/derinkuyu-the-underground-city/127748",
-   "tier": 3
-  },
-  {
-   "title": "Turkey's Underworld",
-   "url": "https://vocal.media/history/turkey-s-underworld",
-   "tier": 3
-  },
-  {
-   "title": "Derinkuyu Underground City, Turkey",
-   "url": "https://www.odysseytraveller.com/articles/derinkuyu-underground-city-turkey/",
-   "tier": 3
-  },
-  {
-   "title": "Explore Derinkuyu: The Ancient Underground City in Turkey - Discover HubPages",
-   "url": "https://discover.hubpages.com/education/Explore-Derinkuyu-The-Ancient-Underground-City-in-Turkey",
-   "tier": 3
   }
  ]
 }

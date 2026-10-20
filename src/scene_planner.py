@@ -119,28 +119,35 @@ def lock_narrative_graphics(beats: List[Dict[str, Any]], graphics: List[Path]) -
                 used_g.add(num_g)
                 continue
         # 3. Map & Geographic context (skip beat 0 so hook still gets a photo/video hook)
-        if idx > 0 and any(w in txt for w in ("1963", "cappadocia", "turkey", "renovating", "wall", "region", "village", "anatolian", "plains")):
+        if idx > 0:
             map_g = next((g for g in graphics if g not in used_g and "map" in g.stem), None)
             if map_g:
-                locked[idx] = map_g
-                used_g.add(map_g)
-                continue
-        # 4. Timeline & Historical dynasties
-        if any(w in txt for w in ("years old", "century", " bc", " ad", "byzantine", "hittite", "phrygian", "dynasty")):
+                from .video_qa import _graphic_keywords
+                map_kws = [k.lower() for k in _graphic_keywords(map_g, "map")]
+                if map_kws and any(w in txt for w in map_kws):
+                    locked[idx] = map_g
+                    used_g.add(map_g)
+                    continue
+                elif not map_kws and any(w in txt for w in ("cappadocia", "turkey", "antikythera", "shipwreck", "greece", "located", "coast", "island")):
+                    locked[idx] = map_g
+                    used_g.add(map_g)
+                    continue
+        # 4. Timeline & Historical dynasties (skip beat 0: hook requires visual photo/video immersion)
+        if idx > 0 and any(w in txt for w in ("years old", "century", " bc", " ad", "byzantine", "hittite", "phrygian", "dynasty", "ancient", "era")):
             time_g = next((g for g in graphics if g not in used_g and any(k in g.stem for k in ("timeline", "dates"))), None)
             if time_g:
                 locked[idx] = time_g
                 used_g.add(time_g)
                 continue
-        # 5. Mechanism & Defense (rolling stone doors, rooms)
-        if any(w in txt for w in ("rolling", "doors", "sealed", "cylinder", "choke point", "stoneware", "millstone", "defense", "defensive", "basalt")):
+        # 5. Mechanism & Defense (skip beat 0)
+        if idx > 0 and any(w in txt for w in ("rolling", "doors", "sealed", "cylinder", "choke point", "stoneware", "millstone", "defense", "defensive", "basalt")):
             callout_g = next((g for g in graphics if g not in used_g and any(k in g.stem for k in ("defense", "labels", "callout", "door"))), None)
             if callout_g:
                 locked[idx] = callout_g
                 used_g.add(callout_g)
                 continue
-        # 6. Ventilation & Airflow
-        if any(w in txt for w in ("ventilation", "shaft", "air", "breathe", "convection", "airflow", "oxygen")):
+        # 6. Ventilation & Airflow (skip beat 0)
+        if idx > 0 and any(w in txt for w in ("ventilation", "shaft", "air", "breathe", "convection", "airflow", "oxygen")):
             vent_g = next((g for g in graphics if g not in used_g and any(k in g.stem for k in ("ventilation", "shaft", "air"))), None)
             if vent_g:
                 locked[idx] = vent_g
@@ -162,7 +169,37 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
 
     order = list(range(n))  # default: filename order of the photos, cycling if there are more beats than photos
     notes = "filename order"
-    if (free_llm.available() if free_llm.enabled() else claude_available()) and stills:
+
+    # 1. Deterministic Storyboard Contract:
+    # If the creator approved a storyboard in Telegram, lock those exact approved assets directly,
+    # ensuring zero API cost, zero flakiness, and 100% fidelity to what was reviewed.
+    storyboard = None
+    if not feedback:
+        for p in stills:
+            sb_candidate = p.parent / "storyboard.json"
+            if sb_candidate.is_file():
+                try:
+                    storyboard = json.loads(sb_candidate.read_text(encoding="utf-8"))
+                    break
+                except Exception:
+                    pass
+
+    if storyboard and not feedback:
+        locked_order = []
+        sb_map = {item.get("beat", idx + 1): item.get("file") for idx, item in enumerate(storyboard)}
+        all_opts_by_name = {p.name: idx for idx, p in enumerate(options)}
+        for b_idx in range(n):
+            target_file = sb_map.get(b_idx + 1)
+            if target_file and target_file in all_opts_by_name:
+                locked_order.append(all_opts_by_name[target_file])
+            else:
+                locked_order.append(b_idx % len(options))
+        if len(locked_order) == n:
+            order = locked_order
+            notes = "approved storyboard contract lock"
+
+    # 2. LLM Multimodal Scene Planning (used when no approved storyboard exists or reviewer requested feedback)
+    if notes != "approved storyboard contract lock" and (free_llm.available() if free_llm.enabled() else claude_available()) and stills:
         try:
             content: List[dict] = []
             for i, p in enumerate(options, 1):
@@ -201,6 +238,26 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
     for idx, g in locked.items():
         if idx < len(chosen):
             chosen[idx] = g
+
+    # Ensure any procedural graphic in chosen actually matches the narrative spoken during that beat,
+    # otherwise fall back to archival still photos to prevent semantic desync.
+    is_mock_beats = all(len(b.get("text", "").split()) <= 2 for b in beats)
+    if not is_mock_beats:
+        locked_indices = set(locked.keys())
+        for k in range(len(chosen)):
+            p = Path(chosen[k])
+            if _is_graphic(p) and k not in locked_indices:
+                from .video_qa import SEMANTIC_GRAPHIC_MAP, _graphic_keywords
+                matched = False
+                b_txt = beats[k]["text"].lower() if k < len(beats) else ""
+                for cat in SEMANTIC_GRAPHIC_MAP:
+                    if f"graphic_{cat}" in p.stem or cat in p.stem:
+                        kws = _graphic_keywords(p, cat)
+                        if any(w.lower() in b_txt for w in kws):
+                            matched = True
+                            break
+                if not matched and stills:
+                    chosen[k] = stills[k % len(stills)]
 
     # Footage supports the narration, never dominates it (Meta's originality rules): over the
     # cap, the latest footage picks become photos.

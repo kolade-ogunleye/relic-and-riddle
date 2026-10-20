@@ -123,6 +123,37 @@ class ScriptPackage(ScriptCore, GraphicsPlan):
     """The full package: the script plus its graphics plan (validated and fact-checked together)."""
 
 
+class DocumentaryAct(BaseModel):
+    act_number: int                          # 1 to 5
+    act_title: str                           # e.g. "The 1963 Basement Breach"
+    target_duration_sec: int                 # 35 to 75 seconds per act
+    narration_text: str                      # ~100-160 words
+    visual_intent: str                       # visual description for scene selector
+    graphic_type: Optional[Literal["map", "blueprint_callout", "cross_section", "timeline", "numbers", "none"]] = "none"
+    claim_fact_ids: List[str] = []           # e.g. ["F1", "F3", "F5"] from fact sheet
+
+
+class DeepDivePackage(BaseModel):
+    """The full 5-act long-form documentary script package (~3:30 to 5:00 minutes)."""
+    topic_id: str
+    title: str                               # e.g. "The Underground City of Derinkuyu"
+    youtube_title: str                       # e.g. "The 18-Story Subterranean Metropolis: How Derinkuyu Protected 20,000 People"
+    description: str                         # Multi-paragraph YouTube / Facebook In-Stream description with chapter timestamps
+    tags: List[str]                          # SEO tags
+    acts: List[DocumentaryAct]               # Exactly 5 acts
+    closing_debate_question: str             # High-engagement MSI closing question
+    sources: List[Source]
+
+    @property
+    def total_words(self) -> int:
+        return sum(len(a.narration_text.split()) for a in self.acts)
+
+    @property
+    def full_narration(self) -> str:
+        return "\n\n".join(f"[Act {a.act_number}: {a.act_title}]\n{a.narration_text}" for a in self.acts)
+
+
+
 # Structured outputs may vary enum casing ("Supported"), so normalize before validating.
 Verdict = Annotated[Literal["supported", "disputed", "unsupported", "false"], BeforeValidator(lambda v: str(v).strip().lower())]
 

@@ -1,0 +1,359 @@
+{
+ "topic_id": "04_antikythera_mechanism",
+ "built_at": "2026-10-17T11:07:19.101827+00:00",
+ "facts": [
+  {
+   "id": "antikythera-wreck-discovery",
+   "statement": "In 1900, sponge divers discovered an ancient Roman shipwreck at a depth of 45 metres off Point Glyphadia on the Greek island of Antikythera.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "Captain Dimitrios Kontos (Δημήτριος Κοντός) and a crew of sponge divers from Symi island discovered the Antikythera wreck in early 1900, and recovered artefacts during the first expedition with the Hellenic Royal Navy, in 1900–1901."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "This wreck of a Roman cargo ship was found at a depth of 45 metres (148 ft) off Point Glyphadia on the Greek island of Antikythera."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_wreck",
+     "tier": 2,
+     "quote": "It was discovered by sponge divers off Point Glyphadia on the Greek island of Antikythera in 1900."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_wreck",
+     "tier": 2,
+     "quote": "Diver Elias Stadiatis descended to 45 meters (148 ft) depth, then quickly signaled to be pulled to the surface."
+    }
+   ]
+  },
+  {
+   "id": "mechanism-retrieval",
+   "statement": "The Antikythera mechanism was retrieved from the shipwreck in 1901 during salvage operations supported by the Hellenic Navy.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "The artefact was among wreckage retrieved from a shipwreck off the coast of the Greek island Antikythera in 1901."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "The mechanism was retrieved from the wreckage in 1901, probably July."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_wreck",
+     "tier": 2,
+     "quote": "Kondos reported the finds to authorities in Athens, and Hellenic Navy vessels were quickly sent to support the salvage effort from November 1900 through 1901."
+    }
+   ]
+  },
+  {
+   "id": "stais-discovery-gear",
+   "statement": "On 17 May 1902, archaeologist Valerios Stais examined fragments at the National Archaeological Museum and noticed a gear wheel embedded in a piece of rock.",
+   "kind": "date",
+   "disputed": true,
+   "hedge": "reports mention May 1902 or 1902",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "In 1902, during a visit to the National Archaeological Museum in Athens, it was noticed by Greek politician Spyridon Stais as containing a gear, prompting the first study of the fragment by his cousin, Valerios Stais, the museum director."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "On 17 May 1902, archaeologist Valerios Stais, together with his cousin, the Greek politician Spyridon Stais, found one of the pieces of rock had a gear wheel embedded in it."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_wreck",
+     "tier": 2,
+     "quote": "On 17 May 1902, archaeologist Valerios Stais made the most celebrated find while studying the artefacts at the National Archaeological Museum."
+    }
+   ]
+  },
+  {
+   "id": "oldest-analog-computer",
+   "statement": "The Antikythera mechanism is widely regarded as the oldest known example of an analogue computer.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "It is the oldest known example of an analogue computer."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "The Antikythera mechanism is generally referred to as the first known analogue computer."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_wreck",
+     "tier": 2,
+     "quote": "The wreck yielded numerous statues, coins, and other artifacts dating back to the fourth century BC, as well as the severely corroded remnants of a device many regard as the world's oldest known analog computer, the Antikythera mechanism."
+    }
+   ]
+  },
+  {
+   "id": "fragment-count",
+   "statement": "Originally retrieved as a single lump, the mechanism is now preserved across 82 separate fragments.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "estimated or divided into 82 separate fragments",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "The device, housed in the remains of a wooden-framed case of (uncertain) overall size 34 cm × 18 cm × 9 cm (13.4 in × 7.1 in × 3.5 in), was found as one lump, later separated into three main fragments which are now divided into 82 separate fragments after conservation efforts."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "In 1971, Price and Greek nuclear physicist Charalampos Karakalos made X-ray and gamma-ray images of the 82 fragments."
+    }
+   ]
+  },
+  {
+   "id": "gear-count",
+   "statement": "Scans of the fragments suggest the mechanism originally had 35 meshing bronze gears, 30 of which remain visible.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "scans suggest or estimated",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "These scans suggest that the mechanism had 35 meshing bronze gears, 30 of which are still visible, enabling it to follow the movements of the Moon and the Sun through the zodiac, to predict eclipses and to model the irregular orbit of the Moon, where the Moon's speed is higher in its perigee than in its apogee."
+    }
+   ]
+  },
+  {
+   "id": "largest-gear-specs",
+   "statement": "The largest gear in the mechanism measures about 13 centimetres in diameter and originally had 223 teeth.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "about or estimated",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "The largest gear is about 13 cm (5 in) in diameter and originally had 223 teeth."
+    }
+   ]
+  },
+  {
+   "id": "construction-dating-debate",
+   "statement": "Designed and constructed by ancient Greek scientists, estimates for the construction date of the Antikythera mechanism vary from 205 BC to about 87 BC, dating the device to over 2,000 years ago.",
+   "kind": "date",
+   "disputed": true,
+   "hedge": "estimates vary from 205 BC to about 87 BC, or over 2,000 years ago",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "The Antikythera mechanism ( AN-tik-ih-THEER-ə, US also  AN-ty-kih-) is an ancient Greek hand-powered orrery (model of the Solar System) built in the 2nd century BC and discovered in 1901."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "The instrument is believed to have been designed and constructed by Hellenistic scientists and been variously dated to about 87 BC, between 150 and 100 BC, or 205 BC."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "In 2014, a study argued for a new dating of approximately 200 BC, based on identifying the start-up date on the Saros Dial, as the astronomical lunar month that began shortly after the new moon of 28 April 205 BC."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_wreck",
+     "tier": 2,
+     "quote": "From gear settings and inscriptions on the mechanism's faces, he concluded that the mechanism was made about 87 BC and lost only a few years afterward."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "The Antikythera mechanism is an ancient Greek hand-powered orrery built over 2,000 years ago in the 2nd century BC."
+    }
+   ]
+  },
+  {
+   "id": "calibration-date-debate",
+   "statement": "Researchers dispute the initial calibration date of the device, proposing dates including 204 BC and 23 December 178 BC.",
+   "kind": "date",
+   "disputed": true,
+   "hedge": "proposals include 204 BC and 23 December 178 BC",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "In 2022, researchers proposed its initial calibration date, not construction date, could have been 23 December 178 BC."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "Other experts propose 204 BC as a more likely calibration date."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "In 2022, researchers proposed the mechanism's initial calibration date, not construction date, could have been 23 December 178 BC."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "Other experts propose 204 BC as a more likely calibration date."
+    }
+   ]
+  },
+  {
+   "id": "shipwreck-dating",
+   "statement": "Multiple lines of evidence date the shipwreck itself to approximately 70–60 BC, with recovered coins minted between 76 and 67 BC.",
+   "kind": "date",
+   "disputed": true,
+   "hedge": "estimated Multiple lines of evidence date the shipwreck itself to approximately 70–60 BC, with recovered coins minted between 76 and 67 BC.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "It must have been constructed before the shipwreck, which has been dated by multiple lines of evidence to approximately 70–60 BC."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_wreck",
+     "tier": 2,
+     "quote": "Any possible association with Sulla was eliminated, however, when the coins discovered in the 1970s during work by Jacques Cousteau and associates were found to have been minted between 76 and 67 BC."
+    }
+   ]
+  },
+  {
+   "id": "price-karakalos-imaging",
+   "statement": "In 1971, Derek J. de Solla Price and Greek nuclear physicist Charalampos Karakalos produced X-ray and gamma-ray images of the 82 fragments.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "Investigations into the object lapsed until British science historian and Yale University professor Derek J. de Solla Price became interested in 1951."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "In 1971, Price and Greek nuclear physicist Charalampos Karakalos made X-ray and gamma-ray images of the 82 fragments."
+    }
+   ]
+  },
+  {
+   "id": "edmunds-2005-ct-scan",
+   "statement": "In 2005, a team led by Mike Edmunds used computer X-ray tomography to inspect the interior of the fragments and read faint inscriptions.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "In 2005, a team from Cardiff University led by Mike Edmunds used computer X-ray tomography and high resolution scanning to image inside fragments of the crust-encased mechanism and read faint inscriptions that once covered the outer casing."
+    }
+   ]
+  },
+  {
+   "id": "astronomical-functions",
+   "statement": "The device was constructed to track the movements of the Sun and Moon through the zodiac, predict eclipses, and model the irregular orbit of the Moon.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "These scans suggest that the mechanism had 35 meshing bronze gears, 30 of which are still visible, enabling it to follow the movements of the Moon and the Sun through the zodiac, to predict eclipses and to model the irregular orbit of the Moon, where the Moon's speed is higher in its perigee than in its apogee."
+    }
+   ]
+  },
+  {
+   "id": "technological-gap",
+   "statement": "Machines of similar complexity did not appear again for around 1,500 years, until the 14th century in western Europe.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "around 1,500 years or estimated",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "Machines with similar complexity did not appear again until the 14th century in western Europe."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "Machines with similar complexity did not appear again for around 1,500 years, with early examples being the fourteenth century astronomical clocks of Richard of Wallingford and Giovanni de' Dondi."
+    }
+   ]
+  },
+  {
+   "id": "inscriptions-planetary-cycles",
+   "statement": "Inscriptions deciphered on the mechanism in 2016 revealed numbers linked to the synodic cycles of Venus and Saturn.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+     "tier": 2,
+     "quote": "The inscriptions were further deciphered in 2016, revealing numbers connected with the synodic cycles of Venus and Saturn."
+    }
+   ]
+  }
+ ],
+ "dropped": [],
+ "sources": [
+  {
+   "title": "Wikipedia: Antikythera mechanism",
+   "url": "https://en.wikipedia.org/wiki/Antikythera_mechanism",
+   "tier": 2
+  },
+  {
+   "title": "Wikipedia: Antikythera wreck",
+   "url": "https://en.wikipedia.org/wiki/Antikythera_wreck",
+   "tier": 2
+  },
+  {
+   "title": "www.independent.co.uk",
+   "url": "https://www.independent.co.uk/news/science/ancient-device-was-used-to-predict-olympic-dates-881400.html",
+   "tier": 2
+  },
+  {
+   "title": "www.smithsonianmag.com",
+   "url": "https://www.smithsonianmag.com/smart-news/no-archaeologists-probably-did-not-find-new-piece-antikythera-mechanism-180970821/",
+   "tier": 1
+  },
+  {
+   "title": "greece.greekreporter.com",
+   "url": "https://greece.greekreporter.com/2019/10/18/important-new-discoveries-from-greeces-ancient-antikythera-shipwreck/",
+   "tier": 3
+  },
+  {
+   "title": "vimeo.com",
+   "url": "https://vimeo.com/518734183",
+   "tier": 3
+  },
+  {
+   "title": "www.theguardian.com",
+   "url": "https://www.theguardian.com/science/blog/2012/oct/02/return-antikythera-wreck-ancient-computer",
+   "tier": 2
+  },
+  {
+   "title": "www.theguardian.com",
+   "url": "https://www.theguardian.com/science/gallery/2013/mar/18/antikythera-shipwreck-treasures-in-pictures",
+   "tier": 2
+  }
+ ]
+}

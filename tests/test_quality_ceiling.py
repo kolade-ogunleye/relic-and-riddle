@@ -195,3 +195,22 @@ def test_wcag_aaa_contrast_and_occlusion_auditing():
     # Audit non-occlusion
     occ_res = auditor.audit_subject_non_occlusion(dark_im, (20, 20, 180, 80))
     assert occ_res["passed"] is True
+
+
+def test_measure_caption_wcag_contrast(tmp_path):
+    from PIL import Image, ImageDraw
+    from src.video_qa import measure_caption_wcag_contrast
+    # Create synthetic frame with dark pill and white text
+    frame = Image.new("RGB", (540, 960), (40, 40, 45))
+    draw = ImageDraw.Draw(frame)
+    # Draw dark backing pill at caption band
+    draw.rounded_rectangle([90, 580, 450, 700], radius=16, fill=(10, 10, 12))
+    # Draw bright white text
+    draw.text((120, 620), "VERIFIED INSCRIPTION", fill=(255, 255, 255))
+    fpath = tmp_path / "frame_contrast.jpg"
+    frame.save(fpath)
+
+    res = measure_caption_wcag_contrast(fpath, caption_band=(90, 550, 450, 750))
+    assert res["wcag_aa_passed"] is True
+    assert res["contrast_ratio"] >= 4.5
+

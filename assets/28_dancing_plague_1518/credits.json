@@ -50,6 +50,45 @@
       "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
       "attribution_required": false,
       "file": "05_commons.jpg"
+    },
+    {
+      "title": "File:Interdiction danse Strasbourg Sebastien Brant 1518.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/1/18/Interdiction_danse_Strasbourg_Sebastien_Brant_1518.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Interdiction_danse_Strasbourg_Sebastien_Brant_1518.jpg",
+      "artist": "Sébastien Brant (1458-1521)",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": null,
+      "width": 1320,
+      "height": 1460,
+      "file": "06_commons.jpg"
+    },
+    {
+      "title": "File:Banque Populaire Strasbourg.JPG",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/7f/Banque_Populaire_Strasbourg.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Banque_Populaire_Strasbourg.JPG",
+      "artist": "Pierre Rudloff",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "attribution_required": false,
+      "year": 2011,
+      "width": 3648,
+      "height": 2736,
+      "file": "07_commons.jpg"
+    },
+    {
+      "title": "File:River Ill in Strasbourg.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/0/01/River_Ill_in_Strasbourg.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:River_Ill_in_Strasbourg.jpg",
+      "artist": "Unknown",
+      "license": "CC BY 2.5",
+      "license_url": "https://creativecommons.org/licenses/by/2.5",
+      "attribution_required": true,
+      "year": null,
+      "width": 1600,
+      "height": 1200,
+      "file": "08_commons.jpg"
     }
   ]
 }

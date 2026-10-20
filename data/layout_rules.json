@@ -1,0 +1,30 @@
+{
+  "version": "1.0.0",
+  "shelf_anchor": {
+    "min_gap": 10,
+    "sub_offset": 14,
+    "title_offset": 10
+  },
+  "constraints": {
+    "min_text_gap": 24,
+    "caption_margin_v_16x9": 1100,
+    "caption_margin_v_9x16": 1380,
+    "edge_safe_margin": 60,
+    "max_healing_iterations": 3
+  },
+  "aspect_ratio_rules": {
+    "16:9": {
+      "shelf_gap": 10,
+      "min_padding": 24,
+      "title_font_size": 32,
+      "sub_font_size": 22
+    },
+    "9:16": {
+      "shelf_gap": 12,
+      "min_padding": 28,
+      "title_font_size": 36,
+      "sub_font_size": 24
+    }
+  },
+  "learned_adjustments": {}
+}

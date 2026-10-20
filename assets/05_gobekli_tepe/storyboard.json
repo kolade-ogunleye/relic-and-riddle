@@ -1,0 +1,47 @@
+[
+  {
+    "beat": 1,
+    "type": "HOOK",
+    "label": "Opening Hook",
+    "text": "The historical investigation into Gobekli Tepe Enclosure D.",
+    "file": "01_commons.jpg",
+    "title": "File:Stratigraphy of Göbekli Tepe.png",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 2,
+    "type": "LANDSCAPE",
+    "label": "Terrain & Scale",
+    "text": "The historical investigation into Gobekli Tepe Enclosure D.",
+    "file": "05_commons.jpg",
+    "title": "File:Göbekli Tepe - landscape.jpg",
+    "license": "CC BY 3.0 pl"
+  },
+  {
+    "beat": 3,
+    "type": "INTERIOR",
+    "label": "Inner Structure",
+    "text": "The historical investigation into Gobekli Tepe Enclosure D.",
+    "file": "03_commons.jpg",
+    "title": "File:Göbekli Tepe (1).jpg",
+    "license": "CC BY 3.0 pl"
+  },
+  {
+    "beat": 4,
+    "type": "ARTIFACT",
+    "label": "Physical Evidence",
+    "text": "The historical investigation into Gobekli Tepe Enclosure D.",
+    "file": "02_commons.jpg",
+    "title": "File:Göbekli Tepe (2).jpg",
+    "license": "CC BY 3.0 pl"
+  },
+  {
+    "beat": 5,
+    "type": "SCHEMATIC",
+    "label": "Survey / Blueprint",
+    "text": "The historical investigation into Gobekli Tepe Enclosure D.",
+    "file": "04_commons.jpg",
+    "title": "File:Göbekli Tepe (5).jpg",
+    "license": "CC BY 3.0 pl"
+  }
+]

@@ -10,6 +10,7 @@ __pycache__/
 # Runtime state & generated media
 data/pipeline.db
 data/pipeline.db-*
+data/pipeline.db.bak
 data/approval_queue.json
 data/publishing_log.json
 data/topics/history.json
@@ -22,8 +23,8 @@ archive/media/
 !data/sfx/*.wav
 
 # Fetched scene images (re-fetchable; credits.json stays tracked)
-assets/*/*.jpg
-assets/*/*.png
+assets/**/*.jpg
+assets/**/*.png
 
 # Local tools (downloaded binaries)
 tools/
@@ -32,3 +33,12 @@ cache/
 
 # Downloaded music (re-fetchable; library.json stays tracked)
 data/music/*/
+
+# Scratch and test artifacts
+*.ass
+*.cube
+scratch/
+scratch_frame.png
+.venv-*/
+.rollback-archive/
+test_online_media/

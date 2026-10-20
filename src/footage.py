@@ -291,7 +291,8 @@ def search_youtube_cc(query: str, keywords: List[str]) -> List[Dict[str, Any]]:
     return []
 
 
-PROVIDERS = [("commons", search_commons), ("nasa", search_nasa), ("youtube", search_youtube_cc)]
+# Hardcoded automated scrapers decommissioned in favor of human curation and Telegram ingestion
+PROVIDERS: List[Tuple[str, Any]] = []
 
 
 # ----------------------------------------------------------- download & clip
@@ -458,12 +459,75 @@ def _vet_candidate(
     return cand, clip, check
 
 
+def get_curated_footage(topic_id: str, work_dir: Path) -> Tuple[List[Path], List[Dict[str, Any]]]:
+    """Ingests human-curated video clips dropped into assets/<topic_id>/footage/."""
+    if not topic_id:
+        return [], []
+    curated_dir = config.ASSETS_DIR / topic_id / "footage"
+    if not curated_dir.exists():
+        return [], []
+    video_files = sorted(p for p in curated_dir.iterdir() if p.is_file() and p.suffix.lower() in (".mp4", ".mov", ".mkv", ".webm"))
+    if not video_files:
+        return [], []
+
+    work_dir.mkdir(parents=True, exist_ok=True)
+    clips, credits = [], []
+    for idx, p in enumerate(video_files):
+        n = len(clips) + 1
+        final_clip = work_dir / f"footage_{n:02d}.mp4"
+        try:
+            info = probe(p)
+            make_segment(p, info, final_clip)
+        except Exception as e:
+            log.warning("Failed to prepare curated footage %s: %s", p.name, e)
+            continue
+
+        meta_file = p.with_suffix(".json")
+        if meta_file.exists():
+            try:
+                cand = json.loads(meta_file.read_text(encoding="utf-8"))
+            except Exception:
+                cand = {}
+        else:
+            cand = {}
+
+        cand.setdefault("provider", "curated")
+        cand.setdefault("title", p.stem.replace("_", " ").title())
+        cand.setdefault("artist", cand.get("uploader") or cand.get("channel") or "Curated Archive")
+        cand.setdefault("license", cand.get("license") or "Curated Documentary Footage")
+        cand.setdefault("source_url", cand.get("source_url") or f"assets/{topic_id}/footage/{p.name}")
+        cand.setdefault("attribution_required", cand.get("attribution_required", True))
+        cand.update(
+            file=str(final_clip),
+            place_specific=True,
+            check_note="Human curated and approved footage",
+            downloaded_at=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        )
+        cand.pop("text", None)
+        final_clip.with_suffix(".json").write_text(json.dumps(cand, indent=1, ensure_ascii=False), encoding="utf-8")
+        clips.append(final_clip)
+        credits.append(cand)
+
+    if credits:
+        (work_dir / "credits.json").write_text(json.dumps(credits, indent=1, ensure_ascii=False), encoding="utf-8")
+        log.info("Curated Footage: %d clip(s) loaded from assets/%s/footage/.", len(clips), topic_id)
+    return clips, credits
+
+
 # --------------------------------------------------------------------- main
 def source(beats: List[Dict[str, Any]], topic: Dict[str, Any], work_dir: Path, plan=None) -> Tuple[List[Path], List[Dict[str, Any]]]:
     """Returns (clip paths, their credit records). Never raises: footage is optional.
-    `plan`: the beat query plan already made for beat images (one Claude call serves both)."""
-    if not config.FOOTAGE_ENABLED or not claude_available():
+    Checks curated assets/<topic_id>/footage/ first. Automated scrapers are decommissioned."""
+    if not config.FOOTAGE_ENABLED:
         return [], []
+    tid = topic.get("id", "")
+    curated_clips, curated_credits = get_curated_footage(tid, work_dir)
+    if curated_clips:
+        return curated_clips, curated_credits
+
+    if not PROVIDERS or not claude_available():
+        return [], []
+
     loc = topic.get("location", {})
     place = ", ".join(v for v in (loc.get("name"), loc.get("country")) if v)
     site_words = [normalize(w) for w in (loc.get("name") or "").split() if len(w) > 3]
@@ -560,6 +624,8 @@ def credit_line(used: List[Dict[str, Any]]) -> str:
             text = "NASA"
         elif c["provider"] == "youtube":
             text = f"{c['artist']} via YouTube (CC-BY)"
+        elif c["provider"] == "curated":
+            text = f"{c['artist']} ({c.get('license', 'Documentary Footage')})"
         else:
             text = f"{c['artist']} / {c['provider'].capitalize()}"
         if text not in seen:

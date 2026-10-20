@@ -78,3 +78,12 @@ def test_bank_edits_sync_content_but_not_state(db):
     t = db.get_topic_by_id("01_topic")
     assert t["hook"] == "A corrected hook"
     assert (t["status"], t["times_published"]) == ("published", 1)
+def test_only_one_caller_can_claim_publication(db):
+    from concurrent.futures import ThreadPoolExecutor
+    db.create_run("claim", "01_topic")
+    db.update_run("claim", "approved")
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        claims = list(pool.map(lambda _: db.claim_publication("claim"), range(4)))
+    assert claims.count(True) == 1
+    assert db.get_run("claim")["status"] == "publishing"
+

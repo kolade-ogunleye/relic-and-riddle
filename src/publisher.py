@@ -16,6 +16,7 @@ Every outcome is explicit:
 Only "published" counts toward a topic's publish history.
 """
 
+import json
 import logging
 import os
 import time
@@ -412,6 +413,38 @@ class MetaPublisher:
             self.db.record_publication(tid, run_id, "dry-run", "simulated", {"envelope": envelope})
             log.info("Dry run: nothing was published.")
             return res
+
+        # Zero-Trust Commercial Voice License Gate
+        if getattr(config, "VOICE_REQUIRE_LICENSED", True):
+            from .config import OUTPUT_DIR
+            voice_path = OUTPUT_DIR / run_id / "voice.json"
+            voice_meta = {}
+            if voice_path.is_file():
+                try:
+                    voice_meta = json.loads(voice_path.read_text(encoding="utf-8"))
+                except Exception:
+                    pass
+            is_licensed = voice_meta.get("licensed", False)
+            provider = voice_meta.get("provider", "unknown")
+            if not is_licensed:
+                err_msg = (
+                    f"Commercial Voice License Required: This Reel was voiced using {provider} (unlicensed). "
+                    "Meta Content Monetization Program (CMP) policies prohibit commercial publishing without "
+                    "a commercial license. Please configure a valid Azure Speech key or ElevenLabs paid plan, "
+                    "or execute a simulated publish."
+                )
+                log.warning("Publishing BLOCKED for %s: %s", run_id, err_msg)
+                try:
+                    self.db.record_audit(
+                        user_id="system",
+                        action="publish_blocked_unlicensed_voice",
+                        status="blocked",
+                        payload=json.dumps({"run_id": run_id, "provider": provider, "reason": err_msg}),
+                        username="publisher_gate",
+                    )
+                except Exception:
+                    pass
+                return {"status": "blocked_unlicensed", "error": err_msg, "provider": provider}
 
         # Each requested platform is posted at most once: a publisher only handles the
         # platforms still remaining that it supports (Upload-Post: both; direct APIs: one each).

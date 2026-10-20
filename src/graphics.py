@@ -33,9 +33,9 @@ CLIP_SECONDS = 6.0
 W, H = VIDEO_WIDTH, VIDEO_HEIGHT
 SEA, LAND, HOME, BORDER, GRID = (13, 16, 21), (40, 43, 48), (92, 74, 42), (96, 98, 104), (24, 28, 34)
 GOLD, WHITE, MUTED = (255, 215, 0), (255, 255, 255), (170, 170, 175)
-# Graphics text stays between these: the caption bar's top edge is at about y=1140
-# (CAPTION_MARGIN_V 672 + a 92 pt line + padding), measured in a real render.
-TEXT_TOP, TEXT_BOTTOM = 330, 1080
+# Graphics text stays between these: the caption bar's top edge is at about y=1180
+# (CAPTION_MARGIN_V 672), leaving a generous ~190px safety buffer above the subtitle pill.
+TEXT_TOP, TEXT_BOTTOM = 330, 990
 
 from .reference_facts import references, selected_reference, measurement_text, REFERENCE_FILE
 

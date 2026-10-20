@@ -45,6 +45,13 @@ SHARED_SUITE = {
         "scene10_goreme_town.jpg", "scene11_panorama.jpg", "scene12_uchisar.jpg",
         "scene2_tunnel.jpg",  # match-cut ending
     ],
+    "derinkuyu_underground_city": [
+        "scene1_stairs.jpg", "scene07_ozkonak_entrance.jpg", "scene2_tunnel.jpg",
+        "scene08_ozkonak_tunnel.jpg", "scene3_door.jpg", "scene09_kaymakli_arch.jpg",
+        "scene4_pillars.jpg", "scene5_room.jpg", "scene13_derinkuyu_church.jpg",
+        "scene10_goreme_town.jpg", "scene11_panorama.jpg", "scene12_uchisar.jpg",
+        "scene2_tunnel.jpg",  # match-cut ending
+    ],
 }
 
 
@@ -102,6 +109,32 @@ def extract_foreground_mask(im: Image.Image) -> Tuple[Any, float]:
     return mask, coverage
 
 
+def extract_curiosity_badge(script_payload: Dict[str, Any]) -> str:
+    """Extracts a high-impact numerical or forensic curiosity badge from script facts or thumbnail."""
+    copy = script_payload.get("thumbnail", {})
+    if copy.get("badge"):
+        return copy["badge"].upper()
+
+    stat_cards = script_payload.get("stat_cards") or []
+    for sc in stat_cards:
+        val = str(sc.get("value", "")).strip()
+        lbl = str(sc.get("label", "")).strip()
+        if any(c.isdigit() for c in val):
+            badge = f"{val.upper()} • {lbl.upper()}"
+            return badge[:28] if len(badge) <= 28 else val.upper()[:22]
+
+    scale_fact = script_payload.get("scale_fact") or {}
+    if scale_fact.get("value"):
+        val = scale_fact["value"]
+        unit = str(scale_fact.get("unit", "")).upper()
+        return f"{val} {unit} RECORD"[:24]
+
+    if copy.get("eyebrow"):
+        return copy["eyebrow"].upper()[:24]
+
+    return "ARCHAEOLOGICAL RECORD"
+
+
 class VisualEngine:
     def __init__(self, assets_dir: Path = ASSETS_DIR):
         self.assets_dir = assets_dir
@@ -156,24 +189,41 @@ class VisualEngine:
                             style: str = "badge") -> Tuple[Path, Path]:
         """Cover in one of COVER_STYLES (rotated per run so neighbouring grid posts differ).
         Every layout keeps its text inside the centre 1080x1080 square, which survives both the
-        1:1 and the 3:4 profile-grid crops."""
+        1:1 and the 3:4 profile-grid crops.
+        Also renders the complete 3-Variant Thumbnail Suite (Forensic Blueprint, Discovery Intrigue,
+        Cinematic Minimal) for human review and A/B selection."""
         output_dir.mkdir(parents=True, exist_ok=True)
         out_916_path = output_dir / "thumbnail_cover.jpg"
         out_1x1_path = output_dir / "thumbnail_profile_grid.jpg"
-        copy = script_payload["thumbnail"]
+
+        copy = dict(script_payload.get("thumbnail", {}))
+        if "badge" not in copy:
+            copy["badge"] = extract_curiosity_badge(script_payload)
+
         im = cover_crop(hero_image_path, (VIDEO_WIDTH, VIDEO_HEIGHT))
+        self._text_cy = calm_center_y(im)  # badge/minimal titles sit where the photo is calmest
+
+        # Render complete 3-Variant Thumbnail Suite
+        var_a = self._cover_depth_sandwich(im.copy(), copy).convert("RGB")
+        var_b = self._cover_badge(im.copy(), copy).convert("RGB")
+        var_c = self._cover_minimal(im.copy(), copy).convert("RGB")
+
+        var_a.save(output_dir / "thumbnail_variant_a_blueprint.jpg", quality=95)
+        var_b.save(output_dir / "thumbnail_variant_b_intrigue.jpg", quality=95)
+        var_c.save(output_dir / "thumbnail_variant_c_minimal.jpg", quality=95)
+
         render = {
             "lower_third": self._cover_lower_third,
             "minimal": self._cover_minimal,
             "depth_sandwich": self._cover_depth_sandwich,
         }.get(style, self._cover_badge)
-        self._text_cy = calm_center_y(im)  # badge/minimal titles sit where the photo is calmest
+
         final_916 = render(im, copy).convert("RGB")
         final_916.save(out_916_path, quality=95)
         center_y = VIDEO_HEIGHT // 2
         top = max(0, min(VIDEO_HEIGHT - VIDEO_WIDTH, center_y - VIDEO_WIDTH // 2))
         final_916.crop((0, top, VIDEO_WIDTH, top + VIDEO_WIDTH)).save(out_1x1_path, quality=95)
-        log.info("Thumbnails generated (%s): %s, %s", style, out_916_path.name, out_1x1_path.name)
+        log.info("Thumbnails generated (%s, with 3-variant suite): %s, %s", style, out_916_path.name, out_1x1_path.name)
         return out_916_path, out_1x1_path
 
     @staticmethod
@@ -202,8 +252,12 @@ class VisualEngine:
         y2 = square_bottom - 150  # clear of the square crop's bottom edge
         y1 = y2 - size - 10
         ye = y1 - size // 2 - 40
-        draw.rectangle([x0, ye - 4, x0 + 8, ye + 40], fill=GOLD)
-        draw.text((x0 + 26, ye), eyebrow, font=font_eye, fill=GOLD, anchor="lt")
+        bbox_eye = draw.textbbox((0, 0), eyebrow, font=font_eye, anchor="lt")
+        th_eye = bbox_eye[3] - bbox_eye[1]
+        cy_eye = ye + th_eye // 2
+        bar_h = max(th_eye + 14, 32)
+        draw.rectangle([x0, cy_eye - bar_h // 2, x0 + 8, cy_eye + bar_h // 2], fill=GOLD)
+        draw.text((x0 + 26, cy_eye), eyebrow, font=font_eye, fill=GOLD, anchor="lm")
         draw.text((x0, y1), line1, font=font_title, fill=WHITE, anchor="lm")
         draw.text((x0, y2), line2, font=font_title, fill=GOLD, anchor="lm")
         return im
@@ -284,8 +338,11 @@ class VisualEngine:
             text_box_y0 = max(0, cy - title_size - 60)
             text_box_y1 = min(mask.shape[0], cy + title_size + 60)
             box_slice = mask[text_box_y0:text_box_y1, :]
+            num_labels, _ = cv2.connectedComponents(box_slice)
             occlusion = float(np.count_nonzero(box_slice)) / (box_slice.size + 1e-6)
-            if occlusion <= 0.35:
+            # Only composite depth sandwich if mask is a clean, coherent subject (low fragment count)
+            # and occlusion is moderate (<=22%), preventing mottled stone/texture from bleeding over typography
+            if 0.03 <= occlusion <= 0.22 and num_labels <= 12:
                 feathered_mask = cv2.GaussianBlur(mask, (15, 15), 0)
                 fg_alpha = Image.fromarray(feathered_mask, mode="L")
                 fg_im = im.convert("RGBA")

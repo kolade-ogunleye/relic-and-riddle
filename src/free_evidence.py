@@ -26,8 +26,8 @@ log = logging.getLogger(__name__)
 WIKI_API = "https://en.wikipedia.org/w/api.php"
 MAX_PAGE_BYTES = 2_000_000
 MAX_REFERENCES = 6
-SKIP_HOSTS = ("wikipedia.org", "wikimedia.org", "wikidata.org", "archive.org", "doi.org", "worldcat.org",
-              "google.com", "books.google", "jstor.org", "youtube.com", "facebook.com", "twitter.com", "x.com",
+SKIP_HOSTS = ("wikipedia.org", "wikimedia.org", "archive.org", "worldcat.org",
+              "google.com", "books.google", "youtube.com", "facebook.com", "twitter.com", "x.com",
               "toolforge.org", "bnf.fr", "idref.fr", "viaf.org", "loc.gov/authorities", "d-nb.info", "openstreetmap.org",
               "geonames.org", "isni.org", "catalogue.", "id.loc.gov", "kb.nl", "nla.gov.au/anbd")  # catalogues, maps, IDs
 
@@ -78,6 +78,36 @@ def sentences(text: str) -> List[str]:
     return [s.strip() for s in re.split(r"(?<=[.!?])\s+(?=[A-Z0-9\"'])", text) if 30 <= len(s.strip()) <= 500]
 
 
+def fetch_openalex_scholarly_evidence(query: str, max_works: int = 3) -> Tuple[List[dict], List[dict]]:
+    """Fetches peer-reviewed paper evidence from the open OpenAlex scholarly API."""
+    import urllib.parse
+    url = f"https://api.openalex.org/works?search={urllib.parse.quote(query)}&per-page={max_works}"
+    headers = {"User-Agent": "RelicAndRiddleStudioBot/1.0 (historical research; contact: studio@relicriddle.org)"}
+    quotes, sources = [], []
+    try:
+        r = requests.get(url, headers=headers, timeout=8)
+        if r.status_code == 200:
+            for w in r.json().get("results", []):
+                title = w.get("title") or ""
+                doi = w.get("doi") or ""
+                abstract_inverted = w.get("abstract_inverted_index") or {}
+                if abstract_inverted:
+                    word_pos = []
+                    for word, positions in abstract_inverted.items():
+                        for p in positions:
+                            word_pos.append((p, word))
+                    word_pos.sort()
+                    abstract_text = " ".join(word for _, word in word_pos)
+                    sents = [s.strip() for s in re.split(r"(?<=[.!?])\s+", abstract_text) if len(s.strip()) >= 30]
+                    for s in sents[:3]:
+                        quotes.append({"url": doi or "https://openalex.org", "title": f"Peer-Reviewed Scholarly Paper: {title}", "quote": s})
+                if doi:
+                    sources.append({"title": f"Peer-Reviewed Work: {title}", "url": doi})
+    except Exception as e:
+        log.warning("OpenAlex scholarly evidence lookup failed: %s", e)
+    return quotes, sources
+
+
 def quotes_for(topic: Dict, keywords: List[str], max_quotes: int = 90) -> Tuple[List[dict], List[dict]]:
     """([{"url", "title", "quote"}], [{"title", "url"}]): evidence sentences and the sources they came from."""
     loc = topic.get("location", {})
@@ -105,9 +135,28 @@ def quotes_for(topic: Dict, keywords: List[str], max_quotes: int = 90) -> Tuple[
                     break
         return n
 
-    for title in titles:
+    # Ingest peer-reviewed scholarly evidence from OpenAlex
+    scholarly_quotes, scholarly_sources = fetch_openalex_scholarly_evidence(topic.get("title", ""), max_works=3)
+    if scholarly_quotes:
+        picked.extend(scholarly_quotes)
+        sources.extend(scholarly_sources)
+
+    for idx, title in enumerate(titles):
         url, text, refs = article(title)
-        take(url, f"Wikipedia: {title}", text, 45)
+        # The primary subject article (idx == 0) can use numbers or keywords; secondary location pages (idx > 0) MUST match topic keywords to avoid regional history pollution
+        require_keywords = (idx > 0)
+        n = 0
+        for s in sentences(text):
+            low = s.lower()
+            if require_keywords:
+                matched = any(k in low for k in keys)
+            else:
+                matched = re.search(r"\d", s) or any(k in low for k in keys)
+            if matched:
+                picked.append({"url": url, "title": f"Wikipedia: {title}", "quote": s})
+                n += 1
+                if n >= 45:
+                    break
         sources.append({"title": f"Wikipedia: {title}", "url": url})
         links += refs
     fetched = 0
@@ -121,5 +170,6 @@ def quotes_for(topic: Dict, keywords: List[str], max_quotes: int = 90) -> Tuple[
         if take(link, host, body, 8):
             sources.append({"title": host, "url": link})
             fetched += 1
-    log.info("Free evidence for %s: %d quotes from Wikipedia + %d cited pages.", topic.get("id"), len(picked), fetched)
+    log.info("Free evidence for %s: %d quotes (including %d scholarly) from Wikipedia + %d cited pages.",
+             topic.get("id"), len(picked), len(scholarly_quotes), fetched)
     return picked[:max_quotes], sources

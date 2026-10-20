@@ -272,24 +272,90 @@ def caption_credit_line(credits: Dict[str, Any]) -> str:
 
 
 # ---------------------------------------------------------------- review helpers
-def write_contact_sheet(topic_dir: Path, images: List[Dict[str, Any]]) -> Path:
-    """Grid of the set's images with a number on each tile (used by /drop and the CLI)."""
+def write_contact_sheet(
+    topic_dir: Path,
+    images: List[Dict[str, Any]],
+    storyboards: Optional[List[Dict[str, Any]]] = None,
+) -> Path:
+    """Grid of the set's images with tile numbers and optional storyboard beat context."""
     from PIL import Image, ImageDraw
 
     from .typography import get_font
 
+    if storyboards is None:
+        sb_path = topic_dir / "storyboard.json"
+        if sb_path.is_file():
+            try:
+                storyboards = json.loads(sb_path.read_text(encoding="utf-8"))
+            except Exception:
+                storyboards = None
+
+    # When a storyboard exists, tiles MUST be ordered according to the storyboard beat sequence:
+    # Tile 1 = Beat 1, Tile 2 = Beat 2, etc. Swapping beats visually moves the tiles.
+    # Any extra buffer candidate images are appended after the storyboard beats.
+    ordered_items: List[Dict[str, Any]] = []
+    seen_files = set()
+    images_by_file = {c.get("file"): c for c in images if c.get("file")}
+
+    if storyboards:
+        for sb in storyboards:
+            f = sb.get("file")
+            if f and (topic_dir / f).exists():
+                c_item = dict(images_by_file.get(f, {"file": f}))
+                c_item["_sb_type"] = sb.get("type", "")
+                c_item["_sb_text"] = sb.get("text", "")
+                c_item["_sb_beat"] = sb.get("beat", len(ordered_items) + 1)
+                ordered_items.append(c_item)
+                seen_files.add(f)
+
+    for c in images:
+        f = c.get("file")
+        if f and f not in seen_files and (topic_dir / f).exists():
+            c_item = dict(c)
+            c_item["_sb_type"] = "BUFFER"
+            c_item["_sb_text"] = "Candidate buffer asset"
+            c_item["_sb_beat"] = len(ordered_items) + 1
+            ordered_items.append(c_item)
+            seen_files.add(f)
+
+    if not ordered_items:
+        ordered_items = images
+
     cell_w, cell_h, cols = 360, 270, 4
-    rows = max(1, (len(images) + cols - 1) // cols)
+    rows = max(1, (len(ordered_items) + cols - 1) // cols)
     sheet = Image.new("RGB", (cols * cell_w, rows * cell_h), "white")
     draw = ImageDraw.Draw(sheet)
-    font = get_font("Anton", 40)
-    for i, c in enumerate(images):
+    font_num = get_font("Anton", 40)
+    font_badge = get_font("Montserrat", 16)
+    font_text = get_font("Montserrat", 13)
+
+    for i, c in enumerate(ordered_items):
         x, y = (i % cols) * cell_w, (i // cols) * cell_h
         with Image.open(topic_dir / c["file"]) as im:
             im.thumbnail((cell_w - 8, cell_h - 8))
             sheet.paste(im, (x + 4, y + 4))
+
+        # Top-left tile number badge (corresponds 1:1 to Beat number)
         draw.rounded_rectangle([x + 10, y + 10, x + 70, y + 66], radius=8, fill=(0, 0, 0))
-        draw.text((x + 40, y + 38), str(i + 1), font=font, fill=(255, 215, 0), anchor="mm")
+        draw.text((x + 40, y + 38), str(i + 1), font=font_num, fill=(255, 215, 0), anchor="mm")
+
+        # Top-right storyboard archetype badge
+        b_type = c.get("_sb_type", "")
+        if b_type:
+            badge_w = 95
+            bg_color = (15, 23, 42) if b_type != "BUFFER" else (30, 41, 59)
+            text_color = (56, 189, 248) if b_type != "BUFFER" else (148, 163, 184)
+            draw.rounded_rectangle([x + cell_w - badge_w - 12, y + 10, x + cell_w - 12, y + 38], radius=6, fill=bg_color)
+            draw.text((x + cell_w - (badge_w // 2) - 12, y + 24), b_type, font=font_badge, fill=text_color, anchor="mm")
+
+        # Bottom spoken line banner
+        b_text = c.get("_sb_text", "")
+        if b_text:
+            banner_h = 42
+            draw.rectangle([x + 4, y + cell_h - banner_h - 4, x + cell_w - 4, y + cell_h - 4], fill=(0, 0, 0))
+            snippet = b_text if len(b_text) <= 52 else b_text[:49] + "..."
+            draw.text((x + 12, y + cell_h - banner_h // 2 - 4), snippet, font=font_text, fill=(241, 245, 249), anchor="lm")
+
     path = topic_dir / CONTACT_SHEET
     sheet.save(path, quality=85)
     return path

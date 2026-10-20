@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 
 import anthropic
-import httpx2
+import httpx
 import pytest
 
 from src import llm
@@ -9,7 +9,7 @@ from src.models import Poll
 
 
 def _err(cls, status, message="error"):
-    response = httpx2.Response(status, request=httpx2.Request("POST", "https://api.anthropic.com/v1/messages"))
+    response = httpx.Response(status, request=httpx.Request("POST", "https://api.anthropic.com/v1/messages"))
     return cls(message, response=response, body=None)
 
 

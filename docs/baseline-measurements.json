@@ -1,0 +1,80 @@
+[
+  {
+    "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_01_derinkuyu_underground_city_1792180971_long\\01_derinkuyu_underground_city_documentary_16x9.mp4",
+    "duration": 242.433008,
+    "streams": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "width": 1920,
+        "height": 1080,
+        "channels": null,
+        "sample_rate": null
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "width": null,
+        "height": null,
+        "channels": 2,
+        "sample_rate": "48000"
+      }
+    ],
+    "loudness": {
+      "integrated_lufs": -14.0,
+      "true_peak_dbtp": -1.4
+    }
+  },
+  {
+    "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\phase2-2026-10-13\\02_roman_self_healing_concrete\\02_roman_self_healing_concrete_master.mp4",
+    "duration": 49.539,
+    "streams": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "width": 1080,
+        "height": 1920,
+        "channels": null,
+        "sample_rate": null
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "width": null,
+        "height": null,
+        "channels": 2,
+        "sample_rate": "48000"
+      }
+    ],
+    "loudness": {
+      "integrated_lufs": -14.1,
+      "true_peak_dbtp": -1.8
+    }
+  },
+  {
+    "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\phase2-2026-10-13\\03_kailasa_temple_monolith\\03_kailasa_temple_monolith_master.mp4",
+    "duration": 48.866667,
+    "streams": [
+      {
+        "codec_type": "video",
+        "codec_name": "h264",
+        "width": 1080,
+        "height": 1920,
+        "channels": null,
+        "sample_rate": null
+      },
+      {
+        "codec_type": "audio",
+        "codec_name": "aac",
+        "width": null,
+        "height": null,
+        "channels": 2,
+        "sample_rate": "48000"
+      }
+    ],
+    "loudness": {
+      "integrated_lufs": -14.0,
+      "true_peak_dbtp": -1.8
+    }
+  }
+]

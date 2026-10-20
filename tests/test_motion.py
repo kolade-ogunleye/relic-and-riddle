@@ -45,7 +45,8 @@ def test_veo_request_and_poll(monkeypatch, photo, tmp_path):
     assert out.exists() and sent["url"].endswith("/models/veo-3.1-fast-generate-preview:predictLongRunning")
     params = sent["body"]["parameters"]
     assert params["aspectRatio"] == "9:16" and params["resolution"] == "1080p" and params["durationSeconds"] == 8
-    assert sent["body"]["instances"][0]["image"]["inlineData"]["mimeType"] == "image/jpeg"
+    assert sent["body"]["instances"][0]["image"]["bytesBase64Encoded"]
+    assert sent["body"]["instances"][0]["image"]["mimeType"] == "image/jpeg"
     assert "Do not add, remove or change anything" in sent["body"]["instances"][0]["prompt"]
     assert got["prov"] == "veo"
 

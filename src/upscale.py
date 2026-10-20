@@ -14,6 +14,7 @@ never captured, so higher-resolution sources remain the real fix. Without the to
 the original image is used (plain resizing) and a warning is logged.
 """
 
+import concurrent.futures
 import hashlib
 import logging
 import subprocess
@@ -46,8 +47,11 @@ def needs_upscale(path: Path) -> bool:
 
 
 def _cache_path(path: Path) -> Path:
-    stat = path.stat()
-    digest = hashlib.sha1(f"{path.resolve()}|{stat.st_size}|{stat.st_mtime_ns}".encode()).hexdigest()[:16]
+    from .checkpoints import fingerprint, file_inputs
+    binary = Path(REALESRGAN_BIN)
+    model_files = list((binary.parent / "models").glob("realesrgan-x4plus.*")) if binary.is_file() else []
+    digest = fingerprint({"source": file_inputs([path]), "tool": file_inputs([binary, *model_files]),
+                          "target_crop_width": TARGET_CROP_WIDTH, "model": "realesrgan-x4plus"})[:16]
     return CACHE_DIR / f"{path.stem}_{digest}.jpg"
 
 
@@ -84,6 +88,8 @@ def ensure_resolution(path: Path) -> Path:
                 im = im.resize((round(im.width * scale), round(im.height * scale)), Image.LANCZOS)
             im.save(out, "JPEG", quality=95)
         log.info("Upscaled %s -> %s", path.name, out.name)
+        from .lineage import record_derived
+        record_derived(out, [path], "upscale", {"model": "realesrgan-x4plus"})
         return out
     except (subprocess.SubprocessError, OSError) as e:
         log.warning("Upscaling %s failed (%s); using the original.", path.name, e)
@@ -94,5 +100,11 @@ def ensure_resolution(path: Path) -> Path:
 
 def ensure_all(paths: List[Path]) -> Tuple[List[Path], int]:
     """Upscales every low-resolution still. Returns (paths to use, how many were low-res)."""
-    low = sum(1 for p in paths if needs_upscale(Path(p)))
-    return [ensure_resolution(Path(p)) for p in paths], low
+    p_paths = [Path(p) for p in paths]
+    low_res_flags = [needs_upscale(p) for p in p_paths]
+    low = sum(1 for flag in low_res_flags if flag)
+    if low <= 1:
+        return [ensure_resolution(p) for p in p_paths], low
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(4, low)) as ex:
+        results = list(ex.map(ensure_resolution, p_paths))
+    return results, low

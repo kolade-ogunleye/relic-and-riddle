@@ -91,6 +91,7 @@ class AssetLifecycleManager:
     """Maintains storage hygiene by pruning intermediate scratch files older than retention_days."""
 
     SCRATCH_PATTERNS = ("ambient_bed.wav", "voiceover.mp3", "*temp*", "*.tmp")
+    SCRATCH_DIRS = ("motion", "parallax", "qa_frames", "stage_cache", "audit")
 
     def __init__(self, output_dir: Path = OUTPUT_DIR, retention_days: int = 7):
         self.output_dir = output_dir
@@ -106,6 +107,7 @@ class AssetLifecycleManager:
                 continue
             if run_dir.stat().st_mtime >= cutoff_sec:
                 continue
+            # Purge loose scratch patterns
             for pattern in self.SCRATCH_PATTERNS:
                 for f in run_dir.glob(pattern):
                     try:
@@ -115,6 +117,18 @@ class AssetLifecycleManager:
                         reclaimed_bytes += size
                     except OSError as e:
                         log.warning("Could not purge %s: %s", f, e)
+            # Purge intermediate scratch directories (motion, parallax, qa_frames, etc.)
+            for d_name in self.SCRATCH_DIRS:
+                s_dir = run_dir / d_name
+                if s_dir.is_dir():
+                    try:
+                        for sf in s_dir.rglob("*"):
+                            if sf.is_file():
+                                reclaimed_bytes += sf.stat().st_size
+                                purged_files += 1
+                        shutil.rmtree(s_dir)
+                    except OSError as e:
+                        log.warning("Could not remove scratch directory %s: %s", s_dir, e)
 
         mb_reclaimed = reclaimed_bytes / (1024 * 1024)
         log.info("Purged %d intermediate files (%.2f MB reclaimed).", purged_files, mb_reclaimed)

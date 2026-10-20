@@ -40,6 +40,58 @@
       "license_url": "",
       "attribution_required": false,
       "file": "04_commons.jpg"
+    },
+    {
+      "title": "File:Seismograph IMG 5401.JPG",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/ff/Seismograph_IMG_5401.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Seismograph_IMG_5401.JPG",
+      "artist": "deror_avi",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+      "attribution_required": true,
+      "year": 2010,
+      "width": 2178,
+      "height": 2327,
+      "file": "05_commons.jpg"
+    },
+    {
+      "title": "File:Seismograph in the National Museum of Natural Science 20241024.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/6/65/Seismograph_in_the_National_Museum_of_Natural_Science_20241024.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Seismograph_in_the_National_Museum_of_Natural_Science_20241024.jpg",
+      "artist": "阿道",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "attribution_required": true,
+      "year": 2024,
+      "width": 3024,
+      "height": 4032,
+      "file": "06_commons.jpg"
+    },
+    {
+      "title": "File:Antique Chinese seismograph.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/e/e8/Antique_Chinese_seismograph.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Antique_Chinese_seismograph.jpg",
+      "artist": "Cyborian",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "attribution_required": true,
+      "year": 2008,
+      "width": 1164,
+      "height": 1764,
+      "file": "07_commons.jpg"
+    },
+    {
+      "title": "File:Zhang Ziyi-63357.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/0/00/Zhang_Ziyi-63357.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Zhang_Ziyi-63357.jpg",
+      "artist": "Harald Krichel",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "attribution_required": true,
+      "year": 2024,
+      "width": 2471,
+      "height": 3294,
+      "file": "08_commons.jpg"
     }
   ]
 }

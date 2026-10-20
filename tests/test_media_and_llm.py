@@ -20,7 +20,7 @@ def test_ass_time_rounding_carries():
 def test_subtitles_never_overlap(tmp_path):
     words = [{"word": w, "start": i * 0.3, "dur": 0.35} for i, w in enumerate("one two three four five".split())]
     path = VideoComposer().build_subtitles(words, tmp_path / "c.ass")
-    events = [l for l in path.read_text(encoding="utf-8").splitlines() if l.startswith("Dialogue")]
+    events = [l for l in path.read_text(encoding="utf-8").splitlines() if l.startswith("Dialogue:") and ",CapText," in l]
     spans = [tuple(e.split(",")[1:3]) for e in events]
     assert len(events) == 5
     assert all(a[1] <= b[0] for a, b in zip(spans, spans[1:]))

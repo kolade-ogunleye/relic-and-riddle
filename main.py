@@ -24,6 +24,7 @@ import concurrent.futures
 import html
 import json
 import re
+import subprocess
 import threading
 import logging
 import os
@@ -37,7 +38,7 @@ from src.config import ASSETS_DIR, CURATED_SCRIPTS_DIR, DAILY_RUN_TIME, HARD_DUR
 from src.credits import caption_credit_line, generate_provenance_ledger, load_credits
 from src.db import PipelineDatabase, QueueEmpty
 from src.control import heartbeat_text, is_paused, make_command_handler, ping_healthcheck
-from src import beat_images, callouts, footage, graphics, motion, post_schedule, privacy, then_now
+from src import backup, beat_images, callouts, config, encoding, footage, graphics, motion, post_schedule, privacy, then_now
 from src.llm import claude_available as llm_available
 from src.scene_planner import plan_scenes, segment_beats
 from src.upscale import ensure_all, ensure_resolution
@@ -47,6 +48,8 @@ from src.video_composer import TRANS_DUR
 from src.video_qa import ClosedLoopAuditor, qa_summary_html, review_render
 from src.visual_engine import COVER_STYLES
 from src.ops import AssetLifecycleManager, PreFlightHealthChecker, setup_logging
+from src.fact_sheet import FactStarvedTopicError
+from src.stage_timer import StageTimer
 
 log = logging.getLogger("pipeline")
 
@@ -187,12 +190,33 @@ class PipelineCoordinator:
 
         try:
             result = self._produce_and_publish(topic, run_id, run_dir, auto_approve, dry_run, previous_status)
+        except FactStarvedTopicError as e:
+            if getattr(self, "progress_msg_id", None):
+                try:
+                    self.telegram_bot.finish_progress_card(self.progress_msg_id, topic["title"], run_id, success=False, error="Fact-starved (insufficient evidence)")
+                except Exception:
+                    pass
+                self.progress_msg_id = None
+            self.db.update_run(run_id, "failed", error=f"FactStarvedTopicError: {e}")
+            self.topic_engine.record_status(tid, "fact_starved", run_id=run_id)
+            log.warning("Topic '%s' is fact-starved: %s. Gracefully skipping to protect pipeline integrity.", tid, e)
+            self._alert(f"⚠️ <b><u>TOPIC SKIPPED: FACT-STARVED</u></b>\n\n<code>{html.escape(tid)}</code>\n\n{html.escape(str(e))}\n\nSkipped gracefully to next queued topic.")
+            next_t = self.topic_engine.get_next_topic()
+            if next_t and next_t["id"] != tid:
+                log.info("Auto-advancing to next topic '%s'...", next_t['id'])
+                return self.run_cycle(next_t["id"], auto_approve, dry_run, require_live, content_format)
+            return {"status": "skipped", "reason": "fact_starved", "topic_id": tid}
         except Exception as e:
+            if getattr(self, "progress_msg_id", None):
+                try:
+                    self.telegram_bot.finish_progress_card(self.progress_msg_id, topic["title"], run_id, success=False, error=str(e))
+                except Exception:
+                    pass
+                self.progress_msg_id = None
             self.db.update_run(run_id, "failed", error=f"{type(e).__name__}: {e}")
             self.topic_engine.record_status(tid, "failed", run_id=run_id)
             log.error("Run %s failed: %s", run_id, e)
-            self._alert(f"❌ <b>Couldn't make a Reel</b>: {html.escape(self.db.run_label(run_id))}\n"
-                        f"{html.escape(str(e))[:600]}\nNothing was posted. The topic will be retried on a later run.")
+            self._alert(f"❌ <b><u>PRODUCTION FAILED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n{html.escape(str(e))[:600]}\n\nNothing was posted. The topic will be retried on a later run.")
             ping_healthcheck("/fail")
             raise
 
@@ -308,15 +332,16 @@ class PipelineCoordinator:
             # 3. Audio generation
             vo_path = run_dir / "voiceover.mp3"
             words_path = run_dir / "words.json"
+            licensed_req = (not dry_run) and config.VOICE_REQUIRE_LICENSED
             voice_inputs = {"script": raw_narration, "voice": self.audio_engine.voice,
                             "rate": self.audio_engine.rate, "pitch": self.audio_engine.pitch,
-                            "eleven_voice": self.audio_engine.eleven_voice, "licensed_only": not dry_run}
+                            "eleven_voice": self.audio_engine.eleven_voice, "licensed_only": licensed_req}
             if checkpoints.reusable("deep_voice", voice_inputs):
                 words = json.loads(words_path.read_text(encoding="utf-8"))
                 vo_dur = self.audio_engine.get_duration(vo_path)
                 log.info("Deep-Dive Voiceover: reusing existing audio (%.2fs, %d words timed)", vo_dur, len(words))
             else:
-                words = self.audio_engine.generate_narration(raw_narration, vo_path, licensed_only=not dry_run)
+                words = self.audio_engine.generate_narration(raw_narration, vo_path, licensed_only=licensed_req)
                 words_path.write_text(json.dumps(words), encoding="utf-8")
                 vo_dur = self.audio_engine.get_duration(vo_path)
                 log.info("Deep-Dive Voiceover: %.2fs (%d words timed)", vo_dur, len(words))
@@ -370,8 +395,7 @@ class PipelineCoordinator:
             # 4. Visual preparation & compositing
             scene_media, _ = ensure_all(scene_media)
             hero_img = ensure_resolution(hero_img)
-            scene_media = [privacy.anonymize_media(p) for p in scene_media]
-            hero_img = privacy.anonymize_media(hero_img)
+            *scene_media, hero_img = privacy.anonymize_all([*scene_media, hero_img])
 
             # Inherit or load verified graphics data into payload
             if parent_run_id:
@@ -423,6 +447,8 @@ class PipelineCoordinator:
             # Generate original channel graphics concurrently (map, cross-section, numbers, callouts, then/now)
             graphics_dir = run_dir / "graphics"
             graphics_dir.mkdir(parents=True, exist_ok=True)
+            encoding.get_video_encoder()  # probe once before parallel renderers race to detect it under load
+            t_graphics = time.perf_counter()
             with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
                 fut_graphics = pool.submit(graphics.make_all, payload, topic, graphics_dir, photo=hero_img, width=1920, height=1080)
                 fut_callouts = pool.submit(callouts.make, payload, topic, scene_media, graphics_dir, width=1920, height=1080)
@@ -431,6 +457,7 @@ class PipelineCoordinator:
                 own_graphics = fut_graphics.result()
                 labelled = fut_callouts.result()
                 then_clip, _ = fut_then_now.result()
+            StageTimer(run_dir).record("deep_graphics", time.perf_counter() - t_graphics)
 
             if labelled:
                 own_graphics.append(labelled)
@@ -608,128 +635,20 @@ class PipelineCoordinator:
                      num_scenes, sum(durations), vo_dur)
 
             master_mp4 = run_dir / f"{tid}_documentary_16x9.mp4"
-            cached_artifacts(run_dir, "caption_exports", {"words": words, "rules": file_inputs([Path("src/video_composer.py")])},
-                lambda: [self.video_composer.export_subtitles_srt(words, master_mp4.with_suffix(".srt")),
-                         self.video_composer.export_subtitles_vtt(words, master_mp4.with_suffix(".vtt"))])
-            render_inputs = {"sources": file_inputs([*extended_scenes, vo_path, bed_path, words_path,
-                             Path("src/video_composer.py"), Path("src/encoded_audio.py"), Path("src/encoding.py")]),
-                             "durations": durations, "emphasis": topic.get("key_facts", [])[:5]}
-            if checkpoints.reusable("deep_render", render_inputs):
-                log.info("Master documentary video already rendered: %s", master_mp4.name)
-            else:
-                log.info("Composing 16:9 widescreen documentary with BBC intelligent compositing...")
-                self.video_composer.compose_deep_dive(
-                    scene_images=extended_scenes,
-                    vo_path=vo_path,
-                    bed_path=bed_path,
-                    words=words,
-                    vo_dur=vo_dur,
-                    output_mp4_path=master_mp4,
-                    durations=durations,
-                    emphasis=topic.get("key_facts", [])[:5],
-                )
-
-                checkpoints.complete("deep_render", render_inputs, [master_mp4,
-                    master_mp4.with_suffix(".composition.json"), master_mp4.with_name(master_mp4.stem + "_captions.ass"), master_mp4.with_suffix(".srt"),
-                    master_mp4.with_suffix(".vtt")])
-
-            # Review proxy is tied to its current master rather than its filename.
-            review_proxy = run_dir / "review_proxy.mp4"
-            proxy_inputs = file_inputs([master_mp4])
-            if not checkpoints.reusable("deep_proxy", proxy_inputs):
-                self.video_composer.make_review_proxy(master_mp4, review_proxy)
-                checkpoints.complete("deep_proxy", proxy_inputs, [review_proxy])
-
-            # Closed-Loop Self-Healing Gating & Auto-Remediation
-            timeline_cuts = []
-            t_cursor = 0.0
-            for c_idx, (asset, dur) in enumerate(zip(extended_scenes, durations)):
-                txt = cuts[c_idx]["text"] if c_idx < len(cuts) else ""
-                timeline_cuts.append({
-                    "scene_index": c_idx,
-                    "start": t_cursor,
-                    "end": t_cursor + dur,
-                    "dur": dur,
-                    "text": txt,
-                    "asset": asset,
-                })
-                t_cursor += dur
-
-            log.info("Executing Closed-Loop Self-Healing Quality Gating for %s...", master_mp4.name)
-            auditor = ClosedLoopAuditor()
-            healing_cert = auditor.run_self_healing_cycle(
-                video_path=master_mp4,
-                timeline=timeline_cuts,
-                words=words,
-                run_dir=run_dir,
-                composer=self.video_composer,
-                width=1920,
-                height=1080,
-                caption_path=master_mp4.with_name(master_mp4.stem + "_captions.ass"),
-                extended_scenes=extended_scenes,
-                durations=durations,
-                vo_path=vo_path,
-                bed_path=bed_path,
-                vo_dur=vo_dur,
-                emphasis=topic.get("key_facts", [])[:5],
-            )
-            payload["self_healing"] = healing_cert
-            log.info("Closed-Loop Self-Healing Certification: Score=%d/100, Certified=%s",
-                     healing_cert["score"], healing_cert["certified"])
-
-            self._verify_final_copy(payload, topic)
-            # Cryptographic Provenance Ledger
-            prov_ledger = generate_provenance_ledger(
-                run_dir=run_dir,
-                topic=topic,
-                payload=payload,
-                master_mp4=master_mp4,
-                vo_path=vo_path,
-                bed_path=bed_path,
-                media_items=extended_scenes,
-                self_healing=healing_cert,
-            )
-            log.info("Recorded cryptographic provenance ledger -> %s", prov_ledger.name)
-            from src.credits import add_provenance_attributions
-            add_provenance_attributions(payload, prov_ledger)
-
-            # Thumbnails: vertical cover, square grid, and 16:9 widescreen YouTube key-art
-            thumb_916, thumb_1x1 = self.visual_engine.generate_thumbnails(hero_img, payload, run_dir)
-            thumb_yt = self.visual_engine.generate_youtube_thumbnail(
-                hero_img, payload, run_dir / "thumbnail_youtube_16x9.jpg"
-            )
-            payload["thumbnail_youtube"] = str(thumb_yt)
-            (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
-
-            self.db.update_run(
-                run_id,
-                "pending_approval",
-                master_video_path=master_mp4,
-                script_payload=payload,
-                thumbnail_cover_path=thumb_yt,
-                thumbnail_grid_path=thumb_1x1,
-                parent_run_id=parent_run_id,
-                content_format="deep_dive",
-            )
-
-            from src.release import write_release_report, require_release
-            write_release_report(self.db.get_run(run_id), dry_run=dry_run)
-            if auto_approve:
-                require_release(self.db.get_run(run_id), dry_run=dry_run)
-                self.db.record_approval(run_id, tid)
-                self.db.update_approval_decision(run_id, "approved", decided_by="auto-approve-flag")
-                self.db.update_run(run_id, "simulated" if dry_run else "approved")
-
-            return {
-                "run_id": run_id,
-                "parent_run_id": parent_run_id,
-                "topic_id": tid,
-                "status": "simulated" if dry_run else ("approved" if auto_approve else "pending_approval"),
-                "master_video": str(master_mp4),
-                "thumbnail_youtube": str(thumb_yt),
-                "duration_seconds": vo_dur,
-                "format": "deep_dive_16x9",
-            }
+            # Thumbnails need only the hero photo and the cover copy, which nothing below changes,
+            # so they are drawn while the documentary renders (one worker: the engine keeps per-call state).
+            thumb_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="deep-thumbs")
+            fut_thumbs = thumb_pool.submit(lambda: (
+                self.visual_engine.generate_thumbnails(hero_img, payload, run_dir),
+                self.visual_engine.generate_youtube_thumbnail(hero_img, payload, run_dir / "thumbnail_youtube_16x9.jpg")))
+            thumb_pool.shutdown(wait=False)
+            try:
+                return self._render_and_certify_deep_dive(
+                    topic, tid, run_id, run_dir, parent_run_id, payload, words, vo_dur, vo_path, bed_path, words_path,
+                    extended_scenes, durations, cuts, master_mp4, checkpoints, file_inputs, cached_artifacts,
+                    fut_thumbs, auto_approve, dry_run)
+            finally:
+                concurrent.futures.wait([fut_thumbs])  # never leave a writer running past the run
 
         except Exception as e:
             log.error("Deep-dive production failed for run %s: %s", run_id, e, exc_info=True)
@@ -741,6 +660,134 @@ class PipelineCoordinator:
                 "status": "failed",
                 "error": str(e),
             }
+
+    def _render_and_certify_deep_dive(self, topic, tid, run_id, run_dir, parent_run_id, payload, words, vo_dur,
+                                      vo_path, bed_path, words_path, extended_scenes, durations, cuts, master_mp4,
+                                      checkpoints, file_inputs, cached_artifacts, fut_thumbs, auto_approve, dry_run):
+        timer = StageTimer(run_dir)
+        t0 = time.perf_counter()
+        cached_artifacts(run_dir, "caption_exports", {"words": words, "rules": file_inputs([Path("src/video_composer.py")])},
+            lambda: [self.video_composer.export_subtitles_srt(words, master_mp4.with_suffix(".srt")),
+                     self.video_composer.export_subtitles_vtt(words, master_mp4.with_suffix(".vtt"))])
+        render_inputs = {"sources": file_inputs([*extended_scenes, vo_path, bed_path, words_path,
+                         Path("src/video_composer.py"), Path("src/encoded_audio.py"), Path("src/encoding.py")]),
+                         "durations": durations, "emphasis": topic.get("key_facts", [])[:5]}
+        if checkpoints.reusable("deep_render", render_inputs):
+            log.info("Master documentary video already rendered: %s", master_mp4.name)
+        else:
+            log.info("Composing 16:9 widescreen documentary with BBC intelligent compositing...")
+            self.video_composer.compose_deep_dive(
+                scene_images=extended_scenes,
+                vo_path=vo_path,
+                bed_path=bed_path,
+                words=words,
+                vo_dur=vo_dur,
+                output_mp4_path=master_mp4,
+                durations=durations,
+                emphasis=topic.get("key_facts", [])[:5],
+            )
+
+            checkpoints.complete("deep_render", render_inputs, [master_mp4,
+                master_mp4.with_suffix(".composition.json"), master_mp4.with_name(master_mp4.stem + "_captions.ass"), master_mp4.with_suffix(".srt"),
+                master_mp4.with_suffix(".vtt")])
+        timer.record("deep_master_render", time.perf_counter() - t0)
+
+        # Review proxy is tied to its current master rather than its filename.
+        review_proxy = run_dir / "review_proxy.mp4"
+        proxy_inputs = file_inputs([master_mp4])
+        if not checkpoints.reusable("deep_proxy", proxy_inputs):
+            self.video_composer.make_review_proxy(master_mp4, review_proxy)
+            checkpoints.complete("deep_proxy", proxy_inputs, [review_proxy])
+
+        # Closed-Loop Self-Healing Gating & Auto-Remediation
+        timeline_cuts = []
+        t_cursor = 0.0
+        for c_idx, (asset, dur) in enumerate(zip(extended_scenes, durations)):
+            txt = cuts[c_idx]["text"] if c_idx < len(cuts) else ""
+            timeline_cuts.append({
+                "scene_index": c_idx,
+                "start": t_cursor,
+                "end": t_cursor + dur,
+                "dur": dur,
+                "text": txt,
+                "asset": asset,
+            })
+            t_cursor += dur
+
+        log.info("Executing Closed-Loop Self-Healing Quality Gating for %s...", master_mp4.name)
+        t0 = time.perf_counter()
+        auditor = ClosedLoopAuditor()
+        healing_cert = auditor.run_self_healing_cycle(
+            video_path=master_mp4,
+            timeline=timeline_cuts,
+            words=words,
+            run_dir=run_dir,
+            composer=self.video_composer,
+            width=1920,
+            height=1080,
+            caption_path=master_mp4.with_name(master_mp4.stem + "_captions.ass"),
+            extended_scenes=extended_scenes,
+            durations=durations,
+            vo_path=vo_path,
+            bed_path=bed_path,
+            vo_dur=vo_dur,
+            emphasis=topic.get("key_facts", [])[:5],
+        )
+        payload["self_healing"] = healing_cert
+        timer.record("deep_qa", time.perf_counter() - t0)
+        log.info("Closed-Loop Self-Healing Certification: Score=%d/100, Certified=%s",
+                 healing_cert["score"], healing_cert["certified"])
+
+        self._verify_final_copy(payload, topic)
+        # Cryptographic Provenance Ledger
+        prov_ledger = generate_provenance_ledger(
+            run_dir=run_dir,
+            topic=topic,
+            payload=payload,
+            master_mp4=master_mp4,
+            vo_path=vo_path,
+            bed_path=bed_path,
+            media_items=extended_scenes,
+            self_healing=healing_cert,
+        )
+        log.info("Recorded cryptographic provenance ledger -> %s", prov_ledger.name)
+        from src.credits import add_provenance_attributions
+        add_provenance_attributions(payload, prov_ledger)
+
+        # Thumbnails: vertical cover, square grid, and 16:9 widescreen YouTube key-art
+        (thumb_916, thumb_1x1), thumb_yt = fut_thumbs.result()
+        payload["thumbnail_youtube"] = str(thumb_yt)
+        (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+
+        self.db.update_run(
+            run_id,
+            "pending_approval",
+            master_video_path=master_mp4,
+            script_payload=payload,
+            thumbnail_cover_path=thumb_yt,
+            thumbnail_grid_path=thumb_1x1,
+            parent_run_id=parent_run_id,
+            content_format="deep_dive",
+        )
+
+        from src.release import write_release_report, require_release
+        write_release_report(self.db.get_run(run_id), dry_run=dry_run)
+        if auto_approve:
+            require_release(self.db.get_run(run_id), dry_run=dry_run)
+            self.db.record_approval(run_id, tid)
+            self.db.update_approval_decision(run_id, "approved", decided_by="auto-approve-flag")
+            self.db.update_run(run_id, "simulated" if dry_run else "approved")
+
+        return {
+            "run_id": run_id,
+            "parent_run_id": parent_run_id,
+            "topic_id": tid,
+            "status": "simulated" if dry_run else ("approved" if auto_approve else "pending_approval"),
+            "master_video": str(master_mp4),
+            "thumbnail_youtube": str(thumb_yt),
+            "duration_seconds": vo_dur,
+            "format": "deep_dive_16x9",
+        }
 
     def _alert(self, text: str, buttons: Optional[list] = None) -> None:
         self.telegram_bot.notify(text, buttons)
@@ -763,6 +810,11 @@ class PipelineCoordinator:
         self.db.update_run(run_id, "failed", error="Confirmed by a human: not posted")
         self.topic_engine.record_status(run["topic_id"], "queued", run_id=run_id)
         return f"🔁 Not posted, so the topic is back in the queue: {html.escape(self.db.run_label(run_id))}"
+
+    def simulate_publish(self, run_id: str) -> str:
+        """Execute a simulated publish for a rendered run without broadcasting live to Meta."""
+        self.publish_run(run_id, dry_run=True)
+        return f"🧪 <b>Simulated Publish Complete</b> for {html.escape(self.db.run_label(run_id))}. Artifacts certified without live broadcast."
 
     def request_approval(self, run_id: str, dry_run: bool = False) -> Dict[str, Any]:
         """Re-sends the review card for a rendered run whose approval timed out, then acts on the decision."""
@@ -812,13 +864,17 @@ class PipelineCoordinator:
             self.db.update_run(run_id, "failed", error=f"{type(e).__name__}: {e}")
             self.topic_engine.record_status(topic["id"], "failed", run_id=run_id)
             log.error("Run %s failed: %s", run_id, e)
-            self._alert(f"❌ <b>Couldn't make a Reel</b>: {html.escape(self.db.run_label(run_id))}\n"
-                        f"{html.escape(str(e))[:600]}\nNothing was posted. The topic will be retried on a later run.")
+            self._alert(f"❌ <b><u>PRODUCTION FAILED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n{html.escape(str(e))[:600]}\n\nNothing was posted. The topic will be retried on a later run.")
             ping_healthcheck("/fail")
             raise
 
     def _produce_and_publish(self, topic, run_id, run_dir, auto_approve, dry_run, previous_status) -> Dict[str, Any]:
         tid = topic["id"]
+        self.progress_msg_id = None
+        try:
+            self.progress_msg_id = self.telegram_bot.send_progress_card(run_id, topic["title"])
+        except Exception:
+            pass
 
         # 1. Visual assets first: fail before spending on LLM/TTS calls.
         scene_media = self.visual_engine.get_scene_sequence(topic)
@@ -828,6 +884,7 @@ class PipelineCoordinator:
         from src.checkpoints import Checkpoints, file_inputs, topic_inputs, cached_artifacts, topic_inputs
         from src import config as pipeline_config
         checkpoints = Checkpoints(run_dir)
+        timer, t0 = StageTimer(run_dir), time.perf_counter()
         script_inputs = {"topic": topic_inputs(topic), "engine": pipeline_config.SCRIPT_ENGINE,
                          "fact_sheet": file_inputs([pipeline_config.DATA_DIR / "fact_sheets" / f"{topic['id']}.json"])}
         saved_script = run_dir / "verified_script.json"
@@ -850,6 +907,13 @@ class PipelineCoordinator:
             saved_script.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
             checkpoints.complete("script", script_inputs, [saved_script])
 
+        timer.record("script_and_fact_check", time.perf_counter() - t0)
+        if getattr(self, "progress_msg_id", None):
+            try:
+                self.telegram_bot.update_progress_card(self.progress_msg_id, 1, 5, topic["title"], run_id, "Fact check & script verified")
+            except Exception:
+                pass
+
         # 4-5. Audio (reused when resuming)
         vo_path = run_dir / "voiceover.mp3"
         words_path = run_dir / "words.json"
@@ -857,15 +921,17 @@ class PipelineCoordinator:
         saved_voice = json.loads(voice_path.read_text(encoding="utf-8")) if voice_path.exists() else {}
         # A real run never reuses an unlicensed (test) voiceover. Older runs without voice.json
         # predate this record, so they are re-voiced too.
+        licensed_req = (not dry_run) and config.VOICE_REQUIRE_LICENSED
         voice_inputs = {"script": payload["narration_script"], "voice": self.audio_engine.voice,
                         "rate": self.audio_engine.rate, "pitch": self.audio_engine.pitch,
-                        "eleven_voice": self.audio_engine.eleven_voice, "licensed_only": not dry_run}
-        reusable = checkpoints.reusable("voice", voice_inputs) and (dry_run or saved_voice.get("licensed"))
+                        "eleven_voice": self.audio_engine.eleven_voice, "licensed_only": licensed_req}
+        t0 = time.perf_counter()
+        reusable = checkpoints.reusable("voice", voice_inputs) and (dry_run or not config.VOICE_REQUIRE_LICENSED or saved_voice.get("licensed"))
         if reusable:
             words = json.loads(words_path.read_text(encoding="utf-8"))
             log.info("Resuming with the existing voiceover.")
         else:
-            words = self.audio_engine.generate_narration(payload["narration_script"], vo_path, licensed_only=not dry_run)
+            words = self.audio_engine.generate_narration(payload["narration_script"], vo_path, licensed_only=licensed_req)
             words_path.write_text(json.dumps(words), encoding="utf-8")
             voice_path.write_text(json.dumps({"provider": self.audio_engine.last_provider,
                                               "licensed": self.audio_engine.last_licensed}), encoding="utf-8")
@@ -875,16 +941,51 @@ class PipelineCoordinator:
             checkpoints.complete("voice", voice_inputs, [vo_path, words_path, voice_path])
             if self.audio_engine.fallback_reason:
                 r_label = html.escape(self.db.run_label(run_id))
-                self._alert(f"🔁 <b>Voice fallback for {r_label}</b>:\n{html.escape(self.audio_engine.fallback_reason)}\n\n"
-                            f"This run is voiced by <b>{html.escape(self.audio_engine.last_provider)}</b>.")
-        payload["voice_note"] = {"elevenlabs": "🎙 Voice: ElevenLabs", "azure": "🎙 Voice: Azure Speech (fallback)",
-                                 "edge-tts": "🎙 Voice: edge-tts (TEST ONLY: not licensed for posting)"}.get(
-            saved_voice.get("provider") if reusable else self.audio_engine.last_provider, "")
+                self._alert(f"🔁 <b><u>VOICE FALLBACK</u></b>\n\n<b>{r_label}</b>\n\n{html.escape(self.audio_engine.fallback_reason)}\n\nVoiced by: <b>{html.escape(self.audio_engine.last_provider)}</b>.")
+        v_prov = (saved_voice.get("provider") if reusable else self.audio_engine.last_provider) or "unknown"
+        v_lic = saved_voice.get("licensed") if reusable else self.audio_engine.last_licensed
+        lic_badge = "🟢 Commercially Licensed" if v_lic else "🟡 Unlicensed (Review / Test Only)"
+        payload["voice_note"] = f"🎙️ Voice: {v_prov.title()} ({lic_badge})"
         vo_dur = self.audio_engine.get_duration(vo_path)
+        timer.record("voiceover", time.perf_counter() - t0)
         log.info("Voiceover: %.2fs, %d words timed.", vo_dur, len(words))
+        if getattr(self, "progress_msg_id", None):
+            try:
+                self.telegram_bot.update_progress_card(self.progress_msg_id, 2, 5, topic["title"], run_id, f"Voiceover mastered ({vo_dur:.1f}s)")
+            except Exception:
+                pass
         if vo_dur > HARD_DURATION_CEILING:
             raise RuntimeError(f"Voiceover is {vo_dur:.1f}s; hard ceiling is {HARD_DURATION_CEILING}s.")
+        # Image preparation (upscaling, face privacy) needs neither music nor the bed, so it runs
+        # while they are made. It starts only once the voiceover has passed, as before.
+        prep_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="image-prep")
+        prepared = prep_pool.submit(self._prepare_images, scene_media, hero_img, run_dir)
+        prep_pool.shutdown(wait=False)  # the worker finishes its one job; the caller collects it
+        try:
+            return self._produce_bed_and_render(topic, run_id, run_dir, payload, scene_media, hero_img,
+                                                vo_path, words_path, vo_dur, words, checkpoints, file_inputs,
+                                                auto_approve, dry_run, previous_status, prepared)
+        except BaseException:
+            if not prepared.done():
+                log.info("Run stopped; waiting for image preparation to finish before cleaning up.")
+            concurrent.futures.wait([prepared])
+            raise
+
+    @staticmethod
+    def _prepare_images(scene_media, hero_img, run_dir=None):
+        """Upscales low-resolution stills and de-identifies living faces (hero is one of the scenes)."""
+        t0 = time.perf_counter()
+        scene_media, low_res = ensure_all(scene_media)
+        hero_img = ensure_resolution(hero_img)
+        *scene_media, hero_img = privacy.anonymize_all([*scene_media, hero_img])
+        if run_dir is not None:
+            StageTimer(run_dir).record("image_prep", time.perf_counter() - t0)
+        return scene_media, hero_img, low_res
+
+    def _produce_bed_and_render(self, topic, run_id, run_dir, payload, scene_media, hero_img, vo_path, words_path,
+                                vo_dur, words, checkpoints, file_inputs, auto_approve, dry_run, previous_status, prepared):
         bed_path = run_dir / "ambient_bed.wav"
+        t0 = time.perf_counter()
         from src.delivery_profiles import get_delivery_profile
         from src.audio_provenance import record_bed, audio_source_inputs
         from src.music import load_library, MUSIC_DIR
@@ -916,8 +1017,10 @@ class PipelineCoordinator:
             payload["caption"] = f"{payload['caption']}\n{music['credit']}"
         if music["file"]:
             mark_track_used(music["file"])
+        StageTimer(run_dir).record("music_and_bed", time.perf_counter() - t0)
         return self._render_approve_publish(topic, run_id, run_dir, payload, scene_media, hero_img,
-                                            vo_path, bed_path, words, vo_dur, auto_approve, dry_run, previous_status)
+                                            vo_path, bed_path, words, vo_dur, auto_approve, dry_run, previous_status,
+                                            prepared)
 
     def _write_and_check_script(self, topic, run_id, run_dir, dry_run,
                                 initial_payload=None, initial_notes="") -> Dict[str, Any]:
@@ -981,14 +1084,18 @@ class PipelineCoordinator:
         record_fact_review(payload, sheet_path)
 
     def _render_approve_publish(self, topic, run_id, run_dir, payload, scene_media, hero_img,
-                                vo_path, bed_path, words, vo_dur, auto_approve, dry_run, previous_status):
+                                vo_path, bed_path, words, vo_dur, auto_approve, dry_run, previous_status,
+                                prepared=None):
         tid = topic["id"]
-        # 6. Source quality: upscale stills too small for a sharp 1080x1920 crop (local Real-ESRGAN).
-        scene_media, low_res = ensure_all(scene_media)
-        hero_img = ensure_resolution(hero_img)
-        # Privacy: de-identify living human faces in visual media before rendering
-        scene_media = [privacy.anonymize_media(p) for p in scene_media]
-        hero_img = privacy.anonymize_media(hero_img)
+        # 6. Source quality: upscale stills too small for a sharp 1080x1920 crop (local Real-ESRGAN),
+        # then de-identify living human faces before rendering. Usually already done in the
+        # background while the music bed was made (`prepared`).
+        timer, t0 = StageTimer(run_dir), time.perf_counter()
+        if prepared is not None:
+            scene_media, hero_img, low_res = prepared.result()
+            timer.record("image_prep_wait", time.perf_counter() - t0)  # what was left after the bed
+        else:
+            scene_media, hero_img, low_res = self._prepare_images(scene_media, hero_img, run_dir)
         if low_res:
             payload["source_note"] = (f"🖼 {low_res} of {len(scene_media)} source images were below video resolution "
                                       "and were AI-upscaled; sharper originals would look better.")
@@ -1017,8 +1124,16 @@ class PipelineCoordinator:
                             "rules": file_inputs([Path("src/visual_engine.py"), Path("src/multi_format.py"),
                                                   Path("src/typography.py"), Path("src/config.py")]),
                             "fonts": file_inputs([FONTS_DIR / name for name in FONT_FILES.values()])}
+        if getattr(self, "progress_msg_id", None):
+            try:
+                self.telegram_bot.update_progress_card(self.progress_msg_id, 3, 5, topic["title"], run_id, "Synthesizing graphics, stills & motion")
+            except Exception:
+                pass
+
         # Concurrently generate multiformat stills (thumbnails, story, carousel)
         # and source media candidates (beat images, footage, channel graphics, callouts, then/now)
+        encoding.get_video_encoder()  # probe once before parallel renderers race to detect it under load
+        t0 = time.perf_counter()
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
             fut_thumb = pool.submit(cached_artifacts, run_dir, "thumbnails", packaging_inputs,
                                     lambda: self.visual_engine.generate_thumbnails(hero_img, payload, run_dir, style=style))
@@ -1042,10 +1157,11 @@ class PipelineCoordinator:
             own_graphics = fut_graphics.result()
             labelled = fut_callouts.result()
             then_clip, then_credits = fut_then_now.result()
+        timer.record("stills_graphics_sourcing", time.perf_counter() - t0)
 
-        for cred, path in zip(beat_credits, beat_paths):
-            upscaled = ensure_resolution(path)
-            cred["upscaled"] = str(privacy.anonymize_media(upscaled))
+        upscaled_beats = [ensure_resolution(path) for path in beat_paths]
+        for cred, safe in zip(beat_credits, privacy.anonymize_all(upscaled_beats)):
+            cred["upscaled"] = str(safe)
         # The channel's own animated graphics (map, timeline, scale) as further candidates.
         own_graphics += [g for g in (labelled, then_clip) if g]
         candidates = scene_media + [Path(c["upscaled"]) for c in beat_credits] + own_graphics + footage_clips
@@ -1076,14 +1192,17 @@ class PipelineCoordinator:
             payload["beat_image_note"] = (f"🔍 {len(used)} beat-specific image(s) auto-sourced from Wikimedia Commons; "
                                           "check they show the right thing" if used else "")
             # AI motion for the opening photo (only with a media budget; real footage and our graphics come first).
-            scenes, motion_used = motion.apply(self.db, scenes, run_dir / "motion", memo=motion_memo)
+            scenes, motion_used = motion.apply(self.db, scenes, run_dir / "motion", memo=motion_memo, topic=topic)
             payload["motion_note"] = (f"🤖 AI motion ({', '.join(motion_used)}) animates {len(motion_used)} real photo(s); "
                                       "the Reel carries the AI label") if motion_used else ""
             # 2.5D parallax clips for the stills (local GPU); falls back to flat camera moves.
+            t0 = time.perf_counter()
             try:
                 scenes = render_parallax(scenes, durations, run_dir / "parallax", TRANS_DUR) or scenes
             except Exception as e:
                 log.warning("Parallax rendering failed (%s); using flat camera moves.", e)
+            timer.record(f"parallax_attempt{attempt}", time.perf_counter() - t0)
+            t0 = time.perf_counter()
             cached_artifacts(run_dir, "caption_exports", {"words": words, "rules": file_inputs([Path("src/video_composer.py")])},
                 lambda: [self.video_composer.export_subtitles_srt(words, master_mp4.with_suffix(".srt")),
                          self.video_composer.export_subtitles_vtt(words, master_mp4.with_suffix(".vtt"))])
@@ -1100,7 +1219,18 @@ class PipelineCoordinator:
                            master_mp4.with_suffix(".composition.json"), master_mp4.with_suffix(".srt"), master_mp4.with_suffix(".vtt")]
                 if all(path.is_file() for path in outputs):
                     render_checkpoint.complete("master", render_inputs, outputs)
+            timer.record(f"master_render_attempt{attempt}", time.perf_counter() - t0)
+            if getattr(self, "progress_msg_id", None):
+                try:
+                    self.telegram_bot.update_progress_card(self.progress_msg_id, 4, 5, topic["title"], run_id, "Video composited, preparing review")
+                except Exception:
+                    pass
 
+            # The automated look (an LLM call) and the deterministic audit only read the finished
+            # master and cover, so the LLM review runs while the audit measures.
+            t0 = time.perf_counter()
+            qa_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+            fut_qa = qa_pool.submit(review_render, master_mp4, beats, thumb_916, run_dir)
             # Closed-Loop Self-Healing Deterministic Validation
             try:
                 timeline_cuts = []
@@ -1135,12 +1265,18 @@ class PipelineCoordinator:
                 log.warning("Closed-loop self-healing validation skipped: %s", e)
 
             # Automated look at the finished video; findings go on the review card.
-            qa = review_render(master_mp4, beats, thumb_916, run_dir)
+            try:
+                qa = fut_qa.result()
+            finally:
+                qa_pool.shutdown(wait=True)
+            timer.record(f"qa_attempt{attempt}", time.perf_counter() - t0)
             feedback = beat_images.picture_issues(qa)
             if not feedback or attempt == 2:
                 break
             log.info("Video check found picture mismatches; re-planning scenes once:\n%s", feedback)
+        t0 = time.perf_counter()
         review_mp4 = self.video_composer.make_review_proxy(master_mp4, run_dir / "review_proxy.mp4")
+        timer.record("review_proxy", time.perf_counter() - t0)
         payload["qa_summary"] = qa_summary_html(qa)
         (run_dir / "qa_report.json").write_text(qa.model_dump_json(indent=2) if qa else "null", encoding="utf-8")
         log.info("%s", re.sub(r"<[^>]+>", "", payload["qa_summary"]).replace("\n", " | "))
@@ -1166,6 +1302,12 @@ class PipelineCoordinator:
             self.db.update_approval_decision(run_id, "approved", decided_by="auto-approve-flag")
             decision = "approved"
         else:
+            if getattr(self, "progress_msg_id", None):
+                try:
+                    self.telegram_bot.finish_progress_card(self.progress_msg_id, topic["title"], run_id, success=True)
+                except Exception:
+                    pass
+                self.progress_msg_id = None
             self.telegram_bot.send_approval_request(review_mp4, thumb_916, payload, run_id)
             decision = self.telegram_bot.wait_for_decision(run_id)
 
@@ -1186,8 +1328,7 @@ class PipelineCoordinator:
             log.info("Not publishing: decision was '%s'.", decision)
             if decision == "timeout":
                 key = self.db.run_key(run_id)
-                self._alert(f"⏰ <b>No decision in time</b> on {html.escape(self.db.run_label(run_id))}. "
-                            "The finished video is kept, so nothing needs re-making.",
+                self._alert(f"⏰ <b><u>REVIEW TIMEOUT</u></b>\n\nNo decision in time on <b>{html.escape(self.db.run_label(run_id))}</b>.\n\nThe finished video is preserved and ready for review.",
                             [{"text": "📨 Send it again for review", "callback_data": f"resend:{key}"}])
             result["status"] = decision
             return result
@@ -1197,6 +1338,14 @@ class PipelineCoordinator:
         return result
 
     def _after_approval(self, run_id: str, dry_run: bool = False, previous_status: str = "queued") -> Dict[str, Any]:
+        if getattr(config, "BACKUP_ENABLED", True):
+            try:
+                from src.backup import backup_run
+                run = self.db.get_run(run_id) or {}
+                if run.get("master_video_path"):
+                    backup_run(Path(run["master_video_path"]).parent, db_path=getattr(self.db, "db_path", None))
+            except Exception as e:
+                log.warning("Tier 2 Gold Backup skipped: %s", e)
         if self.schedule_posts and POST_SCHEDULING and not dry_run:
             return self.schedule_run(run_id)
         return self.publish_run(run_id, dry_run=dry_run, previous_status=previous_status)
@@ -1229,7 +1378,7 @@ class PipelineCoordinator:
             lines.append(f"🖼 Carousel: queued for the next carousel slot (from {post_schedule.fmt(post_schedule.next_carousel_slot(slot))})")
         self.db.update_run(run_id, "scheduled")
         self.topic_engine.record_status(run["topic_id"], "scheduled", run_id=run_id)
-        self._alert(f"🗓 <b>Scheduled</b> {html.escape(self.db.run_label(run_id))}\n" + "\n".join(html.escape(x) for x in lines))
+        self._alert(f"🗓 <b><u>POST SCHEDULED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n" + "\n".join(html.escape(x) for x in lines))
         return {"status": "scheduled", "scheduled_for": slot.isoformat()}
 
     def _booked_reel_days(self, exclude_id: Optional[int] = None) -> set:
@@ -1383,17 +1532,36 @@ class PipelineCoordinator:
             missing = pub.get("missing_platforms")
             warn = (f"\n⚠️ Not posted to {html.escape(', '.join(missing))}: {html.escape(str(pub.get('error', '')))[:300]}"
                     if missing else "")
-            self._alert(f"✅ <b>Published</b> {html.escape(payload.get('title', tid))}\n{links}{warn}")
+            self._alert(f"✅ <b><u>PUBLISHED</u></b>\n\n<b>{html.escape(payload.get('title', tid))}</b>\n\n{links}{warn}")
         elif status == "simulated":
             self.db.update_run(run_id, "simulated")
             self.topic_engine.record_status(tid, previous_status, run_id=run_id)
+        elif status == "blocked_unlicensed":
+            self.db.update_run(run_id, "approved", error=pub.get("error"))
+            self.topic_engine.record_status(tid, "approved", run_id=run_id)
+            log.warning("Publishing halted for %s: commercial voice license required.", run_id)
+            key = self.db.run_key(run_id)
+            self._alert(
+                f"🛑 <b><u>BROADCAST BLOCKED: UNLICENSED VOICE</u></b>\n\n"
+                f"Topic: <b>{html.escape(payload.get('title', tid))}</b>\n"
+                f"Voice used: <code>{html.escape(str(pub.get('provider', 'unlicensed')))}</code> (Unlicensed)\n\n"
+                f"Meta Content Monetization Program (CMP) policies prohibit commercial publishing without a commercial license.\n\n"
+                f"👉 <i>Options:</i>\n"
+                f"• Configure an active Azure Speech key or ElevenLabs paid plan\n"
+                f"• Or execute a simulated publish for testing",
+                [
+                    {"text": "🧪 Simulate Publish Only", "callback_data": f"simpub:{key}"},
+                    {"text": "📨 Re-send Review Card", "callback_data": f"resend:{key}"}
+                ]
+            )
+            return {"status": status, "publish_result": pub}
         elif status == "unknown":
             self.db.update_run(run_id, "publish_unknown", error=pub.get("error"))
             self.topic_engine.record_status(tid, "publish_unknown", run_id=run_id)
             log.error("Publish outcome UNKNOWN for %s. Check the accounts, then `topic requeue %s` if it did not post.", run_id, tid)
             key = self.db.run_key(run_id)
             self._alert(
-                f"⚠️ <b>Not sure it posted</b>: {html.escape(self.db.run_label(run_id))}\n"
+                f"⚠️ <b><u>PUBLISH UNCONFIRMED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n"
                 f"The upload may have gone through ({html.escape(str(pub.get('error') or 'no confirmation received'))[:200]}). "
                 "I won't retry automatically, to avoid a duplicate post. Check Facebook and Instagram, then tell me:",
                 [{"text": "✅ It posted", "callback_data": f"pubok:{key}"},
@@ -1402,9 +1570,7 @@ class PipelineCoordinator:
             self.db.update_run(run_id, "failed", error=pub.get("error"))
             self.topic_engine.record_status(tid, "failed", run_id=run_id)
             log.error("Publishing failed for %s: %s", run_id, pub.get("error"))
-            self._alert(f"❌ <b>Publishing failed</b>: {html.escape(self.db.run_label(run_id))}\n"
-                        f"{html.escape(str(pub.get('error') or 'no error details were returned'))[:500]}\n"
-                        "Nothing was posted. The topic goes back in the queue for a retry.")
+            self._alert(f"❌ <b><u>PUBLISH FAILED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n{html.escape(str(pub.get('error') or 'no error details were returned'))[:500]}\n\nNothing was posted. The topic goes back in the queue for a retry.")
         return {"status": status, "publish_result": pub}
 
 
@@ -1437,8 +1603,9 @@ def _proposal_trigger(db: PipelineDatabase, bot) -> Any:
             proposals = topic_proposer.propose(db)
             if not proposals:
                 bot.notify("💡 No new topic proposals this time (none had verified sources or all overlapped).")
+            from src import control
             for p in proposals:
-                bot._api("sendMessage", data={
+                res = bot._api("sendMessage", data={
                     "chat_id": bot.chat_id, "parse_mode": "HTML", "disable_web_page_preview": "true",
                     "text": topic_proposer.proposal_text(p),
                     "reply_markup": json.dumps({"inline_keyboard": [[
@@ -1446,6 +1613,16 @@ def _proposal_trigger(db: PipelineDatabase, bot) -> Any:
                         {"text": "✖ Skip", "callback_data": f"tskip:{p.slug}"},
                     ]]}),
                 })
+                if isinstance(res, dict) and res.get("message_id"):
+                    control.active_proposal_msg_ids.append(res["message_id"])
+            if proposals:
+                done_res = bot.notify(
+                    f"💡 Showing <b>{len(proposals)}</b> newly researched topic proposal(s):",
+                    buttons=[[{"text": "✖ Done", "callback_data": "tdone:"}]],
+                    record_alert=False
+                )
+                if isinstance(done_res, int):
+                    control.active_proposal_msg_ids.append(done_res)
         except Exception as e:
             bot.notify(f"💡 Topic proposals failed: {html.escape(str(e))[:300]}")
         finally:
@@ -1455,7 +1632,7 @@ def _proposal_trigger(db: PipelineDatabase, bot) -> Any:
         if busy.locked():
             return "Already researching topic proposals."
         threading.Thread(target=send_proposals, name="topic-proposals", daemon=True).start()
-        return "💡 Researching 3 new topic ideas (about a minute). Each will arrive with Add / Skip buttons."
+        return "💡 Researching 3 new topic ideas (~2–3 minutes via live academic/encyclopedic search). Each will arrive with Add / Skip buttons."
 
     trigger.run_now = send_proposals  # for the weekly scheduled job
     return trigger
@@ -1519,8 +1696,10 @@ def main(argv=None) -> int:
         default="reel",
         help="Format to produce: 'reel' (9:16 vertical), 'deep-dive' (16:9 widescreen), or 'dual' (both)",
     )
+    run_p.add_argument("--require-live", action="store_true", help="Enforce production preflight credentials check")
     run_p.add_argument("--run-id", help="Re-use existing run directory to re-render without re-synthesizing voiceover")
     run_p.add_argument("--continuous-tuning", action="store_true", help="Run layout stress test and pre-certify topic layouts")
+    run_p.add_argument("--background-polling", action="store_true", help="Tell bot that supervisor is polling getUpdates")
 
     resume_p = sub.add_parser("resume", help="Continue a failed run, reusing its approved script and voiceover")
     resume_p.add_argument("run_id")
@@ -1569,6 +1748,9 @@ def main(argv=None) -> int:
     health_p = sub.add_parser("health", help="Pre-flight checks")
     health_p.add_argument("--live", action="store_true", help="Also require production credentials")
     sub.add_parser("test", help="End-to-end dry run on the Derinkuyu topic (publishes nothing)")
+    backup_p = sub.add_parser("backup", help="Sync completed runs to OneDrive / Cloud archive")
+    backup_p.add_argument("--run-id", help="Specific run ID to backup")
+    backup_p.add_argument("--all", action="store_true", help="Backup all finished runs in output/")
 
     args = parser.parse_args(argv)
 
@@ -1578,7 +1760,10 @@ def main(argv=None) -> int:
             print(json.dumps(res, indent=2, default=str))
             return 0
         try:
-            res = PipelineCoordinator().run_cycle(args.topic_id, args.auto_approve, args.dry_run, content_format=args.format, run_id=getattr(args, "run_id", None))
+            coordinator = PipelineCoordinator()
+            if getattr(args, "background_polling", False):
+                coordinator.telegram_bot.background_polling = True
+            res = coordinator.run_cycle(args.topic_id, args.auto_approve, args.dry_run, require_live=getattr(args, "require_live", False), content_format=args.format, run_id=getattr(args, "run_id", None))
         except Exception:
             return 1  # already logged and recorded on the run
         summary_keys = ["status", "run_id", "master_video", "dual_format"]
@@ -1654,21 +1839,65 @@ def main(argv=None) -> int:
 
     if args.command == "bot":
         db = PipelineDatabase()
-        from src.audio_engine import AudioEngine
-        from src.telegram_bot import TelegramApprovalBot
-        bot = TelegramApprovalBot(db=db)
+        coordinator = PipelineCoordinator(db=db, schedule_posts=POST_SCHEDULING)
+        bot = coordinator.telegram_bot
         if not bot.is_configured():
             print("Telegram is not configured (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID).")
             return 1
+        bot.register_commands()
+        run_lock = threading.Lock()
+        worker_proc = None
+
+        def resend_for_review(run_id: str) -> str:
+            def work():
+                try:
+                    coordinator.request_approval(run_id)
+                except Exception as e:
+                    bot.notify(f"⚠️ Couldn't re-send for review: {html.escape(str(e))[:300]}")
+            threading.Thread(target=work, name="resend-review", daemon=True).start()
+            return f"📨 Sending {html.escape(coordinator.db.run_label(run_id))} for review again…"
+
+        def trigger_run() -> str:
+            nonlocal worker_proc
+            if run_lock.locked() or (worker_proc is not None and worker_proc.poll() is None):
+                pid_info = f" (PID {worker_proc.pid})" if worker_proc else ""
+                return f"A production run is already in progress{pid_info}. Watch Telegram for progress updates."
+
+            def monitor_worker(proc):
+                with run_lock:
+                    log.info("Isolated production worker PID %d started.", proc.pid)
+                    stdout, stderr = proc.communicate()
+                    rc = proc.returncode
+                    if rc != 0:
+                        log.error("Production worker PID %d failed with code %d:\n%s", proc.pid, rc, stdout or stderr)
+                    else:
+                        log.info("Production worker PID %d completed successfully.", proc.pid)
+
+            from src.config import BASE_DIR
+            worker_proc = subprocess.Popen(
+                [sys.executable, "-u", "main.py", "run", "--require-live", "--background-polling"],
+                cwd=str(BASE_DIR),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+            )
+            threading.Thread(target=monitor_worker, args=(worker_proc,), name="worker-monitor", daemon=True).start()
+            return f"🎬 Production run launched in isolated worker (PID {worker_proc.pid}). Live progress updates will stream here."
+
         handler = make_command_handler(
-            db, lambda: "none (bot-only mode)",
-            lambda: "Production runs are disabled in bot-only mode. Use the daemon or `python main.py run`.",
-            send_photo=bot.send_photo, send_audio=bot.send_audio, send_message=bot.notify, voice_quota=AudioEngine().voice_quota,
+            db, lambda: "on-demand (bot supervisor)",
+            trigger_run,
+            send_photo=bot.send_photo, send_audio=bot.send_audio, send_message=bot.notify, delete_message=bot.delete_message, voice_quota=coordinator.audio_engine.voice_quota,
             propose_topics=_proposal_trigger(db, bot),
+            run_actions={"pubok": coordinator.confirm_posted,
+                         "pubno": coordinator.confirm_not_posted,
+                         "resend": resend_for_review,
+                         "simpub": coordinator.simulate_publish}
         )
-        bot.notify("🤖 <b>Bot-only mode</b>: image review, approvals and /status are live; no runs are scheduled. "
-                   "Send /images to start.")
-        log.info("Bot-only mode: listening for Telegram commands. Ctrl+C to stop.")
+        from src.control import startup_dashboard_card
+        card_text, card_buttons = startup_dashboard_card(db, mode="bot", assets_dir=config.ASSETS_DIR)
+        bot.notify(card_text, buttons=card_buttons, record_alert=False)
+        log.info("Studio Control Center: listening for Telegram commands. Ctrl+C to stop.")
         try:
             while True:
                 try:
@@ -1677,7 +1906,7 @@ def main(argv=None) -> int:
                     log.warning("Telegram polling error (will retry): %s", e)
                     time.sleep(10)
         except KeyboardInterrupt:
-            bot.notify("🤖 Bot-only mode stopped.")
+            bot.notify("🔴 <b>Studio Control Center Offline</b> • Service stopped.", record_alert=False)
         return 0
 
     if args.command == "daemon":
@@ -1690,6 +1919,7 @@ def main(argv=None) -> int:
         hb_hour, hb_minute = (int(x) for x in HEARTBEAT_TIME.split(":"))
         coordinator = PipelineCoordinator(schedule_posts=True)
         bot = coordinator.telegram_bot
+        bot.register_commands()
         run_lock = threading.Lock()  # one production run at a time (daily job or /run)
 
         def production_run(manual: bool = False):
@@ -1723,7 +1953,7 @@ def main(argv=None) -> int:
             return when.strftime("%a %d %b %H:%M %Z") if when else None
 
         def heartbeat():
-            bot.notify(heartbeat_text(coordinator.db, next_run(), coordinator.audio_engine.voice_quota()))
+            bot.notify(heartbeat_text(coordinator.db, next_run(), coordinator.audio_engine.voice_quota()), silent=True)
             ping_healthcheck()
 
         scheduler.add_job(heartbeat, CronTrigger(hour=hb_hour, minute=hb_minute, timezone=TIMEZONE),
@@ -1812,12 +2042,13 @@ def main(argv=None) -> int:
             scheduler.add_job(production_run, kwargs={"manual": True})
             return "🎬 Starting a run now. You'll get the review card when it's rendered; nothing posts without your approval."
 
-        handler = make_command_handler(coordinator.db, next_run, trigger_run, send_photo=bot.send_photo, send_audio=bot.send_audio, send_message=bot.notify,
+        handler = make_command_handler(coordinator.db, next_run, trigger_run, send_photo=bot.send_photo, send_audio=bot.send_audio, send_message=bot.notify, delete_message=bot.delete_message,
                                        voice_quota=coordinator.audio_engine.voice_quota,
                                        apply_updates=apply_updates, propose_topics=propose_topics,
                                        run_actions={"pubok": coordinator.confirm_posted,
                                                     "pubno": coordinator.confirm_not_posted,
-                                                    "resend": resend_for_review})
+                                                    "resend": resend_for_review,
+                                                    "simpub": coordinator.simulate_publish})
 
         def poll_telegram():
             while True:
@@ -1833,13 +2064,13 @@ def main(argv=None) -> int:
 
         log.info("Daemon scheduled daily at %s (%s); heartbeat at %s. Ctrl+C to stop.", args.time, TIMEZONE, HEARTBEAT_TIME)
         try:
-            scheduler.add_job(lambda: bot.notify(
-                f"🟢 <b>Daemon started</b>. Daily run at {html.escape(args.time)} {html.escape(TIMEZONE)}"
-                f"{' (paused)' if is_paused(coordinator.db) else ''}. Send /help for commands."))
+            from src.control import startup_dashboard_card
+            card_text, card_buttons = startup_dashboard_card(coordinator.db, mode="daemon", time_str=args.time, timezone_str=TIMEZONE, assets_dir=config.ASSETS_DIR)
+            scheduler.add_job(lambda: bot.notify(card_text, buttons=card_buttons, record_alert=False))
             scheduler.start()
         except (KeyboardInterrupt, SystemExit):
             log.info("Daemon stopped.")
-            bot.notify("🔴 <b>Daemon stopped</b>.")
+            bot.notify("🔴 <b>Production Daemon Offline</b> • Scheduled runs stopped.", record_alert=False)
         return 0
 
     if args.command == "review":
@@ -1970,7 +2201,27 @@ def main(argv=None) -> int:
             return 1
         print(json.dumps({k: res.get(k) for k in ("status", "master_video", "thumbnails")}, indent=2))
         print(f"Stories: {len(res.get('stories', []))}, carousel slides: {len(res.get('carousel', []))}")
-        return 0 if res["status"] == "simulated" else 1
+    if args.command == "backup":
+        from src.backup import backup_run
+        db = PipelineDatabase()
+        output_dirs = []
+        if args.run_id:
+            target = OUTPUT_DIR / args.run_id
+            if not target.is_dir():
+                print(f"Run directory not found: {target}")
+                return 1
+            output_dirs.append(target)
+        else:
+            for d in sorted(OUTPUT_DIR.iterdir()):
+                if d.is_dir() and list(d.glob("*_master.mp4")):
+                    output_dirs.append(d)
+        if not output_dirs:
+            print("No completed runs found to backup.")
+            return 0
+        for d in output_dirs:
+            res = backup_run(d, db_path=db.db_path)
+            print(f"  {d.name}: {res['status']} ({res.get('copied_count', 0)} files -> {res.get('archive_path')})")
+        return 0
 
     parser.print_help()
     return 0

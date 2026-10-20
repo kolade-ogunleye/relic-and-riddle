@@ -392,10 +392,13 @@ class PipelineCoordinator:
                     payload["description"] += f"\n\n{music['credit']}"
                     payload["caption"] += f"\n\n{music['credit']}"
                     (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+                from src import sound_plan as sound_plan_mod
+                plan = sound_plan_mod.plan(words, topic.get("title", ""))
+                (run_dir / "sound_plan.json").write_text(json.dumps(plan, indent=1), encoding="utf-8")
                 self.audio_engine.generate_ambient_bed(
                     vo_dur + 0.5, bed_path, words=words,
                     music_path=music.get("path"), music_paths=music.get("paths"),
-                    cue_timestamps=cue_timestamps
+                    cue_timestamps=cue_timestamps, sound_plan=plan
                 )
                 from src.audio_provenance import record_bed
                 record_bed(bed_path, music, sfx=self.audio_engine.last_sfx_sources)
@@ -842,14 +845,18 @@ class PipelineCoordinator:
             music = json.loads(music_path.read_text(encoding="utf-8"))
         else:
             music = music_for(payload, vo_dur + 0.5, run_dir, self.audio_engine.voice_quota())
+            from src import sound_plan as sound_plan_mod
+            plan = sound_plan_mod.plan(words, topic.get("title", ""))  # None: word-cue fallback
+            plan_path = run_dir / "sound_plan.json"
+            plan_path.write_text(json.dumps(plan, indent=1), encoding="utf-8")
             self.audio_engine.generate_ambient_bed(vo_dur + 0.5, bed_path, words=words,
                                                   music_path=music["path"], sr=profile.audio_sample_rate,
-                                                  loop_seamless=profile.loop_seamless)
+                                                  loop_seamless=profile.loop_seamless, sound_plan=plan)
             if bed_path.is_file():
                 record_bed(bed_path, music, sfx=self.audio_engine.last_sfx_sources)
                 music_path.write_text(json.dumps(music, default=str, indent=2), encoding="utf-8")
                 bed_inputs["selected_sources"] = audio_source_inputs(bed_path)
-                checkpoints.complete("bed", bed_inputs, [bed_path, music_path,
+                checkpoints.complete("bed", bed_inputs, [bed_path, music_path, plan_path,
                                                          bed_path.with_suffix(".wav.rights.json")])
         payload["music_note"] = {"elevenlabs": f"🎵 Music: ElevenLabs score ({music['mood']})",
                                  "library": f"🎵 Music: free library track ({music['mood']})",

@@ -507,6 +507,35 @@ class AudioEngine:
                 cues[name] = t
         return cues
 
+    @staticmethod
+    def music_envelope(moments: List[Dict[str, Any]], total: int, sr: int) -> np.ndarray:
+        """Per-sample music gain from the sound plan: a +2.5 dB swell over each reveal, a slow rise of
+        up to +2 dB through tension (until the next reveal or 4 s), a -3 dB dip for 2.5 s on calm.
+        Bounded to -6..+4 dB so the mix (and the narration ducking applied later) stays balanced."""
+        db = np.zeros(total, dtype=np.float32)
+
+        def span(t0: float, t1: float):
+            a, b = max(0, int(t0 * sr)), min(total, int(t1 * sr))
+            return a, b
+
+        reveals = sorted(m["t"] for m in moments if m.get("kind") == "reveal")
+        for m in moments:
+            t, kind = float(m["t"]), m.get("kind")
+            if kind == "reveal":
+                a, b = span(t - 0.3, t + 1.5)
+                if b > a:
+                    db[a:b] += 2.5 * np.sin(np.linspace(0, np.pi, b - a)) ** 2
+            elif kind == "tension":
+                end = next((r for r in reveals if r > t), t + 4.0)
+                a, b = span(t, end)
+                if b > a:
+                    db[a:b] += np.linspace(0.0, 2.0, b - a)
+            elif kind == "calm":
+                a, b = span(t, t + 2.5)
+                if b > a:
+                    db[a:b] -= 3.0 * np.sin(np.linspace(0, np.pi, b - a))
+        return (10 ** (np.clip(db, -6.0, 4.0) / 20)).astype(np.float32)
+
     @classmethod
     def is_underground(cls, words: Optional[Words]) -> bool:
         return any(cls._spoken(w) & cls.UNDERGROUND_WORDS for w in words or [])
@@ -697,7 +726,8 @@ class AudioEngine:
 
     def generate_ambient_bed(self, duration: float, output_path: Path, words: Optional[Words] = None, sr: int = 48000,
                              music_path: Optional[Path] = None, music_paths: Optional[List[Path]] = None,
-                             cue_timestamps: Optional[List[float]] = None, loop_seamless: bool = False) -> Path:
+                             cue_timestamps: Optional[List[float]] = None, loop_seamless: bool = False,
+                             sound_plan: Optional[Dict[str, Any]] = None) -> Path:
         """Music (if given, with seamless crossfades/movements) or a synthesized drone, plus narration SFX and act boundary risers."""
         total = int(sr * duration)
         self.last_sfx_sources = []  # licensed effect recordings mixed into this bed
@@ -730,6 +760,10 @@ class AudioEngine:
                 drone[:fade] *= ramp
                 drone[-fade:] *= ramp[::-1]
             bed = np.column_stack((drone, drone)) * 0.22
+
+        # Music follows the story's moments (src/sound_plan.py): swells on reveals, rises through tension.
+        if sound_plan:
+            bed *= self.music_envelope(sound_plan.get("moments", []), total, sr)[:, None]
 
         # Triple-stem foley stem 2: continuous cavern draft wind, only for a story told underground
         if self.is_underground(words):
@@ -791,7 +825,10 @@ class AudioEngine:
                     bed[w_start:w_start + n_w] += whoosh[:n_w]
 
         # Triple-stem foley: one sub-bass hit on the story's first real revelation
-        cue_t = self.revelation_time(words)
+        if sound_plan:  # the planned reveal (None if the plan has none: no hit is better than a wrong one)
+            cue_t = next((m["t"] for m in sound_plan.get("moments", []) if m.get("kind") == "reveal"), None)
+        else:
+            cue_t = self.revelation_time(words)
         if cue_t is not None and 0 < cue_t < duration - 1.0:
             cue_idx = int(cue_t * sr)
             braam = self._effect("sfx_impact_braam.wav", self._synth_sub_bass_braam(duration_sec=1.8, sr=sr), sr)
@@ -799,7 +836,11 @@ class AudioEngine:
             if n_b > 0:
                 bed[cue_idx:cue_idx + n_b] += braam[:n_b] * 0.75
 
-        for name, cue in self.sfx_cue_times(words).items():
+        planned = {}
+        for m in (sound_plan or {}).get("moments", []):
+            if m.get("effect") and m["effect"] in self.SFX_CUES:
+                planned.setdefault(m["effect"], m["t"])
+        for name, cue in (planned if sound_plan else self.sfx_cue_times(words)).items():
             cue_spec = self.SFX_CUES[name]
             gain = cue_spec[1]
             synth_func = cue_spec[2] if len(cue_spec) > 2 else "_synth_stone_grind"

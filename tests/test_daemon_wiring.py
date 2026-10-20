@@ -96,3 +96,52 @@ def test_test_suite_cannot_write_repository_data(db):
     assert config.BASE_DIR not in music.LIBRARY.parents
     make_command_handler(db, lambda: None, lambda: "")("issue", "sandbox check")
     assert list(config.ISSUES_DIR.glob("iss_*.md"))
+
+
+def _bot_mode(monkeypatch, daemon_env, scheduling):
+    """Starts `main.py bot` until its first poll; returns (trigger_run, ticker calls)."""
+    monkeypatch.setattr(main, "POST_SCHEDULING", scheduling)
+    captured, tickers = {}, []
+
+    def handler(db, schedule_text, trigger_run, **kwargs):
+        captured["trigger"] = trigger_run
+        return lambda c, a: ""
+
+    def stop(handler):
+        raise KeyboardInterrupt
+
+    coordinator = main.PipelineCoordinator()
+    coordinator.telegram_bot.is_configured = lambda: True
+    coordinator.telegram_bot.poll_once = stop
+    monkeypatch.setattr(main, "make_command_handler", handler)
+    monkeypatch.setattr(main, "PipelineDatabase", lambda: SimpleNamespace())
+    monkeypatch.setattr(main, "start_post_ticker", lambda coord, bot: tickers.append(coord))
+    assert main.main(["bot"]) == 0
+    return captured["trigger"], tickers
+
+
+@pytest.mark.parametrize("scheduling", [True, False])
+def test_bot_run_books_slots_when_scheduling_is_on(daemon_env, monkeypatch, scheduling):
+    launched = []
+    trigger, tickers = _bot_mode(monkeypatch, daemon_env, scheduling)
+    monkeypatch.setattr(main.subprocess, "Popen", lambda cmd, **k: launched.append(cmd) or SimpleNamespace(
+        pid=1, poll=lambda: None, communicate=lambda: ("", ""), returncode=0))
+    trigger()
+    assert ("--schedule-posts" in launched[0]) is scheduling
+    assert len(tickers) == (1 if scheduling else 0)  # bot mode posts what it books
+
+
+def test_run_command_schedules_only_when_asked(monkeypatch):
+    made = []
+
+    class FakeCoordinator:
+        def __init__(self, **kw):
+            made.append(kw)
+            self.telegram_bot = SimpleNamespace()
+
+        def run_cycle(self, *a, **k):
+            return {"status": "simulated"}
+    monkeypatch.setattr(main, "PipelineCoordinator", FakeCoordinator)
+    main.main(["run", "--dry-run"])
+    main.main(["run", "--dry-run", "--schedule-posts"])
+    assert made == [{}, {"schedule_posts": True}]

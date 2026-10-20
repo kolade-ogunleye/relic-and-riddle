@@ -3,6 +3,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
+import main as main_module
 from src import post_schedule as ps
 
 ET = ZoneInfo("America/New_York")
@@ -186,3 +187,16 @@ def test_carousel_waits_48h_after_its_reel(coord, monkeypatch):
     thu_slot = ps.carousel_time(date(2026, 10, 15))
     coord.post_due(now=thu_slot + timedelta(minutes=1))
     assert posted == ["carousel"]
+
+
+def test_only_one_process_posts_at_a_time(coord, monkeypatch):
+    # The daemon and the bot both post due items; a pass already running elsewhere must not be
+    # doubled (the loser would see "not published" and cancel the run's Stories).
+    from src.publication_lock import exclusive
+    now = et(2026, 10, 13, 9, 30)
+    coord.schedule_run("r1", now=now)
+    monkeypatch.setattr(coord, "publish_run", lambda *a, **k: pytest.fail("posted while another process was posting"))
+    with exclusive(coord.db.db_path, main_module.SCHEDULED_POSTING_LOCK) as mine:
+        assert mine
+        coord.post_due(now=ps.next_reel_slot(now) + timedelta(minutes=1))
+    assert {p["kind"] for p in coord.db.list_scheduled_posts()} == {"reel", "story", "carousel"}

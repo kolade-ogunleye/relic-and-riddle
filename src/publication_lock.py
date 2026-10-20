@@ -1,8 +1,21 @@
 """OS-owned publication locks: process exit releases ownership, never a timer."""
 import hashlib
 import os
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from pathlib import Path
+
+
+@contextmanager
+def exclusive(database_path, name):
+    """Yields True while this process alone holds the named lock, or False (at once) if another
+    process holds it. For work that one process should do and others simply skip."""
+    with ExitStack() as stack:
+        try:
+            stack.enter_context(publication_lock(database_path, name))
+        except ValueError:  # only the lock's own refusal; errors from the caller's work propagate
+            yield False
+            return
+        yield True
 
 
 @contextmanager

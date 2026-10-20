@@ -58,6 +58,7 @@ MAX_FACT_REVISIONS = 2  # rewrites of a Claude script that failed fact-checking,
 
 
 MISSED_SLOT_GRACE = timedelta(hours=3)
+SCHEDULED_POSTING_LOCK = "scheduled-posting"  # one post_due pass at a time across processes
 CAROUSEL_GAP = timedelta(hours=48)  # Upload-Post flags similar content within 48h (docs/sources.md)
 
 
@@ -1220,7 +1221,19 @@ class PipelineCoordinator:
     def post_due(self, now: Optional[datetime] = None) -> None:
         """Publishes every post whose slot has come. A Reel slot missed by more than
         MISSED_SLOT_GRACE (daemon off, or paused) moves to the next free slot instead of
-        posting at an odd hour; Stories and carousels only follow a Reel that really posted."""
+        posting at an odd hour; Stories and carousels only follow a Reel that really posted.
+        The daemon and the bot both call this; one pass runs at a time, the other skips."""
+        db_path = getattr(self.db, "db_path", None)
+        if db_path is None:
+            return self._post_due(now)
+        from src.publication_lock import exclusive
+        with exclusive(db_path, SCHEDULED_POSTING_LOCK) as mine:
+            if not mine:
+                log.info("Another process is posting scheduled items; skipping this pass.")
+                return None
+            return self._post_due(now)
+
+    def _post_due(self, now: Optional[datetime] = None) -> None:
         now = now or datetime.now(timezone.utc)
         for post in self.db.list_scheduled_posts(("pending",)):
             due = datetime.fromisoformat(post["due_at"])
@@ -1423,6 +1436,25 @@ def prebuild_candidates(db: PipelineDatabase, n: int) -> list:
     return out
 
 
+def start_post_ticker(coordinator: "PipelineCoordinator", bot) -> threading.Thread:
+    """Bot mode's scheduled posting: every minute, publish what is due (held while paused),
+    as the daemon's post_due job does."""
+    def tick():
+        while True:
+            time.sleep(60)
+            if is_paused(coordinator.db):
+                continue
+            try:
+                coordinator.post_due()
+            except Exception as e:
+                log.exception("Posting scheduled items failed: %s", e)
+                bot.notify(f"⚠️ Scheduled posting hit an error: {html.escape(str(e))[:300]}")
+
+    thread = threading.Thread(target=tick, name="post-due", daemon=True)
+    thread.start()
+    return thread
+
+
 def _proposal_trigger(db: PipelineDatabase, bot) -> Any:
     """Returns a callable that researches topic proposals in the background and sends each with Add/Skip buttons."""
     busy = threading.Lock()
@@ -1532,6 +1564,8 @@ def main(argv=None) -> int:
     run_p.add_argument("--run-id", help="Re-use existing run directory to re-render without re-synthesizing voiceover")
     run_p.add_argument("--continuous-tuning", action="store_true", help="Run layout stress test and pre-certify topic layouts")
     run_p.add_argument("--background-polling", action="store_true", help="Tell bot that supervisor is polling getUpdates")
+    run_p.add_argument("--schedule-posts", action="store_true",
+                       help="Once approved, book the Reel into the next posting slot instead of posting at once")
 
     resume_p = sub.add_parser("resume", help="Continue a failed run, reusing its approved script and voiceover")
     resume_p.add_argument("run_id")
@@ -1592,7 +1626,7 @@ def main(argv=None) -> int:
             print(json.dumps(res, indent=2, default=str))
             return 0
         try:
-            coordinator = PipelineCoordinator()
+            coordinator = PipelineCoordinator(schedule_posts=True) if args.schedule_posts else PipelineCoordinator()
             if getattr(args, "background_polling", False):
                 coordinator.telegram_bot.background_polling = True
             res = coordinator.run_cycle(args.topic_id, args.auto_approve, args.dry_run, require_live=getattr(args, "require_live", False), content_format=args.format, run_id=getattr(args, "run_id", None))
@@ -1694,8 +1728,10 @@ def main(argv=None) -> int:
                         log.info("Production worker PID %d completed successfully.", proc.pid)
 
             from src.config import BASE_DIR
+            # With posting slots on, the worker books the approved Reel like the daemon does.
             worker_proc = subprocess.Popen(
-                [sys.executable, "-u", "main.py", "run", "--require-live", "--background-polling"],
+                [sys.executable, "-u", "main.py", "run", "--require-live", "--background-polling"]
+                + (["--schedule-posts"] if POST_SCHEDULING else []),
                 cwd=str(BASE_DIR),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -1714,6 +1750,8 @@ def main(argv=None) -> int:
                          "resend": resend_for_review,
                          "simpub": coordinator.simulate_publish}
         )
+        if POST_SCHEDULING:  # what this mode books, it also posts when due
+            start_post_ticker(coordinator, bot)
         from src.control import startup_dashboard_card
         card_text, card_buttons = startup_dashboard_card(db, mode="bot", assets_dir=config.ASSETS_DIR)
         bot.notify(card_text, buttons=card_buttons, record_alert=False)

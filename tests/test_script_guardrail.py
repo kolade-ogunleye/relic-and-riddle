@@ -196,3 +196,15 @@ def test_resilient_surgical_sentence_revision(curated_payload):
         assert "Roman concrete stands intact." in revised.caption
         assert "Unverified petrographic claim" not in revised.caption
 
+
+
+def test_poll_options_must_answer_the_question():
+    from src.script_engine import poll_problems
+    # A yes/no question answered with two choices (the Kailasa dry run) is caught...
+    assert poll_problems("Is top-down carving harder than quarrying?", ["Carving top-down", "Quarrying stone"])
+    # ...while either/or questions, and yes/no questions with yes/no options, pass.
+    assert not poll_problems("Which took more work?", ["Carving downward", "Hauling the stone"])
+    assert not poll_problems("Island tides or ancient hands?", ["Island tides", "Ancient hands"])
+    assert not poll_problems("Could modern tools match this speed?", ["Yes", "No way"])
+    assert poll_problems("Which took more work?", ["Carving downward from the summit", "Hauling"])  # too long to show
+    assert poll_problems("Which took more work?", ["Carving", "Hauling", "Both"])                   # not exactly 2

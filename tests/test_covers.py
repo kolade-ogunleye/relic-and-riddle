@@ -110,3 +110,9 @@ def test_ensure_legible_reaches_wcag_contrast_on_bright_photos_and_leaves_dark_o
             assert tuple(a[-1, -1]) == (shade,) * 3                                    # far outside is untouched
     dark = Image.new("RGB", (400, 300), (30, 30, 30))
     assert np.array_equal(np.asarray(ensure_legible(dark, (50, 50, 350, 250))), np.asarray(dark))
+
+
+def test_split_balanced_keeps_words_whole():
+    from src.multi_format import split_balanced
+    assert split_balanced("WHICH TOOK MORE WORK AT KAILASA?") == ("WHICH TOOK MORE", "WORK AT KAILASA?")
+    assert split_balanced("WHY?") == ("WHY?", "")

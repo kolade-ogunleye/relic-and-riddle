@@ -27,6 +27,15 @@ WHITE = (255, 255, 255)
 LIGHT = (225, 225, 225)
 
 
+def split_balanced(text: str) -> Tuple[str, str]:
+    """Splits a headline into two lines of similar length at a word boundary."""
+    words = text.split()
+    if len(words) < 2:
+        return text, ""
+    best = min(range(1, len(words)), key=lambda k: abs(len(" ".join(words[:k])) - len(" ".join(words[k:]))))
+    return " ".join(words[:best]), " ".join(words[best:])
+
+
 def _rel_luminance(rgb) -> float:
     def ch(v):
         v = v / 255.0
@@ -98,11 +107,16 @@ class MultiFormatGenerator:
                 k = max(0.0, 1 - abs(y - cy) / 520)
                 d.line([(0, y), (VIDEO_WIDTH, y)], fill=(6, 6, 8, int(220 * k ** 1.3)))
             kicker, l1, l2 = slide["kicker"].upper(), slide["line1"].upper(), slide["line2"].upper()
+            if i == len(slides_data) - 1 and len(poll.get("options", [])) >= 2 and poll.get("question"):
+                l1, l2 = split_balanced(poll["question"].upper())  # the frame asks the question its options answer
             font_k = fit_font(d, kicker, "Montserrat", 34, max_w, 22)
             size = min(fit_font(d, l1, "Anton", 104, max_w, 56).size, fit_font(d, l2, "Anton", 104, max_w, 56).size)
             font_t, font_b = get_font("Anton", size), get_font("Montserrat", 40)
-            body_lines = wrap_text(d, slide["body"], font_b, max_w)[:3]
             has_options = i == len(slides_data) - 1 and len(poll.get("options", [])) >= 2
+            body = slide["body"]
+            if has_options:  # one question per frame: the poll's; the body keeps only its context
+                body = " ".join(s for s in re.split(r"(?<=[.!?])\s+", body) if not s.rstrip().endswith("?"))
+            body_lines = wrap_text(d, body, font_b, max_w)[:3] if body.strip() else []
             block = 60 + 2 * (size + 12) + 40 + len(body_lines) * 54 + (40 + 2 * 120 + 50 if has_options else 70)
             # Keep the whole block (with options or the Reel pointer) inside the Story-safe area.
             y = max(280, min(cy - block // 2, VIDEO_HEIGHT - 340 - block))
@@ -127,12 +141,14 @@ class MultiFormatGenerator:
                        fill=GOLD, anchor="mt", stroke_width=2, stroke_fill=(10, 10, 12, 220))
             if has_options:
                 font_o = get_font("Anton", 42)
-                for j, (prefix, option) in enumerate(zip(["THEORY 1", "THEORY 2"], poll["options"][:2])):
+                for j, (prefix, option) in enumerate(zip(["A", "B"], poll["options"][:2])):
                     oy = y + 40 + j * 120
                     d.rounded_rectangle([120, oy, VIDEO_WIDTH - 120, oy + 96], radius=24, fill=(10, 10, 12, 215),
                                         outline=(255, 215, 0, 230), width=2)
                     d.text((150, oy + 48), prefix, font=font_o, fill=GOLD, anchor="lm")
-                    d.text((360, oy + 48), option.upper()[:24], font=get_font("Montserrat", 34), fill=WHITE, anchor="lm")
+                    opt = option.upper()
+                    d.text((220, oy + 48), opt, font=fit_font(d, opt, "Montserrat", 34, VIDEO_WIDTH - 120 - 220 - 30, 22),
+                           fill=WHITE, anchor="lm")
                 d.text((VIDEO_WIDTH // 2, y + 40 + 2 * 120 + 20), "WEIGH IN BELOW  ↓", font=get_font("Montserrat", 32),
                        fill=LIGHT, anchor="mt", stroke_width=2, stroke_fill=(10, 10, 12, 220))
             path = out_dir / name

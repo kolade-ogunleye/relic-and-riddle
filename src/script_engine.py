@@ -96,8 +96,8 @@ Requirements:
 - caption: written like a magazine editor, not a template. First line: a curiosity-driven line of at most 125 characters (the part shown before "more") that is NOT the narration's hook sentence. Then 2-3 short sentences that add context the video doesn't say (a detail, a consequence, a name), with the place worked naturally into the prose. Then one genuine question to the audience. Then the hashtags on the last line. Use 1-3 relevant emoji where they add warmth or meaning (for example one at the end of the first line and one on the question), never as labels or bullet markers, and no "📍" lines. Under 1,600 characters.
 - carousel_caption: a separate caption for the 7-slide carousel of the same topic, different wording from the Reel caption (not a rephrase of its first line): a short invitation to swipe, one fresh detail, one question, then the same hashtags. Under 800 characters.
 - hashtags: 3-5 (Instagram allows at most 5), each starting with "#": specific to the place, era or subject (e.g. "#Cappadocia", "#ByzantineHistory"); no generic engagement tags like "#viral", "#fyp", "#ReelsViral", "#explore".
-- story_slides: exactly 3 (hook, revelation, question).
-- poll: one question with exactly 2 short options (posted manually as a native Story poll sticker).
+- story_slides: exactly 3 (hook, revelation, question). Slide 3 asks the poll's question; its body gives context and asks nothing else.
+- poll: an either/or question (at most 60 characters) and exactly 2 options (each at most 24 characters) that are its two answers, e.g. "Which took more work?" with "Carving downward" / "Hauling the stone". Never a yes/no question with options that are not yes/no.
 - carousel_slides: exactly 7 (title slide, five fact slides, closing call-to-comment slide). Slide 7 MUST ask a humane, universally resonant, thought-provoking question that appeals to all demographics (e.g. human ingenuity, civilizational survival, what modern humans have forgotten, or enduring mysteries) rather than narrow academic trivia, compelling viewers to debate in the comments.
 - first_comment: a debate-starting question, with no hashtags (Instagram's 5-hashtag cap covers the whole post).
 - sources: the pages you used, with real URLs."""
@@ -231,6 +231,30 @@ def duration_problem(seconds: float) -> Optional[str]:
     return None
 
 
+YES_NO_START = re.compile(r"^(is|are|was|were|do|does|did|can|could|would|will|should|has|have|had|must|might)\b", re.I)
+YES_NO_ANSWERS = {"yes", "no", "maybe", "not sure", "definitely", "no way", "of course", "never", "absolutely"}
+POLL_OPTION_MAX = 24
+
+
+def poll_problems(question: str, options: List[str]) -> List[str]:
+    """The poll's options must answer its question: a yes/no question gets yes/no options, otherwise
+    the question has to offer the choice ("Which...?", "X or Y?")."""
+    problems = []
+    if len(options) != 2:
+        problems.append(f"The poll needs exactly 2 options, got {len(options)}.")
+    if not question.strip() or len(question) > 60:
+        problems.append("The poll question must be 1-60 characters.")
+    long = [o for o in options if len(o) > POLL_OPTION_MAX]
+    if long:
+        problems.append(f"Poll options must be at most {POLL_OPTION_MAX} characters: {long}.")
+    q = question.strip()
+    yes_no = bool(YES_NO_START.match(q)) and not re.search(r"\bor\b", q, re.I)
+    if yes_no and not all(o.strip(" .!?").lower().split(",")[0] in YES_NO_ANSWERS for o in options):
+        problems.append(f"The poll asks a yes/no question ('{q}') but its options ({' / '.join(options)}) are not yes/no "
+                        "answers; ask an either/or question the two options answer, e.g. 'Which took more work?'.")
+    return problems
+
+
 def validate_structure(pkg: ScriptPackage) -> List[str]:
     """Returns a list of problems; empty means the package is structurally publishable."""
     problems = []
@@ -265,8 +289,7 @@ def validate_structure(pkg: ScriptPackage) -> List[str]:
         problems.append(f"Expected 3 story slides, got {len(pkg.story_slides)}.")
     if len(pkg.carousel_slides) != 7:
         problems.append(f"Expected 7 carousel slides, got {len(pkg.carousel_slides)}.")
-    if not 2 <= len(pkg.poll.options) <= 4:
-        problems.append("Poll needs 2-4 options.")
+    problems.extend(poll_problems(pkg.poll.question, pkg.poll.options))
     public_text = " ".join([
         pkg.title, pkg.narration_script, pkg.caption, pkg.carousel_caption or "", pkg.first_comment,
         *(s.line1 + " " + s.line2 + " " + s.body for s in pkg.story_slides),

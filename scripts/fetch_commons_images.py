@@ -102,6 +102,12 @@ def fetch_topic(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
         return len(images)
 
     keywords = [normalize(k) for k in spec["keywords"]]
+    exclude = [normalize(x) for x in spec.get("exclude", [])]
+
+    def namesake(cand: dict) -> bool:
+        """A file about something else that shares the name (curated per topic)."""
+        text = normalize(" ".join([cand.get("title", ""), cand.get("description", "")] + cand.get("categories", [])))
+        return any(x in text for x in exclude)
     loc = topic.get("location") or {}
     place = ({"lat": loc["latitude"], "lon": loc["longitude"]}
              if loc.get("latitude") and loc.get("longitude") else None)  # 0,0 means unknown
@@ -121,8 +127,8 @@ def fetch_topic(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
 
     for cand in interleave([best_first(list(candidates(query_pages(q), keywords, allow_sa)), keywords, place)
                             for q in spec["queries"]]):
-        if cand["relevance"] <= 0:
-            continue  # metadata says off-subject (or nowhere near the site)
+        if cand["relevance"] <= 0 or namesake(cand):
+            continue  # metadata says off-subject, nowhere near the site, or a namesake
         if len(images) >= target_images:
             break
         if cand["title"] in have:
@@ -154,6 +160,8 @@ def fetch_topic(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
                 for cand in best_first(list(candidates(search(cat_q), keywords, allow_sa)), keywords, place):
                     if len(images) >= target_images:
                         break
+                    if cand["relevance"] <= 0 or namesake(cand):
+                        continue
                     if cand["title"] in have:
                         continue
                     n = 1
@@ -177,7 +185,8 @@ def fetch_topic(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
             for cand in search_openverse(query, limit=15):
                 if len(images) >= target_images:
                     break
-                if cand["title"] in have:
+                # Same subject rules as Commons: a topic word in the title, and no namesake.
+                if cand["title"] in have or not any(k in normalize(cand["title"]) for k in keywords) or namesake(cand):
                     continue
                 n = 1
                 while (topic_dir / f"{n:02d}_commons.jpg").exists():

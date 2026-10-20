@@ -1722,8 +1722,10 @@ def main(argv=None) -> int:
             while True:
                 try:
                     bot.poll_once(handler)
-                except Exception as e:
-                    log.warning("Telegram polling error (will retry): %s", e)
+                except KeyboardInterrupt:
+                    raise
+                except BaseException as e:
+                    log.exception("Telegram polling error (will retry): %s", e)
                     time.sleep(10)
         except KeyboardInterrupt:
             bot.notify("🔴 <b>Studio Control Center Offline</b> • Service stopped.", record_alert=False)
@@ -1883,8 +1885,10 @@ def main(argv=None) -> int:
             while True:
                 try:
                     bot.poll_once(handler)
-                except Exception as e:
-                    log.warning("Telegram polling error (will retry): %s", e)
+                except KeyboardInterrupt:
+                    raise
+                except BaseException as e:
+                    log.exception("Telegram polling error (will retry): %s", e)
                     time.sleep(10)
 
         if bot.is_configured():

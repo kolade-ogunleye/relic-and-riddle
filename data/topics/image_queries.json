@@ -1,5 +1,5 @@
 {
-  "_doc": "Wikimedia Commons search terms per topic for scripts/fetch_commons_images.py. A file is kept only if its title contains one of the keywords (case- and accent-insensitive). Topics without an entry are skipped.",
+  "_doc": "Wikimedia Commons search terms per topic for scripts/fetch_commons_images.py. A file is kept only if its title contains one of the keywords (case- and accent-insensitive) and no 'exclude' term appears in its title, description or categories (for namesakes, e.g. Zhang Heng the boatman). Topics without an entry are skipped.",
   "derinkuyu_underground_city": {
     "queries": ["Derinkuyu underground city", "Derinkuyu tunnel", "Derinkuyu rolling stone door", "Derinkuyu ventilation shaft"],
     "keywords": ["derinkuyu"]
@@ -43,11 +43,13 @@
   },
   "sunken_city_of_heracleion": {
     "queries": ["Thonis-Heracleion", "Heracleion", "Sunken cities Egypt exhibition", "Abu Qir Bay"],
-    "keywords": ["heracleion", "herakleion", "thonis", "abu qir", "aboukir", "sunken cities", "canopus"]
+    "keywords": ["heracleion", "thonis-heracleion", "thonis heracleion", "abu qir", "aboukir", "sunken cities", "canopus"],
+    "exclude": ["zutphen", "drogenap", "crete", "zakros", "iraklio", "knossos"]
   },
   "zhang_heng_seismoscope": {
     "queries": ["Zhang Heng seismoscope", "Houfeng Didong Yi", "Zhang Heng"],
-    "keywords": ["zhang heng", "seismoscope", "houfeng", "seismograph"]
+    "keywords": ["zhang heng", "seismoscope", "houfeng", "seismograph"],
+    "exclude": ["boatman", "senkaji", "suikoden", "kuniyoshi", "ziyi", "108 heroes", "108 heroes", "heroes"]
   },
   "voynich_manuscript": {"queries": ["Voynich manuscript"], "keywords": ["voynich"]},
   "odessa_catacombs": {

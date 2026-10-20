@@ -107,3 +107,22 @@ def test_planner_sees_each_photos_archive_caption(tmp_path):
     cap = sp._photo_caption(tmp_path / "01_commons.jpg")
     assert "Kaymakli" in cap and "2012" in cap
     assert sp._photo_caption(tmp_path / "unknown.jpg") == ""
+
+
+def test_namesakes_and_off_topic_fallbacks_are_refused(monkeypatch, tmp_path):
+    # The old Zhang Heng set held prints of "Zhang Heng the Boatman" and the actress Zhang Ziyi.
+    good = page("Zhang Heng seismoscope replica", 3000, 2000)
+    boatman = page("Senkaji Choo (Zhang Heng) boatman print", 3000, 2000)
+    monkeypatch.setattr(fetch, "search", lambda q, **k: [good, boatman])
+    monkeypatch.setattr(fetch, "search_graded", lambda q, **k: [])
+    monkeypatch.setattr(fetch, "find_categories", lambda *a, **k: [])
+    monkeypatch.setattr(fetch, "search_openverse", lambda q, limit=15: [
+        {"title": "Egyptian bowl from Zakros", "download_url": "u", "license": "CC0"}])
+    monkeypatch.setattr(fetch, "download_jpeg", lambda url, dest, **k: dest.write_bytes(b"jpg"))
+    monkeypatch.setattr("src.storyboard.generate_storyboard", lambda *a, **k: None)
+    spec = {"queries": ["Zhang Heng"], "keywords": ["zhang heng", "seismoscope"], "exclude": ["boatman"]}
+    fetch.fetch_topic({"id": "zhang", "title": "Zhang Heng"}, spec, allow_sa=False, target_images=5,
+                      assets_dir=tmp_path)
+    import json
+    titles = [i["title"] for i in json.loads((tmp_path / "zhang" / "credits.json").read_text())["images"]]
+    assert titles == ["File:Zhang Heng seismoscope replica.jpg"]

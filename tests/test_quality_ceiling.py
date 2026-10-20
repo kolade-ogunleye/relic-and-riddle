@@ -11,11 +11,9 @@ Validates:
 """
 
 import subprocess
-from pathlib import Path
 from PIL import Image
-import pytest
 
-from src.graphics import make_lidar_scan, make_stratigraphy, make_isometric_cutaway, CLIP_SECONDS
+from src.graphics import make_lidar_scan, make_stratigraphy, make_isometric_cutaway
 from src.multi_format import MultiFormatGenerator
 from src.video_qa import QualityAuditor
 from src.visual_engine import COVER_STYLES, VisualEngine, extract_foreground_mask

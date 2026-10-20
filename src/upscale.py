@@ -15,7 +15,6 @@ the original image is used (plain resizing) and a warning is logged.
 """
 
 import concurrent.futures
-import hashlib
 import logging
 import subprocess
 from pathlib import Path

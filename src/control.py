@@ -287,7 +287,7 @@ def check_azure_speech() -> dict:
             return {"configured": True, "ok": False, "region": region, "status": f"❌ 401 Auth Error (invalid key or wrong region: {region})"}
         else:
             return {"configured": True, "ok": False, "region": region, "status": f"⚠️ HTTP {r.status_code} ({region})"}
-    except Exception as e:
+    except Exception:
         return {"configured": True, "ok": False, "region": region, "status": f"⚠️ Probe failed ({region})"}
 
 
@@ -753,7 +753,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 ],
                 [
                     {"text": "📌 C: Minimal", "callback_data": f"cov:{run_dir.name}:c"},
-                    {"text": "🔄 Refresh", "callback_data": f"ccov:"},
+                    {"text": "🔄 Refresh", "callback_data": "ccov:"},
                 ],
                 [
                     {"text": "🔒 Lock Variant B (Discovery Intrigue)", "callback_data": f"covlock:{run_dir.name}:b"}

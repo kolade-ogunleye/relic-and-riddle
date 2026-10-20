@@ -48,3 +48,6 @@ archive/topic_id_migration/
 
 # Rotating pipeline logs
 logs/
+
+# Legacy pre-SQLite state and old DB backup, kept locally (contains the database)
+archive/legacy_data/

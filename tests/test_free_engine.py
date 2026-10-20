@@ -1,7 +1,6 @@
 import pytest
 
 from src import fact_sheet, free_llm, gemini, trace_check
-from src.models import ScriptCore
 
 
 @pytest.fixture

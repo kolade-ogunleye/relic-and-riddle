@@ -210,7 +210,6 @@ def test_alerts_command(db):
 
 
 def test_add_command_and_deduplication(db, tmp_path, monkeypatch):
-    from pathlib import Path
     import src.topic_proposer as tp
     bank_file = tmp_path / "topic_bank.json"
     queries_file = tmp_path / "image_queries.json"

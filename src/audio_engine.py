@@ -277,7 +277,6 @@ class AudioEngine:
 
     def _generate_azure(self, text: str, output_path: Path) -> Words:
         """Azure Speech via the official SDK; word timings from word-boundary events."""
-        import html as _html
 
         import azure.cognitiveservices.speech as speechsdk
 

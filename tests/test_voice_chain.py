@@ -169,7 +169,7 @@ def test_voice_prefer_azure_selects_azure_first(monkeypatch, tmp_path):
     monkeypatch.setattr(eng, "_generate_azure", lambda text, path: calls.append("azure") or [{"word": "Test", "start": 0.0, "dur": 0.5}])
     monkeypatch.setattr(eng, "_generate_elevenlabs", lambda text, path: calls.append("elevenlabs") or [{"word": "Test", "start": 0.0, "dur": 0.5}])
 
-    res = eng.generate_narration("Test narration", tmp_path / "vo.wav", licensed_only=True)
+    eng.generate_narration("Test narration", tmp_path / "vo.wav", licensed_only=True)
     assert eng.last_provider == "azure"
     assert calls == ["azure"]
 

@@ -470,24 +470,6 @@ class PipelineDatabase:
                 conn.execute("UPDATE topics SET status = 'publish_unknown' WHERE id = ?", (row["topic_id"],))
                 return True
 
-    def get_sibling_runs(self, parent_or_child_run_id: str) -> List[Dict[str, Any]]:
-        """Get all runs belonging to the same parent-child family."""
-        with self._conn() as conn:
-            row = conn.execute("SELECT run_id, parent_run_id FROM runs WHERE run_id = ?", (parent_or_child_run_id,)).fetchone()
-            if not row:
-                return []
-            parent_id = row["parent_run_id"] or row["run_id"]
-            rows = conn.execute(
-                "SELECT * FROM runs WHERE run_id = ? OR parent_run_id = ? ORDER BY created_at ASC",
-                (parent_id, parent_id),
-            ).fetchall()
-        runs = []
-        for r in rows:
-            rd = dict(r)
-            rd["script_payload"] = json.loads(rd.pop("script_payload_json") or "{}")
-            runs.append(rd)
-        return runs
-
     def run_key(self, run_id: str) -> str:
         """Short, stable key for a run (its row number), for Telegram buttons (64-byte limit)."""
         with self._conn() as conn:

@@ -5,7 +5,6 @@ Checks that used to pass while silently doing nothing (false positives).
 """
 
 import json
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest

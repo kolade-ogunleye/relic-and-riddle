@@ -18,8 +18,6 @@ from PIL import Image, ImageDraw, ImageFilter
 from .config import (
     ASSETS_DIR,
     MIN_SCENE_IMAGES,
-    THUMB_OPACITY,
-    THUMB_BLUR_RADIUS,
     THUMB_EYEBROW_FONT_SIZE,
     THUMB_TITLE_FONT_SIZE,
     THUMB_TAGLINE_FONT_SIZE,
@@ -38,13 +36,6 @@ COVER_STYLES = ("badge", "lower_third", "minimal", "depth_sandwich")
 
 # The shared Cappadocia photo suite in assets/ only depicts the Derinkuyu topic.
 SHARED_SUITE = {
-    "derinkuyu_underground_city": [
-        "scene1_stairs.jpg", "scene07_ozkonak_entrance.jpg", "scene2_tunnel.jpg",
-        "scene08_ozkonak_tunnel.jpg", "scene3_door.jpg", "scene09_kaymakli_arch.jpg",
-        "scene4_pillars.jpg", "scene5_room.jpg", "scene13_derinkuyu_church.jpg",
-        "scene10_goreme_town.jpg", "scene11_panorama.jpg", "scene12_uchisar.jpg",
-        "scene2_tunnel.jpg",  # match-cut ending
-    ],
     "derinkuyu_underground_city": [
         "scene1_stairs.jpg", "scene07_ozkonak_entrance.jpg", "scene2_tunnel.jpg",
         "scene08_ozkonak_tunnel.jpg", "scene3_door.jpg", "scene09_kaymakli_arch.jpg",

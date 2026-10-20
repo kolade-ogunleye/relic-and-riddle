@@ -4,10 +4,8 @@ tests/test_privacy.py
 Tests for face privacy de-identification and skin-color tone filtering.
 """
 
-from pathlib import Path
 import numpy as np
 import cv2
-import pytest
 
 from src import privacy
 from src.config import BASE_DIR

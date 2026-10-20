@@ -5,11 +5,9 @@ Unit tests for delivery profiles, widescreen YouTube thumbnail generation,
 and stereo audio chain formatting.
 """
 
-from pathlib import Path
 from PIL import Image
-import pytest
 
-from src.delivery_profiles import PROFILES, get_delivery_profile
+from src.delivery_profiles import get_delivery_profile
 from src.visual_engine import VisualEngine
 from src.video_composer import _audio_chain, _master_chain, VideoComposer
 

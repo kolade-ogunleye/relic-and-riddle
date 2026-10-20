@@ -49,8 +49,6 @@ from .config import (
     VIDEO_WIDTH,
     VIDEO_HEIGHT,
     VIDEO_FPS,
-    VIDEO_CRF,
-    VIDEO_PRESET,
 )
 from .typography import is_video
 from .parallax import preset_for
@@ -798,7 +796,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         """
         from .delivery_profiles import get_delivery_profile
         profile = delivery_profile or get_delivery_profile("deep_dive" if width > height else "reel")
-        width, height, aspect_ratio = profile.width, profile.height, profile.aspect_ratio
+        width, height = profile.width, profile.height
         from .checkpoints import file_inputs, fingerprint
         from .credits import sha256_file
         from .typography import FONT_FILES

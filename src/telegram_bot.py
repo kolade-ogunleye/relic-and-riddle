@@ -492,7 +492,6 @@ class TelegramApprovalBot:
             msg_id = res.get("message_id") if isinstance(res, dict) else None
             expires_at = None
             if transient and ttl_minutes > 0:
-                from datetime import datetime, timezone, timedelta
                 expires_at = (datetime.now(timezone.utc) + timedelta(minutes=ttl_minutes)).isoformat()
             if record_alert and hasattr(self.db, "record_alert"):
                 self.db.record_alert(text, message_id=msg_id, kind="transient" if transient else "persistent", expires_at=expires_at)
@@ -1108,7 +1107,7 @@ class TelegramApprovalBot:
                             }
                             (footage_dir / "curated_footage.json").write_text(json.dumps(cand, indent=2, ensure_ascii=False), encoding="utf-8")
                             self.notify(f"✅ Video clip received and saved for <b>{html.escape(topic_dir.name)}</b>.")
-                    except Exception as e:
+                    except Exception:
                         log.exception("Direct video download from Telegram failed")
                 continue
 

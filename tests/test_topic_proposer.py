@@ -96,38 +96,3 @@ def test_proposals_command_resends_pending(wired, monkeypatch):
     assert "1 proposal" in h("proposals", "")
     tp.skip(db, "eupalinos")
     assert "No topic proposals waiting" in h("proposals", "")
-
-
-def test_wikimedia_pageview_metrics_and_ranking(monkeypatch):
-    from src.topic_engine import TopicEngine, fetch_pageview_metrics
-    # Mock Wikimedia REST API response
-    class MockResp:
-        status_code = 200
-        def json(self):
-            return {
-                "items": [
-                    {"views": 1000}, {"views": 1000}, {"views": 1000}, {"views": 1000},
-                    {"views": 1000}, {"views": 1000}, {"views": 1000},
-                    {"views": 3000}, {"views": 3000}, {"views": 3000}, {"views": 3000},
-                    {"views": 3000}, {"views": 3000}, {"views": 3000}
-                ]
-            }
-
-    import requests
-    monkeypatch.setattr(requests, "get", lambda *a, **k: MockResp())
-    metrics = fetch_pageview_metrics("Antikythera_mechanism")
-    assert metrics["status"] == "success"
-    assert metrics["views_30d"] == 28000
-    assert metrics["daily_avg"] == 2000.0
-    assert metrics["spike_ratio"] == 1.5
-
-    # Test ranking
-    te = TopicEngine()
-    topics = [
-        {"id": "t1", "title": "Low Traffic Topic"},
-        {"id": "t2", "title": "High Traffic Topic"},
-    ]
-    ranked = te.rank_topics_by_momentum(topics)
-    assert len(ranked) == 2
-    assert "pageview_metrics" in ranked[0]
-

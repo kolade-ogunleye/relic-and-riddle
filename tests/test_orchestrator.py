@@ -68,7 +68,6 @@ def test_unreviewed_curated_run_cannot_be_published(rendered_run):
 
 
 def test_failed_fact_check_is_revised_then_fails_closed(db, monkeypatch, tmp_path, curated_payload):
-    import main
     from src.visual_engine import VisualEngine
     coord = PipelineCoordinator(db)
     monkeypatch.setattr(coord.visual_engine, "get_scene_sequence", lambda t: [tmp_path / "a.jpg"])

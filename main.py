@@ -27,7 +27,6 @@ import re
 import subprocess
 import threading
 import logging
-import os
 import sys
 import time
 from datetime import datetime, timedelta, timezone
@@ -38,7 +37,7 @@ from src.config import ASSETS_DIR, CURATED_SCRIPTS_DIR, DAILY_RUN_TIME, OUTPUT_D
 from src.credits import caption_credit_line, generate_provenance_ledger, load_credits
 from src.db import PipelineDatabase, QueueEmpty
 from src.control import heartbeat_text, is_paused, make_command_handler, ping_healthcheck
-from src import backup, beat_images, callouts, config, encoding, footage, graphics, motion, post_schedule, privacy, then_now
+from src import beat_images, callouts, config, encoding, footage, graphics, motion, post_schedule, privacy, then_now
 from src.llm import claude_available as llm_available
 from src.scene_planner import documentary_cuts, plan_scenes, segment_beats
 from src.upscale import ensure_all, ensure_resolution
@@ -692,7 +691,6 @@ class PipelineCoordinator:
             raise
 
     def _produce_and_publish(self, topic, run_id, run_dir, auto_approve, dry_run, previous_status) -> Dict[str, Any]:
-        tid = topic["id"]
         self.progress_msg_id = None
         try:
             self.progress_msg_id = self.telegram_bot.send_progress_card(run_id, topic["title"])
@@ -704,7 +702,7 @@ class PipelineCoordinator:
         hero_img = self.visual_engine.hero_image(scene_media)
         log.info("Scene media: %d items.", len(scene_media))
 
-        from src.checkpoints import Checkpoints, file_inputs, topic_inputs, cached_artifacts
+        from src.checkpoints import Checkpoints, file_inputs, topic_inputs
         from src import config as pipeline_config
         checkpoints = Checkpoints(run_dir)
         timer, t0 = StageTimer(run_dir), time.perf_counter()
@@ -1499,42 +1497,6 @@ def _print_health(res: Dict[str, Any]):
     print(f"Overall: {'READY' if res['all_passed'] else 'ATTENTION REQUIRED'}")
 
 
-def run_continuous_tuning(coordinator: Optional[PipelineCoordinator] = None, db: Optional[PipelineDatabase] = None) -> Dict[str, Any]:
-    """Off-peak continuous tuning: stress-tests procedural layouts across aspect ratios,
-    caches calibrated bounds in data/layout_rules.json, and pre-certifies queued topics."""
-    from PIL import Image, ImageDraw
-    from src.graphics import LayoutConstraintSolver
-    from src.layout_rules import load_layout_rules, save_layout_rules
-    from src.typography import get_font
-
-    log.info("Starting background continuous tuning across aspect ratios (16:9, 9:16)...")
-    db = db or PipelineDatabase()
-    topics = db.list_all_topics()[:5]
-    tested = 0
-    rules = load_layout_rules()
-    solver = LayoutConstraintSolver()
-
-    resolutions = [("16:9", 1920, 1080), ("9:16", 1080, 1920)]
-    for ar_name, w, h in resolutions:
-        dummy_img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-        d = ImageDraw.Draw(dummy_img)
-        f_title = get_font("Anton", 34 if w > h else 40)
-        f_sub = get_font("Montserrat", 22 if w > h else 26)
-        min_gap = rules.get("shelf_anchor", {}).get("min_gap", 10)
-        coords = solver.get_shelf_coordinates(
-            d, "TEST TITLE LINE", f_title, "TEST SUBTITLE DESCRIPTION", f_sub,
-            shelf_x=w // 2, shelf_y=h // 2, shelf_gap=min_gap
-        )
-        if not coords["is_valid"]:
-            rules.setdefault("shelf_anchor", {})["min_gap"] = min_gap + 2
-            save_layout_rules(rules)
-            log.info("Continuous tuning adjusted shelf_anchor min_gap -> %d", rules["shelf_anchor"]["min_gap"])
-        tested += 1
-
-    log.info("Continuous tuning completed successfully: %d configurations validated across %d topics.", tested, len(topics))
-    return {"status": "completed", "configurations_tested": tested, "topics_checked": len(topics), "rules": rules}
-
-
 def main(argv=None) -> int:
     setup_logging()
     parser = argparse.ArgumentParser(description="Relic & Riddle: Reels research, production & publishing pipeline")
@@ -1552,7 +1514,6 @@ def main(argv=None) -> int:
     )
     run_p.add_argument("--require-live", action="store_true", help="Enforce production preflight credentials check")
     run_p.add_argument("--run-id", help="Re-use existing run directory to re-render without re-synthesizing voiceover")
-    run_p.add_argument("--continuous-tuning", action="store_true", help="Run layout stress test and pre-certify topic layouts")
     run_p.add_argument("--background-polling", action="store_true", help="Tell bot that supervisor is polling getUpdates")
     run_p.add_argument("--schedule-posts", action="store_true",
                        help="Once approved, book the Reel into the next posting slot instead of posting at once")
@@ -1573,7 +1534,6 @@ def main(argv=None) -> int:
     update_p.add_argument("--apply", action="store_true", help="Apply safe/security updates (test-gated, on a branch)")
     daemon_p = sub.add_parser("daemon", help="Run the daily scheduler")
     daemon_p.add_argument("--time", default=DAILY_RUN_TIME, help="Daily run time HH:MM")
-    daemon_p.add_argument("--continuous-tuning", action="store_true", help="Run background continuous tuning during off-peak hours")
 
     review_p = sub.add_parser("review", help="Inspect and decide pending approvals")
     review_sub = review_p.add_subparsers(dest="review_action")
@@ -1611,10 +1571,6 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "run":
-        if getattr(args, "continuous_tuning", False):
-            res = run_continuous_tuning()
-            print(json.dumps(res, indent=2, default=str))
-            return 0
         try:
             coordinator = PipelineCoordinator(schedule_posts=True) if args.schedule_posts else PipelineCoordinator()
             if getattr(args, "background_polling", False):
@@ -1873,9 +1829,6 @@ def main(argv=None) -> int:
                     log.warning("Fact sheet pre-build failed for %s: %s", t["id"], e)
                     bot.notify(f"🧾 Couldn't build the fact sheet for {html.escape(t['title'])}: {html.escape(str(e))[:200]}")
 
-        scheduler.add_job(lambda: run_continuous_tuning(coordinator, coordinator.db),
-                          CronTrigger(hour=2, minute=0, timezone=TIMEZONE),
-                          max_instances=1, coalesce=True, misfire_grace_time=3600)
         scheduler.add_job(prebuild_fact_sheets, CronTrigger(hour=3, minute=0, timezone=TIMEZONE),
                           max_instances=1, coalesce=True, misfire_grace_time=6 * 3600)
         scheduler.add_job(propose_topics.run_now, CronTrigger(day_of_week="fri", hour=hb_hour, minute=hb_minute,

@@ -15,7 +15,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw
 from pydantic import BaseModel
 
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH

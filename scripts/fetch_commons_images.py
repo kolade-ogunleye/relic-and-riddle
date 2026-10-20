@@ -124,7 +124,7 @@ def fetch_topic(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
                     dest = topic_dir / f"{n:02d}_commons.jpg"
                     try:
                         download_jpeg(cand["download_url"], dest, min_pixels=MIN_PIXELS, min_height=MIN_HEIGHT)
-                    except Exception as e:
+                    except Exception:
                         continue
                     cand["file"] = dest.name
                     images.append(cand)
@@ -147,7 +147,7 @@ def fetch_topic(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
                 dest = topic_dir / f"{n:02d}_commons.jpg"
                 try:
                     download_jpeg(cand["download_url"], dest, min_pixels=MIN_PIXELS, min_height=MIN_HEIGHT)
-                except Exception as e:
+                except Exception:
                     # Skips low-res museum thumbnails or unreachable endpoints
                     continue
                 cand["file"] = dest.name

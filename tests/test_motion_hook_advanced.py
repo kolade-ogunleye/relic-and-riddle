@@ -5,9 +5,7 @@ Comprehensive test suite for the Archetype-Aware AI Motion Hook Engine,
 Material Substrate Grounding, Anchor Pre-Conditioning, and Homography Anti-Hallucination Gate.
 """
 
-from pathlib import Path
 import numpy as np
-import pytest
 from PIL import Image
 
 from src import motion

@@ -15,7 +15,6 @@ import json
 import logging
 import time
 from functools import lru_cache
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests

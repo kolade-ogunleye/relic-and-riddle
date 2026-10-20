@@ -1,10 +1,7 @@
 import json
-from pathlib import Path
-import pytest
 from PIL import Image
 
 from src import storyboard
-from src.credits import write_contact_sheet
 
 
 def test_storyboard_generation_and_persistence(tmp_path, monkeypatch):

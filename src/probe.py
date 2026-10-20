@@ -9,9 +9,7 @@ QA reports, audio/motion providers, and budgets directly from Telegram.
 import html
 import json
 import logging
-import os
 from pathlib import Path
-import re
 from typing import Any, Dict, List, Optional
 
 import requests

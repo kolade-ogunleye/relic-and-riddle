@@ -112,7 +112,7 @@ def _detect_faces_cognitive_gemini(img: np.ndarray) -> List[Tuple[int, int, int,
         disp = img
 
     try:
-        import base64, json, requests
+        import base64, json
         _, buf = cv2.imencode(".jpg", disp, [cv2.IMWRITE_JPEG_QUALITY, 90])
         data = base64.b64encode(buf.tobytes()).decode("utf-8")
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
@@ -171,7 +171,7 @@ def _is_living_human_candidate(img: np.ndarray, box: Tuple[int, int, int, int]) 
     from .config import GEMINI_API_KEY, GEMINI_MODEL, is_configured
     if is_configured(GEMINI_API_KEY):
         try:
-            import base64, json, requests
+            import base64, json
             _, buf = cv2.imencode(".jpg", crop, [cv2.IMWRITE_JPEG_QUALITY, 85])
             data = base64.b64encode(buf.tobytes()).decode("utf-8")
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"

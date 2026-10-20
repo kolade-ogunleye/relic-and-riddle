@@ -24,7 +24,6 @@ from . import free_llm
 from .credits import sha256_file
 from .config import TARGET_LUFS, TARGET_TRUE_PEAK, VIDEO_WIDTH, VIDEO_HEIGHT
 from .graphics import LayoutConstraintSolver
-from .layout_rules import get_layout_rule, load_layout_rules, record_learned_adjustment, save_layout_rules
 from .llm import LLMError, claude_available, image_block, structured_call, task as llm_task
 from .models import QAReport
 
@@ -58,7 +57,7 @@ def calculate_wcag_contrast_ratio(lum1: float, lum2: float) -> float:
 def measure_caption_wcag_contrast(frame_path: Path, caption_band: Tuple[int, int, int, int] = (90, 550, 450, 750)) -> Dict[str, Any]:
     """Mathematically computes WCAG 2.1 contrast ratio between caption text and underlying background.
     Guarantees that on-screen typography satisfies WCAG AA (>= 4.5:1) legibility standards."""
-    from PIL import Image, ImageStat
+    from PIL import Image
     import numpy as np
     with Image.open(frame_path) as im:
         crop = im.convert("RGB").crop(caption_band)

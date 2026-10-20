@@ -13,12 +13,12 @@ import json
 import logging
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw
 
 from .config import VIDEO_WIDTH, VIDEO_HEIGHT
-from .typography import cover_crop, fit_font, get_font, is_video, wrap_text, text_size
+from .typography import cover_crop, fit_font, get_font, is_video, wrap_text
 
 log = logging.getLogger(__name__)
 

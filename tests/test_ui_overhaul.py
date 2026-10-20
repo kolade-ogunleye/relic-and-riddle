@@ -1,8 +1,6 @@
 import json
-import time
 from pathlib import Path
 from PIL import Image
-import pytest
 
 from src.db import PipelineDatabase
 from src.telegram_bot import TelegramApprovalBot
@@ -223,7 +221,7 @@ def test_expandable_blockquotes_present():
 
 
 def test_startup_dashboard_card_and_cockpit(tmp_path):
-    from src.control import startup_dashboard_card, dashboard_text_and_buttons
+    from src.control import startup_dashboard_card
     bank_file = tmp_path / "topic_bank.json"
     bank_file.write_text(json.dumps({"topics": [
         {"id": "01_monolith", "title": "Kailasa Monolith", "hook": "h1", "location": {"name": "L1", "country": "C1"}}

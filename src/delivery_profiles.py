@@ -6,7 +6,7 @@ Defines explicit contracts for aspect ratio, duration, audio targets, visual lay
 safe zones, packaging assets, and platform compliance.
 """
 
-from typing import Dict, List, Literal, Optional
+from typing import Dict, List, Literal
 from pydantic import BaseModel
 
 from .config import RELEASE_DURATION_MAX, TARGET_DURATION_MIN

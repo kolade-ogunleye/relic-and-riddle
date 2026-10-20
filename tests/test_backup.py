@@ -1,9 +1,8 @@
 from pathlib import Path
 import json
 import sqlite3
-import pytest
 
-from src.backup import backup_run, generate_dispute_summary
+from src.backup import backup_run
 
 
 def test_backup_run_copies_gold_assets_and_dispute_summary(tmp_path):

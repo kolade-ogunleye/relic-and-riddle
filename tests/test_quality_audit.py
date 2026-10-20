@@ -8,18 +8,11 @@ audits, and targeted auto-remediation.
 
 import json
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from PIL import Image, ImageDraw
 
 from src.graphics import LayoutConstraintSolver
-from src.layout_rules import (
-    DEFAULT_RULES,
-    get_layout_rule,
-    load_layout_rules,
-    record_learned_adjustment,
-    save_layout_rules,
-)
 from src.typography import get_font
 from src.video_qa import QualityAuditor, verify_provenance_integrity
 
@@ -110,33 +103,6 @@ def test_layout_solver_shelf_anchor_invariant():
     assert coords["title_bbox"][3] < shelf_y
     # Subtitle top must be strictly below shelf_y
     assert coords["sub_bbox"][1] > shelf_y
-
-
-# -----------------------------------------------------------------------------
-# 2. Persistent Layout Rules Ledger Tests
-# -----------------------------------------------------------------------------
-def test_layout_rules_ledger_io(tmp_path):
-    custom_rules_file = tmp_path / "layout_rules.json"
-    with patch("src.layout_rules.LAYOUT_RULES_PATH", custom_rules_file):
-        rules = load_layout_rules()
-        assert "shelf_anchor" in rules
-        assert rules["shelf_anchor"]["min_gap"] == 10
-
-        # Update and save
-        rules["shelf_anchor"]["min_gap"] = 16
-        save_layout_rules(rules)
-
-        reloaded = load_layout_rules()
-        assert reloaded["shelf_anchor"]["min_gap"] == 16
-
-        # Record learned adjustment
-        record_learned_adjustment("topic_01", "defense_shelf", {"shelf_gap": 18})
-        updated = load_layout_rules()
-        assert updated["learned_adjustments"]["topic_01"]["defense_shelf"]["shelf_gap"] == 18
-
-        # Aspect ratio overrides
-        assert get_layout_rule("shelf_gap", aspect_ratio="16:9") == 10
-        assert get_layout_rule("shelf_gap", aspect_ratio="9:16") == 12
 
 
 # -----------------------------------------------------------------------------

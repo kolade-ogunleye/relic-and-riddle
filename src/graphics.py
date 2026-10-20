@@ -73,8 +73,8 @@ def _draw_cross_hatching(d: ImageDraw.ImageDraw, x0: int, y0: int, x1: int, y1: 
     if h <= 0 or w <= 0:
         return
     for k in range(x0 - h, x1, spacing):
-        lx0, ly0 = k, y0
-        lx1, ly1 = k + h, y1
+        lx0 = k
+        lx1 = k + h
         if lx1 > x0 and lx0 < x1:
             sx = max(x0, lx0)
             sy = y0 + (sx - lx0)
@@ -506,7 +506,6 @@ def render_scale(fact: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
     top, bottom = get_text_bounds(width, height)
     span = bottom - top - (160 if width > height else 330)
     base_y = top + (80 if width > height else 150) if depth else bottom - 40
-    metres = lambda ft: ft / 3.28084  # noqa: E731
 
     if width > height:
         bars = [(fact["subject"], feet, GOLD, int(width * 0.35)),
@@ -1082,8 +1081,6 @@ def make_lidar_scan(
     depth_ft = float(spec.get("depth_ft", 280))
 
     f_title = fit_font(ImageDraw.Draw(Image.new("RGB", (10, 10))), title, "Anton", 42 if width > height else 48, int(width * 0.84), 24)
-    f_stat = get_font("Anton", 30 if width > height else 26)
-    f_lab = get_font("Montserrat", 22 if width > height else 20)
     f_sub = get_font("Montserrat", 16 if width > height else 16)
 
     chambers = [
@@ -1192,7 +1189,6 @@ def make_stratigraphy(
             strata_y1 = bottom_bound - 30
             strata_h = strata_y1 - strata_y0
 
-            cum_depth = 0
             prev_y = strata_y0
             for i, st in enumerate(strata):
                 layer_depth = st["depth_ft"]
@@ -1308,7 +1304,6 @@ def make_isometric_cutaway(
     title = (spec.get("title") or "ISOMETRIC ARCHITECTURAL CUTAWAY").upper()
 
     f_title = fit_font(ImageDraw.Draw(Image.new("RGB", (10, 10))), title, "Anton", 42 if width > height else 48, int(width * 0.84), 24)
-    f_stat = get_font("Anton", 30 if width > height else 26)
     f_lab = get_font("Montserrat", 22 if width > height else 20)
     f_sub = get_font("Montserrat", 16 if width > height else 16)
 
@@ -1418,9 +1413,6 @@ def make_all(payload: Dict[str, Any], topic: Dict[str, Any], work_dir: Path, pho
             source_files.append(REFERENCE_FILE)
         if name in ("map", "route"):
             source_files += [p for p in (geo.COUNTRIES_FILE, geo.RELIEF_FILE) if p.is_file()]
-        layout_rules = Path(__file__).parent.parent / "data" / "layout_rules.json"
-        if layout_rules.is_file():
-            source_files.append(layout_rules)
         from .encoding import get_video_encoder
         inputs = {"sources": file_inputs(source_files), "place": place, "width": width,
                   "height": height, "fps": VIDEO_FPS, "encoder": get_video_encoder(),

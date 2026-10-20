@@ -94,7 +94,7 @@ def test_is_deep_dive_eligible():
     assert engine.is_deep_dive_eligible(topic_rich, visual_count=2) is False
 
 
-def test_db_parent_child_sibling_runs(tmp_path: Path):
+def test_db_records_parent_and_child_runs(tmp_path: Path):
     db_file = tmp_path / "test_pipeline.db"
     db = PipelineDatabase(db_path=db_file)
 
@@ -115,12 +115,6 @@ def test_db_parent_child_sibling_runs(tmp_path: Path):
     assert child_run["content_format"] == "deep_dive"
     assert child_run["parent_run_id"] == parent_id
 
-    siblings_from_child = db.get_sibling_runs(child_id)
-    siblings_from_parent = db.get_sibling_runs(parent_id)
-
-    assert len(siblings_from_child) == 2
-    assert len(siblings_from_parent) == 2
-    assert {r["run_id"] for r in siblings_from_child} == {parent_id, child_id}
 
 
 def test_widescreen_subtitle_geometry(tmp_path: Path):

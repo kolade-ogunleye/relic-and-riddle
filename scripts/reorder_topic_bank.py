@@ -1,12 +1,11 @@
 import json
-import sqlite3
 import sys
 from pathlib import Path
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.db import PipelineDatabase, calculate_vps, DB_PATH
+from src.db import PipelineDatabase, calculate_vps
 from src.config import TOPICS_DIR
 
 bank_path = TOPICS_DIR / "topic_bank.json"
@@ -98,7 +97,7 @@ print("Successfully rebuilt SQLite topics table with 4-pillar insertion order.")
 next_topic = db.get_next_topic()
 all_queued = [t for t in db.list_all_topics() if t["status"] == "queued"]
 
-print(f"\nVerification:")
+print("\nVerification:")
 print(f"Top Queued Topic (#1 in queue): {all_queued[0]['id']} — {all_queued[0]['title']}")
 print(f"Next Topic from Scheduler:      {next_topic['id']} — {next_topic['title']}")
 print(f"Do they match perfectly?: {all_queued[0]['id'] == next_topic['id']}")

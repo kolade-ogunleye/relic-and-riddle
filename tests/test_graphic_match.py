@@ -1,7 +1,6 @@
 """A graphic belongs on the beat that says what the graphic shows. Its terms come from its own
 declared spec (lineage sidecar), matched as whole words; the old substring locks fired on "air" in
 "stairs" and "era" in "several", and their vocabulary was Derinkuyu's."""
-from pathlib import Path
 
 from src import graphic_match, scene_planner as sp
 from src.lineage import record_graphic

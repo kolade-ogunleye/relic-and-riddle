@@ -8,7 +8,6 @@ C:\\Users\\omokolade\\OneDrive\\Backups\\Created Contents\\RelicAndRiddle_Archiv
 
 import json
 import logging
-import os
 import shutil
 import sqlite3
 from datetime import datetime, timezone

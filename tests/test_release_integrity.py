@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from src.credits import generate_provenance_ledger, resolve_asset_path
-from src.video_qa import QualityAuditor, measure_program_loudness, verify_provenance_integrity
+from src.video_qa import QualityAuditor, verify_provenance_integrity
 
 
 def test_missing_video_cannot_be_certified(tmp_path):

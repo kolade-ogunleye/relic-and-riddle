@@ -1,0 +1,31 @@
+{
+ "designed_on": "2026-10-20",
+ "model": "eleven_ttv_v3",
+ "description": "Male narrator in his early forties, General American accent. Warm, resonant baritone with natural chest depth, not gravelly or breathy. A seasoned history-documentary host: confident, curious and quietly intense, as if revealing a discovery to one listener. Crisp diction, measured but brisk pace, clean dry studio recording, no announcer or movie-trailer exaggeration.",
+ "voices": [
+  {
+   "preview": 2,
+   "name": "Relic & Riddle Narrator",
+   "voice_id": "Lw3t0NVPjUgkx9YLkoH0",
+   "sample": "data/voice/narrator_preview_2.mp3",
+   "seconds_on_derinkuyu_narration": 44.3,
+   "role": "narrator"
+  },
+  {
+   "preview": 1,
+   "name": "Relic & Riddle Narrator (alt, slower)",
+   "voice_id": "1w3OV52WT559RUb0wB1h",
+   "sample": "data/voice/narrator_preview_1.mp3",
+   "seconds_on_derinkuyu_narration": 49.6,
+   "role": "alternate"
+  },
+  {
+   "preview": 3,
+   "name": "Relic & Riddle Narrator (alt 3)",
+   "voice_id": "gU1DXju5uFxGMhSU2LRT",
+   "sample": "data/voice/narrator_preview_3.mp3",
+   "seconds_on_derinkuyu_narration": 46.8,
+   "role": "alternate"
+  }
+ ]
+}

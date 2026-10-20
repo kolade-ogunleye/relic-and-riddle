@@ -287,9 +287,9 @@ class PipelineDatabase:
             "updated_at": row["updated_at"],
         }
 
-    def get_next_topic(self) -> Dict[str, Any]:
+    def ranked_topics(self) -> List[Dict[str, Any]]:
         """
-        Next topic to produce using a 4-pillar round-robin scheduler:
+        Topics in the order production would pick them using a 4-pillar round-robin scheduler:
         1. Identifies eligible candidate topics (queued first, then failed/stale).
         2. Scores each candidate's Virality Potential Score (VPS).
         3. Identifies the primary sub_theme of the most recently produced/published topic.
@@ -334,8 +334,10 @@ class PipelineDatabase:
             priority = t.get("priority", 0)
             return (-priority, theme_clash, status_prio, -vps, times_pub)
 
-        ranked = sorted(candidates, key=candidate_sort_key)
-        return ranked[0]
+        return sorted(candidates, key=candidate_sort_key)
+
+    def get_next_topic(self) -> Dict[str, Any]:
+        return self.ranked_topics()[0]
 
     def get_topic_by_id(self, topic_id: str) -> Optional[Dict[str, Any]]:
         with self._conn() as conn:

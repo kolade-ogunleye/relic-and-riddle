@@ -193,7 +193,12 @@ class PipelineCoordinator:
             if not topic:
                 raise ValueError(f"Topic ID '{topic_id}' not found in topic bank.")
         else:
-            topic = self.topic_engine.get_next_topic()
+            # The first topic in production order whose photo pool is approved, or can be made so now
+            # (fetched and reviewed on merit); topics without usable photos are skipped, not failed.
+            from src.asset_pipeline import first_ready
+            topic = first_ready(self.db.ranked_topics())
+            if topic is None:
+                raise QueueEmpty("No queued topic has an approved photo pool; see `python main.py assets review`.")
         tid = topic["id"]
         previous_status = topic["status"] if topic["status"] != "in_production" else "failed"
 
@@ -1574,6 +1579,8 @@ def main(argv=None) -> int:
     assets_sub = assets_p.add_subparsers(dest="assets_action")
     assets_sub.add_parser("list")
     assets_sub.add_parser("approve", help="Mark a topic's fetched images as reviewed").add_argument("topic_id")
+    review_p = assets_sub.add_parser("review", help="Vision review of photo pools: keep, drop and approve on merit")
+    review_p.add_argument("topic_id", nargs="?", help="One topic (default: every pool not decided by the operator)")
 
     health_p = sub.add_parser("health", help="Pre-flight checks")
     health_p.add_argument("--live", action="store_true", help="Also require production credentials")
@@ -1839,6 +1846,12 @@ def main(argv=None) -> int:
             """Nightly: verified fact sheets for the next queued topics, so research (and any trouble with
             it) happens well before the daily run, not at 9:00."""
             from src import fact_sheet
+            from src.asset_pipeline import ensure_pool
+            try:  # photo pools for the next topics too, so a run never waits on review
+                for t in coordinator.db.ranked_topics()[:3]:
+                    ensure_pool(t)
+            except Exception as e:
+                log.warning("Nightly photo pool preparation failed: %s", e)
             for t in prebuild_candidates(coordinator.db, 3):
                 try:
                     if not fact_sheet.load(t["id"]):
@@ -2018,6 +2031,15 @@ def main(argv=None) -> int:
             except ValueError as e:
                 print(e)
                 return 1
+        elif args.assets_action == "review":
+            from src.image_review import review_pool
+            db = PipelineDatabase()
+            topics = [db.get_topic_by_id(args.topic_id)] if args.topic_id else db.list_all_topics()
+            for t in topics:
+                if t and (ASSETS_DIR / t["id"] / "credits.json").exists():
+                    s = review_pool(t, ASSETS_DIR / t["id"])
+                    print(f"{s['status']:26} {t['id']:40} kept {s['kept']}"
+                          + "".join(f"\n    - {f}: {why}" for f, why in s.get("dropped", [])))
         else:
             assets_p.print_help()
         return 0

@@ -272,6 +272,41 @@ def caption_credit_line(credits: Dict[str, Any]) -> str:
 
 
 # ---------------------------------------------------------------- review helpers
+def sheet_order(topic_dir: Path, images: List[Dict[str, Any]],
+                storyboards: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
+    """The order photos are numbered on the contact sheet (storyboard beats first, then the rest).
+    /drop uses the same order, so "drop 5" removes the photo labelled 5 on the sheet."""
+    if storyboards is None:
+        sb_path = topic_dir / "storyboard.json"
+        if sb_path.is_file():
+            try:
+                storyboards = json.loads(sb_path.read_text(encoding="utf-8"))
+            except Exception:
+                storyboards = None
+    ordered_items: List[Dict[str, Any]] = []
+    seen_files = set()
+    images_by_file = {c.get("file"): c for c in images if c.get("file")}
+    for sb in storyboards or []:
+        f = sb.get("file")
+        if f in images_by_file and f not in seen_files and (topic_dir / f).exists():  # only photos still in the pool
+            c_item = dict(images_by_file[f])
+            c_item["_sb_type"] = sb.get("type", "")
+            c_item["_sb_text"] = sb.get("text", "")
+            c_item["_sb_beat"] = sb.get("beat", len(ordered_items) + 1)
+            ordered_items.append(c_item)
+            seen_files.add(f)
+    for c in images:
+        f = c.get("file")
+        if f and f not in seen_files and (topic_dir / f).exists():
+            c_item = dict(c)
+            c_item["_sb_type"] = "BUFFER"
+            c_item["_sb_text"] = "Candidate buffer asset"
+            c_item["_sb_beat"] = len(ordered_items) + 1
+            ordered_items.append(c_item)
+            seen_files.add(f)
+    return ordered_items or images
+
+
 def write_contact_sheet(
     topic_dir: Path,
     images: List[Dict[str, Any]],
@@ -282,44 +317,7 @@ def write_contact_sheet(
 
     from .typography import get_font
 
-    if storyboards is None:
-        sb_path = topic_dir / "storyboard.json"
-        if sb_path.is_file():
-            try:
-                storyboards = json.loads(sb_path.read_text(encoding="utf-8"))
-            except Exception:
-                storyboards = None
-
-    # When a storyboard exists, tiles MUST be ordered according to the storyboard beat sequence:
-    # Tile 1 = Beat 1, Tile 2 = Beat 2, etc. Swapping beats visually moves the tiles.
-    # Any extra buffer candidate images are appended after the storyboard beats.
-    ordered_items: List[Dict[str, Any]] = []
-    seen_files = set()
-    images_by_file = {c.get("file"): c for c in images if c.get("file")}
-
-    if storyboards:
-        for sb in storyboards:
-            f = sb.get("file")
-            if f and (topic_dir / f).exists():
-                c_item = dict(images_by_file.get(f, {"file": f}))
-                c_item["_sb_type"] = sb.get("type", "")
-                c_item["_sb_text"] = sb.get("text", "")
-                c_item["_sb_beat"] = sb.get("beat", len(ordered_items) + 1)
-                ordered_items.append(c_item)
-                seen_files.add(f)
-
-    for c in images:
-        f = c.get("file")
-        if f and f not in seen_files and (topic_dir / f).exists():
-            c_item = dict(c)
-            c_item["_sb_type"] = "BUFFER"
-            c_item["_sb_text"] = "Candidate buffer asset"
-            c_item["_sb_beat"] = len(ordered_items) + 1
-            ordered_items.append(c_item)
-            seen_files.add(f)
-
-    if not ordered_items:
-        ordered_items = images
+    ordered_items = sheet_order(topic_dir, images, storyboards)
 
     cell_w, cell_h, cols = 360, 270, 4
     rows = max(1, (len(ordered_items) + cols - 1) // cols)
@@ -369,6 +367,7 @@ def approve_set(topic_dir: Path, min_images: int) -> str:
     if len(credits["images"]) < min_images:
         raise ValueError(f"Only {len(credits['images'])} images; need {min_images}. Re-run the fetcher to refill.")
     credits["reviewed"] = True
+    credits["reviewed_by"] = "operator"  # a human decision: automatic review never overrides it
     save_credits(topic_dir, credits)
     return f"Approved {len(credits['images'])} images for {topic_dir.name}."
 
@@ -377,12 +376,14 @@ def drop_images(topic_dir: Path, numbers: List[int]) -> str:
     """Deletes images by their contact-sheet number (1-based) and marks the set unreviewed."""
     credits = load_credits(topic_dir)
     images = credits["images"]
-    bad = [n for n in numbers if not 1 <= n <= len(images)]
+    shown = sheet_order(topic_dir, images)  # the numbering on the contact sheet
+    bad = [n for n in numbers if not 1 <= n <= len(shown)]
     if bad or not numbers:
-        raise ValueError(f"Numbers must be between 1 and {len(images)}.")
-    for n in sorted(set(numbers), reverse=True):
-        (topic_dir / images[n - 1]["file"]).unlink(missing_ok=True)
-        del images[n - 1]
+        raise ValueError(f"Numbers must be between 1 and {len(shown)}.")
+    doomed = {shown[n - 1]["file"] for n in set(numbers)}
+    for f in doomed:
+        (topic_dir / f).unlink(missing_ok=True)
+    images[:] = [im for im in images if im["file"] not in doomed]
     credits["reviewed"] = False
     save_credits(topic_dir, credits)
     if images:

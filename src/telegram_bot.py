@@ -1125,7 +1125,8 @@ class TelegramApprovalBot:
                     file_path = file_info.get("file_path", "")
                     if file_path:
                         download_url = f"https://api.telegram.org/file/bot{self.bot_token}/{file_path}"
-                        evidence_dir = Path(__file__).resolve().parent.parent / "docs" / "issues" / "evidence"
+                        from . import config as _config
+                        evidence_dir = _config.ISSUES_DIR / "evidence"
                         evidence_dir.mkdir(parents=True, exist_ok=True)
                         ext = Path(file_path).suffix or ".jpg"
                         ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")

@@ -87,3 +87,12 @@ def test_test_command_reports_its_own_outcome(monkeypatch, capsys, status, code)
     monkeypatch.setattr(main, "PipelineCoordinator", FakeCoordinator)
     assert main.main(["test"]) == code
     assert "usage:" not in capsys.readouterr().out  # no help text after a run
+
+
+def test_test_suite_cannot_write_repository_data(db):
+    from src import config, music
+    from src.control import make_command_handler
+    assert config.BASE_DIR not in config.ISSUES_DIR.parents
+    assert config.BASE_DIR not in music.LIBRARY.parents
+    make_command_handler(db, lambda: None, lambda: "")("issue", "sandbox check")
+    assert list(config.ISSUES_DIR.glob("iss_*.md"))

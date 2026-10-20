@@ -50,6 +50,20 @@ def no_real_services(monkeypatch):
     monkeypatch.setattr(socket, "create_connection", blocked)
 
 
+@pytest.fixture(autouse=True)
+def no_repo_writes(monkeypatch, tmp_path_factory):
+    """Tests must never change the repository's own data: operator issue reports go to a temp
+    folder, and music use counts to a temp copy of the library (orchestrator tests pick real
+    tracks). An earlier version filed ~90 fake issues and inflated real track use counts."""
+    from src import music
+    sandbox = tmp_path_factory.mktemp("repo_writes")
+    monkeypatch.setattr("src.config.ISSUES_DIR", sandbox / "issues")
+    library = sandbox / "library.json"
+    if music.LIBRARY.exists():
+        library.write_bytes(music.LIBRARY.read_bytes())
+    monkeypatch.setattr(music, "LIBRARY", library)
+
+
 @pytest.fixture
 def db(tmp_path):
     bank = tmp_path / "topic_bank.json"

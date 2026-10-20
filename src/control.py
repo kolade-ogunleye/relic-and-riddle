@@ -1096,7 +1096,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     [{"text": "✖ Done", "callback_data": "tdone:"}]
                 )
                 if isinstance(nav_res, int):
-                    active_proposal_msg_ids.append(nav_res)
+                    active_proposal_msg_ids.append(nav_res)
+
                 return f"💡 {len(waiting)} proposal(s) sent above."
             return f"💡 {len(waiting)} proposal(s) available. Send /proposals to review."
         if command == "propose":
@@ -1382,7 +1383,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     run_id = part.strip(",.:;")
                     break
             db.record_issue(issue_id, critique, run_id=run_id, evidence_path=evidence_path)
-            issues_dir = Path(__file__).resolve().parent.parent / "docs" / "issues"
+            from . import config as _config
+            issues_dir = _config.ISSUES_DIR
             issues_dir.mkdir(parents=True, exist_ok=True)
             issue_file = issues_dir / f"{issue_id}.md"
             ev_line = f"- **Evidence**: `{evidence_path}`" if evidence_path else "- **Evidence**: None attached"

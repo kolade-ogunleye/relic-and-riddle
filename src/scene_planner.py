@@ -13,7 +13,7 @@ The result is one (image, duration) per beat for the video composer.
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from . import free_llm, graphic_match
 from .config import FOOTAGE_MAX_SHARE
@@ -153,6 +153,34 @@ def keep_if_it_matches(pick: Path, text: str, fallback: Path) -> Path:
     return pick if graphic_match.score(pick, text) >= graphic_match.THRESHOLD else fallback
 
 
+STORYBOARD_NOTES = "approved storyboard (matched by narration)"
+# Each beat takes the picture of the storyboard line it shares most words with (a beat that straddles
+# two sentences takes the closer one). A storyboard whose lines most beats don't clearly say was
+# approved for other narration and is not used.
+STORYBOARD_MIN_OVERLAP, STORYBOARD_MIN_BEATS = 0.6, 0.6
+
+
+def storyboard_order(storyboard: List[Dict[str, Any]], beats: List[Dict[str, Any]], options: List[Path]) -> Optional[List[int]]:
+    """Option index per beat from the approved storyboard, matched by what each beat says (the
+    storyboard's lines are sentences; the planner's beats are timed segments, and a revision can
+    reorder them). Beats sharing no words get unused options in order. None if it doesn't fit."""
+    by_name = {p.name: i for i, p in enumerate(options)}
+    lines = [(graphic_match.tokens(item.get("text", "")), by_name[item["file"]])
+             for item in storyboard if item.get("file") in by_name]
+    picks: List[Optional[int]] = []
+    strong = 0
+    for b in beats:
+        said = graphic_match.tokens(b.get("text", ""))
+        overlap, pick = max(((len(said & words) / max(1, len(said)), i) for words, i in lines),
+                            key=lambda c: c[0], default=(0.0, None))
+        picks.append(pick if overlap > 0 else None)
+        strong += overlap >= STORYBOARD_MIN_OVERLAP
+    if strong < STORYBOARD_MIN_BEATS * len(beats):
+        return None
+    spare = [i for i in range(len(options)) if i not in picks] or list(range(len(options)))
+    return [p if p is not None else spare[k % len(spare)] for k, p in enumerate(picks)]
+
+
 @llm_task("scene_plan")
 def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = "",
                 use_storyboard: bool = True) -> Tuple[List[Path], List[float], str]:
@@ -185,21 +213,15 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
                     pass
 
     if storyboard and not feedback:
-        locked_order = []
-        sb_map = {item.get("beat", idx + 1): item.get("file") for idx, item in enumerate(storyboard)}
-        all_opts_by_name = {p.name: idx for idx, p in enumerate(options)}
-        for b_idx in range(n):
-            target_file = sb_map.get(b_idx + 1)
-            if target_file and target_file in all_opts_by_name:
-                locked_order.append(all_opts_by_name[target_file])
-            else:
-                locked_order.append(b_idx % len(options))
-        if len(locked_order) == n:
+        locked_order = storyboard_order(storyboard, beats, options)
+        if locked_order is not None:
             order = locked_order
-            notes = "approved storyboard contract lock"
+            notes = STORYBOARD_NOTES
+        else:
+            log.info("The approved storyboard was made for different narration; planning scenes afresh.")
 
     # 2. LLM Multimodal Scene Planning (used when no approved storyboard exists or reviewer requested feedback)
-    if notes != "approved storyboard contract lock" and (free_llm.available() if free_llm.enabled() else claude_available()) and stills:
+    if notes != STORYBOARD_NOTES and (free_llm.available() if free_llm.enabled() else claude_available()) and stills:
         try:
             content: List[dict] = []
             for i, p in enumerate(options, 1):

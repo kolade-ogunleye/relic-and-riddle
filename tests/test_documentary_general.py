@@ -55,9 +55,10 @@ def test_documentary_planning_ignores_a_reel_storyboard(tmp_path, monkeypatch):
         p = tmp_path / f"0{i}_commons.jpg"
         Image.new("RGB", (64, 64)).save(p)
         stills.append(p)
-    (tmp_path / "storyboard.json").write_text(json.dumps([{"beat": 1, "file": "02_commons.jpg"}]), encoding="utf-8")
     beats = [{"start": i * 6.0, "end": (i + 1) * 6.0, "text": f"Sentence {i}."} for i in range(4)]
+    (tmp_path / "storyboard.json").write_text(json.dumps(
+        [{"beat": i + 1, "file": stills[i % 3].name, "text": b["text"]} for i, b in enumerate(beats)]), encoding="utf-8")
     _, _, notes = scene_planner.plan_scenes(beats, stills, use_storyboard=False)
-    assert notes != "approved storyboard contract lock"
+    assert notes != scene_planner.STORYBOARD_NOTES
     _, _, notes = scene_planner.plan_scenes(beats, stills)
-    assert notes == "approved storyboard contract lock"  # Reels still honour it
+    assert notes == scene_planner.STORYBOARD_NOTES  # Reels still honour it

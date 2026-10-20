@@ -69,3 +69,36 @@ def test_defense_and_ventilation_diagrams_need_a_declared_spec(tmp_path, monkeyp
     for topic_id in ("derinkuyu_underground_city", "hal_saflieni_hypogeum", "door_of_hell"):
         graphics.make_all({}, {"id": topic_id}, tmp_path)
     assert made == []
+
+
+def _storyboard_setup(tmp_path, sb_texts):
+    import json
+    imgs = [tmp_path / f"img_{i}.jpg" for i in range(1, 4)]
+    for p in imgs:
+        p.write_bytes(b"data")
+    sb = [{"beat": i + 1, "file": imgs[i].name, "text": t} for i, t in enumerate(sb_texts)]
+    (tmp_path / "storyboard.json").write_text(json.dumps(sb), encoding="utf-8")
+    return imgs
+
+
+def test_storyboard_follows_the_words_not_the_beat_numbers(tmp_path):
+    imgs = _storyboard_setup(tmp_path, ["Divers found a corroded lump of bronze in 1901.",
+                                        "Inside were at least thirty interlocking gears.",
+                                        "It predicted eclipses decades ahead."])
+    # The narration reached the planner in a different order and split differently.
+    beats = [{"start": 0, "end": 3, "text": "It predicted eclipses decades ahead."},
+             {"start": 3, "end": 6, "text": "Divers found a corroded lump"},
+             {"start": 6, "end": 9, "text": "of bronze in 1901."},
+             {"start": 9, "end": 12, "text": "Inside were at least thirty interlocking gears."}]
+    scenes, _, notes = sp.plan_scenes(beats, imgs)
+    assert scenes == [imgs[2], imgs[0], imgs[0], imgs[1]] and "storyboard" in notes
+
+
+def test_storyboard_for_other_words_is_ignored(tmp_path):
+    imgs = _storyboard_setup(tmp_path, ["A man renovating his house knocked through a wall.",
+                                        "Rolling stone doors sealed each level.",
+                                        "A whole city lay forgotten."])
+    beats = [{"start": 0, "end": 3, "text": "Modern concrete crumbles within decades."},
+             {"start": 3, "end": 6, "text": "Roman harbours still stand after two thousand years."}]
+    _, _, notes = sp.plan_scenes(beats, imgs)
+    assert "storyboard" not in notes

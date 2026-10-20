@@ -101,7 +101,7 @@ def test_storyboard_lock_overrides_llm(tmp_path, monkeypatch):
     ]
     scenes, durations, notes = sp.plan_scenes(beats, imgs)
     assert scenes == [imgs[2], imgs[0], imgs[1]]
-    assert notes == "approved storyboard contract lock"
+    assert notes == sp.STORYBOARD_NOTES
 
 
 def test_storyboard_lock_preserves_motion_hook_and_animated_graphics(tmp_path):

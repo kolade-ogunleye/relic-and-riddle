@@ -392,3 +392,16 @@ def test_backup_summary_reports_only_what_was_measured(tmp_path):
         "loudness": {"integrated_lufs": -15.2, "true_peak_dbtp": -1.9}}}), encoding="utf-8")
     text = generate_dispute_summary(run, tmp_path / "archive").read_text(encoding="utf-8")
     assert "70/100, NOT certified" in text and "-15.2 LUFS" in text
+
+
+def test_repairable_scene_defects_become_planner_feedback():
+    from src.video_qa import audit_scene_feedback
+    audit = {"issues": [
+        {"type": "semantic_desync", "scene_index": 2, "asset": "x/graphic_map.mp4"},
+        {"type": "loudness", "scene_index": -1},                      # not fixable by re-planning
+        {"type": "caption_collision", "scene_index": 4, "asset": "x/graphic_numbers.mp4"},
+    ]}
+    lines = audit_scene_feedback(audit).splitlines()
+    assert lines[0].startswith("Beat 3:") and "graphic_map.mp4" in lines[0]
+    assert lines[1].startswith("Beat 5:") and len(lines) == 2
+    assert audit_scene_feedback(None) == ""

@@ -17,7 +17,8 @@ from .credits import load_credits
 
 log = logging.getLogger(__name__)
 
-FETCH_TIMEOUT = 1800  # Commons pacing makes a full pool take minutes
+FETCH_TIMEOUT = 1800
+TARGET_POOL = 20  # the fetcher's pool size  # Commons pacing makes a full pool take minutes
 
 
 def pool_ready(topic_id: str, assets_dir: Optional[Path] = None) -> bool:
@@ -34,8 +35,8 @@ def ensure_pool(topic: Dict[str, Any], assets_dir: Optional[Path] = None) -> boo
     credits = load_credits(assets_dir / tid)
     if credits.get("reviewed_by") == "operator":
         return False  # the operator held or rejected it; that decision stands
-    if not credits.get("images"):
-        log.info("Fetching a photo pool for %s.", tid)
+    if len(credits.get("images", [])) < TARGET_POOL:  # empty, or thinned by a review: refill
+        log.info("Fetching photos for %s.", tid)
         try:
             subprocess.run([sys.executable, str(BASE_DIR / "scripts" / "fetch_commons_images.py"), "--topic-id", tid,
                             "--out-dir", str(assets_dir)], cwd=str(BASE_DIR), timeout=FETCH_TIMEOUT,

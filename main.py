@@ -44,7 +44,7 @@ from src.upscale import ensure_all, ensure_resolution
 from src.music import music_for
 from src.parallax import render_scenes as render_parallax
 from src.video_composer import TRANS_DUR
-from src.video_qa import QualityAuditor, qa_summary_html, review_render
+from src.video_qa import QualityAuditor, audit_scene_feedback, qa_summary_html, review_render
 from src.visual_engine import COVER_STYLES
 from src.ops import AssetLifecycleManager, PreFlightHealthChecker, setup_logging
 from src.fact_sheet import FactStarvedTopicError
@@ -1108,10 +1108,14 @@ class PipelineCoordinator:
             finally:
                 qa_pool.shutdown(wait=True)
             timer.record(f"qa_attempt{attempt}", time.perf_counter() - t0)
-            feedback = beat_images.picture_issues(qa)
+            # Self-healing: picture mismatches from the video check and the audit's repairable scene
+            # defects go back to the scene planner for one corrected render.
+            feedback = "\n".join(f for f in (beat_images.picture_issues(qa),
+                                             audit_scene_feedback(payload.get("self_healing"))) if f)
             if not feedback or attempt == 2:
                 break
-            log.info("Video check found picture mismatches; re-planning scenes once:\n%s", feedback)
+            payload.setdefault("self_healing_actions", []).append({"attempt": attempt, "fixing": feedback.splitlines()})
+            log.info("Repairing before review; re-planning scenes once:\n%s", feedback)
         t0 = time.perf_counter()
         review_mp4 = self.video_composer.make_review_proxy(master_mp4, run_dir / "review_proxy.mp4")
         timer.record("review_proxy", time.perf_counter() - t0)

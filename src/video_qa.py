@@ -224,6 +224,27 @@ def verify_provenance_integrity(provenance_path: Path) -> bool:
         return False
 
 
+# Audit defects a second scene plan can repair (a different picture for that beat), worded as
+# planner feedback. Other defects (loudness, cards, policy) are fixed elsewhere or need a person.
+SCENE_FIXES = {
+    "semantic_desync": "the graphic does not show what the narration says here",
+    "motion_loop": "the graphic loops instead of holding its final frame through this beat",
+    "blank_frame": "the picture renders blank",
+    "caption_collision": "the graphic runs into the captions",
+}
+
+
+def audit_scene_feedback(audit: Optional[Dict[str, Any]]) -> str:
+    """The audit's repairable scene defects as feedback for re-planning the scenes."""
+    lines = []
+    for issue in (audit or {}).get("issues", []):
+        if issue.get("type") in SCENE_FIXES and issue.get("scene_index", -1) >= 0:
+            asset = Path(issue.get("asset", "")).name
+            lines.append(f"Beat {issue['scene_index'] + 1}: {SCENE_FIXES[issue['type']]}"
+                         + (f" ({asset})" if asset else "") + "; choose a different picture for it.")
+    return "\n".join(dict.fromkeys(lines))
+
+
 class QualityAuditor:
     """Deterministic release audits: loudness, graphic/narration sync, graphic motion freeze,
     caption contrast and clearance, plus the carousel, story, thumbnail and policy checks.

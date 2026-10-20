@@ -112,7 +112,8 @@ def fetch_topic(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
     loc = topic.get("location") or {}
     place = ({"lat": loc["latitude"], "lon": loc["longitude"]}
              if loc.get("latitude") and loc.get("longitude") else None)  # 0,0 means unknown
-    have = {c["title"] for c in images}
+    # Photos a review already rejected are never fetched again.
+    have = {c["title"] for c in images} | {c.get("title") for c in credits.get("rejected_by_review", [])}
     added = 0
 
     # 1. Primary: the curated shot searches (wide, detail, interior...). Each query's results are

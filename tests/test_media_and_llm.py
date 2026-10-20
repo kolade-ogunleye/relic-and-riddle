@@ -159,3 +159,20 @@ def test_long_caption_bursts_shrink_to_safe_width(tmp_path):
 def test_captions_sit_above_meta_bottom_safe_zone():
     from src.config import CAPTION_MARGIN_V, VIDEO_HEIGHT
     assert CAPTION_MARGIN_V >= 0.35 * VIDEO_HEIGHT
+
+
+@pytest.mark.parametrize("effort", ["low", "medium", "high"])
+def test_every_call_sends_its_effort(monkeypatch, effort):
+    # Opus 5.5 defaults to medium: an effort that is accepted but never sent runs every task at medium.
+    out = Poll(question="q", options=["a", "b"])
+    fake = _patch_client(monkeypatch, [_resp("end_turn", out), _resp("end_turn"), _resp("end_turn")])
+    llm.structured_call("s", "p", Poll, effort=effort, models=["claude-opus-5-5"])
+    llm.research("s", "p", web_search_uses=1, effort=effort, models=["claude-opus-5-5"])
+    llm.research_with_evidence("s", "p", web_search_uses=1, effort=effort, models=["claude-opus-5-5"])
+    assert [c["output_config"] for c in fake.calls] == [{"effort": effort}] * 3
+
+
+def test_effort_is_not_sent_to_models_without_it(monkeypatch):
+    fake = _patch_client(monkeypatch, [_resp("end_turn", Poll(question="q", options=["a", "b"]))])
+    llm.structured_call("s", "p", Poll, effort="high", models=["claude-haiku-4-5"])
+    assert "output_config" not in fake.calls[0]

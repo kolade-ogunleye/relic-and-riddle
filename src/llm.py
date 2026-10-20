@@ -146,10 +146,19 @@ def model_chain(models: Optional[List[str]] = None) -> List[str]:
     return chain
 
 
-def _model_kwargs(model: str) -> dict:
+# Legacy models without the effort parameter (a budget or fallback model may be one of these).
+_NO_EFFORT_PREFIXES = ("claude-3", "claude-haiku-4-5")
+
+
+def _model_kwargs(model: str, effort: str) -> dict:
+    """Per-model request options. Effort is sent explicitly: Claude Opus 5.5 defaults to medium, so a
+    task asking for high would otherwise run at medium (and low tasks would spend more than asked)."""
+    kw: dict = {}
+    if not model.startswith(_NO_EFFORT_PREFIXES):
+        kw["output_config"] = {"effort": effort}
     if model in _REFUSAL_FALLBACK_MODELS:
-        return {"betas": [_FALLBACK_BETA], "fallbacks": "default"}
-    return {}
+        kw.update(betas=[_FALLBACK_BETA], fallbacks="default")
+    return kw
 
 
 def _first_request(send: Callable[[str], object], models: Optional[List[str]] = None) -> Tuple[object, str]:
@@ -215,7 +224,7 @@ def research(system: str, prompt: str, *, web_search_uses: int, effort: str = "h
     seen: set = set()
 
     def send(model: str):
-        kw = _model_kwargs(model)
+        kw = _model_kwargs(model, effort)
         try:
             return client.beta.messages.create(
                 model=model, max_tokens=max_tokens, system=system, messages=messages, tools=tools,
@@ -265,7 +274,7 @@ def research_with_evidence(system: str, prompt: str, *, web_search_uses: int, ef
     seen_quotes: set = set()
 
     def send(model: str):
-        kw = _model_kwargs(model)
+        kw = _model_kwargs(model, effort)
         try:
             return client.beta.messages.create(
                 model=model, max_tokens=max_tokens, system=system, messages=messages, tools=tools,
@@ -333,7 +342,7 @@ def structured_call(system: str, prompt: Union[str, list], schema: Type[T], *, e
         return gemini.structured(system, prompt, schema)
 
     def send(model: str):
-        kw = _model_kwargs(model)
+        kw = _model_kwargs(model, effort)
         try:
             return parse_fn(
                 model=model, max_tokens=max_tokens, system=system,

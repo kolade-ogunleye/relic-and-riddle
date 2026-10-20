@@ -408,15 +408,43 @@ class AudioEngine:
         data, _ = sf.read(str(path))
         return data[:, 0] if data.ndim > 1 else data
 
-    # Sound effects play only where the narration mentions them (first matching word).
-    # Tuple format: (keywords, gain, optional_procedural_synth_name)
+    # Sound effects play only where the narration says the action or thing they depict (first
+    # matching word, whole words only: substrings put an ocean under "research").
+    # Tuple format: (words, gain, optional_procedural_synth_name)
     SFX_CUES = {
-        "sfx_hammer.wav": (("knock", "hammer", "smash", "broke", "wall"), 0.40, "_synth_chisel_strike"),
-        "sfx_stone_door.wav": (("door", "rolling", "slab", "chamber"), 0.45, "_synth_stone_grind"),
-        "sfx_gear_ratchet.wav": (("gear", "gears", "mechanism", "clockwork", "pointer", "dial", "analog", "bronze", "interlocking", "astronomical"), 0.35, "_synth_gear_ratchet"),
-        "sfx_water_surge.wav": (("submerged", "sea", "ocean", "shipwreck", "wreck", "diver", "sponge", "abyss", "depth", "underwater"), 0.38, "_synth_water_surge"),
-        "sfx_chisel.wav": (("chisel", "carv", "hewn", "basalt", "quarry", "monolith", "granite", "limestone", "pillar"), 0.36, "_synth_chisel_strike"),
+        "sfx_hammer.wav": (("knock", "knocked", "knocking", "hammer", "hammered", "smash", "smashed"), 0.40, "_synth_chisel_strike"),
+        "sfx_stone_door.wav": (("door", "doors"), 0.45, "_synth_stone_grind"),
+        "sfx_gear_ratchet.wav": (("gear", "gears", "clockwork", "ratchet", "cogwheel", "cogwheels"), 0.35, "_synth_gear_ratchet"),
+        "sfx_water_surge.wav": (("submerged", "sea", "seas", "ocean", "shipwreck", "wreck", "diver", "divers", "underwater", "seabed"), 0.38, "_synth_water_surge"),
+        "sfx_chisel.wav": (("chisel", "chiseled", "chiselled", "carve", "carved", "carving", "hewn", "quarried", "quarry"), 0.36, "_synth_chisel_strike"),
     }
+    # The cavern-wind layer is for places under the ground; the revelation hit for an actual finding.
+    UNDERGROUND_WORDS = {"underground", "subterranean", "cave", "caves", "cavern", "caverns", "tunnel", "tunnels",
+                         "shaft", "shafts", "hypogeum", "catacomb", "catacombs", "mine", "mines", "crypt"}
+    REVELATION_WORDS = {"discovered", "discovering", "rediscovered", "rediscovering", "uncovered", "revealed",
+                        "unearthed", "secret", "impossible"}
+
+    @staticmethod
+    def _spoken(w: Dict[str, Any]) -> set:
+        return set(re.findall(r"[a-z]+", str(w.get("word", "")).lower()))
+
+    @classmethod
+    def sfx_cue_times(cls, words: Optional[Words]) -> Dict[str, float]:
+        """Start time of each sound effect: the first word that names what it depicts."""
+        cues: Dict[str, float] = {}
+        for name, (keywords, *_rest) in cls.SFX_CUES.items():
+            t = next((float(w.get("start", 0.0)) for w in words or [] if cls._spoken(w) & set(keywords)), None)
+            if t is not None:
+                cues[name] = t
+        return cues
+
+    @classmethod
+    def is_underground(cls, words: Optional[Words]) -> bool:
+        return any(cls._spoken(w) & cls.UNDERGROUND_WORDS for w in words or [])
+
+    @classmethod
+    def revelation_time(cls, words: Optional[Words]) -> Optional[float]:
+        return next((float(w.get("start", 0.0)) for w in words or [] if cls._spoken(w) & cls.REVELATION_WORDS), None)
     MUSIC_RMS = 0.05  # bed level for music (about -26 dBFS); the mix ducks it further under speech
 
     @staticmethod
@@ -614,13 +642,14 @@ class AudioEngine:
                 drone[-fade:] *= ramp[::-1]
             bed = np.column_stack((drone, drone)) * 0.22
 
-        # Triple-stem foley stem 2: Continuous subterranean cavern draft wind
-        cavern_draft = self._synth_cavern_draft(total, sr)
-        fin_d, fout_d = min(int(1.0 * sr), total // 4), min(int(2.0 * sr), total // 4)
-        if fin_d and fout_d:
-            cavern_draft[:fin_d] *= np.linspace(0.0, 1.0, fin_d)[:, None]
-            cavern_draft[-fout_d:] *= np.linspace(1.0, 0.0, fout_d)[:, None]
-        bed += cavern_draft
+        # Triple-stem foley stem 2: continuous cavern draft wind, only for a story told underground
+        if self.is_underground(words):
+            cavern_draft = self._synth_cavern_draft(total, sr)
+            fin_d, fout_d = min(int(1.0 * sr), total // 4), min(int(2.0 * sr), total // 4)
+            if fin_d and fout_d:
+                cavern_draft[:fin_d] *= np.linspace(0.0, 1.0, fin_d)[:, None]
+                cavern_draft[-fout_d:] *= np.linspace(1.0, 0.0, fout_d)[:, None]
+            bed += cavern_draft
 
         # Procedural Foley: Opening hook reveal impact at ~0.15s
         if total > int(0.20 * sr):
@@ -672,29 +701,19 @@ class AudioEngine:
                 if n_w > 0:
                     bed[w_start:w_start + n_w] += whoosh[:n_w]
 
-        # Triple-stem foley: Cinematic revelation sub-bass braams hitting on major story revelations
-        if words:
-            revelation_words = {"discovered", "secret", "impossible", "abyss", "depth", "never", "uncovered"}
-            for w in words:
-                cw = re.sub(r"[^\w]", "", w.get("word", "").lower())
-                if cw in revelation_words:
-                    cue_t = float(w.get("start", 0.0))
-                    if 0 < cue_t < duration - 1.0:
-                        cue_idx = int(cue_t * sr)
-                        braam = self._synth_sub_bass_braam(duration_sec=1.8, sr=sr)
-                        n_b = min(len(braam), total - cue_idx)
-                        if n_b > 0:
-                            bed[cue_idx:cue_idx + n_b] += braam[:n_b] * 0.75
-                    break  # primary narrative revelation hit
+        # Triple-stem foley: one sub-bass hit on the story's first real revelation
+        cue_t = self.revelation_time(words)
+        if cue_t is not None and 0 < cue_t < duration - 1.0:
+            cue_idx = int(cue_t * sr)
+            braam = self._synth_sub_bass_braam(duration_sec=1.8, sr=sr)
+            n_b = min(len(braam), total - cue_idx)
+            if n_b > 0:
+                bed[cue_idx:cue_idx + n_b] += braam[:n_b] * 0.75
 
-        for name, cue_spec in self.SFX_CUES.items():
-            if not words:
-                continue
-            keywords, gain = cue_spec[0], cue_spec[1]
+        for name, cue in self.sfx_cue_times(words).items():
+            cue_spec = self.SFX_CUES[name]
+            gain = cue_spec[1]
             synth_func = cue_spec[2] if len(cue_spec) > 2 else "_synth_stone_grind"
-            cue = next((w["start"] for w in words if any(k in w["word"].lower() for k in keywords)), None)
-            if cue is None:
-                continue
             sfx_file = SFX_DIR / name
             if sfx_file.exists():
                 s = self._decode(sfx_file, sr)[:, 0]  # resampled to the bed's rate

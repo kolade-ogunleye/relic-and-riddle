@@ -29,7 +29,7 @@ from . import audio_engine
 from .fact_checker import ClaimFactChecker
 from . import free_llm
 from .llm import LLMError, claude_available, format_sources, research, structured_call, task as llm_task
-from . import fact_sheet, trace_check
+from . import fact_sheet, improve, trace_check
 from .models import DeepDivePackage, DocumentaryAct, GraphicsPlan, ScriptCore, ScriptPackage, Source
 
 
@@ -383,6 +383,7 @@ def shorten_graphic_text(pkg: ScriptPackage) -> ScriptPackage:
             entries[i] = entries[i].model_copy(update={attr: new})
             pkg = pkg.model_copy(update={field: entries})
         log.info("Shortened %s label: %r -> %r", field, old, new)
+        improve.note(f"graphics.{field}", f"label over {limit} characters, shortened", "shorten")
     return pkg
 
 
@@ -395,6 +396,7 @@ def prune_graphics(pkg: ScriptPackage) -> ScriptPackage:
         fitting = [c for c in pkg.stat_cards if len(c.label) <= 40 and len(c.value) <= 22]
         if fitting and len(fitting) < len(pkg.stat_cards):
             log.warning("Dropping %d stat card(s) over the length limits.", len(pkg.stat_cards) - len(fitting))
+            improve.note("graphics.stat_cards", "stat card over the length limits", "prune")
             pkg = pkg.model_copy(update={"stat_cards": fitting})
     for field in GRAPHICS_FIELDS:
         if getattr(pkg, field) is None:
@@ -404,6 +406,7 @@ def prune_graphics(pkg: ScriptPackage) -> ScriptPackage:
         extra = [p for p in validate_structure(alone) if p not in validate_structure(base)]
         if extra:
             log.warning("Dropping planned graphic '%s': %s", field, " ".join(extra))
+            improve.note(f"graphics.{field}", " ".join(extra), "prune")
             pkg = pkg.model_copy(update={field: None})
     return pkg
 
@@ -464,6 +467,7 @@ class ScriptEngine:
                 if not problems:
                     return self._finalize(pkg, topic, origin=writer_origin(), fact_sheet_used=self._sheet(topic) is not None)
                 log.warning("Attempt %d failed structural checks: %s", attempt, problems)
+                improve.note_problems(problems, "structure")
                 feedback = base_feedback + "\n\nA previous draft was rejected for: " + " ".join(problems) + " Fix these."
             log.warning("Claude did not produce a usable script; trying curated script.")
 
@@ -595,7 +599,7 @@ class ScriptEngine:
                 + f"\n\n<verified_facts>\n{fact_sheet.as_prompt(sheet)}\n</verified_facts>"
                 + raw_evidence_str
                 + f"\n<retrieved_sources>\n{format_sources(retrieved)}\n</retrieved_sources>\n"
-                + FACTS_ONLY_RULES + feedback
+                + FACTS_ONLY_RULES + improve.learned_rules() + feedback
             )
         elif free_llm.enabled():
             raise LLMError("No verified fact sheet could be built; the free engine writes only from one.")

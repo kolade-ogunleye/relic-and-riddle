@@ -49,6 +49,7 @@ from src.visual_engine import COVER_STYLES
 from src.ops import AssetLifecycleManager, PreFlightHealthChecker, setup_logging
 from src.fact_sheet import FactStarvedTopicError
 from src.stage_timer import StageTimer
+from src.improve import REASONS, SCRIPT_REASONS
 
 log = logging.getLogger("pipeline")
 
@@ -215,7 +216,9 @@ class PipelineCoordinator:
 
         try:
             result = self._produce_and_publish(topic, run_id, run_dir, auto_approve, dry_run, previous_status)
+            self._collect_findings(run_id, run_dir, tid)
         except FactStarvedTopicError as e:
+            self._collect_findings(run_id, run_dir, tid, error=f"FactStarvedTopicError: {e}")
             if getattr(self, "progress_msg_id", None):
                 try:
                     self.telegram_bot.finish_progress_card(self.progress_msg_id, topic["title"], run_id, success=False, error="Fact-starved (insufficient evidence)")
@@ -240,6 +243,7 @@ class PipelineCoordinator:
                 self.progress_msg_id = None
             self.db.update_run(run_id, "failed", error=f"{type(e).__name__}: {e}")
             self.topic_engine.record_status(tid, "failed", run_id=run_id)
+            self._collect_findings(run_id, run_dir, tid, error=f"{type(e).__name__}: {e}")
             log.error("Run %s failed: %s", run_id, e)
             self._alert(f"❌ <b><u>PRODUCTION FAILED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n{html.escape(str(e))[:600]}\n\nNothing was posted. The topic will be retried on a later run.")
             ping_healthcheck("/fail")
@@ -248,7 +252,11 @@ class PipelineCoordinator:
         if result["status"] == "regenerate":
             if _regenerations < MAX_REGENERATIONS:
                 log.info("Regeneration requested; starting a fresh run for '%s'.", tid)
-                return self.run_cycle(tid, auto_approve, dry_run, require_live, content_format, _regenerations + 1)
+                self._operator_feedback = self._await_reason(run_id)
+                try:
+                    return self.run_cycle(tid, auto_approve, dry_run, require_live, content_format, _regenerations + 1)
+                finally:
+                    self._operator_feedback = None
             log.warning("Regeneration limit reached for '%s'.", tid)
             self.topic_engine.record_status(tid, "failed", run_id=run_id)
 
@@ -263,6 +271,30 @@ class PipelineCoordinator:
                 result["deep_dive_run"] = {"status": "failed", "error": str(e)}
 
         return result
+
+    def _collect_findings(self, run_id: str, run_dir: Path, topic_id: str, error: Optional[str] = None) -> None:
+        """Files what this run found into the improvement ledger (never fails the run)."""
+        try:
+            from src import improve
+            run = self.db.get_run(run_id) or {}
+            n = improve.collect_run(self.db, run_id, run_dir, run.get("script_payload"), topic_id=topic_id, error=error)
+            log.info("Improvement ledger: %d finding(s) recorded for %s.", n, run_id)
+        except Exception as e:
+            log.warning("Could not record findings for %s: %s", run_id, e)
+
+    def _await_reason(self, run_id: str, wait_seconds: int = 120) -> Dict[str, Any]:
+        """After Regenerate, waits briefly for your reason chip (and words) so the new run can act on it."""
+        from src import improve
+        deadline = time.monotonic() + (wait_seconds if self.telegram_bot.is_configured() else 0)
+        fb = improve.operator_feedback(self.db, run_id)
+        while fb is None and time.monotonic() < deadline:
+            time.sleep(3)
+            fb = improve.operator_feedback(self.db, run_id)
+        fb = dict(fb or {})
+        fb["previous"] = (self.db.get_run(run_id) or {}).get("script_payload")
+        if fb.get("reason"):
+            log.info("Regenerating with your feedback: %s %s", fb["reason"], fb.get("text", ""))
+        return fb
 
     def produce_deep_dive(
         self,
@@ -732,7 +764,17 @@ class PipelineCoordinator:
             payload = saved
             log.info("Resuming with verified script inputs and intact metadata.")
         else:
-            payload = self._write_and_check_script(topic, run_id, run_dir, dry_run)
+            fb = getattr(self, "_operator_feedback", None) or {}
+            if fb.get("reason") in SCRIPT_REASONS and fb.get("previous"):
+                # Regenerate after your review: the previous script is revised for what you said,
+                # instead of being rewritten blind.
+                note = (f"The human reviewer sent the previous version back. Reason: {REASONS.get(fb['reason'], fb['reason'])}."
+                        + (f" Their words: {fb['text']}" if fb.get("text") else "")
+                        + " Revise the script to fix this, using only the verified facts.")
+                payload = self._write_and_check_script(topic, run_id, run_dir, dry_run,
+                                                       initial_payload=fb["previous"], initial_notes=note)
+            else:
+                payload = self._write_and_check_script(topic, run_id, run_dir, dry_run)
             saved_script.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
             checkpoints.complete("script", script_inputs, [saved_script])
 
@@ -1015,6 +1057,10 @@ class PipelineCoordinator:
         candidates = scene_media + [Path(c["upscaled"]) for c in beat_credits] + own_graphics + footage_clips
         master_mp4 = run_dir / f"{tid}_master.mp4"
         caption_base, feedback, qa = payload["caption"], "", None
+        fb = getattr(self, "_operator_feedback", None) or {}
+        if fb.get("reason") == "pictures":
+            feedback = "The human reviewer sent the previous version back for its pictures." + (
+                f" Their words: {fb['text']}" if fb.get("text") else "")
         motion_memo: Dict[str, Any] = {}
         for attempt in (1, 2):  # a second pass only if the video check finds a picture mismatch
             scenes, durations, plan_notes = plan_scenes(beats, candidates, feedback=feedback)
@@ -1887,6 +1933,52 @@ def main(argv=None) -> int:
         scheduler.add_job(propose_topics.run_now, CronTrigger(day_of_week="fri", hour=hb_hour, minute=hb_minute,
                                                               timezone=TIMEZONE), max_instances=1, coalesce=True,
                           misfire_grace_time=3600)
+
+        def improvement_cycle():
+            """Nightly: recurring findings become proposals; candidate writing rules are tested on the
+            eval (free quota only, a few drafts a night, never during a production run); a rule that
+            wins, and any code-level proposal, is put to you as a card. Nothing is adopted without you."""
+            from src import improve
+            try:
+                for p in improve.make_proposals(coordinator.db):
+                    if p["status"] == "ready":
+                        text, buttons = improve.card(p)
+                        bot.notify(text, buttons=buttons, silent=True, record_alert=False)
+                if improve.proposals(coordinator.db, "testing") and run_lock.acquire(blocking=False):
+                    try:
+                        from scripts.eval_prompts import run_candidates
+                        rows = run_candidates(coordinator.db)
+                    finally:
+                        run_lock.release()
+                    for p in improve.update_gates(coordinator.db, rows):
+                        if p["status"] == "ready":
+                            text, buttons = improve.card(p)
+                            bot.notify(text, buttons=buttons, silent=True, record_alert=False)
+            except Exception as e:
+                log.warning("Improvement cycle failed: %s", e)
+
+        def weekly_digest():
+            from src import improve
+            try:
+                bot.notify(improve.digest_text(coordinator.db), silent=True)
+            except Exception as e:
+                log.warning("Weekly digest failed: %s", e)
+
+        def collect_audience():
+            from src import audience
+            try:
+                n = audience.collect(coordinator.db)
+                if n:
+                    log.info("Audience metrics: %d snapshot(s) stored.", n)
+            except Exception as e:
+                log.warning("Audience metrics collection failed: %s", e)
+
+        scheduler.add_job(improvement_cycle, CronTrigger(hour=4, minute=0, timezone=TIMEZONE),
+                          max_instances=1, coalesce=True, misfire_grace_time=6 * 3600)
+        scheduler.add_job(weekly_digest, CronTrigger(day_of_week="sun", hour=hb_hour, minute=hb_minute, timezone=TIMEZONE),
+                          max_instances=1, coalesce=True, misfire_grace_time=6 * 3600)
+        scheduler.add_job(collect_audience, CronTrigger(hour="*/6", minute=20, timezone=TIMEZONE),
+                          max_instances=1, coalesce=True, misfire_grace_time=3 * 3600)
 
         def apply_updates() -> str:
             if run_lock.locked():

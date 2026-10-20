@@ -1,291 +1,198 @@
 """
 src/probe.py
 ============
-System Intelligence & Interactive Operator Diagnostic Engine (AGY).
-Enables operators to query the autonomous pipeline, telemetry, run decisions,
-QA reports, audio/motion providers, and budgets directly from Telegram.
+/ask: answers "why did the system do X?" from the records of the run you mean.
+
+The run is the one the question names (its number from a card, its id, or its topic), otherwise
+the latest. The evidence is that run's own records: the notes on its review card, the release
+gate's checks, the video check, self-healing actions, voice and music records, stage timings, the
+improvement ledger's findings, and warning/error log lines from while it ran; plus this month's
+budgets and the queue. The model (the free engine, light task class, so capped and recorded) may
+answer only from that evidence and names the record behind each point; if the answer isn't in the
+records, it says so. Without a model, the relevant records are shown as they are, never a
+made-up summary.
 """
 
 import html
 import json
 import logging
+import re
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import requests
+from pydantic import BaseModel
 
 from . import config
 from .db import PipelineDatabase
 
 log = logging.getLogger(__name__)
 
+NOTE_KEYS = ("fact_sheet_note", "voice_note", "music_note", "motion_note", "graphics_note", "footage_note",
+             "beat_image_note", "source_note")
+USAGE = ("🔍 <b>Ask about a run</b>\n\n"
+         "<code>/ask why was there no AI motion in the last run?</code>\n"
+         "<code>/ask run 12 why did the release gate hold it?</code>\n\n"
+         "<i>Answers come from that run's records (or say they aren't recorded). Swipe-reply to any card to ask about it.</i>")
 
-def gather_system_telemetry(db: PipelineDatabase, assets_dir: Path, query: str = "") -> Dict[str, Any]:
-    """Gathers comprehensive telemetry across DB, output runs, budgets, and hardware/API providers."""
-    telemetry: Dict[str, Any] = {}
 
-    # 1. Latest run in DB
+class _Answer(BaseModel):
+    answer: str            # plain text, at most ~120 words
+    records: List[str]     # names of the records the answer used, e.g. "release_report.json"
+    recorded: bool         # False if the records don't contain the answer
+
+
+def _read(path: Path) -> Any:
     try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def resolve_run(db: PipelineDatabase, question: str) -> Optional[Dict[str, Any]]:
+    """The run the question names: 'run 12' (card number), a run id, or a topic; else the latest."""
+    m = re.search(r"\brun[ _#]?(\d+)\b", question, re.IGNORECASE)
+    if m:
+        run = db.get_run(db.resolve_run(m.group(1)))
+        if run:
+            return run
+    m = re.search(r"\b(run_[\w]+)", question)
+    if m and db.get_run(m.group(1)):
+        return db.get_run(m.group(1))
+    with db._conn() as conn:
+        rows = conn.execute("SELECT run_id, topic_id FROM runs ORDER BY created_at DESC LIMIT 60").fetchall()
+    q = question.lower()
+    for r in rows:
+        topic = db.get_topic_by_id(r["topic_id"]) or {}
+        words = [w for w in re.split(r"\W+", (topic.get("title") or r["topic_id"]).lower()) if len(w) > 4]
+        if words and any(w in q for w in words):
+            return db.get_run(r["run_id"])
+    return db.get_run(rows[0]["run_id"]) if rows else None
+
+
+def _log_lines(run: Dict[str, Any], limit: int = 30) -> List[str]:
+    """Warning and error lines logged while the run was in progress (local-time log stamps)."""
+    log_file = config.LOG_DIR / "pipeline.log"
+    if not log_file.exists():
+        return []
+    try:
+        start = datetime.fromisoformat(run["created_at"]).astimezone().replace(tzinfo=None)
+        end = datetime.fromisoformat(run["updated_at"]).astimezone().replace(tzinfo=None)
+    except (KeyError, TypeError, ValueError):
+        return []
+    out = []
+    with log_file.open(encoding="utf-8", errors="replace") as f:
+        for line in f:
+            if " WARNING " not in line and " ERROR " not in line:
+                continue
+            try:
+                stamp = datetime.strptime(line[:19], "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                continue
+            if start <= stamp <= end:
+                out.append(line.strip()[:300])
+    return out[-limit:]
+
+
+def evidence(db: PipelineDatabase, run: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    ev: Dict[str, Any] = {}
+    if run:
+        payload = run.get("script_payload") or {}
+        ev["run"] = {"label": db.run_label(run["run_id"]), "run_id": run["run_id"], "status": run.get("status"),
+                     "error": run.get("error"), "started": run.get("created_at"), "updated": run.get("updated_at")}
+        ev["review card notes"] = {k: payload[k] for k in NOTE_KEYS if payload.get(k)}
+        if payload.get("qa_summary"):
+            ev["video check"] = re.sub(r"<[^>]+>", "", payload["qa_summary"])
+        if payload.get("self_healing_actions"):
+            ev["self-healing actions"] = payload["self_healing_actions"]
+        if payload.get("second_check"):
+            ev["second fact check"] = {k: payload["second_check"].get(k) for k in ("status", "confidence", "summary")}
+        run_dir = Path(run["master_video_path"]).parent if run.get("master_video_path") else config.OUTPUT_DIR / run["run_id"]
+        for name in ("release_report.json", "voice.json", "music_selection.json", "timings.json", "sound_plan.json"):
+            data = _read(run_dir / name)
+            if data is not None:
+                ev[name] = data.get("checks", data) if name == "release_report.json" else data
+        motion_dir = run_dir / "motion"
+        if motion_dir.is_dir():
+            ev["motion files"] = sorted(p.name for p in motion_dir.iterdir())
+        try:
+            from . import improve
+            improve.ensure_schema(db)
+            with db._conn() as conn:
+                ev["improvement findings"] = [f"{r['klass']}: {r['detail']}" for r in conn.execute(
+                    "SELECT klass, detail FROM findings WHERE run_id = ? ORDER BY id", (run["run_id"],)).fetchall()][:30]
+        except Exception as e:
+            log.debug("Findings unavailable: %s", e)
+        ev["log warnings/errors during the run"] = _log_lines(run)
+    try:
+        from . import media_budget
+        ev["budgets this month"] = {"media_spent_usd": round(media_budget.spent(db), 2),
+                                    "media_cap_usd": config.MEDIA_MONTHLY_BUDGET_USD,
+                                    "paid_llm_fallback_caps_usd": {"light": config.PAID_FALLBACK_LIGHT_MONTHLY_USD,
+                                                                   "heavy": config.PAID_FALLBACK_HEAVY_MONTHLY_USD}}
         with db._conn() as conn:
-            row = conn.execute(
-                "SELECT run_id, topic_id, status, error, created_at, updated_at "
-                "FROM runs ORDER BY created_at DESC LIMIT 1"
-            ).fetchone()
-            if row:
-                telemetry["last_run"] = {
-                    "run_id": row[0],
-                    "topic_id": row[1],
-                    "status": row[2],
-                    "error": row[3],
-                    "created_at": row[4],
-                    "updated_at": row[5],
-                }
+            ev["budgets this month"]["paid_llm_fallback_spent_usd"] = {
+                r["task"]: round(r["s"], 2) for r in conn.execute(
+                    "SELECT task, SUM(cost_usd) AS s FROM llm_usage WHERE task LIKE 'paid-fallback:%' "
+                    "AND substr(created_at, 1, 7) = ? GROUP BY task", (datetime.utcnow().strftime("%Y-%m"),))}
     except Exception as e:
-        log.warning("Could not query last run from DB: %s", e)
-
-    # 2. Inspect latest run directory artifacts
-    run_info = telemetry.get("last_run", {})
-    run_id = run_info.get("run_id")
-    if run_id:
-        run_dir = Path("output") / run_id
-        if run_dir.is_dir():
-            # Voice
-            v_file = run_dir / "voice.json"
-            if v_file.exists():
-                try:
-                    telemetry["voice_record"] = json.loads(v_file.read_text(encoding="utf-8"))
-                except Exception:
-                    pass
-            # Metadata & notes
-            meta_file = run_dir / "script_metadata.json"
-            if meta_file.exists():
-                try:
-                    meta = json.loads(meta_file.read_text(encoding="utf-8"))
-                    telemetry["metadata_notes"] = {
-                        "title": meta.get("title"),
-                        "voice_note": meta.get("voice_note"),
-                        "music_note": meta.get("music_note"),
-                        "motion_note": meta.get("motion_note"),
-                        "graphics_note": meta.get("graphics_note"),
-                        "footage_note": meta.get("footage_note"),
-                        "consensus_confidence": meta.get("consensus_confidence"),
-                        "qa_summary": meta.get("qa_summary"),
-                    }
-                except Exception:
-                    pass
-            # QA Report
-            qa_file = run_dir / "qa_report.json"
-            if qa_file.exists():
-                try:
-                    telemetry["qa_report"] = json.loads(qa_file.read_text(encoding="utf-8"))
-                except Exception:
-                    pass
-            # Timings
-            timing_file = run_dir / "timings.json"
-            if timing_file.exists():
-                try:
-                    telemetry["timings"] = json.loads(timing_file.read_text(encoding="utf-8"))
-                except Exception:
-                    pass
-
-    # 3. Provider availability & credentials
-    from .motion import kling_available, last_fallback_reason as motion_fallback
-    telemetry["motion_fallback_reason"] = motion_fallback
-    telemetry["providers"] = {
-        "kling_configured": kling_available(),
-        "claude_configured": bool(config.ANTHROPIC_API_KEY),
-        "gemini_configured": bool(config.GEMINI_API_KEY),
-        "elevenlabs_configured": bool(config.ELEVENLABS_API_KEY),
-        "azure_configured": bool(config.AZURE_SPEECH_KEY and config.AZURE_SPEECH_REGION),
-        "upload_post_configured": bool(config.UPLOAD_POST_API_KEY),
-    }
-
-    # 4. Budget state
+        log.debug("Budget evidence unavailable: %s", e)
     try:
-        spent = db.monthly_media_cost() if hasattr(db, "monthly_media_cost") else 0.0
+        topics = db.list_all_topics()
+        ev["queue"] = {"queued": sum(1 for t in topics if t.get("status") == "queued")}
     except Exception:
-        spent = 0.0
-    telemetry["budgets"] = {
-        "claude_budget_usd": config.CLAUDE_MONTHLY_BUDGET_USD,
-        "media_budget_usd": config.MEDIA_MONTHLY_BUDGET_USD,
-        "media_spent_this_month": spent,
-    }
-
-    # 5. Recent alerts and audits
-    try:
-        telemetry["recent_alerts"] = [a.get("text", "") for a in db.list_recent_alerts(limit=3)]
-    except Exception:
-        telemetry["recent_alerts"] = []
-
-    # 6. Queue summary
-    try:
-        all_topics = db.list_all_topics()
-        queued = [t for t in all_topics if t.get("status") == "queued"]
-        telemetry["queue"] = {
-            "total_queued": len(queued),
-            "priority_topics": [t.get("title") for t in queued if t.get("priority", 0) > 0],
-        }
-    except Exception:
-        telemetry["queue"] = {"total_queued": 0, "priority_topics": []}
-
-    return telemetry
+        pass
+    return ev
 
 
-def _query_llm(query: str, telemetry: Dict[str, Any]) -> Optional[str]:
-    """Attempts to synthesize an explanation using Gemini or Claude if configured."""
-    # 1. Try Gemini Interactions API / Gemini Generate Content if GEMINI_API_KEY configured
-    if config.is_configured(config.GEMINI_API_KEY):
-        try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{config.GEMINI_MODEL}:generateContent"
-            headers = {"Content-Type": "application/json", "x-goog-api-key": config.GEMINI_API_KEY}
-            system_instruction = (
-                "You are Antigravity (AGY), the autonomous AI engineering lead for Relic & Riddle. "
-                "The human operator is probing system decisions via Telegram. "
-                "Answer concisely (max 3-4 bullet points or 150 words), using professional documentary engineering tone. "
-                "Format using Telegram HTML (<b>, <i>, <code>). Never use Markdown like ** or `."
-            )
-            context_block = json.dumps(telemetry, indent=2, ensure_ascii=False)
-            body = {
-                "systemInstruction": {"parts": [{"text": system_instruction}]},
-                "contents": [{"parts": [{"text": f"System Telemetry State:\n{context_block}\n\nOperator Question:\n{query}"}]}],
-                "generationConfig": {"temperature": 0.2, "maxOutputTokens": 1024, "thinkingConfig": {"thinkingBudget": 0}}
-            }
-            resp = requests.post(url, headers=headers, json=body, timeout=12)
-            if resp.ok:
-                candidates = resp.json().get("candidates", [])
-                if candidates:
-                    parts = candidates[0].get("content", {}).get("parts", [])
-                    if parts and parts[0].get("text"):
-                        return parts[0]["text"].strip()
-        except Exception as e:
-            log.warning("Gemini probe query failed: %s", e)
-
-    # 2. Try Anthropic if ANTHROPIC_API_KEY configured
-    if config.is_configured(config.ANTHROPIC_API_KEY):
-        try:
-            import anthropic
-            client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
-            prompt = (
-                f"You are Antigravity (AGY), the autonomous AI engineering lead for Relic & Riddle.\n"
-                f"Answer the operator's query concisely (max 150 words) using Telegram HTML tags (<b>, <i>, <code>).\n"
-                f"Telemetry Data:\n{json.dumps(telemetry, indent=2)}\n\nOperator Question: {query}"
-            )
-            msg = client.messages.create(
-                model=config.CLAUDE_MODEL,
-                max_tokens=300,
-                temperature=0.2,
-                messages=[{"role": "user", "content": prompt}]
-            )
-            if msg.content and hasattr(msg.content[0], "text"):
-                return msg.content[0].text.strip()
-        except Exception as e:
-            log.warning("Claude probe query failed: %s", e)
-
-    return None
-
-
-def _deterministic_diagnose(query: str, telemetry: Dict[str, Any]) -> str:
-    """Deterministic fallback diagnostic engine for instant, zero-cost responses."""
-    q = query.lower()
-    lines: List[str] = []
-
-    last_run = telemetry.get("last_run", {})
-    run_id = last_run.get("run_id", "none")
-    status = last_run.get("status", "unknown")
-    providers = telemetry.get("providers", {})
-    budgets = telemetry.get("budgets", {})
-    notes = telemetry.get("metadata_notes", {})
-
-    # Motion / Kling / Veo queries
-    if any(k in q for k in ("kling", "veo", "motion", "video generation", "animate")):
-        lines.append("🎬 <b><u>Motion Synthesis Diagnostics</u>:</b>")
-        if "kling" in q:
-            if not providers.get("kling_configured"):
-                lines.append("• <b>Kling API Status:</b> <code>Unconfigured</code> (missing <code>KLING_API_KEY</code>).")
-            else:
-                lines.append("• <b>Kling API Status:</b> <code>Configured & Active</code>.")
-        if "veo" in q:
-            lines.append("• <b>Veo:</b> retired (Google shut down Veo 3.1 Preview on 22 Oct 2026); Kling is the AI motion provider.")
-        
-        motion_note = notes.get("motion_note")
-        if motion_note:
-            lines.append(f"• <b>Active Decision:</b> {html.escape(motion_note)}")
-        else:
-            lines.append("• <b>Active Decision:</b> Zero-cost <b>2.5D GPU parallax depth</b> was utilized to preserve authentic archival geometry and conserve media budget.")
-
-        lines.append(f"• <b>Media Budget:</b> <code>${budgets.get('media_spent_this_month', 0):.2f}</code> used of <code>${budgets.get('media_budget_usd', 0):.2f}</code> cap.")
-
-    # Voice / Audio queries
-    elif any(k in q for k in ("voice", "audio", "tts", "fallback", "elevenlabs", "azure", "edge")):
-        lines.append("🎙️ <b><u>Acoustic & Voice Diagnostics</u>:</b>")
-        v_rec = telemetry.get("voice_record", {})
-        prov = v_rec.get("provider", "edge-tts")
-        lic = "🟢 Licensed" if v_rec.get("licensed") else "🟡 Unlicensed (Review / Test Only)"
-        lines.append(f"• <b>Last Voice Provider:</b> <code>{html.escape(prov)}</code> ({lic})")
-        if not providers.get("azure_configured") and not providers.get("elevenlabs_configured"):
-            lines.append("• <b>Commercial License Notice:</b> Neither Azure Speech nor paid ElevenLabs key is configured. Edge-TTS is active for local testing.")
-        lines.append("• <b>Resilience:</b> Edge-TTS runs with exponential backoff and rotating endpoints to prevent rate limits.")
-
-    # QA / Loudness / Visual Quality
-    elif any(k in q for k in ("qa", "quality", "loudness", "lufs", "check", "review", "rejected", "reject")):
-        lines.append("🔎 <b><u>Automated Quality Assurance Diagnostics</u>:</b>")
-        qa_rep = telemetry.get("qa_report") or {}
-        issues = qa_rep.get("issues", [])
-        if issues:
-            lines.append(f"• <b>Issues Flagged ({len(issues)}):</b>")
-            for iss in issues[:3]:
-                lines.append(f"  · [{html.escape(iss.get('severity', 'info'))}] {html.escape(iss.get('issue', ''))}")
-        else:
-            lines.append("• <b>Visual / Audio Audit:</b> Passed with zero critical defects.")
-        lines.append("• <b>Audio Mastering:</b> Standardized to <code>EBU R128 (-14.0 LUFS)</code>.")
-
-    # Queue & Priority queries
-    elif any(k in q for k in ("queue", "priority", "bump", "next", "topics")):
-        q_info = telemetry.get("queue", {})
-        lines.append("📋 <b><u>Production Slate Diagnostics</u>:</b>")
-        lines.append(f"• <b>Total Queued:</b> <code>{q_info.get('total_queued', 0)}</code> topics")
-        prios = q_info.get("priority_topics", [])
-        if prios:
-            lines.append(f"• <b>Priority #1 Topic(s):</b> {', '.join(html.escape(p) for p in prios)}")
-        else:
-            lines.append("• <b>Priority:</b> Standard algorithmic round-robin scheduling active.")
-
-    # Default / General run telemetry
-    else:
-        lines.append("⚙️ <b><u>Active Pipeline Telemetry</u>:</b>")
-        lines.append(f"• <b>Latest Run:</b> <code>{html.escape(run_id)}</code>")
-        lines.append(f"• <b>Run Status:</b> <code>{html.escape(status)}</code>")
-        if last_run.get("error"):
-            lines.append(f"• <b>Last Recorded Error:</b> <code>{html.escape(str(last_run['error'])[:200])}</code>")
-        else:
-            lines.append("• <b>Health:</b> All pipeline stages operating nominal.")
-        lines.append(f"• <b>Queued Topics:</b> <code>{telemetry.get('queue', {}).get('total_queued', 0)}</code> ready for production.")
-
-    return "\n".join(lines)
+def _deterministic(ev: Dict[str, Any]) -> str:
+    """The records as they are (no model): run status, card notes, open release checks, errors."""
+    e = html.escape
+    lines = []
+    run = ev.get("run") or {}
+    if run:
+        lines.append(f"<b>Status:</b> {e(str(run.get('status')))}" + (f" — {e(str(run.get('error'))[:200])}" if run.get("error") else ""))
+    for k, v in (ev.get("review card notes") or {}).items():
+        lines.append(f"• {e(re.sub(r'<[^>]+>', '', str(v)))[:220]}")
+    checks = ev.get("release_report.json")
+    if isinstance(checks, list):
+        open_checks = [c for c in checks if c.get("status") != "pass"]
+        lines.append("<b>Release gate:</b> " + ("all checks pass" if not open_checks else
+                                                 "; ".join(f"{e(c['name'])} {e(c['status'])}" for c in open_checks)))
+    for line in (ev.get("log warnings/errors during the run") or [])[-5:]:
+        lines.append(f"<code>{e(line[20:180])}</code>")
+    return "\n".join(lines) or "Nothing is recorded for this run yet."
 
 
 def probe_system(query: str, db: PipelineDatabase, assets_dir: Optional[Path] = None) -> str:
-    """Answers operator questions using live telemetry, run artifacts, and AI reasoning."""
-    clean_query = query.strip()
-    if not clean_query:
-        return (
-            "🔍 <b><u>PROBE SYSTEM (AGY)</u></b>\n\n"
-            "Tap to copy & edit: <code>/ask Why did the system reject Kling motion in the last run?</code>\n\n"
-            "<i>Usage: <code>/ask &lt;question&gt;</code> (or <code>/probe</code>)\n"
-            "Ask AGY anything about pipeline decisions, run diagnostics, QA reports, budgets, or media lineage.</i>"
-        )
+    question = query.strip()
+    if not question:
+        return USAGE
+    run = resolve_run(db, question)
+    ev = evidence(db, run)
+    header = f"🔍 <b>Q:</b> <i>{html.escape(question[:300])}</i>\n"
+    if run:
+        header += f"<b>Run:</b> {html.escape(ev['run']['label'])}\n"
+    body, records = None, []
+    try:
+        from . import free_llm
+        if free_llm.ready():
+            ans = free_llm.call(
+                "You answer a video producer's question about one production run of an automated history-documentary "
+                "pipeline. Use ONLY the records given; never guess or add general knowledge about how such systems "
+                "usually work. Name the record each point comes from. If the records do not contain the answer, set "
+                "recorded=false and say plainly that it isn't recorded, and which record would have shown it. Plain "
+                "text, at most 120 words.",
+                f"<records>\n{json.dumps(ev, ensure_ascii=False, default=str)[:60000]}\n</records>\n\nQuestion: {question}",
+                _Answer, role="checker", task_class="light", effort="low", max_tokens=600)
+            body = html.escape(ans.answer.strip())
+            records = ans.records if ans.recorded else []
+            if not ans.recorded:
+                body = "⚪ " + body
+    except Exception as e:
+        log.info("/ask model unavailable (%s); showing the records.", e)
+    if body is None:
+        body = "<i>(No model available; here are the records.)</i>\n" + _deterministic(ev)
+    tail = f"\n\n<i>From: {html.escape(', '.join(records[:6]))}</i>" if records else ""
+    return header + "\n" + body + tail
 
-    assets_path = assets_dir or config.ASSETS_DIR
-    telemetry = gather_system_telemetry(db, assets_path, query=clean_query)
-
-    ai_answer = _query_llm(clean_query, telemetry)
-    if ai_answer:
-        answer_body = ai_answer
-    else:
-        answer_body = _deterministic_diagnose(clean_query, telemetry)
-
-    return (
-        f"🔍 <b><u>SYSTEM INTELLIGENCE (AGY)</u></b>\n\n"
-        f"<b>Q:</b> <i>{html.escape(clean_query)}</i>\n\n"
-        f"{answer_body}"
-    )

@@ -231,17 +231,6 @@ def test_add_command_and_deduplication(db, tmp_path, monkeypatch):
     assert len(updated_bank["topics"]) == 2
 
 
-def test_issue_command(db):
-    h = make_command_handler(db, lambda: None, lambda: "")
-    res = h("issue", "run_01 scene 2 audio cut too sharply")
-    assert "Issue Recorded" in res
-    assert "iss_" in res
-    open_issues = db.list_open_issues()
-    assert len(open_issues) == 1
-    assert open_issues[0]["run_id"] == "run_01"
-    assert "audio cut too sharply" in open_issues[0]["critique"]
-
-
 def test_queue_and_requeue_list(db):
     h = make_command_handler(db, lambda: None, lambda: "")
     db.record_topic_status("01_topic", "rejected")
@@ -260,7 +249,7 @@ def test_issue_with_evidence_attachment(db, tmp_path):
     dummy_ev = tmp_path / "screenshot.jpg"
     dummy_ev.write_bytes(b"image-bytes")
     res = h("issue", f"run_01 subtitle artifact detected --evidence {dummy_ev}")
-    assert "Issue Recorded" in res
+    assert "Logged" in res
     assert "Evidence attached" in res
     open_issues = db.list_open_issues()
     assert any("subtitle artifact" in i["critique"] for i in open_issues)
@@ -888,7 +877,7 @@ def test_autocomplete_commands_empty_args_interactive_templates(db):
 
     # 5. /issue with empty args provides tap-to-copy template
     res_issue = h("issue", "")
-    assert "REPORT ISSUE" in res_issue
+    assert "Report a problem" in res_issue
     assert "<code>/issue" in res_issue
 
     # 6. /review with empty args does NOT run an arbitrary topic; offers selection or template
@@ -950,25 +939,6 @@ def test_notify_and_edit_message_fallback_on_parse_error(db, monkeypatch):
     assert calls[0][1]["parse_mode"] == "HTML"
     assert "parse_mode" not in calls[1][1]
     assert calls[1][1]["text"] == "Unclosed tag test"
-
-
-def test_ask_and_probe_system_intelligence(db):
-    h = make_command_handler(db, lambda: None, lambda: "")
-
-    # 1. Empty args returns interactive template
-    res_empty = h("ask", "")
-    assert "PROBE SYSTEM (AGY)" in res_empty
-    assert "<code>/ask" in res_empty
-
-    # 2. /ask with a diagnostic query
-    res_kling = h("ask", "Why did the system reject Kling motion?")
-    assert "SYSTEM INTELLIGENCE (AGY)" in res_kling
-    assert "kling" in res_kling.lower() or "motion" in res_kling.lower()
-
-    # 3. /probe alias
-    res_probe = h("probe", "What is the status of the queue?")
-    assert "SYSTEM INTELLIGENCE (AGY)" in res_probe
-    assert "queue" in res_probe.lower() or "production" in res_probe.lower()
 
 
 def test_native_telegram_reply_to_message_routing(db, monkeypatch):

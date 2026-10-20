@@ -35,8 +35,13 @@ RESULTS = OUT / "results.jsonl"
 
 
 @contextmanager
-def variant(name: str):
-    system, rules = VARIANTS[name]
+def variant(name: str, candidate_rule: str = ""):
+    """A named variant, or "candidate:<proposal id>": the current prompts plus one rule under test."""
+    if name.startswith("candidate:"):
+        system = script_engine.SYSTEM_PROMPT
+        rules = script_engine.FACTS_ONLY_RULES + "\n\nAlso follow this rule:\n- " + candidate_rule
+    else:
+        system, rules = VARIANTS[name]
     saved = script_engine.SYSTEM_PROMPT, script_engine.FACTS_ONLY_RULES
     script_engine.SYSTEM_PROMPT, script_engine.FACTS_ONLY_RULES = system, rules
     try:
@@ -81,6 +86,43 @@ def summarize(rows: List[Dict]) -> str:
              else "tie"] += 1
     lines.append(f"paired by topic: general better {wins['general']}, current better {wins['current']}, tie {wins['tie']}")
     return "\n".join(lines)
+
+
+def load_rows() -> List[Dict]:
+    return [json.loads(line) for line in RESULTS.read_text(encoding="utf-8").splitlines()] if RESULTS.exists() else []
+
+
+def run_candidates(db, max_drafts: int = 4) -> List[Dict]:
+    """Nightly, for the improvement loop: drafts for each candidate rule under test and the current
+    prompts on the same topics, at most max_drafts per night, free quota only. Returns all rows."""
+    from src import free_llm, improve
+    from src.asset_pipeline import pool_ready
+    free_llm.ALLOW_PAID_FALLBACK = False
+    OUT.mkdir(parents=True, exist_ok=True)
+    rows = load_rows()
+    done = {(r["topic"], r["variant"], r["run"]) for r in rows}
+    topics = [t for t in db.list_all_topics() if pool_ready(t["id"])][:improve.EVAL_MIN_TOPICS + 2]
+    engine, drafted = script_engine.ScriptEngine(), 0
+    try:
+        for p in improve.proposals(db, "testing"):
+            rule, cand = (p.get("change") or {}).get("rule", ""), f"candidate:{p['id']}"
+            for t in topics:
+                for v in ("current", cand):
+                    if drafted >= max_drafts:
+                        return rows
+                    if (t["id"], v, 1) in done:
+                        continue
+                    with variant(v, rule):
+                        result = score_draft(t, engine)
+                    drafted += 1
+                    row = {"topic": t["id"], "variant": v, "run": 1, **result}
+                    rows.append(row)
+                    done.add((t["id"], v, 1))
+                    with RESULTS.open("a", encoding="utf-8") as f:
+                        f.write(json.dumps(row) + "\n")
+    except (LLMError, fact_sheet.FactStarvedTopicError, ValueError) as e:
+        print(f"Candidate eval paused: {str(e)[:160]}")
+    return rows
 
 
 def main() -> int:

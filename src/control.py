@@ -1312,74 +1312,78 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command == "uskip":
             return f"✖ Skipped UNESCO site #{html.escape(args.strip())}."
         if command in ("ask", "probe", "query", "why"):
-            raw_input = args.strip()
-            if not raw_input:
-                return (
-                    "🔍 <b><u>PROBE SYSTEM (AGY)</u></b>\n\n"
-                    "Tap to copy & edit: <code>/ask Why did the system reject Kling motion in the last run?</code>\n\n"
-                    "<i>Usage: <code>/ask &lt;question&gt;</code> (or <code>/probe</code>)\n"
-                    "Ask AGY anything about pipeline decisions, run diagnostics, QA reports, budgets, or media lineage.</i>"
-                )
             from .probe import probe_system
-            return probe_system(raw_input, db=db, assets_dir=assets_dir)
+            return probe_system(args.strip(), db=db, assets_dir=assets_dir)
 
         if command in ("issue", "critique", "bug"):
             raw_input = args.strip()
             if not raw_input:
-                return (
-                    "🛠️ <b><u>REPORT ISSUE</u></b>\n\nTap to copy & edit: <code>/issue run_01 scene 2 audio cut too sharply</code>\n\n"
-                    "<i>Usage: <code>/issue &lt;critique or description&gt;</code>\n"
-                    "Tip: Tap the code box above to copy, edit details, and send! (Or attach media with /issue caption)</i>"
-                )
+                return ("🛠️ <b>Report a problem</b>\n\n<code>/issue run 12 the map label covers the pin</code>\n\n"
+                        "<i>Name the run (its number on the card) if it's about one; attach a photo or clip with "
+                        "/issue as its caption. It goes into the improvement ledger with that run's records.</i>")
             evidence_path = None
             critique = raw_input
             if "--evidence" in raw_input:
                 crit_part, _, ev_part = raw_input.partition("--evidence")
-                critique = crit_part.strip()
-                evidence_path = ev_part.strip()
-            ts_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-            issue_id = f"iss_{ts_str}"
-            run_id = None
-            for part in critique.split():
-                if part.startswith("run_"):
-                    run_id = part.strip(",.:;")
-                    break
+                critique, evidence_path = crit_part.strip(), ev_part.strip()
+            from .probe import resolve_run
+            named = re.search(r"\brun[ _#]?(\d+)\b|\b(run_\w+)", critique, re.IGNORECASE)
+            run = resolve_run(db, critique) if named else None
+            run_id = run["run_id"] if run else None
+            issue_id = "iss_" + datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             db.record_issue(issue_id, critique, run_id=run_id, evidence_path=evidence_path)
+            from . import improve
+            klass = improve.triage_issue(db, issue_id, critique, run_id)
             from . import config as _config
-            issues_dir = _config.ISSUES_DIR
-            issues_dir.mkdir(parents=True, exist_ok=True)
-            issue_file = issues_dir / f"{issue_id}.md"
-            ev_line = f"- **Evidence**: `{evidence_path}`" if evidence_path else "- **Evidence**: None attached"
-            content = f"""# Issue {issue_id}
+            _config.ISSUES_DIR.mkdir(parents=True, exist_ok=True)
+            (_config.ISSUES_DIR / f"{issue_id}.md").write_text(
+                f"# {issue_id}\n\n- Created: {datetime.now(timezone.utc).isoformat()}\n- Run: {run_id or 'not named'}\n"
+                f"- Class: {klass}\n- Evidence: {evidence_path or 'none'}\n- Status: open\n\n## Report\n{critique}\n",
+                encoding="utf-8")
+            recurring = next((r for r in improve.recurring(db, min_count=1) if r["klass"] == klass), None)
+            seen = f" Seen {recurring['count']}× in {improve.RECURRENCE_DAYS} days." if recurring and recurring["count"] > 1 else ""
+            return (f"🛠️ <b>Logged</b> as <code>{html.escape(klass)}</code>"
+                    + (f" for {html.escape(db.run_label(run_id))}" if run_id else "") + f".{seen}\n"
+                    + (f"Evidence attached: <code>{html.escape(Path(evidence_path).name)}</code>\n" if evidence_path else "")
+                    + "<i>It counts toward an improvement proposal once it recurs; /improve shows what's pending.</i>")
 
-- **Created**: {datetime.now(timezone.utc).isoformat()}
-- **Run ID**: {run_id or "Not specified"}
-- **Status**: OPEN
-- **Source**: Telegram Command (`/issue`)
-{ev_line}
-
-## User Critique
-{critique}
-
-## Antigravity (AGY) Autonomous Diagnosis & Action Plan
-1. **Analyze Component**:
-   - Check related pipeline stage logs (narration, audio_engine, video_composer, motion, graphics).
-   - Review attached evidence file if provided.
-2. **Root-Cause Investigation**:
-   - Reproduce the failure or review the output artifact.
-3. **Remediation**:
-   - If non-breaking architectural fix is available: implement, run test suite (`pytest -q`), and verify zero regressions.
-   - If requiring subjective editorial judgment or external credentials: queue for collaborative pairing with human creator.
-4. **CI/CD Delivery**:
-   - Commit verified fix with reference to `{issue_id}`.
-   - Push to `main` to trigger cleanroom CI/CD build and verification before deployment.
-"""
-            issue_file.write_text(content, encoding="utf-8")
-            ev_msg = f"\nEvidence attached: <code>{html.escape(Path(evidence_path).name)}</code>" if evidence_path else ""
-            critique_display = html.escape(critique)
-            return (f"🛠️ <b>Issue Recorded</b>: <code>{issue_id}</code>\n"
-                    f"Saved to <code>docs/issues/{issue_id}.md</code> for autonomous Antigravity (AGY) root-cause investigation.{ev_msg}\n\n"
-                    f"<blockquote expandable><b>Critique:</b>\n<i>{critique_display}</i></blockquote>")
+        if command == "improve":
+            from . import improve
+            text, buttons = improve.improve_text(db)
+            if send_message and buttons:
+                send_message(text, buttons)
+                return ""
+            return text
+        if command == "impinfo":
+            from . import improve
+            p = improve.get_proposal(db, args.strip())
+            if not p:
+                return "That proposal no longer exists."
+            text, buttons = improve.card(p)
+            if send_message:
+                send_message(text, buttons)
+                return ""
+            return text
+        if command in ("impok", "impno", "imprev"):
+            from . import improve
+            pid = args.strip()
+            fn = {"impok": improve.adopt, "impno": improve.decline, "imprev": improve.revert}[command]
+            return fn(db, pid, by="telegram")
+        if command == "rsn":
+            from . import improve
+            key, _, reason = args.partition(":")
+            run_id = db.resolve_run(key)
+            appr = db.get_approval(run_id) or {}
+            improve.record_reason(db, run_id, reason, appr.get("decision", ""))
+            return (f"✅ Reason: <b>{html.escape(improve.REASONS.get(reason, reason))}</b>. "
+                    f"Reply to this message to add details. [run {html.escape(key)}]")
+        if command == "whytext":
+            from . import improve
+            key, _, text = args.partition(" ")
+            run_id = db.resolve_run(key)
+            prev = improve.operator_feedback(db, run_id) or {}
+            improve.record_reason(db, run_id, prev.get("reason", "other"), prev.get("decision", ""), text.strip())
+            return "📝 Thanks — noted" + (" and passed to the new version." if prev.get("decision") == "regenerate" else ".")
         if command == "run":
             return trigger_run()
         return f"Unknown command /{html.escape(command)}. Send /help."

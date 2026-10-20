@@ -512,7 +512,20 @@ class TelegramApprovalBot:
                 self._api("sendMessage", data={"chat_id": self.chat_id, "parse_mode": "HTML", "text": updated_text})
         except Exception as e:
             log.warning("Could not update Telegram card: %s", e)
+        if decision in ("rejected", "regenerate"):
+            self.ask_reason(run_id, decision)
         return decision
+
+    def ask_reason(self, run_id: str, decision: str) -> None:
+        """One tap tells the system what was wrong; it goes to the improvement ledger and, for a
+        regenerate, into the new run (script revised, or pictures re-planned)."""
+        from .improve import REASONS
+        key = self.db.run_key(run_id)
+        buttons = [{"text": label, "callback_data": f"rsn:{key}:{code}"} for code, label in REASONS.items()]
+        verb = "regenerate" if decision == "regenerate" else "reject"
+        self.notify(f"📝 <b>Why {verb}?</b> One tap helps the next version (and the system) improve. "
+                    f"After tapping, you can reply to this message with details. [run {html.escape(key)}]",
+                    buttons=buttons, record_alert=False)
 
     # ------------------------------------------------------------ notifications
     def notify(self, text: str, buttons: Optional[list] = None, transient: bool = False, ttl_minutes: int = 60, record_alert: bool = True, silent: bool = False) -> bool:
@@ -1103,6 +1116,10 @@ class TelegramApprovalBot:
                                else "▶️ Resumed" if action == "cresume"
                                else "🏛️ Cockpit" if action == "cdash"
                                else "🧪 Simulated Publish Complete" if action == "simpub"
+                               else "📝 Noted" if action == "rsn"
+                               else "✅ Done" if action == "impok"
+                               else "✖ Declined" if action == "impno"
+                               else "↩ Reverted" if action == "imprev"
                                else "Done!")
                         self._answer_callback(cq["id"], ans)
                         if action == "cdash" and msg_id:
@@ -1111,13 +1128,14 @@ class TelegramApprovalBot:
                             next_fn = getattr(self, "next_run_func", lambda: None)
                             dash_text, dash_buttons = dashboard_text_and_buttons(self.db, next_fn(), assets_dir=ASSETS_DIR)
                             self.edit_message_text(msg_id, dash_text, buttons=dash_buttons)
-                        elif action in ("uadd", "tadd", "qbump", "qdrop", "qrefresh", "qrender", "cpause", "cresume", "cprog", "simpub") and msg_id:
+                        elif action in ("uadd", "tadd", "qbump", "qdrop", "qrefresh", "qrender", "cpause", "cresume", "cprog", "simpub",
+                                        "rsn", "impok", "impno", "imprev") and msg_id:
                             self.edit_message_text(msg_id, reply)
                         elif action in ("imgok", "mkeep", "cov") and msg_id:
                             self.edit_message_any(msg_id, reply, is_media=is_media)
                         elif action in ("uskip", "tskip", "imgcancel", "mcancel", "mdel"):
                             pass  # Card was deleted; callback answer gave user instant toast
-                        else:
+                        elif reply:  # empty when the handler already sent its own card
                             self.notify(reply, record_alert=False)
                     except Exception as e:
                         self._answer_callback(cq["id"], "Failed")
@@ -1223,6 +1241,12 @@ class TelegramApprovalBot:
                 command, _, args = text[1:].partition(" ")
                 command = command.split("@")[0].lower()
                 audit_payload = text
+            elif reply_to and re.search(r"\[run (\d+)\]", reply_to.get("text") or "") and \
+                    (reply_to.get("text") or "").startswith(("📝", "✅ Reason")):
+                # A reply to a "Why reject/regenerate?" card: the details of that reason
+                command = "whytext"
+                args = re.search(r"\[run (\d+)\]", reply_to["text"]).group(1) + " " + text
+                audit_payload = f"/whytext {text[:80]}"
             elif reply_to:
                 # Native Telegram swipe-to-reply: treat as contextual /ask query
                 parent_text = (reply_to.get("text") or reply_to.get("caption") or "").strip()

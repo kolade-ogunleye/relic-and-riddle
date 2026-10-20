@@ -39,8 +39,9 @@
     "keywords": ["trepan", "trephin"]
   },
   "nazca_lines_runway_paradox": {
-    "queries": ["Nazca lines", "Nazca hummingbird", "Nasca lines aerial"],
-    "keywords": ["nazca", "nasca"]
+    "queries": ["Nazca lines", "Nazca hummingbird", "Nasca lines aerial", "Nazca geoglyph"],
+    "keywords": ["nazca line", "nasca line", "geoglyph", "nazca hummingbird", "nazca astronaut", "nazca monkey"],
+    "exclude": ["plaza de armas", "panamericana", "cemetery", "hotel", "street"]
   },
   "sunken_city_of_heracleion": {
     "queries": ["Thonis-Heracleion", "Heracleion", "Sunken cities Egypt exhibition", "Abu Qir Bay"],
@@ -81,11 +82,13 @@
   "lycurgus_cup_nanotech": {"queries": ["Lycurgus Cup"], "keywords": ["lycurgus cup"]},
   "wieliczka_salt_mine": {
     "queries": ["Wieliczka salt mine chapel", "Wieliczka Salt Mine", "St. Kinga's Chapel Wieliczka"],
-    "keywords": ["wieliczka"]
+    "keywords": ["wieliczka"],
+    "exclude": ["court", "street", "city park", "railway station", "town hall", "market square"]
   },
   "great_wall_of_gorgan": {
-    "queries": ["Great Wall of Gorgan", "Gorgan Wall", "Alexander's Wall Gorgan"],
-    "keywords": ["gorgan"]
+    "queries": ["Great Wall of Gorgan", "Gorgan Wall", "Alexander's Wall Gorgan", "Sadd-i Iskandar", "Red Snake wall"],
+    "keywords": ["great wall of gorgan", "gorgan wall", "wall of gorgan", "sadd-i iskandar", "red snake"],
+    "exclude": ["skyline", "forest", "jangal", "newspaper", "igor", "shahrood", "alangdarre", "street", "university"]
   },
   "dancing_plague_1518": {
     "queries": ["dancing mania", "Pilgrims dancing Molenbeek", "dancing plague 1518", "choreomania"],

@@ -23,7 +23,16 @@
       "lat": 20.020607,
       "lon": 75.177338,
       "relevance": 10.0,
-      "file": "01_commons.jpg"
+      "file": "01_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows a subsidiary rock-cut shrine within the Kailasa temple complex at Ellora.",
+        "kept": true
+      }
     },
     {
       "title": "File:Premises of Cave no 16, Ellora, Maharashtra, India 46.jpg",
@@ -50,7 +59,16 @@
       "lat": 20.023767,
       "lon": 75.179405,
       "relevance": 10.0,
-      "file": "02_commons.jpg"
+      "file": "02_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Clear view of the monolithic dhvajastambha (obelisk pillar) and courtyard elephant carved from solid rock.",
+        "kept": true
+      }
     },
     {
       "title": "File:Ellora Caves, India, Kailasanatha Temple 2.jpg",
@@ -76,7 +94,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "03_commons.jpg"
+      "file": "03_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows the elephant frieze along the plinth of the Kailasa temple and the surrounding excavated courtyard.",
+        "kept": true
+      }
     },
     {
       "title": "File:Kailasa Temple Cave 16 Hindu Cave Ellora Caves India - panoramio (4).jpg",
@@ -102,60 +129,16 @@
       "lat": 20.023622,
       "lon": 75.178962,
       "relevance": 10.0,
-      "file": "04_commons.jpg"
-    },
-    {
-      "title": "File:Premises of Cave no 16, Ellora, Maharashtra, India 19.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/33/Premises_of_Cave_no_16%2C_Ellora%2C_Maharashtra%2C_India_19.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Premises_of_Cave_no_16,_Ellora,_Maharashtra,_India_19.jpg",
-      "artist": "Anjan Kumar Kundu",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2025,
-      "width": 5504,
-      "height": 8256,
-      "grade": 0,
-      "description": "Premises of Cave no 16, Ellora, Maharashtra, Inida",
-      "categories": [
-        "Wiki Exploration Program",
-        "Self-published work",
-        "Supported by West Bengal Wikimedians User Group",
-        "Files with coordinates missing SDC location of creation",
-        "Stand-alone pilasters in the Kailash temple (Ellora)",
-        "Wiki Explores Aurangabad I (Photographs by Anjan Kumar Kundu)",
-        "Wiki Explores Aurangabad I"
-      ],
-      "lat": 20.023767,
-      "lon": 75.179405,
-      "relevance": 10.0,
-      "file": "05_commons.jpg"
-    },
-    {
-      "title": "File:Ellora Caves, India, Kailasanatha Temple.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/2/21/Ellora_Caves%2C_India%2C_Kailasanatha_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Ellora_Caves,_India,_Kailasanatha_Temple.jpg",
-      "artist": "Vyacheslav Argenberg",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2007,
-      "width": 3072,
-      "height": 2048,
-      "grade": 0,
-      "description": "Kailasanatha temple is a megalith carved out of one single basalt rock. Its construction is attributed to king Krishna I (c. 8th century). It is one of the most remarkable cave temples in India because of its size, architecture and sculptural treatment. Ellora Caves, Aurangabad, Maharashtra, India. 600–1000 CE.",
-      "categories": [
-        "Photos by Vyacheslav Argenberg",
-        "Kailasa Temple, Ellora",
-        "Self-published work",
-        "Photos by Vyacheslav Argenberg in India",
-        "Photos by Vyacheslav Argenberg in 2007",
-        "Reliefs and sculptures at the Kailasa Temple, Ellora"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "06_commons.jpg"
+      "file": "04_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Broad view of the monolithic structures, pillars, and rock-cut pit of the Kailasa temple complex.",
+        "kept": true
+      }
     },
     {
       "title": "File:Kailasa Temple Cave 16 Hindu Cave Ellora Caves India - panoramio (7).jpg",
@@ -181,7 +164,16 @@
       "lat": 20.023877,
       "lon": 75.178997,
       "relevance": 10.0,
-      "file": "07_commons.jpg"
+      "file": "07_commons.jpg",
+      "vision_review": {
+        "index": 7,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Elevated view showing the life-sized monolithic elephant and the vertical rock cliff of the excavation pit.",
+        "kept": true
+      }
     },
     {
       "title": "File:Premises of Cave no 16, Ellora, Maharashtra, India 09.jpg",
@@ -208,7 +200,16 @@
       "lat": 20.023767,
       "lon": 75.179405,
       "relevance": 10.0,
-      "file": "08_commons.jpg"
+      "file": "08_commons.jpg",
+      "vision_review": {
+        "index": 8,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Detailed view of the rock-cut relief carvings on the Kailasa temple wall.",
+        "kept": true
+      }
     },
     {
       "title": "File:Ellora Caves, India, Kailash Temple, Majestic Interior.jpg",
@@ -233,7 +234,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "09_commons.jpg"
+      "file": "09_commons.jpg",
+      "vision_review": {
+        "index": 9,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows the opposite corridor view of the plinth elephants and rock-cut galleries.",
+        "kept": true
+      }
     },
     {
       "title": "File:Kailasa Temple Cave 16 Hindu Cave Ellora Caves India - panoramio (5).jpg",
@@ -259,7 +269,16 @@
       "lat": 20.023802,
       "lon": 75.179024,
       "relevance": 10.0,
-      "file": "10_commons.jpg"
+      "file": "10_commons.jpg",
+      "vision_review": {
+        "index": 10,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows the rock-cut gallery overhang, courtyard floor, and life-size elephant sculpture.",
+        "kept": true
+      }
     },
     {
       "title": "File:Premises of Cave no 16, Ellora, Maharashtra, India 10.jpg",
@@ -286,7 +305,16 @@
       "lat": 20.023767,
       "lon": 75.179405,
       "relevance": 10.0,
-      "file": "11_commons.jpg"
+      "file": "11_commons.jpg",
+      "vision_review": {
+        "index": 11,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Clear shot of detailed mythological deity reliefs carved directly into the temple wall.",
+        "kept": true
+      }
     },
     {
       "title": "File:Ellora Caves, India, Pillars at Kailasa Temple 2.jpg",
@@ -313,7 +341,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "12_commons.jpg"
+      "file": "12_commons.jpg",
+      "vision_review": {
+        "index": 12,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Dramatic low-angle perspective showing the monolithic pillar base and sculpted figures.",
+        "kept": true
+      }
     },
     {
       "title": "File:Kailasa Temple Cave 16 Hindu Cave Ellora Caves India - panoramio (11).jpg",
@@ -339,7 +376,16 @@
       "lat": 20.023635,
       "lon": 75.17901,
       "relevance": 10.0,
-      "file": "13_commons.jpg"
+      "file": "13_commons.jpg",
+      "vision_review": {
+        "index": 13,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Wide shot showing the rock-cut entrance gateway, bridges, and multi-story architecture of the complex.",
+        "kept": true
+      }
     },
     {
       "title": "File:Premises of Cave no 16, Ellora, Maharashtra, India 11.jpg",
@@ -367,7 +413,16 @@
       "lat": 20.023767,
       "lon": 75.179405,
       "relevance": 10.0,
-      "file": "14_commons.jpg"
+      "file": "14_commons.jpg",
+      "vision_review": {
+        "index": 14,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Detailed close-up of the carved frieze with deities in niches along the gallery plinth.",
+        "kept": true
+      }
     },
     {
       "title": "File:Kailasa Temple Cave 16 Hindu Cave Ellora Caves India - panoramio (10).jpg",
@@ -393,7 +448,16 @@
       "lat": 20.023615,
       "lon": 75.179126,
       "relevance": 10.0,
-      "file": "15_commons.jpg"
+      "file": "15_commons.jpg",
+      "vision_review": {
+        "index": 15,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Good view of the tiered monolithic temple structure and sheer rock face.",
+        "kept": true
+      }
     },
     {
       "title": "File:Premises of Cave no 16, Ellora, Maharashtra, India 12.jpg",
@@ -421,61 +485,16 @@
       "lat": 20.023767,
       "lon": 75.179405,
       "relevance": 10.0,
-      "file": "16_commons.jpg"
-    },
-    {
-      "title": "File:Linga Kailasa Temple Cave 16 Hindu Cave Ellora Caves India - panoramio.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/d/d1/Linga_Kailasa_Temple_Cave_16_Hindu_Cave_Ellora_Caves_India_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Linga_Kailasa_Temple_Cave_16_Hindu_Cave_Ellora_Caves_India_-_panoramio.jpg",
-      "artist": "Hiroki Ogawa",
-      "license": "CC BY 3.0",
-      "license_url": "https://creativecommons.org/licenses/by/3.0",
-      "attribution_required": true,
-      "year": 2015,
-      "width": 1800,
-      "height": 2400,
-      "grade": 0,
-      "description": "Linga Kailasa Temple Cave 16 Hindu Cave Ellora Caves India",
-      "categories": [
-        "Panoramio files uploaded by Panoramio upload bot",
-        "Kailasa Temple, Ellora",
-        "Panoramio images reviewed by trusted users",
-        "Photos from Panoramio",
-        "Files with coordinates missing SDC location of creation",
-        "Photos from Panoramio ID 7204433"
-      ],
-      "lat": 20.023776,
-      "lon": 75.179262,
-      "relevance": 10.0,
-      "file": "17_commons.jpg"
-    },
-    {
-      "title": "File:Premises of Cave no 16, Ellora, Maharashtra, India 13.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/f4/Premises_of_Cave_no_16%2C_Ellora%2C_Maharashtra%2C_India_13.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Premises_of_Cave_no_16,_Ellora,_Maharashtra,_India_13.jpg",
-      "artist": "Anjan Kumar Kundu",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2025,
-      "width": 5400,
-      "height": 3600,
-      "grade": 0,
-      "description": "Premises of Cave no 16, Ellora, Maharashtra, Inida",
-      "categories": [
-        "Wiki Exploration Program",
-        "Ellora Caves",
-        "Kailasa Temple, Ellora",
-        "Self-published work",
-        "Supported by West Bengal Wikimedians User Group",
-        "Files with coordinates missing SDC location of creation",
-        "Wiki Explores Aurangabad I (Photographs by Anjan Kumar Kundu)",
-        "Wiki Explores Aurangabad I"
-      ],
-      "lat": 20.023767,
-      "lon": 75.179405,
-      "relevance": 10.0,
-      "file": "18_commons.jpg"
+      "file": "16_commons.jpg",
+      "vision_review": {
+        "index": 16,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows the colonnaded gallery carved directly into the rock wall perimeter of the courtyard.",
+        "kept": true
+      }
     },
     {
       "title": "File:Kailasa Temple Cave 16 Hindu Cave Ellora Caves India - panoramio.jpg",
@@ -501,7 +520,16 @@
       "lat": 20.023773,
       "lon": 75.179134,
       "relevance": 10.0,
-      "file": "19_commons.jpg"
+      "file": "19_commons.jpg",
+      "vision_review": {
+        "index": 19,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows the prominent monolithic Gajalakshmi panel carved at the entrance of Kailasa temple.",
+        "kept": true
+      }
     },
     {
       "title": "File:Premises of Cave no 16, Ellora, Maharashtra, India 16.jpg",
@@ -530,8 +558,163 @@
       "lat": 20.023767,
       "lon": 75.179405,
       "relevance": 10.0,
-      "file": "20_commons.jpg"
+      "file": "20_commons.jpg",
+      "vision_review": {
+        "index": 20,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows the intricately carved epic narrative panels (Mahabharata/Ramayana friezes) and rock-cut bridge.",
+        "kept": true
+      }
     }
   ],
-  "review_note": "Reviewed 2026-10-20: kept 20 of 20"
+  "review_note": "Vision review 2026-10-20: kept 16 of 20",
+  "reviewed_by": "vision",
+  "rejected_by_review": [
+    {
+      "title": "File:Premises of Cave no 16, Ellora, Maharashtra, India 19.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/3/33/Premises_of_Cave_no_16%2C_Ellora%2C_Maharashtra%2C_India_19.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Premises_of_Cave_no_16,_Ellora,_Maharashtra,_India_19.jpg",
+      "artist": "Anjan Kumar Kundu",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 5504,
+      "height": 8256,
+      "grade": 0,
+      "description": "Premises of Cave no 16, Ellora, Maharashtra, Inida",
+      "categories": [
+        "Wiki Exploration Program",
+        "Self-published work",
+        "Supported by West Bengal Wikimedians User Group",
+        "Files with coordinates missing SDC location of creation",
+        "Stand-alone pilasters in the Kailash temple (Ellora)",
+        "Wiki Explores Aurangabad I (Photographs by Anjan Kumar Kundu)",
+        "Wiki Explores Aurangabad I"
+      ],
+      "lat": 20.023767,
+      "lon": 75.179405,
+      "relevance": 10.0,
+      "file": "05_commons.jpg",
+      "vision_review": {
+        "index": 5,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 2,
+        "reason": "Shows the same monolithic pillar and elephant as Photo 2 from nearly the same angle with flatter lighting.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Ellora Caves, India, Kailasanatha Temple.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/2/21/Ellora_Caves%2C_India%2C_Kailasanatha_Temple.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Ellora_Caves,_India,_Kailasanatha_Temple.jpg",
+      "artist": "Vyacheslav Argenberg",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2007,
+      "width": 3072,
+      "height": 2048,
+      "grade": 0,
+      "description": "Kailasanatha temple is a megalith carved out of one single basalt rock. Its construction is attributed to king Krishna I (c. 8th century). It is one of the most remarkable cave temples in India because of its size, architecture and sculptural treatment. Ellora Caves, Aurangabad, Maharashtra, India. 600–1000 CE.",
+      "categories": [
+        "Photos by Vyacheslav Argenberg",
+        "Kailasa Temple, Ellora",
+        "Self-published work",
+        "Photos by Vyacheslav Argenberg in India",
+        "Photos by Vyacheslav Argenberg in 2007",
+        "Reliefs and sculptures at the Kailasa Temple, Ellora"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "06_commons.jpg",
+      "vision_review": {
+        "index": 6,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 3,
+        "reason": "Nearly identical framing and perspective of the elephant plinth courtyard as Photo 3.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Linga Kailasa Temple Cave 16 Hindu Cave Ellora Caves India - panoramio.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/d/d1/Linga_Kailasa_Temple_Cave_16_Hindu_Cave_Ellora_Caves_India_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Linga_Kailasa_Temple_Cave_16_Hindu_Cave_Ellora_Caves_India_-_panoramio.jpg",
+      "artist": "Hiroki Ogawa",
+      "license": "CC BY 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0",
+      "attribution_required": true,
+      "year": 2015,
+      "width": 1800,
+      "height": 2400,
+      "grade": 0,
+      "description": "Linga Kailasa Temple Cave 16 Hindu Cave Ellora Caves India",
+      "categories": [
+        "Panoramio files uploaded by Panoramio upload bot",
+        "Kailasa Temple, Ellora",
+        "Panoramio images reviewed by trusted users",
+        "Photos from Panoramio",
+        "Files with coordinates missing SDC location of creation",
+        "Photos from Panoramio ID 7204433"
+      ],
+      "lat": 20.023776,
+      "lon": 75.179262,
+      "relevance": 10.0,
+      "file": "17_commons.jpg",
+      "vision_review": {
+        "index": 17,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Blurry, grainy, and low-light image of the Shiva Linga inside the inner sanctum.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Premises of Cave no 16, Ellora, Maharashtra, India 13.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/f4/Premises_of_Cave_no_16%2C_Ellora%2C_Maharashtra%2C_India_13.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Premises_of_Cave_no_16,_Ellora,_Maharashtra,_India_13.jpg",
+      "artist": "Anjan Kumar Kundu",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 5400,
+      "height": 3600,
+      "grade": 0,
+      "description": "Premises of Cave no 16, Ellora, Maharashtra, Inida",
+      "categories": [
+        "Wiki Exploration Program",
+        "Ellora Caves",
+        "Kailasa Temple, Ellora",
+        "Self-published work",
+        "Supported by West Bengal Wikimedians User Group",
+        "Files with coordinates missing SDC location of creation",
+        "Wiki Explores Aurangabad I (Photographs by Anjan Kumar Kundu)",
+        "Wiki Explores Aurangabad I"
+      ],
+      "lat": 20.023767,
+      "lon": 75.179405,
+      "relevance": 10.0,
+      "file": "18_commons.jpg",
+      "vision_review": {
+        "index": 18,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 16,
+        "reason": "Nearly identical view of the colonnaded wall gallery as Photo 16.",
+        "kept": false
+      }
+    }
+  ]
 }

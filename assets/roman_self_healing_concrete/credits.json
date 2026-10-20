@@ -28,30 +28,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "01_commons.jpg"
-    },
-    {
-      "title": "File:01 Pantheon Dome.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/f1/01_Pantheon_Dome.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:01_Pantheon_Dome.jpg",
-      "artist": "NateBergin",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2026,
-      "width": 6000,
-      "height": 6000,
-      "grade": 0,
-      "description": "01 Pantheon Dome",
-      "categories": [
-        "Self-published work",
-        "Files with coordinates missing SDC location of creation",
-        "Pantheon (Rome) - Dome interior"
-      ],
-      "lat": 41.898758,
-      "lon": 12.476794,
-      "relevance": 10.0,
-      "file": "02_commons.jpg"
+      "file": "01_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Shows an ancient Roman concrete coffered vault in Rome.",
+        "kept": true
+      }
     },
     {
       "title": "File:Roman concrete.jpg",
@@ -77,7 +63,16 @@
       "lat": 47.852396,
       "lon": 12.128635,
       "relevance": 5.0,
-      "file": "03_commons.jpg"
+      "file": "03_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Clear museum display of a chunk of ancient Roman concrete showing aggregate and mortar.",
+        "kept": true
+      }
     },
     {
       "title": "File:02 Pantheon Dome.jpg",
@@ -100,32 +95,16 @@
       "lat": 41.898778,
       "lon": 12.476781,
       "relevance": 10.0,
-      "file": "04_commons.jpg"
-    },
-    {
-      "title": "File:Pantheon (Rome), Dome interior.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/4c/Pantheon_%28Rome%29%2C_Dome_interior.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Pantheon_(Rome),_Dome_interior.jpg",
-      "artist": "Wilfredor",
-      "license": "CC0",
-      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-      "attribution_required": false,
-      "year": 2024,
-      "width": 5698,
-      "height": 4875,
-      "grade": 2,
-      "description": "Pantheon (Rome) - Dome interior",
-      "categories": [
-        "CC-Zero",
-        "Self-published work",
-        "Media created with Nikon Z7ii provided by the Quebec WikiClub",
-        "Pantheon (Rome) - Dome interior",
-        "Images from Roma Project"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 9.0,
-      "file": "05_commons.jpg"
+      "file": "04_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Wide-angle view of the Pantheon interior showcasing the massive unreinforced concrete dome.",
+        "kept": true
+      }
     },
     {
       "title": "File:Dome Interior of the Pantheon, Rome.jpg",
@@ -150,32 +129,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "06_commons.jpg"
-    },
-    {
-      "title": "File:Pantheon interior rome (14292258124).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/6/65/Pantheon_interior_rome_%2814292258124%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Pantheon_interior_rome_(14292258124).jpg",
-      "artist": "Russ",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "attribution_required": true,
-      "year": 2014,
-      "width": 4928,
-      "height": 3264,
-      "grade": 0,
-      "description": "pantheon interior rome",
-      "categories": [
-        "Flickr images reviewed by FlickreviewR",
-        "Pantheon (Rome) - Dome interior",
-        "Pantheon (Rome) - Doors",
-        "Flickr images missing SDC Flickr photo ID",
-        "Flickr images missing SDC published in"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "07_commons.jpg"
+      "file": "06_commons.jpg",
+      "vision_review": {
+        "index": 6,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Well-centered, clear view looking directly up into the Pantheon's concrete dome and oculus.",
+        "kept": true
+      }
     },
     {
       "title": "File:Rome-Pantheon-Interieur1.jpg",
@@ -200,29 +163,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "08_commons.jpg"
-    },
-    {
-      "title": "File:Pantheon, Rome (15235769992).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/72/Pantheon%2C_Rome_%2815235769992%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Pantheon,_Rome_(15235769992).jpg",
-      "artist": "Gary Ullah from UK",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "attribution_required": true,
-      "year": 2014,
-      "width": 2600,
-      "height": 2491,
-      "grade": 0,
-      "description": "Pantheon, Rome",
-      "categories": [
-        "Flickr images reviewed by FlickreviewR",
-        "Pantheon (Rome) - Dome interior"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 7.0,
-      "file": "09_commons.jpg"
+      "file": "08_commons.jpg",
+      "vision_review": {
+        "index": 8,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Wide view of the Pantheon interior showing the walls and the springing concrete dome.",
+        "kept": true
+      }
     },
     {
       "title": "File:Pantheon (Rome) - Dome interior (11640909363).jpg",
@@ -246,29 +196,16 @@
       "lat": null,
       "lon": null,
       "relevance": 7.0,
-      "file": "10_commons.jpg"
-    },
-    {
-      "title": "File:Oculus, Dome, Pantheon (45781455414).jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/55/Oculus%2C_Dome%2C_Pantheon_%2845781455414%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Oculus,_Dome,_Pantheon_(45781455414).jpg",
-      "artist": "Sonse",
-      "license": "CC BY 2.0",
-      "license_url": "https://creativecommons.org/licenses/by/2.0",
-      "attribution_required": true,
-      "year": 2018,
-      "width": 3585,
-      "height": 7377,
-      "grade": 0,
-      "description": "Rome, Italy",
-      "categories": [
-        "Flickr images reviewed by FlickreviewR 2",
-        "Pantheon (Rome) - Dome interior"
-      ],
-      "lat": null,
-      "lon": null,
-      "relevance": 5.0,
-      "file": "11_commons.jpg"
+      "file": "10_commons.jpg",
+      "vision_review": {
+        "index": 10,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "View of the illuminated Pantheon dome framed through the monumental bronze entrance doors.",
+        "kept": true
+      }
     },
     {
       "title": "File:Roman Pantheon interior dome intrados, 1892.jpg",
@@ -291,7 +228,182 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "12_commons.jpg"
+      "file": "12_commons.jpg",
+      "vision_review": {
+        "index": 12,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Historical 1892 photograph showing the exposed Roman concrete core, brick relieving arches, and cracks beneath stripped plaster.",
+        "kept": true
+      }
+    }
+  ],
+  "review_note": "Vision review 2026-10-20: kept 7 of 15",
+  "reviewed_by": "vision",
+  "rejected_by_review": [
+    {
+      "title": "File:01 Pantheon Dome.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/f1/01_Pantheon_Dome.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:01_Pantheon_Dome.jpg",
+      "artist": "NateBergin",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2026,
+      "width": 6000,
+      "height": 6000,
+      "grade": 0,
+      "description": "01 Pantheon Dome",
+      "categories": [
+        "Self-published work",
+        "Files with coordinates missing SDC location of creation",
+        "Pantheon (Rome) - Dome interior"
+      ],
+      "lat": 41.898758,
+      "lon": 12.476794,
+      "relevance": 10.0,
+      "file": "02_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 6,
+        "reason": "View looking up at the Pantheon's concrete coffered dome and oculus.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Pantheon (Rome), Dome interior.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/4c/Pantheon_%28Rome%29%2C_Dome_interior.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Pantheon_(Rome),_Dome_interior.jpg",
+      "artist": "Wilfredor",
+      "license": "CC0",
+      "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+      "attribution_required": false,
+      "year": 2024,
+      "width": 5698,
+      "height": 4875,
+      "grade": 2,
+      "description": "Pantheon (Rome) - Dome interior",
+      "categories": [
+        "CC-Zero",
+        "Self-published work",
+        "Media created with Nikon Z7ii provided by the Quebec WikiClub",
+        "Pantheon (Rome) - Dome interior",
+        "Images from Roma Project"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 9.0,
+      "file": "05_commons.jpg",
+      "vision_review": {
+        "index": 5,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 6,
+        "reason": "Upward view of the Pantheon dome and oculus.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Pantheon interior rome (14292258124).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/6/65/Pantheon_interior_rome_%2814292258124%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Pantheon_interior_rome_(14292258124).jpg",
+      "artist": "Russ",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "attribution_required": true,
+      "year": 2014,
+      "width": 4928,
+      "height": 3264,
+      "grade": 0,
+      "description": "pantheon interior rome",
+      "categories": [
+        "Flickr images reviewed by FlickreviewR",
+        "Pantheon (Rome) - Dome interior",
+        "Pantheon (Rome) - Doors",
+        "Flickr images missing SDC Flickr photo ID",
+        "Flickr images missing SDC published in"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "07_commons.jpg",
+      "vision_review": {
+        "index": 7,
+        "shows_topic": "partly",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Severely obstructed composition with a massive fluted column blocking half the frame.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Pantheon, Rome (15235769992).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/72/Pantheon%2C_Rome_%2815235769992%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Pantheon,_Rome_(15235769992).jpg",
+      "artist": "Gary Ullah from UK",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "attribution_required": true,
+      "year": 2014,
+      "width": 2600,
+      "height": 2491,
+      "grade": 0,
+      "description": "Pantheon, Rome",
+      "categories": [
+        "Flickr images reviewed by FlickreviewR",
+        "Pantheon (Rome) - Dome interior"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "09_commons.jpg",
+      "vision_review": {
+        "index": 9,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 6,
+        "reason": "Upward view of the Pantheon dome coffering.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Oculus, Dome, Pantheon (45781455414).jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/55/Oculus%2C_Dome%2C_Pantheon_%2845781455414%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Oculus,_Dome,_Pantheon_(45781455414).jpg",
+      "artist": "Sonse",
+      "license": "CC BY 2.0",
+      "license_url": "https://creativecommons.org/licenses/by/2.0",
+      "attribution_required": true,
+      "year": 2018,
+      "width": 3585,
+      "height": 7377,
+      "grade": 0,
+      "description": "Rome, Italy",
+      "categories": [
+        "Flickr images reviewed by FlickreviewR 2",
+        "Pantheon (Rome) - Dome interior"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 5.0,
+      "file": "11_commons.jpg",
+      "vision_review": {
+        "index": 11,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Extreme vertical panorama with distorted perspective and heavy foreground crowds.",
+        "kept": false
+      }
     },
     {
       "title": "File:Oculus, Dome, Pantheon (31565206097).jpg",
@@ -313,7 +425,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "13_commons.jpg"
+      "file": "13_commons.jpg",
+      "vision_review": {
+        "index": 13,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 6,
+        "reason": "Upward view of the Pantheon dome with a blown-out light flare on the coffering.",
+        "kept": false
+      }
     },
     {
       "title": "File:Oculus, Dome, Pantheon (46505085211).jpg",
@@ -335,7 +456,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "14_commons.jpg"
+      "file": "14_commons.jpg",
+      "vision_review": {
+        "index": 14,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "reason": "Distorted circular fisheye shot with heavy black vignetting.",
+        "kept": false
+      }
     },
     {
       "title": "File:Rome-Pantheon-Interieur.jpg",
@@ -360,8 +490,16 @@
       "lat": null,
       "lon": null,
       "relevance": 5.0,
-      "file": "15_commons.jpg"
+      "file": "15_commons.jpg",
+      "vision_review": {
+        "index": 15,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": 8,
+        "reason": "Interior view of the Pantheon rotunda and lower dome.",
+        "kept": false
+      }
     }
-  ],
-  "review_note": "Reviewed 2026-10-20: kept 15 of 15"
+  ]
 }

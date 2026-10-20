@@ -191,3 +191,24 @@ def test_cross_section_shows_a_level_at_the_full_depth(tmp_path):
         subprocess.run(["ffmpeg", "-y", "-v", "error", "-sseof", "-0.5", "-i", str(out), "-frames:v", "1", str(png)], check=True)
         frames.append(Image.open(png).convert("L"))
     assert ImageChops.difference(*frames).getbbox() is not None  # the deepest label is drawn
+
+
+@needs_geo
+def test_map_names_no_indeterminate_area_and_keeps_names_off_reserved_space(monkeypatch):
+    """Siachen Glacier (Natural Earth TYPE "Indeterminate") is not a country and is never named;
+    a reserved box (the pin and place label) gets no neighbour name."""
+    import math
+    siachen = next(c for c in geo.countries() if "siachen glacier" in c["names"])
+    assert siachen["type"] == "Indeterminate"
+    named = []
+    monkeypatch.setattr(graphics, "_text", lambda d, xy, text, **k: named.append((text, xy)))
+    lat0, lon0, bw, bh = 20.02, 75.18, 1620, 2880
+    kx, coslat = bw / 40.0, math.cos(math.radians(lat0))
+    project = lambda lon, lat: (bw / 2 + (lon - lon0) * kx * coslat, bh / 2 - (lat - lat0) * kx)  # noqa: E731
+    reserved = (0.0, bh * 0.3, float(bw), bh * 0.45)
+    graphics.relief_base(lat0, lon0, bw, bh, kx, coslat, geo.find_country("India"), project, (0, 0, bw, bh),
+                         reserved=(reserved,))
+    texts = [t.replace(" ", "") for t, _ in named]
+    assert texts  # neighbours are still named
+    assert "SIACHENGLACIER" not in texts
+    assert not any(reserved[1] <= y <= reserved[3] for _, (_, y) in named)

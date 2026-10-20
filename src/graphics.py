@@ -244,7 +244,8 @@ def _relief() -> Optional[Image.Image]:
 
 
 def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: float, home, project,
-                final_view: Tuple[float, float, float, float], label_bottom_fraction: float = 1.0) -> Image.Image:
+                final_view: Tuple[float, float, float, float], label_bottom_fraction: float = 1.0,
+                reserved: Tuple[Tuple[float, float, float, float], ...] = ()) -> Image.Image:
     """The map background: hillshaded land (the topic's country in warm gold), a navy sea with a
     soft coastal glow, thin borders, and neighbouring countries named at Natural Earth's label points."""
     import numpy as np
@@ -305,13 +306,19 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
     # outside it, so the last frame never shows half a name.
     font = get_font("Montserrat", 66)
     fx0, fy0, fx1, fy1 = final_view
-    placed: List[Tuple[float, float, float, float]] = []
+    placed: List[Tuple[float, float, float, float]] = list(reserved)  # e.g. the pin and place label
     for c in sorted(visible, key=lambda c: (c["label_rank"], -c["size"])):
-        if c is home or not c["label_at"] or c["label_rank"] > 5:
+        # Areas of indeterminate status (e.g. Siachen Glacier) are not countries and stay unnamed.
+        if c is home or not c["label_at"] or c["label_rank"] > 5 or c.get("type") == "Indeterminate":
             continue
         x, y = project(*c["label_at"])
         name = " ".join(c["display"].upper())  # letter-spaced small caps
         l, t, r, b = draw.textbbox((x, y), name, font=font, anchor="mm")
+        if c.get("extent"):  # a name much wider than its land reads as naming something else
+            ex0, _ = project(c["extent"][0], c["extent"][3])
+            ex1, _ = project(c["extent"][2], c["extent"][1])
+            if abs(ex1 - ex0) < 0.6 * (r - l):
+                continue
         box = (l - 30, t - 20, r + 30, b + 20)
         if box[0] < 0 or box[1] < 0 or box[2] > bw or box[3] > bh:
             continue
@@ -319,7 +326,8 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
         label_bottom = min(bh * label_bottom_fraction, fy0 + (fy1 - fy0) * label_bottom_fraction)
         if box[3] > label_bottom:
             continue
-        inside = fx0 <= box[0] and box[2] <= fx1 and fy0 <= box[1] and box[3] <= fy1
+        m = 60  # clear of the close-up's edge, so the last frame shows no name touching it
+        inside = fx0 + m <= box[0] and box[2] <= fx1 - m and fy0 + m <= box[1] and box[3] <= fy1 - m
         outside = box[2] < fx0 or box[0] > fx1 or box[3] < fy0 or box[1] > fy1
         if not (inside or outside) or any(not (box[2] < p[0] or box[0] > p[2] or box[3] < p[1] or box[1] > p[3]) for p in placed):
             continue
@@ -344,13 +352,19 @@ def render_map(place: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heigh
 
     zf = span_wide / span_close  # the close-up the camera ends on (labels must not be cut by it)
     final_view = (bw / 2 - bw / 2 / zf, bh / 2 - bh / 2 / zf, bw / 2 + bw / 2 / zf, bh / 2 + bh / 2 / zf)
-    base = relief_base(lat0, lon0, bw, bh, kx, coslat, geo.find_country(place["country"]), project, final_view,
-                       label_bottom_fraction=get_text_bounds(width, height)[1] / height)
-
-    n = int(CLIP_SECONDS * VIDEO_FPS)
     label = place["label"]
     country = place["country"]
     label_y = int(height * 0.18) if width > height else max(TEXT_TOP + 70, height // 2 - 210)
+    # Keep neighbours' names clear of the place label and the pin in the final close-up: the band from
+    # the label's top to just below the pin, across the label's width plus a margin (output pixels).
+    half_w = min(width // 2, 60 + max(len(label) * 22, len(country) * 18))
+    to_base = lambda x, y: (final_view[0] + x * (final_view[2] - final_view[0]) / width,  # noqa: E731
+                            final_view[1] + y * (final_view[3] - final_view[1]) / height)
+    reserved = (to_base(width // 2 - half_w, label_y - 90) + to_base(width // 2 + half_w, height // 2 + 70),)
+    base = relief_base(lat0, lon0, bw, bh, kx, coslat, geo.find_country(place["country"]), project, final_view,
+                       label_bottom_fraction=get_text_bounds(width, height)[1] / height, reserved=reserved)
+
+    n = int(CLIP_SECONDS * VIDEO_FPS)
 
     def frames():
         for i in range(n):

@@ -56,7 +56,10 @@ def countries() -> List[Dict[str, Any]]:
                     "polygons": polygons, "size": sum(len(poly[0]) for poly in polygons),
                     "display": props.get("NAME") or props.get("ADMIN") or "",
                     "label_at": label_at if None not in label_at else None,
-                    "label_rank": props.get("LABELRANK") or 9})
+                    "label_rank": props.get("LABELRANK") or 9,
+                    "type": str(props.get("TYPE") or ""),
+                    "extent": (min(x for poly in polygons for x, _ in poly[0]), min(y for poly in polygons for _, y in poly[0]),
+                               max(x for poly in polygons for x, _ in poly[0]), max(y for poly in polygons for _, y in poly[0]))})
     return out
 
 

@@ -1,0 +1,47 @@
+[
+  {
+    "beat": 1,
+    "type": "HOOK",
+    "label": "Opening Hook",
+    "text": "Seen from space, a 40-kilometre bullseye in the Sahara looks like a giant eye, and it was made by geology, not people.",
+    "file": "02_commons.jpg",
+    "title": "File:Eye of the Sahara (49141999011).png",
+    "license": "CC BY 2.0"
+  },
+  {
+    "beat": 2,
+    "type": "LANDSCAPE",
+    "label": "Terrain & Scale",
+    "text": "About 40 km (25 miles) across, in Mauritania's Adrar region Geologists explain it as an uplifted, eroded geological dome, not an impact crater A well-known landmark for astronauts Claims linking it to Atlantis are not supported by geology or archaeology Prehistoric stone tools found in the area show people lived nearby",
+    "file": "01_commons.jpg",
+    "title": "File:Richat Structure, Mauritania.png",
+    "license": "CC BY 2.0"
+  },
+  {
+    "beat": 3,
+    "type": "INTERIOR",
+    "label": "Inner Structure",
+    "text": "About 40 km (25 miles) across, in Mauritania's Adrar region Geologists explain it as an uplifted, eroded geological dome, not an impact crater A well-known landmark for astronauts Claims linking it to Atlantis are not supported by geology or archaeology Prehistoric stone tools found in the area show people lived nearby",
+    "file": "03_commons.jpg",
+    "title": "File:Richat Structure S2A 432 crop 10 (32159877843).jpg",
+    "license": "CC BY 2.0"
+  },
+  {
+    "beat": 4,
+    "type": "ARTIFACT",
+    "label": "Physical Evidence",
+    "text": "About 40 km (25 miles) across, in Mauritania's Adrar region Geologists explain it as an uplifted, eroded geological dome, not an impact crater A well-known landmark for astronauts Claims linking it to Atlantis are not supported by geology or archaeology Prehistoric stone tools found in the area show people lived nearby",
+    "file": "04_commons.jpg",
+    "title": "File:Richat Structure S2A 1282 crop 10 (32820057612).jpg",
+    "license": "CC BY 2.0"
+  },
+  {
+    "beat": 5,
+    "type": "SCHEMATIC",
+    "label": "Survey / Blueprint",
+    "text": "About 40 km (25 miles) across, in Mauritania's Adrar region Geologists explain it as an uplifted, eroded geological dome, not an impact crater A well-known landmark for astronauts Claims linking it to Atlantis are not supported by geology or archaeology Prehistoric stone tools found in the area show people lived nearby",
+    "file": "05_commons.jpg",
+    "title": "File:Richat Structure, Mauritania - 6 January 2023 (52616008386).jpg",
+    "license": "CC BY 2.0"
+  }
+]

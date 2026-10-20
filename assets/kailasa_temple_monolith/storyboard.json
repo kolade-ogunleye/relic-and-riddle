@@ -1,0 +1,47 @@
+[
+  {
+    "beat": 1,
+    "type": "HOOK",
+    "label": "Opening Hook",
+    "text": "This 100-foot temple was not built from the ground up—it was carved out of a single mountain from top to bottom.",
+    "file": "01_commons.jpg",
+    "title": "File:Small temple in side the Kailasa Temple, Ellora, cave (16).jpg",
+    "license": "CC0"
+  },
+  {
+    "beat": 2,
+    "type": "LANDSCAPE",
+    "label": "Terrain & Scale",
+    "text": "Over 200,000 tons of solid basalt rock were chiseled away with hand tools Carved vertically from top to bottom with zero room for architectural error Features intricate life-sized elephants, multi-story courtyards, and monolithic obelisks Built in the 8th century under King Krishna I of the Rashtrakuta dynasty Legend claims it was finished in just 18 years, an impossible feat for hand chisels",
+    "file": "02_commons.jpg",
+    "title": "File:Premises of Cave no 16, Ellora, Maharashtra, India 46.jpg",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 3,
+    "type": "INTERIOR",
+    "label": "Inner Structure",
+    "text": "Over 200,000 tons of solid basalt rock were chiseled away with hand tools Carved vertically from top to bottom with zero room for architectural error Features intricate life-sized elephants, multi-story courtyards, and monolithic obelisks Built in the 8th century under King Krishna I of the Rashtrakuta dynasty Legend claims it was finished in just 18 years, an impossible feat for hand chisels",
+    "file": "09_commons.jpg",
+    "title": "File:Ellora Caves, India, Kailash Temple, Majestic Interior.jpg",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 4,
+    "type": "ARTIFACT",
+    "label": "Physical Evidence",
+    "text": "Over 200,000 tons of solid basalt rock were chiseled away with hand tools Carved vertically from top to bottom with zero room for architectural error Features intricate life-sized elephants, multi-story courtyards, and monolithic obelisks Built in the 8th century under King Krishna I of the Rashtrakuta dynasty Legend claims it was finished in just 18 years, an impossible feat for hand chisels",
+    "file": "03_commons.jpg",
+    "title": "File:Ellora Caves, India, Kailasanatha Temple 2.jpg",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 5,
+    "type": "SCHEMATIC",
+    "label": "Survey / Blueprint",
+    "text": "Over 200,000 tons of solid basalt rock were chiseled away with hand tools Carved vertically from top to bottom with zero room for architectural error Features intricate life-sized elephants, multi-story courtyards, and monolithic obelisks Built in the 8th century under King Krishna I of the Rashtrakuta dynasty Legend claims it was finished in just 18 years, an impossible feat for hand chisels",
+    "file": "04_commons.jpg",
+    "title": "File:Kailasa Temple Cave 16 Hindu Cave Ellora Caves India - panoramio (4).jpg",
+    "license": "CC BY 3.0"
+  }
+]

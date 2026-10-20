@@ -1,0 +1,47 @@
+[
+  {
+    "beat": 1,
+    "type": "HOOK",
+    "label": "Opening Hook",
+    "text": "Beneath an ordinary street in Malta lies a 5,000-year-old underground burial complex carved by hand from solid rock.",
+    "file": "06_commons.jpg",
+    "title": "File:Hal Saflieni Hypogeum – Wall paintings in the Oracle Chamber.jpg",
+    "license": "CC BY 2.0"
+  },
+  {
+    "beat": 2,
+    "type": "LANDSCAPE",
+    "label": "Terrain & Scale",
+    "text": "Three underground levels cut into globigerina limestone, used from about 4000 to 2500 BC Discovered in 1902 by workers cutting cisterns for new houses Remains of an estimated 7,000 people; source of the 'Sleeping Lady' figurine The 'Oracle Room' has a strong acoustic resonance; claims that it alters brain activity are speculative UNESCO World Heritage Site since 1980, with strictly limited daily visitors",
+    "file": "01_commons.jpg",
+    "title": "File:Hal Saflieni Hypogeum – Middle Level – The Holy of Holies.jpg",
+    "license": "CC BY 2.0"
+  },
+  {
+    "beat": 3,
+    "type": "INTERIOR",
+    "label": "Inner Structure",
+    "text": "Three underground levels cut into globigerina limestone, used from about 4000 to 2500 BC Discovered in 1902 by workers cutting cisterns for new houses Remains of an estimated 7,000 people; source of the 'Sleeping Lady' figurine The 'Oracle Room' has a strong acoustic resonance; claims that it alters brain activity are speculative UNESCO World Heritage Site since 1980, with strictly limited daily visitors",
+    "file": "02_commons.jpg",
+    "title": "File:Hal Saflieni Hypogeum – Oracle Chamber – The Oracle Hole.jpg",
+    "license": "CC BY 2.0"
+  },
+  {
+    "beat": 4,
+    "type": "ARTIFACT",
+    "label": "Physical Evidence",
+    "text": "Three underground levels cut into globigerina limestone, used from about 4000 to 2500 BC Discovered in 1902 by workers cutting cisterns for new houses Remains of an estimated 7,000 people; source of the 'Sleeping Lady' figurine The 'Oracle Room' has a strong acoustic resonance; claims that it alters brain activity are speculative UNESCO World Heritage Site since 1980, with strictly limited daily visitors",
+    "file": "03_commons.jpg",
+    "title": "File:Hal Saflieni Hypogeum – Middle Level – The Central Chamber.jpg",
+    "license": "CC BY 2.0"
+  },
+  {
+    "beat": 5,
+    "type": "SCHEMATIC",
+    "label": "Survey / Blueprint",
+    "text": "Three underground levels cut into globigerina limestone, used from about 4000 to 2500 BC Discovered in 1902 by workers cutting cisterns for new houses Remains of an estimated 7,000 people; source of the 'Sleeping Lady' figurine The 'Oracle Room' has a strong acoustic resonance; claims that it alters brain activity are speculative UNESCO World Heritage Site since 1980, with strictly limited daily visitors",
+    "file": "11_commons.jpg",
+    "title": "File:Plan des Hypogaeums von Hal Saflieni.png",
+    "license": "Public domain"
+  }
+]

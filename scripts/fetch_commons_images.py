@@ -17,6 +17,7 @@ Usage:
 """
 
 import argparse
+from typing import Optional
 import json
 import sys
 from pathlib import Path
@@ -92,8 +93,8 @@ def interleave(ranked_lists: list) -> list:
 
 
 def fetch_topic(topic: dict, spec: dict, allow_sa: bool, target_images: int = TARGET_IMAGES,
-                assets_dir: Path = ASSETS_DIR) -> int:
-    topic_dir = assets_dir / topic["id"]
+                assets_dir: Optional[Path] = None) -> int:
+    topic_dir = (assets_dir or ASSETS_DIR) / topic["id"]  # resolved per call, never frozen at import
     topic_dir.mkdir(parents=True, exist_ok=True)
     credits = load_credits(topic_dir)
     images = credits["images"]
@@ -227,7 +228,7 @@ def main() -> int:
     parser.add_argument("--topic-id")
     parser.add_argument("--target-images", type=int, default=TARGET_IMAGES, help="Target image count (default: 8)")
     parser.add_argument("--allow-share-alike", action="store_true", help="Also accept CC BY-SA images")
-    parser.add_argument("--out-dir", type=Path, default=ASSETS_DIR,
+    parser.add_argument("--out-dir", type=Path, default=None,
                         help="Write here instead of assets/ (e.g. a fresh set to compare before swapping in)")
     args = parser.parse_args()
 

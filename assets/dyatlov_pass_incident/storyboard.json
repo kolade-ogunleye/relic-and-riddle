@@ -1,0 +1,47 @@
+[
+  {
+    "beat": 1,
+    "type": "HOOK",
+    "label": "Opening Hook",
+    "text": "In 1959, nine hikers cut their way out of their tent and fled into the snow at night, and none of them survived.",
+    "file": "01_commons.jpg",
+    "title": "File:Dyatlov.Volume 1.Page 370.jpg",
+    "license": "Public domain"
+  },
+  {
+    "beat": 2,
+    "type": "LANDSCAPE",
+    "label": "Terrain & Scale",
+    "text": "Group led by Igor Dyatlov, February 1959, on Kholat Syakhl in the northern Urals The tent was cut open from inside; bodies were found over the following months, some with severe injuries Traces of radioactivity were found on some clothing A 2019-2020 Russian inquiry and a 2021 scientific study point to a slab avalanche Some details are still debated",
+    "file": "02_commons.jpg",
+    "title": "File:Dyatlov.Volume 1.Page 340.jpg",
+    "license": "Public domain"
+  },
+  {
+    "beat": 3,
+    "type": "INTERIOR",
+    "label": "Inner Structure",
+    "text": "Group led by Igor Dyatlov, February 1959, on Kholat Syakhl in the northern Urals The tent was cut open from inside; bodies were found over the following months, some with severe injuries Traces of radioactivity were found on some clothing A 2019-2020 Russian inquiry and a 2021 scientific study point to a slab avalanche Some details are still debated",
+    "file": "03_commons.jpg",
+    "title": "File:Dyatlov.Volume 1.Page 387.jpg",
+    "license": "Public domain"
+  },
+  {
+    "beat": 4,
+    "type": "ARTIFACT",
+    "label": "Physical Evidence",
+    "text": "Group led by Igor Dyatlov, February 1959, on Kholat Syakhl in the northern Urals The tent was cut open from inside; bodies were found over the following months, some with severe injuries Traces of radioactivity were found on some clothing A 2019-2020 Russian inquiry and a 2021 scientific study point to a slab avalanche Some details are still debated",
+    "file": "04_commons.jpg",
+    "title": "File:Dyatlov.Volume 1.Page 385.jpg",
+    "license": "Public domain"
+  },
+  {
+    "beat": 5,
+    "type": "SCHEMATIC",
+    "label": "Survey / Blueprint",
+    "text": "Group led by Igor Dyatlov, February 1959, on Kholat Syakhl in the northern Urals The tent was cut open from inside; bodies were found over the following months, some with severe injuries Traces of radioactivity were found on some clothing A 2019-2020 Russian inquiry and a 2021 scientific study point to a slab avalanche Some details are still debated",
+    "file": "05_commons.jpg",
+    "title": "File:Dyatlov.Volume 1.Page 386.jpg",
+    "license": "Public domain"
+  }
+]

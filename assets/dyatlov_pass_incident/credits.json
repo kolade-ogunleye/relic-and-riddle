@@ -2,84 +2,224 @@
   "reviewed": false,
   "images": [
     {
-      "title": "File:Dyatlov.Volume 1.Page 387.jpg",
-      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/Dyatlov.Volume_1.Page_387.jpg/1920px-Dyatlov.Volume_1.Page_387.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Dyatlov.Volume_1.Page_387.jpg",
-      "artist": "Лев Никитич Иванов, прокурор-криминалист Свердловской областной прокуратуры",
-      "license": "Public domain",
-      "license_url": "",
-      "attribution_required": false,
-      "file": "01_commons.jpg"
-    },
-    {
-      "title": "File:Dyatlov.Volume 1.Page 386.jpg",
-      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/65/Dyatlov.Volume_1.Page_386.jpg/1920px-Dyatlov.Volume_1.Page_386.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Dyatlov.Volume_1.Page_386.jpg",
-      "artist": "Лев Никитич Иванов, прокурор-криминалист Свердловской областной прокуратуры",
-      "license": "Public domain",
-      "license_url": "",
-      "attribution_required": false,
-      "file": "02_commons.jpg"
-    },
-    {
       "title": "File:Dyatlov.Volume 1.Page 370.jpg",
-      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f6/Dyatlov.Volume_1.Page_370.jpg/1920px-Dyatlov.Volume_1.Page_370.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/f6/Dyatlov.Volume_1.Page_370.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "source_url": "https://commons.wikimedia.org/wiki/File:Dyatlov.Volume_1.Page_370.jpg",
       "artist": "Лев Никитич Иванов, прокурор-криминалист Свердловской областной прокуратуры",
       "license": "Public domain",
       "license_url": "",
       "attribution_required": false,
-      "file": "03_commons.jpg"
-    },
-    {
-      "title": "File:Dyatlov.Volume 1.Page 1.jpg",
-      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7f/Dyatlov.Volume_1.Page_1.jpg/1920px-Dyatlov.Volume_1.Page_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Dyatlov.Volume_1.Page_1.jpg",
-      "artist": "Василий Иванович Темпалов, прокурор города Ивдель",
-      "license": "Public domain",
-      "license_url": "",
-      "attribution_required": false,
-      "file": "04_commons.jpg"
+      "year": 1959,
+      "width": 2550,
+      "height": 3510,
+      "grade": 0,
+      "description": "Decision on the appointment of radiological expertise in the case of \"Dyatlov Pass incident\"",
+      "categories": [
+        "Dyatlov Pass incident",
+        "PD-RU-exempt"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "01_commons.jpg"
     },
     {
       "title": "File:Dyatlov.Volume 1.Page 340.jpg",
-      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/dd/Dyatlov.Volume_1.Page_340.jpg/1920px-Dyatlov.Volume_1.Page_340.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/d/dd/Dyatlov.Volume_1.Page_340.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "source_url": "https://commons.wikimedia.org/wiki/File:Dyatlov.Volume_1.Page_340.jpg",
       "artist": "Лев Никитич Иванов, прокурор-криминалист Свердловской областной прокуратуры",
       "license": "Public domain",
       "license_url": "",
       "attribution_required": false,
+      "year": 1959,
+      "width": 2393,
+      "height": 3714,
+      "grade": 0,
+      "description": "Decision on the extension of the investigation in the case of the \"Dyatlov Pass incident\"",
+      "categories": [
+        "Dyatlov Pass incident",
+        "PD-RU-exempt"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "02_commons.jpg"
+    },
+    {
+      "title": "File:Dyatlov.Volume 1.Page 387.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/a/ab/Dyatlov.Volume_1.Page_387.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Dyatlov.Volume_1.Page_387.jpg",
+      "artist": "Лев Никитич Иванов, прокурор-криминалист Свердловской областной прокуратуры",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": 1959,
+      "width": 2325,
+      "height": 3796,
+      "grade": 0,
+      "description": "Decision on the termination of the criminal case on the occasion of the \"Dyatlov Pass incident\", page 4",
+      "categories": [
+        "Dyatlov Pass incident",
+        "PD-RU-exempt"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "03_commons.jpg"
+    },
+    {
+      "title": "File:Dyatlov.Volume 1.Page 385.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/6/6b/Dyatlov.Volume_1.Page_385.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Dyatlov.Volume_1.Page_385.jpg",
+      "artist": "Лев Никитич Иванов, прокурор-криминалист Свердловской областной прокуратуры",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": 1959,
+      "width": 2299,
+      "height": 3796,
+      "grade": 0,
+      "description": "Decision on the termination of the criminal case on the occasion of the \"Dyatlov Pass incident\", page 2",
+      "categories": [
+        "Dyatlov Pass incident",
+        "PD-RU-exempt"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "04_commons.jpg"
+    },
+    {
+      "title": "File:Dyatlov.Volume 1.Page 386.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/6/65/Dyatlov.Volume_1.Page_386.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Dyatlov.Volume_1.Page_386.jpg",
+      "artist": "Лев Никитич Иванов, прокурор-криминалист Свердловской областной прокуратуры",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": 1959,
+      "width": 2290,
+      "height": 3796,
+      "grade": 0,
+      "description": "Decision on the termination of the criminal case on the occasion of the \"Dyatlov Pass incident\", page 3",
+      "categories": [
+        "Dyatlov Pass incident",
+        "PD-RU-exempt"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
       "file": "05_commons.jpg"
     },
     {
       "title": "File:Dyatlov.Volume 1.Page 384.jpg",
-      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/60/Dyatlov.Volume_1.Page_384.jpg/1920px-Dyatlov.Volume_1.Page_384.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/6/60/Dyatlov.Volume_1.Page_384.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "source_url": "https://commons.wikimedia.org/wiki/File:Dyatlov.Volume_1.Page_384.jpg",
       "artist": "Лев Никитич Иванов, прокурор-криминалист Свердловской областной прокуратуры",
       "license": "Public domain",
       "license_url": "",
       "attribution_required": false,
+      "year": 1959,
+      "width": 2284,
+      "height": 3797,
+      "grade": 0,
+      "description": "Decision on the termination of the criminal case on the occasion of the \"Dyatlov Pass incident\", page 1",
+      "categories": [
+        "Dyatlov Pass incident",
+        "PD-RU-exempt"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
       "file": "06_commons.jpg"
     },
     {
-      "title": "File:Dyatlov.Volume 1.Page 301.jpg",
-      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/Dyatlov.Volume_1.Page_301.jpg/1920px-Dyatlov.Volume_1.Page_301.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-      "source_url": "https://commons.wikimedia.org/wiki/File:Dyatlov.Volume_1.Page_301.jpg",
-      "artist": "Лев Никитич Иванов, прокурор-криминалист Свердловской областной прокуратуры",
-      "license": "Public domain",
-      "license_url": "",
-      "attribution_required": false,
-      "file": "07_commons.jpg"
-    },
-    {
       "title": "File:Dyatlov.Volume 1.Page 301 verso.jpg",
-      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/99/Dyatlov.Volume_1.Page_301_verso.jpg/1920px-Dyatlov.Volume_1.Page_301_verso.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/9/99/Dyatlov.Volume_1.Page_301_verso.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "source_url": "https://commons.wikimedia.org/wiki/File:Dyatlov.Volume_1.Page_301_verso.jpg",
       "artist": "Лев Никитич Иванов, прокурор-криминалист Свердловской областной прокуратуры",
       "license": "Public domain",
       "license_url": "",
       "attribution_required": false,
+      "year": 1959,
+      "width": 2328,
+      "height": 3672,
+      "grade": 0,
+      "description": "Decision on the appointment of forensic expertise in the case of the \"Dyatlov Pass incident\", verso",
+      "categories": [
+        "Dyatlov Pass incident",
+        "PD-RU-exempt"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "07_commons.jpg"
+    },
+    {
+      "title": "File:Dyatlov.Volume 1.Page 301.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/45/Dyatlov.Volume_1.Page_301.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Dyatlov.Volume_1.Page_301.jpg",
+      "artist": "Лев Никитич Иванов, прокурор-криминалист Свердловской областной прокуратуры",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": 1959,
+      "width": 2327,
+      "height": 3667,
+      "grade": 0,
+      "description": "Decision on the appointment of forensic expertise in the case of the \"Dyatlov Pass incident\"",
+      "categories": [
+        "Dyatlov Pass incident",
+        "PD-RU-exempt"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
       "file": "08_commons.jpg"
+    },
+    {
+      "title": "File:Dyatlov.Volume 1.Page 1.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/7f/Dyatlov.Volume_1.Page_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Dyatlov.Volume_1.Page_1.jpg",
+      "artist": "Василий Иванович Темпалов, прокурор города Ивдель",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": 1959,
+      "width": 2280,
+      "height": 3731,
+      "grade": 0,
+      "description": "Decision on the initiation of a criminal case on the occasion of the \"Dyatlov Pass incident\"",
+      "categories": [
+        "Dyatlov Pass incident",
+        "PD-RU-exempt"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "09_commons.jpg"
+    },
+    {
+      "title": "File:Dyatlov.Volume 1.Page 1 verso.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/fb/Dyatlov.Volume_1.Page_1_verso.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Dyatlov.Volume_1.Page_1_verso.jpg",
+      "artist": "Василий Иванович Темпалов, прокурор города Ивдель",
+      "license": "Public domain",
+      "license_url": "",
+      "attribution_required": false,
+      "year": 1959,
+      "width": 2199,
+      "height": 3728,
+      "grade": 0,
+      "description": "Decision on the initiation of a criminal case on the occasion of the \"Dyatlov Pass incident\", verso",
+      "categories": [
+        "Dyatlov Pass incident",
+        "PD-RU-exempt"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "10_commons.jpg"
     }
   ]
 }

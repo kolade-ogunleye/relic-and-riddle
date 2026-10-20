@@ -1,0 +1,47 @@
+[
+  {
+    "beat": 1,
+    "type": "HOOK",
+    "label": "Opening Hook",
+    "text": "Thousands of years ago, people cut holes in living patients' skulls, and many of those patients survived.",
+    "file": "01_commons.jpg",
+    "title": "File:Parts of instrument for trepanning of the skull. Wellcome L0016674.jpg",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 2,
+    "type": "LANDSCAPE",
+    "label": "Terrain & Scale",
+    "text": "Trepanation is among the oldest known surgical procedures, with Neolithic examples thousands of years old Healed bone around many openings shows patients lived for months or years afterwards Found across Europe, Peru and elsewhere Studies of ancient Peruvian skulls suggest survival rates improved over centuries Reasons may have included treating head injuries; ritual motives are debated",
+    "file": "05_commons.jpg",
+    "title": "File:Diorama showing trephination in Neolithic times, England, 19 Wellcome L0058021.jpg",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 3,
+    "type": "INTERIOR",
+    "label": "Inner Structure",
+    "text": "Trepanation is among the oldest known surgical procedures, with Neolithic examples thousands of years old Healed bone around many openings shows patients lived for months or years afterwards Found across Europe, Peru and elsewhere Studies of ancient Peruvian skulls suggest survival rates improved over centuries Reasons may have included treating head injuries; ritual motives are debated",
+    "file": "08_commons.jpg",
+    "title": "File:13th century trepanation. Wellcome M0010165.jpg",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 4,
+    "type": "ARTIFACT",
+    "label": "Physical Evidence",
+    "text": "Trepanation is among the oldest known surgical procedures, with Neolithic examples thousands of years old Healed bone around many openings shows patients lived for months or years afterwards Found across Europe, Peru and elsewhere Studies of ancient Peruvian skulls suggest survival rates improved over centuries Reasons may have included treating head injuries; ritual motives are debated",
+    "file": "06_commons.jpg",
+    "title": "File:Stone chisel used for trepanning, New Britain Wellcome M0005285.jpg",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 5,
+    "type": "SCHEMATIC",
+    "label": "Survey / Blueprint",
+    "text": "Trepanation is among the oldest known surgical procedures, with Neolithic examples thousands of years old Healed bone around many openings shows patients lived for months or years afterwards Found across Europe, Peru and elsewhere Studies of ancient Peruvian skulls suggest survival rates improved over centuries Reasons may have included treating head injuries; ritual motives are debated",
+    "file": "15_commons.jpg",
+    "title": "File:Trephined skull, Neolithic period. Wellcome M0014688.jpg",
+    "license": "CC BY 4.0"
+  }
+]

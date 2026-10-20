@@ -1,0 +1,47 @@
+[
+  {
+    "beat": 1,
+    "type": "HOOK",
+    "label": "Opening Hook",
+    "text": "A 1,600-year-old Roman cup glows green in reflected light and turns red when lit from behind.",
+    "file": "01_commons.jpg",
+    "title": "File:Top view of the famed Lycurgus Cup in the British Museum, showing the glass both green and ruby red.jpg",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 2,
+    "type": "LANDSCAPE",
+    "label": "Terrain & Scale",
+    "text": "4th-century AD Roman glass cage cup, now in the British Museum The colour change comes from tiny gold and silver nanoparticles in the glass It depicts the myth of King Lycurgus Its makers probably did not understand the effect in modern terms It has inspired modern research into nanoparticle optics",
+    "file": "05_commons.jpg",
+    "title": "File:Front of 4th century CE Roman Lycurgus Cup, British Museum (1958,1202.1).jpg",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 3,
+    "type": "INTERIOR",
+    "label": "Inner Structure",
+    "text": "4th-century AD Roman glass cage cup, now in the British Museum The colour change comes from tiny gold and silver nanoparticles in the glass It depicts the myth of King Lycurgus Its makers probably did not understand the effect in modern terms It has inspired modern research into nanoparticle optics",
+    "file": "02_commons.jpg",
+    "title": "File:Photo of the 4th c. CE Lycurgus Cup, side view with satyr, British Museum (1958,1202.1).jpg",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 4,
+    "type": "ARTIFACT",
+    "label": "Physical Evidence",
+    "text": "4th-century AD Roman glass cage cup, now in the British Museum The colour change comes from tiny gold and silver nanoparticles in the glass It depicts the myth of King Lycurgus Its makers probably did not understand the effect in modern terms It has inspired modern research into nanoparticle optics",
+    "file": "03_commons.jpg",
+    "title": "File:British Museum The Lycurgus Cup 03 15022019 4320.jpg",
+    "license": "CC0"
+  },
+  {
+    "beat": 5,
+    "type": "SCHEMATIC",
+    "label": "Survey / Blueprint",
+    "text": "4th-century AD Roman glass cage cup, now in the British Museum The colour change comes from tiny gold and silver nanoparticles in the glass It depicts the myth of King Lycurgus Its makers probably did not understand the effect in modern terms It has inspired modern research into nanoparticle optics",
+    "file": "04_commons.jpg",
+    "title": "File:British Museum The Lycurgus Cup 04 15022019 4330.jpg",
+    "license": "CC0"
+  }
+]

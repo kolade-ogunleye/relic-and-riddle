@@ -5,7 +5,7 @@
     "label": "Opening Hook",
     "text": "During the Cold War, the US Army built an entire nuclear-powered city hidden under the Greenland ice sheet.",
     "file": "01_commons.jpg",
-    "title": "File:Camp Century trench deformation.png",
+    "title": "File:Camp Century layout plan.png",
     "license": "Public domain"
   },
   {
@@ -14,7 +14,16 @@
     "label": "Terrain & Scale",
     "text": "Constructed in 1959 under the guise of an Arctic polar science station Secretly designed for Project Iceworm: storing 600 nuclear missiles targeted at the USSR Powered by a portable PM-2A nuclear reactor buried inside snow trenches Contained a hospital, movie theater, barbershop, and living quarters for 200 soldiers Abandoned in 1967 when glacier movements crushed the tunnels; left behind radioactive waste",
     "file": "02_commons.jpg",
-    "title": "File:Camp Century layout plan.png",
+    "title": "File:Camp Century trench deformation.png",
     "license": "Public domain"
+  },
+  {
+    "beat": 3,
+    "type": "INTERIOR",
+    "label": "Inner Structure",
+    "text": "Constructed in 1959 under the guise of an Arctic polar science station Secretly designed for Project Iceworm: storing 600 nuclear missiles targeted at the USSR Powered by a portable PM-2A nuclear reactor buried inside snow trenches Contained a hospital, movie theater, barbershop, and living quarters for 200 soldiers Abandoned in 1967 when glacier movements crushed the tunnels; left behind radioactive waste",
+    "file": "03_commons.jpg",
+    "title": "File:Palermo02 flickr.jpg",
+    "license": "CC BY 2.0"
   }
 ]

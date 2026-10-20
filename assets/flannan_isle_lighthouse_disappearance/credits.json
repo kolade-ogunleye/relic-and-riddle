@@ -3,12 +3,32 @@
   "images": [
     {
       "title": "File:Admiralty Chart No 3331 Flannan Isles, Published 1903.jpg",
-      "download_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1c/Admiralty_Chart_No_3331_Flannan_Isles%2C_Published_1903.jpg/3840px-Admiralty_Chart_No_3331_Flannan_Isles%2C_Published_1903.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/1/1c/Admiralty_Chart_No_3331_Flannan_Isles%2C_Published_1903.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
       "source_url": "https://commons.wikimedia.org/wiki/File:Admiralty_Chart_No_3331_Flannan_Isles,_Published_1903.jpg",
       "artist": "United Kingdom Hydrographic Office",
       "license": "Public domain",
       "license_url": "",
       "attribution_required": false,
+      "year": 1903,
+      "width": 11245,
+      "height": 8221,
+      "grade": 0,
+      "description": "Nautical chart of the Flannan Isles, at a scale of 1:10,620. Soundings by Captain H.C. Otter, 1857, and Captain A.M. Field 1902. Not current - not to be used for navigation!",
+      "categories": [
+        "North Rona",
+        "Flannan Isles",
+        "Sula Sgeir",
+        "Henry Charles Otter",
+        "Arthur Mostyn Field",
+        "UK Government artistic works",
+        "Large images",
+        "Old maps of the Outer Hebrides",
+        "Admiralty Charts Region C: Scotland",
+        "Admiralty Charts 3001-3400"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
       "file": "01_commons.jpg"
     },
     {
@@ -22,33 +42,18 @@
       "year": 1898,
       "width": 5712,
       "height": 3504,
+      "grade": 0,
+      "description": "The Flannan Isles or Seven Hunters, Outer Hebrides, Scotland.",
+      "categories": [
+        "Flannan Isles",
+        "PD Old",
+        "CC-PD-Mark",
+        "PD-old missing SDC copyright status"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
       "file": "02_commons.jpg"
-    },
-    {
-      "title": "File:33 St Flannan, Catherine O'Brien, Honan Chapel Stained Glass.png",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/4f/33_St_Flannan%2C_Catherine_O%27Brien%2C_Honan_Chapel_Stained_Glass.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:33_St_Flannan,_Catherine_O%27Brien,_Honan_Chapel_Stained_Glass.png",
-      "artist": "NateBergin",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2025,
-      "width": 938,
-      "height": 4011,
-      "file": "03_commons.jpg"
-    },
-    {
-      "title": "File:32 St Flannan detail, Catherine O'Brien, Honan Chapel Stained Glass.jpg",
-      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/47/32_St_Flannan_detail%2C_Catherine_O%27Brien%2C_Honan_Chapel_Stained_Glass.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-      "source_url": "https://commons.wikimedia.org/wiki/File:32_St_Flannan_detail,_Catherine_O%27Brien,_Honan_Chapel_Stained_Glass.jpg",
-      "artist": "NateBergin",
-      "license": "CC BY 4.0",
-      "license_url": "https://creativecommons.org/licenses/by/4.0",
-      "attribution_required": true,
-      "year": 2025,
-      "width": 880,
-      "height": 2628,
-      "file": "04_commons.jpg"
     },
     {
       "title": "File:03 St. Patrick, The Ryan Window, by J. Clarke & Sons, St. Flannan's Church Killaloe.png",
@@ -61,6 +66,68 @@
       "year": 2025,
       "width": 1665,
       "height": 5992,
+      "grade": 0,
+      "description": "03 St. Flannan (or St. Patrick), The Ryan Window, by J. Clarke & Sons, St. Flannan's Church Killaloe",
+      "categories": [
+        "Self-published work",
+        "St. Flannan's Church, Killaloe",
+        "Saint Patrick on stained-glass windows in Ireland",
+        "J. Clarke & Sons",
+        "Saint Flannan"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "03_commons.jpg"
+    },
+    {
+      "title": "File:33 St Flannan, Catherine O'Brien, Honan Chapel Stained Glass.png",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/4f/33_St_Flannan%2C_Catherine_O%27Brien%2C_Honan_Chapel_Stained_Glass.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:33_St_Flannan,_Catherine_O%27Brien,_Honan_Chapel_Stained_Glass.png",
+      "artist": "NateBergin",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 938,
+      "height": 4011,
+      "grade": 0,
+      "description": "33 St Flannan, Catherine O'Brien, Honan Chapel Stained Glass",
+      "categories": [
+        "Catherine O'Brien",
+        "An Túr Gloine",
+        "Honan Chapel",
+        "Self-published work",
+        "Saint Flannan"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
+      "file": "04_commons.jpg"
+    },
+    {
+      "title": "File:32 St Flannan detail, Catherine O'Brien, Honan Chapel Stained Glass.jpg",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/47/32_St_Flannan_detail%2C_Catherine_O%27Brien%2C_Honan_Chapel_Stained_Glass.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:32_St_Flannan_detail,_Catherine_O%27Brien,_Honan_Chapel_Stained_Glass.jpg",
+      "artist": "NateBergin",
+      "license": "CC BY 4.0",
+      "license_url": "https://creativecommons.org/licenses/by/4.0",
+      "attribution_required": true,
+      "year": 2025,
+      "width": 880,
+      "height": 2628,
+      "grade": 0,
+      "description": "32 St Flannan detail, Catherine O'Brien, Honan Chapel Stained Glass",
+      "categories": [
+        "Catherine O'Brien",
+        "An Túr Gloine",
+        "Honan Chapel",
+        "Self-published work",
+        "Saint Flannan"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 7.0,
       "file": "05_commons.jpg"
     }
   ]

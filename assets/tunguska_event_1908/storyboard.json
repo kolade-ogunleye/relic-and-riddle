@@ -1,0 +1,47 @@
+[
+  {
+    "beat": 1,
+    "type": "HOOK",
+    "label": "Opening Hook",
+    "text": "In 1908, an explosion over Siberia flattened about 80 million trees across 2,000 square kilometres, without leaving a crater.",
+    "file": "05_commons.jpg",
+    "title": "File:Tunguska event in east siberia map 2.png",
+    "license": "Public domain"
+  },
+  {
+    "beat": 2,
+    "type": "LANDSCAPE",
+    "label": "Terrain & Scale",
+    "text": "30 June 1908, near the Podkamennaya Tunguska River Most likely the airburst of an asteroid or comet several kilometres above the ground Energy estimates range widely, roughly 3 to 30 megatons The first scientific expedition, led by Leonid Kulik, reached the site in 1927 The largest impact event in recorded history",
+    "file": "02_commons.jpg",
+    "title": "File:Moscow State University Tunguska event 2014-01 1389528699.JPG",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 3,
+    "type": "INTERIOR",
+    "label": "Inner Structure",
+    "text": "30 June 1908, near the Podkamennaya Tunguska River Most likely the airburst of an asteroid or comet several kilometres above the ground Energy estimates range widely, roughly 3 to 30 megatons The first scientific expedition, led by Leonid Kulik, reached the site in 1927 The largest impact event in recorded history",
+    "file": "03_commons.jpg",
+    "title": "File:Moscow State University Tunguska event 2014-01 1389528722.JPG",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 4,
+    "type": "ARTIFACT",
+    "label": "Physical Evidence",
+    "text": "30 June 1908, near the Podkamennaya Tunguska River Most likely the airburst of an asteroid or comet several kilometres above the ground Energy estimates range widely, roughly 3 to 30 megatons The first scientific expedition, led by Leonid Kulik, reached the site in 1927 The largest impact event in recorded history",
+    "file": "04_commons.jpg",
+    "title": "File:Moscow State University Tunguska event 2014-01 1389528710.JPG",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 5,
+    "type": "SCHEMATIC",
+    "label": "Survey / Blueprint",
+    "text": "30 June 1908, near the Podkamennaya Tunguska River Most likely the airburst of an asteroid or comet several kilometres above the ground Energy estimates range widely, roughly 3 to 30 megatons The first scientific expedition, led by Leonid Kulik, reached the site in 1927 The largest impact event in recorded history",
+    "file": "12_commons.jpg",
+    "title": "File:Tunguska explosion area map 4.png",
+    "license": "Public domain"
+  }
+]

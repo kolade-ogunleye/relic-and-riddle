@@ -1,0 +1,47 @@
+[
+  {
+    "beat": 1,
+    "type": "HOOK",
+    "label": "Opening Hook",
+    "text": "Deep underground in Poland, miners carved an entire chapel from rock salt, down to the chandeliers.",
+    "file": "03_commons.jpg",
+    "title": "File:Wieliczka, St Kingas Chapel (6467348331).jpg",
+    "license": "CC BY 2.0"
+  },
+  {
+    "beat": 2,
+    "type": "LANDSCAPE",
+    "label": "Terrain & Scale",
+    "text": "Salt was mined at Wieliczka from the 13th century until 1996 Reaches about 327 m deep, with more than 280 km of passages St Kinga's Chapel was carved over several decades from 1896, about 100 m below ground Its chandeliers are made of salt crystals One of the first UNESCO World Heritage Sites (1978)",
+    "file": "06_commons.jpg",
+    "title": "File:Wieliczka - kaplica sw. Kingi - The chapel of st. Kunigund przed 1939 (87073520).jpg",
+    "license": "Public domain"
+  },
+  {
+    "beat": 3,
+    "type": "INTERIOR",
+    "label": "Inner Structure",
+    "text": "Salt was mined at Wieliczka from the 13th century until 1996 Reaches about 327 m deep, with more than 280 km of passages St Kinga's Chapel was carved over several decades from 1896, about 100 m below ground Its chandeliers are made of salt crystals One of the first UNESCO World Heritage Sites (1978)",
+    "file": "08_commons.jpg",
+    "title": "File:Wieliczka - kaplica sw. Antoniego - The Chapel of St. Anthony 1916-1939 (73474639).jpg",
+    "license": "Public domain"
+  },
+  {
+    "beat": 4,
+    "type": "ARTIFACT",
+    "label": "Physical Evidence",
+    "text": "Salt was mined at Wieliczka from the 13th century until 1996 Reaches about 327 m deep, with more than 280 km of passages St Kinga's Chapel was carved over several decades from 1896, about 100 m below ground Its chandeliers are made of salt crystals One of the first UNESCO World Heritage Sites (1978)",
+    "file": "09_commons.jpg",
+    "title": "File:Wieliczka - kaplica sw. Kingi - The chapel of st. Kunigund 1923-1926 (73472428).jpg",
+    "license": "Public domain"
+  },
+  {
+    "beat": 5,
+    "type": "SCHEMATIC",
+    "label": "Survey / Blueprint",
+    "text": "Salt was mined at Wieliczka from the 13th century until 1996 Reaches about 327 m deep, with more than 280 km of passages St Kinga's Chapel was carved over several decades from 1896, about 100 m below ground Its chandeliers are made of salt crystals One of the first UNESCO World Heritage Sites (1978)",
+    "file": "10_commons.jpg",
+    "title": "File:Wieliczka - kaplica sw. Kingi - The chapel of st. Cunegond 1922 (73411568).jpg",
+    "license": "Public domain"
+  }
+]

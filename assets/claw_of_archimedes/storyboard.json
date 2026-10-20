@@ -1,0 +1,47 @@
+[
+  {
+    "beat": 1,
+    "type": "HOOK",
+    "label": "Opening Hook",
+    "text": "When Rome besieged Syracuse, ancient writers say Archimedes built a giant claw that lifted enemy ships out of the sea.",
+    "file": "15_commons.jpg",
+    "title": "File:Ricci - Archimedes and Hiero at the Siege of Syracuse, BELUM.U145.jpg",
+    "license": "Public domain"
+  },
+  {
+    "beat": 2,
+    "type": "LANDSCAPE",
+    "label": "Terrain & Scale",
+    "text": "Siege of Syracuse, 214-212 BC Described by Polybius, Livy and Plutarch Probably a crane-like arm with a grappling hook; the exact design is unknown A 2005 TV experiment built a working full-scale version Archimedes was killed when the city fell in 212 BC",
+    "file": "01_commons.jpg",
+    "title": "File:Dood van Archimedes De dood van Archimedes (titel op object), RP-P-1907-4791.jpg",
+    "license": "CC0"
+  },
+  {
+    "beat": 3,
+    "type": "INTERIOR",
+    "label": "Inner Structure",
+    "text": "Siege of Syracuse, 214-212 BC Described by Polybius, Livy and Plutarch Probably a crane-like arm with a grappling hook; the exact design is unknown A 2005 TV experiment built a working full-scale version Archimedes was killed when the city fell in 212 BC",
+    "file": "02_commons.jpg",
+    "title": "File:Archimedes Directing the Defenses of Syracuse.jpg",
+    "license": "Public domain"
+  },
+  {
+    "beat": 4,
+    "type": "ARTIFACT",
+    "label": "Physical Evidence",
+    "text": "Siege of Syracuse, 214-212 BC Described by Polybius, Livy and Plutarch Probably a crane-like arm with a grappling hook; the exact design is unknown A 2005 TV experiment built a working full-scale version Archimedes was killed when the city fell in 212 BC",
+    "file": "04_commons.jpg",
+    "title": "File:A page from Archimedes' On Conoids and Spheroids.jpg",
+    "license": "Public domain"
+  },
+  {
+    "beat": 5,
+    "type": "SCHEMATIC",
+    "label": "Survey / Blueprint",
+    "text": "Siege of Syracuse, 214-212 BC Described by Polybius, Livy and Plutarch Probably a crane-like arm with a grappling hook; the exact design is unknown A 2005 TV experiment built a working full-scale version Archimedes was killed when the city fell in 212 BC",
+    "file": "06_commons.jpg",
+    "title": "File:A page from Archimedes' Measurement of a Circle.jpg",
+    "license": "Public domain"
+  }
+]

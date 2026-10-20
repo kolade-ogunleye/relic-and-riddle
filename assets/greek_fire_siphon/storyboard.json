@@ -1,0 +1,47 @@
+[
+  {
+    "beat": 1,
+    "type": "HOOK",
+    "label": "Opening Hook",
+    "text": "For 500 years, the Byzantine Empire possessed a liquid weapon that burned on top of water, and its secret recipe vanished forever.",
+    "file": "03_commons.jpg",
+    "title": "File:Model of a Byzantine warship (dromon) at Athens War Museum on 12 April 2019.jpg",
+    "license": "CC0"
+  },
+  {
+    "beat": 2,
+    "type": "LANDSCAPE",
+    "label": "Terrain & Scale",
+    "text": "Invented around 672 AD by the Syrian Christian engineer Kallinikos Pumped through pressurized siphon bronze tubes mounted on Byzantine dromon warships Continued burning upon contact with seawater and could only be extinguished by vinegar or sand Saved Constantinople from multiple Arab naval sieges in 674 and 717 AD State secret punishable by death if shared; the precise chemical formula was lost with the fall of the empire",
+    "file": "11_commons.jpg",
+    "title": "File:Haifa-maritime-museum-Byzantine-Dromon-9c-2.jpg",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 3,
+    "type": "INTERIOR",
+    "label": "Inner Structure",
+    "text": "Invented around 672 AD by the Syrian Christian engineer Kallinikos Pumped through pressurized siphon bronze tubes mounted on Byzantine dromon warships Continued burning upon contact with seawater and could only be extinguished by vinegar or sand Saved Constantinople from multiple Arab naval sieges in 674 and 717 AD State secret punishable by death if shared; the precise chemical formula was lost with the fall of the empire",
+    "file": "13_commons.jpg",
+    "title": "File:Haifa-maritime-museum-Byzantine-Dromon-9c-3.jpg",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 4,
+    "type": "ARTIFACT",
+    "label": "Physical Evidence",
+    "text": "Invented around 672 AD by the Syrian Christian engineer Kallinikos Pumped through pressurized siphon bronze tubes mounted on Byzantine dromon warships Continued burning upon contact with seawater and could only be extinguished by vinegar or sand Saved Constantinople from multiple Arab naval sieges in 674 and 717 AD State secret punishable by death if shared; the precise chemical formula was lost with the fall of the empire",
+    "file": "06_commons.jpg",
+    "title": "File:DromonEB01.jpg",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 5,
+    "type": "SCHEMATIC",
+    "label": "Survey / Blueprint",
+    "text": "Invented around 672 AD by the Syrian Christian engineer Kallinikos Pumped through pressurized siphon bronze tubes mounted on Byzantine dromon warships Continued burning upon contact with seawater and could only be extinguished by vinegar or sand Saved Constantinople from multiple Arab naval sieges in 674 and 717 AD State secret punishable by death if shared; the precise chemical formula was lost with the fall of the empire",
+    "file": "09_commons.jpg",
+    "title": "File:Egypt, Manuscript letter, Dromon asks that Zenon... Wellcome M0003499.jpg",
+    "license": "CC BY 4.0"
+  }
+]

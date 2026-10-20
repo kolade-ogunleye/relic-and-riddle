@@ -1,0 +1,47 @@
+[
+  {
+    "beat": 1,
+    "type": "HOOK",
+    "label": "Opening Hook",
+    "text": "Modern concrete cracks in 50 years, but Roman harbors have sat in saltwater for two millennia and actually get stronger.",
+    "file": "01_commons.jpg",
+    "title": "File:Ancient Roman concrete vault.jpg",
+    "license": "CC BY 2.0"
+  },
+  {
+    "beat": 2,
+    "type": "LANDSCAPE",
+    "label": "Terrain & Scale",
+    "text": "Engineered with volcanic ash (pozzolana) and quicklime clasts When cracks form, rainwater dissolves the lime, reacting with seawater to crystallize into aluminous tobermorite The chemical reaction heals microcracks spontaneously over centuries Modern material scientists only unlocked the exact hot-mixing recipe in 2023 Outlasts modern reinforced Portland cement by over 40 times",
+    "file": "02_commons.jpg",
+    "title": "File:01 Pantheon Dome.jpg",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 3,
+    "type": "INTERIOR",
+    "label": "Inner Structure",
+    "text": "Engineered with volcanic ash (pozzolana) and quicklime clasts When cracks form, rainwater dissolves the lime, reacting with seawater to crystallize into aluminous tobermorite The chemical reaction heals microcracks spontaneously over centuries Modern material scientists only unlocked the exact hot-mixing recipe in 2023 Outlasts modern reinforced Portland cement by over 40 times",
+    "file": "05_commons.jpg",
+    "title": "File:Pantheon (Rome), Dome interior.jpg",
+    "license": "CC0"
+  },
+  {
+    "beat": 4,
+    "type": "ARTIFACT",
+    "label": "Physical Evidence",
+    "text": "Engineered with volcanic ash (pozzolana) and quicklime clasts When cracks form, rainwater dissolves the lime, reacting with seawater to crystallize into aluminous tobermorite The chemical reaction heals microcracks spontaneously over centuries Modern material scientists only unlocked the exact hot-mixing recipe in 2023 Outlasts modern reinforced Portland cement by over 40 times",
+    "file": "03_commons.jpg",
+    "title": "File:Roman concrete.jpg",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 5,
+    "type": "SCHEMATIC",
+    "label": "Survey / Blueprint",
+    "text": "Engineered with volcanic ash (pozzolana) and quicklime clasts When cracks form, rainwater dissolves the lime, reacting with seawater to crystallize into aluminous tobermorite The chemical reaction heals microcracks spontaneously over centuries Modern material scientists only unlocked the exact hot-mixing recipe in 2023 Outlasts modern reinforced Portland cement by over 40 times",
+    "file": "04_commons.jpg",
+    "title": "File:02 Pantheon Dome.jpg",
+    "license": "CC BY 4.0"
+  }
+]

@@ -1,0 +1,47 @@
+[
+  {
+    "beat": 1,
+    "type": "HOOK",
+    "label": "Opening Hook",
+    "text": "Damascus steel blades were famed for their watery patterns and sharpness, and in 2006 scientists found carbon nanotubes inside one.",
+    "file": "01_commons.jpg",
+    "title": "File:Damascus steel hunting knife (4121912077).jpg",
+    "license": "CC BY 2.0"
+  },
+  {
+    "beat": 2,
+    "type": "LANDSCAPE",
+    "label": "Terrain & Scale",
+    "text": "Made from wootz crucible steel produced in South India and Sri Lanka Recognisable by flowing water-like (damask) surface patterns A 2006 Nature paper (Reibold et al.) reported carbon nanotubes and cementite nanowires in a 17th-century Damascus sabre The production method was lost around the 18th century, possibly as ores with specific trace impurities ran out Stories of blades cutting silk scarves in mid-air are legend, not documented fact",
+    "file": "02_commons.jpg",
+    "title": "File:MDRF 2021- Misc Damascus Steel Dragon Blade 2 (51439188024).jpg",
+    "license": "CC BY 2.0"
+  },
+  {
+    "beat": 3,
+    "type": "INTERIOR",
+    "label": "Inner Structure",
+    "text": "Made from wootz crucible steel produced in South India and Sri Lanka Recognisable by flowing water-like (damask) surface patterns A 2006 Nature paper (Reibold et al.) reported carbon nanotubes and cementite nanowires in a 17th-century Damascus sabre The production method was lost around the 18th century, possibly as ores with specific trace impurities ran out Stories of blades cutting silk scarves in mid-air are legend, not documented fact",
+    "file": "03_commons.jpg",
+    "title": "File:Damascus steel hunting knife (4121912845).jpg",
+    "license": "CC BY 2.0"
+  },
+  {
+    "beat": 4,
+    "type": "ARTIFACT",
+    "label": "Physical Evidence",
+    "text": "Made from wootz crucible steel produced in South India and Sri Lanka Recognisable by flowing water-like (damask) surface patterns A 2006 Nature paper (Reibold et al.) reported carbon nanotubes and cementite nanowires in a 17th-century Damascus sabre The production method was lost around the 18th century, possibly as ores with specific trace impurities ran out Stories of blades cutting silk scarves in mid-air are legend, not documented fact",
+    "file": "04_commons.jpg",
+    "title": "File:MDRF 2021- Misc Damascus Steel Dragon Blade 1 (51439188149).jpg",
+    "license": "CC BY 2.0"
+  },
+  {
+    "beat": 5,
+    "type": "SCHEMATIC",
+    "label": "Survey / Blueprint",
+    "text": "Made from wootz crucible steel produced in South India and Sri Lanka Recognisable by flowing water-like (damask) surface patterns A 2006 Nature paper (Reibold et al.) reported carbon nanotubes and cementite nanowires in a 17th-century Damascus sabre The production method was lost around the 18th century, possibly as ores with specific trace impurities ran out Stories of blades cutting silk scarves in mid-air are legend, not documented fact",
+    "file": "05_commons.jpg",
+    "title": "File:Damascus steel hunting knife (4121913369).jpg",
+    "license": "CC BY 2.0"
+  }
+]

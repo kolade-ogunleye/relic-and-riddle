@@ -4,7 +4,7 @@
     "type": "HOOK",
     "label": "Opening Hook",
     "text": "Divers pulled a corroded lump of bronze from an ancient shipwreck, only to discover an analog computer that predicted eclipses.",
-    "file": "07_commons.jpg",
+    "file": "04_commons.jpg",
     "title": "File:Ancient Greece The Antikythera Mechanism (27869161744).jpg",
     "license": "CC0"
   },
@@ -13,7 +13,7 @@
     "type": "LANDSCAPE",
     "label": "Terrain & Scale",
     "text": "Discovered in 1901 by sponge divers off the Greek island of Antikythera Contains over 30 intricate precision bronze gears in a wooden box Accurately predicted solar and lunar eclipses, planetary orbits, and Olympic cycles Dating back to roughly 150 to 100 BC Clockwork complexity of this caliber was not seen again until 1,400 years later in 14th-century Europe",
-    "file": "06_commons.jpg",
+    "file": "03_commons.jpg",
     "title": "File:Antikythera Mechanism Gears & Inscriptions (28379344072).jpg",
     "license": "CC0"
   },
@@ -23,7 +23,7 @@
     "label": "Inner Structure",
     "text": "Discovered in 1901 by sponge divers off the Greek island of Antikythera Contains over 30 intricate precision bronze gears in a wooden box Accurately predicted solar and lunar eclipses, planetary orbits, and Olympic cycles Dating back to roughly 150 to 100 BC Clockwork complexity of this caliber was not seen again until 1,400 years later in 14th-century Europe",
     "file": "01_commons.jpg",
-    "title": "File:The Antikythera Mechanism (3471161471).jpg",
+    "title": "File:The Antikythera Mechanism3.jpg",
     "license": "CC BY 2.0"
   },
   {
@@ -32,16 +32,16 @@
     "label": "Physical Evidence",
     "text": "Discovered in 1901 by sponge divers off the Greek island of Antikythera Contains over 30 intricate precision bronze gears in a wooden box Accurately predicted solar and lunar eclipses, planetary orbits, and Olympic cycles Dating back to roughly 150 to 100 BC Clockwork complexity of this caliber was not seen again until 1,400 years later in 14th-century Europe",
     "file": "02_commons.jpg",
-    "title": "File:The Antikythera Mechanism (3471976134).jpg",
-    "license": "CC BY 2.0"
+    "title": "File:Mechanism of Antikythera - Kotsanas' version - back side.jpg",
+    "license": "CC BY 4.0"
   },
   {
     "beat": 5,
     "type": "SCHEMATIC",
     "label": "Survey / Blueprint",
     "text": "Discovered in 1901 by sponge divers off the Greek island of Antikythera Contains over 30 intricate precision bronze gears in a wooden box Accurately predicted solar and lunar eclipses, planetary orbits, and Olympic cycles Dating back to roughly 150 to 100 BC Clockwork complexity of this caliber was not seen again until 1,400 years later in 14th-century Europe",
-    "file": "03_commons.jpg",
-    "title": "File:The Antikythera Mechanism (3471987204).jpg",
+    "file": "05_commons.jpg",
+    "title": "File:The Antikythera Mechanism (3471161471).jpg",
     "license": "CC BY 2.0"
   }
 ]

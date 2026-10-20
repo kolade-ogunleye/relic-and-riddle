@@ -1,0 +1,47 @@
+[
+  {
+    "beat": 1,
+    "type": "HOOK",
+    "label": "Opening Hook",
+    "text": "A 600-year-old book written in an unknown script has defeated every attempt to read it.",
+    "file": "01_commons.jpg",
+    "title": "File:Voynich Manuscript (135).jpg",
+    "license": "Public domain"
+  },
+  {
+    "beat": 2,
+    "type": "LANDSCAPE",
+    "label": "Terrain & Scale",
+    "text": "Its vellum is radiocarbon-dated to 1404-1438 About 240 pages with drawings of unidentified plants, star charts and bathing figures Named after book dealer Wilfrid Voynich, who acquired it in 1912 Studied without success by WWII-era codebreakers including William Friedman Held at Yale's Beinecke Library; theories range from cipher to unknown language to elaborate hoax",
+    "file": "02_commons.jpg",
+    "title": "File:Voynich manuscript (tail).jpg",
+    "license": "Public domain"
+  },
+  {
+    "beat": 3,
+    "type": "INTERIOR",
+    "label": "Inner Structure",
+    "text": "Its vellum is radiocarbon-dated to 1404-1438 About 240 pages with drawings of unidentified plants, star charts and bathing figures Named after book dealer Wilfrid Voynich, who acquired it in 1912 Studied without success by WWII-era codebreakers including William Friedman Held at Yale's Beinecke Library; theories range from cipher to unknown language to elaborate hoax",
+    "file": "03_commons.jpg",
+    "title": "File:Voynich manuscript (head).jpg",
+    "license": "Public domain"
+  },
+  {
+    "beat": 4,
+    "type": "ARTIFACT",
+    "label": "Physical Evidence",
+    "text": "Its vellum is radiocarbon-dated to 1404-1438 About 240 pages with drawings of unidentified plants, star charts and bathing figures Named after book dealer Wilfrid Voynich, who acquired it in 1912 Studied without success by WWII-era codebreakers including William Friedman Held at Yale's Beinecke Library; theories range from cipher to unknown language to elaborate hoax",
+    "file": "04_commons.jpg",
+    "title": "File:Voynich Manuscript (192).jpg",
+    "license": "Public domain"
+  },
+  {
+    "beat": 5,
+    "type": "SCHEMATIC",
+    "label": "Survey / Blueprint",
+    "text": "Its vellum is radiocarbon-dated to 1404-1438 About 240 pages with drawings of unidentified plants, star charts and bathing figures Named after book dealer Wilfrid Voynich, who acquired it in 1912 Studied without success by WWII-era codebreakers including William Friedman Held at Yale's Beinecke Library; theories range from cipher to unknown language to elaborate hoax",
+    "file": "05_commons.jpg",
+    "title": "File:Voynich Manuscript (146).jpg",
+    "license": "Public domain"
+  }
+]

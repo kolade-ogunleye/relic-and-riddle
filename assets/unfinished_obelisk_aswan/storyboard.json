@@ -1,0 +1,47 @@
+[
+  {
+    "beat": 1,
+    "type": "HOOK",
+    "label": "Opening Hook",
+    "text": "In an Aswan granite quarry lies an obelisk that would have been the largest ever raised in ancient Egypt, abandoned when it cracked.",
+    "file": "18_commons.jpg",
+    "title": "File:The largest know ancient obelisk - Unfinished Obelisk would have been 32m. high (14470651075).jpg",
+    "license": "CC BY 2.0"
+  },
+  {
+    "beat": 2,
+    "type": "LANDSCAPE",
+    "label": "Terrain & Scale",
+    "text": "About 42 m long; estimated weight roughly 1,090-1,200 tonnes Often attributed to Queen Hatshepsut's reign (15th century BC), though this is uncertain Workers pounded the granite with balls of hard dolerite Abandoned after cracks appeared in the stone Gives rare direct evidence of how obelisks were quarried",
+    "file": "01_commons.jpg",
+    "title": "File:The Unfinished Obelisk, Aswan, AG, EGY (48027111541).jpg",
+    "license": "CC0"
+  },
+  {
+    "beat": 3,
+    "type": "INTERIOR",
+    "label": "Inner Structure",
+    "text": "About 42 m long; estimated weight roughly 1,090-1,200 tonnes Often attributed to Queen Hatshepsut's reign (15th century BC), though this is uncertain Workers pounded the granite with balls of hard dolerite Abandoned after cracks appeared in the stone Gives rare direct evidence of how obelisks were quarried",
+    "file": "02_commons.jpg",
+    "title": "File:The Unfinished Obelisk, Aswan, AG, EGY (48027107416).jpg",
+    "license": "CC0"
+  },
+  {
+    "beat": 4,
+    "type": "ARTIFACT",
+    "label": "Physical Evidence",
+    "text": "About 42 m long; estimated weight roughly 1,090-1,200 tonnes Often attributed to Queen Hatshepsut's reign (15th century BC), though this is uncertain Workers pounded the granite with balls of hard dolerite Abandoned after cracks appeared in the stone Gives rare direct evidence of how obelisks were quarried",
+    "file": "03_commons.jpg",
+    "title": "File:The Unfinished Obelisk, Aswan, AG, EGY (48027108926).jpg",
+    "license": "CC0"
+  },
+  {
+    "beat": 5,
+    "type": "SCHEMATIC",
+    "label": "Survey / Blueprint",
+    "text": "About 42 m long; estimated weight roughly 1,090-1,200 tonnes Often attributed to Queen Hatshepsut's reign (15th century BC), though this is uncertain Workers pounded the granite with balls of hard dolerite Abandoned after cracks appeared in the stone Gives rare direct evidence of how obelisks were quarried",
+    "file": "04_commons.jpg",
+    "title": "File:The Unfinished Obelisk, Aswan, AG, EGY (48027227302).jpg",
+    "license": "CC0"
+  }
+]

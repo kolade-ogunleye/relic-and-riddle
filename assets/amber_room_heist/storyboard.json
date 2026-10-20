@@ -1,0 +1,47 @@
+[
+  {
+    "beat": 1,
+    "type": "HOOK",
+    "label": "Opening Hook",
+    "text": "In 1941, German troops dismantled a palace room made of amber and shipped it away, and it has not been seen since 1945.",
+    "file": "05_commons.jpg",
+    "title": "File:Catherine Palace interior - Amber Room (2).jpg",
+    "license": "Public domain"
+  },
+  {
+    "beat": 2,
+    "type": "LANDSCAPE",
+    "label": "Terrain & Scale",
+    "text": "Created in Prussia in the early 18th century and given to Peter the Great in 1716 Installed in the Catherine Palace near St Petersburg; said to contain several tonnes of amber Dismantled by German forces in 1941 and displayed in Konigsberg Castle Disappeared in 1944-45; it may have been destroyed by bombing or fire, but its fate is unknown A reconstruction was completed in 2003",
+    "file": "02_commons.jpg",
+    "title": "File:Russland - St. Petersburg - Das Bernsteinzimmer - Panoramafoto vom 11.Mai 2012 - The Amber Room panoramic photo from May 11, 2012 - Панорамные фото Янтарная комната с 11 мая 2012 го - panoramio.jpg",
+    "license": "CC BY 3.0"
+  },
+  {
+    "beat": 3,
+    "type": "INTERIOR",
+    "label": "Inner Structure",
+    "text": "Created in Prussia in the early 18th century and given to Peter the Great in 1716 Installed in the Catherine Palace near St Petersburg; said to contain several tonnes of amber Dismantled by German forces in 1941 and displayed in Konigsberg Castle Disappeared in 1944-45; it may have been destroyed by bombing or fire, but its fate is unknown A reconstruction was completed in 2003",
+    "file": "07_commons.jpg",
+    "title": "File:Catherine Palace interior - Amber Room (1).jpg",
+    "license": "Public domain"
+  },
+  {
+    "beat": 4,
+    "type": "ARTIFACT",
+    "label": "Physical Evidence",
+    "text": "Created in Prussia in the early 18th century and given to Peter the Great in 1716 Installed in the Catherine Palace near St Petersburg; said to contain several tonnes of amber Dismantled by German forces in 1941 and displayed in Konigsberg Castle Disappeared in 1944-45; it may have been destroyed by bombing or fire, but its fate is unknown A reconstruction was completed in 2003",
+    "file": "01_commons.jpg",
+    "title": "File:Reconstructed Amber Room IMG 6163 12.jpg",
+    "license": "CC BY 4.0"
+  },
+  {
+    "beat": 5,
+    "type": "SCHEMATIC",
+    "label": "Survey / Blueprint",
+    "text": "Created in Prussia in the early 18th century and given to Peter the Great in 1716 Installed in the Catherine Palace near St Petersburg; said to contain several tonnes of amber Dismantled by German forces in 1941 and displayed in Konigsberg Castle Disappeared in 1944-45; it may have been destroyed by bombing or fire, but its fate is unknown A reconstruction was completed in 2003",
+    "file": "03_commons.jpg",
+    "title": "File:Reconstructed Amber Room IMG 6182 16.jpg",
+    "license": "CC BY 4.0"
+  }
+]

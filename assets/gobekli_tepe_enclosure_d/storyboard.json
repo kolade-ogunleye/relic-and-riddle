@@ -3,17 +3,17 @@
     "beat": 1,
     "type": "HOOK",
     "label": "Opening Hook",
-    "text": "The historical investigation into Gobekli Tepe Enclosure D.",
-    "file": "01_commons.jpg",
-    "title": "File:Stratigraphy of Göbekli Tepe.png",
+    "text": "Built 6,000 years before Stonehenge, this massive stone sanctuary proved human hunters organized societies long before farming began.",
+    "file": "10_commons.jpg",
+    "title": "File:Unique engraving of a female on a stone slab from Göbekli Tepe, Urfa Museum.jpg",
     "license": "CC BY 4.0"
   },
   {
     "beat": 2,
     "type": "LANDSCAPE",
     "label": "Terrain & Scale",
-    "text": "The historical investigation into Gobekli Tepe Enclosure D.",
-    "file": "05_commons.jpg",
+    "text": "Dating to 9500 BC—predating agriculture, pottery, the wheel, and metal tools Massive T-shaped limestone pillars weighing up to 20 tons carved with low-relief predators Overturned the classical archaeological timeline that farming preceded monument building Intentionally buried and backfilled with dirt thousands of years after construction Only an estimated 5% of the total underground temple complex has been excavated",
+    "file": "03_commons.jpg",
     "title": "File:Göbekli Tepe - landscape.jpg",
     "license": "CC BY 3.0 pl"
   },
@@ -21,26 +21,26 @@
     "beat": 3,
     "type": "INTERIOR",
     "label": "Inner Structure",
-    "text": "The historical investigation into Gobekli Tepe Enclosure D.",
-    "file": "03_commons.jpg",
-    "title": "File:Göbekli Tepe (1).jpg",
-    "license": "CC BY 3.0 pl"
+    "text": "Dating to 9500 BC—predating agriculture, pottery, the wheel, and metal tools Massive T-shaped limestone pillars weighing up to 20 tons carved with low-relief predators Overturned the classical archaeological timeline that farming preceded monument building Intentionally buried and backfilled with dirt thousands of years after construction Only an estimated 5% of the total underground temple complex has been excavated",
+    "file": "08_commons.jpg",
+    "title": "File:The archaeological site of Göbekli Tepe - main excavation area.png",
+    "license": "CC BY 4.0"
   },
   {
     "beat": 4,
     "type": "ARTIFACT",
     "label": "Physical Evidence",
-    "text": "The historical investigation into Gobekli Tepe Enclosure D.",
-    "file": "02_commons.jpg",
-    "title": "File:Göbekli Tepe (2).jpg",
-    "license": "CC BY 3.0 pl"
+    "text": "Dating to 9500 BC—predating agriculture, pottery, the wheel, and metal tools Massive T-shaped limestone pillars weighing up to 20 tons carved with low-relief predators Overturned the classical archaeological timeline that farming preceded monument building Intentionally buried and backfilled with dirt thousands of years after construction Only an estimated 5% of the total underground temple complex has been excavated",
+    "file": "09_commons.jpg",
+    "title": "File:The archaeological site of Göbekli Tepe - main excavation area (rotated 270 deg).png",
+    "license": "CC BY 4.0"
   },
   {
     "beat": 5,
     "type": "SCHEMATIC",
     "label": "Survey / Blueprint",
-    "text": "The historical investigation into Gobekli Tepe Enclosure D.",
-    "file": "04_commons.jpg",
+    "text": "Dating to 9500 BC—predating agriculture, pottery, the wheel, and metal tools Massive T-shaped limestone pillars weighing up to 20 tons carved with low-relief predators Overturned the classical archaeological timeline that farming preceded monument building Intentionally buried and backfilled with dirt thousands of years after construction Only an estimated 5% of the total underground temple complex has been excavated",
+    "file": "01_commons.jpg",
     "title": "File:Göbekli Tepe (5).jpg",
     "license": "CC BY 3.0 pl"
   }

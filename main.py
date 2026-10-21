@@ -1683,7 +1683,13 @@ def main(argv=None) -> int:
     review_sub = review_p.add_subparsers(dest="review_action")
     review_sub.add_parser("list")
     for action in ("approve", "reject", "regenerate"):
-        review_sub.add_parser(action).add_argument("run_id")
+        decide_p = review_sub.add_parser(action)
+        decide_p.add_argument("run_id")
+        if action != "approve":
+            from src.improve import REASONS as _reasons
+            decide_p.add_argument("--reason", choices=sorted(_reasons), default="other",
+                                  help="What was wrong (goes to the improvement ledger and, for regenerate, the new version)")
+            decide_p.add_argument("--note", default="", help="Your words on what to change")
     send_p = review_sub.add_parser("send", help="Re-send the Telegram review card for a timed-out run and wait")
     send_p.add_argument("run_id")
     send_p.add_argument("--dry-run", action="store_true")
@@ -2004,6 +2010,12 @@ def main(argv=None) -> int:
             eval (free quota only, a few drafts a night, never during a production run); a rule that
             wins, and any code-level proposal, is put to you as a card. Nothing is adopted without you."""
             from src import accounts, improve
+            try:
+                pruned = coordinator.db.prune_history()
+                if any(pruned.values()):
+                    log.info("Pruned old rows: %s", pruned)
+            except Exception as e:
+                log.warning("History pruning failed: %s", e)
             try:  # the publishing accounts really work (not just "a key is set")
                 problems = accounts.check(coordinator.db, force=True).get("problems") or []
                 if problems:
@@ -2126,6 +2138,14 @@ def main(argv=None) -> int:
         elif args.review_action in ("approve", "reject", "regenerate"):
             decision = {"approve": "approved", "reject": "rejected", "regenerate": "regenerate"}[args.review_action]
             if db.update_approval_decision(args.run_id, decision, decided_by="cli"):
+                if decision != "approved":
+                    from src import improve
+                    improve.record_reason(db, args.run_id, args.reason, decision, args.note)
+                try:  # the card in Telegram must not stay tappable after a CLI decision
+                    from src.telegram_bot import TelegramApprovalBot
+                    TelegramApprovalBot(db=db).dismiss_approval_buttons(args.run_id)
+                except Exception as e:
+                    log.debug("Could not update the Telegram card: %s", e)
                 print(f"{args.run_id}: {decision}. The waiting run picks this up within seconds.")
             else:
                 appr = db.get_approval(args.run_id)

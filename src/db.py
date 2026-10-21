@@ -584,6 +584,24 @@ class PipelineDatabase:
         except Exception:
             return None
 
+    RETENTION_DAYS = {"audit_log": 90, "alerts": 90, "telegram_media_cache": 30, "findings": 365}
+
+    def prune_history(self) -> Dict[str, int]:
+        """Deletes old rows from the tables that only grow (activity log, alerts, Telegram media cache,
+        improvement findings). Runs, approvals, issues, spend and publications are the audit trail and
+        are never pruned. Returns rows deleted per table."""
+        from datetime import timedelta
+        deleted = {}
+        with self._conn() as conn:
+            tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            for table, days in self.RETENTION_DAYS.items():
+                if table not in tables:
+                    continue
+                column = "updated_at" if table == "telegram_media_cache" else "created_at"
+                cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+                deleted[table] = conn.execute(f"DELETE FROM {table} WHERE {column} < ?", (cutoff,)).rowcount
+        return deleted
+
     def clear_active_progress(self) -> None:
         """Clears active render state when a job completes, fails, or is cancelled."""
         with self._conn() as conn:

@@ -228,6 +228,24 @@ def scene_strip(video: Path, out: Path, frames: int = 12, cols: int = 6) -> Opti
     return out
 
 
+
+def typical_run_seconds(last: int = 5) -> Optional[float]:
+    """Average wall-clock length of the most recent finished runs, from their stage timings (stages
+    overlap, so it is first start to last finish, not a sum). None without history."""
+    from .config import OUTPUT_DIR
+    totals = []
+    for timings in sorted(OUTPUT_DIR.glob("*/timings.json"), key=lambda p: p.stat().st_mtime, reverse=True)[:last * 2]:
+        try:
+            rows = json.loads(timings.read_text(encoding="utf-8"))
+            stamps = [datetime.fromisoformat(r["at"].replace("Z", "+00:00")) for r in rows]
+            totals.append((max(stamps) - min(stamps)).total_seconds() + float(rows[0]["seconds"]))
+        except (OSError, ValueError, KeyError, IndexError, TypeError):
+            continue
+        if len(totals) == last:
+            break
+    return sum(totals) / len(totals) if totals else None
+
+
 class TelegramApprovalBot:
     def __init__(
         self,
@@ -758,8 +776,9 @@ class TelegramApprovalBot:
         start_t = self._progress_start_time.get(run_id, now)
         elapsed_sec = int(now - start_t)
         elapsed_fmt = f"{elapsed_sec // 60:02d}:{elapsed_sec % 60:02d}"
+        typical = typical_run_seconds()
         if step > 0 and step < total_steps:
-            est_total = elapsed_sec / (step / total_steps)
+            est_total = typical if typical and typical > elapsed_sec else elapsed_sec / (step / total_steps)
             rem_sec = max(0, int(est_total - elapsed_sec))
             eta_fmt = f"~{rem_sec // 60:02d}:{rem_sec % 60:02d}"
         else:
@@ -1036,10 +1055,10 @@ class TelegramApprovalBot:
     def flip_cover(self, message_id: int, run_name: str, variant_letter: str) -> bool:
         """Flips the cover variant in-place on an existing Telegram photo message using editMessageMedia."""
         var_letter = variant_letter.lower()
-        matches = [p for p in Path("output").rglob(run_name) if p.is_dir()]
-        if not matches:
+        from .config import OUTPUT_DIR
+        r_dir = OUTPUT_DIR / Path(run_name).name  # the run's own folder (was a search of all output)
+        if not r_dir.is_dir():
             return False
-        r_dir = matches[0]
         var_file = (r_dir / f"thumbnail_variant_{var_letter}_blueprint.jpg" if var_letter == "a"
                     else r_dir / f"thumbnail_variant_{var_letter}_intrigue.jpg" if var_letter == "b"
                     else r_dir / f"thumbnail_variant_{var_letter}_minimal.jpg")

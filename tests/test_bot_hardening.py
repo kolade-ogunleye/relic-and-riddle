@@ -120,3 +120,38 @@ def test_done_closes_a_card_and_navigation_keeps_its_buttons(db, monkeypatch):
     buttons = [b["callback_data"] for row in _json.loads(edit["reply_markup"])["inline_keyboard"] for b in row]
     assert "qrefresh:" in buttons and "done:" in buttons                                    # ...with its buttons
     assert not any(m == "editMessageReplyMarkup" for m, d in calls)                         # never stripped first
+
+
+def test_old_history_is_pruned_but_the_audit_trail_is_kept(db):
+    old = "2020-01-01T00:00:00+00:00"
+    db.record_audit_event(user_id="1", username="u", action="cmd", payload="x", status="allowed")
+    db.create_run("run_a", "01_topic")
+    with db._conn() as conn:
+        conn.execute("UPDATE audit_log SET created_at = ?", (old,))
+        conn.execute("UPDATE runs SET created_at = ?", (old,))
+    assert db.prune_history()["audit_log"] == 1
+    assert db.get_run("run_a") is not None                     # runs are never pruned
+
+
+def test_cli_reject_records_its_reason_and_closes_the_telegram_card(db, monkeypatch):
+    import main
+    from src import improve
+    db.create_run("run_a", "01_topic")
+    db.record_approval("run_a", "01_topic", 9)
+    closed = []
+    monkeypatch.setattr(main, "PipelineDatabase", lambda *a, **k: db)
+    monkeypatch.setattr("src.telegram_bot.TelegramApprovalBot.dismiss_approval_buttons", lambda self, r: closed.append(r))
+    assert main.main(["review", "reject", "run_a", "--reason", "pictures", "--note", "wrong temple"]) in (0, None)
+    assert improve.operator_feedback(db, "run_a")["reason"] == "pictures" and closed == ["run_a"]
+
+
+def test_progress_eta_uses_how_long_recent_runs_took(monkeypatch, tmp_path):
+    import json as _json
+    from src import telegram_bot
+    run = tmp_path / "run_x"
+    run.mkdir()
+    (run / "timings.json").write_text(_json.dumps([
+        {"stage": "a", "seconds": 60, "at": "2026-10-20T10:01:00Z"},
+        {"stage": "b", "seconds": 30, "at": "2026-10-20T10:20:00Z"}]), encoding="utf-8")
+    monkeypatch.setattr("src.config.OUTPUT_DIR", tmp_path)
+    assert telegram_bot.typical_run_seconds() == 19 * 60 + 60   # first start to last finish

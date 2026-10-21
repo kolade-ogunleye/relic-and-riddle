@@ -59,6 +59,8 @@ HELP = (
 )
 
 SendPhoto = Callable[[Path, str, Optional[list]], bool]
+DONE = {"text": "✓ Done", "callback_data": "done:"}
+HOME = {"text": "← Dashboard", "callback_data": "cdash:"}
 
 # Plain-language names for run statuses in Telegram.
 STATUS_WORDS = {
@@ -570,6 +572,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             lines.append("\n<i>To restore any topic: <code>/requeue &lt;number or id&gt;</code></i>")
 
         buttons.append({"text": "🔄 Refresh Queue", "callback_data": "qrefresh:"})
+        buttons.append(DONE)
         return "\n".join(lines), buttons
 
     """run_actions: button actions on a run, e.g. {"pubok": fn(run_id) -> reply, "pubno": ..., "resend": ...}."""
@@ -584,21 +587,20 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
     def handle(command: str, args: str) -> str:
         if command == "qrender":
             res = trigger_run()
-            q_text, _ = render_queue_text_and_buttons()
-            return f"⚡ <b>Render Triggered:</b> {html.escape(res)}\n\n{q_text}"
+            q_text, q_buttons = render_queue_text_and_buttons()
+            return f"⚡ <b>Run:</b> {html.escape(res)}\n\n{q_text}", q_buttons
         if command == "qbump":
             db.bump_topic(args)
-            q_text, _ = render_queue_text_and_buttons()
-            return f"🚀 Bumped topic to #1 in queue!\n\n{q_text}"
+            q_text, q_buttons = render_queue_text_and_buttons()
+            return f"🚀 Bumped topic to #1 in queue!\n\n{q_text}", q_buttons
         if command == "qdrop":
             t_obj = db.get_topic_by_id(args)
             undo_stack.append({"type": "qdrop", "topic_id": args, "desc": f"Drop of {t_obj['title'] if t_obj else args}"})
             db.drop_topic(args)
-            q_text, _ = render_queue_text_and_buttons()
-            return f"🗑 Dropped topic from queue (type /undo to restore).\n\n{q_text}"
+            q_text, q_buttons = render_queue_text_and_buttons()
+            return f"🗑 Dropped topic from queue (type /undo to restore).\n\n{q_text}", q_buttons
         if command == "qrefresh":
-            q_text, _ = render_queue_text_and_buttons()
-            return q_text
+            return render_queue_text_and_buttons()
         if command == "bump":
             ref = args.strip()
             if not ref:
@@ -841,7 +843,10 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     "already waiting (each has Add/Skip).")
             buttons = [[{"text": "🔬 Research 3 new ideas", "callback_data": "propose:"}],
                        [{"text": "🏛️ UNESCO marvels", "callback_data": "cdisc:"},
-                        {"text": "📥 Waiting ideas", "callback_data": "cprop:"}]]
+                        {"text": "📥 Waiting ideas", "callback_data": "cprop:"}],
+                       ([HOME, DONE] if command == "cideas" else [DONE])]
+            if command == "cideas":
+                return text, buttons
             if send_message:
                 send_message(text, buttons)
                 return ""
@@ -869,7 +874,9 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 return "Editing works while the bot or daemon is running."
             return action(db.resolve_run(key), field, body)
         if command == "cimprove":
-            return handle("improve", "")
+            from . import improve
+            text, buttons = improve.improve_text(db)
+            return text, buttons + [[HOME, DONE]]
         if command == "creviews":
             pending = db.list_pending_approvals()
             if not pending:
@@ -879,14 +886,11 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             for p in pending[:5]:
                 lines.append(f"• {html.escape(db.run_label(p['run_id']))}")
                 buttons.append([{"text": f"📨 Resend {db.run_key(p['run_id'])}", "callback_data": f"resend:{db.run_key(p['run_id'])}"}])
-            if send_message:
-                send_message("\n".join(lines), buttons)
-                return ""
-            return "\n".join(lines)
+            return "\n".join(lines), buttons + [[HOME, DONE]]
         if command == "cstat":
-            return status_text(db, next_run(), voice_quota())
+            return status_text(db, next_run(), voice_quota()), [[HOME, DONE]]
         if command == "caudit":
-            return handle("audit", "10")
+            return handle("audit", "10"), [[HOME, DONE]]
         if command == "ccov":
             return handle("covers", "")  # the latest render, whichever topic it is
         if command == "cprop":
@@ -897,12 +901,12 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             return handle("music", "")
         if command == "cpause":
             handle("pause", "")
-            dash_text, _ = dashboard_text_and_buttons(db, next_run(), assets_dir=assets_dir)
-            return f"⏸ <b>Scheduler Paused!</b>\n\n{dash_text}"
+            dash_text, dash_buttons = dashboard_text_and_buttons(db, next_run(), assets_dir=assets_dir)
+            return f"⏸ <b>Scheduler Paused!</b>\n\n{dash_text}", dash_buttons
         if command == "cresume":
             handle("resume", "")
-            dash_text, _ = dashboard_text_and_buttons(db, next_run(), assets_dir=assets_dir)
-            return f"▶️ <b>Scheduler Resumed!</b>\n\n{dash_text}"
+            dash_text, dash_buttons = dashboard_text_and_buttons(db, next_run(), assets_dir=assets_dir)
+            return f"▶️ <b>Scheduler Resumed!</b>\n\n{dash_text}", dash_buttons
         if command == "images":
             return images_text(assets_dir, db=db)
         if command == "review":
@@ -1349,8 +1353,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command == "improve":
             from . import improve
             text, buttons = improve.improve_text(db)
-            if send_message and buttons:
-                send_message(text, buttons)
+            if send_message:
+                send_message(text, buttons + [[DONE]])
                 return ""
             return text
         if command == "impinfo":

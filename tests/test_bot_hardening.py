@@ -100,3 +100,23 @@ def test_progress_of_a_finished_run_is_not_kept_alive(db):
     assert db.get_active_progress()["message_id"] == 696      # still producing: kept
     db.update_run("run_a", "simulated")
     assert db.get_active_progress() is None and db.get_setting("active_progress") is None
+
+
+def test_done_closes_a_card_and_navigation_keeps_its_buttons(db, monkeypatch):
+    import json as _json
+    from src.control import make_command_handler
+    upd = [{"update_id": 1, "callback_query": {"id": "q", "data": "done:", "from": {"id": 555},
+                                               "message": {"chat": {"id": 555}, "message_id": 41}}}]
+    bot, calls = _bot(db, monkeypatch, upd)
+    h = make_command_handler(db, lambda: None, lambda: "started")
+    bot.poll_once(h)
+    assert any(m == "deleteMessage" and d.get("message_id") == 41 for m, d in calls)        # Done closed it
+    calls.clear()
+    upd.append({"update_id": 2, "callback_query": {"id": "q2", "data": "qrefresh:", "from": {"id": 555},
+                                                   "message": {"chat": {"id": 555}, "message_id": 42}}})
+    bot.poll_once(h)
+    edit = next(d for m, d in calls if m == "editMessageText")
+    assert edit["message_id"] == 42                                                         # in place...
+    buttons = [b["callback_data"] for row in _json.loads(edit["reply_markup"])["inline_keyboard"] for b in row]
+    assert "qrefresh:" in buttons and "done:" in buttons                                    # ...with its buttons
+    assert not any(m == "editMessageReplyMarkup" for m, d in calls)                         # never stripped first

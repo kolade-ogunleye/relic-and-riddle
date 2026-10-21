@@ -39,6 +39,24 @@ TELEGRAM_VIDEO_LIMIT_MB = 49.0
 STALE_COMMAND_SECONDS = 600  # commands queued while the bot was down longer than this are not replayed
 SLOW_COMMANDS = {"ask", "discover", "umore", "propose", "review", "covers", "edittext"}
 
+DONE_BUTTON = {"text": "✓ Done", "callback_data": "done:"}
+# Cards removed before acting (their own Cancel/Skip/Next buttons).
+DELETE_FIRST = {"mnext", "mcancel", "umore", "umoredone", "uskip", "tskip", "mdel", "imgcancel"}
+# Decision buttons: disabled before acting so a second tap can't repeat the decision.
+ONE_SHOT = {"uadd", "tadd", "imgok", "mkeep", "cov", "rsn", "impok", "impno", "imprev",
+            "pubok", "pubno", "simpub", "resend"}
+# Replies that replace the card they came from (text only).
+EDIT_IN_PLACE = {"uadd", "tadd", "simpub", "rsn", "impok", "impno", "imprev"}
+TOASTS = {"imgok": "✅ Storyboard Approved!", "imgcancel": "✖ Cancelled", "mcancel": "✖ Cancelled",
+          "umoredone": "✖ Cancelled", "mnext": "⏭ Next Track", "umore": "➕ Discoveries", "uadd": "✅ Added to Queue",
+          "tadd": "✅ Added to Queue", "uskip": "✖ Skipped", "tskip": "✖ Skipped", "mdel": "🗑 Track Removed",
+          "mkeep": "✅ Track Kept", "qbump": "🚀 Bumped to #1", "qdrop": "🗑 Topic Dropped", "qrefresh": "🔄 Refreshed",
+          "qrender": "⚡ Run started", "cov": "📌 Cover Selected", "cstat": "📊 Status", "cprog": "⚡ Progress",
+          "caudit": "🛡️ Activity log", "ccov": "🎨 Covers", "cprop": "💡 Ideas", "cdisc": "🏛️ Discoveries",
+          "cmusic": "🎵 Music", "cpause": "⏸️ Paused", "cresume": "▶️ Resumed", "cdash": "🏛️ Dashboard",
+          "simpub": "🧪 Simulated", "rsn": "📝 Noted", "impok": "✅ Done", "impno": "✖ Declined",
+          "imprev": "↩ Reverted", "creviews": "🎬 Reviews", "cimprove": "🧭 Improvement", "cideas": "💡 Ideas"}
+
 _MASKER = SecretMasker()
 
 
@@ -670,7 +688,7 @@ class TelegramApprovalBot:
             f"Progress: <code>[▰▰▱▱▱▱▱▱▱▱] 20%</code>\n"
             f"⏱ <b>Elapsed:</b> <code>00:00</code> • <b>ETA:</b> <code>~01:30</code>"
         )
-        buttons = [{"text": "🔄 Refresh Progress", "callback_data": f"cprog:{run_id}"}]
+        buttons = [{"text": "🔄 Refresh Progress", "callback_data": f"cprog:{self.db.run_key(run_id)}"}]
         markup = {"inline_keyboard": format_responsive_keyboard(buttons)}
         try:
             msg = self._api("sendMessage", data={
@@ -754,7 +772,7 @@ class TelegramApprovalBot:
         self._last_progress_edit[message_id] = now
         self._last_progress_step[message_id] = step
 
-        buttons = [{"text": "🔄 Refresh Progress", "callback_data": f"cprog:{run_id}"}]
+        buttons = [{"text": "🔄 Refresh Progress", "callback_data": f"cprog:{self.db.run_key(run_id)}"}]
 
         # Keep DB updated with real-time active progress
         if hasattr(self.db, "set_active_progress"):
@@ -1156,69 +1174,47 @@ class TelegramApprovalBot:
                         if msg_id:
                             self.edit_message_caption(msg_id, reply, buttons=[])
                 elif command_handler is not None:
-                    # Other buttons (e.g. "imgok:<topic>") map to the same command handler.
+                    # Other buttons (e.g. "imgok:<topic>") map to the same command handler. Rules:
+                    # - "done" closes the card it is on;
+                    # - a handler that returns (text, buttons) replaces this card in place (navigation:
+                    #   dashboard views, the queue after Bump/Drop/Refresh);
+                    # - decision buttons (ONE_SHOT) are disabled before acting, so a second tap can't repeat it;
+                    # - any other reply arrives as a new card with a Done button.
                     msg = cq.get("message") or {}
                     msg_id = msg.get("message_id")
                     is_media = bool(msg.get("photo") or msg.get("audio") or msg.get("video") or msg.get("document"))
-
-                    if msg_id and action in ("mnext", "mcancel", "umore", "umoredone", "uskip", "tskip", "mdel", "imgcancel"):
+                    if action == "done":
+                        if msg_id:
+                            self.delete_message(msg_id)
+                        self._answer_callback(cq["id"], "Closed")
+                        continue
+                    if msg_id and action in DELETE_FIRST:
                         self.delete_message(msg_id)
-                    elif msg_id and action not in ("qrender", "edit"):  # Edit keeps the review card live
-                        try:
-                            self._api("editMessageReplyMarkup", data={
-                                "chat_id": self.chat_id,
-                                "message_id": msg_id,
-                                "reply_markup": json.dumps({"inline_keyboard": []}),
-                            })
-                        except Exception as em:
-                            log.debug("Could not edit reply markup: %s", em)
+                    elif msg_id and action in ONE_SHOT:
+                        self._strip_buttons(msg_id)
                     try:
                         reply = command_handler(action, target)
-                        ans = ("✅ Storyboard Approved!" if action == "imgok"
-                               else "✖ Cancelled" if action in ("imgcancel", "mcancel", "umoredone")
-                               else "⏭ Next Track" if action == "mnext"
-                               else "➕ Discoveries" if action == "umore"
-                               else "✅ Added to Queue" if action in ("uadd", "tadd")
-                               else "✖ Skipped" if action in ("uskip", "tskip")
-                               else "🗑 Track Removed" if action == "mdel"
-                               else "✅ Track Kept" if action == "mkeep"
-                               else "🚀 Bumped to #1" if action == "qbump"
-                               else "🗑 Topic Dropped" if action == "qdrop"
-                               else "🔄 Queue Refreshed" if action == "qrefresh"
-                               else "⚡ Render Triggered!" if action == "qrender"
-                               else "📌 Cover Selected" if action == "cov"
-                               else "📊 System Status" if action == "cstat"
-                               else "⚡ Live Progress" if action == "cprog"
-                               else "🛡️ Audit Log" if action == "caudit"
-                               else "🎨 Cover Studio" if action == "ccov"
-                               else "💡 Proposals" if action == "cprop"
-                               else "🏛️ Discoveries" if action == "cdisc"
-                               else "🎵 Audio Library" if action == "cmusic"
-                               else "⏸️ Paused" if action == "cpause"
-                               else "▶️ Resumed" if action == "cresume"
-                               else "🏛️ Cockpit" if action == "cdash"
-                               else "🧪 Simulated Publish Complete" if action == "simpub"
-                               else "📝 Noted" if action == "rsn"
-                               else "✅ Done" if action == "impok"
-                               else "✖ Declined" if action == "impno"
-                               else "↩ Reverted" if action == "imprev"
-                               else "Done!")
-                        self._answer_callback(cq["id"], ans)
-                        if action == "cdash" and msg_id:
+                        self._answer_callback(cq["id"], TOASTS.get(action, "Done"))
+                        if isinstance(reply, tuple):
+                            text, buttons = reply
+                            if msg_id and action not in DELETE_FIRST:
+                                self.edit_message_any(msg_id, text, is_media=is_media, buttons=buttons)
+                            else:
+                                self.notify(text, buttons=buttons, record_alert=False)
+                        elif action == "cdash" and msg_id:
                             from .control import dashboard_text_and_buttons
                             from .config import ASSETS_DIR
                             next_fn = getattr(self, "next_run_func", lambda: None)
                             dash_text, dash_buttons = dashboard_text_and_buttons(self.db, next_fn(), assets_dir=ASSETS_DIR)
                             self.edit_message_text(msg_id, dash_text, buttons=dash_buttons)
-                        elif action in ("uadd", "tadd", "qbump", "qdrop", "qrefresh", "qrender", "cpause", "cresume", "cprog", "simpub",
-                                        "rsn", "impok", "impno", "imprev") and msg_id:
+                        elif action in EDIT_IN_PLACE and msg_id:
                             self.edit_message_text(msg_id, reply)
                         elif action in ("imgok", "mkeep", "cov") and msg_id:
                             self.edit_message_any(msg_id, reply, is_media=is_media)
-                        elif action in ("uskip", "tskip", "imgcancel", "mcancel", "mdel"):
+                        elif action in DELETE_FIRST:
                             pass  # Card was deleted; callback answer gave user instant toast
                         elif reply:  # empty when the handler already sent its own card
-                            self.notify(reply, record_alert=False)
+                            self.notify(reply, buttons=[[DONE_BUTTON]], record_alert=False)
                     except Exception as e:
                         self._answer_callback(cq["id"], "Failed")
                         self.notify(f"⚠️ {html.escape(action)} failed: {html.escape(str(e))[:300]}")
@@ -1455,8 +1451,10 @@ class TelegramApprovalBot:
         except Exception as e:
             log.exception("Command /%s failed", command)
             reply = f"⚠️ /{html.escape(command)} failed: {html.escape(str(e))[:300]}"
-        if reply:
-            self.notify(reply, record_alert=False)
+        if isinstance(reply, tuple):
+            self.notify(reply[0], buttons=reply[1], record_alert=False)
+        elif reply:
+            self.notify(reply, buttons=[[DONE_BUTTON]], record_alert=False)
 
     def wait_for_decision(self, run_id: str, timeout_seconds: Optional[int] = None, poll_interval: int = 5,
                           reminder_after: int = 1800) -> str:

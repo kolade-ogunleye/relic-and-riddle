@@ -116,8 +116,8 @@ def test_queue_readiness_badges_and_render_button(tmp_path):
     assert "🔵 Script Ready" in q_res
 
     # One-tap render #1 button triggers render
-    qrender_res = h("qrender", "01_ready")
-    assert "Started run" in qrender_res
+    qrender_res, q_buttons = h("qrender", "01_ready")   # the queue comes back with its buttons
+    assert "Started run" in qrender_res and any(b["callback_data"] == "done:" for b in q_buttons)
     assert len(rendered) == 1
 
 
@@ -253,11 +253,11 @@ def test_startup_dashboard_card_and_cockpit(tmp_path):
     assert any("ccov:" in b["callback_data"] for row in d_btns for b in row)
 
     # 4. Cockpit pause and resume toggle
-    pause_reply = h("cpause", "")
+    pause_reply, _ = h("cpause", "")
     assert "Scheduler Paused!" in pause_reply
     assert "paused" in pause_reply
 
-    resume_reply = h("cresume", "")
+    resume_reply, _ = h("cresume", "")
     assert "Scheduler Resumed!" in resume_reply
     assert "active" in resume_reply
 

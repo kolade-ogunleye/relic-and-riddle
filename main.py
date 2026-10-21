@@ -1676,6 +1676,8 @@ def main(argv=None) -> int:
     update_p.add_argument("--apply", action="store_true", help="Apply safe/security updates (test-gated, on a branch)")
     daemon_p = sub.add_parser("daemon", help="Run the daily scheduler")
     daemon_p.add_argument("--time", default=DAILY_RUN_TIME, help="Daily run time HH:MM")
+    daemon_p.add_argument("--dry-run", action="store_true",
+                          help="Everything runs (renders, reviews, approvals) but nothing is posted: approved runs are simulated")
 
     review_p = sub.add_parser("review", help="Inspect and decide pending approvals")
     review_sub = review_p.add_subparsers(dest="review_action")
@@ -1886,7 +1888,7 @@ def main(argv=None) -> int:
                 log.warning("A run is already in progress; skipping.")
                 return
             try:
-                result = coordinator.run_cycle(require_live=True)
+                result = coordinator.run_cycle(require_live=True, dry_run=args.dry_run)
                 if result.get("status") in ("published", "simulated", "rejected"):
                     ping_healthcheck()
             except QueueEmpty:
@@ -1923,7 +1925,7 @@ def main(argv=None) -> int:
                 log.exception("Posting scheduled items failed: %s", e)
                 bot.notify(f"⚠️ Scheduled posting hit an error: {html.escape(str(e))[:300]}")
 
-        if POST_SCHEDULING:  # approved Reels are booked into slots; this publishes them when due
+        if POST_SCHEDULING and not args.dry_run:  # approved Reels are booked into slots; this publishes them when due
             scheduler.add_job(post_due, "interval", minutes=1, max_instances=1, coalesce=True)
 
         from src import maintenance
@@ -1961,7 +1963,7 @@ def main(argv=None) -> int:
             """Re-sends a timed-out Reel's review card (in the background; the wait can be long)."""
             def work():
                 try:
-                    coordinator.request_approval(run_id)
+                    coordinator.request_approval(run_id, dry_run=args.dry_run)
                 except Exception as e:
                     bot.notify(f"⚠️ Couldn't re-send for review: {html.escape(str(e))[:300]}")
             threading.Thread(target=work, name="resend-review", daemon=True).start()
@@ -2105,6 +2107,8 @@ def main(argv=None) -> int:
         try:
             from src.control import startup_dashboard_card
             card_text, card_buttons = startup_dashboard_card(coordinator.db, mode="daemon", time_str=args.time, timezone_str=TIMEZONE, assets_dir=config.ASSETS_DIR)
+            if args.dry_run:
+                card_text = "🧪 <b>DRY RUN</b>: runs, reviews and approvals work, but nothing is posted.\n\n" + card_text
             scheduler.add_job(lambda: bot.notify(card_text, buttons=card_buttons, record_alert=False))
             scheduler.start()
         except (KeyboardInterrupt, SystemExit):

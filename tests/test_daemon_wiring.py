@@ -145,3 +145,9 @@ def test_run_command_schedules_only_when_asked(monkeypatch):
     main.main(["run", "--dry-run"])
     main.main(["run", "--dry-run", "--schedule-posts"])
     assert made == [{}, {"schedule_posts": True}]
+
+
+def test_daemon_dry_run_never_books_or_posts(daemon_env, monkeypatch):
+    monkeypatch.setattr(main, "POST_SCHEDULING", True)
+    assert main.main(["daemon", "--time", "07:00", "--dry-run"]) == 0
+    assert not [t for _, t, _ in FakeScheduler.instances[-1].jobs if t == "interval"]  # no posting job

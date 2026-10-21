@@ -467,7 +467,10 @@ def test_deletion_on_mcancel_mnext_and_umoredone(db, monkeypatch):
     bot.poll_once(lambda a, t: "cancelled")
     assert 77 in deleted_ids
 
-    # 2. Test umoredone clears all recorded discovery card IDs
+    # 2. Test umoredone clears all recorded discovery card IDs (needs the cached UNESCO site list)
+    from src.unesco import CACHE_FILE
+    if not CACHE_FILE.exists():
+        return
     cleared_via_handler = []
     h = make_command_handler(db, lambda: None, lambda: "", delete_message=lambda mid: cleared_via_handler.append(mid) or True,
                              send_message=lambda t, b: 101)

@@ -43,7 +43,7 @@ def search(query: str) -> list:
 
 
 def fetch_music_tracks(per_mood: int = 4) -> int:
-    library = load_library()
+    library = load_library(available_only=False)  # never drop records on rewrite
     have = {t["source_url"] for t in library}
     added = 0
     for mood in MOODS:
@@ -90,7 +90,7 @@ def main() -> int:
     parser.add_argument("--per-mood", type=int, default=4)
     args = parser.parse_args()
 
-    library = load_library()
+    library = load_library(available_only=False)  # never drop records on rewrite
     have = {t["source_url"] for t in library}
     for mood in MOODS:
         count = sum(1 for t in library if t["mood"] == mood)

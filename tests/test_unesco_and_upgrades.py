@@ -1,11 +1,16 @@
-from src.unesco import UNESCOEngine
+import pytest
+
+from src.unesco import CACHE_FILE, UNESCOEngine
 from src.audio_engine import normalize_speech_text
 from src.video_composer import _is_atomic_boundary, partition_words_grammatical
 from src.fact_sheet import _apply_rules
 from src.models import DraftFact
 from src.db import calculate_vps
 
+needs_unesco = pytest.mark.skipif(not CACHE_FILE.exists(), reason="UNESCO site list not downloaded (it is fetched on first use)")
 
+
+@needs_unesco
 def test_unesco_matching_and_evidence():
     engine = UNESCOEngine()
     site = engine.find_site("Kailasa Temple, Ellora Caves", "India", 20.0238, 75.1793)
@@ -88,6 +93,7 @@ def test_vps_calculation():
     assert score >= 90.0  # numbers (+15) + tension (+15) + keywords (+10) + 5 facts (+10) + baseline (50) = 100.0
 
 
+@needs_unesco
 def test_discover_engineering_wonders():
     engine = UNESCOEngine()
     wonders = engine.discover_engineering_wonders(limit=4, sub_theme="hydraulic")
@@ -132,6 +138,7 @@ def test_compute_focal_point(tmp_path):
     assert cx_r > 0.65
 
 
+@needs_unesco
 def test_control_discover_command(db, monkeypatch, tmp_path):
     import json
     from src.control import make_command_handler
@@ -167,6 +174,7 @@ def test_control_discover_command(db, monkeypatch, tmp_path):
 
 
 
+@needs_unesco
 def test_discover_pagination_with_offset():
     engine = UNESCOEngine()
     batch1 = engine.discover_engineering_wonders(limit=3, offset=0, sub_theme="subterranean")
@@ -179,6 +187,7 @@ def test_discover_pagination_with_offset():
     assert ids1.isdisjoint(ids2)
 
 
+@needs_unesco
 def test_control_discover_umore_and_duplicate_uadd(db, monkeypatch, tmp_path):
     import json
     from src.control import make_command_handler

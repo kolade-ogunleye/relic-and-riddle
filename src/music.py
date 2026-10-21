@@ -60,11 +60,14 @@ def choose_mood(payload: Dict[str, Any]) -> str:
 
 
 # ------------------------------------------------------------------ library
-def load_library() -> List[Dict[str, Any]]:
+def load_library(available_only: bool = True) -> List[Dict[str, Any]]:
+    """Tracks whose audio is on this machine (for picking). Anything that rewrites the library must
+    pass available_only=False: a record is never dropped just because its file is missing here (a
+    fresh machine before the audio is copied would otherwise lose the whole library)."""
     if not LIBRARY.exists():
         return []
     tracks = json.loads(LIBRARY.read_text(encoding="utf-8"))
-    return [t for t in tracks if (MUSIC_DIR / t["file"]).exists()]
+    return [t for t in tracks if (MUSIC_DIR / t["file"]).exists()] if available_only else tracks
 
 
 def save_library(tracks: List[Dict[str, Any]]) -> None:
@@ -115,7 +118,7 @@ def pick_documentary_movements(primary_mood: str, num_movements: int = 3, exclud
 
 
 def mark_used(file: str) -> None:
-    tracks = load_library()
+    tracks = load_library(available_only=False)
     for t in tracks:
         if t["file"] == file:
             t["uses"] = t.get("uses", 0) + 1
@@ -225,7 +228,7 @@ def _find(key: str) -> Dict[str, Any]:
 
 
 def approve_track(key: str) -> str:
-    tracks = load_library()
+    tracks = load_library(available_only=False)
     for t in tracks:
         if track_key(t) == key:
             t["reviewed"] = True
@@ -237,7 +240,7 @@ def approve_track(key: str) -> str:
 def remove_track(key: str) -> str:
     track = _find(key)
     (MUSIC_DIR / track["file"]).unlink(missing_ok=True)
-    save_library([t for t in load_library() if t["file"] != track["file"]])
+    save_library([t for t in load_library(available_only=False) if t["file"] != track["file"]])
     return f"Removed “{track['title']}”."
 
 

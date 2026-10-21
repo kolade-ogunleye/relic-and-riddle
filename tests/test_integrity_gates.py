@@ -319,3 +319,18 @@ def test_logs_persist_to_a_masked_rotating_file(monkeypatch, tmp_path):
             if h not in before:
                 root.removeHandler(h)
                 h.close()
+
+
+def test_rewriting_the_music_library_never_drops_tracks_whose_audio_is_missing(tmp_path, monkeypatch):
+    # A fresh machine has library.json (tracked) but not the audio (git-ignored) until it is copied.
+    import json as _json
+    from src import music
+    lib = tmp_path / "library.json"
+    lib.write_text(_json.dumps([{"file": "a/x.mp3", "title": "X", "mood": "a", "reviewed": True},
+                                {"file": "a/y.mp3", "title": "Y", "mood": "a", "reviewed": True}]), encoding="utf-8")
+    monkeypatch.setattr(music, "LIBRARY", lib)
+    monkeypatch.setattr(music, "MUSIC_DIR", tmp_path)
+    assert music.load_library() == []                      # nothing to pick here...
+    music.mark_used("a/x.mp3")
+    kept = _json.loads(lib.read_text(encoding="utf-8"))
+    assert [t["file"] for t in kept] == ["a/x.mp3", "a/y.mp3"] and kept[0]["uses"] == 1   # ...but nothing lost

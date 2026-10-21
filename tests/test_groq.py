@@ -65,3 +65,15 @@ def test_strict_schema_makes_optional_fields_nullable_and_required():
     s = groq.strict_schema(M)
     assert s["required"] == ["a", "b"] and s["properties"]["b"]["type"] == ["integer", "null"]
     assert "default" not in json.dumps(s) and s["additionalProperties"] is False
+
+
+def test_light_text_tasks_use_their_own_free_model_and_photos_do_not(monkeypatch):
+    seen = []
+    monkeypatch.setattr(config, "GEMINI_FREE_API_KEY", "free")
+    monkeypatch.setattr(config, "SCRIPT_ENGINE", "free")
+    monkeypatch.setattr(config, "FREE_LIGHT_MODEL", "gemini-3.6-flash")
+    monkeypatch.setattr(gemini, "structured", lambda s, p, schema, model=None, key=None: seen.append(model) or _Out(answer="x"))
+    free_llm.structured("s", "text", _Out, task_class="light")
+    free_llm.structured("s", [{"type": "text", "text": "photo"}], _Out, task_class="light")   # photo review
+    free_llm.structured("s", "text", _Out, task_class="heavy")
+    assert seen == ["gemini-3.6-flash", config.FREE_WRITER_MODEL, config.FREE_WRITER_MODEL]

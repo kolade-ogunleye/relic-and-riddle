@@ -97,6 +97,8 @@ def structured(system: str, prompt, schema: Type[T], role: str = "writer", attem
     """Schema-constrained output from the free model ("writer") or the different checking model ("checker").
     task_class "light" (photo review, sound plan) or "heavy" (writing, checking) picks the paid-fallback cap."""
     model = config.FREE_CHECKER_MODEL if role == "checker" else config.FREE_WRITER_MODEL
+    if task_class == "light" and isinstance(prompt, str) and config.FREE_LIGHT_MODEL:
+        model = config.FREE_LIGHT_MODEL  # its own free limits; photo review (images) stays on the main models
     if not available():
         return _paid_fallback(system, prompt, schema, model, task_class,
                               "GEMINI_FREE_API_KEY is not set (create it in a Google project without billing).")

@@ -90,3 +90,21 @@ def test_crowded_photos_rank_last_and_are_flagged_to_the_planner(monkeypatch, tm
     assert images[-1]["file"] == "01_commons.jpg"
     sp._folder_credits.cache_clear()
     assert "faces blurred" in sp._photo_caption(tmp_path / "01_commons.jpg")
+
+
+def test_an_unchanged_pool_is_not_sent_again(monkeypatch, tmp_path):
+    _pool(tmp_path, 5)
+    calls = []
+    spec = {i: {"shows_topic": "no" if i == 5 else "yes", "usable": True, "safe": True} for i in range(1, 6)}
+    monkeypatch.setattr(image_review.free_llm, "call", lambda *a, **k: calls.append(1) or _verdicts(spec))
+    assert image_review.review_pool(TOPIC, tmp_path)["status"] == "held"           # 4 kept: too few
+    assert image_review.review_pool(TOPIC, tmp_path)["status"].startswith("held (unchanged")
+    assert len(calls) == 1                                                          # no second vision call
+    credits = load_credits(tmp_path)                                                # a refill adds a photo
+    Image.new("RGB", (64, 48)).save(tmp_path / "09_commons.jpg")
+    credits["images"].append({"file": "09_commons.jpg", "title": "File:Kailasa 9.jpg", "license": "CC0"})
+    (tmp_path / "credits.json").write_text(json.dumps(credits), encoding="utf-8")
+    image_review.review_pool(TOPIC, tmp_path)
+    assert len(calls) == 2                                                          # changed pool: reviewed
+    image_review.review_pool(TOPIC, tmp_path, force=True)
+    assert len(calls) == 3                                                          # forced: reviewed

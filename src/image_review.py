@@ -60,12 +60,22 @@ def _human_decided(credits: Dict[str, Any]) -> bool:
     return credits.get("reviewed_by") == "operator"
 
 
-def review_pool(topic: Dict[str, Any], topic_dir: Path, apply: bool = True) -> Dict[str, Any]:
+def pool_fingerprint(images: List[Dict[str, Any]]) -> str:
+    return ",".join(sorted(str(i.get("file", "")) for i in images))
+
+
+def review_pool(topic: Dict[str, Any], topic_dir: Path, apply: bool = True, force: bool = False) -> Dict[str, Any]:
     """Reviews the pool and (with apply) records verdicts, drops failing photos from the pool record
-    (files stay on disk) and approves the pool on merit. Returns a summary."""
+    (files stay on disk) and approves the pool on merit. Returns a summary. A pool unchanged since its
+    last review (no photo added or removed) is not sent again unless forced: the verdict would repeat,
+    and each review spends free vision quota on every photo."""
     credits = load_credits(topic_dir)
     if _human_decided(credits):
         return {"topic": topic["id"], "status": "operator decision stands", "kept": len(credits["images"])}
+    if not force and credits.get("review_fingerprint") and \
+            credits["review_fingerprint"] == pool_fingerprint(credits.get("images", [])):
+        status = "approved" if credits.get("reviewed") else "held"
+        return {"topic": topic["id"], "status": f"{status} (unchanged since last review)", "kept": len(credits.get("images", []))}
     images = credits["images"][:MAX_PHOTOS]
     if not images:
         return {"topic": topic["id"], "status": "no photos", "kept": 0}
@@ -102,6 +112,7 @@ def review_pool(topic: Dict[str, Any], topic_dir: Path, apply: bool = True) -> D
                "dropped": [(d["file"], d["vision_review"].get("reason", "")) for d in dropped]}
     if apply:
         credits.update(images=kept, reviewed=approved, reviewed_by="vision" if approved else None,
+                       review_fingerprint=pool_fingerprint(kept),
                        review_note=(f"Vision review {datetime.now(timezone.utc):%Y-%m-%d}: kept {len(kept)} of "
                                     f"{len(images)}" + ("" if approved else f"; held: fewer than {MIN_SCENE_IMAGES}")),
                        rejected_by_review=credits.get("rejected_by_review", []) + dropped)

@@ -40,6 +40,7 @@ def no_real_services(monkeypatch):
     monkeypatch.setattr("src.config.VOICE_REQUIRE_LICENSED", False)
     monkeypatch.setattr("src.config.PAID_FALLBACK_LIGHT_MONTHLY_USD", 0.0)
     monkeypatch.setattr("src.config.GROQ_LIGHT_FALLBACK", False)  # a local .env never changes test behaviour
+    monkeypatch.setattr("src.config.FREE_LIGHT_MODEL", "")
     monkeypatch.setattr("src.config.PAID_FALLBACK_HEAVY_MONTHLY_USD", 0.0)
     monkeypatch.setattr("src.config.MEDIA_MONTHLY_BUDGET_USD", 0.0)
     monkeypatch.setattr("src.audio_engine.VOICE_PREFER", "elevenlabs")  # the code's default

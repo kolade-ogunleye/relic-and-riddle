@@ -98,6 +98,10 @@ KLING_API_KEY = (os.getenv("KLING_API_KEY") or "").strip()
 SCRIPT_ENGINE = (os.getenv("SCRIPT_ENGINE") or "free").strip().lower()
 GEMINI_FREE_API_KEY = (os.getenv("GEMINI_FREE_API_KEY") or "").strip()
 FREE_WRITER_MODEL = (os.getenv("FREE_WRITER_MODEL") or "gemini-3.8-flash").strip()
+# Light text-only tasks (sound plan, /ask, issue sorting, rule drafting, callouts, search terms) on their
+# own free Gemini model, which has its own free limits in the same project; empty = the writer/checker
+# models. Set only after scripts/compare_light_engines.py --candidate gemini:<model> holds up.
+FREE_LIGHT_MODEL = (os.getenv("FREE_LIGHT_MODEL") or "").strip()
 # Second free model for light, text-only tasks (src/groq.py); off until measured against Gemini.
 GROQ_API_KEY = (os.getenv("GROQ_API_KEY") or "").strip()
 GROQ_MODEL = (os.getenv("GROQ_MODEL") or "openai/gpt-oss-120b").strip()

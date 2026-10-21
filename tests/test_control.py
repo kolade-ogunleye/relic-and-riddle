@@ -468,13 +468,11 @@ def test_deletion_on_mcancel_mnext_and_umoredone(db, monkeypatch):
     assert 77 in deleted_ids
 
     # 2. Test umoredone clears all recorded discovery card IDs (needs the cached UNESCO site list)
-    from src.unesco import CACHE_FILE
-    if not CACHE_FILE.exists():
-        return
     cleared_via_handler = []
     h = make_command_handler(db, lambda: None, lambda: "", delete_message=lambda mid: cleared_via_handler.append(mid) or True,
                              send_message=lambda t, b: 101)
-    h("discover", "subterranean")
+    if "No unqueued" in (h("discover", "subterranean") or ""):
+        return  # no UNESCO site list on this machine (CI): nothing was discovered to clear
     assert len(cleared_via_handler) == 0
 
     # Calling umoredone deletes tracked card IDs

@@ -97,6 +97,11 @@ KLING_API_KEY = (os.getenv("KLING_API_KEY") or "").strip()
 # "claude" = the paid Claude pipeline with web search. The free path never falls back to a paid key.
 SCRIPT_ENGINE = (os.getenv("SCRIPT_ENGINE") or "free").strip().lower()
 GEMINI_FREE_API_KEY = (os.getenv("GEMINI_FREE_API_KEY") or "").strip()
+# A spare free key from another Google project. Google's API terms (developers.google.com/terms, 2d) say
+# limits must not be circumvented, and free-tier limits are per project, so the spare is NOT used while
+# GEMINI_SPARE_KEY_PERMITTED is false. Turn it on only if Google's terms come to allow it.
+GEMINI_FREE_API_KEY_SPARE = (os.getenv("GEMINI_FREE_API_KEY_SPARE") or "").strip()
+GEMINI_SPARE_KEY_PERMITTED = (os.getenv("GEMINI_SPARE_KEY_PERMITTED") or "false").strip().lower() in ("1", "true", "yes")
 FREE_WRITER_MODEL = (os.getenv("FREE_WRITER_MODEL") or "gemini-3.8-flash").strip()
 # Light text-only tasks (sound plan, /ask, issue sorting, rule drafting, callouts, search terms) on their
 # own free Gemini model, which has its own free limits in the same project; empty = the writer/checker

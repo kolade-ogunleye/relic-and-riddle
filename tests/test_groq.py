@@ -77,3 +77,24 @@ def test_light_text_tasks_use_their_own_free_model_and_photos_do_not(monkeypatch
     free_llm.structured("s", [{"type": "text", "text": "photo"}], _Out, task_class="light")   # photo review
     free_llm.structured("s", "text", _Out, task_class="heavy")
     assert seen == ["gemini-3.6-flash", config.FREE_WRITER_MODEL, config.FREE_WRITER_MODEL]
+
+
+def test_spare_free_key_is_used_only_when_permitted(monkeypatch):
+    used = []
+
+    def fake(system, prompt, schema, model=None, key=None):
+        used.append(key)
+        if key == "free":
+            raise gemini.QuotaExhausted("429")
+        return _Out(answer=key)
+    monkeypatch.setattr(config, "GEMINI_FREE_API_KEY", "free")
+    monkeypatch.setattr(config, "GEMINI_FREE_API_KEY_SPARE", "spare")
+    monkeypatch.setattr(config, "SCRIPT_ENGINE", "free")
+    monkeypatch.setattr(free_llm, "ALLOW_PAID_FALLBACK", False)
+    monkeypatch.setattr(gemini, "structured", fake)
+    monkeypatch.setattr(config, "GEMINI_SPARE_KEY_PERMITTED", False)
+    with pytest.raises(free_llm.FreeQuotaUnavailable):
+        free_llm.structured("s", "q", _Out)
+    assert used == ["free"]                                   # a key alone does nothing
+    monkeypatch.setattr(config, "GEMINI_SPARE_KEY_PERMITTED", True)
+    assert free_llm.structured("s", "q", _Out).answer == "spare"

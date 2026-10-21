@@ -92,6 +92,15 @@ def _paid_fallback(system, prompt, schema: Type[T], model: str, task_class: str,
     return result
 
 
+def _spare_key() -> str:
+    """The spare free key, only while explicitly permitted (see config) and never the billed key."""
+    key = config.GEMINI_FREE_API_KEY_SPARE
+    if (config.GEMINI_SPARE_KEY_PERMITTED and config.is_configured(key)
+            and key not in (config.GEMINI_FREE_API_KEY, config.GEMINI_API_KEY)):
+        return key
+    return ""
+
+
 def structured(system: str, prompt, schema: Type[T], role: str = "writer", attempts: int = 4,
                task_class: str = "heavy") -> T:
     """Schema-constrained output from the free model ("writer") or the different checking model ("checker").
@@ -107,6 +116,12 @@ def structured(system: str, prompt, schema: Type[T], role: str = "writer", attem
         try:
             return gemini.structured(system, prompt, schema, model=model, key=config.GEMINI_FREE_API_KEY)
         except gemini.QuotaExhausted as e:
+            spare = _spare_key()
+            if spare:
+                try:
+                    return gemini.structured(system, prompt, schema, model=model, key=spare)
+                except gemini.GeminiError as e2:
+                    log.info("Spare free key unavailable too (%s).", e2)
             return _paid_fallback(system, prompt, schema, model, task_class,
                                   f"The free Gemini quota is used up for now ({model}): {e}")
         except gemini.GeminiError as e:

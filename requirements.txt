@@ -14,3 +14,4 @@ opencv-python-headless==4.14.0.94
 
 # dev
 pytest==9.0.3
+httpx==0.28.1  # tests build SDK errors with it; anthropic 1.x no longer installs it

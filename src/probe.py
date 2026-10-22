@@ -53,11 +53,9 @@ def resolve_run(db: PipelineDatabase, question: str) -> Optional[Dict[str, Any]]
     """The run the question names: 'run 12' (card number), a run id, or a topic; else the latest."""
     m = re.search(r"\brun[ _#]?(\d+)\b", question, re.IGNORECASE)
     if m:
-        run = db.get_run(db.resolve_run(m.group(1)))
-        if run:
-            return run
+        return db.get_run(db.resolve_run(m.group(1)))
     m = re.search(r"\b(run_[\w]+)", question)
-    if m and db.get_run(m.group(1)):
+    if m:
         return db.get_run(m.group(1))
     with db._conn() as conn:
         rows = conn.execute("SELECT run_id, topic_id FROM runs ORDER BY created_at DESC LIMIT 60").fetchall()
@@ -150,6 +148,14 @@ def _deterministic(ev: Dict[str, Any]) -> str:
     e = html.escape
     lines = []
     run = ev.get("run") or {}
+    if not run and "replied card (quoted text, not independent evidence)" in ev:
+        quoted = ev["replied card (quoted text, not independent evidence)"]
+        check = ev.get("publishing account check") or {}
+        lines.append("<b>Replied card:</b>\n<blockquote>" + e(quoted[:600]) + "</blockquote>")
+        if check.get("checked_at"):
+            lines.append("<b>Publishing account check:</b> " + e(check["checked_at"]))
+            lines.append(e("; ".join(check.get("problems") or []) or "No publishing-account problems recorded."))
+        lines.append("No run was selected for this general card. These are the available records; they may not explain its wording.")
     if run:
         lines.append(f"<b>Status:</b> {e(str(run.get('status')))}" + (f" — {e(str(run.get('error'))[:200])}" if run.get("error") else ""))
     for k, v in (ev.get("review card notes") or {}).items():
@@ -171,6 +177,8 @@ def probe_system(query: str, db: PipelineDatabase, assets_dir: Optional[Path] = 
     contextual = "[Context from replied message]:" in question
     explicit_run = re.search(r"\brun[ _#]?(?:\d+|run_\w+)\b", question, re.I)
     run = resolve_run(db, question) if not contextual or explicit_run else None
+    if explicit_run and run is None:
+        return "⚠️ The named run was not found. Use its run number from the review/progress card; another run has not been substituted."
     ev = evidence(db, run)
     if contextual:
         ev["replied card (quoted text, not independent evidence)"] = question.partition("[Context from replied message]:")[2][:1800]

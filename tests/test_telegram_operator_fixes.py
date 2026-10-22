@@ -195,3 +195,18 @@ def test_background_completion_does_not_overwrite_a_newer_screen(db, monkeypatch
     bot.update_navigation_target((42, False, 1), "Research finished", [[control.HOME]])
     assert any(method == "sendMessage" for method, _ in calls)
     assert not any(method == "editMessageText" for method, _ in calls)
+
+
+def test_missing_explicit_run_is_not_replaced_by_latest(db):
+    from src import probe
+    db.create_run("latest", "01_topic")
+    assert probe.resolve_run(db, "run 999999 why?") is None
+    assert "named run was not found" in probe.probe_system("run 999999 why?", db)
+
+
+def test_general_reply_has_useful_records_without_a_model():
+    from src import probe
+    text = probe._deterministic({"replied card (quoted text, not independent evidence)": "Dashboard",
+                                 "publishing account check": {"checked_at": "2026-10-22", "problems": []}})
+    assert "No publishing-account problems" in text
+    assert "No run was selected" in text

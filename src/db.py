@@ -503,7 +503,8 @@ class PipelineDatabase:
         place = (topic.get("location") or {}).get("name") or topic.get("title", "")
         when = ""
         try:
-            when = datetime.fromisoformat(run["created_at"]).astimezone().strftime("%d %b %H:%M")
+            from .local_time import local
+            when = local(run["created_at"]).strftime("%d %b %H:%M")  # the operator's DEFAULT_TIMEZONE
         except (TypeError, ValueError):
             pass
         label = f'"{title}"'

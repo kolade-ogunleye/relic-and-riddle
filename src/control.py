@@ -38,6 +38,7 @@ PAUSED_KEY = "scheduler_paused"
 
 SendPhoto = Callable[[Path, str, Optional[list]], bool]
 HOME = {"text": "← Dashboard", "callback_data": "cdash:"}
+from .local_time import show as show_time
 
 
 def pager(prefix: str, page: int, pages: int) -> list:
@@ -286,7 +287,7 @@ def quota_lines(voice_quota: Optional[dict]) -> List[str]:
     left = max(0, voice_quota["limit"] - voice_quota["used"])
     reset = ""
     if voice_quota.get("resets"):
-        reset = ", resets " + datetime.fromtimestamp(int(voice_quota["resets"]), timezone.utc).strftime("%d %b")
+        reset = ", resets " + show_time(int(voice_quota["resets"]), "%d %b")
     line = (f"ElevenLabs ({html.escape(str(voice_quota.get('tier')))}): {left:,} of {voice_quota['limit']:,} "
             f"characters left (~{left // SCRIPT_CHARS} Reels){reset}")
 
@@ -790,8 +791,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             lines = [f"🛡️ <b><u>AUDIT LOG</u></b> (<i>last {len(logs)} events</i>):", ""]
             for l in logs:
                 st_icon = "🟢" if l.get("status") == "allowed" else "🔴"
-                ts_raw = (l.get("created_at") or "")[:19].replace("T", " ")
-                ts = ts_raw[5:] if len(ts_raw) >= 19 else ts_raw
+                ts = show_time(l.get("created_at"), "%m-%d %H:%M:%S") if l.get("created_at") else ""
                 actor = str(l.get("username") or "").strip()
                 uid = str(l.get("user_id") or "").strip()
                 if not actor or actor in ("-", "_", "none", "unknown"):
@@ -1319,7 +1319,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 kind = a.get("kind", "persistent")
                 full_text = a.get("text", "").strip()
                 clean_first = re.sub(r"<[^>]+>", "", full_text.splitlines()[0]) if full_text else ""
-                ts = (a.get("created_at") or "")[:19].replace("T", " ")
+                ts = show_time(a.get("created_at"), "%Y-%m-%d %H:%M:%S") if a.get("created_at") else ""
                 if len(full_text) <= 80 and "\n" not in full_text:
                     lines.append(f"• <code>{ts}</code> [<i>{kind}</i>{purged_tag}]: {html.escape(html.unescape(clean_first))}")
                 else:

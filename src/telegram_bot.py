@@ -24,6 +24,7 @@ from typing import Any, Callable, Dict, List, Optional, Set
 
 import requests
 
+from .local_time import show as show_time
 from .config import (
     APPROVAL_TIMEOUT_SECONDS,
     TELEGRAM_APPROVER_IDS,
@@ -410,7 +411,7 @@ class TelegramApprovalBot:
         lines = ["🧰 <b>Operator jobs</b>"]
         buttons = []
         for job in self.jobs.recent():
-            lines.append(f"\n<b>{html.escape(job['title'])}</b>\n{job['state']} · {job['updated_at'][11:19]} UTC")
+            lines.append(f"\n<b>{html.escape(job['title'])}</b>\n{job['state']} · {show_time(job['updated_at'], '%H:%M:%S %Z')}")
             if job.get("error_detail"):
                 lines.append(html.escape(job["error_detail"]))
             if job.get("delivery"):
@@ -2084,7 +2085,7 @@ class TelegramApprovalBot:
             self.cleanup_transient_messages()
             if not reminded and time.monotonic() - started >= reminder_after:
                 reminded = True
-                closes = (datetime.now() + timedelta(seconds=deadline - time.monotonic())).strftime("%H:%M")
+                closes = show_time(time.time() + deadline - time.monotonic(), "%H:%M %Z")
                 self.notify(f"⏰ Still waiting for your review of {html.escape(self.db.run_label(run_id))} "
                             f"(the card stays open until {closes}).",
                             buttons=[{"text": "📨 Bring the card down", "callback_data": f"resend:{self.db.run_key(run_id)}"}],

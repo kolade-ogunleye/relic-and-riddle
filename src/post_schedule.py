@@ -66,4 +66,11 @@ def next_carousel_slot(now: datetime) -> datetime:
 
 
 def fmt(when: datetime) -> str:
-    return when.astimezone(tz()).strftime("%a %d %b %H:%M %Z")
+    """The slot in the audience's zone, plus the operator's own time when DEFAULT_TIMEZONE differs."""
+    audience = when.astimezone(tz())
+    text = audience.strftime("%a %d %b %H:%M %Z")
+    if config.TIMEZONE != config.POST_TIMEZONE:
+        from .local_time import local
+        mine = local(when)
+        text += f" ({mine.strftime('%a %H:%M %Z' if mine.date() != audience.date() else '%H:%M %Z')} your time)"
+    return text

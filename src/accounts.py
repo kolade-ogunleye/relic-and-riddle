@@ -134,7 +134,8 @@ def status_line(db) -> str:
     if not res:
         return "Publishing accounts: not checked yet"
     up = res.get("upload_post") or {}
-    when = res["checked_at"][:16].replace("T", " ")
+    from .local_time import show
+    when = show(res["checked_at"], "%Y-%m-%d %H:%M %Z")
     if not res.get("problems"):
-        return f"Publishing accounts: ✅ {', '.join(up.get('connected', [])) or 'Meta direct'} ready (checked {when} UTC)"
-    return "Publishing accounts: ⚠️ " + " ".join(html.escape(p) for p in res["problems"]) + f" (checked {when} UTC)"
+        return f"Publishing accounts: ✅ {', '.join(up.get('connected', [])) or 'Meta direct'} ready (checked {when})"
+    return "Publishing accounts: ⚠️ " + " ".join(html.escape(p) for p in res["problems"]) + f" (checked {when})"

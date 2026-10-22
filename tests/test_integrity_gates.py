@@ -268,7 +268,7 @@ def test_backup_keeps_documentaries_and_audio_evidence(tmp_path):
         (run / n).write_bytes(b"x")
     res = backup_run(run, dest_base=tmp_path / "backup")
     archived = {p.name for p in (tmp_path / "backup" / "run_x").iterdir()}
-    assert res["status"] == "success" and set(names) <= archived
+    assert res["status"] == "staged" and set(names) <= archived
 
 
 def test_purge_keeps_the_audio_a_release_check_needs(tmp_path):

@@ -115,6 +115,9 @@ cp .env.example .env
 python main.py health --live   # credentials, connectivity and live service probes
 ```
 
+For Windows production provisioning, environment separation, dry-run validation,
+cleanup, promotion, and rollback, see [the deployment guide](docs/deployment.md).
+
 ---
 
 ## CLI reference
@@ -196,3 +199,8 @@ pytest tests/test_encoding.py tests/test_covers.py tests/test_graphics.py tests/
 ## Licence
 
 Proprietary. Media attributions and licences (CC0, CC BY, public domain, UNESCO) are recorded per asset in `credits.json` and compiled into captions and provenance ledgers.
+
+## Backup operations
+
+See [OneDrive enrollment, verification, and isolated recovery](docs/backup.md).
+The existing desktop-sync mode is preserved until API access is provisioned.

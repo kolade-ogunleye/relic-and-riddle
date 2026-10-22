@@ -33,6 +33,11 @@ from .db import PipelineDatabase
 log = logging.getLogger(__name__)
 
 
+def _assert_recovery_unlocked():
+    if (config.BASE_DIR / ".restore-isolated").exists():
+        raise PublishFailed("Publishing is disabled in this isolated recovery copy")
+
+
 class NotConfigured(Exception):
     pass
 
@@ -76,6 +81,7 @@ class UploadPostPublisher:
         return h
 
     def publish(self, envelope: Dict[str, Any]) -> Dict[str, Any]:
+        _assert_recovery_unlocked()
         if not self.configured():
             raise NotConfigured("UPLOAD_POST_API_KEY / UPLOAD_POST_USER not set")
         meta, media = envelope["metadata"], envelope["media"]
@@ -135,6 +141,7 @@ class UploadPostPublisher:
         return self._poll(request_id)
 
     def publish_photos(self, kind: str, photos: List[str], caption: str, platforms: List[str], key: str) -> Dict[str, Any]:
+        _assert_recovery_unlocked()
         """A carousel (several photos, one post) or a single Story frame (kind="story", one photo).
         Docs: docs.upload-post.com/api/upload-photo/ (media_type / facebook_media_type = STORIES)."""
         if not self.configured():
@@ -249,6 +256,7 @@ class InstagramGraphPublisher:
     def publish(self, envelope: Dict[str, Any]) -> Dict[str, Any]:
         if not self.configured():
             raise NotConfigured("META_ACCESS_TOKEN / META_IG_ACCOUNT_ID not set")
+        _assert_recovery_unlocked()
         if "instagram" not in envelope["platforms"]:
             raise NotConfigured("Instagram not among requested platforms")
         meta, media = envelope["metadata"], envelope["media"]
@@ -342,6 +350,7 @@ class FacebookPageReelsPublisher:
     def publish(self, envelope: Dict[str, Any]) -> Dict[str, Any]:
         if not self.configured():
             raise NotConfigured("META_PAGE_ID / page access token not set")
+        _assert_recovery_unlocked()
         meta, video_path = envelope["metadata"], Path(envelope["media"]["video_path"])
         reels = f"{self.graph}/{self.page_id}/video_reels"
 
@@ -420,6 +429,8 @@ class MetaPublisher:
         }
 
     def publish_reel(self, envelope: Dict[str, Any], dry_run: bool = False) -> Dict[str, Any]:
+        if not dry_run:
+            _assert_recovery_unlocked()
         tid, run_id = envelope["topic_id"], envelope["run_id"]
 
         if dry_run:
@@ -508,6 +519,8 @@ class MetaPublisher:
         Graph publishers here handle Reels only). Same outcome rules as Reels: an unknown outcome
         stops there so nothing is posted twice."""
         platforms = platforms or ["facebook", "instagram"]
+        if not dry_run:
+            _assert_recovery_unlocked()
         channel = f"upload-post:{kind}"
         if dry_run:
             self.db.record_publication(topic_id, run_id, channel, "simulated", {"photos": photos})

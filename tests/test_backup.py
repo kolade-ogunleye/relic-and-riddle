@@ -51,7 +51,7 @@ def test_backup_run_copies_gold_assets_and_dispute_summary(tmp_path):
     dest_dir = tmp_path / "backup_dest"
     
     res = backup_run(run_dir, db_path=db_file, dest_base=dest_dir)
-    assert res["status"] == "success"
+    assert res["status"] == "staged" and res["cloud_status"] == "unverified"
     
     archive_path = Path(res["archive_path"])
     assert (archive_path / "01_test_master.mp4").is_file()

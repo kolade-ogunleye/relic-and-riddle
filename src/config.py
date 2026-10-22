@@ -18,7 +18,7 @@ if sys.stdout and hasattr(sys.stdout, "reconfigure"):
         pass
 
 # Base Paths
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(os.getenv("RELIC_APP_ROOT") or Path(__file__).resolve().parent.parent).resolve()
 DATA_DIR = BASE_DIR / "data"
 TOPICS_DIR = DATA_DIR / "topics"
 CURATED_SCRIPTS_DIR = DATA_DIR / "scripts"
@@ -29,7 +29,8 @@ OUTPUT_DIR = BASE_DIR / "output"
 ISSUES_DIR = BASE_DIR / "docs" / "issues"  # operator /issue reports and their evidence
 LOG_DIR = BASE_DIR / "logs"  # rotating, secret-masked pipeline.log
 
-for p in [DATA_DIR, TOPICS_DIR, CURATED_SCRIPTS_DIR, SFX_DIR, ASSETS_DIR, FONTS_DIR, OUTPUT_DIR]:
+for p in [DATA_DIR, TOPICS_DIR, CURATED_SCRIPTS_DIR, SFX_DIR, ASSETS_DIR, FONTS_DIR, OUTPUT_DIR,
+          LOG_DIR, ISSUES_DIR]:
     p.mkdir(parents=True, exist_ok=True)
 
 
@@ -261,3 +262,15 @@ THUMB_TAGLINE_FONT_SIZE = 40
 BACKUP_ENABLED = (os.getenv("BACKUP_ENABLED") or "true").lower() in ("true", "1", "yes")
 _default_backup_dir = Path.home() / "OneDrive" / "Backups" / "Created Contents" / "RelicAndRiddle"
 BACKUP_ONEDRIVE_DIR = Path(os.getenv("BACKUP_ONEDRIVE_DIR") or _default_backup_dir)
+# Keep the current desktop-sync configuration until API access is explicitly provisioned.
+# A sync-folder copy is staging evidence, never proof of a cloud upload.
+BACKUP_TRANSPORT = (os.getenv("BACKUP_TRANSPORT") or "sync-folder").strip().lower()
+BACKUP_SPOOL_DIR = Path(os.getenv("BACKUP_SPOOL_DIR") or BASE_DIR / "archive" / "backups")
+BACKUP_ENVIRONMENT = (os.getenv("RELIC_ENVIRONMENT") or "development").strip().lower()
+_backup_secret_dir = Path.home() / ".relic-and-riddle" / BACKUP_ENVIRONMENT / "backup"
+BACKUP_KEY_FILE = Path(os.getenv("BACKUP_KEY_FILE") or _backup_secret_dir / "recovery.key")
+ONEDRIVE_CLIENT_ID = (os.getenv("ONEDRIVE_CLIENT_ID") or "").strip()
+ONEDRIVE_SCOPE = (os.getenv("ONEDRIVE_SCOPE") or "appfolder").strip().lower()
+ONEDRIVE_BACKUP_PATH = (os.getenv("ONEDRIVE_BACKUP_PATH") or "").strip()
+ONEDRIVE_TOKEN_CACHE = Path(os.getenv("ONEDRIVE_TOKEN_CACHE") or _backup_secret_dir / f"tokens-{ONEDRIVE_SCOPE}.enc")
+BACKUP_SYNC_FOLDER_FALLBACK = (os.getenv("BACKUP_SYNC_FOLDER_FALLBACK") or "false").lower() in ("true", "1", "yes")

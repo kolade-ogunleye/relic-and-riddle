@@ -1,15 +1,15 @@
 """
 src/backup.py
 =============
-Automated Tier 2 Gold Master Backup and Platform Dispute Archiving.
-Syncs finished deliverables, provenance ledgers, and atomic database snapshots to OneDrive:
-C:\\Users\\omokolade\\OneDrive\\Backups\\Created Contents\\RelicAndRiddle_Archive\\<run_id>\\
+Stage deliverables locally or queue an encrypted API recovery snapshot.
+A desktop sync-folder copy is never reported as verified cloud synchronization.
 """
 
 import json
 import logging
 import shutil
 import sqlite3
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, List, Optional
@@ -116,7 +116,7 @@ def generate_dispute_summary(run_dir: Path, archive_dir: Path) -> Path:
             lines.append(f"  • License URL:{a.get('license_url') or 'N/A'}")
             lines.append("")
     else:
-        lines.append("  All assets verified procedural or open access.")
+        lines.append("  Asset-level provenance is absent from this record; no rights conclusion is made.")
 
     # Audio Mastering Verification
     # Only what was measured: a missing figure says so instead of showing the target as if met.
@@ -143,8 +143,16 @@ def generate_dispute_summary(run_dir: Path, archive_dir: Path) -> Path:
 
 
 def backup_run(run_dir: Path, db_path: Optional[Path] = None, dest_base: Optional[Path] = None) -> Dict[str, Any]:
-    """Copies all gold deliverables from run_dir to the OneDrive archive directory,
-    creates an atomic SQLite database snapshot, and writes a complete dispute dossier."""
+    """Preserve existing sync-folder staging, or queue the primary API backup path."""
+    from .backup_crypto import BackupError
+    if config.BACKUP_TRANSPORT == "onedrive-api":
+        from .backup_runtime import stage_current_snapshot
+        result = stage_current_snapshot()
+        log.info("Encrypted snapshot staged for API upload: %s (cloud upload is pending)", result["snapshot_id"])
+        return {"status": "staged", "cloud_status": "queued", "snapshot_id": result["snapshot_id"],
+                "archive_path": result["directory"], "copied_count": result["file_count"]}
+    if config.BACKUP_TRANSPORT != "sync-folder":
+        raise BackupError("Unknown BACKUP_TRANSPORT; choose sync-folder or onedrive-api explicitly")
     dest_base = dest_base or getattr(config, "BACKUP_ONEDRIVE_DIR", Path.home() / "OneDrive" / "Backups" / "Created Contents" / "RelicAndRiddle")
     
     try:
@@ -152,6 +160,9 @@ def backup_run(run_dir: Path, db_path: Optional[Path] = None, dest_base: Optiona
     except Exception as e:
         log.warning("Could not access backup base directory %s: %s", dest_base, e)
         return {"status": "skipped", "reason": str(e)}
+
+    if db_path is not None and not Path(db_path).is_file():
+        return {"status": "failed", "reason": "Requested database snapshot source is missing"}
 
     run_archive = dest_base / run_dir.name
     run_archive.mkdir(parents=True, exist_ok=True)
@@ -182,6 +193,7 @@ def backup_run(run_dir: Path, db_path: Optional[Path] = None, dest_base: Optiona
         copied_files.append("00_DISPUTE_SUMMARY.txt")
     except Exception as e:
         log.warning("Could not generate dispute summary: %s", e)
+        return {"status": "failed", "reason": "Dispute summary could not be staged"}
 
     # 4. Atomic SQLite database backup snapshot
     db_backup_path = None
@@ -189,24 +201,26 @@ def backup_run(run_dir: Path, db_path: Optional[Path] = None, dest_base: Optiona
         try:
             db_snap_dir = dest_base / "db_snapshots"
             db_snap_dir.mkdir(parents=True, exist_ok=True)
-            stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")
             db_dest = db_snap_dir / f"pipeline_{stamp}.db"
             
             # Use SQLite online backup API to take a clean, locked snapshot
-            src_conn = sqlite3.connect(str(db_path))
-            dest_conn = sqlite3.connect(str(db_dest))
-            with dest_conn:
+            with closing(sqlite3.connect(Path(db_path).resolve().as_uri() + "?mode=ro", uri=True)) as src_conn, \
+                    closing(sqlite3.connect(str(db_dest))) as dest_conn:
                 src_conn.backup(dest_conn)
-            src_conn.close()
-            dest_conn.close()
+                if dest_conn.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
+                    raise ValueError("Database snapshot failed its integrity check")
             db_backup_path = str(db_dest)
             copied_files.append(f"db_snapshots/{db_dest.name}")
         except Exception as e:
             log.warning("Database snapshot failed: %s", e)
+            return {"status": "failed", "reason": "Database snapshot failed; no complete backup claimed"}
 
-    log.info("Tier 2 Gold Backup: Successfully synced %d artifacts for %s to %s", len(copied_files), run_dir.name, run_archive)
+    log.info("Locally staged %d backup artifacts for %s at %s; cloud upload is unverified",
+             len(copied_files), run_dir.name, run_archive)
     return {
-        "status": "success",
+        "status": "staged",
+        "cloud_status": "unverified",
         "archive_path": str(run_archive),
         "copied_count": len(copied_files),
         "db_snapshot": db_backup_path,

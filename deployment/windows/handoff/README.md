@@ -43,3 +43,20 @@ Migrate the launcher while preserving identity checks, process-tree supervision,
 stop semantics, overlap protection, receipts and event integration. Promote only
 after offline tests and managed-account probes; do not overwrite the live launcher
 from this preserved snapshot.
+
+## Production bindings (moved from lab inventory, 2026-10-22)
+
+These non-secret paths were application settings in the lab's
+`host_vars/content-client-win-01.yml`, used only by play 52. With the source handoff
+complete (lab PR #60), they are maintained here as application deployment configuration.
+
+| Setting | Value |
+| --- | --- |
+| `content_app_root` | `C:\Users\omokolade.LAB\relic-and-riddle` |
+| `content_maintenance_root` | `C:\Users\omokolade.LAB\relic-ops\backup-maintenance-c293e863` |
+| `content_python_base` | `C:\Users\omokolade.LAB\AppData\Local\Programs\Python\Python311` |
+| `content_backup_custody` | `C:\Users\omokolade.LAB\.relic-and-riddle\production\backup` |
+| `content_legacy_archive` | `C:\Users\omokolade.LAB\OneDrive\Backups\Created Contents\RelicAndRiddle` |
+| `content_unattended_enabled` | `true` (API, GPU and cloud-restore gates passed; legacy tasks stopped 2026-10-22 UTC) |
+
+`content_ffmpeg_bin` (FFmpeg 8.1) stays in lab inventory because lab play 51 uses it.

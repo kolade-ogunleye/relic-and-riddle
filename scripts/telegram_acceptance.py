@@ -12,6 +12,7 @@ the real API accepting the real payloads.
 
   python scripts/telegram_acceptance.py            # needs .env with the dev bot token
   python scripts/telegram_acceptance.py --trace    # also time every Bot API call
+  python scripts/telegram_acceptance.py --keep     # leave the sent messages in the chat for inspection
 """
 import shutil
 import sys
@@ -41,11 +42,12 @@ def main() -> int:
     work = Path(tempfile.mkdtemp(prefix="tg-accept-"))
     shutil.copy2(config.DATA_DIR / "pipeline.db", work / "pipeline.db")
     db = PipelineDatabase(db_path=work / "pipeline.db")
+    db.set_setting("telegram_dashboard_id", "")  # never touch the operator's real panel
 
     from src.control import make_command_handler
     from src.telegram_bot import TelegramApprovalBot
     bot = TelegramApprovalBot(db=db)
-    calls, failures = [], []
+    calls, failures, ours = [], [], []
     real_api = bot._api
 
     trace = "--trace" in sys.argv
@@ -55,6 +57,8 @@ def main() -> int:
         try:
             result = real_api(method, **kw)
             calls.append(method)
+            if method.startswith("send") and isinstance(result, dict) and result.get("message_id"):
+                ours.append(result["message_id"])
             if trace:
                 print(f"    {method:22} {time.perf_counter() - started:5.2f}s")
             return result
@@ -62,7 +66,8 @@ def main() -> int:
             if trace:
                 print(f"    {method:22} {time.perf_counter() - started:5.2f}s  error")
             synthetic = method == "answerCallbackQuery" or (  # synthetic ids cannot be answered or deleted
-                method == "deleteMessage" and int((kw.get("data") or {}).get("message_id", 0)) >= SYNTHETIC_BASE)
+                method == "deleteMessage" and int((kw.get("data") or {}).get("message_id", 0)) >= SYNTHETIC_BASE) or (
+                method == "deleteMessage" and "not found" in str(e))  # a panel already removed by Done: nothing left to do
             if not synthetic:
                 failures.append((method, str(e)[:240]))
             raise
@@ -99,6 +104,9 @@ def main() -> int:
             dashboard = bot.show_dashboard(fresh=True)
             bot.drain()
         n += 1
+    bot.drain()
+    if "--keep" not in sys.argv:  # leave the operator's chat as it was
+        bot.delete_messages(sorted(set(ours)))
     print(f"\nBot API calls: {len(calls)}; failures: {len(failures)}")
     for method, error in failures:
         print(f"  {method}: {error}")

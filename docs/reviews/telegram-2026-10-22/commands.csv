@@ -1,0 +1,34 @@
+group,public_command,description,implementation_presence,acceptance
+Everyday,/dashboard,Open the dashboard,dispatch present,See release-blocking review; not full live acceptance
+Everyday,/status,Full status,dispatch present,See release-blocking review; not full live acceptance
+Everyday,/progress,Current or last recorded run,dispatch present,See release-blocking review; not full live acceptance
+Everyday,/jobs,Background jobs and cancellation,dispatch present,See release-blocking review; not full live acceptance
+Everyday,/clear,Tidy chat; preserve pending reviews,dispatch present,See release-blocking review; not full live acceptance
+Everyday,/help,Commands by category,dispatch present,See release-blocking review; not full live acceptance
+Everyday,/run,Start a run; publication still needs approval,dispatch present,See release-blocking review; not full live acceptance
+Everyday,/pause,Pause scheduled work,dispatch present,See release-blocking review; not full live acceptance
+Everyday,/resume,Resume scheduled work,dispatch present,See release-blocking review; not full live acceptance
+Everyday,/accounts,Refresh publishing connections,dispatch present,See release-blocking review; not full live acceptance
+Topics,/queue,Browse the topic queue,dispatch present,See release-blocking review; not full live acceptance
+Topics,/next,Next selected topic,dispatch present,See release-blocking review; not full live acceptance
+Topics,/bump,Prioritize a topic,dispatch present,See release-blocking review; not full live acceptance
+Topics,/drop_topic,Archive a topic,dispatch present,See release-blocking review; not full live acceptance
+Topics,/requeue,Restore a topic,dispatch present,See release-blocking review; not full live acceptance
+Topics,/undo,Undo the last supported queue action,dispatch present,See release-blocking review; not full live acceptance
+Topics,/ideas,Research and review ideas,dispatch present,See release-blocking review; not full live acceptance
+Topics,/propose,Research new ideas,dispatch present,See release-blocking review; not full live acceptance
+Topics,/proposals,Review waiting ideas,dispatch present,See release-blocking review; not full live acceptance
+Topics,/discover,Browse UNESCO themes,dispatch present,See release-blocking review; not full live acceptance
+Topics,/add,Add a topic title,dispatch present,See release-blocking review; not full live acceptance
+Media,/images,"Images: browse, fetch, upload or review",dispatch present,See release-blocking review; not full live acceptance
+Media,/music,"Music: fetch, listen and approve",dispatch present,See release-blocking review; not full live acceptance
+Media,/covers,Preview and choose a cover,dispatch present,See release-blocking review; not full live acceptance
+Media,/footage,Upload licensed video footage,dispatch present,See release-blocking review; not full live acceptance
+Media,/review,Review a topic image set,dispatch present,See release-blocking review; not full live acceptance
+Media,/drop,Remove selected images,dispatch present,See release-blocking review; not full live acceptance
+Media,/swap,Swap storyboard beats,dispatch present,See release-blocking review; not full live acceptance
+Diagnostics,/ask,Ask from recorded evidence,dispatch present,See release-blocking review; not full live acceptance
+Diagnostics,/issue,Report a problem,dispatch present,See release-blocking review; not full live acceptance
+Diagnostics,/alerts,Recent alerts,dispatch present,See release-blocking review; not full live acceptance
+Diagnostics,/audit,Operator activity,dispatch present,See release-blocking review; not full live acceptance
+Diagnostics,/improve,Review improvement proposals,dispatch present,See release-blocking review; not full live acceptance

@@ -1,5 +1,11 @@
 # Telegram operator fixes: development retest
 
+**Release hold:** the independent review of `784bdaa` found approval, lifecycle,
+replay and other defects that the passing suite did not cover. See the
+[2026-10-22 Telegram release review](reviews/telegram-2026-10-22/README.md).
+Its findings remain open; this retest checklist alone cannot authorize promotion
+or full managed-account production acceptance.
+
 Branch `fix/telegram-operator-panels`; draft PR #2, based on the runtime candidate.
 Production is unchanged. Development flags, credentials and spending caps remain
 separate. Automated checks do not replace these operator acceptance checks.

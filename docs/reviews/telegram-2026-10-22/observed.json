@@ -1,0 +1,47 @@
+{
+  "old_review_message_can_approve_new_request": {
+    "latest_message_id": 202,
+    "clicked_message_id": 101,
+    "decision": "approved"
+  },
+  "old_image_review_approves_changed_set": {
+    "shown": 5,
+    "approved": 6,
+    "reviewed": true,
+    "callback_target": "topic"
+  },
+  "topic_path_escape": true,
+  "missing_cover_reports_success": "\u2705 Cover updated.",
+  "cover_callback_bytes": {
+    "maximum": 99,
+    "telegram_limit": 64
+  },
+  "old_finish_clears_other_run_progress": true,
+  "transient_edit_failure_creates_new_progress_message": true,
+  "approval_available_after_preview_failure": {
+    "message_id": 300,
+    "approval_button": true
+  },
+  "unchecked_only_publisher_has_no_problem": [],
+  "album_caption_bypasses_shared_format": true,
+  "same_run_command_after_restart_dispatches": [
+    "run",
+    "run"
+  ],
+  "old_queue_drop_archives_producing_topic": "archived",
+  "concurrent_copy_edit_keeps_approval_for_changed_payload": {
+    "caption": "changed during approval",
+    "decision": "approved"
+  },
+  "published_cover_can_be_rewritten": {
+    "changed": true,
+    "run_status": "published",
+    "reported_success": true
+  },
+  "image_cancel_claim_disagrees_with_state": {
+    "reply": "\u2716 Storyboard review cancelled for <b>topic</b>. Set remains unapproved.",
+    "actual_reviewed": true
+  },
+  "missing_audits_still_show_integrity_pass": true,
+  "replied_run_id_without_buttons_loses_context": true
+}

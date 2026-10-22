@@ -144,6 +144,13 @@ def test_fetch_is_topic_specific_and_does_not_widen_licences(db, tmp_path, monke
     assert calls == [("01_topic", False, tmp_path / "assets")]
 
 
+def test_images_slash_command_has_topic_actions(db, tmp_path):
+    h = control.make_command_handler(db, lambda: None, lambda: "", assets_dir=tmp_path, send_message=lambda *a: True)
+    text, buttons = h("images", "")
+    actions = [b["callback_data"] for row in buttons for b in row]
+    assert "imagepick:" in actions and "cdash:" in actions
+
+
 def test_swipe_reply_preserves_run_from_buttons(db, monkeypatch):
     bot = TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
     calls = []

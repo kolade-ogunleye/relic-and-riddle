@@ -970,6 +970,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             dash_text, dash_buttons = dashboard_text_and_buttons(db, next_run(), assets_dir=assets_dir)
             return f"▶️ <b>Scheduler Resumed!</b>\n\n{dash_text}", dash_buttons
         if command == "images":
+            if send_message:
+                return handle("cimages", "")
             return images_text(assets_dir, db=db)
         if command == "review":
             ref = args.strip()

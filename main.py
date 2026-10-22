@@ -1636,6 +1636,9 @@ def _print_health(res: Dict[str, Any]):
 
 
 def main(argv=None) -> int:
+    if (config.BASE_DIR / ".restore-isolated").exists():
+        print("This is an isolated recovery copy. Runtime commands are disabled until recovery review is complete.")
+        return 2
     setup_logging()
     parser = argparse.ArgumentParser(description="Relic & Riddle: Reels research, production & publishing pipeline")
     sub = parser.add_subparsers(dest="command")
@@ -1798,7 +1801,8 @@ def main(argv=None) -> int:
         coordinator = PipelineCoordinator(db=db, schedule_posts=POST_SCHEDULING)
         bot = coordinator.telegram_bot
         if not bot.is_configured():
-            print("Telegram is not configured (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID).")
+            print("Telegram is not configured (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID / TELEGRAM_APPROVER_IDS; "
+                  "the chat and approvers must identify people, not the bot).")
             return 1
         bot.register_commands()
         run_lock = threading.Lock()
@@ -2300,6 +2304,11 @@ def main(argv=None) -> int:
         for d in output_dirs:
             res = backup_run(d, db_path=db.db_path)
             print(f"  {d.name}: {res['status']} ({res.get('copied_count', 0)} files -> {res.get('archive_path')})")
+            if res["status"] in {"failed", "skipped"}:
+                return 2
+            if config.BACKUP_TRANSPORT == "onedrive-api":
+                print("Full recovery snapshot queued; run scripts/backupctl.py sync to verify cloud upload.")
+                break
         return 0
 
     parser.print_help()

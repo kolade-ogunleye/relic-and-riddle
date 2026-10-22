@@ -211,6 +211,8 @@ class PreFlightHealthChecker:
         elif config.TELEGRAM_CHAT_ID.strip() == config.TELEGRAM_BOT_TOKEN.split(":")[0]:
             missing.append("a correct TELEGRAM_CHAT_ID: it is set to the bot's own ID; use your personal "
                            "numeric user ID (from @userinfobot) and send /start to the bot")
+        if not config.TELEGRAM_APPROVER_IDS:
+            missing.append("TELEGRAM_APPROVER_IDS (at least one person's numeric Telegram user ID, not the bot's ID)")
         upload_post = is_configured(config.UPLOAD_POST_API_KEY) and is_configured(config.UPLOAD_POST_USER)
         graph = is_configured(config.META_ACCESS_TOKEN) and is_configured(config.META_IG_ACCOUNT_ID)
         if not (upload_post or graph):
@@ -284,6 +286,10 @@ class PreFlightHealthChecker:
             "network": self.check_network(),
             "credentials": self.check_live_credentials(),
         }
+        if config.BACKUP_ENABLED and config.BACKUP_TRANSPORT == "onedrive-api":
+            from .backup_runtime import check_readiness
+            results["backup"] = check_readiness() if require_live else (
+                True, "API backup configured; use health --live to verify cloud and restore evidence")
         if require_live:  # prove the credentials work before a live run spends anything
             results["services"] = self.probe_live_services()
         required = [k for k in results if k != "credentials" or require_live]

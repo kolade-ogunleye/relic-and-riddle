@@ -72,6 +72,7 @@ def test_free_engine_does_not_require_an_anthropic_key(monkeypatch):
     monkeypatch.setattr(config, "ANTHROPIC_API_KEY", "")
     monkeypatch.setattr(config, "UPLOAD_POST_API_KEY", "k"); monkeypatch.setattr(config, "UPLOAD_POST_USER", "u")
     monkeypatch.setattr(config, "TELEGRAM_BOT_TOKEN", "123456:ABCDEF"); monkeypatch.setattr(config, "TELEGRAM_CHAT_ID", "987654")
+    monkeypatch.setattr(config, "TELEGRAM_APPROVER_IDS", {"987654"})
     monkeypatch.setattr(config, "AZURE_SPEECH_KEY", "a" * 20); monkeypatch.setattr(config, "AZURE_SPEECH_REGION", "eastus")
     ok, msg = PreFlightHealthChecker().check_live_credentials()
     assert ok, msg

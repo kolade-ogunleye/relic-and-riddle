@@ -1,0 +1,243 @@
+---
+# Application adapters and least-privilege access. Defaults to disabled API
+# canaries. Do not enable unattended production until the cutover checks pass.
+# TRANSITIONAL APPLICATION-OWNED SOURCE: outside the lab deployment boundary.
+# site.yml excludes this from normal/tagged lab runs using the never tag.
+# Preserve until handed to the external application owner; do not deploy this
+# directly as part of lab provisioning. See docs/CONTENT_VM_TASK_IDENTITY.md.
+- name: Configure explicit-path content runtime
+  hosts: content-client-win-01
+  gather_facts: false
+  become: true
+  become_method: ansible.builtin.runas
+  become_user: SYSTEM
+  vars:
+    content_launch_manifest:
+      app_root: "{{ content_app_root }}"
+      maintenance_root: "{{ content_maintenance_root }}"
+      runtime_root: C:\ProgramData\HNSHL\ContentRuntime
+      backup_key_file: "{{ content_backup_custody }}\\recovery.key"
+      source_token_cache: "{{ content_backup_custody }}\\tokens-files.enc"
+      token_cache: C:\ProgramData\HNSHL\ContentRuntime\secrets\Backup\tokens.enc
+      legacy_archive: "{{ content_legacy_archive }}"
+      client_id: d7259f42-57c3-4613-913e-871737c91faf
+      expected_bot_id: '8837268021'
+  tasks:
+    - name: Prepare managed content application runtime
+      when: content_managed_identity_enabled | default(false) | bool
+      block:
+        - name: Register the fixed runtime event source without altering any existing source
+          ansible.windows.win_powershell:
+            script: |
+              [CmdletBinding(SupportsShouldProcess)]
+              param()
+              $ErrorActionPreference = 'Stop'
+              if ($Ansible.CheckMode) { $WhatIfPreference = $true }
+              $source = 'HNSHL-ContentRuntime'
+              $Ansible.Changed = $false
+              if ([Diagnostics.EventLog]::SourceExists($source)) {
+                  if ([Diagnostics.EventLog]::LogNameFromSourceName($source, '.') -ne 'Application') {
+                      throw 'Runtime event source belongs to a different log; not changed.'
+                  }
+              } elseif ($PSCmdlet.ShouldProcess($source, 'Register Application event source')) {
+                  New-EventLog -LogName Application -Source $source
+                  $Ansible.Changed = $true
+              }
+
+        - name: Create separate writable state directories without code-write access
+          ansible.windows.win_powershell:
+            script: |
+              [CmdletBinding(SupportsShouldProcess)]
+              param()
+              $ErrorActionPreference = 'Stop'
+              if ($Ansible.CheckMode) { $WhatIfPreference = $true }
+              $Ansible.Changed = $false
+              $root = 'C:\ProgramData\HNSHL\ContentRuntime'
+              foreach ($relative in 'logs', 'logs\Pipeline', 'logs\Backup', 'secrets', 'secrets\Backup', 'spool', 'spool\Backup', 'restore-drill', 'control') {
+                  $path = Join-Path $root $relative
+                  if (Test-Path -LiteralPath $path) {
+                      if ((Get-Item -LiteralPath $path -Force).Attributes.HasFlag([IO.FileAttributes]::ReparsePoint)) {
+                          throw 'Managed state directory is a reparse point; deployment refused.'
+                      }
+                  } elseif ($PSCmdlet.ShouldProcess($path, 'Create runtime state directory')) {
+                      New-Item -Path $path -ItemType Directory -Force | Out-Null
+                      $Ansible.Changed = $true
+                  }
+                  $acl = [Security.AccessControl.DirectorySecurity]::new()
+                  $acl.SetAccessRuleProtection($true, $false)
+                  $grants = @{'S-1-5-18' = 'FullControl'; 'S-1-5-32-544' = 'FullControl'}
+                  if ($relative -eq 'logs\Pipeline') { $grants['LAB\rr-pipeline$'] = 'Modify' }
+                  elseif ($relative -in 'logs\Backup', 'secrets\Backup', 'spool\Backup', 'restore-drill') { $grants['LAB\rr-backup$'] = 'Modify' }
+                  else { $grants['LAB\rr-pipeline$'] = 'ReadAndExecute'; $grants['LAB\rr-backup$'] = 'ReadAndExecute' }
+                  foreach ($grant in ($grants.GetEnumerator() | Sort-Object Key)) {
+                      $principal = if ($grant.Key -like 'S-1-*') { [Security.Principal.SecurityIdentifier]::new($grant.Key) }
+                      else { [Security.Principal.NTAccount]::new($grant.Key).Translate([Security.Principal.SecurityIdentifier]) }
+                      $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new(
+                          $principal, $grant.Value, 'ContainerInherit,ObjectInherit', 'None', 'Allow'))
+                  }
+                  $ruleKeys = {
+                      param($security)
+                      @($security.Access | ForEach-Object {
+                          '{0}|{1}|{2}|{3}|{4}' -f $_.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value,
+                              [int]$_.FileSystemRights, [int]$_.InheritanceFlags, [int]$_.PropagationFlags, [int]$_.AccessControlType
+                      } | Sort-Object) -join ';'
+                  }
+                  $current = if (Test-Path -LiteralPath $path) { Get-Acl -LiteralPath $path } else { $null }
+                  $drift = -not $current -or -not $current.AreAccessRulesProtected -or (& $ruleKeys $acl) -cne (& $ruleKeys $current)
+                  if ($drift -and $PSCmdlet.ShouldProcess($path, 'Set runtime state ACL')) {
+                      Set-Acl -LiteralPath $path -AclObject $acl
+                      $Ansible.Changed = $true
+                  }
+              }
+
+        - name: Grant read access to existing application and interpreter artifacts
+          ansible.windows.win_acl:
+            path: "{{ item.0 }}"
+            user: "{{ item.1 }}"
+            rights: ReadAndExecute
+            type: allow
+            state: present
+          loop:
+            - ["{{ content_app_root }}", 'LAB\rr-pipeline$']
+            - ["{{ content_app_root }}", 'LAB\rr-backup$']
+            - ["{{ content_python_base }}", 'LAB\rr-pipeline$']
+            - ["{{ content_python_base }}", 'LAB\rr-backup$']
+            - ["{{ content_maintenance_root }}", 'LAB\rr-backup$']
+
+        - name: Remove unnecessary pipeline access to backup maintenance code
+          ansible.windows.win_acl:
+            path: "{{ content_maintenance_root }}"
+            user: 'LAB\rr-pipeline$'
+            rights: ReadAndExecute
+            type: allow
+            state: absent
+
+        - name: Grant only pipeline data directories write access
+          ansible.windows.win_acl:
+            path: "{{ content_app_root }}\\{{ item }}"
+            user: 'LAB\rr-pipeline$'
+            rights: Modify
+            type: allow
+            state: present
+          loop: [data, assets, fonts, output, logs, cache, archive, docs/issues]
+
+        # SQLite WAL read-only opens may need to create their own journal sidecars.
+        # No write/delete grant to the existing database or other existing files.
+        - name: Allow SQLite readers to create their own data-directory sidecars
+          ansible.windows.win_acl:
+            path: "{{ content_app_root }}\\data"
+            user: 'LAB\rr-backup$'
+            rights: CreateFiles
+            inheritance: None
+            propagation: None
+            type: allow
+            state: present
+
+        - name: Give creators access to only their own newly created sidecars
+          ansible.windows.win_acl:
+            path: "{{ content_app_root }}\\data"
+            user: S-1-3-0
+            rights: Modify
+            inheritance: ObjectInherit
+            propagation: InheritOnly
+            type: allow
+            state: present
+
+        - name: Remove transitional backup write access to the original API spool
+          ansible.windows.win_acl:
+            path: "{{ content_app_root }}\\archive\\backups"
+            user: 'LAB\rr-backup$'
+            rights: Modify
+            type: allow
+            state: absent
+
+        - name: Ensure the original pipeline legacy archive path exists
+          ansible.windows.win_file:
+            path: "{{ content_legacy_archive }}"
+            state: directory
+
+        - name: Preserve pipeline legacy archive writes without relying on Path.home
+          ansible.windows.win_acl:
+            path: "{{ content_legacy_archive }}"
+            user: 'LAB\rr-pipeline$'
+            rights: Modify
+            type: allow
+            state: present
+
+        - name: Grant existing providers read access without inspecting secret contents
+          ansible.windows.win_acl:
+            path: "{{ item.path }}"
+            user: "{{ item.user }}"
+            rights: Read
+            type: allow
+            state: present
+          loop:
+            - {path: "{{ content_app_root }}\\.env", user: 'LAB\rr-pipeline$'}
+            - {path: "{{ content_app_root }}\\.env", user: 'LAB\rr-backup$'}
+            - {path: "{{ content_backup_custody }}\\recovery.key", user: 'LAB\rr-backup$'}
+            - {path: "{{ content_backup_custody }}\\tokens-files.enc", user: 'LAB\rr-backup$'}
+          no_log: true
+
+        - name: Stage explicit non-secret launch paths
+          ansible.windows.win_copy:
+            content: "{{ content_launch_manifest | to_nice_json }}"
+            dest: C:\ProgramData\HNSHL\ContentRuntime\launch.json
+
+        - name: Stage reviewed application adapters
+          ansible.windows.win_copy:
+            src: "{{ playbook_dir }}/../../tools/{{ item }}"
+            dest: "C:\\ProgramData\\HNSHL\\ContentRuntime\\tools\\{{ item }}"
+          loop:
+            - content_runtime.py
+            - Start-ContentVmWorkload.ps1
+            - Register-ContentVmWorkloads.ps1
+            - Register-ContentVmBackupValidation.ps1
+            - Register-ContentVmRuntimeWatch.ps1
+            - Watch-ContentVmRuntime.ps1
+            - Stop-ContentVmLegacyTasks.ps1
+            - lib/ContentWorkloadProcess.ps1
+            - lib/ContentRuntimeHealth.ps1
+
+        - name: Require stopped legacy workers and keep their schedules disabled after cutover
+          when:
+            - content_unattended_enabled | default(false) | bool
+            - not ansible_check_mode
+          ansible.windows.win_powershell:
+            script: |
+              $ErrorActionPreference = 'Stop'
+              $Ansible.Changed = $false
+              $legacy = @(Get-ScheduledTask -TaskPath '\' | Where-Object TaskName -in 'RelicAndRiddle-Production', 'RelicAndRiddle-ProductionBackup')
+              if (@($legacy | Where-Object State -eq Running).Count -gt 0) {
+                  throw 'Legacy content tasks are running; perform the controlled idle cutover before enabling unattended production.'
+              }
+              foreach ($task in $legacy) {
+                  if ($task.Settings.Enabled) {
+                      Disable-ScheduledTask -TaskPath '\' -TaskName $task.TaskName | Out-Null
+                      $Ansible.Changed = $true
+                  }
+              }
+
+        - name: Register disabled API canaries or declared unattended production tasks
+          when: not ansible_check_mode
+          ansible.windows.win_powershell:
+            parameters:
+              Enabled: "{{ content_unattended_enabled | default(false) | bool }}"
+            script: |
+              param([bool]$Enabled)
+              $ErrorActionPreference = 'Stop'
+              $stage = if ($Enabled) { 'Production' } else { 'Canary' }
+              & 'C:\ProgramData\HNSHL\ContentRuntime\tools\Register-ContentVmWorkloads.ps1' -Stage $stage -EnableProduction:$Enabled
+          register: content_registered_workloads
+          changed_when: content_registered_workloads.output | selectattr('Changed', 'equalto', true) | list | length > 0
+
+        - name: Declare the independent watch state without starting a check
+          when: not ansible_check_mode
+          ansible.windows.win_powershell:
+            parameters:
+              Enabled: "{{ content_unattended_enabled | default(false) | bool }}"
+            script: |
+              param([bool]$Enabled)
+              $ErrorActionPreference = 'Stop'
+              & 'C:\ProgramData\HNSHL\ContentRuntime\tools\Register-ContentVmRuntimeWatch.ps1' -Enabled $Enabled
+          register: content_runtime_watch
+          changed_when: content_runtime_watch.output[0].Changed | bool

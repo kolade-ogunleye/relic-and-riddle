@@ -74,6 +74,8 @@ def _normalize_id(tid: str) -> str:
 
 @llm_task("topic_proposals")
 def propose(db: PipelineDatabase, n: int = 3) -> List[TopicProposal]:
+    from .operator_jobs import checkpoint
+    checkpoint()
     from . import gemini
     if not claude_available() and not gemini.available():
         raise RuntimeError("Neither ANTHROPIC_API_KEY nor GEMINI_API_KEY is configured.")
@@ -92,6 +94,7 @@ def propose(db: PipelineDatabase, n: int = 3) -> List[TopicProposal]:
             log.warning("Claude research for proposals failed (%s); trying Gemini fallback.", e)
             if not gemini.available():
                 raise
+    checkpoint()
     if notes is None:
         if not gemini.available():
             raise RuntimeError("Gemini is not configured as fallback.")
@@ -109,6 +112,7 @@ def propose(db: PipelineDatabase, n: int = 3) -> List[TopicProposal]:
         "image_queries: 2-4 Wikimedia Commons searches. image_keywords: 2-6 lowercase words, at least one of which "
         f"must appear in a relevant image file title. {sources_instruction}"
     )
+    checkpoint()
     proposals = None
     if claude_available():
         try:
@@ -117,6 +121,7 @@ def propose(db: PipelineDatabase, n: int = 3) -> List[TopicProposal]:
             log.warning("Claude structured call failed (%s); trying Gemini fallback.", e)
             if not gemini.available():
                 raise
+    checkpoint()
     if proposals is None:
         proposals = gemini.structured(STRUCTURE_SYSTEM, struct_prompt, TopicProposals)
     def _norm_url(u: str) -> str:
@@ -153,6 +158,7 @@ def propose(db: PipelineDatabase, n: int = 3) -> List[TopicProposal]:
         fresh.append(p)
         if len(fresh) >= n:
             break
+    checkpoint()
     db.set_setting(PENDING_KEY, json.dumps(store))
     return fresh
 

@@ -50,6 +50,7 @@ from src.ops import AssetLifecycleManager, PreFlightHealthChecker, setup_logging
 from src.fact_sheet import FactStarvedTopicError
 from src.stage_timer import StageTimer
 from src.improve import REASONS, SCRIPT_REASONS
+from src.operator_jobs import JobCancelled
 
 log = logging.getLogger("pipeline")
 
@@ -218,6 +219,8 @@ class PipelineCoordinator:
             result = self._produce_and_publish(topic, run_id, run_dir, auto_approve, dry_run, previous_status)
             self._finish_progress(topic.get("title", tid), run_id, success=True)
             self._collect_findings(run_id, run_dir, tid)
+        except JobCancelled:
+            return {"status": "cancelled", "run_id": run_id, "topic_id": tid}
         except FactStarvedTopicError as e:
             self._collect_findings(run_id, run_dir, tid, error=f"FactStarvedTopicError: {e}")
             if getattr(self, "progress_msg_id", None):
@@ -272,6 +275,17 @@ class PipelineCoordinator:
                 result["deep_dive_run"] = {"status": "failed", "error": str(e)}
 
         return result
+
+    def _check_cancel(self, run_id):
+        if not self.db.get_setting("cancel_run:" + run_id):
+            return
+        run = self.db.get_run(run_id)
+        if not run or run["status"] in {"publishing", "publish_unknown", "published"}:
+            return
+        self.db.update_run(run_id, "cancelled", error="Cancelled by operator at a stage boundary")
+        self.topic_engine.record_status(run["topic_id"], "cancelled", run_id=run_id)
+        self._finish_progress(self.db.run_label(run_id), run_id, False, "Cancelled by operator")
+        raise JobCancelled("Cancelled by operator")
 
     def _finish_progress(self, title: str, run_id: str, success: bool, error: str = "") -> None:
         """Ends the run's progress card and its 'in production' record (idempotent)."""
@@ -336,6 +350,7 @@ class PipelineCoordinator:
         log.info("Starting Deep-Dive Documentary run %s for topic '%s'", run_id, topic["title"])
 
         try:
+            self._check_cancel(run_id)
             # 1. Visual assets
             scene_media = self.visual_engine.get_scene_sequence(topic)
             hero_img = self.visual_engine.hero_image(scene_media)
@@ -402,6 +417,7 @@ class PipelineCoordinator:
                 vo_dur = self.audio_engine.get_duration(vo_path)
                 log.info("Deep-Dive Voiceover: reusing existing audio (%.2fs, %d words timed)", vo_dur, len(words))
             else:
+                self._check_cancel(run_id)
                 words = self.audio_engine.generate_narration(raw_narration, vo_path, licensed_only=licensed_req,
                                                              allow_paid=allow_paid)
                 words_path.write_text(json.dumps(words), encoding="utf-8")
@@ -420,6 +436,7 @@ class PipelineCoordinator:
             (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
             self.db.update_run(run_id, "producing", script_payload=payload)
 
+            self._check_cancel(run_id)
             bed_path = run_dir / "ambient_bed.wav"
             from src.music import load_library, MUSIC_DIR
             from src.config import MUSIC_PREFER
@@ -457,6 +474,7 @@ class PipelineCoordinator:
                     payload["caption"] += "\n\n" + attribution
                     payload["description"] += "\n\n" + attribution
 
+            self._check_cancel(run_id)
             # 4. Visual preparation & compositing
             scene_media, _ = ensure_all(scene_media)
             hero_img = ensure_resolution(hero_img)
@@ -534,6 +552,8 @@ class PipelineCoordinator:
             finally:
                 concurrent.futures.wait([fut_thumbs])  # never leave a writer running past the run
 
+        except JobCancelled:
+            return {"status": "cancelled", "run_id": run_id, "topic_id": tid}
         except Exception as e:
             log.error("Deep-dive production failed for run %s: %s", run_id, e, exc_info=True)
             self.db.update_run(run_id, "failed", error=f"{type(e).__name__}: {e}")
@@ -630,6 +650,7 @@ class PipelineCoordinator:
         from src.credits import add_provenance_attributions
         add_provenance_attributions(payload, prov_ledger)
 
+        self._check_cancel(run_id)
         # Thumbnails: vertical cover, square grid, and 16:9 widescreen YouTube key-art
         (thumb_916, thumb_1x1), thumb_yt = fut_thumbs.result()
         payload["thumbnail_youtube"] = str(thumb_yt)
@@ -808,12 +829,14 @@ class PipelineCoordinator:
                 "allow_paid": (not dry_run) or config.ELEVENLABS_IN_DRY_RUNS or self.paid_voice_in_dry_run}
 
     def _produce_and_publish(self, topic, run_id, run_dir, auto_approve, dry_run, previous_status) -> Dict[str, Any]:
+        self._check_cancel(run_id)
         self.progress_msg_id = None
         try:
             self.progress_msg_id = self.telegram_bot.send_progress_card(run_id, topic["title"])
         except Exception:
             pass
 
+        self._check_cancel(run_id)
         # 1. Visual assets first: fail before spending on LLM/TTS calls.
         scene_media = self.visual_engine.get_scene_sequence(topic)
         hero_img = self.visual_engine.hero_image(scene_media)
@@ -863,6 +886,7 @@ class PipelineCoordinator:
                 pass
 
         # 4-5. Audio (reused when resuming)
+        self._check_cancel(run_id)
         vo_path = run_dir / "voiceover.mp3"
         words_path = run_dir / "words.json"
         voice_path = run_dir / "voice.json"  # which provider made it, and whether it's licensed
@@ -938,6 +962,7 @@ class PipelineCoordinator:
 
     def _produce_bed_and_render(self, topic, run_id, run_dir, payload, scene_media, hero_img, vo_path, words_path,
                                 vo_dur, words, checkpoints, file_inputs, auto_approve, dry_run, previous_status, prepared):
+        self._check_cancel(run_id)
         bed_path = run_dir / "ambient_bed.wav"
         t0 = time.perf_counter()
         from src.delivery_profiles import get_delivery_profile
@@ -984,6 +1009,7 @@ class PipelineCoordinator:
         tid = topic["id"]
         revision_notes, payload = initial_notes, initial_payload
         for revision in range(MAX_FACT_REVISIONS + 1):
+            self._check_cancel(run_id)
             payload = self.script_engine.generate_script(topic, revision_notes=revision_notes, previous=payload)
             passed, payload, notes = self.script_engine.verify_claims(payload, topic=topic, allow_unreviewed_curated=dry_run)
             log.info("Guardrail (draft %d): %s", revision + 1, notes)
@@ -1063,6 +1089,7 @@ class PipelineCoordinator:
         style = COVER_STYLES[int(key) % len(COVER_STYLES)] if key.isdigit() else COVER_STYLES[0]
 
         # 7. Master render
+        self._check_cancel(run_id)
         # Match pictures to narration beats; cuts land on the beat boundaries.
         beats = segment_beats(words, vo_dur)
         # Extra candidates searched for the concrete subject of individual beats (openly licensed).
@@ -1129,6 +1156,7 @@ class PipelineCoordinator:
             feedback = "The human reviewer sent the previous version back for its pictures." + (
                 f" Their words: {fb['text']}" if fb.get("text") else "")
         motion_memo: Dict[str, Any] = {}
+        self._check_cancel(run_id)
         for attempt in (1, 2):  # a second pass only if the video check finds a picture mismatch
             scenes, durations, plan_notes = plan_scenes(beats, candidates, feedback=feedback)
             log.info("Scene plan: %d beats (%s).", len(beats), plan_notes[:120])
@@ -1153,10 +1181,12 @@ class PipelineCoordinator:
             payload["beat_image_note"] = (f"🔍 {len(used)} beat-specific image(s) auto-sourced from Wikimedia Commons; "
                                           "check they show the right thing" if used else "")
             # AI motion for the opening photo (only with a media budget; real footage and our graphics come first).
+            self._check_cancel(run_id)
             scenes, motion_used = motion.apply(self.db, scenes, run_dir / "motion", memo=motion_memo, topic=topic,
                                                allow_paid=(not dry_run) or self.paid_motion_in_dry_run)
             payload["motion_note"] = (f"🤖 AI motion ({', '.join(motion_used)}) animates {len(motion_used)} real photo(s); "
                                       "the Reel carries the AI label") if motion_used else ""
+            self._check_cancel(run_id)
             # 2.5D parallax clips for the stills (local GPU); falls back to flat camera moves.
             t0 = time.perf_counter()
             try:
@@ -1174,6 +1204,7 @@ class PipelineCoordinator:
                              "rules": file_inputs([Path("src/video_composer.py"), Path("src/config.py"),
                                                    Path("src/encoding.py"), Path("src/encoded_audio.py"), Path("src/delivery_profiles.py")]),
                              "fonts": packaging_inputs["fonts"]}
+            self._check_cancel(run_id)
             if not render_checkpoint.reusable("master", render_inputs):
                 self.video_composer.compose_video(scenes, vo_path, bed_path, words, vo_dur, master_mp4, durations=durations,
                                                   emphasis=payload.get("emphasis_words"))
@@ -1239,6 +1270,7 @@ class PipelineCoordinator:
             payload.setdefault("self_healing_actions", []).append({"attempt": attempt, "fixing": feedback.splitlines()})
             log.info("Repairing before review; re-planning scenes once:\n%s", feedback)
         t0 = time.perf_counter()
+        self._check_cancel(run_id)
         review_mp4 = self.video_composer.make_review_proxy(master_mp4, run_dir / "review_proxy.mp4")
         timer.record("review_proxy", time.perf_counter() - t0)
         payload["qa_summary"] = qa_summary_html(qa)
@@ -1459,6 +1491,7 @@ class PipelineCoordinator:
             return self._publish_run_locked(run_id, dry_run, previous_status)
 
     def _publish_run_locked(self, run_id: str, dry_run: bool = False, previous_status: str = "queued") -> Dict[str, Any]:
+        self._check_cancel(run_id)
         run = self.db.get_run(run_id)
         if not run or not run.get("master_video_path"):
             raise ValueError(f"Run '{run_id}' has no rendered video.")
@@ -1582,42 +1615,21 @@ def start_post_ticker(coordinator: "PipelineCoordinator", bot) -> threading.Thre
 
 
 def _proposal_trigger(db: PipelineDatabase, bot) -> Any:
-    """Research beside polling, then update the originating navigation panel."""
-    busy = threading.Lock()
-    buttons = [[{"text": "Waiting ideas", "callback_data": "cprop:"}],
-               [{"text": "← Topic ideas", "callback_data": "cideas:"}],
-               [{"text": "← Dashboard", "callback_data": "cdash:"}]]
-
-    def send_proposals(target=None, claimed=False):
-        if not claimed and not busy.acquire(blocking=False):
-            return
-        try:
-            from src import topic_proposer
-            proposals = topic_proposer.propose(db)
-            text = (f"💡 Research complete: {len(proposals)} new idea(s). Open Waiting ideas to review them."
-                    if proposals else "💡 No new verified topic ideas this time.")
-        except Exception as exc:
-            log.exception("Topic proposal research failed")
-            text = f"⚠️ Topic research failed ({type(exc).__name__}). Existing waiting ideas are preserved."
-        finally:
-            busy.release()
-        bot.update_navigation_target(target, text, buttons)
+    """Research is an operator job: cancellable and tied to its originating panel."""
+    def work():
+        from src import topic_proposer
+        proposals = topic_proposer.propose(db)
+        text = (f"💡 Research complete: {len(proposals)} new idea(s). Open Waiting ideas to review them."
+                if proposals else "💡 No new verified topic ideas this time.")
+        return text, [[{"text": "Waiting ideas", "callback_data": "cprop:"}],
+                      [{"text": "← Topic ideas", "callback_data": "cideas:"}],
+                      [{"text": "← Dashboard", "callback_data": "cdash:"}]]
 
     def trigger() -> str:
-        if not busy.acquire(blocking=False):
-            return "Already researching topic proposals."
-        target = bot.navigation_target()
-        text = "💡 Researching 3 new topic ideas. You can keep using the bot; results remain in Waiting ideas."
-        if target:
-            bot.update_navigation_target(target, text, buttons)
-        try:
-            threading.Thread(target=send_proposals, args=(target, True), name="topic-proposals", daemon=True).start()
-        except Exception:
-            busy.release()
-            raise
-        return "" if target else text
+        bot.start_operator_job("Researching topic ideas", work, resource="topic-research")
+        return ""
 
-    trigger.run_now = send_proposals
+    trigger.run_now = trigger
     return trigger
 
 

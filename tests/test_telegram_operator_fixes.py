@@ -48,7 +48,7 @@ def callback_bot(db, monkeypatch, action, media=False):
         calls.append((method, kwargs.get("data", {})))
         if method == "getUpdates":
             return [{"update_id": 1, "callback_query": {"id": "cq", "from": {"id": 555}, "data": action, "message": msg}}]
-        return {"message_id": 42, "photo": [{"file_id": "updated"}]}
+        return {"message_id": 43 if method == "sendMessage" else 42, "photo": [{"file_id": "updated"}]}
     monkeypatch.setattr(bot, "_api", api)
     return bot, calls
 
@@ -77,12 +77,13 @@ def test_cover_photo_replaces_navigation_card_in_place(db, monkeypatch, tmp_path
     assert not any(method in {"sendPhoto", "sendMessage"} for method, _ in calls)
 
 
-def test_media_panel_returns_to_dashboard_without_new_message(db, monkeypatch):
+def test_media_panel_returns_to_dashboard_without_retaining_attachment(db, monkeypatch):
     bot, calls = callback_bot(db, monkeypatch, "cdash:", media=True)
     handler = control.make_command_handler(db, lambda: None, lambda: "started")
     bot.poll_once(handler)
-    assert any(method == "editMessageCaption" and data["message_id"] == 42 for method, data in calls)
-    assert not any(method == "sendMessage" for method, _ in calls)
+    assert any(method == "sendMessage" and "RELIC" in data["text"] for method, data in calls)
+    assert any(method == "deleteMessage" and data["message_id"] == 42 for method, data in calls)
+    assert bot._current_panel(42) == 43
 
 
 @pytest.mark.parametrize("observed,state", [(None, "interrupted"), ("different-creation", "interrupted"), ("unknown", "unverified")])
@@ -148,7 +149,7 @@ def test_images_slash_command_has_topic_actions(db, tmp_path):
     h = control.make_command_handler(db, lambda: None, lambda: "", assets_dir=tmp_path, send_message=lambda *a: True)
     text, buttons = h("images", "")
     actions = [b["callback_data"] for row in buttons for b in row]
-    assert "imagepick:" in actions and "cdash:" in actions
+    assert "imagepick:0" in actions and "cdash:" in actions
 
 
 def test_swipe_reply_preserves_run_from_buttons(db, monkeypatch):
@@ -180,20 +181,20 @@ def test_research_completes_on_originating_panel(db, monkeypatch):
     from src import topic_proposer
     updates = []
     target = (42, False, 1)
-    bot = SimpleNamespace(navigation_target=lambda: target, update_navigation_target=lambda *args: updates.append(args))
+    def start(title, work, **kwargs):
+        updates.append((title, work(), kwargs))
+    bot = SimpleNamespace(start_operator_job=start)
     monkeypatch.setattr(topic_proposer, "propose", lambda _: [object()])
-    monkeypatch.setattr(main.threading, "Thread", lambda target, args, **kw: SimpleNamespace(start=lambda: target(*args)))
     trigger = main._proposal_trigger(db, bot)
     assert trigger() == ""
-    assert len(updates) == 2 and all(update[0] == target for update in updates)
-    assert "Research complete" in updates[-1][1]
+    assert len(updates) == 1 and "Research complete" in updates[0][1][0]
 
 
 def test_background_completion_does_not_overwrite_a_newer_screen(db, monkeypatch):
     bot, calls = callback_bot(db, monkeypatch, "unused:")
     bot._panel_revisions[42] = 2
     bot.update_navigation_target((42, False, 1), "Research finished", [[control.HOME]])
-    assert any(method == "sendMessage" for method, _ in calls)
+    assert not any(method == "sendMessage" for method, _ in calls)
     assert not any(method == "editMessageText" for method, _ in calls)
 
 

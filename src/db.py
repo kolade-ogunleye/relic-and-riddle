@@ -545,6 +545,15 @@ class PipelineDatabase:
             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
             """, (key, value, _now()))
 
+    def request_run_cancel(self, run_id):
+        """Accept only while producing; never cancel an upload or infer its outcome."""
+        with self._conn() as conn:
+            result = conn.execute("""INSERT INTO settings (key,value,updated_at)
+                SELECT ?, 'requested', ? FROM runs WHERE run_id=? AND status='producing'
+                ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at""",
+                ("cancel_run:" + run_id, _now(), run_id))
+            return result.rowcount > 0
+
     # -------------------------------------------------------- active progress
     def set_active_progress(self, run_id: str, topic_title: str, step: int, total_steps: int,
                             details: str = "", message_id: Optional[int] = None,

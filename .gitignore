@@ -64,6 +64,7 @@ archive/recovery/
 
 # Runtime ownership files and learned voice calibration belong to each environment.
 data/publication_locks/
+**/publication_locks/
 data/voice_pace.json
 
 # Local copies of the secrets file (the template stays tracked)

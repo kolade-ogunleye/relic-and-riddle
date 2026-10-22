@@ -501,7 +501,7 @@ def test_extended_deletion_and_inplace_transform(db, monkeypatch):
     click_mdel = {"id": "q2", "data": "mdel:track1", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 82}}
     monkeypatch.setattr(bot, "_api", lambda m, **kw: [{"update_id": 2, "callback_query": click_mdel}] if m == "getUpdates" else {})
     bot.poll_once(lambda a, t: "removed")
-    assert 82 not in deleted_ids and 82 in edited_any
+    assert 82 not in deleted_ids and 82 in edited_text
 
     click_imgcancel = {"id": "q3", "data": "imgcancel:t1", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 83}}
     monkeypatch.setattr(bot, "_api", lambda m, **kw: [{"update_id": 3, "callback_query": click_imgcancel}] if m == "getUpdates" else {})

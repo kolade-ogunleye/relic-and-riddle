@@ -262,7 +262,7 @@ def test_startup_dashboard_card_and_cockpit(tmp_path):
     assert "active" in resume_reply
 
     # 5. /help includes cockpit pointer
-    help_reply = h("help", "")
+    help_reply, _ = h("help", "")
     assert "/pause" in help_reply
     assert "/dashboard" in help_reply
 

@@ -80,6 +80,7 @@ custody is documented in the backup runbook; key values are never released.
 
 The previous approved Kailasa VM dry run passed NVENC, DirectML inference,
 quality audit and release checks under the old operator context. The managed
-identity still needs the focused application checks documented above. The
+identity subsequently passed depth, native Speech and NVENC checks; Vulkan
+upscaling failed. See [the acceptance record](runtime-acceptance.md). The
 Derinkuyu image pool, actual configured-provider generation, Telegram defects and
 human acceptance are separate gates. See the reconciliation register for status.

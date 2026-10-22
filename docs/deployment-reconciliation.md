@@ -82,9 +82,10 @@ deleted by this application audit.
    Do not label a defect resolved solely because the database has no open rows.
 2. **Release reconciliation:** finish the application/adapter boundaries and origin
    release work above without changing lab infrastructure from this repository.
-3. **Application checks under `rr-pipeline$`:** actual DirectML depth inference,
-   native Azure Speech loading, and a decision on the Vulkan upscaler/fallback.
-   The inspected managed-identity GPU canary proves NVENC, not all these checks.
+3. **Application checks under `rr-pipeline$`:** the operator's 2026-10-22 receipt
+   passed actual DirectML-enabled depth inference, native Azure Speech loading
+   and NVENC in Session 0. Vulkan upscaling failed and its resolution/fallback
+   decision remains open. See [runtime acceptance](runtime-acceptance.md).
 4. **Assets and provider path:** address the insufficient Derinkuyu photo pool;
    validate configured licensed generation providers within existing production
    caps. Authentication/quota health is not successful paid generation.

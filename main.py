@@ -211,8 +211,11 @@ class PipelineCoordinator:
         run_id = run_id or (f"run_{tid}_{int(time.time())}" + ("_short" if content_format == "dual" else ""))
         run_dir = OUTPUT_DIR / run_id
         run_dir.mkdir(parents=True, exist_ok=True)
-        self.db.create_run(run_id, tid, content_format="reel")
-        self.topic_engine.record_status(tid, "in_production", run_id=run_id)
+        from src.publication_lock import publication_lock
+        with publication_lock(self.db.db_path, "topic-images:" + tid):
+            self.db.create_run(run_id, tid, content_format="reel")
+            self.db.set_setting("run_mode:" + run_id, "dry_run" if dry_run else "live")
+            self.topic_engine.record_status(tid, "in_production", run_id=run_id)
         log.info("Run %s: topic '%s'", run_id, topic["title"])
 
         try:
@@ -345,8 +348,11 @@ class PipelineCoordinator:
             run_id = f"run_{tid}_{ts}_long"
         run_dir = OUTPUT_DIR / run_id
         run_dir.mkdir(parents=True, exist_ok=True)
-        if not self.db.get_run(run_id):
-            self.db.create_run(run_id, tid, parent_run_id=parent_run_id, content_format="deep_dive")
+        from src.publication_lock import publication_lock
+        with publication_lock(self.db.db_path, "topic-images:" + tid):
+            if not self.db.get_run(run_id):
+                self.db.create_run(run_id, tid, parent_run_id=parent_run_id, content_format="deep_dive")
+                self.db.set_setting("run_mode:" + run_id, "dry_run" if dry_run else "live")
         log.info("Starting Deep-Dive Documentary run %s for topic '%s'", run_id, topic["title"])
 
         try:
@@ -404,7 +410,8 @@ class PipelineCoordinator:
                 "origin": "deep_dive_engine",
                 "delivery_profile": "deep_dive_16x9",
             }
-            (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+            from src.atomic_files import write_json
+            write_json(run_dir / "script_metadata.json", payload)
             self.db.update_run(run_id, "producing", script_payload=payload)
 
             # 3. Audio generation
@@ -754,14 +761,16 @@ class PipelineCoordinator:
             self._verify_final_copy(payload, topic)
         except ValueError as e:
             return f"❌ Not changed: the new {field.replace('_', ' ')} failed the fact check.\n<i>{html.escape(str(e))[:500]}</i>"
-        self.db.update_run(run_id, "pending_approval", script_payload=payload)
+        if not self.db.commit_review_copy(run_id, appr.get("revision", 0), payload):
+            return "Review changed while checking the edit. Nothing was changed; open the current review."
         run_dir = Path(run["master_video_path"]).parent
-        (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+        from src.atomic_files import write_json
+        write_json(run_dir / "script_metadata.json", payload)
         from src.release import write_release_report
         report = write_release_report(self.db.get_run(run_id))
         if appr.get("telegram_message_id"):
             self.telegram_bot._strip_buttons(appr["telegram_message_id"])
-        self.telegram_bot.send_review_card(run_id, payload, report)
+        self.telegram_bot.send_approval_request(Path(run["master_video_path"]), Path(run["thumbnail_cover_path"] or Path(run["master_video_path"]).parent / "thumbnail_cover.jpg"), payload, run_id)
         log.info("Edited %s of %s: %r -> %r", field, run_id, old[:60], text[:60])
         open_checks = [c["name"] for c in report.get("checks", []) if c.get("status") != "pass"]
         return (f"✅ {field.replace('_', ' ').capitalize()} updated and fact-checked; the new card is below."
@@ -772,6 +781,7 @@ class PipelineCoordinator:
         run = self.db.get_run(run_id)
         if not run or run["status"] not in ("timeout", "pending_approval"):
             raise ValueError(f"Run status '{run and run['status']}' has no approval to re-send.")
+        dry_run = dry_run or self.db.get_setting("run_mode:" + run_id) == "dry_run"
         appr = self.db.get_approval(run_id)
         if appr and appr["decision"] == "timeout":
             self.db.reopen_approval(run_id)
@@ -1329,6 +1339,7 @@ class PipelineCoordinator:
         return result
 
     def _after_approval(self, run_id: str, dry_run: bool = False, previous_status: str = "queued") -> Dict[str, Any]:
+        dry_run = dry_run or self.db.get_setting("run_mode:" + run_id) == "dry_run"
         if getattr(config, "BACKUP_ENABLED", True):
             try:
                 from src.backup import backup_run

@@ -164,17 +164,20 @@ def test_not_posted_requeues(rendered_run, monkeypatch):
     assert rendered_run.db.get_run("r1")["status"] == "failed"
 
 
-def test_approval_button_uses_short_key(db, monkeypatch):
+def test_approval_button_uses_short_key(db, monkeypatch, tmp_path):
+    # A long run name still fits Telegram's 64-byte callback limit through the run's short key, and
+    # that key decides the current, delivered review (approvals need a delivered card: audit F01/F04).
+    from tests.test_telegram_release_safety import ready_review
     from src.telegram_bot import TelegramApprovalBot
-    db.create_run("run_12_flannan_isle_lighthouse_disappearance_1791781280", "01_topic")
     rid = "run_12_flannan_isle_lighthouse_disappearance_1791781280"
-    db.record_approval(rid, "01_topic")
+    ready_review(db, tmp_path, run_id=rid, mid=1)
     bot = TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
     monkeypatch.setattr(bot, "_api", lambda method, **kw: {})
     key = db.run_key(rid)
-    assert len(f"approve:{key}".encode()) <= 64
+    assert len(f"approve:{key}".encode()) <= 64 < len(f"approve:{rid}_long_documentary_suffix".encode())
     cq = {"id": "q", "data": f"approve:{key}", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 1}}
     assert bot._handle_callback(cq) == "approved"
+    bot.drain()
     assert db.get_approval(rid)["decision"] == "approved"
 
 

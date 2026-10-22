@@ -47,15 +47,16 @@ def format_html(text):
 def format_payload(method, payload):
     """Copy only presentation fields; retain original evidence/action metadata."""
     import json
-    from .telegram_bot import safe_html_truncate
+    from .telegram_bot import safe_html_truncate, _MASKER
     result = dict(payload)
     if result.get("parse_mode") == "HTML":
         for key in ("text", "caption"):
             if key in result:
-                result[key] = safe_html_truncate(format_html(result[key]), 1024 if key == "caption" else 4000)
-    if method == "editMessageMedia" and isinstance(result.get("media"), str):
-        media = json.loads(result["media"])
-        if media.get("parse_mode") == "HTML" and "caption" in media:
-            media["caption"] = safe_html_truncate(format_html(media["caption"]), 1024)
-        result["media"] = json.dumps(media)
+                result[key] = safe_html_truncate(format_html(_MASKER.mask(result[key])), 1024 if key == "caption" else 4000)
+    if method in {"editMessageMedia", "sendMediaGroup"} and isinstance(result.get("media"), str):
+        value = json.loads(result["media"])
+        for media in value if isinstance(value, list) else [value]:
+            if media.get("parse_mode") == "HTML" and "caption" in media:
+                media["caption"] = safe_html_truncate(format_html(_MASKER.mask(media["caption"])), 1024)
+        result["media"] = json.dumps(value)
     return result

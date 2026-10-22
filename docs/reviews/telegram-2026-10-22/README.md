@@ -343,3 +343,35 @@ media and historical cards, plus named nonexistent runs.
 **Do not mark these findings fixed because the existing 711 tests pass.** This
 report identifies tests that were missing; it does not claim exhaustive absence
 of additional defects or declare the running candidate production-ready.
+
+## Remediation status (2026-10-22, after the audit)
+
+The findings above describe commit `784bdaa`. The remediation that followed changed the
+behaviour each scenario exercised, so the historical reproducer now stops at the first
+refused action (for example, image approval while a topic is producing). Required safe
+behaviour is now asserted by regression tests, mainly in
+`tests/test_telegram_release_safety.py`. Full suite: 731 passed on Windows.
+
+| Finding | Closure | Regression test(s) |
+| --- | --- | --- |
+| F01 old cards approve newer reviews | Decision bound to run, current message, revision and expiry (`decide_telegram_review`) plus the delivered-review fingerprint | `test_current_delivered_review_only_and_first_wins`, `test_changed_or_unverified_review_cannot_approve` |
+| F02 edit races approval | Copy commit is a compare-and-swap on the review revision that invalidates the old card in the same transaction | `test_copy_verification_racing_decision_does_not_commit` |
+| F03 image approval not bound to the reviewed set | Approval carries a digest of images, credits and storyboard; topic lock shared by image mutations | `test_changed_image_snapshot_is_not_approved` |
+| F04 approval offered without delivered media | No approval card unless the review media for this exact copy was delivered | `test_preview_failure_never_offers_approval` |
+| F05 command replay after restart | Durable at-most-once admission per bot and update id before any side effect; an interrupted command is retried explicitly from /jobs, never silently | `test_restart_does_not_replay_run_and_bad_update_does_not_abort_batch` |
+| F06 topic path escape | Known topic ids/serials only, canonical containment under the assets root | `test_topic_paths_and_numeric_missing_assets_fail_closed` |
+| F07 stale queue controls | Conditional mutations on current state; bump/requeue restore paths corrected (requeue refuses only queued/in-production) | `test_queue_and_progress_stale_actions_are_fenced`, `test_next_topic_prefers_queued_then_failed_and_never_repeats_published` |
+| F08 progress lifecycle | Clears scoped to their run; stale progress of a finished run is discarded | `test_queue_and_progress_stale_actions_are_fenced`, `test_progress_of_a_finished_run_is_not_kept_alive` |
+| F09 callback length | Universal encoder: data over 64 bytes becomes a stored compact reference that survives restart | `test_compact_callbacks_survive_restart`, `test_approval_button_uses_short_key` |
+| F10 cover controls | Bound to the reviewed run; closed or missing runs never report success | `test_published_and_missing_cover_never_report_success` |
+| F11 unknown health shown as ready | Healthy, unhealthy, unknown and stale are distinct | `test_health_unknown_stale_and_incomplete_integrity_never_pass` |
+| F12 poller responsiveness | Navigation and slow commands run beside a lightweight consumer; decisions stay inline | `test_approval_is_handled_while_slow_navigation_runs`, `test_slow_commands_run_beside_the_poller` |
+| F13 text asserts unestablished facts | Unknown evidence renders as unknown; approval badge says delivery is not yet confirmed; dry-run progress is explicit | `test_health_unknown_stale_and_incomplete_integrity_never_pass`, `test_dry_run_progress_is_explicit` |
+| F14 album formatting | Albums use the shared formatter and caption limit | `test_album_uses_shared_formatter_and_caption_limit` |
+| F15 legacy paths and aliases | Typed commands limited to the public catalog plus declared aliases; retired buttons (`done`, `umore`, `umoredone`) answer explicitly and never run old behaviour; UNESCO discovery is one paged panel with persistent Skip; Add is idempotent; topic-bank writes are journalled; collision-safe music keys | `test_mcancel_navigation_and_umoredone_cleanup`, `test_control_discover_umore_and_duplicate_uadd`, `test_add_appends_to_bank_queries_and_db`, `test_music_keys_do_not_collide_on_old_suffix` |
+| F16 job observability and retention | Masked failure detail and delivery outcome per job; finished-job history bounded; per-update fault isolation | `test_failed_job_keeps_a_masked_reason_and_history_is_bounded`, `test_restart_does_not_replay_run_and_bad_update_does_not_abort_batch` |
+| F17 reply context | Message-to-run identity stored with the card, so replies keep their run after buttons are gone | `test_reply_to_a_decided_card_keeps_its_run`, `test_native_telegram_reply_to_message_routing` |
+
+Still required before promotion (unchanged from the order above): operator chat
+acceptance with the dev bot against these behaviours, then a re-review of the
+resulting commit. Tests asserting the safe behaviour are evidence, not certification.

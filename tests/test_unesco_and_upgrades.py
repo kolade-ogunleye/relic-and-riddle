@@ -138,40 +138,31 @@ def test_compute_focal_point(tmp_path):
     assert cx_r > 0.65
 
 
-@needs_unesco
-def test_control_discover_command(db, monkeypatch, tmp_path):
+def _discover_handler(db, monkeypatch, tmp_path):
     import json
     from src.control import make_command_handler
     from src import topic_proposer as tp
-
     bank_file = tmp_path / "topic_bank.json"
     bank_file.write_text(json.dumps({"total": 0, "topics": []}), encoding="utf-8")
     queries_file = tmp_path / "image_queries.json"
     queries_file.write_text("{}", encoding="utf-8")
     monkeypatch.setattr(tp, "BANK", bank_file)
     monkeypatch.setattr(tp, "QUERIES", queries_file)
+    return make_command_handler(db, lambda: None, lambda: "")
 
-    sent_messages = []
-    def fake_send_message(text, buttons=None):
-        sent_messages.append((text, buttons))
-        return True
 
-    h = make_command_handler(db, lambda: None, lambda: "", send_message=fake_send_message)
-    out = h("discover", "hydraulic")
-    assert "Discovered" in out
-    assert len(sent_messages) >= 1
-    cb_data = sent_messages[0][1][0]["callback_data"]
-    assert cb_data.startswith("uadd:")
-    target_id = cb_data.split(":")[-1]
+def _adds(buttons):
+    return [b["callback_data"] for row in buttons for b in row if b["callback_data"].startswith("uadd:")]
 
-    # Test uadd button click callback
-    uadd_res = h("uadd", target_id)
-    assert "Added UNESCO Marvel" in uadd_res or "Added" in uadd_res
 
-    # Test uskip
-    uskip_res = h("uskip", "9999")
-    assert "Skipped" in uskip_res
-
+@needs_unesco
+def test_control_discover_command(db, monkeypatch, tmp_path):
+    # One paged panel (audit F15): an Add per marvel, then back to ideas and the dashboard.
+    h = _discover_handler(db, monkeypatch, tmp_path)
+    text, buttons = h("discover", "hydraulic")
+    assert "UNESCO marvels" in text and _adds(buttons)
+    assert buttons[-1][0]["callback_data"] == "cdash:"
+    assert "Added" in h("uadd", _adds(buttons)[0].split(":")[-1])
 
 
 @needs_unesco
@@ -189,43 +180,13 @@ def test_discover_pagination_with_offset():
 
 @needs_unesco
 def test_control_discover_umore_and_duplicate_uadd(db, monkeypatch, tmp_path):
-    import json
-    from src.control import make_command_handler
-    from src import topic_proposer as tp
-
-    bank_file = tmp_path / "topic_bank.json"
-    bank_file.write_text(json.dumps({"total": 0, "topics": []}), encoding="utf-8")
-    queries_file = tmp_path / "image_queries.json"
-    queries_file.write_text("{}", encoding="utf-8")
-    monkeypatch.setattr(tp, "BANK", bank_file)
-    monkeypatch.setattr(tp, "QUERIES", queries_file)
-
-    sent_messages = []
-    def fake_send_message(text, buttons=None):
-        sent_messages.append((text, buttons))
-        return True
-
-    h = make_command_handler(db, lambda: None, lambda: "", send_message=fake_send_message)
-    out = h("discover", "subterranean")
-    assert "Discovered 3 UNESCO" in out
-    # There should be 3 candidate cards plus 1 navigation card with 'More Discoveries' button
-    assert len(sent_messages) >= 4
-    more_card = sent_messages[-1]
-    assert any(btn["text"] == "➕ More Discoveries" for btn in more_card[1])
-    assert any(btn["text"] == "✖ Done" for btn in more_card[1])
-
-    # Calling umoredone
-    assert "Discovery browsing ended" in h("umoredone", "")
-
-    # Calling umore:subterranean:3
-    more_out = h("umore", "subterranean:3")
-    assert "Discovered" in more_out
-
-    # Add candidate
-    first_id = sent_messages[0][1][0]["callback_data"].split(":")[-1]
-    uadd1 = h("uadd", first_id)
-    assert "Added UNESCO Marvel" in uadd1
-
-    # Re-adding same candidate should return friendly already-queued notice
-    uadd_dup = h("uadd", first_id)
-    assert "already queued" in uadd_dup
+    h = _discover_handler(db, monkeypatch, tmp_path)
+    text, buttons = h("discover", "subterranean")
+    assert len(_adds(buttons)) == 3
+    nxt = [b["callback_data"] for row in buttons for b in row if b["text"].startswith("Next marvels")]
+    assert nxt == ["cdisc:subterranean:3"]
+    _, more = h("cdisc", "subterranean:3")                       # the next page replaces this one
+    assert set(_adds(more)).isdisjoint(_adds(buttons))
+    first_id = _adds(buttons)[0].split(":")[-1]
+    assert "Added UNESCO Marvel" in h("uadd", first_id)
+    assert "already queued" in h("uadd", first_id)                # a repeated tap never duplicates

@@ -44,6 +44,7 @@ def test_taps_made_while_down_are_applied_and_stale_commands_are_not(db, monkeyp
     ]
     bot, calls = _bot(db, monkeypatch, updates)
     bot.poll_once(lambda c, a: seen.append(c) or "ok")
+    bot.drain()
     first = next(d for m, d in calls if m == "getUpdates")
     assert "offset" not in first          # unconfirmed updates are fetched, not skipped
     assert seen == ["status"]             # the hour-old /run is not replayed
@@ -57,6 +58,7 @@ def test_clear_keeps_review_cards_waiting_for_a_decision(db, monkeypatch):
                                             "from": {"id": 555}, "chat": {"id": 555}}}]
     bot, calls = _bot(db, monkeypatch, updates)
     bot.poll_once(lambda c, a: "ok")
+    bot.drain()
     deleted = [mid for m, d in calls if m == "deleteMessages" for mid in __import__("json").loads(d["message_ids"])]
     assert deleted and 590 not in deleted and 599 in deleted
 
@@ -69,7 +71,7 @@ def test_slow_commands_run_beside_the_poller(db, monkeypatch):
     bot.poll_once(lambda c, a: time.sleep(1.0) or "answer")
     assert time.monotonic() - started < 0.8      # the poller is not blocked
     bot._background().shutdown(wait=True)
-    assert any(m == "sendMessage" and "answer" in d.get("text", "") for m, d in calls)
+    assert any(m in {"sendMessage", "editMessageText"} and "answer" in d.get("text", "") for m, d in calls)
 
 
 def test_chat_messages_never_carry_the_bot_token(db, monkeypatch):
@@ -110,11 +112,13 @@ def test_done_closes_a_card_and_navigation_keeps_its_buttons(db, monkeypatch):
     bot, calls = _bot(db, monkeypatch, upd)
     h = make_command_handler(db, lambda: None, lambda: "started")
     bot.poll_once(h)
+    bot.drain()
     assert any(m == "deleteMessage" and d.get("message_id") == 41 for m, d in calls)        # Done closed it
     calls.clear()
     upd.append({"update_id": 2, "callback_query": {"id": "q2", "data": "qrefresh:", "from": {"id": 555},
                                                    "message": {"chat": {"id": 555}, "message_id": 42}}})
     bot.poll_once(h)
+    bot.drain()
     edit = next(d for m, d in calls if m == "editMessageText")
     assert edit["message_id"] == 42                                                         # in place...
     buttons = [b["callback_data"] for row in _json.loads(edit["reply_markup"])["inline_keyboard"] for b in row]

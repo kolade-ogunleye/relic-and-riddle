@@ -51,6 +51,9 @@ def test_poll_once_rbac_audit_logging(tmp_path, monkeypatch):
     monkeypatch.setattr(bot, "_api", lambda method, **kw: [unauth_update] if method == "getUpdates" else [])
     handled = []
     bot.poll_once(command_handler=lambda c, a: handled.append((c, a)) or "ok", timeout=0)
+    if bot._workers is not None:
+        bot._workers.shutdown(wait=True)
+        bot._workers = None
     assert len(handled) == 0  # Not executed
     logs = db.list_audit_logs()
     assert len(logs) == 1
@@ -69,6 +72,9 @@ def test_poll_once_rbac_audit_logging(tmp_path, monkeypatch):
     }
     monkeypatch.setattr(bot, "_api", lambda method, **kw: [auth_update] if method == "getUpdates" else [])
     bot.poll_once(command_handler=lambda c, a: handled.append((c, a)) or "ok", timeout=0)
+    if bot._workers is not None:
+        bot._workers.shutdown(wait=True)
+        bot._workers = None
     assert len(handled) == 1
     assert handled[0][0] == "status"
     logs = db.list_audit_logs()
@@ -122,7 +128,8 @@ def test_queue_readiness_badges_and_render_button(tmp_path):
 
 
 def test_cover_flip_and_lock(tmp_path, monkeypatch):
-    run_dir = Path("output") / "run_test_overhaul_cover"
+    monkeypatch.setattr("src.config.OUTPUT_DIR", tmp_path)
+    run_dir = tmp_path / "run_test_overhaul_cover"
     run_dir.mkdir(parents=True, exist_ok=True)
     try:
         Image.new("RGB", (100, 100), color="blue").save(run_dir / "thumbnail_variant_a_blueprint.jpg")
@@ -154,7 +161,11 @@ def test_cover_flip_and_lock(tmp_path, monkeypatch):
         media_arg = json.loads(api_calls[-1][1]["data"]["media"])
         assert media_arg["media"] == "telegram_fid_variant_a"
 
-        # 3. Lock variant B
+        # 3. Lock variant B on a current pending review
+        topic = db.list_all_topics()[0]["id"]
+        db.create_run(run_dir.name, topic)
+        db.update_run(run_dir.name, "pending_approval")
+        db.record_approval(run_dir.name, topic, 42)
         h = make_command_handler(db, lambda: None, lambda: "")
         lock_res = h("covlock", "run_test_overhaul_cover:b")
         assert "Discovery Intrigue" in lock_res

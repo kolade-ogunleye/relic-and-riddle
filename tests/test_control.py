@@ -66,22 +66,26 @@ def test_poll_routes_commands_from_approver_only(db, monkeypatch):
     bot, sent = _bot(db, monkeypatch, updates)
     calls = []
     bot.poll_once(lambda c, a: calls.append(c) or "ok")
-    assert calls == ["status"] and sent == ["ok"] and bot._offset == 4
+    bot.drain()
+    assert calls == ["status"] and bot._offset == 4
+    assert bot.jobs.recent()[0]["state"] == "completed"
     assert not is_paused(db)
 
 
-def test_poll_applies_approval_click_for_any_pending_run(db, monkeypatch):
+def test_poll_applies_approval_click_for_any_pending_run(db, monkeypatch, delivered_review):
     db.create_run("r7", "01_topic")
-    db.record_approval("r7", "01_topic")
+    delivered_review("r7", 3)
     click = {"id": "q", "data": "reject:r7", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 3}}
     bot, _ = _bot(db, monkeypatch, [{"update_id": 9, "callback_query": click}])
     bot.poll_once(None)
+    bot.drain()
     assert db.get_approval("r7")["decision"] == "rejected"
 
 
 def test_command_errors_are_reported_not_raised(db, monkeypatch):
     bot, sent = _bot(db, monkeypatch, [{"update_id": 1, "message": {"text": "/next", "from": {"id": 555}, "chat": {"id": 555}}}])
     bot.poll_once(lambda c, a: (_ for _ in ()).throw(RuntimeError("<boom>")))
+    bot.drain()
     assert "failed" in sent[0] and "<boom>" not in sent[0]
 
 
@@ -125,31 +129,31 @@ def test_images_review_drop_approve_flow(db, tmp_path):
     listing = h("images", "")
     assert "1 to review" in listing and "1 short" in listing and "03 — kailasa temple (6)" in listing
 
-    assert h("review", "3") == ""
+    assert h("review", "03_kailasa_temple") == ""
     name, caption, buttons = sent[-1]
     assert name == "contact_sheet.jpg" or name.endswith(".jpg")
     assert "Storyboard Beat Direction" in caption and "<code>" in caption  # each beat names its image
-    assert buttons[0]["callback_data"] == "imgok:03_kailasa_temple"
+    assert buttons[0]["callback_data"].startswith("imgok:03_kailasa_temple@")
     assert (d / "storyboard.json").is_file()  # written beside the reviewed images, never into real assets
 
-    assert "Removed 1; 5 images remain" in h("drop", "03 2")
+    assert "Removed 1; 5 images remain" in h("drop", "03_kailasa_temple 2")
     assert len(load_credits(d)["images"]) == 5
-    assert "Approved 5 images" in h("imgok", "03_kailasa_temple")
+    assert "Approved 5 images" in h("imgok", "03_kailasa_temple@" + __import__("src.telegram_images", fromlist=["review_digest"]).review_digest(d))
     assert load_credits(d)["reviewed"] is True
 
 
 def test_drop_below_minimum_then_approve_refused(db, tmp_path):
-    _image_set(tmp_path, n=5)
+    d = _image_set(tmp_path, n=5)
     h = make_command_handler(db, lambda: None, lambda: "", assets_dir=tmp_path)
-    h("drop", "3 1")
+    h("drop", "03_kailasa_temple 1")
     with pytest.raises(ValueError, match="need 5"):
-        h("imgok", "03_kailasa_temple")
+        h("imgok", "03_kailasa_temple@" + __import__("src.telegram_images", fromlist=["review_digest"]).review_digest(d))
 
 
 def test_unknown_topic_and_bad_drop_usage(db, tmp_path):
     _image_set(tmp_path)
     h = make_command_handler(db, lambda: None, lambda: "", assets_dir=tmp_path)
-    with pytest.raises(ValueError, match="No fetched image set"):
+    with pytest.raises(ValueError, match="Unknown topic number"):
         h("review", "99")
     assert "Usage" in h("drop", "3 two")
 
@@ -159,6 +163,7 @@ def test_approve_button_routes_through_poller(db, monkeypatch, tmp_path):
     bot, sent = _bot(db, monkeypatch, [{"update_id": 5, "callback_query": click}])
     calls = []
     bot.poll_once(lambda c, a: calls.append((c, a)) or "done")
+    bot.drain()
     assert calls == [("imgok", "03_kailasa_temple")] and sent == ["done"]
 
 
@@ -292,10 +297,10 @@ def test_dual_resolution_serial_and_slug(tmp_path, monkeypatch):
 
     # 2. /review by serial number '1' and by slug 'gobekli_tepe_enclosure_d'
     assert h('review', '1') == ''
-    assert sent[-1][2][0]['callback_data'] == 'imgok:gobekli_tepe_enclosure_d'
+    assert sent[-1][2][0]['callback_data'].startswith('imgok:gobekli_tepe_enclosure_d@')
 
     assert h('review', 'gobekli_tepe_enclosure_d') == ''
-    assert sent[-1][2][0]['callback_data'] == 'imgok:gobekli_tepe_enclosure_d'
+    assert sent[-1][2][0]['callback_data'].startswith('imgok:gobekli_tepe_enclosure_d@')
 
     # 3. /drop by serial number '1' and by slug
     assert 'Removed 1; 5 images remain' in h('drop', '1 2')
@@ -362,13 +367,13 @@ def test_review_cancel_and_swap_visual_reorder(tmp_path):
     assert res == ''
     assert len(sent[-1][2]) == 2
     assert sent[-1][2][0]['text'] == '🎬 Approve Storyboard'
-    assert sent[-1][2][0]['callback_data'] == 'imgok:derinkuyu'
+    assert sent[-1][2][0]['callback_data'].startswith('imgok:derinkuyu@')
     assert sent[-1][2][1]['text'] == '✖ Cancel'
-    assert sent[-1][2][1]['callback_data'] == 'imgcancel:derinkuyu'
+    assert sent[-1][2][1]['callback_data'].startswith('imgcancel:derinkuyu@')
 
     # 2. imgcancel callback leaves topic unreviewed
     cancel_res = h('imgcancel', 'derinkuyu')
-    assert 'Storyboard review cancelled' in cancel_res
+    assert 'Storyboard review closed' in cancel_res
     assert load_credits(d1)['reviewed'] is False
 
     # 3. /swap 1 2 4 swaps beats 2 and 4 in both storyboard and credits
@@ -386,21 +391,26 @@ def test_review_cancel_and_swap_visual_reorder(tmp_path):
     assert len(sent) >= 2
 
 
-def test_stale_approval_click_rejected_and_buttons_stripped(db, monkeypatch):
+def test_stale_approval_click_rejected_and_buttons_stripped(db, monkeypatch, delivered_review):
     db.create_run("r8", "01_topic")
-    db.record_approval("r8", "01_topic")
+    delivered_review("r8", 10)
     click1 = {"id": "q1", "data": "reject:r8", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 10}}
     bot, sent = _bot(db, monkeypatch, [{"update_id": 1, "callback_query": click1}])
     bot.poll_once(None)
+    bot.drain()
     assert db.get_approval("r8")["decision"] == "rejected"
 
     # Second click on the same run (stale click)
     click2 = {"id": "q2", "data": "approve:r8", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 10}}
     bot2, sent2 = _bot(db, monkeypatch, [{"update_id": 2, "callback_query": click2}])
     bot2.poll_once(None)
+    bot2.drain()
+    if bot2._workers is not None:
+        bot2._workers.shutdown(wait=True)
+        bot2._workers = None
     # Decision must remain rejected; should not flip to approved
     assert db.get_approval("r8")["decision"] == "rejected"
-    assert any("Card Expired" in s for s in sent2)
+    assert not sent2  # stale taps use a toast, never another stale notification
 
 
 def test_cleanup_stale_approvals_sweeps_timed_out(db, monkeypatch):
@@ -444,11 +454,11 @@ def test_music_mnext_and_duplicate_imgok(tmp_path):
     h = make_command_handler(db, lambda: None, lambda: "", assets_dir=assets_dir)
 
     # First approve
-    appr1 = h("imgok", "t1")
+    appr1 = h("imgok", "t1@" + __import__("src.telegram_images", fromlist=["review_digest"]).review_digest(d1))
     assert "✅" in appr1
 
     # Second approve click should report already approved
-    appr2 = h("imgok", "t1")
+    appr2 = h("imgok", "t1@" + __import__("src.telegram_images", fromlist=["review_digest"]).review_digest(d1))
     assert "was already approved" in appr2
 
 
@@ -465,20 +475,19 @@ def test_mcancel_navigation_and_umoredone_cleanup(db, monkeypatch):
     click_cancel = {"id": "q1", "data": "mcancel:track1", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 77}}
     monkeypatch.setattr(bot, "_api", lambda m, **kw: [{"update_id": 1, "callback_query": click_cancel}] if m == "getUpdates" else {"message_id": 1})
     bot.poll_once(lambda a, t: "cancelled")
+    bot.drain()
     assert 77 not in deleted_ids
 
-    # 2. Test umoredone clears all recorded discovery card IDs (needs the cached UNESCO site list)
-    cleared_via_handler = []
-    h = make_command_handler(db, lambda: None, lambda: "", delete_message=lambda mid: cleared_via_handler.append(mid) or True,
-                             send_message=lambda t, b: 101)
-    if "No unqueued" in (h("discover", "subterranean") or ""):
-        return  # no UNESCO site list on this machine (CI): nothing was discovered to clear
-    assert len(cleared_via_handler) == 0
-
-    # Calling umoredone deletes tracked card IDs
-    res = h("umoredone", "")
-    assert "Cleared" in res
-    assert 101 in cleared_via_handler
+    # 2. Buttons from earlier releases get an explicit answer, never their old behaviour
+    calls = []
+    retired = {"id": "q2", "data": "umoredone:", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 78}}
+    monkeypatch.setattr(bot, "_api", lambda m, **kw: calls.append((m, kw.get("data", {}))) or (
+        [{"update_id": 2, "callback_query": retired}] if m == "getUpdates" else {"message_id": 1}))
+    ran = []
+    bot.poll_once(lambda a, t: ran.append(a) or "x")
+    bot.drain()
+    assert ran == []                                                     # the old handler never runs
+    assert any(m == "answerCallbackQuery" and "earlier version" in d.get("text", "") for m, d in calls)
 
 
 def test_extended_deletion_and_inplace_transform(db, monkeypatch):
@@ -495,23 +504,27 @@ def test_extended_deletion_and_inplace_transform(db, monkeypatch):
     click_tskip = {"id": "q1", "data": "tskip:topic1", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 81}}
     monkeypatch.setattr(bot, "_api", lambda m, **kw: [{"update_id": 1, "callback_query": click_tskip}] if m == "getUpdates" else {})
     bot.poll_once(lambda a, t: "skipped")
+    bot.drain()
     assert 81 in deleted_ids
 
     # 2. Music removal keeps its panel; storyboard cancellation closes its card
     click_mdel = {"id": "q2", "data": "mdel:track1", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 82}}
     monkeypatch.setattr(bot, "_api", lambda m, **kw: [{"update_id": 2, "callback_query": click_mdel}] if m == "getUpdates" else {})
     bot.poll_once(lambda a, t: "removed")
+    bot.drain()
     assert 82 not in deleted_ids and 82 in edited_text
 
     click_imgcancel = {"id": "q3", "data": "imgcancel:t1", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 83}}
     monkeypatch.setattr(bot, "_api", lambda m, **kw: [{"update_id": 3, "callback_query": click_imgcancel}] if m == "getUpdates" else {})
     bot.poll_once(lambda a, t: "cancelled")
+    bot.drain()
     assert 83 in deleted_ids
 
     # 3. uadd transforms in-place via edit_message_text
     click_uadd = {"id": "q4", "data": "uadd:wonder1", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 84}}
     monkeypatch.setattr(bot, "_api", lambda m, **kw: [{"update_id": 4, "callback_query": click_uadd}] if m == "getUpdates" else {})
     bot.poll_once(lambda a, t: "Wonder Queued Successfully")
+    bot.drain()
     assert 84 in edited_text
     assert "Wonder Queued" in edited_text[84]
 
@@ -519,13 +532,14 @@ def test_extended_deletion_and_inplace_transform(db, monkeypatch):
     click_imgok = {"id": "q5", "data": "imgok:t1", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 85, "photo": [{"file_id": "p1"}]}}
     monkeypatch.setattr(bot, "_api", lambda m, **kw: [{"update_id": 5, "callback_query": click_imgok}] if m == "getUpdates" else {})
     bot.poll_once(lambda a, t: "Storyboard Approved & Locked")
+    bot.drain()
     assert 85 in edited_any
     assert "Storyboard Approved & Locked" in edited_any[85]
 
 
-def test_cancel_pipeline_review(db, monkeypatch):
+def test_cancel_pipeline_review(db, monkeypatch, delivered_review):
     db.create_run("r99", "01_topic")
-    db.record_approval("r99", "01_topic")
+    delivered_review("r99", 99)
 
     edited_cards = {}
     bot = TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
@@ -535,6 +549,7 @@ def test_cancel_pipeline_review(db, monkeypatch):
     click_cancel = {"id": "qc", "data": "cancel:r99", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 99, "text": "Run r99 Review"}}
     monkeypatch.setattr(bot, "_api", lambda m, **kw: [{"update_id": 1, "callback_query": click_cancel}] if m == "getUpdates" else {})
     bot.poll_once(None)
+    bot.drain()
 
     assert db.get_approval("r99")["decision"] == "cancelled"
     assert 99 in edited_cards
@@ -599,7 +614,11 @@ def test_interactive_queue_controls_and_undo(db, monkeypatch):
 
 def test_cover_variant_selection(db, tmp_path, monkeypatch):
     from pathlib import Path
-    run_dir = Path("output") / "run_test_covers_123"
+    monkeypatch.setattr("src.config.OUTPUT_DIR", tmp_path)
+    run_dir = tmp_path / "run_test_covers_123"
+    db.create_run(run_dir.name, "01_topic")
+    db.update_run(run_dir.name, "pending_approval")
+    db.record_approval(run_dir.name, "01_topic", 22)
     run_dir.mkdir(parents=True, exist_ok=True)
     try:
         from PIL import Image
@@ -611,7 +630,7 @@ def test_cover_variant_selection(db, tmp_path, monkeypatch):
         img_c.save(run_dir / "thumbnail_variant_c_minimal.jpg")
 
         h = make_command_handler(db, lambda: None, lambda: "")
-        cov_res = h("cov", "run_test_covers_123:a")
+        cov_res = h("covlock", "run_test_covers_123:a")
         assert "Forensic Blueprint" in cov_res
         assert (run_dir / "thumbnail_cover.jpg").exists()
         assert (run_dir / "thumbnail_profile_grid.jpg").exists()
@@ -764,6 +783,7 @@ def test_bulk_delete_messages_and_clear_command(db, monkeypatch):
     monkeypatch.setattr(bot, "_api", lambda m, **kw: [update] if m == "getUpdates" and bot._offset <= 1 else api_mock(m, **kw))
 
     bot.poll_once(lambda c, a: "ok")
+    bot.drain()
     # Check that typing action was sent immediately
     assert any(c[0] == "sendChatAction" for c in calls)
     # Check that bulk delete was called
@@ -839,6 +859,7 @@ def test_dashboard_command_no_redundant_sent_above_message(db, monkeypatch):
     monkeypatch.setattr(bot, "_api", lambda m, **kw: [update] if m == "getUpdates" and bot._offset <= 99 else api_mock(m, **kw))
 
     bot.poll_once(h_bot)
+    bot.drain()
     send_calls = [c for c in calls if c[0] == "sendMessage"]
     # Only 1 sendMessage call should have occurred (the dashboard card itself)
     assert len(send_calls) == 1
@@ -976,6 +997,7 @@ def test_native_telegram_reply_to_message_routing(db, monkeypatch):
 
     monkeypatch.setattr(bot, "_api", fake_api)
     bot.poll_once(mock_handler)
+    bot.drain()
 
     assert len(routed) == 1
     cmd, args = routed[0]
@@ -1009,6 +1031,7 @@ def test_dashboard_cover_studio_opens_the_latest_render(db, tmp_path, monkeypatc
     import os
     import time as _time
     monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("src.config.OUTPUT_DIR", tmp_path / "output")
     old, new = tmp_path / "output" / "run_other_topic_1", tmp_path / "output" / "run_other_topic_2"
     for run in (old, new):
         run.mkdir(parents=True)

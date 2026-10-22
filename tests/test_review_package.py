@@ -36,6 +36,7 @@ def test_review_shows_cover_strip_video_and_every_story_and_slide(db, monkeypatc
     video.write_bytes(b"0" * 1000)
     monkeypatch.setattr("src.telegram_bot.scene_strip", lambda v, out: Image.new("RGB", (60, 40)).save(out) or out)
     db.create_run("run_x", "01_topic")
+    db.update_run("run_x", "pending_approval", master_video_path=video, thumbnail_cover_path=cover, script_payload={"title": "T", "topic_id": "01_topic"})
     bot, calls = _bot(db, monkeypatch)
     bot.send_approval_request(video, cover, {"title": "T", "topic_id": "01_topic"}, "run_x")
     albums = [c for c in calls if c[0] == "sendMediaGroup"]
@@ -73,10 +74,11 @@ def test_dashboard_leads_with_what_needs_you(db):
     db.create_run("run_x", "01_topic")
     db.record_approval("run_x", "01_topic", 9)
     db.set_setting(accounts.SETTING, json.dumps({"checked_at": datetime.now(timezone.utc).isoformat(),
-                                                 "problems": ["Upload-Post profile has no instagram account connected."]}))
+                                                 "schema_version": accounts.SCHEMA_VERSION, "configuration": accounts.configuration_fingerprint(),
+                                                 "upload_post": {"configured": True, "connected": []}}))
     text, buttons = dashboard_text_and_buttons(db)
     assert text.index("Needs you") < text.index("Schedule")
-    assert "1 review(s) waiting" in text and "no instagram account" in text
+    assert "1 review(s) waiting" in text and "no instagram or facebook account" in text
     assert buttons[0][0]["callback_data"] == "creviews:"
     assert "COCKPIT" not in text and "Zero-Trust" not in text
 

@@ -255,7 +255,8 @@ def load_credits(topic_dir: Path) -> Dict[str, Any]:
 
 
 def save_credits(topic_dir: Path, data: Dict[str, Any]) -> None:
-    (topic_dir / CREDITS_FILE).write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    from .atomic_files import write_json
+    write_json(topic_dir / CREDITS_FILE, data)
 
 
 def caption_credit_line(credits: Dict[str, Any]) -> str:

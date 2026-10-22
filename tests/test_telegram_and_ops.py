@@ -20,7 +20,7 @@ def test_wait_picks_up_cli_decision(db):
     assert bot.wait_for_decision("r1", timeout_seconds=5) == "approved"
 
 
-def test_unauthorized_click_is_ignored(db, monkeypatch):
+def test_unauthorized_click_is_ignored(db, monkeypatch, delivered_review):
     db.create_run("r1", "01_topic")
     db.record_approval("r1", "01_topic")
     bot = TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
@@ -29,6 +29,7 @@ def test_unauthorized_click_is_ignored(db, monkeypatch):
     cq = {"id": "q", "data": "approve:r1", "from": {"id": 999}, "message": {"chat": {"id": 555}, "message_id": 1}}
     assert bot._handle_callback(cq, "r1") is None
     assert db.get_approval("r1")["decision"] == "pending"
+    delivered_review("r1", 1)
     cq["from"]["id"] = 555
     assert bot._handle_callback(cq, "r1") == "approved"
 

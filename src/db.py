@@ -152,6 +152,8 @@ class PipelineDatabase:
             self._add_column(conn, "runs", "parent_run_id", "TEXT")
             self._add_column(conn, "runs", "content_format", "TEXT DEFAULT 'reel'")
             self._add_column(conn, "approvals", "decided_by", "TEXT")
+            self._add_column(conn, "approvals", "expires_at", "REAL")
+            self._add_column(conn, "approvals", "revision", "INTEGER DEFAULT 0")
             conn.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT, updated_at TEXT)")
             conn.execute("""
             CREATE TABLE IF NOT EXISTS llm_usage (
@@ -364,29 +366,33 @@ class PipelineDatabase:
     def bump_topic(self, topic_id: str) -> bool:
         """Promotes a topic to highest priority in the queue."""
         with self._conn() as conn:
+            conn.execute("BEGIN IMMEDIATE")
             row = conn.execute("SELECT COALESCE(MAX(priority), 0) FROM topics").fetchone()
             max_p = row[0] if row else 0
             t_row = conn.execute("SELECT status FROM topics WHERE id = ?", (topic_id,)).fetchone()
             if t_row and t_row[0] in ("archived", "rejected", "failed"):
-                cur = conn.execute("UPDATE topics SET priority = ?, status = 'queued', updated_at = ? WHERE id = ?",
+                cur = conn.execute("UPDATE topics SET priority = ?, status = 'queued', updated_at = ? "
+                                   "WHERE id = ? AND status IN ('archived', 'rejected', 'failed')",
                                    (max_p + 1, _now(), topic_id))
             else:
-                cur = conn.execute("UPDATE topics SET priority = ?, updated_at = ? WHERE id = ?",
+                cur = conn.execute("UPDATE topics SET priority = ?, updated_at = ? WHERE id = ? AND status = 'queued'",
                                    (max_p + 1, _now(), topic_id))
             return cur.rowcount > 0
 
     def drop_topic(self, topic_id: str) -> bool:
         """Removes a topic from the active queue by marking it 'archived'."""
         with self._conn() as conn:
-            cur = conn.execute("UPDATE topics SET status = 'archived', priority = 0, updated_at = ? WHERE id = ?",
+            cur = conn.execute("UPDATE topics SET status = 'archived', priority = 0, updated_at = ? WHERE id = ? AND status='queued'",
                                (_now(), topic_id))
             return cur.rowcount > 0
 
-    def requeue_topic(self, topic_id: str):
-        """Returns a topic to the queue without touching its publish count."""
+    def requeue_topic(self, topic_id: str) -> bool:
+        """Returns a topic to the queue (an explicit operator decision; published topics included) without
+        touching its publish count. Refused while the topic is being made or already queued."""
         with self._conn() as conn:
-            conn.execute("UPDATE topics SET priority = 0, updated_at = ? WHERE id = ?", (_now(), topic_id))
-        self.record_topic_status(topic_id, "queued")
+            cur = conn.execute("""UPDATE topics SET priority = 0, status = 'queued', updated_at = ?
+                WHERE id = ? AND status NOT IN ('queued', 'in_production')""", (_now(), topic_id))
+            return cur.rowcount == 1
 
     def repair_simulated_publications(self) -> List[str]:
         """
@@ -520,8 +526,9 @@ class PipelineDatabase:
             conn.execute("""
             INSERT INTO approvals (run_id, topic_id, telegram_message_id, decision, created_at)
             VALUES (?, ?, ?, 'pending', ?)
-            ON CONFLICT(run_id) DO UPDATE SET telegram_message_id = excluded.telegram_message_id
+            ON CONFLICT(run_id) DO UPDATE SET telegram_message_id = excluded.telegram_message_id, revision = revision + 1, expires_at = NULL
             """, (run_id, topic_id, message_id, _now()))
+            conn.execute("UPDATE approvals SET expires_at=? WHERE run_id=?", (time.time() + 86400, run_id))
 
     def update_approval_decision(self, run_id: str, decision: str, decided_by: Optional[str] = None) -> bool:
         """Records a decision only while the approval is still pending. Returns True if applied."""
@@ -531,6 +538,29 @@ class PipelineDatabase:
             WHERE run_id = ? AND decision = 'pending'
             """, (decision, _now(), decided_by, run_id))
             return cur.rowcount == 1
+
+    def decide_telegram_review(self, run_id, message_id, decision, actor):
+        """Only the current delivered card may decide an unexpired review."""
+        with self._conn() as conn:
+            cur = conn.execute("""UPDATE approvals SET decision=?, decision_timestamp=?, decided_by=?
+                WHERE run_id=? AND decision='pending' AND telegram_message_id=? AND expires_at>?
+                AND EXISTS (SELECT 1 FROM runs WHERE runs.run_id=approvals.run_id
+                            AND status IN ('pending_approval', 'producing'))""",
+                (decision, _now(), actor, run_id, message_id, time.time()))
+            return cur.rowcount == 1
+
+    def commit_review_copy(self, run_id, revision, payload):
+        """CAS the reviewed payload and invalidate its buttons in the same transaction."""
+        with self._conn() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            cur = conn.execute("""UPDATE approvals SET telegram_message_id=NULL, revision=revision+1
+                WHERE run_id=? AND revision=? AND decision='pending'
+                AND EXISTS (SELECT 1 FROM runs WHERE runs.run_id=approvals.run_id AND status='pending_approval')""", (run_id, revision))
+            if cur.rowcount != 1:
+                return False
+            conn.execute("UPDATE runs SET script_payload_json=?, updated_at=? WHERE run_id=? AND status='pending_approval'",
+                         (json.dumps(payload), _now(), run_id))
+            return True
 
     # ---------------------------------------------------------------- settings
     def get_setting(self, key: str, default: Optional[str] = None) -> Optional[str]:
@@ -591,7 +621,7 @@ class PipelineDatabase:
             run_id = None
         run = self.get_run(run_id) if run_id else None
         if run is not None and run.get("status") != "producing":
-            self.clear_active_progress()
+            self.clear_active_progress(run_id)
             return None
         try:
             progress = json.loads(val)
@@ -624,10 +654,10 @@ class PipelineDatabase:
                 deleted[table] = conn.execute(f"DELETE FROM {table} WHERE {column} < ?", (cutoff,)).rowcount
         return deleted
 
-    def clear_active_progress(self) -> None:
+    def clear_active_progress(self, run_id=None) -> None:
         """Clears active render state when a job completes, fails, or is cancelled."""
         with self._conn() as conn:
-            conn.execute("DELETE FROM settings WHERE key = 'active_progress'")
+            conn.execute("DELETE FROM settings WHERE key = 'active_progress' AND (? IS NULL OR json_extract(value, '$.run_id')=?)", (run_id,run_id))
 
     # ------------------------------------------------------------- llm usage
     def record_llm_usage(self, model: str, input_tokens: int, output_tokens: int, web_searches: int, cost_usd: float,
@@ -809,6 +839,10 @@ class PipelineDatabase:
                     mids.add(r[0])
             except Exception:
                 pass
+            tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            if "telegram_transport" in tables:
+                for row in conn.execute("SELECT value FROM telegram_transport WHERE namespace='outbound'"):
+                    mids.add(int(json.loads(row[0])))
             return sorted(mids, reverse=True)
 
     def record_issue(self, issue_id: str, critique: str, run_id: Optional[str] = None, user_id: Optional[str] = None, evidence_path: Optional[str] = None) -> Dict[str, Any]:

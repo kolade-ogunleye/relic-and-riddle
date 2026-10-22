@@ -107,3 +107,24 @@ def curated_payload():
     payload.update({"topic_id": "derinkuyu_underground_city", "origin": "curated",
                     "location": {"name": "Derinkuyu", "country": "Turkey"}})
     return payload
+
+
+@pytest.fixture
+def delivered_review(db, tmp_path):
+    """Seed a real artifact binding; old tests must not approve an unbound card."""
+    from src.telegram_state import initialize, put, review_fingerprint
+    def prepare(run_id, message_id):
+        initialize(db)
+        directory = tmp_path / ("review_" + run_id)
+        directory.mkdir(exist_ok=True)
+        (directory / "master.mp4").write_bytes(b"offline video")
+        (directory / "thumbnail_cover.jpg").write_bytes(b"offline cover")
+        if not db.get_run(run_id):
+            db.create_run(run_id, "01_topic")
+        db.update_run(run_id, "pending_approval", master_video_path=directory / "master.mp4")
+        db.record_approval(run_id, "01_topic", message_id)
+        fingerprint = review_fingerprint(db, run_id)
+        put(db, "review-media", run_id, fingerprint)
+        put(db, "review-card", f"{run_id}:{message_id}", fingerprint)
+        return directory
+    return prepare

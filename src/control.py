@@ -29,6 +29,8 @@ import requests
 from .config import ASSETS_DIR, CLAUDE_MONTHLY_BUDGET_USD, MEDIA_MONTHLY_BUDGET_USD, HEALTHCHECK_PING_URL, MIN_SCENE_IMAGES, is_configured
 from .credits import CONTACT_SHEET, CREDITS_FILE, approve_set, drop_images, load_credits, save_credits, write_contact_sheet
 from .db import PipelineDatabase
+from . import config
+from .topic_store import serialized
 
 log = logging.getLogger(__name__)
 
@@ -49,52 +51,39 @@ STATUS_WORDS = {
 
 
 def _fetched_sets(assets_dir: Path) -> List[Path]:
-    return sorted(d for d in assets_dir.iterdir() if d.is_dir() and (d / CREDITS_FILE).exists())
+    root = assets_dir.resolve()
+    return sorted(d for d in assets_dir.iterdir() if d.is_dir() and d.resolve().parent == root
+                  and (d / CREDITS_FILE).exists()) if assets_dir.is_dir() else []
 
 
 def _resolve_topic_dir(ref: str, assets_dir: Path, db: Optional[PipelineDatabase] = None) -> Path:
-    """'2', '02', serial index, or a full topic id / slug -> that topic's asset folder."""
+    """Resolve only a single known folder inside the canonical asset root."""
+    from pathlib import PureWindowsPath
     ref = ref.strip()
-    if not ref:
-        raise ValueError("Give a topic number, e.g. /review 3")
-
-    # 1. Direct match on directory name
-    exact = assets_dir / ref
-    if exact.is_dir() and (exact / CREDITS_FILE).exists():
-        return exact
-
-    # 2. If DB provided and ref is a number, resolve against serial rank in database
+    if not ref or ref in (".", "..") or any(c in ref for c in "/\\:") or PureWindowsPath(ref).drive:
+        raise ValueError("Use a topic number or ID from /images")
     if db is not None and ref.isdigit():
-        idx = int(ref) - 1
-        all_topics = db.list_all_topics()
-        if 0 <= idx < len(all_topics):
-            target_id = all_topics[idx]["id"]
-            cand = assets_dir / target_id
-            if cand.is_dir() and (cand / CREDITS_FILE).exists():
-                return cand
-
-    # 3. Match against fetched sets on disk
-    sets = _fetched_sets(assets_dir)
-    matches = [
-        d for d in sets
-        if d.name == ref
-        or d.name.lower() == ref.lower()
-        or (ref.isdigit() and d.name.split("_")[0] == f"{int(ref):02d}")
-        or (ref.isdigit() and d.name.split("_")[0] == str(int(ref)))
-        or (d.name.split("_", 1)[-1] == ref)
-    ]
-    if len(matches) == 1:
-        return matches[0]
-
-    # 4. Fallback if ref is digit and matches position in fetched sets
-    if ref.isdigit():
-        idx = int(ref) - 1
-        if 0 <= idx < len(sets):
-            return sets[idx]
-
-    raise ValueError(f"No fetched image set for topic '{html.escape(ref)}'. Send /images for the list.")
+        topics = db.list_all_topics()
+        if not 1 <= int(ref) <= len(topics):
+            raise ValueError("Unknown topic number")
+        ref = topics[int(ref)-1]["id"]
+        candidate = assets_dir / ref
+        if candidate.resolve().parent != assets_dir.resolve() or not (candidate / CREDITS_FILE).is_file():
+            raise ValueError("This topic has no fetched images; open /images to fetch or upload")
+        return candidate
+    matches = [d for d in _fetched_sets(assets_dir) if d.name.lower() == ref.lower()
+               or (not ref.isdigit() and d.name.split("_",1)[-1] == ref)]
+    if db is None and ref.isdigit():
+        matches = [d for d in _fetched_sets(assets_dir) if d.name.split("_")[0] in (ref, f"{int(ref):02d}")]
+        if not matches:
+            sets = _fetched_sets(assets_dir)
+            matches = sets[int(ref)-1:int(ref)] if int(ref)>0 else []
+    if len(matches) != 1:
+        raise ValueError("No unique fetched image set; open /images")
+    return matches[0]
 
 
+@serialized
 def _add_topic_to_bank(db: PipelineDatabase, title: str, u_site=None) -> Tuple[str, str, Dict[str, Any]]:
     from . import topic_proposer
     bank = topic_proposer._bank()
@@ -137,7 +126,6 @@ def _add_topic_to_bank(db: PipelineDatabase, title: str, u_site=None) -> Tuple[s
     }
     bank["topics"].append(new_topic)
     bank["total"] = len(bank["topics"])
-    topic_proposer.BANK.write_text(json.dumps(bank, indent=2, ensure_ascii=False), encoding="utf-8")
 
     from .shot_archetypes import decompose_topic_visuals
     decomp = decompose_topic_visuals(
@@ -151,7 +139,8 @@ def _add_topic_to_bank(db: PipelineDatabase, title: str, u_site=None) -> Tuple[s
         "keywords": decomp["keywords"],
         "archetypes": decomp.get("archetypes", {})
     }
-    topic_proposer.QUERIES.write_text(json.dumps(queries, indent=2, ensure_ascii=False), encoding="utf-8")
+    from .topic_store import commit
+    commit(topic_proposer.BANK, topic_proposer.QUERIES, bank, queries)
     db._seed_topics_from_json()
     return topic_id, u_tag, decomp
 
@@ -485,7 +474,6 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                          send_audio: Optional[SendPhoto] = None,
                          send_message: Optional[Callable[[str, Optional[list]], Any]] = None,
                          delete_message: Optional[Callable[[int], bool]] = None) -> Callable[[str, str], str]:
-    active_discovery_msg_ids: List[int] = []
     active_proposal_msg_ids: List[int] = []
     undo_stack: List[Dict[str, Any]] = []
 
@@ -572,6 +560,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         key = topic_dir.name
         caption = review_caption(topic_dir)
         write_contact_sheet(topic_dir, load_credits(topic_dir)["images"])
+        from .telegram_images import review_digest
+        key += "@" + review_digest(topic_dir)
         return send_photo(topic_dir / CONTACT_SHEET, caption,
                           [{"text": "🎬 Approve Storyboard", "callback_data": f"imgok:{key}"},
                            {"text": "✖ Cancel", "callback_data": f"imgcancel:{key}"}])
@@ -597,13 +587,15 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             q_text, q_buttons = render_queue_text_and_buttons()
             return f"⚡ <b>Run:</b> {html.escape(res)}\n\n{q_text}", q_buttons
         if command == "qbump":
-            db.bump_topic(args)
+            if not db.bump_topic(args):
+                return "Queue changed; this item cannot be bumped.", [[HOME]]
             q_text, q_buttons = render_queue_text_and_buttons()
             return f"🚀 Bumped topic to #1 in queue!\n\n{q_text}", q_buttons
         if command == "qdrop":
             t_obj = db.get_topic_by_id(args)
+            if not db.drop_topic(args):
+                return "Queue changed; this item cannot be dropped.", [[HOME]]
             undo_stack.append({"type": "qdrop", "topic_id": args, "desc": f"Drop of {t_obj['title'] if t_obj else args}"})
-            db.drop_topic(args)
             q_text, q_buttons = render_queue_text_and_buttons()
             return f"🗑 Dropped topic from queue (type /undo to restore).\n\n{q_text}", q_buttons
         if command in ("qrefresh", "qpage"):
@@ -642,7 +634,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                         break
             if not match:
                 return f"⚠️ Topic '{html.escape(ref)}' not found in database."
-            db.bump_topic(match["id"])
+            if not db.bump_topic(match["id"]):
+                return "Queue changed; topic cannot be bumped."
             return f"🚀 Promoted <b>{html.escape(match['title'])}</b> (<code>{html.escape(match['id'])}</code>) to priority #1 in the queue!"
         if command == "drop_topic":
             ref = args.strip()
@@ -661,15 +654,17 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                         break
             if not match:
                 return f"⚠️ Topic '{html.escape(ref)}' not found."
+            if not db.drop_topic(match["id"]):
+                return "Queue changed; topic cannot be archived."
             undo_stack.append({"type": "qdrop", "topic_id": match["id"], "desc": f"Drop of {match['title']}"})
-            db.drop_topic(match["id"])
             return f"🗑 Archived <b>{html.escape(match['title'])}</b> from queue. Type /undo to restore."
         if command == "undo":
             if not undo_stack:
                 return "ℹ️ Nothing to undo."
             last = undo_stack.pop()
             if last["type"] == "qdrop":
-                db.requeue_topic(last["topic_id"])
+                if not db.requeue_topic(last["topic_id"]):
+                    return "Topic state changed; the old action cannot be undone."
                 return f"↩️ <b>Undone:</b> Restored {html.escape(last['desc'])} back to queue!"
             if last["type"] == "uskip":
                 return f"↩️ <b>Undone:</b> Restored skipped wonder {html.escape(last.get('site_id', ''))}."
@@ -680,14 +675,21 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             ref = args.strip()
             run_dir = None
             if ref:
-                topic_dir = _resolve_topic_dir(ref, assets_dir, db=db)
-                runs = [p for p in Path("output").rglob(f"run_{topic_dir.name}_*") if p.is_dir()]
-                run_dir = max(runs, key=lambda p: p.stat().st_mtime) if runs else None  # the newest
+                from .config import OUTPUT_DIR
+                run = db.get_run(db.resolve_run(ref))
+                if run and run.get("master_video_path"):
+                    run_dir = Path(run["master_video_path"]).resolve().parent
+                    if not run_dir.is_relative_to(OUTPUT_DIR.resolve()):
+                        raise ValueError("Run output lies outside the configured output root")
+                else:
+                    topic_dir = _resolve_topic_dir(ref, assets_dir, db=db)
+                    runs = [p for p in OUTPUT_DIR.glob(f"run_{topic_dir.name}_*") if p.is_dir()]
+                    run_dir = max(runs, key=lambda p: p.stat().st_mtime) if runs else None
                 if not run_dir:
-                    return f"⚠️ No rendered runs found for <b>{html.escape(topic_dir.name)}</b>. Produce it first with /run."
+                    return "No rendered run found for this reference."
             else:
                 all_runs = sorted(
-                    [p for p in Path("output").glob("run_*") if p.is_dir() and not p.name.startswith("_")],
+                    [p for p in config.OUTPUT_DIR.glob("run_*") if p.is_dir() and not p.name.startswith("_")],
                     key=lambda p: p.stat().st_mtime,
                     reverse=True
                 )
@@ -700,6 +702,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             var_c = run_dir / "thumbnail_variant_c_minimal.jpg"
             if not (var_a.exists() or var_b.exists() or var_c.exists()):
                 return f"⚠️ No thumbnail variant suite found in <code>{html.escape(run_dir.name)}</code>."
+            selected = "b" if var_b.exists() else "a" if var_a.exists() else "c"
             buttons = [
                 [
                     {"text": "📌 A: Blueprint", "callback_data": f"cov:{run_dir.name}:a"},
@@ -710,29 +713,45 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     {"text": "🔄 Refresh", "callback_data": "ccov:"},
                 ],
                 [
-                    {"text": "🔒 Lock Variant B (Discovery Intrigue)", "callback_data": f"covlock:{run_dir.name}:b"}
+                    {"text": "🔒 Lock Variant B (Discovery Intrigue)", "callback_data": f"covlock:{run_dir.name}:{selected}"}
                 ], [HOME]
             ]
             caption = (
                 f"🎨 <b>Thumbnail Cover Studio</b> • <code>{html.escape(run_dir.name)}</code>\n\n"
-                f"Previewing: <b>Variant B (Discovery Intrigue)</b>\n"
+                f"Previewing: <b>Variant {selected.upper()}</b>\n"
                 f"Tap A, B, or C to flip preview in-place, or Lock to finalize:"
             )
-            cover_to_show = var_b if var_b.exists() else (var_a if var_a.exists() else (run_dir / "thumbnail_cover.jpg"))
+            cover_to_show = var_b if var_b.exists() else (var_a if var_a.exists() else var_c)
             if send_photo and cover_to_show.exists():
-                send_photo(cover_to_show, caption, buttons, cache_key=f"cover:{run_dir.name}:b")
+                send_photo(cover_to_show, caption, buttons, cache_key=f"cover:{run_dir.name}:{selected}")
                 return ""
             return caption
         if command in ("cov", "covlock"):
             parts = args.split(":")
             if len(parts) >= 2:
                 r_name, var_letter = parts[0], parts[1].lower()
-                matches = [p for p in Path("output").rglob(r_name) if p.is_dir()]
-                r_dir = matches[0] if matches else (Path("output") / r_name)
+                from .config import OUTPUT_DIR
+                if Path(r_name).name != r_name or r_name in (".","..") or var_letter not in ("a","b","c"):
+                    raise ValueError("Invalid cover reference")
+                r_dir = (OUTPUT_DIR / r_name).resolve()
+                if r_dir.parent != OUTPUT_DIR.resolve():
+                    raise ValueError("Invalid cover path")
+                run = db.get_run(r_name)
+                if not run or run.get("status") != "pending_approval":
+                    return "This run is not awaiting review; its cover cannot be changed."
+                if (db.get_approval(r_name) or {}).get("decision") != "pending":
+                    return "This review is closed; its cover cannot be changed."
+                if command == "cov":
+                    return "Preview selection only. Use the cover panel to preview and Lock to commit."
                 var_file = (r_dir / f"thumbnail_variant_{var_letter}_blueprint.jpg" if var_letter == "a"
                             else r_dir / f"thumbnail_variant_{var_letter}_intrigue.jpg" if var_letter == "b"
                             else r_dir / f"thumbnail_variant_{var_letter}_minimal.jpg")
                 if var_file.exists():
+                    approval = db.get_approval(r_name) or {}
+                    with db._conn() as conn:
+                        changed = conn.execute("UPDATE approvals SET telegram_message_id=NULL, revision=revision+1 WHERE run_id=? AND decision='pending' AND revision=?", (r_name, approval.get("revision",0))).rowcount
+                    if not changed:
+                        return "Review changed; cover was not modified."
                     import shutil
                     from PIL import Image
                     shutil.copy2(var_file, r_dir / "thumbnail_cover.jpg")
@@ -745,8 +764,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                         pass
                     style_name = "Forensic Blueprint" if var_letter == "a" else "Discovery Intrigue" if var_letter == "b" else "Cinematic Minimal"
                     action_word = "locked" if command == "covlock" else "selected and locked"
-                    return f"✅ Cover {action_word}: <b>Variant {var_letter.upper()} ({style_name})</b> for <code>{html.escape(r_name)}</code>!"
-            return "✅ Cover updated."
+                    return f"✅ Cover {action_word}: <b>Variant {var_letter.upper()} ({style_name})</b> for <code>{html.escape(r_name)}</code>. Resend this run for review before approving."
+            return "Cover was not changed: the requested variant is missing or invalid."
         if command == "audit":
             limit = 10
             if args.strip().isdigit():
@@ -813,6 +832,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             topic_title = active_prog.get("topic_title", "Unknown Topic")
             run_id = active_prog.get("run_id", "active_run")
             details = active_prog.get("details", "")
+            mode = db.get_setting("run_mode:" + run_id)
+            mode_text = "🧪 Dry run · publishing/scheduling skipped · generation may incur API costs" if mode == "dry_run" else "🔴 Live production" if mode == "live" else "⚠️ Run mode not recorded"
             worker_state = active_prog.get("worker_state", "unverified")
             if worker_state != "running":
                 note = "The worker has exited or its PID was reused." if worker_state == "interrupted" else "Worker ownership is not recorded or cannot be verified."
@@ -829,6 +850,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 "Packaging review & multiformat stills",
             ]
             lines = [
+                mode_text,
                 f"⏳ <b><u>PRODUCTION PROGRESS</u></b>\n\n<b>{html.escape(topic_title)}</b> • <code>[{html.escape(db.run_label(run_id))}]</code>",
                 "",
             ]
@@ -916,7 +938,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command == "caudit":
             return handle("audit", "10"), [[HOME]]
         if command == "ccov":
-            return handle("covers", "")  # the latest render, whichever topic it is
+            return handle("covers", args)  # the latest render, whichever topic it is
         if command == "cprop":
             from . import topic_proposer
             from .models import TopicProposal
@@ -972,7 +994,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command == "imagepick":
             topics = db.list_all_topics()
             offset = int(args) if args.isdigit() else 0
-            buttons = [[{"text": f"{i}. {t['title'][:34]}", "callback_data": f"imagehelp:{i}"}] for i,t in list(enumerate(topics, 1))[offset:offset+8]]
+            buttons = [[{"text": f"{i}. {t['title'][:34]}", "callback_data": f"imagehelp:{t['id']}"}] for i,t in list(enumerate(topics, 1))[offset:offset+8]]
             if offset + 8 < len(topics):
                 buttons.append([{"text": "More topics →", "callback_data": f"imagepick:{offset+8}"}])
             if offset:
@@ -983,6 +1005,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 return handle("imagepick", "")
             from .telegram_images import topic_for
             topic = topic_for(db, args)
+            args = topic["id"]
             return (f"🖼 <b>{html.escape(topic['title'])}</b>\n\nFetch licensed photos, upload your own with guided prompts, or review this set. New images need human review.",
                     [[{"text": "Fetch more", "callback_data": f"fetchimages:{args}"}, {"text": "Upload my image", "callback_data": f"upload:{args}"}],
                      [{"text": "Review set", "callback_data": f"review:{args}"}], [{"text": "← Images", "callback_data": "cimages:"}], [HOME]])
@@ -1103,6 +1126,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 if img.get("file") not in sb_files:
                     new_cr_images.append(img)
             cr["images"] = new_cr_images
+            cr["reviewed"] = False
             save_credits(topic_dir, cr)
 
             write_contact_sheet(topic_dir, cr.get("images", []), storyboards=sb)
@@ -1154,7 +1178,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 buttons.append([{"text": "✖ Cancel", "callback_data": f"mcancel:{key}"}])
             buttons.append([HOME])
 
-            if send_audio is None or not send_audio(music.MUSIC_DIR / nxt["file"], music.review_caption(nxt, len(pending)), buttons):
+            if send_audio is None or not send_audio(music.MUSIC_DIR / nxt["file"], (reply + "\n\n" if reply else "") + music.review_caption(nxt, len(pending)), buttons):
                 return (reply + "\n" if reply else "") + music.review_caption(nxt, len(pending))
             return reply or ""
         if command in ("pubok", "pubno", "resend", "simpub"):
@@ -1190,14 +1214,21 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 return "Updates can only be applied while the daemon is running."
             return apply_updates()
         if command == "imgok":
-            t_dir = _resolve_topic_dir(args, assets_dir, db=db)
+            ref, _, digest = args.rpartition("@")
+            if not digest or not ref:
+                return "This review is obsolete. Open /review again before approving."
+            t_dir = _resolve_topic_dir(ref, assets_dir, db=db)
+            from .telegram_images import review_digest
+            if digest != review_digest(t_dir):
+                return "Images changed since this review. Open /review again; nothing was approved."
             cr = load_credits(t_dir)
             if cr.get("reviewed"):
                 return f"ℹ️ Topic <b>{html.escape(t_dir.name)}</b> was already approved."
             return "✅ " + html.escape(approve_set(t_dir, MIN_SCENE_IMAGES))
         if command == "imgcancel":
-            t_dir = _resolve_topic_dir(args, assets_dir, db=db)
-            return f"✖ Storyboard review cancelled for <b>{html.escape(t_dir.name)}</b>. Set remains unapproved."
+            t_dir = _resolve_topic_dir(args.split("@",1)[0], assets_dir, db=db)
+            state = "approved" if load_credits(t_dir).get("reviewed") else "unapproved"
+            return f"Storyboard review closed for <b>{html.escape(t_dir.name)}</b>. Set remains {state}."
         if command == "status":
             return status_text(db, next_run(), voice_quota())
         if command == "next":
@@ -1247,7 +1278,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                         break
             if not match:
                 return f"⚠️ Topic '{html.escape(ref)}' not found in database. Send /queue for list."
-            db.requeue_topic(match["id"])
+            if not db.requeue_topic(match["id"]):
+                return "This item cannot be requeued from its current state.", [[HOME]]
             return f"🔄 Topic <b>{html.escape(match['title'])}</b> (<code>{html.escape(match['id'])}</code>) restored to the queue."
         if command == "alerts":
             limit = 10
@@ -1286,27 +1318,18 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             return (f"➕ Added <b>{html.escape(title)}</b> (<code>{html.escape(topic_id)}</code>) to topic queue!{u_tag}\n"
                     f"🎬 <b>Documentary Shot Archetypes:</b>{arch_summary}\n\n"
                     f"Open <code>/images {html.escape(topic_id)}</code> to fetch, upload or review images.")
-        if command == "umoredone":
-            cleared = 0
-            if delete_message is not None:
-                for mid in list(active_discovery_msg_ids):
-                    try:
-                        if delete_message(mid):
-                            cleared += 1
-                    except Exception:
-                        pass
-            active_discovery_msg_ids.clear()
-            return f"✖ Discovery browsing ended. Cleared {cleared} card(s) from chat." if cleared else "✖ Discovery browsing ended."
-        if command in ("discover", "umore", "discoverpanel"):
+        if command in ("discover", "discoverpanel"):
             from .unesco import UNESCOEngine
             from . import topic_proposer
             engine = UNESCOEngine()
             bank = topic_proposer._bank()
             existing_titles = [t["title"] for t in bank.get("topics", [])]
+            skipped = json.loads(db.get_setting("unesco_skipped", "[]"))
+            existing_titles += [s.site for key, s in engine.load_sites().items() if str(key) in skipped]
 
             theme = None
             offset = 0
-            if command in ("umore", "discoverpanel"):
+            if command == "discoverpanel":
                 parts = args.split(":", 1)
                 theme = parts[0].strip() or None
                 if len(parts) > 1 and parts[1].strip().isdigit():
@@ -1332,53 +1355,17 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             next_offset = offset + len(wonders)
             more_exist = len(engine.discover_engineering_wonders(limit=1, offset=next_offset, sub_theme=theme, exclude_titles=existing_titles)) > 0
 
-            if command == "discoverpanel":
-                lines = ["🏛️ <b>UNESCO marvels</b>"]
-                buttons = []
-                for w in wonders:
-                    lines.append(f"\n<b>{html.escape(w['title'])}</b> · {html.escape(w['country'])}\n{html.escape((w.get('short_description') or '')[:220])}")
-                    buttons.append([{"text": f"➕ Add {w['title'][:24]}", "callback_data": f"uadd:{w['id_number']}"}])
-                if more_exist:
-                    buttons.append([{"text": "Next marvels →", "callback_data": f"cdisc:{theme or ''}:{next_offset}"}])
-                return "\n".join(lines), buttons + [[{"text": "← Topic ideas", "callback_data": "cideas:"}], [HOME]]
+            # One paged panel (no burst of separate cards): Add per marvel, Next, back and Done.
+            lines = ["🏛️ <b>UNESCO marvels</b>"]
+            buttons = []
+            for w in wonders:
+                lines.append(f"\n<b>{html.escape(w['title'])}</b> · {html.escape(w['country'])}\n{html.escape((w.get('short_description') or '')[:220])}")
+                buttons.append([{"text": f"➕ Add {w['title'][:24]}", "callback_data": f"uadd:{w['id_number']}"},
+                                {"text": "✖ Skip", "callback_data": f"uskip:{w['id_number']}:{theme or ''}:{offset}"}])
+            if more_exist:
+                buttons.append([{"text": "Next marvels →", "callback_data": f"cdisc:{theme or ''}:{next_offset}"}])
+            return "\n".join(lines), buttons + [[{"text": "← Topic ideas", "callback_data": "cideas:"}], [HOME]]
 
-            if send_message is not None:
-                for w in wonders:
-                    w_title = w["title"]
-                    w_id = w["id_number"]
-                    w_country = w["country"]
-                    w_crit = w["criteria"]
-                    w_desc = (w.get("short_description") or "")[:280]
-                    card = (
-                        f"🏛️ <b>UNESCO Engineering Marvel: {html.escape(w_title)}</b> (#{w_id})\n"
-                        f"📍 {html.escape(w_country)} · Criteria: {html.escape(w_crit)}\n\n"
-                        f"<blockquote expandable><i>{html.escape(w_desc)}</i>\n\n"
-                        f"📚 {html.escape(w['url'])}</blockquote>"
-                    )
-                    card_res = send_message(card, [{"text": "➕ Add to Queue", "callback_data": f"uadd:{w_id}"},
-                                                   {"text": "✖ Skip", "callback_data": f"uskip:{w_id}"}])
-                    if isinstance(card_res, int):
-                        active_discovery_msg_ids.append(card_res)
-                if more_exist:
-                    more_theme = theme or ""
-                    nav_res = send_message(
-                        f"🏛️ Showing <b>{offset + 1}–{next_offset}</b> for <i>{html.escape(theme or 'all')}</i>. More marvels available:",
-                        [{"text": "➕ More Discoveries", "callback_data": f"umore:{more_theme}:{next_offset}"},
-                         {"text": "✖ Done", "callback_data": "umoredone:"}]
-                    )
-                    if isinstance(nav_res, int):
-                        active_discovery_msg_ids.append(nav_res)
-                return f"🏛️ Discovered {len(wonders)} UNESCO engineering marvel(s) ({offset + 1}–{next_offset}). Sent with Add buttons above."
-            else:
-                lines = [f"🏛️ <b>Discovered UNESCO Engineering Marvels ({offset + 1}–{next_offset}):</b>\n"]
-                for w in wonders:
-                    lines.append(f"• <b>{html.escape(w['title'])}</b> (#{w['id_number']}) — {html.escape(w['country'])} (Criteria {html.escape(w['criteria'])})")
-                    desc = (w.get('short_description') or '')[:160]
-                    lines.append(f"  <i>{html.escape(desc)}...</i>")
-                    lines.append(f"  To add: <code>/add {html.escape(w['title'])}</code>\n")
-                if more_exist:
-                    lines.append(f"To see more: <code>/discover {html.escape(theme or '')} {next_offset}</code>")
-                return "\n".join(lines)
         if command == "uadd":
             ref = args.strip()
             if not ref.isdigit():
@@ -1399,7 +1386,16 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             return (f"➕ Added UNESCO Marvel <b>{html.escape(site.site)}</b> (<code>{html.escape(topic_id)}</code>) to queue!{u_tag}\n\n"
                     f"Open <code>/images {html.escape(topic_id)}</code> to fetch, upload or review images.")
         if command == "uskip":
-            return f"✖ Skipped UNESCO site #{html.escape(args.strip())}."
+            with db._conn() as conn:
+                conn.execute("BEGIN IMMEDIATE")
+                row = conn.execute("SELECT value FROM settings WHERE key='unesco_skipped'").fetchone()
+                skipped = set(json.loads(row[0]) if row else [])
+                site_id, _, page = args.strip().partition(":")
+                skipped.add(site_id)
+                conn.execute("INSERT OR REPLACE INTO settings (key,value,updated_at) VALUES ('unesco_skipped',?,?)", (json.dumps(sorted(skipped)), datetime.now(timezone.utc).isoformat()))
+            if page:  # from the panel: show the same page again, without the skipped site
+                return handle("discoverpanel", page)
+            return f"Skipped UNESCO site #{html.escape(site_id)}."
         if command == "ask":
             from .probe import probe_system
             return probe_system(args.strip(), db=db, assets_dir=assets_dir)
@@ -1476,4 +1472,21 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command == "run":
             return trigger_run()
         return f"Unknown command /{html.escape(command)}. Send /help."
-    return handle
+    original_handle = handle
+    def guarded_handle(command, args):
+        if command == "covlock" and ":" in args:
+            from .publication_lock import publication_lock
+            with publication_lock(db.db_path, args.partition(":")[0]):
+                return original_handle(command, args)
+        valid_mutation_args = (command not in {"drop","swap"} or (len(args.split()) >= (2 if command == "drop" else 3) and all(v.isdigit() for v in args.split()[1:])))
+        if command in {"review", "imgok", "drop", "swap"} and args.strip() and valid_mutation_args:
+            ref = args.split()[0].split("@",1)[0]
+            directory = _resolve_topic_dir(ref, assets_dir, db=db)
+            from .publication_lock import publication_lock
+            with publication_lock(db.db_path, "topic-images:" + directory.name):
+                with db._conn() as conn:
+                    if conn.execute("SELECT 1 FROM runs WHERE topic_id=? AND status='producing'", (directory.name,)).fetchone():
+                        raise ValueError("This topic is producing; images cannot be changed or approved")
+                return original_handle(command, args)
+        return original_handle(command, args)
+    return guarded_handle

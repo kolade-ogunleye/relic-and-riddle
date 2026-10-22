@@ -37,7 +37,13 @@ class ImageUpload:
         return f"guided_image:{chat}:{user}"
 
     def load(self, chat, user):
-        return json.loads(self.db.get_setting(self.key(chat, user)) or "null")
+        try:
+            state = json.loads(self.db.get_setting(self.key(chat, user)) or "null")
+            if state is not None and (not isinstance(state, dict) or state.get("stage") not in STEPS + ("complete",)):
+                return None
+            return state
+        except (ValueError, TypeError):
+            return None
 
     def save(self, chat, user, state):
         self.db.set_setting(self.key(chat, user), json.dumps(state))

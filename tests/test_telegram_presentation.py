@@ -37,6 +37,7 @@ def test_clear_then_start_leaves_one_clean_dashboard_even_after_restart(db, monk
     monkeypatch.setattr(bot, '_api', api)
     handler = control.make_command_handler(db, lambda: None, lambda: '', send_message=bot.notify)
     bot.poll_once(handler)
+    bot.drain()
     sends = [d for method, d in calls if method == 'sendMessage']
     assert len(sends) == 1 and 'CHAT CLEARED' not in sends[0]['text']
     assert 'RELIC' in sends[0]['text']
@@ -49,5 +50,6 @@ def test_clear_then_start_leaves_one_clean_dashboard_even_after_restart(db, monk
         return {'message_id': 902}
     monkeypatch.setattr(fresh, '_api', next_api)
     fresh.poll_once(handler)
+    fresh.drain()
     assert len([1 for method, _ in calls if method == 'sendMessage']) == 1
     assert any(method == 'editMessageText' and data['message_id'] == 900 for method, data in calls)

@@ -46,6 +46,7 @@ def add_image(db, assets_dir, ref, rights, content, uploaded_by):
     with exclusive(db.db_path, "topic-images:" + topic["id"]) as acquired:
         if not acquired:
             raise ValueError("An image job is already running for this topic")
+        topic_for(db, topic["id"])
         with Image.open(io.BytesIO(content)) as original:
             original.load()
             image = original.convert("RGB")
@@ -68,6 +69,7 @@ def fetch_images(db, assets_dir, ref):
     with exclusive(db.db_path, "topic-images:" + topic["id"]) as acquired:
         if not acquired:
             raise ValueError("An image job is already running for this topic")
+        topic_for(db, topic["id"])
         from . import config
         from scripts.fetch_commons_images import fetch_topic
         specs = json.loads((config.TOPICS_DIR / "image_queries.json").read_text(encoding="utf-8"))
@@ -76,3 +78,19 @@ def fetch_images(db, assets_dir, ref):
             raise ValueError("No curated image search for this topic yet; use /image to supply images")
         count = fetch_topic(topic, spec, False, assets_dir=Path(assets_dir))
         return topic["id"], count
+
+
+def review_digest(directory):
+    """Identity of the displayed image set, rights and storyboard, not just filenames."""
+    import hashlib
+    directory = Path(directory).resolve()
+    digest = hashlib.sha256()
+    for path in sorted(directory.iterdir()):
+        if path.name in {"credits.json", "storyboard.json"} or path.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"}:
+            if path.name in {"contact_sheet.jpg", "contact_sheet.png"}:
+                continue
+            if path.resolve().parent != directory:
+                raise ValueError("Image set contains a path outside its topic folder")
+            digest.update(path.name.encode())
+            digest.update(path.read_bytes())
+    return digest.hexdigest()[:32]

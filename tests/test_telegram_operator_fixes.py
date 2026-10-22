@@ -59,7 +59,11 @@ def test_waiting_ideas_edits_original_panel_without_sending_cards(db, monkeypatc
     bot, calls = callback_bot(db, monkeypatch, "cprop:")
     handler = control.make_command_handler(db, lambda: None, lambda: "started", send_message=bot.notify)
     bot.poll_once(handler)
-    edit = next(data for method, data in calls if method == "editMessageText")
+    bot.drain()
+    if bot._workers is not None:
+        bot._workers.shutdown(wait=True)
+        bot._workers = None
+    edit = [data for method, data in calls if method == "editMessageText"][-1]
     assert edit["message_id"] == 42 and "No topic proposals" in edit["text"]
     assert not any(method == "sendMessage" for method, _ in calls)
 
@@ -72,6 +76,10 @@ def test_cover_photo_replaces_navigation_card_in_place(db, monkeypatch, tmp_path
         bot.send_photo(photo, "Cover preview")
         return ""
     bot.poll_once(handler)
+    bot.drain()
+    if bot._workers is not None:
+        bot._workers.shutdown(wait=True)
+        bot._workers = None
     edit = next(data for method, data in calls if method == "editMessageMedia")
     assert edit["message_id"] == 42
     assert not any(method in {"sendPhoto", "sendMessage"} for method, _ in calls)
@@ -82,8 +90,12 @@ def test_media_navigation_failure_has_named_retry_on_current_panel(db, monkeypat
     def handler(*_):
         raise RuntimeError("Could not update the media panel")
     bot.poll_once(handler)
-    edit = next(data for method, data in calls if method == "editMessageText")
-    assert "Could not open Covers" in edit["text"]
+    bot.drain()
+    if bot._workers is not None:
+        bot._workers.shutdown(wait=True)
+        bot._workers = None
+    edit = [data for method, data in calls if method == "editMessageText"][-1]
+    assert "Covers" in edit["text"] and "failed" in edit["text"]
     assert "ccov:" in edit["reply_markup"] and "Try again" in edit["reply_markup"]
     assert not any(method == "sendMessage" for method, _ in calls)
 
@@ -92,6 +104,10 @@ def test_media_panel_returns_to_dashboard_without_retaining_attachment(db, monke
     bot, calls = callback_bot(db, monkeypatch, "cdash:", media=True)
     handler = control.make_command_handler(db, lambda: None, lambda: "started")
     bot.poll_once(handler)
+    bot.drain()
+    if bot._workers is not None:
+        bot._workers.shutdown(wait=True)
+        bot._workers = None
     assert any(method == "sendMessage" and "RELIC" in data["text"] for method, data in calls)
     assert any(method == "deleteMessage" and data["message_id"] == 42 for method, data in calls)
     assert bot._current_panel(42) == 43
@@ -166,13 +182,16 @@ def test_images_slash_command_has_topic_actions(db, tmp_path):
 def test_swipe_reply_preserves_run_from_buttons(db, monkeypatch):
     bot = TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
     calls = []
-    monkeypatch.setattr(bot, "_run_command", lambda handler, command, args: calls.append((command, args)))
     monkeypatch.setattr(bot, "_background", lambda: SimpleNamespace(submit=lambda fn, *args: fn(*args)))
     monkeypatch.setattr(bot, "_api", lambda method, **kw: [{"update_id": 1, "message": {
         "text": "Why did this fail?", "from": {"id": 555}, "chat": {"id": 555},
         "reply_to_message": {"text": "Review card", "reply_markup": {"inline_keyboard": [[{"callback_data": "approve:12"}]]}}
     }}] if method == "getUpdates" else {})
-    bot.poll_once(lambda *_: "")
+    bot.poll_once(lambda command, args: calls.append((command, args)) or "")
+    bot.drain()
+    if bot._workers is not None:
+        bot._workers.shutdown(wait=True)
+        bot._workers = None
     assert calls[0][0] == "ask" and calls[0][1].startswith("run 12 ")
 
 
@@ -184,6 +203,7 @@ def test_unauthorized_image_upload_cannot_download_or_write(db, monkeypatch):
         return [{"update_id": 1, "message": {"from": {"id": 999}, "chat": {"id": 555}, "photo": [{"file_id": "image"}], "caption": "/image 1"}}] if method == "getUpdates" else {}
     monkeypatch.setattr(bot, "_api", api)
     bot.poll_once(lambda *_: "")
+    bot.drain()
     assert "getFile" not in methods
 
 

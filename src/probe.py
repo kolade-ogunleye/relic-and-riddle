@@ -175,7 +175,7 @@ def probe_system(query: str, db: PipelineDatabase, assets_dir: Optional[Path] = 
     if not question:
         return USAGE
     contextual = "[Context from replied message]:" in question
-    explicit_run = re.search(r"\brun[ _#]?(?:\d+|run_\w+)\b", question, re.I)
+    explicit_run = re.search(r"\brun_\w+|Run ID.*?:\s*\w+", question, re.I) or re.search(r"\brun[ _#]?(?:\d+|run_\w+)\b", question, re.I)
     run = resolve_run(db, question) if not contextual or explicit_run else None
     if explicit_run and run is None:
         return "⚠️ The named run was not found. Use its run number from the review/progress card; another run has not been substituted."

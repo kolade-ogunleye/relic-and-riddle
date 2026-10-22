@@ -240,7 +240,8 @@ def music_for(payload: Dict[str, Any], seconds: float, work_dir: Path, voice_quo
 # ------------------------------------------------------------------ review
 def track_key(track: Dict[str, Any]) -> str:
     """Short stable key for Telegram buttons: the 8-character id at the end of the file name."""
-    return Path(track["file"]).stem.rsplit("_", 1)[-1]
+    import hashlib
+    return hashlib.sha256(track["file"].encode("utf-8")).hexdigest()[:24]
 
 
 def pending_tracks() -> List[Dict[str, Any]]:

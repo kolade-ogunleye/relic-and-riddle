@@ -46,8 +46,11 @@ def test_add_appends_to_bank_queries_and_db(wired, monkeypatch):
     assert db.get_topic_by_id(topic_id)["status"] == "queued"
     assert json.loads(queries.read_text(encoding="utf-8"))[topic_id]["keywords"] == ["site"]
     assert tp.pending(db) == {}
+    assert tp.add(db, "roman_dodecahedron") == "roman_dodecahedron"          # a repeated tap: same topic...
+    bank = json.loads(tp.BANK.read_text(encoding="utf-8"))
+    assert sum(t["id"] == "roman_dodecahedron" for t in bank["topics"]) == 1   # ...never a duplicate
     with pytest.raises(ValueError):
-        tp.add(db, "roman_dodecahedron")
+        tp.add(db, "never_proposed")
 
 
 def test_skip_removes_pending(wired, monkeypatch):

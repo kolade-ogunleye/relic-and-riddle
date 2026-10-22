@@ -18,6 +18,7 @@ import unicodedata
 from typing import Dict, List, Optional
 
 from .config import TOPICS_DIR
+from .topic_store import serialized
 from .db import PipelineDatabase
 from .llm import claude_available, format_sources, research, structured_call, task as llm_task
 from .models import TopicProposal, TopicProposals
@@ -60,7 +61,9 @@ def near_duplicate(title: str, existing: List[str]) -> Optional[str]:
 
 
 def _bank() -> dict:
-    return json.loads(BANK.read_text(encoding="utf-8"))
+    from .topic_store import transaction
+    with transaction(BANK):
+        return json.loads(BANK.read_text(encoding="utf-8"))
 
 
 def pending(db: PipelineDatabase) -> Dict[str, dict]:
@@ -72,6 +75,7 @@ def _normalize_id(tid: str) -> str:
     return parts[1] if len(parts) > 1 and parts[0].isdigit() else tid
 
 
+@serialized
 @llm_task("topic_proposals")
 def propose(db: PipelineDatabase, n: int = 3) -> List[TopicProposal]:
     from .operator_jobs import checkpoint
@@ -163,9 +167,15 @@ def propose(db: PipelineDatabase, n: int = 3) -> List[TopicProposal]:
     return fresh
 
 
+@serialized
 def add(db: PipelineDatabase, slug: str) -> str:
     """Appends an approved proposal to the bank and its image searches."""
     store = pending(db)
+    if any(t["id"] == slug for t in _bank().get("topics", [])):
+        db._seed_topics_from_json()
+        store.pop(slug, None)
+        db.set_setting(PENDING_KEY, json.dumps(store))
+        return slug
     if slug not in store:
         raise ValueError(f"No pending proposal '{slug}'.")
     p = TopicProposal.model_validate(store.pop(slug))
@@ -178,7 +188,6 @@ def add(db: PipelineDatabase, slug: str) -> str:
         "sources": [s.model_dump() for s in p.sources],
     })
     bank["total"] = len(bank["topics"])
-    BANK.write_text(json.dumps(bank, indent=2, ensure_ascii=False), encoding="utf-8")
     queries = json.loads(QUERIES.read_text(encoding="utf-8"))
     if p.image_queries and p.image_keywords:
         queries[topic_id] = {"queries": p.image_queries, "keywords": [k.lower() for k in p.image_keywords]}
@@ -190,12 +199,14 @@ def add(db: PipelineDatabase, slug: str) -> str:
             "keywords": decomp["keywords"],
             "archetypes": decomp.get("archetypes", {}),
         }
-    QUERIES.write_text(json.dumps(queries, indent=2, ensure_ascii=False), encoding="utf-8")
+    from .topic_store import commit
+    commit(BANK, QUERIES, bank, queries)
     db.set_setting(PENDING_KEY, json.dumps(store))
     db._seed_topics_from_json()
     return topic_id
 
 
+@serialized
 def skip(db: PipelineDatabase, slug: str) -> None:
     store = pending(db)
     store.pop(slug, None)

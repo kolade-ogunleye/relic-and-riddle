@@ -29,7 +29,6 @@ def process_identity():
 def probe_local(app_root, work):
     from src import config
     import numpy as np
-    import onnxruntime as ort
     import azure.cognitiveservices.speech as speech
     from PIL import Image
     from src import parallax, upscale
@@ -51,19 +50,26 @@ def probe_local(app_root, work):
                "-i", "testsrc2=size=320x240:rate=10", "-frames:v", "10", "-c:v", "h264_nvenc", "-f", "null", "NUL"]
     native = subprocess.run(command, capture_output=True, timeout=90)
     checks["nvenc"] = {"passed": native.returncode == 0, "exit_code": native.returncode}
-    binary = Path(config.REALESRGAN_BIN)
-    if not binary.is_file():
-        checks["upscaler"] = {"passed": False, "reason": "Real-ESRGAN executable missing",
+    # The upscaler production uses: Real-ESRGAN x4plus through ONNX Runtime (docs/upscaler.md).
+    # Passing needs real 4x output from a DirectML-enabled session, not just a loaded model.
+    sample = np.random.default_rng(23).integers(0, 256, (192, 128, 3), dtype=np.uint8)
+    if not upscale.ONNX_MODEL.is_file():
+        checks["upscaler"] = {"passed": False, "reason": "Real-ESRGAN ONNX model missing",
                               "current_fallback": "original-image resizing"}
     else:
+        out = upscale.upscale_array(sample)
+        providers = upscale._onnx_session().get_providers()
+        checks["upscaler"] = {"passed": list(out.shape) == [768, 512, 3] and "DmlExecutionProvider" in providers,
+                              "backend": "onnx", "providers": providers, "dimensions": [out.shape[1], out.shape[0]],
+                              "model_sha256": hashlib.sha256(upscale.ONNX_MODEL.read_bytes()).hexdigest()}
+    binary = Path(config.REALESRGAN_BIN)  # informational: the Vulkan build, unused where Vulkan is absent
+    if binary.is_file():
         source, target = work / "upscale-source.png", work / "upscale-result.png"
-        Image.fromarray(np.random.default_rng(23).integers(0, 256, (192, 128, 3), dtype=np.uint8)).save(source)
+        Image.fromarray(sample).save(source)
         result = subprocess.run([str(binary), "-i", str(source), "-o", str(target), "-n", "realesrgan-x4plus"],
                                 cwd=binary.parent, capture_output=True, timeout=120)
-        dimensions = list(Image.open(target).size) if target.is_file() else None
-        checks["upscaler"] = {"passed": result.returncode == 0 and dimensions == [512, 768],
-                              "exit_code": result.returncode, "dimensions": dimensions,
-                              "current_fallback": "original-image resizing"}
+        checks["upscaler_vulkan_info"] = {"exit_code": result.returncode,
+                                          "dimensions": list(Image.open(target).size) if target.is_file() else None}
     return checks
 
 

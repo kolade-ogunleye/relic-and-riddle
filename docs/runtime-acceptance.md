@@ -70,11 +70,13 @@ fix, rerun the focused application probe under `rr-pipeline$` and require actual
 upscaled output at the expected dimensions. NVENC/depth success cannot close
 this gate.
 
-The application currently returns the original image after an upscaler failure,
-then resizes it normally. That fallback does not add detail and has not been
-accepted as a substitute for upscaling. Application options are to supply sources
-with sufficient native crop resolution or implement/test a different upscaler;
-neither has been declared complete by this receipt.
+**Application resolution (2026-10-22):** the application no longer depends on Vulkan. It runs the
+same Real-ESRGAN x4plus model through ONNX Runtime with DirectML, the provider this receipt already
+proved under `rr-pipeline$` (see [upscaler](upscaler.md): official weights, conversion, hashes, PSNR
+44.6 dB against the Vulkan build). The Vulkan build is kept only as a fallback. This gate closes when
+the focused probe under `rr-pipeline$` reports `upscaler.passed=true` (real 4x output from a
+DirectML-enabled session) after the release with the model is promoted. The Vulkan/ICD question is
+no longer an application blocker; it stays a lab item only if Vulkan is wanted for other reasons.
 
 Do not repeat paid authentication/generation checks to diagnose this local Vulkan
 failure. Preserve the original receipt. Keep production in dry-run mode. Telegram

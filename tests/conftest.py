@@ -43,6 +43,7 @@ def no_real_services(monkeypatch):
     monkeypatch.setattr("src.config.FREE_LIGHT_MODEL", "")
     monkeypatch.setattr("src.config.BACKUP_TRANSPORT", "sync-folder")
     monkeypatch.setattr("src.config.GEMINI_SPARE_KEY_PERMITTED", False)
+    monkeypatch.setattr("src.upscale.ONNX_MODEL", Path(__file__).parent / "no_such_model.onnx")  # tests opt in to real inference
     monkeypatch.setattr("src.config.PAID_FALLBACK_HEAVY_MONTHLY_USD", 0.0)
     monkeypatch.setattr("src.config.MEDIA_MONTHLY_BUDGET_USD", 0.0)
     monkeypatch.setattr("src.audio_engine.VOICE_PREFER", "elevenlabs")  # the code's default

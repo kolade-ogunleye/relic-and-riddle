@@ -159,7 +159,7 @@ def verify_archive(path, *, expected_snapshot=None):
             if manifest_info.file_size > 32 * 1024 * 1024:
                 raise BackupError("Recovery manifest is too large")
             manifest = json.loads(bundle.read(manifest_info))
-        except (KeyError, ValueError) as exc:
+        except (KeyError, ValueError):
             raise BackupError("Recovery manifest is missing or invalid") from None
         if manifest.get("schema") != 1 or (expected_snapshot and manifest.get("snapshot_id") != expected_snapshot):
             raise BackupError("Unexpected recovery snapshot identity")

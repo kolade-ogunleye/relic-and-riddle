@@ -118,7 +118,7 @@ def test_done_closes_a_card_and_navigation_keeps_its_buttons(db, monkeypatch):
     edit = next(d for m, d in calls if m == "editMessageText")
     assert edit["message_id"] == 42                                                         # in place...
     buttons = [b["callback_data"] for row in _json.loads(edit["reply_markup"])["inline_keyboard"] for b in row]
-    assert "qrefresh:" in buttons and "done:" in buttons                                    # ...with its buttons
+    assert "qrefresh:" in buttons and "cdash:" in buttons                                    # ...with its buttons
     assert not any(m == "editMessageReplyMarkup" for m, d in calls)                         # never stripped first
 
 

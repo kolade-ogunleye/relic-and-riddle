@@ -17,6 +17,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
 import requests
+from urllib.parse import quote
 
 from . import config
 from .config import is_configured
@@ -26,6 +27,7 @@ log = logging.getLogger(__name__)
 CHECK_HOURS = 12
 NEEDED = ("instagram", "facebook")
 SETTING = "publishing_check"
+SCHEMA_VERSION = 2
 
 
 def _upload_post() -> Dict[str, Any]:
@@ -35,14 +37,21 @@ def _upload_post() -> Dict[str, Any]:
     headers = {"Authorization": f"Apikey {config.UPLOAD_POST_API_KEY}"}
     out: Dict[str, Any] = {"configured": True}
     try:
-        body = requests.get(f"{base}/uploadposts/users/{config.UPLOAD_POST_USER}", headers=headers, timeout=30).json()
-        accounts = (body.get("profile") or {}).get("social_accounts") or {}
+        response = requests.get(f"{base}/uploadposts/users/{quote(config.UPLOAD_POST_USER, safe='')}", headers=headers, timeout=30)
+        response.raise_for_status()
+        body = response.json()
+        profile = body.get("profile")
+        if body.get("success") is False or not isinstance(profile, dict) or not isinstance(profile.get("social_accounts"), dict):
+            raise ValueError("Unexpected profile response")
+        accounts = profile["social_accounts"]
         out["connected"] = sorted(k for k, v in accounts.items() if isinstance(v, dict) and v)
         out["reauth"] = sorted(k for k, v in accounts.items() if isinstance(v, dict) and v.get("reauth_required"))
-        pages = requests.get(f"{base}/uploadposts/facebook/pages", params={"profile": config.UPLOAD_POST_USER},
-                             headers=headers, timeout=30).json()
+        page_response = requests.get(f"{base}/uploadposts/facebook/pages", params={"profile": config.UPLOAD_POST_USER},
+                                    headers=headers, timeout=30)
+        page_response.raise_for_status()
+        pages = page_response.json()
         out["facebook_pages"] = len(pages.get("pages") or [])
-        out["facebook_page_configured"] = is_configured(config.UPLOAD_POST_FACEBOOK_PAGE_ID)
+        out["facebook_page_configured"] = bool(profile.get("facebook_page_id")) or is_configured(config.UPLOAD_POST_FACEBOOK_PAGE_ID)
     except (requests.RequestException, ValueError) as e:
         out["error"] = type(e).__name__
     return out
@@ -89,11 +98,11 @@ def check(db, force: bool = False) -> Dict[str, Any]:
     if raw and not force:
         try:
             cached = json.loads(raw)
-            if datetime.now(timezone.utc) - datetime.fromisoformat(cached["checked_at"]) < timedelta(hours=CHECK_HOURS):
+            if cached.get("schema_version") == SCHEMA_VERSION and datetime.now(timezone.utc) - datetime.fromisoformat(cached["checked_at"]) < timedelta(hours=CHECK_HOURS):
                 return cached
         except (ValueError, KeyError):
             pass
-    result = {"checked_at": datetime.now(timezone.utc).isoformat(), "upload_post": _upload_post(), "meta": _meta()}
+    result = {"schema_version": SCHEMA_VERSION, "checked_at": datetime.now(timezone.utc).isoformat(), "upload_post": _upload_post(), "meta": _meta()}
     result["problems"] = problems(result)
     db.set_setting(SETTING, json.dumps(result))
     return result

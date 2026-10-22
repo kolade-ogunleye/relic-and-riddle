@@ -1582,49 +1582,42 @@ def start_post_ticker(coordinator: "PipelineCoordinator", bot) -> threading.Thre
 
 
 def _proposal_trigger(db: PipelineDatabase, bot) -> Any:
-    """Returns a callable that researches topic proposals in the background and sends each with Add/Skip buttons."""
+    """Research beside polling, then update the originating navigation panel."""
     busy = threading.Lock()
+    buttons = [[{"text": "Waiting ideas", "callback_data": "cprop:"}],
+               [{"text": "← Topic ideas", "callback_data": "cideas:"}],
+               [{"text": "← Dashboard", "callback_data": "cdash:"}]]
 
-    def send_proposals():
-        from src import topic_proposer
-        if not busy.acquire(blocking=False):
+    def send_proposals(target=None, claimed=False):
+        if not claimed and not busy.acquire(blocking=False):
             return
         try:
+            from src import topic_proposer
             proposals = topic_proposer.propose(db)
-            if not proposals:
-                bot.notify("💡 No new topic proposals this time (none had verified sources or all overlapped).")
-            from src import control
-            for p in proposals:
-                res = bot._api("sendMessage", data={
-                    "chat_id": bot.chat_id, "parse_mode": "HTML", "disable_web_page_preview": "true",
-                    "text": topic_proposer.proposal_text(p),
-                    "reply_markup": json.dumps({"inline_keyboard": [[
-                        {"text": "➕ Add", "callback_data": f"tadd:{p.slug}"},
-                        {"text": "✖ Skip", "callback_data": f"tskip:{p.slug}"},
-                    ]]}),
-                })
-                if isinstance(res, dict) and res.get("message_id"):
-                    control.active_proposal_msg_ids.append(res["message_id"])
-            if proposals:
-                done_res = bot.notify(
-                    f"💡 Showing <b>{len(proposals)}</b> newly researched topic proposal(s):",
-                    buttons=[[{"text": "✖ Done", "callback_data": "tdone:"}]],
-                    record_alert=False
-                )
-                if isinstance(done_res, int):
-                    control.active_proposal_msg_ids.append(done_res)
-        except Exception as e:
-            bot.notify(f"💡 Topic proposals failed: {html.escape(str(e))[:300]}")
+            text = (f"💡 Research complete: {len(proposals)} new idea(s). Open Waiting ideas to review them."
+                    if proposals else "💡 No new verified topic ideas this time.")
+        except Exception as exc:
+            log.exception("Topic proposal research failed")
+            text = f"⚠️ Topic research failed ({type(exc).__name__}). Existing waiting ideas are preserved."
         finally:
             busy.release()
+        bot.update_navigation_target(target, text, buttons)
 
     def trigger() -> str:
-        if busy.locked():
+        if not busy.acquire(blocking=False):
             return "Already researching topic proposals."
-        threading.Thread(target=send_proposals, name="topic-proposals", daemon=True).start()
-        return "💡 Researching 3 new topic ideas (~2–3 minutes via live academic/encyclopedic search). Each will arrive with Add / Skip buttons."
+        target = bot.navigation_target()
+        text = "💡 Researching 3 new topic ideas. You can keep using the bot; results remain in Waiting ideas."
+        if target:
+            bot.update_navigation_target(target, text, buttons)
+        try:
+            threading.Thread(target=send_proposals, args=(target, True), name="topic-proposals", daemon=True).start()
+        except Exception:
+            busy.release()
+            raise
+        return "" if target else text
 
-    trigger.run_now = send_proposals  # for the weekly scheduled job
+    trigger.run_now = send_proposals
     return trigger
 
 

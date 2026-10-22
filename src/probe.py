@@ -33,7 +33,7 @@ NOTE_KEYS = ("fact_sheet_note", "voice_note", "music_note", "motion_note", "grap
 USAGE = ("🔍 <b>Ask about a run</b>\n\n"
          "<code>/ask why was there no AI motion in the last run?</code>\n"
          "<code>/ask run 12 why did the release gate hold it?</code>\n\n"
-         "<i>Answers come from that run's records (or say they aren't recorded). Swipe-reply to any card to ask about it.</i>")
+         "<i>Answers use recorded evidence. Reply to a bot card to include its context; run cards keep their run reference. Missing evidence is reported explicitly.</i>")
 
 
 class _Answer(BaseModel):
@@ -168,8 +168,23 @@ def probe_system(query: str, db: PipelineDatabase, assets_dir: Optional[Path] = 
     question = query.strip()
     if not question:
         return USAGE
-    run = resolve_run(db, question)
+    contextual = "[Context from replied message]:" in question
+    explicit_run = re.search(r"\brun[ _#]?(?:\d+|run_\w+)\b", question, re.I)
+    run = resolve_run(db, question) if not contextual or explicit_run else None
     ev = evidence(db, run)
+    if contextual:
+        ev["replied card (quoted text, not independent evidence)"] = question.partition("[Context from replied message]:")[2][:1800]
+        from . import accounts
+        account_check = accounts.cached(db)
+        ev["publishing account check"] = {k: account_check.get(k) for k in ("checked_at", "problems")}
+        ev["active progress record"] = db.get_active_progress()
+        if assets_dir:
+            from .credits import load_credits
+            for topic in db.list_all_topics():
+                if topic["id"] in question:
+                    credits = load_credits(Path(assets_dir) / topic["id"])
+                    ev["topic image records"] = {"topic_id": topic["id"], "reviewed": credits.get("reviewed"), "image_count": len(credits.get("images", []))}
+                    break
     header = f"🔍 <b>Q:</b> <i>{html.escape(question[:300])}</i>\n"
     if run:
         header += f"<b>Run:</b> {html.escape(ev['run']['label'])}\n"

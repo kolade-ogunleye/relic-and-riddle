@@ -452,20 +452,20 @@ def test_music_mnext_and_duplicate_imgok(tmp_path):
     assert "was already approved" in appr2
 
 
-def test_deletion_on_mcancel_mnext_and_umoredone(db, monkeypatch):
+def test_mcancel_navigation_and_umoredone_cleanup(db, monkeypatch):
     deleted_ids = []
     def fake_delete(mid):
         deleted_ids.append(mid)
         return True
 
-    # 1. Test poll_once with mcancel triggers deleteMessage on the audio card
+    # 1. Cancel keeps the panel available for Dashboard navigation
     bot = TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
     monkeypatch.setattr(bot, "delete_message", fake_delete)
 
     click_cancel = {"id": "q1", "data": "mcancel:track1", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 77}}
     monkeypatch.setattr(bot, "_api", lambda m, **kw: [{"update_id": 1, "callback_query": click_cancel}] if m == "getUpdates" else {"message_id": 1})
     bot.poll_once(lambda a, t: "cancelled")
-    assert 77 in deleted_ids
+    assert 77 not in deleted_ids
 
     # 2. Test umoredone clears all recorded discovery card IDs (needs the cached UNESCO site list)
     cleared_via_handler = []
@@ -488,8 +488,8 @@ def test_extended_deletion_and_inplace_transform(db, monkeypatch):
 
     bot = TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
     monkeypatch.setattr(bot, "delete_message", lambda mid: deleted_ids.append(mid) or True)
-    monkeypatch.setattr(bot, "edit_message_text", lambda mid, txt: edited_text.update({mid: txt}) or True)
-    monkeypatch.setattr(bot, "edit_message_any", lambda mid, txt, is_media=False: edited_any.update({mid: txt}) or True)
+    monkeypatch.setattr(bot, "edit_message_text", lambda mid, txt, **kw: edited_text.update({mid: txt}) or True)
+    monkeypatch.setattr(bot, "edit_message_any", lambda mid, txt, is_media=False, **kw: edited_any.update({mid: txt}) or True)
 
     # 1. tskip and uskip delete cards
     click_tskip = {"id": "q1", "data": "tskip:topic1", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 81}}
@@ -497,11 +497,11 @@ def test_extended_deletion_and_inplace_transform(db, monkeypatch):
     bot.poll_once(lambda a, t: "skipped")
     assert 81 in deleted_ids
 
-    # 2. mdel and imgcancel delete cards
+    # 2. Music removal keeps its panel; storyboard cancellation closes its card
     click_mdel = {"id": "q2", "data": "mdel:track1", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 82}}
     monkeypatch.setattr(bot, "_api", lambda m, **kw: [{"update_id": 2, "callback_query": click_mdel}] if m == "getUpdates" else {})
     bot.poll_once(lambda a, t: "removed")
-    assert 82 in deleted_ids
+    assert 82 not in deleted_ids and 82 in edited_any
 
     click_imgcancel = {"id": "q3", "data": "imgcancel:t1", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 83}}
     monkeypatch.setattr(bot, "_api", lambda m, **kw: [{"update_id": 3, "callback_query": click_imgcancel}] if m == "getUpdates" else {})

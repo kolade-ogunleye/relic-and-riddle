@@ -47,6 +47,7 @@ HELP = (
     "/ideas — research new topics, browse UNESCO marvels, decide waiting ideas · /add &lt;title&gt;\n"
     "\n<b>Pictures, covers, music</b>\n"
     "/images — photo sets waiting · /review N — a set's contact sheet\n"
+    "/fetchimages N — refill a topic's photos · /image N — upload instructions\n"
     "/drop N 2 5 — remove photos 2 and 5 · /swap N 2 4 — swap beats 2 and 4\n"
     "/covers [N] — the three cover variants · /music — approve music tracks\n"
     "/footage (as a clip's caption) — &lt;topic&gt; | source: URL | licence: name | licence_url: URL\n"
@@ -59,7 +60,6 @@ HELP = (
 )
 
 SendPhoto = Callable[[Path, str, Optional[list]], bool]
-DONE = {"text": "✓ Done", "callback_data": "done:"}
 HOME = {"text": "← Dashboard", "callback_data": "cdash:"}
 
 # Plain-language names for run statuses in Telegram.
@@ -217,7 +217,7 @@ def images_text(assets_dir: Path = ASSETS_DIR, db: Optional[PipelineDatabase] = 
     if review:
         lines += ["To review (send /review N):"] + [f"  • {x}" for x in review]
     if short:
-        lines += [f"Short of {MIN_SCENE_IMAGES} images (add your own or re-run the fetcher):"] + [f"  • {x}" for x in short]
+        lines += [f"Short of {MIN_SCENE_IMAGES} images (use /fetchimages N or /image N):"] + [f"  • {x}" for x in short]
     return "\n".join(lines)
 
 
@@ -457,12 +457,16 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         needs.append(f"❌ Last run failed: {e((recent[0].get('error') or '')[:120])}")
 
     active = db.get_active_progress() if hasattr(db, "get_active_progress") else None
-    lines = ["🏛️ <b><u>RELIC &amp; RIDDLE</u></b>", ""]
+    from . import config
+    bot_id = config.TELEGRAM_BOT_TOKEN.split(":", 1)[0]
+    environment = {"8701645452": "DEV", "8837268021": "PRODUCTION"}.get(bot_id, "IDENTITY UNVERIFIED")
+    lines = [f"🏛️ <b><u>RELIC &amp; RIDDLE</u></b> · {environment}", ""]
     lines += (["<b>Needs you</b>"] + needs + [""]) if needs else ["✅ <b>Nothing needs you right now.</b>", ""]
     lines.append(f"⏯️ Schedule: {'⏸ <b>paused</b>' if paused else '▶️ active'}"
                  + (f" · next run {e(next_run)}" if next_run and not paused else ""))
     if active:
-        lines.append(f"⏳ Making: {e(db.run_label(active['run_id']))} · step {active.get('step', 1)}/{active.get('total_steps', 5)}")
+        label = "Making" if active.get("worker_state") == "running" else "Last recorded run (worker not active/verified)"
+        lines.append(f"⏳ {label}: {e(db.run_label(active['run_id']))} · step {active.get('step', 1)}/{active.get('total_steps', 5)}")
     lines.append(f"📋 Queue: {len(queued)} topics · {ready} with photos ready"
                  + (f" · next: <b>{e(next_t['title'])}</b>" if next_t else ""))
     lines += spend_lines(db)
@@ -472,11 +476,12 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         row1.append({"text": f"🧭 Proposals ({len(waiting_proposals)})", "callback_data": "cimprove:"})
     buttons = [row1] if row1 else []
     buttons += [
-        [{"text": "⚡ Progress" if active else "⚡ Make #1 now",
+        [{"text": "⚡ Progress" if active else (f"⚡ Make #{next((i for i,t in enumerate(topics,1) if next_t and t['id']==next_t['id']),1)} now"),
           "callback_data": "cprog:" if active else (f"qrender:{next_t['id']}" if next_t else "qrender:1")},
          {"text": "📋 Queue", "callback_data": "qrefresh:"}],
         [{"text": "💡 Topic ideas", "callback_data": "cideas:"}, {"text": "🎨 Covers", "callback_data": "ccov:"}],
         [{"text": "🎵 Music", "callback_data": "cmusic:"}, {"text": "📊 Full status", "callback_data": "cstat:"}],
+        [{"text": "🖼 Images", "callback_data": "cimages:"}, {"text": "🔄 Check accounts", "callback_data": "caccounts:"}],
         [{"text": "▶️ Resume" if paused else "⏸️ Pause", "callback_data": "cresume:" if paused else "cpause:"}],
     ]
     return "\n".join(lines), buttons
@@ -572,7 +577,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             lines.append("\n<i>To restore any topic: <code>/requeue &lt;number or id&gt;</code></i>")
 
         buttons.append({"text": "🔄 Refresh Queue", "callback_data": "qrefresh:"})
-        buttons.append(DONE)
+        buttons.append(HOME)
         return "\n".join(lines), buttons
 
     """run_actions: button actions on a run, e.g. {"pubok": fn(run_id) -> reply, "pubno": ..., "resend": ...}."""
@@ -586,6 +591,12 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
 
     def handle(command: str, args: str) -> str:
         if command == "qrender":
+            current = db.get_next_topic()
+            serials = {str(i): t["id"] for i,t in enumerate(db.list_all_topics(), 1)}
+            requested = serials.get(args, args)
+            if not current or current["id"] != requested:
+                text, buttons = render_queue_text_and_buttons()
+                return "⚠️ The queue changed. Review the current next topic before starting.\n\n" + text, buttons
             res = trigger_run()
             q_text, q_buttons = render_queue_text_and_buttons()
             return f"⚡ <b>Run:</b> {html.escape(res)}\n\n{q_text}", q_buttons
@@ -706,7 +717,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 ],
                 [
                     {"text": "🔒 Lock Variant B (Discovery Intrigue)", "callback_data": f"covlock:{run_dir.name}:b"}
-                ]
+                ], [HOME]
             ]
             caption = (
                 f"🎨 <b>Thumbnail Cover Studio</b> • <code>{html.escape(run_dir.name)}</code>\n\n"
@@ -781,10 +792,17 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command == "cdash":
             dash_text, _ = dashboard_text_and_buttons(db, next_run(), assets_dir=assets_dir)
             return dash_text
+        if command in ("accounts", "caccounts"):
+            from . import accounts
+            accounts.check(db, force=True)
+            return accounts.status_line(db), [[HOME]]
         if command == "help":
             return HELP
         if command in ("progress", "cprog"):
             active_prog = db.get_active_progress() if hasattr(db, "get_active_progress") else None
+            if args and (not active_prog or db.resolve_run(args) != active_prog.get("run_id")):
+                run = db.get_run(db.resolve_run(args))
+                return "ℹ️ This progress card is no longer current. Run status: " + html.escape((run or {}).get("status", "not found"))
             if not active_prog:
                 dash_text, _ = dashboard_text_and_buttons(db, next_run(), assets_dir=assets_dir)
                 return (
@@ -797,6 +815,13 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             topic_title = active_prog.get("topic_title", "Unknown Topic")
             run_id = active_prog.get("run_id", "active_run")
             details = active_prog.get("details", "")
+            worker_state = active_prog.get("worker_state", "unverified")
+            if worker_state != "running":
+                note = "The worker has exited or its PID was reused." if worker_state == "interrupted" else "Worker ownership is not recorded or cannot be verified."
+                return (f"⚠️ <b>Last recorded progress — {worker_state}</b>\n\n{html.escape(note)}\n"
+                        f"{html.escape(topic_title)} · step {step}/{total_steps}\n"
+                        f"Last update: {html.escape(active_prog.get('updated_at', 'unknown'))}\n"
+                        "This is not confirmation of an active run. Inspect the worker before retrying.")
 
             milestones = [
                 "Verifying script & historical fact sheets",
@@ -837,14 +862,15 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
 
             lines.append(f"\nProgress: <code>[{bar}] {pct}%</code>")
             lines.append(f"⏱ <b>Elapsed:</b> {elapsed_fmt} • <b>ETA:</b> {eta_fmt}")
+            lines.append(f"Last stage update: {html.escape(active_prog.get('updated_at', 'unknown'))}")
             return "\n".join(lines)
         if command in ("ideas", "cideas"):
             text = ("💡 <b>Topic ideas</b>\n\nResearch new ones, browse UNESCO marvels, or decide on ideas "
                     "already waiting (each has Add/Skip).")
-            buttons = [[{"text": "🔬 Research 3 new ideas", "callback_data": "propose:"}],
+            buttons = [[{"text": "🔬 Research 3 new ideas", "callback_data": "cpropose:"}],
                        [{"text": "🏛️ UNESCO marvels", "callback_data": "cdisc:"},
                         {"text": "📥 Waiting ideas", "callback_data": "cprop:"}],
-                       ([HOME, DONE] if command == "cideas" else [DONE])]
+                       [HOME]]
             if command == "cideas":
                 return text, buttons
             if send_message:
@@ -876,7 +902,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command == "cimprove":
             from . import improve
             text, buttons = improve.improve_text(db)
-            return text, buttons + [[HOME, DONE]]
+            return text, buttons + [[HOME]]
         if command == "creviews":
             pending = db.list_pending_approvals()
             if not pending:
@@ -886,19 +912,55 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             for p in pending[:5]:
                 lines.append(f"• {html.escape(db.run_label(p['run_id']))}")
                 buttons.append([{"text": f"📨 Resend {db.run_key(p['run_id'])}", "callback_data": f"resend:{db.run_key(p['run_id'])}"}])
-            return "\n".join(lines), buttons + [[HOME, DONE]]
+            return "\n".join(lines), buttons + [[HOME]]
         if command == "cstat":
-            return status_text(db, next_run(), voice_quota()), [[HOME, DONE]]
+            return status_text(db, next_run(), voice_quota()), [[HOME]]
         if command == "caudit":
-            return handle("audit", "10"), [[HOME, DONE]]
+            return handle("audit", "10"), [[HOME]]
         if command == "ccov":
             return handle("covers", "")  # the latest render, whichever topic it is
         if command == "cprop":
-            return handle("proposals", "")
+            from . import topic_proposer
+            from .models import TopicProposal
+            waiting = topic_proposer.pending(db)
+            if not waiting:
+                return "💡 No topic proposals waiting. Research new ideas from Topic ideas.", [[{"text": "← Topic ideas", "callback_data": "cideas:"}], [HOME]]
+            slug = args if args in waiting else next(iter(waiting))
+            p = TopicProposal.model_validate(waiting[slug])
+            return topic_proposer.proposal_text(p), [[{"text": "➕ Add", "callback_data": f"ptadd:{slug}"}, {"text": "✖ Skip", "callback_data": f"ptskip:{slug}"}], [{"text": "← Topic ideas", "callback_data": "cideas:"}], [HOME]]
+        if command in ("ptadd", "ptskip"):
+            from . import topic_proposer
+            if args in topic_proposer.pending(db):
+                (topic_proposer.add if command == "ptadd" else topic_proposer.skip)(db, args)
+            return handle("cprop", "")
         if command == "cdisc":
-            return handle("discover", "subterranean")
+            return handle("discoverpanel", args or "subterranean:0")
         if command == "cmusic":
             return handle("music", "")
+        if command == "cimages":
+            return images_text(assets_dir, db=db), [[{"text": "Choose a topic", "callback_data": "imagepick:"}], [HOME]]
+        if command == "imagepick":
+            topics = db.list_all_topics()
+            offset = int(args) if args.isdigit() else 0
+            buttons = [[{"text": f"{i}. {t['title'][:34]}", "callback_data": f"imagehelp:{i}"}] for i,t in list(enumerate(topics, 1))[offset:offset+8]]
+            if offset + 8 < len(topics):
+                buttons.append([{"text": "More topics →", "callback_data": f"imagepick:{offset+8}"}])
+            return "🖼 <b>Choose a topic for images</b>", buttons + [[HOME]]
+        if command in ("image", "imagehelp"):
+            if not args:
+                return handle("imagepick", "")
+            from .telegram_images import topic_for
+            topic = topic_for(db, args)
+            return (f"🖼 <b>{html.escape(topic['title'])}</b>\n\nSend an image as a photo or image document with this caption:\n"
+                    f"<code>/image {html.escape(topic['id'])} | source: https://... | licence: CC BY 4.0 | licence_url: https://... | author: Name</code>\n\n"
+                    "Uploads remain unapproved until you review the set. Send as a document to preserve resolution.",
+                    [[{"text": "🔄 Fetch more images", "callback_data": f"fetchimages:{args}"}, {"text": "Review set", "callback_data": f"review:{args}"}], [HOME]])
+        if command == "fetchimages":
+            if not args:
+                return handle("imagepick", "")
+            from .telegram_images import fetch_images
+            topic_id, count = fetch_images(db, assets_dir, args)
+            return f"🖼 Fetch completed: {count} eligible image(s) for <code>{html.escape(topic_id)}</code>. Review before use.", [[{"text": "Review set", "callback_data": f"review:{args}"}], [HOME]]
         if command == "cpause":
             handle("pause", "")
             dash_text, dash_buttons = dashboard_text_and_buttons(db, next_run(), assets_dir=assets_dir)
@@ -1053,7 +1115,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     {"text": "✖ Cancel", "callback_data": f"mcancel:{key}"},
                 ])
             else:
-                buttons.append([{"text": "➕ Fetch More", "callback_data": "mfetch:"}, {"text": "✖ Cancel", "callback_data": f"mcancel:{key}"}])
+                buttons.append([{"text": "✖ Cancel", "callback_data": f"mcancel:{key}"}])
+            buttons.append([HOME])
 
             if send_audio is None or not send_audio(music.MUSIC_DIR / nxt["file"], music.review_caption(nxt, len(pending)), buttons):
                 return (reply + "\n" if reply else "") + music.review_caption(nxt, len(pending))
@@ -1075,30 +1138,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             active_proposal_msg_ids.clear()
             return f"✖ Topic proposals ended. Cleared {cleared} card(s) from chat." if cleared else "✖ Topic proposals ended."
         if command == "proposals":
-            from . import topic_proposer
-            from .models import TopicProposal
-            waiting = topic_proposer.pending(db)
-            if not waiting:
-                return "💡 No topic proposals waiting. Send /propose to research new ones."
-            for slug, data in waiting.items():
-                p = TopicProposal.model_validate(data)
-                if send_message is not None:
-                    card_res = send_message(topic_proposer.proposal_text(p),
-                                            [{"text": "➕ Add", "callback_data": f"tadd:{slug}"},
-                                             {"text": "✖ Skip", "callback_data": f"tskip:{slug}"}])
-                    if isinstance(card_res, int):
-                        active_proposal_msg_ids.append(card_res)
-            if send_message is not None:
-                nav_res = send_message(
-                    f"💡 Showing <b>{len(waiting)}</b> researched topic proposal(s).",
-                    [{"text": "✖ Done", "callback_data": "tdone:"}]
-                )
-                if isinstance(nav_res, int):
-                    active_proposal_msg_ids.append(nav_res)
-
-                return f"💡 {len(waiting)} proposal(s) sent above."
-            return f"💡 {len(waiting)} proposal(s) available. Send /proposals to review."
-        if command == "propose":
+            return handle("cprop", args)
+        if command in ("propose", "cpropose"):
             return propose_topics() if propose_topics else "Topic proposals need the bot or daemon running with Claude configured."
         if command == "tadd":
             from . import topic_proposer
@@ -1221,7 +1262,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                         pass
             active_discovery_msg_ids.clear()
             return f"✖ Discovery browsing ended. Cleared {cleared} card(s) from chat." if cleared else "✖ Discovery browsing ended."
-        if command in ("discover", "umore"):
+        if command in ("discover", "umore", "discoverpanel"):
             from .unesco import UNESCOEngine
             from . import topic_proposer
             engine = UNESCOEngine()
@@ -1230,7 +1271,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
 
             theme = None
             offset = 0
-            if command == "umore":
+            if command in ("umore", "discoverpanel"):
                 parts = args.split(":", 1)
                 theme = parts[0].strip() or None
                 if len(parts) > 1 and parts[1].strip().isdigit():
@@ -1255,6 +1296,16 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
 
             next_offset = offset + len(wonders)
             more_exist = len(engine.discover_engineering_wonders(limit=1, offset=next_offset, sub_theme=theme, exclude_titles=existing_titles)) > 0
+
+            if command == "discoverpanel":
+                lines = ["🏛️ <b>UNESCO marvels</b>"]
+                buttons = []
+                for w in wonders:
+                    lines.append(f"\n<b>{html.escape(w['title'])}</b> · {html.escape(w['country'])}\n{html.escape((w.get('short_description') or '')[:220])}")
+                    buttons.append([{"text": f"➕ Add {w['title'][:24]}", "callback_data": f"uadd:{w['id_number']}"}])
+                if more_exist:
+                    buttons.append([{"text": "Next marvels →", "callback_data": f"cdisc:{theme or ''}:{next_offset}"}])
+                return "\n".join(lines), buttons + [[{"text": "← Topic ideas", "callback_data": "cideas:"}], [HOME]]
 
             if send_message is not None:
                 for w in wonders:
@@ -1354,7 +1405,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             from . import improve
             text, buttons = improve.improve_text(db)
             if send_message:
-                send_message(text, buttons + [[DONE]])
+                send_message(text, buttons + [[HOME]])
                 return ""
             return text
         if command == "impinfo":

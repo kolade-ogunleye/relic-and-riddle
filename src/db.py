@@ -551,6 +551,8 @@ class PipelineDatabase:
                             start_time: Optional[float] = None) -> None:
         """Stores the active running render state so Telegram /clear and /status can track it."""
         current = self.get_active_progress() or {}
+        if current.get("run_id") != run_id:
+            current = {}
         st = start_time if start_time is not None else current.get("start_time", time.time())
         mid = message_id if message_id is not None else current.get("message_id")
         payload = {
@@ -563,6 +565,9 @@ class PipelineDatabase:
             "start_time": st,
             "updated_at": _now(),
         }
+        from .process_state import identity
+        payload["owner_pid"] = current.get("owner_pid", os.getpid())
+        payload["owner_identity"] = current.get("owner_identity", identity(os.getpid()))
         self.set_setting("active_progress", json.dumps(payload))
 
     def get_active_progress(self) -> Optional[Dict[str, Any]]:
@@ -580,7 +585,15 @@ class PipelineDatabase:
             self.clear_active_progress()
             return None
         try:
-            return json.loads(val)
+            progress = json.loads(val)
+            from .process_state import identity
+            owner = progress.get("owner_identity")
+            observed = identity(progress["owner_pid"]) if progress.get("owner_pid") else "unknown"
+            if owner and owner != "unknown" and observed != "unknown" and observed != owner:
+                progress["worker_state"] = "interrupted"
+            else:
+                progress["worker_state"] = "running" if owner and owner != "unknown" and observed == owner else "unverified"
+            return progress
         except Exception:
             return None
 

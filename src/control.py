@@ -467,11 +467,12 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
 
 def startup_dashboard_card(db: PipelineDatabase, mode: str = "bot", time_str: Optional[str] = None,
                            timezone_str: Optional[str] = None, assets_dir: Path = ASSETS_DIR) -> Tuple[str, List[List[Dict[str, str]]]]:
-    """The dashboard, headed by what just started."""
+    """Keep the dashboard heading, with startup state in its body."""
     started = (f"🟢 Daemon started: daily run at {html.escape(time_str or '09:00')} {html.escape(timezone_str or 'UTC')}"
                if mode == "daemon" else "🟢 Bot started (commands and reviews; no scheduled runs)")
     text, buttons = dashboard_text_and_buttons(db, None, assets_dir=assets_dir)
-    return started + "\n\n" + text, buttons
+    heading, _, body = text.partition("\n\n")
+    return heading + "\n\n" + started + "\n\n" + body, buttons
 
 
 def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[str]],

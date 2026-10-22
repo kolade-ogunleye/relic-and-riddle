@@ -1851,8 +1851,9 @@ def main(argv=None) -> int:
             threading.Thread(target=monitor_worker, args=(worker_proc,), name="worker-monitor", daemon=True).start()
             return f"🎬 Production run launched in isolated worker (PID {worker_proc.pid}). Live progress updates will stream here."
 
+        bot.next_run_func = lambda: "on-demand (bot supervisor)"
         handler = make_command_handler(
-            db, lambda: "on-demand (bot supervisor)",
+            db, bot.next_run_func,
             trigger_run,
             send_photo=bot.send_photo, send_audio=bot.send_audio, send_message=bot.notify, delete_message=bot.delete_message, voice_quota=coordinator.audio_engine.voice_quota,
             propose_topics=_proposal_trigger(db, bot),
@@ -1866,7 +1867,7 @@ def main(argv=None) -> int:
             start_post_ticker(coordinator, bot)
         from src.control import startup_dashboard_card
         card_text, card_buttons = startup_dashboard_card(db, mode="bot", assets_dir=config.ASSETS_DIR)
-        bot.notify(card_text, buttons=card_buttons, record_alert=False)
+        bot.show_dashboard(card_text, card_buttons)
         log.info("Studio Control Center: listening for Telegram commands. Ctrl+C to stop.")
         try:
             while True:
@@ -2101,6 +2102,7 @@ def main(argv=None) -> int:
             scheduler.add_job(production_run, kwargs={"manual": True})
             return "🎬 Starting a run now. You'll get the review card when it's rendered; nothing posts without your approval."
 
+        bot.next_run_func = next_run
         handler = make_command_handler(coordinator.db, next_run, trigger_run, send_photo=bot.send_photo, send_audio=bot.send_audio, send_message=bot.notify, delete_message=bot.delete_message,
                                        voice_quota=coordinator.audio_engine.voice_quota,
                                        apply_updates=apply_updates, propose_topics=propose_topics,
@@ -2129,8 +2131,8 @@ def main(argv=None) -> int:
             from src.control import startup_dashboard_card
             card_text, card_buttons = startup_dashboard_card(coordinator.db, mode="daemon", time_str=args.time, timezone_str=TIMEZONE, assets_dir=config.ASSETS_DIR)
             if args.dry_run:
-                card_text = "🧪 <b>DRY RUN</b>: runs, reviews and approvals work, but nothing is posted.\n\n" + card_text
-            scheduler.add_job(lambda: bot.notify(card_text, buttons=card_buttons, record_alert=False))
+                card_text = card_text.replace("\n\n", "\n\n🧪 <b>Validation mode</b>: runs, reviews and approvals work, but nothing is posted.\n\n", 1)
+            scheduler.add_job(lambda: bot.show_dashboard(card_text, card_buttons))
             scheduler.start()
         except (KeyboardInterrupt, SystemExit):
             log.info("Daemon stopped.")

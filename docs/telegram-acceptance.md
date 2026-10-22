@@ -84,8 +84,8 @@ cannot repair production's older bot or progress records.
 
 ## Verification record: 2026-10-22
 
-Windows full suite: **704 passed**. Final focused regression suite including
-connection retries and reload guards: **94 passed**. Tests block real network services.
+Windows full suite after clean-start/presentation changes: **711 passed**.
+Connection retry/reload guard regressions also passed (94 focused checks). Tests block real network services.
 Development task was reloaded, its bot identity verified as `8701645452`
 (`@relicandriddle_dev_bot`), and the live 33-command menu contains Clear, Jobs,
 Images and Music with old image aliases omitted from autocomplete. `.env` hash
@@ -104,3 +104,26 @@ checked producing runs only. Its existing records are retained and Jobs reports
 its dead owner as interrupted. The development stop guard now also refuses to
 stop live/unverifiable operator jobs and publishing runs. No research was
 replayed automatically; a request already sent may have incurred provider usage.
+
+## Clean start and shared presentation
+
+`/clear` leaves only the normal Dashboard, without a separate cleanup receipt or
+long deletion-policy banner. Pending pipeline review cards and genuinely active
+progress remain protected. `/start`, `/dashboard` and startup reuse a persisted
+Dashboard anchor; returning from media updates that anchor to its replacement.
+A deleted/uneditable anchor is replaced safely. Telegram still limits what old
+messages a bot can delete; deleting history in the Telegram client remains a
+client operation.
+
+All HTML text notifications, panels and photo/audio captions pass through
+`src/telegram_presentation.py` at the API boundary: short bold sentence-case
+heading, blank line, body; no stacked underline styling or ornamental divider
+lines. Protected code/quoted evidence, case-sensitive IDs, licence details and
+action metadata are retained. Captions/text remain within Telegram limits.
+Review/approval actions keep their existing meaning. Startup state appears in
+the Dashboard body rather than introducing a second heading above the brand.
+
+Retest `/clear` then `/start`: one Dashboard should remain. Repeat after opening
+Covers and returning; compare Queue, Music, Images, Help and notifications for
+consistent heading/spacing. Ordinary notifications do not acquire extra buttons;
+interactive panels retain context actions and Dashboard navigation.

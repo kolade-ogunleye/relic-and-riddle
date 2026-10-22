@@ -291,6 +291,31 @@ class TelegramApprovalBot:
             message_id = self._panel_aliases[message_id]
         return message_id
 
+    def show_dashboard(self, text=None, buttons=None, fresh=False):
+        """One dashboard anchor survives /start and routine process reloads."""
+        with self._panel_lock:
+            return self._show_dashboard_locked(text, buttons, fresh)
+
+    def _show_dashboard_locked(self, text, buttons, fresh):
+        from .control import dashboard_text_and_buttons
+        from .config import ASSETS_DIR
+        if text is None:
+            text, buttons = dashboard_text_and_buttons(self.db, getattr(self, "next_run_func", lambda: None)(), assets_dir=ASSETS_DIR)
+        stored = self.db.get_setting("telegram_dashboard_id")
+        previous = int(stored) if stored and stored.isdigit() else None
+        if previous and not fresh:
+            current = self._current_panel(previous)
+            self._panel_revisions[current] = self._panel_revisions.get(current, 0) + 1
+            if self.show_navigation_panel(current, text, buttons):
+                self.db.set_setting("telegram_dashboard_id", str(self._current_panel(current)))
+                return self._current_panel(current)
+        message_id = self.notify(text, buttons=buttons, record_alert=False)
+        if type(message_id) is int:
+            self.db.set_setting("telegram_dashboard_id", str(message_id))
+            if previous and not fresh and self._current_panel(previous) != message_id:
+                self.delete_message(self._current_panel(previous))
+        return message_id
+
     def show_navigation_panel(self, message_id, text, buttons=None, is_media=False):
         """A text screen must not keep an unrelated cover/audio attachment."""
         with self._panel_lock:
@@ -304,9 +329,13 @@ class TelegramApprovalBot:
             new_id = result["message_id"]
             if new_id == current:
                 raise RuntimeError("Telegram returned an invalid replacement message identity")
+            stored = self.db.get_setting("telegram_dashboard_id")
+            is_dashboard = stored and stored.isdigit() and self._current_panel(int(stored)) == current
             self._panel_aliases[current] = new_id
             self._panel_media[new_id] = False
             self._panel_revisions[new_id] = self._panel_revisions.get(current, 0)
+            if is_dashboard:
+                self.db.set_setting("telegram_dashboard_id", str(new_id))
             if not self.delete_message(current):
                 self._strip_buttons(current)
             return True
@@ -481,6 +510,10 @@ class TelegramApprovalBot:
             return False
 
     def _api(self, method: str, timeout: float = 30, **kwargs) -> Dict[str, Any]:
+        from .telegram_presentation import format_payload
+        for field in ("data", "json"):
+            if isinstance(kwargs.get(field), dict):
+                kwargs[field] = format_payload(method, kwargs[field])
         # Edits address an existing message, so a connection retry cannot create a
         # second card. Sending/uploading a new message is deliberately excluded.
         retry_edit = method in {"editMessageMedia", "editMessageText", "editMessageCaption", "editMessageReplyMarkup"}
@@ -1686,6 +1719,12 @@ class TelegramApprovalBot:
                 log.warning("Ignoring command from unauthorized user %s.", user_id)
                 continue  # "/status@relicandriddle_bot" -> "status"
 
+            if command in {"start", "dashboard"}:
+                if msg.get("message_id"):
+                    self.delete_message(msg["message_id"])
+                self.show_dashboard()
+                continue
+
             if command == "clear":
                 cmd_mid = msg.get("message_id")
                 # 1. Immediate responsiveness feedback
@@ -1735,14 +1774,7 @@ class TelegramApprovalBot:
                 from .config import ASSETS_DIR
                 next_fn = getattr(self, "next_run_func", lambda: None)
                 dash_text, dash_buttons = dashboard_text_and_buttons(self.db, next_fn(), assets_dir=ASSETS_DIR)
-                clean_text = (
-                    f"🧹 <b><u>CHAT CLEARED</u></b>\n\n"
-                    f"{deleted_count} message(s) purged.\n\n"
-                    f"<i>(Note: Telegram API restricts bots from deleting human messages older than 48h. "
-                    f"To completely wipe 100% of ancient messages from your device: Chat Header → 'Clear History')</i>\n\n"
-                    + dash_text
-                )
-                self.notify(clean_text, buttons=dash_buttons, record_alert=False)
+                self.show_dashboard(dash_text, dash_buttons, fresh=True)
 
                 # 6. Bring active progress card forward to the bottom of the fresh chat
                 if active_prog and active_prog.get("worker_state") == "running":

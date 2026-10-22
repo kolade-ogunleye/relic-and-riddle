@@ -135,7 +135,7 @@ if ($Action -eq 'InstallTask') {
             $worker = Get-Process -Id $record.pid -ErrorAction SilentlyContinue
             if ($worker -and -not $worker.HasExited) {
                 if ($worker.Path -ne (Join-Path $app '.venv\Scripts\python.exe') -or
-                    $worker.StartTime.ToUniversalTime().ToString('o') -ne $record.started) {
+                    $worker.StartTime.ToUniversalTime().Ticks -ne ([datetimeoffset]$record.started).UtcDateTime.Ticks) {
                     throw 'Worker PID identity changed; no process terminated.'
                 }
                 throw 'The task ended but its Python worker survived; cleanup remains blocked.'

@@ -770,7 +770,9 @@ def test_bulk_delete_messages_and_clear_command(db, monkeypatch):
     assert any(c[0] == "deleteMessages" for c in calls)
     # Check that dashboard was sent with clear text
     send_calls = [c for c in calls if c[0] == "sendMessage"]
-    assert any("CHAT CLEARED" in c[1].get("text", "") for c in send_calls)
+    assert len(send_calls) == 1
+    assert "RELIC &amp; RIDDLE" in send_calls[0][1]["text"]
+    assert "CHAT CLEARED" not in send_calls[0][1]["text"]
 
 
 def test_audit_log_formatting_and_ellipses(db):

@@ -172,3 +172,27 @@ def test_dashboard_failure_reason_is_readable():
     assert not reason.startswith("ScriptUnavailableError") and reason.endswith("…")
     assert len(reason) <= 281 and not reason[:-1].endswith(("wor", "wo"))   # cut at a word
     assert short_reason("Plain short reason") == "Plain short reason"
+
+
+def test_ask_about_the_bot_uses_bot_evidence_not_the_last_video(db, monkeypatch):
+    from src import free_llm, probe
+    db.create_run("r1", "01_topic")
+    seen = {}
+    monkeypatch.setattr(free_llm, "ready", lambda: True)
+    def model(system, prompt, schema, **k):
+        seen["system"], seen["prompt"] = system, prompt
+        return probe._Answer(answer="Yes, it answered you just now.", records=["recent bot jobs"], recorded=True)
+    monkeypatch.setattr(free_llm, "call", model)
+    out = probe.probe_system("Is the bot's ask command actively working now?", db=db)
+    assert "the bot and studio" in out and "recent bot jobs" in seen["prompt"] and '"run"' not in seen["prompt"]
+    assert "plain everyday words" in seen["system"] and "Based on: recent bot jobs" in out
+    out = probe.probe_system("why did the last run fail?", db=db)
+    assert "About:</b> " in out and "the bot and studio" not in out    # a video question gets the run
+
+
+def test_ask_says_plainly_when_records_do_not_cover_it(db, monkeypatch):
+    from src import free_llm, probe
+    monkeypatch.setattr(free_llm, "ready", lambda: True)
+    monkeypatch.setattr(free_llm, "call", lambda *a, **k: probe._Answer(answer="I can't tell; try /status.", records=[], recorded=False))
+    out = probe.probe_system("is the scheduler healthy?", db=db)
+    assert "Not fully covered by the records" in out and "⚪" not in out

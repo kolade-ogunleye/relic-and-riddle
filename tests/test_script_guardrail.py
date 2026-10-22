@@ -223,3 +223,16 @@ def test_over_long_graphic_labels_are_shortened_before_any_is_dropped(curated_pa
     # A rewrite that still doesn't fit drops only that card; the other stays.
     monkeypatch.setattr(free_llm, "call", lambda *a, **k: script_engine._Shortened(texts=["x" * 41]))
     assert [c.label for c in script_engine.prune_graphics(pkg).stat_cards] == ["standing"]
+
+
+def test_writer_failures_are_named_not_blamed_on_configuration(curated_payload, monkeypatch):
+    from src import script_engine
+    monkeypatch.setattr(script_engine, "_ready", lambda: True)
+    engine = ScriptEngine()
+    bad = dict(curated_payload, narration_script=curated_payload["narration_script"][:-1] + " that", closing_sentence="x")
+    monkeypatch.setattr(engine, "_generate_with_claude", lambda topic, feedback: ScriptPackage.model_validate(bad))
+    monkeypatch.setattr(engine, "_load_curated", lambda topic_id: None)
+    with pytest.raises(ScriptUnavailableError) as raised:
+        engine.generate_script({"id": "no_curated_topic", "title": "T"})
+    assert "made 2 attempts" in str(raised.value) and "trailing word 'that'" in str(raised.value)
+    assert "ANTHROPIC_API_KEY" not in str(raised.value)

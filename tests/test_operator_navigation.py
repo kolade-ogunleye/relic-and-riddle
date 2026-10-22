@@ -126,3 +126,49 @@ def test_share_alike_switch_and_release_obligation(monkeypatch, tmp_path):
                                               "artist": "A", "title": "T", "source_url": "https://s", "license_url": "https://l"}]}))
     payload = credits.add_provenance_attributions({"caption": "Story", "description": "Story"}, ledger)
     assert credits.SHARE_ALIKE_NOTICE in payload["caption"] and credits.SHARE_ALIKE_NOTICE in payload["description"]
+
+
+def _typed(bot, text, handler, message_id=300):
+    import time
+    bot._process_update({"update_id": message_id, "message": {"message_id": message_id, "text": text, "date": int(time.time()),
+                                                               "from": {"id": 555}, "chat": {"id": 555}}}, handler)
+    bot.drain()
+
+
+def test_typed_answer_is_delivered_even_if_its_screen_was_left(db):
+    calls, ids = [], iter(range(900, 950))
+    bot = TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
+    bot._api = lambda method, **kw: calls.append((method, kw.get("data") or {})) or {"message_id": next(ids)}
+
+    def slow_ask(command, args):
+        panel = int(db.get_setting("telegram_dashboard_id"))
+        bot._panel_revisions[panel] = bot._panel_revisions.get(panel, 0) + 1   # the operator taps Dashboard meanwhile
+        return "the recorded answer"
+    _typed(bot, "/ask what failed?", slow_ask)
+    sent = [d.get("text", "") for m, d in calls if m == "sendMessage"]
+    assert any("the recorded answer" in text for text in sent)                 # opened as the panel, not dropped
+    assert ("deleteMessage", 300) in [(m, d.get("message_id")) for m, d in calls]  # the typed command is removed
+    job = bot.jobs.recent()[0]
+    assert job["delivery"] == "attempted"
+
+
+def test_a_new_panel_replaces_the_previous_one(db):
+    calls, ids = [], iter(range(700, 750))
+    bot = TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
+    bot._api = lambda method, **kw: calls.append((method, kw.get("data") or {})) or {"message_id": next(ids)}
+    first = bot.show_dashboard("one", [[{"text": "x", "callback_data": "cdash:"}]], fresh=True)
+    second = bot.show_dashboard("two", [[{"text": "x", "callback_data": "cdash:"}]], fresh=True)
+    bot.drain()
+    assert first != second and ("deleteMessage", first) in [(m, d.get("message_id")) for m, d in calls]
+    _typed(bot, "/next", lambda c, a: "Next topic: X")
+    edits = [d.get("text", "") for m, d in calls if m == "editMessageText"]
+    assert "Next topic: X" in edits[-1]
+
+
+def test_dashboard_failure_reason_is_readable():
+    from src.control import short_reason
+    error = "ScriptUnavailableError: The script writer made 2 attempts and each failed its checks " + "word " * 80
+    reason = short_reason(error)
+    assert not reason.startswith("ScriptUnavailableError") and reason.endswith("…")
+    assert len(reason) <= 281 and not reason[:-1].endswith(("wor", "wo"))   # cut at a word
+    assert short_reason("Plain short reason") == "Plain short reason"

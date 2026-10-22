@@ -84,9 +84,13 @@ def test_poll_applies_approval_click_for_any_pending_run(db, monkeypatch, delive
 
 def test_command_errors_are_reported_not_raised(db, monkeypatch):
     bot, sent = _bot(db, monkeypatch, [{"update_id": 1, "message": {"text": "/next", "from": {"id": 555}, "chat": {"id": 555}}}])
+    shown = []
+    api = bot._api
+    monkeypatch.setattr(bot, "_api", lambda method, **kw: (shown.append(kw["data"]["text"]) if method == "editMessageText" else None) or api(method, **kw))
     bot.poll_once(lambda c, a: (_ for _ in ()).throw(RuntimeError("<boom>")))
     bot.drain()
-    assert "failed" in sent[0] and "<boom>" not in sent[0]
+    assert "Working" in sent[0]                                  # the panel opens at the bottom of the chat
+    assert "failed" in shown[-1] and "<boom>" not in shown[-1]   # and the error is shown in it
 
 
 def test_notify_never_raises(db, monkeypatch):

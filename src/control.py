@@ -41,6 +41,14 @@ HOME = {"text": "← Dashboard", "callback_data": "cdash:"}
 from .local_time import show as show_time
 
 
+def short_reason(error: str, limit: int = 280) -> str:
+    """A failure reason for the dashboard: no exception class name, and cut at a word, never mid-word."""
+    text = re.sub(r"^[A-Z]\w*(Error|Exception):\s*", "", (error or "").strip())
+    if len(text) <= limit:
+        return text
+    return text[:limit].rsplit(" ", 1)[0].rstrip(",;:") + "…"
+
+
 def pager(prefix: str, page: int, pages: int) -> list:
     """⏮ first, ◀ previous, ▶ next, ⏭ last for a paged panel; a button that would not move is left out."""
     row = []
@@ -435,7 +443,7 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         needs.append(f"🖼 Only {ready} queued topic(s) have photos ready")
     recent = db.list_recent_runs(limit=1)
     if recent and recent[0].get("status") == "failed":
-        needs.append(f"❌ Last run failed: {e((recent[0].get('error') or '')[:120])}")
+        needs.append(f"❌ Last run failed: {e(short_reason(recent[0].get('error') or ''))}")
 
     active = db.get_active_progress() if hasattr(db, "get_active_progress") else None
     from . import config

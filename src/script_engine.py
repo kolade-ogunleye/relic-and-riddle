@@ -57,7 +57,7 @@ Editorial rules:
 - Hard ban on robotic sentence prefixes: NEVER start sentences with 'Estimated,' or 'Approximately,'. Integrate hedges naturally into the narrative flow.
 - Hard ban on academic paper citation chaff: do NOT use phrases like "A study in [year] reported...", "Researchers drilled...", "Geologist [Name] stated...", or "According to historians...". Present verified physical, chemical, and historical facts directly and authoritatively.
 - Hard ban on research meta-commentary: NEVER discuss the state of records, studies, or sources in the narration (e.g. do NOT say "popular sources give shallower figures", "there is no official figure for...", "records do not specify", or "sources disagree"). Instead, present the physical and historical realities directly with natural in-situ hedges (e.g. "carved roughly X feet (Y m) down", "an estimated N residents", or "ranging between A and B meters", using the sourced figures).
-- Never end on a trailing word such as "when", "until", "because", "and".
+- Never end on a trailing word such as "when", "until", "because", "and", "that", "the" or "of".
 - Use numbers only when sources support them. Where sources disagree, say "about", "up to", "estimated", or name the range. State the hedged physical reality directly.
 - No conspiracy or pseudo-archaeology framing (aliens, lost super-civilizations, etc.).
 - Topic notes supplied by the user may contain errors or exaggerations. Check them; do not repeat them unverified.
@@ -93,7 +93,7 @@ Topic notes (unverified): {key_facts}
 
 Requirements:
 - title: the Facebook Reel title shown under the video: at most 60 characters, specific and intriguing (a name, a number or a tension, not a label like "The History of X"); at most one relevant emoji.
-- caption: written like a magazine editor, not a template. First line: a curiosity-driven line of at most 125 characters (the part shown before "more") that is NOT the narration's hook sentence. Then 2-3 short sentences that add context the video doesn't say (a detail, a consequence, a name), with the place worked naturally into the prose. Then one genuine question to the audience. Then the hashtags on the last line. Use 1-3 relevant emoji where they add warmth or meaning (for example one at the end of the first line and one on the question), never as labels or bullet markers, and no "📍" lines. Under 1,600 characters.
+- caption: written like a magazine editor, not a template. First line: a curiosity-driven line of at most 110 characters (a hard limit of 125 is shown before "more"; stay well under it) that is NOT the narration's hook sentence. Then 2-3 short sentences that add context the video doesn't say (a detail, a consequence, a name), with the place worked naturally into the prose. Then one genuine question to the audience. Then the hashtags on the last line. Use 1-3 relevant emoji where they add warmth or meaning (for example one at the end of the first line and one on the question), never as labels or bullet markers, and no "📍" lines. Under 1,600 characters.
 - carousel_caption: a separate caption for the 7-slide carousel of the same topic, different wording from the Reel caption (not a rephrase of its first line): a short invitation to swipe, one fresh detail, one question, then the same hashtags. Under 800 characters.
 - hashtags: 3-5 (Instagram allows at most 5), each starting with "#": specific to the place, era or subject (e.g. "#Cappadocia", "#ByzantineHistory"); no generic engagement tags like "#viral", "#fyp", "#ReelsViral", "#explore".
 - story_slides: exactly 3 (hook, revelation, question). Slide 3 asks the poll's question; its body gives context and asks nothing else.
@@ -425,6 +425,7 @@ class ScriptEngine:
         revision_notes / previous: fact-checker findings on the previous draft. The previous
         draft is edited (not rewritten) so corrections don't introduce new, unchecked claims.
         """
+        last_problems: List[str] = []
         if _ready():
             sheet = self._sheet(topic) if previous is not None and previous.get("fact_sheet") else None
             if revision_notes and previous and sheet:
@@ -467,6 +468,7 @@ class ScriptEngine:
                 if not problems:
                     return self._finalize(pkg, topic, origin=writer_origin(), fact_sheet_used=self._sheet(topic) is not None)
                 log.warning("Attempt %d failed structural checks: %s", attempt, problems)
+                last_problems = problems
                 improve.note_problems(problems, "structure")
                 feedback = base_feedback + "\n\nA previous draft was rejected for: " + " ".join(problems) + " Fix these."
             log.warning("Claude did not produce a usable script; trying curated script.")
@@ -481,8 +483,14 @@ class ScriptEngine:
         if topic["id"] in self._starved:  # too few verified facts and no curated script: skip the topic
             raise self._starved[topic["id"]]
 
+        if last_problems:  # the writer ran; say what stopped it rather than blaming configuration
+            raise ScriptUnavailableError(
+                f"The script writer ({writer_origin()}) made {max_attempts} attempts for '{topic['id']}' and each failed "
+                f"its checks (last: {' '.join(last_problems)}). Run it again, or add a curated script at "
+                f"data/scripts/{topic['id']}.json."
+            )
         raise ScriptUnavailableError(
-            f"No script source for topic '{topic['id']}': configure ANTHROPIC_API_KEY "
+            f"No script source for topic '{topic['id']}': configure a script engine (free Gemini or ANTHROPIC_API_KEY) "
             f"or add a curated script at data/scripts/{topic['id']}.json."
         )
 

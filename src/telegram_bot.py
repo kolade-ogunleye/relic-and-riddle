@@ -340,9 +340,18 @@ class TelegramApprovalBot:
         message_id = self.notify(text, buttons=buttons, record_alert=False)
         if type(message_id) is int:
             self.db.set_setting("telegram_dashboard_id", str(message_id))
-            if previous and not fresh and self._current_panel(previous) != message_id:
-                self.delete_message(self._current_panel(previous))
+            self._panel_media[message_id] = False
+            # One panel in the chat: the one this replaces goes (a review card is never the panel).
+            if previous and self._current_panel(previous) != message_id:
+                self._delete_soon(self._current_panel(previous))
         return message_id
+
+    def _typed_panel(self):
+        """A typed command opens the one panel at the bottom of the chat and runs in it, as a tap would."""
+        message_id = self._show_dashboard_locked("⏳ <b>Working…</b>", [[DONE_BUTTON]], fresh=True)
+        if type(message_id) is not int:
+            return None
+        return message_id, False, self._panel_revisions.get(message_id, 0)
 
     def show_navigation_panel(self, message_id, text, buttons=None, is_media=False):
         """A text screen must not keep an unrelated cover/audio attachment."""
@@ -380,7 +389,7 @@ class TelegramApprovalBot:
             return False
         return self.notify(text, buttons=buttons, record_alert=False)
 
-    def start_operator_job(self, title, work, resource="", navigation=None):
+    def start_operator_job(self, title, work, resource="", navigation=None, late=False):
         destination = [navigation if navigation is not None else self.navigation_target()]
         def announce(job):
             buttons = [[{"text": "Cancel job", "callback_data": f"jobcancel:{job['id']}"}], [{"text": "Jobs", "callback_data": "jobs:"}], [DONE_BUTTON]]
@@ -404,7 +413,11 @@ class TelegramApprovalBot:
                     buttons.insert(0, [{"text": "Try again", "callback_data": resource}])
             if job.get("error_detail"):
                 text += "\n" + html.escape(job["error_detail"]) + "\nInspect /jobs before explicitly retrying."
-            return self.update_navigation_target(destination[0], text, buttons)
+            delivered = self.update_navigation_target(destination[0], text, buttons)
+            if not delivered and late:
+                # A typed request whose screen was left while it ran: its answer opens as the panel.
+                delivered = type(self.show_dashboard(text, navigation_buttons(buttons), fresh=True)) is int
+            return delivered
         return self.jobs.submit(self._background(), title, work, complete, resource, announce)
 
     def jobs_view(self):
@@ -492,6 +505,7 @@ class TelegramApprovalBot:
         try:
             updated = self.image_wizard().file(chat, user, self.download_image(image), state["id"])
             if updated:
+                self._delete_soon(msg.get("message_id"))  # received and staged: the copy in the chat is clutter
                 self.show_upload(updated, expected_revision=state.get("_navigation_revision"))
         except Exception as exc:
             current = self.image_wizard().load(chat, user)
@@ -1526,8 +1540,8 @@ class TelegramApprovalBot:
         work can queue more navigation, so the pools are drained until both are empty."""
         while True:
             with self._panel_lock:
-                pools = [p for p in (self._navigation_pool, self._workers) if p is not None]
-                self._navigation_pool = self._workers = None
+                pools = [p for p in (self._navigation_pool, self._workers, self._cleanup) if p is not None]
+                self._navigation_pool = self._workers = self._cleanup = None
             if not pools:
                 return
             for pool in pools:
@@ -1816,6 +1830,8 @@ class TelegramApprovalBot:
                 elif image:
                     self.show_upload(state, 'The image was already received. Please answer the current prompt.')
                 elif text:
+                    if msg.get('message_id'):
+                        self._delete_soon(msg['message_id'])
                     try:
                         state = wizard.answer(chat, user, text)
                         if state['stage'] == 'complete':
@@ -2017,8 +2033,10 @@ class TelegramApprovalBot:
             self.show_dashboard(dash_text, dash_buttons, fresh=True)
             return
         if command == 'jobs':
+            if msg.get('message_id'):
+                self._delete_soon(msg['message_id'])
             text, buttons = self.jobs_view()
-            self.notify(text, buttons=buttons, record_alert=False)
+            self.show_dashboard(text, buttons, fresh=True)
             return
         if command == 'images':
             verb, _, ref = args.partition(' ')
@@ -2026,13 +2044,30 @@ class TelegramApprovalBot:
                 command, args = ('fetchimages', ref)
         if command == 'music' and args.startswith('fetch '):
             command, args = ('mfetch', args.partition(' ')[2])
+        if msg.get('message_id'):
+            self._delete_soon(msg['message_id'])  # the panel shows what was asked; the chat keeps one panel
+        target = self._typed_panel()
         if command in SLOW_COMMANDS:
             self.send_chat_action('typing')
-            self.start_operator_job(command.replace('_',' ').capitalize(), lambda: command_handler(command, args.strip()), resource=f'{command}:{args.strip()}')
+            if target:
+                self._run_panel_command(command_handler, command, args.strip(), target[0], False, target[2], late=True)
+            else:
+                self.start_operator_job(command.replace('_',' ').capitalize(), lambda: command_handler(command, args.strip()), resource=f'{command}:{args.strip()}')
         else:
-            self._run_command(command_handler, command, args.strip())
+            self._run_command(command_handler, command, args.strip(), target)
 
     _workers = None
+    _cleanup = None
+
+    def _delete_soon(self, message_id) -> None:
+        """Removes a message off the reply path: what the operator sees next does not wait for it."""
+        if not message_id:
+            return
+        import concurrent.futures
+        with self._panel_lock:
+            if self._cleanup is None:
+                self._cleanup = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="tg-cleanup")
+            self._cleanup.submit(self.delete_message, message_id)
 
     def _background(self):
         import concurrent.futures
@@ -2041,22 +2076,34 @@ class TelegramApprovalBot:
                 self._workers = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="tg-command")
             return self._workers
 
-    def _run_command(self, command_handler: Callable[[str, str], str], command: str, args: str) -> None:
-        try:
-            if command in {"fetchimages", "mfetch"}:
+    def _run_command(self, command_handler: Callable[[str, str], str], command: str, args: str, target=None) -> None:
+        if command in {"fetchimages", "mfetch"}:
+            if target:
+                self._run_panel_command(command_handler, command, args, target[0], False, target[2], late=True)
+            else:
                 self.start_operator_job("Fetching images" if command == "fetchimages" else "Finding documentary music",
                     lambda: command_handler(command, args), resource=f"{command}:{args}")
-                return
+            return
+        panel = [self, target[0], False, False, target[2]] if target else None
+        token = _PANEL.set(panel) if panel else None
+        try:
             reply = command_handler(command, args)
         except Exception as e:
             log.warning("Command /%s failed: %s", command, _MASKER.mask(str(e)))
             reply = f"⚠️ /{html.escape(command)} failed: {html.escape(str(e))[:300]}"
-        if isinstance(reply, tuple):
-            self.notify(reply[0], buttons=reply[1], record_alert=False)
-        elif reply:
-            self.notify(reply, buttons=[[DONE_BUTTON]], record_alert=False)
+        finally:
+            if token is not None:
+                _PANEL.reset(token)
+        if panel and panel[3]:
+            return  # the command drew its own screen in the panel
+        text, buttons = reply if isinstance(reply, tuple) else (reply, [[DONE_BUTTON]])
+        if target:
+            if not self.update_navigation_target(target, text or "✅ Done.", navigation_buttons(buttons)):
+                self.show_dashboard(text or "✅ Done.", navigation_buttons(buttons), fresh=True)
+        elif text:
+            self.notify(text, buttons=buttons, record_alert=False)
 
-    def _run_panel_command(self, handler, action, target, message_id, is_media, revision):
+    def _run_panel_command(self, handler, action, target, message_id, is_media, revision, late=False):
         def work():
             panel = [self, self._current_panel(message_id), is_media, False, revision]
             token = _PANEL.set(panel)
@@ -2065,8 +2112,8 @@ class TelegramApprovalBot:
                 return None if panel[3] else result
             finally:
                 _PANEL.reset(token)
-        return self.start_operator_job({"fetchimages": "Fetching images", "mfetch": "Finding documentary music", "caccounts": "Checking accounts", "ccov": "Covers", "cmusic": "Music", "cstat": "Full status", "cprop": "Waiting ideas", "cdisc": "UNESCO marvels"}.get(action, action),
-            work, resource=f"{action}:{target}", navigation=(message_id, is_media, revision))
+        return self.start_operator_job({"fetchimages": "Fetching images", "mfetch": "Finding documentary music", "caccounts": "Checking accounts", "ccov": "Covers", "cmusic": "Music", "cstat": "Full status", "cprop": "Waiting ideas", "cdisc": "UNESCO marvels"}.get(action, action.replace("_", " ").capitalize()),
+            work, resource=f"{action}:{target}", navigation=(message_id, is_media, revision), late=late)
 
     def wait_for_decision(self, run_id: str, timeout_seconds: Optional[int] = None, poll_interval: int = 5,
                           reminder_after: int = 1800) -> str:

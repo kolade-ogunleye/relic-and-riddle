@@ -138,7 +138,8 @@ def test_images_review_drop_approve_flow(db, tmp_path):
 
     assert "Removed 1; 5 images remain" in h("drop", "03_kailasa_temple 2")
     assert len(load_credits(d)["images"]) == 5
-    assert "Approved 5 images" in h("imgok", "03_kailasa_temple@" + __import__("src.telegram_images", fromlist=["review_digest"]).review_digest(d))
+    text, back = h("imgok", "03_kailasa_temple@" + __import__("src.telegram_images", fromlist=["review_digest"]).review_digest(d))
+    assert "Approved 5 images" in text and back[0][0]["callback_data"] == "imagehelp:03_kailasa_temple"
     assert load_credits(d)["reviewed"] is True
 
 
@@ -372,8 +373,8 @@ def test_review_cancel_and_swap_visual_reorder(tmp_path):
     assert sent[-1][2][1]['callback_data'].startswith('imgcancel:derinkuyu@')
 
     # 2. imgcancel callback leaves topic unreviewed
-    cancel_res = h('imgcancel', 'derinkuyu')
-    assert 'Storyboard review closed' in cancel_res
+    cancel_res, back = h('imgcancel', 'derinkuyu')
+    assert 'Storyboard review closed' in cancel_res and back[0][0]['callback_data'] == 'imagehelp:derinkuyu'
     assert load_credits(d1)['reviewed'] is False
 
     # 3. /swap 1 2 4 swaps beats 2 and 4 in both storyboard and credits
@@ -455,11 +456,11 @@ def test_music_mnext_and_duplicate_imgok(tmp_path):
 
     # First approve
     appr1 = h("imgok", "t1@" + __import__("src.telegram_images", fromlist=["review_digest"]).review_digest(d1))
-    assert "✅" in appr1
+    assert "✅" in appr1[0]
 
     # Second approve click should report already approved
     appr2 = h("imgok", "t1@" + __import__("src.telegram_images", fromlist=["review_digest"]).review_digest(d1))
-    assert "was already approved" in appr2
+    assert "was already approved" in appr2[0]
 
 
 def test_mcancel_navigation_and_umoredone_cleanup(db, monkeypatch):
@@ -507,7 +508,7 @@ def test_extended_deletion_and_inplace_transform(db, monkeypatch):
     bot.drain()
     assert 81 in deleted_ids
 
-    # 2. Music removal keeps its panel; storyboard cancellation closes its card
+    # 2. Music removal keeps its panel; storyboard cancellation returns to the topic's image menu
     click_mdel = {"id": "q2", "data": "mdel:track1", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 82}}
     monkeypatch.setattr(bot, "_api", lambda m, **kw: [{"update_id": 2, "callback_query": click_mdel}] if m == "getUpdates" else {})
     bot.poll_once(lambda a, t: "removed")
@@ -516,9 +517,9 @@ def test_extended_deletion_and_inplace_transform(db, monkeypatch):
 
     click_imgcancel = {"id": "q3", "data": "imgcancel:t1", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 83}}
     monkeypatch.setattr(bot, "_api", lambda m, **kw: [{"update_id": 3, "callback_query": click_imgcancel}] if m == "getUpdates" else {})
-    bot.poll_once(lambda a, t: "cancelled")
+    bot.poll_once(lambda a, t: ("cancelled", [[{"text": "← Topic images", "callback_data": "imagehelp:t1"}]]))
     bot.drain()
-    assert 83 in deleted_ids
+    assert 83 not in deleted_ids and 83 in edited_text
 
     # 3. uadd transforms in-place via edit_message_text
     click_uadd = {"id": "q4", "data": "uadd:wonder1", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 84}}

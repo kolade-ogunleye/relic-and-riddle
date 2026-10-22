@@ -46,6 +46,8 @@ def asset_attribution(record):
 def add_provenance_attributions(payload, ledger):
     data = json.loads(Path(ledger).read_text(encoding="utf-8"))
     credits_to_add = [asset_attribution(record) for record in data.get("assets", []) if asset_attribution(record)]
+    if any(is_share_alike(record.get("license", "")) for record in data.get("assets", [])):
+        credits_to_add.insert(0, SHARE_ALIKE_NOTICE)
     if not credits_to_add:
         return payload
 
@@ -225,11 +227,20 @@ def generate_provenance_ledger(
     return prov_path
 
 _ALLOWED = re.compile(r"^(public domain|pd\b|pd-|cc0|cc by \d)", re.IGNORECASE)
-_SHARE_ALIKE = re.compile(r"^cc by-sa \d", re.IGNORECASE)
+# BY-SA 2.0 and later let an adaptation use a later version, so our videos use 4.0; 1.0 does not.
+_SHARE_ALIKE = re.compile(r"^cc by-sa [2-4]", re.IGNORECASE)
+SHARE_ALIKE_NOTICE = "🎬 This video is licensed CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/"
 
 
-def license_allowed(short_name: str, allow_share_alike: bool = False) -> bool:
-    """PD / CC0 / CC BY by default. CC BY-SA only on request (it can bind the derived video)."""
+def is_share_alike(short_name: str) -> bool:
+    return bool(_SHARE_ALIKE.match((short_name or "").strip()))
+
+
+def license_allowed(short_name: str, allow_share_alike: Optional[bool] = None) -> bool:
+    """PD / CC0 / CC BY by default. CC BY-SA only when IMAGES_ALLOW_SHARE_ALIKE is on (it binds the video)."""
+    if allow_share_alike is None:
+        from . import config
+        allow_share_alike = config.IMAGES_ALLOW_SHARE_ALIKE
     name = (short_name or "").strip()
     if _ALLOWED.match(name):
         return True

@@ -15,6 +15,7 @@ import json
 import logging
 import os
 import re
+import threading
 import time
 from contextvars import ContextVar
 from datetime import datetime, timedelta, timezone
@@ -45,10 +46,11 @@ RETIRED_ACTIONS = {"done": "Closed",
                    "umoredone": "This card is from an earlier version. Open /ideas for UNESCO marvels."}
 
 DONE_BUTTON = {"text": "← Dashboard", "callback_data": "cdash:"}
+PAGER_ICONS = {"⏮", "◀", "▶", "⏭"}
 _PANEL = ContextVar("telegram_navigation_panel", default=None)
 PANEL_ACTIONS = {"cideas", "cpropose", "ccov", "cmusic", "cdisc", "cprop", "cstat", "cimages", "caccounts", "imagepick", "imagehelp", "review", "mkeep", "mnext", "mdel", "mcancel", "mreview", "musicmenu", "mfmenu", "mlibrary", "chelp"}
 # Cards removed before acting (their own Cancel/Skip/Next buttons).
-DELETE_FIRST = {"tskip", "imgcancel"}
+DELETE_FIRST = {"tskip"}
 # Decision buttons: disabled before acting so a second tap can't repeat the decision.
 ONE_SHOT = {"uadd", "tadd", "imgok", "mkeep", "cov", "rsn", "impok", "impno", "imprev",
             "pubok", "pubno", "simpub", "resend"}
@@ -65,6 +67,19 @@ TOASTS = {"imgok": "✅ Storyboard Approved!", "imgcancel": "✖ Cancelled", "mc
           "imprev": "↩ Reverted", "creviews": "🎬 Reviews", "cimprove": "🧭 Improvement", "cideas": "💡 Ideas"}
 
 _MASKER = SecretMasker()
+# Keep-alive connections shared by every bot thread: a new TLS connection costs ~1 s, a reused one
+# ~0.2 s. Sessions are per thread; the connection pool (thread-safe) is shared.
+_HTTP = threading.local()
+_POOL = requests.adapters.HTTPAdapter(pool_connections=2, pool_maxsize=16)
+CONNECT_TIMEOUT = 6  # a stalled connect fails fast (edits retry) instead of waiting out the OS timeout
+
+
+def _post(url, timeout=30, **kwargs):
+    session = getattr(_HTTP, "session", None)
+    if session is None:
+        session = _HTTP.session = requests.Session()
+        session.mount("https://", _POOL)
+    return session.post(url, timeout=(CONNECT_TIMEOUT, timeout), **kwargs)
 
 
 def navigation_buttons(buttons=None):
@@ -161,8 +176,8 @@ def format_responsive_keyboard(buttons: Optional[Any], max_per_row: int = 2, max
         for row in buttons:
             if not isinstance(row, list):
                 continue
-            if len(row) == 1:
-                out_rows.append(row)
+            if len(row) == 1 or (len(row) <= 5 and all(str(b.get("text", "")).strip() in PAGER_ICONS or str(b.get("text", "")).isdigit() for b in row if isinstance(b, dict))):
+                out_rows.append(row)  # one button, or a pager/number row (⏮ ◀ ▶ ⏭, 1 2 3 4) that fits any screen
                 continue
             cur: List[Dict[str, str]] = []
             for btn in row:
@@ -286,6 +301,7 @@ class TelegramApprovalBot:
         self._panel_aliases = {}
         self._panel_media = {}
         self._panel_lock = threading.RLock()
+        self._answered = {}  # callback ids already answered (insertion-ordered, bounded)
         self._dispatch_slots = threading.BoundedSemaphore(16)
         self._navigation_pool = None
         self._last_maintenance = 0
@@ -426,8 +442,14 @@ class TelegramApprovalBot:
                 return False
         stage = state["stage"]
         buttons = [[{"text": "Cancel upload", "callback_data": f"uploadcancel:{state['id']}"}]]
+        if stage == "source":
+            buttons.insert(0, [{"text": "📷 I took this photo", "callback_data": f"uploadown:{state['id']}"}])
         if stage == "licence":
-            buttons.insert(0, [{"text": licence, "callback_data": f"uploadlic:{state['id']}:{licence}"} for licence in ("CC0", "CC BY 4.0", "Public domain")])
+            from . import config
+            from .image_upload import OWN_WORK_LICENCES
+            licences = (list(OWN_WORK_LICENCES) if state["rights"].get("own_work") else
+                        ["CC0", "CC BY 4.0", "Public domain"] + (["CC BY-SA 4.0"] if config.IMAGES_ALLOW_SHARE_ALIKE else []))
+            buttons.insert(0, [{"text": licence, "callback_data": f"uploadlic:{state['id']}:{licence}"} for licence in licences])
         text = f"🖼 <b>Upload: {html.escape(state.get('title', state['topic']))}</b>\n\n{html.escape(PROMPTS[stage])}"
         if note:
             text = html.escape(note) + "\n\n" + text
@@ -555,7 +577,7 @@ class TelegramApprovalBot:
                 retry_edit = False
         for attempt in range(3):
             try:
-                resp = requests.post(f"{self.base_url}/{method}", timeout=timeout, **kwargs)
+                resp = _post(f"{self.base_url}/{method}", timeout=timeout, **kwargs)
             except requests.RequestException as e:  # its message carries the URL, and so the token
                 if retry_edit and attempt < 2 and isinstance(e, (requests.ConnectionError, requests.Timeout)):
                     for stream, position in streams:
@@ -572,6 +594,8 @@ class TelegramApprovalBot:
                 log.info("Telegram %s rate-limited; retrying in %ss.", method, retry_after)
                 time.sleep(float(retry_after))
                 continue
+            if method.startswith("editMessage") and "message is not modified" in str(data.get("description", "")):
+                return data.get("result") or {"message_not_modified": True}
             if not resp.ok or not data.get("ok"):
                 raise RuntimeError(f"Telegram {method} failed: HTTP {resp.status_code} {data.get('description', '')}")
             result = data["result"]
@@ -817,6 +841,13 @@ class TelegramApprovalBot:
 
     def _answer_callback(self, cq_id: str, text: str = "") -> None:
         """Safely answers a Telegram callback query; suppresses expired query (400) errors."""
+        # Telegram shows only the first answer and rejects the rest; each rejected call still costs a round trip.
+        with self._panel_lock:
+            if cq_id in self._answered:
+                return
+            self._answered[cq_id] = None
+            while len(self._answered) > 512:
+                self._answered.pop(next(iter(self._answered)))
         try:
             self._api("answerCallbackQuery", timeout=5, data={"callback_query_id": cq_id, "text": text})
         except Exception as e:
@@ -1377,7 +1408,7 @@ class TelegramApprovalBot:
             log.warning("Could not send audio: %s", e)
             return False
 
-    def flip_cover(self, message_id: int, run_name: str, variant_letter: str) -> bool:
+    def flip_cover(self, message_id: int, run_name: str, variant_letter: str, back: Optional[dict] = None) -> bool:
         """Flips the cover variant in-place on an existing Telegram photo message using editMessageMedia."""
         var_letter = variant_letter.lower()
         from .config import OUTPUT_DIR
@@ -1406,7 +1437,8 @@ class TelegramApprovalBot:
             ],
             [
                 {"text": f"🔒 Lock Variant {var_letter.upper()} ({style_name})", "callback_data": f"covlock:{run_name}:{var_letter}"}
-            ]
+            ],
+            [back or DONE_BUTTON],  # keep the way back the panel was opened with (Close or Dashboard)
         ]
         caption = (
             f"🎨 <b>Thumbnail Cover Studio</b> • <code>{html.escape(run_name)}</code>\n\n"
@@ -1466,6 +1498,21 @@ class TelegramApprovalBot:
     # only watch the database (background_polling = True).
     background_polling = False
     _offset: Optional[int] = None
+
+    @staticmethod
+    def warm_up() -> threading.Thread:
+        """Imports the modules behind the slower panels in the background, so the first tap on Ideas or
+        Discoveries does not pay a ~4 s import (the LLM SDKs and the UNESCO list)."""
+        def load():
+            import importlib
+            for name in ("src.topic_proposer", "src.unesco", "src.music", "src.accounts"):
+                try:
+                    importlib.import_module(name)
+                except Exception as exc:  # a failed warm-up only costs the first tap its import time
+                    log.debug("Warm-up import of %s failed: %s", name, exc)
+        thread = threading.Thread(target=load, name="telegram-warm-up", daemon=True)
+        thread.start()
+        return thread
 
     def _submit_update(self, update, handler):
         def work():
@@ -1551,7 +1598,8 @@ class TelegramApprovalBot:
                         if action == "jobcancel":
                             self.jobs.cancel(cq["data"].partition(":")[2])
                             cq["data"] = "jobs:"
-                        self._answer_callback(cq["id"], "Request received")
+                        if action not in RETIRED_ACTIONS:  # those answer with their own explanation
+                            self._answer_callback(cq["id"], "Request received")
                     self._queue_navigation(lambda item=update: self._process_update(item, command_handler))
                 elif (msg.get("text") or "").split(" ",1)[0].split("@")[0].lower() in {"/start","/dashboard","/clear","/jobs"}:
                     self._queue_navigation(lambda item=update: self._process_update(item, command_handler))
@@ -1581,8 +1629,19 @@ class TelegramApprovalBot:
             if not ok:
                 self._answer_callback(cq['id'], 'Not authorized.')
                 return
-            if action not in ACTIONS:
-                self._answer_callback(cq['id'], 'Working')
+            if action == 'close':
+                msg_id = (cq.get('message') or {}).get('message_id')
+                if msg_id:
+                    self.delete_message(msg_id)
+                self._answer_callback(cq['id'], 'Closed')
+                return
+            if action == 'ccov' and target:
+                # From a review card: open the cover studio as its own message under the card, never over it.
+                self._answer_callback(cq['id'], 'Opening covers')
+                reply = command_handler('covers', target)
+                if reply:
+                    self.notify(reply, buttons=[[{'text': '✖ Close', 'callback_data': 'close:'}]], record_alert=False)
+                return
             if action in RETIRED_ACTIONS:
                 # Buttons on cards sent by earlier releases: answer explicitly, never run old behaviour.
                 msg_id = (cq.get('message') or {}).get('message_id')
@@ -1594,6 +1653,8 @@ class TelegramApprovalBot:
                         self._strip_buttons(msg_id)
                     self._answer_callback(cq['id'], RETIRED_ACTIONS[action])
                 return
+            if action not in ACTIONS:
+                self._answer_callback(cq['id'], 'Working')
             if action == 'page':
                 from .telegram_pages import render
                 key, _, number = target.partition(':')
@@ -1601,7 +1662,7 @@ class TelegramApprovalBot:
                 self.show_navigation_panel(cq['message']['message_id'], text, buttons,
                                            bool(cq['message'].get('photo')))
                 return
-            if action in {'upload', 'uploadcancel', 'uploadlic'}:
+            if action in {'upload', 'uploadcancel', 'uploadlic', 'uploadown'}:
                 msg_id = (cq.get('message') or {})['message_id']
                 wizard = self.image_wizard()
                 try:
@@ -1609,11 +1670,25 @@ class TelegramApprovalBot:
                         wizard.cancel(chat_id, user_id, expected_id=target)
                         self.show_navigation_panel(msg_id, 'Upload cancelled. Approved assets are unchanged.', [[{'text': '← Images', 'callback_data': 'cimages:'}], [DONE_BUTTON]])
                     else:
-                        state = wizard.begin(chat_id, user_id, target, msg_id) if action == 'upload' else wizard.answer(chat_id, user_id, target.partition(':')[2], expected_id=target.partition(':')[0], expected_stage='licence')
-                        self.show_upload(state)
+                        if action == 'upload':
+                            state = wizard.begin(chat_id, user_id, target, msg_id)
+                        elif action == 'uploadown':
+                            state = wizard.own_work(chat_id, user_id, expected_id=target)
+                        else:
+                            state = wizard.answer(chat_id, user_id, target.partition(':')[2], expected_id=target.partition(':')[0], expected_stage='licence')
+                        if state.get('stage') == 'complete':
+                            self.show_navigation_panel(msg_id, 'Image saved. Review the set before use.', [[{'text': 'Review set', 'callback_data': f"review:{state['topic']}"}], [{'text': '← Topic images', 'callback_data': f"imagehelp:{state['topic']}"}], [DONE_BUTTON]])
+                        else:
+                            self.show_upload(state)
                     self._answer_callback(cq['id'], 'Updated')
                 except ValueError as exc:
+                    # The tap was already acknowledged, so the reason goes in the panel where it is seen.
                     self._answer_callback(cq['id'], str(exc)[:150])
+                    current = wizard.load(chat_id, user_id)
+                    if current:
+                        self.show_upload(current, str(exc))
+                    else:
+                        self.show_navigation_panel(msg_id, html.escape(str(exc)), [[{'text': '← Images', 'callback_data': 'cimages:'}], [DONE_BUTTON]])
                 return
             if action in ACTIONS:
                 self._handle_callback(cq)
@@ -1622,7 +1697,9 @@ class TelegramApprovalBot:
                 msg_id = msg.get('message_id')
                 if msg_id and ':' in target:
                     r_name, var_letter = target.split(':', 1)
-                    if self.flip_cover(msg_id, r_name, var_letter):
+                    rows = (msg.get('reply_markup') or {}).get('inline_keyboard') or []
+                    back = next((b for row in rows for b in row if b.get('callback_data') in ('close:', 'cdash:')), None)
+                    if self.flip_cover(msg_id, r_name, var_letter, back):
                         self._answer_callback(cq['id'], f'Flipped to Variant {var_letter.upper()}')
                         return
                 if command_handler is not None:

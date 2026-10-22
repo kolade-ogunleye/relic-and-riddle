@@ -148,7 +148,7 @@ def test_interrupted_media_edit_rewinds_upload_and_retries_same_message(db, monk
             raise requests.exceptions.SSLError("TLS stream interrupted")
         return SimpleNamespace(headers={"content-type": "application/json"}, status_code=200, ok=True,
                                json=lambda: {"ok": True, "result": {"message_id": 42}})
-    monkeypatch.setattr(telegram_bot.requests, "post", post)
+    monkeypatch.setattr(telegram_bot, "_post", post)
     monkeypatch.setattr(telegram_bot.time, "sleep", lambda _: None)
     assert bot._api("editMessageMedia", data={"message_id": 42}, files={"photo": stream})["message_id"] == 42
     assert attempts == [(42, b"image payload"), (42, b"image payload")]
@@ -162,7 +162,7 @@ def test_new_message_send_is_not_retried_after_ambiguous_timeout(db, monkeypatch
     def post(*args, **kwargs):
         attempts.append(1)
         raise requests.Timeout("Delivery outcome unknown")
-    monkeypatch.setattr(telegram_bot.requests, "post", post)
+    monkeypatch.setattr(telegram_bot, "_post", post)
     with pytest.raises(RuntimeError, match="Delivery outcome unknown"):
         bot._api("sendPhoto", data={"photo": "file-id"})
     assert len(attempts) == 1

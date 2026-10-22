@@ -58,7 +58,8 @@ def add_image(db, assets_dir, ref, rights, content, uploaded_by):
         credits["reviewed"] = False
         credits["images"].append({"file": name, "title": "Operator-supplied image", "artist": rights["author"],
             "license": rights["licence"], "license_url": rights["licence_url"], "source_url": rights["source"],
-            "attribution_required": rights["licence"].upper().startswith("CC BY"), "uploaded_by": str(uploaded_by)})
+            "attribution_required": rights["licence"].upper().startswith("CC BY"), "uploaded_by": str(uploaded_by),
+            **({"own_work": True} if rights.get("own_work") else {})})
         save_credits(directory, credits)
         write_contact_sheet(directory, credits["images"])
         return topic["id"]
@@ -76,7 +77,7 @@ def fetch_images(db, assets_dir, ref):
         spec = specs.get(topic["id"])
         if not spec:
             raise ValueError("No curated image search for this topic yet; use /image to supply images")
-        count = fetch_topic(topic, spec, False, assets_dir=Path(assets_dir))
+        count = fetch_topic(topic, spec, config.IMAGES_ALLOW_SHARE_ALIKE, assets_dir=Path(assets_dir))
         return topic["id"], count
 
 

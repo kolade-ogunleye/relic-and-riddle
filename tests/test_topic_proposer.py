@@ -98,7 +98,7 @@ def test_proposals_command_resends_pending(wired, monkeypatch):
     h = make_command_handler(db, lambda: None, lambda: "", send_message=lambda text, buttons: sent.append(buttons) or True)
     text, buttons = h("proposals", "")
     assert "Tunnel of Eupalinos" in text and not sent
-    assert any(b["callback_data"] == "ptadd:eupalinos" for row in buttons for b in row)
+    assert any(b["callback_data"] == "ptadd:0:eupalinos" for row in buttons for b in row)
     tp.skip(db, "eupalinos")
     text, buttons = h("proposals", "")
     assert "No topic proposals waiting" in text

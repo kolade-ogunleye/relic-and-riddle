@@ -12,12 +12,16 @@ from .telegram_images import MAX_BYTES, add_image, topic_for
 STEPS = ("file", "source", "licence", "licence_url", "author")
 PROMPTS = {
     "file": "Send the image as a photo or image document. Documents preserve resolution.",
-    "source": "Send the public source page URL for this image.",
+    "source": "Send the public source page URL for this image, or tap I took this photo if it is your own.",
     "licence": "Choose the image's licence below. It must match the source; use Cancel if rights are uncertain.",
     "licence_url": "Send the public URL that documents this image's licence.",
     "author": "Send the photographer/creator's name for attribution.",
 }
 
+
+# Your own photograph: you hold the copyright, so the licence you grant is documented by its deed.
+OWN_WORK_LICENCES = {"CC0": "https://creativecommons.org/publicdomain/zero/1.0/",
+                     "CC BY 4.0": "https://creativecommons.org/licenses/by/4.0/"}
 
 _LOCK = threading.RLock()
 
@@ -77,6 +81,18 @@ class ImageUpload:
         return state
 
     @serialized
+    def own_work(self, chat, user, expected_id):
+        """The operator states they took the photo: no public source page; the licence is theirs to grant."""
+        state = self.load(chat, user)
+        if not state or state["id"] != expected_id or state["stage"] != "source":
+            raise ValueError("This upload button is stale; use the current prompt")
+        state["rights"]["source"] = "Own work (photographed by the operator)"
+        state["rights"]["own_work"] = True
+        state["stage"] = "licence"
+        self.save(chat, user, state)
+        return state
+
+    @serialized
     def answer(self, chat, user, value, expected_id=None, expected_stage=None):
         state = self.load(chat, user)
         if not state:
@@ -89,7 +105,14 @@ class ImageUpload:
         if stage in ("source", "licence_url") and (urlparse(value).scheme not in {"http", "https"} or not urlparse(value).netloc):
             raise ValueError("Send a public HTTP(S) URL, or Cancel")
         if stage == "licence" and not license_allowed(value):
-            raise ValueError("Supported licences are PD, CC0 and CC BY; approval still requires human review")
+            raise ValueError("Supported licences are PD, CC0 and CC BY (CC BY-SA when enabled); approval still requires human review")
+        if stage == "licence" and state["rights"].get("own_work"):
+            if value not in OWN_WORK_LICENCES:
+                raise ValueError("For your own photo choose CC0 or CC BY 4.0")
+            state["rights"]["licence"], state["rights"]["licence_url"] = value, OWN_WORK_LICENCES[value]
+            state["stage"] = "author"
+            self.save(chat, user, state)
+            return state
         if not value or len(value) > 1500:
             raise ValueError("Enter a non-empty value of at most 1,500 characters")
         state["rights"][stage] = value

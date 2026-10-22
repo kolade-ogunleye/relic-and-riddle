@@ -33,7 +33,7 @@ def daemon_env(monkeypatch):
     monkeypatch.setattr(blocking, "BlockingScheduler", FakeScheduler)
     posted = []
     bot = SimpleNamespace(register_commands=lambda: None, is_configured=lambda: False,
-                          notify=lambda *a, **k: None, show_dashboard=lambda *a, **k: None, _api=lambda *a, **k: {},
+                          notify=lambda *a, **k: None, show_dashboard=lambda *a, **k: None, warm_up=lambda: None, _api=lambda *a, **k: {},
                           send_photo=None, send_audio=None, delete_message=None, chat_id="1")
     coordinator = SimpleNamespace(telegram_bot=bot, db=SimpleNamespace(),
                                   audio_engine=SimpleNamespace(voice_quota=lambda: None),

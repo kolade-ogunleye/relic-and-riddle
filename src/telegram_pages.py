@@ -46,11 +46,7 @@ def render(db, key, number):
     if not value or not 0 <= number < len(value["pages"]):
         return "This page has expired. Reopen the command.", [[{"text": "← Dashboard", "callback_data": "cdash:"}]]
     pages = value["pages"]
-    nav = []
-    if number:
-        nav.append({"text": "← Previous", "callback_data": f"page:{key}:{number-1}"})
-    if number+1 < len(pages):
-        nav.append({"text": "Next →", "callback_data": f"page:{key}:{number+1}"})
+    from .control import pager
     from .telegram_bot import format_responsive_keyboard
     return (f"<b>Page {number+1} of {len(pages)}</b>\n\n" + pages[number],
-            ([nav] if nav else []) + format_responsive_keyboard(value.get("buttons")))
+            pager(f"page:{key}:", number, len(pages)) + format_responsive_keyboard(value.get("buttons")))

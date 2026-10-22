@@ -183,7 +183,7 @@ def test_control_discover_umore_and_duplicate_uadd(db, monkeypatch, tmp_path):
     h = _discover_handler(db, monkeypatch, tmp_path)
     text, buttons = h("discover", "subterranean")
     assert len(_adds(buttons)) == 3
-    nxt = [b["callback_data"] for row in buttons for b in row if b["text"].startswith("Next marvels")]
+    nxt = [b["callback_data"] for row in buttons for b in row if b["text"] == "▶"]  # ▶ next page
     assert nxt == ["cdisc:subterranean:3"]
     _, more = h("cdisc", "subterranean:3")                       # the next page replaces this one
     assert set(_adds(more)).isdisjoint(_adds(buttons))

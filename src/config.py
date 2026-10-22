@@ -209,7 +209,10 @@ BEAT_IMAGES_ENABLED = os.getenv("BEAT_IMAGES_ENABLED", "true").lower() in ("true
 FOOTAGE_ENABLED = os.getenv("FOOTAGE_ENABLED", "true").lower() in ("true", "1", "yes")
 FOOTAGE_MAX_SHARE = float(os.getenv("FOOTAGE_MAX_SHARE") or 0.4)
 FOOTAGE_MAX_MB = int(os.getenv("FOOTAGE_MAX_MB") or 600)  # per download (AI motion results)
-BEAT_IMAGES_ALLOW_SHARE_ALIKE = (os.getenv("BEAT_IMAGES_ALLOW_SHARE_ALIKE") or "false").lower() in ("true", "1", "yes")
+# One switch for every image path (fetch, upload, release). With it on, a video that uses a CC BY-SA
+# image is itself released under CC BY-SA 4.0 (the release gate requires that notice in the post).
+IMAGES_ALLOW_SHARE_ALIKE = (os.getenv("IMAGES_ALLOW_SHARE_ALIKE") or os.getenv("BEAT_IMAGES_ALLOW_SHARE_ALIKE") or "false").lower() in ("true", "1", "yes")
+BEAT_IMAGES_ALLOW_SHARE_ALIKE = IMAGES_ALLOW_SHARE_ALIKE  # earlier name
 CALLOUTS_ENABLED = (os.getenv("CALLOUTS_ENABLED") or "false").lower() in ("true", "1", "yes")
 FACE_PRIVACY_ENABLED = (os.getenv("FACE_PRIVACY_ENABLED") or "true").lower() in ("true", "1", "yes")
 FACE_PRIVACY_SKIN_THRESHOLD = float(os.getenv("FACE_PRIVACY_SKIN_THRESHOLD") or 0.35)

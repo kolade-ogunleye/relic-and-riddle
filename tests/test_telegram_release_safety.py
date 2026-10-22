@@ -137,7 +137,7 @@ def test_changed_image_snapshot_is_not_approved(db, tmp_path, monkeypatch):
     handler("review", topic)
     target = shown[-1][2][0]["callback_data"].partition(":")[2]
     Image.new("RGB", (20, 20), "red").save(directory / "0.jpg")
-    assert "changed" in handler("imgok", target)
+    assert "changed" in handler("imgok", target)[0]
     assert not load_credits(directory)["reviewed"]
 
 

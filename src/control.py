@@ -38,6 +38,20 @@ PAUSED_KEY = "scheduler_paused"
 
 SendPhoto = Callable[[Path, str, Optional[list]], bool]
 HOME = {"text": "← Dashboard", "callback_data": "cdash:"}
+
+
+def pager(prefix: str, page: int, pages: int) -> list:
+    """⏮ first, ◀ previous, ▶ next, ⏭ last for a paged panel; a button that would not move is left out."""
+    row = []
+    if page > 1:
+        row.append({"text": "⏮", "callback_data": f"{prefix}0"})
+    if page > 0:
+        row.append({"text": "◀", "callback_data": f"{prefix}{page - 1}"})
+    if page < pages - 1:
+        row.append({"text": "▶", "callback_data": f"{prefix}{page + 1}"})
+    if page < pages - 2:
+        row.append({"text": "⏭", "callback_data": f"{prefix}{pages - 1}"})
+    return [row] if row else []
 from .telegram_commands import help_text
 HELP = help_text()
 
@@ -545,10 +559,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 lines.append(f"  {s}. {html.escape(t['title'])} [{st}] (<code>{html.escape(t['id'])}</code>)")
             lines.append("\n<i>To restore any topic: <code>/requeue &lt;number or id&gt;</code></i>")
 
-        if page:
-            buttons.append({"text": "← Previous", "callback_data": f"qpage:{page-1}"})
-        if (page+1)*limit < max(0,len(queued)-1):
-            buttons.append({"text": "Next →", "callback_data": f"qpage:{page+1}"})
+        pages = max(1, (max(0, len(queued) - 1) + limit - 1) // limit)
+        buttons += [b for row in pager("qpage:", page, pages) for b in row]
         buttons.append({"text": "🔄 Refresh Queue", "callback_data": "qrefresh:"})
         buttons.append(HOME)
         return "\n".join(lines), buttons
@@ -713,8 +725,10 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     {"text": "🔄 Refresh", "callback_data": "ccov:"},
                 ],
                 [
-                    {"text": "🔒 Lock Variant B (Discovery Intrigue)", "callback_data": f"covlock:{run_dir.name}:{selected}"}
-                ], [HOME]
+                    {"text": f"🔒 Lock Variant {selected.upper()}", "callback_data": f"covlock:{run_dir.name}:{selected}"}
+                ],
+                # Opened from a review card it is a separate message under the card: Close returns to the card.
+                [{"text": "✖ Close", "callback_data": "close:"} if ref else HOME]
             ]
             caption = (
                 f"🎨 <b>Thumbnail Cover Studio</b> • <code>{html.escape(run_dir.name)}</code>\n\n"
@@ -945,14 +959,19 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             waiting = topic_proposer.pending(db)
             if not waiting:
                 return "💡 No topic proposals waiting. Research new ideas from Topic ideas.", [[{"text": "← Topic ideas", "callback_data": "cideas:"}], [HOME]]
-            slug = args if args in waiting else next(iter(waiting))
+            slugs = list(waiting)
+            index = slugs.index(args) if args in waiting else min(int(args), len(slugs) - 1) if args.isdigit() else 0
+            slug = slugs[index]
             p = TopicProposal.model_validate(waiting[slug])
-            return topic_proposer.proposal_text(p), [[{"text": "➕ Add", "callback_data": f"ptadd:{slug}"}, {"text": "✖ Skip", "callback_data": f"ptskip:{slug}"}], [{"text": "← Topic ideas", "callback_data": "cideas:"}], [HOME]]
+            text = f"💡 <b>Waiting idea {index + 1} of {len(slugs)}</b>\n\n" + topic_proposer.proposal_text(p)
+            return text, [[{"text": "➕ Add", "callback_data": f"ptadd:{index}:{slug}"}, {"text": "✖ Skip", "callback_data": f"ptskip:{index}:{slug}"}],
+                          *pager("cprop:", index, len(slugs)), [{"text": "← Topic ideas", "callback_data": "cideas:"}], [HOME]]
         if command in ("ptadd", "ptskip"):
             from . import topic_proposer
-            if args in topic_proposer.pending(db):
-                (topic_proposer.add if command == "ptadd" else topic_proposer.skip)(db, args)
-            return handle("cprop", "")
+            index, _, slug = args.partition(":") if args.partition(":")[0].isdigit() else ("0", "", args)
+            if slug in topic_proposer.pending(db):
+                (topic_proposer.add if command == "ptadd" else topic_proposer.skip)(db, slug)
+            return handle("cprop", index)  # the idea that moved into this place
         if command == "cdisc":
             return handle("discoverpanel", args or "subterranean:0")
         if command == "cmusic":
@@ -975,10 +994,10 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             lines = [f"🎵 <b>Approved music</b> · {len(tracks)} tracks"]
             for track in tracks[start:start+5]:
                 lines.append(f"\n<b>{html.escape(track['title'])}</b>\n{html.escape(track['mood'])} · {html.escape(music.license_name(track))}")
-            nav = []
-            if page: nav.append({"text": "← Previous", "callback_data": f"mlibrary:{page-1}"})
-            if start+5 < len(tracks): nav.append({"text": "Next →", "callback_data": f"mlibrary:{page+1}"})
-            return "\n".join(lines), ([nav] if nav else []) + [[{"text": "← Music", "callback_data": "musicmenu:"}], [HOME]]
+            pages = max(1, -(-len(tracks) // 5))
+            if pages > 1:
+                lines[0] += f" · page {page + 1} of {pages}"
+            return "\n".join(lines), pager("mlibrary:", page, pages) + [[{"text": "← Music", "callback_data": "musicmenu:"}], [HOME]]
         if command == "mfetch":
             from scripts.fetch_music import fetch_music_tracks
             added = fetch_music_tracks(mood=None if args == "all" else args, add_count=1)
@@ -993,13 +1012,16 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             return "🖼 <b>Topic images</b>\n\nChoose a topic to fetch, upload or review its images.", [[{"text": "Browse topics", "callback_data": "imagepick:0"}], [HOME]]
         if command == "imagepick":
             topics = db.list_all_topics()
-            offset = int(args) if args.isdigit() else 0
-            buttons = [[{"text": f"{i}. {t['title'][:34]}", "callback_data": f"imagehelp:{t['id']}"}] for i,t in list(enumerate(topics, 1))[offset:offset+8]]
-            if offset + 8 < len(topics):
-                buttons.append([{"text": "More topics →", "callback_data": f"imagepick:{offset+8}"}])
-            if offset:
-                buttons.append([{ "text": "← Previous topics", "callback_data": f"imagepick:{max(0,offset-8)}"}])
-            return "🖼 <b>Choose a topic for images</b>", buttons + [[HOME]]
+            pages = max(1, -(-len(topics) // 8))
+            page = min(int(args) // 8 if args.isdigit() else 0, pages - 1)  # the argument is the first item's offset
+            shown = list(enumerate(topics, 1))[page * 8:page * 8 + 8]
+            # Full titles wrap in the message; the buttons carry only the numbers.
+            lines = ["🖼 <b>Choose a topic for images</b>" + (f" · page {page + 1} of {pages}" if pages > 1 else ""), ""]
+            lines += [f"<b>{i}.</b> {html.escape(t['title'])}" for i, t in shown]
+            numbers = [{"text": str(i), "callback_data": f"imagehelp:{t['id']}"} for i, t in shown]
+            nav = [[{**b, "callback_data": "imagepick:" + str(int(b["callback_data"].rpartition(":")[2]) * 8)} for b in row]
+                   for row in pager("imagepick:", page, pages)]
+            return "\n".join(lines), [row for row in (numbers[:4], numbers[4:]) if row] + nav + [[HOME]]
         if command in ("image", "imagehelp"):
             if not args:
                 return handle("imagepick", "")
@@ -1014,7 +1036,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 return handle("imagepick", "")
             from .telegram_images import fetch_images
             topic_id, count = fetch_images(db, assets_dir, args)
-            return f"🖼 Fetch completed: {count} eligible image(s) for <code>{html.escape(topic_id)}</code>. Review before use.", [[{"text": "Review set", "callback_data": f"review:{args}"}], [HOME]]
+            return (f"🖼 Fetch completed: {count} eligible image(s) for <code>{html.escape(topic_id)}</code>. Review before use.",
+                    [[{"text": "Review set", "callback_data": f"review:{args}"}], [{"text": "← Topic images", "callback_data": f"imagehelp:{args}"}], [HOME]])
         if command == "cpause":
             handle("pause", "")
             dash_text, dash_buttons = dashboard_text_and_buttons(db, next_run(), assets_dir=assets_dir)
@@ -1213,22 +1236,24 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             if apply_updates is None:
                 return "Updates can only be applied while the daemon is running."
             return apply_updates()
-        if command == "imgok":
-            ref, _, digest = args.rpartition("@")
-            if not digest or not ref:
-                return "This review is obsolete. Open /review again before approving."
+        if command in ("imgok", "imgcancel"):
+            # Both end on the topic's image menu (where the review was opened), not on a dead card.
+            ref, _, digest = args.rpartition("@") if "@" in args else (args, "", "")
+            back = ([[{"text": "← Topic images", "callback_data": f"imagehelp:{ref}"}]] if ref else []) + [[HOME]]
+            if not ref:
+                return "This review is obsolete. Open /review again before approving.", back
             t_dir = _resolve_topic_dir(ref, assets_dir, db=db)
+            if command == "imgcancel":
+                state = "approved" if load_credits(t_dir).get("reviewed") else "unapproved"
+                return f"Storyboard review closed for <b>{html.escape(t_dir.name)}</b>. Set remains {state}.", back
             from .telegram_images import review_digest
+            if not digest:
+                return "This review is obsolete. Open /review again before approving.", back
             if digest != review_digest(t_dir):
-                return "Images changed since this review. Open /review again; nothing was approved."
-            cr = load_credits(t_dir)
-            if cr.get("reviewed"):
-                return f"ℹ️ Topic <b>{html.escape(t_dir.name)}</b> was already approved."
-            return "✅ " + html.escape(approve_set(t_dir, MIN_SCENE_IMAGES))
-        if command == "imgcancel":
-            t_dir = _resolve_topic_dir(args.split("@",1)[0], assets_dir, db=db)
-            state = "approved" if load_credits(t_dir).get("reviewed") else "unapproved"
-            return f"Storyboard review closed for <b>{html.escape(t_dir.name)}</b>. Set remains {state}."
+                return "Images changed since this review. Open /review again; nothing was approved.", back
+            if load_credits(t_dir).get("reviewed"):
+                return f"ℹ️ Topic <b>{html.escape(t_dir.name)}</b> was already approved.", back
+            return "✅ " + html.escape(approve_set(t_dir, MIN_SCENE_IMAGES)), back
         if command == "status":
             return status_text(db, next_run(), voice_quota())
         if command == "next":
@@ -1352,18 +1377,18 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 return (f"🏛️ No unqueued UNESCO engineering marvels found for '{html.escape(theme or 'all')}'. "
                         "Try another theme (subterranean, hydraulic, megalithic, metallurgy).")
 
-            next_offset = offset + len(wonders)
-            more_exist = len(engine.discover_engineering_wonders(limit=1, offset=next_offset, sub_theme=theme, exclude_titles=existing_titles)) > 0
+            total = len(engine.discover_engineering_wonders(limit=10_000, offset=0, sub_theme=theme, exclude_titles=existing_titles))
+            pages, page = max(1, -(-total // limit)), offset // limit
 
-            # One paged panel (no burst of separate cards): Add per marvel, Next, back and Done.
-            lines = ["🏛️ <b>UNESCO marvels</b>"]
+            # One paged panel (no burst of separate cards): Add per marvel, paging, back and Done.
+            lines = ["🏛️ <b>UNESCO marvels</b>" + (f" · page {page + 1} of {pages}" if pages > 1 else "")]
             buttons = []
             for w in wonders:
                 lines.append(f"\n<b>{html.escape(w['title'])}</b> · {html.escape(w['country'])}\n{html.escape((w.get('short_description') or '')[:220])}")
                 buttons.append([{"text": f"➕ Add {w['title'][:24]}", "callback_data": f"uadd:{w['id_number']}"},
                                 {"text": "✖ Skip", "callback_data": f"uskip:{w['id_number']}:{theme or ''}:{offset}"}])
-            if more_exist:
-                buttons.append([{"text": "Next marvels →", "callback_data": f"cdisc:{theme or ''}:{next_offset}"}])
+            buttons += [[{**b, "callback_data": f"cdisc:{theme or ''}:{int(b['callback_data'].rpartition(':')[2]) * limit}"} for b in row]
+                        for row in pager("cdisc:", page, pages)]
             return "\n".join(lines), buttons + [[{"text": "← Topic ideas", "callback_data": "cideas:"}], [HOME]]
 
         if command == "uadd":

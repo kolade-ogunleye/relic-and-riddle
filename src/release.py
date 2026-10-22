@@ -6,7 +6,7 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .credits import sha256_file, asset_attribution
+from .credits import SHARE_ALIKE_NOTICE, asset_attribution, is_share_alike, sha256_file
 from .fact_evidence import current_fact_review
 from .delivery_profiles import get_delivery_profile
 from .video_qa import measure_program_loudness, verify_provenance_integrity
@@ -63,6 +63,11 @@ def write_release_report(run, dry_run=False):
                            if asset_attribution(a) and asset_attribution(a) not in payload.get("caption", "")
                            and asset_attribution(a) not in payload.get("description", "")]
         add("image_attribution", not missing_credits, missing_credits)
+        if any(is_share_alike(a.get("license", "")) for a in data["assets"]):
+            # ShareAlike: the adaptation (this video) must be offered under CC BY-SA 4.0, in the post itself.
+            add("share_alike_licence", SHARE_ALIKE_NOTICE in payload.get("caption", "") and
+                (not profile.requires_youtube_thumbnail or SHARE_ALIKE_NOTICE in payload.get("description", "")),
+                "A CC BY-SA image is used, so the post must state: " + SHARE_ALIKE_NOTICE)
         if profile.requires_youtube_thumbnail:
             missing_description = [asset_attribution(a) for a in data["assets"]
                 if asset_attribution(a) and asset_attribution(a) not in payload.get("description", "")]

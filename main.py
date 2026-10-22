@@ -1878,6 +1878,7 @@ def main(argv=None) -> int:
             start_post_ticker(coordinator, bot)
         from src.control import startup_dashboard_card
         card_text, card_buttons = startup_dashboard_card(db, mode="bot", assets_dir=config.ASSETS_DIR)
+        bot.warm_up()
         bot.show_dashboard(card_text, card_buttons)
         log.info("Studio Control Center: listening for Telegram commands. Ctrl+C to stop.")
         try:
@@ -2134,6 +2135,7 @@ def main(argv=None) -> int:
                     time.sleep(10)
 
         if bot.is_configured():
+            bot.warm_up()
             bot.background_polling = True  # this thread owns getUpdates; approval waits read the database
             threading.Thread(target=poll_telegram, name="telegram-poller", daemon=True).start()
 

@@ -94,7 +94,13 @@ stop file, waits for the operator's SSH session to update the tree (`ready <comm
 `C:\Users\omokolade.LAB\relic-promote.flag`), restarts the managed task, retires the disabled
 legacy tasks after exporting their definitions, and runs the focused probe under
 `LAB\rr-pipeline$` (`-PaidVoice` adds one short licensed voice sample per provider). During
-the wait the SSH session checks out the release tag, installs pinned requirements, places
-`tools/models/realesrgan_x4plus.onnx` (verified SHA-256, see [upscaler](upscaler.md)) and runs
-the offline suite. It never changes `.env`, identities, ACLs or the backup task, and production
-stays in `--dry-run`. Rollback: the same procedure with the previous tag.
+the wait the SSH session runs `deployment/windows/Update-ContentReleaseTree.ps1 -Commit <tag>`:
+it checks out the release, installs pinned requirements, places
+`tools/models/realesrgan_x4plus.onnx` (verified SHA-256, see [upscaler](upscaler.md)), runs the
+offline suite and writes `ready <commit>`; on any failure it returns to the previous commit and
+signals that one. Stage beforehand in `C:\Users\omokolade.LAB\relic-stage`: the release git
+bundle (fetched into `refs/remotes/stage/release`, which does not touch the running tree), the
+model and the new dependency wheels, so the stopped window is short. Production data files
+the release does not change (fact sheets, credits, music usage) keep their local changes. The
+procedure never changes `.env`, identities, ACLs or the backup task, and production stays in
+`--dry-run`. Rollback: the same procedure with the previous tag.

@@ -11,6 +11,16 @@ from src.image_upload import ImageUpload
 from src.operator_jobs import Jobs, checkpoint
 
 
+@pytest.mark.parametrize("observed,blocked", [(None, 0), ("reused", 0), ("created", 1), ("unknown", 1)])
+def test_reload_guard_protects_live_and_unverifiable_jobs(db, monkeypatch, observed, blocked):
+    from src import process_state
+    from src.operator_jobs import live_job_count
+    db.set_setting("operator_job:old", json.dumps({"state": "running", "owner_pid": 123, "owner_identity": "created"}))
+    monkeypatch.setattr(process_state, "identity", lambda _: observed)
+    with db._conn() as conn:
+        assert live_job_count(conn) == blocked
+
+
 def test_cancel_queued_job_never_starts_work(db):
     queued, completed, calls = [], [], []
     jobs = Jobs(db)

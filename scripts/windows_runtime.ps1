@@ -116,10 +116,10 @@ if ($Action -eq 'InstallTask') {
         if (Test-Path -LiteralPath $database) {
             Push-Location -LiteralPath $app
             try {
-                $countCode = "import sqlite3; from pathlib import Path; c=sqlite3.connect(Path('data/pipeline.db').resolve().as_uri()+'?mode=ro',uri=True); print(c.execute('SELECT COUNT(*) FROM runs WHERE status=?',('producing',)).fetchone()[0])"
+                $countCode = "import sqlite3; from pathlib import Path; from src.operator_jobs import live_job_count; c=sqlite3.connect(Path('data/pipeline.db').resolve().as_uri()+'?mode=ro',uri=True); print(c.execute('SELECT COUNT(*) FROM runs WHERE status IN (?,?)',('producing','publishing')).fetchone()[0]+live_job_count(c))"
                 $active = & .\.venv\Scripts\python.exe -c $countCode
                 if ($LASTEXITCODE -ne 0 -or [int]$active -gt 0) {
-                    throw 'A production run is active; let it finish or explicitly recover it before stopping for deployment.'
+                    throw 'A run/upload or background operator job is active or unverifiable; let it finish or explicitly cancel/reconcile it before stopping for deployment.'
                 }
             } finally { Pop-Location }
         }

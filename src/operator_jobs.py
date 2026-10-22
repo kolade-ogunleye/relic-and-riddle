@@ -14,6 +14,19 @@ class JobCancelled(Exception):
     pass
 
 
+def live_job_count(connection):
+    """Read-only reload guard; ambiguous process access must also block stopping."""
+    from .process_state import identity
+    count = 0
+    for row in connection.execute("SELECT value FROM settings WHERE key LIKE 'operator_job:%'"):
+        job = json.loads(row[0])
+        if job["state"] in {"queued", "running", "cancelling"}:
+            observed = identity(job.get("owner_pid", 0))
+            if observed is not None and observed in {job.get("owner_identity"), "unknown"}:
+                count += 1
+    return count
+
+
 def checkpoint():
     event = _CANCEL.get()
     if event is not None and event.is_set():

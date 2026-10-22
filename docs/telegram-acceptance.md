@@ -84,10 +84,23 @@ cannot repair production's older bot or progress records.
 
 ## Verification record: 2026-10-22
 
-Windows full suite: **700 passed**. Follow-up focused regression suite after
-upload navigation guards: **112 passed**. Tests block real network services.
+Windows full suite: **704 passed**. Final focused regression suite including
+connection retries and reload guards: **94 passed**. Tests block real network services.
 Development task was reloaded, its bot identity verified as `8701645452`
 (`@relicandriddle_dev_bot`), and the live 33-command menu contains Clear, Jobs,
 Images and Music with old image aliases omitted from autocomplete. `.env` hash
 was unchanged across reload. No production tasks, configuration or bot were
 changed. Human chat retests above remain pending.
+
+A live Covers retest exposed an interrupted TLS connection during media editing.
+Existing-message edits now retry up to three attempts and rewind attached file
+streams. New message sends are not retried after ambiguous network errors.
+Failed navigation offers a named Try again action on the current panel.
+Successful live Covers retest is still required; retries do not guarantee network
+availability.
+
+An earlier development reload interrupted a research job because the stop guard
+checked producing runs only. Its existing records are retained and Jobs reports
+its dead owner as interrupted. The development stop guard now also refuses to
+stop live/unverifiable operator jobs and publishing runs. No research was
+replayed automatically; a request already sent may have incurred provider usage.

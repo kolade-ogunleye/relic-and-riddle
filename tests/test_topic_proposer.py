@@ -21,6 +21,8 @@ def wired(db, monkeypatch, tmp_path):
     monkeypatch.setattr(tp, "BANK", db.topic_bank_file)
     monkeypatch.setattr(tp, "QUERIES", queries)
     monkeypatch.setattr(tp, "claude_available", lambda: True)
+    from src import free_llm
+    monkeypatch.setattr(free_llm, "claude_engine", lambda: True)  # these tests exercise the Claude engine path
     monkeypatch.setattr(tp, "research", lambda *a, **k: ("notes", [Source(title="s", url="https://real.org/a")]))
     return db, queries
 
@@ -102,3 +104,15 @@ def test_proposals_command_resends_pending(wired, monkeypatch):
     tp.skip(db, "eupalinos")
     text, buttons = h("proposals", "")
     assert "No topic proposals waiting" in text
+
+
+def test_free_engine_research_never_calls_claude(wired, monkeypatch):
+    from src import free_llm, gemini
+    db, _ = wired
+    monkeypatch.setattr(free_llm, "claude_engine", lambda: False)      # SCRIPT_ENGINE=free with an Anthropic key present
+    monkeypatch.setattr(tp, "research", lambda *a, **k: pytest.fail("Claude research on the free engine"))
+    monkeypatch.setattr(tp, "structured_call", lambda *a, **k: pytest.fail("Claude structuring on the free engine"))
+    monkeypatch.setattr(gemini, "available", lambda: True)
+    monkeypatch.setattr(gemini, "research", lambda *a, **k: ("notes", [Source(title="s", url="https://real.org/a")]))
+    monkeypatch.setattr(gemini, "structured", lambda *a, **k: TopicProposals(topics=[_proposal("eupalinos", title="Tunnel of Eupalinos")]))
+    assert [p.slug for p in tp.propose(db)] == ["eupalinos"]

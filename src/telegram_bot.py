@@ -415,8 +415,10 @@ class TelegramApprovalBot:
                 text += "\n" + html.escape(job["error_detail"]) + "\nInspect /jobs before explicitly retrying."
             delivered = self.update_navigation_target(destination[0], text, buttons)
             if not delivered and late:
-                # A typed request whose screen was left while it ran: its answer opens as the panel.
-                delivered = type(self.show_dashboard(text, navigation_buttons(buttons), fresh=True)) is int
+                # Requested work whose screen was left while it ran: the result arrives as its own message
+                # (with Close), without taking over the screen the operator moved on to.
+                rows = [row for row in format_responsive_keyboard(buttons) if not any(b.get("callback_data") == "cdash:" for b in row)]
+                delivered = bool(self.notify(text, buttons=rows + [[{"text": "✖ Close", "callback_data": "close:"}]], record_alert=False))
             return delivered
         return self.jobs.submit(self._background(), title, work, complete, resource, announce)
 

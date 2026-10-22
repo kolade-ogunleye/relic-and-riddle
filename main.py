@@ -1637,7 +1637,7 @@ def _proposal_trigger(db: PipelineDatabase, bot) -> Any:
                       [{"text": "← Dashboard", "callback_data": "cdash:"}]]
 
     def trigger() -> str:
-        bot.start_operator_job("Researching topic ideas", work, resource="topic-research")
+        bot.start_operator_job("Researching topic ideas", work, resource="topic-research", late=True)
         return ""
 
     trigger.run_now = trigger

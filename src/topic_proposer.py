@@ -91,7 +91,9 @@ def propose(db: PipelineDatabase, n: int = 3) -> List[TopicProposal]:
                 "and whether Wikimedia Commons is likely to have openly licensed images of it.")
 
     notes, retrieved = None, None
-    if claude_available():
+    from . import free_llm
+    use_claude = free_llm.claude_engine()  # the configured engine decides; an Anthropic key alone does not
+    if use_claude:
         try:
             notes, retrieved = research(RESEARCH_SYSTEM, prompt, web_search_uses=8, effort="medium")
         except Exception as e:
@@ -118,7 +120,7 @@ def propose(db: PipelineDatabase, n: int = 3) -> List[TopicProposal]:
     )
     checkpoint()
     proposals = None
-    if claude_available():
+    if use_claude:
         try:
             proposals = structured_call(STRUCTURE_SYSTEM, struct_prompt, TopicProposals, effort="medium")
         except Exception as e:

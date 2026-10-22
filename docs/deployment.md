@@ -84,3 +84,17 @@ identity subsequently passed depth, native Speech and NVENC checks; Vulkan
 upscaling failed. See [the acceptance record](runtime-acceptance.md). The
 Derinkuyu image pool, actual configured-provider generation, Telegram defects and
 human acceptance are separate gates. See the reconciliation register for status.
+
+## Promoting a release (application-owned procedure)
+
+With the lab handoff complete (lab PR #60), release promotion is the application's procedure.
+`deployment/windows/Promote-ContentRelease.ps1` runs once, elevated, on the VM and performs the
+idle stop/start: it refuses while a run is producing, stops the pipeline through its launcher's
+stop file, waits for the operator's SSH session to update the tree (`ready <commit>` in
+`C:\Users\omokolade.LAB\relic-promote.flag`), restarts the managed task, retires the disabled
+legacy tasks after exporting their definitions, and runs the focused probe under
+`LAB\rr-pipeline$` (`-PaidVoice` adds one short licensed voice sample per provider). During
+the wait the SSH session checks out the release tag, installs pinned requirements, places
+`tools/models/realesrgan_x4plus.onnx` (verified SHA-256, see [upscaler](upscaler.md)) and runs
+the offline suite. It never changes `.env`, identities, ACLs or the backup task, and production
+stays in `--dry-run`. Rollback: the same procedure with the previous tag.

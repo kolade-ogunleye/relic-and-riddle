@@ -7,8 +7,9 @@
 | Telegram commands, cards, navigation, approvals, errors | This repository | Reproduce defects in dev, fix and test; promote a reviewed release |
 | Content generation, rights, quality, provider choices and spend controls | This repository and each environment's private configuration | Validate real workflow; preserve dev/prod separation and paid usage |
 | Backup format, encryption, upload/resume, restore and CLI/API contract | This repository | Release the tested implementation and keep its public interface stable |
-| Managed identities, ACLs, Windows task registration, startup/reboot, OS/GPU exposure | Lab repository / lab operator | Specify runtime needs and exercise application behavior under the supplied identity |
-| Wazuh, security-event rules, host watchdogs, network/domain policy | Lab repository / lab operator | Supply meaningful application exit status and safe logs; consume lab acceptance evidence |
+| Managed identities, host authorization/ACLs, OS/GPU exposure | Lab repository / lab operator | Specify runtime needs and exercise application behavior under the supplied identity |
+| Application launchers, workload task definitions, installation and health producer | This repository; host changes use approved execution | Maintain deployment and supervise the app; preserve the telemetry interface |
+| Wazuh, security-event rules, network/domain policy | Lab repository / lab operator | Supply meaningful application exit status and safe logs; consume lab acceptance evidence |
 | Whole-VM/hypervisor backup and disaster recovery | Lab repository / lab operator | Maintain application recovery artifacts and dependency requirements |
 
 Wazuh delivery is lab infrastructure acceptance, not proof of content quality,
@@ -25,13 +26,15 @@ identical in dev, production and committed HEAD; raw file hashes differ because
 of line endings.
 
 The lab agent staged its adapters under `C:\ProgramData\HNSHL\ContentRuntime`,
-not by patching the application checkout. Its Ansible/PowerShell changes belong
-in the lab repository. That checkout currently has staged/unstaged migration
-work; an application audit does not commit or merge those changes.
+not by patching the application checkout. The updated lab runbook assigns those
+application-specific adapters, deployment and health producers to this project.
+`deployment/windows/handoff` preserves their uncommitted source and tests with
+per-file hashes. Lab source and live resources are unchanged. Mixed platform and
+application deployment still needs separation; see the handoff README.
 
 The `feat/production-runtime-contract` candidate collects the newer backup,
 recovery, startup safety, approver validation, documentation and tests. Production
-still uses rc2 plus its maintenance overlay until lab-controlled promotion.
+still uses rc2 plus its maintenance overlay until approved application promotion.
 Publishing this candidate does not prove deployment or runtime acceptance.
 The candidate removes the legacy tracked database from new artifacts; local data
 is retained and prior Git history is unchanged. Unrelated fact-sheet/music edits
@@ -54,10 +57,10 @@ and local evaluation files are excluded from the candidate.
    the old interactive backup installer are historical scaffolding, not a second
    production management plane. Preserve any still-needed dev launcher separately.
 5. Publish the reviewed application changes to origin and make a tested release
-   artifact. Then have lab automation promote the approved artifact/configuration
+   artifact. Then promote the approved artifact/configuration through approved host
    contract. Do not copy the dev `.env` or state over production.
 
-## Legacy task retirement: lab handoff
+## Legacy task retirement: deployment handoff
 
 `RelicAndRiddle-Production` and `RelicAndRiddle-ProductionBackup` are the original
 interactive tasks created during initial validation. They were retained disabled

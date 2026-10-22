@@ -8,16 +8,17 @@ existing caps. A dry run can still consume API credits.
 
 ## Responsibility and runtime
 
-The lab repository owns managed identities, ACLs, Windows task lifecycle, OS/GPU
+The lab repository owns managed identities, host authorization/ACLs, OS/GPU
 exposure, security telemetry and whole-VM recovery. Its operating procedure is
 `docs/CONTENT_VM_TASK_IDENTITY.md`. Application changes do not modify those controls.
-This repository owns the CLI/API contract, backup format, provider behavior,
+This repository owns application launchers, workload task definitions, deployment,
+the CLI/API contract, backup format, provider behavior,
 Telegram UX and content acceptance checks. See [reconciliation](deployment-reconciliation.md).
 
 The lab's managed deployment passed no-login reboot acceptance on 2026-10-22 UTC.
 Its pipeline task uses `LAB\rr-pipeline$`; backup uses `LAB\rr-backup$`. Both
 have the `-Unattended` task suffix. The original interactive tasks remain disabled;
-retirement belongs to lab automation. Old production task/account installers have
+retirement uses approved host administration. Old production task/account installers have
 been removed from the application release. `scripts/windows_runtime.ps1` manages
 development only and refuses production actions.
 

@@ -21,12 +21,15 @@
   interactive tasks are retained disabled. Do not re-enable or reinstall those
   legacy tasks alongside the managed tasks. See the lab repository's
   `docs/CONTENT_VM_TASK_IDENTITY.md` for authoritative runtime management.
-- This repository owns the application, Telegram behavior and backup format/API.
-  Lab-owned managed identities, ACLs, scheduled-task lifecycle, Wazuh/security
+- This repository owns the application, Telegram behavior, backup format/API,
+  application launchers, workload task definitions and release deployment.
+  Lab-owned managed identities, host authorization/ACLs, Wazuh/security
   telemetry, domain/network policy and whole-VM recovery are separate operating
   responsibilities. Do not treat infrastructure acceptance as application
   acceptance or change lab controls as an application fix. See
   `docs/deployment-reconciliation.md` for the current ownership and backlog.
+  Deployment uses approved host administration; source ownership does not grant
+  the daily SSH user administrative privileges.
 - Address Telegram defects before an end-to-end production episode/approval run.
   Focused runtime/provider acceptance checks and release reconciliation may be
   performed independently when requested. An empty issue table or an old

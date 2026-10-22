@@ -1,0 +1,76 @@
+{
+  "source_repository": "kolade-ogunleye/hybrid-network-security-homelab",
+  "source_head": "92da50bf10ca55e2a53ffbcf59f2701cc81ba14f",
+  "source_state": "Uncommitted working-tree snapshot; hashes identify actual bytes, not source HEAD",
+  "captured_at_utc": "2026-10-22T03:31:10.9945638Z",
+  "files": [
+    {
+      "path": "tools/content_runtime.py",
+      "sha256": "608dbc64f419b24fda24fcb3b69f7ebaf5873cf50c37078f01eba8578ad62a7f"
+    },
+    {
+      "path": "tools/Start-ContentVmWorkload.ps1",
+      "sha256": "d96be5f428a21a7c9e9ac3e7d3c007498a7f0f1c47802f0affd7a3dcadd0e724"
+    },
+    {
+      "path": "tools/Register-ContentVmWorkloads.ps1",
+      "sha256": "fa8078bb1d67b6e05e1a4488470f12862d39f92995c17608f8530aad1cd40371"
+    },
+    {
+      "path": "tools/Register-ContentVmBackupValidation.ps1",
+      "sha256": "819e26bc618b9c1f0fb6c52bb5844d306c3be786a74412b793726a5439e915e5"
+    },
+    {
+      "path": "tools/Stop-ContentVmLegacyTasks.ps1",
+      "sha256": "b9f497f00117b8f91a6cb2157cae7a7246d4375ec401a0be3e85b48c87e8eb6f"
+    },
+    {
+      "path": "tools/Register-ContentVmRuntimeWatch.ps1",
+      "sha256": "979a885eb0a23fa3b98c9619f67050a39d9ded355847d375d5e1e0d451e2bab7"
+    },
+    {
+      "path": "tools/Watch-ContentVmRuntime.ps1",
+      "sha256": "3f986cd4576777795570c8830ed005398ee22f42982c5250533c400ed37d354d"
+    },
+    {
+      "path": "tools/lib/ContentRuntimeHealth.ps1",
+      "sha256": "d1b435f48f3aed2f5327c691eb64ede748a866d64aac443037c1611f83f36508"
+    },
+    {
+      "path": "tools/lib/ContentWorkloadProcess.ps1",
+      "sha256": "00ee4754704c7a223fc05c13657005f8e87f8c5a285b33275517f34e7a8d575f"
+    },
+    {
+      "path": "tools/lib/ContentProbeProcess.ps1",
+      "sha256": "2b70b379bd7388c734eccd1bf8efa03a484eecfad0021e5cfd9f1d3576903872"
+    },
+    {
+      "path": "tests/python/test_content_runtime.py",
+      "sha256": "d49145bc443fb0b2eb27fcf08acfb3fa7c7d85154114948b301c38b5052813cc"
+    },
+    {
+      "path": "tests/unit/tools/ContentWorkloadProcess.Tests.ps1",
+      "sha256": "4e2d92ec6db29c86e593ba77364fa5851e3f257f351789214e58d4c932085656"
+    },
+    {
+      "path": "tests/unit/tools/ContentRuntimeHealth.Tests.ps1",
+      "sha256": "0ef7215fb551a5d04738c5d18eb4fe032b31ec1702ac1eaf862ad2b757ee093d"
+    },
+    {
+      "path": "tests/unit/tools/ContentLegacyStop.Tests.ps1",
+      "sha256": "aaf793c724b4d2fc727b86a09fb20cbf70d7ab912033f2ef637719359afceec4"
+    },
+    {
+      "path": "tests/unit/tools/ContentIdentityProbes.Tests.ps1",
+      "sha256": "1504284e9d21f746335fe474c296157e506fa8ca4b74f5ae88722e950350e276"
+    },
+    {
+      "path": "tests/unit/ansible/ContentRuntime.Tests.ps1",
+      "sha256": "ac81bb643249c89e98ba4ca4b662907f81fba155af244c3a83ba609d8d68814f"
+    },
+    {
+      "path": "ansible/playbooks/52-content-runtime.yml",
+      "sha256": "a721885f94d7a796d595ec738aa255ab1915f8586c4cf257d450917b36064992"
+    }
+  ]
+}

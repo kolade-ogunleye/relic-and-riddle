@@ -6,13 +6,14 @@ operating procedure is `docs/CONTENT_VM_TASK_IDENTITY.md` in the lab repository.
 
 Current tasks are `RelicAndRiddle-Production-Unattended` and
 `RelicAndRiddle-ProductionBackup-Unattended`. The originals are disabled rollback
-artifacts; retiring their registrations is a lab-owned configuration change.
+artifacts; retirement is application deployment through approved host administration.
 No application release should reinstall them or create another managed account.
 
 This application supplies the [service contract](runtime-contract.md), meaningful
 exit status and the [focused probe](production-probe-handoff.md). The lab owns
-managed passwords, ACLs, startup triggers, process supervision, reboot acceptance,
-and security telemetry. Its gMSA password rotation does not change the content
+managed passwords, host authorization/ACLs, platform reboot acceptance and security
+telemetry. This project owns workload triggers and process supervision; preserved
+deployment source is in `deployment/windows/handoff`. gMSA rotation does not change the content
 backup encryption key; OneDrive OAuth consent is a separate application grant.
 
 The lab evidence proves Session 0 NVENC/API canaries, cloud upload/restore,

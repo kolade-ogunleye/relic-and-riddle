@@ -2,8 +2,9 @@
 
 The external lab launcher is an OS supervisor: it chooses the Windows identity,
 sets the approved executable PATH, supervises the process tree, and records exit
-status. Tasks, managed-account policy, ACLs and security telemetry remain lab
-responsibilities. Application behavior and backup validation belong here.
+status. Its implementation and workload task definitions belong to this project.
+Managed-account policy, host authorization/ACLs and security telemetry remain lab
+responsibilities. Host changes use approved administrative execution.
 
 The application-owned entry point is:
 
@@ -60,7 +61,8 @@ access only; it does not imply an upload or restore passed. Restore always fetch
 from the cloud and creates a new guarded recovery directory, never overwriting
 the running app.
 
-Migration is a lab-owned reviewed launcher change after this artifact is released:
+Migration is an application-owned reviewed launcher change after artifact release,
+executed through approved host administration:
 call this entry point from the existing process supervisor and preserve its
 identity, stop/parent monitoring, overlap prevention and startup checks. The
 current deployed adapter remains compatible until that controlled promotion.

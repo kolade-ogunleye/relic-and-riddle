@@ -481,10 +481,26 @@ class TelegramApprovalBot:
             return False
 
     def _api(self, method: str, timeout: float = 30, **kwargs) -> Dict[str, Any]:
+        # Edits address an existing message, so a connection retry cannot create a
+        # second card. Sending/uploading a new message is deliberately excluded.
+        retry_edit = method in {"editMessageMedia", "editMessageText", "editMessageCaption", "editMessageReplyMarkup"}
+        streams = []
+        for attachment in kwargs.get("files", {}).values():
+            stream = attachment[1] if isinstance(attachment, tuple) else attachment
+            if hasattr(stream, "tell") and hasattr(stream, "seek"):
+                streams.append((stream, stream.tell()))
+            elif not isinstance(stream, (bytes, str)):
+                retry_edit = False
         for attempt in range(3):
             try:
                 resp = requests.post(f"{self.base_url}/{method}", timeout=timeout, **kwargs)
             except requests.RequestException as e:  # its message carries the URL, and so the token
+                if retry_edit and attempt < 2 and isinstance(e, (requests.ConnectionError, requests.Timeout)):
+                    for stream, position in streams:
+                        stream.seek(position)
+                    log.info("Telegram %s connection interrupted; retrying the existing message edit.", method)
+                    time.sleep(0.5 * (attempt + 1))
+                    continue
                 raise RuntimeError(f"Telegram {method} failed: {_MASKER.mask(str(e))}") from None
             data = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
             retry_after = (data.get("parameters") or {}).get("retry_after")
@@ -1458,7 +1474,15 @@ class TelegramApprovalBot:
                                 self.notify(reply, buttons=[[DONE_BUTTON]], record_alert=False)
                     except Exception as e:
                         self._answer_callback(cq["id"], "Failed")
-                        self.notify(f"⚠️ {html.escape(action)} failed: {html.escape(str(e))[:300]}")
+                        if action in PANEL_ACTIONS:
+                            log.warning("Navigation %s failed: %s", action, _MASKER.mask(str(e)))
+                            label = {"ccov": "Covers", "cmusic": "Music", "mreview": "music review"}.get(action, "this screen")
+                            text = f"⚠️ Could not open {label}. Please try again."
+                            buttons = [[{"text": "Try again", "callback_data": f"{action}:{target}"}], [DONE_BUTTON]]
+                            if not self.show_navigation_panel(msg_id, text, buttons, is_media):
+                                self.notify(text, buttons=buttons, record_alert=False)
+                        else:
+                            self.notify(f"⚠️ {html.escape(action)} failed: {html.escape(str(e))[:300]}")
                 continue
             msg = update.get("message") or {}
             if self._authorized(msg.get("from", {}).get("id", ""), msg.get("chat", {}).get("id", "")):

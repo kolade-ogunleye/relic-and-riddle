@@ -77,6 +77,17 @@ def test_cover_photo_replaces_navigation_card_in_place(db, monkeypatch, tmp_path
     assert not any(method in {"sendPhoto", "sendMessage"} for method, _ in calls)
 
 
+def test_media_navigation_failure_has_named_retry_on_current_panel(db, monkeypatch):
+    bot, calls = callback_bot(db, monkeypatch, "ccov:")
+    def handler(*_):
+        raise RuntimeError("Could not update the media panel")
+    bot.poll_once(handler)
+    edit = next(data for method, data in calls if method == "editMessageText")
+    assert "Could not open Covers" in edit["text"]
+    assert "ccov:" in edit["reply_markup"] and "Try again" in edit["reply_markup"]
+    assert not any(method == "sendMessage" for method, _ in calls)
+
+
 def test_media_panel_returns_to_dashboard_without_retaining_attachment(db, monkeypatch):
     bot, calls = callback_bot(db, monkeypatch, "cdash:", media=True)
     handler = control.make_command_handler(db, lambda: None, lambda: "started")

@@ -127,6 +127,37 @@ def test_cancelled_progress_receipt_does_not_report_failure(db, monkeypatch):
     assert "Render cancelled" in edits[0][1] and "Failed" not in edits[0][1]
 
 
+def test_interrupted_media_edit_rewinds_upload_and_retries_same_message(db, monkeypatch):
+    import requests
+    from src import telegram_bot
+    bot = telegram_bot.TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
+    stream, attempts = io.BytesIO(b"image payload"), []
+    def post(url, **kwargs):
+        attempts.append((kwargs["data"]["message_id"], kwargs["files"]["photo"].read()))
+        if len(attempts) == 1:
+            raise requests.exceptions.SSLError("TLS stream interrupted")
+        return SimpleNamespace(headers={"content-type": "application/json"}, status_code=200, ok=True,
+                               json=lambda: {"ok": True, "result": {"message_id": 42}})
+    monkeypatch.setattr(telegram_bot.requests, "post", post)
+    monkeypatch.setattr(telegram_bot.time, "sleep", lambda _: None)
+    assert bot._api("editMessageMedia", data={"message_id": 42}, files={"photo": stream})["message_id"] == 42
+    assert attempts == [(42, b"image payload"), (42, b"image payload")]
+
+
+def test_new_message_send_is_not_retried_after_ambiguous_timeout(db, monkeypatch):
+    import requests
+    from src import telegram_bot
+    bot = telegram_bot.TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
+    attempts = []
+    def post(*args, **kwargs):
+        attempts.append(1)
+        raise requests.Timeout("Delivery outcome unknown")
+    monkeypatch.setattr(telegram_bot.requests, "post", post)
+    with pytest.raises(RuntimeError, match="Delivery outcome unknown"):
+        bot._api("sendPhoto", data={"photo": "file-id"})
+    assert len(attempts) == 1
+
+
 def test_music_download_merges_intervening_approval_and_filters_rights(tmp_path, monkeypatch):
     from scripts import fetch_music
     from src import music

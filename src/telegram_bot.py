@@ -985,6 +985,12 @@ class TelegramApprovalBot:
         if not self.is_configured() or not message_id:
             return False
         if not success:
+            run = self.db.get_run(run_id)
+            if run and run.get("status") == "cancelled":
+                text = (f"⏹ <b>Render cancelled:</b> {html.escape(topic_title)}\n"
+                        f"<code>[{html.escape(self.db.run_label(run_id))}]</code>\n\n"
+                        "Stopped at a stage boundary. Existing assets and incurred usage are retained.")
+                return self.edit_message_text(message_id, text, buttons=[[DONE_BUTTON]])
             text = (
                 f"❌ <b>Render Failed:</b> {html.escape(topic_title)}\n"
                 f"<code>[{html.escape(self.db.run_label(run_id))}]</code>\n"

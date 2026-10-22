@@ -116,6 +116,17 @@ def test_public_menu_unifies_media_and_keeps_clear():
     assert "fetchimages" not in names and "image" not in names
 
 
+def test_cancelled_progress_receipt_does_not_report_failure(db, monkeypatch):
+    from src.telegram_bot import TelegramApprovalBot
+    db.create_run("cancelled", "01_topic")
+    db.update_run("cancelled", "cancelled")
+    bot = TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
+    edits = []
+    monkeypatch.setattr(bot, "edit_message_text", lambda *args, **kwargs: edits.append(args) or True)
+    bot.finish_progress_card(42, "Topic", "cancelled", success=False, error="Cancelled by operator")
+    assert "Render cancelled" in edits[0][1] and "Failed" not in edits[0][1]
+
+
 def test_music_download_merges_intervening_approval_and_filters_rights(tmp_path, monkeypatch):
     from scripts import fetch_music
     from src import music

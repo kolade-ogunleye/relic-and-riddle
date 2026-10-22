@@ -102,7 +102,7 @@ def _spare_key() -> str:
 
 
 def structured(system: str, prompt, schema: Type[T], role: str = "writer", attempts: int = 4,
-               task_class: str = "heavy") -> T:
+               task_class: str = "heavy", timeout: float = None) -> T:
     """Schema-constrained output from the free model ("writer") or the different checking model ("checker").
     task_class "light" (photo review, sound plan) or "heavy" (writing, checking) picks the paid-fallback cap."""
     model = config.FREE_CHECKER_MODEL if role == "checker" else config.FREE_WRITER_MODEL
@@ -111,15 +111,16 @@ def structured(system: str, prompt, schema: Type[T], role: str = "writer", attem
     if not available():
         return _paid_fallback(system, prompt, schema, model, task_class,
                               "GEMINI_FREE_API_KEY is not set (create it in a Google project without billing).")
+    wait = {"timeout": timeout} if timeout else {}
     delay = 15.0
     for attempt in range(1, attempts + 1):
         try:
-            return gemini.structured(system, prompt, schema, model=model, key=config.GEMINI_FREE_API_KEY)
+            return gemini.structured(system, prompt, schema, model=model, key=config.GEMINI_FREE_API_KEY, **wait)
         except gemini.QuotaExhausted as e:
             spare = _spare_key()
             if spare:
                 try:
-                    return gemini.structured(system, prompt, schema, model=model, key=spare)
+                    return gemini.structured(system, prompt, schema, model=model, key=spare, **wait)
                 except gemini.GeminiError as e2:
                     log.info("Spare free key unavailable too (%s).", e2)
             return _paid_fallback(system, prompt, schema, model, task_class,
@@ -136,9 +137,19 @@ def structured(system: str, prompt, schema: Type[T], role: str = "writer", attem
     raise LLMError("unreachable")
 
 
-def call(system: str, prompt, schema: Type[T], role: str = "writer", task_class: str = "heavy", **claude_kwargs) -> T:
-    """The free model when SCRIPT_ENGINE=free, otherwise Claude (llm.structured_call with claude_kwargs)."""
+INTERACTIVE_TIMEOUT = 45  # seconds; someone is waiting in Telegram
+
+
+def call(system: str, prompt, schema: Type[T], role: str = "writer", task_class: str = "heavy",
+         interactive: bool = False, **claude_kwargs) -> T:
+    """The free model when SCRIPT_ENGINE=free, otherwise Claude (llm.structured_call with claude_kwargs).
+    interactive: an operator is waiting (/ask, issue triage): one retry and a short request timeout, so a
+    stalled free model gives way to the caller's fallback in about a minute instead of five. A timeout is
+    not a quota error, so it never triggers the billed fallback."""
     if enabled():
+        if interactive:
+            return structured(system, prompt, schema, role=role, task_class=task_class, attempts=2,
+                              timeout=INTERACTIVE_TIMEOUT)
         return structured(system, prompt, schema, role=role, task_class=task_class)
     from .llm import structured_call
     return structured_call(system, prompt, schema, **claude_kwargs)

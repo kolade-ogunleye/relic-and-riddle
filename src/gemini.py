@@ -178,7 +178,8 @@ def _inline_refs(schema: Dict[str, Any]) -> Dict[str, Any]:
     return walk(schema)
 
 
-def structured(system: str, prompt: Union[str, list], schema: Type[T], model: str = None, key: str = None) -> T:
+def structured(system: str, prompt: Union[str, list], schema: Type[T], model: str = None, key: str = None,
+               timeout: float = None) -> T:
     if isinstance(prompt, list):
         parts = []
         for b in prompt:
@@ -211,7 +212,7 @@ def structured(system: str, prompt: Union[str, list], schema: Type[T], model: st
         # retry would answer questions about pictures it never saw.
         try:
             resp = requests.post(url, headers={"x-goog-api-key": target_key, "Content-Type": "application/json"},
-                                 json=body, timeout=120)
+                                 json=body, timeout=timeout or 120)
         except requests.RequestException as e:
             raise GeminiError(f"Gemini vision request failed: {e}") from e
         if resp.status_code == 429:
@@ -235,7 +236,7 @@ def structured(system: str, prompt: Union[str, list], schema: Type[T], model: st
         "input": f"{system}\n\n{prompt}",
         "response_format": {"type": "text", "mime_type": "application/json",
                             "schema": _inline_refs(schema.model_json_schema())},
-    }, key=key)
+    }, key=key, timeout=timeout or 300)
     usage = data.get("usage") or {}
     _set_usage(usage.get("total_input_tokens", 0), usage.get("total_output_tokens", 0))
     text = "".join(b.get("text", "") for b in _text_blocks(data)).strip()

@@ -207,7 +207,7 @@ def probe_system(query: str, db: PipelineDatabase, assets_dir: Optional[Path] = 
                 "recorded=false and say plainly that it isn't recorded, and which record would have shown it. Plain "
                 "text, at most 120 words.",
                 f"<records>\n{json.dumps(ev, ensure_ascii=False, default=str)[:60000]}\n</records>\n\nQuestion: {question}",
-                _Answer, role="checker", task_class="light", effort="low", max_tokens=600)
+                _Answer, role="checker", task_class="light", interactive=True, effort="low", max_tokens=600)
             body = html.escape(ans.answer.strip())
             records = ans.records if ans.recorded else []
             if not ans.recorded:

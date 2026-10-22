@@ -88,3 +88,19 @@ def test_openalex_scholarly_evidence_synthesis(monkeypatch):
     assert len(sources) == 1
     assert sources[0]["url"] == "https://doi.org/10.1038/nature05357"
 
+
+
+def test_interactive_calls_wait_briefly_and_never_bill_on_a_timeout(monkeypatch):
+    from src import config, free_llm
+    monkeypatch.setattr(config, "SCRIPT_ENGINE", "free", raising=False)
+    monkeypatch.setattr(free_llm, "enabled", lambda: True)
+    monkeypatch.setattr(free_llm, "available", lambda: True)
+    seen = []
+    def stalled(system, prompt, schema, model=None, key=None, timeout=None):
+        seen.append(timeout)
+        raise gemini.GeminiError("Gemini request failed: Read timed out.")
+    monkeypatch.setattr(gemini, "structured", stalled)
+    monkeypatch.setattr(free_llm, "_paid_fallback", lambda *a, **k: pytest.fail("a timeout must not bill"))
+    with pytest.raises(Exception):
+        free_llm.call("s", "p", object, role="checker", task_class="light", interactive=True)
+    assert seen == [free_llm.INTERACTIVE_TIMEOUT]

@@ -177,7 +177,7 @@ def triage_issue(db, issue_id: str, critique: str, run_id: Optional[str]) -> str
             t = free_llm.call("You sort a video producer's problem report into one area of a short-documentary pipeline: "
                               "script, facts, voice, pictures, motion, graphics, captions, sound, cover, publishing, bot or other. "
                               "Then restate the problem in one plain sentence.", critique, _Triage, role="checker",
-                              task_class="light", effort="low", max_tokens=300)
+                              task_class="light", interactive=True, effort="low", max_tokens=300)
             area, summary = t.area.strip().lower(), t.summary.strip() or critique
     except Exception as e:  # triage is a convenience; the issue is filed either way
         log.info("Issue triage unavailable (%s); using keywords.", e)

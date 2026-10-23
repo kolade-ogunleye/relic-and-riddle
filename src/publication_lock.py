@@ -19,7 +19,30 @@ def exclusive(database_path, name):
 
 
 @contextmanager
-def publication_lock(database_path, run_id):
+def publication_lock(database_path, run_id, wait: float = 0):
+    """Holds the named OS lock. wait > 0 retries for that many seconds before refusing: the approval tap
+    holds a run's lock for a moment while it records the decision, and the worker that publishes right
+    after must wait for it, not fail (a real concurrent upload holds it for minutes and is still refused)."""
+    import time
+    deadline = time.monotonic() + max(0, wait)
+    with ExitStack() as stack:
+        while True:  # only acquiring is retried; the protected work runs once, after the loop
+            try:
+                stack.enter_context(_publication_lock(database_path, run_id))
+                break
+            except _Held:
+                if time.monotonic() >= deadline:
+                    raise ValueError("Publication is in progress; its owner still holds the upload lock.") from None
+                time.sleep(0.5)
+        yield
+
+
+class _Held(Exception):
+    pass
+
+
+@contextmanager
+def _publication_lock(database_path, run_id):
     directory = Path(database_path).resolve().parent / "publication_locks"
     directory.mkdir(parents=True, exist_ok=True)
     path = directory / (hashlib.sha256(run_id.encode()).hexdigest() + ".lock")
@@ -37,7 +60,7 @@ def publication_lock(database_path, run_id):
                 import fcntl
                 fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except OSError as exc:
-            raise ValueError("Publication is in progress; its owner still holds the upload lock.") from exc
+            raise _Held() from exc
         try:
             yield
         finally:

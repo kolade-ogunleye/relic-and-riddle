@@ -427,3 +427,25 @@ def test_artwork_is_never_face_blurred_even_as_a_derived_copy(tmp_path):
     record_derived(copy, [topic / "01_commons.jpg"], "upscale")
     assert privacy.is_artwork(topic / "01_commons.jpg") and privacy.is_artwork(copy)
     assert not privacy.is_artwork(topic / "02_commons.jpg")                       # a photo is still checked
+
+
+def test_publishing_waits_briefly_for_the_approval_tap_but_never_runs_twice(tmp_path):
+    import subprocess
+    import sys
+    import time
+    from pathlib import Path
+    from src.publication_lock import publication_lock
+    db = tmp_path / "p.db"
+    holder = subprocess.Popen([sys.executable, "-c", (
+        "import sys, time; sys.path.insert(0, r'%s'); from src.publication_lock import publication_lock\n"
+        "with publication_lock(r'%s', 'run1'):\n    print('held', flush=True); time.sleep(1.5)") % (
+        str(Path(__file__).resolve().parents[1]), str(db))], stdout=subprocess.PIPE, text=True)
+    assert holder.stdout.readline().strip() == "held"
+    with pytest.raises(ValueError):                         # no wait: refused at once, as before
+        with publication_lock(db, "run1"):
+            pass
+    ran, started = [], time.monotonic()
+    with publication_lock(db, "run1", wait=10):              # the approval holder lets go within a moment
+        ran.append(1)
+    assert ran == [1] and time.monotonic() - started < 10
+    holder.wait(10)

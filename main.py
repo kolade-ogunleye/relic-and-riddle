@@ -1520,7 +1520,7 @@ class PipelineCoordinator:
 
     def publish_run(self, run_id: str, dry_run: bool = False, previous_status: str = "queued") -> Dict[str, Any]:
         from src.publication_lock import publication_lock
-        with publication_lock(self.db.db_path, run_id):
+        with publication_lock(self.db.db_path, run_id, wait=30):
             return self._publish_run_locked(run_id, dry_run, previous_status)
 
     def _publish_run_locked(self, run_id: str, dry_run: bool = False, previous_status: str = "queued") -> Dict[str, Any]:

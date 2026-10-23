@@ -19,6 +19,12 @@ def default_licences(monkeypatch):
     from src import config
     monkeypatch.setattr(config, "IMAGES_ALLOW_SHARE_ALIKE", False)
     monkeypatch.setattr(config, "BEAT_IMAGES_ALLOW_SHARE_ALIKE", False)
+    # Nor the developer's formats, Shorts switch or retry waits (a test never sleeps a real minute).
+    monkeypatch.setattr(config, "VIDEO_FORMATS", ["reel"])
+    monkeypatch.setattr(config, "YOUTUBE_SHORTS", False)
+    monkeypatch.setattr(config, "SCENE_PLAN_RETRY_SECONDS", 0.0)
+    from src import improve
+    improve._buffer.clear()  # audit notes buffered by one test are not another test's findings
 
 
 @pytest.fixture(autouse=True)

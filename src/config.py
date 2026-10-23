@@ -136,6 +136,11 @@ FREE_WRITER_MODEL = (os.getenv("FREE_WRITER_MODEL") or "gemini-3.8-flash").strip
 # own free Gemini model, which has its own free limits in the same project; empty = the writer/checker
 # models. Set only after scripts/compare_light_engines.py --candidate gemini:<model> holds up.
 FREE_LIGHT_MODEL = (os.getenv("FREE_LIGHT_MODEL") or "").strip()
+# The picture plan (which photo goes with which sentence) is retried within the run before photos are
+# matched by their captions instead: SCENE_PLAN_ATTEMPTS tries, the first wait SCENE_PLAN_RETRY_SECONDS,
+# doubling each time (3 tries, 60 s: about 3 minutes of waiting at most).
+SCENE_PLAN_ATTEMPTS = max(1, int(os.getenv("SCENE_PLAN_ATTEMPTS") or 3))
+SCENE_PLAN_RETRY_SECONDS = max(0.0, float(os.getenv("SCENE_PLAN_RETRY_SECONDS") or 60))
 # Second free model for light, text-only tasks (src/groq.py); off until measured against Gemini.
 GROQ_API_KEY = (os.getenv("GROQ_API_KEY") or "").strip()
 GROQ_MODEL = (os.getenv("GROQ_MODEL") or "openai/gpt-oss-120b").strip()

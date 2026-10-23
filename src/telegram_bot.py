@@ -785,6 +785,8 @@ class TelegramApprovalBot:
                 return f"<b>{e(lbl)}:</b> {e(rest.strip())}"
             return e(raw)
 
+        if script_payload.get("scene_plan_note"):  # first: a picture problem decides the review
+            text += "\n" + _format_note(script_payload["scene_plan_note"])
         if script_payload.get("fact_sheet_note"):
             text += "\n" + _format_note(script_payload["fact_sheet_note"])
         if script_payload.get("voice_note"):

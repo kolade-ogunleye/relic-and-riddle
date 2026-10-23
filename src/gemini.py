@@ -186,6 +186,11 @@ def _inline_refs(schema: Dict[str, Any]) -> Dict[str, Any]:
     return walk(schema)
 
 
+def vision_timeout(n_images: int) -> float:
+    """Seconds allowed for a vision request: 60 plus 12 per picture, between 120 and 600."""
+    return float(min(600, max(120, 60 + 12 * n_images)))
+
+
 def structured(system: str, prompt: Union[str, list], schema: Type[T], model: str = None, key: str = None,
                timeout: float = None) -> T:
     if isinstance(prompt, list):
@@ -218,9 +223,15 @@ def structured(system: str, prompt: Union[str, list], schema: Type[T], model: st
         }
         # Images are the point of this call: if it fails, the caller learns it failed. A text-only
         # retry would answer questions about pictures it never saw.
+        # The time allowed grows with the pictures sent: a 20-photo scene plan timed out at a flat 120 s.
+        n_images = sum(1 for part in parts if "inline_data" in part)
         try:
             resp = requests.post(url, headers={"x-goog-api-key": target_key, "Content-Type": "application/json"},
-                                 json=body, timeout=timeout or 120)
+                                 json=body, timeout=timeout or vision_timeout(n_images))
+        except requests.ConnectionError as e:
+            if not isinstance(e, requests.Timeout):  # a dropped line, not a slow answer: safe to send again
+                raise ConnectionDropped(f"Gemini vision request failed: {e}") from e
+            raise GeminiError(f"Gemini vision request failed: {e}") from e
         except requests.RequestException as e:
             raise GeminiError(f"Gemini vision request failed: {e}") from e
         if resp.status_code == 429:

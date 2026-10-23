@@ -39,7 +39,7 @@ from src.db import PipelineDatabase, QueueEmpty
 from src.control import heartbeat_text, is_paused, make_command_handler, ping_healthcheck
 from src import beat_images, callouts, config, encoding, footage, graphics, motion, post_schedule, privacy, then_now
 from src.llm import claude_available as llm_available
-from src.scene_planner import documentary_cuts, plan_scenes, segment_beats
+from src.scene_planner import degraded_note, documentary_cuts, plan_scenes, segment_beats
 from src.upscale import ensure_all, ensure_resolution
 from src.music import music_for
 from src.parallax import render_scenes as render_parallax
@@ -336,6 +336,26 @@ class PipelineCoordinator:
         except Exception as e:
             log.warning("Could not record findings for %s: %s", run_id, e)
 
+    # The documentary's targets (docs/documentary-rebuild.md): what the audit ledger checks it against.
+    DOC_MIN_SECONDS, DOC_MAX_STILL_SECONDS = 8 * 60, 12.0
+
+    @classmethod
+    def _audit_documentary(cls, seconds: float, acts: int, scenes: List[Path], durations: List[float]) -> None:
+        """Notes where a documentary falls short of its targets, for the audit ledger (never fails the run)."""
+        from src import improve
+        from src.typography import is_video
+        if seconds < cls.DOC_MIN_SECONDS:
+            improve.note("documentary.length", f"{seconds / 60:.1f} min; the target is 8-15 min "
+                         "(mid-roll ads need 8+)", source="documentary")
+        graphics = {Path(s).name for s in scenes if Path(s).stem.startswith("graphic_")}
+        if len(graphics) < acts:
+            improve.note("documentary.graphics", f"{len(graphics)} original graphic(s) for {acts} acts; "
+                         "the target is at least one per act", source="documentary")
+        static = [d for s, d in zip(scenes, durations) if not is_video(Path(s)) and d > cls.DOC_MAX_STILL_SECONDS]
+        if static:
+            improve.note("documentary.static_stills", f"{len(static)} still(s) held over "
+                         f"{cls.DOC_MAX_STILL_SECONDS:.0f}s (longest {max(static):.0f}s)", source="documentary")
+
     def _await_reason(self, run_id: str, wait_seconds: int = 120) -> Dict[str, Any]:
         """After Regenerate, waits briefly for your reason chip (and words) so the new run can act on it."""
         from src import improve
@@ -398,6 +418,8 @@ class PipelineCoordinator:
                     pass
 
         def finish(success: bool, error: str = "") -> None:
+            # The documentary files its findings like a Reel (it never did, so the audit never saw it).
+            self._collect_findings(run_id, run_dir, tid, error=None if success else error)
             shown = False
             if card:
                 try:
@@ -611,6 +633,8 @@ class PipelineCoordinator:
 
             cuts = documentary_cuts(words, vo_dur)
             extended_scenes, durations, plan_notes = plan_scenes(cuts, unique_media + own_graphics, use_storyboard=False)
+            payload["scene_plan_note"] = degraded_note(plan_notes)
+            self._audit_documentary(vo_dur, len(deep_dive_pkg.acts), extended_scenes, durations)
             log.info("Documentary timeline: %d cuts, sum=%.2fs (target=%.2fs); %s",
                      len(extended_scenes), sum(durations), vo_dur, plan_notes[:120])
 
@@ -1268,6 +1292,7 @@ class PipelineCoordinator:
                 candidates, used, used_footage, caption = scene_media + own_graphics, [], [], caption_base
                 scenes, durations, plan_notes = plan_scenes(beats, candidates, feedback=feedback)
             payload["caption"] = caption
+            payload["scene_plan_note"] = degraded_note(plan_notes)
             used_graphics = [p.stem.replace("graphic_", "") for p in own_graphics if p in scenes]
             payload["graphics_note"] = ("🗺 Original graphics in this video: " + ", ".join(used_graphics)) if used_graphics else ""
             payload["footage_credits"] = used_footage

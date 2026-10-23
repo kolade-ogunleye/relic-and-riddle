@@ -13,11 +13,12 @@ The result is one (image, duration) per beat for the video composer.
 import json
 from collections import Counter
 import logging
+import time
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from . import commons, free_llm, graphic_match
+from . import commons, config, free_llm, graphic_match
 from .config import FOOTAGE_MAX_SHARE
 from .llm import LLMError, claude_available, image_block, structured_call, task as llm_task
 from .models import ScenePlan
@@ -211,6 +212,17 @@ def storyboard_order(storyboard: List[Dict[str, Any]], beats: List[Dict[str, Any
 CAPTION_NOTES = "caption match (no picture plan)"
 
 
+def degraded_note(notes: str) -> str:
+    """The review card's warning when pictures were not planned against the narration ("" when they were)."""
+    if notes == CAPTION_NOTES:
+        return ("⚠️ Pictures: matched by their archive captions, because the picture planner was unavailable "
+                "after every retry. Check each picture fits its sentence, or Regenerate.")
+    if notes == "filename order":
+        return ("⚠️ Pictures: in filename order, not matched to the narration (no picture planner and no "
+                "captions). Regenerate before approving.")
+    return ""
+
+
 def caption_order(beats: List[Dict[str, Any]], stills: List[Path]) -> Optional[List[int]]:
     """A photo per beat from archive captions alone: the unused photo sharing the most distinctive
     words with the beat (a word every caption has, like the subject's name, counts least), else the
@@ -246,6 +258,7 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
 
     order = list(range(n))  # default: filename order of the photos, cycling if there are more beats than photos
     notes = "filename order"
+    failure = "no picture planner is available"
 
     # 1. Deterministic Storyboard Contract:
     # If the creator approved a storyboard in Telegram, lock those exact approved assets directly,
@@ -284,15 +297,30 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
             content.append({"type": "text", "text": (
                 f"Narration beats ({n}):\n{lines}{fix}\n\n"
                 f"Return exactly {n} image numbers (1-{len(options)}), one per beat, in order.")})
-            plan = (free_llm.call(SYSTEM, content, ScenePlan, effort="low", max_tokens=4000)
-                    if free_llm.enabled() else structured_call(SYSTEM, content, ScenePlan, effort="low", max_tokens=4000))
-            picks = [i - 1 for i in plan.images]
-            if len(picks) == n and all(0 <= i < len(options) for i in picks):
-                order, notes = picks, plan.notes
-            else:
-                log.warning("Scene plan had %d picks for %d beats or bad numbers; using filename order.", len(picks), n)
-        except LLMError as e:
-            log.warning("Scene planning failed (%s); using filename order.", e)
+            # Pictures that follow the narration are the point of the video, so a failed plan is tried
+            # again within the run (the stages before it are kept), waiting longer each time, before the
+            # caption fallback below is used.
+            wait = config.SCENE_PLAN_RETRY_SECONDS
+            for attempt in range(1, config.SCENE_PLAN_ATTEMPTS + 1):
+                try:
+                    plan = (free_llm.call(SYSTEM, content, ScenePlan, effort="low", max_tokens=4000)
+                            if free_llm.enabled() else structured_call(SYSTEM, content, ScenePlan, effort="low", max_tokens=4000))
+                except LLMError as e:
+                    failure = f"Scene planning attempt {attempt}/{config.SCENE_PLAN_ATTEMPTS} failed ({e})"
+                else:
+                    picks = [i - 1 for i in plan.images]
+                    if len(picks) == n and all(0 <= i < len(options) for i in picks):
+                        order, notes = picks, plan.notes
+                        break
+                    failure = f"Scene plan attempt {attempt} had {len(picks)} picks for {n} beats or bad numbers"
+                log.warning("%s.", failure)
+                if attempt < config.SCENE_PLAN_ATTEMPTS:
+                    log.info("Trying the scene plan again in %.0fs.", wait)
+                    time.sleep(wait)
+                    wait *= 2
+        except LLMError as e:  # preparing the pictures failed
+            failure = f"Scene planning failed ({e})"
+            log.warning("%s.", failure)
 
     # 3. Without a picture plan (quota used up, a vision timeout: Richat's documentary went out in
     # filename order), each beat takes the unused photo whose archive caption shares its words.
@@ -300,6 +328,9 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
         matched = caption_order(beats, stills)
         if matched is not None:
             order, notes = matched, CAPTION_NOTES
+        # Recorded for the review card and the audit ledger: a degraded plan never passes silently.
+        from . import improve
+        improve.note("pictures.plan_degraded", f"{notes}: {failure}", source="scene_plan")
 
     planned = notes != "filename order"  # without a plan, photos only, in filename order
     chosen: List[Path] = []

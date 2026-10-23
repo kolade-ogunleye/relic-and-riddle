@@ -453,10 +453,9 @@ class PipelineCoordinator:
                 "description": deep_dive_pkg.description,
                 "tags": deep_dive_pkg.tags,
                 "closing_debate_question": deep_dive_pkg.closing_debate_question,
-                "first_comment": (
-                    f"Archaeological Inquiry: {deep_dive_pkg.closing_debate_question}\n\n"
-                    "Share your perspective below—do ancient megastructures reflect peak human ingenuity or existential terror?"
-                ),
+                # The closing question only: a fixed tail ("ancient megastructures") was wrong for most topics.
+                "first_comment": deep_dive_pkg.closing_debate_question,
+                "location": topic.get("location") or {},
                 "acts": [act.model_dump() for act in deep_dive_pkg.acts],
                 "thumbnail": thumbnail_copy,
                 "guardrail_passed": bool(passed),
@@ -604,7 +603,7 @@ class PipelineCoordinator:
             # so they are drawn while the documentary renders (one worker: the engine keeps per-call state).
             thumb_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1, thread_name_prefix="deep-thumbs")
             fut_thumbs = thumb_pool.submit(lambda: (
-                self.visual_engine.generate_thumbnails(hero_img, payload, run_dir),
+                self.visual_engine.generate_thumbnails(hero_img, payload, run_dir, variants=False),
                 self.visual_engine.generate_youtube_thumbnail(hero_img, payload, run_dir / "thumbnail_youtube_16x9.jpg")))
             thumb_pool.shutdown(wait=False)
             step(4, "Rendering the documentary, preparing review")

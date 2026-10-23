@@ -160,6 +160,14 @@ def lock_narrative_graphics(beats: List[Dict[str, Any]], graphics: List[Path]) -
         if idx not in locked and gi not in placed:
             locked[idx] = graphics[gi]
             placed.add(gi)
+    # A graphic that only the hook names (Richat's script opened with its location, so the map had
+    # no beat) follows the hook on the next beat, while the narration is still on that subject.
+    if len(beats) > 1 and 1 not in locked:
+        for gi, g in enumerate(graphics):
+            if (gi not in placed and Path(g).stem.startswith("graphic_")
+                    and graphic_match.score(g, beats[0].get("text", "")) >= graphic_match.THRESHOLD):
+                locked[1] = g
+                break
     return locked
 
 

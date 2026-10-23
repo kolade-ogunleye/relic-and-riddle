@@ -103,6 +103,30 @@ def navigation_buttons(buttons=None):
     return rows
 
 
+CARD_PAGE_LIMIT = 3600  # telegram_pages.panel pages (as plain text) a card over 3,700 UTF-16 units
+
+
+def _tg_len(text: str) -> int:
+    """Length as Telegram counts it (UTF-16 code units)."""
+    return len(text.encode("utf-16-le")) // 2
+
+
+def _video_dimensions(path) -> Dict[str, int]:
+    """width, height and duration for an uploaded video, so Telegram shows its real shape."""
+    import subprocess
+    try:
+        out = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+                              "stream=width,height:format=duration", "-of", "json", str(path)],
+                             capture_output=True, text=True, timeout=20)
+        info = json.loads(out.stdout or "{}")
+        stream = (info.get("streams") or [{}])[0]
+        dims = {"width": int(stream["width"]), "height": int(stream["height"])}
+        dims["duration"] = int(round(float((info.get("format") or {}).get("duration", 0))))
+        return dims
+    except (OSError, ValueError, KeyError, IndexError, subprocess.SubprocessError):
+        return {}
+
+
 def _second_check_line(second: Optional[Dict[str, Any]]) -> str:
     if not second:
         return ""
@@ -722,7 +746,8 @@ class TelegramApprovalBot:
     def format_card_text(script_payload: Dict[str, Any], run_id: str, release: Optional[Dict[str, Any]] = None) -> str:
         """HTML review card (Telegram message limit is 4,096 characters)."""
         e = html.escape
-        loc = script_payload.get("location", {})
+        loc = script_payload.get("location") or {}
+        place = ", ".join(e(str(v)) for v in (loc.get("name"), loc.get("country")) if v)
         audits = script_payload.get("fact_audits") or []
         flagged = [a for a in audits if a.get("verdict") != "supported"]
         sources = script_payload.get("sources", [])[:4]
@@ -735,14 +760,15 @@ class TelegramApprovalBot:
         text = (
             f"🎬 <b><u>MASTER REVIEW</u></b>\n\n"
             f"📌 <b>{e(script_payload.get('title', ''))}</b>\n"
-            f"📍 <i>{e(loc.get('name', ''))}, {e(loc.get('country', ''))}</i>\n"
+            + (f"📍 <i>{place}</i>\n" if place else "") +
             f"⏱️ <code>{script_payload.get('word_count', 0)} words</code> · source: <i>{e(script_payload.get('origin', '?'))}</i>\n"
             f"{integrity}\n"
             + _second_check_line(script_payload.get("second_check"))
             + TelegramApprovalBot.release_lines(release) + "\n"
-            f"<blockquote expandable><b>Narration Script & Timings:</b>\n<i>{e(script_payload.get('narration_script', ''))}</i>\n\n"
+            "<blockquote expandable><b>Narration Script & Timings:</b>\n<i>\x00NARRATION\x00</i>\n\n"
             f"<b>First Comment:</b> <i>{e(script_payload.get('first_comment', ''))}</i>\n"
-            f"<b>Hashtags:</b> {e(' '.join(script_payload.get('hashtags', [])))}</blockquote>\n"
+            + (f"<b>Hashtags:</b> {e(' '.join(script_payload['hashtags']))}" if script_payload.get("hashtags")
+               else f"<b>Tags:</b> {e(', '.join(script_payload.get('tags') or []))}") + "</blockquote>\n"
         )
         poll = script_payload.get("poll") or {}
         if poll.get("question") and poll.get("options") and len(poll["options"]) >= 2:
@@ -780,7 +806,17 @@ class TelegramApprovalBot:
         if sources:
             text += "\n📚 " + "\n📚 ".join(e(s.get("url", "")) for s in sources) + "\n"
         full = text + f"\n<i>Run ID (for the command line): {e(run_id)}</i>"
-        return full
+        # A card over the page limit is paged as plain text and loses its collapsible script, so a long
+        # (documentary) narration is shortened inside it instead; the full script is in the run folder.
+        narration = script_payload.get("narration_script", "")
+        room = CARD_PAGE_LIMIT - _tg_len(full.replace("\x00NARRATION\x00", ""))
+        if _tg_len(e(narration)) > room:
+            note = f" … [shortened: all {len(narration.split())} words are in the run's script_metadata.json]"
+            cut = narration
+            while cut and _tg_len(e(cut)) + _tg_len(note) > room:
+                cut = cut[:-40].rsplit(" ", 1)[0]
+            narration = cut + note
+        return full.replace("\x00NARRATION\x00", e(narration), 1)
 
     def send_approval_request(self, video_path: Path, thumbnail_path: Path, script_payload: Dict[str, Any], run_id: str) -> Optional[int]:
         """Everything one Approve publishes, then the card: an album with the cover, a scene strip and
@@ -837,6 +873,7 @@ class TelegramApprovalBot:
                     entry.update(caption=it["caption"][:1024], parse_mode="HTML")
                 if it["type"] == "video":
                     entry["supports_streaming"] = True
+                    entry.update(_video_dimensions(it["path"]))  # without them Telegram can show 16:9 as a square
                 media.append(entry)
             if len(media) == 1:
                 kind = media[0]["type"]
@@ -890,8 +927,8 @@ class TelegramApprovalBot:
              {"text": "✏️ Edit text", "callback_data": f"edit:{key}"}],
             [{"text": "🔄 Regenerate", "callback_data": f"regen:{key}"},
              {"text": "❌ Reject", "callback_data": f"reject:{key}"}],
-            [{"text": "🎨 Covers", "callback_data": f"ccov:{key}"}],
-        ])}
+        ] + ([] if script_payload.get("delivery_profile") == "deep_dive_16x9"  # 9:16 covers don't fit a documentary
+             else [[{"text": "🎨 Covers", "callback_data": f"ccov:{key}"}]]))}
         from .telegram_pages import panel as paginate
         card_text, rows = paginate(self.db, card_text, markup["inline_keyboard"])
         markup["inline_keyboard"] = rows

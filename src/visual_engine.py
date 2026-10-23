@@ -163,7 +163,7 @@ class VisualEngine:
         return next(p for p in scene_media if not is_video(p))
 
     def generate_thumbnails(self, hero_image_path: Path, script_payload: Dict[str, Any], output_dir: Path,
-                            style: str = "badge") -> Tuple[Path, Path]:
+                            style: str = "badge", variants: bool = True) -> Tuple[Path, Path]:
         """Cover in one of COVER_STYLES (rotated per run so neighbouring grid posts differ).
         Every layout keeps its text inside the centre 1080x1080 square, which survives both the
         1:1 and the 3:4 profile-grid crops.
@@ -180,14 +180,14 @@ class VisualEngine:
         im = cover_crop(hero_image_path, (VIDEO_WIDTH, VIDEO_HEIGHT))
         self._text_cy = calm_center_y(im)  # badge/minimal titles sit where the photo is calmest
 
-        # Render complete 3-Variant Thumbnail Suite
-        var_a = self._cover_depth_sandwich(im.copy(), copy).convert("RGB")
-        var_b = self._cover_badge(im.copy(), copy).convert("RGB")
-        var_c = self._cover_minimal(im.copy(), copy).convert("RGB")
-
-        var_a.save(output_dir / "thumbnail_variant_a_blueprint.jpg", quality=95)
-        var_b.save(output_dir / "thumbnail_variant_b_intrigue.jpg", quality=95)
-        var_c.save(output_dir / "thumbnail_variant_c_minimal.jpg", quality=95)
+        # The 3-variant 9:16 suite is for Reels; a documentary (variants=False) uses its 16:9 thumbnail.
+        if variants:
+            self._cover_depth_sandwich(im.copy(), copy).convert("RGB").save(
+                output_dir / "thumbnail_variant_a_blueprint.jpg", quality=95)
+            self._cover_badge(im.copy(), copy).convert("RGB").save(
+                output_dir / "thumbnail_variant_b_intrigue.jpg", quality=95)
+            self._cover_minimal(im.copy(), copy).convert("RGB").save(
+                output_dir / "thumbnail_variant_c_minimal.jpg", quality=95)
 
         render = {
             "lower_third": self._cover_lower_third,

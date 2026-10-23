@@ -214,8 +214,13 @@ def spoken_length_problems(pkg: ScriptPackage) -> List[str]:
     per_word = seconds / words
     longest = HARD_DURATION_CEILING - _MEASURE_MARGIN_SEC
     if seconds > longest:
-        return [f"Narration runs {seconds:.1f}s when spoken (limit {longest:g}s); cut about "
-                f"{math.ceil((seconds - longest) / per_word)} words or use shorter, plainer words."]
+        # A word count is followed far better than seconds: name this draft's count and the one to reach,
+        # aiming inside the comfortable length (not just under the limit), never below the word minimum.
+        target = max(TARGET_WORD_COUNT_MIN, min(words - math.ceil((seconds - longest) / per_word) - 2,
+                                                int(TARGET_DURATION_MAX / per_word)))
+        return [f"Narration runs {seconds:.1f}s when spoken (limit {longest:g}s). This draft is {words} words; "
+                f"rewrite the narration in at most {target} words (names and numbers such as dates take "
+                f"longer to say), keeping the closing sentence."]
     if seconds < TARGET_DURATION_MIN:
         return [f"Narration runs {seconds:.1f}s when spoken (minimum {TARGET_DURATION_MIN:g}s); add about "
                 f"{math.ceil((TARGET_DURATION_MIN - seconds) / per_word) + 1} words of verified facts."]
@@ -419,7 +424,7 @@ class ScriptEngine:
         self._starved: Dict[str, fact_sheet.FactStarvedTopicError] = {}  # topics research couldn't sustain
 
     @llm_task("script_writing")
-    def generate_script(self, topic: Dict[str, Any], max_attempts: int = 2, revision_notes: str = "",
+    def generate_script(self, topic: Dict[str, Any], max_attempts: int = 3, revision_notes: str = "",
                         previous: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         revision_notes / previous: fact-checker findings on the previous draft. The previous

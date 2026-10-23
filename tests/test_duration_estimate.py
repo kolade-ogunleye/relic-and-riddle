@@ -15,7 +15,7 @@ def test_script_that_would_run_long_is_sent_back_with_a_cut(monkeypatch, curated
     from src import audio_engine, script_engine
     monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text: 53.6)
     problems = " ".join(script_engine.spoken_length_problems(_pkg(curated_payload)))
-    assert "53.6" in problems and "cut about" in problems
+    assert "53.6" in problems and "rewrite the narration in at most" in problems
 
 
 def test_script_that_would_run_short_is_sent_back_with_an_extension(monkeypatch, curated_payload):

@@ -913,10 +913,12 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             worker_state = active_prog.get("worker_state", "unverified")
             if worker_state != "running":
                 note = "The worker has exited or its PID was reused." if worker_state == "interrupted" else "Worker ownership is not recorded or cannot be verified."
+                updated = show_time(active_prog.get("updated_at"), "%d %b %H:%M %Z") if active_prog.get("updated_at") else "unknown"
                 return (f"⚠️ <b>Last recorded progress — {worker_state}</b>\n\n{html.escape(note)}\n"
                         f"{html.escape(topic_title)} · step {step}/{total_steps}\n"
-                        f"Last update: {html.escape(active_prog.get('updated_at', 'unknown'))}\n"
-                        "This is not confirmation of an active run. Inspect the worker before retrying.")
+                        f"Last update: {html.escape(updated)}\n"
+                        "This is not confirmation of an active run. Check Jobs before starting another.",
+                        [[{"text": "🧰 Jobs", "callback_data": "jobs:"}], [HOME]])
 
             milestones = [
                 "Verifying script & historical fact sheets",
@@ -927,7 +929,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             ]
             lines = [
                 mode_text,
-                f"⏳ <b><u>PRODUCTION PROGRESS</u></b>\n\n<b>{html.escape(topic_title)}</b> • <code>[{html.escape(db.run_label(run_id))}]</code>",
+                f"⏳ <b><u>PRODUCTION PROGRESS</u></b>\n\n<b>{html.escape(topic_title)}</b> · started "
+                f"{show_time(active_prog.get('start_time'), '%H:%M') if active_prog.get('start_time') else 'earlier'}",
                 "",
             ]
             for idx, m in enumerate(milestones, start=1):

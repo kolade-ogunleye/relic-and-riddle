@@ -389,3 +389,21 @@ def test_documentary_button_starts_a_reel_plus_documentary_run(db, monkeypatch):
     h("qdoc", "01_topic")
     h("qrender", "01_topic")
     assert started == ["dual", "reel"]
+
+
+def test_uploads_keep_one_timeout_and_small_calls_fail_fast_on_connect(monkeypatch):
+    seen = []
+
+    class Session:
+        def mount(self, *a): pass
+        def post(self, url, timeout=None, **kw):
+            seen.append(timeout)
+    monkeypatch.setattr(telegram_bot._HTTP, "session", Session(), raising=False)
+    telegram_bot._post("u", timeout=120, files={"video": b"x"})
+    telegram_bot._post("u", timeout=30, data={})
+    assert seen == [120, (telegram_bot.CONNECT_TIMEOUT, 30)]
+
+
+def test_progress_for_a_run_that_no_longer_exists_is_cleared(db):
+    db.set_active_progress("run_gone", "Roman Concrete", 1, 5)
+    assert db.get_active_progress() is None and db.get_setting("active_progress") is None

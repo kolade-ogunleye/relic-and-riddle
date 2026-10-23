@@ -729,7 +729,8 @@ def test_active_progress_and_progress_command(db, handler):
     idle_res = h("progress", "")
     assert "Nothing is being made right now" in idle_res[0]
 
-    # When active:
+    # When active (a progress record belongs to a run being made; one for a missing run is cleared):
+    db.create_run("run_test_01", "01_topic")
     db.set_active_progress(
         run_id="run_test_01",
         topic_title="Roman Concrete",

@@ -14,6 +14,14 @@ CURATED = ROOT / "data" / "scripts" / "derinkuyu_underground_city.json"
 
 
 @pytest.fixture(autouse=True)
+def default_licences(monkeypatch):
+    """Tests see the default licence policy (no CC BY-SA), whatever the developer's .env says."""
+    from src import config
+    monkeypatch.setattr(config, "IMAGES_ALLOW_SHARE_ALIKE", False)
+    monkeypatch.setattr(config, "BEAT_IMAGES_ALLOW_SHARE_ALIKE", False)
+
+
+@pytest.fixture(autouse=True)
 def no_claude(monkeypatch):
     """Tests never call the real API unless they patch it in explicitly."""
     monkeypatch.setattr("src.llm.ANTHROPIC_API_KEY", "")

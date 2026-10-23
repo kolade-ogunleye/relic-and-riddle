@@ -120,7 +120,7 @@ def test_progress_does_not_claim_a_dead_reused_or_unverifiable_worker(db, monkey
     monkeypatch.setattr(process_state, "identity", lambda _: observed)
     assert db.get_active_progress()["worker_state"] == state
     h = control.make_command_handler(db, lambda: None, lambda: "started")
-    assert "not confirmation of an active run" in h("progress", "")
+    assert "not confirmation of an active run" in h("progress", "")[0]
     assert db.get_run("r1")["status"] == "producing"  # No invented recovery/failed state.
 
 

@@ -91,7 +91,9 @@ def _post(url, timeout=30, **kwargs):
     if session is None:
         session = _HTTP.session = requests.Session()
         session.mount("https://", _POOL)
-    return session.post(url, timeout=(CONNECT_TIMEOUT, timeout), **kwargs)
+    # Uploads keep one timeout: with a (connect, read) pair the short connect value also bounds each socket
+    # write while the file is sent, which made review videos fail ("The write operation timed out").
+    return session.post(url, timeout=timeout if kwargs.get("files") else (CONNECT_TIMEOUT, timeout), **kwargs)
 
 
 def navigation_buttons(buttons=None):
@@ -1130,6 +1132,21 @@ class TelegramApprovalBot:
             log.warning("Could not send Telegram progress card: %s", e)
             return None
 
+    def bring_progress_down(self) -> bool:
+        """Progress during a run: the live card moves to the bottom of the chat (deleted, then redrawn from
+        the recorded progress; the worker keeps updating the new card) instead of a second copy that goes
+        stale. False when no verified run is being made."""
+        active = self.db.get_active_progress() if hasattr(self.db, "get_active_progress") else None
+        if not active or active.get("worker_state") != "running" or not active.get("message_id"):
+            return False
+        old = int(active["message_id"])
+        self.delete_message(old)
+        self._missing_messages.add(old)
+        self._last_progress_edit.pop(old, None)
+        self.update_progress_card(old, active.get("step", 1), active.get("total_steps", 5), active.get("topic_title", ""),
+                                  active["run_id"], active.get("details", ""))
+        return True
+
     def update_progress_card(self, message_id: int, step: int, total_steps: int, topic_title: str, run_id: str, details: str = "") -> bool:
         """Updates the progress card in-place with smooth bar, active sub-step, and ETA debouncing."""
         if not self.is_configured() or not message_id:
@@ -1691,6 +1708,9 @@ class TelegramApprovalBot:
             if not ok:
                 self._answer_callback(cq['id'], 'Not authorized.')
                 return
+            if action == 'cprog' and self.bring_progress_down():
+                self._answer_callback(cq['id'], 'Progress card moved to the bottom')
+                return
             if action == 'close':
                 msg = cq.get('message') or {}
                 self._answer_callback(cq['id'], 'Closed')
@@ -2134,6 +2154,10 @@ class TelegramApprovalBot:
             next_fn = getattr(self, 'next_run_func', lambda: None)
             dash_text, dash_buttons = dashboard_text_and_buttons(self.db, next_fn(), assets_dir=ASSETS_DIR)
             self.show_dashboard(dash_text, dash_buttons, fresh=True)
+            return
+        if command == 'progress' and is_auth and self.bring_progress_down():
+            if msg.get('message_id'):
+                self._delete_soon(msg['message_id'])
             return
         if command == 'jobs':
             if msg.get('message_id'):

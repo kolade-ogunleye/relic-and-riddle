@@ -621,7 +621,9 @@ class PipelineDatabase:
         except (ValueError, AttributeError):
             run_id = None
         run = self.get_run(run_id) if run_id else None
-        if run is not None and run.get("status") != "producing":
+        # Stale when its run finished or no longer exists (a record for a missing run never cleared, so the
+        # dashboard kept offering Progress instead of making the next topic). Runs are created first.
+        if run is None or run.get("status") != "producing":
             self.clear_active_progress(run_id)
             return None
         try:

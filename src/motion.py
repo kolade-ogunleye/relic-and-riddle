@@ -268,8 +268,13 @@ def _finish(raw: Path, out: Path, archetype: str = "megastructure") -> Path:
     f0 = out.with_name(f"{out.stem}_verify_f0.jpg")
     f_end = out.with_name(f"{out.stem}_verify_fend.jpg")
     try:
-        subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", "0.2", "-i", str(out), "-frames:v", "1", str(f0)], check=True)
-        subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", f"{SECONDS_OUT - 1.2:.2f}", "-i", str(out), "-frames:v", "1", str(f_end)], check=True)
+        try:  # one frame each: seconds, never minutes; a hung ffmpeg must not hold the run
+            subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", "0.2", "-i", str(out), "-frames:v", "1", str(f0)],
+                           check=True, timeout=120)
+            subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", f"{SECONDS_OUT - 1.2:.2f}", "-i", str(out), "-frames:v", "1",
+                            str(f_end)], check=True, timeout=120)
+        except subprocess.TimeoutExpired as e:
+            raise MotionError("Frame extraction for the fidelity check timed out.") from e
         qa = verify_motion_hook_integrity(f0, f_end, archetype=archetype)
         if not qa.get("pass", False):
             log.warning("AI video motion hook failed anti-hallucination verification: %s", qa.get("reason"))

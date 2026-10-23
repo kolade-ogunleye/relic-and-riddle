@@ -1801,6 +1801,58 @@ class PipelineCoordinator:
             log.debug("Could not stamp the review card for %s: %s", run_id, e)
 
 
+INTERRUPTED_GRACE_SECONDS = 30 * 60  # a run this young may still be starting (no progress record yet)
+
+
+def reconcile_interrupted_runs(db: PipelineDatabase, topic_engine=None) -> List[str]:
+    """At startup: runs still recorded as being made whose process has ended (a crash, a stopped process)
+    are marked failed as interrupted, their topic goes back to the queue and their progress record is
+    cleared. A crashed dev worker left its run "producing", which blocked the next deployment stop; in
+    production it would also have kept a dead run's progress on the dashboard. A run whose process is
+    alive or can't be checked, or one too young to have a progress record, is left alone."""
+    from src.process_state import identity
+    try:
+        record = json.loads(db.get_setting("active_progress") or "{}")
+    except ValueError:
+        record = {}
+    with db._conn() as conn:
+        rows = conn.execute("SELECT run_id, topic_id, updated_at FROM runs WHERE status = 'producing'").fetchall()
+    done = []
+    for row in rows:
+        run_id = row["run_id"]
+        if record.get("run_id") == run_id and record.get("owner_pid"):
+            observed = identity(record["owner_pid"])
+            if observed is not None and (observed == "unknown" or observed == record.get("owner_identity")):
+                continue  # its process is alive, or can't be checked: never declared dead on a guess
+        else:
+            try:
+                started = datetime.fromisoformat(row["updated_at"])
+                started = started if started.tzinfo else started.replace(tzinfo=timezone.utc)
+            except (TypeError, ValueError):
+                continue
+            if (datetime.now(timezone.utc) - started).total_seconds() < INTERRUPTED_GRACE_SECONDS:
+                continue
+        db.update_run(run_id, "failed", error="Interrupted: the process making it ended (crash or stop) before it finished.")
+        db.clear_active_progress(run_id)
+        if topic_engine is not None and row["topic_id"]:
+            topic_engine.record_status(row["topic_id"], "queued", run_id=run_id)
+        log.warning("Run %s was interrupted (its process ended); marked failed, topic back in the queue.", run_id)
+        done.append(run_id)
+    return done
+
+
+def _report_interrupted(coordinator, bot) -> None:
+    try:
+        stale = reconcile_interrupted_runs(coordinator.db, coordinator.topic_engine)
+    except Exception as e:
+        log.warning("Could not reconcile interrupted runs: %s", e)
+        return
+    if stale:
+        bot.notify("⚠️ <b>Interrupted run(s) cleared</b>: the process making them ended before they finished. "
+                   "Nothing was posted; the topics are back in the queue.\n"
+                   + "\n".join(f"• {html.escape(coordinator.db.run_label(r))}" for r in stale))
+
+
 def prebuild_candidates(db: PipelineDatabase, n: int) -> list:
     """The next n topics production would pick (queued first) that have approved images."""
     from src.visual_engine import MissingAssetsError, VisualEngine
@@ -2029,6 +2081,7 @@ def main(argv=None) -> int:
         db = PipelineDatabase()
         coordinator = PipelineCoordinator(db=db, schedule_posts=POST_SCHEDULING)
         bot = coordinator.telegram_bot
+        _report_interrupted(coordinator, bot)  # runs left "producing" by a process that ended
         if not bot.is_configured():
             print("Telegram is not configured (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID / TELEGRAM_APPROVER_IDS; "
                   "the chat and approvers must identify people, not the bot).")
@@ -2118,6 +2171,7 @@ def main(argv=None) -> int:
         hb_hour, hb_minute = (int(x) for x in HEARTBEAT_TIME.split(":"))
         coordinator = PipelineCoordinator(schedule_posts=True)
         bot = coordinator.telegram_bot
+        _report_interrupted(coordinator, bot)  # nothing runs in this process yet: any "producing" run is orphaned
         bot.register_commands()
         run_lock = threading.Lock()  # one production run at a time (daily job or /run)
 

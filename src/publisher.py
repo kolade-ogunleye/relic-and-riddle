@@ -541,16 +541,20 @@ class MetaPublisher:
         if getattr(config, "VOICE_REQUIRE_LICENSED", True):
             from .config import OUTPUT_DIR
             voice_path = OUTPUT_DIR / run_id / "voice.json"
-            voice_meta = {}
-            if voice_path.is_file():
+            voice_meta, unreadable = {}, ""
+            if not voice_path.is_file():
+                unreadable = "its voice record (voice.json) is missing"
+            else:
                 try:
                     voice_meta = json.loads(voice_path.read_text(encoding="utf-8"))
-                except Exception:
-                    pass
+                except (OSError, ValueError) as e:  # still blocked (fails closed), but for the true reason
+                    unreadable = f"its voice record (voice.json) could not be read ({e})"
             is_licensed = voice_meta.get("licensed", False)
             provider = voice_meta.get("provider", "unknown")
             if not is_licensed:
                 err_msg = (
+                    f"Commercial Voice License Required: the licence of this Reel's voice cannot be confirmed: "
+                    f"{unreadable}. Re-voice or resend the run." if unreadable else
                     f"Commercial Voice License Required: This Reel was voiced using {provider} (unlicensed). "
                     "Meta Content Monetization Program (CMP) policies prohibit commercial publishing without "
                     "a commercial license. Please configure a valid Azure Speech key or ElevenLabs paid plan, "

@@ -35,8 +35,9 @@ CACHE_DIR = BASE_DIR / "cache" / "privacy"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 MODEL_PATH = BASE_DIR / "tools" / "yunet.onnx"
 
-_YUNET_DETECTOR = None
-_FRONTAL_CASCADE = None
+# One detector of each kind per thread: anonymize_all blurs images in parallel, and a shared OpenCV
+# detector is not safe across threads (each call resets its input size, then detects).
+_DETECTORS = threading.local()
 # The detectors are shared objects whose input size is set per image: images checked in
 # parallel take turns on them (detection is fast; the cloud calls are what run concurrently).
 _DETECTOR_LOCK = threading.Lock()
@@ -62,12 +63,12 @@ class FaceVerification(BaseModel):
 
 
 def _get_yunet(w: int, h: int) -> Optional[cv2.FaceDetectorYN]:
-    global _YUNET_DETECTOR
     if not MODEL_PATH.exists():
         return None
     try:
-        if _YUNET_DETECTOR is None:
-            _YUNET_DETECTOR = cv2.FaceDetectorYN.create(
+        detector = getattr(_DETECTORS, "yunet", None)
+        if detector is None:
+            detector = _DETECTORS.yunet = cv2.FaceDetectorYN.create(
                 str(MODEL_PATH),
                 "",
                 (w, h),
@@ -76,19 +77,19 @@ def _get_yunet(w: int, h: int) -> Optional[cv2.FaceDetectorYN]:
                 top_k=50,
             )
         else:
-            _YUNET_DETECTOR.setInputSize((w, h))
-        return _YUNET_DETECTOR
+            detector.setInputSize((w, h))
+        return detector
     except Exception as e:
         log.warning("Could not initialize YuNet face detector (%s); falling back to cascade.", e)
         return None
 
 
 def _get_cascade() -> cv2.CascadeClassifier:
-    global _FRONTAL_CASCADE
-    if _FRONTAL_CASCADE is None:
+    cascade = getattr(_DETECTORS, "cascade", None)
+    if cascade is None:
         frontal_path = cv2.data.haarcascades + "haarcascade_frontalface_alt2.xml"
-        _FRONTAL_CASCADE = cv2.CascadeClassifier(frontal_path)
-    return _FRONTAL_CASCADE
+        cascade = _DETECTORS.cascade = cv2.CascadeClassifier(frontal_path)
+    return cascade
 
 
 def _cache_path(path: Path) -> Path:

@@ -74,8 +74,15 @@ class RenderError(RuntimeError):
     pass
 
 
+FFMPEG_TIMEOUT_SECONDS = 3600  # a documentary master takes ~12 min; a hung ffmpeg must not hold a run forever
+
+
 def _run_ffmpeg(cmd: List[str]) -> subprocess.CompletedProcess:
-    res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    try:
+        res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                             timeout=FFMPEG_TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired as e:
+        raise RenderError(f"ffmpeg did not finish within {FFMPEG_TIMEOUT_SECONDS}s; stopped.") from e
     if res.returncode != 0:
         tail = "\n".join(res.stderr.strip().splitlines()[-15:])
         raise RenderError(f"ffmpeg failed (exit {res.returncode}):\n{tail}")

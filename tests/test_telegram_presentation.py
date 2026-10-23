@@ -41,7 +41,8 @@ def test_clear_then_start_leaves_one_clean_dashboard_even_after_restart(db, monk
     sends = [d for method, d in calls if method == 'sendMessage']
     assert len(sends) == 1 and 'CHAT CLEARED' not in sends[0]['text']
     assert 'RELIC' in sends[0]['text']
-    # A fresh process must reuse the persisted panel, including Telegram's /start.
+    # After a restart, Telegram's /start still leaves exactly one panel: a new one at the bottom (the old
+    # one may be gone from the operator's view after "Clear history"), with the persisted one removed.
     fresh = TelegramApprovalBot(db=db, bot_token='123:abc', chat_id='555', approver_ids={'555'})
     def next_api(method, **kwargs):
         calls.append((method, kwargs.get('data', {})))
@@ -51,5 +52,6 @@ def test_clear_then_start_leaves_one_clean_dashboard_even_after_restart(db, monk
     monkeypatch.setattr(fresh, '_api', next_api)
     fresh.poll_once(handler)
     fresh.drain()
-    assert len([1 for method, _ in calls if method == 'sendMessage']) == 1
-    assert any(method == 'editMessageText' and data['message_id'] == 900 for method, data in calls)
+    assert len([1 for method, _ in calls if method == 'sendMessage']) == 2
+    assert any(method == 'deleteMessage' and data.get('message_id') == 900 for method, data in calls)
+    assert db.get_setting('telegram_dashboard_id') == '902'

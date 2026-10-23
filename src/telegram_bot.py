@@ -303,6 +303,7 @@ class TelegramApprovalBot:
         self._panel_media = {}
         self._panel_lock = threading.RLock()
         self._answered = {}  # callback ids already answered (insertion-ordered, bounded)
+        self._last_opened = 0.0  # monotonic time of the last /start or /dashboard panel
         self._dispatch_slots = threading.BoundedSemaphore(16)
         self._navigation_pool = None
         self._last_maintenance = 0
@@ -1992,9 +1993,17 @@ class TelegramApprovalBot:
                 return
             command = aliases.get(command, command)
         if command in {'start', 'dashboard'}:
+            # Always a new panel at the bottom: after Telegram's "Clear history" the old one is no longer
+            # visible to the operator, and editing it would leave an empty chat (and its START button) again.
+            # Telegram can send /start and /dashboard together: one panel answers both.
+            with self._panel_lock:
+                repeat = time.monotonic() - self._last_opened < 5
+                if not repeat:
+                    self._last_opened = time.monotonic()
+            if not repeat:
+                self.show_dashboard(fresh=True)
             if msg.get('message_id'):
-                self.delete_message(msg['message_id'])
-            self.show_dashboard()
+                self._delete_soon(msg['message_id'])  # after the panel exists, so the chat is never empty
             return
         if command == 'clear':
             cmd_mid = msg.get('message_id')

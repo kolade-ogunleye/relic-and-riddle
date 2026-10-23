@@ -196,3 +196,17 @@ def test_ask_says_plainly_when_records_do_not_cover_it(db, monkeypatch):
     monkeypatch.setattr(free_llm, "call", lambda *a, **k: probe._Answer(answer="I can't tell; try /status.", records=[], recorded=False))
     out = probe.probe_system("is the scheduler healthy?", db=db)
     assert "Not fully covered by the records" in out and "⚪" not in out
+
+
+def test_start_after_cleared_history_gives_one_visible_panel(db):
+    calls, ids = [], iter(range(600, 650))
+    bot = TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
+    bot._api = lambda method, **kw: calls.append((method, kw.get("data") or {})) or {"message_id": next(ids)}
+    db.set_setting("telegram_dashboard_id", "40")            # the old panel, gone from the operator's view
+    _typed(bot, "/dashboard", lambda c, a: "", message_id=301)
+    _typed(bot, "/start", lambda c, a: "", message_id=302)  # Telegram's START button, a second later
+    sends = [d for m, d in calls if m == "sendMessage"]
+    assert len(sends) == 1                                    # one new panel at the bottom, not two
+    assert not any(m == "editMessageText" and d.get("message_id") == 40 for m, d in calls)  # not an invisible edit
+    deleted = {d.get("message_id") for m, d in calls if m == "deleteMessage"}
+    assert {40, 301, 302} <= deleted                          # old panel and both commands removed

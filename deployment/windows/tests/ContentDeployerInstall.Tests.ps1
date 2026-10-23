@@ -1,6 +1,7 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot '../lib/ContentDeployerInstall.ps1')
     $script:installer = (Get-Content -LiteralPath (Join-Path $PSScriptRoot '../Install-ContentReleaseDeployer.ps1') -Raw) -replace "`r`n", "`n"
+    . (Join-Path $PSScriptRoot '../lib/ContentReleaseDeployer.ps1')   # Invoke-ContentNative, used by the reset
     $script:me = [Security.Principal.WindowsIdentity]::GetCurrent().User
 
     function New-Tree([hashtable]$Files) {
@@ -83,6 +84,30 @@ Describe 'ACL checks' {
     }
 }
 
+Describe 'Deploy key access' {
+    It 'returns a key Windows ssh-keygen made to its folder''s permissions' {
+        # Production: "Load key ...github_ed25519: Permission denied" on the deployer's first fetch.
+        # Stand-in for secrets\Deploy: a folder whose inheritable ACL names a second reader.
+        $folder = Join-Path $TestDrive ([guid]::NewGuid().ToString('n'))
+        New-Item -ItemType Directory -Path $folder | Out-Null
+        $reader = [Security.Principal.SecurityIdentifier]::new('S-1-5-32-545')
+        & (Join-Path $env:SystemRoot 'System32\icacls.exe') $folder /grant '*S-1-5-32-545:(OI)(CI)R' /Q | Out-Null
+        $key = Join-Path $folder 'github_ed25519'
+        & (Join-Path $env:SystemRoot 'System32\OpenSSH\ssh-keygen.exe') -q -t ed25519 -N '""' -f $key | Out-Null
+        Test-Path $key | Should -BeTrue
+        Test-ContentFileInherits -Path $key | Should -BeFalse                   # what ssh-keygen does
+        Test-ContentAclAllows -Path $key -Sid $reader -Rights 'Read' | Should -BeFalse
+        Reset-ContentFileInheritance -Path $key
+        Test-ContentFileInherits -Path $key | Should -BeTrue
+        Test-ContentAclAllows -Path $key -Sid $reader -Rights 'Read' | Should -BeTrue
+    }
+
+    It 'resets the key after generating it, and refuses if the deployer still cannot read it' {
+        $script:installer.IndexOf('Generate the read-only deploy key') | Should -BeLessThan $script:installer.IndexOf('Reset-ContentFileInheritance -Path $key')
+        $script:installer | Should -Match 'still cannot read \$key'
+    }
+}
+
 Describe 'Settings and signer' {
     It 'reads the pinned signer principal' {
         Get-ContentSignerPrincipal -Path (Join-Path $PSScriptRoot '../release/allowed_signers') | Should -Contain 'kolade-ogunleye'
@@ -135,7 +160,11 @@ Describe 'Installer safety' {
     }
 
     It 'never changes identities, ACLs or the workload tasks, and never starts the deployer' {
-        $script:installer | Should -Not -Match 'Set-Acl|SetAccessRule|AddAccessRule|icacls'
+        $script:installer | Should -Not -Match 'Set-Acl|SetAccessRule|AddAccessRule|SetAccessControl|icacls'
+        # Its one permission change returns its own deploy key to the lab's folder ACL; it grants nothing.
+        $library = Get-Content -LiteralPath (Join-Path $PSScriptRoot '../lib/ContentDeployerInstall.ps1') -Raw
+        $library | Should -Not -Match 'Set-Acl|SetAccessRule|AddAccessRule|SetAccessControl|/grant|/deny|/setowner|/inheritance'
+        @([regex]::Matches($library, 'icacls\.exe[^\n]*') | ForEach-Object Value) | Should -Be @("icacls.exe') -ArgumentList @(`$Path, '/reset', '/Q')")
         $script:installer | Should -Not -Match 'New-ADServiceAccount|Install-ADServiceAccount|Add-LocalGroupMember|ntrights'
         $script:installer | Should -Not -Match 'Start-ScheduledTask|\.Run\(|schtasks'
         $script:installer | Should -Not -Match "RegisterTaskDefinition\('RelicAndRiddle-Production"

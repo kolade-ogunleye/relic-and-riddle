@@ -183,6 +183,17 @@ if (-not (Test-Path -LiteralPath $key) -and $PSCmdlet.ShouldProcess($key, 'Gener
     if ($made.ExitCode -ne 0) { throw "ssh-keygen failed (exit $($made.ExitCode)): $($made.Stderr.Trim())" }
     Write-Step 'Deploy key generated.'
 }
+# Windows ssh-keygen gives a new private key an explicit ACL for its creator only, which hid it from
+# the deployer: its first fetch failed with "Load key ...: Permission denied" (2026-10-23). The key
+# goes back to the folder's lab-defined permissions (SYSTEM, Administrators, the deployer read).
+if ((Test-Path -LiteralPath $key) -and -not (Test-ContentFileInherits -Path $key) -and
+    $PSCmdlet.ShouldProcess($key, 'Give the deploy key its folder''s permissions')) {
+    Reset-ContentFileInheritance -Path $key
+    Write-Step 'Deploy key now has its folder''s permissions (the deployer can read it).'
+}
+if ((Test-Path -LiteralPath $key) -and -not (Test-ContentAclAllows -Path $key -Sid $deployer -Rights 'Read')) {
+    throw "LAB\rr-deploy$ still cannot read $key; check the secrets\Deploy ACL (lab play 54)."
+}
 if (Test-Path -LiteralPath "$key.pub") {
     $fingerprint = (Invoke-ContentNative -FilePath $keygen -ArgumentList @('-l', '-f', "$key.pub")).Stdout.Trim()
     Write-Step "Deploy key: $fingerprint"

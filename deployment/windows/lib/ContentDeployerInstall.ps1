@@ -47,6 +47,23 @@ function Test-ContentAclDenies {
     return $rules.Count -gt 0
 }
 
+function Test-ContentFileInherits {
+    # True when the file takes its permissions only from its folder (no explicit rules of its own).
+    param([Parameter(Mandatory)][string]$Path)
+    $acl = Get-Acl -LiteralPath $Path
+    return -not $acl.AreAccessRulesProtected -and -not @($acl.Access | Where-Object { -not $_.IsInherited }).Count
+}
+
+function Reset-ContentFileInheritance {
+    # Returns a file to its folder's permissions: the folder's ACL is the lab's (play 54), so this
+    # defines none of its own. Windows ssh-keygen gives a new private key an explicit ACL for its
+    # creator only, which hid the deploy key from the deployer (2026-10-23). icacls /reset replaces a
+    # file's access list with the inherited one and leaves auditing alone.
+    param([Parameter(Mandatory)][string]$Path)
+    $result = Invoke-ContentNative -FilePath (Join-Path $env:SystemRoot 'System32\icacls.exe') -ArgumentList @($Path, '/reset', '/Q')
+    if ($result.ExitCode -ne 0) { throw "Resetting the permissions of $Path failed (exit $($result.ExitCode)): $($result.Stderr.Trim())" }
+}
+
 function Get-ContentSignerPrincipal {
     # The principal names in an allowed_signers file (first field of each non-comment line).
     param([Parameter(Mandatory)][string]$Path)

@@ -911,7 +911,8 @@ class PipelineCoordinator:
         for f in changes:
             log.info("Edited %s of %s: %r -> %r", f, run_id, old[f][:60], changes[f][:60])
         open_checks = [c["name"] for c in report.get("checks", []) if c.get("status") != "pass"]
-        return (f"✅ {names[:1].upper() + names[1:]} updated and fact-checked; the new card is below."
+        # The card is sent first, so it sits above this confirmation (it said "below": operator, 2026-10-23).
+        return (f"✅ {names[:1].upper() + names[1:]} updated and fact-checked; the updated review card is just above."
                 + (f" Release gate still open: {', '.join(open_checks)}." if open_checks else ""))
 
     def request_approval(self, run_id: str, dry_run: bool = False) -> Dict[str, Any]:

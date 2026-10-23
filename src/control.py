@@ -36,6 +36,45 @@ from .topic_store import serialized
 log = logging.getLogger(__name__)
 
 PAUSED_KEY = "scheduler_paused"
+COLLAPSE_OVER = 280  # characters: longer text starts collapsed (Telegram's chevron), shorter stays plain
+
+
+EDIT_LABELS = (("title", "title"), ("first comment", "first_comment"),
+               ("carousel caption", "carousel_caption"), ("caption", "caption"))
+COPY_BUTTON_LIMIT = 256  # Telegram's copy_text button holds at most this many characters
+
+
+def edit_prompt(payload: Dict[str, Any], run_key: str):
+    """✏️ Edit text: the current copy as a ready-to-edit template in a code block (Telegram offers Copy
+    on it), plus one-tap copy buttons for the short fields. Credit lines are left out: an edited
+    caption keeps them automatically. Unchanged fields sent back are ignored."""
+    from .credits import is_attribution_line
+    def own(text):
+        return "\n".join(ln for ln in (text or "").splitlines() if not is_attribution_line(ln)).strip()
+    fields = [(label, own(payload.get(key)) if "caption" in key else (payload.get(key) or "").strip())
+              for label, key in EDIT_LABELS]
+    template = "\n".join(f"{label}: {value}" for label, value in fields if value)
+    intro = ("✏️ <b>Edit text</b>: copy the block below (tap it or its Copy button), change what you want and "
+             "send it back as a reply to this message. Fields you leave as they are are ignored, so you can send "
+             "the whole block or only the lines you change. Each field starts with its label; a caption can run "
+             "over several lines. A blank field (<code>title:</code> alone) is ignored, never emptied. "
+             "Credit lines are kept for you. The fact check runs again before the card "
+             "updates. On-screen text and narration are rendered: use Regenerate for those.")
+    trailer = f"\n[edit run {html.escape(run_key)}]"
+    block = f"\n\n<pre><code class=\"language-text\">{html.escape(template)}</code></pre>" if template else ""
+    if len(intro) + len(template) + len(trailer) > 3900:  # Telegram's 4,096-character message limit
+        short = "\n".join(f"{label}: {value}" for label, value in fields if value and "caption" not in label)
+        block = (f"\n\n<pre><code class=\"language-text\">{html.escape(short)}</code></pre>"
+                 f"\n<b>Caption</b> (too long to copy here as a block):\n{collapsible(dict(fields).get('caption', ''), 0)}")
+    buttons = [[{"text": f"📋 Copy {label}", "copy_text": {"text": value}}]
+               for label, value in fields if value and label in ("title", "first comment") and len(value) <= COPY_BUTTON_LIMIT]
+    return (intro + block + trailer, buttons) if buttons else intro + block + trailer
+
+
+def collapsible(text: str, over: int = COLLAPSE_OVER) -> str:
+    """Escaped text, in an expandable block once it is long: a card stays short until opened."""
+    escaped = html.escape(text or "")
+    return f"<blockquote expandable>{escaped}</blockquote>" if len(text or "") > over else escaped
 # Set by the production launcher: where /deploy leaves its request for the release deployer, and
 # where the deployer reports what it is doing.
 DEPLOY_REQUEST_ENV = "RELIC_DEPLOY_REQUEST"
@@ -1048,21 +1087,16 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command == "edit":
             run_id = db.resolve_run(args.strip())
             payload = (db.get_run(run_id) or {}).get("script_payload") or {}
-            return ("✏️ <b>Edit text</b> — reply to this message with the new wording. Start with <code>title:</code>, "
-                    "<code>first comment:</code> or <code>carousel caption:</code> to change those; otherwise it replaces "
-                    "the caption. Several at once: one per line, or separated by <code>;</code> "
-                    "(<code>title: … ; first comment: …</code>). The fact check runs again on it before the card updates. On-screen text and narration "
-                    "can't be edited here (they are rendered); use Regenerate for those.\n\n"
-                    f"<b>Current title:</b> {html.escape(payload.get('title', ''))}\n"
-                    f"<b>Current caption:</b>\n<blockquote expandable>{html.escape(payload.get('caption', ''))}</blockquote>\n"
-                    f"[edit run {html.escape(args.strip())}]")
+            return edit_prompt(payload, args.strip())
         if command == "edittext":
             key, _, text = args.partition(" ")
             fields = {"title": "title", "first comment": "first_comment", "carousel caption": "carousel_caption",
                       "caption": "caption"}
             # Several fields in one reply ("title: X; first comment: Y", or one per line): a reply that did
             # this set the title to the whole text (dev, 2026-10-23).
-            parts = re.split(r"(?:^|\n|;\s*)(title|first comment|carousel caption|caption)\s*:\s*",
+            # After a label's colon, only spaces on the same line: "title:" left blank above "first comment: …"
+            # made the title the whole next line (blank fields are ignored instead).
+            parts = re.split(r"(?:^|\n|;\s*)(title|first comment|carousel caption|caption)[ \t]*:[ \t]*",
                              text.strip(), flags=re.IGNORECASE)
             changes = {fields[label.lower()]: value.strip().rstrip(";").strip()
                        for label, value in zip(parts[1::2], parts[2::2]) if value.strip()}
@@ -1541,7 +1575,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             if len(about) > 900:
                 about = about[:900].rsplit(" ", 1)[0] + "…"
             text = (f"🏛️ <b>UNESCO marvel {index + 1} of {len(matches)}</b>" + (f" · {html.escape(theme)}" if theme else "")
-                    + f"\n\n<b>{html.escape(w['title'])}</b> · {html.escape(w['country'])}\n\n{html.escape(about)}")
+                    + f"\n\n<b>{html.escape(w['title'])}</b> · {html.escape(w['country'])}\n\n{collapsible(about)}")
             place = f"{w['id_number']}:{theme or ''}:{index}"
             buttons = [[{"text": "➕ Add", "callback_data": f"uadd:{place}"}, {"text": "✖ Skip", "callback_data": f"uskip:{place}"}]]
             buttons += [[{**b, "callback_data": f"cdisc:{theme or ''}:{b['callback_data'].rpartition(':')[2]}"} for b in row]

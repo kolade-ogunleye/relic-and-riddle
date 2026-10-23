@@ -3,6 +3,7 @@ edited (and re-checked) from the card; the review window follows the posting slo
 reports what really blocks publishing; the dashboard leads with what needs you."""
 
 import json
+import re
 from datetime import datetime, timezone
 
 from PIL import Image
@@ -55,7 +56,7 @@ def test_edit_prompt_and_reply_reach_the_edit_action(db):
     key = db.run_key("run_x")
     seen = []
     h = make_command_handler(db, lambda: None, lambda: "", run_actions={"edit": lambda r, changes: seen.append((r, changes)) or "ok"})
-    assert f"[edit run {key}]" in h("edit", key)
+    assert f"[edit run {key}]" in h("edit", key)  # no copy: plain text (an empty run has no fields)
     h("edittext", f"{key} title: Carved From the Top Down")
     h("edittext", f"{key} A new caption.\nSecond line.")
     # Several fields in one reply (this one set the title to the whole text before).
@@ -100,3 +101,47 @@ def test_review_window_ends_before_the_slot_and_the_next_daily_run(monkeypatch):
     monkeypatch.setattr(main, "POST_SCHEDULING", False)
     from src.config import APPROVAL_TIMEOUT_SECONDS
     assert c._approval_window() == APPROVAL_TIMEOUT_SECONDS
+
+
+def _review_with_copy(db):
+    from src.credits import SHARE_ALIKE_NOTICE
+    db.create_run("run_y", "01_topic")
+    db.update_run("run_y", "pending_approval", script_payload={
+        "title": "6-Ton Amber Room Stolen in 36 Hours", "first_comment": "What do you think?",
+        "caption": "The room vanished.\nWhere did it go?\n#history\n\n📷 Someone | File:Room.jpg | CC BY 4.0\n" + SHARE_ALIKE_NOTICE,
+        "carousel_caption": "Swipe through the clues."})
+    return db.run_key("run_y")
+
+
+def test_the_edit_card_offers_its_current_copy_to_copy(db):
+    from src.control import edit_prompt
+    key = _review_with_copy(db)
+    text, buttons = edit_prompt(db.get_run("run_y")["script_payload"], str(key))
+    block = re.search(r"<pre><code[^>]*>(.*?)</code></pre>", text, re.S).group(1)
+    assert "title: 6-Ton Amber Room Stolen in 36 Hours" in block and "first comment: What do you think?" in block
+    assert "caption: The room vanished.\nWhere did it go?\n#history" in block
+    assert "📷" not in block and "CC BY-SA" not in block         # credits are kept automatically, not copied
+    assert [b[0]["copy_text"]["text"] for b in buttons] == ["6-Ton Amber Room Stolen in 36 Hours", "What do you think?"]
+    assert f"[edit run {key}]" in text
+
+
+def test_the_copied_template_sent_back_parses_to_exactly_the_current_fields(db):
+    import html as html_mod
+    from src.control import edit_prompt
+    key = _review_with_copy(db)
+    text, _ = edit_prompt(db.get_run("run_y")["script_payload"], str(key))
+    block = html_mod.unescape(re.search(r"<pre><code[^>]*>(.*?)</code></pre>", text, re.S).group(1))
+    seen = []
+    h = make_command_handler(db, lambda: None, lambda: "", run_actions={"edit": lambda r, changes: seen.append(changes) or "ok"})
+    h("edittext", f"{key} {block}")
+    assert seen == [{"title": "6-Ton Amber Room Stolen in 36 Hours", "first_comment": "What do you think?",
+                     "carousel_caption": "Swipe through the clues.",
+                     "caption": "The room vanished.\nWhere did it go?\n#history"}]
+
+
+def test_a_blank_field_is_ignored_not_emptied(db):
+    key = _review_with_copy(db)
+    seen = []
+    h = make_command_handler(db, lambda: None, lambda: "", run_actions={"edit": lambda r, changes: seen.append(changes) or "ok"})
+    h("edittext", f"{key} title: \nfirst comment: A new question?")
+    assert seen == [{"first_comment": "A new question?"}]

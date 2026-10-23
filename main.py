@@ -879,6 +879,11 @@ class PipelineCoordinator:
         for f in ("caption", "carousel_caption"):  # the credits stay, whatever the new wording
             if f in changes:
                 changes[f] = keep_attribution(old[f], changes[f])
+        # The edit card's template carries every field: what comes back unchanged is not an edit.
+        changes = {f: v for f, v in changes.items() if v.strip() != (old[f] or "").strip()}
+        if not changes:
+            return "Nothing changed: the text you sent matches the current copy."
+        old = {f: old[f] for f in changes}
         payload.update(changes)
         names = " and ".join(f.replace("_", " ") for f in changes)
         topic = self.topic_engine.get_topic_by_id(run["topic_id"]) or {"id": run["topic_id"]}

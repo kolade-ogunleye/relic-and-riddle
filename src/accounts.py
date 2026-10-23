@@ -135,7 +135,8 @@ def status_line(db) -> str:
         return "Publishing accounts: not checked yet"
     up = res.get("upload_post") or {}
     from .local_time import show
-    when = show(res["checked_at"], "%Y-%m-%d %H:%M %Z")
+    when = show(res["checked_at"], "%d %b %H:%M %Z")
+    names = {"facebook": "Facebook", "instagram": "Instagram", "youtube": "YouTube"}
     if not res.get("problems"):
-        return f"Publishing accounts: ✅ {', '.join(up.get('connected', [])) or 'Meta direct'} ready (checked {when})"
+        return f"Publishing accounts: ✅ {', '.join(names.get(n, n) for n in up.get('connected', [])) or 'Meta direct'} ready (checked {when})"
     return "Publishing accounts: ⚠️ " + " ".join(html.escape(p) for p in res["problems"]) + f" (checked {when})"

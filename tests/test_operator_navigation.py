@@ -238,3 +238,26 @@ def test_queue_buttons_pair_render_with_refresh_and_keep_pages_together(db, monk
     assert data[0] == ["qrender", "qrefresh"] and data[1] == ["qbump", "qdrop"]
     assert data[2] == ["qpage"] * 4 and data[-1] == ["cdash"]          # ⏮ ◀ ▶ ⏭ on one row
     assert format_responsive_keyboard(rows)[2] == rows[2]
+
+
+def test_fixed_issue_files_close_their_issues_and_status_says_so(db, monkeypatch, tmp_path):
+    from src import improve
+    from src.control import status_text
+    monkeypatch.setattr(config, "ISSUES_DIR", tmp_path)
+    db.record_issue("iss_a", "the panel was cut off")
+    db.record_issue("iss_b", "still open")
+    (tmp_path / "iss_a.md").write_text("# iss_a\n\n- Status: fixed — one marvel per page\n", encoding="utf-8")
+    (tmp_path / "iss_b.md").write_text("# iss_b\n\n- Status: open\n", encoding="utf-8")
+    assert improve.sync_issue_files(db) == 1 and improve.sync_issue_files(db) == 0
+    text = status_text(db, None)
+    assert "⚠️ 1 open" in text and "1 fixed" in text
+    for heading in ("Production", "Recent runs", "Budgets and voices this month", "Accounts and issues"):
+        assert f"<b>{heading}</b>" in text
+
+
+def test_music_fetch_takes_three_per_mood_by_default(db, monkeypatch):
+    import scripts.fetch_music as fetch
+    asked = []
+    monkeypatch.setattr(fetch, "fetch_music_tracks", lambda mood=None, add_count=None: asked.append((mood, add_count)) or 3)
+    text, _ = make_command_handler(db, lambda: None, lambda: "")("mfetch", "tense")
+    assert asked == [("tense", config.MUSIC_FETCH_PER_MOOD)] and config.MUSIC_FETCH_PER_MOOD == 3 and "3 new" in text

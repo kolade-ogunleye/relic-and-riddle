@@ -363,59 +363,57 @@ def ready_pools(db: PipelineDatabase, topics: List[Dict[str, Any]]) -> int:
 
 def status_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Optional[dict] = None) -> str:
     e = html.escape
-    lines = [
-        f"<b>Status</b>: {'⏸ paused' if is_paused(db) else '▶️ active'}",
-        f"Next scheduled run: {e(next_run or 'not scheduled')}",
-    ]
+    lines = [f"📊 <b>Studio status</b> · {'⏸ paused' if is_paused(db) else '▶️ active'}", "", "<b>Production</b>",
+             f"• Next run: {e(next_run or 'not scheduled')}"]
     try:
         nxt = db.get_next_topic()
         if nxt:
-            all_topics = db.list_all_topics()
-            topic_serial = {t["id"]: i for i, t in enumerate(all_topics, 1)}
-            sn = topic_serial.get(nxt['id'], 1)
-            lines.append(f"🎯 Next in queue: <b>{sn}. {e(nxt['title'])}</b> (<code>{e(nxt['id'])}</code>)")
+            serial = {t["id"]: i for i, t in enumerate(db.list_all_topics(), 1)}.get(nxt["id"], 1)
+            lines.append(f"• Next topic: <b>{serial}. {e(nxt['title'])}</b>")
     except Exception:
         pass
-
+    pending = db.list_pending_approvals()
+    lines.append(f"• Waiting for your review: {len(pending)}")
+    for p in pending[:3]:
+        lines.append(f"   ◦ {e(db.run_label(p['run_id']))}")
     upcoming = db.list_scheduled_posts(("pending", "waiting"))
     if upcoming:
         from .post_schedule import fmt
         names = {"reel": "Reel", "story": "Stories", "carousel": "Carousel"}
-        lines.append("Upcoming posts:")
+        lines.append("• Upcoming posts:")
         for p in upcoming[:6]:
             when = fmt(datetime.fromisoformat(p["due_at"])) if p["due_at"] else "next carousel slot"
-            lines.append(f"  • {names.get(p['kind'], p['kind'])} {e(when)} — {e(db.run_label(p['run_id']))}")
-    pending = db.list_pending_approvals()
-    lines.append(f"Awaiting approval: {len(pending)}")
-    for p in pending[:3]:
-        lines.append(f"  • {e(db.run_label(p['run_id']))}")
+            lines.append(f"   ◦ {names.get(p['kind'], p['kind'])} {e(when)} — {e(db.run_label(p['run_id']))}")
+
+    icons = {"failed": "❌", "simulated": "🧪", "published": "✅", "pending_approval": "🎬", "producing": "⏳",
+             "rejected": "✖", "approved": "👍", "scheduled": "🗓", "cancelled": "⏹"}
     recent = db.list_recent_runs(5)
-    if recent:
-        lines.append("Recent runs:")
-        for r in recent:
-            lines.append(f"  • {e(STATUS_WORDS.get(r['status'], r['status']))} — {e(db.run_label(r['run_id']))}")
-    else:
-        lines.append("Recent runs: none (clean slate)")
+    lines += ["", "<b>Recent runs</b>"]
+    for r in recent:
+        word = STATUS_WORDS.get(r["status"], r["status"])
+        lines.append(f"{icons.get(r['status'], '•')} {e(word[:1].upper() + word[1:])} · {e(db.run_label(r['run_id']))}")
+    if not recent:
+        lines.append("None yet.")
 
     topics = db.list_all_topics()
-    pub_count = sum(1 for t in topics if t.get("times_published", 0) > 0)
-    queued_count = sum(1 for t in topics if t.get("status") == "queued")
-    lines.append(f"Topics: {queued_count} queued · {pub_count} published / {len(topics)} total")
+    published = sum(1 for t in topics if t.get("times_published", 0) > 0)
+    queued = sum(1 for t in topics if t.get("status") == "queued")
+    lines += ["", f"<b>Topics</b> · {queued} queued · {published} published · {len(topics)} total"]
 
-    lines += spend_lines(db)
-
-    lines += quota_lines(voice_quota)
-
-    try:
-        open_issues = db.list_open_issues()
-        if open_issues:
-            lines.append(f"⚠️ Open issues: {len(open_issues)} (see /improve)")
-    except Exception:
-        pass
+    lines += ["", "<b>Budgets and voices this month</b>"]
+    lines += [f"• {line.replace(' this month', '').replace('Paid model fallback', 'AI model fallback')}"
+              for line in spend_lines(db) + quota_lines(voice_quota)]
 
     from . import accounts
-    lines.append(accounts.status_line(db))
-
+    lines += ["", "<b>Accounts and issues</b>", "• " + accounts.status_line(db).replace("Publishing accounts: ", "Publishing: ")]
+    try:
+        from . import improve
+        improve.sync_issue_files(db)
+        still_open, fixed = len(db.list_open_issues()), db.count_issues("fixed")
+        lines.append(f"• Issues: ⚠️ {still_open} open (see /improve)" + (f" · {fixed} fixed" if fixed else "") if still_open
+                     else "• Issues: ✅ none open" + (f" · {fixed} fixed" if fixed else ""))
+    except Exception as exc:
+        log.debug("Issue counts unavailable: %s", exc)
     return "\n".join(lines)
 
 
@@ -1012,7 +1010,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             text = (f"🎵 <b>Documentary music</b>\n\n{approved} approved · {len(pending)} waiting for review\n\n"
                     "Find instrumental tracks for historical documentaries, listen, then approve them for use. New downloads are never approved automatically.")
             if command == "mfmenu":
-                return "🎵 <b>Fetch new music</b>\n\nChoose a documentary mood. Fetches one new CC0/CC BY track per selected mood; no paid generation.", [[{"text": mood.title(), "callback_data": f"mfetch:{mood}"}] for mood in music.MOODS] + [[{"text": "All moods", "callback_data": "mfetch:all"}], [{"text": "← Music", "callback_data": "musicmenu:"}], [HOME]]
+                return f"🎵 <b>Fetch new music</b>\n\nChoose a documentary mood. Fetches up to {config.MUSIC_FETCH_PER_MOOD} new CC0/CC BY tracks per mood; no paid generation. Each one waits for your review.", [[{"text": mood.title(), "callback_data": f"mfetch:{mood}"}] for mood in music.MOODS] + [[{"text": "All moods", "callback_data": "mfetch:all"}], [{"text": "← Music", "callback_data": "musicmenu:"}], [HOME]]
             return text, [[{"text": "Find new tracks", "callback_data": "mfmenu:"}], [{"text": f"Review waiting ({len(pending)})", "callback_data": "mreview:"}], [{"text": "Browse approved", "callback_data": "mlibrary:0"}], [HOME]]
         if command == "mlibrary":
             from . import music
@@ -1028,7 +1026,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             return "\n".join(lines), pager("mlibrary:", page, pages) + [[{"text": "← Music", "callback_data": "musicmenu:"}], [HOME]]
         if command == "mfetch":
             from scripts.fetch_music import fetch_music_tracks
-            added = fetch_music_tracks(mood=None if args == "all" else args, add_count=1)
+            added = fetch_music_tracks(mood=None if args == "all" else args, add_count=config.MUSIC_FETCH_PER_MOOD)
             return f"🎵 Downloaded {added} new track(s). Listen and approve before use.", [[{"text": "Review waiting", "callback_data": "mreview:"}], [{"text": "← Music", "callback_data": "musicmenu:"}], [HOME]]
         if command == "music" and args:
             action, _, ref = args.partition(" ")

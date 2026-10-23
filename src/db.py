@@ -855,6 +855,16 @@ class PipelineDatabase:
             """, (issue_id, run_id, critique, str(user_id) if user_id else None, str(evidence_path) if evidence_path else None, now))
         return {"id": issue_id, "run_id": run_id, "critique": critique, "created_at": now}
 
+    def resolve_issue(self, issue_id: str, diagnosis: str) -> bool:
+        """Closes an open issue with what was found and done; an already closed one is left as it is."""
+        with self._conn() as conn:
+            return conn.execute("UPDATE issues SET status='fixed', diagnosis=? WHERE id=? AND status='open'",
+                                (diagnosis, issue_id)).rowcount == 1
+
+    def count_issues(self, status: str) -> int:
+        with self._conn() as conn:
+            return conn.execute("SELECT COUNT(*) FROM issues WHERE status=?", (status,)).fetchone()[0]
+
     def list_open_issues(self) -> List[Dict[str, Any]]:
         with self._conn() as conn:
             rows = conn.execute("SELECT * FROM issues WHERE status = 'open' ORDER BY created_at DESC").fetchall()

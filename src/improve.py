@@ -168,6 +168,22 @@ class _Triage(BaseModel):
     summary: str       # one sentence, plain language
 
 
+def sync_issue_files(db) -> int:
+    """An issue whose file in ISSUES_DIR says "- Status: fixed ..." is closed in the database with that
+    note (the file is where a fix is recorded, next to the report). Returns how many were closed."""
+    from . import config
+    closed = 0
+    for issue in db.list_open_issues():
+        path = config.ISSUES_DIR / f"{issue['id']}.md"
+        try:
+            status = next((line for line in path.read_text(encoding="utf-8").splitlines() if line.startswith("- Status:")), "")
+        except OSError:
+            continue
+        if status.startswith("- Status: fixed"):
+            closed += db.resolve_issue(issue["id"], status.partition("fixed")[2].lstrip(" —-:")[:1000])
+    return closed
+
+
 def triage_issue(db, issue_id: str, critique: str, run_id: Optional[str]) -> str:
     """Files an /issue as a finding: area by the light model when available, else by keywords."""
     area, summary = None, critique

@@ -37,6 +37,7 @@ log = logging.getLogger(__name__)
 
 RECURRENCE_DAYS = 14
 MIN_RECURRENCE = 3
+MIN_RUNS = 2  # a run problem must show in at least this many separate runs before it becomes a proposal
 PATCHES_FILE = config.BASE_DIR / "data" / "prompt_patches.json"
 QUEUE_FILE = config.BASE_DIR / "docs" / "improvements" / "queue.md"
 EVAL_MIN_TOPICS = 4          # paired topics a candidate rule needs before it is put to you
@@ -172,6 +173,7 @@ def sync_issue_files(db) -> int:
     """An issue whose file in ISSUES_DIR says "- Status: fixed ..." is closed in the database with that
     note (the file is where a fix is recorded, next to the report). Returns how many were closed."""
     from . import config
+    ensure_schema(db)
     closed = 0
     for issue in db.list_open_issues():
         path = config.ISSUES_DIR / f"{issue['id']}.md"
@@ -180,7 +182,10 @@ def sync_issue_files(db) -> int:
         except OSError:
             continue
         if status.startswith("- Status: fixed"):
-            closed += db.resolve_issue(issue["id"], status.partition("fixed")[2].lstrip(" —-:")[:1000])
+            if db.resolve_issue(issue["id"], status.partition("fixed")[2].lstrip(" —-:")[:1000]):
+                closed += 1
+                with db._conn() as conn:  # a fixed report no longer counts toward a recurring problem
+                    conn.execute("DELETE FROM findings WHERE source = ?", (f"issue:{issue['id']}",))
     return closed
 
 
@@ -199,7 +204,7 @@ def triage_issue(db, issue_id: str, critique: str, run_id: Optional[str]) -> str
         log.info("Issue triage unavailable (%s); using keywords.", e)
     klass = f"issue.{area}" if area else "issue." + classify(critique, "other").split(".")[-1]
     run = db.get_run(run_id) if run_id else None
-    record(db, klass, summary, "issue", run_id=run_id, topic_id=(run or {}).get("topic_id"))
+    record(db, klass, summary, f"issue:{issue_id}", run_id=run_id, topic_id=(run or {}).get("topic_id"))
     return klass
 
 
@@ -262,6 +267,15 @@ def make_proposals(db) -> List[Dict[str, Any]]:
     for rec in recurring(db):
         klass = rec["klass"]
         if klass in open_classes:
+            continue
+        # Recurring means across runs (21 rejections in one run's drafts are one problem) and, for reports,
+        # still-open ones (a report filed before reports were linked cannot be told apart, so it never counts).
+        if klass.startswith("issue."):
+            with db._conn() as conn:
+                linked = conn.execute("SELECT COUNT(*) FROM findings WHERE klass = ? AND source LIKE 'issue:%'", (klass,)).fetchone()[0]
+            if linked < MIN_RECURRENCE:
+                continue
+        elif rec["runs"] < MIN_RUNS:
             continue
         pid = "imp_" + datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S") + "_" + re.sub(r"\W", "", klass)[:20]
         prompt_tier = klass.startswith("script.") and not klass.startswith(PROTECTED)

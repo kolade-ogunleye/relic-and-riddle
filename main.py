@@ -188,6 +188,15 @@ class PipelineCoordinator:
         for k, v in health["details"].items():
             log.info("Health %-11s %s %s", k, "OK " if v["passed"] else ("FAIL" if v["required"] else "warn"), v["msg"])
         if not health["all_passed"]:
+            # Said in Telegram, not only logged: production's scheduled runs failed this way unnoticed (ffprobe).
+            failed = [f"{k}: {v['msg']}" for k, v in health["details"].items() if v["required"] and not v["passed"]]
+            try:
+                self._alert("🩺 <b>Run not started: a pre-flight check failed</b>\n\n"
+                            + "\n".join(f"• {html.escape(line[:200])}" for line in failed)
+                            + "\n\nNothing was made or spent. Fix the check, then start the run again.")
+            except Exception as e:
+                log.warning("Could not send the pre-flight alert: %s", e)
+            ping_healthcheck("/fail")
             raise SystemExit("Pre-flight health check failed; not starting a run.")
         self.lifecycle_manager.purge_intermediate_assets()
 

@@ -111,3 +111,20 @@ def test_audience_rates_use_the_measured_length():
                           "reels_skip_rate": 35.0}, 42.0)
     assert d == {"views": 1000.0, "reach": 800.0, "watch_ratio": 0.5, "skip_rate": 35.0,
                  "share_rate": 0.01, "save_rate": 0.005}
+
+
+def test_proposals_need_separate_runs_and_open_reports(db, monkeypatch, tmp_path):
+    from src import config, improve
+    monkeypatch.setattr(improve, "_draft_rule", lambda klass, examples: None)
+    for i in range(5):  # one run's drafts rejected five times: one problem, not a recurring one
+        improve.record(db, "script.facts", f"claim {i}", "guardrail", run_id="r1")
+    for n in range(3):
+        db.record_issue(f"iss_{n}", "the bot panel is cut off")
+        improve.record(db, "issue.bot", "panel cut off", f"issue:iss_{n}")
+    assert [p["klass"] for p in improve.make_proposals(db)] == ["issue.bot"]   # three open linked reports
+    monkeypatch.setattr(config, "ISSUES_DIR", tmp_path)
+    for n in range(3):
+        (tmp_path / f"iss_{n}.md").write_text("- Status: fixed — done\n", encoding="utf-8")
+    improve.sync_issue_files(db)
+    with db._conn() as conn:
+        assert conn.execute("SELECT COUNT(*) FROM findings WHERE klass = 'issue.bot'").fetchone()[0] == 0

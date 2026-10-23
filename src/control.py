@@ -721,36 +721,54 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 return f"↩️ <b>Undone:</b> Restored skipped proposal {html.escape(last.get('slug', ''))}."
             return f"↩️ <b>Undone:</b> Restored {html.escape(last.get('desc', 'action'))}."
         if command == "covers":
+            # Covers are chosen for a video awaiting review (Lock refuses any other run), so that is what
+            # this opens; otherwise the newest run that has covers, as a preview. A run folder without
+            # covers (cancelled, failed, still producing) is never chosen.
             ref = args.strip()
+            from .config import OUTPUT_DIR
+            back = [[{"text": "🎬 Reviews", "callback_data": "creviews:"}], [HOME]]
+
+            def has_covers(d):
+                return any((d / f"thumbnail_variant_{v}.jpg").exists() for v in ("a_blueprint", "b_intrigue", "c_minimal"))
+
+            def run_folder(run):
+                if run and run.get("master_video_path"):
+                    d = Path(run["master_video_path"]).resolve().parent
+                    if not d.is_relative_to(OUTPUT_DIR.resolve()):
+                        raise ValueError("Run output lies outside the configured output root")
+                    return d
+                return None
+
             run_dir = None
             if ref:
-                from .config import OUTPUT_DIR
                 run = db.get_run(db.resolve_run(ref))
-                if run and run.get("master_video_path"):
-                    run_dir = Path(run["master_video_path"]).resolve().parent
-                    if not run_dir.is_relative_to(OUTPUT_DIR.resolve()):
-                        raise ValueError("Run output lies outside the configured output root")
-                else:
+                run_dir = run_folder(run)
+                if run_dir is None:
                     topic_dir = _resolve_topic_dir(ref, assets_dir, db=db)
-                    runs = [p for p in OUTPUT_DIR.glob(f"run_{topic_dir.name}_*") if p.is_dir()]
+                    runs = [p for p in OUTPUT_DIR.glob(f"run_{topic_dir.name}_*") if p.is_dir() and has_covers(p)]
                     run_dir = max(runs, key=lambda p: p.stat().st_mtime) if runs else None
-                if not run_dir:
-                    return "No rendered run found for this reference."
+                if not run_dir or not has_covers(run_dir):
+                    return "🎨 This run has no covers yet (they are made when the video is rendered).", back
             else:
-                all_runs = sorted(
-                    [p for p in config.OUTPUT_DIR.glob("run_*") if p.is_dir() and not p.name.startswith("_")],
-                    key=lambda p: p.stat().st_mtime,
-                    reverse=True
-                )
-                if all_runs:
-                    run_dir = all_runs[0]
+                waiting = [d for d in (run_folder(db.get_run(a["run_id"])) for a in db.list_pending_approvals()) if d and has_covers(d)]
+                if len(waiting) > 1:
+                    text = "🎨 <b>Covers</b>: choose the video in review\n\n" + "\n".join(
+                        f"<b>{i}.</b> {html.escape(db.run_label(d.name))}" for i, d in enumerate(waiting, 1))
+                    return text, [[{"text": str(i), "callback_data": f"ccov:{db.run_key(d.name)}"} for i, d in enumerate(waiting, 1)][:5]] + back
+                if waiting:
+                    run_dir = waiting[0]
                 else:
-                    return "ℹ️ <b>Cover Studio:</b> No rendered runs found in output. Produce a run first with /run, or specify: <code>/covers &lt;topic_id&gt;</code>." 
+                    rendered = sorted((p for p in OUTPUT_DIR.glob("run_*") if p.is_dir() and not p.name.startswith("_") and has_covers(p)),
+                                      key=lambda p: p.stat().st_mtime, reverse=True)
+                    if not rendered:
+                        return ("🎨 <b>Covers</b>\n\nNo rendered video has covers yet. They are made when a video is "
+                                "rendered, and chosen from its review card."), back
+                    run_dir = rendered[0]
+            run_rec = db.get_run(run_dir.name) or {}
+            reviewable = run_rec.get("status") == "pending_approval" and (db.get_approval(run_dir.name) or {}).get("decision") == "pending"
             var_a = run_dir / "thumbnail_variant_a_blueprint.jpg"
             var_b = run_dir / "thumbnail_variant_b_intrigue.jpg"
             var_c = run_dir / "thumbnail_variant_c_minimal.jpg"
-            if not (var_a.exists() or var_b.exists() or var_c.exists()):
-                return f"⚠️ No thumbnail variant suite found in <code>{html.escape(run_dir.name)}</code>."
             selected = "b" if var_b.exists() else "a" if var_a.exists() else "c"
             buttons = [
                 [
@@ -761,16 +779,17 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     {"text": "📌 C: Minimal", "callback_data": f"cov:{run_dir.name}:c"},
                     {"text": "🔄 Refresh", "callback_data": "ccov:"},
                 ],
-                [
-                    {"text": f"🔒 Lock Variant {selected.upper()}", "callback_data": f"covlock:{run_dir.name}:{selected}"}
-                ],
-                # Opened from a review card it is a separate message under the card: Close returns to the card.
-                [{"text": "✖ Close", "callback_data": "close:"} if ref else HOME]
             ]
+            if reviewable:
+                buttons.append([{"text": f"🔒 Lock Variant {selected.upper()}", "callback_data": f"covlock:{run_dir.name}:{selected}"}])
+            buttons.append([HOME])
+            label = html.escape(db.run_label(run_dir.name)) if run_rec else f"<code>{html.escape(run_dir.name)}</code>"
             caption = (
-                f"🎨 <b>Thumbnail Cover Studio</b> • <code>{html.escape(run_dir.name)}</code>\n\n"
+                f"🎨 <b>Cover Studio</b> · {label}\n\n"
                 f"Previewing: <b>Variant {selected.upper()}</b>\n"
-                f"Tap A, B, or C to flip preview in-place, or Lock to finalize:"
+                + ("Tap A, B or C to flip the preview, or Lock to choose it for this video."
+                   if reviewable else "<i>Preview only: this video isn't awaiting review, so its cover can't be "
+                   "changed. Covers are chosen from a video's review card.</i>")
             )
             cover_to_show = var_b if var_b.exists() else (var_a if var_a.exists() else var_c)
             if send_photo and cover_to_show.exists():

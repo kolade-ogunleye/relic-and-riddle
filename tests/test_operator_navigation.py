@@ -336,3 +336,22 @@ def test_typed_propose_shows_the_research_not_an_empty_completed(db):
     assert any("Researching topic ideas" in s for s in shown) and "Research complete" in shown[-1]
     assert not any(s.strip() in ("Completed.", "✅ Done.") for s in shown)
     assert len([j for j in bot.jobs.recent() if j["title"] == "Researching topic ideas"]) == 1   # no wrapper job
+
+
+def test_covers_skip_runs_without_covers_and_preview_when_nothing_is_in_review(db, monkeypatch, tmp_path):
+    import os
+    import time
+    from PIL import Image
+    monkeypatch.setattr(config, "OUTPUT_DIR", tmp_path)
+    older = tmp_path / "run_old_topic_1"
+    older.mkdir()
+    Image.new("RGB", (8, 8)).save(older / "thumbnail_variant_b_intrigue.jpg")
+    newest = tmp_path / "run_new_topic_2"           # cancelled before any cover was made
+    newest.mkdir()
+    os.utime(older, (time.time() - 60, time.time() - 60))
+    sent = []
+    h = make_command_handler(db, lambda: None, lambda: "", send_photo=lambda p, cap, btns, cache_key=None: sent.append((p, cap, btns)) or True)
+    assert h("covers", "") == ""
+    path, caption, buttons = sent[-1]
+    assert path.parent == older and "Preview only" in caption                    # the run that has covers
+    assert not any(b["callback_data"].startswith("covlock:") for row in buttons for b in row)  # no Lock outside review

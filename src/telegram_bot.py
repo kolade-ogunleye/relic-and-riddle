@@ -1064,6 +1064,23 @@ class TelegramApprovalBot:
         if decision in ("rejected", "regenerate"):
             self.ask_reason(run_id, decision)
 
+    def stamp_review_outcome(self, run_id: str, outcome: str) -> bool:
+        """After the decision and its result, the review card becomes a short receipt (what was approved and
+        what happened), and the panel comes to the bottom: the card said "delivery not yet confirmed" long
+        after a dry run had finished. The full review stays on record in the run folder and the database."""
+        appr = self.db.get_approval(run_id) if hasattr(self.db, "get_approval") else None
+        mid = (appr or {}).get("telegram_message_id")
+        if not (self.is_configured() and mid):
+            return False
+        text = (f"🎬 <b>{html.escape(self.db.run_label(run_id))}</b>\n\n{outcome}\n\n"
+                f"<i>Run ID (for the command line): {html.escape(run_id)}</i>")
+        stamped = bool(self.edit_message_text(mid, text, buttons=[[DONE_BUTTON]]))
+        try:
+            self.show_dashboard(fresh=True)
+        except Exception as e:
+            log.debug("Could not bring the panel down after the receipt: %s", e)
+        return stamped
+
     def ask_reason(self, run_id: str, decision: str) -> None:
         """One tap tells the system what was wrong; it goes to the improvement ledger and, for a
         regenerate, into the new run (script revised, or pictures re-planned)."""
@@ -2329,50 +2346,54 @@ class TelegramApprovalBot:
         deadline = started + timeout_seconds
         reminded = timeout_seconds < reminder_after + 600  # no reminder for a short window
         offset: Optional[int] = None  # unconfirmed taps (e.g. made just before this wait) still count
+        reminder: List[Any] = []  # the reminder's message, removed once the review is decided
+        try:
+            while time.monotonic() < deadline:
+                self.cleanup_transient_messages()
+                if not reminded and time.monotonic() - started >= reminder_after:
+                    reminded = True
+                    closes = show_time(time.time() + deadline - time.monotonic(), "%H:%M %Z")
+                    reminder.append(self.notify(f"⏰ Still waiting for your review of {html.escape(self.db.run_label(run_id))} "
+                                f"(the card stays open until {closes}).",
+                                buttons=[{"text": "📨 Bring the card down", "callback_data": f"resend:{self.db.run_key(run_id)}"}],
+                                transient=True, ttl_minutes=int((deadline - time.monotonic()) / 60) + 1))
+                approval = self.db.get_approval(run_id)
+                if approval and approval["decision"] != "pending":
+                    log.info("Decision for %s: %s (by %s)", run_id, approval["decision"], approval.get("decided_by"))
+                    return approval["decision"]
 
-        while time.monotonic() < deadline:
-            self.cleanup_transient_messages()
-            if not reminded and time.monotonic() - started >= reminder_after:
-                reminded = True
-                closes = show_time(time.time() + deadline - time.monotonic(), "%H:%M %Z")
-                self.notify(f"⏰ Still waiting for your review of {html.escape(self.db.run_label(run_id))} "
-                            f"(the card stays open until {closes}).",
-                            buttons=[{"text": "📨 Bring the card down", "callback_data": f"resend:{self.db.run_key(run_id)}"}],
-                            transient=True, ttl_minutes=int((deadline - time.monotonic()) / 60) + 1)
-            approval = self.db.get_approval(run_id)
-            if approval and approval["decision"] != "pending":
-                log.info("Decision for %s: %s (by %s)", run_id, approval["decision"], approval.get("decided_by"))
-                return approval["decision"]
+                if not self.is_configured() or self.background_polling:
+                    time.sleep(poll_interval)
+                    continue
 
-            if not self.is_configured() or self.background_polling:
-                time.sleep(poll_interval)
-                continue
+                try:
+                    long_poll = int(max(1, min(25, deadline - time.monotonic())))
+                    req = {"timeout": long_poll, "allowed_updates": json.dumps(["callback_query"])}
+                    if offset is not None:
+                        req["offset"] = offset
+                    updates = self._api("getUpdates", timeout=long_poll + 10, data=req)
+                    for update in updates:
+                        offset = update["update_id"] + 1
+                        cq = update.get("callback_query")
+                        if cq:
+                            decision = self._handle_callback(cq, run_id)
+                            if decision:
+                                return decision
+                except Exception as e:
+                    log.warning("Telegram polling error (will retry): %s", e)
+                    time.sleep(poll_interval)
 
-            try:
-                long_poll = int(max(1, min(25, deadline - time.monotonic())))
-                req = {"timeout": long_poll, "allowed_updates": json.dumps(["callback_query"])}
-                if offset is not None:
-                    req["offset"] = offset
-                updates = self._api("getUpdates", timeout=long_poll + 10, data=req)
-                for update in updates:
-                    offset = update["update_id"] + 1
-                    cq = update.get("callback_query")
-                    if cq:
-                        decision = self._handle_callback(cq, run_id)
-                        if decision:
-                            return decision
-            except Exception as e:
-                log.warning("Telegram polling error (will retry): %s", e)
-                time.sleep(poll_interval)
-
-        if self.db.update_approval_decision(run_id, "timeout", decided_by="system"):
-            log.warning("No decision for %s within %ss.", run_id, timeout_seconds)
-            self.dismiss_approval_buttons(run_id)
-            self.notify(f"⌛ No decision on {html.escape(self.db.run_label(run_id))}; nothing was posted. "
-                        "The render is kept: resend it whenever you're ready.",
-                        buttons=[{"text": "📨 Resend for review", "callback_data": f"resend:{self.db.run_key(run_id)}"}])
-            return "timeout"
-        return (self.db.get_approval(run_id) or {}).get("decision", "timeout")
+            if self.db.update_approval_decision(run_id, "timeout", decided_by="system"):
+                log.warning("No decision for %s within %ss.", run_id, timeout_seconds)
+                self.dismiss_approval_buttons(run_id)
+                self.notify(f"⌛ No decision on {html.escape(self.db.run_label(run_id))}; nothing was posted. "
+                            "The render is kept: resend it whenever you're ready.",
+                            buttons=[{"text": "📨 Resend for review", "callback_data": f"resend:{self.db.run_key(run_id)}"}])
+                return "timeout"
+            return (self.db.get_approval(run_id) or {}).get("decision", "timeout")
+        finally:
+            if reminder and type(reminder[0]) is int:
+                self._delete_soon(reminder[0])  # it stayed after the approval, offering a dead button
 
     def record_local_decision(self, run_id: str, decision: str) -> bool:
         """CLI decision path. Returns False if the run already has a decision."""

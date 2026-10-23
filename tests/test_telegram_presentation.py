@@ -139,3 +139,23 @@ def test_a_screen_opened_in_another_message_becomes_the_one_panel(db, monkeypatc
     deleted.clear()
     assert bot.show_navigation_panel(801, '🏛 Dashboard')
     assert deleted == []
+
+
+def test_a_decided_review_leaves_no_reminder_and_becomes_a_receipt(db, monkeypatch):
+    # The reminder ("Bring the card down") stayed after the approval, and the card kept saying
+    # "delivery not yet confirmed" after the dry run had finished.
+    sent, deleted, edited = [], [], []
+    bot = TelegramApprovalBot(db=db, bot_token='123:abc', chat_id='555', approver_ids={'555'})
+    monkeypatch.setattr(bot, '_api', lambda method, **k: sent.append(method) or {'message_id': 900 + len(sent)})
+    monkeypatch.setattr(bot, '_delete_soon', lambda mid: deleted.append(mid))
+    monkeypatch.setattr(bot, 'edit_message_text', lambda mid, text, buttons=None: edited.append((mid, text)) or True)
+    monkeypatch.setattr(bot, 'show_dashboard', lambda *a, **k: 950)
+    db.create_run('run_x', '01_topic')
+    db.record_approval('run_x', '01_topic', 820)
+    calls = iter([{'decision': 'pending'}, {'decision': 'pending'}, {'decision': 'approved', 'decided_by': 't'}])
+    monkeypatch.setattr(db, 'get_approval', lambda rid: {**next(calls, {'decision': 'approved'}), 'telegram_message_id': 820})
+    bot.background_polling = True
+    assert bot.wait_for_decision('run_x', timeout_seconds=7200, poll_interval=0, reminder_after=0) == 'approved'
+    assert deleted and deleted[-1] > 900  # the reminder sent during the wait was removed
+    assert bot.stamp_review_outcome('run_x', 'Approved · dry run: nothing was posted.')
+    assert edited[-1][0] == 820 and 'nothing was posted' in edited[-1][1]

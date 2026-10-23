@@ -1529,7 +1529,9 @@ class PipelineCoordinator:
             lines.append(f"🖼 Carousel: queued for the next carousel slot (from {post_schedule.fmt(post_schedule.next_carousel_slot(slot))})")
         self.db.update_run(run_id, "scheduled")
         self.topic_engine.record_status(run["topic_id"], "scheduled", run_id=run_id)
-        self._alert(f"🗓 <b><u>POST SCHEDULED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n" + "\n".join(html.escape(x) for x in lines))
+        # The review card becomes the schedule's receipt (a separate alert said the same thing again).
+        if not self.telegram_bot.stamp_review_outcome(run_id, "🗓 <b>Approved · scheduled</b>\n" + "\n".join(html.escape(x) for x in lines)):
+            self._alert(f"🗓 <b><u>POST SCHEDULED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n" + "\n".join(html.escape(x) for x in lines))
         return {"status": "scheduled", "scheduled_for": slot.isoformat()}
 
     def _booked_reel_days(self, exclude_id: Optional[int] = None) -> set:
@@ -1721,6 +1723,7 @@ class PipelineCoordinator:
                     {"text": "📨 Re-send Review Card", "callback_data": f"resend:{key}"}
                 ]
             )
+            self._stamp_review(run_id, status, pub)
             return {"status": status, "publish_result": pub}
         elif status == "unknown":
             self.db.update_run(run_id, "publish_unknown", error=pub.get("error"))
@@ -1760,7 +1763,33 @@ class PipelineCoordinator:
             if slides:
                 pub["carousel"] = self.publisher.publish_photos(run_id, tid, "carousel", slides,
                                                                 caption=self._carousel_caption(payload), dry_run=True)
+        self._stamp_review(run_id, status, pub)
         return {"status": status, "publish_result": pub}
+
+    def _stamp_review(self, run_id: str, status: str, pub: Dict[str, Any]) -> None:
+        """The review card's receipt: what was approved and what actually happened (never fails publishing)."""
+        try:
+            if status == "simulated":
+                done = ["Reel"] + (["YouTube Short"] if (pub.get("youtube_short") or {}).get("status") == "simulated" else [])
+                if (pub.get("stories") or {}).get("status") == "simulated":
+                    done.append(f"{pub['stories'].get('planned_parts', 0)} Story frame(s)")
+                if (pub.get("carousel") or {}).get("status") == "simulated":
+                    done.append("carousel" + (" (Instagram and Facebook copies)" if pub["carousel"].get("planned_parts", 0) > 1 else ""))
+                text = "✅ <b>Approved · dry run</b>: nothing was posted. Simulated: " + ", ".join(done) + "."
+            elif status == "published":
+                urls = dict(pub.get("post_urls") or {})
+                for url in ((pub.get("youtube_short") or {}).get("post_urls") or {}).values():
+                    urls["youtube short"] = url
+                text = "✅ <b>Approved · posted</b>" + "".join(f"\n• {html.escape(k)}: {html.escape(str(v))}" for k, v in urls.items())
+            elif status == "unknown":
+                text = "⚠️ <b>Approved · publish unconfirmed</b>: check the accounts, then answer the alert below."
+            elif status == "blocked_unlicensed":
+                text = "🛑 <b>Approved · blocked</b>: the voice has no commercial licence; nothing was posted."
+            else:
+                text = "❌ <b>Approved · not posted</b>: " + html.escape(str(pub.get("error") or status))[:300]
+            self.telegram_bot.stamp_review_outcome(run_id, text)
+        except Exception as e:
+            log.debug("Could not stamp the review card for %s: %s", run_id, e)
 
 
 def prebuild_candidates(db: PipelineDatabase, n: int) -> list:

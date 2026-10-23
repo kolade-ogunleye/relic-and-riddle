@@ -49,16 +49,16 @@ POLL_SECONDS, TIMEOUT_SECONDS = 10, 600
 _RELIC_KEYWORDS = {
     "mechanism", "machine", "device", "gear", "astrolabe", "computer", "disc", "disk",
     "manuscript", "battery", "papyrus", "scroll", "tablet", "shroud", "relic",
-    "artifact", "skull", "sword", "crown", "dagger", "jewel", "relics", "bronze", "antikythera"
+    "artifact", "skull", "sword", "crown", "dagger", "jewel", "relics", "bronze"
 }
 _MEGASTRUCTURE_KEYWORDS = {
     "temple", "pyramid", "city", "caves", "cave", "wall", "monolith", "trench", "tomb",
     "citadel", "fortress", "palace", "catacomb", "underground", "excavation", "quarry",
-    "structure", "architecture", "megalith", "ruins", "monument", "kailasa", "derinkuyu"
+    "structure", "architecture", "megalith", "ruins", "monument"
 }
 _RIDDLE_KEYWORDS = {
     "collapse", "event", "disappearance", "expedition", "signal", "blast",
-    "incident", "strike", "war", "chronicle", "vanishing", "flight", "voyage", "tunguska"
+    "incident", "strike", "war", "chronicle", "vanishing", "flight", "voyage"
 }
 
 
@@ -105,11 +105,12 @@ def extract_material_substrate(topic: Optional[Dict[str, Any]] = None, fact_shee
                 corpus += ev.get("quote", "") + " "
     c = corpus.lower()
 
-    if "basalt" in c or "kailasa" in c or "deccan" in c:
+    # Materials only, never topic names: the evidence says what a thing is made of.
+    if "basalt" in c or "deccan" in c:
         return "Deccan Traps tholeiitic basalt with dark volcanic patina and vertical chisel drainage grooves"
-    if "bronze" in c or "gear" in c or "antikythera" in c:
+    if "bronze" in c or "gear" in c:
         return "Authentic oxidized ancient bronze alloy with verdigris copper carbonate patina and hand-cut gear teeth"
-    if "tuff" in c or "cappadocia" in c or "derinkuyu" in c:
+    if "tuff" in c or "cappadocia" in c:
         return "Carved volcanic tuff stone with subterranean atmospheric mineral patination"
     if "concrete" in c or "pozzolanic" in c:
         return "Roman pozzolanic self-healing lime-clast concrete with volcanic ash matrix"

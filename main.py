@@ -1860,7 +1860,8 @@ def main(argv=None) -> int:
 
     health_p = sub.add_parser("health", help="Pre-flight checks")
     health_p.add_argument("--live", action="store_true", help="Also require production credentials")
-    test_p = sub.add_parser("test", help="End-to-end dry run on the Derinkuyu topic (publishes nothing)")
+    test_p = sub.add_parser("test", help="End-to-end dry run on one topic (publishes nothing)")
+    test_p.add_argument("--topic-id", help="Topic to test (default: the next topic production would make)")
     test_p.add_argument("--paid-voice", action="store_true", help="Voice this dry run with ElevenLabs (spends credits)")
     test_p.add_argument("--paid-motion", action="store_true", help="Let this dry run buy a motion clip (spends media budget)")
     backup_p = sub.add_parser("backup", help="Sync completed runs to OneDrive / Cloud archive")
@@ -2425,7 +2426,7 @@ def main(argv=None) -> int:
             coordinator = PipelineCoordinator()
             coordinator.paid_voice_in_dry_run = args.paid_voice
             coordinator.paid_motion_in_dry_run = args.paid_motion
-            res = coordinator.run_cycle("derinkuyu_underground_city", auto_approve=True, dry_run=True)
+            res = coordinator.run_cycle(args.topic_id, auto_approve=True, dry_run=True)
         except Exception:
             return 1
         print(json.dumps({k: res.get(k) for k in ("status", "master_video", "thumbnails")}, indent=2))

@@ -887,7 +887,8 @@ class PipelineCoordinator:
             return "Nothing changed: the text you sent matches the current copy."
         old = {f: old[f] for f in changes}
         payload.update(changes)
-        names = " and ".join(f.replace("_", " ") for f in changes)
+        labels = [f.replace("_", " ") for f in changes]  # "title, carousel caption and caption"
+        names = labels[0] if len(labels) == 1 else ", ".join(labels[:-1]) + " and " + labels[-1]
         topic = self.topic_engine.get_topic_by_id(run["topic_id"]) or {"id": run["topic_id"]}
         try:
             self._verify_final_copy(payload, topic)

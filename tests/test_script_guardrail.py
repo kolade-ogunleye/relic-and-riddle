@@ -260,3 +260,23 @@ def test_the_hedge_quoted_in_a_finding_is_not_mistaken_for_the_rejected_claim(cu
                 f"it drops the required hedge ('{hedge}').)")
     revised = ScriptEngine()._revise_surgically(previous, findings, {"facts": []})
     assert revised is not None and revised.caption == fixed
+
+
+def test_a_slow_voice_never_leaves_the_writer_without_a_valid_length(curated_payload, monkeypatch):
+    # Production 2026-10-23: at about 0.5 s a word, 105 words ran 52.9 s, past the 51.5 s limit, while
+    # the word check refused anything under 105; three drafts failed and the run with them.
+    from src import audio_engine, script_engine
+    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text: 0.5 * len(text.split()))
+    monkeypatch.setattr(audio_engine, "pace_ratio", lambda key: 1.0)
+    closing = curated_payload["closing_sentence"]
+
+    def draft(n):
+        body = " ".join(["stone"] * (n - len(closing.split())))
+        return _pkg(curated_payload, narration_script=f"{body} {closing}")
+
+    long_problem = script_engine.spoken_length_problems(draft(106))
+    target = int(long_problem[0].split("at most ")[1].split()[0])
+    assert target < 103  # an achievable target, not clamped to the prompt's 105
+    fits = draft(target)
+    assert script_engine.spoken_length_problems(fits) == []
+    assert not any("words" in p for p in validate_structure(fits))  # and the word check accepts it

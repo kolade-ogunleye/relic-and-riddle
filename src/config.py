@@ -232,8 +232,12 @@ TARGET_DURATION_MIN = 42.0
 TARGET_DURATION_MAX = 48.0
 HARD_DURATION_CEILING = 52.0  # longest voiceover allowed; the master is exactly as long as the voiceover
 RELEASE_DURATION_MAX = 58.0  # release-gate tolerance for the Reel master (re-measured at publish time)
-TARGET_WORD_COUNT_MIN = 105
+TARGET_WORD_COUNT_MIN = 105  # what the writer is asked for (about 45 s at a typical pace)
 TARGET_WORD_COUNT_MAX = 115
+# Sanity bounds only: the measured spoken length decides (production 2026-10-23: at the licensed voice's
+# pace 105 words ran 52.9 s, so a fixed 105-115 window and the 51.5 s limit left no valid draft).
+WORD_COUNT_FLOOR = 85
+WORD_COUNT_CEILING = 130
 MIN_SCENE_IMAGES = 5
 # Local AI upscaler for low-resolution stills (https://github.com/xinntao/Real-ESRGAN, portable Vulkan build).
 REALESRGAN_BIN = os.getenv("REALESRGAN_BIN", str(BASE_DIR / "tools" / "realesrgan" / "realesrgan-ncnn-vulkan.exe"))

@@ -24,7 +24,8 @@ from typing import Dict, Any, List, Optional, Tuple
 from pydantic import BaseModel, ValidationError
 
 from .config import (CURATED_SCRIPTS_DIR, HARD_DURATION_CEILING, SECOND_CHECK_ENABLED, TARGET_DURATION_MAX,
-                     TARGET_DURATION_MIN, TARGET_WORD_COUNT_MIN, TARGET_WORD_COUNT_MAX)
+                     TARGET_DURATION_MIN, TARGET_WORD_COUNT_MIN, TARGET_WORD_COUNT_MAX,
+                     WORD_COUNT_CEILING, WORD_COUNT_FLOOR)
 from . import audio_engine
 from .fact_checker import ClaimFactChecker
 from . import free_llm
@@ -216,8 +217,9 @@ def spoken_length_problems(pkg: ScriptPackage) -> List[str]:
     if seconds > longest:
         # A word count is followed far better than seconds: name this draft's count and the one to reach,
         # aiming inside the comfortable length (not just under the limit), never below the word minimum.
-        target = max(TARGET_WORD_COUNT_MIN, min(words - math.ceil((seconds - longest) / per_word) - 2,
-                                                int(TARGET_DURATION_MAX / per_word)))
+        # Never clamped up to the prompt's word range: for a slow voice that range itself is too long.
+        target = max(WORD_COUNT_FLOOR, min(words - math.ceil((seconds - longest) / per_word) - 2,
+                                           int(TARGET_DURATION_MAX / per_word)))
         return [f"Narration runs {seconds:.1f}s when spoken (limit {longest:g}s). This draft is {words} words; "
                 f"rewrite the narration in at most {target} words (names and numbers such as dates take "
                 f"longer to say), keeping the closing sentence."]
@@ -264,8 +266,11 @@ def validate_structure(pkg: ScriptPackage) -> List[str]:
     """Returns a list of problems; empty means the package is structurally publishable."""
     problems = []
     words = pkg.narration_script.split()
-    if not TARGET_WORD_COUNT_MIN <= len(words) <= TARGET_WORD_COUNT_MAX:
-        problems.append(f"Narration is {len(words)} words; must be {TARGET_WORD_COUNT_MIN}-{TARGET_WORD_COUNT_MAX}.")
+    # Sanity bounds; the precise length is the measured spoken one (spoken_length_problems), so a draft
+    # shortened to fit a slow voice is not then rejected for having too few words.
+    if not WORD_COUNT_FLOOR <= len(words) <= WORD_COUNT_CEILING:
+        problems.append(f"Narration is {len(words)} words; must be {WORD_COUNT_FLOOR}-{WORD_COUNT_CEILING} "
+                        f"(aim for {TARGET_WORD_COUNT_MIN}-{TARGET_WORD_COUNT_MAX}).")
     if words:
         last = words[-1].strip(".,!?:;\"'”’").lower()
         if last in BANNED_ENDINGS:

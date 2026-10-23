@@ -586,7 +586,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         render = [b for b in buttons if b["callback_data"].startswith("qrender:")]
         changes = [b for b in buttons if b["callback_data"].startswith(("qbump:", "qdrop:"))]
         rows = [render + [{"text": "🔄 Refresh Queue", "callback_data": "qrefresh:"}]]
-        if render:  # the same topic as a Reel plus the 3½–5 minute 16:9 documentary for YouTube
+        from . import config as app_config
+        if render and app_config.documentary_enabled():  # the same topic as a Reel plus the 16:9 documentary (paused while rebuilt)
             rows.append([{"text": "🎬 Reel + 16:9 documentary", "callback_data": "qdoc:" + render[0]["callback_data"].partition(":")[2]}])
         if changes:
             rows.append(changes)
@@ -622,6 +623,11 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             text = "Cancellation requested; the worker will acknowledge at its next stage boundary." if accepted else "This run is no longer producing. Inspect its current status; no upload was cancelled."
             return text, [[{"text": "Jobs", "callback_data": "jobs:"}], [HOME]]
         if command in ("qrender", "qdoc"):
+            from . import config as app_config
+            if command == "qdoc" and not app_config.documentary_enabled():  # a button left on an older message
+                q_text, q_buttons = render_queue_text_and_buttons()
+                return ("⏸ The 16:9 documentary is paused while it is rebuilt; nothing was started. "
+                        "Use Render for the Reel.\n\n" + q_text), q_buttons
             current = db.get_next_topic()
             serials = {str(i): t["id"] for i,t in enumerate(db.list_all_topics(), 1)}
             requested = serials.get(args, args)

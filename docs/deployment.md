@@ -6,6 +6,10 @@ independent. Never deploy dev's `.env` or database to production. Dev feature
 flags remain unchanged; production retains its configured licensed providers and
 existing caps. A dry run can still consume API credits.
 
+Production runs only the formats in its `VIDEO_FORMATS` (default `reel`). The 16:9 documentary
+stays out of it until `docs/documentary-rebuild.md`'s acceptance criteria are met and approved;
+`YOUTUBE_SHORTS` stays off in production until the operator enables it.
+
 ## Responsibility and runtime
 
 The lab repository owns managed identities, host authorization/ACLs, OS/GPU

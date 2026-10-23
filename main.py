@@ -55,6 +55,8 @@ from src.operator_jobs import JobCancelled
 log = logging.getLogger("pipeline")
 
 MAX_REGENERATIONS = 2
+DOCUMENTARY_PAUSED = ("The 16:9 documentary is paused while it is rebuilt (add \"documentary\" to VIDEO_FORMATS "
+                      "to make one; see docs/documentary-rebuild.md).")
 MAX_FACT_REVISIONS = 2  # rewrites of a Claude script that failed fact-checking, before failing closed
 
 
@@ -184,6 +186,15 @@ class PipelineCoordinator:
         _regenerations: int = 0,
         run_id: Optional[str] = None,
     ) -> Dict[str, Any]:
+        # VIDEO_FORMATS decides what runs: a request is narrowed to the listed formats before anything is spent.
+        allowed = config.effective_format(content_format)
+        if allowed is None:
+            log.info("Run declined: %s is not in VIDEO_FORMATS (%s).", content_format, ",".join(config.VIDEO_FORMATS))
+            return {"status": "paused", "topic_id": topic_id, "reason": f"{content_format} is not in VIDEO_FORMATS"
+                    + (f". {DOCUMENTARY_PAUSED}" if content_format == "deep-dive" else "")}
+        if allowed != content_format:
+            log.info("Run format %s narrowed to %s by VIDEO_FORMATS.", content_format, allowed)
+        content_format = allowed
         health = self.health_checker.run_all(require_live=require_live)
         for k, v in health["details"].items():
             log.info("Health %-11s %s %s", k, "OK " if v["passed"] else ("FAIL" if v["required"] else "warn"), v["msg"])
@@ -356,6 +367,10 @@ class PipelineCoordinator:
         - Child run persistence in DB with fault isolation
         """
         tid = topic["id"]
+        if not config.documentary_enabled():  # the last line of defence for any caller outside run_cycle
+            log.info("Documentary for '%s' not made: %s", tid, DOCUMENTARY_PAUSED)
+            return {"status": "paused", "topic_id": tid, "parent_run_id": parent_run_id,
+                    "reason": DOCUMENTARY_PAUSED}
         if not run_id:
             ts = int(time.time())
             run_id = f"run_{tid}_{ts}_long"
@@ -1659,6 +1674,17 @@ class PipelineCoordinator:
             self.topic_engine.record_status(tid, "failed", run_id=run_id)
             log.error("Publishing failed for %s: %s", run_id, pub.get("error"))
             self._alert(f"❌ <b><u>PUBLISH FAILED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n{html.escape(str(pub.get('error') or 'no error details were returned'))[:500]}\n\nNothing was posted. The topic goes back in the queue for a retry.")
+        if config.YOUTUBE_SHORTS and profile == "reel_9x16" and status in ("published", "simulated"):
+            pub["youtube_short"] = short = self.publisher.publish_short(envelope, dry_run=dry_run)
+            if short["status"] == "published":
+                links = "\n".join(html.escape(str(v)) for v in short.get("post_urls", {}).values())
+                self._alert(f"▶️ <b>YouTube Short posted</b> ({html.escape(config.YOUTUBE_SHORTS_PRIVACY)})\n"
+                            f"<b>{html.escape(payload.get('title', tid))}</b>\n{links}")
+            elif short["status"] in ("failed", "unknown"):
+                # The Reel stands either way; an unknown Short is checked by hand, never re-sent blindly.
+                self._alert(f"⚠️ <b>YouTube Short {'unconfirmed' if short['status'] == 'unknown' else 'not posted'}</b>\n"
+                            f"<b>{html.escape(payload.get('title', tid))}</b>: the Reel is unaffected.\n"
+                            f"{html.escape(str(short.get('error', '')))[:300]}")
         return {"status": status, "publish_result": pub}
 
 
@@ -2003,7 +2029,9 @@ def main(argv=None) -> int:
                 run_lock.release()
 
         scheduler = BlockingScheduler(timezone=TIMEZONE)
+        # The daily run asks for every format; run_cycle narrows it to VIDEO_FORMATS (default: the Reel only).
         daily = scheduler.add_job(production_run, CronTrigger(hour=hour, minute=minute, timezone=TIMEZONE),
+                                  kwargs={"content_format": "dual"},
                                   max_instances=1, coalesce=True, misfire_grace_time=3600)
 
         def next_run() -> Optional[str]:

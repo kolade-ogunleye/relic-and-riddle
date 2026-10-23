@@ -2,7 +2,7 @@
 
 *Relics and riddles of history, in 45 seconds.*
 
-A documentary production pipeline that researches, fact-checks, voices, renders and publishes short vertical Reels (9:16) about historical curiosities and ancient marvels, with an optional 16:9 documentary cut. Every on-screen and spoken claim is traced to quoted evidence in a verified fact sheet, every asset carries provenance and rights evidence, and nothing posts until a human approves it in Telegram.
+A documentary production pipeline that researches, fact-checks, voices, renders and publishes short vertical Reels (9:16) about historical curiosities and ancient marvels, with an optional 16:9 documentary cut (a work in progress, paused in production by `VIDEO_FORMATS`: see `docs/documentary-rebuild.md`). Approved Reels can also be uploaded as YouTube Shorts (`YOUTUBE_SHORTS`). Every on-screen and spoken claim is traced to quoted evidence in a verified fact sheet, every asset carries provenance and rights evidence, and nothing posts until a human approves it in Telegram.
 
 ```
 Evidence (UNESCO registry + Wikipedia + OpenAlex scholarly works)

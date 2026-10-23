@@ -191,6 +191,48 @@ class UploadPostPublisher:
             return self._summarize(body["results"], body)
         return self._poll(body.get("request_id") or envelope["run_id"])
 
+    def publish_short(self, envelope: Dict[str, Any]) -> Dict[str, Any]:
+        """The approved 9:16 Reel to YouTube. YouTube makes a vertical video of 3 minutes or less a Short
+        by itself (no flag exists); a custom thumbnail is not sent, since Shorts take a frame. Its own
+        idempotency key: reusing the Reel's would return the Reel's upload instead of making this one."""
+        _assert_recovery_unlocked()
+        if not self.configured():
+            raise NotConfigured("UPLOAD_POST_API_KEY / UPLOAD_POST_USER not set")
+        meta, media = envelope["metadata"], envelope["media"]
+        key = envelope["run_id"] + ":youtube-short"
+        tags = " ".join(meta.get("hashtags") or [])
+        data: List[Tuple[str, str]] = [
+            ("user", self.user), ("platform[]", "youtube"),
+            ("title", meta["title"][:100]), ("youtube_title", meta["title"][:100]),
+            ("youtube_description", (meta["caption"] + ("\n\n" + tags if tags and tags not in meta["caption"] else ""))[:5000]),
+            *[("tags[]", t.lstrip("#")) for t in (meta.get("hashtags") or [])[:30]],
+            ("categoryId", "27"),  # Education
+            ("privacyStatus", config.YOUTUBE_SHORTS_PRIVACY),
+            ("selfDeclaredMadeForKids", "false"),
+            ("containsSyntheticMedia", "true" if meta["is_ai_generated"] else "false"),
+            ("defaultLanguage", "en"), ("defaultAudioLanguage", "en"),
+            ("async_upload", "true"), ("request_id", key),
+        ]
+        if meta.get("first_comment"):
+            data.append(("youtube_first_comment", meta["first_comment"]))
+        try:
+            with open(media["video_path"], "rb") as vf:
+                response = requests.post(f"{self.base_url}/upload", headers=self._headers(key), data=data,
+                                         files={"video": (Path(media["video_path"]).name, vf, "video/mp4")},
+                                         timeout=(15, 900))
+        except requests.ConnectionError as e:
+            raise PublishFailed(f"Could not connect to Upload-Post: {e}") from e
+        except requests.Timeout as e:
+            raise PublishUnknown(f"Upload-Post timed out after the Short's upload started: {e}") from e
+        body = self._json(response)
+        if response.status_code >= 500:
+            raise PublishUnknown(f"Upload-Post server error {response.status_code}: {body}")
+        if response.status_code >= 400 or not body.get("success"):
+            raise PublishFailed(f"Upload-Post rejected the Short ({response.status_code}): {body.get('message') or body}")
+        if "results" in body:
+            return self._summarize(body["results"], body)
+        return self._poll(body.get("request_id") or key)
+
     def publish_photos(self, kind: str, photos: List[str], caption: str, platforms: List[str], key: str) -> Dict[str, Any]:
         _assert_recovery_unlocked()
         """A carousel (several photos, one post) or a single Story frame (kind="story", one photo).
@@ -566,6 +608,31 @@ class MetaPublisher:
             return merged
         msg = "; ".join(errors) if errors else "no publisher is configured"
         return {"status": "failed", "error": msg}
+
+    def publish_short(self, envelope: Dict[str, Any], dry_run: bool = False) -> Dict[str, Any]:
+        """The Reel as a YouTube Short, after Facebook and Instagram. Its outcome is its own: recorded as
+        channel "youtube-shorts" and never changing the Reel's status. Only Upload-Post can do it."""
+        tid, run_id = envelope["topic_id"], envelope["run_id"]
+        if dry_run:
+            self.db.record_publication(tid, run_id, "youtube-shorts", "simulated", {"privacy": config.YOUTUBE_SHORTS_PRIVACY})
+            log.info("Dry run: the YouTube Short was not uploaded.")
+            return {"status": "simulated"}
+        uploader = next((p for p in self.publishers if hasattr(p, "publish_short")), None)
+        try:
+            if uploader is None:
+                raise NotConfigured("no publisher can upload YouTube Shorts")
+            res = uploader.publish_short(envelope)
+        except NotConfigured as e:
+            log.info("YouTube Short skipped: %s", e)
+            return {"status": "skipped", "error": str(e)}
+        except PublishFailed as e:
+            self.db.record_publication(tid, run_id, "youtube-shorts", "failed", {"error": str(e)})
+            return {"status": "failed", "error": str(e)}
+        except PublishUnknown as e:
+            self.db.record_publication(tid, run_id, "youtube-shorts", "unknown", {"error": str(e)})
+            return {"status": "unknown", "error": str(e)}
+        self.db.record_publication(tid, run_id, "youtube-shorts", "published", res)
+        return {"status": "published", "post_urls": res.get("post_urls") or {}}
 
     def publish_photos(self, run_id: str, topic_id: str, kind: str, photos: List[str], caption: str = "",
                        platforms: Optional[List[str]] = None, dry_run: bool = False) -> Dict[str, Any]:

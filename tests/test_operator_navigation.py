@@ -243,6 +243,7 @@ def test_research_tap_while_research_runs_is_explained_not_failed(db, monkeypatc
 
 
 def test_queue_buttons_pair_render_with_refresh_and_keep_pages_together(db, monkeypatch):
+    monkeypatch.setattr(config, "VIDEO_FORMATS", ["reel", "documentary"])
     topics = [{"id": f"t{i}", "title": f"Topic {i}", "status": "queued", "priority": 0} for i in range(1, 30)]
     monkeypatch.setattr(db, "list_all_topics", lambda: topics)
     monkeypatch.setattr(db, "get_next_topic", lambda: topics[4])
@@ -383,6 +384,7 @@ def test_issue_in_reply_to_a_card_carries_the_card(db):
 
 
 def test_documentary_button_starts_a_reel_plus_documentary_run(db, monkeypatch):
+    monkeypatch.setattr(config, "VIDEO_FORMATS", ["reel", "documentary"])
     started = []
     monkeypatch.setattr(db, "get_next_topic", lambda: {"id": "01_topic", "title": "T", "status": "queued"})
     h = make_command_handler(db, lambda: None, lambda content_format="reel": started.append(content_format) or "started")

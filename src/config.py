@@ -93,6 +93,28 @@ MUSIC_FETCH_PER_MOOD = max(1, int(os.getenv("MUSIC_FETCH_PER_MOOD") or 3))
 YOUTUBE_PRIVACY = (os.getenv("YOUTUBE_PRIVACY") or "public").strip().lower()
 if YOUTUBE_PRIVACY not in ("public", "unlisted", "private"):
     YOUTUBE_PRIVACY = "public"
+# Which video formats run: "reel" (9:16), "documentary" (16:9, being rebuilt: docs/documentary-rebuild.md)
+# or both. A format not listed is paused on every route (Telegram, command line, the documentary after
+# a Reel); the daily scheduled run makes every listed format.
+VIDEO_FORMATS = [f for f in (x.strip().lower() for x in (os.getenv("VIDEO_FORMATS") or "reel").split(","))
+                 if f in ("reel", "documentary")] or ["reel"]
+
+
+def documentary_enabled() -> bool:
+    return "documentary" in VIDEO_FORMATS
+
+
+def effective_format(requested: str) -> "str | None":
+    """A requested run format ("reel", "deep-dive", "dual") narrowed to VIDEO_FORMATS; None if none is on."""
+    want = {"reel": {"reel"}, "deep-dive": {"documentary"}, "dual": {"reel", "documentary"}}.get(requested, {"reel"})
+    have = want & set(VIDEO_FORMATS)
+    return "dual" if len(have) == 2 else "reel" if have == {"reel"} else "deep-dive" if have else None
+# Approved Reels are also uploaded to YouTube as Shorts: a separate upload after Facebook and
+# Instagram, so a YouTube problem never changes the Reel's own outcome.
+YOUTUBE_SHORTS = os.getenv("YOUTUBE_SHORTS", "false").strip().lower() in ("true", "1", "yes")
+YOUTUBE_SHORTS_PRIVACY = (os.getenv("YOUTUBE_SHORTS_PRIVACY") or YOUTUBE_PRIVACY).strip().lower()
+if YOUTUBE_SHORTS_PRIVACY not in ("public", "unlisted", "private"):
+    YOUTUBE_SHORTS_PRIVACY = YOUTUBE_PRIVACY
 # Cap on pay-per-use media APIs (AI video), USD per month; 0 = paid media APIs disabled.
 MEDIA_MONTHLY_BUDGET_USD = float(os.getenv("MEDIA_MONTHLY_BUDGET_USD") or 0)
 # AI motion (src/motion.py): Veo through the Gemini API (billing on), then Kling. Runs only when

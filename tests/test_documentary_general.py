@@ -65,6 +65,7 @@ def test_documentary_planning_ignores_a_reel_storyboard(tmp_path, monkeypatch):
 
 
 def test_a_rejected_documentary_draft_is_rewritten_with_the_findings(db, tmp_path, monkeypatch):
+    monkeypatch.setattr("src.config.VIDEO_FORMATS", ["reel", "documentary"])
     import main
 
     class Stop(Exception):
@@ -101,6 +102,7 @@ def test_a_rejected_documentary_draft_is_rewritten_with_the_findings(db, tmp_pat
 
 
 def test_the_documentary_shows_a_progress_card_that_becomes_its_failure_card(db, tmp_path, monkeypatch):
+    monkeypatch.setattr("src.config.VIDEO_FORMATS", ["reel", "documentary"])
     import main
 
     class Visuals:

@@ -34,6 +34,7 @@ def test_pager_shows_only_buttons_that_move(page, pages, icons):
 
 def test_waiting_ideas_page_and_keep_place_after_add(db, monkeypatch):
     from src import topic_proposer
+    monkeypatch.setattr(topic_proposer, "BANK", db.topic_bank_file)  # never the real bank (or its lock, held by a live bot)
     from tests.test_topic_proposer import _proposal
     waiting = {s: _proposal(s, title=f"Idea {s}").model_dump() for s in ("a", "b", "c", "d")}
     monkeypatch.setattr(topic_proposer, "pending", lambda db: dict(waiting))

@@ -210,3 +210,19 @@ def test_start_after_cleared_history_gives_one_visible_panel(db):
     assert not any(m == "editMessageText" and d.get("message_id") == 40 for m, d in calls)  # not an invisible edit
     deleted = {d.get("message_id") for m, d in calls if m == "deleteMessage"}
     assert {40, 301, 302} <= deleted                          # old panel and both commands removed
+
+
+def test_research_tap_while_research_runs_is_explained_not_failed(db, monkeypatch):
+    import os
+    started = []
+    h = make_command_handler(db, lambda: None, lambda: "", propose_topics=lambda: started.append(1) or "")
+    db.set_setting("operator_job:x", json.dumps({"resource": "topic-research", "state": "running", "owner_pid": os.getpid(),
+                                                 "updated_at": "2026-10-23T01:17:59+00:00", "title": "Researching topic ideas"}))
+    text, buttons = h("cpropose", "")
+    assert "already running" in text and not started                       # no duplicate research, no failure
+    text, buttons = h("cideas", "")
+    assert "Research is running" in text and buttons[0][0]["callback_data"] == "jobs:"
+    db.set_setting("operator_job:x", json.dumps({"resource": "topic-research", "state": "running", "owner_pid": -1}))
+    assert h("cideas", "")[1][0][0]["callback_data"] == "cpropose:"        # a stopped process's record is not running
+    h("cpropose", "")
+    assert started == [1]

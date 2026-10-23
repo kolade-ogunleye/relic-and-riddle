@@ -41,6 +41,18 @@ HOME = {"text": "← Dashboard", "callback_data": "cdash:"}
 from .local_time import show as show_time
 
 
+def running_job(db, resource: str):
+    """When a job for this resource is running in this process (a record left by a stopped process is not
+    running), its start time for the operator; else None."""
+    import os
+    with db._conn() as conn:
+        for (value,) in conn.execute("SELECT value FROM settings WHERE key LIKE 'operator_job:%'"):
+            job = json.loads(value)
+            if job.get("resource") == resource and job.get("state") in ("queued", "running") and job.get("owner_pid") == os.getpid():
+                return show_time(job.get("updated_at"), "%H:%M")
+    return None
+
+
 def short_reason(error: str, limit: int = 280) -> str:
     """A failure reason for the dashboard: no exception class name, and cut at a word, never mid-word."""
     text = re.sub(r"^[A-Z]\w*(Error|Exception):\s*", "", (error or "").strip())
@@ -909,7 +921,12 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command in ("ideas", "cideas"):
             text = ("💡 <b>Topic ideas</b>\n\nResearch new ones, browse UNESCO marvels, or decide on ideas "
                     "already waiting (each has Add/Skip).")
-            buttons = [[{"text": "🔬 Research 3 new ideas", "callback_data": "cpropose:"}],
+            started = running_job(db, "topic-research")
+            research = ({"text": "🧰 Research running: Jobs", "callback_data": "jobs:"} if started else
+                        {"text": "🔬 Research 3 new ideas", "callback_data": "cpropose:"})
+            if started:
+                text += f"\n\n🔬 <b>Research is running</b> (started {started}). Its result arrives as a message; keep browsing meanwhile."
+            buttons = [[research],
                        [{"text": "🏛️ UNESCO marvels", "callback_data": "cdisc:"},
                         {"text": "📥 Waiting ideas", "callback_data": "cprop:"}],
                        [HOME]]
@@ -1231,6 +1248,11 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command == "proposals":
             return handle("cprop", args)
         if command in ("propose", "cpropose"):
+            started = running_job(db, "topic-research")
+            if started:  # a second tap must not look like a failure, nor start a duplicate (and its cost)
+                return (f"🔬 <b>Research is already running</b> (started {started}).\n\nIts result arrives as a message "
+                        "when it finishes, usually within a few minutes.",
+                        [[{"text": "🧰 Jobs", "callback_data": "jobs:"}], [{"text": "← Topic ideas", "callback_data": "cideas:"}], [HOME]])
             return propose_topics() if propose_topics else "Topic proposals need the bot or daemon running with Claude configured."
         if command == "tadd":
             from . import topic_proposer

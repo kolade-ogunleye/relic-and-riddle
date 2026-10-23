@@ -67,6 +67,15 @@ TOASTS = {"imgok": "✅ Storyboard Approved!", "imgcancel": "✖ Cancelled", "mc
           "simpub": "🧪 Simulated", "rsn": "📝 Noted", "impok": "✅ Done", "impno": "✖ Declined",
           "imprev": "↩ Reverted", "creviews": "🎬 Reviews", "cimprove": "🧭 Improvement", "cideas": "💡 Ideas"}
 
+# Plain names for jobs in /jobs and progress panels (never the internal button name).
+JOB_TITLES = {"fetchimages": "Fetching images", "mfetch": "Finding documentary music", "caccounts": "Checking accounts",
+              "ccov": "Covers", "cmusic": "Music", "cstat": "Full status", "cprop": "Waiting ideas",
+              "cdisc": "UNESCO marvels", "mreview": "Music review", "mlibrary": "Music library", "mkeep": "Keeping a track",
+              "mdel": "Removing a track", "mnext": "Next track", "review": "Image review", "uadd": "Adding a marvel",
+              "tadd": "Adding an idea", "edittext": "Editing text", "ask": "Ask", "issue": "Logging an issue",
+              "status": "Full status", "accounts": "Checking accounts", "discover": "UNESCO marvels",
+              "propose": "Researching topic ideas", "covers": "Covers", "music": "Music", "add": "Adding a topic"}
+
 _MASKER = SecretMasker()
 # Keep-alive connections shared by every bot thread: a new TLS connection costs ~1 s, a reused one
 # ~0.2 s. Sessions are per thread; the connection pool (thread-safe) is shared.
@@ -1750,7 +1759,7 @@ class TelegramApprovalBot:
                         self.delete_message(msg_id)
                     self._answer_callback(cq['id'], 'Closed')
                     return
-                if action in {'fetchimages', 'caccounts', 'mfetch', 'cstat', 'ccov', 'cmusic', 'mreview', 'review', 'cpropose', 'cdisc', 'cprop', 'uadd', 'tadd', 'edittext', 'mkeep', 'mdel', 'mnext', 'mreview', 'mlibrary'}:
+                if action in {'fetchimages', 'caccounts', 'mfetch', 'cstat', 'ccov', 'cmusic', 'mreview', 'review', 'cdisc', 'cprop', 'uadd', 'tadd', 'edittext', 'mkeep', 'mdel', 'mnext', 'mreview', 'mlibrary'}:
                     self._answer_callback(cq['id'], 'Working; you can keep using the bot')
                     revision = cq.get('_revision', self._panel_revisions.get(self._current_panel(msg_id), 0))
                     if action == 'fetchimages':
@@ -2063,7 +2072,7 @@ class TelegramApprovalBot:
             if target:
                 self._run_panel_command(command_handler, command, args.strip(), target[0], False, target[2], late=True)
             else:
-                self.start_operator_job(command.replace('_',' ').capitalize(), lambda: command_handler(command, args.strip()), resource=f'{command}:{args.strip()}')
+                self.start_operator_job(JOB_TITLES.get(command, command.replace('_',' ').capitalize()), lambda: command_handler(command, args.strip()), resource=f'{command}:{args.strip()}')
         else:
             self._run_command(command_handler, command, args.strip(), target)
 
@@ -2123,7 +2132,7 @@ class TelegramApprovalBot:
                 return None if panel[3] else result
             finally:
                 _PANEL.reset(token)
-        return self.start_operator_job({"fetchimages": "Fetching images", "mfetch": "Finding documentary music", "caccounts": "Checking accounts", "ccov": "Covers", "cmusic": "Music", "cstat": "Full status", "cprop": "Waiting ideas", "cdisc": "UNESCO marvels"}.get(action, action.replace("_", " ").capitalize()),
+        return self.start_operator_job(JOB_TITLES.get(action, action.replace("_", " ").capitalize()),
             work, resource=f"{action}:{target}", navigation=(message_id, is_media, revision), late=late)
 
     def wait_for_decision(self, run_id: str, timeout_seconds: Optional[int] = None, poll_interval: int = 5,

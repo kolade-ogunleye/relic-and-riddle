@@ -69,6 +69,15 @@ if ($Action -eq 'InstallTask') {
         "`$actual = & .\.venv\Scripts\python.exe -c 'from src.config import TELEGRAM_BOT_TOKEN; print(TELEGRAM_BOT_TOKEN.split(chr(58))[0])'",
         "if (`$LASTEXITCODE -ne 0 -or `$actual.Trim() -ne '$ExpectedBotId') { throw 'Bot identity mismatch; worker not started.' }",
         "if (Test-Path 'logs/runtime-$Environment.stop') { exit 0 }",
+        # One worker at a time: a task restart that killed only this launcher left its worker running, and
+        # each later start added another bot (seven competed for one token on 2026-10-23).
+        "if (Test-Path 'logs/runtime-$Environment.pid.json') {",
+        "    `$prior = Get-Content 'logs/runtime-$Environment.pid.json' -Raw | ConvertFrom-Json",
+        "    `$alive = Get-Process -Id `$prior.pid -ErrorAction SilentlyContinue",
+        "    if (`$alive -and -not `$alive.HasExited -and `$alive.Path -eq (Join-Path '$quotedApp' '.venv\Scripts\python.exe') -and `$alive.StartTime.ToUniversalTime().Ticks -eq ([datetimeoffset]`$prior.started).UtcDateTime.Ticks) {",
+        "        throw 'A worker from an earlier start is still running; stop it with scripts/windows_runtime.ps1 -Action Stop.'",
+        '    }',
+        '}',
         "`$worker = Start-Process -FilePath '.\.venv\Scripts\python.exe' -ArgumentList '-u main.py $command' -WorkingDirectory '$quotedApp' -WindowStyle Hidden -RedirectStandardOutput 'logs/runtime-$Environment.stdout.log' -RedirectStandardError 'logs/runtime-$Environment.stderr.log' -PassThru",
         "@{ pid = `$worker.Id; started = `$worker.StartTime.ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content 'logs/runtime-$Environment.pid.json'",
         'while (-not $worker.WaitForExit(1000)) {',

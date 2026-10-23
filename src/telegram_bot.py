@@ -40,7 +40,9 @@ log = logging.getLogger(__name__)
 ACTIONS = {"approve": "approved", "regen": "regenerate", "reject": "rejected", "cancel": "cancelled"}
 TELEGRAM_VIDEO_LIMIT_MB = 49.0
 STALE_COMMAND_SECONDS = 600  # commands queued while the bot was down longer than this are not replayed
-SLOW_COMMANDS = {"status", "add", "issue", "music", "discover", "ask", "propose", "review", "covers", "edittext", "fetchimages", "accounts"}
+# Typed commands run as a job. Not /propose: it only starts the research job, and wrapping that in a
+# second job showed an empty "Completed." over the research panel.
+SLOW_COMMANDS = {"status", "add", "issue", "music", "discover", "ask", "review", "covers", "edittext", "fetchimages", "accounts"}
 # Buttons on cards from earlier releases. They get an explicit answer and never run old behaviour.
 RETIRED_ACTIONS = {"done": "Closed",
                    "umore": "This card is from an earlier version. Open /ideas for UNESCO marvels.",
@@ -49,7 +51,7 @@ RETIRED_ACTIONS = {"done": "Closed",
 DONE_BUTTON = {"text": "← Dashboard", "callback_data": "cdash:"}
 PAGER_ICONS = {"⏮", "◀", "▶", "⏭"}
 _PANEL = ContextVar("telegram_navigation_panel", default=None)
-PANEL_ACTIONS = {"cideas", "cpropose", "ccov", "cmusic", "cdisc", "cprop", "cstat", "cimages", "caccounts", "imagepick", "imagehelp", "review", "mkeep", "mnext", "mdel", "mcancel", "mreview", "musicmenu", "mfmenu", "mlibrary", "chelp"}
+PANEL_ACTIONS = {"pickbump", "pickdrop", "cideas", "cpropose", "ccov", "cmusic", "cdisc", "cprop", "cstat", "cimages", "caccounts", "imagepick", "imagehelp", "review", "mkeep", "mnext", "mdel", "mcancel", "mreview", "musicmenu", "mfmenu", "mlibrary", "chelp"}
 # Cards removed before acting (their own Cancel/Skip/Next buttons).
 DELETE_FIRST = {"tskip"}
 # Decision buttons: disabled before acting so a second tap can't repeat the decision.
@@ -2151,6 +2153,8 @@ class TelegramApprovalBot:
                 _PANEL.reset(token)
         if panel and panel[3]:
             return  # the command drew its own screen in the panel
+        if reply is None:
+            return  # a job the command started owns the panel now
         text, buttons = reply if isinstance(reply, tuple) else (reply, [[DONE_BUTTON]])
         if target:
             if not self.update_navigation_target(target, text or "✅ Done.", navigation_buttons(buttons)):

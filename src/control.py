@@ -636,18 +636,31 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             return f"🗑 Dropped topic from queue (type /undo to restore).\n\n{q_text}", q_buttons
         if command in ("qrefresh", "qpage"):
             return render_queue_text_and_buttons(page=int(args) if args.isdigit() else 0)
+        if command in ("pickbump", "pickdrop"):
+            # One paged topic picker for bump and drop: full numbered titles in the message (they wrap),
+            # number buttons, the shared pager, back to the queue.
+            verb = "bump" if command == "pickbump" else "drop"
+            topics = db.list_all_topics()
+            serial = {t["id"]: i for i, t in enumerate(topics, 1)}
+            queued = [t for t in topics if t.get("status") == "queued"][1 if verb == "bump" else 0:]
+            if not queued:
+                return "📋 Nothing in the queue to " + verb + ".", [[{"text": "📋 Queue", "callback_data": "qrefresh:"}], [HOME]]
+            pages = -(-len(queued) // 8)
+            page = min(int(args) if args.isdigit() else 0, pages - 1)
+            shown = queued[page * 8:page * 8 + 8]
+            title = ("⬆ <b>Bump a topic to the front of the queue</b>" if verb == "bump" else
+                     "🗑 <b>Drop a topic from the queue</b> (<code>/undo</code> restores it)")
+            text = title + (f" · page {page + 1} of {pages}" if pages > 1 else "") + "\n\n" + "\n".join(
+                f"<b>{serial[t['id']]}.</b> {html.escape(t['title'])}" for t in shown)
+            numbers = [{"text": str(serial[t["id"]]), "callback_data": f"q{verb}:{t['id']}"} for t in shown]
+            return text, ([row for row in (numbers[:4], numbers[4:]) if row] + pager(command + ":", page, pages)
+                          + [[{"text": "📋 Queue", "callback_data": "qrefresh:"}], [HOME]])
         if command == "bump":
             ref = args.strip()
             if not ref:
                 queued = [t for t in db.list_all_topics() if t.get("status") == "queued"]
                 if len(queued) > 1:
-                    topic_serial = {t["id"]: i for i, t in enumerate(db.list_all_topics(), 1)}
-                    shown = queued[1:9]
-                    # Full titles wrap in the message; the buttons carry the numbers (titles were cut off).
-                    text = ("⬆ <b>Bump a topic to the front of the queue</b>\n\n"
-                            + "\n".join(f"<b>{topic_serial.get(t['id'])}.</b> {html.escape(t['title'])}" for t in shown))
-                    numbers = [{"text": str(topic_serial.get(t["id"])), "callback_data": f"qbump:{t['id']}"} for t in shown]
-                    buttons = [row for row in (numbers[:4], numbers[4:]) if row] + [[{"text": "📋 Queue", "callback_data": "qrefresh:"}], [HOME]]
+                    text, buttons = handle("pickbump", "0")
                     if send_message:
                         send_message(text, buttons)
                         return ""
@@ -676,7 +689,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command == "drop_topic":
             ref = args.strip()
             if not ref:
-                return "Usage: /drop_topic &lt;number or topic_id&gt;"
+                return handle("pickdrop", "0")
             topics = db.list_all_topics()
             match = None
             if ref.isdigit():
@@ -1238,7 +1251,11 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 return (f"🔬 <b>Research is already running</b> (started {started}).\n\nIts result opens here "
                         "when it finishes, usually within a few minutes.",
                         [[{"text": "🧰 Jobs", "callback_data": "jobs:"}], [{"text": "← Topic ideas", "callback_data": "cideas:"}], [HOME]])
-            return propose_topics() if propose_topics else "Topic proposals need the bot or daemon running with Claude configured."
+            if not propose_topics:
+                return "Topic proposals need the bot or daemon running with a script engine configured."
+            # The research job now owns the panel ("⏳ Researching topic ideas", then its result): None tells
+            # the bot not to draw over it with an empty "Done".
+            return propose_topics() or None
         if command == "tadd":
             from . import topic_proposer
             topic_id = topic_proposer.add(db, args)

@@ -301,3 +301,38 @@ def test_counting_questions_are_answered_exactly_without_a_model(db, monkeypatch
     assert "1 approved · 1 waiting for review" in out and "Reviews" not in out and "studio's records" in out
     assert not probe.about_production("how many music tracks are approved?")
     assert probe.about_production("why did the last run fail?")
+
+
+@pytest.mark.parametrize("command,first", [("pickbump", "2"), ("pickdrop", "1")])
+def test_bump_and_drop_pickers_page_through_full_titles(db, monkeypatch, command, first):
+    long = "Camp Century: The Nuclear City Under the Greenland Ice Sheet"
+    topics = [{"id": f"t{i}", "title": long if i == 2 else f"Topic {i}", "status": "queued"} for i in range(1, 21)]
+    monkeypatch.setattr(db, "list_all_topics", lambda: topics)
+    h = make_command_handler(db, lambda: None, lambda: "")
+    text, rows = h(command, "0")
+    assert long in text and rows[0][0]["text"] == first                        # full title in the text, numbers below
+    assert [b["text"] for b in rows[2]] == ["▶", "⏭"] and rows[-1][0]["callback_data"] == "cdash:"
+    text, rows = h(command, rows[2][1]["callback_data"].partition(":")[2])     # last page
+    assert "Topic 20" in text and [b["text"] for b in rows[1]] == ["⏮", "◀"] or [b["text"] for b in rows[0]]
+    verb = "qbump" if command == "pickbump" else "qdrop"
+    assert all(b["callback_data"].startswith(verb + ":") for row in rows[:1] for b in row)
+
+
+def test_typed_propose_shows_the_research_not_an_empty_completed(db):
+    import threading
+    calls, ids, release = [], iter(range(800, 850)), threading.Event()
+    bot = TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
+    bot._api = lambda method, **kw: calls.append((method, kw.get("data") or {})) or {"message_id": next(ids)}
+    def propose():
+        bot.start_operator_job("Researching topic ideas", lambda: release.wait(5) and ("💡 Research complete: 3 new idea(s).", [[{"text": "Waiting ideas", "callback_data": "cprop:"}]]),
+                               resource="topic-research", late=True)
+        return ""
+    handler = make_command_handler(db, lambda: None, lambda: "", propose_topics=propose)
+    _typed(bot, "/propose", handler) if False else bot._process_update({"update_id": 1, "message": {
+        "message_id": 310, "text": "/propose", "date": int(__import__("time").time()), "from": {"id": 555}, "chat": {"id": 555}}}, handler)
+    release.set()
+    bot.drain()
+    shown = [d.get("text", "") for m, d in calls if m in ("sendMessage", "editMessageText")]
+    assert any("Researching topic ideas" in s for s in shown) and "Research complete" in shown[-1]
+    assert not any(s.strip() in ("Completed.", "✅ Done.") for s in shown)
+    assert len([j for j in bot.jobs.recent() if j["title"] == "Researching topic ideas"]) == 1   # no wrapper job

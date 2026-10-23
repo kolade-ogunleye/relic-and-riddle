@@ -290,3 +290,14 @@ def test_jobs_screen_is_plain(db):
     bot.drain()
     text, _ = bot.jobs_view()
     assert "Nothing is running." in text and "✅" in text and "Panel delivery" not in text and "suppressed" not in text
+
+
+def test_counting_questions_are_answered_exactly_without_a_model(db, monkeypatch):
+    from src import free_llm, music, probe
+    monkeypatch.setattr(free_llm, "call", lambda *a, **k: pytest.fail("a count needs no model"))
+    monkeypatch.setattr(music, "load_library", lambda: [{"reviewed": True, "mood": "epic"}, {"reviewed": False, "mood": "tense"}])
+    monkeypatch.setattr(music, "pending_tracks", lambda: [{"mood": "tense"}])
+    out = probe.probe_system("how many music asset do we have approved and in-review?", db=db)
+    assert "1 approved · 1 waiting for review" in out and "Reviews" not in out and "studio's records" in out
+    assert not probe.about_production("how many music tracks are approved?")
+    assert probe.about_production("why did the last run fail?")

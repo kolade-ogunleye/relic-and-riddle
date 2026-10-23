@@ -52,9 +52,10 @@ def _read(path: Path) -> Any:
 
 
 # Words that make a question about a video run rather than about the bot itself.
-PRODUCTION_WORDS = re.compile(r"\b(runs?|video|videos|reel|render\w*|script|narration|voice\w*|music|sound|cover|"
-                              r"thumbnail|caption|motion|footage|images?|photos?|graphics?|release|review card|"
-                              r"publish\w*|post(ed|ing)?|episode|documentary|fact\w*)\b", re.IGNORECASE)
+# A question is about one video run only when it says so ("the last run", "this video", "why did the
+# render..."); "how many music tracks" or "which images" is about the studio's inventory instead.
+PRODUCTION_WORDS = re.compile(r"\b(runs?|video|videos|reel|reels|render\w*|episode|documentary|review card|"
+                              r"voiceover|narration|release (check|gate))\b", re.IGNORECASE)
 
 
 def about_production(question: str) -> bool:
@@ -134,6 +135,23 @@ def system_evidence(db: PipelineDatabase) -> Dict[str, Any]:
     ev["AI model (free tier) recent notes"] = [line[24:] for line in _recent_log(needle="src.free_llm", limit=6)]
     ev["recent warnings/errors (last 2 hours)"] = [line[24:] for line in _recent_log()]
     ev["scheduler paused"] = db.get_setting("scheduler_paused", "false") == "true"
+    try:  # the studio's inventory, so "how many ..." questions are answered from counts, not guessed
+        from . import music, topic_proposer
+        from .control import ready_pools
+        library = music.load_library()
+        topics = db.list_all_topics()
+        queued = [t for t in topics if t.get("status") == "queued"]
+        ev["inventory"] = {
+            "music tracks approved": sum(1 for t in library if t.get("reviewed")),
+            "music tracks waiting for review": len(music.pending_tracks()),
+            "music tracks by mood (approved)": {m: sum(1 for t in library if t.get("reviewed") and t.get("mood") == m) for m in music.MOODS},
+            "topics queued": len(queued), "topics total": len(topics),
+            "queued topics with an approved image set": ready_pools(db, queued),
+            "topic ideas waiting for a decision": len(topic_proposer.pending(db)),
+            "reviews waiting for a decision": len(db.list_pending_approvals()),
+        }
+    except Exception as e:
+        log.debug("Inventory unavailable: %s", e)
     runs = db.list_recent_runs(1)
     if runs:
         from .control import short_reason
@@ -255,6 +273,28 @@ def _deterministic(ev: Dict[str, Any]) -> str:
     return "\n".join(lines) or "Nothing is recorded for this run yet."
 
 
+_COUNTS = [  # (words in a "how many" question, inventory keys answered, plain label)
+    (r"music|tracks?|songs?", ("music tracks approved", "music tracks waiting for review"), "Music"),
+    (r"ideas?|proposals?", ("topic ideas waiting for a decision",), "Topic ideas"),
+    (r"images?|photos?|pictures?|pools?", ("queued topics with an approved image set", "topics queued"), "Images"),
+    (r"topics?|queue", ("topics queued", "topics total"), "Topics"),
+    (r"review cards?|reviews? (waiting|pending)|pending reviews?|videos? (waiting|to review)", ("reviews waiting for a decision",), "Reviews"),
+]
+
+
+def _count_answer(question: str, inventory: Dict[str, Any]) -> Optional[str]:
+    if not inventory or not re.search(r"\bhow many\b|\bcount\b|\bnumber of\b", question, re.IGNORECASE):
+        return None
+    lines = []
+    for words, keys, label in _COUNTS:
+        if re.search(rf"\b({words})\b", question, re.IGNORECASE):
+            lines.append(f"<b>{label}</b>: " + " · ".join(f"{inventory[k]} {k.replace('music tracks ', '').replace('queued topics ', '')}" for k in keys if k in inventory))
+            if label == "Music":
+                moods = inventory.get("music tracks by mood (approved)") or {}
+                lines.append("Approved by mood: " + ", ".join(f"{m} {n}" for m, n in moods.items()))
+    return "\n".join(lines) or None
+
+
 def probe_system(query: str, db: PipelineDatabase, assets_dir: Optional[Path] = None) -> str:
     question = query.strip()
     if not question:
@@ -266,6 +306,9 @@ def probe_system(query: str, db: PipelineDatabase, assets_dir: Optional[Path] = 
     if explicit_run and run is None:
         return "⚠️ The named run was not found. Use its run number from the review/progress card; another run has not been substituted."
     ev = evidence(db, run) if run or contextual else system_evidence(db)
+    counted = _count_answer(question, ev.get("inventory") or {})
+    if counted:  # a counting question is answered exactly from the records, with no model call
+        return f"🔍 <b>Q:</b> <i>{html.escape(question[:300])}</i>\n<b>About:</b> the studio's records\n\n{counted}"
     if contextual:
         ev["replied card (quoted text, not independent evidence)"] = question.partition("[Context from replied message]:")[2][:1800]
         from . import accounts
@@ -286,7 +329,7 @@ def probe_system(query: str, db: PipelineDatabase, assets_dir: Optional[Path] = 
         from . import free_llm
         if free_llm.ready():
             subject = ("one production run of an automated history-documentary pipeline" if run else
-                       "the Telegram bot and studio itself (its recent jobs, alerts and AI-model availability)")
+                       "the Telegram bot and studio itself (its inventory, recent jobs, alerts and AI-model availability)")
             ans = free_llm.call(
                 f"You answer the video producer's question about {subject}. Use ONLY the records given; never guess "
                 "or add general knowledge. Write like a helpful colleague: plain everyday words, short sentences, "

@@ -10,17 +10,22 @@ so the first one is a first look, not a verdict), from:
   requested one by one, so one unsupported metric never empties the rest.
 - Facebook video insights, when a Page token is configured: plays, average time watched,
   retention curve, follows.
-- Upload-Post post analytics (by the request id it published with) as the fallback for both.
+- Upload-Post post analytics (by the request id it published with): the fallback for Reels and the
+  source for YouTube (the Short and the documentary), carousels and Story frames.
 
 What is derived per video: watch ratio (average watch time / video length), skip rate, shares and
 saves per reached account. With few videos these are descriptions, not conclusions; the digest says
 so until there are at least MIN_FOR_PATTERNS videos.
+
+Where it goes: the weekly digest (every platform), /analytics and the status panel's Audience button,
+and the audit ledger (file_findings): from MIN_TO_COMPARE videos, a video clearly weaker than the
+channel's own median files a hook, retention or shares finding; recurring ones become proposals.
 """
 
 import json
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 
@@ -35,7 +40,9 @@ IG_METRICS = ("views", "reach", "ig_reels_avg_watch_time", "reels_skip_rate", "s
 FB_METRICS = ("blue_reels_play_count", "fb_reels_total_plays", "post_impressions_unique",
               "post_video_avg_time_watched", "post_video_followers", "post_video_retention_graph")
 MIN_FOR_PATTERNS = 12
-PUBLISHED_CHANNELS = ("upload-post", "instagram-graph", "facebook-page")
+PUBLISHED_CHANNELS = ("upload-post", "instagram-graph", "facebook-page", "youtube-shorts",
+                      "upload-post:carousel", "upload-post:story")
+VIDEO_PLATFORMS = ("instagram", "facebook", "youtube")
 
 
 def ensure_schema(db) -> None:
@@ -99,65 +106,118 @@ def facebook_insights(video_id: str) -> Dict[str, Any]:
     return {r.get("name"): (r.get("values") or [{}])[0].get("value") for r in body.get("data", [])}
 
 
-def upload_post_analytics(request_id: str) -> Dict[str, Dict[str, Any]]:
+def upload_post_analytics(request_id: str, platform: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
+    """Per-post metrics from Upload-Post, by the request id the post was published with
+    (docs.upload-post.com/api/get-analytics, GET /api/uploadposts/post-analytics/{request_id}).
+    The answer is keyed platforms.<name>.post_metrics; a platform it could not measure carries
+    post_metrics_error, kept as {"unavailable": reason}."""
     if not is_configured(config.UPLOAD_POST_API_KEY):
         return {}
-    body = _get(f"{config.UPLOAD_POST_BASE_URL.rstrip('/')}/uploadposts/post-analytics/{request_id}", {},
+    body = _get(f"{config.UPLOAD_POST_BASE_URL.rstrip('/')}/uploadposts/post-analytics/{request_id}",
+                {"platform": platform} if platform else {},
                 headers={"Authorization": f"Apikey {config.UPLOAD_POST_API_KEY}"})
     out = {}
-    for platform in ("instagram", "facebook"):
-        data = body.get(platform) or (body.get("results") or {}).get(platform)
-        if isinstance(data, dict):
-            out[platform] = data.get("metrics", data)
+    for name, data in (body.get("platforms") or {}).items():
+        if not isinstance(data, dict):
+            continue
+        if isinstance(data.get("post_metrics"), dict):
+            out[name] = data["post_metrics"]
+        elif data.get("post_metrics_error"):
+            out[name] = {"unavailable": str(data["post_metrics_error"])[:200]}
     return out
+
+
+def targets(pub: Dict[str, Any], run: Dict[str, Any]) -> List[Tuple[str, str, Optional[str]]]:
+    """What one publication is measured as: (label stored as its platform, Upload-Post request id,
+    platform filter). A Reel is instagram + facebook, its Short youtube, a documentary youtube, a
+    carousel <platform>_carousel and each Story frame <platform>_story<part>."""
+    channel, res, run_id = pub["channel"], pub["response"], pub["run_id"]
+    rid = res.get("request_id") or run_id
+    if channel == "youtube-shorts":
+        return [("youtube", f"{run_id}:youtube-short", "youtube")]
+    if channel.startswith("upload-post:"):
+        kind = channel.split(":", 1)[1]
+        if not res.get("request_id"):  # recorded before request ids were kept: nothing to look it up by
+            return []
+        suffix = "carousel" if kind == "carousel" else f"story{res.get('part', 1)}"
+        return [(f"{p}_{suffix}", rid, p) for p in (res.get("platforms") or ["instagram", "facebook"])]
+    if run.get("content_format") == "deep_dive":
+        return [("youtube", rid, "youtube")]
+    if channel == "instagram-graph":
+        return [("instagram", rid, "instagram")]
+    if channel == "facebook-page":
+        return [("facebook", rid, "facebook")]
+    return [("instagram", rid, None), ("facebook", rid, None)]
 
 
 # ------------------------------------------------------------------ collection
 def due_snapshots(db, now: Optional[datetime] = None) -> List[Dict[str, Any]]:
-    """(run, publication, snapshot) triples old enough and not yet taken."""
+    """(publication, snapshot) pairs old enough with a target not yet measured: the earliest one each."""
     ensure_schema(db)
     now = now or datetime.now(timezone.utc)
     with db._conn() as conn:
         pubs = conn.execute("SELECT * FROM publications WHERE status = 'published' AND channel IN (%s)"
                             % ",".join("?" * len(PUBLISHED_CHANNELS)), PUBLISHED_CHANNELS).fetchall()
-        taken = {(r["run_id"], r["snapshot"]) for r in conn.execute("SELECT run_id, snapshot FROM audience_metrics")}
+        taken = {(r["run_id"], r["platform"], r["snapshot"])
+                 for r in conn.execute("SELECT run_id, platform, snapshot FROM audience_metrics")}
     due = []
     for p in pubs:
         posted = datetime.fromisoformat(p["created_at"])
         posted = posted if posted.tzinfo else posted.replace(tzinfo=timezone.utc)
+        pub = {"run_id": p["run_id"], "channel": p["channel"], "response": json.loads(p["response_payload_json"] or "{}")}
+        wanted = targets(pub, db.get_run(p["run_id"]) or {})
         for name, days in SNAPSHOTS:
-            if now - posted >= timedelta(days=days) and (p["run_id"], name) not in taken:
-                due.append({"run_id": p["run_id"], "channel": p["channel"], "snapshot": name,
-                            "response": json.loads(p["response_payload_json"] or "{}")})
+            missing = [t for t in wanted if (p["run_id"], t[0], name) not in taken]
+            if now - posted >= timedelta(days=days) and missing:
+                due.append({**pub, "snapshot": name, "targets": missing})
                 break  # one snapshot per publication per pass: the most overdue one
     return due
 
 
+def _graph_metrics(label: str, res: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """A Reel's metrics from Meta's own insights, when our tokens can read them (else None)."""
+    if label == "instagram":
+        media_id = instagram_media_id(res)
+        return {"source": "instagram-graph", **instagram_insights(media_id)} if media_id else None
+    if label == "facebook":
+        video = (res.get("post_ids") or {}).get("facebook")
+        fb = facebook_insights(video) if video else {}
+        return {"source": "facebook-graph", **fb} if fb else None
+    return None
+
+
 def collect(db) -> int:
-    """Takes every due snapshot; returns how many were stored. Failures are logged and retried next time."""
+    """Takes every due snapshot; returns how many rows were stored. A platform that cannot be measured
+    is stored as unavailable (so it never holds back the later snapshots); a network failure is retried."""
     stored = 0
     for item in due_snapshots(db):
         res, run_id = item["response"], item["run_id"]
-        metrics: Dict[str, Dict[str, Any]] = {}
+        rows: Dict[str, Dict[str, Any]] = {}
+        cache: Dict[tuple, Dict[str, Dict[str, Any]]] = {}
         try:
-            media_id = instagram_media_id(res)
-            if media_id:
-                metrics["instagram"] = {"source": "instagram-graph", **instagram_insights(media_id)}
-            fb_video = (res.get("post_ids") or {}).get("facebook")
-            if fb_video:
-                fb = facebook_insights(fb_video)
-                if fb:
-                    metrics["facebook"] = {"source": "facebook-graph", **fb}
-            if item["channel"] == "upload-post" and any(p not in metrics for p in ("instagram", "facebook")):
-                for platform, data in upload_post_analytics(res.get("request_id") or run_id).items():
-                    metrics.setdefault(platform, {"source": "upload-post", **data})
+            for label, rid, platform in item["targets"]:
+                data = _graph_metrics(label, res)
+                if data is None:
+                    key = (rid, platform)
+                    if key not in cache:
+                        try:
+                            cache[key] = upload_post_analytics(rid, platform)
+                        except RuntimeError as e:
+                            if "HTTP 404" not in str(e):
+                                raise
+                            cache[key] = {}  # Upload-Post has no such post: nothing will ever be measured
+                    base = label.split("_")[0]
+                    found = cache[key].get(base)
+                    data = ({"source": "upload-post", **found} if found
+                            else {"source": "upload-post", "unavailable": f"no {base} metrics for {rid}"})
+                rows[label] = data
         except (RuntimeError, requests.RequestException) as e:
             log.warning("Audience metrics for %s (%s) unavailable: %s", run_id, item["snapshot"], e)
             continue
         with db._conn() as conn:
-            for platform, data in metrics.items():
+            for label, data in rows.items():
                 conn.execute("INSERT OR REPLACE INTO audience_metrics VALUES (?,?,?,?,?,?)",
-                             (run_id, platform, item["snapshot"], data.get("source"), json.dumps(data),
+                             (run_id, label, item["snapshot"], data.get("source"), json.dumps(data),
                               datetime.now(timezone.utc).isoformat()))
                 stored += 1
     return stored
@@ -170,13 +230,16 @@ def derived(metrics: Dict[str, Any], duration_s: Optional[float]) -> Dict[str, O
         return float(v) if isinstance(v, (int, float)) else None
     reach = num("reach") or num("post_impressions_unique")
     avg_ms = num("ig_reels_avg_watch_time") or num("post_video_avg_time_watched")
+    saves = num("saved") if num("saved") is not None else num("saves")  # Meta's name, then Upload-Post's
     return {
-        "views": num("views") or num("fb_reels_total_plays"),
+        "views": num("views") or num("fb_reels_total_plays") or num("plays"),
         "reach": reach,
         "watch_ratio": round(avg_ms / 1000 / duration_s, 3) if avg_ms and duration_s else None,
         "skip_rate": num("reels_skip_rate"),
         "share_rate": round(num("shares") / reach, 4) if num("shares") is not None and reach else None,
-        "save_rate": round(num("saved") / reach, 4) if num("saved") is not None and reach else None,
+        "save_rate": round(saves / reach, 4) if saves is not None and reach else None,
+        "likes": num("likes"),
+        "comments": num("comments"),
     }
 
 
@@ -207,24 +270,99 @@ def table(db) -> List[Dict[str, Any]]:
     for (run_id, platform), r in latest.items():
         run = db.get_run(run_id) or {}
         duration = measured_duration(run)
-        out.append({"run_id": run_id, "platform": platform, "snapshot": r["snapshot"],
+        metrics = json.loads(r["metrics_json"])
+        out.append({"run_id": run_id, "platform": platform, "snapshot": r["snapshot"], "fetched_at": r["fetched_at"],
                     "title": (run.get("script_payload") or {}).get("title", run_id),
-                    **derived(json.loads(r["metrics_json"]), duration)})
+                    "unavailable": metrics.get("unavailable"), **derived(metrics, duration)})
     return out
 
 
+PLATFORM_NAMES = {"instagram": "Instagram", "facebook": "Facebook", "youtube": "YouTube"}
+
+
+def _parts(r: Dict[str, Any]) -> str:
+    parts = [f"{int(r['views'])} views" if r["views"] is not None else None,
+             f"watched {r['watch_ratio']:.0%}" if r["watch_ratio"] is not None else None,
+             f"skip {r['skip_rate']:.0f}%" if r["skip_rate"] is not None else None,
+             f"shares {r['share_rate']:.1%}" if r["share_rate"] is not None else None,
+             f"{int(r['likes'])} likes" if r["likes"] is not None and r["views"] is None else None]
+    return ", ".join(x for x in parts if x) or "no numbers yet"
+
+
 def digest_lines(db) -> List[str]:
+    """The weekly digest's audience part: each video platform's best videos at their latest snapshot."""
     import html
-    rows = [r for r in table(db) if r["platform"] == "instagram"]
+    rows = [r for r in table(db) if r["platform"] in VIDEO_PLATFORMS and not r.get("unavailable")]
     if not rows:
         return ["\n<b>Audience:</b> no published videos measured yet."]
-    lines = [f"\n<b>Audience</b> (Instagram, latest snapshot, {len(rows)} video(s)):"]
-    for r in sorted(rows, key=lambda r: -(r["views"] or 0))[:6]:
-        parts = [f"{int(r['views'])} views" if r["views"] is not None else None,
-                 f"watched {r['watch_ratio']:.0%}" if r["watch_ratio"] is not None else None,
-                 f"skip {r['skip_rate']:.0f}%" if r["skip_rate"] is not None else None,
-                 f"shares {r['share_rate']:.1%}" if r["share_rate"] is not None else None]
-        lines.append(f"• {html.escape(r['title'][:40])} ({r['snapshot']}): " + ", ".join(p for p in parts if p))
-    if len(rows) < MIN_FOR_PATTERNS:
+    lines = [f"\n<b>Audience</b> (latest snapshot, {len({r['run_id'] for r in rows})} video(s)):"]
+    for platform in VIDEO_PLATFORMS:
+        mine = sorted((r for r in rows if r["platform"] == platform), key=lambda r: -(r["views"] or 0))[:4]
+        for r in mine:
+            lines.append(f"• {PLATFORM_NAMES[platform]} · {html.escape(r['title'][:40])} ({r['snapshot']}): {_parts(r)}")
+    if len({r["run_id"] for r in rows}) < MIN_FOR_PATTERNS:
         lines.append(f"<i>Fewer than {MIN_FOR_PATTERNS} videos: read these as descriptions, not patterns.</i>")
     return lines
+
+
+def analytics_text(db, limit: int = 8) -> str:
+    """/analytics: the latest published posts, every platform and post type, newest first."""
+    import html
+    rows = table(db)
+    if not rows:
+        return ("📈 <b>Audience</b>\n\nNothing measured yet. Each published post is measured 1, 3, 7 and 28 days "
+                "after posting (Instagram, Facebook and YouTube, Reels, Shorts, carousels and Stories).")
+    by_run: Dict[str, List[Dict[str, Any]]] = {}
+    for r in rows:
+        by_run.setdefault(r["run_id"], []).append(r)
+    order = sorted(by_run, key=lambda rid: max(x["fetched_at"] for x in by_run[rid]), reverse=True)[:limit]
+    lines = ["📈 <b>Audience</b> (latest snapshot per post)"]
+    for rid in order:
+        group = by_run[rid]
+        lines.append(f"\n<b>{html.escape(group[0]['title'][:60])}</b>")
+        for r in sorted(group, key=lambda x: x["platform"]):
+            platform, _, kind = r["platform"].partition("_")
+            label = PLATFORM_NAMES.get(platform, platform) + (f" {kind}" if kind else "")
+            value = "not measurable: " + html.escape(r["unavailable"][:80]) if r.get("unavailable") else _parts(r)
+            lines.append(f"• {label} ({r['snapshot']}): {value}")
+    if len(by_run) < MIN_FOR_PATTERNS:
+        lines.append(f"\n<i>Fewer than {MIN_FOR_PATTERNS} videos: descriptions, not patterns.</i>")
+    return "\n".join(lines)
+
+
+# ------------------------------------------------------------------ feedback
+MIN_TO_COMPARE = 5  # videos measured before one is called weak against the channel's own median
+
+
+def file_findings(db) -> int:
+    """Files weak results into the audit ledger (src/improve.py), each video measured against the channel's
+    own median at its 7-day snapshot or later: a high early skip rate is a hook finding, a low watch ratio
+    a retention finding, few shares a shareability finding. Recurring classes become proposals there.
+    Nothing is filed until MIN_TO_COMPARE videos exist, and each finding is filed once per video."""
+    from statistics import median
+    from . import improve
+    rows = [r for r in table(db) if r["platform"] in ("instagram", "facebook", "youtube")
+            and r["snapshot"] in ("7d", "28d") and not r.get("unavailable")]
+    if len({r["run_id"] for r in rows}) < MIN_TO_COMPARE:
+        return 0
+    improve.ensure_schema(db)
+    with db._conn() as conn:
+        filed = {(f["run_id"], f["klass"]) for f in conn.execute("SELECT run_id, klass FROM findings WHERE klass LIKE 'audience.%'")}
+    checks = (("skip_rate", "audience.hook", lambda v, m: v > m * 1.25, "skip rate {v:.0f}% (channel median {m:.0f}%)"),
+              ("watch_ratio", "audience.retention", lambda v, m: v < m * 0.8, "watched {v:.0%} (channel median {m:.0%})"),
+              ("share_rate", "audience.shares", lambda v, m: v < m * 0.5, "shares {v:.2%} (channel median {m:.2%})"))
+    n = 0
+    for metric, klass, weak, detail in checks:
+        for platform in ("instagram", "facebook", "youtube"):
+            values = [r for r in rows if r["platform"] == platform and r.get(metric) is not None]
+            if len(values) < MIN_TO_COMPARE:
+                continue
+            m = median(r[metric] for r in values)
+            for r in values:
+                if (r["run_id"], klass) not in filed and weak(r[metric], m):
+                    run = db.get_run(r["run_id"]) or {}
+                    improve.record(db, klass, f"{PLATFORM_NAMES[platform]}: " + detail.format(v=r[metric], m=m),
+                                   "audience", run_id=r["run_id"], topic_id=run.get("topic_id"))
+                    filed.add((r["run_id"], klass))
+                    n += 1
+    return n

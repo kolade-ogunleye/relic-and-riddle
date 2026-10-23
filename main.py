@@ -2218,6 +2218,10 @@ def main(argv=None) -> int:
                 n = audience.collect(coordinator.db)
                 if n:
                     log.info("Audience metrics: %d snapshot(s) stored.", n)
+                # Weak results go to the audit ledger, where a recurring one becomes a proposal.
+                filed = audience.file_findings(coordinator.db)
+                if filed:
+                    log.info("Audience: %d finding(s) filed to the improvement ledger.", filed)
             except Exception as e:
                 log.warning("Audience metrics collection failed: %s", e)
 

@@ -674,7 +674,9 @@ class MetaPublisher:
             except PublishUnknown as e:
                 self.db.record_publication(topic_id, run_id, channel, "unknown", {"error": str(e), "part": i})
                 return {"status": "unknown", "error": str(e), "posted_parts": len(done)}
-            self.db.record_publication(topic_id, run_id, channel, "published", dict(res, part=i))
+            # The request id and platforms are kept: audience metrics are fetched by them later.
+            self.db.record_publication(topic_id, run_id, channel, "published",
+                                       dict(res, part=i, request_id=key, platforms=batch_platforms))
             done.append(res)
         urls: Dict[str, Any] = {}
         for r in done:

@@ -1014,7 +1014,10 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 buttons.append([{"text": f"📨 Resend {db.run_key(p['run_id'])}", "callback_data": f"resend:{db.run_key(p['run_id'])}"}])
             return "\n".join(lines), buttons + [[HOME]]
         if command == "cstat":
-            return status_text(db, next_run(), voice_quota()), [[HOME]]
+            return status_text(db, next_run(), voice_quota()), [[{"text": "📈 Audience", "callback_data": "canalytics:"}], [HOME]]
+        if command in ("analytics", "canalytics"):
+            from . import audience
+            return audience.analytics_text(db), [[{"text": "📊 Full status", "callback_data": "cstat:"}], [HOME]]
         if command == "caudit":
             return handle("audit", "10"), [[HOME]]
         if command == "ccov":

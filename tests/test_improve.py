@@ -110,7 +110,7 @@ def test_audience_rates_use_the_measured_length():
     d = audience.derived({"views": 1000, "reach": 800, "ig_reels_avg_watch_time": 21000, "shares": 8, "saved": 4,
                           "reels_skip_rate": 35.0}, 42.0)
     assert d == {"views": 1000.0, "reach": 800.0, "watch_ratio": 0.5, "skip_rate": 35.0,
-                 "share_rate": 0.01, "save_rate": 0.005}
+                 "share_rate": 0.01, "save_rate": 0.005, "likes": None, "comments": None}
 
 
 def test_proposals_need_separate_runs_and_open_reports(db, monkeypatch, tmp_path):

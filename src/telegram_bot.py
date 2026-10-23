@@ -67,7 +67,7 @@ TOASTS = {"imgok": "✅ Storyboard Approved!", "imgcancel": "✖ Cancelled", "mc
           "caudit": "🛡️ Activity log", "ccov": "🎨 Covers", "cprop": "💡 Ideas", "cdisc": "🏛️ Discoveries",
           "cmusic": "🎵 Music", "cpause": "⏸️ Paused", "cresume": "▶️ Resumed", "cdash": "🏛️ Dashboard",
           "simpub": "🧪 Simulated", "rsn": "📝 Noted", "impok": "✅ Done", "impno": "✖ Declined",
-          "imprev": "↩ Reverted", "creviews": "🎬 Reviews", "cimprove": "🧭 Improvement", "cideas": "💡 Ideas"}
+          "imprev": "↩ Reverted", "creviews": "🎬 Reviews", "cimprove": "🧭 Improvement", "cideas": "💡 Ideas", "canalytics": "📈 Audience"}
 
 # Plain names for jobs in /jobs and progress panels (never the internal button name).
 JOB_TITLES = {"fetchimages": "Fetching images", "mfetch": "Finding documentary music", "caccounts": "Checking accounts",

@@ -47,7 +47,17 @@ db = sqlite3.connect(f"file:{sys.argv[1]}?mode=ro", uri=True)
 producing = db.execute("SELECT COUNT(*) FROM runs WHERE status = 'producing'").fetchone()[0]
 print(producing)
 '@
-$producing = [int](& $python -c $check (Join-Path $app 'data\pipeline.db'))
+# A script file, not "python -c": Windows PowerShell 5.1 strips the double quotes from a native
+# command's arguments, which broke the inline code.
+$checkFile = Join-Path $env:TEMP "relic-idle-check-$stamp.py"
+Set-Content -LiteralPath $checkFile -Value $check -Encoding ASCII
+try {
+    $output = & $python $checkFile (Join-Path $app 'data\pipeline.db')
+    if ($LASTEXITCODE) { throw "The idle check could not read the application database (exit $LASTEXITCODE)." }
+} finally {
+    Remove-Item -LiteralPath $checkFile -ErrorAction SilentlyContinue
+}
+$producing = [int]$output
 if ($producing -gt 0) { throw "A run is producing ($producing); promote when the pipeline is idle." }
 Write-Step 'Pipeline is idle (no run producing).'
 

@@ -370,10 +370,11 @@ def test_review_cancel_and_swap_visual_reorder(tmp_path):
     # 1. /review offers Approve, the way back to this topic's images, and another topic
     res = h('review', '1')
     assert res == ''
-    (approve, back), (others,) = sent[-1][2]
+    (approve, back), (drop, swap), (others,) = sent[-1][2]
     assert approve['text'] == '✅ Approve' and approve['callback_data'].startswith('imgok:derinkuyu@')
     assert back['text'] == '← Topic images' and back['callback_data'].startswith('imgcancel:derinkuyu@')
-    assert others['callback_data'] == 'imagepick:0'
+    assert drop['copy_text']['text'].startswith('/drop ') and swap['copy_text']['text'].startswith('/swap ')  # topic filled in
+    assert others['callback_data'] == 'reviewpick:0'
 
     # 2. imgcancel callback leaves topic unreviewed
     cancel_res, back = h('imgcancel', 'derinkuyu')

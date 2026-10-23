@@ -226,6 +226,10 @@ def review_caption(topic_dir: Path, ref_hint: Optional[str] = None) -> str:
     cr = load_credits(topic_dir)
     status_tag = " (approved)" if cr.get("reviewed") else ""
     lines = [f"🎬 <b>{html.escape(topic_dir.name)}</b> — {len(cr['images'])} images{status_tag}"]
+    drop_ref = ref_hint if ref_hint else (topic_dir.name.split('_')[0] if topic_dir.name.split('_')[0].isdigit() else topic_dir.name)
+    # First, so the 1,024-character photo caption never cuts it off; the Copy buttons fill the topic in.
+    lines.append(f"<i>Edit with the numbers on the sheet: /drop {html.escape(drop_ref)} &lt;images&gt; · "
+                 f"/swap {html.escape(drop_ref)} &lt;beat&gt; &lt;beat&gt;</i>")
 
     # Storyboard beat-grounded narrative breakdown
     from .storyboard import load_storyboard, generate_storyboard
@@ -249,8 +253,6 @@ def review_caption(topic_dir: Path, ref_hint: Optional[str] = None) -> str:
             title = c.get("title", c["file"]).removeprefix("File:")
             lines.append(f"{i}. {html.escape(title[:48])} · {html.escape(c.get('license', ''))}")
 
-    drop_ref = ref_hint if ref_hint else (topic_dir.name.split('_')[0] if topic_dir.name.split('_')[0].isdigit() else topic_dir.name)
-    lines.append(f"\nWrong ones? /drop {drop_ref} 2 5")
     return "\n".join(lines)
 
 
@@ -592,15 +594,19 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if send_photo is None:
             return False
         key = topic_dir.name
-        caption = review_caption(topic_dir)
+        serial = str({t["id"]: i for i, t in enumerate(db.list_all_topics(), 1)}.get(topic_dir.name, topic_dir.name))
+        caption = review_caption(topic_dir, ref_hint=serial)
         write_contact_sheet(topic_dir, load_credits(topic_dir)["images"])
         from .telegram_images import review_digest
         key += "@" + review_digest(topic_dir)
-        # Up one level from the sheet: the topic's images (fetch, upload, review) or another topic.
+        # Edit right from the sheet (copy the command with this topic filled in, add the numbers), or go
+        # up one level: the topic's images (fetch, upload, review) or another topic.
         return send_photo(topic_dir / CONTACT_SHEET, caption,
                           [[{"text": "✅ Approve", "callback_data": f"imgok:{key}"},
                             {"text": "← Topic images", "callback_data": f"imgcancel:{key}"}],
-                           [{"text": "🖼 Other topics", "callback_data": "imagepick:0"}]])
+                           [{"text": f"📋 Copy /drop {serial}", "copy_text": {"text": f"/drop {serial} "}},
+                            {"text": f"📋 Copy /swap {serial}", "copy_text": {"text": f"/swap {serial} "}}],
+                           [{"text": "🖼 Other topics", "callback_data": "reviewpick:0"}]])
 
     def handle(command: str, args: str) -> str:
         if command == "runstop":

@@ -131,7 +131,7 @@ def test_changed_image_snapshot_is_not_approved(db, tmp_path, monkeypatch):
         images.append({"file": f"{i}.jpg", "license": "PD", "title": str(i)})
     save_credits(directory, {"images": images, "reviewed": False})
     shown = []
-    monkeypatch.setattr(control, "review_caption", lambda *args: "Review")
+    monkeypatch.setattr(control, "review_caption", lambda *args, **kw: "Review")
     handler = control.make_command_handler(db, lambda: None, lambda: "", assets_dir=tmp_path,
                                            send_photo=lambda *args: shown.append(args) or True)
     handler("review", topic)

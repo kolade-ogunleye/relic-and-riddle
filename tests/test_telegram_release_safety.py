@@ -278,3 +278,35 @@ def test_an_edit_resends_the_review_copy_not_the_master(db, tmp_path, monkeypatc
     result = coordinator.edit_copy("review", {"title": "New title", "first_comment": "Your view?"})
     assert sent == ["review_proxy.mp4"] and "Title and first comment updated" in result
     assert db.get_run("review")["script_payload"]["first_comment"] == "Your view?"
+
+
+def test_an_edited_caption_keeps_its_credits(db, tmp_path, monkeypatch):
+    # A caption edit replaced the credit lines too; the release gate would then block Approve & Post.
+    from main import PipelineCoordinator
+    from src.credits import SHARE_ALIKE_NOTICE
+    root = ready_review(db, tmp_path)
+    (root / "review_proxy.mp4").write_bytes(b"small")
+    credits = ["🎵 Music: “Theme” by Someone (CC BY 4.0)", SHARE_ALIKE_NOTICE, "📷 Someone | File:Room.jpg | CC BY 4.0"]
+    run = db.get_run("review")
+    db.update_run("review", run["status"], script_payload={**run["script_payload"],
+                                                           "caption": "Old wording.\n\n" + "\n".join(credits)})
+    coordinator = PipelineCoordinator.__new__(PipelineCoordinator)
+    coordinator.db = db
+    coordinator.topic_engine = SimpleNamespace(get_topic_by_id=db.get_topic_by_id)
+    checked = []
+    coordinator._verify_final_copy = lambda payload, topic: checked.append(payload["caption"])
+    coordinator.telegram_bot = SimpleNamespace(_strip_buttons=lambda mid: None,
+                                               send_approval_request=lambda *a: None)
+    monkeypatch.setattr("src.release.write_release_report", lambda run: {"checks": []})
+    coordinator.edit_copy("review", {"caption": "New wording, my own."})
+    caption = db.get_run("review")["script_payload"]["caption"]
+    assert caption.startswith("New wording, my own.") and "Old wording" not in caption
+    assert all(line in caption for line in credits)
+    assert checked == [caption]  # the copy that is checked is the copy that is kept
+
+
+def test_credits_already_in_the_new_caption_are_not_doubled():
+    from src.credits import keep_attribution
+    old = "Old.\n📷 A | File:x.jpg | CC BY 4.0"
+    assert keep_attribution(old, "New.\n📷 A | File:x.jpg | CC BY 4.0").count("📷") == 1
+    assert keep_attribution("Old, no credits.", "New.") == "New."

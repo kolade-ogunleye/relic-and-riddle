@@ -231,6 +231,20 @@ _SHARE_ALIKE = re.compile(r"^cc by-sa [2-4]", re.IGNORECASE)
 SHARE_ALIKE_NOTICE = "🎬 This video is licensed CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/"
 
 
+def is_attribution_line(line: str) -> bool:
+    """A credit line the pipeline adds to public copy (image, footage, music, the share-alike notice).
+    The notice is matched exactly, not by its emoji, so model-written text starting with 🎬 is not one."""
+    return line.startswith(("📷", "🎥", "🎵")) or line.strip() == SHARE_ALIKE_NOTICE
+
+
+def keep_attribution(old: str, new: str) -> str:
+    """`new` copy with the credit lines `old` carried that `new` lacks, appended in their order: an
+    edited caption must keep the attribution its licences require (the release gate checks it)."""
+    have = {line.strip() for line in new.splitlines()}
+    missing = [line for line in old.splitlines() if is_attribution_line(line) and line.strip() not in have]
+    return new.rstrip() + ("\n\n" + "\n".join(missing) if missing else "")
+
+
 def is_share_alike(short_name: str) -> bool:
     return bool(_SHARE_ALIKE.match((short_name or "").strip()))
 

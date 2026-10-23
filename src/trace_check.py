@@ -71,8 +71,8 @@ def _is_credit_or_tag(line: str) -> bool:
     """Attribution the pipeline adds after the script is checked, and hashtags. The share-alike notice
     is matched exactly, not by its emoji: a model-written line starting with 🎬 is still checked
     (2026-10-23: the notice's "4.0" failed an edit of the title and first comment)."""
-    from .credits import SHARE_ALIKE_NOTICE
-    return line.startswith(("📷", "🎥", "🎵", "#")) or line.strip() == SHARE_ALIKE_NOTICE
+    from .credits import is_attribution_line
+    return line.startswith("#") or is_attribution_line(line)
 
 
 def surfaces(payload: Dict[str, Any]) -> List[Tuple[str, str]]:

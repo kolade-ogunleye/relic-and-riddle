@@ -875,6 +875,10 @@ class PipelineCoordinator:
             return f"Titles are at most 60 characters (this one is {len(changes['title'])})."
         payload = dict(run["script_payload"])
         old = {f: payload.get(f, "") for f in changes}
+        from src.credits import keep_attribution
+        for f in ("caption", "carousel_caption"):  # the credits stay, whatever the new wording
+            if f in changes:
+                changes[f] = keep_attribution(old[f], changes[f])
         payload.update(changes)
         names = " and ".join(f.replace("_", " ") for f in changes)
         topic = self.topic_engine.get_topic_by_id(run["topic_id"]) or {"id": run["topic_id"]}

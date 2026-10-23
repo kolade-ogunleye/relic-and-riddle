@@ -1017,6 +1017,11 @@ class PipelineCoordinator:
         # A real run never reuses an unlicensed (test) voiceover. Older runs without voice.json
         # predate this record, so they are re-voiced too.
         voice_inputs = self.voice_inputs(payload["narration_script"], dry_run)
+        # A narration a little over the limit is spoken slightly faster (the script stage accepted it so).
+        from src.script_engine import fit_speed
+        speech_speed = fit_speed(payload["narration_script"]) or 1.0
+        if speech_speed != 1.0:  # a voiceover made at another speed is not reused (normal ones keep their inputs)
+            voice_inputs["speed"] = speech_speed
         licensed_req, allow_paid = voice_inputs["licensed_only"], voice_inputs["allow_paid"]
         t0 = time.perf_counter()
         reusable = checkpoints.reusable("voice", voice_inputs) and (dry_run or not config.VOICE_REQUIRE_LICENSED or saved_voice.get("licensed"))
@@ -1025,11 +1030,11 @@ class PipelineCoordinator:
             log.info("Resuming with the existing voiceover.")
         else:
             words = self.audio_engine.generate_narration(payload["narration_script"], vo_path, licensed_only=licensed_req,
-                                                         allow_paid=allow_paid)
+                                                         allow_paid=allow_paid, speed=speech_speed)
             from src.audio_engine import calibrate_pace
             calibrate_pace(self.audio_engine.last_provider,
                            self.audio_engine.eleven_voice if self.audio_engine.last_provider == "elevenlabs" else self.audio_engine.voice,
-                           payload["narration_script"], self.audio_engine.get_duration(vo_path))
+                           payload["narration_script"], self.audio_engine.get_duration(vo_path), speed=speech_speed)
             words_path.write_text(json.dumps(words), encoding="utf-8")
             voice_path.write_text(json.dumps({"provider": self.audio_engine.last_provider,
                                               "licensed": self.audio_engine.last_licensed}), encoding="utf-8")
@@ -1043,7 +1048,9 @@ class PipelineCoordinator:
         v_prov = (saved_voice.get("provider") if reusable else self.audio_engine.last_provider) or "unknown"
         v_lic = saved_voice.get("licensed") if reusable else self.audio_engine.last_licensed
         lic_badge = "🟢 Commercially Licensed" if v_lic else "🟡 Unlicensed (Review / Test Only)"
-        payload["voice_note"] = f"🎙️ Voice: {v_prov.title()} ({lic_badge})"
+        payload["voice_note"] = (f"🎙️ Voice: {v_prov.title()} ({lic_badge})"
+                                 + (f", read {round((speech_speed - 1) * 100)}% faster to fit the time limit"
+                                    if speech_speed > 1 else ""))
         vo_dur = self.audio_engine.get_duration(vo_path)
         timer.record("voiceover", time.perf_counter() - t0)
         log.info("Voiceover: %.2fs, %d words timed.", vo_dur, len(words))
@@ -1131,6 +1138,11 @@ class PipelineCoordinator:
                                 initial_payload=None, initial_notes="") -> Dict[str, Any]:
         tid = topic["id"]
         revision_notes, payload = initial_notes, initial_payload
+
+        def show(text: str) -> None:  # step 1 is long; the card says which draft it is on
+            if getattr(self, "progress_msg_id", None):
+                self.telegram_bot.update_progress_card(self.progress_msg_id, 1, 5, topic["title"], run_id, text)
+        self.script_engine.progress = show
         for revision in range(MAX_FACT_REVISIONS + 1):
             self._check_cancel(run_id)
             payload = self.script_engine.generate_script(topic, revision_notes=revision_notes, previous=payload)

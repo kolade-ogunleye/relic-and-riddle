@@ -107,7 +107,15 @@ def normalize_speech_text(text: str) -> str:
     return normalized
 
 
-def measure_spoken_seconds(text: str) -> Optional[float]:
+def rate_with_speed(base: str, speed: float) -> str:
+    """An edge-tts/Azure prosody rate ("-2%") made `speed` times faster ("+4%" for 1.06)."""
+    import re
+    m = re.fullmatch(r"\s*([+-]?\d+(?:\.\d+)?)%\s*", base or "0%")
+    pct = (1 + (float(m.group(1)) if m else 0.0) / 100) * speed - 1
+    return f"{round(pct * 100):+d}%"
+
+
+def measure_spoken_seconds(text: str, speed: float = 1.0) -> Optional[float]:
     """How long the narration runs when spoken: one edge-tts pass of exactly what the voiceover will
     say (normalized text, narrator voice, rate and pitch), measured like the real voiceover. The
     voice is deterministic, so this is a measurement, not an estimate. None if it can't be made."""
@@ -115,7 +123,8 @@ def measure_spoken_seconds(text: str) -> Optional[float]:
 
     tmp = Path(tempfile.mkdtemp(prefix="spoken_len_")) / "probe.mp3"
     try:
-        c = edge_tts.Communicate(normalize_speech_text(text), NARRATOR_VOICE, rate=NARRATOR_RATE, pitch=NARRATOR_PITCH)
+        c = edge_tts.Communicate(normalize_speech_text(text), NARRATOR_VOICE, rate=rate_with_speed(NARRATOR_RATE, speed),
+                                 pitch=NARRATOR_PITCH)
         asyncio.run(asyncio.wait_for(c.save(str(tmp)), timeout=60))  # a stalled service must not hang the stage
         return AudioEngine.get_duration(tmp)
     except Exception as e:  # offline or the service is down: the post-voiceover check still guards
@@ -156,13 +165,14 @@ def record_pace(key: str, measured: float, actual: float) -> None:
     PACE_FILE.write_text(json.dumps(data, indent=1), encoding="utf-8")
 
 
-def calibrate_pace(provider: str, voice: str, text: str, actual_seconds: float) -> None:
-    """After a real voiceover: record its length against the free measurement of the same text."""
+def calibrate_pace(provider: str, voice: str, text: str, actual_seconds: float, speed: float = 1.0) -> None:
+    """After a real voiceover: record its length against the free measurement of the same text, at the
+    same speed (a voiceover read faster would otherwise teach a false, faster pace)."""
     if provider == "edge-tts":
         return  # the measurement itself
     key = voice_key("elevenlabs", voice, ELEVENLABS_MODEL) if provider == "elevenlabs" else voice_key(provider, voice)
     try:
-        measured = measure_spoken_seconds(text)
+        measured = measure_spoken_seconds(text, speed=speed)
         if measured:
             record_pace(key, measured, actual_seconds)
     except Exception as e:  # calibration must never fail a run
@@ -261,6 +271,7 @@ class AudioEngine:
         self.voice = voice
         self.last_sfx_sources: List[Dict[str, Any]] = []
         self.rate = rate
+        self.speed = 1.0  # set per narration (generate_narration): a long one is spoken slightly faster
         self.pitch = pitch
         self.eleven_key = eleven_key if eleven_key is not None else ELEVENLABS_API_KEY
         self.eleven_voice = eleven_voice if eleven_voice is not None else ELEVENLABS_VOICE_ID
@@ -268,9 +279,11 @@ class AudioEngine:
         self.azure_region = azure_region if azure_region is not None else AZURE_SPEECH_REGION
 
     @staticmethod
-    def eleven_payload(text: str, model: str) -> Dict[str, Any]:
+    def eleven_payload(text: str, model: str, speed: float = 1.0) -> Dict[str, Any]:
         """Request body for one model: style and speaker boost exist only on the v2 models."""
-        settings: Dict[str, Any] = {"stability": 0.50, "similarity_boost": 0.85, "speed": ELEVENLABS_SPEED}
+        # ElevenLabs accepts speed 0.7-1.2.
+        settings: Dict[str, Any] = {"stability": 0.50, "similarity_boost": 0.85,
+                                    "speed": round(min(1.2, ELEVENLABS_SPEED * speed), 3)}
         if model.startswith(("eleven_multilingual_v2", "eleven_monolingual")):
             settings.update(style=0.35, use_speaker_boost=True)
         return {"text": text, "model_id": model, "voice_settings": settings}
@@ -278,13 +291,13 @@ class AudioEngine:
     def _generate_elevenlabs(self, text: str, output_path: Path) -> Words:
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{self.eleven_voice}/with-timestamps"
         resp = requests.post(url, headers={"xi-api-key": self.eleven_key},
-                             json=self.eleven_payload(text, ELEVENLABS_MODEL), timeout=120)
+                             json=self.eleven_payload(text, ELEVENLABS_MODEL, self.speed), timeout=120)
         if resp.status_code in (400, 422) and ELEVENLABS_FALLBACK_MODEL and ELEVENLABS_FALLBACK_MODEL != ELEVENLABS_MODEL:
             # The model may not support timestamped output (or these settings); a rejected request is not billed.
             log.warning("ElevenLabs %s rejected the request (HTTP %d); using %s.", ELEVENLABS_MODEL,
                         resp.status_code, ELEVENLABS_FALLBACK_MODEL)
             resp = requests.post(url, headers={"xi-api-key": self.eleven_key},
-                                 json=self.eleven_payload(text, ELEVENLABS_FALLBACK_MODEL), timeout=120)
+                                 json=self.eleven_payload(text, ELEVENLABS_FALLBACK_MODEL, self.speed), timeout=120)
         resp.raise_for_status()
         data = resp.json()
 
@@ -319,7 +332,8 @@ class AudioEngine:
                         output_path.unlink()
                     except Exception:
                         pass
-                c = edge_tts.Communicate(text, self.voice, rate=self.rate, pitch=self.pitch, boundary="WordBoundary")
+                c = edge_tts.Communicate(text, self.voice, rate=rate_with_speed(self.rate, self.speed), pitch=self.pitch,
+                                         boundary="WordBoundary")
                 words: Words = []
                 with open(output_path, "wb") as f:
                     async for chunk in c.stream():
@@ -359,7 +373,7 @@ class AudioEngine:
         synth.synthesis_word_boundary.connect(on_boundary)
         escaped_text = escape_ssml_preserving_tags(text)
         ssml = (f'<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">'
-                f'<voice name="{self.voice}"><prosody rate="{self.rate}" pitch="{self.pitch}">'
+                f'<voice name="{self.voice}"><prosody rate="{rate_with_speed(self.rate, self.speed)}" pitch="{self.pitch}">'
                 f"{escaped_text}</prosody></voice></speak>")
         result = synth.speak_ssml_async(ssml).get()
         if result.reason != speechsdk.ResultReason.SynthesizingAudioCompleted:
@@ -381,9 +395,11 @@ class AudioEngine:
         return bool(quota and quota.get("tier") and quota["tier"] != "free")
 
     def generate_narration(self, text: str, output_path: Path, licensed_only: bool = False,
-                           allow_paid: bool = True) -> Words:
+                           allow_paid: bool = True, speed: float = 1.0) -> Words:
         """licensed_only (real runs): skip unlicensed voices; raise NoLicensedVoice if none is left.
-        allow_paid=False (dry runs): don't spend ElevenLabs credits."""
+        allow_paid=False (dry runs): don't spend ElevenLabs credits. speed: spoken this much faster
+        (script_engine.fit_speed: a narration slightly over the limit)."""
+        self.speed = speed
         orig_text = text
         text = normalize_speech_text(text)
         self.fallback_reason = ""

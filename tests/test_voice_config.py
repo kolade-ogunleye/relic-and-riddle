@@ -50,16 +50,16 @@ def test_measured_pace_of_the_real_voice_scales_the_length_check(monkeypatch, cu
     from src.models import ScriptPackage
     key = audio_engine.voice_key("elevenlabs", "v", "eleven_v4")
     monkeypatch.setattr(audio_engine, "production_voice_key", lambda: key)
-    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text: 48.0)
+    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: 48.0 / speed)
     pkg = ScriptPackage.model_validate(curated_payload)
     assert script_engine.spoken_length_problems(pkg) == []  # 48 s, uncalibrated
-    for actual in (52.8, 52.8, 53.0):  # this voice reads ~10% slower than the measurement
+    for actual in (57.6, 57.6, 57.8):  # this voice reads ~20% slower than the measurement
         audio_engine.record_pace(key, 48.0, actual)
-    assert "rewrite the narration in at most" in " ".join(script_engine.spoken_length_problems(pkg))
+    assert "rewrite the narration in " in " ".join(script_engine.spoken_length_problems(pkg))
 
 
 def test_calibration_records_real_voices_only(monkeypatch):
-    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text: 40.0)
+    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: 40.0)
     audio_engine.calibrate_pace("edge-tts", "x", "text", 44.0)
     assert not audio_engine.PACE_FILE.exists()
     audio_engine.calibrate_pace("azure", "en-US-BrianMultilingualNeural", "text", 44.0)

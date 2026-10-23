@@ -26,7 +26,7 @@ from pydantic import BaseModel, ValidationError
 from .config import (CURATED_SCRIPTS_DIR, HARD_DURATION_CEILING, SECOND_CHECK_ENABLED, TARGET_DURATION_MAX,
                      TARGET_DURATION_MIN, TARGET_WORD_COUNT_MIN, TARGET_WORD_COUNT_MAX,
                      WORD_COUNT_CEILING, WORD_COUNT_FLOOR)
-from . import audio_engine
+from . import audio_engine, config
 from .fact_checker import ClaimFactChecker
 from . import free_llm
 from .llm import LLMError, claude_available, format_sources, research, structured_call, task as llm_task
@@ -203,10 +203,41 @@ def find_banned_tropes(text: str) -> List[str]:
 _MEASURE_MARGIN_SEC = 0.5
 
 
+def _short_reason(problems: List[str]) -> str:
+    """A few words for the progress card on why a draft was rejected."""
+    text = " ".join(problems)
+    if "when spoken (limit" in text:
+        return "too long when spoken"
+    if "when spoken (minimum" in text or re.search(r"Narration is \d+ words; must be", text):
+        return "wrong length"
+    return problems[0][:60] if problems else "checks"
+
+
+def fit_speed(text: str, seconds: Optional[float] = None) -> Optional[float]:
+    """How much faster the narration must be spoken to fit the time limit: 1.0 when it fits as written, up
+    to SPEECH_SPEEDUP_MAX when a faster read is measured to fit, None when even that runs long. Each rewrite
+    was a full model call that overshot both ways (production 2026-10-23: 109, 73, 108 words); a few
+    percent faster is not noticed. 1.0 when it can't be measured (the post-voiceover check still guards)."""
+    pace = audio_engine.pace_ratio(audio_engine.production_voice_key())  # the real voice's pace
+    if seconds is None:
+        measured = audio_engine.measure_spoken_seconds(text)
+        if measured is None:
+            return 1.0
+        seconds = measured * pace
+    longest = HARD_DURATION_CEILING - _MEASURE_MARGIN_SEC
+    if seconds <= longest:
+        return 1.0
+    speed = math.ceil(seconds / longest * 100 + 1) / 100  # one point of margin
+    if speed > config.SPEECH_SPEEDUP_MAX:
+        return None
+    faster = audio_engine.measure_spoken_seconds(text, speed=speed)
+    return speed if faster is not None and faster * pace <= longest else None
+
+
 def spoken_length_problems(pkg: ScriptPackage) -> List[str]:
     """Measures how long the narration will run when spoken (the narrator voice is deterministic) and
-    says how to fix it if the voiceover would be too long or short. Empty when fine or unmeasurable
-    (offline); the check after the real voiceover still guards the run."""
+    says how to fix it if the voiceover would be too long or short. Empty when fine, when a slightly faster
+    read fits (fit_speed), or when unmeasurable (offline); the check after the real voiceover still guards."""
     seconds = audio_engine.measure_spoken_seconds(pkg.narration_script)
     if seconds is None:
         return []
@@ -214,14 +245,18 @@ def spoken_length_problems(pkg: ScriptPackage) -> List[str]:
     words = len(pkg.narration_script.split()) or 1
     per_word = seconds / words
     longest = HARD_DURATION_CEILING - _MEASURE_MARGIN_SEC
+    if seconds > longest and fit_speed(pkg.narration_script, seconds):
+        return []  # spoken slightly faster (the voiceover stage applies the same speed)
     if seconds > longest:
         # A word count is followed far better than seconds: name this draft's count and the one to reach,
         # aiming inside the comfortable length (not just under the limit), never below the word minimum.
         # Never clamped up to the prompt's word range: for a slow voice that range itself is too long.
         target = max(WORD_COUNT_FLOOR, min(words - math.ceil((seconds - longest) / per_word) - 2,
                                            int(TARGET_DURATION_MAX / per_word)))
+        # A window, not a ceiling: told "at most 95", a writer cut 109 words to 73 (production, 2026-10-23).
+        low = max(WORD_COUNT_FLOOR, target - 7)
         return [f"Narration runs {seconds:.1f}s when spoken (limit {longest:g}s). This draft is {words} words; "
-                f"rewrite the narration in at most {target} words (names and numbers such as dates take "
+                f"rewrite the narration in {low}-{target} words (names and numbers such as dates take "
                 f"longer to say), keeping the closing sentence."]
     if seconds < TARGET_DURATION_MIN:
         return [f"Narration runs {seconds:.1f}s when spoken (minimum {TARGET_DURATION_MIN:g}s); add about "
@@ -269,8 +304,7 @@ def validate_structure(pkg: ScriptPackage) -> List[str]:
     # Sanity bounds; the precise length is the measured spoken one (spoken_length_problems), so a draft
     # shortened to fit a slow voice is not then rejected for having too few words.
     if not WORD_COUNT_FLOOR <= len(words) <= WORD_COUNT_CEILING:
-        problems.append(f"Narration is {len(words)} words; must be {WORD_COUNT_FLOOR}-{WORD_COUNT_CEILING} "
-                        f"(aim for {TARGET_WORD_COUNT_MIN}-{TARGET_WORD_COUNT_MAX}).")
+        problems.append(f"Narration is {len(words)} words; must be {WORD_COUNT_FLOOR}-{WORD_COUNT_CEILING}.")
     if words:
         last = words[-1].strip(".,!?:;\"'”’").lower()
         if last in BANNED_ENDINGS:
@@ -427,6 +461,14 @@ class ScriptEngine:
         self._research_cache: Dict[str, Tuple[str, list]] = {}  # topic_id -> (notes, retrieved sources)
         self._sheets: Dict[str, Optional[Dict[str, Any]]] = {}    # topic_id -> verified fact sheet
         self._starved: Dict[str, fact_sheet.FactStarvedTopicError] = {}  # topics research couldn't sustain
+        self.progress: Optional[Callable[[str], None]] = None  # the run's progress card, told each draft
+
+    def _report(self, text: str) -> None:
+        if self.progress:
+            try:
+                self.progress(text)
+            except Exception as e:  # the card is a courtesy: it never stops the writing
+                log.debug("Could not report script progress: %s", e)
 
     @llm_task("script_writing")
     def generate_script(self, topic: Dict[str, Any], max_attempts: int = 3, revision_notes: str = "",
@@ -468,7 +510,9 @@ class ScriptEngine:
                     + revision_notes + "\n</fact_check_findings>"
                 )
             feedback = base_feedback
+            window = None  # the word window a too-long draft set; later drafts are held to it
             for attempt in range(1, max_attempts + 1):
+                self._report(f"Writing draft {attempt} of {max_attempts}")
                 try:
                     pkg = self._generate_with_claude(topic, feedback)
                 except LLMError as e:
@@ -482,7 +526,15 @@ class ScriptEngine:
                 log.warning("Attempt %d failed structural checks: %s", attempt, problems)
                 last_problems = problems
                 improve.note_problems(problems, "structure")
-                feedback = base_feedback + "\n\nA previous draft was rejected for: " + " ".join(problems) + " Fix these."
+                found = re.search(r"in (\d+)-(\d+) words", " ".join(problems))
+                window = (int(found.group(1)), int(found.group(2))) if found else window
+                # A too-short draft after a too-long one is reminded of the window, so it does not swing back.
+                keep = (f" Keep the narration between {window[0]} and {window[1]} words: longer runs past the "
+                        "time limit when spoken." if window and not found else "")
+                feedback = (base_feedback + "\n\nA previous draft was rejected for: " + " ".join(problems) + keep
+                            + " Fix these.")
+                self._report(f"Draft {attempt} of {max_attempts} rejected ({_short_reason(problems)})"
+                             + ("; rewriting" if attempt < max_attempts else ""))
             log.warning("Claude did not produce a usable script; trying curated script.")
 
         curated = self._load_curated(topic["id"])

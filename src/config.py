@@ -165,6 +165,9 @@ ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "pNInz6obpgDQGcFmaJgB")
 ELEVENLABS_MODEL = (os.getenv("ELEVENLABS_MODEL") or "eleven_v4").strip()
 ELEVENLABS_FALLBACK_MODEL = (os.getenv("ELEVENLABS_FALLBACK_MODEL") or "eleven_multilingual_v2").strip()
 ELEVENLABS_SPEED = float(os.getenv("ELEVENLABS_SPEED") or 1.0)
+# A narration a little over the time limit is spoken up to this much faster instead of being rewritten
+# (each rewrite is a full model call and can overshoot both ways). 1.08 = at most 8% faster.
+SPEECH_SPEEDUP_MAX = max(1.0, min(1.15, float(os.getenv("SPEECH_SPEEDUP_MAX") or 1.08)))
 # Dry runs voice with the free licensed voice (Azure F0) so tests don't spend ElevenLabs credits.
 ELEVENLABS_IN_DRY_RUNS = os.getenv("ELEVENLABS_IN_DRY_RUNS", "false").lower() in ("true", "1", "yes")
 

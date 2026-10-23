@@ -76,7 +76,7 @@ def no_real_services(monkeypatch):
     monkeypatch.setattr(socket, "create_connection", blocked)
     # Scripts are measured by speaking them (edge-tts); offline that is "unmeasurable". Tests of the
     # measurement itself use the real_measure fixture.
-    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text: None)
+    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: None)
 
 
 _REAL_MEASURE = audio_engine.measure_spoken_seconds

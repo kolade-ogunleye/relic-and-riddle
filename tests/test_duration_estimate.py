@@ -11,32 +11,40 @@ def _pkg(curated_payload):
     return ScriptPackage.model_validate(curated_payload)
 
 
+def test_a_narration_slightly_long_is_read_faster_not_rewritten(monkeypatch, curated_payload):
+    from src import audio_engine, script_engine
+    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: 53.6 / speed)
+    assert script_engine.spoken_length_problems(_pkg(curated_payload)) == []  # 4% over: read faster
+    assert script_engine.fit_speed(_pkg(curated_payload).narration_script) == 1.06
+
+
 def test_script_that_would_run_long_is_sent_back_with_a_cut(monkeypatch, curated_payload):
     from src import audio_engine, script_engine
-    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text: 53.6)
+    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: 60.0 / speed)
     problems = " ".join(script_engine.spoken_length_problems(_pkg(curated_payload)))
-    assert "53.6" in problems and "rewrite the narration in at most" in problems
+    assert "60.0" in problems and "rewrite the narration in " in problems and "-" in problems.split("in ")[-1]
+    assert script_engine.fit_speed(_pkg(curated_payload).narration_script) is None  # 16% over: too much
 
 
 def test_script_that_would_run_short_is_sent_back_with_an_extension(monkeypatch, curated_payload):
     from src import audio_engine, script_engine
-    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text: 39.0)
+    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: 39.0)
     assert "add about" in " ".join(script_engine.spoken_length_problems(_pkg(curated_payload)))
 
 
 def test_in_range_or_unmeasurable_script_passes(monkeypatch, curated_payload):
     from src import audio_engine, script_engine
-    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text: 45.2)
+    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: 45.2)
     assert script_engine.spoken_length_problems(_pkg(curated_payload)) == []
     # Offline: nothing to measure; the check after the real voiceover still guards the run.
-    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text: None)
+    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: None)
     assert script_engine.spoken_length_problems(_pkg(curated_payload)) == []
 
 
 def test_verify_claims_rejects_a_script_that_would_run_long(monkeypatch, curated_payload):
     from src import audio_engine
     from src.script_engine import ScriptEngine
-    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text: 55.0)
+    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: 55.0)
     ok, _, msg = ScriptEngine().verify_claims(dict(curated_payload), allow_unreviewed_curated=True)
     assert not ok and "spoken" in msg
 

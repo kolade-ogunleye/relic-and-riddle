@@ -1412,6 +1412,22 @@ class PipelineCoordinator:
                 break
             payload.setdefault("self_healing_actions", []).append({"attempt": attempt, "fixing": feedback.splitlines()})
             log.info("Repairing before review; re-planning scenes once:\n%s", feedback)
+            # Beats whose picture doesn't show what is said get their own Commons search when the first
+            # pictures did not cover them (same licence, relevance and privacy steps as the first search).
+            gaps = beat_images.mismatched_beats(qa)
+            if gaps:
+                gap_paths, gap_credits = beat_images.source_gaps(
+                    beats, gaps, topic, run_dir / "beat_images", seen={c.get("title") for c in beat_credits},
+                    notes=beat_images.picture_issues(qa))
+                for cred, safe in zip(gap_credits, privacy.anonymize_all([ensure_resolution(p) for p in gap_paths])):
+                    cred["upscaled"] = str(safe)
+                if gap_credits:
+                    beat_credits += gap_credits
+                    candidates += [Path(c["upscaled"]) for c in gap_credits]
+                    found_for = sorted({c["beat"] for c in gap_credits})
+                    feedback += ("\nNew pictures were found for beat(s) " + ", ".join(map(str, found_for))
+                                 + ": use them where they show what is said.")
+                    payload["self_healing_actions"][-1]["new_pictures"] = [c.get("title") for c in gap_credits]
         t0 = time.perf_counter()
         self._check_cancel(run_id)
         review_mp4 = self.video_composer.make_review_proxy(master_mp4, run_dir / "review_proxy.mp4")

@@ -63,12 +63,59 @@ def source(beats: List[Dict[str, Any]], topic: Dict[str, Any], work_dir: Path, p
         except LLMError as e:
             log.warning("Beat image planning failed: %s", e)
             return [], []
+    paths, credits = _download(plan.items[:MAX_BEATS], topic, work_dir, set(), "beat")
+    log.info("Beat images: %d candidates for %d beats.", len(paths), len(plan.items))
+    return paths, credits
+
+
+GAP_SYSTEM = """You plan picture research for a short history documentary. The video check found that these beats' pictures do not show what the narration says. For each beat, write one precise Wikimedia Commons search for what that sentence is about, plus 1-4 lowercase keywords that a relevant file title would contain. Stay on the documentary's subject: the thing named, or the same kind of thing from the same civilisation or period (for "Roman aqueducts", a Roman aqueduct; for "modern concrete cracking", a photograph of cracked concrete), never a look-alike from another subject. Prefer a specific named example (a named aqueduct, harbour, specimen or document) over a generic scene."""
+
+
+@llm_task("beat_gap_queries")
+def plan_gap_queries(beats: List[Dict[str, Any]], gap_beats: List[int], topic: Dict[str, Any], notes: str = "") -> BeatQueries:
+    lines = "\n".join(f"Beat {i}: {beats[i - 1]['text']}" for i in gap_beats if 1 <= i <= len(beats))
+    loc = topic.get("location", {})
+    prompt = (f"Topic: {topic.get('title', '')} ({loc.get('name', '')}, {loc.get('country', '')})\n{lines}"
+              + (f"\n\nWhat the video check found:\n{notes}" if notes else "") + "\n\nOne search per beat listed.")
+    from . import free_llm
+    if free_llm.claude_engine():
+        return structured_call(GAP_SYSTEM, prompt, BeatQueries, effort="low", max_tokens=3000,
+                               models=config.LIGHT_TASK_MODELS)
+    return free_llm.structured(GAP_SYSTEM, prompt, BeatQueries, role="writer", task_class="light")
+
+
+def source_gaps(beats: List[Dict[str, Any]], gap_beats: List[int], topic: Dict[str, Any], work_dir: Path,
+                seen: set, notes: str = "") -> Tuple[List[Path], List[Dict[str, Any]]]:
+    """Pictures for the beats the video check found mismatched, when the first pictures did not cover them:
+    a search for what each of those sentences says, from Wikimedia Commons, through the same licence,
+    title-keyword, relevance and visual filters as the first search. Never raises."""
+    if not gap_beats or not config.BEAT_IMAGES_ENABLED:
+        return [], []
+    from . import free_llm
+    if not free_llm.ready():
+        return [], []
+    try:
+        plan = plan_gap_queries(beats, gap_beats, topic, notes)
+    except LLMError as e:
+        log.warning("Gap picture planning failed: %s", e)
+        return [], []
+    wanted = set(gap_beats)
+    # A repair comes at the end of a long run: its downloads may wait out a rate limit (90 s, not 30).
+    paths, credits = _download([i for i in plan.items if i.beat in wanted], topic, work_dir, seen, "gap", wait=90)
+    log.info("Gap pictures: %d candidates for beats %s.", len(paths), ", ".join(map(str, sorted(wanted))))
+    return paths, credits
+
+
+def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: str,
+              wait: int = 30) -> Tuple[List[Path], List[Dict[str, Any]]]:
+    """Downloads the best openly licensed, on-subject Commons results for each planned search; records them
+    in the folder's credits.json (added to, so a later search keeps the earlier records)."""
     work_dir.mkdir(parents=True, exist_ok=True)
     loc = topic.get("location") or {}
     place = ({"lat": loc["latitude"], "lon": loc["longitude"]}
              if loc.get("latitude") and loc.get("longitude") else None)
-    paths, credits, seen = [], [], set()
-    for item in plan.items[:MAX_BEATS]:
+    paths, credits = [], []
+    for item in items:
         try:
             found = 0
             # Short wait cap: a rate-limited Commons shouldn't stall a production run. Results are
@@ -81,8 +128,8 @@ def source(beats: List[Dict[str, Any]], topic: Dict[str, Any], work_dir: Path, p
                     continue
                 if not verify_visual_relevance(cand["title"], item.query):
                     continue
-                dest = work_dir / f"beat{item.beat:02d}_{found + 1}.jpg"
-                commons.download_jpeg(cand["download_url"], dest)
+                dest = work_dir / f"{prefix}{item.beat:02d}_{found + 1}.jpg"
+                commons.download_jpeg(cand["download_url"], dest, max_wait=wait)
                 seen.add(cand["title"])
                 cand.update(file=str(dest), beat=item.beat)
                 paths.append(dest)
@@ -94,10 +141,16 @@ def source(beats: List[Dict[str, Any]], topic: Dict[str, Any], work_dir: Path, p
             log.warning("Beat %d image search failed (%s); continuing.", item.beat, e)
     if credits:  # the same record a topic folder keeps, so the scene planner can caption these too
         import json
-        (work_dir / "credits.json").write_text(json.dumps(
-            {"reviewed": False, "images": [{**c, "file": Path(c["file"]).name} for c in credits]},
+        record = work_dir / "credits.json"
+        try:
+            earlier = json.loads(record.read_text(encoding="utf-8")).get("images", []) if record.exists() else []
+        except (OSError, ValueError):
+            earlier = []
+        record.write_text(json.dumps(
+            {"reviewed": False, "images": earlier + [{**c, "file": Path(c["file"]).name} for c in credits]},
             indent=2, ensure_ascii=False), encoding="utf-8")
-    log.info("Beat images: %d candidates for %d beats.", len(paths), len(plan.items))
+        from .scene_planner import _folder_credits
+        _folder_credits.cache_clear()  # the planner reads captions through a cache: show it the new ones
     return paths, credits
 
 
@@ -117,13 +170,38 @@ def credit_caption(caption: str, topic_credits: Dict[str, Any], extra: List[Dict
     return f"{body}\n\n{new}" if new else body
 
 
-PICTURE_WORDS = ("image", "picture", "photo", "shows", "depict", "match", "contradict", "unrelated", "irrelevant")
+# "visual"/"display": Roman concrete's beat 9 ("the visual displays the interior dome") matched none of the
+# older words, so the mismatch was never repaired.
+PICTURE_WORDS = ("image", "picture", "photo", "shows", "depict", "match", "contradict", "unrelated", "irrelevant",
+                 "visual", "display", "footage", "scene")
+
+
+# A minor finding counts only when it says the picture contradicts what is said (Roman concrete's beat 8:
+# "...the Pantheon while the narration describes modern concrete cracking"), not a quality note ("soft").
+MISMATCH_WORDS = ("narration", "voiceover", "contradict", "unrelated", "irrelevant", "instead of", "does not show")
+
+
+def _picture_findings(report) -> list:
+    """QA findings about what a beat shows (not its captions or text): major/critical ones, and minor ones
+    that report a mismatch with the narration."""
+    if report is None:
+        return []
+    out = []
+    for i in report.issues:
+        text = i.issue.lower()
+        if i.beat <= 0 or "caption" in text or not any(w in text for w in PICTURE_WORDS):
+            continue
+        if i.severity in ("major", "critical") or any(w in text for w in MISMATCH_WORDS):
+            out.append(i)
+    return out
 
 
 def picture_issues(report) -> str:
-    """Major/critical QA findings about what a beat shows (not captions), as planner feedback."""
-    if report is None:
-        return ""
-    found = [i for i in report.issues
-             if i.beat > 0 and i.severity in ("major", "critical") and any(w in i.issue.lower() for w in PICTURE_WORDS)]
-    return "\n".join(f"Beat {i.beat}: {i.issue}" for i in found)
+    """QA findings about what a beat shows, as planner feedback. Minor ones count too: a picture that does
+    not show what is said is a mismatch whatever its rating (beat 8 of Roman concrete was "minor")."""
+    return "\n".join(f"Beat {i.beat}: {i.issue}" for i in _picture_findings(report))
+
+
+def mismatched_beats(report) -> List[int]:
+    """The beats whose picture does not show what is said, for a targeted picture search."""
+    return sorted({i.beat for i in _picture_findings(report)})

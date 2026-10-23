@@ -18,6 +18,7 @@ from typing import Iterator, List, Optional
 import requests
 from PIL import Image
 
+from . import config  # noqa: F401  (loads .env first: COMMONS_CONTACT below came out empty when commons was imported first)
 from .credits import license_allowed, normalize
 
 log = logging.getLogger(__name__)

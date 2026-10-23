@@ -25,7 +25,7 @@ def test_source_downloads_up_to_two_per_beat_and_skips_duplicates(monkeypatch, t
     pools = {"Derinkuyu stone door": [_cand("A"), _cand("B"), _cand("C")], "Derinkuyu": [_cand("A"), _cand("D")]}
     monkeypatch.setattr(beat_images.commons, "candidates", lambda pages, kw, sa: iter(pools[pages[0]]))
     monkeypatch.setattr(beat_images.commons, "download_jpeg",
-                        lambda url, dest: Image.new("RGB", (10, 10)).save(dest, "JPEG"))
+                        lambda url, dest, max_wait=30: Image.new("RGB", (10, 10)).save(dest, "JPEG"))
 
     paths, credits = beat_images.source(BEATS, TOPIC, tmp_path)
 
@@ -74,3 +74,27 @@ def test_picture_issues_only_reports_serious_picture_problems():
     ])
     assert beat_images.picture_issues(report) == "Beat 2: The image shows a modern mall, not a stone door"
     assert beat_images.picture_issues(None) == ""
+
+
+def test_the_roman_concrete_mismatches_are_found_and_searched_for(tmp_path, monkeypatch):
+    # Production 2026-10-23: beat 9 ("the visual displays the interior dome") matched no picture word and
+    # beat 8 was "minor", so neither was repaired; and a repair could only re-choose from the same photos.
+    from src import config
+    from src.models import BeatQueries
+    report = QAReport(summary="", issues=[
+        QAIssue(beat=8, severity="minor", issue="The visual shows the intact interior of the Roman Pantheon while the narration describes modern concrete cracking."),
+        QAIssue(beat=9, severity="major", issue="The narration explicitly refers to Roman aqueducts and seawalls, but the visual displays the interior dome."),
+        QAIssue(beat=3, severity="minor", issue="Image slightly soft"),
+    ])
+    assert beat_images.mismatched_beats(report) == [8, 9]
+    beats = [{"text": f"beat {i} text"} for i in range(1, 12)]
+    monkeypatch.setattr(config, "BEAT_IMAGES_ENABLED", True)
+    monkeypatch.setattr("src.free_llm.ready", lambda: True)
+    monkeypatch.setattr(beat_images, "plan_gap_queries", lambda b, g, t, n="": BeatQueries.model_validate(
+        {"items": [{"beat": 9, "query": "Roman aqueduct", "keywords": ["aqueduct"]},
+                   {"beat": 4, "query": "not asked", "keywords": ["x"]}]}))
+    asked = []
+    monkeypatch.setattr(beat_images, "_download", lambda items, topic, work_dir, seen, prefix, wait=30: asked.append(
+        ([i.beat for i in items], prefix)) or ([], []))
+    beat_images.source_gaps(beats, [8, 9], {"title": "T"}, tmp_path, set())
+    assert asked == [([9], "gap")]  # only the flagged beats, filed as gap pictures

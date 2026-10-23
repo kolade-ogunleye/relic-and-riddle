@@ -2046,7 +2046,8 @@ def main(argv=None) -> int:
         def production_run(manual: bool = False, content_format: str = "reel"):
             if not manual and is_paused(coordinator.db):
                 log.info("Scheduled run skipped: paused.")
-                bot.notify("⏸ Scheduled run skipped (paused). Send /resume to re-enable.")
+                bot.notify("⏸ Scheduled run skipped (paused). Send /resume to re-enable.",
+                           transient=True, ttl_minutes=23 * 60 + 50)
                 return
             if not run_lock.acquire(blocking=False):
                 log.warning("A run is already in progress; skipping.")
@@ -2076,7 +2077,10 @@ def main(argv=None) -> int:
             return when.strftime("%a %d %b %H:%M %Z") if when else None
 
         def heartbeat():
-            bot.notify(heartbeat_text(coordinator.db, next_run(), coordinator.audio_engine.voice_quota()), silent=True)
+            # One a day, gone before the next one (it stacked up with no way back to the panel otherwise).
+            bot.notify(heartbeat_text(coordinator.db, next_run(), coordinator.audio_engine.voice_quota()),
+                       buttons=[{"text": "← Dashboard", "callback_data": "cdash:"}], silent=True,
+                       transient=True, ttl_minutes=23 * 60 + 50, record_alert=False)
             ping_healthcheck()
 
         scheduler.add_job(heartbeat, CronTrigger(hour=hb_hour, minute=hb_minute, timezone=TIMEZONE),
@@ -2108,7 +2112,7 @@ def main(argv=None) -> int:
                                               "text": maintenance.report_text(plan),
                                               "reply_markup": json.dumps({"inline_keyboard": [buttons]})})
             else:
-                bot.notify(maintenance.report_text(plan))
+                bot.notify(maintenance.report_text(plan), transient=True, ttl_minutes=10070)  # until next week's
 
         scheduler.add_job(weekly_update_check, CronTrigger(day_of_week="mon", hour=hb_hour, minute=hb_minute + 5 if hb_minute < 55 else 0,
                                                            timezone=TIMEZONE), max_instances=1, coalesce=True, misfire_grace_time=3600)
@@ -2117,7 +2121,7 @@ def main(argv=None) -> int:
 
         def weekly_policy_watch():
             try:
-                bot.notify(policy_watch.digest_text(policy_watch.check(coordinator.db)))
+                bot.notify(policy_watch.digest_text(policy_watch.check(coordinator.db)), transient=True, ttl_minutes=10070)
             except Exception as e:
                 bot.notify(f"📜 Weekly policy watch failed: {html.escape(str(e))[:300]}")
 
@@ -2204,7 +2208,7 @@ def main(argv=None) -> int:
         def weekly_digest():
             from src import improve
             try:
-                bot.notify(improve.digest_text(coordinator.db), silent=True)
+                bot.notify(improve.digest_text(coordinator.db), silent=True, transient=True, ttl_minutes=10070)
             except Exception as e:
                 log.warning("Weekly digest failed: %s", e)
 

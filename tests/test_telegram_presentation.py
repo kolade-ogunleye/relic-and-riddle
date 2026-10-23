@@ -98,3 +98,16 @@ def test_two_dashboard_refreshes_at_once_leave_one_panel(db, monkeypatch):
     for t in threads:
         t.join()
     assert sent == [900] and db.get_setting('telegram_dashboard_id') == '900'
+
+
+def test_a_message_without_buttons_gets_a_way_back_and_a_transient_one_expires(db, monkeypatch):
+    # The daily heartbeat had no button and never went away, so heartbeats stacked up in the chat.
+    sent = []
+    bot = TelegramApprovalBot(db=db, bot_token='123:abc', chat_id='555', approver_ids={'555'})
+    monkeypatch.setattr(bot, '_api', lambda method, **k: sent.append(k.get('data', {})) or {'message_id': 77})
+    bot.notify('💓 Daily heartbeat', silent=True, transient=True, ttl_minutes=60, record_alert=False)
+    markup = json.loads(sent[0]['reply_markup'])
+    assert markup['inline_keyboard'][-1][0]['callback_data'] == 'cdash:'
+    with db._conn() as conn:
+        row = conn.execute("SELECT kind, expires_at FROM alerts WHERE message_id = 77").fetchone()
+    assert row['kind'] == 'transient' and row['expires_at']  # recorded, so cleanup removes it

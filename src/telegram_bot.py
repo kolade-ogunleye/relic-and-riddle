@@ -1082,6 +1082,8 @@ class TelegramApprovalBot:
                 self.db.record_alert(text, message_id=None, kind="transient" if transient else "persistent")
             return False
         text = _MASKER.mask(text)  # error details can carry a credential; the chat never sees one
+        if not buttons:  # no message is a dead end: one tap back to the panel
+            buttons = [DONE_BUTTON]
         from .telegram_pages import panel as paginate
         text, buttons = paginate(self.db, text, buttons)
         truncated_text = text
@@ -1097,7 +1099,8 @@ class TelegramApprovalBot:
             expires_at = None
             if transient and ttl_minutes > 0:
                 expires_at = (datetime.now(timezone.utc) + timedelta(minutes=ttl_minutes)).isoformat()
-            if record_alert and hasattr(self.db, "record_alert"):
+            # A transient message is always recorded: its expiry lives in that record (without it, it stayed).
+            if (record_alert or transient) and hasattr(self.db, "record_alert"):
                 self.db.record_alert(text, message_id=msg_id, kind="transient" if transient else "persistent", expires_at=expires_at)
             return msg_id if msg_id else True
         except Exception as e:

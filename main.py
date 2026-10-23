@@ -206,7 +206,8 @@ class PipelineCoordinator:
         previous_status = topic["status"] if topic["status"] != "in_production" else "failed"
 
         if content_format == "deep-dive":
-            return self.produce_deep_dive(topic, parent_run_id=None, auto_approve=auto_approve, dry_run=dry_run, run_id=run_id)
+            return self._review_documentary(self.produce_deep_dive(topic, parent_run_id=None, auto_approve=auto_approve,
+                                                                   dry_run=dry_run, run_id=run_id), dry_run)
 
         run_id = run_id or (f"run_{tid}_{int(time.time())}" + ("_short" if content_format == "dual" else ""))
         run_dir = OUTPUT_DIR / run_id
@@ -270,7 +271,8 @@ class PipelineCoordinator:
         if content_format == "dual":
             log.info("Dual-format requested; producing child 16:9 widescreen documentary...")
             try:
-                deep_res = self.produce_deep_dive(topic, parent_run_id=run_id, auto_approve=auto_approve, dry_run=dry_run)
+                deep_res = self._review_documentary(
+                    self.produce_deep_dive(topic, parent_run_id=run_id, auto_approve=auto_approve, dry_run=dry_run), dry_run)
                 result["deep_dive_run"] = deep_res
                 result["dual_format"] = True
             except Exception as e:
@@ -692,6 +694,15 @@ class PipelineCoordinator:
             "duration_seconds": vo_dur,
             "format": "deep_dive_16x9",
         }
+
+    def _review_documentary(self, produced: Dict[str, Any], dry_run: bool) -> Dict[str, Any]:
+        """Sends a rendered documentary for review and acts on the decision (approve publishes it to YouTube,
+        or simulates that in dry run). An auto-approved one is already decided."""
+        if produced.get("status") != "pending_approval":
+            return produced
+        if dry_run:
+            self.db.set_setting("run_mode:" + produced["run_id"], "dry_run")
+        return {**produced, **self.resend_for_review(produced["run_id"], dry_run=dry_run)}
 
     def _alert(self, text: str, buttons: Optional[list] = None) -> None:
         self.telegram_bot.notify(text, buttons)
@@ -1348,7 +1359,7 @@ class PipelineCoordinator:
                     backup_run(Path(run["master_video_path"]).parent, db_path=getattr(self.db, "db_path", None))
             except Exception as e:
                 log.warning("Tier 2 Gold Backup skipped: %s", e)
-        if self.schedule_posts and POST_SCHEDULING and not dry_run:
+        if self.schedule_posts and POST_SCHEDULING and not dry_run and (self.db.get_run(run_id) or {}).get("content_format") != "deep_dive":
             return self.schedule_run(run_id)
         return self.publish_run(run_id, dry_run=dry_run, previous_status=previous_status)
 
@@ -1513,7 +1524,8 @@ class PipelineCoordinator:
         payload, tid = run["script_payload"], run["topic_id"]
         from src.delivery_profiles import get_delivery_profile
         profile_name = payload.get("delivery_profile") or ("deep_dive" if run.get("content_format") == "deep_dive" else "reel")
-        if get_delivery_profile(profile_name).name != "reel_9x16":
+        profile = get_delivery_profile(profile_name).name
+        if profile not in ("reel_9x16", "deep_dive_16x9"):
             raise ValueError("No uploader is configured for this delivery profile; use the exported artifacts.")
         if not dry_run and payload.get("origin") == "curated" and not payload.get("human_reviewed"):
             raise ValueError("This run used an unreviewed curated script; it can only be published after review.")
@@ -1522,6 +1534,7 @@ class PipelineCoordinator:
         envelope = self.publisher.build_envelope(
             run_id, Path(run["master_video_path"]), Path(run["thumbnail_cover_path"]),
             Path(run["thumbnail_grid_path"]), payload,
+            platforms=["youtube"] if profile == "deep_dive_16x9" else None,
         )
         if dry_run:
             self.db.update_run(run_id, "approved")
@@ -1833,7 +1846,7 @@ def main(argv=None) -> int:
             threading.Thread(target=work, name="resend-review", daemon=True).start()
             return f"📨 Sending {html.escape(coordinator.db.run_label(run_id))} for review again…"
 
-        def trigger_run() -> str:
+        def trigger_run(content_format: str = "reel") -> str:
             nonlocal worker_proc
             if run_lock.locked() or (worker_proc is not None and worker_proc.poll() is None):
                 pid_info = f" (PID {worker_proc.pid})" if worker_proc else ""
@@ -1852,7 +1865,7 @@ def main(argv=None) -> int:
             from src.config import BASE_DIR
             # With posting slots on, the worker books the approved Reel like the daemon does.
             worker_proc = subprocess.Popen(
-                [sys.executable, "-u", "main.py", "run", "--require-live", "--background-polling"]
+                [sys.executable, "-u", "main.py", "run", "--require-live", "--background-polling", "--format", content_format]
                 + (["--schedule-posts"] if POST_SCHEDULING else []),
                 cwd=str(BASE_DIR),
                 stdout=subprocess.PIPE,
@@ -1907,7 +1920,7 @@ def main(argv=None) -> int:
         bot.register_commands()
         run_lock = threading.Lock()  # one production run at a time (daily job or /run)
 
-        def production_run(manual: bool = False):
+        def production_run(manual: bool = False, content_format: str = "reel"):
             if not manual and is_paused(coordinator.db):
                 log.info("Scheduled run skipped: paused.")
                 bot.notify("⏸ Scheduled run skipped (paused). Send /resume to re-enable.")
@@ -1916,7 +1929,7 @@ def main(argv=None) -> int:
                 log.warning("A run is already in progress; skipping.")
                 return
             try:
-                result = coordinator.run_cycle(require_live=True, dry_run=args.dry_run)
+                result = coordinator.run_cycle(require_live=True, dry_run=args.dry_run, content_format=content_format)
                 if result.get("status") in ("published", "simulated", "rejected"):
                     ping_healthcheck()
             except QueueEmpty:
@@ -2108,10 +2121,10 @@ def main(argv=None) -> int:
             threading.Thread(target=work, name="apply-updates", daemon=True).start()
             return "🧰 Applying updates on a branch and running the tests. I'll report back."
 
-        def trigger_run() -> str:
+        def trigger_run(content_format: str = "reel") -> str:
             if run_lock.locked():
                 return "A run is already in progress."
-            scheduler.add_job(production_run, kwargs={"manual": True})
+            scheduler.add_job(production_run, kwargs={"manual": True, "content_format": content_format})
             return "🎬 Starting a run now. You'll get the review card when it's rendered; nothing posts without your approval."
 
         bot.next_run_func = next_run

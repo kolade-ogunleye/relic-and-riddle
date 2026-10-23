@@ -991,7 +991,15 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     @staticmethod
     def make_review_proxy(master_mp4: Path, proxy_path: Path) -> Path:
-        """Small 720p copy for phone review over Telegram (bot uploads are capped near 50 MB)."""
+        """Small 720p copy for phone review over Telegram (bot uploads are capped near 50 MB). The video
+        bitrate is sized to the duration so a 5-minute documentary fits too (1.5 Mbit/s would not)."""
+        try:
+            seconds = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                                                     "-of", "default=noprint_wrappers=1:nokey=1", str(master_mp4)],
+                                                    timeout=60).decode().strip())
+        except (OSError, ValueError, subprocess.SubprocessError):
+            seconds = 60.0
+        video_kbps = max(400, min(1500, int(44 * 8 * 1024 / max(seconds, 1)) - 128))
         _run_ffmpeg([
             "ffmpeg", "-y", "-hide_banner", "-nostats",
             "-threads", str(os.cpu_count() or 0),
@@ -999,7 +1007,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             "-vf", "scale='if(gt(iw,ih),-2,720)':'if(gt(iw,ih),720,-2)'",
             "-c:v", "libx264", "-preset", "fast", "-crf", "28",
             "-threads", str(os.cpu_count() or 0),
-            "-maxrate", "1500k", "-bufsize", "3000k", "-pix_fmt", "yuv420p",
+            "-maxrate", f"{video_kbps}k", "-bufsize", f"{video_kbps * 2}k", "-pix_fmt", "yuv420p",
             "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", str(proxy_path),
         ])
         log.info("Review proxy: %s (%.1f MB)", proxy_path.name, os.path.getsize(proxy_path) / (1024 * 1024))

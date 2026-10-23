@@ -586,6 +586,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         render = [b for b in buttons if b["callback_data"].startswith("qrender:")]
         changes = [b for b in buttons if b["callback_data"].startswith(("qbump:", "qdrop:"))]
         rows = [render + [{"text": "🔄 Refresh Queue", "callback_data": "qrefresh:"}]]
+        if render:  # the same topic as a Reel plus the 3½–5 minute 16:9 documentary for YouTube
+            rows.append([{"text": "🎬 Reel + 16:9 documentary", "callback_data": "qdoc:" + render[0]["callback_data"].partition(":")[2]}])
         if changes:
             rows.append(changes)
         return "\n".join(lines), rows + pager("qpage:", page, pages) + [[HOME]]
@@ -619,14 +621,15 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             accepted = db.request_run_cancel(db.resolve_run(args))
             text = "Cancellation requested; the worker will acknowledge at its next stage boundary." if accepted else "This run is no longer producing. Inspect its current status; no upload was cancelled."
             return text, [[{"text": "Jobs", "callback_data": "jobs:"}], [HOME]]
-        if command == "qrender":
+        if command in ("qrender", "qdoc"):
             current = db.get_next_topic()
             serials = {str(i): t["id"] for i,t in enumerate(db.list_all_topics(), 1)}
             requested = serials.get(args, args)
             if not current or current["id"] != requested:
                 text, buttons = render_queue_text_and_buttons()
                 return "⚠️ The queue changed. Review the current next topic before starting.\n\n" + text, buttons
-            res = trigger_run()
+            # The documentary is made after the Reel and reviewed separately; approving it uploads it to YouTube.
+            res = trigger_run("dual") if command == "qdoc" else trigger_run()
             q_text, q_buttons = render_queue_text_and_buttons()
             return f"⚡ <b>Run:</b> {html.escape(res)}\n\n{q_text}", q_buttons
         if command == "qbump":

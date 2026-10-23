@@ -89,6 +89,10 @@ LIGHT_TASK_MODELS = [m.strip() for m in (os.getenv("LIGHT_TASK_MODELS") or "clau
 MUSIC_PREFER = (os.getenv("MUSIC_PREFER") or "library").strip().lower()
 # Tracks one "Find new tracks" tap downloads per mood (CC0/CC BY from Openverse; each needs review).
 MUSIC_FETCH_PER_MOOD = max(1, int(os.getenv("MUSIC_FETCH_PER_MOOD") or 3))
+# The 16:9 documentary's YouTube visibility once published: public, unlisted or private.
+YOUTUBE_PRIVACY = (os.getenv("YOUTUBE_PRIVACY") or "public").strip().lower()
+if YOUTUBE_PRIVACY not in ("public", "unlisted", "private"):
+    YOUTUBE_PRIVACY = "public"
 # Cap on pay-per-use media APIs (AI video), USD per month; 0 = paid media APIs disabled.
 MEDIA_MONTHLY_BUDGET_USD = float(os.getenv("MEDIA_MONTHLY_BUDGET_USD") or 0)
 # AI motion (src/motion.py): Veo through the Gemini API (billing on), then Kling. Runs only when

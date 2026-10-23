@@ -289,3 +289,26 @@ def test_licensed_voice_allows_live_publication(monkeypatch, run, envelope, tmp_
     assert res["status"] == "published"
     pub.publish.assert_called_once()
 
+
+
+def test_documentary_goes_to_youtube_with_its_own_fields(monkeypatch, envelope):
+    captured = {}
+
+    def fake_post(url, headers, data, files, timeout):
+        captured.update(data=data, files=set(files))
+        return _response(200, {"success": True, "results": {"youtube": {"success": True, "url": "https://youtu.be/x"}}})
+
+    monkeypatch.setattr(requests, "post", fake_post)
+    doc = dict(envelope, platforms=["youtube"])
+    doc["metadata"] = dict(envelope["metadata"], youtube_title="The 18-Story City Under Cappadocia" * 5,
+                           description="Chapters\n0:00 Intro", tags=["history", "derinkuyu"])
+    res = UploadPostPublisher(api_key="k" * 20, user="profile").publish(doc)
+    data = dict(captured["data"])
+    assert res["status"] == "published"
+    assert [v for k, v in captured["data"] if k == "platform[]"] == ["youtube"]
+    assert len(data["youtube_title"]) <= 100 and data["youtube_description"].startswith("Chapters")
+    assert [v for k, v in captured["data"] if k == "tags[]"] == ["history", "derinkuyu"]
+    assert data["containsSyntheticMedia"] == "true" and data["selfDeclaredMadeForKids"] == "false"
+    assert data["categoryId"] == "27" and data["privacyStatus"] in ("public", "unlisted", "private")
+    assert "instagram_title" not in data and "media_type" not in data          # none of the Reel fields
+    assert captured["files"] == {"video", "thumbnail"}

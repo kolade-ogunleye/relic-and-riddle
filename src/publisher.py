@@ -60,7 +60,7 @@ def _now() -> str:
 
 class UploadPostPublisher:
     name = "upload-post"
-    platforms = ("facebook", "instagram")
+    platforms = ("facebook", "instagram", "youtube")
 
     def __init__(self, api_key: str = None, user: str = None, base_url: str = None, facebook_page_id: str = None,
                  poll_interval: float = 10.0, poll_timeout: float = 900.0):
@@ -85,6 +85,8 @@ class UploadPostPublisher:
         if not self.configured():
             raise NotConfigured("UPLOAD_POST_API_KEY / UPLOAD_POST_USER not set")
         meta, media = envelope["metadata"], envelope["media"]
+        if envelope["platforms"] == ["youtube"]:
+            return self._publish_youtube(envelope)
         data: List[Tuple[str, str]] = [
             ("user", self.user),
             *[("platform[]", p) for p in envelope["platforms"]],
@@ -139,6 +141,55 @@ class UploadPostPublisher:
             return self._summarize(body["results"], body)
         request_id = body.get("request_id") or envelope["run_id"]
         return self._poll(request_id)
+
+    def _publish_youtube(self, envelope: Dict[str, Any]) -> Dict[str, Any]:
+        """The 16:9 documentary to YouTube (docs.upload-post.com/api/upload-video, YouTube fields): the
+        YouTube title (100 characters), description, tags, Education category, the AI-content disclosure,
+        not made for kids, and the 16:9 thumbnail as a file (2 MB maximum; needs a verified channel)."""
+        meta, media = envelope["metadata"], envelope["media"]
+        data: List[Tuple[str, str]] = [
+            ("user", self.user), ("platform[]", "youtube"),
+            ("title", (meta.get("youtube_title") or meta["title"])[:100]),
+            ("youtube_title", (meta.get("youtube_title") or meta["title"])[:100]),
+            ("youtube_description", (meta.get("description") or meta["caption"])[:5000]),
+            *[("tags[]", tag) for tag in (meta.get("tags") or [])[:30]],
+            ("categoryId", "27"),  # Education
+            ("privacyStatus", config.YOUTUBE_PRIVACY),
+            ("selfDeclaredMadeForKids", "false"),
+            ("containsSyntheticMedia", "true" if meta["is_ai_generated"] else "false"),
+            ("defaultLanguage", "en"), ("defaultAudioLanguage", "en"),
+            ("async_upload", "true"), ("request_id", envelope["run_id"]),
+        ]
+        files = {}
+        handles = []
+        try:
+            video = open(media["video_path"], "rb")
+            handles.append(video)
+            files["video"] = (Path(media["video_path"]).name, video, "video/mp4")
+            thumb = Path(media["thumbnail_path"])
+            if thumb.is_file() and thumb.stat().st_size <= 2 * 1024 * 1024:
+                handle = open(thumb, "rb")
+                handles.append(handle)
+                files["thumbnail"] = (thumb.name, handle, "image/jpeg")
+            else:
+                log.warning("YouTube thumbnail missing or over 2 MB (%s); YouTube will pick a frame.", thumb.name)
+            response = requests.post(f"{self.base_url}/upload", headers=self._headers(envelope["run_id"]),
+                                     data=data, files=files, timeout=(15, 1800))
+        except requests.ConnectionError as e:
+            raise PublishFailed(f"Could not connect to Upload-Post: {e}") from e
+        except requests.Timeout as e:
+            raise PublishUnknown(f"Upload-Post timed out after the YouTube upload started: {e}") from e
+        finally:
+            for handle in handles:
+                handle.close()
+        body = self._json(response)
+        if response.status_code >= 500:
+            raise PublishUnknown(f"Upload-Post server error {response.status_code}: {body}")
+        if response.status_code >= 400 or not body.get("success"):
+            raise PublishFailed(f"Upload-Post rejected the YouTube upload ({response.status_code}): {body.get('message') or body}")
+        if "results" in body:
+            return self._summarize(body["results"], body)
+        return self._poll(body.get("request_id") or envelope["run_id"])
 
     def publish_photos(self, kind: str, photos: List[str], caption: str, platforms: List[str], key: str) -> Dict[str, Any]:
         _assert_recovery_unlocked()
@@ -424,6 +475,9 @@ class MetaPublisher:
                 "meta_topic_categories": script_payload.get("meta_topic_categories", []),
                 "first_comment": script_payload.get("first_comment", ""),
                 "is_ai_generated": META_IS_AI_GENERATED,
+                "youtube_title": script_payload.get("youtube_title", ""),
+                "description": script_payload.get("description", ""),
+                "tags": script_payload.get("tags", []),
             },
             "created_at": _now(),
         }

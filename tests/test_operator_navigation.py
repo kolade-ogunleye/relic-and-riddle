@@ -248,9 +248,9 @@ def test_queue_buttons_pair_render_with_refresh_and_keep_pages_together(db, monk
     monkeypatch.setattr(db, "get_next_topic", lambda: topics[4])
     text, rows = make_command_handler(db, lambda: None, lambda: "")("qpage", "2")
     data = [[b["callback_data"].partition(":")[0] for b in row] for row in rows]
-    assert data[0] == ["qrender", "qrefresh"] and data[1] == ["qbump", "qdrop"]
-    assert data[2] == ["qpage"] * 4 and data[-1] == ["cdash"]          # ⏮ ◀ ▶ ⏭ on one row
-    assert format_responsive_keyboard(rows)[2] == rows[2]
+    assert data[0] == ["qrender", "qrefresh"] and data[1] == ["qdoc"] and data[2] == ["qbump", "qdrop"]
+    assert data[3] == ["qpage"] * 4 and data[-1] == ["cdash"]          # ⏮ ◀ ▶ ⏭ on one row
+    assert format_responsive_keyboard(rows)[3] == rows[3]
 
 
 def test_fixed_issue_files_close_their_issues_and_status_says_so(db, monkeypatch, tmp_path):
@@ -380,3 +380,12 @@ def test_issue_in_reply_to_a_card_carries_the_card(db):
                         lambda c, a: got.append((c, a)) or "ok")
     bot.drain()
     assert got and got[0][0] == "issue" and "[Replied card]: Needs you: Last run failed" in got[0][1]
+
+
+def test_documentary_button_starts_a_reel_plus_documentary_run(db, monkeypatch):
+    started = []
+    monkeypatch.setattr(db, "get_next_topic", lambda: {"id": "01_topic", "title": "T", "status": "queued"})
+    h = make_command_handler(db, lambda: None, lambda content_format="reel": started.append(content_format) or "started")
+    h("qdoc", "01_topic")
+    h("qrender", "01_topic")
+    assert started == ["dual", "reel"]

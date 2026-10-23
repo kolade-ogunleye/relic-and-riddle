@@ -63,7 +63,7 @@ TOASTS = {"imgok": "✅ Storyboard Approved!", "imgcancel": "✖ Cancelled", "mc
           "mnext": "⏭ Next Track", "uadd": "✅ Added to Queue",
           "tadd": "✅ Added to Queue", "uskip": "✖ Skipped", "tskip": "✖ Skipped", "mdel": "🗑 Track Removed",
           "mkeep": "✅ Track Kept", "qbump": "🚀 Bumped to #1", "qdrop": "🗑 Topic Dropped", "qrefresh": "🔄 Refreshed",
-          "qrender": "⚡ Run started", "cov": "📌 Cover Selected", "cstat": "📊 Status", "cprog": "⚡ Progress",
+          "qrender": "⚡ Run started", "qdoc": "🎬 Reel + documentary started", "cov": "📌 Cover Selected", "cstat": "📊 Status", "cprog": "⚡ Progress",
           "caudit": "🛡️ Activity log", "ccov": "🎨 Covers", "cprop": "💡 Ideas", "cdisc": "🏛️ Discoveries",
           "cmusic": "🎵 Music", "cpause": "⏸️ Paused", "cresume": "▶️ Resumed", "cdash": "🏛️ Dashboard",
           "simpub": "🧪 Simulated", "rsn": "📝 Noted", "impok": "✅ Done", "impno": "✖ Declined",

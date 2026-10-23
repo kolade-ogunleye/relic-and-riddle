@@ -367,6 +367,35 @@ class PipelineCoordinator:
                 self.db.create_run(run_id, tid, parent_run_id=parent_run_id, content_format="deep_dive")
                 self.db.set_setting("run_mode:" + run_id, "dry_run" if dry_run else "live")
         log.info("Starting Deep-Dive Documentary run %s for topic '%s'", run_id, topic["title"])
+        # The documentary has its own progress card, like the Reel: without one it ran (and failed) unseen.
+        card_title = f"{topic['title']} · 16:9 documentary"
+        card = None
+        try:
+            card = self.telegram_bot.send_progress_card(run_id, card_title)
+        except Exception:
+            pass
+
+        def step(n: int, details: str) -> None:
+            if card:
+                try:
+                    self.telegram_bot.update_progress_card(card, n, 5, card_title, run_id, details)
+                except Exception:
+                    pass
+
+        def finish(success: bool, error: str = "") -> None:
+            shown = False
+            if card:
+                try:
+                    shown = bool(self.telegram_bot.finish_progress_card(card, card_title, run_id, success=success, error=error))
+                except Exception as e:
+                    log.debug("Could not finish the documentary progress card: %s", e)
+            if not success and not shown:  # no card to turn into the failure card: say so in a message
+                from src.control import short_reason
+                try:
+                    self._alert(f"❌ <b>Documentary failed:</b> {html.escape(card_title)}\n\n"
+                                f"{html.escape(short_reason(error, 600))}\n\nNothing was posted.")
+                except Exception:
+                    pass
 
         try:
             self._check_cancel(run_id)
@@ -410,6 +439,7 @@ class PipelineCoordinator:
 
             if not passed:
                 raise ValueError("Deep-dive fact verification failed: " + "; ".join(act_issues or []))
+            step(1, f"Documentary script verified ({len(deep_dive_pkg.acts)} acts)")
             # Cover copy is the fact-checked title only; the eyebrow and tagline assert nothing.
             thumbnail_copy = documentary_cover(deep_dive_pkg.title)
 
@@ -459,6 +489,7 @@ class PipelineCoordinator:
                 checkpoints.complete("deep_voice", voice_inputs,
                                      [vo_path, words_path, vo_path.with_suffix(".mp3.rights.json")])
 
+            step(2, f"Voiceover mastered ({vo_dur:.0f}s)")
             # Compute precise chapter timestamps for description, metadata, and cinematic act-transition cues
             chapters, chapter_text, cue_timestamps = compute_act_chapters(deep_dive_pkg.acts, words, vo_dur)
             payload["chapters"] = chapters
@@ -506,6 +537,7 @@ class PipelineCoordinator:
                     payload["description"] += "\n\n" + attribution
 
             self._check_cancel(run_id)
+            step(3, "Preparing 16:9 scenes, graphics & music")
             # 4. Visual preparation & compositing
             scene_media, _ = ensure_all(scene_media)
             hero_img = ensure_resolution(hero_img)
@@ -575,19 +607,24 @@ class PipelineCoordinator:
                 self.visual_engine.generate_thumbnails(hero_img, payload, run_dir),
                 self.visual_engine.generate_youtube_thumbnail(hero_img, payload, run_dir / "thumbnail_youtube_16x9.jpg")))
             thumb_pool.shutdown(wait=False)
+            step(4, "Rendering the documentary, preparing review")
             try:
-                return self._render_and_certify_deep_dive(
+                result = self._render_and_certify_deep_dive(
                     topic, tid, run_id, run_dir, parent_run_id, payload, words, vo_dur, vo_path, bed_path, words_path,
                     extended_scenes, durations, cuts, master_mp4, checkpoints, file_inputs, cached_artifacts,
                     fut_thumbs, auto_approve, dry_run)
             finally:
                 concurrent.futures.wait([fut_thumbs])  # never leave a writer running past the run
+            finish(result.get("status") != "failed", result.get("error", ""))
+            return result
 
         except JobCancelled:
+            finish(False, "Cancelled by operator")
             return {"status": "cancelled", "run_id": run_id, "topic_id": tid}
         except Exception as e:
             log.error("Deep-dive production failed for run %s: %s", run_id, e, exc_info=True)
             self.db.update_run(run_id, "failed", error=f"{type(e).__name__}: {e}")
+            finish(False, str(e))  # the card becomes the documentary's failure card
             return {
                 "run_id": run_id,
                 "parent_run_id": parent_run_id,

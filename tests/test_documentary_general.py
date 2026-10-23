@@ -98,3 +98,46 @@ def test_a_rejected_documentary_draft_is_rewritten_with_the_findings(db, tmp_pat
     result = coordinator.produce_deep_dive({"id": "01_topic", "title": "Topic 1"}, dry_run=True)
     assert "fact verification failed" not in str(result)  # the second draft passed; it went on to the cover
     assert feedbacks[0] == "" and "In Mauritania." in feedbacks[1] and len(feedbacks) == 2
+
+
+def test_the_documentary_shows_a_progress_card_that_becomes_its_failure_card(db, tmp_path, monkeypatch):
+    import main
+
+    class Visuals:
+        def get_scene_sequence(self, topic):
+            return []
+
+        def hero_image(self, media):
+            return None
+
+    class Writer:
+        def generate_deep_dive(self, topic, feedback=""):
+            return type("Pkg", (), {"full_narration": "x", "acts": [], "title": "T"})()
+
+        def verify_deep_dive_act_by_act(self, pkg, topic):
+            return False, ["'In Mauritania.' (Act 1; untraced: no place fact)"]
+
+    calls = []
+
+    class Bot:
+        def send_progress_card(self, run_id, title):
+            calls.append(("start", title))
+            return 77
+
+        def update_progress_card(self, *a, **k):
+            calls.append(("step", a[1]))
+
+        def finish_progress_card(self, mid, title, run_id, success=True, error=""):
+            calls.append(("finish", mid, success, "Mauritania" in error))
+            return True
+
+        def notify(self, *a, **k):
+            calls.append(("alert",))
+    coordinator = object.__new__(main.PipelineCoordinator)
+    coordinator.db, coordinator.telegram_bot = db, Bot()
+    coordinator.visual_engine, coordinator.script_engine = Visuals(), Writer()
+    monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
+    result = coordinator.produce_deep_dive({"id": "01_topic", "title": "Topic 1"}, dry_run=True)
+    assert result["status"] == "failed"
+    assert calls[0] == ("start", "Topic 1 · 16:9 documentary")
+    assert calls[-1] == ("finish", 77, False, True) and ("alert",) not in calls  # one failure card, no extra alert

@@ -51,7 +51,7 @@ RETIRED_ACTIONS = {"done": "Closed",
 DONE_BUTTON = {"text": "← Dashboard", "callback_data": "cdash:"}
 PAGER_ICONS = {"⏮", "◀", "▶", "⏭"}
 _PANEL = ContextVar("telegram_navigation_panel", default=None)
-PANEL_ACTIONS = {"pickbump", "pickdrop", "cideas", "cpropose", "ccov", "cmusic", "cdisc", "cprop", "cstat", "cimages", "caccounts", "imagepick", "imagehelp", "review", "mkeep", "mnext", "mdel", "mcancel", "mreview", "musicmenu", "mfmenu", "mlibrary", "chelp"}
+PANEL_ACTIONS = {"reviewpick", "pickbump", "pickdrop", "cideas", "cpropose", "ccov", "cmusic", "cdisc", "cprop", "cstat", "cimages", "caccounts", "imagepick", "imagehelp", "review", "mkeep", "mnext", "mdel", "mcancel", "mreview", "musicmenu", "mfmenu", "mlibrary", "chelp"}
 # Cards removed before acting (their own Cancel/Skip/Next buttons).
 DELETE_FIRST = {"tskip"}
 # Decision buttons: disabled before acting so a second tap can't repeat the decision.

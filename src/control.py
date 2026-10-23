@@ -644,7 +644,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             serial = {t["id"]: i for i, t in enumerate(topics, 1)}
             queued = [t for t in topics if t.get("status") == "queued"][1 if verb == "bump" else 0:]
             if not queued:
-                return "📋 Nothing in the queue to " + verb + ".", [[{"text": "📋 Queue", "callback_data": "qrefresh:"}], [HOME]]
+                return "📋 Nothing in the queue to " + verb + ".", [[{"text": "← Queue", "callback_data": "qrefresh:"}], [HOME]]
             pages = -(-len(queued) // 8)
             page = min(int(args) if args.isdigit() else 0, pages - 1)
             shown = queued[page * 8:page * 8 + 8]
@@ -654,7 +654,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 f"<b>{serial[t['id']]}.</b> {html.escape(t['title'])}" for t in shown)
             numbers = [{"text": str(serial[t["id"]]), "callback_data": f"q{verb}:{t['id']}"} for t in shown]
             return text, ([row for row in (numbers[:4], numbers[4:]) if row] + pager(command + ":", page, pages)
-                          + [[{"text": "📋 Queue", "callback_data": "qrefresh:"}], [HOME]])
+                          + [[{"text": "← Queue", "callback_data": "qrefresh:"}], [HOME]])
         if command == "bump":
             ref = args.strip()
             if not ref:
@@ -1102,40 +1102,42 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             if send_message:
                 return handle("cimages", "")
             return images_text(assets_dir, db=db)
+        if command == "reviewpick":
+            # Every topic with fetched images, paged, each marked approved / needs review / too few images
+            # (the picker used to stop at the first five queued topics, which hid the rest).
+            topics = db.list_all_topics()
+            serial = {t["id"]: i for i, t in enumerate(topics, 1)}
+            sets = []
+            for t in topics:
+                try:
+                    td = _resolve_topic_dir(t["id"], assets_dir, db=db)
+                    cr = load_credits(td)
+                except Exception:
+                    continue
+                if cr.get("images"):
+                    count = len(cr["images"])
+                    mark = "⛔" if count < MIN_SCENE_IMAGES else "✅" if cr.get("reviewed") else "⚠️"
+                    sets.append((serial[t["id"]], t["title"], count, mark))
+            back = [[{"text": "← Images", "callback_data": "cimages:"}], [HOME]]
+            if not sets:
+                return "🎬 <b>Storyboard review</b>\n\nNo topic has fetched images yet. Open Images to fetch or upload some.", back
+            pages = -(-len(sets) // 8)
+            page = min(int(args) if args.isdigit() else 0, pages - 1)
+            shown = sets[page * 8:page * 8 + 8]
+            counts = {m: sum(1 for s in sets if s[3] == m) for m in ("✅", "⚠️", "⛔")}
+            text = ("🎬 <b>Storyboard review</b>" + (f" · page {page + 1} of {pages}" if pages > 1 else "")
+                    + f"\n✅ approved {counts['✅']} · ⚠️ needs your review {counts['⚠️']} · ⛔ too few images (need {MIN_SCENE_IMAGES}) {counts['⛔']}\n\n"
+                    + "\n".join(f"<b>{n}.</b> {mark} {html.escape(title)} · {count} images" for n, title, count, mark in shown))
+            numbers = [{"text": str(n), "callback_data": f"review:{n}"} for n, _, _, _ in shown]
+            return text, [row for row in (numbers[:4], numbers[4:]) if row] + pager("reviewpick:", page, pages) + back
         if command == "review":
             ref = args.strip()
             if not ref:
-                queued = [t for t in db.list_all_topics() if t.get("status") == "queued"]
-                topic_serial = {t["id"]: i for i, t in enumerate(db.list_all_topics(), 1)}
-                buttons = []
-                for t in queued[:5]:
-                    try:
-                        td = _resolve_topic_dir(t["id"], assets_dir, db=db)
-                        if td.exists():
-                            cr = load_credits(td)
-                            if cr.get("images"):
-                                sn = topic_serial.get(t["id"], 1)
-                                buttons.append({"text": str(sn), "callback_data": f"review:{sn}", "_title": t["title"]})
-                    except Exception:
-                        pass
-                if buttons and send_message:
-                    text = ("🎬 <b>Storyboard review</b>: choose a topic\n\n"
-                            + "\n".join(f"<b>{b['text']}.</b> {html.escape(b.pop('_title'))}" for b in buttons))
-                    send_message(text, [row for row in (buttons[:4], buttons[4:]) if row] + [[{"text": "🖼 Images", "callback_data": "cimages:"}], [HOME]])
+                text, buttons = handle("reviewpick", "0")
+                if send_message:
+                    send_message(text, buttons)
                     return ""
-                example_sn = "1"
-                try:
-                    nxt = db.get_next_topic()
-                    if nxt:
-                        all_t = db.list_all_topics()
-                        example_sn = str({t["id"]: i for i, t in enumerate(all_t, 1)}.get(nxt["id"], 1))
-                except Exception:
-                    pass
-                return (
-                    f"🎬 <b><u>STORYBOARD REVIEW</u></b>\n\nTap to copy & edit: <code>/review {example_sn}</code>\n\n"
-                    "<i>Usage: <code>/review &lt;topic_number_or_id&gt;</code>\n"
-                    "Tip: Tap the code box above to copy instantly into your input box.</i>"
-                )
+                return text, buttons
             topic_dir = _resolve_topic_dir(ref, assets_dir, db=db)
             if send_sheet(topic_dir):
                 return ""

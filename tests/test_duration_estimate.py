@@ -102,3 +102,28 @@ def test_release_range_and_prompt_share_the_config_constants():
     assert reel.duration_max >= config.HARD_DURATION_CEILING
     assert f"{config.TARGET_WORD_COUNT_MIN}-{config.TARGET_WORD_COUNT_MAX}" in SYSTEM_PROMPT
     assert "145 wpm" not in SYSTEM_PROMPT  # the voice's measured pace is nothing like a fixed wpm
+
+
+def test_the_writer_is_asked_for_the_length_that_fits_at_the_measured_pace(monkeypatch, tmp_path):
+    # Production 2026-10-23: the fixed 105-115 words ran 53-58 s at 0.5 s a word, past the 51.5 s limit.
+    from src import script_engine
+    monkeypatch.setattr(script_engine, "WORD_PACE_FILE", tmp_path / "word_pace.json")
+    assert script_engine.length_target_note() == ""  # not enough measurements yet
+    for spw in (0.50, 0.51, 0.49):
+        script_engine.record_word_pace(spw)
+    note = script_engine.length_target_note()
+    assert "in 85-96 words" in note and "0.50 s a word" in note  # 42-48 s at 0.5 s a word
+
+
+def test_a_draft_too_long_to_keep_gets_no_graphics_planning(monkeypatch, curated_payload):
+    from src import audio_engine, script_engine
+    from src.models import ScriptCore
+    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: 60.0 / speed)
+    calls = []
+    core = ScriptCore.model_validate({k: v for k, v in curated_payload.items() if k in ScriptCore.model_fields})
+    monkeypatch.setattr(script_engine, "_structured", lambda system, prompt, schema, **k: calls.append(schema.__name__) or core)
+    engine = script_engine.ScriptEngine()
+    monkeypatch.setattr(engine, "_sheet", lambda topic: {"facts": [], "sources": []})
+    monkeypatch.setattr(script_engine.fact_sheet, "as_prompt", lambda sheet: "")
+    engine._generate_with_claude({"id": "t", "title": "T", "location": {}, "key_facts": [], "hook": ""}, "")
+    assert calls == ["ScriptCore"]  # the graphics call is skipped for a draft that will be sent back

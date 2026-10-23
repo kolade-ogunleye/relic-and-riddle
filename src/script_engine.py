@@ -213,6 +213,37 @@ def _short_reason(problems: List[str]) -> str:
     return problems[0][:60] if problems else "checks"
 
 
+WORD_PACE_FILE = config.BASE_DIR / "data" / "word_pace.json"
+
+
+def record_word_pace(seconds_per_word: float) -> None:
+    """Keeps the last 20 measured seconds-per-word of drafts (the narrator voice, this topic's words)."""
+    try:
+        values = json.loads(WORD_PACE_FILE.read_text(encoding="utf-8")) if WORD_PACE_FILE.exists() else []
+        values = (values + [round(seconds_per_word, 4)])[-20:]
+        from .atomic_files import write_json
+        write_json(WORD_PACE_FILE, values)
+    except (OSError, ValueError) as e:
+        log.debug("Could not record the word pace: %s", e)
+
+
+def length_target_note() -> str:
+    """The word range that fits, from measured pace (the prompt's fixed 105-115 words ran 53-58 s at the
+    narrator's pace for name-heavy topics). Empty until three drafts have been measured."""
+    try:
+        values = json.loads(WORD_PACE_FILE.read_text(encoding="utf-8")) if WORD_PACE_FILE.exists() else []
+    except (OSError, ValueError):
+        values = []
+    if len(values) < 3:
+        return ""
+    import statistics
+    per_word = statistics.median(values) * audio_engine.pace_ratio(audio_engine.production_voice_key())
+    low, high = int(TARGET_DURATION_MIN / per_word) + 1, int(TARGET_DURATION_MAX / per_word)
+    return (f"\n\nLength: write the narration in {low}-{high} words. This narrator speaks about {per_word:.2f} s "
+            f"a word, so that is {TARGET_DURATION_MIN:g}-{TARGET_DURATION_MAX:g} seconds; this overrides any other "
+            "word count.")
+
+
 def fit_speed(text: str, seconds: Optional[float] = None) -> Optional[float]:
     """How much faster the narration must be spoken to fit the time limit: 1.0 when it fits as written, up
     to SPEECH_SPEEDUP_MAX when a faster read is measured to fit, None when even that runs long. Each rewrite
@@ -241,8 +272,9 @@ def spoken_length_problems(pkg: ScriptPackage) -> List[str]:
     seconds = audio_engine.measure_spoken_seconds(pkg.narration_script)
     if seconds is None:
         return []
-    seconds *= audio_engine.pace_ratio(audio_engine.production_voice_key())  # the real voice's pace
     words = len(pkg.narration_script.split()) or 1
+    record_word_pace(seconds / words)  # measured at the measurement voice; the pace ratio is applied on use
+    seconds *= audio_engine.pace_ratio(audio_engine.production_voice_key())  # the real voice's pace
     per_word = seconds / words
     longest = HARD_DURATION_CEILING - _MEASURE_MARGIN_SEC
     if seconds > longest and fit_speed(pkg.narration_script, seconds):
@@ -705,7 +737,10 @@ class ScriptEngine:
                 + "Use only facts supported by the research notes. List sources only from retrieved_sources."
                 + feedback
             )
-        core = _structured(SYSTEM_PROMPT, prompt, ScriptCore, effort="high")
+        core = _structured(SYSTEM_PROMPT, prompt + length_target_note(), ScriptCore, effort="high")
+        if spoken_length_problems(ScriptPackage(**core.model_dump())):
+            # This draft will be sent back for its length: graphics are planned only for one that can be kept.
+            return ScriptPackage(**core.model_dump())
         try:  # graphics are planned from the finished script; optional, so a failure leaves them out
             extras = _structured(
                 GRAPHICS_SYSTEM,

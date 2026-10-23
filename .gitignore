@@ -66,6 +66,7 @@ archive/recovery/
 data/publication_locks/
 **/publication_locks/
 data/voice_pace.json
+data/word_pace.json
 
 # Local copies of the secrets file (the template stays tracked)
 .env.*

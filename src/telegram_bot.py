@@ -78,6 +78,24 @@ JOB_TITLES = {"fetchimages": "Fetching images", "mfetch": "Finding documentary m
               "status": "Full status", "accounts": "Checking accounts", "discover": "UNESCO marvels",
               "propose": "Researching topic ideas", "covers": "Covers", "music": "Music", "add": "Adding a topic"}
 
+# The screen a background job was started from, by its resource (the part before ":"): its card
+# offers a way back one level, not only to the dashboard (topic research had only ← Dashboard).
+JOB_PARENTS = {
+    "topic-research": ("← Topic ideas", "cideas:"),
+    "propose": ("← Topic ideas", "cideas:"),
+    "tadd": ("← Topic ideas", "cideas:"),
+    "fetchimages": ("← Images", "cimages:"),
+    "imagepick": ("← Images", "cimages:"),
+    "mfetch": ("← Music", "cmusic:"),
+    "uadd": ("← UNESCO marvels", "cdisc:"),
+}
+
+
+def job_parent(resource: str) -> Optional[Dict[str, str]]:
+    found = JOB_PARENTS.get((resource or "").partition(":")[0])
+    return {"text": found[0], "callback_data": found[1]} if found else None
+
+
 _MASKER = SecretMasker()
 # Keep-alive connections shared by every bot thread: a new TLS connection costs ~1 s, a reused one
 # ~0.2 s. Sessions are per thread; the connection pool (thread-safe) is shared.
@@ -514,8 +532,10 @@ class TelegramApprovalBot:
 
     def start_operator_job(self, title, work, resource="", navigation=None, late=False):
         destination = [navigation if navigation is not None else self.navigation_target()]
+        parent = job_parent(resource)  # one level up from the screen the job was started on
+        up = [[parent]] if parent else []
         def announce(job):
-            buttons = [[{"text": "Cancel job", "callback_data": f"jobcancel:{job['id']}"}], [{"text": "Jobs", "callback_data": "jobs:"}], [DONE_BUTTON]]
+            buttons = [[{"text": "Cancel job", "callback_data": f"jobcancel:{job['id']}"}], [{"text": "Jobs", "callback_data": "jobs:"}], *up, [DONE_BUTTON]]
             text = f"⏳ <b>{html.escape(title)}</b>\n\nYou can keep using the bot. Cancellation stops further work at a safe boundary; an in-flight request may finish."
             if destination[0]:
                 self.update_navigation_target(destination[0], text, buttons)
@@ -531,7 +551,7 @@ class TelegramApprovalBot:
                 text, buttons = result if isinstance(result, tuple) else (str(result or "Completed."), [[DONE_BUTTON]])
             else:
                 text = f"{'⏹' if job['state'] == 'cancelled' else '⚠️'} <b>{html.escape(title)}</b>: {job['state']}.\nExisting approved assets and usage records are preserved."
-                buttons = [[{"text": "Jobs", "callback_data": "jobs:"}], [DONE_BUTTON]]
+                buttons = [[{"text": "Jobs", "callback_data": "jobs:"}], *up, [DONE_BUTTON]]
                 if job["state"] == "failed" and navigation and resource.partition(":")[0] in PANEL_ACTIONS:
                     buttons.insert(0, [{"text": "Try again", "callback_data": resource}])
             if job.get("error_detail"):

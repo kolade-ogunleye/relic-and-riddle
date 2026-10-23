@@ -358,3 +358,21 @@ def test_a_failed_resend_keeps_the_previous_review(db, tmp_path, monkeypatch):
     bot, state = _numbered_bot(db, monkeypatch, fail_card=True)
     assert bot.send_approval_request(video, thumb, {"caption": "Two", "title": "T"}, "review") is None
     assert state["deleted"] == []   # nothing removed before a new card is in the chat
+
+
+@pytest.mark.parametrize("resource, parent", [("topic-research", "cideas:"), ("fetchimages:amber_room_heist", "cimages:"),
+                                              ("mfetch:", "cmusic:"), ("uadd:123::0", "cdisc:"), ("jobs-unknown", None)])
+def test_a_job_card_offers_the_screen_it_came_from(db, monkeypatch, resource, parent):
+    # "Researching topic ideas" offered Cancel, Jobs and Dashboard, but no way back to Topic ideas.
+    import threading
+    bot, _ = offline_bot(db, monkeypatch)
+    cards, done = [], threading.Event()
+    monkeypatch.setattr(bot, "navigation_target", lambda: None)
+    monkeypatch.setattr(bot, "notify", lambda text, buttons=None, **k: cards.append(buttons) or 900)
+    monkeypatch.setattr(bot, "update_navigation_target", lambda target, text, buttons: cards.append(buttons) or done.set() or True)
+    bot.start_operator_job("Job", lambda: (_ for _ in ()).throw(RuntimeError("stop")), resource=resource)
+    assert done.wait(5)
+    for buttons in cards:  # the running card, then the failed one
+        flat = [b.get("callback_data") for row in buttons for b in row]
+        assert (parent in flat) if parent else not any(c in flat for c in ("cideas:", "cimages:", "cmusic:", "cdisc:"))
+        assert flat[-1] == "cdash:"   # the parent sits just above the dashboard

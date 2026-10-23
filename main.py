@@ -1326,7 +1326,7 @@ class PipelineCoordinator:
             # AI motion for the opening photo (only with a media budget; real footage and our graphics come first).
             self._check_cancel(run_id)
             scenes, motion_used = motion.apply(self.db, scenes, run_dir / "motion", memo=motion_memo, topic=topic,
-                                               allow_paid=(not dry_run) or self.paid_motion_in_dry_run)
+                                               allow_paid=(not dry_run) or self.paid_motion_in_dry_run or config.MOTION_IN_DRY_RUNS)
             payload["motion_note"] = (f"🤖 AI motion ({', '.join(motion_used)}) animates {len(motion_used)} real photo(s); "
                                       "the Reel carries the AI label") if motion_used else ""
             self._check_cancel(run_id)

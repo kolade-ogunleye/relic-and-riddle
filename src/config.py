@@ -175,6 +175,9 @@ ELEVENLABS_SPEED = float(os.getenv("ELEVENLABS_SPEED") or 1.0)
 SPEECH_SPEEDUP_MAX = max(1.0, min(1.15, float(os.getenv("SPEECH_SPEEDUP_MAX") or 1.08)))
 # Dry runs voice with the free licensed voice (Azure F0) so tests don't spend ElevenLabs credits.
 ELEVENLABS_IN_DRY_RUNS = os.getenv("ELEVENLABS_IN_DRY_RUNS", "false").lower() in ("true", "1", "yes")
+# Dry runs skip the paid AI motion clip (Veo/Kling) unless this is on: on, a dry run looks like the live
+# product (within MEDIA_MONTHLY_BUDGET_USD), so validation shows what will actually be posted.
+MOTION_IN_DRY_RUNS = os.getenv("MOTION_IN_DRY_RUNS", "false").lower() in ("true", "1", "yes")
 
 # Publisher 1: Upload-Post.com (https://docs.upload-post.com/api/upload-video/)
 UPLOAD_POST_API_KEY = os.getenv("UPLOAD_POST_API_KEY", "")

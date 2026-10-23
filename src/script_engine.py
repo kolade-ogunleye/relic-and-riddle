@@ -431,6 +431,7 @@ class ScriptEngine:
         draft is edited (not rewritten) so corrections don't introduce new, unchecked claims.
         """
         last_problems: List[str] = []
+        writer_error = ""
         if _ready():
             sheet = self._sheet(topic) if previous is not None and previous.get("fact_sheet") else None
             if revision_notes and previous and sheet:
@@ -466,7 +467,8 @@ class ScriptEngine:
                 try:
                     pkg = self._generate_with_claude(topic, feedback)
                 except LLMError as e:
-                    log.error("Claude script generation failed: %s", e)
+                    log.error("Script generation failed: %s", e)
+                    writer_error = str(e)
                     break
                 pkg = prune_graphics(pkg)  # an invalid graphic is dropped, not allowed to sink the script
                 problems = validate_structure(pkg) or spoken_length_problems(pkg)
@@ -488,6 +490,11 @@ class ScriptEngine:
         if topic["id"] in self._starved:  # too few verified facts and no curated script: skip the topic
             raise self._starved[topic["id"]]
 
+        if writer_error:  # the writer is configured but its request failed (production 2026-10-23: a timeout)
+            raise ScriptUnavailableError(
+                f"The script writer ({writer_origin()}) could not be reached for '{topic['id']}': {writer_error[:300]}. "
+                "No video was made; run it again later."
+            )
         if last_problems:  # the writer ran; say what stopped it rather than blaming configuration
             raise ScriptUnavailableError(
                 f"The script writer ({writer_origin()}) made {max_attempts} attempts for '{topic['id']}' and each failed "

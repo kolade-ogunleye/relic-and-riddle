@@ -71,6 +71,9 @@ CLAUDE_MODEL = (os.getenv("CLAUDE_MODEL") or "claude-opus-5-5").strip()
 CLAUDE_FALLBACK_MODELS = [m.strip() for m in (os.getenv("CLAUDE_FALLBACK_MODELS") or "claude-sonnet-5-5").split(",") if m.strip()]
 # Optional monthly spend cap in USD (0 = no cap). When reached: use CLAUDE_BUDGET_MODEL, or stop if empty.
 CLAUDE_MONTHLY_BUDGET_USD = float(os.getenv("CLAUDE_MONTHLY_BUDGET_USD") or 0)
+# On the free engine, Claude stands in when both free and billed Gemini fail (off by default; needs
+# ANTHROPIC_API_KEY and CLAUDE_MONTHLY_BUDGET_USD above zero, which caps it).
+CLAUDE_FALLBACK = os.getenv("CLAUDE_FALLBACK", "false").strip().lower() in ("true", "1", "yes")
 CLAUDE_BUDGET_MODEL = (os.getenv("CLAUDE_BUDGET_MODEL") or "").strip()
 
 # Second, independent fact check (runs after the first passes). Claude models in order of

@@ -39,6 +39,10 @@ def available() -> bool:
     return is_configured(GEMINI_API_KEY)
 
 
+class RequestTimedOut(GeminiError):
+    """No answer within the request's time limit (the model may be slow or overloaded)."""
+
+
 class QuotaExhausted(GeminiError):
     """The key's quota (free-tier daily limit) is used up."""
 
@@ -50,10 +54,10 @@ def _post(body: Dict[str, Any], timeout: float = 300, key: str = None) -> Dict[s
     try:
         resp = requests.post(URL, headers={"x-goog-api-key": key, "Content-Type": "application/json"},
                              json=body, timeout=timeout)
+    except requests.Timeout as e:  # the caller's own limit, not a dropped line
+        raise RequestTimedOut(f"Gemini request failed: {e}") from e
     except requests.ConnectionError as e:
-        if not isinstance(e, requests.Timeout):  # a timeout is the caller's own limit, not a dropped line
-            raise ConnectionDropped(f"Gemini request failed: {e}") from e
-        raise GeminiError(f"Gemini request failed: {e}") from e
+        raise ConnectionDropped(f"Gemini request failed: {e}") from e
     except requests.RequestException as e:
         raise GeminiError(f"Gemini request failed: {e}") from e
     if resp.status_code == 429:
@@ -228,10 +232,10 @@ def structured(system: str, prompt: Union[str, list], schema: Type[T], model: st
         try:
             resp = requests.post(url, headers={"x-goog-api-key": target_key, "Content-Type": "application/json"},
                                  json=body, timeout=timeout or vision_timeout(n_images))
-        except requests.ConnectionError as e:
-            if not isinstance(e, requests.Timeout):  # a dropped line, not a slow answer: safe to send again
-                raise ConnectionDropped(f"Gemini vision request failed: {e}") from e
-            raise GeminiError(f"Gemini vision request failed: {e}") from e
+        except requests.Timeout as e:
+            raise RequestTimedOut(f"Gemini vision request failed: {e}") from e
+        except requests.ConnectionError as e:  # a dropped line, not a slow answer: safe to send again
+            raise ConnectionDropped(f"Gemini vision request failed: {e}") from e
         except requests.RequestException as e:
             raise GeminiError(f"Gemini vision request failed: {e}") from e
         if resp.status_code == 429:

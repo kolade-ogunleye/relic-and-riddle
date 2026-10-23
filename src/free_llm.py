@@ -133,6 +133,18 @@ def structured(system: str, prompt, schema: Type[T], role: str = "writer", attem
             log.info("Free model %s connection dropped (attempt %d); retrying in %.0fs.", model, attempt, delay)
             time.sleep(delay)
             delay *= 2
+        except gemini.RequestTimedOut as e:
+            # No answer in time (production's 2026-10-23 run lost its script to one 300 s timeout). Sent
+            # again with backoff; an operator-facing call (its own short timeout) gives way instead, and a
+            # long task that keeps timing out is treated like an overloaded model: the capped billed key.
+            if attempt == attempts:
+                if timeout:
+                    raise LLMError(f"Free model {model} failed: {e}") from e
+                return _paid_fallback(system, prompt, schema, model, task_class,
+                                      f"The free model {model} did not answer in time ({attempts} attempts)")
+            log.info("Free model %s timed out (attempt %d); retrying in %.0fs.", model, attempt, delay)
+            time.sleep(delay)
+            delay *= 2
         except gemini.GeminiError as e:
             if "overloaded" not in str(e).lower() and "503" not in str(e):
                 raise LLMError(f"Free model {model} failed: {e}") from e
@@ -154,13 +166,30 @@ def call(system: str, prompt, schema: Type[T], role: str = "writer", task_class:
     interactive: an operator is waiting (/ask, issue triage): one retry and a short request timeout, so a
     stalled free model gives way to the caller's fallback in about a minute instead of five. A timeout is
     not a quota error, so it never triggers the billed fallback."""
+    from .llm import structured_call
     if enabled():
         if interactive:
             return structured(system, prompt, schema, role=role, task_class=task_class, attempts=2,
                               timeout=INTERACTIVE_TIMEOUT)
-        return structured(system, prompt, schema, role=role, task_class=task_class)
-    from .llm import structured_call
+        try:
+            return structured(system, prompt, schema, role=role, task_class=task_class)
+        except LLMError as e:
+            if not claude_fallback_ready():
+                raise
+            # Last resort, only when switched on (CLAUDE_FALLBACK) and within CLAUDE_MONTHLY_BUDGET_USD,
+            # which structured_call enforces: the free and billed Gemini paths both failed.
+            log.warning("Gemini failed (%s); using Claude as the last resort for this task.", e)
+            return structured_call(system, prompt, schema, **claude_kwargs)
     return structured_call(system, prompt, schema, **claude_kwargs)
+
+
+def claude_fallback_ready() -> bool:
+    """Claude may stand in for a failed Gemini call: switched on, a key, and a monthly cap above zero
+    (a cap of 0 means "no cap" to structured_call, so it never enables an uncapped fallback)."""
+    if not (config.CLAUDE_FALLBACK and config.CLAUDE_MONTHLY_BUDGET_USD > 0 and ALLOW_PAID_FALLBACK):
+        return False
+    from .llm import claude_available
+    return claude_available()
 
 
 def claude_engine() -> bool:

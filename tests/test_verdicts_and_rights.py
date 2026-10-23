@@ -27,3 +27,12 @@ def test_public_domain_needs_its_source_page_not_a_licence_url():
 
 def test_a_bare_pd_licence_counts_as_public_domain():
     assert rights_evidence_ok({"license": "PD", "source_url": "https://x"})
+
+
+def test_a_video_check_issue_says_where_it_is_in_the_video():
+    # The card named "beat 9" only; the reviewer could not find it (the photo sheet is the pool, not beats).
+    from src.video_qa import QAReport, qa_summary_html
+    report = QAReport.model_validate({"issues": [{"beat": 9, "severity": "major", "issue": "Wrong picture."}], "summary": "s"})
+    beats = [{"start": 4.6 * i, "end": 4.6 * (i + 1), "text": "x"} for i in range(11)]
+    assert "beat 9, 0:36-0:41: Wrong picture." in qa_summary_html(report, beats)
+    assert "beat 9: Wrong picture." in qa_summary_html(report)  # without beats, as before

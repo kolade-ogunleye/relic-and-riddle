@@ -137,8 +137,17 @@ def review_render(video: Path, beats: List[Dict[str, Any]], cover: Path, work_di
         return None
 
 
-def qa_summary_html(report: Optional[QAReport]) -> str:
+def qa_summary_html(report: Optional[QAReport], beats: Optional[List[Dict[str, Any]]] = None) -> str:
+    """The card's video check. With the run's beats, each issue says where it is in the video ("beat 9,
+    0:37-0:41"), so the reviewer can find it (the card named only the beat number)."""
     import html
+
+    def at(beat: int) -> str:
+        if not beats or not 1 <= beat <= len(beats):
+            return ""
+        b = beats[beat - 1]
+        clock = lambda s: f"{int(s // 60)}:{int(s % 60):02d}"  # noqa: E731
+        return f", {clock(b['start'])}-{clock(b['end'])}"
     if report is None:
         return "🔎 Automated video check: not run"
     if not report.issues:
@@ -147,7 +156,7 @@ def qa_summary_html(report: Optional[QAReport]) -> str:
     order = {"critical": 0, "major": 1, "minor": 2}
     lines = [f"🔎 Automated video check: {len(report.issues)} issue(s)"]
     for i in sorted(report.issues, key=lambda x: order.get(x.severity.lower(), 99))[:6]:
-        where = "cover" if i.beat == 0 else f"beat {i.beat}"
+        where = "cover" if i.beat == 0 else f"beat {i.beat}{at(i.beat)}"
         sev = i.severity.lower()
         lines.append(f"{icon.get(sev, '·')} {html.escape(where)}: {html.escape(i.issue)}")
     return "\n".join(lines)

@@ -1416,7 +1416,7 @@ class PipelineCoordinator:
         self._check_cancel(run_id)
         review_mp4 = self.video_composer.make_review_proxy(master_mp4, run_dir / "review_proxy.mp4")
         timer.record("review_proxy", time.perf_counter() - t0)
-        payload["qa_summary"] = qa_summary_html(qa)
+        payload["qa_summary"] = qa_summary_html(qa, beats)
         (run_dir / "qa_report.json").write_text(qa.model_dump_json(indent=2) if qa else "null", encoding="utf-8")
         log.info("%s", re.sub(r"<[^>]+>", "", payload["qa_summary"]).replace("\n", " | "))
         self._verify_final_copy(payload, topic)

@@ -30,6 +30,14 @@
   `docs/deployment-reconciliation.md` for the current ownership and backlog.
   Deployment uses approved host administration; source ownership does not grant
   the daily SSH user administrative privileges.
+- Once the release deployer is installed (`docs/deployment.md`, "Automatic
+  release deployment"), production installs signed release tags itself as
+  `LAB\rr-deploy$`. A smartcard-signed tag is the release approval: sign only a
+  commit that passed the full suite and the development test, and never sign on
+  the operator's behalf without their go-ahead for that release. Do not weaken
+  the signer list, the idle gate or the rollback to get a release out; the
+  elevated promotion procedure stays the fallback and is required to install or
+  change the deployer and launcher.
 - Address Telegram defects before an end-to-end production episode/approval run.
   Focused runtime/provider acceptance checks and release reconciliation may be
   performed independently when requested. An empty issue table or an old

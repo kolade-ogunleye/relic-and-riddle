@@ -77,6 +77,12 @@ def no_real_services(monkeypatch):
     monkeypatch.setattr("src.audio_engine.AZURE_SPEECH_KEY", "")
     monkeypatch.setattr("src.audio_engine.AZURE_SPEECH_REGION", "")
     monkeypatch.setattr("src.control.HEALTHCHECK_PING_URL", "")
+    # Every credential the log masker knows, blanked in config too: a failing test once printed a real key.
+    from src import config as _config
+    from src.ops import SecretMasker
+    for _name in SecretMasker.SECRET_NAMES:
+        monkeypatch.setattr(_config, _name, "")
+    monkeypatch.setattr("src.config.COMMONS_CONTACT", "")
 
     def blocked(*args, **kwargs):
         raise RuntimeError("Tests may not open real network connections; mock the call instead.")

@@ -71,8 +71,8 @@ def test_music_review_flow(library, db):
     assert "Kept" in h("mkeep", key)
     btn2 = sent[-1][1][0][0] if isinstance(sent[-1][1][0], list) else sent[-1][1][0]
     key2 = btn2["callback_data"].split(":")[1]
-    assert key2 != key and "Removed" in h("mdel", key2)
-    assert "No tracks waiting" in h("mreview", "")
+    assert key2 != key and "Removed" in h("mdel", key2)[0]
+    assert "No tracks waiting" in h("mreview", "")[0]
     lib = json.loads((library / "library.json").read_text(encoding="utf-8"))
     assert len(lib) == 3 and all(t["reviewed"] for t in lib)
 

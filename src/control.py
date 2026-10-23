@@ -1191,13 +1191,14 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 reply = "✅ " + html.escape(music.approve_track(args))
             elif command == "mdel":
                 reply = "🗑 " + html.escape(music.remove_track(args))
-            elif command == "mcancel":
-                return f"✖ Music review cancelled for <i>{html.escape(args)}</i>. Track remains pending."
+            elif command == "mcancel":  # Cancel on cards from earlier releases: up to the Music menu
+                return handle("musicmenu", "")
+            to_music = {"text": "← Music", "callback_data": "musicmenu:"}
             pending = music.pending_tracks()
             if not pending:
                 approved = sum(1 for t in music.load_library() if t.get("reviewed"))
                 return (reply + "\n" if reply else "") + (
-                    f"🎵 No tracks waiting for review ({approved} approved). Open Music → Find new tracks.")
+                    f"🎵 No tracks waiting for review ({approved} approved). Find new tracks from Music."), [[to_music], [HOME]]
 
             cur_idx = 0
             if command == "mnext":
@@ -1220,13 +1221,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     {"text": "🗑 Remove Track", "callback_data": f"mdel:{key}"},
                 ]
             ]
-            if len(pending) > 1:
-                buttons.append([
-                    {"text": "⏭ Next Track", "callback_data": f"mnext:{key}"},
-                    {"text": "✖ Cancel", "callback_data": f"mcancel:{key}"},
-                ])
-            else:
-                buttons.append([{"text": "✖ Cancel", "callback_data": f"mcancel:{key}"}])
+            # Leaving the review goes up one level (the track stays waiting), not all the way to the dashboard.
+            buttons.append([{"text": "⏭ Next Track", "callback_data": f"mnext:{key}"}, to_music] if len(pending) > 1 else [to_music])
             buttons.append([HOME])
 
             if send_audio is None or not send_audio(music.MUSIC_DIR / nxt["file"], (reply + "\n\n" if reply else "") + music.review_caption(nxt, len(pending)), buttons):

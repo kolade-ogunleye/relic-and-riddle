@@ -94,6 +94,17 @@ def interleave(ranked_lists: list) -> list:
 
 def fetch_topic(topic: dict, spec: dict, allow_sa: bool, target_images: int = TARGET_IMAGES,
                 assets_dir: Optional[Path] = None) -> int:
+    """Openly licensed images first (public domain, CC0, CC BY). CC BY-SA, when allowed, only fills what is
+    still missing afterwards: a video that uses one must itself be released under CC BY-SA, so most
+    videos should not need one. Returns the topic's image count."""
+    count = _fetch_pass(topic, spec, False, target_images, assets_dir)
+    if allow_sa and count < target_images:
+        count = _fetch_pass(topic, spec, True, target_images, assets_dir)
+    return count
+
+
+def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TARGET_IMAGES,
+                assets_dir: Optional[Path] = None) -> int:
     from src.operator_jobs import checkpoint
     checkpoint()
     topic_dir = (assets_dir or ASSETS_DIR) / topic["id"]  # resolved per call, never frozen at import

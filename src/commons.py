@@ -223,10 +223,13 @@ def caption(cand: dict, max_len: int = 160) -> str:
 
 
 def best_first(cands: List[dict], keywords: Optional[List[str]] = None, place: Optional[dict] = None) -> List[dict]:
-    """Most relevant first (metadata, see relevance()), then resolution; ties keep search order."""
+    """Openly licensed before CC BY-SA (a video using a BY-SA image must itself be BY-SA), then most relevant
+    (metadata, see relevance()), then resolution; ties keep search order."""
+    from .credits import is_share_alike
     for c in cands:
         c["relevance"] = round(relevance(c, keywords or [], place), 2)
-    return sorted(cands, key=lambda c: (-c["relevance"], -(c.get("width", 0) * c.get("height", 0))))
+    return sorted(cands, key=lambda c: (is_share_alike(c.get("license", "")), -c["relevance"],
+                                        -(c.get("width", 0) * c.get("height", 0))))
 
 
 def download_jpeg(

@@ -67,3 +67,34 @@ def test_ready_commands_get_a_copy_button_and_placeholders_do_not():
     assert len(rows) == 2 and rows[1][0]["callback_data"] == "cdash:"      # the placeholder template gets none
     again = format_payload("editMessageText", {"parse_mode": "HTML", "text": text, "reply_markup": json.dumps({"inline_keyboard": rows})})
     assert len(json.loads(again["reply_markup"])["inline_keyboard"]) == 2  # never doubled on an edit
+
+
+def test_two_dashboard_refreshes_at_once_leave_one_panel(db, monkeypatch):
+    # Production 2026-10-23: at startup the dashboard card and a queued "Dashboard" tap both found the stored
+    # panel gone, and each posted a new one.
+    import threading
+    import time
+    db.set_setting('telegram_dashboard_id', '768')
+    sent, lock = [], threading.Lock()
+
+    def api(method, **kwargs):
+        data = kwargs.get('data', {})
+        if method == 'editMessageText':
+            time.sleep(0.05)  # both callers are in flight together
+            if str(data.get('message_id')) == '768':
+                raise RuntimeError('Telegram editMessageText failed: HTTP 400 Bad Request: message to edit not found')
+            return {'message_id': int(data['message_id'])}
+        if method == 'sendMessage':
+            with lock:
+                sent.append(900 + len(sent))
+                return {'message_id': sent[-1]}
+        return True
+    bot = TelegramApprovalBot(db=db, bot_token='123:abc', chat_id='555', approver_ids={'555'})
+    monkeypatch.setattr(bot, '_api', api)
+    threads = [threading.Thread(target=bot.show_dashboard, args=('🏛 Panel', [[{'text': 'x', 'callback_data': 'cdash:'}]]))
+               for _ in range(2)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert sent == [900] and db.get_setting('telegram_dashboard_id') == '900'

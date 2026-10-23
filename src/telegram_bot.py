@@ -380,8 +380,11 @@ class TelegramApprovalBot:
         return message_id
 
     def show_dashboard(self, text=None, buttons=None, fresh=False):
-        """One dashboard anchor survives /start and routine process reloads."""
-        return self._show_dashboard_locked(text, buttons, fresh)
+        """One dashboard anchor survives /start and routine process reloads. Serialized: two refreshes at
+        once (production's startup card and a queued Dashboard tap) each found the stored panel gone and
+        each posted one; under the lock the second edits the panel the first posted."""
+        with self._panel_lock:
+            return self._show_dashboard_locked(text, buttons, fresh)
 
     def _show_dashboard_locked(self, text, buttons, fresh):
         from .control import dashboard_text_and_buttons
@@ -407,7 +410,8 @@ class TelegramApprovalBot:
 
     def _typed_panel(self):
         """A typed command opens the one panel at the bottom of the chat and runs in it, as a tap would."""
-        message_id = self._show_dashboard_locked("⏳ <b>Working…</b>", [[DONE_BUTTON]], fresh=True)
+        with self._panel_lock:
+            message_id = self._show_dashboard_locked("⏳ <b>Working…</b>", [[DONE_BUTTON]], fresh=True)
         if type(message_id) is not int:
             return None
         return message_id, False, self._panel_revisions.get(message_id, 0)

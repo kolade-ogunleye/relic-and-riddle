@@ -62,3 +62,39 @@ def test_documentary_planning_ignores_a_reel_storyboard(tmp_path, monkeypatch):
     assert notes != scene_planner.STORYBOARD_NOTES
     _, _, notes = scene_planner.plan_scenes(beats, stills)
     assert notes == scene_planner.STORYBOARD_NOTES  # Reels still honour it
+
+
+def test_a_rejected_documentary_draft_is_rewritten_with_the_findings(db, tmp_path, monkeypatch):
+    import main
+
+    class Stop(Exception):
+        pass
+
+    class Visuals:
+        def get_scene_sequence(self, topic):
+            return []
+
+        def hero_image(self, media):
+            return None
+
+    feedbacks, verdicts = [], iter([(False, ["'In Mauritania.' (Act 1; untraced: no place fact)"]), (True, [])])
+
+    class Writer:
+        def generate_deep_dive(self, topic, feedback=""):
+            feedbacks.append(feedback)
+            return type("Pkg", (), {"full_narration": "x", "acts": [], "title": "T",
+                                    "model_dump_json": lambda self, **k: "{}"})()
+
+        def verify_deep_dive_act_by_act(self, pkg, topic):
+            return next(verdicts)
+
+    def stop(title):
+        raise Stop
+    coordinator = object.__new__(main.PipelineCoordinator)
+    coordinator.db = db
+    coordinator.visual_engine, coordinator.script_engine = Visuals(), Writer()
+    monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
+    monkeypatch.setattr(main, "documentary_cover", stop)  # the first step after the script passes
+    result = coordinator.produce_deep_dive({"id": "01_topic", "title": "Topic 1"}, dry_run=True)
+    assert "fact verification failed" not in str(result)  # the second draft passed; it went on to the cover
+    assert feedbacks[0] == "" and "In Mauritania." in feedbacks[1] and len(feedbacks) == 2

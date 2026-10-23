@@ -386,8 +386,19 @@ class PipelineCoordinator:
                 deep_dive_pkg = DeepDivePackage.model_validate_json(package_path.read_text(encoding="utf-8"))
                 passed, act_issues = True, []
             else:
-                deep_dive_pkg = self.script_engine.generate_deep_dive(topic)
-                passed, act_issues = self.script_engine.verify_deep_dive_act_by_act(deep_dive_pkg, topic)
+                # Like the Reel, a rejected draft is rewritten with the checker's findings (up to 3 drafts);
+                # one shot failed Richat on a single untraced place name after 10 minutes of writing.
+                feedback = ""
+                for draft in range(1, 4):
+                    self._check_cancel(run_id)
+                    deep_dive_pkg = self.script_engine.generate_deep_dive(topic, feedback=feedback)
+                    passed, act_issues = self.script_engine.verify_deep_dive_act_by_act(deep_dive_pkg, topic)
+                    log.info("Deep-dive draft %d: %s", draft, "all acts trace to the fact sheet" if passed
+                             else f"REJECTED ({len(act_issues)} finding(s))")
+                    if passed:
+                        break
+                    feedback = ("The fact checker rejected these sentences; remove or reword each so it states only "
+                                "what the fact sheet says:\n" + "\n".join(f"- {i}" for i in act_issues))
                 if passed:
                     package_path.write_text(deep_dive_pkg.model_dump_json(indent=2), encoding="utf-8")
                     checkpoints.complete("deep_script", script_inputs, [package_path])

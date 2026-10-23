@@ -36,6 +36,30 @@ from .topic_store import serialized
 log = logging.getLogger(__name__)
 
 PAUSED_KEY = "scheduler_paused"
+# Set by the production launcher: where /deploy leaves its request for the release deployer, and
+# where the deployer reports what it is doing.
+DEPLOY_REQUEST_ENV = "RELIC_DEPLOY_REQUEST"
+DEPLOY_STATUS_ENV = "RELIC_DEPLOY_STATUS"
+
+
+def request_deploy(db: PipelineDatabase) -> str:
+    """/deploy: asks the release deployer to look for a signed release now instead of at its next
+    2-minute check. It still installs only a signed release, only when production is idle, and only
+    after the tests pass on this machine."""
+    import os
+    target = os.environ.get(DEPLOY_REQUEST_ENV)
+    if not target:
+        return "🚀 Automatic deployment runs on production only; this bot installs nothing."
+    Path(target).write_text(json.dumps({"at": datetime.now(timezone.utc).isoformat(), "by": "telegram"}), encoding="utf-8")
+    text = ("🚀 <b>Deployment check requested.</b> The deployer looks for a new signed release within a minute. "
+            "It installs one only when nothing is running, reviewing or due, and only after its tests pass here; "
+            "I'll report the outcome when the daemon restarts on it.")
+    try:
+        status = json.loads(Path(os.environ.get(DEPLOY_STATUS_ENV, "")).read_text(encoding="utf-8-sig"))
+        text += f"\n\nLast deployer status: {html.escape(str(status.get('Status', '')))[:400]}"
+    except (OSError, ValueError):
+        pass
+    return text
 
 SendPhoto = Callable[[Path, str, Optional[list]], bool]
 HOME = {"text": "← Dashboard", "callback_data": "cdash:"}
@@ -1386,6 +1410,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command == "pause":
             db.set_setting(PAUSED_KEY, "true")
             return "⏸ Scheduled runs and posts paused. Send /resume to re-enable."
+        if command == "deploy":
+            return request_deploy(db), [[HOME]]
         if command == "resume":
             db.set_setting(PAUSED_KEY, "false")
             return f"▶️ Scheduled runs and posts resumed. Next: {html.escape(next_run() or 'not scheduled')}"

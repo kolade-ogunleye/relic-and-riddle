@@ -108,3 +108,55 @@ model and the new dependency wheels, so the stopped window is short. Production 
 the release does not change (fact sheets, credits, music usage) keep their local changes. The
 procedure never changes `.env`, identities, ACLs or the backup task, and production stays in
 `--dry-run`. Rollback: the same procedure with the previous tag.
+
+## Automatic release deployment
+
+Once installed, production installs signed releases itself; promotion needs no administrator and
+nothing connects to the VM. Signing the release tag with the operator's smartcard is the approval.
+
+| Piece | Where | Runs as |
+| --- | --- | --- |
+| Release deployer `Invoke-ContentReleaseDeployer.ps1` (+ `lib/ContentReleaseDeployer.ps1`) | `ContentRuntime\tools\deploy` | `LAB\rr-deploy$`, task `RelicAndRiddle-ReleaseDeployer-Unattended`, every minute |
+| Hold-aware launcher `runtime/Start-ContentVmWorkload.ps1` (+ `lib/ContentReleaseHold.ps1`) | `ContentRuntime\tools` | `LAB\rr-pipeline$` (the existing managed task) |
+| Idle gate `scripts/release_gate.py` | the running release | the deployer, database read-only |
+| Pinned signer `release/allowed_signers`, GitHub host keys `release/github_known_hosts` | `ContentRuntime\tools\deploy` | read-only to the deployer |
+
+**Cycle.** The deployer checks GitHub every 2 minutes (or within a minute of `/deploy` in the
+production bot) for a tag newer than the running one (`v1.2.3`, `v1.2.3-rcN`; a final release
+follows its candidates). It installs it only when:
+1. the annotated tag carries an SSH signature from the pinned signer (anything else is refused
+   and never retried);
+2. the release's offline suite passes in a worktree beside production;
+3. production is idle: no run producing, awaiting review or approved, no open review, no post due
+   within an hour, no daemon job holding a busy lease, clear of the daily run (45 minutes before
+   to 15 after), and no backup running.
+
+It then writes `control\Pipeline.hold`. The launcher stops the daemon's worker tree while the
+managed task keeps running, the deployer checks the release out (installing changed
+requirements), and the launcher runs the suite again under `LAB\rr-pipeline$` with production's
+own `.env`. On a pass the hold is cleared, the daemon restarts on the release and must still be
+running 3 minutes later. Any failure returns the tree to the previous release, clears the hold and
+records the tag as refused. An interrupted deployment is rolled back on the deployer's next start.
+
+**Reporting.** Each outcome goes to `control\release.json`, which the daemon announces in
+Telegram once, and to the Application log: 5010 installed, 5011 refused or rolled back (both
+below the paging threshold; production is on a working release), 5001 if a failed release could
+not be restored and the pipeline stays held (pages). `logs\Deploy\status.json` shows what the
+deployer is doing; `/deploy` includes it in its reply.
+
+**Boundaries.** The deployer's account is denied `.env`, has no administrator membership, cannot
+change its own installed copy, the signer list or the tasks, and never changes identities, ACLs,
+the database or the backup. Production keeps `daemon --dry-run`. A tree that is not at a release
+tag (a manual change) pauses automatic deployment until a release is installed again.
+
+**Releasing.** Tag a reviewed commit and sign it with the smartcard key:
+`git -c gpg.format=ssh -c gpg.ssh.program=C:/Windows/System32/OpenSSH/ssh-keygen.exe -c user.signingkey="key::$(ssh-add -L)" tag -s v1.0.0-rcN -m "v1.0.0-rcN"`
+(Windows OpenSSH reaches the card through its agent; Git's bundled `ssh-keygen` does not),
+then push the tag. Only sign what passed the suite and the development test. To roll back, sign a
+new tag on the previous good commit; for an emergency, the elevated procedure above still works.
+
+**Installation (once).** Lab plays 50, 51 and 54 provide `LAB\rr-deploy$` and its permissions.
+Then a one-time elevated step, run while the pipeline is stopped during a promotion, installs the
+launcher and deployer, generates the read-only deploy key (its public half is added to the
+repository as a read-only deploy key) and registers the deployer task. That installer is not
+written yet; until it exists, releases use the elevated procedure above.

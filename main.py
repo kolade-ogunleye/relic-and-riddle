@@ -21,6 +21,7 @@ Usage:
 
 import argparse
 import concurrent.futures
+import contextlib
 import html
 import json
 import re
@@ -1840,6 +1841,59 @@ def run_in_worker(content_format: str, dry_run: bool, schedule_posts: bool, time
         Path(result_path).unlink(missing_ok=True)
 
 
+@contextlib.contextmanager
+def busy_lease(db: PipelineDatabase, job: str):
+    """Marks a daemon job as running, so the release deployer (scripts/release_gate.py) never stops
+    production in the middle of it. A lease left by a process that died is cleared at daemon startup."""
+    key = "busy:" + job
+    try:
+        db.set_setting(key, json.dumps({"pid": os.getpid(), "started": datetime.now(timezone.utc).isoformat()}))
+    except Exception as e:
+        log.debug("Could not record the %s lease: %s", job, e)
+    try:
+        yield
+    finally:
+        try:
+            db.set_setting(key, "")
+        except Exception as e:
+            log.debug("Could not clear the %s lease: %s", job, e)
+
+
+def clear_busy_leases(db: PipelineDatabase) -> None:
+    with db._conn() as conn:
+        conn.execute("UPDATE settings SET value = '' WHERE key LIKE 'busy:%'")
+
+
+RELEASE_RECEIPT_ENV = "RELIC_RELEASE_RECEIPT"  # set by the production launcher; written by the release deployer
+
+
+def announce_release(db: PipelineDatabase, bot) -> None:
+    """At daemon startup: tells the operator once what the release deployer did (a new release is
+    running, or one failed its checks and was rolled back), from the deployer's receipt."""
+    path = os.environ.get(RELEASE_RECEIPT_ENV)
+    if not path:
+        return
+    try:
+        receipt = json.loads(Path(path).read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError):
+        return
+    key = f"{receipt.get('tag')}:{receipt.get('outcome')}:{receipt.get('at')}"
+    if db.get_setting("release_announced") == key:
+        return
+    tag, running = html.escape(str(receipt.get("tag"))), html.escape(str(receipt.get("running") or ""))
+    if receipt.get("outcome") == "deployed":
+        text = (f"🚀 <b>Release {tag} is running</b> (was {html.escape(str(receipt.get('previous') or 'unknown'))}). "
+                "It was signed, passed the tests on this machine and was installed while production was idle.")
+    elif receipt.get("outcome") in ("rolled_back", "rejected"):
+        where = "is back on" if receipt.get("outcome") == "rolled_back" else "stays on"
+        text = (f"⚠️ <b>Release {tag} was not installed</b>: {html.escape(str(receipt.get('reason') or 'its checks failed'))[:400]}. "
+                f"Production {where} {running}; the release won't be retried.")
+    else:
+        return
+    bot.notify(text)
+    db.set_setting("release_announced", key)
+
+
 INTERRUPTED_GRACE_SECONDS = 30 * 60  # a run this young may still be starting (no progress record yet)
 
 
@@ -2217,6 +2271,12 @@ def main(argv=None) -> int:
         coordinator = PipelineCoordinator(schedule_posts=True)
         bot = coordinator.telegram_bot
         _report_interrupted(coordinator, bot)  # nothing runs in this process yet: any "producing" run is orphaned
+        try:  # leases left by the previous process; the schedule the release deployer keeps clear of
+            clear_busy_leases(coordinator.db)
+            coordinator.db.set_setting("daemon_schedule", json.dumps({"time": args.time, "timezone": TIMEZONE}))
+            announce_release(coordinator.db, bot)
+        except Exception as e:
+            log.warning("Could not record the daemon's release state: %s", e)
         bot.register_commands()
         run_lock = threading.Lock()  # one production run at a time (daily job or /run)
 
@@ -2231,7 +2291,8 @@ def main(argv=None) -> int:
                 return
             try:
                 # Each run in its own process: a crash costs the run, never the daemon (its bot and schedule).
-                result = run_in_worker(content_format, dry_run=args.dry_run, schedule_posts=POST_SCHEDULING)
+                with busy_lease(coordinator.db, "the production run"):
+                    result = run_in_worker(content_format, dry_run=args.dry_run, schedule_posts=POST_SCHEDULING)
                 status = result.get("status")
                 if status in ("published", "simulated", "rejected", "scheduled"):
                     ping_healthcheck()
@@ -2282,6 +2343,14 @@ def main(argv=None) -> int:
                 log.exception("Posting scheduled items failed: %s", e)
                 bot.notify(f"⚠️ Scheduled posting hit an error: {html.escape(str(e))[:300]}")
 
+        def report_release():  # a release refused before the stop window causes no restart to announce it
+            try:
+                announce_release(coordinator.db, bot)
+            except Exception as e:
+                log.debug("Release receipt check failed: %s", e)
+
+        scheduler.add_job(report_release, "interval", minutes=5, max_instances=1, coalesce=True)
+
         if POST_SCHEDULING and not args.dry_run:  # approved Reels are booked into slots; this publishes them when due
             scheduler.add_job(post_due, "interval", minutes=1, max_instances=1, coalesce=True)
 
@@ -2330,6 +2399,10 @@ def main(argv=None) -> int:
         def prebuild_fact_sheets():
             """Nightly: verified fact sheets for the next queued topics, so research (and any trouble with
             it) happens well before the daily run, not at 9:00."""
+            with busy_lease(coordinator.db, "the nightly fact-sheet build"):
+                _prebuild_fact_sheets()
+
+        def _prebuild_fact_sheets():
             from src import fact_sheet
             from src.asset_pipeline import ensure_pool
             try:  # photo pools for the next topics too, so a run never waits on review
@@ -2360,6 +2433,10 @@ def main(argv=None) -> int:
             """Nightly: recurring findings become proposals; candidate writing rules are tested on the
             eval (free quota only, a few drafts a night, never during a production run); a rule that
             wins, and any code-level proposal, is put to you as a card. Nothing is adopted without you."""
+            with busy_lease(coordinator.db, "the improvement cycle"):
+                _improvement_cycle()
+
+        def _improvement_cycle():
             from src import accounts, improve
             try:
                 pruned = coordinator.db.prune_history()
@@ -2432,7 +2509,7 @@ def main(argv=None) -> int:
                 return "A production run is in progress; try again when it finishes."
 
             def work():
-                with run_lock:  # never update packages under a running production cycle
+                with run_lock, busy_lease(coordinator.db, "package updates"):  # never under a running production cycle
                     try:
                         bot.notify(maintenance.apply(maintenance.check()))
                     except Exception as e:

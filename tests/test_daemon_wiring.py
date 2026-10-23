@@ -50,8 +50,8 @@ def test_daemon_registers_scheduled_posting(daemon_env, monkeypatch):
     monkeypatch.setattr(main, "POST_SCHEDULING", True)
     assert main.main(["daemon", "--time", "07:00"]) == 0
     jobs = FakeScheduler.instances[-1].jobs
-    interval_jobs = [(f, t, k) for f, t, k in jobs if t == "interval"]
-    assert len(interval_jobs) == 1 and interval_jobs[0][2].get("minutes") == 1
+    interval_jobs = [(f, t, k) for f, t, k in jobs if t == "interval" and k.get("minutes") == 1]
+    assert len(interval_jobs) == 1
     interval_jobs[0][0]()  # the registered job publishes due posts
     assert daemon_env == [1]
 
@@ -59,14 +59,14 @@ def test_daemon_registers_scheduled_posting(daemon_env, monkeypatch):
 def test_daemon_skips_posting_job_when_scheduling_is_off(daemon_env, monkeypatch):
     monkeypatch.setattr(main, "POST_SCHEDULING", False)
     assert main.main(["daemon", "--time", "07:00"]) == 0
-    assert not [t for _, t, _ in FakeScheduler.instances[-1].jobs if t == "interval"]
+    assert not [t for _, t, k in FakeScheduler.instances[-1].jobs if t == "interval" and k.get("minutes") == 1]
 
 
 def test_scheduled_posting_holds_while_paused(daemon_env, monkeypatch):
     monkeypatch.setattr(main, "POST_SCHEDULING", True)
     monkeypatch.setattr(main, "is_paused", lambda db: True)
     main.main(["daemon", "--time", "07:00"])
-    job = next(f for f, t, _ in FakeScheduler.instances[-1].jobs if t == "interval")
+    job = next(f for f, t, k in FakeScheduler.instances[-1].jobs if t == "interval" and k.get("minutes") == 1)
     job()
     assert daemon_env == []
 
@@ -150,7 +150,7 @@ def test_run_command_schedules_only_when_asked(monkeypatch):
 def test_daemon_dry_run_never_books_or_posts(daemon_env, monkeypatch):
     monkeypatch.setattr(main, "POST_SCHEDULING", True)
     assert main.main(["daemon", "--time", "07:00", "--dry-run"]) == 0
-    assert not [t for _, t, _ in FakeScheduler.instances[-1].jobs if t == "interval"]  # no posting job
+    assert not [t for _, t, k in FakeScheduler.instances[-1].jobs if t == "interval" and k.get("minutes") == 1]  # no posting job
 
 
 @pytest.mark.parametrize("dry", [True, False])
@@ -250,3 +250,15 @@ def test_the_run_command_writes_its_outcome_for_the_daemon(monkeypatch, tmp_path
     main.main(["run", "--dry-run", "--result-file", str(out)])
     written = json.loads(out.read_text(encoding="utf-8"))
     assert {k: written[k] for k in expected} == expected
+
+
+def test_the_daemon_reports_a_refused_release_without_restarting(daemon_env, monkeypatch):
+    # A release refused before the stop window causes no restart, so startup alone would never say so.
+    reported = []
+    monkeypatch.setattr(main, "announce_release", lambda db, bot: reported.append(db))
+    main.main(["daemon", "--time", "07:00", "--dry-run"])
+    poll = [f for f, t, k in FakeScheduler.instances[-1].jobs if t == "interval" and k.get("minutes") == 5]
+    assert len(poll) == 1
+    before = len(reported)
+    poll[0]()
+    assert len(reported) == before + 1

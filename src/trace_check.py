@@ -67,18 +67,26 @@ def _public_prose(text):
     return re.sub(r"(?im)^\s*(?:Act|Chapter)\s+\d{1,2}\s*[:–-]\s*", "", text)
 
 
+def _is_credit_or_tag(line: str) -> bool:
+    """Attribution the pipeline adds after the script is checked, and hashtags. The share-alike notice
+    is matched exactly, not by its emoji: a model-written line starting with 🎬 is still checked
+    (2026-10-23: the notice's "4.0" failed an edit of the title and first comment)."""
+    from .credits import SHARE_ALIKE_NOTICE
+    return line.startswith(("📷", "🎥", "🎵", "#")) or line.strip() == SHARE_ALIKE_NOTICE
+
+
 def surfaces(payload: Dict[str, Any]) -> List[Tuple[str, str]]:
     """Everything that gets published, as (where, text). Hashtags and credit lines are excluded."""
     out = [("title", payload.get("title", "")), ("narration", payload.get("narration_script", "")),
            ("caption", _public_prose("\n".join(ln for ln in payload.get("caption", "").splitlines()
-                                 if not ln.startswith(("📷", "🎥", "🎵", "#"))))),
+                                 if not _is_credit_or_tag(ln)))),
            ("comment", payload.get("first_comment", ""))]
     if payload.get("youtube_title"):
         out.append(("YouTube title", payload["youtube_title"]))
     if payload.get("description"):
         # Chapter timestamps are navigation markers, not numerical historical claims.
         description = _public_prose("\n".join(line for line in payload["description"].splitlines()
-            if not line.startswith(("📷", "🎥", "🎵", "#"))))
+            if not _is_credit_or_tag(line)))
         out.append(("description", description))
     if payload.get("carousel_caption"):
         out.append(("carousel caption", "\n".join(ln for ln in payload["carousel_caption"].splitlines() if not ln.startswith("#"))))

@@ -54,11 +54,15 @@ def test_edit_prompt_and_reply_reach_the_edit_action(db):
     db.create_run("run_x", "01_topic")
     key = db.run_key("run_x")
     seen = []
-    h = make_command_handler(db, lambda: None, lambda: "", run_actions={"edit": lambda r, f, t: seen.append((r, f, t)) or "ok"})
+    h = make_command_handler(db, lambda: None, lambda: "", run_actions={"edit": lambda r, changes: seen.append((r, changes)) or "ok"})
     assert f"[edit run {key}]" in h("edit", key)
     h("edittext", f"{key} title: Carved From the Top Down")
     h("edittext", f"{key} A new caption.\nSecond line.")
-    assert seen == [("run_x", "title", "Carved From the Top Down"), ("run_x", "caption", "A new caption.\nSecond line.")]
+    # Several fields in one reply (this one set the title to the whole text before).
+    h("edittext", f"{key} title: 25-Mile Sahara Eye; first comment: What do you think, guys?")
+    assert seen == [("run_x", {"title": "Carved From the Top Down"}),
+                    ("run_x", {"caption": "A new caption.\nSecond line."}),
+                    ("run_x", {"title": "25-Mile Sahara Eye", "first_comment": "What do you think, guys?"})]
 
 
 def test_account_problems_are_plain_and_specific():

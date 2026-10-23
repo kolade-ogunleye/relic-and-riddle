@@ -260,3 +260,21 @@ def test_reply_to_a_decided_card_keeps_its_run(db, tmp_path, monkeypatch):
     bot.poll_once(lambda command, args: seen.append((command, args)) or "answer")
     bot.drain()
     assert seen and seen[0][0] == "ask" and seen[0][1].startswith(f"run {db.run_key('review')} ")
+
+
+def test_an_edit_resends_the_review_copy_not_the_master(db, tmp_path, monkeypatch):
+    # The edited card failed with "A deliverable review video is required": the master (78 MB) was sent.
+    from main import PipelineCoordinator
+    root = ready_review(db, tmp_path)
+    (root / "review_proxy.mp4").write_bytes(b"small")
+    sent = []
+    coordinator = PipelineCoordinator.__new__(PipelineCoordinator)
+    coordinator.db = db
+    coordinator.topic_engine = SimpleNamespace(get_topic_by_id=db.get_topic_by_id)
+    coordinator._verify_final_copy = lambda *args: None
+    coordinator.telegram_bot = SimpleNamespace(_strip_buttons=lambda mid: None,
+                                               send_approval_request=lambda video, thumb, payload, rid: sent.append(Path(video).name))
+    monkeypatch.setattr("src.release.write_release_report", lambda run: {"checks": []})
+    result = coordinator.edit_copy("review", {"title": "New title", "first_comment": "Your view?"})
+    assert sent == ["review_proxy.mp4"] and "Title and first comment updated" in result
+    assert db.get_run("review")["script_payload"]["first_comment"] == "Your view?"

@@ -1004,7 +1004,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             payload = (db.get_run(run_id) or {}).get("script_payload") or {}
             return ("✏️ <b>Edit text</b> — reply to this message with the new wording. Start with <code>title:</code>, "
                     "<code>first comment:</code> or <code>carousel caption:</code> to change those; otherwise it replaces "
-                    "the caption. The fact check runs again on it before the card updates. On-screen text and narration "
+                    "the caption. Several at once: one per line, or separated by <code>;</code> "
+                    "(<code>title: … ; first comment: …</code>). The fact check runs again on it before the card updates. On-screen text and narration "
                     "can't be edited here (they are rendered); use Regenerate for those.\n\n"
                     f"<b>Current title:</b> {html.escape(payload.get('title', ''))}\n"
                     f"<b>Current caption:</b>\n<blockquote expandable>{html.escape(payload.get('caption', ''))}</blockquote>\n"
@@ -1013,14 +1014,18 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             key, _, text = args.partition(" ")
             fields = {"title": "title", "first comment": "first_comment", "carousel caption": "carousel_caption",
                       "caption": "caption"}
-            field, body = "caption", text.strip()
-            m = re.match(r"^(title|first comment|carousel caption|caption)\s*:\s*(.+)$", body, re.IGNORECASE | re.DOTALL)
-            if m:
-                field, body = fields[m.group(1).lower()], m.group(2).strip()
+            # Several fields in one reply ("title: X; first comment: Y", or one per line): a reply that did
+            # this set the title to the whole text (dev, 2026-10-23).
+            parts = re.split(r"(?:^|\n|;\s*)(title|first comment|carousel caption|caption)\s*:\s*",
+                             text.strip(), flags=re.IGNORECASE)
+            changes = {fields[label.lower()]: value.strip().rstrip(";").strip()
+                       for label, value in zip(parts[1::2], parts[2::2]) if value.strip()}
+            if not changes and text.strip():
+                changes = {"caption": text.strip()}  # no label: the whole reply is the caption, as before
             action = (run_actions or {}).get("edit")
             if action is None:
                 return "Editing works while the bot or daemon is running."
-            return action(db.resolve_run(key), field, body)
+            return action(db.resolve_run(key), changes)
         if command == "cimprove":
             from . import improve
             text, buttons = improve.improve_text(db)

@@ -854,26 +854,30 @@ class PipelineCoordinator:
 
     EDITABLE_FIELDS = ("caption", "title", "first_comment", "carousel_caption")
 
-    def edit_copy(self, run_id: str, field: str, text: str) -> str:
+    def edit_copy(self, run_id: str, field, text: str = "") -> str:
         """✏️ Edit text on a review card: the new wording is fact-checked like the rest of the public copy;
         if it passes, the payload, metadata and release report are updated and a fresh card replaces the old
-        one. Credit lines the caption must carry (music, CC BY images) are kept by the release gate check."""
+        one. Credit lines the caption must carry (music, CC BY images) are kept by the release gate check.
+        `field` is one field name (with `text`) or {field: text} for several, checked and re-sent together."""
+        changes = dict(field) if isinstance(field, dict) else {field: text}
         run = self.db.get_run(run_id)
         appr = self.db.get_approval(run_id) or {}
         if not run or appr.get("decision") != "pending":
             return "That run is no longer waiting for review."
-        if field not in self.EDITABLE_FIELDS or not text.strip():
+        changes = {f: v.strip() for f, v in changes.items() if f in self.EDITABLE_FIELDS and (v or "").strip()}
+        if not changes:
             return "Nothing to change."
-        if field == "title" and len(text) > 60:
-            return f"Titles are at most 60 characters (this one is {len(text)})."
+        if len(changes.get("title", "")) > 60:
+            return f"Titles are at most 60 characters (this one is {len(changes['title'])})."
         payload = dict(run["script_payload"])
-        old = payload.get(field, "")
-        payload[field] = text.strip()
+        old = {f: payload.get(f, "") for f in changes}
+        payload.update(changes)
+        names = " and ".join(f.replace("_", " ") for f in changes)
         topic = self.topic_engine.get_topic_by_id(run["topic_id"]) or {"id": run["topic_id"]}
         try:
             self._verify_final_copy(payload, topic)
         except ValueError as e:
-            return f"❌ Not changed: the new {field.replace('_', ' ')} failed the fact check.\n<i>{html.escape(str(e))[:500]}</i>"
+            return f"❌ Not changed: the new {names} failed the fact check.\n<i>{html.escape(str(e))[:500]}</i>"
         if not self.db.commit_review_copy(run_id, appr.get("revision", 0), payload):
             return "Review changed while checking the edit. Nothing was changed; open the current review."
         run_dir = Path(run["master_video_path"]).parent
@@ -883,10 +887,15 @@ class PipelineCoordinator:
         report = write_release_report(self.db.get_run(run_id))
         if appr.get("telegram_message_id"):
             self.telegram_bot._strip_buttons(appr["telegram_message_id"])
-        self.telegram_bot.send_approval_request(Path(run["master_video_path"]), Path(run["thumbnail_cover_path"] or Path(run["master_video_path"]).parent / "thumbnail_cover.jpg"), payload, run_id)
-        log.info("Edited %s of %s: %r -> %r", field, run_id, old[:60], text[:60])
+        # The review copy, as every re-send uses: the master (78 MB) was over Telegram's upload limit, so the
+        # edited card failed with "A deliverable review video is required" (dev, 2026-10-23).
+        proxy = run_dir / "review_proxy.mp4"
+        video = proxy if proxy.is_file() else Path(run["master_video_path"])
+        self.telegram_bot.send_approval_request(video, Path(run["thumbnail_cover_path"] or run_dir / "thumbnail_cover.jpg"), payload, run_id)
+        for f in changes:
+            log.info("Edited %s of %s: %r -> %r", f, run_id, old[f][:60], changes[f][:60])
         open_checks = [c["name"] for c in report.get("checks", []) if c.get("status") != "pass"]
-        return (f"✅ {field.replace('_', ' ').capitalize()} updated and fact-checked; the new card is below."
+        return (f"✅ {names[:1].upper() + names[1:]} updated and fact-checked; the new card is below."
                 + (f" Release gate still open: {', '.join(open_checks)}." if open_checks else ""))
 
     def request_approval(self, run_id: str, dry_run: bool = False) -> Dict[str, Any]:

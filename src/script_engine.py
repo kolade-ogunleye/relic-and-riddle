@@ -194,8 +194,17 @@ def _similar(a: str, b: str) -> float:
     return difflib.SequenceMatcher(None, norm(a), norm(b)).ratio() if a.strip() and b.strip() else 0.0
 
 
+# "Extraterrestrial" is also impact science's word for something from space ("once considered an
+# extraterrestrial impact crater": a Richat draft was rejected for it). Followed by one of these, within a
+# word, it is the science, not the trope; anywhere else it is still rejected.
+_SCIENTIFIC_EXTRATERRESTRIAL = re.compile(
+    r"\bextraterrestrial\s+(?:\w+\s+)?(?:impacts?|impactors?|meteorites?|asteroids?|comets?|bolides?|bod(?:y|ies)|"
+    r"objects?|material|dust|craters?)\b", re.IGNORECASE)
+
+
 def find_banned_tropes(text: str) -> List[str]:
-    return [t for t in BANNED_TROPES if re.search(r"\b" + re.escape(t) + r"\b", text, re.IGNORECASE)]
+    checked = _SCIENTIFIC_EXTRATERRESTRIAL.sub("", text)
+    return [t for t in BANNED_TROPES if re.search(r"\b" + re.escape(t) + r"\b", checked, re.IGNORECASE)]
 
 
 # The licensed voice (Azure) may differ slightly from the edge-tts measurement of the same neural

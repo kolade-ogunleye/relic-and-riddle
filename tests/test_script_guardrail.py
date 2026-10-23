@@ -280,3 +280,12 @@ def test_a_slow_voice_never_leaves_the_writer_without_a_valid_length(curated_pay
     fits = draft(target)
     assert script_engine.spoken_length_problems(fits) == []
     assert not any("words" in p for p in validate_structure(fits))  # and the word check accepts it
+
+
+def test_extraterrestrial_as_impact_science_is_not_the_trope():
+    # A Richat draft was rejected for "once considered an extraterrestrial impact crater".
+    from src.script_engine import find_banned_tropes
+    assert find_banned_tropes("The feature was once considered an extraterrestrial impact crater.") == []
+    assert find_banned_tropes("Iron from an extraterrestrial meteorite.") == []
+    assert find_banned_tropes("Some claim extraterrestrial visitors built it.") == ["extraterrestrial"]
+    assert find_banned_tropes("Built by aliens.") == ["aliens"]

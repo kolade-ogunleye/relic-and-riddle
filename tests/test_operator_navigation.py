@@ -407,3 +407,23 @@ def test_uploads_keep_one_timeout_and_small_calls_fail_fast_on_connect(monkeypat
 def test_progress_for_a_run_that_no_longer_exists_is_cleared(db):
     db.set_active_progress("run_gone", "Roman Concrete", 1, 5)
     assert db.get_active_progress() is None and db.get_setting("active_progress") is None
+
+
+def test_artwork_is_never_face_blurred_even_as_a_derived_copy(tmp_path):
+    import json
+    from PIL import Image
+    from src import privacy
+    from src.lineage import record_derived
+    topic = tmp_path / "greek_fire"
+    topic.mkdir()
+    Image.new("RGB", (64, 64)).save(topic / "01_commons.jpg")
+    Image.new("RGB", (64, 64)).save(topic / "02_commons.jpg")
+    (topic / "credits.json").write_text(json.dumps({"images": [
+        {"file": "01_commons.jpg", "title": "File:Greekfire-madridskylitzes1.jpg",
+         "description": "Image from an illuminated manuscript, the Madrid Skylitzes"},
+        {"file": "02_commons.jpg", "title": "File:Istanbul harbour.jpg", "description": "Photo of the harbour", "year": 2019}]}))
+    copy = tmp_path / "upscaled_01.jpg"
+    Image.new("RGB", (128, 128)).save(copy)
+    record_derived(copy, [topic / "01_commons.jpg"], "upscale")
+    assert privacy.is_artwork(topic / "01_commons.jpg") and privacy.is_artwork(copy)
+    assert not privacy.is_artwork(topic / "02_commons.jpg")                       # a photo is still checked

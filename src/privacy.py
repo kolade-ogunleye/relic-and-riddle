@@ -120,7 +120,8 @@ def _detect_faces_cognitive_gemini(img: np.ndarray) -> List[Tuple[int, int, int,
             "Detect EVERY SINGLE living human head and face in this photograph with zero omissions. "
             "Include foreground visitors, distant background pedestrians, people in crowds, and partially occluded faces. "
             "If multiple people are standing next to or behind each other, return an individual box for each person. "
-            "Do NOT detect ancient stone carvings, statues, animal sculptures, or reliefs. "
+            "Do NOT detect ancient stone carvings, statues, animal sculptures, reliefs, or faces in paintings, "
+            "manuscripts, mosaics, frescoes, drawings, engravings or other artwork: only real people photographed. "
             "Return a JSON list of objects: [{\"box_2d\": [ymin, xmin, ymax, xmax], \"label\": \"face\"}] "
             "where coordinates are normalized integers in [0, 1000]."
         )
@@ -177,7 +178,8 @@ def _is_living_human_candidate(img: np.ndarray, box: Tuple[int, int, int, int]) 
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
             prompt_text = (
                 "Is there a real modern living human person in this crop whose face is visible? "
-                "Distinguish living humans from ancient stone/rock carvings, statues, or reliefs. "
+                "Distinguish living humans from ancient stone/rock carvings, statues, reliefs, and from painted, "
+                "drawn or illuminated figures (manuscripts, paintings, mosaics, frescoes, engravings). "
                 "Answer in JSON: {\"is_living_human\": bool, \"explanation\": str}"
             )
             body = {
@@ -203,7 +205,8 @@ def _is_living_human_candidate(img: np.ndarray, box: Tuple[int, int, int, int]) 
         cv2.imwrite(str(tmp_path), crop, [cv2.IMWRITE_JPEG_QUALITY, 85])
         system_prompt = (
             "You are an automated visual privacy compliance analyzer. Distinguish real modern living humans "
-            "(tourists, visitors, bystanders) from ancient carved stone statues, relief sculptures, or historical artifacts."
+            "(tourists, visitors, bystanders) from ancient carved stone statues, relief sculptures, historical artifacts, "
+            "and figures in artwork (paintings, manuscripts, mosaics, frescoes, drawings, engravings)."
         )
         content = [
             image_block(tmp_path, 384),
@@ -211,7 +214,7 @@ def _is_living_human_candidate(img: np.ndarray, box: Tuple[int, int, int, int]) 
                 "type": "text",
                 "text": (
                     "Is this cropped image showing a real living modern human person (set is_living_human=True), "
-                    "or an ancient carved stone/marble sculpture or relief (set is_living_human=False)?"
+                    "or a sculpture, relief, or a figure in a painting, manuscript or other artwork (set is_living_human=False)?"
                 ),
             },
         ]
@@ -356,6 +359,43 @@ def blur_faces_on_image(
     return out
 
 
+ARTWORK_WORDS = ("manuscript", "illuminat", "painting", "painted", "fresco", "mosaic", "engraving", "etching",
+                 "woodcut", "lithograph", "drawing", "illustration", "miniature", "tapestry", "icon", "codex",
+                 "skylitzes", "sketch", "watercolour", "watercolor", "oil on", "print by")
+
+
+def is_artwork(image_path: Path) -> bool:
+    """True when the image's own source record says it is artwork, or dates it before photography
+    could show living people (before 1880). Its figures are not real people to protect, and blurring
+    them damages the historical image (12th-century Madrid Skylitzes faces were blurred)."""
+    import json
+    image_path = Path(image_path)
+    from .lineage import sidecar
+    for _ in range(4):  # a derived copy (upscaled, cropped) is judged by the original it was made from
+        try:
+            sources = json.loads(sidecar(image_path).read_text(encoding="utf-8")).get("sources") or []
+        except (OSError, ValueError, AttributeError):
+            break
+        if len(sources) != 1:
+            break
+        image_path = Path(sources[0]["path"])
+    for credits in (image_path.parent / "credits.json", image_path.parent.parent / "credits.json"):
+        try:
+            records = json.loads(credits.read_text(encoding="utf-8")).get("images", [])
+        except (OSError, ValueError, AttributeError):
+            continue
+        for record in records:
+            if record.get("file") != image_path.name:
+                continue
+            year = record.get("year")
+            if isinstance(year, int) and year < 1880:
+                return True
+            text = " ".join(str(record.get(k) or "") for k in ("title", "description")).lower()
+            text += " " + " ".join(record.get("categories") or []).lower()
+            return any(word in text for word in ARTWORK_WORDS)
+    return False
+
+
 def blur_human_faces(
     image_path: Path,
     output_path: Optional[Path] = None,
@@ -369,6 +409,9 @@ def blur_human_faces(
     """
     image_path = Path(image_path)
     if not FACE_PRIVACY_ENABLED or not image_path.exists():
+        return image_path
+    if is_artwork(image_path):
+        log.info("Face privacy skipped for %s: its source record marks it as artwork.", image_path.name)
         return image_path
 
     # Check cache if output_path not explicitly specified

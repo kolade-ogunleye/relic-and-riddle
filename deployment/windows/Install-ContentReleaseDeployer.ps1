@@ -191,6 +191,11 @@ if ((Test-Path -LiteralPath $key) -and -not (Test-ContentFileInherits -Path $key
     Reset-ContentFileInheritance -Path $key
     Write-Step 'Deploy key now has its folder''s permissions (the deployer can read it).'
 }
+if ((Test-Path -LiteralPath $key) -and -not (Test-ContentKeyOwner -Path $key) -and
+    $PSCmdlet.ShouldProcess($key, 'Give the deploy key to the Administrators group')) {
+    Set-ContentKeyOwner -Path $key   # OpenSSH rejects a key owned by another user account
+    Write-Step 'Deploy key owned by Administrators (Windows OpenSSH requires it).'
+}
 if ((Test-Path -LiteralPath $key) -and -not (Test-ContentAclAllows -Path $key -Sid $deployer -Rights 'Read')) {
     throw "LAB\rr-deploy$ still cannot read $key; check the secrets\Deploy ACL (lab play 54)."
 }

@@ -102,6 +102,15 @@ Describe 'Deploy key access' {
         Test-ContentAclAllows -Path $key -Sid $reader -Rights 'Read' | Should -BeTrue
     }
 
+    It 'knows which key owners Windows OpenSSH accepts' {
+        # Production: "UNPROTECTED PRIVATE KEY FILE" while the key was owned by the installing admin.
+        $key = Join-Path $TestDrive "owner-$([guid]::NewGuid().ToString('n'))"
+        Set-Content -LiteralPath $key -Value 'x'
+        $mine = (Get-Acl -LiteralPath $key).GetOwner([Security.Principal.SecurityIdentifier]).Value
+        Test-ContentKeyOwner -Path $key | Should -Be ($mine -in 'S-1-5-18', 'S-1-5-32-544')
+        $script:installer.IndexOf('Reset-ContentFileInheritance -Path $key') | Should -BeLessThan $script:installer.IndexOf('Set-ContentKeyOwner -Path $key')
+    }
+
     It 'resets the key after generating it, and refuses if the deployer still cannot read it' {
         $script:installer.IndexOf('Generate the read-only deploy key') | Should -BeLessThan $script:installer.IndexOf('Reset-ContentFileInheritance -Path $key')
         $script:installer | Should -Match 'still cannot read \$key'
@@ -161,10 +170,13 @@ Describe 'Installer safety' {
 
     It 'never changes identities, ACLs or the workload tasks, and never starts the deployer' {
         $script:installer | Should -Not -Match 'Set-Acl|SetAccessRule|AddAccessRule|SetAccessControl|icacls'
-        # Its one permission change returns its own deploy key to the lab's folder ACL; it grants nothing.
+        # Its only permission changes are to its own deploy key: back to the lab's folder ACL, and owned
+        # by Administrators as Windows OpenSSH requires. It grants nothing.
         $library = Get-Content -LiteralPath (Join-Path $PSScriptRoot '../lib/ContentDeployerInstall.ps1') -Raw
-        $library | Should -Not -Match 'Set-Acl|SetAccessRule|AddAccessRule|SetAccessControl|/grant|/deny|/setowner|/inheritance'
-        @([regex]::Matches($library, 'icacls\.exe[^\n]*') | ForEach-Object Value) | Should -Be @("icacls.exe') -ArgumentList @(`$Path, '/reset', '/Q')")
+        $library | Should -Not -Match 'Set-Acl|SetAccessRule|AddAccessRule|SetAccessControl|/grant|/deny|/inheritance'
+        @([regex]::Matches($library, 'icacls\.exe[^\n]*') | ForEach-Object Value) | Should -Be @(
+            "icacls.exe') -ArgumentList @(`$Path, '/reset', '/Q')",
+            "icacls.exe') -ArgumentList @(`$Path, '/setowner', '*S-1-5-32-544', '/Q')")
         $script:installer | Should -Not -Match 'New-ADServiceAccount|Install-ADServiceAccount|Add-LocalGroupMember|ntrights'
         $script:installer | Should -Not -Match 'Start-ScheduledTask|\.Run\(|schtasks'
         $script:installer | Should -Not -Match "RegisterTaskDefinition\('RelicAndRiddle-Production"

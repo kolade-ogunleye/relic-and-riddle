@@ -64,6 +64,22 @@ function Reset-ContentFileInheritance {
     if ($result.ExitCode -ne 0) { throw "Resetting the permissions of $Path failed (exit $($result.ExitCode)): $($result.Stderr.Trim())" }
 }
 
+function Test-ContentKeyOwner {
+    # Windows OpenSSH refuses a private key ("UNPROTECTED PRIVATE KEY FILE") unless its owner is
+    # SYSTEM, Administrators or the account using it. An elevated administrator's new file is owned by
+    # that administrator's own account, which the deployer's ssh rejected (2026-10-23).
+    param([Parameter(Mandatory)][string]$Path)
+    $owner = (Get-Acl -LiteralPath $Path).GetOwner([Security.Principal.SecurityIdentifier]).Value
+    return $owner -in 'S-1-5-18', 'S-1-5-32-544'
+}
+
+function Set-ContentKeyOwner {
+    # Gives the key to the built-in Administrators group (by SID, so any display language works).
+    param([Parameter(Mandatory)][string]$Path)
+    $result = Invoke-ContentNative -FilePath (Join-Path $env:SystemRoot 'System32\icacls.exe') -ArgumentList @($Path, '/setowner', '*S-1-5-32-544', '/Q')
+    if ($result.ExitCode -ne 0) { throw "Setting the owner of $Path failed (exit $($result.ExitCode)): $($result.Stderr.Trim())" }
+}
+
 function Get-ContentSignerPrincipal {
     # The principal names in an allowed_signers file (first field of each non-comment line).
     param([Parameter(Mandatory)][string]$Path)

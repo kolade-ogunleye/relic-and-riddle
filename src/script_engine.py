@@ -686,6 +686,8 @@ class ScriptEngine:
             "location": topic.get("location", {}),
             "meta_topic_categories": topic.get("meta_categories", []),
         })
+        from .topic_proposer import origin_note
+        payload["topic_origin_note"] = origin_note(topic)
         return payload
 
     def verify_claims(self, script_payload: Dict[str, Any], topic: Optional[Dict[str, Any]] = None,

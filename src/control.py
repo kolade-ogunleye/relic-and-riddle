@@ -149,7 +149,8 @@ def _add_topic_to_bank(db: PipelineDatabase, title: str, u_site=None) -> Tuple[s
         "title": title,
         "sub_theme": "Historical Curiosities & Ancient Marvels",
         "hook": f"What really lies within {title}?",
-        "location": {"name": title, "country": loc_country, "lat": loc_lat, "lon": loc_lon},
+        # latitude/longitude: the keys every reader uses (lat/lon here were never read).
+        "location": {"name": title, "country": loc_country, "latitude": loc_lat, "longitude": loc_lon},
         "key_facts": [
             f"Documented historical site: {title}",
             "Architectural or archaeological significance recognized by researchers.",
@@ -157,7 +158,9 @@ def _add_topic_to_bank(db: PipelineDatabase, title: str, u_site=None) -> Tuple[s
         ],
         "meta_categories": ["History & Philosophy", "Travel & Culture"],
         "hashtags": [f"#{slug[:20].replace('_', '')}", "#ancienthistory", "#archaeology", "#relicandriddle"],
-        "sources": [{"title": title, "url": f"https://en.wikipedia.org/wiki/{slug}"}]
+        "sources": [{"title": title, "url": f"https://en.wikipedia.org/wiki/{slug}"}],
+        "added": topic_proposer.added_record("operator", "added by title in Telegram"
+                                             + (f" (UNESCO #{u_site.id_number})" if u_site else "")),
     }
     bank["topics"].append(new_topic)
     bank["total"] = len(bank["topics"])

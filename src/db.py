@@ -149,6 +149,7 @@ class PipelineDatabase:
             """)
             # Additive migrations for databases created by earlier versions.
             self._add_column(conn, "runs", "error", "TEXT")
+            self._add_column(conn, "topics", "added_json", "TEXT")  # who added the topic, how and when
             self._add_column(conn, "runs", "parent_run_id", "TEXT")
             self._add_column(conn, "runs", "content_format", "TEXT DEFAULT 'reel'")
             self._add_column(conn, "approvals", "decided_by", "TEXT")
@@ -249,13 +250,15 @@ class PipelineDatabase:
                 cur = conn.execute("""
                 INSERT INTO topics (
                     id, title, sub_theme, hook, location_json, key_facts_json,
-                    hashtags_json, meta_categories_json, status, times_published, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'queued', 0, ?)
+                    hashtags_json, meta_categories_json, added_json, status, times_published, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', 0, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     title = excluded.title, sub_theme = excluded.sub_theme, hook = excluded.hook,
                     location_json = excluded.location_json, key_facts_json = excluded.key_facts_json,
-                    hashtags_json = excluded.hashtags_json, meta_categories_json = excluded.meta_categories_json
+                    hashtags_json = excluded.hashtags_json, meta_categories_json = excluded.meta_categories_json,
+                    added_json = excluded.added_json
                 WHERE topics.title IS NOT excluded.title OR topics.hook IS NOT excluded.hook
+                   OR topics.added_json IS NOT excluded.added_json
                    OR topics.sub_theme IS NOT excluded.sub_theme OR topics.location_json IS NOT excluded.location_json
                    OR topics.key_facts_json IS NOT excluded.key_facts_json OR topics.hashtags_json IS NOT excluded.hashtags_json
                    OR topics.meta_categories_json IS NOT excluded.meta_categories_json
@@ -263,6 +266,7 @@ class PipelineDatabase:
                     t["id"], t.get("title", ""), t.get("sub_theme", ""), t.get("hook", ""),
                     json.dumps(t.get("location", {})), json.dumps(t.get("key_facts", [])),
                     json.dumps(t.get("hashtags", [])), json.dumps(t.get("meta_categories", [])),
+                    json.dumps(t["added"]) if t.get("added") else None,
                     now,
                 ))
                 changed += cur.rowcount
@@ -282,6 +286,7 @@ class PipelineDatabase:
             "key_facts": json.loads(row["key_facts_json"] or "[]"),
             "hashtags": json.loads(row["hashtags_json"] or "[]"),
             "meta_categories": json.loads(row["meta_categories_json"] or "[]"),
+            "added": json.loads(row["added_json"] or "{}") if "added_json" in row.keys() else {},
             "status": row["status"],
             "priority": row["priority"] if "priority" in row.keys() else 0,
             "times_published": row["times_published"],

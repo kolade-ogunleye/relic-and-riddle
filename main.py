@@ -40,6 +40,7 @@ from src.control import heartbeat_text, is_paused, make_command_handler, ping_he
 from src import beat_images, callouts, config, encoding, footage, graphics, motion, post_schedule, privacy, then_now
 from src.llm import claude_available as llm_available
 from src.scene_planner import degraded_note, documentary_cuts, plan_scenes, segment_beats
+from src.topic_proposer import origin_note as topic_origin_note
 from src.upscale import ensure_all, ensure_resolution
 from src.music import music_for
 from src.parallax import render_scenes as render_parallax
@@ -482,6 +483,7 @@ class PipelineCoordinator:
 
             payload = {
                 "topic_id": tid,
+                "topic_origin_note": topic_origin_note(topic),
                 "title": deep_dive_pkg.title,
                 "youtube_title": deep_dive_pkg.youtube_title,
                 "hook": deep_dive_pkg.acts[0].narration_text[:120],

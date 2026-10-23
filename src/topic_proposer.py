@@ -169,6 +169,20 @@ def propose(db: PipelineDatabase, n: int = 3) -> List[TopicProposal]:
     return fresh
 
 
+def added_record(by: str, via: str) -> Dict[str, str]:
+    """Where a topic came from, kept with it in the bank (shown on its review card)."""
+    from datetime import datetime, timezone
+    return {"by": by, "via": via, "at": datetime.now(timezone.utc).strftime("%Y-%m-%d")}
+
+
+def origin_note(topic: Dict) -> str:
+    """The review card's line on where the topic came from."""
+    added = topic.get("added") or {}
+    if not added:
+        return "🗂 Topic origin: the original topic bank (added before origins were recorded)"
+    return f"🗂 Topic origin: {added.get('by', '?')}, {added.get('via', '?')}, {added.get('at', '?')}"
+
+
 @serialized
 def add(db: PipelineDatabase, slug: str) -> str:
     """Appends an approved proposal to the bank and its image searches."""
@@ -188,6 +202,7 @@ def add(db: PipelineDatabase, slug: str) -> str:
         "location": p.location.model_dump(), "key_facts": p.key_facts,
         "meta_categories": ["History & Philosophy", "Travel & Culture"], "hashtags": p.hashtags,
         "sources": [s.model_dump() for s in p.sources],
+        "added": added_record("research proposal", f"approved in Telegram ({len(p.sources)} sources)"),
     })
     bank["total"] = len(bank["topics"])
     queries = json.loads(QUERIES.read_text(encoding="utf-8"))

@@ -237,6 +237,19 @@ def is_attribution_line(line: str) -> bool:
     return line.startswith(("📷", "🎥", "🎵")) or line.strip() == SHARE_ALIKE_NOTICE
 
 
+def is_hashtag_line(line: str) -> bool:
+    return line.strip().startswith("#")
+
+
+def keep_hashtags(old: str, new: str) -> str:
+    """`new` copy keeps `old`'s hashtag lines unless it brings its own: the edit template leaves them
+    out (operator, 2026-10-23), so a caption sent back without any keeps the ones it had."""
+    if any(is_hashtag_line(line) for line in new.splitlines()):
+        return new
+    tags = [line for line in old.splitlines() if is_hashtag_line(line)]
+    return new.rstrip() + ("\n\n" + "\n".join(tags) if tags else "")
+
+
 def keep_attribution(old: str, new: str) -> str:
     """`new` copy with the credit lines `old` carried that `new` lacks, appended in their order: an
     edited caption must keep the attribution its licences require (the release gate checks it)."""

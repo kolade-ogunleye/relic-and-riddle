@@ -50,9 +50,10 @@ def edit_prompt(payload: Dict[str, Any], run_key: str):
     """✏️ Edit text: the current copy as a ready-to-edit template in a code block (Telegram offers Copy
     on it), plus one-tap copy buttons for the short fields. Credit lines are left out: an edited
     caption keeps them automatically. Unchanged fields sent back are ignored."""
-    from .credits import is_attribution_line
-    def own(text):
-        return "\n".join(ln for ln in (text or "").splitlines() if not is_attribution_line(ln)).strip()
+    from .credits import is_attribution_line, is_hashtag_line
+    def own(text):  # the wording only: hashtags and credits are kept for the operator
+        kept = [ln for ln in (text or "").splitlines() if not is_attribution_line(ln) and not is_hashtag_line(ln)]
+        return re.sub(r"\n{3,}", "\n\n", "\n".join(kept)).strip()
     fields = [(label, own(payload.get(key)) if "caption" in key else (payload.get(key) or "").strip())
               for label, key in EDIT_LABELS]
     template = "\n\n".join(f"{label}: {value}" for label, value in fields if value)  # a blank line between fields
@@ -61,7 +62,8 @@ def edit_prompt(payload: Dict[str, Any], run_key: str):
              "Fields you leave as they are are ignored, so you can send "
              "the whole block or only the lines you change. Each field starts with its label; a caption can run "
              "over several lines. A blank field (<code>title:</code> alone) is ignored, never emptied. "
-             "Credit lines are kept for you. The fact check runs again before the card "
+             "Hashtags and credit lines are kept for you (add a hashtag line to replace the hashtags). "
+             "The fact check runs again before the card "
              "updates. On-screen text and narration are rendered: use Regenerate for those.")
     trailer = f"\n[edit run {html.escape(run_key)}]"
     block = f"\n\n<pre><code class=\"language-text\">{html.escape(template)}</code></pre>" if template else ""

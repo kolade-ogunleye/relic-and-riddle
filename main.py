@@ -875,12 +875,14 @@ class PipelineCoordinator:
             return f"Titles are at most 60 characters (this one is {len(changes['title'])})."
         payload = dict(run["script_payload"])
         old = {f: payload.get(f, "") for f in changes}
-        from src.credits import keep_attribution
-        for f in ("caption", "carousel_caption"):  # the credits stay, whatever the new wording
+        from src.credits import keep_attribution, keep_hashtags
+        for f in ("caption", "carousel_caption"):  # hashtags (unless replaced) and credits stay
             if f in changes:
-                changes[f] = keep_attribution(old[f], changes[f])
+                changes[f] = keep_attribution(old[f], keep_hashtags(old[f], changes[f]))
         # The edit card's template carries every field: what comes back unchanged is not an edit.
-        changes = {f: v for f, v in changes.items() if v.strip() != (old[f] or "").strip()}
+        def same(a, b):  # spacing and blank lines are not edits
+            return " ".join((a or "").split()) == " ".join((b or "").split())
+        changes = {f: v for f, v in changes.items() if not same(v, old[f])}
         if not changes:
             return "Nothing changed: the text you sent matches the current copy."
         old = {f: old[f] for f in changes}

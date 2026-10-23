@@ -413,3 +413,25 @@ def test_taps_record_the_screen_each_button_was_on(db, monkeypatch):
     monkeypatch.setattr(bot, "_queue_navigation", lambda fn: None)
     bot.poll_once(lambda c, a: "")
     assert bot._panel_screen[800] == "cpropose:" and bot._panel_origin[800] == "cideas:"
+
+
+def test_an_edited_caption_keeps_its_hashtags_and_ignores_spacing(db, tmp_path, monkeypatch):
+    from main import PipelineCoordinator
+    root = ready_review(db, tmp_path)
+    (root / "review_proxy.mp4").write_bytes(b"small")
+    run = db.get_run("review")
+    original = "Old wording.\n\n#AmberRoom #LostTreasures\n\n📷 Someone | File:Room.jpg | CC BY 4.0"
+    db.update_run("review", run["status"], script_payload={**run["script_payload"], "caption": original})
+    coordinator = PipelineCoordinator.__new__(PipelineCoordinator)
+    coordinator.db = db
+    coordinator.topic_engine = SimpleNamespace(get_topic_by_id=db.get_topic_by_id)
+    coordinator._verify_final_copy = lambda payload, topic: None
+    sent = []
+    coordinator.telegram_bot = SimpleNamespace(_strip_buttons=lambda mid: None, send_approval_request=lambda *a: sent.append(1))
+    monkeypatch.setattr("src.release.write_release_report", lambda run: {"checks": []})
+    # The template's caption sent back as it was (no hashtags, no credits): not an edit.
+    assert coordinator.edit_copy("review", {"caption": "Old wording."}).startswith("Nothing changed")
+    coordinator.edit_copy("review", {"caption": "New wording."})
+    caption = db.get_run("review")["script_payload"]["caption"]
+    assert caption.startswith("New wording.") and "#AmberRoom #LostTreasures" in caption and "📷 Someone" in caption
+    assert caption.index("#AmberRoom") < caption.index("📷")

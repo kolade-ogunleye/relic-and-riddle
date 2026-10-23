@@ -121,7 +121,8 @@ def test_the_edit_card_offers_its_current_copy_to_copy(db):
     text, buttons = edit_prompt(db.get_run("run_y")["script_payload"], str(key))
     block = re.search(r"<pre><code[^>]*>(.*?)</code></pre>", text, re.S).group(1)
     assert "title: 6-Ton Amber Room Stolen in 36 Hours" in block and "first comment: What do you think?" in block
-    assert "caption: The room vanished.\nWhere did it go?\n#history" in block
+    assert "caption: The room vanished.\nWhere did it go?" in block
+    assert "#history" not in block                               # hashtags are kept automatically, not copied
     assert "📷" not in block and "CC BY-SA" not in block         # credits are kept automatically, not copied
     assert [b[0]["copy_text"]["text"] for b in buttons] == ["6-Ton Amber Room Stolen in 36 Hours", "What do you think?"]
     assert f"[edit run {key}]" in text
@@ -138,7 +139,7 @@ def test_the_copied_template_sent_back_parses_to_exactly_the_current_fields(db):
     h("edittext", f"{key} {block}")
     assert seen == [{"title": "6-Ton Amber Room Stolen in 36 Hours", "first_comment": "What do you think?",
                      "carousel_caption": "Swipe through the clues.",
-                     "caption": "The room vanished.\nWhere did it go?\n#history"}]
+                     "caption": "The room vanished.\nWhere did it go?"}]
 
 
 def test_a_blank_field_is_ignored_not_emptied(db):
@@ -198,4 +199,12 @@ def test_the_template_separates_fields_and_still_parses_back(db):
     h = make_command_handler(db, lambda: None, lambda: "", run_actions={"edit": lambda r, changes: seen.append(changes) or "ok"})
     h("edittext", f"{key} {edited}")
     assert "title" not in seen[0] and seen[0]["first_comment"] == "Thoughts?"   # blank title ignored
-    assert seen[0]["caption"] == "The room vanished.\nWhere did it go?\n#history"
+    assert seen[0]["caption"] == "The room vanished.\nWhere did it go?"
+
+
+def test_hashtags_stay_unless_the_new_caption_brings_its_own():
+    from src.credits import keep_hashtags
+    old = "Old words.\n\n#AmberRoom #WWIIHistory"
+    assert keep_hashtags(old, "New words.") == "New words.\n\n#AmberRoom #WWIIHistory"
+    assert keep_hashtags(old, "New words.\n#Mystery") == "New words.\n#Mystery"   # replaced on purpose
+    assert keep_hashtags("No tags.", "New words.") == "New words."

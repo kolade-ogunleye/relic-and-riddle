@@ -23,6 +23,14 @@ def default_licences(monkeypatch):
     monkeypatch.setattr(config, "VIDEO_FORMATS", ["reel"])
     monkeypatch.setattr(config, "YOUTUBE_SHORTS", False)
     monkeypatch.setattr(config, "SCENE_PLAN_RETRY_SECONDS", 0.0)
+    # Nor the deployment's model and dry-run choices: production's FREE_TIER_HEAVY=false and
+    # CLAUDE_FALLBACK=true failed 8 tests in rc8's on-host suite (2026-10-23), which rolled the update back.
+    monkeypatch.setattr(config, "FREE_TIER_HEAVY", True)
+    monkeypatch.setattr(config, "CLAUDE_FALLBACK", False)
+    monkeypatch.setattr(config, "GEMINI_SPARE_KEY_PERMITTED", False)
+    monkeypatch.setattr(config, "ELEVENLABS_IN_DRY_RUNS", False)
+    monkeypatch.setattr(config, "MOTION_IN_DRY_RUNS", False)
+    monkeypatch.setattr(config, "SPEECH_SPEEDUP_MAX", 1.08)
     from src import improve
     improve._buffer.clear()  # audit notes buffered by one test are not another test's findings
 

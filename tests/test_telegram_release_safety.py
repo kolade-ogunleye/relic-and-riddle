@@ -376,3 +376,40 @@ def test_a_job_card_offers_the_screen_it_came_from(db, monkeypatch, resource, pa
         flat = [b.get("callback_data") for row in buttons for b in row]
         assert (parent in flat) if parent else not any(c in flat for c in ("cideas:", "cimages:", "cmusic:", "cdisc:"))
         assert flat[-1] == "cdash:"   # the parent sits just above the dashboard
+
+
+def test_a_job_returns_to_the_exact_screen_its_button_was_on(db, monkeypatch):
+    # The general rule: whatever screen the tapped button was on is where the job card leads back to.
+    import threading
+    bot, _ = offline_bot(db, monkeypatch)
+    bot._panel_origin[700] = "cdisc:subterranean:5"       # UNESCO marvel 6 of a theme, the page the user was on
+    cards, done = [], threading.Event()
+    monkeypatch.setattr(bot, "update_navigation_target", lambda target, text, buttons: cards.append(buttons) or done.set() or True)
+    bot.start_operator_job("Adding a marvel", lambda: (_ for _ in ()).throw(RuntimeError("stop")),
+                           resource="uadd:123::5", navigation=(700, False, 1))
+    assert done.wait(5)
+    back = [b for row in cards[0] for b in row if b.get("callback_data", "").startswith("cdisc:")]
+    assert back == [{"text": "← UNESCO marvels", "callback_data": "cdisc:subterranean:5"}]
+
+
+@pytest.mark.parametrize("callback, expected", [
+    ("cideas:", "← Topic ideas"), ("imagepick:8", "← Images"), ("cdash:", None),
+    ("uadd:123::0", None), ("cpropose:", None), (None, None),   # actions are never replayed as "back"
+])
+def test_back_buttons_only_reopen_read_only_screens(callback, expected):
+    from src.telegram_bot import screen_button
+    button = screen_button(callback)
+    assert (button or {}).get("text") == expected
+    if button:
+        assert button["callback_data"] == callback
+
+
+def test_taps_record_the_screen_each_button_was_on(db, monkeypatch):
+    bot, _ = offline_bot(db, monkeypatch)
+    updates = [{"update_id": n, "callback_query": {"id": f"q{n}", "data": data, "from": {"id": 555},
+                                                   "message": {"message_id": 800, "chat": {"id": 555}}}}
+               for n, data in ((1, "cideas:"), (2, "cpropose:"))]
+    monkeypatch.setattr(bot, "_api", lambda method, **kw: updates if method == "getUpdates" else {"message_id": 800})
+    monkeypatch.setattr(bot, "_queue_navigation", lambda fn: None)
+    bot.poll_once(lambda c, a: "")
+    assert bot._panel_screen[800] == "cpropose:" and bot._panel_origin[800] == "cideas:"

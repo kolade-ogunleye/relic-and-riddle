@@ -96,6 +96,21 @@ def job_parent(resource: str) -> Optional[Dict[str, str]]:
     return {"text": found[0], "callback_data": found[1]} if found else None
 
 
+# Names for screens a job can be started from, so its back button says where it goes.
+SCREEN_NAMES = {"cideas": "Topic ideas", "cdisc": "UNESCO marvels", "cprop": "Waiting ideas", "cimages": "Images",
+                "imagepick": "Images", "cmusic": "Music", "mfmenu": "Music", "mlibrary": "Music library",
+                "creviews": "Reviews", "covers": "Covers", "ccov": "Covers", "qrefresh": "Queue",
+                "cstat": "Full status", "caudit": "Audit", "cimprove": "Improvements", "reviewpick": "Storyboards"}
+
+
+def screen_button(callback: Optional[str]) -> Optional[Dict[str, str]]:
+    """'← <screen>' back to the exact screen (and page) a callback showed. Only the read-only screens
+    named above qualify: a back button replays its callback, and replaying an action (adding a marvel,
+    starting research) would repeat it. The dashboard has its own button."""
+    name = SCREEN_NAMES.get((callback or "").partition(":")[0])
+    return {"text": f"← {name}", "callback_data": callback} if name else None
+
+
 _MASKER = SecretMasker()
 # Keep-alive connections shared by every bot thread: a new TLS connection costs ~1 s, a reused one
 # ~0.2 s. Sessions are per thread; the connection pool (thread-safe) is shared.
@@ -414,6 +429,10 @@ class TelegramApprovalBot:
         self._panel_revisions = {}
         self._panel_aliases = {}
         self._panel_media = {}
+        # The screen (callback) each panel shows, and the one it showed before the latest tap: a job a
+        # button starts returns to the screen that button was on.
+        self._panel_screen: Dict[int, str] = {}
+        self._panel_origin: Dict[int, Optional[str]] = {}
         self._panel_lock = threading.RLock()
         self._answered = {}  # callback ids already answered (insertion-ordered, bounded)
         self._last_opened = 0.0  # monotonic time of the last /start or /dashboard panel
@@ -502,6 +521,9 @@ class TelegramApprovalBot:
         self._panel_aliases[current] = new_id
         self._panel_media[new_id] = False
         self._panel_revisions[new_id] = self._panel_revisions.get(current, 0)
+        for screens in (self._panel_screen, self._panel_origin):  # the same panel, a new message
+            if current in screens:
+                screens[new_id] = screens[current]
         # The replacement is the newest screen, so it is the one panel: an older panel elsewhere goes too.
         self.db.set_setting("telegram_dashboard_id", str(new_id))
         if anchor and anchor not in (current, new_id) and anchor not in self._protected_messages():
@@ -532,7 +554,9 @@ class TelegramApprovalBot:
 
     def start_operator_job(self, title, work, resource="", navigation=None, late=False):
         destination = [navigation if navigation is not None else self.navigation_target()]
-        parent = job_parent(resource)  # one level up from the screen the job was started on
+        # Back to the screen whose button started the job; for a typed command (no panel), by what it is.
+        origin = self._panel_origin.get(self._current_panel(destination[0][0])) if destination[0] else None
+        parent = screen_button(origin) or job_parent(resource)
         up = [[parent]] if parent else []
         def announce(job):
             buttons = [[{"text": "Cancel job", "callback_data": f"jobcancel:{job['id']}"}], [{"text": "Jobs", "callback_data": "jobs:"}], *up, [DONE_BUTTON]]
@@ -1834,6 +1858,9 @@ class TelegramApprovalBot:
                             mid = self._current_panel(message["message_id"])
                             self._panel_revisions[mid] = self._panel_revisions.get(mid, 0) + 1
                             cq["_revision"] = self._panel_revisions[mid]
+                            if cq.get("data") and not cq["data"].startswith(("jobcancel:", "jobs:")):
+                                self._panel_origin[mid] = self._panel_screen.get(mid)  # where this button was
+                                self._panel_screen[mid] = cq["data"]
                             self._panel_media[mid] = bool(message.get("photo") or message.get("audio") or message.get("video") or message.get("document"))
                 msg = update.get("message") or {}
                 action = (cq or {}).get("data", "").partition(":")[0]
@@ -1996,7 +2023,10 @@ class TelegramApprovalBot:
                     try:
                         self._run_panel_command(command_handler, action, target, msg_id, is_media, revision)
                     except ValueError as exc:
-                        self.show_navigation_panel(msg_id, html.escape(str(exc)), [[{'text': 'Jobs', 'callback_data': 'jobs:'}], [DONE_BUTTON]], is_media)
+                        # "Already running" or "queue full": back to the screen this button was on, too.
+                        up = screen_button(self._panel_origin.get(self._current_panel(msg_id))) if msg_id else None
+                        self.show_navigation_panel(msg_id, html.escape(str(exc)),
+                                                   [[{'text': 'Jobs', 'callback_data': 'jobs:'}], *([[up]] if up else []), [DONE_BUTTON]], is_media)
                     return
                 if msg_id and action in DELETE_FIRST:
                     self.delete_message(msg_id)

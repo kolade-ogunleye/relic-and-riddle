@@ -289,3 +289,18 @@ def test_extraterrestrial_as_impact_science_is_not_the_trope():
     assert find_banned_tropes("Iron from an extraterrestrial meteorite.") == []
     assert find_banned_tropes("Some claim extraterrestrial visitors built it.") == ["extraterrestrial"]
     assert find_banned_tropes("Built by aliens.") == ["aliens"]
+
+
+def test_draft_bookkeeping_is_fixed_without_a_rewrite(curated_payload):
+    # Dev (2026-10-23): two Amber Room drafts were rewritten for a closing_sentence that didn't match the
+    # narration's last sentence and a 152-character caption first line holding two sentences.
+    from src.script_engine import normalize_copy
+    narration = curated_payload["narration_script"]
+    first = "The Amber Room vanished in 1945 after the siege. Nobody has found a single amber panel since then, despite eight decades of searching across Europe."
+    pkg = _pkg(curated_payload, closing_sentence="A different closing line.", caption=first + "\nMore text.")
+    fixed = normalize_copy(pkg)
+    assert narration.strip().endswith(fixed.closing_sentence)
+    assert fixed.caption.split("\n")[0] == "The Amber Room vanished in 1945 after the siege."
+    assert fixed.caption.replace("\n", " ").split() == pkg.caption.replace("\n", " ").split()  # same words
+    long_sentence = "x" * 130
+    assert normalize_copy(_pkg(curated_payload, caption=long_sentence)).caption == long_sentence  # still a rewrite

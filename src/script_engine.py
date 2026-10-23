@@ -472,11 +472,38 @@ def shorten_graphic_text(pkg: ScriptPackage) -> ScriptPackage:
     return pkg
 
 
+_SENTENCE_END = re.compile(r"(?<=[.!?])[\"'”’)]*\s+")
+
+
+def normalize_copy(pkg: ScriptPackage) -> ScriptPackage:
+    """Bookkeeping a draft gets wrong without being wrong, fixed without a rewrite (each was a full
+    model call; dev, 2026-10-23): closing_sentence is set to the narration's actual last sentence, and a
+    caption first line over 125 characters that holds several sentences is broken after the last
+    sentence that fits (same words, new line). A single sentence over the limit still needs a rewrite."""
+    update = {}
+    sentences = [s for s in _SENTENCE_END.split(pkg.narration_script.strip()) if s.strip()]
+    if sentences and not pkg.narration_script.strip().endswith(pkg.closing_sentence.strip()):
+        update["closing_sentence"] = sentences[-1].strip()
+    lines = pkg.caption.split("\n")
+    first = next((i for i, ln in enumerate(lines) if ln.strip()), None)
+    if first is not None and len(lines[first]) > 125:
+        parts = [s for s in _SENTENCE_END.split(lines[first].strip()) if s]
+        keep = []
+        for s in parts:
+            if len(" ".join(keep + [s])) > 125:
+                break
+            keep.append(s)
+        if keep and len(keep) < len(parts):
+            lines[first:first + 1] = [" ".join(keep), " ".join(parts[len(keep):])]
+            update["caption"] = "\n".join(lines)
+    return pkg.model_copy(update=update) if update else pkg
+
+
 def prune_graphics(pkg: ScriptPackage) -> ScriptPackage:
     """Drops each planned graphic that fails its structural checks (logged), keeping the script.
     Graphics are optional; one bad field shouldn't cost a whole script attempt. Over-long labels are
     first shortened; of the stat cards, only the ones that still don't fit are dropped."""
-    pkg = shorten_graphic_text(pkg)
+    pkg = normalize_copy(shorten_graphic_text(pkg))
     if pkg.stat_cards:
         fitting = [c for c in pkg.stat_cards if len(c.label) <= 40 and len(c.value) <= 22]
         if fitting and len(fitting) < len(pkg.stat_cards):

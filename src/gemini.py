@@ -31,6 +31,10 @@ class GeminiError(RuntimeError):
     pass
 
 
+class ConnectionDropped(GeminiError):
+    """The connection failed or closed before a response (not a timeout): sending again is safe."""
+
+
 def available() -> bool:
     return is_configured(GEMINI_API_KEY)
 
@@ -46,6 +50,10 @@ def _post(body: Dict[str, Any], timeout: float = 300, key: str = None) -> Dict[s
     try:
         resp = requests.post(URL, headers={"x-goog-api-key": key, "Content-Type": "application/json"},
                              json=body, timeout=timeout)
+    except requests.ConnectionError as e:
+        if not isinstance(e, requests.Timeout):  # a timeout is the caller's own limit, not a dropped line
+            raise ConnectionDropped(f"Gemini request failed: {e}") from e
+        raise GeminiError(f"Gemini request failed: {e}") from e
     except requests.RequestException as e:
         raise GeminiError(f"Gemini request failed: {e}") from e
     if resp.status_code == 429:

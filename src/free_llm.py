@@ -125,6 +125,14 @@ def structured(system: str, prompt, schema: Type[T], role: str = "writer", attem
                     log.info("Spare free key unavailable too (%s).", e2)
             return _paid_fallback(system, prompt, schema, model, task_class,
                                   f"The free Gemini quota is used up for now ({model}): {e}")
+        except gemini.ConnectionDropped as e:
+            # A dropped connection (Richat's documentary check died on one after 8 minutes): send again.
+            # It is not a quota or capacity problem, so it never moves the work to the billed key.
+            if attempt == attempts:
+                raise LLMError(f"Free model {model} failed: {e}") from e
+            log.info("Free model %s connection dropped (attempt %d); retrying in %.0fs.", model, attempt, delay)
+            time.sleep(delay)
+            delay *= 2
         except gemini.GeminiError as e:
             if "overloaded" not in str(e).lower() and "503" not in str(e):
                 raise LLMError(f"Free model {model} failed: {e}") from e

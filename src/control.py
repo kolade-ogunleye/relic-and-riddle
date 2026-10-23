@@ -39,6 +39,8 @@ PAUSED_KEY = "scheduler_paused"
 COLLAPSE_OVER = 280  # characters: longer text starts collapsed (Telegram's chevron), shorter stays plain
 
 
+EDIT_OPEN_KEY = "edit_open"   # the review an Edit card was last opened for, and when
+EDIT_OPEN_SECONDS = 30 * 60   # a pasted template without a reply counts for that review this long
 EDIT_LABELS = (("title", "title"), ("first comment", "first_comment"),
                ("carousel caption", "carousel_caption"), ("caption", "caption"))
 COPY_BUTTON_LIMIT = 256  # Telegram's copy_text button holds at most this many characters
@@ -53,9 +55,10 @@ def edit_prompt(payload: Dict[str, Any], run_key: str):
         return "\n".join(ln for ln in (text or "").splitlines() if not is_attribution_line(ln)).strip()
     fields = [(label, own(payload.get(key)) if "caption" in key else (payload.get(key) or "").strip())
               for label, key in EDIT_LABELS]
-    template = "\n".join(f"{label}: {value}" for label, value in fields if value)
+    template = "\n\n".join(f"{label}: {value}" for label, value in fields if value)  # a blank line between fields
     intro = ("✏️ <b>Edit text</b>: copy the block below (tap it or its Copy button), change what you want and "
-             "send it back as a reply to this message. Fields you leave as they are are ignored, so you can send "
+             "send it: as a reply to this message, or pasted straight into the chat within 30 minutes. "
+             "Fields you leave as they are are ignored, so you can send "
              "the whole block or only the lines you change. Each field starts with its label; a caption can run "
              "over several lines. A blank field (<code>title:</code> alone) is ignored, never emptied. "
              "Credit lines are kept for you. The fact check runs again before the card "
@@ -1087,6 +1090,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command == "edit":
             run_id = db.resolve_run(args.strip())
             payload = (db.get_run(run_id) or {}).get("script_payload") or {}
+            # A pasted template (not sent as a reply) goes to this review for a while: see EDIT_OPEN_KEY.
+            db.set_setting(EDIT_OPEN_KEY, json.dumps({"run": args.strip(), "at": clock.time()}))
             return edit_prompt(payload, args.strip())
         if command == "edittext":
             key, _, text = args.partition(" ")
@@ -1114,11 +1119,15 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             pending = db.list_pending_approvals()
             if not pending:
                 return "No reviews are waiting."
-            lines = ["🎬 <b>Reviews waiting</b> (the review card is in the chat above; Resend brings it to the bottom):"]
+            # Where the card is can't be promised: the chat may have been cleared or the card deleted.
+            lines = ["🎬 <b>Reviews waiting</b>. Resend sends a review card again at the bottom of the chat, "
+                     "with its video, and removes the earlier one if it is still there:", ""]
             buttons = []
             for p in pending[:5]:
                 lines.append(f"• {html.escape(db.run_label(p['run_id']))}")
-                buttons.append([{"text": f"📨 Resend {db.run_key(p['run_id'])}", "callback_data": f"resend:{db.run_key(p['run_id'])}"}])
+                title = (p.get("script_payload") or {}).get("title") or db.run_key(p["run_id"])
+                short = title if len(title) <= 28 else title[:27].rstrip() + "…"
+                buttons.append([{"text": f"📨 Resend: {short}", "callback_data": f"resend:{db.run_key(p['run_id'])}"}])
             return "\n".join(lines), buttons + [[HOME]]
         if command == "cstat":
             return status_text(db, next_run(), voice_quota()), [[{"text": "📈 Audience", "callback_data": "canalytics:"}], [HOME]]

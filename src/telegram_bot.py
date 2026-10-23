@@ -532,6 +532,22 @@ class TelegramApprovalBot:
             self._strip_buttons(current)
         return True
 
+    _EDIT_START = re.compile(r"^\s*(?:title|first comment|carousel caption|caption)[ \t]*:", re.IGNORECASE)
+
+    def _open_edit_for(self, text: str) -> Optional[str]:
+        """The review an Edit card was opened for in the last 30 minutes, when `text` starts with a field
+        label (a pasted template); otherwise None, and the message is handled as usual."""
+        if not text or not self._EDIT_START.match(text):
+            return None
+        from .control import EDIT_OPEN_KEY, EDIT_OPEN_SECONDS
+        try:
+            opened = json.loads(self.db.get_setting(EDIT_OPEN_KEY) or "{}")
+        except ValueError:
+            return None
+        if opened.get("run") and time.time() - float(opened.get("at") or 0) <= EDIT_OPEN_SECONDS:
+            return str(opened["run"])
+        return None
+
     def _protected_messages(self):
         """Messages that are never removed to keep one panel: review cards awaiting a decision and the
         live progress card."""
@@ -2263,6 +2279,11 @@ class TelegramApprovalBot:
         elif reply_to and re.search('\\[edit run (\\d+)\\]', reply_to.get('text') or ''):
             command = 'edittext'
             args = re.search('\\[edit run (\\d+)\\]', reply_to['text']).group(1) + ' ' + text
+            audit_payload = f'/edittext {text[:80]}'
+        elif not reply_to and self._open_edit_for(text):
+            # The edit template pasted into the chat rather than sent as a reply (operator, 2026-10-23).
+            command = 'edittext'
+            args = self._open_edit_for(text) + ' ' + text
             audit_payload = f'/edittext {text[:80]}'
         elif reply_to and re.search('\\[run (\\d+)\\]', reply_to.get('text') or '') and (reply_to.get('text') or '').startswith(('📝', '✅ Reason')):
             command = 'whytext'

@@ -4,6 +4,8 @@ reports what really blocks publishing; the dashboard leads with what needs you."
 
 import json
 import re
+
+import pytest
 from datetime import datetime, timezone
 
 from PIL import Image
@@ -145,3 +147,55 @@ def test_a_blank_field_is_ignored_not_emptied(db):
     h = make_command_handler(db, lambda: None, lambda: "", run_actions={"edit": lambda r, changes: seen.append(changes) or "ok"})
     h("edittext", f"{key} title: \nfirst comment: A new question?")
     assert seen == [{"first_comment": "A new question?"}]
+
+
+def _pasted(bot, text, seen):
+    update = {"update_id": 77, "message": {"message_id": 501, "text": text, "date": int(__import__("time").time()),
+                                           "from": {"id": 555}, "chat": {"id": 555}}}
+    bot._process_update(update, lambda command, args: seen.append((command, args)) or "ok")
+
+
+@pytest.fixture
+def paste_bot(db, monkeypatch):
+    from src.telegram_bot import TelegramApprovalBot
+    bot = TelegramApprovalBot(db=db, bot_token="123:offline", chat_id="555", approver_ids={"555"})
+    monkeypatch.setattr(bot, "_api", lambda method, **kw: {"message_id": 900})
+    return bot
+
+
+def test_a_pasted_template_goes_to_the_review_whose_edit_card_was_opened(db, paste_bot):
+    # Pasted into the chat, not sent as a reply: it used to be ignored.
+    key = _review_with_copy(db)
+    make_command_handler(db, lambda: None, lambda: "")("edit", str(key))
+    seen = []
+    _pasted(paste_bot, "title: A New Title\n\nfirst comment: Your view?", seen)
+    paste_bot.drain()
+    assert seen and seen[0][0] == "edittext" and seen[0][1].startswith(f"{key} title: A New Title")
+
+
+def test_a_paste_long_after_the_edit_card_or_without_a_label_is_not_an_edit(db, paste_bot):
+    import time as clock
+    from src.control import EDIT_OPEN_KEY, EDIT_OPEN_SECONDS
+    key = _review_with_copy(db)
+    seen = []
+    db.set_setting(EDIT_OPEN_KEY, json.dumps({"run": str(key), "at": clock.time() - EDIT_OPEN_SECONDS - 5}))
+    _pasted(paste_bot, "title: Too late", seen)
+    db.set_setting(EDIT_OPEN_KEY, json.dumps({"run": str(key), "at": clock.time()}))
+    _pasted(paste_bot, "Just a note about the title: nothing to change", seen)
+    paste_bot.drain()
+    assert not any(command == "edittext" for command, _ in seen)
+
+
+def test_the_template_separates_fields_and_still_parses_back(db):
+    import html as html_mod
+    from src.control import edit_prompt
+    key = _review_with_copy(db)
+    text, _ = edit_prompt(db.get_run("run_y")["script_payload"], str(key))
+    block = html_mod.unescape(re.search(r"<pre><code[^>]*>(.*?)</code></pre>", text, re.S).group(1))
+    assert "\n\nfirst comment:" in block and "\n\ncaption:" in block
+    edited = block.replace("title: 6-Ton Amber Room Stolen in 36 Hours", "title: ").replace("What do you think?", "Thoughts?")
+    seen = []
+    h = make_command_handler(db, lambda: None, lambda: "", run_actions={"edit": lambda r, changes: seen.append(changes) or "ok"})
+    h("edittext", f"{key} {edited}")
+    assert "title" not in seen[0] and seen[0]["first_comment"] == "Thoughts?"   # blank title ignored
+    assert seen[0]["caption"] == "The room vanished.\nWhere did it go?\n#history"

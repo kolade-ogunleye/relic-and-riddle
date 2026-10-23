@@ -5,11 +5,16 @@ The dashboard names the running release ("PRODUCTION (v1.0.0-rc11)"), read from 
 because production's account may not run git on the checkout.
 """
 
+import shutil
 import subprocess
 
 import pytest
 
 from src import release_info
+
+# These tests build small repositories with the git program. The release deployer runs the suite as an
+# account without git on its PATH, where rc12 failed on them (2026-10-23); the feature itself reads .git
+# directly and needs no git, so the fixtures are skipped there.
 
 
 def _git(repo, *args):
@@ -20,6 +25,8 @@ def _git(repo, *args):
 
 @pytest.fixture
 def repo(tmp_path):
+    if shutil.which("git") is None:
+        pytest.skip("git is not installed for this account")
     _git(tmp_path, "init", "-q")
     (tmp_path / "a.txt").write_text("1")
     _git(tmp_path, "add", "-A")

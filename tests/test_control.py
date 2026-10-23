@@ -137,7 +137,7 @@ def test_images_review_drop_approve_flow(db, tmp_path):
     name, caption, buttons = sent[-1]
     assert name == "contact_sheet.jpg" or name.endswith(".jpg")
     assert "Storyboard Beat Direction" in caption and "<code>" in caption  # each beat names its image
-    assert buttons[0]["callback_data"].startswith("imgok:03_kailasa_temple@")
+    assert buttons[0][0]["callback_data"].startswith("imgok:03_kailasa_temple@")
     assert (d / "storyboard.json").is_file()  # written beside the reviewed images, never into real assets
 
     assert "Removed 1; 5 images remain" in h("drop", "03_kailasa_temple 2")
@@ -302,10 +302,10 @@ def test_dual_resolution_serial_and_slug(tmp_path, monkeypatch):
 
     # 2. /review by serial number '1' and by slug 'gobekli_tepe_enclosure_d'
     assert h('review', '1') == ''
-    assert sent[-1][2][0]['callback_data'].startswith('imgok:gobekli_tepe_enclosure_d@')
+    assert sent[-1][2][0][0]['callback_data'].startswith('imgok:gobekli_tepe_enclosure_d@')
 
     assert h('review', 'gobekli_tepe_enclosure_d') == ''
-    assert sent[-1][2][0]['callback_data'].startswith('imgok:gobekli_tepe_enclosure_d@')
+    assert sent[-1][2][0][0]['callback_data'].startswith('imgok:gobekli_tepe_enclosure_d@')
 
     # 3. /drop by serial number '1' and by slug
     assert 'Removed 1; 5 images remain' in h('drop', '1 2')
@@ -367,14 +367,13 @@ def test_review_cancel_and_swap_visual_reorder(tmp_path):
                              send_photo=lambda p, cap, btns: sent.append((p.name, cap, btns)) or True,
                              assets_dir=assets_dir)
 
-    # 1. /review provides both Approve and Cancel buttons
+    # 1. /review offers Approve, the way back to this topic's images, and another topic
     res = h('review', '1')
     assert res == ''
-    assert len(sent[-1][2]) == 2
-    assert sent[-1][2][0]['text'] == '🎬 Approve Storyboard'
-    assert sent[-1][2][0]['callback_data'].startswith('imgok:derinkuyu@')
-    assert sent[-1][2][1]['text'] == '✖ Cancel'
-    assert sent[-1][2][1]['callback_data'].startswith('imgcancel:derinkuyu@')
+    (approve, back), (others,) = sent[-1][2]
+    assert approve['text'] == '✅ Approve' and approve['callback_data'].startswith('imgok:derinkuyu@')
+    assert back['text'] == '← Topic images' and back['callback_data'].startswith('imgcancel:derinkuyu@')
+    assert others['callback_data'] == 'imagepick:0'
 
     # 2. imgcancel callback leaves topic unreviewed
     cancel_res, back = h('imgcancel', 'derinkuyu')

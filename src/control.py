@@ -596,9 +596,11 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         write_contact_sheet(topic_dir, load_credits(topic_dir)["images"])
         from .telegram_images import review_digest
         key += "@" + review_digest(topic_dir)
+        # Up one level from the sheet: the topic's images (fetch, upload, review) or another topic.
         return send_photo(topic_dir / CONTACT_SHEET, caption,
-                          [{"text": "🎬 Approve Storyboard", "callback_data": f"imgok:{key}"},
-                           {"text": "✖ Cancel", "callback_data": f"imgcancel:{key}"}])
+                          [[{"text": "✅ Approve", "callback_data": f"imgok:{key}"},
+                            {"text": "← Topic images", "callback_data": f"imgcancel:{key}"}],
+                           [{"text": "🖼 Other topics", "callback_data": "imagepick:0"}]])
 
     def handle(command: str, args: str) -> str:
         if command == "runstop":

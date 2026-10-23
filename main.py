@@ -2057,6 +2057,7 @@ def main(argv=None) -> int:
             # With posting slots on, the worker books the approved Reel like the daemon does.
             worker_proc = subprocess.Popen(
                 [sys.executable, "-u", "main.py", "run", "--require-live", "--background-polling", "--format", content_format]
+                + (["--dry-run"] if config.BOT_RUNS_DRY else [])  # nothing posts from a bot-started run by default
                 + (["--schedule-posts"] if POST_SCHEDULING else []),
                 cwd=str(BASE_DIR),
                 stdout=subprocess.PIPE,

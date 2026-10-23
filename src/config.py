@@ -178,6 +178,10 @@ ELEVENLABS_IN_DRY_RUNS = os.getenv("ELEVENLABS_IN_DRY_RUNS", "false").lower() in
 # Dry runs skip the paid AI motion clip (Veo/Kling) unless this is on: on, a dry run looks like the live
 # product (within MEDIA_MONTHLY_BUDGET_USD), so validation shows what will actually be posted.
 MOTION_IN_DRY_RUNS = os.getenv("MOTION_IN_DRY_RUNS", "false").lower() in ("true", "1", "yes")
+# Runs started from the bot (main.py bot: development) are dry runs unless this is false: a Render there
+# started a live run, so Approve & Post would have posted to the connected accounts. Production runs the
+# daemon, whose own --dry-run flag decides.
+BOT_RUNS_DRY = os.getenv("BOT_RUNS_DRY", "true").strip().lower() in ("true", "1", "yes")
 
 # Publisher 1: Upload-Post.com (https://docs.upload-post.com/api/upload-video/)
 UPLOAD_POST_API_KEY = os.getenv("UPLOAD_POST_API_KEY", "")

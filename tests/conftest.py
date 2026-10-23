@@ -30,6 +30,7 @@ def default_licences(monkeypatch):
     monkeypatch.setattr(config, "GEMINI_SPARE_KEY_PERMITTED", False)
     monkeypatch.setattr(config, "ELEVENLABS_IN_DRY_RUNS", False)
     monkeypatch.setattr(config, "MOTION_IN_DRY_RUNS", False)
+    monkeypatch.setattr(config, "BOT_RUNS_DRY", True)
     monkeypatch.setattr(config, "SPEECH_SPEEDUP_MAX", 1.08)
     from src import improve
     improve._buffer.clear()  # audit notes buffered by one test are not another test's findings

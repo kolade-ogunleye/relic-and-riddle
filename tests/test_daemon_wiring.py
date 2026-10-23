@@ -151,3 +151,16 @@ def test_daemon_dry_run_never_books_or_posts(daemon_env, monkeypatch):
     monkeypatch.setattr(main, "POST_SCHEDULING", True)
     assert main.main(["daemon", "--time", "07:00", "--dry-run"]) == 0
     assert not [t for _, t, _ in FakeScheduler.instances[-1].jobs if t == "interval"]  # no posting job
+
+
+@pytest.mark.parametrize("dry", [True, False])
+def test_a_run_started_from_the_bot_is_a_dry_run_unless_switched_off(daemon_env, monkeypatch, dry):
+    # A Render in the development bot started a live run: Approve & Post would have published.
+    from src import config
+    monkeypatch.setattr(config, "BOT_RUNS_DRY", dry)
+    launched = []
+    trigger, _ = _bot_mode(monkeypatch, daemon_env, False)
+    monkeypatch.setattr(main.subprocess, "Popen", lambda cmd, **k: launched.append(cmd) or SimpleNamespace(
+        pid=1, poll=lambda: None, communicate=lambda: ("", ""), returncode=0))
+    trigger()
+    assert ("--dry-run" in launched[0]) is dry

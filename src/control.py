@@ -900,26 +900,13 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 else:
                     lines.append(f"◽ <b>Step {idx}/{total_steps}:</b> {m}")
 
-            bar_len = 10
-            filled = max(1, min(bar_len, int((step / total_steps) * bar_len)))
-            bar = "▰" * filled + "▱" * (bar_len - filled)
-            pct = int((step / total_steps) * 100)
-
             import time
-            now = time.time()
-            start_t = active_prog.get("start_time", now)
-            elapsed_sec = int(max(0, now - start_t))
-            elapsed_fmt = f"{elapsed_sec // 60:02d}:{elapsed_sec % 60:02d}"
-            if 0 < step < total_steps:
-                est_total = elapsed_sec / (step / total_steps)
-                rem_sec = max(0, int(est_total - elapsed_sec))
-                eta_fmt = f"~{rem_sec // 60:02d}:{rem_sec % 60:02d}"
-            else:
-                eta_fmt = "completing..." if step == total_steps else "~01:00"
-
+            from .telegram_bot import progress_figures, typical_run_seconds
+            elapsed_sec = int(max(0, time.time() - active_prog.get("start_time", time.time())))
+            bar, pct, eta = progress_figures(step, total_steps, elapsed_sec, typical_run_seconds())
             lines.append(f"\nProgress: <code>[{bar}] {pct}%</code>")
-            lines.append(f"⏱ <b>Elapsed:</b> {elapsed_fmt} • <b>ETA:</b> {eta_fmt}")
-            lines.append(f"Last stage update: {html.escape(active_prog.get('updated_at', 'unknown'))}")
+            lines.append(f"⏱ <b>Elapsed:</b> {elapsed_sec // 60:02d}:{elapsed_sec % 60:02d} · <b>Time left:</b> {eta}")
+            lines.append(f"Last stage update: {show_time(active_prog.get('updated_at'), '%H:%M:%S %Z') if active_prog.get('updated_at') else 'unknown'}")
             return "\n".join(lines)
         if command in ("ideas", "cideas"):
             text = ("💡 <b>Topic ideas</b>\n\nResearch new ones, browse UNESCO marvels, or decide on ideas "
@@ -928,7 +915,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             research = ({"text": "🧰 Research running: Jobs", "callback_data": "jobs:"} if started else
                         {"text": "🔬 Research 3 new ideas", "callback_data": "cpropose:"})
             if started:
-                text += f"\n\n🔬 <b>Research is running</b> (started {started}). Its result arrives as a message; keep browsing meanwhile."
+                text += f"\n\n🔬 <b>Research is running</b> (started {started}). Its result opens here when it finishes; keep browsing meanwhile."
             buttons = [[research],
                        [{"text": "🏛️ UNESCO marvels", "callback_data": "cdisc:"},
                         {"text": "📥 Waiting ideas", "callback_data": "cprop:"}],
@@ -1249,7 +1236,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command in ("propose", "cpropose"):
             started = running_job(db, "topic-research")
             if started:  # a second tap must not look like a failure, nor start a duplicate (and its cost)
-                return (f"🔬 <b>Research is already running</b> (started {started}).\n\nIts result arrives as a message "
+                return (f"🔬 <b>Research is already running</b> (started {started}).\n\nIts result opens here "
                         "when it finishes, usually within a few minutes.",
                         [[{"text": "🧰 Jobs", "callback_data": "jobs:"}], [{"text": "← Topic ideas", "callback_data": "cideas:"}], [HOME]])
             return propose_topics() if propose_topics else "Topic proposals need the bot or daemon running with Claude configured."

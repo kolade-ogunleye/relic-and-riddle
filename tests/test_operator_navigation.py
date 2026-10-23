@@ -71,15 +71,28 @@ def test_storyboard_decisions_return_to_the_topic(db, tmp_path, monkeypatch):
     assert "changed" in text and buttons[-1][0]["callback_data"] == "cdash:"
 
 
-def test_covers_from_a_review_card_open_beside_it(db):
+def test_covers_from_a_review_card_open_in_the_panel_not_over_the_card(db):
     calls = []
     bot = _bot(db, calls)
     _tap(bot, "ccov:r1", handler=lambda action, target: "No rendered run found for this reference.")
-    assert not any(m.startswith("editMessage") for m, _ in calls)          # the review card is untouched
-    sent = [d for m, d in calls if m == "sendMessage"]
-    assert "close:" in sent[-1]["reply_markup"]
+    assert not any(m.startswith("editMessage") and d.get("message_id") == 70 for m, d in calls)  # the card is untouched
+    assert db.get_setting("telegram_dashboard_id") == "900"                 # covers open as the one panel
+    calls.clear()
     _tap(bot, "close:", message_id=900, update_id=2)
-    assert ("deleteMessage", {"chat_id": "555", "message_id": 900}) in [(m, {k: d[k] for k in ("chat_id", "message_id") if k in d}) for m, d in calls]
+    assert not any(m == "deleteMessage" and d.get("message_id") == 900 for m, d in calls)  # never an empty chat
+    assert any(m == "editMessageText" and d.get("message_id") == 900 for m, d in calls)    # it becomes the dashboard
+
+
+@pytest.mark.parametrize("step,elapsed,typical,pct,eta", [
+    (1, 0, 1150, 0, "~19 min"),            # just started: nothing finished yet
+    (1, 0, None, 0, "estimating…"),
+    (3, 600, None, 40, "~15 min"),          # two of five done in 10 min: about 15 to go
+    (5, 900, 1150, 80, "finishing…"),
+])
+def test_progress_counts_only_finished_steps(step, elapsed, typical, pct, eta):
+    from src.telegram_bot import progress_figures
+    bar, got_pct, got_eta = progress_figures(step, 5, elapsed, typical)
+    assert (got_pct, got_eta) == (pct, eta) and bar.count("▰") == pct // 10
 
 
 def test_each_tap_is_answered_once(db):

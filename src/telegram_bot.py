@@ -268,6 +268,26 @@ def scene_strip(video: Path, out: Path, frames: int = 12, cols: int = 6) -> Opti
 
 
 
+def progress_figures(step: int, total: int, elapsed: float, typical: Optional[float]) -> tuple:
+    """Bar, percent and time left for a run on step `step` of `total` (1-based, the step in progress).
+    Only finished steps count, so a run that has just started is at 0%. Time left comes from how long
+    recent runs took (typical), else from the pace so far; with neither it says so."""
+    done = max(0, min(total, step - 1))
+    pct = int(done / total * 100) if total else 0
+    bar = "▰" * (pct // 10) + "▱" * (10 - pct // 10)
+    if step >= total:
+        eta = "finishing…"
+    elif typical and typical > elapsed:
+        left = int(typical - elapsed)
+        eta = f"~{left // 60} min" if left >= 60 else "under a minute"
+    elif done:
+        left = int(elapsed / done * (total - done))
+        eta = f"~{left // 60} min" if left >= 60 else "under a minute"
+    else:
+        eta = "estimating…"
+    return bar, pct, eta
+
+
 def typical_run_seconds(last: int = 5) -> Optional[float]:
     """Average wall-clock length of the most recent finished runs, from their stage timings (stages
     overlap, so it is first start to last finish, not a sum). None without history."""
@@ -378,15 +398,26 @@ class TelegramApprovalBot:
         if new_id == current:
             raise RuntimeError("Telegram returned an invalid replacement message identity")
         stored = self.db.get_setting("telegram_dashboard_id")
-        is_dashboard = stored and stored.isdigit() and self._current_panel(int(stored)) == current
+        anchor = self._current_panel(int(stored)) if stored and stored.isdigit() else None
         self._panel_aliases[current] = new_id
         self._panel_media[new_id] = False
         self._panel_revisions[new_id] = self._panel_revisions.get(current, 0)
-        if is_dashboard:
-            self.db.set_setting("telegram_dashboard_id", str(new_id))
+        # The replacement is the newest screen, so it is the one panel: an older panel elsewhere goes too.
+        self.db.set_setting("telegram_dashboard_id", str(new_id))
+        if anchor and anchor not in (current, new_id) and anchor not in self._protected_messages():
+            self._delete_soon(anchor)
         if not self.delete_message(current):
             self._strip_buttons(current)
         return True
+
+    def _protected_messages(self):
+        """Messages that are never removed to keep one panel: review cards awaiting a decision and the
+        live progress card."""
+        keep = {a.get("telegram_message_id") for a in self.db.list_pending_approvals()} if hasattr(self.db, "list_pending_approvals") else set()
+        progress = self.db.get_active_progress() if hasattr(self.db, "get_active_progress") else None
+        keep.add((progress or {}).get("message_id"))
+        keep.discard(None)
+        return keep
 
     def update_navigation_target(self, target, text, buttons):
         if target:
@@ -425,10 +456,9 @@ class TelegramApprovalBot:
                 text += "\n" + html.escape(job["error_detail"]) + "\nInspect /jobs before explicitly retrying."
             delivered = self.update_navigation_target(destination[0], text, buttons)
             if not delivered and late:
-                # Requested work whose screen was left while it ran: the result arrives as its own message
-                # (with Close), without taking over the screen the operator moved on to.
-                rows = [row for row in format_responsive_keyboard(buttons) if not any(b.get("callback_data") == "cdash:" for b in row)]
-                delivered = bool(self.notify(text, buttons=rows + [[{"text": "✖ Close", "callback_data": "close:"}]], record_alert=False))
+                # Requested work whose screen was left while it ran: its result becomes the one panel
+                # (a second message would leave two cards in the chat).
+                delivered = type(self.show_dashboard(text, navigation_buttons(buttons), fresh=True)) is int
             return delivered
         return self.jobs.submit(self._background(), title, work, complete, resource, announce)
 
@@ -1052,16 +1082,17 @@ class TelegramApprovalBot:
         if not self.is_configured():
             return None
         self._progress_start_time[run_id] = time.time()
+        bar, pct, eta = progress_figures(1, 5, 0, typical_run_seconds())
         text = (
             f"⏳ <b><u>PRODUCTION PROGRESS</u></b>\n\n"
-            f"<b>{html.escape(topic_title)}</b> • <code>[{html.escape(self.db.run_label(run_id))}]</code>\n\n"
+            f"<b>{html.escape(topic_title)}</b> · started {show_time(None, '%H:%M')}\n\n"
             f"🔄 <b>Step 1/5:</b> <i>Verifying script & historical fact sheets...</i>\n"
             f"◽ <b>Step 2/5:</b> Mastering narration voiceover & acoustics\n"
             f"◽ <b>Step 3/5:</b> Synthesizing original graphics & motion\n"
             f"◽ <b>Step 4/5:</b> Compositing video, parallax & karaoke subs\n"
             f"◽ <b>Step 5/5:</b> Packaging review & multiformat stills\n\n"
-            f"Progress: <code>[▰▰▱▱▱▱▱▱▱▱] 20%</code>\n"
-            f"⏱ <b>Elapsed:</b> <code>00:00</code> • <b>ETA:</b> <code>~01:30</code>"
+            f"Progress: <code>[{bar}] {pct}%</code>\n"
+            f"⏱ <b>Elapsed:</b> 00:00 · <b>Time left:</b> {eta}"
         )
         text = self.progress_mode(run_id) + "\n\n" + text
         buttons = [{"text": "🔄 Refresh Progress", "callback_data": f"cprog:{self.db.run_key(run_id)}"}, {"text": "Cancel run", "callback_data": f"runstop:{self.db.run_key(run_id)}"}]
@@ -1125,7 +1156,7 @@ class TelegramApprovalBot:
         ]
 
         lines = [
-            f"⏳ <b><u>PRODUCTION PROGRESS</u></b>\n\n<b>{html.escape(topic_title)}</b> • <code>[{html.escape(self.db.run_label(run_id))}]</code>",
+            f"⏳ <b><u>PRODUCTION PROGRESS</u></b>\n\n<b>{html.escape(topic_title)}</b> · started {show_time(self._progress_start_time.get(run_id), '%H:%M')}",
             "",
         ]
         for idx, m in enumerate(milestones, start=1):
@@ -1137,25 +1168,11 @@ class TelegramApprovalBot:
             else:
                 lines.append(f"◽ <b>Step {idx}/{total_steps}:</b> {m}")
 
-        bar_len = 10
-        filled = max(1, min(bar_len, int((step / total_steps) * bar_len)))
-        bar = "▰" * filled + "▱" * (bar_len - filled)
-        pct = int((step / total_steps) * 100)
-
-        # Elapsed & dynamic ETA calculation
         start_t = self._progress_start_time.get(run_id, time.time())
         elapsed_sec = int(max(0, time.time() - start_t))
-        elapsed_fmt = f"{elapsed_sec // 60:02d}:{elapsed_sec % 60:02d}"
-        typical = typical_run_seconds()
-        if step > 0 and step < total_steps:
-            est_total = typical if typical and typical > elapsed_sec else elapsed_sec / (step / total_steps)
-            rem_sec = max(0, int(est_total - elapsed_sec))
-            eta_fmt = f"~{rem_sec // 60:02d}:{rem_sec % 60:02d}"
-        else:
-            eta_fmt = "completing..." if step == total_steps else "~01:00"
-
+        bar, pct, eta = progress_figures(step, total_steps, elapsed_sec, typical_run_seconds())
         lines.append(f"\nProgress: <code>[{bar}] {pct}%</code>")
-        lines.append(f"⏱ <b>Elapsed:</b> {elapsed_fmt} • <b>ETA:</b> {eta_fmt}")
+        lines.append(f"⏱ <b>Elapsed:</b> {elapsed_sec // 60:02d}:{elapsed_sec % 60:02d} · <b>Time left:</b> {eta}")
 
         lines.insert(1, self.progress_mode(run_id))
         text = "\n".join(lines)
@@ -1670,17 +1687,20 @@ class TelegramApprovalBot:
                 self._answer_callback(cq['id'], 'Not authorized.')
                 return
             if action == 'close':
-                msg_id = (cq.get('message') or {}).get('message_id')
-                if msg_id:
-                    self.delete_message(msg_id)
+                msg = cq.get('message') or {}
                 self._answer_callback(cq['id'], 'Closed')
+                if msg.get('message_id'):  # the card becomes the dashboard again: one panel, never an empty chat
+                    from .control import dashboard_text_and_buttons
+                    from .config import ASSETS_DIR
+                    dash_text, dash_buttons = dashboard_text_and_buttons(self.db, getattr(self, 'next_run_func', lambda: None)(), assets_dir=ASSETS_DIR)
+                    is_media = bool(msg.get('photo') or msg.get('audio') or msg.get('video') or msg.get('document'))
+                    if self.show_navigation_panel(msg['message_id'], dash_text, dash_buttons, is_media):
+                        self.db.set_setting('telegram_dashboard_id', str(self._current_panel(msg['message_id'])))
                 return
             if action == 'ccov' and target:
-                # From a review card: open the cover studio as its own message under the card, never over it.
+                # From a review card: the cover studio opens in the one panel, never over the review card.
                 self._answer_callback(cq['id'], 'Opening covers')
-                reply = command_handler('covers', target)
-                if reply:
-                    self.notify(reply, buttons=[[{'text': '✖ Close', 'callback_data': 'close:'}]], record_alert=False)
+                self._run_command(command_handler, 'covers', target, self._typed_panel())
                 return
             if action in RETIRED_ACTIONS:
                 # Buttons on cards sent by earlier releases: answer explicitly, never run old behaviour.

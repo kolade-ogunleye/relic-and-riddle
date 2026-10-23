@@ -246,3 +246,17 @@ def test_surgical_revision_that_keeps_a_rejected_claim_falls_back_to_a_rewrite(c
     monkeypatch.setattr(script_engine.fact_sheet, "as_prompt", lambda sheet: "facts")
     findings = f"1 blocking claim(s): '{claim}.' (unsupported: the source says 'likely')"
     assert ScriptEngine()._revise_surgically(previous, findings, {"facts": []}) is None
+
+
+def test_the_hedge_quoted_in_a_finding_is_not_mistaken_for_the_rejected_claim(curated_payload, monkeypatch):
+    from src import script_engine
+    hedge = "measurements of the landmark range from 40 to nearly 50 kilometers across"
+    previous = dict(curated_payload, caption=curated_payload["caption"] + " A 30-mile ring hides in West Africa.")
+    fixed = curated_payload["caption"] + " The ring's " + hedge + "."
+    monkeypatch.setattr(script_engine, "_structured", lambda *a, **k: script_engine.Edits(edits=[
+        script_engine.Edit(find="A 30-mile ring hides in West Africa.", replace="The ring's " + hedge + ".")]))
+    monkeypatch.setattr(script_engine.fact_sheet, "as_prompt", lambda sheet: "facts")
+    findings = ("1 untraceable claim(s): 'A 30-mile ring hides in West Africa for good.' ([caption]; untraced: "
+                f"it drops the required hedge ('{hedge}').)")
+    revised = ScriptEngine()._revise_surgically(previous, findings, {"facts": []})
+    assert revised is not None and revised.caption == fixed

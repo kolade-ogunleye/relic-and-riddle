@@ -69,6 +69,7 @@ CRITICAL NEGATIVE FILTERING:
 - Do NOT include peripheral regional geography, surrounding municipal conquests, colonial founding dates, territorial border treaties, unrelated nearby town elevations, or unrelated ancient plague rumors.
 - Do NOT include researcher personal biographies or childhood refugee backgrounds.
 - Every single fact MUST directly substantiate the central anomaly, mystery, engineering mechanism, or physical evidence of the topic.
+- The one exception: include exactly one fact saying where the subject is (its country, and region if quoted), when a quote states it. Narration names the place, so an unsourced location is rejected.
 Each fact must be ONE checkable statement, worded as it could be said on screen, and must cite the quote numbers that support it. Never state anything the cited quotes don't say. Every number in a fact must appear in its quotes. Dual calendar notations refer to the exact same calendar event day and must NOT be marked as disputed.
 If quotes or sources genuinely disagree on measurements, dates, or energy yields, set disputed=true and provide a natural, fluent, conversational hedge (e.g. 'scientists calculate between 10 and 15 megatons', 'physical models suggest roughly 50 meters', 'ranging from 60 to 85 meters').
 CRITICAL: NEVER write robotic prefixes like 'estimated <statement>' or 'approximately <statement>'. Hedges must read as compelling, grammatically complete human documentary narration.
@@ -170,8 +171,10 @@ def build(topic: Dict[str, Any], web_search_uses: int = 10) -> Dict[str, Any]:
     quotes = quotes[:MAX_QUOTES]
     if not quotes:
         raise ValueError("Research returned no quotable evidence; cannot build a fact sheet.")
+    place = ", ".join(dict.fromkeys(x for x in (loc.get("name"), loc.get("region"), loc.get("country")) if x and x != "Global"))
     topic_focus = (f"Topic Title: {topic.get('title', '')}\n"
-                   f"Hook: {topic.get('hook', '')}\n"
+                   + (f"Place (may be wrong; state only what the quotes say): {place}\n" if place else "")
+                   + f"Hook: {topic.get('hook', '')}\n"
                    f"Core Key Facts / Thesis: {'; '.join(topic.get('key_facts', []))}\n")
     listing = "\n".join(f"Q{i}: [{_host(q['url'])}, tier {quote_tier(q)}] {q['quote'][:600]}" for i, q in enumerate(quotes, 1))
     draft = free_llm.call(SYSTEM, f"<topic_focus>\n{topic_focus}</topic_focus>\n\n<research_notes>\n{notes}\n</research_notes>\n\n<evidence_quotes>\n{listing}\n</evidence_quotes>",

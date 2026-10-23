@@ -576,7 +576,9 @@ class ScriptEngine:
         def plain(value: str) -> str:
             return " ".join(re.sub(r"[^\w\s]", " ", value.lower()).split())
         revised = plain(text)
-        for claim in re.findall(r"'([^']{25,})'", findings):
+        # A rejected claim is a quote followed by its reason in brackets; quotes inside the reason (the required
+        # hedge, the source's wording) are what the draft should say, not claims (Richat kept its hedge, 2026-10-23).
+        for claim in re.findall(r"'([^']{25,})'\s*\(", findings):
             if plain(claim) in revised:
                 log.warning("Surgical revision kept a rejected claim (%r); rewriting instead.", claim[:60])
                 return None

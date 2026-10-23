@@ -24,10 +24,12 @@ def _render(tmp_path, monkeypatch, facebook):
 def test_facebook_copy_has_no_swipe_cue_or_counter(tmp_path, monkeypatch):
     slides, drawn = _render(tmp_path, monkeypatch, facebook=True)
     assert len(slides) == 3 and all(s.parent.name == "carousel_fb" for s in slides)
-    assert not any("SWIPE" in t or " OF 0" in t for t in drawn)
+    assert not any("SWIPE" in t or " OF 0" in t or "ARCHIVAL RECORD" in t or "// 0" in t or " DATA" in t for t in drawn)
+    assert any("RELIC & RIDDLE" in t for t in drawn)  # the brand mark stays
 
 
 def test_instagram_copy_keeps_its_swipe_cues(tmp_path, monkeypatch):
     slides, drawn = _render(tmp_path, monkeypatch, facebook=False)
     assert all(s.parent.name == "carousel" for s in slides)
     assert any("SWIPE" in t for t in drawn) and any(" OF 03" in t for t in drawn)
+    assert any("ARCHIVAL RECORD // 01 OF 03" in t for t in drawn)

@@ -284,6 +284,12 @@ class MultiFormatGenerator:
         d.text((cx, cy), text, font=font, fill=text_color, anchor="mm")
         return (int(x0), int(y0), int(x1), int(y1))
 
+    _numbered = True
+
+    def _tag(self, category: str, index: int) -> str:
+        """A slide's badge: its category, with its number on the swipe copy (Instagram) only."""
+        return f"{category} // {index + 1:02d}" if self._numbered else category
+
     def _render_cover(self, photo: Path, card: Dict[str, Any], cw: int, chh: int, swipe: bool = True) -> Image.Image:
         heading, body = card["heading"].upper(), card["body"]
         im = cover_crop(photo, self.CAROUSEL_SIZE).convert("RGB")
@@ -317,7 +323,7 @@ class MultiFormatGenerator:
         im = ensure_legible(im, (40, chh - 560, cw - 40, chh - 50))  # badge, heading and up to 4 body lines
         d = ImageDraw.Draw(im, "RGBA")
         category = self._get_card_category(card, "immersive")
-        tag = f"{category} // {index + 1:02d}"
+        tag = self._tag(category, index)
         f_tag = get_font("Montserrat", 24)
         self._draw_badge(d, tag, 80, chh - 530, f_tag, text_color=GOLD, border_color=GOLD, border_width=2, radius=8)
         font_h = fit_font(d, heading, "Anton", 76, cw - 160, 44)
@@ -351,7 +357,7 @@ class MultiFormatGenerator:
         self._draw_badge(d, t_ref_b, 60, h_half + 35, f_sub, text_color=GOLD, border_color=GOLD, fill_color=(10, 12, 16, 220), radius=6)
 
         category = self._get_card_category(card, "comparison")
-        tag = f"{category} // {index + 1:02d}"
+        tag = self._tag(category, index)
         f_tag = get_font("Montserrat", 24)
         self._draw_badge(d, tag, 80, 2 * h_half + 25, f_tag, text_color=GOLD, border_color=GOLD, radius=6)
         font_h = fit_font(d, heading, "Anton", 64, cw - 160, 38)
@@ -376,7 +382,7 @@ class MultiFormatGenerator:
             d.line([(0, y_g), (cw, y_g)], fill=(20, 36, 52, 70), width=1)
         d.line([(0, p_h), (cw, p_h)], fill=GOLD, width=3)
         category = self._get_card_category(card, "blueprint")
-        tag = f"{category} // {index + 1:02d}"
+        tag = self._tag(category, index)
         f_tech = get_font("Montserrat", 24)
         self._draw_badge(d, tag, 80, p_h + 25, f_tech, text_color=GOLD, border_color=GOLD, fill_color=(8, 12, 18, 230), radius=4)
         font_h = fit_font(d, heading, "Anton", 64, cw - 160, 38)
@@ -399,11 +405,11 @@ class MultiFormatGenerator:
             a = int(255 * ((y - (p_h - 140)) / 140) ** 1.5)
             d.line([(0, y), (cw, y)], fill=(11, 14, 18, a))
         category = self._get_card_category(card, "colossal_stat")
-        tag = f"{category} // {index + 1:02d}"
+        tag = self._tag(category, index)
         f_tag = get_font("Montserrat", 24)
         self._draw_badge(d, tag, 80, p_h + 10, f_tag, text_color=GOLD, border_color=GOLD, fill_color=(16, 20, 26, 230), radius=6)
         stat_match = re.search(r"(\b\d+[\d,]*\+?(?:\s*(?:TONS?|PEOPLE|FEET|FT|METERS?|M|STORIES|LEVELS))?)\b", f"{heading} {body}", re.IGNORECASE)
-        stat_text = stat_match.group(1).upper() if stat_match else f"{index + 1:02d} DATA"
+        stat_text = stat_match.group(1).upper() if stat_match else (f"{index + 1:02d} DATA" if self._numbered else category)
         f_stat = fit_font(d, stat_text, "Anton", 110, cw - 160, 68)
         d.text((80, p_h + 65), stat_text, font=f_stat, fill=GOLD, anchor="lt")
         y = p_h + 65 + int(f_stat.size * 1.1)
@@ -430,7 +436,7 @@ class MultiFormatGenerator:
             a = int(255 * ((y - (p_h - 160)) / 160) ** 1.5)
             d.line([(0, y), (cw, y)], fill=(12, 14, 18, a))
         category = self._get_card_category(card, "debate")
-        tag = f"{category} // {index + 1:02d}"
+        tag = self._tag(category, index)
         f_tag = get_font("Montserrat", 24)
         self._draw_badge(d, tag, 80, p_h + 20, f_tag, text_color=GOLD, border_color=GOLD, fill_color=(16, 18, 22, 230), radius=6)
         font_h = fit_font(d, heading, "Anton", 68, cw - 160, 42)
@@ -451,7 +457,7 @@ class MultiFormatGenerator:
         for y in range(self.PHOTO_H - 180, self.PHOTO_H):
             d.line([(0, y), (cw, y)], fill=(13, 16, 21, int(255 * ((y - (self.PHOTO_H - 180)) / 180) ** 1.6)))
         category = self._get_card_category(card, "editorial_split")
-        tag = f"{category} // {index + 1:02d}"
+        tag = self._tag(category, index)
         f_tag = get_font("Montserrat", 24)
         self._draw_badge(d, tag, 80, self.PHOTO_H + 25, f_tag, text_color=GOLD, border_color=GOLD, radius=6)
         font_h = fit_font(d, heading, "Anton", 66, cw - 160, 40)
@@ -471,6 +477,7 @@ class MultiFormatGenerator:
         facebook=True: the same slides for Facebook's multi-photo post (carousel_fb/), without the swipe
         cue, slide counter, progress bar or dots: Facebook shows the set as a grid, not a swipe."""
         out_dir = output_dir / ("carousel_fb" if facebook else "carousel")
+        self._numbered = not facebook  # slide numbers on the badges ("ENGINEERING // 07") are swipe cues too
         out_dir.mkdir(parents=True, exist_ok=True)
         stills = [p for p in scene_images if not is_video(p)]
         cards = script_payload["carousel_slides"]
@@ -511,8 +518,9 @@ class MultiFormatGenerator:
             im = ensure_legible(im, (0, 0, cw, 110), text_rgb=(212, 175, 55), feather=90)  # a full-width header band, no corners
             d = ImageDraw.Draw(im, "RGBA")
             f_dossier = get_font("Montserrat", 20)
-            record = "ARCHIVAL RECORD" if facebook else f"ARCHIVAL RECORD // {i + 1:02d} OF {total:02d}"
-            d.text((80, 70), record, font=f_dossier, fill=(212, 175, 55, 255), anchor="lt", stroke_width=2, stroke_fill=(8, 10, 14, 230))
+            if not facebook:  # the dossier header with its counter is a swipe cue; Facebook keeps only the brand
+                d.text((80, 70), f"ARCHIVAL RECORD // {i + 1:02d} OF {total:02d}", font=f_dossier, fill=(212, 175, 55, 255),
+                       anchor="lt", stroke_width=2, stroke_fill=(8, 10, 14, 230))
             d.text((cw - 80, 70), "RELIC & RIDDLE", font=f_small, fill=(235, 235, 235, 255), anchor="rt", stroke_width=2, stroke_fill=(8, 10, 14, 230))
 
             if not facebook:  # continuous panoramic progress timeline and dots: swipe cues

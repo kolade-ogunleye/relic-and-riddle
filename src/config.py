@@ -18,6 +18,8 @@ if sys.stdout and hasattr(sys.stdout, "reconfigure"):
         pass
 
 # Base Paths
+# RELIC_APP_ROOT is set by the production launcher (src/service_runtime.py), not in .env: it decides
+# where .env is read from.
 BASE_DIR = Path(os.getenv("RELIC_APP_ROOT") or Path(__file__).resolve().parent.parent).resolve()
 DATA_DIR = BASE_DIR / "data"
 TOPICS_DIR = DATA_DIR / "topics"
@@ -160,6 +162,13 @@ GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
 PAID_FALLBACK_LIGHT_MONTHLY_USD = float(os.getenv("PAID_FALLBACK_LIGHT_MONTHLY_USD") or 0)
 PAID_FALLBACK_HEAVY_MONTHLY_USD = float(os.getenv("PAID_FALLBACK_HEAVY_MONTHLY_USD") or 0)
 SMITHSONIAN_API_KEY = (os.getenv("SMITHSONIAN_API_KEY") or "").strip()  # api.data.gov key (free); masked in logs
+# Wikimedia's User-Agent policy: a contact (URL or email) for the bot, or requests may be throttled/blocked.
+COMMONS_CONTACT = (os.getenv("COMMONS_CONTACT") or "").strip()
+# Parallel ffmpeg encodes (1-8): more renders at once on a stronger GPU, fewer on a shared one.
+try:
+    RENDER_ENCODING_SLOTS = max(1, min(8, int(os.getenv("RENDER_ENCODING_SLOTS") or 2)))
+except ValueError:
+    RENDER_ENCODING_SLOTS = 2
 GEMINI_MODEL = (os.getenv("GEMINI_MODEL") or "gemini-3.8-flash").strip()
 
 # Voice

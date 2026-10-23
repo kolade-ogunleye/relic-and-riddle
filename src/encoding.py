@@ -1,6 +1,5 @@
 """Shared encoder detection with a tested CPU fallback."""
 import logging
-import os
 import subprocess
 from functools import wraps
 from threading import BoundedSemaphore, Lock
@@ -14,10 +13,8 @@ _DETECT_LOCK = Lock()  # one probe per process: parallel renderers must agree on
 
 
 def _slot_count():
-    try:
-        return max(1, min(8, int(os.getenv("RENDER_ENCODING_SLOTS", "2"))))
-    except ValueError:
-        return 2
+    from . import config
+    return config.RENDER_ENCODING_SLOTS
 
 
 _ENCODING_SLOTS = BoundedSemaphore(_slot_count())

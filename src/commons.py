@@ -9,7 +9,6 @@ Shared by scripts/fetch_commons_images.py (topic image sets) and src/beat_images
 import html
 import io
 import logging
-import os
 import re
 import time
 from pathlib import Path
@@ -18,7 +17,7 @@ from typing import Iterator, List, Optional
 import requests
 from PIL import Image
 
-from . import config  # noqa: F401  (loads .env first: COMMONS_CONTACT below came out empty when commons was imported first)
+from . import config  # every setting is read once, in config (COMMONS_CONTACT came out empty when read here first)
 from .credits import license_allowed, normalize
 
 log = logging.getLogger(__name__)
@@ -26,7 +25,7 @@ log = logging.getLogger(__name__)
 API = "https://commons.wikimedia.org/w/api.php"
 # Wikimedia's User-Agent policy: name the bot (with "bot" in it), give contact details and the
 # library, or requests may be blocked without notice. Set COMMONS_CONTACT (a URL or email).
-_CONTACT = os.getenv("COMMONS_CONTACT", "").strip()
+_CONTACT = config.COMMONS_CONTACT
 HEADERS = {"User-Agent": "RelicAndRiddleBot/1.0 (" + (f"{_CONTACT}; " if _CONTACT else "")
            + f"licensed image sourcing for history documentaries) python-requests/{requests.__version__}"}
 # API etiquette for non-interactive tasks: pause while the database servers lag (seconds).

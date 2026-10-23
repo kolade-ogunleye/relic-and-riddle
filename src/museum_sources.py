@@ -19,7 +19,6 @@ Requests are made one at a time with a pause between, and identify the bot like 
 
 import html
 import logging
-import os
 import time
 from typing import Dict, List, Optional
 
@@ -98,7 +97,8 @@ def nasa_search(query: str, limit: int = 12) -> List[Dict]:
 
 
 def smithsonian_search(query: str, limit: int = 12) -> List[Dict]:
-    key = os.getenv("SMITHSONIAN_API_KEY", "").strip() or "DEMO_KEY"
+    from . import config
+    key = config.SMITHSONIAN_API_KEY or "DEMO_KEY"
     # The key goes in the X-Api-Key header (api.data.gov accepts it there), never in the URL or logs.
     found = _get(SI, {"q": f"{query} AND online_media_type:Images", "rows": limit}, headers={"X-Api-Key": key})
     out = []

@@ -645,12 +645,6 @@ class MetaPublisher:
         if not dry_run:
             _assert_recovery_unlocked()
         channel = f"upload-post:{kind}"
-        if dry_run:
-            self.db.record_publication(topic_id, run_id, channel, "simulated", {"photos": photos})
-            return {"status": "simulated"}
-        up = next((p for p in self.publishers if isinstance(p, UploadPostPublisher)), None)
-        if up is None or not up.configured():
-            return {"status": "failed", "error": "Upload-Post is not configured (needed for Stories and carousels)"}
         # (photos, platforms, key) per request. Stories: one frame per request, in order. A carousel goes as
         # one post; when the run made Facebook's copy (carousel_fb/, no swipe cues), Facebook gets that one.
         if kind == "story":
@@ -663,6 +657,15 @@ class MetaPublisher:
                            ([str(f) for f in fb_copy], ["facebook"], f"{run_id}-{kind}-facebook-1")]
             else:
                 batches = [(slides, platforms, f"{run_id}-{kind}-1")]
+        if dry_run:  # the real plan, each request recorded as it would be sent, nothing sent
+            for i, (batch, batch_platforms, key) in enumerate(batches, 1):
+                self.db.record_publication(topic_id, run_id, channel, "simulated",
+                                           {"part": i, "platforms": batch_platforms, "request_id": key, "photos": batch})
+            log.info("Dry run: %s not posted (%d request(s) planned).", kind, len(batches))
+            return {"status": "simulated", "posted_parts": 0, "planned_parts": len(batches)}
+        up = next((p for p in self.publishers if isinstance(p, UploadPostPublisher)), None)
+        if up is None or not up.configured():
+            return {"status": "failed", "error": "Upload-Post is not configured (needed for Stories and carousels)"}
         done = []
         for i, (batch, batch_platforms, key) in enumerate(batches, 1):
             try:

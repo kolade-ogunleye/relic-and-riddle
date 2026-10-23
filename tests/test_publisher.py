@@ -1,3 +1,4 @@
+import json
 from unittest.mock import MagicMock
 
 import pytest
@@ -334,3 +335,20 @@ def test_facebook_gets_its_own_carousel_copy_without_swipe_cues(monkeypatch, run
     assert calls[0][:2] == ("r1-carousel-1", ["instagram"])  # the swipe copy, under the key it always had
     assert calls[1][:2] == ("r1-carousel-facebook-1", ["facebook"])
     assert calls[0][2] == [b"IG"] * 3 and calls[1][2] == [b"FB"] * 3  # Facebook's request carries its own copy
+
+
+def test_a_dry_run_records_the_real_plan_for_each_platform(run, tmp_path):
+    # Dry runs skipped Stories and carousels, so the Facebook carousel copy was never exercised before a post.
+    ig, fb = tmp_path / "carousel", tmp_path / "carousel_fb"
+    ig.mkdir(); fb.mkdir()
+    slides = []
+    for i in (1, 2):
+        (ig / f"carousel_slide_{i:02d}.jpg").write_bytes(b"0")
+        (fb / f"carousel_slide_{i:02d}.jpg").write_bytes(b"0")
+        slides.append(str(ig / f"carousel_slide_{i:02d}.jpg"))
+    res = MetaPublisher(db=run, publishers=[]).publish_photos("r1", "01_topic", "carousel", slides, dry_run=True)
+    assert res == {"status": "simulated", "posted_parts": 0, "planned_parts": 2}
+    rows = [json.loads(p["response_payload_json"]) for p in run.list_publications("r1")]
+    assert [(r["request_id"], r["platforms"]) for r in rows] == [("r1-carousel-1", ["instagram"]),
+                                                                  ("r1-carousel-facebook-1", ["facebook"])]
+    assert all("carousel_fb" in p for p in rows[1]["photos"])

@@ -1749,6 +1749,17 @@ class PipelineCoordinator:
                 self._alert(f"⚠️ <b>YouTube Short {'unconfirmed' if short['status'] == 'unknown' else 'not posted'}</b>\n"
                             f"<b>{html.escape(payload.get('title', tid))}</b>: the Reel is unaffected.\n"
                             f"{html.escape(str(short.get('error', '')))[:300]}")
+        if dry_run and profile == "reel_9x16" and status == "simulated":
+            # A live approval books the Stories and the carousel for their slots; a dry run skipped them
+            # entirely, so it never tested them. They are simulated here, each request as it would be sent.
+            run_dir = Path(run["master_video_path"]).parent
+            stories = sorted(str(p) for p in (run_dir / "stories").glob("story_*.jpg"))
+            slides = sorted(str(p) for p in (run_dir / "carousel").glob("carousel_slide_*.jpg"))
+            if stories:
+                pub["stories"] = self.publisher.publish_photos(run_id, tid, "story", stories, dry_run=True)
+            if slides:
+                pub["carousel"] = self.publisher.publish_photos(run_id, tid, "carousel", slides,
+                                                                caption=self._carousel_caption(payload), dry_run=True)
         return {"status": status, "publish_result": pub}
 
 

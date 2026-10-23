@@ -423,7 +423,18 @@ class TelegramApprovalBot:
         current = self._current_panel(message_id)
         media = self._panel_media.get(current, is_media)
         if not media:
-            return self.edit_message_text(current, text, buttons=buttons)
+            edited = self.edit_message_text(current, text, buttons=buttons)
+            if edited:
+                # A screen opened in another message (a failure card's "← Dashboard") makes that message the
+                # one panel: the old panel goes, as for a photo panel below (it was left behind, two panels).
+                stored = self.db.get_setting("telegram_dashboard_id")
+                anchor = self._current_panel(int(stored)) if stored and stored.isdigit() else None
+                protected = self._protected_messages()
+                if anchor and anchor != current and current not in protected:
+                    self.db.set_setting("telegram_dashboard_id", str(current))
+                    if anchor not in protected:
+                        self._delete_soon(anchor)
+            return edited
         result = self._api("sendMessage", data={"chat_id": self.chat_id,
             "text": safe_html_truncate(_MASKER.mask(text), 4000), "parse_mode": "HTML",
             "disable_web_page_preview": "true", "reply_markup": json.dumps({"inline_keyboard": format_responsive_keyboard(buttons) if buttons else []})})
@@ -1195,6 +1206,16 @@ class TelegramApprovalBot:
                                   active["run_id"], active.get("details", ""))
         return True
 
+    def _live_progress_card(self, run_id: str) -> Optional[int]:
+        """The progress card now in the chat for this run, from the raw record (get_active_progress drops a
+        record whose run has already ended, which is exactly when the card is finished)."""
+        try:
+            record = json.loads(self.db.get_setting("active_progress") or "{}")
+        except (ValueError, TypeError):
+            return None
+        mid = record.get("message_id") if record.get("run_id") == run_id else None
+        return int(mid) if mid else None
+
     def update_progress_card(self, message_id: int, step: int, total_steps: int, topic_title: str, run_id: str, details: str = "") -> bool:
         """Updates the progress card in-place with smooth bar, active sub-step, and ETA debouncing."""
         if not self.is_configured() or not message_id:
@@ -1292,6 +1313,9 @@ class TelegramApprovalBot:
 
     def finish_progress_card(self, message_id: int, topic_title: str, run_id: str, success: bool = True, error: str = "") -> bool:
         """Finishes the progress card into a completed receipt, or deletes it if video review was sent."""
+        # The live card, not the one the run started with: Refresh Progress moves the card to the bottom (a
+        # new message each time), and the run's own id then points at a deleted one. Read before clearing.
+        message_id = self._live_progress_card(run_id) or message_id
         if hasattr(self.db, "clear_active_progress"):
             self.db.clear_active_progress(run_id)
         if not self.is_configured() or not message_id:

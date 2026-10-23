@@ -111,3 +111,31 @@ def test_a_message_without_buttons_gets_a_way_back_and_a_transient_one_expires(d
     with db._conn() as conn:
         row = conn.execute("SELECT kind, expires_at FROM alerts WHERE message_id = 77").fetchone()
     assert row['kind'] == 'transient' and row['expires_at']  # recorded, so cleanup removes it
+
+
+def test_a_failed_run_finishes_the_live_progress_card_not_the_first_one(db, monkeypatch):
+    # Production 2026-10-23: Refresh Progress had moved the card (789 -> 795); the failure tried 789, so the
+    # live card stayed at "step 1, 0%" and a separate failure card was posted.
+    edited = []
+    bot = TelegramApprovalBot(db=db, bot_token='123:abc', chat_id='555', approver_ids={'555'})
+    monkeypatch.setattr(bot, 'edit_message_text', lambda mid, text, buttons=None: edited.append(mid) or True)
+    db.create_run('run_x', '01_topic')
+    db.set_setting('active_progress', json.dumps({'run_id': 'run_x', 'message_id': 795, 'step': 1}))
+    db.update_run('run_x', 'failed', error='boom')
+    assert bot.finish_progress_card(789, 'Topic', 'run_x', success=False, error='boom')
+    assert edited == [795]
+
+
+def test_a_screen_opened_in_another_message_becomes_the_one_panel(db, monkeypatch):
+    # "← Dashboard" on a failure card turned it into the dashboard but left the old queue panel behind.
+    deleted = []
+    bot = TelegramApprovalBot(db=db, bot_token='123:abc', chat_id='555', approver_ids={'555'})
+    monkeypatch.setattr(bot, 'edit_message_text', lambda mid, text, buttons=None: True)
+    monkeypatch.setattr(bot, '_delete_soon', lambda mid: deleted.append(mid))
+    db.set_setting('telegram_dashboard_id', '788')
+    assert bot.show_navigation_panel(801, '🏛 Dashboard', [[{'text': 'x', 'callback_data': 'cdash:'}]])
+    assert deleted == [788] and db.get_setting('telegram_dashboard_id') == '801'
+    # The panel itself, or a review card waiting for a decision, is never treated that way.
+    deleted.clear()
+    assert bot.show_navigation_panel(801, '🏛 Dashboard')
+    assert deleted == []

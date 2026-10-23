@@ -243,17 +243,19 @@ class PipelineCoordinator:
                 return self.run_cycle(next_t["id"], auto_approve, dry_run, require_live, content_format)
             return {"status": "skipped", "reason": "fact_starved", "topic_id": tid}
         except Exception as e:
+            self.db.update_run(run_id, "failed", error=f"{type(e).__name__}: {e}")
+            self.topic_engine.record_status(tid, "failed", run_id=run_id)
+            card_shown = False
             if getattr(self, "progress_msg_id", None):
-                try:
-                    self.telegram_bot.finish_progress_card(self.progress_msg_id, topic["title"], run_id, success=False, error=str(e))
+                try:  # the progress card becomes the run's one failure card
+                    card_shown = bool(self.telegram_bot.finish_progress_card(self.progress_msg_id, topic["title"], run_id, success=False, error=str(e)))
                 except Exception:
                     pass
                 self.progress_msg_id = None
-            self.db.update_run(run_id, "failed", error=f"{type(e).__name__}: {e}")
-            self.topic_engine.record_status(tid, "failed", run_id=run_id)
             self._collect_findings(run_id, run_dir, tid, error=f"{type(e).__name__}: {e}")
             log.error("Run %s failed: %s", run_id, e)
-            self._alert(f"❌ <b><u>PRODUCTION FAILED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n{html.escape(str(e))[:600]}\n\nNothing was posted. The topic will be retried on a later run.")
+            if not card_shown:
+                self._alert(f"❌ <b><u>PRODUCTION FAILED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n{html.escape(str(e))[:600]}\n\nNothing was posted. The topic will be retried on a later run.")
             ping_healthcheck("/fail")
             raise
 

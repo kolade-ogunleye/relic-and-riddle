@@ -1255,13 +1255,13 @@ class TelegramApprovalBot:
                         f"<code>[{html.escape(self.db.run_label(run_id))}]</code>\n\n"
                         "Stopped at a stage boundary. Existing assets and incurred usage are retained.")
                 return self.edit_message_text(message_id, text, buttons=[[DONE_BUTTON]])
-            text = (
-                f"❌ <b>Render Failed:</b> {html.escape(topic_title)}\n"
-                f"<code>[{html.escape(self.db.run_label(run_id))}]</code>\n"
-                f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"⚠️ Error: <code>{html.escape(error[:400])}</code>"
-            )
-            return self.edit_message_text(message_id, text)
+            # The run's one failure card (the separate "Production failed" alert is not sent as well).
+            from .control import short_reason
+            text = (f"❌ <b>Production failed:</b> {html.escape(self.db.run_label(run_id))}\n\n"
+                    f"{html.escape(short_reason(error, 600))}\n\n"
+                    "Nothing was posted. The topic will be retried on a later run.\n\n"
+                    "<i>Reply to this card with a question to ask about this run.</i>")
+            return self.edit_message_text(message_id, text, buttons=[[DONE_BUTTON]])
         else:
             return self.delete_message(message_id)
 

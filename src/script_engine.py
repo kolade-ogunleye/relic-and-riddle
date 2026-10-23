@@ -571,6 +571,15 @@ class ScriptEngine:
                     if not found:
                         log.warning("Surgical edit not found in the draft (%r); rewriting instead.", e.find[:60])
                         return None
+        # A revision must remove what was rejected: a quoted claim still in the draft (another field kept it, or
+        # the edit missed) would be resubmitted and rejected again, as happened twice in a row on Damascus steel.
+        def plain(value: str) -> str:
+            return " ".join(re.sub(r"[^\w\s]", " ", value.lower()).split())
+        revised = plain(text)
+        for claim in re.findall(r"'([^']{25,})'", findings):
+            if plain(claim) in revised:
+                log.warning("Surgical revision kept a rejected claim (%r); rewriting instead.", claim[:60])
+                return None
         try:
             return ScriptPackage.model_validate(json.loads(text))
         except (ValueError, ValidationError) as e:

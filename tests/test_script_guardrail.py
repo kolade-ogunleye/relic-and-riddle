@@ -236,3 +236,13 @@ def test_writer_failures_are_named_not_blamed_on_configuration(curated_payload, 
         engine.generate_script({"id": "no_curated_topic", "title": "T"})
     assert "made 3 attempts" in str(raised.value) and "trailing word 'that'" in str(raised.value)
     assert "ANTHROPIC_API_KEY" not in str(raised.value)
+
+
+def test_surgical_revision_that_keeps_a_rejected_claim_falls_back_to_a_rewrite(curated_payload, monkeypatch):
+    from src import script_engine
+    claim = "Metallurgical analysis determined that finer pearlite spacing refined the microstructure"
+    previous = dict(curated_payload, caption=curated_payload["caption"] + " " + claim + ".")
+    monkeypatch.setattr(script_engine, "_structured", lambda *a, **k: script_engine.Edits(edits=[]))  # the edit misses
+    monkeypatch.setattr(script_engine.fact_sheet, "as_prompt", lambda sheet: "facts")
+    findings = f"1 blocking claim(s): '{claim}.' (unsupported: the source says 'likely')"
+    assert ScriptEngine()._revise_surgically(previous, findings, {"facts": []}) is None

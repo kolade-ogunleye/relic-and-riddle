@@ -459,6 +459,7 @@ class PipelineCoordinator:
             thumbnail_copy = documentary_cover(deep_dive_pkg.title)
 
             payload = {
+                "topic_id": tid,
                 "title": deep_dive_pkg.title,
                 "youtube_title": deep_dive_pkg.youtube_title,
                 "hook": deep_dive_pkg.acts[0].narration_text[:120],
@@ -1597,6 +1598,7 @@ class PipelineCoordinator:
         if run.get("status") in ("publishing", "publish_unknown"):
             raise ValueError("Publication is in progress or its outcome is unknown; reconcile it before retrying.")
         payload, tid = run["script_payload"], run["topic_id"]
+        payload = {**payload, "topic_id": payload.get("topic_id") or tid}  # a documentary's payload had none
         from src.delivery_profiles import get_delivery_profile
         profile_name = payload.get("delivery_profile") or ("deep_dive" if run.get("content_format") == "deep_dive" else "reel")
         profile = get_delivery_profile(profile_name).name

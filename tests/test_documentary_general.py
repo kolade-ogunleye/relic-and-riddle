@@ -167,3 +167,25 @@ def test_a_rendered_documentary_is_sent_for_review_and_acted_on(db, tmp_path, mo
     produced = {"run_id": run_id, "status": "pending_approval"}  # what a dry, not auto-approved render returns
     result = coordinator._review_documentary(produced, dry_run=True)
     assert sent == [run_id] and acted == [(run_id, True)] and result["status"] == "simulated"
+
+
+def test_an_approved_documentary_publishes_without_a_topic_id_in_its_payload(db, tmp_path, monkeypatch):
+    # The Richat documentary's simulated YouTube publish failed with KeyError: 'topic_id'.
+    import json
+    import main
+    from src import release
+    from src.publisher import MetaPublisher
+    run_id = "run_01_topic_2_long"
+    for name in ("doc.mp4", "thumb.jpg", "grid.jpg"):
+        (tmp_path / name).write_bytes(b"x")
+    db.create_run(run_id, "01_topic", content_format="deep_dive")
+    db.update_run(run_id, "pending_approval", master_video_path=tmp_path / "doc.mp4",
+                  thumbnail_cover_path=tmp_path / "thumb.jpg", thumbnail_grid_path=tmp_path / "grid.jpg",
+                  script_payload={"title": "T", "caption": "C", "delivery_profile": "deep_dive_16x9"})
+    monkeypatch.setattr(release, "require_release", lambda run, dry_run=False: None)
+    coordinator = object.__new__(main.PipelineCoordinator)
+    coordinator.db, coordinator.publisher = db, MetaPublisher(db=db, publishers=[])
+    coordinator.topic_engine = type("T", (), {"record_status": lambda self, *a, **k: None})()
+    assert coordinator.publish_run(run_id, dry_run=True)["status"] == "simulated"
+    envelope = json.loads(db.list_publications(run_id)[0]["response_payload_json"])["envelope"]
+    assert envelope["topic_id"] == "01_topic" and envelope["platforms"] == ["youtube"]

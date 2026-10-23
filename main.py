@@ -1248,6 +1248,9 @@ class PipelineCoordinator:
                                     lambda: self.multiformat_gen.generate_story_sequence(hero_img, payload, run_dir, scene_images=scene_media))
             fut_carousel = pool.submit(cached_artifacts, run_dir, "carousel", packaging_inputs,
                                        lambda: self.multiformat_gen.generate_carousel_sequence(scene_media, payload, run_dir))
+            # Facebook's copy of the slides, without swipe cues (it shows a multi-photo post as a grid).
+            fut_carousel_fb = pool.submit(cached_artifacts, run_dir, "carousel_fb", packaging_inputs,
+                                          lambda: self.multiformat_gen.generate_carousel_sequence(scene_media, payload, run_dir, facebook=True))
 
             fut_beats = pool.submit(beat_images.source, beats, topic, run_dir / "beat_images", plan=query_plan) if query_plan else None
             fut_footage = pool.submit(footage.source, beats, topic, run_dir / "footage", plan=query_plan) if query_plan else None
@@ -1258,6 +1261,10 @@ class PipelineCoordinator:
             thumb_916, thumb_1x1 = fut_thumb.result()
             story_slides = fut_story.result()
             carousel_slides = fut_carousel.result()
+            try:
+                fut_carousel_fb.result()
+            except Exception as e:  # Facebook then gets the Instagram slides, as before
+                log.warning("Facebook carousel slides not made (%s); Facebook gets the Instagram slides.", e)
 
             beat_paths, beat_credits = fut_beats.result() if fut_beats else ([], [])
             footage_clips, footage_credits = fut_footage.result() if fut_footage else ([], [])

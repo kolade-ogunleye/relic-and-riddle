@@ -284,7 +284,7 @@ class MultiFormatGenerator:
         d.text((cx, cy), text, font=font, fill=text_color, anchor="mm")
         return (int(x0), int(y0), int(x1), int(y1))
 
-    def _render_cover(self, photo: Path, card: Dict[str, Any], cw: int, chh: int) -> Image.Image:
+    def _render_cover(self, photo: Path, card: Dict[str, Any], cw: int, chh: int, swipe: bool = True) -> Image.Image:
         heading, body = card["heading"].upper(), card["body"]
         im = cover_crop(photo, self.CAROUSEL_SIZE).convert("RGB")
         d = ImageDraw.Draw(im, "RGBA")
@@ -301,7 +301,8 @@ class MultiFormatGenerator:
             y += int(font_h.size * 1.05)
         for j, line in enumerate(wrap_text(d, body, get_font("Montserrat", 36), cw - 160)[:2]):
             d.text((80, y + 20 + 48 * j), line, font=get_font("Montserrat", 36), fill=LIGHT, anchor="ls", stroke_width=2, stroke_fill=(8, 8, 10, 220))
-        d.text((cw - 80, chh - 110), "SWIPE  →", font=get_font("Anton", 44), fill=GOLD, anchor="rs", stroke_width=2, stroke_fill=(8, 8, 10, 220))
+        if swipe:
+            d.text((cw - 80, chh - 110), "SWIPE  →", font=get_font("Anton", 44), fill=GOLD, anchor="rs", stroke_width=2, stroke_fill=(8, 8, 10, 220))
         return im
 
     def _render_immersive(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int) -> Image.Image:
@@ -462,11 +463,14 @@ class MultiFormatGenerator:
             y += 58
         return im
 
-    def generate_carousel_sequence(self, scene_images: List[Path], script_payload: Dict[str, Any], output_dir: Path) -> List[Path]:
+    def generate_carousel_sequence(self, scene_images: List[Path], script_payload: Dict[str, Any], output_dir: Path,
+                                   facebook: bool = False) -> List[Path]:
         """Multi-Template Editorial Carousel (1080x1350, 4:5):
         Dynamically routes each slide to one of 5 National Geographic / The Economist archetypes
-        (Full-Bleed Immersive, Comparative Side-by-Side, Architectural Blueprint, Colossal Stat, Debate)."""
-        out_dir = output_dir / "carousel"
+        (Full-Bleed Immersive, Comparative Side-by-Side, Architectural Blueprint, Colossal Stat, Debate).
+        facebook=True: the same slides for Facebook's multi-photo post (carousel_fb/), without the swipe
+        cue, slide counter, progress bar or dots: Facebook shows the set as a grid, not a swipe."""
+        out_dir = output_dir / ("carousel_fb" if facebook else "carousel")
         out_dir.mkdir(parents=True, exist_ok=True)
         stills = [p for p in scene_images if not is_video(p)]
         cards = script_payload["carousel_slides"]
@@ -490,7 +494,7 @@ class MultiFormatGenerator:
             photo_next = photos[(i + 1) % len(photos)]
 
             if archetype == "cover":
-                im = self._render_cover(photo, card, cw, chh)
+                im = self._render_cover(photo, card, cw, chh, swipe=not facebook)
             elif archetype == "immersive":
                 im = self._render_immersive(photo, card, i, cw, chh)
             elif archetype == "comparison":
@@ -507,15 +511,16 @@ class MultiFormatGenerator:
             im = ensure_legible(im, (0, 0, cw, 110), text_rgb=(212, 175, 55), feather=90)  # a full-width header band, no corners
             d = ImageDraw.Draw(im, "RGBA")
             f_dossier = get_font("Montserrat", 20)
-            d.text((80, 70), f"ARCHIVAL RECORD // {i + 1:02d} OF {total:02d}", font=f_dossier, fill=(212, 175, 55, 255), anchor="lt", stroke_width=2, stroke_fill=(8, 10, 14, 230))
+            record = "ARCHIVAL RECORD" if facebook else f"ARCHIVAL RECORD // {i + 1:02d} OF {total:02d}"
+            d.text((80, 70), record, font=f_dossier, fill=(212, 175, 55, 255), anchor="lt", stroke_width=2, stroke_fill=(8, 10, 14, 230))
             d.text((cw - 80, 70), "RELIC & RIDDLE", font=f_small, fill=(235, 235, 235, 255), anchor="rt", stroke_width=2, stroke_fill=(8, 10, 14, 230))
 
-            # Continuous panoramic progress timeline
-            bar_y = chh - 45
-            d.line([(80, bar_y), (cw - 80, bar_y)], fill=(50, 60, 75, 140), width=2)
-            seg_w = (cw - 160) / total
-            d.line([(80 + i * seg_w, bar_y), (80 + (i + 1) * seg_w, bar_y)], fill=GOLD, width=3)
-            dots(d, i)
+            if not facebook:  # continuous panoramic progress timeline and dots: swipe cues
+                bar_y = chh - 45
+                d.line([(80, bar_y), (cw - 80, bar_y)], fill=(50, 60, 75, 140), width=2)
+                seg_w = (cw - 160) / total
+                d.line([(80 + i * seg_w, bar_y), (80 + (i + 1) * seg_w, bar_y)], fill=GOLD, width=3)
+                dots(d, i)
 
             path = out_dir / f"carousel_slide_{i + 1:02d}.jpg"
             im.save(path, quality=95)

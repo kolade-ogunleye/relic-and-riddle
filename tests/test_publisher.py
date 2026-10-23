@@ -314,3 +314,23 @@ def test_documentary_goes_to_youtube_with_its_own_fields(monkeypatch, envelope):
     assert data["categoryId"] == "27" and data["privacyStatus"] in ("public", "unlisted", "private")
     assert "instagram_title" not in data and "media_type" not in data          # none of the Reel fields
     assert captured["files"] == {"video", "thumbnail"}
+
+
+def test_facebook_gets_its_own_carousel_copy_without_swipe_cues(monkeypatch, run, tmp_path):
+    calls = []
+    monkeypatch.setattr(requests, "post", lambda url, headers, data, files, timeout: calls.append(
+        (headers["Idempotency-Key"], [v for k, v in data if k == "platform[]"], [f[1][1].read() for f in files]))
+        or _response(200, {"success": True, "results": {"instagram": {"success": True, "url": "u"}}}))
+    ig, fb = tmp_path / "carousel", tmp_path / "carousel_fb"
+    ig.mkdir(); fb.mkdir()
+    slides = []
+    for i in range(1, 4):
+        (ig / f"carousel_slide_{i:02d}.jpg").write_bytes(b"IG")
+        (fb / f"carousel_slide_{i:02d}.jpg").write_bytes(b"FB")
+        slides.append(str(ig / f"carousel_slide_{i:02d}.jpg"))
+    up = UploadPostPublisher(api_key="k" * 20, user="u")
+    res = MetaPublisher(db=run, publishers=[up]).publish_photos("r1", "01_topic", "carousel", slides, caption="Cap")
+    assert res["status"] == "published" and len(calls) == 2
+    assert calls[0][:2] == ("r1-carousel-1", ["instagram"])  # the swipe copy, under the key it always had
+    assert calls[1][:2] == ("r1-carousel-facebook-1", ["facebook"])
+    assert calls[0][2] == [b"IG"] * 3 and calls[1][2] == [b"FB"] * 3  # Facebook's request carries its own copy

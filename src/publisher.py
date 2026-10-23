@@ -651,12 +651,22 @@ class MetaPublisher:
         up = next((p for p in self.publishers if isinstance(p, UploadPostPublisher)), None)
         if up is None or not up.configured():
             return {"status": "failed", "error": "Upload-Post is not configured (needed for Stories and carousels)"}
-        batches = [[p] for p in photos] if kind == "story" else [photos[:10]]  # Instagram carousels: max 10
+        # (photos, platforms, key) per request. Stories: one frame per request, in order. A carousel goes as
+        # one post; when the run made Facebook's copy (carousel_fb/, no swipe cues), Facebook gets that one.
+        if kind == "story":
+            batches = [([p], platforms, f"{run_id}-{kind}-{i}") for i, p in enumerate(photos, 1)]
+        else:
+            slides = photos[:10]  # Instagram carousels: max 10
+            fb_copy = [Path(p).parent.parent / "carousel_fb" / Path(p).name for p in slides]
+            if "facebook" in platforms and len(platforms) > 1 and all(f.is_file() for f in fb_copy):
+                batches = [(slides, [x for x in platforms if x != "facebook"], f"{run_id}-{kind}-1"),
+                           ([str(f) for f in fb_copy], ["facebook"], f"{run_id}-{kind}-facebook-1")]
+            else:
+                batches = [(slides, platforms, f"{run_id}-{kind}-1")]
         done = []
-        for i, batch in enumerate(batches, 1):
-            key = f"{run_id}-{kind}-{i}"
+        for i, (batch, batch_platforms, key) in enumerate(batches, 1):
             try:
-                res = up.publish_photos(kind, batch, caption, platforms, key)
+                res = up.publish_photos(kind, batch, caption, batch_platforms, key)
             except PublishFailed as e:
                 self.db.record_publication(topic_id, run_id, channel, "failed", {"error": str(e), "part": i})
                 status = "unknown" if done else "failed"  # earlier frames already went out

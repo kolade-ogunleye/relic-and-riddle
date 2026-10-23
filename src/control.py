@@ -489,6 +489,13 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     from . import config
     bot_id = config.TELEGRAM_BOT_TOKEN.split(":", 1)[0]
     environment = {"8701645452": "DEV", "8837268021": "PRODUCTION"}.get(bot_id, "IDENTITY UNVERIFIED")
+    try:
+        from .release_info import release_label
+        release = release_label()
+    except Exception:  # the dashboard never fails over a version label
+        release = None
+    if release:
+        environment += f" ({e(release)})"
     lines = [f"🏛️ <b><u>RELIC &amp; RIDDLE</u></b> · {environment}", ""]
     lines += (["<b>Needs you</b>"] + needs + [""]) if needs else ["✅ <b>Nothing needs you right now.</b>", ""]
     lines.append(f"⏯️ Schedule: {'⏸ <b>paused</b>' if paused else '▶️ active'}"

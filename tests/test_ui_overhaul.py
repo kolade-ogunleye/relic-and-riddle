@@ -123,7 +123,7 @@ def test_queue_readiness_badges_and_render_button(tmp_path):
 
     # One-tap render #1 button triggers render
     qrender_res, q_buttons = h("qrender", "01_ready")   # the queue comes back with its buttons
-    assert "Started run" in qrender_res and any(b["callback_data"] == "cdash:" for b in q_buttons)
+    assert "Started run" in qrender_res and any(b["callback_data"] == "cdash:" for row in q_buttons for b in row)
     assert len(rendered) == 1
 
 

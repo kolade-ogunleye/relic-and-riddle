@@ -581,10 +581,13 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             lines.append("\n<i>To restore any topic: <code>/requeue &lt;number or id&gt;</code></i>")
 
         pages = max(1, (max(0, len(queued) - 1) + limit - 1) // limit)
-        buttons += [b for row in pager("qpage:", page, pages) for b in row]
-        buttons.append({"text": "🔄 Refresh Queue", "callback_data": "qrefresh:"})
-        buttons.append(HOME)
-        return "\n".join(lines), buttons
+        # Rows, not a flat list: Render beside Refresh, Bump beside Drop, every page button on one row.
+        render = [b for b in buttons if b["callback_data"].startswith("qrender:")]
+        changes = [b for b in buttons if b["callback_data"].startswith(("qbump:", "qdrop:"))]
+        rows = [render + [{"text": "🔄 Refresh Queue", "callback_data": "qrefresh:"}]]
+        if changes:
+            rows.append(changes)
+        return "\n".join(lines), rows + pager("qpage:", page, pages) + [[HOME]]
 
     """run_actions: button actions on a run, e.g. {"pubok": fn(run_id) -> reply, "pubno": ..., "resend": ...}."""
     def send_sheet(topic_dir: Path) -> bool:

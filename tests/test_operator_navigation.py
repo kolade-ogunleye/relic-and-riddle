@@ -226,3 +226,14 @@ def test_research_tap_while_research_runs_is_explained_not_failed(db, monkeypatc
     assert h("cideas", "")[1][0][0]["callback_data"] == "cpropose:"        # a stopped process's record is not running
     h("cpropose", "")
     assert started == [1]
+
+
+def test_queue_buttons_pair_render_with_refresh_and_keep_pages_together(db, monkeypatch):
+    topics = [{"id": f"t{i}", "title": f"Topic {i}", "status": "queued", "priority": 0} for i in range(1, 30)]
+    monkeypatch.setattr(db, "list_all_topics", lambda: topics)
+    monkeypatch.setattr(db, "get_next_topic", lambda: topics[4])
+    text, rows = make_command_handler(db, lambda: None, lambda: "")("qpage", "2")
+    data = [[b["callback_data"].partition(":")[0] for b in row] for row in rows]
+    assert data[0] == ["qrender", "qrefresh"] and data[1] == ["qbump", "qdrop"]
+    assert data[2] == ["qpage"] * 4 and data[-1] == ["cdash"]          # ⏮ ◀ ▶ ⏭ on one row
+    assert format_responsive_keyboard(rows)[2] == rows[2]

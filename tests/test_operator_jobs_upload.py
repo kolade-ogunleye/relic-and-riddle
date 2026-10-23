@@ -207,7 +207,7 @@ def test_queue_page_buttons_do_not_omit_topics(db, tmp_path):
     db._seed_topics_from_json()
     handle = make_command_handler(db, lambda: None, lambda: "", assets_dir=tmp_path)
     text, buttons = handle("qpage", "0")
-    assert any(b["callback_data"] == "qpage:1" for b in buttons)
+    assert any(b["callback_data"] == "qpage:1" for row in buttons for b in row)
     second, buttons = handle("qpage", "1")
     assert second != text and "page 2/" in second
-    assert any(b["callback_data"] == "qpage:0" for b in buttons)
+    assert any(b["callback_data"] == "qpage:0" for row in buttons for b in row)

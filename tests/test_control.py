@@ -598,8 +598,8 @@ def test_interactive_queue_controls_and_undo(db, monkeypatch):
     assert len(sent_messages) > 0
     q_txt, q_btns = sent_messages[-1]
     assert "TOPIC QUEUE" in q_txt
-    assert any(b["callback_data"].startswith("qdrop:") for b in q_btns)
-    assert any(b["callback_data"] == "qrefresh:" for b in q_btns)
+    assert any(b["callback_data"].startswith("qdrop:") for row in q_btns for b in row)
+    assert any(b["callback_data"] == "qrefresh:" for row in q_btns for b in row)
 
     # 2. /bump command bumps topic
     bump_res = h("bump", "2")

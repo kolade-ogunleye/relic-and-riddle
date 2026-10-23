@@ -155,8 +155,33 @@ tag (a manual change) pauses automatic deployment until a release is installed a
 then push the tag. Only sign what passed the suite and the development test. To roll back, sign a
 new tag on the previous good commit; for an emergency, the elevated procedure above still works.
 
-**Installation (once).** Lab plays 50, 51 and 54 provide `LAB\rr-deploy$` and its permissions.
-Then a one-time elevated step, run while the pipeline is stopped during a promotion, installs the
-launcher and deployer, generates the read-only deploy key (its public half is added to the
-repository as a read-only deploy key) and registers the deployer task. That installer is not
-written yet; until it exists, releases use the elevated procedure above.
+**Installation (once).**
+1. Apply lab plays 50, 51 and 54. They provide `LAB\rr-deploy$` and its rights; play 54 also grants it git, the operator's MinGit winget package.
+2. During a promotion, while `Promote-ContentRelease.ps1` waits for `ready <commit>` and the pipeline is stopped, open a second **elevated** window on the VM in the release checkout and run:
+   ```powershell
+   .\deployment\windows\Install-ContentReleaseDeployer.ps1 -WhatIf   # review what it would change
+   .\deployment\windows\Install-ContentReleaseDeployer.ps1
+   ```
+
+The installer first checks every prerequisite and changes nothing if one fails:
+- the identity, its batch logon right and its ACLs;
+- the `.env` deny;
+- the signer;
+- that the pipeline and backup tasks are stopped.
+
+It then does the following, and is safe to re-run because it only replaces what differs:
+1. backs up whatever it replaces to `rollback\deployer-install-<UTC>`;
+2. installs the hold-aware launcher into `tools`;
+3. installs the deployer, the pinned signer list and GitHub's host keys into `tools\deploy`, which the deployer can read but not change;
+4. writes `deploy.json`;
+5. creates `secrets\Deploy\github_ed25519` and prints only its public half;
+6. registers `RelicAndRiddle-ReleaseDeployer-Unattended` as `LAB\rr-deploy$`.
+
+It does not start the deployer or change the pipeline or backup tasks, identities or ACLs.
+
+3. Add the printed key to GitHub as a read-only deploy key: repository Settings → Deploy keys, with "Allow write access" off. Then let the promotion finish.
+4. The deployer's first runs report in `logs\Deploy\status.json` and through `/deploy`. It stays paused until the tree is at a release tag.
+
+Until this is installed, releases use the elevated procedure above.
+
+**To undo:** disable or unregister the deployer task. Restore the launcher from `rollback\deployer-install-<UTC>`, and remove the deploy key on GitHub.

@@ -18,13 +18,15 @@ confirmed fault is fixed with a test; anything left alone is recorded here with 
 | 8 | A destructive step before a risky one (review card's buttons removed, then the upload failed) | re-send flows | review re-send | Deliberate: the old card's approval state is invalidated by a re-send, so its buttons could not work anyway. **Fixed**: the failure notice offers Resend (`0509a0b`) |
 | 9 | Process lifecycle (task restarts left 7 dev bots competing) | how runtimes are stopped and started | dev launcher | **Fixed**: single-instance guard (`ebec5ee`); restarts go through `scripts/windows_runtime.ps1` |
 
-## Remaining risk (not changed)
+## Production runs in a worker process (decided after the audit)
 
-**In production a run executes inside the daemon process.** A native crash in a run (the class of
-pattern 1) would stop the daemon itself: its Telegram bot and its scheduler too, not just that run.
-Bot mode already runs each run in a separate worker process, so a crash there costs only the run.
+A production run used to execute inside the daemon process, so a native crash in a run (the class
+of pattern 1) would have stopped the daemon itself: its Telegram bot and its scheduler too. With the
+operator's approval, the daemon now runs each cycle as `main.py run` in its own process, as bot mode
+already did. The daemon keeps polling Telegram; the worker reads decisions from the database and
+writes its outcome to a result file. A worker that ends without one is reported as crashed (with
+its exit code), its run is cleared and its topic requeued, and the daemon carries on.
 
-Running production's runs in a worker process the same way would contain such crashes. That is a
-change to how production executes, so it is proposed for a deliberate decision, not made here.
-Whole-process supervision and restart belong to the lab's managed task and workload alerting
-(Wazuh); startup reconciliation (pattern 3) covers the application side once it restarts.
+Whole-process supervision and restart of the daemon itself belong to the lab's managed task and
+workload alerting (Wazuh); startup reconciliation (pattern 3) covers the application side once it
+restarts.

@@ -35,7 +35,7 @@ def daemon_env(monkeypatch):
     bot = SimpleNamespace(register_commands=lambda: None, is_configured=lambda: False,
                           notify=lambda *a, **k: None, show_dashboard=lambda *a, **k: None, warm_up=lambda: None, _api=lambda *a, **k: {},
                           send_photo=None, send_audio=None, delete_message=None, chat_id="1")
-    coordinator = SimpleNamespace(telegram_bot=bot, db=SimpleNamespace(),
+    coordinator = SimpleNamespace(telegram_bot=bot, db=SimpleNamespace(), topic_engine=None,
                                   audio_engine=SimpleNamespace(voice_quota=lambda: None),
                                   post_due=lambda: posted.append(1),
                                   confirm_posted=None, confirm_not_posted=None, simulate_publish=None)
@@ -164,3 +164,89 @@ def test_a_run_started_from_the_bot_is_a_dry_run_unless_switched_off(daemon_env,
         pid=1, poll=lambda: None, communicate=lambda: ("", ""), returncode=0))
     trigger()
     assert ("--dry-run" in launched[0]) is dry
+
+
+def _daemon_run(monkeypatch, daemon_env, result, dry_run=True):
+    """Starts the daemon, then fires its daily job with the worker returning `result`."""
+    calls, notes, cleared = [], [], []
+    monkeypatch.setattr(main, "run_in_worker", lambda fmt, **kw: calls.append((fmt, kw)) or dict(result))
+    monkeypatch.setattr(main, "ping_healthcheck", lambda: notes.append("ping"))
+    monkeypatch.setattr(main, "reconcile_interrupted_runs", lambda db, te=None: [])  # startup: nothing orphaned
+    main.main(["daemon", "--time", "07:00"] + (["--dry-run"] if dry_run else []))
+    monkeypatch.setattr(main, "reconcile_interrupted_runs", lambda db, te=None: cleared.append(db) or ["run_x"])
+    coordinator = main.PipelineCoordinator()
+    coordinator.telegram_bot.notify = lambda text, *a, **k: notes.append(text)
+    daily = next(f for f, t, _ in FakeScheduler.instances[-1].jobs if t not in ("interval", None) and getattr(f, "__name__", "") == "production_run")
+    daily(content_format="dual")
+    return calls, notes, cleared
+
+
+def test_daemon_runs_production_in_a_worker_process(daemon_env, monkeypatch):
+    # 2026-10-23: a native crash in a run would have taken the daemon (its bot and schedule) down with it.
+    calls, notes, cleared = _daemon_run(monkeypatch, daemon_env, {"status": "simulated", "run_id": "r1"})
+    assert calls == [("dual", {"dry_run": True, "schedule_posts": main.POST_SCHEDULING})]
+    assert notes == ["ping"] and not cleared
+
+
+def test_a_crashed_worker_is_reported_and_its_run_cleared(daemon_env, monkeypatch):
+    calls, notes, cleared = _daemon_run(monkeypatch, daemon_env, {"status": "crashed", "exit_code": 3221225477})
+    assert cleared  # the orphaned run is failed and its topic requeued at once, not at the next restart
+    assert any("crashed" in n and "0xC0000005" in n for n in notes)
+    assert "ping" not in notes
+
+
+def test_an_empty_queue_from_the_worker_is_reported(daemon_env, monkeypatch):
+    _, notes, _ = _daemon_run(monkeypatch, daemon_env, {"status": "queue_empty"})
+    assert notes[0] == "ping" and "queue is empty" in notes[1]
+
+
+def test_run_in_worker_passes_the_run_settings_and_reads_its_result(monkeypatch):
+    import json
+    seen = {}
+
+    def fake_run(cmd, **kw):
+        seen["cmd"] = cmd
+        path = cmd[cmd.index("--result-file") + 1]
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({"status": "simulated", "run_id": "r9"}, f)
+        return SimpleNamespace(returncode=0, stderr="")
+    monkeypatch.setattr(main.subprocess, "run", fake_run)
+    result = main.run_in_worker("reel", dry_run=True, schedule_posts=False)
+    assert result == {"status": "simulated", "run_id": "r9", "exit_code": 0}
+    cmd = seen["cmd"]
+    assert cmd[2:4] == ["main.py", "run"] and "--background-polling" in cmd and "--require-live" in cmd
+    assert "--dry-run" in cmd and "--schedule-posts" not in cmd
+    assert not __import__("os").path.exists(cmd[cmd.index("--result-file") + 1])  # cleaned up
+
+
+def test_run_in_worker_reports_a_crash_when_no_result_was_written(monkeypatch):
+    monkeypatch.setattr(main.subprocess, "run", lambda cmd, **kw: SimpleNamespace(
+        returncode=3221225477, stderr="loading model\nWindows fatal exception: access violation\n"))
+    result = main.run_in_worker("reel", dry_run=False, schedule_posts=True)
+    assert result["status"] == "crashed" and result["exit_code"] == 3221225477
+    assert "access violation" in result["stderr_tail"]
+
+
+@pytest.mark.parametrize("outcome, expected", [
+    ("simulated", {"status": "simulated", "run_id": "r1"}),
+    ("empty", {"status": "queue_empty"}),
+    ("boom", {"status": "failed"}),
+])
+def test_the_run_command_writes_its_outcome_for_the_daemon(monkeypatch, tmp_path, outcome, expected):
+    import json
+
+    class FakeCoordinator:
+        def __init__(self, **kw):
+            self.telegram_bot = SimpleNamespace()
+
+        def run_cycle(self, *a, **k):
+            if outcome == "empty":
+                raise main.QueueEmpty("nothing left")
+            if outcome == "boom":
+                raise RuntimeError("stage failed")
+            return {"status": "simulated", "run_id": "r1", "master_video": "m.mp4"}
+    monkeypatch.setattr(main, "PipelineCoordinator", FakeCoordinator)
+    out = tmp_path / "result.json"
+    main.main(["run", "--dry-run", "--result-file", str(out)])
+    written = json.loads(out.read_text(encoding="utf-8"))
+    assert {k: written[k] for k in expected} == expected

@@ -24,6 +24,7 @@ import concurrent.futures
 import html
 import json
 import re
+import os
 import subprocess
 import threading
 import logging
@@ -1801,6 +1802,44 @@ class PipelineCoordinator:
             log.debug("Could not stamp the review card for %s: %s", run_id, e)
 
 
+def _write_result(path: Optional[str], result: Dict[str, Any]) -> None:
+    """The worker's outcome for the daemon that started it (never fails the run)."""
+    if not path:
+        return
+    try:
+        Path(path).write_text(json.dumps(result, default=str), encoding="utf-8")
+    except OSError as e:
+        log.warning("Could not write the run result to %s: %s", path, e)
+
+
+def run_in_worker(content_format: str, dry_run: bool, schedule_posts: bool, timeout: Optional[float] = None) -> Dict[str, Any]:
+    """Runs one production cycle in its own process (main.py run), as the development bot already does.
+    A native crash in a run (2026-10-23: a GPU library brought a worker down) then costs that run only,
+    not the daemon with its bot and schedule. The daemon's poller keeps handling Telegram; the worker
+    reads decisions from the database (--background-polling). Returns the worker's result, with
+    "crashed" (and the exit code) when it ended without writing one."""
+    import tempfile
+    fd, result_path = tempfile.mkstemp(prefix="rr-run-", suffix=".json")
+    os.close(fd)
+    cmd = ([sys.executable, "-u", "main.py", "run", "--require-live", "--background-polling",
+            "--format", content_format, "--result-file", result_path]
+           + (["--dry-run"] if dry_run else []) + (["--schedule-posts"] if schedule_posts else []))
+    try:
+        proc = subprocess.run(cmd, cwd=str(config.BASE_DIR), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                              text=True, encoding="utf-8", errors="replace", timeout=timeout)
+        try:
+            result = json.loads(Path(result_path).read_text(encoding="utf-8") or "{}")
+        except (OSError, ValueError):
+            result = {}
+        if not result:  # no result written: the process died (a native crash ends it without one)
+            result = {"status": "crashed", "exit_code": proc.returncode,
+                      "stderr_tail": "\n".join((proc.stderr or "").strip().splitlines()[-8:])}
+        result["exit_code"] = proc.returncode
+        return result
+    finally:
+        Path(result_path).unlink(missing_ok=True)
+
+
 INTERRUPTED_GRACE_SECONDS = 30 * 60  # a run this young may still be starting (no progress record yet)
 
 
@@ -1936,6 +1975,7 @@ def main(argv=None) -> int:
     run_p.add_argument("--require-live", action="store_true", help="Enforce production preflight credentials check")
     run_p.add_argument("--run-id", help="Re-use existing run directory to re-render without re-synthesizing voiceover")
     run_p.add_argument("--background-polling", action="store_true", help="Tell bot that supervisor is polling getUpdates")
+    run_p.add_argument("--result-file", help="Write the outcome here as JSON (the daemon's worker contract)")
     run_p.add_argument("--paid-voice", action="store_true",
                        help="With --dry-run: voice with ElevenLabs anyway (spends credits); real runs always may")
     run_p.add_argument("--paid-motion", action="store_true",
@@ -2016,8 +2056,13 @@ def main(argv=None) -> int:
             if getattr(args, "background_polling", False):
                 coordinator.telegram_bot.background_polling = True
             res = coordinator.run_cycle(args.topic_id, args.auto_approve, args.dry_run, require_live=getattr(args, "require_live", False), content_format=args.format, run_id=getattr(args, "run_id", None))
-        except Exception:
+        except QueueEmpty:
+            _write_result(getattr(args, "result_file", None), {"status": "queue_empty"})
+            return 0  # healthy: nothing new to make
+        except Exception as e:
+            _write_result(getattr(args, "result_file", None), {"status": "failed", "error": f"{type(e).__name__}: {e}"[:500]})
             return 1  # already logged and recorded on the run
+        _write_result(getattr(args, "result_file", None), {k: res.get(k) for k in ("status", "run_id") if k in res})
         summary_keys = ["status", "run_id", "master_video", "dual_format"]
         out_dict = {k: res.get(k) for k in summary_keys if k in res}
         if "deep_dive_run" in res:
@@ -2185,14 +2230,24 @@ def main(argv=None) -> int:
                 log.warning("A run is already in progress; skipping.")
                 return
             try:
-                result = coordinator.run_cycle(require_live=True, dry_run=args.dry_run, content_format=content_format)
-                if result.get("status") in ("published", "simulated", "rejected"):
+                # Each run in its own process: a crash costs the run, never the daemon (its bot and schedule).
+                result = run_in_worker(content_format, dry_run=args.dry_run, schedule_posts=POST_SCHEDULING)
+                status = result.get("status")
+                if status in ("published", "simulated", "rejected", "scheduled"):
                     ping_healthcheck()
-            except QueueEmpty:
-                ping_healthcheck()  # the system is healthy; it just has nothing new to make
-                bot.notify("📭 <b>Topic queue is empty</b>: every topic has been published, so today's run was skipped "
-                           "(repeating topics risks Meta's unoriginal-content rules).",
-                           [{"text": "💡 Propose new topics", "callback_data": "propose:"}])
+                elif status == "queue_empty":
+                    ping_healthcheck()  # the system is healthy; it just has nothing new to make
+                    bot.notify("📭 <b>Topic queue is empty</b>: every topic has been published, so today's run was skipped "
+                               "(repeating topics risks Meta's unoriginal-content rules).",
+                               [{"text": "💡 Propose new topics", "callback_data": "propose:"}])
+                elif status == "crashed":
+                    code = result.get("exit_code")
+                    log.error("Run worker crashed (exit %s); the daemon carries on.\n%s", code, result.get("stderr_tail", ""))
+                    cleared = reconcile_interrupted_runs(coordinator.db, coordinator.topic_engine)
+                    bot.notify(f"💥 <b>The run's worker process crashed</b> (exit {html.escape(str(code))}"
+                               + (f" / 0x{int(code) & 0xFFFFFFFF:08X}" if isinstance(code, int) else "")
+                               + "). Nothing was posted; the daemon, its bot and the schedule are unaffected."
+                               + (" The run was cleared and its topic is back in the queue." if cleared else ""))
             except BaseException as e:  # keep the daemon alive; the run is already recorded and alerted
                 log.exception("Run failed: %s", e)
             finally:

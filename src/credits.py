@@ -141,8 +141,7 @@ def generate_provenance_ledger(
         # Identical credit records may occur in both run-local and topic credits.
         matches = list({json.dumps(c, sort_keys=True): c for c in matches}.values())
         rec = matches[0] if len(matches) == 1 else {}
-        rights_known = bool(license_allowed(rec.get("license", "")) and rec.get("source_url")
-                            and rec.get("license_url"))
+        rights_known = rights_evidence_ok(rec)
         requires_attribution = rec.get("attribution_required")
         if str(rec.get("license", "")).strip().lower().startswith("cc by"):
             requires_attribution = True
@@ -234,6 +233,19 @@ SHARE_ALIKE_NOTICE = "🎬 This video is licensed CC BY-SA 4.0: https://creative
 
 def is_share_alike(short_name: str) -> bool:
     return bool(_SHARE_ALIKE.match((short_name or "").strip()))
+
+
+_PUBLIC_DOMAIN = re.compile(r"^(public domain|pd\b|pd-|cc0)", re.IGNORECASE)
+
+
+def rights_evidence_ok(rec: Dict[str, Any]) -> bool:
+    """An allowed licence with its evidence: the source page, and the licence's URL. Public domain and CC0
+    have no licence to link to, so their source page (where the status is documented) is the evidence;
+    three public-domain Commons images were held for review for lacking a URL (production, 2026-10-23)."""
+    licence = str(rec.get("license", "") or "")
+    if not (license_allowed(licence) and rec.get("source_url")):
+        return False
+    return bool(rec.get("license_url")) or bool(_PUBLIC_DOMAIN.match(licence.strip()))
 
 
 def license_allowed(short_name: str, allow_share_alike: Optional[bool] = None) -> bool:

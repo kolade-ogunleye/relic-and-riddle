@@ -764,7 +764,8 @@ class TelegramApprovalBot:
         loc = script_payload.get("location") or {}
         place = ", ".join(e(str(v)) for v in (loc.get("name"), loc.get("country")) if v)
         audits = script_payload.get("fact_audits") or []
-        flagged = [a for a in audits if a.get("verdict") != "supported"]
+        from .models import GOOD_VERDICTS
+        flagged = [a for a in audits if a.get("verdict") not in GOOD_VERDICTS]
         sources = script_payload.get("sources", [])[:4]
         conf = script_payload.get("consensus_confidence")
         integrity = f"🛡️ <b>Integrity Score:</b> {conf}% (Pass — {len(flagged)} hedged)" if not flagged else f"⚠️ <b>Integrity Alert:</b> {conf}% ({len(flagged)} disputed/hedged)"

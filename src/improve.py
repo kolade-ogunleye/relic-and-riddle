@@ -116,7 +116,8 @@ def collect_run(db, run_id: str, run_dir: Optional[Path], payload: Optional[Dict
         items, _buffer[:] = list(_buffer), []
     payload = payload or {}
     for f in payload.get("fact_audits") or []:
-        if f.get("verdict") not in (None, "supported"):
+        from .models import GOOD_VERDICTS
+        if f.get("verdict") is not None and f.get("verdict") not in GOOD_VERDICTS:
             items.append({"klass": "script.facts", "detail": f"{f.get('verdict')}: {f.get('claim', '')}", "source": "fact_check"})
     if (payload.get("second_check") or {}).get("status") not in (None, "pass"):
         items.append({"klass": "check.second_unavailable", "detail": "Second fact check unavailable", "source": "fact_check"})

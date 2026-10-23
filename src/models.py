@@ -156,6 +156,10 @@ class DeepDivePackage(BaseModel):
 
 # Structured outputs may vary enum casing ("Supported"), so normalize before validating.
 Verdict = Annotated[Literal["supported", "disputed", "unsupported", "false"], BeforeValidator(lambda v: str(v).strip().lower())]
+# A claim that passed, in each checker's own word: the fact checker's "supported", the trace check's
+# "traced", the second check's "supported"/"hedged_ok". The card counted only "supported", so 23 traced
+# claims showed as "Integrity Alert: 23 disputed/hedged" (production, 2026-10-23).
+GOOD_VERDICTS = frozenset({"supported", "traced", "hedged_ok"})
 
 
 class ClaimAudit(BaseModel):

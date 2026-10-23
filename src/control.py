@@ -515,8 +515,25 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
     active_proposal_msg_ids: List[int] = []
     undo_stack: List[Dict[str, Any]] = []
 
-    def render_queue_text_and_buttons(show_all: bool = False, page: int = 0) -> Tuple[str, List[Dict[str, str]]]:
+    def busy_topic(starting: Optional[str] = None) -> Optional[str]:
+        """The topic being made now: the live run's, one marked in production, or the one just started (its
+        job may not have begun yet, so its status still says queued)."""
+        if starting:
+            return starting
+        prog = db.get_active_progress() if hasattr(db, "get_active_progress") else None
+        if prog and prog.get("run_id"):
+            run = db.get_run(prog["run_id"]) or {}
+            if run.get("topic_id"):
+                return run["topic_id"]
+        return next((t["id"] for t in db.list_all_topics() if t.get("status") == "in_production"), None)
+
+    def render_queue_text_and_buttons(show_all: bool = False, page: int = 0,
+                                      starting: Optional[str] = None) -> Tuple[str, List[Dict[str, str]]]:
+        busy = busy_topic(starting)
+
         def _readiness(topic_id: str) -> str:
+            if topic_id == busy:
+                return "🔄 In production"
             try:
                 td = _resolve_topic_dir(topic_id, assets_dir, db=db)
                 if td.exists():
@@ -545,12 +562,15 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         lines[0] += f" · page {page+1} of {max(1, (max(0,len(queued)-1)+limit-1)//limit)}"
 
         buttons = []
-        if next_t and next_t.get("status") == "queued":
+        if next_t and (next_t.get("status") == "queued" or next_t["id"] == busy):
             sn = topic_serial.get(next_t['id'], 1)
             p_badge = " [🚀 Priority #1]" if next_t.get("priority", 0) > 0 else ""
             r_badge = _readiness(next_t['id'])
             lines.append(f"🎯 <b>Next:</b> {sn}. {html.escape(next_t['title'])}{p_badge}\n    <b>{r_badge}</b>\n")
-            buttons.append({"text": f"⚡ Render #{sn} Now", "callback_data": f"qrender:{next_t['id']}"})
+            if busy:  # Telegram has no disabled button: it says what is happening and opens the progress instead
+                buttons.append({"text": f"⏳ Rendering #{topic_serial.get(busy, sn)} · progress", "callback_data": "cprog:"})
+            else:
+                buttons.append({"text": f"⚡ Render #{sn} Now", "callback_data": f"qrender:{next_t['id']}"})
             remaining = [t for t in queued if t["id"] != next_t["id"]]
             if remaining:
                 lines.append("<b>Other Queued Topics:</b>")
@@ -564,7 +584,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 # Add bump button for the second item
                 second_t = remaining[0]
                 buttons.append({"text": f"⬆ Bump #{topic_serial.get(second_t['id'], 2)}", "callback_data": f"qbump:{second_t['id']}"})
-            buttons.append({"text": f"🗑 Drop #{sn}", "callback_data": f"qdrop:{next_t['id']}"})
+            if next_t["id"] != busy:  # never drop the topic being made
+                buttons.append({"text": f"🗑 Drop #{sn}", "callback_data": f"qdrop:{next_t['id']}"})
         elif queued:
             for t in queued[page*limit:(page+1)*limit]:
                 s = topic_serial.get(t['id'], '')
@@ -586,11 +607,11 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
 
         pages = max(1, (max(0, len(queued) - 1) + limit - 1) // limit)
         # Rows, not a flat list: Render beside Refresh, Bump beside Drop, every page button on one row.
-        render = [b for b in buttons if b["callback_data"].startswith("qrender:")]
+        render = [b for b in buttons if b["callback_data"].startswith(("qrender:", "cprog:"))]
         changes = [b for b in buttons if b["callback_data"].startswith(("qbump:", "qdrop:"))]
         rows = [render + [{"text": "🔄 Refresh Queue", "callback_data": "qrefresh:"}]]
         from . import config as app_config
-        if render and app_config.documentary_enabled():  # the same topic as a Reel plus the 16:9 documentary (paused while rebuilt)
+        if render and not busy and app_config.documentary_enabled():  # the same topic as a Reel plus the 16:9 documentary (paused while rebuilt)
             rows.append([{"text": "🎬 Reel + 16:9 documentary", "callback_data": "qdoc:" + render[0]["callback_data"].partition(":")[2]}])
         if changes:
             rows.append(changes)
@@ -639,7 +660,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 return "⚠️ The queue changed. Review the current next topic before starting.\n\n" + text, buttons
             # The documentary is made after the Reel and reviewed separately; approving it uploads it to YouTube.
             res = trigger_run("dual") if command == "qdoc" else trigger_run()
-            q_text, q_buttons = render_queue_text_and_buttons()
+            started = "already" not in res.lower()  # else another run is busy: the panel shows that one
+            q_text, q_buttons = render_queue_text_and_buttons(starting=current["id"] if started else None)
             return f"⚡ <b>Run:</b> {html.escape(res)}\n\n{q_text}", q_buttons
         if command == "qbump":
             if not db.bump_topic(args):

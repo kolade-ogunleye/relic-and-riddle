@@ -451,3 +451,27 @@ def test_publishing_waits_briefly_for_the_approval_tap_but_never_runs_twice(tmp_
         ran.append(1)
     assert ran == [1] and time.monotonic() - started < 10
     holder.wait(10)
+
+
+def test_a_started_render_shows_progress_not_render_again(db, monkeypatch):
+    # The queue panel redrawn right after Render still offered "Render #2" and "Drop #2" for the topic
+    # being made (its job had not begun, so its status still said queued). Telegram has no disabled
+    # button, so the button says what is happening and opens the progress.
+    topics = [{"id": f"t{i}", "title": f"Topic {i}", "status": "queued", "priority": 0} for i in range(1, 4)]
+    monkeypatch.setattr(db, "list_all_topics", lambda: topics)
+    monkeypatch.setattr(db, "get_next_topic", lambda: topics[1])
+    h = make_command_handler(db, lambda: None, lambda content_format="reel": "🎬 Starting a run now.")
+    text, rows = h("qrender", "2")
+    data = [b["callback_data"] for row in rows for b in row]
+    assert "cprog:" in data and not any(d.startswith(("qrender:", "qdrop:")) for d in data)
+    assert "🔄 In production" in text and "⏳ Rendering #2 · progress" in [b["text"] for row in rows for b in row]
+
+
+def test_another_busy_run_is_not_mistaken_for_the_tapped_topic(db, monkeypatch):
+    topics = [{"id": f"t{i}", "title": f"Topic {i}", "status": "queued", "priority": 0} for i in range(1, 4)]
+    topics[0]["status"] = "in_production"
+    monkeypatch.setattr(db, "list_all_topics", lambda: topics)
+    monkeypatch.setattr(db, "get_next_topic", lambda: topics[1])
+    h = make_command_handler(db, lambda: None, lambda content_format="reel": "A run is already in progress.")
+    text, rows = h("qrender", "2")
+    assert "⏳ Rendering #1 · progress" in [b["text"] for row in rows for b in row]

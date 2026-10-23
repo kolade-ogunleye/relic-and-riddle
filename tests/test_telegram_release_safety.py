@@ -310,3 +310,51 @@ def test_credits_already_in_the_new_caption_are_not_doubled():
     old = "Old.\n📷 A | File:x.jpg | CC BY 4.0"
     assert keep_attribution(old, "New.\n📷 A | File:x.jpg | CC BY 4.0").count("📷") == 1
     assert keep_attribution("Old, no credits.", "New.") == "New."
+
+
+def _numbered_bot(db, monkeypatch, fail_card=False):
+    """An offline bot whose sends get increasing message ids; records deletions."""
+    bot = TelegramApprovalBot(db=db, bot_token="123:offline", chat_id="555", approver_ids={"555"})
+    state = {"next": 400, "deleted": []}
+
+    def api(method, **kw):
+        data = kw.get("data") or {}
+        if method == "deleteMessages":
+            state["deleted"] += json.loads(data["message_ids"])
+            return True
+        if method == "sendMessage" and fail_card and "reply_markup" in data:
+            raise RuntimeError("card send failed")
+        if method == "sendMediaGroup":
+            count = len(json.loads(data["media"]))
+            ids = list(range(state["next"], state["next"] + count))
+            state["next"] += count
+            return [{"message_id": m} for m in ids]
+        state["next"] += 1
+        return {"message_id": state["next"] - 1}
+    monkeypatch.setattr(bot, "_api", api)
+    monkeypatch.setattr("src.telegram_bot.scene_strip", lambda video, out: None)
+    return bot, state
+
+
+def test_a_resent_review_replaces_the_previous_card_and_albums(db, tmp_path, monkeypatch):
+    # Resend and Edit left every earlier card and its albums in the chat (dev, 2026-10-23).
+    root = ready_review(db, tmp_path)
+    video, thumb = root / "master.mp4", root / "thumbnail_cover.jpg"
+    bot, state = _numbered_bot(db, monkeypatch)
+    first = bot.send_approval_request(video, thumb, {"caption": "One", "title": "T"}, "review")
+    first_messages = get(db, "review-messages", "review")
+    assert first in first_messages and len(first_messages) >= 2
+    second = bot.send_approval_request(video, thumb, {"caption": "Two", "title": "T"}, "review")
+    assert second != first
+    assert set(first_messages) | {202} <= set(state["deleted"])      # old card (and the original) gone
+    assert not set(get(db, "review-messages", "review")) & set(state["deleted"])
+
+
+def test_a_failed_resend_keeps_the_previous_review(db, tmp_path, monkeypatch):
+    root = ready_review(db, tmp_path)
+    video, thumb = root / "master.mp4", root / "thumbnail_cover.jpg"
+    bot, _ = _numbered_bot(db, monkeypatch)
+    bot.send_approval_request(video, thumb, {"caption": "One", "title": "T"}, "review")
+    bot, state = _numbered_bot(db, monkeypatch, fail_card=True)
+    assert bot.send_approval_request(video, thumb, {"caption": "Two", "title": "T"}, "review") is None
+    assert state["deleted"] == []   # nothing removed before a new card is in the chat

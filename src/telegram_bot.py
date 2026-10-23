@@ -895,10 +895,12 @@ class TelegramApprovalBot:
             release = json.loads(report_file.read_text(encoding="utf-8")) if report_file.exists() else None
         except (OSError, ValueError) as e:
             log.warning("Could not read the release report for the review card: %s", e)
-        from .telegram_state import review_fingerprint, put
+        from .telegram_state import review_fingerprint, put, get as get_state
+        earlier = get_state(self.db, "review-messages", run_id) or []  # the previous delivery's card and albums
+        media_ids: List[int] = []
         try:
             fingerprint = review_fingerprint(self.db, run_id)
-            self._send_review_media(Path(video_path), Path(thumbnail_path), script_payload)
+            media_ids = self._send_review_media(Path(video_path), Path(thumbnail_path), script_payload) or []
             if fingerprint != review_fingerprint(self.db, run_id):
                 raise ValueError("Review artifacts changed during delivery")
             put(self.db, "review-media", run_id, fingerprint)
@@ -910,10 +912,20 @@ class TelegramApprovalBot:
                         record_alert=True)
             return None
         try:
-            return self.send_review_card(run_id, script_payload, release)
+            card = self.send_review_card(run_id, script_payload, release)
         except Exception as e:
             log.error("Failed to send Telegram approval request: %s. Use the CLI to review %s.", e, run_id)
             return None
+        if card:
+            # Only once the new card is in the chat: the previous card and its albums go, so a resend or an
+            # edit replaces the review instead of stacking another copy (dev, 2026-10-23). Removing them
+            # first would leave no review if this delivery had failed.
+            old = [m for m in [*(earlier or []), (previous or {}).get("telegram_message_id")] if isinstance(m, int)]
+            put(self.db, "review-messages", run_id, media_ids + [card])
+            stale = sorted(set(old) - set(media_ids) - {card})
+            if stale:
+                self.delete_messages(stale)
+        return card
 
     def _strip_buttons(self, message_id: int) -> None:
         try:
@@ -938,19 +950,23 @@ class TelegramApprovalBot:
                 media.append(entry)
             if len(media) == 1:
                 kind = media[0]["type"]
-                self._api("send" + kind.capitalize(), timeout=300, files={kind: files["f0"]},
-                          data={"chat_id": self.chat_id, "caption": media[0].get("caption", ""), "parse_mode": "HTML",
-                                "protect_content": "true"})
+                sent = self._api("send" + kind.capitalize(), timeout=300, files={kind: files["f0"]},
+                                 data={"chat_id": self.chat_id, "caption": media[0].get("caption", ""), "parse_mode": "HTML",
+                                       "protect_content": "true"})
             else:
-                self._api("sendMediaGroup", timeout=300, files=files,
-                          data={"chat_id": self.chat_id, "media": json.dumps(media), "protect_content": "true"})
+                sent = self._api("sendMediaGroup", timeout=300, files=files,
+                                 data={"chat_id": self.chat_id, "media": json.dumps(media), "protect_content": "true"})
         finally:
             for f in files.values():
                 f.close()
+        messages = sent if isinstance(sent, list) else [sent]
+        return [m["message_id"] for m in messages if isinstance(m, dict) and isinstance(m.get("message_id"), int)]
 
-    def _send_review_media(self, video_path: Path, thumbnail_path: Path, payload: Dict[str, Any]) -> None:
+    def _send_review_media(self, video_path: Path, thumbnail_path: Path, payload: Dict[str, Any]) -> List[int]:
+        """Sends the review's albums; returns their message ids (so a later delivery can remove them)."""
         if not video_path.is_file() or not 0 < video_path.stat().st_size <= TELEGRAM_VIDEO_LIMIT_MB * 1024 * 1024:
             raise ValueError("A deliverable review video is required")
+        sent: List[int] = []
         run_dir = video_path.parent
         e = html.escape
         first: List[Dict[str, Any]] = []
@@ -965,7 +981,7 @@ class TelegramApprovalBot:
         elif size_mb:
             log.warning("Video is %.1f MB, over Telegram's bot upload limit; review it locally: %s", size_mb, video_path)
         if first:
-            self._album(first)
+            sent += self._album(first) or []
         stills = sorted((run_dir / "stories").glob("story_*.jpg")) + sorted((run_dir / "carousel").glob("carousel_slide_*.jpg"))
         n_story = len(list((run_dir / "stories").glob("story_*.jpg")))
         for start in range(0, len(stills), 10):
@@ -974,7 +990,8 @@ class TelegramApprovalBot:
             if start == 0:
                 items[0]["caption"] = (f"Also posted on approval: {n_story} Story frame(s), then the "
                                        f"{len(stills) - n_story}-slide carousel")
-            self._album(items)
+            sent += self._album(items) or []
+        return sent
 
     def send_review_card(self, run_id: str, script_payload: Dict[str, Any], release: Optional[Dict[str, Any]] = None) -> Optional[int]:
         from .telegram_state import get, review_fingerprint, put

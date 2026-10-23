@@ -747,21 +747,19 @@ class ScriptEngine:
         def _build_fallback() -> DeepDivePackage:
             acts = []
             facts = sheet.get("facts", [])
-            act_titles = [
-                "The Discovery and Initial Breach",
-                "Subterranean Engineering and Ventilation Architecture",
-                "Origins, Fortification and Siege Defense",
-                "Excavation and Modern Discoveries",
-                "Historical Significance and Debate",
-            ]
+            # Topic-neutral titles, and narration made only of the sheet's own statements (the old
+            # titles and filler were Derinkuyu's, and every act repeated the first two facts).
+            act_titles = ["Introduction", "What the Evidence Shows", "How It Came to Be",
+                          "What Was Found", "Why It Matters"]
+            per_act = max(1, -(-len(facts) // 5))
             for i in range(5):
-                chunk = facts[i * 2 : (i + 1) * 2] if len(facts) >= 10 else facts[:2]
-                facts_text = " ".join(f.get("statement", "") for f in chunk) or "The ancient subterranean network descends deep into volcanic rock."
+                chunk = facts[i * per_act:(i + 1) * per_act] or facts[-1:]
+                facts_text = " ".join(f.get("statement", "") for f in chunk)
                 acts.append(DocumentaryAct(
                     act_number=i + 1,
                     act_title=act_titles[i],
                     target_duration_sec=45,
-                    narration_text=f"Act {i+1} reveals the critical history. {facts_text}",
+                    narration_text=facts_text,
                     visual_intent=f"Archival visuals illustrating {act_titles[i]}",
                     graphic_type="none",
                     claim_fact_ids=[f.get("id", f"F{i+1}") for f in chunk],
@@ -769,11 +767,11 @@ class ScriptEngine:
             return DeepDivePackage(
                 topic_id=topic["id"],
                 title=topic.get("title", ""),
-                youtube_title=f"{topic.get('title', '')}: The Complete Historical Documentary",
-                description=f"Investigative documentary exploring {topic.get('title', '')}.",
-                tags=["documentary", "history", "ancient"],
+                youtube_title=topic.get("title", "")[:100],
+                description=f"A documentary about {topic.get('title', '')}, from its verified fact sheet.",
+                tags=["documentary", "history"],
                 acts=acts,
-                closing_debate_question=f"What does {topic.get('title')} tell us about ancient survival?",
+                closing_debate_question=f"What would you most like to know next about {topic.get('title')}?",
                 sources=[],
             )
 

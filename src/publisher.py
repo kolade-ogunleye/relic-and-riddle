@@ -244,7 +244,9 @@ class UploadPostPublisher:
         if kind == "story":
             data += [("media_type", "STORIES"), ("facebook_media_type", "STORIES")]
         else:
-            data += [("title", caption), ("description", caption)]
+            # On Facebook a carousel is a multi-photo post (Pages have no organic swipe carousel); it must
+            # not also become a Story, which would duplicate the run's own Story frames.
+            data += [("title", caption), ("description", caption), ("facebook_no_story", "true")]
         if self.facebook_page_id:
             data.append(("facebook_page_id", self.facebook_page_id))
 

@@ -219,6 +219,7 @@ def test_story_frames_post_one_by_one_as_stories(monkeypatch, run, tmp_path):
     url, _, data, nfiles = calls[0]
     assert url == "https://api.upload-post.com/api/upload_photos" and nfiles == 1
     assert data["media_type"] == "STORIES" and data["facebook_media_type"] == "STORIES"
+    assert "facebook_no_story" not in data
 
 
 def test_carousel_is_one_post_with_caption_and_max_ten(monkeypatch, run, tmp_path):
@@ -230,6 +231,7 @@ def test_carousel_is_one_post_with_caption_and_max_ten(monkeypatch, run, tmp_pat
     assert res["status"] == "published" and len(calls) == 1
     data, nfiles = calls[0]
     assert nfiles == 10 and data["title"] == "Cap" and "media_type" not in data
+    assert data["facebook_no_story"] == "true"  # Facebook's multi-photo post is not also made a Story
 
 
 def test_story_failure_after_first_frame_is_unknown(monkeypatch, run, tmp_path):

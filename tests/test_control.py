@@ -881,11 +881,11 @@ def test_autocomplete_commands_empty_args_interactive_templates(db):
 
     # 1. /bump with empty args offers interactive bump buttons
     res_bump = h("bump", "")
-    assert res_bump == "" or "BUMP TOPIC" in res_bump
+    assert res_bump == "" or "Bump a topic" in str(res_bump)
     if res_bump == "":
         assert len(sent) > 0
         b_txt, b_btns = sent[-1]
-        assert "BUMP TOPIC" in b_txt
+        assert "Bump a topic" in b_txt and b_btns[-1][0]["callback_data"] == "cdash:"
         assert len(b_btns) > 0
 
     # 2. /drop with empty args provides tap-to-copy template
@@ -910,11 +910,11 @@ def test_autocomplete_commands_empty_args_interactive_templates(db):
 
     # 6. /review with empty args does NOT run an arbitrary topic; offers selection or template
     res_review = h("review", "")
-    assert res_review == "" or "STORYBOARD REVIEW" in res_review
+    assert res_review == "" or "STORYBOARD REVIEW" in res_review or "Storyboard review" in res_review
     if res_review == "":
         assert len(sent) > 0
         r_txt, r_btns = sent[-1]
-        assert "STORYBOARD REVIEW" in r_txt
+        assert "Storyboard review" in r_txt and r_btns[-1][0]["callback_data"] == "cdash:"
 
 
 def test_safe_html_truncate_and_tag_balancing():

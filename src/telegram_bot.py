@@ -1023,7 +1023,9 @@ class TelegramApprovalBot:
                 panel[3] = True
                 return False
             panel[3] = True
-            return self.show_navigation_panel(panel[1], text, is_media=panel[2], buttons=buttons or [[DONE_BUTTON]])
+            # Every screen a command draws keeps a way back to the dashboard (a command's own button
+            # list, such as /bump's topics, often had none).
+            return self.show_navigation_panel(panel[1], text, is_media=panel[2], buttons=navigation_buttons(buttons))
         if not self.is_configured():
             log.info("Notification (Telegram not configured): %s", text)
             if record_alert and hasattr(self.db, "record_alert"):

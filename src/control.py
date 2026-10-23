@@ -642,16 +642,16 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 queued = [t for t in db.list_all_topics() if t.get("status") == "queued"]
                 if len(queued) > 1:
                     topic_serial = {t["id"]: i for i, t in enumerate(db.list_all_topics(), 1)}
-                    buttons = [
-                        {"text": f"⬆ Bump #{topic_serial.get(t['id'], i)} {t['title'][:20]}", "callback_data": f"qbump:{t['id']}"}
-                        for i, t in enumerate(queued[1:6], 2)
-                    ]
+                    shown = queued[1:9]
+                    # Full titles wrap in the message; the buttons carry the numbers (titles were cut off).
+                    text = ("⬆ <b>Bump a topic to the front of the queue</b>\n\n"
+                            + "\n".join(f"<b>{topic_serial.get(t['id'])}.</b> {html.escape(t['title'])}" for t in shown))
+                    numbers = [{"text": str(topic_serial.get(t["id"])), "callback_data": f"qbump:{t['id']}"} for t in shown]
+                    buttons = [row for row in (numbers[:4], numbers[4:]) if row] + [[{"text": "📋 Queue", "callback_data": "qrefresh:"}], [HOME]]
                     if send_message:
-                        send_message(
-                            "⬆ <b><u>BUMP TOPIC</u></b>\n\nTap a topic below or copy & run: <code>/bump 2</code>",
-                            buttons
-                        )
+                        send_message(text, buttons)
                         return ""
+                    return text, buttons
                 return (
                     "⬆ <b><u>BUMP TOPIC</u></b>\n\nTap to copy & edit: <code>/bump 2</code>\n\n"
                     "<i>Usage: <code>/bump &lt;number or topic_id&gt;</code>\n"
@@ -1083,14 +1083,13 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                             cr = load_credits(td)
                             if cr.get("images"):
                                 sn = topic_serial.get(t["id"], 1)
-                                buttons.append({"text": f"🎬 Review #{sn} {t['title'][:20]}", "callback_data": f"review:{sn}"})
+                                buttons.append({"text": str(sn), "callback_data": f"review:{sn}", "_title": t["title"]})
                     except Exception:
                         pass
                 if buttons and send_message:
-                    send_message(
-                        "🎬 <b><u>STORYBOARD REVIEW</u></b>\n\nTap a topic below or copy & run: <code>/review 1</code>",
-                        buttons
-                    )
+                    text = ("🎬 <b>Storyboard review</b>: choose a topic\n\n"
+                            + "\n".join(f"<b>{b['text']}.</b> {html.escape(b.pop('_title'))}" for b in buttons))
+                    send_message(text, [row for row in (buttons[:4], buttons[4:]) if row] + [[{"text": "🖼 Images", "callback_data": "cimages:"}], [HOME]])
                     return ""
                 example_sn = "1"
                 try:

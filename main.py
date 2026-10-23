@@ -747,7 +747,9 @@ class PipelineCoordinator:
             "run_id": run_id,
             "parent_run_id": parent_run_id,
             "topic_id": tid,
-            "status": "simulated" if dry_run else ("approved" if auto_approve else "pending_approval"),
+            # Only an auto-approved documentary is decided here; a dry run still goes to review first
+            # (a dry run reported "simulated" and skipped the review card, as the Richat test showed).
+            "status": ("simulated" if dry_run else "approved") if auto_approve else "pending_approval",
             "master_video": str(master_mp4),
             "thumbnail_youtube": str(thumb_yt),
             "duration_seconds": vo_dur,
@@ -761,7 +763,7 @@ class PipelineCoordinator:
             return produced
         if dry_run:
             self.db.set_setting("run_mode:" + produced["run_id"], "dry_run")
-        return {**produced, **self.resend_for_review(produced["run_id"], dry_run=dry_run)}
+        return {**produced, **self.request_approval(produced["run_id"], dry_run=dry_run)}
 
     def _alert(self, text: str, buttons: Optional[list] = None) -> None:
         self.telegram_bot.notify(text, buttons)

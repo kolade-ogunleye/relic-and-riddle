@@ -141,3 +141,27 @@ def test_the_documentary_shows_a_progress_card_that_becomes_its_failure_card(db,
     assert result["status"] == "failed"
     assert calls[0] == ("start", "Topic 1 · 16:9 documentary")
     assert calls[-1] == ("finish", 77, False, True) and ("alert",) not in calls  # one failure card, no extra alert
+
+
+def test_a_rendered_documentary_is_sent_for_review_and_acted_on(db, tmp_path, monkeypatch):
+    import main
+    run_id = "run_01_topic_1_long"
+    db.create_run(run_id, "01_topic", content_format="deep_dive")
+    db.update_run(run_id, "pending_approval", master_video_path=tmp_path / "doc.mp4",
+                  thumbnail_cover_path=tmp_path / "thumb.jpg", script_payload={"title": "T"})
+    sent, acted = [], []
+
+    class Bot:
+        def send_approval_request(self, video, thumb, payload, rid):
+            sent.append(rid)
+
+        def wait_for_decision(self, rid, window):
+            return "approved"
+    coordinator = object.__new__(main.PipelineCoordinator)
+    coordinator.db, coordinator.telegram_bot = db, Bot()
+    monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
+    monkeypatch.setattr(coordinator, "_approval_window", lambda: 60, raising=False)
+    monkeypatch.setattr(coordinator, "_after_approval", lambda rid, dry_run=False: acted.append((rid, dry_run)) or {"status": "simulated"})
+    produced = {"run_id": run_id, "status": "pending_approval"}  # what a dry, not auto-approved render returns
+    result = coordinator._review_documentary(produced, dry_run=True)
+    assert sent == [run_id] and acted == [(run_id, True)] and result["status"] == "simulated"

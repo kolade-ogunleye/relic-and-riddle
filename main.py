@@ -2259,6 +2259,10 @@ def main(argv=None) -> int:
         card_text, card_buttons = startup_dashboard_card(db, mode="bot", assets_dir=config.ASSETS_DIR)
         bot.warm_up()
         bot.show_dashboard(card_text, card_buttons)
+        # This loop owns getUpdates. A review wait this process runs itself (Resend) must read decisions
+        # from the database: polling as well made Telegram cut one poller off with 409 Conflict every few
+        # seconds, which can drop taps (dev, 2026-10-23). The daemon sets the same.
+        bot.background_polling = True
         log.info("Studio Control Center: listening for Telegram commands. Ctrl+C to stop.")
         try:
             while True:

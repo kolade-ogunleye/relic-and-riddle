@@ -262,3 +262,21 @@ def test_the_daemon_reports_a_refused_release_without_restarting(daemon_env, mon
     before = len(reported)
     poll[0]()
     assert len(reported) == before + 1
+
+
+def test_bot_mode_owns_polling_so_its_review_waits_read_the_database(daemon_env, monkeypatch):
+    # A Resend in the dev bot started a review wait that polled getUpdates beside the bot's own loop:
+    # Telegram answered 409 Conflict every few seconds for as long as the review was open.
+    seen = {}
+    monkeypatch.setattr(main, "POST_SCHEDULING", False)
+    coordinator = main.PipelineCoordinator()
+    coordinator.telegram_bot.is_configured = lambda: True
+
+    def stop(handler):
+        seen["background_polling"] = getattr(coordinator.telegram_bot, "background_polling", False)
+        raise KeyboardInterrupt
+    coordinator.telegram_bot.poll_once = stop
+    monkeypatch.setattr(main, "make_command_handler", lambda *a, **k: (lambda c, a: ""))
+    monkeypatch.setattr(main, "PipelineDatabase", lambda: SimpleNamespace())
+    assert main.main(["bot"]) == 0
+    assert seen["background_polling"] is True

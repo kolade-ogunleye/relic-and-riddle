@@ -600,6 +600,11 @@ class PipelineDatabase:
             current = {}
         st = start_time if start_time is not None else current.get("start_time", time.time())
         mid = message_id if message_id is not None else current.get("message_id")
+        # When each step was first reported (step 1 starts with the run), and since when the detail line
+        # has said what it says: the card shows how long a step has been running instead of a stale note.
+        steps = dict(current.get("step_started") or {"1": st})
+        steps.setdefault(str(step), time.time())
+        same_detail = current.get("step") == step and current.get("details") == details
         payload = {
             "run_id": run_id,
             "topic_title": topic_title,
@@ -608,6 +613,8 @@ class PipelineDatabase:
             "details": details,
             "message_id": mid,
             "start_time": st,
+            "step_started": steps,
+            "details_since": current.get("details_since", time.time()) if same_detail else time.time(),
             "updated_at": _now(),
         }
         from .process_state import identity
@@ -661,6 +668,38 @@ class PipelineDatabase:
                 cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
                 deleted[table] = conn.execute(f"DELETE FROM {table} WHERE {column} < ?", (cutoff,)).rowcount
         return deleted
+
+    PROGRESS_HISTORY_KEY = "progress_step_history"
+
+    def record_progress_history(self, run_id: str, keep: int = 8) -> None:
+        """At a run's successful end: how long each progress step took, for the next runs' estimates."""
+        active = self.get_active_progress()
+        if not active or active.get("run_id") != run_id or not active.get("step_started"):
+            return
+        total = int(active.get("total_steps") or 0)
+        starts = {int(k): float(v) for k, v in active["step_started"].items()}
+        if total < 1 or sorted(starts) != list(range(1, total + 1)):
+            return  # a step was never reported: durations would be wrong
+        ends = [starts[n + 1] for n in range(1, total)] + [time.time()]
+        durations = [round(max(0.0, ends[n - 1] - starts[n]), 1) for n in range(1, total + 1)]
+        try:
+            history = json.loads(self.get_setting(self.PROGRESS_HISTORY_KEY) or "[]")
+        except ValueError:
+            history = []
+        history = [h for h in history if isinstance(h, list) and len(h) == total][-(keep - 1):] + [durations]
+        self.set_setting(self.PROGRESS_HISTORY_KEY, json.dumps(history))
+
+    def typical_step_seconds(self, total: int) -> Optional[List[float]]:
+        """The median length of each progress step over recent successful runs (None without history)."""
+        try:
+            history = [h for h in json.loads(self.get_setting(self.PROGRESS_HISTORY_KEY) or "[]")
+                       if isinstance(h, list) and len(h) == total]
+        except ValueError:
+            return None
+        if not history:
+            return None
+        import statistics
+        return [float(statistics.median(h[n] for h in history)) for n in range(total)]
 
     def clear_active_progress(self, run_id=None) -> None:
         """Clears active render state when a job completes, fails, or is cancelled."""

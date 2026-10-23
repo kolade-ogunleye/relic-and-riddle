@@ -325,6 +325,8 @@ class PipelineCoordinator:
                 self.telegram_bot.finish_progress_card(mid, title, run_id, success=success, error=error)
             active = self.db.get_active_progress() if hasattr(self.db, "get_active_progress") else None
             if active and active.get("run_id") == run_id:
+                if success and hasattr(self.db, "record_progress_history"):
+                    self.db.record_progress_history(run_id)  # each step's length, for the next estimates
                 self.db.clear_active_progress()
         except Exception as e:
             log.debug("Could not finish the progress card: %s", e)
@@ -1120,6 +1122,13 @@ class PipelineCoordinator:
         if checkpoints.reusable("bed", bed_inputs):
             music = json.loads(music_path.read_text(encoding="utf-8"))
         else:
+            if getattr(self, "progress_msg_id", None):
+                try:
+                    self.telegram_bot.update_progress_card(
+                        self.progress_msg_id, 2, 5, topic["title"], run_id,
+                        "Scoring music & sound bed; photos being upscaled and privacy-checked")
+                except Exception:
+                    pass
             music = music_for(payload, vo_dur + 0.5, run_dir, self.audio_engine.voice_quota())
             from src import sound_plan as sound_plan_mod
             plan = sound_plan_mod.plan(words, topic.get("title", ""))  # None: word-cue fallback

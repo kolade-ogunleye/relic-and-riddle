@@ -1005,19 +1005,17 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 f"{show_time(active_prog.get('start_time'), '%H:%M') if active_prog.get('start_time') else 'earlier'}",
                 "",
             ]
+            from .telegram_bot import progress_estimate, step_running_note
+            bar, pct, eta, elapsed_sec, step_elapsed = progress_estimate(db, active_prog, step, total_steps)
             for idx, m in enumerate(milestones, start=1):
                 if idx < step:
                     lines.append(f"✅ <b>Step {idx}/{total_steps}:</b> {m}")
                 elif idx == step:
                     detail_str = f" <i>({html.escape(details)})</i>" if details else ""
-                    lines.append(f"🔄 <b>Step {idx}/{total_steps}:</b> {m}...{detail_str}")
+                    lines.append(f"🔄 <b>Step {idx}/{total_steps}:</b> {m}...{detail_str}{step_running_note(step_elapsed)}")
                 else:
                     lines.append(f"◽ <b>Step {idx}/{total_steps}:</b> {m}")
 
-            import time
-            from .telegram_bot import progress_figures, typical_run_seconds
-            elapsed_sec = int(max(0, time.time() - active_prog.get("start_time", time.time())))
-            bar, pct, eta = progress_figures(step, total_steps, elapsed_sec, typical_run_seconds())
             lines.append(f"\nProgress: <code>[{bar}] {pct}%</code>")
             lines.append(f"⏱ <b>Elapsed:</b> {elapsed_sec // 60:02d}:{elapsed_sec % 60:02d} · <b>Time left:</b> {eta}")
             lines.append(f"Last stage update: {show_time(active_prog.get('updated_at'), '%H:%M:%S %Z') if active_prog.get('updated_at') else 'unknown'}")

@@ -296,24 +296,62 @@ def scene_strip(video: Path, out: Path, frames: int = 12, cols: int = 6) -> Opti
 
 
 
-def progress_figures(step: int, total: int, elapsed: float, typical: Optional[float]) -> tuple:
+def _minutes(seconds: float) -> str:
+    return f"~{int(round(seconds / 60))} min" if seconds >= 90 else "about a minute" if seconds >= 30 else "under a minute"
+
+
+def progress_figures(step: int, total: int, elapsed: float, typical: Optional[float],
+                     step_elapsed: Optional[float] = None, typical_steps: Optional[List[float]] = None) -> tuple:
     """Bar, percent and time left for a run on step `step` of `total` (1-based, the step in progress).
-    Only finished steps count, so a run that has just started is at 0%. Time left comes from how long
-    recent runs took (typical), else from the pace so far; with neither it says so."""
+
+    With per-step history (typical_steps: how long each step usually takes), progress is weighted by
+    those lengths and grows within a step, and time left is what remains of this step plus the usual
+    length of the later ones. A step running past its usual length says so rather than counting down
+    (2026-10-23: a slow fact check showed "under a minute" left with four steps still to go).
+    Without it, only the whole-run length of recent runs is known: the bar counts finished steps and a
+    run past that length says it is running long. With no history at all it says so."""
     done = max(0, min(total, step - 1))
-    pct = int(done / total * 100) if total else 0
-    bar = "▰" * (pct // 10) + "▱" * (10 - pct // 10)
-    if step >= total:
-        eta = "finishing…"
-    elif typical and typical > elapsed:
-        left = int(typical - elapsed)
-        eta = f"~{left // 60} min" if left >= 60 else "under a minute"
-    elif done:
-        left = int(elapsed / done * (total - done))
-        eta = f"~{left // 60} min" if left >= 60 else "under a minute"
+    if typical_steps and len(typical_steps) == total and sum(typical_steps) > 0 and step_elapsed is not None:
+        current = typical_steps[min(step, total) - 1]
+        later = sum(typical_steps[step:])
+        within = min(step_elapsed, current * 0.95)  # a step is never shown complete before it is
+        pct = min(99, int((sum(typical_steps[:done]) + within) / sum(typical_steps) * 100))
+        if step_elapsed > current * 1.25 + 30:
+            eta = (f"this step is taking longer than usual (usually {_minutes(current)})"
+                   + (f"; {_minutes(later)} after it" if later >= 30 else ""))
+        else:
+            eta = _minutes(max(0.0, current - step_elapsed) + later)
     else:
-        eta = "estimating…"
+        pct = int(done / total * 100) if total else 0
+        if typical and elapsed < typical - 60:
+            eta = _minutes(typical - elapsed)
+        elif typical:
+            eta = f"running longer than usual (runs usually take {_minutes(typical)})"
+        else:
+            eta = "estimating…"
+    bar = "▰" * (pct // 10) + "▱" * (10 - pct // 10)
     return bar, pct, eta
+
+
+def progress_estimate(db, active: Optional[dict], step: int, total: int) -> tuple:
+    """progress_figures for a live run from its progress record: bar, percent, time left, elapsed
+    seconds and seconds on the current step (None when the record has no step times)."""
+    now = time.time()
+    active = active or {}
+    start = float(active.get("start_time") or now)
+    started = (active.get("step_started") or {}).get(str(step))
+    step_elapsed = max(0.0, now - float(started)) if started else None
+    typical_steps = db.typical_step_seconds(total) if hasattr(db, "typical_step_seconds") else None
+    bar, pct, eta = progress_figures(step, total, now - start, typical_run_seconds(), step_elapsed, typical_steps)
+    return bar, pct, eta, int(max(0, now - start)), step_elapsed
+
+
+def step_running_note(step_elapsed: Optional[float]) -> str:
+    """' · 5:12 on this step' once a step has run a minute, so a long step is visibly still working."""
+    if step_elapsed is None or step_elapsed < 60:
+        return ""
+    s = int(step_elapsed)
+    return f" · {s // 60}:{s % 60:02d} on this step"
 
 
 def typical_run_seconds(last: int = 5) -> Optional[float]:
@@ -1169,7 +1207,8 @@ class TelegramApprovalBot:
         if not self.is_configured():
             return None
         self._progress_start_time[run_id] = time.time()
-        bar, pct, eta = progress_figures(1, 5, 0, typical_run_seconds())
+        bar, pct, eta = progress_figures(1, 5, 0, typical_run_seconds(), 0.0,
+                                         self.db.typical_step_seconds(5) if hasattr(self.db, "typical_step_seconds") else None)
         text = (
             f"⏳ <b><u>PRODUCTION PROGRESS</u></b>\n\n"
             f"<b>{html.escape(topic_title)}</b> · started {show_time(None, '%H:%M')}\n\n"
@@ -1271,18 +1310,20 @@ class TelegramApprovalBot:
             f"⏳ <b><u>PRODUCTION PROGRESS</u></b>\n\n<b>{html.escape(topic_title)}</b> · started {show_time(self._progress_start_time.get(run_id), '%H:%M')}",
             "",
         ]
+        record = dict(active or {})
+        record.setdefault("start_time", self._progress_start_time.get(run_id, time.time()))
+        if record.get("step") != step:  # this update starts the step: count it from now
+            record["step_started"] = {**(record.get("step_started") or {}), str(step): time.time()}
+        bar, pct, eta, elapsed_sec, step_elapsed = progress_estimate(self.db, record, step, total_steps)
         for idx, m in enumerate(milestones, start=1):
             if idx < step:
                 lines.append(f"✅ <b>Step {idx}/{total_steps}:</b> {m}")
             elif idx == step:
                 detail_str = f" <i>({html.escape(details)})</i>" if details else ""
-                lines.append(f"🔄 <b>Step {idx}/{total_steps}:</b> {m}...{detail_str}")
+                lines.append(f"🔄 <b>Step {idx}/{total_steps}:</b> {m}...{detail_str}{step_running_note(step_elapsed)}")
             else:
                 lines.append(f"◽ <b>Step {idx}/{total_steps}:</b> {m}")
 
-        start_t = self._progress_start_time.get(run_id, time.time())
-        elapsed_sec = int(max(0, time.time() - start_t))
-        bar, pct, eta = progress_figures(step, total_steps, elapsed_sec, typical_run_seconds())
         lines.append(f"\nProgress: <code>[{bar}] {pct}%</code>")
         lines.append(f"⏱ <b>Elapsed:</b> {elapsed_sec // 60:02d}:{elapsed_sec % 60:02d} · <b>Time left:</b> {eta}")
 

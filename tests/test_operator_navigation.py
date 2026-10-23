@@ -86,13 +86,64 @@ def test_covers_from_a_review_card_open_in_the_panel_not_over_the_card(db):
 @pytest.mark.parametrize("step,elapsed,typical,pct,eta", [
     (1, 0, 1150, 0, "~19 min"),            # just started: nothing finished yet
     (1, 0, None, 0, "estimating…"),
-    (3, 600, None, 40, "~15 min"),          # two of five done in 10 min: about 15 to go
-    (5, 900, 1150, 80, "finishing…"),
+    # Steps differ hugely in length (a 14-minute fact check, a 6-second voiceover), so the pace of the
+    # finished steps says nothing about the rest: without history there is no estimate.
+    (3, 600, None, 40, "estimating…"),
+    (5, 900, 1150, 80, "~4 min"),
+    # Past the usual run length it says so; it used to say "under a minute" with four steps to go.
+    (2, 1074, 1100, 20, "running longer than usual (runs usually take ~18 min)"),
 ])
-def test_progress_counts_only_finished_steps(step, elapsed, typical, pct, eta):
+def test_progress_without_step_history_counts_finished_steps(step, elapsed, typical, pct, eta):
     from src.telegram_bot import progress_figures
     bar, got_pct, got_eta = progress_figures(step, 5, elapsed, typical)
     assert (got_pct, got_eta) == (pct, eta) and bar.count("▰") == pct // 10
+
+
+STEPS = [300.0, 240.0, 180.0, 360.0, 120.0]  # usual length of each step: 20 minutes in all
+
+
+@pytest.mark.parametrize("step,step_elapsed,pct,eta", [
+    (1, 0, 0, "~20 min"),
+    (1, 150, 12, "~18 min"),                 # half of step 1: progress moves within a step
+    (2, 0, 25, "~15 min"),                   # step 1 is a quarter of the run, not a fifth
+    (4, 180, 75, "~5 min"),
+    (5, 60, 95, "about a minute"),
+    (5, 500, 99, "this step is taking longer than usual (usually ~2 min)"),   # never 100% before it ends
+    (1, 840, 23, "this step is taking longer than usual (usually ~5 min); ~15 min after it"),
+])
+def test_progress_with_step_history_is_weighted_and_honest_about_slow_steps(step, step_elapsed, pct, eta):
+    from src.telegram_bot import progress_figures
+    _, got_pct, got_eta = progress_figures(step, 5, 9999, 1200, step_elapsed, STEPS)
+    assert (got_pct, got_eta) == (pct, eta)
+
+
+def test_each_step_length_is_recorded_and_used_for_the_next_run(db, monkeypatch):
+    import time as clock
+    from src import db as db_module
+    now = [1000.0]
+    monkeypatch.setattr(db_module.time, "time", lambda: now[0])
+    db.create_run("run_a", db.list_all_topics()[0]["id"])
+    for step, at in ((1, 1000.0), (2, 1840.0), (3, 1846.0), (4, 2100.0), (5, 2500.0)):
+        now[0] = at
+        db.set_active_progress("run_a", "T", step, 5, start_time=1000.0)
+    now[0] = 2600.0
+    db.record_progress_history("run_a")
+    assert db.typical_step_seconds(5) == [840.0, 6.0, 254.0, 400.0, 100.0]
+    assert clock  # the real clock is untouched outside the module under test
+
+
+def test_a_run_with_an_unreported_step_leaves_no_history(db):
+    db.create_run("run_b", db.list_all_topics()[0]["id"])
+    db.set_active_progress("run_b", "T", 1, 5)
+    db.set_active_progress("run_b", "T", 3, 5)  # step 2 never reported
+    db.record_progress_history("run_b")
+    assert db.typical_step_seconds(5) is None
+
+
+def test_the_card_shows_how_long_the_current_step_has_run():
+    from src.telegram_bot import step_running_note
+    assert step_running_note(None) == "" and step_running_note(45) == ""
+    assert step_running_note(312) == " · 5:12 on this step"
 
 
 def test_each_tap_is_answered_once(db):

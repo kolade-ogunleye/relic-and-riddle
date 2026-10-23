@@ -108,3 +108,33 @@ def test_lineage_records_the_backend(tmp_path, monkeypatch):
     monkeypatch.setattr(upscale, "_upscale_onnx", lambda p: Image.new("RGB", (5120, 3840)))
     out = upscale.ensure_resolution(_img(tmp_path, "d.jpg", (1280, 960)))
     assert json.loads(sidecar(out).read_text(encoding="utf-8"))["settings"]["backend"] == "onnx"
+
+
+def test_parallel_callers_create_one_gpu_session(monkeypatch):
+    # Four image-prep threads each created a DirectML session at once and the worker crashed (0xC0000005).
+    import sys
+    import threading
+    import time
+    import types
+    from src import upscale
+    created = []
+
+    class Session:
+        def __init__(self, *a, **k):
+            time.sleep(0.05)  # the window in which the others arrive
+            created.append(1)
+
+        def get_providers(self):
+            return ["DmlExecutionProvider"]
+
+    fake = types.SimpleNamespace(get_available_providers=lambda: ["DmlExecutionProvider"],
+                                 SessionOptions=lambda: types.SimpleNamespace(log_severity_level=0),
+                                 InferenceSession=Session)
+    monkeypatch.setitem(sys.modules, "onnxruntime", fake)
+    monkeypatch.setattr(upscale, "_session", None)
+    threads = [threading.Thread(target=upscale._onnx_session) for _ in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert len(created) == 1

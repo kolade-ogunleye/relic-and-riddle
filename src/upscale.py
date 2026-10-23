@@ -81,7 +81,13 @@ def _cache_path(path: Path, name: str) -> Path:
 
 def _onnx_session():
     global _session
-    if _session is None:
+    if _session is not None:
+        return _session
+    # Created once, under the lock: four image-prep threads each created a DirectML session at the same
+    # moment and the process died with an access violation (0xC0000005, dev run, 2026-10-23).
+    with _session_lock:
+        if _session is not None:
+            return _session
         import onnxruntime as ort
         available = ort.get_available_providers()
         providers = [p for p in ("DmlExecutionProvider", "CPUExecutionProvider") if p in available]

@@ -414,7 +414,7 @@ class TelegramApprovalBot:
         def complete(job, result):
             if job["state"] == "completed":
                 if result is None:
-                    return False
+                    return None  # the work drew its own screen (a photo or audio panel): shown, not lost
                 text, buttons = result if isinstance(result, tuple) else (str(result or "Completed."), [[DONE_BUTTON]])
             else:
                 text = f"{'⏹' if job['state'] == 'cancelled' else '⚠️'} <b>{html.escape(title)}</b>: {job['state']}.\nExisting approved assets and usage records are preserved."
@@ -433,24 +433,37 @@ class TelegramApprovalBot:
         return self.jobs.submit(self._background(), title, work, complete, resource, announce)
 
     def jobs_view(self):
-        lines = ["🧰 <b>Operator jobs</b>"]
-        buttons = []
-        for job in self.jobs.recent():
-            lines.append(f"\n<b>{html.escape(job['title'])}</b>\n{job['state']} · {show_time(job['updated_at'], '%H:%M:%S %Z')}")
-            if job.get("error_detail"):
-                lines.append(html.escape(job["error_detail"]))
-            if job.get("delivery"):
-                lines.append("Panel delivery: " + html.escape(job["delivery"]))
-            if job["id"] in self.jobs.active and job["state"] in {"queued", "running"}:
-                buttons.append([{"text": f"Cancel {job['title'][:24]}", "callback_data": f"jobcancel:{job['id']}"}])
-        if len(lines) == 1:
-            lines.append("\nNo jobs recorded yet.")
+        """What is running now (with Cancel) and what finished recently, in plain words."""
+        e = html.escape
+        jobs = self.jobs.recent()
+        running = [j for j in jobs if j["id"] in self.jobs.active and j["state"] in {"queued", "running"}]
         with self.db._conn() as conn:
             runs = conn.execute("SELECT run_id FROM runs WHERE status='producing' ORDER BY created_at DESC LIMIT 3").fetchall()
+        lines, buttons = ["🧰 <b>Jobs</b>", "", "<b>Running now</b>"], []
+        for job in running:
+            lines.append(f"⏳ {e(job['title'])} · since {show_time(job['updated_at'], '%H:%M')}")
+            buttons.append([{"text": f"✖ Cancel {job['title'][:24]}", "callback_data": f"jobcancel:{job['id']}"}])
         for run in runs:
-            lines.append("\n🎬 " + html.escape(self.db.run_label(run[0])) + " · producing")
-            buttons.append([{"text": "Cancel run after current stage", "callback_data": f"runstop:{self.db.run_key(run[0])}"}])
-        return "\n".join(lines), buttons + [[{"text": "Refresh", "callback_data": "jobs:"}], [DONE_BUTTON]]
+            lines.append(f"🎬 {e(self.db.run_label(run[0]))} · producing")
+            buttons.append([{"text": "✖ Cancel the run after its current stage", "callback_data": f"runstop:{self.db.run_key(run[0])}"}])
+        if not running and not runs:
+            lines.append("Nothing is running.")
+        icons = {"completed": "✅", "failed": "❌", "cancelled": "⏹"}
+        finished = [j for j in jobs if j not in running][:8]
+        if finished:
+            lines += ["", "<b>Recent</b>"]
+        for job in finished:
+            line = f"{icons.get(job['state'], '•')} {show_time(job['updated_at'], '%H:%M')} {e(job['title'])}"
+            if job["state"] == "cancelled":
+                line += " (cancelled)"
+            elif job.get("error_detail"):
+                line += " — " + e(job["error_detail"][:140])
+            elif job.get("delivery") in {"suppressed_or_unconfirmed", "failed"} and not job["title"].startswith("Receiving"):
+                line += "\n   ⚠️ its result was not shown: you had left that screen. Open it again."
+            lines.append(line)
+        if not jobs and not runs:
+            lines[-1] = "Nothing is running, and no jobs have run yet."
+        return "\n".join(lines), buttons + [[{"text": "🔄 Refresh", "callback_data": "jobs:"}], [DONE_BUTTON]]
 
     def is_configured(self) -> bool:
         return is_configured(self.bot_token) and is_configured(self.chat_id) and bool(self.approver_ids)

@@ -261,3 +261,19 @@ def test_music_fetch_takes_three_per_mood_by_default(db, monkeypatch):
     monkeypatch.setattr(fetch, "fetch_music_tracks", lambda mood=None, add_count=None: asked.append((mood, add_count)) or 3)
     text, _ = make_command_handler(db, lambda: None, lambda: "")("mfetch", "tense")
     assert asked == [("tense", config.MUSIC_FETCH_PER_MOOD)] and config.MUSIC_FETCH_PER_MOOD == 3 and "3 new" in text
+
+
+def test_jobs_screen_is_plain(db):
+    import threading
+    calls = []
+    bot = _bot(db, calls)
+    done = threading.Event()
+    bot.start_operator_job("Image review", lambda: None, resource="review:x")           # draws its own screen
+    bot.start_operator_job("Researching topic ideas", lambda: done.wait(5) and None, resource="topic-research")
+    text, buttons = bot.jobs_view()
+    assert "<b>Running now</b>" in text and "⏳ Researching topic ideas" in text
+    assert buttons[0][0]["text"].startswith("✖ Cancel Researching")
+    done.set()
+    bot.drain()
+    text, _ = bot.jobs_view()
+    assert "Nothing is running." in text and "✅" in text and "Panel delivery" not in text and "suppressed" not in text

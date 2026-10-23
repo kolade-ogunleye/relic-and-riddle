@@ -11,6 +11,7 @@ The result is one (image, duration) per beat for the video composer.
 """
 
 import json
+from collections import Counter
 import logging
 from functools import lru_cache
 from pathlib import Path
@@ -207,6 +208,28 @@ def storyboard_order(storyboard: List[Dict[str, Any]], beats: List[Dict[str, Any
     return [p if p is not None else spare[k % len(spare)] for k, p in enumerate(picks)]
 
 
+CAPTION_NOTES = "caption match (no picture plan)"
+
+
+def caption_order(beats: List[Dict[str, Any]], stills: List[Path]) -> Optional[List[int]]:
+    """A photo per beat from archive captions alone: the unused photo sharing the most distinctive
+    words with the beat (a word every caption has, like the subject's name, counts least), else the
+    next unused photo in pool order. The hook keeps the pool's first photo. None if no caption exists."""
+    caps = [graphic_match.tokens(_photo_caption(p)) for p in stills]
+    if not any(caps):
+        return None
+    df = Counter(t for c in caps for t in c)
+    used: Counter = Counter()
+    order: List[int] = []
+    for k, b in enumerate(beats):
+        said = graphic_match.tokens(b.get("text", ""))
+        score = [sum(1 / df[t] for t in caps[i] & said) for i in range(len(stills))]
+        pick = 0 if k == 0 else max(range(len(stills)), key=lambda i: (-used[i], score[i], -i))
+        used[pick] += 1
+        order.append(pick)
+    return order
+
+
 @llm_task("scene_plan")
 def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = "",
                 use_storyboard: bool = True) -> Tuple[List[Path], List[float], str]:
@@ -270,6 +293,13 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
                 log.warning("Scene plan had %d picks for %d beats or bad numbers; using filename order.", len(picks), n)
         except LLMError as e:
             log.warning("Scene planning failed (%s); using filename order.", e)
+
+    # 3. Without a picture plan (quota used up, a vision timeout: Richat's documentary went out in
+    # filename order), each beat takes the unused photo whose archive caption shares its words.
+    if notes == "filename order" and stills:
+        matched = caption_order(beats, stills)
+        if matched is not None:
+            order, notes = matched, CAPTION_NOTES
 
     planned = notes != "filename order"  # without a plan, photos only, in filename order
     chosen: List[Path] = []

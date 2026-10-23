@@ -1301,8 +1301,13 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             # Footage is supplied as a file the operator holds the rights to (send the video with the
             # caption "/footage <topic>"). Links are not downloaded: a downloaded clip carries no licence
             # evidence, and downloading from YouTube conflicts with its Terms of Service.
-            return ("🎥 <b>Add footage:</b> send the video file itself to this chat with the caption "
-                    "<code>/footage &lt;topic_id_or_number&gt;</code>.\n"
+            try:  # a ready-to-copy caption for the next topic (the copy button needs a concrete command)
+                nxt = db.get_next_topic()
+                example = str({t["id"]: i for i, t in enumerate(db.list_all_topics(), 1)}.get(nxt["id"], 1)) if nxt else "1"
+            except Exception:
+                example = "1"
+            return ("🎥 <b>Add footage:</b> send the video file itself to this chat with this caption "
+                    f"(the topic's number or ID): <code>/footage {example}</code>\n"
                     "<i>Links aren't downloaded: their rights can't be verified, and YouTube's terms prohibit downloading.</i>")
         if command == "queue":
             ref = args.strip().lower()

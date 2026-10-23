@@ -44,6 +44,30 @@ def format_html(text):
     return heading + ("\n\n" + body.lstrip("\n") if separator and body.strip() else "")
 
 
+_COMMAND_CODE = re.compile(r"<code>(/[a-z_]+(?: [^<]*)?)</code>", re.I)
+
+
+def copy_buttons(text, markup):
+    """A 📋 Copy button (Telegram copy_text: one tap puts it on the clipboard) for each ready-to-use
+    command shown in a code box, e.g. <code>/add The Lost Labyrinth</code>. Templates with
+    placeholders (/bump &lt;number&gt;) are left to the code box: copying a placeholder helps no one."""
+    import json
+    commands = []
+    for match in _COMMAND_CODE.finditer(str(text or "")):
+        command = html.unescape(match[1]).strip()
+        if "<" not in command and ">" not in command and command not in commands and len(command) <= 256:
+            commands.append(command)
+    if not commands:
+        return markup
+    value = json.loads(markup) if isinstance(markup, str) else dict(markup or {"inline_keyboard": []})
+    rows = value.get("inline_keyboard", [])
+    if any("copy_text" in button for row in rows for button in row):
+        return markup  # already offered (an edit of the same screen)
+    labels = [f"📋 Copy {c}" if len(c) <= 22 else f"📋 Copy {c[:20]}…" for c in commands[:3]]
+    value["inline_keyboard"] = [[{"text": label, "copy_text": {"text": command}}] for label, command in zip(labels, commands)] + rows
+    return json.dumps(value)
+
+
 def format_payload(method, payload):
     """Copy only presentation fields; retain original evidence/action metadata."""
     import json
@@ -53,6 +77,10 @@ def format_payload(method, payload):
         for key in ("text", "caption"):
             if key in result:
                 result[key] = safe_html_truncate(format_html(_MASKER.mask(result[key])), 1024 if key == "caption" else 4000)
+        if method in {"sendMessage", "editMessageText"}:
+            result_markup = copy_buttons(result.get("text"), result.get("reply_markup"))
+            if result_markup:
+                result["reply_markup"] = result_markup
     if method in {"editMessageMedia", "sendMediaGroup"} and isinstance(result.get("media"), str):
         value = json.loads(result["media"])
         for media in value if isinstance(value, list) else [value]:

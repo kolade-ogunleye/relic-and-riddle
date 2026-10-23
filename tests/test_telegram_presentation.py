@@ -55,3 +55,15 @@ def test_clear_then_start_leaves_one_clean_dashboard_even_after_restart(db, monk
     assert len([1 for method, _ in calls if method == 'sendMessage']) == 2
     assert any(method == 'deleteMessage' and data.get('message_id') == 900 for method, data in calls)
     assert db.get_setting('telegram_dashboard_id') == '902'
+
+
+def test_ready_commands_get_a_copy_button_and_placeholders_do_not():
+    import json
+    from src.telegram_presentation import format_payload
+    text = ('<b>Add topic</b>\n\n<code>/add The Lost Labyrinth of Hawara</code>\n<code>/add &lt;topic title&gt;</code>')
+    markup = json.dumps({"inline_keyboard": [[{"text": "← Dashboard", "callback_data": "cdash:"}]]})
+    rows = json.loads(format_payload("sendMessage", {"parse_mode": "HTML", "text": text, "reply_markup": markup})["reply_markup"])["inline_keyboard"]
+    assert rows[0] == [{"text": "📋 Copy /add The Lost Labyri…", "copy_text": {"text": "/add The Lost Labyrinth of Hawara"}}]
+    assert len(rows) == 2 and rows[1][0]["callback_data"] == "cdash:"      # the placeholder template gets none
+    again = format_payload("editMessageText", {"parse_mode": "HTML", "text": text, "reply_markup": json.dumps({"inline_keyboard": rows})})
+    assert len(json.loads(again["reply_markup"])["inline_keyboard"]) == 2  # never doubled on an edit

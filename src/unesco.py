@@ -24,6 +24,13 @@ from pydantic import BaseModel
 
 from . import config
 
+
+def _clean_title(title: str) -> str:
+    """Accent-free, punctuation-free, single-spaced lowercase, for matching site names."""
+    import unicodedata
+    folded = "".join(ch for ch in unicodedata.normalize("NFKD", title or "") if not unicodedata.combining(ch))
+    return " ".join(re.sub(r"[^a-z0-9 ]", " ", folded.lower()).split())
+
 log = logging.getLogger(__name__)
 
 UNESCO_XML_URL = "https://whc.unesco.org/en/list/xml/"
@@ -257,7 +264,9 @@ class UNESCOEngine:
         """
         sites = self.load_sites().values()
         candidates: List[Dict[str, Any]] = []
-        exclude = {t.lower() for t in (exclude_titles or [])}
+        # Both sides normalised the same way: an accented or hyphenated name ("Pyrénées - Mont Perdu")
+        # never matched its own exclusion, so an added or skipped marvel kept coming back.
+        exclude = {c for c in (_clean_title(t) for t in (exclude_titles or [])) if c}
 
         THEME_KEYWORDS = {
             "subterranean": ["subterranean", "underground", "cave", "hypogeum", "catacomb", "salt", "mine", "tunnel", "quarry"],
@@ -276,7 +285,7 @@ class UNESCOEngine:
             if "(i)" not in crit and "(iv)" not in crit:
                 continue
 
-            clean_title = re.sub(r"[^a-z0-9 ]", "", s.site.lower()).strip()
+            clean_title = _clean_title(s.site)
             if any(ex in clean_title or clean_title in ex for ex in exclude):
                 continue
 

@@ -157,12 +157,12 @@ def _adds(buttons):
 
 @needs_unesco
 def test_control_discover_command(db, monkeypatch, tmp_path):
-    # One paged panel (audit F15): an Add per marvel, then back to ideas and the dashboard.
+    # One marvel per page (like Waiting ideas): Add/Skip, paging, then back to ideas and the dashboard.
     h = _discover_handler(db, monkeypatch, tmp_path)
     text, buttons = h("discover", "hydraulic")
-    assert "UNESCO marvels" in text and _adds(buttons)
-    assert buttons[-1][0]["callback_data"] == "cdash:"
-    assert "Added" in h("uadd", _adds(buttons)[0].split(":")[-1])
+    assert "UNESCO marvel 1 of" in text and len(_adds(buttons)) == 1
+    assert buttons[0][0]["text"] == "➕ Add" and buttons[-1][0]["callback_data"] == "cdash:"
+    assert "Added" in h("uadd", _adds(buttons)[0].split(":")[1])
 
 
 @needs_unesco
@@ -182,11 +182,19 @@ def test_discover_pagination_with_offset():
 def test_control_discover_umore_and_duplicate_uadd(db, monkeypatch, tmp_path):
     h = _discover_handler(db, monkeypatch, tmp_path)
     text, buttons = h("discover", "subterranean")
-    assert len(_adds(buttons)) == 3
-    nxt = [b["callback_data"] for row in buttons for b in row if b["text"] == "▶"]  # ▶ next page
-    assert nxt == ["cdisc:subterranean:3"]
-    _, more = h("cdisc", "subterranean:3")                       # the next page replaces this one
-    assert set(_adds(more)).isdisjoint(_adds(buttons))
-    first_id = _adds(buttons)[0].split(":")[-1]
+    assert len(_adds(buttons)) == 1
+    nxt = [b["callback_data"] for row in buttons for b in row if b["text"] == "▶"]  # ▶ next marvel
+    assert nxt == ["cdisc:subterranean:1"]
+    second_text, more = h("cdisc", "subterranean:1")              # the next marvel replaces this one
+    assert set(_adds(more)).isdisjoint(_adds(buttons)) and "marvel 2 of" in second_text
+    added_text, after = h("uadd", _adds(more)[0].split(":", 1)[1])  # Add from the panel keeps the place
+    assert "Added UNESCO Marvel" in added_text and "marvel 2 of" in added_text
+    assert set(_adds(after)).isdisjoint(_adds(more))
+    first_id = _adds(buttons)[0].split(":")[1]
     assert "Added UNESCO Marvel" in h("uadd", first_id)
     assert "already queued" in h("uadd", first_id)                # a repeated tap never duplicates
+
+
+def test_added_accented_marvel_is_excluded():
+    from src.unesco import _clean_title
+    assert _clean_title("Pyrénées - Mont Perdu") == _clean_title("pyrenees mont perdu") == "pyrenees mont perdu"

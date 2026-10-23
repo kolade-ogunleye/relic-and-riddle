@@ -1402,30 +1402,28 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     else:
                         offset = int(parts[0])
 
-            limit = 3
-            wonders = engine.discover_engineering_wonders(limit=limit, offset=offset, sub_theme=theme, exclude_titles=existing_titles)
-            if not wonders:
-                if offset > 0:
-                    return f"🏛️ No further UNESCO engineering marvels found for '{html.escape(theme or 'all')}'. All matching sites have been reviewed."
+            # One marvel per page, like Waiting ideas: its full text wraps in the message, and the buttons stay
+            # short (three per page cut both the descriptions and the "Add <name>" buttons off).
+            back = [[{"text": "← Topic ideas", "callback_data": "cideas:"}], [HOME]]
+            matches = engine.discover_engineering_wonders(limit=10_000, offset=0, sub_theme=theme, exclude_titles=existing_titles)
+            if not matches:
                 return (f"🏛️ No unqueued UNESCO engineering marvels found for '{html.escape(theme or 'all')}'. "
-                        "Try another theme (subterranean, hydraulic, megalithic, metallurgy).")
-
-            total = len(engine.discover_engineering_wonders(limit=10_000, offset=0, sub_theme=theme, exclude_titles=existing_titles))
-            pages, page = max(1, -(-total // limit)), offset // limit
-
-            # One paged panel (no burst of separate cards): Add per marvel, paging, back and Done.
-            lines = ["🏛️ <b>UNESCO marvels</b>" + (f" · page {page + 1} of {pages}" if pages > 1 else "")]
-            buttons = []
-            for w in wonders:
-                lines.append(f"\n<b>{html.escape(w['title'])}</b> · {html.escape(w['country'])}\n{html.escape((w.get('short_description') or '')[:220])}")
-                buttons.append([{"text": f"➕ Add {w['title'][:24]}", "callback_data": f"uadd:{w['id_number']}"},
-                                {"text": "✖ Skip", "callback_data": f"uskip:{w['id_number']}:{theme or ''}:{offset}"}])
-            buttons += [[{**b, "callback_data": f"cdisc:{theme or ''}:{int(b['callback_data'].rpartition(':')[2]) * limit}"} for b in row]
-                        for row in pager("cdisc:", page, pages)]
-            return "\n".join(lines), buttons + [[{"text": "← Topic ideas", "callback_data": "cideas:"}], [HOME]]
+                        "Every matching site has been added or skipped."), back
+            index = min(offset, len(matches) - 1)
+            w = matches[index]
+            about = (w.get("short_description") or "").strip()
+            if len(about) > 900:
+                about = about[:900].rsplit(" ", 1)[0] + "…"
+            text = (f"🏛️ <b>UNESCO marvel {index + 1} of {len(matches)}</b>" + (f" · {html.escape(theme)}" if theme else "")
+                    + f"\n\n<b>{html.escape(w['title'])}</b> · {html.escape(w['country'])}\n\n{html.escape(about)}")
+            place = f"{w['id_number']}:{theme or ''}:{index}"
+            buttons = [[{"text": "➕ Add", "callback_data": f"uadd:{place}"}, {"text": "✖ Skip", "callback_data": f"uskip:{place}"}]]
+            buttons += [[{**b, "callback_data": f"cdisc:{theme or ''}:{b['callback_data'].rpartition(':')[2]}"} for b in row]
+                        for row in pager("cdisc:", index, len(matches))]
+            return text, buttons + back
 
         if command == "uadd":
-            ref = args.strip()
+            ref, _, place = args.strip().partition(":")  # place: "<theme>:<index>" when added from the panel
             if not ref.isdigit():
                 return "Usage: uadd:&lt;unesco_id&gt;"
             from .unesco import UNESCOEngine
@@ -1441,8 +1439,12 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 if "Duplicate detected" in err_str:
                     return f"ℹ️ <b>{html.escape(site.site)}</b> is already queued in the topic bank."
                 return f"⚠️ {html.escape(err_str)}"
-            return (f"➕ Added UNESCO Marvel <b>{html.escape(site.site)}</b> (<code>{html.escape(topic_id)}</code>) to queue!{u_tag}\n\n"
-                    f"Open <code>/images {html.escape(topic_id)}</code> to fetch, upload or review images.")
+            added = (f"➕ Added UNESCO Marvel <b>{html.escape(site.site)}</b> (<code>{html.escape(topic_id)}</code>) to queue!{u_tag}\n\n"
+                     f"Open <code>/images {html.escape(topic_id)}</code> to fetch, upload or review images.")
+            if place:  # from the panel: the next marvel moves into this place
+                text, buttons = handle("discoverpanel", place)
+                return added.split("\n\n")[0] + "\n\n" + text, buttons
+            return added
         if command == "uskip":
             with db._conn() as conn:
                 conn.execute("BEGIN IMMEDIATE")

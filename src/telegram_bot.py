@@ -866,7 +866,10 @@ class TelegramApprovalBot:
             put(self.db, "review-media", run_id, fingerprint)
         except Exception as e:
             log.warning("Could not send the review media: %s", _MASKER.mask(str(e)))
-            self.notify("⚠️ Review media was not delivered. Approval is unavailable. Resend the review after resolving delivery.", record_alert=True)
+            # A way out on the notice itself: it said "resend the review" but offered only the dashboard.
+            self.notify("⚠️ Review media was not delivered. Approval is unavailable. Resend the review after resolving delivery.",
+                        buttons=[{"text": "📨 Resend for review", "callback_data": f"resend:{self.db.run_key(run_id)}"}],
+                        record_alert=True)
             return None
         try:
             return self.send_review_card(run_id, script_payload, release)

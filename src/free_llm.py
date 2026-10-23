@@ -92,6 +92,10 @@ def _paid_fallback(system, prompt, schema: Type[T], model: str, task_class: str,
     return result
 
 
+SPARE_COOLDOWN_SECONDS = 3600
+_spare_down_until = 0.0  # monotonic time before which a failed spare key is not tried again
+
+
 def _spare_key() -> str:
     """The spare free key, only while explicitly permitted (see config) and never the billed key."""
     key = config.GEMINI_FREE_API_KEY_SPARE
@@ -117,12 +121,17 @@ def structured(system: str, prompt, schema: Type[T], role: str = "writer", attem
         try:
             return gemini.structured(system, prompt, schema, model=model, key=config.GEMINI_FREE_API_KEY, **wait)
         except gemini.QuotaExhausted as e:
+            global _spare_down_until
             spare = _spare_key()
-            if spare:
+            if spare and time.monotonic() >= _spare_down_until:
                 try:
                     return gemini.structured(system, prompt, schema, model=model, key=spare, **wait)
                 except gemini.GeminiError as e2:
-                    log.info("Spare free key unavailable too (%s).", e2)
+                    # Skipped for a while after failing: production lost 5 minutes on every call to a spare
+                    # key that never answered before reaching the billed key.
+                    _spare_down_until = time.monotonic() + SPARE_COOLDOWN_SECONDS
+                    log.info("Spare free key unavailable too (%s); not tried again for %d min.",
+                             e2, SPARE_COOLDOWN_SECONDS // 60)
             return _paid_fallback(system, prompt, schema, model, task_class,
                                   f"The free Gemini quota is used up for now ({model}): {e}")
         except gemini.ConnectionDropped as e:

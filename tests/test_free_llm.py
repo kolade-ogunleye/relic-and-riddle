@@ -71,3 +71,27 @@ def test_claude_stands_in_only_when_switched_on_and_capped(free, monkeypatch):
     monkeypatch.setattr(config, "CLAUDE_MONTHLY_BUDGET_USD", 0.0)  # 0 means uncapped: never used as a fallback
     with pytest.raises(free_llm.LLMError):
         free_llm.call("s", "p", Out)
+
+
+def test_a_failed_spare_key_is_not_tried_on_every_call(free, monkeypatch):
+    # Production 2026-10-23: each call waited 5 minutes on a spare key that never answered.
+    from src import config
+    monkeypatch.setattr(free_llm, "_spare_down_until", 0.0)
+    monkeypatch.setattr(free_llm, "_spare_key", lambda: "spare-key")
+    tried = []
+
+    def post(url, headers=None, json=None, timeout=None):
+        key = headers["x-goog-api-key"]
+        tried.append(key)
+        if key == "spare-key":
+            raise requests.ReadTimeout("read timed out")
+        class R:
+            status_code, ok = 429, False
+            def json(self):
+                return {}
+        return R()
+    monkeypatch.setattr(gemini.requests, "post", post)
+    monkeypatch.setattr(config, "GEMINI_FREE_API_KEY", "free-key")
+    monkeypatch.setattr(free_llm, "_paid_fallback", lambda *a, **k: Out(ok=True))
+    assert free_llm.structured("s", "p", Out).ok and free_llm.structured("s", "p", Out).ok
+    assert tried.count("spare-key") == 1  # the second call goes straight on

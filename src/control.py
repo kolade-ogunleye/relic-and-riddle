@@ -18,6 +18,7 @@ Commands (approvers only, in the configured chat):
 
 import html
 import json
+import time as clock  # "time" is imported locally inside handle(), which shadows a plain name
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
@@ -502,6 +503,10 @@ def startup_dashboard_card(db: PipelineDatabase, mode: str = "bot", time_str: Op
     return heading + "\n\n" + started + "\n\n" + body, buttons
 
 
+RUN_STARTING_KEY = "run_starting"  # the topic a queue Render just started, until its worker marks it
+RUN_STARTING_SECONDS = 15 * 60
+
+
 def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[str]],
                          trigger_run: Callable[[], str], send_photo: Optional[SendPhoto] = None,
                          assets_dir: Path = ASSETS_DIR,
@@ -525,7 +530,17 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             run = db.get_run(prog["run_id"]) or {}
             if run.get("topic_id"):
                 return run["topic_id"]
-        return next((t["id"] for t in db.list_all_topics() if t.get("status") == "in_production"), None)
+        marked = next((t["id"] for t in db.list_all_topics() if t.get("status") == "in_production"), None)
+        if marked:
+            return marked
+        # A run started from the queue whose worker has not yet marked its topic (a second Render tap on
+        # another page still showed "Render #20 Now"): the record kept for its first minutes.
+        try:
+            record = json.loads(db.get_setting(RUN_STARTING_KEY) or "{}")
+        except ValueError:
+            record = {}
+        recent = record.get("at") and clock.time() - float(record["at"]) < RUN_STARTING_SECONDS
+        return record.get("topic") if recent else None
 
     def render_queue_text_and_buttons(show_all: bool = False, page: int = 0,
                                       starting: Optional[str] = None) -> Tuple[str, List[Dict[str, str]]]:
@@ -661,6 +676,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             # The documentary is made after the Reel and reviewed separately; approving it uploads it to YouTube.
             res = trigger_run("dual") if command == "qdoc" else trigger_run()
             started = "already" not in res.lower()  # else another run is busy: the panel shows that one
+            if started:
+                db.set_setting(RUN_STARTING_KEY, json.dumps({"topic": current["id"], "at": clock.time()}))
             q_text, q_buttons = render_queue_text_and_buttons(starting=current["id"] if started else None)
             return f"⚡ <b>Run:</b> {html.escape(res)}\n\n{q_text}", q_buttons
         if command == "qbump":

@@ -475,3 +475,17 @@ def test_another_busy_run_is_not_mistaken_for_the_tapped_topic(db, monkeypatch):
     h = make_command_handler(db, lambda: None, lambda content_format="reel": "A run is already in progress.")
     text, rows = h("qrender", "2")
     assert "⏳ Rendering #1 · progress" in [b["text"] for row in rows for b in row]
+
+
+def test_a_second_render_tap_on_another_page_still_shows_the_run_in_progress(db, monkeypatch):
+    # The first tap started a run; its worker had not yet marked the topic, so a tap on another page
+    # answered "already in progress" but still offered "Render #20 Now".
+    topics = [{"id": f"t{i}", "title": f"Topic {i}", "status": "queued", "priority": 0} for i in range(1, 4)]
+    monkeypatch.setattr(db, "list_all_topics", lambda: topics)
+    monkeypatch.setattr(db, "get_next_topic", lambda: topics[1])
+    replies = iter(["🎬 Starting a run now.", "A production run is already in progress (PID 1)."])
+    h = make_command_handler(db, lambda: None, lambda content_format="reel": next(replies))
+    h("qrender", "2")
+    text, rows = h("qrender", "2")  # the second tap
+    labels = [b["text"] for row in rows for b in row]
+    assert "⏳ Rendering #2 · progress" in labels and not any(l.startswith("⚡ Render") for l in labels)

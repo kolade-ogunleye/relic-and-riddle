@@ -65,7 +65,7 @@ def test_skip_removes_pending(wired, monkeypatch):
 
 def test_proposal_text_escapes():
     text = tp.proposal_text(_proposal("a", title="<b>bad</b>"))
-    assert "<b>bad</b>" not in text and "Topic proposal" in text
+    assert "<b>bad</b>" not in text.replace("<b>&lt;b&gt;bad&lt;/b&gt;</b>", "") and "Verified facts" in text
 
 
 @pytest.mark.parametrize("title, dup", [

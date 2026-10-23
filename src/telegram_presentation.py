@@ -55,7 +55,7 @@ def copy_buttons(text, markup):
     commands = []
     for match in _COMMAND_CODE.finditer(str(text or "")):
         command = html.unescape(match[1]).strip()
-        if "<" not in command and ">" not in command and command not in commands and len(command) <= 256:
+        if " " in command and "<" not in command and ">" not in command and command not in commands and len(command) <= 256:
             commands.append(command)
     if not commands:
         return markup
@@ -63,7 +63,7 @@ def copy_buttons(text, markup):
     rows = value.get("inline_keyboard", [])
     if any("copy_text" in button for row in rows for button in row):
         return markup  # already offered (an edit of the same screen)
-    labels = [f"📋 Copy {c}" if len(c) <= 22 else f"📋 Copy {c[:20]}…" for c in commands[:3]]
+    labels = [f"📋 Copy {c}" if len(c) <= 30 else f"📋 Copy {c[:28]}…" for c in commands[:3]]
     value["inline_keyboard"] = [[{"text": label, "copy_text": {"text": command}}] for label, command in zip(labels, commands)] + rows
     return json.dumps(value)
 

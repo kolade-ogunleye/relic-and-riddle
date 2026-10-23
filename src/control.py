@@ -341,7 +341,7 @@ def spend_lines(db: PipelineDatabase) -> List[str]:
     month = datetime.now(timezone.utc).strftime("%Y-%m")
     by_task = {r["task"]: r["cost"] for r in db.llm_spend_by_task(month)}
     light, heavy = by_task.pop("paid-fallback:light", 0.0), by_task.pop("paid-fallback:heavy", 0.0)
-    lines = [f"Paid model fallback this month: light ${light:.2f} of ${config.PAID_FALLBACK_LIGHT_MONTHLY_USD:.2f}, "
+    lines = [f"AI on the billed key this month: light ${light:.2f} of ${config.PAID_FALLBACK_LIGHT_MONTHLY_USD:.2f}, "
              f"heavy ${heavy:.2f} of ${config.PAID_FALLBACK_HEAVY_MONTHLY_USD:.2f}"]
     claude = sum(c for task, c in by_task.items() if not task.startswith(("paid-fallback", "groq")))
     if claude or config.SCRIPT_ENGINE == "claude":
@@ -403,7 +403,7 @@ def status_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Opti
     lines += ["", f"<b>Topics</b> · {queued} queued · {published} published · {len(topics)} total"]
 
     lines += ["", "<b>Budgets and voices this month</b>"]
-    lines += [f"• {line.replace(' this month', '').replace('Paid model fallback', 'AI model fallback')}"
+    lines += [f"• {line.replace(' this month', '')}"
               for line in spend_lines(db) + quota_lines(voice_quota)]
 
     from . import accounts
@@ -483,7 +483,7 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         [{"text": "💡 Topic ideas", "callback_data": "cideas:"}, {"text": "🎨 Covers", "callback_data": "ccov:"}],
         [{"text": "🎵 Music", "callback_data": "cmusic:"}, {"text": "📊 Full status", "callback_data": "cstat:"}],
         [{"text": "🖼 Images", "callback_data": "cimages:"}, {"text": "🔄 Check accounts", "callback_data": "caccounts:"}],
-        [{"text": "🧰 Jobs", "callback_data": "jobs:"}, {"text": "Help", "callback_data": "chelp:Everyday"}],
+        [{"text": "🧰 Jobs", "callback_data": "jobs:"}, {"text": "❓ Help", "callback_data": "chelp:Everyday"}],
         [{"text": "▶️ Resume" if paused else "⏸️ Pause", "callback_data": "cresume:" if paused else "cpause:"}],
     ]
     return "\n".join(lines), buttons
@@ -536,17 +536,17 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         except Exception:
             pass
         topic_serial = {t["id"]: i for i, t in enumerate(topics, 1)}
-        lines = [f"📋 <b><u>TOPIC QUEUE</u></b> (<i>{len(queued)} queued</i>)", ""]
+        lines = [f"📋 <b>Topic queue</b> · {len(queued)} queued", ""]
         limit = 5
         page = max(0, min(page, max(0, (len(queued)-2)//limit)))
-        lines[0] += f" · page {page+1}/{max(1, (max(0,len(queued)-1)+limit-1)//limit)}"
+        lines[0] += f" · page {page+1} of {max(1, (max(0,len(queued)-1)+limit-1)//limit)}"
 
         buttons = []
         if next_t and next_t.get("status") == "queued":
             sn = topic_serial.get(next_t['id'], 1)
             p_badge = " [🚀 Priority #1]" if next_t.get("priority", 0) > 0 else ""
             r_badge = _readiness(next_t['id'])
-            lines.append(f"🎯 <b>Next in line:</b> {sn}. {html.escape(next_t['title'])}{p_badge}\n    Status: <b>{r_badge}</b> (<code>{html.escape(next_t['id'])}</code>)\n")
+            lines.append(f"🎯 <b>Next:</b> {sn}. {html.escape(next_t['title'])}{p_badge}\n    <b>{r_badge}</b>\n")
             buttons.append({"text": f"⚡ Render #{sn} Now", "callback_data": f"qrender:{next_t['id']}"})
             remaining = [t for t in queued if t["id"] != next_t["id"]]
             if remaining:
@@ -573,12 +573,13 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             lines.append("  <i>Queue is currently empty! Use /add &lt;title&gt; or /propose.</i>")
 
         if requeueable:
-            lines.append(f"\n<b>Eligible to Requeue ({len(requeueable)}):</b>")
+            lines.append(f"\n<b>Can be restored</b> · {len(requeueable)}")
             for t in requeueable[:5]:
                 s = topic_serial.get(t['id'], '')
                 st = t.get("status", "")
-                lines.append(f"  {s}. {html.escape(t['title'])} [{st}] (<code>{html.escape(t['id'])}</code>)")
-            lines.append("\n<i>To restore any topic: <code>/requeue &lt;number or id&gt;</code></i>")
+                lines.append(f"  {s}. {html.escape(t['title'])} · {html.escape(STATUS_WORDS.get(st, st))}")
+            example = topic_serial.get(requeueable[0]["id"], 1)
+            lines.append(f"\nRestore one with its number: <code>/requeue {example}</code>")
 
         pages = max(1, (max(0, len(queued) - 1) + limit - 1) // limit)
         # Rows, not a flat list: Render beside Refresh, Bump beside Drop, every page button on one row.
@@ -896,12 +897,9 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 run = db.get_run(db.resolve_run(args))
                 return "ℹ️ This progress card is no longer current. Run status: " + html.escape((run or {}).get("status", "not found"))
             if not active_prog:
-                dash_text, _ = dashboard_text_and_buttons(db, next_run(), assets_dir=assets_dir)
-                return (
-                    "ℹ️ <b>No Production Running:</b> Pipeline is currently idle.\n\n"
-                    "Send /run to start production on the next queued topic.\n\n"
-                    + dash_text
-                )
+                return ("⏸ <b>Nothing is being made right now</b>\n\nStart the next topic from the queue, or check "
+                        "the last run in Full status.",
+                        [[{"text": "📋 Queue", "callback_data": "qrefresh:"}, {"text": "📊 Full status", "callback_data": "cstat:"}], [HOME]])
             step = active_prog.get("step", 1)
             total_steps = active_prog.get("total_steps", 5)
             topic_title = active_prog.get("topic_title", "Unknown Topic")
@@ -1159,11 +1157,10 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                         example_num = str({t["id"]: i for i, t in enumerate(all_t, 1)}.get(nxt["id"], 1))
                 except Exception:
                     pass
-                return (
-                    f"🗑 <b><u>DROP IMAGE</u></b>\n\nTap to copy & edit: <code>/drop {example_num} 2 5</code>\n\n"
-                    "<i>Usage: <code>/drop &lt;topic#&gt; &lt;image_numbers...&gt;</code>\n"
-                    "Tip: Tap the code box above to copy instantly into your input box.</i>"
-                )
+                return (f"🗑 <b>Remove images from a storyboard</b>\n\nSend the topic number, then the image numbers "
+                        f"shown on its storyboard sheet: <code>/drop {example_num} 2 5</code>\n\n"
+                        "<i>Easiest from the sheet itself: it has a Copy /drop button.</i>",
+                        [[{"text": "🎬 Storyboards", "callback_data": "reviewpick:0"}], [HOME]])
             ref, nums = parts[0], parts[1:]
             topic_dir = _resolve_topic_dir(ref, assets_dir, db=db)
             msg = drop_images(topic_dir, [int(n) for n in nums])
@@ -1173,11 +1170,15 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command == "swap":
             parts = args.split()
             if len(parts) < 3 or not (parts[1].isdigit() and parts[2].isdigit()):
-                return (
-                    "🔄 <b><u>SWAP BEATS</u></b>\n\nTap to copy & edit: <code>/swap 1 2 4</code>\n\n"
-                    "<i>Usage: <code>/swap &lt;topic#&gt; &lt;beat_1&gt; &lt;beat_2&gt;</code>\n"
-                    "Tip: Tap the code box above to copy instantly into your input box.</i>"
-                )
+                try:
+                    nxt = db.get_next_topic()
+                    example = {x["id"]: i for i, x in enumerate(db.list_all_topics(), 1)}.get(nxt["id"], 1) if nxt else 1
+                except Exception:
+                    example = 1
+                return (f"🔄 <b>Swap two beats in a storyboard</b>\n\nSend the topic number, then the two beat numbers "
+                        f"shown on its storyboard sheet: <code>/swap {example} 2 4</code>\n\n"
+                        "<i>Easiest from the sheet itself: it has a Copy /swap button.</i>",
+                        [[{"text": "🎬 Storyboards", "callback_data": "reviewpick:0"}], [HOME]])
             ref, b1, b2 = parts[0], int(parts[1]), int(parts[2])
             topic_dir = _resolve_topic_dir(ref, assets_dir, db=db)
             from .storyboard import load_storyboard, save_storyboard
@@ -1317,7 +1318,9 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             return status_text(db, next_run(), voice_quota())
         if command == "next":
             t = db.get_next_topic()
-            return f"Next topic: <b>{html.escape(t['title'])}</b> (<code>{html.escape(t['id'])}</code>)"
+            serial = {x["id"]: i for i, x in enumerate(db.list_all_topics(), 1)}.get(t["id"], 1)
+            return (f"🎯 <b>Next topic:</b> {serial}. {html.escape(t['title'])}",
+                    [[{"text": "📋 Queue", "callback_data": "qrefresh:"}], [HOME]])
         if command == "pause":
             db.set_setting(PAUSED_KEY, "true")
             return "⏸ Scheduled runs and posts paused. Send /resume to re-enable."
@@ -1393,11 +1396,10 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command == "add":
             title = args.strip()
             if not title:
-                return (
-                    "➕ <b><u>ADD TOPIC</u></b>\n\nTap to copy & edit: <code>/add The Lost Labyrinth of Hawara</code>\n\n"
-                    "<i>Usage: <code>/add &lt;topic title&gt;</code>\n"
-                    "Tip: Tap the code box above to copy, enter your title, and send!</i>"
-                )
+                return ("➕ <b>Add a topic</b>\n\nSend /add followed by the title, for example "
+                        "<code>/add The Lost Labyrinth of Hawara</code>\n\n"
+                        "<i>Its facts are researched and checked before it can be made.</i>",
+                        [[{"text": "💡 Topic ideas", "callback_data": "cideas:"}], [HOME]])
             try:
                 topic_id, u_tag, decomp = _add_topic_to_bank(db, title)
             except ValueError as e:
@@ -1498,7 +1500,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                         "✍️ <b>Describe it now</b> in your next message (within 10 minutes), or send a screenshot with "
                         "the description as its caption. Name the run (its number on the card) if it's about one.\n\n"
                         "Example: <code>/issue run 12 the map label covers the pin</code>\n\n"
-                        "<i>It goes into the improvement ledger with that run's records.</i>")
+                        "<i>Your reports are listed in /improve.</i>")
             evidence_path = None
             critique = raw_input
             if "--evidence" in raw_input:

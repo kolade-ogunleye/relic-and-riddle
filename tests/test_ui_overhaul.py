@@ -228,7 +228,7 @@ def test_expandable_blockquotes_present():
     txt = proposal_text(prop)
     assert "<blockquote expandable>" in txt
     assert "</blockquote>" in txt
-    assert "Key Verified Facts:" in txt
+    assert "Verified facts" in txt
 
 
 def test_startup_dashboard_card_and_cockpit(tmp_path):

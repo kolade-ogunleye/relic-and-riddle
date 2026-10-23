@@ -279,7 +279,9 @@ def remove_track(key: str) -> str:
 def review_caption(track: Dict[str, Any], remaining: int) -> str:
     import html
     lic = license_name(track)
-    return (f"🎵 <b>{html.escape(track['title'])}</b> by {html.escape(track['creator'])}\n"
+    import re
+    title = re.sub(r"\.(mp3|wav|ogg|flac|m4a)$", "", track["title"], flags=re.I).replace("_", " ")
+    return (f"🎵 <b>{html.escape(title)}</b> by {html.escape(track['creator'])}\n"
             f"Mood: {html.escape(track['mood'])} · {track['duration_ms'] // 1000}s · {html.escape(lic)}\n"
-            f"{html.escape(track.get('source_url', ''))}\n"
-            f"{remaining} track(s) left to review. Keep it if it would sit well under a documentary voice.")
+            f"{html.escape(track.get('source_url', ''))}\n\n"
+            f"{remaining} {'track' if remaining == 1 else 'tracks'} left to review. Keep it if it would sit well under a documentary voice.")

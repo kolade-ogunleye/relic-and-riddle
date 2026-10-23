@@ -25,7 +25,7 @@ def test_pause_and_resume(db, handler):
 def test_status_next_help_and_unknown(db, handler):
     h, _ = handler
     assert "active" in h("status", "") and "Mon 13 Oct" in h("status", "")
-    assert "01_topic" in h("next", "")
+    assert "Topic" in h("next", "")[0] and "01_topic" not in h("next", "")[0]   # the title, not the internal id
     assert "/pause" in h("help", "")
     assert "Unknown command" in h("selfdestruct", "")
 
@@ -160,7 +160,7 @@ def test_unknown_topic_and_bad_drop_usage(db, tmp_path):
     h = make_command_handler(db, lambda: None, lambda: "", assets_dir=tmp_path)
     with pytest.raises(ValueError, match="Unknown topic number"):
         h("review", "99")
-    assert "Usage" in h("drop", "3 two")
+    assert "<code>/drop" in h("drop", "3 two")[0]
 
 
 def test_approve_button_routes_through_poller(db, monkeypatch, tmp_path):
@@ -245,13 +245,13 @@ def test_queue_and_requeue_list(db):
     h = make_command_handler(db, lambda: None, lambda: "")
     db.record_topic_status("01_topic", "rejected")
     q_res = h("queue", "")
-    assert "TOPIC QUEUE" in q_res
-    assert "Eligible to Requeue" in q_res
-    assert "01_topic" in q_res
+    assert "Topic queue" in q_res
+    assert "Can be restored" in q_res
+    assert "01_topic" not in q_res and "/requeue 1" in q_res               # a number to copy, never the internal id
 
     rq_res = h("requeue", "list")
-    assert "Eligible to Requeue" in rq_res
-    assert "01_topic" in rq_res
+    assert "Can be restored" in rq_res
+    assert "01_topic" not in rq_res
 
 
 def test_issue_with_evidence_attachment(db, tmp_path):
@@ -597,7 +597,7 @@ def test_interactive_queue_controls_and_undo(db, monkeypatch):
     assert res == ""
     assert len(sent_messages) > 0
     q_txt, q_btns = sent_messages[-1]
-    assert "TOPIC QUEUE" in q_txt
+    assert "Topic queue" in q_txt
     assert any(b["callback_data"].startswith("qdrop:") for row in q_btns for b in row)
     assert any(b["callback_data"] == "qrefresh:" for row in q_btns for b in row)
 
@@ -727,7 +727,7 @@ def test_active_progress_and_progress_command(db, handler):
     h, _ = handler
     # When idle:
     idle_res = h("progress", "")
-    assert "No Production Running" in idle_res
+    assert "Nothing is being made right now" in idle_res[0]
 
     # When active:
     db.set_active_progress(
@@ -747,7 +747,7 @@ def test_active_progress_and_progress_command(db, handler):
     # Finish clears progress:
     db.clear_active_progress()
     assert db.get_active_progress() is None
-    assert "No Production Running" in h("progress", "")
+    assert "Nothing is being made right now" in h("progress", "")[0]
 
 
 def test_bulk_delete_messages_and_clear_command(db, monkeypatch):
@@ -891,18 +891,18 @@ def test_autocomplete_commands_empty_args_interactive_templates(db):
 
     # 2. /drop with empty args provides tap-to-copy template
     res_drop = h("drop", "")
-    assert "DROP IMAGE" in res_drop
-    assert "<code>/drop" in res_drop
+    assert "Remove images" in res_drop[0]
+    assert "<code>/drop" in res_drop[0]
 
     # 3. /swap with empty args provides tap-to-copy template
     res_swap = h("swap", "")
-    assert "SWAP BEATS" in res_swap
-    assert "<code>/swap" in res_swap
+    assert "Swap two beats" in res_swap[0]
+    assert "<code>/swap" in res_swap[0]
 
     # 4. /add with empty args provides tap-to-copy template
     res_add = h("add", "")
-    assert "ADD TOPIC" in res_add
-    assert "<code>/add" in res_add
+    assert "Add a topic" in res_add[0]
+    assert "<code>/add" in res_add[0]
 
     # 5. /issue with empty args provides tap-to-copy template
     res_issue = h("issue", "")

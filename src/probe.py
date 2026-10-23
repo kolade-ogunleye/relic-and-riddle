@@ -37,7 +37,8 @@ USAGE = ("🔍 <b>Ask the studio</b>\n\n"
          "<code>/ask why was there no AI motion in the last run?</code>\n"
          "<code>/ask run 12 why did the release gate hold it?</code>\n"
          "<code>/ask why did my last command take so long?</code>\n\n"
-         "<i>Answers use recorded evidence. Reply to a bot card to include its context; run cards keep their run reference. Missing evidence is reported explicitly.</i>")
+         "<i>Answers come from the studio's own records and say so when something isn't recorded. Tip: reply to any "
+         "bot card with a question to ask about that card.</i>")
 
 
 class _Answer(BaseModel):

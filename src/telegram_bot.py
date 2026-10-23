@@ -2006,6 +2006,7 @@ class TelegramApprovalBot:
                     if command_handler:
                         reply = command_handler(command, args_with_ev)
                         self.show_dashboard(reply if isinstance(reply, str) else reply[0], navigation_buttons(None), fresh=True)
+                        self._delete_soon(msg.get('message_id'))
             except Exception as e:
                 log.exception('Evidence upload for /issue failed')
                 self.show_dashboard(f'⚠️ Failed to process issue evidence: {html.escape(str(e))[:300]}', navigation_buttons(None), fresh=True)
@@ -2077,7 +2078,10 @@ class TelegramApprovalBot:
             aliases = {"image": "images", "fetchimages": "fetchimages", "critique": "issue", "bug": "issue", "commands": "help"}
             public = {entry["command"] for entry in menu()} | {"start"} | set(aliases)
             if command not in public:
-                self.notify("This command is no longer public. Open /help or /dashboard for current actions.", record_alert=False)
+                if msg.get('message_id'):
+                    self._delete_soon(msg['message_id'])
+                self.show_dashboard(f"🤔 I don't know <code>/{html.escape(command[:40])}</code>. Help lists every command.",
+                                    [[{"text": "❓ Help", "callback_data": "chelp:Everyday"}], [DONE_BUTTON]], fresh=True)
                 return
             command = aliases.get(command, command)
         if command in {'start', 'dashboard'}:

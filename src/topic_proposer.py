@@ -220,8 +220,8 @@ def proposal_text(p: TopicProposal) -> str:
     facts = "\n".join(f"• {e(f)}" for f in p.key_facts)
     loc = ", ".join(x for x in (p.location.name, p.location.country) if x)
     src = "\n".join(f"📚 {e(s.url)}" for s in p.sources[:3])
-    return (f"💡 <b>Topic proposal: {e(p.title)}</b>\n📍 {e(loc)} · {e(p.sub_theme)}\n\n"
+    return (f"<b>{e(p.title)}</b>\n📍 {e(loc)} · {e(p.sub_theme)}\n\n"
             f"<i>\"{e(p.hook)}\"</i>\n\n"
-            f"<blockquote expandable><b>Key Verified Facts:</b>\n{facts}\n\n"
-            f"<b>Editorial Rationale:</b> {e(p.why_it_works)}\n\n"
+            f"<blockquote expandable><b>Verified facts</b>\n{facts}\n\n"
+            f"<b>Why it works</b>: {e(p.why_it_works)}\n\n"
             f"{src}</blockquote>")[:4000]

@@ -335,6 +335,7 @@ class TelegramApprovalBot:
         self._panel_lock = threading.RLock()
         self._answered = {}  # callback ids already answered (insertion-ordered, bounded)
         self._last_opened = 0.0  # monotonic time of the last /start or /dashboard panel
+        self._awaiting = None  # (command, deadline): a bare /ask or /issue takes the operator's next message
         self._dispatch_slots = threading.BoundedSemaphore(16)
         self._navigation_pool = None
         self._last_maintenance = 0
@@ -1906,6 +1907,26 @@ class TelegramApprovalBot:
                 message = str(exc) if isinstance(exc, ValueError) else type(exc).__name__
                 self.notify(f'⚠️ Image upload failed: {html.escape(message)}', buttons=[[DONE_BUTTON]], record_alert=False)
             return
+        photo_item = (msg.get('photo') or [None])[-1] or msg.get('document')
+        photo_caption = (msg.get('caption') or '').strip()
+        issue_waiting = bool(self._awaiting and self._awaiting[0] == 'issue' and self._awaiting[1] > time.monotonic())
+        if photo_item and command_handler and not issue_waiting and self._authorized(msg.get('from', {}).get('id', ''), msg.get('chat', {}).get('id', '')):
+            caption = photo_caption
+            word = caption.split(' ', 1)[0].split('@')[0].lower()
+            if word == '/ask':
+                question = caption.partition(' ')[2].strip()
+                reply = command_handler('ask', question) if question else None
+                note = ("\n\n<i>The screenshot itself isn't read: describe what it shows in the question, or send it "
+                        "with /issue to report a problem.</i>")
+                self.show_dashboard((reply if isinstance(reply, str) else "🔍 Add your question as the photo's caption: /ask &lt;question&gt;") + note,
+                                    navigation_buttons(None), fresh=True)
+                return
+            if word not in {'/image', '/footage', '/issue', '/critique', '/bug'} and not (msg.get('video') or msg.get('document')):
+                self.show_dashboard("📎 <b>Photo received</b>, but its caption doesn't say what to do with it.\n\n"
+                                    "• Report a problem: caption <code>/issue what is wrong</code>\n"
+                                    "• Ask about it: caption <code>/ask your question</code>\n"
+                                    "• Add it to a topic: open Images → Upload my image", navigation_buttons(None), fresh=True)
+                return
         doc_or_vid = msg.get('video') or msg.get('document')
         caption = (msg.get('caption') or '').strip()
         if doc_or_vid and caption.split(' ',1)[0].split('@')[0].lower() == '/footage' and self._authorized(msg.get('from', {}).get('id', ''), msg.get('chat', {}).get('id', '')):
@@ -1955,6 +1976,11 @@ class TelegramApprovalBot:
         photos = msg.get('photo')
         media_item = (photos[-1] if photos else None) or msg.get('document') or msg.get('video') or msg.get('audio') or msg.get('voice')
         caption = (msg.get('caption') or '').strip()
+        waiting_issue = bool(media_item and self._awaiting and self._awaiting[0] == 'issue' and self._awaiting[1] > time.monotonic()
+                             and not caption.startswith('/'))
+        if waiting_issue:
+            self._awaiting = None
+            caption = '/issue ' + (caption or 'See the attached screenshot.')
         if media_item and caption.split(' ',1)[0].split('@')[0].lower() in {'/issue','/critique','/bug'} and self._authorized(msg.get('from', {}).get('id', ''), msg.get('chat', {}).get('id', '')):
             command, _, critique_text = caption[1:].partition(' ')
             command = 'issue'
@@ -1979,10 +2005,10 @@ class TelegramApprovalBot:
                     args_with_ev = f'{critique_text.strip()} --evidence {dest}'
                     if command_handler:
                         reply = command_handler(command, args_with_ev)
-                        self.notify(reply)
+                        self.show_dashboard(reply if isinstance(reply, str) else reply[0], navigation_buttons(None), fresh=True)
             except Exception as e:
                 log.exception('Evidence upload for /issue failed')
-                self.notify(f'⚠️ Failed to process issue evidence: {html.escape(str(e))[:300]}')
+                self.show_dashboard(f'⚠️ Failed to process issue evidence: {html.escape(str(e))[:300]}', navigation_buttons(None), fresh=True)
             return
         text = (msg.get('text') or '').strip()
         reply_to = msg.get('reply_to_message')
@@ -1992,9 +2018,25 @@ class TelegramApprovalBot:
         chat_id = str(msg.get('chat', {}).get('id', ''))
         username = str(msg.get('from', {}).get('username', '') or msg.get('from', {}).get('first_name', ''))
         is_auth = self._authorized(user_id, chat_id)
+        if is_auth and not text.startswith('/') and not reply_to:
+            with self._panel_lock:
+                waiting, self._awaiting = self._awaiting, None
+            if waiting and waiting[1] > time.monotonic():
+                text = f'/{waiting[0]} {text}'
         if text.startswith('/'):
             command, _, args = text[1:].partition(' ')
             command = command.split('@')[0].lower()
+            if command in {'ask', 'issue'} and not args.strip() and is_auth:
+                # Help can only send the bare command: the next message is the question or report.
+                with self._panel_lock:
+                    self._awaiting = (command, time.monotonic() + 600)
+            if command == 'issue' and args.strip() and reply_to:
+                # A report made in reply to a card carries that card (and its run) as evidence.
+                from .telegram_state import get
+                run_ref = get(self.db, 'message-run', f"{self.chat_id}:{reply_to.get('message_id')}")
+                parent_text = (reply_to.get('text') or reply_to.get('caption') or '').strip()
+                args = (f'run {self.db.run_key(run_ref)} ' if run_ref else '') + args.strip() + (
+                    f'\n\n[Replied card]: {parent_text[:1200]}' if parent_text else '')
             audit_payload = text
         elif reply_to and re.search('\\[edit run (\\d+)\\]', reply_to.get('text') or ''):
             command = 'edittext'

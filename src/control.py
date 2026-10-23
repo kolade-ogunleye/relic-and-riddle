@@ -1377,19 +1377,19 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             alerts = db.list_recent_alerts(limit=limit)
             if not alerts:
                 return "🔔 No alerts recorded in the database yet."
-            lines = [f"🔔 <b><u>SYSTEM ALERTS</u></b> (<i>last {len(alerts)}</i>):", ""]
+            lines = [f"🔔 <b>Alerts</b> · last {len(alerts)}", ""]
             for a in alerts:
-                purged_tag = " [purged from chat]" if a.get("purged") else ""
-                kind = a.get("kind", "persistent")
-                full_text = a.get("text", "").strip()
-                clean_first = re.sub(r"<[^>]+>", "", full_text.splitlines()[0]) if full_text else ""
-                ts = show_time(a.get("created_at"), "%Y-%m-%d %H:%M:%S") if a.get("created_at") else ""
-                if len(full_text) <= 80 and "\n" not in full_text:
-                    lines.append(f"• <code>{ts}</code> [<i>{kind}</i>{purged_tag}]: {html.escape(html.unescape(clean_first))}")
-                else:
-                    header = html.escape(html.unescape(clean_first[:80]))
-                    lines.append(f"• <code>{ts}</code> [<i>{kind}</i>{purged_tag}]: <b>{header}</b>\n<blockquote expandable>{html.escape(full_text)}</blockquote>")
-            return "\n".join(lines)
+                # Alerts are stored as the HTML that was sent: shown here as plain text (they were escaped a
+                # second time, so their tags appeared on screen).
+                plain = html.unescape(re.sub(r"<[^>]+>", "", a.get("text", ""))).strip()
+                first, _, rest = plain.partition("\n")
+                ts = show_time(a.get("created_at"), "%d %b %H:%M") if a.get("created_at") else ""
+                note = " · removed from chat" if a.get("purged") else ""
+                lines.append(f"• <b>{html.escape(first[:90])}</b>\n   {ts}{note}")
+                body = re.sub(r"\n{2,}", "\n", rest).strip()
+                if body:
+                    lines.append(f"<blockquote expandable>{html.escape(body[:600])}</blockquote>")
+            return "\n".join(lines), [[HOME]]
         if command == "add":
             title = args.strip()
             if not title:
@@ -1494,9 +1494,11 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command == "issue":
             raw_input = args.strip()
             if not raw_input:
-                return ("🛠️ <b>Report a problem</b>\n\n<code>/issue run 12 the map label covers the pin</code>\n\n"
-                        "<i>Name the run (its number on the card) if it's about one; attach a photo or clip with "
-                        "/issue as its caption. It goes into the improvement ledger with that run's records.</i>")
+                return ("🛠️ <b>Report a problem</b>\n\n"
+                        "✍️ <b>Describe it now</b> in your next message (within 10 minutes), or send a screenshot with "
+                        "the description as its caption. Name the run (its number on the card) if it's about one.\n\n"
+                        "Example: <code>/issue run 12 the map label covers the pin</code>\n\n"
+                        "<i>It goes into the improvement ledger with that run's records.</i>")
             evidence_path = None
             critique = raw_input
             if "--evidence" in raw_input:
@@ -1517,11 +1519,13 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 f"- Class: {klass}\n- Evidence: {evidence_path or 'none'}\n- Status: open\n\n## Report\n{critique}\n",
                 encoding="utf-8")
             recurring = next((r for r in improve.recurring(db, min_count=1) if r["klass"] == klass), None)
-            seen = f" Seen {recurring['count']}× in {improve.RECURRENCE_DAYS} days." if recurring and recurring["count"] > 1 else ""
-            return (f"🛠️ <b>Logged</b> as <code>{html.escape(klass)}</code>"
-                    + (f" for {html.escape(db.run_label(run_id))}" if run_id else "") + f".{seen}\n"
-                    + (f"Evidence attached: <code>{html.escape(Path(evidence_path).name)}</code>\n" if evidence_path else "")
-                    + "<i>It counts toward an improvement proposal once it recurs; /improve shows what's pending.</i>")
+            similar = recurring["count"] - 1 if recurring else 0
+            area = klass.partition(".")[2] or "other"
+            return (f"✅ <b>Report saved</b> under <i>{html.escape(improve.AREA_NAMES.get(area, area))}</i>"
+                    + (f" for {html.escape(db.run_label(run_id))}" if run_id else "")
+                    + (" with your screenshot" if evidence_path else "") + ".\n\n"
+                    + (f"{similar} similar report{'s' if similar != 1 else ''} in the last {improve.RECURRENCE_DAYS} days. " if similar else "")
+                    + f"{len(db.list_open_issues())} open in total; /improve lists them.")
 
         if command == "improve":
             from . import improve

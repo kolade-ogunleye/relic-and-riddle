@@ -1866,7 +1866,7 @@ def main(argv=None) -> int:
         handler = make_command_handler(
             db, bot.next_run_func,
             trigger_run,
-            send_photo=bot.send_photo, send_audio=bot.send_audio, send_message=bot.notify, delete_message=bot.delete_message, voice_quota=coordinator.audio_engine.voice_quota,
+            send_photo=bot.send_photo, send_audio=bot.send_audio, send_message=lambda text, buttons=None: bot.notify(text, buttons=buttons, record_alert=False), delete_message=bot.delete_message, voice_quota=coordinator.audio_engine.voice_quota,
             propose_topics=_proposal_trigger(db, bot),
             run_actions={"pubok": coordinator.confirm_posted,
                          "pubno": coordinator.confirm_not_posted,
@@ -2115,7 +2115,7 @@ def main(argv=None) -> int:
             return "🎬 Starting a run now. You'll get the review card when it's rendered; nothing posts without your approval."
 
         bot.next_run_func = next_run
-        handler = make_command_handler(coordinator.db, next_run, trigger_run, send_photo=bot.send_photo, send_audio=bot.send_audio, send_message=bot.notify, delete_message=bot.delete_message,
+        handler = make_command_handler(coordinator.db, next_run, trigger_run, send_photo=bot.send_photo, send_audio=bot.send_audio, send_message=lambda text, buttons=None: bot.notify(text, buttons=buttons, record_alert=False), delete_message=bot.delete_message,
                                        voice_quota=coordinator.audio_engine.voice_quota,
                                        apply_updates=apply_updates, propose_topics=propose_topics,
                                        run_actions={"pubok": coordinator.confirm_posted,

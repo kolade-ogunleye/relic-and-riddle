@@ -93,7 +93,7 @@ def test_issue_is_filed_with_its_run_and_class(db):
     run_id = _run(db)
     key = db.run_key(run_id)
     res = make_command_handler(db, lambda: None, lambda: "")("issue", f"run {key} the map label covers the pin")
-    assert "Logged" in res
+    assert "Report saved" in res
     issue = db.list_open_issues()[0]
     assert issue["run_id"] == run_id and "map label" in issue["critique"]
 

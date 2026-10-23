@@ -215,8 +215,8 @@ def test_alerts_command(db):
     assert "No alerts recorded" in h("alerts", "")
     db.record_alert("Warning: Veo provider timed out", message_id=123, kind="transient")
     res = h("alerts", "")
-    assert "SYSTEM ALERTS" in res
-    assert "Veo provider timed out" in res
+    assert "Alerts" in res[0]
+    assert "Veo provider timed out" in res[0]
 
 
 def test_add_command_and_deduplication(db, tmp_path, monkeypatch):
@@ -259,8 +259,8 @@ def test_issue_with_evidence_attachment(db, tmp_path):
     dummy_ev = tmp_path / "screenshot.jpg"
     dummy_ev.write_bytes(b"image-bytes")
     res = h("issue", f"run_01 subtitle artifact detected --evidence {dummy_ev}")
-    assert "Logged" in res
-    assert "Evidence attached" in res
+    assert "Report saved" in res
+    assert "with your screenshot" in res
     open_issues = db.list_open_issues()
     assert any("subtitle artifact" in i["critique"] for i in open_issues)
 

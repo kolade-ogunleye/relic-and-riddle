@@ -32,6 +32,8 @@ log = logging.getLogger(__name__)
 NOTE_KEYS = ("fact_sheet_note", "voice_note", "music_note", "motion_note", "graphics_note", "footage_note",
              "beat_image_note", "source_note")
 USAGE = ("🔍 <b>Ask the studio</b>\n\n"
+         "✍️ <b>Type your question now</b> and send it as a message (within 10 minutes), or copy an example:\n\n"
+         "<code>/ask how many music tracks are approved?</code>\n"
          "<code>/ask why was there no AI motion in the last run?</code>\n"
          "<code>/ask run 12 why did the release gate hold it?</code>\n"
          "<code>/ask why did my last command take so long?</code>\n\n"

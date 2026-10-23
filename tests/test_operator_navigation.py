@@ -355,3 +355,28 @@ def test_covers_skip_runs_without_covers_and_preview_when_nothing_is_in_review(d
     path, caption, buttons = sent[-1]
     assert path.parent == older and "Preview only" in caption                    # the run that has covers
     assert not any(b["callback_data"].startswith("covlock:") for row in buttons for b in row)  # no Lock outside review
+
+
+def test_bare_ask_waits_for_the_next_message(db):
+    calls, ids = [], iter(range(950, 999))
+    bot = TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
+    bot._api = lambda method, **kw: calls.append((method, kw.get("data") or {})) or {"message_id": next(ids)}
+    asked = []
+    handler = lambda command, args: asked.append((command, args)) or ("usage" if not args else f"answer to {args}")
+    _typed(bot, "/ask", handler, message_id=320)                 # from Help: no question
+    _typed(bot, "how many music tracks?", handler, message_id=321)
+    assert ("ask", "how many music tracks?") in asked              # the next message is the question
+    _typed(bot, "this plain text is not a question", handler, message_id=322)
+    assert len(asked) == 2                                         # only once, not every later message
+
+
+def test_issue_in_reply_to_a_card_carries_the_card(db):
+    bot = _bot(db, [])
+    got = []
+    import time
+    bot._process_update({"update_id": 5, "message": {"message_id": 330, "text": "/issue this card is confusing", "date": int(time.time()),
+                         "from": {"id": 555}, "chat": {"id": 555},
+                         "reply_to_message": {"message_id": 40, "text": "Needs you: Last run failed"}}},
+                        lambda c, a: got.append((c, a)) or "ok")
+    bot.drain()
+    assert got and got[0][0] == "issue" and "[Replied card]: Needs you: Last run failed" in got[0][1]

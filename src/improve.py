@@ -417,29 +417,69 @@ def card(p: Dict[str, Any]) -> Tuple[str, List[List[Dict[str, str]]]]:
     return "\n".join(lines), buttons
 
 
+AREA_NAMES = {"bot": "the bot", "script": "scripts", "facts": "facts", "voice": "the voice", "pictures": "pictures",
+              "motion": "motion", "graphics": "graphics", "captions": "captions", "sound": "sound", "cover": "covers",
+              "publishing": "publishing", "other": "other things"}
+FINDING_NAMES = {"run.failed.ScriptUnavailableError": "Runs stopped: no usable script",
+                 "run.failed.FactStarvedTopicError": "Runs stopped: too few verified facts",
+                 "script.length": "Script too long or too short when spoken",
+                 "script.caption_first_line": "Caption's first line too long",
+                 "script.trailing_word": "Narration ended on a dangling word",
+                 "script.structure": "Script failed a structure check",
+                 "script.other": "Other script problems"}
+
+
+def plain_name(klass: str) -> str:
+    """A finding's class in words for the operator (never the internal label)."""
+    if klass in FINDING_NAMES:
+        return FINDING_NAMES[klass]
+    area, _, rest = klass.partition(".")
+    if area == "issue":
+        return f"Your reports about {AREA_NAMES.get(rest, rest.replace('_', ' '))}"
+    if area == "run" and rest.startswith("failed."):
+        return "Runs stopped: " + re.sub(r"(?<!^)(?=[A-Z])", " ", rest[7:]).replace(" Error", "").lower()
+    return (area + ": " + rest.replace("_", " ").replace(".", " ")) if rest else area.replace("_", " ")
+
+
 def improve_text(db) -> Tuple[str, List[List[Dict[str, str]]]]:
-    """/improve: what waits for you, what is being tested, and the adopted rules (with Revert)."""
+    """/improve in plain words: your reports, decisions waiting for you, what keeps going wrong, and the
+    adopted rules (with Revert)."""
     import html
     ready = [p for p in proposals(db) if p["status"] == "ready"]
     testing = proposals(db, "testing")
     active = [x for x in _patches() if x.get("status") == "active"]
-    lines = ["🧭 <b><u>IMPROVEMENT</u></b>", ""]
+    sync_issue_files(db)
+    open_reports = db.list_open_issues()
+    fixed = db.count_issues("fixed") if hasattr(db, "count_issues") else 0
+    lines = ["🧭 <b>Improvement</b>", "",
+             "<i>Problems you report and the ones runs record are counted here. One that keeps happening becomes a "
+             "suggested fix for you to approve; a fix is tried on a test set before it is offered.</i>", ""]
     buttons: List[List[Dict[str, str]]] = []
-    lines.append(f"<b>Waiting for you:</b> {len(ready)}")
-    for p in ready[:6]:
-        lines.append(f"• {html.escape(p['title'])}")
-        buttons.append([{"text": f"Open {p['klass'][:22]}", "callback_data": f"impinfo:{p['id']}"}])
-    lines.append(f"\n<b>Being tested on the eval:</b> {len(testing)}")
-    for p in testing[:6]:
-        lines.append(f"• {html.escape(p['klass'])}: <i>{html.escape((p.get('change') or {}).get('rule', ''))}</i>")
-    lines.append(f"\n<b>Adopted writing rules:</b> {len(active)}")
+    lines.append(f"<b>Your reports</b> · {len(open_reports)} open · {fixed} fixed")
+    for issue in open_reports[:5]:
+        lines.append(f"• {html.escape((issue.get('critique') or '')[:90])}")
+    if ready:
+        lines.append(f"\n<b>Suggested fixes waiting for your decision</b> · {len(ready)}")
+        for p in ready[:6]:
+            lines.append(f"• {html.escape(p['title'])}")
+            buttons.append([{"text": f"Open: {plain_name(p['klass'])[:24]}", "callback_data": f"impinfo:{p['id']}"}])
+    if testing:
+        lines.append(f"\n<b>Being tried on the test set</b> · {len(testing)}")
+        for p in testing[:6]:
+            lines.append(f"• {html.escape(plain_name(p['klass']))}: <i>{html.escape((p.get('change') or {}).get('rule', ''))}</i>")
+    top = recurring(db, min_count=1)[:6]
+    if top:
+        lines.append(f"\n<b>What keeps going wrong</b> (last {RECURRENCE_DAYS} days)")
+        for r in top:
+            if r["klass"].startswith("issue."):
+                count = f"{r['count']} report" + ("s" if r["count"] != 1 else "")
+            else:
+                count = f"{r['runs']} run" + ("s" if r["runs"] != 1 else "") + (f" ({r['count']}×)" if r["count"] != r["runs"] else "")
+            lines.append(f"• {html.escape(plain_name(r['klass']))}: {count}")
+    lines.append(f"\n<b>Writing rules adopted</b> · {len(active) or 'none yet'}")
     for x in active:
         lines.append(f"• {html.escape(x['rule'])}")
-        buttons.append([{"text": f"↩ Revert {x['klass'][:22]}", "callback_data": f"imprev:{x['id']}"}])
-    top = recurring(db, min_count=1)[:5]
-    if top:
-        lines.append(f"\n<b>Most frequent findings ({RECURRENCE_DAYS} days):</b>")
-        lines += [f"• {html.escape(r['klass'])}: {r['count']}× in {r['runs']} runs" for r in top]
+        buttons.append([{"text": f"↩ Revert: {plain_name(x['klass'])[:22]}", "callback_data": f"imprev:{x['id']}"}])
     return "\n".join(lines), buttons
 
 

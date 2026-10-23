@@ -115,6 +115,9 @@ def structured(system: str, prompt, schema: Type[T], role: str = "writer", attem
     if not available():
         return _paid_fallback(system, prompt, schema, model, task_class,
                               "GEMINI_FREE_API_KEY is not set (create it in a Google project without billing).")
+    if task_class == "heavy" and not config.FREE_TIER_HEAVY:
+        return _paid_fallback(system, prompt, schema, model, task_class,
+                              "heavy tasks use the billed key here (FREE_TIER_HEAVY=false)")
     wait = {"timeout": timeout} if timeout else {}
     delay = 15.0
     for attempt in range(1, attempts + 1):

@@ -95,3 +95,12 @@ def test_a_failed_spare_key_is_not_tried_on_every_call(free, monkeypatch):
     monkeypatch.setattr(free_llm, "_paid_fallback", lambda *a, **k: Out(ok=True))
     assert free_llm.structured("s", "p", Out).ok and free_llm.structured("s", "p", Out).ok
     assert tried.count("spare-key") == 1  # the second call goes straight on
+
+
+def test_heavy_tasks_can_go_straight_to_the_capped_billed_key(free, monkeypatch):
+    from src import config
+    monkeypatch.setattr(config, "FREE_TIER_HEAVY", False)
+    monkeypatch.setattr(gemini.requests, "post", lambda *a, **k: (_ for _ in ()).throw(AssertionError("free key tried")))
+    why = []
+    monkeypatch.setattr(free_llm, "_paid_fallback", lambda *a, **k: why.append(a[-1]) or Out(ok=True))
+    assert free_llm.structured("s", "p", Out, task_class="heavy").ok and "FREE_TIER_HEAVY" in why[0]

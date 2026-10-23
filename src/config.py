@@ -139,6 +139,11 @@ FREE_WRITER_MODEL = (os.getenv("FREE_WRITER_MODEL") or "gemini-3.8-flash").strip
 # own free Gemini model, which has its own free limits in the same project; empty = the writer/checker
 # models. Set only after scripts/compare_light_engines.py --candidate gemini:<model> holds up.
 FREE_LIGHT_MODEL = (os.getenv("FREE_LIGHT_MODEL") or "").strip()
+# Heavy tasks (scripts, fact sheets, fact checks) on the free key first (true), or straight to the capped
+# billed key (false). Development and production share one free key, so by production's daily run its
+# quota is used up and every heavy call was refused first; false there skips that, and the free quota
+# stays with development. Light tasks always try the free key.
+FREE_TIER_HEAVY = os.getenv("FREE_TIER_HEAVY", "true").strip().lower() in ("true", "1", "yes")
 # The picture plan (which photo goes with which sentence) is retried within the run before photos are
 # matched by their captions instead: SCENE_PLAN_ATTEMPTS tries, the first wait SCENE_PLAN_RETRY_SECONDS,
 # doubling each time (3 tries, 60 s: about 3 minutes of waiting at most).

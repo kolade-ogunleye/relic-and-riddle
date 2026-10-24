@@ -1130,13 +1130,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                         "This is not confirmation of an active run. Check Jobs before starting another.",
                         [[{"text": "🧰 Jobs", "callback_data": "jobs:"}], [HOME]])
 
-            milestones = [
-                "Verifying script & historical fact sheets",
-                "Mastering narration voiceover & acoustics",
-                "Synthesizing original graphics & motion",
-                "Compositing video, parallax & karaoke subs",
-                "Packaging review & multiformat stills",
-            ]
+            from .telegram_bot import PROGRESS_STEPS as milestones
             lines = [
                 mode_text,
                 f"⏳ <b><u>PRODUCTION PROGRESS</u></b>\n\n<b>{html.escape(topic_title)}</b> · started "

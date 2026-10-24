@@ -156,6 +156,29 @@ def test_progress_eta_uses_how_long_recent_runs_took(monkeypatch, tmp_path):
     run.mkdir()
     (run / "timings.json").write_text(_json.dumps([
         {"stage": "a", "seconds": 60, "at": "2026-10-20T10:01:00Z"},
-        {"stage": "b", "seconds": 30, "at": "2026-10-20T10:20:00Z"}]), encoding="utf-8")
+        {"stage": "b", "seconds": 600, "at": "2026-10-20T10:15:00Z"},
+        {"stage": "review_proxy", "seconds": 20, "at": "2026-10-20T10:20:00Z"}]), encoding="utf-8")
     monkeypatch.setattr("src.config.OUTPUT_DIR", tmp_path)
     assert telegram_bot.typical_run_seconds() == 19 * 60 + 60   # first start to last finish
+    # A resumed run (2026-10-24: its stamps spanned two sessions hours apart) and one that stopped before
+    # its review are not a run's length.
+    resumed, early = tmp_path / "run_resumed", tmp_path / "run_early"
+    resumed.mkdir(), early.mkdir()
+    (resumed / "timings.json").write_text(_json.dumps([
+        {"stage": "a", "seconds": 60, "at": "2026-10-20T09:00:00Z"},
+        {"stage": "voiceover", "seconds": 0.1, "at": "2026-10-20T11:28:00Z"},
+        {"stage": "review_proxy", "seconds": 20, "at": "2026-10-20T11:45:00Z"}]), encoding="utf-8")
+    (early / "timings.json").write_text(_json.dumps([
+        {"stage": "script_and_fact_check", "seconds": 240, "at": "2026-10-20T12:04:00Z"}]), encoding="utf-8")
+    assert telegram_bot.typical_run_seconds() == 19 * 60 + 60
+
+
+def test_progress_cards_name_the_work_each_step_does(db, monkeypatch):
+    # One list for the first card, live updates and Refresh; the old names were a step behind.
+    from src.telegram_bot import PROGRESS_STEPS
+    bot, calls = _bot(db, monkeypatch, [])
+    db.create_run("run_p", db.list_all_topics()[0]["id"])
+    bot.send_progress_card("run_p", "T")
+    first = [d["text"] for m, d in calls if m == "sendMessage"][-1]
+    assert all(step in first for step in PROGRESS_STEPS) and "Mastering narration" not in first
+    assert PROGRESS_STEPS[1].startswith("Music")  # what runs after the voiceover is reported

@@ -1163,7 +1163,8 @@ class PipelineCoordinator:
         log.info("Voiceover: %.2fs, %d words timed.", vo_dur, len(words))
         if getattr(self, "progress_msg_id", None):
             try:
-                self.telegram_bot.update_progress_card(self.progress_msg_id, 2, 5, topic["title"], run_id, f"Voiceover mastered ({vo_dur:.1f}s)")
+                self.telegram_bot.update_progress_card(self.progress_msg_id, 2, 5, topic["title"], run_id,
+                                                       f"voiceover {'reused' if reusable else 'made'}, {vo_dur:.1f} s long")
             except Exception:
                 pass
         # Checked before any rendering: the master is exactly as long as the voiceover.
@@ -1547,6 +1548,14 @@ class PipelineCoordinator:
                     payload["self_healing_actions"][-1]["new_pictures"] = [c.get("title") for c in gap_credits]
         t0 = time.perf_counter()
         self._check_cancel(run_id)
+        if getattr(self, "progress_msg_id", None):
+            # Every step is reported, so its length is recorded for the next run's estimate (step 5 never
+            # was, and the history that needs all five stayed empty).
+            try:
+                self.telegram_bot.update_progress_card(self.progress_msg_id, 5, 5, topic["title"], run_id,
+                                                       "review video, final copy check and release report")
+            except Exception:
+                pass
         review_mp4 = self.video_composer.make_review_proxy(master_mp4, run_dir / "review_proxy.mp4")
         timer.record("review_proxy", time.perf_counter() - t0)
         payload["qa_summary"] = qa_summary_html(qa, beats)

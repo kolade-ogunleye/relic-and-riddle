@@ -341,6 +341,18 @@ def _minutes(seconds: float) -> str:
     return f"~{int(round(seconds / 60))} min" if seconds >= 90 else "about a minute" if seconds >= 30 else "under a minute"
 
 
+# What happens between one progress report and the next (main.py reports a step when the one before
+# it is done). The old names were one step behind: "Mastering narration voiceover" stayed on screen
+# while the pictures were prepared, a reused voiceover having taken 0.08 s (2026-10-24).
+PROGRESS_STEPS = [
+    "Script, fact check & voiceover",
+    "Music, photos, Stories & carousel",
+    "Graphics, scene plan, motion & render",
+    "Quality checks",
+    "Review package",
+]
+
+
 def progress_figures(step: int, total: int, elapsed: float, typical: Optional[float],
                      step_elapsed: Optional[float] = None, typical_steps: Optional[List[float]] = None) -> tuple:
     """Bar, percent and time left for a run on step `step` of `total` (1-based, the step in progress).
@@ -397,13 +409,20 @@ def step_running_note(step_elapsed: Optional[float]) -> str:
 
 def typical_run_seconds(last: int = 5) -> Optional[float]:
     """Average wall-clock length of the most recent finished runs, from their stage timings (stages
-    overlap, so it is first start to last finish, not a sum). None without history."""
+    overlap, so it is first start to last finish, not a sum). None without history.
+    Only a run made in one go to its review counts: a resumed run's stamps span the hours between its
+    sessions (2026-10-24: "~79 min" left for a re-render), and one that stopped early is not a run's length."""
     from .config import OUTPUT_DIR
     totals = []
-    for timings in sorted(OUTPUT_DIR.glob("*/timings.json"), key=lambda p: p.stat().st_mtime, reverse=True)[:last * 2]:
+    for timings in sorted(OUTPUT_DIR.glob("*/timings.json"), key=lambda p: p.stat().st_mtime, reverse=True)[:last * 4]:
         try:
             rows = json.loads(timings.read_text(encoding="utf-8"))
             stamps = [datetime.fromisoformat(r["at"].replace("Z", "+00:00")) for r in rows]
+            if not any(r.get("stage") == "review_proxy" for r in rows):
+                continue
+            gaps = [(b - a).total_seconds() - float(r["seconds"]) for a, b, r in zip(stamps, stamps[1:], rows[1:])]
+            if any(g > 600 for g in gaps):  # idle for 10 minutes between stages: two sessions
+                continue
             totals.append((max(stamps) - min(stamps)).total_seconds() + float(rows[0]["seconds"]))
         except (OSError, ValueError, KeyError, IndexError, TypeError):
             continue
@@ -1462,11 +1481,8 @@ class TelegramApprovalBot:
         text = (
             f"⏳ <b><u>PRODUCTION PROGRESS</u></b>\n\n"
             f"<b>{html.escape(topic_title)}</b> · started {show_time(None, '%H:%M')}\n\n"
-            f"🔄 <b>Step 1/5:</b> <i>Verifying script & historical fact sheets...</i>\n"
-            f"◽ <b>Step 2/5:</b> Mastering narration voiceover & acoustics\n"
-            f"◽ <b>Step 3/5:</b> Synthesizing original graphics & motion\n"
-            f"◽ <b>Step 4/5:</b> Compositing video, parallax & karaoke subs\n"
-            f"◽ <b>Step 5/5:</b> Packaging review & multiformat stills\n\n"
+            f"🔄 <b>Step 1/5:</b> <i>{PROGRESS_STEPS[0]}...</i>\n"
+            + "".join(f"◽ <b>Step {n}/5:</b> {m}\n" for n, m in enumerate(PROGRESS_STEPS[1:], start=2)) + "\n"
             f"Progress: <code>[{bar}] {pct}%</code>\n"
             f"⏱ <b>Elapsed:</b> 00:00 · <b>Time left:</b> {eta}"
         )
@@ -1548,13 +1564,7 @@ class TelegramApprovalBot:
         if (now - last_edit < 1.2) and (step == last_step) and (step < total_steps):
             return True
 
-        milestones = [
-            "Verifying script & historical fact sheets",
-            "Mastering narration voiceover & acoustics",
-            "Synthesizing original graphics & motion",
-            "Compositing video, parallax & karaoke subs",
-            "Packaging review & multiformat stills",
-        ]
+        milestones = PROGRESS_STEPS
 
         lines = [
             f"⏳ <b><u>PRODUCTION PROGRESS</u></b>\n\n<b>{html.escape(topic_title)}</b> · started {show_time(self._progress_start_time.get(run_id), '%H:%M')}",

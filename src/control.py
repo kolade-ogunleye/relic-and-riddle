@@ -456,6 +456,7 @@ AUDIT_NAMES = {"cdash": "Dashboard", "approve": "Approve", "reject": "Reject", "
                "cancel": "Cancel review", "rsn": "Reason", "cprog": "Refresh progress", "qrender": "Render",
                "qdoc": "Render with documentary", "qrefresh": "Refresh queue", "qbump": "Bump", "qdrop": "Drop",
                "resend": "Resend review", "rerender": "Re-render", "postreal": "Post for real?", "promote": "Post for real",
+               "chistory": "Review history", "chist": "Review details",
                "edit": "Edit text", "runstop": "Cancel run", "runstopok": "Confirm cancel",
                "simpub": "Simulated publish", "pubok": "It posted", "pubno": "It didn't post", "creviews": "Reviews",
                "cideas": "Topic ideas", "cdisc": "UNESCO marvels", "cprop": "Waiting ideas", "cpropose": "Research ideas",
@@ -658,6 +659,124 @@ def last_review_outcome(db: PipelineDatabase) -> Optional[str]:
     if not record.get("text") or clock.time() - float(record.get("at") or 0) > LAST_REVIEW_HOURS * 3600:
         return None
     return f"🧾 <b>Last review</b> · {record['text']}"
+
+
+HISTORY_BLOCKED = {"rejected", "failed", "cancelled"}
+HISTORY_APPROVED = {"approved", "simulated", "published"}
+HISTORY_BUTTON = {"text": "📚 Review history", "callback_data": "chistory:"}
+
+
+def _read_run_json(run_id: str, name: str):
+    try:
+        return json.loads((config.OUTPUT_DIR / run_id / name).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def _run_findings(db: PipelineDatabase, r: Dict[str, Any]) -> List[str]:
+    """Why a run was blocked, in words: your reason, then the release gate's own lines, else the error."""
+    from . import improve
+    from .release import release_problems
+    out: List[str] = []
+    fb = improve.operator_feedback(db, r["run_id"]) or {}
+    if fb.get("reason") or fb.get("text"):
+        out.append("you: " + " · ".join(x for x in (fb.get("reason"), fb.get("text")) if x))
+    report = _read_run_json(r["run_id"], "release_report.json")
+    if report:
+        out += release_problems(report, dry_run=True)[:4]
+    if not out and r.get("error"):
+        out.append(str(r["error"])[:160])
+    return out or ["no reason recorded"]
+
+
+def _self_audit_count(run_id: str) -> int:
+    from . import card_ledger
+    try:
+        return len(card_ledger.audit(config.OUTPUT_DIR / run_id))
+    except Exception:
+        return 0
+
+
+def _audience_line(db: PipelineDatabase, run_id: str) -> str:
+    """The latest audience numbers per platform, when the collector has any (after publishing)."""
+    try:
+        with db._conn() as conn:
+            rows = conn.execute("SELECT platform, metrics_json FROM audience_metrics WHERE run_id=? ORDER BY fetched_at DESC",
+                                (run_id,)).fetchall()
+    except Exception:
+        return ""
+    seen, parts = set(), []
+    for platform, metrics_json in rows:
+        if platform in seen:
+            continue
+        seen.add(platform)
+        try:
+            metrics = json.loads(metrics_json)
+        except ValueError:
+            continue
+        nums = [f"{k} {v:,}" for k, v in metrics.items()
+                if isinstance(v, (int, float)) and k in ("plays", "views", "reach", "likes", "shares", "saves", "comments")][:3]
+        if nums:
+            parts.append(f"{platform}: " + ", ".join(nums))
+    return " · ".join(parts)
+
+
+def review_history(db: PipelineDatabase, limit: int = 6) -> Tuple[str, List[List[Dict[str, str]]]]:
+    """📚 Review history, from the runs' own records: what was blocked (to address whenever it suits you)
+    and what was approved (to see what did well) (operator, 2026-10-24)."""
+    e = html.escape
+    runs = db.list_recent_runs(limit=80)
+    blocked = [r for r in runs if r.get("status") in HISTORY_BLOCKED and (r.get("master_video_path") or r.get("status") == "rejected")][:limit]
+    approved = [r for r in runs if r.get("status") in HISTORY_APPROVED][:limit]
+    late = rerenderable(db)
+    lines = ["📚 <b>Review history</b>", "",
+             "⛔ <b>Blocked</b> · rejected by you, or stopped at the release gate. Each keeps its reasons; Make again rebuilds one whenever it suits you."]
+    buttons: List[List[Dict[str, str]]] = []
+    if not blocked:
+        lines.append("• none among the recent runs")
+    for r in blocked:
+        why = "; ".join(e(x) for x in _run_findings(db, r)[:2])
+        lines.append(f"• {e(db.run_label(r['run_id']))} · {e(r['status'])}\n  <i>{why}</i>")   # the label carries the date
+        row = [{"text": f"📄 Why: {clip_words(db.run_label(r['run_id']), 24)}", "callback_data": f"chist:{db.run_key(r['run_id'])}"}]
+        if late and late["run_id"] == r["run_id"]:
+            row.append({"text": "🔁 Make again", "callback_data": f"rerender:{db.run_key(r['run_id'])}"})
+        buttons.append(row)
+    lines += ["", "✅ <b>Approved</b> · what passed, with its self-audit and the audience numbers once they exist."]
+    if not approved:
+        lines.append("• none among the recent runs")
+    for r in approved:
+        n = _self_audit_count(r["run_id"])
+        audience = _audience_line(db, r["run_id"])
+        how = ("self-audit clean" if n == 0 else f"{n} self-audit finding(s)") + (f" · {e(audience)}" if audience else "")
+        lines.append(f"• {e(db.run_label(r['run_id']))} · {e(r['status'])}\n  <i>{how}</i>")
+        buttons.append([{"text": f"📄 Details: {clip_words(db.run_label(r['run_id']), 22)}", "callback_data": f"chist:{db.run_key(r['run_id'])}"}])
+    return "\n".join(lines), buttons
+
+
+def history_details(db: PipelineDatabase, key: str) -> Tuple[str, List[List[Dict[str, str]]]]:
+    """One run from the history: its reasons when blocked; its audit, gate and audience when approved."""
+    from .release import release_problems
+    e = html.escape
+    run_id = db.resolve_run(key)
+    r = db.get_run(run_id) or {}
+    when = (r.get("created_at") or "")[:16].replace("T", " ")
+    lines = [f"📄 <b>{e(db.run_label(run_id))}</b> · {e(r.get('status') or 'unknown')} · {e(when)}",
+             f"Run ID: <code>{e(run_id)}</code>", ""]
+    if r.get("status") in HISTORY_BLOCKED:
+        lines.append("<b>Why it was blocked</b>")
+        lines += [f"• {e(x)}" for x in _run_findings(db, r)[:8]]
+        lines += ["", "Re-render (dashboard) rebuilds it with the voice and clips it already has; Regenerate is for the words."]
+    else:
+        n = _self_audit_count(run_id)
+        audience = _audience_line(db, run_id)
+        report = _read_run_json(run_id, "release_report.json")
+        lines.append("<b>How it did</b>")
+        lines.append("• self-audit: clean" if n == 0 else f"• self-audit: {n} finding(s) (cards against the run's records)")
+        if report:
+            problems = release_problems(report, dry_run=True)
+            lines.append("• release gate: passed" if not problems else "• release gate: " + e("; ".join(problems[:3])))
+        lines.append(f"• audience: {e(audience)}" if audience else "• audience: no numbers yet (collected after publishing)")
+    return "\n".join(lines), [[HISTORY_BUTTON], [HOME]]
 
 
 def post_candidates(db: PipelineDatabase, hours: int = 48, limit: int = 3) -> List[Dict[str, Any]]:
@@ -1336,7 +1455,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             timed_out = db.timed_out_reviews() if hasattr(db, "timed_out_reviews") else []
             candidates = post_candidates(db)
             if not pending and not timed_out and not candidates:
-                return "No reviews are waiting."
+                return "No reviews are waiting.", [[HISTORY_BUTTON], [HOME]]
             if not pending and not timed_out:
                 lines = ["🚀 <b>Post candidates</b> · finished dry runs of the last two days; each asks you to confirm.", ""]
                 buttons = []
@@ -1344,7 +1463,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     lines.append(f"• {html.escape(db.run_label(r['run_id']))}")
                     buttons.append([{"text": f"🚀 Post for real: {clip_words(db.run_label(r['run_id']), 26)}",
                                      "callback_data": f"postreal:{db.run_key(r['run_id'])}"}])
-                return "\n".join(lines), buttons + [[HOME]]
+                return "\n".join(lines), buttons + [[HISTORY_BUTTON], [HOME]]
             # Where the card is can't be promised: the chat may have been cleared or the card deleted.
             lines = ["🎬 <b>Reviews waiting</b>", "",
                      "Resend sends a review card again at the bottom of the chat, with its video, and removes the "
@@ -1362,7 +1481,14 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 for r in timed_out[:5]:
                     lines.append(f"• {html.escape(db.run_label(r['run_id']))}")
                     buttons.append(resend_button(r["run_id"]))
-            return "\n".join(lines), buttons + [[HOME]]
+            return "\n".join(lines), buttons + [[HISTORY_BUTTON], [HOME]]
+        if command == "chistory":
+            text, buttons = review_history(db)
+            return text, buttons + [[{"text": "🎬 Reviews", "callback_data": "creviews:"}], [HOME]]
+        if command == "chist":
+            if not args.strip():
+                return handle("chistory", "")
+            return history_details(db, args.strip())
         if command == "cstat":
             return status_text(db, next_run(), voice_quota()), [[{"text": "📈 Audience", "callback_data": "canalytics:"}], [HOME]]
         if command in ("analytics", "canalytics"):

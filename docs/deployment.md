@@ -187,3 +187,24 @@ It does not start the deployer or change the pipeline or backup tasks, identitie
 Until this is installed, releases use the elevated procedure above.
 
 **To undo:** disable or unregister the deployer task. Restore the launcher from `rollback\deployer-install-<UTC>`, and remove the deploy key on GitHub.
+
+**Updating the deployer or launcher.** A release that changes `Invoke-ContentReleaseDeployer.ps1`,
+its library, the signer list or a launcher file installs the application tree as usual, but the
+installed copies in `tools` and `tools\deploy` stay as they were: the deployer cannot change them.
+Re-run the installer from the release checkout, elevated, with the pipeline stopped the way the
+promotion stops it (when the release gate is idle and the deployer has nothing in progress):
+
+```powershell
+$root = 'C:\ProgramData\HNSHL\ContentRuntime'
+Set-Location C:\Users\omokolade.LAB\relic-and-riddle                       # at the release tag
+New-Item -ItemType File -Path "$root\control\Pipeline.stop" -Force | Out-Null
+while ((Get-ScheduledTask RelicAndRiddle-Production-Unattended).State -eq 'Running') { Start-Sleep 3 }
+(Get-ScheduledTask RelicAndRiddle-ProductionBackup-Unattended).State       # must not be Running
+.\deployment\windows\Install-ContentReleaseDeployer.ps1 -WhatIf             # lists only what differs
+.\deployment\windows\Install-ContentReleaseDeployer.ps1
+Remove-Item "$root\control\Pipeline.stop" -Force
+Start-ScheduledTask RelicAndRiddle-Production-Unattended
+```
+
+The deploy key is kept, so nothing changes on GitHub. Leaving the stop file in place keeps the
+pipeline down.

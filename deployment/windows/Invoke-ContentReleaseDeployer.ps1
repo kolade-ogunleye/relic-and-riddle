@@ -211,7 +211,7 @@ try {
         Assert-ContentGit (Invoke-ContentGit -Git $git -App $app -Arguments @('worktree', 'add', '--detach', $tree, $target)) 'creating the check worktree' | Out-Null
         try {
             Set-Status "Testing $tag beside production." $tag
-            $suite = Invoke-ContentNative -FilePath $python -ArgumentList @('-m', 'pytest', '-q', '-p', 'no:cacheprovider') -WorkingDirectory $tree `
+            $suite = Invoke-ContentNative -FilePath $python -ArgumentList @('-m', 'pytest', '-q', '-p', 'no:cacheprovider', '-n', '4') -WorkingDirectory $tree `
                 -Environment @{ PATH = (Join-Path $root 'bin') + ';' + $env:PATH } -RemoveEnvironment @('RELIC_ENVIRONMENT') -TimeoutSeconds 2400
             Set-Content -LiteralPath (Join-Path $logs "precheck-$tag.log") -Value ($suite.Stdout + $suite.Stderr) -Encoding UTF8
         } finally {

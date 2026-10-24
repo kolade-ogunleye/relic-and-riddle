@@ -62,7 +62,7 @@ try {
     Write-Step 'Upscaler model placed and verified.'
 
     $env:PATH = 'C:\ProgramData\HNSHL\ContentRuntime\bin;' + $env:PATH
-    Invoke-Native { & $python -m pytest -q -p no:cacheprovider } 'test suite'
+    Invoke-Native { & $python -m pytest -q -p no:cacheprovider -n 4 } 'test suite'
     Set-Content -LiteralPath $HandoffFlag -Value "ready $target" -Encoding ASCII
     Write-Step "ready $target"
 } catch {

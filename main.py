@@ -1089,7 +1089,9 @@ class PipelineCoordinator:
         """How a run is made again: a failed one is resumed in place; a rejected one is regenerated with the
         reason you gave (a new run that carries the old one's voiceover and clips over)."""
         run = self.db.get_run(run_id) or {}
-        return ["--regenerate-from", run_id] if run.get("status") == "rejected" else []
+        if run.get("status") != "rejected":
+            return []
+        return ["--regenerate-from", run_id, "--topic-id", str(run.get("topic_id") or "")]
 
     def voice_inputs(self, script: str, dry_run: bool) -> Dict[str, Any]:
         """What a voiceover depends on (its checkpoint inputs): a change to any of these re-voices.
@@ -2036,6 +2038,11 @@ def poll_loop(bot, handler) -> None:
 REMAKE_STATUSES = ("failed", "rejected")  # runs with a video that Re-render makes again without paying twice
 
 
+def regeneration_topic(db, previous: str) -> Optional[str]:
+    """The topic a regeneration is for: the one the run it replaces was made for."""
+    return (db.get_run(previous) or {}).get("topic_id")
+
+
 def rerender_started(db, run_id: str) -> str:
     run = db.get_run(run_id) or {}
     how = ("made again with the reason you gave" if run.get("status") == "rejected" else "re-rendered")
@@ -2394,6 +2401,12 @@ def main(argv=None) -> int:
             previous = getattr(args, "regenerate_from", None)
             if previous:  # a Regenerate decided outside a running cycle (Resend, or after a restart)
                 coordinator._operator_feedback = coordinator._await_reason(previous, wait_seconds=10)
+                # The same topic as the run it replaces, never the next one in the queue: a Kailasa
+                # regeneration started on Greek Fire with Kailasa's feedback attached (2026-10-24).
+                args.topic_id = args.topic_id or regeneration_topic(coordinator.db, previous)
+                if not args.topic_id:
+                    _write_result(getattr(args, "result_file", None), {"status": "refused", "error": f"Unknown run '{previous}'"})
+                    return 1
                 # The chain's count lives with the runs, so the limit holds across restarts (each resumed
                 # regeneration counted as the first: 2026-10-23 audit).
                 regenerations = int(coordinator.db.get_setting("regenerations:" + previous) or 0) + 1

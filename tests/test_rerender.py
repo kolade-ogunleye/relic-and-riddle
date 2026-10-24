@@ -146,7 +146,9 @@ def test_a_rejected_run_with_a_video_is_made_again_as_a_regeneration(db, tmp_pat
     db.update_run(run_id, "rejected")
     coordinator = SimpleNamespace(db=db)
     assert main.PipelineCoordinator.rerender_refusal(coordinator, run_id) is None
-    assert main.PipelineCoordinator.remake_args(coordinator, run_id) == ["--regenerate-from", run_id]
+    topic = db.get_run(run_id)["topic_id"]
+    assert main.PipelineCoordinator.remake_args(coordinator, run_id) == ["--regenerate-from", run_id, "--topic-id", topic]
+    assert main.regeneration_topic(db, run_id) == topic and main.regeneration_topic(db, "run_missing") is None
     db.update_run(run_id, "failed")
     assert main.PipelineCoordinator.remake_args(coordinator, run_id) == []       # failed: resumed in place
     db.update_run(run_id, "rejected")
@@ -154,3 +156,27 @@ def test_a_rejected_run_with_a_video_is_made_again_as_a_regeneration(db, tmp_pat
     found = [b for row in buttons for b in row if b["callback_data"] == f"rerender:{db.run_key(run_id)}"]
     assert found and found[0]["text"].startswith("🔁 Make again")
     assert "made again with the reason you gave" in main.rerender_started(db, run_id)
+
+
+def test_a_regeneration_from_the_command_line_keeps_the_previous_runs_topic(db, tmp_path, monkeypatch):
+    # Production 2026-10-24: `run --regenerate-from <kailasa run>` with no --topic-id took the next queued
+    # topic (Greek Fire) and attached Kailasa's feedback to it.
+    run_id = _failed(db, tmp_path, monkeypatch)
+    db.update_run(run_id, "rejected")
+    seen = {}
+
+    class Coordinator:
+        def __init__(self, schedule_posts=False):
+            self.db = db
+            self.telegram_bot = SimpleNamespace(background_polling=False, notify=lambda *a, **k: None)
+            self.paid_voice_in_dry_run = self.paid_motion_in_dry_run = False
+
+        def _await_reason(self, previous, wait_seconds=10):
+            return {"reason": "pictures", "from_run": previous}
+
+        def run_cycle(self, topic_id, *a, **k):
+            seen["topic"] = topic_id
+            return {"status": "simulated", "run_id": "run_new"}
+    monkeypatch.setattr(main, "PipelineCoordinator", Coordinator)
+    assert main.main(["run", "--regenerate-from", run_id, "--dry-run"]) == 0
+    assert seen["topic"] == db.get_run(run_id)["topic_id"]

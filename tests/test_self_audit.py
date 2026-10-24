@@ -119,3 +119,12 @@ def test_the_cancelled_card_names_the_run_once(db, tmp_path, monkeypatch):
     import html
     assert text.count(html.escape(db.run_label("run_c"))) == 1 and "Run ID: run_c" in text
     assert card_ledger.audit(d) == [] and card_ledger.cards(d)[0]["kind"] == "cancelled"
+
+
+def test_a_re_rendered_runs_length_is_its_last_session(tmp_path, monkeypatch):
+    rows = [{"stage": "script_and_fact_check", "seconds": 300, "at": "2026-10-24T09:17:00Z"},
+            {"stage": "review_proxy", "seconds": 15, "at": "2026-10-24T09:43:00Z"},          # the first session: 31 min
+            {"stage": "voiceover", "seconds": 0.1, "at": "2026-10-24T11:28:22Z"},            # hours later: the re-render
+            {"stage": "review_proxy", "seconds": 17, "at": "2026-10-24T11:49:44Z"}]
+    assert round(card_ledger.run_seconds(rows) / 60) == 21                                  # not 2 h 37
+    assert card_ledger.run_seconds(rows[:3]) is None                                         # the last session unfinished

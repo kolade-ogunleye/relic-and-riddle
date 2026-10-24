@@ -126,6 +126,13 @@ def deployer_notice(db: PipelineDatabase) -> Optional[str]:
     text, tag = str(status.get("Status", "")), html.escape(str(status.get("Tag", "")))
     if not tag:
         return None
+    try:  # the status outlives the install: a daemon just restarted on the release must not announce it
+        from .release_info import release_label
+        if release_label() == str(status.get("Tag", "")):
+            db.set_setting(DEPLOY_NOTICE_KEY, f"{tag}:installed")
+            return None
+    except Exception:
+        pass
     if text.startswith("Installing "):
         phase, notice = "installing", (f"⏸ <b>Installing release {tag}.</b> The bot is quiet for about five minutes "
                                        "while the release is checked out and tested; it reports when it is back.")
@@ -689,6 +696,15 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     if queued and ready < len(queued) and ready < 3:
         needs.append(f"🖼 Only {ready} queued topic(s) have photos ready")
     recent = db.list_recent_runs(limit=1)
+    active = db.get_active_progress() if hasattr(db, "get_active_progress") else None
+    late = rerenderable(db) if not active else None
+    if late and not (recent and late["run_id"] == recent[0]["run_id"]):
+        # A run that failed after its video was made is waiting for a decision too, even when a later run
+        # (a cancelled scheduled one) is the latest: the panel said "Nothing needs you" above a Re-render
+        # button (2026-10-24).
+        reason = short_reason(late.get("error") or "", limit=1200)
+        needs.append(f"🔁 <b>Failed after rendering</b>: {e(db.run_label(late['run_id']))} · <i>Run ID: {e(late['run_id'])}</i> · Re-render below"
+                     + (f"\n<blockquote expandable>{e(reason)}</blockquote>" if reason else ""))
     if recent and recent[0].get("status") == "failed":
         # Which run, on one line; the whole reason folded underneath (it was cut off mid-sentence:
         # operator, 2026-10-23).
@@ -696,7 +712,6 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         needs.append(f"❌ <b>Last run failed</b>: {e(db.run_label(recent[0]['run_id']))} · <i>Run ID: {e(recent[0]['run_id'])}</i>"
                      + (f"\n<blockquote expandable>{e(reason)}</blockquote>" if reason else ""))
 
-    active = db.get_active_progress() if hasattr(db, "get_active_progress") else None
     from . import config
     bot_id = config.TELEGRAM_BOT_TOKEN.split(":", 1)[0]
     environment = {"8701645452": "DEV", "8837268021": "PRODUCTION"}.get(bot_id, "IDENTITY UNVERIFIED")
@@ -726,7 +741,6 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     row1 = [{"text": f"🎬 Reviews ({waiting_reviews})", "callback_data": "creviews:"}] if waiting_reviews else []
     if waiting_proposals:
         row1.append({"text": f"🧭 Proposals ({len(waiting_proposals)})", "callback_data": "cimprove:"})
-    late = rerenderable(db) if not active else None
     if late:
         # A run that failed after its video was made (the release gate, say) is made again in place. Not only
         # the latest run: a cancelled scheduled run hid the button for the run that mattered (2026-10-24).

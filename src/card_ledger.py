@@ -24,6 +24,7 @@ log = logging.getLogger(__name__)
 LEDGER = "cards.jsonl"
 PLACEHOLDER_NAME = re.compile(r"\bby (?:-|None|unknown|\d{6,})(?!\w)")  # "(by -)", "by 8728071488"
 ROOM_FOR_MORE = 3000   # a card shorter than this had room for the words a "…" cut off (Telegram allows 4096)
+SESSION_GAP_SECONDS = 1800  # uncovered time this long between stages: a later session of the same run (a re-render)
 
 
 def _callbacks(buttons: Any) -> List[str]:
@@ -83,7 +84,16 @@ def run_seconds(timings: Optional[list]) -> Optional[float]:
         return None
     try:
         stamps = [datetime.fromisoformat(r["at"].replace("Z", "+00:00")).timestamp() for r in timings]
-        return (max(stamps) - min(stamps)) + float(timings[0]["seconds"])
+        # A re-rendered run's timings carry every session; the length is the last one's (the dashboard
+        # showed "median 89 min" for a 20-minute re-render whose stamps spanned the morning, 2026-10-24).
+        start = 0
+        for i in range(1, len(timings)):
+            if stamps[i] - float(timings[i]["seconds"]) - stamps[i - 1] > SESSION_GAP_SECONDS:
+                start = i
+        session = timings[start:]
+        if not any(r.get("stage") == "review_proxy" for r in session):
+            return None
+        return (max(stamps[start:]) - min(stamps[start:])) + float(session[0]["seconds"])
     except (KeyError, ValueError, TypeError):
         return None
 

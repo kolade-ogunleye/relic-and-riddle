@@ -133,3 +133,16 @@ def test_a_release_about_to_install_is_announced_once_per_phase(db, tmp_path, mo
     assert control.deployer_notice(db) is None
     monkeypatch.delenv(control.DEPLOY_STATUS_ENV)
     assert control.deployer_notice(db) is None                       # development: no deployer here
+
+
+def test_an_install_already_running_is_not_announced_after_the_restart(db, tmp_path, monkeypatch):
+    import json
+    from src import control
+    status = tmp_path / "status.json"
+    monkeypatch.setenv(control.DEPLOY_STATUS_ENV, str(status))
+    status.write_text(json.dumps({"AtUtc": "x", "Status": "Installing v1.0.0-rc21 (was v1.0.0-rc20).", "Tag": "v1.0.0-rc21"}), encoding="utf-8")
+    monkeypatch.setattr("src.release_info.release_label", lambda root=None: "v1.0.0-rc21")  # the daemon is on it
+    assert control.deployer_notice(db) is None                                            # 07:45 today: it said "Installing"
+    monkeypatch.setattr("src.release_info.release_label", lambda root=None: "v1.0.0-rc20")
+    status.write_text(json.dumps({"AtUtc": "y", "Status": "Installing v1.0.0-rc21 (was v1.0.0-rc20).", "Tag": "v1.0.0-rc21"}), encoding="utf-8")
+    assert control.deployer_notice(db).startswith("⏸")                                  # a real install in progress

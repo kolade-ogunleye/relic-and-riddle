@@ -129,3 +129,11 @@ def test_dashboard_still_offers_re_render_after_a_newer_run_was_cancelled(db, tm
     db.update_run("run_again", "simulated")
     _, buttons = dashboard_text_and_buttons(db, None, assets_dir=tmp_path)
     assert not any(b["callback_data"].startswith("rerender:") for row in buttons for b in row)
+
+
+def test_dashboard_says_a_late_failure_needs_you_even_when_a_newer_run_is_the_latest(db, tmp_path, monkeypatch):
+    run_id = _failed(db, tmp_path, monkeypatch)
+    db.create_run("run_newer", db.list_all_topics()[1]["id"])
+    db.update_run("run_newer", "cancelled")
+    text, _ = dashboard_text_and_buttons(db, None, assets_dir=tmp_path)
+    assert "Nothing needs you" not in text and "🔁 <b>Failed after rendering</b>" in text and f"Run ID: {run_id}" in text

@@ -2228,8 +2228,8 @@ def main(argv=None) -> int:
                     return 0
             res = coordinator.run_cycle(args.topic_id, args.auto_approve, args.dry_run, require_live=getattr(args, "require_live", False),
                                         content_format=args.format, _regenerations=regenerations, run_id=getattr(args, "run_id", None))
-        except QueueEmpty:
-            _write_result(getattr(args, "result_file", None), {"status": "queue_empty"})
+        except QueueEmpty as e:
+            _write_result(getattr(args, "result_file", None), {"status": "queue_empty", "detail": str(e)})
             return 0  # healthy: nothing new to make
         except Exception as e:
             _write_result(getattr(args, "result_file", None), {"status": "failed", "error": f"{type(e).__name__}: {e}"[:500]})
@@ -2465,9 +2465,13 @@ def main(argv=None) -> int:
                     ping_healthcheck()
                 elif status == "queue_empty":
                     ping_healthcheck()  # the system is healthy; it just has nothing new to make
-                    bot.notify("📭 <b>Topic queue is empty</b>: every topic has been published, so today's run was skipped "
-                               "(repeating topics risks Meta's unoriginal-content rules).",
-                               [{"text": "💡 Propose new topics", "callback_data": "propose:"}])
+                    if "timed-out review" in str(result.get("detail", "")):  # held, not exhausted
+                        bot.notify("⌛ <b>Today's run was skipped</b>: every topic left waits for a timed-out review. "
+                                   "Resend or Reject it.", [{"text": "🎬 Reviews", "callback_data": "creviews:"}])
+                    else:
+                        bot.notify("📭 <b>Topic queue is empty</b>: every topic has been published, so today's run was skipped "
+                                   "(repeating topics risks Meta's unoriginal-content rules).",
+                                   [{"text": "💡 Propose new topics", "callback_data": "propose:"}])
                 elif status == "crashed":
                     code = result.get("exit_code")
                     log.error("Run worker crashed (exit %s); the daemon carries on.\n%s", code, result.get("stderr_tail", ""))

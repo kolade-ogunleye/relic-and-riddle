@@ -27,6 +27,7 @@ from .config import DATA_DIR, TOPICS_DIR
 DB_PATH = DATA_DIR / "pipeline.db"
 # A topic stuck "in_production" longer than this is assumed to be from a crashed run.
 STALE_PRODUCTION_HOURS = 6
+TIMEOUT_HOLD_DAYS = 7  # a timed-out review's topic waits this long for Resend or Reject before it is made again
 
 log = logging.getLogger(__name__)
 
@@ -328,8 +329,16 @@ class PipelineDatabase:
             # (dev, 2026-10-23). A rehearsed topic now waits behind those not yet made.
             rehearsed = dict(conn.execute(
                 "SELECT topic_id, COUNT(*) FROM runs WHERE status = 'simulated' GROUP BY topic_id").fetchall())
+            # A render whose review timed out waits for Resend or Reject; its topic is not made again meanwhile
+            # (a later run produced it a second time while the first render still waited: 2026-10-23 audit).
+            held = {r[0] for r in conn.execute(
+                "SELECT topic_id FROM runs WHERE status = 'timeout' AND updated_at >= ?",
+                ((datetime.now(timezone.utc) - timedelta(days=TIMEOUT_HOLD_DAYS)).isoformat(),))}
+        rows = [r for r in rows if r["id"] not in held]
 
         if not rows:
+            if held:  # not empty: what is left waits for a decision on a timed-out review
+                raise QueueEmpty("Every topic left waits for a timed-out review: Resend or Reject it (Reviews).")
             raise QueueEmpty("No unpublished topics left. Add new ones with /propose (or `python main.py topic propose`).")
 
         candidates = [self._topic_from_row(r) for r in rows]
@@ -745,6 +754,14 @@ class PipelineDatabase:
             rows = conn.execute("""
             SELECT COALESCE(task, 'other') AS task, COUNT(*) AS calls, SUM(cost_usd) AS cost FROM llm_usage
             WHERE substr(created_at, 1, 7) = ? GROUP BY COALESCE(task, 'other') ORDER BY cost DESC""", (month,)).fetchall()
+        return [dict(r) for r in rows]
+
+    def timed_out_reviews(self) -> List[Dict[str, Any]]:
+        """Renders whose review timed out within TIMEOUT_HOLD_DAYS: they wait for Resend or Reject."""
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=TIMEOUT_HOLD_DAYS)).isoformat()
+        with self._conn() as conn:
+            rows = conn.execute("SELECT run_id, topic_id, updated_at FROM runs WHERE status = 'timeout' AND updated_at >= ? "
+                                "ORDER BY updated_at DESC", (cutoff,)).fetchall()
         return [dict(r) for r in rows]
 
     def list_recent_runs(self, limit: int = 5) -> List[Dict[str, Any]]:

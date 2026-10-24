@@ -124,6 +124,14 @@ def running_job(db, resource: str):
     return None
 
 
+def job_button(db, resource: str, label: str, running: str = "⏳ Fetching… · Jobs") -> Dict[str, str]:
+    """A button that starts a job, or, while that job runs, says so and opens Jobs (as Render does):
+    a second tap on "Fetch more" looked like nothing happened, or was refused as a duplicate."""
+    if running_job(db, resource):
+        return {"text": running, "callback_data": "jobs:"}
+    return {"text": label, "callback_data": resource}
+
+
 def short_reason(error: str, limit: int = 280) -> str:
     """A failure reason for the dashboard: no exception class name, and cut at a word, never mid-word."""
     text = re.sub(r"^[A-Z]\w*(Error|Exception):\s*", "", (error or "").strip())
@@ -578,6 +586,10 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     needs = []
     if pending:
         needs.append(f"🎬 <b>{len(pending)} review(s) waiting</b>: " + ", ".join(e(db.run_label(p['run_id'])) for p in pending[:2]))
+    timed_out = db.timed_out_reviews() if hasattr(db, "timed_out_reviews") else []
+    if timed_out:  # their topics wait for this decision instead of being made again
+        needs.append(f"⌛ <b>{len(timed_out)} review(s) timed out</b>: Resend or Reject in Reviews · "
+                     + ", ".join(e(db.run_label(r['run_id'])) for r in timed_out[:2]))
     if waiting_proposals:
         needs.append(f"🧭 <b>{len(waiting_proposals)} improvement proposal(s)</b> — /improve")
     if account_problems:
@@ -613,7 +625,8 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
                  + (f" · next: <b>{e(next_t['title'])}</b>" if next_t else ""))
     lines.append(spend_summary(db))
 
-    row1 = [{"text": f"🎬 Reviews ({len(pending)})", "callback_data": "creviews:"}] if pending else []
+    waiting_reviews = len(pending) + len(timed_out)  # timed-out reviews are decisions waiting too
+    row1 = [{"text": f"🎬 Reviews ({waiting_reviews})", "callback_data": "creviews:"}] if waiting_reviews else []
     if waiting_proposals:
         row1.append({"text": f"🧭 Proposals ({len(waiting_proposals)})", "callback_data": "cimprove:"})
     buttons = [row1] if row1 else []
@@ -1186,17 +1199,26 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             return text, buttons + [[HOME]]
         if command == "creviews":
             pending = db.list_pending_approvals()
-            if not pending:
+            timed_out = db.timed_out_reviews() if hasattr(db, "timed_out_reviews") else []
+            if not pending and not timed_out:
                 return "No reviews are waiting."
             # Where the card is can't be promised: the chat may have been cleared or the card deleted.
-            lines = ["🎬 <b>Reviews waiting</b>. Resend sends a review card again at the bottom of the chat, "
-                     "with its video, and removes the earlier one if it is still there:", ""]
+            lines = ["🎬 <b>Reviews waiting</b>", "",
+                     "Resend sends a review card again at the bottom of the chat, with its video, and removes the "
+                     "earlier one if it is still there.", ""]
             buttons = []
+
+            def resend_button(run_id):
+                title = ((db.get_run(run_id) or {}).get("script_payload") or {}).get("title") or db.run_key(run_id)
+                return [{"text": f"📨 Resend: {clip_words(title, 28)}", "callback_data": f"resend:{db.run_key(run_id)}"}]
             for p in pending[:5]:
                 lines.append(f"• {html.escape(db.run_label(p['run_id']))}")
-                title = (p.get("script_payload") or {}).get("title") or db.run_key(p["run_id"])
-                short = title if len(title) <= 28 else title[:27].rstrip() + "…"
-                buttons.append([{"text": f"📨 Resend: {short}", "callback_data": f"resend:{db.run_key(p['run_id'])}"}])
+                buttons.append(resend_button(p["run_id"]))
+            if timed_out:  # a timed-out review's topic waits for this decision (TIMEOUT_HOLD_DAYS)
+                lines += ["", "⌛ <b>Timed out</b> (its topic waits for you; Resend opens the card with Reject on it):"]
+                for r in timed_out[:5]:
+                    lines.append(f"• {html.escape(db.run_label(r['run_id']))}")
+                    buttons.append(resend_button(r["run_id"]))
             return "\n".join(lines), buttons + [[HOME]]
         if command == "cstat":
             return status_text(db, next_run(), voice_quota()), [[{"text": "📈 Audience", "callback_data": "canalytics:"}], [HOME]]
@@ -1238,7 +1260,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             text = (f"🎵 <b>Documentary music</b>\n\n{approved} approved · {len(pending)} waiting for review\n\n"
                     "Find instrumental tracks for historical documentaries, listen, then approve them for use. New downloads are never approved automatically.")
             if command == "mfmenu":
-                return f"🎵 <b>Fetch new music</b>\n\nChoose a documentary mood. Fetches up to {config.MUSIC_FETCH_PER_MOOD} new CC0/CC BY tracks per mood; no paid generation. Each one waits for your review.", [[{"text": mood.title(), "callback_data": f"mfetch:{mood}"}] for mood in music.MOODS] + [[{"text": "All moods", "callback_data": "mfetch:all"}], [{"text": "← Music", "callback_data": "musicmenu:"}], [HOME]]
+                return f"🎵 <b>Fetch new music</b>\n\nChoose a documentary mood. Fetches up to {config.MUSIC_FETCH_PER_MOOD} new CC0/CC BY tracks per mood; no paid generation. Each one waits for your review.", [[job_button(db, f"mfetch:{mood}", mood.title(), f"⏳ Fetching {mood}… · Jobs")] for mood in music.MOODS] + [[job_button(db, "mfetch:all", "All moods", "⏳ Fetching all moods… · Jobs")], [{"text": "← Music", "callback_data": "musicmenu:"}], [HOME]]
             return text, [[{"text": "Find new tracks", "callback_data": "mfmenu:"}], [{"text": f"Review waiting ({len(pending)})", "callback_data": "mreview:"}], [{"text": "Browse approved", "callback_data": "mlibrary:0"}], [HOME]]
         if command == "mlibrary":
             from . import music
@@ -1283,7 +1305,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             topic = topic_for(db, args)
             args = topic["id"]
             return (f"🖼 <b>{html.escape(topic['title'])}</b>\n\nFetch licensed photos, upload your own with guided prompts, or review this set. New images need human review.",
-                    [[{"text": "Fetch more", "callback_data": f"fetchimages:{args}"}, {"text": "Upload my image", "callback_data": f"upload:{args}"}],
+                    [[job_button(db, f"fetchimages:{args}", "Fetch more"), {"text": "Upload my image", "callback_data": f"upload:{args}"}],
                      [{"text": "Review set", "callback_data": f"review:{args}"}], [{"text": "← Images", "callback_data": "cimages:"}], [HOME]])
         if command == "fetchimages":
             if not args:

@@ -39,6 +39,7 @@ log = logging.getLogger(__name__)
 
 ACTIONS = {"approve": "approved", "regen": "regenerate", "reject": "rejected", "cancel": "cancelled"}
 TELEGRAM_VIDEO_LIMIT_MB = 49.0
+REASON_CARD_HOURS = 2  # a decided review's reason card survives /clear this long (the window for a reply)
 STALE_COMMAND_SECONDS = 600  # commands queued while the bot was down longer than this are not replayed
 # Typed commands run as a job. Not /propose: it only starts the research job, and wrapping that in a
 # second job showed an empty "Completed." over the research panel.
@@ -583,6 +584,17 @@ class TelegramApprovalBot:
             if approval.get('telegram_message_id'):
                 keep.add(approval['telegram_message_id'])
             keep.update(m for m in (get(self.db, 'review-messages', approval['run_id']) or []) if isinstance(m, int))
+        # A Reject/Regenerate reason card, for REASON_CARD_HOURS after the decision: replying to it is how
+        # details reach the improvement log and the regenerated run (a /clear deleted it: 2026-10-23 audit).
+        if hasattr(self.db, '_conn'):
+            cutoff = (datetime.now(timezone.utc) - timedelta(hours=REASON_CARD_HOURS)).isoformat()
+            try:
+                with self.db._conn() as conn:
+                    keep.update(r[0] for r in conn.execute(
+                        "SELECT telegram_message_id FROM approvals WHERE decision IN ('rejected', 'regenerate') "
+                        "AND telegram_message_id IS NOT NULL AND decision_timestamp >= ?", (cutoff,)))
+            except Exception as e:
+                log.debug("Could not list reason cards to keep: %s", e)
         return keep
 
     def clear_chat(self, below: Optional[int] = None, depth: int = 500) -> int:

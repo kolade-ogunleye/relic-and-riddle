@@ -405,11 +405,22 @@ def structured_call(system: str, prompt: Union[str, list], schema: Type[T], *, e
     from .ops import record_llm_call
     import time as _time
     started = _time.perf_counter()
-    try:
-        response, model_used = _first_request(send, models)
-    except Exception as e:  # the run's record says what failed and how long it took
-        record_llm_call(current_task(), "claude", _time.perf_counter() - started, outcome=type(e).__name__)
-        raise
+    for attempt in (1, 2):
+        try:
+            response, model_used = _first_request(send, models)
+            break
+        except ValueError as e:
+            # The SDK could not parse the answer (pydantic's ValidationError is a ValueError): a truncated or
+            # degenerate body, as when a trace check repeated "ok." until max_tokens (writer trial, 2026-10-24).
+            # One more sample usually parses; after that the caller gets an LLMError, not a crash.
+            record_llm_call(current_task(), "claude", _time.perf_counter() - started, outcome=type(e).__name__)
+            if attempt == 2:
+                raise LLMError(f"Claude's structured answer did not parse twice: {str(e)[:200]}") from e
+            log.warning("Claude's structured answer did not parse (%s); asking once more.", str(e)[:120])
+            started = _time.perf_counter()
+        except Exception as e:  # the run's record says what failed and how long it took
+            record_llm_call(current_task(), "claude", _time.perf_counter() - started, outcome=type(e).__name__)
+            raise
     usage = getattr(response, "usage", None)
     record_llm_call(current_task(), model_used, _time.perf_counter() - started,
                     tokens_in=int(getattr(usage, "input_tokens", 0) or 0), tokens_out=int(getattr(usage, "output_tokens", 0) or 0))

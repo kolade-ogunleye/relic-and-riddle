@@ -95,3 +95,41 @@ def test_a_failed_improvement_cycle_is_said_in_telegram():
     source = Path(main.__file__).read_text(encoding="utf-8")  # the file, whatever other tests did to main.main
     cycle = source[source.index("def _improvement_cycle"):source.index("def weekly_digest")]
     assert "bot.notify(" in cycle[cycle.index("Improvement cycle failed"):]
+
+
+def test_a_message_known_to_be_gone_is_not_edited_again(db, monkeypatch, caplog):
+    calls = []
+
+    def gone(method, **kw):
+        calls.append(method)
+        raise RuntimeError("Telegram editMessageText failed: HTTP 400 Bad Request: message to edit not found")
+    bot, _ = _bot(db, monkeypatch, gone)
+    with caplog.at_level(logging.INFO):
+        assert bot.edit_message_text(7, "x") is False
+        assert bot.edit_message_text(7, "y") is False
+        assert bot.edit_message_text(7, "z") is False
+    assert calls == ["editMessageText"]  # one request, then none
+    assert sum("no longer in the chat" in r.getMessage() for r in caplog.records) == 1
+
+
+def test_a_release_about_to_install_is_announced_once_per_phase(db, tmp_path, monkeypatch):
+    import json
+    from src import control
+    status = tmp_path / "status.json"
+    monkeypatch.setenv(control.DEPLOY_STATUS_ENV, str(status))
+
+    def write(text, tag="v1.0.0-rc21"):
+        status.write_text(json.dumps({"AtUtc": "2026-10-24T13:00:00Z", "Status": text, "Tag": tag}), encoding="utf-8")
+    write("Testing v1.0.0-rc21 beside production.")
+    assert control.deployer_notice(db) is None
+    write("v1.0.0-rc21 is ready; waiting for production to be idle: run x is producing")
+    assert "ready to install" in control.deployer_notice(db)
+    write("v1.0.0-rc21 is ready; waiting for production to be idle: the daily run is at 07:00")
+    assert control.deployer_notice(db) is None                       # the same phase, said already
+    write("Installing v1.0.0-rc21 (was v1.0.0-rc20).")
+    assert control.deployer_notice(db).startswith("⏸ <b>Installing release v1.0.0-rc21.</b>")
+    assert control.deployer_notice(db) is None
+    write("Up to date on v1.0.0-rc21.")
+    assert control.deployer_notice(db) is None
+    monkeypatch.delenv(control.DEPLOY_STATUS_ENV)
+    assert control.deployer_notice(db) is None                       # development: no deployer here

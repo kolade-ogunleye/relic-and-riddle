@@ -98,14 +98,48 @@ def request_deploy(db: PipelineDatabase) -> str:
         return "🚀 Automatic deployment runs on production only; this bot installs nothing."
     Path(target).write_text(json.dumps({"at": datetime.now(timezone.utc).isoformat(), "by": "telegram"}), encoding="utf-8")
     text = ("🚀 <b>Deployment check requested.</b> The deployer looks for a new signed release within a minute. "
-            "It installs one only when nothing is running, reviewing or due, and only after its tests pass here; "
-            "I'll report the outcome when the daemon restarts on it.")
+            "It installs one only when nothing is running, reviewing or due, and only after its tests pass here. "
+            "While it installs, this bot is quiet for about five minutes; I'll report when it is back on the release.")
     try:
         status = json.loads(Path(os.environ.get(DEPLOY_STATUS_ENV, "")).read_text(encoding="utf-8-sig"))
         text += f"\n\nLast deployer status: {html.escape(str(status.get('Status', '')))[:400]}"
     except (OSError, ValueError):
         pass
     return text
+
+
+DEPLOY_NOTICE_KEY = "deploy_notice"  # the last "tag:phase" said, so each is said once
+
+
+def deployer_notice(db: PipelineDatabase) -> Optional[str]:
+    """What the release deployer is about to do, from its status file, said once per release and phase:
+    a release waiting to install, or installing now. The operator found the bot silent for five minutes
+    with no warning (2026-10-24: taps during the rc20 install went unanswered). None when nothing is new."""
+    import os
+    path = os.environ.get(DEPLOY_STATUS_ENV, "")
+    if not path:
+        return None
+    try:
+        status = json.loads(Path(path).read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError):
+        return None
+    text, tag = str(status.get("Status", "")), html.escape(str(status.get("Tag", "")))
+    if not tag:
+        return None
+    if text.startswith("Installing "):
+        phase, notice = "installing", (f"⏸ <b>Installing release {tag}.</b> The bot is quiet for about five minutes "
+                                       "while the release is checked out and tested; it reports when it is back.")
+    elif re.match(r"^\S+ is ready", text):
+        phase, notice = "ready", (f"📦 <b>Release {tag} is ready to install.</b> It installs when nothing is running or "
+                                  "waiting for a decision; the bot is then quiet for about five minutes and reports "
+                                  "when it is back on the release.")
+    else:
+        return None
+    key = f"{tag}:{phase}"
+    if db.get_setting(DEPLOY_NOTICE_KEY) == key:
+        return None
+    db.set_setting(DEPLOY_NOTICE_KEY, key)
+    return notice
 
 SendPhoto = Callable[[Path, str, Optional[list]], bool]
 HOME = {"text": "← Dashboard", "callback_data": "cdash:"}

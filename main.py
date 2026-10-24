@@ -2645,6 +2645,17 @@ def main(argv=None) -> int:
 
         scheduler.add_job(report_release, "interval", minutes=5, max_instances=1, coalesce=True)
 
+        def watch_deployer():  # a release about to install is announced before the bot goes quiet for it
+            try:
+                from src.control import deployer_notice
+                notice = deployer_notice(coordinator.db)
+                if notice:
+                    bot.notify(notice, silent=True, record_alert=False)
+            except Exception as e:
+                log.debug("Deployer status check failed: %s", e)
+
+        scheduler.add_job(watch_deployer, "interval", seconds=20, max_instances=1, coalesce=True)
+
         if POST_SCHEDULING and not args.dry_run:  # approved Reels are booked into slots; this publishes them when due
             scheduler.add_job(post_due, "interval", minutes=1, max_instances=1, coalesce=True)
 

@@ -1795,6 +1795,11 @@ class TelegramApprovalBot:
             "disable_web_page_preview": "true",
             "reply_markup": json.dumps(markup),
         }
+        if message_id in self._missing_messages:
+            # Known to be gone (deleted by a clear, a redraw or an install): no request, no log line; the
+            # caller posts a fresh one as it would after a failed edit (six attempts on one cleared panel in
+            # the three seconds after a restart, 2026-10-24).
+            return False
         try:
             self._api("editMessageText", data=data)
             return True

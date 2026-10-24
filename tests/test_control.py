@@ -1048,3 +1048,13 @@ def test_dashboard_cover_studio_opens_the_latest_render(db, tmp_path, monkeypatc
                              send_photo=lambda path, caption, buttons=None, cache_key=None: shown.append(caption))
     assert h("ccov", "") == "" and "run_other_topic_2" in shown[-1]
 
+
+
+def test_produce_renders_a_batch_through_the_bots_launcher(db):
+    # /produce N (operator, 2026-10-24): a week of episodes in one go, one worker at a time.
+    asked = []
+    h = make_command_handler(db, lambda: None, lambda: "", produce_batch=lambda n: asked.append(n) or f"🎬 Producing {n}")
+    assert h("produce", "7") == "🎬 Producing 7" and asked == [7]
+    assert h("produce", "40") == "🎬 Producing 14" and h("produce", "") == "🎬 Producing 1"   # capped, defaults to one
+    assert h("produce", "many").startswith("Usage: /produce")
+    assert make_command_handler(db, lambda: None, lambda: "")("produce", "3") == "Batch production works while the bot is running."

@@ -9,6 +9,7 @@ Commands (approvers only, in the configured chat):
   /pause    stop scheduled runs and posts (an in-progress run finishes)
   /resume   re-enable scheduled runs
   /run      start a production run now (still needs your approval to publish)
+  /produce N  render the next N queued topics back to back, each to review (the next starts after your decision)
   /images   image sets waiting for review
   /review N send topic N's numbered contact sheet with an Approve button
   /drop N 2 5  remove images 2 and 5 from topic N (re-run the fetcher to refill)
@@ -456,7 +457,7 @@ AUDIT_NAMES = {"cdash": "Dashboard", "approve": "Approve", "reject": "Reject", "
                "cancel": "Cancel review", "rsn": "Reason", "cprog": "Refresh progress", "qrender": "Render",
                "qdoc": "Render with documentary", "qrefresh": "Refresh queue", "qbump": "Bump", "qdrop": "Drop",
                "resend": "Resend review", "rerender": "Re-render", "postreal": "Post for real?", "promote": "Post for real",
-               "chistory": "Review history", "chist": "Review details",
+               "chistory": "Review history", "chist": "Review details", "postnow": "Post now", "produce": "Produce a batch",
                "edit": "Edit text", "runstop": "Cancel run", "runstopok": "Confirm cancel",
                "simpub": "Simulated publish", "pubok": "It posted", "pubno": "It didn't post", "creviews": "Reviews",
                "cideas": "Topic ideas", "cdisc": "UNESCO marvels", "cprop": "Waiting ideas", "cpropose": "Research ideas",
@@ -923,6 +924,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                          apply_updates: Optional[Callable[[], str]] = None,
                          propose_topics: Optional[Callable[[], str]] = None,
                          run_actions: Optional[dict] = None,
+                         produce_batch: Optional[Callable[[int], str]] = None,
                          send_audio: Optional[SendPhoto] = None,
                          send_message: Optional[Callable[[str, Optional[list]], Any]] = None,
                          delete_message: Optional[Callable[[int], bool]] = None) -> Callable[[str, str], str]:
@@ -1761,11 +1763,22 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 return f"🚀 {html.escape(db.run_label(run_id))} is {html.escape(run['status'].replace('_', ' '))}; only a finished dry run (simulated) can be posted."
             from . import config as app_config
             where = "booked into the next free posting slot (Stories after it, the carousel in its next slot)" if app_config.POST_SCHEDULING else "posted now"
+            buttons = [[{"text": "✅ Yes, post it", "callback_data": f"promote:{db.run_key(run_id)}"}]]
+            if app_config.POST_SCHEDULING:  # on demand (operator, 2026-10-24): the Reel at once, Stories and carousel after it
+                buttons.append([{"text": "⚡ Post now instead", "callback_data": f"postnow:{db.run_key(run_id)}"}])
             return (f"🚀 <b>Post this for real?</b>\n\n{html.escape(db.run_label(run_id))}\n\n"
                     f"It will be {where} on Facebook, Instagram and YouTube, after the release checks run in live mode. "
                     "This is the one action that publishes; the daily runs stay in dry-run mode.",
-                    [[{"text": "✅ Yes, post it", "callback_data": f"promote:{db.run_key(run_id)}"}], [HOME]])
-        if command in ("pubok", "pubno", "resend", "simpub", "rerender", "promote"):
+                    buttons + [[HOME]])
+        if command == "produce":
+            if produce_batch is None:
+                return "Batch production works while the bot is running."
+            try:
+                n = max(1, min(int(args.strip() or "1"), 14))
+            except ValueError:
+                return "Usage: /produce <episodes, 1-14> — renders that many queued topics back to back, each to review."
+            return produce_batch(n)
+        if command in ("pubok", "pubno", "resend", "simpub", "rerender", "promote", "postnow"):
             action = (run_actions or {}).get(command)
             if action is None:
                 return "That button only works while the daemon is running."

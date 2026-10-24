@@ -1162,11 +1162,16 @@ class PipelineCoordinator:
         return ["--regenerate-from", run_id, "--topic-id", str(run.get("topic_id") or "")]
 
     # ------------------------------------------------------------ posting a dry-run result for real
-    def promote_run(self, run_id: str) -> str:
+    def post_now(self, run_id: str) -> str:
+        """Post for real at once (operator, 2026-10-24): the Reel now, Stories and carousel booked after it."""
+        return self.promote_run(run_id, now=True)
+
+    def promote_run(self, run_id: str, now: bool = False) -> str:
         """Your per-video go-ahead: a finished dry run (simulated) is posted for real while the daemon
         stays in dry-run mode. The live release gate decides first. With posting slots on, the Reel is
         booked and this daemon posts it when due (from a dry-run daemon only promoted runs post);
-        otherwise it posts now. Returns what happened, in words (never raises for the operator)."""
+        with `now`, or without slots, it posts at once and its Stories and carousel are booked after it.
+        Returns what happened, in words (never raises for the operator)."""
         run = self.db.get_run(run_id)
         if not run:
             return "🚀 That run is no longer recorded."
@@ -1180,7 +1185,7 @@ class PipelineCoordinator:
         self.db.set_setting(PROMOTED_PREFIX + run_id, datetime.now(timezone.utc).isoformat())
         label = html.escape(self.db.run_label(run_id))
         try:
-            if self.schedule_posts and POST_SCHEDULING and run.get("content_format") != "deep_dive":
+            if self.schedule_posts and POST_SCHEDULING and run.get("content_format") != "deep_dive" and not now:
                 res = self.schedule_run(run_id)
                 when = post_schedule.fmt(datetime.fromisoformat(res["scheduled_for"]))
                 return (f"🚀 <b>{label}</b> is booked for real posting: Reel at {html.escape(when)}, Stories after it, "
@@ -1190,7 +1195,13 @@ class PipelineCoordinator:
             self.db.set_setting(PROMOTED_PREFIX + run_id, "")
             return f"🚀 Not posted: {html.escape(str(e))}"
         if res.get("status") == "published":
-            return f"🚀 <b>{label}</b> is posted."
+            followers = []
+            if POST_SCHEDULING and run.get("content_format") != "deep_dive" and run.get("master_video_path"):
+                try:  # the Reel is out; its Stories and carousel follow in their slots, posted by the daemon
+                    followers = self._book_followers(run_id, Path(run["master_video_path"]).parent, datetime.now(timezone.utc))
+                except Exception as e:
+                    log.warning("Could not book the Stories and carousel after posting %s: %s", run_id, e)
+            return f"🚀 <b>{label}</b> is posted." + ("\n" + "\n".join(html.escape(x) for x in followers) if followers else "")
         return f"🚀 <b>{label}</b>: publishing ended with status '{html.escape(str(res.get('status')))}'; see the receipt above."
 
     def _may_post(self, run_id: str) -> bool:
@@ -1828,22 +1839,28 @@ class PipelineCoordinator:
         run_dir = Path(run["master_video_path"]).parent
         slot = post_schedule.next_reel_slot(now, self._booked_reel_days())
         self.db.add_scheduled_post(run_id, "reel", slot.astimezone(timezone.utc).isoformat(), [])
-        lines = [f"🎬 Reel: {post_schedule.fmt(slot)}"]
-        stories = sorted(str(p) for p in (run_dir / "stories").glob("story_*.jpg"))
-        if stories:
-            when = post_schedule.story_time(slot)
-            self.db.add_scheduled_post(run_id, "story", when.astimezone(timezone.utc).isoformat(), stories)
-            lines.append(f"📱 {len(stories)} Story frames: {post_schedule.fmt(when)}")
-        carousel = sorted(str(p) for p in (run_dir / "carousel").glob("carousel_slide_*.jpg"))
-        if carousel:
-            self.db.add_scheduled_post(run_id, "carousel", None, carousel, status="waiting")
-            lines.append(f"🖼 Carousel: queued for the next carousel slot (from {post_schedule.fmt(post_schedule.next_carousel_slot(slot))})")
+        lines = [f"🎬 Reel: {post_schedule.fmt(slot)}"] + self._book_followers(run_id, run_dir, slot)
         self.db.update_run(run_id, "scheduled")
         self.topic_engine.record_status(run["topic_id"], "scheduled", run_id=run_id)
         # The review card becomes the schedule's receipt (a separate alert said the same thing again).
         if not self.telegram_bot.stamp_review_outcome(run_id, "🗓 <b>Approved · scheduled</b>\n" + "\n".join(html.escape(x) for x in lines)):
             self._alert(f"🗓 <b><u>POST SCHEDULED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n" + "\n".join(html.escape(x) for x in lines))
         return {"status": "scheduled", "scheduled_for": slot.isoformat()}
+
+    def _book_followers(self, run_id: str, run_dir: Path, reel_slot: datetime) -> List[str]:
+        """Books a Reel's Stories (STORY_DELAY_MINUTES after it) and its carousel (the next carousel slot);
+        the daemon's post_due() publishes them when due. Shared by slot booking and Post now."""
+        lines: List[str] = []
+        stories = sorted(str(p) for p in (run_dir / "stories").glob("story_*.jpg"))
+        if stories:
+            when = post_schedule.story_time(reel_slot)
+            self.db.add_scheduled_post(run_id, "story", when.astimezone(timezone.utc).isoformat(), stories)
+            lines.append(f"📱 {len(stories)} Story frames: {post_schedule.fmt(when)}")
+        carousel = sorted(str(p) for p in (run_dir / "carousel").glob("carousel_slide_*.jpg"))
+        if carousel:
+            self.db.add_scheduled_post(run_id, "carousel", None, carousel, status="waiting")
+            lines.append(f"🖼 Carousel: queued for the next carousel slot (from {post_schedule.fmt(post_schedule.next_carousel_slot(reel_slot))})")
+        return lines
 
     def _booked_reel_days(self, exclude_id: Optional[int] = None) -> set:
         return {datetime.fromisoformat(p["due_at"]).astimezone(post_schedule.tz()).date()
@@ -2678,6 +2695,19 @@ def main(argv=None) -> int:
                         bot.notify(f"💥 <b>The run's worker process ended without finishing</b> (exit {rc}"
                                    + (f" / 0x{rc & 0xFFFFFFFF:08X}" if isinstance(rc, int) and rc else "")
                                    + "). Nothing was posted; the run was cleared and its topic is back in the queue.")
+                    # A batch (/produce N): the next episode starts once this worker has ended cleanly, which
+                    # is after your decision on its review; a crash ends the batch.
+                    try:
+                        remaining = int(db.get_setting(PRODUCE_KEY) or 0)
+                    except (TypeError, ValueError):
+                        remaining = 0
+                    if remaining > 0 and rc == 0 and not cleared:
+                        db.set_setting(PRODUCE_KEY, str(remaining - 1))
+                        threading.Timer(5, launch_worker).start()  # after this lock is released
+                        bot.notify(f"🎬 Next episode of the batch is starting ({remaining - 1} more after it).")
+                    elif remaining > 0:
+                        db.set_setting(PRODUCE_KEY, "0")
+                        bot.notify("⏹ Batch production stopped: the last episode did not finish cleanly.")
 
             from src.config import BASE_DIR
             # With posting slots on, the worker books the approved Reel like the daemon does.
@@ -2702,6 +2732,20 @@ def main(argv=None) -> int:
             started = launch_worker(extra=extra) if extra else launch_worker(resume=run_id)
             return started if "already in progress" in started else rerender_started(db, run_id)
 
+        PRODUCE_KEY = "produce_remaining"  # episodes still to start in a /produce batch
+
+        def produce_batch(n: int) -> str:
+            """/produce N (operator, 2026-10-24: a week of episodes in one go): the next N queued topics,
+            one worker at a time; each comes to review, and the next starts once that worker has ended
+            cleanly, i.e. after your decision."""
+            db.set_setting(PRODUCE_KEY, str(max(0, n - 1)))
+            started = launch_worker()
+            if "already in progress" in started:
+                db.set_setting(PRODUCE_KEY, "0")
+                return started
+            return (f"🎬 Producing {n} episode(s) back to back: each comes to you for review, the next starts after "
+                    f"your decision. {started}")
+
         bot.next_run_func = lambda: "on-demand (bot supervisor)"
         handler = make_command_handler(
             db, bot.next_run_func,
@@ -2714,7 +2758,9 @@ def main(argv=None) -> int:
                          "edit": getattr(coordinator, "edit_copy", None),
                          "simpub": coordinator.simulate_publish,
                          "rerender": rerender_in_bot,
-                         "promote": getattr(coordinator, "promote_run", None)}
+                         "promote": getattr(coordinator, "promote_run", None),
+                         "postnow": getattr(coordinator, "post_now", None)},
+            produce_batch=produce_batch,
         )
         if POST_SCHEDULING:  # what this mode books, it also posts when due
             coordinator.only_promoted = bool(config.BOT_RUNS_DRY)  # bot-started runs are dry: only promoted ones post
@@ -3078,7 +3124,8 @@ def main(argv=None) -> int:
                                                     "edit": getattr(coordinator, "edit_copy", None),
                                                     "simpub": coordinator.simulate_publish,
                                                     "rerender": rerender_run,
-                                                    "promote": getattr(coordinator, "promote_run", None)})
+                                                    "promote": getattr(coordinator, "promote_run", None),
+                                                    "postnow": getattr(coordinator, "post_now", None)})
 
         def poll_telegram():
             poll_loop(bot, handler)

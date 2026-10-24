@@ -77,8 +77,12 @@ def _paid_fallback(system, prompt, schema: Type[T], model: str, task_class: str,
     if spent >= cap:
         raise FreeQuotaUnavailable(f"{why} The paid fallback for {task_class} tasks has reached its "
                                    f"${cap:.2f} monthly cap (${spent:.2f} spent).")
-    log.info("Free Gemini unavailable (%s); using the billed key for this %s task ($%.2f of $%.2f this month).",
-             why, task_class, spent, cap)
+    # Said once per reason (a configured FREE_TIER_HEAVY=false put this line on every call: 66 of them in
+    # production's log); later calls are logged at debug with the running spend.
+    level = logging.DEBUG if why in _announced else logging.INFO
+    _announced.add(why)
+    log.log(level, "Free Gemini unavailable (%s); using the billed key for this %s task ($%.2f of $%.2f this month).",
+            why, task_class, spent, cap)
     try:
         result = gemini.structured(system, prompt, schema, model=model, key=config.GEMINI_API_KEY)
     except gemini.GeminiError as e:  # the billed key failed too (its own quota, an outage)
@@ -92,6 +96,7 @@ def _paid_fallback(system, prompt, schema: Type[T], model: str, task_class: str,
     return result
 
 
+_announced: set = set()  # reasons for using the billed key already said in this process's log
 SPARE_COOLDOWN_SECONDS = 3600
 _spare_down_until = 0.0  # monotonic time before which a failed spare key is not tried again
 

@@ -1930,6 +1930,32 @@ def _write_result(path: Optional[str], result: Dict[str, Any]) -> None:
         log.warning("Could not write the run result to %s: %s", path, e)
 
 
+POLL_BACKOFF_SECONDS, POLL_BACKOFF_MAX = 10, 120
+
+
+def poll_loop(bot, handler) -> None:
+    """Polls Telegram until interrupted. A transport failure (a timeout, a 5xx, a dropped connection) is
+    routine on a long poll: one line and a growing wait, not a traceback (hundreds of them buried the real
+    errors in both logs, 2026-10-24). Anything else is still logged in full."""
+    from src.control import short_reason
+    from src.telegram_bot import transport_error
+    backoff = POLL_BACKOFF_SECONDS
+    while True:
+        try:
+            bot.poll_once(handler)
+            backoff = POLL_BACKOFF_SECONDS
+        except KeyboardInterrupt:
+            raise
+        except BaseException as e:
+            if transport_error(e):
+                log.warning("Telegram unreachable (%s); polling again in %d s.", short_reason(str(e), 160), backoff)
+                time.sleep(backoff)
+                backoff = min(backoff * 2, POLL_BACKOFF_MAX)
+            else:
+                log.exception("Telegram polling error (will retry): %s", e)
+                time.sleep(POLL_BACKOFF_SECONDS)
+
+
 def rerender_started(db, run_id: str) -> str:
     return (f"🔁 <b>Re-rendering</b> {html.escape(db.run_label(run_id))}: its script, voiceover and accepted motion "
             "clips are reused, so nothing already paid for is bought again. A new review card comes when it's ready.")
@@ -2499,14 +2525,7 @@ def main(argv=None) -> int:
         bot.background_polling = True
         log.info("Studio Control Center: listening for Telegram commands. Ctrl+C to stop.")
         try:
-            while True:
-                try:
-                    bot.poll_once(handler)
-                except KeyboardInterrupt:
-                    raise
-                except BaseException as e:
-                    log.exception("Telegram polling error (will retry): %s", e)
-                    time.sleep(10)
+            poll_loop(bot, handler)
         except KeyboardInterrupt:
             bot.notify("🔴 <b>Studio Control Center Offline</b> • Service stopped.", record_alert=False)
         return 0
@@ -2745,7 +2764,12 @@ def main(argv=None) -> int:
                             text, buttons = improve.card(p)
                             bot.notify(text, buttons=buttons, silent=True, record_alert=False)
             except Exception as e:
+                # Said in Telegram: the cycle failed every night on production for days as a log line only
+                # (2026-10-24). A broken improvement loop is itself something that needs you.
                 log.warning("Improvement cycle failed: %s", e)
+                from src.control import short_reason
+                bot.notify("🧭 <b>Improvement cycle failed</b> tonight, so no findings were turned into proposals.\n"
+                           f"<blockquote expandable>{html.escape(short_reason(str(e), 600))}</blockquote>", silent=True)
 
         def weekly_digest():
             from src import improve
@@ -2823,14 +2847,7 @@ def main(argv=None) -> int:
                                                     "rerender": rerender_run})
 
         def poll_telegram():
-            while True:
-                try:
-                    bot.poll_once(handler)
-                except KeyboardInterrupt:
-                    raise
-                except BaseException as e:
-                    log.exception("Telegram polling error (will retry): %s", e)
-                    time.sleep(10)
+            poll_loop(bot, handler)
 
         if bot.is_configured():
             bot.warm_up()

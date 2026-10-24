@@ -370,6 +370,17 @@ def step_seconds(db, total: int, typical: Optional[float]) -> Optional[List[floa
     return None
 
 
+TRANSPORT_SIGNS = ("timed out", "timeout", "502", "503", "504", "bad gateway", "connection", "remotedisconnected",
+                   "max retries", "rate-limited", "temporarily unavailable", "name resolution")
+
+
+def transport_error(error: BaseException) -> bool:
+    """A failure of the connection to Telegram rather than of our request: a long poll that timed out, a
+    gateway error, a dropped connection. Expected now and then; retried quietly."""
+    text = str(error).lower()
+    return any(sign in text for sign in TRANSPORT_SIGNS)
+
+
 def progress_figures(step: int, total: int, elapsed: float, typical: Optional[float],
                      step_elapsed: Optional[float] = None, typical_steps: Optional[List[float]] = None) -> tuple:
     """Bar, percent and time left for a run on step `step` of `total` (1-based, the step in progress).
@@ -1545,8 +1556,9 @@ class TelegramApprovalBot:
         self.delete_message(old)
         self._missing_messages.add(old)
         self._last_progress_edit.pop(old, None)
+        # Redrawn outright: editing the card just deleted only produced "message to edit not found" first.
         self.update_progress_card(old, active.get("step", 1), active.get("total_steps", 5), active.get("topic_title", ""),
-                                  active["run_id"], active.get("details", ""))
+                                  active["run_id"], active.get("details", ""), redraw=True)
         return True
 
     def _live_progress_card(self, run_id: str) -> Optional[int]:
@@ -1559,8 +1571,10 @@ class TelegramApprovalBot:
         mid = record.get("message_id") if record.get("run_id") == run_id else None
         return int(mid) if mid else None
 
-    def update_progress_card(self, message_id: int, step: int, total_steps: int, topic_title: str, run_id: str, details: str = "") -> bool:
-        """Updates the progress card in-place with smooth bar, active sub-step, and ETA debouncing."""
+    def update_progress_card(self, message_id: int, step: int, total_steps: int, topic_title: str, run_id: str,
+                             details: str = "", redraw: bool = False) -> bool:
+        """Updates the progress card in-place with smooth bar, active sub-step, and ETA debouncing.
+        redraw: the card is known to be gone (Refresh Progress deleted it); post a new one at once."""
         if not self.is_configured() or not message_id:
             return False
 
@@ -1622,8 +1636,8 @@ class TelegramApprovalBot:
                 message_id=message_id,
             )
 
-        success = self.edit_message_text(message_id, text, buttons=buttons)
-        if not success and message_id in self._missing_messages:
+        success = False if redraw else self.edit_message_text(message_id, text, buttons=buttons)
+        if not success and (redraw or message_id in self._missing_messages):
             # Self-healing: if the card was purged/cleared from Telegram, recreate it!
             try:
                 msg = self._api("sendMessage", data={
@@ -1768,7 +1782,11 @@ class TelegramApprovalBot:
         except Exception as e:
             err_msg = str(e).lower()
             if "message to edit not found" in err_msg:
+                # Expected after a card or panel was cleared: every caller then posts a fresh one. Noted,
+                # not a warning (28 of them on production in three days, all handled).
                 self._missing_messages.add(message_id)
+                log.info("Message %s is no longer in the chat; a fresh one replaces it.", message_id)
+                return False
             if "message is not modified" in err_msg:
                 return True
             if "can't parse entities" in err_msg:

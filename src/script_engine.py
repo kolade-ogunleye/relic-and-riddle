@@ -915,6 +915,7 @@ class ScriptEngine:
             passed, confidence, audits, msg = self.fact_checker.verify(script_payload, topic, allow_unreviewed_curated)
         script_payload["fact_audits"] = audits
         script_payload["consensus_confidence"] = confidence
+        log.info("Fact check %s: %s", "passed" if passed else "REJECTED", msg[:400])   # the run's record of the verdict
         if not passed:
             return False, script_payload, "REJECTED by fact checker: " + self._with_second_findings(script_payload, sheet, msg)
 
@@ -923,10 +924,11 @@ class ScriptEngine:
             if free_llm.enabled() or (sheet is not None and trace_check.gemini_checker_available()):
                 # A different model judges every claim against the raw evidence quotes: free on the free
                 # engine, and on the Claude engine too when a verified sheet and a Gemini key exist (the
-                # web-searching second opinion cost $1.70 a call for such scripts; writer trial, 2026-10-24).
+                # web-searching second opinion cost $2-4 a round for such scripts; writer trial, 2026-10-24).
                 status, conf2, audits2, msg2 = self._free_second_check(script_payload, sheet)
             else:
                 status, conf2, audits2, msg2 = self.fact_checker.second_opinion(script_payload)
+            log.info("Second check %s: %s", status, msg2[:400])
             script_payload["second_check"] = {"status": status, "confidence": conf2, "audits": audits2, "summary": msg2}
             if status != "pass":  # fail closed: a check that could not run proves nothing
                 reason = "second fact checker" if status == "fail" else "second fact check, which could not run"

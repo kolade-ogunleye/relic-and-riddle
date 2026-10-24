@@ -313,7 +313,10 @@ class PreFlightHealthChecker:
 # (2026-10-24: the script stage's rounds could be timed only from gaps between unrelated lines).
 _run_dir_for_evidence: Optional[Path] = None
 NOISY_AT_DEBUG = ("PIL", "matplotlib", "numba", "onnxruntime", "charset_normalizer", "asyncio", "fontTools", "h5py",
-                  "urllib3", "httpx", "httpcore", "requests", "apscheduler", "telegram", "edge_tts", "google")
+                  "urllib3", "httpx", "httpcore", "requests", "apscheduler", "telegram", "edge_tts", "google",
+                  # the Anthropic SDK and its vendored HTTP stack dump every request, prompt included (2026-10-24:
+                  # 270 of 300 lines in a Claude script stage's run.log)
+                  "anthropic", "httpx2", "httpcore2")
 
 
 class RunLog:

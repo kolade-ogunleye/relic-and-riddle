@@ -194,7 +194,15 @@ try {
     # The release's own suite, beside production (its settings are not readable here; the suite
     # does not need them and the in-window check repeats it with them).
     $requirementsChanged = (Invoke-ContentGit -Git $git -App $app -Arguments @('diff', '--quiet', $head, $target, '--', 'requirements.txt')).ExitCode -ne 0
-    if (-not $requirementsChanged) {
+    # The suite beside production runs once per candidate commit. Without this memo it ran again on every
+    # check (2-3 minutes of the VM's CPU each time, beside the run it was waiting for) for as long as
+    # production stayed busy, and the status read "Testing ... beside production" long after it had passed
+    # (2026-10-24, rc20 behind the daily run).
+    $precheckPath = Join-Path $logs "precheck-$tag.json"
+    $precheck = Read-ContentJson -Path $precheckPath
+    $precheckPassed = [bool]($precheck -and ([string]$precheck.commit -eq $target) -and $precheck.passed)
+    if ($precheckPassed) { Write-Log "$tag passed its suite beside production at $($precheck.at); not repeated." }
+    if (-not $requirementsChanged -and -not $precheckPassed) {
         $tree = Join-Path $staging $tag
         if (Test-Path -LiteralPath $tree) {
             [void](Invoke-ContentGit -Git $git -App $app -Arguments @('worktree', 'remove', '--force', $tree))
@@ -217,7 +225,8 @@ try {
             Set-Status "Refused ${tag}: $reason" $tag
             exit 1
         }
-    } else {
+        Write-ContentJson -Path $precheckPath -Value ([ordered]@{ tag = $tag; commit = $target; passed = $true; at = [datetime]::UtcNow.ToString('o') })
+    } elseif ($requirementsChanged) {
         Write-Log "$tag changes requirements; its suite runs after they are installed, inside the window."
     }
 

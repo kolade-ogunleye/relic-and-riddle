@@ -117,13 +117,25 @@ def extract_frames(video: Path, times: List[float], out_dir: Path) -> List[Path]
     return frames
 
 
+SAMPLE_AT = 0.8  # fraction of a beat at which its frame is checked: settled, still clear of the next cut
+
+
+def sample_time(start: float, end: float) -> float:
+    """The moment in a beat the automated check looks at: four fifths through (never before its middle)."""
+    start, end = float(start or 0.0), float(end or 0.0)
+    return max((start + end) / 2, start + SAMPLE_AT * (end - start))
+
+
 @llm_task("video_qa")
 def review_render(video: Path, beats: List[Dict[str, Any]], cover: Path, work_dir: Path) -> Optional[QAReport]:
     """Returns the QA report, or None if Claude is unavailable or the check fails."""
     if not (free_llm.available() if free_llm.enabled() else claude_available()):
         return None
     try:
-        times = [(b["start"] + b["end"]) / 2 for b in beats]
+        # Late in each beat, not its midpoint: an animated graphic has settled by then (a number card
+        # counts up over its first ~3 s; the midpoint frame read "29" of a card resting on 30 and the
+        # check reported a contradiction with the narration — production, Antikythera, 2026-10-24).
+        times = [sample_time(b["start"], b["end"]) for b in beats]
         frames = extract_frames(video, times, work_dir / "qa_frames")
         content: List[dict] = []
         for i, (frame, beat) in enumerate(zip(frames, beats), 1):

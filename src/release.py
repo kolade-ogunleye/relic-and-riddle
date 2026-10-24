@@ -114,7 +114,8 @@ def write_release_report(run, dry_run=False):
         checks.append({"name": "visual_checks", "status": "pass", "detail": issues, "minor": True})
     else:
         add("visual_checks", quality.get("certified") is True and audited_master,
-            issues or "No completed visual audit recorded.")
+            issues or ("Visual audit certified this master; no issues." if audited_master and quality.get("certified")
+                       else "No completed visual audit recorded."))  # a passed audit used to read as none recorded
     for key in ("thumbnail_cover_path", "thumbnail_grid_path"):
         add(key, bool(run.get(key)) and Path(run[key]).is_file(), run.get(key))
     if profile.requires_youtube_thumbnail:

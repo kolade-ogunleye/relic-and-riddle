@@ -118,6 +118,19 @@ def untraced_numbers(payload: Dict[str, Any], sheet: Dict[str, Any]) -> List[str
     return sorted(set(problems))
 
 
+def card_numbers_off_narration(payload: Dict[str, Any]) -> List[str]:
+    """A number card echoes the narration: a figure on it that the narration never says would contradict the
+    voice on screen, and both could still be "in the sheet" when a count is disputed (the gear count of the
+    Antikythera mechanism, 35/30 one way and 29 another, 2026-10-24)."""
+    narration = fact_sheet.numbers_in(payload.get("narration_script") or "")
+    problems = []
+    for card in payload.get("stat_cards") or []:
+        for n in fact_sheet.numbers_in(str(card.get("value", ""))):
+            if not any(abs(n - m) < 1e-9 for m in narration):
+                problems.append(f"number card: {n:g} ({card.get('label', '')}) is not a figure the narration says")
+    return problems
+
+
 def _empirical_rhetoric(claim: str) -> bool:
     text = claim.strip()
     if re.match(r"^(?:if|could|can|might|should|would|what|how|why|where|who|is|are|was|were|do|does|did)\b.*\?$", text, re.I):
@@ -148,7 +161,7 @@ def check(payload: Dict[str, Any], sheet: Dict[str, Any]) -> Tuple[bool, float, 
     """(passed, % of claims traced, audits, message), in the same shape as the fact checker's verify()."""
     from .reference_facts import with_reference_evidence
     sheet = with_reference_evidence(sheet, payload)
-    numbers = untraced_numbers(payload, sheet)
+    numbers = untraced_numbers(payload, sheet) + card_numbers_off_narration(payload)
     package = "\n".join(f"[{w}] {t}" for w, t in surfaces(payload))
     report = free_llm.call(SYSTEM, f"<fact_sheet>\n{fact_sheet.as_prompt(sheet)}\n</fact_sheet>\n\n<package>\n{package}\n</package>",
                            TraceReport, role="checker", effort="medium", max_tokens=8000)

@@ -29,7 +29,12 @@ def test_script_that_would_run_long_is_sent_back_with_a_cut(monkeypatch, curated
 def test_script_that_would_run_short_is_sent_back_with_an_extension(monkeypatch, curated_payload):
     from src import audio_engine, script_engine
     monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: 39.0)
-    assert "add about" in " ".join(script_engine.spoken_length_problems(_pkg(curated_payload)))
+    problems = " ".join(script_engine.spoken_length_problems(_pkg(curated_payload)))
+    # A word window from this draft's count, as for a long draft ("add about 9 words" did not converge).
+    import re
+    words = len(_pkg(curated_payload).narration_script.split())
+    low, high = (int(x) for x in re.search(r"extend the narration to (\d+)-(\d+) words", problems).groups())
+    assert f"This draft is {words} words" in problems and words < low < high
 
 
 def test_in_range_or_unmeasurable_script_passes(monkeypatch, curated_payload):

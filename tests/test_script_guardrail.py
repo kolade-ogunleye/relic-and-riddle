@@ -304,3 +304,33 @@ def test_draft_bookkeeping_is_fixed_without_a_rewrite(curated_payload):
     assert fixed.caption.replace("\n", " ").split() == pkg.caption.replace("\n", " ").split()  # same words
     long_sentence = "x" * 130
     assert normalize_copy(_pkg(curated_payload, caption=long_sentence)).caption == long_sentence  # still a rewrite
+
+
+def test_a_short_draft_is_extended_not_rewritten_from_scratch(curated_payload, monkeypatch):
+    # Production, 2026-10-23: three fresh rewrites each ran shorter (38.8, 37.3, 35.8 s) while told
+    # "add about N words". The retry now carries the draft and a word window, and converges.
+    from src import audio_engine, script_engine
+    monkeypatch.setattr(script_engine, "_ready", lambda: True)
+    monkeypatch.setattr(audio_engine, "pace_ratio", lambda key: 1.0)
+    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: len(text.split()) * 0.4 / speed)
+    engine = ScriptEngine()
+    monkeypatch.setattr(engine, "_load_curated", lambda topic_id: None)
+    monkeypatch.setattr(engine, "_sheet", lambda topic: None)
+    seen = []
+    base = curated_payload["narration_script"].split()
+    short = " ".join((base * 3)[:70])  # with the closing sentence, well under 42 s at 0.4 s a word
+
+    def write(topic, feedback):
+        seen.append(feedback)
+        import re
+        found = re.search(r"extend the narration to (\d+)-(\d+) words", feedback)
+        words = (short.split() * 3)[: int(found.group(1)) + 1] if found else short.split()
+        closing = curated_payload["closing_sentence"]
+        text = " ".join(words).rstrip(".") + ". " + closing
+        return ScriptPackage.model_validate(dict(curated_payload, narration_script=text))
+    monkeypatch.setattr(engine, "_generate_with_claude", write)
+    monkeypatch.setattr(engine, "_finalize", lambda pkg, topic, **k: {"narration_script": pkg.narration_script})
+    out = engine.generate_script({"id": "t", "title": "T"})
+    assert len(seen) == 2                                   # the second draft, written to the window, passes
+    assert "<previous_narration>" in seen[1] and "extend the narration to" in seen[1]
+    assert len(out["narration_script"].split()) * 0.4 >= script_engine.TARGET_DURATION_MIN

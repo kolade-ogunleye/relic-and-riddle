@@ -300,8 +300,13 @@ def spoken_length_problems(pkg: ScriptPackage) -> List[str]:
                 f"rewrite the narration in {low}-{target} words (names and numbers such as dates take "
                 f"longer to say), keeping the closing sentence."]
     if seconds < TARGET_DURATION_MIN:
-        return [f"Narration runs {seconds:.1f}s when spoken (minimum {TARGET_DURATION_MIN:g}s); add about "
-                f"{math.ceil((TARGET_DURATION_MIN - seconds) / per_word) + 1} words of verified facts."]
+        # A window, as for a long draft: "add about 9 words" to a fresh rewrite meant nothing, and three
+        # drafts in a row came out shorter (38.8, 37.3, 35.8 s; production, 2026-10-23).
+        low = words + math.ceil((TARGET_DURATION_MIN - seconds) / per_word) + 2
+        high = max(low + 4, min(int(TARGET_DURATION_MAX / per_word), int(longest / per_word) - 2))
+        return [f"Narration runs {seconds:.1f}s when spoken (minimum {TARGET_DURATION_MIN:g}s). This draft is "
+                f"{words} words; extend the narration to {low}-{high} words with more verified facts from the "
+                f"research notes, keeping the closing sentence."]
     return []
 
 
@@ -594,16 +599,23 @@ class ScriptEngine:
                 log.warning("Attempt %d failed structural checks: %s", attempt, problems)
                 last_problems = problems
                 improve.note_problems(problems, "structure")
-                found = re.search(r"in (\d+)-(\d+) words", " ".join(problems))
+                found = re.search(r"(?:in|to) (\d+)-(\d+) words", " ".join(problems))
                 window = (int(found.group(1)), int(found.group(2))) if found else window
                 # A too-short draft after a too-long one is reminded of the window, so it does not swing back.
                 keep = (f" Keep the narration between {window[0]} and {window[1]} words: longer runs past the "
                         "time limit when spoken." if window and not found else "")
+                # A length problem is fixed on this draft, not by starting over: each fresh rewrite came out at
+                # the writer's usual length again (2026-10-23). The facts it has were already checked.
+                length_only = all("when spoken" in p for p in problems)
+                carry = (f"\n\n<previous_narration>\n{pkg.narration_script}\n</previous_narration>\nAdjust this "
+                         "narration to the length above, adding or removing sentences using only facts in the "
+                         "research notes; keep the rest of it, and the other fields, as they are."
+                         if length_only and pkg.narration_script else "")
                 feedback = (base_feedback + "\n\nA previous draft was rejected for: " + " ".join(problems) + keep
-                            + " Fix these.")
+                            + " Fix these." + carry)
                 self._report(f"Draft {attempt} of {max_attempts} rejected ({_short_reason(problems)})"
                              + ("; rewriting" if attempt < max_attempts else ""))
-            log.warning("Claude did not produce a usable script; trying curated script.")
+            log.warning("The script writer (%s) did not produce a usable script; trying a curated script.", writer_origin())
 
         curated = self._load_curated(topic["id"])
         if curated:

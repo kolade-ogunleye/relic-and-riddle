@@ -127,3 +127,21 @@ def test_a_beat_about_another_place_is_ranked_by_that_place_not_by_distance_from
     assert seen[0] == (["virupaksha", "pattadakal"], None)                       # elsewhere: its name, no distance rule
     assert seen[1] == (["kailasa"], {"lat": 20.02, "lon": 75.18})                # the site itself
     assert seen[2] == (["ellora"], {"lat": 20.02, "lon": 75.18})                 # the same place, named differently
+
+
+def test_each_beats_search_leaves_its_counts_in_the_run_log(monkeypatch, tmp_path, caplog):
+    # Production 2026-10-24 (Antikythera): "Beat images: 0 candidates for 5 beats" and no way to tell a
+    # licence-filtered search from a broken one. Now every beat says how many results, usable, relevant,
+    # verified and kept.
+    import logging
+    monkeypatch.setattr("src.free_llm.ready", lambda: True)
+    monkeypatch.setattr(beat_images, "plan_queries", lambda b, t: BeatQueries(items=[
+        BeatQuery(beat=1, query="Antikythera mechanism fragment", keywords=["antikythera"])]))
+    monkeypatch.setattr(beat_images.commons, "search", lambda q, limit, max_wait: ["r1", "r2", "r3"])
+    monkeypatch.setattr(beat_images.commons, "candidates", lambda pages, kw, sa: iter([]))   # all share-alike, excluded
+    monkeypatch.setattr(beat_images.config, "BEAT_IMAGES_ALLOW_SHARE_ALIKE", False)
+    with caplog.at_level(logging.DEBUG, logger="src.beat_images"):
+        paths, credits = beat_images.source(BEATS, TOPIC, tmp_path)
+    assert paths == [] and credits == []
+    line = next(r.getMessage() for r in caplog.records if r.levelno == logging.DEBUG and "Commons results" in r.getMessage())
+    assert line == "Beat 1 'Antikythera mechanism fragment': 3 Commons results, 0 usable (share-alike excluded), 0 relevant, 0 verified, 0 kept."

@@ -130,14 +130,17 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
                 near = None
             # Short wait cap: a rate-limited Commons shouldn't stall a production run. Results are
             # ranked by what their metadata says they show (commons.relevance), best first.
-            ranked = commons.best_first(list(commons.candidates(commons.search(item.query, limit=30, max_wait=60),
-                                                                keywords, config.BEAT_IMAGES_ALLOW_SHARE_ALIKE)),
+            results = list(commons.search(item.query, limit=30, max_wait=60))
+            ranked = commons.best_first(list(commons.candidates(results, keywords, config.BEAT_IMAGES_ALLOW_SHARE_ALIKE)),
                                         keywords, near)
+            relevant, verified = 0, 0
             for cand in ranked:
                 if cand["title"] in seen or cand["relevance"] <= 0:
                     continue
+                relevant += 1
                 if not verify_visual_relevance(cand["title"], item.query):
                     continue
+                verified += 1
                 dest = work_dir / f"{prefix}{item.beat:02d}_{found + 1}.jpg"
                 commons.download_jpeg(cand["download_url"], dest, max_wait=wait)
                 seen.add(cand["title"])
@@ -147,6 +150,11 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
                 found += 1
                 if found >= PER_BEAT:
                     break
+            # The run's record of why a beat got pictures or none: "0 candidates for 5 beats" on production
+            # (2026-10-24, Antikythera) could not be told apart from a broken search without these counts.
+            log.debug("Beat %d %r: %d Commons results, %d usable (share-alike %s), %d relevant, %d verified, %d kept.",
+                      item.beat, item.query[:80], len(results), len(ranked),
+                      "allowed" if config.BEAT_IMAGES_ALLOW_SHARE_ALIKE else "excluded", relevant, verified, found)
         except (requests.RequestException, OSError, Image.DecompressionBombError) as e:
             log.warning("Beat %d image search failed (%s); continuing.", item.beat, e)
     if credits:  # the same record a topic folder keeps, so the scene planner can caption these too

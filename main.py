@@ -1920,19 +1920,21 @@ def clear_busy_leases(db: PipelineDatabase) -> None:
 RELEASE_RECEIPT_ENV = "RELIC_RELEASE_RECEIPT"  # set by the production launcher; written by the release deployer
 
 
-def announce_release(db: PipelineDatabase, bot) -> None:
-    """At daemon startup: tells the operator once what the release deployer did (a new release is
-    running, or one failed its checks and was rolled back), from the deployer's receipt."""
+def announce_release(db: PipelineDatabase, bot, startup: bool = False) -> Optional[str]:
+    """Tells the operator once what the release deployer did, from its receipt. At startup after a release
+    was installed or rolled back (the daemon has just restarted on it), the chat is cleared the way /clear
+    does (open reviews with their media and the live progress card stay) and the notice is returned for
+    the top of the one dashboard panel; otherwise (a release refused while running) it is sent as a notice."""
     path = os.environ.get(RELEASE_RECEIPT_ENV)
     if not path:
-        return
+        return None
     try:
         receipt = json.loads(Path(path).read_text(encoding="utf-8-sig"))
     except (OSError, ValueError):
-        return
+        return None
     key = f"{receipt.get('tag')}:{receipt.get('outcome')}:{receipt.get('at')}"
     if db.get_setting("release_announced") == key:
-        return
+        return None
     tag, running = html.escape(str(receipt.get("tag"))), html.escape(str(receipt.get("running") or ""))
     if receipt.get("outcome") == "deployed":
         text = (f"🚀 <b>Release {tag} is running</b> (was {html.escape(str(receipt.get('previous') or 'unknown'))}). "
@@ -1942,9 +1944,16 @@ def announce_release(db: PipelineDatabase, bot) -> None:
         text = (f"⚠️ <b>Release {tag} was not installed</b>: {html.escape(str(receipt.get('reason') or 'its checks failed'))[:400]}. "
                 f"Production {where} {running}; the release won't be retried.")
     else:
-        return
-    bot.notify(text)
+        return None
     db.set_setting("release_announced", key)
+    if startup and receipt.get("outcome") in ("deployed", "rolled_back") and hasattr(bot, "clear_chat"):
+        try:
+            bot.clear_chat()
+        except Exception as e:  # a clear never stops the daemon starting
+            log.warning("Could not clear the chat after the release: %s", e)
+        return text
+    bot.notify(text)
+    return None
 
 
 INTERRUPTED_GRACE_SECONDS = 30 * 60  # a run this young may still be starting (no progress record yet)
@@ -2312,6 +2321,17 @@ def main(argv=None) -> int:
                         log.error("Production worker PID %d failed with code %d:\n%s", proc.pid, rc, stdout or stderr)
                     else:
                         log.info("Production worker PID %d completed successfully.", proc.pid)
+                    # As the daemon does: a worker that ended without finishing its run (a crash) leaves it
+                    # "producing" with a live progress card until the next restart otherwise.
+                    try:
+                        cleared = reconcile_interrupted_runs(coordinator.db, coordinator.topic_engine)
+                    except Exception as e:
+                        log.warning("Could not check for an interrupted run: %s", e)
+                        cleared = []
+                    if cleared:
+                        bot.notify(f"💥 <b>The run's worker process ended without finishing</b> (exit {rc}"
+                                   + (f" / 0x{rc & 0xFFFFFFFF:08X}" if isinstance(rc, int) and rc else "")
+                                   + "). Nothing was posted; the run was cleared and its topic is back in the queue.")
 
             from src.config import BASE_DIR
             # With posting slots on, the worker books the approved Reel like the daemon does.
@@ -2387,10 +2407,11 @@ def main(argv=None) -> int:
         coordinator = PipelineCoordinator(schedule_posts=True)
         bot = coordinator.telegram_bot
         _report_interrupted(coordinator, bot)  # nothing runs in this process yet: any "producing" run is orphaned
+        release_note = None  # after an installed release: the notice that opens the one dashboard panel
         try:  # leases left by the previous process; the schedule the release deployer keeps clear of
             clear_busy_leases(coordinator.db)
             coordinator.db.set_setting("daemon_schedule", json.dumps({"time": args.time, "timezone": TIMEZONE}))
-            announce_release(coordinator.db, bot)
+            release_note = announce_release(coordinator.db, bot, startup=True)
         except Exception as e:
             log.warning("Could not record the daemon's release state: %s", e)
         bot.register_commands()
@@ -2696,6 +2717,8 @@ def main(argv=None) -> int:
             card_text, card_buttons = startup_dashboard_card(coordinator.db, mode="daemon", time_str=args.time, timezone_str=TIMEZONE, assets_dir=config.ASSETS_DIR)
             if args.dry_run:
                 card_text = card_text.replace("\n\n", "\n\n🧪 <b>Validation mode</b>: runs, reviews and approvals work, but nothing is posted.\n\n", 1)
+            if release_note:  # the chat was just cleared: the release leads the panel (one panel, not two)
+                card_text = card_text.replace("\n\n", f"\n\n{release_note}\n\n", 1)
             scheduler.add_job(lambda: bot.show_dashboard(card_text, card_buttons))
             scheduler.start()
         except (KeyboardInterrupt, SystemExit):

@@ -548,14 +548,40 @@ class TelegramApprovalBot:
             return str(opened["run"])
         return None
 
-    def _protected_messages(self):
-        """Messages that are never removed to keep one panel: review cards awaiting a decision and the
-        live progress card."""
-        keep = {a.get("telegram_message_id") for a in self.db.list_pending_approvals()} if hasattr(self.db, "list_pending_approvals") else set()
-        progress = self.db.get_active_progress() if hasattr(self.db, "get_active_progress") else None
-        keep.add((progress or {}).get("message_id"))
-        keep.discard(None)
+    def clear_protected(self) -> Set[int]:
+        """Messages a clear never removes: the live progress card, and every open review's card with its
+        albums (cover, scene strip, video, Stories and carousel are what Approve publishes; /clear kept
+        only the card and deleted its media: 2026-10-23 audit)."""
+        from .telegram_state import get
+        keep: Set[int] = set()
+        progress = self.db.get_active_progress() if hasattr(self.db, 'get_active_progress') else None
+        if (progress or {}).get('message_id'):
+            keep.add(progress['message_id'])
+        for approval in (self.db.list_pending_approvals() if hasattr(self.db, 'list_pending_approvals') else []):
+            if approval.get('telegram_message_id'):
+                keep.add(approval['telegram_message_id'])
+            keep.update(m for m in (get(self.db, 'review-messages', approval['run_id']) or []) if isinstance(m, int))
         return keep
+
+    def clear_chat(self, below: Optional[int] = None, depth: int = 500) -> int:
+        """Removes the bot's messages (and, given a message id, the `depth` messages below it), keeping
+        what clear_protected names. /clear and an installed release use this one routine."""
+        keep = self.clear_protected()
+        candidates: List[int] = []
+        if hasattr(self.db, 'list_known_message_ids'):
+            candidates = [m for m in self.db.list_known_message_ids() if m not in keep]
+        if below:
+            for mid in range(below - 1, max(1, below - depth) - 1, -1):
+                if mid not in keep and mid not in candidates:
+                    candidates.append(mid)
+        if candidates:
+            self.delete_messages(candidates)
+        self.cleanup_transient_messages()
+        return len(candidates)
+
+    def _protected_messages(self):
+        """Messages that are never removed to keep one panel: the same list a clear keeps."""
+        return self.clear_protected()
 
     def update_navigation_target(self, target, text, buttons):
         if target:
@@ -2406,27 +2432,7 @@ class TelegramApprovalBot:
                 depth = min(1000, max(50, int(arg_clean)))
             elif arg_clean in ('all', 'full', 'max', 'entire'):
                 depth = 1000
-            active_prog = self.db.get_active_progress() if hasattr(self.db, 'get_active_progress') else None
-            active_mid = (active_prog or {}).get('message_id')
-            keep = {a.get('telegram_message_id') for a in (self.db.list_pending_approvals() if hasattr(self.db, 'list_pending_approvals') else [])}
-            keep.discard(None)
-            candidate_ids: List[int] = []
-            if hasattr(self.db, 'list_known_message_ids'):
-                for kid in self.db.list_known_message_ids():
-                    if active_mid and kid == active_mid or kid in keep:
-                        continue
-                    candidate_ids.append(kid)
-            if cmd_mid:
-                start_id = cmd_mid - 1
-                min_id = max(1, cmd_mid - depth)
-                for mid in range(start_id, min_id - 1, -1):
-                    if active_mid and mid == active_mid or mid in keep:
-                        continue
-                    if mid not in candidate_ids:
-                        candidate_ids.append(mid)
-            if candidate_ids:
-                self.delete_messages(candidate_ids)
-            self.cleanup_transient_messages()
+            self.clear_chat(below=cmd_mid, depth=depth)
             from .control import dashboard_text_and_buttons
             from .config import ASSETS_DIR
             next_fn = getattr(self, 'next_run_func', lambda: None)

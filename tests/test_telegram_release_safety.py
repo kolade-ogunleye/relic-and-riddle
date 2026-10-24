@@ -482,3 +482,42 @@ def test_a_regeneration_says_so_on_its_progress_and_review_cards(db, monkeypatch
     assert "Regeneration · your feedback: <b>Music / sound: quieter bed</b>" in bot.progress_mode("run_n")
     text = bot.format_card_text({"title": "T", "_regeneration_note": "Music / sound"}, "run_n")
     assert "Regenerated · your feedback: Music / sound" in text
+
+
+def test_clear_keeps_an_open_reviews_media_not_only_its_card(db, tmp_path, monkeypatch):
+    # /clear kept the review card and deleted its cover, video, Stories and carousel albums.
+    ready_review(db, tmp_path)                            # card 202
+    put(db, "review-messages", "review", [190, 191, 192, 202])
+    put(db, "outbound", "555:150", 150)
+    put(db, "outbound", "555:190", 190)
+    bot, _ = offline_bot(db, monkeypatch)
+    deleted = []
+    monkeypatch.setattr(bot, "delete_messages", lambda ids: deleted.extend(ids) or len(ids))
+    monkeypatch.setattr(bot, "cleanup_transient_messages", lambda: None)
+    bot.clear_chat(below=210, depth=30)
+    assert 150 in deleted
+    assert not {190, 191, 192, 202} & set(deleted)
+
+
+def test_after_an_installed_release_the_chat_is_cleared_and_the_notice_leads_the_dashboard(db, monkeypatch, tmp_path):
+    import main
+    receipt = tmp_path / "release.json"
+    receipt.write_text(json.dumps({"tag": "v1.0.0-rc14", "outcome": "deployed", "previous": "v1.0.0-rc13",
+                                   "running": "v1.0.0-rc14", "at": "2026-10-23T19:00:00Z"}), encoding="utf-8")
+    monkeypatch.setenv(main.RELEASE_RECEIPT_ENV, str(receipt))
+    cleared, notes = [], []
+    bot = SimpleNamespace(clear_chat=lambda: cleared.append(1), notify=lambda *a, **k: notes.append(a))
+    note = main.announce_release(db, bot, startup=True)
+    assert cleared == [1] and notes == [] and "v1.0.0-rc14" in note   # one panel: the note goes on the dashboard
+    assert main.announce_release(db, bot, startup=True) is None        # once
+
+
+def test_a_release_refused_while_running_is_a_notice_without_a_clear(db, monkeypatch, tmp_path):
+    import main
+    receipt = tmp_path / "release.json"
+    receipt.write_text(json.dumps({"tag": "v1.0.0-rc15", "outcome": "rejected", "running": "v1.0.0-rc14",
+                                   "reason": "unsigned", "at": "2026-10-23T19:05:00Z"}), encoding="utf-8")
+    monkeypatch.setenv(main.RELEASE_RECEIPT_ENV, str(receipt))
+    cleared, notes = [], []
+    bot = SimpleNamespace(clear_chat=lambda: cleared.append(1), notify=lambda *a, **k: notes.append(a))
+    assert main.announce_release(db, bot) is None and cleared == [] and len(notes) == 1

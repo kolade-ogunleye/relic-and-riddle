@@ -436,7 +436,6 @@ class TelegramApprovalBot:
         self._panel_lock = threading.RLock()
         self._answered = {}  # callback ids already answered (insertion-ordered, bounded)
         self._last_opened = 0.0  # monotonic time of the last /start or /dashboard panel
-        self._awaiting = None  # (command, deadline): a bare /ask or /issue takes the operator's next message
         self._dispatch_slots = threading.BoundedSemaphore(16)
         self._navigation_pool = None
         self._last_maintenance = 0
@@ -531,6 +530,22 @@ class TelegramApprovalBot:
         if not self.delete_message(current):
             self._strip_buttons(current)
         return True
+
+    @property
+    def _awaiting(self):
+        """(command, deadline): a bare /ask or /issue takes the operator's next message. Kept in the
+        database with a wall-clock deadline, so a restart in between no longer drops it silently
+        (2026-10-23 audit)."""
+        try:
+            value = json.loads(self.db.get_setting("awaiting_reply") or "null") if hasattr(self.db, "get_setting") else None
+        except ValueError:
+            return None
+        return tuple(value) if isinstance(value, list) and len(value) == 2 else None
+
+    @_awaiting.setter
+    def _awaiting(self, value):
+        if hasattr(self.db, "set_setting"):
+            self.db.set_setting("awaiting_reply", json.dumps(list(value)) if value else "")
 
     _EDIT_START = re.compile(r"^\s*(?:title|first comment|carousel caption|caption)[ \t]*:", re.IGNORECASE)
 
@@ -2225,7 +2240,7 @@ class TelegramApprovalBot:
             return
         photo_item = (msg.get('photo') or [None])[-1] or msg.get('document')
         photo_caption = (msg.get('caption') or '').strip()
-        issue_waiting = bool(self._awaiting and self._awaiting[0] == 'issue' and self._awaiting[1] > time.monotonic())
+        issue_waiting = bool(self._awaiting and self._awaiting[0] == 'issue' and self._awaiting[1] > time.time())
         if photo_item and command_handler and not issue_waiting and self._authorized(msg.get('from', {}).get('id', ''), msg.get('chat', {}).get('id', '')):
             caption = photo_caption
             word = caption.split(' ', 1)[0].split('@')[0].lower()
@@ -2292,7 +2307,7 @@ class TelegramApprovalBot:
         photos = msg.get('photo')
         media_item = (photos[-1] if photos else None) or msg.get('document') or msg.get('video') or msg.get('audio') or msg.get('voice')
         caption = (msg.get('caption') or '').strip()
-        waiting_issue = bool(media_item and self._awaiting and self._awaiting[0] == 'issue' and self._awaiting[1] > time.monotonic()
+        waiting_issue = bool(media_item and self._awaiting and self._awaiting[0] == 'issue' and self._awaiting[1] > time.time()
                              and not caption.startswith('/'))
         if waiting_issue:
             self._awaiting = None
@@ -2338,7 +2353,7 @@ class TelegramApprovalBot:
         if is_auth and not text.startswith('/') and not reply_to:
             with self._panel_lock:
                 waiting, self._awaiting = self._awaiting, None
-            if waiting and waiting[1] > time.monotonic():
+            if waiting and waiting[1] > time.time():
                 text = f'/{waiting[0]} {text}'
         if text.startswith('/'):
             command, _, args = text[1:].partition(' ')
@@ -2346,7 +2361,7 @@ class TelegramApprovalBot:
             if command in {'ask', 'issue'} and not args.strip() and is_auth:
                 # Help can only send the bare command: the next message is the question or report.
                 with self._panel_lock:
-                    self._awaiting = (command, time.monotonic() + 600)
+                    self._awaiting = (command, time.time() + 600)
             if command == 'issue' and args.strip() and reply_to:
                 # A report made in reply to a card carries that card (and its run) as evidence.
                 from .telegram_state import get

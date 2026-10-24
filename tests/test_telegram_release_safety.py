@@ -521,3 +521,18 @@ def test_a_release_refused_while_running_is_a_notice_without_a_clear(db, monkeyp
     cleared, notes = [], []
     bot = SimpleNamespace(clear_chat=lambda: cleared.append(1), notify=lambda *a, **k: notes.append(a))
     assert main.announce_release(db, bot) is None and cleared == [] and len(notes) == 1
+
+
+def test_the_release_notice_names_jobs_its_restart_interrupted(db, monkeypatch, tmp_path):
+    import main
+    from datetime import datetime, timezone
+    receipt = tmp_path / "release.json"
+    receipt.write_text(json.dumps({"tag": "v1.0.0-rc14", "outcome": "deployed", "previous": "v1.0.0-rc13",
+                                   "running": "v1.0.0-rc14", "at": "2026-10-23T19:30:00Z"}), encoding="utf-8")
+    monkeypatch.setenv(main.RELEASE_RECEIPT_ENV, str(receipt))
+    db.set_setting("operator_job:abc", json.dumps({"id": "abc", "title": "Researching topic ideas", "state": "running",
+                                                   "resource": "topic-research", "owner_pid": 999999, "owner_identity": "gone",
+                                                   "updated_at": datetime.now(timezone.utc).isoformat()}))
+    bot = SimpleNamespace(clear_chat=lambda: None, notify=lambda *a, **k: None)
+    note = main.announce_release(db, bot, startup=True)
+    assert "Interrupted by the restart: Researching topic ideas" in note

@@ -329,6 +329,7 @@ def test_the_run_command_regenerates_with_the_earlier_runs_feedback(monkeypatch)
     class FakeCoordinator:
         def __init__(self, **kw):
             self.telegram_bot = SimpleNamespace()
+            self.db = SimpleNamespace(get_setting=lambda key: None)
 
         def _await_reason(self, run_id, wait_seconds=120):
             seen["from"] = run_id
@@ -374,3 +375,40 @@ def test_both_decision_paths_settle_a_timeout_the_same_way(db):
     c._alert = lambda *a, **k: alerts.append(a)
     c._settle_decision("run_r", db.list_all_topics()[0]["id"], "timeout")
     assert db.get_run("run_r")["status"] == "timeout" and statuses == ["failed"] and alerts == []
+
+
+def test_the_regeneration_limit_holds_across_restarts(db, monkeypatch):
+    # A regeneration started by a resumed wait always counted as the first, so the limit never applied.
+    notes, made = [], []
+
+    class FakeCoordinator:
+        def __init__(self, **kw):
+            self.db = db
+            self.telegram_bot = SimpleNamespace(notify=lambda text, *a, **k: notes.append(text))
+
+        def _await_reason(self, run_id, wait_seconds=120):
+            return {}
+
+        def run_cycle(self, *a, **k):
+            made.append(k.get("_regenerations"))
+            return {"status": "simulated"}
+    monkeypatch.setattr(main, "PipelineCoordinator", FakeCoordinator)
+    db.create_run("run_second", db.list_all_topics()[0]["id"])
+    db.set_setting("regenerations:run_second", str(main.MAX_REGENERATIONS))
+    assert main.main(["run", "--dry-run", "--topic-id", "t", "--regenerate-from", "run_second"]) == 0
+    assert made == [] and "limit reached" in notes[0]
+    db.set_setting("regenerations:run_second", "1")
+    main.main(["run", "--dry-run", "--topic-id", "t", "--regenerate-from", "run_second"])
+    assert made == [2]
+
+
+def test_a_bare_ask_survives_a_restart(db):
+    # /ask without text waits for the next message; that wait lived only in memory.
+    import time as clock
+    from src.telegram_bot import TelegramApprovalBot
+    first = TelegramApprovalBot(db=db, bot_token="", chat_id="", approver_ids=set())
+    first._awaiting = ("ask", clock.time() + 600)
+    restarted = TelegramApprovalBot(db=db, bot_token="", chat_id="", approver_ids=set())
+    assert restarted._awaiting[0] == "ask"
+    restarted._awaiting = None
+    assert TelegramApprovalBot(db=db, bot_token="", chat_id="", approver_ids=set())._awaiting is None

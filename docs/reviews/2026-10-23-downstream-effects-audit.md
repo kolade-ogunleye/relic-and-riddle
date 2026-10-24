@@ -51,18 +51,20 @@ with the same routine as `/clear` and opens one dashboard panel led by the relea
 - Edit: only pending reviews; the whole public copy is re-checked; credits and hashtags kept.
 - Interrupted runs: reconciled at startup in both modes and after a daemon or bot worker crash.
 
+## Closed after the audit
+
+- `/ask` and `/issue` without text waited in memory for the next message; the wait is now kept in
+  the database with a wall-clock deadline and survives a restart.
+- A regeneration started by a resumed wait counted as the first, so the limit of 2 did not hold
+  across restarts; each run now records its place in the chain and the limit is enforced.
+- Jobs interrupted by a release restart are named in the release notice.
+
 ## Remaining risk (recorded, not changed)
 
-- `/ask` and `/issue` without text wait in memory for the next message; a restart in between drops
-  that wait silently (the operator sends the command again).
-- A regeneration started by a resumed wait counts as the first regeneration, so the limit of 2 is not
-  enforced across a chain of regenerations through restarts (each one is an operator decision).
 - After a review timeout the topic is marked failed and may be produced again by a later run while
-  the kept render still waits for Resend.
+  the kept render still waits for Resend (a selection-policy decision for the operator).
 - A reason card is not protected by `/clear`; after a clear, details are given by Regenerating again
   or through `/issue`.
-- Operator jobs interrupted by a release restart (topic research, image fetches) show as interrupted
-  in Jobs but are not announced in the release notice.
 
 ## Standing rule (from this audit)
 

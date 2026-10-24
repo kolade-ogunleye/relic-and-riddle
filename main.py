@@ -241,6 +241,8 @@ class PipelineCoordinator:
             self.db.set_setting("run_mode:" + run_id, "dry_run" if dry_run else "live")
             self.topic_engine.record_status(tid, "in_production", run_id=run_id)
         log.info("Run %s: topic '%s'", run_id, topic["title"])
+        if _regenerations:  # its place in a chain of regenerations (read by run --regenerate-from)
+            self.db.set_setting("regenerations:" + run_id, str(_regenerations))
 
         try:
             result = self._produce_and_publish(topic, run_id, run_dir, auto_approve, dry_run, previous_status)
@@ -1946,6 +1948,16 @@ def announce_release(db: PipelineDatabase, bot, startup: bool = False) -> Option
     else:
         return None
     db.set_setting("release_announced", key)
+    if startup:  # the restart that installed it ended any job that was running: say which, not silently
+        try:
+            from src.operator_jobs import Jobs
+            cutoff = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
+            lost = [j["title"] for j in Jobs(db).recent() if j["state"] == "interrupted" and str(j.get("updated_at", "")) >= cutoff]
+            if lost:
+                text += ("\n⏹ Interrupted by the restart: " + ", ".join(html.escape(t) for t in lost)
+                         + ". Start them again from their screens.")
+        except Exception as e:
+            log.debug("Could not list interrupted jobs: %s", e)
     if startup and receipt.get("outcome") in ("deployed", "rolled_back") and hasattr(bot, "clear_chat"):
         try:
             bot.clear_chat()
@@ -2197,7 +2209,15 @@ def main(argv=None) -> int:
             previous = getattr(args, "regenerate_from", None)
             if previous:  # a Regenerate decided outside a running cycle (Resend, or after a restart)
                 coordinator._operator_feedback = coordinator._await_reason(previous, wait_seconds=10)
-                regenerations = 1
+                # The chain's count lives with the runs, so the limit holds across restarts (each resumed
+                # regeneration counted as the first: 2026-10-23 audit).
+                regenerations = int(coordinator.db.get_setting("regenerations:" + previous) or 0) + 1
+                if regenerations > MAX_REGENERATIONS:
+                    coordinator.telegram_bot.notify(
+                        f"🔁 <b>Regeneration limit reached</b> ({MAX_REGENERATIONS}) for {html.escape(coordinator.db.run_label(previous))}. "
+                        "Nothing new was made; Render the topic again from the queue for a fresh start.")
+                    _write_result(getattr(args, "result_file", None), {"status": "regeneration_limit"})
+                    return 0
             res = coordinator.run_cycle(args.topic_id, args.auto_approve, args.dry_run, require_live=getattr(args, "require_live", False),
                                         content_format=args.format, _regenerations=regenerations, run_id=getattr(args, "run_id", None))
         except QueueEmpty:

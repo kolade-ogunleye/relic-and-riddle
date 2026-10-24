@@ -186,16 +186,17 @@ def generate_elevenlabs(mood: str, seconds: float, out_path: Path) -> Path:
 
 
 def music_for(payload: Dict[str, Any], seconds: float, work_dir: Path, voice_quota: Optional[dict],
-              is_documentary: bool = False) -> Dict[str, Any]:
+              is_documentary: bool = False, exclude: Optional[List[str]] = None) -> Dict[str, Any]:
     """
     Returns {"path": Path|None, "paths": List[Path]|None, "source": "elevenlabs"|"library"|"none", "mood": str, "credit": str, "file": str}.
+    `exclude`: library files not to use (a Regenerate for "Music / sound" must not get the same track).
     """
     mood = choose_mood(payload)
 
     def library():
         can_eleven = bool(is_configured(ELEVENLABS_API_KEY) and elevenlabs_paid(voice_quota))
         if is_documentary and not can_eleven:
-            movements = pick_documentary_movements(mood, num_movements=3)
+            movements = pick_documentary_movements(mood, num_movements=3, exclude=exclude)
             if movements:
                 paths = [MUSIC_DIR / t["file"] for t in movements]
                 credits = [credit_line(t) for t in movements if credit_line(t)]
@@ -206,9 +207,9 @@ def music_for(payload: Dict[str, Any], seconds: float, work_dir: Path, voice_quo
                 return {"path": paths[0], "paths": paths, "source": "library", "mood": mood,
                         "credit": " \n".join(credits), "file": movements[0]["file"],
                         "tracks": [{**t, "path": str(MUSIC_DIR / t["file"])} for t in movements]}
-        track = pick_library_track(mood, seconds)
+        track = pick_library_track(mood, seconds, exclude=exclude)
         if not track and not can_eleven:
-            track = pick_library_track(mood, 0)
+            track = pick_library_track(mood, 0, exclude=exclude)
         if track:
             log.info("Music: library track '%s' (%s).", track["title"], track["mood"])
             mark_used(track["file"])

@@ -340,3 +340,37 @@ def test_the_run_command_regenerates_with_the_earlier_runs_feedback(monkeypatch)
     monkeypatch.setattr(main, "PipelineCoordinator", FakeCoordinator)
     main.main(["run", "--dry-run", "--topic-id", "amber_room_heist", "--regenerate-from", "run_old"])
     assert seen == {"from": "run_old", "topic": "amber_room_heist", "regenerations": 1, "feedback": {"reason": "sound"}}
+
+
+def test_the_sweep_resumes_only_decided_reviews_nothing_waits_on(db):
+    _awaiting_review(db, "run_open")                                   # undecided: its card waits for you
+    _awaiting_review(db, "run_cli", decision="rejected")              # decided from the command line
+    _awaiting_review(db, "run_mine", decision="approved")             # this process already waits on it
+    _awaiting_review(db, "run_late", decision="timeout")              # timed out: Resend reopens it
+    followed = []
+    main.resume_reviews(SimpleNamespace(db=db), lambda run_id, resend: followed.append(run_id),
+                        waiting={"run_mine"}, decided_only=True)
+    assert followed == ["run_cli"]
+
+
+def test_the_daemon_sweeps_decided_reviews_but_not_during_a_production_run(daemon_env, monkeypatch):
+    swept = []
+    monkeypatch.setattr(main, "resume_reviews", lambda coordinator, follow, waiting=None, decided_only=False: swept.append(decided_only) or [])
+    main.main(["daemon", "--time", "07:00", "--dry-run"])
+    sweep = [f for f, t, k in FakeScheduler.instances[-1].jobs if t == "interval" and k.get("minutes") == 2]
+    assert len(sweep) == 1
+    swept.clear()
+    sweep[0]()
+    assert swept == [True]
+
+
+def test_both_decision_paths_settle_a_timeout_the_same_way(db):
+    # One failed the topic, the other left it in production, and one alerted a second time.
+    _awaiting_review(db, decision="timeout")
+    statuses, alerts = [], []
+    c = main.PipelineCoordinator.__new__(main.PipelineCoordinator)
+    c.db = db
+    c.topic_engine = SimpleNamespace(record_status=lambda tid, status, run_id=None: statuses.append(status))
+    c._alert = lambda *a, **k: alerts.append(a)
+    c._settle_decision("run_r", db.list_all_topics()[0]["id"], "timeout")
+    assert db.get_run("run_r")["status"] == "timeout" and statuses == ["failed"] and alerts == []

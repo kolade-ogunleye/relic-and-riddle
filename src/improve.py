@@ -45,6 +45,13 @@ REASONS = {"facts": "Facts or wording", "hook": "Hook / story", "pacing": "Pacin
            "voice": "Voice", "pictures": "Pictures", "sound": "Music / sound", "cover": "Cover / text",
            "other": "Other"}
 SCRIPT_REASONS = ("facts", "hook", "pacing", "cover")  # a regenerate for these revises the script
+# What a regeneration does with each reason, said as it is (the card promised "with your feedback" for
+# reasons no step acted on: 2026-10-23 audit).
+REGENERATE_EFFECT = {**{r: "the script is revised for it" for r in SCRIPT_REASONS},
+                     "pictures": "the pictures are re-planned for it",
+                     "sound": "a different music track is used",
+                     "voice": "it is logged for improvement; the voice itself is not changed automatically",
+                     "other": "it is logged for improvement; the new version is made fresh"}
 
 # Problem text -> stable class. First match wins; unknown text falls back to "<area>.other".
 CLASS_PATTERNS: List[Tuple[str, str]] = [

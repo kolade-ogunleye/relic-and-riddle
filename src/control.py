@@ -1697,8 +1697,9 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             improve.record_reason(db, run_id, reason, appr.get("decision", ""))
             # The reason chips sit on the decided review card itself: this text replaces that card, so it
             # keeps what was decided.
-            decided = ("🔄 <b>Regeneration requested.</b> A new version is being made with this feedback; its "
-                       "review replaces this card." if appr.get("decision") == "regenerate"
+            decided = (f"🔄 <b>Regeneration requested.</b> In the new version, "
+                       f"{improve.REGENERATE_EFFECT.get(reason, 'it is logged for improvement')}. Its review replaces this card."
+                       if appr.get("decision") == "regenerate"
                        else "❌ <b>Rejected.</b> Nothing was posted." if appr.get("decision") == "rejected" else "")
             return (f"🎬 <b>{html.escape(db.run_label(run_id))}</b>\n\n" + (f"{decided}\n\n" if decided else "")
                     + f"✅ Reason: <b>{html.escape(improve.REASONS.get(reason, reason))}</b>. "
@@ -1709,7 +1710,10 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             run_id = db.resolve_run(key)
             prev = improve.operator_feedback(db, run_id) or {}
             improve.record_reason(db, run_id, prev.get("reason", "other"), prev.get("decision", ""), text.strip())
-            return "📝 Thanks — noted" + (" and passed to the new version." if prev.get("decision") == "regenerate" else ".")
+            # Said as it is: the new version reads these words at its script and picture steps, so only
+            # the steps it has not reached yet can use them.
+            return "📝 Thanks, noted" + (". Steps of the new version that haven't run yet use it."
+                                         if prev.get("decision") == "regenerate" else ".")
         if command == "run":
             return trigger_run()
         return f"Unknown command /{html.escape(command)}. Send /help."

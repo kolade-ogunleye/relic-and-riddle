@@ -64,13 +64,12 @@ auto-linked as a phone number, a stale "Installing" notice and an 89-minute medi
 real": a finished dry run posted one video at a time while the daemon stays in dry-run. The test
 suite runs on 4 workers (85 s).
 
-## Still open
+## Where each remaining item stands
 
-- Writer-model trial (5 topics, Gemini 3.8 Flash vs Claude): blocked until the Anthropic Console
-  limit is raised (reached until 2026-11-01); the writer's rounds remain the largest cost in time.
-- Minor findings: block, or show-and-repair (operator's decision).
-- The deployer's once-per-release test and 4-worker suite reach production only with the next
-  elevated deployer install (`deployment/windows/Install-ContentReleaseDeployer.ps1`).
-- More picture candidates per beat; prefer ≥1080-px photos when sourcing; cache upscaled,
-  privacy-checked images across runs of the same topic.
-- Split `main.py`'s daemon wiring as it is touched.
+| Item | State |
+|---|---|
+| Minor findings: block or show-and-repair | A setting: `MINOR_FINDINGS_BLOCK_RELEASE` (default true, unchanged behaviour; false shows minor-only findings on the card instead of blocking). The operator picks. |
+| Picture candidates and sharpness | Done: three candidates per beat; ≥1080-px files rank higher; upscaling and privacy checks were already cached across runs. |
+| Writer-model trial | Blocked outside the code: the Anthropic Console limit is reached until 2026-11-01. Raise it in the Console (not `.env`); the app's own caps stay. |
+| Deployer: once-per-release test, 4-worker suite | In the repository (rc23, rc26). Reaches production only through the elevated install, run by the operator on the VM with the pipeline stopped through its stop file (`Install-ContentReleaseDeployer.ps1 -WhatIf`, then without). |
+| Split `main.py`'s daemon wiring | Deferred by design: a refactor of working code with no defect behind it; done piecemeal as that code is touched. |

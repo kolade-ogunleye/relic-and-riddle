@@ -353,6 +353,23 @@ PROGRESS_STEPS = [
 ]
 
 
+# Each step's usual share of a run, measured on 8 complete runs (2026-10-24): the script stage and the
+# render dominate, the checks and the review package take a minute. Used until this install has
+# recorded its own step lengths; a flat 20% a step put the bar at 60% with most of the work still to do.
+STEP_SHARES = [0.33, 0.19, 0.44, 0.02, 0.02]
+
+
+def step_seconds(db, total: int, typical: Optional[float]) -> Optional[List[float]]:
+    """How long each step usually takes: this install's recorded medians, else the measured shares of
+    its usual run length (None when neither is known)."""
+    recorded = db.typical_step_seconds(total) if hasattr(db, "typical_step_seconds") else None
+    if recorded:
+        return recorded
+    if typical and total == len(STEP_SHARES):
+        return [share * typical for share in STEP_SHARES]
+    return None
+
+
 def progress_figures(step: int, total: int, elapsed: float, typical: Optional[float],
                      step_elapsed: Optional[float] = None, typical_steps: Optional[List[float]] = None) -> tuple:
     """Bar, percent and time left for a run on step `step` of `total` (1-based, the step in progress).
@@ -394,8 +411,8 @@ def progress_estimate(db, active: Optional[dict], step: int, total: int) -> tupl
     start = float(active.get("start_time") or now)
     started = (active.get("step_started") or {}).get(str(step))
     step_elapsed = max(0.0, now - float(started)) if started else None
-    typical_steps = db.typical_step_seconds(total) if hasattr(db, "typical_step_seconds") else None
-    bar, pct, eta = progress_figures(step, total, now - start, typical_run_seconds(), step_elapsed, typical_steps)
+    typical = typical_run_seconds()
+    bar, pct, eta = progress_figures(step, total, now - start, typical, step_elapsed, step_seconds(db, total, typical))
     return bar, pct, eta, int(max(0, now - start)), step_elapsed
 
 
@@ -1476,8 +1493,8 @@ class TelegramApprovalBot:
         if not self.is_configured():
             return None
         self._progress_start_time[run_id] = time.time()
-        bar, pct, eta = progress_figures(1, 5, 0, typical_run_seconds(), 0.0,
-                                         self.db.typical_step_seconds(5) if hasattr(self.db, "typical_step_seconds") else None)
+        typical = typical_run_seconds()
+        bar, pct, eta = progress_figures(1, 5, 0, typical, 0.0, step_seconds(self.db, 5, typical))
         text = (
             f"⏳ <b><u>PRODUCTION PROGRESS</u></b>\n\n"
             f"<b>{html.escape(topic_title)}</b> · started {show_time(None, '%H:%M')}\n\n"

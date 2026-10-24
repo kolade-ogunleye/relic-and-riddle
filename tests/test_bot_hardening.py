@@ -182,3 +182,14 @@ def test_progress_cards_name_the_work_each_step_does(db, monkeypatch):
     first = [d["text"] for m, d in calls if m == "sendMessage"][-1]
     assert all(step in first for step in PROGRESS_STEPS) and "Mastering narration" not in first
     assert PROGRESS_STEPS[1].startswith("Music")  # what runs after the voiceover is reported
+
+
+def test_progress_is_weighted_by_how_long_each_step_takes(db):
+    # Measured on 8 runs: the script stage and the render are most of a run, the checks a minute
+    # (a flat 20% a step showed 60% done before the render had started).
+    from src.telegram_bot import STEP_SHARES, progress_figures, step_seconds
+    steps = step_seconds(db, 5, 1200.0)
+    assert steps == [share * 1200.0 for share in STEP_SHARES] and abs(sum(STEP_SHARES) - 1) < 1e-9
+    assert progress_figures(3, 5, 0, 1200.0, 0.0, steps)[1] == 52    # script, music and photos done
+    assert progress_figures(4, 5, 0, 1200.0, 0.0, steps)[1] == 96    # the render done
+    assert step_seconds(db, 5, None) is None                         # nothing known: it says so

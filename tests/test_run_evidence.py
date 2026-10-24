@@ -99,3 +99,14 @@ def test_a_run_opens_and_closes_its_evidence_sink(db, tmp_path, monkeypatch):
     assert main.PipelineCoordinator.resume_run(coordinator, "run_r")["status"] == "simulated"
     assert "inside the run" in (tmp_path / "run_r" / "run.log").read_text(encoding="utf-8")
     assert ops._run_dir_for_evidence is None
+
+
+def test_library_debug_noise_stays_out_of_the_run_log(tmp_path):
+    pil = logging.getLogger("PIL.TiffImagePlugin")
+    before = pil.level
+    sink = RunLog(tmp_path / "run_x").start()
+    pil.debug("tag: Orientation (274)")
+    logging.getLogger("src.stage").debug("ours")
+    sink.stop()
+    text = (tmp_path / "run_x" / "run.log").read_text(encoding="utf-8")
+    assert "ours" in text and "Orientation" not in text and pil.level == before

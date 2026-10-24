@@ -312,6 +312,8 @@ class PreFlightHealthChecker:
 # process at once; following one run from start to end through it meant guessing where the minutes went
 # (2026-10-24: the script stage's rounds could be timed only from gaps between unrelated lines).
 _run_dir_for_evidence: Optional[Path] = None
+NOISY_AT_DEBUG = ("PIL", "matplotlib", "numba", "onnxruntime", "charset_normalizer", "asyncio", "fontTools", "h5py",
+                  "urllib3", "httpx", "httpcore", "requests", "apscheduler", "telegram", "edge_tts", "google")
 
 
 class RunLog:
@@ -341,6 +343,11 @@ class RunLog:
         self._restore.append((root, root.level))
         if root.level > logging.DEBUG:
             root.setLevel(logging.DEBUG)
+        for name in NOISY_AT_DEBUG:  # a library's tag dumps are not the run's story (PIL filled the first run.log)
+            noisy = logging.getLogger(name)
+            self._restore.append((noisy, noisy.level))
+            if noisy.level < logging.INFO:
+                noisy.setLevel(logging.INFO)
         root.addHandler(handler)
         self.handler = handler
         _run_dir_for_evidence = self.run_dir

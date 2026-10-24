@@ -693,7 +693,7 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         # Which run, on one line; the whole reason folded underneath (it was cut off mid-sentence:
         # operator, 2026-10-23).
         reason = short_reason(recent[0].get("error") or "", limit=1200)
-        needs.append(f"❌ <b>Last run failed</b>: {e(db.run_label(recent[0]['run_id']))}"
+        needs.append(f"❌ <b>Last run failed</b>: {e(db.run_label(recent[0]['run_id']))} · <i>Run ID: {e(recent[0]['run_id'])}</i>"
                      + (f"\n<blockquote expandable>{e(reason)}</blockquote>" if reason else ""))
 
     active = db.get_active_progress() if hasattr(db, "get_active_progress") else None

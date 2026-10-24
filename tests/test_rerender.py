@@ -38,6 +38,7 @@ def test_a_late_failure_card_offers_re_render(db, tmp_path, monkeypatch):
     data = [d for m, d in calls if m == "editMessageText"][-1]
     assert f"rerender:{db.run_key(run_id)}" in _buttons(data["reply_markup"])
     assert "reusing its script, voiceover and accepted motion clips" in data["text"]
+    assert "<i>Run ID: run_k</i>" in data["text"]  # a typed /rerender needs it once the review card is gone
 
 
 def test_an_early_failure_card_does_not(db, tmp_path, monkeypatch):

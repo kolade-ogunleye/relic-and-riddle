@@ -1701,7 +1701,10 @@ class TelegramApprovalBot:
             from .control import short_reason
             # The whole reason, folded (as on the dashboard): 600 characters cut a release finding mid-way.
             late = bool(run and run.get("master_video_path"))
-            text = (f"❌ <b>Production failed:</b> {html.escape(self.db.run_label(run_id))}\n\n"
+            # The run id is on the card, as on the review card and receipts: a typed /rerender or /resume
+            # needs it, and the operator had nowhere to read it once the review card was gone (2026-10-24).
+            text = (f"❌ <b>Production failed:</b> {html.escape(self.db.run_label(run_id))}\n"
+                    f"<i>Run ID: {html.escape(run_id)}</i>\n\n"
                     f"<blockquote expandable>{html.escape(short_reason(error, 1200))}</blockquote>\n\n"
                     + ("Nothing was posted. Re-render plans its scenes again and re-checks it, reusing its "
                        "script, voiceover and accepted motion clips.\n\n" if late else

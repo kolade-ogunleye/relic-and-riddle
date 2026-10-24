@@ -97,3 +97,25 @@ def test_run_end_files_the_self_audit_and_long_script_rounds(db, tmp_path, monke
         rows = {r["klass"]: r["detail"] for r in conn.execute("select klass, detail from findings where run_id='run_a'")}
     assert rows["ui.placeholder_name"].endswith("where a name should be")
     assert rows["script.rounds"].startswith("4 drafts: REJECTED: too short | REJECTED by fact checker")
+
+
+def test_a_line_said_twice_on_one_card_is_a_finding(tmp_path, monkeypatch):
+    d = _run_dir(tmp_path, monkeypatch)
+    label = '"The Unsolved 1,070 MPa Steel of Damascus" (Damascus Old City) · 24 Oct 07:00'
+    card_ledger.record("run_a", "cancelled", f"⏹ <b>Render cancelled:</b> {label}\n<code>[{label}]</code>\n\nStopped.", None, 5)
+    found = dict(card_ledger.audit(d))
+    assert found["ui.repeated_line"].startswith("A cancelled card says '\"The Unsolved 1,070 MPa Steel of Damascus\"")
+
+
+def test_the_cancelled_card_names_the_run_once(db, tmp_path, monkeypatch):
+    d = _run_dir(tmp_path, monkeypatch, "run_c")
+    db.create_run("run_c", db.list_all_topics()[0]["id"])
+    db.update_run("run_c", "cancelled")
+    bot = TelegramApprovalBot(db=db, bot_token="123:offline", chat_id="555", approver_ids={"555"})
+    sent = []
+    monkeypatch.setattr(bot, "_api", lambda method, **kw: sent.append(kw.get("data", {})) or {"message_id": 300})
+    bot.finish_progress_card(5, db.run_label("run_c"), "run_c", success=False, error="")
+    text = sent[-1]["text"]
+    import html
+    assert text.count(html.escape(db.run_label("run_c"))) == 1 and "Run ID: run_c" in text
+    assert card_ledger.audit(d) == [] and card_ledger.cards(d)[0]["kind"] == "cancelled"

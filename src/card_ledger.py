@@ -9,6 +9,7 @@ makes that comparison every time and files what it finds in the improvement ledg
 where a recurring finding becomes a proposal.
 """
 
+import html
 import json
 import logging
 import re
@@ -133,6 +134,17 @@ def audit(run_dir: Path) -> List[Tuple[str, str]]:
             cut = re.search(r"(\S+)…", text)
             findings.append(("ui.cut_short", f"A {c.get('kind')} card cut its text at '{cut.group(1) if cut else '…'}' "
                                              f"with room for {ROOM_FOR_MORE - len(text)} more characters"))
+            break
+
+    # 3b. A line said twice on one card (the cancelled card printed the run's label as its title and
+    #     again in a code line, 2026-10-24).
+    for c in sent:
+        raw = c.get("text", "")
+        plain = html.unescape(re.sub(r"<[^>]+>", "", raw))
+        spans = [html.unescape(s).strip(" []·") for s in re.findall(r"<(?:b|i|code)>(.*?)</(?:b|i|code)>", raw)]
+        twice = next((s for s in spans if len(s) >= 20 and plain.count(s) >= 2), None)
+        if twice:
+            findings.append(("ui.repeated_line", f"A {c.get('kind')} card says '{twice[:60]}' twice"))
             break
 
     # 4. The first estimate against the run's real length (only once the run finished).

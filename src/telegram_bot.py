@@ -1688,9 +1688,14 @@ class TelegramApprovalBot:
         if not success:
             run = self.db.get_run(run_id)
             if run and run.get("status") == "cancelled":
-                text = (f"⏹ <b>Render cancelled:</b> {html.escape(topic_title)}\n"
-                        f"<code>[{html.escape(self.db.run_label(run_id))}]</code>\n\n"
-                        "Stopped at a stage boundary. Existing assets and incurred usage are retained.")
+                # The label once (it was printed twice: once as the title, once in a code line; 2026-10-24),
+                # and the run id in the receipt's form.
+                text = (f"⏹ <b>Render cancelled:</b> {html.escape(self.db.run_label(run_id))}\n"
+                        f"<i>Run ID: {html.escape(run_id)}</i>\n\n"
+                        "Stopped at a stage boundary. Existing assets and incurred usage are retained; "
+                        "the topic is back in the queue.")
+                from .card_ledger import record as record_card
+                record_card(run_id, "cancelled", text, [[DONE_BUTTON]], message_id)
                 return self.edit_message_text(message_id, text, buttons=[[DONE_BUTTON]])
             # The run's one failure card (the separate "Production failed" alert is not sent as well).
             from .control import short_reason

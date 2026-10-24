@@ -767,7 +767,9 @@ class PipelineDatabase:
     def list_recent_runs(self, limit: int = 5) -> List[Dict[str, Any]]:
         with self._conn() as conn:
             rows = conn.execute(
-                "SELECT run_id, topic_id, status, error, parent_run_id, content_format, created_at, updated_at, master_video_path FROM runs ORDER BY created_at DESC LIMIT ?", (limit,)
+                # rowid breaks ties: two runs created in the same millisecond sorted in an undefined order (a
+                # flaky dashboard test on Windows' clock, 2026-10-24).
+                "SELECT run_id, topic_id, status, error, parent_run_id, content_format, created_at, updated_at, master_video_path FROM runs ORDER BY created_at DESC, rowid DESC LIMIT ?", (limit,)
             ).fetchall()
         return [dict(r) for r in rows]
 

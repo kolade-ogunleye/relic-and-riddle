@@ -950,7 +950,13 @@ class TelegramApprovalBot:
         if drift:
             measured.append(f"A/V drift {float(drift.group(1)):.0f} ms")
         open_checks = [c for c in report.get("checks", []) if c.get("status") != "pass"]
-        if not open_checks:
+        minor = [c for c in report.get("checks", []) if c.get("status") == "pass" and c.get("minor")]
+        if not open_checks and minor:
+            # Minor audit findings allowed through (MINOR_FINDINGS_BLOCK_RELEASE=false): shown for the reviewer.
+            from .release import check_problems
+            found = "\n".join(f"• {e(c['name'])}: {e(p)}" for c in minor for p in check_problems(c))
+            line = f"🚦 <b>Release gate:</b> ✅ all checks pass · minor findings, not blocking:\n<blockquote expandable>{found}</blockquote>\n"
+        elif not open_checks:
             line = "🚦 <b>Release gate:</b> ✅ all checks pass\n"
         else:
             # What was found, in its own words (the card said "visual_checks: fail (… (>1.2s)'})" and

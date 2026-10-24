@@ -105,9 +105,16 @@ def write_release_report(run, dry_run=False):
     except (OSError, ValueError, KeyError, TypeError):
         add("composition_inputs", False, "Complete composition evidence is missing or malformed.")
     quality = payload.get("self_healing") or {}
-    add("visual_checks", quality.get("certified") is True and
-        bool(quality.get("master_sha256")) and quality["master_sha256"] == sha256_file(master),
-        quality.get("issues") or "No completed visual audit recorded.")
+    audited_master = bool(quality.get("master_sha256")) and quality["master_sha256"] == sha256_file(master)
+    issues = quality.get("issues") or []
+    minor_only = bool(issues) and all((i.get("severity") if isinstance(i, dict) else "") == "minor" for i in issues)
+    from . import config as _config
+    if audited_master and not quality.get("certified") and minor_only and not _config.MINOR_FINDINGS_BLOCK_RELEASE:
+        # Shown, not blocking (MINOR_FINDINGS_BLOCK_RELEASE=false): the reviewer sees them on the card.
+        checks.append({"name": "visual_checks", "status": "pass", "detail": issues, "minor": True})
+    else:
+        add("visual_checks", quality.get("certified") is True and audited_master,
+            issues or "No completed visual audit recorded.")
     for key in ("thumbnail_cover_path", "thumbnail_grid_path"):
         add(key, bool(run.get(key)) and Path(run[key]).is_file(), run.get(key))
     if profile.requires_youtube_thumbnail:

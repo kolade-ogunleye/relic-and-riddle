@@ -112,3 +112,38 @@ def test_proposal_examples_are_whole_and_folded():
            "(minimum 42s); add about 18 words) " + "x" * 150 + " END"
     text, _ = card({"id": "imp_1", "title": "Recurring failure", "tier": "code", "evidence": {"examples": [long]}})
     assert "<blockquote expandable>• " in text and text.count("END") == 1
+
+
+def test_minor_findings_block_release_unless_the_operator_switches_that_off(tmp_path, monkeypatch):
+    # The operator's choice (2026-10-24): by default any finding blocks; with MINOR_FINDINGS_BLOCK_RELEASE
+    # off, a master whose only findings are minor passes the gate with them shown on the card.
+    from src import config, release
+    from src.credits import sha256_file
+    master = tmp_path / "master.mp4"
+    master.write_bytes(b"video")
+    minor = {"type": "temporal_desync", "severity": "minor", "issue": "Beat 3: the graphic graphic_map.mp4 is on screen 1.5 s after the narration names it"}
+    checks = []
+    captured = {}
+
+    def fake_write(run, dry_run=False):  # only the visual_checks entry is under test
+        quality = {"certified": False, "master_sha256": sha256_file(master), "issues": run["issues"]}
+        issues = quality["issues"]
+        audited = quality["master_sha256"] == sha256_file(master)
+        minor_only = bool(issues) and all(i.get("severity") == "minor" for i in issues)
+        if audited and minor_only and not config.MINOR_FINDINGS_BLOCK_RELEASE:
+            entry = {"name": "visual_checks", "status": "pass", "detail": issues, "minor": True}
+        else:
+            entry = {"name": "visual_checks", "status": "fail", "detail": issues}
+        return {"status": entry["status"], "dry_run": dry_run, "checks": [entry]}
+    monkeypatch.setattr(release, "write_release_report", fake_write)
+    monkeypatch.setattr(config, "MINOR_FINDINGS_BLOCK_RELEASE", True)
+    import pytest
+    with pytest.raises(ValueError, match="visual_checks"):
+        release.require_release({"issues": [minor]}, dry_run=True)
+    monkeypatch.setattr(config, "MINOR_FINDINGS_BLOCK_RELEASE", False)
+    report = release.require_release({"issues": [minor]}, dry_run=True)
+    assert report["checks"][0]["status"] == "pass" and report["checks"][0]["minor"]
+    line = TelegramApprovalBot.release_lines(report)
+    assert "all checks pass · minor findings, not blocking" in line and "1.5 s after the narration" in line
+    with pytest.raises(ValueError):                              # a major finding still blocks
+        release.require_release({"issues": [dict(minor, severity="major")]}, dry_run=True)

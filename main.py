@@ -1223,6 +1223,7 @@ class PipelineCoordinator:
             if getattr(self, "progress_msg_id", None):
                 self.telegram_bot.update_progress_card(self.progress_msg_id, 1, 5, topic["title"], run_id, text)
         self.script_engine.progress = show
+        earlier: List[str] = []  # every draft's rejection, so a later draft can't restate one in new words
         for revision in range(MAX_FACT_REVISIONS + 1):
             self._check_cancel(run_id)
             payload = self.script_engine.generate_script(topic, revision_notes=revision_notes, previous=payload)
@@ -1230,7 +1231,8 @@ class PipelineCoordinator:
             log.info("Guardrail (draft %d): %s", revision + 1, notes)
             if passed or payload.get("origin") not in ("claude", "gemini-free"):
                 break
-            revision_notes = notes
+            revision_notes = with_earlier_rejections(notes, earlier)
+            earlier.append(notes)
         if not passed:
             curated = self.script_engine._load_curated(tid)
             if curated:
@@ -1859,6 +1861,18 @@ class PipelineCoordinator:
             self.telegram_bot.stamp_review_outcome(run_id, text)
         except Exception as e:
             log.debug("Could not stamp the review card for %s: %s", run_id, e)
+
+
+def with_earlier_rejections(notes: str, earlier: List[str]) -> str:
+    """This draft's findings, plus every earlier draft's, as claims never to restate. Each revision saw
+    only the latest findings, and the same unsupported premise came back reworded in each draft until
+    the run failed ("built before farming", production 2026-10-23)."""
+    if not earlier:
+        return notes
+    history = "\n".join(f"- {n[:600]}" for n in earlier)
+    return (notes + "\n\nRejected in earlier drafts of this script. Do not restate these claims or their idea in "
+            "any wording, anywhere: title, caption, first comment, narration, on-screen text, slides or graphics. "
+            "If the topic's framing depends on one, frame it with facts the research notes do support:\n" + history)
 
 
 def _write_result(path: Optional[str], result: Dict[str, Any]) -> None:

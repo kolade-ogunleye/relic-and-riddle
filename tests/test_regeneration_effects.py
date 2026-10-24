@@ -59,3 +59,35 @@ def test_the_reason_card_states_the_effect(db):
     text = make_command_handler(db, lambda: None, lambda: "")("rsn", f"{db.run_key('run_x')}:sound")
     text = text[0] if isinstance(text, tuple) else text
     assert "a different music track is used" in text
+
+
+def test_each_revision_carries_every_earlier_rejection(db, tmp_path):
+    # Production, 2026-10-23: "built before farming" came back reworded in each draft, since a revision
+    # saw only the latest findings; the run failed closed after three drafts.
+    seen = []
+    findings = iter(["1 blocking claim(s): 'Hunter-gatherers built it long before farming.'",
+                     "1 blocking claim(s): 'It was built before farming.'",
+                     ""])
+
+    class FakeEngine:
+        progress = None
+
+        def generate_script(self, topic, revision_notes="", previous=None):
+            seen.append(revision_notes)
+            return {"origin": "gemini-free", "title": "T"}
+
+        def verify_claims(self, payload, topic=None, allow_unreviewed_curated=False):
+            notes = next(findings)
+            return (not notes), payload, notes or "PASSED"
+
+        def _load_curated(self, topic_id):
+            return None
+    db.create_run("run_x", db.list_all_topics()[0]["id"])
+    c = _coordinator(db)
+    c.script_engine = FakeEngine()
+    c._check_cancel = lambda run_id: None
+    c.telegram_bot = SimpleNamespace(update_progress_card=lambda *a, **k: None)
+    c._write_and_check_script({"id": "t", "title": "T"}, "run_x", tmp_path, dry_run=True)
+    assert "long before farming" in seen[2] and "It was built before farming" in seen[2]   # both, not only the last
+    assert "Do not restate these claims" in seen[2]
+    assert main.with_earlier_rejections("now", []) == "now"

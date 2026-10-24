@@ -84,7 +84,10 @@ def test_failed_fact_check_is_revised_then_fails_closed(db, monkeypatch, tmp_pat
     db.create_run("r9", "01_topic")
     with pytest.raises(RuntimeError, match="guardrail"):
         coord._produce_and_publish({"id": "01_topic"}, "r9", tmp_path, True, True, "queued")
-    assert notes_seen == ["", "bad claim 1", "bad claim 2"]  # original + MAX_FACT_REVISIONS rewrites
+    assert len(notes_seen) == 3  # original + MAX_FACT_REVISIONS rewrites
+    assert notes_seen[:2] == ["", "bad claim 1"]
+    # The latest findings lead; every earlier draft's rejection follows, so none comes back reworded.
+    assert notes_seen[2].startswith("bad claim 2") and "- bad claim 1" in notes_seen[2]
 
 
 def test_resume_reuses_passed_script_and_voiceover(db, monkeypatch, tmp_path, curated_payload):

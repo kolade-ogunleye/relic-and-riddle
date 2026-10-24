@@ -50,10 +50,27 @@ Rules that agree (#5):
 Re-rendering (rc19): a run that failed after its video was made is re-rendered from Telegram, reusing
 its paid voice and accepted motion clips; a re-rendered run waits for a new decision.
 
+## Later the same day (rc21-rc26)
+
+Followed three Kailasa runs end to end with the per-run evidence (`run.log`, `llm_calls.jsonl`,
+`cards.jsonl`). Found and fixed: Re-render and regenerations paying again for the voice, the Kling
+clip and the music bed; a pictures regeneration rewriting the approved script; a regeneration
+starting the next queued topic; a resumed run skipping its self-audit; an approved run leaving its
+topic "rejected"; a checker finding worded "the video shows X" never reaching the repair pass; a
+Pattadakal photo penalised for being 430 km from Ellora; the scene plan spending 20,000 output tokens
+thinking; the deployer re-testing a waiting release every cycle and a 45-minute pre-run margin; no
+warning before an install's quiet period; a "Failed" label for a rejected run, mid-word cuts, a Run ID
+auto-linked as a phone number, a stale "Installing" notice and an 89-minute median. Added "Post for
+real": a finished dry run posted one video at a time while the daemon stays in dry-run. The test
+suite runs on 4 workers (85 s).
+
 ## Still open
 
-- Writer-model trial (5 topics, Gemini 3.8 Flash vs Claude) once the Anthropic Console limit is raised.
+- Writer-model trial (5 topics, Gemini 3.8 Flash vs Claude): blocked until the Anthropic Console
+  limit is raised (reached until 2026-11-01); the writer's rounds remain the largest cost in time.
 - Minor findings: block, or show-and-repair (operator's decision).
-- `.gitattributes` with LF and one renormalising commit; split `main.py`'s daemon wiring as it is touched.
-- Prefer ≥1080-px photos when sourcing; show "N of M upscaled" on the review card.
-- Cache upscaled, privacy-checked images across runs of the same topic.
+- The deployer's once-per-release test and 4-worker suite reach production only with the next
+  elevated deployer install (`deployment/windows/Install-ContentReleaseDeployer.ps1`).
+- More picture candidates per beat; prefer ≥1080-px photos when sourcing; cache upscaled,
+  privacy-checked images across runs of the same topic.
+- Split `main.py`'s daemon wiring as it is touched.

@@ -126,9 +126,9 @@ production bot) for a tag newer than the running one (`v1.2.3`, `v1.2.3-rcN`; a 
 follows its candidates). It installs it only when:
 1. the annotated tag carries an SSH signature from the pinned signer (anything else is refused
    and never retried);
-2. the release's offline suite passes in a worktree beside production (once per candidate commit:
-   the pass is remembered in `logs\Deploy\precheck-<tag>.json`, so a release waiting for production
-   to be idle is not tested again every check);
+2. the release's offline suite passes in a worktree beside production, on 4 workers (once per
+   candidate commit: the pass is remembered in `logs\Deploy\precheck-<tag>.json`, so a release
+   waiting for production to be idle is not tested again every check);
 3. production is idle: no run producing, awaiting review or approved, no open review, no post due
    within an hour, no daemon job holding a busy lease, clear of the daily run (15 minutes before
    to 15 after), and no backup running.

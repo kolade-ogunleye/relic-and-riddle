@@ -91,3 +91,24 @@ def test_each_revision_carries_every_earlier_rejection(db, tmp_path):
     assert "long before farming" in seen[2] and "It was built before farming" in seen[2]   # both, not only the last
     assert "Do not restate these claims" in seen[2]
     assert main.with_earlier_rejections("now", []) == "now"
+
+
+def test_a_regeneration_for_pictures_keeps_the_verified_script_word_for_word(db, tmp_path, monkeypatch):
+    # Production 2026-10-24: a "pictures" regeneration wrote a fresh script, so the approved words changed
+    # and the voiceover made for them could not carry over.
+    import json
+    import main
+    from types import SimpleNamespace
+    monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
+    previous = tmp_path / "run_prev"
+    previous.mkdir()
+    script = {"narration_script": "The words you approved.", "guardrail_passed": True, "title": "T"}
+    (previous / "verified_script.json").write_text(json.dumps(script), encoding="utf-8")
+    coordinator = SimpleNamespace(_operator_feedback={"reason": "pictures", "from_run": "run_prev"}, db=db)
+    coordinator._feedback = lambda: main.PipelineCoordinator._feedback(coordinator)
+    coordinator._previous_run_dir = lambda: main.PipelineCoordinator._previous_run_dir(coordinator)
+    assert main.PipelineCoordinator._script_from_previous(coordinator, coordinator._feedback()) == script
+    for reason in ("facts", "hook", "pacing", "cover"):                     # the words themselves are at issue
+        assert main.PipelineCoordinator._script_from_previous(coordinator, {"reason": reason, "from_run": "run_prev"}) is None
+    (previous / "verified_script.json").write_text(json.dumps(dict(script, guardrail_passed=False)), encoding="utf-8")
+    assert main.PipelineCoordinator._script_from_previous(coordinator, coordinator._feedback()) is None

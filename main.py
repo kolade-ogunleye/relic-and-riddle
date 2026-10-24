@@ -402,6 +402,24 @@ class PipelineCoordinator:
             return OUTPUT_DIR / previous
         return None
 
+    def _script_from_previous(self, fb: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """The verified script of the run a regeneration replaces, when the review was not about the words
+        (pictures, sound, cover, other): the script-stage payload as it was saved, guardrail passed. None
+        when the reason concerns the script, there is no previous run, or its saved script did not pass."""
+        reason = fb.get("reason")
+        if not reason or reason in SCRIPT_REASONS:
+            return None
+        previous = self._previous_run_dir()
+        if previous is None:
+            return None
+        try:
+            saved = json.loads((previous / "verified_script.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return None
+        if not (isinstance(saved, dict) and saved.get("guardrail_passed") and saved.get("narration_script")):
+            return None
+        return saved
+
     def _previous_motion_dirs(self) -> List[Path]:
         previous = self._previous_run_dir()
         return [previous / "motion"] if previous and (previous / "motion").is_dir() else []
@@ -1157,7 +1175,14 @@ class PipelineCoordinator:
                 payload = self._write_and_check_script(topic, run_id, run_dir, dry_run,
                                                        initial_payload=fb["previous"], initial_notes=note)
             else:
-                payload = self._write_and_check_script(topic, run_id, run_dir, dry_run)
+                kept = self._script_from_previous(fb)
+                if kept is not None:
+                    # The review was about pictures, sound or the cover: the script it passed stays word for
+                    # word, so its voiceover carries over too (a regeneration rewrote it, 2026-10-24).
+                    payload = kept
+                    log.info("Script kept from %s: the review was about %s, not the words.", fb.get("from_run"), fb.get("reason"))
+                else:
+                    payload = self._write_and_check_script(topic, run_id, run_dir, dry_run)
             saved_script.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
             checkpoints.complete("script", script_inputs, [saved_script])
 

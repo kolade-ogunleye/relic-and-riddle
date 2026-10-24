@@ -422,7 +422,11 @@ class QualityAuditor:
                 distance = lambda t: max(c_start - t, t - c_end, 0.0)  # noqa: E731
                 t_first = min(matching_word_times, key=distance)
                 offset = distance(t_first)
-                if offset > 1.2:
+                # Named in the hook, shown on the next cut: as early as it can be, since the hook keeps its
+                # photo (scene_planner.lock_narrative_graphics puts it there). Flagging that made the repair
+                # unwinnable: the re-plan moved it to the hook and the lock moved it back (2026-10-24).
+                after_hook = i == 1 and timeline[0].get("start", 0.0) <= t_first < c_start
+                if offset > 1.2 and not after_hook:
                     issues.append({
                         "type": "temporal_desync",
                         "severity": "minor",

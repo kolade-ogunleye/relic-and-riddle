@@ -99,3 +99,15 @@ def test_resume_writes_the_worker_result(monkeypatch, tmp_path):
     monkeypatch.setattr(main, "PipelineCoordinator", Coordinator)
     assert main.main(["resume", "run_k", "--background-polling", "--result-file", str(out)]) == 1
     assert json.loads(out.read_text())["status"] == "refused"
+
+
+def test_a_re_render_waits_for_a_new_decision(db, tmp_path, monkeypatch):
+    # Production 2026-10-24: the resumed run read the earlier Approve 8 ms after its new card was sent.
+    run_id = _failed(db, tmp_path, monkeypatch)
+    db.record_approval(run_id, db.get_run(run_id)["topic_id"], 891)
+    db.update_approval_decision(run_id, "approved", decided_by="telegram:555")
+    db.reset_approval(run_id)
+    approval = db.get_approval(run_id)
+    assert approval["decision"] == "pending" and approval["decided_by"] is None
+    import inspect
+    assert "reset_approval(run_id)" in inspect.getsource(main.PipelineCoordinator.resume_run)

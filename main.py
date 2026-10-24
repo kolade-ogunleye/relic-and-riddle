@@ -997,6 +997,7 @@ class PipelineCoordinator:
         topic = self.topic_engine.get_topic_by_id(run["topic_id"])
         previous_status = "published" if topic["times_published"] else "queued"
         self.db.update_run(run_id, "producing")
+        self.db.reset_approval(run_id)  # the new version waits for its own decision
         self.topic_engine.record_status(topic["id"], "in_production", run_id=run_id)
         log.info("Resuming run %s", run_id)
         try:

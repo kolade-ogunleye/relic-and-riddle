@@ -780,6 +780,13 @@ class PipelineDatabase:
             """, (run_id,))
             return cur.rowcount == 1
 
+    def reset_approval(self, run_id: str) -> None:
+        """A run made again needs a new decision: the earlier one was for the version it replaces
+        (2026-10-24: a re-render read the earlier Approve 8 ms after its new card was sent)."""
+        with self._conn() as conn:
+            conn.execute("UPDATE approvals SET decision = 'pending', decision_timestamp = NULL, decided_by = NULL "
+                         "WHERE run_id = ?", (run_id,))
+
     def get_approval(self, run_id: str) -> Optional[Dict[str, Any]]:
         with self._conn() as conn:
             row = conn.execute("SELECT * FROM approvals WHERE run_id = ?", (run_id,)).fetchone()

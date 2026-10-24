@@ -230,7 +230,10 @@ class PipelineCoordinator:
             if topic is None:
                 raise QueueEmpty("No queued topic has an approved photo pool; see `python main.py assets review`.")
         tid = topic["id"]
-        previous_status = topic["status"] if topic["status"] != "in_production" else "failed"
+        # Where the topic goes after a simulated publish: back to the queue unless it has really been
+        # published (as resume_run already did). Inheriting the pre-run status sent an approved regeneration's
+        # topic back to "rejected" (2026-10-24).
+        previous_status = "published" if topic.get("times_published") else "queued"
 
         if content_format == "deep-dive":
             return self._review_documentary(self.produce_deep_dive(topic, parent_run_id=None, auto_approve=auto_approve,

@@ -112,3 +112,27 @@ def test_a_regeneration_for_pictures_keeps_the_verified_script_word_for_word(db,
         assert main.PipelineCoordinator._script_from_previous(coordinator, {"reason": reason, "from_run": "run_prev"}) is None
     (previous / "verified_script.json").write_text(json.dumps(dict(script, guardrail_passed=False)), encoding="utf-8")
     assert main.PipelineCoordinator._script_from_previous(coordinator, coordinator._feedback()) is None
+
+
+def test_an_approved_regeneration_returns_its_topic_to_the_queue_not_to_rejected(db, monkeypatch):
+    # Production 2026-10-24: after Reject, Make again and Approve (a dry run), the topic read "rejected".
+    import main
+    from types import SimpleNamespace
+    topic = db.list_all_topics()[0]
+    db.set_topic_status(topic["id"], "rejected") if hasattr(db, "set_topic_status") else None
+    coordinator = main.PipelineCoordinator.__new__(main.PipelineCoordinator)
+    coordinator.db = db
+    seen = {}
+    coordinator._produce_and_publish = lambda t, run_id, run_dir, auto, dry, previous: seen.update(previous=previous) or {"status": "simulated", "run_id": run_id}
+    coordinator.topic_engine = SimpleNamespace(get_topic_by_id=lambda t: dict(topic, status="rejected", times_published=0),
+                                               record_status=lambda *a, **k: None, get_next_topic=lambda: None)
+    coordinator.health_checker = SimpleNamespace(run_all=lambda require_live=False: {"all_passed": True, "details": {}})
+    coordinator.lifecycle_manager = SimpleNamespace(purge_intermediate_assets=lambda: None)
+    coordinator.telegram_bot = SimpleNamespace(is_configured=lambda: False, notify=lambda *a, **k: None)
+    coordinator._finish_progress = lambda *a, **k: None
+    coordinator._collect_findings = lambda *a, **k: None
+    coordinator.progress_msg_id = None
+    monkeypatch.setattr(main, "OUTPUT_DIR", db.db_path.parent)
+    monkeypatch.setattr(main.config, "effective_format", lambda f: f)
+    result = coordinator.run_cycle(topic["id"], dry_run=True)
+    assert result["status"] == "simulated" and seen["previous"] == "queued"

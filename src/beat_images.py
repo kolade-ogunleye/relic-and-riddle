@@ -172,8 +172,12 @@ def credit_caption(caption: str, topic_credits: Dict[str, Any], extra: List[Dict
 
 # "visual"/"display": Roman concrete's beat 9 ("the visual displays the interior dome") matched none of the
 # older words, so the mismatch was never repaired.
-PICTURE_WORDS = ("image", "picture", "photo", "shows", "depict", "match", "contradict", "unrelated", "irrelevant",
-                 "visual", "display", "footage", "scene")
+# Word stems: "shows", "showing" and "show" all count (a finding that said "the video continues to show
+# the Kailasa Temple ... rather than the prototype temple mentioned" matched nothing and went unrepaired,
+# production 2026-10-24).
+PICTURE_WORDS = ("image", "picture", "photo", "show", "depict", "match", "contradict", "unrelated", "irrelevant",
+                 "visual", "display", "footage", "scene", "video", "frame", "b-roll", "clip")
+CAPTION_ONLY = ("caption", "subtitle")  # a finding about the text on screen, unless it is also about the picture
 
 
 # A minor finding counts only when it says the picture contradicts what is said (Roman concrete's beat 8:
@@ -189,7 +193,9 @@ def _picture_findings(report) -> list:
     out = []
     for i in report.issues:
         text = i.issue.lower()
-        if i.beat <= 0 or "caption" in text or not any(w in text for w in PICTURE_WORDS):
+        if i.beat <= 0 or not any(w in text for w in PICTURE_WORDS):
+            continue
+        if any(w in text for w in CAPTION_ONLY) and not any(w in text for w in ("video", "footage", "frame", "image", "photo", "picture", "show")):
             continue
         if i.severity in ("major", "critical") or any(w in text for w in MISMATCH_WORDS):
             out.append(i)

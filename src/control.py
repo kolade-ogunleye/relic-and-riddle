@@ -529,7 +529,7 @@ def rerenderable(db: PipelineDatabase) -> Optional[Dict[str, Any]]:
     for r in db.list_recent_runs(limit=10):
         if (r.get("updated_at") or r.get("created_at") or "") < since:
             break
-        if r.get("status") == "failed" and r.get("master_video_path") and r.get("topic_id") not in made_since:
+        if r.get("status") in ("failed", "rejected") and r.get("master_video_path") and r.get("topic_id") not in made_since:
             return r
         if r.get("status") in REACHED_REVIEW:
             made_since.add(r.get("topic_id"))
@@ -744,7 +744,8 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     if late:
         # A run that failed after its video was made (the release gate, say) is made again in place. Not only
         # the latest run: a cancelled scheduled run hid the button for the run that mattered (2026-10-24).
-        text = "🔁 Re-render" if recent and late["run_id"] == recent[0]["run_id"] else f"🔁 Re-render: {clip_words(db.run_label(late['run_id']), 28)}"
+        verb = "Make again" if late.get("status") == "rejected" else "Re-render"  # rejected: regenerated with the reason given
+        text = f"🔁 {verb}" if recent and late["run_id"] == recent[0]["run_id"] else f"🔁 {verb}: {clip_words(db.run_label(late['run_id']), 28)}"
         row1.append({"text": text, "callback_data": f"rerender:{db.run_key(late['run_id'])}"})
     buttons = [row1] if row1 else []
     buttons += [

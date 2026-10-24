@@ -26,6 +26,7 @@ import html
 import json
 import re
 import os
+import shutil
 import subprocess
 import threading
 import logging
@@ -393,6 +394,46 @@ class PipelineCoordinator:
             from src import improve
             fb.update({k: v for k, v in (improve.operator_feedback(self.db, fb["from_run"]) or {}).items() if v})
         return fb
+
+    def _previous_run_dir(self) -> Optional[Path]:
+        """The run this regeneration replaces (Regenerate from its review), if its folder is still there."""
+        previous = self._feedback().get("from_run")
+        if previous and (OUTPUT_DIR / previous).is_dir():
+            return OUTPUT_DIR / previous
+        return None
+
+    def _previous_motion_dirs(self) -> List[Path]:
+        previous = self._previous_run_dir()
+        return [previous / "motion"] if previous and (previous / "motion").is_dir() else []
+
+    def _seed_voice_from_previous(self, run_dir: Path, narration: str) -> None:
+        """A regeneration for pictures, sound or a cover keeps the narration: the previous run's voiceover,
+        its timing, provider record and checkpoint are copied in, so the voice stage reuses it instead of
+        paying for it again (a Regenerate made a new run folder and re-voiced the same words, 2026-10-24).
+        Whether a copied voice may be used is still the voice stage's rule (a test voice never goes live)."""
+        previous = self._previous_run_dir()
+        if previous is None or (run_dir / "voiceover.mp3").exists():
+            return
+        from src.checkpoints import Checkpoints
+        try:
+            meta = json.loads((previous / "script_metadata.json").read_text(encoding="utf-8"))
+            record = Checkpoints(previous).read().get("voice") or {}
+        except (OSError, ValueError):
+            return
+        names = ["voiceover.mp3", "words.json", "voice.json"]
+        if meta.get("narration_script") != narration or not record.get("inputs") or not all((previous / n).is_file() for n in names):
+            return
+        for extra in ("voiceover.mp3.rights.json",):
+            if (previous / extra).is_file():
+                names.append(extra)
+        try:
+            for n in names:
+                shutil.copy2(previous / n, run_dir / n)
+            Checkpoints(run_dir).adopt("voice", record["inputs"], [run_dir / n for n in names[:3]])
+        except (OSError, ValueError) as e:
+            log.warning("Could not carry the voiceover over from %s: %s", previous.name, e)
+            return
+        log.info("Voiceover carried over from %s: the same narration, already made.", previous.name)
 
     def _previous_tracks(self, fb: Dict[str, Any]) -> List[str]:
         """The library files the run sent back for its music used, so its regeneration picks others."""
@@ -1033,11 +1074,17 @@ class PipelineCoordinator:
         run = self.db.get_run(run_id)
         if not run:
             return "That run is no longer recorded."
-        if run["status"] != "failed":
-            return f"That run is {run['status'].replace('_', ' ')}, not failed."
+        if run["status"] not in REMAKE_STATUSES:
+            return f"That run is {run['status'].replace('_', ' ')}, not failed or rejected."
         if not run.get("master_video_path") or not (OUTPUT_DIR / run_id).is_dir():
-            return "That run failed before it had a video; Render the topic again instead."
+            return "That run stopped before it had a video; Render the topic again instead."
         return None
+
+    def remake_args(self, run_id: str) -> List[str]:
+        """How a run is made again: a failed one is resumed in place; a rejected one is regenerated with the
+        reason you gave (a new run that carries the old one's voiceover and clips over)."""
+        run = self.db.get_run(run_id) or {}
+        return ["--regenerate-from", run_id] if run.get("status") == "rejected" else []
 
     def voice_inputs(self, script: str, dry_run: bool) -> Dict[str, Any]:
         """What a voiceover depends on (its checkpoint inputs): a change to any of these re-voices.
@@ -1129,6 +1176,7 @@ class PipelineCoordinator:
         vo_path = run_dir / "voiceover.mp3"
         words_path = run_dir / "words.json"
         voice_path = run_dir / "voice.json"  # which provider made it, and whether it's licensed
+        self._seed_voice_from_previous(run_dir, payload["narration_script"])  # a regeneration keeps its paid voice
         saved_voice = json.loads(voice_path.read_text(encoding="utf-8")) if voice_path.exists() else {}
         # A real run never reuses an unlicensed (test) voiceover. Older runs without voice.json
         # predate this record, so they are re-voiced too.
@@ -1466,7 +1514,8 @@ class PipelineCoordinator:
             # AI motion for the opening photo (only with a media budget; real footage and our graphics come first).
             self._check_cancel(run_id)
             scenes, motion_used = motion.apply(self.db, scenes, run_dir / "motion", memo=motion_memo, topic=topic,
-                                               allow_paid=(not dry_run) or self.paid_motion_in_dry_run or config.MOTION_IN_DRY_RUNS)
+                                               allow_paid=(not dry_run) or self.paid_motion_in_dry_run or config.MOTION_IN_DRY_RUNS,
+                                               seed_dirs=self._previous_motion_dirs())  # a regeneration keeps its paid clips
             payload["motion_note"] = (f"🤖 AI motion ({', '.join(motion_used)}) animates {len(motion_used)} real photo(s); "
                                       "the Reel carries the AI label") if motion_used else ""
             self._check_cancel(run_id)
@@ -1979,9 +2028,14 @@ def poll_loop(bot, handler) -> None:
                 time.sleep(POLL_BACKOFF_SECONDS)
 
 
+REMAKE_STATUSES = ("failed", "rejected")  # runs with a video that Re-render makes again without paying twice
+
+
 def rerender_started(db, run_id: str) -> str:
-    return (f"🔁 <b>Re-rendering</b> {html.escape(db.run_label(run_id))}: its script, voiceover and accepted motion "
-            "clips are reused, so nothing already paid for is bought again. A new review card comes when it's ready.")
+    run = db.get_run(run_id) or {}
+    how = ("made again with the reason you gave" if run.get("status") == "rejected" else "re-rendered")
+    return (f"🔁 <b>{html.escape(db.run_label(run_id))}</b> is being {how}: its script, voiceover and accepted "
+            "motion clips are reused, so nothing already paid for is bought again. A new review card comes when it's ready.")
 
 
 def run_in_worker(content_format: str, dry_run: bool, schedule_posts: bool, timeout: Optional[float] = None,
@@ -2507,7 +2561,8 @@ def main(argv=None) -> int:
             refusal = coordinator.rerender_refusal(run_id)
             if refusal:
                 return f"🔁 {html.escape(refusal)}"
-            started = launch_worker(resume=run_id)
+            extra = coordinator.remake_args(run_id)
+            started = launch_worker(extra=extra) if extra else launch_worker(resume=run_id)
             return started if "already in progress" in started else rerender_started(db, run_id)
 
         bot.next_run_func = lambda: "on-demand (bot supervisor)"
@@ -2866,7 +2921,11 @@ def main(argv=None) -> int:
                 return f"🔁 {html.escape(refusal)}"
             if run_lock.locked():
                 return "🔁 A run is already in progress; Re-render this one when it has finished."
-            scheduler.add_job(production_run, kwargs={"manual": True, "resume": run_id})
+            extra = coordinator.remake_args(run_id)
+            if extra:  # rejected: a regeneration with the recorded reason, reusing what was paid for
+                scheduler.add_job(production_run, kwargs={"manual": True, "extra": extra})
+            else:
+                scheduler.add_job(production_run, kwargs={"manual": True, "resume": run_id})
             return rerender_started(coordinator.db, run_id)
 
         bot.next_run_func = next_run

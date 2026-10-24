@@ -437,10 +437,12 @@ def apply(
     topic: Optional[Dict[str, Any]] = None,
     fact_sheet: Optional[Dict[str, Any]] = None,
     allow_paid: bool = True,
+    seed_dirs: Optional[List[Path]] = None,
 ) -> Tuple[List[Path], List[str]]:
     """Animates up to MOTION_MAX_CLIPS photos, the opening beat first. Returns (scenes, providers used).
     `memo` ({photo: (clip, provider)}) carries clips across a re-plan so nothing is paid for twice.
-    allow_paid=False (dry runs without --paid-motion): no paid clips, local parallax only."""
+    `seed_dirs`: other runs' motion folders (the run a regeneration replaces) whose accepted clips are
+    copied in and reused. allow_paid=False (dry runs without --paid-motion): no paid clips, local parallax only."""
     memo = {} if memo is None else memo
     from .typography import is_video
     if config.MOTION_MAX_CLIPS <= 0:
@@ -448,6 +450,8 @@ def apply(
     # A clip this run already paid for is still on disk after a restart or a resume (the memo lives in
     # memory): reusing it costs nothing, so it is used whether or not this pass may buy one.
     memo.update({k: v for k, v in _clips_on_disk(work_dir).items() if k not in memo})
+    for seed in seed_dirs or []:
+        memo.update({k: v for k, v in _adopt_clips(work_dir, Path(seed)).items() if k not in memo})
     if not allow_paid or config.MEDIA_MONTHLY_BUDGET_USD <= 0:
         reused = _reuse(scenes, memo)
         return reused if reused[1] else (scenes, [])
@@ -493,11 +497,11 @@ def _reuse(scenes: List[Path], memo: dict) -> Tuple[List[Path], List[str]]:
     return scenes, reused
 
 
-def _clips_on_disk(work_dir: Path) -> dict:
-    """{photo: (clip, provider)} for the accepted clips in work_dir. Lineage is written only for a clip
-    that passed its checks, and it must still verify: clip, anchor frame and photo unchanged."""
+def _clip_records(work_dir: Path) -> List[Tuple[Path, Path, Path, str]]:
+    """(photo, clip, anchor, provider) for the accepted clips in work_dir. Lineage is written only for a
+    clip that passed its checks, and it must still verify: clip, anchor frame and photo unchanged."""
     from .lineage import sidecar, source_chain
-    found = {}
+    found = []
     for record in sorted(Path(work_dir).glob("motion_*.mp4.lineage.json")):
         clip = Path(str(record)[: -len(".lineage.json")])
         try:
@@ -511,7 +515,39 @@ def _clips_on_disk(work_dir: Path) -> dict:
                 anchor_data = json.loads(sidecar(anchor).read_text(encoding="utf-8"))
                 if anchor_data.get("operation") == "motion_anchor_frame":
                     photo = Path(anchor_data["sources"][0]["path"])
-            found[str(photo)] = (clip, (data.get("settings") or {}).get("provider", "ai-motion"))
+            found.append((photo, clip, anchor, (data.get("settings") or {}).get("provider", "ai-motion")))
         except (OSError, ValueError, KeyError, IndexError, TypeError) as e:
             log.info("Motion: not reusing %s (%s).", clip.name, e)
+    return found
+
+
+def _clips_on_disk(work_dir: Path) -> dict:
+    """{photo: (clip, provider)} for the accepted clips in work_dir."""
+    return {str(photo): (clip, provider) for photo, clip, anchor, provider in _clip_records(work_dir)}
+
+
+def _adopt_clips(work_dir: Path, seed_dir: Path) -> dict:
+    """Another run's accepted clips, copied into work_dir with their anchor frames and fresh lineage (a
+    copied sidecar would name the old path), so a regeneration keeps the clips the run it replaces paid
+    for. {photo: (clip, provider)} for the copies."""
+    import shutil
+    found = {}
+    if not seed_dir.is_dir() or seed_dir.resolve() == Path(work_dir).resolve():
+        return found
+    work_dir.mkdir(parents=True, exist_ok=True)
+    for photo, clip, anchor, provider in _clip_records(seed_dir):
+        new_clip, new_anchor = Path(work_dir) / clip.name, Path(work_dir) / anchor.name
+        if new_clip.exists():
+            continue
+        try:
+            shutil.copy2(clip, new_clip)
+            if anchor.resolve() != photo.resolve():
+                shutil.copy2(anchor, new_anchor)
+            else:
+                new_anchor = photo
+            _record_lineage(photo, new_anchor, new_clip, provider)
+            found[str(photo)] = (new_clip, provider)
+            log.info("Motion: %s carried over from %s (already paid for).", clip.name, seed_dir.parent.name)
+        except (OSError, ValueError) as e:
+            log.info("Motion: could not carry %s over (%s).", clip.name, e)
     return found

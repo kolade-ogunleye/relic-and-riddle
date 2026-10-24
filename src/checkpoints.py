@@ -36,11 +36,19 @@ class Checkpoints:
                     all(expected and sha256_file(Path(p)) == expected for p, expected in outputs.items()))
 
     def complete(self, stage, inputs, outputs):
+        self._write(stage, fingerprint(inputs), outputs)
+
+    def adopt(self, stage, inputs_fingerprint, outputs):
+        """A stage's record carried over from another run of the same work (its inputs fingerprint, these
+        copies of its outputs): a regeneration reuses the voiceover it already paid for."""
+        self._write(stage, inputs_fingerprint, outputs)
+
+    def _write(self, stage, inputs_fingerprint, outputs):
         hashes = file_inputs(outputs)
         if not hashes or not all(hashes.values()):
             raise ValueError(f"Cannot checkpoint incomplete stage: {stage}")
         records = self.read()
-        records[stage] = {"inputs": fingerprint(inputs), "outputs": hashes}
+        records[stage] = {"inputs": inputs_fingerprint, "outputs": hashes}
         self.path.parent.mkdir(parents=True, exist_ok=True)
         handle, temporary = tempfile.mkstemp(dir=self.path.parent, suffix=".json.tmp")
         try:

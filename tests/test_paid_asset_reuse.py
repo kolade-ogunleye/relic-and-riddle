@@ -77,3 +77,40 @@ def test_an_unlicensed_test_voice_is_still_never_reused_live(tmp_path, monkeypat
     assert not P.voice_reusable(cp, made, {"provider": "edge", "licensed": False}, dry_run=False)
     assert P.voice_reusable(cp, made, {"provider": "edge", "licensed": False}, dry_run=True)
     assert Path(tmp_path / "voiceover.mp3").is_file()
+
+
+def test_a_regeneration_carries_the_previous_runs_clip_over_with_fresh_lineage(monkeypatch, tmp_path):
+    from src.lineage import source_chain
+    photo, prev_work, clip = _paid_clip(tmp_path)                  # the run being replaced
+    new_work = tmp_path / "run_b" / "motion"
+    monkeypatch.setattr(motion.config, "MEDIA_MONTHLY_BUDGET_USD", 30.0)
+    monkeypatch.setattr(motion.config, "MOTION_MAX_CLIPS", 1)
+    monkeypatch.setattr(motion, "animate", lambda *a, **k: pytest.fail("paid again for a clip the previous run made"))
+    scenes, used = motion.apply(None, [photo, tmp_path / "other.jpg"], new_work, memo={}, allow_paid=True, seed_dirs=[prev_work])
+    assert used == ["kling-3.0"] and scenes[0] == new_work / "motion_01.mp4" and scenes[0].is_file()
+    source_chain(scenes[0])                                         # the copy's lineage verifies on its own
+    assert clip.is_file()                                           # the original run keeps its clip
+
+
+def test_a_regeneration_carries_the_previous_runs_voiceover_over(db, tmp_path, monkeypatch):
+    import json
+    import main
+    from types import SimpleNamespace
+    from src.checkpoints import Checkpoints
+    monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
+    previous, run_dir = tmp_path / "run_prev", tmp_path / "run_new"
+    previous.mkdir(), run_dir.mkdir()
+    (previous / "script_metadata.json").write_text(json.dumps({"narration_script": "Same words."}), encoding="utf-8")
+    for n, body in (("voiceover.mp3", b"eleven"), ("words.json", b"[]"), ("voice.json", b'{"provider": "elevenlabs", "licensed": true}')):
+        (previous / n).write_bytes(body)
+    inputs = {"script": "Same words.", "voice": "v", "licensed_only": False, "allow_paid": True}
+    Checkpoints(previous).complete("voice", inputs, [previous / "voiceover.mp3", previous / "words.json", previous / "voice.json"])
+    coordinator = SimpleNamespace(_operator_feedback={"reason": "pictures", "from_run": "run_prev"}, db=db)
+    coordinator._feedback = lambda: main.PipelineCoordinator._feedback(coordinator)
+    coordinator._previous_run_dir = lambda: main.PipelineCoordinator._previous_run_dir(coordinator)
+    main.PipelineCoordinator._seed_voice_from_previous(coordinator, run_dir, "Same words.")
+    assert (run_dir / "voiceover.mp3").read_bytes() == b"eleven"
+    assert Checkpoints(run_dir).reusable("voice", inputs)          # the voice stage will keep it
+    (run_dir / "voiceover.mp3").unlink()
+    main.PipelineCoordinator._seed_voice_from_previous(coordinator, run_dir, "Different words.")
+    assert not (run_dir / "voiceover.mp3").exists()                 # another script: a new voiceover

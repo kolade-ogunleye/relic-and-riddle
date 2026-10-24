@@ -137,3 +137,20 @@ def test_dashboard_says_a_late_failure_needs_you_even_when_a_newer_run_is_the_la
     db.update_run("run_newer", "cancelled")
     text, _ = dashboard_text_and_buttons(db, None, assets_dir=tmp_path)
     assert "Nothing needs you" not in text and "🔁 <b>Failed after rendering</b>" in text and f"Run ID: {run_id}" in text
+
+
+def test_a_rejected_run_with_a_video_is_made_again_as_a_regeneration(db, tmp_path, monkeypatch):
+    # Production 2026-10-24: Regenerate on the card would have re-voiced and re-bought the clip at once on
+    # the running release; Reject, then Re-render after the fix, regenerates with the reason and reuses both.
+    run_id = _failed(db, tmp_path, monkeypatch)
+    db.update_run(run_id, "rejected")
+    coordinator = SimpleNamespace(db=db)
+    assert main.PipelineCoordinator.rerender_refusal(coordinator, run_id) is None
+    assert main.PipelineCoordinator.remake_args(coordinator, run_id) == ["--regenerate-from", run_id]
+    db.update_run(run_id, "failed")
+    assert main.PipelineCoordinator.remake_args(coordinator, run_id) == []       # failed: resumed in place
+    db.update_run(run_id, "rejected")
+    _, buttons = dashboard_text_and_buttons(db, None, assets_dir=tmp_path)
+    found = [b for row in buttons for b in row if b["callback_data"] == f"rerender:{db.run_key(run_id)}"]
+    assert found and found[0]["text"].startswith("🔁 Make again")
+    assert "made again with the reason you gave" in main.rerender_started(db, run_id)

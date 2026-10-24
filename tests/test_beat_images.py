@@ -98,3 +98,14 @@ def test_the_roman_concrete_mismatches_are_found_and_searched_for(tmp_path, monk
         ([i.beat for i in items], prefix)) or ([], []))
     beat_images.source_gaps(beats, [8, 9], {"title": "T"}, tmp_path, set())
     assert asked == [([9], "gap")]  # only the flagged beats, filed as gap pictures
+
+
+def test_a_finding_that_the_video_shows_another_site_is_a_picture_mismatch():
+    from src.beat_images import picture_issues
+    from src.models import QAIssue, QAReport
+    kailasa = QAReport(summary="", issues=[QAIssue(beat=5, severity="minor", issue=(
+        "The narration and subtitle refer to the Virupaksha Temple at Pattadakal, but the video continues to show "
+        "the Kailasa Temple at Ellora rather than the prototype temple mentioned."))])
+    assert picture_issues(kailasa).startswith("Beat 5:")                       # production 2026-10-24: unrepaired
+    caption_only = QAReport(summary="", issues=[QAIssue(beat=3, severity="minor", issue="The caption overlaps the lower edge.")])
+    assert picture_issues(caption_only) == ""

@@ -694,6 +694,9 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 buttons.append({"text": f"⬆ Bump #{topic_serial.get(second_t['id'], 2)}", "callback_data": f"qbump:{second_t['id']}"})
             if next_t["id"] != busy:  # never drop the topic being made
                 buttons.append({"text": f"🗑 Drop #{sn}", "callback_data": f"qdrop:{next_t['id']}"})
+            elif remaining:  # while it is made, Drop pairs with Bump on the topic after it (Bump alone was offered)
+                after = remaining[0]
+                buttons.append({"text": f"🗑 Drop #{topic_serial.get(after['id'], 2)}", "callback_data": f"qdrop:{after['id']}"})
         elif queued:
             for t in queued[page*limit:(page+1)*limit]:
                 s = topic_serial.get(t['id'], '')

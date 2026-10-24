@@ -514,7 +514,10 @@ def test_a_started_render_shows_progress_not_render_again(db, monkeypatch):
     h = make_command_handler(db, lambda: None, lambda content_format="reel": "🎬 Starting a run now.")
     text, rows = h("qrender", "2")
     data = [b["callback_data"] for row in rows for b in row]
-    assert "cprog:" in data and not any(d.startswith(("qrender:", "qdrop:")) for d in data)
+    assert "cprog:" in data and not any(d.startswith("qrender:") for d in data)
+    assert "qdrop:t2" not in data                     # never the topic being made
+    bump = next(d for d in data if d.startswith("qbump:"))
+    assert "qdrop:" + bump.partition(":")[2] in data  # Drop pairs with Bump on the topic after it
     assert "🔄 In production" in text and "⏳ Rendering #2 · progress" in [b["text"] for row in rows for b in row]
 
 

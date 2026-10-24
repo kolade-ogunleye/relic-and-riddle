@@ -28,7 +28,8 @@ CREDIT_PREFIX = "📷 Images via Wikimedia Commons:"
 MAX_BEATS = 5          # only the most concrete beats get their own search
 PER_BEAT = 2           # candidates per beat
 
-SYSTEM = """You plan picture research for a short history documentary. For each narration beat that names a concrete, photographable subject (a specific place, structure, object, artefact or document), write one precise Wikimedia Commons search for it, plus 1-4 lowercase keywords that a relevant file title would contain (proper nouns are best). Skip abstract beats (ideas, numbers, open questions). Prefer the specific site, archaeological drill core, museum specimen, or scientific micrograph over generic scenic landscape look-alikes."""
+SYSTEM = """You plan picture research for a short history documentary. For each narration beat that names a concrete, photographable subject (a specific place, structure, object, artefact or document), write one precise Wikimedia Commons search for it, plus 1-4 lowercase keywords that a relevant file title would contain (proper nouns are best). Skip abstract beats (ideas, numbers, open questions). Prefer the specific site, archaeological drill core, museum specimen, or scientific micrograph over generic scenic landscape look-alikes.
+When a beat's subject stands somewhere other than the documentary's own site (a prototype or model it was based on, a museum holding the object, a rival city), set place to that place's name, exactly as a Commons category would spell it; otherwise leave place null."""
 
 
 def verify_visual_relevance(cand_title: str, query: str = "") -> bool:
@@ -68,7 +69,8 @@ def source(beats: List[Dict[str, Any]], topic: Dict[str, Any], work_dir: Path, p
     return paths, credits
 
 
-GAP_SYSTEM = """You plan picture research for a short history documentary. The video check found that these beats' pictures do not show what the narration says. For each beat, write one precise Wikimedia Commons search for what that sentence is about, plus 1-4 lowercase keywords that a relevant file title would contain. Stay on the documentary's subject: the thing named, or the same kind of thing from the same civilisation or period (for "Roman aqueducts", a Roman aqueduct; for "modern concrete cracking", a photograph of cracked concrete), never a look-alike from another subject. Prefer a specific named example (a named aqueduct, harbour, specimen or document) over a generic scene."""
+GAP_SYSTEM = """You plan picture research for a short history documentary. The video check found that these beats' pictures do not show what the narration says. For each beat, write one precise Wikimedia Commons search for what that sentence is about, plus 1-4 lowercase keywords that a relevant file title would contain. Stay on the documentary's subject: the thing named, or the same kind of thing from the same civilisation or period (for "Roman aqueducts", a Roman aqueduct; for "modern concrete cracking", a photograph of cracked concrete), never a look-alike from another subject. Prefer a specific named example (a named aqueduct, harbour, specimen or document) over a generic scene.
+When the thing named stands somewhere other than the documentary's own site (a prototype it was modelled on, a museum, another city), set place to that place's name as a Commons category would spell it; otherwise leave place null."""
 
 
 @llm_task("beat_gap_queries")
@@ -118,11 +120,19 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
     for item in items:
         try:
             found = 0
+            # A beat about a place other than the topic's site (a prototype, a museum) is ranked by that
+            # place's name, not by distance from the site: the right photo of the Virupaksha Temple at
+            # Pattadakal, 430 km from Ellora, scored 3/10 for being where Pattadakal is (2026-10-24).
+            keywords, near = item.keywords, place
+            elsewhere = (getattr(item, "place", None) or "").strip()
+            if elsewhere and elsewhere.lower() not in (loc.get("name") or "").lower():
+                keywords = list(item.keywords) + [w for w in commons.normalize(elsewhere).split() if len(w) > 3]
+                near = None
             # Short wait cap: a rate-limited Commons shouldn't stall a production run. Results are
             # ranked by what their metadata says they show (commons.relevance), best first.
             ranked = commons.best_first(list(commons.candidates(commons.search(item.query, limit=30, max_wait=60),
-                                                                item.keywords, config.BEAT_IMAGES_ALLOW_SHARE_ALIKE)),
-                                        item.keywords, place)
+                                                                keywords, config.BEAT_IMAGES_ALLOW_SHARE_ALIKE)),
+                                        keywords, near)
             for cand in ranked:
                 if cand["title"] in seen or cand["relevance"] <= 0:
                     continue

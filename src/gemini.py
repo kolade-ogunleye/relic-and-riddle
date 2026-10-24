@@ -195,8 +195,15 @@ def vision_timeout(n_images: int) -> float:
     return float(min(600, max(120, 60 + 12 * n_images)))
 
 
+THINKING_LEVELS = {"low": "low", "medium": "medium"}  # a caller's effort -> Gemini 3 thinkingLevel; "high" is the default
+
+
 def structured(system: str, prompt: Union[str, list], schema: Type[T], model: str = None, key: str = None,
-               timeout: float = None) -> T:
+               timeout: float = None, thinking: str = None) -> T:
+    """`thinking`: the caller's effort ("low"/"medium"); on the vision call it becomes generationConfig
+    .thinkingConfig.thinkingLevel, since by default the model thinks at length (a 10-beat scene plan spent
+    20,000 output tokens and 2.5 minutes thinking, 2026-10-24). A model that rejects the field is called
+    again without it."""
     if isinstance(prompt, list):
         parts = []
         for b in prompt:
@@ -225,19 +232,29 @@ def structured(system: str, prompt: Union[str, list], schema: Type[T], model: st
                 "response_schema": _inline_refs(schema.model_json_schema())
             }
         }
+        level = THINKING_LEVELS.get((thinking or "").lower())
+        if level:
+            body["generationConfig"]["thinkingConfig"] = {"thinkingLevel": level}
         # Images are the point of this call: if it fails, the caller learns it failed. A text-only
         # retry would answer questions about pictures it never saw.
         # The time allowed grows with the pictures sent: a 20-photo scene plan timed out at a flat 120 s.
         n_images = sum(1 for part in parts if "inline_data" in part)
-        try:
-            resp = requests.post(url, headers={"x-goog-api-key": target_key, "Content-Type": "application/json"},
-                                 json=body, timeout=timeout or vision_timeout(n_images))
-        except requests.Timeout as e:
-            raise RequestTimedOut(f"Gemini vision request failed: {e}") from e
-        except requests.ConnectionError as e:  # a dropped line, not a slow answer: safe to send again
-            raise ConnectionDropped(f"Gemini vision request failed: {e}") from e
-        except requests.RequestException as e:
-            raise GeminiError(f"Gemini vision request failed: {e}") from e
+
+        def post(payload):
+            try:
+                return requests.post(url, headers={"x-goog-api-key": target_key, "Content-Type": "application/json"},
+                                     json=payload, timeout=timeout or vision_timeout(n_images))
+            except requests.Timeout as e:
+                raise RequestTimedOut(f"Gemini vision request failed: {e}") from e
+            except requests.ConnectionError as e:  # a dropped line, not a slow answer: safe to send again
+                raise ConnectionDropped(f"Gemini vision request failed: {e}") from e
+            except requests.RequestException as e:
+                raise GeminiError(f"Gemini vision request failed: {e}") from e
+        resp = post(body)
+        if resp.status_code == 400 and level and "thinking" in resp.text.lower():
+            log.info("%s does not take thinkingLevel; sent again without it.", model or GEMINI_MODEL)
+            del body["generationConfig"]["thinkingConfig"]
+            resp = post(body)
         if resp.status_code == 429:
             raise QuotaExhausted("Gemini quota exceeded (HTTP 429).")
         if resp.status_code == 503:

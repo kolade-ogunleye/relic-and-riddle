@@ -237,6 +237,7 @@ class BeatQuery(BaseModel):
     beat: int            # 1-based beat number
     query: str           # Wikimedia Commons search for the concrete subject of that beat
     keywords: List[str]  # lowercase words, one of which a relevant file title must contain
+    place: Optional[str] = None  # the named place the subject is at, when it is not the documentary's own site
 
 
 class BeatQueries(BaseModel):

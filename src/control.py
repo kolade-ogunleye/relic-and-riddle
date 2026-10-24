@@ -703,13 +703,15 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         # (a cancelled scheduled one) is the latest: the panel said "Nothing needs you" above a Re-render
         # button (2026-10-24).
         reason = short_reason(late.get("error") or "", limit=1200)
-        needs.append(f"🔁 <b>Failed after rendering</b>: {e(db.run_label(late['run_id']))} · <i>Run ID: {e(late['run_id'])}</i> · Re-render below"
+        what = "Rejected, can be made again" if late.get("status") == "rejected" else "Failed after rendering"
+        # The run id in code, not italics: Telegram linked its digits as a phone number (2026-10-24).
+        needs.append(f"🔁 <b>{what}</b>: {e(db.run_label(late['run_id']))} · Run ID <code>{e(late['run_id'])}</code> · Re-render below"
                      + (f"\n<blockquote expandable>{e(reason)}</blockquote>" if reason else ""))
     if recent and recent[0].get("status") == "failed":
         # Which run, on one line; the whole reason folded underneath (it was cut off mid-sentence:
         # operator, 2026-10-23).
         reason = short_reason(recent[0].get("error") or "", limit=1200)
-        needs.append(f"❌ <b>Last run failed</b>: {e(db.run_label(recent[0]['run_id']))} · <i>Run ID: {e(recent[0]['run_id'])}</i>"
+        needs.append(f"❌ <b>Last run failed</b>: {e(db.run_label(recent[0]['run_id']))} · Run ID <code>{e(recent[0]['run_id'])}</code>"
                      + (f"\n<blockquote expandable>{e(reason)}</blockquote>" if reason else ""))
 
     from . import config

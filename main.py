@@ -39,7 +39,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from src.config import ASSETS_DIR, CURATED_SCRIPTS_DIR, DAILY_RUN_TIME, OUTPUT_DIR, POST_SCHEDULING, TIMEZONE
 from src.credits import caption_credit_line, generate_provenance_ledger, load_credits
 from src.db import PipelineDatabase, QueueEmpty
-from src.control import heartbeat_text, is_paused, make_command_handler, ping_healthcheck
+from src.control import clip_words, heartbeat_text, is_paused, make_command_handler, ping_healthcheck
 from src import beat_images, callouts, config, encoding, footage, graphics, motion, post_schedule, privacy, then_now
 from src.llm import claude_available as llm_available
 from src.scene_planner import degraded_note, documentary_cuts, plan_scenes, segment_beats
@@ -1141,7 +1141,7 @@ class PipelineCoordinator:
             from src.improve import REASONS
             self.db.set_setting("regenerating:" + run_id,
                                 REASONS.get(feedback["reason"], feedback["reason"])
-                                + (f": {feedback['text'][:120]}" if feedback.get("text") else ""))
+                                + (f": {clip_words(feedback['text'], 160)}" if feedback.get("text") else ""))  # at a word, with "…"
         try:
             self.progress_msg_id = self.telegram_bot.send_progress_card(run_id, topic["title"])
         except Exception:

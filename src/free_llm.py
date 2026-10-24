@@ -58,7 +58,12 @@ def _paid_spend(task_class: str) -> float:
     return float(row[0])
 
 
-def _paid_fallback(system, prompt, schema: Type[T], model: str, task_class: str, why: str) -> T:
+def _thinking(level: str) -> dict:
+    """The thinking keyword only when a level was asked for (a stub without it keeps working)."""
+    return {"thinking": level} if level else {}
+
+
+def _paid_fallback(system, prompt, schema: Type[T], model: str, task_class: str, why: str, thinking: str = None) -> T:
     # A light, text-only task first tries the second free model (when enabled after measurement).
     if task_class == "light" and isinstance(prompt, str) and config.GROQ_LIGHT_FALLBACK:
         from . import groq
@@ -87,7 +92,7 @@ def _paid_fallback(system, prompt, schema: Type[T], model: str, task_class: str,
     log.log(level, "Free Gemini unavailable (%s); using the billed key for this %s task ($%.2f of $%.2f this month).",
             why, task_class, spent, cap)
     try:
-        result = gemini.structured(system, prompt, schema, model=model, key=config.GEMINI_API_KEY)
+        result = gemini.structured(system, prompt, schema, model=model, key=config.GEMINI_API_KEY, **_thinking(thinking))
     except gemini.GeminiError as e:  # the billed key failed too (its own quota, an outage)
         raise LLMError(f"{why} The paid fallback also failed: {e}") from e
     tokens_in, tokens_out = gemini.last_usage()
@@ -114,7 +119,7 @@ def _spare_key() -> str:
 
 
 def structured(system: str, prompt, schema: Type[T], role: str = "writer", attempts: int = 4,
-               task_class: str = "heavy", timeout: float = None) -> T:
+               task_class: str = "heavy", timeout: float = None, thinking: str = None) -> T:
     """Schema-constrained output from the free model ("writer") or the different checking model ("checker").
     task_class "light" (photo review, sound plan) or "heavy" (writing, checking) picks the paid-fallback cap.
     Every call is recorded in the current run's llm_calls.jsonl (src/ops.py) with its length and tokens."""
@@ -125,7 +130,7 @@ def structured(system: str, prompt, schema: Type[T], role: str = "writer", attem
         model = config.FREE_LIGHT_MODEL  # its own free limits; photo review (images) stays on the main models
     started = time.perf_counter()
     try:
-        result = _structured_on(model, system, prompt, schema, role, attempts, task_class, timeout)
+        result = _structured_on(model, system, prompt, schema, role, attempts, task_class, timeout, thinking)
     except Exception as e:
         record_llm_call(current_task(), model, time.perf_counter() - started, outcome=type(e).__name__, role=role)
         raise
@@ -136,31 +141,31 @@ def structured(system: str, prompt, schema: Type[T], role: str = "writer", attem
 
 
 def _structured_on(model: str, system: str, prompt, schema: Type[T], role: str, attempts: int,
-                   task_class: str, timeout: float) -> T:
+                   task_class: str, timeout: float, thinking: str = None) -> T:
     if not available():
-        return _paid_fallback(system, prompt, schema, model, task_class,
+        return _paid_fallback(system, prompt, schema, model, task_class, thinking=thinking, why=
                               "GEMINI_FREE_API_KEY is not set (create it in a Google project without billing).")
     if task_class == "heavy" and not config.FREE_TIER_HEAVY:
-        return _paid_fallback(system, prompt, schema, model, task_class,
+        return _paid_fallback(system, prompt, schema, model, task_class, thinking=thinking, why=
                               "heavy tasks use the billed key here (FREE_TIER_HEAVY=false)")
     wait = {"timeout": timeout} if timeout else {}
     delay = 15.0
     for attempt in range(1, attempts + 1):
         try:
-            return gemini.structured(system, prompt, schema, model=model, key=config.GEMINI_FREE_API_KEY, **wait)
+            return gemini.structured(system, prompt, schema, model=model, key=config.GEMINI_FREE_API_KEY, **_thinking(thinking), **wait)
         except gemini.QuotaExhausted as e:
             global _spare_down_until
             spare = _spare_key()
             if spare and time.monotonic() >= _spare_down_until:
                 try:
-                    return gemini.structured(system, prompt, schema, model=model, key=spare, **wait)
+                    return gemini.structured(system, prompt, schema, model=model, key=spare, **_thinking(thinking), **wait)
                 except gemini.GeminiError as e2:
                     # Skipped for a while after failing: production lost 5 minutes on every call to a spare
                     # key that never answered before reaching the billed key.
                     _spare_down_until = time.monotonic() + SPARE_COOLDOWN_SECONDS
                     log.info("Spare free key unavailable too (%s); not tried again for %d min.",
                              e2, SPARE_COOLDOWN_SECONDS // 60)
-            return _paid_fallback(system, prompt, schema, model, task_class,
+            return _paid_fallback(system, prompt, schema, model, task_class, thinking=thinking, why=
                                   f"The free Gemini quota is used up for now ({model}): {e}")
         except gemini.ConnectionDropped as e:
             # A dropped connection (Richat's documentary check died on one after 8 minutes): send again.
@@ -177,7 +182,7 @@ def _structured_on(model: str, system: str, prompt, schema: Type[T], role: str, 
             if attempt == attempts:
                 if timeout:
                     raise LLMError(f"Free model {model} failed: {e}") from e
-                return _paid_fallback(system, prompt, schema, model, task_class,
+                return _paid_fallback(system, prompt, schema, model, task_class, thinking=thinking, why=
                                       f"The free model {model} did not answer in time ({attempts} attempts)")
             log.info("Free model %s timed out (attempt %d); retrying in %.0fs.", model, attempt, delay)
             time.sleep(delay)
@@ -186,7 +191,7 @@ def _structured_on(model: str, system: str, prompt, schema: Type[T], role: str, 
             if "overloaded" not in str(e).lower() and "503" not in str(e):
                 raise LLMError(f"Free model {model} failed: {e}") from e
             if attempt == attempts:
-                return _paid_fallback(system, prompt, schema, model, task_class,
+                return _paid_fallback(system, prompt, schema, model, task_class, thinking=thinking, why=
                                       f"The free model {model} stayed overloaded")
             log.info("Free model %s busy (attempt %d); retrying in %.0fs.", model, attempt, delay)
             time.sleep(delay)
@@ -207,9 +212,9 @@ def call(system: str, prompt, schema: Type[T], role: str = "writer", task_class:
     if enabled():
         if interactive:
             return structured(system, prompt, schema, role=role, task_class=task_class, attempts=2,
-                              timeout=INTERACTIVE_TIMEOUT)
+                              timeout=INTERACTIVE_TIMEOUT, thinking=claude_kwargs.get("effort"))
         try:
-            return structured(system, prompt, schema, role=role, task_class=task_class)
+            return structured(system, prompt, schema, role=role, task_class=task_class, thinking=claude_kwargs.get("effort"))
         except LLMError as e:
             if not claude_fallback_ready():
                 raise

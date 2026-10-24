@@ -1044,7 +1044,7 @@ class TelegramApprovalBot:
             text += "\n" + script_payload["qa_summary"] + "\n"  # already HTML-escaped by video_qa
         if sources:
             text += "\n📚 " + "\n📚 ".join(e(s.get("url", "")) for s in sources) + "\n"
-        full = text + f"\n<i>Run ID (for the command line): {e(run_id)}</i>"
+        full = text + f"\n<i>Run ID (for the command line):</i> <code>{e(run_id)}</code>"  # code: Telegram linked the digits
         # A card over the page limit is paged as plain text and loses its collapsible script, so a long
         # (documentary) narration is shortened inside it instead; the full script is in the run folder.
         narration = script_payload.get("narration_script", "")
@@ -1386,7 +1386,7 @@ class TelegramApprovalBot:
         from .control import LAST_REVIEW_KEY
         from .telegram_state import get, put
         receipt = (f"<b>{html.escape(self.db.run_label(run_id))}</b>: {outcome}\n"
-                   f"<i>Run ID: {html.escape(run_id)}</i>")
+                   f"<i>Run ID:</i> <code>{html.escape(run_id)}</code>")
         from .card_ledger import record as record_card
         record_card(run_id, "receipt", receipt)
         self.db.set_setting(LAST_REVIEW_KEY, json.dumps({"text": receipt, "at": time.time(), "run_id": run_id}))
@@ -1691,7 +1691,7 @@ class TelegramApprovalBot:
                 # The label once (it was printed twice: once as the title, once in a code line; 2026-10-24),
                 # and the run id in the receipt's form.
                 text = (f"⏹ <b>Render cancelled:</b> {html.escape(self.db.run_label(run_id))}\n"
-                        f"<i>Run ID: {html.escape(run_id)}</i>\n\n"
+                        f"<i>Run ID:</i> <code>{html.escape(run_id)}</code>\n\n"
                         "Stopped at a stage boundary. Existing assets and incurred usage are retained; "
                         "the topic is back in the queue.")
                 from .card_ledger import record as record_card
@@ -1704,7 +1704,7 @@ class TelegramApprovalBot:
             # The run id is on the card, as on the review card and receipts: a typed /rerender or /resume
             # needs it, and the operator had nowhere to read it once the review card was gone (2026-10-24).
             text = (f"❌ <b>Production failed:</b> {html.escape(self.db.run_label(run_id))}\n"
-                    f"<i>Run ID: {html.escape(run_id)}</i>\n\n"
+                    f"<i>Run ID:</i> <code>{html.escape(run_id)}</code>\n\n"
                     f"<blockquote expandable>{html.escape(short_reason(error, 1200))}</blockquote>\n\n"
                     + ("Nothing was posted. Re-render plans its scenes again and re-checks it, reusing its "
                        "script, voiceover and accepted motion clips.\n\n" if late else

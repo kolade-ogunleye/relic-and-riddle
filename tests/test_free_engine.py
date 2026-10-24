@@ -104,3 +104,26 @@ def test_interactive_calls_wait_briefly_and_never_bill_on_a_timeout(monkeypatch)
     with pytest.raises(Exception):
         free_llm.call("s", "p", object, role="checker", task_class="light", interactive=True)
     assert seen == [free_llm.INTERACTIVE_TIMEOUT]
+
+
+def test_a_low_effort_vision_call_limits_thinking_and_falls_back_when_refused(monkeypatch):
+    # A 10-beat scene plan spent 20,000 output tokens and 2.5 minutes thinking (production 2026-10-24).
+    import json as _json
+    from types import SimpleNamespace
+    from src import config as cfg
+    monkeypatch.setattr(cfg, "GEMINI_API_KEY", "paid-key-456")
+    bodies = []
+
+    def post(url, headers=None, json=None, timeout=None):
+        import copy
+        bodies.append(copy.deepcopy(json))
+        if "thinkingConfig" in json["generationConfig"] and len(bodies) == 1:
+            return SimpleNamespace(status_code=400, text='{"error": "Unknown name thinking_config"}', json=lambda: {})
+        return SimpleNamespace(status_code=200, text="", json=lambda: {"usageMetadata": {}, "candidates": [{"content": {"parts": [{"text": _json.dumps({"claims": []})}]}}]})
+    monkeypatch.setattr(gemini.requests, "post", post)
+    out = gemini.structured("s", [{"type": "text", "text": "p"}], trace_check.TraceReport, model="gemini-3.8-flash", key="paid-key-456", thinking="low")
+    assert out.claims == [] and len(bodies) == 2
+    assert bodies[0]["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "low"} and "thinkingConfig" not in bodies[1]["generationConfig"]
+    bodies.clear()
+    gemini.structured("s", [{"type": "text", "text": "p"}], trace_check.TraceReport, model="gemini-3.8-flash", key="paid-key-456")
+    assert len(bodies) == 1 and "thinkingConfig" not in bodies[0]["generationConfig"]   # no effort given: the default

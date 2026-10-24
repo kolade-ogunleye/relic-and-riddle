@@ -117,7 +117,7 @@ def test_the_cancelled_card_names_the_run_once(db, tmp_path, monkeypatch):
     bot.finish_progress_card(5, db.run_label("run_c"), "run_c", success=False, error="")
     text = sent[-1]["text"]
     import html
-    assert text.count(html.escape(db.run_label("run_c"))) == 1 and "Run ID: run_c" in text
+    assert text.count(html.escape(db.run_label("run_c"))) == 1 and "<code>run_c</code>" in text
     assert card_ledger.audit(d) == [] and card_ledger.cards(d)[0]["kind"] == "cancelled"
 
 

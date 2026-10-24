@@ -109,3 +109,21 @@ def test_a_finding_that_the_video_shows_another_site_is_a_picture_mismatch():
     assert picture_issues(kailasa).startswith("Beat 5:")                       # production 2026-10-24: unrepaired
     caption_only = QAReport(summary="", issues=[QAIssue(beat=3, severity="minor", issue="The caption overlaps the lower edge.")])
     assert picture_issues(caption_only) == ""
+
+
+def test_a_beat_about_another_place_is_ranked_by_that_place_not_by_distance_from_the_site(monkeypatch, tmp_path):
+    # Production 2026-10-24: a photo of the Virupaksha Temple at Pattadakal, 430 km from Ellora, scored 3/10
+    # for being where Pattadakal is, and the planner stayed on Kailasa.
+    from src.models import BeatQuery
+    seen = []
+    monkeypatch.setattr(beat_images.commons, "search", lambda q, limit, max_wait: [q])
+    monkeypatch.setattr(beat_images.commons, "candidates", lambda pages, kw, sa: iter([]))
+    monkeypatch.setattr(beat_images.commons, "best_first", lambda cands, kw, place: seen.append((kw, place)) or [])
+    topic = {"id": "kailasa", "location": {"name": "Kailasa Temple, Ellora Caves", "latitude": 20.02, "longitude": 75.18}}
+    items = [BeatQuery(beat=5, query="Virupaksha Temple Pattadakal", keywords=["virupaksha"], place="Pattadakal"),
+             BeatQuery(beat=2, query="Kailasa Temple courtyard", keywords=["kailasa"]),
+             BeatQuery(beat=3, query="Ellora cave 16", keywords=["ellora"], place="Ellora Caves")]
+    beat_images._download(items, topic, tmp_path / "beat_images", set(), "beat")
+    assert seen[0] == (["virupaksha", "pattadakal"], None)                       # elsewhere: its name, no distance rule
+    assert seen[1] == (["kailasa"], {"lat": 20.02, "lon": 75.18})                # the site itself
+    assert seen[2] == (["ellora"], {"lat": 20.02, "lon": 75.18})                 # the same place, named differently

@@ -38,7 +38,7 @@ def test_a_late_failure_card_offers_re_render(db, tmp_path, monkeypatch):
     data = [d for m, d in calls if m == "editMessageText"][-1]
     assert f"rerender:{db.run_key(run_id)}" in _buttons(data["reply_markup"])
     assert "reusing its script, voiceover and accepted motion clips" in data["text"]
-    assert "<i>Run ID: run_k</i>" in data["text"]  # a typed /rerender needs it once the review card is gone
+    assert "<code>run_k</code>" in data["text"]  # a typed /rerender needs it once the review card is gone
 
 
 def test_an_early_failure_card_does_not(db, tmp_path, monkeypatch):
@@ -136,7 +136,7 @@ def test_dashboard_says_a_late_failure_needs_you_even_when_a_newer_run_is_the_la
     db.create_run("run_newer", db.list_all_topics()[1]["id"])
     db.update_run("run_newer", "cancelled")
     text, _ = dashboard_text_and_buttons(db, None, assets_dir=tmp_path)
-    assert "Nothing needs you" not in text and "🔁 <b>Failed after rendering</b>" in text and f"Run ID: {run_id}" in text
+    assert "Nothing needs you" not in text and "🔁 <b>Failed after rendering</b>" in text and f"<code>{run_id}</code>" in text
 
 
 def test_a_rejected_run_with_a_video_is_made_again_as_a_regeneration(db, tmp_path, monkeypatch):

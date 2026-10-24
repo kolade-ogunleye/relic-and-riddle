@@ -106,3 +106,16 @@ def test_video_composer_post_processing_pipeline_format_guards():
     assert "[video_raw]format=yuv420p,{film_grade},format=yuv420p," in source
 
 
+
+
+def test_documentary_cover_copy_comes_from_the_topic_when_the_deep_dive_gave_none():
+    from src.visual_engine import documentary_cover_copy
+    copy = documentary_cover_copy({"title": "Greek Fire and the Byzantine Siphon", "sub_theme": "Lost Technology"})
+    assert copy == {"eyebrow": "DOCUMENTARY INVESTIGATION", "line1": "GREEK FIRE AND THE", "line2": "BYZANTINE SIPHON", "tagline": "LOST TECHNOLOGY"}
+    short = documentary_cover_copy({"title": "Roman Concrete", "sub_theme": "Lost Technology"})
+    assert (short["line1"], short["line2"], short["tagline"]) == ("ROMAN CONCRETE", "LOST TECHNOLOGY", "WHAT THE EVIDENCE SHOWS")
+    given = documentary_cover_copy({"title": "Roman Concrete", "thumbnail": {"line1": "Self-healing", "line2": "Roman concrete", "tagline": "2,000 years on"}})
+    assert (given["line1"], given["line2"], given["tagline"]) == ("SELF-HEALING", "ROMAN CONCRETE", "2,000 YEARS ON")
+    for payload in ({"title": "Derinkuyu Underground City"}, {"title": "Greek Fire"}, {}):
+        text = " ".join(documentary_cover_copy(payload).values())
+        assert "METROPOLIS" not in text and "UNEXPLAINED" not in text

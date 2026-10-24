@@ -162,8 +162,10 @@ def apply(plan: UpdatePlan, include: Optional[List[str]] = None) -> str:
     updates = [u for u in plan.updates if u.name in include] if include else plan.applicable
     if not updates:
         return "Nothing to apply."
-    if _run(["git", "status", "--porcelain", "--untracked-files=no"]).stdout.strip():
-        raise RuntimeError("Working tree has uncommitted changes; commit or stash them first.")
+    # Tracked source changes block the update; the assets and data a live run writes do not (they are
+    # always dirty on a working installation, so the weekly apply never ran: 2026-10-24).
+    if _run(["git", "status", "--porcelain", "--untracked-files=no", "--", ".", ":!assets", ":!data"]).stdout.strip():
+        raise RuntimeError("Working tree has uncommitted changes outside assets/ and data/; commit or stash them first.")
     base = _run(["git", "rev-parse", "--abbrev-ref", "HEAD"]).stdout.strip()
     branch = f"updates/{datetime.now().strftime('%Y%m%d-%H%M%S')}"
     _run(["git", "checkout", "-b", branch])
@@ -176,7 +178,7 @@ def apply(plan: UpdatePlan, include: Optional[List[str]] = None) -> str:
         if tests.returncode != 0:
             raise RuntimeError("tests failed:\n" + "\n".join(tests.stdout.strip().splitlines()[-8:]))
         summary = ", ".join(f"{u.name} {u.current}->{u.target}" for u in updates)
-        _run(["git", "commit", "-q", "-am", f"Update dependencies: {summary}"])
+        _run(["git", "commit", "-q", "-m", f"Update dependencies: {summary}", "--", str(REQUIREMENTS)])  # the pins only
         _run(["git", "checkout", base])
         merge = _run(["git", "merge", "--ff-only", branch])
         if merge.returncode != 0:

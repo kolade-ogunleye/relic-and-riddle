@@ -424,11 +424,8 @@ class VisualEngine:
         shade.putalpha(grad.resize((w, h)))
         bg = Image.alpha_composite(im, shade)
 
-        copy = script_payload.get("thumbnail", {})
-        eyebrow = (copy.get("eyebrow") or "DOCUMENTARY INVESTIGATION").upper()
-        line1 = (copy.get("line1") or script_payload.get("title", "")[:24]).upper()
-        line2 = (copy.get("line2") or "ANCIENT METROPOLIS").upper()
-        tagline = (copy.get("tagline") or "UNEXPLAINED ARCHITECTURE").upper()
+        copy = documentary_cover_copy(script_payload)
+        eyebrow, line1, line2, tagline = copy["eyebrow"], copy["line1"], copy["line2"], copy["tagline"]
 
         max_text_w = int(w * 0.5)
         draw = ImageDraw.Draw(bg)
@@ -515,3 +512,21 @@ class VisualEngine:
         Delegates to studio-grade depth-layered engine with strict timestamp safe zone clearance.
         """
         return self.generate_depth_layered_thumbnail(hero_image_path, script_payload, output_path, aspect_ratio="16:9")
+
+
+def documentary_cover_copy(script_payload: Dict[str, Any]) -> Dict[str, str]:
+    """The four lines of the documentary cover: the payload's thumbnail copy where given, else lines drawn
+    from the topic itself (the title split on whole words, the sub-theme). Until 2026-10-24 the fallbacks
+    were Derinkuyu's ("ANCIENT METROPOLIS", "UNEXPLAINED ARCHITECTURE") and appeared on any topic whose
+    deep-dive copy was missing."""
+    copy = script_payload.get("thumbnail") or {}
+    title = (script_payload.get("title") or "").strip()
+    words, line1 = title.split(), ""
+    while words and len(f"{line1} {words[0]}".strip()) <= 24:
+        line1 = f"{line1} {words.pop(0)}".strip()
+    rest = " ".join(words) if not copy.get("line1") else ""
+    sub_theme = (script_payload.get("sub_theme") or "").strip()
+    line2 = copy.get("line2") or rest or sub_theme or "THE EVIDENCE"
+    tagline = copy.get("tagline") or ("" if line2 == sub_theme else sub_theme) or "WHAT THE EVIDENCE SHOWS"
+    return {"eyebrow": (copy.get("eyebrow") or "DOCUMENTARY INVESTIGATION").upper(),
+            "line1": (copy.get("line1") or line1 or title[:24]).upper(), "line2": line2.upper(), "tagline": tagline.upper()}

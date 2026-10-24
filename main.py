@@ -1163,8 +1163,64 @@ class PipelineCoordinator:
 
     # ------------------------------------------------------------ posting a dry-run result for real
     def post_now(self, run_id: str) -> str:
-        """Post for real at once (operator, 2026-10-24): the Reel now, Stories and carousel booked after it."""
-        return self.promote_run(run_id, now=True)
+        """Post for real at once (operator, 2026-10-24): the Reel now, Stories and carousel booked after it.
+        For a run already booked into a slot, the booking is posted now and its Stories re-timed after it."""
+        run = self.db.get_run(run_id) or {}
+        if run.get("status") != "scheduled":
+            return self.promote_run(run_id, now=True)
+        booking = next((p for p in self.db.list_scheduled_posts(("pending",), run_id=run_id) if p["kind"] == "reel"), None)
+        if booking is None:
+            return "⚡ No pending Reel booking for that run."
+        from src.release import require_release
+        try:
+            require_release(run, dry_run=False)
+            res = self.publish_run(run_id, dry_run=False, previous_status="published" if run.get("times_published") else "queued")
+        except ValueError as e:
+            return f"⚡ Not posted: {html.escape(str(e))}"
+        now = datetime.now(timezone.utc)
+        self.db.update_scheduled_post(booking["id"], res["status"], detail={
+            "error": res.get("publish_result", {}).get("error"), "posted_at": now.isoformat()})
+        if res.get("status") != "published":
+            return f"⚡ Publishing ended with status '{html.escape(str(res.get('status')))}'; see the receipt above."
+        for story in self.db.list_scheduled_posts(("pending",), run_id=run_id):
+            if story["kind"] == "story":
+                self.db.update_scheduled_post(story["id"], "pending",
+                                              due_at=post_schedule.story_time(now).astimezone(timezone.utc).isoformat())
+        return (f"⚡ <b>{html.escape(self.db.run_label(run_id))}</b> is posted; its Stories follow in "
+                f"{config.STORY_DELAY_MINUTES} minutes, the carousel in its next slot.")
+
+    def cancel_post(self, post_id: int) -> str:
+        """Cancels a booking (operator, 2026-10-24). A Reel's Stories and carousel go with it, and the run
+        is a post candidate again; a Stories or carousel booking goes alone."""
+        post = next((p for p in self.db.list_scheduled_posts(("pending", "waiting")) if p["id"] == int(post_id)), None)
+        if post is None:
+            return "⏹ That booking is no longer pending."
+        run_id = post["run_id"]
+        if post["kind"] != "reel":
+            self.db.update_scheduled_post(post["id"], "cancelled", detail={"reason": "cancelled by the operator"})
+            return f"⏹ {post['kind'].capitalize()} booking cancelled for {html.escape(self.db.run_label(run_id))}."
+        for other in self.db.list_scheduled_posts(("pending", "waiting"), run_id=run_id):
+            self.db.update_scheduled_post(other["id"], "cancelled", detail={"reason": "cancelled by the operator"})
+        self.db.set_setting(PROMOTED_PREFIX + run_id, "")
+        run = self.db.get_run(run_id) or {}
+        if run.get("status") == "scheduled":
+            self.db.update_run(run_id, "simulated")
+            self.topic_engine.record_status(run.get("topic_id"), "queued", run_id=run_id)
+        return f"⏹ Booking cancelled: {html.escape(self.db.run_label(run_id))} is a post candidate again."
+
+    def move_post(self, post_id: int) -> str:
+        """Moves a Reel booking to the next free slot after its own; its Stories move with it."""
+        post = next((p for p in self.db.list_scheduled_posts(("pending",)) if p["id"] == int(post_id) and p["kind"] == "reel"), None)
+        if post is None:
+            return "⏭ That Reel booking is no longer pending."
+        after = datetime.fromisoformat(post["due_at"]) + timedelta(minutes=1)
+        slot = post_schedule.next_reel_slot(after, self._booked_reel_days(exclude_id=post["id"]))
+        self.db.update_scheduled_post(post["id"], "pending", due_at=slot.astimezone(timezone.utc).isoformat())
+        for story in self.db.list_scheduled_posts(("pending",), run_id=post["run_id"]):
+            if story["kind"] == "story":
+                self.db.update_scheduled_post(story["id"], "pending",
+                                              due_at=post_schedule.story_time(slot).astimezone(timezone.utc).isoformat())
+        return f"⏭ {html.escape(self.db.run_label(post['run_id']))} moved to {html.escape(post_schedule.fmt(slot))}."
 
     def promote_run(self, run_id: str, now: bool = False) -> str:
         """Your per-video go-ahead: a finished dry run (simulated) is posted for real while the daemon
@@ -2698,8 +2754,8 @@ def main(argv=None) -> int:
                     # A batch (/produce N): the next episode starts once this worker has ended cleanly, which
                     # is after your decision on its review; a crash ends the batch.
                     try:
-                        remaining = int(db.get_setting(PRODUCE_KEY) or 0)
-                    except (TypeError, ValueError):
+                        remaining = int(getattr(db, "get_setting", lambda key: None)(PRODUCE_KEY) or 0)
+                    except (TypeError, ValueError, AttributeError):
                         remaining = 0
                     if remaining > 0 and rc == 0 and not cleared:
                         db.set_setting(PRODUCE_KEY, str(remaining - 1))
@@ -2759,7 +2815,9 @@ def main(argv=None) -> int:
                          "simpub": coordinator.simulate_publish,
                          "rerender": rerender_in_bot,
                          "promote": getattr(coordinator, "promote_run", None),
-                         "postnow": getattr(coordinator, "post_now", None)},
+                         "postnow": getattr(coordinator, "post_now", None),
+                         "cancelpost": getattr(coordinator, "cancel_post", None),
+                         "movepost": getattr(coordinator, "move_post", None)},
             produce_batch=produce_batch,
         )
         if POST_SCHEDULING:  # what this mode books, it also posts when due
@@ -3125,7 +3183,9 @@ def main(argv=None) -> int:
                                                     "simpub": coordinator.simulate_publish,
                                                     "rerender": rerender_run,
                                                     "promote": getattr(coordinator, "promote_run", None),
-                                                    "postnow": getattr(coordinator, "post_now", None)})
+                                                    "postnow": getattr(coordinator, "post_now", None),
+                                                    "cancelpost": getattr(coordinator, "cancel_post", None),
+                                                    "movepost": getattr(coordinator, "move_post", None)})
 
         def poll_telegram():
             poll_loop(bot, handler)

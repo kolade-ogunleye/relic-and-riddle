@@ -10,6 +10,7 @@ Commands (approvers only, in the configured chat):
   /resume   re-enable scheduled runs
   /run      start a production run now (still needs your approval to publish)
   /produce N  render the next N queued topics back to back, each to review (the next starts after your decision)
+  /posts    every booked post with its slot and status, links once posted; post now, move or cancel a booking
   /images   image sets waiting for review
   /review N send topic N's numbered contact sheet with an Approve button
   /drop N 2 5  remove images 2 and 5 from topic N (re-run the fetcher to refill)
@@ -458,6 +459,7 @@ AUDIT_NAMES = {"cdash": "Dashboard", "approve": "Approve", "reject": "Reject", "
                "qdoc": "Render with documentary", "qrefresh": "Refresh queue", "qbump": "Bump", "qdrop": "Drop",
                "resend": "Resend review", "rerender": "Re-render", "postreal": "Post for real?", "promote": "Post for real",
                "chistory": "Review history", "chist": "Review details", "postnow": "Post now", "produce": "Produce a batch",
+               "cposts": "Posting", "posts": "Posting", "cancelpost": "Cancel a booking", "movepost": "Move a booking",
                "edit": "Edit text", "runstop": "Cancel run", "runstopok": "Confirm cancel",
                "simpub": "Simulated publish", "pubok": "It posted", "pubno": "It didn't post", "creviews": "Reviews",
                "cideas": "Topic ideas", "cdisc": "UNESCO marvels", "cprop": "Waiting ideas", "cpropose": "Research ideas",
@@ -780,6 +782,56 @@ def history_details(db: PipelineDatabase, key: str) -> Tuple[str, List[List[Dict
     return "\n".join(lines), [[HISTORY_BUTTON], [HOME]]
 
 
+POST_ICON = {"pending": "🗓", "waiting": "⏳", "published": "✅", "failed": "❌", "unknown": "❓", "cancelled": "⏹"}
+POST_NAME = {"reel": "Reel", "story": "Stories", "carousel": "Carousel"}
+
+
+def _post_links(db: PipelineDatabase, run_id: str) -> str:
+    """The links from a run's publication receipts, one per platform."""
+    urls: Dict[str, str] = {}
+    for pub in db.list_publications(run_id):
+        try:
+            payload = json.loads(pub.get("response_payload_json") or "{}")
+        except ValueError:
+            continue
+        for platform, url in (payload.get("post_urls") or {}).items():
+            if url and platform not in urls:
+                urls[platform] = str(url)
+    return " · ".join(f'<a href="{html.escape(u)}">{html.escape(p)}</a>' for p, u in urls.items())
+
+
+def posting_panel(db: PipelineDatabase, limit: int = 10) -> Tuple[str, List[List[Dict[str, str]]]]:
+    """🗓 Posting: every booking with its slot and status, the links once posted, and what can be done with
+    a booking: post it now, move it to the next slot, cancel it (operator, 2026-10-24). Bookings live
+    here, not on the platforms; the daemon posts each when its slot comes."""
+    from .post_schedule import fmt
+    e = html.escape
+    upcoming = db.list_scheduled_posts(("pending", "waiting"))
+    recent = sorted(db.list_scheduled_posts(("published", "failed", "unknown", "cancelled")), key=lambda p: p["id"], reverse=True)[:limit]
+    lines = ["🗓 <b>Posting</b>", "", "<b>Upcoming</b> · booked here; the daemon posts each when its slot comes."]
+    buttons: List[List[Dict[str, str]]] = []
+    if not upcoming:
+        lines.append("• nothing booked")
+    for p in upcoming:
+        when = fmt(datetime.fromisoformat(p["due_at"])) if p.get("due_at") else "next carousel slot"
+        lines.append(f"• {POST_ICON.get(p['status'], '•')} {POST_NAME.get(p['kind'], p['kind'])} · {e(when)} — {e(db.run_label(p['run_id']))}")
+        if p["kind"] == "reel" and p["status"] == "pending":
+            buttons.append([{"text": f"⚡ Post now: {clip_words(db.run_label(p['run_id']), 20)}", "callback_data": f"postnow:{db.run_key(p['run_id'])}"}])
+            buttons.append([{"text": "⏭ Move to the next slot", "callback_data": f"movepost:{p['id']}"},
+                            {"text": "⏹ Cancel the booking", "callback_data": f"cancelpost:{p['id']}"}])
+    lines += ["", "<b>Recent</b>"]
+    if not recent:
+        lines.append("• nothing posted yet")
+    for p in recent:
+        when = fmt(datetime.fromisoformat(p["due_at"])) if p.get("due_at") else ""
+        detail = p.get("detail") or {}
+        note = e(str(detail.get("error") or detail.get("reason") or ""))[:120]
+        links = _post_links(db, p["run_id"]) if p["status"] == "published" else ""
+        lines.append(f"• {POST_ICON.get(p['status'], '•')} {POST_NAME.get(p['kind'], p['kind'])} · {e(when)} — {e(db.run_label(p['run_id']))} · {e(p['status'])}"
+                     + (f"\n  {links}" if links else "") + (f"\n  <i>{note}</i>" if note else ""))
+    return "\n".join(lines), buttons
+
+
 def post_candidates(db: PipelineDatabase, hours: int = 48, limit: int = 3) -> List[Dict[str, Any]]:
     """Finished dry runs (simulated) of the last `hours`, newest first: what "Post for real" can publish."""
     from datetime import datetime, timedelta, timezone
@@ -883,6 +935,9 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     if candidates:  # a finished dry run can be posted for real from here (asked to confirm first)
         row1.append({"text": f"🚀 Post for real: {clip_words(db.run_label(candidates[0]['run_id']), 24)}",
                      "callback_data": f"postreal:{db.run_key(candidates[0]['run_id'])}"})
+    booked = len(db.list_scheduled_posts(("pending", "waiting")))
+    if booked:  # what is booked, with its status and the actions on it (operator, 2026-10-24)
+        row1.append({"text": f"🗓 Posting ({booked})", "callback_data": "cposts:"})
     if late:
         # A run that failed after its video was made (the release gate, say) is made again in place. Not only
         # the latest run: a cancelled scheduled run hid the button for the run that mattered (2026-10-24).
@@ -1492,7 +1547,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 return handle("chistory", "")
             return history_details(db, args.strip())
         if command == "cstat":
-            return status_text(db, next_run(), voice_quota()), [[{"text": "📈 Audience", "callback_data": "canalytics:"}], [HOME]]
+            return status_text(db, next_run(), voice_quota()), [[{"text": "📈 Audience", "callback_data": "canalytics:"},
+                                                                 {"text": "🗓 Posting", "callback_data": "cposts:"}], [HOME]]
         if command in ("analytics", "canalytics"):
             from . import audience
             return audience.analytics_text(db), [[{"text": "📊 Full status", "callback_data": "cstat:"}], [HOME]]
@@ -1770,6 +1826,19 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     f"It will be {where} on Facebook, Instagram and YouTube, after the release checks run in live mode. "
                     "This is the one action that publishes; the daily runs stay in dry-run mode.",
                     buttons + [[HOME]])
+        if command in ("posts", "cposts"):
+            text, buttons = posting_panel(db)
+            return text, buttons + [[{"text": "📊 Full status", "callback_data": "cstat:"}], [HOME]]
+        if command in ("cancelpost", "movepost"):
+            action = (run_actions or {}).get(command)
+            if action is None:
+                return "Booking changes work while the bot or daemon is running."
+            try:
+                result = action(int(args.strip()))
+            except ValueError:
+                return "That booking id is not valid."
+            text, buttons = posting_panel(db)
+            return f"{result}\n\n{text}", buttons + [[HOME]]
         if command == "produce":
             if produce_batch is None:
                 return "Batch production works while the bot is running."

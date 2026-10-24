@@ -12,6 +12,7 @@ data/pipeline.db
 data/pipeline.db-*
 data/pipeline.db.bak
 data/evals/
+data/provider_status.json
 data/improvements/
 relic_riddle.db
 relic_riddle.db-*

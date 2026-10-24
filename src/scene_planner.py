@@ -173,6 +173,42 @@ def lock_narrative_graphics(beats: List[Dict[str, Any]], graphics: List[Path]) -
     return locked
 
 
+def repair_placement(planned: List[Path], durations: List[float], issues: List[Dict[str, Any]]) -> Optional[List[Path]]:
+    """A graphic the audit found on screen away from the words that name it moves to the beat where they
+    are spoken, and that beat's picture takes its place: the correction the planner makes, without a second
+    planning call (two 3-minute plans for one moved map; production 2026-10-24). None when the move is not
+    clean (the words fall in the hook, which keeps its photo, so the next beat is the earliest; the target
+    already holds a graphic; the finding names no time): the planner is asked instead."""
+    scenes = list(planned)
+    starts = [sum(durations[:i]) for i in range(len(durations))]
+    moved = False
+    for issue in issues:
+        if issue.get("type") != "temporal_desync":
+            continue
+        src, at = int(issue.get("scene_index", -1)), issue.get("trigger_time")
+        if not (0 <= src < len(scenes)) or at is None or not starts:
+            return None
+        target = max((i for i, s in enumerate(starts) if s <= float(at)), default=0)
+        if target == 0:
+            target = 1
+        if target >= len(scenes) or target == src or Path(scenes[target]).stem.startswith("graphic_"):
+            return None
+        scenes[src], scenes[target] = scenes[target], scenes[src]
+        moved = True
+    return scenes if moved else None
+
+
+def placement_only(issues: List[Dict[str, Any]], picture_issues: str) -> List[Dict[str, Any]]:
+    """The audit's placement findings, when they are the only thing to repair (no picture mismatch from
+    the video check, no other repairable defect); else an empty list."""
+    repairable = [i for i in issues or [] if i.get("type") in SCENE_FIXES_TYPES and i.get("scene_index", -1) >= 0]
+    late = [i for i in repairable if i.get("type") == "temporal_desync"]
+    return late if late and len(late) == len(repairable) and not picture_issues else []
+
+
+SCENE_FIXES_TYPES = ("semantic_desync", "motion_loop", "blank_frame", "caption_collision", "temporal_desync")
+
+
 def keep_if_it_matches(pick: Path, text: str, fallback: Path) -> Path:
     """An original graphic stays only on a beat that says what it shows; one that declares nothing
     to judge it by stays as chosen."""

@@ -2,7 +2,6 @@
 "message to edit not found" warning on every Refresh Progress, and the billed-key notice on every call
 buried the real errors in both environments' logs)."""
 
-import inspect
 import logging
 
 import pytest
@@ -36,7 +35,8 @@ def test_polling_backs_off_quietly_on_transport_failures_and_still_reports_the_r
     quiet = [r for r in caplog.records if "Telegram unreachable" in r.getMessage()]
     assert len(quiet) == 3 and all(r.levelno == logging.WARNING and r.exc_info is None for r in quiet)
     loud = [r for r in caplog.records if "polling error" in r.getMessage()]
-    assert len(loud) == 1 and loud[0].exc_info is not None
+    # A masking formatter may have turned exc_info into exc_text already (after setup_logging ran).
+    assert len(loud) == 1 and (loud[0].exc_info is not None or loud[0].exc_text)
 
 
 def _bot(db, monkeypatch, api=None):
@@ -91,6 +91,7 @@ def test_the_billed_key_notice_is_said_once_per_reason(db, monkeypatch, caplog):
 
 
 def test_a_failed_improvement_cycle_is_said_in_telegram():
-    source = inspect.getsource(main.main)
+    from pathlib import Path
+    source = Path(main.__file__).read_text(encoding="utf-8")  # the file, whatever other tests did to main.main
     cycle = source[source.index("def _improvement_cycle"):source.index("def weekly_digest")]
     assert "bot.notify(" in cycle[cycle.index("Improvement cycle failed"):]

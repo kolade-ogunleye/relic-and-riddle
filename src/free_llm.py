@@ -75,6 +75,9 @@ def _paid_fallback(system, prompt, schema: Type[T], model: str, task_class: str,
         raise FreeQuotaUnavailable(why + " (GEMINI_API_KEY is the free key, so there is no paid fallback)")
     spent, cap = _paid_spend(task_class), _paid_cap(task_class)
     if spent >= cap:
+        from . import provider_status
+        provider_status.note_capped("gemini-billed", f"the ${cap:.2f} monthly cap for {task_class} tasks is spent",
+                                    until=provider_status.next_month())
         raise FreeQuotaUnavailable(f"{why} The paid fallback for {task_class} tasks has reached its "
                                    f"${cap:.2f} monthly cap (${spent:.2f} spent).")
     # Said once per reason (a configured FREE_TIER_HEAVY=false put this line on every call: 66 of them in

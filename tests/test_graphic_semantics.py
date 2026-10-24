@@ -52,3 +52,23 @@ def test_a_graphic_named_in_the_hook_may_open_the_next_cut(tmp_path):
     assert not _timing_issues(tmp_path, graphic, 1, said_at=2.28)
     # Anywhere else, a graphic well after its words is still late.
     assert _timing_issues(tmp_path, graphic, 2, said_at=7.0)
+
+
+def test_a_late_graphic_is_moved_to_its_words_without_a_second_plan(tmp_path):
+    from src.scene_planner import placement_only, repair_placement
+    photo = lambda n: tmp_path / f"photo_{n}.jpg"  # noqa: E731
+    planned = [photo(0), tmp_path / "graphic_map.mp4", photo(2), photo(3)]
+    durations = [4.6, 4.0, 5.0, 5.0]
+    late = {"type": "temporal_desync", "scene_index": 1, "trigger_time": 10.2, "issue": "Beat 2: late"}
+    assert repair_placement(planned, durations, [late]) == [photo(0), photo(2), tmp_path / "graphic_map.mp4", photo(3)]
+    # Named in the hook: the next beat is the earliest it can go (the hook keeps its photo).
+    assert repair_placement([photo(0), photo(1), tmp_path / "graphic_map.mp4"], [4.6, 4.0, 5.0],
+                            [dict(late, scene_index=2, trigger_time=2.0)]) == [photo(0), tmp_path / "graphic_map.mp4", photo(1)]
+    # Not clean (the target holds a graphic, or no time): the planner decides.
+    assert repair_placement([photo(0), tmp_path / "graphic_map.mp4", tmp_path / "graphic_timeline.mp4"], [4.6, 4.0, 5.0],
+                            [dict(late, scene_index=1, trigger_time=9.0)]) is None
+    assert repair_placement(planned, durations, [dict(late, trigger_time=None)]) is None
+    # Only when placement is all there is to repair.
+    assert placement_only([late], "") == [late]
+    assert placement_only([late, {"type": "semantic_desync", "scene_index": 2}], "") == []
+    assert placement_only([late], "Beat 3: the picture shows a different site") == []

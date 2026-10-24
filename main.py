@@ -1287,6 +1287,9 @@ class PipelineCoordinator:
                 if len(payload["caption"]) > 2200:
                     passed, notes = False, "Caption plus image credits exceeds Instagram's 2,200 characters."
         payload["guardrail_passed"] = passed
+        # How many drafts it took and why: a run of more than two is a finding for the improvement ledger.
+        payload["script_rounds"] = revision + 1
+        payload["script_round_reasons"] = [r[:200] for r in earlier]
         from src.config import DATA_DIR
         sheet_file = DATA_DIR / "fact_sheets" / f"{tid}.json"
         if passed and sheet_file.is_file():
@@ -1417,10 +1420,20 @@ class PipelineCoordinator:
             feedback = "The human reviewer sent the previous version back for its pictures." + (
                 f" Their words: {fb['text']}" if fb.get("text") else "")
         motion_memo: Dict[str, Any] = {}
+        planned: List[Path] = []   # the first plan's picks, so a placement-only repair can move one
+        durations: List[float] = []
+        late_graphics: List[Dict[str, Any]] = []
         self._check_cancel(run_id)
         for attempt in (1, 2):  # a second pass only if the video check finds a picture mismatch
-            scenes, durations, plan_notes = plan_scenes(beats, candidates, feedback=feedback)
-            log.info("Scene plan: %d beats (%s).", len(beats), plan_notes[:120])
+            from src.scene_planner import repair_placement
+            repaired = repair_placement(planned, durations, late_graphics) if attempt == 2 and late_graphics and planned else None
+            if repaired is not None:
+                scenes, plan_notes = repaired, "placement repaired in place: " + "; ".join(i.get("issue", "") for i in late_graphics)
+                log.info("Scene placement repaired without a second plan: %s", plan_notes[:160])
+            else:
+                scenes, durations, plan_notes = plan_scenes(beats, candidates, feedback=feedback)
+                log.info("Scene plan: %d beats (%s).", len(beats), plan_notes[:120])
+            planned = list(scenes)
             used = beat_images.used_credits(scenes, beat_credits)
             used_footage = [c for c in footage_credits if Path(c["file"]) in scenes]
             # Then-and-now photos are Commons images too: credited with the others when that graphic is used.
@@ -1529,6 +1542,8 @@ class PipelineCoordinator:
                                              audit_scene_feedback(payload.get("self_healing"))) if f)
             if not feedback or attempt == 2:
                 break
+            from src.scene_planner import placement_only
+            late_graphics = placement_only((payload.get("self_healing") or {}).get("issues"), beat_images.picture_issues(qa))
             payload.setdefault("self_healing_actions", []).append({"attempt": attempt, "fixing": feedback.splitlines()})
             log.info("Repairing before review; re-planning scenes once:\n%s", feedback)
             # Beats whose picture doesn't show what is said get their own Commons search when the first

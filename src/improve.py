@@ -141,6 +141,17 @@ def collect_run(db, run_id: str, run_dir: Optional[Path], payload: Optional[Dict
         for issue in (qa or {}).get("issues", []) if isinstance(qa, dict) else []:
             text = issue.get("issue", "") if isinstance(issue, dict) else str(issue)
             items.append({"klass": "video." + classify(text, "qa").split(".", 1)[1], "detail": text, "source": "qa"})
+    rounds = int(payload.get("script_rounds") or 0)
+    if rounds > 2:  # each round is a minute or more; what sent the drafts back is what to fix
+        reasons = " | ".join(r[:120] for r in payload.get("script_round_reasons") or [])
+        items.append({"klass": "script.rounds", "detail": f"{rounds} drafts: {reasons}", "source": "script"})
+    if run_dir:  # every card this run sent, checked against its records (src/card_ledger.py)
+        from . import card_ledger
+        try:
+            for klass, detail in card_ledger.audit(Path(run_dir)):
+                items.append({"klass": klass, "detail": detail, "source": "self_audit"})
+        except Exception as e:  # the audit never costs the run its other findings
+            log.warning("Self-audit of %s failed: %s", run_id, e)
     if error:
         items.append({"klass": "run.failed." + error.split(":")[0].strip()[:40], "detail": error, "source": "run"})
     for it in items:

@@ -113,6 +113,8 @@ def no_repo_writes(monkeypatch, tmp_path_factory):
     monkeypatch.setattr("src.config.LOG_DIR", sandbox / "logs")
     monkeypatch.setattr("src.audio_engine.PACE_FILE", sandbox / "voice_pace.json")
     monkeypatch.setattr("src.script_engine.WORD_PACE_FILE", sandbox / "word_pace.json")
+    # A test that spends a budget to its cap must not mark the real environment's provider as shut.
+    monkeypatch.setattr("src.provider_status._file", lambda: sandbox / "provider_status.json")
     # Pool preparation fetches in a child process the socket block can't reach; tests opt in.
     monkeypatch.setattr("src.asset_pipeline.ensure_pool", lambda topic, assets_dir=None: True)
     library = sandbox / "library.json"

@@ -164,13 +164,19 @@ def _model_kwargs(model: str, effort: str) -> dict:
 def _first_request(send: Callable[[str], object], models: Optional[List[str]] = None) -> Tuple[object, str]:
     """Sends the first request down the model chain. Returns (response, model used)."""
     last: Optional[Exception] = None
+    from . import provider_status
     for model in model_chain(models):
         try:
-            return send(model), model
+            response = send(model)
+            provider_status.clear("claude")
+            return response, model
         except anthropic.BadRequestError as e:
             if "credit" in str(e).lower():
+                provider_status.note_capped("claude", "the credit balance is too low; add credit in the Claude Console")
                 raise CreditExhausted("Anthropic credit balance is too low; add credit in the Claude Console.") from e
             if "usage limit" in str(e).lower():
+                provider_status.note_capped("claude", "the API usage limit set in the Claude Console is reached; "
+                                            "raise it under Limits", until=provider_status.until_from(str(e)))
                 raise CreditExhausted("The Anthropic account's API usage limit is reached (set in the Claude Console "
                                       f"under Limits); raise it to continue. Details: {e}") from e
             raise LLMError(f"Claude rejected the request: {e}") from e

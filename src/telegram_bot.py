@@ -1249,6 +1249,8 @@ class TelegramApprovalBot:
             msg = self._api("sendMessage", data={"chat_id": self.chat_id, "text": re.sub(r"<[^>]+>", "", card_text)[:4000],
                                                  "disable_web_page_preview": "true", "reply_markup": json.dumps(markup)})
         message_id = msg["message_id"]
+        from .card_ledger import record as record_card
+        record_card(run_id, "review", card_text, markup["inline_keyboard"], message_id)
         self.db.record_approval(run_id, script_payload.get("topic_id", ""), message_id)
         put(self.db, "message-run", f"{self.chat_id}:{message_id}", run_id)
         put(self.db, "review-card", f"{run_id}:{message_id}", fingerprint)
@@ -1354,6 +1356,8 @@ class TelegramApprovalBot:
             updated_text = html.escape(orig_text) + badge
         else:
             updated_text = f"Decision: <b>{html.escape(decision.upper())}</b> for {html.escape(self.db.run_label(run_id))}"
+        from .card_ledger import record as record_card
+        record_card(run_id, "decision", updated_text, None, msg_id)
         try:
             self._api("editMessageReplyMarkup", data={
                 "chat_id": self.chat_id, "message_id": msg_id,
@@ -1383,6 +1387,8 @@ class TelegramApprovalBot:
         from .telegram_state import get, put
         receipt = (f"<b>{html.escape(self.db.run_label(run_id))}</b>: {outcome}\n"
                    f"<i>Run ID: {html.escape(run_id)}</i>")
+        from .card_ledger import record as record_card
+        record_card(run_id, "receipt", receipt)
         self.db.set_setting(LAST_REVIEW_KEY, json.dumps({"text": receipt, "at": time.time(), "run_id": run_id}))
         review = [m for m in (get(self.db, "review-messages", run_id) or []) if isinstance(m, int)]
         stale = sorted(set(review + ([mid] if isinstance(mid, int) else [])))
@@ -1527,7 +1533,9 @@ class TelegramApprovalBot:
             mid = msg.get("message_id") if isinstance(msg, dict) else None
             if mid:
                 from .telegram_state import put
+                from .card_ledger import record as record_card
                 put(self.db, "message-run", f"{self.chat_id}:{mid}", run_id)
+                record_card(run_id, "progress", text, buttons, mid)
                 self._last_progress_edit[mid] = time.monotonic()
                 self._last_progress_step[mid] = 1
                 if hasattr(self.db, "set_active_progress"):
@@ -1636,7 +1644,10 @@ class TelegramApprovalBot:
                 message_id=message_id,
             )
 
+        from .card_ledger import record as record_card
         success = False if redraw else self.edit_message_text(message_id, text, buttons=buttons)
+        if success:
+            record_card(run_id, "progress", text, buttons, message_id)
         if not success and (redraw or message_id in self._missing_messages):
             # Self-healing: if the card was purged/cleared from Telegram, recreate it!
             try:
@@ -1648,6 +1659,7 @@ class TelegramApprovalBot:
                 })
                 new_mid = msg.get("message_id") if isinstance(msg, dict) else None
                 if new_mid:
+                    record_card(run_id, "progress", text, buttons, new_mid)
                     self._last_progress_edit[new_mid] = now
                     self._last_progress_step[new_mid] = step
                     if hasattr(self.db, "set_active_progress"):
@@ -1693,6 +1705,8 @@ class TelegramApprovalBot:
             buttons = [[DONE_BUTTON]]
             if late:  # it got as far as a video (the release gate, say), so it can be made again in place
                 buttons.insert(0, [{"text": "🔁 Re-render", "callback_data": f"rerender:{self.db.run_key(run_id)}"}])
+            from .card_ledger import record as record_card
+            record_card(run_id, "failure", text, buttons, message_id)
             return self.edit_message_text(message_id, text, buttons=buttons)
         else:
             return self.delete_message(message_id)

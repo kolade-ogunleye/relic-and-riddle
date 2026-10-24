@@ -474,6 +474,45 @@ def spend_summary(db: PipelineDatabase) -> str:
     return "💳 This month · " + " · ".join(parts)
 
 
+REACHED_REVIEW = {"pending_approval", "approved", "rejected", "regenerate", "timeout", "simulated", "published",
+                  "scheduled", "publish_unknown", "publishing"}
+
+
+def health_line(db: PipelineDatabase, days: int = 7) -> str:
+    """How the system has been doing, on one dashboard line: runs, how many reached review, failures,
+    the median length of finished runs, and what the post-run self-audit found (src/card_ledger.py).
+    The operator had to ask for every one of these (2026-10-24)."""
+    import json as _json
+    import statistics
+    from datetime import datetime, timedelta, timezone
+    from . import card_ledger, improve
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    runs = [r for r in db.list_recent_runs(limit=80) if (r.get("created_at") or "") >= since]
+    reached = sum(1 for r in runs if r.get("status") in REACHED_REVIEW)
+    failed = sum(1 for r in runs if r.get("status") == "failed")
+    lengths = []
+    for r in runs:
+        try:
+            timings = _json.loads((config.OUTPUT_DIR / r["run_id"] / "timings.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        seconds = card_ledger.run_seconds(timings)
+        if seconds:
+            lengths.append(seconds / 60)
+    try:
+        improve.ensure_schema(db)
+        with db._conn() as conn:
+            audit = conn.execute("SELECT COUNT(*) FROM findings WHERE source = 'self_audit' AND created_at >= ?",
+                                 (since,)).fetchone()[0]
+    except Exception:
+        audit = 0
+    text = f"🩺 Last {days} days · {len(runs)} run(s) · {reached} reached review · {failed} failed"
+    if lengths:
+        text += f" · median {statistics.median(lengths):.0f} min"
+    text += f" · self-audit: {audit} finding(s)" if audit else " · self-audit clean"
+    return text
+
+
 def ready_pools(db: PipelineDatabase, topics: List[Dict[str, Any]]) -> int:
     """Queued topics whose photo pool passes the same readiness rule production uses."""
     from .asset_pipeline import pool_ready
@@ -594,6 +633,8 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         needs.append(f"🧭 <b>{len(waiting_proposals)} improvement proposal(s)</b> — /improve")
     if account_problems:
         needs.append("⚠️ " + e(account_problems[0]))
+    from . import provider_status
+    needs += provider_status.dashboard_lines()  # a provider shut by a limit or cap, said here not only in the log
     if queued and ready < len(queued) and ready < 3:
         needs.append(f"🖼 Only {ready} queued topic(s) have photos ready")
     recent = db.list_recent_runs(limit=1)
@@ -628,6 +669,7 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     lines.append(f"📋 Queue: {len(queued)} topics · {ready} with photos ready"
                  + (f" · next: <b>{e(next_t['title'])}</b>" if next_t else ""))
     lines.append(spend_summary(db))
+    lines.append(health_line(db))
 
     waiting_reviews = len(pending) + len(timed_out)  # timed-out reviews are decisions waiting too
     row1 = [{"text": f"🎬 Reviews ({waiting_reviews})", "callback_data": "creviews:"}] if waiting_reviews else []

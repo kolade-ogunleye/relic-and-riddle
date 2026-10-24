@@ -331,6 +331,17 @@ class PipelineCoordinator:
         self._finish_progress(self.db.run_label(run_id), run_id, False, "Cancelled by operator")
         raise JobCancelled("Cancelled by operator")
 
+    def _progress_note(self, run_id: str, title: str, step: int, text: str) -> None:
+        """A word on the progress card about the long sub-stage under way (the card went 5.6 minutes
+        without a change through motion, parallax and the master render: production, 2026-10-24).
+        Never fails the run."""
+        if not getattr(self, "progress_msg_id", None):
+            return
+        try:
+            self.telegram_bot.update_progress_card(self.progress_msg_id, step, 5, title, run_id, text)
+        except Exception as e:
+            log.debug("Progress note not shown: %s", e)
+
     def _finish_progress(self, title: str, run_id: str, success: bool, error: str = "") -> None:
         """Ends the run's progress card and its 'in production' record (idempotent)."""
         mid, self.progress_msg_id = getattr(self, "progress_msg_id", None), None
@@ -1631,6 +1642,7 @@ class PipelineCoordinator:
                                       "the Reel carries the AI label") if motion_used else ""
             self._check_cancel(run_id)
             # 2.5D parallax clips for the stills (local GPU); falls back to flat camera moves.
+            self._progress_note(run_id, topic.get("title", run_id), 3, "Synthesizing graphics, stills & motion · animating the stills")
             t0 = time.perf_counter()
             try:
                 scenes = render_parallax(scenes, durations, run_dir / "parallax", TRANS_DUR) or scenes
@@ -1649,6 +1661,7 @@ class PipelineCoordinator:
                              "fonts": packaging_inputs["fonts"]}
             self._check_cancel(run_id)
             if not render_checkpoint.reusable("master", render_inputs):
+                self._progress_note(run_id, topic.get("title", run_id), 3, "Synthesizing graphics, stills & motion · rendering the master video")
                 self.video_composer.compose_video(scenes, vo_path, bed_path, words, vo_dur, master_mp4, durations=durations,
                                                   emphasis=payload.get("emphasis_words"))
                 outputs = [master_mp4, master_mp4.with_name(master_mp4.stem + "_captions.ass"),

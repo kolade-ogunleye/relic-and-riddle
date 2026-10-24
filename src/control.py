@@ -510,6 +510,23 @@ def spend_summary(db: PipelineDatabase) -> str:
 
 REACHED_REVIEW = {"pending_approval", "approved", "rejected", "regenerate", "timeout", "simulated", "published",
                   "scheduled", "publish_unknown", "publishing"}
+RERENDER_HOURS = 48  # a late failure older than this is not offered on the dashboard (Render it afresh)
+
+
+def rerenderable(db: PipelineDatabase) -> Optional[Dict[str, Any]]:
+    """The newest recent run that failed after its video was made and whose topic has not been made again
+    since: the one Re-render on the dashboard offers."""
+    from datetime import datetime, timedelta, timezone
+    since = (datetime.now(timezone.utc) - timedelta(hours=RERENDER_HOURS)).isoformat()
+    made_since: set = set()
+    for r in db.list_recent_runs(limit=10):
+        if (r.get("updated_at") or r.get("created_at") or "") < since:
+            break
+        if r.get("status") == "failed" and r.get("master_video_path") and r.get("topic_id") not in made_since:
+            return r
+        if r.get("status") in REACHED_REVIEW:
+            made_since.add(r.get("topic_id"))
+    return None
 
 
 def health_line(db: PipelineDatabase, days: int = 7) -> str:
@@ -709,9 +726,12 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     row1 = [{"text": f"🎬 Reviews ({waiting_reviews})", "callback_data": "creviews:"}] if waiting_reviews else []
     if waiting_proposals:
         row1.append({"text": f"🧭 Proposals ({len(waiting_proposals)})", "callback_data": "cimprove:"})
-    if recent and recent[0].get("status") == "failed" and recent[0].get("master_video_path") and not active:
-        # A run that failed after its video was made (the release gate, say) is made again in place.
-        row1.append({"text": "🔁 Re-render", "callback_data": f"rerender:{db.run_key(recent[0]['run_id'])}"})
+    late = rerenderable(db) if not active else None
+    if late:
+        # A run that failed after its video was made (the release gate, say) is made again in place. Not only
+        # the latest run: a cancelled scheduled run hid the button for the run that mattered (2026-10-24).
+        text = "🔁 Re-render" if recent and late["run_id"] == recent[0]["run_id"] else f"🔁 Re-render: {clip_words(db.run_label(late['run_id']), 28)}"
+        row1.append({"text": text, "callback_data": f"rerender:{db.run_key(late['run_id'])}"})
     buttons = [row1] if row1 else []
     buttons += [
         [{"text": "⚡ Progress" if active else (f"⚡ Render #{next((i for i,t in enumerate(topics,1) if next_t and t['id']==next_t['id']),1)} now"),

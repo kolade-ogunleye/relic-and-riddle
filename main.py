@@ -993,6 +993,7 @@ class PipelineCoordinator:
         run_dir = OUTPUT_DIR / run_id
         if not run_dir.is_dir():
             raise ValueError(f"Run folder {run_dir} no longer exists.")
+        dry_run = dry_run or self.db.get_setting("run_mode:" + run_id) == "dry_run"  # as it was made
         topic = self.topic_engine.get_topic_by_id(run["topic_id"])
         previous_status = "published" if topic["times_published"] else "queued"
         self.db.update_run(run_id, "producing")
@@ -1004,9 +1005,30 @@ class PipelineCoordinator:
             self.db.update_run(run_id, "failed", error=f"{type(e).__name__}: {e}")
             self.topic_engine.record_status(topic["id"], "failed", run_id=run_id)
             log.error("Run %s failed: %s", run_id, e)
-            self._alert(f"❌ <b><u>PRODUCTION FAILED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n{html.escape(str(e))[:600]}\n\nNothing was posted. The topic will be retried on a later run.")
+            card_shown = False
+            if getattr(self, "progress_msg_id", None):  # as in run_cycle: the progress card becomes the failure card
+                try:
+                    card_shown = bool(self.telegram_bot.finish_progress_card(self.progress_msg_id, topic["title"], run_id,
+                                                                             success=False, error=str(e)))
+                except Exception:
+                    pass
+                self.progress_msg_id = None
+            if not card_shown:
+                self._alert(f"❌ <b><u>PRODUCTION FAILED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n{html.escape(str(e))[:600]}\n\nNothing was posted. The topic will be retried on a later run.")
             ping_healthcheck("/fail")
             raise
+
+    def rerender_refusal(self, run_id: str) -> Optional[str]:
+        """Why a failed run can't be re-rendered in place, or None. Only a run that got as far as a video
+        (a late failure, e.g. the release gate) qualifies: its script, voice and clips are reused."""
+        run = self.db.get_run(run_id)
+        if not run:
+            return "That run is no longer recorded."
+        if run["status"] != "failed":
+            return f"That run is {run['status'].replace('_', ' ')}, not failed."
+        if not run.get("master_video_path") or not (OUTPUT_DIR / run_id).is_dir():
+            return "That run failed before it had a video; Render the topic again instead."
+        return None
 
     def voice_inputs(self, script: str, dry_run: bool) -> Dict[str, Any]:
         """What a voiceover depends on (its checkpoint inputs): a change to any of these re-voices.
@@ -1016,6 +1038,19 @@ class PipelineCoordinator:
                 "eleven_model": config.ELEVENLABS_MODEL,
                 "licensed_only": (not dry_run) and config.VOICE_REQUIRE_LICENSED,
                 "allow_paid": (not dry_run) or config.ELEVENLABS_IN_DRY_RUNS or self.paid_voice_in_dry_run}
+
+    @staticmethod
+    def voice_reusable(checkpoints, voice_inputs: Dict[str, Any], saved_voice: Dict[str, Any], dry_run: bool) -> bool:
+        """Whether the run's voiceover is kept. A real run never reuses an unlicensed (test) voiceover; a
+        licensed one already paid for this exact script satisfies any run (a resume with paid voice off
+        re-voiced it with the free voice, and a live run would have paid for it again)."""
+        if checkpoints.reusable("voice", voice_inputs):
+            return dry_run or not config.VOICE_REQUIRE_LICENSED or bool(saved_voice.get("licensed"))
+        if saved_voice.get("licensed") and any(
+                checkpoints.reusable("voice", {**voice_inputs, "allow_paid": True, "licensed_only": lic}) for lic in (True, False)):
+            log.info("Keeping the licensed voiceover already made for this script.")
+            return True
+        return False
 
     def _produce_and_publish(self, topic, run_id, run_dir, auto_approve, dry_run, previous_status) -> Dict[str, Any]:
         self._check_cancel(run_id)
@@ -1096,7 +1131,7 @@ class PipelineCoordinator:
             voice_inputs["speed"] = speech_speed
         licensed_req, allow_paid = voice_inputs["licensed_only"], voice_inputs["allow_paid"]
         t0 = time.perf_counter()
-        reusable = checkpoints.reusable("voice", voice_inputs) and (dry_run or not config.VOICE_REQUIRE_LICENSED or saved_voice.get("licensed"))
+        reusable = self.voice_reusable(checkpoints, voice_inputs, saved_voice, dry_run)
         if reusable:
             words = json.loads(words_path.read_text(encoding="utf-8"))
             log.info("Resuming with the existing voiceover.")
@@ -1885,8 +1920,13 @@ def _write_result(path: Optional[str], result: Dict[str, Any]) -> None:
         log.warning("Could not write the run result to %s: %s", path, e)
 
 
+def rerender_started(db, run_id: str) -> str:
+    return (f"🔁 <b>Re-rendering</b> {html.escape(db.run_label(run_id))}: its script, voiceover and accepted motion "
+            "clips are reused, so nothing already paid for is bought again. A new review card comes when it's ready.")
+
+
 def run_in_worker(content_format: str, dry_run: bool, schedule_posts: bool, timeout: Optional[float] = None,
-                  extra: Optional[List[str]] = None) -> Dict[str, Any]:
+                  extra: Optional[List[str]] = None, resume: Optional[str] = None) -> Dict[str, Any]:
     """Runs one production cycle in its own process (main.py run), as the development bot already does.
     A native crash in a run (2026-10-23: a GPU library brought a worker down) then costs that run only,
     not the daemon with its bot and schedule. The daemon's poller keeps handling Telegram; the worker
@@ -1895,8 +1935,9 @@ def run_in_worker(content_format: str, dry_run: bool, schedule_posts: bool, time
     import tempfile
     fd, result_path = tempfile.mkstemp(prefix="rr-run-", suffix=".json")
     os.close(fd)
-    cmd = ([sys.executable, "-u", "main.py", "run", "--require-live", "--background-polling",
-            "--format", content_format, "--result-file", result_path]
+    # `resume`: re-render that failed run in place (its script, voice and clips are reused).
+    command = ["resume", resume] if resume else ["run", "--require-live", "--format", content_format]
+    cmd = ([sys.executable, "-u", "main.py", *command, "--background-polling", "--result-file", result_path]
            + (["--dry-run"] if dry_run else []) + (["--schedule-posts"] if schedule_posts else []) + list(extra or []))
     try:
         proc = subprocess.run(cmd, cwd=str(config.BASE_DIR), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
@@ -2159,6 +2200,10 @@ def main(argv=None) -> int:
     resume_p.add_argument("run_id")
     resume_p.add_argument("--auto-approve", action="store_true")
     resume_p.add_argument("--dry-run", action="store_true")
+    resume_p.add_argument("--background-polling", action="store_true", help="Tell bot that supervisor is polling getUpdates")
+    resume_p.add_argument("--result-file", help="Write the outcome here as JSON (the daemon's worker contract)")
+    resume_p.add_argument("--schedule-posts", action="store_true",
+                          help="Once approved, book the Reel into the next posting slot instead of posting at once")
 
     sub.add_parser("bot", help="Run only the Telegram bot (image review, approvals, /status); no scheduled runs")
     facts_p = sub.add_parser("facts", help="Build verified fact sheets ahead of production")
@@ -2261,15 +2306,22 @@ def main(argv=None) -> int:
         return 0 if res["status"] in RUN_COMPLETED_STATUSES else 1
 
     if args.command == "resume":
+        result_file = getattr(args, "result_file", None)
         try:
-            res = PipelineCoordinator().resume_run(args.run_id, args.auto_approve, args.dry_run)
+            coordinator = PipelineCoordinator(schedule_posts=True) if args.schedule_posts else PipelineCoordinator()
+            if args.background_polling:
+                coordinator.telegram_bot.background_polling = True
+            res = coordinator.resume_run(args.run_id, args.auto_approve, args.dry_run)
         except ValueError as e:
             print(f"Refusing: {e}")
+            _write_result(result_file, {"status": "refused", "error": str(e)[:500]})
             return 1
-        except Exception:
+        except Exception as e:
+            _write_result(result_file, {"status": "failed", "error": f"{type(e).__name__}: {e}"[:500]})
             return 1  # already logged and recorded on the run
+        _write_result(result_file, {k: res.get(k) for k in ("status", "run_id") if k in res})
         print(json.dumps({k: res.get(k) for k in ("status", "run_id", "master_video")}, indent=2))
-        return 0 if res["status"] in ("published", "simulated") else 1
+        return 0 if res["status"] in RUN_COMPLETED_STATUSES else 1
 
     if args.command == "policy":
         import re
@@ -2350,7 +2402,7 @@ def main(argv=None) -> int:
         def trigger_run(content_format: str = "reel") -> str:
             return launch_worker(content_format)
 
-        def launch_worker(content_format: str = "reel", extra: Optional[List[str]] = None) -> str:
+        def launch_worker(content_format: str = "reel", extra: Optional[List[str]] = None, resume: Optional[str] = None) -> str:
             nonlocal worker_proc
             if run_lock.locked() or (worker_proc is not None and worker_proc.poll() is None):
                 pid_info = f" (PID {worker_proc.pid})" if worker_proc else ""
@@ -2379,8 +2431,9 @@ def main(argv=None) -> int:
 
             from src.config import BASE_DIR
             # With posting slots on, the worker books the approved Reel like the daemon does.
+            command = ["resume", resume] if resume else ["run", "--require-live", "--format", content_format]
             worker_proc = subprocess.Popen(
-                [sys.executable, "-u", "main.py", "run", "--require-live", "--background-polling", "--format", content_format]
+                [sys.executable, "-u", "main.py", *command, "--background-polling"]
                 + (["--dry-run"] if config.BOT_RUNS_DRY else [])  # nothing posts from a bot-started run by default
                 + (["--schedule-posts"] if POST_SCHEDULING else []) + list(extra or []),
                 cwd=str(BASE_DIR),
@@ -2390,6 +2443,13 @@ def main(argv=None) -> int:
             )
             threading.Thread(target=monitor_worker, args=(worker_proc,), name="worker-monitor", daemon=True).start()
             return f"🎬 Production run launched in isolated worker (PID {worker_proc.pid}). Live progress updates will stream here."
+
+        def rerender_in_bot(run_id: str) -> str:
+            refusal = coordinator.rerender_refusal(run_id)
+            if refusal:
+                return f"🔁 {html.escape(refusal)}"
+            started = launch_worker(resume=run_id)
+            return started if "already in progress" in started else rerender_started(db, run_id)
 
         bot.next_run_func = lambda: "on-demand (bot supervisor)"
         handler = make_command_handler(
@@ -2401,7 +2461,8 @@ def main(argv=None) -> int:
                          "pubno": coordinator.confirm_not_posted,
                          "resend": resend_for_review,
                          "edit": getattr(coordinator, "edit_copy", None),
-                         "simpub": coordinator.simulate_publish}
+                         "simpub": coordinator.simulate_publish,
+                         "rerender": rerender_in_bot}
         )
         if POST_SCHEDULING:  # what this mode books, it also posts when due
             start_post_ticker(coordinator, bot)
@@ -2461,7 +2522,8 @@ def main(argv=None) -> int:
         bot.register_commands()
         run_lock = threading.Lock()  # one production run at a time (daily job or /run)
 
-        def production_run(manual: bool = False, content_format: str = "reel", extra: Optional[List[str]] = None):
+        def production_run(manual: bool = False, content_format: str = "reel", extra: Optional[List[str]] = None,
+                           resume: Optional[str] = None):
             if not manual and is_paused(coordinator.db):
                 log.info("Scheduled run skipped: paused.")
                 bot.notify("⏸ Scheduled run skipped (paused). Send /resume to re-enable.",
@@ -2473,7 +2535,8 @@ def main(argv=None) -> int:
             try:
                 # Each run in its own process: a crash costs the run, never the daemon (its bot and schedule).
                 with busy_lease(coordinator.db, "the production run"):
-                    result = run_in_worker(content_format, dry_run=args.dry_run, schedule_posts=POST_SCHEDULING, extra=extra)
+                    result = run_in_worker(content_format, dry_run=args.dry_run, schedule_posts=POST_SCHEDULING, extra=extra,
+                                           resume=resume)
                 status = result.get("status")
                 if status in ("published", "simulated", "rejected", "scheduled"):
                     ping_healthcheck()
@@ -2486,6 +2549,8 @@ def main(argv=None) -> int:
                         bot.notify("📭 <b>Topic queue is empty</b>: every topic has been published, so today's run was skipped "
                                    "(repeating topics risks Meta's unoriginal-content rules).",
                                    [{"text": "💡 Propose new topics", "callback_data": "propose:"}])
+                elif status == "refused":  # a re-render the run's state no longer allows
+                    bot.notify(f"🔁 <b>Re-render not started</b>: {html.escape(str(result.get('error', '')))}")
                 elif status == "crashed":
                     code = result.get("exit_code")
                     log.error("Run worker crashed (exit %s); the daemon carries on.\n%s", code, result.get("stderr_tail", ""))
@@ -2727,6 +2792,15 @@ def main(argv=None) -> int:
             scheduler.add_job(production_run, kwargs={"manual": True, "content_format": content_format})
             return "🎬 Starting a run now. You'll get the review card when it's rendered; nothing posts without your approval."
 
+        def rerender_run(run_id: str) -> str:
+            refusal = coordinator.rerender_refusal(run_id)
+            if refusal:
+                return f"🔁 {html.escape(refusal)}"
+            if run_lock.locked():
+                return "🔁 A run is already in progress; Re-render this one when it has finished."
+            scheduler.add_job(production_run, kwargs={"manual": True, "resume": run_id})
+            return rerender_started(coordinator.db, run_id)
+
         bot.next_run_func = next_run
         handler = make_command_handler(coordinator.db, next_run, trigger_run, send_photo=bot.send_photo, send_audio=bot.send_audio, send_message=lambda text, buttons=None: bot.notify(text, buttons=buttons, record_alert=False), delete_message=bot.delete_message,
                                        voice_quota=coordinator.audio_engine.voice_quota,
@@ -2735,7 +2809,8 @@ def main(argv=None) -> int:
                                                     "pubno": coordinator.confirm_not_posted,
                                                     "resend": resend_for_review,
                                                     "edit": getattr(coordinator, "edit_copy", None),
-                                                    "simpub": coordinator.simulate_publish})
+                                                    "simpub": coordinator.simulate_publish,
+                                                    "rerender": rerender_run})
 
         def poll_telegram():
             while True:

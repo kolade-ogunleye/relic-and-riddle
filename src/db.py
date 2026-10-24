@@ -767,7 +767,7 @@ class PipelineDatabase:
     def list_recent_runs(self, limit: int = 5) -> List[Dict[str, Any]]:
         with self._conn() as conn:
             rows = conn.execute(
-                "SELECT run_id, topic_id, status, error, parent_run_id, content_format, updated_at FROM runs ORDER BY created_at DESC LIMIT ?", (limit,)
+                "SELECT run_id, topic_id, status, error, parent_run_id, content_format, updated_at, master_video_path FROM runs ORDER BY created_at DESC LIMIT ?", (limit,)
             ).fetchall()
         return [dict(r) for r in rows]
 

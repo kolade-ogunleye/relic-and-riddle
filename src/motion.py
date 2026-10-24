@@ -443,24 +443,22 @@ def apply(
     allow_paid=False (dry runs without --paid-motion): no paid clips, local parallax only."""
     memo = {} if memo is None else memo
     from .typography import is_video
-    if not allow_paid or config.MEDIA_MONTHLY_BUDGET_USD <= 0 or config.MOTION_MAX_CLIPS <= 0:
+    if config.MOTION_MAX_CLIPS <= 0:
         return scenes, []
+    # A clip this run already paid for is still on disk after a restart or a resume (the memo lives in
+    # memory): reusing it costs nothing, so it is used whether or not this pass may buy one.
+    memo.update({k: v for k, v in _clips_on_disk(work_dir).items() if k not in memo})
+    if not allow_paid or config.MEDIA_MONTHLY_BUDGET_USD <= 0:
+        reused = _reuse(scenes, memo)
+        return reused if reused[1] else (scenes, [])
     scenes, used = list(scenes), []
     work_dir.mkdir(parents=True, exist_ok=True)
 
     # Zero-waste guard: a clip already made in this run (e.g. before a re-plan) is reused, but only
     # where its own photo still appears: placed on another beat it would show the wrong subject.
-    if memo:
-        reused = []
-        for photo, (existing_clip, provider) in memo.items():
-            if Path(existing_clip).is_file():
-                for i in range(len(scenes)):
-                    if str(scenes[i]) == photo:
-                        scenes[i] = existing_clip
-                        reused.append(provider)
-                        break
-        if reused:
-            return scenes, reused
+    scenes, reused = _reuse(scenes, memo)
+    if reused:
+        return scenes, reused
 
     for i in range(len(scenes)):  # the opening beat first, then in order
         if len(used) >= config.MOTION_MAX_CLIPS:
@@ -479,3 +477,41 @@ def apply(
         scenes[i] = result[0]
         used.append(result[1])
     return scenes, used
+
+
+def _reuse(scenes: List[Path], memo: dict) -> Tuple[List[Path], List[str]]:
+    scenes, reused = list(scenes), []
+    for photo, (existing_clip, provider) in memo.items():
+        if len(reused) >= config.MOTION_MAX_CLIPS:
+            break
+        if Path(existing_clip).is_file():
+            for i in range(len(scenes)):
+                if str(scenes[i]) == photo or Path(scenes[i]).resolve() == Path(photo).resolve():
+                    scenes[i] = existing_clip
+                    reused.append(provider)
+                    break
+    return scenes, reused
+
+
+def _clips_on_disk(work_dir: Path) -> dict:
+    """{photo: (clip, provider)} for the accepted clips in work_dir. Lineage is written only for a clip
+    that passed its checks, and it must still verify: clip, anchor frame and photo unchanged."""
+    from .lineage import sidecar, source_chain
+    found = {}
+    for record in sorted(Path(work_dir).glob("motion_*.mp4.lineage.json")):
+        clip = Path(str(record)[: -len(".lineage.json")])
+        try:
+            data = json.loads(record.read_text(encoding="utf-8"))
+            if data.get("operation") != "ai_motion":
+                continue
+            source_chain(clip)  # raises on a changed clip, anchor or photo
+            anchor = Path(data["sources"][0]["path"])
+            photo = anchor
+            if sidecar(anchor).is_file():
+                anchor_data = json.loads(sidecar(anchor).read_text(encoding="utf-8"))
+                if anchor_data.get("operation") == "motion_anchor_frame":
+                    photo = Path(anchor_data["sources"][0]["path"])
+            found[str(photo)] = (clip, (data.get("settings") or {}).get("provider", "ai-motion"))
+        except (OSError, ValueError, KeyError, IndexError, TypeError) as e:
+            log.info("Motion: not reusing %s (%s).", clip.name, e)
+    return found

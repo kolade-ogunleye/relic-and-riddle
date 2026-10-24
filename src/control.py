@@ -414,7 +414,7 @@ def quota_lines(voice_quota: Optional[dict]) -> List[str]:
 AUDIT_NAMES = {"cdash": "Dashboard", "approve": "Approve", "reject": "Reject", "regen": "Regenerate",
                "cancel": "Cancel review", "rsn": "Reason", "cprog": "Refresh progress", "qrender": "Render",
                "qdoc": "Render with documentary", "qrefresh": "Refresh queue", "qbump": "Bump", "qdrop": "Drop",
-               "resend": "Resend review", "edit": "Edit text", "runstop": "Cancel run", "runstopok": "Confirm cancel",
+               "resend": "Resend review", "rerender": "Re-render", "edit": "Edit text", "runstop": "Cancel run", "runstopok": "Confirm cancel",
                "simpub": "Simulated publish", "pubok": "It posted", "pubno": "It didn't post", "creviews": "Reviews",
                "cideas": "Topic ideas", "cdisc": "UNESCO marvels", "cprop": "Waiting ideas", "cpropose": "Research ideas",
                "cimages": "Images", "cmusic": "Music", "cstat": "Full status", "jobs": "Jobs", "jobcancel": "Cancel job",
@@ -633,6 +633,9 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     row1 = [{"text": f"🎬 Reviews ({waiting_reviews})", "callback_data": "creviews:"}] if waiting_reviews else []
     if waiting_proposals:
         row1.append({"text": f"🧭 Proposals ({len(waiting_proposals)})", "callback_data": "cimprove:"})
+    if recent and recent[0].get("status") == "failed" and recent[0].get("master_video_path") and not active:
+        # A run that failed after its video was made (the release gate, say) is made again in place.
+        row1.append({"text": "🔁 Re-render", "callback_data": f"rerender:{db.run_key(recent[0]['run_id'])}"})
     buttons = [row1] if row1 else []
     buttons += [
         [{"text": "⚡ Progress" if active else (f"⚡ Render #{next((i for i,t in enumerate(topics,1) if next_t and t['id']==next_t['id']),1)} now"),
@@ -1484,7 +1487,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             if send_audio is None or not send_audio(music.MUSIC_DIR / nxt["file"], (reply + "\n\n" if reply else "") + music.review_caption(nxt, len(pending)), buttons):
                 return (reply + "\n" if reply else "") + music.review_caption(nxt, len(pending))
             return reply or ""
-        if command in ("pubok", "pubno", "resend", "simpub"):
+        if command in ("pubok", "pubno", "resend", "simpub", "rerender"):
             action = (run_actions or {}).get(command)
             if action is None:
                 return "That button only works while the daemon is running."

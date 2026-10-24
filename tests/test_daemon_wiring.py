@@ -184,7 +184,7 @@ def _daemon_run(monkeypatch, daemon_env, result, dry_run=True):
 def test_daemon_runs_production_in_a_worker_process(daemon_env, monkeypatch):
     # 2026-10-23: a native crash in a run would have taken the daemon (its bot and schedule) down with it.
     calls, notes, cleared = _daemon_run(monkeypatch, daemon_env, {"status": "simulated", "run_id": "r1"})
-    assert calls == [("dual", {"dry_run": True, "schedule_posts": main.POST_SCHEDULING, "extra": None})]
+    assert calls == [("dual", {"dry_run": True, "schedule_posts": main.POST_SCHEDULING, "extra": None, "resume": None})]
     assert notes == ["ping"] and not cleared
 
 

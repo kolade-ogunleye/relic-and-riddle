@@ -57,7 +57,7 @@ PANEL_ACTIONS = {"reviewpick", "pickbump", "pickdrop", "cideas", "cpropose", "cc
 DELETE_FIRST = {"tskip"}
 # Decision buttons: disabled before acting so a second tap can't repeat the decision.
 ONE_SHOT = {"uadd", "tadd", "imgok", "mkeep", "cov", "rsn", "impok", "impno", "imprev",
-            "pubok", "pubno", "simpub", "resend"}
+            "pubok", "pubno", "simpub", "resend", "rerender"}
 # Replies that replace the card they came from (text only).
 EDIT_IN_PLACE = {"uadd", "tadd", "simpub", "rsn", "impok", "impno", "imprev"}
 TOASTS = {"imgok": "✅ Storyboard Approved!", "imgcancel": "✖ Cancelled", "mcancel": "✖ Cancelled",
@@ -1642,11 +1642,17 @@ class TelegramApprovalBot:
             # The run's one failure card (the separate "Production failed" alert is not sent as well).
             from .control import short_reason
             # The whole reason, folded (as on the dashboard): 600 characters cut a release finding mid-way.
+            late = bool(run and run.get("master_video_path"))
             text = (f"❌ <b>Production failed:</b> {html.escape(self.db.run_label(run_id))}\n\n"
                     f"<blockquote expandable>{html.escape(short_reason(error, 1200))}</blockquote>\n\n"
-                    "Nothing was posted. The topic will be retried on a later run.\n\n"
-                    "<i>Reply to this card with a question to ask about this run.</i>")
-            return self.edit_message_text(message_id, text, buttons=[[DONE_BUTTON]])
+                    + ("Nothing was posted. Re-render plans its scenes again and re-checks it, reusing its "
+                       "script, voiceover and accepted motion clips.\n\n" if late else
+                       "Nothing was posted. The topic will be retried on a later run.\n\n")
+                    + "<i>Reply to this card with a question to ask about this run.</i>")
+            buttons = [[DONE_BUTTON]]
+            if late:  # it got as far as a video (the release gate, say), so it can be made again in place
+                buttons.insert(0, [{"text": "🔁 Re-render", "callback_data": f"rerender:{self.db.run_key(run_id)}"}])
+            return self.edit_message_text(message_id, text, buttons=buttons)
         else:
             return self.delete_message(message_id)
 

@@ -1441,9 +1441,20 @@ class TelegramApprovalBot:
                     buttons=buttons, record_alert=False)
 
     # ------------------------------------------------------------ notifications
-    def notify(self, text: str, buttons: Optional[list] = None, transient: bool = False, ttl_minutes: int = 60, record_alert: bool = True, silent: bool = False) -> bool:
+    NOTICE_TTL_MINUTES = 360  # an informational notice leaves the chat after this; its record stays in the database
+
+    def notify(self, text: str, buttons: Optional[list] = None, transient: Optional[bool] = None, ttl_minutes: Optional[int] = None,
+               record_alert: bool = True, silent: bool = False) -> bool:
         """Sends an operational message (HTML), optionally with inline buttons (single or multi-row).
-        Never raises: alerts must not break a run."""
+        Never raises: alerts must not break a run.
+        One live panel in the chat (operator, 2026-10-24): a notice that asks nothing (no buttons of its
+        own) is transient and is deleted after NOTICE_TTL_MINUTES, since the dashboard and the alerts
+        record carry it; a notice with buttons wants an action and stays until it is acted on. Callers may
+        still say transient=True/False and give their own ttl_minutes."""
+        if transient is None:
+            transient = not buttons
+        if ttl_minutes is None:
+            ttl_minutes = self.NOTICE_TTL_MINUTES if transient else 0
         panel = _PANEL.get()
         if panel and panel[0] is self:
             if len(panel) > 4 and self._panel_revisions.get(self._current_panel(panel[1]), 0) != panel[4]:

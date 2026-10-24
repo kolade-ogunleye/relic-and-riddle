@@ -455,7 +455,8 @@ def quota_lines(voice_quota: Optional[dict]) -> List[str]:
 AUDIT_NAMES = {"cdash": "Dashboard", "approve": "Approve", "reject": "Reject", "regen": "Regenerate",
                "cancel": "Cancel review", "rsn": "Reason", "cprog": "Refresh progress", "qrender": "Render",
                "qdoc": "Render with documentary", "qrefresh": "Refresh queue", "qbump": "Bump", "qdrop": "Drop",
-               "resend": "Resend review", "rerender": "Re-render", "edit": "Edit text", "runstop": "Cancel run", "runstopok": "Confirm cancel",
+               "resend": "Resend review", "rerender": "Re-render", "postreal": "Post for real?", "promote": "Post for real",
+               "edit": "Edit text", "runstop": "Cancel run", "runstopok": "Confirm cancel",
                "simpub": "Simulated publish", "pubok": "It posted", "pubno": "It didn't post", "creviews": "Reviews",
                "cideas": "Topic ideas", "cdisc": "UNESCO marvels", "cprop": "Waiting ideas", "cpropose": "Research ideas",
                "cimages": "Images", "cmusic": "Music", "cstat": "Full status", "jobs": "Jobs", "jobcancel": "Cancel job",
@@ -659,6 +660,21 @@ def last_review_outcome(db: PipelineDatabase) -> Optional[str]:
     return f"🧾 <b>Last review</b> · {record['text']}"
 
 
+def post_candidates(db: PipelineDatabase, hours: int = 48, limit: int = 3) -> List[Dict[str, Any]]:
+    """Finished dry runs (simulated) of the last `hours`, newest first: what "Post for real" can publish."""
+    from datetime import datetime, timedelta, timezone
+    since = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
+    out = []
+    for r in db.list_recent_runs(limit=20):
+        if (r.get("updated_at") or r.get("created_at") or "") < since:
+            break
+        if r.get("status") == "simulated" and r.get("master_video_path"):
+            out.append(r)
+        if len(out) >= limit:
+            break
+    return out
+
+
 def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = None, assets_dir: Path = ASSETS_DIR) -> Tuple[str, List[List[Dict[str, str]]]]:
     """What needs you first (reviews, proposals, problems), then the state of production."""
     e = html.escape
@@ -743,6 +759,10 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     row1 = [{"text": f"🎬 Reviews ({waiting_reviews})", "callback_data": "creviews:"}] if waiting_reviews else []
     if waiting_proposals:
         row1.append({"text": f"🧭 Proposals ({len(waiting_proposals)})", "callback_data": "cimprove:"})
+    candidates = post_candidates(db, limit=1) if not active else []
+    if candidates:  # a finished dry run can be posted for real from here (asked to confirm first)
+        row1.append({"text": f"🚀 Post for real: {clip_words(db.run_label(candidates[0]['run_id']), 24)}",
+                     "callback_data": f"postreal:{db.run_key(candidates[0]['run_id'])}"})
     if late:
         # A run that failed after its video was made (the release gate, say) is made again in place. Not only
         # the latest run: a cancelled scheduled run hid the button for the run that mattered (2026-10-24).
@@ -1314,8 +1334,17 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command == "creviews":
             pending = db.list_pending_approvals()
             timed_out = db.timed_out_reviews() if hasattr(db, "timed_out_reviews") else []
-            if not pending and not timed_out:
+            candidates = post_candidates(db)
+            if not pending and not timed_out and not candidates:
                 return "No reviews are waiting."
+            if not pending and not timed_out:
+                lines = ["🚀 <b>Post candidates</b> · finished dry runs of the last two days; each asks you to confirm.", ""]
+                buttons = []
+                for r in candidates:
+                    lines.append(f"• {html.escape(db.run_label(r['run_id']))}")
+                    buttons.append([{"text": f"🚀 Post for real: {clip_words(db.run_label(r['run_id']), 26)}",
+                                     "callback_data": f"postreal:{db.run_key(r['run_id'])}"}])
+                return "\n".join(lines), buttons + [[HOME]]
             # Where the card is can't be promised: the chat may have been cleared or the card deleted.
             lines = ["🎬 <b>Reviews waiting</b>", "",
                      "Resend sends a review card again at the bottom of the chat, with its video, and removes the "
@@ -1594,7 +1623,23 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             if send_audio is None or not send_audio(music.MUSIC_DIR / nxt["file"], (reply + "\n\n" if reply else "") + music.review_caption(nxt, len(pending)), buttons):
                 return (reply + "\n" if reply else "") + music.review_caption(nxt, len(pending))
             return reply or ""
-        if command in ("pubok", "pubno", "resend", "simpub", "rerender"):
+        if command in ("post", "postreal"):
+            # Your per-video go-ahead for a finished dry run: asked once, then "promote" does it (the daemon
+            # stays in dry-run mode; only this run is posted or booked). Before, a good dry-run output could
+            # be posted only from the command line as the pipeline account (2026-10-24).
+            run_id = db.resolve_run(args.strip())
+            run = db.get_run(run_id)
+            if not run:
+                return "🚀 Unknown run. Use the Run ID from its card or receipt."
+            if run.get("status") not in ("simulated", "approved"):
+                return f"🚀 {html.escape(db.run_label(run_id))} is {html.escape(run['status'].replace('_', ' '))}; only a finished dry run (simulated) can be posted."
+            from . import config as app_config
+            where = "booked into the next free posting slot (Stories after it, the carousel in its next slot)" if app_config.POST_SCHEDULING else "posted now"
+            return (f"🚀 <b>Post this for real?</b>\n\n{html.escape(db.run_label(run_id))}\n\n"
+                    f"It will be {where} on Facebook, Instagram and YouTube, after the release checks run in live mode. "
+                    "This is the one action that publishes; the daily runs stay in dry-run mode.",
+                    [[{"text": "✅ Yes, post it", "callback_data": f"promote:{db.run_key(run_id)}"}], [HOME]])
+        if command in ("pubok", "pubno", "resend", "simpub", "rerender", "promote"):
             action = (run_actions or {}).get(command)
             if action is None:
                 return "That button only works while the daemon is running."

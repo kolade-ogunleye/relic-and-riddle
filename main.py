@@ -157,6 +157,7 @@ class PipelineCoordinator:
     def __init__(self, db: Optional[PipelineDatabase] = None, schedule_posts: bool = False):
         # schedule_posts: approved Reels wait for their posting slot (daemon); otherwise post at once (CLI).
         self.schedule_posts = schedule_posts
+        self.only_promoted = False  # a dry-run daemon: booked posts fire only for runs promoted with "Post for real"
         self.paid_voice_in_dry_run = False  # `--paid-voice`: this dry run may use ElevenLabs
         self.paid_motion_in_dry_run = False  # `--paid-motion`: this dry run may buy a motion clip
         # Imported here so `health`/`topic`/`review` work even if a media dependency is broken.
@@ -1141,6 +1142,42 @@ class PipelineCoordinator:
             return []
         return ["--regenerate-from", run_id, "--topic-id", str(run.get("topic_id") or "")]
 
+    # ------------------------------------------------------------ posting a dry-run result for real
+    def promote_run(self, run_id: str) -> str:
+        """Your per-video go-ahead: a finished dry run (simulated) is posted for real while the daemon
+        stays in dry-run mode. The live release gate decides first. With posting slots on, the Reel is
+        booked and this daemon posts it when due (from a dry-run daemon only promoted runs post);
+        otherwise it posts now. Returns what happened, in words (never raises for the operator)."""
+        run = self.db.get_run(run_id)
+        if not run:
+            return "🚀 That run is no longer recorded."
+        if run["status"] not in PROMOTABLE_STATUSES:
+            return f"🚀 That run is {run['status'].replace('_', ' ')}; only a finished dry run (simulated) can be posted."
+        from src.release import require_release
+        try:
+            require_release(run, dry_run=False)
+        except ValueError as e:
+            return f"🚀 Not posted: {html.escape(str(e))}"
+        self.db.set_setting(PROMOTED_PREFIX + run_id, datetime.now(timezone.utc).isoformat())
+        label = html.escape(self.db.run_label(run_id))
+        try:
+            if self.schedule_posts and POST_SCHEDULING and run.get("content_format") != "deep_dive":
+                res = self.schedule_run(run_id)
+                when = post_schedule.fmt(datetime.fromisoformat(res["scheduled_for"]))
+                return (f"🚀 <b>{label}</b> is booked for real posting: Reel at {html.escape(when)}, Stories after it, "
+                        "the carousel in its next slot. This daemon posts it when due; you get the receipt here.")
+            res = self.publish_run(run_id, dry_run=False, previous_status="published" if run.get("times_published") else "queued")
+        except ValueError as e:
+            self.db.set_setting(PROMOTED_PREFIX + run_id, "")
+            return f"🚀 Not posted: {html.escape(str(e))}"
+        if res.get("status") == "published":
+            return f"🚀 <b>{label}</b> is posted."
+        return f"🚀 <b>{label}</b>: publishing ended with status '{html.escape(str(res.get('status')))}'; see the receipt above."
+
+    def _may_post(self, run_id: str) -> bool:
+        """From a dry-run daemon only a run you promoted posts; a live daemon posts every booked run."""
+        return (not self.only_promoted) or bool(self.db.get_setting(PROMOTED_PREFIX + run_id))
+
     def voice_inputs(self, script: str, dry_run: bool) -> Dict[str, Any]:
         """What a voiceover depends on (its checkpoint inputs): a change to any of these re-voices.
         Real runs need a licensed voice; dry runs don't spend ElevenLabs credits."""
@@ -1808,7 +1845,7 @@ class PipelineCoordinator:
         now = now or datetime.now(timezone.utc)
         for post in self.db.list_scheduled_posts(("pending",)):
             due = datetime.fromisoformat(post["due_at"])
-            if due > now:
+            if due > now or not self._may_post(post["run_id"]):
                 continue
             run = self.db.get_run(post["run_id"]) or {}
             if post["kind"] == "reel":
@@ -1884,7 +1921,7 @@ class PipelineCoordinator:
             return
         if self.db.get_setting("carousel_posted_on") == local.date().isoformat():
             return
-        waiting = self.db.list_scheduled_posts(("waiting",))
+        waiting = [p for p in self.db.list_scheduled_posts(("waiting",)) if self._may_post(p["run_id"])]
         for post in waiting:  # a week-old carousel is stale next to newer Reels
             if now - datetime.fromisoformat(post["created_at"]) > timedelta(days=7):
                 self.db.update_scheduled_post(post["id"], "expired")
@@ -2093,6 +2130,8 @@ def poll_loop(bot, handler) -> None:
 
 
 REMAKE_STATUSES = ("failed", "rejected")  # runs with a video that Re-render makes again without paying twice
+PROMOTABLE_STATUSES = ("simulated", "approved")  # a finished dry run that "Post for real" may publish
+PROMOTED_PREFIX = "promoted:"  # setting: the run was promoted to real posting (and when)
 
 
 def regeneration_topic(db, previous: str) -> Optional[str]:
@@ -2651,9 +2690,11 @@ def main(argv=None) -> int:
                          "resend": resend_for_review,
                          "edit": getattr(coordinator, "edit_copy", None),
                          "simpub": coordinator.simulate_publish,
-                         "rerender": rerender_in_bot}
+                         "rerender": rerender_in_bot,
+                         "promote": getattr(coordinator, "promote_run", None)}
         )
         if POST_SCHEDULING:  # what this mode books, it also posts when due
+            coordinator.only_promoted = bool(config.BOT_RUNS_DRY)  # bot-started runs are dry: only promoted ones post
             start_post_ticker(coordinator, bot)
         bot.background_polling = True  # set before any review wait starts (see below)
         resume_reviews(coordinator, follow_review, review_waits)
@@ -2794,7 +2835,8 @@ def main(argv=None) -> int:
 
         scheduler.add_job(watch_deployer, "interval", seconds=20, max_instances=1, coalesce=True)
 
-        if POST_SCHEDULING and not args.dry_run:  # approved Reels are booked into slots; this publishes them when due
+        if POST_SCHEDULING:  # approved Reels are booked into slots; this publishes them when due
+            coordinator.only_promoted = bool(args.dry_run)  # a dry-run daemon posts only runs promoted with "Post for real"
             scheduler.add_job(post_due, "interval", minutes=1, max_instances=1, coalesce=True)
 
         from src import maintenance
@@ -3012,7 +3054,8 @@ def main(argv=None) -> int:
                                                     "resend": resend_for_review,
                                                     "edit": getattr(coordinator, "edit_copy", None),
                                                     "simpub": coordinator.simulate_publish,
-                                                    "rerender": rerender_run})
+                                                    "rerender": rerender_run,
+                                                    "promote": getattr(coordinator, "promote_run", None)})
 
         def poll_telegram():
             poll_loop(bot, handler)

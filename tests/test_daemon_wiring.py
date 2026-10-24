@@ -147,10 +147,16 @@ def test_run_command_schedules_only_when_asked(monkeypatch):
     assert made == [{}, {"schedule_posts": True}]
 
 
-def test_daemon_dry_run_never_books_or_posts(daemon_env, monkeypatch):
+def test_daemon_dry_run_posts_only_promoted_runs(daemon_env, monkeypatch):
+    # A dry-run daemon registered no posting job at all; now it runs the posting pass for runs the operator
+    # promoted with "Post for real" and nothing else (2026-10-24).
     monkeypatch.setattr(main, "POST_SCHEDULING", True)
     assert main.main(["daemon", "--time", "07:00", "--dry-run"]) == 0
-    assert not [t for _, t, k in FakeScheduler.instances[-1].jobs if t == "interval" and k.get("minutes") == 1]  # no posting job
+    jobs = [f for f, t, k in FakeScheduler.instances[-1].jobs if t == "interval" and k.get("minutes") == 1]
+    assert len(jobs) == 1
+    jobs[0]()
+    assert daemon_env == [1]                                    # the posting pass ran...
+    assert main.PipelineCoordinator().only_promoted is True     # ...and it posts only promoted runs
 
 
 @pytest.mark.parametrize("dry", [True, False])

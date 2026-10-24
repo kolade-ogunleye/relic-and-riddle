@@ -128,3 +128,15 @@ def test_proposals_need_separate_runs_and_open_reports(db, monkeypatch, tmp_path
     improve.sync_issue_files(db)
     with db._conn() as conn:
         assert conn.execute("SELECT COUNT(*) FROM findings WHERE klass = 'issue.bot'").fetchone()[0] == 0
+
+
+def test_a_video_check_finding_is_filed_in_its_own_class_not_the_scripts():
+    # Production, Antikythera, 2026-10-24: a graphic/narration mismatch was filed as video.length because
+    # the script patterns read "the spoken narration states" as a length complaint.
+    from src.improve import classify_qa
+    assert classify_qa("The graphic on screen states '29 bronze gears visible today', whereas the spoken narration "
+                       "states '30 of which remain visible today'.") == "video.text_mismatch"
+    assert classify_qa("Caption text runs under the lower safe zone.") == "video.captions"
+    assert classify_qa("The photo shows the wrong building: not the temple named.") == "video.picture_relevance"
+    assert classify_qa("The frame is very dark and grainy.") == "video.picture_quality"
+    assert classify_qa("Something else entirely.") == "video.other"

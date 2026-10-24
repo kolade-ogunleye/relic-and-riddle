@@ -70,6 +70,26 @@ CLASS_PATTERNS: List[Tuple[str, str]] = [
     (r"untraced|not traced|unsupported|disputed|fact", "script.facts"),
 ]
 
+# What the automated video check says about a frame, in its own classes: the script patterns above read
+# "the spoken narration states 30" as a length complaint and filed a graphic/narration mismatch under
+# video.length (production, Antikythera, 2026-10-24).
+QA_PATTERNS: List[Tuple[str, str]] = [
+    (r"whereas|contradict|does not match|mismatch|differs|states '|inconsisten", "video.text_mismatch"),
+    (r"caption|subtitle", "video.captions"),
+    (r"cut off|cropped|clipped|edge|safe.zone|overlap", "video.framing"),
+    (r"blur|dark|low.quality|pixelat|washed|grain", "video.picture_quality"),
+    (r"wrong (place|building|site|object)|unrelated|does not show|not the ", "video.picture_relevance"),
+    (r"cover|thumbnail", "video.cover"),
+]
+
+
+def classify_qa(text: str) -> str:
+    for pattern, klass in QA_PATTERNS:
+        if re.search(pattern, text, re.IGNORECASE):
+            return klass
+    return "video.other"
+
+
 _buffer: List[Dict[str, str]] = []
 _lock = threading.Lock()
 
@@ -140,7 +160,7 @@ def collect_run(db, run_id: str, run_dir: Optional[Path], payload: Optional[Dict
         qa = _read_json(Path(run_dir) / "qa_report.json")
         for issue in (qa or {}).get("issues", []) if isinstance(qa, dict) else []:
             text = issue.get("issue", "") if isinstance(issue, dict) else str(issue)
-            items.append({"klass": "video." + classify(text, "qa").split(".", 1)[1], "detail": text, "source": "qa"})
+            items.append({"klass": classify_qa(text), "detail": text, "source": "qa"})
     rounds = int(payload.get("script_rounds") or 0)
     if rounds > 2:  # each round is a minute or more; what sent the drafts back is what to fix
         reasons = " | ".join(r[:120] for r in payload.get("script_round_reasons") or [])

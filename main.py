@@ -455,11 +455,12 @@ class PipelineCoordinator:
         previous = self._previous_run_dir()
         return [previous / "motion"] if previous and (previous / "motion").is_dir() else []
 
-    def _seed_voice_from_previous(self, run_dir: Path, narration: str) -> None:
+    def _seed_voice_from_previous(self, run_dir: Path, narration: str, wanted: Optional[str] = None) -> None:
         """A regeneration for pictures, sound or a cover keeps the narration: the previous run's voiceover,
         its timing, provider record and checkpoint are copied in, so the voice stage reuses it instead of
         paying for it again (a Regenerate made a new run folder and re-voiced the same words, 2026-10-24).
-        Whether a copied voice may be used is still the voice stage's rule (a test voice never goes live)."""
+        Whether a copied voice may be used is still the voice stage's rule (a test voice never goes live);
+        `wanted` is the provider this run would use first, and a voice from another one is not carried."""
         previous = self._previous_run_dir()
         if previous is None or (run_dir / "voiceover.mp3").exists():
             return
@@ -471,6 +472,13 @@ class PipelineCoordinator:
             return
         names = ["voiceover.mp3", "words.json", "voice.json"]
         if meta.get("narration_script") != narration or not record.get("inputs") or not all((previous / n).is_file() for n in names):
+            return
+        try:
+            made_by = (json.loads((previous / "voice.json").read_text(encoding="utf-8")) or {}).get("provider")
+        except (OSError, ValueError):
+            made_by = None
+        if wanted and made_by and made_by != wanted:
+            log.info("Voiceover not carried over from %s: it was made by %s and this run uses %s.", previous.name, made_by, wanted)
             return
         for extra in ("voiceover.mp3.rights.json",):
             if (previous / extra).is_file():
@@ -1275,11 +1283,13 @@ class PipelineCoordinator:
         vo_path = run_dir / "voiceover.mp3"
         words_path = run_dir / "words.json"
         voice_path = run_dir / "voice.json"  # which provider made it, and whether it's licensed
-        self._seed_voice_from_previous(run_dir, payload["narration_script"])  # a regeneration keeps its paid voice
+        voice_inputs = self.voice_inputs(payload["narration_script"], dry_run)
+        # A regeneration keeps its paid voice, unless this run would be voiced by another provider now.
+        self._seed_voice_from_previous(run_dir, payload["narration_script"],
+                                       wanted=self.audio_engine.preferred_provider(voice_inputs["allow_paid"]))
         saved_voice = json.loads(voice_path.read_text(encoding="utf-8")) if voice_path.exists() else {}
         # A real run never reuses an unlicensed (test) voiceover. Older runs without voice.json
         # predate this record, so they are re-voiced too.
-        voice_inputs = self.voice_inputs(payload["narration_script"], dry_run)
         # A narration a little over the limit is spoken slightly faster (the script stage accepted it so).
         from src.script_engine import fit_speed
         speech_speed = fit_speed(payload["narration_script"]) or 1.0

@@ -386,6 +386,15 @@ class AudioEngine:
     # Set after each narration: which provider voiced it, whether it is commercially licensed,
     # and why a better provider was skipped.
     last_provider: str = ""
+
+    @staticmethod
+    def preferred_provider(allow_paid: bool) -> str:
+        """The provider this run would try first: ElevenLabs when preferred, configured and allowed to spend;
+        otherwise Azure. A carried-over voiceover from any other provider is re-made (2026-10-24: with
+        ELEVENLABS_IN_DRY_RUNS switched on, a remake must not keep the Azure voice of its predecessor)."""
+        if allow_paid and VOICE_PREFER == "elevenlabs" and is_configured(ELEVENLABS_API_KEY):
+            return "elevenlabs"
+        return "azure"
     last_licensed: bool = False
     fallback_reason: str = ""
 

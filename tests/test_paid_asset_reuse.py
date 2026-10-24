@@ -145,3 +145,35 @@ def test_a_regeneration_carries_the_music_bed_over_with_the_same_voiceover(db, t
     coordinator._operator_feedback = {"reason": "sound", "from_run": "run_prev"}
     main.PipelineCoordinator._seed_bed_from_previous(coordinator, other, other / "voiceover.mp3")
     assert not (other / "ambient_bed.wav").exists()
+
+
+def test_a_voice_from_another_provider_is_not_carried_over_once_the_run_would_use_a_different_one(db, tmp_path, monkeypatch):
+    # 2026-10-24: with ELEVENLABS_IN_DRY_RUNS switched on in production, a remake of an Azure-voiced run must
+    # be voiced by ElevenLabs, not inherit the Azure voiceover with the script.
+    import json
+    import main
+    from types import SimpleNamespace
+    from src import audio_engine
+    from src.checkpoints import Checkpoints
+    monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
+    previous, run_dir = tmp_path / "run_prev", tmp_path / "run_new"
+    previous.mkdir(), run_dir.mkdir()
+    (previous / "script_metadata.json").write_text(json.dumps({"narration_script": "Same words."}), encoding="utf-8")
+    for n, body in (("voiceover.mp3", b"azure"), ("words.json", b"[]"), ("voice.json", b'{"provider": "azure", "licensed": true}')):
+        (previous / n).write_bytes(body)
+    inputs = {"script": "Same words.", "voice": "v", "licensed_only": False, "allow_paid": False}
+    Checkpoints(previous).complete("voice", inputs, [previous / "voiceover.mp3", previous / "words.json", previous / "voice.json"])
+    coordinator = SimpleNamespace(_operator_feedback={"reason": "pictures", "from_run": "run_prev"}, db=db)
+    coordinator._feedback = lambda: main.PipelineCoordinator._feedback(coordinator)
+    coordinator._previous_run_dir = lambda: main.PipelineCoordinator._previous_run_dir(coordinator)
+    main.PipelineCoordinator._seed_voice_from_previous(coordinator, run_dir, "Same words.", wanted="elevenlabs")
+    assert not (run_dir / "voiceover.mp3").exists()                 # ElevenLabs is wanted now: re-voice
+    main.PipelineCoordinator._seed_voice_from_previous(coordinator, run_dir, "Same words.", wanted="azure")
+    assert (run_dir / "voiceover.mp3").read_bytes() == b"azure"       # the same provider: kept
+    # which provider a run would use first
+    monkeypatch.setattr(audio_engine, "VOICE_PREFER", "elevenlabs")
+    monkeypatch.setattr(audio_engine, "ELEVENLABS_API_KEY", "k" * 30)
+    assert audio_engine.AudioEngine.preferred_provider(True) == "elevenlabs"
+    assert audio_engine.AudioEngine.preferred_provider(False) == "azure"     # a dry run that may not spend
+    monkeypatch.setattr(audio_engine, "VOICE_PREFER", "azure")
+    assert audio_engine.AudioEngine.preferred_provider(True) == "azure"

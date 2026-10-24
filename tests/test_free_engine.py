@@ -127,3 +127,32 @@ def test_a_low_effort_vision_call_limits_thinking_and_falls_back_when_refused(mo
     bodies.clear()
     gemini.structured("s", [{"type": "text", "text": "p"}], trace_check.TraceReport, model="gemini-3.8-flash", key="paid-key-456")
     assert len(bodies) == 1 and "thinkingConfig" not in bodies[0]["generationConfig"]   # no effort given: the default
+
+
+def test_a_gemini_error_body_that_is_a_list_reads_as_the_error_not_an_attribute_error(monkeypatch):
+    # 2026-10-24: the billed key's refusal came as [{"error": {...}}]; data.get raised AttributeError and
+    # every run on the fallback died without saying why.
+    from types import SimpleNamespace
+    body = [{"error": {"code": 400, "message": "the real reason", "status": "INVALID_ARGUMENT"}}]
+    monkeypatch.setattr(gemini.requests, "post", lambda *a, **k: SimpleNamespace(status_code=400, ok=False, text="", json=lambda: body))
+    with pytest.raises(gemini.GeminiError, match="the real reason"):
+        gemini._post({"contents": []}, key="paid-key-456")
+
+
+def test_a_depleted_prepaid_credit_shuts_the_billed_key_until_a_call_goes_through(db, monkeypatch):
+    from types import SimpleNamespace
+    from src import config, provider_status
+    monkeypatch.setattr(config, "GEMINI_FREE_API_KEY", "free-key-123")
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "paid-key-456")
+    monkeypatch.setattr(config, "PAID_FALLBACK_HEAVY_MONTHLY_USD", 10.0)
+    monkeypatch.setattr(free_llm, "ALLOW_PAID_FALLBACK", True)
+    monkeypatch.setattr("src.db.PipelineDatabase", lambda *a, **k: db)
+    depleted = [{"error": {"code": 402, "message": "Your prepayment credits are depleted.", "status": "RESOURCE_EXHAUSTED"}}]
+    monkeypatch.setattr(gemini.requests, "post", lambda *a, **k: SimpleNamespace(status_code=402, ok=False, text="", json=lambda: depleted))
+    with pytest.raises(free_llm.FreeQuotaUnavailable, match="prepaid credit"):   # a wait, like the monthly cap, not a run failure
+        free_llm._paid_fallback("s", "p", trace_check.TraceReport, "gemini-3.8-flash", "heavy", "quota used up.")
+    assert "AI Studio" in provider_status.capped()["gemini-billed"]["message"]
+    monkeypatch.setattr(gemini, "structured", lambda *a, **k: trace_check.TraceReport(claims=[]))   # topped up
+    monkeypatch.setattr(gemini, "last_usage", lambda: (10, 2))
+    free_llm._paid_fallback("s", "p", trace_check.TraceReport, "gemini-3.8-flash", "heavy", "quota used up.")
+    assert "gemini-billed" not in provider_status.capped()                       # topped up: the notice is gone

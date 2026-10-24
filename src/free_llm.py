@@ -98,8 +98,15 @@ def _paid_fallback(system, prompt, schema: Type[T], model: str, task_class: str,
             why, task_class, spent, cap)
     try:
         result = gemini.structured(system, prompt, schema, model=model, key=config.GEMINI_API_KEY, **_thinking(thinking))
+    except gemini.CreditExhausted as e:  # prepaid credit spent: the same wait as the cap, until the operator tops up
+        from . import provider_status
+        provider_status.note_capped("gemini-billed", "its prepaid credit is depleted (HTTP 402); top up the project's "
+                                    "billing in Google AI Studio")
+        raise FreeQuotaUnavailable(f"{why} The paid fallback cannot run either: {e}") from e
     except gemini.GeminiError as e:  # the billed key failed too (its own quota, an outage)
         raise LLMError(f"{why} The paid fallback also failed: {e}") from e
+    from . import provider_status
+    provider_status.clear("gemini-billed")  # a billed call went through: a depleted-credit notice is over
     tokens_in, tokens_out = gemini.last_usage()
     price_in, price_out = PAID_PRICES.get(model, PAID_PRICES["gemini-3.8-flash"])
     cost = round(tokens_in / 1e6 * price_in + tokens_out / 1e6 * price_out, 6)

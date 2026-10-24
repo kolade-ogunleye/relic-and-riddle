@@ -43,6 +43,10 @@ class RequestTimedOut(GeminiError):
     """No answer within the request's time limit (the model may be slow or overloaded)."""
 
 
+class CreditExhausted(GeminiError):
+    """HTTP 402: the key's prepaid credit is spent (2026-10-24, the billed key); nothing works until a top-up."""
+
+
 class QuotaExhausted(GeminiError):
     """The key's quota (free-tier daily limit) is used up."""
 
@@ -65,12 +69,19 @@ def _post(body: Dict[str, Any], timeout: float = 300, key: str = None) -> Dict[s
                 "billing on the key's Google Cloud project (5,000 grounded searches/month are then free)."
                 if body.get("tools") else "")
         raise QuotaExhausted("Gemini quota exceeded (HTTP 429)." + hint)
+    if resp.status_code == 402:  # prepaid billing: the key's credit is spent until the operator tops it up
+        raise CreditExhausted("The Gemini key's prepaid credit is depleted (HTTP 402); top up the project's "
+                              "billing in Google AI Studio.")
     if resp.status_code == 503:
         raise GeminiError("Gemini is temporarily overloaded (HTTP 503); try again later.")
     try:
         data = resp.json()
     except ValueError:
         raise GeminiError(f"Gemini returned HTTP {resp.status_code} with no JSON.")
+    if isinstance(data, list):  # some errors arrive as a one-element list, [{"error": {...}}] (2026-10-24: the
+        data = next((d for d in data if isinstance(d, dict)), {"error": data})  # billed key's failure read as AttributeError)
+    if not isinstance(data, dict):
+        raise GeminiError(f"Gemini error HTTP {resp.status_code}: {str(data)[:300]}")
     if not resp.ok or data.get("errors"):
         raise GeminiError(f"Gemini error HTTP {resp.status_code}: {data.get('errors') or data.get('error') or data}")
     if data.get("status") not in ("completed",):

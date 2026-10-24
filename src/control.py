@@ -57,14 +57,16 @@ def edit_prompt(payload: Dict[str, Any], run_key: str):
     fields = [(label, own(payload.get(key)) if "caption" in key else (payload.get(key) or "").strip())
               for label, key in EDIT_LABELS]
     template = "\n\n".join(f"{label}: {value}" for label, value in fields if value)  # a blank line between fields
-    intro = ("✏️ <b>Edit text</b>: copy the block below (tap it or its Copy button), change what you want and "
-             "send it: as a reply to this message, or pasted straight into the chat within 30 minutes. "
-             "Fields you leave as they are are ignored, so you can send "
-             "the whole block or only the lines you change. Each field starts with its label; a caption can run "
-             "over several lines. A blank field (<code>title:</code> alone) is ignored, never emptied. "
-             "Hashtags and credit lines are kept for you (add a hashtag line to replace the hashtags). "
-             "The fact check runs again before the card "
-             "updates. On-screen text and narration are rendered: use Regenerate for those.")
+    # A heading and short lines, not one nine-sentence paragraph (operator, 2026-10-23 UI review).
+    intro = ("✏️ <b>Edit text</b>\n\n"
+             "Copy the block below, change what you want and send it back: as a reply to this message, "
+             "or pasted into the chat within 30 minutes.\n\n"
+             "• Unchanged fields are ignored: send the whole block or only the lines you change.\n"
+             "• Each field starts with its label; a caption can run over several lines.\n"
+             "• A blank field (<code>title:</code> alone) is ignored, never emptied.\n"
+             "• Hashtags and credit lines are kept (add a hashtag line to replace the hashtags).\n"
+             "• The fact check runs again before the card updates.\n"
+             "• Narration and on-screen text are part of the video: use Regenerate for those.")
     trailer = f"\n[edit run {html.escape(run_key)}]"
     block = f"\n\n<pre><code class=\"language-text\">{html.escape(template)}</code></pre>" if template else ""
     if len(intro) + len(template) + len(trailer) > 3900:  # Telegram's 4,096-character message limit
@@ -375,7 +377,7 @@ def quota_lines(voice_quota: Optional[dict]) -> List[str]:
         if az.get("configured"):
             lines.append(f"Azure Speech: {az['status']}")
             if not az.get("ok"):
-                lines.append("🚨 <b>Voice Alert:</b> Azure Speech has auth errors and ElevenLabs is unconfigured. " + _unlicensed_consequence())
+                lines.append("🚨 <b>Voice alert:</b> Azure Speech has auth errors and ElevenLabs is unconfigured. " + _sentence(_unlicensed_consequence()))
         return lines
 
     left = max(0, voice_quota["limit"] - voice_quota["used"])
@@ -396,9 +398,42 @@ def quota_lines(voice_quota: Optional[dict]) -> List[str]:
     if az.get("configured"):
         lines.append(f"Azure Speech: {az['status']}")
         if left < 3 * SCRIPT_CHARS and not az.get("ok"):
-            lines.append("🚨 <b>Licence Alert:</b> both ElevenLabs and Azure Speech are unavailable. " + _unlicensed_consequence())
+            lines.append("🚨 <b>Licence alert:</b> both ElevenLabs and Azure Speech are unavailable. " + _sentence(_unlicensed_consequence()))
 
     return lines
+
+
+AUDIT_NAMES = {"cdash": "Dashboard", "approve": "Approve", "reject": "Reject", "regen": "Regenerate",
+               "cancel": "Cancel review", "rsn": "Reason", "cprog": "Refresh progress", "qrender": "Render",
+               "qdoc": "Render with documentary", "qrefresh": "Refresh queue", "qbump": "Bump", "qdrop": "Drop",
+               "resend": "Resend review", "edit": "Edit text", "runstop": "Cancel run", "runstopok": "Confirm cancel",
+               "simpub": "Simulated publish", "pubok": "It posted", "pubno": "It didn't post", "creviews": "Reviews",
+               "cideas": "Topic ideas", "cdisc": "UNESCO marvels", "cprop": "Waiting ideas", "cpropose": "Research ideas",
+               "cimages": "Images", "cmusic": "Music", "cstat": "Full status", "jobs": "Jobs", "jobcancel": "Cancel job",
+               "uadd": "Add marvel", "uskip": "Skip marvel", "tadd": "Add idea", "tskip": "Skip idea",
+               "cpause": "Pause", "cresume": "Resume", "caccounts": "Check accounts", "cov": "Cover", "covlock": "Lock cover"}
+
+
+def audit_action_name(payload: str) -> str:
+    """A button's or command's plain name for the audit log ("" when unknown or already readable)."""
+    if payload.startswith("/"):
+        return ""
+    return AUDIT_NAMES.get(payload.partition(":")[0], "")
+
+
+def clip_words(text: str, limit: int) -> str:
+    """Text cut to `limit` at a word boundary, with an ellipsis ("…(Catherine " and "resolv" were cut
+    mid-word: 2026-10-23 UI review)."""
+    text = (text or "").strip()
+    if len(text) <= limit:
+        return text
+    cut = text[:limit - 1].rsplit(" ", 1)[0].rstrip(" ,;:·(—-")
+    return (cut or text[:limit - 1]) + "…"
+
+
+def _sentence(text: str) -> str:
+    """Capitalised as a sentence start ("… unconfigured. real runs stop" read as a typo)."""
+    return text[:1].upper() + text[1:] if text else text
 
 
 def _unlicensed_consequence() -> str:
@@ -421,6 +456,14 @@ def spend_lines(db: PipelineDatabase) -> List[str]:
     media = db.media_spend(month)
     lines.append(f"AI motion this month: ${media:.2f} of ${MEDIA_MONTHLY_BUDGET_USD:.2f}")
     return lines
+
+
+def spend_summary(db: PipelineDatabase) -> str:
+    """The same spend as one dashboard line (three unmarked lines read as loose text: 2026-10-23 UI
+    review). Full status keeps one line per budget."""
+    parts = [re.sub(r" this month: ", " ", line).replace(" of $", "/$") for line in spend_lines(db)]
+    parts = [p.replace("AI on the billed key ", "billed AI ") for p in parts]
+    return "💳 This month · " + " · ".join(parts)
 
 
 def ready_pools(db: PipelineDatabase, topics: List[Dict[str, Any]]) -> int:
@@ -460,7 +503,8 @@ def status_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Opti
             lines.append(f"   ◦ {names.get(p['kind'], p['kind'])} {e(when)} — {e(db.run_label(p['run_id']))}")
 
     icons = {"failed": "❌", "simulated": "🧪", "published": "✅", "pending_approval": "🎬", "producing": "⏳",
-             "rejected": "✖", "approved": "👍", "scheduled": "🗓", "cancelled": "⏹"}
+             "rejected": "✖", "approved": "👍", "scheduled": "🗓", "cancelled": "⏹", "regenerate": "🔄",
+             "timeout": "⌛", "publish_unknown": "⚠️"}  # every status an icon (Regenerated had a bare bullet)
     recent = db.list_recent_runs(5)
     lines += ["", "<b>Recent runs</b>"]
     for r in recent:
@@ -567,14 +611,14 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         lines.append(f"⏳ {label}: {e(db.run_label(active['run_id']))} · step {active.get('step', 1)}/{active.get('total_steps', 5)}")
     lines.append(f"📋 Queue: {len(queued)} topics · {ready} with photos ready"
                  + (f" · next: <b>{e(next_t['title'])}</b>" if next_t else ""))
-    lines += spend_lines(db)
+    lines.append(spend_summary(db))
 
     row1 = [{"text": f"🎬 Reviews ({len(pending)})", "callback_data": "creviews:"}] if pending else []
     if waiting_proposals:
         row1.append({"text": f"🧭 Proposals ({len(waiting_proposals)})", "callback_data": "cimprove:"})
     buttons = [row1] if row1 else []
     buttons += [
-        [{"text": "⚡ Progress" if active else (f"⚡ Make #{next((i for i,t in enumerate(topics,1) if next_t and t['id']==next_t['id']),1)} now"),
+        [{"text": "⚡ Progress" if active else (f"⚡ Render #{next((i for i,t in enumerate(topics,1) if next_t and t['id']==next_t['id']),1)} now"),
           "callback_data": "cprog:" if active else (f"qrender:{next_t['id']}" if next_t else "qrender:1")},
          {"text": "📋 Queue", "callback_data": "qrefresh:"}],
         [{"text": "💡 Topic ideas", "callback_data": "cideas:"}, {"text": "🎨 Covers", "callback_data": "ccov:"}],
@@ -648,9 +692,9 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     cr = load_credits(td)
                     imgs = cr.get("images", [])
                     if cr.get("reviewed") and len(imgs) >= MIN_SCENE_IMAGES:
-                        return "🟢 Ready to Render"
+                        return "🟢 Ready to render"
                     elif imgs:
-                        return "🟡 Needs Image Review"
+                        return "🟡 Needs image review"
             except Exception:
                 pass
             return "🔵 Script Ready"
@@ -678,10 +722,10 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             if busy:  # Telegram has no disabled button: it says what is happening and opens the progress instead
                 buttons.append({"text": f"⏳ Rendering #{topic_serial.get(busy, sn)} · progress", "callback_data": "cprog:"})
             else:
-                buttons.append({"text": f"⚡ Render #{sn} Now", "callback_data": f"qrender:{next_t['id']}"})
+                buttons.append({"text": f"⚡ Render #{sn} now", "callback_data": f"qrender:{next_t['id']}"})  # as on the dashboard
             remaining = [t for t in queued if t["id"] != next_t["id"]]
             if remaining:
-                lines.append("<b>Other Queued Topics:</b>")
+                lines.append("<b>Other queued topics</b>")
                 for t in remaining[page*limit:(page+1)*limit]:
                     s = topic_serial.get(t['id'], '')
                     p_badge = " [🚀 Priority]" if t.get("priority", 0) > 0 else ""
@@ -1012,10 +1056,12 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 raw_pl = str(l.get("payload") or "").strip()
                 header = f"{st_icon} <code>{ts}</code> • <b>{html.escape(actor)}</b>"
                 if act:
-                    header += f" (<i>{html.escape(act)}</i>)"
+                    header += f" (<i>{html.escape({'callback_query': 'button'}.get(act, act))}</i>)"
 
                 if len(raw_pl) <= 35 and "\n" not in raw_pl:
-                    lines.append(f"{header} → <code>{html.escape(raw_pl)}</code>")
+                    # What was done, then the raw record as evidence (it showed only "cdash:", "rsn:16:other").
+                    name = audit_action_name(raw_pl)
+                    lines.append(f"{header} → " + (f"{html.escape(name)} " if name else "") + f"<code>{html.escape(raw_pl)}</code>")
                 else:
                     lines.append(f"{header}:\n<blockquote expandable>{html.escape(raw_pl)}</blockquote>")
             return "\n".join(lines)
@@ -1545,12 +1591,14 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 # second time, so their tags appeared on screen).
                 plain = html.unescape(re.sub(r"<[^>]+>", "", a.get("text", ""))).strip()
                 first, _, rest = plain.partition("\n")
+                if re.sub(r"[^A-Za-z]", "", first).isupper():  # older alerts were headed in capitals
+                    first = re.sub(r"^(\W*)(\w)", lambda m: m[1] + m[2].upper(), first.lower())  # "❌ Production failed"
                 ts = show_time(a.get("created_at"), "%d %b %H:%M") if a.get("created_at") else ""
                 note = " · removed from chat" if a.get("purged") else ""
-                lines.append(f"• <b>{html.escape(first[:90])}</b>\n   {ts}{note}")
+                lines.append(f"• <b>{html.escape(clip_words(first, 90))}</b>\n   {ts}{note}")  # never mid-word
                 body = re.sub(r"\n{2,}", "\n", rest).strip()
                 if body:
-                    lines.append(f"<blockquote expandable>{html.escape(body[:600])}</blockquote>")
+                    lines.append(f"<blockquote expandable>{html.escape(clip_words(body, 600))}</blockquote>")
             return "\n".join(lines), [[HOME]]
         if command == "add":
             title = args.strip()

@@ -9,10 +9,10 @@ def test_traced_claims_are_not_an_integrity_alert_or_a_finding(db):
     audits = [{"claim": f"claim {i}", "verdict": "traced"} for i in range(23)]
     payload = {"title": "T", "narration_script": "x", "fact_audits": audits, "consensus_confidence": 100.0}
     text = TelegramApprovalBot.format_card_text(payload, "run_x")
-    assert "Integrity Alert" not in text and "Integrity Score:</b> 100.0% (Pass — 0 hedged)" in text
+    assert "Integrity alert" not in text and "Integrity score:</b> 100.0% (Pass — 0 hedged)" in text
     assert improve.collect_run(db, "run_x", None, payload) == 0
     payload["fact_audits"].append({"claim": "bad", "verdict": "untraced"})
-    assert "Integrity Alert" in TelegramApprovalBot.format_card_text(payload, "run_x")
+    assert "Integrity alert" in TelegramApprovalBot.format_card_text(payload, "run_x")
 
 
 def test_public_domain_needs_its_source_page_not_a_licence_url():

@@ -1,0 +1,74 @@
+"""
+tests/test_ui_consistency.py
+============================
+The 2026-10-23 UI review: one heading and label style, line breaks where text was a wall, one name per
+action, words never cut mid-word, and every published text visible on the review card.
+"""
+
+import json
+
+from src import control
+from src.telegram_bot import CARD_PAGE_LIMIT, TelegramApprovalBot, _tg_len
+from src.telegram_presentation import format_html
+
+
+def test_a_leading_emoji_stays_outside_the_bold_heading():
+    assert format_html("ℹ️ Nothing to undo.") == "ℹ️ <b>Nothing to undo.</b>"
+    assert format_html("<b>🗂 Topic origin</b>") == "🗂 <b>Topic origin</b>"
+    assert format_html("🎯 <b>Next:</b> 22. Tunguska") == "🎯 <b>Next:</b> 22. Tunguska"
+    assert format_html("<b>RELIC &amp; RIDDLE</b> · DEV").startswith("<b>Relic &amp; Riddle</b>")
+
+
+def test_the_edit_card_is_a_heading_and_short_lines():
+    text = control.edit_prompt({"title": "T", "caption": "C"}, "1")
+    text = text[0] if isinstance(text, tuple) else text
+    intro = text.split("<pre>")[0]
+    assert intro.startswith("✏️ <b>Edit text</b>\n\n") and intro.count("\n• ") >= 5
+
+
+def test_the_dashboard_puts_this_months_spend_on_one_line(db):
+    summary = control.spend_summary(db)
+    assert summary.startswith("💳 This month · ") and "\n" not in summary and "/$" in summary
+    text, _ = control.dashboard_text_and_buttons(db)
+    assert summary in text and "AI motion this month:" not in text
+
+
+def test_one_name_for_rendering_the_next_topic(db):
+    _, buttons = control.dashboard_text_and_buttons(db)
+    labels = [b["text"] for row in buttons for b in row]
+    assert any(l.startswith("⚡ Render #") and l.endswith(" now") for l in labels)
+    assert not any(l.startswith("⚡ Make #") for l in labels)
+
+
+def test_text_is_cut_at_a_word_with_an_ellipsis():
+    assert control.clip_words("short", 10) == "short"
+    cut = control.clip_words("Still waiting for your review of The Lost Amber Room (Catherine Palace)", 50)
+    assert cut.endswith("…") and len(cut) <= 50 and not cut[:-1].endswith(("Cathe", "("))
+
+
+def test_the_audit_log_names_what_was_done():
+    assert control.audit_action_name("rsn:16:other") == "Reason"
+    assert control.audit_action_name("cdash:") == "Dashboard"
+    assert control.audit_action_name("/start") == ""
+
+
+def test_every_run_status_has_an_icon(db):
+    db.create_run("run_r", db.list_all_topics()[0]["id"])
+    db.update_run("run_r", "regenerate")
+    assert "🔄 Regenerated" in control.status_text(db, None, None)
+
+
+def test_the_review_card_shows_the_captions_without_costing_the_narration():
+    narration = " ".join(["word"] * 140)
+    payload = {"title": "T", "narration_script": narration, "first_comment": "Q?",
+               "caption": "Opening line. " + "More caption text. " * 150, "carousel_caption": "Swipe."}
+    card = TelegramApprovalBot.format_card_text(payload, "run_x")
+    assert narration in card and "shortened:" not in card          # the narration is whole
+    assert "<b>Caption:</b>" in card and "(full text: Edit)" in card
+    assert _tg_len(card) <= CARD_PAGE_LIMIT
+
+
+def test_a_short_caption_is_shown_whole():
+    card = TelegramApprovalBot.format_card_text({"title": "T", "narration_script": "x", "caption": "A short caption.",
+                                                 "carousel_caption": "Swipe."}, "run_x")
+    assert "A short caption." in card and "Swipe." in card and "(full text: Edit)" not in card

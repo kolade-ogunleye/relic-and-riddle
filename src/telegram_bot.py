@@ -170,6 +170,13 @@ def _second_check_line(second: Optional[Dict[str, Any]]) -> str:
     return "⚠️ Second check: unavailable (first check only)\n"
 
 
+def _clip_copy(text: str, limit: int) -> str:
+    """Public copy shortened at a word for the review card, saying where the whole of it is."""
+    from .control import clip_words
+    text = (text or "").strip()
+    return text if len(text) <= limit else clip_words(text, limit) + " (full text: Edit)"
+
+
 def safe_html_truncate(html_str: str, max_chars: int = 4000) -> str:
     """Safely truncates HTML text without breaking open tags or HTML entities.
     Automatically closes any unclosed tags in reverse nesting order.
@@ -908,7 +915,7 @@ class TelegramApprovalBot:
         flagged = [a for a in audits if a.get("verdict") not in GOOD_VERDICTS]
         sources = script_payload.get("sources", [])[:4]
         conf = script_payload.get("consensus_confidence")
-        integrity = f"🛡️ <b>Integrity Score:</b> {conf}% (Pass — {len(flagged)} hedged)" if not flagged else f"⚠️ <b>Integrity Alert:</b> {conf}% ({len(flagged)} disputed/hedged)"
+        integrity = f"🛡️ <b>Integrity score:</b> {conf}% (Pass — {len(flagged)} hedged)" if not flagged else f"⚠️ <b>Integrity alert:</b> {conf}% ({len(flagged)} disputed/hedged)"
 
         if not audits or conf is None:
             integrity = "⚠️ <b>Integrity:</b> verification not recorded"
@@ -918,28 +925,37 @@ class TelegramApprovalBot:
             f"📌 <b>{e(script_payload.get('title', ''))}</b>\n"
             + (f"🔄 <i>Regenerated · your feedback: {e(regen)}</i>\n" if regen else "")
             + (f"📍 <i>{place}</i>\n" if place else "") +
-            f"⏱️ <code>{script_payload.get('word_count', 0)} words</code> · source: <i>{e(script_payload.get('origin', '?'))}</i>\n"
+            f"⏱️ {script_payload.get('word_count', 0)} words · source: <i>{e(script_payload.get('origin', '?'))}</i>\n"
             f"{integrity}\n"
             + _second_check_line(script_payload.get("second_check"))
             + TelegramApprovalBot.release_lines(release) + "\n"
-            "<blockquote expandable><b>Narration Script & Timings:</b>\n<i>\x00NARRATION\x00</i>\n\n"
-            f"<b>First Comment:</b> <i>{e(script_payload.get('first_comment', ''))}</i>\n"
+            "<blockquote expandable><b>Narration and timings:</b>\n<i>\x00NARRATION\x00</i>\n\n"
+            f"<b>First comment:</b> <i>{e(script_payload.get('first_comment', ''))}</i>\n"
+            # Everything Approve publishes is readable here (the caption and carousel caption were only
+            # visible in the Edit template: 2026-10-23 UI review). Inside the collapsed section.
+            # Filled last from whatever room the full narration leaves (format_card_text's end); Edit always
+            # has the whole text.
+            + ("\x00CAPTION\x00" if script_payload.get("caption") else "")
+            + ("\x00CAROUSEL\x00" if script_payload.get("carousel_caption") else "")
             + (f"<b>Hashtags:</b> {e(' '.join(script_payload['hashtags']))}" if script_payload.get("hashtags")
                else f"<b>Tags:</b> {e(', '.join(script_payload.get('tags') or []))}") + "</blockquote>\n"
         )
         poll = script_payload.get("poll") or {}
         if poll.get("question") and poll.get("options") and len(poll["options"]) >= 2:
             opts = [e(str(o)) for o in poll["options"]]
-            text += f"📊 <b>Debate Poll:</b> {e(poll['question'])} (A: {opts[0]} / B: {opts[1]})\n"
+            text += f"📊 <b>Debate poll:</b> {e(poll['question'])} (A: {opts[0]} / B: {opts[1]})\n"
         if script_payload.get("is_generated_by_ai"):
-            text += "🤖 <b>AI Transparency:</b> Synthetic media label embedded for Meta CMP compliance\n"
+            text += "🤖 <b>AI transparency:</b> Synthetic media label embedded for Meta CMP compliance\n"
         def _format_note(note_val: Any) -> str:
             if not note_val:
                 return ""
             raw = str(note_val).replace("<b>", "").replace("</b>", "").replace("<i>", "").replace("</i>", "").strip()
             if ":" in raw:
                 lbl, _, rest = raw.partition(":")
-                return f"<b>{e(lbl)}:</b> {e(rest.strip())}"
+                # The emoji stays outside the bold, as on every other line of the card ("🛡️ <b>Integrity
+                # score:</b>"): notes had it inside ("<b>🗂 Topic origin:</b>").
+                icon, words = (lbl.split(" ", 1) + [""])[:2] if lbl and not lbl[0].isalnum() else ("", lbl)
+                return (f"{e(icon)} " if icon else "") + f"<b>{e(words.strip())}:</b> {e(rest.strip())}"
             return e(raw)
 
         if script_payload.get("scene_plan_note"):  # first: a picture problem decides the review
@@ -970,14 +986,32 @@ class TelegramApprovalBot:
         # A card over the page limit is paged as plain text and loses its collapsible script, so a long
         # (documentary) narration is shortened inside it instead; the full script is in the run folder.
         narration = script_payload.get("narration_script", "")
-        room = CARD_PAGE_LIMIT - _tg_len(full.replace("\x00NARRATION\x00", ""))
+        bare = full.replace("\x00CAPTION\x00", "").replace("\x00CAROUSEL\x00", "")
+        room = CARD_PAGE_LIMIT - _tg_len(bare.replace("\x00NARRATION\x00", ""))
         if _tg_len(e(narration)) > room:
             note = f" … [shortened: all {len(narration.split())} words are in the run's script_metadata.json]"
             cut = narration
             while cut and _tg_len(e(cut)) + _tg_len(note) > room:
                 cut = cut[:-40].rsplit(" ", 1)[0]
             narration = cut + note
-        return full.replace("\x00NARRATION\x00", e(narration), 1)
+        full = full.replace("\x00NARRATION\x00", e(narration), 1)
+        # The captions take only the room the narration leaves (adding them in full shortened the narration
+        # of real cards: 2026-10-23 UI review); what does not fit says where the whole of it is.
+        for key, label, marker in (("caption", "Caption", "\x00CAPTION\x00"),
+                                   ("carousel_caption", "Carousel caption", "\x00CAROUSEL\x00")):
+            if marker not in full:
+                continue
+            spare = CARD_PAGE_LIMIT - _tg_len(full.replace("\x00CAPTION\x00", "").replace("\x00CAROUSEL\x00", ""))
+            head = f"\n<b>{label}:</b>\n"
+            text_value = (script_payload.get(key) or "").strip()
+            block = head + e(text_value) + "\n"
+            if _tg_len(block) > spare:
+                fit = spare - _tg_len(head) - 30
+                block = head + (e(_clip_copy(text_value, fit)) if fit >= 120 else "<i>(too long for this card: see Edit)</i>") + "\n"
+                if _tg_len(block) > spare:
+                    block = ""
+            full = full.replace(marker, block, 1)
+        return full
 
     def send_approval_request(self, video_path: Path, thumbnail_path: Path, script_payload: Dict[str, Any], run_id: str) -> Optional[int]:
         """Everything one Approve publishes, then the card: an album with the cover, a scene strip and

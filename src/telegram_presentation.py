@@ -41,6 +41,9 @@ def format_html(text):
         heading = re.sub(r"<b>(.*?)</b>", sentence_case, heading)
         if "<b>" not in heading and len(re.sub(r"<[^>]+>", "", heading)) <= 160:
             heading = "<b>" + heading + "</b>"
+        # A leading emoji stays outside the bold, as on every other line ("<b>ℹ️ Nothing to undo.</b>"
+        # read differently from "🎯 <b>Next:</b>": 2026-10-23 UI review).
+        heading = re.sub(r"^<b>([^A-Za-z0-9<&\s\"'(]+)\s+", r"\1 <b>", heading)
     return heading + ("\n\n" + body.lstrip("\n") if separator and body.strip() else "")
 
 

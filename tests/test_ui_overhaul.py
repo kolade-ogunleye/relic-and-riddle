@@ -117,8 +117,8 @@ def test_queue_readiness_badges_and_render_button(tmp_path):
     h = make_command_handler(db, lambda: None, lambda: rendered.append("run") or "Started run", assets_dir=assets_dir)
 
     q_res = h("queue", "")
-    assert "🟢 Ready to Render" in q_res
-    assert "🟡 Needs Image Review" in q_res
+    assert "🟢 Ready to render" in q_res
+    assert "🟡 Needs image review" in q_res
     assert "🔵 Script Ready" in q_res
 
     # One-tap render #1 button triggers render

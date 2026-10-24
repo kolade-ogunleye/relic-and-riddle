@@ -678,9 +678,9 @@ def test_debate_poll_and_ai_transparency_in_card(db):
         "is_generated_by_ai": True
     }
     card_text = TelegramApprovalBot.format_card_text(payload, "r1")
-    assert "Debate Poll" in card_text
+    assert "Debate poll" in card_text
     assert "Siege Defense" in card_text
-    assert "AI Transparency" in card_text
+    assert "AI transparency" in card_text
 
 
 def test_format_responsive_keyboard():
@@ -946,8 +946,8 @@ def test_format_card_text_uppercase_titles_no_dividers_safe_notes():
     assert "<b><u>MASTER REVIEW</u></b>" in card
     assert "──────────────" not in card
     assert "&lt;b&gt;" not in card
-    assert "<b>🎙️ Voice:</b> Edge-Tts" in card
-    assert "<b>🎵 Music:</b> ElevenLabs score" in card
+    assert "🎙️ <b>Voice:</b> Edge-Tts" in card
+    assert "🎵 <b>Music:</b> ElevenLabs score" in card
 
 
 def test_notify_and_edit_message_fallback_on_parse_error(db, monkeypatch):

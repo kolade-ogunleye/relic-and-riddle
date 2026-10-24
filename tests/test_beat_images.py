@@ -16,7 +16,7 @@ def _cand(title, licence="CC BY 4.0"):
             "description": "Derinkuyu underground city"}  # real candidates always name the subject
 
 
-def test_source_downloads_up_to_two_per_beat_and_skips_duplicates(monkeypatch, tmp_path):
+def test_source_downloads_up_to_three_per_beat_and_skips_duplicates(monkeypatch, tmp_path):
     monkeypatch.setattr("src.free_llm.ready", lambda: True)
     monkeypatch.setattr(beat_images, "plan_queries", lambda b, t: BeatQueries(items=[
         BeatQuery(beat=2, query="Derinkuyu stone door", keywords=["derinkuyu"]),
@@ -29,9 +29,9 @@ def test_source_downloads_up_to_two_per_beat_and_skips_duplicates(monkeypatch, t
 
     paths, credits = beat_images.source(BEATS, TOPIC, tmp_path)
 
-    assert [c["title"] for c in credits] == ["A", "B", "D"]  # 2 for beat 2; "A" not repeated for beat 1
-    assert [p.name for p in paths] == ["beat02_1.jpg", "beat02_2.jpg", "beat01_1.jpg"]
-    assert all(p.exists() for p in paths) and credits[2]["beat"] == 1
+    assert [c["title"] for c in credits] == ["A", "B", "C", "D"]  # 3 for beat 2; "A" not repeated for beat 1
+    assert [p.name for p in paths] == ["beat02_1.jpg", "beat02_2.jpg", "beat02_3.jpg", "beat01_1.jpg"]
+    assert all(p.exists() for p in paths) and credits[3]["beat"] == 1
 
 
 def test_source_is_optional_without_claude(tmp_path):

@@ -26,7 +26,7 @@ log = logging.getLogger(__name__)
 
 CREDIT_PREFIX = "📷 Images via Wikimedia Commons:"
 MAX_BEATS = 5          # only the most concrete beats get their own search
-PER_BEAT = 2           # candidates per beat
+PER_BEAT = 3           # candidates per beat (2 found "2 candidates for 5 beats" on three Kailasa runs, 2026-10-24)
 
 SYSTEM = """You plan picture research for a short history documentary. For each narration beat that names a concrete, photographable subject (a specific place, structure, object, artefact or document), write one precise Wikimedia Commons search for it, plus 1-4 lowercase keywords that a relevant file title would contain (proper nouns are best). Skip abstract beats (ideas, numbers, open questions). Prefer the specific site, archaeological drill core, museum specimen, or scientific micrograph over generic scenic landscape look-alikes.
 When a beat's subject stands somewhere other than the documentary's own site (a prototype or model it was based on, a museum holding the object, a rival city), set place to that place's name, exactly as a Commons category would spell it; otherwise leave place null."""

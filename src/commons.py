@@ -207,6 +207,11 @@ def relevance(cand: dict, keywords: List[str], place: Optional[dict] = None) -> 
         d = _km(place["lat"], place["lon"], cand["lat"], cand["lon"])
         score += 3.0 if d <= 2 else 1.5 if d <= 15 else -2.0 if d > 200 else 0.0
     score += cand.get("grade", 0)
+    # Sharp enough for a 1080-wide frame without upscaling counts for a little: 8 of 16 pool images had
+    # to be AI-upscaled on every Kailasa run (2026-10-24). A small file is never excluded by this alone.
+    width = cand.get("width") or 0
+    if width:
+        score += 1.0 if width >= 1080 else -1.0
     if any(w in f"{title} {desc} {cats}" for w in OFF_SUBJECT):
         score -= 4.0
     return score

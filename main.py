@@ -2046,7 +2046,11 @@ def prebuild_candidates(db: PipelineDatabase, n: int) -> list:
     """The next n topics production would pick (queued first) that have approved images."""
     from src.visual_engine import MissingAssetsError, VisualEngine
     out, ve = [], VisualEngine()
-    for t in sorted(db.list_all_topics(), key=lambda t: (t["status"] != "queued", t.get("times_published", 0))):
+    try:  # the order production really picks in (it used a simpler sort, so it could prepare other topics)
+        ordered = db.ranked_topics()
+    except QueueEmpty:
+        return []
+    for t in ordered:
         if t["status"] not in ("queued", "failed"):
             continue
         try:

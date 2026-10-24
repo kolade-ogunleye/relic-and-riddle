@@ -323,6 +323,11 @@ class PipelineDatabase:
             ORDER BY updated_at DESC
             LIMIT 1
             """).fetchone()
+            # Dry runs that reached a simulated publish. Nothing went out, so the topic returns to the queue
+            # unpublished, and it came first again: validation remade the same topic run after run
+            # (dev, 2026-10-23). A rehearsed topic now waits behind those not yet made.
+            rehearsed = dict(conn.execute(
+                "SELECT topic_id, COUNT(*) FROM runs WHERE status = 'simulated' GROUP BY topic_id").fetchall())
 
         if not rows:
             raise QueueEmpty("No unpublished topics left. Add new ones with /propose (or `python main.py topic propose`).")
@@ -339,7 +344,8 @@ class PipelineDatabase:
             vps = calculate_vps(t)
             times_pub = t.get("times_published", 0)
             priority = t.get("priority", 0)
-            return (-priority, theme_clash, status_prio, -vps, times_pub)
+            # An operator's Bump (priority) still comes first; then topics not yet rehearsed in a dry run.
+            return (-priority, rehearsed.get(t["id"], 0), theme_clash, status_prio, -vps, times_pub)
 
         return sorted(candidates, key=candidate_sort_key)
 

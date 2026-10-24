@@ -61,6 +61,34 @@ def test_a_claude_call_is_recorded_with_its_task_tokens_and_time(tmp_path, monke
     assert (row["task"], row["model"], row["tokens_in"], row["tokens_out"], row["outcome"]) == ("scene_plan", "claude-opus-5-5", 321, 45, "ok")
 
 
+def test_a_web_searching_call_is_recorded_once_with_all_its_continuations(tmp_path, monkeypatch):
+    # Writer trial 2026-10-24: the second opinion's search request (180-300k input tokens, the run's
+    # largest cost) was absent from llm_calls.jsonl; only the structured parse after it was there.
+    def usage(i, o, searches):
+        return SimpleNamespace(input_tokens=i, output_tokens=o, server_tool_use=SimpleNamespace(web_search_requests=searches))
+    def reply(stop, content, use):
+        return SimpleNamespace(stop_reason=stop, content=content, usage=use, model="claude-fable-5-1", _request_id="req")
+    paused = reply("pause_turn", [], usage(120000, 300, 4))
+    final = reply("end_turn", [SimpleNamespace(type="text", text="the answer", citations=[])], usage(90000, 900, 2))
+    answers = iter([paused, final])
+    client = SimpleNamespace(beta=SimpleNamespace(messages=SimpleNamespace(create=lambda **kw: next(answers))))
+    monkeypatch.setattr(llm, "_client", lambda: client)
+    monkeypatch.setattr(llm, "_first_request", lambda send, models: (send("claude-fable-5-1"), "claude-fable-5-1"))
+    monkeypatch.setattr(llm, "_record", lambda r: None)
+    sink = RunLog(tmp_path / "run_x").start()
+    with llm.task("second_check"):
+        assert llm.research("s", "p", web_search_uses=5)[0] == "the answer"
+    answers = iter([reply("end_turn", [], usage(10, 0, 0))])                                     # no text: an error
+    try:
+        llm.research_with_evidence("s", "p", web_search_uses=5)
+    except llm.LLMError:
+        pass
+    sink.stop()
+    rows = [json.loads(ln) for ln in (tmp_path / "run_x" / "llm_calls.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert [(r["task"], r["model"], r["tokens_in"], r["tokens_out"], r.get("searches"), r["outcome"]) for r in rows] == [
+        ("second_check", "claude-fable-5-1", 210000, 1200, 6, "ok"), ("other", "claude-fable-5-1", 10, 0, None, "LLMError")]
+
+
 def test_a_free_model_call_is_recorded_with_its_role_and_failure(tmp_path, monkeypatch):
     from src import config
     monkeypatch.setattr(config, "GEMINI_FREE_API_KEY", "free-key-123")

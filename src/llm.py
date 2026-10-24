@@ -219,6 +219,29 @@ def _collect_sources(blocks, sources: List[Source], seen: set) -> None:
                 sources.append(Source(title=title or url, url=url))
 
 
+class _CallRecord:
+    """One line in the run's llm_calls.jsonl for a web-searching call, whose turn may be several requests
+    (pause_turn continuations): their tokens are summed and the searches counted. Until 2026-10-24 only
+    structured calls were recorded, and the second opinion's 180-300k-token search request was invisible
+    in a run's evidence while it was the run's largest cost."""
+
+    def __init__(self):
+        import time as _time
+        self.started, self.tokens_in, self.tokens_out, self.searches = _time.perf_counter(), 0, 0, 0
+
+    def add(self, response) -> None:
+        usage = getattr(response, "usage", None)
+        self.tokens_in += int(getattr(usage, "input_tokens", 0) or 0)
+        self.tokens_out += int(getattr(usage, "output_tokens", 0) or 0)
+        self.searches += int(getattr(getattr(usage, "server_tool_use", None), "web_search_requests", 0) or 0)
+
+    def done(self, model: str, outcome: str = "ok") -> None:
+        import time as _time
+        from .ops import record_llm_call
+        record_llm_call(current_task(), model, _time.perf_counter() - self.started, tokens_in=self.tokens_in,
+                        tokens_out=self.tokens_out, outcome=outcome, searches=self.searches)
+
+
 def research(system: str, prompt: str, *, web_search_uses: int, effort: str = "high",
              max_tokens: int = 16000, models: Optional[List[str]] = None) -> Tuple[str, List[Source]]:
     """Web-search-grounded answer. Returns (text, sources the search actually returned)."""
@@ -245,22 +268,29 @@ def research(system: str, prompt: str, *, web_search_uses: int, effort: str = "h
                 )
             raise
 
-    response, model = _first_request(send, models)
-    for _ in range(_MAX_CONTINUATIONS):
-        _record(response)
-        _collect_sources(response.content, sources, seen)
-        if response.stop_reason == "pause_turn":
-            # Long server-tool turn: resume on the same model with the partial turn unchanged.
-            messages.append({"role": "assistant", "content": response.content})
-            response = send(model)
-            continue
-        _check_stop(response)
+    record, model = _CallRecord(), "claude"
+    try:
+        response, model = _first_request(send, models)
+        for _ in range(_MAX_CONTINUATIONS):
+            _record(response)
+            record.add(response)
+            _collect_sources(response.content, sources, seen)
+            if response.stop_reason == "pause_turn":
+                # Long server-tool turn: resume on the same model with the partial turn unchanged.
+                messages.append({"role": "assistant", "content": response.content})
+                response = send(model)
+                continue
+            _check_stop(response)
 
-        text = "".join(b.text for b in response.content if b.type == "text").strip()
-        if not text:
-            raise LLMError("Research returned no text.")
-        return text, sources
-    raise LLMError("Claude did not finish after repeated pause_turn continuations.")
+            text = "".join(b.text for b in response.content if b.type == "text").strip()
+            if not text:
+                raise LLMError("Research returned no text.")
+            record.done(model)
+            return text, sources
+        raise LLMError("Claude did not finish after repeated pause_turn continuations.")
+    except Exception as e:  # the run's record says what failed and how long it took
+        record.done(model, outcome=type(e).__name__)
+        raise
 
 
 def research_with_evidence(system: str, prompt: str, *, web_search_uses: int, effort: str = "high",
@@ -295,29 +325,36 @@ def research_with_evidence(system: str, prompt: str, *, web_search_uses: int, ef
                 )
             raise
 
-    response, model = _first_request(send, models)
-    for _ in range(_MAX_CONTINUATIONS):
-        _record(response)
-        _collect_sources(response.content, sources, seen)
-        for block in response.content:
-            if getattr(block, "type", None) != "text":
+    record, model = _CallRecord(), "claude"
+    try:
+        response, model = _first_request(send, models)
+        for _ in range(_MAX_CONTINUATIONS):
+            _record(response)
+            record.add(response)
+            _collect_sources(response.content, sources, seen)
+            for block in response.content:
+                if getattr(block, "type", None) != "text":
+                    continue
+                for c in block.citations or []:
+                    quote = (getattr(c, "cited_text", "") or "").strip()
+                    url = getattr(c, "url", None)
+                    if url and quote and (url, quote) not in seen_quotes:
+                        seen_quotes.add((url, quote))
+                        quotes.append({"url": url, "title": getattr(c, "title", "") or url, "quote": quote})
+            if response.stop_reason == "pause_turn":
+                messages.append({"role": "assistant", "content": response.content})
+                response = send(model)
                 continue
-            for c in block.citations or []:
-                quote = (getattr(c, "cited_text", "") or "").strip()
-                url = getattr(c, "url", None)
-                if url and quote and (url, quote) not in seen_quotes:
-                    seen_quotes.add((url, quote))
-                    quotes.append({"url": url, "title": getattr(c, "title", "") or url, "quote": quote})
-        if response.stop_reason == "pause_turn":
-            messages.append({"role": "assistant", "content": response.content})
-            response = send(model)
-            continue
-        _check_stop(response)
-        text = "".join(b.text for b in response.content if b.type == "text").strip()
-        if not text:
-            raise LLMError("Research returned no text.")
-        return text, sources, quotes
-    raise LLMError("Claude did not finish after repeated pause_turn continuations.")
+            _check_stop(response)
+            text = "".join(b.text for b in response.content if b.type == "text").strip()
+            if not text:
+                raise LLMError("Research returned no text.")
+            record.done(model)
+            return text, sources, quotes
+        raise LLMError("Claude did not finish after repeated pause_turn continuations.")
+    except Exception as e:
+        record.done(model, outcome=type(e).__name__)
+        raise
 
 
 def image_block(path, max_side: int = 512) -> dict:

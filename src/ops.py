@@ -368,7 +368,7 @@ class RunLog:
 
 
 def record_llm_call(task: str, model: str, seconds: float, tokens_in: int = 0, tokens_out: int = 0,
-                    outcome: str = "ok", role: str = "") -> None:
+                    outcome: str = "ok", role: str = "", searches: int = 0) -> None:
     """One line per model call in the current run's llm_calls.jsonl. Never raises."""
     run_dir = _run_dir_for_evidence
     if run_dir is None:
@@ -376,6 +376,8 @@ def record_llm_call(task: str, model: str, seconds: float, tokens_in: int = 0, t
     try:
         line = {"at": datetime.now(timezone.utc).isoformat(), "task": task, "role": role, "model": model,
                 "seconds": round(seconds, 2), "tokens_in": tokens_in, "tokens_out": tokens_out, "outcome": outcome}
+        if searches:
+            line["searches"] = searches
         with (run_dir / "llm_calls.jsonl").open("a", encoding="utf-8") as f:
             f.write(json.dumps(line) + "\n")
     except (OSError, TypeError, ValueError) as e:

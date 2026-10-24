@@ -86,6 +86,9 @@ def test_a_run_opens_and_closes_its_evidence_sink(db, tmp_path, monkeypatch):
     monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
     coordinator = SimpleNamespace(db=db, topic_engine=SimpleNamespace(get_topic_by_id=lambda t: {"id": t, "title": "T", "times_published": 0}, record_status=lambda *a, **k: None),
                                   progress_msg_id=None, telegram_bot=SimpleNamespace(), _alert=lambda *a, **k: None)
+    filed = []
+    coordinator._finish_progress = lambda *a, **k: None
+    coordinator._collect_findings = lambda *a, **k: filed.append(a)
     topic = db.list_all_topics()[0]["id"]
     db.create_run("run_r", topic)
     (tmp_path / "run_r").mkdir()
@@ -97,6 +100,7 @@ def test_a_run_opens_and_closes_its_evidence_sink(db, tmp_path, monkeypatch):
         return {"status": "simulated", "run_id": run_id}
     coordinator._produce_and_publish = produce
     assert main.PipelineCoordinator.resume_run(coordinator, "run_r")["status"] == "simulated"
+    assert filed and filed[0][0] == "run_r"                    # a resumed run files its findings (the self-audit) too
     assert "inside the run" in (tmp_path / "run_r" / "run.log").read_text(encoding="utf-8")
     assert ops._run_dir_for_evidence is None
 

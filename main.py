@@ -1048,7 +1048,12 @@ class PipelineCoordinator:
         from src.ops import RunLog
         sink = RunLog(run_dir).start()
         try:
-            return self._produce_and_publish(topic, run_id, run_dir, auto_approve, dry_run, previous_status)
+            result = self._produce_and_publish(topic, run_id, run_dir, auto_approve, dry_run, previous_status)
+            # As run_cycle does: the progress card ends and the run's findings (the self-audit among them) are
+            # filed. A resumed run skipped both, so its cards were never checked (2026-10-24).
+            self._finish_progress(topic.get("title", run_id), run_id, success=True)
+            self._collect_findings(run_id, run_dir, topic["id"])
+            return result
         except Exception as e:
             self.db.update_run(run_id, "failed", error=f"{type(e).__name__}: {e}")
             self.topic_engine.record_status(topic["id"], "failed", run_id=run_id)

@@ -11,6 +11,8 @@ __pycache__/
 data/pipeline.db
 data/pipeline.db-*
 data/pipeline.db.bak
+data/evals/
+data/improvements/
 relic_riddle.db
 relic_riddle.db-*
 data/approval_queue.json

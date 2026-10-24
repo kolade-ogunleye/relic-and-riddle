@@ -19,7 +19,8 @@ import json
 import logging
 import math
 import re
-from typing import Dict, Any, List, Optional, Tuple
+import time
+from typing import Callable, Dict, Any, List, Optional, Tuple
 
 from pydantic import BaseModel, ValidationError
 
@@ -104,6 +105,9 @@ Requirements:
 - sources: the pages you used, with real URLs."""
 
 AI_ORIGINS = ("claude", "gemini-free")  # scripts written by a model (vs curated by hand)
+SECOND_CHECK_ATTEMPTS = 3        # the free second check, when unavailable, is tried this many times in all
+SECOND_CHECK_RETRY_SECONDS = 60  # a per-minute quota is back by then
+_sleep = time.sleep
 
 
 def _structured(system, prompt, schema, **claude_kwargs):
@@ -145,7 +149,11 @@ Titles and on-screen covers are intrigue headlines and must NEVER be hedged with
 Return exact find/replace edits: "find" must be copied character-for-character from the draft
 (a whole sentence or phrase), "replace" is its new text ("" to delete). Fix every place the claim appears
 (narration, caption, title, on-screen text, slides, stories, graphics). Never add facts that are not verified.
-If you change the narration's last sentence, apply the same edit to closing_sentence."""
+If you change the narration's last sentence, apply the same edit to closing_sentence.
+A LENGTH finding names a word window for the narration. Too short: add one or two sentences made only of
+verified facts, placed before the closing sentence ("find" = the sentence before it, "replace" = that sentence
+followed by the new ones). Too long: remove or condense sentences until the narration is inside the window.
+Keep the closing sentence and every other field as they are."""
 
 
 class Edit(BaseModel):
@@ -599,6 +607,13 @@ class ScriptEngine:
                 log.warning("Attempt %d failed structural checks: %s", attempt, problems)
                 last_problems = problems
                 improve.note_problems(problems, "structure")
+                if all("when spoken" in p for p in problems):
+                    # Only the length is off: the draft is edited to the window (one short call), not written
+                    # again from scratch (a rewrite took 2 min 46 s and came out at the writer's usual length
+                    # again; production, 2026-10-24).
+                    fitted = self._fit_length_by_editing(pkg, problems, topic, feedback)
+                    if fitted is not None:
+                        return self._finalize(fitted, topic, origin=writer_origin(), fact_sheet_used=True)
                 found = re.search(r"(?:in|to) (\d+)-(\d+) words", " ".join(problems))
                 window = (int(found.group(1)), int(found.group(2))) if found else window
                 # A too-short draft after a too-long one is reminded of the window, so it does not swing back.
@@ -732,6 +747,55 @@ class ScriptEngine:
             log.warning("Surgical edits broke the draft (%s); rewriting instead.", e)
             return None
 
+    def _fit_length_by_editing(self, pkg: ScriptPackage, problems: List[str], topic: Dict[str, Any],
+                               feedback: str) -> Optional[ScriptPackage]:
+        """A draft whose only fault is its spoken length, edited to the word window with verified facts
+        (the surgical reviser), then given its graphics. None when there is no fact sheet, the edit fails
+        or the result still misses: the caller rewrites as before."""
+        sheet = self._sheet(topic)
+        if sheet is None:
+            return None
+        try:
+            fitted = self._revise_surgically(pkg.model_dump(), "LENGTH: " + " ".join(problems), sheet)
+        except LLMError as e:
+            log.warning("Length edit failed (%s); rewriting the draft.", e)
+            return None
+        if fitted is None:
+            return None
+        fitted = prune_graphics(fitted)
+        still = validate_structure(fitted) or spoken_length_problems(fitted)
+        if still:
+            log.warning("Length edit still misses (%s); rewriting the draft.", still)
+            return None
+        log.info("Length fixed by editing the draft: %d -> %d words.",
+                 len(pkg.narration_script.split()), len(fitted.narration_script.split()))
+        notes, retrieved = self._sheet_context(sheet)
+        return self._with_graphics(fitted, notes, retrieved, feedback)
+
+    @staticmethod
+    def _sheet_context(sheet: Dict[str, Any]) -> Tuple[str, List[Source]]:
+        """The writer's view of a fact sheet: the verified facts as notes, and its sources best tier first."""
+        notes = "VERIFIED FACTS (use only these; keep each DISPUTED fact's hedge wording):\n" + fact_sheet.as_prompt(sheet)
+        retrieved = [Source(title=s["title"], url=s["url"]) for s in sorted(sheet["sources"], key=lambda s: s["tier"])]
+        return notes, retrieved
+
+    def _with_graphics(self, core, notes: str, retrieved: List[Source], feedback: str) -> ScriptPackage:
+        """The finished script with its planned graphics (optional: a failure leaves them out) and only
+        sources the research retrieved."""
+        try:
+            extras = _structured(
+                GRAPHICS_SYSTEM,
+                f"<narration>\n{core.narration_script}\n</narration>\n\n<research_notes>\n{notes}\n</research_notes>\n\n"
+                + GRAPHICS_PROMPT + feedback, GraphicsPlan, effort="medium")  # revision notes cover graphics too
+        except LLMError as e:
+            log.warning("Graphics planning failed (%s); this script has no planned graphics.", e)
+            extras = GraphicsPlan()
+        core_fields = {k: v for k, v in core.model_dump().items() if k in ScriptCore.model_fields}
+        pkg = ScriptPackage(**{**core_fields, **{k: v for k, v in extras.model_dump().items() if v is not None}})
+        retrieved_urls = {s.url for s in retrieved}
+        pkg.sources = [s for s in pkg.sources if s.url in retrieved_urls] or retrieved
+        return pkg
+
     def _generate_with_claude(self, topic: Dict[str, Any], feedback: str) -> ScriptPackage:
         loc = topic.get("location", {})
         fields = dict(
@@ -744,9 +808,8 @@ class ScriptEngine:
         sheet = self._sheet(topic)
         if sheet is not None:
             # Verify first, then write: the writer may use only the verified facts, with their hedges.
-            notes = "VERIFIED FACTS (use only these; keep each DISPUTED fact's hedge wording):\n" + fact_sheet.as_prompt(sheet)
-            retrieved = [Source(title=s["title"], url=s["url"]) for s in sorted(sheet["sources"], key=lambda s: s["tier"])]
-            
+            notes, retrieved = self._sheet_context(sheet)
+
             # Extract distinct raw evidence quotes so the writer sees the exact academic/encyclopedic text
             evidence_listing = []
             seen_q = set()
@@ -789,18 +852,7 @@ class ScriptEngine:
         if spoken_length_problems(ScriptPackage(**core.model_dump())):
             # This draft will be sent back for its length: graphics are planned only for one that can be kept.
             return ScriptPackage(**core.model_dump())
-        try:  # graphics are planned from the finished script; optional, so a failure leaves them out
-            extras = _structured(
-                GRAPHICS_SYSTEM,
-                f"<narration>\n{core.narration_script}\n</narration>\n\n<research_notes>\n{notes}\n</research_notes>\n\n"
-                + GRAPHICS_PROMPT + feedback, GraphicsPlan, effort="medium")  # revision notes cover graphics too
-        except LLMError as e:
-            log.warning("Graphics planning failed (%s); this script has no planned graphics.", e)
-            extras = GraphicsPlan()
-        pkg = ScriptPackage(**{**core.model_dump(), **{k: v for k, v in extras.model_dump().items() if v is not None}})
-        retrieved_urls = {s.url for s in retrieved}
-        pkg.sources = [s for s in pkg.sources if s.url in retrieved_urls] or retrieved
-        return pkg
+        return self._with_graphics(core, notes, retrieved, feedback)
 
     @staticmethod
     def _load_curated(topic_id: str) -> Optional[Tuple[ScriptPackage, bool]]:
@@ -864,14 +916,13 @@ class ScriptEngine:
         script_payload["fact_audits"] = audits
         script_payload["consensus_confidence"] = confidence
         if not passed:
-            return False, script_payload, f"REJECTED by fact checker: {msg}"
+            return False, script_payload, "REJECTED by fact checker: " + self._with_second_findings(script_payload, sheet, msg)
 
         # Independent second check (only for Claude-written scripts that passed the first).
         if SECOND_CHECK_ENABLED and script_payload.get("origin") in AI_ORIGINS:
             if free_llm.enabled():
                 # Zero cost: a different free model judges every claim against the raw evidence quotes.
-                status, conf2, audits2, msg2 = (trace_check.evidence_check(script_payload, sheet) if sheet is not None
-                                                else ("fail", 0.0, [], "No fact sheet: the free engine can't check this script."))
+                status, conf2, audits2, msg2 = self._free_second_check(script_payload, sheet)
             else:
                 status, conf2, audits2, msg2 = self.fact_checker.second_opinion(script_payload)
             script_payload["second_check"] = {"status": status, "confidence": conf2, "audits": audits2, "summary": msg2}
@@ -880,6 +931,38 @@ class ScriptEngine:
                 return False, script_payload, f"REJECTED by {reason}: {msg2}"
             msg = f"{msg} | 2nd check: {msg2}"
         return True, script_payload, f"Structure OK ({pkg.narration_script.count(' ') + 1} words) | {msg}"
+
+    def _with_second_findings(self, payload: Dict[str, Any], sheet: Optional[Dict[str, Any]], msg: str) -> str:
+        """The second checker's objections to a draft the first checker already rejected, so one revision
+        fixes both. Before, the second checker only saw a draft that had passed the first, and its objection
+        surfaced one draft later and cost a whole round (Göbekli Tepe, production 2026-10-24). One extra
+        call on a draft that is being revised anyway; its verdict is not recorded (the final draft's is)."""
+        if not (SECOND_CHECK_ENABLED and sheet is not None and free_llm.enabled() and payload.get("origin") in AI_ORIGINS):
+            return msg
+        try:
+            status, _, _, msg2 = trace_check.evidence_check(payload, sheet)
+        except LLMError as e:
+            log.info("The second checker could not look at the rejected draft (%s).", e)
+            return msg
+        if status == "fail":
+            return f"{msg} | ALSO REJECTED by second fact checker: {msg2}"
+        return msg
+
+    def _free_second_check(self, payload: Dict[str, Any], sheet: Optional[Dict[str, Any]]):
+        """The free evidence check, tried again after a wait when it is unavailable: a per-minute quota
+        comes back, and a finished script is worth two minutes more (a run was lost to one unavailable
+        check, dev 2026-10-23). Still fails closed when it stays unavailable."""
+        if sheet is None:
+            return "fail", 0.0, [], "No fact sheet: the free engine can't check this script."
+        for attempt in range(1, SECOND_CHECK_ATTEMPTS + 1):
+            result = trace_check.evidence_check(payload, sheet)
+            if result[0] != "unavailable" or attempt == SECOND_CHECK_ATTEMPTS:
+                return result
+            log.info("Second fact check unavailable (%s); trying again in %d s (%d of %d).",
+                     result[3], SECOND_CHECK_RETRY_SECONDS, attempt, SECOND_CHECK_ATTEMPTS)
+            self._report(f"Second fact check unavailable; trying again in {SECOND_CHECK_RETRY_SECONDS} s")
+            _sleep(SECOND_CHECK_RETRY_SECONDS)
+        return result
 
     def is_deep_dive_eligible(self, topic: Dict[str, Any], visual_count: int = 0) -> bool:
         """Determines if a topic has sufficient fact density and visual assets for a 4-minute documentary."""

@@ -353,13 +353,26 @@ def adopt(db, pid: str, by: str) -> str:
         _save_patches(patches)
         _set_status(db, pid, "adopted", by)
         return f"Adopted: the writer now follows “{p['change']['rule']}”. Revert any time with /improve."
-    QUEUE_FILE.parent.mkdir(parents=True, exist_ok=True)
     ev = p.get("evidence") or {}
-    with QUEUE_FILE.open("a", encoding="utf-8") as f:
-        f.write(f"\n## {pid} · {p['klass']}\n- Queued: {_now()} by {by}\n- {p['title']}\n"
-                + "".join(f"- Example: {e}\n" for e in ev.get("examples", [])))
+    entry = (f"\n## {pid} · {p['klass']}\n- Queued: {_now()} by {by}\n- {p['title']}\n"
+             + "".join(f"- Example: {e}\n" for e in ev.get("examples", [])))
+    queue = _append_queue(entry)
     _set_status(db, pid, "queued", by)
-    return "Queued for the next development session (docs/improvements/queue.md)."
+    return f"Queued for the next development session ({queue})."
+
+
+def _append_queue(entry: str) -> str:
+    """Appends to the queue in docs/ (development), or under data/ where the application tree is
+    read-only to the pipeline account (production, 2026-10-24: 'Access is denied'). Returns the path used."""
+    for path in (QUEUE_FILE, config.DATA_DIR / "improvements" / "queue.md"):
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("a", encoding="utf-8") as f:
+                f.write(entry)
+            return str(path.relative_to(config.BASE_DIR)).replace("\\", "/")
+        except OSError as e:
+            log.info("Could not write %s (%s).", path, e)
+    raise OSError("No writable improvement queue (docs/improvements or data/improvements).")
 
 
 def revert(db, pid: str, by: str) -> str:

@@ -30,7 +30,11 @@ from src import fact_sheet, script_engine, trace_check  # noqa: E402
 from src.llm import LLMError  # noqa: E402
 from scripts.prompt_variants import VARIANTS  # noqa: E402
 
-OUT = ROOT / "evals" / "prompts"
+# Under data/ (writable by the pipeline account): the application tree is read-only on production, and
+# the nightly improvement cycle failed there with "Access is denied" on evals/prompts (2026-10-24).
+from src import config  # noqa: E402
+
+OUT = config.DATA_DIR / "evals" / "prompts"
 RESULTS = OUT / "results.jsonl"
 
 

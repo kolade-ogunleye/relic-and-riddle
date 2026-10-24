@@ -1302,7 +1302,9 @@ class TelegramApprovalBot:
             head = (f"🔄 <b>Regeneration requested</b> by {who} at {when}. A new version is being made; its "
                     "progress card follows, and its review replaces this card. Pick what was wrong so it can act on it.")
         else:
-            head = f"❌ <b>Rejected</b> by {who} at {when}. Nothing was posted; the topic goes back to the queue."
+            # Said as it is: a rejected topic is set aside, not queued (it said "goes back to the queue").
+            head = (f"❌ <b>Rejected</b> by {who} at {when}. Nothing was posted; the topic is set aside "
+                    "(restore it from the queue's \"Can be restored\" list).")
         verb = "regenerate" if decision == "regenerate" else "reject"
         text = (f"🎬 <b>{html.escape(self.db.run_label(run_id))}</b>\n\n{head}\n\n"
                 f"📝 <b>Why {verb}?</b> One tap helps the next version (and the system) improve; then you can "

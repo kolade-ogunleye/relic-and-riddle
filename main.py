@@ -58,6 +58,9 @@ from src.operator_jobs import JobCancelled
 log = logging.getLogger("pipeline")
 
 MAX_REGENERATIONS = 2
+# Ends of a run that are outcomes, not failures (the run command exits 0 for these).
+RUN_COMPLETED_STATUSES = ("published", "simulated", "scheduled", "rejected", "regenerate", "timeout",
+                          "cancelled", "publish_unknown")
 DOCUMENTARY_PAUSED = ("The 16:9 documentary is paused while it is rebuilt (add \"documentary\" to VIDEO_FORMATS "
                       "to make one; see docs/documentary-rebuild.md).")
 MAX_FACT_REVISIONS = 2  # rewrites of a Claude script that failed fact-checking, before failing closed
@@ -2239,7 +2242,9 @@ def main(argv=None) -> int:
                 k: res["deep_dive_run"].get(k) for k in ("run_id", "status", "master_video", "duration_seconds")
             }
         print(json.dumps(out_dict, indent=2))
-        return 0 if res["status"] in ("published", "simulated") else 1
+        # A decided review is a normal end, not a failure: a Reject made bot mode log the worker as
+        # "failed with code 1" (dev, 2026-10-23). Only a run that failed exits non-zero.
+        return 0 if res["status"] in RUN_COMPLETED_STATUSES else 1
 
     if args.command == "resume":
         try:

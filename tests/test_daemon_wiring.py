@@ -412,3 +412,17 @@ def test_a_bare_ask_survives_a_restart(db):
     assert restarted._awaiting[0] == "ask"
     restarted._awaiting = None
     assert TelegramApprovalBot(db=db, bot_token="", chat_id="", approver_ids=set())._awaiting is None
+
+
+@pytest.mark.parametrize("status, code", [("rejected", 0), ("regenerate", 0), ("scheduled", 0), ("timeout", 0),
+                                          ("simulated", 0), ("failed", 1)])
+def test_a_decided_run_is_not_reported_as_a_failed_worker(monkeypatch, status, code):
+    # A Reject made bot mode log "Production worker failed with code 1".
+    class FakeCoordinator:
+        def __init__(self, **kw):
+            self.telegram_bot = SimpleNamespace()
+
+        def run_cycle(self, *a, **k):
+            return {"status": status}
+    monkeypatch.setattr(main, "PipelineCoordinator", FakeCoordinator)
+    assert main.main(["run", "--dry-run"]) == code

@@ -548,3 +548,14 @@ def test_a_rejected_review_keeps_only_its_reason_card(db, tmp_path, monkeypatch)
     cq = {"id": "q", "from": {"id": 555, "first_name": "Kolade"}, "message": {"message_id": 202, "chat": {"id": 555}}}
     bot._render_decision(cq, "review", "rejected", 555)
     assert sorted(deleted) == [198, 199, 200] and get(db, "review-messages", "review") == [202]
+
+
+def test_the_reject_card_says_where_the_topic_went(db, tmp_path, monkeypatch):
+    ready_review(db, tmp_path)
+    bot, _ = offline_bot(db, monkeypatch)
+    edits = []
+    monkeypatch.setattr(bot, "edit_message_text", lambda mid, text, buttons=None, **k: edits.append(text) or True)
+    monkeypatch.setattr(bot, "delete_messages", lambda ids: len(ids))
+    cq = {"id": "q", "from": {"id": 555, "first_name": "Kolade"}, "message": {"message_id": 202, "chat": {"id": 555}}}
+    bot._render_decision(cq, "review", "rejected", 555)
+    assert "set aside" in edits[-1] and "goes back to the queue" not in edits[-1]

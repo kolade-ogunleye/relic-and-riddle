@@ -10,7 +10,7 @@ Busy means any of:
 - a review is open (its wait lives in the run's worker process);
 - a scheduled post is due within the next hour;
 - a daemon job holds a busy lease (fact sheets, the improvement cycle, package updates);
-- the daily run starts within 45 minutes or began less than 15 minutes ago.
+- the daily run starts within 15 minutes or began less than 15 minutes ago.
 
 Prints one JSON object: {"idle": bool, "reasons": [...]}; exit code 0 when idle, 3 when busy,
 2 when the state cannot be read (the deployer then waits, never guesses).
@@ -27,7 +27,9 @@ from typing import List, Optional
 
 BUSY_RUN_STATUSES = ("producing", "pending_approval", "approved")
 POST_HORIZON = timedelta(hours=1)
-BEFORE_DAILY = timedelta(minutes=45)
+# An install takes about 8 minutes end to end (2026-10-24: 3-7 min measured), so 15 minutes keeps a release
+# clear of the daily run; 45 held rc20 for half an hour before the run had even started.
+BEFORE_DAILY = timedelta(minutes=15)
 AFTER_DAILY = timedelta(minutes=15)
 LEASE_MAX_AGE = timedelta(hours=6)  # a lease older than this belongs to a process that died
 SCHEDULE_KEY = "daemon_schedule"

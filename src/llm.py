@@ -365,12 +365,30 @@ def structured_call(system: str, prompt: Union[str, list], schema: Type[T], *, e
                 )
             raise
 
-    response, _ = _first_request(send, models)
+    from .ops import record_llm_call
+    import time as _time
+    started = _time.perf_counter()
+    try:
+        response, model_used = _first_request(send, models)
+    except Exception as e:  # the run's record says what failed and how long it took
+        record_llm_call(current_task(), "claude", _time.perf_counter() - started, outcome=type(e).__name__)
+        raise
+    usage = getattr(response, "usage", None)
+    record_llm_call(current_task(), model_used, _time.perf_counter() - started,
+                    tokens_in=int(getattr(usage, "input_tokens", 0) or 0), tokens_out=int(getattr(usage, "output_tokens", 0) or 0))
     _record(response)
     _check_stop(response)
     if response.parsed_output is None:
         raise LLMError(f"No structured output returned (stop_reason={response.stop_reason}).")
     return response.parsed_output
+
+
+def current_task() -> str:
+    """The task label of the model call in progress (llm.task), or ''."""
+    try:
+        return _task.get() or ""
+    except LookupError:
+        return ""
 
 
 def format_sources(sources: List[Source]) -> str:

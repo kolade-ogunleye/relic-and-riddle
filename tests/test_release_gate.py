@@ -62,7 +62,7 @@ def test_a_post_due_within_the_hour_keeps_production_busy(prod_db):
     assert len(reasons) == 1 and "reel" in reasons[0]
 
 
-@pytest.mark.parametrize("local, busy", [("06:20", True), ("07:10", True), ("06:10", False), ("07:20", False)])
+@pytest.mark.parametrize("local, busy", [("06:50", True), ("07:10", True), ("06:20", False), ("06:10", False), ("07:20", False)])
 def test_the_daily_run_window_is_kept_clear(prod_db, local, busy):
     from zoneinfo import ZoneInfo
     hour, minute = (int(x) for x in local.split(":"))

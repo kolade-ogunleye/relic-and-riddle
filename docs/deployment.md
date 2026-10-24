@@ -130,7 +130,7 @@ follows its candidates). It installs it only when:
    the pass is remembered in `logs\Deploy\precheck-<tag>.json`, so a release waiting for production
    to be idle is not tested again every check);
 3. production is idle: no run producing, awaiting review or approved, no open review, no post due
-   within an hour, no daemon job holding a busy lease, clear of the daily run (45 minutes before
+   within an hour, no daemon job holding a busy lease, clear of the daily run (15 minutes before
    to 15 after), and no backup running.
 
 It then writes `control\Pipeline.hold`. The launcher stops the daemon's worker tree while the

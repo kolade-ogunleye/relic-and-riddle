@@ -247,6 +247,8 @@ class PipelineCoordinator:
         if _regenerations:  # its place in a chain of regenerations (read by run --regenerate-from)
             self.db.set_setting("regenerations:" + run_id, str(_regenerations))
 
+        from src.ops import RunLog
+        sink = RunLog(run_dir).start()  # the run's own DEBUG log and model-call record (output/<run>/)
         try:
             result = self._produce_and_publish(topic, run_id, run_dir, auto_approve, dry_run, previous_status)
             self._finish_progress(topic.get("title", tid), run_id, success=True)
@@ -286,6 +288,8 @@ class PipelineCoordinator:
                 self._alert(f"❌ <b><u>PRODUCTION FAILED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n{html.escape(str(e))[:600]}\n\nNothing was posted. The topic will be retried on a later run.")
             ping_healthcheck("/fail")
             raise
+        finally:
+            sink.stop()
 
         if result["status"] == "regenerate":
             if _regenerations < MAX_REGENERATIONS:
@@ -1000,6 +1004,8 @@ class PipelineCoordinator:
         self.db.reset_approval(run_id)  # the new version waits for its own decision
         self.topic_engine.record_status(topic["id"], "in_production", run_id=run_id)
         log.info("Resuming run %s", run_id)
+        from src.ops import RunLog
+        sink = RunLog(run_dir).start()
         try:
             return self._produce_and_publish(topic, run_id, run_dir, auto_approve, dry_run, previous_status)
         except Exception as e:
@@ -1018,6 +1024,8 @@ class PipelineCoordinator:
                 self._alert(f"❌ <b><u>PRODUCTION FAILED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n{html.escape(str(e))[:600]}\n\nNothing was posted. The topic will be retried on a later run.")
             ping_healthcheck("/fail")
             raise
+        finally:
+            sink.stop()
 
     def rerender_refusal(self, run_id: str) -> Optional[str]:
         """Why a failed run can't be re-rendered in place, or None. Only a run that got as far as a video

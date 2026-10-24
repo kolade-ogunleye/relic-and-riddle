@@ -116,10 +116,27 @@ def _spare_key() -> str:
 def structured(system: str, prompt, schema: Type[T], role: str = "writer", attempts: int = 4,
                task_class: str = "heavy", timeout: float = None) -> T:
     """Schema-constrained output from the free model ("writer") or the different checking model ("checker").
-    task_class "light" (photo review, sound plan) or "heavy" (writing, checking) picks the paid-fallback cap."""
+    task_class "light" (photo review, sound plan) or "heavy" (writing, checking) picks the paid-fallback cap.
+    Every call is recorded in the current run's llm_calls.jsonl (src/ops.py) with its length and tokens."""
+    from .llm import current_task
+    from .ops import record_llm_call
     model = config.FREE_CHECKER_MODEL if role == "checker" else config.FREE_WRITER_MODEL
     if task_class == "light" and isinstance(prompt, str) and config.FREE_LIGHT_MODEL:
         model = config.FREE_LIGHT_MODEL  # its own free limits; photo review (images) stays on the main models
+    started = time.perf_counter()
+    try:
+        result = _structured_on(model, system, prompt, schema, role, attempts, task_class, timeout)
+    except Exception as e:
+        record_llm_call(current_task(), model, time.perf_counter() - started, outcome=type(e).__name__, role=role)
+        raise
+    tokens_in, tokens_out = gemini.last_usage()
+    record_llm_call(current_task(), model, time.perf_counter() - started, tokens_in=tokens_in or 0,
+                    tokens_out=tokens_out or 0, role=role)
+    return result
+
+
+def _structured_on(model: str, system: str, prompt, schema: Type[T], role: str, attempts: int,
+                   task_class: str, timeout: float) -> T:
     if not available():
         return _paid_fallback(system, prompt, schema, model, task_class,
                               "GEMINI_FREE_API_KEY is not set (create it in a Google project without billing).")

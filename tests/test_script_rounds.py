@@ -6,6 +6,8 @@ pipeline account may."""
 
 import re
 
+import pytest
+
 from src import script_engine, trace_check
 from src.models import ScriptPackage
 from src.script_engine import ScriptEngine
@@ -118,3 +120,25 @@ def test_improvement_queue_and_evals_write_where_the_pipeline_account_may(monkey
     assert improve._append_queue("\n## imp_1\n") == "data/improvements/queue.md"
     assert (tmp_path / "data" / "improvements" / "queue.md").read_text(encoding="utf-8").strip() == "## imp_1"
     assert eval_prompts.OUT == config.DATA_DIR / "evals" / "prompts" or "data" in str(eval_prompts.OUT)
+
+
+def test_the_evidence_re_check_runs_on_gemini_for_a_claude_writer_too(monkeypatch, curated_payload):
+    # Writer trial 2026-10-24: with SCRIPT_ENGINE=claude the second opinion went to Fable with web search
+    # ($1.70 a call) for scripts that already had a verified fact sheet.
+    from src import config
+    engine = ScriptEngine()
+    monkeypatch.setattr(script_engine.free_llm, "enabled", lambda: False)            # the Claude engine
+    monkeypatch.setattr(script_engine, "SECOND_CHECK_ENABLED", True)
+    monkeypatch.setattr(script_engine.fact_sheet, "load", lambda topic_id, max_age_days=0: SHEET)
+    monkeypatch.setattr(trace_check, "check", lambda p, s: (True, 100.0, [], "All claims trace."))
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "paid-key-456")
+    seen = []
+    monkeypatch.setattr(script_engine.free_llm, "structured", lambda *a, **k: seen.append(k.get("role")) or trace_check.EvidenceReport(claims=[]))
+    monkeypatch.setattr(engine.fact_checker, "second_opinion", lambda p: pytest.fail("the web-searching second opinion was used"))
+    passed, out, notes = engine.verify_claims(dict(curated_payload, topic_id="t1", origin="claude", fact_sheet=True))
+    assert seen == ["checker"] and out["second_check"]["status"] == "fail"   # no reviewed claims: fail closed, on Gemini
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "")
+    monkeypatch.setattr(script_engine.free_llm, "available", lambda: False)
+    monkeypatch.setattr(engine.fact_checker, "second_opinion", lambda p: ("pass", 100.0, [], "web check ok"))
+    passed, out, notes = engine.verify_claims(dict(curated_payload, topic_id="t1", origin="claude", fact_sheet=True))
+    assert passed and "web check ok" in notes                                   # no Gemini key: the old path

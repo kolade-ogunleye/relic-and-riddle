@@ -920,8 +920,10 @@ class ScriptEngine:
 
         # Independent second check (only for Claude-written scripts that passed the first).
         if SECOND_CHECK_ENABLED and script_payload.get("origin") in AI_ORIGINS:
-            if free_llm.enabled():
-                # Zero cost: a different free model judges every claim against the raw evidence quotes.
+            if free_llm.enabled() or (sheet is not None and trace_check.gemini_checker_available()):
+                # A different model judges every claim against the raw evidence quotes: free on the free
+                # engine, and on the Claude engine too when a verified sheet and a Gemini key exist (the
+                # web-searching second opinion cost $1.70 a call for such scripts; writer trial, 2026-10-24).
                 status, conf2, audits2, msg2 = self._free_second_check(script_payload, sheet)
             else:
                 status, conf2, audits2, msg2 = self.fact_checker.second_opinion(script_payload)

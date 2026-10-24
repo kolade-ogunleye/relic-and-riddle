@@ -272,6 +272,9 @@ REALESRGAN_BIN = os.getenv("REALESRGAN_BIN", str(BASE_DIR / "tools" / "realesrga
 # Per-beat images searched on Wikimedia Commons during a run. CC BY-SA images are excluded by
 # default: share-alike asks that adaptations (the video) be released under the same licence.
 BEAT_IMAGES_ENABLED = os.getenv("BEAT_IMAGES_ENABLED", "true").lower() in ("true", "1", "yes")
+# A found picture is looked at (a light vision call) before it is kept: the title and metadata checks let a
+# photograph of the wrong temple through (quality step 1, 2026-10-24). At most one call per kept candidate.
+PICTURE_VISION_CHECK = os.getenv("PICTURE_VISION_CHECK", "true").lower() in ("true", "1", "yes")
 # Operator-supplied footage (src/footage.py). Share of runtime footage may take (Meta's originality
 # rules: third-party clips support our narration, never replace it), and the quality bar.
 FOOTAGE_ENABLED = os.getenv("FOOTAGE_ENABLED", "true").lower() in ("true", "1", "yes")

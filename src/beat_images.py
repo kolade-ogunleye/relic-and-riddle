@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Tuple
 
 import requests
 from PIL import Image
+from pydantic import BaseModel
 
 from . import commons
 from . import config
@@ -37,6 +38,37 @@ def verify_visual_relevance(cand_title: str, query: str = "") -> bool:
     text = (cand_title + " " + query).lower()
     reject_patterns = ("tourist", "souvenir", "ticket", "restaurant", "hotel", "cafe", "bus", "parking", "gift shop", "selfie", "modern street")
     return not any(p in text for p in reject_patterns)
+
+
+class PictureVerdict(BaseModel):
+    shows_subject: bool   # the picture shows what was searched for
+    reason: str           # one short sentence, from the picture itself
+
+
+PICTURE_SYSTEM = ("You judge whether a photograph shows the subject a documentary beat was looking for. Judge the picture "
+                  "itself, not its title. A reconstruction, model, diagram, excavation or museum display of the subject "
+                  "counts; an unrelated place or building, a modern street, people posing, signage or a souvenir does not.")
+
+
+def picture_shows(path: Path, query: str) -> Tuple[bool, str]:
+    """A look at the pixels before a found picture is kept (quality step 1, 2026-10-24): the title and
+    metadata checks let a photograph of the wrong temple through. A light vision call; when it cannot run,
+    the picture is kept and the reason recorded, so the search never loses to a check."""
+    if not config.PICTURE_VISION_CHECK:
+        return True, "not checked"
+    from . import free_llm
+    from .llm import image_block
+    content = [{"type": "text", "text": f"Searched for: {query}\nDoes this picture show it?"}, image_block(path, 512)]
+    try:
+        if free_llm.claude_engine():
+            verdict = structured_call(PICTURE_SYSTEM, content, PictureVerdict, effort="low", max_tokens=300,
+                                      models=config.LIGHT_TASK_MODELS)
+        else:
+            verdict = free_llm.structured(PICTURE_SYSTEM, content, PictureVerdict, role="checker", task_class="light")
+    except Exception as e:  # unavailable or malformed: the picture stays, the record says it was not looked at
+        log.debug("Picture check unavailable for %s (%s); keeping it.", path.name, e)
+        return True, "check unavailable"
+    return bool(verdict.shows_subject), (verdict.reason or "")[:160]
 
 
 @llm_task("beat_queries")
@@ -133,7 +165,7 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
             results = list(commons.search(item.query, limit=30, max_wait=60))
             ranked = commons.best_first(list(commons.candidates(results, keywords, config.BEAT_IMAGES_ALLOW_SHARE_ALIKE)),
                                         keywords, near)
-            relevant, verified = 0, 0
+            relevant, verified, looked_away = 0, 0, 0
             for cand in ranked:
                 if cand["title"] in seen or cand["relevance"] <= 0:
                     continue
@@ -143,8 +175,14 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
                 verified += 1
                 dest = work_dir / f"{prefix}{item.beat:02d}_{found + 1}.jpg"
                 commons.download_jpeg(cand["download_url"], dest, max_wait=wait)
+                shows, why = picture_shows(dest, item.query)
+                if not shows:  # the pixels say otherwise: not this one
+                    log.info("Beat %d: %r set aside, it does not show the subject (%s).", item.beat, cand["title"][:70], why)
+                    dest.unlink(missing_ok=True)
+                    looked_away += 1
+                    continue
                 seen.add(cand["title"])
-                cand.update(file=str(dest), beat=item.beat)
+                cand.update(file=str(dest), beat=item.beat, looked=why)
                 paths.append(dest)
                 credits.append(cand)
                 found += 1
@@ -152,9 +190,13 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
                     break
             # The run's record of why a beat got pictures or none: "0 candidates for 5 beats" on production
             # (2026-10-24, Antikythera) could not be told apart from a broken search without these counts.
-            log.debug("Beat %d %r: %d Commons results, %d usable (share-alike %s), %d relevant, %d verified, %d kept.",
+            log.debug("Beat %d %r: %d Commons results, %d usable (share-alike %s), %d relevant, %d verified, %d set aside by the look, %d kept.",
                       item.beat, item.query[:80], len(results), len(ranked),
-                      "allowed" if config.BEAT_IMAGES_ALLOW_SHARE_ALIKE else "excluded", relevant, verified, found)
+                      "allowed" if config.BEAT_IMAGES_ALLOW_SHARE_ALIKE else "excluded", relevant, verified, looked_away, found)
+            if results and not ranked and not config.BEAT_IMAGES_ALLOW_SHARE_ALIKE:
+                from . import improve  # the operator's lever, filed where the digest will show it
+                improve.note("pictures.licence_excluded", f"beat {item.beat}: {len(results)} Commons result(s), none usable "
+                             "without share-alike licences (IMAGES_ALLOW_SHARE_ALIKE)", source="pictures")
         except (requests.RequestException, OSError, Image.DecompressionBombError) as e:
             log.warning("Beat %d image search failed (%s); continuing.", item.beat, e)
     if credits:  # the same record a topic folder keeps, so the scene planner can caption these too

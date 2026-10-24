@@ -558,7 +558,7 @@ def test_cancel_pipeline_review(db, monkeypatch, delivered_review):
 
     assert db.get_approval("r99")["decision"] == "cancelled"
     assert 99 in edited_cards
-    assert "CANCELLED" in edited_cards[99]
+    assert "<b>Cancelled</b>" in edited_cards[99]
 
 
 def test_bump_and_drop_topic_db(db):

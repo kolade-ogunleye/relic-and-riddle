@@ -428,8 +428,9 @@ def card(p: Dict[str, Any]) -> Tuple[str, List[List[Dict[str, str]]]]:
         v = p["eval"]
         lines.append(f"Eval on {v['paired_topics']} topics: better on {v['wins']}, worse on {v['losses']}, "
                      f"traced claims {v['traced_delta']:+.0%}.")
-    for x in ev.get("examples", [])[:3]:
-        lines.append(f"• {e(x[:200])}")
+    examples = [f"• {e(x[:900])}" for x in ev.get("examples", [])[:3]]
+    if examples:  # whole, folded: cut at 200 characters they ended mid-word (2026-10-24)
+        lines.append("<blockquote expandable>" + "\n".join(examples) + "</blockquote>")
     if p["tier"] == "prompt":
         buttons = [[{"text": "✅ Adopt rule", "callback_data": f"impok:{p['id']}"},
                     {"text": "✖ Decline", "callback_data": f"impno:{p['id']}"}]]

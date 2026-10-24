@@ -29,7 +29,7 @@ def test_review_card_shows_the_release_gates_measurements_not_a_fixed_claim():
         {"name": "asset_rights", "status": "needs_review", "detail": ["C:/x/motion/motion_01.mp4"]}]}
     card = TelegramApprovalBot.format_card_text({"title": "T"}, "run_x", release=report)
     assert "42.3 s" in card and "-14.2 LUFS" in card and "A/V drift 7 ms" in card
-    assert "asset_rights: needs_review (motion_01.mp4)" in card
+    assert "asset_rights: motion_01.mp4" in card and "C:/x/motion" not in card
     assert "Balanced Sub-Bass" not in card
     assert "not run yet" in TelegramApprovalBot.format_card_text({"title": "T"}, "run_x")
 

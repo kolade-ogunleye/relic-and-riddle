@@ -122,13 +122,31 @@ def write_release_report(run, dry_run=False):
     return report
 
 
+def blocking_checks(report, dry_run=False):
+    blocking_statuses = ("fail",) if dry_run else ("fail", "needs_review")
+    return [c for c in (report or {}).get("checks", []) if c.get("status") in blocking_statuses]
+
+
+def check_problems(check) -> list:
+    """A check's findings in words: an audit issue's own sentence, not the dict it is stored as."""
+    detail = check.get("detail")
+    items = detail if isinstance(detail, list) else [detail]
+    found = [str(i.get("issue") or i.get("detail") or "") if isinstance(i, dict) else str(i or "") for i in items]
+    # A file is named, not its whole path (asset_rights lists the files still awaiting review).
+    found = [Path(f).name if " " not in f and ("/" in f or "\\" in f) and Path(f).suffix else f for f in found]
+    return [f for f in found if f] or ["no detail recorded"]
+
+
+def release_problems(report, dry_run=False) -> list:
+    """One line per blocking finding, "check: what was found" (the operator saw only "visual_checks")."""
+    return [f"{c['name']}: {p}" for c in blocking_checks(report, dry_run) for p in check_problems(c)]
+
+
 def require_release(run, dry_run=False):
     report = write_release_report(run, dry_run=dry_run)
-    blocking_statuses = ("fail",) if dry_run else ("fail", "needs_review")
-    blocking_checks = [c for c in report["checks"] if c["status"] in blocking_statuses]
-    if blocking_checks:
-        failed = ", ".join(c["name"] for c in blocking_checks)
-        raise ValueError(f"Release blocked ({failed}); inspect release_report.json")
+    problems = release_problems(report, dry_run)
+    if problems:
+        raise ValueError("Release blocked: " + "; ".join(problems))
     return report
 
 

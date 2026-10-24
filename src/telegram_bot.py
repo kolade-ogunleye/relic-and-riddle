@@ -904,13 +904,16 @@ class TelegramApprovalBot:
             measured.append(f"A/V drift {float(drift.group(1)):.0f} ms")
         open_checks = [c for c in report.get("checks", []) if c.get("status") != "pass"]
         if not open_checks:
-            verdict = "✅ all checks pass"
+            line = "🚦 <b>Release gate:</b> ✅ all checks pass\n"
         else:
-            verdict = "⚠️ " + "; ".join(
-                f"{e(c['name'])}: {e(c['status'])}"
-                + (f" ({e(', '.join(Path(str(p)).name for p in c['detail'][:3]))})" if isinstance(c.get("detail"), list) and c["detail"] else "")
-                for c in open_checks)
-        line = f"🚦 <b>Release gate:</b> {verdict}\n"
+            # What was found, in its own words (the card said "visual_checks: fail (… (>1.2s)'})" and
+            # Approve led to a failure notice: 2026-10-24 production run).
+            from .release import blocking_checks, check_problems
+            blocked = bool(blocking_checks(report, dry_run=report.get("dry_run", False)))
+            found = "\n".join(f"• {e(c['name'])}: {e(p)}" for c in open_checks for p in check_problems(c))
+            line = ("⛔ <b>Release gate:</b> blocked. This version can't be posted: Edit, Regenerate or Reject it.\n"
+                    if blocked else "⚠️ <b>Release gate:</b> needs review before a live post.\n")
+            line += f"<blockquote expandable>{found}</blockquote>\n"
         if measured:
             line += f"📏 <b>Measured:</b> <code>{e(' · '.join(measured))}</code>\n"
         return line
@@ -1175,9 +1178,13 @@ class TelegramApprovalBot:
         regen = self.db.get_setting("regenerating:" + run_id) if hasattr(self.db, "get_setting") else None
         card_text = self.format_card_text({**script_payload, "_regeneration_note": regen} if regen else script_payload,
                                           run_id, release=release)
+        # A version the release gate blocks is not offered for approval: Approve could only end in
+        # "Release blocked" (2026-10-24). Edit, Regenerate and Reject stay; a corrected version gets a new card.
+        from .release import blocking_checks
+        blocked = bool(release) and bool(blocking_checks(release, dry_run=release.get("dry_run", False)))
         markup = {"inline_keyboard": format_responsive_keyboard([
-            [{"text": "🚀 Approve & Post", "callback_data": f"approve:{key}"},
-             {"text": "✏️ Edit text", "callback_data": f"edit:{key}"}],
+            ([] if blocked else [{"text": "🚀 Approve & Post", "callback_data": f"approve:{key}"}])
+            + [{"text": "✏️ Edit text", "callback_data": f"edit:{key}"}],
             [{"text": "🔄 Regenerate", "callback_data": f"regen:{key}"},
              {"text": "❌ Reject", "callback_data": f"reject:{key}"}],
         ] + ([] if script_payload.get("delivery_profile") == "deep_dive_16x9"  # 9:16 covers don't fit a documentary
@@ -1268,7 +1275,10 @@ class TelegramApprovalBot:
         msg = cq.get("message") or {}
         msg_id = msg.get("message_id")
         orig_text = msg.get("text") or ""
-        who = html.escape((cq.get("from") or {}).get("first_name") or str(user_id))  # a name, not an ID
+        sender = cq.get("from") or {}
+        # A name, not an ID; a placeholder first name such as "-" is no name.
+        name = next((n for n in (sender.get("first_name"), sender.get("username")) if n and re.search(r"\w", n)), "you")
+        who = html.escape(name)
         if decision in ("rejected", "regenerate") and msg_id:
             # One card for the whole decision (operator, 2026-10-23): the review becomes a short receipt
             # with the reason chips on it, instead of the full card plus a separate "Why?" message.
@@ -1281,10 +1291,12 @@ class TelegramApprovalBot:
                 put(self.db, "review-messages", run_id, [msg_id])
                 return
         badge = (
-            f"\n\n🎬 <b>APPROVAL RECORDED — DELIVERY NOT YET CONFIRMED</b> (by {who})" if decision == "approved"
-            else f"\n\n🔄 <b>REGENERATION REQUESTED</b> (by {who})" if decision == "regenerate"
-            else f"\n\n❌ <b>REJECTED</b> (by {who})" if decision == "rejected"
-            else f"\n\n✖ <b>CANCELLED / DISMISSED</b> (by {who})"
+            # Sentence case, as everywhere else (docs/telegram-style.md); the receipt replaces it once the
+            # release check and publishing have a result.
+            f"\n\n✅ <b>Approved</b> by {who} · release check and publishing under way" if decision == "approved"
+            else f"\n\n🔄 <b>Regeneration requested</b> by {who}" if decision == "regenerate"
+            else f"\n\n❌ <b>Rejected</b> by {who}" if decision == "rejected"
+            else f"\n\n✖ <b>Cancelled</b> by {who}"
         )
         # The card is rebuilt from the run's payload (the message text Telegram returns has lost its
         # formatting, and re-sending it as HTML could break on a stray "<").
@@ -1629,8 +1641,9 @@ class TelegramApprovalBot:
                 return self.edit_message_text(message_id, text, buttons=[[DONE_BUTTON]])
             # The run's one failure card (the separate "Production failed" alert is not sent as well).
             from .control import short_reason
+            # The whole reason, folded (as on the dashboard): 600 characters cut a release finding mid-way.
             text = (f"❌ <b>Production failed:</b> {html.escape(self.db.run_label(run_id))}\n\n"
-                    f"{html.escape(short_reason(error, 600))}\n\n"
+                    f"<blockquote expandable>{html.escape(short_reason(error, 1200))}</blockquote>\n\n"
                     "Nothing was posted. The topic will be retried on a later run.\n\n"
                     "<i>Reply to this card with a question to ask about this run.</i>")
             return self.edit_message_text(message_id, text, buttons=[[DONE_BUTTON]])

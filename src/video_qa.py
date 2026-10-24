@@ -240,7 +240,11 @@ SCENE_FIXES = {
     "motion_loop": "the graphic loops instead of holding its final frame through this beat",
     "blank_frame": "the picture renders blank",
     "caption_collision": "the graphic runs into the captions",
+    # Minor, but it decertifies the master and so blocks release (2026-10-24: a map shown one beat after
+    # the narration named the place). Re-planning can move the graphic to the beat that names it.
+    "temporal_desync": "the graphic appears away from the words that name it",
 }
+SCENE_REMEDIES = {"temporal_desync": "put it on the beat where those words are spoken, or choose a different picture for this beat."}
 
 
 def audit_scene_feedback(audit: Optional[Dict[str, Any]]) -> str:
@@ -249,8 +253,9 @@ def audit_scene_feedback(audit: Optional[Dict[str, Any]]) -> str:
     for issue in (audit or {}).get("issues", []):
         if issue.get("type") in SCENE_FIXES and issue.get("scene_index", -1) >= 0:
             asset = Path(issue.get("asset", "")).name
+            remedy = SCENE_REMEDIES.get(issue["type"], "choose a different picture for it.")
             lines.append(f"Beat {issue['scene_index'] + 1}: {SCENE_FIXES[issue['type']]}"
-                         + (f" ({asset})" if asset else "") + "; choose a different picture for it.")
+                         + (f" ({asset})" if asset else "") + f"; {remedy}")
     return "\n".join(dict.fromkeys(lines))
 
 
@@ -421,7 +426,10 @@ class QualityAuditor:
                     issues.append({
                         "type": "temporal_desync",
                         "severity": "minor",
-                        "issue": f"Scene {i}: Graphic '{asset_name}' keyword is {offset:.2f}s outside its cut (>1.2s)",
+                        # Words the operator reads on the review card: beats count from 1 there.
+                        "issue": (f"Beat {i + 1}: the graphic {asset_name} is on screen {offset:.1f} s "
+                                  f"{'after' if t_first < c_start else 'before'} the narration names it "
+                                  f"(allowed: 1.2 s)"),
                         "scene_index": i,
                         "trigger_time": t_first,
                         "cut_start": c_start,

@@ -72,3 +72,15 @@ def test_a_short_caption_is_shown_whole():
     card = TelegramApprovalBot.format_card_text({"title": "T", "narration_script": "x", "caption": "A short caption.",
                                                  "carousel_caption": "Swipe."}, "run_x")
     assert "A short caption." in card and "Swipe." in card and "(full text: Edit)" not in card
+
+
+def test_a_failed_run_is_named_on_the_dashboard_with_its_whole_reason_folded(db):
+    # The reason was cut mid-sentence ("…or add a curated script at…") in the Needs-you line.
+    topic = db.list_all_topics()[0]["id"]
+    db.create_run("run_f", topic)
+    reason = ("The script writer (gemini-free) made 3 attempts and each failed its checks (last: Narration runs "
+              "35.8s when spoken). Run it again, or add a curated script at data/scripts/" + topic + ".json.")
+    db.update_run("run_f", "failed", error="ScriptUnavailableError: " + reason)
+    text, _ = control.dashboard_text_and_buttons(db)
+    assert "❌ <b>Last run failed</b>: " in text
+    assert f"<blockquote expandable>{reason}</blockquote>" in text      # whole, without the exception name

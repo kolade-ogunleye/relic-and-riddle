@@ -861,6 +861,7 @@ class TelegramApprovalBot:
         e = html.escape
         loc = script_payload.get("location") or {}
         place = ", ".join(e(str(v)) for v in (loc.get("name"), loc.get("country")) if v)
+        regen = script_payload.get("_regeneration_note")  # added by send_review_card for a regenerated run
         audits = script_payload.get("fact_audits") or []
         from .models import GOOD_VERDICTS
         flagged = [a for a in audits if a.get("verdict") not in GOOD_VERDICTS]
@@ -874,6 +875,7 @@ class TelegramApprovalBot:
         text = (
             f"🎬 <b><u>MASTER REVIEW</u></b>\n\n"
             f"📌 <b>{e(script_payload.get('title', ''))}</b>\n"
+            + (f"🔄 <i>Regenerated · your feedback: {e(regen)}</i>\n" if regen else "")
             + (f"📍 <i>{place}</i>\n" if place else "") +
             f"⏱️ <code>{script_payload.get('word_count', 0)} words</code> · source: <i>{e(script_payload.get('origin', '?'))}</i>\n"
             f"{integrity}\n"
@@ -981,11 +983,35 @@ class TelegramApprovalBot:
             # edit replaces the review instead of stacking another copy (dev, 2026-10-23). Removing them
             # first would leave no review if this delivery had failed.
             old = [m for m in [*(earlier or []), (previous or {}).get("telegram_message_id")] if isinstance(m, int)]
+            old += self._superseded_review_messages(run_id)  # a regenerated version replaces its predecessor
             put(self.db, "review-messages", run_id, media_ids + [card])
             stale = sorted(set(old) - set(media_ids) - {card})
             if stale:
                 self.delete_messages(stale)
         return card
+
+    def _superseded_review_messages(self, run_id: str) -> List[int]:
+        """The card and albums of earlier runs of this topic that were sent back to Regenerate: the new
+        version's review replaces them (its run is a different one, so a resend's replacement missed them)."""
+        from .telegram_state import get, put
+        run = self.db.get_run(run_id) if hasattr(self.db, "get_run") else None
+        if not run:
+            return []
+        try:
+            with self.db._conn() as conn:
+                rows = conn.execute("SELECT r.run_id, a.telegram_message_id FROM runs r LEFT JOIN approvals a ON a.run_id = r.run_id "
+                                    "WHERE r.topic_id = ? AND r.status = 'regenerate' AND r.run_id != ?",
+                                    (run["topic_id"], run_id)).fetchall()
+        except Exception as e:
+            log.debug("Could not look up superseded reviews: %s", e)
+            return []
+        ids: List[int] = []
+        for row in rows:
+            ids += [m for m in (get(self.db, "review-messages", row["run_id"]) or []) if isinstance(m, int)]
+            if isinstance(row["telegram_message_id"], int):
+                ids.append(row["telegram_message_id"])
+            put(self.db, "review-messages", row["run_id"], [])  # removed once
+        return ids
 
     def _strip_buttons(self, message_id: int) -> None:
         try:
@@ -1059,7 +1085,9 @@ class TelegramApprovalBot:
         if get(self.db, "review-media", run_id) != fingerprint:
             raise ValueError("Review media must be delivered for this exact copy before approval")
         key = self.db.run_key(run_id)  # short: Telegram limits button data to 64 bytes
-        card_text = self.format_card_text(script_payload, run_id, release=release)
+        regen = self.db.get_setting("regenerating:" + run_id) if hasattr(self.db, "get_setting") else None
+        card_text = self.format_card_text({**script_payload, "_regeneration_note": regen} if regen else script_payload,
+                                          run_id, release=release)
         markup = {"inline_keyboard": format_responsive_keyboard([
             [{"text": "🚀 Approve & Post", "callback_data": f"approve:{key}"},
              {"text": "✏️ Edit text", "callback_data": f"edit:{key}"}],
@@ -1153,11 +1181,17 @@ class TelegramApprovalBot:
         msg = cq.get("message") or {}
         msg_id = msg.get("message_id")
         orig_text = msg.get("text") or ""
+        who = html.escape((cq.get("from") or {}).get("first_name") or str(user_id))  # a name, not an ID
+        if decision in ("rejected", "regenerate") and msg_id:
+            # One card for the whole decision (operator, 2026-10-23): the review becomes a short receipt
+            # with the reason chips on it, instead of the full card plus a separate "Why?" message.
+            if self._reason_card(msg_id, run_id, decision, who):
+                return
         badge = (
-            f"\n\n🎬 <b>APPROVAL RECORDED — DELIVERY NOT YET CONFIRMED</b> (by {user_id})" if decision == "approved"
-            else f"\n\n🔄 <b>REGENERATION REQUESTED</b> (by {user_id})" if decision == "regenerate"
-            else f"\n\n❌ <b>REJECTED</b> (by {user_id})" if decision == "rejected"
-            else f"\n\n✖ <b>CANCELLED / DISMISSED</b> (by {user_id})"
+            f"\n\n🎬 <b>APPROVAL RECORDED — DELIVERY NOT YET CONFIRMED</b> (by {who})" if decision == "approved"
+            else f"\n\n🔄 <b>REGENERATION REQUESTED</b> (by {who})" if decision == "regenerate"
+            else f"\n\n❌ <b>REJECTED</b> (by {who})" if decision == "rejected"
+            else f"\n\n✖ <b>CANCELLED / DISMISSED</b> (by {who})"
         )
         # The card is rebuilt from the run's payload (the message text Telegram returns has lost its
         # formatting, and re-sending it as HTML could break on a stray "<").
@@ -1198,6 +1232,23 @@ class TelegramApprovalBot:
         except Exception as e:
             log.debug("Could not bring the panel down after the receipt: %s", e)
         return stamped
+
+    def _reason_card(self, message_id: int, run_id: str, decision: str, who: str) -> bool:
+        """The decided review card, as a receipt that asks why (the reason chips edit this same card)."""
+        from .improve import REASONS
+        key = self.db.run_key(run_id)
+        when = show_time(time.time(), "%H:%M")
+        if decision == "regenerate":
+            head = (f"🔄 <b>Regeneration requested</b> by {who} at {when}. A new version is being made with your "
+                    "feedback; its progress card follows, and its review replaces this card.")
+        else:
+            head = f"❌ <b>Rejected</b> by {who} at {when}. Nothing was posted; the topic goes back to the queue."
+        verb = "regenerate" if decision == "regenerate" else "reject"
+        text = (f"🎬 <b>{html.escape(self.db.run_label(run_id))}</b>\n\n{head}\n\n"
+                f"📝 <b>Why {verb}?</b> One tap helps the next version (and the system) improve; then you can "
+                f"reply to this card with details. [run {html.escape(key)}]")
+        buttons = [{"text": label, "callback_data": f"rsn:{key}:{code}"} for code, label in REASONS.items()] + [DONE_BUTTON]
+        return bool(self.edit_message_text(message_id, text, buttons=buttons))
 
     def ask_reason(self, run_id: str, decision: str) -> None:
         """One tap tells the system what was wrong; it goes to the improvement ledger and, for a
@@ -1273,11 +1324,13 @@ class TelegramApprovalBot:
     # ------------------------------------------------------------ live render progress
     def progress_mode(self, run_id):
         mode = self.db.get_setting("run_mode:" + run_id)
+        regen = self.db.get_setting("regenerating:" + run_id)  # set when the run is a regeneration
+        note = f"\n🔄 Regeneration · your feedback: <b>{html.escape(regen)}</b>" if regen else ""
         if mode == "dry_run":
-            return "🧪 Dry run · publishing/scheduling skipped · configured generation may incur API costs"
+            return "🧪 Dry run · publishing/scheduling skipped · configured generation may incur API costs" + note
         if mode == "live":
-            return "🔴 Live production · publication requires approval and release checks"
-        return "⚠️ Run mode not recorded · inspect before publication"
+            return "🔴 Live production · publication requires approval and release checks" + note
+        return "⚠️ Run mode not recorded · inspect before publication" + note
 
     def send_progress_card(self, run_id: str, topic_title: str) -> Optional[int]:
         """Sends an initial progress card for a running pipeline job, returning message_id."""
@@ -2285,7 +2338,10 @@ class TelegramApprovalBot:
             command = 'edittext'
             args = self._open_edit_for(text) + ' ' + text
             audit_payload = f'/edittext {text[:80]}'
-        elif reply_to and re.search('\\[run (\\d+)\\]', reply_to.get('text') or '') and (reply_to.get('text') or '').startswith(('📝', '✅ Reason')):
+        elif reply_to and re.search('\\[run (\\d+)\\]', reply_to.get('text') or '') and (
+                (reply_to.get('text') or '').startswith(('📝', '✅ Reason')) or
+                any(marker in (reply_to.get('text') or '') for marker in ('Why regenerate?', 'Why reject?', '✅ Reason:'))):
+            # A reason card: the old separate message, or the decided review card that now carries it.
             command = 'whytext'
             args = re.search('\\[run (\\d+)\\]', reply_to['text']).group(1) + ' ' + text
             audit_payload = f'/whytext {text[:80]}'

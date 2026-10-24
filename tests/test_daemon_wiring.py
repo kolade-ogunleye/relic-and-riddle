@@ -184,7 +184,7 @@ def _daemon_run(monkeypatch, daemon_env, result, dry_run=True):
 def test_daemon_runs_production_in_a_worker_process(daemon_env, monkeypatch):
     # 2026-10-23: a native crash in a run would have taken the daemon (its bot and schedule) down with it.
     calls, notes, cleared = _daemon_run(monkeypatch, daemon_env, {"status": "simulated", "run_id": "r1"})
-    assert calls == [("dual", {"dry_run": True, "schedule_posts": main.POST_SCHEDULING})]
+    assert calls == [("dual", {"dry_run": True, "schedule_posts": main.POST_SCHEDULING, "extra": None})]
     assert notes == ["ping"] and not cleared
 
 
@@ -280,3 +280,63 @@ def test_bot_mode_owns_polling_so_its_review_waits_read_the_database(daemon_env,
     monkeypatch.setattr(main, "PipelineDatabase", lambda: SimpleNamespace())
     assert main.main(["bot"]) == 0
     assert seen["background_polling"] is True
+
+
+def _awaiting_review(db, run_id="run_r", decision=None):
+    db.create_run(run_id, db.list_all_topics()[0]["id"])
+    db.update_run(run_id, "pending_approval")
+    db.record_approval(run_id, db.list_all_topics()[0]["id"], 700)
+    if decision:
+        db.update_approval_decision(run_id, decision, decided_by="test")
+
+
+def test_startup_resumes_every_review_still_awaiting_its_decision(db):
+    # A restart ended the review's wait; a Regenerate tapped afterwards was recorded and never acted on.
+    _awaiting_review(db, "run_a")
+    _awaiting_review(db, "run_b", decision="regenerate")
+    db.create_run("run_c", db.list_all_topics()[0]["id"])   # producing: not a review
+    followed = []
+    main.resume_reviews(SimpleNamespace(db=db), lambda run_id, resend: followed.append((run_id, resend)))
+    assert sorted(followed) == [("run_a", False), ("run_b", False)]   # waits resume; cards are not re-sent
+
+
+def test_a_resumed_review_acts_on_a_decision_made_while_nothing_waited(db):
+    _awaiting_review(db, decision="regenerate")
+    coordinator = main.PipelineCoordinator.__new__(main.PipelineCoordinator)
+    coordinator.db = db
+    coordinator.topic_engine = SimpleNamespace(record_status=lambda *a, **k: None)
+    sent = []
+    from src.telegram_bot import TelegramApprovalBot
+    bot = TelegramApprovalBot(db=db, bot_token="", chat_id="", approver_ids=set())
+    bot.send_approval_request = lambda *a, **k: sent.append(1)
+    coordinator.telegram_bot = bot
+    result = coordinator.request_approval("run_r", resend=False)
+    assert result["decision"] == "regenerate" and result["topic_id"] == db.list_all_topics()[0]["id"]
+    assert sent == []   # the card already in the chat is the one tapped
+
+
+def test_a_regenerate_in_bot_mode_launches_the_regeneration_run(daemon_env, monkeypatch):
+    launched = []
+    trigger, _ = _bot_mode(monkeypatch, daemon_env, False)
+    monkeypatch.setattr(main.subprocess, "Popen", lambda cmd, **k: launched.append(cmd) or SimpleNamespace(
+        pid=1, poll=lambda: None, communicate=lambda: ("", ""), returncode=0))
+    assert trigger() and "--regenerate-from" not in launched[-1]
+
+
+def test_the_run_command_regenerates_with_the_earlier_runs_feedback(monkeypatch):
+    seen = {}
+
+    class FakeCoordinator:
+        def __init__(self, **kw):
+            self.telegram_bot = SimpleNamespace()
+
+        def _await_reason(self, run_id, wait_seconds=120):
+            seen["from"] = run_id
+            return {"reason": "sound"}
+
+        def run_cycle(self, topic_id, auto_approve, dry_run, require_live=False, content_format="reel", _regenerations=0, run_id=None):
+            seen.update(topic=topic_id, regenerations=_regenerations, feedback=self._operator_feedback)
+            return {"status": "simulated"}
+    monkeypatch.setattr(main, "PipelineCoordinator", FakeCoordinator)
+    main.main(["run", "--dry-run", "--topic-id", "amber_room_heist", "--regenerate-from", "run_old"])
+    assert seen == {"from": "run_old", "topic": "amber_room_heist", "regenerations": 1, "feedback": {"reason": "sound"}}

@@ -915,8 +915,10 @@ class PipelineCoordinator:
         return (f"✅ {names[:1].upper() + names[1:]} updated and fact-checked; the updated review card is just above."
                 + (f" Release gate still open: {', '.join(open_checks)}." if open_checks else ""))
 
-    def request_approval(self, run_id: str, dry_run: bool = False) -> Dict[str, Any]:
-        """Re-sends the review card for a rendered run whose approval timed out, then acts on the decision."""
+    def request_approval(self, run_id: str, dry_run: bool = False, resend: bool = True) -> Dict[str, Any]:
+        """Re-sends the review card for a rendered run (resend=False: the card is already in the chat, as
+        after a restart), then acts on the decision. A Regenerate is returned with the run's topic: the
+        caller starts the regeneration run in its own worker (start_regeneration)."""
         run = self.db.get_run(run_id)
         if not run or run["status"] not in ("timeout", "pending_approval"):
             raise ValueError(f"Run status '{run and run['status']}' has no approval to re-send.")
@@ -927,10 +929,11 @@ class PipelineCoordinator:
         elif not appr:
             self.db.record_approval(run_id, run["topic_id"])
         self.db.update_run(run_id, "pending_approval")
-        run_dir = OUTPUT_DIR / run_id
-        proxy = run_dir / "review_proxy.mp4"
-        video = proxy if proxy.exists() else Path(run["master_video_path"])
-        self.telegram_bot.send_approval_request(video, Path(run["thumbnail_cover_path"]), run["script_payload"], run_id)
+        if resend:
+            run_dir = OUTPUT_DIR / run_id
+            proxy = run_dir / "review_proxy.mp4"
+            video = proxy if proxy.exists() else Path(run["master_video_path"])
+            self.telegram_bot.send_approval_request(video, Path(run["thumbnail_cover_path"]), run["script_payload"], run_id)
         decision = self.telegram_bot.wait_for_decision(run_id, self._approval_window())
         if decision == "approved":
             return {"run_id": run_id, "decision": decision, **self._after_approval(run_id, dry_run=dry_run)}
@@ -938,7 +941,7 @@ class PipelineCoordinator:
         self.db.update_run(run_id, status)
         if decision == "rejected":
             self.topic_engine.record_status(run["topic_id"], "rejected", run_id=run_id)
-        return {"run_id": run_id, "decision": decision, "status": decision}
+        return {"run_id": run_id, "decision": decision, "status": decision, "topic_id": run["topic_id"]}
 
     def resume_run(self, run_id: str, auto_approve: bool = False, dry_run: bool = False) -> Dict[str, Any]:
         """
@@ -980,6 +983,12 @@ class PipelineCoordinator:
     def _produce_and_publish(self, topic, run_id, run_dir, auto_approve, dry_run, previous_status) -> Dict[str, Any]:
         self._check_cancel(run_id)
         self.progress_msg_id = None
+        feedback = getattr(self, "_operator_feedback", None) or {}
+        if feedback.get("reason"):  # the progress card says this is a regeneration, and why
+            from src.improve import REASONS
+            self.db.set_setting("regenerating:" + run_id,
+                                REASONS.get(feedback["reason"], feedback["reason"])
+                                + (f": {feedback['text'][:120]}" if feedback.get("text") else ""))
         try:
             self.progress_msg_id = self.telegram_bot.send_progress_card(run_id, topic["title"])
         except Exception:
@@ -1835,7 +1844,8 @@ def _write_result(path: Optional[str], result: Dict[str, Any]) -> None:
         log.warning("Could not write the run result to %s: %s", path, e)
 
 
-def run_in_worker(content_format: str, dry_run: bool, schedule_posts: bool, timeout: Optional[float] = None) -> Dict[str, Any]:
+def run_in_worker(content_format: str, dry_run: bool, schedule_posts: bool, timeout: Optional[float] = None,
+                  extra: Optional[List[str]] = None) -> Dict[str, Any]:
     """Runs one production cycle in its own process (main.py run), as the development bot already does.
     A native crash in a run (2026-10-23: a GPU library brought a worker down) then costs that run only,
     not the daemon with its bot and schedule. The daemon's poller keeps handling Telegram; the worker
@@ -1846,7 +1856,7 @@ def run_in_worker(content_format: str, dry_run: bool, schedule_posts: bool, time
     os.close(fd)
     cmd = ([sys.executable, "-u", "main.py", "run", "--require-live", "--background-polling",
             "--format", content_format, "--result-file", result_path]
-           + (["--dry-run"] if dry_run else []) + (["--schedule-posts"] if schedule_posts else []))
+           + (["--dry-run"] if dry_run else []) + (["--schedule-posts"] if schedule_posts else []) + list(extra or []))
     try:
         proc = subprocess.run(cmd, cwd=str(config.BASE_DIR), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
                               text=True, encoding="utf-8", errors="replace", timeout=timeout)
@@ -1956,6 +1966,24 @@ def reconcile_interrupted_runs(db: PipelineDatabase, topic_engine=None) -> List[
     return done
 
 
+def resume_reviews(coordinator, follow) -> List[str]:
+    """At startup: every rendered run still awaiting its decision gets its wait back, without re-sending
+    the card. A review card's buttons act only while something waits on them: after a restart a tapped
+    Regenerate was recorded and nothing acted on it (dev, 2026-10-23). A decision made meanwhile is acted
+    on at once."""
+    try:
+        with coordinator.db._conn() as conn:
+            runs = [r["run_id"] for r in conn.execute(
+                "SELECT r.run_id FROM runs r JOIN approvals a ON a.run_id = r.run_id WHERE r.status = 'pending_approval'")]
+    except Exception as e:
+        log.warning("Could not resume review waits: %s", e)
+        return []
+    for run_id in runs:
+        log.info("Resuming the review wait for %s.", run_id)
+        follow(run_id, resend=False)
+    return runs
+
+
 def _report_interrupted(coordinator, bot) -> None:
     try:
         stale = reconcile_interrupted_runs(coordinator.db, coordinator.topic_engine)
@@ -2052,6 +2080,7 @@ def main(argv=None) -> int:
     run_p.add_argument("--run-id", help="Re-use existing run directory to re-render without re-synthesizing voiceover")
     run_p.add_argument("--background-polling", action="store_true", help="Tell bot that supervisor is polling getUpdates")
     run_p.add_argument("--result-file", help="Write the outcome here as JSON (the daemon's worker contract)")
+    run_p.add_argument("--regenerate-from", help="A run whose review asked to Regenerate: its reason guides this run")
     run_p.add_argument("--paid-voice", action="store_true",
                        help="With --dry-run: voice with ElevenLabs anyway (spends credits); real runs always may")
     run_p.add_argument("--paid-motion", action="store_true",
@@ -2131,7 +2160,13 @@ def main(argv=None) -> int:
             coordinator.paid_motion_in_dry_run = args.paid_motion
             if getattr(args, "background_polling", False):
                 coordinator.telegram_bot.background_polling = True
-            res = coordinator.run_cycle(args.topic_id, args.auto_approve, args.dry_run, require_live=getattr(args, "require_live", False), content_format=args.format, run_id=getattr(args, "run_id", None))
+            regenerations = 0
+            previous = getattr(args, "regenerate_from", None)
+            if previous:  # a Regenerate decided outside a running cycle (Resend, or after a restart)
+                coordinator._operator_feedback = coordinator._await_reason(previous, wait_seconds=10)
+                regenerations = 1
+            res = coordinator.run_cycle(args.topic_id, args.auto_approve, args.dry_run, require_live=getattr(args, "require_live", False),
+                                        content_format=args.format, _regenerations=regenerations, run_id=getattr(args, "run_id", None))
         except QueueEmpty:
             _write_result(getattr(args, "result_file", None), {"status": "queue_empty"})
             return 0  # healthy: nothing new to make
@@ -2211,16 +2246,29 @@ def main(argv=None) -> int:
         run_lock = threading.Lock()
         worker_proc = None
 
-        def resend_for_review(run_id: str) -> str:
+        def follow_review(run_id: str, resend: bool) -> None:
+            """Waits on a review and acts on its decision; a Regenerate starts its run in a worker."""
             def work():
                 try:
-                    coordinator.request_approval(run_id)
+                    result = coordinator.request_approval(run_id, resend=resend)
                 except Exception as e:
-                    bot.notify(f"⚠️ Couldn't re-send for review: {html.escape(str(e))[:300]}")
-            threading.Thread(target=work, name="resend-review", daemon=True).start()
+                    bot.notify(f"⚠️ Couldn't {'re-send' if resend else 'resume'} the review: {html.escape(str(e))[:300]}")
+                    return
+                if result.get("decision") == "regenerate":
+                    run = coordinator.db.get_run(run_id) or {}
+                    started = launch_worker(run.get("content_format") or "reel",
+                                            ["--topic-id", result["topic_id"], "--regenerate-from", run_id])
+                    bot.notify(f"🔄 <b>Regenerating</b> {html.escape(coordinator.db.run_label(run_id))} with your feedback. {started}")
+            threading.Thread(target=work, name="review-wait", daemon=True).start()
+
+        def resend_for_review(run_id: str) -> str:
+            follow_review(run_id, resend=True)
             return f"📨 Sending {html.escape(coordinator.db.run_label(run_id))} for review again…"
 
         def trigger_run(content_format: str = "reel") -> str:
+            return launch_worker(content_format)
+
+        def launch_worker(content_format: str = "reel", extra: Optional[List[str]] = None) -> str:
             nonlocal worker_proc
             if run_lock.locked() or (worker_proc is not None and worker_proc.poll() is None):
                 pid_info = f" (PID {worker_proc.pid})" if worker_proc else ""
@@ -2241,7 +2289,7 @@ def main(argv=None) -> int:
             worker_proc = subprocess.Popen(
                 [sys.executable, "-u", "main.py", "run", "--require-live", "--background-polling", "--format", content_format]
                 + (["--dry-run"] if config.BOT_RUNS_DRY else [])  # nothing posts from a bot-started run by default
-                + (["--schedule-posts"] if POST_SCHEDULING else []),
+                + (["--schedule-posts"] if POST_SCHEDULING else []) + list(extra or []),
                 cwd=str(BASE_DIR),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -2264,6 +2312,8 @@ def main(argv=None) -> int:
         )
         if POST_SCHEDULING:  # what this mode books, it also posts when due
             start_post_ticker(coordinator, bot)
+        bot.background_polling = True  # set before any review wait starts (see below)
+        resume_reviews(coordinator, follow_review)
         from src.control import startup_dashboard_card
         card_text, card_buttons = startup_dashboard_card(db, mode="bot", assets_dir=config.ASSETS_DIR)
         bot.warm_up()
@@ -2306,7 +2356,7 @@ def main(argv=None) -> int:
         bot.register_commands()
         run_lock = threading.Lock()  # one production run at a time (daily job or /run)
 
-        def production_run(manual: bool = False, content_format: str = "reel"):
+        def production_run(manual: bool = False, content_format: str = "reel", extra: Optional[List[str]] = None):
             if not manual and is_paused(coordinator.db):
                 log.info("Scheduled run skipped: paused.")
                 bot.notify("⏸ Scheduled run skipped (paused). Send /resume to re-enable.",
@@ -2318,7 +2368,7 @@ def main(argv=None) -> int:
             try:
                 # Each run in its own process: a crash costs the run, never the daemon (its bot and schedule).
                 with busy_lease(coordinator.db, "the production run"):
-                    result = run_in_worker(content_format, dry_run=args.dry_run, schedule_posts=POST_SCHEDULING)
+                    result = run_in_worker(content_format, dry_run=args.dry_run, schedule_posts=POST_SCHEDULING, extra=extra)
                 status = result.get("status")
                 if status in ("published", "simulated", "rejected", "scheduled"):
                     ping_healthcheck()
@@ -2411,14 +2461,27 @@ def main(argv=None) -> int:
                                                            timezone=TIMEZONE), max_instances=1, coalesce=True,
                           misfire_grace_time=3600)
 
-        def resend_for_review(run_id: str) -> str:
-            """Re-sends a timed-out Reel's review card (in the background; the wait can be long)."""
+        def follow_review(run_id: str, resend: bool) -> None:
+            """Waits on a review in the background and acts on its decision; a Regenerate becomes a
+            production run of the same topic, in its worker, guided by the reason given."""
             def work():
                 try:
-                    coordinator.request_approval(run_id, dry_run=args.dry_run)
+                    result = coordinator.request_approval(run_id, dry_run=args.dry_run, resend=resend)
                 except Exception as e:
-                    bot.notify(f"⚠️ Couldn't re-send for review: {html.escape(str(e))[:300]}")
-            threading.Thread(target=work, name="resend-review", daemon=True).start()
+                    bot.notify(f"⚠️ Couldn't {'re-send' if resend else 'resume'} the review: {html.escape(str(e))[:300]}")
+                    return
+                if result.get("decision") == "regenerate":
+                    run = coordinator.db.get_run(run_id) or {}
+                    scheduler.add_job(production_run, kwargs={
+                        "manual": True, "content_format": run.get("content_format") or "reel",
+                        "extra": ["--topic-id", result["topic_id"], "--regenerate-from", run_id]})
+                    bot.notify(f"🔄 <b>Regenerating</b> {html.escape(coordinator.db.run_label(run_id))} with your feedback; "
+                               "its progress card follows.")
+            threading.Thread(target=work, name="review-wait", daemon=True).start()
+
+        def resend_for_review(run_id: str) -> str:
+            """Re-sends a Reel's review card (in the background; the wait can be long)."""
+            follow_review(run_id, resend=True)
             return f"📨 Sending {html.escape(coordinator.db.run_label(run_id))} for review again…"
 
         propose_topics = _proposal_trigger(coordinator.db, bot)
@@ -2574,6 +2637,7 @@ def main(argv=None) -> int:
             bot.warm_up()
             bot.background_polling = True  # this thread owns getUpdates; approval waits read the database
             threading.Thread(target=poll_telegram, name="telegram-poller", daemon=True).start()
+        resume_reviews(coordinator, follow_review)  # cards still in the chat keep working after a restart
 
         log.info("Daemon scheduled daily at %s (%s); heartbeat at %s. Ctrl+C to stop.", args.time, TIMEZONE, HEARTBEAT_TIME)
         try:

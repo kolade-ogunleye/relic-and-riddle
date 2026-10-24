@@ -1695,8 +1695,14 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             run_id = db.resolve_run(key)
             appr = db.get_approval(run_id) or {}
             improve.record_reason(db, run_id, reason, appr.get("decision", ""))
-            return (f"✅ Reason: <b>{html.escape(improve.REASONS.get(reason, reason))}</b>. "
-                    f"Reply to this message to add details. [run {html.escape(key)}]")
+            # The reason chips sit on the decided review card itself: this text replaces that card, so it
+            # keeps what was decided.
+            decided = ("🔄 <b>Regeneration requested.</b> A new version is being made with this feedback; its "
+                       "review replaces this card." if appr.get("decision") == "regenerate"
+                       else "❌ <b>Rejected.</b> Nothing was posted." if appr.get("decision") == "rejected" else "")
+            return (f"🎬 <b>{html.escape(db.run_label(run_id))}</b>\n\n" + (f"{decided}\n\n" if decided else "")
+                    + f"✅ Reason: <b>{html.escape(improve.REASONS.get(reason, reason))}</b>. "
+                    f"Reply to this card to add details. [run {html.escape(key)}]")
         if command == "whytext":
             from . import improve
             key, _, text = args.partition(" ")

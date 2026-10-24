@@ -435,3 +435,50 @@ def test_an_edited_caption_keeps_its_hashtags_and_ignores_spacing(db, tmp_path, 
     caption = db.get_run("review")["script_payload"]["caption"]
     assert caption.startswith("New wording.") and "#AmberRoom #LostTreasures" in caption and "📷 Someone" in caption
     assert caption.index("#AmberRoom") < caption.index("📷")
+
+
+def test_regenerate_turns_the_review_into_one_reason_card(db, tmp_path, monkeypatch):
+    # The full card, a separate "Why?" message and the dashboard made three panels for one decision.
+    ready_review(db, tmp_path)
+    bot, calls = offline_bot(db, monkeypatch)
+    edits, notes = [], []
+    monkeypatch.setattr(bot, "edit_message_text", lambda mid, text, buttons=None, **k: edits.append((mid, text, buttons)) or True)
+    monkeypatch.setattr(bot, "notify", lambda *a, **k: notes.append(a) or 1)
+    cq = {"id": "q", "from": {"id": 555, "first_name": "Kolade"}, "message": {"message_id": 202, "chat": {"id": 555}}}
+    bot._render_decision(cq, "review", "regenerate", 555)
+    assert notes == []                                   # no separate reason message
+    mid, text, buttons = edits[-1]
+    assert mid == 202 and "Regeneration requested</b> by Kolade" in text and "555" not in text
+    assert any(b.get("callback_data", "").startswith("rsn:") for b in buttons)
+
+
+def test_the_reason_tap_keeps_what_was_decided(db):
+    from src.control import make_command_handler
+    db.create_run("run_x", db.list_all_topics()[0]["id"])
+    db.record_approval("run_x", db.list_all_topics()[0]["id"], 300)
+    db.update_approval_decision("run_x", "regenerate", decided_by="telegram:555")
+    text = make_command_handler(db, lambda: None, lambda: "")("rsn", f"{db.run_key('run_x')}:sound")
+    text = text[0] if isinstance(text, tuple) else text
+    assert "Regeneration requested" in text and "Reason:" in text and f"[run {db.run_key('run_x')}]" in text
+
+
+def test_a_regenerated_review_replaces_its_predecessors_card(db, tmp_path, monkeypatch):
+    root = ready_review(db, tmp_path)                    # run "review", card 202
+    put(db, "review-messages", "review", [190, 191, 202])
+    db.update_run("review", "regenerate")
+    topic = db.get_run("review")["topic_id"]
+    db.create_run("review2", topic)
+    db.update_run("review2", "pending_approval", script_payload={"caption": "Two", "title": "T"},
+                  master_video_path=root / "master.mp4")
+    bot, state = _numbered_bot(db, monkeypatch)
+    card = bot.send_approval_request(root / "master.mp4", root / "thumbnail_cover.jpg", {"caption": "Two", "title": "T"}, "review2")
+    assert card and {190, 191, 202} <= set(state["deleted"])
+    assert get(db, "review-messages", "review") == []
+
+
+def test_a_regeneration_says_so_on_its_progress_and_review_cards(db, monkeypatch):
+    bot, _ = offline_bot(db, monkeypatch)
+    db.set_setting("regenerating:run_n", "Music / sound: quieter bed")
+    assert "Regeneration · your feedback: <b>Music / sound: quieter bed</b>" in bot.progress_mode("run_n")
+    text = bot.format_card_text({"title": "T", "_regeneration_note": "Music / sound"}, "run_n")
+    assert "Regenerated · your feedback: Music / sound" in text

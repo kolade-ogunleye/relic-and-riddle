@@ -13,6 +13,7 @@ Temporary overloads (HTTP 503) are retried with backoff. Free-tier prompts may b
 improve its products: only public research material is sent.
 """
 
+import contextvars
 import logging
 import time
 from typing import Type, TypeVar
@@ -63,7 +64,11 @@ def _thinking(level: str) -> dict:
     return {"thinking": level} if level else {}
 
 
-def _paid_fallback(system, prompt, schema: Type[T], model: str, task_class: str, why: str, thinking: str = None) -> T:
+_thinking_level: contextvars.ContextVar = contextvars.ContextVar("free_llm_thinking", default=None)
+
+
+def _paid_fallback(system, prompt, schema: Type[T], model: str, task_class: str, why: str) -> T:
+    thinking = _thinking_level.get()
     # A light, text-only task first tries the second free model (when enabled after measurement).
     if task_class == "light" and isinstance(prompt, str) and config.GROQ_LIGHT_FALLBACK:
         from . import groq
@@ -129,11 +134,14 @@ def structured(system: str, prompt, schema: Type[T], role: str = "writer", attem
     if task_class == "light" and isinstance(prompt, str) and config.FREE_LIGHT_MODEL:
         model = config.FREE_LIGHT_MODEL  # its own free limits; photo review (images) stays on the main models
     started = time.perf_counter()
+    token = _thinking_level.set(thinking)
     try:
         result = _structured_on(model, system, prompt, schema, role, attempts, task_class, timeout, thinking)
     except Exception as e:
         record_llm_call(current_task(), model, time.perf_counter() - started, outcome=type(e).__name__, role=role)
         raise
+    finally:
+        _thinking_level.reset(token)
     tokens_in, tokens_out = gemini.last_usage()
     record_llm_call(current_task(), model, time.perf_counter() - started, tokens_in=tokens_in or 0,
                     tokens_out=tokens_out or 0, role=role)
@@ -143,10 +151,10 @@ def structured(system: str, prompt, schema: Type[T], role: str = "writer", attem
 def _structured_on(model: str, system: str, prompt, schema: Type[T], role: str, attempts: int,
                    task_class: str, timeout: float, thinking: str = None) -> T:
     if not available():
-        return _paid_fallback(system, prompt, schema, model, task_class, thinking=thinking, why=
+        return _paid_fallback(system, prompt, schema, model, task_class,
                               "GEMINI_FREE_API_KEY is not set (create it in a Google project without billing).")
     if task_class == "heavy" and not config.FREE_TIER_HEAVY:
-        return _paid_fallback(system, prompt, schema, model, task_class, thinking=thinking, why=
+        return _paid_fallback(system, prompt, schema, model, task_class,
                               "heavy tasks use the billed key here (FREE_TIER_HEAVY=false)")
     wait = {"timeout": timeout} if timeout else {}
     delay = 15.0
@@ -165,7 +173,7 @@ def _structured_on(model: str, system: str, prompt, schema: Type[T], role: str, 
                     _spare_down_until = time.monotonic() + SPARE_COOLDOWN_SECONDS
                     log.info("Spare free key unavailable too (%s); not tried again for %d min.",
                              e2, SPARE_COOLDOWN_SECONDS // 60)
-            return _paid_fallback(system, prompt, schema, model, task_class, thinking=thinking, why=
+            return _paid_fallback(system, prompt, schema, model, task_class,
                                   f"The free Gemini quota is used up for now ({model}): {e}")
         except gemini.ConnectionDropped as e:
             # A dropped connection (Richat's documentary check died on one after 8 minutes): send again.
@@ -182,7 +190,7 @@ def _structured_on(model: str, system: str, prompt, schema: Type[T], role: str, 
             if attempt == attempts:
                 if timeout:
                     raise LLMError(f"Free model {model} failed: {e}") from e
-                return _paid_fallback(system, prompt, schema, model, task_class, thinking=thinking, why=
+                return _paid_fallback(system, prompt, schema, model, task_class,
                                       f"The free model {model} did not answer in time ({attempts} attempts)")
             log.info("Free model %s timed out (attempt %d); retrying in %.0fs.", model, attempt, delay)
             time.sleep(delay)
@@ -191,7 +199,7 @@ def _structured_on(model: str, system: str, prompt, schema: Type[T], role: str, 
             if "overloaded" not in str(e).lower() and "503" not in str(e):
                 raise LLMError(f"Free model {model} failed: {e}") from e
             if attempt == attempts:
-                return _paid_fallback(system, prompt, schema, model, task_class, thinking=thinking, why=
+                return _paid_fallback(system, prompt, schema, model, task_class,
                                       f"The free model {model} stayed overloaded")
             log.info("Free model %s busy (attempt %d); retrying in %.0fs.", model, attempt, delay)
             time.sleep(delay)

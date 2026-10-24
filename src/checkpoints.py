@@ -18,6 +18,19 @@ def file_inputs(paths):
     return {str(Path(p).resolve()): sha256_file(Path(p)) for p in paths}
 
 
+def portable_inputs(run_dir, paths):
+    """file_inputs keyed by the name of a file inside run_dir (and the path of one outside it), so a
+    stage's record means the same in another run's folder: a regeneration carries the music bed over
+    with the voiceover it was made for (2026-10-24)."""
+    run_dir = Path(run_dir).resolve()
+    out = {}
+    for p in paths:
+        p = Path(p).resolve()
+        key = p.name if p.parent == run_dir else str(p)
+        out[key] = sha256_file(p)
+    return out
+
+
 class Checkpoints:
     def __init__(self, run_dir):
         self.path = Path(run_dir) / "checkpoints.json"

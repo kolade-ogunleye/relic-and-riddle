@@ -114,3 +114,34 @@ def test_a_regeneration_carries_the_previous_runs_voiceover_over(db, tmp_path, m
     (run_dir / "voiceover.mp3").unlink()
     main.PipelineCoordinator._seed_voice_from_previous(coordinator, run_dir, "Different words.")
     assert not (run_dir / "voiceover.mp3").exists()                 # another script: a new voiceover
+
+
+def test_a_regeneration_carries_the_music_bed_over_with_the_same_voiceover(db, tmp_path, monkeypatch):
+    import json
+    import main
+    from types import SimpleNamespace
+    from src.checkpoints import Checkpoints, portable_inputs
+    monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
+    previous, run_dir = tmp_path / "run_prev", tmp_path / "run_new"
+    previous.mkdir(), run_dir.mkdir()
+    for d in (previous, run_dir):
+        (d / "voiceover.mp3").write_bytes(b"same voice")
+    (previous / "words.json").write_bytes(b"[]")
+    for n in main.PipelineCoordinator.BED_FILES:
+        (previous / n).write_bytes(b"bed " + n.encode())
+    inputs = {"voice_and_rules": portable_inputs(previous, [previous / "voiceover.mp3", previous / "words.json"]), "profile": {}}
+    Checkpoints(previous).complete("bed", inputs, [previous / n for n in main.PipelineCoordinator.BED_FILES])
+    coordinator = SimpleNamespace(_operator_feedback={"reason": "pictures", "from_run": "run_prev"}, db=db)
+    coordinator._feedback = lambda: main.PipelineCoordinator._feedback(coordinator)
+    coordinator._previous_run_dir = lambda: main.PipelineCoordinator._previous_run_dir(coordinator)
+    coordinator.BED_FILES = main.PipelineCoordinator.BED_FILES
+    main.PipelineCoordinator._seed_bed_from_previous(coordinator, run_dir, run_dir / "voiceover.mp3")
+    assert (run_dir / "ambient_bed.wav").read_bytes() == b"bed ambient_bed.wav"
+    (run_dir / "words.json").write_bytes(b"[]")
+    fresh = {"voice_and_rules": portable_inputs(run_dir, [run_dir / "voiceover.mp3", run_dir / "words.json"]), "profile": {}}
+    assert Checkpoints(run_dir).reusable("bed", fresh)          # the same record means the same here
+    # The review was about the sound: a different bed is wanted, so nothing is carried over.
+    other = tmp_path / "run_sound"; other.mkdir(); (other / "voiceover.mp3").write_bytes(b"same voice")
+    coordinator._operator_feedback = {"reason": "sound", "from_run": "run_prev"}
+    main.PipelineCoordinator._seed_bed_from_previous(coordinator, other, other / "voiceover.mp3")
+    assert not (other / "ambient_bed.wav").exists()

@@ -423,6 +423,33 @@ class PipelineCoordinator:
             return None
         return saved
 
+    BED_FILES = ("ambient_bed.wav", "ambient_bed.wav.rights.json", "music_selection.json", "sound_plan.json")
+
+    def _seed_bed_from_previous(self, run_dir: Path, vo_path: Path) -> None:
+        """A regeneration whose voiceover was carried over keeps the music bed made for it too (2 min 48 s
+        to make again, 2026-10-24), unless the review was about the sound. The bed's checkpoint record is
+        carried with it; the stage's own check then decides whether it is still good."""
+        previous = self._previous_run_dir()
+        if previous is None or (run_dir / "ambient_bed.wav").exists() or self._feedback().get("reason") == "sound":
+            return
+        from src.checkpoints import Checkpoints
+        from src.credits import sha256_file
+        try:
+            same_voice = vo_path.is_file() and sha256_file(vo_path) == sha256_file(previous / "voiceover.mp3")
+            record = Checkpoints(previous).read().get("bed") or {}
+        except OSError:
+            return
+        if not same_voice or not record.get("inputs") or not all((previous / n).is_file() for n in self.BED_FILES):
+            return
+        try:
+            for n in self.BED_FILES:
+                shutil.copy2(previous / n, run_dir / n)
+            Checkpoints(run_dir).adopt("bed", record["inputs"], [run_dir / n for n in self.BED_FILES])
+        except (OSError, ValueError) as e:
+            log.warning("Could not carry the music bed over from %s: %s", previous.name, e)
+            return
+        log.info("Music bed carried over from %s: made for this same voiceover.", previous.name)
+
     def _previous_motion_dirs(self) -> List[Path]:
         previous = self._previous_run_dir()
         return [previous / "motion"] if previous and (previous / "motion").is_dir() else []
@@ -1301,7 +1328,9 @@ class PipelineCoordinator:
         profile = get_delivery_profile(payload.setdefault("delivery_profile", "reel_9x16"))
         library_tracks = load_library()
         music_path = run_dir / "music_selection.json"
-        bed_inputs = {"voice_and_rules": file_inputs([vo_path, words_path, Path("src/audio_engine.py")]),
+        self._seed_bed_from_previous(run_dir, vo_path)  # a regeneration keeps the bed made for its voiceover
+        from src.checkpoints import portable_inputs
+        bed_inputs = {"voice_and_rules": portable_inputs(run_dir, [vo_path, words_path, Path("src/audio_engine.py")]),
                       "profile": profile.model_dump(),
                       "library": [{k: v for k, v in t.items() if k != "uses"} for t in library_tracks],
                       "library_files": file_inputs([MUSIC_DIR / t["file"] for t in library_tracks]),

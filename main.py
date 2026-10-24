@@ -1847,7 +1847,8 @@ class PipelineCoordinator:
                     urls["youtube short"] = url
                 text = "✅ <b>Approved · posted</b>" + "".join(f"\n• {html.escape(k)}: {html.escape(str(v))}" for k, v in urls.items())
             elif status == "unknown":
-                text = "⚠️ <b>Approved · publish unconfirmed</b>: check the accounts, then answer the alert below."
+                text = ("⚠️ <b>Approved · publish unconfirmed</b>: check the accounts, then answer the "
+                        "PUBLISH UNCONFIRMED alert (It posted / It didn't post).")  # it sits above the panel
             elif status == "blocked_unlicensed":
                 text = "🛑 <b>Approved · blocked</b>: the voice has no commercial licence; nothing was posted."
             else:

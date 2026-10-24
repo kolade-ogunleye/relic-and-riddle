@@ -1227,6 +1227,12 @@ class TelegramApprovalBot:
             # One card for the whole decision (operator, 2026-10-23): the review becomes a short receipt
             # with the reason chips on it, instead of the full card plus a separate "Why?" message.
             if self._reason_card(msg_id, run_id, decision, who):
+                # Its albums are not needed once decided; the card stays for the reason and any reply.
+                from .telegram_state import get, put
+                albums = [m for m in (get(self.db, "review-messages", run_id) or []) if isinstance(m, int) and m != msg_id]
+                if albums:
+                    self.delete_messages(albums)
+                put(self.db, "review-messages", run_id, [msg_id])
                 return
         badge = (
             f"\n\n🎬 <b>APPROVAL RECORDED — DELIVERY NOT YET CONFIRMED</b> (by {who})" if decision == "approved"
@@ -1261,18 +1267,31 @@ class TelegramApprovalBot:
         """After the decision and its result, the review card becomes a short receipt (what was approved and
         what happened), and the panel comes to the bottom: the card said "delivery not yet confirmed" long
         after a dry run had finished. The full review stays on record in the run folder and the database."""
+        # One panel (operator, 2026-10-23): the decided review's card and its albums (cover, video, Stories,
+        # carousel) leave the chat, and the receipt becomes the dashboard's "Last review" line. The receipt
+        # sat above the dashboard as a second panel with the review's media still under it.
         appr = self.db.get_approval(run_id) if hasattr(self.db, "get_approval") else None
         mid = (appr or {}).get("telegram_message_id")
-        if not (self.is_configured() and mid):
+        if not self.is_configured():
             return False
-        text = (f"🎬 <b>{html.escape(self.db.run_label(run_id))}</b>\n\n{outcome}\n\n"
-                f"<i>Run ID (for the command line): {html.escape(run_id)}</i>")
-        stamped = bool(self.edit_message_text(mid, text, buttons=[[DONE_BUTTON]]))
+        from .control import LAST_REVIEW_KEY
+        from .telegram_state import get, put
+        receipt = (f"<b>{html.escape(self.db.run_label(run_id))}</b>: {outcome}\n"
+                   f"<i>Run ID: {html.escape(run_id)}</i>")
+        self.db.set_setting(LAST_REVIEW_KEY, json.dumps({"text": receipt, "at": time.time(), "run_id": run_id}))
+        review = [m for m in (get(self.db, "review-messages", run_id) or []) if isinstance(m, int)]
+        stale = sorted(set(review + ([mid] if isinstance(mid, int) else [])))
         try:
-            self.show_dashboard(fresh=True)
+            shown = type(self.show_dashboard(fresh=True)) is int   # the panel first; then the review goes
         except Exception as e:
             log.debug("Could not bring the panel down after the receipt: %s", e)
-        return stamped
+            shown = False
+        if shown and stale:
+            self.delete_messages(stale)
+            put(self.db, "review-messages", run_id, [])
+        elif not shown and isinstance(mid, int):  # no panel: the card itself keeps the receipt
+            self.edit_message_text(mid, f"🎬 {receipt}", buttons=[[DONE_BUTTON]])
+        return True
 
     def _reason_card(self, message_id: int, run_id: str, decision: str, who: str) -> bool:
         """The decided review card, as a receipt that asks why (the reason chips edit this same card)."""

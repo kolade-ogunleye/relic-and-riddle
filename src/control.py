@@ -495,6 +495,21 @@ def heartbeat_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: O
     return "💓 <b>Daily heartbeat</b> — the daemon is running.\n" + status_text(db, next_run, voice_quota)
 
 
+LAST_REVIEW_KEY = "last_review_outcome"
+LAST_REVIEW_HOURS = 12
+
+
+def last_review_outcome(db: PipelineDatabase) -> Optional[str]:
+    """The latest decided review's receipt (HTML), for the dashboard, for LAST_REVIEW_HOURS."""
+    try:
+        record = json.loads(db.get_setting(LAST_REVIEW_KEY) or "{}")
+    except ValueError:
+        return None
+    if not record.get("text") or clock.time() - float(record.get("at") or 0) > LAST_REVIEW_HOURS * 3600:
+        return None
+    return f"🧾 <b>Last review</b> · {record['text']}"
+
+
 def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = None, assets_dir: Path = ASSETS_DIR) -> Tuple[str, List[List[Dict[str, str]]]]:
     """What needs you first (reviews, proposals, problems), then the state of production."""
     e = html.escape
@@ -542,6 +557,9 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         environment += f" ({e(release)})"
     lines = [f"🏛️ <b><u>RELIC &amp; RIDDLE</u></b> · {environment}", ""]
     lines += (["<b>Needs you</b>"] + needs + [""]) if needs else ["✅ <b>Nothing needs you right now.</b>", ""]
+    outcome = last_review_outcome(db)
+    if outcome:  # the decided review's receipt lives here, so the chat keeps one panel
+        lines += [outcome, ""]
     lines.append(f"⏯️ Schedule: {'⏸ <b>paused</b>' if paused else '▶️ active'}"
                  + (f" · next run {e(next_run)}" if next_run and not paused else ""))
     if active:

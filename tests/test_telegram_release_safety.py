@@ -536,3 +536,15 @@ def test_the_release_notice_names_jobs_its_restart_interrupted(db, monkeypatch, 
     bot = SimpleNamespace(clear_chat=lambda: None, notify=lambda *a, **k: None)
     note = main.announce_release(db, bot, startup=True)
     assert "Interrupted by the restart: Researching topic ideas" in note
+
+
+def test_a_rejected_review_keeps_only_its_reason_card(db, tmp_path, monkeypatch):
+    ready_review(db, tmp_path)                                # card 202
+    put(db, "review-messages", "review", [198, 199, 200, 202])
+    bot, _ = offline_bot(db, monkeypatch)
+    deleted = []
+    monkeypatch.setattr(bot, "edit_message_text", lambda *a, **k: True)
+    monkeypatch.setattr(bot, "delete_messages", lambda ids: deleted.extend(ids) or len(ids))
+    cq = {"id": "q", "from": {"id": 555, "first_name": "Kolade"}, "message": {"message_id": 202, "chat": {"id": 555}}}
+    bot._render_decision(cq, "review", "rejected", 555)
+    assert sorted(deleted) == [198, 199, 200] and get(db, "review-messages", "review") == [202]

@@ -158,4 +158,31 @@ def test_a_decided_review_leaves_no_reminder_and_becomes_a_receipt(db, monkeypat
     assert bot.wait_for_decision('run_x', timeout_seconds=7200, poll_interval=0, reminder_after=0) == 'approved'
     assert deleted and deleted[-1] > 900  # the reminder sent during the wait was removed
     assert bot.stamp_review_outcome('run_x', 'Approved · dry run: nothing was posted.')
-    assert edited[-1][0] == 820 and 'nothing was posted' in edited[-1][1]
+    # One panel: the receipt is the dashboard's "Last review" line, and the card leaves the chat.
+    from src.control import last_review_outcome
+    assert 'nothing was posted' in last_review_outcome(db)
+    assert 'deleteMessages' in sent and not any(mid == 820 for mid, _ in edited)
+
+
+def test_a_decided_reviews_albums_leave_with_its_card(db, monkeypatch):
+    # The cover, video, Stories and carousel albums stayed in the chat after the decision.
+    import json as _json
+    from src.telegram_state import put, get, initialize
+    initialize(db)
+    bot = TelegramApprovalBot(db=db, bot_token='123:abc', chat_id='555', approver_ids={'555'})
+    calls = []
+    monkeypatch.setattr(bot, '_api', lambda method, **k: calls.append((method, k.get('data') or {})) or {'message_id': 960})
+    monkeypatch.setattr(bot, 'show_dashboard', lambda *a, **k: 950)
+    db.create_run('run_y', '01_topic')
+    db.record_approval('run_y', '01_topic', 830)
+    put(db, 'review-messages', 'run_y', [826, 827, 828, 829, 830])
+    bot.stamp_review_outcome('run_y', 'Approved · dry run: nothing was posted.')
+    deleted = [m for method, data in calls if method == 'deleteMessages' for m in _json.loads(data['message_ids'])]
+    assert set(deleted) == {826, 827, 828, 829, 830} and get(db, 'review-messages', 'run_y') == []
+
+
+def test_the_last_review_line_expires(db, monkeypatch):
+    import json as _json
+    from src import control
+    db.set_setting(control.LAST_REVIEW_KEY, _json.dumps({"text": "old", "at": 0}))
+    assert control.last_review_outcome(db) is None

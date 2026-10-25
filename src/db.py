@@ -298,22 +298,24 @@ class PipelineDatabase:
     def ranked_topics(self) -> List[Dict[str, Any]]:
         """
         Topics in the order production would pick them using a 4-pillar round-robin scheduler:
-        1. Identifies eligible candidate topics (queued first, then failed/stale).
+        1. Identifies eligible candidate topics (queued, and stale in-production; a failed one waits for you).
         2. Scores each candidate's Virality Potential Score (VPS).
         3. Identifies the primary sub_theme of the most recently produced/published topic.
         4. Interleaves diverse themes: prioritizes candidates from a DIFFERENT sub_theme
            to avoid viewer fatigue from consecutive similar topics.
         5. Within eligible candidates, ranks by:
-           - Status ('queued' over 'failed')
+           - Status ('queued' over stale 'in_production')
            - Virality Potential Score (highest VPS first)
            - Times published (least published first)
            - Insertion order (rowid ASC)
         """
         stale_before = (datetime.now(timezone.utc) - timedelta(hours=STALE_PRODUCTION_HOURS)).isoformat()
         with self._conn() as conn:
+            # A failed topic waits for you (Back to the queue, /requeue): it was picked again on its own while the
+            # queue listed it under "Can be restored", and the failure card said it was set aside (2026-10-25).
             rows = conn.execute("""
             SELECT * FROM topics
-            WHERE status IN ('queued', 'failed')
+            WHERE status = 'queued'
                OR (status = 'in_production' AND updated_at < ?)
             ORDER BY CASE status WHEN 'queued' THEN 0 ELSE 1 END, times_published ASC, rowid ASC
             """, (stale_before,)).fetchall()

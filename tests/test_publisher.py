@@ -352,3 +352,17 @@ def test_a_dry_run_records_the_real_plan_for_each_platform(run, tmp_path):
     assert [(r["request_id"], r["platforms"]) for r in rows] == [("r1-carousel-1", ["instagram"]),
                                                                   ("r1-carousel-facebook-1", ["facebook"])]
     assert all("carousel_fb" in p for p in rows[1]["photos"])
+
+
+def test_a_partial_publish_names_each_failed_platforms_reason_and_carries_it():
+    # 2026-10-24: only "failed=['instagram']" survived; the cause was lost and nothing could target the retry.
+    from src.publisher import PublishUnknown, UploadPostPublisher
+    results = [{"platform": "facebook", "success": True, "post_url": "https://fb/1"},
+               {"platform": "instagram", "success": False, "error": "Media processing failed (code 2207026)"}]
+    try:
+        UploadPostPublisher._summarize(results, {"results": results})
+    except PublishUnknown as e:
+        assert "instagram: Media processing failed (code 2207026)" in str(e)
+        assert e.failed == {"instagram": "Media processing failed (code 2207026)"} and e.ok == {"facebook": "https://fb/1"}
+    else:
+        raise AssertionError("a partial publish must stay unknown")

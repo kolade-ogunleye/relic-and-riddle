@@ -1225,6 +1225,40 @@ class PipelineCoordinator:
                                               due_at=post_schedule.story_time(slot).astimezone(timezone.utc).isoformat())
         return f"⏭ {html.escape(self.db.run_label(post['run_id']))} moved to {html.escape(post_schedule.fmt(slot))}."
 
+    def retry_post(self, post_id: int) -> str:
+        """Re-sends a partially published Stories frame or carousel to the platform(s) that failed, under a
+        fresh idempotency key, so the platform that posted is never sent twice (operator, 2026-10-24: frame 3
+        of the first Stories went to Facebook but not Instagram, and the only choice was to leave it)."""
+        post = next((p for p in self.db.list_scheduled_posts(("unknown", "failed")) if p["id"] == int(post_id)), None)
+        if post is None or post["kind"] not in ("story", "carousel"):
+            return "🔁 Nothing to retry for that booking."
+        detail = dict(post.get("detail") or {})
+        failed = dict(detail.get("failed") or {})
+        if not failed:  # an older record: the platforms named in the error text
+            m = re.search(r"failed=\[([^\]]*)\]", str(detail.get("error") or ""))
+            failed = {p.strip(" '\"") : "" for p in m.group(1).split(",") if p.strip(" '\"")} if m else {}
+        if not failed:
+            return "🔁 That booking's failed platform is not recorded; nothing was retried."
+        files = [f for f in post["files"] if Path(f).exists()]
+        part = int(detail.get("part") or (int(detail.get("posted_parts") or 0) + 1))
+        frames = files if post["kind"] == "carousel" else (files[part - 1:part] if 0 < part <= len(files) else [])
+        if not frames:
+            return "🔁 The frame to retry is no longer on disk."
+        run = self.db.get_run(post["run_id"]) or {}
+        caption = self._carousel_caption(run.get("script_payload") or {}) if post["kind"] == "carousel" else ""
+        attempt = int(detail.get("retries") or 0) + 1
+        platforms = sorted(failed)
+        res = self.publisher.publish_photos(post["run_id"], run.get("topic_id"), post["kind"], frames, caption=caption,
+                                            platforms=platforms, retry_tag=f"retry{attempt}-{'-'.join(platforms)}")
+        new_detail = dict(detail, retries=attempt, last_retry={k: res.get(k) for k in ("status", "error", "post_urls")})
+        if res.get("status") == "published":
+            new_detail["failed"] = {}
+            self.db.update_scheduled_post(post["id"], "published", detail=new_detail)
+            label = html.escape(self.db.run_label(post["run_id"]))
+            return f"🔁 {', '.join(platforms)} retried for {label}: posted."
+        self.db.update_scheduled_post(post["id"], post["status"], detail=new_detail)
+        return f"🔁 Retry on {', '.join(platforms)} ended with status '{html.escape(str(res.get('status')))}': {html.escape(str(res.get('error') or ''))[:200]}"
+
     def promote_run(self, run_id: str, now: bool = False) -> str:
         """Your per-video go-ahead: a finished dry run (simulated) is posted for real while the daemon
         stays in dry-run mode. The live release gate decides first. With posting slots on, the Reel is
@@ -2825,7 +2859,8 @@ def main(argv=None) -> int:
                          "promote": getattr(coordinator, "promote_run", None),
                          "postnow": getattr(coordinator, "post_now", None),
                          "cancelpost": getattr(coordinator, "cancel_post", None),
-                         "movepost": getattr(coordinator, "move_post", None)},
+                         "movepost": getattr(coordinator, "move_post", None),
+                         "retrypost": getattr(coordinator, "retry_post", None)},
             produce_batch=produce_batch,
         )
         if POST_SCHEDULING:  # what this mode books, it also posts when due
@@ -3193,7 +3228,8 @@ def main(argv=None) -> int:
                                                     "promote": getattr(coordinator, "promote_run", None),
                                                     "postnow": getattr(coordinator, "post_now", None),
                                                     "cancelpost": getattr(coordinator, "cancel_post", None),
-                                                    "movepost": getattr(coordinator, "move_post", None)})
+                                                    "movepost": getattr(coordinator, "move_post", None),
+                                                    "retrypost": getattr(coordinator, "retry_post", None)})
 
         def poll_telegram():
             poll_loop(bot, handler)

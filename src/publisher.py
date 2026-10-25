@@ -315,7 +315,14 @@ class UploadPostPublisher:
             return {"status": "published", "post_urls": {r["platform"]: r.get("post_url") or r.get("url") for r in live},
                     "skipped": [r["platform"] for r in skipped], "raw": raw}
         if live and failed:
-            raise PublishUnknown(f"Partial publish: ok={[r['platform'] for r in live]} failed={[r['platform'] for r in failed]}")
+            # The failed platform's own reason travels with the outcome (the first Stories, 2026-10-24: only
+            # "failed=['instagram']" was kept and the cause was lost), and the record lets a retry target it.
+            reasons = {r["platform"]: str(r.get("error") or r.get("message") or r.get("detail") or "no reason given")[:300] for r in failed}
+            why = "; ".join(f"{p}: {reason}" for p, reason in reasons.items())
+            error = PublishUnknown(f"Partial publish: ok={[r['platform'] for r in live]} failed={list(reasons)} ({why})")
+            error.failed = reasons  # type: ignore[attr-defined]
+            error.ok = {r["platform"]: r.get("post_url") or r.get("url") for r in live}  # type: ignore[attr-defined]
+            raise error
         raise PublishFailed(f"Upload-Post reported no successful platform: {raw}")
 
 
@@ -641,26 +648,28 @@ class MetaPublisher:
         return {"status": "published", "post_urls": res.get("post_urls") or {}}
 
     def publish_photos(self, run_id: str, topic_id: str, kind: str, photos: List[str], caption: str = "",
-                       platforms: Optional[List[str]] = None, dry_run: bool = False) -> Dict[str, Any]:
+                       platforms: Optional[List[str]] = None, dry_run: bool = False, retry_tag: str = "") -> Dict[str, Any]:
         """Stories (one post per frame, in order) or a carousel, via Upload-Post only (the direct
         Graph publishers here handle Reels only). Same outcome rules as Reels: an unknown outcome
-        stops there so nothing is posted twice."""
+        stops there so nothing is posted twice. `retry_tag` names a deliberate re-send of a failed
+        platform (operator, 2026-10-24) so its idempotency keys differ from the first attempt's."""
         platforms = platforms or ["facebook", "instagram"]
         if not dry_run:
             _assert_recovery_unlocked()
         channel = f"upload-post:{kind}"
+        tag = f"-{retry_tag}" if retry_tag else ""
         # (photos, platforms, key) per request. Stories: one frame per request, in order. A carousel goes as
         # one post; when the run made Facebook's copy (carousel_fb/, no swipe cues), Facebook gets that one.
         if kind == "story":
-            batches = [([p], platforms, f"{run_id}-{kind}-{i}") for i, p in enumerate(photos, 1)]
+            batches = [([p], platforms, f"{run_id}-{kind}-{i}{tag}") for i, p in enumerate(photos, 1)]
         else:
             slides = photos[:10]  # Instagram carousels: max 10
             fb_copy = [Path(p).parent.parent / "carousel_fb" / Path(p).name for p in slides]
             if "facebook" in platforms and len(platforms) > 1 and all(f.is_file() for f in fb_copy):
-                batches = [(slides, [x for x in platforms if x != "facebook"], f"{run_id}-{kind}-1"),
-                           ([str(f) for f in fb_copy], ["facebook"], f"{run_id}-{kind}-facebook-1")]
+                batches = [(slides, [x for x in platforms if x != "facebook"], f"{run_id}-{kind}-1{tag}"),
+                           ([str(f) for f in fb_copy], ["facebook"], f"{run_id}-{kind}-facebook-1{tag}")]
             else:
-                batches = [(slides, platforms, f"{run_id}-{kind}-1")]
+                batches = [(slides, platforms, f"{run_id}-{kind}-1{tag}")]
         if dry_run:  # the real plan, each request recorded as it would be sent, nothing sent
             for i, (batch, batch_platforms, key) in enumerate(batches, 1):
                 self.db.record_publication(topic_id, run_id, channel, "simulated",
@@ -679,8 +688,10 @@ class MetaPublisher:
                 status = "unknown" if done else "failed"  # earlier frames already went out
                 return {"status": status, "error": str(e), "posted_parts": len(done)}
             except PublishUnknown as e:
-                self.db.record_publication(topic_id, run_id, channel, "unknown", {"error": str(e), "part": i})
-                return {"status": "unknown", "error": str(e), "posted_parts": len(done)}
+                failed, ok = getattr(e, "failed", {}) or {}, getattr(e, "ok", {}) or {}
+                self.db.record_publication(topic_id, run_id, channel, "unknown",
+                                           {"error": str(e), "part": i, "failed": failed, "ok": ok, "platforms": batch_platforms})
+                return {"status": "unknown", "error": str(e), "posted_parts": len(done), "part": i, "failed": failed, "ok": ok}
             # The request id and platforms are kept: audience metrics are fetched by them later.
             self.db.record_publication(topic_id, run_id, channel, "published",
                                        dict(res, part=i, request_id=key, platforms=batch_platforms))

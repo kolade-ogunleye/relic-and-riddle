@@ -460,6 +460,7 @@ AUDIT_NAMES = {"cdash": "Dashboard", "approve": "Approve", "reject": "Reject", "
                "resend": "Resend review", "rerender": "Re-render", "postreal": "Post for real?", "promote": "Post for real",
                "chistory": "Review history", "chist": "Review details", "postnow": "Post now", "produce": "Produce a batch",
                "cposts": "Posting", "posts": "Posting", "cancelpost": "Cancel a booking", "movepost": "Move a booking",
+               "retrypost": "Retry the failed platform",
                "edit": "Edit text", "runstop": "Cancel run", "runstopok": "Confirm cancel",
                "simpub": "Simulated publish", "pubok": "It posted", "pubno": "It didn't post", "creviews": "Reviews",
                "cideas": "Topic ideas", "cdisc": "UNESCO marvels", "cprop": "Waiting ideas", "cpropose": "Research ideas",
@@ -829,6 +830,10 @@ def posting_panel(db: PipelineDatabase, limit: int = 10) -> Tuple[str, List[List
         links = _post_links(db, p["run_id"]) if p["status"] == "published" else ""
         lines.append(f"• {POST_ICON.get(p['status'], '•')} {POST_NAME.get(p['kind'], p['kind'])} · {e(when)} — {e(db.run_label(p['run_id']))} · {e(p['status'])}"
                      + (f"\n  {links}" if links else "") + (f"\n  <i>{note}</i>" if note else ""))
+        if p["kind"] in ("story", "carousel") and p["status"] in ("unknown", "failed") and (
+                detail.get("failed") or "failed=[" in str(detail.get("error") or "")):
+            # a partial publish: re-send only the platform(s) that failed (operator, 2026-10-24)
+            buttons.append([{"text": f"🔁 Retry the failed platform: {POST_NAME.get(p['kind'], p['kind'])}", "callback_data": f"retrypost:{p['id']}"}])
     return "\n".join(lines), buttons
 
 
@@ -1829,7 +1834,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command in ("posts", "cposts"):
             text, buttons = posting_panel(db)
             return text, buttons + [[{"text": "📊 Full status", "callback_data": "cstat:"}], [HOME]]
-        if command in ("cancelpost", "movepost"):
+        if command in ("cancelpost", "movepost", "retrypost"):
             action = (run_actions or {}).get(command)
             if action is None:
                 return "Booking changes work while the bot or daemon is running."

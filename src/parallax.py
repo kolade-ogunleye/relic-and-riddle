@@ -201,16 +201,21 @@ def render_scenes(scenes, durations, work_dir: Path, transition: float) -> Optio
 
     jobs = {}
     with ThreadPoolExecutor(max_workers=4) as pool:  # OpenCV/NumPy release the GIL while warping
-        shown: dict = {}
+        shown: dict = {}   # photo -> how many times it has been shown
+        moved: dict = {}   # photo -> the moves it was shown with
         for i, (scene, dur) in enumerate(zip(scenes, durations)):
             if not is_video(scene):
-                # A photo shown again gets another frame and another move, never the same shot twice.
+                # A photo shown again gets another frame and a move it has not had, never the same shot twice
+                # (Nazca, 2026-10-25: the repeat was reframed but rose as before).
                 variant = shown.get(str(scene), 0)
                 shown[str(scene)] = variant + 1
                 preset = preset_for(i, len(scenes))
                 if variant:
-                    moves = [m for m in PRESETS if m != preset]
+                    had = moved.get(str(scene), ())
+                    moves = ([m for m in PRESETS if m not in had and m != preset]
+                             or [m for m in PRESETS if m not in had] or list(PRESETS))
                     preset = moves[(variant - 1 + i) % len(moves)]
+                moved.setdefault(str(scene), []).append(preset)
                 jobs[i] = pool.submit(clip_for, i, scene, dur + 3 * transition, preset, variant)
         results = {i: job.result() for i, job in jobs.items()}
         out = [results[i][0] if i in results else scene for i, scene in enumerate(scenes)]

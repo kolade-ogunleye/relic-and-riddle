@@ -2060,6 +2060,17 @@ class PipelineCoordinator:
             # Beats whose picture doesn't show what is said get their own Commons search when the first
             # pictures did not cover them (same licence, relevance and privacy steps as the first search).
             gaps = beat_images.mismatched_beats(qa)
+            # A picture the check found wrong for its line is not offered again: told only "beat 5 shows a
+            # car", the re-plan moved the car to beat 6 (Nazca, 2026-10-25). Enough pictures stay to fill it.
+            from src.scene_planner import _is_graphic
+            from src.typography import is_video
+            flagged = {planned[b - 1] for b in gaps if 0 < b <= len(planned)
+                       and not is_video(planned[b - 1]) and not _is_graphic(Path(planned[b - 1]))}
+            remaining = [c for c in candidates if c not in flagged]
+            if flagged and sum(1 for c in remaining if not is_video(c) and not _is_graphic(Path(c))) >= 3:
+                candidates = remaining
+                feedback += "\nThe picture(s) flagged above are no longer offered; choose among the others."
+                payload["self_healing_actions"][-1]["withdrawn"] = sorted(Path(f).name for f in flagged)
             if gaps:
                 gap_paths, gap_credits = beat_images.source_gaps(
                     beats, gaps, topic, run_dir / "beat_images", seen={c.get("title") for c in beat_credits},

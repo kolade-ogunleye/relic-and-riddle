@@ -266,9 +266,11 @@ class UploadPostPublisher:
         if kind == "story":
             data += [("media_type", "STORIES"), ("facebook_media_type", "STORIES")]
         else:
-            # On Facebook a carousel is a multi-photo post (Pages have no organic swipe carousel); it must
-            # not also become a Story, which would duplicate the run's own Story frames.
-            data += [("title", caption), ("description", caption), ("facebook_no_story", "true")]
+            # On Facebook a carousel is a multi-photo post (Pages have no organic swipe carousel). It is not sent
+            # facebook_no_story: Upload-Post documents it only as "do not publish a story from this post", and the
+            # Graph field it mirrors (no_story) suppresses the post's feed and timeline story, which would keep the
+            # carousel out of followers' feeds (operator review, 2026-10-25).
+            data += [("title", caption), ("description", caption)]
         if self.facebook_page_id:
             data.append(("facebook_page_id", self.facebook_page_id))
 

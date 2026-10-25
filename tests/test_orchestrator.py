@@ -226,3 +226,23 @@ def test_render_adds_beat_images_and_replans_once_on_picture_mismatch(db, monkey
     assert len(renders) == 2  # one re-render, then stop
     assert payload["caption"] == "Story.\n\n📷 Images via Wikimedia Commons: Bob (CC BY 4.0)"
     assert payload["beat_image_note"].startswith("🔍 1 photo(s) from outside the topic's set") and "line 1" in payload["beat_image_note"]
+
+
+def test_the_opening_shot_is_a_picture_never_a_pinned_graphic(tmp_path, monkeypatch):
+    # Nazca (dev, 2026-10-25): the opening line names the place, so the map was pinned to it and opened the video.
+    from PIL import Image
+    from src import scene_planner
+    photos = []
+    for i in range(3):
+        p = tmp_path / f"{i:02d}_commons.jpg"
+        Image.new("RGB", (64, 64), (i * 40, 0, 0)).save(p)
+        photos.append(p)
+    graphic = tmp_path / "graphic_map.mp4"
+    graphic.write_bytes(b"x")
+    beats = [{"start": 0, "end": 3, "text": "Across southern Peru's Nazca Desert"},
+             {"start": 3, "end": 6, "text": "figures etched into soil"}, {"start": 6, "end": 9, "text": "lines"}]
+    monkeypatch.setattr(scene_planner, "lock_narrative_graphics", lambda b, g: {0: graphic})
+    monkeypatch.setattr(scene_planner.free_llm, "enabled", lambda: False)
+    monkeypatch.setattr(scene_planner, "claude_available", lambda: False)
+    chosen, _, _ = scene_planner.plan_scenes(beats, photos + [graphic], use_storyboard=False)
+    assert chosen[0] != graphic and chosen[1] == graphic

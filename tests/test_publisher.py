@@ -232,7 +232,7 @@ def test_carousel_is_one_post_with_caption_and_max_ten(monkeypatch, run, tmp_pat
     assert res["status"] == "published" and len(calls) == 1
     data, nfiles = calls[0]
     assert nfiles == 10 and data["title"] == "Cap" and "media_type" not in data
-    assert data["facebook_no_story"] == "true"  # Facebook's multi-photo post is not also made a Story
+    assert "facebook_no_story" not in data  # it would keep the post out of feeds (2026-10-25)
 
 
 def test_story_failure_after_first_frame_is_unknown(monkeypatch, run, tmp_path):

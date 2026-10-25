@@ -381,6 +381,13 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
 
     # Hard-lock narrative-matching graphics to their corresponding spoken beats
     locked = lock_narrative_graphics(beats, graphics)
+    # The opening shot is the planner's strongest picture, never a graphic: the opening line names the place,
+    # so the map was pinned there and became the first frame (Nazca, 2026-10-25). It moves to the next line,
+    # where the place has just been said (the map check counts it).
+    if 0 in locked and len(chosen) > 1:
+        g = locked.pop(0)
+        if 1 not in locked:
+            locked[1] = g
     for idx, g in locked.items():
         if idx < len(chosen):
             chosen[idx] = g
@@ -395,6 +402,10 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
         for k in range(len(chosen)):
             if k not in locked and k < len(beats):
                 chosen[k] = keep_if_it_matches(Path(chosen[k]), beats[k].get("text", ""), stills[k % len(stills)])
+
+    # Nor does the planner open on one: the first shot is a picture (the set's best comes first).
+    if chosen and stills and _is_graphic(Path(chosen[0])):
+        chosen[0] = next((s for s in stills if s not in chosen), stills[0])
 
     # Footage supports the narration, never dominates it (Meta's originality rules): over the
     # cap, the latest footage picks become photos.

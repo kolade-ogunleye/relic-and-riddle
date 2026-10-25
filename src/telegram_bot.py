@@ -517,6 +517,7 @@ class TelegramApprovalBot:
         self._panel_screen: Dict[int, str] = {}
         self._panel_origin: Dict[int, Optional[str]] = {}
         self._panel_lock = threading.RLock()
+        self._finished_runs: set = set()  # runs whose progress card became a receipt: the ticker leaves it
         self._answered = {}  # callback ids already answered (insertion-ordered, bounded)
         self._last_opened = 0.0  # monotonic time of the last /start or /dashboard panel
         self._dispatch_slots = threading.BoundedSemaphore(16)
@@ -584,8 +585,13 @@ class TelegramApprovalBot:
             if anchor and anchor != current and current in self._protected_messages():
                 # A screen asked for from a card that must stay (a review card, its receipt): it opens as the
                 # one panel at the bottom and the old panel goes. Drawn in the card, it left two dashboards in
-                # the chat, since a protected card never becomes the panel (production, 2026-10-25).
-                return type(self._show_dashboard_locked(text, buttons, fresh=True)) is int
+                # the chat, since a protected card never becomes the panel (production, 2026-10-25). Outside
+                # the panel context, so the fresh message is sent, not routed back here.
+                token = _PANEL.set(None)
+                try:
+                    return type(self._show_dashboard_locked(text, buttons, fresh=True)) is int
+                finally:
+                    _PANEL.reset(token)
         media = self._panel_media.get(current, is_media)
         if not media:
             edited = self.edit_message_text(current, text, buttons=buttons)
@@ -1087,6 +1093,13 @@ class TelegramApprovalBot:
             text += "\n" + _format_note(script_payload["source_note"]) + "\n"
         if script_payload.get("qa_summary"):
             text += "\n" + script_payload["qa_summary"] + "\n"  # already HTML-escaped by video_qa
+        # The look at the stills and the cover (info findings: never a block) was kept but shown nowhere when
+        # the gate passed (2026-10-24 review doc said they were on the card; audit 2026-10-25).
+        notes = [i for i in ((script_payload.get("self_healing") or {}).get("issues") or [])
+                 if isinstance(i, dict) and str(i.get("severity", "")).lower() == "info" and i.get("issue")]
+        if notes:
+            text += f"\n👀 Look at the stills and cover: {len(notes)} note(s)\n" + "\n".join(
+                f"· {html.escape(str(i.get('card') or i.get('type') or ''))}: {html.escape(str(i['issue']))[:160]}" for i in notes[:5]) + "\n"
         if sources:
             text += "\n📚 " + "\n📚 ".join(e(s.get("url", "")) for s in sources) + "\n"
         full = text + f"\n<i>Run ID (for the command line):</i> <code>{e(run_id)}</code>"  # code: Telegram linked the digits
@@ -1585,9 +1598,12 @@ class TelegramApprovalBot:
                     if active and active.get("run_id") != run_id:
                         return
                     if active and active.get("message_id"):
-                        self.update_progress_card(active["message_id"], int(active.get("step") or 1),
-                                                  int(active.get("total_steps") or 5), active.get("topic_title") or "",
-                                                  run_id, active.get("details") or "")
+                        with self._panel_lock:  # never over the receipt the run's end is writing (review, 2026-10-25)
+                            if run_id in self._finished_runs:
+                                return
+                            self.update_progress_card(active["message_id"], int(active.get("step") or 1),
+                                                      int(active.get("total_steps") or 5), active.get("topic_title") or "",
+                                                      run_id, active.get("details") or "")
                 except Exception as e:  # a missed tick is harmless; the next one tries again
                     log.debug("Progress tick for %s failed: %s", run_id, _MASKER.mask(str(e)))
         thread = threading.Thread(target=tick, name=f"progress-tick-{run_id[-10:]}", daemon=True)
@@ -1778,6 +1794,8 @@ class TelegramApprovalBot:
         """Finishes the progress card into a completed receipt, or deletes it if video review was sent. The
         dashboard is redrawn after it, so it never shows the previous outcome (operator, 2026-10-25: it still
         said 53.7 s after the re-render had failed at 54.4 s)."""
+        with self._panel_lock:
+            self._finished_runs.add(run_id)  # the ticker's next redraw must not overwrite the receipt
         try:
             return self._finish_progress_card(message_id, topic_title, run_id, success, error)
         finally:
@@ -2848,6 +2866,8 @@ class TelegramApprovalBot:
                 reply = f"⚠️ /{html.escape(command)} failed: {html.escape(str(e))[:300]}"
             if command == 'whytext' and reply_to and reply_to.get('message_id'):
                 self._settle_rejected_card(args.split(' ', 1)[0], reply_to['message_id'], now=True)
+            if isinstance(reply, tuple):  # a refusal with buttons (an unrequeueable topic) still says why
+                reply = reply[0]
             if isinstance(reply, str) and reply:
                 self.nudge(reply)
             return

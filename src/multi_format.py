@@ -469,8 +469,10 @@ class MultiFormatGenerator:
         self._draw_badge(d, t_ver, 80, chh - 140, ver_font, text_color=GOLD, border_color=(255, 215, 0, 180), fill_color=(16, 20, 26, 230), radius=6)
         return im
 
-    def _render_debate(self, photo: Path, card: Dict[str, Any], index: int, total: int, cw: int, chh: int, poll: Dict[str, Any], f_small) -> Image.Image:
-        """Archetype E: Forensic Closing Dilemma / Debate Card."""
+    def _render_debate(self, photo: Path, card: Dict[str, Any], index: int, total: int, cw: int, chh: int, poll: Dict[str, Any], f_small,
+                       share: str = "") -> Image.Image:
+        """Archetype E: Forensic Closing Dilemma / Debate Card. `share`: the share-and-follow line, above the
+        comments footer (Meta's creator tips, 2026-10-25)."""
         heading, body = card["heading"].upper(), card["body"]
         im = Image.new("RGB", (cw, chh), (12, 14, 18))
         p_h = 560
@@ -491,6 +493,13 @@ class MultiFormatGenerator:
         for line in body_lines:
             d.text((80, y), line, font=font_b, fill=LIGHT, anchor="lt")
             y += 54
+        if share:
+            share_lines, f_share = fit_lines(d, share, get_font("Montserrat", 34), cw - 160, 2)
+            step = int(f_share.size * 1.3)
+            ys = max(y + 40, chh - 176 - step * len(share_lines))  # above the footer, below the body
+            for line in share_lines:
+                d.text((80, ys), line, font=f_share, fill=WHITE, anchor="lt")
+                ys += step
         d.text((80, chh - 120), "TELL US IN THE COMMENTS  ↓", font=f_small, fill=GOLD, anchor="ls")
         return im
 
@@ -532,6 +541,8 @@ class MultiFormatGenerator:
         cw, chh = self.CAROUSEL_SIZE
         photos = self._match_photos(cards, stills)
         f_small = get_font("Montserrat", 28)
+        from .script_engine import share_prompt
+        share = share_prompt(script_payload)  # the closing slide asks for a share and a follow (2026-10-25)
 
         def dots(d: ImageDraw.ImageDraw, k: int) -> None:
             x0 = cw // 2 - (total - 1) * 14
@@ -557,7 +568,7 @@ class MultiFormatGenerator:
             elif archetype == "colossal_stat":
                 im = self._render_colossal_stat(photo, card, i, cw, chh)
             elif archetype == "debate":
-                im = self._render_debate(photo, card, i, total, cw, chh, poll, f_small)
+                im = self._render_debate(photo, card, i, total, cw, chh, poll, f_small, share=share)
             else:
                 im = self._render_editorial_split(photo, card, i, cw, chh)
 

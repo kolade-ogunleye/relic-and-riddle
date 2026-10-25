@@ -106,16 +106,21 @@ def write_release_report(run, dry_run=False):
         add("composition_inputs", False, "Complete composition evidence is missing or malformed.")
     quality = payload.get("self_healing") or {}
     audited_master = bool(quality.get("master_sha256")) and quality["master_sha256"] == sha256_file(master)
-    issues = quality.get("issues") or []
-    minor_only = bool(issues) and all((i.get("severity") if isinstance(i, dict) else "") == "minor" for i in issues)
+    issues = [i for i in (quality.get("issues") or []) if isinstance(i, dict)]
+    # The automated look at the frames (the card's "Automated video check") gates with the audit: a major
+    # picture finding (a modern car under "ancient surveyors") sat beside "all checks pass" (Nazca, 2026-10-25).
+    look = [{"type": "video_check", **i} for i in ((payload.get("video_check") or {}).get("issues") or []) if isinstance(i, dict)]
+    found = [i for i in issues + look if i.get("severity") != "info"]  # info: shown on the card, never a block
+    minor_only = bool(found) and all(i.get("severity") == "minor" for i in found)
+    clean = quality.get("certified") is True and not any(i.get("severity") in ("critical", "major") for i in look)
     from . import config as _config
-    if audited_master and not quality.get("certified") and minor_only and not _config.MINOR_FINDINGS_BLOCK_RELEASE:
+    if audited_master and clean and minor_only and not _config.MINOR_FINDINGS_BLOCK_RELEASE:
         # Shown, not blocking (MINOR_FINDINGS_BLOCK_RELEASE=false): the reviewer sees them on the card.
-        checks.append({"name": "visual_checks", "status": "pass", "detail": issues, "minor": True})
+        checks.append({"name": "visual_checks", "status": "pass", "detail": found, "minor": True})
     else:
-        add("visual_checks", quality.get("certified") is True and audited_master,
-            issues or ("Visual audit certified this master; no issues." if audited_master and quality.get("certified")
-                       else "No completed visual audit recorded."))  # a passed audit used to read as none recorded
+        add("visual_checks", clean and audited_master and not found,
+            found or ("Visual audit certified this master; no issues." if audited_master and clean
+                      else "No completed visual audit recorded."))  # a passed audit used to read as none recorded
     for key in ("thumbnail_cover_path", "thumbnail_grid_path"):
         add(key, bool(run.get(key)) and Path(run[key]).is_file(), run.get(key))
     if profile.requires_youtube_thumbnail:

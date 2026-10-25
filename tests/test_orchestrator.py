@@ -239,10 +239,12 @@ def test_the_opening_shot_is_a_picture_never_a_pinned_graphic(tmp_path, monkeypa
         photos.append(p)
     graphic = tmp_path / "graphic_map.mp4"
     graphic.write_bytes(b"x")
+    Image.new("RGB", (64, 64)).save(graphic.with_suffix(".jpg"))  # its poster frame: what marks a graphic
     beats = [{"start": 0, "end": 3, "text": "Across southern Peru's Nazca Desert"},
              {"start": 3, "end": 6, "text": "figures etched into soil"}, {"start": 6, "end": 9, "text": "lines"}]
     monkeypatch.setattr(scene_planner, "lock_narrative_graphics", lambda b, g: {0: graphic})
     monkeypatch.setattr(scene_planner.free_llm, "enabled", lambda: False)
     monkeypatch.setattr(scene_planner, "claude_available", lambda: False)
+    from pathlib import Path
     chosen, _, _ = scene_planner.plan_scenes(beats, photos + [graphic], use_storyboard=False)
-    assert chosen[0] != graphic and chosen[1] == graphic
+    assert not scene_planner._is_graphic(Path(chosen[0])) and Path(chosen[0]) in photos

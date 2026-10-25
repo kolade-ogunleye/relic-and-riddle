@@ -105,6 +105,10 @@ class ScriptCore(BaseModel):
     carousel_slides: List[CarouselSlide]
     sources: List[Source]
     carousel_caption: Optional[str] = None  # its own text: Meta/Upload-Post flag duplicate captions
+    # One warm sentence asking viewers to share this with someone and to follow for the next story (Meta's
+    # creator tips, 2026-10-25): shown at the end of the video, in both captions and on the last carousel
+    # slide. Optional: older and curated scripts get a plain line (script_engine.share_prompt).
+    share_line: Optional[str] = None
 
 
 class GraphicsPlan(BaseModel):

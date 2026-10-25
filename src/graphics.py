@@ -651,6 +651,25 @@ def _split_number(value: str) -> Tuple[str, Optional[float], str]:
     return value[:m.start()], float(m.group(0).replace(",", "")), value[m.end():]
 
 
+def _shown_value(value: str, p: float) -> str:
+    """A number card's figure `p` of the way through its count-up, written as the writer wrote it: a thousands
+    separator only where the value has one ("1404-1438" was drawn as "1,404-1438": Voynich, 2026-10-25), and
+    a year (a plain four-digit number) shown whole from the start, never counted up from zero."""
+    import re
+    pre, num, post = _split_number(value)
+    if num is None:
+        return value
+    raw = re.search(r"\d[\d,]*(?:\.\d+)?", value).group(0)
+    separated = "," in raw
+    if not separated and "." not in raw and 1000 <= num <= 2199:  # a year, or reads as one
+        p = 1.0
+    decimals = len(raw.split(".")[1]) if "." in raw else 0
+    cur = num * p
+    spec = ("," if separated else "") + (f".{decimals}f" if decimals else "")
+    txt = format(cur if decimals else round(cur), spec)
+    return f"{pre}{txt}{post}"
+
+
 def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Path] = None, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> Optional[Path]:
     """1-2 headline figures counting up to their value, each with its label, over a dark photo backdrop."""
     cards = cards[:2]
@@ -675,13 +694,7 @@ def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Pa
     f_lab = get_font("Montserrat", ts["label"])
 
     def shown(card: Dict[str, Any], p: float) -> str:
-        pre, num, post = _split_number(card["value"])
-        if num is None:
-            return card["value"]
-        decimals = len(str(num).split(".")[1]) if num % 1 else 0
-        cur = num * p
-        txt = f"{cur:,.{decimals}f}" if decimals else f"{round(cur):,}"
-        return f"{pre}{txt}{post}"
+        return _shown_value(card["value"], p)
 
     def frames():
         for i in range(n):

@@ -158,6 +158,9 @@ def test_regenerate_on_a_re_rendered_run_starts_its_new_version(db, monkeypatch,
     c.run_cycle = lambda *a, **k: started.append(a) or {"status": "pending_approval"}
     assert c.resume_run("run_r") == {"status": "pending_approval"}
     assert started and started[0][0] == topic["id"] and started[0][5] == 1
+    db.update_run("run_r", "failed", error="again")
+    c.resume_run("run_r", require_live=True)                                     # the live preflight travels with it
+    assert started[1][3] is True
 
 
 def test_a_regeneration_that_never_began_can_be_made_again(db, monkeypatch, tmp_path):

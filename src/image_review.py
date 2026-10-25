@@ -148,6 +148,11 @@ def screen_unchecked(topic: Dict[str, Any], topic_dir: Path) -> int:
         v = by_index.get(i)
         img["vision_review"] = (v.model_dump() if v else {"reason": "no verdict returned"}) | {"kept": tier({"vision_review": v.model_dump()}) in ("topic", "context") if v else False}
     save_credits(topic_dir, credits)
+    try:  # the sheet's numbers follow the tiers: redrawn, so /drop N and /keep N mean the photo shown as N
+        from .credits import write_contact_sheet
+        write_contact_sheet(topic_dir, credits["images"])
+    except Exception as e:
+        log.debug("Contact sheet of %s not redrawn: %s", topic["id"], e)
     log.info("Screened %d new photo(s) of %s: %s.", len(pending), topic["id"],
              ", ".join(f"{im['file']}={tier(im)}" for im in pending))
     return len(pending)
@@ -179,7 +184,9 @@ def review_pool(topic: Dict[str, Any], topic_dir: Path, apply: bool = True, forc
     kept, dropped = [], []
     for i, img in enumerate(images, 1):
         v = by_index.get(i)
-        ok = bool(v and v.shows_topic in ("yes", "partly") and v.usable and v.safe and not v.duplicate_of)
+        # A photo you kept (/keep) stays whatever the model says: a re-review dropped kept photos and marked
+        # them rejected, so a refill would never fetch them again (review, 2026-10-25).
+        ok = bool(img.get("operator_keep")) or bool(v and v.shows_topic in ("yes", "partly") and v.usable and v.safe and not v.duplicate_of)
         img["vision_review"] = (v.model_dump() if v else {"reason": "no verdict returned"}) | {"kept": ok}
         (kept if ok else dropped).append(img)
     # Photos that show the topic itself come first, then context; crowded ones (blurred faces) last.

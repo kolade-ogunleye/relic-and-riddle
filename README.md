@@ -185,7 +185,7 @@ When the daemon or the bot is running, approvers can work from Telegram:
 
 ## Tests
 
-1,071 tests (1,065 in the deployer's git-less, ffmpeg-only environment), all network-blocked (a test that opens a real connection fails):
+1,203 tests (1,197 in the deployer's git-less, ffmpeg-only environment), all network-blocked (a test that opens a real connection fails):
 
 ```bash
 pytest -q

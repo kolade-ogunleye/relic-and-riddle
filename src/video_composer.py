@@ -385,6 +385,9 @@ def _caption_fit_size(phrase: Any, scale: float = 1.0, max_width: int = MAX_CAPT
 
 
 CAPTION_MIN_SIZE = 48  # px: the smallest a caption shrinks to; below this it is not readable on a phone
+END_PROMPT_SECONDS = 3.0     # the share-and-follow line shows over the last seconds of a Reel
+END_PROMPT_SIZE = 52         # px: smaller than a caption (FONT_SIZE), a prompt, not the narration
+END_PROMPT_MIN_SIZE = 44     # px: below this the line is set on two pills instead
 
 
 def _fits_caption_width(phrase: Any, max_width: int = MAX_CAPTION_WIDTH) -> bool:
@@ -559,6 +562,8 @@ class VideoComposer:
         width: int = VIDEO_WIDTH,
         height: int = VIDEO_HEIGHT,
         margin_v: Optional[int] = None,
+        end_prompt: str = "",
+        end_window: Optional[Tuple[float, float]] = None,
     ) -> Path:
         """Dynamic running-speech kinetic captions:
         1. Grammatical phrasing: sensitive to punctuation (. ? ! …) so every new sentence starts fresh.
@@ -693,6 +698,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
             base += len(phrase)
 
+        if end_prompt and end_window and not is_widescreen:
+            raw_events += self._end_prompt_events(end_prompt, end_window, width, height, max_caption_width)
+
         # Sort all events chronologically (layer 0 background pill always appears under layer 1 text)
         raw_events.sort(key=lambda e: (e[1], e[0]))
 
@@ -706,6 +714,57 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         ass_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
         log.info("Wrote %d caption events -> %s", len(raw_events), ass_path.name)
         return ass_path
+
+    @staticmethod
+    def _end_prompt_events(text: str, window: Tuple[float, float], width: int, height: int,
+                           max_caption_width: int) -> List[Tuple[int, float, float, str, str]]:
+        """The share-and-follow line over the last seconds (Meta's creator tips, 2026-10-25): one or two pills in
+        the caption style, stacked just above the caption band inside the Reel safe area, fading in. Never
+        smaller than END_PROMPT_MIN_SIZE: a line that would have to shrink past it is set on two lines."""
+        from .safe_zones import caption_band_top
+        start, end = window
+        words = [w for w in text.split() if w]
+        if not words or end <= start:
+            return []
+
+        def width_of(ws: List[str], size: int) -> float:
+            return measure_caption_phrase([{"word": x} for x in ws], size, CAPTION_SC_SCALE)[0]
+
+        def balanced(size: int, n: int) -> Optional[List[List[str]]]:
+            """`words` on `n` lines of the most even width, each fitting the caption width; None if none does."""
+            from itertools import combinations
+            best, best_span = None, None
+            for cuts in combinations(range(1, len(words)), n - 1):
+                parts = [words[a:b] for a, b in zip((0, *cuts), (*cuts, len(words)))]
+                widths = [width_of(p, size) for p in parts]
+                if max(widths) <= max_caption_width and (best_span is None or max(widths) - min(widths) < best_span):
+                    best, best_span = parts, max(widths) - min(widths)
+            return best
+        # The largest size at which the line takes at most two pills; three at the smallest, never smaller.
+        size, lines = END_PROMPT_MIN_SIZE, None
+        for candidate in range(END_PROMPT_SIZE, END_PROMPT_MIN_SIZE - 1, -4):
+            lines = next((b for n in (1, 2) if (b := balanced(candidate, n))), None)
+            if lines:
+                size = candidate
+                break
+        if not lines:
+            lines = balanced(END_PROMPT_MIN_SIZE, 3) or [words]
+        fade = "{\\fad(300,0)}"
+        events: List[Tuple[int, float, float, str, str]] = []
+        bottom = caption_band_top(width, height) - 16  # the lowest pill ends here, clear of the captions
+        for ln in reversed(lines):  # the last line lowest
+            text_w, text_h = measure_caption_phrase([{"word": w} for w in ln], size, CAPTION_SC_SCALE)
+            box_w, box_h = int(round(text_w + CAPTION_PAD_X * 2)), int(round(text_h + CAPTION_PAD_Y * 2))
+            box_x, box_y = width // 2 - box_w // 2, bottom - box_h
+            shift = int(round(7.5 * (size / FONT_SIZE)))  # Anton's visual centre sits below the geometric one
+            center_y = box_y + box_h // 2 - shift
+            events.append((0, start, end, "CapBox",
+                           f"{fade}{{\\pos({box_x},{box_y})\\p1}}{rounded_rect_path(box_w, box_h, CAPTION_BORDER_RADIUS)}{{\\p0}}"))
+            body = " ".join(format_word_caption(w, colour=COL_ACTIVE, is_key=False, is_spoken_now=False, has_key=False) for w in ln)
+            events.append((1, start, end, "CapText",
+                           f"{fade}{{\\pos({width // 2},{center_y})\\q2}}{{\\fs{int(round(size / 0.5625))}}}{body}"))
+            bottom = box_y - 10
+        return events
 
     @staticmethod
     def _measure(vo_path: Path, bed_path: Path, chain: str) -> Tuple[float, float]:
@@ -825,8 +884,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         aspect_ratio: str = "9:16",
         delivery_profile=None,
         grade_bias: float = 0.0,
+        end_prompt: str = "",
     ) -> Path:
         """
+        end_prompt: the share-and-follow line shown over the last END_PROMPT_SECONDS (Reels only).
         grade_bias: a bounded warm (+) / cool (-) shift measured from the topic's hero photograph
         (art direction, 2026-10-24), applied after the film LUT; 0 leaves the grade as it was.
         durations: seconds on screen per scene (e.g. from scene_planner beats). Each cut is
@@ -845,7 +906,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         if not all(source_inputs.values()) or not all(font_inputs.values()):
             raise RenderError("Render sources and bundled fonts must exist")
         ass_path = output_mp4_path.parent / (output_mp4_path.stem + "_captions.ass")
-        self.build_subtitles(words, ass_path, emphasis=emphasis, width=width, height=height)
+        self.build_subtitles(words, ass_path, emphasis=emphasis, width=width, height=height,
+                             end_prompt=end_prompt, end_window=(max(0.0, vo_dur - END_PROMPT_SECONDS), vo_dur))
 
         # Export sidecar SRT and VTT closed captions for YouTube / platform transcript indexing
         srt_path = output_mp4_path.parent / (output_mp4_path.stem + ".srt")

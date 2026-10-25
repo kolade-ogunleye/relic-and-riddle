@@ -102,6 +102,7 @@ Requirements:
 - poll: an either/or question (at most 60 characters) and exactly 2 options (each at most 24 characters) that are its two answers, e.g. "Which took more work?" with "Carving downward" / "Hauling the stone". Never a yes/no question with options that are not yes/no.
 - carousel_slides: exactly 7 (title slide, five fact slides, closing call-to-comment slide). Slide 7 MUST ask a humane, universally resonant, thought-provoking question that appeals to all demographics (e.g. human ingenuity, civilizational survival, what modern humans have forgotten, or enduring mysteries) rather than narrow academic trivia, compelling viewers to debate in the comments.
 - first_comment: a debate-starting question, with no hashtags (Instagram's 5-hashtag cap covers the whole post).
+- share_line: one warm sentence of at most 90 characters, no hashtags, at most one emoji, that asks the viewer to share this with someone (say who, for this topic: "a friend who loves ancient engineering") and to follow for the next story. Worded for this topic, never a stock slogan. It closes the video, both captions and the carousel.
 - sources: the pages you used, with real URLs."""
 
 AI_ORIGINS = ("claude", "gemini-free")  # scripts written by a model (vs curated by hand)
@@ -233,13 +234,29 @@ def _short_reason(problems: List[str]) -> str:
 WORD_PACE_FILE = config.BASE_DIR / "data" / "word_pace.json"
 
 
-def record_word_pace(seconds_per_word: float) -> None:
-    """Keeps the last 20 measured seconds-per-word of drafts (the narrator voice, this topic's words)."""
+def _word_pace_entries() -> List[list]:
+    """[[draft key, seconds per word], ...], oldest first; an older file of bare values reads as keyless."""
     try:
-        values = json.loads(WORD_PACE_FILE.read_text(encoding="utf-8")) if WORD_PACE_FILE.exists() else []
-        values = (values + [round(seconds_per_word, 4)])[-20:]
+        raw = json.loads(WORD_PACE_FILE.read_text(encoding="utf-8")) if WORD_PACE_FILE.exists() else []
+    except (OSError, ValueError):
+        return []
+    return [[str(e[0]), float(e[1])] if isinstance(e, list) and len(e) == 2 else ["", float(e)] for e in raw]
+
+
+def record_word_pace(seconds_per_word: float, text: str = "") -> None:
+    """Keeps the last 20 measured seconds-per-word of distinct drafts (the narrator voice, this topic's words).
+    A draft measured again (a kept script, a resume, a second structural pass) is not counted again: five
+    copies of one topic's pace moved the median and the writer's word window with it, and the next drafts
+    came out under the minimum (2026-10-25)."""
+    import hashlib
+    try:
+        key = hashlib.sha256(" ".join((text or "").lower().split()).encode("utf-8")).hexdigest()[:12] if text else ""
+        entries = _word_pace_entries()
+        if key and any(e[0] == key for e in entries):
+            return
+        entries = (entries + [[key, round(seconds_per_word, 4)]])[-20:]
         from .atomic_files import write_json
-        write_json(WORD_PACE_FILE, values)
+        write_json(WORD_PACE_FILE, entries)
     except (OSError, ValueError) as e:
         log.debug("Could not record the word pace: %s", e)
 
@@ -252,10 +269,7 @@ def _pace_window() -> Tuple[float, float]:
 def length_target_note() -> str:
     """The word range that fits, from measured pace (the prompt's fixed 105-115 words ran 53-58 s at the
     narrator's pace for name-heavy topics). Empty until three drafts have been measured."""
-    try:
-        values = json.loads(WORD_PACE_FILE.read_text(encoding="utf-8")) if WORD_PACE_FILE.exists() else []
-    except (OSError, ValueError):
-        values = []
+    values = [e[1] for e in _word_pace_entries()]
     if len(values) < 3:
         return ""
     import statistics
@@ -304,7 +318,7 @@ def spoken_length_problems(pkg: ScriptPackage) -> List[str]:
     if seconds is None:
         return []
     words = len(pkg.narration_script.split()) or 1
-    record_word_pace(seconds / words)  # measured at the measurement voice; the pace ratio is applied on use
+    record_word_pace(seconds / words, pkg.narration_script)  # at the measurement voice; the pace ratio is applied on use
     measured = seconds
     fast, slow = _pace_window()
     longest = HARD_DURATION_CEILING - _MEASURE_MARGIN_SEC
@@ -416,6 +430,52 @@ def without_blocked_sentences(payload: Dict[str, Any], notes: str) -> Optional[D
     return dict(payload, narration_script=trimmed, trimmed_sentences=blocked)
 
 
+# ---------------------------------------------------------------- share and follow (Meta's creator tips, 2026-10-25)
+SHARE_LINE_MAX = 90
+SHARE_FALLBACK = "Share this with someone who loves a good mystery, and follow for the next one."
+_SHARE_VERBS = re.compile(r"\b(share|send|pass|tag|forward|show)\b", re.IGNORECASE)
+_HASHTAG_LINE = re.compile(r"^(?:\s*#\w+)+\s*$")
+
+
+def share_line_problems(line: str) -> List[str]:
+    """Why a writer's share line can't be used: it must be short, ask for a share and a follow, and carry no
+    hashtags (they live on the caption's last line) and at most one emoji."""
+    line = " ".join((line or "").split())
+    problems = []
+    if len(line) > SHARE_LINE_MAX:
+        problems.append(f"{len(line)} characters; at most {SHARE_LINE_MAX}.")
+    if "#" in line:
+        problems.append("no hashtags in it.")
+    if len(EMOJI_RE.findall(line)) > 1:
+        problems.append("at most one emoji.")
+    if not re.search(r"\bfollow", line, re.IGNORECASE):
+        problems.append("it must invite the viewer to follow.")
+    if not _SHARE_VERBS.search(line):
+        problems.append("it must ask the viewer to share (send, pass on, tag) this.")
+    return problems
+
+
+def share_prompt(payload: Dict[str, Any]) -> str:
+    """The share-and-follow line a run shows: the writer's, when it passes its checks, else a plain one."""
+    line = " ".join(str((payload or {}).get("share_line") or "").split())
+    return line if line and not share_line_problems(line) else SHARE_FALLBACK
+
+
+def with_share_line(text: str, line: str) -> str:
+    """`text` (a caption) with `line` as its own paragraph before the closing hashtag line(s); unchanged when the
+    line is already there."""
+    text = (text or "").rstrip()
+    if not line or line in text:
+        return text
+    lines = text.split("\n")
+    i = len(lines)
+    while i > 0 and (not lines[i - 1].strip() or _HASHTAG_LINE.match(lines[i - 1])):
+        i -= 1
+    head = "\n".join(lines[:i]).rstrip()
+    tail = [ln for ln in lines[i:] if ln.strip()]
+    return "\n\n".join(x for x in (head, line, "\n".join(tail)) if x)
+
+
 def duration_problem(seconds: float) -> Optional[str]:
     """Why a measured voiceover can't make a Reel (the master is exactly as long), or None."""
     if seconds < TARGET_DURATION_MIN:
@@ -482,6 +542,8 @@ def validate_structure(pkg: ScriptPackage) -> List[str]:
     emoji = len(EMOJI_RE.findall(pkg.caption))
     if emoji > 4:
         problems.append(f"Caption uses {emoji} emoji; 1-3 relevant ones read human, more reads like spam.")
+    if pkg.share_line:
+        problems.extend(f"share_line: {p}" for p in share_line_problems(pkg.share_line))
     if len(pkg.story_slides) != 3:
         problems.append(f"Expected 3 story slides, got {len(pkg.story_slides)}.")
     else:
@@ -499,7 +561,7 @@ def validate_structure(pkg: ScriptPackage) -> List[str]:
         problems.append(f"Expected 7 carousel slides, got {len(pkg.carousel_slides)}.")
     problems.extend(poll_problems(pkg.poll.question, pkg.poll.options))
     public_text = " ".join([
-        pkg.title, pkg.narration_script, pkg.caption, pkg.carousel_caption or "", pkg.first_comment,
+        pkg.title, pkg.narration_script, pkg.caption, pkg.carousel_caption or "", pkg.first_comment, pkg.share_line or "",
         *(s.line1 + " " + s.line2 + " " + s.body for s in pkg.story_slides),
         *(c.heading + " " + c.body for c in pkg.carousel_slides),
     ])
@@ -709,7 +771,11 @@ class ScriptEngine:
                 )
             feedback = base_feedback
             window = None  # the word window a too-long draft set; later drafts are held to it
+            # What this call cost in drafts, for the run's record (the record said "1 round" for a run whose
+            # log showed two drafts rejected here: Memnon, 2026-10-25).
+            self.last_drafts, self.last_draft_problems = 0, []
             for attempt in range(1, max_attempts + 1):
+                self.last_drafts = attempt
                 self._report(f"Writing draft {attempt} of {max_attempts}")
                 try:
                     pkg = self._generate_with_claude(topic, feedback)
@@ -722,6 +788,7 @@ class ScriptEngine:
                 if not problems:
                     return self._finalize(pkg, topic, origin=writer_origin(), fact_sheet_used=self._sheet(topic) is not None)
                 log.warning("Attempt %d failed structural checks: %s", attempt, problems)
+                self.last_draft_problems.append(f"draft {attempt}: {_short_reason(problems)}")
                 last_problems = problems
                 improve.note_problems(problems, "structure")
                 if all("when spoken" in p for p in problems):
@@ -987,6 +1054,11 @@ class ScriptEngine:
     @staticmethod
     def _finalize(pkg: ScriptPackage, topic: Dict[str, Any], origin: str, fact_sheet_used: bool = False) -> Dict[str, Any]:
         payload = pkg.model_dump()
+        # A surgical edit can leave a space before a full stop ("a cataclysm struck ." was voiced and captioned
+        # on the Tunguska development run, 2026-10-25): tidied in every public text before the checks.
+        for key in ("narration_script", "hook_sentence", "closing_sentence", "caption", "carousel_caption", "first_comment"):
+            if isinstance(payload.get(key), str):
+                payload[key] = re.sub(r"[ \t]+([.,;:!?])", r"\1", payload[key])
         payload.update({
             "fact_sheet": fact_sheet_used,  # written from the topic's verified fact sheet: trace-checked
             "topic_id": topic["id"],

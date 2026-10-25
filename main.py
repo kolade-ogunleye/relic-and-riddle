@@ -1115,7 +1115,8 @@ class PipelineCoordinator:
     def resume_mode(self, run_id: str, dry_run: bool) -> bool:
         return resume_mode(self.db, run_id, dry_run)
 
-    def resume_run(self, run_id: str, auto_approve: bool = False, dry_run: bool = False) -> Dict[str, Any]:
+    def resume_run(self, run_id: str, auto_approve: bool = False, dry_run: bool = False,
+                   require_live: bool = False) -> Dict[str, Any]:
         """
         Continues a failed run from where it stopped, reusing its approved script and
         voiceover, so a late failure (e.g. rendering) doesn't mean paying for them again.
@@ -1164,16 +1165,18 @@ class PipelineCoordinator:
         if result.get("status") == "regenerate":
             # Regenerate on a re-rendered run's review starts the new version, as it does after a first render
             # (production 2026-10-25: it was recorded and nothing followed).
-            return self.regenerate_from(run_id, auto_approve=auto_approve, dry_run=dry_run)
+            return self.regenerate_from(run_id, auto_approve=auto_approve, dry_run=dry_run, require_live=require_live)
         return result
 
-    def regenerate_from(self, run_id: str, auto_approve: bool = False, dry_run: bool = False) -> Dict[str, Any]:
-        """A new version of a run sent back with Regenerate, guided by the reason given on its card."""
+    def regenerate_from(self, run_id: str, auto_approve: bool = False, dry_run: bool = False,
+                        require_live: bool = False) -> Dict[str, Any]:
+        """A new version of a run sent back with Regenerate, guided by the reason given on its card. The live
+        preflight travels with it (a regeneration after a resume ran without it: review, 2026-10-25)."""
         run = self.db.get_run(run_id) or {}
         log.info("Regeneration requested; starting a fresh run for '%s'.", run.get("topic_id"))
         self._operator_feedback = self._await_reason(run_id)
         try:
-            return self.run_cycle(run["topic_id"], auto_approve, dry_run, False, run.get("content_format") or "reel", 1)
+            return self.run_cycle(run["topic_id"], auto_approve, dry_run, require_live, run.get("content_format") or "reel", 1)
         finally:
             self._operator_feedback = None
 
@@ -1775,9 +1778,12 @@ class PipelineCoordinator:
                 self.telegram_bot.update_progress_card(self.progress_msg_id, 1, 5, topic["title"], run_id, text)
         self.script_engine.progress = show
         earlier: List[str] = []  # every draft's rejection, so a later draft can't restate one in new words
+        drafts, structural = 0, []  # every draft written, the engine's own structural rejections included
         for revision in range(MAX_FACT_REVISIONS + 1):
             self._check_cancel(run_id)
             payload = self.script_engine.generate_script(topic, revision_notes=revision_notes, previous=payload)
+            drafts += getattr(self.script_engine, "last_drafts", 0) or 1
+            structural += list(getattr(self.script_engine, "last_draft_problems", None) or [])
             passed, payload, notes = self.script_engine.verify_claims(payload, topic=topic, allow_unreviewed_curated=dry_run)
             log.info("Guardrail (draft %d): %s", revision + 1, notes)
             if passed or payload.get("origin") not in ("claude", "gemini-free"):
@@ -1812,6 +1818,15 @@ class PipelineCoordinator:
                     passed, payload, notes = self.script_engine.verify_claims(payload, topic=topic, allow_unreviewed_curated=dry_run)
 
         if passed:
+            # Meta's creator tips (2026-10-25): ask viewers to share, invite them to follow. One line, the
+            # writer's when it passes its checks, before the hashtags of both captions; the same line closes
+            # the video and the carousel. Placed before the fact review is recorded, so it is part of the copy.
+            from src.script_engine import share_prompt, with_share_line
+            share = share_prompt(payload)
+            if payload.get("caption"):
+                payload["caption"] = with_share_line(payload["caption"], share)
+            if payload.get("carousel_caption"):
+                payload["carousel_caption"] = with_share_line(payload["carousel_caption"], share)
             credit = caption_credit_line(load_credits(ASSETS_DIR / tid))
             if credit:  # CC BY images must be attributed where the work is shared
                 payload["caption"] = f"{payload['caption']}\n\n{credit}"
@@ -1819,8 +1834,11 @@ class PipelineCoordinator:
                     passed, notes = False, "Caption plus image credits exceeds Instagram's 2,200 characters."
         payload["guardrail_passed"] = passed
         # How many drafts it took and why: a run of more than two is a finding for the improvement ledger.
-        payload["script_rounds"] = revision + 1
-        payload["script_round_reasons"] = [r[:200] for r in earlier]
+        # Every draft the writer produced, not only the fact-check rounds (the record read "1 round" for a run
+        # whose log showed two drafts rejected inside the engine: Memnon, 2026-10-25).
+        payload["script_rounds"] = max(drafts, revision + 1)
+        payload["fact_rounds"] = revision + 1
+        payload["script_round_reasons"] = [r[:200] for r in structural + earlier]
         from src.config import DATA_DIR
         sheet_file = DATA_DIR / "fact_sheets" / f"{tid}.json"
         if passed and sheet_file.is_file():
@@ -1894,7 +1912,7 @@ class PipelineCoordinator:
         packaging_inputs = {"photos": file_inputs([hero_img, *scene_media]), "style": style,
                             "strong": sorted(getattr(self, "_strong_stems", None) or []),  # which may face out
                             "picks": file_inputs([Path("src/image_review.py")]),
-                            "copy": {key: payload.get(key) for key in ("title", "thumbnail", "story_slides", "carousel_slides", "poll")},
+                            "copy": {key: payload.get(key) for key in ("title", "thumbnail", "story_slides", "carousel_slides", "poll", "share_line")},
                             "rules": file_inputs([Path("src/visual_engine.py"), Path("src/multi_format.py"),
                                                   Path("src/typography.py"), Path("src/config.py"), Path("src/safe_zones.py")]),
                             "fonts": file_inputs([FONTS_DIR / name for name in FONT_FILES.values()])}
@@ -1983,6 +2001,7 @@ class PipelineCoordinator:
                 log.warning("Image/footage credits would overflow the caption; using the topic's images and our graphics only.")
                 candidates, used, used_footage, caption = scene_media + own_graphics, [], [], caption_base
                 scenes, durations, plan_notes = plan_scenes(beats, candidates, feedback=feedback)
+                planned = list(scenes)  # the plan the repair pass judges (the overflow re-plan replaced the first)
             payload["caption"] = caption
             payload["scene_plan_note"] = degraded_note(plan_notes)
             used_graphics = [p.stem.replace("graphic_", "") for p in own_graphics if p in scenes]
@@ -2019,8 +2038,10 @@ class PipelineCoordinator:
                 lambda: [self.video_composer.export_subtitles_srt(words, master_mp4.with_suffix(".srt")),
                          self.video_composer.export_subtitles_vtt(words, master_mp4.with_suffix(".vtt"))])
             render_checkpoint = Checkpoints(run_dir / "stage_cache" / "render")
+            from src.script_engine import share_prompt
+            end_prompt = share_prompt(payload)  # the share-and-follow line over the last seconds
             render_inputs = {"media": file_inputs([*scenes, vo_path, bed_path]), "words": words,
-                             "durations": durations, "emphasis": payload.get("emphasis_words"),
+                             "durations": durations, "emphasis": payload.get("emphasis_words"), "end_prompt": end_prompt,
                              "grade_bias": (payload.get("art_direction") or {}).get("grade_bias") or 0.0,  # part of the master
                              "rules": file_inputs([Path("src/video_composer.py"), Path("src/config.py"),
                                                    Path("src/encoding.py"), Path("src/encoded_audio.py"), Path("src/delivery_profiles.py")]),
@@ -2030,7 +2051,8 @@ class PipelineCoordinator:
                 self._progress_note(run_id, topic.get("title", run_id), 3, "Synthesizing graphics, stills & motion · rendering the master video")
                 self.video_composer.compose_video(scenes, vo_path, bed_path, words, vo_dur, master_mp4, durations=durations,
                                                   emphasis=payload.get("emphasis_words"),
-                                                  grade_bias=float((payload.get("art_direction") or {}).get("grade_bias") or 0.0))
+                                                  grade_bias=float((payload.get("art_direction") or {}).get("grade_bias") or 0.0),
+                                                  end_prompt=end_prompt)
                 outputs = [master_mp4, master_mp4.with_name(master_mp4.stem + "_captions.ass"),
                            master_mp4.with_suffix(".composition.json"), master_mp4.with_suffix(".srt"), master_mp4.with_suffix(".vtt")]
                 if all(path.is_file() for path in outputs):
@@ -2134,6 +2156,11 @@ class PipelineCoordinator:
         review_mp4 = self.video_composer.make_review_proxy(master_mp4, run_dir / "review_proxy.mp4")
         timer.record("review_proxy", time.perf_counter() - t0)
         payload["qa_summary"] = qa_summary_html(qa, beats)
+        # The look's findings in the record, so the release gate reads them (src/release.py): a major picture
+        # finding was shown on the card beside "all checks pass" (Nazca, 2026-10-25).
+        payload["video_check"] = {"run": qa is not None,
+                                  "issues": [{"beat": i.beat, "severity": str(i.severity).lower(), "issue": i.issue}
+                                             for i in (qa.issues if qa is not None else [])]}
         (run_dir / "qa_report.json").write_text(qa.model_dump_json(indent=2) if qa else "null", encoding="utf-8")
         log.info("%s", re.sub(r"<[^>]+>", "", payload["qa_summary"]).replace("\n", " | "))
         self._verify_final_copy(payload, topic)
@@ -2597,7 +2624,7 @@ def run_in_worker(content_format: str, dry_run: bool, schedule_posts: bool, time
     fd, result_path = tempfile.mkstemp(prefix="rr-run-", suffix=".json")
     os.close(fd)
     # `resume`: re-render that failed run in place (its script, voice and clips are reused).
-    command = ["resume", resume] if resume else ["run", "--require-live", "--format", content_format]
+    command = ["resume", resume, "--require-live"] if resume else ["run", "--require-live", "--format", content_format]
     cmd = ([sys.executable, "-u", "main.py", *command, "--background-polling", "--result-file", result_path]
            + (["--dry-run"] if dry_run else []) + (["--schedule-posts"] if schedule_posts else []) + list(extra or []))
     try:
@@ -2861,6 +2888,7 @@ def main(argv=None) -> int:
     resume_p.add_argument("run_id")
     resume_p.add_argument("--auto-approve", action="store_true")
     resume_p.add_argument("--dry-run", action="store_true")
+    resume_p.add_argument("--require-live", action="store_true", help="A regeneration after this resume runs the live preflight")
     resume_p.add_argument("--background-polling", action="store_true", help="Tell bot that supervisor is polling getUpdates")
     resume_p.add_argument("--result-file", help="Write the outcome here as JSON (the daemon's worker contract)")
     resume_p.add_argument("--schedule-posts", action="store_true",
@@ -2978,7 +3006,8 @@ def main(argv=None) -> int:
             coordinator = PipelineCoordinator(schedule_posts=True) if args.schedule_posts else PipelineCoordinator()
             if args.background_polling:
                 coordinator.telegram_bot.background_polling = True
-            res = coordinator.resume_run(args.run_id, args.auto_approve, args.dry_run)
+            res = coordinator.resume_run(args.run_id, args.auto_approve, args.dry_run,
+                                         require_live=bool(getattr(args, "require_live", False)))
         except ValueError as e:
             print(f"Refusing: {e}")
             _write_result(result_file, {"status": "refused", "error": str(e)[:500]})
@@ -3111,7 +3140,7 @@ def main(argv=None) -> int:
 
             from src.config import BASE_DIR
             # With posting slots on, the worker books the approved Reel like the daemon does.
-            command = ["resume", resume] if resume else ["run", "--require-live", "--format", content_format]
+            command = ["resume", resume, "--require-live"] if resume else ["run", "--require-live", "--format", content_format]
             worker_proc = subprocess.Popen(
                 [sys.executable, "-u", "main.py", *command, "--background-polling"]
                 + (["--dry-run"] if config.BOT_RUNS_DRY else [])  # nothing posts from a bot-started run by default

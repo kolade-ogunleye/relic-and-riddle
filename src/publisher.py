@@ -46,9 +46,11 @@ class NotConfigured(Exception):
 class PublishFailed(Exception):
     """Definitely not published; safe to try the next publisher."""
 
-    def __init__(self, message: str = "", status: Optional[int] = None):
+    def __init__(self, message: str = "", status: Optional[int] = None, code: Optional[int] = None,
+                 subcode: Optional[int] = None):
         super().__init__(message)
         self.status = status
+        self.code, self.subcode = code, subcode  # Graph's error code and error_subcode, when it gave them
 
 
 class PublishUnknown(Exception):
@@ -469,8 +471,9 @@ class FacebookPageReelsPublisher:
         except ValueError:
             body = {"raw": resp.text[:500]}
         if not resp.ok or "error" in body:
+            err = body.get("error") if isinstance(body.get("error"), dict) else {}
             raise PublishFailed(f"Graph {method} {url.split('?')[0]} -> {resp.status_code}: {body.get('error', body)}",
-                                status=resp.status_code)
+                                status=resp.status_code, code=err.get("code"), subcode=err.get("error_subcode"))
         return body
 
     CAPTION_LOCALE = "en_US"
@@ -494,7 +497,7 @@ class FacebookPageReelsPublisher:
         try:
             return {"status": "published", "video_id": str(video_id), "locale": locale, "result": send()}
         except PublishFailed as e:
-            if "482" not in str(e):  # anything but "this locale is already on the video"
+            if 482 not in (e.code, e.subcode):  # anything but "this locale is already on the video"
                 raise
         self._call("POST", url, timeout=60, data={"access_token": self.token, "locales_to_delete": json.dumps([locale])})
         return {"status": "published", "video_id": str(video_id), "locale": locale, "replaced": True, "result": send()}

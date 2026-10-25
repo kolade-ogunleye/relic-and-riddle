@@ -161,3 +161,22 @@ def delivered_review(db, tmp_path):
         put(db, "review-card", f"{run_id}:{message_id}", fingerprint)
         return directory
     return prepare
+
+
+@pytest.fixture(autouse=True, scope="session")
+def scratch_output_dir(tmp_path_factory):
+    """Nothing a test makes lands in the real output folder: the card ledgers of test runs (run_f, run_x, ...)
+    piled up under output/ for days (2026-10-25). Session-wide, so a bot thread that outlives its test (a
+    decision recorded from a worker pool) still writes to the scratch folder, not the real one."""
+    from src import config
+    scratch = tmp_path_factory.mktemp("runs")
+    previous = config.OUTPUT_DIR
+    config.OUTPUT_DIR = scratch
+    main_module = sys.modules.get("main")
+    previous_main = getattr(main_module, "OUTPUT_DIR", None)
+    if main_module is not None:
+        main_module.OUTPUT_DIR = scratch
+    yield scratch
+    config.OUTPUT_DIR = previous
+    if main_module is not None and previous_main is not None:
+        main_module.OUTPUT_DIR = previous_main

@@ -102,7 +102,7 @@ def test_resume_writes_the_worker_result(monkeypatch, tmp_path):
         def __init__(self, schedule_posts=False):
             self.telegram_bot = SimpleNamespace(background_polling=False)
 
-        def resume_run(self, run_id, auto_approve, dry_run):
+        def resume_run(self, run_id, auto_approve, dry_run, require_live=False):
             raise ValueError("Run status 'published' can't be resumed.")
     monkeypatch.setattr(main, "PipelineCoordinator", Coordinator)
     assert main.main(["resume", "run_k", "--background-polling", "--result-file", str(out)]) == 1

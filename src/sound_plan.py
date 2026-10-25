@@ -13,12 +13,15 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel
 
-from . import free_llm
+from . import free_llm, sfx_palette
 from .llm import LLMError
 
 log = logging.getLogger(__name__)
 
-EFFECTS = ("sfx_hammer.wav", "sfx_stone_door.wav", "sfx_gear_ratchet.wav", "sfx_water_surge.wav", "sfx_chisel.wav")
+# What the model may choose: every effect of the licensed palette that a word can cue (src/sfx_palette.py).
+# Widened 2026-10-25 from five stone-and-gear effects to the settings and actions the topic bank narrates,
+# after three episodes planned moments and chose no effect at all.
+EFFECTS = tuple(sfx_palette.cues())
 MAX_EFFECTS = 4
 MIN_GAP_SECONDS = 2.5
 Kind = Literal["reveal", "tension", "calm", "action"]
@@ -38,8 +41,8 @@ SYSTEM = f"""You are the sound designer of a short history documentary. Read the
 - reveal: the moment a striking fact or discovery lands (the music swells briefly);
 - tension: where suspense builds toward a reveal (the music rises slowly);
 - calm: a reflective pause (the music dips);
-- action: where the narration describes a physical action or sound.
-Give an effect only when the words at that moment describe what it sounds like: {", ".join(EFFECTS)}. Never add an effect for a sound the narration does not describe. Use the number of the word the moment should land on."""
+- action: where the narration names a physical thing, place or action that has a sound of its own.
+Give an effect when the words at that moment name the thing or action it depicts (a forge or blade, a battle or siege, a ship at sea, waves, a fire, a storm, a collapse, footsteps on stone, a bell, a crowd, horses, a scroll or letter, gears, a chisel, a door), so the sound makes the picture concrete; the effect's file name says what it is: {", ".join(EFFECTS)}. Place it on the word that names the thing, at its first mention. No effect for a figure of speech ("a war of ideas"), a number, or a sound the story never brings on screen. Use the number of the word the moment should land on."""
 
 
 def plan(words: List[Dict[str, Any]], topic_title: str = "") -> Optional[Dict[str, Any]]:

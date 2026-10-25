@@ -27,6 +27,7 @@ import numpy as np
 import requests
 import soundfile as sf
 
+from . import sfx_palette
 from .config import (
     AZURE_SPEECH_KEY,
     AZURE_SPEECH_REGION,
@@ -505,16 +506,13 @@ class AudioEngine:
     # Sound effects play only where the narration says the action or thing they depict (first
     # matching word, whole words only: substrings put an ocean under "research").
     # Tuple format: (words, gain, optional_procedural_synth_name)
-    SFX_CUES = {
-        "sfx_hammer.wav": (("knock", "knocked", "knocking", "hammer", "hammered", "smash", "smashed"), 0.40, "_synth_chisel_strike"),
-        "sfx_stone_door.wav": (("door", "doors"), 0.45, "_synth_stone_grind"),
-        "sfx_gear_ratchet.wav": (("gear", "gears", "clockwork", "ratchet", "cogwheel", "cogwheels"), 0.35, "_synth_gear_ratchet"),
-        "sfx_water_surge.wav": (("submerged", "sea", "seas", "ocean", "shipwreck", "wreck", "diver", "divers", "underwater", "seabed"), 0.38, "_synth_water_surge"),
-        "sfx_chisel.wav": (("chisel", "chiseled", "chiselled", "carve", "carved", "carving", "hewn", "quarried", "quarry"), 0.36, "_synth_chisel_strike"),
-    }
-    # The cavern-wind layer is for places under the ground; the revelation hit for an actual finding.
-    UNDERGROUND_WORDS = {"underground", "subterranean", "cave", "caves", "cavern", "caverns", "tunnel", "tunnels",
-                         "shaft", "shafts", "hypogeum", "catacomb", "catacombs", "mine", "mines", "crypt"}
+    # One palette (src/sfx_palette.py) for the cues, the plan and the generator: {name: (keywords, gain, synth)}.
+    SFX_CUES = sfx_palette.cues()
+    # Continuous setting layers: the cavern wind for a story told under the ground, and from 2026-10-25 the
+    # desert, the sea and the mountains, each only when the narration names that setting.
+    SETTING_LAYERS = sfx_palette.layers()
+    UNDERGROUND_WORDS = set(SETTING_LAYERS["sfx_cavern_wind.wav"])
+    # The revelation hit is for an actual finding.
     REVELATION_WORDS = {"discovered", "discovering", "rediscovered", "rediscovering", "uncovered", "revealed",
                         "unearthed", "secret", "impossible"}
 
@@ -564,6 +562,36 @@ class AudioEngine:
     @classmethod
     def is_underground(cls, words: Optional[Words]) -> bool:
         return any(cls._spoken(w) & cls.UNDERGROUND_WORDS for w in words or [])
+
+    @classmethod
+    def setting_layer(cls, words: Optional[Words]) -> Optional[str]:
+        """The continuous texture for the setting the narration names first (a story told under the ground
+        gets the cavern draft wherever else it goes), or None: a story told nowhere in particular gets no layer."""
+        counts: Dict[str, int] = {}
+        first: Dict[str, int] = {}
+        for i, w in enumerate(words or []):
+            spoken = cls._spoken(w)
+            for name, layer_words in cls.SETTING_LAYERS.items():
+                if spoken & set(layer_words):
+                    counts[name] = counts.get(name, 0) + 1
+                    first.setdefault(name, i)
+        # The setting named most: one "cave" does not put a cliff temple underground (measured on six narrations,
+        # 2026-10-25); the layer words themselves leave out passing words such as "sand", which put a story told
+        # at sea in the desert.
+        if not counts:
+            return None
+        return min(counts, key=lambda n: (-counts[n], first[n]))
+
+    # A setting layer sits this far under the music bed: present under the score, never competing with it
+    # (the narration ducks both further). The earlier cavern draft sat 25 dB under it, which is silence.
+    LAYER_DB_BELOW_MUSIC = 14.0
+
+    @staticmethod
+    def licensed(name: str) -> bool:
+        """Whether a recording with intact rights evidence exists for `name`."""
+        from .audio_provenance import sfx_rights
+        path = SFX_DIR / name
+        return path.exists() and sfx_rights(path) is not None
 
     @classmethod
     def revelation_time(cls, words: Optional[Words]) -> Optional[float]:
@@ -790,14 +818,19 @@ class AudioEngine:
         if sound_plan:
             bed *= self.music_envelope(sound_plan.get("moments", []), total, sr)[:, None]
 
-        # Triple-stem foley stem 2: continuous cavern draft wind, only for a story told underground
-        if self.is_underground(words):
-            cavern_draft = self._effect("sfx_cavern_wind.wav", self._synth_cavern_draft(total, sr), sr, loop_to=total)
+        # Triple-stem foley stem 2: one continuous setting layer. The cavern draft for a story told underground
+        # (synthesized if no recording exists); the desert, sea or mountain wind for one told there, from the
+        # licensed recording only (a synthesized draft is a cavern, not a desert: without the recording, no layer).
+        layer = self.setting_layer(words)
+        if layer and (layer == "sfx_cavern_wind.wav" or self.licensed(layer)):
+            texture = self._effect(layer, self._synth_cavern_draft(total, sr), sr, loop_to=total)
+            level = float(np.sqrt(np.mean(np.square(texture)))) or 1.0
+            texture = texture * (self.MUSIC_RMS * 10 ** (-self.LAYER_DB_BELOW_MUSIC / 20) / level)
             fin_d, fout_d = min(int(1.0 * sr), total // 4), min(int(2.0 * sr), total // 4)
             if fin_d and fout_d:
-                cavern_draft[:fin_d] *= np.linspace(0.0, 1.0, fin_d)[:, None]
-                cavern_draft[-fout_d:] *= np.linspace(1.0, 0.0, fout_d)[:, None]
-            bed += cavern_draft
+                texture[:fin_d] *= np.linspace(0.0, 1.0, fin_d)[:, None]
+                texture[-fout_d:] *= np.linspace(1.0, 0.0, fout_d)[:, None]
+            bed += texture
 
         # Procedural Foley: Opening hook reveal impact at ~0.15s
         if total > int(0.20 * sr):

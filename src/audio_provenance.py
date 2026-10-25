@@ -14,7 +14,9 @@ def record_voice(path, provider, licensed, script):
               "script_fingerprint": fingerprint(script)}
     if not record["sha256"]:
         raise ValueError("Cannot record absent narration")
-    path.with_suffix(path.suffix + ".rights.json").write_text(json.dumps(record, indent=2), encoding="utf-8")
+    with open(path.with_suffix(path.suffix + ".rights.json"), "w", encoding="utf-8", newline="
+") as handle:  # LF: the repository refuses CRLF
+        handle.write(json.dumps(record, indent=2))
     return record
 
 
@@ -25,7 +27,9 @@ def record_sfx(path, provider, prompt, plan, commercial):
               "prompt": prompt, "commercial_license_recorded": commercial is True}
     if not record["sha256"]:
         raise ValueError("Cannot record an absent sound effect")
-    path.with_suffix(path.suffix + ".rights.json").write_text(json.dumps(record, indent=2), encoding="utf-8")
+    with open(path.with_suffix(path.suffix + ".rights.json"), "w", encoding="utf-8", newline="
+") as handle:  # LF: the repository refuses CRLF
+        handle.write(json.dumps(record, indent=2))
     return record
 
 
@@ -74,7 +78,9 @@ def record_bed(path, music, sfx=None):
         record["rights_status"] = "unverified"
     if not record["sha256"]:
         raise ValueError("Cannot record absent music bed")
-    path.with_suffix(path.suffix + ".rights.json").write_text(json.dumps(record, indent=2), encoding="utf-8")
+    with open(path.with_suffix(path.suffix + ".rights.json"), "w", encoding="utf-8", newline="
+") as handle:  # LF: the repository refuses CRLF
+        handle.write(json.dumps(record, indent=2))
     return record
 
 

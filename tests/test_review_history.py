@@ -18,6 +18,8 @@ def _three_runs(db, tmp_path, monkeypatch):
     db.update_run("run_a", "rejected", master_video_path=str(tmp_path / "run_a" / "m.mp4"))
     db.set_setting("decision_reason:run_a", json.dumps({"reason": "pictures", "text": "wrong temple on beat 5"}))
     db.update_run("run_b", "failed", error="release gate", master_video_path=str(tmp_path / "run_b" / "m.mp4"))
+    (tmp_path / "run_b" / "verified_script.json").write_text("{}", encoding="utf-8")  # it passed the fact check
+    (tmp_path / "run_b" / "checkpoints.json").write_text(json.dumps({"script": {}}), encoding="utf-8")
     (tmp_path / "run_b" / "release_report.json").write_text(json.dumps({"checks": [
         {"name": "visual_checks", "status": "fail", "detail": [{"issue": "beat 2: caption clipped at the edge", "severity": "major"}]}]}),
         encoding="utf-8")

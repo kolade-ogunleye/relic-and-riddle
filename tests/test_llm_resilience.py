@@ -41,6 +41,7 @@ def wire(monkeypatch):
         msgs = _Messages(behaviour)
         recorded = []
         monkeypatch.setattr(llm, "ANTHROPIC_API_KEY", "sk-test")
+        monkeypatch.setattr(llm.time, "sleep", lambda s: None)  # the retry pause
         monkeypatch.setattr(llm, "CLAUDE_MODEL", "claude-opus-5-5")
         monkeypatch.setattr(llm, "CLAUDE_FALLBACK_MODELS", list(fallbacks))
         monkeypatch.setattr(llm, "CLAUDE_MONTHLY_BUDGET_USD", budget)
@@ -59,7 +60,7 @@ def test_overloaded_primary_falls_back_to_next_model(wire):
     msgs, recorded = wire({"claude-opus-5-5": _err(anthropic.InternalServerError, 529, "overloaded"),
                            "claude-sonnet-5-5": _ok("claude-sonnet-5-5", POLL)})
     assert llm.structured_call("s", "p", Poll) == POLL
-    assert msgs.models == ["claude-opus-5-5", "claude-sonnet-5-5"]
+    assert msgs.models == ["claude-opus-5-5", "claude-opus-5-5", "claude-sonnet-5-5"]   # Opus twice, then Sonnet (2026-10-25)
     assert recorded[0]["model"] == "claude-sonnet-5-5" and recorded[0]["cost_usd"] == pytest.approx(3.0)
 
 

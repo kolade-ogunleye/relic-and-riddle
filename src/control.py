@@ -539,6 +539,11 @@ REACHED_REVIEW = {"pending_approval", "approved", "rejected", "regenerate", "tim
 RERENDER_HOURS = 48  # a late failure older than this is not offered on the dashboard (Render it afresh)
 
 
+def _worth_resuming(run: Dict[str, Any]) -> bool:
+    from .resume_points import worth_resuming
+    return worth_resuming(config.OUTPUT_DIR / run["run_id"], run)
+
+
 def rerenderable(db: PipelineDatabase) -> Optional[Dict[str, Any]]:
     """The newest recent run that failed after its video was made and whose topic has not been made again
     since: the one Re-render on the dashboard offers."""
@@ -548,7 +553,9 @@ def rerenderable(db: PipelineDatabase) -> Optional[Dict[str, Any]]:
     for r in db.list_recent_runs(limit=10):
         if (r.get("updated_at") or r.get("created_at") or "") < since:
             break
-        if r.get("status") in ("failed", "rejected") and r.get("master_video_path") and r.get("topic_id") not in made_since:
+        if r.get("topic_id") not in made_since and (
+                (r.get("status") == "rejected" and r.get("master_video_path"))
+                or (r.get("status") == "failed" and _worth_resuming(r))):  # src/resume_points.py
             return r
         if r.get("status") in REACHED_REVIEW:
             made_since.add(r.get("topic_id"))

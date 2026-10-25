@@ -1145,15 +1145,21 @@ class PipelineCoordinator:
             sink.stop()
 
     def rerender_refusal(self, run_id: str) -> Optional[str]:
-        """Why a failed run can't be re-rendered in place, or None. Only a run that got as far as a video
-        (a late failure, e.g. the release gate) qualifies: its script, voice and clips are reused."""
+        """Why a failed run can't be re-rendered in place, or None. A failed run qualifies once its script has
+        passed the fact check (src/resume_points.py): everything it completed after that is reused where its
+        inputs are unchanged. A rejected run is regenerated with the reason given (its own rule, unchanged)."""
+        from src.resume_points import worth_resuming
         run = self.db.get_run(run_id)
         if not run:
             return "That run is no longer recorded."
         if run["status"] not in REMAKE_STATUSES:
             return f"That run is {run['status'].replace('_', ' ')}, not failed or rejected."
-        if not run.get("master_video_path") or not (OUTPUT_DIR / run_id).is_dir():
-            return "That run stopped before it had a video; Render the topic again instead."
+        if not (OUTPUT_DIR / run_id).is_dir():
+            return "That run's files are no longer kept; Render the topic again instead."
+        if run["status"] == "rejected":
+            return None if run.get("master_video_path") else "That run stopped before it had a video; Render the topic again instead."
+        if not worth_resuming(OUTPUT_DIR / run_id, run):
+            return "That run stopped before its script passed the fact check, so nothing it made is worth keeping; Render the topic again instead."
         return None
 
     def remake_args(self, run_id: str) -> List[str]:
@@ -1479,6 +1485,11 @@ class PipelineCoordinator:
         licensed_req, allow_paid = voice_inputs["licensed_only"], voice_inputs["allow_paid"]
         t0 = time.perf_counter()
         reusable = self.voice_reusable(checkpoints, voice_inputs, saved_voice, dry_run)
+        if reusable and vo_path.exists():
+            from src.script_engine import duration_problem as _too_long
+            if _too_long(self.audio_engine.get_duration(vo_path)):  # a saved take that failed the limit: made again
+                log.info("The saved voiceover does not fit the length limit; making it again.")
+                reusable = False
         if reusable:
             words = json.loads(words_path.read_text(encoding="utf-8"))
             log.info("Resuming with the existing voiceover.")

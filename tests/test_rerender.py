@@ -12,9 +12,16 @@ from src.telegram_bot import TelegramApprovalBot
 
 def _failed(db, tmp_path, monkeypatch, with_video=True):
     monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
+    from src import config
+    monkeypatch.setattr(config, "OUTPUT_DIR", tmp_path)  # read by the card and the dashboard
     topic = db.list_all_topics()[0]["id"]
     db.create_run("run_k", topic)
     (tmp_path / "run_k").mkdir()
+    if with_video:  # a late failure: its script passed the fact check and its video exists (src/resume_points.py)
+        (tmp_path / "run_k" / "verified_script.json").write_text("{}", encoding="utf-8")
+        (tmp_path / "run_k" / "voiceover.mp3").write_bytes(b"x")
+        (tmp_path / "run_k" / "master.mp4").write_bytes(b"x")
+        (tmp_path / "run_k" / "checkpoints.json").write_text(json.dumps({"script": {}, "voice": {}}), encoding="utf-8")
     fields = {"master_video_path": tmp_path / "run_k" / "master.mp4"} if with_video else {}
     db.update_run("run_k", "failed", error="ValueError: Release blocked: visual_checks: Beat 2: ...", **fields)
     return "run_k"
@@ -37,7 +44,7 @@ def test_a_late_failure_card_offers_re_render(db, tmp_path, monkeypatch):
     bot.finish_progress_card(5, "T", run_id, success=False, error="Release blocked: visual_checks: Beat 2")
     data = [d for m, d in calls if m == "editMessageText"][-1]
     assert f"rerender:{db.run_key(run_id)}" in _buttons(data["reply_markup"])
-    assert "reusing its script, voiceover and accepted motion clips" in data["text"]
+    assert "keeping the fact-checked script, the voiceover and the rendered video" in data["text"]
     assert "<code>run_k</code>" in data["text"]  # a typed /rerender needs it once the review card is gone
 
 
@@ -47,7 +54,7 @@ def test_an_early_failure_card_does_not(db, tmp_path, monkeypatch):
     bot.finish_progress_card(5, "T", run_id, success=False, error="Script rejected")
     data = [d for m, d in calls if m == "editMessageText"][-1]
     assert not any(b.startswith("rerender:") for b in _buttons(data["reply_markup"]))
-    assert "will be retried on a later run" in data["text"]
+    assert "stopped before its script passed the fact check" in data["text"]
 
 
 def test_dashboard_offers_re_render_for_the_last_late_failure(db, tmp_path, monkeypatch):

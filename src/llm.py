@@ -25,6 +25,7 @@ Resilience and cost control:
 
 import contextvars
 import logging
+import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Callable, List, Optional, Tuple, Type, TypeVar, Union
@@ -107,7 +108,8 @@ def claude_available() -> bool:
 def _client() -> anthropic.Anthropic:
     if not claude_available():
         raise LLMError("ANTHROPIC_API_KEY is not configured.")
-    return anthropic.Anthropic(api_key=ANTHROPIC_API_KEY, max_retries=3)
+    # Retries are counted here, not inside the SDK (operator, 2026-10-25: Opus twice, then Sonnet once).
+    return anthropic.Anthropic(api_key=ANTHROPIC_API_KEY, max_retries=0)
 
 
 def call_cost(model: str, usage) -> float:
@@ -161,31 +163,55 @@ def _model_kwargs(model: str, effort: str) -> dict:
     return kw
 
 
+PRIMARY_TRIES = 2         # Opus (CLAUDE_MODEL): two tries
+FALLBACK_TRIES = 1        # then each fallback model (Sonnet) once, as the last try
+RETRY_PAUSE_SECONDS = 5
+
+
+def _send_again(send: Callable[[str], object], model: str):
+    """A continuation on the same model (a pause_turn): one more try if the connection or server fails."""
+    try:
+        return send(model)
+    except (anthropic.InternalServerError, anthropic.RateLimitError, anthropic.APIConnectionError):
+        time.sleep(RETRY_PAUSE_SECONDS)
+        return send(model)
+
+
 def _first_request(send: Callable[[str], object], models: Optional[List[str]] = None) -> Tuple[object, str]:
     """Sends the first request down the model chain. Returns (response, model used)."""
     last: Optional[Exception] = None
     from . import provider_status
-    for model in model_chain(models):
-        try:
-            response = send(model)
-            provider_status.clear("claude")
-            return response, model
-        except anthropic.BadRequestError as e:
-            if "credit" in str(e).lower():
-                provider_status.note_capped("claude", "the credit balance is too low; add credit in the Claude Console")
-                raise CreditExhausted("Anthropic credit balance is too low; add credit in the Claude Console.") from e
-            if "usage limit" in str(e).lower():
-                provider_status.note_capped("claude", "the API usage limit set in the Claude Console is reached; "
-                                            "raise it under Limits", until=provider_status.until_from(str(e)))
-                raise CreditExhausted("The Anthropic account's API usage limit is reached (set in the Claude Console "
-                                      f"under Limits); raise it to continue. Details: {e}") from e
-            raise LLMError(f"Claude rejected the request: {e}") from e
-        except (anthropic.InternalServerError, anthropic.NotFoundError, anthropic.RateLimitError,
-                anthropic.APIConnectionError) as e:
-            log.warning("%s unavailable (%s); trying the next model.", model, type(e).__name__)
-            last = e
-        except anthropic.AuthenticationError as e:
-            raise LLMError("ANTHROPIC_API_KEY was rejected.") from e
+    chain = model_chain(models)
+    for position, model in enumerate(chain):
+        tries = PRIMARY_TRIES if position == 0 else FALLBACK_TRIES
+        for attempt in range(1, tries + 1):
+            try:
+                response = send(model)
+                provider_status.clear("claude")
+                return response, model
+            except anthropic.BadRequestError as e:
+                if "credit" in str(e).lower():
+                    provider_status.note_capped("claude", "the credit balance is too low; add credit in the Claude Console")
+                    raise CreditExhausted("Anthropic credit balance is too low; add credit in the Claude Console.") from e
+                if "usage limit" in str(e).lower():
+                    provider_status.note_capped("claude", "the API usage limit set in the Claude Console is reached; "
+                                                "raise it under Limits", until=provider_status.until_from(str(e)))
+                    raise CreditExhausted("The Anthropic account's API usage limit is reached (set in the Claude Console "
+                                          f"under Limits); raise it to continue. Details: {e}") from e
+                raise LLMError(f"Claude rejected the request: {e}") from e
+            except anthropic.NotFoundError as e:  # the model itself is not available: straight to the next one
+                log.warning("%s unavailable (%s); trying the next model.", model, type(e).__name__)
+                last = e
+                break
+            except (anthropic.InternalServerError, anthropic.RateLimitError, anthropic.APIConnectionError) as e:
+                last = e
+                if attempt < tries:
+                    log.warning("%s failed (%s); trying it once more.", model, type(e).__name__)
+                    time.sleep(RETRY_PAUSE_SECONDS)
+                    continue
+                log.warning("%s unavailable (%s); trying the next model.", model, type(e).__name__)
+            except anthropic.AuthenticationError as e:
+                raise LLMError("ANTHROPIC_API_KEY was rejected.") from e
     raise LLMError(f"All Claude models failed; last error: {last}")
 
 
@@ -278,7 +304,7 @@ def research(system: str, prompt: str, *, web_search_uses: int, effort: str = "h
             if response.stop_reason == "pause_turn":
                 # Long server-tool turn: resume on the same model with the partial turn unchanged.
                 messages.append({"role": "assistant", "content": response.content})
-                response = send(model)
+                response = _send_again(send, model)
                 continue
             _check_stop(response)
 
@@ -343,7 +369,7 @@ def research_with_evidence(system: str, prompt: str, *, web_search_uses: int, ef
                         quotes.append({"url": url, "title": getattr(c, "title", "") or url, "quote": quote})
             if response.stop_reason == "pause_turn":
                 messages.append({"role": "assistant", "content": response.content})
-                response = send(model)
+                response = _send_again(send, model)
                 continue
             _check_stop(response)
             text = "".join(b.text for b in response.content if b.type == "text").strip()

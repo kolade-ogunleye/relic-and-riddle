@@ -1717,18 +1717,23 @@ class TelegramApprovalBot:
             # The run's one failure card (the separate "Production failed" alert is not sent as well).
             from .control import short_reason
             # The whole reason, folded (as on the dashboard): 600 characters cut a release finding mid-way.
-            late = bool(run and run.get("master_video_path"))
+            # Re-render once the script has passed the fact check (src/resume_points.py), saying what it keeps.
+            from .config import OUTPUT_DIR
+            from .resume_points import kept_phrase, worth_resuming
+            late = bool(run) and worth_resuming(OUTPUT_DIR / run_id, run)
+            kept = kept_phrase(OUTPUT_DIR / run_id, run) if late else ""
             # The run id is on the card, as on the review card and receipts: a typed /rerender or /resume
             # needs it, and the operator had nowhere to read it once the review card was gone (2026-10-24).
             text = (f"❌ <b>Production failed:</b> {html.escape(self.db.run_label(run_id))}\n"
                     f"<i>Run ID:</i> <code>{html.escape(run_id)}</code>\n\n"
                     f"<blockquote expandable>{html.escape(short_reason(error, 1200))}</blockquote>\n\n"
-                    + ("Nothing was posted. Re-render plans its scenes again and re-checks it, reusing its "
-                       "script, voiceover and accepted motion clips.\n\n" if late else
-                       "Nothing was posted. The topic will be retried on a later run.\n\n")
+                    + (f"Nothing was posted. Re-render continues from where it stopped, keeping {html.escape(kept)} "
+                       "(anything whose inputs changed, or a voiceover over the limit, is made again).\n\n" if late else
+                       "Nothing was posted. It stopped before its script passed the fact check, so nothing is worth "
+                       "keeping: the topic will be rendered again on a later run.\n\n")
                     + "<i>Reply to this card with a question to ask about this run.</i>")
             buttons = [[DONE_BUTTON]]
-            if late:  # it got as far as a video (the release gate, say), so it can be made again in place
+            if late:  # from a fact-checked script onward it is made again in place
                 buttons.insert(0, [{"text": "🔁 Re-render", "callback_data": f"rerender:{self.db.run_key(run_id)}"}])
             from .card_ledger import record as record_card
             record_card(run_id, "failure", text, buttons, message_id)

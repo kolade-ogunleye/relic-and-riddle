@@ -118,3 +118,44 @@ def test_a_partial_story_publish_can_be_retried_on_the_failed_platform_only(db, 
     c.retry_post(older)
     assert sent[-1] == ("story", [frames[2]], ["instagram"], "retry1-instagram")
     assert c.retry_post(999999) == "🔁 Nothing to retry for that booking."
+
+
+def test_a_retry_is_never_a_blind_repeat(db, tmp_path):
+    # Operator, 2026-10-24: "can the retry buttons be tapped more than once?" Not while the last retry's outcome
+    # is unknown, and never more than twice.
+    run_id, reel, slot = _booked(db, tmp_path)
+    f = tmp_path / run_id / "story_1.jpg"
+    f.write_bytes(b"x")
+    story = db.add_scheduled_post(run_id, "story", (slot + timedelta(minutes=45)).isoformat(), [str(f)])
+    c = _coordinator(db)
+    c.publisher = SimpleNamespace(publish_photos=lambda *a, **k: {"status": "unknown", "error": "timed out"})
+    db.update_scheduled_post(story, "unknown", detail={"part": 1, "failed": {"instagram": "x"}})
+    assert "ended with status 'unknown'" in c.retry_post(story)
+    assert c.retry_post(story).startswith("🔁 The last retry's outcome is unknown")          # no blind repeat
+    db.update_scheduled_post(story, "unknown", detail={"part": 1, "failed": {"instagram": "x"}, "retries": 2,
+                                                       "last_retry": {"status": "failed"}})
+    assert c.retry_post(story).startswith("🔁 This booking has been retried twice")
+
+
+def test_a_partial_reel_can_be_re_sent_to_the_platform_it_missed(db, tmp_path, monkeypatch):
+    import src.release
+    monkeypatch.setattr(src.release, "require_release", lambda run, dry_run=False: None)
+    run_id, reel, slot = _booked(db, tmp_path)
+    (tmp_path / run_id / "m.mp4").write_bytes(b"v")
+    db.update_run(run_id, "publish_unknown", thumbnail_cover_path=tmp_path / run_id / "m.mp4", thumbnail_grid_path=tmp_path / run_id / "m.mp4")
+    topic = db.get_run(run_id)["topic_id"]
+    db.record_publication(topic, run_id, "upload-post", "unknown",
+                          {"error": "Partial publish: ok=['facebook'] failed=['instagram'] (instagram: processing)", "failed": {"instagram": "processing"},
+                           "ok": {"facebook": "https://fb/1"}, "platforms": ["facebook", "instagram"]})
+    db.update_scheduled_post(reel, "unknown", detail={"error": "partial"})
+    text, buttons = control.posting_panel(db)
+    assert any(b["callback_data"] == f"retryreel:{db.run_key(run_id)}" for row in buttons for b in row)
+    c = _coordinator(db)
+    sent = []
+    c.publisher = SimpleNamespace(
+        build_envelope=lambda rid, video, t916, t1x1, payload, platforms=None: {"run_id": rid, "topic_id": topic, "platforms": platforms, "media": {}, "metadata": {}},
+        publish_reel=lambda envelope, dry_run=False: sent.append((envelope["platforms"], envelope["request_id"])) or {"status": "published", "post_urls": {"instagram": "https://ig/2"}})
+    out = c.retry_reel(run_id)
+    assert sent == [(["instagram"], f"{run_id}-retry1-instagram")] and "posted" in out
+    assert db.get_run(run_id)["status"] == "published"
+    assert c.retry_reel(run_id) == "🔁 Every platform has this Reel; nothing to retry."

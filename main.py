@@ -1239,6 +1239,14 @@ class PipelineCoordinator:
             failed = {p.strip(" '\"") : "" for p in m.group(1).split(",") if p.strip(" '\"")} if m else {}
         if not failed:
             return "🔁 That booking's failed platform is not recorded; nothing was retried."
+        # Never a blind repeat (operator, 2026-10-24): a retry whose outcome is unknown may have posted, so the
+        # platform is checked by hand before another; and two retries are the most a booking gets.
+        last = detail.get("last_retry") or {}
+        if last.get("status") == "unknown":
+            return ("🔁 The last retry's outcome is unknown (the upload started, the answer never came): check the "
+                    "platform before retrying, so nothing posts twice.")
+        if int(detail.get("retries") or 0) >= 2:
+            return "🔁 This booking has been retried twice; it is not retried again automatically."
         files = [f for f in post["files"] if Path(f).exists()]
         part = int(detail.get("part") or (int(detail.get("posted_parts") or 0) + 1))
         frames = files if post["kind"] == "carousel" else (files[part - 1:part] if 0 < part <= len(files) else [])
@@ -1258,6 +1266,64 @@ class PipelineCoordinator:
             return f"🔁 {', '.join(platforms)} retried for {label}: posted."
         self.db.update_scheduled_post(post["id"], post["status"], detail=new_detail)
         return f"🔁 Retry on {', '.join(platforms)} ended with status '{html.escape(str(res.get('status')))}': {html.escape(str(res.get('error') or ''))[:200]}"
+
+    def _reel_failed_platforms(self, run_id: str) -> Tuple[List[str], int]:
+        """The platforms a Reel did not reach, from its publication receipts (a partial Upload-Post outcome
+        names them; a merged result lists missing_platforms), and how many Reel retries were made."""
+        platforms: set = set()
+        retries = 0
+        for pub in self.db.list_publications(run_id):
+            try:
+                payload = json.loads(pub.get("response_payload_json") or "{}")
+            except ValueError:
+                continue
+            if payload.get("retry"):
+                retries += 1
+                if pub.get("status") == "published":
+                    platforms -= set(payload.get("platforms") or [])
+                continue
+            if pub.get("status") == "unknown":
+                platforms |= set((payload.get("failed") or {}).keys())
+            platforms |= set(payload.get("missing_platforms") or [])
+            for p in (payload.get("post_urls") or {}):
+                platforms.discard(p)
+        return sorted(platforms), retries
+
+    def retry_reel(self, run_id: str) -> str:
+        """Re-sends a Reel only to the platform(s) it did not reach, under its own request key (operator,
+        2026-10-24: the Reel path had no targeted re-send; a partial ended as "unknown" with a question)."""
+        run = self.db.get_run(run_id)
+        if not run or not run.get("master_video_path"):
+            return "🔁 That run has no rendered Reel."
+        platforms, retries = self._reel_failed_platforms(run_id)
+        if not platforms:
+            return "🔁 Every platform has this Reel; nothing to retry."
+        if retries >= 2:
+            return "🔁 This Reel has been retried twice; check the platforms by hand."
+        last = next((p for p in reversed(self.db.list_publications(run_id)) if "retry" in (p.get("response_payload_json") or "")), None)
+        if last and last.get("status") == "unknown":
+            return "🔁 The last Reel retry's outcome is unknown: check the platform before another, so nothing posts twice."
+        from src.release import require_release
+        try:
+            require_release(run, dry_run=False)
+        except ValueError as e:
+            return f"🔁 Not retried: {html.escape(str(e))}"
+        payload = run["script_payload"]
+        envelope = self.publisher.build_envelope(run_id, Path(run["master_video_path"]), Path(run["thumbnail_cover_path"]),
+                                                 Path(run["thumbnail_grid_path"]), payload, platforms=platforms)
+        tag = f"retry{retries + 1}-{'-'.join(platforms)}"
+        envelope["request_id"] = f"{run_id}-{tag}"
+        res = self.publisher.publish_reel(envelope, dry_run=False)
+        self.db.record_publication(run["topic_id"], run_id, "reel-retry", res.get("status", "unknown"),
+                                   {"retry": tag, "platforms": platforms, **{k: res.get(k) for k in ("post_urls", "error", "failed", "ok")}})
+        label = html.escape(self.db.run_label(run_id))
+        if res.get("status") == "published":
+            if run.get("status") == "publish_unknown":
+                self.db.update_run(run_id, "published")
+                self.topic_engine.record_status(run["topic_id"], "published", run_id=run_id)
+            links = ", ".join(f"{html.escape(k)}: {html.escape(str(v))}" for k, v in (res.get("post_urls") or {}).items())
+            return f"🔁 Reel re-sent to {', '.join(platforms)} for {label}: posted. {links}"
+        return f"🔁 Reel retry on {', '.join(platforms)} ended with status '{html.escape(str(res.get('status')))}': {html.escape(str(res.get('error') or ''))[:200]}"
 
     def promote_run(self, run_id: str, now: bool = False) -> str:
         """Your per-video go-ahead: a finished dry run (simulated) is posted for real while the daemon
@@ -2860,7 +2926,8 @@ def main(argv=None) -> int:
                          "postnow": getattr(coordinator, "post_now", None),
                          "cancelpost": getattr(coordinator, "cancel_post", None),
                          "movepost": getattr(coordinator, "move_post", None),
-                         "retrypost": getattr(coordinator, "retry_post", None)},
+                         "retrypost": getattr(coordinator, "retry_post", None),
+                         "retryreel": getattr(coordinator, "retry_reel", None)},
             produce_batch=produce_batch,
         )
         if POST_SCHEDULING:  # what this mode books, it also posts when due
@@ -3229,7 +3296,8 @@ def main(argv=None) -> int:
                                                     "postnow": getattr(coordinator, "post_now", None),
                                                     "cancelpost": getattr(coordinator, "cancel_post", None),
                                                     "movepost": getattr(coordinator, "move_post", None),
-                                                    "retrypost": getattr(coordinator, "retry_post", None)})
+                                                    "retrypost": getattr(coordinator, "retry_post", None),
+                                                    "retryreel": getattr(coordinator, "retry_reel", None)})
 
         def poll_telegram():
             poll_loop(bot, handler)

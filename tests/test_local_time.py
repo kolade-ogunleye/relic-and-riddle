@@ -18,7 +18,7 @@ def test_post_slot_adds_operator_time_only_when_zones_differ(monkeypatch):
     monkeypatch.setattr(config, "TIMEZONE", "America/New_York")
     assert post_schedule.fmt(slot) == "Fri 23 Oct 12:00 EDT"
     monkeypatch.setattr(config, "TIMEZONE", "Europe/London")
-    assert post_schedule.fmt(slot) == "Fri 23 Oct 12:00 EDT (17:00 BST your time)"
+    assert post_schedule.fmt(slot) == "Fri 23 Oct 17:00 BST (12:00 EDT audience)"   # the operator's own time first
 
 
 def test_run_label_and_jobs_use_the_operator_zone(db, monkeypatch):

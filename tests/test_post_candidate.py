@@ -80,7 +80,7 @@ def test_dashboard_and_reviews_offer_post_for_real_for_a_finished_dry_run(db, tm
     run_id = _simulated(db, tmp_path)
     _, buttons = control.dashboard_text_and_buttons(db, None, assets_dir=tmp_path)
     found = [b for row in buttons for b in row if b["callback_data"] == f"postreal:{db.run_key(run_id)}"]
-    assert found and found[0]["text"].startswith("🚀 Post for real: ")
+    assert found and found[0]["text"] == "🚀 Post for real"             # the run is named in the text, not cut short in the button
     h = make_command_handler(db, lambda: None, lambda: "")
     text, panel = h("creviews", "")
     assert "Post candidates" in text and any(b["callback_data"].startswith("postreal:") for row in panel for b in row)

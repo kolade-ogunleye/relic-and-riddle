@@ -106,7 +106,7 @@ class UploadPostPublisher:
             ("is_ai_generated", "true" if meta["is_ai_generated"] else "false"),
             ("facebook_is_ai_generated", "true" if meta["is_ai_generated"] else "false"),
             ("async_upload", "true"),
-            ("request_id", envelope["run_id"]),
+            ("request_id", envelope.get("request_id") or envelope["run_id"]),  # a retry names its own key
         ]
         if self.facebook_page_id:
             data.append(("facebook_page_id", self.facebook_page_id))
@@ -117,7 +117,7 @@ class UploadPostPublisher:
                 with open(media["video_path"], "rb") as vf, open(media["thumbnail_path"], "rb") as tf:
                     response = requests.post(
                         f"{self.base_url}/upload",
-                        headers=self._headers(envelope["run_id"]),
+                        headers=self._headers(envelope.get("request_id") or envelope["run_id"]),
                         data=data,
                         files={"video": (Path(media["video_path"]).name, vf, "video/mp4"),
                                "cover_image": (Path(media["thumbnail_path"]).name, tf, "image/jpeg")},
@@ -626,8 +626,10 @@ class MetaPublisher:
                 self.db.record_publication(tid, run_id, pub.name, "failed", {"error": str(e)})
             except PublishUnknown as e:
                 log.error("%s outcome UNKNOWN; not failing over to avoid a duplicate post: %s", pub.name, e)
-                self.db.record_publication(tid, run_id, pub.name, "unknown", {"error": str(e)})
-                return {"status": "unknown", "channel": pub.name, "error": str(e), "published": done}
+                failed, ok = getattr(e, "failed", {}) or {}, getattr(e, "ok", {}) or {}  # a partial names its sides
+                self.db.record_publication(tid, run_id, pub.name, "unknown", {"error": str(e), "failed": failed, "ok": ok,
+                                                                               "platforms": sorted(covers)})
+                return {"status": "unknown", "channel": pub.name, "error": str(e), "published": done, "failed": failed, "ok": ok}
             if not remaining:
                 break
 

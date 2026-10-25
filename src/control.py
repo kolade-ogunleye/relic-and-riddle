@@ -460,7 +460,7 @@ AUDIT_NAMES = {"cdash": "Dashboard", "approve": "Approve", "reject": "Reject", "
                "resend": "Resend review", "rerender": "Re-render", "postreal": "Post for real?", "promote": "Post for real",
                "chistory": "Review history", "chist": "Review details", "postnow": "Post now", "produce": "Produce a batch",
                "cposts": "Posting", "posts": "Posting", "cancelpost": "Cancel a booking", "movepost": "Move a booking",
-               "retrypost": "Retry the failed platform",
+               "retrypost": "Retry the failed platform", "retryreel": "Retry the Reel's failed platform",
                "edit": "Edit text", "runstop": "Cancel run", "runstopok": "Confirm cancel",
                "simpub": "Simulated publish", "pubok": "It posted", "pubno": "It didn't post", "creviews": "Reviews",
                "cideas": "Topic ideas", "cdisc": "UNESCO marvels", "cprop": "Waiting ideas", "cpropose": "Research ideas",
@@ -805,7 +805,7 @@ def posting_panel(db: PipelineDatabase, limit: int = 10) -> Tuple[str, List[List
     """🗓 Posting: every booking with its slot and status, the links once posted, and what can be done with
     a booking: post it now, move it to the next slot, cancel it (operator, 2026-10-24). Bookings live
     here, not on the platforms; the daemon posts each when its slot comes."""
-    from .post_schedule import fmt
+    from .post_schedule import fmt_ahead as fmt  # the operator's time first, with how far away it is
     e = html.escape
     upcoming = db.list_scheduled_posts(("pending", "waiting"))
     recent = sorted(db.list_scheduled_posts(("published", "failed", "unknown", "cancelled")), key=lambda p: p["id"], reverse=True)[:limit]
@@ -834,6 +834,8 @@ def posting_panel(db: PipelineDatabase, limit: int = 10) -> Tuple[str, List[List
                 detail.get("failed") or "failed=[" in str(detail.get("error") or "")):
             # a partial publish: re-send only the platform(s) that failed (operator, 2026-10-24)
             buttons.append([{"text": f"🔁 Retry the failed platform: {POST_NAME.get(p['kind'], p['kind'])}", "callback_data": f"retrypost:{p['id']}"}])
+        if p["kind"] == "reel" and p["status"] in ("unknown", "failed"):
+            buttons.append([{"text": "🔁 Retry the failed platform: Reel", "callback_data": f"retryreel:{db.run_key(p['run_id'])}"}])
     return "\n".join(lines), buttons
 
 
@@ -938,8 +940,9 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         row1.append({"text": f"🧭 Proposals ({len(waiting_proposals)})", "callback_data": "cimprove:"})
     candidates = post_candidates(db, limit=1) if not active else []
     if candidates:  # a finished dry run can be posted for real from here (asked to confirm first)
-        row1.append({"text": f"🚀 Post for real: {clip_words(db.run_label(candidates[0]['run_id']), 24)}",
-                     "callback_data": f"postreal:{db.run_key(candidates[0]['run_id'])}"})
+        # The run is named in the text, not squeezed into the button (operator, 2026-10-24: the name was cut short).
+        lines.append(f"🚀 Post candidate: <b>{e(db.run_label(candidates[0]['run_id']))}</b>")
+        row1.append({"text": "🚀 Post for real", "callback_data": f"postreal:{db.run_key(candidates[0]['run_id'])}"})
     booked = len(db.list_scheduled_posts(("pending", "waiting")))
     if booked:  # what is booked, with its status and the actions on it (operator, 2026-10-24)
         row1.append({"text": f"🗓 Posting ({booked})", "callback_data": "cposts:"})
@@ -1085,6 +1088,22 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         else:
             lines.append("  <i>Queue is currently empty! Use /add &lt;title&gt; or /propose.</i>")
 
+        # Several episodes back to back (/produce N, operator 2026-10-24) from the panel too: the sizes offered
+        # never exceed what is queued; a running batch says how many more will follow.
+        produce_row = []
+        if produce_batch is not None and len(queued) >= 2:
+            try:
+                left = int(db.get_setting("produce_remaining") or 0)
+            except (TypeError, ValueError):
+                left = 0
+            if busy and left > 0:
+                lines.append(f"\n🎬 <b>Batch in progress</b> · {left} more episode(s) start after this one, each after your review decision.")
+            elif not busy:
+                sizes = [n for n in (3, 5, 7) if n <= len(queued)] or [len(queued)]
+                produce_row = [{"text": f"🎬 Produce {n}", "callback_data": f"produce:{n}"} for n in sizes]
+                lines.append("\n<b>Several back to back:</b> tap Produce, or send <code>/produce N</code> (1–14). "
+                             "Each episode comes to you for review; the next starts after your decision.")
+
         if requeueable:
             lines.append(f"\n<b>Can be restored</b> · {len(requeueable)}")
             for t in requeueable[:5]:
@@ -1104,6 +1123,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             rows.append([{"text": "🎬 Reel + 16:9 documentary", "callback_data": "qdoc:" + render[0]["callback_data"].partition(":")[2]}])
         if changes:
             rows.append(changes)
+        if produce_row:
+            rows.append(produce_row)
         return "\n".join(lines), rows + pager("qpage:", page, pages) + [[HOME]]
 
     """run_actions: button actions on a run, e.g. {"pubok": fn(run_id) -> reply, "pubno": ..., "resend": ...}."""
@@ -1521,10 +1542,9 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             if not pending and not timed_out:
                 lines = ["🚀 <b>Post candidates</b> · finished dry runs of the last two days; each asks you to confirm.", ""]
                 buttons = []
-                for r in candidates:
-                    lines.append(f"• {html.escape(db.run_label(r['run_id']))}")
-                    buttons.append([{"text": f"🚀 Post for real: {clip_words(db.run_label(r['run_id']), 26)}",
-                                     "callback_data": f"postreal:{db.run_key(r['run_id'])}"}])
+                for n, r in enumerate(candidates, 1):
+                    lines.append(f"{n}. {html.escape(db.run_label(r['run_id']))}")
+                    buttons.append([{"text": f"🚀 Post for real ({n})", "callback_data": f"postreal:{db.run_key(r['run_id'])}"}])
                 return "\n".join(lines), buttons + [[HISTORY_BUTTON], [HOME]]
             # Where the card is can't be promised: the chat may have been cleared or the card deleted.
             lines = ["🎬 <b>Reviews waiting</b>", "",
@@ -1851,8 +1871,17 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 n = max(1, min(int(args.strip() or "1"), 14))
             except ValueError:
                 return "Usage: /produce <episodes, 1-14> — renders that many queued topics back to back, each to review."
-            return produce_batch(n)
-        if command in ("pubok", "pubno", "resend", "simpub", "rerender", "promote", "postnow"):
+            try:
+                current = db.get_next_topic()
+            except Exception:
+                current = None
+            res = produce_batch(n)
+            started = "already" not in res.lower()                       # else another run is busy: the panel shows it
+            if started and current:
+                db.set_setting(RUN_STARTING_KEY, json.dumps({"topic": current["id"], "at": clock.time()}))
+            q_text, q_buttons = render_queue_text_and_buttons(starting=current["id"] if started and current else None)
+            return f"{res}\n\n{q_text}", q_buttons                       # the Queue panel, now showing the batch
+        if command in ("pubok", "pubno", "resend", "simpub", "rerender", "promote", "postnow", "retryreel"):
             action = (run_actions or {}).get(command)
             if action is None:
                 return "That button only works while the daemon is running."

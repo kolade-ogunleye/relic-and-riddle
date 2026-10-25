@@ -1,6 +1,6 @@
-"""A voiceover that reads over the ceiling is made once more at the narrator's own speed setting, raised by
-the measured overrun (production, 2026-10-25: 114 words in 53.7 s against 52); the estimate plans for the
-slow end until the narrator has been measured enough."""
+"""A voiceover that reads over the ceiling is made once more, never time-stretched: Azure and Edge at a rate
+raised by the measured overrun (production, 2026-10-25: 114 words in 53.7 s against 52), ElevenLabs as it is.
+The estimate plans for the slow end: until a voice has been measured enough, and always for ElevenLabs."""
 import json
 
 from src import audio_engine, config
@@ -19,44 +19,11 @@ def test_an_overrun_is_refit_natively_within_the_cap(monkeypatch):
 def test_the_pace_plans_for_the_slowest_take_until_it_is_measured_enough(monkeypatch, tmp_path):
     pace = tmp_path / "voice_pace.json"
     monkeypatch.setattr(audio_engine, "PACE_FILE", pace)
-    pace.write_text(json.dumps({"elevenlabs:v:m": [1.0184, 1.0748]}), encoding="utf-8")
-    assert audio_engine.pace_ratio("elevenlabs:v:m") == 1.0748
-    pace.write_text(json.dumps({"elevenlabs:v:m": [1.01, 1.02, 1.03, 1.04, 1.09]}), encoding="utf-8")
-    assert audio_engine.pace_ratio("elevenlabs:v:m") == 1.03                      # median once five are known
+    pace.write_text(json.dumps({"azure:v": [1.0184, 1.0748]}), encoding="utf-8")
+    assert audio_engine.pace_ratio("azure:v") == 1.0748
+    pace.write_text(json.dumps({"azure:v": [1.01, 1.02, 1.03, 1.04, 1.09]}), encoding="utf-8")
+    assert audio_engine.pace_ratio("azure:v") == 1.03                             # median once five are known
     assert audio_engine.pace_ratio("unknown") == 1.0
-
-
-def test_a_take_is_time_stretched_with_its_word_timings(tmp_path):
-    # Production 2026-10-25: ElevenLabs read a take asked to be 5% faster 1% slower; a stretch is reliable.
-    import subprocess
-    from src.audio_engine import AudioEngine
-    take = tmp_path / "voiceover.mp3"
-    subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", "sine=frequency=220:duration=4",
-                    "-b:a", "192k", str(take)], check=True)
-    words = [{"word": "one", "start": 0.0, "dur": 1.0}, {"word": "two", "start": 2.0, "dur": 1.0}]
-    out = AudioEngine.stretch_to_fit(take, words, 1.05)
-    assert abs(AudioEngine.get_duration(take) - 4 / 1.05) < 0.15
-    assert out[1]["start"] == round(2.0 / 1.05, 4) and out[1]["dur"] == round(1.0 / 1.05, 4)
-    assert not (tmp_path / "voiceover.fit.mp3").exists()
-
-
-def test_without_rubberband_a_take_is_never_stretched_at_lower_quality(tmp_path, monkeypatch):
-    import pytest
-    from src.audio_engine import AudioEngine
-    take = tmp_path / "voiceover.mp3"
-    take.write_bytes(b"x")
-    monkeypatch.setattr(AudioEngine, "rubberband_available", staticmethod(lambda: False))
-    with pytest.raises(RuntimeError, match="no rubberband filter"):
-        AudioEngine.stretch_to_fit(take, [], 1.05)
-    assert take.read_bytes() == b"x"                                             # untouched
-
-
-def test_the_health_check_reports_rubberband_without_blocking(monkeypatch):
-    from src.audio_engine import AudioEngine
-    from src.ops import PreFlightHealthChecker as HealthChecker
-    monkeypatch.setattr(AudioEngine, "rubberband_available", staticmethod(lambda: False))
-    ok, msg = HealthChecker().check_rubberband()
-    assert not ok and "no rubberband filter" in msg
 
 
 def _coordinator_with_take(tmp_path, provider, seconds_seq):
@@ -73,25 +40,87 @@ def _coordinator_with_take(tmp_path, provider, seconds_seq):
     return c, take
 
 
-def test_the_production_case_an_elevenlabs_take_of_52_9_s_is_fitted(tmp_path, monkeypatch):
-    # Production 2026-10-25 16:13: a 52.9 s ElevenLabs take was left unfitted because an ignored 6% speed
-    # request used up the 8% cap. Now: never asked, and the stretch alone counts.
-    from src import config
-    monkeypatch.setattr(config, "SPEECH_SPEEDUP_MAX", 1.08)
+def test_an_elevenlabs_take_over_the_ceiling_is_read_again_never_stretched(tmp_path):
+    # Operator, 2026-10-25: of the raw 53.8 s take and the same take stretched 4%, only the stretched one
+    # sounded awkward. ElevenLabs ignores its speed setting, so an overrun gets one more natural take.
     c, take = _coordinator_with_take(tmp_path, "elevenlabs", [52.9])
     words = [{"word": "a", "start": 10.0, "dur": 1.0}]
     retakes = []
-    out, speed = c._fit_take(take, words, 1.06, lambda s: retakes.append(s) or words, {})
-    assert retakes == []                                                              # no paid second take
+
+    def voice_at(speed):
+        retakes.append(speed)
+        return [{"word": "a", "start": 9.0, "dur": 1.0}]
+    out, speed = c._fit_take(take, words, 1.0, voice_at, {})
+    assert retakes == [1.0] and speed == 1.0                                          # read again, as it is
     from src.audio_engine import AudioEngine
-    assert AudioEngine.get_duration(take) < 52.0 and 1.02 <= speed <= 1.04             # fitted by the stretch
-    assert out[0]["start"] < 10.0
+    assert abs(AudioEngine.get_duration(take) - 52.9) < 0.15                          # the file was not altered
+    assert out[0]["start"] == 9.0
+    assert not hasattr(AudioEngine, "stretch_to_fit")
 
 
-def test_a_take_needing_more_than_the_cap_is_left_for_the_check(tmp_path, monkeypatch):
+def test_a_take_that_fits_or_is_far_over_is_not_read_again(tmp_path):
+    for seconds in (51.0, 60.0):
+        c, take = _coordinator_with_take(tmp_path, "elevenlabs", [seconds])
+        retakes = []
+        c._fit_take(take, [], 1.0, lambda s: retakes.append(s) or [], {})
+        assert retakes == []                                     # fits; or no take of this script could
+
+
+def test_a_voice_that_honours_its_rate_is_read_faster_natively(tmp_path, monkeypatch):
     from src import config
     monkeypatch.setattr(config, "SPEECH_SPEEDUP_MAX", 1.08)
-    c, take = _coordinator_with_take(tmp_path, "elevenlabs", [60.0])
-    _, speed = c._fit_take(take, [], 1.0, lambda s: [], {})
-    from src.audio_engine import AudioEngine
-    assert speed == 1.0 and AudioEngine.get_duration(take) > 59                        # untouched; the run then stops
+    c, take = _coordinator_with_take(tmp_path, "azure", [53.7])
+    inputs, retakes = {}, []
+    _, speed = c._fit_take(take, [], 1.0, lambda s: retakes.append(s) or [], inputs)
+    assert retakes == [1.05] and speed == 1.05 and inputs["speed"] == 1.05
+
+
+def test_elevenlabs_is_planned_for_its_slowest_take_and_never_read_faster(monkeypatch, tmp_path, curated_payload):
+    from src import script_engine
+    from src.models import ScriptPackage
+    pace = tmp_path / "voice_pace.json"
+    monkeypatch.setattr(audio_engine, "PACE_FILE", pace)
+    pace.write_text(json.dumps({"elevenlabs:v:m": [1.01, 1.02, 1.03, 1.04, 1.09]}), encoding="utf-8")
+    assert audio_engine.pace_ratio("elevenlabs:v:m") == 1.09                      # no speed-up to absorb a slow take
+    assert not audio_engine.honours_speed("elevenlabs") and audio_engine.honours_speed("azure")
+    monkeypatch.setattr(audio_engine, "production_voice_key", lambda: "elevenlabs:v:m")
+    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: 48.5 / speed)
+    pkg = ScriptPackage.model_validate(curated_payload)                            # 48.5 x 1.09 = 52.9 s
+    assert script_engine.fit_speed(pkg.narration_script) is None
+    assert "rewrite the narration in" in " ".join(script_engine.spoken_length_problems(pkg))
+    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: 44.0 / speed)
+    assert script_engine.fit_speed(pkg.narration_script) == 1.0 and script_engine.spoken_length_problems(pkg) == []
+
+
+def test_a_script_whose_take_ran_long_is_shortened_when_kept_or_resumed(monkeypatch, tmp_path, db, curated_payload):
+    import main
+    from types import SimpleNamespace
+    monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
+    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: 60.0 / speed)
+    previous = tmp_path / "run_prev"
+    previous.mkdir()
+    (previous / "verified_script.json").write_text(json.dumps(dict(curated_payload, guardrail_passed=True)), encoding="utf-8")
+    c = SimpleNamespace(db=db)
+    c._previous_run_dir = lambda: previous
+    assert main.PipelineCoordinator._script_from_previous(c, {"reason": "pictures", "from_run": "run_prev"}) is None
+    coordinator = main.PipelineCoordinator.__new__(main.PipelineCoordinator)
+    assert "runs 60.0s when spoken" in coordinator._spoken_length_now(curated_payload)
+    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: 46.0)
+    assert coordinator._spoken_length_now(curated_payload) == ""
+    assert coordinator._spoken_length_now({"narration_script": 5}) == ""           # unreadable: not a failure
+
+
+def test_a_take_from_before_the_stretch_was_removed_is_not_reused(tmp_path):
+    import main
+    from src.checkpoints import Checkpoints
+    c = main.PipelineCoordinator.__new__(main.PipelineCoordinator)
+    c.audio_engine = type("E", (), {"voice": "v", "rate": "+0%", "pitch": "+0Hz", "eleven_voice": "e"})()
+    c.paid_voice_in_dry_run = False
+    inputs = c.voice_inputs("Words.", dry_run=False)
+    assert inputs["take"] == "natural"
+    old = {k: v for k, v in inputs.items() if k != "take"}                       # a checkpoint from rc48 or earlier
+    take = tmp_path / "voiceover.mp3"
+    take.write_bytes(b"x")
+    cp = Checkpoints(tmp_path)
+    cp.complete("voice", old, [take])
+    assert not main.PipelineCoordinator.voice_reusable(cp, inputs, {"licensed": True}, dry_run=False)

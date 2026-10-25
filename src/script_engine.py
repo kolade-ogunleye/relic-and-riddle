@@ -263,7 +263,8 @@ def length_target_note() -> str:
 
 def fit_speed(text: str, seconds: Optional[float] = None) -> Optional[float]:
     """How much faster the narration must be spoken to fit the time limit: 1.0 when it fits as written, up
-    to SPEECH_SPEEDUP_MAX when a faster read is measured to fit, None when even that runs long. Each rewrite
+    to SPEECH_SPEEDUP_MAX when a faster read is measured to fit, None when even that runs long or the voice
+    can't be read faster (ElevenLabs: the narration is rewritten shorter). Each rewrite
     was a full model call that overshot both ways (production 2026-10-23: 109, 73, 108 words); a few
     percent faster is not noticed. 1.0 when it can't be measured (the post-voiceover check still guards)."""
     pace = audio_engine.pace_ratio(audio_engine.production_voice_key())  # the real voice's pace
@@ -275,6 +276,8 @@ def fit_speed(text: str, seconds: Optional[float] = None) -> Optional[float]:
     longest = HARD_DURATION_CEILING - _MEASURE_MARGIN_SEC
     if seconds <= longest:
         return 1.0
+    if not audio_engine.honours_speed(audio_engine.production_voice_key()):
+        return None  # ElevenLabs can't be read faster and is never stretched: the script is shortened instead
     speed = math.ceil(seconds / longest * 100 + 1) / 100  # one point of margin
     if speed > config.SPEECH_SPEEDUP_MAX:
         return None
@@ -371,7 +374,8 @@ def duration_problem(seconds: float) -> Optional[str]:
     if seconds < TARGET_DURATION_MIN:
         return f"Voiceover is {seconds:.1f}s; too short for the {TARGET_DURATION_MIN:g}s minimum."
     if seconds > HARD_DURATION_CEILING:
-        return f"Voiceover is {seconds:.1f}s; hard ceiling is {HARD_DURATION_CEILING:g}s."
+        return (f"Voiceover is {seconds:.1f}s; hard ceiling is {HARD_DURATION_CEILING:g}s. A re-render shortens "
+                "the script for this voice's measured pace.")
     return None
 
 

@@ -181,15 +181,6 @@ class PreFlightHealthChecker:
     def check_ffprobe(self) -> Tuple[bool, str]:
         return self._check_binary("ffprobe")
 
-    def check_rubberband(self) -> Tuple[bool, str]:
-        """The time-stretch a voiceover over the limit is fitted with (2026-10-25). Reported, not required: a
-        run without it only stops if its voiceover runs long, and it says so then."""
-        from .audio_engine import AudioEngine
-        if AudioEngine.rubberband_available():
-            return True, "ffmpeg rubberband filter available (fits an overlong voiceover without quality loss)"
-        return False, ("ffmpeg has no rubberband filter: a voiceover over the time limit will stop its run; "
-                       "install an ffmpeg build with rubberband")
-
     def check_disk_space(self) -> Tuple[bool, str]:
         try:
             free_gb = shutil.disk_usage(str(BASE_DIR)).free / (1024 ** 3)
@@ -294,7 +285,6 @@ class PreFlightHealthChecker:
         results = {
             "ffmpeg": self.check_ffmpeg(),
             "ffprobe": self.check_ffprobe(),
-            "rubberband": self.check_rubberband(),
             "disk": self.check_disk_space(),
             "fonts": self.check_fonts(),
             "network": self.check_network(),
@@ -306,7 +296,7 @@ class PreFlightHealthChecker:
                 True, "API backup configured; use health --live to verify cloud and restore evidence")
         if require_live:  # prove the credentials work before a live run spends anything
             results["services"] = self.probe_live_services()
-        required = [k for k in results if (k != "credentials" or require_live) and k != "rubberband"]
+        required = [k for k in results if k != "credentials" or require_live]
         return {
             "all_passed": all(results[k][0] for k in required),
             "details": {

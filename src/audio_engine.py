@@ -153,6 +153,14 @@ def production_voice_key() -> str:
     return voice_key("azure", NARRATOR_VOICE)
 
 
+def honours_speed(provider_or_key: str) -> bool:
+    """Whether a voice reads at the rate it is asked for. Azure and Edge do, natively. Production's ElevenLabs
+    model ignores its speed setting (a take asked to be 5% faster read 1% slower, 2026-10-25), and a finished
+    take is never time-stretched: the operator heard the 4% stretch as awkward (2026-10-25). So an ElevenLabs
+    narration must fit the time limit as written."""
+    return not str(provider_or_key).startswith("elevenlabs")
+
+
 def record_pace(key: str, measured: float, actual: float) -> None:
     """Remembers how a real voice's length compares with the free measurement (last 10)."""
     import json
@@ -187,7 +195,8 @@ def pace_ratio(key: str) -> float:
     """Real/measured length ratio for this voice; 1.0 until it has been measured. The median once there are
     PACE_CONFIDENT_SAMPLES takes; before that the slowest take seen, so a script is planned for the slow end
     (production's ElevenLabs narrator had two takes, 1.018 and 1.075, and the median let a draft through
-    that read 3% too long, 2026-10-25)."""
+    that read 3% too long, 2026-10-25). A voice that cannot be read faster (honours_speed) is always planned
+    for its slowest recent take: no speed-up is left to absorb a slow one."""
     import json
     import statistics
     try:
@@ -196,6 +205,8 @@ def pace_ratio(key: str) -> float:
         return 1.0
     if not ratios:
         return 1.0
+    if not honours_speed(key):
+        return max(ratios)
     return statistics.median(ratios) if len(ratios) >= PACE_CONFIDENT_SAMPLES else max(ratios)
 
 
@@ -505,38 +516,6 @@ class AudioEngine:
         cmd = ["ffprobe", "-v", "error", "-show_entries", "format=duration",
                "-of", "default=noprint_wrappers=1:nokey=1", str(audio_path)]
         return float(subprocess.check_output(cmd, timeout=60).decode().strip())
-
-    @staticmethod
-    def rubberband_available() -> bool:
-        """Whether this ffmpeg has the rubberband filter (the only time-stretch used on a voiceover)."""
-        try:
-            out = subprocess.run(["ffmpeg", "-hide_banner", "-filters"], capture_output=True, timeout=30).stdout
-        except (OSError, subprocess.SubprocessError):
-            return False
-        return b" rubberband " in out
-
-    @classmethod
-    def stretch_to_fit(cls, audio_path: Path, words: List[Dict[str, Any]], factor: float) -> List[Dict[str, Any]]:
-        """Speeds the finished take up by `factor` with its pitch kept, in place, and returns the word timings
-        scaled to match. For a voice that ignores its speed setting: production's ElevenLabs model read a take
-        asked to be 5% faster 1% slower (2026-10-25). Only rubberband at its quality setting is used (operator,
-        2026-10-25: the highest quality must not be impacted): without it the run stops with the reason rather
-        than fall back to a lower-quality stretch; the health check reports a missing filter beforehand. The
-        result is encoded at 320 kbps, so the extra generation before the final mix costs nothing audible."""
-        audio_path = Path(audio_path)
-        if not cls.rubberband_available():
-            raise RuntimeError("The voiceover is over the time limit and this ffmpeg has no rubberband filter to fit "
-                               "it without a loss of quality; install an ffmpeg build with rubberband (the health "
-                               "check reports it).")
-        tmp = audio_path.with_name(audio_path.stem + ".fit" + audio_path.suffix)
-        res = subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(audio_path), "-filter:a",
-                              f"rubberband=tempo={factor:.4f}:pitchq=quality:transients=smooth:window=long",
-                              "-b:a", "320k", str(tmp)], capture_output=True, timeout=180)
-        if res.returncode != 0 or not tmp.exists():
-            raise RuntimeError(f"Fitting the voiceover failed: {res.stderr.decode(errors='replace')[-200:]}")
-        tmp.replace(audio_path)
-        return [{**w, "start": round(float(w.get("start", 0.0)) / factor, 4),
-                 "dur": round(float(w.get("dur", 0.0)) / factor, 4)} for w in words]
 
     @staticmethod
     def _load_mono(path: Path) -> np.ndarray:

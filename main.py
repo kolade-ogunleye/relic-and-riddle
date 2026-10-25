@@ -436,9 +436,12 @@ class PipelineCoordinator:
         # A kept script must pass today's checks, not only those it passed when written (2026-10-25: a kept
         # script carried the repeated "By one estimate" past the check added after it was written).
         from src.models import ScriptPackage
-        from src.script_engine import validate_structure
+        from src.script_engine import spoken_length_problems, validate_structure
         try:
-            problems = validate_structure(ScriptPackage.model_validate(saved))
+            # The spoken length too, at the voice's current measured pace: a script whose take ran over is
+            # shortened rather than voiced again unchanged (2026-10-25).
+            kept_pkg = ScriptPackage.model_validate(saved)
+            problems = validate_structure(kept_pkg) or spoken_length_problems(kept_pkg)
         except Exception as e:
             problems = [f"the saved script no longer reads as a script package ({type(e).__name__})"]
         if problems:
@@ -1393,6 +1396,8 @@ class PipelineCoordinator:
         return {"script": script, "voice": self.audio_engine.voice, "rate": self.audio_engine.rate,
                 "pitch": self.audio_engine.pitch, "eleven_voice": self.audio_engine.eleven_voice,
                 "eleven_model": config.ELEVENLABS_MODEL,
+                # Takes made before 2026-10-25 may have been time-stretched (heard as awkward): never reused.
+                "take": "natural",
                 "licensed_only": (not dry_run) and config.VOICE_REQUIRE_LICENSED,
                 "allow_paid": (not dry_run) or config.ELEVENLABS_IN_DRY_RUNS or self.paid_voice_in_dry_run}
 
@@ -1439,7 +1444,16 @@ class PipelineCoordinator:
                          "fact_sheet": file_inputs([pipeline_config.DATA_DIR / "fact_sheets" / f"{topic['id']}.json"])}
         saved_script = run_dir / "verified_script.json"
         saved = json.loads(saved_script.read_text(encoding="utf-8")) if saved_script.exists() else {}
-        if saved.get("guardrail_passed") and checkpoints.reusable("script", script_inputs):
+        too_long_now = saved.get("guardrail_passed") and checkpoints.reusable("script", script_inputs)             and self._spoken_length_now(saved)
+        if too_long_now:
+            # A re-render of a run whose take ran over: the saved script is shortened for the voice's measured
+            # pace (ElevenLabs is never stretched), then fact-checked again as any revision is.
+            log.info("The saved script runs long for this voice; revising it: %s", too_long_now[:160])
+            payload = self._write_and_check_script(topic, run_id, run_dir, dry_run,
+                                                   initial_payload=saved, initial_notes=too_long_now)
+            saved_script.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+            checkpoints.complete("script", script_inputs, [saved_script])
+        elif saved.get("guardrail_passed") and checkpoints.reusable("script", script_inputs):
             payload = saved
             log.info("Resuming with verified script inputs and intact metadata.")
         else:
@@ -1498,8 +1512,7 @@ class PipelineCoordinator:
         speech_speed = fit_speed(payload["narration_script"]) or 1.0
         if speech_speed != 1.0 and self.audio_engine.preferred_provider(voice_inputs["allow_paid"]) == "elevenlabs":
             # Production's ElevenLabs model ignores its speed setting (a take asked to be 5% faster read 1%
-            # slower), so it is not asked: a take over the limit is fitted by the stretch below instead, and
-            # an ignored request no longer uses up the stretch's 8% (2026-10-25: 52.9 s left unfitted).
+            # slower), so it is never asked (the script stage already plans its narration to fit as written).
             speech_speed = 1.0
         if speech_speed != 1.0:  # a voiceover made at another speed is not reused (normal ones keep their inputs)
             voice_inputs["speed"] = speech_speed
@@ -1528,9 +1541,8 @@ class PipelineCoordinator:
             words = voice_at(speech_speed)
             # A read that came out over the ceiling (ElevenLabs varies about 5% between takes: production's
             # 2026-10-25 run read 114 words in 53.7 s against 52). A voice that honours its rate setting (Azure,
-            # Edge) is made once more at the rate the overrun needs. ElevenLabs' model ignored it (a take asked to
-            # be 5% faster read 1% slower), so its take, or any take still over, is time-stretched by the small
-            # amount left, pitch kept, with the word timings scaled: never more than SPEECH_SPEEDUP_MAX in all.
+            # Edge) is made once more at the rate the overrun needs; ElevenLabs once more as it is. A take is
+            # never time-stretched (the operator heard a 4% stretch as awkward, 2026-10-25).
             words, speech_speed = self._fit_take(vo_path, words, speech_speed, voice_at, voice_inputs)
             words_path.write_text(json.dumps(words), encoding="utf-8")
             voice_path.write_text(json.dumps({"provider": self.audio_engine.last_provider,
@@ -1578,29 +1590,41 @@ class PipelineCoordinator:
             raise
 
     def _fit_take(self, vo_path, words, speech_speed: float, voice_at, voice_inputs) -> Tuple[List[Dict[str, Any]], float]:
-        """Fits a take that ran over the ceiling: a voice that honours its rate (Azure, Edge) is made once more at
-        the rate the overrun needs; ElevenLabs (it ignores its speed setting) or any take still over is time-stretched
-        by the amount left, pitch kept, word timings scaled. Never more than SPEECH_SPEEDUP_MAX of real speed-up.
-        Returns (words, speed applied)."""
-        from src.script_engine import refit_speed
-        faster = refit_speed(self.audio_engine.get_duration(vo_path), speech_speed)
-        if faster and self.audio_engine.last_provider != "elevenlabs":
-            log.info("Voiceover ran %.1fs; making it once more %.0f%% faster to fit.",
-                     self.audio_engine.get_duration(vo_path), (faster - 1) * 100)
-            speech_speed = faster
+        """One more take when the first ran over the ceiling, never a time-stretch (the operator heard a 4%
+        stretch as awkward, 2026-10-25). A voice that honours its rate (Azure, Edge) is read at the rate the
+        overrun needs, within SPEECH_SPEEDUP_MAX; ElevenLabs, which ignores its speed setting, is simply read
+        again (its takes vary by about 5%). A take still over is left for the length check, which stops the
+        run; its re-render then shortens the script for the pace just measured. Returns (words, speed)."""
+        from src.audio_engine import honours_speed
+        from src.script_engine import HARD_DURATION_CEILING, refit_speed
+        seconds = self.audio_engine.get_duration(vo_path)
+        if seconds <= HARD_DURATION_CEILING:
+            return words, speech_speed
+        if honours_speed(self.audio_engine.last_provider):
+            faster = refit_speed(seconds, speech_speed)
+            if not faster:
+                log.warning("Voiceover ran %.1fs; fitting it would need more than %.0f%% faster, so it is not "
+                            "made again.", seconds, (config.SPEECH_SPEEDUP_MAX - 1) * 100)
+                return words, speech_speed
+            log.info("Voiceover ran %.1fs; making it once more %.0f%% faster to fit.", seconds, (faster - 1) * 100)
             voice_inputs["speed"] = faster
-            words = voice_at(faster)
-        applied = 1.0 if self.audio_engine.last_provider == "elevenlabs" else speech_speed  # an ignored request is no speed-up
-        stretch = refit_speed(self.audio_engine.get_duration(vo_path), 1.0)
-        if stretch and applied * stretch <= config.SPEECH_SPEEDUP_MAX:
-            log.info("Voiceover ran %.1fs; time-stretching it %.0f%% to fit.",
-                     self.audio_engine.get_duration(vo_path), (stretch - 1) * 100)
-            words = self.audio_engine.stretch_to_fit(vo_path, words, stretch)
-            speech_speed = round(applied * stretch, 3)
-        elif stretch:
-            log.warning("Voiceover ran %.1fs; fitting it would need more than %.0f%% faster, so it is not fitted.",
-                        self.audio_engine.get_duration(vo_path), (config.SPEECH_SPEEDUP_MAX - 1) * 100)
-        return words, speech_speed
+            return voice_at(faster), faster
+        if seconds > HARD_DURATION_CEILING * config.SPEECH_SPEEDUP_MAX:
+            log.warning("Voiceover ran %.1fs; another take would not fit, so it is not made.", seconds)
+            return words, speech_speed
+        log.info("Voiceover ran %.1fs; reading it once more (takes vary), at its natural speed.", seconds)
+        return voice_at(speech_speed), speech_speed
+
+    def _spoken_length_now(self, saved: Dict[str, Any]) -> str:
+        """Why a saved script would run too long or short when spoken at the voice's current measured pace,
+        or "" (also when it can't be measured)."""
+        from src.models import ScriptPackage
+        from src.script_engine import spoken_length_problems
+        try:
+            return " ".join(spoken_length_problems(ScriptPackage.model_validate(saved)))
+        except Exception as e:  # a resume must not fail on the measurement
+            log.debug("Spoken length of the saved script not measured: %s", e)
+            return ""
 
     @staticmethod
     def _prepare_images(scene_media, hero_img, run_dir=None):

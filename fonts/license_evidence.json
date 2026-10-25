@@ -8,9 +8,9 @@
       "license_description": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: https://scripts.sil.org/OFL",
       "license_url": "https://scripts.sil.org/OFL",
       "license_file": "licenses/Anton-Regular.ttf.OFL.txt",
-      "license_sha256": "32052d3b021005f52d1d075ef90cf72a248b3d41e8b6fb0912c4702028367417",
+      "license_sha256": "eee1d24ff8f553eb732237c7dd9b945a78313ed49ad6de02872a47277741b44a",
       "source_url": "https://raw.githubusercontent.com/google/fonts/main/ofl/anton/OFL.txt",
-      "checked_on": "2026-10-16"
+      "checked_on": "2026-10-24"
     },
     {
       "file": "Montserrat-Variable.ttf",
@@ -20,9 +20,9 @@
       "license_description": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: https://openfontlicense.org",
       "license_url": "https://openfontlicense.org",
       "license_file": "licenses/Montserrat-Variable.ttf.OFL.txt",
-      "license_sha256": "41cbef8d8a37b9e58a3c613a8958014bfc58801569c40211dfb251f600c6d718",
+      "license_sha256": "8b7141c03fa4f8d44e6345d5d4931709290f0f67875e452e95ac1fd3a027802e",
       "source_url": "https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/OFL.txt",
-      "checked_on": "2026-10-16"
+      "checked_on": "2026-10-24"
     },
     {
       "file": "BebasNeue-Regular.ttf",
@@ -32,9 +32,21 @@
       "license_description": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL",
       "license_url": "http://scripts.sil.org/OFL",
       "license_file": "licenses/BebasNeue-Regular.ttf.OFL.txt",
-      "license_sha256": "a6b230055933f80e5199eb909a67ebb04937a5b4172116d4bfb13a41f30ded38",
+      "license_sha256": "72082f6cb4d04be2ecf7cc7d9e1e7d73787f0af8a5a278a47cade70c16b78341",
       "source_url": "https://raw.githubusercontent.com/google/fonts/main/ofl/bebasneue/OFL.txt",
-      "checked_on": "2026-10-16"
+      "checked_on": "2026-10-24"
+    },
+    {
+      "file": "Cinzel-Variable.ttf",
+      "sha256": "f4d83d34d1f6c741193e4acf4b3dff9531e5a67b6aa65228d00a7db72a4e0f34",
+      "copyright": "Copyright 2020 The Cinzel Project Authors (https://github.com/NDISCOVER/Cinzel)",
+      "version": "Version 2.000",
+      "license_description": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: https://scripts.sil.org/OFL",
+      "license_url": "https://scripts.sil.org/OFL",
+      "license_file": "licenses/Cinzel-Variable.ttf.OFL.txt",
+      "license_sha256": "f2b3029aba64c378bf0963b62945eee15e564fe4330b934c8f2eb058282b5e83",
+      "source_url": "https://raw.githubusercontent.com/google/fonts/main/ofl/cinzel/OFL.txt",
+      "checked_on": "2026-10-24"
     }
   ]
 }

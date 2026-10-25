@@ -794,8 +794,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         height: int = VIDEO_HEIGHT,
         aspect_ratio: str = "9:16",
         delivery_profile=None,
+        grade_bias: float = 0.0,
     ) -> Path:
         """
+        grade_bias: a bounded warm (+) / cool (-) shift measured from the topic's hero photograph
+        (art direction, 2026-10-24), applied after the film LUT; 0 leaves the grade as it was.
         durations: seconds on screen per scene (e.g. from scene_planner beats). Each cut is
         a short cross-fade centred on the beat boundary. Without durations, scenes share
         the narration equally.
@@ -922,6 +925,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             film_grade = f"curves=master='0/0.02 0.5/0.50 1/0.98',lut3d='{lut_str}'"
         else:
             film_grade = "eq=contrast=1.07:brightness=0.008:saturation=1.08,curves=master='0/0.02 0.2/0.19 0.5/0.51 0.8/0.82 1/0.98':red='0/0.01 0.5/0.50 1/0.99':blue='0/0.04 0.5/0.49 1/0.94'"
+        bias = max(-0.05, min(0.05, float(grade_bias or 0.0)))
+        if bias:  # the topic's own warmth or coolness, bounded, after the film print
+            film_grade += f",colorbalance=rs={bias:.3f}:bs={-bias:.3f}:rm={bias / 2:.3f}:bm={-bias / 2:.3f}"
         filter_parts.append(
             f"[video_raw]format=yuv420p,{film_grade},format=yuv420p,"
             f"noise=alls=8:allf=t+u,vignette=PI/4.2:aspect={vignette_aspect},"

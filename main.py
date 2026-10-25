@@ -749,7 +749,10 @@ class PipelineCoordinator:
             encoding.get_video_encoder()  # probe once before parallel renderers race to detect it under load
             t_graphics = time.perf_counter()
             with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
-                fut_graphics = pool.submit(graphics.make_all, payload, topic, graphics_dir, photo=hero_img, width=1920, height=1080)
+                from src import art_direction
+                doc_art = art_direction.record(run_dir, hero_img)
+                payload["art_direction"] = doc_art
+                fut_graphics = pool.submit(graphics.make_all, payload, topic, graphics_dir, photo=hero_img, width=1920, height=1080, palette=doc_art)
                 fut_callouts = pool.submit(callouts.make, payload, topic, scene_media, graphics_dir, width=1920, height=1080)
                 fut_then_now = pool.submit(then_now.make, topic, graphics_dir, width=1920, height=1080)
 
@@ -1633,7 +1636,10 @@ class PipelineCoordinator:
 
             fut_beats = pool.submit(beat_images.source, beats, topic, run_dir / "beat_images", plan=query_plan) if query_plan else None
             fut_footage = pool.submit(footage.source, beats, topic, run_dir / "footage", plan=query_plan) if query_plan else None
-            fut_graphics = pool.submit(graphics.make_all, payload, topic, run_dir / "graphics", photo=hero_img)
+            from src import art_direction
+            art = art_direction.record(run_dir, hero_img)  # the topic's accent and grade bias, recorded in palette.json
+            payload["art_direction"] = art
+            fut_graphics = pool.submit(graphics.make_all, payload, topic, run_dir / "graphics", photo=hero_img, palette=art)
             fut_callouts = pool.submit(callouts.make, payload, topic, scene_media, run_dir / "graphics")
             fut_then_now = pool.submit(then_now.make, topic, run_dir / "graphics")
 
@@ -1723,6 +1729,7 @@ class PipelineCoordinator:
             render_checkpoint = Checkpoints(run_dir / "stage_cache" / "render")
             render_inputs = {"media": file_inputs([*scenes, vo_path, bed_path]), "words": words,
                              "durations": durations, "emphasis": payload.get("emphasis_words"),
+                             "grade_bias": (payload.get("art_direction") or {}).get("grade_bias") or 0.0,  # part of the master
                              "rules": file_inputs([Path("src/video_composer.py"), Path("src/config.py"),
                                                    Path("src/encoding.py"), Path("src/encoded_audio.py"), Path("src/delivery_profiles.py")]),
                              "fonts": packaging_inputs["fonts"]}
@@ -1730,7 +1737,8 @@ class PipelineCoordinator:
             if not render_checkpoint.reusable("master", render_inputs):
                 self._progress_note(run_id, topic.get("title", run_id), 3, "Synthesizing graphics, stills & motion · rendering the master video")
                 self.video_composer.compose_video(scenes, vo_path, bed_path, words, vo_dur, master_mp4, durations=durations,
-                                                  emphasis=payload.get("emphasis_words"))
+                                                  emphasis=payload.get("emphasis_words"),
+                                                  grade_bias=float((payload.get("art_direction") or {}).get("grade_bias") or 0.0))
                 outputs = [master_mp4, master_mp4.with_name(master_mp4.stem + "_captions.ass"),
                            master_mp4.with_suffix(".composition.json"), master_mp4.with_suffix(".srt"), master_mp4.with_suffix(".vtt")]
                 if all(path.is_file() for path in outputs):

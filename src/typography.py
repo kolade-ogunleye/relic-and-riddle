@@ -8,26 +8,28 @@ to stay inside the safe width instead of running off the canvas.
 
 from functools import lru_cache
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 from .config import FONTS_DIR
 
-FONT_FILES = {"Anton": "Anton-Regular.ttf", "Montserrat": "Montserrat-Variable.ttf"}
-VARIABLE_WEIGHTS = {"Montserrat": 600}  # SemiBold
+FONT_FILES = {"Anton": "Anton-Regular.ttf", "Montserrat": "Montserrat-Variable.ttf", "Cinzel": "Cinzel-Variable.ttf"}
+VARIABLE_WEIGHTS = {"Montserrat": 600, "Cinzel": 700}  # SemiBold labels; Bold display serif for titles (art direction, 2026-10-24)
 VIDEO_SUFFIXES = (".mp4", ".mov", ".mkv", ".webm")
 
 
-@lru_cache(maxsize=64)
-def get_font(name: str, size: int, fonts_dir: Path = FONTS_DIR) -> ImageFont.FreeTypeFont:
+@lru_cache(maxsize=96)
+def get_font(name: str, size: int, fonts_dir: Path = FONTS_DIR, weight: Optional[int] = None) -> ImageFont.FreeTypeFont:
+    """A bundled font at `size`; `weight` picks an instance of a variable font (the type hierarchy uses
+    Montserrat 500/600/700 and Cinzel 700), else the pinned default."""
     path = fonts_dir / FONT_FILES[name]
     if not path.exists():
         raise FileNotFoundError(f"Required font missing: {path}")
     font = ImageFont.truetype(str(path), size)
     if name in VARIABLE_WEIGHTS:
         # Variable fonts default to their lightest instance; pin a legible weight.
-        font.set_variation_by_axes([VARIABLE_WEIGHTS[name]])
+        font.set_variation_by_axes([weight or VARIABLE_WEIGHTS[name]])
     return font
 
 

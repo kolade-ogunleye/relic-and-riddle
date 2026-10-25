@@ -1083,9 +1083,14 @@ def render_ventilation_airflow(
 
 
 # ----------------------------------------------- LiDAR subterranean radar scan
-def make_all(payload: Dict[str, Any], topic: Dict[str, Any], work_dir: Path, photo: Optional[Path] = None, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> List[Path]:
+def make_all(payload: Dict[str, Any], topic: Dict[str, Any], work_dir: Path, photo: Optional[Path] = None, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
+             palette: Optional[Dict[str, Any]] = None) -> List[Path]:
     """Every graphic the script and topic support. Never raises: graphics are optional.
-    `photo`: the topic's hero photo, used (blurred) behind the number cards."""
+    `photo`: the topic's hero photo, used (blurred) behind the number cards.
+    `palette`: the run's art direction (src/art_direction.py), made active here because this runs in a
+    worker thread, where the caller's context variable would not be seen."""
+    from .art_direction import use_palette
+    use_palette(palette)
     made: List[Path] = []
     jobs = []
     if payload.get("stat_cards"):

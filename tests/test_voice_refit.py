@@ -124,3 +124,46 @@ def test_a_take_from_before_the_stretch_was_removed_is_not_reused(tmp_path):
     cp = Checkpoints(tmp_path)
     cp.complete("voice", old, [take])
     assert not main.PipelineCoordinator.voice_reusable(cp, inputs, {"licensed": True}, dry_run=False)
+
+
+def _eleven_pace(monkeypatch, tmp_path):
+    pace = tmp_path / "voice_pace.json"
+    monkeypatch.setattr(audio_engine, "PACE_FILE", pace)
+    pace.write_text(json.dumps({"elevenlabs:v:m": [1.0184, 1.0748, 1.0352, 1.0998, 1.0245, 1.0795, 0.9967]}), encoding="utf-8")
+    monkeypatch.setattr(audio_engine, "production_voice_key", lambda: "elevenlabs:v:m")
+
+
+def test_both_ends_of_the_window_are_judged_for_the_takes_that_reach_them(monkeypatch, tmp_path, curated_payload):
+    # Production 2026-10-25 (rc49): planned for the slowest take only, a 93-word script read 41.1 s, under 42.
+    from src import script_engine
+    from src.models import ScriptPackage
+    _eleven_pace(monkeypatch, tmp_path)
+    assert audio_engine.pace_range("elevenlabs:v:m") == (0.9967, 1.0998)
+    assert audio_engine.pace_range("azure:v") == (1.0, 1.0)
+    pkg = ScriptPackage.model_validate(curated_payload)
+    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: 41.2)
+    short = " ".join(script_engine.spoken_length_problems(pkg))
+    assert "minimum 42s" in short and "extend the narration" in short                # the production case
+    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: 44.0)
+    assert script_engine.spoken_length_problems(pkg) == []                          # fits for every take seen
+    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: 47.5)
+    assert "limit 51.5s" in " ".join(script_engine.spoken_length_problems(pkg))
+
+
+def test_the_word_target_fits_the_fastest_and_the_slowest_take(monkeypatch, tmp_path):
+    from src import script_engine
+    _eleven_pace(monkeypatch, tmp_path)
+    words = tmp_path / "word_pace.json"
+    monkeypatch.setattr(script_engine, "WORD_PACE_FILE", words)
+    words.write_text(json.dumps([0.4436] * 5), encoding="utf-8")
+    import re
+    low, high = (int(x) for x in re.search(r"in (\d+)-(\d+) words", script_engine.length_target_note()).groups())
+    assert low * 0.4436 * 0.9967 >= 42 and high * 0.4436 * 1.0998 <= 48.5 and low <= high
+
+
+def test_a_take_a_little_under_the_minimum_is_read_once_more(tmp_path):
+    for provider, seconds, expected in (("elevenlabs", 41.1, [1.0]), ("azure", 41.1, []), ("elevenlabs", 35.0, [])):
+        c, take = _coordinator_with_take(tmp_path, provider, [seconds])
+        retakes = []
+        c._fit_take(take, [], 1.0, lambda s: retakes.append(s) or [], {})
+        assert retakes == expected, (provider, seconds)

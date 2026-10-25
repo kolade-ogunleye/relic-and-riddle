@@ -20,7 +20,7 @@ import os
 import re
 import subprocess
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 import edge_tts
 import numpy as np
@@ -189,6 +189,22 @@ def calibrate_pace(provider: str, voice: str, text: str, actual_seconds: float, 
 
 
 PACE_CONFIDENT_SAMPLES = 5  # takes measured before the median is trusted
+
+
+def pace_range(key: str) -> Tuple[float, float]:
+    """(fastest, slowest) real/measured ratio for planning both ends of the length window. A voice that honours
+    its speed setting has one pace (pace_ratio at both ends). ElevenLabs' takes of one script vary by about 10%
+    (production 2026-10-25: 0.997-1.100), so a script is checked against its slowest take for the ceiling and
+    its fastest for the minimum: planning only for the slowest let a 93-word script read 41.1 s against 42."""
+    import json
+    if honours_speed(key):
+        ratio = pace_ratio(key)
+        return ratio, ratio
+    try:
+        ratios = json.loads(PACE_FILE.read_text(encoding="utf-8")).get(key, [])
+    except (OSError, ValueError):
+        ratios = []
+    return (min(ratios), max(ratios)) if ratios else (1.0, 1.0)
 
 
 def pace_ratio(key: str) -> float:

@@ -64,6 +64,7 @@ RUN_COMPLETED_STATUSES = ("published", "simulated", "scheduled", "rejected", "re
                           "cancelled", "publish_unknown")
 DOCUMENTARY_PAUSED = ("The 16:9 documentary is paused while it is rebuilt (add \"documentary\" to VIDEO_FORMATS "
                       "to make one; see docs/documentary-rebuild.md).")
+TAKE_SPREAD = 1.10  # how far apart two ElevenLabs takes of one script ran (production 2026-10-25: 0.997-1.100)
 MAX_FACT_REVISIONS = 2  # rewrites of a Claude script that failed fact-checking, before failing closed
 
 
@@ -1596,8 +1597,15 @@ class PipelineCoordinator:
         again (its takes vary by about 5%). A take still over is left for the length check, which stops the
         run; its re-render then shortens the script for the pace just measured. Returns (words, speed)."""
         from src.audio_engine import honours_speed
-        from src.script_engine import HARD_DURATION_CEILING, refit_speed
+        from src.script_engine import HARD_DURATION_CEILING, TARGET_DURATION_MIN, refit_speed
         seconds = self.audio_engine.get_duration(vo_path)
+        if seconds < TARGET_DURATION_MIN:
+            # A take a little under the minimum: ElevenLabs' takes vary (production 2026-10-25: 93 words read
+            # 41.1 s), so it is read once more. A voice that reads at its set rate would only repeat itself.
+            if not honours_speed(self.audio_engine.last_provider) and seconds * TAKE_SPREAD >= TARGET_DURATION_MIN:
+                log.info("Voiceover ran %.1fs, under the minimum; reading it once more (takes vary).", seconds)
+                return voice_at(speech_speed), speech_speed
+            return words, speech_speed
         if seconds <= HARD_DURATION_CEILING:
             return words, speech_speed
         if honours_speed(self.audio_engine.last_provider):

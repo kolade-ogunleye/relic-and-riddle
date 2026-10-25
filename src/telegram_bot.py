@@ -1785,7 +1785,8 @@ class TelegramApprovalBot:
                     f"<i>Run ID:</i> <code>{html.escape(run_id)}</code>\n\n"
                     f"<blockquote expandable>{html.escape(short_reason(error, 1200))}</blockquote>\n\n"
                     + (f"Nothing was posted. Re-render continues from where it stopped, keeping {html.escape(kept)} "
-                       "(anything whose inputs changed, or a voiceover over the limit, is made again).\n\n" if late else
+                       "(anything whose inputs changed is made again; a voiceover outside the length limits is made again, "
+                       "after its script is lengthened or shortened for this voice if it needs it).\n\n" if late else
                        "Nothing was posted. It stopped before its script passed the fact check, so nothing is worth "
                        "keeping. The topic is set aside, not retried on its own: tap Back to the queue to have it "
                        "made again, or restore it later from the queue.\n\n")

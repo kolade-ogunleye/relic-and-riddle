@@ -244,6 +244,11 @@ def record_word_pace(seconds_per_word: float) -> None:
         log.debug("Could not record the word pace: %s", e)
 
 
+def _pace_window() -> Tuple[float, float]:
+    """(fastest, slowest) pace of the production narrator against the measurement voice."""
+    return audio_engine.pace_range(audio_engine.production_voice_key())
+
+
 def length_target_note() -> str:
     """The word range that fits, from measured pace (the prompt's fixed 105-115 words ran 53-58 s at the
     narrator's pace for name-heavy topics). Empty until three drafts have been measured."""
@@ -254,8 +259,14 @@ def length_target_note() -> str:
     if len(values) < 3:
         return ""
     import statistics
-    per_word = statistics.median(values) * audio_engine.pace_ratio(audio_engine.production_voice_key())
-    low, high = int(TARGET_DURATION_MIN / per_word) + 1, int(TARGET_DURATION_MAX / per_word)
+    fast, slow = _pace_window()
+    measured = statistics.median(values)
+    per_word = measured * slow
+    # The minimum for the narrator's fastest take, the maximum for its slowest (they vary for ElevenLabs).
+    low, high = int(TARGET_DURATION_MIN / (measured * fast)) + 1, int(TARGET_DURATION_MAX / per_word)
+    if low > high:  # takes vary too much for one window: the middle pace
+        per_word = measured * (fast + slow) / 2
+        low, high = int(TARGET_DURATION_MIN / per_word) + 1, int(TARGET_DURATION_MAX / per_word)
     return (f"\n\nLength: write the narration in {low}-{high} words. This narrator speaks about {per_word:.2f} s "
             f"a word, so that is {TARGET_DURATION_MIN:g}-{TARGET_DURATION_MAX:g} seconds; this overrides any other "
             "word count.")
@@ -294,9 +305,13 @@ def spoken_length_problems(pkg: ScriptPackage) -> List[str]:
         return []
     words = len(pkg.narration_script.split()) or 1
     record_word_pace(seconds / words)  # measured at the measurement voice; the pace ratio is applied on use
-    seconds *= audio_engine.pace_ratio(audio_engine.production_voice_key())  # the real voice's pace
-    per_word = seconds / words
+    measured = seconds
+    fast, slow = _pace_window()
     longest = HARD_DURATION_CEILING - _MEASURE_MARGIN_SEC
+    if measured * slow > longest and measured * fast < TARGET_DURATION_MIN:
+        fast = slow = (fast + slow) / 2  # takes vary too much for both ends: judged at the middle pace
+    seconds = measured * slow  # the ceiling, for the narrator's slowest take
+    per_word = seconds / words
     if seconds > longest and fit_speed(pkg.narration_script, seconds):
         return []  # spoken slightly faster (the voiceover stage applies the same speed)
     if seconds > longest:
@@ -310,10 +325,13 @@ def spoken_length_problems(pkg: ScriptPackage) -> List[str]:
         return [f"Narration runs {seconds:.1f}s when spoken (limit {longest:g}s). This draft is {words} words; "
                 f"rewrite the narration in {low}-{target} words (names and numbers such as dates take "
                 f"longer to say), keeping the closing sentence."]
-    if seconds < TARGET_DURATION_MIN:
+    if measured * fast < TARGET_DURATION_MIN:
+        # The minimum, for the narrator's fastest take (production 2026-10-25: 93 words read 41.1 s).
         # A window, as for a long draft: "add about 9 words" to a fresh rewrite meant nothing, and three
         # drafts in a row came out shorter (38.8, 37.3, 35.8 s; production, 2026-10-23).
-        low = words + math.ceil((TARGET_DURATION_MIN - seconds) / per_word) + 2
+        seconds = measured * fast
+        fast_per_word = seconds / words
+        low = words + math.ceil((TARGET_DURATION_MIN - seconds) / fast_per_word) + 2
         high = max(low + 4, min(int(TARGET_DURATION_MAX / per_word), int(longest / per_word) - 2))
         return [f"Narration runs {seconds:.1f}s when spoken (minimum {TARGET_DURATION_MIN:g}s). This draft is "
                 f"{words} words; extend the narration to {low}-{high} words with more verified facts from the "

@@ -422,7 +422,7 @@ class PipelineCoordinator:
         (pictures, sound, cover, other): the script-stage payload as it was saved, guardrail passed. None
         when the reason concerns the script, there is no previous run, or its saved script did not pass."""
         reason = fb.get("reason")
-        if not reason or reason in SCRIPT_REASONS:
+        if not reason or reason in SCRIPT_REASONS or revises_script(fb):
             return None
         previous = self._previous_run_dir()
         if previous is None:
@@ -432,6 +432,17 @@ class PipelineCoordinator:
         except (OSError, ValueError):
             return None
         if not (isinstance(saved, dict) and saved.get("guardrail_passed") and saved.get("narration_script")):
+            return None
+        # A kept script must pass today's checks, not only those it passed when written (2026-10-25: a kept
+        # script carried the repeated "By one estimate" past the check added after it was written).
+        from src.models import ScriptPackage
+        from src.script_engine import validate_structure
+        try:
+            problems = validate_structure(ScriptPackage.model_validate(saved))
+        except Exception as e:
+            problems = [f"the saved script no longer reads as a script package ({type(e).__name__})"]
+        if problems:
+            log.info("Script of %s not kept: it fails today's checks (%s).", previous.name, problems[0][:160])
             return None
         return saved
 
@@ -1433,7 +1444,7 @@ class PipelineCoordinator:
             log.info("Resuming with verified script inputs and intact metadata.")
         else:
             fb = self._feedback()
-            if fb.get("reason") in SCRIPT_REASONS and fb.get("previous"):
+            if (fb.get("reason") in SCRIPT_REASONS or revises_script(fb)) and fb.get("previous"):
                 # Regenerate after your review: the previous script is revised for what you said,
                 # instead of being rewritten blind.
                 note = (f"The human reviewer sent the previous version back. Reason: {REASONS.get(fb['reason'], fb['reason'])}."
@@ -1485,6 +1496,11 @@ class PipelineCoordinator:
         # A narration a little over the limit is spoken slightly faster (the script stage accepted it so).
         from src.script_engine import fit_speed
         speech_speed = fit_speed(payload["narration_script"]) or 1.0
+        if speech_speed != 1.0 and self.audio_engine.preferred_provider(voice_inputs["allow_paid"]) == "elevenlabs":
+            # Production's ElevenLabs model ignores its speed setting (a take asked to be 5% faster read 1%
+            # slower), so it is not asked: a take over the limit is fitted by the stretch below instead, and
+            # an ignored request no longer uses up the stretch's 8% (2026-10-25: 52.9 s left unfitted).
+            speech_speed = 1.0
         if speech_speed != 1.0:  # a voiceover made at another speed is not reused (normal ones keep their inputs)
             voice_inputs["speed"] = speech_speed
         licensed_req, allow_paid = voice_inputs["licensed_only"], voice_inputs["allow_paid"]
@@ -1515,19 +1531,7 @@ class PipelineCoordinator:
             # Edge) is made once more at the rate the overrun needs. ElevenLabs' model ignored it (a take asked to
             # be 5% faster read 1% slower), so its take, or any take still over, is time-stretched by the small
             # amount left, pitch kept, with the word timings scaled: never more than SPEECH_SPEEDUP_MAX in all.
-            faster = refit_speed(self.audio_engine.get_duration(vo_path), speech_speed)
-            if faster and self.audio_engine.last_provider != "elevenlabs":
-                log.info("Voiceover ran %.1fs; making it once more %.0f%% faster to fit.",
-                         self.audio_engine.get_duration(vo_path), (faster - 1) * 100)
-                speech_speed = faster
-                voice_inputs["speed"] = faster
-                words = voice_at(faster)
-            stretch = refit_speed(self.audio_engine.get_duration(vo_path), 1.0)
-            if stretch and speech_speed * stretch <= config.SPEECH_SPEEDUP_MAX:
-                log.info("Voiceover ran %.1fs; time-stretching it %.0f%% to fit.",
-                         self.audio_engine.get_duration(vo_path), (stretch - 1) * 100)
-                words = self.audio_engine.stretch_to_fit(vo_path, words, stretch)
-                speech_speed = round(speech_speed * stretch, 3)
+            words, speech_speed = self._fit_take(vo_path, words, speech_speed, voice_at, voice_inputs)
             words_path.write_text(json.dumps(words), encoding="utf-8")
             voice_path.write_text(json.dumps({"provider": self.audio_engine.last_provider,
                                               "licensed": self.audio_engine.last_licensed}), encoding="utf-8")
@@ -1572,6 +1576,31 @@ class PipelineCoordinator:
                 log.info("Run stopped; waiting for image preparation to finish before cleaning up.")
             concurrent.futures.wait([prepared])
             raise
+
+    def _fit_take(self, vo_path, words, speech_speed: float, voice_at, voice_inputs) -> Tuple[List[Dict[str, Any]], float]:
+        """Fits a take that ran over the ceiling: a voice that honours its rate (Azure, Edge) is made once more at
+        the rate the overrun needs; ElevenLabs (it ignores its speed setting) or any take still over is time-stretched
+        by the amount left, pitch kept, word timings scaled. Never more than SPEECH_SPEEDUP_MAX of real speed-up.
+        Returns (words, speed applied)."""
+        from src.script_engine import refit_speed
+        faster = refit_speed(self.audio_engine.get_duration(vo_path), speech_speed)
+        if faster and self.audio_engine.last_provider != "elevenlabs":
+            log.info("Voiceover ran %.1fs; making it once more %.0f%% faster to fit.",
+                     self.audio_engine.get_duration(vo_path), (faster - 1) * 100)
+            speech_speed = faster
+            voice_inputs["speed"] = faster
+            words = voice_at(faster)
+        applied = 1.0 if self.audio_engine.last_provider == "elevenlabs" else speech_speed  # an ignored request is no speed-up
+        stretch = refit_speed(self.audio_engine.get_duration(vo_path), 1.0)
+        if stretch and applied * stretch <= config.SPEECH_SPEEDUP_MAX:
+            log.info("Voiceover ran %.1fs; time-stretching it %.0f%% to fit.",
+                     self.audio_engine.get_duration(vo_path), (stretch - 1) * 100)
+            words = self.audio_engine.stretch_to_fit(vo_path, words, stretch)
+            speech_speed = round(applied * stretch, 3)
+        elif stretch:
+            log.warning("Voiceover ran %.1fs; fitting it would need more than %.0f%% faster, so it is not fitted.",
+                        self.audio_engine.get_duration(vo_path), (config.SPEECH_SPEEDUP_MAX - 1) * 100)
+        return words, speech_speed
 
     @staticmethod
     def _prepare_images(scene_media, hero_img, run_dir=None):
@@ -2380,6 +2409,20 @@ PROMOTED_PREFIX = "promoted:"  # setting: the run was promoted to real posting (
 def regeneration_topic(db, previous: str) -> Optional[str]:
     """The topic a regeneration is for: the one the run it replaces was made for."""
     return (db.get_run(previous) or {}).get("topic_id")
+
+
+_WORDS_ABOUT_SCRIPT = ("narration", "voiceover", "voice over", "script", "phrase", "wording", "word", "sentence",
+                       "repeat", "repeated", "caption", "text", "story", "stories", "carousel", "spelling", "typo")
+
+
+def revises_script(fb: Dict[str, Any]) -> bool:
+    """A review of reason "other" whose own words are about what is said or written is treated as a review
+    of the words (operator, 2026-10-25: "Incomplete text on a Story image and repeated phrases in the
+    voiceover" under Other kept the script word for word)."""
+    if fb.get("reason") != "other" or not fb.get("text"):
+        return False
+    words = set(re.findall(r"[a-z]+", str(fb["text"]).lower()))
+    return any(w in words for w in _WORDS_ABOUT_SCRIPT) or "voice over" in str(fb["text"]).lower()
 
 
 def resume_mode(db, run_id: str, dry_run: bool) -> bool:

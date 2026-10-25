@@ -93,7 +93,7 @@ def test_each_revision_carries_every_earlier_rejection(db, tmp_path):
     assert main.with_earlier_rejections("now", []) == "now"
 
 
-def test_a_regeneration_for_pictures_keeps_the_verified_script_word_for_word(db, tmp_path, monkeypatch):
+def test_a_regeneration_for_pictures_keeps_the_verified_script_word_for_word(db, tmp_path, monkeypatch, curated_payload):
     # Production 2026-10-24: a "pictures" regeneration wrote a fresh script, so the approved words changed
     # and the voiceover made for them could not carry over.
     import json
@@ -102,7 +102,7 @@ def test_a_regeneration_for_pictures_keeps_the_verified_script_word_for_word(db,
     monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
     previous = tmp_path / "run_prev"
     previous.mkdir()
-    script = {"narration_script": "The words you approved.", "guardrail_passed": True, "title": "T"}
+    script = dict(curated_payload, guardrail_passed=True)  # a real script: a kept one must pass today's checks
     (previous / "verified_script.json").write_text(json.dumps(script), encoding="utf-8")
     coordinator = SimpleNamespace(_operator_feedback={"reason": "pictures", "from_run": "run_prev"}, db=db)
     coordinator._feedback = lambda: main.PipelineCoordinator._feedback(coordinator)

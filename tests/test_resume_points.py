@@ -99,3 +99,32 @@ def test_a_resumed_dry_run_continues_live_in_production_only(db, monkeypatch):
     monkeypatch.setattr(config, "BACKUP_ENVIRONMENT", "production")
     assert c.resume_mode("run_x", False) is False and db.get_setting("run_mode:run_x") == "live"
     assert c.resume_mode("run_x", True) is True                                     # an explicit dry run stays one
+
+
+def test_other_with_words_about_the_script_revises_it():
+    # Operator, 2026-10-25: "Incomplete text on a Story image and repeated phrases in the voiceover" under
+    # Other kept the script word for word, repeated hedge included.
+    import main
+    assert main.revises_script({"reason": "other", "text": "Incomplete text on a Story image and repeated phrases in the voiceover"})
+    assert not main.revises_script({"reason": "other", "text": "the map is too dark"})
+    assert not main.revises_script({"reason": "pictures", "text": "wrong temple, repeated photo"})
+    assert not main.revises_script({"reason": "other"})
+
+
+def test_a_kept_script_must_pass_todays_checks(db, tmp_path, monkeypatch, curated_payload):
+    import main
+    c = main.PipelineCoordinator.__new__(main.PipelineCoordinator)
+    c.db = db
+    prev = tmp_path / "run_prev"
+    prev.mkdir()
+    saved = dict(curated_payload, guardrail_passed=True)
+    (prev / "verified_script.json").write_text(json.dumps(saved), encoding="utf-8")
+    monkeypatch.setattr(c, "_previous_run_dir", lambda: prev, raising=False)
+    from src.script_engine import validate_structure
+    from src.models import ScriptPackage
+    assert not validate_structure(ScriptPackage.model_validate(saved))              # the fixture passes today
+    assert c._script_from_previous({"reason": "pictures", "from_run": "run_prev"}) == saved
+    words = saved["narration_script"].split(". ")
+    saved["narration_script"] = ". ".join(["By one estimate, " + w for w in words[:2]] + words[2:])
+    (prev / "verified_script.json").write_text(json.dumps(saved), encoding="utf-8")
+    assert c._script_from_previous({"reason": "pictures", "from_run": "run_prev"}) is None   # repeats now: rewritten

@@ -57,3 +57,41 @@ def test_the_health_check_reports_rubberband_without_blocking(monkeypatch):
     monkeypatch.setattr(AudioEngine, "rubberband_available", staticmethod(lambda: False))
     ok, msg = HealthChecker().check_rubberband()
     assert not ok and "no rubberband filter" in msg
+
+
+def _coordinator_with_take(tmp_path, provider, seconds_seq):
+    import subprocess
+    import main
+    from src.audio_engine import AudioEngine
+    take = tmp_path / "voiceover.mp3"
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", f"sine=frequency=220:duration={seconds_seq[0]}",
+                    "-b:a", "192k", str(take)], check=True)
+    c = main.PipelineCoordinator.__new__(main.PipelineCoordinator)
+    eng = AudioEngine.__new__(AudioEngine)
+    eng.last_provider = provider
+    c.audio_engine = eng
+    return c, take
+
+
+def test_the_production_case_an_elevenlabs_take_of_52_9_s_is_fitted(tmp_path, monkeypatch):
+    # Production 2026-10-25 16:13: a 52.9 s ElevenLabs take was left unfitted because an ignored 6% speed
+    # request used up the 8% cap. Now: never asked, and the stretch alone counts.
+    from src import config
+    monkeypatch.setattr(config, "SPEECH_SPEEDUP_MAX", 1.08)
+    c, take = _coordinator_with_take(tmp_path, "elevenlabs", [52.9])
+    words = [{"word": "a", "start": 10.0, "dur": 1.0}]
+    retakes = []
+    out, speed = c._fit_take(take, words, 1.06, lambda s: retakes.append(s) or words, {})
+    assert retakes == []                                                              # no paid second take
+    from src.audio_engine import AudioEngine
+    assert AudioEngine.get_duration(take) < 52.0 and 1.02 <= speed <= 1.04             # fitted by the stretch
+    assert out[0]["start"] < 10.0
+
+
+def test_a_take_needing_more_than_the_cap_is_left_for_the_check(tmp_path, monkeypatch):
+    from src import config
+    monkeypatch.setattr(config, "SPEECH_SPEEDUP_MAX", 1.08)
+    c, take = _coordinator_with_take(tmp_path, "elevenlabs", [60.0])
+    _, speed = c._fit_take(take, [], 1.0, lambda s: [], {})
+    from src.audio_engine import AudioEngine
+    assert speed == 1.0 and AudioEngine.get_duration(take) > 59                        # untouched; the run then stops

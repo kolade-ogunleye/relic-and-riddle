@@ -1161,8 +1161,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             lines.append("  <i>Queue is currently empty! Use /add &lt;title&gt; or /propose.</i>")
 
         # Several episodes back to back (/produce N, operator 2026-10-24) from the panel too: the sizes offered
-        # never exceed what is queued; a running batch says how many more will follow.
-        produce_row = []
+        # never exceed what is queued; a running batch says how many more will follow. Typed, not tapped: the
+        # Produce 3/5/7 buttons bloated the queue (operator, 2026-10-25).
         if produce_batch is not None and len(queued) >= 2:
             try:
                 left = int(db.get_setting("produce_remaining") or 0)
@@ -1171,9 +1171,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             if busy and left > 0:
                 lines.append(f"\n🎬 <b>Batch in progress</b> · {left} more episode(s) start after this one, each after your review decision.")
             elif not busy:
-                sizes = [n for n in (3, 5, 7) if n <= len(queued)] or [len(queued)]
-                produce_row = [{"text": f"🎬 Produce {n}", "callback_data": f"produce:{n}"} for n in sizes]
-                lines.append("\n<b>Several back to back:</b> tap Produce, or send <code>/produce N</code> (1–14). "
+                lines.append("\n<b>Several back to back:</b> send <code>/produce N</code> (1–14). "
                              "Each episode comes to you for review; the next starts after your decision.")
 
         if requeueable:
@@ -1195,8 +1193,6 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             rows.append([{"text": "🎬 Reel + 16:9 documentary", "callback_data": "qdoc:" + render[0]["callback_data"].partition(":")[2]}])
         if changes:
             rows.append(changes)
-        if produce_row:
-            rows.append(produce_row)
         return "\n".join(lines), rows + pager("qpage:", page, pages) + [[HOME]]
 
     """run_actions: button actions on a run, e.g. {"pubok": fn(run_id) -> reply, "pubno": ..., "resend": ...}."""

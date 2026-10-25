@@ -1059,13 +1059,13 @@ def test_produce_renders_a_batch_through_the_bots_launcher(db):
     assert h("produce", "40")[0].startswith("🎬 Producing 14") and h("produce", "")[0].startswith("🎬 Producing 1\n")   # capped, defaults to one
     assert h("produce", "many").startswith("Usage: /produce")
     assert make_command_handler(db, lambda: None, lambda: "")("produce", "3") == "Batch production works while the bot is running."
-    # From the dashboard: Queue → "Produce 3/5/7", only sizes the queue can fill; a running batch says what is left.
+    # The queue names the command; it no longer offers Produce 3/5/7 buttons (operator, 2026-10-25: bloated).
+    # A running batch says what is left.
     db.set_setting("produce_remaining", "0")
     db.set_setting(control.RUN_STARTING_KEY, "{}")                       # the batch above marked a run as starting
-    _, panel = h("qrefresh", "")
-    offered = [b["callback_data"] for row in panel for b in row if b["callback_data"].startswith("produce:")]
-    queued = sum(1 for t in db.list_all_topics() if t.get("status") == "queued")
-    assert offered == [f"produce:{n}" for n in (3, 5, 7) if n <= queued] or (queued < 3 and offered == [f"produce:{queued}"])
+    text, panel = h("qrefresh", "")
+    assert "send <code>/produce N</code>" in text and "tap Produce" not in text
+    assert not any(b["callback_data"].startswith("produce:") for row in panel for b in row)
     db.set_setting("produce_remaining", "2")
     db.set_setting(control.RUN_STARTING_KEY, json.dumps({"topic": db.get_next_topic()["id"], "at": control.clock.time()}))
     text, panel = h("qrefresh", "")

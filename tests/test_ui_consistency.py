@@ -84,3 +84,15 @@ def test_a_failed_run_is_named_on_the_dashboard_with_its_whole_reason_folded(db)
     text, _ = control.dashboard_text_and_buttons(db)
     assert "❌ <b>Last run failed</b>: " in text
     assert f"<blockquote expandable>{reason}</blockquote>" in text      # whole, without the exception name
+
+
+def test_the_card_caption_leaves_the_hashtags_to_their_own_line():
+    # Operator, 2026-10-25: hashtags showed twice, in the caption and on their own line.
+    from src.telegram_bot import without_hashtags
+    caption = "Gears in a shipwreck.\nWhat else was lost?\n\n#history #antikythera #archaeology\nPhoto: Wikimedia (CC BY)"
+    assert without_hashtags(caption) == "Gears in a shipwreck.\nWhat else was lost?\n\nPhoto: Wikimedia (CC BY)"
+    assert without_hashtags("Lost at sea. #history #greece") == "Lost at sea."
+    assert without_hashtags("The #1 mystery of the sea.") == "The #1 mystery of the sea."       # inside a sentence
+    card = TelegramApprovalBot.format_card_text({"title": "T", "narration_script": "x", "caption": "A line. #one #two",
+                                                 "hashtags": ["#one", "#two"], "carousel_caption": "Swipe. #one"}, "run_x")
+    assert card.count("#one") == 1 and "<b>Hashtags:</b>" in card

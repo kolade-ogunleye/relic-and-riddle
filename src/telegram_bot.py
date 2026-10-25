@@ -147,6 +147,17 @@ def navigation_buttons(buttons=None):
 CARD_PAGE_LIMIT = 3600  # telegram_pages.panel pages (as plain text) a card over 3,700 UTF-16 units
 
 
+_HASHTAG_ONLY_LINE = re.compile(r"^(?:\s*#\w+)+\s*$")
+_TRAILING_HASHTAGS = re.compile(r"(?:\s+#\w+)+\s*$")
+
+
+def without_hashtags(text: str) -> str:
+    """A caption as the review card shows it: lines of hashtags and a closing run of them taken out (the card
+    lists the hashtags on their own line). A hashtag inside a sentence stays, so no sentence is cut."""
+    lines = [ln for ln in (text or "").splitlines() if not _HASHTAG_ONLY_LINE.match(ln)]
+    return _TRAILING_HASHTAGS.sub("", "\n".join(lines).strip()).strip()
+
+
 def _tg_len(text: str) -> int:
     """Length as Telegram counts it (UTF-16 code units)."""
     return len(text.encode("utf-16-le")) // 2
@@ -1091,7 +1102,8 @@ class TelegramApprovalBot:
                 continue
             spare = CARD_PAGE_LIMIT - _tg_len(full.replace("\x00CAPTION\x00", "").replace("\x00CAROUSEL\x00", ""))
             head = f"\n<b>{label}:</b>\n"
-            text_value = (script_payload.get(key) or "").strip()
+            # Without its hashtags: they have their own line on the card (operator, 2026-10-25). Posted as written.
+            text_value = without_hashtags(script_payload.get(key) or "")
             block = head + e(text_value) + "\n"
             if _tg_len(block) > spare:
                 fit = spare - _tg_len(head) - 30

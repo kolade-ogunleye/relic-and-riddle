@@ -88,6 +88,24 @@ def _cover_crop(rgb, out_w: int, out_h: int):
     return cv2.resize(rgb[y0:y0 + ch, x0:x0 + cw], (out_w, out_h), interpolation=cv2.INTER_LANCZOS4)
 
 
+REPEAT_ZOOM = 1.35  # a repeated photo is framed this much tighter, on another part of the picture
+REPEAT_FOCUS = [(0.5, 0.36), (0.5, 0.64), (0.36, 0.5), (0.64, 0.5)]  # centres of the tighter frame, by repeat
+
+
+def repeat_crop(rgb, out_w: int, out_h: int, variant: int):
+    """The frame a photo's `variant`-th repeat uses: tighter, centred on another part of it, so a photo the
+    story needs twice reads as a new shot (operator, 2026-10-25: beat 8 reused beat 1's frame exactly)."""
+    import cv2
+    if variant <= 0:
+        return _cover_crop(rgb, out_w, out_h)
+    big_w, big_h = int(out_w * REPEAT_ZOOM), int(out_h * REPEAT_ZOOM)
+    big = _cover_crop(rgb, big_w, big_h)
+    fx, fy = REPEAT_FOCUS[(variant - 1) % len(REPEAT_FOCUS)]
+    x0 = int(min(max(0, fx * big_w - out_w / 2), big_w - out_w))
+    y0 = int(min(max(0, fy * big_h - out_h / 2), big_h - out_h))
+    return cv2.resize(big[y0:y0 + out_h, x0:x0 + out_w], (out_w, out_h), interpolation=cv2.INTER_LANCZOS4)
+
+
 def preset_for(index: int, total: int) -> str:
     """First and last shots push in (matching loop seam); the rest vary."""
     if index == 0 or index == total - 1:
@@ -100,7 +118,7 @@ from .encoding import bounded_encode
 
 @bounded_encode
 def render_clip(image_path: Path, out_path: Path, duration: float, preset: str = "push",
-                fps: int = VIDEO_FPS, size=(VIDEO_WIDTH, VIDEO_HEIGHT)) -> Path:
+                fps: int = VIDEO_FPS, size=(VIDEO_WIDTH, VIDEO_HEIGHT), variant: int = 0) -> Path:
     """Renders a parallax clip of `duration` seconds from one still."""
     import cv2
     import numpy as np
@@ -110,7 +128,7 @@ def render_clip(image_path: Path, out_path: Path, duration: float, preset: str =
     bgr = cv2.imread(str(image_path), cv2.IMREAD_COLOR)
     if bgr is None:
         raise OSError(f"Cannot read {image_path}")
-    base = _cover_crop(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB), bw, bh)
+    base = repeat_crop(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB), bw, bh, variant)
     depth = depth_map(base)
 
     zoom_amt, shift_x, shift_y = PRESETS[preset]
@@ -146,7 +164,7 @@ def render_clip(image_path: Path, out_path: Path, duration: float, preset: str =
     if proc.returncode != 0:
         raise RuntimeError(f"ffmpeg failed encoding {out_path.name}")
     from .lineage import record_derived
-    record_derived(out_path, [image_path], "parallax", {"preset": preset, "duration": duration, "fps": fps})
+    record_derived(out_path, [image_path], "parallax", {"preset": preset, "duration": duration, "fps": fps, "variant": variant})
     return out_path
 
 
@@ -165,16 +183,16 @@ def render_scenes(scenes, durations, work_dir: Path, transition: float) -> Optio
     _session()  # load the model once before the worker threads share it
     renderer = file_inputs([Path(__file__), MODEL_PATH])
 
-    def clip_for(i, scene, duration, preset):
+    def clip_for(i, scene, duration, preset, variant=0):
         # A clip is reused (QA re-plan, resume) only for the same still, timing, move, size and
         # renderer, and only while it and its lineage record are intact.
         clip = work_dir / f"scene_{i + 1:02d}.mp4"
         inputs = {"image": file_inputs([Path(scene)]), "duration": duration, "preset": preset,
-                  "fps": VIDEO_FPS, "size": [VIDEO_WIDTH, VIDEO_HEIGHT], "renderer": renderer}
+                  "fps": VIDEO_FPS, "size": [VIDEO_WIDTH, VIDEO_HEIGHT], "renderer": renderer, "variant": variant}
         checkpoint = Checkpoints(work_dir / "stage_cache" / clip.stem)
         if checkpoint.reusable("clip", inputs):
             return clip, False
-        render_clip(Path(scene), clip, duration, preset)
+        render_clip(Path(scene), clip, duration, preset, variant=variant)
         try:
             checkpoint.complete("clip", inputs, [clip, sidecar(clip)])
         except (OSError, ValueError) as e:  # caching is an optimisation; the fresh clip stands
@@ -183,9 +201,17 @@ def render_scenes(scenes, durations, work_dir: Path, transition: float) -> Optio
 
     jobs = {}
     with ThreadPoolExecutor(max_workers=4) as pool:  # OpenCV/NumPy release the GIL while warping
+        shown: dict = {}
         for i, (scene, dur) in enumerate(zip(scenes, durations)):
             if not is_video(scene):
-                jobs[i] = pool.submit(clip_for, i, scene, dur + 3 * transition, preset_for(i, len(scenes)))
+                # A photo shown again gets another frame and another move, never the same shot twice.
+                variant = shown.get(str(scene), 0)
+                shown[str(scene)] = variant + 1
+                preset = preset_for(i, len(scenes))
+                if variant:
+                    moves = [m for m in PRESETS if m != preset]
+                    preset = moves[(variant - 1 + i) % len(moves)]
+                jobs[i] = pool.submit(clip_for, i, scene, dur + 3 * transition, preset, variant)
         results = {i: job.result() for i, job in jobs.items()}
         out = [results[i][0] if i in results else scene for i, scene in enumerate(scenes)]
     rendered = sum(1 for _, fresh in results.values() if fresh)

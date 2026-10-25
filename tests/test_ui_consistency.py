@@ -160,3 +160,14 @@ def test_posting_groups_an_episodes_posts_with_their_own_times_and_links(db):
     carousel = detail.split("<b>Carousel</b>")[1]
     assert "Slot:" in carousel and ("in " in carousel or "ago" in carousel)       # a date and a countdown
     assert actions[-1] == [{"text": "← Posting", "callback_data": "cposts:"}]
+
+
+def test_a_repeated_photo_is_framed_as_a_new_shot():
+    # Operator, 2026-10-25: beat 8 reused beat 1's photo with the same frame.
+    import numpy as np
+    from src.parallax import repeat_crop
+    rng = np.random.default_rng(1)
+    rgb = (rng.random((400, 300, 3)) * 255).astype("uint8")
+    first, again, third = (repeat_crop(rgb, 90, 160, v) for v in (0, 1, 2))
+    assert first.shape == again.shape == third.shape == (160, 90, 3)
+    assert not np.array_equal(first, again) and not np.array_equal(again, third)

@@ -127,7 +127,7 @@ def test_parallax_clips_reused_only_while_inputs_match(monkeypatch, tmp_path):
     still.write_bytes(b"still")
     renders = []
 
-    def fake_render(image, out, duration, preset):
+    def fake_render(image, out, duration, preset, variant=0):
         renders.append((duration, preset))
         out.write_bytes(f"{duration}{preset}".encode())
         record_derived(out, [image], "parallax", {"duration": duration})

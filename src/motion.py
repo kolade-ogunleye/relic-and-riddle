@@ -290,6 +290,12 @@ def _finish(raw: Path, out: Path, archetype: str = "megastructure") -> Path:
             raise MotionError(f"Content-fidelity check failed: {qa['reason']}")
         log.info("AI motion hook verified: %s (inliers=%d, ratio=%.2f, content change %.0f%%)", qa.get("reason"),
                  qa.get("inliers", 0), qa.get("inlier_ratio", 0.0), 100 * changed)
+        # The accepted clip's measurements too (rejected ones were already kept): the gate's thresholds can
+        # only be calibrated from both sides, and production had no rejections to learn from (2026-10-24).
+        try:
+            out.with_suffix(".qa.json").write_text(json.dumps({**qa, "archetype": archetype, "accepted": True}, indent=1), encoding="utf-8")
+        except (OSError, TypeError, ValueError) as e:
+            log.debug("Motion QA record not written: %s", e)
     finally:
         f0.unlink(missing_ok=True)
         f_end.unlink(missing_ok=True)

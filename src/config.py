@@ -275,6 +275,9 @@ BEAT_IMAGES_ENABLED = os.getenv("BEAT_IMAGES_ENABLED", "true").lower() in ("true
 # A found picture is looked at (a light vision call) before it is kept: the title and metadata checks let a
 # photograph of the wrong temple through (quality step 1, 2026-10-24). At most one call per kept candidate.
 PICTURE_VISION_CHECK = os.getenv("PICTURE_VISION_CHECK", "true").lower() in ("true", "1", "yes")
+# A look at each rendered Story frame and carousel slide (quality step 5, 2026-10-25): findings are shown on
+# the review card and kept in the ledger; they do not block a release until the check is calibrated.
+STILL_VISION_CHECK = os.getenv("STILL_VISION_CHECK", "true").lower() in ("true", "1", "yes")
 # Operator-supplied footage (src/footage.py). Share of runtime footage may take (Meta's originality
 # rules: third-party clips support our narration, never replace it), and the quality bar.
 FOOTAGE_ENABLED = os.getenv("FOOTAGE_ENABLED", "true").lower() in ("true", "1", "yes")

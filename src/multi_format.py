@@ -529,11 +529,18 @@ class MultiFormatGenerator:
             else:
                 im = self._render_editorial_split(photo, card, i, cw, chh)
 
-            im = ensure_legible(im, (0, 0, cw, 110), text_rgb=(212, 175, 55), feather=90)  # a full-width header band, no corners
+            # Shade behind each header text's own extent, not a band across the slide: the band's 90th-percentile
+            # luminance was mostly black sky, so a badge over a bright solar panel was left at 1.1:1 (measured 2026-10-25).
             d = ImageDraw.Draw(im, "RGBA")
             f_dossier = get_font("Montserrat", 20)
+            dossier = f"ARCHIVAL RECORD // {i + 1:02d} OF {total:02d}"
+            brand_w = d.textlength("RELIC & RIDDLE", font=f_small)
+            im = ensure_legible(im, (int(cw - 80 - brand_w - 30), 50, cw - 50, 100), feather=60)
             if not facebook:  # the dossier header with its counter is a swipe cue; Facebook keeps only the brand
-                d.text((80, 70), f"ARCHIVAL RECORD // {i + 1:02d} OF {total:02d}", font=f_dossier, fill=(212, 175, 55, 255),
+                im = ensure_legible(im, (50, 50, int(80 + d.textlength(dossier, font=f_dossier) + 30), 100), text_rgb=(212, 175, 55), feather=60)
+            d = ImageDraw.Draw(im, "RGBA")
+            if not facebook:
+                d.text((80, 70), dossier, font=f_dossier, fill=(212, 175, 55, 255),
                        anchor="lt", stroke_width=2, stroke_fill=(8, 10, 14, 230))
             d.text((cw - 80, 70), "RELIC & RIDDLE", font=f_small, fill=(235, 235, 235, 255), anchor="rt", stroke_width=2, stroke_fill=(8, 10, 14, 230))
 

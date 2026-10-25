@@ -41,21 +41,23 @@ def verify_visual_relevance(cand_title: str, query: str = "") -> bool:
 
 
 class PictureVerdict(BaseModel):
-    shows_subject: bool   # the picture shows what was searched for
-    reason: str           # one short sentence, from the picture itself
+    shows_subject: bool       # the picture shows what was searched for
+    burned_in_text: bool = False  # a caption strip, scale bar, watermark, logo or other text printed into the picture
+    reason: str               # one short sentence, from the picture itself
 
 
 PICTURE_SYSTEM = ("You judge whether a photograph shows the subject a documentary beat was looking for. Judge the picture "
                   "itself, not its title. A reconstruction, model, diagram, excavation or museum display of the subject "
-                  "counts; an unrelated place or building, a modern street, people posing, signage or a souvenir does not.")
+                  "counts; an unrelated place or building, a modern street, people posing, signage or a souvenir does not. "
+                  "Also say whether text is printed into the picture itself (a caption strip, a scale bar with units, a "
+                  "watermark, a logo, a date stamp): such a picture is cropped on screen and the text shows cut off.")
 
 
-def picture_shows(path: Path, query: str) -> Tuple[bool, str]:
-    """A look at the pixels before a found picture is kept (quality step 1, 2026-10-24): the title and
-    metadata checks let a photograph of the wrong temple through. A light vision call; when it cannot run,
-    the picture is kept and the reason recorded, so the search never loses to a check."""
+def picture_look(path: Path, query: str) -> Dict[str, Any]:
+    """One look at the pixels: {"checked", "shows", "burned_in_text", "reason"}. When the check cannot run,
+    checked is False and the picture counts as showing its subject, so a search never loses to a check."""
     if not config.PICTURE_VISION_CHECK:
-        return True, "not checked"
+        return {"checked": False, "shows": True, "burned_in_text": False, "reason": "not checked"}
     from . import free_llm
     from .llm import image_block
     content = [{"type": "text", "text": f"Searched for: {query}\nDoes this picture show it?"}, image_block(path, 512)]
@@ -67,8 +69,20 @@ def picture_shows(path: Path, query: str) -> Tuple[bool, str]:
             verdict = free_llm.structured(PICTURE_SYSTEM, content, PictureVerdict, role="checker", task_class="light")
     except Exception as e:  # unavailable or malformed: the picture stays, the record says it was not looked at
         log.debug("Picture check unavailable for %s (%s); keeping it.", path.name, e)
-        return True, "check unavailable"
-    return bool(verdict.shows_subject), (verdict.reason or "")[:160]
+        return {"checked": False, "shows": True, "burned_in_text": False, "reason": "check unavailable"}
+    return {"checked": True, "shows": bool(verdict.shows_subject), "burned_in_text": bool(verdict.burned_in_text),
+            "reason": (verdict.reason or "")[:160]}
+
+
+def picture_shows(path: Path, query: str) -> Tuple[bool, str]:
+    """A look at the pixels before a found picture is kept (quality step 1, 2026-10-24): the title and
+    metadata checks let a photograph of the wrong temple through. A picture with text printed into it (a
+    caption strip, a scale bar) is set aside too: cropped on screen, the text shows cut off (a carousel
+    slide, 2026-10-25)."""
+    look = picture_look(path, query)
+    if look["burned_in_text"]:
+        return False, ("burned-in text: " + look["reason"])[:160]
+    return look["shows"], look["reason"]
 
 
 @llm_task("beat_queries")

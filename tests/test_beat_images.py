@@ -182,5 +182,8 @@ def test_the_look_keeps_the_picture_when_it_cannot_run(monkeypatch, tmp_path):
     assert beat_images.picture_shows(p, "a query") == (True, "check unavailable")
     monkeypatch.setattr("src.free_llm.structured", lambda *a, **k: beat_images.PictureVerdict(shows_subject=False, reason="a gift shop"))
     assert beat_images.picture_shows(p, "a query") == (False, "a gift shop")
+    # 2026-10-25: a satellite image with its own caption strip reached a carousel slide, cut off by the crop
+    monkeypatch.setattr("src.free_llm.structured", lambda *a, **k: beat_images.PictureVerdict(shows_subject=True, burned_in_text=True, reason="a scale bar and a caption"))
+    assert beat_images.picture_shows(p, "a query") == (False, "burned-in text: a scale bar and a caption")
     monkeypatch.setattr(config, "PICTURE_VISION_CHECK", False)
     assert beat_images.picture_shows(p, "a query") == (True, "not checked")

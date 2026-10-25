@@ -624,8 +624,9 @@ class QualityAuditor:
             "master_sha256": sha256_file(video_path),
         }
 
-    def audit_carousel_slides(self, carousel_dir: Path) -> Dict[str, Any]:
-        """Audits generated carousel slides for aspect ratio, blank frames, safe margin encroachment, and badge bounds."""
+    def audit_carousel_slides(self, carousel_dir: Path, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Audits generated carousel slides for aspect ratio, blank frames, safe margin encroachment, and badge bounds,
+        then looks at each slide with its own words (still_vision; informational findings)."""
         target_dir = carousel_dir / "carousel" if (carousel_dir / "carousel").is_dir() else carousel_dir
         issues: List[Dict[str, Any]] = []
         score = 100
@@ -697,6 +698,10 @@ class QualityAuditor:
                 })
                 score -= 30
 
+        from . import still_vision
+        issues.extend(still_vision.findings(slides, "carousel slide", [still_vision.carousel_copy(payload, i) for i in range(len(slides))],
+                                            "carousel_slide_look", "slide"))
+
         final_score = max(0, min(100, score))
         certified = (final_score == 100 and len([iss for iss in issues if iss.get("severity") in ("critical", "major")]) == 0)
         return {
@@ -706,8 +711,9 @@ class QualityAuditor:
             "slides_audited": len(slides),
         }
 
-    def audit_story_cards(self, story_dir: Path) -> Dict[str, Any]:
-        """Audits generated Story frames for 9:16 aspect ratio, blank cards, UI safe zone violations, and engagement bait."""
+    def audit_story_cards(self, story_dir: Path, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Audits generated Story frames for 9:16 aspect ratio, blank cards, UI safe zone violations, and engagement bait,
+        then looks at each frame with its own words (still_vision; informational findings)."""
         target_dir = story_dir / "stories" if (story_dir / "stories").is_dir() else story_dir
         issues: List[Dict[str, Any]] = []
         score = 100
@@ -791,6 +797,10 @@ class QualityAuditor:
                         score -= 15
             except (ValueError, KeyError, TypeError) as e:
                 issues.append({"type": "story_layout_unreadable", "severity": "minor", "issue": f"stories/layout.json: {e}"})
+
+        from . import still_vision
+        issues.extend(still_vision.findings(cards, "Story frame", [still_vision.story_copy(payload, i) for i in range(len(cards))],
+                                            "story_frame_look", "card"))
 
         final_score = max(0, min(100, score))
         certified = (final_score == 100 and len([iss for iss in issues if iss.get("severity") in ("critical", "major")]) == 0)
@@ -945,17 +955,18 @@ class QualityAuditor:
         thumb_audit = None
         policy_audit = None
 
+        payload_obj = kwargs.get("payload")
         c_dir = kwargs.get("carousel_dir") or (run_dir / "carousel")
         if c_dir and (c_dir.is_dir() or (run_dir / "carousel").is_dir()):
             target_c = c_dir if c_dir.is_dir() else (run_dir / "carousel")
             if list(target_c.glob("carousel_slide_*.jpg")):
-                carousel_audit = self.audit_carousel_slides(target_c)
+                carousel_audit = self.audit_carousel_slides(target_c, payload=payload_obj)
 
         s_dir = kwargs.get("story_dir") or (run_dir / "stories")
         if s_dir and (s_dir.is_dir() or (run_dir / "stories").is_dir()):
             target_s = s_dir if s_dir.is_dir() else (run_dir / "stories")
             if list(target_s.glob("story_*.jpg")) or list(target_s.glob("story_*.png")):
-                story_audit = self.audit_story_cards(target_s)
+                story_audit = self.audit_story_cards(target_s, payload=payload_obj)
 
         cov_p = kwargs.get("cover_path") or (run_dir / "thumbnail_cover.jpg")
         grid_p = kwargs.get("grid_path") or (run_dir / "thumbnail_profile_grid.jpg")
@@ -963,7 +974,6 @@ class QualityAuditor:
             thumb_audit = self.audit_thumbnails(cov_p if (cov_p and cov_p.exists()) else None,
                                                 grid_p if (grid_p and grid_p.exists()) else None)
 
-        payload_obj = kwargs.get("payload")
         if payload_obj:
             policy_audit = self.audit_publishing_policy(payload_obj)
 

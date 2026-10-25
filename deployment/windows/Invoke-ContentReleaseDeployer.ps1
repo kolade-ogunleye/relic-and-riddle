@@ -23,8 +23,8 @@ in ContentRuntime\tools\deploy, which this account can read but not change.
 
 Every outcome is written to control\release.json (the daemon reports it in Telegram) and to the
 Application event log (5010 installed, 5011 refused or rolled back). It never reads .env (its
-account is denied it), never changes identities, ACLs, tasks or the backup, and production keeps
-its --dry-run launch. A tree not at a release tag (a manual change) pauses it.
+account is denied it), never changes identities, ACLs, tasks or the backup, and never changes the
+pipeline's launch mode (live since 2026-10-25). A tree not at a release tag (a manual change) pauses it.
 #>
 [CmdletBinding()]
 param([switch]$CheckOnly)

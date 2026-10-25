@@ -14,7 +14,7 @@ Run once, elevated, on CONTENTCLIENTWI. It implements the documented idle stop/s
    its summary (the report contains no secrets), then removes that task.
 
 It never reads or changes .env, credentials, identities, ACLs or the backup task, and never
-enables live publication: the pipeline keeps its existing --dry-run launch.
+changes the pipeline's launch mode (live since the operator's activation on 2026-10-25).
 .PARAMETER PaidVoice
 Also synthesize one short licensed voice sample per configured provider (a few dozen characters).
 #>
@@ -144,4 +144,4 @@ if (-not $SkipProbe -and $PSCmdlet.ShouldProcess('LAB\rr-pipeline$', 'Run the fo
         Unregister-ScheduledTask -TaskName $probeTask -Confirm:$false -ErrorAction SilentlyContinue
     }
 }
-Write-Step 'Promotion finished. Production remains in dry-run mode.'
+Write-Step 'Promotion finished. Production runs live: every approved run is booked and posted.'

@@ -57,7 +57,7 @@ def test_pipeline_entrypoint_never_configures_api_worker_or_reads_backup_custody
     calls = []
     monkeypatch.setattr(runtime.runpy, "run_path", lambda path, **kw: calls.append((path, list(sys.argv))))
     assert execute("pipeline", settings)[1] == 0
-    assert calls[0][1][-2:] == ["daemon", "--dry-run"]
+    assert calls[0][1][-1] == "daemon" and "--dry-run" not in calls[0][1]  # live (2026-10-25)
     assert config.BACKUP_TRANSPORT == "sync-folder"
     assert not settings.backup_key_file.exists()
     assert not settings.token_cache.exists()

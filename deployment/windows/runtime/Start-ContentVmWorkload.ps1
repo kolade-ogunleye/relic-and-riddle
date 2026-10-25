@@ -3,7 +3,7 @@
 .SYNOPSIS
 Runs a content workload under its dedicated identity with explicit dependencies.
 .DESCRIPTION
-Defaults to an API canary. Run mode preserves pipeline --dry-run. A stop
+Defaults to an API canary. Run mode starts the pipeline live (since 2026-10-25). A stop
 request terminates only this launcher's recorded worker tree. No secret values
 are passed on command lines or returned by this launcher. In pipeline run mode a
 release hold (control\Pipeline.hold) stops the worker tree, runs the deployer's

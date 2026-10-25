@@ -11,9 +11,11 @@
 - Keep development's existing feature flags and spending settings unchanged.
   Production uses its own configured licensed providers and existing spending
   caps. Do not equate dry-run mode with zero API cost.
-- Production remains in validation/dry-run mode until explicitly activated.
-  Archive validation runs before activation; retain all paid usage records,
-  publication evidence, operator settings, and backups.
+- Production was activated by the operator on 2026-10-25: there is no dry run on
+  production, and every run is a posting candidate (approval still decides). The
+  validation runs were archived first (`archive/reset-<UTC>` on the VM, made by
+  `scripts/production_reset.py`); keep publication evidence, operator settings and
+  backups.
 - See `docs/deployment.md` for provisioning, validation, promotion, and rollback.
 - Production startup was migrated through the lab's controlled automation to
   `RelicAndRiddle-Production-Unattended` (`LAB\rr-pipeline$`) and

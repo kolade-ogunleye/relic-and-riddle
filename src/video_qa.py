@@ -438,7 +438,11 @@ class QualityAuditor:
             if not terms:  # declares nothing to judge it by
                 continue
             c_start, c_end = cut.get("start", 0.0), cut.get("end", 0.0)
-            in_window = [w for w in all_words_list if (c_start - 2.5) <= w.get("start", 0.0) <= (c_end + 2.5)]
+            # A map or route shows where the story is set, so the place named any time before it counts (a Hal
+            # Saflieni map after "Paola, Malta" in the first line was blocked as out of step: 2026-10-25).
+            locator = graphic_match.kind_of(asset_path) in ("map", "route")
+            in_window = [w for w in all_words_list
+                         if (0.0 if locator else c_start - 2.5) <= w.get("start", 0.0) <= (c_end + 2.5)]
             heard = cut.get("text", "") + " " + " ".join(w.get("word", "") for w in in_window)
             if graphic_match.score(asset_path, heard) < graphic_match.THRESHOLD:
                 issues.append({

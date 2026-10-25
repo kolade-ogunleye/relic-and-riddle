@@ -72,3 +72,18 @@ def test_a_late_graphic_is_moved_to_its_words_without_a_second_plan(tmp_path):
     assert placement_only([late], "") == [late]
     assert placement_only([late, {"type": "semantic_desync", "scene_index": 2}], "") == []
     assert placement_only([late], "Beat 3: the picture shows a different site") == []
+
+
+def test_a_map_counts_the_place_named_earlier_in_the_narration(tmp_path):
+    # Hal Saflieni (dev, 2026-10-25): the map came second, after "Beneath the town of Paola, Malta"; the
+    # check only heard its own few seconds and blocked the release.
+    graphic = make_graphic(tmp_path, "graphic_map.mp4", {"place": {"label": "Hal Saflieni Hypogeum, Paola", "country": "Malta"}})
+    timeline = [{"asset": str(tmp_path / "hook.jpg"), "start": 0.0, "end": 5.0, "text": "Beneath the town of Paola, Malta"},
+                {"asset": str(graphic), "start": 12.0, "end": 16.0, "text": "three superimposed levels"}]
+    words = [{"word": "Paola,", "start": 2.0, "dur": 0.4}, {"word": "Malta,", "start": 2.5, "dur": 0.4},
+             {"word": "levels", "start": 13.0, "dur": 0.4}]
+    report = QualityAuditor().audit_rendered_timeline(tmp_path / "absent.mp4", timeline, words)
+    assert not [i for i in report["issues"] if i["type"] == "semantic_desync"]
+    # a map whose place is never named is still flagged
+    report = QualityAuditor().audit_rendered_timeline(tmp_path / "absent.mp4", timeline[1:], words[2:])
+    assert [i for i in report["issues"] if i["type"] == "semantic_desync"]

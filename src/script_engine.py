@@ -98,7 +98,7 @@ Requirements:
 - caption: written like a magazine editor, not a template. First line: a curiosity-driven line of at most 110 characters (a hard limit of 125 is shown before "more"; stay well under it) that is NOT the narration's hook sentence. Then 2-3 short sentences that add context the video doesn't say (a detail, a consequence, a name), with the place worked naturally into the prose. Then one genuine question to the audience. Then the hashtags on the last line. Use 1-3 relevant emoji where they add warmth or meaning (for example one at the end of the first line and one on the question), never as labels or bullet markers, and no "📍" lines. Under 1,600 characters.
 - carousel_caption: a separate caption for the 7-slide carousel of the same topic, different wording from the Reel caption (not a rephrase of its first line): a short invitation to swipe, one fresh detail, one question, then the same hashtags. Under 800 characters.
 - hashtags: 3-5 (Instagram allows at most 5), each starting with "#": specific to the place, era or subject (e.g. "#Cappadocia", "#ByzantineHistory"); no generic engagement tags like "#viral", "#fyp", "#ReelsViral", "#explore".
-- story_slides: exactly 3 (hook, revelation, question). Slide 3 asks the poll's question; its body gives context and asks nothing else.
+- story_slides: exactly 3 (hook, revelation, question). Slide 3 asks the poll's question; its body gives context and asks nothing else. Each body is one complete sentence of at most 18 words: it must fit three lines at the Story's text size.
 - poll: an either/or question (at most 60 characters) and exactly 2 options (each at most 24 characters) that are its two answers, e.g. "Which took more work?" with "Carving downward" / "Hauling the stone". Never a yes/no question with options that are not yes/no.
 - carousel_slides: exactly 7 (title slide, five fact slides, closing call-to-comment slide). Slide 7 MUST ask a humane, universally resonant, thought-provoking question that appeals to all demographics (e.g. human ingenuity, civilizational survival, what modern humans have forgotten, or enduring mysteries) rather than narrow academic trivia, compelling viewers to debate in the comments.
 - first_comment: a debate-starting question, with no hashtags (Instagram's 5-hashtag cap covers the whole post).
@@ -484,6 +484,17 @@ def validate_structure(pkg: ScriptPackage) -> List[str]:
         problems.append(f"Caption uses {emoji} emoji; 1-3 relevant ones read human, more reads like spam.")
     if len(pkg.story_slides) != 3:
         problems.append(f"Expected 3 story slides, got {len(pkg.story_slides)}.")
+    else:
+        # Each body fits three lines at the Story's fixed text size (it was shrunk to an unreadable 30 px
+        # instead: operator, 2026-10-25). Measured as the renderer draws it.
+        from .multi_format import STORY_BODY_LINES, story_body_lines
+        for i, s in enumerate(pkg.story_slides, 1):
+            lines = story_body_lines(s.body, asks_poll=i == 3)
+            if lines > STORY_BODY_LINES:
+                words = len(s.body.split())
+                fit = max(8, words * STORY_BODY_LINES // lines - 1)
+                problems.append(f"Story slide {i}'s body takes {lines} lines on the frame (at most {STORY_BODY_LINES}); "
+                                f"rewrite it in about {fit} words ({words} now), keeping one complete sentence.")
     if len(pkg.carousel_slides) != 7:
         problems.append(f"Expected 7 carousel slides, got {len(pkg.carousel_slides)}.")
     problems.extend(poll_problems(pkg.poll.question, pkg.poll.options))

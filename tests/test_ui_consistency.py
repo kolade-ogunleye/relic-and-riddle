@@ -105,3 +105,18 @@ def test_a_run_on_a_button_is_named_whole(db):
     name = control.button_run_name(db, "run_b")
     assert len(name) <= 26 and '"' not in name
     assert name.rsplit(" ", 1)[-1].count(":") == 1                                 # its time tells two runs apart
+
+
+def test_story_body_text_is_never_shrunk_and_the_script_keeps_it_to_three_lines(curated_payload):
+    # Operator, 2026-10-25: an Antikythera Story body was shrunk to 30 px over four lines, about 11 pt on a phone.
+    from src import multi_format, script_engine
+    from src.models import ScriptPackage
+    long_body = ("The bronze gear train was built to track solar and lunar movements through the zodiac, predict "
+                 "eclipses, and model the Moon's variable speed between apogee and perigee.")
+    assert multi_format.story_body_lines(long_body) > multi_format.STORY_BODY_LINES
+    pkg = ScriptPackage.model_validate(curated_payload)
+    pkg.story_slides[1].body = long_body
+    problems = " ".join(script_engine.validate_structure(pkg))
+    assert "Story slide 2's body takes" in problems and "rewrite it in about" in problems
+    pkg.story_slides[1].body = "Its gears tracked the Sun and Moon and predicted eclipses."
+    assert "Story slide 2" not in " ".join(script_engine.validate_structure(pkg))

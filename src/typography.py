@@ -75,7 +75,7 @@ def _font_name(font: ImageFont.FreeTypeFont) -> Optional[str]:
 
 
 def fit_lines(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, max_width: int,
-              max_lines: int) -> Tuple[List[str], ImageFont.FreeTypeFont]:
+              max_lines: int, min_ratio: Optional[float] = None) -> Tuple[List[str], ImageFont.FreeTypeFont]:
     """The lines to draw and the font to draw them with, never a cut sentence (operator, 2026-10-25: a posted
     Story frame ended mid-sentence on "the", because every renderer kept only its first N wrapped lines).
     The text shrinks (down to FIT_MIN_RATIO of its size) until it fits in max_lines; if it still does not,
@@ -85,7 +85,8 @@ def fit_lines(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont
     if not text:
         return [], font
     name = _font_name(font)
-    sizes = [font.size] + ([s for s in range(font.size - 2, int(font.size * FIT_MIN_RATIO) - 1, -2)] if name else [])
+    ratio = FIT_MIN_RATIO if min_ratio is None else min_ratio  # 1.0: never smaller (Story body, 2026-10-25)
+    sizes = [font.size] + ([s for s in range(font.size - 2, int(font.size * ratio) - 1, -2)] if name else [])
     for size in sizes:
         f = font if size == font.size else get_font(name, size)
         lines = wrap_text(draw, text, f, max_width)

@@ -41,10 +41,11 @@ def test_story_frames_draw_their_text_whole(tmp_path):
         MultiFormatGenerator().generate_story_sequence(hero, payload, tmp_path)
     finally:
         ImageDraw.ImageDraw.text = real
-    body_text = " ".join(t for t in drawn if t and t[0].islower() or t.startswith(("The", "and", "Its")))
-    assert "and model the" not in body_text.replace("and model the Moon", "")       # never ends on a fragment
-    for frame_lines in [body_text]:
-        assert "Moon's variable speed across the sky." in frame_lines or "Its maker" not in frame_lines
+    # The body is drawn at its full size (never shrunk, 2026-10-25), so it may take more lines; what is drawn
+    # is whole sentences, never a fragment ending on "the".
+    joined = " ".join(drawn)
+    assert "across the sky." in joined                                          # the first sentence, whole
+    assert not any(t.rstrip().endswith((" the", " and model the")) for t in drawn[-1:])
 
 
 def test_the_audit_flags_a_story_frame_whose_text_was_shortened(tmp_path):

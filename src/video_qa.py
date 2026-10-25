@@ -797,6 +797,13 @@ class QualityAuditor:
                                        "issue": f"Story frame {entry.get('frame')}: its text was shortened to fit "
                                                 f"({len(drawn.split())} of {len(source.split())} words): ...{drawn[-60:]}"})
                         score -= 15
+                    from .multi_format import STORY_BODY_LINES, STORY_BODY_PX
+                    if entry.get("body_px") and (entry["body_px"] < STORY_BODY_PX or (entry.get("body_lines") or 0) > STORY_BODY_LINES):
+                        # Too small to read on a phone, or spilling past its three lines (operator, 2026-10-25).
+                        issues.append({"type": "story_text_too_small", "severity": "major", "card": entry.get("frame"),
+                                       "issue": f"Story frame {entry.get('frame')}: body set at {entry['body_px']} px on "
+                                                f"{entry.get('body_lines')} lines (needs {STORY_BODY_PX} px, at most {STORY_BODY_LINES} lines)"})
+                        score -= 15
                     if not safe_zones.inside(tuple(entry["text_box"]), safe_zones.safe_box("story", w, h)):
                         issues.append({"type": "story_text_outside_safe_zone", "severity": "major", "card": entry.get("frame"),
                                        "issue": f"Story frame {entry.get('frame')}: text block {entry['text_box']} leaves the Story safe area "

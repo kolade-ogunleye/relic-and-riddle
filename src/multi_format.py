@@ -27,6 +27,27 @@ WHITE = (255, 255, 255)
 LIGHT = (225, 225, 225)
 
 
+STORY_BODY_PX = 40      # the Story body's size; never shrunk below it (2026-10-25: 30 px read as ~11 pt)
+STORY_BODY_LINES = 3
+
+
+def story_body_width() -> int:
+    from .safe_zones import safe_box
+    sx0, _, sx1, _ = safe_box("story", VIDEO_WIDTH, VIDEO_HEIGHT)
+    return min(VIDEO_WIDTH - 2 * 110, sx1 - sx0)
+
+
+def story_body_lines(body: str, asks_poll: bool = False) -> int:
+    """How many lines a Story frame's body takes at its fixed size, as the renderer draws it (the poll frame
+    drops the body's own questions)."""
+    if asks_poll:
+        body = " ".join(s for s in re.split(r"(?<=[.!?])\s+", body) if not s.rstrip().endswith("?"))
+    if not body.strip():
+        return 0
+    d = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    return len(wrap_text(d, " ".join(body.split()), get_font("Montserrat", STORY_BODY_PX), story_body_width()))
+
+
 def split_balanced(text: str) -> Tuple[str, str]:
     """Splits a headline into two lines of similar length at a word boundary."""
     words = text.split()
@@ -116,12 +137,14 @@ class MultiFormatGenerator:
                 l1, l2 = split_balanced(poll["question"].upper())  # the frame asks the question its options answer
             font_k = fit_font(d, kicker, "Montserrat", 34, max_w, 22)
             size = min(fit_font(d, l1, "Anton", 104, max_w, 56).size, fit_font(d, l2, "Anton", 104, max_w, 56).size)
-            font_t, font_b = get_font("Anton", size), get_font("Montserrat", 40)
+            font_t, font_b = get_font("Anton", size), get_font("Montserrat", STORY_BODY_PX)
             has_options = i == len(slides_data) - 1 and len(poll.get("options", [])) >= 2
             body = slide["body"]
             if has_options:  # one question per frame: the poll's; the body keeps only its context
                 body = " ".join(s for s in re.split(r"(?<=[.!?])\s+", body) if not s.rstrip().endswith("?"))
-            body_lines, font_b = fit_lines(d, body, font_b, max_w, 3) if body.strip() else ([], font_b)
+            # Never smaller than its design size: shrunk to 30 px it read about 11 pt on a phone (operator,
+            # 2026-10-25). The script stage keeps each body within three lines at this size (story_body_lines).
+            body_lines, font_b = fit_lines(d, body, font_b, max_w, 3, min_ratio=1.0) if body.strip() else ([], font_b)
             block = 60 + 2 * (size + 12) + 40 + len(body_lines) * 54 + (40 + 2 * 120 + 70 if has_options else (90 if i == 0 else 20))
             # Keep the whole block (with options or the Reel pointer) inside the Story box.
             y = max(sy0 + 20, min(cy - block // 2, sy1 - block))
@@ -163,6 +186,7 @@ class MultiFormatGenerator:
                 y_end = y + 40 + 2 * 120 + 20 + 40
             layout.append({"frame": name, "size": [VIDEO_WIDTH, VIDEO_HEIGHT],
                            "body_source": " ".join(body.split()), "body_drawn": " ".join(body_lines),
+                           "body_px": font_b.size, "body_lines": len(body_lines),
                            "text_box": [(VIDEO_WIDTH - max_w) // 2, int(pill_box[1]), (VIDEO_WIDTH + max_w) // 2, int(y_end)],
                            "safe_box": [sx0, sy0, sx1, sy1]})
             path = out_dir / name

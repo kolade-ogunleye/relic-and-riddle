@@ -194,11 +194,13 @@ def _structured_on(model: str, system: str, prompt, schema: Type[T], role: str, 
             # No answer in time (production's 2026-10-23 run lost its script to one 300 s timeout). Sent
             # again with backoff; an operator-facing call (its own short timeout) gives way instead, and a
             # long task that keeps timing out is treated like an overloaded model: the capped billed key.
-            if attempt == attempts:
+            # After TIMEOUTS_BEFORE_BILLED timeouts, not all `attempts`: each costs about five minutes, and a
+            # development run spent 18 minutes on one step waiting through them (operator, 2026-10-25).
+            if attempt == attempts or (not timeout and attempt >= TIMEOUTS_BEFORE_BILLED):
                 if timeout:
                     raise LLMError(f"Free model {model} failed: {e}") from e
                 return _paid_fallback(system, prompt, schema, model, task_class,
-                                      f"The free model {model} did not answer in time ({attempts} attempts)")
+                                      f"The free model {model} did not answer in time ({attempt} attempts)")
             log.info("Free model %s timed out (attempt %d); retrying in %.0fs.", model, attempt, delay)
             time.sleep(delay)
             delay *= 2
@@ -215,6 +217,7 @@ def _structured_on(model: str, system: str, prompt, schema: Type[T], role: str, 
 
 
 INTERACTIVE_TIMEOUT = 45  # seconds; someone is waiting in Telegram
+TIMEOUTS_BEFORE_BILLED = 2  # a long task's free-model timeouts before the capped billed key takes it
 
 
 def call(system: str, prompt, schema: Type[T], role: str = "writer", task_class: str = "heavy",

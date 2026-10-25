@@ -45,7 +45,8 @@ def test_a_timed_out_long_task_is_sent_again_then_uses_the_capped_billed_key(fre
     monkeypatch.setattr(gemini.requests, "post", lambda *a, **k: calls.append(1) or (_ for _ in ()).throw(requests.ReadTimeout("read timed out")))
     monkeypatch.setattr(free_llm, "_paid_fallback", lambda *a, **k: billed.append(a[-1]) or Out(ok=True))
     assert free_llm.structured("s", "p", Out).ok
-    assert len(calls) == 4 and "did not answer in time" in billed[0]
+    # after two timeouts, not four: each costs about five minutes (a dev step took 18 min, 2026-10-25)
+    assert len(calls) == free_llm.TIMEOUTS_BEFORE_BILLED == 2 and "did not answer in time (2 attempts)" in billed[0]
 
 
 def test_an_operator_facing_call_that_times_out_gives_way_without_billing(free, monkeypatch):

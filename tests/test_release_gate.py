@@ -129,6 +129,21 @@ def test_deploy_command_leaves_a_request_for_the_deployer(db, monkeypatch, tmp_p
     assert "requested" in text and "Up to date on v1.0.0-rc10" in text
 
 
+def test_a_deploy_answered_after_the_install_says_the_release_is_running(db, monkeypatch, tmp_path):
+    # Operator, 2026-10-25: a /deploy tapped during the rc43 install was answered by the new daemon with
+    # "Last deployer status: Installing v1.0.0-rc43" although rc43 was already running.
+    from src import control, release_info
+    request, status = tmp_path / "deploy.request", tmp_path / "status.json"
+    status.write_text(json.dumps({"Status": "Installing v1.0.0-rc43 (was v1.0.0-rc41).", "Tag": "v1.0.0-rc43"}), encoding="utf-8")
+    monkeypatch.setenv(control.DEPLOY_REQUEST_ENV, str(request))
+    monkeypatch.setenv(control.DEPLOY_STATUS_ENV, str(status))
+    monkeypatch.setattr(release_info, "release_label", lambda: "v1.0.0-rc43")
+    text = control.request_deploy(db)
+    assert "v1.0.0-rc43 is installed and running" in text and "Installing" not in text
+    monkeypatch.setattr(release_info, "release_label", lambda: "v1.0.0-rc41")   # still installing: the status as it is
+    assert "Last deployer status: Installing v1.0.0-rc43" in control.request_deploy(db)
+
+
 def test_deploy_command_installs_nothing_outside_production(db, monkeypatch):
     from src import control
     monkeypatch.delenv(control.DEPLOY_REQUEST_ENV, raising=False)

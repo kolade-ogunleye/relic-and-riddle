@@ -106,9 +106,20 @@ def request_deploy(db: PipelineDatabase) -> str:
             "While it installs, this bot is quiet for about five minutes; I'll report when it is back on the release.")
     try:
         status = json.loads(Path(os.environ.get(DEPLOY_STATUS_ENV, "")).read_text(encoding="utf-8-sig"))
-        text += f"\n\nLast deployer status: {html.escape(str(status.get('Status', '')))[:400]}"
     except (OSError, ValueError):
-        pass
+        return text
+    try:
+        from .release_info import release_label
+        running = release_label()
+    except Exception:
+        running = None
+    tag = str(status.get("Tag") or "")
+    if tag and running and running == tag:
+        # A /deploy tapped during the install is answered by the daemon that just started on it: the status
+        # file still said "Installing rc43" (operator, 2026-10-25: "a false notification"). Say what is true.
+        text += f"\n\n✅ <b>{html.escape(tag)} is installed and running.</b> Nothing newer is waiting to install."
+    else:
+        text += f"\n\nLast deployer status: {html.escape(str(status.get('Status', '')))[:400]}"
     return text
 
 

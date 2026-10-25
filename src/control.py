@@ -470,7 +470,7 @@ def quota_lines(voice_quota: Optional[dict]) -> List[str]:
 AUDIT_NAMES = {"cdash": "Dashboard", "approve": "Approve", "reject": "Reject", "regen": "Regenerate",
                "cancel": "Cancel review", "rsn": "Reason", "cprog": "Refresh progress", "qrender": "Render",
                "qdoc": "Render with documentary", "qrefresh": "Refresh queue", "qbump": "Bump", "qdrop": "Drop",
-               "resend": "Resend review", "rerender": "Re-render", "postreal": "Post for real?", "promote": "Post for real",
+               "resend": "Resend review", "requeue": "Back to the queue", "rerender": "Re-render", "postreal": "Post for real?", "promote": "Post for real",
                "cdigest": "Weekly digest", "chistory": "Review history", "chist": "Review details", "postnow": "Post now", "produce": "Produce a batch",
                "cposts": "Posting", "posts": "Posting", "cancelpost": "Cancel a booking", "movepost": "Move a booking",
                "retrypost": "Retry the failed platform", "retryreel": "Retry the Reel's failed platform",
@@ -2271,7 +2271,9 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                        else "❌ <b>Rejected.</b> Nothing was posted." if appr.get("decision") == "rejected" else "")
             return (f"🎬 <b>{html.escape(db.run_label(run_id))}</b>\n\n" + (f"{decided}\n\n" if decided else "")
                     + f"✅ Reason: <b>{html.escape(improve.REASONS.get(reason, reason))}</b>. "
-                    f"Reply to this card to add details. [run {html.escape(key)}]")
+                    f"Reply to this card to add details." + (
+                        " It leaves the chat once you do, or in 30 minutes; the run stays in History."
+                        if appr.get("decision") == "rejected" else "") + f" [run {html.escape(key)}]")
         if command == "whytext":
             from . import improve
             key, _, text = args.partition(" ")

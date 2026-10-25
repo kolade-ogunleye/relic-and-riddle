@@ -57,7 +57,14 @@ PANEL_ACTIONS = {"reviewpick", "pickbump", "pickdrop", "cideas", "cpropose", "cc
 DELETE_FIRST = {"tskip"}
 # Decision buttons: disabled before acting so a second tap can't repeat the decision.
 ONE_SHOT = {"uadd", "tadd", "imgok", "mkeep", "cov", "rsn", "impok", "impno", "imprev",
-            "pubok", "pubno", "simpub", "resend", "rerender", "promote"}
+            "pubok", "pubno", "simpub", "resend", "rerender", "promote", "requeue"}
+# Replies that only acknowledge (the card or panel itself shows the result): a nudge that leaves on its own,
+# not a message that stays (operator, 2026-10-25: "Sending ... for review again" and "Thanks, noted" stayed).
+NUDGE_REPLIES = {"resend", "whytext", "requeue"}
+# Of those, the notices whose only job was the button tapped: removed once it is used.
+NOTICE_ACTIONS = {"resend"}
+# How long a rejected run's reason card stays open for details before it leaves the chat.
+REASON_CARD_MINUTES = 30
 # Replies that replace the card they came from (text only).
 EDIT_IN_PLACE = {"uadd", "tadd", "simpub", "rsn", "impok", "impno", "imprev"}
 TOASTS = {"imgok": "✅ Storyboard Approved!", "imgcancel": "✖ Cancelled", "mcancel": "✖ Cancelled",
@@ -1042,6 +1049,9 @@ class TelegramApprovalBot:
             text += "\n" + _format_note(script_payload["topic_origin_note"])
         if script_payload.get("fact_sheet_note"):
             text += "\n" + _format_note(script_payload["fact_sheet_note"])
+        if script_payload.get("trimmed_sentences"):  # said, so the reviewer can judge the flow without them
+            text += "\n" + _format_note("✂️ Removed after the fact check blocked them: "
+                                          + " ".join(f"“{x}”" for x in script_payload["trimmed_sentences"]))
         if script_payload.get("voice_note"):
             text += "\n" + _format_note(script_payload["voice_note"])
         if script_payload.get("music_note"):
@@ -1137,6 +1147,11 @@ class TelegramApprovalBot:
             # first would leave no review if this delivery had failed.
             old = [m for m in [*(earlier or []), (previous or {}).get("telegram_message_id")] if isinstance(m, int)]
             old += self._superseded_review_messages(run_id)  # a regenerated version replaces its predecessor
+            from .telegram_state import get as state_get
+            notice = state_get(self.db, "timeout-notice", run_id)
+            if isinstance(notice, int):  # "No decision ... resend it": done now
+                old.append(notice)
+                put(self.db, "timeout-notice", run_id, None)
             put(self.db, "review-messages", run_id, media_ids + [card])
             stale = sorted(set(old) - set(media_ids) - {card})
             if stale:
@@ -1760,11 +1775,14 @@ class TelegramApprovalBot:
                     + (f"Nothing was posted. Re-render continues from where it stopped, keeping {html.escape(kept)} "
                        "(anything whose inputs changed, or a voiceover over the limit, is made again).\n\n" if late else
                        "Nothing was posted. It stopped before its script passed the fact check, so nothing is worth "
-                       "keeping: the topic will be rendered again on a later run.\n\n")
+                       "keeping. The topic is set aside, not retried on its own: tap Back to the queue to have it "
+                       "made again, or restore it later from the queue.\n\n")
                     + "<i>Reply to this card with a question to ask about this run.</i>")
             buttons = [[DONE_BUTTON]]
             if late:  # from a fact-checked script onward it is made again in place
                 buttons.insert(0, [{"text": "🔁 Re-render", "callback_data": f"rerender:{self.db.run_key(run_id)}"}])
+            elif run and run.get("topic_id"):  # a failed topic is set aside (operator, 2026-10-25: "wasn't requeued")
+                buttons.insert(0, [{"text": "↩️ Back to the queue", "callback_data": f"requeue:{run['topic_id']}"}])
             from .card_ledger import record as record_card
             record_card(run_id, "failure", text, buttons, message_id)
             return self.edit_message_text(message_id, text, buttons=buttons)
@@ -1905,6 +1923,31 @@ class TelegramApprovalBot:
         timer.daemon = True
         timer.start()
         return True
+
+    def _is_dashboard(self, message_id) -> bool:
+        stored = self.db.get_setting("telegram_dashboard_id") if hasattr(self.db, "get_setting") else None
+        return bool(stored and stored.isdigit()) and self._current_panel(int(stored)) == self._current_panel(message_id)
+
+    def _settle_rejected_card(self, run_key: str, card_id: int, now: bool = False) -> None:
+        """A rejected run's review leaves the chat (operator, 2026-10-25: decided cards stayed): its video and
+        frames at once, the reason card when details are added (now) or after REASON_CARD_MINUTES. The run,
+        its decision and reason stay in History. A regenerated run's card is replaced by the new review."""
+        try:
+            run_id = self.db.resolve_run(run_key)
+            if (self.db.get_approval(run_id) or {}).get("decision") != "rejected":
+                return
+            from .telegram_state import get, put
+            album = [m for m in (get(self.db, "review-messages", run_id) or []) if isinstance(m, int) and m != card_id]
+            if album:
+                self.delete_messages(album)
+            put(self.db, "review-messages", run_id, [card_id])
+            if now:
+                self.delete_message(card_id)
+            elif hasattr(self.db, "record_alert"):
+                self.db.record_alert("reason card", message_id=card_id, kind="transient", expires_at=(
+                    datetime.now(timezone.utc) + timedelta(minutes=REASON_CARD_MINUTES)).isoformat())
+        except Exception as e:  # tidying must never break the reply
+            log.debug("Rejected review not tidied: %s", e)
 
     def run_card_message(self, run_id: str) -> Optional[int]:
         """The message of the run's latest failure card, from its card ledger, or None."""
@@ -2433,8 +2476,15 @@ class TelegramApprovalBot:
                         next_fn = getattr(self, 'next_run_func', lambda: None)
                         dash_text, dash_buttons = dashboard_text_and_buttons(self.db, next_fn(), assets_dir=ASSETS_DIR)
                         self.show_navigation_panel(msg_id, dash_text, is_media=is_media, buttons=dash_buttons)
+                    elif action in NUDGE_REPLIES:
+                        if msg_id and action in NOTICE_ACTIONS and not self._is_dashboard(msg_id):
+                            self.delete_message(msg_id)  # the notice that offered it (timed out, reminder)
+                        if reply:
+                            self.nudge(reply)
                     elif action in EDIT_IN_PLACE and msg_id:
                         self.edit_message_text(msg_id, reply, buttons=[[DONE_BUTTON]])
+                        if action == "rsn":
+                            self._settle_rejected_card(target.partition(":")[0], msg_id)
                     elif reply and action in ('imgok', 'mkeep', 'cov') and msg_id:
                         self.edit_message_any(msg_id, reply, is_media=is_media)
                     elif action in DELETE_FIRST:
@@ -2740,6 +2790,18 @@ class TelegramApprovalBot:
             command, args = ('mfetch', args.partition(' ')[2])
         if msg.get('message_id'):
             self._delete_soon(msg['message_id'])  # the panel shows what was asked; the chat keeps one panel
+        if command in NUDGE_REPLIES:
+            # Details for a reason card: acknowledged by a nudge; a rejected run's card has done its job.
+            try:
+                reply = command_handler(command, args.strip())
+            except Exception as e:
+                log.warning("Command /%s failed: %s", command, _MASKER.mask(str(e)))
+                reply = f"⚠️ /{html.escape(command)} failed: {html.escape(str(e))[:300]}"
+            if command == 'whytext' and reply_to and reply_to.get('message_id'):
+                self._settle_rejected_card(args.split(' ', 1)[0], reply_to['message_id'], now=True)
+            if isinstance(reply, str) and reply:
+                self.nudge(reply)
+            return
         target = self._typed_panel()
         if command in SLOW_COMMANDS:
             self.send_chat_action('typing')
@@ -2863,9 +2925,12 @@ class TelegramApprovalBot:
             if self.db.update_approval_decision(run_id, "timeout", decided_by="system"):
                 log.warning("No decision for %s within %ss.", run_id, timeout_seconds)
                 self.dismiss_approval_buttons(run_id)
-                self.notify(f"⌛ No decision on {html.escape(self.db.run_label(run_id))}; nothing was posted. "
-                            "The render is kept: resend it whenever you're ready.",
-                            buttons=[{"text": "📨 Resend for review", "callback_data": f"resend:{self.db.run_key(run_id)}"}])
+                notice = self.notify(f"⌛ No decision on {html.escape(self.db.run_label(run_id))}; nothing was posted. "
+                                     "The render is kept: resend it here, or later from Reviews on the dashboard.",
+                                     buttons=[{"text": "📨 Resend for review", "callback_data": f"resend:{self.db.run_key(run_id)}"}])
+                if type(notice) is int:  # removed when the review is sent again, from wherever
+                    from .telegram_state import put
+                    put(self.db, "timeout-notice", run_id, notice)
                 return "timeout"
             return (self.db.get_approval(run_id) or {}).get("decision", "timeout")
         finally:

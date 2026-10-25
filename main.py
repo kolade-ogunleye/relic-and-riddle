@@ -290,7 +290,7 @@ class PipelineCoordinator:
             self._collect_findings(run_id, run_dir, tid, error=f"{type(e).__name__}: {e}")
             log.error("Run %s failed: %s", run_id, e)
             if not card_shown:
-                self._alert(f"❌ <b><u>PRODUCTION FAILED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n{html.escape(str(e))[:600]}\n\nNothing was posted. The topic will be retried on a later run.")
+                self._alert(f"❌ <b><u>PRODUCTION FAILED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n{html.escape(str(e))[:600]}\n\nNothing was posted. The topic is set aside: restore it from the queue (/requeue).")
             ping_healthcheck("/fail")
             raise
         finally:
@@ -1155,7 +1155,7 @@ class PipelineCoordinator:
                     pass
                 self.progress_msg_id = None
             if not card_shown:
-                self._alert(f"❌ <b><u>PRODUCTION FAILED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n{html.escape(str(e))[:600]}\n\nNothing was posted. The topic will be retried on a later run.")
+                self._alert(f"❌ <b><u>PRODUCTION FAILED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n{html.escape(str(e))[:600]}\n\nNothing was posted. The topic is set aside: restore it from the queue (/requeue).")
             ping_healthcheck("/fail")
             raise
         finally:
@@ -1710,6 +1710,23 @@ class PipelineCoordinator:
                 break
             revision_notes = with_earlier_rejections(notes, earlier)
             earlier.append(notes)
+        if not passed and payload.get("origin") in ("claude", "gemini-free"):
+            # The last draft failed on a sentence or two the checker quoted: those are taken out (never
+            # rewritten) and the draft is checked again in full, before the run fails closed.
+            from src.script_engine import without_blocked_sentences
+            trimmed = without_blocked_sentences(payload, notes)
+            if trimmed is not None:
+                log.info("Last draft blocked on %d sentence(s); checking it without them: %s",
+                         len(trimmed["trimmed_sentences"]), " | ".join(trimmed["trimmed_sentences"])[:300])
+                self._check_cancel(run_id)
+                t_passed, t_payload, t_notes = self.script_engine.verify_claims(
+                    trimmed, topic=topic, allow_unreviewed_curated=dry_run)
+                log.info("Guardrail (draft %d without the blocked sentences): %s", revision + 1, t_notes)
+                if t_passed:
+                    passed, payload, notes = t_passed, t_payload, t_notes
+                else:
+                    earlier.append(notes)
+                    notes = t_notes
         if not passed:
             curated = self.script_engine._load_curated(tid)
             if curated:

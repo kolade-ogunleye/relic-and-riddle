@@ -1,0 +1,97 @@
+"""Cards that have done their job leave the chat (operator, 2026-10-25): "Sending ... for review again" and
+"Thanks, noted" stayed as messages, the "No decision" notice stayed after its resend, and a rejected review
+(video, frames and reason card) stayed for good. The run, its decision and reason remain in History."""
+from src import telegram_bot as tb
+from src.telegram_bot import TelegramApprovalBot
+from src.telegram_state import get, initialize, put
+
+
+def _bot(db, monkeypatch, updates):
+    bot = TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
+    initialize(db)
+    calls = []
+
+    def api(method, **kw):
+        if method == "getUpdates":
+            return updates
+        calls.append((method, (kw.get("data") or {}).get("text"), (kw.get("data") or {}).get("message_id")))
+        return {"message_id": 77} if method == "sendMessage" else True
+
+    monkeypatch.setattr(bot, "_api", api)
+    monkeypatch.setattr(bot, "delete_message", lambda mid: calls.append(("delete", None, mid)) or True)
+    monkeypatch.setattr(bot, "delete_messages", lambda mids: [calls.append(("delete", None, m)) for m in mids])
+    bot._offset = 0
+    return bot, calls
+
+
+def _click(data, message_id):
+    return [{"update_id": 1, "callback_query": {"id": "q", "data": data, "from": {"id": 555},
+                                                "message": {"chat": {"id": 555}, "message_id": message_id, "text": "x"}}}]
+
+
+def test_a_resend_removes_its_notice_and_only_nudges(db, monkeypatch):
+    db.create_run("run_t", db.list_all_topics()[0]["id"])
+    key = db.run_key("run_t")
+    bot, calls = _bot(db, monkeypatch, _click(f"resend:{key}", 40))
+    nudges = []
+    monkeypatch.setattr(bot, "nudge", lambda text: nudges.append(text) or True)
+    bot.poll_once(lambda c, a: "📨 Sending it for review again…")
+    bot.drain()
+    assert ("delete", None, 40) in calls and nudges == ["📨 Sending it for review again…"]
+    assert not any(m == "sendMessage" for m, _, _ in calls)                      # nothing that stays
+
+
+def test_a_resend_from_the_dashboard_keeps_the_dashboard(db, monkeypatch):
+    db.create_run("run_t", db.list_all_topics()[0]["id"])
+    db.set_setting("telegram_dashboard_id", "40")
+    bot, calls = _bot(db, monkeypatch, _click(f"resend:{db.run_key('run_t')}", 40))
+    monkeypatch.setattr(bot, "nudge", lambda text: True)
+    bot.poll_once(lambda c, a: "📨 Sending…")
+    bot.drain()
+    assert ("delete", None, 40) not in calls
+
+
+def test_a_rejected_review_leaves_the_chat(db, monkeypatch):
+    topic = db.list_all_topics()[0]["id"]
+    db.create_run("run_r", topic)
+    db.record_approval("run_r", topic, 300)
+    db.update_approval_decision("run_r", "rejected", decided_by="telegram:555")
+    initialize(db)
+    put(db, "review-messages", "run_r", [11, 12, 50])
+    key = db.run_key("run_r")
+    bot, calls = _bot(db, monkeypatch, _click(f"rsn:{key}:other", 50))
+    bot.poll_once(lambda c, a: f"❌ Rejected. ✅ Reason: Other. [run {key}]")
+    bot.drain()
+    assert ("delete", None, 11) in calls and ("delete", None, 12) in calls       # the video and frames at once
+    assert ("delete", None, 50) not in calls and get(db, "review-messages", "run_r") == [50]
+    later = "2999-01-01T00:00:00+00:00"                                          # it leaves within 30 minutes
+    assert [a["message_id"] for a in db.get_expired_alerts(later)] == [50] and not db.get_expired_alerts()
+    # Details replied to the reason card: acknowledged by a nudge, and the card goes.
+    reply = [{"update_id": 2, "message": {"text": "The pictures were dull", "from": {"id": 555}, "chat": {"id": 555},
+                                          "message_id": 60, "reply_to_message": {"message_id": 50,
+                                                                                 "text": f"✅ Reason: Other. [run {key}]"}}}]
+    bot2, calls2 = _bot(db, monkeypatch, reply)
+    nudges = []
+    monkeypatch.setattr(bot2, "nudge", lambda text: nudges.append(text) or True)
+    seen = []
+    bot2.poll_once(lambda c, a: seen.append((c, a)) or "📝 Thanks, noted.")
+    bot2.drain()
+    assert seen and seen[0][0] == "whytext" and nudges == ["📝 Thanks, noted."]
+    assert ("delete", None, 50) in calls2 and not any(m == "sendMessage" for m, _, _ in calls2)
+
+
+def test_a_regenerated_review_is_not_removed_by_its_reason(db, monkeypatch):
+    topic = db.list_all_topics()[0]["id"]
+    db.create_run("run_g", topic)
+    db.record_approval("run_g", topic, 300)
+    db.update_approval_decision("run_g", "regenerate", decided_by="telegram:555")
+    initialize(db)
+    put(db, "review-messages", "run_g", [11, 50])
+    bot, calls = _bot(db, monkeypatch, _click(f"rsn:{db.run_key('run_g')}:pictures", 50))
+    bot.poll_once(lambda c, a: "🔄 Regeneration requested.")
+    bot.drain()
+    assert not any(m == "delete" for m, _, _ in calls)                          # its new review replaces it
+
+
+def test_the_reason_card_says_when_it_leaves():
+    assert tb.REASON_CARD_MINUTES == 30

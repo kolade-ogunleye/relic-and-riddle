@@ -369,6 +369,35 @@ def repeated_phrases(text: str, n: int = 3) -> List[str]:
     return found
 
 
+MAX_TRIMMED_SENTENCES = 2
+
+
+def _norm_words(text: str) -> str:
+    """Lower-case words only; an apostrophe is kept inside a word ("ship's"), not as a quote mark."""
+    text = re.sub(r"[^a-z0-9' ]", " ", (text or "").lower().replace("’", "'"))
+    return " ".join(re.sub(r"(?<![a-z0-9])'|'(?![a-z0-9])", " ", text).split())
+
+
+def without_blocked_sentences(payload: Dict[str, Any], notes: str) -> Optional[Dict[str, Any]]:
+    """The draft with the narration sentences a checker quoted as blocking taken out, or None when there is
+    nothing safe to take out. Used once, after the last rewrite failed on a claim or two (production
+    2026-10-25: three Antikythera drafts, the last blocked only on "The bronze lump was pulled specifically
+    from the Aegean Sea."). Nothing is written, so nothing new can be claimed; the hook and the closing
+    sentence are never removed; and the result must pass every check again (structure, spoken length and
+    both fact checkers), so a gap that leaves it too short, or a claim repeated elsewhere, still fails."""
+    narration = payload.get("narration_script") or ""
+    quoted = f" {_norm_words(notes)} "  # whole words: a sentence must appear in the notes word for word
+    sentences = [x for x in re.split(r"(?<=[.!?])\s+", narration.strip()) if x.strip()]
+    keep_ends = {_norm_words(payload.get("hook_sentence")), _norm_words(payload.get("closing_sentence"))}
+    blocked = [x for i, x in enumerate(sentences)
+               if len(_norm_words(x).split()) >= 4 and f" {_norm_words(x)} " in quoted
+               and 0 < i < len(sentences) - 1 and _norm_words(x) not in keep_ends]
+    if not blocked or len(blocked) > MAX_TRIMMED_SENTENCES:
+        return None
+    trimmed = " ".join(x for x in sentences if x not in blocked)
+    return dict(payload, narration_script=trimmed, trimmed_sentences=blocked)
+
+
 def duration_problem(seconds: float) -> Optional[str]:
     """Why a measured voiceover can't make a Reel (the master is exactly as long), or None."""
     if seconds < TARGET_DURATION_MIN:

@@ -328,6 +328,44 @@ def refit_speed(seconds: float, speed: float = 1.0) -> Optional[float]:
     return faster if faster <= config.SPEECH_SPEEDUP_MAX else None
 
 
+_PHRASE_STOPWORDS = {"the", "a", "an", "of", "to", "in", "and", "was", "were", "is", "it", "its", "that", "this", "on", "at", "for", "by", "with", "as"}
+
+
+def repeated_phrases(text: str, n: int = 3) -> List[str]:
+    """Phrases of n+ words said twice in a narration: any repeated opening of a sentence (the hedge "By one
+    estimate" twice in a row), and any repeated run of n words that is not only small words. Names and
+    numbers repeated on purpose rarely form a three-word run that is repeated exactly."""
+    sentences = [x.strip() for x in re.split(r"(?<=[.!?])\s+", text or "") if x.strip()]
+    found: List[str] = []
+    openings: Dict[str, int] = {}
+    for sent in sentences:
+        words = re.findall(r"[A-Za-z']+", sent.lower())
+        if len(words) >= n:
+            key = " ".join(words[:n])
+            openings[key] = openings.get(key, 0) + 1
+    found += [k for k, c in openings.items() if c > 1]
+    # Within sentences, not across them; a run holding a name or a number is a deliberate repeat ("the
+    # Richat Structure", "Catherine Palace"), not wording, and is left alone.
+    seen: Dict[str, int] = {}
+    tokens: List[List[str]] = [re.findall(r"[\w']+", sent) for sent in sentences]
+    grams = []
+    for toks in tokens:
+        for i in range(len(toks) - n + 1):
+            gram = toks[i:i + n]
+            if any(t[:1].isupper() and i + j > 0 for j, t in enumerate(gram)) or any(any(ch.isdigit() for ch in t) for t in gram):
+                continue
+            grams.append([t.lower() for t in gram])
+    for gram in grams:
+        if sum(w not in _PHRASE_STOPWORDS for w in gram) < 2:
+            continue
+        key = " ".join(gram)
+        seen[key] = seen.get(key, 0) + 1
+    for k, c in seen.items():  # one entry per repeated stretch: overlapping runs of it are the same repeat
+        if c > 1 and not any(" ".join(k.split()[:n - 1]) in f or " ".join(k.split()[1:]) in f for f in found):
+            found.append(k)
+    return found
+
+
 def duration_problem(seconds: float) -> Optional[str]:
     """Why a measured voiceover can't make a Reel (the master is exactly as long), or None."""
     if seconds < TARGET_DURATION_MIN:
@@ -436,6 +474,13 @@ def validate_structure(pkg: ScriptPackage) -> List[str]:
             problems.append(f"emphasis word '{term}' does not appear in the narration.")
     if pkg.emphasis_words is not None and not 1 <= len(pkg.emphasis_words) <= 3:
         problems.append("emphasis_words needs 1-3 entries.")
+    repeated = repeated_phrases(pkg.narration_script)
+    if repeated:
+        # Production 2026-10-25: two sentences in a row opened "By one estimate," (both facts disputed); the
+        # viewer hears a template, and the video check flagged it after the voiceover was paid for.
+        problems.append("The narration repeats the phrase " + ", ".join(f"'{r}'" for r in repeated)
+                        + "; say it once (one hedge can cover two related figures) or reword the second, keeping every "
+                          "disputed fact hedged.")
     if "📍" in pkg.caption:
         problems.append("Caption uses the '📍 location' template line; work the place into the prose instead.")
     first_line = next((ln for ln in pkg.caption.splitlines() if ln.strip()), "")

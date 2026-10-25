@@ -459,6 +459,16 @@ def typical_run_seconds(last: int = 5) -> Optional[float]:
     return sum(totals) / len(totals) if totals else None
 
 
+def origin_label(origin: str) -> str:
+    """Who wrote the script, in plain words. "gemini-free" names the writing engine, not the key it used:
+    production sends writing and checking to the billed key (FREE_TIER_HEAVY=false), and the card said
+    "gemini-free" for a run billed on the paid key (operator, 2026-10-25)."""
+    from . import config
+    if origin == "gemini-free":
+        return "Gemini, billed key" if not config.FREE_TIER_HEAVY else "Gemini, free tier first (billed key if it is busy)"
+    return {"curated": "curated script", "claude": "Claude"}.get(origin, origin)
+
+
 class TelegramApprovalBot:
     def __init__(
         self,
@@ -993,7 +1003,7 @@ class TelegramApprovalBot:
             f"📌 <b>{e(script_payload.get('title', ''))}</b>\n"
             + (f"🔄 <i>Regenerated · your feedback: {e(regen)}</i>\n" if regen else "")
             + (f"📍 <i>{place}</i>\n" if place else "") +
-            f"⏱️ {script_payload.get('word_count', 0)} words · source: <i>{e(script_payload.get('origin', '?'))}</i>\n"
+            f"⏱️ {script_payload.get('word_count', 0)} words · written by: <i>{e(origin_label(script_payload.get('origin', '?')))}</i>\n"
             f"{integrity}\n"
             + _second_check_line(script_payload.get("second_check"))
             + TelegramApprovalBot.release_lines(release) + "\n"

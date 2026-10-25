@@ -317,14 +317,14 @@ def test_a_short_draft_is_extended_not_rewritten_from_scratch(curated_payload, m
     monkeypatch.setattr(engine, "_load_curated", lambda topic_id: None)
     monkeypatch.setattr(engine, "_sheet", lambda topic: None)
     seen = []
-    base = curated_payload["narration_script"].split()
-    short = " ".join((base * 3)[:70])  # with the closing sentence, well under 42 s at 0.4 s a word
+    base = [f"word{i}" for i in range(400)]  # distinct words: a repeated phrase is itself sent back (2026-10-25)
+    short = " ".join(base[:70])  # with the closing sentence, well under 42 s at 0.4 s a word
 
     def write(topic, feedback):
         seen.append(feedback)
         import re
         found = re.search(r"extend the narration to (\d+)-(\d+) words", feedback)
-        words = (short.split() * 3)[: int(found.group(1)) + 1] if found else short.split()
+        words = base[: int(found.group(1)) + 1] if found else short.split()
         closing = curated_payload["closing_sentence"]
         text = " ".join(words).rstrip(".") + ". " + closing
         return ScriptPackage.model_validate(dict(curated_payload, narration_script=text))
@@ -334,3 +334,13 @@ def test_a_short_draft_is_extended_not_rewritten_from_scratch(curated_payload, m
     assert len(seen) == 2                                   # the second draft, written to the window, passes
     assert "<previous_narration>" in seen[1] and "extend the narration to" in seen[1]
     assert len(out["narration_script"].split()) * 0.4 >= script_engine.TARGET_DURATION_MIN
+
+
+def test_a_narration_that_repeats_a_phrase_is_sent_back():
+    # Production 2026-10-25: two sentences in a row opened "By one estimate," and the video check caught it
+    # after the voiceover was paid for. A name or a number said twice is not a repeat.
+    from src.script_engine import repeated_phrases
+    assert repeated_phrases("It was found in 1901. By one estimate, it had 35 gears. By one estimate, one had 223 teeth.") == ["by one estimate"]
+    assert repeated_phrases("The Richat Structure is vast. Seen from orbit, the Richat Structure looks like an eye.") == []
+    assert repeated_phrases("Rings are 30 metres wide. Outer rings are 70 metres wide.") == []
+    assert repeated_phrases("It tracked the Moon. It predicted eclipses.") == []

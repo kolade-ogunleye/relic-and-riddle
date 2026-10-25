@@ -1006,10 +1006,13 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     if digest:
         row1.append({"text": "📰 Weekly digest", "callback_data": "cdigest:"})
     buttons = [row1] if row1 else []
+    render_btn = {"text": "⚡ Progress" if active else (f"⚡ Render #{next((i for i,t in enumerate(topics,1) if next_t and t['id']==next_t['id']),1)} now"),
+                  "callback_data": "cprog:" if active else (f"qrender:{next_t['id']}" if next_t else "qrender:1")}
+    # One action per topic: when the next topic is the one Re-render / Make again above is for, Render now
+    # would make it a second way (operator, 2026-10-25). The Queue still starts it afresh.
+    same_topic = bool(late and next_t and not active and late.get("topic_id") == next_t.get("id"))
     buttons += [
-        [{"text": "⚡ Progress" if active else (f"⚡ Render #{next((i for i,t in enumerate(topics,1) if next_t and t['id']==next_t['id']),1)} now"),
-          "callback_data": "cprog:" if active else (f"qrender:{next_t['id']}" if next_t else "qrender:1")},
-         {"text": "📋 Queue", "callback_data": "qrefresh:"}],
+        ([] if same_topic else [render_btn]) + [{"text": "📋 Queue", "callback_data": "qrefresh:"}],
         [{"text": "💡 Topic ideas", "callback_data": "cideas:"}, {"text": "🎨 Covers", "callback_data": "ccov:"}],
         [{"text": "🎵 Music", "callback_data": "cmusic:"}, {"text": "📊 Full status", "callback_data": "cstat:"}],
         [{"text": "🖼 Images", "callback_data": "cimages:"}, {"text": "🔄 Check accounts", "callback_data": "caccounts:"}],

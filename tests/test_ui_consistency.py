@@ -120,3 +120,17 @@ def test_story_body_text_is_never_shrunk_and_the_script_keeps_it_to_three_lines(
     assert "Story slide 2's body takes" in problems and "rewrite it in about" in problems
     pkg.story_slides[1].body = "Its gears tracked the Sun and Moon and predicted eclipses."
     assert "Story slide 2" not in " ".join(script_engine.validate_structure(pkg))
+
+
+def test_the_dashboard_offers_one_action_per_topic(db, tmp_path, monkeypatch):
+    # Operator, 2026-10-25: Re-render for an Antikythera run sat beside Render #4 now for the same topic.
+    monkeypatch.setattr(control, "_worth_resuming", lambda run: True)
+    nxt = db.get_next_topic()
+    db.create_run("run_late", nxt["id"])
+    db.update_run("run_late", "failed", error="Voiceover is 41.1s; too short for the 42s minimum.")
+    db.record_topic_status(nxt["id"], "queued")
+    db.create_run("run_other", db.list_all_topics()[-1]["id"])
+    db.update_run("run_other", "published")
+    _, buttons = control.dashboard_text_and_buttons(db, None, assets_dir=tmp_path)
+    flat = [b["callback_data"] for row in buttons for b in row]
+    assert any(c.startswith("rerender:") for c in flat) and not any(c.startswith("qrender:") for c in flat)

@@ -361,36 +361,37 @@ def images_text(assets_dir: Path = ASSETS_DIR, db: Optional[PipelineDatabase] = 
 
 
 def review_caption(topic_dir: Path, ref_hint: Optional[str] = None) -> str:
+    """The sheet's caption: what the set holds and which photos a video may use (operator, 2026-10-25: weak
+    photos reached the video, and the old storyboard list repeated one caption under keyword picks)."""
+    from .image_review import CONTEXT_SHOTS_MAX, TIER_LABELS, tier, usable_photos
     cr = load_credits(topic_dir)
+    images = cr["images"]
     status_tag = " (approved)" if cr.get("reviewed") else ""
-    lines = [f"🎬 <b>{html.escape(topic_dir.name)}</b> — {len(cr['images'])} images{status_tag}"]
+    lines = [f"🎬 <b>{html.escape(topic_dir.name)}</b> — {len(images)} images{status_tag}"]
     drop_ref = ref_hint if ref_hint else (topic_dir.name.split('_')[0] if topic_dir.name.split('_')[0].isdigit() else topic_dir.name)
     # First, so the 1,024-character photo caption never cuts it off; the Copy buttons fill the topic in.
     lines.append(f"<i>Edit with the numbers on the sheet: /drop {html.escape(drop_ref)} &lt;images&gt; · "
-                 f"/swap {html.escape(drop_ref)} &lt;beat&gt; &lt;beat&gt;</i>")
+                 f"/keep {html.escape(drop_ref)} &lt;images&gt;</i>")
+    counts: Dict[str, int] = {}
+    for c in images:
+        counts[tier(c)] = counts.get(tier(c), 0) + 1
+    lines.append("\n" + " · ".join(f"{TIER_LABELS[t]} {counts[t]}" for t in ("topic", "kept", "context", "unchecked", "weak")
+                                   if counts.get(t)))
+    strong = counts.get("topic", 0) + counts.get("kept", 0)
+    lines.append(f"A video uses the {strong} Topic and Kept photos and at most {CONTEXT_SHOTS_MAX} Context ones "
+                 f"({len(usable_photos(images))} in all); "
+                 "Stories and the carousel use Topic and Kept only. Unchecked photos are looked at before a run; "
+                 "Weak ones are never used. /keep puts one in anyway.")
 
-    # Storyboard beat-grounded narrative breakdown
-    from .storyboard import load_storyboard, generate_storyboard
-    sb = load_storyboard(topic_dir)
-    if not sb and cr.get("images"):
+    def _int(v):
         try:
-            sb = generate_storyboard(topic_dir.name, topic_dir)
-        except Exception:
-            sb = None
-
-    if sb:
-        lines.append("\n📋 <b>Storyboard Beat Direction:</b>")
-        for b in sb:
-            b_num = b.get("beat", 1)
-            b_type = b.get("type", "SCENE")
-            b_txt = b.get("text", "")
-            snippet = b_txt if len(b_txt) <= 52 else b_txt[:49] + "..."
-            lines.append(f"  <b>{b_num}. [{b_type}]</b>: <i>\"{html.escape(snippet)}\"</i> (<code>{html.escape(b.get('file', ''))}</code>)")
-    else:
-        for i, c in enumerate(cr["images"], 1):
-            title = c.get("title", c["file"]).removeprefix("File:")
-            lines.append(f"{i}. {html.escape(title[:48])} · {html.escape(c.get('license', ''))}")
-
+            return int(float(v))
+        except (TypeError, ValueError):
+            return 0
+    sharp = sum(1 for c in images if min(_int(c.get("width")), _int(c.get("height"))) >= 1080)
+    credit = sum(1 for c in images if str(c.get("attribution_required")).lower() == "true")
+    lines.append(f"Quality: {sharp} sharp enough as they are, {len(images) - sharp} to be AI-upscaled · "
+                 f"licences: {len(images) - credit} need no credit, {credit} credited in the caption")
     return "\n".join(lines)
 
 
@@ -1840,6 +1841,18 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             if load_credits(topic_dir)["images"]:
                 send_sheet(topic_dir)
             return html.escape(msg)
+        if command in ("keep", "unkeep"):
+            parts = args.split()
+            if len(parts) < 2 or not all(n.isdigit() for n in parts[1:]):
+                return (f"📌 <b>Keep photos for the video</b>\n\nSend the topic number, then the photo numbers on its "
+                        f"sheet: <code>/{command} 4 2 7</code>. A kept photo is used even if the check rated it "
+                        "Context or Unchecked; <code>/unkeep</code> takes the mark off.",
+                        [[{"text": "🎬 Storyboards", "callback_data": "reviewpick:0"}], [HOME]])
+            from .credits import keep_images
+            topic_dir = _resolve_topic_dir(parts[0], assets_dir, db=db)
+            msg = keep_images(topic_dir, [int(n) for n in parts[1:]], keep=command == "keep")
+            send_sheet(topic_dir)
+            return html.escape(msg)
         if command == "swap":
             parts = args.split()
             if len(parts) < 3 or not (parts[1].isdigit() and parts[2].isdigit()):
@@ -2313,8 +2326,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             from .publication_lock import publication_lock
             with publication_lock(db.db_path, args.partition(":")[0]):
                 return original_handle(command, args)
-        valid_mutation_args = (command not in {"drop","swap"} or (len(args.split()) >= (2 if command == "drop" else 3) and all(v.isdigit() for v in args.split()[1:])))
-        if command in {"review", "imgok", "drop", "swap"} and args.strip() and valid_mutation_args:
+        valid_mutation_args = (command not in {"drop", "swap", "keep", "unkeep"} or (len(args.split()) >= (3 if command == "swap" else 2) and all(v.isdigit() for v in args.split()[1:])))
+        if command in {"review", "imgok", "drop", "swap", "keep", "unkeep"} and args.strip() and valid_mutation_args:
             ref = args.split()[0].split("@",1)[0]
             directory = _resolve_topic_dir(ref, assets_dir, db=db)
             from .publication_lock import publication_lock

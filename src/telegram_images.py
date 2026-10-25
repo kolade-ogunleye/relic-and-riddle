@@ -1,6 +1,7 @@
 """Topic-specific image ingestion; rights and human review remain mandatory."""
 import io
 import json
+import logging
 from pathlib import Path
 from uuid import uuid4
 from urllib.parse import urlparse
@@ -10,6 +11,7 @@ from PIL import Image
 from .credits import load_credits, save_credits, license_allowed, write_contact_sheet
 from .publication_lock import exclusive
 
+log = logging.getLogger(__name__)
 MAX_BYTES = 20 * 1024 * 1024
 
 
@@ -78,6 +80,11 @@ def fetch_images(db, assets_dir, ref):
         if not spec:
             raise ValueError("No curated image search for this topic yet; use /image to supply images")
         count = fetch_topic(topic, spec, config.IMAGES_ALLOW_SHARE_ALIKE, assets_dir=Path(assets_dir))
+        try:  # the new photos get their verdicts now, so the sheet you review shows them (2026-10-25)
+            from .image_review import screen_unchecked
+            screen_unchecked(topic, Path(assets_dir) / topic["id"])
+        except Exception as e:
+            log.warning("New photos of %s not screened: %s", topic["id"], e)
         return topic["id"], count
 
 

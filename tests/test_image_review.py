@@ -62,8 +62,9 @@ def test_operator_decision_stands_and_no_model_means_no_approval(monkeypatch, tm
 
 def test_drop_numbers_match_the_contact_sheet(tmp_path):
     imgs = _pool(tmp_path, 4)
-    # The storyboard puts photo 03 first, so the sheet labels it 1.
-    (tmp_path / "storyboard.json").write_text(json.dumps([{"beat": 1, "file": "03_commons.jpg"}]), encoding="utf-8")
+    # Photos that show the topic come first on the sheet (2026-10-25), so photo 03 is labelled 1.
+    imgs[2]["vision_review"] = {"shows_topic": "yes", "usable": True, "safe": True}
+    (tmp_path / "credits.json").write_text(json.dumps({"reviewed": False, "images": imgs}), encoding="utf-8")
     assert [i["file"] for i in sheet_order(tmp_path, imgs)][0] == "03_commons.jpg"
     write_contact_sheet(tmp_path, imgs)
     drop_images(tmp_path, [1])
@@ -108,3 +109,49 @@ def test_an_unchanged_pool_is_not_sent_again(monkeypatch, tmp_path):
     assert len(calls) == 2                                                          # changed pool: reviewed
     image_review.review_pool(TOPIC, tmp_path, force=True)
     assert len(calls) == 3                                                          # forced: reviewed
+
+
+
+def test_only_new_photos_are_screened_and_the_approval_stands(tmp_path, monkeypatch):
+    # Production 2026-10-25: photos fetched after an approval were never looked at, and reached the video.
+    imgs = _pool(tmp_path, 3, reviewed=True, reviewed_by="operator")
+    imgs[0]["vision_review"] = {"shows_topic": "yes", "usable": True, "safe": True}
+    (tmp_path / "credits.json").write_text(json.dumps({"reviewed": True, "reviewed_by": "operator", "images": imgs}), encoding="utf-8")
+    sent = []
+
+    def call(system, content, schema, **kw):
+        sent.append(sum(1 for c in content if c.get("type") == "image"))
+        return _verdicts({1: {"shows_topic": "partly", "usable": True, "safe": True},
+                          2: {"shows_topic": "no", "usable": True, "safe": True}})
+    monkeypatch.setattr(image_review.free_llm, "call", call)
+    monkeypatch.setattr(image_review, "image_block", lambda p, *a: {"type": "image"})
+    assert image_review.screen_unchecked(TOPIC, tmp_path) == 2 and sent == [2]
+    cr = load_credits(tmp_path)
+    assert [image_review.tier(i) for i in cr["images"]] == ["topic", "context", "weak"]
+    assert cr["reviewed"] is True and cr["reviewed_by"] == "operator" and len(cr["images"]) == 3
+    assert image_review.screen_unchecked(TOPIC, tmp_path) == 0                     # nothing left to look at
+
+
+def test_a_kept_photo_is_used_and_stories_use_only_strong_ones(tmp_path):
+    from src.credits import keep_images
+    imgs = _pool(tmp_path, 3)
+    imgs[0]["vision_review"] = {"shows_topic": "yes", "usable": True, "safe": True}
+    imgs[1]["vision_review"] = {"shows_topic": "partly", "usable": True, "safe": True}
+    (tmp_path / "credits.json").write_text(json.dumps({"reviewed": True, "images": imgs}), encoding="utf-8")
+    keep_images(tmp_path, [3])                                                    # the unchecked one, kept by you
+    cr = load_credits(tmp_path)
+    assert [image_review.tier(i) for i in cr["images"]] == ["topic", "context", "kept"]
+    stems = image_review.strong_stems(tmp_path)
+    assert stems == {"01_commons", "03_commons"}
+    paths = [tmp_path / "01_commons_ab12.jpg", tmp_path / "02_commons.jpg", tmp_path / "03_commons.jpg"]
+    assert image_review.only_strong(paths, stems) == [paths[0], paths[2]]          # prepared copies keep the stem
+
+
+def test_removing_photos_keeps_an_approved_set_approved(tmp_path):
+    imgs = _pool(tmp_path, 7)
+    (tmp_path / "credits.json").write_text(json.dumps({"reviewed": True, "images": imgs}), encoding="utf-8")
+    write_contact_sheet(tmp_path, imgs)
+    assert "stays approved" in drop_images(tmp_path, [1])
+    assert load_credits(tmp_path)["reviewed"] is True
+    drop_images(tmp_path, [1, 2])                                                 # too few left: a fresh decision
+    assert load_credits(tmp_path)["reviewed"] is False

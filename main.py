@@ -595,6 +595,7 @@ class PipelineCoordinator:
         try:
             self._check_cancel(run_id)
             # 1. Visual assets
+            self._screen_photos(topic)
             scene_media = self.visual_engine.get_scene_sequence(topic)
             hero_img = self.visual_engine.hero_image(scene_media)
             log.info("Deep-Dive scene media: %d items.", len(scene_media))
@@ -1176,6 +1177,15 @@ class PipelineCoordinator:
         finally:
             self._operator_feedback = None
 
+    def _screen_photos(self, topic: Dict[str, Any]) -> None:
+        """Vision verdicts for the topic's photos that have none (src/image_review.py). Never fails a run:
+        a photo left unscreened is simply not used."""
+        try:
+            from src.image_review import screen_unchecked
+            screen_unchecked(topic, self.visual_engine.assets_dir / topic["id"])
+        except Exception as e:
+            log.warning("Photo screening for %s did not run: %s", topic.get("id"), e)
+
     def rerender_refusal(self, run_id: str) -> Optional[str]:
         """Why a failed run can't be re-rendered in place, or None. A failed run qualifies once its script has
         passed the fact check (src/resume_points.py): everything it completed after that is reused where its
@@ -1444,10 +1454,14 @@ class PipelineCoordinator:
             pass
 
         self._check_cancel(run_id)
-        # 1. Visual assets first: fail before spending on LLM/TTS calls.
+        # 1. Visual assets first: fail before spending on LLM/TTS calls. Any photo never looked at (added after
+        # an approval) is screened first, so the video uses only photos with a verdict (2026-10-25).
+        self._screen_photos(topic)
         scene_media = self.visual_engine.get_scene_sequence(topic)
         # Photos with text printed into them (a placard, a caption strip) are set aside, looked at once each.
         scene_media = beat_images.without_burned_in_text(scene_media, topic.get("title", ""), config.MIN_SCENE_IMAGES)
+        from src.image_review import strong_stems
+        self._strong_stems = strong_stems(self.visual_engine.assets_dir / topic["id"])  # Stories, carousel: no context
         hero_img = self.visual_engine.hero_image(scene_media)
         log.info("Scene media: %d items.", len(scene_media))
 
@@ -1459,7 +1473,8 @@ class PipelineCoordinator:
                          "fact_sheet": file_inputs([pipeline_config.DATA_DIR / "fact_sheets" / f"{topic['id']}.json"])}
         saved_script = run_dir / "verified_script.json"
         saved = json.loads(saved_script.read_text(encoding="utf-8")) if saved_script.exists() else {}
-        too_long_now = saved.get("guardrail_passed") and checkpoints.reusable("script", script_inputs)             and self._spoken_length_now(saved)
+        too_long_now = (saved.get("guardrail_passed") and checkpoints.reusable("script", script_inputs)
+                        and self._spoken_length_now(saved))
         if too_long_now:
             # A re-render of a run whose take ran over: the saved script is shortened for the voice's measured
             # pace (ElevenLabs is never stretched), then fact-checked again as any revision is.
@@ -1840,6 +1855,8 @@ class PipelineCoordinator:
         from src.checkpoints import Checkpoints, cached_artifacts, file_inputs
         from src.typography import FONT_FILES, FONTS_DIR
         packaging_inputs = {"photos": file_inputs([hero_img, *scene_media]), "style": style,
+                            "strong": sorted(getattr(self, "_strong_stems", None) or []),  # which may face out
+                            "picks": file_inputs([Path("src/image_review.py")]),
                             "copy": {key: payload.get(key) for key in ("title", "thumbnail", "story_slides", "carousel_slides", "poll")},
                             "rules": file_inputs([Path("src/visual_engine.py"), Path("src/multi_format.py"),
                                                   Path("src/typography.py"), Path("src/config.py"), Path("src/safe_zones.py")]),
@@ -1852,18 +1869,21 @@ class PipelineCoordinator:
 
         # Concurrently generate multiformat stills (thumbnails, story, carousel)
         # and source media candidates (beat images, footage, channel graphics, callouts, then/now)
+        # Story frames and carousel slides use the topic's own photos only, never a context shot (2026-10-25).
+        from src.image_review import only_strong
+        strong_media = only_strong(scene_media, getattr(self, "_strong_stems", None))
         encoding.get_video_encoder()  # probe once before parallel renderers race to detect it under load
         t0 = time.perf_counter()
         with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
             fut_thumb = pool.submit(cached_artifacts, run_dir, "thumbnails", packaging_inputs,
                                     lambda: self.visual_engine.generate_thumbnails(hero_img, payload, run_dir, style=style))
             fut_story = pool.submit(cached_artifacts, run_dir, "stories", packaging_inputs,
-                                    lambda: self.multiformat_gen.generate_story_sequence(hero_img, payload, run_dir, scene_images=scene_media))
+                                    lambda: self.multiformat_gen.generate_story_sequence(hero_img, payload, run_dir, scene_images=strong_media))
             fut_carousel = pool.submit(cached_artifacts, run_dir, "carousel", packaging_inputs,
-                                       lambda: self.multiformat_gen.generate_carousel_sequence(scene_media, payload, run_dir))
+                                       lambda: self.multiformat_gen.generate_carousel_sequence(strong_media, payload, run_dir))
             # Facebook's copy of the slides, without swipe cues (it shows a multi-photo post as a grid).
             fut_carousel_fb = pool.submit(cached_artifacts, run_dir, "carousel_fb", packaging_inputs,
-                                          lambda: self.multiformat_gen.generate_carousel_sequence(scene_media, payload, run_dir, facebook=True))
+                                          lambda: self.multiformat_gen.generate_carousel_sequence(strong_media, payload, run_dir, facebook=True))
 
             fut_beats = pool.submit(beat_images.source, beats, topic, run_dir / "beat_images", plan=query_plan) if query_plan else None
             fut_footage = pool.submit(footage.source, beats, topic, run_dir / "footage", plan=query_plan) if query_plan else None
@@ -1935,8 +1955,12 @@ class PipelineCoordinator:
                                        f"({sum(c['place_specific'] for c in used_footage)} of the actual site): "
                                        + "; ".join(f"{c['provider']}: {c['source_url']}" for c in used_footage)) if used_footage else ""
             payload["beat_image_credits"] = used
-            payload["beat_image_note"] = (f"🔍 {len(used)} beat-specific image(s) auto-sourced from Wikimedia Commons; "
-                                          "check they show the right thing" if used else "")
+            # What each one is and which line it is for: the card said only "check they show the right thing",
+            # and a Wells Cathedral clock came into an Antikythera video unnoticed (2026-10-25).
+            payload["beat_image_note"] = (
+                f"🔍 {len(used)} photo(s) from outside the topic's set, fetched for one line each: "
+                + "; ".join(f"line {c.get('beat', '?')}: {clip_words(str(c.get('looked') or c.get('title', '')).removeprefix('File:'), 110)}"
+                            for c in used) if used else "")
             # AI motion for the opening photo (only with a media budget; real footage and our graphics come first).
             self._check_cancel(run_id)
             scenes, motion_used = motion.apply(self.db, scenes, run_dir / "motion", memo=motion_memo, topic=topic,

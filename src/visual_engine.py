@@ -138,7 +138,19 @@ class VisualEngine:
                     f"Fetched images for '{tid}' are not reviewed. Check {topic_dir / CONTACT_SHEET}, delete "
                     f"wrong images, then run: python main.py assets approve {tid}"
                 )
-            resolved = sorted(topic_dir / c["file"] for c in credits["images"])
+            # Only photos that show the topic (best first, so the cover is the best of them), those you kept,
+            # and at most a couple of context shots; never one that was weak or never looked at (2026-10-25).
+            from .image_review import TIER_LABELS, tier, usable_photos
+            chosen = usable_photos(credits["images"])
+            resolved = [topic_dir / c["file"] for c in chosen]
+            if len(resolved) < MIN_SCENE_IMAGES:
+                counts = {}
+                for c in credits["images"]:
+                    counts[TIER_LABELS[tier(c)]] = counts.get(TIER_LABELS[tier(c)], 0) + 1
+                raise MissingAssetsError(
+                    f"Only {len(resolved)} of the {len(credits['images'])} approved photos of '{tid}' are strong enough "
+                    f"for the video (need {MIN_SCENE_IMAGES}): " + ", ".join(f"{n} {k}" for k, n in counts.items())
+                    + ". Fetch or upload photos that show the topic itself, or keep a photo with /keep on its sheet.")
         elif topic_dir.is_dir():
             resolved = sorted(
                 p for p in topic_dir.iterdir()

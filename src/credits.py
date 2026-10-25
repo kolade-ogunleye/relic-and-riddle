@@ -323,39 +323,20 @@ def caption_credit_line(credits: Dict[str, Any]) -> str:
 
 
 # ---------------------------------------------------------------- review helpers
+TIER_ORDER = ("topic", "kept", "context", "unchecked", "weak")
+
+
 def sheet_order(topic_dir: Path, images: List[Dict[str, Any]],
                 storyboards: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
-    """The order photos are numbered on the contact sheet (storyboard beats first, then the rest).
-    /drop uses the same order, so "drop 5" removes the photo labelled 5 on the sheet."""
-    if storyboards is None:
-        sb_path = topic_dir / "storyboard.json"
-        if sb_path.is_file():
-            try:
-                storyboards = json.loads(sb_path.read_text(encoding="utf-8"))
-            except Exception:
-                storyboards = None
-    ordered_items: List[Dict[str, Any]] = []
-    seen_files = set()
-    images_by_file = {c.get("file"): c for c in images if c.get("file")}
-    for sb in storyboards or []:
-        f = sb.get("file")
-        if f in images_by_file and f not in seen_files and (topic_dir / f).exists():  # only photos still in the pool
-            c_item = dict(images_by_file[f])
-            c_item["_sb_type"] = sb.get("type", "")
-            c_item["_sb_text"] = sb.get("text", "")
-            c_item["_sb_beat"] = sb.get("beat", len(ordered_items) + 1)
-            ordered_items.append(c_item)
-            seen_files.add(f)
-    for c in images:
-        f = c.get("file")
-        if f and f not in seen_files and (topic_dir / f).exists():
-            c_item = dict(c)
-            c_item["_sb_type"] = "BUFFER"
-            c_item["_sb_text"] = "Candidate buffer asset"
-            c_item["_sb_beat"] = len(ordered_items) + 1
-            ordered_items.append(c_item)
-            seen_files.add(f)
-    return ordered_items or images
+    """The order photos are numbered on the contact sheet: those that show the topic first (most relevant
+    first), then those you kept, context, unchecked and weak (src/image_review.py tiers). /drop and /keep use
+    the same order, so "drop 5" removes the photo labelled 5 on the sheet. (A pre-script storyboard led the
+    sheet with keyword picks and one repeated caption: operator, 2026-10-25.) `storyboards` is not used."""
+    from .image_review import _relevance, tier
+    present = [dict(c) for c in images if c.get("file") and (topic_dir / c["file"]).exists()]
+    for c in present:
+        c["_tier"] = tier(c)
+    return sorted(present, key=lambda c: (TIER_ORDER.index(c["_tier"]), -_relevance(c))) or images
 
 
 def write_contact_sheet(
@@ -388,21 +369,25 @@ def write_contact_sheet(
         draw.rounded_rectangle([x + 10, y + 10, x + 70, y + 66], radius=8, fill=(0, 0, 0))
         draw.text((x + 40, y + 38), str(i + 1), font=font_num, fill=(255, 215, 0), anchor="mm")
 
-        # Top-right storyboard archetype badge
-        b_type = c.get("_sb_type", "")
-        if b_type:
-            badge_w = 95
-            bg_color = (15, 23, 42) if b_type != "BUFFER" else (30, 41, 59)
-            text_color = (56, 189, 248) if b_type != "BUFFER" else (148, 163, 184)
+        # Top-right: what the vision check made of it, which decides whether a video may use it.
+        from .image_review import TIER_LABELS
+        t = c.get("_tier", "")
+        if t:
+            colours = {"topic": ((20, 83, 45), (134, 239, 172)), "kept": ((30, 58, 138), (147, 197, 253)),
+                       "context": ((120, 53, 15), (253, 186, 116)), "unchecked": ((51, 65, 85), (203, 213, 225)),
+                       "weak": ((127, 29, 29), (252, 165, 165))}
+            bg_color, text_color = colours[t]
+            label = TIER_LABELS[t].upper()
+            badge_w = int(draw.textlength(label, font=font_badge)) + 20
             draw.rounded_rectangle([x + cell_w - badge_w - 12, y + 10, x + cell_w - 12, y + 38], radius=6, fill=bg_color)
-            draw.text((x + cell_w - (badge_w // 2) - 12, y + 24), b_type, font=font_badge, fill=text_color, anchor="mm")
+            draw.text((x + cell_w - (badge_w // 2) - 12, y + 24), label, font=font_badge, fill=text_color, anchor="mm")
 
-        # Bottom spoken line banner
-        b_text = c.get("_sb_text", "")
-        if b_text:
+        # Bottom: the check's one-line reason (or the archive title), so a weak pick is visible at a glance.
+        why = (c.get("vision_review") or {}).get("reason") or str(c.get("title", "")).removeprefix("File:")
+        if why:
             banner_h = 42
             draw.rectangle([x + 4, y + cell_h - banner_h - 4, x + cell_w - 4, y + cell_h - 4], fill=(0, 0, 0))
-            snippet = b_text if len(b_text) <= 52 else b_text[:49] + "..."
+            snippet = why if len(why) <= 52 else why[:49].rsplit(" ", 1)[0] + "…"
             draw.text((x + 12, y + cell_h - banner_h // 2 - 4), snippet, font=font_text, fill=(241, 245, 249), anchor="lm")
 
     path = topic_dir / CONTACT_SHEET
@@ -439,8 +424,35 @@ def drop_images(topic_dir: Path, numbers: List[int]) -> str:
         {**im, "vision_review": {"reason": "dropped by the operator", "kept": False}}
         for im in images if im["file"] in doomed]
     images[:] = [im for im in images if im["file"] not in doomed]
-    credits["reviewed"] = False
+    # Taking photos out of an approved set leaves it approved (nothing new needs a look); it unapproved the
+    # set, so a regeneration after a /drop stopped on "not reviewed" (production 2026-10-25). Too few left
+    # for a video still needs a fresh decision.
+    from .config import MIN_SCENE_IMAGES
+    still_approved = bool(credits.get("reviewed")) and len(images) >= MIN_SCENE_IMAGES
+    credits["reviewed"] = still_approved
     save_credits(topic_dir, credits)
     if images:
         write_contact_sheet(topic_dir, images)
-    return f"Removed {len(set(numbers))}; {len(images)} images remain in {topic_dir.name}."
+    return (f"Removed {len(set(numbers))}; {len(images)} images remain in {topic_dir.name}"
+            + ("; the set stays approved." if still_approved else "."))
+
+
+def keep_images(topic_dir: Path, numbers: List[int], keep: bool = True) -> str:
+    """Marks photos, by their contact-sheet number, as kept by you: a context or unchecked photo you want in
+    the video anyway (src/image_review.py tiers). `keep=False` takes the mark off again."""
+    credits = load_credits(topic_dir)
+    images = credits["images"]
+    shown = sheet_order(topic_dir, images)
+    bad = [n for n in numbers if not 1 <= n <= len(shown)]
+    if bad or not numbers:
+        raise ValueError(f"Numbers must be between 1 and {len(shown)}.")
+    chosen = {shown[n - 1]["file"] for n in set(numbers)}
+    for im in images:
+        if im["file"] in chosen:
+            if keep:
+                im["operator_keep"] = True
+            else:
+                im.pop("operator_keep", None)
+    save_credits(topic_dir, credits)
+    write_contact_sheet(topic_dir, images)
+    return f"{'Kept' if keep else 'No longer kept'}: {len(chosen)} photo(s) in {topic_dir.name}."

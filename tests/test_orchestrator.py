@@ -225,4 +225,4 @@ def test_render_adds_beat_images_and_replans_once_on_picture_mismatch(db, monkey
     assert plans[0] == ([topic_img, beat_img], "") and plans[1][1] == "Beat 1: Image shows a beach"
     assert len(renders) == 2  # one re-render, then stop
     assert payload["caption"] == "Story.\n\n📷 Images via Wikimedia Commons: Bob (CC BY 4.0)"
-    assert payload["beat_image_note"].startswith("🔍 1 beat-specific image")
+    assert payload["beat_image_note"].startswith("🔍 1 photo(s) from outside the topic's set") and "line 1" in payload["beat_image_note"]

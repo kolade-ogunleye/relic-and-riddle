@@ -136,9 +136,9 @@ def test_images_review_drop_approve_flow(db, tmp_path):
     assert h("review", "03_kailasa_temple") == ""
     name, caption, buttons = sent[-1]
     assert name == "contact_sheet.jpg" or name.endswith(".jpg")
-    assert "Storyboard Beat Direction" in caption and "<code>" in caption  # each beat names its image
+    assert "A video uses the" in caption and "/keep" in caption  # which photos a video may use (2026-10-25)
     assert buttons[0][0]["callback_data"].startswith("imgok:03_kailasa_temple@")
-    assert (d / "storyboard.json").is_file()  # written beside the reviewed images, never into real assets
+    assert not (d / "storyboard.json").exists()  # no keyword-picked pre-script storyboard (2026-10-25)
 
     assert "Removed 1; 5 images remain" in h("drop", "03_kailasa_temple 2")
     assert len(load_credits(d)["images"]) == 5

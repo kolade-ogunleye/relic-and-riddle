@@ -36,14 +36,15 @@ def test_credit_line_dedupes_and_skips_non_attribution():
     assert caption_credit_line({"images": []}) == ""
 
 
-def _topic_dir(tmp_path, n=6, reviewed=False, credited=None):
+def _topic_dir(tmp_path, n=6, reviewed=False, credited=None, verdict="yes"):
     d = tmp_path / "02_t"
     d.mkdir()
     for i in range(n):
         Image.new("RGB", (40, 40)).save(d / f"{i:02d}_commons.jpg")
     Image.new("RGB", (40, 40)).save(d / "contact_sheet.jpg")
     files = [f"{i:02d}_commons.jpg" for i in range(n if credited is None else credited)]
-    save_credits(d, {"reviewed": reviewed, "images": [{"file": f, "title": f} for f in files]})
+    seen = {"shows_topic": verdict, "usable": True, "safe": True} if verdict else {}
+    save_credits(d, {"reviewed": reviewed, "images": [{"file": f, "title": f, "vision_review": seen} for f in files]})
     return d
 
 
@@ -72,3 +73,26 @@ def test_load_credits_drops_deleted_files_and_reads_legacy_list(tmp_path):
     assert len(load_credits(d)["images"]) == 5
     (d / "credits.json").write_text(json.dumps([{"file": "01_commons.jpg"}]), encoding="utf-8")
     assert load_credits(d) == {"reviewed": False, "images": [{"file": "01_commons.jpg"}]}
+
+
+
+def test_a_video_uses_only_strong_photos_and_a_couple_of_context_ones(tmp_path):
+    # Operator, 2026-10-25: weak (context, never checked) photos reached the Antikythera video and carousel.
+    from src.credits import load_credits
+    d = _topic_dir(tmp_path, n=9, reviewed=True)
+    cr = load_credits(d)
+    for i, im in enumerate(cr["images"]):
+        if i >= 5:
+            im["vision_review"] = {"shows_topic": "partly", "usable": True, "safe": True} if i < 8 else {}
+    cr["images"][0]["relevance"] = 1
+    cr["images"][4]["relevance"] = 9
+    save_credits(d, cr)
+    names = [p.name for p in VisualEngine(assets_dir=tmp_path).get_scene_sequence({"id": "02_t"})]
+    assert names[0] == "04_commons.jpg"                                  # the most relevant topic photo: the cover
+    assert set(names) == {f"{i:02d}_commons.jpg" for i in range(7)} and len(names) == 7   # 5 topic + 2 context
+
+
+def test_too_few_strong_photos_stop_the_run_with_the_reason(tmp_path):
+    _topic_dir(tmp_path, n=6, reviewed=True, verdict="partly")
+    with pytest.raises(MissingAssetsError, match="Only 2 of the 6 approved photos"):
+        VisualEngine(assets_dir=tmp_path).get_scene_sequence({"id": "02_t"})

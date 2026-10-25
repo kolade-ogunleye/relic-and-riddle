@@ -119,3 +119,15 @@ def test_documentary_cover_copy_comes_from_the_topic_when_the_deep_dive_gave_non
     for payload in ({"title": "Derinkuyu Underground City"}, {"title": "Greek Fire"}, {}):
         text = " ".join(documentary_cover_copy(payload).values())
         assert "METROPOLIS" not in text and "UNEXPLAINED" not in text
+
+
+def test_small_caps_keep_the_letter_after_an_apostrophe_small():
+    # The first posted Reel (2026-10-24) showed KAILASA'S with a full-size S: the apostrophe had split the word.
+    from src.video_composer import format_word_caption
+    import re
+    tag = format_word_caption("Kailasa's", "&HFFFFFF&", False, False, False)
+    pieces = re.findall(r"fscx(\d+)\\fscy\d+\}([^{]*)", tag)
+    assert pieces == [("100", "K"), ("82", "AILASA'S")]                      # one initial, the rest small
+    assert "fscy100}S" not in tag
+    plain = format_word_caption("BC", "&HFFFFFF&", False, False, False)
+    assert "BC" in plain and "fscx82" not in plain                            # acronyms stay full size

@@ -395,7 +395,9 @@ def format_word_caption(
     if not enable_small_caps:
         return f"{{\\c{colour}\\fscx100\\fscy100}}{clean.upper()}"
 
-    tokens = re.findall(r"[A-Za-z]+|[^A-Za-z]+", clean)
+    # A possessive or contraction is one word: "Kailasa's" keeps one full-size initial, and the s after the
+    # apostrophe is small (the first posted Reel showed KAILASA'S with a full-size S, 2026-10-24).
+    tokens = re.findall(r"[A-Za-z]+(?:['’][A-Za-z]+)*|[^A-Za-z]+", clean)
     out = []
     sc_base = sc_scale
     init_tag = f"\\c{colour}\\fscx100\\fscy100"
@@ -412,7 +414,7 @@ def format_word_caption(
     }
 
     for tok in tokens:
-        if tok.isalpha():
+        if tok[:1].isalpha():  # a word, possibly with an apostrophe inside it
             upper = tok.upper()
             if upper in ACRONYMS or upper in ROMAN_NUMERALS or (tok.isupper() and 2 <= len(tok) <= 4):
                 out.append(f"{{{init_tag}}}{upper}")

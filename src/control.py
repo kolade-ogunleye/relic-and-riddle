@@ -24,7 +24,7 @@ import html
 import json
 import time as clock  # "time" is imported locally inside handle(), which shadows a plain name
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import re
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -473,7 +473,7 @@ AUDIT_NAMES = {"cdash": "Dashboard", "approve": "Approve", "reject": "Reject", "
                "qdoc": "Render with documentary", "qrefresh": "Refresh queue", "qbump": "Bump", "qdrop": "Drop",
                "resend": "Resend review", "requeue": "Back to the queue", "rerender": "Re-render", "postreal": "Post for real?", "promote": "Post for real",
                "cdigest": "Weekly digest", "chistory": "Review history", "chist": "Review details", "postnow": "Post now", "produce": "Produce a batch",
-               "cposts": "Posting", "posts": "Posting", "cancelpost": "Cancel a booking", "movepost": "Move a booking",
+               "cposts": "Posting", "cpost": "Posting: one episode", "posts": "Posting", "cancelpost": "Cancel a booking", "movepost": "Move a booking",
                "retrypost": "Retry the failed platform", "retryreel": "Retry the Reel's failed platform",
                "edit": "Edit text", "runstop": "Cancel run", "runstopok": "Confirm cancel",
                "simpub": "Simulated publish", "pubok": "It posted", "pubno": "It didn't post", "creviews": "Reviews",
@@ -828,10 +828,22 @@ POST_ICON = {"pending": "🗓", "waiting": "⏳", "published": "✅", "failed": 
 POST_NAME = {"reel": "Reel", "story": "Stories", "carousel": "Carousel"}
 
 
-def _post_links(db: PipelineDatabase, run_id: str) -> str:
-    """The links from a run's publication receipts, one per platform."""
+def _channel_kind(channel: str) -> str:
+    """Which booking a publication receipt belongs to: "upload-post:story" is the Stories, ":carousel" the
+    carousel, any other (the Reel's own, YouTube Shorts, a retry) the Reel."""
+    for kind in ("story", "carousel"):
+        if str(channel).endswith(":" + kind):
+            return kind
+    return "reel"
+
+
+def _post_links(db: PipelineDatabase, run_id: str, kind: Optional[str] = None) -> str:
+    """The links from a run's publication receipts, one per platform; with `kind`, only that post's own (the
+    Stories line showed the Reel's YouTube link: operator, 2026-10-25)."""
     urls: Dict[str, str] = {}
     for pub in db.list_publications(run_id):
+        if kind and _channel_kind(pub.get("channel", "")) != kind:
+            continue
         try:
             payload = json.loads(pub.get("response_payload_json") or "{}")
         except ValueError:
@@ -842,42 +854,121 @@ def _post_links(db: PipelineDatabase, run_id: str) -> str:
     return " · ".join(f'<a href="{html.escape(u)}">{html.escape(p)}</a>' for p, u in urls.items())
 
 
-def posting_panel(db: PipelineDatabase, limit: int = 10) -> Tuple[str, List[List[Dict[str, str]]]]:
-    """🗓 Posting: every booking with its slot and status, the links once posted, and what can be done with
-    a booking: post it now, move it to the next slot, cancel it (operator, 2026-10-24). Bookings live
-    here, not on the platforms; the daemon posts each when its slot comes."""
-    from .post_schedule import fmt_ahead as fmt  # the operator's time first, with how far away it is
+def _when(iso: Optional[str], ahead: bool = True) -> str:
+    from .post_schedule import fmt, fmt_ahead
+    if not iso:
+        return ""
+    try:
+        moment = datetime.fromisoformat(str(iso))
+    except ValueError:
+        return ""
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=timezone.utc)
+    return fmt_ahead(moment) if ahead else fmt(moment)
+
+
+def carousel_slot_for(db: PipelineDatabase, post: Dict[str, Any]) -> Optional[datetime]:
+    """When a waiting carousel is expected to go out: the first carousel slot 48 hours after its Reel posted
+    (and not before now). None while its Reel has not posted. Only the newest waiting carousel posts in a slot."""
+    from . import post_schedule
+    reel = next((p for p in db.list_scheduled_posts(("published",), run_id=post["run_id"]) if p["kind"] == "reel"), None)
+    posted = ((reel or {}).get("detail") or {}).get("posted_at") or (reel or {}).get("due_at")
+    if not posted:
+        return None
+    earliest = max(datetime.now(timezone.utc), datetime.fromisoformat(posted) + timedelta(hours=48))
+    try:
+        return post_schedule.next_carousel_slot(earliest)
+    except ValueError:
+        return None
+
+
+def _episode_bookings(db: PipelineDatabase) -> List[Tuple[str, List[Dict[str, Any]]]]:
+    """Every run with bookings, those with something still to post first (soonest first), then the rest
+    (newest first); each run's bookings in posting order: Reel, Stories, carousel."""
+    every = db.list_scheduled_posts(("pending", "waiting", "published", "failed", "unknown", "cancelled", "expired"))
+    runs: Dict[str, List[Dict[str, Any]]] = {}
+    for p in every:
+        runs.setdefault(p["run_id"], []).append(p)
+    order = {"reel": 0, "story": 1, "carousel": 2}
+    for posts in runs.values():
+        posts.sort(key=lambda p: order.get(p["kind"], 3))
+
+    def key(item):
+        _, posts = item
+        open_due = [p.get("due_at") or "9999" for p in posts if p["status"] in ("pending", "waiting")]
+        return (0, min(open_due), 0) if open_due else (1, "", -max(p["id"] for p in posts))
+    return sorted(runs.items(), key=key)
+
+
+def posting_panel(db: PipelineDatabase, limit: int = 8) -> Tuple[str, List[List[Dict[str, str]]]]:
+    """🗓 Posting: one line per episode, saying where each of its posts stands (operator, 2026-10-25: group a
+    run's posts together, open one to see its contents). Each episode opens with its times and links."""
     e = html.escape
-    upcoming = db.list_scheduled_posts(("pending", "waiting"))
-    recent = sorted(db.list_scheduled_posts(("published", "failed", "unknown", "cancelled")), key=lambda p: p["id"], reverse=True)[:limit]
-    lines = ["🗓 <b>Posting</b>", "", "<b>Upcoming</b> · booked here; the daemon posts each when its slot comes."]
+    lines = ["🗓 <b>Posting</b> · one line per episode; open one for its times, links and actions.", ""]
     buttons: List[List[Dict[str, str]]] = []
-    if not upcoming:
-        lines.append("• nothing booked")
-    for p in upcoming:
-        when = fmt(datetime.fromisoformat(p["due_at"])) if p.get("due_at") else "next carousel slot"
-        lines.append(f"• {POST_ICON.get(p['status'], '•')} {POST_NAME.get(p['kind'], p['kind'])} · {e(when)} — {e(db.run_label(p['run_id']))}")
+    episodes = _episode_bookings(db)[:limit]
+    if not episodes:
+        lines.append("• nothing booked or posted yet")
+    for run_id, posts in episodes:
+        parts = []
+        for p in posts:
+            if p["status"] == "pending":
+                parts.append(f"{POST_NAME.get(p['kind'], p['kind'])} {POST_ICON['pending']} {_when(p.get('due_at'))}")
+            elif p["status"] == "waiting":
+                slot = carousel_slot_for(db, p)
+                parts.append(f"{POST_NAME.get(p['kind'], p['kind'])} {POST_ICON['waiting']} "
+                             + (e(_when(slot.isoformat())) if slot else "after its Reel"))
+            else:
+                parts.append(f"{POST_NAME.get(p['kind'], p['kind'])} {POST_ICON.get(p['status'], '•')}")
+        lines.append(f"• <b>{e(db.run_label(run_id))}</b>\n  " + " · ".join(parts))
+        buttons.append([{"text": f"📂 {button_run_name(db, run_id)}", "callback_data": f"cpost:{db.run_key(run_id)}"}])
+    return "\n".join(lines), buttons
+
+
+def posting_episode(db: PipelineDatabase, run_id: str) -> Tuple[str, List[List[Dict[str, str]]]]:
+    """One episode's posts: when each was booked, its slot (with how far away), when it went out, its own
+    links, what went wrong if it did, and the actions on it."""
+    e = html.escape
+    posts = dict(_episode_bookings(db)).get(run_id, [])
+    lines = [f"🗓 <b>{e(db.run_label(run_id))}</b>", ""]
+    buttons: List[List[Dict[str, str]]] = []
+    if not posts:
+        lines.append("• nothing booked for this episode")
+    for p in posts:
+        name = POST_NAME.get(p["kind"], p["kind"])
+        detail = p.get("detail") or {}
+        lines.append(f"{POST_ICON.get(p['status'], '•')} <b>{name}</b> · {e(p['status'])}")
+        lines.append(f"  Booked: {e(_when(p.get('created_at'), ahead=False))}")
+        if p["status"] == "waiting":
+            slot = carousel_slot_for(db, p)
+            lines.append("  Slot: " + (f"{e(_when(slot.isoformat()))} (the first carousel slot 48 h after its Reel; only "
+                                       "the newest waiting carousel goes out in a slot, and one waits at most 7 days)"
+                                       if slot else "the first carousel slot 48 h after its Reel posts"))
+        elif p.get("due_at"):
+            lines.append(f"  Slot: {e(_when(p['due_at']))}")
+        if p["status"] == "published":
+            lines.append(f"  Published: {e(_when(detail.get('posted_at') or p.get('updated_at')))}")
+            links = _post_links(db, run_id, p["kind"])
+            if links:
+                lines.append(f"  {links}")
+        else:
+            note = str(detail.get("error") or detail.get("reason") or "")
+            if note:  # only while it matters: a published post no longer shows its earlier error
+                lines.append(f"  <i>{e(note[:160])}</i>")
         if p["kind"] == "reel" and p["status"] == "pending":
-            buttons.append([{"text": f"⚡ Post now: {clip_words(db.run_label(p['run_id']), 20)}", "callback_data": f"postnow:{db.run_key(p['run_id'])}"}])
+            buttons.append([{"text": "⚡ Post now", "callback_data": f"postnow:{db.run_key(run_id)}"}])
             buttons.append([{"text": "⏭ Move to the next slot", "callback_data": f"movepost:{p['id']}"},
                             {"text": "⏹ Cancel the booking", "callback_data": f"cancelpost:{p['id']}"}])
-    lines += ["", "<b>Recent</b>"]
-    if not recent:
-        lines.append("• nothing posted yet")
-    for p in recent:
-        when = fmt(datetime.fromisoformat(p["due_at"])) if p.get("due_at") else ""
-        detail = p.get("detail") or {}
-        note = e(str(detail.get("error") or detail.get("reason") or ""))[:120]
-        links = _post_links(db, p["run_id"]) if p["status"] == "published" else ""
-        lines.append(f"• {POST_ICON.get(p['status'], '•')} {POST_NAME.get(p['kind'], p['kind'])} · {e(when)} — {e(db.run_label(p['run_id']))} · {e(p['status'])}"
-                     + (f"\n  {links}" if links else "") + (f"\n  <i>{note}</i>" if note else ""))
         if p["kind"] in ("story", "carousel") and p["status"] in ("unknown", "failed") and (
                 detail.get("failed") or "failed=[" in str(detail.get("error") or "")):
             # a partial publish: re-send only the platform(s) that failed (operator, 2026-10-24)
-            buttons.append([{"text": f"🔁 Retry the failed platform: {POST_NAME.get(p['kind'], p['kind'])}", "callback_data": f"retrypost:{p['id']}"}])
+            buttons.append([{"text": f"🔁 Retry the failed platform: {name}", "callback_data": f"retrypost:{p['id']}"}])
         if p["kind"] == "reel" and p["status"] in ("unknown", "failed"):
-            buttons.append([{"text": "🔁 Retry the failed platform: Reel", "callback_data": f"retryreel:{db.run_key(p['run_id'])}"}])
-    return "\n".join(lines), buttons
+            buttons.append([{"text": "🔁 Retry the failed platform: Reel", "callback_data": f"retryreel:{db.run_key(run_id)}"}])
+        lines.append("")
+    return "\n".join(lines).rstrip(), buttons + [[{"text": "← Posting", "callback_data": "cposts:"}]]
+
+
 
 
 def post_candidates(db: PipelineDatabase, hours: int = 48, limit: int = 3) -> List[Dict[str, Any]]:
@@ -1966,15 +2057,21 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command in ("posts", "cposts"):
             text, buttons = posting_panel(db)
             return text, buttons + [[{"text": "📊 Full status", "callback_data": "cstat:"}], [HOME]]
+        if command == "cpost":  # one episode's posts
+            text, buttons = posting_episode(db, db.resolve_run(args.strip()))
+            return text, buttons + [[HOME]]
         if command in ("cancelpost", "movepost", "retrypost"):
             action = (run_actions or {}).get(command)
             if action is None:
                 return "Booking changes work while the bot or daemon is running."
             try:
-                result = action(int(args.strip()))
+                post_id = int(args.strip())
+                run_of = next((p["run_id"] for p in db.list_scheduled_posts(
+                    ("pending", "waiting", "published", "failed", "unknown", "cancelled", "expired")) if p["id"] == post_id), None)
+                result = action(post_id)
             except ValueError:
                 return "That booking id is not valid."
-            text, buttons = posting_panel(db)
+            text, buttons = posting_episode(db, run_of) if run_of else posting_panel(db)  # back to where it was
             return f"{result}\n\n{text}", buttons + [[HOME]]
         if command == "produce":
             if produce_batch is None:

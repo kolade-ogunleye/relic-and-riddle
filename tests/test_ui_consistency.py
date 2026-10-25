@@ -134,3 +134,29 @@ def test_the_dashboard_offers_one_action_per_topic(db, tmp_path, monkeypatch):
     _, buttons = control.dashboard_text_and_buttons(db, None, assets_dir=tmp_path)
     flat = [b["callback_data"] for row in buttons for b in row]
     assert any(c.startswith("rerender:") for c in flat) and not any(c.startswith("qrender:") for c in flat)
+
+
+def test_posting_groups_an_episodes_posts_with_their_own_times_and_links(db):
+    # Operator, 2026-10-25: no date or countdown for the carousel, the Stories showed the Reel's YouTube
+    # link, a fixed Stories post kept its old error, and posts of one run were not grouped.
+    import json as _json
+    topic = db.list_all_topics()[0]["id"]
+    db.create_run("run_k", topic)
+    reel = db.add_scheduled_post("run_k", "reel", "2026-10-24T23:00:00+00:00", [])
+    story = db.add_scheduled_post("run_k", "story", "2026-10-24T23:45:00+00:00", ["s.jpg"])
+    db.add_scheduled_post("run_k", "carousel", None, ["c.jpg"], status="waiting")
+    db.update_scheduled_post(reel, "published", detail={"posted_at": "2026-10-24T23:00:45+00:00"})
+    db.update_scheduled_post(story, "published", detail={"error": "Partial publish: ok=['facebook'] failed=['instagram']"})
+    db.record_publication(topic, "run_k", "upload-post", "published", {"post_urls": {"facebook": "https://fb/r", "youtube": "https://yt/r"}})
+    db.record_publication(topic, "run_k", "upload-post:story", "published", {"post_urls": {"instagram": "https://ig/s"}})
+    text, buttons = control.posting_panel(db)
+    assert text.count("Reel") == 1 and "Carousel ⏳" in text                       # one line for the episode
+    assert buttons[0][0]["callback_data"] == f"cpost:{db.run_key('run_k')}"
+    detail, actions = control.posting_episode(db, "run_k")
+    stories = detail.split("<b>Stories</b>")[1].split("<b>Carousel</b>")[0]
+    assert "https://ig/s" in stories and "youtube" not in stories                 # its own links only
+    assert "Partial publish" not in stories                                       # published: no stale error
+    assert "Booked:" in stories and "Published:" in detail
+    carousel = detail.split("<b>Carousel</b>")[1]
+    assert "Slot:" in carousel and ("in " in carousel or "ago" in carousel)       # a date and a countdown
+    assert actions[-1] == [{"text": "← Posting", "callback_data": "cposts:"}]

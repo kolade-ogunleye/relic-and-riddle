@@ -37,9 +37,12 @@ def _coordinator(db):
 def test_the_panel_lists_bookings_with_their_actions_and_the_dashboard_offers_it(db, tmp_path):
     run_id, reel, slot = _booked(db, tmp_path)
     text, buttons = control.posting_panel(db)
-    assert "🗓 Reel ·" in text and "🗓 Stories ·" in text and "⏳ Carousel · next carousel slot" in text
-    callbacks = [b["callback_data"] for row in buttons for b in row]
-    assert callbacks == [f"postnow:{db.run_key(run_id)}", f"movepost:{reel}", f"cancelpost:{reel}"]
+    # One line per episode (operator, 2026-10-25), its actions one tap in.
+    assert "Reel 🗓" in text and "Stories 🗓" in text and "Carousel ⏳" in text
+    assert [b["callback_data"] for row in buttons for b in row] == [f"cpost:{db.run_key(run_id)}"]
+    _, inside = control.posting_episode(db, run_id)
+    callbacks = [b["callback_data"] for row in inside for b in row]
+    assert callbacks == [f"postnow:{db.run_key(run_id)}", f"movepost:{reel}", f"cancelpost:{reel}", "cposts:"]
     _, dash = control.dashboard_text_and_buttons(db)
     assert any(b["callback_data"] == "cposts:" and b["text"] == "🗓 Posting (3)" for row in dash for b in row)
     h = make_command_handler(db, lambda: None, lambda: "")
@@ -52,9 +55,9 @@ def test_a_published_booking_shows_its_links_from_the_receipts(db, tmp_path):
     db.update_scheduled_post(reel, "published", detail={"posted_at": slot.isoformat()})
     db.record_publication(db.get_run(run_id)["topic_id"], run_id, "upload-post:reel", "published",
                           {"post_urls": {"instagram": "https://instagram.com/p/1", "facebook": "https://facebook.com/2"}})
-    text, _ = control.posting_panel(db)
-    recent = text.split("<b>Recent</b>")[1]
-    assert "✅ Reel" in recent and 'href="https://instagram.com/p/1">instagram</a>' in recent and "facebook</a>" in recent
+    text, _ = control.posting_episode(db, run_id)
+    reel_part = text.split("<b>Stories</b>")[0]
+    assert "✅ <b>Reel</b>" in reel_part and 'href="https://instagram.com/p/1">instagram</a>' in reel_part and "facebook</a>" in reel_part
 
 
 def test_move_and_cancel_act_on_the_booking_and_its_followers(db, tmp_path):
@@ -102,7 +105,7 @@ def test_a_partial_story_publish_can_be_retried_on_the_failed_platform_only(db, 
     db.update_scheduled_post(story, "unknown", detail={"status": "unknown", "part": 3, "posted_parts": 2,
                                                        "error": "Partial publish: ok=['facebook'] failed=['instagram'] (instagram: media error)",
                                                        "failed": {"instagram": "media error"}})
-    text, buttons = control.posting_panel(db)
+    text, buttons = control.posting_episode(db, run_id)
     assert any(b["callback_data"] == f"retrypost:{story}" for row in buttons for b in row)
     c = _coordinator(db)
     sent = []
@@ -148,7 +151,7 @@ def test_a_partial_reel_can_be_re_sent_to_the_platform_it_missed(db, tmp_path, m
                           {"error": "Partial publish: ok=['facebook'] failed=['instagram'] (instagram: processing)", "failed": {"instagram": "processing"},
                            "ok": {"facebook": "https://fb/1"}, "platforms": ["facebook", "instagram"]})
     db.update_scheduled_post(reel, "unknown", detail={"error": "partial"})
-    text, buttons = control.posting_panel(db)
+    text, buttons = control.posting_episode(db, run_id)
     assert any(b["callback_data"] == f"retryreel:{db.run_key(run_id)}" for row in buttons for b in row)
     c = _coordinator(db)
     sent = []

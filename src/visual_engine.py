@@ -224,8 +224,8 @@ class VisualEngine:
         im = Image.alpha_composite(im, shade)
         draw = ImageDraw.Draw(im)
         x0, width = 110, SAFE_TEXT_WIDTH
-        size = min(fit_font(draw, line1, "Anton", 118, width, 56).size, fit_font(draw, line2, "Anton", 118, width, 56).size)
-        font_title, font_eye = get_font("Anton", size), fit_font(draw, eyebrow, "Montserrat", 34, width, 22)
+        size = min(fit_font(draw, line1, "Cinzel", 118, width, 56).size, fit_font(draw, line2, "Cinzel", 118, width, 56).size)
+        font_title, font_eye = get_font("Cinzel", size), fit_font(draw, eyebrow, "Montserrat", 34, width, 22)
         y2 = square_bottom - 150  # clear of the square crop's bottom edge
         y1 = y2 - size - 10
         ye = y1 - size // 2 - 40
@@ -245,9 +245,9 @@ class VisualEngine:
         veil = Image.new("RGBA", im.size, (0, 0, 0, 70))  # light overall dim keeps white text readable
         im = Image.alpha_composite(im, veil)
         draw = ImageDraw.Draw(im)
-        size = min(fit_font(draw, line1, "Anton", 104, SAFE_TEXT_WIDTH, 56).size,
-                   fit_font(draw, line2, "Anton", 104, SAFE_TEXT_WIDTH, 56).size)
-        font_title, font_eye = get_font("Anton", size), fit_font(draw, eyebrow, "Montserrat", 32, SAFE_TEXT_WIDTH, 22)
+        size = min(fit_font(draw, line1, "Cinzel", 104, SAFE_TEXT_WIDTH, 56).size,
+                   fit_font(draw, line2, "Cinzel", 104, SAFE_TEXT_WIDTH, 56).size)
+        font_title, font_eye = get_font("Cinzel", size), fit_font(draw, eyebrow, "Montserrat", 32, SAFE_TEXT_WIDTH, 22)
         cx, cy = VIDEO_WIDTH // 2, getattr(self, "_text_cy", VIDEO_HEIGHT // 2)
         draw.line([cx - 70, cy - size - 70, cx + 70, cy - size - 70], fill=GOLD, width=4)
         im = self._shadowed_text(im, (cx, cy - size - 30), eyebrow, font_eye, GOLD, "mm")
@@ -279,10 +279,10 @@ class VisualEngine:
         measure = ImageDraw.Draw(bg)
         font_eye = fit_font(measure, eyebrow, "Montserrat", THUMB_EYEBROW_FONT_SIZE, SAFE_TEXT_WIDTH, 22)
         title_size = min(
-            fit_font(measure, line1, "Anton", THUMB_TITLE_FONT_SIZE, SAFE_TEXT_WIDTH, 56).size,
-            fit_font(measure, line2, "Anton", THUMB_TITLE_FONT_SIZE, SAFE_TEXT_WIDTH, 56).size,
+            fit_font(measure, line1, "Cinzel", THUMB_TITLE_FONT_SIZE, SAFE_TEXT_WIDTH, 56).size,
+            fit_font(measure, line2, "Cinzel", THUMB_TITLE_FONT_SIZE, SAFE_TEXT_WIDTH, 56).size,
         )
-        font_title = get_font("Anton", title_size)
+        font_title = get_font("Cinzel", title_size)
         font_tag = fit_font(measure, tagline, "Montserrat", THUMB_TAGLINE_FONT_SIZE, SAFE_TEXT_WIDTH - 68, 24)
 
         w_eye, h_eye = text_size(measure, eyebrow, font_eye)
@@ -338,10 +338,10 @@ class VisualEngine:
         measure = ImageDraw.Draw(im)
         font_eye = fit_font(measure, eyebrow, "Montserrat", THUMB_EYEBROW_FONT_SIZE, SAFE_TEXT_WIDTH, 22)
         title_size = min(
-            fit_font(measure, line1, "Anton", THUMB_TITLE_FONT_SIZE, SAFE_TEXT_WIDTH, 56).size,
-            fit_font(measure, line2, "Anton", THUMB_TITLE_FONT_SIZE, SAFE_TEXT_WIDTH, 56).size,
+            fit_font(measure, line1, "Cinzel", THUMB_TITLE_FONT_SIZE, SAFE_TEXT_WIDTH, 56).size,
+            fit_font(measure, line2, "Cinzel", THUMB_TITLE_FONT_SIZE, SAFE_TEXT_WIDTH, 56).size,
         )
-        font_title = get_font("Anton", title_size)
+        font_title = get_font("Cinzel", title_size)
         font_tag = fit_font(measure, tagline, "Montserrat", THUMB_TAGLINE_FONT_SIZE, SAFE_TEXT_WIDTH - 68, 24)
 
         w_eye, h_eye = text_size(measure, eyebrow, font_eye)
@@ -431,10 +431,10 @@ class VisualEngine:
         draw = ImageDraw.Draw(bg)
         font_eye = fit_font(draw, eyebrow, "Montserrat", 32, max_text_w, 20)
         title_font_size = min(
-            fit_font(draw, line1, "Anton", 100, max_text_w, 48).size,
-            fit_font(draw, line2, "Anton", 100, max_text_w, 48).size,
+            fit_font(draw, line1, "Cinzel", 100, max_text_w, 48).size,
+            fit_font(draw, line2, "Cinzel", 100, max_text_w, 48).size,
         )
-        font_title = get_font("Anton", title_font_size)
+        font_title = get_font("Cinzel", title_font_size)
         font_tag = fit_font(draw, tagline, "Montserrat", 30, max_text_w, 20)
 
         w_eye, h_eye = text_size(draw, eyebrow, font_eye)

@@ -25,6 +25,7 @@ from PIL import Image, ImageDraw, ImageFilter
 from . import geo
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
 from .typography import fit_font, get_font
+from .art_direction import accent, type_scale, count_start, push_in, MOTION
 from .encoding import bounded_encode
 
 log = logging.getLogger(__name__)
@@ -219,9 +220,9 @@ def _label_box(im: Image.Image, cx: int, y: int, title: str, sub: str, alpha: fl
     d = ImageDraw.Draw(im, "RGBA")  # RGB frame + RGBA drawing = real alpha blending (fades work)
     a = int(255 * alpha)
     d.rounded_rectangle([cx - bw // 2, y - 62, cx + bw // 2, y + 66], radius=18, fill=(10, 10, 12, int(200 * alpha)),
-                        outline=(*GOLD, int(220 * alpha)), width=2)
+                        outline=(*accent(), int(220 * alpha)), width=2)
     _text(d, (cx, y - 18), title.upper(), font=f1, fill=(*WHITE, a), anchor="mm")
-    _text(d, (cx, y + 38), sub.upper(), font=f2, fill=(*GOLD, a), anchor="mm")
+    _text(d, (cx, y + 38), sub.upper(), font=f2, fill=(*accent(), a), anchor="mm")
     return im
 
 
@@ -298,7 +299,7 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
         for poly in c["polygons"]:
             ring = poly[0]
             if any(abs(x - lon0) < lon_half and abs(y - lat0) < lat_half for x, y in ring[:: max(1, len(ring) // 50)]):
-                colour, width = ((*GOLD,), 7) if c is home else ((150, 150, 158), 3)
+                colour, width = ((*accent(),), 7) if c is home else ((150, 150, 158), 3)
                 draw.line([project(x, y) for x, y in ring] + [project(*ring[0])], fill=colour, width=width)
 
     # Neighbouring countries, named at Natural Earth's label points. A label is drawn only if it
@@ -380,12 +381,12 @@ def render_map(place: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heigh
                 for k in range(2):
                     p = ((t - 1.6) * 0.8 + k * 0.5) % 1.0
                     r = 20 + 90 * p
-                    d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=(*GOLD, int(200 * (1 - p))), width=4)
+                    d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=(*accent(), int(200 * (1 - p))), width=4)
             # Pin drop with a small bounce (1.8 s -> 2.3 s).
             if t >= 1.1:
                 drop = _ease((t - 1.1) / 0.5)
                 py = cy - 160 * (1 - drop) - (12 * math.sin(math.pi * min(1.0, (t - 1.6) / 0.25)) if 1.6 <= t <= 1.85 else 0)
-                d.ellipse([cx - 22, py - 22, cx + 22, py + 22], fill=(*GOLD, 255), outline=(20, 20, 20, 255), width=4)
+                d.ellipse([cx - 22, py - 22, cx + 22, py + 22], fill=(*accent(), 255), outline=(20, 20, 20, 255), width=4)
                 d.ellipse([cx - 7, py - 7, cx + 7, py + 7], fill=(20, 20, 20, 255))
             im = _label_box(im, cx, label_y, label, country, _ease((t - 1.5) / 0.4))
             yield im
@@ -446,7 +447,7 @@ def render_timeline(events: List[Dict[str, Any]], out: Path, width: int = VIDEO_
                 im = bg.copy()
                 d = ImageDraw.Draw(im, "RGBA")
                 spine_x = left + (right - left) * _ease(t / 1.0)
-                d.line([(left, spine_y), (spine_x, spine_y)], fill=(*GOLD, 255), width=6)
+                d.line([(left, spine_y), (spine_x, spine_y)], fill=(*accent(), 255), width=6)
                 for k, e in enumerate(events):
                     appear = _ease((t - 0.4 - 0.45 * k) / 0.4)
                     if appear <= 0:
@@ -454,7 +455,7 @@ def render_timeline(events: List[Dict[str, Any]], out: Path, width: int = VIDEO_
                     x = left + step * k
                     a = int(255 * appear)
                     r = 16 * appear
-                    d.ellipse([x - r, spine_y - r, x + r, spine_y + r], fill=(*GOLD, a))
+                    d.ellipse([x - r, spine_y - r, x + r, spine_y + r], fill=(*accent(), a))
                     # Alternate above (k even) and below (k odd)
                     above = (k % 2 == 0)
                     yt_year = spine_y - 28 if above else spine_y + 30
@@ -481,7 +482,7 @@ def render_timeline(events: List[Dict[str, Any]], out: Path, width: int = VIDEO_
                 im = bg.copy()
                 d = ImageDraw.Draw(im, "RGBA")
                 spine = top + (bottom - top) * _ease(t / 1.0)
-                d.line([(x0, top), (x0, spine)], fill=(*GOLD, 255), width=6)
+                d.line([(x0, top), (x0, spine)], fill=(*accent(), 255), width=6)
                 for k, e in enumerate(events):
                     appear = _ease((t - 0.4 - 0.45 * k) / 0.4)
                     if appear <= 0:
@@ -489,7 +490,7 @@ def render_timeline(events: List[Dict[str, Any]], out: Path, width: int = VIDEO_
                     y = top + step * k
                     a = int(255 * appear)
                     r = 16 * appear
-                    d.ellipse([x0 - r, y - r, x0 + r, y + r], fill=(*GOLD, a))
+                    d.ellipse([x0 - r, y - r, x0 + r, y + r], fill=(*accent(), a))
                     xt = x0 + 50 + int(30 * (1 - appear))
                     _text(d, (xt, y - 8), year_text(e["year"], e.get("approximate", False)), font=f_year, fill=(*GOLD, a), anchor="ls")
                     for j, line in enumerate(_wrap(d, e["label"], f_lab, width - xt - 90)[:2]):
@@ -601,6 +602,16 @@ def _backdrop(photo: Optional[Path], width: int = VIDEO_WIDTH, height: int = VID
 
 
 # ------------------------------------------------------------- number cards
+def _pushed_in(bg: Image.Image, scale: float) -> Image.Image:
+    """The backdrop scaled by `scale` about its centre and cropped back to size (the push-in)."""
+    if scale <= 1.0:
+        return bg.copy()
+    w, h = bg.size
+    big = bg.resize((int(w * scale) + 1, int(h * scale) + 1), Image.Resampling.BILINEAR)
+    x0, y0 = (big.width - w) // 2, (big.height - h) // 2
+    return big.crop((x0, y0, x0 + w, y0 + h))
+
+
 def _split_number(value: str) -> Tuple[str, Optional[float], str]:
     """'20,000' -> ('', 20000, ''); 'about 280 ft' -> ('about ', 280, ' ft'); no number -> (value, None, '')."""
     import re
@@ -618,22 +629,20 @@ def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Pa
     n = int(CLIP_SECONDS * VIDEO_FPS)
     bg = _backdrop(photo, width=width, height=height)
     top, bottom = get_text_bounds(width, height)
+    ts = type_scale(width, height)  # one hierarchy for every graphic (art direction, 2026-10-24)
 
     if width > height:
         if len(cards) == 1:
             centres = [(width // 2, height // 2)]
             max_w = int(width * 0.70)
-            f_num_size, f_lab_size = 170, 38
         else:
             centres = [(int(width * 0.30), height // 2), (int(width * 0.70), height // 2)]
             max_w = int(width * 0.35)
-            f_num_size, f_lab_size = 130, 30
-        f_lab = get_font("Montserrat", f_lab_size)
     else:
         centres = [(width // 2, (top + bottom) // 2)] if len(cards) == 1 else [(width // 2, top + 190), (width // 2, bottom - 230)]
         max_w = width - 160
-        f_num_size = 190 if len(cards) == 1 else 150
-        f_lab = get_font("Montserrat", 40)
+    f_num_size = int(ts["figure"] * (1.15 if len(cards) == 1 else 1.0))
+    f_lab = get_font("Montserrat", ts["label"])
 
     def shown(card: Dict[str, Any], p: float) -> str:
         pre, num, post = _split_number(card["value"])
@@ -647,14 +656,14 @@ def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Pa
     def frames():
         for i in range(n):
             t = i / VIDEO_FPS
-            im = bg.copy()
+            im = _pushed_in(bg, push_in(t, CLIP_SECONDS))  # a slow push on the backdrop: a card never sits static
             d = ImageDraw.Draw(im, "RGBA")
             for k, (card, (cx, cy)) in enumerate(zip(cards, centres)):
-                start = 0.2 + 1.2 * k
-                a = _ease((t - start) / 0.4)
+                start = count_start(k)  # every count rests by count_done_by of the clip
+                a = _ease((t - start) / MOTION["reveal"])
                 if a <= 0:
                     continue
-                count = _ease((t - start) / 1.3)
+                count = _ease((t - start) / MOTION["count"])
                 value_font = fit_font(d, card["value"].upper(), "Anton", f_num_size, max_w, 50)
                 _text(d, (cx, cy - 30), shown(card, count).upper(), font=value_font, fill=(*GOLD, int(255 * a)), anchor="mm")
                 d.line([(cx - 80, cy + 60), (cx + 80, cy + 60)], fill=(*WHITE, int(160 * a)), width=3)
@@ -751,8 +760,8 @@ def render_cross_section(cs: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH
                     # Shaft opening
                     d.rectangle([shaft_x + 20, y_phys - 10, shaft_x + 50, y_phys + 10], fill=(22, 19, 16, a))
                     # Leader line from shaft to target y
-                    d.line([(shaft_x + 50, y_phys), (label_x - 20, y_t)], fill=(*GOLD, int(180 * a)), width=2)
-                    d.rectangle([label_x - 20, y_t - 12, label_x - 10, y_t + 12], fill=(*GOLD, int(220 * a)))
+                    d.line([(shaft_x + 50, y_phys), (label_x - 20, y_t)], fill=(*accent(), int(180 * a)), width=2)
+                    d.rectangle([label_x - 20, y_t - 12, label_x - 10, y_t + 12], fill=(*accent(), int(220 * a)))
                     # Depth leader line (clean orthogonal architectural leader)
                     d.line([(shaft_x - 22, y_phys), (shaft_x - 38, y_phys), (shaft_x - 38, y_t), (shaft_x - 50, y_t)], fill=(*GOLD, int(160 * a)), width=2)
                     _text(d, (shaft_x - 58, y_t - 10), f"{lv['depth_ft']:,.0f} FT", font=f_dep, fill=(*GOLD, a), anchor="rm")
@@ -767,7 +776,7 @@ def render_cross_section(cs: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH
                     lines = _wrap(d, lv["label"].upper(), f_lab, label_w)[:2]
                     for j, line in enumerate(lines):
                         _text(d, (label_x, y_phys + (j - (len(lines) - 1) / 2) * lh), line, font=f_lab, fill=(*WHITE, a), anchor="lm")
-            d.ellipse([shaft_x - 14, y_now - 14, shaft_x + 14, y_now + 14], fill=(*GOLD, 255))
+            d.ellipse([shaft_x - 14, y_now - 14, shaft_x + 14, y_now + 14], fill=(*accent(), 255))
             yield im
 
     return _encode(frames(), out, n, width=width, height=height)
@@ -816,12 +825,12 @@ def render_route(stops: List[Dict[str, Any]], out: Path, width: int = VIDEO_WIDT
                 if prog <= 0:
                     break
                 (x0, y0), (x1, y1) = pts[k], pts[k + 1]
-                d.line([(x0, y0), (x0 + (x1 - x0) * prog, y0 + (y1 - y0) * prog)], fill=(*GOLD, 255), width=7)
+                d.line([(x0, y0), (x0 + (x1 - x0) * prog, y0 + (y1 - y0) * prog)], fill=(*accent(), 255), width=7)
             for k, ((x, y), p) in enumerate(zip(pts, located)):
                 a = _ease((t - 0.2 - k * seg_time) / 0.35)
                 if a <= 0:
                     continue
-                d.ellipse([x - 16, y - 16, x + 16, y + 16], fill=(*GOLD, int(255 * a)), outline=(20, 20, 20, int(255 * a)), width=4)
+                d.ellipse([x - 16, y - 16, x + 16, y + 16], fill=(*accent(), int(255 * a)), outline=(20, 20, 20, int(255 * a)), width=4)
                 right = x < width / 2  # label on the open side
                 tx = x + 34 if right else x - 34
                 for j, line in enumerate(_wrap(d, p["label"].upper(), f_lab, 380)[:2]):
@@ -910,12 +919,12 @@ def render_rolling_stone_defense(
 
     # Defensive zone labels with ample breathing room
     if width > height:
-        _text(d0, (int(width * 0.12), ceiling_y + 16), "DEFENDER INTERIOR", font=f_lab, fill=(*GOLD, 230), anchor="lm")
+        _text(d0, (int(width * 0.12), ceiling_y + 16), "DEFENDER INTERIOR", font=f_lab, fill=(*accent(), 230), anchor="lm")
         _text(d0, (int(width * 0.12), ceiling_y + 54), "SAFE REFUGE ZONE", font=f_sub, fill=(*MUTED, 200), anchor="lm")
         _text(d0, (width - int(width * 0.12), ceiling_y + 16), "SURFACE PASSAGE", font=f_lab, fill=(210, 90, 80, 230), anchor="rm")
         _text(d0, (width - int(width * 0.12), ceiling_y + 54), "EXTERNAL INVADERS", font=f_sub, fill=(*MUTED, 200), anchor="rm")
     else:
-        _text(d0, (40, ceiling_y + 16), "DEFENDER INTERIOR", font=f_sub, fill=(*GOLD, 230), anchor="la")
+        _text(d0, (40, ceiling_y + 16), "DEFENDER INTERIOR", font=f_sub, fill=(*accent(), 230), anchor="la")
         _text(d0, (width - 40, ceiling_y + 16), "SURFACE PASSAGE", font=f_sub, fill=(210, 90, 80, 230), anchor="ra")
 
     def frames():
@@ -952,15 +961,15 @@ def render_rolling_stone_defense(
                 call1_x = width - (int(width * 0.10) if width > height else 40)
                 leader1_y = ceiling_y - 45 if width < height else track_y - disc_r - 35
                 d.line([(cx, track_y - disc_r), (cx + 35, leader1_y), (call1_x, leader1_y)],
-                       fill=(*GOLD, int(180 * a_callout / 255)), width=2)
-                _text(d, (call1_x, leader1_y - 10), labels["disc"], font=f_stat, fill=(*GOLD, a_callout), anchor="rd")
+                       fill=(*accent(), int(180 * a_callout / 255)), width=2)
+                _text(d, (call1_x, leader1_y - 10), labels["disc"], font=f_stat, fill=(*accent(), a_callout), anchor="rd")
                 _text(d, (call1_x, leader1_y + 14), labels["passage"], font=f_sub, fill=(*WHITE, a_callout), anchor="ra")
 
                 call2_x = int(width * 0.10) if width > height else 40
                 leader2_y = track_y
                 d.line([(cx - port_r, leader2_y), (cx - disc_r - 20, leader2_y), (call2_x, leader2_y)],
-                       fill=(*GOLD, int(180 * a_callout / 255)), width=2)
-                _text(d, (call2_x, leader2_y - 10), labels["opening"], font=f_stat, fill=(*GOLD, a_callout), anchor="ld")
+                       fill=(*accent(), int(180 * a_callout / 255)), width=2)
+                _text(d, (call2_x, leader2_y - 10), labels["opening"], font=f_stat, fill=(*accent(), a_callout), anchor="ld")
                 _text(d, (call2_x, leader2_y + 14), labels["opening_detail"], font=f_sub, fill=(*WHITE, a_callout), anchor="la")
 
                 call3_y = min(bottom_bound - 10, floor_y + 30)
@@ -1071,11 +1080,11 @@ def render_ventilation_airflow(
 
                 call3_y = min(bottom_bound - 10, bottom_gallery_floor + 20)
                 if width < height:
-                    _text(d, (width // 2, call3_y - 10), labels["airflow"], font=get_font("Montserrat", 20), fill=(*GOLD, a_callout), anchor="ma")
+                    _text(d, (width // 2, call3_y - 10), labels["airflow"], font=get_font("Montserrat", 20), fill=(*accent(), a_callout), anchor="ma")
                     _text(d, (width // 2, call3_y + 16), labels["summary"], font=get_font("Montserrat", 15), fill=(*WHITE, a_callout), anchor="ma")
                 else:
                     _text(d, (width // 2, call3_y), labels["airflow"] + " · " + labels["summary"],
-                          font=f_lab, fill=(*GOLD, a_callout), anchor="ma")
+                          font=f_lab, fill=(*accent(), a_callout), anchor="ma")
 
             yield im
 

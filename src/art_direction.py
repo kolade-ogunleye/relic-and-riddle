@@ -151,14 +151,14 @@ def grade_bias(hero: Optional[Path], limit: float = 0.05) -> float:
         return 0.0
     try:
         with Image.open(hero) as im:
-            small = im.convert("RGB").resize((32, 32))
-            pixels = list(small.getdata())
+            data = im.convert("RGB").resize((32, 32)).tobytes()   # R, G, B interleaved
     except Exception:
         return 0.0
-    if not pixels:
+    if len(data) < 3:
         return 0.0
-    r = sum(p[0] for p in pixels) / len(pixels)
-    b = sum(p[2] for p in pixels) / len(pixels)
+    n = len(data) // 3
+    r = sum(data[0::3]) / n
+    b = sum(data[2::3]) / n
     bias = (r - b) / 255.0 * 0.25          # a strongly warm photo (r-b of 100) gives about +0.1 before the clip
     return round(max(-limit, min(limit, bias)), 3)
 

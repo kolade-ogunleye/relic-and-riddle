@@ -1,0 +1,6 @@
+Captions (32 pills in the run, 32 re-rendered): before, the lowest pill reached y=1309 and the widest spanned x 227-853; 32 of 32 left the Reel box (y 288-1248, x 65-888). After: lowest edge y=1241, widest x 227-853, 0 outside. The frame shown is at 0.61 s.
+Number card: bright text pixels outside the graphics box (65, 330, 888, 1058): before 13796, after 0 (the old box ended at y 1113 and x 1000; the new at y 1058 and x 888).
+timeline (sample data): bright text pixels outside the graphics box after: 0.
+scale_depth (sample data): bright text pixels outside the graphics box after: 0.
+Stories after: text blocks story_01_hook.jpg y 339-901; story_02_reveal.jpg y 524-1016; story_03_question.jpg y 280-1112, all inside the Story box y 269-1248 (before, the rule allowed text down to y 1580).
+Cover: unchanged; its text was already kept inside the centre square (y 420-1500), which both the 3:4 and the 1:1 grid crops keep.

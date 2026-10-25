@@ -302,9 +302,10 @@ NARRATOR_PITCH = (os.getenv("NARRATOR_PITCH") or "-2Hz").strip()
 FONT_NAME = (os.getenv("FONT_NAME") or "Anton").strip()
 FONT_SIZE = int(os.getenv("FONT_SIZE") or 72)
 FONT_SIZE_ASS = 128  # Compensates for libass PlayResX/PlayResY scale to deliver exact 72px rendered height
-# Bottom 35% of the frame (672 px) is Meta's Reels safe zone for its own UI (username,
-# caption, audio row); captions sit just above it, baseline at y = 1248.
-CAPTION_MARGIN_V = 672
+# The bottom band the Reel platforms draw their own interface over (safe_zones.REEL: Meta's 35%, 672 px,
+# the same figure on YouTube Shorts); the caption pill ends above it.
+from .safe_zones import REEL as _REEL_UI  # noqa: E402
+CAPTION_MARGIN_V = _REEL_UI.bottom
 MIN_BURST_WORDS = 2
 TARGET_BURST_WORDS = 3
 MAX_BURST_WORDS = 5

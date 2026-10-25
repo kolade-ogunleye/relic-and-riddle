@@ -1711,7 +1711,7 @@ class PipelineCoordinator:
         packaging_inputs = {"photos": file_inputs([hero_img, *scene_media]), "style": style,
                             "copy": {key: payload.get(key) for key in ("title", "thumbnail", "story_slides", "carousel_slides", "poll")},
                             "rules": file_inputs([Path("src/visual_engine.py"), Path("src/multi_format.py"),
-                                                  Path("src/typography.py"), Path("src/config.py")]),
+                                                  Path("src/typography.py"), Path("src/config.py"), Path("src/safe_zones.py")]),
                             "fonts": file_inputs([FONTS_DIR / name for name in FONT_FILES.values()])}
         if getattr(self, "progress_msg_id", None):
             try:

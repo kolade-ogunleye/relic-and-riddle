@@ -14,9 +14,11 @@ def test_every_cover_style_renders_both_formats(tmp_path):
         c916, c11 = VisualEngine().generate_thumbnails(hero, COPY, tmp_path / style, style=style)
         assert Image.open(c916).size == (1080, 1920) and Image.open(c11).size == (1080, 1080)
         outputs.add(Image.open(c916).tobytes())
-        # Text stays out of the top and bottom bands that the 1:1 grid crop removes.
+        # Text stays inside the centre square (safe_zones.cover_box), which both profile-grid crops keep.
+        from src.safe_zones import cover_box
         im = Image.open(c916).convert("L")
-        for band in ((0, 0, 1080, 400), (0, 1520, 1080, 1920)):
+        _, sq_top, _, sq_bottom = cover_box()
+        for band in ((0, 0, 1080, sq_top), (0, sq_bottom, 1080, 1920)):
             assert im.crop(band).getextrema()[1] < 200, style  # no bright text there
     assert len(outputs) == len(COVER_STYLES)  # genuinely different layouts
 

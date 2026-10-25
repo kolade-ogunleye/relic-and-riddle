@@ -34,9 +34,14 @@ CLIP_SECONDS = 6.0
 W, H = VIDEO_WIDTH, VIDEO_HEIGHT
 SEA, LAND, HOME, BORDER, GRID = (13, 16, 21), (40, 43, 48), (92, 74, 42), (96, 98, 104), (24, 28, 34)
 GOLD, WHITE, MUTED = (255, 215, 0), (255, 255, 255), (170, 170, 175)
-# Graphics text stays between these: the caption bar's top edge is at about y=1180
-# (CAPTION_MARGIN_V 672), leaving a generous ~190px safety buffer above the subtitle pill.
-TEXT_TOP, TEXT_BOTTOM = 330, 990
+# Where a 9:16 graphic may put text and figures: the Reel box every platform leaves free (safe_zones: Meta's
+# 14/35/6 %, YouTube Shorts' right-hand icon column), less the caption band at its bottom. TEXT_TOP stays a
+# little below the box's top edge, as it was; TEXT_MAX_W is the widest text centred on the frame.
+from . import safe_zones
+_BOX = safe_zones.graphics_box(VIDEO_WIDTH, VIDEO_HEIGHT)
+TEXT_TOP, TEXT_BOTTOM = max(330, _BOX[1]), _BOX[3]
+TEXT_LEFT, TEXT_RIGHT = _BOX[0], _BOX[2]
+TEXT_MAX_W = safe_zones.REEL.centred_width(VIDEO_WIDTH, VIDEO_HEIGHT)
 
 from .reference_facts import references, selected_reference, measurement_text, REFERENCE_FILE
 
@@ -213,10 +218,12 @@ def _label_box(im: Image.Image, cx: int, y: int, title: str, sub: str, alpha: fl
     if alpha <= 0:
         return im
     draw = ImageDraw.Draw(im, "RGBA")
-    f1, f2 = get_font("Anton", 66), get_font("Montserrat", 30)
+    max_w = centred_text_width(im.width, im.height) - 70              # the pill stays inside the Reel box
+    f1 = fit_font(draw, title.upper(), "Anton", 66, max_w, 40)
+    f2 = fit_font(draw, sub.upper(), "Montserrat", 30, max_w, 22)
     w1 = draw.textlength(title.upper(), font=f1)
     w2 = draw.textlength(sub.upper(), font=f2)
-    bw = int(max(w1, w2) + 70)
+    bw = int(min(max(w1, w2), max_w) + 70)
     d = ImageDraw.Draw(im, "RGBA")  # RGB frame + RGBA drawing = real alpha blending (fades work)
     a = int(255 * alpha)
     d.rounded_rectangle([cx - bw // 2, y - 62, cx + bw // 2, y + 66], radius=18, fill=(10, 10, 12, int(200 * alpha)),
@@ -395,11 +402,28 @@ def render_map(place: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heigh
 
 
 def get_text_bounds(width: int, height: int) -> Tuple[int, int]:
-    """Returns (top_bound, bottom_bound) ensuring graphic text and diagrams never
-    encroach into the kinetic caption safe zone (y >= 880 in 16:9; y >= 1260 in 9:16)."""
+    """(top, bottom) between which a graphic's text and diagrams stay. 16:9 (the documentary): broadcast
+    title-safe above the caption line. 9:16: the Reel box the platforms leave free, less the caption band
+    (safe_zones.graphics_box), so no figure sits under a platform's interface or reads as a caption."""
     if width > height:
         return int(height * 0.12), int(height * 0.76)  # 130px to 820px (captions center at 965px)
-    return TEXT_TOP, int(height * 0.58)  # 330px to 1113px (captions center at 1380px)
+    box = safe_zones.graphics_box(width, height)
+    return max(round(330 * height / VIDEO_HEIGHT), box[1]), box[3]
+
+
+def get_text_box(width: int, height: int) -> Tuple[int, int, int, int]:
+    """(x0, y0, x1, y1) for a graphic's text; in 16:9 the whole title-safe width."""
+    top, bottom = get_text_bounds(width, height)
+    if width > height:
+        return int(width * 0.08), top, int(width * 0.92), bottom
+    box = safe_zones.graphics_box(width, height)
+    return box[0], top, box[2], bottom
+
+
+def centred_text_width(width: int, height: int) -> int:
+    """The widest text centred on the frame that stays inside get_text_box."""
+    x0, _, x1, _ = get_text_box(width, height)
+    return int(2 * min(width / 2 - x0, x1 - width / 2))
 
 
 # ----------------------------------------------------------------- timeline
@@ -473,7 +497,10 @@ def render_timeline(events: List[Dict[str, Any]], out: Path, width: int = VIDEO_
     else:
         # Vertical: spine draws downward
         x0 = 190
-        step = (bottom - top) / (len(events) - 1)
+        # The spine spans the box with room for the first year's glyphs above its first dot and the last
+        # entry's two label lines below its last one (both were drawn past the bounds before, measured 2026-10-24).
+        y_first, y_last = top + 70, bottom - 110
+        step = (y_last - y_first) / (len(events) - 1)
         f_year, f_lab = get_font("Anton", 74), get_font("Montserrat", 34)
 
         def frames():
@@ -481,19 +508,19 @@ def render_timeline(events: List[Dict[str, Any]], out: Path, width: int = VIDEO_
                 t = i / VIDEO_FPS
                 im = bg.copy()
                 d = ImageDraw.Draw(im, "RGBA")
-                spine = top + (bottom - top) * _ease(t / 1.0)
-                d.line([(x0, top), (x0, spine)], fill=(*accent(), 255), width=6)
+                spine = y_first + (y_last - y_first) * _ease(t / 1.0)
+                d.line([(x0, y_first), (x0, spine)], fill=(*accent(), 255), width=6)
                 for k, e in enumerate(events):
                     appear = _ease((t - 0.4 - 0.45 * k) / 0.4)
                     if appear <= 0:
                         continue
-                    y = top + step * k
+                    y = y_first + step * k
                     a = int(255 * appear)
                     r = 16 * appear
                     d.ellipse([x0 - r, y - r, x0 + r, y + r], fill=(*accent(), a))
                     xt = x0 + 50 + int(30 * (1 - appear))
                     _text(d, (xt, y - 8), year_text(e["year"], e.get("approximate", False)), font=f_year, fill=(*GOLD, a), anchor="ls")
-                    for j, line in enumerate(_wrap(d, e["label"], f_lab, width - xt - 90)[:2]):
+                    for j, line in enumerate(_wrap(d, e["label"], f_lab, min(width - xt - 90, get_text_box(width, height)[2] - xt))[:2]):
                         _text(d, (xt, y + 18 + 42 * j), line, font=f_lab, fill=(*WHITE, a), anchor="lt")
                 yield im
 
@@ -529,9 +556,11 @@ def render_scale(fact: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
         num_font_size = 54
         lab_font_size = 28
     else:
-        bars = [(fact["subject"], feet, GOLD, 330),
-                (ref_label + (" (height)" if depth else ""), ref_feet, (150, 150, 158), 750)]
-        max_label_w = 340
+        bx0, _, bx1, _ = get_text_box(width, height)                 # both bars and their labels inside the Reel box
+        cx_a, cx_b = bx0 + int((bx1 - bx0) * 0.32), bx0 + int((bx1 - bx0) * 0.78)   # 328 and 707 at 1080x1920
+        bars = [(fact["subject"], feet, GOLD, cx_a),
+                (ref_label + (" (height)" if depth else ""), ref_feet, (150, 150, 158), cx_b)]
+        max_label_w = min(340, 2 * (cx_a - bx0), 2 * (bx1 - cx_b))
         num_font_size = 64
         lab_font_size = 30
 
@@ -640,7 +669,7 @@ def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Pa
             max_w = int(width * 0.35)
     else:
         centres = [(width // 2, (top + bottom) // 2)] if len(cards) == 1 else [(width // 2, top + 190), (width // 2, bottom - 230)]
-        max_w = width - 160
+        max_w = min(width - 160, centred_text_width(width, height))  # clear of Shorts' icon column
     f_num_size = int(ts["figure"] * (1.15 if len(cards) == 1 else 1.0))
     f_lab = get_font("Montserrat", ts["label"])
 
@@ -702,8 +731,8 @@ def render_cross_section(cs: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH
         ground = top + 110
         bottom = bottom_bound - 40
         shaft_x = 250
-        label_x = width // 2 + 40
-        label_w = width // 2 - 120
+        label_x = width // 2
+        label_w = get_text_box(width, height)[2] - label_x          # labels end before Shorts' icon column
         f_lab = get_font("Montserrat", 32)
         f_dep = get_font("Anton", 40)
         f_sub = get_font("Montserrat", 22)
@@ -720,9 +749,11 @@ def render_cross_section(cs: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH
         band = 6 * math.sin(y / 23.0) + rnd.uniform(-2, 2)
         d0.line([(0, y), (width, y)], fill=(int(70 - 30 * k + band), int(56 - 26 * k + band), int(44 - 22 * k + band), 255))
     d0.line([(0, ground), (width, ground)], fill=(*MUTED, 255), width=4)
-    _text(d0, (width - (100 if width > height else 120), ground - 26), "GROUND LEVEL", font=get_font("Montserrat", 24), fill=(*MUTED, 255), anchor="rm")
+    bx0, _, bx1, _ = get_text_box(width, height)
+    _text(d0, (bx1, ground - 26), "GROUND LEVEL", font=get_font("Montserrat", 24), fill=(*MUTED, 255), anchor="rm")
     title = cs["subject"].upper() + ("  ·  APPROX. DEPTHS" if cs.get("approximate", True) else "")
-    _text(d0, (int(width * 0.08), top + 16), title, font=fit_font(d0, title, "Anton", f_title_size, width - int(width * 0.16), 28), fill=(*WHITE, 255), anchor="lm")
+    tx = max(int(width * 0.08), bx0)
+    _text(d0, (tx, top + 16), title, font=fit_font(d0, title, "Anton", f_title_size, bx1 - tx, 28), fill=(*WHITE, 255), anchor="lm")
 
     # Relaxation pass to completely eliminate any label/callout collisions and enforce breathing room below ground
     min_top_pad = 65 if width > height else 75
@@ -878,7 +909,7 @@ def render_rolling_stone_defense(
     top, bottom_bound = get_text_bounds(width, height)
     title = diagram_title("defense", spec)
 
-    f_title = fit_font(ImageDraw.Draw(Image.new("RGB", (10, 10))), title, "Anton", 42 if width > height else 34, int(width * 0.84), 22)
+    f_title = fit_font(ImageDraw.Draw(Image.new("RGB", (10, 10))), title, "Anton", 42 if width > height else 34, centred_text_width(width, height), 22)
     f_stat = get_font("Anton", 30 if width > height else 24)
     f_lab = get_font("Montserrat", 22 if width > height else 18)
     f_sub = get_font("Montserrat", 16 if width > height else 14)
@@ -915,6 +946,7 @@ def render_rolling_stone_defense(
     d0.rectangle([alcove_x - disc_r - 20, floor_y, sealed_x + 15, floor_y + 25], fill=(22, 19, 16, 255))
 
     # Title
+    bx0, _, bx1, _ = get_text_box(width, height)  # labels at the edges stay inside the Reel box (Shorts' icon column)
     _text(d0, (int(width * 0.08), top + 16), title, font=f_title, fill=(*WHITE, 255), anchor="lm")
 
     # Defensive zone labels with ample breathing room
@@ -924,8 +956,8 @@ def render_rolling_stone_defense(
         _text(d0, (width - int(width * 0.12), ceiling_y + 16), "SURFACE PASSAGE", font=f_lab, fill=(210, 90, 80, 230), anchor="rm")
         _text(d0, (width - int(width * 0.12), ceiling_y + 54), "EXTERNAL INVADERS", font=f_sub, fill=(*MUTED, 200), anchor="rm")
     else:
-        _text(d0, (40, ceiling_y + 16), "DEFENDER INTERIOR", font=f_sub, fill=(*accent(), 230), anchor="la")
-        _text(d0, (width - 40, ceiling_y + 16), "SURFACE PASSAGE", font=f_sub, fill=(210, 90, 80, 230), anchor="ra")
+        _text(d0, (bx0, ceiling_y + 16), "DEFENDER INTERIOR", font=f_sub, fill=(*accent(), 230), anchor="la")
+        _text(d0, (bx1, ceiling_y + 16), "SURFACE PASSAGE", font=f_sub, fill=(210, 90, 80, 230), anchor="ra")
 
     def frames():
         for i in range(n):
@@ -958,14 +990,14 @@ def render_rolling_stone_defense(
             # Annotations fade in at t >= 2.0s
             a_callout = int(255 * _ease((t - 2.0) / 0.8))
             if a_callout > 0:
-                call1_x = width - (int(width * 0.10) if width > height else 40)
+                call1_x = width - int(width * 0.10) if width > height else bx1
                 leader1_y = ceiling_y - 45 if width < height else track_y - disc_r - 35
                 d.line([(cx, track_y - disc_r), (cx + 35, leader1_y), (call1_x, leader1_y)],
                        fill=(*accent(), int(180 * a_callout / 255)), width=2)
                 _text(d, (call1_x, leader1_y - 10), labels["disc"], font=f_stat, fill=(*accent(), a_callout), anchor="rd")
                 _text(d, (call1_x, leader1_y + 14), labels["passage"], font=f_sub, fill=(*WHITE, a_callout), anchor="ra")
 
-                call2_x = int(width * 0.10) if width > height else 40
+                call2_x = int(width * 0.10) if width > height else bx0
                 leader2_y = track_y
                 d.line([(cx - port_r, leader2_y), (cx - disc_r - 20, leader2_y), (call2_x, leader2_y)],
                        fill=(*accent(), int(180 * a_callout / 255)), width=2)
@@ -1000,7 +1032,7 @@ def render_ventilation_airflow(
     top, bottom_bound = get_text_bounds(width, height)
     title = diagram_title("ventilation", spec)
 
-    f_title = fit_font(ImageDraw.Draw(Image.new("RGB", (10, 10))), title, "Anton", 44 if width > height else 50, int(width * 0.84), 26)
+    f_title = fit_font(ImageDraw.Draw(Image.new("RGB", (10, 10))), title, "Anton", 44 if width > height else 50, centred_text_width(width, height), 26)
     f_stat = get_font("Anton", 32 if width > height else 28)
     f_lab = get_font("Montserrat", 24 if width > height else 22)
     f_sub = get_font("Montserrat", 18 if width > height else 18)
@@ -1020,7 +1052,8 @@ def render_ventilation_airflow(
         d0.line([(0, y), (width, y)], fill=(int(60 - 25 * k), int(48 - 20 * k), int(38 - 16 * k), 255))
     _draw_cross_hatching(d0, 0, ground_y, width, height, spacing=18, fill=(110, 95, 75, 40))
     d0.line([(0, ground_y), (width, ground_y)], fill=(*MUTED, 255), width=3)
-    _text(d0, (width - int(width * 0.08), ground_y - 24), "GROUND LEVEL", font=get_font("Montserrat", 22), fill=(*MUTED, 255), anchor="rm")
+    bx0, _, bx1, _ = get_text_box(width, height)  # labels at the edges stay inside the Reel box (Shorts' icon column)
+    _text(d0, (width - int(width * 0.08) if width > height else bx1, ground_y - 24), "GROUND LEVEL", font=get_font("Montserrat", 22), fill=(*MUTED, 255), anchor="rm")
     _text(d0, (int(width * 0.08), top + 16), title, font=f_title, fill=(*WHITE, 255), anchor="lm")
 
     level_ys = [ground_y + int((deep_y - ground_y) * f) for f in (0.28, 0.52, 0.75, 0.94)]
@@ -1066,13 +1099,13 @@ def render_ventilation_airflow(
 
             a_callout = int(255 * _ease((t - 1.5) / 0.8))
             if a_callout > 0:
-                call1_x = int(width * 0.08) if width > height else 40
+                call1_x = int(width * 0.08) if width > height else bx0
                 shelf1_y = ground_y + (80 if width > height else 60)
                 d.line([(shaft_x - shaft_w // 2, shelf1_y), (call1_x, shelf1_y)], fill=(*CYAN_AIR, int(180 * a_callout / 255)), width=2)
                 _text(d, (call1_x, shelf1_y - 10), labels["shaft"], font=f_stat, fill=(*CYAN_AIR, a_callout), anchor="ld")
                 _text(d, (call1_x, shelf1_y + 14), "DRAWS COOL DENSE AIR DOWN", font=f_sub, fill=(*WHITE, a_callout), anchor="la")
 
-                call2_x = width - (int(width * 0.08) if width > height else 40)
+                call2_x = width - int(width * 0.08) if width > height else bx1
                 shelf2_y = ground_y + (100 if width > height else 80)
                 d.line([(exhaust_x + exhaust_w // 2, shelf2_y), (call2_x, shelf2_y)], fill=(*AMBER_HEAT, int(180 * a_callout / 255)), width=2)
                 _text(d, (call2_x, shelf2_y - 10), "CONVECTION EXHAUST", font=f_stat, fill=(*AMBER_HEAT, a_callout), anchor="rd")

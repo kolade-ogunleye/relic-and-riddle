@@ -97,7 +97,11 @@ def _ass_escape(text: str) -> str:
     return text.replace("\\", "").replace("{", "(").replace("}", ")").replace("\n", " ")
 
 
-MAX_CAPTION_WIDTH = 650  # px: inside Meta's safe zone, leaving >= 185px clear on both sides
+from .safe_zones import CAPTION_CLEARANCE, REEL as _REEL_UI
+
+# The widest caption text, centred: its pill (text plus padding) fills at most the width every Reel platform
+# leaves free (safe_zones.REEL.centred_width, 696 px: Shorts' icon column takes the right 192 px). 640 px.
+MAX_CAPTION_WIDTH = _REEL_UI.centred_width() - 2 * CAPTION_PAD_X
 
 
 TERMINAL_PUNCT = re.compile(r"[\.\?!…]+[\"\'”’\)]*$")
@@ -262,7 +266,7 @@ def partition_words_grammatical(
             rem = n - i
             rem_clean = [re.sub(r"[\,\;\.]+$", "", x.get("word", "")) for x in sent[i:]]
             rem_txt = " ".join(rem_clean)
-            if min_words <= rem <= max_words and len(rem_txt) <= max_chars:
+            if min_words <= rem <= max_words and len(rem_txt) <= max_chars and _fits_caption_width(sent[i:]):
                 memo[i] = [sent[i:]]
                 return memo[i]
 
@@ -279,6 +283,8 @@ def partition_words_grammatical(
                     after = _solve(i + size)
                     if after is not None:
                         chunk = sent[i:i + size]
+                        if len(chunk) > 1 and not _fits_caption_width(chunk):
+                            continue  # a burst its pill cannot hold inside the platforms' safe width is never a choice
                         clean_chunk = [re.sub(r"[\,\;\.]+$", "", x.get("word", "")) for x in chunk]
                         txt = " ".join(clean_chunk)
                         first_w = re.sub(r"[^\w]", "", clean_chunk[0]).lower()
@@ -313,6 +319,8 @@ def partition_words_grammatical(
                             best = [chunk] + after
             if best is None:
                 cut = min(rem, target_words)
+                while cut > 1 and not _fits_caption_width(sent[i:i + cut]):
+                    cut -= 1  # shorter bursts rather than a pill wider than the safe width
                 best = [sent[i:i + cut]] + (_solve(i + cut) or [sent[i + cut:]])
             memo[i] = best
             return best
@@ -373,7 +381,23 @@ def _caption_fit_size(phrase: Any, scale: float = 1.0, max_width: int = MAX_CAPT
     width = draw.textlength(plain, font=get_font("Anton", FONT_SIZE)) * scale
     if width <= max_width:
         return FONT_SIZE
-    return max(48, int(FONT_SIZE * max_width / width))
+    return max(CAPTION_MIN_SIZE, int(FONT_SIZE * max_width / width))
+
+
+CAPTION_MIN_SIZE = 48  # px: the smallest a caption shrinks to; below this it is not readable on a phone
+
+
+def _fits_caption_width(phrase: Any, max_width: int = MAX_CAPTION_WIDTH) -> bool:
+    """Whether a burst can be shown inside the caption width at the smallest readable size. A burst that
+    cannot would get a pill wider than the area the platforms leave free (safe_zones.REEL), so the phrase
+    builder never forms one from more than one word (measured 2026-10-24)."""
+    from .typography import get_font
+    from PIL import Image, ImageDraw
+    words = [w if isinstance(w, str) else (w.get("word", "") if isinstance(w, dict) else str(w)) for w in phrase]
+    if words:
+        words[-1] = re.sub(r"[\,\;\.]+$", "", words[-1])
+    draw = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    return draw.textlength(" ".join(words).upper(), font=get_font("Anton", CAPTION_MIN_SIZE)) <= max_width
 
 
 
@@ -618,8 +642,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 box_w = int(round(text_w + CAPTION_PAD_X * 2))
                 box_h = int(round(text_h + CAPTION_PAD_Y * 2))
                 box_x = int(round(center_x - box_w / 2))
-                # Align vertical center: compensate for Anton font's ascent/baseline visual center shift
-                text_visual_center_y = center_y + int(round(7.5 * (fit / FONT_SIZE)))
+                # The pill ends above the band the platforms draw over (eff_margin_v = safe_zones.REEL.bottom):
+                # its centre used to sit on that line, so its lower half was under Meta's caption and audio
+                # row (measured on the first publication: pills at y 1202-1309 against the line at 1248).
+                shift = int(round(7.5 * (fit / FONT_SIZE)))  # Anton's visual centre sits below the geometric one
+                center_y = height - eff_margin_v - CAPTION_CLEARANCE - box_h // 2 - shift
+                text_visual_center_y = center_y + shift
                 box_y = int(round(text_visual_center_y - box_h / 2))
                 path = rounded_rect_path(box_w, box_h, CAPTION_BORDER_RADIUS)
 

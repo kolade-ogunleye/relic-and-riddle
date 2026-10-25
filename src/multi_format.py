@@ -92,14 +92,19 @@ class MultiFormatGenerator:
         slides_data = script_payload["story_slides"]
         cards = [{"heading": f"{s['line1']} {s['line2']}", "body": s["body"]} for s in slides_data]
         photos = self._match_photos(cards, stills) if len(stills) > 1 else [hero_img_path] * len(cards)
-        max_w = VIDEO_WIDTH - 2 * 110
+        # The text block stays inside the area Instagram and Facebook leave free on a Story (safe_zones.STORY:
+        # Meta's 14% top, 35% bottom, 6% sides), clear of the profile bar, the reply bar and the call-to-action.
+        from .safe_zones import safe_box
+        sx0, sy0, sx1, sy1 = safe_box("story", VIDEO_WIDTH, VIDEO_HEIGHT)
+        max_w = min(VIDEO_WIDTH - 2 * 110, sx1 - sx0)
         names = ["story_01_hook.jpg", "story_02_reveal.jpg", "story_03_question.jpg"]
         poll = script_payload.get("poll") or {}
+        layout = []  # each frame's text block, for the audit and the evidence renders
 
         slides = []
         for i, (slide, name) in enumerate(zip(slides_data, names)):
             base = cover_crop(photos[i], (VIDEO_WIDTH, VIDEO_HEIGHT)).convert("RGB")
-            cy = calm_center_y(base, candidates=(700, 960, 1200), band=520)
+            cy = calm_center_y(base, candidates=(640, 790, 940), band=520)  # bands inside the Story box
             d = ImageDraw.Draw(base, "RGBA")
             # Global 35% dark underlay across the entire base image to tame bright sunlit stone/sand
             d.rectangle([(0, 0), (VIDEO_WIDTH, VIDEO_HEIGHT)], fill=(6, 6, 8, 90))
@@ -117,9 +122,10 @@ class MultiFormatGenerator:
             if has_options:  # one question per frame: the poll's; the body keeps only its context
                 body = " ".join(s for s in re.split(r"(?<=[.!?])\s+", body) if not s.rstrip().endswith("?"))
             body_lines = wrap_text(d, body, font_b, max_w)[:3] if body.strip() else []
-            block = 60 + 2 * (size + 12) + 40 + len(body_lines) * 54 + (40 + 2 * 120 + 50 if has_options else 70)
-            # Keep the whole block (with options or the Reel pointer) inside the Story-safe area.
-            y = max(280, min(cy - block // 2, VIDEO_HEIGHT - 340 - block))
+            block = 60 + 2 * (size + 12) + 40 + len(body_lines) * 54 + (40 + 2 * 120 + 70 if has_options else (90 if i == 0 else 20))
+            # Keep the whole block (with options or the Reel pointer) inside the Story box.
+            y = max(sy0 + 20, min(cy - block // 2, sy1 - block))
+            y_top = y
             # Translucent dark charcoal pill behind kicker for WCAG AAA legibility (mathematically centered)
             kx = VIDEO_WIDTH // 2
             k_cy = y + 16
@@ -136,24 +142,32 @@ class MultiFormatGenerator:
             for line in body_lines:
                 d.text((VIDEO_WIDTH // 2, y), line, font=font_b, fill=LIGHT, anchor="mt", stroke_width=2, stroke_fill=(10, 10, 12, 220))
                 y += 54
+            y_end = y
             if i == 0:
                 d.text((VIDEO_WIDTH // 2, y + 30), "FULL STORY IN OUR NEW REEL  →", font=get_font("Montserrat", 32),
                        fill=GOLD, anchor="mt", stroke_width=2, stroke_fill=(10, 10, 12, 220))
+                y_end = y + 30 + 40
             if has_options:
                 font_o = get_font("Anton", 42)
+                ox0, ox1 = max(120, sx0), min(VIDEO_WIDTH - 120, sx1)
                 for j, (prefix, option) in enumerate(zip(["A", "B"], poll["options"][:2])):
                     oy = y + 40 + j * 120
-                    d.rounded_rectangle([120, oy, VIDEO_WIDTH - 120, oy + 96], radius=24, fill=(10, 10, 12, 215),
+                    d.rounded_rectangle([ox0, oy, ox1, oy + 96], radius=24, fill=(10, 10, 12, 215),
                                         outline=(255, 215, 0, 230), width=2)
-                    d.text((150, oy + 48), prefix, font=font_o, fill=GOLD, anchor="lm")
+                    d.text((ox0 + 30, oy + 48), prefix, font=font_o, fill=GOLD, anchor="lm")
                     opt = option.upper()
-                    d.text((220, oy + 48), opt, font=fit_font(d, opt, "Montserrat", 34, VIDEO_WIDTH - 120 - 220 - 30, 22),
+                    d.text((ox0 + 100, oy + 48), opt, font=fit_font(d, opt, "Montserrat", 34, ox1 - ox0 - 100 - 30, 22),
                            fill=WHITE, anchor="lm")
                 d.text((VIDEO_WIDTH // 2, y + 40 + 2 * 120 + 20), "WEIGH IN BELOW  ↓", font=get_font("Montserrat", 32),
                        fill=LIGHT, anchor="mt", stroke_width=2, stroke_fill=(10, 10, 12, 220))
+                y_end = y + 40 + 2 * 120 + 20 + 40
+            layout.append({"frame": name, "size": [VIDEO_WIDTH, VIDEO_HEIGHT],
+                           "text_box": [(VIDEO_WIDTH - max_w) // 2, int(pill_box[1]), (VIDEO_WIDTH + max_w) // 2, int(y_end)],
+                           "safe_box": [sx0, sy0, sx1, sy1]})
             path = out_dir / name
             base.save(path, quality=95)
             slides.append(path)
+        (out_dir / "layout.json").write_text(json.dumps(layout, indent=2), encoding="utf-8")
 
         # Multi-platform publishing manifest with dedicated platform packages
         hashtags_list = script_payload.get("hashtags") or ["#Archaeology", "#AncientHistory", "#HistoryBuff", "#AncientTechnology"]

@@ -192,6 +192,27 @@ def measure_program_loudness(video_path: Path) -> Dict[str, float]:
     return values
 
 
+def caption_pills(ass_file: Path) -> List[Tuple[int, int, int, int]]:
+    """The rectangles (x0, y0, x1, y1) of the caption pills, the CapBox drawing events of a caption file, in
+    frame pixels (the file's PlayRes is the frame)."""
+    rects: List[Tuple[int, int, int, int]] = []
+    for line in ass_file.read_text(encoding="utf-8").splitlines():
+        if not line.startswith("Dialogue:") or ",CapBox," not in line:
+            continue
+        text = line.split(",", 9)[-1]
+        pos = re.search(r"\\pos\((-?\d+),(-?\d+)\)", text)
+        shape = re.search(r"\\p1\}([^{]*)\{", text)
+        if not pos or not shape:
+            continue
+        nums = [float(n) for n in re.findall(r"-?\d+(?:\.\d+)?", shape.group(1))]
+        xs, ys = nums[0::2], nums[1::2]
+        if not xs or not ys:
+            continue
+        x, y = int(pos.group(1)), int(pos.group(2))
+        rects.append((x + int(min(xs)), y + int(min(ys)), x + int(round(max(xs))), y + int(round(max(ys)))))
+    return rects
+
+
 def _parse_ass_time(ts: str) -> float:
     """Parses ASS timestamp (H:MM:SS.cs) into seconds."""
     try:
@@ -532,10 +553,23 @@ class QualityAuditor:
                                    "issue": str(e), "scene_index": -1})
 
             is_widescreen = width > height
-            # SMPTE ST 2046-1 Title Safe is 90% (y=972 in 1080p).
-            # Caption safe-zone ceiling is 820px in 16:9 widescreen, 1113px in 9:16 vertical Reels.
-            safe_ceiling = 820 if is_widescreen else 1113
-            caption_zone_top = 905 if is_widescreen else 1290
+            # 16:9: SMPTE ST 2046-1 title-safe (90%) above the caption line. 9:16: the graphics' text stops at
+            # the top of the caption band; both from safe_zones, the Reel box every platform leaves free.
+            from . import safe_zones
+            from .graphics import get_text_bounds
+            safe_ceiling = get_text_bounds(width, height)[1]
+            caption_zone_top = 905 if is_widescreen else safe_zones.caption_band_top(width, height)
+            if not is_widescreen and c_file.exists():
+                # Every caption pill inside the Reel box: a pill under Meta's caption row or Shorts' icon column
+                # is a finding (the first publication's pills reached 61 px into the bottom band).
+                reel_box = safe_zones.safe_box("reel", width, height)
+                outside = [r for r in caption_pills(c_file) if not safe_zones.inside(r, reel_box)]
+                if outside:
+                    lowest = max(r[3] for r in outside)
+                    issues.append({"type": "caption_outside_safe_zone", "severity": "major", "scene_index": -1,
+                                   "issue": f"{len(outside)} caption pill(s) leave the platforms' safe area "
+                                            f"(lowest edge y={lowest} px; safe box x {reel_box[0]}-{reel_box[2]}, y {reel_box[1]}-{reel_box[3]})"})
+                    score -= 15
 
             for i, cut in enumerate(timeline):
                 asset_p = Path(cut.get("asset", ""))
@@ -742,6 +776,21 @@ class QualityAuditor:
                     "card": card_path.name,
                 })
                 score -= 30
+
+        # The text block of each frame (recorded by the renderer) inside the area Meta leaves free on a Story.
+        layout_file = target_dir / "layout.json"
+        if layout_file.is_file():
+            from . import safe_zones
+            try:
+                for entry in json.loads(layout_file.read_text(encoding="utf-8")):
+                    w, h = entry.get("size") or (1080, 1920)
+                    if not safe_zones.inside(tuple(entry["text_box"]), safe_zones.safe_box("story", w, h)):
+                        issues.append({"type": "story_text_outside_safe_zone", "severity": "major", "card": entry.get("frame"),
+                                       "issue": f"Story frame {entry.get('frame')}: text block {entry['text_box']} leaves the Story safe area "
+                                                f"{safe_zones.safe_box('story', w, h)}"})
+                        score -= 15
+            except (ValueError, KeyError, TypeError) as e:
+                issues.append({"type": "story_layout_unreadable", "severity": "minor", "issue": f"stories/layout.json: {e}"})
 
         final_score = max(0, min(100, score))
         certified = (final_score == 100 and len([iss for iss in issues if iss.get("severity") in ("critical", "major")]) == 0)

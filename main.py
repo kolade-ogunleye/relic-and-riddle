@@ -1506,15 +1506,23 @@ class PipelineCoordinator:
                 return made
             words = voice_at(speech_speed)
             # A read that came out over the ceiling (ElevenLabs varies about 5% between takes: production's
-            # 2026-10-25 run read 114 words in 53.7 s against 52) is made once more at the narrator's own
-            # speed setting raised by the measured overrun: natural speech, not a stretched file.
+            # 2026-10-25 run read 114 words in 53.7 s against 52). A voice that honours its rate setting (Azure,
+            # Edge) is made once more at the rate the overrun needs. ElevenLabs' model ignored it (a take asked to
+            # be 5% faster read 1% slower), so its take, or any take still over, is time-stretched by the small
+            # amount left, pitch kept, with the word timings scaled: never more than SPEECH_SPEEDUP_MAX in all.
             faster = refit_speed(self.audio_engine.get_duration(vo_path), speech_speed)
-            if faster:
+            if faster and self.audio_engine.last_provider != "elevenlabs":
                 log.info("Voiceover ran %.1fs; making it once more %.0f%% faster to fit.",
                          self.audio_engine.get_duration(vo_path), (faster - 1) * 100)
                 speech_speed = faster
                 voice_inputs["speed"] = faster
                 words = voice_at(faster)
+            stretch = refit_speed(self.audio_engine.get_duration(vo_path), 1.0)
+            if stretch and speech_speed * stretch <= config.SPEECH_SPEEDUP_MAX:
+                log.info("Voiceover ran %.1fs; time-stretching it %.0f%% to fit.",
+                         self.audio_engine.get_duration(vo_path), (stretch - 1) * 100)
+                words = self.audio_engine.stretch_to_fit(vo_path, words, stretch)
+                speech_speed = round(speech_speed * stretch, 3)
             words_path.write_text(json.dumps(words), encoding="utf-8")
             voice_path.write_text(json.dumps({"provider": self.audio_engine.last_provider,
                                               "licensed": self.audio_engine.last_licensed}), encoding="utf-8")

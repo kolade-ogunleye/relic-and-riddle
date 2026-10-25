@@ -24,3 +24,17 @@ def test_the_pace_plans_for_the_slowest_take_until_it_is_measured_enough(monkeyp
     pace.write_text(json.dumps({"elevenlabs:v:m": [1.01, 1.02, 1.03, 1.04, 1.09]}), encoding="utf-8")
     assert audio_engine.pace_ratio("elevenlabs:v:m") == 1.03                      # median once five are known
     assert audio_engine.pace_ratio("unknown") == 1.0
+
+
+def test_a_take_is_time_stretched_with_its_word_timings(tmp_path):
+    # Production 2026-10-25: ElevenLabs read a take asked to be 5% faster 1% slower; a stretch is reliable.
+    import subprocess
+    from src.audio_engine import AudioEngine
+    take = tmp_path / "voiceover.mp3"
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", "sine=frequency=220:duration=4",
+                    "-b:a", "192k", str(take)], check=True)
+    words = [{"word": "one", "start": 0.0, "dur": 1.0}, {"word": "two", "start": 2.0, "dur": 1.0}]
+    out = AudioEngine.stretch_to_fit(take, words, 1.05)
+    assert abs(AudioEngine.get_duration(take) - 4 / 1.05) < 0.15
+    assert out[1]["start"] == round(2.0 / 1.05, 4) and out[1]["dur"] == round(1.0 / 1.05, 4)
+    assert not (tmp_path / "voiceover.fit.mp3").exists()

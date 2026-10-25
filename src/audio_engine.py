@@ -506,6 +506,26 @@ class AudioEngine:
                "-of", "default=noprint_wrappers=1:nokey=1", str(audio_path)]
         return float(subprocess.check_output(cmd, timeout=60).decode().strip())
 
+    @classmethod
+    def stretch_to_fit(cls, audio_path: Path, words: List[Dict[str, Any]], factor: float) -> List[Dict[str, Any]]:
+        """Speeds the finished take up by `factor` with its pitch kept (ffmpeg rubberband, else atempo), in
+        place, and returns the word timings scaled to match. For a voice that ignores its speed setting:
+        production's ElevenLabs model read a take asked to be 5% faster 1% slower (2026-10-25)."""
+        audio_path = Path(audio_path)
+        tmp = audio_path.with_name(audio_path.stem + ".fit" + audio_path.suffix)
+        for chain in (f"rubberband=tempo={factor:.4f}:pitchq=quality", f"atempo={factor:.4f}"):
+            res = subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(audio_path), "-filter:a", chain,
+                                  "-b:a", "192k", str(tmp)], capture_output=True, timeout=180)
+            if res.returncode == 0 and tmp.exists():
+                break
+            log.info("Time-stretch with %s unavailable (%s); trying the next method.", chain.split("=")[0],
+                     res.stderr.decode(errors="replace")[-160:])
+        else:
+            raise RuntimeError("The voiceover could not be fitted to the time limit (no time-stretch filter worked).")
+        tmp.replace(audio_path)
+        return [{**w, "start": round(float(w.get("start", 0.0)) / factor, 4),
+                 "dur": round(float(w.get("dur", 0.0)) / factor, 4)} for w in words]
+
     @staticmethod
     def _load_mono(path: Path) -> np.ndarray:
         data, _ = sf.read(str(path))

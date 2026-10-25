@@ -96,3 +96,12 @@ def test_the_card_caption_leaves_the_hashtags_to_their_own_line():
     card = TelegramApprovalBot.format_card_text({"title": "T", "narration_script": "x", "caption": "A line. #one #two",
                                                  "hashtags": ["#one", "#two"], "carousel_caption": "Swipe. #one"}, "run_x")
     assert card.count("#one") == 1 and "<b>Hashtags:</b>" in card
+
+
+def test_a_run_on_a_button_is_named_whole(db):
+    # Operator, 2026-10-25: 'Re-render: "The Antikythera…' was cut off on the dashboard button.
+    topic = db.list_all_topics()[0]
+    db.create_run("run_b", topic["id"])
+    name = control.button_run_name(db, "run_b")
+    assert len(name) <= 26 and '"' not in name
+    assert name.rsplit(" ", 1)[-1].count(":") == 1                                 # its time tells two runs apart

@@ -499,6 +499,22 @@ def clip_words(text: str, limit: int) -> str:
     return (cut or text[:limit - 1]) + "…"
 
 
+def button_run_name(db, run_id: str, limit: int = 26) -> str:
+    """A run named so that it fits on a button whole: its place (or a short title) and its time, which tells
+    two runs of one topic apart. The full label was cut to '"The Antikythera…' (operator, 2026-10-25)."""
+    run = db.get_run(run_id) or {}
+    topic = db.get_topic_by_id(run.get("topic_id", "")) or {}
+    name = (topic.get("location") or {}).get("name") or (run.get("script_payload") or {}).get("title") \
+        or topic.get("title") or run_id
+    when = ""
+    try:
+        from .local_time import local
+        when = local(run["created_at"]).strftime("%H:%M")
+    except (KeyError, TypeError, ValueError):
+        pass
+    return clip_words(name.strip('"'), limit - (len(when) + 1 if when else 0)) + (f" {when}" if when else "")
+
+
 def _sentence(text: str) -> str:
     """Capitalised as a sentence start ("… unconfigured. real runs stop" read as a typo)."""
     return text[:1].upper() + text[1:] if text else text
@@ -940,7 +956,8 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     if release:
         environment += f" ({e(release)})"
     lines = [f"🏛️ <b><u>RELIC &amp; RIDDLE</u></b> · {environment}", ""]
-    lines += (["<b>Needs you</b>"] + needs + [""]) if needs else ["✅ <b>Nothing needs you right now.</b>", ""]
+    # A blank line between items: they ran together (operator, 2026-10-25).
+    lines += (["<b>Needs you</b>"] + [ln for item in needs for ln in (item, "")]) if needs else ["✅ <b>Nothing needs you right now.</b>", ""]
     outcome = last_review_outcome(db)
     if outcome:  # the decided review's receipt lives here, so the chat keeps one panel
         lines += [outcome, ""]
@@ -976,7 +993,7 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         # A run that failed after its video was made (the release gate, say) is made again in place. Not only
         # the latest run: a cancelled scheduled run hid the button for the run that mattered (2026-10-24).
         verb = "Make again" if late.get("status") == "rejected" else "Re-render"  # rejected: regenerated with the reason given
-        text = f"🔁 {verb}" if recent and late["run_id"] == recent[0]["run_id"] else f"🔁 {verb}: {clip_words(db.run_label(late['run_id']), 28)}"
+        text = f"🔁 {verb}" if recent and late["run_id"] == recent[0]["run_id"] else f"🔁 {verb}: {button_run_name(db, late['run_id'])}"
         row1.append({"text": text, "callback_data": f"rerender:{db.run_key(late['run_id'])}"})
     if digest:
         row1.append({"text": "📰 Weekly digest", "callback_data": "cdigest:"})

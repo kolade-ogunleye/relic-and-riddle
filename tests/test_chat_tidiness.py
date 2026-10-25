@@ -114,3 +114,15 @@ def test_the_progress_card_redraws_itself_while_its_run_is_made(db, monkeypatch)
     db.update_run("run_p", "failed")                                              # the run ends: the ticker stops
     thread.join(timeout=1)
     assert not thread.is_alive()
+
+
+def test_a_screen_asked_for_from_a_protected_card_replaces_the_one_panel(db, monkeypatch):
+    # Production 2026-10-25: "← Dashboard" on a decided review card drew the dashboard in that card, and the
+    # old dashboard stayed: two panels in the chat.
+    db.set_setting("telegram_dashboard_id", "40")
+    bot, calls = _bot(db, monkeypatch, [])
+    monkeypatch.setattr(bot, "_protected_messages", lambda: {50})
+    monkeypatch.setattr(bot, "_delete_soon", lambda mid: calls.append(("delete", None, mid)))
+    assert bot.show_navigation_panel(50, "🏛️ Dashboard", [[{"text": "x", "callback_data": "cdash:"}]])
+    assert not any(m == "editMessageText" and mid == 50 for m, _, mid in calls)      # the card stays as it is
+    assert ("delete", None, 40) in calls and db.get_setting("telegram_dashboard_id") == "77"

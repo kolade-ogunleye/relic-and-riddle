@@ -578,6 +578,14 @@ class TelegramApprovalBot:
         from .telegram_pages import panel as paginate
         text, buttons = paginate(self.db, _MASKER.mask(text), buttons)
         current = self._current_panel(message_id)
+        with self._panel_lock:
+            stored = self.db.get_setting("telegram_dashboard_id")
+            anchor = self._current_panel(int(stored)) if stored and stored.isdigit() else None
+            if anchor and anchor != current and current in self._protected_messages():
+                # A screen asked for from a card that must stay (a review card, its receipt): it opens as the
+                # one panel at the bottom and the old panel goes. Drawn in the card, it left two dashboards in
+                # the chat, since a protected card never becomes the panel (production, 2026-10-25).
+                return type(self._show_dashboard_locked(text, buttons, fresh=True)) is int
         media = self._panel_media.get(current, is_media)
         if not media:
             edited = self.edit_message_text(current, text, buttons=buttons)

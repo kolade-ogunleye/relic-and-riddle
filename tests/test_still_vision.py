@@ -56,3 +56,9 @@ def test_findings_reach_the_audit_as_information_not_as_a_block(monkeypatch, tmp
     assert stories["certified"] and slides["certified"] and stories["score"] == slides["score"] == 100  # information only
     assert ("story_01.jpg", "Story frame", still_vision.story_copy(PAYLOAD, 0)) in seen
     assert ("carousel_slide_02.jpg", "carousel slide", "Thirty miles / Across.") in seen
+    # the cover too, with its own words (a title across the blade it names: Damascus, 2026-10-25)
+    cover = tmp_path / "carousel" / "carousel_slide_01.jpg"
+    thumbs = auditor.audit_thumbnails(cover, None, payload={"thumbnail": {"line1": "THE SECRET OF", "line2": "DAMASCUS STEEL"}})
+    looks = [i for i in thumbs["issues"] if i["type"] == "cover_look"]           # (the 4:5 stand-in also fails the ratio check)
+    assert len(looks) == 1 and looks[0]["severity"] == "info"
+    assert seen[-1] == ("carousel_slide_01.jpg", "Reel cover", "THE SECRET OF / DAMASCUS STEEL")

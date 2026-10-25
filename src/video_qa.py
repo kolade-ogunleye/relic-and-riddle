@@ -811,8 +811,11 @@ class QualityAuditor:
             "cards_audited": len(cards),
         }
 
-    def audit_thumbnails(self, cover_path: Optional[Path], grid_path: Optional[Path]) -> Dict[str, Any]:
-        """Audits video cover (9:16) and profile grid thumbnail (1:1) for dimensions, profile crop safety, and contrast."""
+    def audit_thumbnails(self, cover_path: Optional[Path], grid_path: Optional[Path],
+                         payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Audits video cover (9:16) and profile grid thumbnail (1:1) for dimensions, profile crop safety, and contrast,
+        then looks at the cover with its own words (still_vision; informational: a title across the very detail it
+        names, seen on a Damascus cover 2026-10-25, is fixed by choosing another layout in Covers)."""
         issues: List[Dict[str, Any]] = []
         score = 100
         audited = 0
@@ -864,6 +867,12 @@ class QualityAuditor:
             except Exception as e:
                 issues.append({"type": "corrupt_grid", "severity": "critical", "issue": f"Grid thumbnail error: {e}"})
                 score -= 30
+
+        if cover_path and cover_path.exists():
+            from . import still_vision
+            t = (payload or {}).get("thumbnail") or {}
+            words = " / ".join(str(t.get(k, "")) for k in ("eyebrow", "line1", "line2", "tagline") if t.get(k))
+            issues.extend(still_vision.findings([cover_path], "Reel cover", [words], "cover_look", "cover"))
 
         final_score = max(0, min(100, score))
         certified = (final_score == 100 and len([iss for iss in issues if iss.get("severity") in ("critical", "major")]) == 0)
@@ -972,7 +981,7 @@ class QualityAuditor:
         grid_p = kwargs.get("grid_path") or (run_dir / "thumbnail_profile_grid.jpg")
         if (cov_p and cov_p.exists()) or (grid_p and grid_p.exists()):
             thumb_audit = self.audit_thumbnails(cov_p if (cov_p and cov_p.exists()) else None,
-                                                grid_p if (grid_p and grid_p.exists()) else None)
+                                                grid_p if (grid_p and grid_p.exists()) else None, payload=payload_obj)
 
         if payload_obj:
             policy_audit = self.audit_publishing_policy(payload_obj)

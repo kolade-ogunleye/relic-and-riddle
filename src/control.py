@@ -11,6 +11,8 @@ Commands (approvers only, in the configured chat):
   /run      start a production run now (still needs your approval to publish)
   /produce N  render the next N queued topics back to back, each to review (the next starts after your decision)
   /posts    every booked post with its slot and status, links once posted; post now, move or cancel a booking
+  /reviews  review cards waiting, post candidates (finished dry runs) and the way to Review history
+  /history  blocked and approved reviews, with details per run
   /images   image sets waiting for review
   /review N send topic N's numbered contact sheet with an Approve button
   /drop N 2 5  remove images 2 and 5 from topic N (re-run the fetcher to refill)
@@ -1533,7 +1535,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             from . import improve
             text, buttons = improve.improve_text(db)
             return text, buttons + [[HOME]]
-        if command == "creviews":
+        if command in ("reviews", "creviews"):  # typed /reviews opens the same panel as the dashboard button
             pending = db.list_pending_approvals()
             timed_out = db.timed_out_reviews() if hasattr(db, "timed_out_reviews") else []
             candidates = post_candidates(db)
@@ -1564,7 +1566,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     lines.append(f"• {html.escape(db.run_label(r['run_id']))}")
                     buttons.append(resend_button(r["run_id"]))
             return "\n".join(lines), buttons + [[HISTORY_BUTTON], [HOME]]
-        if command == "chistory":
+        if command in ("history", "chistory"):  # typed /history opens Review history
             text, buttons = review_history(db)
             return text, buttons + [[{"text": "🎬 Reviews", "callback_data": "creviews:"}], [HOME]]
         if command == "chist":

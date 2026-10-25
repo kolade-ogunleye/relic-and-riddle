@@ -24,7 +24,9 @@ Its pipeline task uses `LAB\rr-pipeline$`; backup uses `LAB\rr-backup$`. Both
 have the `-Unattended` task suffix. The original interactive tasks remain disabled;
 retirement uses approved host administration. Old production task/account installers have
 been removed from the application release. `scripts/windows_runtime.ps1` manages
-development only and refuses production actions.
+development only and refuses production actions. Its task runs headless (Windows
+Script Host starts the launcher hidden), so Start opens no terminal window or tab;
+output is in `logs/runtime-Development.*.log`.
 
 The external launcher supervises Windows process ownership, stop requests and
 exit status. The [application service contract](runtime-contract.md) supplies

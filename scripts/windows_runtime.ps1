@@ -91,6 +91,17 @@ if ($Action -eq 'InstallTask') {
         'exit $worker.ExitCode'
     )
     $launcher | Set-Content -LiteralPath $launcherPath -Encoding UTF8
+    # Headless (operator, 2026-10-25): with Windows Terminal as the default terminal, a console the task starts
+    # visibly opens a new Terminal tab, and closing that tab killed the launcher (exit 0xC000013A) while its
+    # Python worker lived on. Windows Script Host starts PowerShell hidden at creation, so no console window or
+    # tab ever appears; the worker inherits that hidden console. Output stays in logs/runtime-<Environment>.*.log.
+    $powershellPath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+    $shimPath = Join-Path $app "logs/runtime-$Environment.vbs"
+    $shim = @(
+        'Set shell = CreateObject("WScript.Shell")',
+        ('WScript.Quit shell.Run("""' + $powershellPath + '"" -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File ""' + $launcherPath + '""", 0, True)')
+    )
+    $shim | Set-Content -LiteralPath $shimPath -Encoding ASCII
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
     $definition = $scheduler.NewTask(0)
     $definition.RegistrationInfo.Description = "Relic & Riddle $Environment daemon $Mode; preserves host .env. Requires this user's login session."
@@ -106,8 +117,8 @@ if ($Action -eq 'InstallTask') {
     $trigger = $definition.Triggers.Create(9) # AtLogon for this user, not arbitrary users.
     $trigger.UserId = $identity
     $actionDefinition = $definition.Actions.Create(0)
-    $actionDefinition.Path = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
-    $actionDefinition.Arguments = "-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$launcherPath`""
+    $actionDefinition.Path = "$env:SystemRoot\System32\wscript.exe"
+    $actionDefinition.Arguments = "//B //Nologo `"$shimPath`""
     $actionDefinition.WorkingDirectory = $app
     $folder.RegisterTaskDefinition($taskName, $definition, 6, $identity, $null, 3) | Out-Null
 } else {

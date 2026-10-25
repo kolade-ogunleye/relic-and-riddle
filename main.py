@@ -2982,6 +2982,26 @@ def main(argv=None) -> int:
         bot.register_commands()
         run_lock = threading.Lock()  # one production run at a time (daily job or /run)
 
+        PRODUCE_KEY = "produce_remaining"  # episodes still to start in a /produce batch
+
+        def continue_batch(status: Optional[str]) -> None:
+            """/produce N in the daemon (operator, 2026-10-25: "bot says I don't know /produce"; production runs the
+            daemon, where the batch was never wired): the next episode starts once this run's worker has ended
+            cleanly, which is after the operator's decision on its review; a crash or an empty queue ends the batch."""
+            try:
+                remaining = int(coordinator.db.get_setting(PRODUCE_KEY) or 0)
+            except (TypeError, ValueError, AttributeError):
+                remaining = 0
+            if remaining <= 0:
+                return
+            if status in ("published", "simulated", "rejected", "scheduled"):
+                coordinator.db.set_setting(PRODUCE_KEY, str(remaining - 1))
+                scheduler.add_job(production_run, kwargs={"manual": True})
+                bot.notify(f"🎬 Next episode of the batch is starting ({remaining - 1} more after it).")
+            else:
+                coordinator.db.set_setting(PRODUCE_KEY, "0")
+                bot.notify("⏹ Batch production stopped: the last episode did not finish cleanly.")
+
         def production_run(manual: bool = False, content_format: str = "reel", extra: Optional[List[str]] = None,
                            resume: Optional[str] = None):
             if not manual and is_paused(coordinator.db):
@@ -2992,6 +3012,7 @@ def main(argv=None) -> int:
             if not run_lock.acquire(blocking=False):
                 log.warning("A run is already in progress; skipping.")
                 return
+            status = None
             try:
                 # Each run in its own process: a crash costs the run, never the daemon (its bot and schedule).
                 with busy_lease(coordinator.db, "the production run"):
@@ -3023,6 +3044,19 @@ def main(argv=None) -> int:
                 log.exception("Run failed: %s", e)
             finally:
                 run_lock.release()
+                try:
+                    continue_batch(status)
+                except Exception as e:
+                    log.warning("Batch continuation failed: %s", e)
+
+        def produce_batch(n: int) -> str:
+            coordinator.db.set_setting(PRODUCE_KEY, str(max(0, n - 1)))
+            started = trigger_run()
+            if "already in progress" in started:
+                coordinator.db.set_setting(PRODUCE_KEY, "0")
+                return started
+            return (f"🎬 Producing {n} episode(s) back to back: each comes to you for review, the next starts after "
+                    f"your decision. {started}")
 
         scheduler = BlockingScheduler(timezone=TIMEZONE)
         # The daily run asks for every format; run_cycle narrows it to VIDEO_FORMATS (default: the Reel only).
@@ -3297,7 +3331,8 @@ def main(argv=None) -> int:
                                                     "cancelpost": getattr(coordinator, "cancel_post", None),
                                                     "movepost": getattr(coordinator, "move_post", None),
                                                     "retrypost": getattr(coordinator, "retry_post", None),
-                                                    "retryreel": getattr(coordinator, "retry_reel", None)})
+                                                    "retryreel": getattr(coordinator, "retry_reel", None)},
+                                       produce_batch=produce_batch)
 
         def poll_telegram():
             poll_loop(bot, handler)

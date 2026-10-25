@@ -473,6 +473,32 @@ class FacebookPageReelsPublisher:
                                 status=resp.status_code)
         return body
 
+    CAPTION_LOCALE = "en_US"
+
+    def upload_captions(self, video_id: str, srt_path: Path, locale: str = CAPTION_LOCALE) -> Dict[str, Any]:
+        """Closed captions for a posted Facebook video: POST /{video-id}/captions with an SRT named
+        name.<locale>.srt (Graph reference: video/captions). Upload-Post sends caption files to YouTube and
+        LinkedIn only, so a Reel on Facebook had none (operator, 2026-10-25). Meta documents the endpoint for
+        videos; a Reel is a Page video, so this is tried on one. A locale already on the video is replaced."""
+        if not self.configured():
+            raise NotConfigured("META_PAGE_ID / page access token not set")
+        srt_path = Path(srt_path)
+        if not srt_path.is_file():
+            raise PublishFailed(f"No caption file at {srt_path.name}")
+        url = f"{self.graph}/{video_id}/captions"
+
+        def send() -> Dict[str, Any]:
+            with open(srt_path, "rb") as fh:
+                return self._call("POST", url, timeout=120, data={"access_token": self.token, "default_locale": locale},
+                                  files={"captions_file": (f"captions.{locale}.srt", fh, "application/x-subrip")})
+        try:
+            return {"status": "published", "video_id": str(video_id), "locale": locale, "result": send()}
+        except PublishFailed as e:
+            if "482" not in str(e):  # anything but "this locale is already on the video"
+                raise
+        self._call("POST", url, timeout=60, data={"access_token": self.token, "locales_to_delete": json.dumps([locale])})
+        return {"status": "published", "video_id": str(video_id), "locale": locale, "replaced": True, "result": send()}
+
     def publish(self, envelope: Dict[str, Any]) -> Dict[str, Any]:
         if not self.configured():
             raise NotConfigured("META_PAGE_ID / page access token not set")

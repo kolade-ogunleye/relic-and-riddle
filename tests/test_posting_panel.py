@@ -162,3 +162,43 @@ def test_a_partial_reel_can_be_re_sent_to_the_platform_it_missed(db, tmp_path, m
     assert sent == [(["instagram"], f"{run_id}-retry1-instagram")] and "posted" in out
     assert db.get_run(run_id)["status"] == "published"
     assert c.retry_reel(run_id) == "🔁 Every platform has this Reel; nothing to retry."
+
+
+def test_captions_can_be_added_to_a_posted_facebook_reel(db, tmp_path, monkeypatch):
+    # Operator, 2026-10-25: Upload-Post sends caption files to YouTube and LinkedIn only; try Meta's endpoint.
+    from src import publisher
+    run_id, reel, slot = _booked(db, tmp_path)
+    master = tmp_path / run_id / "m.mp4"
+    master.with_suffix(".srt").write_text("1\n00:00:00,000 --> 00:00:01,000\nHello\n", encoding="utf-8")
+    db.update_scheduled_post(reel, "published", detail={"posted_at": slot.isoformat()})
+    db.record_publication(db.get_run(run_id)["topic_id"], run_id, "upload-post", "published",
+                          {"post_urls": {"facebook": "https://www.facebook.com/reel/1419040693748996"}})
+    text, buttons = control.posting_episode(db, run_id)
+    assert "Facebook captions: not yet" in text and any(b["callback_data"] == f"fbcaptions:{db.run_key(run_id)}" for row in buttons for b in row)
+    sent = []
+
+    class FakeResp:
+        ok, status_code = True, 200
+
+        def __init__(self, body):
+            self.body = body
+
+        def json(self):
+            return self.body
+    calls = iter([FakeResp({"error": {"code": 482, "message": "locale exists"}}), FakeResp({"success": True}), FakeResp({"success": True})])
+
+    def request(method, url, timeout=60, data=None, files=None):
+        sent.append((url.rsplit("/", 2)[-2:], sorted((data or {}).keys()), [f[0] for f in (files or {}).values()]))
+        r = next(calls)
+        r.ok = "error" not in r.body
+        r.status_code = 400 if "error" in r.body else 200
+        return r
+    monkeypatch.setattr(publisher.requests, "request", request)
+    monkeypatch.setattr(publisher.FacebookPageReelsPublisher, "configured", lambda self: True)
+    c = _coordinator(db)
+    msg = c.add_facebook_captions(run_id)
+    assert "Captions added" in msg and "replaced" in msg
+    assert sent[0][0] == ["1419040693748996", "captions"] and sent[0][2] == ["captions.en_US.srt"]
+    assert "locales_to_delete" in sent[1][1]                                       # the old locale goes first
+    text, _ = control.posting_episode(db, run_id)
+    assert "Facebook captions: added" in text

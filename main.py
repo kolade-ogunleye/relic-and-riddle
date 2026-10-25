@@ -1337,6 +1337,43 @@ class PipelineCoordinator:
                 platforms.discard(p)
         return sorted(platforms), retries
 
+    @staticmethod
+    def facebook_video_id(db, run_id: str) -> Optional[str]:
+        """The posted Facebook Reel's video id, from its link in the publication receipts."""
+        for pub in db.list_publications(run_id):
+            try:
+                url = (json.loads(pub.get("response_payload_json") or "{}").get("post_urls") or {}).get("facebook") or ""
+            except ValueError:
+                continue
+            m = re.search(r"/(?:reel|videos)/(\d+)", str(url))
+            if m and pub.get("status") == "published":
+                return m.group(1)
+        return None
+
+    def add_facebook_captions(self, run_id: str) -> str:
+        """Uploads the run's caption file (its SRT, the same words as the burned-in captions) to its posted
+        Facebook Reel as closed captions (operator, 2026-10-25: try Meta's caption endpoint on a posted Reel)."""
+        from src.publisher import FacebookPageReelsPublisher, NotConfigured, PublishFailed
+        run = self.db.get_run(run_id) or {}
+        video_id = self.facebook_video_id(self.db, run_id)
+        if not video_id:
+            return "💬 No posted Facebook Reel is recorded for that run."
+        master = Path(run.get("master_video_path") or "")
+        srt = master.with_suffix(".srt")
+        if not srt.is_file():
+            return f"💬 The run's caption file ({html.escape(srt.name)}) is no longer kept."
+        try:
+            res = FacebookPageReelsPublisher().upload_captions(video_id, srt)
+        except NotConfigured:
+            return "💬 Facebook captions need META_PAGE_ID and a Page access token in production's .env."
+        except PublishFailed as e:
+            self.db.record_publication(run["topic_id"], run_id, "facebook:captions", "failed", {"error": str(e)[:500]})
+            return f"💬 Facebook did not take the captions: {html.escape(str(e))[:300]}"
+        self.db.record_publication(run["topic_id"], run_id, "facebook:captions", "published",
+                                   {k: v for k, v in res.items() if k != "result"})
+        return (f"💬 Captions added to the Facebook Reel ({'replaced' if res.get('replaced') else 'new'}, "
+                f"{res['locale']}). Check them with the CC button on the Reel.")
+
     def retry_reel(self, run_id: str) -> str:
         """Re-sends a Reel only to the platform(s) it did not reach, under its own request key (operator,
         2026-10-24: the Reel path had no targeted re-send; a partial ended as "unknown" with a question)."""
@@ -3126,7 +3163,8 @@ def main(argv=None) -> int:
                          "cancelpost": getattr(coordinator, "cancel_post", None),
                          "movepost": getattr(coordinator, "move_post", None),
                          "retrypost": getattr(coordinator, "retry_post", None),
-                         "retryreel": getattr(coordinator, "retry_reel", None)},
+                         "retryreel": getattr(coordinator, "retry_reel", None),
+                         "fbcaptions": getattr(coordinator, "add_facebook_captions", None)},
             produce_batch=produce_batch,
         )
         if POST_SCHEDULING:  # what this mode books, it also posts when due
@@ -3537,7 +3575,8 @@ def main(argv=None) -> int:
                                                     "cancelpost": getattr(coordinator, "cancel_post", None),
                                                     "movepost": getattr(coordinator, "move_post", None),
                                                     "retrypost": getattr(coordinator, "retry_post", None),
-                                                    "retryreel": getattr(coordinator, "retry_reel", None)},
+                                                    "retryreel": getattr(coordinator, "retry_reel", None),
+                         "fbcaptions": getattr(coordinator, "add_facebook_captions", None)},
                                        produce_batch=produce_batch)
 
         def poll_telegram():

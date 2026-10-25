@@ -24,7 +24,7 @@ from PIL import Image, ImageDraw, ImageFilter
 
 from . import geo
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
-from .typography import fit_font, get_font
+from .typography import fit_font, fit_lines, get_font
 from .art_direction import accent, type_scale, count_start, push_in, MOTION
 from .encoding import bounded_encode
 
@@ -485,11 +485,11 @@ def render_timeline(events: List[Dict[str, Any]], out: Path, width: int = VIDEO_
                     yt_year = spine_y - 28 if above else spine_y + 30
                     anchor_year = "ms" if above else "mt"
                     _text(d, (x, yt_year), year_text(e["year"], e.get("approximate", False)), font=f_year, fill=(*GOLD, a), anchor=anchor_year)
-                    lines = _wrap(d, e["label"], f_lab, max_label_w)[:2]
+                    lines, f_fit = fit_lines(d, e["label"], f_lab, max_label_w, 2)
                     for j, line in enumerate(lines):
                         if above:
                             ly = spine_y - 74 - 34 * (len(lines) - 1 - j)
-                            _text(d, (x, ly), line, font=f_lab, fill=(*WHITE, a), anchor="ms")
+                            _text(d, (x, ly), line, font=f_fit, fill=(*WHITE, a), anchor="ms")
                         else:
                             ly = spine_y + 74 + 34 * j
                             _text(d, (x, ly), line, font=f_lab, fill=(*WHITE, a), anchor="mt")
@@ -520,8 +520,9 @@ def render_timeline(events: List[Dict[str, Any]], out: Path, width: int = VIDEO_
                     d.ellipse([x0 - r, y - r, x0 + r, y + r], fill=(*accent(), a))
                     xt = x0 + 50 + int(30 * (1 - appear))
                     _text(d, (xt, y - 8), year_text(e["year"], e.get("approximate", False)), font=f_year, fill=(*GOLD, a), anchor="ls")
-                    for j, line in enumerate(_wrap(d, e["label"], f_lab, min(width - xt - 90, get_text_box(width, height)[2] - xt))[:2]):
-                        _text(d, (xt, y + 18 + 42 * j), line, font=f_lab, fill=(*WHITE, a), anchor="lt")
+                    v_lines, f_fit = fit_lines(d, e["label"], f_lab, min(width - xt - 90, get_text_box(width, height)[2] - xt), 2)
+                    for j, line in enumerate(v_lines):
+                        _text(d, (xt, y + 18 + 42 * j), line, font=f_fit, fill=(*WHITE, a), anchor="lt")
                 yield im
 
     return _encode(frames(), out, n, width=width, height=height)
@@ -594,7 +595,7 @@ def render_scale(fact: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
                     cur_lab_font = fit_font(d, label.upper(), "Montserrat", lab_font_size, max_label_w, 20)
                     ty = (y1 + (44 if width > height else 50)) if depth else (y1 - (58 if width > height else 70))
                     _text(d, (cx, ty), num, font=cur_num_font, fill=(*colour, a), anchor="mm")
-                    lines = _wrap(d, label.upper(), cur_lab_font, max_label_w)[:2]
+                    lines, cur_lab_font = fit_lines(d, label.upper(), cur_lab_font, max_label_w, 2)
                     for j, line in enumerate(lines):
                         lh = 32 if width > height else 36
                         ly = ty + 46 + lh * j if depth else ty - 46 - lh * (len(lines) - 1 - j)
@@ -696,8 +697,9 @@ def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Pa
                 value_font = fit_font(d, card["value"].upper(), "Anton", f_num_size, max_w, 50)
                 _text(d, (cx, cy - 30), shown(card, count).upper(), font=value_font, fill=(*GOLD, int(255 * a)), anchor="mm")
                 d.line([(cx - 80, cy + 60), (cx + 80, cy + 60)], fill=(*WHITE, int(160 * a)), width=3)
-                for j, line in enumerate(_wrap(d, card["label"].upper(), f_lab, max_w)[:2]):
-                    _text(d, (cx, cy + 105 + 46 * j), line, font=f_lab, fill=(*WHITE, int(255 * a)), anchor="mm")
+                card_lines, f_fit = fit_lines(d, card["label"].upper(), f_lab, max_w, 2)
+                for j, line in enumerate(card_lines):
+                    _text(d, (cx, cy + 105 + 46 * j), line, font=f_fit, fill=(*WHITE, int(255 * a)), anchor="mm")
             yield im
 
     return _encode(frames(), out, n, width=width, height=height)
@@ -797,16 +799,16 @@ def render_cross_section(cs: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH
                     d.line([(shaft_x - 22, y_phys), (shaft_x - 38, y_phys), (shaft_x - 38, y_t), (shaft_x - 50, y_t)], fill=(*GOLD, int(160 * a)), width=2)
                     _text(d, (shaft_x - 58, y_t - 10), f"{lv['depth_ft']:,.0f} FT", font=f_dep, fill=(*GOLD, a), anchor="rm")
                     _text(d, (shaft_x - 58, y_t + 18), f"({lv['depth_ft'] / 3.28084:,.0f} M)", font=f_sub, fill=(*MUTED, a), anchor="rm")
-                    lines = _wrap(d, lv["label"].upper(), f_lab, label_w)[:2]
+                    lines, f_fit = fit_lines(d, lv["label"].upper(), f_lab, label_w, 2)
                     for j, line in enumerate(lines):
-                        _text(d, (label_x, y_t + (j - (len(lines) - 1) / 2) * lh), line, font=f_lab, fill=(*WHITE, a), anchor="lm")
+                        _text(d, (label_x, y_t + (j - (len(lines) - 1) / 2) * lh), line, font=f_fit, fill=(*WHITE, a), anchor="lm")
                 else:
                     d.rectangle([shaft_x + 22, y_phys - 14, label_x - 25, y_phys + 14], fill=(22, 19, 16, a))
                     _text(d, (shaft_x - 50, y_phys - 10), f"{lv['depth_ft']:,.0f} FT", font=f_dep, fill=(*GOLD, a), anchor="rm")
                     _text(d, (shaft_x - 50, y_phys + 18), f"({lv['depth_ft'] / 3.28084:,.0f} M)", font=f_sub, fill=(*MUTED, a), anchor="rm")
-                    lines = _wrap(d, lv["label"].upper(), f_lab, label_w)[:2]
+                    lines, f_fit = fit_lines(d, lv["label"].upper(), f_lab, label_w, 2)
                     for j, line in enumerate(lines):
-                        _text(d, (label_x, y_phys + (j - (len(lines) - 1) / 2) * lh), line, font=f_lab, fill=(*WHITE, a), anchor="lm")
+                        _text(d, (label_x, y_phys + (j - (len(lines) - 1) / 2) * lh), line, font=f_fit, fill=(*WHITE, a), anchor="lm")
             d.ellipse([shaft_x - 14, y_now - 14, shaft_x + 14, y_now + 14], fill=(*accent(), 255))
             yield im
 
@@ -864,8 +866,9 @@ def render_route(stops: List[Dict[str, Any]], out: Path, width: int = VIDEO_WIDT
                 d.ellipse([x - 16, y - 16, x + 16, y + 16], fill=(*accent(), int(255 * a)), outline=(20, 20, 20, int(255 * a)), width=4)
                 right = x < width / 2  # label on the open side
                 tx = x + 34 if right else x - 34
-                for j, line in enumerate(_wrap(d, p["label"].upper(), f_lab, 380)[:2]):
-                    _text(d, (tx, y - 18 + 36 * j), line, font=f_lab, fill=(*WHITE, int(255 * a)), anchor="lm" if right else "rm")
+                stop_lines, f_fit = fit_lines(d, p["label"].upper(), f_lab, 380, 2)
+                for j, line in enumerate(stop_lines):
+                    _text(d, (tx, y - 18 + 36 * j), line, font=f_fit, fill=(*WHITE, int(255 * a)), anchor="lm" if right else "rm")
             yield im
 
     return _encode(frames(), out, n, width=width, height=height)

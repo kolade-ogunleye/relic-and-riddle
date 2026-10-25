@@ -3,7 +3,7 @@ GROUPS = {
     "Everyday": [("dashboard", "Open the dashboard"), ("status", "Full status"), ("progress", "Current or last recorded run"),
                  ("jobs", "Background jobs and cancellation"), ("clear", "Tidy chat; preserve pending reviews"), ("help", "Commands by category"),
                  ("run", "Start a run; publication still needs approval"), ("produce", "Render the next N queued topics back to back, each to review"),
-                 ("reviews", "Reviews waiting, post candidates and history"), ("history", "Blocked and approved reviews"),
+                 ("reviews", "Reviews waiting, post candidates and history"), ("history", "Blocked and approved reviews"), ("digest", "This week's digest"),
                  ("posts", "Posting: bookings, status, links and retries"),
                  ("pause", "Pause scheduled work"), ("resume", "Resume scheduled work"), ("accounts", "Refresh publishing connections"),
                  ("deploy", "Install the newest signed release now (production)")],

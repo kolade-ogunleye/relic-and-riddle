@@ -1096,6 +1096,9 @@ class PipelineCoordinator:
             self.topic_engine.record_status(topic_id, topic_status, run_id=run_id)
         log.info("Not publishing %s: decision was '%s'.", run_id, decision)
 
+    def resume_mode(self, run_id: str, dry_run: bool) -> bool:
+        return resume_mode(self.db, run_id, dry_run)
+
     def resume_run(self, run_id: str, auto_approve: bool = False, dry_run: bool = False) -> Dict[str, Any]:
         """
         Continues a failed run from where it stopped, reusing its approved script and
@@ -1109,7 +1112,7 @@ class PipelineCoordinator:
         run_dir = OUTPUT_DIR / run_id
         if not run_dir.is_dir():
             raise ValueError(f"Run folder {run_dir} no longer exists.")
-        dry_run = dry_run or self.db.get_setting("run_mode:" + run_id) == "dry_run"  # as it was made
+        dry_run = resume_mode(self.db, run_id, dry_run)
         topic = self.topic_engine.get_topic_by_id(run["topic_id"])
         previous_status = "published" if topic["times_published"] else "queued"
         self.db.update_run(run_id, "producing")
@@ -1412,6 +1415,8 @@ class PipelineCoordinator:
         self._check_cancel(run_id)
         # 1. Visual assets first: fail before spending on LLM/TTS calls.
         scene_media = self.visual_engine.get_scene_sequence(topic)
+        # Photos with text printed into them (a placard, a caption strip) are set aside, looked at once each.
+        scene_media = beat_images.without_burned_in_text(scene_media, topic.get("title", ""), config.MIN_SCENE_IMAGES)
         hero_img = self.visual_engine.hero_image(scene_media)
         log.info("Scene media: %d items.", len(scene_media))
 
@@ -2377,11 +2382,30 @@ def regeneration_topic(db, previous: str) -> Optional[str]:
     return (db.get_run(previous) or {}).get("topic_id")
 
 
+def resume_mode(db, run_id: str, dry_run: bool) -> bool:
+    """The mode a resumed run continues in. In development, as it was made (a dry run never posts by
+    surprise). In production there is no dry run (operator, 2026-10-25): a run made before the activation
+    continues live, so its approval books it like any other; the record says so."""
+    made_dry = db.get_setting("run_mode:" + run_id) == "dry_run"
+    if dry_run or not made_dry:
+        return dry_run or made_dry
+    if config.BACKUP_ENVIRONMENT == "production":
+        db.set_setting("run_mode:" + run_id, "live")
+        log.info("Run %s was made as a dry run; production has none now, so it continues live.", run_id)
+        return False
+    return True
+
+
 def rerender_started(db, run_id: str) -> str:
+    """What a Re-render keeps, from the run's own records (src/resume_points.py), not a fixed sentence."""
+    from src.resume_points import kept_phrase
     run = db.get_run(run_id) or {}
-    how = ("made again with the reason you gave" if run.get("status") == "rejected" else "re-rendered")
-    return (f"🔁 <b>{html.escape(db.run_label(run_id))}</b> is being {how}: its script, voiceover and accepted "
-            "motion clips are reused, so nothing already paid for is bought again. A new review card comes when it's ready.")
+    if run.get("status") == "rejected":
+        return (f"🔁 <b>{html.escape(db.run_label(run_id))}</b> is being made again with the reason you gave, keeping "
+                "its voiceover and accepted motion clips. Its progress shows here, and a new review card comes when it's ready.")
+    kept = kept_phrase(OUTPUT_DIR / run_id, run) or "what it had made"
+    return (f"🔁 <b>{html.escape(db.run_label(run_id))}</b> is being re-rendered, keeping {html.escape(kept)} "
+            "(a stage whose inputs changed, or a voiceover over the limit, is made again). Its progress shows here.")
 
 
 def run_in_worker(content_format: str, dry_run: bool, schedule_posts: bool, timeout: Optional[float] = None,
@@ -3103,10 +3127,12 @@ def main(argv=None) -> int:
             return when.strftime("%a %d %b %H:%M %Z") if when else None
 
         def heartbeat():
-            # One a day, gone before the next one (it stacked up with no way back to the panel otherwise).
-            bot.notify(heartbeat_text(coordinator.db, next_run(), coordinator.audio_engine.voice_quota()),
-                       buttons=[{"text": "← Dashboard", "callback_data": "cdash:"}], silent=True,
-                       transient=True, ttl_minutes=23 * 60 + 50, record_alert=False)
+            # On the panel, not a message of its own (operator, 2026-10-25: it repeated the full status): the
+            # dashboard is redrawn with a "💓 heartbeat" line. Silent, as the message was; the outside
+            # health check still hears from the daemon.
+            from src.control import record_heartbeat
+            record_heartbeat(coordinator.db)
+            bot.show_dashboard()
             ping_healthcheck()
 
         scheduler.add_job(heartbeat, CronTrigger(hour=hb_hour, minute=hb_minute, timezone=TIMEZONE),
@@ -3285,7 +3311,12 @@ def main(argv=None) -> int:
         def weekly_digest():
             from src import improve
             try:
-                bot.notify(improve.digest_text(coordinator.db), silent=True, transient=True, ttl_minutes=10070)
+                # Kept for the dashboard's 📰 Weekly digest panel, and a nudge that leaves after a minute
+                # (operator, 2026-10-25): no message that stays in the chat for a week.
+                from src.control import record_weekly_digest
+                record_weekly_digest(coordinator.db, improve.digest_text(coordinator.db))
+                bot.show_dashboard()
+                bot.nudge("🔔 Dashboard updated: this week's digest is ready.")
             except Exception as e:
                 log.warning("Weekly digest failed: %s", e)
 

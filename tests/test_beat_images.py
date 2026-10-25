@@ -187,3 +187,26 @@ def test_the_look_keeps_the_picture_when_it_cannot_run(monkeypatch, tmp_path):
     assert beat_images.picture_shows(p, "a query") == (False, "burned-in text: a scale bar and a caption")
     monkeypatch.setattr(config, "PICTURE_VISION_CHECK", False)
     assert beat_images.picture_shows(p, "a query") == (True, "not checked")
+
+
+def test_topic_photos_with_printed_text_are_set_aside_once_and_cached(monkeypatch, tmp_path):
+    # The Tunguska development run (2026-10-25): its captions sat over a museum placard's text.
+    from src import config
+    monkeypatch.setattr(config, "PICTURE_VISION_CHECK", True)
+    photos = []
+    for i in range(6):
+        p = tmp_path / f"{i:02d}_commons.jpg"
+        Image.new("RGB", (40, 40), (i * 30, 20, 20)).save(p, "JPEG")
+        photos.append(p)
+    looks = []
+
+    def look(path, query):
+        looks.append(path.name)
+        return {"checked": True, "shows": True, "burned_in_text": path.name.startswith("03"), "reason": "a placard"}
+    monkeypatch.setattr(beat_images, "picture_look", look)
+    kept = beat_images.without_burned_in_text(photos, "Tunguska", minimum=4)
+    assert [p.name for p in kept] == [p.name for p in photos if not p.name.startswith("03")] and len(looks) == 6
+    looks.clear()
+    beat_images.without_burned_in_text(photos, "Tunguska", minimum=4)
+    assert looks == []                                                                # cached by hash
+    assert beat_images.without_burned_in_text(photos, "Tunguska", minimum=6) == photos  # never below the minimum

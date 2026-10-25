@@ -790,6 +790,13 @@ class QualityAuditor:
             try:
                 for entry in json.loads(layout_file.read_text(encoding="utf-8")):
                     w, h = entry.get("size") or (1080, 1920)
+                    drawn, source = entry.get("body_drawn"), entry.get("body_source")
+                    if source and drawn is not None and (drawn != source or not drawn.rstrip().endswith((".", "!", "?", "’", '"'))):
+                        # A frame's text shortened or ending mid-sentence (a posted Kailasa frame, 2026-10-25).
+                        issues.append({"type": "story_text_incomplete", "severity": "major", "card": entry.get("frame"),
+                                       "issue": f"Story frame {entry.get('frame')}: its text was shortened to fit "
+                                                f"({len(drawn.split())} of {len(source.split())} words): ...{drawn[-60:]}"})
+                        score -= 15
                     if not safe_zones.inside(tuple(entry["text_box"]), safe_zones.safe_box("story", w, h)):
                         issues.append({"type": "story_text_outside_safe_zone", "severity": "major", "card": entry.get("frame"),
                                        "issue": f"Story frame {entry.get('frame')}: text block {entry['text_box']} leaves the Story safe area "

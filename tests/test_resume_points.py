@@ -85,3 +85,17 @@ def test_the_standby_tries_opus_twice_then_sonnet_once(monkeypatch):
             raise _api_error(anthropic.NotFoundError)
         return "ok"
     assert llm._first_request(opus_missing) == ("ok", "claude-sonnet-5-5") and tried == ["claude-opus-5-5", "claude-sonnet-5-5"]
+
+
+def test_a_resumed_dry_run_continues_live_in_production_only(db, monkeypatch):
+    # Operator, 2026-10-25: "there's nothing like dry run on production"; the re-render card still said Dry run.
+    import main
+    from src import config
+    c = main.PipelineCoordinator.__new__(main.PipelineCoordinator)
+    c.db = db
+    db.set_setting("run_mode:run_x", "dry_run")
+    monkeypatch.setattr(config, "BACKUP_ENVIRONMENT", "development")
+    assert c.resume_mode("run_x", False) is True                                    # development: as it was made
+    monkeypatch.setattr(config, "BACKUP_ENVIRONMENT", "production")
+    assert c.resume_mode("run_x", False) is False and db.get_setting("run_mode:run_x") == "live"
+    assert c.resume_mode("run_x", True) is True                                     # an explicit dry run stays one

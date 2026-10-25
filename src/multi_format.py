@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Tuple
 from PIL import Image, ImageDraw
 
 from .config import VIDEO_WIDTH, VIDEO_HEIGHT
-from .typography import cover_crop, fit_font, get_font, is_video, wrap_text
+from .typography import fit_lines, cover_crop, fit_font, get_font, is_video, wrap_text
 
 log = logging.getLogger(__name__)
 
@@ -121,7 +121,7 @@ class MultiFormatGenerator:
             body = slide["body"]
             if has_options:  # one question per frame: the poll's; the body keeps only its context
                 body = " ".join(s for s in re.split(r"(?<=[.!?])\s+", body) if not s.rstrip().endswith("?"))
-            body_lines = wrap_text(d, body, font_b, max_w)[:3] if body.strip() else []
+            body_lines, font_b = fit_lines(d, body, font_b, max_w, 3) if body.strip() else ([], font_b)
             block = 60 + 2 * (size + 12) + 40 + len(body_lines) * 54 + (40 + 2 * 120 + 70 if has_options else (90 if i == 0 else 20))
             # Keep the whole block (with options or the Reel pointer) inside the Story box.
             y = max(sy0 + 20, min(cy - block // 2, sy1 - block))
@@ -162,6 +162,7 @@ class MultiFormatGenerator:
                        fill=LIGHT, anchor="mt", stroke_width=2, stroke_fill=(10, 10, 12, 220))
                 y_end = y + 40 + 2 * 120 + 20 + 40
             layout.append({"frame": name, "size": [VIDEO_WIDTH, VIDEO_HEIGHT],
+                           "body_source": " ".join(body.split()), "body_drawn": " ".join(body_lines),
                            "text_box": [(VIDEO_WIDTH - max_w) // 2, int(pill_box[1]), (VIDEO_WIDTH + max_w) // 2, int(y_end)],
                            "safe_box": [sx0, sy0, sx1, sy1]})
             path = out_dir / name
@@ -314,13 +315,14 @@ class MultiFormatGenerator:
         im = ensure_legible(im, (40, chh - 720, cw - 40, chh - 80))  # up to 3 heading lines, body and swipe
         d = ImageDraw.Draw(im, "RGBA")
         font_h = fit_font(d, heading, "Anton", 110, cw - 160, 56)
-        lines = wrap_text(d, heading, font_h, cw - 160)[:3]
+        lines, font_h = fit_lines(d, heading, font_h, cw - 160, 3)
         y = chh - 470 - (len(lines) - 1) * 60
         for line in lines:
             d.text((80, y), line, font=font_h, fill=WHITE, anchor="ls", stroke_width=3, stroke_fill=(8, 8, 10, 230))
             y += int(font_h.size * 1.05)
-        for j, line in enumerate(wrap_text(d, body, get_font("Montserrat", 36), cw - 160)[:2]):
-            d.text((80, y + 20 + 48 * j), line, font=get_font("Montserrat", 36), fill=LIGHT, anchor="ls", stroke_width=2, stroke_fill=(8, 8, 10, 220))
+        cover_lines, font_cb = fit_lines(d, body, get_font("Montserrat", 36), cw - 160, 2)
+        for j, line in enumerate(cover_lines):
+            d.text((80, y + 20 + 48 * j), line, font=font_cb, fill=LIGHT, anchor="ls", stroke_width=2, stroke_fill=(8, 8, 10, 220))
         if swipe:
             d.text((cw - 80, chh - 110), "SWIPE  →", font=get_font("Anton", 44), fill=GOLD, anchor="rs", stroke_width=2, stroke_fill=(8, 8, 10, 220))
         return im
@@ -341,14 +343,15 @@ class MultiFormatGenerator:
         f_tag = get_font("Montserrat", 24)
         self._draw_badge(d, tag, 80, chh - 530, f_tag, text_color=GOLD, border_color=GOLD, border_width=2, radius=8)
         font_h = fit_font(d, heading, "Anton", 76, cw - 160, 44)
-        h_lines = wrap_text(d, heading, font_h, cw - 160)[:2]
+        h_lines, font_h = fit_lines(d, heading, font_h, cw - 160, 2)
         y = chh - 440
         for line in h_lines:
             d.text((80, y), line, font=font_h, fill=WHITE, anchor="lt", stroke_width=3, stroke_fill=(6, 8, 10, 240))
             y += int(font_h.size * 1.08)
         y += 18
         font_b = get_font("Montserrat", 40)
-        for line in wrap_text(d, body, font_b, cw - 160)[:4]:
+        body_lines, font_b = fit_lines(d, body, font_b, cw - 160, 4)
+        for line in body_lines:
             d.text((80, y), line, font=font_b, fill=LIGHT, anchor="lt", stroke_width=2, stroke_fill=(6, 8, 10, 220))
             y += 56
         return im
@@ -378,7 +381,8 @@ class MultiFormatGenerator:
         d.text((80, 2 * h_half + 85), heading, font=font_h, fill=WHITE, anchor="lt")
         font_b = get_font("Montserrat", 38)
         y = 2 * h_half + 155
-        for line in wrap_text(d, body, font_b, cw - 160)[:4]:
+        body_lines, font_b = fit_lines(d, body, font_b, cw - 160, 4)
+        for line in body_lines:
             d.text((80, y), line, font=font_b, fill=LIGHT, anchor="lt")
             y += 52
         return im
@@ -403,7 +407,8 @@ class MultiFormatGenerator:
         d.text((80, p_h + 85), heading, font=font_h, fill=WHITE, anchor="lt")
         font_b = get_font("Montserrat", 40)
         y = p_h + 155
-        for line in wrap_text(d, body, font_b, cw - 160)[:5]:
+        body_lines, font_b = fit_lines(d, body, font_b, cw - 160, 5)
+        for line in body_lines:
             d.text((80, y), line, font=font_b, fill=LIGHT, anchor="lt")
             y += 56
         return im
@@ -431,7 +436,8 @@ class MultiFormatGenerator:
         d.text((80, y), heading, font=font_h, fill=WHITE, anchor="lt")
         y += int(font_h.size * 1.15)
         font_b = get_font("Montserrat", 38)
-        for line in wrap_text(d, body, font_b, cw - 160)[:4]:
+        body_lines, font_b = fit_lines(d, body, font_b, cw - 160, 4)
+        for line in body_lines:
             d.text((80, y), line, font=font_b, fill=LIGHT, anchor="lt")
             y += 52
         ver_font = get_font("Montserrat", 22)
@@ -457,7 +463,8 @@ class MultiFormatGenerator:
         d.text((80, p_h + 80), heading, font=font_h, fill=WHITE, anchor="lt")
         font_b = get_font("Montserrat", 40)
         y = p_h + 80 + int(font_h.size * 1.15)
-        for line in wrap_text(d, body, font_b, cw - 160)[:3]:
+        body_lines, font_b = fit_lines(d, body, font_b, cw - 160, 3)
+        for line in body_lines:
             d.text((80, y), line, font=font_b, fill=LIGHT, anchor="lt")
             y += 54
         d.text((80, chh - 120), "TELL US IN THE COMMENTS  ↓", font=f_small, fill=GOLD, anchor="ls")
@@ -478,7 +485,8 @@ class MultiFormatGenerator:
         d.text((80, self.PHOTO_H + 85), heading, font=font_h, fill=WHITE, anchor="lt")
         font_b = get_font("Montserrat", 42)
         y = self.PHOTO_H + 155
-        for line in wrap_text(d, body, font_b, cw - 160)[:5]:
+        body_lines, font_b = fit_lines(d, body, font_b, cw - 160, 5)
+        for line in body_lines:
             d.text((80, y), line, font=font_b, fill=LIGHT, anchor="lt")
             y += 58
         return im

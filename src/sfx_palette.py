@@ -112,6 +112,15 @@ PALETTE: Dict[str, Effect] = {
                                   ("battle", "battles", "siege", "sieges", "war", "wars", "army", "armies", "soldiers", "warriors",
                                    "invaders", "invasion", "attack", "attacked", "sword", "swords", "raid", "raiders"),
                                   0.38, "_synth_chisel_strike"),
+    # Added 2026-10-25 after the Tunguska development run: an airburst and a flattened forest had no effect to use.
+    "sfx_explosion_distant.wav": Effect("A huge distant explosion: a deep concussive boom rolling across open land, a long "
+                                        "low rumble fading away, no debris close by, no music", 4.0,
+                                        ("explosion", "explosions", "exploded", "blast", "airburst", "detonation",
+                                         "detonated", "fireball", "shockwave"), 0.42, "_synth_sub_bass_braam"),
+    "sfx_trees_falling.wav": Effect("Many large trees cracking and crashing down in a forest one after another, splintering "
+                                    "wood and heavy thuds, distant wind, no voices, no music", 4.0,
+                                    ("flattened", "toppled", "felled", "uprooted", "splintered", "trees", "forest", "forests"),
+                                    0.38, "_synth_chisel_strike"),
 }
 
 CREDITS_PER_SECOND = 40  # ElevenLabs Sound Effects with a set duration

@@ -187,3 +187,22 @@ def test_a_regeneration_from_the_command_line_keeps_the_previous_runs_topic(db, 
     monkeypatch.setattr(main, "PipelineCoordinator", Coordinator)
     assert main.main(["run", "--regenerate-from", run_id, "--dry-run"]) == 0
     assert seen["topic"] == db.get_run(run_id)["topic_id"]
+
+
+def test_a_re_render_keeps_one_message_for_the_run(db, tmp_path, monkeypatch):
+    # Operator, 2026-10-25: a Re-render left three messages (the dashboard, a notice and a new failure card).
+    from src import card_ledger
+    run_id = _failed(db, tmp_path, monkeypatch)
+    card_ledger.record(run_id, "failure", "❌ Production failed", [], 77)
+    bot, calls = _bot(db, monkeypatch)
+    db.set_setting("telegram_dashboard_id", "10")
+    monkeypatch.setattr(bot, "show_dashboard", lambda *a, **k: calls.append(("dashboard", {})))
+    monkeypatch.setattr(bot, "_answer_callback", lambda *a, **k: None)
+    handler = lambda action, target: f"🔁 {run_id} is being re-rendered, keeping the fact-checked script."  # noqa: E731
+    bot._process_update({"update_id": 1, "callback_query": {"id": "q", "data": f"rerender:{db.run_key(run_id)}",
+                         "from": {"id": 555}, "message": {"message_id": 10, "chat": {"id": 555}}}}, handler)
+    edits = [d for m, d in calls if m == "editMessageText"]
+    assert edits and edits[-1]["message_id"] == 77                                   # the run's failure card, not the dashboard
+    assert not [d for m, d in calls if m == "sendMessage"]                           # no new message
+    from src.telegram_state import get
+    assert get(db, "progress-reuse", run_id) == "77"                                 # its progress card will reuse it

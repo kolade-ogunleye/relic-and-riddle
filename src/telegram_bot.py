@@ -1541,13 +1541,21 @@ class TelegramApprovalBot:
         buttons = [{"text": "🔄 Refresh Progress", "callback_data": f"cprog:{self.db.run_key(run_id)}"}, {"text": "Cancel run", "callback_data": f"runstop:{self.db.run_key(run_id)}"}]
         markup = {"inline_keyboard": format_responsive_keyboard(buttons)}
         try:
-            msg = self._api("sendMessage", data={
-                "chat_id": self.chat_id,
-                "text": text,
-                "parse_mode": "HTML",
-                "reply_markup": json.dumps(markup),
-            })
-            mid = msg.get("message_id") if isinstance(msg, dict) else None
+            from .telegram_state import get as state_get, put as state_put
+            reuse = state_get(self.db, "progress-reuse", run_id)
+            mid = None
+            if reuse:  # a re-render tapped on a card: that card becomes the progress card
+                state_put(self.db, "progress-reuse", run_id, "")
+                if self.edit_message_text(int(reuse), text, buttons=[buttons]):
+                    mid = int(reuse)
+            if mid is None:
+                msg = self._api("sendMessage", data={
+                    "chat_id": self.chat_id,
+                    "text": text,
+                    "parse_mode": "HTML",
+                    "reply_markup": json.dumps(markup),
+                })
+                mid = msg.get("message_id") if isinstance(msg, dict) else None
             if mid:
                 from .telegram_state import put
                 from .card_ledger import record as record_card
@@ -1694,7 +1702,19 @@ class TelegramApprovalBot:
         return success
 
     def finish_progress_card(self, message_id: int, topic_title: str, run_id: str, success: bool = True, error: str = "") -> bool:
-        """Finishes the progress card into a completed receipt, or deletes it if video review was sent."""
+        """Finishes the progress card into a completed receipt, or deletes it if video review was sent. The
+        dashboard is redrawn after it, so it never shows the previous outcome (operator, 2026-10-25: it still
+        said 53.7 s after the re-render had failed at 54.4 s)."""
+        try:
+            return self._finish_progress_card(message_id, topic_title, run_id, success, error)
+        finally:
+            try:
+                if self.db.get_setting("telegram_dashboard_id"):  # redraw the panel there is; never post one
+                    self.show_dashboard()
+            except Exception as e:  # a redraw never breaks a run's ending
+                log.debug("Dashboard not redrawn after %s: %s", run_id, e)
+
+    def _finish_progress_card(self, message_id: int, topic_title: str, run_id: str, success: bool = True, error: str = "") -> bool:
         # The live card, not the one the run started with: Refresh Progress moves the card to the bottom (a
         # new message each time), and the run's own id then points at a deleted one. Read before clearing.
         message_id = self._live_progress_card(run_id) or message_id
@@ -1850,6 +1870,40 @@ class TelegramApprovalBot:
                     log.warning("Fallback plain text edit also failed: %s", e2)
             log.warning("Could not edit message text %s: %s", message_id, e)
             return False
+
+    NUDGE_SECONDS = 60
+
+    def nudge(self, text: str) -> bool:
+        """A short message that buzzes the phone and leaves after NUDGE_SECONDS (operator, 2026-10-25: a nudge
+        when the dashboard updates, not a new message that stays). Telegram does not notify an edit, so the
+        nudge is the only way to buzz; the panel carries the substance. A cleanup sweep removes it if the
+        timer could not (it is recorded as a transient notice, expiring in two minutes)."""
+        if not self.is_configured():
+            return False
+        try:
+            res = self._api("sendMessage", data={"chat_id": self.chat_id, "text": _MASKER.mask(text), "parse_mode": "HTML"})
+        except Exception as e:
+            log.warning("Nudge not sent: %s", _MASKER.mask(str(e)))
+            return False
+        msg_id = res.get("message_id") if isinstance(res, dict) else None
+        if not msg_id:
+            return False
+        if hasattr(self.db, "record_alert"):
+            self.db.record_alert(text, message_id=msg_id, kind="transient",
+                                 expires_at=(datetime.now(timezone.utc) + timedelta(minutes=2)).isoformat())
+        timer = threading.Timer(self.NUDGE_SECONDS, lambda: self.delete_message(msg_id))
+        timer.daemon = True
+        timer.start()
+        return True
+
+    def run_card_message(self, run_id: str) -> Optional[int]:
+        """The message of the run's latest failure card, from its card ledger, or None."""
+        from .card_ledger import cards
+        from .config import OUTPUT_DIR
+        for card in reversed(cards(OUTPUT_DIR / run_id)):
+            if card.get("kind") == "failure" and card.get("message_id"):
+                return int(card["message_id"])
+        return None
 
     def cleanup_transient_messages(self) -> int:
         """Deletes expired transient alerts from the Telegram chat and updates the DB."""
@@ -2304,6 +2358,30 @@ class TelegramApprovalBot:
                     if msg_id:
                         self.delete_message(msg_id)
                     self._answer_callback(cq['id'], 'Closed')
+                    return
+                if action == 'rerender':
+                    # One message per run (operator, 2026-10-25: a Re-render left the dashboard, a notice and a
+                    # new failure card). The run's own card (the failure card, or the card tapped) says it is
+                    # being re-rendered, and the progress card and its outcome then take over that message;
+                    # a tap on the dashboard leaves the dashboard as the dashboard, redrawn.
+                    from .telegram_state import put
+                    run_id = self.db.resolve_run(target)
+                    on_dashboard = bool(msg_id) and str(msg_id) == str(self.db.get_setting("telegram_dashboard_id") or "")
+                    card = None if (on_dashboard or is_media or not msg_id) else msg_id
+                    card = card or self.run_card_message(run_id)
+                    if msg_id and not on_dashboard:
+                        self._strip_buttons(msg_id)
+                    reply = command_handler(action, target)
+                    text = reply[0] if isinstance(reply, tuple) else (reply or "")
+                    started = "already" not in text.lower() and not text.startswith("🔁 That") and "Not" not in text[:12]
+                    if card and started:
+                        put(self.db, "progress-reuse", run_id, str(card))
+                        self.edit_message_text(card, text, buttons=[[DONE_BUTTON]])
+                    elif text:
+                        self.notify(text, buttons=[[DONE_BUTTON]], record_alert=False, transient=True)
+                    self._answer_callback(cq['id'], 'Re-render started' if started else 'Not started')
+                    if on_dashboard:
+                        self.show_dashboard()
                     return
                 if action in {'fetchimages', 'caccounts', 'mfetch', 'cstat', 'ccov', 'cmusic', 'mreview', 'review', 'cdisc', 'cprop', 'uadd', 'tadd', 'edittext', 'mkeep', 'mdel', 'mnext', 'mreview', 'mlibrary'}:
                     self._answer_callback(cq['id'], 'Working; you can keep using the bot')

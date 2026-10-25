@@ -62,6 +62,52 @@ def wrap_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont
     return lines
 
 
+import logging as _logging
+import re as _re
+
+_log = _logging.getLogger(__name__)
+FIT_MIN_RATIO = 0.75   # a text block may shrink to three quarters of its design size before anything else
+
+
+def _font_name(font: ImageFont.FreeTypeFont) -> Optional[str]:
+    base = Path(getattr(font, "path", "") or "").name
+    return next((n for n, f in FONT_FILES.items() if f == base), None)
+
+
+def fit_lines(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, max_width: int,
+              max_lines: int) -> Tuple[List[str], ImageFont.FreeTypeFont]:
+    """The lines to draw and the font to draw them with, never a cut sentence (operator, 2026-10-25: a posted
+    Story frame ended mid-sentence on "the", because every renderer kept only its first N wrapped lines).
+    The text shrinks (down to FIT_MIN_RATIO of its size) until it fits in max_lines; if it still does not,
+    whole sentences are kept while they fit, so the frame ends on a full stop; if not even the first sentence
+    fits, every line is kept (a longer block, never a fragment). Each outcome other than a plain fit is logged."""
+    text = " ".join((text or "").split())
+    if not text:
+        return [], font
+    name = _font_name(font)
+    sizes = [font.size] + ([s for s in range(font.size - 2, int(font.size * FIT_MIN_RATIO) - 1, -2)] if name else [])
+    for size in sizes:
+        f = font if size == font.size else get_font(name, size)
+        lines = wrap_text(draw, text, f, max_width)
+        if len(lines) <= max_lines:
+            if size != font.size:
+                _log.info("Text set at %dpx instead of %dpx to fit %d lines: %.60s", size, font.size, max_lines, text)
+            return lines, f
+    f = font if len(sizes) == 1 else get_font(name, sizes[-1])
+    sentences = _re.split(r"(?<=[.!?])\s+", text)
+    kept: List[str] = []
+    for sentence in sentences:
+        if len(wrap_text(draw, " ".join(kept + [sentence]), f, max_width)) <= max_lines:
+            kept.append(sentence)
+        else:
+            break
+    if kept:
+        _log.warning("Text kept to %d of %d sentence(s) to fit %d lines: %.80s", len(kept), len(sentences), max_lines, text)
+        return wrap_text(draw, " ".join(kept), f, max_width), f
+    _log.warning("Text runs past its %d-line block (kept whole, never cut): %.80s", max_lines, text)
+    return wrap_text(draw, text, f, max_width), f
+
+
 def cover_crop(path: Path, size: Tuple[int, int]) -> Image.Image:
     """Scales and center-crops an image to fill `size` without distorting it."""
     with Image.open(path) as im:

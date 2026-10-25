@@ -285,3 +285,50 @@ def picture_issues(report) -> str:
 def mismatched_beats(report) -> List[int]:
     """The beats whose picture does not show what is said, for a targeted picture search."""
     return sorted({i.beat for i in _picture_findings(report)})
+
+
+TEXT_SCREEN_FILE = ".picture_text.json"  # per topic folder: {sha256: {"text": bool, "reason": str}}
+
+
+def without_burned_in_text(photos: List[Path], subject: str, minimum: int) -> List[Path]:
+    """The topic's reviewed photos without those that carry text printed into the picture (a museum placard,
+    a caption strip, a scale bar): cropped on screen, the text shows cut off or under the captions (the
+    Tunguska development run, 2026-10-25). Each photo is looked at once; the verdict is cached beside it by
+    its hash, so later runs pay nothing. Videos are kept. Never leaves fewer than `minimum` items: when it
+    would, the photos stay and the run log says which carry text."""
+    from .credits import sha256_file
+    import json as _json
+    if not config.PICTURE_VISION_CHECK or not photos:
+        return list(photos)
+    folder = Path(photos[0]).parent
+    cache_path = folder / TEXT_SCREEN_FILE
+    try:
+        cache = _json.loads(cache_path.read_text(encoding="utf-8")) if cache_path.exists() else {}
+    except (OSError, ValueError):
+        cache = {}
+    flagged, changed = [], False
+    for p in photos:
+        p = Path(p)
+        if p.suffix.lower() not in (".jpg", ".jpeg", ".png", ".webp") or not p.is_file():
+            continue
+        digest = sha256_file(p)
+        verdict = cache.get(digest)
+        if verdict is None:
+            look = picture_look(p, subject)
+            if not look["checked"]:
+                continue  # not looked at: kept, and asked again next time
+            verdict = {"text": bool(look["burned_in_text"]), "reason": look["reason"]}
+            cache[digest], changed = verdict, True
+        if verdict.get("text"):
+            flagged.append((p, verdict.get("reason", "")))
+    if changed:
+        try:
+            with open(cache_path, "w", encoding="utf-8", newline="\n") as handle:
+                handle.write(_json.dumps(cache, indent=1))
+        except OSError as e:
+            log.debug("Could not save the picture-text screen: %s", e)
+    kept = [p for p in photos if Path(p) not in {f for f, _ in flagged}]
+    for p, why in flagged:
+        log.info("Photo %s has text printed into it (%s)%s.", p.name, why,
+                 "; set aside" if len(kept) >= minimum else "; kept, too few photos otherwise")
+    return kept if len(kept) >= minimum else list(photos)

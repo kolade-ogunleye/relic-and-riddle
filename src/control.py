@@ -471,7 +471,7 @@ AUDIT_NAMES = {"cdash": "Dashboard", "approve": "Approve", "reject": "Reject", "
                "cancel": "Cancel review", "rsn": "Reason", "cprog": "Refresh progress", "qrender": "Render",
                "qdoc": "Render with documentary", "qrefresh": "Refresh queue", "qbump": "Bump", "qdrop": "Drop",
                "resend": "Resend review", "rerender": "Re-render", "postreal": "Post for real?", "promote": "Post for real",
-               "chistory": "Review history", "chist": "Review details", "postnow": "Post now", "produce": "Produce a batch",
+               "cdigest": "Weekly digest", "chistory": "Review history", "chist": "Review details", "postnow": "Post now", "produce": "Produce a batch",
                "cposts": "Posting", "posts": "Posting", "cancelpost": "Cancel a booking", "movepost": "Move a booking",
                "retrypost": "Retry the failed platform", "retryreel": "Retry the Reel's failed platform",
                "edit": "Edit text", "runstop": "Cancel run", "runstopok": "Confirm cancel",
@@ -953,6 +953,12 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
                  + (f" · next: <b>{e(next_t['title'])}</b>" if next_t else ""))
     lines.append(spend_summary(db))
     lines.append(health_line(db))
+    beat = heartbeat_line(db)
+    if beat:  # the daily heartbeat lives on the panel, not in its own message (operator, 2026-10-25)
+        lines.append(beat)
+    digest = weekly_digest(db)
+    if digest:
+        lines.append(f"📰 This week's digest is ready ({e(digest['label'])})")
 
     waiting_reviews = len(pending) + len(timed_out)  # timed-out reviews are decisions waiting too
     row1 = [{"text": f"🎬 Reviews ({waiting_reviews})", "callback_data": "creviews:"}] if waiting_reviews else []
@@ -972,6 +978,8 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         verb = "Make again" if late.get("status") == "rejected" else "Re-render"  # rejected: regenerated with the reason given
         text = f"🔁 {verb}" if recent and late["run_id"] == recent[0]["run_id"] else f"🔁 {verb}: {clip_words(db.run_label(late['run_id']), 28)}"
         row1.append({"text": text, "callback_data": f"rerender:{db.run_key(late['run_id'])}"})
+    if digest:
+        row1.append({"text": "📰 Weekly digest", "callback_data": "cdigest:"})
     buttons = [row1] if row1 else []
     buttons += [
         [{"text": "⚡ Progress" if active else (f"⚡ Render #{next((i for i,t in enumerate(topics,1) if next_t and t['id']==next_t['id']),1)} now"),
@@ -984,6 +992,50 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         [{"text": "▶️ Resume" if paused else "⏸️ Pause", "callback_data": "cresume:" if paused else "cpause:"}],
     ]
     return "\n".join(lines), buttons
+
+
+HEARTBEAT_KEY = "heartbeat_at"
+DIGEST_KEY = "weekly_digest"
+
+
+def heartbeat_line(db: PipelineDatabase) -> Optional[str]:
+    """The daily heartbeat's line on the dashboard, for the day after it beat (it replaced a message that
+    repeated the full status: operator, 2026-10-25)."""
+    from datetime import datetime, timedelta, timezone
+    at = db.get_setting(HEARTBEAT_KEY)
+    try:
+        when = datetime.fromisoformat(at) if at else None
+    except ValueError:
+        when = None
+    if not when or datetime.now(timezone.utc) - when > timedelta(hours=26):
+        return None
+    from .local_time import show
+    return f"💓 {html.escape(show(at, '%H:%M'))} heartbeat · daemon running"
+
+
+def record_heartbeat(db: PipelineDatabase) -> None:
+    from datetime import datetime, timezone
+    db.set_setting(HEARTBEAT_KEY, datetime.now(timezone.utc).isoformat())
+
+
+def weekly_digest(db: PipelineDatabase) -> Optional[Dict[str, str]]:
+    """This week's digest ({"text", "label", "at"}) while it is under a week old, else None."""
+    from datetime import datetime, timedelta, timezone
+    try:
+        record = json.loads(db.get_setting(DIGEST_KEY) or "{}")
+        if record and datetime.now(timezone.utc) - datetime.fromisoformat(record["at"]) <= timedelta(days=7):
+            return record
+    except (ValueError, KeyError, TypeError):
+        pass
+    return None
+
+
+def record_weekly_digest(db: PipelineDatabase, text: str) -> None:
+    """Keeps the digest for the dashboard's 📰 Weekly digest panel (it was its own message for a week)."""
+    from datetime import datetime, timezone
+    from .local_time import show
+    now = datetime.now(timezone.utc).isoformat()
+    db.set_setting(DIGEST_KEY, json.dumps({"text": text, "at": now, "label": show(now, "%a %d %b")}))
 
 
 def startup_dashboard_card(db: PipelineDatabase, mode: str = "bot", time_str: Optional[str] = None,
@@ -1584,6 +1636,10 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     lines.append(f"• {html.escape(db.run_label(r['run_id']))}")
                     buttons.append(resend_button(r["run_id"]))
             return "\n".join(lines), buttons + [[HISTORY_BUTTON], [HOME]]
+        if command in ("digest", "cdigest"):  # the week's digest, in the panel (operator, 2026-10-25)
+            record = weekly_digest(db)
+            body = record["text"] if record else "📰 No weekly digest yet; it comes on Monday mornings."
+            return body, [[HOME]]
         if command in ("history", "chistory"):  # typed /history opens Review history
             text, buttons = review_history(db)
             return text, buttons + [[{"text": "🎬 Reviews", "callback_data": "creviews:"}], [HOME]]

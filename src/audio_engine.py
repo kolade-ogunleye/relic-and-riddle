@@ -506,22 +506,34 @@ class AudioEngine:
                "-of", "default=noprint_wrappers=1:nokey=1", str(audio_path)]
         return float(subprocess.check_output(cmd, timeout=60).decode().strip())
 
+    @staticmethod
+    def rubberband_available() -> bool:
+        """Whether this ffmpeg has the rubberband filter (the only time-stretch used on a voiceover)."""
+        try:
+            out = subprocess.run(["ffmpeg", "-hide_banner", "-filters"], capture_output=True, timeout=30).stdout
+        except (OSError, subprocess.SubprocessError):
+            return False
+        return b" rubberband " in out
+
     @classmethod
     def stretch_to_fit(cls, audio_path: Path, words: List[Dict[str, Any]], factor: float) -> List[Dict[str, Any]]:
-        """Speeds the finished take up by `factor` with its pitch kept (ffmpeg rubberband, else atempo), in
-        place, and returns the word timings scaled to match. For a voice that ignores its speed setting:
-        production's ElevenLabs model read a take asked to be 5% faster 1% slower (2026-10-25)."""
+        """Speeds the finished take up by `factor` with its pitch kept, in place, and returns the word timings
+        scaled to match. For a voice that ignores its speed setting: production's ElevenLabs model read a take
+        asked to be 5% faster 1% slower (2026-10-25). Only rubberband at its quality setting is used (operator,
+        2026-10-25: the highest quality must not be impacted): without it the run stops with the reason rather
+        than fall back to a lower-quality stretch; the health check reports a missing filter beforehand. The
+        result is encoded at 320 kbps, so the extra generation before the final mix costs nothing audible."""
         audio_path = Path(audio_path)
+        if not cls.rubberband_available():
+            raise RuntimeError("The voiceover is over the time limit and this ffmpeg has no rubberband filter to fit "
+                               "it without a loss of quality; install an ffmpeg build with rubberband (the health "
+                               "check reports it).")
         tmp = audio_path.with_name(audio_path.stem + ".fit" + audio_path.suffix)
-        for chain in (f"rubberband=tempo={factor:.4f}:pitchq=quality", f"atempo={factor:.4f}"):
-            res = subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(audio_path), "-filter:a", chain,
-                                  "-b:a", "192k", str(tmp)], capture_output=True, timeout=180)
-            if res.returncode == 0 and tmp.exists():
-                break
-            log.info("Time-stretch with %s unavailable (%s); trying the next method.", chain.split("=")[0],
-                     res.stderr.decode(errors="replace")[-160:])
-        else:
-            raise RuntimeError("The voiceover could not be fitted to the time limit (no time-stretch filter worked).")
+        res = subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", str(audio_path), "-filter:a",
+                              f"rubberband=tempo={factor:.4f}:pitchq=quality:transients=smooth:window=long",
+                              "-b:a", "320k", str(tmp)], capture_output=True, timeout=180)
+        if res.returncode != 0 or not tmp.exists():
+            raise RuntimeError(f"Fitting the voiceover failed: {res.stderr.decode(errors='replace')[-200:]}")
         tmp.replace(audio_path)
         return [{**w, "start": round(float(w.get("start", 0.0)) / factor, 4),
                  "dur": round(float(w.get("dur", 0.0)) / factor, 4)} for w in words]

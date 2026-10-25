@@ -38,3 +38,22 @@ def test_a_take_is_time_stretched_with_its_word_timings(tmp_path):
     assert abs(AudioEngine.get_duration(take) - 4 / 1.05) < 0.15
     assert out[1]["start"] == round(2.0 / 1.05, 4) and out[1]["dur"] == round(1.0 / 1.05, 4)
     assert not (tmp_path / "voiceover.fit.mp3").exists()
+
+
+def test_without_rubberband_a_take_is_never_stretched_at_lower_quality(tmp_path, monkeypatch):
+    import pytest
+    from src.audio_engine import AudioEngine
+    take = tmp_path / "voiceover.mp3"
+    take.write_bytes(b"x")
+    monkeypatch.setattr(AudioEngine, "rubberband_available", staticmethod(lambda: False))
+    with pytest.raises(RuntimeError, match="no rubberband filter"):
+        AudioEngine.stretch_to_fit(take, [], 1.05)
+    assert take.read_bytes() == b"x"                                             # untouched
+
+
+def test_the_health_check_reports_rubberband_without_blocking(monkeypatch):
+    from src.audio_engine import AudioEngine
+    from src.ops import PreFlightHealthChecker as HealthChecker
+    monkeypatch.setattr(AudioEngine, "rubberband_available", staticmethod(lambda: False))
+    ok, msg = HealthChecker().check_rubberband()
+    assert not ok and "no rubberband filter" in msg

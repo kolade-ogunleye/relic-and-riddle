@@ -1142,7 +1142,6 @@ class PipelineCoordinator:
             # filed. A resumed run skipped both, so its cards were never checked (2026-10-24).
             self._finish_progress(topic.get("title", run_id), run_id, success=True)
             self._collect_findings(run_id, run_dir, topic["id"])
-            return result
         except Exception as e:
             self.db.update_run(run_id, "failed", error=f"{type(e).__name__}: {e}")
             self.topic_engine.record_status(topic["id"], "failed", run_id=run_id)
@@ -1161,6 +1160,21 @@ class PipelineCoordinator:
             raise
         finally:
             sink.stop()
+        if result.get("status") == "regenerate":
+            # Regenerate on a re-rendered run's review starts the new version, as it does after a first render
+            # (production 2026-10-25: it was recorded and nothing followed).
+            return self.regenerate_from(run_id, auto_approve=auto_approve, dry_run=dry_run)
+        return result
+
+    def regenerate_from(self, run_id: str, auto_approve: bool = False, dry_run: bool = False) -> Dict[str, Any]:
+        """A new version of a run sent back with Regenerate, guided by the reason given on its card."""
+        run = self.db.get_run(run_id) or {}
+        log.info("Regeneration requested; starting a fresh run for '%s'.", run.get("topic_id"))
+        self._operator_feedback = self._await_reason(run_id)
+        try:
+            return self.run_cycle(run["topic_id"], auto_approve, dry_run, False, run.get("content_format") or "reel", 1)
+        finally:
+            self._operator_feedback = None
 
     def rerender_refusal(self, run_id: str) -> Optional[str]:
         """Why a failed run can't be re-rendered in place, or None. A failed run qualifies once its script has
@@ -1174,7 +1188,7 @@ class PipelineCoordinator:
             return f"That run is {run['status'].replace('_', ' ')}, not failed or rejected."
         if not (OUTPUT_DIR / run_id).is_dir():
             return "That run's files are no longer kept; Render the topic again instead."
-        if run["status"] == "rejected":
+        if run["status"] in ("rejected", "regenerate"):  # regenerate: sent back, and its new version never began
             return None if run.get("master_video_path") else "That run stopped before it had a video; Render the topic again instead."
         if not worth_resuming(OUTPUT_DIR / run_id, run):
             return "That run stopped before its script passed the fact check, so nothing it made is worth keeping; Render the topic again instead."
@@ -1184,7 +1198,7 @@ class PipelineCoordinator:
         """How a run is made again: a failed one is resumed in place; a rejected one is regenerated with the
         reason you gave (a new run that carries the old one's voiceover and clips over)."""
         run = self.db.get_run(run_id) or {}
-        if run.get("status") != "rejected":
+        if run.get("status") not in ("rejected", "regenerate"):
             return []
         return ["--regenerate-from", run_id, "--topic-id", str(run.get("topic_id") or "")]
 
@@ -2450,7 +2464,7 @@ def poll_loop(bot, handler) -> None:
                 time.sleep(POLL_BACKOFF_SECONDS)
 
 
-REMAKE_STATUSES = ("failed", "rejected")  # runs with a video that Re-render makes again without paying twice
+REMAKE_STATUSES = ("failed", "rejected", "regenerate")  # runs with a video that Re-render makes again without paying twice
 PROMOTABLE_STATUSES = ("simulated", "approved")  # a finished dry run that "Post for real" may publish
 PROMOTED_PREFIX = "promoted:"  # setting: the run was promoted to real posting (and when)
 
@@ -2492,12 +2506,12 @@ def rerender_started(db, run_id: str) -> str:
     """What a Re-render keeps, from the run's own records (src/resume_points.py), not a fixed sentence."""
     from src.resume_points import kept_phrase
     run = db.get_run(run_id) or {}
-    if run.get("status") == "rejected":
+    if run.get("status") in ("rejected", "regenerate"):
         return (f"🔁 <b>{html.escape(db.run_label(run_id))}</b> is being made again with the reason you gave, keeping "
                 "its voiceover and accepted motion clips. Its progress shows here, and a new review card comes when it's ready.")
     kept = kept_phrase(OUTPUT_DIR / run_id, run) or "what it had made"
     return (f"🔁 <b>{html.escape(db.run_label(run_id))}</b> is being re-rendered, keeping {html.escape(kept)} "
-            "(a stage whose inputs changed, or a voiceover over the limit, is made again). Its progress shows here.")
+            "(a stage whose inputs changed, or a voiceover outside the length limits, is made again). Its progress shows here.")
 
 
 def run_in_worker(content_format: str, dry_run: bool, schedule_posts: bool, timeout: Optional[float] = None,

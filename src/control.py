@@ -566,15 +566,19 @@ def rerenderable(db: PipelineDatabase) -> Optional[Dict[str, Any]]:
     from datetime import datetime, timedelta, timezone
     since = (datetime.now(timezone.utc) - timedelta(hours=RERENDER_HOURS)).isoformat()
     made_since: set = set()
+    tried_since: set = set()  # topics with any later run at all
     for r in db.list_recent_runs(limit=10):
         if (r.get("updated_at") or r.get("created_at") or "") < since:
             break
         if r.get("topic_id") not in made_since and (
                 (r.get("status") == "rejected" and r.get("master_video_path"))
+                # sent back with Regenerate and no new version followed (production 2026-10-25)
+                or (r.get("status") == "regenerate" and r.get("master_video_path") and r.get("topic_id") not in tried_since)
                 or (r.get("status") == "failed" and _worth_resuming(r))):  # src/resume_points.py
             return r
         if r.get("status") in REACHED_REVIEW:
             made_since.add(r.get("topic_id"))
+        tried_since.add(r.get("topic_id"))
     return None
 
 
@@ -934,7 +938,10 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         # (a cancelled scheduled one) is the latest: the panel said "Nothing needs you" above a Re-render
         # button (2026-10-24).
         reason = short_reason(late.get("error") or "", limit=1200)
-        what = "Rejected, can be made again" if late.get("status") == "rejected" else "Failed after rendering"
+        what = {"rejected": "Rejected, can be made again",
+                "regenerate": "Sent back to Regenerate; its new version did not start"}.get(late.get("status"), "")
+        if not what:  # said as it stopped: before or after its video was made
+            what = "Failed after rendering" if late.get("master_video_path") else "Failed after its fact check"
         # The run id in code, not italics: Telegram linked its digits as a phone number (2026-10-24).
         needs.append(f"🔁 <b>{what}</b>: {e(db.run_label(late['run_id']))} · Run ID <code>{e(late['run_id'])}</code> · Re-render below"
                      + (f"\n<blockquote expandable>{e(reason)}</blockquote>" if reason else ""))
@@ -992,7 +999,7 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     if late:
         # A run that failed after its video was made (the release gate, say) is made again in place. Not only
         # the latest run: a cancelled scheduled run hid the button for the run that mattered (2026-10-24).
-        verb = "Make again" if late.get("status") == "rejected" else "Re-render"  # rejected: regenerated with the reason given
+        verb = "Make again" if late.get("status") in ("rejected", "regenerate") else "Re-render"  # rejected: regenerated with the reason given
         text = f"🔁 {verb}" if recent and late["run_id"] == recent[0]["run_id"] else f"🔁 {verb}: {button_run_name(db, late['run_id'])}"
         row1.append({"text": text, "callback_data": f"rerender:{db.run_key(late['run_id'])}"})
     if digest:

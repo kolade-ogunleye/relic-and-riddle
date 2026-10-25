@@ -136,3 +136,42 @@ def test_an_approved_regeneration_returns_its_topic_to_the_queue_not_to_rejected
     monkeypatch.setattr(main.config, "effective_format", lambda f: f)
     result = coordinator.run_cycle(topic["id"], dry_run=True)
     assert result["status"] == "simulated" and seen["previous"] == "queued"
+
+
+def test_regenerate_on_a_re_rendered_run_starts_its_new_version(db, monkeypatch, tmp_path):
+    # Production 2026-10-25: Regenerate on a re-rendered run's review was recorded, and nothing followed.
+    import main
+    from types import SimpleNamespace
+    topic = db.list_all_topics()[0]
+    db.create_run("run_r", topic["id"])
+    db.update_run("run_r", "failed", error="Voiceover is 41.1s; too short for the 42s minimum.")
+    (tmp_path / "run_r").mkdir()
+    monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
+    c = main.PipelineCoordinator.__new__(main.PipelineCoordinator)
+    c.db = db
+    c.topic_engine = SimpleNamespace(get_topic_by_id=lambda t: dict(topic, times_published=0), record_status=lambda *a, **k: None)
+    c._produce_and_publish = lambda *a, **k: {"status": "regenerate", "run_id": "run_r"}
+    c._finish_progress = lambda *a, **k: None
+    c._collect_findings = lambda *a, **k: None
+    c._await_reason = lambda run_id: {"reason": "pictures", "from_run": run_id}
+    started = []
+    c.run_cycle = lambda *a, **k: started.append(a) or {"status": "pending_approval"}
+    assert c.resume_run("run_r") == {"status": "pending_approval"}
+    assert started and started[0][0] == topic["id"] and started[0][5] == 1
+
+
+def test_a_regeneration_that_never_began_can_be_made_again(db, monkeypatch, tmp_path):
+    import main
+    from src import control
+    topic = db.list_all_topics()[0]
+    db.create_run("run_g", topic["id"])
+    db.update_run("run_g", "regenerate", master_video_path=str(tmp_path / "m.mp4"))
+    (tmp_path / "run_g").mkdir()
+    monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
+    c = main.PipelineCoordinator.__new__(main.PipelineCoordinator)
+    c.db = db
+    assert c.rerender_refusal("run_g") is None
+    assert c.remake_args("run_g") == ["--regenerate-from", "run_g", "--topic-id", topic["id"]]
+    assert control.rerenderable(db)["run_id"] == "run_g"
+    db.create_run("run_h", topic["id"])                                          # its new version began
+    assert control.rerenderable(db) is None

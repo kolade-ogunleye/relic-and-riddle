@@ -19,6 +19,7 @@ Only "published" counts toward a topic's publish history.
 import json
 import logging
 import os
+import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -232,6 +233,27 @@ class UploadPostPublisher:
         if "results" in body:
             return self._summarize(body["results"], body)
         return self._poll(body.get("request_id") or key)
+
+    def set_youtube_thumbnail(self, video_id: str, image: Path) -> Dict[str, Any]:
+        """A custom thumbnail for a published YouTube video or Short (Upload-Post's youtube/thumbnail endpoint:
+        JPG/PNG at most 2 MB, 1080x1920 recommended for a Short, verified channel required). Best-effort:
+        returns {"set": bool, "error": str|None}; never raises (operator, 2026-10-24: the first Short had none)."""
+        image = Path(image)
+        if not image.is_file():
+            return {"set": False, "error": "thumbnail file missing"}
+        if image.stat().st_size > 2 * 1024 * 1024:
+            return {"set": False, "error": f"thumbnail over 2 MB ({image.stat().st_size // 1024} KB)"}
+        try:
+            with open(image, "rb") as handle:
+                response = requests.post(f"{self.base_url}/uploadposts/youtube/thumbnail", headers=self._headers(),
+                                         data=[("user", self.user), ("video_id", video_id)],
+                                         files={"thumbnail": (image.name, handle, "image/jpeg")}, timeout=(15, 120))
+        except requests.RequestException as e:
+            return {"set": False, "error": f"could not reach Upload-Post: {e}"}
+        body = self._json(response)
+        if response.status_code < 400 and body.get("success"):
+            return {"set": True, "error": None, "thumbnails": body.get("thumbnails")}
+        return {"set": False, "error": f"HTTP {response.status_code}: {body.get('error') or body.get('message') or body}"[:300]}
 
     def publish_photos(self, kind: str, photos: List[str], caption: str, platforms: List[str], key: str) -> Dict[str, Any]:
         _assert_recovery_unlocked()
@@ -644,8 +666,19 @@ class MetaPublisher:
         except PublishUnknown as e:
             self.db.record_publication(tid, run_id, "youtube-shorts", "unknown", {"error": str(e)})
             return {"status": "unknown", "error": str(e)}
+        # The Short is up; now its thumbnail (a frame otherwise). Best-effort and recorded either way: the
+        # first Short (2026-10-24) went out with none, since the upload itself cannot carry one.
+        url = (res.get("post_urls") or {}).get("youtube") or ""
+        video_id = (re.search(r"[?&]v=([A-Za-z0-9_-]{6,})", url) or re.search(r"shorts/([A-Za-z0-9_-]{6,})", url) or [None, None])[1]
+        if video_id and hasattr(uploader, "set_youtube_thumbnail"):
+            try:
+                res["thumbnail"] = uploader.set_youtube_thumbnail(video_id, Path(envelope["media"]["thumbnail_path"]))
+            except Exception as e:  # never costs the Short its receipt
+                res["thumbnail"] = {"set": False, "error": str(e)[:200]}
+            if not res["thumbnail"].get("set"):
+                log.warning("YouTube Short thumbnail not set (%s); YouTube shows a frame.", res["thumbnail"].get("error"))
         self.db.record_publication(tid, run_id, "youtube-shorts", "published", res)
-        return {"status": "published", "post_urls": res.get("post_urls") or {}}
+        return {"status": "published", "post_urls": res.get("post_urls") or {}, "thumbnail": res.get("thumbnail")}
 
     def publish_photos(self, run_id: str, topic_id: str, kind: str, photos: List[str], caption: str = "",
                        platforms: Optional[List[str]] = None, dry_run: bool = False, retry_tag: str = "") -> Dict[str, Any]:

@@ -366,3 +366,41 @@ def test_a_partial_publish_names_each_failed_platforms_reason_and_carries_it():
         assert e.failed == {"instagram": "Media processing failed (code 2207026)"} and e.ok == {"facebook": "https://fb/1"}
     else:
         raise AssertionError("a partial publish must stay unknown")
+
+
+def test_a_published_short_gets_its_thumbnail_set_best_effort(db, monkeypatch, tmp_path):
+    # 2026-10-24: the first Short went out with a frame as thumbnail; Upload-Post can set one afterwards.
+    from types import SimpleNamespace
+    from src.publisher import MetaPublisher
+    cover = tmp_path / "cover.jpg"
+    cover.write_bytes(b"\xff\xd8" + b"0" * 1000)
+    calls = []
+    uploader = SimpleNamespace(
+        publish_short=lambda envelope: {"status": "published", "post_urls": {"youtube": "https://www.youtube.com/watch?v=y6_GqrOprXE"}},
+        set_youtube_thumbnail=lambda video_id, image: calls.append((video_id, image.name)) or {"set": True, "error": None})
+    service = MetaPublisher.__new__(MetaPublisher)
+    service.db, service.publishers = db, [uploader]
+    topic = db.list_all_topics()[0]["id"]
+    db.create_run("run_y", topic)
+    envelope = {"topic_id": topic, "run_id": "run_y", "media": {"thumbnail_path": str(cover)}, "metadata": {}}
+    out = service.publish_short(envelope)
+    assert calls == [("y6_GqrOprXE", "cover.jpg")] and out["thumbnail"] == {"set": True, "error": None}
+    recorded = db.list_publications("run_y")[-1]
+    assert recorded["channel"] == "youtube-shorts" and '"set": true' in recorded["response_payload_json"]
+
+
+def test_set_youtube_thumbnail_respects_the_size_limit_and_reports_refusals(monkeypatch, tmp_path):
+    from types import SimpleNamespace
+    from src.publisher import UploadPostPublisher
+    up = UploadPostPublisher(api_key="k", user="RelicAndRiddle", base_url="https://api.upload-post.com/api")
+    big = tmp_path / "big.jpg"
+    big.write_bytes(b"0" * (2 * 1024 * 1024 + 1))
+    assert up.set_youtube_thumbnail("vid", big)["set"] is False
+    small = tmp_path / "small.jpg"
+    small.write_bytes(b"\xff\xd8" + b"0" * 10)
+    import src.publisher as pub
+    monkeypatch.setattr(pub.requests, "post", lambda *a, **k: SimpleNamespace(status_code=403, json=lambda: {"error": "custom thumbnails require a verified channel", "youtube_status": 403}, text=""))
+    res = up.set_youtube_thumbnail("vid", small)
+    assert res["set"] is False and "verified channel" in res["error"]
+    monkeypatch.setattr(pub.requests, "post", lambda *a, **k: SimpleNamespace(status_code=200, json=lambda: {"success": True, "video_id": "vid", "thumbnails": {"high": {"url": "u"}}}, text=""))
+    assert up.set_youtube_thumbnail("vid", small) == {"set": True, "error": None, "thumbnails": {"high": {"url": "u"}}}

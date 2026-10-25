@@ -1847,7 +1847,11 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             from .telegram_images import topic_for
             topic = topic_for(db, args)
             args = topic["id"]
-            return (f"🖼 <b>{html.escape(topic['title'])}</b>\n\nFetch licensed photos, upload your own with guided prompts, or review this set. New images need human review.",
+            summary = ""
+            t_dir = _resolve_topic_dir(args, assets_dir, db=db)
+            if (t_dir / "credits.json").is_file():  # where the set stands (operator, 2026-10-25)
+                summary = "\n\n" + "\n".join(review_caption(t_dir).split("\n")[2:]).strip()
+            return (f"🖼 <b>{html.escape(topic['title'])}</b>{summary}\n\nFetch licensed photos, upload your own with guided prompts, or review this set. New images need human review.",
                     [[job_button(db, f"fetchimages:{args}", "Fetch more"), {"text": "Upload my image", "callback_data": f"upload:{args}"}],
                      [{"text": "Review set", "callback_data": f"review:{args}"}], [{"text": "← Images", "callback_data": "cimages:"}], [HOME]])
         if command == "fetchimages":

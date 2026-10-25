@@ -1559,6 +1559,33 @@ class TelegramApprovalBot:
             return "🔴 Live production · publication requires approval and release checks" + note
         return "⚠️ Run mode not recorded · inspect before publication" + note
 
+    PROGRESS_TICK_SECONDS = 60
+
+    def start_progress_ticker(self, run_id: str) -> threading.Thread:
+        """Redraws the run's progress card every PROGRESS_TICK_SECONDS, so its elapsed time, the running
+        step's time and the time left move during a long step (operator, 2026-10-25: it only changed when a
+        step did). It stops once the run is no longer being made, or another run's card is the live one. An
+        edit does not buzz the phone, so this is silent."""
+        def tick():
+            while True:
+                time.sleep(self.PROGRESS_TICK_SECONDS)
+                try:
+                    run = self.db.get_run(run_id)
+                    if not run or run.get("status") != "producing":
+                        return
+                    active = self.db.get_active_progress()
+                    if active and active.get("run_id") != run_id:
+                        return
+                    if active and active.get("message_id"):
+                        self.update_progress_card(active["message_id"], int(active.get("step") or 1),
+                                                  int(active.get("total_steps") or 5), active.get("topic_title") or "",
+                                                  run_id, active.get("details") or "")
+                except Exception as e:  # a missed tick is harmless; the next one tries again
+                    log.debug("Progress tick for %s failed: %s", run_id, _MASKER.mask(str(e)))
+        thread = threading.Thread(target=tick, name=f"progress-tick-{run_id[-10:]}", daemon=True)
+        thread.start()
+        return thread
+
     def send_progress_card(self, run_id: str, topic_title: str) -> Optional[int]:
         """Sends an initial progress card for a running pipeline job, returning message_id."""
         if not self.is_configured():
@@ -1610,6 +1637,7 @@ class TelegramApprovalBot:
                         message_id=mid,
                         start_time=time.time(),
                     )
+                self.start_progress_ticker(run_id)
             return mid
         except Exception as e:
             log.warning("Could not send Telegram progress card: %s", e)

@@ -95,3 +95,22 @@ def test_a_regenerated_review_is_not_removed_by_its_reason(db, monkeypatch):
 
 def test_the_reason_card_says_when_it_leaves():
     assert tb.REASON_CARD_MINUTES == 30
+
+
+def test_the_progress_card_redraws_itself_while_its_run_is_made(db, monkeypatch):
+    # Operator, 2026-10-25: the card only changed when a step did, so a 6-minute step looked frozen.
+    import time
+    db.create_run("run_p", db.list_all_topics()[0]["id"])
+    db.update_run("run_p", "producing")
+    bot = TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
+    monkeypatch.setattr(bot, "PROGRESS_TICK_SECONDS", 0.05)
+    monkeypatch.setattr(db, "get_active_progress", lambda: {"run_id": "run_p", "message_id": 9, "step": 2,
+                                                            "total_steps": 5, "topic_title": "T", "details": "voice"})
+    drawn = []
+    monkeypatch.setattr(bot, "update_progress_card", lambda *a, **k: drawn.append(a) or True)
+    thread = bot.start_progress_ticker("run_p")
+    time.sleep(0.3)
+    assert drawn and drawn[0][:6] == (9, 2, 5, "T", "run_p", "voice")
+    db.update_run("run_p", "failed")                                              # the run ends: the ticker stops
+    thread.join(timeout=1)
+    assert not thread.is_alive()

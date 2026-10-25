@@ -1483,12 +1483,27 @@ class PipelineCoordinator:
             words = json.loads(words_path.read_text(encoding="utf-8"))
             log.info("Resuming with the existing voiceover.")
         else:
-            words = self.audio_engine.generate_narration(payload["narration_script"], vo_path, licensed_only=licensed_req,
-                                                         allow_paid=allow_paid, speed=speech_speed)
             from src.audio_engine import calibrate_pace
-            calibrate_pace(self.audio_engine.last_provider,
-                           self.audio_engine.eleven_voice if self.audio_engine.last_provider == "elevenlabs" else self.audio_engine.voice,
-                           payload["narration_script"], self.audio_engine.get_duration(vo_path), speed=speech_speed)
+            from src.script_engine import refit_speed
+
+            def voice_at(speed):
+                made = self.audio_engine.generate_narration(payload["narration_script"], vo_path, licensed_only=licensed_req,
+                                                            allow_paid=allow_paid, speed=speed)
+                calibrate_pace(self.audio_engine.last_provider,
+                               self.audio_engine.eleven_voice if self.audio_engine.last_provider == "elevenlabs" else self.audio_engine.voice,
+                               payload["narration_script"], self.audio_engine.get_duration(vo_path), speed=speed)
+                return made
+            words = voice_at(speech_speed)
+            # A read that came out over the ceiling (ElevenLabs varies about 5% between takes: production's
+            # 2026-10-25 run read 114 words in 53.7 s against 52) is made once more at the narrator's own
+            # speed setting raised by the measured overrun: natural speech, not a stretched file.
+            faster = refit_speed(self.audio_engine.get_duration(vo_path), speech_speed)
+            if faster:
+                log.info("Voiceover ran %.1fs; making it once more %.0f%% faster to fit.",
+                         self.audio_engine.get_duration(vo_path), (faster - 1) * 100)
+                speech_speed = faster
+                voice_inputs["speed"] = faster
+                words = voice_at(faster)
             words_path.write_text(json.dumps(words), encoding="utf-8")
             voice_path.write_text(json.dumps({"provider": self.audio_engine.last_provider,
                                               "licensed": self.audio_engine.last_licensed}), encoding="utf-8")

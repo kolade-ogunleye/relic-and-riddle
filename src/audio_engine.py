@@ -180,15 +180,23 @@ def calibrate_pace(provider: str, voice: str, text: str, actual_seconds: float, 
         log.warning("Could not record the voice pace: %s", e)
 
 
+PACE_CONFIDENT_SAMPLES = 5  # takes measured before the median is trusted
+
+
 def pace_ratio(key: str) -> float:
-    """Median real/measured length ratio for this voice; 1.0 until it has been measured."""
+    """Real/measured length ratio for this voice; 1.0 until it has been measured. The median once there are
+    PACE_CONFIDENT_SAMPLES takes; before that the slowest take seen, so a script is planned for the slow end
+    (production's ElevenLabs narrator had two takes, 1.018 and 1.075, and the median let a draft through
+    that read 3% too long, 2026-10-25)."""
     import json
     import statistics
     try:
         ratios = json.loads(PACE_FILE.read_text(encoding="utf-8")).get(key, [])
     except (OSError, ValueError):
         return 1.0
-    return statistics.median(ratios) if ratios else 1.0
+    if not ratios:
+        return 1.0
+    return statistics.median(ratios) if len(ratios) >= PACE_CONFIDENT_SAMPLES else max(ratios)
 
 
 def split_boundary(text: str, start: float, dur: float) -> Words:

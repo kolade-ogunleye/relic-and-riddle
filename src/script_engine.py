@@ -318,6 +318,16 @@ def spoken_length_problems(pkg: ScriptPackage) -> List[str]:
     return []
 
 
+def refit_speed(seconds: float, speed: float = 1.0) -> Optional[float]:
+    """The speed for one more take when a real voiceover ran over the ceiling, or None (it fits, or even the
+    fastest allowed read would not). Aims just inside the ceiling, never past SPEECH_SPEEDUP_MAX."""
+    if seconds <= HARD_DURATION_CEILING:
+        return None
+    target = HARD_DURATION_CEILING - 0.6
+    faster = math.ceil(speed * seconds / target * 100) / 100
+    return faster if faster <= config.SPEECH_SPEEDUP_MAX else None
+
+
 def duration_problem(seconds: float) -> Optional[str]:
     """Why a measured voiceover can't make a Reel (the master is exactly as long), or None."""
     if seconds < TARGET_DURATION_MIN:

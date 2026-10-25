@@ -96,15 +96,25 @@ def _paid_fallback(system, prompt, schema: Type[T], model: str, task_class: str,
     _announced.add(why)
     log.log(level, "Free Gemini unavailable (%s); using the billed key for this %s task ($%.2f of $%.2f this month).",
             why, task_class, spent, cap)
-    try:
-        result = gemini.structured(system, prompt, schema, model=model, key=config.GEMINI_API_KEY, **_thinking(thinking))
-    except gemini.CreditExhausted as e:  # prepaid credit spent: the same wait as the cap, until the operator tops up
-        from . import provider_status
-        provider_status.note_capped("gemini-billed", "its prepaid credit is depleted (HTTP 402); top up the project's "
-                                    "billing in Google AI Studio")
-        raise FreeQuotaUnavailable(f"{why} The paid fallback cannot run either: {e}") from e
-    except gemini.GeminiError as e:  # the billed key failed too (its own quota, an outage)
-        raise LLMError(f"{why} The paid fallback also failed: {e}") from e
+    # Two tries on the billed key (operator, 2026-10-25) before the task leaves Gemini for the Claude standby:
+    # a timeout, a dropped connection or an overloaded model is sent once more; spent credit or the key's own
+    # quota is not, as a second try cannot change it.
+    for billed_try in (1, 2):
+        try:
+            result = gemini.structured(system, prompt, schema, model=model, key=config.GEMINI_API_KEY, **_thinking(thinking))
+            break
+        except gemini.CreditExhausted as e:  # prepaid credit spent: the same wait as the cap, until the operator tops up
+            from . import provider_status
+            provider_status.note_capped("gemini-billed", "its prepaid credit is depleted (HTTP 402); top up the project's "
+                                        "billing in Google AI Studio")
+            raise FreeQuotaUnavailable(f"{why} The paid fallback cannot run either: {e}") from e
+        except gemini.GeminiError as e:  # the billed key failed too (its own quota, an outage)
+            transient = isinstance(e, (gemini.RequestTimedOut, gemini.ConnectionDropped)) or \
+                "overloaded" in str(e).lower() or "503" in str(e)
+            if billed_try == 2 or not transient or isinstance(e, gemini.QuotaExhausted):
+                raise LLMError(f"{why} The paid fallback also failed: {e}") from e
+            log.info("Billed Gemini call failed (%s); trying once more.", type(e).__name__)
+            time.sleep(10)
     from . import provider_status
     provider_status.clear("gemini-billed")  # a billed call went through: a depleted-credit notice is over
     tokens_in, tokens_out = gemini.last_usage()

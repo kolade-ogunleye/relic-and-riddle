@@ -105,3 +105,34 @@ def test_heavy_tasks_can_go_straight_to_the_capped_billed_key(free, monkeypatch)
     why = []
     monkeypatch.setattr(free_llm, "_paid_fallback", lambda *a, **k: why.append(a[-1]) or Out(ok=True))
     assert free_llm.structured("s", "p", Out, task_class="heavy").ok and "FREE_TIER_HEAVY" in why[0]
+
+
+def test_the_billed_key_gets_a_second_try_for_a_passing_failure_only(free, monkeypatch):
+    # Operator, 2026-10-25: billed Gemini twice before the task leaves for the Claude standby.
+    from src import config
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "billed")
+    monkeypatch.setattr(config, "GEMINI_FREE_API_KEY", "free")
+    monkeypatch.setattr(config, "is_configured", lambda key: True)
+    monkeypatch.setattr(free_llm, "_paid_cap", lambda task_class: 80.0)
+    monkeypatch.setattr(free_llm, "_paid_spend", lambda task_class: 0.0)
+    monkeypatch.setattr("src.provider_status.clear", lambda *a, **k: None)
+    monkeypatch.setattr("src.db.PipelineDatabase.record_llm_usage", lambda *a, **k: None)
+    tries = []
+
+    def flaky(*a, **k):
+        tries.append(1)
+        if len(tries) == 1:
+            raise gemini.RequestTimedOut("no answer")
+        return Out(ok=True)
+    monkeypatch.setattr(gemini, "structured", flaky)
+    assert free_llm._paid_fallback("s", "p", Out, "gemini-3.8-flash", "heavy", "why").ok and len(tries) == 2
+    tries.clear()
+    monkeypatch.setattr(gemini, "structured", lambda *a, **k: tries.append(1) or (_ for _ in ()).throw(gemini.RequestTimedOut("x")))
+    with pytest.raises(free_llm.LLMError, match="paid fallback also failed"):
+        free_llm._paid_fallback("s", "p", Out, "gemini-3.8-flash", "heavy", "why")
+    assert len(tries) == 2                                                        # two, then the standby's turn
+    tries.clear()
+    monkeypatch.setattr(gemini, "structured", lambda *a, **k: tries.append(1) or (_ for _ in ()).throw(gemini.GeminiError("400 bad request")))
+    with pytest.raises(free_llm.LLMError):
+        free_llm._paid_fallback("s", "p", Out, "gemini-3.8-flash", "heavy", "why")
+    assert len(tries) == 1                                                        # a real error is not repeated

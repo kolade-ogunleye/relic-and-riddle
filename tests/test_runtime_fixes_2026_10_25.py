@@ -16,6 +16,7 @@ def _coordinator(db, bot, **extra):
     me._decide_review = lambda run_id, act: main.PipelineCoordinator._decide_review(me, run_id, act)
     me._wait_for_review = lambda run_id: main.PipelineCoordinator._wait_for_review(me, run_id)
     me._schedule_run = lambda run_id, now=None: main.PipelineCoordinator._schedule_run(me, run_id, now)
+    me._refused_for_good = main.PipelineCoordinator._refused_for_good
     return me
 
 
@@ -204,3 +205,32 @@ def test_every_reminder_a_wait_sent_is_removed(db):
     assert bot.wait_for_decision("run_rem", 600, poll_interval=0, reminder_after=0) == "approved"
     reminders = [500 + i + 1 for i, t in enumerate(sent) if t.startswith("⏰")]
     assert len(reminders) == 2 and set(reminders) <= set(deleted)
+
+
+def test_an_approve_the_release_gate_refuses_is_settled_not_retried(db, tmp_path):
+    # Dev, 2026-10-26: a version the gate blocks, approved from the command line, was retried by the sweep
+    # every two minutes with an alert each time
+    import pytest
+    topic = db.list_all_topics()[0]["id"]
+    db.create_run("run_block", topic)
+    db.update_run("run_block", "pending_approval", master_video_path=str(tmp_path / "m.mp4"))
+    db.record_approval("run_block", topic, 15)
+    db.update_approval_decision("run_block", "approved", decided_by="cli")
+    me = _coordinator(db, SimpleNamespace(wait_for_decision=lambda run_id, seconds, **kw: "approved"),
+                      topic_engine=SimpleNamespace(record_status=lambda *a, **k: None))
+
+    def blocked(decision):
+        raise ValueError("Release blocked: visual_checks: a label is visible")
+    with pytest.raises(ValueError):
+        main.PipelineCoordinator._decide_review(me, "run_block", blocked)
+    run = db.get_run("run_block")
+    assert run["status"] == "failed" and "Approved, then refused: Release blocked" in run["error"]
+    acted = []                                                     # nothing acts on it again
+    assert main.PipelineCoordinator._decide_review(me, "run_block", lambda d: acted.append(d)) == ("approved", None)
+    assert acted == []
+
+
+def test_a_passing_failure_is_retried():
+    assert not main.PipelineCoordinator._refused_for_good(ValueError("Publication is in progress or its outcome is unknown"))
+    assert not main.PipelineCoordinator._refused_for_good(OSError("network"))
+    assert main.PipelineCoordinator._refused_for_good(ValueError("Release blocked: x"))

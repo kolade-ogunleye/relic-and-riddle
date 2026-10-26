@@ -1137,9 +1137,25 @@ class PipelineCoordinator:
             self.db.set_setting(key, stamp)  # before acting: two waits never act on one Approve
             try:
                 return decision, act(decision)
-            except Exception:
-                self.db.set_setting(key, "")  # it failed: a later wait (or a resend) may act on it again
+            except Exception as e:
+                if self._refused_for_good(e):
+                    # The gate (or the run itself) refuses it: settled as failed, with its reason, once. Left
+                    # waiting, the sweep tried it again every two minutes, an alert each time (dev, 2026-10-26).
+                    run = self.db.get_run(run_id) or {}
+                    self.db.update_run(run_id, "failed", error=f"Approved, then refused: {e}")
+                    if run.get("topic_id"):
+                        self.topic_engine.record_status(run["topic_id"], "failed", run_id=run_id)
+                else:
+                    self.db.set_setting(key, "")  # a passing failure: a later wait (or a resend) acts on it again
                 raise
+
+    @staticmethod
+    def _refused_for_good(error: Exception) -> bool:
+        """An approval that acting again cannot change: the release gate blocks this version, it has no video,
+        or its curated script was never reviewed. A busy lock or a network error passes and is retried."""
+        text = str(error)
+        return isinstance(error, ValueError) and (
+            text.startswith("Release blocked") or "has no rendered video" in text or "unreviewed curated script" in text)
 
     def _wait_for_review(self, run_id: str) -> Optional[str]:
         """The decision alone (callers that act themselves); see _decide_review."""

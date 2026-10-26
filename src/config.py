@@ -258,7 +258,7 @@ TARGET_TRUE_PEAK = -1.5
 
 TARGET_DURATION_MIN = 42.0
 TARGET_DURATION_MAX = 48.0
-HARD_DURATION_CEILING = 52.0  # longest voiceover allowed; the master is exactly as long as the voiceover
+HARD_DURATION_CEILING = 52.0  # longest voiceover allowed; a Reel master is the voiceover plus the end card (end_card.SECONDS)
 RELEASE_DURATION_MAX = 58.0  # release-gate tolerance for the Reel master (re-measured at publish time)
 TARGET_WORD_COUNT_MIN = 105  # what the writer is asked for (about 45 s at a typical pace)
 TARGET_WORD_COUNT_MAX = 115

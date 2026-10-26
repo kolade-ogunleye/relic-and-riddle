@@ -243,6 +243,28 @@ def derived(metrics: Dict[str, Any], duration_s: Optional[float]) -> Dict[str, O
     }
 
 
+def card_retention(metrics: Dict[str, Any], duration_s: Optional[float],
+                   card: Optional[Dict[str, Any]]) -> Dict[str, Optional[float]]:
+    """Facebook's retention graph (the share of viewers still watching at each fortieth of the video) read at
+    the end card's start and at the end: how many viewers the card itself loses."""
+    graph = metrics.get("post_video_retention_graph")
+    out: Dict[str, Optional[float]] = {"card_retention": None, "card_drop": None}
+    if not isinstance(graph, dict) or not card or not duration_s or card.get("start_s") is None:
+        return out
+    try:
+        points = {int(k): float(v) for k, v in graph.items()}
+    except (TypeError, ValueError):
+        return out
+    if not points:
+        return out
+    last = max(points)
+    at = min(last, max(0, round(float(card["start_s"]) / duration_s * last)))
+    start = points.get(at, points[min(points, key=lambda k: abs(k - at))])
+    out["card_retention"] = round(start, 3)
+    out["card_drop"] = round(start - points[last], 3)
+    return out
+
+
 def measured_duration(run: Dict[str, Any]) -> Optional[float]:
     """The master's length as the release gate measured it."""
     import re
@@ -271,10 +293,33 @@ def table(db) -> List[Dict[str, Any]]:
         run = db.get_run(run_id) or {}
         duration = measured_duration(run)
         metrics = json.loads(r["metrics_json"])
+        card = (run.get("script_payload") or {}).get("end_card")
+        card = card if isinstance(card, dict) else None
         out.append({"run_id": run_id, "platform": platform, "snapshot": r["snapshot"], "fetched_at": r["fetched_at"],
                     "title": (run.get("script_payload") or {}).get("title", run_id),
-                    "unavailable": metrics.get("unavailable"), **derived(metrics, duration)})
+                    "unavailable": metrics.get("unavailable"), **derived(metrics, duration),
+                    "end_card": card.get("variant") if card else None, **card_retention(metrics, duration, card)})
     return out
+
+
+def end_card_comparison(rows: List[Dict[str, Any]]) -> Optional[str]:
+    """One digest line comparing videos with and without the end card (share rate, watch ratio), once both
+    kinds have been measured."""
+    def mean(group, key):
+        vals = [r[key] for r in group if r.get(key) is not None]
+        return sum(vals) / len(vals) if vals else None
+    videos = [r for r in rows if r["platform"] in VIDEO_PLATFORMS and not r.get("unavailable")]
+    with_card, without = [r for r in videos if r.get("end_card")], [r for r in videos if not r.get("end_card")]
+    if not with_card or not without:
+        return None
+
+    def describe(group):
+        share, watch = mean(group, "share_rate"), mean(group, "watch_ratio")
+        return (f"{len({r['run_id'] for r in group})} video(s), shares {share:.1%}" if share is not None else
+                f"{len({r['run_id'] for r in group})} video(s), shares n/a") + (f", watched {watch:.0%}" if watch is not None else "")
+    drops = [r["card_drop"] for r in with_card if r.get("card_drop") is not None]
+    drop = f"; the card loses {sum(drops) / len(drops):.0%} of viewers" if drops else ""
+    return f"• End card: with it {describe(with_card)}; without {describe(without)}{drop}."
 
 
 PLATFORM_NAMES = {"instagram": "Instagram", "facebook": "Facebook", "youtube": "YouTube"}
@@ -300,6 +345,9 @@ def digest_lines(db) -> List[str]:
         mine = sorted((r for r in rows if r["platform"] == platform), key=lambda r: -(r["views"] or 0))[:4]
         for r in mine:
             lines.append(f"• {PLATFORM_NAMES[platform]} · {html.escape(r['title'][:40])} ({r['snapshot']}): {_parts(r)}")
+    comparison = end_card_comparison(rows)
+    if comparison:
+        lines.append(comparison)
     if len({r["run_id"] for r in rows}) < MIN_FOR_PATTERNS:
         lines.append(f"<i>Fewer than {MIN_FOR_PATTERNS} videos: read these as descriptions, not patterns.</i>")
     return lines

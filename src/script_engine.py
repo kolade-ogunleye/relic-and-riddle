@@ -102,7 +102,7 @@ Requirements:
 - poll: an either/or question (at most 60 characters) and exactly 2 options (each at most 24 characters) that are its two answers, e.g. "Which took more work?" with "Carving downward" / "Hauling the stone". Never a yes/no question with options that are not yes/no.
 - carousel_slides: exactly 7 (title slide, five fact slides, closing call-to-comment slide). Slide 7 MUST ask a humane, universally resonant, thought-provoking question that appeals to all demographics (e.g. human ingenuity, civilizational survival, what modern humans have forgotten, or enduring mysteries) rather than narrow academic trivia, compelling viewers to debate in the comments.
 - first_comment: a debate-starting question, with no hashtags (Instagram's 5-hashtag cap covers the whole post).
-- share_line: one warm sentence of at most 90 characters, no hashtags, at most one emoji, that asks the viewer to share this with someone (say who, for this topic: "a friend who loves ancient engineering") and to follow for the next story. Worded for this topic, never a stock slogan. It closes the video, both captions and the carousel.
+- share_line: one warm sentence of at most 90 characters, no hashtags, at most one emoji, that asks the viewer to share this with someone (say who, for this topic: "a friend who loves ancient engineering") and to follow for the next story. Worded for this topic, never a stock slogan ("share this with a friend", "someone who loves history" are rejected). Put the share ask first and the follow invitation after it ("Send this to the codebreaker you know, and follow for the next relic."): the video's end card shows the share ask on its own, under the channel name, with its own FOLLOW line. It closes both captions and the carousel too.
 - sources: the pages you used, with real URLs."""
 
 AI_ORIGINS = ("claude", "gemini-free")  # scripts written by a model (vs curated by hand)
@@ -452,13 +452,62 @@ def share_line_problems(line: str) -> List[str]:
         problems.append("it must invite the viewer to follow.")
     if not _SHARE_VERBS.search(line):
         problems.append("it must ask the viewer to share (send, pass on, tag) this.")
+    elif is_stock_share(line):
+        problems.append("it is stock phrasing: name who, for this story (\"the codebreaker you know\", "
+                        "\"a friend who loves Roman engineering\"), not \"a friend\" or \"someone who loves history\".")
     return problems
+
+
+# Words any share ask could use: a line made only of these names nobody in particular ("Share this with a friend",
+# "Send this to someone who loves history"). The end card shows the share half on its own, so it has to be about
+# this story (operator, 2026-10-25: the first version was "a wall of stock text").
+_STOCK_SHARE_WORDS = set("""
+share shares send sends pass passing tag forward show this it these that on to with a an the your you you'll you've
+friend friends someone somebody anyone everyone who who'd whod that'd would will could should 'd and or for of in one
+ones family mate mates buddy bestie people person know knows needs need must see them they their wants want also too
+really loves love likes like enjoys enjoy into fan fans buff buffs lover lovers history historical mystery mysteries
+mysterious good great cool amazing interesting curious fascinating story stories video reel post clip next more
+follow following relic relics riddle riddles thing things stuff fact facts world ancient past
+""".split())
+
+
+def is_stock_share(line: str) -> bool:
+    """Whether a share line's ask names nobody in particular: once its follow clause is set aside, every word is
+    one any video could use."""
+    from .end_card import card_text
+    words = re.findall(r"[a-z']+", card_text(line).lower())
+    return bool(words) and all(w.strip("'") in _STOCK_SHARE_WORDS or w in _STOCK_SHARE_WORDS for w in words)
+
+
+def share_repeats_narration(line: str, narration: str) -> bool:
+    """Whether the narration's last sentence already makes the share ask the card would repeat (the same ask
+    twice in three seconds)."""
+    from .end_card import card_text
+    sentences = [s for s in re.split(r"(?<=[.!?])\s+", (narration or "").strip()) if s]
+    if not sentences or not _SHARE_VERBS.search(sentences[-1]):
+        return False
+    content = lambda text: {w for w in re.findall(r"[a-z']+", text.lower()) if w not in _STOCK_SHARE_WORDS}
+    ask, last = content(card_text(line)), content(sentences[-1])
+    return not ask or len(ask & last) / len(ask) >= 0.5
 
 
 def share_prompt(payload: Dict[str, Any]) -> str:
     """The share-and-follow line a run shows: the writer's, when it passes its checks, else a plain one."""
     line = " ".join(str((payload or {}).get("share_line") or "").split())
     return line if line and not share_line_problems(line) else SHARE_FALLBACK
+
+
+def end_card_share(payload: Dict[str, Any]) -> Tuple[str, bool]:
+    """The end card's share line (the card says FOLLOW itself) and whether it is the plain fallback, which the
+    review card notes: the writer's line when it passes its checks and does not repeat the narration's last
+    sentence, else the fallback's."""
+    from .end_card import card_text
+    line = " ".join(str((payload or {}).get("share_line") or "").split())
+    if line and not share_line_problems(line) and not share_repeats_narration(line, (payload or {}).get("narration_script", "")):
+        text = card_text(line)
+        if len(text.split()) >= 3:
+            return text, False
+    return card_text(SHARE_FALLBACK), True
 
 
 def with_share_line(text: str, line: str) -> str:
@@ -544,6 +593,9 @@ def validate_structure(pkg: ScriptPackage) -> List[str]:
         problems.append(f"Caption uses {emoji} emoji; 1-3 relevant ones read human, more reads like spam.")
     if pkg.share_line:
         problems.extend(f"share_line: {p}" for p in share_line_problems(pkg.share_line))
+        if share_repeats_narration(pkg.share_line, pkg.narration_script):
+            problems.append("share_line: the narration's last sentence already makes this ask; the end card shows it "
+                            "right after, so word one of them differently (or end the narration on the story).")
     if len(pkg.story_slides) != 3:
         problems.append(f"Expected 3 story slides, got {len(pkg.story_slides)}.")
     else:

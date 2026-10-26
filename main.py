@@ -1727,7 +1727,12 @@ class PipelineCoordinator:
         music_path = run_dir / "music_selection.json"
         self._seed_bed_from_previous(run_dir, vo_path)  # a regeneration keeps the bed made for its voiceover
         from src.checkpoints import portable_inputs
-        bed_inputs = {"voice_and_rules": portable_inputs(run_dir, [vo_path, words_path, Path("src/audio_engine.py")]),
+        from src import end_card
+        card = profile.width < profile.height  # a Reel ends on the end card, whose sound the bed carries
+        bed_seconds = vo_dur + (end_card.SECONDS + 0.05 if card else 0.5)
+        bed_inputs = {"voice_and_rules": portable_inputs(run_dir, [vo_path, words_path, Path("src/audio_engine.py"),
+                                                                    Path("src/end_card.py")]),
+                      "end_card": end_card.VARIANT if card else None,
                       "profile": profile.model_dump(),
                       "library": [{k: v for k, v in t.items() if k != "uses"} for t in library_tracks],
                       "library_files": file_inputs([MUSIC_DIR / t["file"] for t in library_tracks]),
@@ -1742,15 +1747,16 @@ class PipelineCoordinator:
                         "Scoring music & sound bed; photos being upscaled and privacy-checked")
                 except Exception:
                     pass
-            music = music_for(payload, vo_dur + 0.5, run_dir, self.audio_engine.voice_quota(),
+            music = music_for(payload, bed_seconds, run_dir, self.audio_engine.voice_quota(),
                               exclude=self._previous_tracks(self._feedback()))  # "Music / sound": not the same track
             from src import sound_plan as sound_plan_mod
             plan = sound_plan_mod.plan(words, topic.get("title", ""))  # None: word-cue fallback
             plan_path = run_dir / "sound_plan.json"
             plan_path.write_text(json.dumps(plan, indent=1), encoding="utf-8")
-            self.audio_engine.generate_ambient_bed(vo_dur + 0.5, bed_path, words=words,
+            self.audio_engine.generate_ambient_bed(bed_seconds, bed_path, words=words,
                                                   music_path=music["path"], sr=profile.audio_sample_rate,
-                                                  loop_seamless=profile.loop_seamless, sound_plan=plan)
+                                                  loop_seamless=profile.loop_seamless, sound_plan=plan,
+                                                  end_card_at=vo_dur if card else None)
             if bed_path.is_file():
                 record_bed(bed_path, music, sfx=self.audio_engine.last_sfx_sources)
                 music_path.write_text(json.dumps(music, default=str, indent=2), encoding="utf-8")
@@ -2040,12 +2046,13 @@ class PipelineCoordinator:
                 lambda: [self.video_composer.export_subtitles_srt(words, master_mp4.with_suffix(".srt")),
                          self.video_composer.export_subtitles_vtt(words, master_mp4.with_suffix(".vtt"))])
             render_checkpoint = Checkpoints(run_dir / "stage_cache" / "render")
-            from src.script_engine import share_prompt
-            end_prompt = share_prompt(payload)  # the share-and-follow line over the last seconds
+            from src.script_engine import end_card_share
+            from src.end_card import end_card_note, end_card_record
+            card_share, card_fallback = end_card_share(payload)  # the end card's share line (it says FOLLOW itself)
             render_inputs = {"media": file_inputs([*scenes, vo_path, bed_path]), "words": words,
-                             "durations": durations, "emphasis": payload.get("emphasis_words"), "end_prompt": end_prompt,
+                             "durations": durations, "emphasis": payload.get("emphasis_words"), "end_card": card_share,
                              "grade_bias": (payload.get("art_direction") or {}).get("grade_bias") or 0.0,  # part of the master
-                             "rules": file_inputs([Path("src/video_composer.py"), Path("src/config.py"),
+                             "rules": file_inputs([Path("src/video_composer.py"), Path("src/end_card.py"), Path("src/config.py"),
                                                    Path("src/encoding.py"), Path("src/encoded_audio.py"), Path("src/delivery_profiles.py")]),
                              "fonts": packaging_inputs["fonts"]}
             self._check_cancel(run_id)
@@ -2054,12 +2061,13 @@ class PipelineCoordinator:
                 self.video_composer.compose_video(scenes, vo_path, bed_path, words, vo_dur, master_mp4, durations=durations,
                                                   emphasis=payload.get("emphasis_words"),
                                                   grade_bias=float((payload.get("art_direction") or {}).get("grade_bias") or 0.0),
-                                                  end_prompt=end_prompt)
+                                                  end_card=card_share)
                 outputs = [master_mp4, master_mp4.with_name(master_mp4.stem + "_captions.ass"),
                            master_mp4.with_suffix(".composition.json"), master_mp4.with_suffix(".srt"), master_mp4.with_suffix(".vtt")]
                 if all(path.is_file() for path in outputs):
                     render_checkpoint.complete("master", render_inputs, outputs)
             timer.record(f"master_render_attempt{attempt}", time.perf_counter() - t0)
+            payload["end_card"] = end_card_record(master_mp4, card_fallback)  # audience analysis compares with and without
             if getattr(self, "progress_msg_id", None):
                 try:
                     self.telegram_bot.update_progress_card(self.progress_msg_id, 4, 5, topic["title"], run_id, "Video composited, preparing review")
@@ -2099,6 +2107,9 @@ class PipelineCoordinator:
                     payload=payload,
                 )
                 payload["self_healing"] = quality_audit
+                note = end_card_note(payload.get("end_card"))
+                if note:  # shown on the card (info), never a block
+                    quality_audit.setdefault("issues", []).append(note)
             except Exception as e:
                 log.warning("Quality audit could not run: %s", e)
 

@@ -385,9 +385,7 @@ def _caption_fit_size(phrase: Any, scale: float = 1.0, max_width: int = MAX_CAPT
 
 
 CAPTION_MIN_SIZE = 48  # px: the smallest a caption shrinks to; below this it is not readable on a phone
-END_PROMPT_SECONDS = 3.0     # the share-and-follow line shows over the last seconds of a Reel
-END_PROMPT_SIZE = 52         # px: smaller than a caption (FONT_SIZE), a prompt, not the narration
-END_PROMPT_MIN_SIZE = 44     # px: below this the line is set on two pills instead
+END_CARD_BELOW_BODY_LU = 6.0  # the end card sits this far under the narrated body (the approved prototype: about 6)
 
 
 def _fits_caption_width(phrase: Any, max_width: int = MAX_CAPTION_WIDTH) -> bool:
@@ -477,17 +475,24 @@ def emphasis_indices(words: List[Dict[str, Any]], terms: Optional[List[str]]) ->
     return picked
 
 
-def _audio_chain(vo_idx: int, bg_idx: int) -> str:
-    """Voice cleanup + optical vocal leveling + center spectral pocket carving + ducked stereo bed."""
+def _audio_chain(vo_idx: int, bg_idx: int, pad: float = 0.0, card_at: Optional[float] = None, card_db: float = 0.0) -> str:
+    """Voice cleanup + optical vocal leveling + center spectral pocket carving + ducked stereo bed.
+    pad: seconds of silence after the voice (the end card), so the mix runs on with the bed alone.
+    card_at/card_db: the end card's level set from card_at on (a 0.3 s ramp), measured per run."""
+    pad_filter = f"apad=pad_dur={pad:.3f}," if pad > 0 else ""
+    card_filter = ""
+    if card_at is not None and card_db:
+        lin = 10 ** (card_db / 20)
+        card_filter = f",volume='1+({lin:.5f}-1)*min(max((t-{card_at:.3f})/0.3,0),1)':eval=frame"
     return (
-        f"[{vo_idx}:a]aresample={AUDIO_SAMPLE_RATE},aformat=channel_layouts=stereo,"
+        f"[{vo_idx}:a]aresample={AUDIO_SAMPLE_RATE},aformat=channel_layouts=stereo,{pad_filter}"
         f"highpass=f=85,compand=attacks=0.02:decays=0.15:points=-80/-80|-40/-35|-20/-16|0/-10,"
         f"equalizer=f=3500:width_type=q:w=1.2:g=1.8,equalizer=f=7000:width_type=q:w=2.0:g=-2.2,"
         f"asplit[v_main][v_sc];"
         f"[{bg_idx}:a]aresample={AUDIO_SAMPLE_RATE},aformat=channel_layouts=stereo,"
         f"equalizer=f=3200:width_type=q:w=1.5:g=-3.0[bg_carved];"
         f"[bg_carved][v_sc]sidechaincompress=threshold=0.08:ratio=7:attack=15:release=220[bg_ducked];"
-        f"[v_main][bg_ducked]amix=inputs=2:duration=first:dropout_transition=2:normalize=0,aformat=channel_layouts=stereo"
+        f"[v_main][bg_ducked]amix=inputs=2:duration=first:dropout_transition=2:normalize=0,aformat=channel_layouts=stereo{card_filter}"
     )
 
 
@@ -562,8 +567,6 @@ class VideoComposer:
         width: int = VIDEO_WIDTH,
         height: int = VIDEO_HEIGHT,
         margin_v: Optional[int] = None,
-        end_prompt: str = "",
-        end_window: Optional[Tuple[float, float]] = None,
     ) -> Path:
         """Dynamic running-speech kinetic captions:
         1. Grammatical phrasing: sensitive to punctuation (. ? ! …) so every new sentence starts fresh.
@@ -698,9 +701,6 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
             base += len(phrase)
 
-        if end_prompt and end_window and not is_widescreen:
-            raw_events += self._end_prompt_events(end_prompt, end_window, width, height, max_caption_width)
-
         # Sort all events chronologically (layer 0 background pill always appears under layer 1 text)
         raw_events.sort(key=lambda e: (e[1], e[0]))
 
@@ -716,57 +716,6 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         return ass_path
 
     @staticmethod
-    def _end_prompt_events(text: str, window: Tuple[float, float], width: int, height: int,
-                           max_caption_width: int) -> List[Tuple[int, float, float, str, str]]:
-        """The share-and-follow line over the last seconds (Meta's creator tips, 2026-10-25): one or two pills in
-        the caption style, stacked just above the caption band inside the Reel safe area, fading in. Never
-        smaller than END_PROMPT_MIN_SIZE: a line that would have to shrink past it is set on two lines."""
-        from .safe_zones import caption_band_top
-        start, end = window
-        words = [w for w in text.split() if w]
-        if not words or end <= start:
-            return []
-
-        def width_of(ws: List[str], size: int) -> float:
-            return measure_caption_phrase([{"word": x} for x in ws], size, CAPTION_SC_SCALE)[0]
-
-        def balanced(size: int, n: int) -> Optional[List[List[str]]]:
-            """`words` on `n` lines of the most even width, each fitting the caption width; None if none does."""
-            from itertools import combinations
-            best, best_span = None, None
-            for cuts in combinations(range(1, len(words)), n - 1):
-                parts = [words[a:b] for a, b in zip((0, *cuts), (*cuts, len(words)))]
-                widths = [width_of(p, size) for p in parts]
-                if max(widths) <= max_caption_width and (best_span is None or max(widths) - min(widths) < best_span):
-                    best, best_span = parts, max(widths) - min(widths)
-            return best
-        # The largest size at which the line takes at most two pills; three at the smallest, never smaller.
-        size, lines = END_PROMPT_MIN_SIZE, None
-        for candidate in range(END_PROMPT_SIZE, END_PROMPT_MIN_SIZE - 1, -4):
-            lines = next((b for n in (1, 2) if (b := balanced(candidate, n))), None)
-            if lines:
-                size = candidate
-                break
-        if not lines:
-            lines = balanced(END_PROMPT_MIN_SIZE, 3) or [words]
-        fade = "{\\fad(300,0)}"
-        events: List[Tuple[int, float, float, str, str]] = []
-        bottom = caption_band_top(width, height) - 16  # the lowest pill ends here, clear of the captions
-        for ln in reversed(lines):  # the last line lowest
-            text_w, text_h = measure_caption_phrase([{"word": w} for w in ln], size, CAPTION_SC_SCALE)
-            box_w, box_h = int(round(text_w + CAPTION_PAD_X * 2)), int(round(text_h + CAPTION_PAD_Y * 2))
-            box_x, box_y = width // 2 - box_w // 2, bottom - box_h
-            shift = int(round(7.5 * (size / FONT_SIZE)))  # Anton's visual centre sits below the geometric one
-            center_y = box_y + box_h // 2 - shift
-            events.append((0, start, end, "CapBox",
-                           f"{fade}{{\\pos({box_x},{box_y})\\p1}}{rounded_rect_path(box_w, box_h, CAPTION_BORDER_RADIUS)}{{\\p0}}"))
-            body = " ".join(format_word_caption(w, colour=COL_ACTIVE, is_key=False, is_spoken_now=False, has_key=False) for w in ln)
-            events.append((1, start, end, "CapText",
-                           f"{fade}{{\\pos({width // 2},{center_y})\\q2}}{{\\fs{int(round(size / 0.5625))}}}{body}"))
-            bottom = box_y - 10
-        return events
-
-    @staticmethod
     def _measure(vo_path: Path, bed_path: Path, chain: str) -> Tuple[float, float]:
         """Integrated loudness (LUFS) and true peak (dBTP) of the mixed program."""
         res = _run_ffmpeg(["ffmpeg", "-hide_banner", "-nostats", "-i", str(vo_path), "-i", str(bed_path),
@@ -780,7 +729,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     def calibrate_gain(self, vo_path: Path, bed_path: Path, tolerance: float = 0.5, accept: float = 1.0,
                        max_iter: int = 6, target_lufs: float = TARGET_LUFS,
-                       target_true_peak: float = TARGET_TRUE_PEAK) -> float:
+                       target_true_peak: float = TARGET_TRUE_PEAK, pad: float = 0.0,
+                       card_at: Optional[float] = None, card_db: float = 0.0) -> float:
         """
         Finds the gain that lands the limited mix on target_lufs (within `tolerance` LU,
         the usual delivery tolerance). The limiter absorbs part of each gain step, so steps
@@ -790,19 +740,33 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         from .credits import sha256_file
         # Same voice + bed + targets always converge to the same gain (each pass decodes the full
         # mix), so a re-render (QA re-plan, deep-dive) reuses it instead of re-measuring.
-        key = (sha256_file(vo_path), sha256_file(bed_path), tolerance, accept, max_iter, target_lufs, target_true_peak)
+        key = (sha256_file(vo_path), sha256_file(bed_path), tolerance, accept, max_iter, target_lufs, target_true_peak, round(pad, 3),
+               card_at, round(card_db, 2))
         cache = self.__dict__.setdefault("_gain_cache", {})
         if all(key[:2]) and key in cache:
             log.info("Mastering: reusing calibrated gain %+.2f dB for unchanged audio", cache[key])
             return cache[key]
-        gain = self._calibrate_gain(vo_path, bed_path, tolerance, accept, max_iter, target_lufs, target_true_peak)
+        gain = self._calibrate_gain(vo_path, bed_path, tolerance, accept, max_iter, target_lufs, target_true_peak, pad,
+                                    card_at, card_db)
         if all(key[:2]):
             cache[key] = gain
         return gain
 
+    def end_card_level(self, vo_path: Path, bed_path: Path, card_at: float, pad: float, gain: float) -> Dict[str, float]:
+        """The end card's loudness against the narrated body in the mastered programme, and the correction (dB)
+        that sets it END_CARD_BELOW_BODY_LU under the body: the bed's music level differs from run to run, so the
+        card's level is measured, not assumed (6.3 to 8.7 LU under the body on three masters, 2026-10-25)."""
+        chain = _audio_chain(0, 1, pad) + _master_chain(gain)
+        body, _ = self._measure(vo_path, bed_path, chain + f",atrim=end={card_at:.3f}")
+        card, _ = self._measure(vo_path, bed_path, chain + f",atrim=start={card_at:.3f},asetpts=PTS-STARTPTS")
+        correction = max(-12.0, min(12.0, (body - END_CARD_BELOW_BODY_LU) - card))
+        log.info("End card: %.1f LUFS against the body's %.1f; set %+.1f dB", card, body, correction)
+        return {"body_lufs": round(body, 1), "card_lufs": round(card, 1), "correction_db": round(correction, 1)}
+
     def _calibrate_gain(self, vo_path: Path, bed_path: Path, tolerance: float, accept: float,
-                        max_iter: int, target_lufs: float, target_true_peak: float) -> float:
-        base = _audio_chain(0, 1)
+                        max_iter: int, target_lufs: float, target_true_peak: float, pad: float = 0.0,
+                        card_at: Optional[float] = None, card_db: float = 0.0) -> float:
+        base = _audio_chain(0, 1, pad, card_at, card_db)
         integrated, _ = self._measure(vo_path, bed_path, base)
         gain = target_lufs - integrated
         best_gain, best_err = gain, float("inf")
@@ -884,10 +848,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         aspect_ratio: str = "9:16",
         delivery_profile=None,
         grade_bias: float = 0.0,
-        end_prompt: str = "",
+        end_card: str = "",
     ) -> Path:
         """
-        end_prompt: the share-and-follow line shown over the last END_PROMPT_SECONDS (Reels only).
+        end_card: the share line of the end card appended after the narration (Reels only, src/end_card.py); the
+        bed must run on for end_card.SECONDS more (generate_ambient_bed(end_card_at=vo_dur)). Empty: no card.
         grade_bias: a bounded warm (+) / cool (-) shift measured from the topic's hero photograph
         (art direction, 2026-10-24), applied after the film LUT; 0 leaves the grade as it was.
         durations: seconds on screen per scene (e.g. from scene_planner beats). Each cut is
@@ -906,8 +871,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         if not all(source_inputs.values()) or not all(font_inputs.values()):
             raise RenderError("Render sources and bundled fonts must exist")
         ass_path = output_mp4_path.parent / (output_mp4_path.stem + "_captions.ass")
-        self.build_subtitles(words, ass_path, emphasis=emphasis, width=width, height=height,
-                             end_prompt=end_prompt, end_window=(max(0.0, vo_dur - END_PROMPT_SECONDS), vo_dur))
+        self.build_subtitles(words, ass_path, emphasis=emphasis, width=width, height=height)
+        from . import end_card as card_mod
+        card = bool((end_card or "").strip()) and width < height
+        card_seconds = card_mod.SECONDS if card else 0.0
+        self.last_end_card = None
 
         # Export sidecar SRT and VTT closed captions for YouTube / platform transcript indexing
         srt_path = output_mp4_path.parent / (output_mp4_path.stem + ".srt")
@@ -1003,9 +971,24 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             filter_parts.append("[v0]null[video_raw]")
 
         input_args += ["-i", str(vo_path), "-i", str(bed_path)]
+        if card:  # the card's sound is the bed running on: a bed made for the narration alone would cut out
+            import soundfile as sf
+            bed_seconds = sf.info(str(bed_path)).duration
+            if bed_seconds < vo_dur + card_seconds - 0.02:
+                raise RenderError(f"The ambient bed runs {bed_seconds:.2f}s; the end card needs "
+                                  f"{vo_dur + card_seconds:.2f}s (make it with end_card_at).")
+        # The whole programme is mastered together: narration, and the card after it with the bed alone.
         gain = self.calibrate_gain(vo_path, bed_path, target_lufs=profile.target_lufs,
-                                   target_true_peak=profile.target_true_peak)
-        filter_parts.append(_audio_chain(n, n + 1) + _master_chain(gain) + "[a_final]")
+                                   target_true_peak=profile.target_true_peak, pad=card_seconds)
+        card_at, card_db, card_level = (vo_dur if card else None), 0.0, None
+        if card:  # the card's own level, measured in the mastered programme, then the whole mastered again
+            card_level = self.end_card_level(vo_path, bed_path, vo_dur, card_seconds, gain)
+            card_db = card_level["correction_db"] if abs(card_level["correction_db"]) >= 0.5 else 0.0
+            if card_db:
+                gain = self.calibrate_gain(vo_path, bed_path, target_lufs=profile.target_lufs,
+                                           target_true_peak=profile.target_true_peak, pad=card_seconds,
+                                           card_at=card_at, card_db=card_db)
+        filter_parts.append(_audio_chain(n, n + 1, card_seconds, card_at, card_db) + _master_chain(gain) + "[a_final]")
 
         ass_str = str(ass_path.resolve()).replace("\\", "/").replace(":", "\\:")
         fonts_str = str(self.fonts_dir.resolve()).replace("\\", "/").replace(":", "\\:")
@@ -1020,20 +1003,18 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         bias = max(-0.05, min(0.05, float(grade_bias or 0.0)))
         if bias:  # the topic's own warmth or coolness, bounded, after the film print
             film_grade += f",colorbalance=rs={bias:.3f}:bs={-bias:.3f}:rm={bias / 2:.3f}:bm={-bias / 2:.3f}"
+        # The graded picture before the captions, split off for the end card's background (its last frame).
+        card_split = "split[v_graded][v_card_src];[v_graded]" if card else ""
         filter_parts.append(
             f"[video_raw]format=yuv420p,{film_grade},format=yuv420p,"
-            f"noise=alls=8:allf=t+u,vignette=PI/4.2:aspect={vignette_aspect},"
+            f"noise=alls=8:allf=t+u,vignette=PI/4.2:aspect={vignette_aspect},{card_split}"
             f"subtitles='{ass_str}':fontsdir='{fonts_str}',scale=out_range=tv,format=yuv420p[v_final]"
         )
+        if card:
+            filter_parts.append(f"[v_card_src]trim=start={max(0.0, vo_dur - 0.2):.3f}:end={vo_dur:.3f}[v_last]")
 
         encoder_args = _get_video_encoder()
-
-        cmd = [
-            "ffmpeg", "-y", "-hide_banner", "-nostats",
-            "-threads", str(os.cpu_count() or 0),
-            *input_args,
-            "-filter_complex", ";".join(filter_parts),
-            "-map", "[v_final]", "-map", "[a_final]",
+        delivery_args = [
             *encoder_args,
             "-threads", str(os.cpu_count() or 0),
             "-pix_fmt", "yuv420p", "-color_range", "tv",
@@ -1044,11 +1025,16 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             "-c:a", "aac", "-b:a", "192k", "-ar", str(AUDIO_SAMPLE_RATE), "-ac", "2",
             "-max_muxing_queue_size", "8192",
             "-movflags", "+faststart",
-            "-t", f"{vo_dur:.2f}",
-            str(output_mp4_path),
         ]
+        head = ["ffmpeg", "-y", "-hide_banner", "-nostats", "-threads", str(os.cpu_count() or 0),
+                *input_args, "-filter_complex", ";".join(filter_parts)]
         log.info("Rendering master -> %s", output_mp4_path.name)
-        _run_ffmpeg(cmd)
+        if not card:
+            _run_ffmpeg([*head, "-map", "[v_final]", "-map", "[a_final]", *delivery_args,
+                         "-t", f"{vo_dur:.2f}", str(output_mp4_path)])
+        else:
+            self.last_end_card = self._render_with_end_card(head, delivery_args, end_card, vo_dur, output_mp4_path)
+            self.last_end_card["level"] = card_level
         from .encoded_audio import finalize_encoded_audio
         encoded_audio = finalize_encoded_audio(output_mp4_path, profile.target_lufs, profile.target_true_peak)
         if source_inputs != file_inputs([*scene_images, vo_path, bed_path]):
@@ -1061,12 +1047,66 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     "scenes": file_inputs(scene_images), "voiceover": file_inputs([vo_path]),
                     "ambient_bed": file_inputs([bed_path]), "fonts": font_inputs,
                     "captions": file_inputs([ass_path, output_mp4_path.with_suffix(".srt"), output_mp4_path.with_suffix(".vtt")]), "words_fingerprint": fingerprint(words),
-                    "width": width, "height": height, "renderer_sha256": sha256_file(Path(__file__))}
+                    "width": width, "height": height, "renderer_sha256": sha256_file(Path(__file__)),
+                    "end_card": self.last_end_card}
         manifest_path = output_mp4_path.with_suffix(".composition.json")
         manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
         size_mb = os.path.getsize(output_mp4_path) / (1024 * 1024)
         log.info("Master rendered: %s (%.2f MB)", output_mp4_path.name, size_mb)
         return output_mp4_path
+
+    @staticmethod
+    def _render_with_end_card(head: List[str], delivery_args: List[str], share: str, vo_dur: float,
+                              output_mp4_path: Path) -> Dict[str, Any]:
+        """The master with the end card after the narration, in two passes. The first renders the narrated body
+        (visually lossless), the whole mastered programme (narration, then the bed alone under the card) and the
+        graded last frame without captions; the second draws the card over that frame and encodes body and card
+        as one delivery file. Returns what the card measured, for the record."""
+        from . import end_card as card_mod
+        stem = output_mp4_path.parent / output_mp4_path.stem
+        body, audio, last = Path(f"{stem}_body.mkv"), Path(f"{stem}_programme.wav"), Path(f"{stem}_card_bg.png")
+        total = vo_dur + card_mod.SECONDS
+        try:
+            _run_ffmpeg([*head,
+                         "-map", "[v_final]", "-c:v", "libx264", "-preset", "veryfast", "-crf", "10", "-pix_fmt", "yuv420p",
+                         "-r", str(VIDEO_FPS), "-t", f"{vo_dur:.3f}", str(body),
+                         "-map", "[v_last]", "-update", "1", "-frames:v", "1000", str(last),
+                         "-map", "[a_final]", "-c:a", "pcm_s24le", "-ar", str(AUDIO_SAMPLE_RATE), "-ac", "2",
+                         "-t", f"{total:.3f}", str(audio)])
+            stats: Dict[str, Any] = {}
+            with Image.open(last) as im:
+                background = im.convert("RGB")
+            card_frames = card_mod.frames(background, share, stats)
+            w, h = card_mod.WIDTH, card_mod.HEIGHT
+            cmd = ["ffmpeg", "-y", "-hide_banner", "-nostats", "-v", "error",
+                   "-i", str(body), "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-r", str(card_mod.FPS),
+                   "-i", "-", "-i", str(audio),
+                   "-filter_complex", "[0:v]setsar=1[b];[1:v]scale=out_range=tv,format=yuv420p,setsar=1[c];"
+                                      "[b][c]concat=n=2:v=1:a=0[v]",
+                   "-map", "[v]", "-map", "2:a", *delivery_args, "-t", f"{total:.2f}", str(output_mp4_path)]
+            errors = output_mp4_path.parent / f"{output_mp4_path.stem}_card_ffmpeg.log"
+            with open(errors, "wb") as err:
+                proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stderr=err)
+                try:
+                    for frame in card_frames:
+                        proc.stdin.write(frame.tobytes())
+                except BrokenPipeError:
+                    pass
+                finally:
+                    proc.stdin.close()
+                try:
+                    code = proc.wait(timeout=FFMPEG_TIMEOUT_SECONDS)
+                except subprocess.TimeoutExpired as e:
+                    proc.kill()
+                    raise RenderError(f"ffmpeg did not finish the end card within {FFMPEG_TIMEOUT_SECONDS}s; stopped.") from e
+            if code != 0:
+                raise RenderError("End card encode failed: " + errors.read_text(encoding="utf-8", errors="replace")[-600:])
+            errors.unlink(missing_ok=True)
+        finally:
+            for path in (body, audio, last):
+                path.unlink(missing_ok=True)
+        return {"variant": card_mod.VARIANT, "start_s": round(vo_dur, 3), "duration_s": card_mod.SECONDS,
+                "text": share, **stats}
 
     def compose_deep_dive(
         self,

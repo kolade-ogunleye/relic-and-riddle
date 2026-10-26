@@ -1,12 +1,12 @@
 """Meta's creator tips (2026-10-25): ask viewers to share, invite them to follow. One line, the writer's when it
-passes its checks or a plain one, closes the video (its last three seconds), both captions (before the
+passes its checks or a plain one, closes both captions (before the
 hashtags) and the carousel's last slide."""
 from types import SimpleNamespace
 
 from PIL import Image, ImageDraw
 
 from src import script_engine
-from src.script_engine import SHARE_FALLBACK, share_line_problems, share_prompt, with_share_line
+from src.script_engine import SHARE_FALLBACK, is_stock_share, share_line_problems, share_prompt, with_share_line
 
 LINE = "Send this to a friend who loves ancient engineering, and follow for the next relic."
 
@@ -18,7 +18,7 @@ def test_a_share_line_must_ask_for_a_share_and_a_follow_and_stay_short():
     assert share_line_problems("Share this #history and follow")                   # a hashtag
     assert share_line_problems("x" * 91 + " share, follow")                        # too long
     assert share_prompt({"share_line": "Follow for more."}) == SHARE_FALLBACK
-    assert share_prompt({}) == SHARE_FALLBACK and share_line_problems(SHARE_FALLBACK) == []
+    assert share_prompt({}) == SHARE_FALLBACK and is_stock_share(SHARE_FALLBACK)   # last resort, noted on the card
     assert share_prompt({"share_line": " Pass this on to a map lover,  and follow for the next one. "}) == \
         "Pass this on to a map lover, and follow for the next one."
 
@@ -89,24 +89,3 @@ def test_the_closing_carousel_slide_carries_the_line(tmp_path):
     assert share_rows and all(body_y < y < footer_y for y in share_rows)         # between the body and the footer
 
 
-def test_the_video_ends_on_the_line_inside_the_safe_area(tmp_path):
-    from src import safe_zones
-    from src.video_composer import END_PROMPT_SECONDS, VideoComposer
-    from src.video_qa import caption_pills
-    words = [{"word": "The", "start": 0.0, "dur": 0.3}, {"word": "end.", "start": 0.4, "dur": 0.3},
-             {"word": "Truly", "start": 44.0, "dur": 0.3}, {"word": "done.", "start": 44.4, "dur": 0.3}]
-    ass = tmp_path / "c.ass"
-    VideoComposer().build_subtitles(words, ass, end_prompt=LINE, end_window=(47.0 - END_PROMPT_SECONDS, 47.0))
-    lines = ass.read_text(encoding="utf-8").splitlines()
-    prompt = [ln for ln in lines if "\\fad(300,0)" in ln]
-    # One to three pills (each a box and its text), balanced, over exactly the last three seconds.
-    assert len(prompt) in (2, 4, 6) and all(ln.split(",")[1] == "0:00:44.00" and ln.split(",")[2] == "0:00:47.00" for ln in prompt)
-    reel = safe_zones.safe_box("reel", 1080, 1920)
-    assert all(safe_zones.inside(r, reel) for r in caption_pills(ass))
-    band = safe_zones.caption_band_top(1080, 1920)
-    prompt_pills = [r for r in caption_pills(ass)][-len(prompt) // 2:]
-    assert all(r[3] <= band for r in prompt_pills)                                 # above the captions' band
-    # A documentary (16:9) gets no prompt.
-    wide = tmp_path / "w.ass"
-    VideoComposer().build_subtitles(words, wide, width=1920, height=1080, end_prompt=LINE, end_window=(44.0, 47.0))
-    assert "\\fad(300,0)" not in wide.read_text(encoding="utf-8")

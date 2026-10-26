@@ -632,6 +632,45 @@ class AudioEngine:
     def revelation_time(cls, words: Optional[Words]) -> Optional[float]:
         return next((float(w.get("start", 0.0)) for w in words or [] if cls._spoken(w) & cls.REVELATION_WORDS), None)
     MUSIC_RMS = 0.05  # bed level for music (about -26 dBFS); the mix ducks it further under speech
+    # The end card's sound (src/end_card.py), relative to the music bed. With no narration to duck it the music
+    # would come up to its full bed level, louder than it sat under the voice; END_CARD_MUSIC_DB is the starting
+    # level, and the composer then measures the card in the mastered programme and sets it 6 LU under the narrated
+    # body (VideoComposer.end_card_level). The whoosh opens the card and the bell lands with the sheen.
+    END_CARD_MUSIC_DB = -7.5
+    END_CARD_WHOOSH_DB = -2.5
+    END_CARD_BELL_DB = 2.0
+    END_CARD_FADE_OUT = 1.2   # s: the music resolves over the card's last moments
+
+    def _end_card_sound(self, bed: np.ndarray, at: float, sr: int) -> None:
+        """The end card's sound mixed into `bed` in place: the music held under the programme from `at`, a soft
+        whoosh as the card opens, the bell as its sheen crosses, and a short fade so the ring ends with the card.
+        The bell is a recording with rights evidence or nothing (no synthesized stand-in)."""
+        from .end_card import BELL_AT, WHOOSH_AT
+        total = len(bed)
+        i0 = int(at * sr)
+        if i0 >= total:
+            return
+        ramp = min(int(0.3 * sr), total - i0)
+        level = 10 ** (self.END_CARD_MUSIC_DB / 20)
+        bed[i0:i0 + ramp] *= np.linspace(1.0, level, ramp)[:, None]
+        bed[i0 + ramp:] *= level
+        music_level = self.MUSIC_RMS * level
+
+        def at_level(audio: np.ndarray, db: float) -> np.ndarray:
+            return audio * (music_level * 10 ** (db / 20) / (float(np.sqrt(np.mean(np.square(audio)))) or 1.0))
+        whoosh = at_level(self._effect("sfx_whoosh.wav", self._synth_transition_whoosh(duration_sec=0.45, sr=sr), sr),
+                          self.END_CARD_WHOOSH_DB)
+        w0 = max(0, int((at + WHOOSH_AT - 0.15) * sr))
+        n = max(0, min(len(whoosh), total - w0))
+        bed[w0:w0 + n] += whoosh[:n]
+        if self.licensed("sfx_bell_toll.wav"):
+            bell = at_level(self._effect("sfx_bell_toll.wav", np.full((1, 2), 0.1, dtype=np.float32), sr), self.END_CARD_BELL_DB)
+            b0 = int((at + BELL_AT) * sr)
+            n = max(0, min(len(bell), total - b0))
+            bed[b0:b0 + n] += bell[:n]
+        tail = min(int(0.5 * sr), total - i0)
+        if tail > 0:
+            bed[total - tail:] *= np.linspace(1.0, 0.0, tail)[:, None]
 
     @staticmethod
     def _synth_gear_ratchet(duration_sec: float = 0.8, sr: int = 48000) -> np.ndarray:
@@ -815,8 +854,10 @@ class AudioEngine:
     def generate_ambient_bed(self, duration: float, output_path: Path, words: Optional[Words] = None, sr: int = 48000,
                              music_path: Optional[Path] = None, music_paths: Optional[List[Path]] = None,
                              cue_timestamps: Optional[List[float]] = None, loop_seamless: bool = False,
-                             sound_plan: Optional[Dict[str, Any]] = None) -> Path:
-        """Music (if given, with seamless crossfades/movements) or a synthesized drone, plus narration SFX and act boundary risers."""
+                             sound_plan: Optional[Dict[str, Any]] = None, end_card_at: Optional[float] = None) -> Path:
+        """Music (if given, with seamless crossfades/movements) or a synthesized drone, plus narration SFX and act boundary risers.
+        end_card_at: where the Reel's end card starts (src/end_card.py); the bed then runs on under the card and
+        carries its sound."""
         total = int(sr * duration)
         self.last_sfx_sources = []  # licensed effect recordings mixed into this bed
         valid_paths = [Path(p) for p in (music_paths or []) if Path(p).exists()]
@@ -836,7 +877,8 @@ class AudioEngine:
                     bed[:micro] *= np.linspace(0.0, 1.0, micro)[:, None]
                     bed[-micro:] *= np.linspace(1.0, 0.0, micro)[:, None]
             else:
-                fin, fout = min(int(1.0 * sr), total // 4), min(int(2.5 * sr), total // 4)
+                fout_s = self.END_CARD_FADE_OUT if end_card_at is not None else 2.5   # under a card: resolves late
+                fin, fout = min(int(1.0 * sr), total // 4), min(int(fout_s * sr), total // 4)
                 bed[:fin] *= np.linspace(0.0, 1.0, fin)[:, None]
                 bed[-fout:] *= np.linspace(1.0, 0.0, fout)[:, None]
         else:
@@ -944,6 +986,9 @@ class AudioEngine:
             i0 = int(cue * sr)
             n = max(0, min(len(effect), total - i0))
             bed[i0:i0 + n] += effect[:n] * (gain * 0.40)
+
+        if end_card_at is not None:
+            self._end_card_sound(bed, float(end_card_at), sr)
 
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         sf.write(str(output_path), np.clip(bed, -1.0, 1.0), sr)

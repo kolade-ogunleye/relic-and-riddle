@@ -23,6 +23,7 @@ CAROUSEL_GAP = timedelta(hours=48)       # main.CAROUSEL_GAP: a carousel goes ou
 CAROUSEL_MAX_AGE = timedelta(days=7)     # main._post_carousel_if_due: older waiting carousels expire
 SLOT_DAYS = 7
 PROMOTED_PREFIX = "promoted:"            # main.PROMOTED_PREFIX: a dry run promoted to real posting
+POSTS_ONLY_PROMOTED_KEY = "posts_only_promoted"   # main.POSTS_ONLY_PROMOTED_KEY
 PAUSED_LINE = "⏸ <b>Paused</b>: nothing posts until you resume (a Reel slot missed by over 3 h moves to the next free one)."
 
 
@@ -52,9 +53,14 @@ def _clock(when: datetime) -> str:
 
 
 def wont_post(db, run_id: str) -> Optional[str]:
-    """Why a booked post will not go out though its countdown runs, or None."""
-    if db.get_setting("run_mode:" + run_id) == "dry_run" and not db.get_setting(PROMOTED_PREFIX + run_id):
+    """Why a booked post will not go out though its countdown runs, or None: as main._may_post decides, a
+    process that posts only promoted runs skips every run not promoted, dry or live (verification, 2026-10-25)."""
+    if db.get_setting(PROMOTED_PREFIX + run_id):
+        return None
+    if db.get_setting("run_mode:" + run_id) == "dry_run":
         return "it's a dry run, so it posts only once you promote it (Post for real)"
+    if db.get_setting(POSTS_ONLY_PROMOTED_KEY) == "true":
+        return "this bot posts only runs you promoted (Post for real)"
     return None
 
 

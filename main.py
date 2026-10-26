@@ -2649,6 +2649,17 @@ def poll_loop(bot, handler) -> None:
 REMAKE_STATUSES = ("failed", "rejected", "regenerate")  # runs with a video that Re-render makes again without paying twice
 PROMOTABLE_STATUSES = ("simulated", "approved")  # a finished dry run that "Post for real" may publish
 PROMOTED_PREFIX = "promoted:"  # setting: the run was promoted to real posting (and when)
+# Whether the posting process posts only promoted runs (a dry-run daemon or bot), so Posting and Slots show what
+# will really go out (src/posting_view.py, as _may_post decides).
+POSTS_ONLY_PROMOTED_KEY = "posts_only_promoted"
+
+
+def record_posting_mode(coordinator) -> None:
+    """Keeps whether this process posts only promoted runs, for Posting and Slots; never stops a start."""
+    try:
+        coordinator.db.set_setting(POSTS_ONLY_PROMOTED_KEY, "true" if coordinator.only_promoted else "false")
+    except Exception as e:
+        log.debug("Posting mode not recorded: %s", e)
 
 
 def regeneration_topic(db, previous: str) -> Optional[str]:
@@ -3283,6 +3294,7 @@ def main(argv=None) -> int:
         )
         if POST_SCHEDULING:  # what this mode books, it also posts when due
             coordinator.only_promoted = bool(config.BOT_RUNS_DRY)  # bot-started runs are dry: only promoted ones post
+            record_posting_mode(coordinator)
             start_post_ticker(coordinator, bot)
         bot.background_polling = True  # set before any review wait starts (see below)
         resume_reviews(coordinator, follow_review, review_waits)
@@ -3461,6 +3473,7 @@ def main(argv=None) -> int:
 
         if POST_SCHEDULING:  # approved Reels are booked into slots; this publishes them when due
             coordinator.only_promoted = bool(args.dry_run)  # a dry-run daemon posts only runs promoted with "Post for real"
+            record_posting_mode(coordinator)
             scheduler.add_job(post_due, "interval", minutes=1, max_instances=1, coalesce=True)
 
         from src import maintenance

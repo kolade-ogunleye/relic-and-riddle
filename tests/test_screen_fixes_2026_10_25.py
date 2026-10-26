@@ -154,3 +154,14 @@ def test_every_recorded_finding_class_has_words():
                   "video.beat_7", "ui.cut_short", "graphics.emphasis_words", "script.unheard_of"):
         name = plain_name(klass)
         assert "." not in name and "_" not in name and name[0].isupper(), (klass, name)
+
+
+def test_a_live_run_not_promoted_takes_no_slot_where_only_promoted_runs_post(db, tmp_path):
+    # Verification of c27168a: Slots gave such a run a carousel slot the daemon then skipped
+    from src.posting_view import carousel_plan, wont_post
+    _book(db, tmp_path)
+    assert carousel_plan(db) and wont_post(db, "run_p") is None
+    db.set_setting("posts_only_promoted", "true")
+    assert carousel_plan(db) == {} and "promoted" in wont_post(db, "run_p")
+    db.set_setting("promoted:run_p", "2026-10-25")
+    assert carousel_plan(db) and wont_post(db, "run_p") is None

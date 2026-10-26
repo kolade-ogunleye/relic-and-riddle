@@ -203,3 +203,39 @@ def test_captions_can_be_added_to_a_posted_facebook_reel(db, tmp_path, monkeypat
     assert "locales_to_delete" in sent[1][1]                                       # the old locale goes first
     text, _ = control.posting_episode(db, run_id)
     assert "Facebook captions: added" in text
+
+
+def test_a_reel_that_failed_outright_is_re_sent_and_its_followers_booked_again(db, tmp_path, monkeypatch):
+    # Production, 2026-10-26: the slot's Reel failed on every platform, and Retry said "Every platform has this
+    # Reel; nothing to retry"; its Stories and carousel had been cancelled with it
+    import src.release
+    monkeypatch.setattr(src.release, "require_release", lambda run, dry_run=False: None)
+    run_id, reel, slot = _booked(db, tmp_path)
+    (tmp_path / run_id / "m.mp4").write_bytes(b"v")
+    (tmp_path / run_id / "stories").mkdir()
+    (tmp_path / run_id / "stories" / "story_1.jpg").write_bytes(b"s")
+    db.update_run(run_id, "failed", thumbnail_cover_path=tmp_path / run_id / "m.mp4", thumbnail_grid_path=tmp_path / run_id / "m.mp4")
+    topic = db.get_run(run_id)["topic_id"]
+    db.record_publication(topic, run_id, "upload-post", "failed", {"error": "HTTP 500 from the uploader"})
+    db.record_publication(topic, run_id, "youtube-shorts", "published", {"post_urls": {"youtube": "https://yt/1"}})
+    db.update_scheduled_post(reel, "failed", detail={"error": "HTTP 500"})
+    c = _coordinator(db)
+    sent = []
+    c.publisher = SimpleNamespace(
+        build_envelope=lambda rid, video, t916, t1x1, payload, platforms=None: {"run_id": rid, "topic_id": topic, "platforms": platforms, "media": {}, "metadata": {}},
+        publish_reel=lambda envelope, dry_run=False: sent.append(envelope["platforms"]) or {
+            "status": "published", "post_urls": {"facebook": "https://fb/2", "instagram": "https://ig/2"}})
+    out = c.retry_reel(run_id)
+    assert sent == [["facebook", "instagram"]] and "posted" in out          # never YouTube again: it has it
+    assert db.get_run(run_id)["status"] == "published"
+    assert [p["status"] for p in db.list_scheduled_posts(("published",), run_id=run_id) if p["kind"] == "reel"] == ["published"]
+    assert any(p["kind"] == "story" for p in db.list_scheduled_posts(("pending",), run_id=run_id))   # booked again
+
+
+def test_a_failed_story_frame_is_not_taken_for_a_missing_reel_platform(db, tmp_path):
+    run_id, reel, slot = _booked(db, tmp_path)
+    topic = db.get_run(run_id)["topic_id"]
+    db.record_publication(topic, run_id, "upload-post", "published", {"post_urls": {"facebook": "f", "instagram": "i"}})
+    db.record_publication(topic, run_id, "upload-post:story", "failed", {"error": "x", "part": 1})
+    c = _coordinator(db)
+    assert c._reel_failed_platforms(run_id) == ([], 0)

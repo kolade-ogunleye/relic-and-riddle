@@ -1386,6 +1386,7 @@ class PipelineCoordinator:
         """The platforms a Reel did not reach, from its publication receipts (a partial Upload-Post outcome
         names them; a merged result lists missing_platforms), and how many Reel retries were made."""
         platforms: set = set()
+        posted: set = set()  # a platform any receipt shows posted is never sent the Reel again
         retries = 0
         for pub in self.db.list_publications(run_id):
             try:
@@ -1397,12 +1398,21 @@ class PipelineCoordinator:
                 if pub.get("status") == "published":
                     platforms -= set(payload.get("platforms") or [])
                 continue
-            if pub.get("status") == "unknown":
-                platforms |= set((payload.get("failed") or {}).keys())
+            channel = str(pub.get("channel") or "")
+            if ":" in channel or channel == "dry-run":  # Stories, carousel, captions: not the Reel's own receipts
+                continue
+            if pub.get("status") in ("unknown", "failed"):
+                failed = set((payload.get("failed") or {}).keys())
+                if not failed and not payload.get("post_urls") and pub.get("status") == "failed":
+                    # Failed outright: no platform took it, so every platform it was sent to is missing (the retry
+                    # said "Every platform has this Reel; nothing to retry": production, 2026-10-26)
+                    sent = (payload.get("envelope") or {}).get("platforms") or payload.get("platforms")
+                    failed = set(sent or (["youtube"] if pub.get("channel") == "youtube-shorts" else ["facebook", "instagram"]))
+                platforms |= failed
             platforms |= set(payload.get("missing_platforms") or [])
             for p in (payload.get("post_urls") or {}):
-                platforms.discard(p)
-        return sorted(platforms), retries
+                posted.add(p)
+        return sorted(platforms - posted), retries
 
     @staticmethod
     def facebook_video_id(db, run_id: str) -> Optional[str]:
@@ -1470,11 +1480,23 @@ class PipelineCoordinator:
                                    {"retry": tag, "platforms": platforms, **{k: res.get(k) for k in ("post_urls", "error", "failed", "ok")}})
         label = html.escape(self.db.run_label(run_id))
         if res.get("status") == "published":
-            if run.get("status") == "publish_unknown":
+            if run.get("status") in ("publish_unknown", "failed", "scheduled", "approved"):
                 self.db.update_run(run_id, "published")
                 self.topic_engine.record_status(run["topic_id"], "published", run_id=run_id)
+            now = datetime.now(timezone.utc)
+            # Its booking says it posted, and the Stories and carousel cancelled when the Reel failed are booked
+            # again after it (production, 2026-10-26: a failed slot, then a retry, left them cancelled for good)
+            for booking in self.db.list_scheduled_posts(("failed", "unknown"), run_id=run_id):
+                if booking["kind"] == "reel":
+                    self.db.update_scheduled_post(booking["id"], "published", detail={"posted_at": now.isoformat(), "retry": tag})
+            followers = [p for p in self.db.list_scheduled_posts(("pending", "waiting", "published"), run_id=run_id)
+                         if p["kind"] in ("story", "carousel")]
+            booked = []
+            if not followers and POST_SCHEDULING:
+                booked = self._book_followers(run_id, Path(run["master_video_path"]).parent, now)
             links = ", ".join(f"{html.escape(k)}: {html.escape(str(v))}" for k, v in (res.get("post_urls") or {}).items())
-            return f"🔁 Reel re-sent to {', '.join(platforms)} for {label}: posted. {links}"
+            then = ("\n" + "\n".join(html.escape(x) for x in booked)) if booked else ""
+            return f"🔁 Reel re-sent to {', '.join(platforms)} for {label}: posted. {links}{then}"
         return f"🔁 Reel retry on {', '.join(platforms)} ended with status '{html.escape(str(res.get('status')))}': {html.escape(str(res.get('error') or '')[:200])}"
 
     def promote_run(self, run_id: str, now: bool = False) -> str:

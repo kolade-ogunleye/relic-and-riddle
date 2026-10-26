@@ -1117,7 +1117,7 @@ class PipelineCoordinator:
         from src.publication_lock import exclusive
         with exclusive(db_path, "review-wait:" + run_id) as mine:
             if not mine:
-                log.info("A wait on %s's review is already running; the card was brought down only.", run_id)
+                log.info("A wait on %s's review is already running; it acts on the decision, not this one.", run_id)
                 return None, None
             self.telegram_bot.approval_window = self._approval_window   # a resend's window is sized again from it
             decision = self.telegram_bot.wait_for_decision(run_id, self._approval_window())

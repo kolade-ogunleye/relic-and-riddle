@@ -42,7 +42,7 @@ SCREENS: Dict[str, Tuple[str, str, Optional[str]]] = {
 # Typed commands draw the same screens.
 SCREENS.update({
     "queue": SCREENS["qrefresh"], "progress": SCREENS["cprog"], "status": SCREENS["cstat"], "reviews": SCREENS["creviews"],
-    "history": SCREENS["chistory"], "posts": SCREENS["cposts"], "photos": SCREENS["imagepick"], "images": SCREENS["imagepick"],
+    "history": SCREENS["chistory"], "posts": SCREENS["cposts"], "photos": SCREENS["cimages"], "images": SCREENS["cimages"],
     "image": SCREENS["imagehelp"], "music": SCREENS["cmusic"], "covers": SCREENS["ccov"], "ideas": SCREENS["cideas"],
     "proposals": SCREENS["cprop"], "discover": SCREENS["cdisc"], "jobs": SCREENS["jobs"], "alerts": SCREENS["calerts"],
     "audit": SCREENS["caudit"], "activity": SCREENS["caudit"], "analytics": SCREENS["canalytics"], "improve": SCREENS["cimprove"],

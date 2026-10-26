@@ -93,8 +93,8 @@ JOB_PARENTS = {
     "topic-research": ("← Topic ideas", "cideas:"),
     "propose": ("← Topic ideas", "cideas:"),
     "tadd": ("← Topic ideas", "cideas:"),
-    "fetchimages": ("← Images", "cimages:"),
-    "imagepick": ("← Images", "cimages:"),
+    "fetchimages": ("← Pictures", "cimages:"),
+    "imagepick": ("← Pictures", "cimages:"),
     "mfetch": ("← Music", "cmusic:"),
     "uadd": ("← UNESCO marvels", "cdisc:"),
 }
@@ -166,7 +166,11 @@ FORM = "/footage topic | source: URL | licence: CC BY 4.0 | licence_url: URL"
 
 
 def _capped(lines: List[str], cap: Optional[int]) -> List[str]:
-    return lines if cap is None or len(lines) <= cap else lines[:cap] + [f"<i>…and {len(lines) - cap} more: {CARD_LIST_MORE}</i>"]
+    if cap is None or len(lines) <= cap:
+        return lines
+    if cap == 0:  # nothing shown: say how many there are, not "…and N more" under no item
+        return [f"<i>{len(lines)} item{'s' if len(lines) != 1 else ''}: {CARD_LIST_MORE}</i>"]
+    return lines[:cap] + [f"<i>…and {len(lines) - cap} more: {CARD_LIST_MORE}</i>"]
 
 
 def listed(heading: str, items: List[str], cap: Optional[int] = None) -> str:
@@ -1056,24 +1060,27 @@ class TelegramApprovalBot:
         return line
 
     @staticmethod
-    def format_card_text(script_payload: Dict[str, Any], run_id: str, release: Optional[Dict[str, Any]] = None) -> str:
+    def format_card_text(script_payload: Dict[str, Any], run_id: str, release: Optional[Dict[str, Any]] = None,
+                         reserve: int = 0) -> str:
         """HTML review card (Telegram message limit is 4,096 characters), always one message: the narration
         and the captions come first; when the findings leave them no room, each folded list is shortened
         to its first items and "…and N more" (a long Wieliczka card lost its narration and both captions,
         then was paged as plain text with buttons that failed: review of 2026-10-25)."""
         card = ""
+        limit = CARD_PAGE_LIMIT - max(0, reserve)
         for cap in (None, 4, 3, 2, 1, 0):
-            card = TelegramApprovalBot._card_text(script_payload, run_id, release, cap)
+            card = TelegramApprovalBot._card_text(script_payload, run_id, release, cap, limit)
             # The narration whole first; the findings are shortened only as far as that needs; the captions
             # take what is left (the long caption is clipped, "full text: Edit", as before).
             captions = all(f"<b>{label}:</b>" in card for key, label in (("caption", "Caption"), ("carousel_caption", "Carousel caption"))
                            if script_payload.get(key))  # at least its first lines, or where to read it
-            if "[shortened:" not in card and captions and _tg_len(card) <= CARD_PAGE_LIMIT:
+            if "[shortened:" not in card and captions and _tg_len(card) <= limit:
                 return card
         return card
 
     @staticmethod
-    def _card_text(script_payload: Dict[str, Any], run_id: str, release: Optional[Dict[str, Any]], cap: Optional[int]) -> str:
+    def _card_text(script_payload: Dict[str, Any], run_id: str, release: Optional[Dict[str, Any]], cap: Optional[int],
+                   limit: int = CARD_PAGE_LIMIT) -> str:
         e = html.escape
         loc = script_payload.get("location") or {}
         place = ", ".join(e(str(v)) for v in (loc.get("name"), loc.get("country")) if v)
@@ -1096,7 +1103,7 @@ class TelegramApprovalBot:
             f"⏱️ {script_payload.get('word_count', 0)} words · written by: <i>{e(origin_label(script_payload.get('origin', '?')))}</i>\n"
             f"{integrity}\n"
             + _second_check_line(script_payload.get("second_check"))
-            + TelegramApprovalBot.release_lines(release, cap) + "\n"
+            + TelegramApprovalBot.release_lines(release, None if cap is None else max(cap, 2)) + "\n"
             "<blockquote expandable><b>Narration and timings:</b>\n<i>\x00NARRATION\x00</i>\n\n"
             f"<b>First comment:</b> <i>{e(script_payload.get('first_comment', ''))}</i>\n"
             # Everything Approve publishes is readable here (the caption and carousel caption were only
@@ -1174,7 +1181,7 @@ class TelegramApprovalBot:
         # (documentary) narration is shortened inside it instead; the full script is in the run folder.
         narration = script_payload.get("narration_script", "")
         bare = full.replace("\x00CAPTION\x00", "").replace("\x00CAROUSEL\x00", "")
-        room = CARD_PAGE_LIMIT - _tg_len(bare.replace("\x00NARRATION\x00", ""))
+        room = limit - _tg_len(bare.replace("\x00NARRATION\x00", ""))
         if _tg_len(e(narration)) > room:
             note = f" … [shortened: all {len(narration.split())} words are in the run's script_metadata.json]"
             cut = narration
@@ -1188,7 +1195,7 @@ class TelegramApprovalBot:
                                    ("caption", "Caption", "\x00CAPTION\x00")):  # the short one first
             if marker not in full:
                 continue
-            spare = CARD_PAGE_LIMIT - _tg_len(full.replace("\x00CAPTION\x00", "").replace("\x00CAROUSEL\x00", ""))
+            spare = limit - _tg_len(full.replace("\x00CAPTION\x00", "").replace("\x00CAROUSEL\x00", ""))
             head = f"\n<b>{label}:</b>\n"
             # Without its hashtags: they have their own line on the card (operator, 2026-10-25). Posted as written.
             text_value = without_hashtags(script_payload.get(key) or "")
@@ -1483,7 +1490,8 @@ class TelegramApprovalBot:
         run = self.db.get_run(run_id) if hasattr(self.db, "get_run") else None
         if run and run.get("script_payload"):
             # With the gate's report, as on the card that was tapped (it said "Release gate: not run yet")
-            updated_text = self.format_card_text(run["script_payload"], run_id, release=self._release_report(run)) + badge
+            updated_text = self.format_card_text(run["script_payload"], run_id, release=self._release_report(run),
+                                                 reserve=_tg_len(badge)) + badge   # the badge fits: never paged
         elif orig_text:
             updated_text = html.escape(orig_text) + badge
         else:
@@ -2540,7 +2548,7 @@ class TelegramApprovalBot:
                 try:
                     if action == 'uploadcancel':
                         wizard.cancel(chat_id, user_id, expected_id=target)
-                        self.show_navigation_panel(msg_id, 'Upload cancelled. Approved assets are unchanged.', [[{'text': '← Images', 'callback_data': 'cimages:'}], [DONE_BUTTON]])
+                        self.show_navigation_panel(msg_id, 'Upload cancelled. Approved assets are unchanged.', [[{'text': '← Pictures', 'callback_data': 'cimages:'}], [DONE_BUTTON]])
                     else:
                         if action == 'upload':
                             state = wizard.begin(chat_id, user_id, target, msg_id)
@@ -2549,7 +2557,7 @@ class TelegramApprovalBot:
                         else:
                             state = wizard.answer(chat_id, user_id, target.partition(':')[2], expected_id=target.partition(':')[0], expected_stage='licence')
                         if state.get('stage') == 'complete':
-                            self.show_navigation_panel(msg_id, 'Image saved. Review the set before use.', [[{'text': 'Review set', 'callback_data': f"review:{state['topic']}"}], [{'text': '← Topic images', 'callback_data': f"imagehelp:{state['topic']}"}], [DONE_BUTTON]])
+                            self.show_navigation_panel(msg_id, 'Image saved. Review the set before use.', [[{'text': '🖼 Review the set', 'callback_data': f"review:{state['topic']}"}], [{'text': '← Topic pictures', 'callback_data': f"imagehelp:{state['topic']}"}], [DONE_BUTTON]])
                         else:
                             self.show_upload(state)
                     self._answer_callback(cq['id'], 'Updated')
@@ -2560,7 +2568,7 @@ class TelegramApprovalBot:
                     if current:
                         self.show_upload(current, str(exc))
                     else:
-                        self.show_navigation_panel(msg_id, html.escape(str(exc)), [[{'text': '← Images', 'callback_data': 'cimages:'}], [DONE_BUTTON]])
+                        self.show_navigation_panel(msg_id, html.escape(str(exc)), [[{'text': '← Pictures', 'callback_data': 'cimages:'}], [DONE_BUTTON]])
                 return
             if action in ACTIONS:
                 self._handle_callback(cq)
@@ -3122,6 +3130,7 @@ class TelegramApprovalBot:
         reminded = timeout_seconds < reminder_after + 600  # no reminder for a short window
         offset: Optional[int] = None  # unconfirmed taps (e.g. made just before this wait) still count
         reminder: List[Any] = []  # the reminder's message, removed once the review is decided
+        delivered: Optional[str] = None  # when the card was last sent: a resend restarts the window
         try:
             while time.monotonic() < deadline:
                 self.cleanup_transient_messages()
@@ -3133,6 +3142,12 @@ class TelegramApprovalBot:
                                 buttons=[{"text": "📨 Bring the card down", "callback_data": f"resend:{self.db.run_key(run_id)}"}],
                                 transient=True, ttl_minutes=int((deadline - time.monotonic()) / 60) + 1))
                 approval = self.db.get_approval(run_id)
+                if approval and approval.get("created_at") != delivered:
+                    if delivered is not None:  # brought down again (a resend): its window starts again
+                        deadline = max(deadline, time.monotonic() + timeout_seconds)
+                        reminded = timeout_seconds < reminder_after + 600
+                        started = time.monotonic()
+                    delivered = approval.get("created_at")
                 if approval and approval["decision"] != "pending":
                     log.info("Decision for %s: %s (by %s)", run_id, approval["decision"], approval.get("decided_by"))
                     return approval["decision"]

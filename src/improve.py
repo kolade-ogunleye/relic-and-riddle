@@ -498,7 +498,26 @@ FINDING_NAMES = {"run.failed.ScriptUnavailableError": "Runs stopped: no usable s
                  "script.caption_first_line": "Caption's first line too long",
                  "script.trailing_word": "Narration ended on a dangling word",
                  "script.structure": "Script failed a structure check",
-                 "script.other": "Other script problems"}
+                 "script.other": "Other script problems",
+                 # the classes runs record most (the digest showed "script.facts: 63×": review, 2026-10-25)
+                 "script.facts": "Script claims the fact check sent back",
+                 "script.rounds": "Scripts that took several drafts",
+                 "script.trope": "Stock phrases in a script",
+                 "script.poll": "Poll questions that needed rewording",
+                 "video.other": "Other problems the video check found",
+                 "video.captions": "Captions the video check flagged",
+                 "review.other": "Other reasons you gave",
+                 "review.sound": "Sound, from your reviews",
+                 "check.second_unavailable": "Second fact check unavailable",
+                 "release.asset_rights": "Release gate: picture or music rights",
+                 "release.visual_checks": "Release gate: the look at the video",
+                 "graphics.emphasis_words": "Graphics: emphasised words",
+                 "ui.cut_short": "Chat text cut short",
+                 "ui.estimate": "Chat estimates"}
+# The first part of a class, in words, for classes without a name of their own
+CLASS_AREAS = {"script": "Scripts", "video": "The video", "review": "Your reviews", "check": "Checks",
+               "release": "Release gate", "graphics": "Graphics", "ui": "The chat", "voice": "The voice",
+               "pictures": "Pictures", "sound": "Sound", "publishing": "Publishing"}
 
 
 def _clip(text: str, limit: int) -> str:
@@ -515,7 +534,10 @@ def plain_name(klass: str) -> str:
         return f"Your reports about {AREA_NAMES.get(rest, rest.replace('_', ' '))}"
     if area == "run" and rest.startswith("failed."):
         return "Runs stopped: " + re.sub(r"(?<!^)(?=[A-Z])", " ", rest[7:]).replace(" Error", "").lower()
-    return (area + ": " + rest.replace("_", " ").replace(".", " ")) if rest else area.replace("_", " ")
+    if area == "video" and rest.startswith("beat_"):
+        return f"The video check, beat {rest[5:]}"
+    name = CLASS_AREAS.get(area, area.replace("_", " ").capitalize())
+    return f"{name}: {rest.replace('_', ' ').replace('.', ' ')}" if rest else name
 
 
 def improve_text(db) -> Tuple[str, List[List[Dict[str, str]]]]:

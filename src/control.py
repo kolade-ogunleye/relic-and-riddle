@@ -106,7 +106,7 @@ def request_deploy(db: PipelineDatabase) -> str:
         # file still said "Installing rc43" (operator, 2026-10-25: "a false notification"). Say what is true.
         text += f"\n\n✅ <b>{html.escape(tag)} is installed and running.</b> Nothing newer is waiting to install."
     else:
-        text += f"\n\nLast deployer status: {html.escape(str(status.get('Status', '')))[:400]}"
+        text += f"\n\nLast deployer status: {html.escape(str(status.get('Status', ''))[:400])}"
     return text
 
 
@@ -1406,7 +1406,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         # up one level: the topic's images (fetch, upload, review) or another topic.
         return send_photo(topic_dir / CONTACT_SHEET, caption,
                           [[{"text": "✅ Approve", "callback_data": f"imgok:{key}"},
-                            {"text": "← Topic images", "callback_data": f"imgcancel:{key}"}],
+                            {"text": "← Topic pictures", "callback_data": f"imgcancel:{key}"}],
                            [{"text": "📎 Copy drop command", "copy_text": {"text": f"/photos {serial} drop "}},
                             {"text": "📎 Copy keep command", "copy_text": {"text": f"/photos {serial} keep "}}],
                            [{"text": "🖼 Other topics", "callback_data": "reviewpick:0"}]])
@@ -1614,8 +1614,9 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             var_b = run_dir / "thumbnail_variant_b_intrigue.jpg"
             var_c = run_dir / "thumbnail_variant_c_minimal.jpg"
             # The variant the video's cover is now (it always said B: review, 2026-10-25)
-            selected = chosen_cover(run_dir) or ("b" if var_b.exists() else "a" if var_a.exists() else "c")
-            mark = lambda v, name: ("✓ " if v == selected else "📌 ") + f"{v.upper()}: {name}"  # noqa: E731
+            chosen = chosen_cover(run_dir)
+            selected = chosen or ("b" if var_b.exists() else "a" if var_a.exists() else "c")   # the one previewed
+            mark = lambda v, name: ("✓ " if v == chosen else "📌 ") + f"{v.upper()}: {name}"  # noqa: E731
             buttons = [
                 [
                     {"text": mark("a", "Blueprint"), "callback_data": f"cov:{run_dir.name}:a"},
@@ -1988,16 +1989,19 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 return handle("imagepick", "")
             from .telegram_images import fetch_images
             topic_id, count = fetch_images(db, assets_dir, args)
-            return (f"🖼 Fetch completed: {count} eligible image(s) for <code>{html.escape(topic_id)}</code>. Review before use.",
-                    [[{"text": "🖼 Review the set", "callback_data": f"review:{args}"}], [HOME]])
+            name = (db.get_topic_by_id(topic_id) or {}).get("title") or topic_id.replace("_", " ")   # its name, not its id
+            return (f"🖼 <b>Photos fetched</b>\n{count} eligible photo{'s' if count != 1 else ''} for "
+                    f"<b>{html.escape(name)}</b>; review them before a video uses them.",
+                    [[{"text": "🖼 Review the set", "callback_data": f"review:{args}"}],
+                     [{"text": "← Topic pictures", "callback_data": f"imagehelp:{args}"}], [HOME]])
         if command == "cpause":
             handle("pause", "")
             dash_text, dash_buttons = dashboard_text_and_buttons(db, next_run(), assets_dir=assets_dir)
-            return f"⏸ <b>Scheduler Paused!</b>\n\n{dash_text}", dash_buttons
+            return f"⏸ <b>Paused</b>: no scheduled runs or posts until you resume.\n\n{dash_text}", dash_buttons
         if command == "cresume":
             handle("resume", "")
             dash_text, dash_buttons = dashboard_text_and_buttons(db, next_run(), assets_dir=assets_dir)
-            return f"▶️ <b>Scheduler Resumed!</b>\n\n{dash_text}", dash_buttons
+            return f"▶️ <b>Resumed</b>: scheduled runs and posts are back on.\n\n{dash_text}", dash_buttons
         if command == "images":
             action, _, ref = args.partition(" ")
             if action in {"fetch", "upload", "review"}:
@@ -2023,7 +2027,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     count = len(cr["images"])
                     mark = "⛔" if count < MIN_SCENE_IMAGES else "✅" if cr.get("reviewed") else "⚠️"
                     sets.append((serial[t["id"]], t["title"], count, mark))
-            back = [[{"text": "← Images", "callback_data": "cimages:"}], [HOME]]
+            back = [[{"text": "← Pictures", "callback_data": "cimages:"}], [HOME]]
             if not sets:
                 return "🖼 <b>Photo sets</b>\n\nNo topic has fetched photos yet. Open Pictures to fetch or upload some.", back
             pages = -(-len(sets) // 8)
@@ -2363,7 +2367,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 first, _, rest = plain.partition("\n")
                 if re.sub(r"[^A-Za-z]", "", first).isupper():  # older alerts were headed in capitals
                     first = re.sub(r"^(\W*)(\w)", lambda m: m[1] + m[2].upper(), first.lower())  # "❌ Production failed"
-                same = next((g for g in grouped if g["first"] == first), None)
+                same = next((g for g in grouped if g["first"] == first and g["rest"] == rest), None)
                 if same:
                     same["count"] += 1
                     continue

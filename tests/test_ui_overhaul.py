@@ -265,11 +265,11 @@ def test_startup_dashboard_card_and_cockpit(tmp_path):
 
     # 4. Cockpit pause and resume toggle
     pause_reply, _ = h("cpause", "")
-    assert "Scheduler Paused!" in pause_reply
+    assert "Paused</b>" in pause_reply
     assert "paused" in pause_reply
 
     resume_reply, _ = h("cresume", "")
-    assert "Scheduler Resumed!" in resume_reply
+    assert "Resumed</b>" in resume_reply
     assert "active" in resume_reply
 
     # 5. /help includes cockpit pointer

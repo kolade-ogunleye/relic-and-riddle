@@ -75,7 +75,7 @@ def carousel_plan(db, now: Optional[datetime] = None, days: int = SLOT_DAYS + 7)
     newest eligible: its Reel out 48 h before, booked under 7 days ago). A carousel with no slot before it
     expires is left out."""
     now = now or datetime.now(timezone.utc)
-    waiting = db.list_scheduled_posts(("waiting",))
+    waiting = [p for p in db.list_scheduled_posts(("waiting",)) if not wont_post(db, p["run_id"])]   # as the daemon skips them
     reels: Dict[str, Optional[datetime]] = {}
     for p in db.list_scheduled_posts(("pending", "published")):
         if p["kind"] == "reel":
@@ -199,7 +199,8 @@ def confirm_cancel(db, post_id: int) -> Tuple[str, List[List[Dict[str, str]]]]:
     if post is None:
         return "⏹ That booking is no longer pending.", [[{"text": "← Posting", "callback_data": "cposts:"}]]
     label = html.escape(db.run_label(post["run_id"]))
-    what = ("its Reel, Stories and carousel bookings are all cancelled; it can be booked again from Reviews"
+    what = ("its Reel, Stories and carousel bookings are all cancelled; it becomes a post candidate again "
+            "(Reviews → Post for real)"
             if post["kind"] == "reel" else f"only this {POST_NAME.get(post['kind'], post['kind'])} booking is cancelled")
     return (f"⏹ <b>Cancel this booking?</b>\n{label}\n\n{_first_upper(what)}.",
             [[{"text": "✅ Yes, cancel it", "callback_data": f"cancelpost:{post_id}"}],

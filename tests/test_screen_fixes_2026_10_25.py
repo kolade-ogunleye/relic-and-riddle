@@ -105,3 +105,52 @@ def test_the_digest_uses_words_not_internal_labels(db):
     from src import improve
     text = improve.digest_text(db)
     assert text.startswith("📰 <b>Weekly digest</b>")
+
+
+def test_a_blocked_card_always_shows_why():
+    # Re-check of 2026-10-25: at the tightest budget the gate's own findings were all folded away
+    from src.telegram_bot import TelegramApprovalBot
+    release = {"dry_run": True, "checks": [{"name": "visual_checks", "status": "fail",
+                                           "detail": [{"type": "video_check", "severity": "major", "issue": f"problem {i}"}
+                                                      for i in range(6)]}]}
+    payload = {"title": "T", "narration_script": " ".join(["word"] * 110), "caption": "Line. " * 400,
+               "carousel_caption": "Swipe.", "self_healing": {"issues": [{"severity": "info", "card": "c", "issue": "n " * 200}] * 6},
+               "qa_summary": "🔎 Automated video check: 6 issue(s)\n" + "\n".join("· beat 2: " + "x " * 150 for _ in range(6))}
+    card = TelegramApprovalBot.format_card_text(payload, "run_x", release=release)
+    gate = card.split("Release gate:")[1].split("</blockquote>")[0]
+    assert "problem 0" in gate and "problem 1" in gate                        # at least two reasons, always
+
+
+def test_a_decided_card_stays_one_message_with_its_badge():
+    from src.telegram_bot import CARD_PAGE_LIMIT, TelegramApprovalBot, _tg_len
+    from src.telegram_pages import PAGE_ABOVE
+    payload = {"title": "T", "narration_script": " ".join(["word"] * 110), "caption": "Line. " * 400,
+               "carousel_caption": "Swipe.", "self_healing": {"issues": [{"severity": "info", "card": "c", "issue": "n " * 200}] * 5}}
+    badge = "\n\n✅ <b>Approved</b> by " + "x" * 64 + " · release check and publishing under way"
+    card = TelegramApprovalBot.format_card_text(payload, "run_x", reserve=_tg_len(badge)) + badge
+    assert _tg_len(card) <= PAGE_ABOVE and _tg_len(card) - _tg_len(badge) <= CARD_PAGE_LIMIT
+
+
+def test_different_alerts_with_the_same_heading_are_not_merged(db):
+    db.record_alert("❌ <b>Production failed</b>\nTopic A: no script")
+    db.record_alert("❌ <b>Production failed</b>\nTopic B: no photos")
+    db.record_alert("⏰ Still waiting for your review of \"X\"")
+    db.record_alert("⏰ Still waiting for your review of \"X\"")
+    text, _ = _h(db)("calerts", "")
+    assert "Topic A" in text and "Topic B" in text and text.count("2 times") == 1
+
+
+def test_a_carousel_that_wont_post_takes_no_slot(db, tmp_path):
+    from src.posting_view import carousel_plan
+    _book(db, tmp_path)
+    assert carousel_plan(db)                                           # booked and live: it has its slot
+    db.set_setting("run_mode:run_p", "dry_run")                        # a dry run nobody promoted
+    assert carousel_plan(db) == {}
+
+
+def test_every_recorded_finding_class_has_words():
+    from src.improve import plain_name
+    for klass in ("script.facts", "video.other", "issue.bot", "release.asset_rights", "check.second_unavailable",
+                  "video.beat_7", "ui.cut_short", "graphics.emphasis_words", "script.unheard_of"):
+        name = plain_name(klass)
+        assert "." not in name and "_" not in name and name[0].isupper(), (klass, name)

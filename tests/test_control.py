@@ -373,7 +373,7 @@ def test_review_cancel_and_swap_visual_reorder(tmp_path):
     assert res == ''
     (approve, back), (drop, swap), (others,) = sent[-1][2]
     assert approve['text'] == '✅ Approve' and approve['callback_data'].startswith('imgok:derinkuyu@')
-    assert back['text'] == '← Topic images' and back['callback_data'].startswith('imgcancel:derinkuyu@')
+    assert back['text'] == '← Topic pictures' and back['callback_data'].startswith('imgcancel:derinkuyu@')
     assert drop['copy_text']['text'].endswith(' drop ') and swap['copy_text']['text'].endswith(' keep ')  # topic filled in (swap retired 2026-10-25)
     assert others['callback_data'] == 'reviewpick:0'
 

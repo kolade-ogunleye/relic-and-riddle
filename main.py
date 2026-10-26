@@ -1081,6 +1081,8 @@ class PipelineCoordinator:
             raise ValueError(f"Run status '{run and run['status']}' has no approval to re-send.")
         dry_run = dry_run or self.db.get_setting("run_mode:" + run_id) == "dry_run"
         appr = self.db.get_approval(run_id)
+        if resend and appr and appr["decision"] == "approved":  # never a fresh card with Approve on an approved run
+            raise ValueError("That review was already approved; it is being posted or booked.")
         if appr and appr["decision"] == "timeout":
             self.db.reopen_approval(run_id)
         elif not appr:
@@ -1091,28 +1093,45 @@ class PipelineCoordinator:
             proxy = run_dir / "review_proxy.mp4"
             video = proxy if proxy.exists() else Path(run["master_video_path"])
             self.telegram_bot.send_approval_request(video, Path(run["thumbnail_cover_path"]), run["script_payload"], run_id)
-        decision = self._wait_for_review(run_id)
+        decision, acted = self._decide_review(run_id, lambda d: self._after_approval(run_id, dry_run=dry_run)
+                                              if d == "approved" else self._settle_decision(run_id, run["topic_id"], d))
         if decision is None:  # another wait already owns this review: the card was only brought down
             return {"run_id": run_id, "decision": "pending", "already_waiting": True, "topic_id": run["topic_id"]}
         if decision == "approved":
-            return {"run_id": run_id, "decision": decision, **self._after_approval(run_id, dry_run=dry_run)}
-        self._settle_decision(run_id, run["topic_id"], decision)
+            return {"run_id": run_id, "decision": decision, **(acted or {"already_acted": True})}
         return {"run_id": run_id, "decision": decision, "status": decision, "topic_id": run["topic_id"]}
 
-    def _wait_for_review(self, run_id: str) -> Optional[str]:
-        """The one wait on a review's decision, across every process: a Resend (the Reviews list, the
-        reminder's "Bring the card down") while the first wait was running started a second wait, and one
-        Approve was acted on twice: two Reel bookings, the Stories and the carousel posted twice (review of
-        2026-10-25). None when another wait already owns the review; it acts on the decision."""
+    REVIEW_ACTED_PREFIX = "review-acted:"
+
+    def _decide_review(self, run_id: str, act) -> Tuple[Optional[str], Any]:
+        """The one wait on a review's decision, and acting on it, across every process: a Resend (the Reviews
+        list, the reminder's "Bring the card down") while the first wait ran started a second wait, and one
+        Approve was acted on twice: two Reel bookings, the Stories and the carousel posted twice (reviews of
+        2026-10-25). The wait and `act(decision)` both run under the run's review lock; an Approve already acted
+        on (its decision time is recorded first) is never acted on again by a later wait. Returns (None, None)
+        when another wait owns the review, (decision, None) when this Approve was already acted on."""
         db_path = getattr(self.db, "db_path", None)
         if db_path is None:
-            return self.telegram_bot.wait_for_decision(run_id, self._approval_window())
+            decision = self.telegram_bot.wait_for_decision(run_id, self._approval_window())
+            return decision, act(decision)
         from src.publication_lock import exclusive
         with exclusive(db_path, "review-wait:" + run_id) as mine:
             if not mine:
                 log.info("A wait on %s's review is already running; the card was brought down only.", run_id)
-                return None
-            return self.telegram_bot.wait_for_decision(run_id, self._approval_window())
+                return None, None
+            decision = self.telegram_bot.wait_for_decision(run_id, self._approval_window())
+            if decision == "approved":
+                stamp = str((self.db.get_approval(run_id) or {}).get("decision_timestamp") or "")
+                key = self.REVIEW_ACTED_PREFIX + run_id
+                if stamp and self.db.get_setting(key) == stamp:
+                    log.info("The Approve of %s was already acted on; not again.", run_id)
+                    return decision, None
+                self.db.set_setting(key, stamp)  # before acting: a crash part-way never acts twice either
+            return decision, act(decision)
+
+    def _wait_for_review(self, run_id: str) -> Optional[str]:
+        """The decision alone (callers that act themselves); see _decide_review."""
+        return self._decide_review(run_id, lambda d: None)[0]
 
     def _settle_decision(self, run_id: str, topic_id: str, decision: str) -> None:
         """A review decided anything but Approve: the run's and the topic's state, the same whichever wait
@@ -1333,7 +1352,7 @@ class PipelineCoordinator:
             label = html.escape(self.db.run_label(post["run_id"]))
             return f"🔁 {', '.join(platforms)} retried for {label}: posted."
         self.db.update_scheduled_post(post["id"], post["status"], detail=new_detail)
-        return f"🔁 Retry on {', '.join(platforms)} ended with status '{html.escape(str(res.get('status')))}': {html.escape(str(res.get('error') or ''))[:200]}"
+        return f"🔁 Retry on {', '.join(platforms)} ended with status '{html.escape(str(res.get('status')))}': {html.escape(str(res.get('error') or '')[:200])}"
 
     def _reel_failed_platforms(self, run_id: str) -> Tuple[List[str], int]:
         """The platforms a Reel did not reach, from its publication receipts (a partial Upload-Post outcome
@@ -1428,7 +1447,7 @@ class PipelineCoordinator:
                 self.topic_engine.record_status(run["topic_id"], "published", run_id=run_id)
             links = ", ".join(f"{html.escape(k)}: {html.escape(str(v))}" for k, v in (res.get("post_urls") or {}).items())
             return f"🔁 Reel re-sent to {', '.join(platforms)} for {label}: posted. {links}"
-        return f"🔁 Reel retry on {', '.join(platforms)} ended with status '{html.escape(str(res.get('status')))}': {html.escape(str(res.get('error') or ''))[:200]}"
+        return f"🔁 Reel retry on {', '.join(platforms)} ended with status '{html.escape(str(res.get('status')))}': {html.escape(str(res.get('error') or '')[:200])}"
 
     def promote_run(self, run_id: str, now: bool = False) -> str:
         """Your per-video go-ahead: a finished dry run (simulated) is posted for real while the daemon
@@ -2211,29 +2230,32 @@ class PipelineCoordinator:
 
         # 8-9. Human approval (never implicit). The production card is finished either way.
         self._finish_progress(topic.get("title", tid), run_id, success=True)
+        decision = None
         if auto_approve:
             self.db.record_approval(run_id, tid)
             self.db.update_approval_decision(run_id, "approved", decided_by="auto-approve-flag")
             decision = "approved"
-        else:
-            self.telegram_bot.send_approval_request(review_mp4, thumb_916, payload, run_id)
-            decision = self._wait_for_review(run_id)
-            if decision is None:  # another wait owns this review (it acts on the decision): nothing to settle here
-                return {"run_id": run_id, "topic_id": tid, "decision": "pending", "status": "pending_approval",
-                        "master_video": str(master_mp4)}
-
         result: Dict[str, Any] = {
-            "run_id": run_id, "topic_id": tid, "decision": decision,
+            "run_id": run_id, "topic_id": tid, "decision": decision if auto_approve else None,
             "master_video": str(master_mp4), "thumbnails": [str(thumb_916), str(thumb_1x1)],
             "stories": [str(s) for s in story_slides], "carousel": [str(c) for c in carousel_slides],
         }
+        # 10. Publish (or book the posting slot when running as the daemon); a decision other than Approve is
+        # settled. Under the review lock with the wait itself, so no second wait can act on the same Approve.
+        act = (lambda d: self._after_approval(run_id, dry_run=dry_run, previous_status=previous_status)
+               if d == "approved" else self._settle_decision(run_id, tid, d))
+        if auto_approve:
+            acted = act(decision)
+        else:
+            self.telegram_bot.send_approval_request(review_mp4, thumb_916, payload, run_id)
+            decision, acted = self._decide_review(run_id, act)
+            if decision is None:  # another wait owns this review (it acts on the decision): nothing to do here
+                return {**result, "decision": "pending", "status": "pending_approval"}
+            result["decision"] = decision
         if decision != "approved":
-            self._settle_decision(run_id, tid, decision)
             result["status"] = decision
             return result
-
-        # 10. Publish (or book the posting slot when running as the daemon)
-        result.update(self._after_approval(run_id, dry_run=dry_run, previous_status=previous_status))
+        result.update(acted or {"already_acted": True})
         return result
 
     def _after_approval(self, run_id: str, dry_run: bool = False, previous_status: str = "queued") -> Dict[str, Any]:
@@ -2253,7 +2275,17 @@ class PipelineCoordinator:
     # ------------------------------------------------------------ posting slots
     def schedule_run(self, run_id: str, now: Optional[datetime] = None) -> Dict[str, Any]:
         """Books an approved run's Reel into the next free slot, its Stories after it, and its
-        carousel into the carousel queue. The daemon's post_due() publishes them when due."""
+        carousel into the carousel queue. The daemon's post_due() publishes them when due. Under the run's
+        booking lock: the check for an existing booking and the booking itself are one step (two interleaved
+        calls booked two Reels: review, 2026-10-25)."""
+        db_path = getattr(self.db, "db_path", None)
+        if db_path is None:
+            return self._schedule_run(run_id, now)
+        from src.publication_lock import publication_lock
+        with publication_lock(db_path, "booking:" + run_id, wait=30):
+            return self._schedule_run(run_id, now)
+
+    def _schedule_run(self, run_id: str, now: Optional[datetime] = None) -> Dict[str, Any]:
         now = now or datetime.now(timezone.utc)
         run = self.db.get_run(run_id)
         if not run or not run.get("master_video_path"):
@@ -2375,9 +2407,9 @@ class PipelineCoordinator:
             self._alert(f"✅ {name} posted for {label}")
         elif res["status"] == "unknown":
             self._alert(f"⚠️ <b>Not sure the {name.lower()} posted</b> for {label} "
-                        f"({html.escape(str(res.get('error', '')))[:200]}). Not retried, to avoid a duplicate; please check.")
+                        f"({html.escape(str(res.get('error', ''))[:200])}). Not retried, to avoid a duplicate; please check.")
         else:
-            self._alert(f"❌ {name} not posted for {label}: {html.escape(str(res.get('error', '')))[:300]}")
+            self._alert(f"❌ {name} not posted for {label}: {html.escape(str(res.get('error', ''))[:300])}")
         return res["status"]
 
     def _reel_posted_before(self, run_id: str, cutoff: datetime) -> bool:
@@ -2460,7 +2492,7 @@ class PipelineCoordinator:
             urls = pub.get("post_urls") or pub.get("post_ids") or {}
             links = "\n".join(f"{html.escape(k)}: {html.escape(str(v))}" for k, v in urls.items())
             missing = pub.get("missing_platforms")
-            warn = (f"\n⚠️ Not posted to {html.escape(', '.join(missing))}: {html.escape(str(pub.get('error', '')))[:300]}"
+            warn = (f"\n⚠️ Not posted to {html.escape(', '.join(missing))}: {html.escape(str(pub.get('error', ''))[:300])}"
                     if missing else "")
             self._alert(f"✅ <b>Published</b>\n\n<b>{html.escape(payload.get('title', tid))}</b>\n\n{links}{warn}")
         elif status == "simulated":
@@ -2493,7 +2525,7 @@ class PipelineCoordinator:
             key = self.db.run_key(run_id)
             self._alert(
                 f"⚠️ <b>Publish unconfirmed</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n"
-                f"The upload may have gone through ({html.escape(str(pub.get('error') or 'no confirmation received'))[:200]}). "
+                f"The upload may have gone through ({html.escape(str(pub.get('error') or 'no confirmation received')[:200])}). "
                 "I won't retry automatically, to avoid a duplicate post. Check Facebook and Instagram, then tell me:",
                 [{"text": "✅ It posted", "callback_data": f"pubok:{key}"},
                  {"text": "🔁 It didn't post", "callback_data": f"pubno:{key}"}])
@@ -2501,7 +2533,7 @@ class PipelineCoordinator:
             self.db.update_run(run_id, "failed", error=pub.get("error"))
             self.topic_engine.record_status(tid, "failed", run_id=run_id)
             log.error("Publishing failed for %s: %s", run_id, pub.get("error"))
-            self._alert(f"❌ <b>Publish failed</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(pub.get('error') or 'no error details were returned'))[:500]}</blockquote>\nNothing was posted. The topic goes back in the queue for a retry.")
+            self._alert(f"❌ <b>Publish failed</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(pub.get('error') or 'no error details were returned')[:500])}</blockquote>\nNothing was posted. The topic goes back in the queue for a retry.")
         if config.YOUTUBE_SHORTS and profile == "reel_9x16" and status in ("published", "simulated"):
             pub["youtube_short"] = short = self.publisher.publish_short(envelope, dry_run=dry_run)
             if short["status"] == "published":
@@ -2512,7 +2544,7 @@ class PipelineCoordinator:
                 # The Reel stands either way; an unknown Short is checked by hand, never re-sent blindly.
                 self._alert(f"⚠️ <b>YouTube Short {'unconfirmed' if short['status'] == 'unknown' else 'not posted'}</b>\n"
                             f"<b>{html.escape(payload.get('title', tid))}</b>: the Reel is unaffected.\n"
-                            f"{html.escape(str(short.get('error', '')))[:300]}")
+                            f"{html.escape(str(short.get('error', ''))[:300])}")
         if dry_run and profile == "reel_9x16" and status == "simulated":
             # A live approval books the Stories and the carousel for their slots; a dry run skipped them
             # entirely, so it never tested them. They are simulated here, each request as it would be sent.
@@ -2548,7 +2580,7 @@ class PipelineCoordinator:
             elif status == "blocked_unlicensed":
                 text = "🛑 <b>Approved · blocked</b>: the voice has no commercial licence; nothing was posted."
             else:
-                text = "❌ <b>Approved · not posted</b>: " + html.escape(str(pub.get("error") or status))[:300]
+                text = "❌ <b>Approved · not posted</b>: " + html.escape(str(pub.get("error") or status)[:300])
             self.telegram_bot.stamp_review_outcome(run_id, text)
         except Exception as e:
             log.debug("Could not stamp the review card for %s: %s", run_id, e)
@@ -2729,7 +2761,7 @@ def announce_release(db: PipelineDatabase, bot, startup: bool = False) -> Option
                 "It was signed, passed the tests on this machine and was installed while production was idle.")
     elif receipt.get("outcome") in ("rolled_back", "rejected"):
         where = "is back on" if receipt.get("outcome") == "rolled_back" else "stays on"
-        text = (f"⚠️ <b>Release {tag} was not installed</b>: {html.escape(str(receipt.get('reason') or 'its checks failed'))[:400]}. "
+        text = (f"⚠️ <b>Release {tag} was not installed</b>: {html.escape(str(receipt.get('reason') or 'its checks failed')[:400])}. "
                 f"Production {where} {running}; the release won't be retried.")
     else:
         return None
@@ -3115,14 +3147,16 @@ def main(argv=None) -> int:
         def follow_review(run_id: str, resend: bool) -> None:
             """Waits on a review and acts on its decision; a Regenerate starts its run in a worker."""
             def work():
-                review_waits.add(run_id)
+                owner = run_id not in review_waits  # only the wait that added it takes it out (a resend's
+                review_waits.add(run_id)            # early return removed the id the running wait still needed)
                 try:
                     result = coordinator.request_approval(run_id, resend=resend)
                 except Exception as e:
                     bot.notify(f"⚠️ Couldn't {'re-send' if resend else 'resume'} the review: {html.escape(str(e)[:300])}")
                     return
                 finally:
-                    review_waits.discard(run_id)
+                    if owner:
+                        review_waits.discard(run_id)
                 if result.get("decision") == "regenerate":
                     run = coordinator.db.get_run(run_id) or {}
                     started = launch_worker(run.get("content_format") or "reel",
@@ -3454,14 +3488,16 @@ def main(argv=None) -> int:
             """Waits on a review in the background and acts on its decision; a Regenerate becomes a
             production run of the same topic, in its worker, guided by the reason given."""
             def work():
-                review_waits.add(run_id)
+                owner = run_id not in review_waits  # only the wait that added it takes it out (a resend's
+                review_waits.add(run_id)            # early return removed the id the running wait still needed)
                 try:
                     result = coordinator.request_approval(run_id, dry_run=args.dry_run, resend=resend)
                 except Exception as e:
                     bot.notify(f"⚠️ Couldn't {'re-send' if resend else 'resume'} the review: {html.escape(str(e)[:300])}")
                     return
                 finally:
-                    review_waits.discard(run_id)
+                    if owner:
+                        review_waits.discard(run_id)
                 if result.get("decision") == "regenerate":
                     run = coordinator.db.get_run(run_id) or {}
                     scheduler.add_job(production_run, kwargs={

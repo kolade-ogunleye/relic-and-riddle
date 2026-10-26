@@ -164,6 +164,18 @@ def delivered_review(db, tmp_path):
 
 
 @pytest.fixture(autouse=True, scope="session")
+def idle_progress_ticker():
+    """A progress ticker started by a test sleeps a day, not a minute: one that outlived its test woke after the
+    per-test network block was lifted and made a real Telegram request (verification, 2026-10-25). A test of
+    the ticker itself sets its own interval on its bot."""
+    from src.telegram_bot import TelegramApprovalBot
+    saved = TelegramApprovalBot.PROGRESS_TICK_SECONDS
+    TelegramApprovalBot.PROGRESS_TICK_SECONDS = 86400
+    yield
+    TelegramApprovalBot.PROGRESS_TICK_SECONDS = saved
+
+
+@pytest.fixture(autouse=True, scope="session")
 def scratch_output_dir(tmp_path_factory):
     """Nothing a test makes lands in the real output folder: the card ledgers of test runs (run_f, run_x, ...)
     piled up under output/ for days (2026-10-25). Session-wide, so a bot thread that outlives its test (a

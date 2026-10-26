@@ -15,7 +15,7 @@ GROUPS = {
         ("help", "Commands by group · topics · pictures · diagnostics"),
     ],
     "Topics": [
-        ("queue", "The topic queue · /queue all · bump 4 · drop 4 · requeue 4 · undo · next"),
+        ("queue", "The topic queue · all · bump 4 · drop 4 · requeue 4 · undo · next"),
         ("add", "Add a topic by title · The Lost Labyrinth"),
         ("ideas", "Topic ideas · research · waiting · unesco"),
     ],

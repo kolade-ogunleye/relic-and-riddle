@@ -6,7 +6,7 @@ from pathlib import Path
 from uuid import uuid4
 from urllib.parse import urlparse
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 from .credits import load_credits, save_credits, license_allowed, write_contact_sheet
 from .publication_lock import exclusive
@@ -51,7 +51,7 @@ def add_image(db, assets_dir, ref, rights, content, uploaded_by):
         topic_for(db, topic["id"])
         with Image.open(io.BytesIO(content)) as original:
             original.load()
-            image = original.convert("RGB")
+            image = ImageOps.exif_transpose(original).convert("RGB")  # upright: a phone photo sent as a file
         directory = Path(assets_dir) / topic["id"]
         directory.mkdir(parents=True, exist_ok=True)
         name = "telegram_" + uuid4().hex + ".jpg"

@@ -393,7 +393,7 @@ def test_a_job_returns_to_the_exact_screen_its_button_was_on(db, monkeypatch):
 
 
 @pytest.mark.parametrize("callback, expected", [
-    ("cideas:", "← Topic ideas"), ("imagepick:8", "← Images"), ("cdash:", None),
+    ("cideas:", "← Ideas"), ("imagepick:8", "← Photo sets"), ("cdash:", None),
     ("uadd:123::0", None), ("cpropose:", None), (None, None),   # actions are never replayed as "back"
 ])
 def test_back_buttons_only_reopen_read_only_screens(callback, expected):

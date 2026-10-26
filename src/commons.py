@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Iterator, List, Optional
 
 import requests
-from PIL import Image
+from PIL import Image, ImageOps
 
 from . import config  # every setting is read once, in config (COMMONS_CONTACT came out empty when read here first)
 from .credits import license_allowed, normalize
@@ -247,7 +247,10 @@ def download_jpeg(
     resp = _get(url, timeout=30, max_wait=max_wait)
     with Image.open(io.BytesIO(resp.content)) as im:
         im.verify()  # reject corrupt / non-image payloads
-    with Image.open(io.BytesIO(resp.content)) as im:
+    with Image.open(io.BytesIO(resp.content)) as raw:
+        # Upright first: re-encoding drops the EXIF orientation, and a portrait photo stored sideways with a
+        # rotate flag reached a video turned over (Unfinished Obelisk, beat 10, 2026-10-25).
+        im = ImageOps.exif_transpose(raw)
         w, h = im.size
         if min_pixels and (w * h < min_pixels):
             raise ValueError(f"Resolution too low: {w}x{h} ({w*h:,} px < {min_pixels:,})")

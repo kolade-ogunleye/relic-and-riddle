@@ -19,8 +19,11 @@ class Plain(HTMLParser):
             self.parts.append("\n")
 
 
+PAGE_ABOVE = 4000  # UTF-16 units of the HTML; Telegram's 4,096 counts the text after its tags are parsed
+
+
 def panel(db, text, buttons):
-    if len(text.encode("utf-16-le")) // 2 <= 3700:
+    if len(text.encode("utf-16-le")) // 2 <= PAGE_ABOVE:
         return text, buttons
     parser = Plain()
     parser.feed(text)

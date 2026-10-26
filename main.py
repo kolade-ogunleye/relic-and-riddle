@@ -291,7 +291,7 @@ class PipelineCoordinator:
             self._collect_findings(run_id, run_dir, tid, error=f"{type(e).__name__}: {e}")
             log.error("Run %s failed: %s", run_id, e)
             if not card_shown:
-                self._alert(f"❌ <b>Production failed</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(e))[:600]}</blockquote>\nNothing was posted. The topic is set aside: restore it from the queue (/queue requeue N).")
+                self._alert(f"❌ <b>Production failed</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(e)[:600])}</blockquote>\nNothing was posted. The topic is set aside: restore it from the queue (/queue requeue N).")
             ping_healthcheck("/fail")
             raise
         finally:
@@ -1050,7 +1050,7 @@ class PipelineCoordinator:
         try:
             self._verify_final_copy(payload, topic)
         except ValueError as e:
-            return f"❌ Not changed: the new {names} failed the fact check.\n<i>{html.escape(str(e))[:500]}</i>"
+            return f"❌ Not changed: the new {names} failed the fact check.\n<i>{html.escape(str(e)[:500])}</i>"
         if not self.db.commit_review_copy(run_id, appr.get("revision", 0), payload):
             return "Review changed while checking the edit. Nothing was changed; open the current review."
         run_dir = Path(run["master_video_path"]).parent
@@ -1091,11 +1091,28 @@ class PipelineCoordinator:
             proxy = run_dir / "review_proxy.mp4"
             video = proxy if proxy.exists() else Path(run["master_video_path"])
             self.telegram_bot.send_approval_request(video, Path(run["thumbnail_cover_path"]), run["script_payload"], run_id)
-        decision = self.telegram_bot.wait_for_decision(run_id, self._approval_window())
+        decision = self._wait_for_review(run_id)
+        if decision is None:  # another wait already owns this review: the card was only brought down
+            return {"run_id": run_id, "decision": "pending", "already_waiting": True, "topic_id": run["topic_id"]}
         if decision == "approved":
             return {"run_id": run_id, "decision": decision, **self._after_approval(run_id, dry_run=dry_run)}
         self._settle_decision(run_id, run["topic_id"], decision)
         return {"run_id": run_id, "decision": decision, "status": decision, "topic_id": run["topic_id"]}
+
+    def _wait_for_review(self, run_id: str) -> Optional[str]:
+        """The one wait on a review's decision, across every process: a Resend (the Reviews list, the
+        reminder's "Bring the card down") while the first wait was running started a second wait, and one
+        Approve was acted on twice: two Reel bookings, the Stories and the carousel posted twice (review of
+        2026-10-25). None when another wait already owns the review; it acts on the decision."""
+        db_path = getattr(self.db, "db_path", None)
+        if db_path is None:
+            return self.telegram_bot.wait_for_decision(run_id, self._approval_window())
+        from src.publication_lock import exclusive
+        with exclusive(db_path, "review-wait:" + run_id) as mine:
+            if not mine:
+                log.info("A wait on %s's review is already running; the card was brought down only.", run_id)
+                return None
+            return self.telegram_bot.wait_for_decision(run_id, self._approval_window())
 
     def _settle_decision(self, run_id: str, topic_id: str, decision: str) -> None:
         """A review decided anything but Approve: the run's and the topic's state, the same whichever wait
@@ -1157,7 +1174,7 @@ class PipelineCoordinator:
                     pass
                 self.progress_msg_id = None
             if not card_shown:
-                self._alert(f"❌ <b>Production failed</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(e))[:600]}</blockquote>\nNothing was posted. The topic is set aside: restore it from the queue (/queue requeue N).")
+                self._alert(f"❌ <b>Production failed</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(e)[:600])}</blockquote>\nNothing was posted. The topic is set aside: restore it from the queue (/queue requeue N).")
             ping_healthcheck("/fail")
             raise
         finally:
@@ -1371,7 +1388,7 @@ class PipelineCoordinator:
             return "💬 Facebook captions need META_PAGE_ID and a Page access token in production's .env."
         except PublishFailed as e:
             self.db.record_publication(run["topic_id"], run_id, "facebook:captions", "failed", {"error": str(e)[:500]})
-            return f"💬 Facebook did not take the captions: {html.escape(str(e))[:300]}"
+            return f"💬 Facebook did not take the captions: {html.escape(str(e)[:300])}"
         self.db.record_publication(run["topic_id"], run_id, "facebook:captions", "published",
                                    {k: v for k, v in res.items() if k != "result"})
         return (f"💬 Captions added to the Facebook Reel ({'replaced' if res.get('replaced') else 'new'}, "
@@ -2200,7 +2217,10 @@ class PipelineCoordinator:
             decision = "approved"
         else:
             self.telegram_bot.send_approval_request(review_mp4, thumb_916, payload, run_id)
-            decision = self.telegram_bot.wait_for_decision(run_id, self._approval_window())
+            decision = self._wait_for_review(run_id)
+            if decision is None:  # another wait owns this review (it acts on the decision): nothing to settle here
+                return {"run_id": run_id, "topic_id": tid, "decision": "pending", "status": "pending_approval",
+                        "master_video": str(master_mp4)}
 
         result: Dict[str, Any] = {
             "run_id": run_id, "topic_id": tid, "decision": decision,
@@ -2238,6 +2258,12 @@ class PipelineCoordinator:
         run = self.db.get_run(run_id)
         if not run or not run.get("master_video_path"):
             raise ValueError(f"Run '{run_id}' has no rendered video.")
+        booked = [p for p in self.db.list_scheduled_posts(("pending", "published", "unknown"), run_id=run_id) if p["kind"] == "reel"]
+        if booked or run.get("status") in ("scheduled", "published"):
+            # Booked once only: a second booking would post the Stories and the carousel twice (2026-10-25)
+            log.warning("Not booking %s again: it is already %s.", run_id, run.get("status"))
+            return {"status": run.get("status") or "scheduled", "already_booked": True,
+                    "scheduled_for": booked[0]["due_at"] if booked else None}
         payload = run["script_payload"]
         if payload.get("origin") == "curated" and not payload.get("human_reviewed"):
             raise ValueError("This run used an unreviewed curated script; it can only be published after review.")
@@ -2834,7 +2860,7 @@ def start_post_ticker(coordinator: "PipelineCoordinator", bot) -> threading.Thre
                 coordinator.post_due()
             except Exception as e:
                 log.exception("Posting scheduled items failed: %s", e)
-                bot.notify(f"⚠️ Scheduled posting hit an error: {html.escape(str(e))[:300]}")
+                bot.notify(f"⚠️ Scheduled posting hit an error: {html.escape(str(e)[:300])}")
 
     thread = threading.Thread(target=tick, name="post-due", daemon=True)
     thread.start()
@@ -3093,7 +3119,7 @@ def main(argv=None) -> int:
                 try:
                     result = coordinator.request_approval(run_id, resend=resend)
                 except Exception as e:
-                    bot.notify(f"⚠️ Couldn't {'re-send' if resend else 'resume'} the review: {html.escape(str(e))[:300]}")
+                    bot.notify(f"⚠️ Couldn't {'re-send' if resend else 'resume'} the review: {html.escape(str(e)[:300])}")
                     return
                 finally:
                     review_waits.discard(run_id)
@@ -3366,7 +3392,7 @@ def main(argv=None) -> int:
                 coordinator.post_due()
             except Exception as e:
                 log.exception("Posting scheduled items failed: %s", e)
-                bot.notify(f"⚠️ Scheduled posting hit an error: {html.escape(str(e))[:300]}")
+                bot.notify(f"⚠️ Scheduled posting hit an error: {html.escape(str(e)[:300])}")
 
         def report_release():  # a release refused before the stop window causes no restart to announce it
             try:
@@ -3397,7 +3423,7 @@ def main(argv=None) -> int:
             try:
                 plan = maintenance.check()
             except Exception as e:
-                bot.notify(f"🧰 Weekly update check failed: {html.escape(str(e))[:300]}")
+                bot.notify(f"🧰 Weekly update check failed: {html.escape(str(e)[:300])}")
                 return
             buttons = [{"text": "🧰 Apply updates", "callback_data": "upd:apply"}] if plan.applicable else None
             if buttons:
@@ -3416,7 +3442,7 @@ def main(argv=None) -> int:
             try:
                 bot.notify(policy_watch.digest_text(policy_watch.check(coordinator.db)), transient=True, ttl_minutes=10070)
             except Exception as e:
-                bot.notify(f"📜 Weekly policy watch failed: {html.escape(str(e))[:300]}")
+                bot.notify(f"📜 Weekly policy watch failed: {html.escape(str(e)[:300])}")
 
         scheduler.add_job(weekly_policy_watch, CronTrigger(day_of_week="wed", hour=hb_hour, minute=hb_minute,
                                                            timezone=TIMEZONE), max_instances=1, coalesce=True,
@@ -3432,7 +3458,7 @@ def main(argv=None) -> int:
                 try:
                     result = coordinator.request_approval(run_id, dry_run=args.dry_run, resend=resend)
                 except Exception as e:
-                    bot.notify(f"⚠️ Couldn't {'re-send' if resend else 'resume'} the review: {html.escape(str(e))[:300]}")
+                    bot.notify(f"⚠️ Couldn't {'re-send' if resend else 'resume'} the review: {html.escape(str(e)[:300])}")
                     return
                 finally:
                     review_waits.discard(run_id)
@@ -3476,7 +3502,7 @@ def main(argv=None) -> int:
                         fact_sheet.build(t)
                 except Exception as e:
                     log.warning("Fact sheet pre-build failed for %s: %s", t["id"], e)
-                    bot.notify(f"🧾 Couldn't build the fact sheet for {html.escape(t['title'])}: {html.escape(str(e))[:200]}")
+                    bot.notify(f"🧾 Couldn't build the fact sheet for {html.escape(t['title'])}: {html.escape(str(e)[:200])}")
 
         scheduler.add_job(prebuild_fact_sheets, CronTrigger(hour=3, minute=0, timezone=TIMEZONE),
                           max_instances=1, coalesce=True, misfire_grace_time=6 * 3600)
@@ -3578,7 +3604,7 @@ def main(argv=None) -> int:
                     try:
                         bot.notify(maintenance.apply(maintenance.check()))
                     except Exception as e:
-                        bot.notify(f"❌ Updates not applied (rolled back): {html.escape(str(e))[:500]}")
+                        bot.notify(f"❌ Updates not applied (rolled back): {html.escape(str(e)[:500])}")
 
             threading.Thread(target=work, name="apply-updates", daemon=True).start()
             return "🧰 Applying updates on a branch and running the tests. I'll report back."

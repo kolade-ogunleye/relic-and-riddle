@@ -10,6 +10,17 @@ _PROTECTED = re.compile(r"<(?P<tag>pre|code|blockquote)\b[^>]*>.*?</(?P=tag)>", 
 _RULE = re.compile(r"^\s*[━─═]{3,}\s*$", re.M)
 
 
+def _balanced(fragment):
+    """Whether every tag opened in `fragment` is closed in it, in order."""
+    stack = []
+    for closing, name in re.findall(r"<(/?)([a-zA-Z0-9-]+)[^>]*>", fragment):
+        if not closing:
+            stack.append(name.lower())
+        elif not stack or stack.pop() != name.lower():
+            return False
+    return not stack
+
+
 def format_html(text):
     def normalize(part):
         part = re.sub(r"</?u>", "", part)
@@ -39,7 +50,8 @@ def format_html(text):
     # Preserve exact source code/quotes, even when they occupy the first line.
     if not re.search(r"<(?:pre|code|blockquote)\b", heading, re.I):
         heading = re.sub(r"<b>(.*?)</b>", sentence_case, heading)
-        if "<b>" not in heading and len(re.sub(r"<[^>]+>", "", heading)) <= 160:
+        # Bolded only when its own tags close within it: "<i>a" with "</i>" on a later line crossed the tags
+        if "<b>" not in heading and _balanced(heading) and len(re.sub(r"<[^>]+>", "", heading)) <= 160:
             heading = "<b>" + heading + "</b>"
         # A leading emoji stays outside the bold, as on every other line ("<b>ℹ️ Nothing to undo.</b>"
         # read differently from "🎯 <b>Next:</b>": 2026-10-23 UI review).

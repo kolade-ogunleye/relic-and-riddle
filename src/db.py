@@ -549,7 +549,8 @@ class PipelineDatabase:
             conn.execute("""
             INSERT INTO approvals (run_id, topic_id, telegram_message_id, decision, created_at)
             VALUES (?, ?, ?, 'pending', ?)
-            ON CONFLICT(run_id) DO UPDATE SET telegram_message_id = excluded.telegram_message_id, revision = revision + 1, expires_at = NULL
+            ON CONFLICT(run_id) DO UPDATE SET telegram_message_id = excluded.telegram_message_id, revision = revision + 1, expires_at = NULL,
+                created_at = excluded.created_at  -- delivered now: the stale sweep counts from the newest card (2026-10-25)
             """, (run_id, topic_id, message_id, _now()))
             conn.execute("UPDATE approvals SET expires_at=? WHERE run_id=?", (time.time() + 86400, run_id))
 
@@ -779,9 +780,9 @@ class PipelineDatabase:
         """Puts a timed-out approval back to pending so the run can be reviewed again."""
         with self._conn() as conn:
             cur = conn.execute("""
-            UPDATE approvals SET decision = 'pending', decision_timestamp = NULL, decided_by = NULL
+            UPDATE approvals SET decision = 'pending', decision_timestamp = NULL, decided_by = NULL, created_at = ?
             WHERE run_id = ? AND decision = 'timeout'
-            """, (run_id,))
+            """, (_now(), run_id))
             return cur.rowcount == 1
 
     def reset_approval(self, run_id: str) -> None:

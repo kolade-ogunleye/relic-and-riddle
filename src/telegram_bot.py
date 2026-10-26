@@ -80,11 +80,11 @@ TOASTS = {"imgok": "✅ Storyboard Approved!", "imgcancel": "✖ Cancelled", "mc
 
 # Plain names for jobs in /jobs and progress panels (never the internal button name).
 JOB_TITLES = {"fetchimages": "Fetching images", "mfetch": "Finding documentary music", "caccounts": "Checking accounts",
-              "ccov": "Covers", "cmusic": "Music", "cstat": "Full status", "cprop": "Waiting ideas",
+              "ccov": "Covers", "cmusic": "Music", "cstat": "Status", "cprop": "Waiting ideas",
               "cdisc": "UNESCO marvels", "mreview": "Music review", "mlibrary": "Music library", "mkeep": "Keeping a track",
               "mdel": "Removing a track", "mnext": "Next track", "review": "Image review", "uadd": "Adding a marvel",
               "tadd": "Adding an idea", "edittext": "Editing text", "ask": "Ask", "issue": "Logging an issue",
-              "status": "Full status", "accounts": "Checking accounts", "discover": "UNESCO marvels",
+              "status": "Status", "accounts": "Checking accounts", "discover": "UNESCO marvels",
               "propose": "Researching topic ideas", "covers": "Covers", "music": "Music", "add": "Adding a topic"}
 
 # The screen a background job was started from, by its resource (the part before ":"): its card
@@ -100,24 +100,28 @@ JOB_PARENTS = {
 }
 
 
+from .telegram_ui import screen_name  # noqa: E402
+
+
 def job_parent(resource: str) -> Optional[Dict[str, str]]:
     found = JOB_PARENTS.get((resource or "").partition(":")[0])
-    return {"text": found[0], "callback_data": found[1]} if found else None
+    return screen_button(found[1]) or {"text": found[0], "callback_data": found[1]} if found else None
 
 
 # Names for screens a job can be started from, so its back button says where it goes.
-SCREEN_NAMES = {"cideas": "Topic ideas", "cdisc": "UNESCO marvels", "cprop": "Waiting ideas", "cimages": "Images",
-                "imagepick": "Images", "cmusic": "Music", "mfmenu": "Music", "mlibrary": "Music library",
-                "creviews": "Reviews", "covers": "Covers", "ccov": "Covers", "qrefresh": "Queue",
-                "cstat": "Full status", "caudit": "Audit", "cimprove": "Improvements", "reviewpick": "Storyboards"}
+# The names come from telegram_ui.SCREENS, the one table of screen names (these said "Full status", "Images",
+# "Audit" and "Storyboards" after the screens were renamed: review, 2026-10-25).
+SCREEN_NAMES = {"cideas", "cdisc", "cprop", "cimages", "imagepick", "cmusic", "mfmenu", "mlibrary", "creviews",
+                "covers", "ccov", "qrefresh", "cstat", "caudit", "cimprove", "reviewpick"}
 
 
 def screen_button(callback: Optional[str]) -> Optional[Dict[str, str]]:
     """'← <screen>' back to the exact screen (and page) a callback showed. Only the read-only screens
     named above qualify: a back button replays its callback, and replaying an action (adding a marvel,
     starting research) would repeat it. The dashboard has its own button."""
-    name = SCREEN_NAMES.get((callback or "").partition(":")[0])
-    return {"text": f"← {name}", "callback_data": callback} if name else None
+    from .telegram_ui import SCREENS
+    key = (callback or "").partition(":")[0]
+    return {"text": f"← {SCREENS[key][1]}", "callback_data": callback} if key in SCREEN_NAMES and key in SCREENS else None
 
 
 _MASKER = SecretMasker()
@@ -146,18 +150,31 @@ def navigation_buttons(buttons=None, parent=None):
                                                   else rows + [[DONE_BUTTON]])
 
 
-CARD_PAGE_LIMIT = 3600  # telegram_pages.panel pages (as plain text) a card over 3,700 UTF-16 units
+# The review card's budget (HTML, UTF-16 units): under telegram_pages.PAGE_ABOVE with room for a decision's
+# badge, so the card and its approved/rejected form stay one formatted message (a paged card lost its
+# blockquotes and its buttons failed: 2026-10-25).
+CARD_PAGE_LIMIT = 3880
 
 
 _HASHTAG_ONLY_LINE = re.compile(r"^(?:\s*#\w+)+\s*$")
 _TRAILING_HASHTAGS = re.compile(r"(?:\s+#\w+)+\s*$")
 
 
-def listed(heading: str, items: List[str]) -> str:
-    """A card list the one way the card shows one: its heading in bold, then every item whole in an expandable
-    blockquote (Telegram folds it), never cut to fit. `heading` and `items` are HTML already."""
+CARD_LIST_MORE = "reply /ask to this card for the rest"
+FOOTAGE_MAX_BYTES = 20 * 1024 * 1024  # the Bot API's getFile limit
+FORM = "/footage topic | source: URL | licence: CC BY 4.0 | licence_url: URL"
+
+
+def _capped(lines: List[str], cap: Optional[int]) -> List[str]:
+    return lines if cap is None or len(lines) <= cap else lines[:cap] + [f"<i>…and {len(lines) - cap} more: {CARD_LIST_MORE}</i>"]
+
+
+def listed(heading: str, items: List[str], cap: Optional[int] = None) -> str:
+    """A card list the one way the card shows one: its heading in bold, then each item whole in an expandable
+    blockquote (Telegram folds it), never cut to fit. `cap` (a long card): the first `cap` items, then
+    "…and N more". `heading` and `items` are HTML already."""
     head = heading if "<b>" in heading else f"<b>{heading}</b>"
-    body = [x for x in items if x]
+    body = _capped([x for x in items if x], cap)
     return head + ("\n<blockquote expandable>" + "\n".join(f"• {x}" for x in body) + "</blockquote>" if body else "")
 
 
@@ -527,7 +544,12 @@ class TelegramApprovalBot:
         self._panel_screen: Dict[int, str] = {}
         self._panel_origin: Dict[int, Optional[str]] = {}
         self._panel_trail: Dict[int, List[str]] = {}  # the screens shown, Dashboard first: ← goes back along it
-        self._panel_lock = threading.RLock()
+        self._panel_lock = threading.RLock()  # bookkeeping only (revisions, aliases, trail): never across a request
+        # Posting or moving the one panel is serialized on its own lock, the ticker's redraw and a run's receipt on
+        # theirs, so the poll thread never waits on a Telegram request another thread is making (review, 2026-10-25).
+        self._dashboard_lock = threading.RLock()
+        self._progress_lock = threading.Lock()
+        self._answered_lock = threading.Lock()
         self._finished_runs: set = set()  # runs whose progress card became a receipt: the ticker leaves it
         self._answered = {}  # callback ids already answered (insertion-ordered, bounded)
         self._last_opened = 0.0  # monotonic time of the last /start or /dashboard panel
@@ -552,7 +574,11 @@ class TelegramApprovalBot:
         """One dashboard anchor survives /start and routine process reloads. Serialized: two refreshes at
         once (production's startup card and a queued Dashboard tap) each found the stored panel gone and
         each posted one; under the lock the second edits the panel the first posted."""
-        with self._panel_lock:
+        if text is None:  # built before the lock: building reads the database, not Telegram's
+            from .control import dashboard_text_and_buttons
+            from .config import ASSETS_DIR
+            text, buttons = dashboard_text_and_buttons(self.db, getattr(self, "next_run_func", lambda: None)(), assets_dir=ASSETS_DIR)
+        with self._dashboard_lock:
             return self._show_dashboard_locked(text, buttons, fresh)
 
     def _show_dashboard_locked(self, text, buttons, fresh):
@@ -579,7 +605,7 @@ class TelegramApprovalBot:
 
     def _typed_panel(self):
         """A typed command opens the one panel at the bottom of the chat and runs in it, as a tap would."""
-        with self._panel_lock:
+        with self._dashboard_lock:
             message_id = self._show_dashboard_locked("⏳ <b>Working…</b>", [[DONE_BUTTON]], fresh=True)
         if type(message_id) is not int:
             return None
@@ -590,7 +616,7 @@ class TelegramApprovalBot:
         from .telegram_pages import panel as paginate
         text, buttons = paginate(self.db, _MASKER.mask(text), buttons)
         current = self._current_panel(message_id)
-        with self._panel_lock:
+        with self._dashboard_lock:
             stored = self.db.get_setting("telegram_dashboard_id")
             anchor = self._current_panel(int(stored)) if stored and stored.isdigit() else None
             if anchor and anchor != current and current in self._protected_messages():
@@ -991,7 +1017,7 @@ class TelegramApprovalBot:
         raise RuntimeError(f"Telegram {method} failed: still rate-limited")
 
     @staticmethod
-    def release_lines(report: Optional[Dict[str, Any]]) -> str:
+    def release_lines(report: Optional[Dict[str, Any]], cap: Optional[int] = None) -> str:
         """The release gate's measured values and verdict, for the review card (nothing assumed)."""
         if not report or not report.get("checks"):
             return "🚦 <b>Release gate:</b> <i>not run yet</i>\n"
@@ -1012,7 +1038,7 @@ class TelegramApprovalBot:
         if not open_checks and minor:
             # Minor audit findings allowed through (MINOR_FINDINGS_BLOCK_RELEASE=false): shown for the reviewer.
             from .release import check_problems
-            found = "\n".join(f"• {e(c['name'])}: {e(p)}" for c in minor for p in check_problems(c))
+            found = "\n".join(_capped([f"• {e(c['name'])}: {e(p)}" for c in minor for p in check_problems(c)], cap))
             line = f"🚦 <b>Release gate:</b> ✅ all checks pass · minor findings, not blocking:\n<blockquote expandable>{found}</blockquote>\n"
         elif not open_checks:
             line = "🚦 <b>Release gate:</b> ✅ all checks pass\n"
@@ -1021,7 +1047,7 @@ class TelegramApprovalBot:
             # Approve led to a failure notice: 2026-10-24 production run).
             from .release import blocking_checks, check_problems
             blocked = bool(blocking_checks(report, dry_run=report.get("dry_run", False)))
-            found = "\n".join(f"• {e(c['name'])}: {e(p)}" for c in open_checks for p in check_problems(c))
+            found = "\n".join(_capped([f"• {e(c['name'])}: {e(p)}" for c in open_checks for p in check_problems(c)], cap))
             line = ("⛔ <b>Release gate:</b> blocked. This version can't be posted: Edit, Regenerate or Reject it.\n"
                     if blocked else "⚠️ <b>Release gate:</b> needs review before a live post.\n")
             line += f"<blockquote expandable>{found}</blockquote>\n"
@@ -1031,7 +1057,23 @@ class TelegramApprovalBot:
 
     @staticmethod
     def format_card_text(script_payload: Dict[str, Any], run_id: str, release: Optional[Dict[str, Any]] = None) -> str:
-        """HTML review card (Telegram message limit is 4,096 characters)."""
+        """HTML review card (Telegram message limit is 4,096 characters), always one message: the narration
+        and the captions come first; when the findings leave them no room, each folded list is shortened
+        to its first items and "…and N more" (a long Wieliczka card lost its narration and both captions,
+        then was paged as plain text with buttons that failed: review of 2026-10-25)."""
+        card = ""
+        for cap in (None, 4, 3, 2, 1, 0):
+            card = TelegramApprovalBot._card_text(script_payload, run_id, release, cap)
+            # The narration whole first; the findings are shortened only as far as that needs; the captions
+            # take what is left (the long caption is clipped, "full text: Edit", as before).
+            captions = all(f"<b>{label}:</b>" in card for key, label in (("caption", "Caption"), ("carousel_caption", "Carousel caption"))
+                           if script_payload.get(key))  # at least its first lines, or where to read it
+            if "[shortened:" not in card and captions and _tg_len(card) <= CARD_PAGE_LIMIT:
+                return card
+        return card
+
+    @staticmethod
+    def _card_text(script_payload: Dict[str, Any], run_id: str, release: Optional[Dict[str, Any]], cap: Optional[int]) -> str:
         e = html.escape
         loc = script_payload.get("location") or {}
         place = ", ".join(e(str(v)) for v in (loc.get("name"), loc.get("country")) if v)
@@ -1054,7 +1096,7 @@ class TelegramApprovalBot:
             f"⏱️ {script_payload.get('word_count', 0)} words · written by: <i>{e(origin_label(script_payload.get('origin', '?')))}</i>\n"
             f"{integrity}\n"
             + _second_check_line(script_payload.get("second_check"))
-            + TelegramApprovalBot.release_lines(release) + "\n"
+            + TelegramApprovalBot.release_lines(release, cap) + "\n"
             "<blockquote expandable><b>Narration and timings:</b>\n<i>\x00NARRATION\x00</i>\n\n"
             f"<b>First comment:</b> <i>{e(script_payload.get('first_comment', ''))}</i>\n"
             # Everything Approve publishes is readable here (the caption and carousel caption were only
@@ -1109,21 +1151,21 @@ class TelegramApprovalBot:
             f"line {c.get('beat', '?')}: {str(c.get('looked') or c.get('title', '')).removeprefix('File:')}"
             for c in script_payload.get("beat_image_credits") or [] if isinstance(c, dict)]
         if photo_lines and script_payload.get("beat_image_note"):
-            text += "\n" + listed(e(script_payload["beat_image_note"].partition(":")[0]), [e(x) for x in photo_lines])
+            text += "\n" + listed(e(script_payload["beat_image_note"].partition(":")[0]), [e(x) for x in photo_lines], cap)
         elif script_payload.get("beat_image_note"):
             text += "\n" + _format_note(script_payload["beat_image_note"])
         if script_payload.get("source_note"):
             text += "\n" + _format_note(script_payload["source_note"]) + "\n"
         if script_payload.get("qa_summary"):  # already HTML-escaped by video_qa: its heading, then each issue folded
             head, *found = script_payload["qa_summary"].splitlines()
-            text += "\n" + (listed(head, [x.lstrip("· ").strip() for x in found]) if found else head) + "\n"
+            text += "\n" + (listed(head, [x.lstrip("· ").strip() for x in found], cap) if found else head) + "\n"
         # The look at the stills and the cover (info findings: never a block) was kept but shown nowhere when
         # the gate passed (2026-10-24 review doc said they were on the card; audit 2026-10-25).
         notes = [i for i in ((script_payload.get("self_healing") or {}).get("issues") or [])
                  if isinstance(i, dict) and str(i.get("severity", "")).lower() == "info" and i.get("issue")]
         if notes:
             # Each note whole, folded, as the gate's findings are (operator, 2026-10-25: cut mid-word at 160)
-            text += "\n" + listed(f"👀 Look at the stills and cover: {len(notes)} note(s)",
+            text += "\n" + listed(f"👀 Look at the stills and cover: {len(notes)} note(s)", cap=cap, items=
                                   [f"{e(str(i.get('card') or i.get('type') or ''))}: {e(str(i['issue']))}" for i in notes]) + "\n"
         if sources:
             text += "\n📚 " + "\n📚 ".join(e(s.get("url", "")) for s in sources) + "\n"
@@ -1142,8 +1184,8 @@ class TelegramApprovalBot:
         full = full.replace("\x00NARRATION\x00", e(narration), 1)
         # The captions take only the room the narration leaves (adding them in full shortened the narration
         # of real cards: 2026-10-23 UI review); what does not fit says where the whole of it is.
-        for key, label, marker in (("caption", "Caption", "\x00CAPTION\x00"),
-                                   ("carousel_caption", "Carousel caption", "\x00CAROUSEL\x00")):
+        for key, label, marker in (("carousel_caption", "Carousel caption", "\x00CAROUSEL\x00"),
+                                   ("caption", "Caption", "\x00CAPTION\x00")):  # the short one first
             if marker not in full:
                 continue
             spare = CARD_PAGE_LIMIT - _tg_len(full.replace("\x00CAPTION\x00", "").replace("\x00CAROUSEL\x00", ""))
@@ -1326,9 +1368,8 @@ class TelegramApprovalBot:
              {"text": "❌ Reject", "callback_data": f"reject:{key}"}],
         ] + ([] if script_payload.get("delivery_profile") == "deep_dive_16x9"  # 9:16 covers don't fit a documentary
              else [[{"text": "🎨 Covers", "callback_data": f"ccov:{key}"}]]) + [[DONE_BUTTON]])}
-        from .telegram_pages import panel as paginate
-        card_text, rows = paginate(self.db, card_text, markup["inline_keyboard"])
-        markup["inline_keyboard"] = rows
+        # One message, never paged: a paged card moved into a panel whose buttons failed (2026-10-25);
+        # format_card_text keeps it inside the limit by shortening its folded lists.
         try:
             msg = self._api("sendMessage", data={"chat_id": self.chat_id, "text": card_text, "parse_mode": "HTML",
                                                  "disable_web_page_preview": "true", "reply_markup": json.dumps(markup)})
@@ -1353,7 +1394,7 @@ class TelegramApprovalBot:
     def _answer_callback(self, cq_id: str, text: str = "") -> None:
         """Safely answers a Telegram callback query; suppresses expired query (400) errors."""
         # Telegram shows only the first answer and rejects the rest; each rejected call still costs a round trip.
-        with self._panel_lock:
+        with self._answered_lock:
             if cq_id in self._answered:
                 return
             self._answered[cq_id] = None
@@ -1441,7 +1482,8 @@ class TelegramApprovalBot:
         # formatting, and re-sending it as HTML could break on a stray "<").
         run = self.db.get_run(run_id) if hasattr(self.db, "get_run") else None
         if run and run.get("script_payload"):
-            updated_text = self.format_card_text(run["script_payload"], run_id) + badge
+            # With the gate's report, as on the card that was tapped (it said "Release gate: not run yet")
+            updated_text = self.format_card_text(run["script_payload"], run_id, release=self._release_report(run)) + badge
         elif orig_text:
             updated_text = html.escape(orig_text) + badge
         else:
@@ -1461,6 +1503,15 @@ class TelegramApprovalBot:
             log.warning("Could not update Telegram card: %s", e)
         if decision in ("rejected", "regenerate"):
             self.ask_reason(run_id, decision)
+
+    @staticmethod
+    def _release_report(run: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """The run's release report (next to its master), or None."""
+        try:
+            path = Path(run.get("master_video_path") or "").parent / "release_report.json"
+            return json.loads(path.read_text(encoding="utf-8")) if run.get("master_video_path") and path.exists() else None
+        except (OSError, ValueError):
+            return None
 
     def stamp_review_outcome(self, run_id: str, outcome: str) -> bool:
         """After the decision and its result, the review card becomes a short receipt (what was approved and
@@ -1625,7 +1676,7 @@ class TelegramApprovalBot:
                     if active and active.get("run_id") != run_id:
                         return
                     if active and active.get("message_id"):
-                        with self._panel_lock:  # never over the receipt the run's end is writing (review, 2026-10-25)
+                        with self._progress_lock:  # never over the receipt the run's end is writing (review, 2026-10-25)
                             if run_id in self._finished_runs:
                                 return
                             self.update_progress_card(active["message_id"], int(active.get("step") or 1),
@@ -1821,7 +1872,7 @@ class TelegramApprovalBot:
         """Finishes the progress card into a completed receipt, or deletes it if video review was sent. The
         dashboard is redrawn after it, so it never shows the previous outcome (operator, 2026-10-25: it still
         said 53.7 s after the re-render had failed at 54.4 s)."""
-        with self._panel_lock:
+        with self._progress_lock:
             self._finished_runs.add(run_id)  # the ticker's next redraw must not overwrite the receipt
         try:
             return self._finish_progress_card(message_id, topic_title, run_id, success, error)
@@ -2085,6 +2136,16 @@ class TelegramApprovalBot:
             log.debug("Could not dismiss approval buttons for %s: %s", run_id, e)
             return False
 
+    def timeout_notice(self, run_id: str) -> None:
+        """Says a review closed without a decision, with Resend: from the wait, and from the stale sweep (which
+        closed reviews silently: their buttons just went, 2026-10-25)."""
+        notice = self.notify(f"⌛ No decision on {html.escape(self.db.run_label(run_id))}; nothing was posted. "
+                             "The render is kept: resend it here, or later from Reviews on the dashboard.",
+                             buttons=[{"text": "📨 Resend for review", "callback_data": f"resend:{self.db.run_key(run_id)}"}])
+        if type(notice) is int:  # removed when the review is sent again, from wherever
+            from .telegram_state import put
+            put(self.db, "timeout-notice", run_id, notice)
+
     def cleanup_stale_approvals(self, max_age_hours: int = 26) -> int:  # past the longest review window (24 h)
         """Sweeps any pending approvals older than max_age_hours, marks them timed out, and strips buttons."""
         if not hasattr(self.db, "list_pending_approvals"):
@@ -2106,6 +2167,10 @@ class TelegramApprovalBot:
                     if self.db.update_approval_decision(r_id, "timeout", decided_by="stale_sweeper"):
                         self.dismiss_approval_buttons(r_id)
                         cleaned += 1
+                        try:  # one notice failing must not stop the sweep of the others
+                            self.timeout_notice(r_id)
+                        except Exception as exc:
+                            log.warning("Could not post the timeout notice for %s: %s", r_id, _MASKER.mask(str(exc)))
             if cleaned:
                 log.info("Cleaned up %d stale/timed-out approval(s) from Telegram.", cleaned)
         except Exception as e:
@@ -2315,6 +2380,29 @@ class TelegramApprovalBot:
         self._navigation_pool.submit(guarded)
         return True
 
+    LAST_POLL_KEY = "telegram_last_poll"
+
+    def _offline_gap(self) -> bool:
+        """Whether this batch follows a time the bot was not polling for longer than STALE_COMMAND_SECONDS
+        (the last poll is kept in the database, so a restart after an outage knows it was one)."""
+        now = time.time()
+        try:
+            last = float(self.db.get_setting(self.LAST_POLL_KEY) or 0)
+        except (TypeError, ValueError, AttributeError):
+            last = 0.0
+        if now - getattr(self, "_last_poll_saved", 0.0) > 60 and hasattr(self.db, "set_setting"):
+            self.db.set_setting(self.LAST_POLL_KEY, f"{now:.0f}")
+            self._last_poll_saved = now
+        return bool(last) and now - last > STALE_COMMAND_SECONDS
+
+    @staticmethod
+    def _stale_tap(data: str) -> bool:
+        """A tap that does something (starts work, posts, changes the queue) rather than show a screen or
+        decide a review; such taps are not replayed after an outage."""
+        from .telegram_ui import replayable
+        action = (data or "").partition(":")[0]
+        return not (action in ACTIONS or replayable(data) or action in {"done", "resend", "jobs", "rsn"})
+
     def poll_once(self, command_handler: Optional[Callable[[str, str], str]] = None, timeout: int = 25) -> None:
         """One long-poll: applies approval clicks for any run and answers authorized /commands."""
         if time.monotonic() - self._last_maintenance > 300:
@@ -2334,6 +2422,7 @@ class TelegramApprovalBot:
             data["offset"] = self._offset
         updates = self._api("getUpdates", timeout=timeout + 10, data=data)
         from .telegram_state import admit, decode
+        offline = self._offline_gap()  # taps queued while the bot was down: decisions and screens only
         for update in updates:
             try:
                 self._offset = max(self._offset or 0, update["update_id"] + 1)
@@ -2343,6 +2432,12 @@ class TelegramApprovalBot:
                 cq = update.get("callback_query")
                 if cq:
                     cq["data"] = decode(self.db, cq.get("data", ""))
+                    if offline and self._stale_tap(cq["data"]):
+                        # A Render, Fetch or Research tap made while the bot was down for a day must not fire
+                        # when it comes back (review of 2026-10-25); a decision (first wins) or a screen still does.
+                        log.info("Skipping a %s tap made while the bot was offline.", cq["data"].partition(":")[0])
+                        self._answer_callback(cq["id"], "Made while the bot was offline: tap it again if you still want it")
+                        continue
                     message = cq.get("message") or {}
                     if self._authorized(cq.get("from",{}).get("id"), message.get("chat",{}).get("id")) and message.get("message_id"):
                         with self._panel_lock:
@@ -2366,8 +2461,8 @@ class TelegramApprovalBot:
                 elif cq and action not in ACTIONS:
                     message = cq.get("message") or {}
                     if self._authorized(cq.get("from",{}).get("id"), message.get("chat",{}).get("id")):
-                        if action == "jobcancel":
-                            self.jobs.cancel(cq["data"].partition(":")[2])
+                        if action == "jobcancel":  # cancelled here, at once; the Jobs screen then says so
+                            cq["_cancelled"] = self.jobs.cancel(cq["data"].partition(":")[2])
                             cq["data"] = "jobs:"
                         if action not in RETIRED_ACTIONS:  # those answer with their own explanation
                             self._answer_callback(cq["id"], "Request received")
@@ -2498,8 +2593,9 @@ class TelegramApprovalBot:
                 is_media = bool(msg.get('photo') or msg.get('audio') or msg.get('video') or msg.get('document'))
                 if action in {'jobs', 'jobcancel'}:
                     note = ''
-                    if action == 'jobcancel':
-                        note = '⏹ Cancellation requested. An in-flight request may finish.\n\n' if self.jobs.cancel(target) else 'This job is no longer owned by this bot process.\n\n'
+                    cancelled = cq.get('_cancelled') if action == 'jobs' else (self.jobs.cancel(target) if action == 'jobcancel' else None)
+                    if cancelled is not None:  # the confirmation never showed: the cancel was made before this point
+                        note = '⏹ Cancellation requested. An in-flight request may finish.\n\n' if cancelled else 'This job is no longer owned by this bot process.\n\n'
                     text, buttons = self.jobs_view()
                     from .telegram_ui import with_nav
                     buttons = with_nav([row for row in buttons if row != [DONE_BUTTON]], self.back_for(msg_id, "jobs:"),
@@ -2511,6 +2607,14 @@ class TelegramApprovalBot:
                     if msg_id:
                         self.delete_message(msg_id)
                     self._answer_callback(cq['id'], 'Closed')
+                    return
+                if action == 'expired':  # a button too old to remember (its long data was pruned)
+                    self._answer_callback(cq['id'], 'That button has expired; here is the Dashboard')
+                    if msg_id:
+                        from .control import dashboard_text_and_buttons
+                        from .config import ASSETS_DIR
+                        dash_text, dash_buttons = dashboard_text_and_buttons(self.db, getattr(self, 'next_run_func', lambda: None)(), assets_dir=ASSETS_DIR)
+                        self.show_navigation_panel(msg_id, dash_text, is_media=is_media, buttons=dash_buttons)
                     return
                 if action == 'rerender':
                     # One message per run (operator, 2026-10-25: a Re-render left the dashboard, a notice and a
@@ -2609,7 +2713,8 @@ class TelegramApprovalBot:
                         if not self.show_navigation_panel(msg_id, text, buttons, is_media):
                             self.notify(text, buttons=buttons, record_alert=False)
                     else:
-                        self.notify(f'⚠️ {html.escape(action)} failed: {html.escape(str(e))[:300]}')
+                        what = JOB_TITLES.get(action) or (screen_name(f"{action}:") or "That").split(" ", 1)[-1]
+                        self.notify(f'⚠️ {html.escape(what)} did not work: {html.escape(str(e)[:300])}')
             return
         msg = update.get('message') or {}
         if self._authorized(msg.get('from', {}).get('id', ''), msg.get('chat', {}).get('id', '')):
@@ -2695,6 +2800,15 @@ class TelegramApprovalBot:
                 key = key.strip().lower().replace('license', 'licence')
                 if key in ('source', 'licence', 'licence_url', 'author') and value.strip():
                     rights[key] = value.strip()
+            # Every outcome is said (it failed silently: an unknown topic, a clip over Telegram's 20 MB, a bare
+            # caption: review of 2026-10-25).
+            if not topic_ref:
+                self.notify(f"🎞 Say which topic the clip is for: <code>{html.escape(FORM)}</code>")
+                return
+            if (doc_or_vid.get('file_size') or 0) > FOOTAGE_MAX_BYTES:
+                self.notify(f"🎞 That clip is {doc_or_vid['file_size'] / 1048576:.0f} MB; a bot can receive up to "
+                            f"{FOOTAGE_MAX_BYTES // 1048576} MB. Trim or compress it and send it again.")
+                return
             if topic_ref:
                 try:
                     file_id = doc_or_vid.get('file_id')
@@ -2726,14 +2840,20 @@ class TelegramApprovalBot:
                         missing = [k for k in ('source', 'licence', 'licence_url') if k not in rights]
                         note = '' if not missing else f"\n⚠️ No {', '.join(missing)} given, so the release gate will hold any video using it. Resend with <code>/footage topic | source: URL | licence: CC BY 4.0 | licence_url: URL</code>."
                         self.notify(f'✅ Video clip received and saved for <b>{html.escape(topic_dir.name)}</b>.{note}')
-                except Exception:
+                    else:
+                        self.notify("🎞 Telegram didn't hand the clip over (no file path). Send it again.")
+                except Exception as exc:
                     log.exception('Direct video download from Telegram failed')
+                    reason = str(exc) if isinstance(exc, ValueError) else type(exc).__name__
+                    self.notify(f"🎞 The clip wasn't saved: {html.escape(reason[:300])}")
             return
         photos = msg.get('photo')
         media_item = (photos[-1] if photos else None) or msg.get('document') or msg.get('video') or msg.get('audio') or msg.get('voice')
         caption = (msg.get('caption') or '').strip()
+        # Only the operator's own photo answers the pending /issue (anyone else's cancelled it: review, 2026-10-25)
         waiting_issue = bool(media_item and self._awaiting and self._awaiting[0] == 'issue' and self._awaiting[1] > time.time()
-                             and not caption.startswith('/'))
+                             and not caption.startswith('/')
+                             and self._authorized(msg.get('from', {}).get('id', ''), msg.get('chat', {}).get('id', '')))
         if waiting_issue:
             self._awaiting = None
             caption = '/issue ' + (caption or 'See the attached screenshot.')
@@ -2765,7 +2885,7 @@ class TelegramApprovalBot:
                         self._delete_soon(msg.get('message_id'))
             except Exception as e:
                 log.exception('Evidence upload for /issue failed')
-                self.show_dashboard(f'⚠️ Failed to process issue evidence: {html.escape(str(e))[:300]}', navigation_buttons(None), fresh=True)
+                self.show_dashboard(f'⚠️ Failed to process issue evidence: {html.escape(str(e)[:300])}', navigation_buttons(None), fresh=True)
             return
         text = (msg.get('text') or '').strip()
         reply_to = msg.get('reply_to_message')
@@ -2902,7 +3022,7 @@ class TelegramApprovalBot:
                 reply = command_handler(command, args.strip())
             except Exception as e:
                 log.warning("Command /%s failed: %s", command, _MASKER.mask(str(e)))
-                reply = f"⚠️ /{html.escape(command)} failed: {html.escape(str(e))[:300]}"
+                reply = f"⚠️ /{html.escape(command)} failed: {html.escape(str(e)[:300])}"
             if command == 'whytext' and reply_to and reply_to.get('message_id'):
                 self._settle_rejected_card(args.split(' ', 1)[0], reply_to['message_id'], now=True)
             if isinstance(reply, tuple):  # a refusal with buttons (an unrequeueable topic) still says why
@@ -2954,7 +3074,7 @@ class TelegramApprovalBot:
             reply = command_handler(command, args)
         except Exception as e:
             log.warning("Command /%s failed: %s", command, _MASKER.mask(str(e)))
-            reply = f"⚠️ /{html.escape(command)} failed: {html.escape(str(e))[:300]}"
+            reply = f"⚠️ /{html.escape(command)} failed: {html.escape(str(e)[:300])}"
         finally:
             if token is not None:
                 _PANEL.reset(token)
@@ -3041,12 +3161,7 @@ class TelegramApprovalBot:
             if self.db.update_approval_decision(run_id, "timeout", decided_by="system"):
                 log.warning("No decision for %s within %ss.", run_id, timeout_seconds)
                 self.dismiss_approval_buttons(run_id)
-                notice = self.notify(f"⌛ No decision on {html.escape(self.db.run_label(run_id))}; nothing was posted. "
-                                     "The render is kept: resend it here, or later from Reviews on the dashboard.",
-                                     buttons=[{"text": "📨 Resend for review", "callback_data": f"resend:{self.db.run_key(run_id)}"}])
-                if type(notice) is int:  # removed when the review is sent again, from wherever
-                    from .telegram_state import put
-                    put(self.db, "timeout-notice", run_id, notice)
+                self.timeout_notice(run_id)
                 return "timeout"
             return (self.db.get_approval(run_id) or {}).get("decision", "timeout")
         finally:

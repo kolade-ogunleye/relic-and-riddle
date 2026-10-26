@@ -1119,15 +1119,27 @@ class PipelineCoordinator:
             if not mine:
                 log.info("A wait on %s's review is already running; the card was brought down only.", run_id)
                 return None, None
+            self.telegram_bot.approval_window = self._approval_window   # a resend's window is sized again from it
             decision = self.telegram_bot.wait_for_decision(run_id, self._approval_window())
-            if decision == "approved":
-                stamp = str((self.db.get_approval(run_id) or {}).get("decision_timestamp") or "")
-                key = self.REVIEW_ACTED_PREFIX + run_id
-                if stamp and self.db.get_setting(key) == stamp:
+            if decision != "approved":
+                return decision, act(decision)
+            stamp = str((self.db.get_approval(run_id) or {}).get("decision_timestamp") or "")
+            key = self.REVIEW_ACTED_PREFIX + run_id
+            if stamp and self.db.get_setting(key) == stamp:
+                run = self.db.get_run(run_id) or {}
+                booked = self.db.list_scheduled_posts(("pending", "waiting", "published", "unknown", "failed"), run_id=run_id)
+                if run.get("status") != "pending_approval" or booked:
                     log.info("The Approve of %s was already acted on; not again.", run_id)
                     return decision, None
-                self.db.set_setting(key, stamp)  # before acting: a crash part-way never acts twice either
-            return decision, act(decision)
+                # Marked, yet nothing happened (the process ended part-way): booking and publishing are
+                # idempotent, so it is acted on again rather than left approved and never posted.
+                log.warning("The Approve of %s was marked acted on but nothing was posted or booked; acting now.", run_id)
+            self.db.set_setting(key, stamp)  # before acting: two waits never act on one Approve
+            try:
+                return decision, act(decision)
+            except Exception:
+                self.db.set_setting(key, "")  # it failed: a later wait (or a resend) may act on it again
+                raise
 
     def _wait_for_review(self, run_id: str) -> Optional[str]:
         """The decision alone (callers that act themselves); see _decide_review."""

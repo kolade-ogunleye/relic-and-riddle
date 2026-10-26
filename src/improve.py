@@ -533,6 +533,8 @@ def plain_name(klass: str) -> str:
     if area == "issue":
         return f"Your reports about {AREA_NAMES.get(rest, rest.replace('_', ' '))}"
     if area == "run" and rest.startswith("failed."):
+        if rest[7:] in ("RuntimeError", "ValueError", "Exception", "TypeError", "KeyError", "OSError"):
+            return "Runs stopped: an unexpected error"
         return "Runs stopped: " + re.sub(r"(?<!^)(?=[A-Z])", " ", rest[7:]).replace(" Error", "").lower()
     if area == "video" and rest.startswith("beat_"):
         return f"The video check, beat {rest[5:]}"

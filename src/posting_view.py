@@ -199,8 +199,8 @@ def confirm_cancel(db, post_id: int) -> Tuple[str, List[List[Dict[str, str]]]]:
     if post is None:
         return "⏹ That booking is no longer pending.", [[{"text": "← Posting", "callback_data": "cposts:"}]]
     label = html.escape(db.run_label(post["run_id"]))
-    what = ("its Reel, Stories and carousel bookings are all cancelled; it becomes a post candidate again "
-            "(Reviews → Post for real)"
+    what = ("its Reel, Stories and carousel bookings are all cancelled, its topic goes back to the queue, and "
+            "for two days it can still be posted from Reviews → Post for real"
             if post["kind"] == "reel" else f"only this {POST_NAME.get(post['kind'], post['kind'])} booking is cancelled")
     return (f"⏹ <b>Cancel this booking?</b>\n{label}\n\n{_first_upper(what)}.",
             [[{"text": "✅ Yes, cancel it", "callback_data": f"cancelpost:{post_id}"}],

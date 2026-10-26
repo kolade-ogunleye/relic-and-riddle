@@ -2265,17 +2265,23 @@ class TelegramApprovalBot:
 
         styles = {"a": "Forensic Blueprint", "b": "Discovery Intrigue", "c": "Cinematic Minimal"}
         style_name = styles.get(var_letter, var_letter.upper())
+        # ✓ the cover the video has, 👁 the one shown (a flip ticked the preview as if chosen: 2026-10-25);
+        # Lock only while the video waits for its review, as on the Covers screen.
+        from .control import chosen_cover
+        chosen = chosen_cover(r_dir)
+        mark = lambda v: "✓" if v == chosen else ("👁" if v == var_letter else "📌")  # noqa: E731
+        run_rec = self.db.get_run(run_name) or {}
+        reviewable = run_rec.get("status") == "pending_approval" and (self.db.get_approval(run_name) or {}).get("decision") == "pending"
         buttons = [
             [
-                {"text": f"{'✓' if var_letter == 'a' else '📌'} A: Blueprint", "callback_data": f"cov:{run_name}:a"},
-                {"text": f"{'✓' if var_letter == 'b' else '📌'} B: Intrigue", "callback_data": f"cov:{run_name}:b"},
+                {"text": f"{mark('a')} A: Blueprint", "callback_data": f"cov:{run_name}:a"},
+                {"text": f"{mark('b')} B: Intrigue", "callback_data": f"cov:{run_name}:b"},
             ],
             [
-                {"text": f"{'✓' if var_letter == 'c' else '📌'} C: Minimal", "callback_data": f"cov:{run_name}:c"},
+                {"text": f"{mark('c')} C: Minimal", "callback_data": f"cov:{run_name}:c"},
             ],
-            [
-                {"text": f"🔒 Lock {var_letter.upper()}", "callback_data": f"covlock:{run_name}:{var_letter}"}
-            ],
+            *([[{"text": f"🔒 Lock {var_letter.upper()}", "callback_data": f"covlock:{run_name}:{var_letter}"}]]
+              if reviewable else []),
             [back or DONE_BUTTON],  # keep the way back the panel was opened with (Close or Dashboard)
         ]
         caption = (
@@ -3118,7 +3124,7 @@ class TelegramApprovalBot:
             work, resource=f"{action}:{target}", navigation=(message_id, is_media, revision), late=late)
 
     def wait_for_decision(self, run_id: str, timeout_seconds: Optional[int] = None, poll_interval: int = 5,
-                          reminder_after: int = 1800) -> str:
+                          reminder_after: int = 1800, window: Optional[Callable[[], int]] = None) -> str:
         """Returns 'approved', 'rejected', 'regenerate', or 'timeout'. Never auto-approves. One reminder
         after `reminder_after` seconds when the window is long enough; on timeout, a Resend button."""
         timeout_seconds = timeout_seconds or APPROVAL_TIMEOUT_SECONDS
@@ -3144,9 +3150,14 @@ class TelegramApprovalBot:
                 approval = self.db.get_approval(run_id)
                 if approval and approval.get("created_at") != delivered:
                     if delivered is not None:  # brought down again (a resend): its window starts again
-                        deadline = max(deadline, time.monotonic() + timeout_seconds)
-                        reminded = timeout_seconds < reminder_after + 600
+                        sizer = window or getattr(self, "approval_window", None)
+                        again = sizer() if callable(sizer) else timeout_seconds   # sized as the first was, from now
+                        deadline = max(deadline, time.monotonic() + again)
+                        reminded = again < reminder_after + 600
                         started = time.monotonic()
+                        for old in [m for m in reminder if type(m) is int]:  # the earlier reminder's button is stale
+                            self._delete_soon(old)
+                        reminder.clear()
                     delivered = approval.get("created_at")
                 if approval and approval["decision"] != "pending":
                     log.info("Decision for %s: %s (by %s)", run_id, approval["decision"], approval.get("decided_by"))
@@ -3180,8 +3191,8 @@ class TelegramApprovalBot:
                 return "timeout"
             return (self.db.get_approval(run_id) or {}).get("decision", "timeout")
         finally:
-            if reminder and type(reminder[0]) is int:
-                self._delete_soon(reminder[0])  # it stayed after the approval, offering a dead button
+            for old in [m for m in reminder if type(m) is int]:
+                self._delete_soon(old)  # each stayed after the approval, offering a dead button
 
     def record_local_decision(self, run_id: str, decision: str) -> bool:
         """CLI decision path. Returns False if the run already has a decision."""

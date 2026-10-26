@@ -265,7 +265,7 @@ def _deterministic(ev: Dict[str, Any]) -> str:
     if run:
         lines.append(f"<b>Status:</b> {e(str(run.get('status')))}" + (f" — {e(str(run.get('error'))[:200])}" if run.get("error") else ""))
     for k, v in (ev.get("review card notes") or {}).items():
-        lines.append(f"• {e(re.sub(r'<[^>]+>', '', str(v)))[:220]}")
+        lines.append(f"• {e(re.sub(r'<[^>]+>', '', str(v))[:220])}")   # cut, then escaped
     checks = ev.get("release_report.json")
     if isinstance(checks, list):
         open_checks = [c for c in checks if c.get("status") != "pass"]

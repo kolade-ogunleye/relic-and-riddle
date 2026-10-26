@@ -1991,7 +1991,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             topic_id, count = fetch_images(db, assets_dir, args)
             name = (db.get_topic_by_id(topic_id) or {}).get("title") or topic_id.replace("_", " ")   # its name, not its id
             return (f"🖼 <b>Photos fetched</b>\n{count} eligible photo{'s' if count != 1 else ''} for "
-                    f"<b>{html.escape(name)}</b>; review them before a video uses them.",
+                    f"<b>{html.escape(name)}</b>; review {'it' if count == 1 else 'them'} before a video uses "
+                    f"{'it' if count == 1 else 'them'}.",
                     [[{"text": "🖼 Review the set", "callback_data": f"review:{args}"}],
                      [{"text": "← Topic pictures", "callback_data": f"imagehelp:{args}"}], [HOME]])
         if command == "cpause":

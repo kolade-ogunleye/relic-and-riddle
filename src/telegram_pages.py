@@ -44,7 +44,8 @@ def panel(db, text, buttons):
 def render(db, key, number):
     value = get(db, "pages", key)
     if not value or not 0 <= number < len(value["pages"]):
-        return "This page has expired. Reopen the command.", [[{"text": "← Dashboard", "callback_data": "cdash:"}]]
+        from .telegram_ui import HOME
+        return "This page has expired. Reopen the command.", [[HOME]]
     pages = value["pages"]
     from .control import pager
     from .telegram_bot import format_responsive_keyboard

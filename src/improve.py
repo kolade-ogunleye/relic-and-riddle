@@ -35,6 +35,11 @@ from . import config
 
 log = logging.getLogger(__name__)
 
+
+def _label(text):
+    from .telegram_ui import label
+    return label(text)
+
 RECURRENCE_DAYS = 14
 MIN_RECURRENCE = 3
 MIN_RUNS = 2  # a run problem must show in at least this many separate runs before it becomes a proposal
@@ -529,7 +534,7 @@ def improve_text(db) -> Tuple[str, List[List[Dict[str, str]]]]:
         lines.append(f"\n<b>Suggested fixes waiting for your decision</b> · {len(ready)}")
         for p in ready[:6]:
             lines.append(f"• {html.escape(p['title'])}")
-            buttons.append([{"text": f"Open: {plain_name(p['klass'])[:24]}", "callback_data": f"impinfo:{p['id']}"}])
+            buttons.append([{"text": _label(f"🧭 {plain_name(p['klass'])}"), "callback_data": f"impinfo:{p['id']}"}])
     if testing:
         lines.append(f"\n<b>Being tried on the test set</b> · {len(testing)}")
         for p in testing[:6]:
@@ -546,7 +551,7 @@ def improve_text(db) -> Tuple[str, List[List[Dict[str, str]]]]:
     lines.append(f"\n<b>Writing rules adopted</b> · {len(active) or 'none yet'}")
     for x in active:
         lines.append(f"• {html.escape(x['rule'])}")
-        buttons.append([{"text": f"↩ Revert: {plain_name(x['klass'])[:22]}", "callback_data": f"imprev:{x['id']}"}])
+        buttons.append([{"text": _label(f"↩ Revert {plain_name(x['klass'])}"), "callback_data": f"imprev:{x['id']}"}])
     return "\n".join(lines), buttons
 
 
@@ -558,7 +563,7 @@ def digest_text(db) -> str:
     with db._conn() as conn:
         n = conn.execute("SELECT COUNT(*) FROM findings WHERE created_at >= ?", (since,)).fetchone()[0]
         runs = conn.execute("SELECT COUNT(DISTINCT run_id) FROM findings WHERE created_at >= ?", (since,)).fetchone()[0]
-    lines = ["🗓 <b><u>WEEKLY IMPROVEMENT DIGEST</u></b>", "",
+    lines = ["🗓 <b>Weekly digest</b>", "",
              f"{n} findings across {runs} runs this week."]
     top = recurring(db, days=7, min_count=1)[:6]
     if top:

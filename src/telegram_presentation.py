@@ -66,7 +66,7 @@ def copy_buttons(text, markup):
     rows = value.get("inline_keyboard", [])
     if any("copy_text" in button for row in rows for button in row):
         return markup  # already offered (an edit of the same screen)
-    labels = [f"📋 Copy {c}" if len(c) <= 30 else f"📋 Copy {c[:28]}…" for c in commands[:3]]
+    labels = [f"📎 Copy {c}" if len(c) <= 30 else f"📎 Copy {c[:28]}…" for c in commands[:3]]  # 📋 is the Queue
     value["inline_keyboard"] = [[{"text": label, "copy_text": {"text": command}}] for label, command in zip(labels, commands)] + rows
     return json.dumps(value)
 

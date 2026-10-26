@@ -272,7 +272,7 @@ class PipelineCoordinator:
             self.db.update_run(run_id, "failed", error=f"FactStarvedTopicError: {e}")
             self.topic_engine.record_status(tid, "fact_starved", run_id=run_id)
             log.warning("Topic '%s' is fact-starved: %s. Gracefully skipping to protect pipeline integrity.", tid, e)
-            self._alert(f"⚠️ <b><u>TOPIC SKIPPED: FACT-STARVED</u></b>\n\n<code>{html.escape(tid)}</code>\n\n{html.escape(str(e))}\n\nSkipped gracefully to next queued topic.")
+            self._alert(f"⚠️ <b>Topic skipped: fact-starved</b>\n\n<code>{html.escape(tid)}</code>\n\n{html.escape(str(e))}\n\nSkipped gracefully to next queued topic.")
             next_t = self.topic_engine.get_next_topic()
             if next_t and next_t["id"] != tid:
                 log.info("Auto-advancing to next topic '%s'...", next_t['id'])
@@ -291,7 +291,7 @@ class PipelineCoordinator:
             self._collect_findings(run_id, run_dir, tid, error=f"{type(e).__name__}: {e}")
             log.error("Run %s failed: %s", run_id, e)
             if not card_shown:
-                self._alert(f"❌ <b><u>PRODUCTION FAILED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n{html.escape(str(e))[:600]}\n\nNothing was posted. The topic is set aside: restore it from the queue (/requeue).")
+                self._alert(f"❌ <b>Production failed</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(e))[:600]}</blockquote>\nNothing was posted. The topic is set aside: restore it from the queue (/requeue).")
             ping_healthcheck("/fail")
             raise
         finally:
@@ -1157,7 +1157,7 @@ class PipelineCoordinator:
                     pass
                 self.progress_msg_id = None
             if not card_shown:
-                self._alert(f"❌ <b><u>PRODUCTION FAILED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n{html.escape(str(e))[:600]}\n\nNothing was posted. The topic is set aside: restore it from the queue (/requeue).")
+                self._alert(f"❌ <b>Production failed</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(e))[:600]}</blockquote>\nNothing was posted. The topic is set aside: restore it from the queue (/requeue).")
             ping_healthcheck("/fail")
             raise
         finally:
@@ -1623,7 +1623,7 @@ class PipelineCoordinator:
             checkpoints.complete("voice", voice_inputs, [vo_path, words_path, voice_path])
             if self.audio_engine.fallback_reason:
                 r_label = html.escape(self.db.run_label(run_id))
-                self._alert(f"🔁 <b><u>VOICE FALLBACK</u></b>\n\n<b>{r_label}</b>\n\n{html.escape(self.audio_engine.fallback_reason)}\n\nVoiced by: <b>{html.escape(self.audio_engine.last_provider)}</b>.")
+                self._alert(f"🔁 <b>Voice fallback</b>\n\n<b>{r_label}</b>\n\n{html.escape(self.audio_engine.fallback_reason)}\n\nVoiced by: <b>{html.escape(self.audio_engine.last_provider)}</b>.")
         v_prov = (saved_voice.get("provider") if reusable else self.audio_engine.last_provider) or "unknown"
         v_lic = saved_voice.get("licensed") if reusable else self.audio_engine.last_licensed
         lic_badge = "🟢 Commercially Licensed" if v_lic else "🟡 Unlicensed (Review / Test Only)"
@@ -2238,7 +2238,7 @@ class PipelineCoordinator:
         self.topic_engine.record_status(run["topic_id"], "scheduled", run_id=run_id)
         # The review card becomes the schedule's receipt (a separate alert said the same thing again).
         if not self.telegram_bot.stamp_review_outcome(run_id, "🗓 <b>Approved · scheduled</b>\n" + "\n".join(html.escape(x) for x in lines)):
-            self._alert(f"🗓 <b><u>POST SCHEDULED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n" + "\n".join(html.escape(x) for x in lines))
+            self._alert(f"🗓 <b>Post scheduled</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n" + "\n".join(html.escape(x) for x in lines))
         return {"status": "scheduled", "scheduled_for": slot.isoformat()}
 
     def _book_followers(self, run_id: str, run_dir: Path, reel_slot: datetime) -> List[str]:
@@ -2423,7 +2423,7 @@ class PipelineCoordinator:
             missing = pub.get("missing_platforms")
             warn = (f"\n⚠️ Not posted to {html.escape(', '.join(missing))}: {html.escape(str(pub.get('error', '')))[:300]}"
                     if missing else "")
-            self._alert(f"✅ <b><u>PUBLISHED</u></b>\n\n<b>{html.escape(payload.get('title', tid))}</b>\n\n{links}{warn}")
+            self._alert(f"✅ <b>Published</b>\n\n<b>{html.escape(payload.get('title', tid))}</b>\n\n{links}{warn}")
         elif status == "simulated":
             self.db.update_run(run_id, "simulated")
             self.topic_engine.record_status(tid, previous_status, run_id=run_id)
@@ -2433,7 +2433,7 @@ class PipelineCoordinator:
             log.warning("Publishing halted for %s: commercial voice license required.", run_id)
             key = self.db.run_key(run_id)
             self._alert(
-                f"🛑 <b><u>BROADCAST BLOCKED: UNLICENSED VOICE</u></b>\n\n"
+                f"🛑 <b>Blocked: unlicensed voice</b>\n\n"
                 f"Topic: <b>{html.escape(payload.get('title', tid))}</b>\n"
                 f"Voice used: <code>{html.escape(str(pub.get('provider', 'unlicensed')))}</code> (Unlicensed)\n\n"
                 f"Meta Content Monetization Program (CMP) policies prohibit commercial publishing without a commercial license.\n\n"
@@ -2442,7 +2442,7 @@ class PipelineCoordinator:
                 f"• Or execute a simulated publish for testing",
                 [
                     {"text": "🧪 Simulate Publish Only", "callback_data": f"simpub:{key}"},
-                    {"text": "📨 Re-send Review Card", "callback_data": f"resend:{key}"}
+                    {"text": "📨 Resend review card", "callback_data": f"resend:{key}"}
                 ]
             )
             self._stamp_review(run_id, status, pub)
@@ -2453,7 +2453,7 @@ class PipelineCoordinator:
             log.error("Publish outcome UNKNOWN for %s. Check the accounts, then `topic requeue %s` if it did not post.", run_id, tid)
             key = self.db.run_key(run_id)
             self._alert(
-                f"⚠️ <b><u>PUBLISH UNCONFIRMED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n"
+                f"⚠️ <b>Publish unconfirmed</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n"
                 f"The upload may have gone through ({html.escape(str(pub.get('error') or 'no confirmation received'))[:200]}). "
                 "I won't retry automatically, to avoid a duplicate post. Check Facebook and Instagram, then tell me:",
                 [{"text": "✅ It posted", "callback_data": f"pubok:{key}"},
@@ -2462,7 +2462,7 @@ class PipelineCoordinator:
             self.db.update_run(run_id, "failed", error=pub.get("error"))
             self.topic_engine.record_status(tid, "failed", run_id=run_id)
             log.error("Publishing failed for %s: %s", run_id, pub.get("error"))
-            self._alert(f"❌ <b><u>PUBLISH FAILED</u></b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n\n{html.escape(str(pub.get('error') or 'no error details were returned'))[:500]}\n\nNothing was posted. The topic goes back in the queue for a retry.")
+            self._alert(f"❌ <b>Publish failed</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(pub.get('error') or 'no error details were returned'))[:500]}</blockquote>\nNothing was posted. The topic goes back in the queue for a retry.")
         if config.YOUTUBE_SHORTS and profile == "reel_9x16" and status in ("published", "simulated"):
             pub["youtube_short"] = short = self.publisher.publish_short(envelope, dry_run=dry_run)
             if short["status"] == "published":
@@ -2837,7 +2837,7 @@ def _proposal_trigger(db: PipelineDatabase, bot) -> Any:
                 if proposals else "💡 No new verified topic ideas this time.")
         return text, [[{"text": "Waiting ideas", "callback_data": "cprop:"}],
                       [{"text": "← Topic ideas", "callback_data": "cideas:"}],
-                      [{"text": "← Dashboard", "callback_data": "cdash:"}]]
+                      [{"text": "🏠 Dashboard", "callback_data": "cdash:"}]]
 
     def trigger() -> str:
         bot.start_operator_job("Researching topic ideas", work, resource="topic-research", late=True)
@@ -3453,7 +3453,7 @@ def main(argv=None) -> int:
                     from src.credits import load_credits
                     lines = [f"• {html.escape(t['title'])}: {html.escape(load_credits(config.ASSETS_DIR / t['id']).get('review_note') or 'no usable photos yet')}"
                              for t in not_ready]
-                    bot.notify("🖼 <b><u>PHOTO POOLS NOT READY</u></b>\n\nThese upcoming topics will be skipped until "
+                    bot.notify("🖼 <b>Photo sets not ready</b>\n\nThese upcoming topics will be skipped until "
                                "they have approved photos:\n" + "\n".join(lines), silent=True)
             except Exception as e:
                 log.warning("Nightly photo pool preparation failed: %s", e)

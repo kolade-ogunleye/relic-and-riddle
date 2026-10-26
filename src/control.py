@@ -77,7 +77,7 @@ def edit_prompt(payload: Dict[str, Any], run_key: str):
         short = "\n".join(f"{label}: {value}" for label, value in fields if value and "caption" not in label)
         block = (f"\n\n<pre><code class=\"language-text\">{html.escape(short)}</code></pre>"
                  f"\n<b>Caption</b> (too long to copy here as a block):\n{collapsible(dict(fields).get('caption', ''), 0)}")
-    buttons = [[{"text": f"📋 Copy {label}", "copy_text": {"text": value}}]
+    buttons = [[{"text": f"📎 Copy {label}", "copy_text": {"text": value}}]
                for label, value in fields if value and label in ("title", "first comment") and len(value) <= COPY_BUTTON_LIMIT]
     return (intro + block + trailer, buttons) if buttons else intro + block + trailer
 
@@ -164,7 +164,8 @@ def deployer_notice(db: PipelineDatabase) -> Optional[str]:
     return notice
 
 SendPhoto = Callable[[Path, str, Optional[list]], bool]
-HOME = {"text": "← Dashboard", "callback_data": "cdash:"}
+from .telegram_ui import HOME
+from .telegram_ui import hourglass  # 🏠 Dashboard, the one home button of every screen (2026-10-25 overhaul)
 from .local_time import show as show_time
 
 
@@ -352,11 +353,11 @@ def images_text(assets_dir: Path = ASSETS_DIR, db: Optional[PipelineDatabase] = 
             review.append(label)
         else:
             short.append(label)
-    lines = [f"<b>Image sets</b>: {approved} approved, {len(review)} to review, {len(short)} short"]
+    lines = [f"<b>Photo sets</b> · {approved} approved · {len(review)} to review · {len(short)} short"]
     if review:
-        lines += ["To review (send /review N):"] + [f"  • {x}" for x in review]
+        lines += ["", "<b>To review</b> · <code>/photos N review</code>"] + [f"  • {x}" for x in review]
     if short:
-        lines += [f"Short of {MIN_SCENE_IMAGES} images (open /images to fetch or upload):"] + [f"  • {x}" for x in short]
+        lines += ["", f"<b>Short of {MIN_SCENE_IMAGES} photos</b> · <code>/photos N fetch</code> or upload"] + [f"  • {x}" for x in short]
     return "\n".join(lines)
 
 
@@ -618,13 +619,22 @@ def health_line(db: PipelineDatabase, days: int = 7) -> str:
     return text
 
 
+_READY_CACHE: Dict[str, Tuple[float, bool]] = {}  # credits.json path -> (mtime, ready)
+
+
 def ready_pools(db: PipelineDatabase, topics: List[Dict[str, Any]]) -> int:
-    """Queued topics whose photo pool passes the same readiness rule production uses."""
+    """Queued topics whose photo pool passes the same readiness rule production uses. Each set's answer is
+    kept until its credits.json changes: the dashboard read and parsed every set on every tap (2026-10-25)."""
     from .asset_pipeline import pool_ready
     n = 0
     for t in topics:
         try:
-            n += bool(pool_ready(t["id"]))
+            credits = ASSETS_DIR / t["id"] / "credits.json"
+            key, stamp = str(credits), (credits.stat().st_mtime if credits.is_file() else -1.0)
+            cached = _READY_CACHE.get(key)
+            if cached is None or cached[0] != stamp:
+                cached = _READY_CACHE[key] = (stamp, bool(pool_ready(t["id"])))
+            n += cached[1]
         except Exception:
             pass
     return n
@@ -632,7 +642,7 @@ def ready_pools(db: PipelineDatabase, topics: List[Dict[str, Any]]) -> int:
 
 def status_text(db: PipelineDatabase, next_run: Optional[str], voice_quota: Optional[dict] = None) -> str:
     e = html.escape
-    lines = [f"📊 <b>Studio status</b> · {'⏸ paused' if is_paused(db) else '▶️ active'}", "", "<b>Production</b>",
+    lines = ["📊 <b>Status</b>", f"{'⏸ Schedule paused' if is_paused(db) else '▶️ Schedule active'}", "", "<b>Production</b>",
              f"• Next run: {e(next_run or 'not scheduled')}"]
     try:
         nxt = db.get_next_topic()
@@ -782,7 +792,7 @@ def review_history(db: PipelineDatabase, limit: int = 6) -> Tuple[str, List[List
     for r in blocked:
         why = "; ".join(e(x) for x in _run_findings(db, r)[:2])
         lines.append(f"• {e(db.run_label(r['run_id']))} · {e(r['status'])}\n  <i>{why}</i>")   # the label carries the date
-        row = [{"text": f"📄 Why: {clip_words(db.run_label(r['run_id']), 24)}", "callback_data": f"chist:{db.run_key(r['run_id'])}"}]
+        row = [{"text": f"❓ Why: {button_run_name(db, r['run_id'], 19)}", "callback_data": f"chist:{db.run_key(r['run_id'])}"}]
         if late and late["run_id"] == r["run_id"]:
             row.append({"text": "🔁 Make again", "callback_data": f"rerender:{db.run_key(r['run_id'])}"})
         buttons.append(row)
@@ -794,7 +804,7 @@ def review_history(db: PipelineDatabase, limit: int = 6) -> Tuple[str, List[List
         audience = _audience_line(db, r["run_id"])
         how = ("self-audit clean" if n == 0 else f"{n} self-audit finding(s)") + (f" · {e(audience)}" if audience else "")
         lines.append(f"• {e(db.run_label(r['run_id']))} · {e(r['status'])}\n  <i>{how}</i>")
-        buttons.append([{"text": f"📄 Details: {clip_words(db.run_label(r['run_id']), 22)}", "callback_data": f"chist:{db.run_key(r['run_id'])}"}])
+        buttons.append([{"text": f"📄 {button_run_name(db, r['run_id'], 25)}", "callback_data": f"chist:{db.run_key(r['run_id'])}"}])
     return "\n".join(lines), buttons
 
 
@@ -904,7 +914,7 @@ def posting_panel(db: PipelineDatabase, limit: int = 8) -> Tuple[str, List[List[
     """🗓 Posting: one line per episode, saying where each of its posts stands (operator, 2026-10-25: group a
     run's posts together, open one to see its contents). Each episode opens with its times and links."""
     e = html.escape
-    lines = ["🗓 <b>Posting</b> · one line per episode; open one for its times, links and actions.", ""]
+    lines = ["🗓 <b>Posting</b>", "<i>One line per episode. Open one for its times, links and actions.</i>", ""]
     buttons: List[List[Dict[str, str]]] = []
     episodes = _episode_bookings(db)[:limit]
     if not episodes:
@@ -962,15 +972,15 @@ def posting_episode(db: PipelineDatabase, run_id: str) -> Tuple[str, List[List[D
         if p["kind"] in ("story", "carousel") and p["status"] in ("unknown", "failed") and (
                 detail.get("failed") or "failed=[" in str(detail.get("error") or "")):
             # a partial publish: re-send only the platform(s) that failed (operator, 2026-10-24)
-            buttons.append([{"text": f"🔁 Retry the failed platform: {name}", "callback_data": f"retrypost:{p['id']}"}])
+            buttons.append([{"text": f"🔁 Retry {name}", "callback_data": f"retrypost:{p['id']}"}])
         if p["kind"] == "reel" and p["status"] in ("unknown", "failed"):
-            buttons.append([{"text": "🔁 Retry the failed platform: Reel", "callback_data": f"retryreel:{db.run_key(run_id)}"}])
+            buttons.append([{"text": "🔁 Retry Reel", "callback_data": f"retryreel:{db.run_key(run_id)}"}])
         if p["kind"] == "reel" and p["status"] == "published" and "facebook" in _post_links(db, run_id, "reel"):
             # Closed captions on Facebook (Upload-Post sends caption files to YouTube and LinkedIn only).
             done = any(pub.get("channel") == "facebook:captions" and pub.get("status") == "published"
                        for pub in db.list_publications(run_id))
             lines.append("  Facebook captions: " + ("added" if done else "not yet"))
-            buttons.append([{"text": ("💬 Replace" if done else "💬 Add") + " captions on Facebook",
+            buttons.append([{"text": "💬 Facebook captions" + (" again" if done else ""),
                              "callback_data": f"fbcaptions:{db.run_key(run_id)}"}])
         lines.append("")
     return "\n".join(lines).rstrip(), buttons + [[{"text": "← Posting", "callback_data": "cposts:"}]]
@@ -1015,12 +1025,14 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         pass
 
     needs = []
-    if pending:
-        needs.append(f"🎬 <b>{len(pending)} review(s) waiting</b>: " + ", ".join(e(db.run_label(p['run_id'])) for p in pending[:2]))
+    if pending:  # one run a line (two titles shared a line: 2026-10-25 overhaul)
+        needs.append(f"🎬 <b>{len(pending)} review{'s' if len(pending) != 1 else ''} waiting</b>\n"
+                     + "\n".join(f"  • {e(db.run_label(p['run_id']))}" for p in pending[:3])
+                     + (f"\n  • and {len(pending) - 3} more" if len(pending) > 3 else ""))
     timed_out = db.timed_out_reviews() if hasattr(db, "timed_out_reviews") else []
     if timed_out:  # their topics wait for this decision instead of being made again
-        needs.append(f"⌛ <b>{len(timed_out)} review(s) timed out</b>: Resend or Reject in Reviews · "
-                     + ", ".join(e(db.run_label(r['run_id'])) for r in timed_out[:2]))
+        needs.append(f"⌛ <b>{len(timed_out)} review{'s' if len(timed_out) != 1 else ''} timed out</b> · Resend or Reject in Reviews\n"
+                     + "\n".join(f"  • {e(db.run_label(r['run_id']))}" for r in timed_out[:2]))
     if waiting_proposals:
         needs.append(f"🧭 <b>{len(waiting_proposals)} improvement proposal(s)</b> — /improve")
     if account_problems:
@@ -1042,13 +1054,13 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         if not what:  # said as it stopped: before or after its video was made
             what = "Failed after rendering" if late.get("master_video_path") else "Failed after its fact check"
         # The run id in code, not italics: Telegram linked its digits as a phone number (2026-10-24).
-        needs.append(f"🔁 <b>{what}</b>: {e(db.run_label(late['run_id']))} · Run ID <code>{e(late['run_id'])}</code> · Re-render below"
+        needs.append(f"🔁 <b>{what}</b>\n  • {e(db.run_label(late['run_id']))}\n  <code>{e(late['run_id'])}</code>"
                      + (f"\n<blockquote expandable>{e(reason)}</blockquote>" if reason else ""))
     if recent and recent[0].get("status") == "failed":
         # Which run, on one line; the whole reason folded underneath (it was cut off mid-sentence:
         # operator, 2026-10-23).
         reason = short_reason(recent[0].get("error") or "", limit=1200)
-        needs.append(f"❌ <b>Last run failed</b>: {e(db.run_label(recent[0]['run_id']))} · Run ID <code>{e(recent[0]['run_id'])}</code>"
+        needs.append(f"❌ <b>Last run failed</b>\n  • {e(db.run_label(recent[0]['run_id']))}\n  <code>{e(recent[0]['run_id'])}</code>"
                      + (f"\n<blockquote expandable>{e(reason)}</blockquote>" if reason else ""))
 
     from . import config
@@ -1067,15 +1079,20 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     outcome = last_review_outcome(db)
     if outcome:  # the decided review's receipt lives here, so the chat keeps one panel
         lines += [outcome, ""]
-    lines.append(f"⏯️ Schedule: {'⏸ <b>paused</b>' if paused else '▶️ active'}"
+    # One fact a line (the 2026-10-25 overhaul): the schedule, what is being made, the queue, the next slot.
+    lines.append("<b>Production</b>")
+    lines.append(f"{'⏸ Schedule <b>paused</b>' if paused else '▶️ Schedule active'}"
                  + (f" · next run {e(next_run)}" if next_run and not paused else ""))
     if active:
         label = "Making" if active.get("worker_state") == "running" else "Last recorded run (worker not active/verified)"
-        lines.append(f"⏳ {label}: {e(db.run_label(active['run_id']))} · step {active.get('step', 1)}/{active.get('total_steps', 5)}")
-    lines.append(f"📋 Queue: {len(queued)} topics · {ready} with photos ready"
-                 + (f" · next: <b>{e(next_t['title'])}</b>" if next_t else ""))
-    lines.append(spend_summary(db))
-    lines.append(health_line(db))
+        lines.append(f"⏳ {label}: {e(db.run_label(active['run_id']))} · step {active.get('step', 1)} of {active.get('total_steps', 5)}")
+    lines.append(f"📋 Queue: {len(queued)} topics · {ready} with photos ready")
+    if next_t:
+        lines.append(f"➡️ Next up: <b>{e(next_t['title'])}</b>")
+    booked = db.list_scheduled_posts(("pending", "waiting"))
+    lines.append("🗓 Posting: " + e(next_slot_line(db, booked)))
+    lines += ["", "<b>This month</b>", spend_summary(db).replace("💳 This month · ", "💳 ")]
+    lines += ["", "<b>Last 7 days</b>", health_line(db).replace("Last 7 days · ", "").replace(" · median", "\n⏱ median")]
     beat = heartbeat_line(db)
     if beat:  # the daily heartbeat lives on the panel, not in its own message (operator, 2026-10-25)
         lines.append(beat)
@@ -1084,23 +1101,26 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
         lines.append(f"📰 This week's digest is ready ({e(digest['label'])})")
 
     waiting_reviews = len(pending) + len(timed_out)  # timed-out reviews are decisions waiting too
-    row1 = [{"text": f"🎬 Reviews ({waiting_reviews})", "callback_data": "creviews:"}] if waiting_reviews else []
+    row1 = []  # what waits for a decision; Reviews itself is counted on its own button below
     if waiting_proposals:
         row1.append({"text": f"🧭 Proposals ({len(waiting_proposals)})", "callback_data": "cimprove:"})
     candidates = post_candidates(db, limit=1) if not active else []
     if candidates:  # a finished dry run can be posted for real from here (asked to confirm first)
-        # The run is named in the text, not squeezed into the button (operator, 2026-10-24: the name was cut short).
-        lines.append(f"🚀 Post candidate: <b>{e(db.run_label(candidates[0]['run_id']))}</b>")
+        # The run is named with what needs you, not squeezed into the button (operator, 2026-10-24).
+        candidate_line = f"🚀 <b>Post candidate</b>\n  • {e(db.run_label(candidates[0]['run_id']))}"
+        needs_index = lines.index("<b>Needs you</b>") + 1 if "<b>Needs you</b>" in lines else None
+        if needs_index is None:
+            lines[0:2] = [lines[0], "", "<b>Needs you</b>", candidate_line, ""]
+            lines.remove("✅ <b>Nothing needs you right now.</b>")
+        else:
+            lines[needs_index:needs_index] = [candidate_line, ""]
         row1.append({"text": "🚀 Post for real", "callback_data": f"postreal:{db.run_key(candidates[0]['run_id'])}"})
-    booked = len(db.list_scheduled_posts(("pending", "waiting")))
-    if booked:  # what is booked, with its status and the actions on it (operator, 2026-10-24)
-        row1.append({"text": f"🗓 Posting ({booked})", "callback_data": "cposts:"})
     if late:
         # A run that failed after its video was made (the release gate, say) is made again in place. Not only
         # the latest run: a cancelled scheduled run hid the button for the run that mattered (2026-10-24).
         verb = "Make again" if late.get("status") in ("rejected", "regenerate") else "Re-render"  # rejected: regenerated with the reason given
-        text = f"🔁 {verb}" if recent and late["run_id"] == recent[0]["run_id"] else f"🔁 {verb}: {button_run_name(db, late['run_id'])}"
-        row1.append({"text": text, "callback_data": f"rerender:{db.run_key(late['run_id'])}"})
+        # The run is named in Needs you above; the button is the verb (a name on it ran past 28 characters).
+        row1.append({"text": f"🔁 {verb}", "callback_data": f"rerender:{db.run_key(late['run_id'])}"})
     if digest:
         row1.append({"text": "📰 Weekly digest", "callback_data": "cdigest:"})
     buttons = [row1] if row1 else []
@@ -1109,15 +1129,34 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     # One action per topic: when the next topic is the one Re-render / Make again above is for, Render now
     # would make it a second way (operator, 2026-10-25). The Queue still starts it afresh.
     same_topic = bool(late and next_t and not active and late.get("topic_id") == next_t.get("id"))
-    buttons += [
-        ([] if same_topic else [render_btn]) + [{"text": "📋 Queue", "callback_data": "qrefresh:"}],
-        [{"text": "💡 Topic ideas", "callback_data": "cideas:"}, {"text": "🎨 Covers", "callback_data": "ccov:"}],
-        [{"text": "🎵 Music", "callback_data": "cmusic:"}, {"text": "📊 Full status", "callback_data": "cstat:"}],
-        [{"text": "🖼 Images", "callback_data": "cimages:"}, {"text": "🔄 Check accounts", "callback_data": "caccounts:"}],
-        [{"text": "🧰 Jobs", "callback_data": "jobs:"}, {"text": "❓ Help", "callback_data": "chelp:Everyday"}],
-        [{"text": "▶️ Resume" if paused else "⏸️ Pause", "callback_data": "cresume:" if paused else "cpause:"}],
-    ]
+    # The sections of the studio, two a row, in the order of a day's work (the 2026-10-25 overhaul): make,
+    # review and post, then the material, then the health of the whole. Ideas live under Queue, Covers and
+    # uploads under Pictures, accounts, jobs, alerts and the digest under Status.
+    from .telegram_ui import counted
+    reviews_btn = {"text": counted("🎬 Reviews", waiting_reviews), "callback_data": "creviews:"}
+    if waiting_reviews:  # what needs you leads: Reviews heads the first row while any wait
+        row1.insert(0, reviews_btn)
+        buttons = [row1]
+    sections = ([] if same_topic else [render_btn]) + [{"text": "📋 Queue", "callback_data": "qrefresh:"}]
+    sections += [] if waiting_reviews else [reviews_btn]
+    sections += [{"text": counted("🗓 Posting", len(booked)), "callback_data": "cposts:"},
+                 {"text": "🖼 Pictures", "callback_data": "cimages:"}, {"text": "🎵 Music", "callback_data": "cmusic:"},
+                 {"text": "📊 Status", "callback_data": "cstat:"}, {"text": "❓ Help", "callback_data": "chelp:Everyday"},
+                 {"text": "▶️ Resume" if paused else "⏸ Pause", "callback_data": "cresume:" if paused else "cpause:"}]
+    buttons += [sections[i:i + 2] for i in range(0, len(sections), 2)]
     return "\n".join(lines), buttons
+
+
+def next_slot_line(db: PipelineDatabase, booked: List[Dict[str, Any]]) -> str:
+    """'next Reel slot Mon 26 Oct 17:00 MDT · 2 booked': when the next Reel could go out, and what waits."""
+    from . import post_schedule
+    try:
+        taken = {datetime.fromisoformat(p["due_at"]).astimezone(post_schedule.tz()).date()
+                 for p in booked if p["kind"] == "reel" and p.get("due_at")}
+        slot = post_schedule.fmt(post_schedule.next_reel_slot(datetime.now(timezone.utc), taken))
+    except Exception:  # a schedule misconfiguration never breaks the dashboard
+        return f"{len(booked)} booked" if booked else "nothing booked"
+    return f"next Reel slot {slot}" + (f" · {len(booked)} booked" if booked else "")
 
 
 HEARTBEAT_KEY = "heartbeat_at"
@@ -1243,8 +1282,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         except Exception:
             pass
         topic_serial = {t["id"]: i for i, t in enumerate(topics, 1)}
-        lines = [f"📋 <b>Topic queue</b> · {len(queued)} queued", ""]
-        limit = 5
+        lines = [f"📋 <b>Queue</b> · {len(queued)} queued", ""]
+        limit = max(5, len(queued)) if show_all else 5  # /queue all: every topic on one page
         page = max(0, min(page, max(0, (len(queued)-2)//limit)))
         lines[0] += f" · page {page+1} of {max(1, (max(0,len(queued)-1)+limit-1)//limit)}"
 
@@ -1313,13 +1352,14 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         # Rows, not a flat list: Render beside Refresh, Bump beside Drop, every page button on one row.
         render = [b for b in buttons if b["callback_data"].startswith(("qrender:", "cprog:"))]
         changes = [b for b in buttons if b["callback_data"].startswith(("qbump:", "qdrop:"))]
-        rows = [render + [{"text": "🔄 Refresh Queue", "callback_data": "qrefresh:"}]]
+        rows = [render + [{"text": "🔄 Refresh", "callback_data": "qrefresh:"}]]
         from . import config as app_config
         if render and not busy and app_config.documentary_enabled():  # the same topic as a Reel plus the 16:9 documentary (paused while rebuilt)
             rows.append([{"text": "🎬 Reel + 16:9 documentary", "callback_data": "qdoc:" + render[0]["callback_data"].partition(":")[2]}])
         if changes:
             rows.append(changes)
-        return "\n".join(lines), rows + pager("qpage:", page, pages) + [[HOME]]
+        # New topics are found from the queue: Ideas sits under the pages, above the way home.
+        return "\n".join(lines), rows + pager("qpage:", page, pages) + [[{"text": "💡 Ideas", "callback_data": "cideas:"}], [HOME]]
 
     """run_actions: button actions on a run, e.g. {"pubok": fn(run_id) -> reply, "pubno": ..., "resend": ...}."""
     def send_sheet(topic_dir: Path) -> bool:
@@ -1336,11 +1376,13 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         return send_photo(topic_dir / CONTACT_SHEET, caption,
                           [[{"text": "✅ Approve", "callback_data": f"imgok:{key}"},
                             {"text": "← Topic images", "callback_data": f"imgcancel:{key}"}],
-                           [{"text": f"📋 Copy /drop {serial}", "copy_text": {"text": f"/drop {serial} "}},
-                            {"text": f"📋 Copy /swap {serial}", "copy_text": {"text": f"/swap {serial} "}}],
+                           [{"text": f"📎 Copy /drop {serial}", "copy_text": {"text": f"/drop {serial} "}},
+                            {"text": f"📎 Copy /keep {serial}", "copy_text": {"text": f"/keep {serial} "}}],
                            [{"text": "🖼 Other topics", "callback_data": "reviewpick:0"}]])
 
     def handle(command: str, args: str) -> str:
+        from .telegram_commands import normalise_command
+        command, args = normalise_command(command, args)  # aliases and subcommands (2026-10-25 overhaul)
         if command == "runstop":
             run_id = db.resolve_run(args)
             return ("⏹ <b>Cancel this run after its current stage?</b>\n\n"
@@ -1413,7 +1455,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                         return ""
                     return text, buttons
                 return (
-                    "⬆ <b><u>BUMP TOPIC</u></b>\n\nTap to copy & edit: <code>/bump 2</code>\n\n"
+                    "⬆ <b>Bump a topic</b>\n\nTap to copy & edit: <code>/bump 2</code>\n\n"
                     "<i>Usage: <code>/bump &lt;number or topic_id&gt;</code>\n"
                     "Tip: Tap the code box above to copy instantly to input box.</i>"
                 )
@@ -1590,7 +1632,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             logs = db.list_audit_logs(limit=limit)
             if not logs:
                 return "🛡️ No audit log entries recorded yet."
-            lines = [f"🛡️ <b><u>AUDIT LOG</u></b> (<i>last {len(logs)} events</i>):", ""]
+            lines = [f"🛡️ <b>Activity</b> (<i>last {len(logs)} events</i>):", ""]
             for l in logs:
                 st_icon = "🟢" if l.get("status") == "allowed" else "🔴"
                 ts = show_time(l.get("created_at"), "%m-%d %H:%M:%S") if l.get("created_at") else ""
@@ -1626,13 +1668,16 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command in ("accounts", "caccounts"):
             from . import accounts
             accounts.check(db, force=True)
-            return accounts.status_line(db), [[HOME]]
+            return "🔗 <b>Accounts</b>\n\n" + accounts.status_line(db), [[{"text": "🔄 Check again", "callback_data": "caccounts:"}], [HOME]]
         if command in ("help", "chelp", "commands"):
             from .telegram_commands import GROUPS, help_text
             if not send_message and command == "help":
                 return HELP
             group = args if args in GROUPS else "Everyday"
-            return help_text(group), [[{"text": name, "callback_data": f"chelp:{name}"}] for name in GROUPS if name != group] + [[HOME]]
+            others = [{"text": f"📖 {name}", "callback_data": f"chelp:{name}"} for name in GROUPS if name != group]
+            return (f"❓ <b>Help</b> · {html.escape(group)}\n\n" + help_text(group)
+                    + "\n\n<i>Older names (/run, /images, /bump…) still work.</i>",
+                    [others[i:i + 2] for i in range(0, len(others), 2)] + [[HOME]])
         if command in ("progress", "cprog"):
             active_prog = db.get_active_progress() if hasattr(db, "get_active_progress") else None
             if args and (not active_prog or db.resolve_run(args) != active_prog.get("run_id")):
@@ -1662,7 +1707,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             from .telegram_bot import PROGRESS_STEPS as milestones
             lines = [
                 mode_text,
-                f"⏳ <b><u>PRODUCTION PROGRESS</u></b>\n\n<b>{html.escape(topic_title)}</b> · started "
+                f"{hourglass()} <b>Progress</b>\n\n<b>{html.escape(topic_title)}</b> · started "
                 f"{show_time(active_prog.get('start_time'), '%H:%M') if active_prog.get('start_time') else 'earlier'}",
                 "",
             ]
@@ -1748,7 +1793,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
 
             def resend_button(run_id):
                 title = ((db.get_run(run_id) or {}).get("script_payload") or {}).get("title") or db.run_key(run_id)
-                return [{"text": f"📨 Resend: {clip_words(title, 28)}", "callback_data": f"resend:{db.run_key(run_id)}"}]
+                return [{"text": f"📨 Resend {button_run_name(db, run_id, 18)}", "callback_data": f"resend:{db.run_key(run_id)}"}]
             for p in pending[:5]:
                 lines.append(f"• {html.escape(db.run_label(p['run_id']))}")
                 buttons.append(resend_button(p["run_id"]))
@@ -1769,14 +1814,19 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             if not args.strip():
                 return handle("chistory", "")
             return history_details(db, args.strip())
-        if command == "cstat":
-            return status_text(db, next_run(), voice_quota()), [[{"text": "📈 Audience", "callback_data": "canalytics:"},
-                                                                 {"text": "🗓 Posting", "callback_data": "cposts:"}], [HOME]]
+        if command in ("cstat", "status"):
+            # The health of the whole, and the doors to its records (the 2026-10-25 overhaul): audience,
+            # accounts, alerts, activity, improvements, the digest and the jobs all live here.
+            return status_text(db, next_run(), voice_quota()), [
+                [{"text": "📈 Audience", "callback_data": "canalytics:"}, {"text": "🔗 Accounts", "callback_data": "caccounts:"}],
+                [{"text": "🔔 Alerts", "callback_data": "calerts:"}, {"text": "🛡 Activity", "callback_data": "caudit:"}],
+                [{"text": "🧭 Improvements", "callback_data": "cimprove:"}, {"text": "📰 Digest", "callback_data": "cdigest:"}],
+                [{"text": "🧰 Jobs", "callback_data": "jobs:"}], [HOME]]
         if command in ("analytics", "canalytics"):
             from . import audience
-            return audience.analytics_text(db), [[{"text": "📊 Full status", "callback_data": "cstat:"}], [HOME]]
-        if command == "caudit":
-            return handle("audit", "10"), [[HOME]]
+            return audience.analytics_text(db), [[HOME]]
+        if command in ("caudit", "calerts"):
+            return handle("audit" if command == "caudit" else "alerts", "10"), [[HOME]]
         if command == "ccov":
             return handle("covers", args)  # the latest render, whichever topic it is
         if command == "cprop":
@@ -1807,11 +1857,12 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             pending = music.pending_tracks()
             library = music.load_library()
             approved = sum(bool(t.get("reviewed")) for t in library)
-            text = (f"🎵 <b>Documentary music</b>\n\n{approved} approved · {len(pending)} waiting for review\n\n"
-                    "Find instrumental tracks for historical documentaries, listen, then approve them for use. New downloads are never approved automatically.")
+            text = (f"🎵 <b>Music</b>\n{approved} approved · {len(pending)} waiting for review\n\n"
+                    "<i>Instrumental tracks for historical documentaries. Find them, listen, then approve; nothing new is approved on its own.</i>")
             if command == "mfmenu":
                 return f"🎵 <b>Fetch new music</b>\n\nChoose a documentary mood. Fetches up to {config.MUSIC_FETCH_PER_MOOD} new CC0/CC BY tracks per mood; no paid generation. Each one waits for your review.", [[job_button(db, f"mfetch:{mood}", mood.title(), f"⏳ Fetching {mood}… · Jobs")] for mood in music.MOODS] + [[job_button(db, "mfetch:all", "All moods", "⏳ Fetching all moods… · Jobs")], [{"text": "← Music", "callback_data": "musicmenu:"}], [HOME]]
-            return text, [[{"text": "Find new tracks", "callback_data": "mfmenu:"}], [{"text": f"Review waiting ({len(pending)})", "callback_data": "mreview:"}], [{"text": "Browse approved", "callback_data": "mlibrary:0"}], [HOME]]
+            return text, [[{"text": "🔎 Find tracks", "callback_data": "mfmenu:"}, {"text": f"🎧 Review ({len(pending)})" if pending else "🎧 Review", "callback_data": "mreview:"}],
+                          [{"text": "📚 Approved tracks", "callback_data": "mlibrary:0"}], [HOME]]
         if command == "mlibrary":
             from . import music
             tracks = [t for t in music.load_library() if t.get("reviewed")]
@@ -1835,7 +1886,13 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             if action in ("review", "approved"):
                 return handle("mreview" if action == "review" else "mlibrary", ref)
         if command == "cimages":
-            return "🖼 <b>Topic images</b>\n\nChoose a topic to fetch, upload or review its images.", [[{"text": "Browse topics", "callback_data": "imagepick:0"}], [HOME]]
+            # The Pictures hub (2026-10-25 overhaul): where every set stands, then the doors: the sets
+            # themselves, the covers of the latest render, and footage you hold the rights to.
+            return ("🖼 <b>Pictures</b>\n\n" + images_text(assets_dir, db=db),
+                    [[{"text": "📂 Photo sets", "callback_data": "imagepick:0"}, {"text": "🎨 Covers", "callback_data": "ccov:"}],
+                     [{"text": "🎞 Footage", "callback_data": "cfootage:"}], [HOME]])
+        if command == "cfootage":
+            return handle("footage", ""), [[HOME]]
         if command == "imagepick":
             topics = db.list_all_topics()
             pages = max(1, -(-len(topics) // 8))
@@ -1959,6 +2016,12 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             send_sheet(topic_dir)
             return html.escape(msg)
         if command == "swap":
+            # Retired (2026-10-25): the photo sheet orders photos by what the look found in them, not by
+            # storyboard beats, so swapping beats changed nothing the operator could see.
+            return ("🔁 <b>/swap is retired.</b>\n\nThe sheet now orders photos by what they show (Topic first). "
+                    "Use <code>/photos N keep</code> or <code>/photos N drop</code> with the numbers on the sheet.",
+                    [[{"text": "🖼 Photo sets", "callback_data": "imagepick:0"}], [HOME]])
+        if command == "swap_retired_2026_10_25":  # the old storyboard swap, kept for reference, unreachable
             parts = args.split()
             if len(parts) < 3 or not (parts[1].isdigit() and parts[2].isdigit()):
                 try:
@@ -2067,7 +2130,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     buttons + [[HOME]])
         if command in ("posts", "cposts"):
             text, buttons = posting_panel(db)
-            return text, buttons + [[{"text": "📊 Full status", "callback_data": "cstat:"}], [HOME]]
+            return text, buttons + [[HOME]]
         if command == "cpost":  # one episode's posts
             text, buttons = posting_episode(db, db.resolve_run(args.strip()))
             return text, buttons + [[HOME]]
@@ -2437,8 +2500,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             from .publication_lock import publication_lock
             with publication_lock(db.db_path, args.partition(":")[0]):
                 return original_handle(command, args)
-        valid_mutation_args = (command not in {"drop", "swap", "keep", "unkeep"} or (len(args.split()) >= (3 if command == "swap" else 2) and all(v.isdigit() for v in args.split()[1:])))
-        if command in {"review", "imgok", "drop", "swap", "keep", "unkeep"} and args.strip() and valid_mutation_args:
+        valid_mutation_args = (command not in {"drop", "keep", "unkeep"} or (len(args.split()) >= 2 and all(v.isdigit() for v in args.split()[1:])))
+        if command in {"review", "imgok", "drop", "keep", "unkeep"} and args.strip() and valid_mutation_args:
             ref = args.split()[0].split("@",1)[0]
             directory = _resolve_topic_dir(ref, assets_dir, db=db)
             from .publication_lock import publication_lock

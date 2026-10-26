@@ -30,7 +30,7 @@ def test_the_dashboard_puts_this_months_spend_on_one_line(db):
     summary = control.spend_summary(db)
     assert summary.startswith("💳 This month · ") and "\n" not in summary and "/$" in summary
     text, _ = control.dashboard_text_and_buttons(db)
-    assert summary in text and "AI motion this month:" not in text
+    assert summary.replace("💳 This month · ", "💳 ") in text and "AI motion this month:" not in text   # under its heading
 
 
 def test_one_name_for_rendering_the_next_topic(db):
@@ -82,7 +82,7 @@ def test_a_failed_run_is_named_on_the_dashboard_with_its_whole_reason_folded(db)
               "35.8s when spoken). Run it again, or add a curated script at data/scripts/" + topic + ".json.")
     db.update_run("run_f", "failed", error="ScriptUnavailableError: " + reason)
     text, _ = control.dashboard_text_and_buttons(db)
-    assert "❌ <b>Last run failed</b>: " in text
+    assert "❌ <b>Last run failed</b>\n  • " in text   # the run on its own line (2026-10-25)
     assert f"<blockquote expandable>{reason}</blockquote>" in text      # whole, without the exception name
 
 

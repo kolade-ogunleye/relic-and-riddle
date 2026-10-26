@@ -47,7 +47,7 @@ def test_the_dashboard_and_reviews_offer_the_timed_out_review(db):
     topic = db.ranked_topics()[0]["id"]
     _timed_out(db, "run_t", topic)
     text, buttons = control.dashboard_text_and_buttons(db)
-    assert "1 review(s) timed out" in text
+    assert "1 review timed out" in text
     assert any(b["callback_data"] == "creviews:" and "(1)" in b["text"] for row in buttons for b in row)
     reviews, rows = control.make_command_handler(db, lambda: None, lambda: "")("creviews", "")
     assert "Timed out" in reviews and any(b["callback_data"].startswith("resend:") for row in rows for b in row)

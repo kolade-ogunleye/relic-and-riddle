@@ -49,7 +49,8 @@ RETIRED_ACTIONS = {"done": "Closed",
                    "umore": "This card is from an earlier version. Open /ideas for UNESCO marvels.",
                    "umoredone": "This card is from an earlier version. Open /ideas for UNESCO marvels."}
 
-DONE_BUTTON = {"text": "← Dashboard", "callback_data": "cdash:"}
+from .telegram_ui import HOME as DONE_BUTTON
+from .telegram_ui import hourglass  # 🏠 Dashboard: one home button everywhere (2026-10-25 overhaul)
 PAGER_ICONS = {"⏮", "◀", "▶", "⏭"}
 _PANEL = ContextVar("telegram_navigation_panel", default=None)
 PANEL_ACTIONS = {"reviewpick", "pickbump", "pickdrop", "cideas", "cpropose", "ccov", "cmusic", "cdisc", "cprop", "cstat", "cimages", "caccounts", "imagepick", "imagehelp", "review", "mkeep", "mnext", "mdel", "mcancel", "mreview", "musicmenu", "mfmenu", "mlibrary", "chelp"}
@@ -137,11 +138,12 @@ def _post(url, timeout=30, **kwargs):
     return session.post(url, timeout=timeout if kwargs.get("files") else (CONNECT_TIMEOUT, timeout), **kwargs)
 
 
-def navigation_buttons(buttons=None):
+def navigation_buttons(buttons=None, parent=None):
+    """The screen's buttons plus the one navigation row: ← the parent screen (when given) and 🏠 Dashboard."""
+    from .telegram_ui import with_nav
     rows = format_responsive_keyboard(buttons) if buttons else []
-    if not any(b.get("callback_data") == "cdash:" for row in rows for b in row):
-        rows.append([DONE_BUTTON])
-    return rows
+    return with_nav(rows, parent) if parent else (rows if any(b.get("callback_data") == "cdash:" for row in rows for b in row)
+                                                  else rows + [[DONE_BUTTON]])
 
 
 CARD_PAGE_LIMIT = 3600  # telegram_pages.panel pages (as plain text) a card over 3,700 UTF-16 units
@@ -763,10 +765,11 @@ class TelegramApprovalBot:
         lines, buttons = ["🧰 <b>Jobs</b>", "", "<b>Running now</b>"], []
         for job in running:
             lines.append(f"⏳ {e(job['title'])} · since {show_time(job['updated_at'], '%H:%M')}")
-            buttons.append([{"text": f"✖ Cancel {job['title'][:24]}", "callback_data": f"jobcancel:{job['id']}"}])
+            from .telegram_ui import label
+            buttons.append([{"text": label(f"✖ Cancel {job['title']}"), "callback_data": f"jobcancel:{job['id']}"}])
         for run in runs:
-            lines.append(f"🎬 {e(self.db.run_label(run[0]))} · producing")
-            buttons.append([{"text": "✖ Cancel the run after its current stage", "callback_data": f"runstop:{self.db.run_key(run[0])}"}])
+            lines.append(f"🎬 {e(self.db.run_label(run[0]))} · being made\n   <i>Cancel run stops it after its current stage.</i>")
+            buttons.append([{"text": "⏹ Cancel run", "callback_data": f"runstop:{self.db.run_key(run[0])}"}])
         if not running and not runs:
             lines.append("Nothing is running.")
         icons = {"completed": "✅", "failed": "❌", "cancelled": "⏹"}
@@ -1031,7 +1034,7 @@ class TelegramApprovalBot:
             integrity = "⚠️ <b>Integrity:</b> verification not recorded"
 
         text = (
-            f"🎬 <b><u>MASTER REVIEW</u></b>\n\n"
+            f"🎬 <b>Master review</b>\n\n"
             f"📌 <b>{e(script_payload.get('title', ''))}</b>\n"
             + (f"🔄 <i>Regenerated · your feedback: {e(regen)}</i>\n" if regen else "")
             + (f"📍 <i>{place}</i>\n" if place else "") +
@@ -1256,6 +1259,7 @@ class TelegramApprovalBot:
         sent: List[int] = []
         run_dir = video_path.parent
         e = html.escape
+        self.send_chat_action("upload_video")  # Telegram's own "sending a video…" indicator while the album goes
         first: List[Dict[str, Any]] = []
         if thumbnail_path.is_file():
             first.append({"type": "photo", "path": thumbnail_path, "caption": f"Cover · {e(payload.get('title', ''))}"})
@@ -1296,10 +1300,10 @@ class TelegramApprovalBot:
         markup = {"inline_keyboard": format_responsive_keyboard([
             ([] if blocked else [{"text": "🚀 Approve & Post", "callback_data": f"approve:{key}"}])
             + [{"text": "✏️ Edit text", "callback_data": f"edit:{key}"}],
-            [{"text": "🔄 Regenerate", "callback_data": f"regen:{key}"},
+            [{"text": "♻️ Regenerate", "callback_data": f"regen:{key}"},
              {"text": "❌ Reject", "callback_data": f"reject:{key}"}],
         ] + ([] if script_payload.get("delivery_profile") == "deep_dive_16x9"  # 9:16 covers don't fit a documentary
-             else [[{"text": "🎨 Covers", "callback_data": f"ccov:{key}"}]]))}
+             else [[{"text": "🎨 Covers", "callback_data": f"ccov:{key}"}]]) + [[DONE_BUTTON]])}
         from .telegram_pages import panel as paginate
         card_text, rows = paginate(self.db, card_text, markup["inline_keyboard"])
         markup["inline_keyboard"] = rows
@@ -1528,8 +1532,9 @@ class TelegramApprovalBot:
                 self.db.record_alert(text, message_id=None, kind="transient" if transient else "persistent")
             return False
         text = _MASKER.mask(text)  # error details can carry a credential; the chat never sees one
-        if not buttons:  # no message is a dead end: one tap back to the panel
-            buttons = [DONE_BUTTON]
+        # No message is a dead end: one tap back to the panel, whether or not it carries buttons of its own
+        # (a timeout notice or a proposal card had only its actions: 2026-10-25 overhaul).
+        buttons = navigation_buttons(buttons) if buttons else [DONE_BUTTON]
         from .telegram_pages import panel as paginate
         text, buttons = paginate(self.db, text, buttons)
         truncated_text = text
@@ -1618,7 +1623,7 @@ class TelegramApprovalBot:
         typical = typical_run_seconds()
         bar, pct, eta = progress_figures(1, 5, 0, typical, 0.0, step_seconds(self.db, 5, typical))
         text = (
-            f"⏳ <b><u>PRODUCTION PROGRESS</u></b>\n\n"
+            f"{hourglass()} <b>Progress</b>\n\n"
             f"<b>{html.escape(topic_title)}</b> · started {show_time(None, '%H:%M')}\n\n"
             f"🔄 <b>Step 1/5:</b> <i>{PROGRESS_STEPS[0]}...</i>\n"
             + "".join(f"◽ <b>Step {n}/5:</b> {m}\n" for n, m in enumerate(PROGRESS_STEPS[1:], start=2)) + "\n"
@@ -1626,7 +1631,7 @@ class TelegramApprovalBot:
             f"⏱ <b>Elapsed:</b> 00:00 · <b>Time left:</b> {eta}"
         )
         text = self.progress_mode(run_id) + "\n\n" + text
-        buttons = [{"text": "🔄 Refresh Progress", "callback_data": f"cprog:{self.db.run_key(run_id)}"}, {"text": "Cancel run", "callback_data": f"runstop:{self.db.run_key(run_id)}"}]
+        buttons = [[{"text": "🔄 Refresh", "callback_data": f"cprog:{self.db.run_key(run_id)}"}, {"text": "⏹ Cancel run", "callback_data": f"runstop:{self.db.run_key(run_id)}"}], [DONE_BUTTON]]
         markup = {"inline_keyboard": format_responsive_keyboard(buttons)}
         try:
             from .telegram_state import get as state_get, put as state_put
@@ -1634,7 +1639,7 @@ class TelegramApprovalBot:
             mid = None
             if reuse:  # a re-render tapped on a card: that card becomes the progress card
                 state_put(self.db, "progress-reuse", run_id, "")
-                if self.edit_message_text(int(reuse), text, buttons=[buttons]):
+                if self.edit_message_text(int(reuse), text, buttons=buttons):
                     mid = int(reuse)
             if mid is None:
                 msg = self._api("sendMessage", data={
@@ -1720,7 +1725,7 @@ class TelegramApprovalBot:
         milestones = PROGRESS_STEPS
 
         lines = [
-            f"⏳ <b><u>PRODUCTION PROGRESS</u></b>\n\n<b>{html.escape(topic_title)}</b> · started {show_time(self._progress_start_time.get(run_id), '%H:%M')}",
+            f"{hourglass()} <b>Progress</b>\n\n<b>{html.escape(topic_title)}</b> · started {show_time(self._progress_start_time.get(run_id), '%H:%M')}",
             "",
         ]
         record = dict(active or {})
@@ -1745,7 +1750,7 @@ class TelegramApprovalBot:
         self._last_progress_edit[message_id] = now
         self._last_progress_step[message_id] = step
 
-        buttons = [{"text": "🔄 Refresh Progress", "callback_data": f"cprog:{self.db.run_key(run_id)}"}, {"text": "Cancel run", "callback_data": f"runstop:{self.db.run_key(run_id)}"}]
+        buttons = [[{"text": "🔄 Refresh", "callback_data": f"cprog:{self.db.run_key(run_id)}"}, {"text": "⏹ Cancel run", "callback_data": f"runstop:{self.db.run_key(run_id)}"}], [DONE_BUTTON]]
 
         # Keep DB updated with real-time active progress
         if hasattr(self.db, "set_active_progress"):
@@ -2174,7 +2179,7 @@ class TelegramApprovalBot:
                 {"text": f"{'✓' if var_letter == 'c' else '📌'} C: Minimal", "callback_data": f"cov:{run_name}:c"},
             ],
             [
-                {"text": f"🔒 Lock Variant {var_letter.upper()} ({style_name})", "callback_data": f"covlock:{run_name}:{var_letter}"}
+                {"text": f"🔒 Lock {var_letter.upper()}", "callback_data": f"covlock:{run_name}:{var_letter}"}
             ],
             [back or DONE_BUTTON],  # keep the way back the panel was opened with (Close or Dashboard)
         ]
@@ -2521,6 +2526,7 @@ class TelegramApprovalBot:
                 elif msg_id and action in ONE_SHOT:
                     self._strip_buttons(msg_id)
                 try:
+                    self.send_chat_action("typing")  # the native "typing…" while the screen is built
                     panel = [self, msg_id, is_media, False]
                     token = _PANEL.set(panel) if msg_id and action in PANEL_ACTIONS else None
                     try:
@@ -2533,6 +2539,9 @@ class TelegramApprovalBot:
                     self._answer_callback(cq['id'], 'Request checked')
                     if isinstance(reply, tuple):
                         text, buttons = reply
+                        from .telegram_ui import SCREENS, parent_of, with_nav
+                        if action in SCREENS and action != "cdash":  # ← one level up and 🏠, the same on every screen
+                            buttons = with_nav(buttons, parent_of(action))
                         if msg_id and action not in DELETE_FIRST:
                             self.show_navigation_panel(msg_id, text, is_media=is_media, buttons=buttons)
                         else:
@@ -2557,8 +2566,9 @@ class TelegramApprovalBot:
                     elif action in DELETE_FIRST:
                         pass
                     elif reply:
+                        from .telegram_ui import nav, parent_of
                         if msg_id and action in PANEL_ACTIONS:
-                            self.show_navigation_panel(msg_id, reply, is_media=is_media, buttons=[[DONE_BUTTON]])
+                            self.show_navigation_panel(msg_id, reply, is_media=is_media, buttons=nav(parent_of(action)))
                         else:
                             self.notify(reply, buttons=[[DONE_BUTTON]], record_alert=False)
                 except Exception as e:
@@ -2580,8 +2590,9 @@ class TelegramApprovalBot:
             state = wizard.load(chat, user)
             text = (msg.get('text') or '').strip()
             image = (msg.get('photo') or [None])[-1] or msg.get('document')
-            if text.startswith('/images upload ') or (text.startswith('/image ') and '|' not in text):
-                ref = text.split(' ', 2)[-1] if text.startswith('/images ') else text.partition(' ')[2]
+            upload_match = re.match(r'^/(?:photos|images)\s+(?:upload\s+(\S.*)|(\S+)\s+upload)\s*$', text, re.IGNORECASE)
+            if upload_match or (text.startswith('/image ') and '|' not in text):
+                ref = (upload_match.group(1) or upload_match.group(2)) if upload_match else text.partition(' ')[2]
                 panel = self.notify('Preparing image upload…', record_alert=False)
                 try:
                     state = wizard.begin(chat, user, ref, panel)
@@ -2798,16 +2809,15 @@ class TelegramApprovalBot:
             log.warning('Ignoring command from unauthorized user %s.', user_id)
             return
         if text.startswith('/'):
-            from .telegram_commands import menu
-            aliases = {"image": "images", "fetchimages": "fetchimages", "critique": "issue", "bug": "issue", "commands": "help"}
-            public = {entry["command"] for entry in menu()} | {"start"} | set(aliases)
+            from .telegram_commands import ALIASES, menu, normalise_command
+            public = {entry["command"] for entry in menu()} | set(ALIASES)
             if command not in public:
                 if msg.get('message_id'):
                     self._delete_soon(msg['message_id'])
                 self.show_dashboard(f"🤔 I don't know <code>/{html.escape(command[:40])}</code>. Help lists every command.",
                                     [[{"text": "❓ Help", "callback_data": "chelp:Everyday"}], [DONE_BUTTON]], fresh=True)
                 return
-            command = aliases.get(command, command)
+            command, args = normalise_command(command, args)  # an older name or a subcommand, as the handler knows it
         if command in {'start', 'dashboard'}:
             # Always a new panel at the bottom: after Telegram's "Clear history" the old one is no longer
             # visible to the operator, and editing it would leave an empty chat (and its START button) again.
@@ -2924,9 +2934,11 @@ class TelegramApprovalBot:
         if reply is None:
             return  # a job the command started owns the panel now
         text, buttons = reply if isinstance(reply, tuple) else (reply, [[DONE_BUTTON]])
+        from .telegram_ui import SCREENS, parent_of
+        parent = parent_of(command) if command in SCREENS and command not in ("dashboard", "cdash") else None
         if target:
-            if not self.update_navigation_target(target, text or "✅ Done.", navigation_buttons(buttons)):
-                self.show_dashboard(text or "✅ Done.", navigation_buttons(buttons), fresh=True)
+            if not self.update_navigation_target(target, text or "✅ Done.", navigation_buttons(buttons, parent)):
+                self.show_dashboard(text or "✅ Done.", navigation_buttons(buttons, parent), fresh=True)
         elif text:
             self.notify(text, buttons=buttons, record_alert=False)
 

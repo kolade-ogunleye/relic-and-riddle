@@ -63,9 +63,11 @@ or erase paid usage/publication evidence. Requeue is an explicit later action.
 ## Command compatibility audit
 
 The native command menu and categorized `/help` use `src/telegram_commands.py`.
-`/clear` and `/jobs` are public. `/images` is the canonical image command;
-`/fetchimages N` and `/image N` remain compatibility aliases. The old `/image`
-photo-caption format with pipe-separated rights evidence remains supported.
+`/clear` and `/jobs` are public. Since the 2026-10-25 overhaul `/photos` is the
+canonical photo command (`/photos 4`, `/photos 4 fetch|review|keep|drop|upload`);
+`/images`, `/image N`, `/fetchimages N`, `/review N`, `/drop` and `/keep` remain
+compatibility aliases, and `/swap` is retired. The old `/image` photo-caption
+format with pipe-separated rights evidence remains supported.
 `/music fetch [mood]`, `/music review`, `/music approved` expose the music menu
 operations; numeric `/music N` still opens that pending track. `/queue all` and
 `/queue full` now open bounded queue pages.

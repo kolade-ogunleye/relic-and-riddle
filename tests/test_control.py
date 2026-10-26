@@ -24,7 +24,7 @@ def test_pause_and_resume(db, handler):
 
 def test_status_next_help_and_unknown(db, handler):
     h, _ = handler
-    assert "active" in h("status", "") and "Mon 13 Oct" in h("status", "")
+    assert "active" in h("status", "")[0] and "Mon 13 Oct" in h("status", "")[0]   # the Status hub (2026-10-25)
     assert "Topic" in h("next", "")[0] and "01_topic" not in h("next", "")[0]   # the title, not the internal id
     assert "/pause" in h("help", "")
     assert "Unknown command" in h("selfdestruct", "")
@@ -191,7 +191,7 @@ def test_footage_command_does_not_download_links(db, tmp_path):
 
 def test_status_includes_voice_quota(db):
     h = make_command_handler(db, lambda: None, lambda: "", voice_quota=lambda: {"tier": "free", "used": 0, "limit": 10000})
-    assert "ElevenLabs (free): 10,000 of 10,000" in h("status", "")
+    assert "ElevenLabs (free): 10,000 of 10,000" in h("status", "")[0]
 
 
 def test_update_command_requires_daemon_and_delegates(db):
@@ -245,7 +245,7 @@ def test_queue_and_requeue_list(db):
     h = make_command_handler(db, lambda: None, lambda: "")
     db.record_topic_status("01_topic", "rejected")
     q_res = h("queue", "")
-    assert "Topic queue" in q_res
+    assert "<b>Queue</b>" in q_res
     assert "Can be restored" in q_res
     assert "01_topic" not in q_res and "/requeue 1" in q_res               # a number to copy, never the internal id
 
@@ -373,7 +373,7 @@ def test_review_cancel_and_swap_visual_reorder(tmp_path):
     (approve, back), (drop, swap), (others,) = sent[-1][2]
     assert approve['text'] == '✅ Approve' and approve['callback_data'].startswith('imgok:derinkuyu@')
     assert back['text'] == '← Topic images' and back['callback_data'].startswith('imgcancel:derinkuyu@')
-    assert drop['copy_text']['text'].startswith('/drop ') and swap['copy_text']['text'].startswith('/swap ')  # topic filled in
+    assert drop['copy_text']['text'].startswith('/drop ') and swap['copy_text']['text'].startswith('/keep ')  # topic filled in (swap retired 2026-10-25)
     assert others['callback_data'] == 'reviewpick:0'
 
     # 2. imgcancel callback leaves topic unreviewed
@@ -382,18 +382,10 @@ def test_review_cancel_and_swap_visual_reorder(tmp_path):
     assert load_credits(d1)['reviewed'] is False
 
     # 3. /swap 1 2 4 swaps beats 2 and 4 in both storyboard and credits
-    swap_res = h('swap', '1 2 4')
-    assert "Swapped Beat 2" in swap_res and "Beat 4" in swap_res
-    updated_sb = json.loads(sb_file.read_text(encoding='utf-8'))
-    assert updated_sb[1]['file'] == '03_commons.jpg'
-    assert updated_sb[3]['file'] == '01_commons.jpg'
+    swap_res = h('swap', '1 2 4')                                                  # retired 2026-10-25
+    assert "retired" in swap_res[0] and json.loads(sb_file.read_text(encoding='utf-8'))[1]['file'] == '01_commons.jpg'
 
-    updated_cred = load_credits(d1)
-    # The credits images should also have updated ordering
-    assert updated_cred['images'][1]['file'] == '03_commons.jpg'
-    assert updated_cred['images'][3]['file'] == '01_commons.jpg'
-    # And a new contact sheet was sent
-    assert len(sent) >= 2
+    assert len(load_credits(d1)['images']) == 5                                      # nothing dropped or reordered
 
 
 def test_stale_approval_click_rejected_and_buttons_stripped(db, monkeypatch, delivered_review):
@@ -597,7 +589,7 @@ def test_interactive_queue_controls_and_undo(db, monkeypatch):
     assert res == ""
     assert len(sent_messages) > 0
     q_txt, q_btns = sent_messages[-1]
-    assert "Topic queue" in q_txt
+    assert "<b>Queue</b>" in q_txt
     assert any(b["callback_data"].startswith("qdrop:") for row in q_btns for b in row)
     assert any(b["callback_data"] == "qrefresh:" for row in q_btns for b in row)
 
@@ -654,7 +646,7 @@ def test_progress_card_lifecycle(db, monkeypatch):
     mid = bot.send_progress_card("r1", "Derinkuyu Underground City")
     assert mid == 999
     assert calls[-1][0] == "sendMessage"
-    assert "PRODUCTION PROGRESS" in calls[-1][1]["text"]
+    assert "<b>Progress</b>" in calls[-1][1]["text"]
 
     # 2. Update progress card in-place
     assert bot.update_progress_card(mid, 3, 5, "Derinkuyu Underground City", "r1", "Compiling graphics")
@@ -740,7 +732,7 @@ def test_active_progress_and_progress_command(db, handler):
         message_id=42
     )
     active_res = h("progress", "")
-    assert "PRODUCTION PROGRESS" in active_res
+    assert "<b>Progress</b>" in active_res
     assert "Roman Concrete" in active_res
     assert "Step 2/5" in active_res
     assert "Acoustic Voiceover" in active_res
@@ -811,7 +803,7 @@ def test_audit_log_formatting_and_ellipses(db):
     db.record_audit_event(user_id="123", username="test_user", action="cmd", payload=short_payload, status="blocked")
 
     res = h("audit", "5")
-    assert "AUDIT LOG" in res
+    assert "Activity" in res
     assert "test_user" in res
     # The long payload must use <blockquote expandable> so nothing is truncated or lost
     assert "<blockquote expandable>" in res
@@ -897,8 +889,7 @@ def test_autocomplete_commands_empty_args_interactive_templates(db):
 
     # 3. /swap with empty args provides tap-to-copy template
     res_swap = h("swap", "")
-    assert "Swap two beats" in res_swap[0]
-    assert "<code>/swap" in res_swap[0]
+    assert "retired" in res_swap[0] and "<code>/photos N keep</code>" in res_swap[0]
 
     # 4. /add with empty args provides tap-to-copy template
     res_add = h("add", "")
@@ -943,7 +934,7 @@ def test_format_card_text_uppercase_titles_no_dividers_safe_notes():
         "qa_summary": "🔎 Automated video check: no issues found",
     }
     card = TelegramApprovalBot.format_card_text(payload, "run_test_01")
-    assert "<b><u>MASTER REVIEW</u></b>" in card
+    assert "<b>Master review</b>" in card
     assert "──────────────" not in card
     assert "&lt;b&gt;" not in card
     assert "🎙️ <b>Voice:</b> Edge-Tts" in card
@@ -1055,7 +1046,7 @@ def test_produce_renders_a_batch_through_the_bots_launcher(db):
     asked = []
     h = make_command_handler(db, lambda: None, lambda: "", produce_batch=lambda n: asked.append(n) or f"🎬 Producing {n}")
     text, buttons = h("produce", "7")                                   # the reply is the Queue panel, batch shown
-    assert text.startswith("🎬 Producing 7\n\n📋 <b>Topic queue</b>") and asked == [7]
+    assert text.startswith("🎬 Producing 7\n\n📋 <b>Queue</b>") and asked == [7]
     assert h("produce", "40")[0].startswith("🎬 Producing 14") and h("produce", "")[0].startswith("🎬 Producing 1\n")   # capped, defaults to one
     assert h("produce", "many").startswith("Usage: /produce")
     assert make_command_handler(db, lambda: None, lambda: "")("produce", "3") == "Batch production works while the bot is running."

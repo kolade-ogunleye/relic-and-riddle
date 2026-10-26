@@ -122,7 +122,7 @@ def test_public_menu_unifies_media_and_keeps_clear():
     from src.telegram_commands import menu
     names = [c["command"] for c in menu()]
     assert len(names) == len(set(names))
-    assert {"clear", "images", "music", "jobs"} <= set(names)
+    assert {"clear", "photos", "music", "jobs"} <= set(names)   # /images is an alias since 2026-10-25
     assert "fetchimages" not in names and "image" not in names
 
 

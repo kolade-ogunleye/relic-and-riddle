@@ -85,7 +85,7 @@ def test_dashboard_leads_with_what_needs_you(db):
                                                  "upload_post": {"configured": True, "connected": []}}))
     text, buttons = dashboard_text_and_buttons(db)
     assert text.index("Needs you") < text.index("Schedule")
-    assert "1 review(s) waiting" in text and "no instagram or facebook account" in text
+    assert "1 review waiting" in text and "no instagram or facebook account" in text
     assert buttons[0][0]["callback_data"] == "creviews:"
     assert "COCKPIT" not in text and "Zero-Trust" not in text
 

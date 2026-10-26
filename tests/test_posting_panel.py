@@ -47,7 +47,7 @@ def test_the_panel_lists_bookings_with_their_actions_and_the_dashboard_offers_it
     assert any(b["callback_data"] == "cposts:" and b["text"] == "🗓 Posting (3)" for row in dash for b in row)
     h = make_command_handler(db, lambda: None, lambda: "")
     text, buttons = h("posts", "")
-    assert text.startswith("🗓 <b>Posting</b>") and buttons[-2][0]["callback_data"] == "cstat:"
+    assert text.startswith("🗓 <b>Posting</b>") and buttons[-1][0]["callback_data"] == "cdash:"   # Status is a hub of its own (2026-10-25)
 
 
 def test_a_published_booking_shows_its_links_from_the_receipts(db, tmp_path):

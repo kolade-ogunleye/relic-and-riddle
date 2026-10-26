@@ -130,7 +130,7 @@ def test_dashboard_still_offers_re_render_after_a_newer_run_was_cancelled(db, tm
     db.update_run("run_newer", "cancelled")
     _, buttons = dashboard_text_and_buttons(db, None, assets_dir=tmp_path)
     found = [b for row in buttons for b in row if b["callback_data"] == f"rerender:{db.run_key(run_id)}"]
-    assert found and found[0]["text"].startswith("🔁 Re-render: ")
+    assert found and found[0]["text"] == "🔁 Re-render"   # the run is named in the text (2026-10-25)
     # Once the topic has been made again and reached review, the old failure is no longer offered.
     db.create_run("run_again", db.get_run(run_id)["topic_id"])
     db.update_run("run_again", "simulated")

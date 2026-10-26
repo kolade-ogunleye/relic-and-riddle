@@ -175,7 +175,7 @@ def test_cover_flip_and_lock(tmp_path, monkeypatch):
         # 4. View audit log command
         db.record_audit_event("123", username="admin", action="command", payload="/covers", status="allowed")
         audit_res = h("audit", "")
-        assert "AUDIT LOG" in audit_res
+        assert "Activity" in audit_res
     finally:
         import shutil
         if run_dir.exists():
@@ -261,7 +261,7 @@ def test_startup_dashboard_card_and_cockpit(tmp_path):
     assert "RELIC &amp; RIDDLE" in d_txt
     assert "Kailasa Monolith" in d_txt
     assert any("qrefresh:" in b["callback_data"] for row in d_btns for b in row)
-    assert any("ccov:" in b["callback_data"] for row in d_btns for b in row)
+    assert any("cimages:" in b["callback_data"] for row in d_btns for b in row)  # Covers live under Pictures (2026-10-25)
 
     # 4. Cockpit pause and resume toggle
     pause_reply, _ = h("cpause", "")

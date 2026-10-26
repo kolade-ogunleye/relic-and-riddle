@@ -63,7 +63,7 @@ def test_ready_commands_get_a_copy_button_and_placeholders_do_not():
     text = ('<b>Add topic</b>\n\n<code>/add The Lost Labyrinth of Hawara</code>\n<code>/add &lt;topic title&gt;</code>')
     markup = json.dumps({"inline_keyboard": [[{"text": "← Dashboard", "callback_data": "cdash:"}]]})
     rows = json.loads(format_payload("sendMessage", {"parse_mode": "HTML", "text": text, "reply_markup": markup})["reply_markup"])["inline_keyboard"]
-    assert rows[0] == [{"text": "📋 Copy /add The Lost Labyrinth of H…", "copy_text": {"text": "/add The Lost Labyrinth of Hawara"}}]
+    assert rows[0] == [{"text": "📎 Copy /add The Lost Labyrinth of H…", "copy_text": {"text": "/add The Lost Labyrinth of Hawara"}}]
     assert len(rows) == 2 and rows[1][0]["callback_data"] == "cdash:"      # the placeholder template gets none
     again = format_payload("editMessageText", {"parse_mode": "HTML", "text": text, "reply_markup": json.dumps({"inline_keyboard": rows})})
     assert len(json.loads(again["reply_markup"])["inline_keyboard"]) == 2  # never doubled on an edit

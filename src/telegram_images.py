@@ -78,7 +78,7 @@ def fetch_images(db, assets_dir, ref):
         specs = json.loads((config.TOPICS_DIR / "image_queries.json").read_text(encoding="utf-8"))
         spec = specs.get(topic["id"])
         if not spec:
-            raise ValueError("No curated image search for this topic yet; use /image to supply images")
+            raise ValueError("No curated image search for this topic yet; use /photos N upload to supply photos")
         count = fetch_topic(topic, spec, config.IMAGES_ALLOW_SHARE_ALIKE, assets_dir=Path(assets_dir))
         try:  # the new photos get their verdicts now, so the sheet you review shows them (2026-10-25)
             from .image_review import screen_unchecked

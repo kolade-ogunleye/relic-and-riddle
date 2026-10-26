@@ -291,7 +291,7 @@ class PipelineCoordinator:
             self._collect_findings(run_id, run_dir, tid, error=f"{type(e).__name__}: {e}")
             log.error("Run %s failed: %s", run_id, e)
             if not card_shown:
-                self._alert(f"❌ <b>Production failed</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(e))[:600]}</blockquote>\nNothing was posted. The topic is set aside: restore it from the queue (/requeue).")
+                self._alert(f"❌ <b>Production failed</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(e))[:600]}</blockquote>\nNothing was posted. The topic is set aside: restore it from the queue (/queue requeue N).")
             ping_healthcheck("/fail")
             raise
         finally:
@@ -1157,7 +1157,7 @@ class PipelineCoordinator:
                     pass
                 self.progress_msg_id = None
             if not card_shown:
-                self._alert(f"❌ <b>Production failed</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(e))[:600]}</blockquote>\nNothing was posted. The topic is set aside: restore it from the queue (/requeue).")
+                self._alert(f"❌ <b>Production failed</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(e))[:600]}</blockquote>\nNothing was posted. The topic is set aside: restore it from the queue (/queue requeue N).")
             ping_healthcheck("/fail")
             raise
         finally:
@@ -2017,6 +2017,8 @@ class PipelineCoordinator:
                 f"🔍 {len(used)} photo(s) from outside the topic's set, fetched for one line each: "
                 + "; ".join(f"line {c.get('beat', '?')}: {clip_words(str(c.get('looked') or c.get('title', '')).removeprefix('File:'), 110)}"
                             for c in used) if used else "")
+            payload["beat_image_lines"] = [f"line {c.get('beat', '?')}: {str(c.get('looked') or c.get('title', '')).removeprefix('File:')}"
+                                           for c in used]   # whole, for the card's folded list
             # AI motion for the opening photo (only with a media budget; real footage and our graphics come first).
             self._check_cancel(run_id)
             scenes, motion_used = motion.apply(self.db, scenes, run_dir / "motion", memo=motion_memo, topic=topic,

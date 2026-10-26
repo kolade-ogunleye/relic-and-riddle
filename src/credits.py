@@ -329,7 +329,7 @@ TIER_ORDER = ("topic", "kept", "context", "unchecked", "weak")
 def sheet_order(topic_dir: Path, images: List[Dict[str, Any]],
                 storyboards: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
     """The order photos are numbered on the contact sheet: those that show the topic first (most relevant
-    first), then those you kept, context, unchecked and weak (src/image_review.py tiers). /drop and /keep use
+    first), then those you kept, context, unchecked and weak (src/image_review.py tiers). /photos N drop and keep use
     the same order, so "drop 5" removes the photo labelled 5 on the sheet. (A pre-script storyboard led the
     sheet with keyword picks and one repeated caption: operator, 2026-10-25.) `storyboards` is not used."""
     from .image_review import _relevance, tier

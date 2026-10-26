@@ -12,7 +12,7 @@ def test_typed_panels_are_public_commands(db):
     from src.telegram_commands import ALIASES
     public = {entry["command"] for entry in menu()}
     assert {"produce", "posts", "reviews", "queue", "render", "status", "help"} <= public
-    assert {"history", "run"} <= set(ALIASES)                                    # older names, still answered (2026-10-25)
+    assert ALIASES == {"start": "dashboard"}          # the older names are removed, not half-kept (operator, 2026-10-25)
     h = make_command_handler(db, lambda: None, lambda: "")
     for command in ("posts", "reviews", "history"):
         reply = h(command, "")

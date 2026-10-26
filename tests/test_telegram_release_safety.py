@@ -95,7 +95,7 @@ def test_preview_failure_never_offers_approval(db, tmp_path, monkeypatch):
 
 def test_restart_does_not_replay_run_and_bad_update_does_not_abort_batch(db, monkeypatch):
     updates = [{"update_id": 1, "message": "malformed"}, {"update_id": 2, "message": {
-        "message_id": 44, "date": int(time.time()), "text": "/run", "from": {"id": 555}, "chat": {"id": 555}}}]
+        "message_id": 44, "date": int(time.time()), "text": "/render", "from": {"id": 555}, "chat": {"id": 555}}}]
     calls = []
     for _ in range(2):
         bot, _ = offline_bot(db, monkeypatch)

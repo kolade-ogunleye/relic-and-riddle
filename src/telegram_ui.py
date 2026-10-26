@@ -49,6 +49,40 @@ SCREENS.update({
 })
 
 
+# Screens a ← may replay: they only show something. The others in SCREENS do something when opened (start a
+# contact-sheet job, open an edit or upload flow, confirm a cancel), so ← never repeats them.
+NOT_REPLAYABLE = {"runstop", "runstopok", "edit", "upload", "review", "pickbump", "pickdrop", "mreview", "mfmenu"}
+TRAIL_LIMIT = 12
+
+
+def replayable(callback: Optional[str]) -> bool:
+    key = (callback or "").partition(":")[0]
+    return key in SCREENS and key not in NOT_REPLAYABLE
+
+
+def step(trail: List[str], callback: str) -> List[str]:
+    """The panel's path after `callback` is shown (operator, 2026-10-25: ← goes back to where you came from,
+    Jobs back to Status, a run's history back to its page). The Dashboard starts a new path; ← to the screen
+    before pops; another page or a Refresh of the same screen replaces it; anything else is a step down."""
+    if not replayable(callback):
+        return trail
+    if callback.partition(":")[0] == "cdash":
+        return [callback]
+    if len(trail) >= 2 and trail[-2] == callback:
+        return trail[:-1]
+    if trail and SCREENS[trail[-1].partition(":")[0]][1] == SCREENS[callback.partition(":")[0]][1]:
+        return trail[:-1] + [callback]
+    return (trail + [callback])[-TRAIL_LIMIT:]
+
+
+def came_from(trail: Sequence[str], callback: Optional[str]) -> Optional[str]:
+    """Where ← goes from `callback`: the screen it was opened from when the path knows it, else its parent."""
+    key = (callback or "").partition(":")[0]
+    if len(trail) >= 2 and trail[-1].partition(":")[0] == key:
+        return trail[-2]
+    return parent_of(callback)
+
+
 def hourglass() -> str:
     """The progress card's hourglass turns on each redraw (the card redraws every minute): a minimal sign of
     life, with no custom animated emoji (bots have none)."""
@@ -71,7 +105,7 @@ def back_button(parent: Optional[str]) -> Optional[Dict[str, str]]:
     if not parent or parent == HOME_CB:
         return None
     found = SCREENS.get(parent.partition(":")[0])
-    return {"text": f"← {found[1]}" if found else "← Back", "callback_data": parent}
+    return {"text": label(f"← {found[1]}") if found else "← Back", "callback_data": parent}
 
 
 def nav(parent: Optional[str] = HOME_CB, extra: Optional[Dict[str, str]] = None) -> List[List[Dict[str, str]]]:
@@ -85,7 +119,8 @@ def with_nav(rows: Sequence[Sequence[Dict[str, str]]], parent: Optional[str] = H
              extra: Optional[Dict[str, str]] = None) -> List[List[Dict[str, str]]]:
     """`rows` with the navigation row appended once (an earlier Dashboard button is dropped, so there is one)."""
     skip = {HOME_CB, parent} if parent else {HOME_CB}  # a handler's own "← Parent" is replaced by the standard one
-    kept = [[b for b in row if b.get("callback_data") not in skip] for row in rows if row]
+    kept = [[b for b in row if b.get("callback_data") not in skip and not str(b.get("text", "")).startswith("←")]
+            for row in rows if row]
     kept = [row for row in kept if row]
     return kept + nav(parent, extra)
 

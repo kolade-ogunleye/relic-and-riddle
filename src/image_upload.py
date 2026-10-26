@@ -96,7 +96,7 @@ class ImageUpload:
     def answer(self, chat, user, value, expected_id=None, expected_stage=None):
         state = self.load(chat, user)
         if not state:
-            raise ValueError("No upload is active; open /images")
+            raise ValueError("No upload is active; open /photos")
         if (expected_id and state["id"] != expected_id) or (expected_stage and state["stage"] != expected_stage):
             raise ValueError("This upload button is stale; use the current prompt")
         stage, value = state["stage"], value.strip()

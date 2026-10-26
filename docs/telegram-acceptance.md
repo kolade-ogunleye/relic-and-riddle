@@ -16,7 +16,7 @@ separate. Automated checks do not replace these operator acceptance checks.
 | Covers leave an image above Dashboard | Replace media panel with text and remove the obsolete media message; ordinary text screens edit in place | Covers → Dashboard; Music review → Dashboard; no unrelated thumbnail/audio remains |
 | New cards for account/research completion | Background jobs update their originating panel only while it is current; otherwise results remain in the relevant menu | Start research, stay for completion; repeat and navigate away; open Waiting ideas |
 | Backend commands in music instructions | Find instrumental CC0/CC BY tracks by project mood, listen, Keep/Remove, browse approved library | Music → Find new → choose mood → Review waiting → Keep/Remove → Dashboard |
-| Separate image commands/confusing instructions | `/images` has topic-specific fetch, upload and review; old aliases remain supported | `/images 1`, `/images fetch 1`, `/images upload 1`, `/images review 1` |
+| Separate image commands/confusing instructions | `/photos` has topic-specific fetch, upload, review, keep and drop | `/photos 1`, `/photos 1 fetch`, `/photos 1 upload`, `/photos 1 review` |
 | Manual image upload is difficult | Guided photo/document, source URL, licence, licence URL and author prompts; per-operator durable state | Upload an image you may use; cancel one upload; finish another and review it |
 | Missing cancellation | `/jobs` lists research/fetch/account jobs and producing runs; Cancel job or confirmed Cancel run | Cancel a free image fetch; inspect Jobs; test run cancellation only on a disposable approved validation run |
 | Clumsy lists | Queue pages, topic-picker pages, approved-music pages and categorized help | Queue → Next/Previous; Images topic pages; Music approved pages; Help categories |
@@ -43,7 +43,7 @@ silently restarted after process restart.
 ## Uploads and cancellation
 
 Guided uploads are isolated by chat and operator and can resume via Upload my
-image or `/images upload N`. Cancel removes only that pending staged file.
+image or `/photos N upload`. Cancel removes only that pending staged file.
 Late downloads and stale licence/cancel buttons cannot revive or change another
 upload. Files are limited to 20 MiB and validated as images. Finished uploads
 retain source/licence/author evidence and start unreviewed. PD/CC0/CC BY policy
@@ -65,18 +65,18 @@ or erase paid usage/publication evidence. Requeue is an explicit later action.
 The native command menu and categorized `/help` use `src/telegram_commands.py`.
 `/clear` and `/jobs` are public. Since the 2026-10-25 overhaul `/photos` is the
 canonical photo command (`/photos 4`, `/photos 4 fetch|review|keep|drop|upload`);
-`/images`, `/image N`, `/fetchimages N`, `/review N`, `/drop` and `/keep` remain
-compatibility aliases, and `/swap` is retired. The old `/image` photo-caption
-format with pipe-separated rights evidence remains supported.
+the older names (`/run`, `/images`, `/review N`, `/drop`, `/keep`, `/bump`, `/swap`…)
+were removed on 2026-10-25: typed, they are answered as unknown with the way to
+Help, and no screen or message names them. A photo sent with the caption
+`/photos <topic> | source: URL | licence: … | licence_url: URL` joins that set.
 `/music fetch [mood]`, `/music review`, `/music approved` expose the music menu
 operations; numeric `/music N` still opens that pending track. `/queue all` and
 `/queue full` now open bounded queue pages.
 
-`/start` still opens Dashboard. Historical decision/navigation callbacks remain
+`/start` (Telegram's own) still opens Dashboard. Historical decision/navigation callbacks remain
 for existing cards: removing their implementation would strand pending reviews.
-They are not all separate slash commands in autocomplete. Legacy UNESCO
-`/discover` can still send its older individual discovery cards; Dashboard →
-Topic ideas → UNESCO uses the compact paged panel. `/undo` supports the last
+They are not all separate slash commands in autocomplete. `/ideas unesco` and
+Dashboard → Queue → Ideas → UNESCO open the compact paged panel. `/queue undo` supports the last
 queue archive in the current process; music deletion does not claim to be
 undoable. Hidden implementation callbacks are not a second public command menu.
 Offline tests do not claim to have exercised paid generation or publication.

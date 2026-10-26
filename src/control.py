@@ -3,21 +3,8 @@ src/control.py
 ==============
 Operations over Telegram: slash commands, the daily heartbeat, and the dead-man's-switch ping.
 
-Commands (approvers only, in the configured chat):
-  /status   paused?, next scheduled run, pending approvals, recent runs
-  /next     the topic the next run will produce
-  /pause    stop scheduled runs and posts (an in-progress run finishes)
-  /resume   re-enable scheduled runs
-  /run      start a production run now (still needs your approval to publish)
-  /produce N  render the next N queued topics back to back, each to review (the next starts after your decision)
-  /posts    every booked post with its slot and status, links once posted; post now, move or cancel a booking
-  /reviews  review cards waiting, post candidates (finished dry runs) and the way to Review history
-  /history  blocked and approved reviews, with details per run
-  /images   image sets waiting for review
-  /review N send topic N's numbered contact sheet with an Approve button
-  /drop N 2 5  remove images 2 and 5 from topic N (re-run the fetcher to refill)
-  /propose  research 3 new topic ideas, each with Add / Skip buttons
-  /help     this list
+Commands (approvers only, in the configured chat): the public list, its subcommands and groups are in
+src/telegram_commands.py (GROUPS); /help shows them.
 """
 
 import html
@@ -232,7 +219,7 @@ def _resolve_topic_dir(ref: str, assets_dir: Path, db: Optional[PipelineDatabase
     from pathlib import PureWindowsPath
     ref = ref.strip()
     if not ref or ref in (".", "..") or any(c in ref for c in "/\\:") or PureWindowsPath(ref).drive:
-        raise ValueError("Use a topic number or ID from /images")
+        raise ValueError("Use a topic number or ID from /photos")
     if db is not None and ref.isdigit():
         topics = db.list_all_topics()
         if not 1 <= int(ref) <= len(topics):
@@ -240,7 +227,7 @@ def _resolve_topic_dir(ref: str, assets_dir: Path, db: Optional[PipelineDatabase
         ref = topics[int(ref)-1]["id"]
         candidate = assets_dir / ref
         if candidate.resolve().parent != assets_dir.resolve() or not (candidate / CREDITS_FILE).is_file():
-            raise ValueError("This topic has no fetched images; open /images to fetch or upload")
+            raise ValueError("This topic has no fetched images; open /photos to fetch or upload")
         return candidate
     matches = [d for d in _fetched_sets(assets_dir) if d.name.lower() == ref.lower()
                or (not ref.isdigit() and d.name.split("_",1)[-1] == ref)]
@@ -250,7 +237,7 @@ def _resolve_topic_dir(ref: str, assets_dir: Path, db: Optional[PipelineDatabase
             sets = _fetched_sets(assets_dir)
             matches = sets[int(ref)-1:int(ref)] if int(ref)>0 else []
     if len(matches) != 1:
-        raise ValueError("No unique fetched image set; open /images")
+        raise ValueError("No unique fetched image set; open /photos")
     return matches[0]
 
 
@@ -355,10 +342,21 @@ def images_text(assets_dir: Path = ASSETS_DIR, db: Optional[PipelineDatabase] = 
             short.append(label)
     lines = [f"<b>Photo sets</b> · {approved} approved · {len(review)} to review · {len(short)} short"]
     if review:
-        lines += ["", "<b>To review</b> · <code>/photos N review</code>"] + [f"  • {x}" for x in review]
+        lines += ["", "<b>To review</b> · <code>/photos N review</code>"] + shown_and_more(review)
     if short:
-        lines += ["", f"<b>Short of {MIN_SCENE_IMAGES} photos</b> · <code>/photos N fetch</code> or upload"] + [f"  • {x}" for x in short]
+        lines += ["", f"<b>Short of {MIN_SCENE_IMAGES} photos</b> · <code>/photos N fetch</code> or upload"] + shown_and_more(short)
     return "\n".join(lines)
+
+
+SECTION_SHOWN = 5
+
+
+def shown_and_more(items: List[str], shown: int = SECTION_SHOWN, where: str = "Photo sets") -> List[str]:
+    """A section's first `shown` lines, then '…and N more in <where>': the one way a screen says it holds more."""
+    out = [f"  • {x}" for x in items[:shown]]
+    if len(items) > shown:
+        out.append(f"  <i>…and {len(items) - shown} more in {html.escape(where)}</i>")
+    return out
 
 
 def review_caption(topic_dir: Path, ref_hint: Optional[str] = None) -> str:
@@ -371,8 +369,8 @@ def review_caption(topic_dir: Path, ref_hint: Optional[str] = None) -> str:
     lines = [f"🎬 <b>{html.escape(topic_dir.name)}</b> — {len(images)} images{status_tag}"]
     drop_ref = ref_hint if ref_hint else (topic_dir.name.split('_')[0] if topic_dir.name.split('_')[0].isdigit() else topic_dir.name)
     # First, so the 1,024-character photo caption never cuts it off; the Copy buttons fill the topic in.
-    lines.append(f"<i>Edit with the numbers on the sheet: /drop {html.escape(drop_ref)} &lt;images&gt; · "
-                 f"/keep {html.escape(drop_ref)} &lt;images&gt;</i>")
+    lines.append(f"<i>Edit with the numbers on the sheet: /photos {html.escape(drop_ref)} drop &lt;numbers&gt; · "
+                 f"/photos {html.escape(drop_ref)} keep &lt;numbers&gt;</i>")
     counts: Dict[str, int] = {}
     for c in images:
         counts[tier(c)] = counts.get(tier(c), 0) + 1
@@ -382,7 +380,7 @@ def review_caption(topic_dir: Path, ref_hint: Optional[str] = None) -> str:
     lines.append(f"A video uses the {strong} Topic and Kept photos and at most {CONTEXT_SHOTS_MAX} Context ones "
                  f"({len(usable_photos(images))} in all); "
                  "Stories and the carousel use Topic and Kept only. Unchecked photos are looked at before a run; "
-                 "Weak ones are never used. /keep puts one in anyway.")
+                 "Weak ones are never used. /photos N keep puts one in anyway.")
 
     def _int(v):
         try:
@@ -735,7 +733,9 @@ def _run_findings(db: PipelineDatabase, r: Dict[str, Any]) -> List[str]:
     out: List[str] = []
     fb = improve.operator_feedback(db, r["run_id"]) or {}
     if fb.get("reason") or fb.get("text"):
-        out.append("you: " + " · ".join(x for x in (fb.get("reason"), fb.get("text")) if x))
+        # "Other" is the button that asks for your words: your words say it, not the button's name
+        reason = None if fb.get("text") and str(fb.get("reason") or "").lower() == "other" else fb.get("reason")
+        out.append("your reason: " + " · ".join(x for x in (reason, fb.get("text")) if x))
     report = _read_run_json(r["run_id"], "release_report.json")
     if report:
         out += release_problems(report, dry_run=True)[:4]
@@ -776,36 +776,58 @@ def _audience_line(db: PipelineDatabase, run_id: str) -> str:
     return " · ".join(parts)
 
 
-def review_history(db: PipelineDatabase, limit: int = 6) -> Tuple[str, List[List[Dict[str, str]]]]:
+LIST_PAGE = 5  # items on a page of a numbered list (Reviews, Review history)
+
+
+def number_buttons(callbacks: List[str], first: int) -> List[List[Dict[str, str]]]:
+    """One button per item, its number on the list: a row of up to five (operator, 2026-10-25: numbers, not
+    a run's name cut to fit a button)."""
+    row = [{"text": str(first + i), "callback_data": cb} for i, cb in enumerate(callbacks)]
+    return [row[i:i + 5] for i in range(0, len(row), 5)]
+
+
+def remakeable(r: Dict[str, Any]) -> bool:
+    """Whether Make again can rebuild this run: a rejected or sent-back one that had a video (regenerated with
+    your reason), or a failed one whose script had passed the fact check (resumed where it stopped)."""
+    if r.get("status") in ("rejected", "regenerate"):
+        return bool(r.get("master_video_path"))
+    return r.get("status") == "failed" and _worth_resuming(r)
+
+
+def review_history(db: PipelineDatabase, page: int = 0, limit: int = 20) -> Tuple[str, List[List[Dict[str, str]]]]:
     """📚 Review history, from the runs' own records: what was blocked (to address whenever it suits you)
-    and what was approved (to see what did well) (operator, 2026-10-24)."""
+    and what was approved (to see what did well) (operator, 2026-10-24). One numbered list across both,
+    five to a page, a number button for each (2026-10-25)."""
     e = html.escape
     runs = db.list_recent_runs(limit=80)
     blocked = [r for r in runs if r.get("status") in HISTORY_BLOCKED and (r.get("master_video_path") or r.get("status") == "rejected")][:limit]
     approved = [r for r in runs if r.get("status") in HISTORY_APPROVED][:limit]
-    late = rerenderable(db)
-    lines = ["📚 <b>Review history</b>", "",
-             "⛔ <b>Blocked</b> · rejected by you, or stopped at the release gate. Each keeps its reasons; Make again rebuilds one whenever it suits you."]
-    buttons: List[List[Dict[str, str]]] = []
-    if not blocked:
-        lines.append("• none among the recent runs")
-    for r in blocked:
-        why = "; ".join(e(x) for x in _run_findings(db, r)[:2])
-        lines.append(f"• {e(db.run_label(r['run_id']))} · {e(r['status'])}\n  <i>{why}</i>")   # the label carries the date
-        row = [{"text": f"❓ Why: {button_run_name(db, r['run_id'], 19)}", "callback_data": f"chist:{db.run_key(r['run_id'])}"}]
-        if late and late["run_id"] == r["run_id"]:
-            row.append({"text": "🔁 Make again", "callback_data": f"rerender:{db.run_key(r['run_id'])}"})
-        buttons.append(row)
-    lines += ["", "✅ <b>Approved</b> · what passed, with its self-audit and the audience numbers once they exist."]
-    if not approved:
-        lines.append("• none among the recent runs")
-    for r in approved:
-        n = _self_audit_count(r["run_id"])
-        audience = _audience_line(db, r["run_id"])
-        how = ("self-audit clean" if n == 0 else f"{n} self-audit finding(s)") + (f" · {e(audience)}" if audience else "")
-        lines.append(f"• {e(db.run_label(r['run_id']))} · {e(r['status'])}\n  <i>{how}</i>")
-        buttons.append([{"text": f"📄 {button_run_name(db, r['run_id'], 25)}", "callback_data": f"chist:{db.run_key(r['run_id'])}"}])
-    return "\n".join(lines), buttons
+    items = [("blocked", r) for r in blocked] + [("approved", r) for r in approved]
+    pages = max(1, (len(items) + LIST_PAGE - 1) // LIST_PAGE)
+    page = max(0, min(page, pages - 1))
+    shown = items[page * LIST_PAGE:(page + 1) * LIST_PAGE]
+    lines = [f"📚 <b>Review history</b> · {len(blocked)} blocked · {len(approved)} approved"
+             + (f" · page {page + 1} of {pages}" if pages > 1 else ""),
+             "Tap a number for its reasons, its checks and, once posted, its audience."]
+    heads = {"blocked": "⛔ <b>Blocked</b> · rejected by you, or stopped at the release gate",
+             "approved": "✅ <b>Approved</b> · passed, with its self-audit"}
+    section = None
+    for n, (kind, r) in enumerate(shown, page * LIST_PAGE + 1):
+        if kind != section:
+            section = kind
+            lines += ["", heads[kind]]
+        if kind == "blocked":
+            why = "; ".join(e(x) for x in _run_findings(db, r)[:2])
+            note = (why or e(r["status"])) + (" · <b>can be made again</b>" if remakeable(r) else "")
+        else:
+            audit = _self_audit_count(r["run_id"])
+            audience = _audience_line(db, r["run_id"])
+            note = ("self-audit clean" if audit == 0 else f"{audit} self-audit finding(s)") + (f" · {e(audience)}" if audience else "")
+        lines.append(f"{n}. {e(db.run_label(r['run_id']))} · {e(r['status'])}\n    <i>{note}</i>")   # the label carries the date
+    if not items:
+        lines += ["", "Nothing among the recent runs yet."]
+    buttons = number_buttons([f"chist:{db.run_key(r['run_id'])}" for _, r in shown], page * LIST_PAGE + 1)
+    return "\n".join(lines), buttons + pager("chistory:", page, pages)
 
 
 def history_details(db: PipelineDatabase, key: str) -> Tuple[str, List[List[Dict[str, str]]]]:
@@ -820,7 +842,14 @@ def history_details(db: PipelineDatabase, key: str) -> Tuple[str, List[List[Dict
     if r.get("status") in HISTORY_BLOCKED:
         lines.append("<b>Why it was blocked</b>")
         lines += [f"• {e(x)}" for x in _run_findings(db, r)[:8]]
-        lines += ["", "Re-render (dashboard) rebuilds it with the voice and clips it already has; Regenerate is for the words."]
+        if remakeable(r):
+            how = ("a new version is written with the reason you gave, reusing the voice and clips already paid for"
+                   if r.get("status") in ("rejected", "regenerate") else
+                   "it resumes where it stopped, reusing everything it made after its script passed the fact check")
+            lines += ["", f"<b>Make again</b>: {how}. It comes back to you for review."]
+            return "\n".join(lines), [[{"text": "🔁 Make again", "callback_data": f"rerender:{db.run_key(run_id)}"}],
+                                      [HOME]]
+        lines += ["", "It can't be made again from here: render the topic again from the queue."]
     else:
         n = _self_audit_count(run_id)
         audience = _audience_line(db, run_id)
@@ -831,7 +860,7 @@ def history_details(db: PipelineDatabase, key: str) -> Tuple[str, List[List[Dict
             problems = release_problems(report, dry_run=True)
             lines.append("• release gate: passed" if not problems else "• release gate: " + e("; ".join(problems[:3])))
         lines.append(f"• audience: {e(audience)}" if audience else "• audience: no numbers yet (collected after publishing)")
-    return "\n".join(lines), [[HISTORY_BUTTON], [HOME]]
+    return "\n".join(lines), [[HOME]]
 
 
 POST_ICON = {"pending": "🗓", "waiting": "⏳", "published": "✅", "failed": "❌", "unknown": "❓", "cancelled": "⏹"}
@@ -1241,9 +1270,16 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             run = db.get_run(prog["run_id"]) or {}
             if run.get("topic_id"):
                 return run["topic_id"]
-        marked = next((t["id"] for t in db.list_all_topics() if t.get("status") == "in_production"), None)
-        if marked:
-            return marked
+        # A topic stays "in_production" while its video waits for review, so the mark alone is not a run being
+        # made: the queue said "Rendering #8 · progress" all day for a run waiting for review (operator,
+        # 2026-10-25). Marked counts only while its newest run is still being made, or none has begun.
+        recent = db.list_recent_runs(limit=40)
+        for t in db.list_all_topics():
+            if t.get("status") != "in_production":
+                continue
+            newest = next((r for r in recent if r.get("topic_id") == t["id"]), None)
+            if newest is None or newest.get("status") in ("producing", "pending", "started"):
+                return t["id"]
         # A run started from the queue whose worker has not yet marked its topic (a second Render tap on
         # another page still showed "Render #20 Now"): the record kept for its first minutes.
         try:
@@ -1321,9 +1357,9 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 rb = _readiness(t['id'])
                 lines.append(f"  {s}. {html.escape(t['title'])}\n    <i>{rb}</i>")
             if len(queued) > limit + 1:
-                lines.append(f"  <i>...and {len(queued) - (limit + 1)} more (send /queue all to view all)</i>")
+                lines.append(f"  <i>…and {len(queued) - (limit + 1)} more · <code>/queue all</code></i>")
         else:
-            lines.append("  <i>Queue is currently empty! Use /add &lt;title&gt; or /propose.</i>")
+            lines.append("  <i>The queue is empty. Add one with <code>/add Title</code> or research ideas with <code>/ideas research</code>.</i>")
 
         # Several episodes back to back (/produce N, operator 2026-10-24) from the panel too: the sizes offered
         # never exceed what is queued; a running batch says how many more will follow. Typed, not tapped: the
@@ -1341,12 +1377,14 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
 
         if requeueable:
             lines.append(f"\n<b>Can be restored</b> · {len(requeueable)}")
-            for t in requeueable[:5]:
+            for t in (requeueable if show_all else requeueable[:5]):
                 s = topic_serial.get(t['id'], '')
                 st = t.get("status", "")
                 lines.append(f"  {s}. {html.escape(t['title'])} · {html.escape(STATUS_WORDS.get(st, st))}")
+            if len(requeueable) > 5 and not show_all:
+                lines.append(f"  <i>…and {len(requeueable) - 5} more · <code>/queue all</code></i>")
             example = topic_serial.get(requeueable[0]["id"], 1)
-            lines.append(f"\nRestore one with its number: <code>/requeue {example}</code>")
+            lines.append(f"\nRestore one with its number: <code>/queue requeue {example}</code>")
 
         pages = max(1, (max(0, len(queued) - 1) + limit - 1) // limit)
         # Rows, not a flat list: Render beside Refresh, Bump beside Drop, every page button on one row.
@@ -1376,8 +1414,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         return send_photo(topic_dir / CONTACT_SHEET, caption,
                           [[{"text": "✅ Approve", "callback_data": f"imgok:{key}"},
                             {"text": "← Topic images", "callback_data": f"imgcancel:{key}"}],
-                           [{"text": f"📎 Copy /drop {serial}", "copy_text": {"text": f"/drop {serial} "}},
-                            {"text": f"📎 Copy /keep {serial}", "copy_text": {"text": f"/keep {serial} "}}],
+                           [{"text": "📎 Copy drop command", "copy_text": {"text": f"/photos {serial} drop "}},
+                            {"text": "📎 Copy keep command", "copy_text": {"text": f"/photos {serial} keep "}}],
                            [{"text": "🖼 Other topics", "callback_data": "reviewpick:0"}]])
 
     def handle(command: str, args: str) -> str:
@@ -1422,7 +1460,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 return "Queue changed; this item cannot be dropped.", [[HOME]]
             undo_stack.append({"type": "qdrop", "topic_id": args, "desc": f"Drop of {t_obj['title'] if t_obj else args}"})
             q_text, q_buttons = render_queue_text_and_buttons()
-            return f"🗑 Dropped topic from queue (type /undo to restore).\n\n{q_text}", q_buttons
+            return f"🗑 Dropped topic from queue (<code>/queue undo</code> restores it).\n\n{q_text}", q_buttons
         if command in ("qrefresh", "qpage"):
             return render_queue_text_and_buttons(page=int(args) if args.isdigit() else 0)
         if command in ("pickbump", "pickdrop"):
@@ -1438,7 +1476,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             page = min(int(args) if args.isdigit() else 0, pages - 1)
             shown = queued[page * 8:page * 8 + 8]
             title = ("⬆ <b>Bump a topic to the front of the queue</b>" if verb == "bump" else
-                     "🗑 <b>Drop a topic from the queue</b> (<code>/undo</code> restores it)")
+                     "🗑 <b>Drop a topic from the queue</b> (<code>/queue undo</code> restores it)")
             text = title + (f" · page {page + 1} of {pages}" if pages > 1 else "") + "\n\n" + "\n".join(
                 f"<b>{serial[t['id']]}.</b> {html.escape(t['title'])}" for t in shown)
             numbers = [{"text": str(serial[t["id"]]), "callback_data": f"q{verb}:{t['id']}"} for t in shown]
@@ -1455,8 +1493,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                         return ""
                     return text, buttons
                 return (
-                    "⬆ <b>Bump a topic</b>\n\nTap to copy & edit: <code>/bump 2</code>\n\n"
-                    "<i>Usage: <code>/bump &lt;number or topic_id&gt;</code>\n"
+                    "⬆ <b>Bump a topic</b>\n\nTap to copy &amp; edit: <code>/queue bump 2</code>\n\n"
+                    "<i>Usage: <code>/queue bump &lt;number or topic_id&gt;</code>\n"
                     "Tip: Tap the code box above to copy instantly to input box.</i>"
                 )
             topics = db.list_all_topics()
@@ -1495,7 +1533,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             if not db.drop_topic(match["id"]):
                 return "Queue changed; topic cannot be archived."
             undo_stack.append({"type": "qdrop", "topic_id": match["id"], "desc": f"Drop of {match['title']}"})
-            return f"🗑 Archived <b>{html.escape(match['title'])}</b> from queue. Type /undo to restore."
+            return f"🗑 Archived <b>{html.escape(match['title'])}</b> from the queue. <code>/queue undo</code> restores it."
         if command == "undo":
             if not undo_stack:
                 return "ℹ️ Nothing to undo."
@@ -1675,8 +1713,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 return HELP
             group = args if args in GROUPS else "Everyday"
             others = [{"text": f"📖 {name}", "callback_data": f"chelp:{name}"} for name in GROUPS if name != group]
-            return (f"❓ <b>Help</b> · {html.escape(group)}\n\n" + help_text(group)
-                    + "\n\n<i>Older names (/run, /images, /bump…) still work.</i>",
+            return (f"❓ <b>Help</b> · {html.escape(group)}\n\n" + help_text(group),
                     [others[i:i + 2] for i in range(0, len(others), 2)] + [[HOME]])
         if command in ("progress", "cprog"):
             active_prog = db.get_active_progress() if hasattr(db, "get_active_progress") else None
@@ -1785,31 +1822,33 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     lines.append(f"{n}. {html.escape(db.run_label(r['run_id']))}")
                     buttons.append([{"text": f"🚀 Post for real ({n})", "callback_data": f"postreal:{db.run_key(r['run_id'])}"}])
                 return "\n".join(lines), buttons + [[HISTORY_BUTTON], [HOME]]
-            # Where the card is can't be promised: the chat may have been cleared or the card deleted.
-            lines = ["🎬 <b>Reviews waiting</b>", "",
-                     "Resend sends a review card again at the bottom of the chat, with its video, and removes the "
-                     "earlier one if it is still there.", ""]
-            buttons = []
-
-            def resend_button(run_id):
-                title = ((db.get_run(run_id) or {}).get("script_payload") or {}).get("title") or db.run_key(run_id)
-                return [{"text": f"📨 Resend {button_run_name(db, run_id, 18)}", "callback_data": f"resend:{db.run_key(run_id)}"}]
-            for p in pending[:5]:
-                lines.append(f"• {html.escape(db.run_label(p['run_id']))}")
-                buttons.append(resend_button(p["run_id"]))
-            if timed_out:  # a timed-out review's topic waits for this decision (TIMEOUT_HOLD_DAYS)
-                lines += ["", "⌛ <b>Timed out</b> (its topic waits for you; Resend opens the card with Reject on it):"]
-                for r in timed_out[:5]:
-                    lines.append(f"• {html.escape(db.run_label(r['run_id']))}")
-                    buttons.append(resend_button(r["run_id"]))
-            return "\n".join(lines), buttons + [[HISTORY_BUTTON], [HOME]]
+            # One numbered list, five to a page, a number button each (operator, 2026-10-25: every review is
+            # listed; the list stopped at five and the buttons carried names cut to fit). Where the card is
+            # can't be promised (the chat may have been cleared), so a number sends it again at the bottom.
+            items = [("waiting", p["run_id"]) for p in pending] + [("timed_out", r["run_id"]) for r in timed_out]
+            pages = max(1, (len(items) + LIST_PAGE - 1) // LIST_PAGE)
+            page = max(0, min(int(args) if args.strip().isdigit() else 0, pages - 1))
+            shown = items[page * LIST_PAGE:(page + 1) * LIST_PAGE]
+            lines = [f"🎬 <b>Reviews waiting</b> · {len(items)}" + (f" · page {page + 1} of {pages}" if pages > 1 else ""),
+                     "Tap a number to get that review card again at the bottom of the chat, with its video."]
+            section = None
+            for n, (kind, run_id) in enumerate(shown, page * LIST_PAGE + 1):
+                if kind != section:
+                    section = kind
+                    if kind == "timed_out":  # its topic waits for this decision (TIMEOUT_HOLD_DAYS)
+                        lines += ["", "⌛ <b>Timed out</b> · its topic waits for you; the card has Reject on it"]
+                    else:
+                        lines.append("")
+                lines.append(f"{n}. {html.escape(db.run_label(run_id))}")
+            buttons = number_buttons([f"resend:{db.run_key(run_id)}" for _, run_id in shown], page * LIST_PAGE + 1)
+            return "\n".join(lines), buttons + pager("creviews:", page, pages) + [[HISTORY_BUTTON], [HOME]]
         if command in ("digest", "cdigest"):  # the week's digest, in the panel (operator, 2026-10-25)
             record = weekly_digest(db)
             body = record["text"] if record else "📰 No weekly digest yet; it comes on Monday mornings."
             return body, [[HOME]]
-        if command in ("history", "chistory"):  # typed /history opens Review history
-            text, buttons = review_history(db)
-            return text, buttons + [[{"text": "🎬 Reviews", "callback_data": "creviews:"}], [HOME]]
+        if command in ("history", "chistory"):  # typed /reviews history opens Review history
+            text, buttons = review_history(db, int(args) if args.strip().isdigit() else 0)
+            return text, buttons + [[HOME]]
         if command == "chist":
             if not args.strip():
                 return handle("chistory", "")
@@ -1826,7 +1865,10 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             from . import audience
             return audience.analytics_text(db), [[HOME]]
         if command in ("caudit", "calerts"):
-            return handle("audit" if command == "caudit" else "alerts", "10"), [[HOME]]
+            # The screen's own reply, not wrapped again: a (text, buttons) pair inside another showed its repr,
+            # quotes and escapes on the Alerts screen (operator, 2026-10-25).
+            reply = handle("audit" if command == "caudit" else "alerts", "10")
+            return reply if isinstance(reply, tuple) else (reply, [[HOME]])
         if command == "ccov":
             return handle("covers", args)  # the latest render, whichever topic it is
         if command == "cprop":
@@ -1993,10 +2035,10 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                         example_num = str({t["id"]: i for i, t in enumerate(all_t, 1)}.get(nxt["id"], 1))
                 except Exception:
                     pass
-                return (f"🗑 <b>Remove images from a storyboard</b>\n\nSend the topic number, then the image numbers "
-                        f"shown on its storyboard sheet: <code>/drop {example_num} 2 5</code>\n\n"
-                        "<i>Easiest from the sheet itself: it has a Copy /drop button.</i>",
-                        [[{"text": "🎬 Storyboards", "callback_data": "reviewpick:0"}], [HOME]])
+                return (f"🗑 <b>Remove photos from a set</b>\n\nSend the topic number, then the image numbers "
+                        f"shown on its sheet: <code>/photos {example_num} drop 2 5</code>\n\n"
+                        "<i>Easiest from the sheet itself: it has a Copy button for this.</i>",
+                        [[{"text": "🖼 Photo sets", "callback_data": "imagepick:0"}], [HOME]])
             ref, nums = parts[0], parts[1:]
             topic_dir = _resolve_topic_dir(ref, assets_dir, db=db)
             msg = drop_images(topic_dir, [int(n) for n in nums])
@@ -2007,64 +2049,14 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             parts = args.split()
             if len(parts) < 2 or not all(n.isdigit() for n in parts[1:]):
                 return (f"📌 <b>Keep photos for the video</b>\n\nSend the topic number, then the photo numbers on its "
-                        f"sheet: <code>/{command} 4 2 7</code>. A kept photo is used even if the check rated it "
-                        "Context or Unchecked; <code>/unkeep</code> takes the mark off.",
-                        [[{"text": "🎬 Storyboards", "callback_data": "reviewpick:0"}], [HOME]])
+                        f"sheet: <code>/photos 4 {command} 2 7</code>. A kept photo is used even if the check rated it "
+                        "Context or Unchecked; <code>/photos 4 unkeep 2</code> takes the mark off.",
+                        [[{"text": "🖼 Photo sets", "callback_data": "imagepick:0"}], [HOME]])
             from .credits import keep_images
             topic_dir = _resolve_topic_dir(parts[0], assets_dir, db=db)
             msg = keep_images(topic_dir, [int(n) for n in parts[1:]], keep=command == "keep")
             send_sheet(topic_dir)
             return html.escape(msg)
-        if command == "swap":
-            # Retired (2026-10-25): the photo sheet orders photos by what the look found in them, not by
-            # storyboard beats, so swapping beats changed nothing the operator could see.
-            return ("🔁 <b>/swap is retired.</b>\n\nThe sheet now orders photos by what they show (Topic first). "
-                    "Use <code>/photos N keep</code> or <code>/photos N drop</code> with the numbers on the sheet.",
-                    [[{"text": "🖼 Photo sets", "callback_data": "imagepick:0"}], [HOME]])
-        if command == "swap_retired_2026_10_25":  # the old storyboard swap, kept for reference, unreachable
-            parts = args.split()
-            if len(parts) < 3 or not (parts[1].isdigit() and parts[2].isdigit()):
-                try:
-                    nxt = db.get_next_topic()
-                    example = {x["id"]: i for i, x in enumerate(db.list_all_topics(), 1)}.get(nxt["id"], 1) if nxt else 1
-                except Exception:
-                    example = 1
-                return (f"🔄 <b>Swap two beats in a storyboard</b>\n\nSend the topic number, then the two beat numbers "
-                        f"shown on its storyboard sheet: <code>/swap {example} 2 4</code>\n\n"
-                        "<i>Easiest from the sheet itself: it has a Copy /swap button.</i>",
-                        [[{"text": "🎬 Storyboards", "callback_data": "reviewpick:0"}], [HOME]])
-            ref, b1, b2 = parts[0], int(parts[1]), int(parts[2])
-            topic_dir = _resolve_topic_dir(ref, assets_dir, db=db)
-            from .storyboard import load_storyboard, save_storyboard
-            sb = load_storyboard(topic_dir)
-            if not sb or len(sb) < 2:
-                return f"⚠️ No storyboard found for {html.escape(topic_dir.name)}. Run /review {html.escape(ref)} first."
-            if not (1 <= b1 <= len(sb) and 1 <= b2 <= len(sb)):
-                return f"⚠️ Beat numbers must be between 1 and {len(sb)}."
-            idx1, idx2 = b1 - 1, b2 - 1
-            for key in ("file", "title", "license"):
-                sb[idx1][key], sb[idx2][key] = sb[idx2].get(key), sb[idx1].get(key)
-            save_storyboard(topic_dir, sb)
-
-            # Reorder credits.json images list to reflect the updated storyboard beat sequence
-            cr = load_credits(topic_dir)
-            sb_files = [item["file"] for item in sb if "file" in item]
-            cr_images_by_file = {img["file"]: img for img in cr.get("images", []) if "file" in img}
-            new_cr_images = []
-            for f in sb_files:
-                if f in cr_images_by_file:
-                    new_cr_images.append(cr_images_by_file[f])
-            for img in cr.get("images", []):
-                if img.get("file") not in sb_files:
-                    new_cr_images.append(img)
-            cr["images"] = new_cr_images
-            cr["reviewed"] = False
-            save_credits(topic_dir, cr)
-
-            write_contact_sheet(topic_dir, cr.get("images", []), storyboards=sb)
-            send_sheet(topic_dir)
-            return (f"🔄 Swapped Beat {b1} (<code>{html.escape(sb[idx1].get('file', ''))}</code>) "
-                    f"and Beat {b2} (<code>{html.escape(sb[idx2].get('file', ''))}</code>) for <b>{html.escape(topic_dir.name)}</b>.")
         if command in ("music", "mreview", "mkeep", "mdel", "mcancel", "mnext"):
             from . import music
             reply = ""
@@ -2196,7 +2188,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command == "tadd":
             from . import topic_proposer
             topic_id = topic_proposer.add(db, args)
-            return f"➕ Added <code>{html.escape(topic_id)}</code>. Open /images to fetch or upload its photos."
+            return f"➕ Added <code>{html.escape(topic_id)}</code>. Open <code>/photos</code> to fetch or upload its photos."
         if command == "tskip":
             from . import topic_proposer
             topic_proposer.skip(db, args)
@@ -2210,16 +2202,16 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             ref, _, digest = args.rpartition("@") if "@" in args else (args, "", "")
             back = ([[{"text": "← Topic images", "callback_data": f"imagehelp:{ref}"}]] if ref else []) + [[HOME]]
             if not ref:
-                return "This review is obsolete. Open /review again before approving.", back
+                return "This review is obsolete. Open its photo set again (<code>/photos N review</code>) before approving.", back
             t_dir = _resolve_topic_dir(ref, assets_dir, db=db)
             if command == "imgcancel":
                 state = "approved" if load_credits(t_dir).get("reviewed") else "unapproved"
                 return f"Storyboard review closed for <b>{html.escape(t_dir.name)}</b>. Set remains {state}.", back
             from .telegram_images import review_digest
             if not digest:
-                return "This review is obsolete. Open /review again before approving.", back
+                return "This review is obsolete. Open its photo set again (<code>/photos N review</code>) before approving.", back
             if digest != review_digest(t_dir):
-                return "Images changed since this review. Open /review again; nothing was approved.", back
+                return "Images changed since this review. Open its photo set again (<code>/photos N review</code>); nothing was approved.", back
             if load_credits(t_dir).get("reviewed"):
                 return f"ℹ️ Topic <b>{html.escape(t_dir.name)}</b> was already approved.", back
             return "✅ " + html.escape(approve_set(t_dir, MIN_SCENE_IMAGES)), back
@@ -2301,7 +2293,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     first = re.sub(r"^(\W*)(\w)", lambda m: m[1] + m[2].upper(), first.lower())  # "❌ Production failed"
                 ts = show_time(a.get("created_at"), "%d %b %H:%M") if a.get("created_at") else ""
                 note = " · removed from chat" if a.get("purged") else ""
-                lines.append(f"• <b>{html.escape(clip_words(first, 90))}</b>\n   {ts}{note}")  # never mid-word
+                lines.append(f"• <b>{html.escape(clip_words(first, 240))}</b>\n   {ts}{note}")  # never mid-word
                 body = re.sub(r"\n{2,}", "\n", rest).strip()
                 if body:
                     lines.append(f"<blockquote expandable>{html.escape(clip_words(body, 600))}</blockquote>")
@@ -2321,7 +2313,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             arch_summary = "\n" + "\n".join(arch_lines) if arch_lines else ""
             return (f"➕ Added <b>{html.escape(title)}</b> (<code>{html.escape(topic_id)}</code>) to topic queue!{u_tag}\n"
                     f"🎬 <b>Documentary Shot Archetypes:</b>{arch_summary}\n\n"
-                    f"Open <code>/images {html.escape(topic_id)}</code> to fetch, upload or review images.")
+                    f"Open <code>/photos {html.escape(topic_id)}</code> to fetch, upload or review photos.")
         if command in ("discover", "discoverpanel"):
             from .unesco import UNESCOEngine
             from . import topic_proposer
@@ -2386,7 +2378,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     return f"ℹ️ <b>{html.escape(site.site)}</b> is already queued in the topic bank."
                 return f"⚠️ {html.escape(err_str)}"
             added = (f"➕ Added UNESCO Marvel <b>{html.escape(site.site)}</b> (<code>{html.escape(topic_id)}</code>) to queue!{u_tag}\n\n"
-                     f"Open <code>/images {html.escape(topic_id)}</code> to fetch, upload or review images.")
+                     f"Open <code>/photos {html.escape(topic_id)}</code> to fetch, upload or review photos.")
             if place:  # from the panel: the next marvel moves into this place
                 text, buttons = handle("discoverpanel", place)
                 return added.split("\n\n")[0] + "\n\n" + text, buttons

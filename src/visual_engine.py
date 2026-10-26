@@ -150,7 +150,7 @@ class VisualEngine:
                 raise MissingAssetsError(
                     f"Only {len(resolved)} of the {len(credits['images'])} approved photos of '{tid}' are strong enough "
                     f"for the video (need {MIN_SCENE_IMAGES}): " + ", ".join(f"{n} {k}" for k, n in counts.items())
-                    + ". Fetch or upload photos that show the topic itself, or keep a photo with /keep on its sheet.")
+                    + ". Fetch or upload photos that show the topic itself, or keep a photo with /photos N keep from its sheet.")
         elif topic_dir.is_dir():
             resolved = sorted(
                 p for p in topic_dir.iterdir()

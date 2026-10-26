@@ -110,7 +110,7 @@ def test_a_typed_requeue_refusal_is_still_said(db, monkeypatch):
     from src.telegram_state import initialize
     bot = TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
     initialize(db)
-    monkeypatch.setattr(bot, "_api", lambda m, **kw: [{"update_id": 1, "message": {"text": "/requeue 1", "from": {"id": 555}, "chat": {"id": 555}, "message_id": 3}}] if m == "getUpdates" else {"message_id": 9})
+    monkeypatch.setattr(bot, "_api", lambda m, **kw: [{"update_id": 1, "message": {"text": "/queue requeue 1", "from": {"id": 555}, "chat": {"id": 555}, "message_id": 3}}] if m == "getUpdates" else {"message_id": 9})
     monkeypatch.setattr(bot, "delete_message", lambda mid: True)
     nudges = []
     monkeypatch.setattr(bot, "nudge", lambda text: nudges.append(text) or True)

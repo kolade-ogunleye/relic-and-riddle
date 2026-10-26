@@ -71,7 +71,7 @@ def picture_look(path: Path, query: str) -> Dict[str, Any]:
         log.debug("Picture check unavailable for %s (%s); keeping it.", path.name, e)
         return {"checked": False, "shows": True, "burned_in_text": False, "reason": "check unavailable"}
     return {"checked": True, "shows": bool(verdict.shows_subject), "burned_in_text": bool(verdict.burned_in_text),
-            "reason": (verdict.reason or "")[:160]}
+            "reason": (verdict.reason or "").strip()}  # whole: the card folds it
 
 
 def picture_shows(path: Path, query: str) -> Tuple[bool, str]:
@@ -81,7 +81,7 @@ def picture_shows(path: Path, query: str) -> Tuple[bool, str]:
     slide, 2026-10-25)."""
     look = picture_look(path, query)
     if look["burned_in_text"]:
-        return False, ("burned-in text: " + look["reason"])[:160]
+        return False, "burned-in text: " + look["reason"]
     return look["shows"], look["reason"]
 
 

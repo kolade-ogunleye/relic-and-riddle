@@ -148,7 +148,7 @@ def screen_unchecked(topic: Dict[str, Any], topic_dir: Path) -> int:
         v = by_index.get(i)
         img["vision_review"] = (v.model_dump() if v else {"reason": "no verdict returned"}) | {"kept": tier({"vision_review": v.model_dump()}) in ("topic", "context") if v else False}
     save_credits(topic_dir, credits)
-    try:  # the sheet's numbers follow the tiers: redrawn, so /drop N and /keep N mean the photo shown as N
+    try:  # the sheet's numbers follow the tiers: redrawn, so /photos drop and keep N mean the photo shown as N
         from .credits import write_contact_sheet
         write_contact_sheet(topic_dir, credits["images"])
     except Exception as e:

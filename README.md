@@ -178,7 +178,7 @@ python main.py backup [--all]
 When the daemon or the bot is running, approvers can work from Telegram:
 
 - **Review cards:** 720p preview, covers, transcript and fact notes, with Approve / Reject / Regenerate.
-- **Commands (selection):** `/dashboard`, `/render`, `/produce 3`, `/reviews`, `/posts`, `/status`, `/queue` (with `bump 4`, `drop 4`, `requeue 4`, `undo`, `all`), `/photos 4` (with `fetch`, `review`, `keep 2 7`, `drop 1 5`, `upload`), `/covers`, `/music`, `/ideas`, `/pause`, `/resume`; `/help` lists every group. Older names (`/run`, `/images`, `/bump`, `/review N`, `/drop_topic`) still work. Send a video with the caption `/footage <topic>` to add footage.
+- **Commands (selection):** `/dashboard`, `/render`, `/produce 3`, `/reviews`, `/posts`, `/status`, `/queue` (with `bump 4`, `drop 4`, `requeue 4`, `undo`, `all`), `/photos 4` (with `fetch`, `review`, `keep 2 7`, `drop 1 5`, `upload`), `/covers`, `/music`, `/ideas`, `/pause`, `/resume`; `/help` lists every group. The older names were removed on 2026-10-25; only Telegram's own `/start` opens the Dashboard. Send a photo with the caption `/photos <topic> | source: URL | licence: … | licence_url: URL | author: Name` to add it to a set. Send a video with the caption `/footage <topic>` to add footage.
 - **Alerts:** published, failed and timed-out runs, voice fallbacks, missed posting slots and the daily heartbeat.
 
 ---

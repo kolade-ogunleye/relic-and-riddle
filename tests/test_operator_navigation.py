@@ -225,7 +225,7 @@ def test_a_new_panel_replaces_the_previous_one(db):
     second = bot.show_dashboard("two", [[{"text": "x", "callback_data": "cdash:"}]], fresh=True)
     bot.drain()
     assert first != second and ("deleteMessage", first) in [(m, d.get("message_id")) for m, d in calls]
-    _typed(bot, "/next", lambda c, a: "Next topic: X")
+    _typed(bot, "/queue next", lambda c, a: "Next topic: X")
     edits = [d.get("text", "") for m, d in calls if m == "editMessageText"]
     assert "Next topic: X" in edits[-1]
 
@@ -381,7 +381,7 @@ def test_typed_propose_shows_the_research_not_an_empty_completed(db):
         return ""
     handler = make_command_handler(db, lambda: None, lambda: "", propose_topics=propose)
     _typed(bot, "/propose", handler) if False else bot._process_update({"update_id": 1, "message": {
-        "message_id": 310, "text": "/propose", "date": int(__import__("time").time()), "from": {"id": 555}, "chat": {"id": 555}}}, handler)
+        "message_id": 310, "text": "/ideas research", "date": int(__import__("time").time()), "from": {"id": 555}, "chat": {"id": 555}}}, handler)
     release.set()
     bot.drain()
     shown = [d.get("text", "") for m, d in calls if m in ("sendMessage", "editMessageText")]

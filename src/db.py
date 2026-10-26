@@ -341,7 +341,7 @@ class PipelineDatabase:
         if not rows:
             if held:  # not empty: what is left waits for a decision on a timed-out review
                 raise QueueEmpty("Every topic left waits for a timed-out review: Resend or Reject it (Reviews).")
-            raise QueueEmpty("No unpublished topics left. Add new ones with /propose (or `python main.py topic propose`).")
+            raise QueueEmpty("No unpublished topics left. Add new ones with /ideas research (or `python main.py topic propose`).")
 
         candidates = [self._topic_from_row(r) for r in rows]
         last_theme = (last_topic["sub_theme"] or "").lower().strip() if last_topic else ""

@@ -153,6 +153,14 @@ _HASHTAG_ONLY_LINE = re.compile(r"^(?:\s*#\w+)+\s*$")
 _TRAILING_HASHTAGS = re.compile(r"(?:\s+#\w+)+\s*$")
 
 
+def listed(heading: str, items: List[str]) -> str:
+    """A card list the one way the card shows one: its heading in bold, then every item whole in an expandable
+    blockquote (Telegram folds it), never cut to fit. `heading` and `items` are HTML already."""
+    head = heading if "<b>" in heading else f"<b>{heading}</b>"
+    body = [x for x in items if x]
+    return head + ("\n<blockquote expandable>" + "\n".join(f"• {x}" for x in body) + "</blockquote>" if body else "")
+
+
 def without_hashtags(text: str) -> str:
     """A caption as the review card shows it: lines of hashtags and a closing run of them taken out (the card
     lists the hashtags on their own line). A hashtag inside a sentence stays, so no sentence is cut."""
@@ -518,6 +526,7 @@ class TelegramApprovalBot:
         # button starts returns to the screen that button was on.
         self._panel_screen: Dict[int, str] = {}
         self._panel_origin: Dict[int, Optional[str]] = {}
+        self._panel_trail: Dict[int, List[str]] = {}  # the screens shown, Dashboard first: ← goes back along it
         self._panel_lock = threading.RLock()
         self._finished_runs: set = set()  # runs whose progress card became a receipt: the ticker leaves it
         self._answered = {}  # callback ids already answered (insertion-ordered, bounded)
@@ -619,7 +628,7 @@ class TelegramApprovalBot:
         self._panel_aliases[current] = new_id
         self._panel_media[new_id] = False
         self._panel_revisions[new_id] = self._panel_revisions.get(current, 0)
-        for screens in (self._panel_screen, self._panel_origin):  # the same panel, a new message
+        for screens in (self._panel_screen, self._panel_origin, self._panel_trail):  # the same panel, a new message
             if current in screens:
                 screens[new_id] = screens[current]
         # The replacement is the newest screen, so it is the one panel: an older panel elsewhere goes too.
@@ -720,6 +729,7 @@ class TelegramApprovalBot:
         return self.notify(text, buttons=buttons, record_alert=False)
 
     def start_operator_job(self, title, work, resource="", navigation=None, late=False):
+        from .telegram_ui import SCREENS, with_nav
         destination = [navigation if navigation is not None else self.navigation_target()]
         # Back to the screen whose button started the job; for a typed command (no panel), by what it is.
         origin = self._panel_origin.get(self._current_panel(destination[0][0])) if destination[0] else None
@@ -740,6 +750,9 @@ class TelegramApprovalBot:
                 if result is None:
                     return None  # the work drew its own screen (a photo or audio panel): shown, not lost
                 text, buttons = result if isinstance(result, tuple) else (str(result or "Completed."), [[DONE_BUTTON]])
+                screen = resource.partition(":")[0]
+                if screen in SCREENS and screen != "cdash" and destination[0]:
+                    buttons = with_nav(buttons, self.back_for(destination[0][0], resource))
             else:
                 text = f"{'⏹' if job['state'] == 'cancelled' else '⚠️'} <b>{html.escape(title)}</b>: {job['state']}.\nExisting approved assets and usage records are preserved."
                 buttons = [[{"text": "Jobs", "callback_data": "jobs:"}], *up, [DONE_BUTTON]]
@@ -1090,19 +1103,28 @@ class TelegramApprovalBot:
             text += "\n" + _format_note(script_payload["graphics_note"])
         if script_payload.get("footage_note"):
             text += "\n" + _format_note(script_payload["footage_note"])
-        if script_payload.get("beat_image_note"):
+        # Each outside photo whole, folded (operator, 2026-10-25: cut mid-word); a run made before the lines were
+        # kept has them in its credits.
+        photo_lines = script_payload.get("beat_image_lines") or [
+            f"line {c.get('beat', '?')}: {str(c.get('looked') or c.get('title', '')).removeprefix('File:')}"
+            for c in script_payload.get("beat_image_credits") or [] if isinstance(c, dict)]
+        if photo_lines and script_payload.get("beat_image_note"):
+            text += "\n" + listed(e(script_payload["beat_image_note"].partition(":")[0]), [e(x) for x in photo_lines])
+        elif script_payload.get("beat_image_note"):
             text += "\n" + _format_note(script_payload["beat_image_note"])
         if script_payload.get("source_note"):
             text += "\n" + _format_note(script_payload["source_note"]) + "\n"
-        if script_payload.get("qa_summary"):
-            text += "\n" + script_payload["qa_summary"] + "\n"  # already HTML-escaped by video_qa
+        if script_payload.get("qa_summary"):  # already HTML-escaped by video_qa: its heading, then each issue folded
+            head, *found = script_payload["qa_summary"].splitlines()
+            text += "\n" + (listed(head, [x.lstrip("· ").strip() for x in found]) if found else head) + "\n"
         # The look at the stills and the cover (info findings: never a block) was kept but shown nowhere when
         # the gate passed (2026-10-24 review doc said they were on the card; audit 2026-10-25).
         notes = [i for i in ((script_payload.get("self_healing") or {}).get("issues") or [])
                  if isinstance(i, dict) and str(i.get("severity", "")).lower() == "info" and i.get("issue")]
         if notes:
-            text += f"\n👀 Look at the stills and cover: {len(notes)} note(s)\n" + "\n".join(
-                f"· {html.escape(str(i.get('card') or i.get('type') or ''))}: {html.escape(str(i['issue']))[:160]}" for i in notes[:5]) + "\n"
+            # Each note whole, folded, as the gate's findings are (operator, 2026-10-25: cut mid-word at 160)
+            text += "\n" + listed(f"👀 Look at the stills and cover: {len(notes)} note(s)",
+                                  [f"{e(str(i.get('card') or i.get('type') or ''))}: {e(str(i['issue']))}" for i in notes]) + "\n"
         if sources:
             text += "\n📚 " + "\n📚 ".join(e(s.get("url", "")) for s in sources) + "\n"
         full = text + f"\n<i>Run ID (for the command line):</i> <code>{e(run_id)}</code>"  # code: Telegram linked the digits
@@ -2330,6 +2352,9 @@ class TelegramApprovalBot:
                             if cq.get("data") and not cq["data"].startswith(("jobcancel:", "jobs:")):
                                 self._panel_origin[mid] = self._panel_screen.get(mid)  # where this button was
                                 self._panel_screen[mid] = cq["data"]
+                            if cq.get("data"):
+                                from .telegram_ui import step
+                                self._panel_trail[mid] = step(self._panel_trail.get(mid, []), cq["data"])
                             self._panel_media[mid] = bool(message.get("photo") or message.get("audio") or message.get("video") or message.get("document"))
                 msg = update.get("message") or {}
                 action = (cq or {}).get("data", "").partition(":")[0]
@@ -2476,6 +2501,9 @@ class TelegramApprovalBot:
                     if action == 'jobcancel':
                         note = '⏹ Cancellation requested. An in-flight request may finish.\n\n' if self.jobs.cancel(target) else 'This job is no longer owned by this bot process.\n\n'
                     text, buttons = self.jobs_view()
+                    from .telegram_ui import with_nav
+                    buttons = with_nav([row for row in buttons if row != [DONE_BUTTON]], self.back_for(msg_id, "jobs:"),
+                                       extra=None)
                     self.show_navigation_panel(msg_id, note + text, buttons, is_media)
                     self._answer_callback(cq['id'], 'Updated')
                     return
@@ -2540,8 +2568,8 @@ class TelegramApprovalBot:
                     if isinstance(reply, tuple):
                         text, buttons = reply
                         from .telegram_ui import SCREENS, parent_of, with_nav
-                        if action in SCREENS and action != "cdash":  # ← one level up and 🏠, the same on every screen
-                            buttons = with_nav(buttons, parent_of(action))
+                        if action in SCREENS and action != "cdash":  # ← back where it came from and 🏠, on every screen
+                            buttons = with_nav(buttons, self.back_for(msg_id, f"{action}:{target}"))
                         if msg_id and action not in DELETE_FIRST:
                             self.show_navigation_panel(msg_id, text, is_media=is_media, buttons=buttons)
                         else:
@@ -2568,7 +2596,7 @@ class TelegramApprovalBot:
                     elif reply:
                         from .telegram_ui import nav, parent_of
                         if msg_id and action in PANEL_ACTIONS:
-                            self.show_navigation_panel(msg_id, reply, is_media=is_media, buttons=nav(parent_of(action)))
+                            self.show_navigation_panel(msg_id, reply, is_media=is_media, buttons=nav(self.back_for(msg_id, f"{action}:{target}")))
                         else:
                             self.notify(reply, buttons=[[DONE_BUTTON]], record_alert=False)
                 except Exception as e:
@@ -2590,9 +2618,9 @@ class TelegramApprovalBot:
             state = wizard.load(chat, user)
             text = (msg.get('text') or '').strip()
             image = (msg.get('photo') or [None])[-1] or msg.get('document')
-            upload_match = re.match(r'^/(?:photos|images)\s+(?:upload\s+(\S.*)|(\S+)\s+upload)\s*$', text, re.IGNORECASE)
-            if upload_match or (text.startswith('/image ') and '|' not in text):
-                ref = (upload_match.group(1) or upload_match.group(2)) if upload_match else text.partition(' ')[2]
+            upload_match = re.match(r'^/photos\s+(?:upload\s+(\S.*)|(\S+)\s+upload)\s*$', text, re.IGNORECASE)
+            if upload_match:
+                ref = upload_match.group(1) or upload_match.group(2)
                 panel = self.notify('Preparing image upload…', record_alert=False)
                 try:
                     state = wizard.begin(chat, user, ref, panel)
@@ -2620,7 +2648,8 @@ class TelegramApprovalBot:
                 return
         image_item = (msg.get('photo') or [None])[-1] or msg.get('document')
         image_caption = (msg.get('caption') or '').strip()
-        if image_item and image_caption.split(' ', 1)[0].split('@')[0].lower() == '/image':
+        # A photo sent with '/photos <topic> | source: … | licence: …' as its caption joins that topic's set
+        if image_item and image_caption.split(' ', 1)[0].split('@')[0].lower() == '/photos' and '|' in image_caption:
             if not self._authorized(msg.get('from', {}).get('id', ''), msg.get('chat', {}).get('id', '')):
                 return
             try:
@@ -2648,11 +2677,11 @@ class TelegramApprovalBot:
                 self.show_dashboard((reply if isinstance(reply, str) else "🔍 Add your question as the photo's caption: /ask &lt;question&gt;") + note,
                                     navigation_buttons(None), fresh=True)
                 return
-            if word not in {'/image', '/footage', '/issue', '/critique', '/bug'} and not (msg.get('video') or msg.get('document')):
+            if word not in {'/photos', '/footage', '/issue'} and not (msg.get('video') or msg.get('document')):
                 self.show_dashboard("📎 <b>Photo received</b>, but its caption doesn't say what to do with it.\n\n"
                                     "• Report a problem: caption <code>/issue what is wrong</code>\n"
                                     "• Ask about it: caption <code>/ask your question</code>\n"
-                                    "• Add it to a topic: open Images → Upload my image", navigation_buttons(None), fresh=True)
+                                    "• Add it to a topic: Pictures → Photo sets → the topic → Upload my image", navigation_buttons(None), fresh=True)
                 return
         doc_or_vid = msg.get('video') or msg.get('document')
         caption = (msg.get('caption') or '').strip()
@@ -2708,7 +2737,7 @@ class TelegramApprovalBot:
         if waiting_issue:
             self._awaiting = None
             caption = '/issue ' + (caption or 'See the attached screenshot.')
-        if media_item and caption.split(' ',1)[0].split('@')[0].lower() in {'/issue','/critique','/bug'} and self._authorized(msg.get('from', {}).get('id', ''), msg.get('chat', {}).get('id', '')):
+        if media_item and caption.split(' ',1)[0].split('@')[0].lower() == '/issue' and self._authorized(msg.get('from', {}).get('id', ''), msg.get('chat', {}).get('id', '')):
             command, _, critique_text = caption[1:].partition(' ')
             command = 'issue'
             try:
@@ -2941,6 +2970,12 @@ class TelegramApprovalBot:
                 self.show_dashboard(text or "✅ Done.", navigation_buttons(buttons, parent), fresh=True)
         elif text:
             self.notify(text, buttons=buttons, record_alert=False)
+
+    def back_for(self, message_id, callback):
+        """Where ← goes from `callback` shown in this panel: the screen it was opened from, else its parent."""
+        from .telegram_ui import came_from
+        trail = self._panel_trail.get(self._current_panel(message_id), []) if message_id else []
+        return came_from(trail, callback)
 
     def _run_panel_command(self, handler, action, target, message_id, is_media, revision, late=False):
         def work():

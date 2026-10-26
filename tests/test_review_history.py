@@ -6,7 +6,7 @@ import html
 import json
 
 from src import config
-from src.control import make_command_handler, review_history
+from src.control import HOME, make_command_handler, review_history
 
 
 def _three_runs(db, tmp_path, monkeypatch):
@@ -31,13 +31,15 @@ def test_history_lists_blocked_runs_with_their_reasons_and_approved_runs_with_th
     _three_runs(db, tmp_path, monkeypatch)
     text, buttons = review_history(db)
     blocked, approved = text.split("✅ <b>Approved</b>")
-    assert "you: pictures · wrong temple on beat 5" in blocked                 # the operator's own reason
+    assert "your reason: pictures · wrong temple on beat 5" in blocked                 # the operator's own reason
     assert "visual_checks: beat 2: caption clipped at the edge" in blocked     # the release gate's line
     assert html.escape(db.run_label("run_c")) in approved and "self-audit clean" in approved
-    callbacks = [b["callback_data"] for row in buttons for b in row]
-    # the newest late failure also gets Make again (the dashboard's Re-render), as the dashboard offers it
-    assert callbacks == [f"chist:{db.run_key('run_b')}", f"rerender:{db.run_key('run_b')}",
-                         f"chist:{db.run_key('run_a')}", f"chist:{db.run_key('run_c')}"]
+    # One numbered list across both sections, a number button each (operator, 2026-10-25); Make again is on a
+    # run's own screen, where what it does is said
+    assert "1. " in blocked and "3. " in approved and "can be made again" in blocked
+    assert buttons == [[{"text": "1", "callback_data": f"chist:{db.run_key('run_b')}"},
+                        {"text": "2", "callback_data": f"chist:{db.run_key('run_a')}"},
+                        {"text": "3", "callback_data": f"chist:{db.run_key('run_c')}"}]]
 
 
 def test_the_reviews_panel_offers_the_history_whether_or_not_anything_waits(db, tmp_path, monkeypatch):
@@ -48,7 +50,7 @@ def test_the_reviews_panel_offers_the_history_whether_or_not_anything_waits(db, 
     text, buttons = h("creviews", "")                                          # the simulated run is a post candidate
     assert "Post candidates" in text and "chistory:" in [b["callback_data"] for row in buttons for b in row]
     text, buttons = h("chistory", "")
-    assert text.startswith("📚 <b>Review history</b>") and buttons[-2][0]["callback_data"] == "creviews:"
+    assert text.startswith("📚 <b>Review history</b>") and buttons[-1] == [HOME]      # ← Reviews comes with the nav row
 
 
 def test_details_of_a_blocked_run_name_every_reason_and_the_run_id(db, tmp_path, monkeypatch):
@@ -56,6 +58,7 @@ def test_details_of_a_blocked_run_name_every_reason_and_the_run_id(db, tmp_path,
     h = make_command_handler(db, lambda: None, lambda: "")
     text, buttons = h("chist", db.run_key("run_b"))
     assert "Why it was blocked" in text and "visual_checks: beat 2: caption clipped at the edge" in text
-    assert "<code>run_b</code>" in text and buttons[0][0]["callback_data"] == "chistory:"
+    assert "<code>run_b</code>" in text and buttons[0][0] == {"text": "🔁 Make again", "callback_data": f"rerender:{db.run_key('run_b')}"}
+    assert "Make again</b>: it resumes where it stopped" in text                  # what it does, said where it is offered
     text, _ = h("chist", db.run_key("run_c"))
     assert "How it did" in text and "self-audit: clean" in text and "no numbers yet" in text

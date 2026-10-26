@@ -62,7 +62,7 @@ def look(path: Path, kind: str, copy: str = "") -> Tuple[List[str], str]:
         log.debug("Still check unavailable for %s (%s).", path.name, e)
         return [], "check unavailable"
     problems = [p for p in verdict.problems if p != "none"]
-    return problems, (verdict.reason or "")[:160]
+    return problems, (verdict.reason or "").strip()  # whole: the card folds it (cut mid-word at 160, 2026-10-25)
 
 
 def story_copy(payload: Dict[str, Any], index: int) -> str:

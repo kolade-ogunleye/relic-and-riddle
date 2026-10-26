@@ -83,7 +83,7 @@ def test_poll_applies_approval_click_for_any_pending_run(db, monkeypatch, delive
 
 
 def test_command_errors_are_reported_not_raised(db, monkeypatch):
-    bot, sent = _bot(db, monkeypatch, [{"update_id": 1, "message": {"text": "/next", "from": {"id": 555}, "chat": {"id": 555}}}])
+    bot, sent = _bot(db, monkeypatch, [{"update_id": 1, "message": {"text": "/queue next", "from": {"id": 555}, "chat": {"id": 555}}}])
     shown = []
     api = bot._api
     monkeypatch.setattr(bot, "_api", lambda method, **kw: (shown.append(kw["data"]["text"]) if method == "editMessageText" else None) or api(method, **kw))
@@ -136,7 +136,7 @@ def test_images_review_drop_approve_flow(db, tmp_path):
     assert h("review", "03_kailasa_temple") == ""
     name, caption, buttons = sent[-1]
     assert name == "contact_sheet.jpg" or name.endswith(".jpg")
-    assert "A video uses the" in caption and "/keep" in caption  # which photos a video may use (2026-10-25)
+    assert "A video uses the" in caption and "/photos 03_kailasa_temple keep" in caption  # which photos a video may use (2026-10-25)
     assert buttons[0][0]["callback_data"].startswith("imgok:03_kailasa_temple@")
     assert not (d / "storyboard.json").exists()  # no keyword-picked pre-script storyboard (2026-10-25)
 
@@ -160,7 +160,7 @@ def test_unknown_topic_and_bad_drop_usage(db, tmp_path):
     h = make_command_handler(db, lambda: None, lambda: "", assets_dir=tmp_path)
     with pytest.raises(ValueError, match="Unknown topic number"):
         h("review", "99")
-    assert "<code>/drop" in h("drop", "3 two")[0]
+    assert "<code>/photos 1 drop" in h("drop", "3 two")[0]
 
 
 def test_approve_button_routes_through_poller(db, monkeypatch, tmp_path):
@@ -247,7 +247,7 @@ def test_queue_and_requeue_list(db):
     q_res = h("queue", "")
     assert "<b>Queue</b>" in q_res
     assert "Can be restored" in q_res
-    assert "01_topic" not in q_res and "/requeue 1" in q_res               # a number to copy, never the internal id
+    assert "01_topic" not in q_res and "/queue requeue 1" in q_res               # a number to copy, never the internal id
 
     rq_res = h("requeue", "list")
     assert "Can be restored" in rq_res
@@ -373,7 +373,7 @@ def test_review_cancel_and_swap_visual_reorder(tmp_path):
     (approve, back), (drop, swap), (others,) = sent[-1][2]
     assert approve['text'] == '✅ Approve' and approve['callback_data'].startswith('imgok:derinkuyu@')
     assert back['text'] == '← Topic images' and back['callback_data'].startswith('imgcancel:derinkuyu@')
-    assert drop['copy_text']['text'].startswith('/drop ') and swap['copy_text']['text'].startswith('/keep ')  # topic filled in (swap retired 2026-10-25)
+    assert drop['copy_text']['text'].endswith(' drop ') and swap['copy_text']['text'].endswith(' keep ')  # topic filled in (swap retired 2026-10-25)
     assert others['callback_data'] == 'reviewpick:0'
 
     # 2. imgcancel callback leaves topic unreviewed
@@ -382,8 +382,8 @@ def test_review_cancel_and_swap_visual_reorder(tmp_path):
     assert load_credits(d1)['reviewed'] is False
 
     # 3. /swap 1 2 4 swaps beats 2 and 4 in both storyboard and credits
-    swap_res = h('swap', '1 2 4')                                                  # retired 2026-10-25
-    assert "retired" in swap_res[0] and json.loads(sb_file.read_text(encoding='utf-8'))[1]['file'] == '01_commons.jpg'
+    swap_res = h('swap', '1 2 4')                                                  # removed 2026-10-25
+    assert 'Unknown command' in str(swap_res) and json.loads(sb_file.read_text(encoding='utf-8'))[1]['file'] == '01_commons.jpg'
 
     assert len(load_credits(d1)['images']) == 5                                      # nothing dropped or reordered
 
@@ -884,12 +884,12 @@ def test_autocomplete_commands_empty_args_interactive_templates(db):
 
     # 2. /drop with empty args provides tap-to-copy template
     res_drop = h("drop", "")
-    assert "Remove images" in res_drop[0]
-    assert "<code>/drop" in res_drop[0]
+    assert "Remove photos" in res_drop[0]
+    assert "<code>/photos 1 drop" in res_drop[0]
 
     # 3. /swap with empty args provides tap-to-copy template
     res_swap = h("swap", "")
-    assert "retired" in res_swap[0] and "<code>/photos N keep</code>" in res_swap[0]
+    assert 'Unknown command' in str(res_swap)                                         # /swap removed 2026-10-25
 
     # 4. /add with empty args provides tap-to-copy template
     res_add = h("add", "")

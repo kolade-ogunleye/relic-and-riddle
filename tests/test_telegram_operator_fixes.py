@@ -200,7 +200,7 @@ def test_unauthorized_image_upload_cannot_download_or_write(db, monkeypatch):
     methods = []
     def api(method, **kwargs):
         methods.append(method)
-        return [{"update_id": 1, "message": {"from": {"id": 999}, "chat": {"id": 555}, "photo": [{"file_id": "image"}], "caption": "/image 1"}}] if method == "getUpdates" else {}
+        return [{"update_id": 1, "message": {"from": {"id": 999}, "chat": {"id": 555}, "photo": [{"file_id": "image"}], "caption": "/photos 1 | source: https://example.org"}}] if method == "getUpdates" else {}
     monkeypatch.setattr(bot, "_api", api)
     bot.poll_once(lambda *_: "")
     bot.drain()

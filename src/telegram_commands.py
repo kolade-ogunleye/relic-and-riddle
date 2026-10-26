@@ -1,6 +1,7 @@
 """Public operator commands (the "/" menu and Help), grouped by what the operator is doing. Each command has
 few arguments and, where a family of actions belongs together, subcommands (/queue bump 4) instead of more
-commands. Older names stay as hidden aliases (ALIASES), so nothing the operator typed before is refused."""
+commands. The older names were removed on 2026-10-25: every screen and message
+names the current form, and a retired name is answered as unknown, with the way to /help."""
 GROUPS = {
     "Everyday": [
         ("dashboard", "The one panel: what needs you, then production"),
@@ -19,8 +20,7 @@ GROUPS = {
         ("ideas", "Topic ideas · /ideas research · waiting · unesco"),
     ],
     "Pictures and media": [
-        ("photos", "Photo sets · /photos 4 · 4 fetch · 4 review · 4 keep 2 7 · 4 drop 1 5 · 4 upload"),
-        ("swap", "Retired: the sheet orders photos by what they show"),
+        ("photos", "Photo sets · /photos 4 · 4 fetch · 4 review · 4 keep 2 7 · 4 unkeep 2 · 4 drop 1 5 · 4 upload"),
         ("covers", "Preview and choose a cover · /covers 4"),
         ("music", "Documentary music · /music find · review · library"),
         ("footage", "Upload licensed video footage"),
@@ -38,14 +38,9 @@ GROUPS = {
     ],
 }
 
-# Older names and spellings, accepted but not listed: typed, they behave as the new command.
-ALIASES = {
-    "start": "dashboard", "run": "render", "next": "queue next", "bump": "queue bump", "drop_topic": "queue drop",
-    "requeue": "queue requeue", "undo": "queue undo", "history": "reviews history", "propose": "ideas research",
-    "proposals": "ideas waiting", "discover": "ideas unesco", "images": "photos", "image": "photos",
-    "fetchimages": "photos fetch", "review": "photos review", "drop": "photos drop", "keep": "photos keep",
-    "audit": "activity", "critique": "issue", "bug": "issue", "commands": "help",
-}
+# Telegram's own first command (sent when the chat is opened) is the Dashboard. No other aliases: the older
+# names were removed on 2026-10-25 (operator: no retired command should still be mentioned or half-work).
+ALIASES = {"start": "dashboard"}
 
 
 def menu():

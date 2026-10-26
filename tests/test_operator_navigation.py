@@ -360,6 +360,7 @@ def test_bump_and_drop_pickers_page_through_full_titles(db, monkeypatch, command
     long = "Camp Century: The Nuclear City Under the Greenland Ice Sheet"
     topics = [{"id": f"t{i}", "title": long if i == 2 else f"Topic {i}", "status": "queued"} for i in range(1, 21)]
     monkeypatch.setattr(db, "list_all_topics", lambda: topics)
+    monkeypatch.setattr(db, "get_next_topic", lambda: topics[0])     # #1 is next: Bump leaves it out (by rank)
     h = make_command_handler(db, lambda: None, lambda: "")
     text, rows = h(command, "0")
     assert long in text and rows[0][0]["text"] == first                        # full title in the text, numbers below

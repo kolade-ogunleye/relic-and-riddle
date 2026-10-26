@@ -168,7 +168,7 @@ def collect_run(db, run_id: str, run_dir: Optional[Path], payload: Optional[Dict
             items.append({"klass": classify_qa(text), "detail": text, "source": "qa"})
     rounds = int(payload.get("script_rounds") or 0)
     if rounds > 2:  # each round is a minute or more; what sent the drafts back is what to fix
-        reasons = " | ".join(r[:120] for r in payload.get("script_round_reasons") or [])
+        reasons = " | ".join(_clip(r, 120) for r in payload.get("script_round_reasons") or [])
         items.append({"klass": "script.rounds", "detail": f"{rounds} drafts: {reasons}", "source": "script"})
     if run_dir:  # every card this run sent, checked against its records (src/card_ledger.py)
         from . import card_ledger
@@ -501,6 +501,11 @@ FINDING_NAMES = {"run.failed.ScriptUnavailableError": "Runs stopped: no usable s
                  "script.other": "Other script problems"}
 
 
+def _clip(text: str, limit: int) -> str:
+    text = " ".join(str(text).split())
+    return text if len(text) <= limit else text[:limit - 1].rsplit(" ", 1)[0].rstrip(" ,;:") + "…"
+
+
 def plain_name(klass: str) -> str:
     """A finding's class in words for the operator (never the internal label)."""
     if klass in FINDING_NAMES:
@@ -523,13 +528,13 @@ def improve_text(db) -> Tuple[str, List[List[Dict[str, str]]]]:
     sync_issue_files(db)
     open_reports = db.list_open_issues()
     fixed = db.count_issues("fixed") if hasattr(db, "count_issues") else 0
-    lines = ["🧭 <b>Improvement</b>", "",
+    lines = ["🧭 <b>Improvements</b>",
              "<i>Problems you report and the ones runs record are counted here. One that keeps happening becomes a "
              "suggested fix for you to approve; a fix is tried on a test set before it is offered.</i>", ""]
     buttons: List[List[Dict[str, str]]] = []
     lines.append(f"<b>Your reports</b> · {len(open_reports)} open · {fixed} fixed")
     for issue in open_reports[:5]:
-        lines.append(f"• {html.escape((issue.get('critique') or '')[:90])}")
+        lines.append(f"• {html.escape(_clip(issue.get('critique') or '', 140))}")   # at a word, never mid-word
     if ready:
         lines.append(f"\n<b>Suggested fixes waiting for your decision</b> · {len(ready)}")
         for p in ready[:6]:
@@ -563,15 +568,15 @@ def digest_text(db) -> str:
     with db._conn() as conn:
         n = conn.execute("SELECT COUNT(*) FROM findings WHERE created_at >= ?", (since,)).fetchone()[0]
         runs = conn.execute("SELECT COUNT(DISTINCT run_id) FROM findings WHERE created_at >= ?", (since,)).fetchone()[0]
-    lines = ["🗓 <b>Weekly digest</b>", "",
+    lines = ["📰 <b>Weekly digest</b>", "",
              f"{n} findings across {runs} runs this week."]
     top = recurring(db, days=7, min_count=1)[:6]
     if top:
         lines.append("\n<b>Most frequent:</b>")
-        lines += [f"• {html.escape(r['klass'])}: {r['count']}×" for r in top]
+        lines += [f"• {html.escape(plain_name(r['klass']))}: {r['count']}×" for r in top]   # words, not "script.facts"
     ready = [p for p in proposals(db) if p["status"] == "ready"]
     if ready:
-        lines.append(f"\n<b>{len(ready)} proposal(s) wait for you</b> — /improve")
+        lines.append(f"\n<b>{len(ready)} suggested fix(es) wait for you</b>: Status → Improvements")
     try:
         from .audience import digest_lines
         lines += digest_lines(db)

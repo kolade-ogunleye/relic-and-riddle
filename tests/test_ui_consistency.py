@@ -150,7 +150,7 @@ def test_posting_groups_an_episodes_posts_with_their_own_times_and_links(db):
     db.record_publication(topic, "run_k", "upload-post", "published", {"post_urls": {"facebook": "https://fb/r", "youtube": "https://yt/r"}})
     db.record_publication(topic, "run_k", "upload-post:story", "published", {"post_urls": {"instagram": "https://ig/s"}})
     text, buttons = control.posting_panel(db)
-    assert text.count("Reel") == 1 and "Carousel ⏳" in text                       # one line for the episode
+    assert text.count("\n1. ") == 1 and "2. " not in text and "Carousel ⏳" in text     # one entry for the episode
     assert buttons[0][0]["callback_data"] == f"cpost:{db.run_key('run_k')}"
     detail, actions = control.posting_episode(db, "run_k")
     stories = detail.split("<b>Stories</b>")[1].split("<b>Carousel</b>")[0]

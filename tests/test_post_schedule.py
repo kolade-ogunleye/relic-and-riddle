@@ -171,7 +171,7 @@ def test_status_lists_upcoming_posts(coord):
     from src.control import status_text
     coord.schedule_run("r1", now=et(2026, 10, 13, 9, 30))
     text = status_text(coord.db, None)
-    assert "Upcoming posts:" in text and "Reel" in text and "next carousel slot" in text
+    assert "Upcoming posts:" in text and "Reel" in text and ("after its Reel" in text or "Carousel" in text)
 
 
 def test_carousel_waits_48h_after_its_reel(coord, monkeypatch):

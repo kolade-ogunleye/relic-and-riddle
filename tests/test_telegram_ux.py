@@ -32,7 +32,7 @@ def test_labels_are_cut_at_a_word_never_mid_word():
 @pytest.mark.parametrize("typed, expected", [
     (("queue", "bump 4"), ("bump", "4")), (("bump", "4"), ("bump", "4")), (("drop_topic", "4"), ("drop_topic", "4")),
     (("render", ""), ("run", "")), (("render", "4"), ("qrender", "4")), (("run", ""), ("run", "")),
-    (("reviews", "history"), ("history", "")), (("posts", "now 5"), ("postnow", "5")), (("posts", ""), ("posts", "")),
+    (("reviews", "history"), ("history", "")), (("posts", "now 5"), ("postsdo", "now 5")), (("posts", ""), ("posts", "")),
     (("photos", ""), ("images", "")), (("photos", "4"), ("image", "4")), (("photos", "4 review"), ("review", "4")),
     (("photos", "4 keep 2 7"), ("keep", "4 2 7")), (("photos", "upload 4"), ("upload", "4")),
     (("photos", "4 unkeep 2"), ("unkeep", "4 2")), (("ideas", "unesco"), ("discover", "")),

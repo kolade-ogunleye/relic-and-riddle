@@ -136,7 +136,7 @@ def test_images_review_drop_approve_flow(db, tmp_path):
     assert h("review", "03_kailasa_temple") == ""
     name, caption, buttons = sent[-1]
     assert name == "contact_sheet.jpg" or name.endswith(".jpg")
-    assert "A video uses the" in caption and "/photos 03_kailasa_temple keep" in caption  # which photos a video may use (2026-10-25)
+    assert "A video can use" in caption and "/photos 03_kailasa_temple keep" in caption  # which photos a video may use (2026-10-25)
     assert buttons[0][0]["callback_data"].startswith("imgok:03_kailasa_temple@")
     assert not (d / "storyboard.json").exists()  # no keyword-picked pre-script storyboard (2026-10-25)
 
@@ -185,7 +185,8 @@ def test_footage_command_does_not_download_links(db, tmp_path):
     _image_set(tmp_path)
     h = make_command_handler(db, lambda: None, lambda: "", assets_dir=tmp_path)
     res = h("footage", "03_kailasa_temple https://www.youtube.com/watch?v=123")
-    assert "send the video file itself" in res and "/footage" in res
+    res = res[0] if isinstance(res, tuple) else res
+    assert "Send the video file" in res and "/footage" in res and "licence_url" in res   # the whole caption
     assert not (tmp_path / "03_kailasa_temple" / "footage").exists()
 
 
@@ -298,7 +299,7 @@ def test_dual_resolution_serial_and_slug(tmp_path, monkeypatch):
 
     # 1. /images labels topics with serial rank and slug
     img_list = h('images', '')
-    assert '1. Gobekli Tepe Enclosure D (<code>gobekli_tepe_enclosure_d</code>) (6)' in img_list
+    assert '1. Gobekli Tepe Enclosure D · 6 photos' in img_list and '<code>gobekli' not in img_list   # its name
 
     # 2. /review by serial number '1' and by slug 'gobekli_tepe_enclosure_d'
     assert h('review', '1') == ''
@@ -378,7 +379,7 @@ def test_review_cancel_and_swap_visual_reorder(tmp_path):
 
     # 2. imgcancel callback leaves topic unreviewed
     cancel_res, back = h('imgcancel', 'derinkuyu')
-    assert 'Storyboard review closed' in cancel_res and back[0][0]['callback_data'] == 'imagehelp:derinkuyu'
+    assert 'Photo set review closed' in cancel_res and back[0][0]['callback_data'] == 'imagehelp:derinkuyu'
     assert load_credits(d1)['reviewed'] is False
 
     # 3. /swap 1 2 4 swaps beats 2 and 4 in both storyboard and credits
@@ -907,7 +908,7 @@ def test_autocomplete_commands_empty_args_interactive_templates(db):
     if res_review == "":
         assert len(sent) > 0
         r_txt, r_btns = sent[-1]
-        assert "Storyboard review" in r_txt and r_btns[-1][0]["callback_data"] == "cdash:"
+        assert "Photo sets" in r_txt and r_btns[-1][0]["callback_data"] == "cdash:"
 
 
 def test_safe_html_truncate_and_tag_balancing():

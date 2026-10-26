@@ -39,12 +39,13 @@ def test_the_panel_lists_bookings_with_their_actions_and_the_dashboard_offers_it
     text, buttons = control.posting_panel(db)
     # One line per episode (operator, 2026-10-25), its actions one tap in.
     assert "Reel 🗓" in text and "Stories 🗓" in text and "Carousel ⏳" in text
-    assert [b["callback_data"] for row in buttons for b in row] == [f"cpost:{db.run_key(run_id)}"]
+    assert [b["callback_data"] for row in buttons for b in row] == [f"cpost:{db.run_key(run_id)}", "cslots:"]
     _, inside = control.posting_episode(db, run_id)
     callbacks = [b["callback_data"] for row in inside for b in row]
-    assert callbacks == [f"postnow:{db.run_key(run_id)}", f"movepost:{reel}", f"cancelpost:{reel}", "cposts:"]
+    # Post now and Cancel ask first (review, 2026-10-25); Move goes straight to the next free slot
+    assert callbacks == [f"postnowask:{db.run_key(run_id)}", f"movepost:{reel}", f"cancelask:{reel}", "cposts:"]
     _, dash = control.dashboard_text_and_buttons(db)
-    assert any(b["callback_data"] == "cposts:" and b["text"] == "🗓 Posting (3)" for row in dash for b in row)
+    assert any(b["callback_data"] == "cposts:" and b["text"] == "🗓 Posting (1)" for row in dash for b in row)
     h = make_command_handler(db, lambda: None, lambda: "")
     text, buttons = h("posts", "")
     assert text.startswith("🗓 <b>Posting</b>") and buttons[-1][0]["callback_data"] == "cdash:"   # Status is a hub of its own (2026-10-25)
@@ -57,7 +58,7 @@ def test_a_published_booking_shows_its_links_from_the_receipts(db, tmp_path):
                           {"post_urls": {"instagram": "https://instagram.com/p/1", "facebook": "https://facebook.com/2"}})
     text, _ = control.posting_episode(db, run_id)
     reel_part = text.split("<b>Stories</b>")[0]
-    assert "✅ <b>Reel</b>" in reel_part and 'href="https://instagram.com/p/1">instagram</a>' in reel_part and "facebook</a>" in reel_part
+    assert "🎬 <b>Reel</b> · posted" in reel_part and 'href="https://instagram.com/p/1">instagram</a>' in reel_part and "facebook</a>" in reel_part
 
 
 def test_move_and_cancel_act_on_the_booking_and_its_followers(db, tmp_path):

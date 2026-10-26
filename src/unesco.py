@@ -37,6 +37,13 @@ UNESCO_XML_URL = "https://whc.unesco.org/en/list/xml/"
 CACHE_DIR = config.BASE_DIR / "cache" / "unesco"
 CACHE_FILE = CACHE_DIR / "sites.xml"
 CACHE_TTL_DAYS = 30
+# The engineering themes the Ideas panel offers (Ideas → UNESCO marvels), each with the words that place a site in it.
+THEME_KEYWORDS = {
+    "subterranean": ["subterranean", "underground", "cave", "hypogeum", "catacomb", "salt", "mine", "tunnel", "quarry"],
+    "hydraulic": ["aqueduct", "canal", "hydraulic", "qanat", "cistern", "dam", "reservoir", "water"],
+    "megalithic": ["megalith", "monolith", "obelisk", "pyramid", "temple", "acropolis", "basalt", "stone"],
+    "metallurgy": ["kiln", "metallurgy", "iron", "bronze", "copper", "forge", "smelt"],
+}
 
 
 # Topic country names as UNESCO's registry spells them (it uses official UN names).
@@ -267,13 +274,6 @@ class UNESCOEngine:
         # Both sides normalised the same way: an accented or hyphenated name ("Pyrénées - Mont Perdu")
         # never matched its own exclusion, so an added or skipped marvel kept coming back.
         exclude = {c for c in (_clean_title(t) for t in (exclude_titles or [])) if c}
-
-        THEME_KEYWORDS = {
-            "subterranean": ["subterranean", "underground", "cave", "hypogeum", "catacomb", "salt", "mine", "tunnel", "quarry"],
-            "hydraulic": ["aqueduct", "canal", "hydraulic", "qanat", "cistern", "dam", "reservoir", "water"],
-            "megalithic": ["megalith", "monolith", "obelisk", "pyramid", "temple", "acropolis", "basalt", "stone"],
-            "metallurgy": ["kiln", "metallurgy", "iron", "bronze", "copper", "forge", "smelt"],
-        }
 
         target_keywords = THEME_KEYWORDS.get(sub_theme.lower()) if sub_theme and sub_theme.lower() in THEME_KEYWORDS else [
             kw for kws in THEME_KEYWORDS.values() for kw in kws

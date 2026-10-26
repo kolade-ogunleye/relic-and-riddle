@@ -2293,7 +2293,12 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     first = re.sub(r"^(\W*)(\w)", lambda m: m[1] + m[2].upper(), first.lower())  # "❌ Production failed"
                 ts = show_time(a.get("created_at"), "%d %b %H:%M") if a.get("created_at") else ""
                 note = " · removed from chat" if a.get("purged") else ""
-                lines.append(f"• <b>{html.escape(clip_words(first, 240))}</b>\n   {ts}{note}")  # never mid-word
+                # Each its own look (operator, 2026-10-25: the whole line was bold): what happened in plain words
+                # with the run's title in bold, and when it was sent, in italics, under it.
+                said = html.escape(clip_words(first, 240))
+                said = re.sub(r"(&quot;.+?&quot;)", r"<b>\1</b>", said, count=1)
+                gap = "" if len(lines) <= 2 else "\n"          # a blank line between alerts, none under the title
+                lines.append(f"{gap}• {said}\n   <i>sent {ts}{note}</i>")
                 body = re.sub(r"\n{2,}", "\n", rest).strip()
                 if body:
                     lines.append(f"<blockquote expandable>{html.escape(clip_words(body, 600))}</blockquote>")

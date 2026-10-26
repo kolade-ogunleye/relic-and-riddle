@@ -72,6 +72,11 @@ def test_alerts_from_status_are_a_screen_not_a_pair_in_a_pair(db):
     text, buttons = h("calerts", "")
     assert isinstance(text, str) and text.startswith("🔔 <b>Alerts</b>") and "('" not in text
     assert "mid-word, in the alert list" in text
+    db.record_alert('⏰ Still waiting for your review of "The Lost Room" (Catherine Palace) · 25 Oct 18:31.')
+    text, _ = h("calerts", "")
+    # what happened in plain words, only the run's title bold, when it was sent in italics under it
+    assert "• ⏰ Still waiting for your review of <b>&quot;The Lost Room&quot;</b> (Catherine Palace)" in text
+    assert "\n   <i>sent " in text and "<b>⏰" not in text
 
 
 def test_card_lists_are_whole_and_folded():

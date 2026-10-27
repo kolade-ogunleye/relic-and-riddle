@@ -155,9 +155,12 @@ def posting_episode(db, run_id: str) -> Tuple[str, List[List[Dict[str, str]]]]:
     if not posts:
         lines += ["", "Nothing is booked for this episode."]
     key = db.run_key(run_id)
+    shorts = [x for x in db.list_publications(run_id) if x.get("channel") == "youtube-shorts"]
     for p in posts:
         name, detail = POST_NAME.get(p["kind"], p["kind"]), p.get("detail") or {}
-        lines += ["", f"{KIND_ICON.get(p['kind'], '•')} <b>{name}</b> · {e(STATUS.get(p['status'], p['status']))}",
+        if p["kind"] == "reel" and any(x.get("status") in ("published", "simulated") for x in shorts):
+            name = "Reel & Short"  # its YouTube Short goes with it, and its link is under it (operator, 2026-10-27)
+        lines += ["", f"{KIND_ICON.get(p['kind'], '•')} <b>{e(name)}</b> · {e(STATUS.get(p['status'], p['status']))}",
                   f"  Booked: {e(_when(p.get('created_at'), ahead=False))}"]
         if p["status"] == "waiting":
             slot = plan.get(p["id"])

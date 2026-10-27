@@ -379,3 +379,20 @@ def test_an_episode_action_answers_on_the_episodes_own_card(db, tmp_path):
     assert text.startswith("🖼 Cover set on the Facebook Reel.") and "Facebook cover: set" in text
     flat = [b["callback_data"] for row in buttons for b in row]
     assert "cposts:" in flat and "cdash:" in flat
+
+
+def test_the_reel_with_its_short_is_named_so_and_a_linkless_story_says_why(db, tmp_path):
+    # Operator, 2026-10-27: the Reel heading should say Reel & Short; Facebook's Stories showed no link at all
+    run_id, reel, slot = _booked(db, tmp_path)
+    topic = db.get_run(run_id)["topic_id"]
+    db.update_scheduled_post(reel, "published", detail={"posted_at": slot.isoformat()})
+    db.record_publication(topic, run_id, "upload-post", "published", {"post_urls": {"facebook": "https://fb/r", "instagram": "https://ig/r"}})
+    db.record_publication(topic, run_id, "youtube-shorts", "published", {"post_urls": {"youtube": "https://yt/s"}})
+    story = [p for p in db.list_scheduled_posts(("pending",), run_id=run_id) if p["kind"] == "story"][0]
+    db.update_scheduled_post(story["id"], "published", detail={"posted_at": slot.isoformat()})
+    db.record_publication(topic, run_id, "upload-post:story", "published",
+                          {"post_urls": {"facebook": None, "instagram": "https://www.instagram.com/stories/relic_and_riddle/"}})
+    text, _ = control.posting_episode(db, run_id)
+    assert "<b>Reel &amp; Short</b>" in text                            # escaped: a bare & breaks Telegram's HTML
+    stories = text.split("<b>Stories</b>")[1]
+    assert "instagram</a>" in stories and "facebook (posted; it gives no link)" in stories

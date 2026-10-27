@@ -940,6 +940,7 @@ def _post_links(db: PipelineDatabase, run_id: str, kind: Optional[str] = None) -
     """The links from a run's publication receipts, one per platform; with `kind`, only that post's own (the
     Stories line showed the Reel's YouTube link: operator, 2026-10-25)."""
     urls: Dict[str, str] = {}
+    unlinked: List[str] = []  # posted, but the platform gave no link (Facebook gives none for a Page's Stories)
     for pub in db.list_publications(run_id):
         if kind and _channel_kind(pub.get("channel", "")) != kind:
             continue
@@ -950,7 +951,11 @@ def _post_links(db: PipelineDatabase, run_id: str, kind: Optional[str] = None) -
         for platform, url in (payload.get("post_urls") or {}).items():
             if url and platform not in urls:
                 urls[platform] = str(url)
-    return " · ".join(f'<a href="{html.escape(u)}">{html.escape(p)}</a>' for p, u in urls.items())
+            elif not url and pub.get("status") == "published" and platform not in unlinked:
+                unlinked.append(platform)
+    parts = [f'<a href="{html.escape(u)}">{html.escape(p)}</a>' for p, u in urls.items()]
+    parts += [f"{html.escape(p)} (posted; it gives no link)" for p in unlinked if p not in urls]
+    return " · ".join(parts)
 
 
 def _when(iso: Optional[str], ahead: bool = True) -> str:

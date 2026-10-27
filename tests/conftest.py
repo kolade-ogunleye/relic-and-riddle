@@ -112,6 +112,7 @@ def no_repo_writes(monkeypatch, tmp_path_factory):
     sandbox = tmp_path_factory.mktemp("repo_writes")
     monkeypatch.setattr("src.config.ISSUES_DIR", sandbox / "issues")
     monkeypatch.setattr("src.config.LOG_DIR", sandbox / "logs")
+    monkeypatch.setattr("src.env_sync.ROOT", sandbox)  # a daemon started by a test never touches the real .env
     monkeypatch.setattr("src.audio_engine.PACE_FILE", sandbox / "voice_pace.json")
     monkeypatch.setattr("src.script_engine.WORD_PACE_FILE", sandbox / "word_pace.json")
     # A test that spends a budget to its cap must not mark the real environment's provider as shut.

@@ -9,7 +9,7 @@ lagged behind; one by one was too manual; each environment keeps its own provide
 import importlib.util
 from pathlib import Path
 
-spec = importlib.util.spec_from_file_location("env_reconcile", Path(__file__).resolve().parents[1] / "scripts" / "env_reconcile.py")
+spec = importlib.util.spec_from_file_location("env_reconcile", Path(__file__).resolve().parents[1] / "src" / "env_sync.py")
 env_reconcile = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(env_reconcile)
 
@@ -76,3 +76,38 @@ def test_credentials_and_personal_details_are_recognised_by_name():
     for name in ("PICTURE_VISION_CHECK", "YOUTUBE_SHORTS_PRIVACY", "VIDEO_FORMATS", "SCRIPT_ENGINE",
                  "GEMINI_SPARE_KEY_PERMITTED"):
         assert not env_reconcile.is_secret(name), name
+
+
+def test_each_daemon_start_writes_in_what_changes_nothing_and_says_the_rest(tmp_path, monkeypatch):
+    env, example = _files(tmp_path)
+    monkeypatch.setattr(env_reconcile.plan, "__defaults__", (running,))
+    note = env_reconcile.sync_on_start(env, example)
+    assert "Added to .env from the template (3)" in note and "PICTURE_VISION_CHECK" in note
+    assert "CLAUDE_MONTHLY_BUDGET_USD: template 10, now 30.0" in note             # yours to decide
+    assert "META_PAGE_ACCESS_TOKEN" in note and "sk-real-secret" not in note
+    assert "PICTURE_VISION_CHECK=true" in env.read_text(encoding="utf-8")
+    again = env_reconcile.sync_on_start(env, example)
+    assert "Added" not in again and "CLAUDE_MONTHLY_BUDGET_USD" in again          # nothing added twice
+
+
+def test_a_read_only_env_is_reported_not_changed(tmp_path, monkeypatch):
+    env, example = _files(tmp_path)
+    monkeypatch.setattr(env_reconcile.plan, "__defaults__", (running,))
+    monkeypatch.setattr(env_reconcile, "apply", lambda *a: (_ for _ in ()).throw(PermissionError("access denied")))
+    note = env_reconcile.sync_on_start(env, example)
+    assert "could not be written in (access denied)" in note and "PICTURE_VISION_CHECK=true" in note
+
+
+def test_include_changes_adds_the_differing_ones_only_when_asked(tmp_path, monkeypatch):
+    env, example = _files(tmp_path)
+    monkeypatch.setattr(env_reconcile.plan, "__defaults__", (running,))
+    env_reconcile.main(["--env", str(env), "--example", str(example), "--apply", "--include-changes"])
+    assert "CLAUDE_MONTHLY_BUDGET_USD=10" in env.read_text(encoding="utf-8")
+
+
+def test_the_daemon_runs_the_check_at_start_and_never_on_the_real_env():
+    import main
+    import src.env_sync as env_sync
+    source = Path(main.__file__).read_text(encoding="utf-8")
+    assert "sync_on_start()" in source.split('if args.command == "daemon":')[1].split("bot.register_commands()")[0]
+    assert env_sync.ROOT != Path(main.config.BASE_DIR)                            # the sandbox, in every test

@@ -3618,6 +3618,14 @@ def main(argv=None) -> int:
             release_note = announce_release(coordinator.db, bot, startup=True)
         except Exception as e:
             log.warning("Could not record the daemon's release state: %s", e)
+        try:  # .env kept up to date with the release's template, nothing changed, no secret shown (src/env_sync.py)
+            from src.env_sync import sync_on_start
+            settings_note = sync_on_start()
+            if settings_note and settings_note != coordinator.db.get_setting("env_sync_reported"):
+                bot.notify(settings_note, record_alert=False)
+                coordinator.db.set_setting("env_sync_reported", settings_note)
+        except Exception as e:
+            log.warning("Settings check did not run: %s", e)
         bot.register_commands()
         run_lock = threading.Lock()  # one production run at a time (daily job or /run)
 

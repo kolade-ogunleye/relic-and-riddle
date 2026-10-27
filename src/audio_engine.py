@@ -189,6 +189,29 @@ def calibrate_pace(provider: str, voice: str, text: str, actual_seconds: float, 
 
 
 PACE_CONFIDENT_SAMPLES = 5  # takes measured before the median is trusted
+PACE_OWN_SAMPLES = 3  # a voice's own takes before its pace stands on its own (a new voice borrows the slowest known)
+
+
+def _ratios(key: str) -> Tuple[List[float], List[float]]:
+    """(this voice's recorded takes, those of the provider's other voices), as real/measured length ratios: an Azure
+    voice honours its speed and reads unlike ElevenLabs, so a new voice borrows only from its own provider."""
+    import json
+    try:
+        data = json.loads(PACE_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return [], []
+    own = [r for r in data.get(key, []) if isinstance(r, (int, float))]
+    provider = key.split(":", 1)[0]
+    others = [r for k, v in data.items() if k != key and k.split(":", 1)[0] == provider
+              for r in (v or []) if isinstance(r, (int, float))]
+    return own, others
+
+
+def _with_prior(own: List[float], others: List[float]) -> List[float]:
+    """A voice with fewer than PACE_OWN_SAMPLES takes of its own is planned with every voice's takes too, so
+    a new narrator starts no faster than the slowest one measured: a voice changed in .env had no history and was
+    planned at the measurement's pace, and its first take could run over (operator, 2026-10-27)."""
+    return own if len(own) >= PACE_OWN_SAMPLES else own + others
 
 
 def pace_range(key: str) -> Tuple[float, float]:
@@ -196,14 +219,10 @@ def pace_range(key: str) -> Tuple[float, float]:
     its speed setting has one pace (pace_ratio at both ends). ElevenLabs' takes of one script vary by about 10%
     (production 2026-10-25: 0.997-1.100), so a script is checked against its slowest take for the ceiling and
     its fastest for the minimum: planning only for the slowest let a 93-word script read 41.1 s against 42."""
-    import json
     if honours_speed(key):
         ratio = pace_ratio(key)
         return ratio, ratio
-    try:
-        ratios = json.loads(PACE_FILE.read_text(encoding="utf-8")).get(key, [])
-    except (OSError, ValueError):
-        ratios = []
+    ratios = _with_prior(*_ratios(key))
     return (min(ratios), max(ratios)) if ratios else (1.0, 1.0)
 
 
@@ -213,17 +232,14 @@ def pace_ratio(key: str) -> float:
     (production's ElevenLabs narrator had two takes, 1.018 and 1.075, and the median let a draft through
     that read 3% too long, 2026-10-25). A voice that cannot be read faster (honours_speed) is always planned
     for its slowest recent take: no speed-up is left to absorb a slow one."""
-    import json
     import statistics
-    try:
-        ratios = json.loads(PACE_FILE.read_text(encoding="utf-8")).get(key, [])
-    except (OSError, ValueError):
-        return 1.0
+    own, others = _ratios(key)
+    ratios = _with_prior(own, others)
     if not ratios:
         return 1.0
-    if not honours_speed(key):
+    if not honours_speed(key) or len(own) < PACE_CONFIDENT_SAMPLES:
         return max(ratios)
-    return statistics.median(ratios) if len(ratios) >= PACE_CONFIDENT_SAMPLES else max(ratios)
+    return statistics.median(own)
 
 
 def split_boundary(text: str, start: float, dur: float) -> Words:

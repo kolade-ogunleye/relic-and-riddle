@@ -167,3 +167,18 @@ def test_a_take_a_little_under_the_minimum_is_read_once_more(tmp_path):
         retakes = []
         c._fit_take(take, [], 1.0, lambda s: retakes.append(s) or [], {})
         assert retakes == expected, (provider, seconds)
+
+
+def test_a_new_voice_starts_at_the_slowest_pace_its_provider_has_shown(monkeypatch, tmp_path):
+    """Operator, 2026-10-27: the narrator is configurable (ELEVENLABS_VOICE_ID); a voice changed in .env had no
+    history and was planned at the measurement's pace. Until it has 3 takes of its own it borrows the slowest pace
+    of its provider's other voices (never another provider's), then its own takes decide."""
+    pace = tmp_path / "voice_pace.json"
+    monkeypatch.setattr(audio_engine, "PACE_FILE", pace)
+    pace.write_text(json.dumps({"elevenlabs:old:m": [0.9967, 1.0998], "azure:v": [1.0]}), encoding="utf-8")
+    assert audio_engine.pace_range("elevenlabs:new:m") == (0.9967, 1.0998)          # borrowed, cautious
+    assert audio_engine.pace_ratio("elevenlabs:new:m") == 1.0998
+    pace.write_text(json.dumps({"elevenlabs:old:m": [0.9967, 1.0998], "elevenlabs:new:m": [0.95, 0.96, 0.97]}),
+                    encoding="utf-8")
+    assert audio_engine.pace_range("elevenlabs:new:m") == (0.95, 0.97)              # its own, once it has 3
+    assert audio_engine.pace_ratio("azure:other") == 1.0                            # not ElevenLabs' slowness

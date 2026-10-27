@@ -1471,7 +1471,7 @@ class PipelineCoordinator:
             return "💬 Facebook captions need META_PAGE_ID and a Page access token in production's .env."
         except PublishFailed as e:
             self.db.record_publication(run["topic_id"], run_id, "facebook:captions", "failed", {"error": str(e)[:500]})
-            return f"💬 Facebook did not take the captions: {html.escape(str(e)[:300])}"
+            return f"💬 Facebook did not take the captions: {html.escape(graph_reason(e))}"
         self.db.record_publication(run["topic_id"], run_id, "facebook:captions", "published",
                                    {k: v for k, v in res.items() if k != "result"})
         return (f"💬 Captions added to the Facebook Reel ({'replaced' if res.get('replaced') else 'new'}, "
@@ -1499,8 +1499,10 @@ class PipelineCoordinator:
             if not reply.startswith(ok):
                 problems.append(reply)
         if problems:
-            self._alert(f"⚠️ <b>Facebook finishing</b> for {html.escape(self.db.run_label(run_id))}: the Reel is up; "
-                        "these need a retry from its episode on Posting:\n" + "\n".join(problems))
+            # What did not happen and what to do, not Graph's whole reply with its URL (operator, 2026-10-27)
+            self._alert(f"⚠️ <b>Facebook finishing</b> for {html.escape(self.db.run_label(run_id))}\n\n"
+                        "The Reel posted fine; this extra step on Facebook did not:\n" + "\n".join(problems)
+                        + "\n\nTry it again from the episode: 🗓 Posting, its number, then the button.")
 
     def set_facebook_cover(self, run_id: str) -> str:
         """Sets the run's chosen cover (thumbnail_cover.jpg, 9:16 as the Reel) on its posted Facebook Reel."""
@@ -1519,7 +1521,7 @@ class PipelineCoordinator:
                     ".env; the Page id comes from UPLOAD_POST_FACEBOOK_PAGE_ID unless META_PAGE_ID is set.")
         except PublishFailed as e:
             self.db.record_publication(run["topic_id"], run_id, "facebook:cover", "failed", {"error": str(e)[:500]})
-            return f"🖼 Facebook did not take the cover: {html.escape(str(e)[:300])}"
+            return f"🖼 Facebook did not take the cover: {html.escape(graph_reason(e))}"
         self.db.record_publication(run["topic_id"], run_id, "facebook:cover", "published",
                                    {k: v for k, v in res.items() if k != "result"})
         return "🖼 Cover set on the Facebook Reel. It can take a few minutes to show; check the Reel on the Page."
@@ -2856,6 +2858,14 @@ def record_posting_mode(coordinator) -> None:
         coordinator.db.set_setting(POSTS_ONLY_PROMOTED_KEY, "true" if coordinator.only_promoted else "false")
     except Exception as e:
         log.debug("Posting mode not recorded: %s", e)
+
+
+def graph_reason(error: Exception) -> str:
+    """Facebook's own sentence from a Graph error ("(#100) Invalid file. ..."), without the request URL and the
+    rest of its reply; the whole error when it has no such sentence."""
+    text = str(error)
+    found = re.search(r"""['"]message['"]:\s*['"](.+?)['"],\s*['"](?:type|code)['"]""", text)
+    return (found[1] if found else text)[:300]
 
 
 def beat_where(beat: int, beats: List[Dict[str, Any]]) -> str:

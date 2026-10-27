@@ -76,3 +76,31 @@ def test_a_cancelled_booking_says_why_and_what_can_be_done(db):
     assert "its Reel has posted since: tap 📱 Book Stories and carousel again below" in text
     db.update_scheduled_post(story, "cancelled", detail={"reason": "cancelled by the operator"})
     assert "cancelled: you cancelled it" in posting_panel(db)[0]
+
+
+def test_facebook_captions_go_as_a_type_graph_accepts(monkeypatch, tmp_path):
+    """Graph refused the first live caption upload: "(#100) Invalid file. Expected file of one of the following
+    types: application/octet-stream, text/plain" (Damascus Steel, 2026-10-27); it was sent as application/x-subrip."""
+    from src import publisher
+    sent = {}
+
+    class Resp:
+        ok, status_code = True, 200
+
+        def json(self):
+            return {"success": True}
+    monkeypatch.setattr(publisher.requests, "request", lambda method, url, **k: sent.update(k) or Resp())
+    srt = tmp_path / "m.srt"
+    srt.write_text("1\n00:00:00,000 --> 00:00:01,000\nHi\n", encoding="utf-8")
+    publisher.FacebookPageReelsPublisher(token="t", page_id="1").upload_captions("4111616722463998", srt)
+    name, _, content_type = sent["files"]["captions_file"]
+    assert name == "captions.en_US.srt" and content_type in ("application/octet-stream", "text/plain")
+
+
+def test_a_graph_refusal_is_said_in_facebooks_own_words():
+    e = Exception("Graph POST https://graph.facebook.com/v26.0/41/captions -> 400: {'message': '(#100) Invalid file. "
+                  "Expected file of one of the following types: application/octet-stream, text/plain', "
+                  "'type': 'OAuthException', 'code': 100, 'fbtrace_id': 'Arm'}")
+    assert main.graph_reason(e) == ("(#100) Invalid file. Expected file of one of the following types: "
+                                    "application/octet-stream, text/plain")
+    assert main.graph_reason(Exception("No cover image at c.jpg")) == "No cover image at c.jpg"

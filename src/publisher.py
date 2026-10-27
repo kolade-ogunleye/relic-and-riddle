@@ -499,7 +499,7 @@ class FacebookPageReelsPublisher:
         def send() -> Dict[str, Any]:
             with open(srt_path, "rb") as fh:
                 return self._call("POST", url, timeout=120, data={"access_token": self.token, "default_locale": locale},
-                                  files={"captions_file": (f"captions.{locale}.srt", fh, "application/x-subrip")})
+                                  files={"captions_file": (f"captions.{locale}.srt", fh, "text/plain")})  # Graph refuses application/x-subrip (400 #100, 2026-10-27)
         try:
             return {"status": "published", "video_id": str(video_id), "locale": locale, "result": send()}
         except PublishFailed as e:

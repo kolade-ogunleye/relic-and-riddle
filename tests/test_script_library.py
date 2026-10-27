@@ -227,3 +227,46 @@ def test_every_shipped_entry_passes_with_a_crlf_checkout(tmp_path, monkeypatch):
     crlf.write_bytes(fact_evidence.REFERENCE_FILE.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))
     monkeypatch.setattr(fact_evidence, "REFERENCE_FILE", crlf)
     test_every_shipped_entry_still_matches_its_research_and_passes_todays_checks(monkeypatch)
+
+
+def _library_with(tmp_path, monkeypatch, payload):
+    """A library entry for topic t1 whose script was checked against the local sheet."""
+    dev = tmp_path / "dev_sheet.json"
+    dev.write_text(json.dumps({"topic_id": "t1", "facts": ["a"]}), encoding="utf-8")
+    script = dict(payload, guardrail_passed=True, fact_review={"sheet_sha256": sha256_file(dev), "sheet_path": str(dev)})
+    script_library.export("t1", dev, script, {"topic_id": "t1", "run_id": "run_dev"})
+    data = tmp_path / "data"
+    (data / "fact_sheets").mkdir(parents=True)
+    (data / "fact_sheets" / "t1.json").write_bytes(dev.read_bytes())
+    monkeypatch.setattr(main.config, "DATA_DIR", data)
+
+
+def test_a_library_script_too_long_for_this_narrator_is_shortened_not_replaced(db, tmp_path, monkeypatch, curated_payload):
+    """Production's ElevenLabs reads slower than development's measurement: three library scripts ran
+    51.8-53.7 s for a 51.5 s limit there (2026-10-27). They are shortened and checked again, not thrown away."""
+    _library_with(tmp_path, monkeypatch, curated_payload)
+    c = _coordinator(db)
+    monkeypatch.setattr(main.PipelineCoordinator, "_spoken_length_now", lambda self, saved: "Narration runs 53.7s (limit 51.5s); 90-97 words.")
+    library = c._script_from_library({"id": "t1"})
+    assert library is not None and library["_too_long_here"].startswith("Narration runs 53.7s")
+    calls = []
+    c._write_and_check_script = lambda topic, run_id, run_dir, dry_run, **kw: calls.append(kw) or {"revised": True}
+    assert c._library_payload({"id": "t1"}, "run_x", tmp_path, True, library) == {"revised": True}
+    assert calls[0]["initial_notes"].startswith("Narration runs 53.7s")
+    assert calls[0]["initial_payload"]["narration_script"] == curated_payload["narration_script"]
+    assert "_too_long_here" not in calls[0]["initial_payload"]                      # the marker never reaches a record
+
+
+def test_a_library_script_that_fits_is_used_as_it_is(db, tmp_path, monkeypatch, curated_payload):
+    _library_with(tmp_path, monkeypatch, curated_payload)
+    c = _coordinator(db)
+    monkeypatch.setattr(main.PipelineCoordinator, "_spoken_length_now", lambda self, saved: "")
+    c._write_and_check_script = lambda *a, **k: (_ for _ in ()).throw(AssertionError("no new script"))
+    library = c._script_from_library({"id": "t1"})
+    out = c._library_payload({"id": "t1"}, "run_x", tmp_path, True, library)
+    assert out["narration_script"] == curated_payload["narration_script"] and "_too_long_here" not in out
+
+
+def test_a_library_script_failing_its_structure_is_not_used(db, tmp_path, monkeypatch, curated_payload):
+    _library_with(tmp_path, monkeypatch, dict(curated_payload, narration_script="Too short."))
+    assert _coordinator(db)._script_from_library({"id": "t1"}) is None

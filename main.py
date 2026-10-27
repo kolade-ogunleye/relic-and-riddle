@@ -468,9 +468,33 @@ class PipelineCoordinator:
         sheet and passes today's checks (development's step 1, not paid for again: operator, 2026-10-27)."""
         from src import config as pipeline_config, script_library
         saved = script_library.kept_script(topic["id"], pipeline_config.DATA_DIR / "fact_sheets" / f"{topic['id']}.json")
-        if saved is None or not self._passes_today(saved, "the script library"):
+        if saved is None:
             return None
+        from src.models import ScriptPackage
+        from src.script_engine import validate_structure
+        try:
+            problems = validate_structure(ScriptPackage.model_validate(saved))
+        except Exception as e:
+            problems = [f"it no longer reads as a script package ({type(e).__name__})"]
+        if problems:
+            log.info("Library script for %s not used: it fails today's checks (%s).", topic["id"], problems[0][:160])
+            return None
+        # Too long for this environment's narrator (production's ElevenLabs reads slower than development's
+        # measurement: three library scripts ran 51.8-53.7 s for a 51.5 s limit, 2026-10-27): the caller shortens
+        # it to the measured word count and fact-checks the revision, instead of paying for a new script.
+        saved["_too_long_here"] = self._spoken_length_now(saved)
         return saved
+
+    def _library_payload(self, topic, run_id, run_dir, dry_run, library: Dict[str, Any]) -> Dict[str, Any]:
+        """The library script as this run's script: as it is when it fits this narrator, else shortened to the
+        measured word count and fact-checked again, as any revision is (never thrown away for a new one)."""
+        too_long = library.pop("_too_long_here", "")
+        source = (library.get("from_library") or {}).get("run_id", "another environment")
+        if too_long:
+            log.info("Library script (from %s) runs long for this voice; shortening it: %s", source, too_long[:160])
+            return self._write_and_check_script(topic, run_id, run_dir, dry_run, initial_payload=library, initial_notes=too_long)
+        log.info("Script taken from the script library (checked against this same fact sheet, from %s).", source)
+        return library
 
     BED_FILES = ("ambient_bed.wav", "ambient_bed.wav.rights.json", "music_selection.json", "sound_plan.json")
 
@@ -1800,9 +1824,7 @@ class PipelineCoordinator:
                     log.info("Script kept from %s: %s.", fb.get("from_run") or self.reuse_from,
                              f"the review was about {fb.get('reason')}, not the words" if fb.get("from_run") else "reused as asked")
                 elif library is not None:
-                    payload = library
-                    log.info("Script taken from the script library (checked against this same fact sheet, from %s).",
-                             (library.get("from_library") or {}).get("run_id", "another environment"))
+                    payload = self._library_payload(topic, run_id, run_dir, dry_run, library)
                 else:
                     payload = self._write_and_check_script(topic, run_id, run_dir, dry_run)
             saved_script.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

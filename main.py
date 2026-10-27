@@ -1524,6 +1524,41 @@ class PipelineCoordinator:
                                    {k: v for k, v in res.items() if k != "result"})
         return "🖼 Cover set on the Facebook Reel. It can take a few minutes to show; check the Reel on the Page."
 
+    @staticmethod
+    def youtube_short_id(db, run_id: str) -> Optional[str]:
+        """The video id of the run's posted YouTube Short, from its recorded link."""
+        for pub in db.list_publications(run_id):
+            if pub.get("channel") != "youtube-shorts" or pub.get("status") != "published":
+                continue
+            try:
+                url = (json.loads(pub.get("response_payload_json") or "{}").get("post_urls") or {}).get("youtube") or ""
+            except ValueError:
+                continue
+            found = re.search(r"[?&]v=([A-Za-z0-9_-]{6,})", url) or re.search(r"shorts/([A-Za-z0-9_-]{6,})", url)
+            if found:
+                return found[1]
+        return None
+
+    def set_youtube_thumbnail(self, run_id: str) -> str:
+        """Sets the run's chosen cover as its posted Short's thumbnail again (after the channel is verified: the
+        first try after posting is refused until then, operator, 2026-10-27)."""
+        from src.publisher import UploadPostPublisher
+        run = self.db.get_run(run_id) or {}
+        video_id = self.youtube_short_id(self.db, run_id)
+        if not video_id:
+            return "▶️ No posted YouTube Short is recorded for that run."
+        cover = Path(run.get("thumbnail_cover_path") or Path(run.get("master_video_path") or "").parent / "thumbnail_cover.jpg")
+        if not cover.is_file():
+            return f"▶️ The run's cover ({html.escape(cover.name)}) is no longer kept."
+        res = UploadPostPublisher().set_youtube_thumbnail(video_id, cover)
+        self.db.record_publication(run["topic_id"], run_id, "youtube:thumbnail", "published" if res.get("set") else "failed",
+                                   {k: v for k, v in res.items() if k != "thumbnails"})
+        if res.get("set"):
+            return "▶️ Thumbnail set on the YouTube Short. YouTube may still show a frame in the Shorts feed itself."
+        error = str(res.get("error") or "")
+        hint = (" The channel must be verified for custom thumbnails (youtube.com/verify)." if "403" in error else "")
+        return f"▶️ YouTube did not take the thumbnail: {html.escape(error[:300])}.{hint}"
+
     def rebook_followers(self, run_id: str) -> str:
         """Books again the Stories and carousel of a Reel that posted after all (they were cancelled when its slot
         failed: operator, 2026-10-26, the Stories never went to Facebook or Instagram). The Stories go 45 minutes
@@ -3497,6 +3532,7 @@ def main(argv=None) -> int:
                          "fbcaptions": getattr(coordinator, "add_facebook_captions", None),
                          "fbcover": getattr(coordinator, "set_facebook_cover", None),
                          "rebook": getattr(coordinator, "rebook_followers", None),
+                         "ytthumb": getattr(coordinator, "set_youtube_thumbnail", None),
                          "ytshort": getattr(coordinator, "post_youtube_short", None)},
             produce_batch=produce_batch,
         )
@@ -3919,6 +3955,7 @@ def main(argv=None) -> int:
                          "fbcaptions": getattr(coordinator, "add_facebook_captions", None),
                          "fbcover": getattr(coordinator, "set_facebook_cover", None),
                          "rebook": getattr(coordinator, "rebook_followers", None),
+                         "ytthumb": getattr(coordinator, "set_youtube_thumbnail", None),
                          "ytshort": getattr(coordinator, "post_youtube_short", None)},
                                        produce_batch=produce_batch)
 

@@ -396,3 +396,44 @@ def test_the_reel_with_its_short_is_named_so_and_a_linkless_story_says_why(db, t
     assert "<b>Reel &amp; Short</b>" in text                            # escaped: a bare & breaks Telegram's HTML
     stories = text.split("<b>Stories</b>")[1]
     assert "instagram</a>" in stories and "facebook (posted; it gives no link)" in stories
+
+
+def test_a_posted_short_without_its_thumbnail_can_be_given_it_again(db, tmp_path, monkeypatch):
+    # Operator, 2026-10-27: YouTube refuses the first try (403, channel not verified); once verified, one tap
+    from src import publisher
+    run_id, reel, slot = _booked(db, tmp_path)
+    topic = db.get_run(run_id)["topic_id"]
+    cover = tmp_path / run_id / "thumbnail_cover.jpg"
+    cover.write_bytes(b"jpg")
+    db.update_run(run_id, "published", thumbnail_cover_path=str(cover))
+    db.update_scheduled_post(reel, "published", detail={"posted_at": slot.isoformat()})
+    db.record_publication(topic, run_id, "youtube-shorts", "published",
+                          {"post_urls": {"youtube": "https://www.youtube.com/watch?v=Mgox2C31_6w"},
+                           "thumbnail": {"set": False, "error": "HTTP 403: The channel is not verified"}})
+    text, buttons = control.posting_episode(db, run_id)
+    assert "YouTube thumbnail: not set (YouTube needs the channel verified: youtube.com/verify)" in text
+    assert any(b["callback_data"].startswith("ytthumb:") for row in buttons for b in row)
+    calls = []
+    monkeypatch.setattr(publisher.UploadPostPublisher, "set_youtube_thumbnail",
+                        lambda self, video_id, image: calls.append((video_id, image.name)) or {"set": True, "error": None})
+    c = _coordinator(db)
+    assert c.set_youtube_thumbnail(run_id).startswith("▶️ Thumbnail set")
+    assert calls == [("Mgox2C31_6w", "thumbnail_cover.jpg")]
+    text, buttons = control.posting_episode(db, run_id)
+    assert "YouTube thumbnail: set" in text
+    assert not any(b["callback_data"].startswith("ytthumb:") for row in buttons for b in row)
+
+
+def test_the_youtube_thumbnail_refusal_says_what_to_do(db, tmp_path, monkeypatch):
+    from src import publisher
+    run_id, reel, slot = _booked(db, tmp_path)
+    cover = tmp_path / run_id / "thumbnail_cover.jpg"
+    cover.write_bytes(b"jpg")
+    db.update_run(run_id, "published", thumbnail_cover_path=str(cover))
+    db.record_publication(db.get_run(run_id)["topic_id"], run_id, "youtube-shorts", "published",
+                          {"post_urls": {"youtube": "https://youtube.com/shorts/Mgox2C31_6w"}})
+    monkeypatch.setattr(publisher.UploadPostPublisher, "set_youtube_thumbnail",
+                        lambda self, video_id, image: {"set": False, "error": "HTTP 403: forbidden"})
+    reply = _coordinator(db).set_youtube_thumbnail(run_id)
+    assert "youtube.com/verify" in reply
+    assert _coordinator(db).set_youtube_thumbnail("run_none").startswith("▶️ No posted YouTube Short")

@@ -58,7 +58,7 @@ PANEL_ACTIONS = {"reviewpick", "pickbump", "pickdrop", "cideas", "cpropose", "cc
 DELETE_FIRST = {"tskip"}
 # Decision buttons: disabled before acting so a second tap can't repeat the decision.
 ONE_SHOT = {"uadd", "tadd", "imgok", "mkeep", "cov", "rsn", "impok", "impno", "imprev",
-            "pubok", "pubno", "simpub", "resend", "rerender", "promote", "requeue", "fbcaptions", "fbcover", "ytshort", "rebook"}
+            "pubok", "pubno", "simpub", "resend", "rerender", "promote", "requeue", "fbcaptions", "fbcover", "ytshort", "rebook", "ytthumb"}
 # Replies that only acknowledge (the card or panel itself shows the result): a nudge that leaves on its own,
 # not a message that stays (operator, 2026-10-25: "Sending ... for review again" and "Thanks, noted" stayed).
 NUDGE_REPLIES = {"resend", "whytext", "requeue"}

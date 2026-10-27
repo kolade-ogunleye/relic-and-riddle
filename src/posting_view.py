@@ -7,6 +7,7 @@ its own line; one episode's posts in plain words, with confirmations before anyt
 waiting carousel will actually take (only the newest eligible one posts in a carousel slot).
 """
 import html
+import json
 import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
@@ -23,6 +24,28 @@ KIND_ICON = {"reel": "🎬", "story": "📱", "carousel": "🖼"}
 # whether anything was needed: operator, 2026-10-27, Göbekli Tepe's Stories)
 CANCEL_WHY = {"the Reel did not post": "its Reel's slot failed, so it was not posted",
               "cancelled by the operator": "you cancelled it"}
+
+
+def _short_thumbnail(pubs, shorts) -> str:
+    """Whether the posted Short has its thumbnail: set by the try after posting or by the button since."""
+    tries = [x for x in pubs if x.get("channel") == "youtube:thumbnail"]
+    if any(x.get("status") == "published" for x in tries):
+        return "set"
+    error = ""
+    for x in shorts:  # the try made right after the Short posted
+        try:
+            first = (json.loads(x.get("response_payload_json") or "{}").get("thumbnail") or {})
+        except ValueError:
+            first = {}
+        if first.get("set"):
+            return "set"
+        error = str(first.get("error") or error)
+    if tries:  # the latest button tap says more than the first try
+        try:
+            error = str(json.loads(tries[-1].get("response_payload_json") or "{}").get("error") or error)
+        except ValueError:
+            pass
+    return "not set" + (" (YouTube needs the channel verified: youtube.com/verify)" if "403" in error else "")
 
 
 def status_words(db, p: Dict[str, Any], on_episode: bool = False) -> str:
@@ -220,6 +243,11 @@ def posting_episode(db, run_id: str) -> Tuple[str, List[List[Dict[str, str]]]]:
                 # posted without its Short (a Reel posted by Retry, or a Short that failed)
                 lines.append("  YouTube Short: not posted" + (" (it failed)" if shorts else ""))
                 row.append({"text": "▶️ YouTube Short", "callback_data": f"ytshort:{key}"})
+            elif any(x.get("status") == "published" for x in shorts):
+                thumb = _short_thumbnail(pubs, shorts)
+                lines.append("  YouTube thumbnail: " + thumb)
+                if thumb != "set":
+                    row.append({"text": "▶️ YouTube thumbnail", "callback_data": f"ytthumb:{key}"})
             if row:
                 buttons.append(row)
             followers = [x for x in posts if x["kind"] in ("story", "carousel")]

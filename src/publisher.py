@@ -34,6 +34,12 @@ from .db import PipelineDatabase
 log = logging.getLogger(__name__)
 
 
+# One timeout for a request that sends a file: with a (connect, read) pair, urllib3 keeps the short connect value
+# while the body is sent, so a write that stalls 15 s on a slow uplink aborted the upload ("The write operation timed
+# out": the YouTube Short, production, 2026-10-26; the Telegram review videos had the same, telegram_bot._post).
+UPLOAD_TIMEOUT = 900
+
+
 def _assert_recovery_unlocked():
     if (config.BASE_DIR / ".restore-isolated").exists():
         raise PublishFailed("Publishing is disabled in this isolated recovery copy")
@@ -123,7 +129,7 @@ class UploadPostPublisher:
                         data=data,
                         files={"video": (Path(media["video_path"]).name, vf, "video/mp4"),
                                "cover_image": (Path(media["thumbnail_path"]).name, tf, "image/jpeg")},
-                        timeout=(15, 600),
+                        timeout=UPLOAD_TIMEOUT,
                     )
                 break
             except requests.ConnectionError as e:
@@ -177,7 +183,7 @@ class UploadPostPublisher:
             else:
                 log.warning("YouTube thumbnail missing or over 2 MB (%s); YouTube will pick a frame.", thumb.name)
             response = requests.post(f"{self.base_url}/upload", headers=self._headers(envelope["run_id"]),
-                                     data=data, files=files, timeout=(15, 1800))
+                                     data=data, files=files, timeout=1800)
         except requests.ConnectionError as e:
             raise PublishFailed(f"Could not connect to Upload-Post: {e}") from e
         except requests.Timeout as e:
@@ -222,7 +228,7 @@ class UploadPostPublisher:
             with open(media["video_path"], "rb") as vf:
                 response = requests.post(f"{self.base_url}/upload", headers=self._headers(key), data=data,
                                          files={"video": (Path(media["video_path"]).name, vf, "video/mp4")},
-                                         timeout=(15, 900))
+                                         timeout=UPLOAD_TIMEOUT)
         except requests.ConnectionError as e:
             raise PublishFailed(f"Could not connect to Upload-Post: {e}") from e
         except requests.Timeout as e:
@@ -249,7 +255,7 @@ class UploadPostPublisher:
             with open(image, "rb") as handle:
                 response = requests.post(f"{self.base_url}/uploadposts/youtube/thumbnail", headers=self._headers(),
                                          data=[("user", self.user), ("video_id", video_id)],
-                                         files={"thumbnail": (image.name, handle, "image/jpeg")}, timeout=(15, 120))
+                                         files={"thumbnail": (image.name, handle, "image/jpeg")}, timeout=300)
         except requests.RequestException as e:
             return {"set": False, "error": f"could not reach Upload-Post: {e}"}
         body = self._json(response)
@@ -283,7 +289,7 @@ class UploadPostPublisher:
                 response = requests.post(
                     f"{self.base_url}/upload_photos", headers=self._headers(key), data=data,
                     files=[("photos[]", (Path(p).name, h, "image/jpeg")) for p, h in zip(photos, handles)],
-                    timeout=(15, 300))
+                    timeout=UPLOAD_TIMEOUT)
                 break
             except requests.ConnectionError as e:
                 if attempt == 2:

@@ -318,3 +318,15 @@ def test_stories_cancelled_with_a_failed_slot_can_be_booked_again(db, tmp_path):
     assert "Booked again" in c.rebook_followers(run_id)
     assert any(p["kind"] == "story" for p in db.list_scheduled_posts(("pending",), run_id=run_id))
     assert "already booked" in c.rebook_followers(run_id)                         # never twice
+
+
+def test_uploads_use_one_timeout_so_a_slow_write_does_not_abort_them():
+    # Production, 2026-10-26: "Could not connect to Upload-Post: ('Connection aborted.', TimeoutError('The write
+    # operation timed out'))" on the YouTube Short: a (connect, read) pair keeps the 15 s connect value while the
+    # file is sent. Every request that sends a file takes a single timeout.
+    import inspect
+    import re
+    from src import publisher
+    source = inspect.getsource(publisher)
+    assert not re.search(r"timeout=\(\s*\d+\s*,", source)
+    assert publisher.UPLOAD_TIMEOUT >= 600

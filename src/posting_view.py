@@ -183,11 +183,27 @@ def posting_episode(db, run_id: str) -> Tuple[str, List[List[Dict[str, str]]]]:
             buttons.append([{"text": f"🔁 Retry {name}", "callback_data": f"retrypost:{p['id']}"}])
         if p["kind"] == "reel" and p["status"] in ("unknown", "failed"):
             buttons.append([{"text": "🔁 Retry Reel", "callback_data": f"retryreel:{key}"}])
-        if p["kind"] == "reel" and p["status"] == "published" and "facebook" in _post_links(db, run_id, "reel"):
-            done = any(pub.get("channel") == "facebook:captions" and pub.get("status") == "published"
-                       for pub in db.list_publications(run_id))
-            lines.append("  Facebook captions: " + ("added" if done else "not yet"))
-            buttons.append([{"text": "💬 Facebook captions" + (" again" if done else ""), "callback_data": f"fbcaptions:{key}"}])
+        if p["kind"] == "reel" and p["status"] == "published":
+            pubs = db.list_publications(run_id)
+            ok = lambda channel: any(x.get("channel") == channel and x.get("status") == "published" for x in pubs)  # noqa: E731
+            row = []
+            if "facebook" in _post_links(db, run_id, "reel"):
+                lines.append("  Facebook captions: " + ("added" if ok("facebook:captions") else "not yet"))
+                lines.append("  Facebook cover: " + ("set" if ok("facebook:cover") else "not set"))
+                row.append({"text": "💬 Captions" + (" again" if ok("facebook:captions") else ""), "callback_data": f"fbcaptions:{key}"})
+                row.append({"text": "🖼 Cover" + (" again" if ok("facebook:cover") else ""), "callback_data": f"fbcover:{key}"})
+            shorts = [x for x in pubs if x.get("channel") == "youtube-shorts"]
+            if not any(x.get("status") in ("published", "unknown", "simulated") for x in shorts):
+                # posted without its Short (a Reel posted by Retry, or a Short that failed)
+                lines.append("  YouTube Short: not posted" + (" (it failed)" if shorts else ""))
+                row.append({"text": "▶️ YouTube Short", "callback_data": f"ytshort:{key}"})
+            if row:
+                buttons.append(row)
+            followers = [x for x in posts if x["kind"] in ("story", "carousel")]
+            if not any(x["status"] in ("pending", "waiting", "published", "unknown") for x in followers):
+                # the Reel posted after all (a retry), its Stories and carousel cancelled with the failed slot
+                lines.append("  Stories and carousel: " + ("cancelled with the failed slot" if followers else "not booked"))
+                buttons.append([{"text": "📱 Book Stories and carousel again", "callback_data": f"rebook:{key}"}])
     return "\n".join(lines), buttons + [[{"text": "← Posting", "callback_data": "cposts:"}]]
 
 

@@ -505,7 +505,7 @@ AUDIT_NAMES = {"cdash": "Dashboard", "approve": "Approve", "reject": "Reject", "
                "resend": "Resend review", "requeue": "Back to the queue", "rerender": "Re-render", "postreal": "Post for real?", "promote": "Post for real",
                "cdigest": "Weekly digest", "chistory": "Review history", "chist": "Review details", "postnow": "Post now", "produce": "Produce a batch",
                "cposts": "Posting", "cpost": "Posting: one episode", "posts": "Posting", "cancelpost": "Cancel a booking", "movepost": "Move a booking",
-               "retrypost": "Retry the failed platform", "retryreel": "Retry the Reel's failed platform", "fbcaptions": "Add captions on Facebook",
+               "retrypost": "Retry the failed platform", "retryreel": "Retry the Reel's failed platform", "fbcaptions": "Add captions on Facebook", "fbcover": "Set the Facebook cover", "ytshort": "Post the YouTube Short", "rebook": "Book Stories and carousel again",
                "edit": "Edit text", "runstop": "Cancel run", "runstopok": "Confirm cancel",
                "simpub": "Simulated publish", "pubok": "It posted", "pubno": "It didn't post", "creviews": "Reviews",
                "cideas": "Topic ideas", "cdisc": "UNESCO marvels", "cprop": "Waiting ideas", "cpropose": "Research ideas",
@@ -2223,7 +2223,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 db.set_setting(RUN_STARTING_KEY, json.dumps({"topic": current["id"], "at": clock.time()}))
             q_text, q_buttons = render_queue_text_and_buttons(starting=current["id"] if started and current else None)
             return f"{res}\n\n{q_text}", q_buttons                       # the Queue panel, now showing the batch
-        if command in ("pubok", "pubno", "resend", "simpub", "rerender", "promote", "postnow", "retryreel", "fbcaptions"):
+        if command in ("pubok", "pubno", "resend", "simpub", "rerender", "promote", "postnow", "retryreel", "fbcaptions",
+                       "fbcover", "ytshort", "rebook"):
             action = (run_actions or {}).get(command)
             if action is None:
                 return "That button only works while the daemon is running."

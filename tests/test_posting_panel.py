@@ -239,3 +239,82 @@ def test_a_failed_story_frame_is_not_taken_for_a_missing_reel_platform(db, tmp_p
     db.record_publication(topic, run_id, "upload-post:story", "failed", {"error": "x", "part": 1})
     c = _coordinator(db)
     assert c._reel_failed_platforms(run_id) == ([], 0)
+
+
+def test_a_cover_can_be_set_on_a_posted_facebook_reel(db, tmp_path, monkeypatch):
+    # Operator, 2026-10-26: Graph POST /{video-id}/thumbnails with source and is_preferred=true
+    from src import publisher
+    run_id, reel, slot = _booked(db, tmp_path)
+    cover = tmp_path / run_id / "thumbnail_cover.jpg"
+    cover.write_bytes(b"jpg")
+    db.update_run(run_id, "published", thumbnail_cover_path=cover)
+    db.update_scheduled_post(reel, "published", detail={"posted_at": slot.isoformat()})
+    db.record_publication(db.get_run(run_id)["topic_id"], run_id, "upload-post", "published",
+                          {"post_urls": {"facebook": "https://www.facebook.com/reel/1419040693748996"}})
+    text, buttons = control.posting_episode(db, run_id)
+    assert "Facebook cover: not set" in text and any(b["callback_data"] == f"fbcover:{db.run_key(run_id)}" for row in buttons for b in row)
+    sent = []
+
+    class FakeResp:
+        ok, status_code = True, 200
+
+        def json(self):
+            return {"success": True}
+
+    def request(method, url, timeout=60, data=None, files=None):
+        sent.append((url.rsplit("/", 2)[-2:], dict(data or {}), [f[0] for f in (files or {}).values()]))
+        return FakeResp()
+    monkeypatch.setattr(publisher.requests, "request", request)
+    monkeypatch.setattr(publisher.FacebookPageReelsPublisher, "configured", lambda self: True)
+    c = _coordinator(db)
+    assert c.set_facebook_cover(run_id).startswith("🖼 Cover set")
+    assert sent[0][0] == ["1419040693748996", "thumbnails"] and sent[0][1]["is_preferred"] == "true"
+    assert sent[0][2] == ["thumbnail_cover.jpg"]
+    assert "Facebook cover: set" in control.posting_episode(db, run_id)[0]
+
+
+def test_a_reel_without_its_short_can_post_it_once(db, tmp_path, monkeypatch):
+    # Operator, 2026-10-26: the retried Reel reached Facebook and Instagram but not YouTube
+    from src import config as cfg
+    monkeypatch.setattr(cfg, "YOUTUBE_SHORTS", True)
+    monkeypatch.setattr("main.config.YOUTUBE_SHORTS", True, raising=False)
+    run_id, reel, slot = _booked(db, tmp_path)
+    (tmp_path / run_id / "m.mp4").write_bytes(b"v")
+    db.update_run(run_id, "published", thumbnail_cover_path=tmp_path / run_id / "m.mp4", thumbnail_grid_path=tmp_path / run_id / "m.mp4")
+    db.update_scheduled_post(reel, "published", detail={"posted_at": slot.isoformat()})
+    topic = db.get_run(run_id)["topic_id"]
+    db.record_publication(topic, run_id, "upload-post", "published", {"post_urls": {"facebook": "f", "instagram": "i"}})
+    text, buttons = control.posting_episode(db, run_id)
+    assert "YouTube Short: not posted" in text and any(b["callback_data"] == f"ytshort:{db.run_key(run_id)}" for row in buttons for b in row)
+    c = _coordinator(db)
+    shorts = []
+
+    def publish_short(envelope, dry_run=False):
+        shorts.append(envelope["run_id"])
+        db.record_publication(topic, run_id, "youtube-shorts", "published", {"post_urls": {"youtube": "https://yt/s"}})
+        return {"status": "published", "post_urls": {"youtube": "https://yt/s"}}
+    c.publisher = SimpleNamespace(
+        build_envelope=lambda rid, video, t916, t1x1, payload, platforms=None: {"run_id": rid, "topic_id": topic, "platforms": platforms, "media": {}, "metadata": {}},
+        publish_short=publish_short)
+    assert "YouTube Short posted" in c.post_youtube_short(run_id)
+    assert c.post_youtube_short(run_id) == "▶️ The YouTube Short is already posted." and shorts == [run_id]
+    assert "YouTube Short: not posted" not in control.posting_episode(db, run_id)[0]
+
+
+def test_stories_cancelled_with_a_failed_slot_can_be_booked_again(db, tmp_path):
+    # Operator, 2026-10-26: the Reel posted on a retry; its Stories never went to Facebook or Instagram
+    run_id, reel, slot = _booked(db, tmp_path)
+    (tmp_path / run_id / "stories").mkdir()
+    (tmp_path / run_id / "stories" / "story_1.jpg").write_bytes(b"s")
+    db.update_run(run_id, "published")
+    db.update_scheduled_post(reel, "published", detail={"posted_at": slot.isoformat()})
+    for other in db.list_scheduled_posts(("pending", "waiting"), run_id=run_id):   # as a failed slot leaves them
+        if other["kind"] != "reel":
+            db.update_scheduled_post(other["id"], "cancelled", detail={"reason": "the Reel did not post"})
+    text, buttons = control.posting_episode(db, run_id)
+    assert "cancelled with the failed slot" in text
+    assert any(b["callback_data"] == f"rebook:{db.run_key(run_id)}" for row in buttons for b in row)
+    c = _coordinator(db)
+    assert "Booked again" in c.rebook_followers(run_id)
+    assert any(p["kind"] == "story" for p in db.list_scheduled_posts(("pending",), run_id=run_id))
+    assert "already booked" in c.rebook_followers(run_id)                         # never twice

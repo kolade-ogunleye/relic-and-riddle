@@ -502,6 +502,23 @@ class FacebookPageReelsPublisher:
         self._call("POST", url, timeout=60, data={"access_token": self.token, "locales_to_delete": json.dumps([locale])})
         return {"status": "published", "video_id": str(video_id), "locale": locale, "replaced": True, "result": send()}
 
+    def set_cover(self, video_id: str, image_path: Path) -> Dict[str, Any]:
+        """The cover of a posted Facebook video: POST /{video-id}/thumbnails with the image as `source` and
+        is_preferred=true (Graph reference: video/thumbnails; a video on a Page, at most 10 MB, the video's aspect
+        ratio). Meta documents it for Page videos; a Reel is one, so it is tried on one (operator, 2026-10-26)."""
+        if not self.configured():
+            raise NotConfigured("META_PAGE_ID / page access token not set")
+        image_path = Path(image_path)
+        if not image_path.is_file():
+            raise PublishFailed(f"No cover image at {image_path.name}")
+        if image_path.stat().st_size > 10 * 1024 * 1024:
+            raise PublishFailed(f"The cover is {image_path.stat().st_size // 1048576} MB; Facebook takes at most 10 MB")
+        with open(image_path, "rb") as fh:
+            result = self._call("POST", f"{self.graph}/{video_id}/thumbnails", timeout=120,
+                                data={"access_token": self.token, "is_preferred": "true"},
+                                files={"source": (image_path.name, fh, "image/jpeg")})
+        return {"status": "published", "video_id": str(video_id), "result": result}
+
     def publish(self, envelope: Dict[str, Any]) -> Dict[str, Any]:
         if not self.configured():
             raise NotConfigured("META_PAGE_ID / page access token not set")

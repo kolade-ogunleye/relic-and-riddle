@@ -44,7 +44,8 @@ def _book(db, tmp_path):
     topic = db.list_all_topics()[0]["id"]
     db.create_run("run_p", topic)
     db.update_run("run_p", "scheduled", master_video_path=str(tmp_path / "m.mp4"))
-    due = (datetime.now(timezone.utc) + timedelta(days=1)).replace(minute=0, second=0, microsecond=0)
+    # an hour ahead: from any day and hour its carousel finds a slot within the 7 days a carousel waits
+    due = (datetime.now(timezone.utc) + timedelta(hours=1)).replace(second=0, microsecond=0)
     reel = db.add_scheduled_post("run_p", "reel", due.isoformat(), [])
     db.add_scheduled_post("run_p", "story", (due + timedelta(minutes=45)).isoformat(), ["s.jpg"])
     db.add_scheduled_post("run_p", "carousel", None, ["c.jpg"], status="waiting")

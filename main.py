@@ -1451,6 +1451,64 @@ class PipelineCoordinator:
         return (f"💬 Captions added to the Facebook Reel ({'replaced' if res.get('replaced') else 'new'}, "
                 f"{res['locale']}). Check them with the CC button on the Reel.")
 
+    def set_facebook_cover(self, run_id: str) -> str:
+        """Sets the run's chosen cover (thumbnail_cover.jpg, 9:16 as the Reel) on its posted Facebook Reel."""
+        from src.publisher import FacebookPageReelsPublisher, NotConfigured, PublishFailed
+        run = self.db.get_run(run_id) or {}
+        video_id = self.facebook_video_id(self.db, run_id)
+        if not video_id:
+            return "🖼 No posted Facebook Reel is recorded for that run."
+        cover = Path(run.get("thumbnail_cover_path") or Path(run.get("master_video_path") or "").parent / "thumbnail_cover.jpg")
+        if not cover.is_file():
+            return f"🖼 The run's cover ({html.escape(cover.name)}) is no longer kept."
+        try:
+            res = FacebookPageReelsPublisher().set_cover(video_id, cover)
+        except NotConfigured:
+            return "🖼 The Facebook cover needs META_PAGE_ID and a Page access token in production's .env."
+        except PublishFailed as e:
+            self.db.record_publication(run["topic_id"], run_id, "facebook:cover", "failed", {"error": str(e)[:500]})
+            return f"🖼 Facebook did not take the cover: {html.escape(str(e)[:300])}"
+        self.db.record_publication(run["topic_id"], run_id, "facebook:cover", "published",
+                                   {k: v for k, v in res.items() if k != "result"})
+        return "🖼 Cover set on the Facebook Reel. It can take a few minutes to show; check the Reel on the Page."
+
+    def rebook_followers(self, run_id: str) -> str:
+        """Books again the Stories and carousel of a Reel that posted after all (they were cancelled when its slot
+        failed: operator, 2026-10-26, the Stories never went to Facebook or Instagram). The Stories go 45 minutes
+        from now, the carousel in its next slot; never while either is still booked or already posted."""
+        run = self.db.get_run(run_id) or {}
+        if run.get("status") != "published" or not run.get("master_video_path"):
+            return "📱 The Reel must be posted first; its Stories and carousel follow it."
+        live = [p for p in self.db.list_scheduled_posts(("pending", "waiting", "published", "unknown"), run_id=run_id)
+                if p["kind"] in ("story", "carousel")]
+        if live:
+            return "📱 Its Stories and carousel are already booked or posted: see Posting."
+        lines = self._book_followers(run_id, Path(run["master_video_path"]).parent, datetime.now(timezone.utc))
+        if not lines:
+            return "📱 This episode has no Stories frames or carousel slides to post."
+        return "📱 Booked again:\n" + "\n".join(html.escape(x) for x in lines)
+
+    def post_youtube_short(self, run_id: str) -> str:
+        """The YouTube Short of a Reel that posted without one (a Reel posted by Retry, or a Short that failed):
+        never when a Short is posted or its outcome is unknown, so nothing goes up twice."""
+        run = self.db.get_run(run_id) or {}
+        if not run.get("master_video_path"):
+            return "▶️ That run has no rendered Reel."
+        shorts = [p for p in self.db.list_publications(run_id) if p.get("channel") == "youtube-shorts"]
+        if any(p.get("status") == "published" for p in shorts):
+            return "▶️ The YouTube Short is already posted."
+        if any(p.get("status") == "unknown" for p in shorts):
+            return "▶️ The last YouTube Short's outcome is unknown: check YouTube Studio first, so it never goes up twice."
+        if not config.YOUTUBE_SHORTS:
+            return "▶️ YouTube Shorts are turned off (YOUTUBE_SHORTS)."
+        envelope = self.publisher.build_envelope(run_id, Path(run["master_video_path"]), Path(run["thumbnail_cover_path"]),
+                                                 Path(run["thumbnail_grid_path"]), run["script_payload"])
+        short = self.publisher.publish_short(envelope, dry_run=False)
+        if short.get("status") == "published":
+            links = " ".join(html.escape(str(v)) for v in (short.get("post_urls") or {}).values())
+            return f"▶️ YouTube Short posted ({html.escape(config.YOUTUBE_SHORTS_PRIVACY)}). {links}"
+        return f"▶️ YouTube Short not posted ({html.escape(str(short.get('status')))}): {html.escape(str(short.get('error') or '')[:300])}"
+
     def retry_reel(self, run_id: str) -> str:
         """Re-sends a Reel only to the platform(s) it did not reach, under its own request key (operator,
         2026-10-24: the Reel path had no targeted re-send; a partial ended as "unknown" with a question)."""
@@ -1496,7 +1554,10 @@ class PipelineCoordinator:
                 booked = self._book_followers(run_id, Path(run["master_video_path"]).parent, now)
             links = ", ".join(f"{html.escape(k)}: {html.escape(str(v))}" for k, v in (res.get("post_urls") or {}).items())
             then = ("\n" + "\n".join(html.escape(x) for x in booked)) if booked else ""
-            return f"🔁 Reel re-sent to {', '.join(platforms)} for {label}: posted. {links}{then}"
+            short = ""
+            if config.YOUTUBE_SHORTS and (payload.get("delivery_profile") or "reel_9x16") == "reel_9x16":
+                short = "\n" + self.post_youtube_short(run_id)   # it went only with a publish that succeeded first time
+            return f"🔁 Reel re-sent to {', '.join(platforms)} for {label}: posted. {links}{then}{short}"
         return f"🔁 Reel retry on {', '.join(platforms)} ended with status '{html.escape(str(res.get('status')))}': {html.escape(str(res.get('error') or '')[:200])}"
 
     def promote_run(self, run_id: str, now: bool = False) -> str:
@@ -3327,7 +3388,10 @@ def main(argv=None) -> int:
                          "movepost": getattr(coordinator, "move_post", None),
                          "retrypost": getattr(coordinator, "retry_post", None),
                          "retryreel": getattr(coordinator, "retry_reel", None),
-                         "fbcaptions": getattr(coordinator, "add_facebook_captions", None)},
+                         "fbcaptions": getattr(coordinator, "add_facebook_captions", None),
+                         "fbcover": getattr(coordinator, "set_facebook_cover", None),
+                         "rebook": getattr(coordinator, "rebook_followers", None),
+                         "ytshort": getattr(coordinator, "post_youtube_short", None)},
             produce_batch=produce_batch,
         )
         if POST_SCHEDULING:  # what this mode books, it also posts when due
@@ -3743,7 +3807,10 @@ def main(argv=None) -> int:
                                                     "movepost": getattr(coordinator, "move_post", None),
                                                     "retrypost": getattr(coordinator, "retry_post", None),
                                                     "retryreel": getattr(coordinator, "retry_reel", None),
-                         "fbcaptions": getattr(coordinator, "add_facebook_captions", None)},
+                         "fbcaptions": getattr(coordinator, "add_facebook_captions", None),
+                         "fbcover": getattr(coordinator, "set_facebook_cover", None),
+                         "rebook": getattr(coordinator, "rebook_followers", None),
+                         "ytshort": getattr(coordinator, "post_youtube_short", None)},
                                        produce_batch=produce_batch)
 
         def poll_telegram():

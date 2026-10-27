@@ -1207,17 +1207,31 @@ def dashboard_text_and_buttons(db: PipelineDatabase, next_run: Optional[str] = N
     return "\n".join(lines), buttons
 
 
+def still_to_post(booked: List[Dict[str, Any]]) -> str:
+    """'still to post: 1 Reel, 2 carousels, from 3 episodes': what waits, by kind, at any time."""
+    if not booked:
+        return "nothing waiting to post"
+    names = {"reel": ("Reel", "Reels"), "story": ("Stories post", "Stories posts"), "carousel": ("carousel", "carousels")}
+    counts: Dict[str, int] = {}
+    for p in booked:
+        counts[p["kind"]] = counts.get(p["kind"], 0) + 1
+    parts = [f"{n} {names.get(k, (k, k + 's'))[n != 1]}" for k, n in sorted(counts.items(), key=lambda x: list(names).index(x[0]) if x[0] in names else 9)]
+    episodes = len({p["run_id"] for p in booked})
+    return "still to post: " + ", ".join(parts) + f", from {episodes} episode{'s' if episodes != 1 else ''}"
+
+
 def next_slot_line(db: PipelineDatabase, booked: List[Dict[str, Any]]) -> str:
-    """'next Reel slot Mon 26 Oct 17:00 MDT · 2 booked': when the next Reel could go out, and what waits."""
+    """'next free Reel slot Wed 28 Oct 17:00 MDT · still to post: 3 carousels, from 3 episodes'. The slot is the
+    first one with no Reel in it; what waits is counted apart, by kind: "next Reel slot ... 3 episode(s) booked"
+    read as three episodes booked into a slot that Slots showed free (operator, 2026-10-27)."""
     from . import post_schedule
     try:
         taken = {datetime.fromisoformat(p["due_at"]).astimezone(post_schedule.tz()).date()
                  for p in booked if p["kind"] == "reel" and p.get("due_at")}
         slot = post_schedule.fmt(post_schedule.next_reel_slot(datetime.now(timezone.utc), taken))
     except Exception:  # a schedule misconfiguration never breaks the dashboard
-        return f"{len({p['run_id'] for p in booked})} episode(s) booked" if booked else "nothing booked"
-    episodes = len({p["run_id"] for p in booked})  # episodes, not posts: a Reel with its Stories and carousel is one
-    return f"next Reel slot {slot}" + (f" · {episodes} episode(s) booked" if booked else "")
+        return still_to_post(booked)
+    return f"next free Reel slot {slot} · {still_to_post(booked)}"
 
 
 HEARTBEAT_KEY = "heartbeat_at"

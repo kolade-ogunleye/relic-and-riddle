@@ -56,7 +56,7 @@ def test_posting_is_a_numbered_list_with_a_post_a_line_and_slots(db, tmp_path):
     _book(db, tmp_path)
     text, buttons = _h(db)("cposts", "")
     assert "\n1. <b>" in text and "🎬 Reel" in text and "📱 Stories" in text and "🖼 Carousel" in text
-    assert not too_packed(text) and "1 episode(s) booked" in text
+    assert not too_packed(text) and "· still to post: 1 Reel, 1 Stories post, 1 carousel, from 1 episode" in text
     flat = [b for row in buttons for b in row]
     assert flat[0] == {"text": "1", "callback_data": f"cpost:{db.run_key('run_p')}"}
     assert {"text": "🗓 Slots", "callback_data": "cslots:"} in flat
@@ -166,3 +166,17 @@ def test_a_live_run_not_promoted_takes_no_slot_where_only_promoted_runs_post(db,
     assert carousel_plan(db) == {} and "promoted" in wont_post(db, "run_p")
     db.set_setting("promoted:run_p", "2026-10-25")
     assert carousel_plan(db) and wont_post(db, "run_p") is None
+
+
+def test_the_next_free_slot_is_not_read_as_booked(db, tmp_path):
+    """Operator, 2026-10-27: "Next Reel slot Wed 28 Oct ... 3 episode(s) booked" read as three episodes booked
+    into a slot that Slots showed free. The slot is named free; what waits is counted by kind, apart from it."""
+    from src.control import next_slot_line, still_to_post
+    _book(db, tmp_path)
+    booked = db.list_scheduled_posts(("pending", "waiting"))
+    line = next_slot_line(db, booked)
+    assert line.startswith("next free Reel slot ") and "episode(s) booked" not in line
+    assert line.endswith("· still to post: 1 Reel, 1 Stories post, 1 carousel, from 1 episode")
+    carousels = [{"kind": "carousel", "run_id": r} for r in ("a", "b", "c")]
+    assert still_to_post(carousels) == "still to post: 3 carousels, from 3 episodes"
+    assert still_to_post([]) == "nothing waiting to post"

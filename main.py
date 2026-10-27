@@ -1464,7 +1464,8 @@ class PipelineCoordinator:
         try:
             res = FacebookPageReelsPublisher().set_cover(video_id, cover)
         except NotConfigured:
-            return "🖼 The Facebook cover needs META_PAGE_ID and a Page access token in production's .env."
+            return ("🖼 The Facebook cover needs our own Page access token (META_PAGE_ACCESS_TOKEN) in production's "
+                    ".env; the Page id comes from UPLOAD_POST_FACEBOOK_PAGE_ID unless META_PAGE_ID is set.")
         except PublishFailed as e:
             self.db.record_publication(run["topic_id"], run_id, "facebook:cover", "failed", {"error": str(e)[:500]})
             return f"🖼 Facebook did not take the cover: {html.escape(str(e)[:300])}"

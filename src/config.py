@@ -207,7 +207,8 @@ META_ACCESS_TOKEN = os.getenv("META_ACCESS_TOKEN", "")
 META_IG_ACCOUNT_ID = os.getenv("META_IG_ACCOUNT_ID", "")
 # Publisher 3: Facebook Page Reels direct (fallback, Facebook only). Page token with
 # pages_show_list, pages_read_engagement, pages_manage_posts; defaults to META_ACCESS_TOKEN.
-META_PAGE_ID = os.getenv("META_PAGE_ID", "")
+# The same Page Upload-Post posts to, so its id is the default: only the Page token is ours to add (2026-10-27)
+META_PAGE_ID = os.getenv("META_PAGE_ID", "") or UPLOAD_POST_FACEBOOK_PAGE_ID
 META_PAGE_ACCESS_TOKEN = os.getenv("META_PAGE_ACCESS_TOKEN", "")
 META_GRAPH_VERSION = os.getenv("META_GRAPH_VERSION", "v26.0")
 

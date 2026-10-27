@@ -193,3 +193,37 @@ def test_render_fresh_and_reuse_start_a_run_with_those_options(db):
     for wrong in ("fresh pictures", "reuse 99999", "fresh"):
         reply = handle(*route("render", wrong))
         assert reply.startswith("⚠️") and started == [["--fresh-from", "voice", "--reuse-from", "run_old"]]
+
+
+def test_a_review_is_current_whatever_line_endings_the_checkout_gave_its_files(tmp_path, monkeypatch):
+    """Production's reference_facts.json still had CRLF (written before the repository kept LF), so Wieliczka's
+    library review never counted as current and rc57 and rc58 were rolled back (2026-10-27)."""
+    from src import fact_evidence
+    from src.fact_evidence import current_fact_review, record_fact_review
+    sheet, reference = tmp_path / "sheet.json", tmp_path / "reference.json"
+    sheet.write_bytes(b'{\n "facts": []\n}\n')
+    reference.write_bytes(b'{\n "a": 1\n}\n')
+    monkeypatch.setattr(fact_evidence, "REFERENCE_FILE", reference)
+    monkeypatch.setattr(fact_evidence, "selected_reference", lambda scale: True)
+    payload = json.loads((main.config.DATA_DIR / "script_library" / "wieliczka_salt_mine" / "verified_script.json")
+                         .read_text(encoding="utf-8"))
+    record_fact_review(payload, sheet)
+    assert current_fact_review(payload)
+    for f in (sheet, reference):            # the same content with Windows line endings
+        f.write_bytes(f.read_bytes().replace(b"\n", b"\r\n"))
+    assert current_fact_review(payload)
+    record_fact_review(payload, sheet)      # recorded on the CRLF copies, checked on LF ones
+    for f in (sheet, reference):
+        f.write_bytes(f.read_bytes().replace(b"\r\n", b"\n"))
+    assert current_fact_review(payload)
+    reference.write_bytes(b'{\n "a": 2\n}\n')   # other content is still not current
+    assert not current_fact_review(payload)
+
+
+def test_every_shipped_entry_passes_with_a_crlf_checkout(tmp_path, monkeypatch):
+    """The shipped-entry check as production ran it: its reference file with Windows line endings."""
+    from src import fact_evidence
+    crlf = tmp_path / "reference_facts.json"
+    crlf.write_bytes(fact_evidence.REFERENCE_FILE.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))
+    monkeypatch.setattr(fact_evidence, "REFERENCE_FILE", crlf)
+    test_every_shipped_entry_still_matches_its_research_and_passes_todays_checks(monkeypatch)

@@ -1,0 +1,301 @@
+{
+ "topic_id": "singing_colossi_of_memnon",
+ "built_at": "2026-10-25T18:31:27.139136+00:00",
+ "facts": [
+  {
+   "id": "fact_1",
+   "statement": "The Colossi of Memnon are two monumental stone statues standing before the ruined Mortuary Temple of Amenhotep III in Egypt's Theban Necropolis.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Colossi_of_Memnon",
+     "tier": 2,
+     "quote": "The Colossi of Memnon (Arabic: el-Colossat or es-Salamat) are two large stone statues of the Pharaoh Amenhotep III, which stand at the front of the ruined Mortuary Temple of Amenhotep III, the largest temple in the Theban Necropolis."
+    },
+    {
+     "url": "https://www.worldhistory.org/Colossi_of_Memnon/",
+     "tier": 1,
+     "quote": "Mark The Colossi of Memnon (also known as el-Colossat or el-Salamat) are two monumental statues representing Amenhotep III (1386-1353 BCE) of the 18th Dynasty of Egypt."
+    }
+   ]
+  },
+  {
+   "id": "fact_2",
+   "statement": "The colossi have stood since 1350 BC, originally carved to guard the memorial temple where Amenhotep III was worshipped.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Colossi_of_Memnon",
+     "tier": 2,
+     "quote": "They have stood since 1350 BC, and were well known to ancient Greeks and Romans, as well as early modern travelers and Egyptologists."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Colossi_of_Memnon",
+     "tier": 2,
+     "quote": "The original function of the Colossi was to stand guard at the entrance to Amenhotep's memorial temple (or mortuary temple): a massive construct built during the pharaoh's lifetime, where he was worshipped as a god-on-earth both before and after his departure from this world."
+    },
+    {
+     "url": "https://www.atlasobscura.com/places/colossi-of-memnon",
+     "tier": 2,
+     "quote": "Marc Ryckaert The statues have loomed over the Theban Necropolis since 1350 BC."
+    }
+   ]
+  },
+  {
+   "id": "fact_3",
+   "statement": "Reaching a total height of 18 meters including their 4-meter pedestals, each colossus weighs an estimated 720 tons.",
+   "kind": "number",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Colossi_of_Memnon",
+     "tier": 2,
+     "quote": "Including the stone platforms on which they stand – themselves about 4 m (13 ft) – the colossi reach 18 m (60 ft) in height and weigh an estimated 720 tons each."
+    },
+    {
+     "url": "https://www.worldhistory.org/Colossi_of_Memnon/",
+     "tier": 1,
+     "quote": "The figures rise 60 ft (18 meters) high and weigh 720 tons each; both carved from single blocks of sandstone."
+    }
+   ]
+  },
+  {
+   "id": "fact_4",
+   "statement": "The statues were crafted from blocks of quartzite sandstone quarried near modern-day Cairo and transported 675 kilometers overland to Thebes.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, the statues were crafted from blocks of quartzite sandstone quarried near modern-day Cairo and transported 675 kilometers overland to Thebes.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Colossi_of_Memnon",
+     "tier": 2,
+     "quote": "The statues are made from blocks of quartzite sandstone which was quarried at el-Gabal el-Ahmar (near modern-day Cairo) and transported 675 km (420 mi) overland to Thebes (Luxor)."
+    }
+   ]
+  },
+  {
+   "id": "fact_5",
+   "statement": "The two seated monoliths stand approximately 15 meters apart, with their gaze oriented eastwards toward the river.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, the two seated monoliths stand approximately 15 meters apart, with their gaze oriented eastwards toward the river.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Colossi_of_Memnon",
+     "tier": 2,
+     "quote": "14th century BC) in a seated position, his hands resting on his knees and his gaze facing eastwards (actually ESE in modern bearings) towards the river."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Colossi_of_Memnon",
+     "tier": 2,
+     "quote": "The two figures are about 15 m (50 ft) apart."
+    }
+   ]
+  },
+  {
+   "id": "fact_6",
+   "statement": "In 27 BC, a major earthquake shattered the northern colossus, collapsing the statue from the waist up and cracking its lower half.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Colossi_of_Memnon",
+     "tier": 2,
+     "quote": "These were further destroyed by an earthquake in 27 BC, after which they were partly reconstructed by the Roman authorities."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Colossi_of_Memnon",
+     "tier": 2,
+     "quote": "In the 19th century, William de Wiveleslie Abney noted that \"[t]he Arabs called these statues 'Shama' and 'Tama', and when speaking of them together gave them the appelation of Sanamât, or the idols.\"\n\n\n \nIn 27 BCE, a large earthquake reportedly shattered the northern colossus, collapsing it from the waist up and cracking the lower half."
+    }
+   ]
+  },
+  {
+   "id": "fact_7",
+   "statement": "While the southern statue remains a single piece of stone, the fractured northern colossus consists of five tiers of stone above the waist.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, while the southern statue remains a single piece of stone, the fractured northern colossus consists of five tiers of stone above the waist.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Colossi_of_Memnon",
+     "tier": 2,
+     "quote": "The southern statue comprises a single piece of stone, but the northern figure has a large extensive crack in the lower half and above the waist consists of 5 tiers of stone."
+    }
+   ]
+  },
+  {
+   "id": "fact_8",
+   "statement": "Following the earthquake damage, the northern monument became famous throughout the ancient world for emitting a reported cry at dawn.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Colossi_of_Memnon",
+     "tier": 2,
+     "quote": "He was associated with colossi built several centuries earlier, because of the reported cry at dawn of the northern statue (see below), which became known as the Colossus of Memnon."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Colossi_of_Memnon",
+     "tier": 2,
+     "quote": "The legend of the \"Vocal Memnon\", the luck that hearing it was reputed to bring, and the reputation of the statue's oracular powers became known outside of Egypt, and a constant stream of visitors, including several Roman emperors, came to marvel at the statues."
+    }
+   ]
+  },
+  {
+   "id": "fact_9",
+   "statement": "The Greek geographer Strabo recorded the earliest literary account of the vocal phenomenon after hearing the statue sound during a visit in 20 BC.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Colossi_of_Memnon",
+     "tier": 2,
+     "quote": "The earliest report in literature is that of the Greek historian and geographer Strabo, who said that he heard the sound during a visit in 20 BCE, by which time it apparently was already well-known."
+    }
+   ]
+  },
+  {
+   "id": "fact_10",
+   "statement": "Visitors carved 107 Roman-era inscriptions into the stone between 20 AD and 250 AD, comprising 61 in Greek, 45 in Latin, and one bilingual text.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, visitors carved 107 Roman-era inscriptions into the stone between 20 AD and 250 AD, comprising 61 in Greek, 45 in Latin, and one bilingual text.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Colossi_of_Memnon",
+     "tier": 2,
+     "quote": "The statues contain 107 Roman-era inscriptions in Greek and Latin, dated to between AD 20 and 250; many of these inscriptions on the northernmost statue make reference to the Greek mythological king Memnon, whom the statue was then erroneously thought to represent."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Colossi_of_Memnon",
+     "tier": 2,
+     "quote": "The statues contain 107 Roman-era inscriptions in Greek and Latin, dated between 20-250CE; these inscriptions allowed modern travellers to connect the statues to the classical Greek and Latin literature."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Colossi_of_Memnon",
+     "tier": 2,
+     "quote": "Of the 107 Roman-era inscriptions: 61 of them are written in Greek, 45 are written in Latin, and one bilingual text is written."
+    }
+   ]
+  },
+  {
+   "id": "fact_11",
+   "statement": "The base of the vocal colossus preserves approximately 90 surviving traveler inscriptions testifying whether or not the visitor heard the sound.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, the base of the vocal colossus preserves approximately 90 surviving traveler inscriptions testifying whether or not the visitor heard the sound.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Colossi_of_Memnon",
+     "tier": 2,
+     "quote": "In addition, the base of the statue is inscribed with about 90 surviving inscriptions of contemporary tourists reporting whether they had heard the sound or not."
+    }
+   ]
+  },
+  {
+   "id": "fact_12",
+   "statement": "In November 130 AD, the poet Julia Balbilla inscribed poetry on the colossus commemorating multiple hearings of the sound during an imperial visit with Emperor Hadrian.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Colossi_of_Memnon",
+     "tier": 2,
+     "quote": "Several of the inscriptions refer to sounds emitted by the statues, the most famous being poetry by Julia Balbilla recording multiple visits during November 130 CE in a party that included the Emperor Hadrian and his wife Vibia Sabina."
+    }
+   ]
+  },
+  {
+   "id": "fact_13",
+   "statement": "The last reliable historical record of the statue vocalizing dates to the year 196 AD.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Colossi_of_Memnon",
+     "tier": 2,
+     "quote": "The last recorded reliable mention of the sound dates from 196."
+    }
+   ]
+  },
+  {
+   "id": "fact_14",
+   "statement": "Local tradition dates the reconstruction of the statue's upper tiers to around 199 AD, attributing the repair to Roman Emperor Septimius Severus.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Colossi_of_Memnon",
+     "tier": 2,
+     "quote": "Sometime later in the Roman era, the upper tiers of sandstone were added (the original remains of the top half have never been found); the date of this reconstruction is unknown, but local tradition places it circa 199, and attributes it to the Roman Emperor Septimius Severus in an attempt to curry favour with the oracle (it is known that he visited the statue, but did not hear the sound)."
+    }
+   ]
+  }
+ ],
+ "dropped": [],
+ "sources": [
+  {
+   "title": "Scholarly work: On Observing - The Power of Timeless Art and Artifacts",
+   "url": "https://doi.org/10.5281/zenodo.20683043",
+   "tier": 3
+  },
+  {
+   "title": "Scholarly work: Transient and harmonic analyses of South Memnon Colossus including soil-structure interaction",
+   "url": "https://doi.org/10.1088/1755-1315/636/1/012019",
+   "tier": 3
+  },
+  {
+   "title": "Scholarly work: H",
+   "url": "https://doi.org/10.4324/9780203498514-10",
+   "tier": 3
+  },
+  {
+   "title": "Wikipedia: Colossi of Memnon",
+   "url": "https://en.wikipedia.org/wiki/Colossi_of_Memnon",
+   "tier": 2
+  },
+  {
+   "title": "penelope.uchicago.edu",
+   "url": "https://penelope.uchicago.edu/Thayer/E/Roman/Texts/Strabo/17A3*.html",
+   "tier": 1
+  },
+  {
+   "title": "www.worldhistory.org",
+   "url": "https://www.worldhistory.org/Colossi_of_Memnon/",
+   "tier": 1
+  },
+  {
+   "title": "www.worldhistory.org",
+   "url": "https://www.worldhistory.org/Septimius_Severus/",
+   "tier": 1
+  },
+  {
+   "title": "www.atlasobscura.com",
+   "url": "https://www.atlasobscura.com/places/colossi-of-memnon",
+   "tier": 2
+  },
+  {
+   "title": "doi.org",
+   "url": "https://doi.org/10.1017%2Fcbo9780511997679.002",
+   "tier": 3
+  },
+  {
+   "title": "www.pbs.org",
+   "url": "https://www.pbs.org/wgbh/nova/interactive/explore-ancient-egypt/",
+   "tier": 3
+  }
+ ],
+ "rules_version": 2
+}

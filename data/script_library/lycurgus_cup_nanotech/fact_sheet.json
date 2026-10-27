@@ -1,0 +1,287 @@
+{
+ "topic_id": "lycurgus_cup_nanotech",
+ "built_at": "2026-10-25T22:59:07.304353+00:00",
+ "facts": [
+  {
+   "id": "fact-1",
+   "statement": "The Lycurgus Cup is housed in the British Museum, located in the Bloomsbury area of London.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Lycurgus_Cup",
+     "tier": 2,
+     "quote": "There are various small losses, of which the face of the panther is the most significant, and the cup is cracked; the British Museum has never removed the metal rim for this reason."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/British_Museum",
+     "tier": 2,
+     "quote": "The British Museum is a public museum dedicated to human history, art and culture located in the Bloomsbury area of London."
+    }
+   ]
+  },
+  {
+   "id": "fact-2",
+   "statement": "Crafted between 290 and 325 AD, the Roman cage cup measures 16.5 centimeters by 13.2 centimeters.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, crafted between 290 and 325 AD, the Roman cage cup measures 16.5 centimeters by 13.2 centimeters.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Lycurgus_Cup",
+     "tier": 2,
+     "quote": "The cup was \"perhaps made in Alexandria\" or Rome in about 290–325 AD, and measures 16.5 cm × 13.2 cm (6.5 in × 5.2 in)."
+    }
+   ]
+  },
+  {
+   "id": "fact-3",
+   "statement": "The vessel exhibits dichroism, appearing opaque green in reflected light from the front and turning deep translucent red when illuminated from behind.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://doi.org/10.3762/bjnano.11.2",
+     "tier": 1,
+     "quote": "The cup presents a green colour when the observer and the light source are on the same side (reflection), and a deep red colour when the observer and the light source are at opposite sides (transmission)."
+    },
+    {
+     "url": "https://doi.org/10.1007/s00339-026-09579-y",
+     "tier": 1,
+     "quote": "The Lycurgus Cup is a fourth-century Roman cage cup that exhibits striking dichroism — appearing opaque green in reflected light and translucent red in transmission — arising from Au–Ag alloy nanoparticles embedded in soda-lime-silica glass matrix."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Lycurgus_Cup",
+     "tier": 2,
+     "quote": "The Lycurgus Cup is a  Roman glass 4th-century cage cup made of a dichroic glass, which shows a different colour depending on whether or not light is passing through it: red when lit from behind and green when lit from in front."
+    }
+   ]
+  },
+  {
+   "id": "fact-4",
+   "statement": "The striking color shift is caused by gold and silver alloy nanoparticles embedded throughout the cup's soda-lime-silica glass matrix.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://doi.org/10.1007/s00339-026-09579-y",
+     "tier": 1,
+     "quote": "The Lycurgus Cup is a fourth-century Roman cage cup that exhibits striking dichroism — appearing opaque green in reflected light and translucent red in transmission — arising from Au–Ag alloy nanoparticles embedded in soda-lime-silica glass matrix."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Lycurgus_Cup",
+     "tier": 2,
+     "quote": "It is estimated that to a conventionally composed Roman glass flux 330 parts per million of silver and 40 of gold were added: \"These particles were precipitated as colloids and form a silver-gold alloy."
+    }
+   ]
+  },
+  {
+   "id": "fact-5",
+   "statement": "Measuring only about 70 nanometers across, the embedded metal particles cannot be resolved by standard optical microscopy and require a transmission electron microscope to be seen.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, measuring only about 70 nanometers across, the embedded metal particles cannot be resolved by standard optical microscopy and require a transmission electron microscope to be seen.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Lycurgus_Cup",
+     "tier": 2,
+     "quote": "Since it is impossible that the Roman artisans managed to add these incredibly low levels of silver and gold to the volume of the glass used to make the vessel deliberately, the levels were probably added at higher levels to a larger volume of glass-melt, and increasingly diluted by adding more glass.\"  The particles are only about 70 nanometers across, and embedded in the glass, so they cannot be seen by optical microscopy, and a transmission electron microscope is needed instead."
+    }
+   ]
+  },
+  {
+   "id": "fact-6",
+   "statement": "The glass flux contains trace precious metal concentrations estimated at 330 parts per million of silver and 40 parts per million of gold.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, the glass flux contains trace precious metal concentrations estimated at 330 parts per million of silver and 40 parts per million of gold.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Lycurgus_Cup",
+     "tier": 2,
+     "quote": "It is estimated that to a conventionally composed Roman glass flux 330 parts per million of silver and 40 of gold were added: \"These particles were precipitated as colloids and form a silver-gold alloy."
+    }
+   ]
+  },
+  {
+   "id": "fact-7",
+   "statement": "Because Roman artisans could not intentionally add such minute quantities of precious metals to a single vessel, they likely introduced them into a larger melt before diluting it with more glass.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Lycurgus_Cup",
+     "tier": 2,
+     "quote": "Since it is impossible that the Roman artisans managed to add these incredibly low levels of silver and gold to the volume of the glass used to make the vessel deliberately, the levels were probably added at higher levels to a larger volume of glass-melt, and increasingly diluted by adding more glass.\"  The particles are only about 70 nanometers across, and embedded in the glass, so they cannot be seen by optical microscopy, and a transmission electron microscope is needed instead."
+    }
+   ]
+  },
+  {
+   "id": "fact-8",
+   "statement": "Before analytical studies in 1950 established for certain that the material was glass, researchers had actively questioned whether the cup was carved from a gemstone.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Lycurgus_Cup",
+     "tier": 2,
+     "quote": "Indeed, it was not until the first full studies of the cup in 1950 that it was established for certain that the material was glass and not a gemstone, which had previously been in question."
+    }
+   ]
+  },
+  {
+   "id": "fact-9",
+   "statement": "An area of differing glass coloration around the torso of Lycurgus was exploited by the cutter to make the king's rage glow more intensely.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Lycurgus_Cup",
+     "tier": 2,
+     "quote": "An area around the torso of Lycurgus is a rather different colour from the rest of the glass; perhaps an accident of manufacture, but one exploited by the glass-cutter \"so that he could make Lycurgus's rage glow even more strongly\"."
+    }
+   ]
+  },
+  {
+   "id": "fact-10",
+   "statement": "Unlike most Roman cage cups with geometric patterns, this vessel features sculpted mythological figures showing King Lycurgus entangled in a grapevine alongside Dionysus.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Lycurgus_Cup",
+     "tier": 2,
+     "quote": "The Lycurgus Cup is a  Roman glass 4th-century cage cup made of a dichroic glass, which shows a different colour depending on whether or not light is passing through it: red when lit from behind and green when lit from in front."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Lycurgus_Cup",
+     "tier": 2,
+     "quote": "Most cage-cups have a cage with a geometric abstract design, but here there is a composition with figures, showing the mythical King Lycurgus, who (depending on the version) tried to kill Ambrosia, a follower of the god Dionysus (Bacchus to the Romans)."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Lycurgus_Cup",
+     "tier": 2,
+     "quote": "The figure of Lycurgus, bound by the vine and naked apart from boots, is flanked on the left by a crouching Ambrosia, at a considerably smaller scale."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Lycurgus_Cup",
+     "tier": 2,
+     "quote": "To the right of Lycurgus comes first a figure of Pan, then at his feet a rather canine-looking panther, the traditional companion of Dionysus, whose face is missing but was presumably snapping at the king, and then the god himself, taunting him with his right arm extended in an angry gesture."
+    }
+   ]
+  },
+  {
+   "id": "fact-11",
+   "statement": "Corning Glass Works successfully reproduced a blank with a matching chemical composition and internal structure that replicates the cup's green-to-red dichroic effect.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Lycurgus_Cup",
+     "tier": 2,
+     "quote": "Corning Glass Works has reproduced a blank of a material of similar chemical composition and internal structure, which displays under reflected and transmitted light the same \"Lycurgus effect\" of green to red colour change as the Lycurgus cup material does."
+    }
+   ]
+  },
+  {
+   "id": "fact-12",
+   "statement": "In 2020, researchers reproduced the green-and-red optical effect by embedding silver and gold nanoparticles into a 3D-printable nanocomposite material.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Lycurgus_Cup",
+     "tier": 2,
+     "quote": "In 2020, researchers from the Netherlands reproduced the green/red dichroic effect in a 3D printable nanocomposite material."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Lycurgus_Cup",
+     "tier": 2,
+     "quote": "As with the original Lycurgus cup, this effect is due to small amounts of silver and gold nanoparticles, of the proper size and shapes, embedded in the 3D printable material."
+    }
+   ]
+  },
+  {
+   "id": "fact-13",
+   "statement": "A 1995 scholarly suggestion that the vessel was manufactured using a combination of moulding and cutting met with little acceptance.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Lycurgus_Cup",
+     "tier": 2,
+     "quote": "A suggestion in 1995 that in fact this and other cage cups used a mixture of moulding and cutting has met with little acceptance."
+    }
+   ]
+  }
+ ],
+ "dropped": [],
+ "sources": [
+  {
+   "title": "Peer-reviewed journal article (Beilstein Journal of Nanotechnology): Gold and silver dichroic nanocomposite in the quest for 3D printing the Lycurgus cup",
+   "url": "https://doi.org/10.3762/bjnano.11.2",
+   "tier": 3
+  },
+  {
+   "title": "Peer-reviewed journal article (Applied Physics A): Physics-based inverse modelling of dichroic glass: machine learning emulation of the lycurgus cup",
+   "url": "https://doi.org/10.1007/s00339-026-09579-y",
+   "tier": 3
+  },
+  {
+   "title": "Scholarly work: Nanotechnology for bacteriophages, bacteriophages for nanotechnology",
+   "url": "https://doi.org/10.1039/9781839169427-00243",
+   "tier": 3
+  },
+  {
+   "title": "Wikipedia: Lycurgus Cup",
+   "url": "https://en.wikipedia.org/wiki/Lycurgus_Cup",
+   "tier": 2
+  },
+  {
+   "title": "Wikipedia: British Museum",
+   "url": "https://en.wikipedia.org/wiki/British_Museum",
+   "tier": 2
+  },
+  {
+   "title": "link.springer.com",
+   "url": "https://link.springer.com/article/10.1007/BF03215599",
+   "tier": 1
+  },
+  {
+   "title": "www.ncbi.nlm.nih.gov",
+   "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6404512",
+   "tier": 1
+  },
+  {
+   "title": "doi.org",
+   "url": "https://doi.org/10.3762%2Fbjnano.10.43",
+   "tier": 3
+  },
+  {
+   "title": "www.ncbi.nlm.nih.gov",
+   "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6964654",
+   "tier": 1
+  },
+  {
+   "title": "doi.org",
+   "url": "https://doi.org/10.3762%2Fbjnano.11.2",
+   "tier": 3
+  },
+  {
+   "title": "www.persee.fr",
+   "url": "https://www.persee.fr/doc/piot_1148-6023_1954_num_48_2_1454",
+   "tier": 3
+  }
+ ],
+ "rules_version": 2
+}

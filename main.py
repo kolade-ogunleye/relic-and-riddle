@@ -161,6 +161,7 @@ class PipelineCoordinator:
         self.only_promoted = False  # a dry-run daemon: booked posts fire only for runs promoted with "Post for real"
         self.paid_voice_in_dry_run = False  # `--paid-voice`: this dry run may use ElevenLabs
         self.paid_motion_in_dry_run = False  # `--paid-motion`: this dry run may buy a motion clip
+        self.reuse_from: Optional[str] = None  # `--reuse-from`: an earlier run of the same topic whose work is reused
         # Imported here so `health`/`topic`/`review` work even if a media dependency is broken.
         from src.audio_engine import AudioEngine
         from src.multi_format import MultiFormatGenerator
@@ -412,8 +413,9 @@ class PipelineCoordinator:
         return fb
 
     def _previous_run_dir(self) -> Optional[Path]:
-        """The run this regeneration replaces (Regenerate from its review), if its folder is still there."""
-        previous = self._feedback().get("from_run")
+        """The run this regeneration replaces (Regenerate from its review), or the one this run was told to
+        reuse (--reuse-from), if its folder is still there."""
+        previous = self._feedback().get("from_run") or getattr(self, "reuse_from", None)
         if previous and (OUTPUT_DIR / previous).is_dir():
             return OUTPUT_DIR / previous
         return None
@@ -422,8 +424,14 @@ class PipelineCoordinator:
         """The verified script of the run a regeneration replaces, when the review was not about the words
         (pictures, sound, cover, other): the script-stage payload as it was saved, guardrail passed. None
         when the reason concerns the script, there is no previous run, or its saved script did not pass."""
+        from src.script_library import reuses
         reason = fb.get("reason")
-        if not reason or reason in SCRIPT_REASONS or revises_script(fb):
+        if not reuses("script"):
+            return None
+        if fb.get("from_run"):
+            if not reason or reason in SCRIPT_REASONS or revises_script(fb):
+                return None
+        elif not getattr(self, "reuse_from", None):  # --reuse-from: the script that run passed, as it was
             return None
         previous = self._previous_run_dir()
         if previous is None:
@@ -434,8 +442,12 @@ class PipelineCoordinator:
             return None
         if not (isinstance(saved, dict) and saved.get("guardrail_passed") and saved.get("narration_script")):
             return None
-        # A kept script must pass today's checks, not only those it passed when written (2026-10-25: a kept
-        # script carried the repeated "By one estimate" past the check added after it was written).
+        return saved if PipelineCoordinator._passes_today(saved, previous.name) else None
+
+    @staticmethod
+    def _passes_today(saved: Dict[str, Any], origin: str) -> bool:
+        """A kept script must pass today's checks, not only those it passed when written (2026-10-25: a kept
+        script carried the repeated "By one estimate" past the check added after it was written)."""
         from src.models import ScriptPackage
         from src.script_engine import spoken_length_problems, validate_structure
         try:
@@ -446,7 +458,16 @@ class PipelineCoordinator:
         except Exception as e:
             problems = [f"the saved script no longer reads as a script package ({type(e).__name__})"]
         if problems:
-            log.info("Script of %s not kept: it fails today's checks (%s).", previous.name, problems[0][:160])
+            log.info("Script of %s not kept: it fails today's checks (%s).", origin, problems[0][:160])
+            return False
+        return True
+
+    def _script_from_library(self, topic: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """The script shipped in the script library for this topic, when it was checked against this very fact
+        sheet and passes today's checks (development's step 1, not paid for again: operator, 2026-10-27)."""
+        from src import config as pipeline_config, script_library
+        saved = script_library.kept_script(topic["id"], pipeline_config.DATA_DIR / "fact_sheets" / f"{topic['id']}.json")
+        if saved is None or not self._passes_today(saved, "the script library"):
             return None
         return saved
 
@@ -456,8 +477,10 @@ class PipelineCoordinator:
         """A regeneration whose voiceover was carried over keeps the music bed made for it too (2 min 48 s
         to make again, 2026-10-24), unless the review was about the sound. The bed's checkpoint record is
         carried with it; the stage's own check then decides whether it is still good."""
+        from src.script_library import reuses
         previous = self._previous_run_dir()
-        if previous is None or (run_dir / "ambient_bed.wav").exists() or self._feedback().get("reason") == "sound":
+        if (previous is None or not reuses("music") or (run_dir / "ambient_bed.wav").exists()
+                or self._feedback().get("reason") == "sound"):
             return
         from src.checkpoints import Checkpoints
         from src.credits import sha256_file
@@ -478,8 +501,9 @@ class PipelineCoordinator:
         log.info("Music bed carried over from %s: made for this same voiceover.", previous.name)
 
     def _previous_motion_dirs(self) -> List[Path]:
+        from src.script_library import reuses
         previous = self._previous_run_dir()
-        return [previous / "motion"] if previous and (previous / "motion").is_dir() else []
+        return [previous / "motion"] if previous and reuses("clips") and (previous / "motion").is_dir() else []
 
     def _seed_voice_from_previous(self, run_dir: Path, narration: str, wanted: Optional[str] = None) -> None:
         """A regeneration for pictures, sound or a cover keeps the narration: the previous run's voiceover,
@@ -487,8 +511,9 @@ class PipelineCoordinator:
         paying for it again (a Regenerate made a new run folder and re-voiced the same words, 2026-10-24).
         Whether a copied voice may be used is still the voice stage's rule (a test voice never goes live);
         `wanted` is the provider this run would use first, and a voice from another one is not carried."""
+        from src.script_library import reuses
         previous = self._previous_run_dir()
-        if previous is None or (run_dir / "voiceover.mp3").exists():
+        if previous is None or not reuses("voice") or (run_dir / "voiceover.mp3").exists():
             return
         from src.checkpoints import Checkpoints
         try:
@@ -1712,11 +1737,17 @@ class PipelineCoordinator:
                                                        initial_payload=fb["previous"], initial_notes=note)
             else:
                 kept = self._script_from_previous(fb)
+                library = None if kept is not None or fb.get("from_run") else self._script_from_library(topic)
                 if kept is not None:
                     # The review was about pictures, sound or the cover: the script it passed stays word for
                     # word, so its voiceover carries over too (a regeneration rewrote it, 2026-10-24).
                     payload = kept
-                    log.info("Script kept from %s: the review was about %s, not the words.", fb.get("from_run"), fb.get("reason"))
+                    log.info("Script kept from %s: %s.", fb.get("from_run") or self.reuse_from,
+                             f"the review was about {fb.get('reason')}, not the words" if fb.get("from_run") else "reused as asked")
+                elif library is not None:
+                    payload = library
+                    log.info("Script taken from the script library (checked against this same fact sheet, from %s).",
+                             (library.get("from_library") or {}).get("run_id", "another environment"))
                 else:
                     payload = self._write_and_check_script(topic, run_id, run_dir, dry_run)
             saved_script.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -2790,6 +2821,32 @@ def record_posting_mode(coordinator) -> None:
         log.debug("Posting mode not recorded: %s", e)
 
 
+def _reuse_options(p) -> None:
+    from src.script_library import STEPS
+    p.add_argument("--reuse-from", metavar="RUN",
+                   help="Reuse what this earlier run of the same topic made and passed (script, voice, music, clips)")
+    p.add_argument("--fresh-from", choices=STEPS,
+                   help="Make this step and every later one again: nothing from the script library or an earlier run")
+
+
+def apply_reuse_options(coordinator, args) -> Optional[str]:
+    """Sets up --reuse-from and --fresh-from for this run; returns why the run cannot start, if it cannot."""
+    from src.script_library import set_fresh_from
+    set_fresh_from(getattr(args, "fresh_from", None))
+    reuse = getattr(args, "reuse_from", None)
+    coordinator.reuse_from = None
+    if not reuse:
+        return None
+    reuse = coordinator.db.resolve_run(reuse) or reuse
+    topic = regeneration_topic(coordinator.db, reuse)
+    if not topic or not (OUTPUT_DIR / reuse).is_dir():
+        return f"Run '{reuse}' is not recorded or its files are no longer kept."
+    if args.topic_id and args.topic_id != topic:
+        return f"Run '{reuse}' was made for {topic}, not {args.topic_id}: only the same topic's work is reused."
+    args.topic_id, coordinator.reuse_from = topic, reuse
+    return None
+
+
 def regeneration_topic(db, previous: str) -> Optional[str]:
     """The topic a regeneration is for: the one the run it replaces was made for."""
     return (db.get_run(previous) or {}).get("topic_id")
@@ -3099,6 +3156,7 @@ def main(argv=None) -> int:
     run_p.add_argument("--background-polling", action="store_true", help="Tell bot that supervisor is polling getUpdates")
     run_p.add_argument("--result-file", help="Write the outcome here as JSON (the daemon's worker contract)")
     run_p.add_argument("--regenerate-from", help="A run whose review asked to Regenerate: its reason guides this run")
+    _reuse_options(run_p)
     run_p.add_argument("--paid-voice", action="store_true",
                        help="With --dry-run: voice with ElevenLabs anyway (spends credits); real runs always may")
     run_p.add_argument("--paid-motion", action="store_true",
@@ -3169,6 +3227,7 @@ def main(argv=None) -> int:
     test_p = sub.add_parser("test", help="End-to-end dry run on one topic (publishes nothing)")
     test_p.add_argument("--topic-id", help="Topic to test (default: the next topic production would make)")
     test_p.add_argument("--paid-voice", action="store_true", help="Voice this dry run with ElevenLabs (spends credits)")
+    _reuse_options(test_p)
     test_p.add_argument("--paid-motion", action="store_true", help="Let this dry run buy a motion clip (spends media budget)")
     backup_p = sub.add_parser("backup", help="Sync completed runs to OneDrive / Cloud archive")
     backup_p.add_argument("--run-id", help="Specific run ID to backup")
@@ -3183,6 +3242,11 @@ def main(argv=None) -> int:
             coordinator.paid_motion_in_dry_run = args.paid_motion
             if getattr(args, "background_polling", False):
                 coordinator.telegram_bot.background_polling = True
+            refused = apply_reuse_options(coordinator, args)
+            if refused:
+                log.error(refused)
+                _write_result(getattr(args, "result_file", None), {"status": "refused", "error": refused})
+                return 1
             regenerations = 0
             previous = getattr(args, "regenerate_from", None)
             if previous:  # a Regenerate decided outside a running cycle (Resend, or after a restart)
@@ -3801,10 +3865,13 @@ def main(argv=None) -> int:
             threading.Thread(target=work, name="apply-updates", daemon=True).start()
             return "🧰 Applying updates on a branch and running the tests. I'll report back."
 
-        def trigger_run(content_format: str = "reel") -> str:
+        def trigger_run(content_format: str = "reel", extra: Optional[List[str]] = None) -> str:
             if run_lock.locked():
                 return "A run is already in progress."
-            scheduler.add_job(production_run, kwargs={"manual": True, "content_format": content_format})
+            scheduler.add_job(production_run, kwargs={"manual": True, "content_format": content_format, "extra": extra})
+            if extra:  # /render fresh STEP, /render reuse N
+                return ("🎬 Starting a run now (" + html.escape(" ".join(extra)) + "). You'll get the review card when "
+                        "it's rendered; nothing posts without your approval.")
             return "🎬 Starting a run now. You'll get the review card when it's rendered; nothing posts without your approval."
 
         def rerender_run(run_id: str) -> str:
@@ -4017,6 +4084,10 @@ def main(argv=None) -> int:
             coordinator = PipelineCoordinator()
             coordinator.paid_voice_in_dry_run = args.paid_voice
             coordinator.paid_motion_in_dry_run = args.paid_motion
+            refused = apply_reuse_options(coordinator, args)
+            if refused:
+                print(refused)
+                return 1
             res = coordinator.run_cycle(args.topic_id, auto_approve=True, dry_run=True)
         except Exception:
             return 1

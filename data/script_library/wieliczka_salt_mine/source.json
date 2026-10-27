@@ -1,0 +1,10 @@
+{
+  "topic_id": "wieliczka_salt_mine",
+  "run_id": "run_wieliczka_salt_mine_1792974672",
+  "script_engine": "free",
+  "exported_at": "2026-10-27T10:36:33+00:00",
+  "contains": [
+    "fact_sheet",
+    "verified_script"
+  ]
+}

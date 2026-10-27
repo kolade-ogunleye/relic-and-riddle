@@ -1,0 +1,10 @@
+{
+  "topic_id": "odessa_catacombs",
+  "run_id": "run_odessa_catacombs_1792970549",
+  "script_engine": "free",
+  "exported_at": "2026-10-27T10:36:26+00:00",
+  "contains": [
+    "fact_sheet",
+    "verified_script"
+  ]
+}

@@ -1,0 +1,453 @@
+{
+  "timeline": null,
+  "scale_fact": {
+    "value": 327.0,
+    "unit": "m",
+    "dimension": "depth",
+    "subject": "Wieliczka Salt Mine",
+    "approximate": true
+  },
+  "stat_cards": null,
+  "cross_section": null,
+  "route": null,
+  "photo_labels": [
+    "underground galleries",
+    "subterranean chapels",
+    "chandeliers"
+  ],
+  "emphasis_words": [
+    "Kraków",
+    "rock salt",
+    "Wieliczka"
+  ],
+  "title": "Poland's Underground Salt Cathedral ⛏️",
+  "hook_sentence": "Near Kraków in southern Poland, the mine's rock salt naturally displays various shades of grey, resembling unpolished granite rather than white crystalline salt.",
+  "narration_script": "Near Kraków in southern Poland, the mine's rock salt naturally displays various shades of grey, resembling unpolished granite rather than white crystalline salt. Engineering surveys and heritage records place the total extent of underground galleries between 287 and 300 kilometers. By one estimate, underground miners carved four chapels and dozens of statues directly out of the native rock salt. Wieliczka was designated as one of the original UNESCO World Heritage Sites in 1978. Artificial ventilation introduced in the late nineteenth century brought humidity into the mine, threatening severe damage to the carved salt sculptures. Today, the subterranean chapels feature chandeliers carved out of natural rock salt.",
+  "closing_sentence": "Today, the subterranean chapels feature chandeliers carved out of natural rock salt.",
+  "caption": "Centuries of subterranean carving created a massive sanctuary hidden beneath Poland. ⛏️\n\nThe Wieliczka Salt Mine is located in the town of Wieliczka, near Kraków in southern Poland. By one estimate, the mine excavations descend to a maximum depth of 327 meters below the surface, while engineering surveys and heritage records place the total extent of underground galleries between 287 and 300 kilometers.\n\nWould you descend hundreds of meters underground to explore these salt chambers? ✨\n\nShare this with a friend who loves underground marvels, and follow for the next story! ⛏️\n\n#Wieliczka #SaltMine #PolandHistory #SubterraneanMarvels\n\n📷 Images via Wikimedia Commons: Gerd Eichmann (CC BY 4.0); Arian Zwegers (CC BY 2.0); Janericloebe (CC BY 3.0); Klearchos Kapoutsis from Santorini, Greece (CC BY 2.0)",
+  "first_comment": "Would you prefer to explore historical monuments on the surface, or descend into subterranean chambers like these?",
+  "hashtags": [
+    "#Wieliczka",
+    "#SaltMine",
+    "#PolandHistory",
+    "#SubterraneanMarvels"
+  ],
+  "thumbnail": {
+    "eyebrow": "SUBTERRANEAN MARVEL",
+    "line1": "CARVED FROM",
+    "line2": "SOLID SALT",
+    "tagline": "327 METERS DOWN"
+  },
+  "story_slides": [
+    {
+      "kicker": "UNDERGROUND MARVEL",
+      "line1": "A SUBTERRANEAN",
+      "line2": "SALT CATHEDRAL",
+      "body": "Wieliczka was designated as one of the original UNESCO World Heritage Sites in 1978."
+    },
+    {
+      "kicker": "MASSIVE DEPTH",
+      "line1": "HUNDREDS OF METERS",
+      "line2": "INTO THE EARTH",
+      "body": "By one estimate, mine excavations descend 327 meters below the surface."
+    },
+    {
+      "kicker": "YOUR VERDICT",
+      "line1": "WHICH FEAT IS",
+      "line2": "MORE IMPRESSIVE?",
+      "body": "The subterranean chapels feature chandeliers carved out of natural rock salt."
+    }
+  ],
+  "poll": {
+    "question": "Which feature is more impressive?",
+    "options": [
+      "Salt chandeliers",
+      "Underground chapels"
+    ]
+  },
+  "carousel_slides": [
+    {
+      "heading": "THE SALT CATHEDRAL",
+      "body": "A subterranean marvel carved deep beneath southern Poland."
+    },
+    {
+      "heading": "MASSIVE LABYRINTH",
+      "body": "Records place the total extent of underground galleries between 287 and 300 kilometers."
+    },
+    {
+      "heading": "PLUNGING DEPTHS",
+      "body": "By one estimate, the mine excavations descend to 327 meters below the surface."
+    },
+    {
+      "heading": "SUBTERRANEAN CHAPELS",
+      "body": "The subterranean chapels feature chandeliers carved out of natural rock salt."
+    },
+    {
+      "heading": "GLOBAL HERITAGE",
+      "body": "Wieliczka was designated as one of the original UNESCO World Heritage Sites in 1978."
+    },
+    {
+      "heading": "PRESERVATION BATTLE",
+      "body": "Artificial ventilation brought humidity into the mine, threatening the salt sculptures."
+    },
+    {
+      "heading": "ENDURING DEVOTION",
+      "body": "What drives humans to carve enduring sanctuaries in the darkest places on Earth?"
+    }
+  ],
+  "sources": [
+    {
+      "title": "UNESCO World Heritage Centre - Wieliczka and Bochnia Royal Salt Mines",
+      "url": "https://whc.unesco.org/en/list/32"
+    },
+    {
+      "title": "Wikipedia: Wieliczka Salt Mine",
+      "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine"
+    }
+  ],
+  "carousel_caption": "Swipe through to discover an underground world carved entirely from mineral deposits. 🕯️\n\nBy one estimate, underground miners carved four chapels and dozens of statues directly out of the native rock salt. What do you think is the most impressive feat of subterranean engineering ever achieved?\n\nShare this with a friend who loves underground marvels, and follow for the next story! ⛏️\n\n#Wieliczka #SaltMine #PolandHistory #SubterraneanMarvels",
+  "share_line": "Share this with a friend who loves underground marvels, and follow for the next story! ⛏️",
+  "fact_sheet": true,
+  "topic_id": "wieliczka_salt_mine",
+  "origin": "gemini-free",
+  "word_count": 106,
+  "location": {
+    "name": "Wieliczka",
+    "city": "Lesser Poland",
+    "region": "Lesser Poland",
+    "country": "Poland",
+    "latitude": 0.0,
+    "longitude": 0.0
+  },
+  "meta_topic_categories": [
+    "History & Philosophy",
+    "Science & Tech",
+    "Travel & Culture"
+  ],
+  "topic_origin_note": "🗂 Topic origin: the original topic bank (added before origins were recorded)",
+  "fact_sheet_note": "🧾 Written from a verified fact sheet: 15 facts with quoted evidence (4 disputed, used only with their hedges)",
+  "fact_audits": [
+    {
+      "claim": "The mine's rock salt naturally displays various shades of grey, resembling unpolished granite rather than white crystalline salt, near Kraków in southern Poland.",
+      "where": "narration",
+      "fact_ids": [
+        "fact-1",
+        "fact-3"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Accurately reflects fact-1 and fact-3."
+    },
+    {
+      "claim": "Engineering surveys and heritage records place the total extent of underground galleries between 287 and 300 kilometers.",
+      "where": "narration",
+      "fact_ids": [
+        "fact-7"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Fully matches disputed fact-7, including the required attribution hedge."
+    },
+    {
+      "claim": "By one estimate, underground miners carved four chapels and dozens of statues directly out of the native rock salt.",
+      "where": "narration",
+      "fact_ids": [
+        "fact-10"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Fully matches disputed fact-10, including the required hedge."
+    },
+    {
+      "claim": "Wieliczka was designated as one of the original UNESCO World Heritage Sites in 1978.",
+      "where": "narration",
+      "fact_ids": [
+        "fact-13"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches fact-13."
+    },
+    {
+      "claim": "Artificial ventilation introduced in the late nineteenth century brought humidity into the mine, threatening severe damage to the carved salt sculptures.",
+      "where": "narration",
+      "fact_ids": [
+        "fact-12"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches fact-12."
+    },
+    {
+      "claim": "Today, the subterranean chapels feature chandeliers carved out of natural rock salt.",
+      "where": "narration",
+      "fact_ids": [
+        "fact-11"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches fact-11."
+    },
+    {
+      "claim": "The Wieliczka Salt Mine is located in the town of Wieliczka, near Kraków in southern Poland.",
+      "where": "caption",
+      "fact_ids": [
+        "fact-1"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches fact-1."
+    },
+    {
+      "claim": "By one estimate, the mine excavations descend to a maximum depth of 327 meters below the surface.",
+      "where": "caption",
+      "fact_ids": [
+        "fact-6"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches disputed fact-6, retaining the required hedge."
+    },
+    {
+      "claim": "Engineering surveys and heritage records place the total extent of underground galleries between 287 and 300 kilometers.",
+      "where": "caption",
+      "fact_ids": [
+        "fact-7"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches disputed fact-7, retaining the required hedge."
+    },
+    {
+      "claim": "By one estimate, underground miners carved four chapels and dozens of statues directly out of the native rock salt.",
+      "where": "carousel caption",
+      "fact_ids": [
+        "fact-10"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches disputed fact-10, retaining the required hedge."
+    },
+    {
+      "claim": "SUBTERRANEAN MARVEL CARVED FROM SOLID SALT 327 METERS DOWN",
+      "where": "on-screen cover",
+      "fact_ids": [
+        "fact-6",
+        "fact-10"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "On-screen covers are exempt from mandatory statistical hedging words; accurately depicts the site's maximum depth and salt carvings per fact-6 and fact-10."
+    },
+    {
+      "claim": "Wieliczka was designated as one of the original UNESCO World Heritage Sites in 1978.",
+      "where": "story",
+      "fact_ids": [
+        "fact-13"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches fact-13."
+    },
+    {
+      "claim": "By one estimate, mine excavations descend 327 meters below the surface.",
+      "where": "story",
+      "fact_ids": [
+        "fact-6"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches disputed fact-6, retaining the required hedge."
+    },
+    {
+      "claim": "The subterranean chapels feature chandeliers carved out of natural rock salt.",
+      "where": "story",
+      "fact_ids": [
+        "fact-11"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches fact-11."
+    },
+    {
+      "claim": "Records place the total extent of underground galleries between 287 and 300 kilometers.",
+      "where": "slide",
+      "fact_ids": [
+        "fact-7"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches disputed fact-7 with semantic equivalent attribution hedge."
+    },
+    {
+      "claim": "By one estimate, the mine excavations descend to 327 meters below the surface.",
+      "where": "slide",
+      "fact_ids": [
+        "fact-6"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches disputed fact-6 with required hedge."
+    },
+    {
+      "claim": "The subterranean chapels feature chandeliers carved out of natural rock salt.",
+      "where": "slide",
+      "fact_ids": [
+        "fact-11"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches fact-11."
+    },
+    {
+      "claim": "Wieliczka was designated as one of the original UNESCO World Heritage Sites in 1978.",
+      "where": "slide",
+      "fact_ids": [
+        "fact-13"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches fact-13."
+    },
+    {
+      "claim": "Artificial ventilation brought humidity into the mine, threatening the salt sculptures.",
+      "where": "slide",
+      "fact_ids": [
+        "fact-12"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches fact-12."
+    },
+    {
+      "claim": "Wieliczka Salt Mine depth is about 327 m.",
+      "where": "graphic",
+      "fact_ids": [
+        "fact-6"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches fact-6, using 'about' as an acceptable hedge."
+    },
+    {
+      "claim": "Great Pyramid (original) = ABOUT 481 FT (146 M); Original height, not its surviving height; converted from 146.5 metres and rounded for display.",
+      "where": "graphic",
+      "fact_ids": [
+        "R_PYRAMID"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches R_PYRAMID."
+    }
+  ],
+  "consensus_confidence": 100.0,
+  "second_check": {
+    "status": "pass",
+    "confidence": 100.0,
+    "audits": [
+      {
+        "claim": "The Wieliczka Salt Mine is located in the town of Wieliczka, near Kraków in southern Poland.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          1
+        ],
+        "note": "Q1 explicitly confirms that the Wieliczka Salt Mine is located in the town of Wieliczka, near Kraków in southern Poland."
+      },
+      {
+        "claim": "The rock salt naturally displays various shades of grey, resembling unpolished granite rather than white crystalline salt.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          3
+        ],
+        "note": "Q3 states that the rock salt is naturally of varying shades of grey, resembling unpolished granite rather than the white crystalline substance expected."
+      },
+      {
+        "claim": "Engineering surveys and heritage records place the total extent of underground galleries between 287 and 300 kilometers.",
+        "claim_type": "domain_fact",
+        "verdict": "hedged_ok",
+        "quote_ids": [
+          9,
+          10
+        ],
+        "note": "Q9 states passages extend for over 287 km, while Q10 refers to 300 km of galleries; the package properly hedges this variation as a range between 287 and 300 kilometers."
+      },
+      {
+        "claim": "Miners carved four chapels and dozens of statues directly out of the native rock salt.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          17,
+          18
+        ],
+        "note": "Q17 and Q18 confirm that four chapels and dozens of statues were carved out of the rock salt by miners."
+      },
+      {
+        "claim": "Wieliczka was designated as one of the original UNESCO World Heritage Sites in 1978.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          21,
+          22
+        ],
+        "note": "Q21 and Q22 confirm the mine was inscribed on the original UNESCO list of World Heritage Sites in 1978."
+      },
+      {
+        "claim": "Artificial ventilation introduced in the late 19th century brought humidity into the mine, threatening serious damage to the carved salt sculptures.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          20
+        ],
+        "note": "Q20 explicitly notes the threat of serious damage to sculptures from humidity caused by artificial ventilation introduced in the later 19th century."
+      },
+      {
+        "claim": "The subterranean chapels feature chandeliers carved out of rock salt.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          19
+        ],
+        "note": "Q19 states that inside the chapel hollowed out from the rock salt layer, there are chandeliers made of rock (rock salt)."
+      },
+      {
+        "claim": "The mine excavations descend to a maximum depth of 327 meters below the surface.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          9
+        ],
+        "note": "Q9 states that the Wieliczka Salt Mine reaches a depth of 327 metres (1,073 ft)."
+      },
+      {
+        "claim": "The original height of the Great Pyramid was 146.5 meters (about 481 ft).",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          26
+        ],
+        "note": "Q26 confirms the Great Pyramid's original height of 146.5 meters."
+      }
+    ],
+    "summary": "[evidence re-check (gemini-3.7-flash)] All 9 claims supported by the quoted evidence."
+  },
+  "guardrail_passed": true,
+  "script_rounds": 6,
+  "fact_rounds": 2,
+  "script_round_reasons": [
+    "draft 1: Story slide 3's body takes 4 lines on the frame (at most 3);",
+    "draft 2: The narration repeats the phrase 'underground miners carved'",
+    "draft 1: The narration repeats the phrase 'by one estimate'; say it o",
+    "draft 2: Story slide 2's body takes 4 lines on the frame (at most 3);",
+    "REJECTED by fact checker: 1 untraceable claim(s): 'Underground miners carved four chapels and dozens of statues directly out of the native rock salt' ([narration]; overstated: Fact-10 is disputed and "
+  ],
+  "fact_review": {
+    "public_fingerprint": "a55724356a2963d492868d6bd84b4aebd7585565de6975fbd06d45427de7c07c",
+    "sheet_path": "fact_sheet.json",
+    "sheet_sha256": "557c2dc590f7a27f2e863802e47d12826e14befbe68d44adfa7eb758a113be74",
+    "review_rules_fingerprint": "79415fa9c90d9a5027f19d13e77f998cf14dfdf848dc59042819e993438c455d",
+    "reference_path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\reference_facts.json",
+    "reference_sha256": "b431081e6357cc5dcaf382ecf31987977cd240f071e2ae9eb8dc3dfdf4d167da"
+  }
+}

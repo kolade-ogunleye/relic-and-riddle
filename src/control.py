@@ -794,6 +794,27 @@ _RETIRED_NAMES = [("keep", "/photos N keep"), ("unkeep", "/photos N unkeep"), ("
                   ("propose", "/ideas research"), ("run", "/render")]   # the old name, after its slash
 
 
+def render_options(db, args: str) -> Tuple[List[str], str]:
+    """/render fresh STEP and /render reuse N as the worker's options; or why they cannot be used."""
+    from .script_library import STEPS
+    words, extra = args.split(), []
+    usage = ("Use /render fresh STEP (" + ", ".join(STEPS) + ": that step and the later ones made again) "
+             "or /render reuse N (what run N made and passed), or both.")
+    while words:
+        word = words.pop(0).lower()
+        value = words.pop(0) if words else ""
+        if word == "fresh" and value.lower() in STEPS:
+            extra += ["--fresh-from", value.lower()]
+        elif word == "reuse" and value:
+            run_id = db.resolve_run(value)
+            if not db.get_run(run_id):
+                return [], f"⚠️ There is no run {html.escape(value)}. {usage}"
+            extra += ["--reuse-from", run_id]
+        else:
+            return [], "⚠️ " + usage
+    return extra, ""
+
+
 def current_names(text: str) -> str:
     """A stored message with any retired command named in its current form."""
     for old, new in _RETIRED_NAMES:
@@ -2595,6 +2616,11 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                                          if prev.get("decision") == "regenerate" else ".")
         if command == "run":
             return trigger_run()
+        if command == "runopt":
+            extra, problem = render_options(db, args)
+            if problem:
+                return problem
+            return trigger_run(extra=extra)
         return f"Unknown command /{html.escape(command)}. Send /help."
     original_handle = handle
     def guarded_handle(command, args):

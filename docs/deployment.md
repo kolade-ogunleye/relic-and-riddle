@@ -59,6 +59,27 @@ Current deployed adapters remain compatible until a lab-controlled promotion.
 Production remains `daemon --dry-run` until the operator explicitly authorizes
 live posting. This runbook does not implement an automatic merge/deploy pipeline.
 
+### Script library (step-1 work carried between environments)
+
+`data/script_library/<topic>/` holds a fact sheet and, where one exists, a script that
+passed the fact check against exactly that sheet (`source.json` names the run). It
+ships with a release so production need not pay again for research and scripts
+development already made (2026-10-27). Voice, music and clips are never carried:
+production voices with ElevenLabs itself. Rules:
+
+- A fact sheet is copied in only where the topic has none; an environment's own
+  sheet is never overwritten. A sheet over 60 days old is researched again, as any is.
+- A library script is used only when the topic comes up in that environment's own
+  queue, its fact sheet is the same research, and it passes today's checks. Human
+  review still decides. No approvals, runs or usage records are carried.
+- Export: `python scripts/export_script_library.py TOPIC ...` (an existing entry is
+  kept unless `--replace`). `tests/test_script_library.py` refuses a release whose
+  entries no longer match their research or today's checks.
+- Starting afresh: `main.py run|test --fresh-from facts|script|voice|music|clips`
+  remakes that step and every later one; `--reuse-from RUN` reuses what an earlier
+  run of the same topic made and passed. In Telegram: `/render fresh script`,
+  `/render reuse 12`.
+
 ## Recovery and rollback
 
 Before promotion, preserve the prior app artifact and take a verified backup.

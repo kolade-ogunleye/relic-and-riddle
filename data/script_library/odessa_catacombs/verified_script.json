@@ -1,0 +1,466 @@
+{
+  "timeline": null,
+  "scale_fact": null,
+  "stat_cards": [
+    {
+      "value": "estimated 73 days",
+      "label": "1941 Siege of Odesa"
+    }
+  ],
+  "cross_section": null,
+  "route": null,
+  "photo_labels": null,
+  "emphasis_words": [
+    "Odesa",
+    "catacombs",
+    "73 days"
+  ],
+  "title": "The Secret Labyrinth Beneath Odesa ⚓",
+  "hook_sentence": "Beneath Odesa, a major seaport city located in Ukraine on the northwestern shore of the Black Sea, lies an extensive and complicated labyrinth of subterranean tunnels.",
+  "narration_script": "Beneath Odesa, a major seaport city located in Ukraine on the northwestern shore of the Black Sea, lies an extensive and complicated labyrinth of subterranean tunnels. During World War II, enemy aircraft targeted Odesa with aerial bombing raids, making the catacombs a natural underground shelter for civilians escaping aerial bombing. By one estimate, the 1941 Siege of Odesa began on August 5 and lasted for 73 days before the city fell to Axis occupation. Following the enemy siege of the city, Soviet resistance partisans used the subterranean tunnels as an active hiding place and continued active combat operations. Partisan warfare endured deep beneath Odesa.",
+  "closing_sentence": "Partisan warfare endured deep beneath Odesa.",
+  "caption": "A secret subterranean world sheltered fighters beneath the Black Sea coast. ⚓\n\nOn July 29, 1941, official Soviet directives ordered the formation of partisan detachments in occupied territory. Following enemy aerial bombing and siege in Ukraine, Soviet resistance partisans took cover in the Odesa catacombs to wage guerrilla operations. On May 30, 1942, the Central Headquarters of the Partisan Movement was established under Stavka to coordinate these underground fighters.\n\nCould any modern stronghold ever replicate this subterranean resistance? 🛡️\n\nShare this with a friend who loves wartime history, and follow for more stories! ⚓\n\n#Odesa #WorldWarII #SovietPartisans #Catacombs #MilitaryHistory\n\n📷 Images via Wikimedia Commons: Marion Golsteijn (CC BY-SA 3.0); Galvm (CC BY-SA 4.0)",
+  "first_comment": "What would be more terrifying: hiding from aerial bombing underground, or waging combat from the catacombs?",
+  "hashtags": [
+    "#Odesa",
+    "#WorldWarII",
+    "#SovietPartisans",
+    "#Catacombs",
+    "#MilitaryHistory"
+  ],
+  "thumbnail": {
+    "eyebrow": "HIDDEN TUNNELS",
+    "line1": "THE SECRET LABYRINTH",
+    "line2": "DEEP BENEATH ODESA",
+    "tagline": "WARTIME RESISTANCE"
+  },
+  "story_slides": [
+    {
+      "kicker": "SUBTERRANEAN ODESSA",
+      "line1": "A HIDDEN LABYRINTH",
+      "line2": "CARVED UNDERGROUND",
+      "body": "Beneath Odesa lies an extensive and complicated labyrinth of subterranean tunnels."
+    },
+    {
+      "kicker": "WARTIME SHELTER",
+      "line1": "BOMBING DEFENSE",
+      "line2": "SUBTERRANEAN HAVEN",
+      "body": "The catacombs served as a natural underground shelter for civilians escaping aerial bombing."
+    },
+    {
+      "kicker": "UNDERGROUND FRONT",
+      "line1": "PARTISAN WARFARE",
+      "line2": "TACTICAL CHOICES",
+      "body": "Soviet partisan fighters waged combat operations while hiding inside the subterranean network."
+    }
+  ],
+  "poll": {
+    "question": "Which wartime role was harder?",
+    "options": [
+      "Civilian shelter",
+      "Partisan combat"
+    ]
+  },
+  "carousel_slides": [
+    {
+      "heading": "THE ODESA CATACOMBS",
+      "body": "Beneath Odesa lies an extensive and complicated labyrinth of subterranean tunnels."
+    },
+    {
+      "heading": "BLACK SEA NETWORK",
+      "body": "The catacombs form a subterranean network beneath Odesa on the Black Sea."
+    },
+    {
+      "heading": "AERIAL BOMBARDMENT",
+      "body": "Enemy aircraft targeted Odesa with aerial bombing raids during the wartime offensive."
+    },
+    {
+      "heading": "UNDERGROUND REFUGE",
+      "body": "The catacombs served as a natural underground shelter for civilians escaping bombing."
+    },
+    {
+      "heading": "THE 73-DAY SIEGE",
+      "body": "By one estimate, the 1941 Siege of Odesa lasted 73 days before the city fell."
+    },
+    {
+      "heading": "PARTISAN RESISTANCE",
+      "body": "Soviet resistance partisans continued active combat operations from inside the tunnels."
+    },
+    {
+      "heading": "HUMAN RESILIENCE",
+      "body": "What drives people to endure and fight from deep underground when their home is besieged?"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Wikipedia: Odesa",
+      "url": "https://en.wikipedia.org/wiki/Odesa"
+    },
+    {
+      "title": "Wikipedia: Soviet partisans",
+      "url": "https://en.wikipedia.org/wiki/Soviet_partisans"
+    }
+  ],
+  "carousel_caption": "Swipe through to explore the subterranean tunnels beneath Odesa. ⚓ In a national radio speech on July 3, 1941, calls were broadcast to initiate partisan operations behind enemy lines.\n\nCould you survive inside an underground labyrinth during wartime?\n\nShare this with a friend who loves wartime history, and follow for more stories! ⚓\n\n#Odesa #WorldWarII #SovietPartisans #Catacombs #MilitaryHistory",
+  "share_line": "Share this with a friend who loves wartime history, and follow for more stories! ⚓",
+  "fact_sheet": true,
+  "topic_id": "odessa_catacombs",
+  "origin": "gemini-free",
+  "word_count": 104,
+  "location": {
+    "name": "Odessa",
+    "city": "Odesa Oblast",
+    "region": "Odesa Oblast",
+    "country": "Ukraine",
+    "latitude": 0.0,
+    "longitude": 0.0
+  },
+  "meta_topic_categories": [
+    "History & Philosophy",
+    "Science & Tech",
+    "Travel & Culture"
+  ],
+  "topic_origin_note": "🗂 Topic origin: the original topic bank (added before origins were recorded)",
+  "fact_sheet_note": "🧾 Written from a verified fact sheet: 11 facts with quoted evidence (1 disputed, used only with their hedges)",
+  "fact_audits": [
+    {
+      "claim": "Beneath Odesa, a major seaport city located in Ukraine on the northwestern shore of the Black Sea, lies an extensive and complicated labyrinth of subterranean tunnels.",
+      "where": "narration",
+      "fact_ids": [
+        "fact_1",
+        "fact_2"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Fully matches fact_1 and fact_2 regarding Odesa's location and the subterranean labyrinth beneath it."
+    },
+    {
+      "claim": "During World War II, enemy aircraft targeted Odesa with aerial bombing raids, making the catacombs a natural underground shelter for civilians escaping aerial bombing.",
+      "where": "narration",
+      "fact_ids": [
+        "fact_3",
+        "fact_4"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_3 and fact_4 describing wartime bombing raids and the catacombs serving as shelter for civilians."
+    },
+    {
+      "claim": "By one estimate, the 1941 Siege of Odesa began on August 5 and lasted for 73 days before the city fell to Axis occupation.",
+      "where": "narration",
+      "fact_ids": [
+        "fact_7"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Accurately conveys fact_7 including the mandatory hedge 'by one estimate'."
+    },
+    {
+      "claim": "Following the enemy siege of the city, Soviet resistance partisans used the subterranean tunnels as an active hiding place and continued active combat operations.",
+      "where": "narration",
+      "fact_ids": [
+        "fact_5",
+        "fact_6"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Supported by fact_5 and fact_6."
+    },
+    {
+      "claim": "Partisan warfare endured deep beneath Odesa.",
+      "where": "narration",
+      "fact_ids": [
+        "fact_5",
+        "fact_6"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Supported by fact_5 and fact_6 describing active partisan combat operations from inside the catacombs."
+    },
+    {
+      "claim": "A secret subterranean world sheltered fighters beneath the Black Sea coast.",
+      "where": "caption",
+      "fact_ids": [
+        "fact_1",
+        "fact_5"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_1 and fact_5 describing the subterranean catacombs beneath Odesa sheltering partisan fighters."
+    },
+    {
+      "claim": "On July 29, 1941, official Soviet directives ordered the formation of partisan detachments in occupied territory.",
+      "where": "caption",
+      "fact_ids": [
+        "fact_9"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by fact_9."
+    },
+    {
+      "claim": "Following enemy aerial bombing and siege in Ukraine, Soviet resistance partisans took cover in the Odesa catacombs to wage guerrilla operations.",
+      "where": "caption",
+      "fact_ids": [
+        "fact_4",
+        "fact_5",
+        "fact_6"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by fact_4, fact_5, and fact_6."
+    },
+    {
+      "claim": "On May 30, 1942, the Central Headquarters of the Partisan Movement was established under Stavka to coordinate these underground fighters.",
+      "where": "caption",
+      "fact_ids": [
+        "fact_11"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by fact_11."
+    },
+    {
+      "claim": "Could any modern stronghold ever replicate this subterranean resistance?",
+      "where": "caption",
+      "fact_ids": [],
+      "claim_type": "rhetorical_framing",
+      "verdict": "traced",
+      "note": "Rhetorical question engaging the audience without asserting an empirical fact."
+    },
+    {
+      "claim": "What would be more terrifying: hiding from aerial bombing underground, or waging combat from the catacombs?",
+      "where": "comment",
+      "fact_ids": [],
+      "claim_type": "rhetorical_framing",
+      "verdict": "traced",
+      "note": "Audience discussion prompt asserting no factual claim."
+    },
+    {
+      "claim": "In a national radio speech on July 3, 1941, calls were broadcast to initiate partisan operations behind enemy lines.",
+      "where": "carousel caption",
+      "fact_ids": [
+        "fact_10"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by fact_10."
+    },
+    {
+      "claim": "Could you survive inside an underground labyrinth during wartime?",
+      "where": "carousel caption",
+      "fact_ids": [],
+      "claim_type": "rhetorical_framing",
+      "verdict": "traced",
+      "note": "Rhetorical question inviting audience reflection."
+    },
+    {
+      "claim": "HIDDEN TUNNELS THE SECRET LABYRINTH DEEP BENEATH ODESA WARTIME RESISTANCE",
+      "where": "on-screen cover",
+      "fact_ids": [
+        "fact_1",
+        "fact_2",
+        "fact_5"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Curiosity headline accurately describing the historical subject per fact_1, fact_2, and fact_5."
+    },
+    {
+      "claim": "Beneath Odesa lies an extensive and complicated labyrinth of subterranean tunnels.",
+      "where": "story",
+      "fact_ids": [
+        "fact_2"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by fact_2."
+    },
+    {
+      "claim": "The catacombs served as a natural underground shelter for civilians escaping aerial bombing.",
+      "where": "story",
+      "fact_ids": [
+        "fact_3"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by fact_3."
+    },
+    {
+      "claim": "Soviet partisan fighters waged combat operations while hiding inside the subterranean network.",
+      "where": "story",
+      "fact_ids": [
+        "fact_5",
+        "fact_6"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by fact_5 and fact_6."
+    },
+    {
+      "claim": "Beneath Odesa lies an extensive and complicated labyrinth of subterranean tunnels.",
+      "where": "slide",
+      "fact_ids": [
+        "fact_2"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by fact_2."
+    },
+    {
+      "claim": "The catacombs form a subterranean network beneath Odesa on the Black Sea.",
+      "where": "slide",
+      "fact_ids": [
+        "fact_1"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by fact_1."
+    },
+    {
+      "claim": "Enemy aircraft targeted Odesa with aerial bombing raids during the wartime offensive.",
+      "where": "slide",
+      "fact_ids": [
+        "fact_4"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by fact_4."
+    },
+    {
+      "claim": "The catacombs served as a natural underground shelter for civilians escaping bombing.",
+      "where": "slide",
+      "fact_ids": [
+        "fact_3"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by fact_3."
+    },
+    {
+      "claim": "By one estimate, the 1941 Siege of Odesa lasted 73 days before the city fell.",
+      "where": "slide",
+      "fact_ids": [
+        "fact_7"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Accurately conveys fact_7 with the required hedge."
+    },
+    {
+      "claim": "Soviet resistance partisans continued active combat operations from inside the tunnels.",
+      "where": "slide",
+      "fact_ids": [
+        "fact_6"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by fact_6."
+    },
+    {
+      "claim": "What drives people to endure and fight from deep underground when their home is besieged?",
+      "where": "slide",
+      "fact_ids": [],
+      "claim_type": "rhetorical_framing",
+      "verdict": "traced",
+      "note": "Rhetorical question asserting no empirical claim."
+    },
+    {
+      "claim": "estimated 73 days 1941 Siege of Odesa",
+      "where": "graphic",
+      "fact_ids": [
+        "fact_7"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by fact_7, maintaining the required hedge 'estimated'."
+    }
+  ],
+  "consensus_confidence": 100.0,
+  "second_check": {
+    "status": "pass",
+    "confidence": 100.0,
+    "audits": [
+      {
+        "claim": "Beneath Odesa, a major seaport located in Ukraine on the northwestern shore of the Black Sea, lies an extensive and complicated labyrinth of subterranean tunnels known as the catacombs.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          1,
+          2
+        ],
+        "note": "Supported by Q1 and Q2, which state Odesa is a major seaport in Ukraine on the northwestern shore of the Black Sea, and that beneath it lies a gigantic, complicated labyrinth of tunnels known as the Odesa catacombs."
+      },
+      {
+        "claim": "During World War II, fascist aircraft targeted Odesa with aerial bombing, making the catacombs a natural shelter for civilians escaping the bombing.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          3,
+          5
+        ],
+        "note": "Supported by Q3 and Q5, which describe fascist aircraft bombing Odessa and note that during World War II the catacombs served as a natural shelter for civilians escaping airplane bombing."
+      },
+      {
+        "claim": "The 1941 Siege of Odesa began on August 5 and lasted for 73 days before leading to Axis occupation.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          8,
+          9
+        ],
+        "note": "Supported by Q8 and Q9, which confirm that the Siege of Odessa began on 5 August 1941, lasted for 73 days, and was followed by Axis occupation."
+      },
+      {
+        "claim": "Soviet partisans hid in the catacombs beneath Odesa and continued fighting and guerrilla operations.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          3,
+          6,
+          7
+        ],
+        "note": "Supported by Q3, Q6, and Q7, which confirm that partisans used the catacombs as a hiding place, fought guerrilla warfare against Axis forces, and continued fighting in the city's catacombs."
+      },
+      {
+        "claim": "Directives issued on July 29, 1941, called for the formation of partisan detachments in German-occupied territories.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          12
+        ],
+        "note": "Supported by Q12, which states directives issued on July 29, 1941, called for the formation of partisan detachments and diversionist groups in German-occupied territories."
+      },
+      {
+        "claim": "On May 30, 1942, the Central Headquarters of the Partisan Movement was organized under Stavka to coordinate partisan operations.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          15
+        ],
+        "note": "Supported by Q15, which states the Central Headquarters of the Partisan Movement under Stavka was organized on 30 May 1942 to coordinate partisan operations."
+      },
+      {
+        "claim": "In a radio speech on July 3, 1941, calls were broadcast to initiate partisan and diversionary operations behind enemy lines.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          13,
+          14
+        ],
+        "note": "Supported by Q13 and Q14, which state Stalin broadcast commands and directives by radio on 3 July 1941 calling for partisan and diversionary activities behind enemy lines."
+      }
+    ],
+    "summary": "[evidence re-check (gemini-3.7-flash)] All 7 claims supported by the quoted evidence."
+  },
+  "guardrail_passed": true,
+  "script_rounds": 1,
+  "fact_rounds": 1,
+  "script_round_reasons": [],
+  "fact_review": {
+    "public_fingerprint": "b7584ed594ed49044048dee38d4a479ba531ae781522e5ca0d9ac299443dfc70",
+    "sheet_path": "fact_sheet.json",
+    "sheet_sha256": "13cf8128cb5ba17468b79cea2e0f25658294dc1272583c087145db230eed372a",
+    "review_rules_fingerprint": "79415fa9c90d9a5027f19d13e77f998cf14dfdf848dc59042819e993438c455d"
+  }
+}

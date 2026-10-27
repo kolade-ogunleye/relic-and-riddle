@@ -1,0 +1,580 @@
+{
+  "timeline": null,
+  "scale_fact": null,
+  "stat_cards": [
+    {
+      "value": "roughly 137–138 ft",
+      "label": "Surveyed length"
+    },
+    {
+      "value": "1,090 to 1,168 tonnes",
+      "label": "Calculated finished weight"
+    }
+  ],
+  "cross_section": null,
+  "route": null,
+  "photo_labels": [
+    "trenches",
+    "tool marks",
+    "ochre lines",
+    "structural fissures"
+  ],
+  "emphasis_words": [
+    "Aswan",
+    "1,168 tonnes"
+  ],
+  "title": "Egypt's Largest Obelisk Trapped in Bedrock ⛏️",
+  "hook_sentence": "Deep inside an ancient quarry in Aswan, the largest obelisk ever attempted remains trapped in solid bedrock.",
+  "narration_script": "Deep inside an ancient quarry in Aswan, the largest obelisk ever attempted remains trapped in solid bedrock. Workers burned and wedged away upper rock, carving trenches where visible tool marks and ochre lines still mark their cuts. Surveys place its length between roughly 137 feet (41.75 m) and 138 feet (42 m), with weight calculations ranging from nearly 1,090 tonnes to 1,168 tonnes. Work was abandoned after structural cracks and multiple fissures appeared. Modern engineering studies cannot confirm which extraction method was intended, or whether moving the monolith was within granite's structural limits. These deep fissures left Egypt's greatest monument forever anchored in the stone.",
+  "closing_sentence": "These deep fissures left Egypt's greatest monument forever anchored in the stone.",
+  "caption": "Structural cracks stopped ancient Egypt's largest monument in its tracks. ⛏️\n\nCommissioned during the New Kingdom, this colossal monolith was possibly ordered by Queen Hatshepsut for the Temple of Amun at Karnak. Archaeologists uncovered the titan in Aswan after it spent thousands of years buried under drifting sand. An unfinished obelisk base and ancient rock carvings discovered nearby confirm how intensively workers quarried this site.\n\nCould ancient engineers have ever extracted a stone this massive, or was failure inevitable? 🏛️\n\nSend this to a friend who loves ancient engineering, and follow for the next marvel.\n\n#AncientEgypt #Aswan #AncientEngineering #EgyptianArchaeology\n\n📷 Images via Wikimedia Commons: David Berkowitz from New York, NY, USA (CC BY 2.0); Jorge Láscar from Melbourne, Australia (CC BY 2.0)",
+  "first_comment": "If structural cracks hadn't appeared, could ancient Egyptian engineers have successfully moved a monolith weighing up to 1,168 tonnes?",
+  "hashtags": [
+    "#AncientEgypt",
+    "#Aswan",
+    "#AncientEngineering",
+    "#EgyptianArchaeology"
+  ],
+  "thumbnail": {
+    "eyebrow": "ASWAN'S LOST TITAN",
+    "line1": "TRAPPED IN BEDROCK",
+    "line2": "NEVER COMPLETED",
+    "tagline": "WHY EGYPT WALKED AWAY"
+  },
+  "story_slides": [
+    {
+      "kicker": "ANCIENT MEGALITHS",
+      "line1": "TRAPPED IN BEDROCK",
+      "line2": "EGYPT'S GIANT STONE",
+      "body": "An unfinished obelisk at Aswan was planned nearly one-third larger than any ever erected."
+    },
+    {
+      "kicker": "FORENSIC EVIDENCE",
+      "line1": "CRACKS IN THE QUARRY",
+      "line2": "WORK STOPPED COLD",
+      "body": "Structural cracks and multiple fissures appeared before workers could detach the base from bedrock."
+    },
+    {
+      "kicker": "THE BIG QUESTION",
+      "line1": "WHICH WAS HARDER?",
+      "line2": "TRENCH OR TRANSPORT",
+      "body": "Workers carved deep trenches, but extracting the colossal monolith posed massive structural limits."
+    }
+  ],
+  "poll": {
+    "question": "Which task was harder?",
+    "options": [
+      "Carving the trench",
+      "Moving the monolith"
+    ]
+  },
+  "carousel_slides": [
+    {
+      "heading": "THE UNFINISHED OBELISK",
+      "body": "Ancient Egypt's most ambitious monument still lies unfinished in its Aswan quarry."
+    },
+    {
+      "heading": "RECORD-BREAKING SCALE",
+      "body": "Surveys place its length between roughly 137 feet (41.75 m) and 138 feet (42 m)."
+    },
+    {
+      "heading": "BEDROCK CUTTING MARKS",
+      "body": "Visible tool marks and red ochre lines preserve the exact cutting trenches of workers."
+    },
+    {
+      "heading": "FATAL FRACTURES",
+      "body": "Work was abandoned when structural cracks and multiple fissures appeared in the granite."
+    },
+    {
+      "heading": "EXTRACTION PUZZLE",
+      "body": "Engineers debated clearing an exit corridor or rocking the monolith upward on packing."
+    },
+    {
+      "heading": "STRUCTURAL LIMITS",
+      "body": "Studies cannot confirm if moving the monolith was within granite's structural limits."
+    },
+    {
+      "heading": "THE ENDURING DEBATE",
+      "body": "Does this giant show human ambition pushed too far, or genius cut short by nature?"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Ministry of Tourism and Antiquities - The Unfinished Obelisk",
+      "url": "https://egymonuments.gov.eg/monuments/the-unfinished-obelisk/"
+    },
+    {
+      "title": "UNESCO World Heritage Centre - Nubian Monuments from Abu Simbel to Philae",
+      "url": "https://whc.unesco.org/en/list/88"
+    },
+    {
+      "title": "Wikipedia - Unfinished obelisk",
+      "url": "https://en.wikipedia.org/wiki/Unfinished_obelisk"
+    }
+  ],
+  "carousel_caption": "Swipe through to inspect the bedrock trenches of Aswan. 👈\n\nBefore work stopped, quarry workers mapped their cuts with red ochre and removed upper rock using burning and wedging. Even today, engineers debate whether rocking-and-packing could ever have freed the stone from the quarry pit.\n\nWould you have attempted extracting a stone weighing up to 1,168 tonnes?\n\nSend this to a friend who loves ancient engineering, and follow for the next marvel.\n\n#AncientEgypt #Aswan #AncientEngineering #EgyptianArchaeology",
+  "share_line": "Send this to a friend who loves ancient engineering, and follow for the next marvel.",
+  "fact_sheet": true,
+  "topic_id": "unfinished_obelisk_aswan",
+  "origin": "gemini-free",
+  "word_count": 105,
+  "location": {
+    "name": "Aswan Granite Quarries",
+    "city": "Aswan",
+    "region": "Upper Egypt",
+    "country": "Egypt",
+    "latitude": 24.0769,
+    "longitude": 32.8953
+  },
+  "meta_topic_categories": [
+    "Archaeology",
+    "History & Philosophy",
+    "Architecture & Interior Design"
+  ],
+  "topic_origin_note": "🗂 Topic origin: the original topic bank (added before origins were recorded)",
+  "fact_sheet_note": "🧾 Written from a verified fact sheet: 13 facts with quoted evidence (2 disputed, used only with their hedges)",
+  "fact_audits": [
+    {
+      "claim": "The unfinished obelisk is Egypt's largest attempted obelisk and remains trapped in bedrock in an ancient quarry in Aswan.",
+      "where": "title",
+      "fact_ids": [
+        "fact-1",
+        "fact-2",
+        "fact-5"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact-1, fact-2, and fact-5."
+    },
+    {
+      "claim": "Deep inside an ancient quarry in Aswan, the largest obelisk ever attempted remains trapped in solid bedrock.",
+      "where": "narration",
+      "fact_ids": [
+        "fact-1",
+        "fact-2",
+        "fact-5"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by fact-1, fact-2, and fact-5."
+    },
+    {
+      "claim": "Workers burned and wedged away upper rock, carving trenches where visible tool marks and ochre lines still mark their cuts.",
+      "where": "narration",
+      "fact_ids": [
+        "fact-7",
+        "fact-8"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Fully supported by fact-7 and fact-8."
+    },
+    {
+      "claim": "Surveys place its length between roughly 137 feet (41.75 m) and 138 feet (42 m).",
+      "where": "narration",
+      "fact_ids": [
+        "fact-3"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Correctly preserves the mandatory hedge for disputed fact-3."
+    },
+    {
+      "claim": "Calculations of its finished weight range from nearly 1,090 tonnes to 1,168 tonnes.",
+      "where": "narration",
+      "fact_ids": [
+        "fact-4"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Correctly preserves the required range/hedge for disputed fact-4."
+    },
+    {
+      "claim": "Work was abandoned after structural cracks and multiple fissures appeared.",
+      "where": "narration",
+      "fact_ids": [
+        "fact-6"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches fact-6."
+    },
+    {
+      "claim": "Modern engineering studies cannot confirm which extraction method was intended, or whether moving the monolith was within granite's structural limits.",
+      "where": "narration",
+      "fact_ids": [
+        "fact-10"
+      ],
+      "claim_type": "epistemic_negation",
+      "verdict": "traced",
+      "note": "Directly matches fact-10."
+    },
+    {
+      "claim": "These deep fissures left Egypt's greatest monument forever anchored in the stone.",
+      "where": "narration",
+      "fact_ids": [
+        "fact-2",
+        "fact-5",
+        "fact-6"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Accurately synthesizes fact-2, fact-5, and fact-6."
+    },
+    {
+      "claim": "Structural cracks stopped ancient Egypt's largest monument in its tracks.",
+      "where": "caption",
+      "fact_ids": [
+        "fact-2",
+        "fact-6"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact-2 and fact-6."
+    },
+    {
+      "claim": "Commissioned during the New Kingdom, this colossal monolith was possibly ordered by Queen Hatshepsut for the Temple of Amun at Karnak.",
+      "where": "caption",
+      "fact_ids": [
+        "fact-11"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Accurately matches fact-11, preserving the possibility hedge."
+    },
+    {
+      "claim": "Archaeologists uncovered the titan in Aswan after it spent thousands of years buried under drifting sand.",
+      "where": "caption",
+      "fact_ids": [
+        "fact-12"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches fact-12."
+    },
+    {
+      "claim": "An unfinished obelisk base and ancient rock carvings were discovered nearby at the quarry site.",
+      "where": "caption",
+      "fact_ids": [
+        "fact-13"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches fact-13."
+    },
+    {
+      "claim": "Could ancient engineers have ever extracted a stone this massive, or was failure inevitable?",
+      "where": "caption",
+      "fact_ids": [
+        "fact-10"
+      ],
+      "claim_type": "rhetorical_framing",
+      "verdict": "traced",
+      "note": "Rhetorical question reflecting engineering uncertainty established in fact-10."
+    },
+    {
+      "claim": "If structural cracks hadn't appeared, could ancient Egyptian engineers have successfully moved a monolith weighing up to 1,168 tonnes?",
+      "where": "comment",
+      "fact_ids": [
+        "fact-4",
+        "fact-10"
+      ],
+      "claim_type": "rhetorical_framing",
+      "verdict": "traced",
+      "note": "Rhetorical question using the hedged weight figure from fact-4 and structural limit context from fact-10."
+    },
+    {
+      "claim": "Before work stopped, quarry workers mapped their cuts with red ochre and removed upper rock using burning and wedging.",
+      "where": "carousel caption",
+      "fact_ids": [
+        "fact-7",
+        "fact-8"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Supported by fact-7 and fact-8."
+    },
+    {
+      "claim": "Even today, engineers debate whether rocking-and-packing could ever have freed the stone from the quarry pit.",
+      "where": "carousel caption",
+      "fact_ids": [
+        "fact-9",
+        "fact-10"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Supported by fact-9 and fact-10."
+    },
+    {
+      "claim": "Aswan's lost titan was trapped in bedrock and never completed after Egypt walked away.",
+      "where": "on-screen cover",
+      "fact_ids": [
+        "fact-1",
+        "fact-5",
+        "fact-6"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact-1, fact-5, and fact-6."
+    },
+    {
+      "claim": "An unfinished obelisk at Aswan was planned nearly one-third larger than any ever erected.",
+      "where": "story",
+      "fact_ids": [
+        "fact-2"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches fact-2."
+    },
+    {
+      "claim": "Structural cracks and multiple fissures appeared before workers could detach the base from bedrock.",
+      "where": "story",
+      "fact_ids": [
+        "fact-5",
+        "fact-6"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by fact-5 and fact-6."
+    },
+    {
+      "claim": "Workers carved deep trenches, but extracting the colossal monolith posed massive structural limits.",
+      "where": "story",
+      "fact_ids": [
+        "fact-7",
+        "fact-10"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Supported by fact-7 and fact-10."
+    },
+    {
+      "claim": "Ancient Egypt's most ambitious monument still lies unfinished in its Aswan quarry.",
+      "where": "slide",
+      "fact_ids": [
+        "fact-1",
+        "fact-2"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Supported by fact-1 and fact-2."
+    },
+    {
+      "claim": "Surveys place its length between roughly 137 feet (41.75 m) and 138 feet (42 m).",
+      "where": "slide",
+      "fact_ids": [
+        "fact-3"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Correctly follows the required hedge framing for fact-3."
+    },
+    {
+      "claim": "Visible tool marks and red ochre lines preserve the exact cutting trenches of workers.",
+      "where": "slide",
+      "fact_ids": [
+        "fact-7"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly supported by fact-7."
+    },
+    {
+      "claim": "Work was abandoned when structural cracks and multiple fissures appeared in the granite.",
+      "where": "slide",
+      "fact_ids": [
+        "fact-6"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches fact-6."
+    },
+    {
+      "claim": "Engineers debated clearing an exit corridor or rocking the monolith upward on packing.",
+      "where": "slide",
+      "fact_ids": [
+        "fact-9"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Directly matches fact-9."
+    },
+    {
+      "claim": "Studies cannot confirm if moving the monolith was within granite's structural limits.",
+      "where": "slide",
+      "fact_ids": [
+        "fact-10"
+      ],
+      "claim_type": "epistemic_negation",
+      "verdict": "traced",
+      "note": "Directly matches fact-10."
+    },
+    {
+      "claim": "Does this giant show human ambition pushed too far, or genius cut short by nature?",
+      "where": "slide",
+      "fact_ids": [],
+      "claim_type": "rhetorical_framing",
+      "verdict": "traced",
+      "note": "Rhetorical question reflecting the monument's history without asserting unverified facts."
+    },
+    {
+      "claim": "Surveyed length: roughly 137–138 ft (41.75 to 42 m).",
+      "where": "graphic",
+      "fact_ids": [
+        "fact-3"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Correctly preserves the required hedge range for fact-3."
+    },
+    {
+      "claim": "Calculated finished weight: 1,090 to 1,168 tonnes.",
+      "where": "graphic",
+      "fact_ids": [
+        "fact-4"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Correctly preserves the required calculation range for fact-4."
+    },
+    {
+      "claim": "Features visible at the quarry include trenches, tool marks, ochre lines, and structural fissures.",
+      "where": "graphic",
+      "fact_ids": [
+        "fact-6",
+        "fact-7"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Supported by fact-6 and fact-7."
+    }
+  ],
+  "consensus_confidence": 100.0,
+  "second_check": {
+    "status": "pass",
+    "confidence": 100.0,
+    "audits": [
+      {
+        "claim": "The unfinished obelisk in Aswan is the largest obelisk ever attempted by ancient Egypt and remains attached to the bedrock.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          1,
+          2,
+          6,
+          7
+        ],
+        "note": "Supported by Q1, Q2, Q6, and Q7."
+      },
+      {
+        "claim": "Quarry workers removed upper rock layers using burning and wedging, with visible tool marks and red ochre lines still marking their cutting work.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          9,
+          10,
+          11
+        ],
+        "note": "Supported by Q9, Q10, and Q11."
+      },
+      {
+        "claim": "Surveys place the obelisk's finished length between roughly 137 feet (41.75 m) and 138 feet (42 m), with weight estimates ranging from nearly 1,090 tonnes to 1,168 tonnes.",
+        "claim_type": "domain_fact",
+        "verdict": "hedged_ok",
+        "quote_ids": [
+          4,
+          5
+        ],
+        "note": "Properly hedged between the two source estimates given in Q4 (around 41.75 m / 137.0 ft, nearly 1,090 tonnes) and Q5 (around 42 m, 1,168 tonnes)."
+      },
+      {
+        "claim": "Work on the obelisk was abandoned after structural cracks and multiple fissures appeared in the granite.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          6,
+          8
+        ],
+        "note": "Supported by Q6 and Q8."
+      },
+      {
+        "claim": "Engineering studies have not established which extraction approach was intended, or whether extraction was within the structural limits of the granite.",
+        "claim_type": "epistemic_negation",
+        "verdict": "supported",
+        "quote_ids": [
+          14
+        ],
+        "note": "Supported by Q14, which notes that neither Engelbach nor Henein worked through the mechanics in sufficient detail to establish which approach was intended or whether it was within granite's structural limits."
+      },
+      {
+        "claim": "The obelisk was commissioned during the New Kingdom and possibly ordered by Hatshepsut for the Temple of Amun at Karnak.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          2,
+          8,
+          15
+        ],
+        "note": "Supported by Q2, Q8, and Q15."
+      },
+      {
+        "claim": "The obelisk was discovered in the early twentieth century after being covered by sand for thousands of years.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          17
+        ],
+        "note": "Supported by Q17."
+      },
+      {
+        "claim": "An unfinished obelisk base and ancient rock carvings were also discovered at the Aswan quarries.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          18,
+          19
+        ],
+        "note": "Supported by Q18 and Q19."
+      },
+      {
+        "claim": "The unfinished obelisk was planned to be nearly one-third larger than any ancient Egyptian obelisk ever erected.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          3
+        ],
+        "note": "Supported by Q3."
+      },
+      {
+        "claim": "Proposed extraction approaches included clearing an exit corridor in the north wall or raising the obelisk by sideways rocking-and-packing.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          13
+        ],
+        "note": "Supported by Q13."
+      },
+      {
+        "claim": "Could ancient engineers have ever extracted a stone this massive, or was failure inevitable?",
+        "claim_type": "rhetorical_framing",
+        "verdict": "supported",
+        "quote_ids": [],
+        "note": "Rhetorical question engaging the audience without asserting checkable facts."
+      }
+    ],
+    "summary": "[evidence re-check (gemini-3.7-flash)] All 11 claims supported by the quoted evidence."
+  },
+  "guardrail_passed": true,
+  "script_rounds": 2,
+  "fact_rounds": 2,
+  "script_round_reasons": [
+    "REJECTED by fact checker: 6 untraceable claim(s): 'A single fracture/crack stopped work and left ancient Egypt's greatest monument forever anchored in the ground.' ([narration] and [caption]; contradi"
+  ],
+  "fact_review": {
+    "public_fingerprint": "72fabea3f7a76dbd871bce213617db89156220f388d4efce09df846c7a876f46",
+    "sheet_path": "fact_sheet.json",
+    "sheet_sha256": "308158ef0d857e727cab223dcea496fd512f4da3db7185531f73f5b68d01e454",
+    "review_rules_fingerprint": "79415fa9c90d9a5027f19d13e77f998cf14dfdf848dc59042819e993438c455d"
+  }
+}

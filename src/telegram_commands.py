@@ -5,7 +5,9 @@ names the current form, and a retired name is answered as unknown, with the way 
 GROUPS = {
     "Everyday": [
         ("dashboard", "The one panel: what needs you, then production"),
-        ("render", "Make the next topic now · 4 · [a number: that topic, moved to the front]"),
+        ("render", "Make the next topic now · 4 · fresh script · reuse 12 · [a number: that topic, moved to the front; "
+                   "fresh STEP: make that step and the later ones again (facts, script, voice, music, clips); "
+                   "reuse N: what run N made and passed, for its topic]"),
         ("produce", "Make the next N topics back to back, each to review · 3"),
         ("progress", "The run being made"),
         ("reviews", "Reviews waiting · history"),
@@ -93,6 +95,8 @@ def normalise_command(command, args):
         if first in ("bump", "drop", "requeue", "undo", "next", "add"):
             return {"bump": "bump", "drop": "drop_topic", "requeue": "requeue", "undo": "undo", "next": "next", "add": "add"}[first], rest
     elif command == "render":
+        if first in ("fresh", "reuse"):
+            return "runopt", args
         return ("qrender", args) if args else ("run", "")
     elif command == "reviews" and first == "history":
         return "history", rest

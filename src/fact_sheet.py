@@ -289,7 +289,9 @@ def save(sheet: Dict[str, Any]) -> None:
 def load(topic_id: str, max_age_days: int = FACT_SHEET_MAX_AGE_DAYS) -> Optional[Dict[str, Any]]:
     p = path_for(topic_id)
     if not p.exists():
-        return None
+        from .script_library import seed_fact_sheet
+        if not seed_fact_sheet(topic_id, p):  # research done elsewhere (development) and shipped with a release
+            return None
     sheet = json.loads(p.read_text(encoding="utf-8"))
     if sheet.get("rules_version") != RULES_VERSION:
         log.info("Fact sheet %s was built under older evidence rules; it will be rebuilt.", topic_id)
@@ -311,8 +313,10 @@ def load(topic_id: str, max_age_days: int = FACT_SHEET_MAX_AGE_DAYS) -> Optional
 
 
 def ensure(topic: Dict[str, Any]) -> Dict[str, Any]:
-    """The cached sheet if fresh and fact-dense, else builds a new one."""
-    cached = load(topic["id"])
+    """The cached sheet if fresh and fact-dense, else builds a new one (always, for a run started afresh
+    from its research: --fresh-from facts)."""
+    from .script_library import reuses
+    cached = load(topic["id"]) if reuses("facts") else None
     if cached and len(cached.get("facts", [])) >= MIN_VERIFIED_FACTS:
         return cached
     return build(topic)

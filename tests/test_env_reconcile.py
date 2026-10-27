@@ -79,8 +79,8 @@ def test_each_daemon_start_writes_in_what_changes_nothing_and_says_the_rest(tmp_
     env, example = _files(tmp_path)
     monkeypatch.setattr(env_reconcile.plan, "__defaults__", (running,))
     note = env_reconcile.sync_on_start(env, example)
-    assert "Added to .env from the template (3)" in note and "PICTURE_VISION_CHECK" in note
-    assert "CLAUDE_MONTHLY_BUDGET_USD: template 10, now 30.0" in note             # yours to decide
+    assert "<b>Added to .env</b> (3)" in note and "• <code>PICTURE_VISION_CHECK = true</code>" in note
+    assert "• <code>CLAUDE_MONTHLY_BUDGET_USD: template 10 · now 30.0</code>" in note   # yours to decide
     assert "META_PAGE_ACCESS_TOKEN" in note and "sk-real-secret" not in note
     assert "PICTURE_VISION_CHECK=true" in env.read_text(encoding="utf-8")
     again = env_reconcile.sync_on_start(env, example)
@@ -90,9 +90,14 @@ def test_each_daemon_start_writes_in_what_changes_nothing_and_says_the_rest(tmp_
 def test_a_read_only_env_is_reported_not_changed(tmp_path, monkeypatch):
     env, example = _files(tmp_path)
     monkeypatch.setattr(env_reconcile.plan, "__defaults__", (running,))
-    monkeypatch.setattr(env_reconcile, "apply", lambda *a: (_ for _ in ()).throw(PermissionError("access denied")))
+    monkeypatch.setattr(env_reconcile, "apply", lambda *a: (_ for _ in ()).throw(PermissionError(
+        13, "Permission denied", r"C:pp\.env.reconcile-20261027T221500Z.bak")))
     note = env_reconcile.sync_on_start(env, example)
-    assert "could not be written in (access denied)" in note and "PICTURE_VISION_CHECK=true" in note
+    # Production's pipeline account may not write the app folder (2026-10-27): said plainly, one setting a line
+    assert "This account cannot write .env, so nothing was changed" in note
+    assert "• <code>PICTURE_VISION_CHECK = true</code>" in note
+    assert "Errno" not in note and "reconcile-2026" not in note                   # no raw error or timestamped path
+    assert env_reconcile.sync_on_start(env, example) == note                      # the same each start: told once
 
 
 def test_include_changes_adds_the_differing_ones_only_when_asked(tmp_path, monkeypatch):

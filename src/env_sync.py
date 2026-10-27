@@ -157,23 +157,33 @@ def sync_on_start(env_path: Path = None, example_path: Path = None) -> str:
         safe, differ, secrets, _ = plan(env_path, example_path)
     except Exception as e:
         return f"⚙️ Settings check did not run: {html.escape(str(e)[:200])}"
-    lines = []
+    # One setting a line, in plain words: the first message ran them together with a raw error and a timestamped
+    # path, which also made it differ at every start and so repeat after every restart (operator, 2026-10-27).
+    def bullets(items):
+        return [f"• <code>{html.escape(x)}</code>" for x in items]
+    sections = []
     if safe:
         try:
             apply(env_path, safe)
-            lines.append(f"Added to .env from the template ({len(safe)}), the values it already ran with: "
-                         + ", ".join(html.escape(k) for k, _ in safe) + ".")
-        except OSError as e:  # this account may not write .env: then it is said, and nothing changes
-            lines.append(f"{len(safe)} setting(s) missing from .env could not be written in ({html.escape(str(e)[:120])}): "
-                         + ", ".join(html.escape(f"{k}={v}") for k, v in safe) + ".")
+            sections.append([f"<b>Added to .env</b> ({len(safe)}), the values it already ran with:"]
+                            + bullets(f"{k} = {v}" for k, v in safe))
+        except PermissionError:  # production's pipeline account may not write the app folder: said, nothing changed
+            sections.append([f"<b>Missing from .env</b> ({len(safe)}), the template's values, the same as what runs now:"]
+                            + bullets(f"{k} = {v}" for k, v in safe)
+                            + ["This account cannot write .env, so nothing was changed. To write them in (a backup "
+                               "is kept): <code>python scripts/env_reconcile.py --apply</code>"])
+        except OSError as e:
+            sections.append([f"<b>Missing from .env</b> ({len(safe)}), not written in ({html.escape(type(e).__name__)}):"]
+                            + bullets(f"{k} = {v}" for k, v in safe))
     if differ:
-        lines.append("Missing, and the template's value differs from what runs now (yours to decide; "
-                     "<code>python scripts/env_reconcile.py --apply --include-changes</code> adds them): "
-                     + "; ".join(html.escape(f"{k}: template {v}, now {now}") for k, v, now in differ) + ".")
+        sections.append([f"<b>Yours to decide</b> ({len(differ)}): missing, and the template differs from what runs now:"]
+                        + bullets(f"{k}: template {v} · now {now}" for k, v, now in differ)
+                        + ["To take the template's: <code>python scripts/env_reconcile.py --apply --include-changes</code>"])
     if secrets:
-        lines.append("Credentials the template lists and .env lacks (only if this environment uses them): "
-                     + ", ".join(html.escape(k) for k in secrets) + ".")
-    return ("⚙️ <b>Settings</b>\n" + "\n".join(lines)) if lines else ""
+        sections.append([f"<b>Credentials not set</b> ({len(secrets)}), only if this environment uses them:"]
+                        + bullets(secrets))
+    lines = ["\n".join(section) for section in sections]
+    return ("⚙️ <b>Settings</b>\n\n" + "\n\n".join(lines)) if lines else ""
 
 
 if __name__ == "__main__":

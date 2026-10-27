@@ -19,6 +19,26 @@ STATUS = {"pending": "booked", "waiting": "waits for its slot", "published": "po
           "unknown": "not sure it posted: check the platform", "cancelled": "cancelled",
           "expired": "expired (it waited over 7 days)"}
 KIND_ICON = {"reel": "🎬", "story": "📱", "carousel": "🖼"}
+# Why a booking was cancelled, in the operator's words (a bare "cancelled" gave no idea what had happened or
+# whether anything was needed: operator, 2026-10-27, Göbekli Tepe's Stories)
+CANCEL_WHY = {"the Reel did not post": "its Reel's slot failed, so it was not posted",
+              "cancelled by the operator": "you cancelled it"}
+
+
+def status_words(db, p: Dict[str, Any], on_episode: bool = False) -> str:
+    """A booking's state as the operator reads it; a cancelled one says why and what can be done."""
+    words = STATUS.get(p["status"], p["status"])
+    if p["status"] != "cancelled":
+        return words
+    reason = str((p.get("detail") or {}).get("reason") or "")
+    words += ": " + CANCEL_WHY.get(reason, reason or "no reason was recorded")
+    live = [x for x in db.list_scheduled_posts(("pending", "waiting", "published", "unknown"), run_id=p["run_id"])
+            if x["kind"] in ("story", "carousel")]
+    # Booking again is for an episode whose Stories and carousel are all off (main.rebook_followers refuses otherwise)
+    if p["kind"] in ("story", "carousel") and not live and (db.get_run(p["run_id"]) or {}).get("status") == "published":
+        words += "; its Reel has posted since: " + ("tap 📱 Book Stories and carousel again below" if on_episode
+                                                     else "open the episode to book it again")
+    return words
 CAROUSEL_GAP = timedelta(hours=48)       # main.CAROUSEL_GAP: a carousel goes out 48 h after its Reel at the soonest
 CAROUSEL_MAX_AGE = timedelta(days=7)     # main._post_carousel_if_due: older waiting carousels expire
 SLOT_DAYS = 7
@@ -110,7 +130,7 @@ def _post_line(db, p: Dict[str, Any], plan: Dict[int, datetime]) -> str:
         slot = plan.get(p["id"])
         return f"{icon} {name} {POST_ICON['waiting']} " + (
             html.escape(_when(slot.isoformat())) if slot else "<i>after its Reel, in a carousel slot</i>")
-    return f"{icon} {name} {POST_ICON.get(p['status'], '•')} {html.escape(STATUS.get(p['status'], p['status']))}"
+    return f"{icon} {name} {POST_ICON.get(p['status'], '•')} {html.escape(status_words(db, p))}"
 
 
 def posting_panel(db, page: int = 0) -> Tuple[str, List[List[Dict[str, str]]]]:
@@ -160,7 +180,7 @@ def posting_episode(db, run_id: str) -> Tuple[str, List[List[Dict[str, str]]]]:
         name, detail = POST_NAME.get(p["kind"], p["kind"]), p.get("detail") or {}
         if p["kind"] == "reel" and any(x.get("status") in ("published", "simulated") for x in shorts):
             name = "Reel & Short"  # its YouTube Short goes with it, and its link is under it (operator, 2026-10-27)
-        lines += ["", f"{KIND_ICON.get(p['kind'], '•')} <b>{e(name)}</b> · {e(STATUS.get(p['status'], p['status']))}",
+        lines += ["", f"{KIND_ICON.get(p['kind'], '•')} <b>{e(name)}</b> · {e(status_words(db, p, on_episode=True))}",
                   f"  Booked: {e(_when(p.get('created_at'), ahead=False))}"]
         if p["status"] == "waiting":
             slot = plan.get(p["id"])

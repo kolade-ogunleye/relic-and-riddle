@@ -36,7 +36,10 @@ SYSTEM = """You are the quality checker for short vertical history documentaries
 - visual glitches: stretching, heavy compression artefacts, black or blank frames
 - anything that could break platform rules (graphic injury, nudity, hateful symbols shown without context)
 Severity: critical = should not be published as is; major = clearly hurts quality; minor = nitpick.
-Ignore stylistic choices like film grain, vignette and gold/white caption colours. If everything is fine, return no issues."""
+Ignore stylistic choices like film grain, vignette and gold/white caption colours. A beat marked as one of our own
+graphics (a number card, map, timeline, diagram) is a designed card: its plain or dimmed, blurred backdrop is the
+design, not a missing picture or a blank frame; judge its text (legible, matching the narration) and its drawing.
+If everything is fine, return no issues."""
 
 def calculate_wcag_relative_luminance(rgb: Tuple[float, float, float]) -> float:
     """Calculates WCAG 2.1 relative luminance for an RGB tuple (0-255)."""
@@ -127,7 +130,8 @@ def sample_time(start: float, end: float) -> float:
 
 
 @llm_task("video_qa")
-def review_render(video: Path, beats: List[Dict[str, Any]], cover: Path, work_dir: Path) -> Optional[QAReport]:
+def review_render(video: Path, beats: List[Dict[str, Any]], cover: Path, work_dir: Path,
+                  assets: Optional[List[Any]] = None) -> Optional[QAReport]:
     """Returns the QA report, or None if Claude is unavailable or the check fails."""
     if not (free_llm.available() if free_llm.enabled() else claude_available()):
         return None
@@ -139,7 +143,12 @@ def review_render(video: Path, beats: List[Dict[str, Any]], cover: Path, work_di
         frames = extract_frames(video, times, work_dir / "qa_frames")
         content: List[dict] = []
         for i, (frame, beat) in enumerate(zip(frames, beats), 1):
-            content += [{"type": "text", "text": f"Beat {i} narration: \"{beat['text']}\""}, image_block(frame, 768)]
+            # Our own graphics are named as such: a number card's dimmed backdrop was reported as "an empty dark
+            # gradient with no visual imagery" and blocked a release (Odessa, 2026-10-27).
+            asset = Path(str(assets[i - 1])).stem if assets and i <= len(assets) else ""
+            ours = (f" [our own graphic: {asset.removeprefix('graphic_').replace('_', ' ')} card]"
+                    if asset.startswith("graphic_") else "")
+            content += [{"type": "text", "text": f"Beat {i}{ours} narration: \"{beat['text']}\""}, image_block(frame, 768)]
         content += [{"type": "text", "text": "Cover image (thumbnail):"}, image_block(cover, 768),
                     {"type": "text", "text": "Report issues by beat number (use 0 for the cover)."}]
         return (free_llm.call(SYSTEM, content, QAReport, role="checker", effort="low", max_tokens=4000)

@@ -794,6 +794,11 @@ _RETIRED_NAMES = [("keep", "/photos N keep"), ("unkeep", "/photos N unkeep"), ("
                   ("propose", "/ideas research"), ("run", "/render")]   # the old name, after its slash
 
 
+def failed_heading(db, run_id: str) -> str:
+    """A failed run's heading: a dry run is a test (a development test read "Production failed": 2026-10-27)."""
+    return "Test run failed" if db.get_setting("run_mode:" + run_id) == "dry_run" else "Production failed"
+
+
 def render_options(db, args: str) -> Tuple[List[str], str]:
     """/render fresh STEP and /render reuse N as the worker's options; or why they cannot be used."""
     from .script_library import STEPS
@@ -1015,7 +1020,13 @@ def _episode_bookings(db: PipelineDatabase) -> List[Tuple[str, List[Dict[str, An
     for p in every:
         runs.setdefault(p["run_id"], []).append(p)
     order = {"reel": 0, "story": 1, "carousel": 2}
-    for posts in runs.values():
+    for run_id, posts in runs.items():
+        # A booking cancelled with a failed slot and booked again since shows once, as its new booking: Göbekli
+        # Tepe's list read "Stories cancelled" above "Stories posted" after its Reel's retry (operator, 2026-10-27).
+        newest = {}
+        for p in posts:
+            newest[p["kind"]] = max(newest.get(p["kind"], 0), p["id"])
+        posts[:] = [p for p in posts if p["status"] not in ("cancelled", "expired") or p["id"] == newest[p["kind"]]]
         posts.sort(key=lambda p: order.get(p["kind"], 3))
 
     def key(item):

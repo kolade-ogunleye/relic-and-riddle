@@ -144,7 +144,9 @@ def check_problems(check) -> list:
     """A check's findings in words: an audit issue's own sentence, not the dict it is stored as."""
     detail = check.get("detail")
     items = detail if isinstance(detail, list) else [detail]
-    found = [str(i.get("issue") or i.get("detail") or "") if isinstance(i, dict) else str(i or "") for i in items]
+    # A video-check finding says where it is and how serious ("beat 6, 0:21-0:26 (minor): ...").
+    found = [(f"{i['where']}" + (f" ({i['severity']})" if i.get("severity") else "") + ": " if isinstance(i, dict) and i.get("where") else "")
+             + (str(i.get("issue") or i.get("detail") or "") if isinstance(i, dict) else str(i or "")) for i in items]
     # A file is named, not its whole path (asset_rights lists the files still awaiting review).
     found = [Path(f).name if " " not in f and ("/" in f or "\\" in f) and Path(f).suffix else f for f in found]
     return [f for f in found if f] or ["no detail recorded"]

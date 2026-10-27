@@ -49,6 +49,7 @@ from src.music import music_for
 from src.parallax import render_scenes as render_parallax
 from src.video_composer import TRANS_DUR
 from src.video_qa import QualityAuditor, audit_scene_feedback, qa_summary_html, review_render
+from src.control import failed_heading
 from src.visual_engine import COVER_STYLES
 from src.ops import AssetLifecycleManager, PreFlightHealthChecker, setup_logging
 from src.fact_sheet import FactStarvedTopicError
@@ -292,7 +293,7 @@ class PipelineCoordinator:
             self._collect_findings(run_id, run_dir, tid, error=f"{type(e).__name__}: {e}")
             log.error("Run %s failed: %s", run_id, e)
             if not card_shown:
-                self._alert(f"❌ <b>Production failed</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(e)[:600])}</blockquote>\nNothing was posted. The topic is set aside: restore it from the queue (/queue requeue N).")
+                self._alert(f"❌ <b>{failed_heading(self.db, run_id)}</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(e)[:600])}</blockquote>\nNothing was posted. The topic is set aside: restore it from the queue (/queue requeue N).")
             ping_healthcheck("/fail")
             raise
         finally:
@@ -1246,7 +1247,7 @@ class PipelineCoordinator:
                     pass
                 self.progress_msg_id = None
             if not card_shown:
-                self._alert(f"❌ <b>Production failed</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(e)[:600])}</blockquote>\nNothing was posted. The topic is set aside: restore it from the queue (/queue requeue N).")
+                self._alert(f"❌ <b>{failed_heading(self.db, run_id)}</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(e)[:600])}</blockquote>\nNothing was posted. The topic is set aside: restore it from the queue (/queue requeue N).")
             ping_healthcheck("/fail")
             raise
         finally:
@@ -2283,7 +2284,7 @@ class PipelineCoordinator:
             # master and cover, so the LLM review runs while the audit measures.
             t0 = time.perf_counter()
             qa_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-            fut_qa = qa_pool.submit(review_render, master_mp4, beats, thumb_916, run_dir)
+            fut_qa = qa_pool.submit(review_render, master_mp4, beats, thumb_916, run_dir, scenes)
             # Deterministic quality audit (payload key "self_healing" kept for existing runs)
             try:
                 timeline_cuts = []
@@ -2377,7 +2378,8 @@ class PipelineCoordinator:
         # The look's findings in the record, so the release gate reads them (src/release.py): a major picture
         # finding was shown on the card beside "all checks pass" (Nazca, 2026-10-25).
         payload["video_check"] = {"run": qa is not None,
-                                  "issues": [{"beat": i.beat, "severity": str(i.severity).lower(), "issue": i.issue}
+                                  "issues": [{"beat": i.beat, "severity": str(i.severity).lower(), "issue": i.issue,
+                                              "where": beat_where(i.beat, beats)}
                                              for i in (qa.issues if qa is not None else [])]}
         (run_dir / "qa_report.json").write_text(qa.model_dump_json(indent=2) if qa else "null", encoding="utf-8")
         log.info("%s", re.sub(r"<[^>]+>", "", payload["qa_summary"]).replace("\n", " | "))
@@ -2819,6 +2821,17 @@ def record_posting_mode(coordinator) -> None:
         coordinator.db.set_setting(POSTS_ONLY_PROMOTED_KEY, "true" if coordinator.only_promoted else "false")
     except Exception as e:
         log.debug("Posting mode not recorded: %s", e)
+
+
+def beat_where(beat: int, beats: List[Dict[str, Any]]) -> str:
+    """Where a video-check finding is: "beat 6, 0:21-0:26" (the failure card gave only its sentence)."""
+    if beat == 0:
+        return "cover"
+    if not 1 <= beat <= len(beats or []):
+        return f"beat {beat}"
+    b = beats[beat - 1]
+    clock = lambda s: f"{int(float(s) // 60)}:{int(float(s) % 60):02d}"  # noqa: E731
+    return f"beat {beat}, {clock(b['start'])}-{clock(b['end'])}"
 
 
 def _reuse_options(p) -> None:

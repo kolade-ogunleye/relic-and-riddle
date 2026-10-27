@@ -1921,7 +1921,8 @@ class TelegramApprovalBot:
             kept = kept_phrase(OUTPUT_DIR / run_id, run) if late else ""
             # The run id is on the card, as on the review card and receipts: a typed /rerender or /resume
             # needs it, and the operator had nowhere to read it once the review card was gone (2026-10-24).
-            text = (f"❌ <b>Production failed:</b> {html.escape(self.db.run_label(run_id))}\n"
+            from .control import failed_heading
+            text = (f"❌ <b>{failed_heading(self.db, run_id)}:</b> {html.escape(self.db.run_label(run_id))}\n"
                     f"<i>Run ID:</i> <code>{html.escape(run_id)}</code>\n\n"
                     f"<blockquote expandable>{html.escape(short_reason(error, 1200))}</blockquote>\n\n"
                     + (f"Nothing was posted. Re-render continues from where it stopped, keeping {html.escape(kept)} "

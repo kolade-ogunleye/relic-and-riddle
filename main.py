@@ -1451,6 +1451,31 @@ class PipelineCoordinator:
         return (f"💬 Captions added to the Facebook Reel ({'replaced' if res.get('replaced') else 'new'}, "
                 f"{res['locale']}). Check them with the CC button on the Reel.")
 
+    def _facebook_finishing(self, run_id: str) -> None:
+        """The chosen cover and the closed captions on a Reel just posted to Facebook, automatically (operator,
+        2026-10-27: the cover button worked; make it automatic). Best-effort: a refusal is alerted once and the
+        episode keeps its buttons; it never touches the post itself. Skipped where either is already done."""
+        if not self.facebook_video_id(self.db, run_id):
+            return
+        from src.publisher import FacebookPageReelsPublisher
+        if not FacebookPageReelsPublisher().configured():
+            return  # no Page token: the episode's buttons say what to add
+        done = {p.get("channel") for p in self.db.list_publications(run_id) if p.get("status") == "published"}
+        problems = []
+        for channel, action, ok in (("facebook:cover", self.set_facebook_cover, "🖼 Cover set"),
+                                    ("facebook:captions", self.add_facebook_captions, "💬 Captions added")):
+            if channel in done:
+                continue
+            try:
+                reply = action(run_id)
+            except Exception as e:  # never costs the Reel anything
+                reply = f"{channel}: {type(e).__name__}: {str(e)[:200]}"
+            if not reply.startswith(ok):
+                problems.append(reply)
+        if problems:
+            self._alert(f"⚠️ <b>Facebook finishing</b> for {html.escape(self.db.run_label(run_id))}: the Reel is up; "
+                        "these need a retry from its episode on Posting:\n" + "\n".join(problems))
+
     def set_facebook_cover(self, run_id: str) -> str:
         """Sets the run's chosen cover (thumbnail_cover.jpg, 9:16 as the Reel) on its posted Facebook Reel."""
         from src.publisher import FacebookPageReelsPublisher, NotConfigured, PublishFailed
@@ -1555,6 +1580,7 @@ class PipelineCoordinator:
                 booked = self._book_followers(run_id, Path(run["master_video_path"]).parent, now)
             links = ", ".join(f"{html.escape(k)}: {html.escape(str(v))}" for k, v in (res.get("post_urls") or {}).items())
             then = ("\n" + "\n".join(html.escape(x) for x in booked)) if booked else ""
+            self._facebook_finishing(run_id)  # a Reel posted by Retry gets its cover and captions too
             short = ""
             if config.YOUTUBE_SHORTS and (payload.get("delivery_profile") or "reel_9x16") == "reel_9x16":
                 short = "\n" + self.post_youtube_short(run_id)   # it went only with a publish that succeeded first time
@@ -2646,6 +2672,8 @@ class PipelineCoordinator:
             self.topic_engine.record_status(tid, "failed", run_id=run_id)
             log.error("Publishing failed for %s: %s", run_id, pub.get("error"))
             self._alert(f"❌ <b>Publish failed</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>{html.escape(str(pub.get('error') or 'no error details were returned')[:500])}</blockquote>\nNothing was posted. The topic goes back in the queue for a retry.")
+        if profile == "reel_9x16" and status == "published" and not dry_run:
+            self._facebook_finishing(run_id)  # its cover and captions on Facebook, as soon as it is up
         if config.YOUTUBE_SHORTS and profile == "reel_9x16" and status in ("published", "simulated"):
             pub["youtube_short"] = short = self.publisher.publish_short(envelope, dry_run=dry_run)
             if short["status"] == "published":

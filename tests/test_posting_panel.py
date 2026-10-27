@@ -330,3 +330,52 @@ def test_uploads_use_one_timeout_so_a_slow_write_does_not_abort_them():
     source = inspect.getsource(publisher)
     assert not re.search(r"timeout=\(\s*\d+\s*,", source)
     assert publisher.UPLOAD_TIMEOUT >= 600
+
+
+def test_a_posted_reel_gets_its_facebook_cover_and_captions_automatically(db, tmp_path, monkeypatch):
+    # Operator, 2026-10-27: the cover button worked; make it automatic (and the captions with it)
+    from src import publisher
+    run_id, reel, slot = _booked(db, tmp_path)
+    db.record_publication(db.get_run(run_id)["topic_id"], run_id, "upload-post", "published",
+                          {"post_urls": {"facebook": "https://www.facebook.com/reel/1419040693748996"}})
+    monkeypatch.setattr(publisher.FacebookPageReelsPublisher, "configured", lambda self: True)
+    c = _coordinator(db)
+    done, alerts = [], []
+    c.set_facebook_cover = lambda r: done.append("cover") or "🖼 Cover set on the Facebook Reel."
+    c.add_facebook_captions = lambda r: done.append("captions") or "💬 Facebook did not take the captions: HTTP 500"
+    c._alert = lambda text, *a, **k: alerts.append(text)
+    c._facebook_finishing(run_id)
+    assert done == ["cover", "captions"] and len(alerts) == 1 and "did not take the captions" in alerts[0]
+    db.record_publication(db.get_run(run_id)["topic_id"], run_id, "facebook:cover", "published", {})
+    done.clear()
+    c._facebook_finishing(run_id)
+    assert done == ["captions"]                                          # never twice once set
+
+
+def test_no_page_token_means_no_automatic_finishing(db, tmp_path, monkeypatch):
+    from src import publisher
+    run_id, reel, slot = _booked(db, tmp_path)
+    db.record_publication(db.get_run(run_id)["topic_id"], run_id, "upload-post", "published",
+                          {"post_urls": {"facebook": "https://www.facebook.com/reel/1"}})
+    monkeypatch.setattr(publisher.FacebookPageReelsPublisher, "configured", lambda self: False)
+    c = _coordinator(db)
+    c.set_facebook_cover = lambda r: (_ for _ in ()).throw(AssertionError("called"))
+    c._facebook_finishing(run_id)
+
+
+def test_an_episode_action_answers_on_the_episodes_own_card(db, tmp_path):
+    # Operator, 2026-10-27: "Cover set" came as its own message with only Dashboard, under a card that still said
+    # "Facebook cover: not set"; the answer now heads the episode's card, redrawn, with ← Posting
+    run_id, reel, slot = _booked(db, tmp_path)
+    db.update_scheduled_post(reel, "published", detail={"posted_at": slot.isoformat()})
+    db.record_publication(db.get_run(run_id)["topic_id"], run_id, "upload-post", "published",
+                          {"post_urls": {"facebook": "https://www.facebook.com/reel/1"}})
+
+    def set_cover(rid):
+        db.record_publication(db.get_run(rid)["topic_id"], rid, "facebook:cover", "published", {})
+        return "🖼 Cover set on the Facebook Reel."
+    h = control.make_command_handler(db, lambda: None, lambda: "", run_actions={"fbcover": set_cover})
+    text, buttons = h("fbcover", db.run_key(run_id))
+    assert text.startswith("🖼 Cover set on the Facebook Reel.") and "Facebook cover: set" in text
+    flat = [b["callback_data"] for row in buttons for b in row]
+    assert "cposts:" in flat and "cdash:" in flat

@@ -833,6 +833,8 @@ def _audience_line(db: PipelineDatabase, run_id: str) -> str:
     return " · ".join(parts)
 
 
+# Posting actions on one episode: their answer is shown on that episode's card, redrawn
+EPISODE_ACTIONS = {"retryreel", "fbcaptions", "fbcover", "ytshort", "rebook"}
 LIST_PAGE = 5  # items on a page of a numbered list (Reviews, Review history)
 
 
@@ -2228,7 +2230,14 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             action = (run_actions or {}).get(command)
             if action is None:
                 return "That button only works while the daemon is running."
-            return action(db.resolve_run(args))
+            run_id = db.resolve_run(args)
+            result = action(run_id)
+            if command in EPISODE_ACTIONS and isinstance(result, str):
+                # The result on the episode's own card, redrawn (operator, 2026-10-27: the answer came as a separate
+                # message with only Dashboard, under a card still saying "Facebook cover: not set")
+                text, buttons = posting_episode(db, run_id)
+                return f"{result}\n\n{text}", buttons + [[HOME]]
+            return result
         if command == "tdone":
             cleared = 0
             if delete_message is not None:

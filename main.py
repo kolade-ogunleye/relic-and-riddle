@@ -2285,6 +2285,11 @@ class PipelineCoordinator:
                             for c in used) if used else "")
             payload["beat_image_lines"] = [f"line {c.get('beat', '?')}: {str(c.get('looked') or c.get('title', '')).removeprefix('File:')}"
                                            for c in used]   # whole, for the card's folded list
+            left_out = beat_images.unchecked(run_dir / "beat_images")
+            if left_out:  # the gate held: said, so a Re-render can try them once the check runs again
+                payload["beat_image_note"] = ((payload["beat_image_note"] + "\n") if payload["beat_image_note"] else "") + (
+                    f"⚠️ {len(left_out)} photo(s) found for single lines were left out: their picture check could not run "
+                    "(the lines use the topic's screened photos). Re-render to try them again.")
             # AI motion for the opening photo (only with a media budget; real footage and our graphics come first).
             self._check_cancel(run_id)
             scenes, motion_used = motion.apply(self.db, scenes, run_dir / "motion", memo=motion_memo, topic=topic,

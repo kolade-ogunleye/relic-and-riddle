@@ -23,6 +23,7 @@ def default_licences(monkeypatch):
     monkeypatch.setattr(config, "VIDEO_FORMATS", ["reel"])
     monkeypatch.setattr(config, "YOUTUBE_SHORTS", False)
     monkeypatch.setattr(config, "SCENE_PLAN_RETRY_SECONDS", 0.0)
+    monkeypatch.setattr(config, "PICTURE_CHECK_RETRY_SECONDS", 0.0)
     # Nor the deployment's model and dry-run choices: production's FREE_TIER_HEAVY=false and
     # CLAUDE_FALLBACK=true failed 8 tests in rc8's on-host suite (2026-10-23), which rolled the update back.
     monkeypatch.setattr(config, "FREE_TIER_HEAVY", True)

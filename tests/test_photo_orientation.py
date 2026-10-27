@@ -18,7 +18,8 @@ def _topic(tmp_path, stored=(4000, 3000), recorded=(3000, 4000)):
     Image.new("RGB", stored, "gray").save(d / "07_commons.jpg")
     Image.new("RGB", (1200, 800), "gray").save(d / "01_commons.jpg")
     (d / "credits.json").write_text(json.dumps([
-        {"file": "07_commons.jpg", "width": recorded[0], "height": recorded[1], "download_url": "https://up/07.jpg"},
+        {"file": "07_commons.jpg", "width": recorded[0], "height": recorded[1], "download_url": "https://up/07.jpg",
+         "title": "File:The Antikythera Mechanism (3471976134).jpg"},
         {"file": "01_commons.jpg", "width": 1200, "height": 800, "download_url": "https://up/01.jpg"},
     ]), encoding="utf-8")
     return d
@@ -40,7 +41,10 @@ def test_it_is_fetched_again_upright_and_the_old_file_kept(tmp_path, monkeypatch
     assert fetched == ["https://up/07.jpg"] and still == set()
     assert Image.open(d / "07_commons.jpg").size == (3000, 4000)
     assert Image.open(d / photo_orientation.BACKUP_DIR / "07_commons.jpg").size == (4000, 3000)
-    assert "fetched again upright" in done[0]
+    from src.credits import sheet_order
+    number = [i["file"] for i in sheet_order(d, photo_orientation._items(d))].index("07_commons.jpg") + 1
+    # As the /photos sheet shows it (07_commons.jpg is photo 3 there on production): never the file name
+    assert done[0].startswith(f"photo {number}, The Antikythera Mechanism (3471976134): was stored turned over")
     assert photo_orientation.put_upright(d) == ([], set())                 # nothing left to do
 
 

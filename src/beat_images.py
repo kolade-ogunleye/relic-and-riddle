@@ -53,25 +53,60 @@ PICTURE_SYSTEM = ("You judge whether a photograph shows the subject a documentar
                   "watermark, a logo, a date stamp): such a picture is cropped on screen and the text shows cut off.")
 
 
+UNAVAILABLE = "not looked at: the picture check could not run"
+
+
 def picture_look(path: Path, query: str) -> Dict[str, Any]:
-    """One look at the pixels: {"checked", "shows", "burned_in_text", "reason"}. When the check cannot run,
-    checked is False and the picture counts as showing its subject, so a search never loses to a check."""
+    """One look at the pixels: {"checked", "shows", "burned_in_text", "reason"}. A check that fails is asked once
+    more; one that still cannot run says checked False and shows False: a picture nobody looked at is not used
+    (operator, 2026-10-27: it was kept as showing its subject, and the gate is to be enforced). Turning the check
+    off (PICTURE_VISION_CHECK=false) is the only way a picture goes unlooked at."""
     if not config.PICTURE_VISION_CHECK:
         return {"checked": False, "shows": True, "burned_in_text": False, "reason": "not checked"}
     from . import free_llm
     from .llm import image_block
+    import time
     content = [{"type": "text", "text": f"Searched for: {query}\nDoes this picture show it?"}, image_block(path, 512)]
-    try:
-        if free_llm.claude_engine():
-            verdict = structured_call(PICTURE_SYSTEM, content, PictureVerdict, effort="low", max_tokens=300,
-                                      models=config.LIGHT_TASK_MODELS)
-        else:
-            verdict = free_llm.structured(PICTURE_SYSTEM, content, PictureVerdict, role="checker", task_class="light")
-    except Exception as e:  # unavailable or malformed: the picture stays, the record says it was not looked at
-        log.debug("Picture check unavailable for %s (%s); keeping it.", path.name, e)
-        return {"checked": False, "shows": True, "burned_in_text": False, "reason": "check unavailable"}
+    for attempt in (1, 2):
+        try:
+            if free_llm.claude_engine():
+                verdict = structured_call(PICTURE_SYSTEM, content, PictureVerdict, effort="low", max_tokens=300,
+                                          models=config.LIGHT_TASK_MODELS)
+            else:
+                verdict = free_llm.structured(PICTURE_SYSTEM, content, PictureVerdict, role="checker", task_class="light")
+            break
+        except Exception as e:  # unavailable or malformed
+            if attempt == 1:
+                log.info("Picture check for %s failed (%s); asking again in %.0f s.", path.name, e, config.PICTURE_CHECK_RETRY_SECONDS)
+                time.sleep(config.PICTURE_CHECK_RETRY_SECONDS)
+                continue
+            log.warning("Picture check for %s could not run (%s); the picture is not used.", path.name, e)
+            return {"checked": False, "shows": False, "burned_in_text": False, "reason": UNAVAILABLE}
     return {"checked": True, "shows": bool(verdict.shows_subject), "burned_in_text": bool(verdict.burned_in_text),
             "reason": (verdict.reason or "").strip()}  # whole: the card folds it
+
+
+UNCHECKED_FILE = "set_aside_unchecked.json"
+
+
+def _note_unchecked(work_dir: Path, beat: int, cand: Dict[str, Any]) -> None:
+    import json as _json
+    path = Path(work_dir) / UNCHECKED_FILE
+    try:
+        found = _json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+    except (OSError, ValueError):
+        found = []
+    found.append({"beat": beat, "title": cand.get("title"), "source_url": cand.get("source_url")})
+    path.write_text(_json.dumps(found, indent=1, ensure_ascii=False), encoding="utf-8")
+
+
+def unchecked(work_dir: Path) -> List[Dict[str, Any]]:
+    """The pictures this run left out because their check could not run."""
+    import json as _json
+    try:
+        return _json.loads((Path(work_dir) / UNCHECKED_FILE).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
 
 
 def picture_shows(path: Path, query: str) -> Tuple[bool, str]:
@@ -190,6 +225,10 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
                 dest = work_dir / f"{prefix}{item.beat:02d}_{found + 1}.jpg"
                 commons.download_jpeg(cand["download_url"], dest, max_wait=wait)
                 shows, why = picture_shows(dest, item.query)
+                if why == UNAVAILABLE:  # nobody looked: left out, and said on the card (found again next run)
+                    _note_unchecked(work_dir, item.beat, cand)
+                    dest.unlink(missing_ok=True)
+                    continue
                 if not shows:  # the pixels say otherwise: not this one
                     log.info("Beat %d: %r set aside, it does not show the subject (%s).", item.beat, cand["title"][:70], why)
                     dest.unlink(missing_ok=True)

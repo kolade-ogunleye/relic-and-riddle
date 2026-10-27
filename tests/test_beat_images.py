@@ -18,6 +18,7 @@ def _cand(title, licence="CC BY 4.0"):
 
 def test_source_downloads_up_to_three_per_beat_and_skips_duplicates(monkeypatch, tmp_path):
     monkeypatch.setattr("src.free_llm.ready", lambda: True)
+    monkeypatch.setattr(beat_images, "picture_shows", lambda path, query: (True, "shows it"))  # the look passes
     monkeypatch.setattr(beat_images, "plan_queries", lambda b, t: BeatQueries(items=[
         BeatQuery(beat=2, query="Derinkuyu stone door", keywords=["derinkuyu"]),
         BeatQuery(beat=1, query="Derinkuyu", keywords=["derinkuyu"])]))
@@ -150,7 +151,8 @@ def test_each_beats_search_leaves_its_counts_in_the_run_log(monkeypatch, tmp_pat
 
 def test_a_picture_that_does_not_show_the_subject_is_set_aside_after_a_look(monkeypatch, tmp_path, caplog):
     # Quality step 1, 2026-10-24: a photograph of the wrong temple passed the title and metadata checks; the
-    # pixels are now looked at before a picture is kept. An unavailable look keeps the picture.
+    # pixels are now looked at before a picture is kept. A look that cannot run leaves the picture out and says
+    # so (operator, 2026-10-27: it used to keep it, and the gate is to be enforced).
     import logging
     monkeypatch.setattr("src.free_llm.ready", lambda: True)
     monkeypatch.setattr(beat_images, "plan_queries", lambda b, t: BeatQueries(items=[
@@ -160,26 +162,38 @@ def test_a_picture_that_does_not_show_the_subject_is_set_aside_after_a_look(monk
     monkeypatch.setattr(beat_images.commons, "download_jpeg",
                         lambda url, dest, max_wait=30: Image.new("RGB", (10, 10)).save(dest, "JPEG"))
     verdicts = iter([(False, "a different temple, at Pattadakal"), (True, "the monolith's courtyard")])   # A, then B; C and D unchecked
-    monkeypatch.setattr(beat_images, "picture_shows", lambda path, query: next(verdicts, (True, "check unavailable")))
+    monkeypatch.setattr(beat_images, "picture_shows", lambda path, query: next(verdicts, (False, beat_images.UNAVAILABLE)))
     with caplog.at_level(logging.DEBUG, logger="src.beat_images"):
         paths, credits = beat_images.source(BEATS, TOPIC, tmp_path)
-    assert [c["title"] for c in credits] == ["B", "C", "D"]            # A was set aside; the slot was reused
-    assert credits[0]["looked"] == "the monolith's courtyard" and credits[1]["looked"] == "check unavailable"
-    assert not (tmp_path / "beat01_4.jpg").exists() and all(p.exists() for p in paths)
+    assert [c["title"] for c in credits] == ["B"]                      # A set aside; C and D nobody looked at
+    assert credits[0]["looked"] == "the monolith's courtyard"
+    assert [x["title"] for x in beat_images.unchecked(tmp_path)] == ["C", "D"]   # said on the card
+    assert all(p.exists() for p in paths) and len(list(tmp_path.glob("beat01_*.jpg"))) == 1
     line = next(r.getMessage() for r in caplog.records if "set aside by the look" in r.getMessage() and "Commons results" in r.getMessage())
-    assert line.endswith("4 relevant, 4 verified, 1 set aside by the look, 3 kept.")
+    assert line.endswith("4 relevant, 4 verified, 1 set aside by the look, 1 kept.")
     set_aside = [r.getMessage() for r in caplog.records if "set aside, it does not show" in r.getMessage()]
     assert set_aside == ["Beat 1: 'A' set aside, it does not show the subject (a different temple, at Pattadakal)."]
 
 
-def test_the_look_keeps_the_picture_when_it_cannot_run(monkeypatch, tmp_path):
+def test_the_look_asks_again_then_leaves_the_picture_out_when_it_cannot_run(monkeypatch, tmp_path):
     from src import config
     monkeypatch.setattr(config, "PICTURE_VISION_CHECK", True)
     monkeypatch.setattr("src.free_llm.claude_engine", lambda: False)
-    monkeypatch.setattr("src.free_llm.structured", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("quota")))
+    calls = []
+    monkeypatch.setattr("src.free_llm.structured", lambda *a, **k: calls.append(1) or (_ for _ in ()).throw(RuntimeError("quota")))
     p = tmp_path / "x.jpg"
     Image.new("RGB", (10, 10)).save(p, "JPEG")
-    assert beat_images.picture_shows(p, "a query") == (True, "check unavailable")
+    assert beat_images.picture_shows(p, "a query") == (False, beat_images.UNAVAILABLE)
+    assert len(calls) == 2                                              # asked once more before giving up
+    answers = iter([RuntimeError("overloaded")])
+
+    def blip(*a, **k):                                                  # a blip: the second ask answers
+        err = next(answers, None)
+        if err:
+            raise err
+        return beat_images.PictureVerdict(shows_subject=True, reason="the courtyard")
+    monkeypatch.setattr("src.free_llm.structured", blip)
+    assert beat_images.picture_shows(p, "a query") == (True, "the courtyard")
     monkeypatch.setattr("src.free_llm.structured", lambda *a, **k: beat_images.PictureVerdict(shows_subject=False, reason="a gift shop"))
     assert beat_images.picture_shows(p, "a query") == (False, "a gift shop")
     # 2026-10-25: a satellite image with its own caption strip reached a carousel slide, cut off by the crop

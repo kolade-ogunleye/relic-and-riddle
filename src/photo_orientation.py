@@ -45,6 +45,20 @@ def sideways(topic_dir: Path) -> List[Dict[str, Any]]:
             if (topic_dir / i["file"]).is_file() and turned(topic_dir / i["file"], i.get("width"), i.get("height"))]
 
 
+def sheet_name(topic_dir: Path, item: Dict[str, Any]) -> str:
+    """How the operator knows the photo: its number on the /photos sheet and its title ("photo 3, The
+    Antikythera Mechanism (3471976134)"), never the file name: 07_commons.jpg is photo 3 on the sheet, and
+    naming the file sent the operator to photo 7 (2026-10-27)."""
+    title = str(item.get("title") or "").removeprefix("File:").rsplit(".", 1)[0]
+    try:
+        from .credits import sheet_order
+        shown = [i.get("file") for i in sheet_order(topic_dir, _items(topic_dir))]
+        number = f"photo {shown.index(item['file']) + 1}"
+    except Exception:
+        number = "a photo"
+    return f"{number}, {title}" if title else number
+
+
 def put_upright(topic_dir: Path) -> Tuple[List[str], Set[str]]:
     """Fetches each turned-over photo again, upright. Returns (what was done, in words; the files still turned
     over, which the run must not use)."""
@@ -53,6 +67,7 @@ def put_upright(topic_dir: Path) -> Tuple[List[str], Set[str]]:
     still: Set[str] = set()
     for item in sideways(topic_dir):
         name, path = item["file"], topic_dir / item["file"]
+        shown = sheet_name(topic_dir, item)
         url = item.get("download_url")
         fresh = path.with_name(path.stem + ".upright.jpg")
         try:
@@ -64,12 +79,12 @@ def put_upright(topic_dir: Path) -> Tuple[List[str], Set[str]]:
             (topic_dir / BACKUP_DIR).mkdir(exist_ok=True)
             shutil.copy2(path, topic_dir / BACKUP_DIR / name)
             fresh.replace(path)
-            done.append(f"{name}: was stored turned over; fetched again upright (the old file is in {BACKUP_DIR}/)")
+            done.append(f"{shown}: was stored turned over; fetched again upright (the old file is kept as {BACKUP_DIR}/{name})")
             log.info("Photo %s/%s was stored turned over; fetched again upright.", topic_dir.name, name)
         except Exception as e:
             fresh.unlink(missing_ok=True)
             still.add(name)
-            done.append(f"{name}: is stored turned over and could not be fetched again ({str(e)[:120]}); "
+            done.append(f"{shown}: is stored turned over and could not be fetched again ({str(e)[:120]}); "
                         "this run leaves it out")
             log.warning("Photo %s/%s is turned over and was not fixed: %s", topic_dir.name, name, e)
     return done, still

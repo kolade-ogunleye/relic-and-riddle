@@ -276,6 +276,9 @@ BEAT_IMAGES_ENABLED = os.getenv("BEAT_IMAGES_ENABLED", "true").lower() in ("true
 # A found picture is looked at (a light vision call) before it is kept: the title and metadata checks let a
 # photograph of the wrong temple through (quality step 1, 2026-10-24). At most one call per kept candidate.
 PICTURE_VISION_CHECK = os.getenv("PICTURE_VISION_CHECK", "true").lower() in ("true", "1", "yes")
+# A picture check that fails (model overloaded, rate-limited, down) is asked once more after this wait before the
+# picture is left out (operator, 2026-10-27: the gate is enforced, but a good photo is not lost to a blip).
+PICTURE_CHECK_RETRY_SECONDS = max(0.0, float(os.getenv("PICTURE_CHECK_RETRY_SECONDS") or 15))
 # A look at each rendered Story frame and carousel slide (quality step 5, 2026-10-25): findings are shown on
 # the review card and kept in the ledger; they do not block a release until the check is calibrated.
 STILL_VISION_CHECK = os.getenv("STILL_VISION_CHECK", "true").lower() in ("true", "1", "yes")

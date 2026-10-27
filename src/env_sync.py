@@ -29,7 +29,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-ROOT = Path(os.getenv("RELIC_APP_ROOT") or Path(__file__).resolve().parent.parent)  # src/.. is the app
+from .config import BASE_DIR as ROOT  # the app root (RELIC_APP_ROOT under the production launcher)
 # Credentials and personal details: never filled from the template (a placeholder is not a value)
 SECRET = re.compile(r"(KEY|TOKEN|SECRET|PASSWORD|PASS|CREDENTIAL|_ID|_IDS|WEBHOOK|USER|EMAIL|PHONE|COOKIE|DSN|URL|CONTACT)$")
 NAME = re.compile(r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=")

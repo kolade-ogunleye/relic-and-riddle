@@ -6,12 +6,9 @@ or invented, and without changing what the environment runs with (operator, 2026
 lagged behind; one by one was too manual; each environment keeps its own providers and caps).
 """
 
-import importlib.util
 from pathlib import Path
 
-spec = importlib.util.spec_from_file_location("env_reconcile", Path(__file__).resolve().parents[1] / "src" / "env_sync.py")
-env_reconcile = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(env_reconcile)
+import src.env_sync as env_reconcile
 
 RUNNING = {"PICTURE_VISION_CHECK": True, "PICTURE_CHECK_RETRY_SECONDS": 15.0, "CLAUDE_MONTHLY_BUDGET_USD": 30.0,
            "LIGHT_TASK_MODELS": ["claude-sonnet-5-5", "claude-opus-5-5"]}

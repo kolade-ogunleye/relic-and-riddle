@@ -1270,6 +1270,20 @@ class PipelineCoordinator:
         finally:
             self._operator_feedback = None
 
+    def _upright_photos(self, topic: Dict[str, Any]) -> set:
+        """Photos stored turned over (fetched before 2026-10-25) are fetched again upright; returns those that could
+        not be, which the run leaves out (src/photo_orientation.py). Never fails a run."""
+        try:
+            from src.photo_orientation import put_upright
+            done, still = put_upright(self.visual_engine.assets_dir / topic["id"])
+        except Exception as e:
+            log.warning("Photo orientation check for %s did not run: %s", topic.get("id"), e)
+            return set()
+        if done:
+            self._alert(f"🔄 <b>Photos turned over</b> in {html.escape(topic.get('title') or topic['id'])}:\n"
+                        + "\n".join("• " + html.escape(x) for x in done))
+        return still
+
     def _screen_photos(self, topic: Dict[str, Any]) -> None:
         """Vision verdicts for the topic's photos that have none (src/image_review.py). Never fails a run:
         a photo left unscreened is simply not used."""
@@ -1733,8 +1747,11 @@ class PipelineCoordinator:
         self._check_cancel(run_id)
         # 1. Visual assets first: fail before spending on LLM/TTS calls. Any photo never looked at (added after
         # an approval) is screened first, so the video uses only photos with a verdict (2026-10-25).
+        still_turned = self._upright_photos(topic)  # before screening: a photo fetched again is screened as it is now
         self._screen_photos(topic)
         scene_media = self.visual_engine.get_scene_sequence(topic)
+        if still_turned:  # never used turned over
+            scene_media = [m for m in scene_media if Path(str(m)).name not in still_turned]
         # Photos with text printed into them (a placard, a caption strip) are set aside, looked at once each.
         scene_media = beat_images.without_burned_in_text(scene_media, topic.get("title", ""), config.MIN_SCENE_IMAGES)
         from src.image_review import strong_stems

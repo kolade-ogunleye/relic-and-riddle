@@ -16,6 +16,7 @@ Every outcome is explicit:
 Only "published" counts toward a topic's publish history.
 """
 
+import contextlib
 import json
 import logging
 import os
@@ -224,11 +225,19 @@ class UploadPostPublisher:
         ]
         if meta.get("first_comment"):
             data.append(("youtube_first_comment", meta["first_comment"]))
+        # Our own captions, word for word (YouTube's automatic ones misspell names): Upload-Post attaches the file
+        # through the YouTube Captions API once the video is processed (docs.upload-post.com/api/upload-video,
+        # youtube_subtitle_file; operator, 2026-10-27).
+        srt = Path(media["video_path"]).with_suffix(".srt")
+        if srt.is_file():
+            data += [("youtube_subtitle_language", "en"), ("youtube_subtitle_name", "English")]
         try:
-            with open(media["video_path"], "rb") as vf:
+            with open(media["video_path"], "rb") as vf, (open(srt, "rb") if srt.is_file() else contextlib.nullcontext()) as sf:
+                files = {"video": (Path(media["video_path"]).name, vf, "video/mp4")}
+                if sf is not None:
+                    files["youtube_subtitle_file"] = (srt.name, sf, "text/plain")
                 response = requests.post(f"{self.base_url}/upload", headers=self._headers(key), data=data,
-                                         files={"video": (Path(media["video_path"]).name, vf, "video/mp4")},
-                                         timeout=UPLOAD_TIMEOUT)
+                                         files=files, timeout=UPLOAD_TIMEOUT)
         except requests.ConnectionError as e:
             raise PublishFailed(f"Could not connect to Upload-Post: {e}") from e
         except requests.Timeout as e:

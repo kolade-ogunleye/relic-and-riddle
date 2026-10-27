@@ -78,3 +78,24 @@ def test_a_failed_short_is_recorded_and_never_raises(db, tmp_path):
     assert meta.publish_short(_envelope(tmp_path), dry_run=True)["status"] == "simulated"
     assert [p["status"] for p in db.list_publications("run_t_1")] == ["failed", "simulated"]
     assert {p["channel"] for p in db.list_publications("run_t_1")} == {"youtube-shorts"}
+
+
+def test_a_short_carries_its_own_captions_when_the_run_has_them(tmp_path, monkeypatch):
+    # Operator, 2026-10-27: Facebook's captions worked; YouTube takes our file too (youtube_subtitle_file)
+    sent = {}
+
+    class Response:
+        status_code = 200
+        def json(self):
+            return {"success": True, "results": {"youtube": {"success": True, "url": "https://youtube.com/shorts/x"}}}
+
+    def post(url, headers=None, data=None, files=None, timeout=None):
+        sent.update(data=dict(data), files={k: (v[0], v[2]) for k, v in files.items()})
+        return Response()
+
+    monkeypatch.setattr(publisher.requests, "post", post)
+    envelope = _envelope(tmp_path)
+    (tmp_path / "reel.srt").write_text("1\n00:00:00,000 --> 00:00:01,000\nGreek fire\n", encoding="utf-8")
+    UploadPostPublisher(api_key="k", user="u").publish_short(envelope)
+    assert sent["files"]["youtube_subtitle_file"] == ("reel.srt", "text/plain")
+    assert sent["data"]["youtube_subtitle_language"] == "en"

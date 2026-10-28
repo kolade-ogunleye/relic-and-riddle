@@ -2016,7 +2016,7 @@ class PipelineCoordinator:
         again (its takes vary by about 5%). A take still over is left for the length check, which stops the
         run; its re-render then shortens the script for the pace just measured. Returns (words, speed)."""
         from src.audio_engine import honours_speed
-        from src.script_engine import HARD_DURATION_CEILING, TARGET_DURATION_MIN, refit_speed
+        from src.script_engine import TARGET_DURATION_MIN, refit_speed
         seconds = self.audio_engine.get_duration(vo_path)
         if seconds < TARGET_DURATION_MIN:
             # A take a little under the minimum: ElevenLabs' takes vary (production 2026-10-25: 93 words read
@@ -2025,7 +2025,7 @@ class PipelineCoordinator:
                 log.info("Voiceover ran %.1fs, under the minimum; reading it once more (takes vary).", seconds)
                 return voice_at(speech_speed), speech_speed
             return words, speech_speed
-        if seconds <= HARD_DURATION_CEILING:
+        if seconds <= config.VOICE_DURATION_CEILING:  # a take past the planning ceiling is kept up to this
             return words, speech_speed
         if honours_speed(self.audio_engine.last_provider):
             faster = refit_speed(seconds, speech_speed)
@@ -2036,7 +2036,7 @@ class PipelineCoordinator:
             log.info("Voiceover ran %.1fs; making it once more %.0f%% faster to fit.", seconds, (faster - 1) * 100)
             voice_inputs["speed"] = faster
             return voice_at(faster), faster
-        if seconds > HARD_DURATION_CEILING * config.SPEECH_SPEEDUP_MAX:
+        if seconds > config.VOICE_DURATION_CEILING * config.SPEECH_SPEEDUP_MAX:
             log.warning("Voiceover ran %.1fs; another take would not fit, so it is not made.", seconds)
             return words, speech_speed
         log.info("Voiceover ran %.1fs; reading it once more (takes vary), at its natural speed.", seconds)

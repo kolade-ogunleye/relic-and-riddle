@@ -10,9 +10,10 @@ from src.script_engine import HARD_DURATION_CEILING, refit_speed
 def test_an_overrun_is_refit_natively_within_the_cap(monkeypatch):
     monkeypatch.setattr(config, "SPEECH_SPEEDUP_MAX", 1.08)
     assert refit_speed(51.9) is None                                              # fits: no second take
-    s = refit_speed(53.7)
-    assert s == 1.05 and 53.7 / s < HARD_DURATION_CEILING                        # the production case, now fitting
-    assert refit_speed(53.7, speed=1.03) == 1.08                                   # compounds an earlier speed-up
+    assert refit_speed(53.7) is None                                              # under the 54.5 s voice ceiling: kept
+    s = refit_speed(56.2)
+    assert s == 1.05 and 56.2 / s < config.VOICE_DURATION_CEILING                 # past it, now fitting
+    assert refit_speed(56.2, speed=1.03) == 1.08                                   # compounds an earlier speed-up
     assert refit_speed(60.0) is None                                              # beyond the cap: still fails
 
 
@@ -43,7 +44,7 @@ def _coordinator_with_take(tmp_path, provider, seconds_seq):
 def test_an_elevenlabs_take_over_the_ceiling_is_read_again_never_stretched(tmp_path):
     # Operator, 2026-10-25: of the raw 53.8 s take and the same take stretched 4%, only the stretched one
     # sounded awkward. ElevenLabs ignores its speed setting, so an overrun gets one more natural take.
-    c, take = _coordinator_with_take(tmp_path, "elevenlabs", [52.9])
+    c, take = _coordinator_with_take(tmp_path, "elevenlabs", [55.4])  # past the 54.5 s voice ceiling
     words = [{"word": "a", "start": 10.0, "dur": 1.0}]
     retakes = []
 
@@ -53,7 +54,7 @@ def test_an_elevenlabs_take_over_the_ceiling_is_read_again_never_stretched(tmp_p
     out, speed = c._fit_take(take, words, 1.0, voice_at, {})
     assert retakes == [1.0] and speed == 1.0                                          # read again, as it is
     from src.audio_engine import AudioEngine
-    assert abs(AudioEngine.get_duration(take) - 52.9) < 0.15                          # the file was not altered
+    assert abs(AudioEngine.get_duration(take) - 55.4) < 0.15                          # the file was not altered
     assert out[0]["start"] == 9.0
     assert not hasattr(AudioEngine, "stretch_to_fit")
 
@@ -69,7 +70,7 @@ def test_a_take_that_fits_or_is_far_over_is_not_read_again(tmp_path):
 def test_a_voice_that_honours_its_rate_is_read_faster_natively(tmp_path, monkeypatch):
     from src import config
     monkeypatch.setattr(config, "SPEECH_SPEEDUP_MAX", 1.08)
-    c, take = _coordinator_with_take(tmp_path, "azure", [53.7])
+    c, take = _coordinator_with_take(tmp_path, "azure", [56.2])
     inputs, retakes = {}, []
     _, speed = c._fit_take(take, [], 1.0, lambda s: retakes.append(s) or [], inputs)
     assert retakes == [1.05] and speed == 1.05 and inputs["speed"] == 1.05
@@ -182,3 +183,13 @@ def test_a_new_voice_starts_at_the_slowest_pace_its_provider_has_shown(monkeypat
                     encoding="utf-8")
     assert audio_engine.pace_range("elevenlabs:new:m") == (0.95, 0.97)              # its own, once it has 3
     assert audio_engine.pace_ratio("azure:other") == 1.0                            # not ElevenLabs' slowness
+
+
+def test_a_take_up_to_the_voice_ceiling_is_kept_and_the_master_stays_under_the_release_limit():
+    """Operator, 2026-10-28 ("apply 54.5"): production's 52.9, 53.7 and 54.4 s takes failed after the voice was paid."""
+    from src import config, end_card, script_engine
+    assert config.HARD_DURATION_CEILING == 52.0                       # the script is still planned under 52 s
+    for take in (52.9, 53.7, 54.4, 54.5):
+        assert script_engine.duration_problem(take) is None and script_engine.refit_speed(take) is None, take
+    assert script_engine.duration_problem(54.6)                        # past it: the run's length check stops it
+    assert config.VOICE_DURATION_CEILING + end_card.SECONDS <= config.RELEASE_DURATION_MAX < 60

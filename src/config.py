@@ -267,6 +267,11 @@ TARGET_DURATION_MIN = 42.0
 TARGET_DURATION_MAX = 48.0
 HARD_DURATION_CEILING = 52.0  # longest voiceover allowed; a Reel master is the voiceover plus the end card (end_card.SECONDS)
 RELEASE_DURATION_MAX = 58.0  # release-gate tolerance for the Reel master (re-measured at publish time)
+# The longest RECORDED take kept (operator, 2026-10-28: "apply 54.5"). The script is still planned under
+# HARD_DURATION_CEILING; a take that lands past it is kept up to this, so ElevenLabs' +/-7% take spread no longer
+# fails a run after the voice is paid for (52.9, 53.7 and 54.4 s on production, 25 Oct). 54.5 s plus the 2.9 s
+# end card is a 57.4 s master: inside RELEASE_DURATION_MAX and YouTube Shorts' 60 s.
+VOICE_DURATION_CEILING = float(os.getenv("VOICE_DURATION_CEILING") or 54.5)
 TARGET_WORD_COUNT_MIN = 105  # what the writer is asked for (about 45 s at a typical pace)
 TARGET_WORD_COUNT_MAX = 115
 # Sanity bounds only: the measured spoken length decides (production 2026-10-23: at the licensed voice's

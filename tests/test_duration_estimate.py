@@ -95,7 +95,7 @@ def test_measurement_failure_returns_none(monkeypatch, real_measure):
 def test_measured_short_voiceover_fails_before_render():
     from src.script_engine import duration_problem
     assert "short" in duration_problem(config.TARGET_DURATION_MIN - 2)
-    assert duration_problem(config.HARD_DURATION_CEILING + 1)
+    assert duration_problem(config.VOICE_DURATION_CEILING + 1)  # a recorded take: its own ceiling (2026-10-28)
     assert duration_problem(45.0) is None
 
 

@@ -1334,6 +1334,19 @@ RUN_STARTING_KEY = "run_starting"  # the topic a queue Render just started, unti
 RUN_STARTING_SECONDS = 15 * 60
 
 
+def topic_refs(args: str) -> List[str]:
+    """Topic references in a /queue argument: numbers or ids separated by spaces or commas, and number ranges
+    ("7-9"; at most 50 a range). One reference for anything else."""
+    out: List[str] = []
+    for part in re.split(r"[\s,]+", (args or "").strip()):
+        m = re.fullmatch(r"(\d+)-(\d+)", part)
+        if m and int(m.group(1)) <= int(m.group(2)) <= int(m.group(1)) + 49:
+            out += [str(n) for n in range(int(m.group(1)), int(m.group(2)) + 1)]
+        elif part:
+            out.append(part)
+    return out
+
+
 def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[str]],
                          trigger_run: Callable[[], str], send_photo: Optional[SendPhoto] = None,
                          assets_dir: Path = ASSETS_DIR,
@@ -1515,6 +1528,51 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                             {"text": "📎 Copy keep command", "copy_text": {"text": f"/photos {serial} keep "}}],
                            [{"text": "🖼 Other topics", "callback_data": "reviewpick:0"}]])
 
+    def match_topic(topics, ref):
+        """A topic by its /queue number or id (the single-topic commands' own rule)."""
+        if ref.isdigit() and 0 <= int(ref) - 1 < len(topics):
+            return topics[int(ref) - 1]
+        return next((t for t in topics if t["id"].lower() == ref.lower()), None)
+
+    def queue_batch(command, refs):
+        """/queue drop|requeue|bump with several topics ("7 8 11", "7,8", "7-9"; operator, 2026-10-28). Every
+        number is resolved before anything changes, so the numbering can't shift under the batch; one /queue
+        undo reverses a whole drop."""
+        topics = db.list_all_topics()
+        found, missing = [], []
+        for ref in refs:
+            t = match_topic(topics, ref)
+            if t is None:
+                missing.append(ref)
+            elif t not in found:
+                found.append(t)
+        done, refused = [], []
+        if command == "drop_topic":
+            for t in found:
+                (done if db.drop_topic(t["id"]) else refused).append(t)
+            if done:
+                undo_stack.append({"type": "qdrop_batch", "topic_ids": [t["id"] for t in done],
+                                   "desc": f"Drop of {len(done)} topics"})
+            head = f"🗑 Archived {len(done)} topic(s) from the queue"
+        elif command == "requeue":
+            stale = stale_topics(db)
+            for t in found:
+                (done if db.requeue_topic(t["id"], stale=t["id"] in stale) else refused).append(t)
+            head = f"🔄 Restored {len(done)} topic(s) to the queue"
+        else:  # bump: the last one first, so the first one named ends up at the front
+            for t in reversed(found):
+                (done if db.bump_topic(t["id"]) else refused).append(t)
+            done.reverse()
+            head = f"🚀 Moved {len(done)} topic(s) to the front, in the order given"
+        lines = [head + (":" if done else ".")] + [f"• {html.escape(t['title'])}" for t in done]
+        if refused:
+            lines.append("\nNot changed (their state doesn't allow it): " + ", ".join(html.escape(t["title"]) for t in refused))
+        if missing:
+            lines.append("\nNot found: " + ", ".join(html.escape(m) for m in missing) + ". Send /queue for the numbers.")
+        if command == "drop_topic" and done:
+            lines.append("\n<code>/queue undo</code> restores them all.")
+        return "\n".join(lines)
+
     def handle(command: str, args: str) -> str:
         from .telegram_commands import normalise_command
         command, args = normalise_command(command, args)  # aliases and subcommands (2026-10-25 overhaul)
@@ -1594,6 +1652,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             numbers = [{"text": str(serial[t["id"]]), "callback_data": f"q{verb}:{t['id']}"} for t in shown]
             return text, ([row for row in (numbers[:4], numbers[4:]) if row] + pager(command + ":", page, pages)
                           + [[{"text": "← Queue", "callback_data": "qrefresh:"}], [HOME]])
+        if command in ("bump", "drop_topic", "requeue") and len(topic_refs(args)) > 1:
+            return queue_batch(command, topic_refs(args))
         if command == "bump":
             ref = args.strip()
             if not ref:
@@ -1650,6 +1710,10 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             if not undo_stack:
                 return "ℹ️ Nothing to undo."
             last = undo_stack.pop()
+            if last["type"] == "qdrop_batch":
+                back = [t for t in last["topic_ids"] if db.requeue_topic(t)]
+                return (f"↩️ <b>Undone:</b> {len(back)} of {len(last['topic_ids'])} topic(s) back in the queue"
+                        + ("" if len(back) == len(last["topic_ids"]) else " (the rest changed state since)") + ".")
             if last["type"] == "qdrop":
                 if not db.requeue_topic(last["topic_id"]):
                     return "Topic state changed; the old action cannot be undone."

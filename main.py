@@ -3767,6 +3767,16 @@ def main(argv=None) -> int:
 
         scheduler.add_job(report_release, "interval", minutes=5, max_instances=1, coalesce=True)
 
+        def reconcile_runs():
+            # A run whose process ended mid-way (killed, crashed) is said and cleared now, not at the next daemon
+            # start: a stopped development test sat "producing" behind a card that said "no longer current. Run
+            # status: producing" (operator, 2026-10-28). A run whose process is alive or can't be checked is untouched.
+            if run_lock.locked():
+                return  # this daemon's own run: its worker is checked by its own supervision
+            _report_interrupted(coordinator, bot)
+
+        scheduler.add_job(reconcile_runs, "interval", minutes=10, max_instances=1, coalesce=True)
+
         def watch_deployer():  # a release about to install is announced before the bot goes quiet for it
             try:
                 from src.control import deployer_notice

@@ -129,7 +129,25 @@ def test_old_progress_button_does_not_show_another_run(db):
     db.create_run("new", "02_topic")
     db.set_active_progress("new", "New topic", 2, 5)
     h = control.make_command_handler(db, lambda: None, lambda: "started")
-    assert "no longer current" in h("cprog", db.run_key("old"))
+    assert "no longer current" in h("cprog", db.run_key("old"))[0]
+
+
+def test_an_old_progress_card_says_what_became_of_its_run(db):
+    """Operator, 2026-10-28: "does the system know when an action is cancelled vs when it fails?" The card said
+    "Run status: producing" for a run whose process had been stopped from outside."""
+    db.create_run("new", "02_topic")
+    db.set_active_progress("new", "New topic", 2, 5)
+    h = control.make_command_handler(db, lambda: None, lambda: "started")
+    for run_id, status, error, words in (
+            ("gone", "producing", None, "no longer being made: the process making it ended without finishing"),
+            ("stop", "cancelled", "Cancelled by operator at a stage boundary", "ended: cancelled by operator"),
+            ("bad", "failed", "Fetched images are not reviewed", "ended: failed")):
+        db.create_run(run_id, "01_topic")
+        db.update_run(run_id, status, error=error)
+        text, buttons = h("cprog", db.run_key(run_id))
+        assert words in text and "Run status:" not in text
+        if error:
+            assert error in text                                                   # why, folded under it
 
 
 def test_generic_card_reply_does_not_silently_choose_latest_run(db, monkeypatch, tmp_path):

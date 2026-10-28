@@ -1823,8 +1823,16 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command in ("progress", "cprog"):
             active_prog = db.get_active_progress() if hasattr(db, "get_active_progress") else None
             if args and (not active_prog or db.resolve_run(args) != active_prog.get("run_id")):
-                run = db.get_run(db.resolve_run(args))
-                return "ℹ️ This progress card is no longer current. Run status: " + html.escape((run or {}).get("status", "not found"))
+                run = db.get_run(db.resolve_run(args)) or {}
+                status = run.get("status", "")
+                # What happened to it, in words: "Run status: producing" on a run nobody was making read as alive
+                # (a development test stopped from outside, 2026-10-28)
+                said = ("is no longer being made: the process making it ended without finishing. Nothing was posted; "
+                        "it is cleared within 10 minutes and its topic goes back to the queue" if status == "producing"
+                        else f"ended: {STATUS_WORDS.get(status, status)}" if status else "is no longer recorded")
+                note = f"\n<blockquote expandable>{html.escape(short_reason(run.get('error') or '', 600))}</blockquote>" if run.get("error") else ""
+                return (f"ℹ️ This progress card is no longer current: {html.escape(db.run_label(run['run_id']) if run else 'the run')} "
+                        f"{html.escape(said)}.{note}", [[HOME]])
             if not active_prog:
                 return ("⏸ <b>Nothing is being made right now</b>\n\nStart the next topic from the queue, or check "
                         "the last run in Full status.",

@@ -40,10 +40,11 @@ def test_candidates_carry_their_rights_over_https_and_respect_share_alike(monkey
              _item("http://rightsstatements.org/vocab/InC-EDU/1.0/"),
              _item("http://creativecommons.org/publicdomain/mark/1.0/", media="https://www.euscreen.eu/item.html?id=X",
                    edmIsShownBy=[])]
-    monkeypatch.setattr(museum_sources, "_get", lambda url, params=None, **k: sent.update(params) or {"items": items})
+    monkeypatch.setattr(museum_sources, "_get", lambda url, params=None, **k: sent.update(params, headers=k.get("headers")) or {"items": items})
     monkeypatch.setattr(config, "IMAGES_ALLOW_SHARE_ALIKE", False)
     found = museum_sources.europeana_search("Wieliczka")
     assert sent["reusability"] == "open" and sent["qf"] == "TYPE:IMAGE"
+    assert "wskey" not in sent and sent["headers"] == {"X-Api-Key": "k"}      # the key in its header, never in the URL
     assert [c["license"] for c in found] == ["CC BY 4.0"]                    # SA off, InC-EDU never, no file no take
     c = found[0]
     assert c["download_url"].startswith("https://fotothek.slub-dresden.de/") and c["artist"] == "Johann Smith"

@@ -98,7 +98,15 @@ def plan(env_path: Path, example_path: Path, running=running_value):
     return safe, differ, secrets, extra
 
 
-def apply(env_path: Path, missing: List[Tuple[str, str]]) -> Path:
+def blank_credentials(secrets: List[str], running=None) -> List[str]:
+    """The missing credentials that may be written as an empty line for the operator to fill in: those the code
+    runs with empty now, so a blank one means the same as none (operator, 2026-10-28: "reconcile the file", not
+    one by one). A credential with a built-in default (ELEVENLABS_VOICE_ID) is never blanked: empty would override it."""
+    running = running or running_value
+    return [k for k in secrets if running(k) == ""]
+
+
+def apply(env_path: Path, missing: List[Tuple[str, str]], blanks: List[str] = ()) -> Path:
     """Backs .env up, then appends the missing settings under a dated comment; returns the backup's path."""
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     original = env_path.read_bytes() if env_path.exists() else b""
@@ -108,6 +116,8 @@ def apply(env_path: Path, missing: List[Tuple[str, str]]) -> Path:
     newline = "\r\n" if "\r\n" in text else "\n"
     block = [f"# Added by scripts/env_reconcile.py {stamp} from .env.example (the template's values)"]
     block += [f"{k}={v}" for k, v in missing]
+    if blanks:  # empty, as the code runs now: the value is the operator's to paste after the "="
+        block += ["# Credentials to fill in (empty is the same as not set):"] + [f"{k}=" for k in blanks]
     body = text + ("" if not text or text.endswith(("\n", "\r\n")) else newline) + newline.join(block) + newline
     tmp = env_path.with_name(env_path.name + ".reconcile-tmp")
     tmp.write_bytes(body.encode("utf-8"))
@@ -138,9 +148,11 @@ def main(argv=None) -> int:
     for k in extra:
         print(f"  {k}")
     adding = missing + ([(k, v) for k, v, _ in differ] if args.include_changes else [])
-    if args.apply and adding:
-        backup = apply(args.env, adding)
-        print(f"Added {len(adding)} setting(s); the previous file is kept as {backup.name}. A restart applies them.")
+    blanks = blank_credentials(secrets, plan.__defaults__[0]) if args.apply else []  # the plan's own view of what runs now
+    if args.apply and (adding or blanks):
+        backup = apply(args.env, adding, blanks)
+        print(f"Added {len(adding)} setting(s)" + (f" and {len(blanks)} empty credential line(s) to fill in: "
+              + ", ".join(blanks) if blanks else "") + f"; the previous file is kept as {backup.name}. A restart applies them.")
     elif args.apply:
         print("Nothing to add.")
     return 0

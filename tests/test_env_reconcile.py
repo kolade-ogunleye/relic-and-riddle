@@ -113,3 +113,17 @@ def test_the_daemon_runs_the_check_at_start_and_never_on_the_real_env():
     source = Path(main.__file__).read_text(encoding="utf-8")
     assert "sync_on_start()" in source.split('if args.command == "daemon":')[1].split("bot.register_commands()")[0]
     assert env_sync.ROOT != Path(main.config.BASE_DIR)                            # the sandbox, in every test
+
+
+def test_apply_writes_empty_lines_for_credentials_that_run_empty_never_over_a_default(tmp_path, monkeypatch):
+    """Operator, 2026-10-28: "reconcile the file", the key's line there to fill in; a default is never blanked."""
+    env, example = tmp_path / ".env", tmp_path / ".env.example"
+    env.write_text("A=1\n", encoding="utf-8")
+    example.write_text("EUROPEANA_API_KEY=\nELEVENLABS_VOICE_ID=pNInz6obpgDQGcFmaJgB\n", encoding="utf-8")
+    now = {"EUROPEANA_API_KEY": "", "ELEVENLABS_VOICE_ID": "pNInz6obpgDQGcFmaJgB"}
+    monkeypatch.setattr(env_reconcile, "running_value", lambda name: now.get(name, env_reconcile.UNKNOWN))
+    monkeypatch.setattr(env_reconcile.plan, "__defaults__", (lambda name: now.get(name, env_reconcile.UNKNOWN),))
+    env_reconcile.main(["--env", str(env), "--example", str(example), "--apply"])
+    text = env.read_text(encoding="utf-8")
+    assert "\nEUROPEANA_API_KEY=\n" in text and "ELEVENLABS_VOICE_ID" not in text
+    assert text.startswith("A=1\n")

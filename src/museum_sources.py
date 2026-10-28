@@ -151,8 +151,9 @@ def europeana_search(query: str, limit: int = 12, media_type: str = "IMAGE") -> 
     from .credits import license_allowed
     if not config.EUROPEANA_API_KEY:
         return []
-    found = _get(EUROPEANA, {"wskey": config.EUROPEANA_API_KEY, "query": query, "reusability": "open", "media": "true",
-                             "qf": f"TYPE:{media_type}", "rows": limit, "profile": "rich"})
+    # The key in the X-Api-Key header: Europeana deprecated the wskey parameter, and a URL can end up in logs
+    found = _get(EUROPEANA, {"query": query, "reusability": "open", "media": "true", "qf": f"TYPE:{media_type}",
+                             "rows": limit, "profile": "rich"}, headers={"X-Api-Key": config.EUROPEANA_API_KEY})
     out = []
     for it in (found or {}).get("items") or []:
         rights = open_licence((it.get("rights") or [""])[0])

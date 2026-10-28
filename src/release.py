@@ -72,9 +72,11 @@ def write_release_report(run, dry_run=False):
             missing_description = [asset_attribution(a) for a in data["assets"]
                 if asset_attribution(a) and asset_attribution(a) not in payload.get("description", "")]
             add("description_attribution", not missing_description, missing_description)
-        from .audio_provenance import inspect_audio_rights
+        from .audio_provenance import inspect_audio_rights, rebind_rights
         for key, kind in (("voiceover", "voice"), ("ambient_bed", "music")):
             audio = data.get(key)
+            if audio:  # a copy carried before rc66 still names its first run's folder: rebound when the bytes
+                rebind_rights(Path(audio["path"]))  # match (production Amber Room, reopened 2026-10-28)
             ok, evidence = inspect_audio_rights(Path(audio["path"]), kind, payload.get("caption", ""),
                                                       script=payload.get("narration_script") if kind == "voice" else None) if audio else (
                 False, "Required audio is absent from provenance")

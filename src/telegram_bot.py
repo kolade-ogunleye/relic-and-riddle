@@ -1241,6 +1241,15 @@ class TelegramApprovalBot:
             release = json.loads(report_file.read_text(encoding="utf-8")) if report_file.exists() else None
         except (OSError, ValueError) as e:
             log.warning("Could not read the release report for the review card: %s", e)
+        if release is not None:
+            try:  # the gate as it stands now: a card reopened after a fix showed the old verdict (Amber Room,
+                # regenerated 26 Oct, blocked again on 28 Oct by its pre-rc66 rights record)
+                from .release import write_release_report
+                run = self.db.get_run(run_id) if hasattr(self.db, "get_run") else None
+                if run and run.get("master_video_path"):
+                    release = write_release_report(run, dry_run=bool(release.get("dry_run")))
+            except Exception as e:  # never lose the card over it: the saved verdict stands
+                log.warning("Could not re-check the release gate for the review card: %s", e)
         from .telegram_state import review_fingerprint, put, get as get_state
         earlier = get_state(self.db, "review-messages", run_id) or []  # the previous delivery's card and albums
         media_ids: List[int] = []

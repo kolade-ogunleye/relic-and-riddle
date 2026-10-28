@@ -98,3 +98,18 @@ def test_the_daemon_chains_a_produce_batch_after_each_clean_run(monkeypatch):
     produce(2)
     run_pending()
     assert settings["produce_remaining"] == "0" and any("Batch production stopped" in n for n in notices)
+    # Production, 2026-10-28: a resumed review wait (rejecting a 2-day-old card) never moves a batch on, and a batch
+    # left over for days is dropped, not continued
+    import datetime as _dt
+    monkeypatch.setattr(main, "run_in_worker", lambda *a, **k: worker_calls.append(a) or {"status": "rejected"})
+    produce(2)                                                           # a fresh batch: 1 left after the first
+    production_run = next(f for f, t, k in scheduler.jobs if t is None and f.__name__ == "production_run")
+    scheduler.jobs = []
+    production_run(manual=True, resume="run_old_review")                 # an old review's wait ends: rejected
+    assert settings["produce_remaining"] == "1" and not scheduler.jobs   # the batch did not move
+    settings["produce_started_at"] = (_dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(hours=30)).isoformat()
+    production_run(manual=True)                                          # a new episode, but the batch is stale
+    assert settings["produce_remaining"] == "0" and not scheduler.jobs
+    settings.pop("produce_started_at")
+    assert main.batch_expired(db) is True                                # a batch from before the start was recorded
+    assert any("is queued" in n for n in notices) and not any("is starting" in n for n in notices)

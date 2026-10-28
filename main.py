@@ -3210,6 +3210,22 @@ def regeneration_plan(fb: Dict[str, Any]) -> str:
             + (" carries" if reason == "sound" else " and music bed carry") + " over." + redo)
 
 
+BATCH_STARTED_KEY = "produce_started_at"
+BATCH_MAX_HOURS = 24  # a /produce batch is for now: one left over for days is dropped, not continued
+
+
+def batch_expired(db) -> bool:
+    """Whether the /produce batch in the settings is older than BATCH_MAX_HOURS (or has no start recorded: a
+    batch from before 2026-10-28 is treated as expired)."""
+    try:
+        started = datetime.fromisoformat(db.get_setting(BATCH_STARTED_KEY) or "")
+    except (TypeError, ValueError, AttributeError):
+        return True
+    if started.tzinfo is None:
+        started = started.replace(tzinfo=timezone.utc)
+    return datetime.now(timezone.utc) - started > timedelta(hours=BATCH_MAX_HOURS)
+
+
 def resume_mode(db, run_id: str, dry_run: bool) -> bool:
     """The mode a resumed run continues in. In development, as it was made (a dry run never posts by
     surprise). In production there is no dry run (operator, 2026-10-25): a run made before the activation
@@ -3763,10 +3779,13 @@ def main(argv=None) -> int:
                         remaining = int(getattr(db, "get_setting", lambda key: None)(PRODUCE_KEY) or 0)
                     except (TypeError, ValueError, AttributeError):
                         remaining = 0
-                    if remaining > 0 and rc == 0 and not cleared:
+                    if remaining > 0 and rc == 0 and not cleared and batch_expired(db):
+                        db.set_setting(PRODUCE_KEY, "0")
+                    elif remaining > 0 and rc == 0 and not cleared:
                         db.set_setting(PRODUCE_KEY, str(remaining - 1))
                         threading.Timer(5, launch_worker).start()  # after this lock is released
-                        bot.notify(f"🎬 Next episode of the batch is starting ({remaining - 1} more after it).")
+                        bot.notify(f"🎬 Next episode of the batch is queued ({remaining - 1} more after it); its "
+                                   "progress card shows when it starts.")
                     elif remaining > 0:
                         db.set_setting(PRODUCE_KEY, "0")
                         bot.notify("⏹ Batch production stopped: the last episode did not finish cleanly.")
@@ -3801,6 +3820,7 @@ def main(argv=None) -> int:
             one worker at a time; each comes to review, and the next starts once that worker has ended
             cleanly, i.e. after your decision."""
             db.set_setting(PRODUCE_KEY, str(max(0, n - 1)))
+            db.set_setting(BATCH_STARTED_KEY, datetime.now(timezone.utc).isoformat())
             started = launch_worker()
             if "already in progress" in started:
                 db.set_setting(PRODUCE_KEY, "0")
@@ -3896,20 +3916,29 @@ def main(argv=None) -> int:
 
         PRODUCE_KEY = "produce_remaining"  # episodes still to start in a /produce batch
 
-        def continue_batch(status: Optional[str]) -> None:
+        def continue_batch(status: Optional[str], resumed: bool = False) -> None:
             """/produce N in the daemon (operator, 2026-10-25: "bot says I don't know /produce"; production runs the
             daemon, where the batch was never wired): the next episode starts once this run's worker has ended
-            cleanly, which is after the operator's decision on its review; a crash or an empty queue ends the batch."""
+            cleanly, which is after the operator's decision on its review; a crash or an empty queue ends the batch.
+            Only the batch's own new episodes move it on: rejecting a 2-day-old Richat card, followed by a resumed
+            review wait, started a forgotten batch's last episode (production, 2026-10-28)."""
             try:
                 remaining = int(coordinator.db.get_setting(PRODUCE_KEY) or 0)
             except (TypeError, ValueError, AttributeError):
                 remaining = 0
-            if remaining <= 0:
+            if remaining <= 0 or resumed:
+                return
+            if batch_expired(coordinator.db):
+                coordinator.db.set_setting(PRODUCE_KEY, "0")
+                log.info("A /produce batch older than %d h was dropped instead of continued.", BATCH_MAX_HOURS)
                 return
             if status in ("published", "simulated", "rejected", "scheduled"):
                 coordinator.db.set_setting(PRODUCE_KEY, str(remaining - 1))
                 scheduler.add_job(production_run, kwargs={"manual": True})
-                bot.notify(f"🎬 Next episode of the batch is starting ({remaining - 1} more after it).")
+                # Queued, which is all that is known here: the run itself says when it starts (a release install
+                # restarted the daemon a minute after this said "starting", and nothing started; 2026-10-28)
+                bot.notify(f"🎬 Next episode of the batch is queued ({remaining - 1} more after it); its progress "
+                           "card shows when it starts.")
             else:
                 coordinator.db.set_setting(PRODUCE_KEY, "0")
                 bot.notify("⏹ Batch production stopped: the last episode did not finish cleanly.")
@@ -3957,12 +3986,13 @@ def main(argv=None) -> int:
             finally:
                 run_lock.release()
                 try:
-                    continue_batch(status)
+                    continue_batch(status, resumed=resume is not None)
                 except Exception as e:
                     log.warning("Batch continuation failed: %s", e)
 
         def produce_batch(n: int) -> str:
             coordinator.db.set_setting(PRODUCE_KEY, str(max(0, n - 1)))
+            coordinator.db.set_setting(BATCH_STARTED_KEY, datetime.now(timezone.utc).isoformat())
             started = trigger_run()
             if "already in progress" in started:
                 coordinator.db.set_setting(PRODUCE_KEY, "0")

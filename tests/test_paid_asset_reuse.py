@@ -212,3 +212,21 @@ def test_a_carried_voiceover_passes_the_release_rights_check_and_a_changed_one_s
     assert rebind_rights(other / "voiceover.mp3") is False
     assert inspect_audio_rights(other / "voiceover.mp3", "voice", "", script="Same words.") == (
         False, "Audio changed after rights evidence was recorded")
+
+
+def test_a_run_carried_before_the_fix_passes_when_the_gate_checks_it_again(tmp_path):
+    """Production Amber Room (regenerated 26 Oct, reopened 28 Oct): its saved rights record still named the first
+    run's folder. The release gate rebinds a byte-identical copy itself; a changed file still fails."""
+    from src.audio_provenance import inspect_audio_rights, rebind_rights, record_voice
+    first, second = tmp_path / "run_a", tmp_path / "run_b"
+    first.mkdir(), second.mkdir()
+    (first / "voiceover.mp3").write_bytes(b"take")
+    record_voice(first / "voiceover.mp3", "elevenlabs", True, "Words.")
+    for n in ("voiceover.mp3", "voiceover.mp3.rights.json"):  # the pre-rc66 carry-over: copied as they were
+        (second / n).write_bytes((first / n).read_bytes())
+    assert inspect_audio_rights(second / "voiceover.mp3", "voice", "", script="Words.")[0] is False
+    import inspect
+    from src import release
+    assert "rebind_rights(Path(audio[\"path\"]))" in inspect.getsource(release.write_release_report)
+    rebind_rights(second / "voiceover.mp3")
+    assert inspect_audio_rights(second / "voiceover.mp3", "voice", "", script="Words.")[0] is True

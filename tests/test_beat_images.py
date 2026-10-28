@@ -214,7 +214,7 @@ def test_topic_photos_with_printed_text_are_set_aside_once_and_cached(monkeypatc
         photos.append(p)
     looks = []
 
-    def look(path, query):
+    def look(path, query, size=512):
         looks.append(path.name)
         return {"checked": True, "shows": True, "burned_in_text": path.name.startswith("03"), "reason": "a placard"}
     monkeypatch.setattr(beat_images, "picture_look", look)

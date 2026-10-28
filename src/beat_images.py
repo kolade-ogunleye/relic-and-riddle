@@ -12,7 +12,7 @@ reviewer sees them in the video before approving. CC BY images are credited.
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 from PIL import Image
@@ -43,21 +43,43 @@ def verify_visual_relevance(cand_title: str, query: str = "") -> bool:
 class PictureVerdict(BaseModel):
     shows_subject: bool       # the picture shows what was searched for
     burned_in_text: bool = False  # a caption strip, scale bar, watermark, logo or other text printed into the picture
+    # What the text is and where (2026-10-28): the run log said "set aside, it does not show the subject (burned-in
+    # text: <a sentence about the subject>)" for a photo set aside for its museum label (Trepanation, Hal Saflieni).
+    text_reason: str = ""
+    text_edge: str = "none"   # "top"/"bottom"/"left"/"right": all of the text lies in a band along that edge; "inside"
+    text_box: List[float] = []  # [ymin, xmin, ymax, xmax] around all of the text, 0-1000
     reason: str               # one short sentence, from the picture itself
 
 
 PICTURE_SYSTEM = ("You judge whether a photograph shows the subject a documentary beat was looking for. Judge the picture "
                   "itself, not its title. A reconstruction, model, diagram, excavation or museum display of the subject "
                   "counts; an unrelated place or building, a modern street, people posing, signage or a souvenir does not. "
-                  "Also say whether text is printed into the picture itself (a caption strip, a scale bar with units, a "
-                  "watermark, a logo, a date stamp): such a picture is cropped on screen and the text shows cut off.")
+                  "Also say whether text is printed into or shown in the picture itself (a caption strip, a scale bar with "
+                  "units, a watermark, a logo, a date stamp, a museum label, placard or specimen tag, an accession or "
+                  "catalogue number on a tag): such a picture is cropped on screen and the text shows cut off. "
+                  "An inscription that is part of the subject (carved on a monument, written on a manuscript page) is not "
+                  "printed text. When there is text: text_reason says what it is and where; text_edge is \"top\", "
+                  "\"bottom\", \"left\" or \"right\" when all of it lies in a band along that edge of the picture, "
+                  "otherwise \"inside\"; text_box is [ymin, xmin, ymax, xmax] around all of it, as integers from 0 to "
+                  "1000. reason is about the subject only.")
 
 
 UNAVAILABLE = "not looked at: the picture check could not run"
 
 
-def picture_look(path: Path, query: str) -> Dict[str, Any]:
-    """One look at the pixels: {"checked", "shows", "burned_in_text", "reason"}. A check that fails is asked once
+def _text_fields(verdict: "PictureVerdict") -> Dict[str, Any]:
+    edge = (verdict.text_edge or "none").strip().lower()
+    box = list(verdict.text_box or [])
+    ok_box = len(box) == 4 and all(isinstance(v, (int, float)) and 0 <= v <= 1000 for v in box) \
+        and box[0] < box[2] and box[1] < box[3]
+    return {"text_reason": (verdict.text_reason or "").strip(),
+            "text_edge": edge if edge in ("top", "bottom", "left", "right", "inside") else "none",
+            "text_box": [int(v) for v in box] if ok_box else []}
+
+
+def picture_look(path: Path, query: str, size: int = 512) -> Dict[str, Any]:
+    """One look at the pixels: {"checked", "shows", "burned_in_text", "reason", "text_reason", "text_edge",
+    "text_box"}, the picture sent at `size` px on its long side. A check that fails is asked once
     more; one that still cannot run says checked False and shows False: a picture nobody looked at is not used
     (operator, 2026-10-27: it was kept as showing its subject, and the gate is to be enforced). Turning the check
     off (PICTURE_VISION_CHECK=false) is the only way a picture goes unlooked at."""
@@ -66,7 +88,7 @@ def picture_look(path: Path, query: str) -> Dict[str, Any]:
     from . import free_llm
     from .llm import image_block
     import time
-    content = [{"type": "text", "text": f"Searched for: {query}\nDoes this picture show it?"}, image_block(path, 512)]
+    content = [{"type": "text", "text": f"Searched for: {query}\nDoes this picture show it?"}, image_block(path, size)]
     for attempt in (1, 2):
         try:
             if free_llm.claude_engine():
@@ -83,7 +105,7 @@ def picture_look(path: Path, query: str) -> Dict[str, Any]:
             log.warning("Picture check for %s could not run (%s); the picture is not used.", path.name, e)
             return {"checked": False, "shows": False, "burned_in_text": False, "reason": UNAVAILABLE}
     return {"checked": True, "shows": bool(verdict.shows_subject), "burned_in_text": bool(verdict.burned_in_text),
-            "reason": (verdict.reason or "").strip()}  # whole: the card folds it
+            "reason": (verdict.reason or "").strip(), **_text_fields(verdict)}  # whole: the card folds it
 
 
 UNCHECKED_FILE = "set_aside_unchecked.json"
@@ -116,8 +138,11 @@ def picture_shows(path: Path, query: str) -> Tuple[bool, str]:
     slide, 2026-10-25)."""
     look = picture_look(path, query)
     if look["burned_in_text"]:
-        return False, "burned-in text: " + look["reason"]
+        return False, TEXT_PREFIX + (look.get("text_reason") or look["reason"])
     return look["shows"], look["reason"]
+
+
+TEXT_PREFIX = "burned-in text: "
 
 
 @llm_task("beat_queries")
@@ -230,7 +255,11 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
                     dest.unlink(missing_ok=True)
                     continue
                 if not shows:  # the pixels say otherwise: not this one
-                    log.info("Beat %d: %r set aside, it does not show the subject (%s).", item.beat, cand["title"][:70], why)
+                    if why.startswith(TEXT_PREFIX):
+                        log.info("Beat %d: %r set aside, it has text printed into it (%s).", item.beat, cand["title"][:70],
+                                 why[len(TEXT_PREFIX):])
+                    else:
+                        log.info("Beat %d: %r set aside, it does not show the subject (%s).", item.beat, cand["title"][:70], why)
                     dest.unlink(missing_ok=True)
                     looked_away += 1
                     continue
@@ -326,15 +355,77 @@ def mismatched_beats(report) -> List[int]:
     return sorted({i.beat for i in _picture_findings(report)})
 
 
-TEXT_SCREEN_FILE = ".picture_text.json"  # per topic folder: {sha256: {"text": bool, "reason": str}}
+TEXT_SCREEN_FILE = ".picture_text.json"  # per topic folder: {sha256: {"text": bool, "reason": str, ...}}
+# Screen 2 (2026-10-28): the picture is sent at 1024 px, not 512, and museum labels and accession numbers are named:
+# at 512 px Trepanation photo 14 (Wellcome L0035690, "A650847" on a label at the bottom edge) was screened text: False
+# and the late judge blocked the run. Verdicts from an older screen are looked at again, once.
+TEXT_SCREEN_VERSION = 2
+TEXT_SCREEN_SIZE = 1024   # the same light-model call; the picture costs about four times the image tokens
+# Text in a band along one edge (a label under a specimen, a logo in a corner strip, a scale bar) is cropped away
+# rather than the photo dropped (production Richat x3, Hal Saflieni, dev Trepanation, 2026-10-26/27). Trepanation
+# photo 14's label starts 87% of the way down, so the band is 15%, not 12%.
+TEXT_CROP_MAX = 0.15       # of the side the band is cut from
+TEXT_CROP_MARGIN = 0.015   # beyond the text box: its estimate is approximate
+TEXT_CROP_DIR = config.BASE_DIR / "cache" / "text_crop"
+
+
+def _crop_band(edge: str, box: List[int]) -> float:
+    """The fraction of the picture to cut from `edge` to remove all of the text in `box` (0-1000)."""
+    ymin, xmin, ymax, xmax = (v / 1000 for v in box)
+    return {"bottom": 1 - ymin, "top": ymax, "right": 1 - xmin, "left": xmax}[edge] + TEXT_CROP_MARGIN
+
+
+def crop_text_band(path: Path, edge: str, box: List[int]) -> Optional[Path]:
+    """A copy of `path` without the band along `edge` that holds the text in `box`, or None when the text is not
+    in an edge band of at most TEXT_CROP_MAX, or the copy would fall below the resolution a found photo needs
+    (src/commons.py) while the original met it. The copy keeps its file name (an approved storyboard and the
+    strong-photo list match by name and stem), sits in its own folder under cache/text_crop, and records its
+    source (src/lineage.py), so its credit and rights evidence resolve to the original."""
+    from . import commons
+    from .credits import sha256_file
+    from .lineage import record_derived, source_chain
+    import hashlib
+    path = Path(path)
+    if edge not in ("top", "bottom", "left", "right") or len(box) != 4:
+        return None
+    cut = _crop_band(edge, box)
+    if cut <= TEXT_CROP_MARGIN or cut > TEXT_CROP_MAX:
+        return None
+    with Image.open(path) as im:
+        w, h = im.size
+        k = int(round(cut * (h if edge in ("top", "bottom") else w)))
+        area = {"bottom": (0, 0, w, h - k), "top": (0, k, w, h), "right": (0, 0, w - k, h), "left": (k, 0, w, h)}[edge]
+        cw, ch = area[2] - area[0], area[3] - area[1]
+        met = w * h >= commons.MIN_PIXELS and h >= commons.MIN_HEIGHT
+        if met and not (cw * ch >= commons.MIN_PIXELS and ch >= commons.MIN_HEIGHT):
+            return None
+        settings = {"edge": edge, "fraction": round(cut, 4), "text_box": list(box), "pixels": list(area)}
+        key = hashlib.sha256(f"{sha256_file(path)}|{edge}|{k}".encode()).hexdigest()[:16]
+        out = TEXT_CROP_DIR / key / path.name
+        if out.is_file():
+            try:
+                if source_chain(out):
+                    return out
+            except (ValueError, KeyError, OSError):
+                pass
+        out.parent.mkdir(parents=True, exist_ok=True)
+        cropped = im.crop(area)
+        extra = {k2: im.info[k2] for k2 in ("exif", "icc_profile") if im.info.get(k2)}  # same orientation, colours
+        if path.suffix.lower() in (".jpg", ".jpeg"):
+            cropped.convert("RGB").save(out, "JPEG", quality=95, **extra)
+        else:
+            cropped.save(out, **extra)
+    record_derived(out, [path], "text_crop", settings)
+    return out
 
 
 def without_burned_in_text(photos: List[Path], subject: str, minimum: int) -> List[Path]:
     """The topic's reviewed photos without those that carry text printed into the picture (a museum placard,
     a caption strip, a scale bar): cropped on screen, the text shows cut off or under the captions (the
-    Tunguska development run, 2026-10-25). Each photo is looked at once; the verdict is cached beside it by
-    its hash, so later runs pay nothing. Videos are kept. Never leaves fewer than `minimum` items: when it
-    would, the photos stay and the run log says which carry text."""
+    Tunguska development run, 2026-10-25). Text in a band along one edge is cropped away instead (the copy is
+    looked at again, and used only when its text is gone). Each photo is looked at once; the verdict is cached
+    beside it by its hash, so later runs pay nothing. Videos are kept. Never leaves fewer than `minimum` items:
+    when it would, the photos stay and the run log says which carry text."""
     from .credits import sha256_file
     import json as _json
     if not config.PICTURE_VISION_CHECK or not photos:
@@ -345,29 +436,55 @@ def without_burned_in_text(photos: List[Path], subject: str, minimum: int) -> Li
         cache = _json.loads(cache_path.read_text(encoding="utf-8")) if cache_path.exists() else {}
     except (OSError, ValueError):
         cache = {}
-    flagged, changed = [], False
+    changed = False
+
+    def verdict_for(p: Path) -> Optional[Dict[str, Any]]:
+        nonlocal changed
+        digest = sha256_file(p)
+        verdict = cache.get(digest)
+        if verdict is None or verdict.get("screen", 1) < TEXT_SCREEN_VERSION:
+            look = picture_look(p, subject, TEXT_SCREEN_SIZE)
+            if not look["checked"]:
+                return verdict  # not looked at: an older verdict stands, or none (kept, asked again next time)
+            text = bool(look["burned_in_text"])
+            verdict = {"text": text, "reason": (look.get("text_reason") or look["reason"]) if text else look["reason"],
+                       "edge": look.get("text_edge", "none"), "box": look.get("text_box", []),
+                       "screen": TEXT_SCREEN_VERSION}
+            cache[digest], changed = verdict, True
+        return verdict
+
+    flagged, cropped = [], {}
     for p in photos:
         p = Path(p)
         if p.suffix.lower() not in (".jpg", ".jpeg", ".png", ".webp") or not p.is_file():
             continue
-        digest = sha256_file(p)
-        verdict = cache.get(digest)
-        if verdict is None:
-            look = picture_look(p, subject)
-            if not look["checked"]:
-                continue  # not looked at: kept, and asked again next time
-            verdict = {"text": bool(look["burned_in_text"]), "reason": look["reason"]}
-            cache[digest], changed = verdict, True
-        if verdict.get("text"):
-            flagged.append((p, verdict.get("reason", "")))
+        verdict = verdict_for(p)
+        if not verdict or not verdict.get("text"):
+            continue
+        crop = None
+        try:
+            crop = crop_text_band(p, verdict.get("edge", "none"), verdict.get("box") or [])
+        except (OSError, ValueError) as e:
+            log.info("Photo %s: its text band could not be cropped (%s).", p.name, e)
+        if crop is not None:
+            again = verdict_for(crop)
+            if again and not again.get("text"):
+                cropped[p] = crop
+                log.info("Photo %s has text printed into it (%s); cropped away: the %s %.0f%%.", p.name,
+                         verdict.get("reason", ""), verdict["edge"], 100 * _crop_band(verdict["edge"], verdict["box"]))
+                continue
+            log.info("Photo %s: text is still there after its %s band was cropped (%s).", p.name, verdict["edge"],
+                     (again or {}).get("reason", "not looked at"))
+        flagged.append((p, verdict.get("reason", "")))
     if changed:
         try:
             with open(cache_path, "w", encoding="utf-8", newline="\n") as handle:
                 handle.write(_json.dumps(cache, indent=1))
         except OSError as e:
             log.debug("Could not save the picture-text screen: %s", e)
-    kept = [p for p in photos if Path(p) not in {f for f, _ in flagged}]
+    out = [cropped.get(Path(p), p) for p in photos]
+    kept = [p for p in out if Path(p) not in {f for f, _ in flagged}]
     for p, why in flagged:
         log.info("Photo %s has text printed into it (%s)%s.", p.name, why,
                  "; set aside" if len(kept) >= minimum else "; kept, too few photos otherwise")
-    return kept if len(kept) >= minimum else list(photos)
+    return kept if len(kept) >= minimum else out

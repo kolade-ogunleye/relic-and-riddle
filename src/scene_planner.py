@@ -102,8 +102,21 @@ def _is_graphic(p: Path) -> bool:
 
 
 def _photo_caption(p: Path) -> str:
-    """The archive caption of a sourced photo, from the credits.json beside it ("" if none)."""
-    entry = next((e for e in _folder_credits(str(Path(p).parent)) if e.get("file") == Path(p).name), None)
+    """The archive caption of a sourced photo, from the credits.json beside it ("" if none). A derived copy
+    (text-band crop, privacy blur, upscale) has no credits beside it: its lineage leads back to the original
+    (the planner chose cropped photos blind, audit 2026-10-28)."""
+    p = Path(p)
+    entry = None
+    for _ in range(4):
+        entry = next((e for e in _folder_credits(str(p.parent)) if e.get("file") == p.name), None)
+        if entry:
+            break
+        try:
+            from .lineage import sidecar
+            sources = json.loads(sidecar(p).read_text(encoding="utf-8")).get("sources") or []
+            p = Path(sources[0]["path"])
+        except (OSError, ValueError, KeyError, IndexError, TypeError):
+            break
     if not entry:
         return ""
     crowded = (entry.get("vision_review") or {}).get("people_prominent")
@@ -422,6 +435,165 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
     if hook is not None:
         chosen[0] = hook
     return chosen, durations, notes
+
+
+FIT_NOTE_LABEL = "🖼 Pictures checked against their lines before the render"
+FIT_NOTE_MAX_BEATS = 4   # beats named on the card; the rest are counted
+
+
+def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Path], subject: str,
+                 durations: Optional[List[float]] = None, line_beat: Optional[Dict[Path, int]] = None,
+                 cancel=None, max_calls: Optional[int] = None, swaps: Optional[int] = None) -> Tuple[List[Path], Dict[str, Any]]:
+    """Each photo beat's picture judged against its own line before the render (render audit 2026-10-28), with a
+    bounded repair. Returns (scenes, report).
+
+    Judged: every beat after the hook whose pick is a still. Not judged: the hook (the opening shot is the
+    topic's strongest picture whatever the first line says), our own graphics and real footage (clips: a
+    graphic is placed by the words it declares, src/graphic_match.py), and AI motion (made after this).
+    A picture that does not show what its line says is repaired, in order:
+      1. another unused still from `pool` (what the planner chose from) that does show it, the photos found
+         for that line first (`line_beat`: still -> 1-based beat it was fetched for), at most `swaps` tried;
+      2. one of our unplaced graphics whose declared words the line says, within the graphics caps;
+      3. the previous beat's still, held (it was judged right for its own line, and is not itself held),
+         so the shot carries on rather than a picture of something else being asserted under the line;
+    otherwise the pick stays. Every beat repaired by 3 or not at all is listed in report["unshown"], for the
+    review card and the findings. The judge after the render stays the final gate.
+
+    Verdicts are cached by photo hash and line (src/beat_images.py): a resumed or re-rendered run makes no new
+    call. New calls are serial (the free tier's rule) and stop at `max_calls`; a check that cannot run stops the
+    rest (the light model is down: each further try would wait out its retry) and the plan is kept."""
+    from . import beat_images
+    out = [Path(p) for p in scenes]
+    report: Dict[str, Any] = {"judged": 0, "cached": 0, "swapped": [], "graphic": [], "held": [], "unshown": [],
+                              "stopped": ""}
+    if not config.PICTURE_VISION_CHECK or not getattr(config, "PRE_RENDER_PICTURE_FIT", True):
+        report["stopped"] = "off"
+        return out, report
+    max_calls = int(getattr(config, "PICTURE_FIT_MAX_CALLS", 30) if max_calls is None else max_calls)
+    swaps = int(getattr(config, "PICTURE_FIT_SWAPS", 3) if swaps is None else swaps)
+    line_beat = {Path(k): v for k, v in (line_beat or {}).items()}
+    durations = list(durations or [b.get("end", 0) - b.get("start", 0) for b in beats])
+    cache = beat_images.load_fit_cache()
+    fits_at: Dict[int, bool] = {}   # beat index -> its final picture was judged right for its line
+    held: set = set()
+
+    def still(p: Path) -> bool:
+        return not is_video(p) and Path(p).is_file()
+
+    def verdict(p: Path, line: str) -> Optional[Dict[str, Any]]:
+        if report["stopped"]:
+            return None
+        key_known = beat_images.fit_key(_digest(p), line) in cache
+        if not key_known:
+            if report["judged"] >= max_calls:
+                report["stopped"] = f"call budget ({max_calls}) reached"
+                log.info("Picture-line check: %s; the remaining beats keep the plan.", report["stopped"])
+                return None
+            if cancel is not None:
+                cancel()
+        v = beat_images.line_fit(p, line, subject, cache)
+        if v is None:
+            if not key_known:
+                report["stopped"] = "the picture check could not run"
+                log.warning("Picture-line check stopped: %s; the plan is kept (the video check still looks).",
+                            report["stopped"])
+            return None
+        report["cached" if v["cached"] else "judged"] += 1
+        return v
+
+    try:
+        for k in range(1, min(len(out), len(beats))):
+            line = (beats[k].get("text") or "").strip()
+            pick = out[k]
+            if not line or not still(pick):
+                continue
+            first = verdict(pick, line)
+            if first is None:
+                if report["stopped"]:
+                    break
+                continue
+            if first["fits"]:
+                fits_at[k] = True
+                continue
+            log.info("Beat %d: %s does not show its line %r (%s).", k + 1, pick.name, clip(line), first["reason"])
+            # 1. another unused still that shows the line: those fetched for this line first, then pool order
+            in_use = set(out)
+            spare = [Path(p) for p in pool if still(Path(p)) and Path(p) not in in_use]
+            spare.sort(key=lambda p: 0 if line_beat.get(p) == k + 1 else 1)  # stable: pool order otherwise
+            swapped = None
+            for cand in spare[:swaps]:
+                v = verdict(cand, line)
+                if v is None:
+                    if report["stopped"]:
+                        break
+                    continue
+                if v["fits"]:
+                    swapped = cand
+                    break
+            if swapped is not None:
+                out[k], fits_at[k] = swapped, True
+                report["swapped"].append({"beat": k + 1, "from": pick.name, "to": swapped.name})
+                log.info("Beat %d: %s swapped in, it shows the line.", k + 1, swapped.name)
+                continue
+            if report["stopped"]:
+                break
+            # 2. one of our own graphics that says what the line says, if the caps allow it
+            graphic = next((g for g in pool if _is_graphic(Path(g)) and Path(g).stem.startswith("graphic_")
+                            and Path(g) not in in_use
+                            and graphic_match.judgeable(Path(g))  # one that declares nothing is never "what the line says"
+                            and graphic_match.score(Path(g), line) >= graphic_match.THRESHOLD), None)
+            if graphic is not None:
+                trial = list(out)
+                trial[k] = Path(graphic)
+                if _graphics_count(trial) <= MAX_GRAPHICS and _graphics_share(trial, durations) <= GRAPHICS_MAX_SHARE:
+                    out[k] = Path(graphic)
+                    report["graphic"].append({"beat": k + 1, "from": pick.name, "to": Path(graphic).name})
+                    log.info("Beat %d: our %s graphic placed, it says what the line says.", k + 1, Path(graphic).stem)
+                    continue
+            # 3. the previous beat's still held, when it was right for its own line and is not itself held
+            entry = {"beat": k + 1, "line": line, "picture": pick.name, "reason": first["reason"], "fallback": "kept"}
+            prev = out[k - 1]
+            if fits_at.get(k - 1) and still(prev) and (k - 1) not in held:
+                out[k], entry["fallback"] = prev, "held"
+                held.add(k)
+                report["held"].append({"beat": k + 1, "from": pick.name, "to": prev.name})
+                log.info("Beat %d: no picture shows its line; the previous shot (%s) is held.", k + 1, prev.name)
+            report["unshown"].append(entry)
+    finally:
+        if report["judged"]:
+            beat_images.save_fit_cache(cache)
+    return out, report
+
+
+def _digest(p: Path) -> str:
+    from .credits import sha256_file
+    return sha256_file(p)
+
+
+def clip(text: str, n: int = 90) -> str:
+    text = " ".join((text or "").split())
+    return text if len(text) <= n else text[:n - 1].rstrip() + "…"
+
+
+def fit_note(report: Dict[str, Any]) -> str:
+    """The review card's line for the beats no picture shows ("" when every judged beat has one)."""
+    unshown = (report or {}).get("unshown") or []
+    if not unshown:
+        return ""
+    said = []
+    for u in unshown[:FIT_NOTE_MAX_BEATS]:
+        how = "the previous shot is repeated, reframed" if u.get("fallback") == "held" else f"{u.get('picture', 'its photo')} kept"
+        said.append(f"beat {u['beat']}: “{clip(u.get('line', ''), 70)}”: no licensed photo shows it ({how})")
+    more = len(unshown) - FIT_NOTE_MAX_BEATS
+    return (f"{FIT_NOTE_LABEL}: " + "; ".join(said) + (f"; and {more} more" if more > 0 else "")
+            + ". Reword or drop the line(s) with Regenerate, or add a photo that shows it.")
+
+
+def fit_findings(report: Dict[str, Any]) -> List[str]:
+    """One finding text per beat no picture shows, for improve.note (class video.picture_relevance)."""
+    return [f"beat {u['beat']}: '{clip(u.get('line', ''), 120)}': no licensed photo shows it "
+            f"({'previous shot held' if u.get('fallback') == 'held' else u.get('picture', '') + ' kept'}; "
+            f"{clip(u.get('reason', ''), 160)})" for u in (report or {}).get("unshown") or []]
 
 
 def no_repeats(chosen: List[Path], stills: List[Path]) -> List[Path]:

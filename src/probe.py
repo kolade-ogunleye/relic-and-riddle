@@ -30,7 +30,7 @@ from .db import PipelineDatabase
 log = logging.getLogger(__name__)
 
 NOTE_KEYS = ("fact_sheet_note", "voice_note", "music_note", "motion_note", "graphics_note", "footage_note",
-             "beat_image_note", "source_note")
+             "beat_image_note", "source_note", "picture_lines_note")
 USAGE = ("🔍 <b>Ask the studio</b>\n\n"
          "✍️ <b>Type your question now</b> and send it as a message (within 10 minutes), or copy an example:\n\n"
          "<code>/ask how many music tracks are approved?</code>\n"

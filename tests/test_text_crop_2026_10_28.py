@@ -235,3 +235,94 @@ def test_trepanation_photo_14_label_is_cropped_away(tmp_path):
     with Image.open(TREPANATION) as a, Image.open(out) as b:
         assert b.size == (a.width, round(a.height * (1 - 0.144)))
         assert b.height >= 1000 and b.height < 0.871 * a.height   # no row of the card is left
+
+
+# ---------------------------------------------------------------- the photos found per beat (audit 2026-10-28)
+# The beat search set a found picture with a label strip aside at 512 px, uncropped; it now takes the pool screen's
+# look: 1024 px, the edge band cropped away (crop_text_band) and the copy looked at again.
+def _beat_search(monkeypatch, tmp_path, label=True):
+    from src.models import BeatQueries, BeatQuery
+    monkeypatch.setattr("src.free_llm.ready", lambda: True)
+    monkeypatch.setattr(beat_images, "plan_queries", lambda b, t: BeatQueries(items=[
+        BeatQuery(beat=1, query="trephined skull", keywords=["skull"])]))
+    monkeypatch.setattr(beat_images.commons, "search", lambda q, limit, max_wait: [q])
+    cand = {"title": "File:Trephined skull.jpg", "download_url": "https://x/a", "source_url": "https://x/a.html",
+            "artist": "Wellcome Collection", "license": "CC BY 4.0", "license_url": "", "attribution_required": True,
+            "description": "Trephined skull", "relevance": 5}
+    monkeypatch.setattr(beat_images.commons, "candidates", lambda pages, kw, sa: iter([dict(cand)]))
+    monkeypatch.setattr(beat_images.commons, "download_jpeg",
+                        lambda url, dest, max_wait=30: _photo(dest, label=label))
+    return [{"text": "Healers cut a hole in the skull.", "start": 0, "end": 3}], {"title": "Trepanation", "location": {}}
+
+
+def test_a_found_picture_with_an_edge_label_is_cropped_not_set_aside(monkeypatch, tmp_path, caplog):
+    beats, topic = _beat_search(monkeypatch, tmp_path)
+
+    def verdicts(path, h):
+        if h == 2400:   # the download, with its accession card
+            return {"checked": True, "shows": True, "burned_in_text": True, "reason": "A trephined skull.",
+                    "text_reason": "an accession number label at the bottom", "text_edge": "bottom",
+                    "text_box": [880, 330, 940, 600]}
+        return {"checked": True, "shows": True, "burned_in_text": False, "reason": "a trephined skull, cropped"}
+    looks = _looker(monkeypatch, verdicts)
+    caplog.set_level("INFO", logger="src.beat_images")
+    work = tmp_path / "beat_images"
+    paths, creds = beat_images.source(beats, topic, work)
+    assert len(paths) == 1 and paths[0].parent.parent == beat_images.TEXT_CROP_DIR and paths[0].name == "beat01_1.jpg"
+    assert looks == [("beat01_1.jpg", 2400, 1024), ("beat01_1.jpg", 2076, 1024)]   # both looks at 1024 px
+    assert creds[0]["file"] == str(paths[0]) and creds[0]["cropped_from"] == str(work / "beat01_1.jpg")
+    assert creds[0]["looked"] == "a trephined skull, cropped"
+    assert (work / "beat01_1.jpg").is_file()                         # the original stays: the copy's lineage source
+    from src.lineage import source_chain
+    assert any(s.get("path") == str((work / "beat01_1.jpg").resolve()) for s in source_chain(paths[0]))
+    record = json.loads((work / "credits.json").read_text(encoding="utf-8"))["images"]
+    assert [r["file"] for r in record] == ["beat01_1.jpg"]             # names the original, beside it
+    assert "cropped away" in caplog.text
+
+
+def test_a_found_picture_whose_crop_still_shows_text_is_set_aside(monkeypatch, tmp_path):
+    beats, topic = _beat_search(monkeypatch, tmp_path)
+    looks = _looker(monkeypatch, lambda path, h: {"checked": True, "shows": True, "burned_in_text": True, "reason": "r",
+                                                  "text_reason": "a label", "text_edge": "bottom",
+                                                  "text_box": [880, 330, 940, 600]})
+    paths, creds = beat_images.source(beats, topic, tmp_path / "beat_images")
+    assert paths == [] and creds == [] and len(looks) == 2               # cropped, looked at again, still text
+    assert not (tmp_path / "beat_images" / "beat01_1.jpg").exists()
+
+
+def test_a_found_picture_with_text_inside_or_off_subject_is_not_cropped(monkeypatch, tmp_path):
+    beats, topic = _beat_search(monkeypatch, tmp_path)
+    looks = _looker(monkeypatch, lambda path, h: {"checked": True, "shows": True, "burned_in_text": True, "reason": "r",
+                                                  "text_reason": "a placard", "text_edge": "inside",
+                                                  "text_box": [400, 300, 600, 700]})
+    assert beat_images.source(beats, topic, tmp_path / "a") == ([], []) and len(looks) == 1
+    looks = _looker(monkeypatch, lambda path, h: {"checked": True, "shows": False, "burned_in_text": True, "reason": "a jar",
+                                                  "text_reason": "a label", "text_edge": "bottom",
+                                                  "text_box": [880, 330, 940, 600]})
+    assert beat_images.source(beats, topic, tmp_path / "b") == ([], []) and len(looks) == 1   # wrong picture: no crop
+    assert not beat_images.TEXT_CROP_DIR.exists() or not any(beat_images.TEXT_CROP_DIR.rglob("*.jpg"))
+
+
+def test_the_pool_screen_and_the_beat_search_share_one_crop_rule():
+    import inspect
+    assert "cropped_clear(" in inspect.getsource(beat_images.without_burned_in_text)
+    assert "cropped_clear(" in inspect.getsource(beat_images.screened_picture)
+    assert "crop_text_band(" not in inspect.getsource(beat_images.without_burned_in_text)
+
+
+def test_the_planner_reads_a_cropped_copys_caption_through_its_lineage(tmp_path):
+    """Audit 2026-10-28: a cropped or blurred copy has no credits.json beside it; its lineage leads to the original."""
+    import json
+    from PIL import Image
+    from src import scene_planner
+    from src.lineage import record_derived
+    topic = tmp_path / "assets" / "t"; topic.mkdir(parents=True)
+    original = topic / "14_commons.jpg"; Image.new("RGB", (8, 8)).save(original)
+    (topic / "credits.json").write_text(json.dumps({"images": [{"file": "14_commons.jpg", "title": "File:Skull.jpg",
+                                                                  "description": "A trepanned skull"}]}), encoding="utf-8")
+    crop_dir = tmp_path / "cache" / "text_crop" / "ab"; crop_dir.mkdir(parents=True)
+    crop = crop_dir / "14_commons.jpg"; Image.new("RGB", (8, 6)).save(crop)
+    record_derived(crop, [original], "text_crop", {})
+    scene_planner._folder_credits.cache_clear()
+    assert "trepanned skull" in scene_planner._photo_caption(crop)
+    assert scene_planner._photo_caption(tmp_path / "nowhere.jpg") == ""

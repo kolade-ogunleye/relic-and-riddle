@@ -1154,6 +1154,8 @@ class TelegramApprovalBot:
         if script_payload.get("trimmed_sentences"):  # said, so the reviewer can judge the flow without them
             text += "\n" + _format_note("✂️ Removed after the fact check blocked them: "
                                           + " ".join(f"“{x}”" for x in script_payload["trimmed_sentences"]))
+        if script_payload.get("picture_lines_note"):  # lines checked against the photos before the voice (2026-10-28)
+            text += "\n" + _format_note(script_payload["picture_lines_note"])
         if script_payload.get("voice_note"):
             text += "\n" + _format_note(script_payload["voice_note"])
         if script_payload.get("music_note"):

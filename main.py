@@ -42,7 +42,7 @@ from src.db import PipelineDatabase, QueueEmpty
 from src.control import clip_words, heartbeat_text, is_paused, make_command_handler, ping_healthcheck
 from src import beat_images, callouts, config, encoding, footage, graphics, motion, post_schedule, privacy, then_now
 from src.llm import claude_available as llm_available
-from src.scene_planner import degraded_note, documentary_cuts, plan_scenes, segment_beats
+from src.scene_planner import degraded_note, documentary_cuts, fit_findings, fit_note, fit_to_lines, plan_scenes, segment_beats
 from src.topic_proposer import origin_note as topic_origin_note
 from src.upscale import ensure_all, ensure_resolution
 from src.music import music_for
@@ -1851,6 +1851,7 @@ class PipelineCoordinator:
         saved = json.loads(saved_script.read_text(encoding="utf-8")) if saved_script.exists() else {}
         too_long_now = (saved.get("guardrail_passed") and checkpoints.reusable("script", script_inputs)
                         and self._spoken_length_now(saved))
+        kept_words = False  # a script carried over word for word: its voiceover carries over too
         if too_long_now:
             # A re-render of a run whose take ran over: the saved script is shortened for the voice's measured
             # pace (ElevenLabs is never stretched), then fact-checked again as any revision is.
@@ -1878,7 +1879,7 @@ class PipelineCoordinator:
                 if kept is not None:
                     # The review was about pictures, sound or the cover: the script it passed stays word for
                     # word, so its voiceover carries over too (a regeneration rewrote it, 2026-10-24).
-                    payload = kept
+                    payload, kept_words = kept, True
                     log.info("Script kept from %s: %s.", fb.get("from_run") or self.reuse_from,
                              f"the review was about {fb.get('reason')}, not the words" if fb.get("from_run") else "reused as asked")
                 elif library is not None:
@@ -1895,6 +1896,15 @@ class PipelineCoordinator:
             except ValueError as exc:
                 payload = self._write_and_check_script(topic, run_id, run_dir, dry_run,
                                                        initial_payload=payload, initial_notes=str(exc))
+            saved_script.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+            checkpoints.complete("script", script_inputs, [saved_script])
+
+        # Before the paid voice, each sentence against the photos the video can show (audit 2026-10-28): a
+        # concrete line no photo shows goes back to the writer once, while it is still only words.
+        checked = self._lines_against_pictures(topic, run_id, run_dir, dry_run, payload, scene_media,
+                                               checkpoints, kept_words)
+        if checked is not payload:
+            payload = checked
             saved_script.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
             checkpoints.complete("script", script_inputs, [saved_script])
 
@@ -2218,6 +2228,127 @@ class PipelineCoordinator:
             raise ValueError("Final public copy failed evidence verification: " + evidence_notes)
         record_fact_review(payload, sheet_path)
 
+    def _lines_against_pictures(self, topic, run_id, run_dir, dry_run, payload, scene_media, checkpoints,
+                                kept_words=False) -> Dict[str, Any]:
+        """Each verified sentence against the descriptions of the photos the video can use, before the paid voice
+        (src/prevoice_lines.py; production Roman concrete x3, 2026-10-26: "modern concrete / infrastructure" was
+        voiced with no licensed photo of it, so after the render it could only be flagged). The concrete sentences
+        no photo shows are sent back to the writer once, through the same revision as a fact-check rewrite (the
+        writer, both fact checks, length and structure again); a rewording that fails, or still names something
+        no photo shows, leaves the verified script as it was, said on the card. Returns the payload to voice,
+        stamped with its verdict (a new dict when stamped). One light text-only call per new (script, photos);
+        none for a kept or already-voiced script, or one already judged against these photos (resume, re-render,
+        a library script that was judged). Never raises, except a cancel."""
+        from src import improve, prevoice_lines as pl
+        if not pl.enabled() or kept_words or not payload.get("narration_script"):
+            return payload
+        if (run_dir / "voiceover.mp3").is_file() and (run_dir / "words.json").is_file():
+            return payload  # a take this run already paid for is never thrown away by this check
+        try:  # a regeneration resumed before its voice was copied still keeps the words (review, 2026-10-28)
+            previous = self._previous_run_dir()
+            if previous is not None and (previous / "voiceover.mp3").is_file() and json.loads(
+                    (previous / "script_metadata.json").read_text(encoding="utf-8")).get("narration_script") == payload["narration_script"]:
+                return payload  # the previous run's paid take is for these exact words: never reworded here
+        except (OSError, ValueError, AttributeError):
+            pass
+        photos = pl.pool_descriptions(self.visual_engine.assets_dir / topic["id"], scene_media)
+        if not photos:
+            return payload
+        key = pl.keys(payload["narration_script"], photos)
+        stamp = payload.get(pl.STAGE) or {}
+        if all(stamp.get(k) == v for k, v in key.items()) or checkpoints.reusable(pl.STAGE, key):
+            log.info("Line-picture check before the voice: already judged for this script and these photos.")
+            return payload
+        title = topic.get("title", run_id)
+        self._check_cancel(run_id)
+        self._progress_note(run_id, title, 1, "Checking each line against the photos before the voice")
+        verdicts = pl.judge(payload["narration_script"], photos, title)
+        if verdicts is None:  # not stamped: asked again on the next run of this script
+            return payload
+        missing = pl.unshown(verdicts)
+        final, final_verdicts, rewritten, left, why_left = payload, verdicts, [], [], ""
+        if missing:
+            log.info("Before the voice, %d line(s) name something no photo shows; sent back to the writer once: %s",
+                     len(missing), " | ".join(v["sentence"] for v in missing)[:300])
+            import copy
+            revised = None
+            try:
+                revised = self._write_and_check_script(topic, run_id, run_dir, dry_run, initial_payload=copy.deepcopy(payload),
+                                                       initial_notes=pl.revision_note(missing, photos))
+                from src.fact_evidence import current_fact_review
+                if not current_fact_review(revised):
+                    self._verify_final_copy(revised, topic)
+            except JobCancelled:
+                raise
+            except Exception as e:  # never lose a verified script: the rewording is a saving, not a new way to fail
+                revised, why_left = None, f"the rewording did not pass its checks: {pl.clip(str(e), 120)}"
+            if revised is not None and revised.get("origin") != payload.get("origin"):
+                # The revision fell back to another script (the curated one): not a rewording of these lines, so
+                # the card would name sentences it never changed (review, 2026-10-28)
+                revised, why_left = None, "the rewording fell back to another script"
+            if revised is not None:
+                again = pl.judge(revised["narration_script"], photos, title)
+                now = pl.sentences(revised["narration_script"])
+                still = pl.unshown(again) if again is not None else [v for v in missing if v["sentence"] in now]
+                if still:
+                    revised, why_left = None, "the rewording still names something no photo shows"
+                else:
+                    final, final_verdicts, rewritten = revised, again or [], missing
+            if revised is None:
+                left = missing
+                log.info("Line-picture check: the verified script stands (%s).", why_left)
+                try:  # the failed rewording wrote its own payload; the run's record is the verified script again
+                    (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False),
+                                                                 encoding="utf-8")
+                    self.db.update_run(run_id, "producing", script_payload=payload)
+                except Exception as e:
+                    log.debug("Script record not restored: %s", e)
+        for text in pl.findings(rewritten, left, why_left):
+            improve.note("video.picture_relevance", text, source="prevoice_lines")
+        done = pl.keys(final["narration_script"], photos)
+        out = dict(final, **{pl.STAGE: {**done, "unshown": [v["sentence"] for v in pl.unshown(final_verdicts)],
+                                        "rewritten": [v["sentence"] for v in rewritten],
+                                        "left": [v["sentence"] for v in left]}})
+        card = pl.note(rewritten, left, why_left)
+        if card:
+            out["picture_lines_note"] = card
+        else:
+            out.pop("picture_lines_note", None)
+        try:
+            record = run_dir / pl.RECORD_FILE
+            record.write_text(json.dumps({**out[pl.STAGE], "verdicts": final_verdicts, "photos": photos}, indent=1,
+                                         ensure_ascii=False), encoding="utf-8")
+            checkpoints.complete(pl.STAGE, done, [record])
+        except (OSError, ValueError) as e:
+            log.debug("Line-picture verdict not recorded: %s", e)
+        return out
+
+    def _fit_pictures(self, run_id, topic, beats, scenes, durations, candidates, beat_credits):
+        """Each photo beat's picture against its line before the render (src/scene_planner.fit_to_lines): a picture
+        that does not show it is swapped for one that does, else our matching graphic, else the previous shot is
+        held; a line nothing shows is filed (video.picture_relevance) and said on the card. Never raises, except
+        a cancel: the plan stays as it was when the check fails."""
+        from src import improve
+        title = topic.get("title", run_id)
+        self._progress_note(run_id, title, 3, "Synthesizing graphics, stills & motion · checking each picture against its line")
+        line_beat = {Path(c["upscaled"]): c.get("beat") for c in beat_credits or [] if c.get("upscaled")}
+        try:
+            fitted, report = fit_to_lines(beats, scenes, candidates, title, durations=durations, line_beat=line_beat,
+                                          cancel=lambda: self._check_cancel(run_id))
+        except JobCancelled:
+            raise
+        except Exception as e:  # the check is a saving, never a new way for a run to fail
+            log.warning("Picture-line check could not run (%s); the plan is kept.", e)
+            return list(scenes), {"judged": 0, "cached": 0, "swapped": [], "graphic": [], "held": [], "unshown": [],
+                                  "stopped": f"error: {e}"}
+        for text in fit_findings(report):
+            improve.note("video.picture_relevance", text, source="picture_fit")
+        if report.get("judged") or report.get("cached"):
+            log.info("Picture-line check: %d new look(s), %d cached; %d swapped, %d graphic, %d held, %d with no picture%s.",
+                     report["judged"], report["cached"], len(report["swapped"]), len(report["graphic"]),
+                     len(report["held"]), len(report["unshown"]), f" ({report['stopped']})" if report["stopped"] else "")
+        return fitted, report
+
     def _render_approve_publish(self, topic, run_id, run_dir, payload, scene_media, hero_img,
                                 vo_path, bed_path, words, vo_dur, auto_approve, dry_run, previous_status,
                                 prepared=None):
@@ -2336,6 +2467,8 @@ class PipelineCoordinator:
             else:
                 scenes, durations, plan_notes = plan_scenes(beats, candidates, feedback=feedback)
                 log.info("Scene plan: %d beats (%s).", len(beats), plan_notes[:120])
+            # Each photo against its own line, before motion, parallax and the render (render audit 2026-10-28).
+            scenes, fit_report = self._fit_pictures(run_id, topic, beats, scenes, durations, candidates, beat_credits)
             planned = list(scenes)
             used = beat_images.used_credits(scenes, beat_credits)
             used_footage = [c for c in footage_credits if Path(c["file"]) in scenes]
@@ -2347,9 +2480,12 @@ class PipelineCoordinator:
                 log.warning("Image/footage credits would overflow the caption; using the topic's images and our graphics only.")
                 candidates, used, used_footage, caption = scene_media + own_graphics, [], [], caption_base
                 scenes, durations, plan_notes = plan_scenes(beats, candidates, feedback=feedback)
+                scenes, fit_report = self._fit_pictures(run_id, topic, beats, scenes, durations, candidates, [])
                 planned = list(scenes)  # the plan the repair pass judges (the overflow re-plan replaced the first)
             payload["caption"] = caption
-            payload["scene_plan_note"] = degraded_note(plan_notes)
+            payload["scene_plan_note"] = "\n".join(n for n in (degraded_note(plan_notes), fit_note(fit_report)) if n)
+            payload["picture_fit"] = {k: fit_report.get(k) for k in ("judged", "cached", "swapped", "graphic", "held",
+                                                                      "unshown", "stopped")}
             used_graphics = [p.stem.replace("graphic_", "") for p in own_graphics if p in scenes]
             payload["graphics_note"] = ("🗺 Original graphics in this video: " + ", ".join(used_graphics)) if used_graphics else ""
             payload["footage_credits"] = used_footage

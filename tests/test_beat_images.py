@@ -18,7 +18,7 @@ def _cand(title, licence="CC BY 4.0"):
 
 def test_source_downloads_up_to_three_per_beat_and_skips_duplicates(monkeypatch, tmp_path):
     monkeypatch.setattr("src.free_llm.ready", lambda: True)
-    monkeypatch.setattr(beat_images, "picture_shows", lambda path, query: (True, "shows it"))  # the look passes
+    monkeypatch.setattr(beat_images, "screened_picture", lambda path, query: (True, "shows it", path))  # the look passes
     monkeypatch.setattr(beat_images, "plan_queries", lambda b, t: BeatQueries(items=[
         BeatQuery(beat=2, query="Derinkuyu stone door", keywords=["derinkuyu"]),
         BeatQuery(beat=1, query="Derinkuyu", keywords=["derinkuyu"])]))
@@ -162,7 +162,7 @@ def test_a_picture_that_does_not_show_the_subject_is_set_aside_after_a_look(monk
     monkeypatch.setattr(beat_images.commons, "download_jpeg",
                         lambda url, dest, max_wait=30: Image.new("RGB", (10, 10)).save(dest, "JPEG"))
     verdicts = iter([(False, "a different temple, at Pattadakal"), (True, "the monolith's courtyard")])   # A, then B; C and D unchecked
-    monkeypatch.setattr(beat_images, "picture_shows", lambda path, query: next(verdicts, (False, beat_images.UNAVAILABLE)))
+    monkeypatch.setattr(beat_images, "screened_picture", lambda path, query: (*next(verdicts, (False, beat_images.UNAVAILABLE)), path))
     with caplog.at_level(logging.DEBUG, logger="src.beat_images"):
         paths, credits = beat_images.source(BEATS, TOPIC, tmp_path)
     assert [c["title"] for c in credits] == ["B"]                      # A set aside; C and D nobody looked at

@@ -11,6 +11,7 @@ reviewer sees them in the video before approving. CC BY images are credited.
 """
 
 import logging
+import threading
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -77,18 +78,20 @@ def _text_fields(verdict: "PictureVerdict") -> Dict[str, Any]:
             "text_box": [int(v) for v in box] if ok_box else []}
 
 
-def picture_look(path: Path, query: str, size: int = 512) -> Dict[str, Any]:
+def picture_look(path: Path, query: str, size: int = 512, ask: Optional[str] = None) -> Dict[str, Any]:
     """One look at the pixels: {"checked", "shows", "burned_in_text", "reason", "text_reason", "text_edge",
     "text_box"}, the picture sent at `size` px on its long side. A check that fails is asked once
     more; one that still cannot run says checked False and shows False: a picture nobody looked at is not used
     (operator, 2026-10-27: it was kept as showing its subject, and the gate is to be enforced). Turning the check
-    off (PICTURE_VISION_CHECK=false) is the only way a picture goes unlooked at."""
+    off (PICTURE_VISION_CHECK=false) is the only way a picture goes unlooked at. `ask` replaces the question put
+    with the picture (the line check before the render asks about a narration line, not a search)."""
     if not config.PICTURE_VISION_CHECK:
         return {"checked": False, "shows": True, "burned_in_text": False, "reason": "not checked"}
     from . import free_llm
     from .llm import image_block
     import time
-    content = [{"type": "text", "text": f"Searched for: {query}\nDoes this picture show it?"}, image_block(path, size)]
+    question = ask or f"Searched for: {query}\nDoes this picture show it?"
+    content = [{"type": "text", "text": question}, image_block(path, size)]
     for attempt in (1, 2):
         try:
             if free_llm.claude_engine():
@@ -135,14 +138,120 @@ def picture_shows(path: Path, query: str) -> Tuple[bool, str]:
     """A look at the pixels before a found picture is kept (quality step 1, 2026-10-24): the title and
     metadata checks let a photograph of the wrong temple through. A picture with text printed into it (a
     caption strip, a scale bar) is set aside too: cropped on screen, the text shows cut off (a carousel
-    slide, 2026-10-25)."""
-    look = picture_look(path, query)
-    if look["burned_in_text"]:
-        return False, TEXT_PREFIX + (look.get("text_reason") or look["reason"])
-    return look["shows"], look["reason"]
+    slide, 2026-10-25). (shows, why) of screened_picture, which may keep a cropped copy instead."""
+    shows, why, _ = screened_picture(path, query)
+    return shows, why
+
+
+def _text_verdict(look: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """A picture_look as the text screen's verdict ({"text", "reason", "shows", "subject"}), None when nobody looked."""
+    if not look.get("checked"):
+        return None
+    text = bool(look["burned_in_text"])
+    return {"text": text, "reason": (look.get("text_reason") or look["reason"]) if text else look["reason"],
+            "shows": bool(look["shows"]), "subject": look["reason"]}
+
+
+def screened_picture(path: Path, query: str) -> Tuple[bool, str, Path]:
+    """(shows, why, the file to use) for a picture found for a beat. The pool screen's look (audit 2026-10-28): at
+    TEXT_SCREEN_SIZE, where a museum label or accession number is seen (at 512 px Trepanation photo 14's label
+    was missed), and text in an edge band is cropped away and the copy looked at again (cropped_clear), so a found
+    photo with a label strip is kept cropped rather than set aside. The crop's own look decides whether it shows
+    the subject; it is kept beside its original (src/lineage.py), whose credit it resolves to."""
+    path = Path(path)
+    look = picture_look(path, query, TEXT_SCREEN_SIZE)
+    if not look["burned_in_text"]:
+        return look["shows"], look["reason"], path
+    why = TEXT_PREFIX + (look.get("text_reason") or look["reason"])
+    if not look["shows"]:  # the wrong picture: no crop makes it right
+        return False, why, path
+    crop, again = cropped_clear(path, look.get("text_edge", "none"), look.get("text_box") or [],
+                                lambda c: _text_verdict(picture_look(c, query, TEXT_SCREEN_SIZE)))
+    if crop is not None and again and not again["text"]:
+        log.info("Picture %s has text printed into it (%s); cropped away: the %s %.0f%%.", path.name, why[len(TEXT_PREFIX):],
+                 look["text_edge"], 100 * _crop_band(look["text_edge"], look["text_box"]))
+        return again["shows"], again["subject"], crop
+    if crop is not None:
+        log.info("Picture %s: text is still there after its %s band was cropped (%s).", path.name, look["text_edge"],
+                 (again or {}).get("reason", "not looked at"))
+    return False, why, path
 
 
 TEXT_PREFIX = "burned-in text: "
+
+
+# The picture against its narration line, before the render (render audit 2026-10-28): Roman concrete x3 on
+# production was blocked after a full render for Pantheon photos under "modern infrastructure" lines, and the
+# repair after the render picked the Pantheon again. The same light-model look as above, asked about the line.
+# Each verdict is kept by the photo's hash and the line's words, so a resume, a re-render or a regeneration
+# that keeps the script pays nothing again. FIT_VERSION changes when the question does.
+FIT_VERSION = 1
+FIT_CACHE_FILE = config.BASE_DIR / "cache" / "picture_fit.json"
+_fit_lock = threading.Lock()
+
+
+def fit_question(line: str, subject: str) -> str:
+    """What the light model is asked about a photo and its line: what the line says, not merely the topic."""
+    return (f"Narration line of a short documentary about {subject or 'history'}: \"{line.strip()}\"\n"
+            "Does this picture show what this line says? A line that names something that can be seen (a place, "
+            "building, object, material, event or process) needs a picture of that thing itself; a picture of the "
+            "documentary's subject is not enough, and a different building, place or era than the one the line names "
+            "does not show it (shows_subject false). A line about an idea, a number or a question, with nothing named "
+            "to see, is shown by a picture of the documentary's subject. Judge the picture, not its title.")
+
+
+def _line_words(line: str) -> str:
+    return " ".join((line or "").lower().split())
+
+
+def fit_key(digest: str, line: str) -> str:
+    import hashlib
+    return hashlib.sha256(f"{FIT_VERSION}|{digest}|{_line_words(line)}".encode("utf-8")).hexdigest()
+
+
+def load_fit_cache() -> Dict[str, Any]:
+    import json as _json
+    path = Path(FIT_CACHE_FILE)
+    try:
+        found = _json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+    except (OSError, ValueError):
+        return {}
+    return found if isinstance(found, dict) else {}
+
+
+def save_fit_cache(cache: Dict[str, Any]) -> None:
+    """Merged with what is on disk (another run may have added verdicts since), then replaced atomically."""
+    from .atomic_files import write_json
+    with _fit_lock:
+        try:
+            write_json(FIT_CACHE_FILE, {**load_fit_cache(), **cache})
+        except OSError as e:
+            log.debug("Could not save the picture-line verdicts: %s", e)
+
+
+def line_fit(path: Path, line: str, subject: str, cache: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """{"fits", "reason", "cached"} for a photo under a narration line, or None when nobody could look (the check
+    is off, or the light model could not run: the caller keeps its plan, and the judge after the render still
+    looks). A verdict in `cache` costs nothing; a new one is one light-model call, added to `cache`."""
+    from .credits import sha256_file
+    digest = sha256_file(path)
+    if not digest:
+        return None
+    key = fit_key(digest, line)
+    hit = cache.get(key)
+    if isinstance(hit, dict) and "fits" in hit:
+        return {"fits": bool(hit["fits"]), "reason": str(hit.get("reason") or ""), "cached": True}
+    try:
+        look = picture_look(Path(path), line, ask=fit_question(line, subject))
+    except (OSError, ValueError) as e:  # an unreadable picture: not looked at
+        log.info("Picture %s could not be looked at against its line (%s).", Path(path).name, e)
+        return None
+    if not look.get("checked"):
+        return None
+    reason = str(look.get("reason") or "")
+    cache[key] = {"fits": bool(look["shows"]), "reason": reason, "file": Path(path).name,
+                  "line": _line_words(line)[:160], "v": FIT_VERSION}
+    return {"fits": bool(look["shows"]), "reason": reason, "cached": False}
 
 
 @llm_task("beat_queries")
@@ -249,7 +358,9 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
                 verified += 1
                 dest = work_dir / f"{prefix}{item.beat:02d}_{found + 1}.jpg"
                 commons.download_jpeg(cand["download_url"], dest, max_wait=wait)
-                shows, why = picture_shows(dest, item.query)
+                # The pool screen's look (1024 px, an edge band of text cropped away and looked at again): a found
+                # photo with a label strip was set aside at 512 px, uncropped (audit 2026-10-28).
+                shows, why, use = screened_picture(dest, item.query)
                 if why == UNAVAILABLE:  # nobody looked: left out, and said on the card (found again next run)
                     _note_unchecked(work_dir, item.beat, cand)
                     dest.unlink(missing_ok=True)
@@ -264,8 +375,10 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
                     looked_away += 1
                     continue
                 seen.add(cand["title"])
-                cand.update(file=str(dest), beat=item.beat, looked=why)
-                paths.append(dest)
+                # A cropped copy is what the video uses; its original stays here, where the folder's credits.json
+                # names it and the copy's lineage points (its credit and rights resolve to the original).
+                cand.update(file=str(use), beat=item.beat, looked=why, **({"cropped_from": str(dest)} if use != dest else {}))
+                paths.append(use)
                 credits.append(cand)
                 found += 1
                 if found >= PER_BEAT:
@@ -419,6 +532,18 @@ def crop_text_band(path: Path, edge: str, box: List[int]) -> Optional[Path]:
     return out
 
 
+def cropped_clear(path: Path, edge: str, box: List[int], look_again) -> Tuple[Optional[Path], Optional[Dict[str, Any]]]:
+    """(crop, its verdict): crop_text_band's copy of `path` (None when no band could be cut) and look_again(copy), a
+    verdict with "text" and "reason", or None when nobody looked. The caller uses the copy only when that second
+    look finds no text left. One rule for the pool screen and the photos found per beat (audit 2026-10-28)."""
+    try:
+        crop = crop_text_band(Path(path), edge, box)
+    except (OSError, ValueError) as e:
+        log.info("Photo %s: its text band could not be cropped (%s).", Path(path).name, e)
+        return None, None
+    return (crop, look_again(crop)) if crop is not None else (None, None)
+
+
 def without_burned_in_text(photos: List[Path], subject: str, minimum: int) -> List[Path]:
     """The topic's reviewed photos without those that carry text printed into the picture (a museum placard,
     a caption strip, a scale bar): cropped on screen, the text shows cut off or under the captions (the
@@ -444,10 +569,10 @@ def without_burned_in_text(photos: List[Path], subject: str, minimum: int) -> Li
         verdict = cache.get(digest)
         if verdict is None or verdict.get("screen", 1) < TEXT_SCREEN_VERSION:
             look = picture_look(p, subject, TEXT_SCREEN_SIZE)
-            if not look["checked"]:
+            seen = _text_verdict(look)
+            if seen is None:
                 return verdict  # not looked at: an older verdict stands, or none (kept, asked again next time)
-            text = bool(look["burned_in_text"])
-            verdict = {"text": text, "reason": (look.get("text_reason") or look["reason"]) if text else look["reason"],
+            verdict = {"text": seen["text"], "reason": seen["reason"],
                        "edge": look.get("text_edge", "none"), "box": look.get("text_box", []),
                        "screen": TEXT_SCREEN_VERSION}
             cache[digest], changed = verdict, True
@@ -461,13 +586,8 @@ def without_burned_in_text(photos: List[Path], subject: str, minimum: int) -> Li
         verdict = verdict_for(p)
         if not verdict or not verdict.get("text"):
             continue
-        crop = None
-        try:
-            crop = crop_text_band(p, verdict.get("edge", "none"), verdict.get("box") or [])
-        except (OSError, ValueError) as e:
-            log.info("Photo %s: its text band could not be cropped (%s).", p.name, e)
+        crop, again = cropped_clear(p, verdict.get("edge", "none"), verdict.get("box") or [], verdict_for)
         if crop is not None:
-            again = verdict_for(crop)
             if again and not again.get("text"):
                 cropped[p] = crop
                 log.info("Photo %s has text printed into it (%s); cropped away: the %s %.0f%%.", p.name,

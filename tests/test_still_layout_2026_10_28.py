@@ -129,11 +129,13 @@ def test_carousel_badges_and_headers_never_overlap(tmp_path, monkeypatch):
                                                 "Send this to a geology enthusiast, and follow for the next marvel.", False, tight=tight)
             assert lay.problems() == [], (archetype, tight, lay.problems())
             names = {e["name"] for e in lay.elements}
-            assert {"header_dossier", "header_brand", "swipe_cues"} <= names
-    # The comparison slide's REF A badge used to sit at y=35, under the dossier header at y=70.
+            # The dossier header and the swipe cues are gone (operator, 2026-10-28: Instagram draws its own
+            # counter and dots); the brand is the one header element, top-left.
+            assert "header_brand" in names and not names & {"header_dossier", "swipe_cues", "swipe"}
+    # The comparison slide's REF A badge used to sit at y=35, under the header at y=70 (the brand's place now).
     _, lay = gen._render_carousel_slide("comparison", photos[0], photos[1], card, 3, 7, {}, "", False)
     boxes = {e["name"]: e["box"] for e in lay.elements}
-    assert boxes["ref_a"][1] >= boxes["header_dossier"][3]
+    assert boxes["ref_a"][1] >= boxes["header_brand"][3]
 
 
 def test_the_post_draw_check_catches_a_broken_layout(tmp_path, monkeypatch):
@@ -239,7 +241,7 @@ def test_story_and_carousel_cut_offs_redraw_through_the_audit(tmp_path, looked, 
     report = QualityAuditor().audit_carousel_slides(tmp_path / "carousel", payload=RICHAT)
     looks = [i for i in report["issues"] if i["type"] == "carousel_slide_look"]
     assert looked["redraws"] == 1 and looks[0]["severity"] == "minor" and looks[0]["slide"] == "carousel_slide_01.jpg"
-    assert {"header_dossier", "header_brand"} <= {e["name"] for e in _records(tmp_path / "carousel")["carousel_slide_01.jpg"]["elements"]}
+    assert "header_brand" in {e["name"] for e in _records(tmp_path / "carousel")["carousel_slide_01.jpg"]["elements"]}  # no dossier since 2026-10-28
 
 
 def test_switched_off_the_measured_check_still_runs(tmp_path, monkeypatch):

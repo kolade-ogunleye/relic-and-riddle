@@ -96,7 +96,8 @@ Topic notes (unverified): {key_facts}
 Requirements:
 - title: the Facebook Reel title shown under the video: at most 60 characters, specific and intriguing (a name, a number or a tension, not a label like "The History of X"); at most one relevant emoji.
 - caption: written like a magazine editor, not a template. First line: a curiosity-driven line of at most 110 characters (a hard limit of 125 is shown before "more"; stay well under it) that is NOT the narration's hook sentence. Then 2-3 short sentences that add context the video doesn't say (a detail, a consequence, a name), with the place worked naturally into the prose. Then one genuine question to the audience. Then the hashtags on the last line. Use 1-3 relevant emoji where they add warmth or meaning (for example one at the end of the first line and one on the question), never as labels or bullet markers, and no "📍" lines. Under 1,600 characters.
-- carousel_caption: a separate caption for the 7-slide carousel of the same topic, different wording from the Reel caption (not a rephrase of its first line): a short invitation to swipe, one fresh detail, one question, then the same hashtags. Under 800 characters.
+- carousel_caption: a separate caption for the 7-slide carousel of the same topic, different wording from the Reel caption (not a rephrase of its first line): a short invitation to look through the slides ("Swipe through ..." is fine; never say which way), one fresh detail, one question, then the same hashtags. Under 800 characters. It is posted as Instagram's carousel and as Facebook's photo grid, which place the caption and the photos differently.
+- No direction cues in any text (captions, title, first comment, share line, slides, stories): no pointing-hand or arrow emoji or symbols (such as 👉 👇 👆 ☝️ ➡️ ⬇️ → ↓), no "swipe right/left/up/down", and no "below" or "above" for the comments, caption or photos (write "in the comments", not "in the comments below"). Each platform places these differently and may change it.
 - hashtags: 3-5 (Instagram allows at most 5), each starting with "#": specific to the place, era or subject (e.g. "#Cappadocia", "#ByzantineHistory"); no generic engagement tags like "#viral", "#fyp", "#ReelsViral", "#explore".
 - story_slides: exactly 3 (hook, revelation, question). Slide 3 asks the poll's question; its body gives context and asks nothing else. Each body is one complete sentence of at most 18 words: it must fit three lines at the Story's text size.
 - poll: an either/or question (at most 60 characters) and exactly 2 options (each at most 24 characters) that are its two answers, e.g. "Planned or lucky?" with "Careful planning" / "Lucky accident". Never a yes/no question with options that are not yes/no.
@@ -802,18 +803,133 @@ def shorten_graphic_text(pkg: ScriptPackage) -> ScriptPackage:
 
 _SENTENCE_END = re.compile(r"(?<=[.!?])[\"'”’)]*\s+")
 
+# Direction cues (operator, 2026-10-28): "Whenever we're using the pointer emoji we need to be sure we are
+# pointing in the right direction". The posted Facebook carousel's 👉 pointed right while its caption sat above
+# and the photos below; Instagram's carousel shows the photos above the caption. Each platform places the
+# caption, the comments and the media its own way, and may change that, so no copy carries a cue that depends
+# on where things are: no pointing hand or arrow, no "swipe right/left/up/down", no "below"/"above" for the
+# comments, caption or photos. normalize_copy removes them deterministically; the writer is told as well.
+_DIRECTION_MARKS = re.compile(
+    "(?:[←-⇿➔-➿⤀-⥿⬀-⬍⭠-⮹☚-☟▲-►▼-◄"
+    "⏩-⏬\U0001F446-\U0001F449\U0001F53C\U0001F53D\U0001F800-\U0001F8FF]"
+    "[︎️\U0001F3FB-\U0001F3FF]*)+"
+    r"|(?<![\w-])(?:-{1,2}>|<-{1,2}|=>)(?![\w>])")
+# What a "below"/"above" may point at; a fact ("30 m below the surface", "the carvings above the door") is
+# never one of these or is followed by what it is below or above, and is left alone.
+_UI_NOUN = (r"(?:comments?|comment\s+section|caption|thread|discussion|replies|link|post|photos?|images?|pictures?"
+            r"|slides?|gallery|video|reel|carousel)")
+_NOT_A_PLACE = r"(?!\s+(?:the|a|an|its|his|her|their|our|this|that|these|those|sea|ground|water|surface|level|\d))"
+_DIRECTION_PHRASES = [
+    # "swipe right", "swipe to the left", "swipe up through": the act, without the direction
+    (re.compile(r"\b(swip(?:e|es|ed|ing))\s+(?:(?:to|towards?)\s+the\s+)?(?:right|left|up|down|forward|back(?:wards?)?"
+                r"|across|sideways|over)\b(?:\s+through\b)?", re.I), lambda m: m.group(1) + " through"),
+    (re.compile(r"\b(scroll(?:s|ed|ing)?)\s+(?:up|down)\b", re.I), lambda m: m.group(1)),
+    # "in the comments below", "the photos above" -> "in the comments", "the photos"
+    (re.compile(r"\b((?:the\s+)?" + _UI_NOUN + r")\s+(?:(?:down|up)\s+)?(?:below|above|underneath)\b" + _NOT_A_PLACE, re.I),
+     lambda m: m.group(1)),
+    # "comment below", "tell us below", "drop your guess below"
+    (re.compile(r"\b(comment|reply|answer|vote|weigh\s+in|sound\s+off|chime\s+in|tell\s+us|let\s+us\s+know"
+                r"|share\s+(?:it|yours|your\s+\w+)|drop\s+(?:it|yours|a\s+comment|your\s+\w+))\s+(?:(?:down|up)\s+)?"
+                r"(?:below|above)\b" + _NOT_A_PLACE, re.I), lambda m: m.group(1)),
+    (re.compile(r"\b(?:see|read|check|look)\s+(?:(?:down|up)\s+)?(?:below|above)\b" + _NOT_A_PLACE, re.I),
+     lambda m: _cased(m.group(0), "take a look")),
+    (re.compile(r"\s*\b(?:down\s+below|up\s+above)\b" + _NOT_A_PLACE, re.I), lambda m: ""),
+]
+# Facebook shows a multi-photo post as a grid, not a swipe: its caption says "explore" or "see", never "swipe".
+_FB_SWIPE = [
+    # "Swipe to see how ..." / "Swipe through to trace ..." -> "See how ..." / "Trace ..."
+    (re.compile(r"\b(?:keep\s+swiping|swipe)\b(?:\s+(?:through|along|across|on))?\s+(?:to\s+(\w+)|and\s+(see|discover"
+                r"|find|uncover|learn|explore|meet|read|trace|follow|watch)\b)", re.I),
+     lambda m: _cased(m.group(0), m.group(1) or m.group(2))),
+    # "Swipe through the evidence" -> "Explore the evidence"
+    (re.compile(r"\b(?:keep\s+swiping|swipe)\s+(?:through|along|across)\s+(?=(?:the|these|this|those|our|all|each|every"
+                r"|its|his|her|their|\d)\b)", re.I), lambda m: _cased(m.group(0), "explore ")),
+    # any other: "Swipe." -> "See the photos.", "start swiping" -> "start looking through the photos"
+    (re.compile(r"\b(keep\s+)?swip(e|es|ed|ing)\b(?:\s+(?:through|along|across|on)\b)?", re.I),
+     lambda m: _cased(m.group(0), (m.group(1) or "") + {"e": "see", "es": "sees", "ed": "looked through",
+                                                         "ing": "looking through"}[m.group(2).lower()] + " the photos")),
+]
+
+
+def _cased(source: str, text: str) -> str:
+    """`text` with its first letter in the case of `source`'s (a sentence start stays capitalised)."""
+    return (text[:1].upper() if source[:1].isupper() else text[:1].lower()) + text[1:]
+
+
+def _tidy(text: str) -> str:
+    """Spacing after words or marks were removed: one space between words, none before punctuation, no line
+    left empty by a removed mark, at most one blank line in a row."""
+    lines = []
+    for line in text.split("\n"):
+        tidy = re.sub(r"[ \t]{2,}", " ", line)
+        tidy = re.sub(r"[ \t]+([.,!?;:)])", r"\1", tidy).strip()
+        if tidy or not line.strip():
+            lines.append(tidy)
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip("\n")
+
+
+def _mark_gap(text: str, m) -> str:
+    """What a removed mark leaves: "to" between two numbers ("1902 → 1910"), a full stop where it separated two
+    sentences ("the gears ➡️ What ..."), else a space."""
+    before, after = text[:m.start()], text[m.end():]
+    if re.search(r"\d\s*$", before) and re.match(r"\s*\d", after):
+        return " to "
+    if re.search(r"\w\s*$", before) and re.match(r"\s*[A-Z]", after):
+        return ". "
+    return " "
+
+
+def neutral_cues(text: str) -> str:
+    """`text` without a direction-dependent cue (pointing hands, arrows, "swipe right", "comment below"); the
+    same text when it had none."""
+    if not text:
+        return text
+    out = _DIRECTION_MARKS.sub(lambda m: _mark_gap(text, m), text)
+    for pattern, rep in _DIRECTION_PHRASES:
+        out = pattern.sub(rep, out)
+    return text if out == text else _tidy(out)
+
+
+def facebook_photo_caption(text: str) -> str:
+    """The carousel caption as Facebook's multi-photo post carries it: no direction cue, and no "swipe"
+    (Facebook shows the set as a grid; operator, 2026-10-28)."""
+    out = neutral_cues(text or "")
+    before = out
+    for pattern, rep in _FB_SWIPE:
+        out = pattern.sub(rep, out)
+    return out if out == before else _tidy(out)
+
 
 def normalize_copy(pkg: ScriptPackage) -> ScriptPackage:
     """Bookkeeping a draft gets wrong without being wrong, fixed without a rewrite (each was a full
     model call; dev, 2026-10-23): closing_sentence is set to the narration's actual last sentence, and a
     caption first line over 125 characters that holds several sentences is broken after the last
     sentence that fits (same words, new line). A single sentence over the limit still needs a rewrite. A
-    yes/no poll question over two choices is asked as the either/or they answer (repair_poll)."""
+    yes/no poll question over two choices is asked as the either/or they answer (repair_poll). No public
+    copy keeps a direction-dependent cue (neutral_cues; operator, 2026-10-28)."""
     update = {}
     sentences = [s for s in _SENTENCE_END.split(pkg.narration_script.strip()) if s.strip()]
     if sentences and not pkg.narration_script.strip().endswith(pkg.closing_sentence.strip()):
         update["closing_sentence"] = sentences[-1].strip()
-    lines = pkg.caption.split("\n")
+    for key in ("title", "carousel_caption", "first_comment", "share_line"):
+        value = getattr(pkg, key)
+        if value and neutral_cues(value) != value:
+            update[key] = neutral_cues(value)
+    for key, fields in (("story_slides", ("kicker", "line1", "line2", "body")), ("carousel_slides", ("heading", "body")),
+                        ("thumbnail", ("eyebrow", "line1", "line2", "tagline"))):
+        items = getattr(pkg, key)
+        many = isinstance(items, list)
+        fixed = [it.model_copy(update={f: neutral_cues(getattr(it, f)) for f in fields
+                                       if neutral_cues(getattr(it, f)) != getattr(it, f)}) for it in (items if many else [items])]
+        if any(a != b for a, b in zip(fixed, items if many else [items])):
+            update[key] = fixed if many else fixed[0]
+    caption = neutral_cues(pkg.caption)
+    if caption != pkg.caption:
+        update["caption"] = caption
+    cued = [k for k in update if k != "closing_sentence"]
+    if cued:
+        log.info("Direction cues (pointing hands, arrows, swipe right, below/above) removed from: %s.", ", ".join(cued))
+    lines = caption.split("\n")
     first = next((i for i, ln in enumerate(lines) if ln.strip()), None)
     if first is not None and len(lines[first]) > 125:
         parts = [s for s in _SENTENCE_END.split(lines[first].strip()) if s]

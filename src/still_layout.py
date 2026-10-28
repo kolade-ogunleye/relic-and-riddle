@@ -42,8 +42,12 @@ def union(boxes: List[Box]) -> Box:
 class Layout:
     """The boxes one still draws, in canvas pixels."""
 
-    def __init__(self, kind: str, size: Tuple[int, int], zone: Box, tight: bool = False):
+    def __init__(self, kind: str, size: Tuple[int, int], zone: Box, tight: bool = False,
+                 protected: Optional[List[Tuple[str, Box]]] = None):
         self.kind, self.size, self.zone, self.tight = kind, (int(size[0]), int(size[1])), tuple(int(v) for v in zone), tight
+        # Regions a platform draws its own controls over (the Instagram carousel's "N/M" counter; operator,
+        # 2026-10-28): nothing recorded may intersect one.
+        self.protected: List[Dict[str, Any]] = [{"name": n, "box": [int(v) for v in b]} for n, b in (protected or [])]
         self.elements: List[Dict[str, Any]] = []
         self.shortened: List[str] = []
         self.meta: Dict[str, Any] = {}   # a renderer's own record (the Story frame's layout.json entry)
@@ -70,11 +74,12 @@ class Layout:
 
     def to_dict(self) -> Dict[str, Any]:
         return {"kind": self.kind, "size": list(self.size), "zone": list(self.zone), "tight": self.tight,
-                "elements": self.elements, "shortened": self.shortened}
+                "elements": self.elements, "shortened": self.shortened, "protected": self.protected}
 
 
 def problems(record: Dict[str, Any]) -> List[str]:
-    """Each measured defect, in words: a box past the canvas or its zone, or two boxes over each other."""
+    """Each measured defect, in words: a box past the canvas or its zone, two boxes over each other, or a box
+    under a region the platform draws its own controls over (`protected`)."""
     w, h = record["size"]
     canvas = (0, 0, w, h)
     out: List[str] = []
@@ -89,6 +94,10 @@ def problems(record: Dict[str, Any]) -> List[str]:
         for b in elements[i + 1:]:
             if intersects(tuple(a["box"]), tuple(b["box"])):
                 out.append(f"layout_overlap: {a['name']} {a['box']} overlaps {b['name']} {b['box']}")
+    for region in record.get("protected") or []:
+        for e in elements:
+            if intersects(tuple(e["box"]), tuple(region["box"])):
+                out.append(f"layout_overlap: {e['name']} {e['box']} lies under the platform's {region['name']} {region['box']}")
     return out
 
 

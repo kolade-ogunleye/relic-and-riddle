@@ -585,6 +585,17 @@ class FacebookPageReelsPublisher:
         raise PublishFailed("Facebook video not ready in time; nothing was published.")
 
 
+def _caption_for(kind: str, caption: str, platforms: List[str]) -> str:
+    """The caption a carousel request carries (operator, 2026-10-28: a posted Facebook carousel's pointing hand
+    pointed right while its caption sat above the photos). No request carries a direction cue (neutral_cues:
+    the script stage removes them, and an operator's edit is held to the same rule). Facebook's own request,
+    a multi-photo post shown as a grid, also says nothing about swiping (facebook_photo_caption)."""
+    if kind == "story" or not caption:
+        return caption
+    from .script_engine import facebook_photo_caption, neutral_cues
+    return facebook_photo_caption(caption) if platforms == ["facebook"] else neutral_cues(caption)
+
+
 class MetaPublisher:
     def __init__(self, db: Optional[PipelineDatabase] = None, publishers: Optional[list] = None):
         self.db = db or PipelineDatabase()
@@ -771,7 +782,8 @@ class MetaPublisher:
         if dry_run:  # the real plan, each request recorded as it would be sent, nothing sent
             for i, (batch, batch_platforms, key) in enumerate(batches, 1):
                 self.db.record_publication(topic_id, run_id, channel, "simulated",
-                                           {"part": i, "platforms": batch_platforms, "request_id": key, "photos": batch})
+                                           {"part": i, "platforms": batch_platforms, "request_id": key, "photos": batch,
+                                            "caption": _caption_for(kind, caption, batch_platforms)})
             log.info("Dry run: %s not posted (%d request(s) planned).", kind, len(batches))
             return {"status": "simulated", "posted_parts": 0, "planned_parts": len(batches)}
         up = next((p for p in self.publishers if isinstance(p, UploadPostPublisher)), None)
@@ -780,7 +792,7 @@ class MetaPublisher:
         done = []
         for i, (batch, batch_platforms, key) in enumerate(batches, 1):
             try:
-                res = up.publish_photos(kind, batch, caption, batch_platforms, key)
+                res = up.publish_photos(kind, batch, _caption_for(kind, caption, batch_platforms), batch_platforms, key)
             except PublishFailed as e:
                 self.db.record_publication(topic_id, run_id, channel, "failed", {"error": str(e), "part": i})
                 status = "unknown" if done else "failed"  # earlier frames already went out

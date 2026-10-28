@@ -1,4 +1,5 @@
-"""Facebook shows a multi-photo post as a grid, so its copy of the carousel has no swipe cues."""
+"""Facebook shows a multi-photo post as a grid, so its copy of the carousel has no swipe cues; since the
+operator's review of 2026-10-28 the Instagram copy has none either (Instagram draws its own)."""
 from PIL import Image, ImageDraw
 
 from src.multi_format import MultiFormatGenerator
@@ -28,8 +29,11 @@ def test_facebook_copy_has_no_swipe_cue_or_counter(tmp_path, monkeypatch):
     assert any("RELIC & RIDDLE" in t for t in drawn)  # the brand mark stays
 
 
-def test_instagram_copy_keeps_its_swipe_cues(tmp_path, monkeypatch):
+def test_instagram_copy_has_no_slide_chrome_either(tmp_path, monkeypatch):
+    # Was test_instagram_copy_keeps_its_swipe_cues: the Instagram copy drew SWIPE, "ARCHIVAL RECORD // 01 OF 03",
+    # a progress bar and dots. Operator, 2026-10-28: Instagram has its own counter and dots, and ours made the
+    # carousel look awkward; both copies are now drawn without them (tests/test_carousel_chrome_2026_10_28.py).
     slides, drawn = _render(tmp_path, monkeypatch, facebook=False)
     assert all(s.parent.name == "carousel" for s in slides)
-    assert any("SWIPE" in t for t in drawn) and any(" OF 03" in t for t in drawn)
-    assert any("ARCHIVAL RECORD // 01 OF 03" in t for t in drawn)
+    assert not any("SWIPE" in t or " OF 0" in t or "ARCHIVAL RECORD" in t or "// 0" in t or " DATA" in t for t in drawn)
+    assert any("RELIC & RIDDLE" in t for t in drawn)

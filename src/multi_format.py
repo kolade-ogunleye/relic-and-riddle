@@ -12,7 +12,6 @@ Stories and carousels are posted on their own schedule (src/post_schedule.py).
 import json
 import logging
 import re
-import threading
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -22,7 +21,6 @@ from .config import VIDEO_WIDTH, VIDEO_HEIGHT
 from .typography import fit_line, fit_text, cover_crop, fit_font, get_font, is_video, text_size, wrap_text
 
 log = logging.getLogger(__name__)
-_TLS = threading.local()
 
 GOLD = (255, 215, 0)
 WHITE = (255, 255, 255)
@@ -142,7 +140,7 @@ class MultiFormatGenerator:
             clean_title = clean_title[:57].rstrip() + "..."
 
         ig_caption = script_payload.get("caption", "")
-        fb_caption = f"{clean_title}\n\n{first_comment}\n\nWeigh in with your thoughts in the discussion below."
+        fb_caption = f"{clean_title}\n\n{first_comment}\n\nWeigh in with your thoughts in the comments."  # no "below" (operator, 2026-10-28)
         yt_desc = f"{title}\n\n{script_payload.get('narration_script', '')}\n\n{first_comment}\n\n{hashtags_str}"
         yt_tags = [h.lstrip("#").lower() for h in hashtags_list] + ["archaeology", "ancient history", "documentary", "history mysteries"]
 
@@ -258,8 +256,10 @@ class MultiFormatGenerator:
             y += 54
         lay.block("body", boxes)
         y_end = y
+        # No arrow on the pointer or the reply line (operator, 2026-10-28: a pointer must point the right way,
+        # and each platform places its own controls differently and may move them): the words say where to go.
         if i == 0:
-            lay.text(d, (VIDEO_WIDTH // 2, y + 30), "FULL STORY IN OUR NEW REEL  →", get_font("Montserrat", 32), "reel_pointer",
+            lay.text(d, (VIDEO_WIDTH // 2, y + 30), "FULL STORY IN OUR NEW REEL", get_font("Montserrat", 32), "reel_pointer",
                      anchor="mt", fill=GOLD, stroke_width=2, stroke_fill=(10, 10, 12, 220))
             y_end = y + 30 + 40
         if has_options:
@@ -275,7 +275,7 @@ class MultiFormatGenerator:
                 if o_short:
                     lay.shortened.append(f"option_{prefix}")
                 d.text((ox0 + 100, oy + 48), opt, font=f_opt, fill=WHITE, anchor="lm")
-            lay.text(d, (VIDEO_WIDTH // 2, y + 40 + 2 * 120 + 20), "WEIGH IN BELOW  ↓", get_font("Montserrat", 32), "weigh_in",
+            lay.text(d, (VIDEO_WIDTH // 2, y + 40 + 2 * 120 + 20), "REPLY WITH A OR B", get_font("Montserrat", 32), "weigh_in",
                      anchor="mt", fill=LIGHT, stroke_width=2, stroke_fill=(10, 10, 12, 220))
             y_end = y + 40 + 2 * 120 + 20 + 40
         from .still_layout import union
@@ -371,25 +371,33 @@ class MultiFormatGenerator:
         d.text((cx, cy), text, font=font, fill=text_color, anchor="mm")
         return (int(x0), int(y0), int(x1), int(y1))
 
-    # Whether badges carry slide numbers (Instagram's swipe copy) or not (Facebook's grid copy). Per thread:
-    # the two copies are drawn at the same time on one generator (main.py's packaging pool).
-    @property
-    def _numbered(self) -> bool:
-        return getattr(_TLS, "numbered", True)
-
-    @_numbered.setter
-    def _numbered(self, value: bool) -> None:
-        _TLS.numbered = bool(value)
-
     def _tag(self, category: str, index: int) -> str:
-        """A slide's badge: its category, with its number on the swipe copy (Instagram) only."""
-        return f"{category} // {index + 1:02d}" if self._numbered else category
+        """A slide's badge: its category. No slide number ("ENGINEERING // 07"): Instagram shows its own "N/M"
+        counter and dots, and our slide-style chrome made the carousel look awkward (operator, 2026-10-28)."""
+        return category
 
-    # Carousel layout bands (still-layout audit, 2026-10-28): the header (dossier counter and brand) and the
-    # swipe cues (progress bar and dots) are measured and reserved, so no badge or text block is placed over them.
+    # Carousel chrome (operator, 2026-10-28): "the design we added to the Instagram carousel to make it look like
+    # a slide is needless as Instagram has its own look". The dossier counter ("ARCHIVAL RECORD // 01 OF 07"),
+    # the progress bar, the dots, the cover's SWIPE cue and the badges' slide numbers are gone from both copies;
+    # the band the cues reserved at the bottom is the text's again (_footer_top).
+    #
+    # Brand placement: "RELIC & RIDDLE" sat top-right, exactly where Instagram overlays its "N/M" counter on
+    # carousel media. What each platform draws over the media: Instagram, the counter pill at the top-right
+    # (about 14 pt in from the corner, about 40 x 26 pt: on a 390 pt phone, ~2.8 canvas px per pt, x 930-1041,
+    # y 39-111), a tagged-people icon at the bottom-left on tagged photos (we post none), and the dots below the
+    # media, outside it; Facebook's photo grid draws "+N" over the centre of its last tile and its viewer draws
+    # nothing over the photo. The top-left corner is clear on both, so the brand is drawn there, small, at the
+    # 80 px text margin. A square grid tile crops 135 px off the top of a 4:5 slide: the brand (y 70-92) then
+    # drops out whole rather than half cut. IG_COUNTER is checked on every slide (still_layout `protected`), so
+    # nothing we draw ever lands under the counter.
     HEADER_Y = 70
-    CUES_TOP_GAP = 67           # the dots' top edge, this far above the bottom
     BAND_GAP = 16
+
+    @staticmethod
+    def _ig_counter(cw: int) -> Tuple[int, int, int, int]:
+        """Where Instagram overlays its carousel counter: the measured pill (above) with room for "10/10" and
+        narrower phones: the right 280 px of the top 140 px."""
+        return (cw - 280, 0, cw, 140)
 
     def _zone(self, cw: int, chh: int):
         """Where a slide's text and badges stay: the canvas less 40 px each side (the profile grid's 3:4 crop
@@ -397,14 +405,14 @@ class MultiFormatGenerator:
         return (40, 30, cw - 40, chh - 30)
 
     def _header_bottom(self, d: ImageDraw.ImageDraw, cw: int, tight: bool) -> int:
-        f_small, f_dossier = get_font("Montserrat", 28), get_font("Montserrat", 20)
-        b1 = d.textbbox((cw - 80, self.HEADER_Y), "RELIC & RIDDLE", font=f_small, anchor="rt", stroke_width=2)
-        b2 = d.textbbox((80, self.HEADER_Y), "ARCHIVAL RECORD // 00 OF 00", font=f_dossier, anchor="lt", stroke_width=2)
-        return max(b1[3], b2[3]) + (10 if tight else 0)
+        """The bottom of the header band: the brand, top-left."""
+        b = d.textbbox((80, self.HEADER_Y), "RELIC & RIDDLE", font=get_font("Montserrat", 28), anchor="lt", stroke_width=2)
+        return b[3] + (10 if tight else 0)
 
     def _footer_top(self, chh: int) -> int:
-        """The lowest y a slide's text may reach: above the swipe cues, with a gap."""
-        return chh - self.CUES_TOP_GAP - self.BAND_GAP
+        """The lowest y a slide's text may reach: the zone's bottom less two gaps. Nothing is drawn under the
+        text any more (the swipe cues are gone, operator 2026-10-28; Instagram's dots sit below the media)."""
+        return self._zone(0, chh)[3] - 2 * self.BAND_GAP
 
     def _plan_panel(self, d, heading: str, body: str, width: int, room: int, h_spec, b_spec, tight: bool,
                     h_stroke: int = 0, b_stroke: int = 0, h_pitch: float = 1.1, body_max: int = 4):
@@ -475,7 +483,7 @@ class MultiFormatGenerator:
                 lay.shortened.append(name)
         return box
 
-    def _render_cover(self, photo: Path, card: Dict[str, Any], cw: int, chh: int, swipe: bool = True,
+    def _render_cover(self, photo: Path, card: Dict[str, Any], cw: int, chh: int,
                       lay=None, tight: bool = False) -> Image.Image:
         heading, body = card["heading"].upper(), card["body"]
         im = cover_crop(photo, self.CAROUSEL_SIZE).convert("RGB")
@@ -483,7 +491,7 @@ class MultiFormatGenerator:
         for y in range(chh // 3, chh):
             a = int(235 * ((y - chh / 3) / (chh * 2 / 3)) ** 1.4)
             d.line([(0, y), (cw, y)], fill=(8, 8, 10, a))
-        im = ensure_legible(im, (40, chh - 720, cw - 40, chh - 80))  # up to 3 heading lines, body and swipe
+        im = ensure_legible(im, (40, chh - 720, cw - 40, chh - 80))  # up to 3 heading lines and the body
         d = ImageDraw.Draw(im, "RGBA")
         width = cw - 160
         h_size = 96 if tight else 110
@@ -491,9 +499,10 @@ class MultiFormatGenerator:
         lines, font_h, h_short = fit_text(d, heading, "Anton", font_h.size, width, 3, 48 if tight else 56, stroke=3, sentences=False)
         cover_lines, font_cb, b_short = fit_text(d, body, "Montserrat", 32 if tight else 36, width, 2, 28, stroke=2)
         step = int(font_h.size * 1.05)
-        swipe_top = chh - 110 - 50                                  # the SWIPE cue's row (its cap height, with room)
         # The old placement (heading baselines from chh-470, body two rows under), moved up only when the body
-        # would reach the swipe row.
+        # would pass the footer line. The SWIPE cue's row it used to clear is gone (operator, 2026-10-28: Instagram
+        # shows its own dots), so a long cover keeps the room down to the footer line.
+        footer = self._footer_top(chh)
         y = chh - 470 - (len(lines) - 1) * 60
         # The body clears the heading's measured bottom: an accented or descending heading line reaches below
         # its baseline step, and the body overlapped it on every redraw (review, 2026-10-28).
@@ -504,8 +513,8 @@ class MultiFormatGenerator:
             b_top = d.textbbox((80, last + step + 20), cover_lines[0], font=font_cb, anchor="ls", stroke_width=2)[1]
             drop = max(0, h_bottom + 6 - b_top)
         body_bottom = y + len(lines) * step + 20 + drop + 48 * max(0, len(cover_lines) - 1) + 12
-        if body_bottom > swipe_top - self.BAND_GAP:
-            y -= body_bottom - (swipe_top - self.BAND_GAP)
+        if body_bottom > footer:
+            y -= body_bottom - footer
         boxes = []
         for line in lines:
             boxes.append(self._text(d, lay, (80, y), line, font_h, WHITE, anchor="ls", stroke_width=3, stroke_fill=(8, 8, 10, 230)))
@@ -519,11 +528,6 @@ class MultiFormatGenerator:
             lay.block("heading", boxes)
             lay.block("body", bboxes)
             lay.shortened += (["heading"] if h_short else []) + (["body"] if b_short else [])
-        if swipe:
-            box = self._text(d, lay, (cw - 80, chh - 110), "SWIPE  →", get_font("Anton", 44), GOLD, anchor="rs",
-                             stroke_width=2, stroke_fill=(8, 8, 10, 220))
-            if lay is not None:
-                lay.add("swipe", box)
         return im
 
     def _render_immersive(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
@@ -565,7 +569,7 @@ class MultiFormatGenerator:
         d.line([(0, h_half), (cw, h_half)], fill=GOLD, width=3)
         d.line([(0, 2 * h_half), (cw, 2 * h_half)], fill=GOLD, width=2)
         f_sub = get_font("Montserrat", 22)
-        # REF A sat at y=35, under the slide's own dossier header at y=70 (measured overlap, 2026-10-28): it
+        # REF A sat at y=35, under the slide's own header at y=70 (measured overlap, 2026-10-28; the brand is there now): it
         # now starts below the header band.
         ref_a_y = max(35, self._header_bottom(d, cw, tight) + self.BAND_GAP)
         self._badge(d, lay, "ref_a", "REF A // SURFACE CONTEXT", 60, ref_a_y, f_sub, text_color=WHITE, border_color=GOLD,
@@ -619,7 +623,7 @@ class MultiFormatGenerator:
         self._badge(d, lay, "badge", tag, 80, p_h + 10, get_font("Montserrat", 24), text_color=GOLD, border_color=GOLD,
                     fill_color=(16, 20, 26, 230), radius=6)
         stat_match = re.search(r"(\b\d+[\d,]*\+?(?:\s*(?:TONS?|PEOPLE|FEET|FT|METERS?|M|STORIES|LEVELS))?)\b", f"{heading} {body}", re.IGNORECASE)
-        stat_text = stat_match.group(1).upper() if stat_match else (f"{index + 1:02d} DATA" if self._numbered else category)
+        stat_text = stat_match.group(1).upper() if stat_match else category  # no slide number (2026-10-28)
         stat_text, f_stat, s_short = fit_line(d, stat_text, "Anton", 96 if tight else 110, cw - 160, 56)
         box = self._text(d, lay, (80, p_h + 65), stat_text, f_stat, GOLD)
         if lay is not None:
@@ -627,7 +631,7 @@ class MultiFormatGenerator:
             if s_short:
                 lay.shortened.append("stat")
         y = p_h + 65 + int(f_stat.size * 1.1)
-        ver_y = chh - 140
+        ver_y = self._footer_top(chh) - 46                                # its pill's top: the pill ends on the footer line
         plan = self._plan_panel(d, heading, body, cw - 160, ver_y - self.BAND_GAP - y, (62, 38), 38, tight, h_pitch=1.15)
         self._draw_panel(d, lay, plan, 80, y)
         self._badge(d, lay, "verified", "VERIFIED BY ARCHEOLOGICAL RECORD", 80, ver_y, get_font("Montserrat", 22),
@@ -650,10 +654,14 @@ class MultiFormatGenerator:
         tag = self._tag(category, index)
         self._badge(d, lay, "badge", tag, 80, p_h + 20, get_font("Montserrat", 24), text_color=GOLD, border_color=GOLD,
                     fill_color=(16, 18, 22, 230), radius=6)
-        footer = self._text(d, lay, (80, chh - 120), "TELL US IN THE COMMENTS  ↓", f_small, GOLD, anchor="ls")
+        # No arrow after the call to comment (operator, 2026-10-28: where the comments are differs between
+        # Instagram's carousel and Facebook's photo grid). It sits on the footer line, now that the swipe cues
+        # under it are gone (it was 120 px up, clear of them).
+        footer_y = self._footer_top(chh) - 8                              # its baseline: descenders stay above the line
+        footer = self._text(d, lay, (80, footer_y), "TELL US IN THE COMMENTS", f_small, GOLD, anchor="ls")
         share_lines, f_share, sh_short = fit_text(d, share, "Montserrat", 34, cw - 160, 2, 28) if share else ([], None, False)
         step = int(f_share.size * 1.3) if f_share else 0
-        share_top = chh - 176 - step * len(share_lines)                   # above the footer
+        share_top = footer_y - 56 - step * len(share_lines)               # above the footer
         y = p_h + 80
         room = (share_top - 24 if share_lines else footer[1] - self.BAND_GAP) - y
         plan = self._plan_panel(d, heading, body, cw - 160, room, (68, 42), 40, tight, h_pitch=1.15, body_max=3)
@@ -690,16 +698,23 @@ class MultiFormatGenerator:
 
     def _render_carousel_slide(self, archetype: str, photo: Path, photo_next: Path, card: Dict[str, Any], i: int,
                                total: int, poll: Dict[str, Any], share: str, facebook: bool, tight: bool = False):
-        """One carousel slide and its measured layout: the archetype's own text, then the header (dossier and
-        brand) and the swipe cues, each in its reserved band. `tight`: smaller type, and the header on solid
-        pills so it reads over any photo (Richat 2's header "collides with the spacecraft's solar panel")."""
+        """One carousel slide and its measured layout: the archetype's own text, then the brand in its band at the
+        top-left. Nothing is drawn under Instagram's counter (`protected`). Both copies are free of slide chrome
+        (operator, 2026-10-28); `facebook` now changes only the words: the grid copy's slide text says nothing
+        about swiping ("Swipe to see how ..." is drawn "See how ..."), and neither copy draws a direction cue.
+        `tight`: smaller type, and the brand on a solid pill so it reads over any photo (Richat 2's header
+        "collides with the spacecraft's solar panel")."""
         from .still_layout import Layout
+        from .script_engine import facebook_photo_caption, neutral_cues
+        clean = facebook_photo_caption if facebook else neutral_cues
+        card = dict(card, heading=clean(card.get("heading") or ""), body=clean(card.get("body") or ""))
+        share = clean(share or "")
         cw, chh = self.CAROUSEL_SIZE
-        self._numbered = not facebook
-        lay = Layout("carousel", (cw, chh), self._zone(cw, chh), tight=tight)
+        lay = Layout("carousel", (cw, chh), self._zone(cw, chh), tight=tight,
+                     protected=[("instagram_counter", self._ig_counter(cw))])
         f_small = get_font("Montserrat", 28)
         if archetype == "cover":
-            im = self._render_cover(photo, card, cw, chh, swipe=not facebook, lay=lay, tight=tight)
+            im = self._render_cover(photo, card, cw, chh, lay=lay, tight=tight)
         elif archetype == "immersive":
             im = self._render_immersive(photo, card, i, cw, chh, lay=lay, tight=tight)
         elif archetype == "comparison":
@@ -713,38 +728,21 @@ class MultiFormatGenerator:
         else:
             im = self._render_editorial_split(photo, card, i, cw, chh, lay=lay, tight=tight)
 
-        # Shade behind each header text's own extent, not a band across the slide: the band's 90th-percentile
+        # Shade behind the brand's own extent, not a band across the slide: the band's 90th-percentile
         # luminance was mostly black sky, so a badge over a bright solar panel was left at 1.1:1 (measured 2026-10-25).
+        # The brand is top-left, clear of Instagram's counter (see HEADER_Y); no counter, bar or dots of our own.
         d = ImageDraw.Draw(im, "RGBA")
-        f_dossier = get_font("Montserrat", 20)
-        dossier = f"ARCHIVAL RECORD // {i + 1:02d} OF {total:02d}"
+        xy = (80, self.HEADER_Y)
         brand_w = d.textlength("RELIC & RIDDLE", font=f_small)
-        im = ensure_legible(im, (int(cw - 80 - brand_w - 30), 50, cw - 50, 100), feather=60)
-        if not facebook:  # the dossier header with its counter is a swipe cue; Facebook keeps only the brand
-            im = ensure_legible(im, (50, 50, int(80 + d.textlength(dossier, font=f_dossier) + 30), 100), text_rgb=(212, 175, 55), feather=60)
+        im = ensure_legible(im, (50, 50, int(80 + brand_w + 30), 100), feather=60)
         d = ImageDraw.Draw(im, "RGBA")
-        header = [("brand", (cw - 80, self.HEADER_Y), "RELIC & RIDDLE", f_small, (235, 235, 235, 255), "rt")]
-        if not facebook:
-            header.insert(0, ("dossier", (80, self.HEADER_Y), dossier, f_dossier, (212, 175, 55, 255), "lt"))
-        for name, xy, text, font, fill, anchor in header:
-            box = d.textbbox(xy, text, font=font, anchor=anchor, stroke_width=2)
-            if tight:  # a solid pill behind the header, whatever the photo does there
-                box = (box[0] - 12, box[1] - 8, box[2] + 12, box[3] + 8)
-                d.rounded_rectangle(box, radius=8, fill=(8, 10, 14, 215))
-            d.text(xy, text, font=font, fill=fill, anchor=anchor, stroke_width=2, stroke_fill=(8, 10, 14, 230))
-            lay.add(f"header_{name}", box)
-
-        if not facebook:  # continuous panoramic progress timeline and dots: swipe cues
-            bar_y = chh - 45
-            d.line([(80, bar_y), (cw - 80, bar_y)], fill=(50, 60, 75, 140), width=2)
-            seg_w = (cw - 160) / total
-            d.line([(80 + i * seg_w, bar_y), (80 + (i + 1) * seg_w, bar_y)], fill=GOLD, width=3)
-            x0 = cw // 2 - (total - 1) * 14
-            for j in range(total):
-                r = 7 if j == i else 5
-                d.ellipse([x0 + 28 * j - r, chh - 60 - r, x0 + 28 * j + r, chh - 60 + r],
-                          fill=GOLD if j == i else (110, 110, 115))
-            lay.add("swipe_cues", (80, chh - self.CUES_TOP_GAP, cw - 80, bar_y + 2))
+        box = d.textbbox(xy, "RELIC & RIDDLE", font=f_small, anchor="lt", stroke_width=2)
+        if tight:  # a solid pill behind the brand, whatever the photo does there
+            box = (box[0] - 12, box[1] - 8, box[2] + 12, box[3] + 8)
+            d.rounded_rectangle(box, radius=8, fill=(8, 10, 14, 215))
+        d.text(xy, "RELIC & RIDDLE", font=f_small, fill=(235, 235, 235, 255), anchor="lt", stroke_width=2,
+               stroke_fill=(8, 10, 14, 230))
+        lay.add("header_brand", box)
         return im, lay
 
     def generate_carousel_sequence(self, scene_images: List[Path], script_payload: Dict[str, Any], output_dir: Path,
@@ -752,13 +750,14 @@ class MultiFormatGenerator:
         """Multi-Template Editorial Carousel (1080x1350, 4:5):
         Dynamically routes each slide to one of 5 National Geographic / The Economist archetypes
         (Full-Bleed Immersive, Comparative Side-by-Side, Architectural Blueprint, Colossal Stat, Debate).
-        facebook=True: the same slides for Facebook's multi-photo post (carousel_fb/), without the swipe
-        cue, slide counter, progress bar or dots: Facebook shows the set as a grid, not a swipe.
+        facebook=True: the same slides for Facebook's multi-photo post (carousel_fb/). Neither copy has a swipe
+        cue, slide counter, progress bar or dots any more (operator, 2026-10-28: Instagram draws its own counter
+        and dots; Facebook shows the set as a grid); they differ only in that the grid copy's text never says
+        "swipe". The folder and the publisher's per-platform request are kept.
         Each slide is measured and checked after drawing (still_layout); a failing one is drawn once more
         with the tighter fit, and its record is kept in carousel*/still_layout.json."""
         from . import still_layout
         out_dir = output_dir / ("carousel_fb" if facebook else "carousel")
-        self._numbered = not facebook  # slide numbers on the badges ("ENGINEERING // 07") are swipe cues too
         out_dir.mkdir(parents=True, exist_ok=True)
         stills = [p for p in scene_images if not is_video(p)]
         cards = script_payload["carousel_slides"]

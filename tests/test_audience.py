@@ -43,7 +43,7 @@ def test_each_post_type_is_measured_as_what_it_is(db):
 
 def test_a_platform_that_cannot_be_measured_never_holds_back_the_next_snapshot(db, monkeypatch):
     _publish(db, "run_a_1", "upload-post", {}, days_ago=2)
-    monkeypatch.setattr(audience, "_graph_metrics", lambda label, res: None)
+    monkeypatch.setattr(audience, "_graph_metrics", lambda label, res, *a, **k: (None, "skipped: test"))
     monkeypatch.setattr(audience, "upload_post_analytics", lambda rid, platform=None: {
         "instagram": DOC_ANSWER["platforms"]["instagram"]["post_metrics"], "facebook": {"unavailable": "not found"}})
     assert audience.collect(db) == 2  # instagram measured, facebook recorded as unavailable

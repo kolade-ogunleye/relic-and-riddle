@@ -4234,6 +4234,7 @@ def main(argv=None) -> int:
                 n = audience.collect(coordinator.db)
                 if n:
                     log.info("Audience metrics: %d snapshot(s) stored.", n)
+                    log.info("Audience sources: %s", " | ".join(audience.sources_health(coordinator.db)["lines"]))
                 # Weak results go to the audit ledger, where a recurring one becomes a proposal.
                 filed = audience.file_findings(coordinator.db)
                 if filed:
@@ -4245,7 +4246,9 @@ def main(argv=None) -> int:
                           max_instances=1, coalesce=True, misfire_grace_time=6 * 3600)
         scheduler.add_job(weekly_digest, CronTrigger(day_of_week="sun", hour=hb_hour, minute=hb_minute, timezone=TIMEZONE),
                           max_instances=1, coalesce=True, misfire_grace_time=6 * 3600)
-        scheduler.add_job(collect_audience, CronTrigger(hour="*/6", minute=20, timezone=TIMEZONE),
+        # Hourly: a Story's insights live 24 h and are read from 18 h, so one missed 6-hourly pass lost them (2026-10-28);
+        # a pass with nothing due is one query
+        scheduler.add_job(collect_audience, CronTrigger(minute=20, timezone=TIMEZONE),
                           max_instances=1, coalesce=True, misfire_grace_time=3 * 3600)
 
         def check_accounts_now():  # so status and the dashboard show real account state from the start

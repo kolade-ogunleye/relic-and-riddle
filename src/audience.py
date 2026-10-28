@@ -4,14 +4,33 @@ src/audience.py
 How the published videos actually did, measured where the platforms measure it.
 
 Snapshots are taken 1, 3, 7 and 28 days after posting (Meta's insights can lag up to 48 hours,
-so the first one is a first look, not a verdict), from:
-- Instagram Graph API media insights (our IG token): views, reach, average watch time, skip rate
-  in the first 3 seconds, shares, saves, likes, comments. Metrics Meta marks "in development" are
-  requested one by one, so one unsupported metric never empties the rest.
-- Facebook video insights, when a Page token is configured: plays, average time watched,
-  retention curve, follows.
-- Upload-Post post analytics (by the request id it published with): the fallback for Reels and the
-  source for YouTube (the Short and the documentary), carousels and Story frames.
+so the first one is a first look, not a verdict). A Story is measured once, STORY_SNAPSHOT_HOURS
+after posting: Instagram keeps story insights for 24 hours only (developers.facebook.com/docs/
+instagram-platform/reference/instagram-media/insights, "Story metrics are available for 24 hours",
+read 2026-10-28), so the 1-day snapshot always came too late (production, every story snapshot
+"HTTP 400", 2026-10-28). Sources, in order, for each post:
+- Instagram Graph API media insights (META_ACCESS_TOKEN, META_IG_ACCOUNT_ID): views, reach, average
+  watch time, skip rate in the first 3 seconds, shares, saves, likes, comments; for a Story views,
+  reach, shares, follows, profile visits, replies, navigation. Metrics Meta marks "in development"
+  are requested one by one, so one unsupported metric never empties the rest.
+- Facebook video insights (META_PAGE_ACCESS_TOKEN, else META_ACCESS_TOKEN): plays, average time
+  watched, retention curve, follows.
+- Upload-Post post analytics (by the request id it published with): the fallback for Reels and
+  Stories and the source for YouTube (the Short and the documentary) and carousels.
+
+The Graph needs the post's own id. Upload-Post publishes our Reels, and the direct publishers'
+post_ids were the only ids the Graph path ever read, so on production it never ran (2026-10-28:
+every audience_metrics row came from "upload-post" though the Meta tokens are configured). The id
+is now found, in order: post_ids recorded by a direct publisher; the platform_post_id in the
+stored Upload-Post answer; Upload-Post's upload history by request id (docs.upload-post.com/api/
+upload-history, GET /api/uploadposts/history?request_id=); the id in the post URL (Facebook's
+/reel/<video id>); the account's recent media (Instagram /media or /stories, Facebook
+/video_reels) matched by permalink, else by publication time. A found id is kept in
+audience_media_ids, so later snapshots (and an expired Story's) do not search again.
+
+Every source's outcome is logged per post (info when it answered, a warning with the API's own
+message when not; tokens are redacted from every message) and kept in audience_sources, which
+sources_health() summarises for the dashboard.
 
 What is derived per video: watch ratio (average watch time / video length), skip rate, shares and
 saves per reached account. With few videos these are descriptions, not conclusions; the digest says
@@ -24,6 +43,7 @@ channel's own median files a hook, retention or shares finding; recurring ones b
 
 import json
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -35,14 +55,31 @@ from .config import is_configured
 log = logging.getLogger(__name__)
 
 SNAPSHOTS = (("1d", 1), ("3d", 3), ("7d", 7), ("28d", 28))
+# A Story's one snapshot: late enough for most of its views, early enough that the 6-hourly collector
+# (main.py, minute 20) always has one pass before the 24-hour expiry. Instagram documents story
+# insights for 24 hours (developers.facebook.com/docs/instagram-platform/reference/instagram-media/insights).
+STORY_SNAPSHOT = "story"
+STORY_SNAPSHOT_HOURS = 18
+STORY_LIFETIME_HOURS = 24
+# developers.facebook.com/docs/instagram-platform/reference/instagram-media/insights (read 2026-10-28):
+# REELS: views, reach, ig_reels_avg_watch_time, reels_skip_rate, shares, saved, likes, comments,
+# total_interactions; STORY: views, reach, shares, total_interactions, follows, profile_visits,
+# replies, navigation (impressions is deprecated for media made after 2 July 2024).
 IG_METRICS = ("views", "reach", "ig_reels_avg_watch_time", "reels_skip_rate", "shares", "saved",
               "likes", "comments", "total_interactions")
+IG_STORY_METRICS = ("views", "reach", "shares", "total_interactions", "follows", "profile_visits",
+                    "replies", "navigation")
+# developers.facebook.com/docs/graph-api/reference/video/video_insights (Reels, lifetime period).
 FB_METRICS = ("blue_reels_play_count", "fb_reels_total_plays", "post_impressions_unique",
               "post_video_avg_time_watched", "post_video_followers", "post_video_retention_graph")
 MIN_FOR_PATTERNS = 12
 PUBLISHED_CHANNELS = ("upload-post", "instagram-graph", "facebook-page", "youtube-shorts",
                       "upload-post:carousel", "upload-post:story")
 VIDEO_PLATFORMS = ("instagram", "facebook", "youtube")
+# How far a post's own timestamp may lie from our publication record (written after Upload-Post's
+# asynchronous upload finished) for a timestamp match.
+MATCH_WINDOW = {"reel": timedelta(minutes=45), "story": timedelta(minutes=20)}
+GRAPH = "https://graph.facebook.com"
 
 
 def ensure_schema(db) -> None:
@@ -51,59 +88,241 @@ def ensure_schema(db) -> None:
             run_id TEXT NOT NULL, platform TEXT NOT NULL, snapshot TEXT NOT NULL, source TEXT,
             metrics_json TEXT NOT NULL, fetched_at TEXT NOT NULL,
             PRIMARY KEY (run_id, platform, snapshot))""")
+        conn.execute("""CREATE TABLE IF NOT EXISTS audience_media_ids (
+            run_id TEXT NOT NULL, platform TEXT NOT NULL, media_id TEXT NOT NULL, how TEXT,
+            found_at TEXT NOT NULL, PRIMARY KEY (run_id, platform))""")
+        conn.execute("""CREATE TABLE IF NOT EXISTS audience_sources (
+            collected_at TEXT NOT NULL, run_id TEXT NOT NULL, snapshot TEXT NOT NULL, platform TEXT NOT NULL,
+            source TEXT NOT NULL, outcome TEXT NOT NULL, detail TEXT)""")
+
+
+def _secrets() -> List[str]:
+    return [s for s in (config.META_ACCESS_TOKEN, config.META_PAGE_ACCESS_TOKEN, config.UPLOAD_POST_API_KEY)
+            if s and len(s) >= 6]
+
+
+def _redact(text: Any) -> str:
+    """Any message that may reach a log or the database, without a credential: requests' own errors
+    carry the full URL, query string (access_token=...) included."""
+    text = str(text)
+    for s in _secrets():
+        text = text.replace(s, "***")
+    text = re.sub(r"(access_token=)[^&\s'\"]+", r"\1***", text)
+    return re.sub(r"(Apikey\s+)\S+", r"\1***", text)
 
 
 def _get(url: str, params: Dict[str, Any], headers: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
-    resp = requests.get(url, params=params, headers=headers or {}, timeout=30)
+    try:
+        resp = requests.get(url, params=params, headers=headers or {}, timeout=30)
+    except requests.RequestException as e:
+        raise requests.RequestException(_redact(e)) from None
     try:
         body = resp.json()
     except ValueError:
         body = {}
     if not resp.ok or "error" in body:
-        raise RuntimeError(f"HTTP {resp.status_code}: {(body.get('error') or {}).get('message', '') if isinstance(body.get('error'), dict) else body.get('error', '')}")
+        err = body.get("error")
+        if isinstance(err, dict):  # Graph: {"error": {"message", "code", "error_subcode"}}
+            detail = f"{err.get('message', '')} (code {err.get('code')})" if err.get("code") is not None else err.get("message", "")
+        else:
+            detail = err or body.get("message") or ""
+        raise RuntimeError(_redact(f"HTTP {resp.status_code}: {detail}"))
     return body
 
 
-# ------------------------------------------------------------------ sources
-def instagram_media_id(post: Dict[str, Any]) -> Optional[str]:
-    """The IG media id: recorded by the Graph publisher, or found by permalink among recent media."""
-    if (post.get("post_ids") or {}).get("instagram"):
-        return post["post_ids"]["instagram"]
-    url = (post.get("post_urls") or {}).get("instagram")
-    if not url or not is_configured(config.META_ACCESS_TOKEN) or not is_configured(config.META_IG_ACCOUNT_ID):
+# ------------------------------------------------------------------ ids
+def _is_story(label: str) -> bool:
+    return "_story" in label
+
+
+def _result_rows(res: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """The per-platform rows of a stored Upload-Post answer (status or synchronous form)."""
+    rows: List[Dict[str, Any]] = []
+    for src in (res.get("results"), (res.get("raw") or {}).get("results")):
+        if isinstance(src, dict):
+            rows += [{"platform": k, **v} for k, v in src.items() if isinstance(v, dict)]
+        elif isinstance(src, list):
+            rows += [r for r in src if isinstance(r, dict)]
+    return rows
+
+
+def stored_post_id(res: Dict[str, Any], platform: str) -> Optional[str]:
+    """The platform's post id recorded at publish time: a direct publisher's post_ids, else the
+    platform_post_id of Upload-Post's answer (docs.upload-post.com/api/upload-history names the field;
+    string, array or null)."""
+    if (res.get("post_ids") or {}).get(platform):
+        return str(res["post_ids"][platform])
+    for row in _result_rows(res):
+        if row.get("platform") != platform:
+            continue
+        for key in ("platform_post_id", "post_id", "media_id", "video_id"):
+            value = row.get(key)
+            value = (value[0] if value else None) if isinstance(value, list) else value
+            if value:
+                return str(value)
+    return None
+
+
+def _post_url(res: Dict[str, Any], platform: str) -> str:
+    url = (res.get("post_urls") or {}).get(platform)
+    if not url:
+        url = next((r.get("post_url") or r.get("url") for r in _result_rows(res)
+                    if r.get("platform") == platform and (r.get("post_url") or r.get("url"))), None)
+    return str(url or "")
+
+
+def instagram_shortcode(url: str) -> Optional[str]:
+    """The shortcode of a post URL (/p/, /reel/, /reels/, /tv/); a profile or /stories/<user>/ URL has
+    none. The old lookup took the URL's last segment, so a profile-style URL matched nothing, silently."""
+    m = re.search(r"instagram\.com/(?:[^/?#]+/)?(?:p|reels?|tv)/([A-Za-z0-9_-]+)", url or "")
+    return m.group(1) if m else None
+
+
+def facebook_video_id(url: str) -> Optional[str]:
+    """The video id in a Facebook Reel or video URL (https://www.facebook.com/reel/1419040693748996)."""
+    m = re.search(r"facebook\.com/(?:[^?#]*/)?(?:reels?|videos)/(\d+)", url or "") or \
+        re.search(r"[?&](?:v|video_id)=(\d+)", url or "")
+    return m.group(1) if m else None
+
+
+def upload_post_post_id(request_id: str, platform: str) -> Optional[str]:
+    """platform_post_id from Upload-Post's upload history, filtered by request id (exact match, one row
+    per platform; docs.upload-post.com/api/upload-history)."""
+    if not request_id or not is_configured(config.UPLOAD_POST_API_KEY):
         return None
-    shortcode = url.rstrip("/").split("/")[-1]
-    body = _get(f"https://graph.facebook.com/{config.META_GRAPH_VERSION}/{config.META_IG_ACCOUNT_ID}/media",
-                {"fields": "id,permalink", "limit": 50, "access_token": config.META_ACCESS_TOKEN})
-    return next((m["id"] for m in body.get("data", []) if shortcode and shortcode in (m.get("permalink") or "")), None)
+    body = _get(f"{config.UPLOAD_POST_BASE_URL.rstrip('/')}/uploadposts/history",
+                {"request_id": request_id, "platform": platform, "limit": 10},
+                headers={"Authorization": f"Apikey {config.UPLOAD_POST_API_KEY}"})
+    for row in body.get("history") or []:
+        if row.get("platform") == platform and row.get("success") is not False:
+            value = row.get("platform_post_id")
+            value = (value[0] if value else None) if isinstance(value, list) else value
+            if value:
+                return str(value)
+    return None
 
 
-def instagram_insights(media_id: str) -> Dict[str, Any]:
-    base = f"https://graph.facebook.com/{config.META_GRAPH_VERSION}/{media_id}/insights"
-    out: Dict[str, Any] = {}
+def _when(value: Any) -> Optional[datetime]:
+    if value in (None, ""):
+        return None
+    if isinstance(value, (int, float)):
+        return datetime.fromtimestamp(value, timezone.utc)
+    text = str(value).replace("Z", "+00:00")
+    text = re.sub(r"([+-]\d{2})(\d{2})$", r"\1:\2", text)  # Graph's 2026-10-27T18:02:11+0000
     try:
-        body = _get(base, {"metric": ",".join(IG_METRICS), "access_token": config.META_ACCESS_TOKEN})
-        rows = body.get("data", [])
-    except RuntimeError:
+        when = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    return when if when.tzinfo else when.replace(tzinfo=timezone.utc)
+
+
+def _nearest(items: List[Dict[str, Any]], posted: Optional[datetime], window: timedelta,
+             taken: set, ts_key: str) -> Optional[Dict[str, Any]]:
+    if posted is None:
+        return None
+    best, gap = None, window
+    for m in items:
+        when = _when(m.get(ts_key))
+        if when is None or str(m.get("id")) in taken:
+            continue
+        if abs(when - posted) <= gap:
+            best, gap = m, abs(when - posted)
+    return best
+
+
+def _ig_configured() -> bool:
+    return is_configured(config.META_ACCESS_TOKEN) and is_configured(config.META_IG_ACCOUNT_ID)
+
+
+def _fb_token() -> str:
+    return config.META_PAGE_ACCESS_TOKEN or config.META_ACCESS_TOKEN or ""
+
+
+def instagram_media_id(post: Dict[str, Any], posted: Optional[datetime] = None, story: bool = False,
+                       taken: Optional[set] = None) -> Tuple[Optional[str], str]:
+    """(IG media id, how it was found) from the stored answer, else the account's recent media
+    (/media for a Reel, /stories for a live Story) by permalink shortcode, else by publication time."""
+    stored = stored_post_id(post, "instagram")
+    if stored:
+        return stored, "stored publish response"
+    if not _ig_configured():
+        return None, "not configured (META_ACCESS_TOKEN, META_IG_ACCOUNT_ID)"
+    edge = "stories" if story else "media"
+    body = _get(f"{GRAPH}/{config.META_GRAPH_VERSION}/{config.META_IG_ACCOUNT_ID}/{edge}",
+                {"fields": "id,permalink,timestamp,media_product_type,media_type", "limit": 50,
+                 "access_token": config.META_ACCESS_TOKEN})
+    media = body.get("data") or []
+    shortcode = instagram_shortcode(_post_url(post, "instagram"))
+    if shortcode:
+        hit = next((m for m in media if f"/{shortcode}" in (m.get("permalink") or "")), None)
+        if hit:
+            return str(hit["id"]), "graph permalink"
+    pool = media if story else [m for m in media if m.get("media_product_type") in ("REELS", None)]
+    hit = _nearest(pool, posted, MATCH_WINDOW["story" if story else "reel"], taken or set(), "timestamp")
+    if hit:
+        return str(hit["id"]), "graph timestamp"
+    return None, f"no {edge} item matched (of {len(media)} recent)"
+
+
+def facebook_video_id_for(post: Dict[str, Any], posted: Optional[datetime] = None,
+                          taken: Optional[set] = None) -> Tuple[Optional[str], str]:
+    """(Facebook video id, how): the stored answer, the Reel URL, else the Page's /video_reels by time."""
+    stored = stored_post_id(post, "facebook")
+    if stored:
+        return stored, "stored publish response"
+    from_url = facebook_video_id(_post_url(post, "facebook"))
+    if from_url:
+        return from_url, "post URL"
+    if not is_configured(_fb_token()) or not is_configured(config.META_PAGE_ID):
+        return None, "not configured (META_PAGE_ACCESS_TOKEN, META_PAGE_ID)"
+    body = _get(f"{GRAPH}/{config.META_GRAPH_VERSION}/{config.META_PAGE_ID}/video_reels",
+                {"fields": "id,created_time,permalink_url", "limit": 25, "access_token": _fb_token()})
+    hit = _nearest(body.get("data") or [], posted, MATCH_WINDOW["reel"], taken or set(), "created_time")
+    return (str(hit["id"]), "graph timestamp") if hit else (None, "no Page reel matched")
+
+
+# ------------------------------------------------------------------ sources
+def instagram_insights(media_id: str, story: bool = False) -> Dict[str, Any]:
+    """The media's insights; raises RuntimeError (Meta's own message) when none could be read."""
+    metrics = IG_STORY_METRICS if story else IG_METRICS
+    base = f"{GRAPH}/{config.META_GRAPH_VERSION}/{media_id}/insights"
+    out: Dict[str, Any] = {}
+    errors: List[str] = []
+    try:
+        rows = _get(base, {"metric": ",".join(metrics), "access_token": config.META_ACCESS_TOKEN}).get("data", [])
+    except RuntimeError as first:
+        errors.append(str(first))
         rows = []
-        for m in IG_METRICS:  # one unsupported metric fails the whole request; ask one by one
+        for m in metrics:  # one unsupported metric fails the whole request; ask one by one
             try:
                 rows += _get(base, {"metric": m, "access_token": config.META_ACCESS_TOKEN}).get("data", [])
             except RuntimeError as e:
+                errors.append(f"{m}: {e}")
                 log.debug("IG metric %s unavailable: %s", m, e)
     for r in rows:
-        values = r.get("values") or [{}]
-        out[r.get("name")] = values[0].get("value") if values else r.get("total_value", {}).get("value")
+        values = r.get("values")
+        out[r.get("name")] = values[0].get("value") if values else (r.get("total_value") or {}).get("value")
+    out = {k: v for k, v in out.items() if k and v is not None}
+    if not out:
+        # Meta: unavailable insights are an empty data set, not 0; a story under 5 viewers is error #10.
+        raise RuntimeError(errors[0] if errors else "no insights returned yet (Meta can lag up to 48 hours)")
+    out["media_id"] = media_id
     return out
 
 
 def facebook_insights(video_id: str) -> Dict[str, Any]:
-    token = config.META_PAGE_ACCESS_TOKEN or ""
+    """A Facebook video's insights (Page token; raises RuntimeError with Meta's message)."""
+    token = _fb_token()
     if not is_configured(token):
         return {}
-    body = _get(f"https://graph.facebook.com/{config.META_GRAPH_VERSION}/{video_id}/video_insights",
+    body = _get(f"{GRAPH}/{config.META_GRAPH_VERSION}/{video_id}/video_insights",
                 {"metric": ",".join(FB_METRICS), "access_token": token})
-    return {r.get("name"): (r.get("values") or [{}])[0].get("value") for r in body.get("data", [])}
+    out = {r.get("name"): (r.get("values") or [{}])[0].get("value") for r in body.get("data", [])}
+    out = {k: v for k, v in out.items() if k and v is not None}
+    if not out:
+        raise RuntimeError("no video insights returned yet (Meta can lag up to 48 hours)")
+    out["video_id"] = video_id
+    return out
 
 
 def upload_post_analytics(request_id: str, platform: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
@@ -123,7 +342,7 @@ def upload_post_analytics(request_id: str, platform: Optional[str] = None) -> Di
         if isinstance(data.get("post_metrics"), dict):
             out[name] = data["post_metrics"]
         elif data.get("post_metrics_error"):
-            out[name] = {"unavailable": str(data["post_metrics_error"])[:200]}
+            out[name] = {"unavailable": _redact(data["post_metrics_error"])[:200]}
     return out
 
 
@@ -132,7 +351,7 @@ def targets(pub: Dict[str, Any], run: Dict[str, Any]) -> List[Tuple[str, str, Op
     platform filter). A Reel is instagram + facebook, its Short youtube, a documentary youtube, a
     carousel <platform>_carousel and each Story frame <platform>_story<part>."""
     channel, res, run_id = pub["channel"], pub["response"], pub["run_id"]
-    rid = res.get("request_id") or run_id
+    rid = res.get("request_id") or (res.get("raw") or {}).get("request_id") or run_id
     if channel == "youtube-shorts":
         return [("youtube", f"{run_id}:youtube-short", "youtube")]
     if channel.startswith("upload-post:"):
@@ -151,8 +370,14 @@ def targets(pub: Dict[str, Any], run: Dict[str, Any]) -> List[Tuple[str, str, Op
 
 
 # ------------------------------------------------------------------ collection
+def _posted_at(created_at: str) -> datetime:
+    posted = datetime.fromisoformat(created_at)
+    return posted if posted.tzinfo else posted.replace(tzinfo=timezone.utc)
+
+
 def due_snapshots(db, now: Optional[datetime] = None) -> List[Dict[str, Any]]:
-    """(publication, snapshot) pairs old enough with a target not yet measured: the earliest one each."""
+    """(publication, snapshot) pairs old enough with a target not yet measured: the earliest one each.
+    A Story's frames have one snapshot, STORY_SNAPSHOT, due STORY_SNAPSHOT_HOURS after posting."""
     ensure_schema(db)
     now = now or datetime.now(timezone.utc)
     with db._conn() as conn:
@@ -162,41 +387,140 @@ def due_snapshots(db, now: Optional[datetime] = None) -> List[Dict[str, Any]]:
                  for r in conn.execute("SELECT run_id, platform, snapshot FROM audience_metrics")}
     due = []
     for p in pubs:
-        posted = datetime.fromisoformat(p["created_at"])
-        posted = posted if posted.tzinfo else posted.replace(tzinfo=timezone.utc)
-        pub = {"run_id": p["run_id"], "channel": p["channel"], "response": json.loads(p["response_payload_json"] or "{}")}
+        posted = _posted_at(p["created_at"])
+        pub = {"run_id": p["run_id"], "channel": p["channel"], "response": json.loads(p["response_payload_json"] or "{}"),
+               "posted_at": posted.isoformat()}
         wanted = targets(pub, db.get_run(p["run_id"]) or {})
+        stories = [t for t in wanted if _is_story(t[0])]
+        others = [t for t in wanted if not _is_story(t[0])]
+        missing = [t for t in stories if (p["run_id"], t[0], STORY_SNAPSHOT) not in taken]
+        if missing and now - posted >= timedelta(hours=STORY_SNAPSHOT_HOURS):
+            due.append({**pub, "snapshot": STORY_SNAPSHOT, "targets": missing})
         for name, days in SNAPSHOTS:
-            missing = [t for t in wanted if (p["run_id"], t[0], name) not in taken]
+            missing = [t for t in others if (p["run_id"], t[0], name) not in taken]
             if now - posted >= timedelta(days=days) and missing:
                 due.append({**pub, "snapshot": name, "targets": missing})
                 break  # one snapshot per publication per pass: the most overdue one
     return due
 
 
-def _graph_metrics(label: str, res: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """A Reel's metrics from Meta's own insights, when our tokens can read them (else None)."""
-    if label == "instagram":
-        media_id = instagram_media_id(res)
-        return {"source": "instagram-graph", **instagram_insights(media_id)} if media_id else None
-    if label == "facebook":
-        video = (res.get("post_ids") or {}).get("facebook")
-        fb = facebook_insights(video) if video else {}
-        return {"source": "facebook-graph", **fb} if fb else None
-    return None
+def _known_ids(db, run_id: str) -> Dict[str, str]:
+    with db._conn() as conn:
+        return {r["platform"]: r["media_id"] for r in
+                conn.execute("SELECT platform, media_id FROM audience_media_ids WHERE run_id = ?", (run_id,))}
 
 
-def collect(db) -> int:
-    """Takes every due snapshot; returns how many rows were stored. A platform that cannot be measured
-    is stored as unavailable (so it never holds back the later snapshots); a network failure is retried."""
+def _remember_id(db, run_id: str, label: str, media_id: str, how: str) -> None:
+    with db._conn() as conn:
+        conn.execute("INSERT OR IGNORE INTO audience_media_ids VALUES (?,?,?,?,?)",
+                     (run_id, label, media_id, how, datetime.now(timezone.utc).isoformat()))
+
+
+def _graph_id(db, label: str, item: Dict[str, Any], rid: str) -> Tuple[Optional[str], str]:
+    """The Meta id of one target: remembered, stored, from Upload-Post's history, else matched."""
+    run_id, res = item["run_id"], item["response"]
+    known = _known_ids(db, run_id)
+    if known.get(label):
+        return known[label], "remembered"
+    base = label.split("_")[0]
+    found, how = (stored_post_id(res, base), "stored publish response")
+    if not found and base == "facebook":
+        found, how = facebook_video_id(_post_url(res, "facebook")), "post URL"
+    if not found:  # Upload-Post published it: its history names the platform's own post id
+        try:
+            found, how = upload_post_post_id(rid, base), "upload-post history"
+        except (RuntimeError, requests.RequestException) as e:
+            log.warning("Audience %s %s: Upload-Post history lookup failed: %s", run_id, label, _redact(e))
+            found = None
+    if not found:
+        posted = _when(item.get("posted_at"))
+        taken = {v for k, v in known.items() if k.split("_")[0] == base}
+        if base == "instagram":
+            found, how = instagram_media_id(res, posted, story=_is_story(label), taken=taken)
+        elif base == "facebook":
+            found, how = facebook_video_id_for(res, posted, taken=taken)
+    if found:
+        _remember_id(db, run_id, label, found, how)
+    return found, how
+
+
+def _graph_metrics(label: str, res: Dict[str, Any], db=None, item: Optional[Dict[str, Any]] = None,
+                   rid: str = "") -> Tuple[Optional[Dict[str, Any]], str]:
+    """(metrics, outcome): a post's metrics from Meta's own insights, or (None, why not)."""
+    base = label.split("_")[0]
+    if base not in ("instagram", "facebook") or label.endswith("_carousel"):
+        return None, "skipped: no Graph source for this post type"
+    if base == "facebook" and _is_story(label):
+        # Page stories: the Page Stories API lists them (developers.facebook.com/docs/page-stories-api) but
+        # documents no insights endpoint (checked 2026-10-28), so Upload-Post stays their only source.
+        return None, "skipped: Meta documents no insights for Page stories"
+    if base == "instagram" and not _ig_configured():
+        return None, "skipped: not configured (META_ACCESS_TOKEN, META_IG_ACCOUNT_ID)"
+    if base == "facebook" and not is_configured(_fb_token()):
+        return None, "skipped: not configured (META_PAGE_ACCESS_TOKEN)"
+    item = item or {"run_id": "", "response": res}
+    if db is not None:
+        media_id, how = _graph_id(db, label, item, rid)
+    elif base == "instagram":
+        media_id, how = instagram_media_id(res, _when(item.get("posted_at")), story=_is_story(label))
+    else:
+        media_id, how = facebook_video_id_for(res, _when(item.get("posted_at")))
+    if not media_id:
+        raise RuntimeError(f"post id not found ({how})")
+    data = instagram_insights(media_id, story=_is_story(label)) if base == "instagram" else facebook_insights(media_id)
+    return {"source": f"{base}-graph", **data}, f"ok (id {how})"
+
+
+GRAPH_NAMES = {"instagram": "Instagram Graph", "facebook": "Facebook Graph"}
+
+
+def _record_sources(db, collected_at: str, run_id: str, snapshot: str, outcomes: List[Tuple[str, str, str, str]]) -> None:
+    with db._conn() as conn:
+        conn.executemany("INSERT INTO audience_sources VALUES (?,?,?,?,?,?,?)",
+                         [(collected_at, run_id, snapshot, label, source, outcome, _redact(detail)[:300])
+                          for label, source, outcome, detail in outcomes])
+
+
+def collect(db, now: Optional[datetime] = None) -> int:
+    """Takes every due snapshot; returns how many rows were stored. Meta's Graph first, Upload-Post when
+    the Graph cannot answer. A platform that cannot be measured is stored as unavailable (so it never
+    holds back the later snapshots); a network failure of the fallback is retried. A Story collected
+    after its 24 hours is recorded as expired, without asking an API that can no longer answer."""
+    now = now or datetime.now(timezone.utc)
+    collected_at = now.isoformat()
     stored = 0
-    for item in due_snapshots(db):
-        res, run_id = item["response"], item["run_id"]
+    for item in due_snapshots(db, now):
+        res, run_id, snapshot = item["response"], item["run_id"], item["snapshot"]
         rows: Dict[str, Dict[str, Any]] = {}
+        outcomes: List[Tuple[str, str, str, str]] = []
         cache: Dict[tuple, Dict[str, Dict[str, Any]]] = {}
+        age = now - (_when(item.get("posted_at")) or now)
         try:
             for label, rid, platform in item["targets"]:
-                data = _graph_metrics(label, res)
+                base = label.split("_")[0]
+                if _is_story(label) and age >= timedelta(hours=STORY_LIFETIME_HOURS):
+                    why = (f"story expired before it was measured ({age.total_seconds() / 3600:.0f} h after posting; "
+                           f"Meta keeps story insights {STORY_LIFETIME_HOURS} h)")
+                    rows[label] = {"source": "expired", "unavailable": why}
+                    outcomes.append((label, "expired", "failed", why))
+                    log.warning("Audience %s %s %s: %s", run_id, snapshot, label, why)
+                    continue
+                graph_error = ""
+                try:
+                    data, outcome = _graph_metrics(label, res, db, item, rid)
+                except (RuntimeError, requests.RequestException) as e:
+                    data, graph_error = None, _redact(e)
+                    outcomes.append((label, f"{base}-graph", "failed", graph_error))
+                    log.warning("Audience %s %s %s: %s failed: %s; falling back to Upload-Post",
+                                run_id, snapshot, label, GRAPH_NAMES.get(base, base), graph_error)
+                else:
+                    if data is not None:
+                        outcomes.append((label, data["source"], "ok", outcome))
+                        log.info("Audience %s %s %s: %s answered, %s", run_id, snapshot, label,
+                                 GRAPH_NAMES.get(base, base), outcome)
+                    else:
+                        outcomes.append((label, f"{base}-graph", "skipped", outcome))
+                        log.info("Audience %s %s %s: Graph %s", run_id, snapshot, label, outcome)
                 if data is None:
                     key = (rid, platform)
                     if key not in cache:
@@ -206,21 +530,62 @@ def collect(db) -> int:
                             if "HTTP 404" not in str(e):
                                 raise
                             cache[key] = {}  # Upload-Post has no such post: nothing will ever be measured
-                    base = label.split("_")[0]
                     found = cache[key].get(base)
-                    data = ({"source": "upload-post", **found} if found
-                            else {"source": "upload-post", "unavailable": f"no {base} metrics for {rid}"})
+                    if found and not found.get("unavailable"):
+                        data = {"source": "upload-post", **found}
+                        outcomes.append((label, "upload-post", "ok", "post analytics"))
+                        log.info("Audience %s %s %s: Upload-Post answered", run_id, snapshot, label)
+                    else:
+                        reason = (found or {}).get("unavailable") or f"no {base} metrics for {rid}"
+                        if graph_error:
+                            reason = f"{GRAPH_NAMES.get(base, base)}: {graph_error}; Upload-Post: {reason}"
+                        data = {"source": "upload-post", "unavailable": reason[:300]}
+                        outcomes.append((label, "upload-post", "failed", (found or {}).get("unavailable") or "no metrics"))
+                        log.warning("Audience %s %s %s: no source answered: %s", run_id, snapshot, label, reason)
                 rows[label] = data
         except (RuntimeError, requests.RequestException) as e:
-            log.warning("Audience metrics for %s (%s) unavailable: %s", run_id, item["snapshot"], e)
+            log.warning("Audience metrics for %s (%s) unavailable: %s", run_id, snapshot, _redact(e))
+            _record_sources(db, collected_at, run_id, snapshot,
+                            outcomes + [("*", "upload-post", "failed", f"retried next pass: {_redact(e)}")])
             continue
         with db._conn() as conn:
             for label, data in rows.items():
                 conn.execute("INSERT OR REPLACE INTO audience_metrics VALUES (?,?,?,?,?,?)",
-                             (run_id, label, item["snapshot"], data.get("source"), json.dumps(data),
+                             (run_id, label, snapshot, data.get("source"), json.dumps(data),
                               datetime.now(timezone.utc).isoformat()))
                 stored += 1
+        _record_sources(db, collected_at, run_id, snapshot, outcomes)
     return stored
+
+
+def sources_health(db) -> Dict[str, Any]:
+    """Which source answered for which platform on the last collection that measured anything:
+    {"collected_at", "platforms": {platform: {source: {"ok", "failed", "skipped", "last_error"}}},
+    "lines": [...]} for a dashboard (platform is the base: instagram, facebook, youtube)."""
+    ensure_schema(db)
+    with db._conn() as conn:
+        last = conn.execute("SELECT MAX(collected_at) AS t FROM audience_sources").fetchone()["t"]
+        rows = conn.execute("SELECT * FROM audience_sources WHERE collected_at = ? ORDER BY rowid",
+                            (last,)).fetchall() if last else []
+    platforms: Dict[str, Dict[str, Dict[str, Any]]] = {}
+    for r in rows:
+        base = r["platform"].split("_")[0]
+        entry = platforms.setdefault(base, {}).setdefault(r["source"], {"ok": 0, "failed": 0, "skipped": 0, "last_error": None})
+        entry[r["outcome"]] = entry.get(r["outcome"], 0) + 1
+        if r["outcome"] == "failed":
+            entry["last_error"] = r["detail"]
+        elif r["outcome"] == "skipped" and not entry["last_error"]:
+            entry["last_error"] = r["detail"]
+    lines = []
+    for base, sources in platforms.items():
+        parts = []
+        for source, e in sources.items():
+            state = (f"{e['ok']} ok" if e["ok"] else "") + (f"{', ' if e['ok'] else ''}{e['failed']} failed" if e["failed"] else "")
+            state = state or "not used"
+            note = f" ({e['last_error'][:80]})" if e["last_error"] and not e["ok"] else ""
+            parts.append(f"{source}: {state}{note}")
+        lines.append(f"{PLATFORM_NAMES.get(base, base)}: " + "; ".join(parts))
+    return {"collected_at": last, "platforms": platforms, "lines": lines}
 
 
 # ------------------------------------------------------------------ reading
@@ -359,7 +724,8 @@ def analytics_text(db, limit: int = 8) -> str:
     rows = table(db)
     if not rows:
         return ("📈 <b>Audience</b>\n\nNothing measured yet. Each published post is measured 1, 3, 7 and 28 days "
-                "after posting (Instagram, Facebook and YouTube, Reels, Shorts, carousels and Stories).")
+                "after posting (Instagram, Facebook and YouTube, Reels, Shorts and carousels), and each Story "
+                f"{STORY_SNAPSHOT_HOURS} hours after posting, before it expires.")
     by_run: Dict[str, List[Dict[str, Any]]] = {}
     for r in rows:
         by_run.setdefault(r["run_id"], []).append(r)

@@ -1,0 +1,45 @@
+{
+ "antikythera/story/story_01_hook.jpg": [],
+ "antikythera/story/story_02_reveal.jpg": [],
+ "antikythera/story/story_03_question.jpg": [],
+ "antikythera/carousel/carousel_slide_01.jpg": [],
+ "antikythera/carousel/carousel_slide_02.jpg": [],
+ "antikythera/carousel/carousel_slide_03.jpg": [],
+ "antikythera/carousel/carousel_slide_04.jpg": [],
+ "antikythera/carousel/carousel_slide_05.jpg": [],
+ "antikythera/carousel/carousel_slide_06.jpg": [],
+ "antikythera/carousel/carousel_slide_07.jpg": [],
+ "antikythera/cover/minimal": [
+  "missing from the cover: tagline '35 BRONZE GEARS'"
+ ],
+ "richat/story/story_01_hook.jpg": [],
+ "richat/story/story_02_reveal.jpg": [],
+ "richat/story/story_03_question.jpg": [],
+ "richat/carousel/carousel_slide_01.jpg": [],
+ "richat/carousel/carousel_slide_02.jpg": [],
+ "richat/carousel/carousel_slide_03.jpg": [],
+ "richat/carousel/carousel_slide_04.jpg": [
+  "overlap: 'ARCHIVAL RECORD // 04 OF 07' [77, 68, 407, 91] x 'pill' [60, 35, 415, 73]"
+ ],
+ "richat/carousel/carousel_slide_05.jpg": [],
+ "richat/carousel/carousel_slide_06.jpg": [],
+ "richat/carousel/carousel_slide_07.jpg": [],
+ "richat/cover/lower_third": [
+  "missing from the cover: tagline 'MAURITANIA'S BULLSEYE'"
+ ],
+ "stress/carousel/carousel_slide_01.jpg": [],
+ "stress/carousel/carousel_slide_02.jpg": [],
+ "stress/carousel/carousel_slide_03.jpg": [],
+ "stress/carousel/carousel_slide_04.jpg": [
+  "outside the safe zone [40, 30, 1040, 1320]: 'WHAT WAS FORGOTTEN, AND WHY DID ' [80, 640, 1046, 681]"
+ ],
+ "stress/cover/badge": [],
+ "stress/cover/lower_third": [
+  "cut off by the canvas: 'THE OLDEST COMPUTER ON EARTH' [110, 1326, 1173, 1368]",
+  "missing from the cover: tagline"
+ ],
+ "stress/cover/minimal": [
+  "missing from the cover: tagline"
+ ],
+ "stress/cover/depth_sandwich": []
+}

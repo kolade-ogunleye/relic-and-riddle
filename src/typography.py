@@ -109,6 +109,89 @@ def fit_lines(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont
     return wrap_text(draw, text, f, max_width), f
 
 
+ELLIPSIS = "…"
+
+
+def line_width(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, stroke: int = 0) -> int:
+    """The drawn width of one line, its outline stroke included (what the canvas actually receives)."""
+    bb = draw.textbbox((0, 0), text, font=font, anchor="lt", stroke_width=stroke)
+    return bb[2] - bb[0]
+
+
+def _wrap_fits(draw, text, font, max_width, stroke):
+    lines = wrap_text(draw, text, font, max_width - 2 * stroke)
+    return lines, all(line_width(draw, ln, font, stroke) <= max_width for ln in lines)
+
+
+def _shorten(draw, text, font, max_width, max_lines, stroke):
+    """The longest start of `text`, cut at a word boundary and ended with an ellipsis, that fits."""
+    words = text.split()
+
+    def attempt(n):
+        candidate = " ".join(words[:n]).rstrip(",;:-–—") + ELLIPSIS
+        lines, ok = _wrap_fits(draw, candidate, font, max_width, stroke)
+        return lines if ok and len(lines) <= max_lines else None
+    lo, hi, best = 1, len(words) - 1, None      # the most words that fit (a binary search: more words never fit better)
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        lines = attempt(mid)
+        if lines is not None:
+            best, lo = lines, mid + 1
+        else:
+            hi = mid - 1
+    if best is not None:
+        return best
+    word = words[0] if words else ""
+    while word and line_width(draw, word + ELLIPSIS, font, stroke) > max_width:
+        word = word[:-1]
+    return [word + ELLIPSIS] if word else []
+
+
+def fit_text(draw: ImageDraw.ImageDraw, text: str, name: str, size: int, max_width: int, max_lines: int,
+             min_size: int, stroke: int = 0, sentences: bool = True, weight: Optional[int] = None,
+             quiet: bool = False) -> Tuple[List[str], ImageFont.FreeTypeFont, bool]:
+    """Text fitted to a box with the font's real metrics, so it can never run past the box (still-layout
+    audit, 2026-10-28: a Story body cut at "35 meshing", a cover tagline missing). In order: wrap at the design
+    size; step the size down by 2 px to `min_size`; keep whole sentences (if `sentences`); last, shorten at a
+    word boundary with an ellipsis. Widths include the outline stroke. Returns (lines, font, shortened);
+    `quiet`: a trial fit, not logged."""
+    text = " ".join((text or "").split())
+    if not text:
+        return [], get_font(name, size, weight=weight), False
+    font = None
+    for s in list(range(size, min_size - 1, -2)) + ([min_size] if (size - min_size) % 2 else []):
+        font = get_font(name, s, weight=weight)
+        lines, ok = _wrap_fits(draw, text, font, max_width, stroke)
+        if ok and len(lines) <= max_lines:
+            if s != size and not quiet:
+                _log.info("Text set at %dpx instead of %dpx to fit %d line(s) of %d px: %.60s", s, size, max_lines, max_width, text)
+            return lines, font, False
+    if sentences:
+        parts = _re.split(r"(?<=[.!?])\s+", text)
+        kept: List[str] = []
+        for part in parts:
+            lines, ok = _wrap_fits(draw, " ".join(kept + [part]), font, max_width, stroke)
+            if ok and len(lines) <= max_lines:
+                kept.append(part)
+            else:
+                break
+        if kept and len(kept) < len(parts):
+            if not quiet:
+                _log.warning("Text kept to %d of %d sentence(s) to fit %d line(s): %.80s", len(kept), len(parts), max_lines, text)
+            return _wrap_fits(draw, " ".join(kept), font, max_width, stroke)[0], font, True
+    if not quiet:
+        _log.warning("Text shortened with an ellipsis to fit %d line(s) of %d px at %d px: %.80s", max_lines, max_width, font.size, text)
+    return _shorten(draw, text, font, max_width, max_lines, stroke), font, True
+
+
+def fit_line(draw: ImageDraw.ImageDraw, text: str, name: str, size: int, max_width: int, min_size: int,
+             stroke: int = 0, quiet: bool = False) -> Tuple[str, ImageFont.FreeTypeFont, bool]:
+    """One line that fits `max_width` (fit_font returned its floor size even when the text still overflowed):
+    (text, font, shortened)."""
+    lines, font, short = fit_text(draw, text, name, size, max_width, 1, min_size, stroke=stroke, sentences=False, quiet=quiet)
+    return (lines[0] if lines else ""), font, short
+
+
 def cover_crop(path: Path, size: Tuple[int, int]) -> Image.Image:
     """Scales and center-crops an image to fill `size` without distorting it."""
     with Image.open(path) as im:

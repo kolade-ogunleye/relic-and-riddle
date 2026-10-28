@@ -1,0 +1,160 @@
+{
+ "richat_structure_sahara_eye/carousel/carousel_slide_01.jpg": {
+  "problems": [],
+  "tight": true,
+  "attempts": 2,
+  "shortened": [],
+  "elements": {
+   "heading": [
+    77,
+    794,
+    914,
+    884
+   ],
+   "body": [
+    77,
+    973,
+    940,
+    1051
+   ],
+   "swipe": [
+    848,
+    1200,
+    1002,
+    1242
+   ],
+   "header_dossier": [
+    65,
+    60,
+    413,
+    99
+   ],
+   "header_brand": [
+    754,
+    60,
+    1014,
+    101
+   ],
+   "swipe_cues": [
+    80,
+    1283,
+    1000,
+    1307
+   ]
+  }
+ },
+ "richat_structure_sahara_eye_cover/thumbnail_cover.jpg": {
+  "problems": [],
+  "tight": true,
+  "attempts": 2,
+  "shortened": [],
+  "elements": {
+   "eyebrow": [
+    110,
+    1167,
+    420,
+    1201
+   ],
+   "title_1": [
+    110,
+    1220,
+    960,
+    1286
+   ],
+   "title_2": [
+    110,
+    1313,
+    929,
+    1377
+   ],
+   "tagline": [
+    110,
+    1426,
+    484,
+    1447
+   ]
+  }
+ },
+ "antikythera_mechanism/stories/story_02_reveal.jpg": {
+  "problems": [],
+  "tight": true,
+  "attempts": 2,
+  "shortened": [],
+  "elements": {
+   "kicker": [
+    376,
+    525,
+    703,
+    572
+   ],
+   "title_1": [
+    184,
+    589,
+    896,
+    672
+   ],
+   "title_2": [
+    259,
+    689,
+    820,
+    772
+   ],
+   "body": [
+    105,
+    818,
+    975,
+    1024
+   ]
+  }
+ },
+ "antikythera_mechanism/stories/story_03_question.jpg": {
+  "problems": [],
+  "tight": true,
+  "attempts": 2,
+  "shortened": [],
+  "elements": {
+   "kicker": [
+    352,
+    333,
+    727,
+    380
+   ],
+   "title_1": [
+    203,
+    397,
+    877,
+    480
+   ],
+   "title_2": [
+    178,
+    497,
+    902,
+    580
+   ],
+   "body": [
+    76,
+    626,
+    1004,
+    886
+   ],
+   "option_A": [
+    120,
+    938,
+    960,
+    1034
+   ],
+   "option_B": [
+    120,
+    1058,
+    960,
+    1154
+   ],
+   "weigh_in": [
+    369,
+    1196,
+    711,
+    1224
+   ]
+  }
+ }
+}

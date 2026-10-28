@@ -101,3 +101,12 @@ def test_downloads_stay_on_the_archives_hosts():
     from src.footage import _host_allowed
     assert _host_allowed("archive.org", "archive") and _host_allowed("ia800202.us.archive.org", "archive")
     assert not _host_allowed("archive.org.evil.com", "archive") and not _host_allowed("", "europeana")
+
+
+def test_a_wide_shot_is_shown_whole_and_a_vertical_one_fills_the_frame():
+    """Archive film is 4:3 at 640x480: filling the frame kept a 270 px strip blown up four times (2026-10-28)."""
+    from src.footage import FILL, frame_filter
+    assert frame_filter({"width": 640, "height": 480})[0] == "-filter_complex"
+    assert "overlay" in frame_filter({"width": 1920, "height": 1080})[1] and "boxblur" in frame_filter({"width": 1920, "height": 1080})[1]
+    assert frame_filter({"width": 1080, "height": 1920}) == ["-vf", FILL]
+    assert frame_filter({"width": 0, "height": 0}) == ["-vf", FILL]

@@ -96,6 +96,22 @@ def probe(path: Path) -> Dict[str, Any]:
             "duration": float(data.get("format", {}).get("duration") or 0)}
 
 
+FILL = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30"
+# A wide shot (archive film is 4:3 at 640x480) is shown whole, fitted to the width over a blurred, darkened copy of
+# itself: filling the frame cropped a 270 px strip and blew it up four times (Pompeii And Vesuvius, 1950: half a
+# sculpture, soft; 2026-10-28).
+FIT = ("[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=24:2,eq=brightness=-0.18[bg];"
+       "[0:v]scale=1080:-2:flags=lanczos[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2,fps=30")
+
+
+def frame_filter(info: Dict[str, Any]) -> List[str]:
+    """ffmpeg's filter arguments for a 1080x1920 frame: a vertical source fills it; a wide one is fitted whole."""
+    w, h = info.get("width") or 0, info.get("height") or 0
+    if w and h and w / h > 0.8:  # wider than 4:5: a fill would crop most of it away
+        return ["-filter_complex", FIT]
+    return ["-vf", FILL]
+
+
 def make_segment(src: Path, info: Dict[str, Any], out: Path) -> Path:
     """A muted 1080x1920 H.264 segment from the core b-roll part of the video, plus a poster frame."""
     dur = info["duration"]
@@ -109,7 +125,7 @@ def make_segment(src: Path, info: Dict[str, Any], out: Path) -> Path:
     else:
         start = max(0.0, (dur - SEGMENT_SECONDS) / 2)
     subprocess.run(["ffmpeg", "-y", "-v", "error", "-protocol_whitelist", "file", "-ss", f"{start:.2f}", "-t", f"{SEGMENT_SECONDS:.2f}",
-                    "-i", str(src), "-an", "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30",
+                    "-i", str(src), "-an", *frame_filter(info),
                     "-c:v", "libx264", "-preset", "medium", "-crf", "17", "-pix_fmt", "yuv420p", str(out)],
                    check=True, timeout=600, capture_output=True)
     subprocess.run(["ffmpeg", "-y", "-v", "error", "-protocol_whitelist", "file", "-ss", f"{SEGMENT_SECONDS / 2:.2f}", "-i", str(out),

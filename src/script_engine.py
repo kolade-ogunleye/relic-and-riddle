@@ -20,7 +20,7 @@ import logging
 import math
 import re
 import time
-from typing import Callable, Dict, Any, List, Optional, Tuple
+from typing import Callable, Dict, Any, List, NamedTuple, Optional, Tuple
 
 from pydantic import BaseModel, ValidationError
 
@@ -99,7 +99,7 @@ Requirements:
 - carousel_caption: a separate caption for the 7-slide carousel of the same topic, different wording from the Reel caption (not a rephrase of its first line): a short invitation to swipe, one fresh detail, one question, then the same hashtags. Under 800 characters.
 - hashtags: 3-5 (Instagram allows at most 5), each starting with "#": specific to the place, era or subject (e.g. "#Cappadocia", "#ByzantineHistory"); no generic engagement tags like "#viral", "#fyp", "#ReelsViral", "#explore".
 - story_slides: exactly 3 (hook, revelation, question). Slide 3 asks the poll's question; its body gives context and asks nothing else. Each body is one complete sentence of at most 18 words: it must fit three lines at the Story's text size.
-- poll: an either/or question (at most 60 characters) and exactly 2 options (each at most 24 characters) that are its two answers, e.g. "Which took more work?" with "Carving downward" / "Hauling the stone". Never a yes/no question with options that are not yes/no.
+- poll: an either/or question (at most 60 characters) and exactly 2 options (each at most 24 characters) that are its two answers, e.g. "Planned or lucky?" with "Careful planning" / "Lucky accident". Never a yes/no question with options that are not yes/no.
 - carousel_slides: exactly 7 (title slide, five fact slides, closing call-to-comment slide). Slide 7 MUST ask a humane, universally resonant, thought-provoking question that appeals to all demographics (e.g. human ingenuity, civilizational survival, what modern humans have forgotten, or enduring mysteries) rather than narrow academic trivia, compelling viewers to debate in the comments.
 - first_comment: a debate-starting question, with no hashtags (Instagram's 5-hashtag cap covers the whole post).
 - share_line: one warm sentence of at most 90 characters, no hashtags, at most one emoji, that asks the viewer to share this with someone (say who, for this topic: "a friend who loves ancient engineering") and to follow for the next story. Worded for this topic, never a stock slogan ("share this with a friend", "someone who loves history" are rejected). Put the share ask first and the follow invitation after it ("Send this to the codebreaker you know, and follow for the next relic."): the video's end card shows the share ask on its own, under the channel name, with its own FOLLOW line. It closes both captions and the carousel too.
@@ -266,6 +266,50 @@ def _pace_window() -> Tuple[float, float]:
     return audio_engine.pace_range(audio_engine.production_voice_key())
 
 
+class LengthWindow(NamedTuple):
+    low: int          # fewest words that reach TARGET_DURATION_MIN at the fastest take judged
+    high: int         # most words that stay within the ceiling at the slowest take judged
+    comfortable: int  # most words within TARGET_DURATION_MAX at the slowest take, held inside low-high
+    fast: float       # the pace ratios the window was judged at (both the middle one when takes vary too much)
+    slow: float
+
+
+def length_window(measured_per_word: float, fast: float, slow: float) -> LengthWindow:
+    """The one word window every length instruction and the prompt's note are held to: enough words for the
+    minimum at the narrator's fastest take, few enough for the ceiling at its slowest. Each instruction was
+    worked out on its own before, and they contradicted each other (production, Hal Saflieni 2026-10-27: 103
+    words read 54.3 s and were told "85-90 words"; 86 then read 39.3 s, too short; 91 read 40.3 s and 100
+    read 51.8 s, too long again; all three attempts spent)."""
+    longest = HARD_DURATION_CEILING - _MEASURE_MARGIN_SEC
+
+    def bounds(f: float, s: float) -> Tuple[int, int]:  # a tiny epsilon: 84 words at exactly 0.5 s is 42.0 s
+        return (math.ceil(TARGET_DURATION_MIN / (measured_per_word * f) - 1e-9),
+                math.floor(longest / (measured_per_word * s) + 1e-9))
+    low, high = bounds(fast, slow)
+    if low > high:  # takes vary too much for one window: judged at the middle pace, as the checks always were
+        fast = slow = (fast + slow) / 2
+        low, high = bounds(fast, slow)
+    # WORD_COUNT_FLOOR (validate_structure's sanity bound) lifts the floor only while that still fits the
+    # ceiling: a voice so slow that the floor overruns the ceiling is held to the ceiling, since a voiceover
+    # past it cannot make a Reel at all, while a short one is only short.
+    if WORD_COUNT_FLOOR <= high:
+        low = max(low, WORD_COUNT_FLOOR)
+    comfortable = max(low, min(high, math.floor(TARGET_DURATION_MAX / (measured_per_word * slow) + 1e-9)))
+    return LengthWindow(low, high, comfortable, fast, slow)
+
+
+def _inside(a: int, b: int, window: LengthWindow, span: int = 4) -> Tuple[int, int]:
+    """An a-b word range held inside the window, at least `span` words wide where the window allows
+    (told one exact count, or "at most 95", a writer overshoots: production, 2026-10-23)."""
+    a, b = (max(window.low, min(x, window.high)) for x in sorted((a, b)))
+    while b - a < span and (a > window.low or b < window.high):
+        if b < window.high:
+            b += 1
+        if b - a < span and a > window.low:
+            a -= 1
+    return a, b
+
+
 def length_target_note() -> str:
     """The word range that fits, from measured pace (the prompt's fixed 105-115 words ran 53-58 s at the
     narrator's pace for name-heavy topics). Empty until three drafts have been measured."""
@@ -275,12 +319,11 @@ def length_target_note() -> str:
     import statistics
     fast, slow = _pace_window()
     measured = statistics.median(values)
-    per_word = measured * slow
-    # The minimum for the narrator's fastest take, the maximum for its slowest (they vary for ElevenLabs).
-    low, high = int(TARGET_DURATION_MIN / (measured * fast)) + 1, int(TARGET_DURATION_MAX / per_word)
-    if low > high:  # takes vary too much for one window: the middle pace
-        per_word = measured * (fast + slow) / 2
-        low, high = int(TARGET_DURATION_MIN / per_word) + 1, int(TARGET_DURATION_MAX / per_word)
+    # The minimum for the narrator's fastest take, the comfortable maximum for its slowest (they vary for
+    # ElevenLabs): the same window the length checks hold a draft to.
+    window = length_window(measured, fast, slow)
+    low, high = window.low, window.comfortable
+    per_word = measured * window.slow
     return (f"\n\nLength: write the narration in {low}-{high} words. This narrator speaks about {per_word:.2f} s "
             f"a word, so that is {TARGET_DURATION_MIN:g}-{TARGET_DURATION_MAX:g} seconds; this overrides any other "
             "word count.")
@@ -320,22 +363,23 @@ def spoken_length_problems(pkg: ScriptPackage) -> List[str]:
     words = len(pkg.narration_script.split()) or 1
     record_word_pace(seconds / words, pkg.narration_script)  # at the measurement voice; the pace ratio is applied on use
     measured = seconds
-    fast, slow = _pace_window()
     longest = HARD_DURATION_CEILING - _MEASURE_MARGIN_SEC
-    if measured * slow > longest and measured * fast < TARGET_DURATION_MIN:
-        fast = slow = (fast + slow) / 2  # takes vary too much for both ends: judged at the middle pace
+    # Judged at the paces the window was (the middle one when takes vary too much for both ends), so every
+    # instruction below lands inside it: a cut that falls under the minimum at the fastest take, or an
+    # extension past the ceiling at the slowest, sent the next draft straight back (Hal Saflieni, 2026-10-27).
+    window = length_window(measured / words, *_pace_window())
+    fast, slow = window.fast, window.slow
     seconds = measured * slow  # the ceiling, for the narrator's slowest take
     per_word = seconds / words
     if seconds > longest and fit_speed(pkg.narration_script, seconds):
         return []  # spoken slightly faster (the voiceover stage applies the same speed)
     if seconds > longest:
         # A word count is followed far better than seconds: name this draft's count and the one to reach,
-        # aiming inside the comfortable length (not just under the limit), never below the word minimum.
+        # aiming inside the comfortable length (not just under the limit), never below the window's floor.
         # Never clamped up to the prompt's word range: for a slow voice that range itself is too long.
-        target = max(WORD_COUNT_FLOOR, min(words - math.ceil((seconds - longest) / per_word) - 2,
-                                           int(TARGET_DURATION_MAX / per_word)))
+        target = min(words - math.ceil((seconds - longest) / per_word) - 2, window.comfortable)
         # A window, not a ceiling: told "at most 95", a writer cut 109 words to 73 (production, 2026-10-23).
-        low = max(WORD_COUNT_FLOOR, target - 7)
+        low, target = _inside(target - 7, target, window)
         return [f"Narration runs {seconds:.1f}s when spoken (limit {longest:g}s). This draft is {words} words; "
                 f"rewrite the narration in {low}-{target} words (names and numbers such as dates take "
                 f"longer to say), keeping the closing sentence."]
@@ -346,7 +390,7 @@ def spoken_length_problems(pkg: ScriptPackage) -> List[str]:
         seconds = measured * fast
         fast_per_word = seconds / words
         low = words + math.ceil((TARGET_DURATION_MIN - seconds) / fast_per_word) + 2
-        high = max(low + 4, min(int(TARGET_DURATION_MAX / per_word), int(longest / per_word) - 2))
+        low, high = _inside(low, max(low + 4, window.comfortable), window)
         return [f"Narration runs {seconds:.1f}s when spoken (minimum {TARGET_DURATION_MIN:g}s). This draft is "
                 f"{words} words; extend the narration to {low}-{high} words with more verified facts from the "
                 f"research notes, keeping the closing sentence."]
@@ -537,26 +581,66 @@ def duration_problem(seconds: float) -> Optional[str]:
 
 YES_NO_START = re.compile(r"^(is|are|was|were|do|does|did|can|could|would|will|should|has|have|had|must|might)\b", re.I)
 YES_NO_ANSWERS = {"yes", "no", "maybe", "not sure", "definitely", "no way", "of course", "never", "absolutely"}
+# An option that opens with one of these words answers a yes/no question ("Yes, easily", "No chance", "Nope").
+YES_NO_FIRST_WORDS = {"yes", "no", "yeah", "yep", "yup", "nope", "nah", "maybe", "perhaps", "definitely", "absolutely",
+                      "never", "certainly", "surely", "probably", "unlikely", "possibly"}
 POLL_OPTION_MAX = 24
+POLL_QUESTION_MAX = 60
+
+
+def _is_yes_no_question(question: str) -> bool:
+    q = question.strip()
+    return bool(YES_NO_START.match(q)) and not re.search(r"\bor\b", q, re.I)
+
+
+def _is_yes_no_answer(option: str) -> bool:
+    o = option.strip(" .!?").lower()
+    first = re.split(r"[\s,.!?;:]+", o, maxsplit=1)[0] if o else ""
+    return o.split(",")[0] in YES_NO_ANSWERS or first in YES_NO_FIRST_WORDS
 
 
 def poll_problems(question: str, options: List[str]) -> List[str]:
     """The poll's options must answer its question: a yes/no question gets yes/no options, otherwise
-    the question has to offer the choice ("Which...?", "X or Y?")."""
+    the question has to offer the choice ("Which...?", "X or Y?"). A yes/no question with two contrary
+    choices is reworded by repair_poll before this is checked; what is left here is a genuine mismatch
+    (one yes/no option and one choice, or a reworded question that would not fit)."""
     problems = []
     if len(options) != 2:
         problems.append(f"The poll needs exactly 2 options, got {len(options)}.")
-    if not question.strip() or len(question) > 60:
-        problems.append("The poll question must be 1-60 characters.")
+    if not question.strip() or len(question) > POLL_QUESTION_MAX:
+        problems.append(f"The poll question must be 1-{POLL_QUESTION_MAX} characters.")
     long = [o for o in options if len(o) > POLL_OPTION_MAX]
     if long:
         problems.append(f"Poll options must be at most {POLL_OPTION_MAX} characters: {long}.")
     q = question.strip()
-    yes_no = bool(YES_NO_START.match(q)) and not re.search(r"\bor\b", q, re.I)
-    if yes_no and not all(o.strip(" .!?").lower().split(",")[0] in YES_NO_ANSWERS for o in options):
+    if _is_yes_no_question(q) and not all(_is_yes_no_answer(o) for o in options):
         problems.append(f"The poll asks a yes/no question ('{q}') but its options ({' / '.join(options)}) are not yes/no "
-                        "answers; ask an either/or question the two options answer, e.g. 'Which took more work?'.")
+                        "answers; ask an either/or question the two options answer, e.g. 'Planned or lucky?'.")
     return problems
+
+
+def repair_poll(question: str, options: List[str], narration: str = "") -> Optional[str]:
+    """The either/or question a yes/no poll's two choices already answer, or None when it needs none or
+    can't have one. The rule: a yes/no question whose two options are both choices (neither a yes/no
+    answer) becomes "{option A} or {option B}?", when that fits the question limit. The options are the
+    answers the viewer taps, so asking them as the question keeps what the poll offers and adds no claim
+    (their words were fact-checked with the rest of the copy). A mixed pair ("Yes" / "Hidden somewhere")
+    has no question both answer and is still sent back, as is one too long to ask. A whole writer attempt
+    was spent on exactly this (production, Hal Saflieni 2026-10-27: "Was the acoustic design
+    intentional?" with "Deliberate design" / "Accidental resonance")."""
+    if len(options) != 2 or not _is_yes_no_question(question):
+        return None
+    a, b = (o.strip().rstrip(".!?").strip() for o in options)
+    if not a or not b or _is_yes_no_answer(a) or _is_yes_no_answer(b):
+        return None
+    first = b.split()[0]
+    # The second option's capital is lowered mid-question unless the narration uses that word capitalised
+    # mid-sentence (a name stays a name).
+    proper = first[:1].isupper() and (first.isupper() or any(
+        m.start() > 0 and narration[:m.start()].rstrip()[-1:] not in ".!?"
+        for m in re.finditer(r"\b" + re.escape(first) + r"\b", narration)))
+    reworded = f"{a} or {b if proper else b[:1].lower() + b[1:]}?"
+    return reworded if len(reworded) <= POLL_QUESTION_MAX else None
 
 
 def validate_structure(pkg: ScriptPackage) -> List[str]:
@@ -723,7 +807,8 @@ def normalize_copy(pkg: ScriptPackage) -> ScriptPackage:
     """Bookkeeping a draft gets wrong without being wrong, fixed without a rewrite (each was a full
     model call; dev, 2026-10-23): closing_sentence is set to the narration's actual last sentence, and a
     caption first line over 125 characters that holds several sentences is broken after the last
-    sentence that fits (same words, new line). A single sentence over the limit still needs a rewrite."""
+    sentence that fits (same words, new line). A single sentence over the limit still needs a rewrite. A
+    yes/no poll question over two choices is asked as the either/or they answer (repair_poll)."""
     update = {}
     sentences = [s for s in _SENTENCE_END.split(pkg.narration_script.strip()) if s.strip()]
     if sentences and not pkg.narration_script.strip().endswith(pkg.closing_sentence.strip()):
@@ -740,6 +825,13 @@ def normalize_copy(pkg: ScriptPackage) -> ScriptPackage:
         if keep and len(keep) < len(parts):
             lines[first:first + 1] = [" ".join(keep), " ".join(parts[len(keep):])]
             update["caption"] = "\n".join(lines)
+    # A yes/no poll question over two choices is asked as the either/or they answer (repair_poll), not
+    # sent back for a whole rewrite (Hal Saflieni, 2026-10-27).
+    reworded = repair_poll(pkg.poll.question, pkg.poll.options, pkg.narration_script)
+    if reworded:
+        log.info("Poll question reworded to the choice its options offer: %r -> %r", pkg.poll.question, reworded)
+        improve.note("script.poll_repaired", f"yes/no question over two choices, reworded to '{reworded}'", "repair")
+        update["poll"] = pkg.poll.model_copy(update={"question": reworded})
     return pkg.model_copy(update=update) if update else pkg
 
 
@@ -765,6 +857,13 @@ def prune_graphics(pkg: ScriptPackage) -> ScriptPackage:
             improve.note(f"graphics.{field}", " ".join(extra), "prune")
             pkg = pkg.model_copy(update={field: None})
     return pkg
+
+
+def draft_problems(pkg: ScriptPackage) -> List[str]:
+    """A writer's draft's structural and spoken-length problems, reported together: measured only once the
+    structure passed, a draft sent back for its structure came back the wrong length, and that cost the next
+    attempt too (production, Hal Saflieni 2026-10-27)."""
+    return validate_structure(pkg) + spoken_length_problems(pkg)
 
 
 class ScriptEngine:
@@ -801,7 +900,7 @@ class ScriptEngine:
                     pkg = None
                 if pkg is not None:
                     pkg = prune_graphics(pkg)
-                    problems = validate_structure(pkg) or spoken_length_problems(pkg)
+                    problems = draft_problems(pkg)
                     if not problems:
                         log.info("Revised surgically: only the rejected sentences changed.")
                         return self._finalize(pkg, topic, origin=writer_origin(), fact_sheet_used=True)
@@ -836,7 +935,7 @@ class ScriptEngine:
                     writer_error = str(e)
                     break
                 pkg = prune_graphics(pkg)  # an invalid graphic is dropped, not allowed to sink the script
-                problems = validate_structure(pkg) or spoken_length_problems(pkg)
+                problems = draft_problems(pkg)  # structure and length together: one rewrite fixes both
                 if not problems:
                     return self._finalize(pkg, topic, origin=writer_origin(), fact_sheet_used=self._sheet(topic) is not None)
                 log.warning("Attempt %d failed structural checks: %s", attempt, problems)
@@ -999,7 +1098,7 @@ class ScriptEngine:
         if fitted is None:
             return None
         fitted = prune_graphics(fitted)
-        still = validate_structure(fitted) or spoken_length_problems(fitted)
+        still = draft_problems(fitted)
         if still:
             log.warning("Length edit still misses (%s); rewriting the draft.", still)
             return None

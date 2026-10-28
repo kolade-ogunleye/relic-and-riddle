@@ -115,6 +115,47 @@ def usable_photos(images: List[Dict[str, Any]], context_max: int = CONTEXT_SHOTS
     return by["topic"] + by["kept"] + by["context"][:context_max]
 
 
+# ------------------------------------------------------------------ one readiness rule, the video's
+# Production 2026-10-27/28 (run_greek_fire_siphon_1793038718, run_tunguska_event_1908_1793057943; dev
+# run_tunguska_event_1908_1792980390): pools approved by the review (yes + partly >= 5) and shown as ready
+# (every photo counted) failed at run start because the video counts only Topic + Kept + at most
+# CONTEXT_SHOTS_MAX Context ("Only 4 of the 6 approved photos ... 2 Topic, 4 Context"). Approval, readiness,
+# the screens and the refill all ask this one function now; the video's rule itself is unchanged.
+def readiness(images: List[Dict[str, Any]], reviewed: bool = True, need: int = MIN_SCENE_IMAGES,
+              context_max: int = CONTEXT_SHOTS_MAX) -> Dict[str, Any]:
+    """How a pool stands against the video's rule (usable_photos >= need). `ready`: approved and enough
+    usable now. `pending`: approved, short now, but its unchecked photos (screened at run start) could make
+    up the difference. `short`: how many usable photos are missing."""
+    counts = {t: 0 for t in TIER_LABELS}
+    for im in images:
+        counts[tier(im)] += 1
+    usable = len(usable_photos(images, context_max))
+    ready = bool(reviewed) and usable >= need
+    return {**counts, "usable": usable, "need": need, "context_max": context_max, "short": max(0, need - usable),
+            "ready": ready, "pending": bool(reviewed) and not ready and usable + counts["unchecked"] >= need}
+
+
+def video_ready(images: List[Dict[str, Any]], reviewed: bool = True) -> bool:
+    """True when a video can be made from these photos as they are (the rule get_scene_sequence enforces)."""
+    return readiness(images, reviewed)["ready"]
+
+
+def readiness_text(images: List[Dict[str, Any]], need: int = MIN_SCENE_IMAGES) -> str:
+    """'2 topic photos, 4 context, at most 2 context count: 4 of 5 usable' (unchecked and weak ones named)."""
+    r = readiness(images, need=need)
+    parts = [f"{r['topic']} topic photo{'s' if r['topic'] != 1 else ''}"]
+    if r["kept"]:
+        parts.append(f"{r['kept']} kept by you")
+    parts.append(f"{r['context']} context")
+    if r["context"] > r["context_max"]:
+        parts.append(f"at most {r['context_max']} context count")
+    if r["unchecked"]:
+        parts.append(f"{r['unchecked']} not yet checked")
+    if r["weak"]:
+        parts.append(f"{r['weak']} weak")
+    return ", ".join(parts) + f": {r['usable']} of {need} usable"
+
+
 def strong_stems(topic_dir: Path) -> Optional[set]:
     """File stems of the photos that show the topic or that you kept: the only ones a Story frame, a carousel
     slide or a cover uses (no context shots there). None for a folder without credits (photos you supplied)."""
@@ -172,8 +213,10 @@ def review_pool(topic: Dict[str, Any], topic_dir: Path, apply: bool = True, forc
         return {"topic": topic["id"], "status": "operator decision stands", "kept": len(credits["images"])}
     if not force and credits.get("review_fingerprint") and \
             credits["review_fingerprint"] == pool_fingerprint(credits.get("images", [])):
-        status = "approved" if credits.get("reviewed") else "held"
-        return {"topic": topic["id"], "status": f"{status} (unchanged since last review)", "kept": len(credits.get("images", []))}
+        # An approval made before 2026-10-28 counted yes + partly; the video's rule decides what is said now.
+        status = "approved" if video_ready(credits.get("images", []), credits.get("reviewed")) else "held"
+        return {"topic": topic["id"], "status": f"{status} (unchanged since last review)", "kept": len(credits.get("images", [])),
+                "readiness": readiness_text(credits.get("images", []))}
     images = credits["images"][:MAX_PHOTOS]
     if not images:
         return {"topic": topic["id"], "status": "no photos", "kept": 0}
@@ -192,14 +235,19 @@ def review_pool(topic: Dict[str, Any], topic_dir: Path, apply: bool = True, forc
     # Photos that show the topic itself come first, then context; crowded ones (blurred faces) last.
     kept.sort(key=lambda im: (im["vision_review"].get("people_prominent", False),
                               0 if im["vision_review"].get("shows_topic") == "yes" else 1))
-    approved = len(kept) >= MIN_SCENE_IMAGES
+    # Approved only when the video could use the kept photos (Topic + Kept + at most CONTEXT_SHOTS_MAX
+    # Context): yes + partly >= 5 approved pools the video then refused (production 2026-10-28).
+    approved = video_ready(kept)
+    usable_note = readiness_text(kept)
     summary = {"topic": topic["id"], "status": "approved" if approved else "held", "kept": len(kept),
+               "readiness": usable_note,
                "dropped": [(d["file"], d["vision_review"].get("reason", "")) for d in dropped]}
     if apply:
         credits.update(images=kept, reviewed=approved, reviewed_by="vision" if approved else None,
                        review_fingerprint=pool_fingerprint(kept),
                        review_note=(f"Vision review {datetime.now(timezone.utc):%Y-%m-%d}: kept {len(kept)} of "
-                                    f"{len(images)}" + ("" if approved else f"; held: fewer than {MIN_SCENE_IMAGES}")),
+                                    f"{len(images)} ({usable_note})"
+                                    + ("" if approved else f"; held: fewer than {MIN_SCENE_IMAGES} usable for the video")),
                        rejected_by_review=credits.get("rejected_by_review", []) + dropped)
         save_credits(topic_dir, credits)
     return summary

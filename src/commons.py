@@ -13,6 +13,7 @@ import re
 import time
 from pathlib import Path
 from typing import Iterator, List, Optional
+from urllib.parse import unquote
 
 import requests
 from PIL import Image, ImageOps
@@ -69,8 +70,111 @@ def _get(url: str, params: Optional[dict] = None, timeout: float = 60, max_wait:
     return resp
 
 
+# Block-level tags end a phrase: they become a space, so "<li>Gallery</li><li>Wellcome" stays two words.
+_BLOCK_TAG = re.compile(r"<\s*/?\s*(?:br|p|div|li|ul|ol|dl|dd|dt|tr|td|th|table|h\d)\b[^>]*>", re.I)
+
+
 def _plain(value: str) -> str:
-    return html.unescape(re.sub(r"<[^>]+>", "", value or "")).strip()
+    """Text of a Commons metadata value on one line. Newlines are collapsed: an Artist value of two lines
+    put the credit's second line in the caption without the 📷 prefix, where it counted as public prose,
+    changed the fact review's fingerprint and failed the release gate's facts check (development,
+    Wieliczka run_wieliczka_salt_mine_1792974672, 2026-10-26; audit 2026-10-28)."""
+    # Every tag a space: two spans side by side ran together ("Unknown authorUnknown author"), which passed as
+    # a named author; a value repeated whole is said once (replay of dev Wieliczka photos 06, 08, 12; 2026-10-28)
+    text = html.unescape(re.sub(r"<[^>]+>", " ", _BLOCK_TAG.sub(" ", value or "")))
+    text = re.sub(r" ([,.;:!?)])", r"\1", re.sub(r"\s+", " ", text)).strip()  # "<b>Smith</b>, 1950": no space before the comma
+    return re.sub(r"^(.+?)(?: \1)+$", r"\1", text)
+
+
+# A sentence that is a notice to re-users, not a name: Commons' Artist field holds whatever the uploader
+# wrote, and a Wieliczka photo's was only "I would appreciate being notified if you use my work outside
+# Wikimedia. More of my work can be found in my personal gallery." which the caption printed as the author
+# (development, 2026-10-26; audit 2026-10-28).
+_NOTICE = re.compile(
+    r"^(?:please\b|kindly\b|i would\b|i'd\b|if you\b|more of my\b|you (?:can|may|are)\b|feel free\b|"
+    r"contact me\b|e-?mail me\b|notify me\b|thanks?\b|thank you\b|see (?:also|my)\b|"
+    r"this (?:file|image|photo\w*|picture|work|media)\b.*\b(?:was|is|has been|were)\b|"
+    r"(?:all rights|attribution) (?:reserved|required)\b|"
+    r"(?:licensed|released|published) under\b)", re.I)
+# Values that are a placeholder or a note on where the file came from, never who made it.
+_NOT_AUTHOR = re.compile(
+    r"^(?:unknown(?: author| photographer| artist)?|n/?a|none|-+|\?+|own work|self[- ]?(?:photographed|made|"
+    r"published|scanned)|gallery|source|link|original|website|"
+    r"(?:transferred|imported|uploaded|moved|copied|taken|scanned|extracted|derived|cropped|retrieved|"
+    r"downloaded|originally|from|via|see)\b.*)$", re.I)
+_URL = re.compile(r"(?:https?:)?//\S+|\bwww\.\S+", re.I)
+_LICENCE_TOKEN = re.compile(r"\b(?:CC[- ]?(?:BY|0|ZERO)(?:[- ](?:SA|ND|NC))*(?:[- ]\d(?:\.\d)?)?|"
+                            r"public domain|PD-\S+)\b", re.I)
+# A Commons user link in the Artist HTML: the uploader's account names the author when the text does not.
+_USER_LINK = re.compile(r'href="[^"]*?(?:\bUser:|Special:EmailUser/)([^"/#?&]+)"', re.I)
+MAX_AUTHOR = 150  # longer than any name: an uploader's paragraph, not an author
+
+
+def _without_notices(text: str) -> str:
+    sentences = re.split(r"(?<=[.!?])\s+", text)
+    return " ".join(s for s in sentences if s.strip() and not _NOTICE.match(s.strip())).strip()
+
+
+def _name(text: str) -> str:
+    """`text` as an author's name, or "" when it is a placeholder, a provenance note or too long."""
+    text = re.sub(r"^[\s:;,.\-–—|]+|[\s:;,\-–—|]+$", "", text)
+    text = re.sub(r"(?<=\w{4})\.$", "", text)  # a sentence's full stop, not an initial's ("Jr.")
+    if not text or len(text) > MAX_AUTHOR or _NOT_AUTHOR.match(text):
+        return ""
+    return text
+
+
+def _credit_author(credit_html: str) -> str:
+    """The institution or person a Commons Credit value names. Wellcome Collection files carry no Artist,
+    only a Credit of links: "<li>Gallery: https://...</li><li>Wellcome Collection gallery (2018-03-22):
+    https://wellcomecollection.org/works/... CC-BY-4.0</li>" (Commons API, 2026-10-28). URLs, licence
+    tokens and dates are dropped; the first phrase left that is a name is the author."""
+    for block in _BLOCK_TAG.split(credit_html or ""):
+        text = _LICENCE_TOKEN.sub(" ", _URL.sub(" ", _plain(block)))
+        text = re.sub(r"\([^)]*\d[^)]*\)", " ", text)  # "(2018-03-22)"
+        text = re.sub(r"\s+gallery\s*[:.]?\s*$", "", re.sub(r"\s+", " ", text).strip())  # the site's label for its own page
+        name = _name(_without_notices(text))
+        if name:
+            return name
+    return ""
+
+
+def _author(meta: dict) -> str:
+    """Who the photo is credited to: the structured Attribution line when the file has one, then the Artist
+    text without re-user notices, then the Commons account the Artist links to, then the Credit's named
+    institution; "Unknown" when none of them names anyone. 11 of 11 Wellcome scenes in the Trepanation run
+    (run_trepanation_miracle_1792995462) and 1 of 10 for the singing colossi were recorded "Unknown" from the
+    Artist field alone, so the release marked those CC BY photos unverified (development, 2026-10-26;
+    audit 2026-10-28)."""
+    def value(key: str) -> str:
+        return str((meta.get(key) or {}).get("value") or "")
+
+    attribution = _name(_without_notices(_plain(value("Attribution"))))
+    if attribution:
+        return attribution
+    raw_artist = value("Artist")
+    artist_text = _without_notices(_plain(raw_artist))
+    artist = _name(artist_text)
+    if artist:
+        return artist
+    for user in _USER_LINK.findall(raw_artist):
+        name = _name(unquote(user).replace("_", " "))
+        if name:
+            return name
+    credited = _credit_author(value("Credit"))
+    if credited:
+        return credited
+    # An uploader's paragraph (on one line) is kept for files that need no credit; candidates() refuses it
+    # as the author of a CC BY file.
+    if artist_text and not _NOT_AUTHOR.match(artist_text):
+        return artist_text
+    return "Unknown"
+
+
+def _needs_named_author(licence: str) -> bool:
+    """The licences the release gate requires a named author for (credits.generate_provenance_ledger: CC BY
+    with an "unknown" artist is unverified)."""
+    return licence.strip().lower().startswith("cc by")
 
 
 # Commons' own human-reviewed grades (best first): Featured pictures are judged the finest on the
@@ -99,7 +203,8 @@ def search(query: str, limit: int = 50, max_wait: int = 60) -> list:
         "gsrsearch": f"{query} filetype:bitmap", "gsrnamespace": 6, "gsrlimit": limit,
         "prop": "imageinfo|categories", "iiprop": "url|size|mime|extmetadata", "iiurlheight": 2880,
         "clcategories": "|".join(GRADE_CATEGORIES), "cllimit": "max",
-        "iiextmetadatafilter": "LicenseShortName|Artist|LicenseUrl|AttributionRequired|DateTimeOriginal|"
+        # Credit and Attribution name the author when Artist does not (Wellcome Collection files, see _author).
+        "iiextmetadatafilter": "LicenseShortName|Artist|Credit|Attribution|LicenseUrl|AttributionRequired|DateTimeOriginal|"
                                "ImageDescription|Categories|ObjectName|GPSLatitude|GPSLongitude",
     }
     resp = _get(API, params=params, timeout=30, max_wait=max_wait)
@@ -156,11 +261,20 @@ def candidates(pages: list, keywords: List[str], allow_sa: bool = False, min_pix
         orig_url = info.get("url")
         target_url = orig_url if orig_url and 0 < info.get("size", 0) <= 35_000_000 else (info.get("thumburl") or orig_url)
 
+        # A CC BY file nobody can be credited for is refused here, with the reason, rather than fetched,
+        # shown on the review card and then failing the release's rights check (development, 2026-10-26;
+        # audit 2026-10-28).
+        artist = _author(meta)
+        if _needs_named_author(licence) and (artist == "Unknown" or len(artist) > MAX_AUTHOR):
+            log.info("Commons: skipped %s: %s needs a named author and its Artist, Attribution and Credit "
+                     "name nobody", page["title"], licence)
+            continue
+
         yield {
             "title": page["title"],
             "download_url": target_url,
             "source_url": info.get("descriptionurl", ""),
-            "artist": _plain(meta.get("Artist", {}).get("value", "")) or "Unknown",
+            "artist": artist,
             "license": licence,
             "license_url": meta.get("LicenseUrl", {}).get("value", ""),
             "attribution_required": meta.get("AttributionRequired", {}).get("value", "true") != "false",

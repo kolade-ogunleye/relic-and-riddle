@@ -9,7 +9,7 @@ def page(title, w, h, grade_cat=None):
     cats = [{"title": grade_cat}] if grade_cat else []
     return {"title": f"File:{title}.jpg", "categories": cats, "imageinfo": [{
         "mime": "image/jpeg", "width": w, "height": h, "url": "u", "size": 1000, "descriptionurl": "d",
-        "extmetadata": {"LicenseShortName": {"value": "CC BY 4.0"}}}]}
+        "extmetadata": {"LicenseShortName": {"value": "CC BY 4.0"}, "Artist": {"value": "A. Photographer"}}}]}
 
 
 def test_grade_then_resolution():

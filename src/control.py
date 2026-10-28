@@ -24,6 +24,13 @@ from .db import PipelineDatabase
 from . import config
 from .topic_store import serialized
 
+
+def readiness(images: List[Dict[str, Any]], reviewed: bool = True) -> Dict[str, Any]:
+    """image_review.readiness, the one rule every screen judges a photo set by (2026-10-28); imported when
+    called, as image_review pulls in the model clients."""
+    from .image_review import readiness as _readiness
+    return _readiness(images, reviewed)
+
 log = logging.getLogger(__name__)
 
 PAUSED_KEY = "scheduler_paused"
@@ -334,8 +341,13 @@ def images_text(assets_dir: Path = ASSETS_DIR, db: Optional[PipelineDatabase] = 
             label = f"{rank}. {html.escape(title)} · {n} photo{'s' if n != 1 else ''}"   # its name, not its id
         else:
             label = f"{html.escape(d.name.replace('_', ' '))} ({n})"
-        if cr["reviewed"] and n >= MIN_SCENE_IMAGES:
+        # Counted as the video counts (image_review.readiness): an approved set of 2 Topic + 4 Context showed
+        # as approved here and failed at run start (production 2026-10-28).
+        r = readiness(cr["images"], bool(cr["reviewed"]))
+        if r["ready"] or r["pending"]:
             approved += 1
+        elif cr["reviewed"]:
+            short.append(f"{label} · {r['usable']} of {MIN_SCENE_IMAGES} usable")
         elif n >= MIN_SCENE_IMAGES:
             review.append(label)
         else:
@@ -344,7 +356,7 @@ def images_text(assets_dir: Path = ASSETS_DIR, db: Optional[PipelineDatabase] = 
     if review:
         lines += ["", "<b>To review</b> · <code>/photos N review</code>"] + shown_and_more(review)
     if short:
-        lines += ["", f"<b>Short of {MIN_SCENE_IMAGES} photos</b> · <code>/photos N fetch</code> or upload"] + shown_and_more(short)
+        lines += ["", f"<b>Short of {MIN_SCENE_IMAGES} photos a video can use</b> · <code>/photos N fetch</code> or upload"] + shown_and_more(short)
     return "\n".join(lines)
 
 
@@ -389,10 +401,11 @@ def chosen_cover(run_dir: Path) -> Optional[str]:
 def review_caption(topic_dir: Path, ref_hint: Optional[str] = None, title: Optional[str] = None) -> str:
     """The sheet's caption: what the set holds and which photos a video may use (operator, 2026-10-25: weak
     photos reached the video, and the old storyboard list repeated one caption under keyword picks)."""
-    from .image_review import CONTEXT_SHOTS_MAX, TIER_LABELS, tier, usable_photos
+    from .image_review import CONTEXT_SHOTS_MAX, TIER_LABELS, readiness_text, tier, usable_photos
     cr = load_credits(topic_dir)
     images = cr["images"]
-    status_tag = " (approved)" if cr.get("reviewed") else ""
+    r = readiness(images, bool(cr.get("reviewed")))
+    status_tag = (" (approved)" if r["ready"] or r["pending"] else " (approved, short for a video)") if cr.get("reviewed") else ""
     name = title or topic_dir.name.replace("_", " ").capitalize()   # the topic's title, not its folder id
     lines = [f"🖼 <b>{html.escape(name)}</b> · {len(images)} photos{status_tag}"]
     drop_ref = ref_hint if ref_hint else (topic_dir.name.split('_')[0] if topic_dir.name.split('_')[0].isdigit() else topic_dir.name)
@@ -410,6 +423,9 @@ def review_caption(topic_dir: Path, ref_hint: Optional[str] = None, title: Optio
     lines.append(f"A video can use {usable} of them: " + (
         f"{strong} Topic or Kept photo{'s' if strong != 1 else ''}, plus up to {CONTEXT_SHOTS_MAX} Context ones."
         if strong else f"no Topic or Kept photo yet, so only up to {CONTEXT_SHOTS_MAX} Context ones."))
+    # The count the run checks, and what is short (production 2026-10-28: "2 Topic, 4 Context" failed at start).
+    lines.append(("Ready for a video: " if r["usable"] >= MIN_SCENE_IMAGES else f"Short for a video (need {MIN_SCENE_IMAGES}): ")
+                 + html.escape(readiness_text(images)) + ".")
     lines.append("Stories and the carousel use Topic and Kept photos only.")
     lines.append("Unchecked photos are looked at before a run; Weak ones are never used "
                  "(<code>/photos N keep</code> puts one in anyway).")
@@ -1373,8 +1389,14 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 if td.exists():
                     cr = load_credits(td)
                     imgs = cr.get("images", [])
-                    if cr.get("reviewed") and len(imgs) >= MIN_SCENE_IMAGES:
+                    # The video's own count (image_review.readiness, 2026-10-28), not every photo in the set.
+                    r = readiness(imgs, bool(cr.get("reviewed")))
+                    if r["ready"]:
                         return "🟢 Ready to render"
+                    if r["pending"]:
+                        return f"🟢 Ready to render · {r['unchecked']} photos get their check first"
+                    if cr.get("reviewed"):
+                        return f"🟠 Short of usable photos ({r['usable']} of {MIN_SCENE_IMAGES})"
                     elif imgs:
                         return "🟡 Needs image review"
             except Exception:
@@ -2116,7 +2138,9 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     continue
                 if cr.get("images"):
                     count = len(cr["images"])
-                    mark = "⛔" if count < MIN_SCENE_IMAGES else "✅" if cr.get("reviewed") else "⚠️"
+                    r = readiness(cr["images"], bool(cr.get("reviewed")))  # the video's count (2026-10-28)
+                    mark = ("✅" if r["ready"] or r["pending"] else "⛔" if cr.get("reviewed") or count < MIN_SCENE_IMAGES
+                            else "⚠️")
                     sets.append((serial[t["id"]], t["title"], count, mark))
             back = [[{"text": "← Pictures", "callback_data": "cimages:"}], [HOME]]
             if not sets:
@@ -2126,7 +2150,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             shown = sets[page * 8:page * 8 + 8]
             counts = {m: sum(1 for s in sets if s[3] == m) for m in ("✅", "⚠️", "⛔")}
             text = ("🖼 <b>Photo sets</b>" + (f" · page {page + 1} of {pages}" if pages > 1 else "")
-                    + f"\n✅ approved {counts['✅']} · ⚠️ needs your review {counts['⚠️']} · ⛔ too few images (need {MIN_SCENE_IMAGES}) {counts['⛔']}\n\n"
+                    + f"\n✅ approved {counts['✅']} · ⚠️ needs your review {counts['⚠️']} · ⛔ too few a video can use (need {MIN_SCENE_IMAGES}) {counts['⛔']}\n\n"
                     + "\n".join(f"<b>{n}.</b> {mark} {html.escape(title)} · {count} images" for n, title, count, mark in shown))
             numbers = [{"text": str(n), "callback_data": f"review:{n}"} for n, _, _, _ in shown]
             return text, [row for row in (numbers[:4], numbers[4:]) if row] + pager("reviewpick:", page, pages) + back

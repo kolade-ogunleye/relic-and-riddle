@@ -140,16 +140,15 @@ class VisualEngine:
                 )
             # Only photos that show the topic (best first, so the cover is the best of them), those you kept,
             # and at most a couple of context shots; never one that was weak or never looked at (2026-10-25).
-            from .image_review import TIER_LABELS, tier, usable_photos
+            # The same counting as approval and readiness (image_review.readiness, 2026-10-28), so a pool this
+            # refuses is one the scheduler already reported as not ready.
+            from .image_review import readiness_text, usable_photos
             chosen = usable_photos(credits["images"])
             resolved = [topic_dir / c["file"] for c in chosen]
             if len(resolved) < MIN_SCENE_IMAGES:
-                counts = {}
-                for c in credits["images"]:
-                    counts[TIER_LABELS[tier(c)]] = counts.get(TIER_LABELS[tier(c)], 0) + 1
                 raise MissingAssetsError(
                     f"Only {len(resolved)} of the {len(credits['images'])} approved photos of '{tid}' are strong enough "
-                    f"for the video (need {MIN_SCENE_IMAGES}): " + ", ".join(f"{n} {k}" for k, n in counts.items())
+                    f"for the video (need {MIN_SCENE_IMAGES}): {readiness_text(credits['images'])}"
                     + ". Fetch or upload photos that show the topic itself, or keep a photo with /photos N keep from its sheet.")
         elif topic_dir.is_dir():
             resolved = sorted(

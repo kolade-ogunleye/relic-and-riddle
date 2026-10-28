@@ -39,7 +39,9 @@ def sha256_file(path: Optional[Path]) -> str:
 def asset_attribution(record):
     if not record.get("attribution_required"):
         return ""
-    return "📷 " + " | ".join(str(record.get(key) or "Unknown") for key in
+    # One line whatever the source: a newline in a field put the rest of the credit in the caption without
+    # the 📷 prefix, where it counted as public prose and failed the facts check (development, 2026-10-26; audit 2026-10-28)
+    return "📷 " + " | ".join(" ".join(str(record.get(key) or "Unknown").split()) for key in
                               ("artist", "title", "license", "source_url", "license_url"))
 
 
@@ -405,7 +407,16 @@ def approve_set(topic_dir: Path, min_images: int) -> str:
     credits["reviewed"] = True
     credits["reviewed_by"] = "operator"  # a human decision: automatic review never overrides it
     save_credits(topic_dir, credits)
-    return f"Approved {len(credits['images'])} images for {topic_dir.name}."
+    # Your approval stands, but say when the video could not use the set as it is (it counts Topic + Kept +
+    # at most a couple of Context photos: production 2026-10-28 runs failed at start on approved sets).
+    from .image_review import readiness, readiness_text
+    r = readiness(credits["images"], need=min_images)
+    note = "" if r["ready"] else (
+        f" Photos not yet checked are looked at before a run; for now {readiness_text(credits['images'], min_images)}."
+        if r["pending"] else
+        f" A video cannot use it yet: {readiness_text(credits['images'], min_images)}. Keep a photo with "
+        f"/photos N keep or add photos that show the topic itself.")
+    return f"Approved {len(credits['images'])} images for {topic_dir.name}." + note
 
 
 def drop_images(topic_dir: Path, numbers: List[int]) -> str:
@@ -427,14 +438,18 @@ def drop_images(topic_dir: Path, numbers: List[int]) -> str:
     # Taking photos out of an approved set leaves it approved (nothing new needs a look); it unapproved the
     # set, so a regeneration after a /drop stopped on "not reviewed" (production 2026-10-25). Too few left
     # for a video still needs a fresh decision.
-    from .config import MIN_SCENE_IMAGES
-    still_approved = bool(credits.get("reviewed")) and len(images) >= MIN_SCENE_IMAGES
+    # "Too few" is counted as the video counts (image_review.readiness, 2026-10-28): photos not yet checked
+    # still count, as they are screened before a run; context shots beyond the couple a video uses do not.
+    from .image_review import readiness, readiness_text
+    r = readiness(images, bool(credits.get("reviewed")))
+    still_approved = r["ready"] or r["pending"]
     credits["reviewed"] = still_approved
     save_credits(topic_dir, credits)
     if images:
         write_contact_sheet(topic_dir, images)
     return (f"Removed {len(set(numbers))}; {len(images)} images remain in {topic_dir.name}"
-            + ("; the set stays approved." if still_approved else "."))
+            + ("; the set stays approved." if still_approved else
+               f" ({readiness_text(images)})." if images else "."))
 
 
 def keep_images(topic_dir: Path, numbers: List[int], keep: bool = True) -> str:

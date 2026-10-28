@@ -87,7 +87,14 @@ def test_a_long_review_card_keeps_its_narration_and_stays_one_message():
     card = TelegramApprovalBot.format_card_text(payload, "run_x")
     assert narration in card and "[shortened:" not in card and _tg_len(card) <= CARD_PAGE_LIMIT
     assert "<b>Caption:</b>" in card and "<b>Carousel caption:</b>" in card
-    assert "more: reply /ask to this card" in card                        # the folded lists say what was left out
+    assert "the full list is in the reply under this card" in card       # the folded lists say where the rest is
+    # ...and that reply holds every item whole, inside Telegram's limit (operator, 2026-10-28)
+    from src.telegram_bot import detail_messages
+    full = TelegramApprovalBot._card_text(payload, "run_x", None, None, 10 ** 6)
+    details = detail_messages(full)
+    assert details and all(_tg_len(m) <= CARD_PAGE_LIMIT for m in details)
+    assert sum(m.count("a long note") for m in details) == full.count("a long note")
+    assert all(m.count("<blockquote expandable>") == m.count("</blockquote>") for m in details)
 
 
 def test_an_approve_is_acted_on_once_however_many_waits_see_it(db, tmp_path):

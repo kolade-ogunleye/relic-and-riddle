@@ -165,7 +165,9 @@ _HASHTAG_ONLY_LINE = re.compile(r"^(?:\s*#\w+)+\s*$")
 _TRAILING_HASHTAGS = re.compile(r"(?:\s+#\w+)+\s*$")
 
 
-CARD_LIST_MORE = "reply /ask to this card for the rest"
+# The rest is sent whole under the card (operator, 2026-10-28: "why can't I have all the details... we are already
+# using a blockquote"): "reply /ask" asked the model to retell a list the bot already had
+CARD_LIST_MORE = "the full list is in the reply under this card"
 FOOTAGE_MAX_BYTES = 20 * 1024 * 1024  # the Bot API's getFile limit
 FORM = "/footage topic | source: URL | licence: CC BY 4.0 | licence_url: URL"
 
@@ -185,6 +187,32 @@ def listed(heading: str, items: List[str], cap: Optional[int] = None) -> str:
     head = heading if "<b>" in heading else f"<b>{heading}</b>"
     body = _capped([x for x in items if x], cap)
     return head + ("\n<blockquote expandable>" + "\n".join(f"• {x}" for x in body) + "</blockquote>" if body else "")
+
+
+def detail_messages(full_card: str, limit: int = CARD_PAGE_LIMIT) -> List[str]:
+    """The card's lists whole, for the message under a card whose lists were shortened: each section with an
+    expandable blockquote, in order, packed into as few messages as Telegram's limit allows (a section longer
+    than one message is split between its items, each part in its own blockquote)."""
+    sections = [sec for sec in full_card.split("\n\n") if "<blockquote expandable>" in sec]
+    parts: List[str] = []
+    for sec in sections:
+        head, _, rest = sec.partition("<blockquote expandable>")
+        items = rest.rsplit("</blockquote>", 1)[0].split("\n")
+        chunk: List[str] = []
+        for item in items:
+            trial = head + "<blockquote expandable>" + "\n".join(chunk + [item]) + "</blockquote>"
+            if chunk and _tg_len(trial) > limit:
+                parts.append(head + "<blockquote expandable>" + "\n".join(chunk) + "</blockquote>")
+                chunk = []
+            chunk.append(item)
+        parts.append(head + "<blockquote expandable>" + "\n".join(chunk) + "</blockquote>")
+    messages: List[str] = []
+    for part in parts:
+        if messages and _tg_len(messages[-1] + "\n\n" + part) <= limit:
+            messages[-1] += "\n\n" + part
+        else:
+            messages.append(part)
+    return messages
 
 
 def without_hashtags(text: str) -> str:
@@ -1410,6 +1438,18 @@ class TelegramApprovalBot:
             msg = self._api("sendMessage", data={"chat_id": self.chat_id, "text": re.sub(r"<[^>]+>", "", card_text)[:4000],
                                                  "disable_web_page_preview": "true", "reply_markup": json.dumps(markup)})
         message_id = msg["message_id"]
+        if CARD_LIST_MORE in card_text:  # the lists the card had to shorten, whole, in the reply under it
+            try:
+                full = self._card_text({**script_payload, "_regeneration_note": regen} if regen else script_payload,
+                                       run_id, release, None, 10 ** 6)
+                for n, text in enumerate(detail_messages(full), 1):
+                    sent = self._api("sendMessage", data={"chat_id": self.chat_id, "parse_mode": "HTML",
+                                                          "text": ("📋 <b>In full</b>\n\n" if n == 1 else "") + text,
+                                                          "reply_to_message_id": message_id,
+                                                          "disable_web_page_preview": "true"})
+                    put(self.db, "message-run", f"{self.chat_id}:{sent.get('message_id')}", run_id)
+            except Exception as e:  # the card stands without it
+                log.warning("Could not send the review card's lists in full: %s", e)
         from .card_ledger import record as record_card
         record_card(run_id, "review", card_text, markup["inline_keyboard"], message_id)
         self.db.record_approval(run_id, script_payload.get("topic_id", ""), message_id)

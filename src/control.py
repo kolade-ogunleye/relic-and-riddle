@@ -2409,7 +2409,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 done = archive_film.decide(assets_dir, topic["id"], picked, use=command == "filmuse")
                 note = ((("✅ In use: " if command == "filmuse" else "🗑 Dropped (never fetched again): ")
                          + "; ".join(html.escape(t[:60]) for t in done)) if done else "⚠️ No film by those numbers.") + "\n\n"
-            text = note + archive_film.card(assets_dir, topic, ask)
+            text = note + archive_film.card(assets_dir, topic, ask, key)
             items = archive_film.pending_list(assets_dir, topic["id"])
             buttons = [[{"text": "🔎 Find film", "callback_data": f"filmfind:{key}"}], [HOME]]
             if items and send_photo:

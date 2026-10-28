@@ -72,7 +72,8 @@ def test_found_films_wait_for_the_operator_then_are_used_or_dropped_for_good(arc
     assert archive_film.decide(tmp_path, "pompeii", [2], use=False) == ["Pompeii And Vesuvius"]   # HugeOnly, dropped
     assert len(archive_film.pending_list(tmp_path, "pompeii")) == 1
     assert not list((tmp_path / "pompeii" / "footage").glob("*.mp4"))          # nothing in use until approved
-    card = archive_film.card(tmp_path, topic, found["ask"])
+    card = archive_film.card(tmp_path, topic, found["ask"], key="7")
+    assert "/footage 7 use 1 2" in card and "/footage N" not in card              # the topic's own number
     assert "Waiting for you" in card and "Pompeii And Vesuvius" in card and "prelingerclips@gmail.com" in card
     assert archive_film.decide(tmp_path, "pompeii", [1], use=True) == ["Pompeii And Vesuvius"]
     used = list((tmp_path / "pompeii" / "footage").glob("*.mp4"))

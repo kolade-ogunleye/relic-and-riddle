@@ -205,7 +205,7 @@ def sheet(items: List[Tuple[Path, dict]], out: Path) -> Optional[Path]:
     return out
 
 
-def card(assets_dir: Path, topic: Dict[str, Any], ask: Optional[List[dict]] = None) -> str:
+def card(assets_dir: Path, topic: Dict[str, Any], ask: Optional[List[dict]] = None, key: str = "N") -> str:
     """What the topic has: films waiting for a decision (numbered as on the sheet), films in use, holders to ask."""
     import html
     e = html.escape
@@ -219,9 +219,9 @@ def card(assets_dir: Path, topic: Dict[str, Any], ask: Optional[List[dict]] = No
             who = "community upload: its licence is the uploader's say-so" if r.get("community_upload") else "held by " + ", ".join(r.get("collections") or [r.get("provider", "")])[:60]
             lines.append(f"{n}. <a href=\"{e(r['source_url'])}\">{e(r['title'][:70])}</a> · {e(r.get('year') or '')} · {e(r['license'])} · "
                          f"{r.get('duration', 0):.0f} s · {e(who)}")
-        lines.append("Use: <code>/footage N use 1 2</code> · drop: <code>/footage N drop 3</code>")
+        lines.append(f"Use: <code>/footage {key} use 1 2</code> · drop: <code>/footage {key} drop 3</code>")
     else:
-        lines += ["", "No film is waiting. Find some: <code>/footage N find</code>"]
+        lines += ["", f"No film is waiting. Find some: <code>/footage {key} find</code>"]
     lines += ["", f"<b>In use</b>: {len(in_use)} clip(s) (muted, at most {int(config.FOOTAGE_MAX_SHARE * 100)}% of a video, credited)"]
     if ask:
         lines += ["", "<b>Worth asking for</b> (no open licence; ask the holder before using):"]

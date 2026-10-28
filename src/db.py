@@ -408,12 +408,14 @@ class PipelineDatabase:
                                (_now(), topic_id))
             return cur.rowcount > 0
 
-    def requeue_topic(self, topic_id: str) -> bool:
+    def requeue_topic(self, topic_id: str, stale: bool = False) -> bool:
         """Returns a topic to the queue (an explicit operator decision; published topics included) without
-        touching its publish count. Refused while the topic is being made or already queued."""
+        touching its publish count. Refused while the topic is being made or already queued; `stale` lets a
+        topic still marked in production come back when the caller found its last run over (control.stale_topics)."""
+        blocked = "('queued')" if stale else "('queued', 'in_production')"
         with self._conn() as conn:
-            cur = conn.execute("""UPDATE topics SET priority = 0, status = 'queued', updated_at = ?
-                WHERE id = ? AND status NOT IN ('queued', 'in_production')""", (_now(), topic_id))
+            cur = conn.execute(f"""UPDATE topics SET priority = 0, status = 'queued', updated_at = ?
+                WHERE id = ? AND status NOT IN {blocked}""", (_now(), topic_id))
             return cur.rowcount == 1
 
     def repair_simulated_publications(self) -> List[str]:

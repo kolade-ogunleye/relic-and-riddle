@@ -180,3 +180,26 @@ def test_the_next_free_slot_is_not_read_as_booked(db, tmp_path):
     carousels = [{"kind": "carousel", "run_id": r} for r in ("a", "b", "c")]
     assert still_to_post(carousels) == "still to post: 3 carousels, from 3 episodes"
     assert still_to_post([]) == "nothing waiting to post"
+
+
+def test_a_topic_left_in_production_after_its_run_ended_can_be_restored(db):
+    """Antikythera, production 2026-10-27: sent back to Regenerate on 25 Oct, its new version never started; the
+    topic stayed "in production", /queue requeue refused it, and the dashboard's Re-render had expired."""
+    from src.control import stale_topics
+    stuck, busy = db.list_all_topics()[0]["id"], db.list_all_topics()[1]["id"]
+    for tid, status in ((stuck, "regenerate"), (busy, "pending_approval")):
+        db.create_run(f"run_{tid}", tid)
+        db.update_run(f"run_{tid}", status)
+        with db._conn() as conn:
+            conn.execute("UPDATE topics SET status = 'in_production' WHERE id = ?", (tid,))
+    assert stale_topics(db) == {stuck: "regenerate"}                               # one waiting for review is not stale
+    text = _h(db)("queue", "")
+    text = text[0] if isinstance(text, tuple) else text
+    assert "sent back to Regenerate; its new version never started" in text
+    serial = [t["id"] for t in db.list_all_topics()].index(stuck) + 1
+    reply = _h(db)("requeue", str(serial))
+    reply = reply[0] if isinstance(reply, tuple) else reply
+    assert "restored to the queue" in reply
+    assert next(t for t in db.list_all_topics() if t["id"] == stuck)["status"] == "queued"
+    refused = _h(db)("requeue", str([t["id"] for t in db.list_all_topics()].index(busy) + 1))
+    assert "cannot be requeued" in (refused[0] if isinstance(refused, tuple) else refused)   # its review still waits

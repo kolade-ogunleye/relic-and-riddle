@@ -1220,6 +1220,32 @@ def still_to_post(booked: List[Dict[str, Any]]) -> str:
     return "still to post: " + ", ".join(parts) + f", from {episodes} episode{'s' if episodes != 1 else ''}"
 
 
+# A run in one of these is still going or still waits for someone; any other last run is over
+LIVE_RUN_STATUSES = {"producing", "pending", "started", "pending_approval", "approved", "scheduled", "publishing",
+                     "publish_unknown"}
+
+
+def stale_topics(db: PipelineDatabase) -> Dict[str, str]:
+    """Topics still marked in production whose newest run is over: sent back to Regenerate with no new version,
+    rejected, failed or cancelled. {topic_id: that run's status}. They could not be restored (/queue requeue
+    refused an in-production topic) and the dashboard stops offering a Re-render after RERENDER_HOURS, so
+    Antikythera sat out of the queue from 25 Oct (operator, 2026-10-27)."""
+    out: Dict[str, str] = {}
+    marked = [t for t in db.list_all_topics() if t.get("status") == "in_production"]
+    if not marked:
+        return out
+    with db._conn() as conn:
+        for t in marked:
+            row = conn.execute("SELECT status FROM runs WHERE topic_id = ? ORDER BY rowid DESC LIMIT 1", (t["id"],)).fetchone()
+            if row and row["status"] not in LIVE_RUN_STATUSES:
+                out[t["id"]] = row["status"]
+    return out
+
+
+STALE_WORDS = {"regenerate": "sent back to Regenerate; its new version never started", "rejected": "its last run was rejected",
+               "failed": "its last run failed", "cancelled": "its last run was cancelled", "timeout": "its review timed out"}
+
+
 def next_slot_line(db: PipelineDatabase, booked: List[Dict[str, Any]]) -> str:
     """'next free Reel slot Wed 28 Oct 17:00 MDT · still to post: 3 carousels, from 3 episodes'. The slot is the
     first one with no Reel in it; what waits is counted apart, by kind: "next Reel slot ... 3 episode(s) booked"
@@ -1357,7 +1383,9 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
 
         topics = db.list_all_topics()
         queued = [t for t in topics if t.get("status") == "queued"]
-        requeueable = [t for t in topics if t.get("status") in ("rejected", "failed", "published", "archived", "cancelled")]
+        stale = stale_topics(db)
+        requeueable = [t for t in topics if t.get("status") in ("rejected", "failed", "published", "archived", "cancelled")
+                       or t["id"] in stale]
         next_t = None
         try:
             next_t = db.get_next_topic()
@@ -1426,7 +1454,8 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             for t in (requeueable if show_all else requeueable[:5]):
                 s = topic_serial.get(t['id'], '')
                 st = t.get("status", "")
-                lines.append(f"  {s}. {html.escape(t['title'])} · {html.escape(STATUS_WORDS.get(st, st))}")
+                said = STALE_WORDS.get(stale[t["id"]], "its last run is over") if t["id"] in stale else STATUS_WORDS.get(st, st)
+                lines.append(f"  {s}. {html.escape(t['title'])} · {html.escape(said)}")
             if len(requeueable) > 5 and not show_all:
                 lines.append(f"  <i>…and {len(requeueable) - 5} more · <code>/queue all</code></i>")
             example = topic_serial.get(requeueable[0]["id"], 1)
@@ -2408,7 +2437,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                         break
             if not match:
                 return f"⚠️ Topic '{html.escape(ref)}' not found in database. Send /queue for list."
-            if not db.requeue_topic(match["id"]):
+            if not db.requeue_topic(match["id"], stale=match["id"] in stale_topics(db)):
                 return "This item cannot be requeued from its current state.", [[HOME]]
             return f"🔄 Topic <b>{html.escape(match['title'])}</b> (<code>{html.escape(match['id'])}</code>) restored to the queue."
         if command == "alerts":

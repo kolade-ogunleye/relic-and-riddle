@@ -158,6 +158,43 @@ def main(argv=None) -> int:
     return 0
 
 
+# Credentials the code reads from src/config at each use (never copied at import), so one added to .env while the
+# daemon runs can be taken in at once (operator, 2026-10-28: "how do I make it start working right away?"). A
+# credential read once at import (from .config import X) needs a restart and is never listed here; a test holds it.
+LIVE_CREDENTIALS = ("EUROPEANA_API_KEY", "SMITHSONIAN_API_KEY")
+
+
+def _plain(value: str) -> str:
+    """A .env value as src/config's loader reads it: matching quotes removed, an inline comment dropped."""
+    v = value.strip()
+    if len(v) >= 2 and v[0] == v[-1] and v[0] in ("'", '"'):
+        return v[1:-1]
+    for mark in (" #", "\t#"):
+        if mark in v:
+            v = v.split(mark, 1)[0].strip()
+    return v
+
+
+def pick_up_credentials(env_path: Path = None) -> List[str]:
+    """Takes into this process each LIVE_CREDENTIALS key that runs empty now and has a value in .env, and returns
+    their names (never a value). A key already set is never changed here: a changed key waits for a restart, so a
+    run never switches key part way. Never raises."""
+    try:
+        from src import config
+        env_path = env_path or globals()["ROOT"] / ".env"
+        values = names_and_values(env_path)
+    except Exception:
+        return []
+    taken = []
+    for name in LIVE_CREDENTIALS:
+        value = _plain(values.get(name, ""))
+        if value and not getattr(config, name, ""):
+            os.environ[name] = value
+            setattr(config, name, value)
+            taken.append(name)
+    return taken
+
+
 def sync_on_start(env_path: Path = None, example_path: Path = None) -> str:
     """At each daemon start (so after every release install): writes in the missing settings that change nothing,
     and returns what the operator should hear (empty when there is nothing new): what was added, by name; what
@@ -180,10 +217,13 @@ def sync_on_start(env_path: Path = None, example_path: Path = None) -> str:
             sections.append([f"<b>Added to .env</b> ({len(safe)}), the values it already ran with:"]
                             + bullets(f"{k} = {v}" for k, v in safe))
         except PermissionError:  # production's pipeline account may not write the app folder: said, nothing changed
-            sections.append([f"<b>Missing from .env</b> ({len(safe)}), the template's values, the same as what runs now:"]
+            # The outcome first, and that nothing is needed: "Missing from .env" above the list read as "added"
+            # (operator, 2026-10-28)
+            sections.append([f"<b>Not in .env, already in effect</b> ({len(safe)}): the code runs with these values "
+                             "without them, so nothing needs doing:"]
                             + bullets(f"{k} = {v}" for k, v in safe)
-                            + ["This account cannot write .env, so nothing was changed. To write them in (a backup "
-                               "is kept): <code>python scripts/env_reconcile.py --apply</code>"])
+                            + ["This account cannot write .env, so nothing was changed. Optional, to list them in "
+                               "the file (a backup is kept): <code>python scripts/env_reconcile.py --apply</code>"])
         except OSError as e:
             sections.append([f"<b>Missing from .env</b> ({len(safe)}), not written in ({html.escape(type(e).__name__)}):"]
                             + bullets(f"{k} = {v}" for k, v in safe))
@@ -192,8 +232,12 @@ def sync_on_start(env_path: Path = None, example_path: Path = None) -> str:
                         + bullets(f"{k}: template {v} · now {now}" for k, v, now in differ)
                         + ["To take the template's: <code>python scripts/env_reconcile.py --apply --include-changes</code>"])
     if secrets:
-        sections.append([f"<b>Credentials not set</b> ({len(secrets)}), only if this environment uses them:"]
-                        + bullets(secrets))
+        live = [k for k in secrets if k in LIVE_CREDENTIALS]
+        when = ([f"Taken in within 2 minutes of being added, no restart: {', '.join(live)}. "
+                 + ("The others take effect at the next restart." if len(live) < len(secrets) else "")]
+                if live else ["They take effect at the next restart."])
+        sections.append([f"<b>Credentials not set</b> ({len(secrets)}), only if this environment uses them. "
+                         "Add the line to .env yourself:"] + bullets(secrets) + [w.strip() for w in when])
     lines = ["\n".join(section) for section in sections]
     return ("⚙️ <b>Settings</b>\n\n" + "\n\n".join(lines)) if lines else ""
 

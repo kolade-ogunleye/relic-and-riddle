@@ -52,11 +52,11 @@ class SecretMasker:
         "GROQ_API_KEY",
     )
 
-    def __init__(self):
-        self.sensitive_tokens = [
-            v for v in (getattr(config, n, "") for n in self.SECRET_NAMES)
-            if is_configured(v) and len(v) > 4
-        ]
+    @property
+    def sensitive_tokens(self):
+        # Read at each use, not once at start: a credential taken from .env while the daemon runs
+        # (env_sync.pick_up_credentials) is masked from its first log line
+        return [v for v in (getattr(config, n, "") for n in self.SECRET_NAMES) if is_configured(v) and len(v) > 4]
 
     def mask(self, text: str) -> str:
         if not text:

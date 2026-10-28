@@ -364,7 +364,8 @@ def test_the_daemon_sweeps_decided_reviews_but_not_during_a_production_run(daemo
     swept = []
     monkeypatch.setattr(main, "resume_reviews", lambda coordinator, follow, waiting=None, decided_only=False: swept.append(decided_only) or [])
     main.main(["daemon", "--time", "07:00", "--dry-run"])
-    sweep = [f for f, t, k in FakeScheduler.instances[-1].jobs if t == "interval" and k.get("minutes") == 2]
+    sweep = [f for f, t, k in FakeScheduler.instances[-1].jobs
+             if t == "interval" and k.get("minutes") == 2 and f.__name__ == "sweep_reviews"]
     assert len(sweep) == 1
     swept.clear()
     sweep[0]()

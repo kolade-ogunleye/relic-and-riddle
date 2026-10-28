@@ -3777,6 +3777,18 @@ def main(argv=None) -> int:
 
         scheduler.add_job(reconcile_runs, "interval", minutes=10, max_instances=1, coalesce=True)
 
+        def pick_up_credentials():
+            # A key the operator adds to .env is used without a restart where the code reads it at each use
+            # (operator, 2026-10-28: production's restart needs an administrator). Said once, by name only.
+            from src.env_sync import pick_up_credentials as take
+            taken = take()
+            if taken:
+                log.info("Credential(s) taken in from .env without a restart: %s", ", ".join(taken))
+                bot.notify("🔑 Now in use, no restart needed: " + ", ".join(f"<code>{k}</code>" for k in taken)
+                           + ". The next photo search uses it.", record_alert=False)
+
+        scheduler.add_job(pick_up_credentials, "interval", minutes=2, max_instances=1, coalesce=True)
+
         def watch_deployer():  # a release about to install is announced before the bot goes quiet for it
             try:
                 from src.control import deployer_notice

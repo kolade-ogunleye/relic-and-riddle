@@ -95,6 +95,8 @@ def test_a_read_only_env_is_reported_not_changed(tmp_path, monkeypatch):
     note = env_reconcile.sync_on_start(env, example)
     # Production's pipeline account may not write the app folder (2026-10-27): said plainly, one setting a line
     assert "This account cannot write .env, so nothing was changed" in note
+    assert "<b>Not in .env, already in effect</b> (3)" in note and "nothing needs doing" in note  # outcome first
+    assert "Missing from .env" not in note                                        # read as "added" (2026-10-28)
     assert "• <code>PICTURE_VISION_CHECK = true</code>" in note
     assert "Errno" not in note and "reconcile-2026" not in note                   # no raw error or timestamped path
     assert env_reconcile.sync_on_start(env, example) == note                      # the same each start: told once
@@ -127,3 +129,49 @@ def test_apply_writes_empty_lines_for_credentials_that_run_empty_never_over_a_de
     text = env.read_text(encoding="utf-8")
     assert "\nEUROPEANA_API_KEY=\n" in text and "ELEVENLABS_VOICE_ID" not in text
     assert text.startswith("A=1\n")
+
+
+def test_a_photo_key_added_while_the_daemon_runs_is_taken_in_and_masked(tmp_path, monkeypatch):
+    """Operator, 2026-10-28: "how do I make it start working right away?" (production's restart needs an admin)."""
+    from src import config, ops
+    env = tmp_path / ".env"
+    monkeypatch.setattr(config, "EUROPEANA_API_KEY", "")
+    monkeypatch.setattr(config, "SMITHSONIAN_API_KEY", "already-set-key")
+    monkeypatch.delenv("EUROPEANA_API_KEY", raising=False)
+    masker = ops.SecretMasker()                                                   # made before the key arrives
+    env.write_text("A=1\nEUROPEANA_API_KEY=\n", encoding="utf-8")
+    assert env_reconcile.pick_up_credentials(env) == []                           # still empty: nothing
+    env.write_text('A=1\nEUROPEANA_API_KEY="eu-live-key-123"\nSMITHSONIAN_API_KEY=other-key\n', encoding="utf-8")
+    assert env_reconcile.pick_up_credentials(env) == ["EUROPEANA_API_KEY"]
+    assert config.EUROPEANA_API_KEY == "eu-live-key-123"
+    assert config.SMITHSONIAN_API_KEY == "already-set-key"                        # a set key waits for a restart
+    assert "eu-live-key-123" not in masker.mask("GET failed with eu-live-key-123")
+    assert env_reconcile.pick_up_credentials(env) == []                           # said once
+    assert env_reconcile.pick_up_credentials(tmp_path / "missing.env") == []      # never raises
+
+
+def test_live_credentials_are_read_at_each_use_never_copied_at_import():
+    """Taking a key in at run time only works where the code reads config.<KEY> when it calls."""
+    import re
+    src = Path(env_reconcile.__file__).parent
+    for path in src.glob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        for name in env_reconcile.LIVE_CREDENTIALS:
+            assert not re.search(rf"from \.?config import[^\n]*\b{name}\b", text), (path.name, name)
+            assert not re.search(rf"^\w+\s*=\s*config\.{name}\b", text, re.M), (path.name, name)
+
+
+def test_the_card_says_which_credentials_are_taken_in_without_a_restart(tmp_path, monkeypatch):
+    env, example = tmp_path / ".env", tmp_path / ".env.example"
+    env.write_text("A=1\n", encoding="utf-8")
+    example.write_text("EUROPEANA_API_KEY=\nKLING_API_KEY=\n", encoding="utf-8")
+    monkeypatch.setattr(env_reconcile.plan, "__defaults__", (lambda name: "",))
+    note = env_reconcile.sync_on_start(env, example)
+    assert "Add the line to .env yourself" in note
+    assert "no restart: EUROPEANA_API_KEY. The others take effect at the next restart." in note
+
+
+def test_the_daemon_checks_for_new_credentials_every_two_minutes():
+    import main
+    source = Path(main.__file__).read_text(encoding="utf-8")
+    assert 'scheduler.add_job(pick_up_credentials, "interval", minutes=2' in source

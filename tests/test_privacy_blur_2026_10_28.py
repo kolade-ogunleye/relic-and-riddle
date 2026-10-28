@@ -161,7 +161,14 @@ ROMAN = BASE_DIR / "assets" / "roman_self_healing_concrete" / "19_commons.jpg"
 AMBER = BASE_DIR / "assets" / "amber_room_heist" / "08_commons.jpg"
 
 
-@pytest.mark.skipif(not ROMAN.exists(), reason="dev photo not present")
+def _the_dev_photo(path, sha16):
+    """True only for the exact development photo the measurements were taken on: production keeps its own photos
+    under the same names, and rc66's verify under the pipeline account ran these on them (2026-10-28)."""
+    import hashlib
+    return path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest()[:16] == sha16
+
+
+@pytest.mark.skipif(not _the_dev_photo(ROMAN, "01605c2b9f3f6271"), reason="the dev photo is not here")
 def test_roman_photo_19_head_and_body_boxes_blur_as_soft_heads(monkeypatch):
     # Two of the Gemini boxes recovered from the old cached blur (docs/reviews/privacy-blur-2026-10-28).
     img = cv2.imread(str(ROMAN))
@@ -177,7 +184,7 @@ def test_roman_photo_19_head_and_body_boxes_blur_as_soft_heads(monkeypatch):
         assert inner.std() > 3  # no flat disc
 
 
-@pytest.mark.skipif(not AMBER.exists(), reason="dev photo not present")
+@pytest.mark.skipif(not _the_dev_photo(AMBER, "8a10b7abeba550b1"), reason="the dev photo is not here")
 def test_amber_room_mirror_box_is_not_blurred_when_the_verifier_refuses(monkeypatch, tmp_path):
     # Production Amber Room beat 7: Gemini's box over the plain mirror (recovered from the cached blur).
     monkeypatch.setattr(privacy, "FACE_PRIVACY_ENABLED", True)

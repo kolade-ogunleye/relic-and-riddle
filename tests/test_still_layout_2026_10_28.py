@@ -254,14 +254,14 @@ def test_switched_off_the_measured_check_still_runs(tmp_path, monkeypatch):
     assert [i["severity"] for i in issues] == ["major"] and "canvas" in issues[0]["issue"]
 
 
-def test_accented_headings_and_titles_never_overlap_the_line_below_or_above():
+def test_accented_headings_and_titles_never_overlap_the_line_below_or_above(tmp_path):
     """Review 2026-10-28: accented capitals rose above the cap height and every redraw repeated the overlap."""
     import glob
     from pathlib import Path
     from PIL import Image
     from src.multi_format import MultiFormatGenerator
     from src.visual_engine import VisualEngine, calm_center_y, VIDEO_WIDTH, VIDEO_HEIGHT
-    photo = Path(__file__).parent / "_accent_photo.jpg"
+    photo = tmp_path / "accent_photo.jpg"  # never the repo: production's verify account may not write it (rc66, 2026-10-28)
     Image.new("RGB", (1600, 1200), (90, 80, 70)).save(photo)
     try:
         g = MultiFormatGenerator()

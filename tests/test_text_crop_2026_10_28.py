@@ -228,7 +228,14 @@ def test_a_cropped_copy_resolves_its_rights_in_the_provenance_ledger(monkeypatch
 TREPANATION = BASE_DIR / "assets" / "trepanation_miracle" / "14_commons.jpg"
 
 
-@pytest.mark.skipif(not TREPANATION.exists(), reason="dev photo not present")
+def _the_dev_photo(path, sha16):
+    """True only for the exact development photo the measurements were taken on: production keeps its own photos
+    under the same names, and rc66's verify under the pipeline account ran these on them (2026-10-28)."""
+    import hashlib
+    return path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest()[:16] == sha16
+
+
+@pytest.mark.skipif(not _the_dev_photo(TREPANATION, "2af0d401ec124c37"), reason="the dev photo is not here")
 def test_trepanation_photo_14_label_is_cropped_away(tmp_path):
     # The "A650847" card, measured on the photo: rows 87.1%-94.0%, columns 32%-60%.
     out = beat_images.crop_text_band(TREPANATION, "bottom", [871, 322, 940, 597])

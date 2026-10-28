@@ -194,8 +194,9 @@ ELEVENLABS_IN_DRY_RUNS = os.getenv("ELEVENLABS_IN_DRY_RUNS", "false").lower() in
 MOTION_IN_DRY_RUNS = os.getenv("MOTION_IN_DRY_RUNS", "false").lower() in ("true", "1", "yes")
 # A minor finding of the visual audit (a graphic a second late, say) blocks release by default, as every
 # finding did. Off, a master whose only findings are minor passes the gate with them listed on the review
-# card for the reviewer; major and critical findings always block (operator's choice, 2026-10-24).
-MINOR_FINDINGS_BLOCK_RELEASE = os.getenv("MINOR_FINDINGS_BLOCK_RELEASE", "true").lower() in ("true", "1", "yes")
+# card for the reviewer; major and critical findings always block (operator's choice, 2026-10-24). Off by
+# default: minors are shown and the operator decides from their severity (operator, 2026-10-28).
+MINOR_FINDINGS_BLOCK_RELEASE = os.getenv("MINOR_FINDINGS_BLOCK_RELEASE", "false").lower() in ("true", "1", "yes")
 # Runs started from the bot (main.py bot: development) are dry runs unless this is false: a Render there
 # started a live run, so Approve & Post would have posted to the connected accounts. Production runs the
 # daemon, whose own --dry-run flag decides.

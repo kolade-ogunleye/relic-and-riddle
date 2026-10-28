@@ -95,6 +95,28 @@ def no_real_services(monkeypatch):
     monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: None)
 
 
+@pytest.fixture(autouse=True)
+def drained_bots(no_real_services, monkeypatch):
+    """Every bot a test makes is drained before that test's patches (and the network block above) are undone: a
+    navigation thread left running sent a real editMessageReplyMarkup with a test token once its stub was gone
+    (HTTP 401 in the full suite, 2026-10-28)."""
+    import threading
+    import weakref
+    from src.telegram_bot import TelegramApprovalBot
+    made = weakref.WeakSet()
+    real_init = TelegramApprovalBot.__init__
+
+    def tracked(self, *args, **kwargs):
+        real_init(self, *args, **kwargs)
+        made.add(self)
+    monkeypatch.setattr(TelegramApprovalBot, "__init__", tracked)
+    yield
+    for bot in list(made):
+        waiter = threading.Thread(target=bot.drain, daemon=True)  # never hang the suite on a stuck test job
+        waiter.start()
+        waiter.join(10)
+
+
 _REAL_MEASURE = audio_engine.measure_spoken_seconds
 
 

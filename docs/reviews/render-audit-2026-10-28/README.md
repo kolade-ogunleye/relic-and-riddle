@@ -134,25 +134,42 @@ None of the 13 production proposals was acted on, and several were built from mi
   and a failed check dropped a face. It also found a backdrop rule that was too broad, and three smaller defects. All
   are fixed and tested.
 
-## Decisions for you
+## Decisions (operator, 28 Oct)
 
-1. **Minor findings.** Should minor findings from the vision check keep blocking release
-   (`MINOR_FINDINGS_BLOCK_RELEASE`, currently on in both environments)? With it off, they show on the card and you
-   decide. Every minor-only block in this audit was a privacy-blur or backdrop artefact, and those are now fixed at
-   the source.
-2. **Voiceover ceiling.** The post-voice ceiling is 52 s, while the release limit allows a master of 58 s (about 55 s
-   of voice plus the end card). All three production overruns (52.9 s, 53.7 s, 54.4 s) would have passed release.
-   Keep 52 s, or raise it toward 54.5 s?
-3. **Trepanation's photos** (15, all CC BY) still carry the artist "Unknown" in their saved credits. The fix applies
-   when they are fetched again.
+1. **Minor findings show on the card and do not block.** You decide from their severity, and from whether a
+   regeneration could fix them. The code default and `.env.example` are now `MINOR_FINDINGS_BLOCK_RELEASE=false`.
+   Each environment's `.env` already pins the line to `true`, so change it to `false` in dev's and production's
+   `.env` yourself. Major and critical findings always block.
+2. **Privacy blur stays on** (`FACE_PRIVACY_ENABLED`, default `true`). A licence covers copyright, not the privacy of
+   the people in the photo.
+3. **Voiceover ceiling.** The recommendation is 54.5 s after the voice, with the writer's target left at 42-48 s. That
+   gives a 57.4 s master, under both the 58 s release limit and the 60 s Shorts limit. It is not applied until you
+   say so.
+4. **Trepanation** ("Ancient Skull Surgery (Trepanation)") will be fetched again after the release installs.
 
-## Still open before the next render
+## Open items, closed 28 Oct
 
-- **Picture against narration before the render.** Roman concrete asked for pictures of modern concrete that no
-  licensed source had. The planned fix is to judge each beat's photo against its line on the plan, before the render,
-  and send a line with nothing to show back to the writer.
-- **Repairing minor findings.** "Text cut off" on a Story or cover, and badge overlap, are found but only noted. They
-  preceded 3 of 3 rejections. These need an automatic re-layout, or a block.
-- **The beat-download path** still drops pictures with text at 512 px instead of cropping them.
-- **Re-checks on the next run.** Each topic's photos get the 1024 px text screen once, one light-model call per photo.
-  Photos already blurred are verified again once.
+- **Each picture against its narration line, before the render.**
+  - Each photo beat is judged against its own line, with one cached light call per photo and line pair.
+  - Repair is bounded: another approved photo that shows the line, then our own graphic that says it, then the
+    previous shot repeated and reframed, with a note on the card.
+  - The post-render repair can no longer put back a photo the check refused.
+- **A line no photo shows goes back to the writer, before the paid voice.**
+  - One text-only call compares the verified sentences with the descriptions of the topic's photos.
+  - A concrete sentence none of them shows is reworded once, through the full revision path: writer, both fact
+    checks, length and structure.
+  - A rewording that fails, still names such a thing, or falls back to another script leaves the verified script as
+    it was, and the card says so.
+  - A script whose voice already exists, in this run or the previous one, is never reworded.
+- **Stills never ship with cut-off or overlapping text.**
+  - Text is fitted with the font's real metrics: wrapped, then shrunk to a floor, then kept to whole sentences, and
+    shortened at a word only last.
+  - Every box is measured after drawing, including accented capitals.
+  - A measured defect gets one tighter redraw. A cut-off or overlap the vision look still sees after that redraw
+    becomes minor, which shows on the card.
+  - The Richat cover was missing its tagline in two cover styles; every style now draws all four lines.
+  - Evidence: `docs/reviews/still-layout-2026-10-28/`.
+- **The beat-download path** now crops printed text at the edge (1024 px look, re-look after the crop) instead of
+  dropping the picture. The planner reads a cropped or blurred copy's caption through its lineage.
+- **The next run's one-off re-checks.** Each topic's photos get the 1024 px text screen once, and photos already
+  blurred are verified once. This is a one-time cost, not a defect.

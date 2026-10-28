@@ -162,6 +162,9 @@ GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
 PAID_FALLBACK_LIGHT_MONTHLY_USD = float(os.getenv("PAID_FALLBACK_LIGHT_MONTHLY_USD") or 0)
 PAID_FALLBACK_HEAVY_MONTHLY_USD = float(os.getenv("PAID_FALLBACK_HEAVY_MONTHLY_USD") or 0)
 SMITHSONIAN_API_KEY = (os.getenv("SMITHSONIAN_API_KEY") or "").strip()  # api.data.gov key (free); masked in logs
+# Europeana (European museums, libraries and archives; free key from pro.europeana.eu). Unset: the source is off
+# (the public demo key is for trying the API, not for a pipeline). Masked in logs.
+EUROPEANA_API_KEY = (os.getenv("EUROPEANA_API_KEY") or "").strip()
 # Wikimedia's User-Agent policy: a contact (URL or email) for the bot, or requests may be throttled/blocked.
 COMMONS_CONTACT = (os.getenv("COMMONS_CONTACT") or "").strip()
 # Parallel ffmpeg encodes (1-8): more renders at once on a stronger GPU, fewer on a shared one.

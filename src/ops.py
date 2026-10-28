@@ -47,6 +47,7 @@ class SecretMasker:
         "KLING_API_KEY",
         "HEALTHCHECK_PING_URL",  # the ping URL itself is the credential
         "SMITHSONIAN_API_KEY",
+        "EUROPEANA_API_KEY",
         "GEMINI_FREE_API_KEY_SPARE",  # were missing: an error carrying either was shown unmasked
         "GROQ_API_KEY",
     )

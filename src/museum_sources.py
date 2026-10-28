@@ -11,6 +11,11 @@ same shape as commons.candidates() so ranking, the vision review and the credits
   - Smithsonian Open Access: media whose usage is CC0. Needs a free api.data.gov key
     (SMITHSONIAN_API_KEY); without one the public DEMO_KEY allows only a few calls an hour.
 
+  - Europeana: Europe's museums, libraries and archives, each record carrying its holder's rights statement.
+    Only what may be reused, edited and published is taken: public domain, CC0, CC BY (and CC BY-SA where
+    IMAGES_ALLOW_SHARE_ALIKE allows it); in copyright, NonCommercial or NoDerivatives never (operator,
+    2026-10-28). Needs EUROPEANA_API_KEY; off without one.
+
 The Library of Congress is not included: loc.gov answers automated clients with a bot challenge,
 and getting around that would not be appropriate.
 
@@ -32,6 +37,7 @@ log = logging.getLogger(__name__)
 MET = "https://collectionapi.metmuseum.org/public/collection"
 NASA = "https://images-api.nasa.gov"
 SI = "https://api.si.edu/openaccess/api/v1.0/search"
+EUROPEANA = "https://api.europeana.eu/record/v2/search.json"
 PAUSE = 1.0
 
 
@@ -123,7 +129,52 @@ def smithsonian_search(query: str, limit: int = 12) -> List[Dict]:
     return out
 
 
-SOURCES = {"met": met_search, "nasa": nasa_search, "smithsonian": smithsonian_search}
+def open_licence(rights_url: str):
+    """(short licence name, licence URL) for a rights statement we may reuse, edit and publish, else None:
+    public domain, CC0, CC BY, CC BY-SA (the caller's licence gate decides on share-alike). In copyright,
+    educational use only, NonCommercial and NoDerivatives are never reusable here (ERT's Antikythera films on
+    Europeana are "In Copyright - Educational Use Permitted": operator, 2026-10-28)."""
+    import re
+    url = (rights_url or "").strip().replace("https://", "http://").rstrip("/")
+    if "/publicdomain/mark/" in url or "rightsstatements.org/vocab/NoC-US" in url:
+        return "Public domain", rights_url
+    if "/publicdomain/zero/" in url:
+        return "CC0", rights_url
+    m = re.search(r"creativecommons\.org/licenses/(by|by-sa)/(\d\.\d)", url)
+    if m:
+        return ("CC BY-SA " if m.group(1) == "by-sa" else "CC BY ") + m.group(2), rights_url
+    return None  # InC, InC-EDU, NC, ND, unknown
+
+
+def europeana_search(query: str, limit: int = 12, media_type: str = "IMAGE") -> List[Dict]:
+    from . import config
+    from .credits import license_allowed
+    if not config.EUROPEANA_API_KEY:
+        return []
+    found = _get(EUROPEANA, {"wskey": config.EUROPEANA_API_KEY, "query": query, "reusability": "open", "media": "true",
+                             "qf": f"TYPE:{media_type}", "rows": limit, "profile": "rich"})
+    out = []
+    for it in (found or {}).get("items") or []:
+        rights = open_licence((it.get("rights") or [""])[0])
+        media = (it.get("edmIsShownBy") or [""])[0]
+        if media.startswith("http://"):  # many holders list http; it is asked for over https or not at all
+            media = "https://" + media[len("http://"):]
+        if not rights or not license_allowed(rights[0]) or not media.startswith("https://"):
+            continue  # a page to view, not a file, is not taken either
+        holder = (it.get("dataProvider") or [""])[0]
+        names = [v for vals in (it.get("dcCreatorLangAware") or {}).values() for v in vals] + list(it.get("dcCreator") or [])
+        creator = next((n for n in names if n and not n.startswith("http")), "")  # a name, not an authority link
+        year = next((int(y[:4]) for y in it.get("year") or [] if str(y)[:4].isdigit()), None)
+        out.append(_candidate(
+            title=f"{(it.get('title') or ['Untitled'])[0]} (Europeana, {holder})"[:200], download_url=media,
+            source_url=it.get("guid") or (it.get("edmIsShownAt") or [""])[0], artist=creator or holder or "Europeana",
+            license=rights[0], license_url=rights[1], attribution_required=not rights[0].startswith(("Public", "CC0")),
+            description=" ".join((it.get("dcDescription") or [])[:1])[:400], categories=(it.get("edmConceptPrefLabelLangAware") or {}).get("en", [])[:10],
+            year=year, provider="europeana"))
+    return out
+
+
+SOURCES = {"met": met_search, "nasa": nasa_search, "smithsonian": smithsonian_search, "europeana": europeana_search}
 
 
 def search_all(query: str, keywords: List[str], sources=tuple(SOURCES)) -> List[Dict]:

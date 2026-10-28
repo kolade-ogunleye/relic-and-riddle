@@ -1,0 +1,240 @@
+{
+  "schema_version": "1.0",
+  "checked_at": "2026-10-26T07:10:35.505452+00:00",
+  "profile": {
+    "name": "reel_9x16",
+    "aspect_ratio": "9:16",
+    "width": 1080,
+    "height": 1920,
+    "duration_min": 42.0,
+    "duration_max": 58.0,
+    "target_lufs": -14.0,
+    "target_true_peak": -1.5,
+    "audio_channels": 2,
+    "audio_sample_rate": 48000,
+    "loop_seamless": false,
+    "subtitle_style": "kinetic_pill",
+    "requires_youtube_thumbnail": false,
+    "requires_provenance": true,
+    "platforms": [
+      "meta_reels_facebook",
+      "meta_reels_instagram",
+      "youtube_shorts"
+    ]
+  },
+  "status": "fail",
+  "dry_run": true,
+  "checks": [
+    {
+      "name": "caption_length",
+      "status": "pass",
+      "detail": "Caption and attribution must fit the supported Instagram publication limit."
+    },
+    {
+      "name": "facts",
+      "status": "pass",
+      "detail": "Factual review must match the public copy and current research file."
+    },
+    {
+      "name": "dimensions",
+      "status": "pass",
+      "detail": "Measured 1080x1920; expected 1080x1920."
+    },
+    {
+      "name": "duration",
+      "status": "pass",
+      "detail": "Measured 51.668s; expected 42.0-58.0s."
+    },
+    {
+      "name": "channels",
+      "status": "pass",
+      "detail": "Measured 2 channels."
+    },
+    {
+      "name": "sample_rate",
+      "status": "pass",
+      "detail": "Measured 48000 Hz."
+    },
+    {
+      "name": "loudness",
+      "status": "pass",
+      "detail": {
+        "integrated_lufs": -14.1,
+        "true_peak_dbtp": -1.8
+      }
+    },
+    {
+      "name": "true_peak",
+      "status": "pass",
+      "detail": {
+        "integrated_lufs": -14.1,
+        "true_peak_dbtp": -1.8
+      }
+    },
+    {
+      "name": "sync_drift",
+      "status": "pass",
+      "detail": "Measured 1.3ms audio/video duration drift (must be <= 80ms for sync)."
+    },
+    {
+      "name": "provenance",
+      "status": "pass",
+      "detail": "All recorded files must exist and match their checksums."
+    },
+    {
+      "name": "asset_rights",
+      "status": "needs_review",
+      "detail": [
+        "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\parallax\\scene_01.mp4",
+        "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\parallax\\scene_02.mp4",
+        "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\parallax\\scene_03.mp4",
+        "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\parallax\\scene_04.mp4",
+        "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\parallax\\scene_05.mp4",
+        "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\parallax\\scene_06.mp4",
+        "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\parallax\\scene_07.mp4",
+        "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\parallax\\scene_08.mp4",
+        "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\graphics\\graphic_numbers.mp4",
+        "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\parallax\\scene_10.mp4",
+        "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\parallax\\scene_11.mp4"
+      ]
+    },
+    {
+      "name": "image_attribution",
+      "status": "pass",
+      "detail": []
+    },
+    {
+      "name": "voiceover_rights",
+      "status": "pass",
+      "detail": {
+        "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\voiceover.mp3",
+        "sha256": "6893a5cb346af8c370ffd4c5dc2a1c41311235dbc5f42cbcfa46d4a3b464bf06",
+        "provider": "azure",
+        "commercial_license_recorded": true,
+        "script_fingerprint": "75ccc6fd59cf561d8540a2893875b7171acfd248e212ae3e50e3a82a2258650b"
+      }
+    },
+    {
+      "name": "ambient_bed_rights",
+      "status": "pass",
+      "detail": {
+        "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\ambient_bed.wav",
+        "sha256": "083499967afd27a3025c0738a3269ca3051f99176a55078044f416e3b8b5f925",
+        "origin": "library",
+        "sources": [
+          {
+            "file": "mysterious/mysterious_ambient_ab278746.mp3",
+            "title": "Mysterious Ambient",
+            "creator": "dlolbful",
+            "license": "cc0",
+            "license_version": "1.0",
+            "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+            "source_url": "https://freesound.org/people/dlolbful/sounds/494319",
+            "source": "freesound",
+            "mood": "mysterious",
+            "duration_ms": 69891,
+            "reviewed": true,
+            "uses": 71,
+            "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\music\\mysterious\\mysterious_ambient_ab278746.mp3",
+            "sha256": "d8ea6cbf5e03665a8f16fc774acd218a9f9baf2262225cfdba351c61f26f3c57",
+            "rights_status": "verified"
+          }
+        ],
+        "sound_effects": [
+          {
+            "name": "sfx_impact_braam.wav",
+            "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\sfx\\sfx_impact_braam.wav",
+            "sha256": "943b3930b265413bee2e527626231b0248b1480d158fddcc57c385097fb5f16a",
+            "provider": "elevenlabs-sound-effects",
+            "rights_status": "verified"
+          },
+          {
+            "name": "sfx_whoosh.wav",
+            "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\sfx\\sfx_whoosh.wav",
+            "sha256": "9f32d2e45638a38653e552298d665240b9a3fff5585b0c70d8fb4ed9a66041e8",
+            "provider": "elevenlabs-sound-effects",
+            "rights_status": "verified"
+          },
+          {
+            "name": "sfx_bell_toll.wav",
+            "path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\sfx\\sfx_bell_toll.wav",
+            "sha256": "b3c16738f1ffbdf5cad44fd1783d55d82e01fe4326790bca26752216f7cfe6e7",
+            "provider": "elevenlabs-sound-effects",
+            "rights_status": "verified"
+          }
+        ],
+        "required_attribution": "",
+        "rights_status": "verified"
+      }
+    },
+    {
+      "name": "font_rights",
+      "status": "pass",
+      "detail": [
+        {
+          "file": "Anton-Regular.ttf",
+          "sha256": "a4ba3a92350ebb031da0cb47630ac49eb265082ca1bc0450442f4a83ab947cab",
+          "copyright": "Copyright 2020 The Anton Project Authors (https://github.com/googlefonts/AntonFont.git)",
+          "version": "Version 2.116; ttfautohint (v1.8.3)",
+          "license_description": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: https://scripts.sil.org/OFL",
+          "license_url": "https://scripts.sil.org/OFL",
+          "license_file": "licenses/Anton-Regular.ttf.OFL.txt",
+          "license_sha256": "eee1d24ff8f553eb732237c7dd9b945a78313ed49ad6de02872a47277741b44a",
+          "source_url": "https://raw.githubusercontent.com/google/fonts/main/ofl/anton/OFL.txt",
+          "checked_on": "2026-10-24"
+        },
+        {
+          "file": "Montserrat-Variable.ttf",
+          "sha256": "0f7b311b2f3279e4eef9b2f968bcdbab6e28f4daeb1f049f4f278a902bcd82f7",
+          "copyright": "Copyright 2011 The Montserrat Project Authors (https://github.com/JulietaUla/Montserrat)",
+          "version": "Version 9.000",
+          "license_description": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: https://openfontlicense.org",
+          "license_url": "https://openfontlicense.org",
+          "license_file": "licenses/Montserrat-Variable.ttf.OFL.txt",
+          "license_sha256": "8b7141c03fa4f8d44e6345d5d4931709290f0f67875e452e95ac1fd3a027802e",
+          "source_url": "https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/OFL.txt",
+          "checked_on": "2026-10-24"
+        },
+        {
+          "file": "Cinzel-Variable.ttf",
+          "sha256": "f4d83d34d1f6c741193e4acf4b3dff9531e5a67b6aa65228d00a7db72a4e0f34",
+          "copyright": "Copyright 2020 The Cinzel Project Authors (https://github.com/NDISCOVER/Cinzel)",
+          "version": "Version 2.000",
+          "license_description": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: https://scripts.sil.org/OFL",
+          "license_url": "https://scripts.sil.org/OFL",
+          "license_file": "licenses/Cinzel-Variable.ttf.OFL.txt",
+          "license_sha256": "f2b3029aba64c378bf0963b62945eee15e564fe4330b934c8f2eb058282b5e83",
+          "source_url": "https://raw.githubusercontent.com/google/fonts/main/ofl/cinzel/OFL.txt",
+          "checked_on": "2026-10-24"
+        }
+      ]
+    },
+    {
+      "name": "composition_inputs",
+      "status": "pass",
+      "detail": "The checked master must use these exact recorded sources."
+    },
+    {
+      "name": "visual_checks",
+      "status": "fail",
+      "detail": [
+        {
+          "type": "video_check",
+          "beat": 3,
+          "severity": "minor",
+          "issue": "Museum accession/catalog number label is visible at the bottom of the frame."
+        }
+      ]
+    },
+    {
+      "name": "thumbnail_cover_path",
+      "status": "pass",
+      "detail": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\thumbnail_cover.jpg"
+    },
+    {
+      "name": "thumbnail_grid_path",
+      "status": "pass",
+      "detail": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\output\\run_trepanation_miracle_1792995462\\thumbnail_profile_grid.jpg"
+    }
+  ]
+}

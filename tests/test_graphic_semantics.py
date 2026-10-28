@@ -50,8 +50,9 @@ def test_a_graphic_named_in_the_hook_may_open_the_next_cut(tmp_path):
     graphic = make_graphic(tmp_path, "graphic_map.mp4", {
         "place": {"label": "Kailasa Temple, Ellora Caves", "country": "India"}})
     assert not _timing_issues(tmp_path, graphic, 1, said_at=2.28)
-    # Anywhere else, a graphic well after its words is still late.
-    assert _timing_issues(tmp_path, graphic, 2, said_at=7.0)
+    # A map later on names a place already said, so it is on time (audit 2026-10-28: the locator rule); a
+    # non-locator graphic well after its words is still late (tests/test_visual_gate_2026_10_28.py).
+    assert not _timing_issues(tmp_path, graphic, 2, said_at=7.0)
 
 
 def test_a_late_graphic_is_moved_to_its_words_without_a_second_plan(tmp_path):

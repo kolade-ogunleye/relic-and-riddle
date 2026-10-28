@@ -230,7 +230,15 @@ class PipelineCoordinator:
             # The first topic in production order whose photo pool is approved, or can be made so now
             # (fetched and reviewed on merit); topics without usable photos are skipped, not failed.
             from src.asset_pipeline import first_ready
-            topic = first_ready(self.db.ranked_topics())
+            skipped = []
+            topic = first_ready(self.db.ranked_topics(), skipped=skipped)
+            if skipped:  # said, with the video's own count: an approved set it could not use failed at start (audit 2026-10-28)
+                try:
+                    self._alert("🖼 <b>Topics skipped: not enough photos a video can use</b>\n\n"
+                                + "\n".join(f"• {html.escape(t.get('title') or t['id'])}: {html.escape(why)}"
+                                            for t, why in skipped[:8]))
+                except Exception as e:
+                    log.warning("Could not send the skipped-topics alert: %s", e)
             if topic is None:
                 raise QueueEmpty("No queued topic has an approved photo pool; see `python main.py assets review`.")
         tid = topic["id"]
@@ -389,19 +397,40 @@ class PipelineCoordinator:
             improve.note("documentary.static_stills", f"{len(static)} still(s) held over "
                          f"{cls.DOC_MAX_STILL_SECONDS:.0f}s (longest {max(static):.0f}s)", source="documentary")
 
-    def _await_reason(self, run_id: str, wait_seconds: int = 120) -> Dict[str, Any]:
-        """After Regenerate, waits briefly for your reason chip (and words) so the new run can act on it."""
+    def _await_reason(self, run_id: str, wait_seconds: int = 120, detail_seconds: Optional[int] = None) -> Dict[str, Any]:
+        """After Regenerate, waits briefly for your reason chip (and words) so the new run can act on it.
+        Under "Other" the words decide what is kept (revises_script), so it waits up to detail_seconds more for
+        them, ending as soon as they come (production 2026-10-26, Roman concrete: Other at 14:22:41, the run
+        began at 14:22:45, the words came at 14:22:52, and the script was kept word for word three runs in a
+        row). The decided card then says what the new version keeps and redoes."""
         from src import improve
-        deadline = time.monotonic() + (wait_seconds if self.telegram_bot.is_configured() else 0)
+        from src.telegram_bot import REGEN_DETAIL_SECONDS
+        live = self.telegram_bot.is_configured()
+        deadline = time.monotonic() + (wait_seconds if live else 0)
         fb = improve.operator_feedback(self.db, run_id)
         while fb is None and time.monotonic() < deadline:
             time.sleep(3)
             fb = improve.operator_feedback(self.db, run_id)
+        if fb and fb.get("reason") == "other" and not fb.get("text") and live:
+            # Counted from the Regenerate tap, so a regeneration started long after it waits only briefly.
+            words_by = time.monotonic() + (reason_window(self.db, run_id, REGEN_DETAIL_SECONDS)
+                                           if detail_seconds is None else detail_seconds)
+            log.info("Reason Other without words; waiting up to %.0fs for them before deciding what to keep.",
+                     max(0.0, words_by - time.monotonic()))
+            while not (fb or {}).get("text") and time.monotonic() < words_by:
+                time.sleep(3)
+                fb = improve.operator_feedback(self.db, run_id) or fb
         fb = dict(fb or {})
         fb["previous"] = (self.db.get_run(run_id) or {}).get("script_payload")
         fb["from_run"] = run_id  # so later steps can read details added after the run began (_feedback)
         if fb.get("reason"):
             log.info("Regenerating with your feedback: %s %s", fb["reason"], fb.get("text", ""))
+        plan = regeneration_plan(fb)
+        log.info("Regeneration of %s: %s", run_id, re.sub(r"<[^>]+>", "", plan))
+        try:
+            self.telegram_bot.show_regeneration_plan(run_id, fb, plan)
+        except Exception as e:  # the card is a courtesy; the regeneration goes ahead regardless
+            log.debug("Regeneration plan not shown on the card: %s", e)
         return fb
 
     def _feedback(self) -> Dict[str, Any]:
@@ -517,8 +546,10 @@ class PipelineCoordinator:
         if not same_voice or not record.get("inputs") or not all((previous / n).is_file() for n in self.BED_FILES):
             return
         try:
+            from src.audio_provenance import rebind_rights
             for n in self.BED_FILES:
                 shutil.copy2(previous / n, run_dir / n)
+            rebind_rights(run_dir / "ambient_bed.wav")  # before adopt: the checkpoint records the rebound file
             Checkpoints(run_dir).adopt("bed", record["inputs"], [run_dir / n for n in self.BED_FILES])
         except (OSError, ValueError) as e:
             log.warning("Could not carry the music bed over from %s: %s", previous.name, e)
@@ -560,8 +591,10 @@ class PipelineCoordinator:
             if (previous / extra).is_file():
                 names.append(extra)
         try:
+            from src.audio_provenance import rebind_rights
             for n in names:
                 shutil.copy2(previous / n, run_dir / n)
+            rebind_rights(run_dir / "voiceover.mp3")  # its rights record named the previous run's folder
             Checkpoints(run_dir).adopt("voice", record["inputs"], [run_dir / n for n in names[:3]])
         except (OSError, ValueError) as e:
             log.warning("Could not carry the voiceover over from %s: %s", previous.name, e)
@@ -867,7 +900,7 @@ class PipelineCoordinator:
                     fut_thumbs, auto_approve, dry_run)
             finally:
                 concurrent.futures.wait([fut_thumbs])  # never leave a writer running past the run
-            finish(result.get("status") != "failed", result.get("error", ""))
+            finish(result.get("status") not in ("failed", "blocked"), result.get("error", ""))  # blocked at the gate is no success
             return result
 
         except JobCancelled:
@@ -987,10 +1020,13 @@ class PipelineCoordinator:
             content_format="deep_dive",
         )
 
-        from src.release import write_release_report, require_release
-        write_release_report(self.db.get_run(run_id), dry_run=dry_run)
+        from src.release import write_release_report
+        release = write_release_report(self.db.get_run(run_id), dry_run=dry_run)
+        blocked = self._blocked_at_gate(run_id, release, dry_run, "auto-approve flag") if auto_approve else None
+        if blocked:
+            return {"run_id": run_id, "parent_run_id": parent_run_id, "topic_id": tid, "status": "blocked",
+                    "error": blocked, "master_video": str(master_mp4), "format": "deep_dive_16x9"}
         if auto_approve:
-            require_release(self.db.get_run(run_id), dry_run=dry_run)
             self.db.record_approval(run_id, tid)
             self.db.update_approval_decision(run_id, "approved", decided_by="auto-approve-flag")
             self.db.update_run(run_id, "simulated" if dry_run else "approved")
@@ -1198,6 +1234,27 @@ class PipelineCoordinator:
                 else:
                     self.db.set_setting(key, "")  # a passing failure: a later wait (or a resend) acts on it again
                 raise
+
+    def _blocked_at_gate(self, run_id: str, report: Optional[Dict[str, Any]], dry_run: bool, by: str) -> Optional[str]:
+        """An approval that does not come from the Telegram card (the auto-approve flag, the CLI) meets the
+        same release gate first: the card offers no Approve on a blocked version (send_review_card), and these
+        paths approved it anyway, to be refused at release (dev, 2026-10-27: Trepanation approved seven times,
+        Odessa and Roman approved by the flag 0-11 s after their reports failed). A blocked run is recorded as
+        blocked at the gate, never approved; returns why, or None when the gate passes."""
+        from src.release import release_problems
+        problems = release_problems(report, dry_run)
+        if not problems:
+            return None
+        why = f"Blocked at the release gate, not approved ({by}): " + "; ".join(problems)
+        run = self.db.get_run(run_id) or {}
+        self.db.update_run(run_id, "failed", error=why[:2000])
+        if run.get("topic_id"):
+            self.topic_engine.record_status(run["topic_id"], "failed", run_id=run_id)
+        log.warning("%s: %s", run_id, why)
+        self._alert(f"⛔ <b>Blocked at the release gate</b>, not approved ({html.escape(by)})\n\n"
+                    f"<b>{html.escape(self.db.run_label(run_id))}</b>\n<blockquote expandable>"
+                    + html.escape("\n".join(problems)[:900]) + "</blockquote>\nNothing was posted.")
+        return why
 
     @staticmethod
     def _refused_for_good(error: Exception) -> bool:
@@ -2479,11 +2536,15 @@ class PipelineCoordinator:
         self.db.update_run(run_id, "pending_approval", script_payload=payload)
         (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
         from src.release import write_release_report
-        write_release_report(self.db.get_run(run_id), dry_run=dry_run)
+        release = write_release_report(self.db.get_run(run_id), dry_run=dry_run)
 
         # 8-9. Human approval (never implicit). The production card is finished either way.
         self._finish_progress(topic.get("title", tid), run_id, success=True)
         decision = None
+        blocked = self._blocked_at_gate(run_id, release, dry_run, "auto-approve flag") if auto_approve else None
+        if blocked:
+            return {"run_id": run_id, "topic_id": tid, "decision": None, "status": "blocked", "error": blocked,
+                    "master_video": str(master_mp4)}
         if auto_approve:
             self.db.record_approval(run_id, tid)
             self.db.update_approval_decision(run_id, "approved", decided_by="auto-approve-flag")
@@ -2969,6 +3030,50 @@ def revises_script(fb: Dict[str, Any]) -> bool:
     return any(w in words for w in _WORDS_ABOUT_SCRIPT) or "voice over" in str(fb["text"]).lower()
 
 
+def gate_problems(db, run_id: str, dry_run: Optional[bool] = None) -> List[str]:
+    """What the release gate blocks in this run as it stands, one line per finding ([] when it passes): the
+    check the Telegram card applies (no Approve on a blocked version), for approvals made elsewhere."""
+    from src.release import release_problems, write_release_report
+    run = db.get_run(run_id) or {}
+    if not run.get("master_video_path"):
+        return []   # nothing rendered: publish_run refuses it with its own reason
+    if dry_run is None:  # the mode it would post in: production has no dry run, whatever the run was made as (review 2026-10-28)
+        dry_run = resume_mode(db, run_id, False)
+    return release_problems(write_release_report(run, dry_run=dry_run), dry_run)
+
+
+def reason_window(db, run_id: str, seconds: float, least: float = 10) -> float:
+    """What is left of a reason window counted from the Regenerate tap, at least `least` seconds: the bot's
+    worker starts `run --regenerate-from` seconds after the tap, and a fixed 10 s missed the words that came
+    later (2026-10-26); a regeneration started long after (a resend, a restart) waits only briefly."""
+    try:
+        decided = datetime.fromisoformat(str((db.get_approval(run_id) or {}).get("decision_timestamp")))
+        elapsed = (datetime.now(timezone.utc) - decided).total_seconds()
+    except (AttributeError, TypeError, ValueError):   # no record of the tap: the short wait
+        return least
+    return max(least, seconds - elapsed)
+
+
+def regeneration_plan(fb: Dict[str, Any]) -> str:
+    """What a regeneration keeps and redoes, by the same rules _produce_and_publish applies (HTML, one or two
+    sentences for the decided card: the operator could not tell the script would be kept, 2026-10-26)."""
+    from src.script_library import reuses
+    reason = fb.get("reason")
+    if not reason:
+        return "No reason came, so it is made fresh: a <b>new script</b>, voiceover and music."
+    if reason in SCRIPT_REASONS or revises_script(fb):
+        return "Redoes the <b>script</b>, revised for what you said (so a new voiceover and music bed follow)."
+    if not reuses("script"):
+        return "It is made fresh from the script step (this run was told to), so nothing is carried over."
+    redo = {"pictures": " Redoes the <b>pictures</b>: they are re-planned.",
+            "sound": " Redoes the <b>music</b>: a different track is used.",
+            "voice": " The voice is noted for improvement; it is not changed automatically.",
+            "other": " Your words are noted for improvement; a script, voiceover or caption problem needs "
+                     "them to say so (for example \"the narration repeats\")."}.get(reason, "")
+    return ("Keeps the <b>script word for word</b> (if it still passes today's checks), so its voiceover"
+            + (" carries" if reason == "sound" else " and music bed carry") + " over." + redo)
+
+
 def resume_mode(db, run_id: str, dry_run: bool) -> bool:
     """The mode a resumed run continues in. In development, as it was made (a dry run never posts by
     surprise). In production there is no dry run (operator, 2026-10-25): a run made before the activation
@@ -3353,7 +3458,8 @@ def main(argv=None) -> int:
             regenerations = 0
             previous = getattr(args, "regenerate_from", None)
             if previous:  # a Regenerate decided outside a running cycle (Resend, or after a restart)
-                coordinator._operator_feedback = coordinator._await_reason(previous, wait_seconds=10)
+                coordinator._operator_feedback = coordinator._await_reason(
+                    previous, wait_seconds=reason_window(coordinator.db, previous, 120))
                 # The same topic as the run it replaces, never the next one in the queue: a Kailasa
                 # regeneration started on Greek Fire with Kailasa's feedback attached (2026-10-24).
                 args.topic_id = args.topic_id or regeneration_topic(coordinator.db, previous)
@@ -3879,9 +3985,8 @@ def main(argv=None) -> int:
             try:  # photo pools for the next topics too, so a run never waits on review
                 not_ready = [t for t in coordinator.db.ranked_topics()[:3] if not ensure_pool(t)]
                 if not_ready:  # skipped topics should never go unnoticed
-                    from src.credits import load_credits
-                    lines = [f"• {html.escape(t['title'])}: {html.escape(load_credits(config.ASSETS_DIR / t['id']).get('review_note') or 'no usable photos yet')}"
-                             for t in not_ready]
+                    from src.asset_pipeline import not_ready_reason  # the live reason, by the video's own count
+                    lines = [f"• {html.escape(t['title'])}: {html.escape(not_ready_reason(t['id']))}" for t in not_ready]
                     bot.notify("🖼 <b>Photo sets not ready</b>\n\nThese upcoming topics will be skipped until "
                                "they have approved photos:\n" + "\n".join(lines), silent=True)
             except Exception as e:
@@ -4083,6 +4188,14 @@ def main(argv=None) -> int:
                 print(f"  {item['run_id']} | {item['script_payload'].get('title', item['topic_id'])} | {item['created_at']}")
         elif args.review_action in ("approve", "reject", "regenerate"):
             decision = {"approve": "approved", "reject": "rejected", "regenerate": "regenerate"}[args.review_action]
+            appr = db.get_approval(args.run_id) or {}
+            blocked = gate_problems(db, args.run_id) if decision == "approved" and appr.get("decision") == "pending" else []
+            if blocked:
+                # As on the card, which offers no Approve here: the review stays open for Edit, Regenerate or
+                # Reject (dev, 2026-10-27: approved seven times, refused at release each time).
+                print(f"Refusing: {args.run_id} is blocked at the release gate, so it is not approved:\n  - "
+                      + "\n  - ".join(blocked) + "\nThe review stays open: edit, regenerate or reject it.")
+                return 1
             if db.update_approval_decision(args.run_id, decision, decided_by="cli"):
                 if decision != "approved":
                     from src import improve
@@ -4116,6 +4229,11 @@ def main(argv=None) -> int:
                 return 1
             if run["status"] not in ("pending_approval", "timeout", "approved", "simulated"):
                 print(f"Refusing: run status '{run['status']}' is not a finished, unpublished render.")
+                return 1
+            blocked = gate_problems(db, args.run_id, dry_run=bool(args.dry_run) or None)
+            if blocked:
+                print(f"Refusing: {args.run_id} is blocked at the release gate, so it is not approved:\n  - "
+                      + "\n  - ".join(blocked))
                 return 1
             db.record_approval(args.run_id, run["topic_id"])
             db.update_approval_decision(args.run_id, "approved", decided_by="cli-publish")

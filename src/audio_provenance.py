@@ -81,6 +81,28 @@ def record_bed(path, music, sfx=None):
     return record
 
 
+def rebind_rights(path) -> bool:
+    """A carried-over file's rights record names the run folder it was made in. Rebinds the record to this copy
+    when the bytes are the same (the hash recorded at generation still matches), keeping every other field and
+    noting where it came from. A record whose hash does not match is left as it is, so the release gate still
+    refuses it. Every regenerated run on production was sent for review as "blocked: Audio changed after
+    rights evidence was recorded" though its voice and bed were byte-identical copies (2026-10-26, audit 28 Oct)."""
+    path = Path(path)
+    evidence = path.with_suffix(path.suffix + ".rights.json")
+    try:
+        record = json.loads(evidence.read_text(encoding="utf-8"))
+        here = str(path.resolve())
+        if not isinstance(record, dict) or record.get("path") == here or record.get("sha256") != sha256_file(path):
+            return False
+        record["carried_from"] = record["path"]
+        record["path"] = here
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
+    with open(evidence, "w", encoding="utf-8", newline="\n") as handle:  # LF: the repository refuses CRLF
+        handle.write(json.dumps(record, indent=2))
+    return True
+
+
 def audio_source_inputs(path):
     from .checkpoints import file_inputs
     path = Path(path)

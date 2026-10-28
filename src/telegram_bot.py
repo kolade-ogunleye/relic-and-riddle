@@ -67,6 +67,10 @@ NUDGE_REPLIES = {"resend", "whytext", "requeue"}
 NOTICE_ACTIONS = {"resend"}
 # How long a rejected run's reason card stays open for details before it leaves the chat.
 REASON_CARD_MINUTES = 30
+# After "Other" on a Regenerate, until how long after the Regenerate tap the new version waits for your words
+# before deciding what to keep (production 2026-10-26: the words came 20 s after the tap, 7 s after the run
+# began, and the script was kept unread). At least 10 s after the reason is seen.
+REGEN_DETAIL_SECONDS = 90
 # Replies that replace the card they came from (text only).
 EDIT_IN_PLACE = {"uadd", "tadd", "simpub", "rsn", "impok", "impno", "imprev"}
 TOASTS = {"imgok": "✅ Storyboard Approved!", "imgcancel": "✖ Cancelled", "mcancel": "✖ Cancelled",
@@ -1051,8 +1055,15 @@ class TelegramApprovalBot:
             # What was found, in its own words (the card said "visual_checks: fail (… (>1.2s)'})" and
             # Approve led to a failure notice: 2026-10-24 production run).
             from .release import blocking_checks, check_problems
-            blocked = bool(blocking_checks(report, dry_run=report.get("dry_run", False)))
-            found = "\n".join(_capped([f"• {e(c['name'])}: {e(p)}" for c in open_checks for p in check_problems(c)], cap))
+            blocking = sorted(blocking_checks(report, dry_run=report.get("dry_run", False)),
+                              key=lambda c: c.get("status") != "fail")   # a failed check before one awaiting review
+            blocked = bool(blocking)
+            # What blocks first, then what does not (dev, 2026-10-27, Trepanation: ten files awaiting rights
+            # review came first and the blocking visual_checks finding was cut off behind "…and 10 more").
+            later = [c for c in open_checks if not any(c is b for b in blocking)]
+            found = "\n".join(_capped([f"• {e(c['name'])}: {e(p)}" for c in blocking for p in check_problems(c)]
+                                      + [f"• {e(c['name'])}" + (" (not blocking)" if blocked else "") + f": {e(p)}"
+                                         for c in later for p in check_problems(c)], cap))
             line = ("⛔ <b>Release gate:</b> blocked. This version can't be posted: Edit, Regenerate or Reject it.\n"
                     if blocked else "⚠️ <b>Release gate:</b> needs review before a live post.\n")
             line += f"<blockquote expandable>{found}</blockquote>\n"
@@ -1583,6 +1594,24 @@ class TelegramApprovalBot:
         self.notify(f"📝 <b>Why {verb}?</b> One tap helps the next version (and the system) improve. "
                     f"After tapping, you can reply to this message with details. [run {html.escape(key)}]",
                     buttons=buttons, record_alert=False)
+
+    def show_regeneration_plan(self, run_id: str, fb: Dict[str, Any], plan: str) -> bool:
+        """The decided review card, once the new version has settled what it carries over: what it keeps and
+        redoes, said before it starts (2026-10-26: the card said "made fresh" while the script was kept word
+        for word). It stays a reason card ("✅ Reason:" and the run tag), so a reply still adds details."""
+        from .control import clip_words
+        from .improve import REASONS
+        mid = (self.db.get_approval(run_id) or {}).get("telegram_message_id")
+        if not self.is_configured() or not isinstance(mid, int):
+            return False
+        reason = fb.get("reason")
+        said = (f"✅ Reason: <b>{html.escape(REASONS.get(reason, reason))}</b>"
+                + (f": <i>{html.escape(clip_words(str(fb['text']), 200))}</i>" if fb.get("text") else "") + "."
+                if reason else "✅ Reason: <b>none given</b>.")
+        text = (f"🎬 <b>{html.escape(self.db.run_label(run_id))}</b>\n\n🔄 <b>New version starting.</b> {plan}\n\n"
+                f"{said} Reply to this card to add details; steps not yet run use them. "
+                f"Its review replaces this card. [run {html.escape(self.db.run_key(run_id))}]")
+        return bool(self.edit_message_text(mid, text, buttons=[[DONE_BUTTON]]))
 
     # ------------------------------------------------------------ notifications
     NOTICE_TTL_MINUTES = 360  # an informational notice leaves the chat after this; its record stays in the database
@@ -2709,6 +2738,12 @@ class TelegramApprovalBot:
                         if reply:
                             self.nudge(reply)
                     elif action in EDIT_IN_PLACE and msg_id:
+                        if action == "rsn" and target.endswith(":other") and isinstance(reply, str) and (
+                                self.db.get_approval(self.db.resolve_run(target.partition(":")[0])) or {}).get("decision") == "regenerate":
+                            # Under Other only your words can say the script was the problem (2026-10-26).
+                            reply = reply.replace(" [run ", "\n⏳ The new version waits for your words (up to "
+                                                  f"{REGEN_DETAIL_SECONDS} s from Regenerate) before it decides "
+                                                  "what to keep. [run ", 1)
                         self.edit_message_text(msg_id, reply, buttons=[[DONE_BUTTON]])
                         if action == "rsn":
                             self._settle_rejected_card(target.partition(":")[0], msg_id)
@@ -3203,6 +3238,13 @@ class TelegramApprovalBot:
         """CLI decision path. Returns False if the run already has a decision."""
         if decision not in ACTIONS.values():
             raise ValueError(f"Invalid decision '{decision}'")
+        if decision == "approved":  # the card's rule (send_review_card): a blocked version is not approved
+            from .release import release_problems
+            run = self.db.get_run(run_id) or {}
+            report = self._release_report(run)
+            problems = release_problems(report, dry_run=bool((report or {}).get("dry_run"))) if report else []
+            if problems:
+                raise ValueError("Release blocked, so it is not approved: " + "; ".join(problems))
         applied = self.db.update_approval_decision(run_id, decision, decided_by="cli")
         if applied:
             self.dismiss_approval_buttons(run_id)

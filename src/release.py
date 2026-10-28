@@ -111,15 +111,18 @@ def write_release_report(run, dry_run=False):
     # picture finding (a modern car under "ancient surveyors") sat beside "all checks pass" (Nazca, 2026-10-25).
     look = [{"type": "video_check", **i} for i in ((payload.get("video_check") or {}).get("issues") or []) if isinstance(i, dict)]
     found = [i for i in issues + look if i.get("severity") != "info"]  # info: shown on the card, never a block
-    minor_only = bool(found) and all(i.get("severity") == "minor" for i in found)
-    clean = quality.get("certified") is True and not any(i.get("severity") in ("critical", "major") for i in look)
     from . import config as _config
-    if audited_master and clean and minor_only and not _config.MINOR_FINDINGS_BLOCK_RELEASE:
+    # The verdict is the findings' severities, not the audit's "certified" flag: certified needs a score of
+    # exactly 100, and every minor finding costs 5 points, so one minor timing finding (score 95) blocked the
+    # release with MINOR_FINDINGS_BLOCK_RELEASE=false (audit of production and development, 2026-10-28).
+    # Critical and major always block; minor blocks when the operator's setting says so; info never does.
+    blocking = [i for i in found if i.get("severity") != "minor" or _config.MINOR_FINDINGS_BLOCK_RELEASE]
+    if audited_master and found and not blocking:
         # Shown, not blocking (MINOR_FINDINGS_BLOCK_RELEASE=false): the reviewer sees them on the card.
         checks.append({"name": "visual_checks", "status": "pass", "detail": found, "minor": True})
     else:
-        add("visual_checks", clean and audited_master and not found,
-            found or ("Visual audit certified this master; no issues." if audited_master and clean
+        add("visual_checks", audited_master and not found,
+            found or ("Visual audit of this master found no issues." if audited_master
                       else "No completed visual audit recorded."))  # a passed audit used to read as none recorded
     for key in ("thumbnail_cover_path", "thumbnail_grid_path"):
         add(key, bool(run.get(key)) and Path(run[key]).is_file(), run.get(key))

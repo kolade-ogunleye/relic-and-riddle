@@ -39,7 +39,135 @@ Severity: critical = should not be published as is; major = clearly hurts qualit
 Ignore stylistic choices like film grain, vignette and gold/white caption colours. A beat marked as one of our own
 graphics (a number card, map, timeline, diagram) is a designed card: its plain or dimmed, blurred backdrop is the
 design, not a missing picture or a blank frame; judge its text (legible, matching the narration) and its drawing.
+A beat may also say how its picture was made. These treatments are intended and are not defects in themselves:
+archive film shown whole, fitted over a blurred, darkened copy of itself (the soft bands around it are the design);
+soft blurs over present-day people's faces, applied for privacy (report one only if it is visually jarring, and
+then as minor); a slow camera move or AI motion on a still photo; an old photo's own grain, tint or soft focus.
+They never excuse a real defect: still report a picture that does not match or contradicts the narration, an
+upside-down or mirrored picture, a placard, label or printed text in the picture, captions cut off or overlapping,
+watermarks and glitches.
 If everything is fine, return no issues."""
+
+
+def _lineage_chain(asset: Path, depth: int = 6) -> Tuple[List[Dict[str, Any]], Path]:
+    """The lineage records from a scene file back to its original (one source per step), and that original."""
+    from .lineage import sidecar
+    records: List[Dict[str, Any]] = []
+    path = Path(asset)
+    for _ in range(depth):
+        try:
+            record = json.loads(sidecar(path).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            break
+        if not isinstance(record, dict):
+            break
+        sources = record.get("sources") or []
+        records.append(record)
+        if len(sources) != 1:
+            break
+        path = Path(sources[0].get("path", ""))
+    return records, path
+
+
+def _photo_record(image: Path) -> Dict[str, Any]:
+    """The photo's own credit record (its folder's credits.json, as the privacy check reads it), or {}."""
+    for credits in (image.parent / "credits.json", image.parent.parent / "credits.json"):
+        try:
+            records = json.loads(credits.read_text(encoding="utf-8")).get("images", [])
+        except (OSError, ValueError, AttributeError):
+            continue
+        for record in records:
+            if isinstance(record, dict) and record.get("file") == image.name:
+                return record
+    return {}
+
+
+def _clip(text: str, limit: int = 110) -> str:
+    text = " ".join(str(text or "").split()).replace('"', "'")
+    return text if len(text) <= limit else text[:limit].rsplit(" ", 1)[0] + "…"
+
+
+def beat_tag(asset: Any) -> str:
+    """How a beat's picture was made, for the vision check, from what the pipeline already recorded: the
+    graphic's name, the footage clip's credit record, and the scene's lineage (privacy blur, AI motion, the
+    original photo's archive caption). Our own treatments were reported as defects: a privacy blur as "a grey
+    oval patch" (production, Amber Room, 2026-10-27), blurred visitors' faces as "fingers blocking the lens"
+    (development, Roman concrete, 2026-10-28). Empty when nothing is known."""
+    if not asset:
+        return ""
+    path = Path(str(asset))
+    stem = path.stem
+    if stem.startswith("graphic_"):
+        # Our own graphics are named as such: a number card's dimmed backdrop was reported as "an empty dark
+        # gradient with no visual imagery" and blocked a release (Odessa, 2026-10-27).
+        return f" [our own graphic: {stem.removeprefix('graphic_').replace('_', ' ')} card]"
+    parts: List[str] = []
+    if stem.startswith("footage_"):
+        try:
+            info = json.loads(path.with_suffix(".json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            info = {}
+        info = info if isinstance(info, dict) else {}
+        named = " ".join(p for p in (f"\"{_clip(info.get('title'), 70)}\"" if info.get("title") else "",
+                                      f"({info['year']})" if info.get("year") else "") if p)
+        parts.append("real archive film" + (f" {named}" if named else ""))
+        from . import footage
+        if footage.frame_filter(info) == ["-filter_complex", footage.FIT]:
+            parts.append("a wide shot shown whole, fitted over a blurred, darkened copy of itself")
+        return f" [{'; '.join(parts)}]"
+    records, original = _lineage_chain(path)
+    operations = [r.get("operation") for r in records]
+    if "ai_motion" in operations:
+        parts.append("AI motion animating a real photo")
+    blurs = [r for r in records if r.get("operation") == "face_blur"]
+    if blurs:
+        count = (blurs[0].get("settings") or {}).get("faces")
+        parts.append(f"{count} privacy blur(s) applied over present-day faces" if isinstance(count, int) and count > 0
+                     else "privacy blurs applied over present-day faces")
+    if original.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp"):
+        record = _photo_record(original)
+        caption = record.get("description") or str(record.get("title") or "").removeprefix("File:").rsplit(".", 1)[0]
+        parts.insert(0, "real archive picture" + (f", its archive caption: \"{_clip(caption)}\"" if caption else ""))
+    return f" [{'; '.join(parts)}]" if parts else ""
+
+
+# A finding that only says a beat's backdrop is blank, empty, dark or blurred. On our own graphic that backdrop is
+# the design; b8b7d0c told the check so in words, and the code now holds it (Odessa beat 6, development, 2026-10-27;
+# Richat beat 8, production, 2026-10-26).
+# Only a finding about the BACKGROUND: "the image is blank" may mean the card itself failed to draw (review 2026-10-28).
+_BACKDROP = re.compile(r"\b(background|backdrop)", re.I)
+_BLANK = re.compile(r"\b(blank|empty|plain|bare|blurr?(ed|y)?|out[- ]of[- ]focus|dark gradient|gradient|no (visual )?imagery|"
+                    r"no (real )?(picture|photo|image)|lacks? (visual|imagery|a picture)|missing (picture|image|imagery)|dimmed)", re.I)
+# Words of a real defect in the card itself: such a finding is kept whatever else it says.
+_CARD_DEFECT = re.compile(r"(cut off|truncat|overlap|illegib|unreadable|hard to read|misspel|typo|wrong|incorrect|"
+                          r"contradict|does not match|doesn't match|mismatch|upside|stretch|glitch|artefact|artifact|"
+                          r"watermark|logo|garbled|clipped|"
+                          # the card's own content missing: a graphic that drew only its backdrop is a real failure
+                          r"no (number|map|text|line|chart|figure|label|data|value|date|route|caption)s?\b|"
+                          r"nothing (is )?(visible|shown|drawn)|missing|not drawn|not rendered|blank (white|frame|screen|card)|"
+                          r"empty (screen|card|frame)|low[- ]res|pixelat)", re.I)
+
+
+def designed_backdrop_finding(issue: str) -> bool:
+    """True when a finding only says the backdrop is blank, empty or blurred (no defect of the card itself)."""
+    return bool(_BACKDROP.search(issue) and _BLANK.search(issue) and not _CARD_DEFECT.search(issue))
+
+
+def drop_designed_backdrops(report: Optional[QAReport], assets: Optional[List[Any]]) -> Optional[QAReport]:
+    """The report without backdrop findings on our own graphics; each dropped one is noted in its summary."""
+    if report is None or not assets:
+        return report
+    ours = {i for i, a in enumerate(assets, 1) if Path(str(a)).stem.startswith("graphic_")}
+    # Minor only: a major or critical finding on a graphic is never set aside by wording (review 2026-10-28)
+    dropped = [i for i in report.issues
+               if i.beat in ours and i.severity == "minor" and designed_backdrop_finding(i.issue)]
+    if not dropped:
+        return report
+    for i in dropped:
+        log.info("Video check: beat %d is our own graphic; its designed backdrop is not a defect (%s)", i.beat, i.issue)
+    note = " Not counted (our own graphic's designed backdrop): " + "; ".join(f"beat {i.beat}: {i.issue}" for i in dropped)
+    return report.model_copy(update={"issues": [i for i in report.issues if i not in dropped],
+                                     "summary": (report.summary or "") + note})
 
 def calculate_wcag_relative_luminance(rgb: Tuple[float, float, float]) -> float:
     """Calculates WCAG 2.1 relative luminance for an RGB tuple (0-255)."""
@@ -129,6 +257,12 @@ def sample_time(start: float, end: float) -> float:
     return max((start + end) / 2, start + SAMPLE_AT * (end - start))
 
 
+def beat_prompt(i: int, beat: Dict[str, Any], assets: Optional[List[Any]] = None) -> str:
+    """The words that go with beat i's frame: how its picture was made, and the narration spoken."""
+    tag = beat_tag(assets[i - 1]) if assets and i <= len(assets) else ""
+    return f"Beat {i}{tag} narration: \"{beat['text']}\""
+
+
 @llm_task("video_qa")
 def review_render(video: Path, beats: List[Dict[str, Any]], cover: Path, work_dir: Path,
                   assets: Optional[List[Any]] = None) -> Optional[QAReport]:
@@ -143,16 +277,12 @@ def review_render(video: Path, beats: List[Dict[str, Any]], cover: Path, work_di
         frames = extract_frames(video, times, work_dir / "qa_frames")
         content: List[dict] = []
         for i, (frame, beat) in enumerate(zip(frames, beats), 1):
-            # Our own graphics are named as such: a number card's dimmed backdrop was reported as "an empty dark
-            # gradient with no visual imagery" and blocked a release (Odessa, 2026-10-27).
-            asset = Path(str(assets[i - 1])).stem if assets and i <= len(assets) else ""
-            ours = (f" [our own graphic: {asset.removeprefix('graphic_').replace('_', ' ')} card]"
-                    if asset.startswith("graphic_") else "")
-            content += [{"type": "text", "text": f"Beat {i}{ours} narration: \"{beat['text']}\""}, image_block(frame, 768)]
+            content += [{"type": "text", "text": beat_prompt(i, beat, assets)}, image_block(frame, 768)]
         content += [{"type": "text", "text": "Cover image (thumbnail):"}, image_block(cover, 768),
                     {"type": "text", "text": "Report issues by beat number (use 0 for the cover)."}]
-        return (free_llm.call(SYSTEM, content, QAReport, role="checker", effort="low", max_tokens=4000)
-                if free_llm.enabled() else structured_call(SYSTEM, content, QAReport, effort="low", max_tokens=4000))
+        report = (free_llm.call(SYSTEM, content, QAReport, role="checker", effort="low", max_tokens=4000)
+                  if free_llm.enabled() else structured_call(SYSTEM, content, QAReport, effort="low", max_tokens=4000))
+        return drop_designed_backdrops(report, assets)
     except (LLMError, subprocess.SubprocessError, OSError, ValueError) as e:
         log.warning("Video QA could not run: %s", e)
         return None
@@ -472,7 +602,11 @@ class QualityAuditor:
                 # photo (scene_planner.lock_narrative_graphics puts it there). Flagging that made the repair
                 # unwinnable: the re-plan moved it to the hook and the lock moved it back (2026-10-24).
                 after_hook = i == 1 and timeline[0].get("start", 0.0) <= t_first < c_start
-                if offset > 1.2 and not after_hook:
+                # A map or route named earlier is on time wherever it comes, as its match above already says: the
+                # 1.2 s rule still called the Hal Saflieni map, shown after "Paola, Malta", late (audit, 2026-10-28).
+                # Shown before its place is named, it is still early.
+                named_earlier = locator and any(t < c_start for t in matching_word_times)
+                if offset > 1.2 and not after_hook and not named_earlier:
                     issues.append({
                         "type": "temporal_desync",
                         "severity": "minor",

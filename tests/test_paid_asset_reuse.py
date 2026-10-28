@@ -177,3 +177,38 @@ def test_a_voice_from_another_provider_is_not_carried_over_once_the_run_would_us
     assert audio_engine.AudioEngine.preferred_provider(False) == "azure"     # a dry run that may not spend
     monkeypatch.setattr(audio_engine, "VOICE_PREFER", "azure")
     assert audio_engine.AudioEngine.preferred_provider(True) == "azure"
+
+
+def test_a_carried_voiceover_passes_the_release_rights_check_and_a_changed_one_still_fails(db, tmp_path, monkeypatch):
+    """Audit 2026-10-28: every regenerated run on production reached review as "Release gate: blocked ...
+    voiceover_rights / ambient_bed_rights: Audio changed after rights evidence was recorded" though the copies were
+    byte-identical; the record named the previous run's folder. The copy is now rebound; a changed file is not."""
+    import json
+    import main
+    from types import SimpleNamespace
+    from src.audio_provenance import inspect_audio_rights, rebind_rights, record_voice
+    from src.checkpoints import Checkpoints
+    monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
+    previous, run_dir = tmp_path / "run_prev", tmp_path / "run_new"
+    previous.mkdir(), run_dir.mkdir()
+    (previous / "script_metadata.json").write_text(json.dumps({"narration_script": "Same words."}), encoding="utf-8")
+    for n, body in (("voiceover.mp3", b"eleven take"), ("words.json", b"[]"), ("voice.json", b'{"provider": "elevenlabs"}')):
+        (previous / n).write_bytes(body)
+    record_voice(previous / "voiceover.mp3", "elevenlabs", True, "Same words.")
+    inputs = {"script": "Same words.", "voice": "v", "licensed_only": False, "allow_paid": True}
+    Checkpoints(previous).complete("voice", inputs, [previous / "voiceover.mp3", previous / "words.json", previous / "voice.json"])
+    coordinator = SimpleNamespace(_operator_feedback={"reason": "pictures", "from_run": "run_prev"}, db=db)
+    coordinator._feedback = lambda: main.PipelineCoordinator._feedback(coordinator)
+    coordinator._previous_run_dir = lambda: main.PipelineCoordinator._previous_run_dir(coordinator)
+    main.PipelineCoordinator._seed_voice_from_previous(coordinator, run_dir, "Same words.")
+    ok, record = inspect_audio_rights(run_dir / "voiceover.mp3", "voice", "", script="Same words.")
+    assert ok is True and record["carried_from"] == str((previous / "voiceover.mp3").resolve())
+    assert inspect_audio_rights(previous / "voiceover.mp3", "voice", "", script="Same words.")[0] is True  # untouched
+    assert Checkpoints(run_dir).reusable("voice", inputs)                      # still reused, not re-voiced
+    # A file that changed after it was recorded is never rebound: the gate still refuses it.
+    other = tmp_path / "run_changed"; other.mkdir()
+    (other / "voiceover.mp3").write_bytes(b"a different take")
+    (other / "voiceover.mp3.rights.json").write_bytes((previous / "voiceover.mp3.rights.json").read_bytes())
+    assert rebind_rights(other / "voiceover.mp3") is False
+    assert inspect_audio_rights(other / "voiceover.mp3", "voice", "", script="Same words.") == (
+        False, "Audio changed after rights evidence was recorded")

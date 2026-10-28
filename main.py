@@ -1594,7 +1594,8 @@ class PipelineCoordinator:
         self.db.record_publication(run["topic_id"], run_id, "youtube:thumbnail", "published" if res.get("set") else "failed",
                                    {k: v for k, v in res.items() if k != "thumbnails"})
         if res.get("set"):
-            return "▶️ Thumbnail set on the YouTube Short. YouTube may still show a frame in the Shorts feed itself."
+            return ("▶️ Standard thumbnail set on the YouTube Short (search and the watch page). The Shorts tab shows a "
+                    "frame of the video instead; that one is changed only in the YouTube app: the Short, ✏️ Edit, Thumbnail.")
         error = str(res.get("error") or "")
         hint = (" The channel must be verified for custom thumbnails (youtube.com/verify)." if "403" in error else "")
         return f"▶️ YouTube did not take the thumbnail: {html.escape(error[:300])}.{hint}"

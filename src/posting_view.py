@@ -245,7 +245,9 @@ def posting_episode(db, run_id: str) -> Tuple[str, List[List[Dict[str, str]]]]:
                 row.append({"text": "▶️ YouTube Short", "callback_data": f"ytshort:{key}"})
             elif any(x.get("status") == "published" for x in shorts):
                 thumb = _short_thumbnail(pubs, shorts)
-                lines.append("  YouTube thumbnail: " + thumb)
+                # Two images: the API sets the standard thumbnail; the Shorts tab and shelf use a frame of the video
+                # that only the YouTube app can change (operator, 2026-10-28: "set" while the Shorts tab showed frames)
+                lines.append("  YouTube thumbnail: " + ("standard thumbnail set (search, watch page); the Shorts tab shows a frame of the video, changed only in the YouTube app: the Short, ✏️ Edit, Thumbnail" if thumb == "set" else thumb))
                 if thumb != "set":
                     row.append({"text": "▶️ YouTube thumbnail", "callback_data": f"ytthumb:{key}"})
             if row:

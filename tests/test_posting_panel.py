@@ -417,10 +417,11 @@ def test_a_posted_short_without_its_thumbnail_can_be_given_it_again(db, tmp_path
     monkeypatch.setattr(publisher.UploadPostPublisher, "set_youtube_thumbnail",
                         lambda self, video_id, image: calls.append((video_id, image.name)) or {"set": True, "error": None})
     c = _coordinator(db)
-    assert c.set_youtube_thumbnail(run_id).startswith("▶️ Thumbnail set")
+    reply = c.set_youtube_thumbnail(run_id)
+    assert reply.startswith("▶️ Standard thumbnail set") and "YouTube app" in reply   # the Shorts tab is said apart
     assert calls == [("Mgox2C31_6w", "thumbnail_cover.jpg")]
     text, buttons = control.posting_episode(db, run_id)
-    assert "YouTube thumbnail: set" in text
+    assert "YouTube thumbnail: standard thumbnail set" in text and "the Shorts tab shows a frame" in text   # never just "set" (2026-10-28)
     assert not any(b["callback_data"].startswith("ytthumb:") for row in buttons for b in row)
 
 

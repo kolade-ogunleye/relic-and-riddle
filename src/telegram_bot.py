@@ -43,7 +43,8 @@ REASON_CARD_HOURS = 2  # a decided review's reason card survives /clear this lon
 STALE_COMMAND_SECONDS = 600  # commands queued while the bot was down longer than this are not replayed
 # Typed commands run as a job. Not /propose: it only starts the research job, and wrapping that in a
 # second job showed an empty "Completed." over the research panel.
-SLOW_COMMANDS = {"status", "add", "issue", "music", "discover", "ask", "review", "covers", "edittext", "fetchimages", "accounts"}
+SLOW_COMMANDS = {"status", "add", "issue", "music", "discover", "ask", "review", "covers", "edittext", "fetchimages", "accounts",
+                 "filmfind"}
 # Buttons on cards from earlier releases. They get an explicit answer and never run old behaviour.
 RETIRED_ACTIONS = {"done": "Closed",
                    "umore": "This card is from an earlier version. Open /ideas for UNESCO marvels.",
@@ -79,7 +80,7 @@ TOASTS = {"imgok": "✅ Storyboard Approved!", "imgcancel": "✖ Cancelled", "mc
           "imprev": "↩ Reverted", "creviews": "🎬 Reviews", "cimprove": "🧭 Improvement", "cideas": "💡 Ideas", "canalytics": "📈 Audience"}
 
 # Plain names for jobs in /jobs and progress panels (never the internal button name).
-JOB_TITLES = {"fetchimages": "Fetching images", "mfetch": "Finding documentary music", "caccounts": "Checking accounts",
+JOB_TITLES = {"fetchimages": "Fetching images", "filmfind": "Finding archive film", "mfetch": "Finding documentary music", "caccounts": "Checking accounts",
               "ccov": "Covers", "cmusic": "Music", "cstat": "Status", "cprop": "Waiting ideas",
               "cdisc": "UNESCO marvels", "mreview": "Music review", "mlibrary": "Music library", "mkeep": "Keeping a track",
               "mdel": "Removing a track", "mnext": "Next track", "review": "Image review", "uadd": "Adding a marvel",
@@ -2655,11 +2656,14 @@ class TelegramApprovalBot:
                     if on_dashboard:
                         self.show_dashboard()
                     return
-                if action in {'fetchimages', 'caccounts', 'mfetch', 'cstat', 'ccov', 'cmusic', 'mreview', 'review', 'cdisc', 'cprop', 'uadd', 'tadd', 'edittext', 'mkeep', 'mdel', 'mnext', 'mreview', 'mlibrary'}:
+                if action in {'fetchimages', 'filmfind', 'caccounts', 'mfetch', 'cstat', 'ccov', 'cmusic', 'mreview', 'review', 'cdisc', 'cprop', 'uadd', 'tadd', 'edittext', 'mkeep', 'mdel', 'mnext', 'mreview', 'mlibrary'}:
                     self._answer_callback(cq['id'], 'Working; you can keep using the bot')
                     revision = cq.get('_revision', self._panel_revisions.get(self._current_panel(msg_id), 0))
                     if action == 'fetchimages':
                         self.edit_message_any(msg_id, '🖼 Fetching images. You can keep using the bot.', is_media=is_media, buttons=[[DONE_BUTTON]])
+                    elif action == 'filmfind':
+                        self.edit_message_any(msg_id, '🎞 Searching the Internet Archive and Europeana for openly licensed film. '
+                                              'You can keep using the bot.', is_media=is_media, buttons=[[DONE_BUTTON]])
                     try:
                         self._run_panel_command(command_handler, action, target, msg_id, is_media, revision)
                     except ValueError as exc:
@@ -3076,11 +3080,11 @@ class TelegramApprovalBot:
             return self._workers
 
     def _run_command(self, command_handler: Callable[[str, str], str], command: str, args: str, target=None) -> None:
-        if command in {"fetchimages", "mfetch"}:
+        if command in {"fetchimages", "mfetch", "filmfind"}:
             if target:
                 self._run_panel_command(command_handler, command, args, target[0], False, target[2], late=True)
             else:
-                self.start_operator_job("Fetching images" if command == "fetchimages" else "Finding documentary music",
+                self.start_operator_job(JOB_TITLES.get(command, "Working"),
                     lambda: command_handler(command, args), resource=f"{command}:{args}")
             return
         panel = [self, target[0], False, False, target[2]] if target else None

@@ -25,7 +25,9 @@ GROUPS = {
         ("photos", "Photo sets · 4 · 4 fetch · 4 review · 4 keep 2 7 · 4 unkeep 2 · 4 drop 1 5 · 4 upload"),
         ("covers", "Preview and choose a cover · 4"),
         ("music", "Documentary music · find · review · library"),
-        ("footage", "Upload licensed video footage · [send the clip with the caption /footage 4 | source: URL | licence: CC BY 4.0 | licence_url: URL, up to 20 MB]"),
+        ("footage", "Archive film and your clips · 4 · 4 find · 4 use 1 2 · 4 drop 3 · [4: the topic's archive film, waiting and in use; "
+                    "find: search the Internet Archive and Europeana for openly licensed film; to upload your own, send the clip "
+                    "with the caption /footage 4 | source: URL | licence: CC BY 4.0 | licence_url: URL, up to 20 MB]"),
     ],
     "Diagnostics": [
         ("jobs", "Background jobs, with Cancel"),
@@ -94,6 +96,12 @@ def normalise_command(command, args):
     if command == "queue":
         if first in ("bump", "drop", "requeue", "undo", "next", "add"):
             return {"bump": "bump", "drop": "drop_topic", "requeue": "requeue", "undo": "undo", "next": "next", "add": "add"}[first], rest
+    elif command == "footage" and words and "|" not in args:  # an upload's caption carries "|" and stays as it is
+        action = words[1].lower() if len(words) > 1 else ""
+        if action in ("find", "use", "drop"):
+            return {"find": "filmfind", "use": "filmuse", "drop": "filmdrop"}[action], " ".join([words[0]] + words[2:])
+        if len(words) == 1:
+            return "filmlist", words[0]
     elif command == "render":
         if first in ("fresh", "reuse"):
             return "runopt", args

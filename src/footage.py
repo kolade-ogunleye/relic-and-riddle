@@ -36,17 +36,22 @@ ALLOWED_HOSTS = {
     "commons": {"upload.wikimedia.org"},
     # AI motion results (src/motion.py). A leading dot allows that domain's subdomains.
     "kling": {".klingai.com"},
+    # Archive film (src/archive_film.py): archive.org/download redirects to its ia*.us.archive.org servers.
+    "archive": {"archive.org", ".archive.org"},
+    # Europeana's holders serve their own files: any https host, still size-capped, video-only and re-encoded.
+    "europeana": {"*"},
 }
 CREDIT_PREFIX = "🎥 Footage:"
 
 
 def _host_allowed(host: str, provider: str) -> bool:
-    return any(host == h or (h.startswith(".") and host.endswith(h)) for h in ALLOWED_HOSTS[provider])
+    return bool(host) and any(h == "*" or host == h or (h.startswith(".") and host.endswith(h)) for h in ALLOWED_HOSTS[provider])
 
 
 # ----------------------------------------------------------- download & clip
-def download(url: str, provider: str, dest: Path, extra_headers: Optional[dict] = None) -> Path:
-    """HTTPS from the provider's media hosts only, streamed with a size cap."""
+def download(url: str, provider: str, dest: Path, extra_headers: Optional[dict] = None, max_bytes: Optional[int] = None) -> Path:
+    """HTTPS from the provider's media hosts only, streamed with a size cap (archive film has its own, larger one)."""
+    cap = max_bytes or MAX_BYTES
     parsed = urlparse(url)
     if parsed.scheme != "https" or not _host_allowed(parsed.hostname or "", provider):
         raise ValueError(f"refusing to download from {parsed.scheme}://{parsed.hostname}")
@@ -57,10 +62,10 @@ def download(url: str, provider: str, dest: Path, extra_headers: Optional[dict] 
             target = urlparse(resp.headers.get("Location", ""))
             if target.scheme != "https" or not _host_allowed(target.hostname or "", provider):
                 raise ValueError(f"refusing redirect to {target.hostname}")
-            return download(resp.headers["Location"], provider, dest)  # credentials are not forwarded
+            return download(resp.headers["Location"], provider, dest, max_bytes=cap)  # credentials are not forwarded
         resp.raise_for_status()
         declared = int(resp.headers.get("Content-Length") or 0)
-        if declared > MAX_BYTES:  # don't start a download that would only hit the cap
+        if declared > cap:  # don't start a download that would only hit the cap
             raise ValueError(f"download exceeds the size cap ({declared / 1e6:.0f} MB)")
         ctype = resp.headers.get("Content-Type", "")
         if not (ctype.startswith("video/") or ctype in ("application/ogg", "application/octet-stream", "binary/octet-stream")):
@@ -69,7 +74,7 @@ def download(url: str, provider: str, dest: Path, extra_headers: Optional[dict] 
         with open(dest, "wb") as f:
             for chunk in resp.iter_content(1 << 20):
                 size += len(chunk)
-                if size > MAX_BYTES:
+                if size > cap:
                     raise ValueError("download exceeds the size cap")
                 f.write(chunk)
     return dest
@@ -185,6 +190,10 @@ def credit_line(used: List[Dict[str, Any]]) -> str:
             text = "NASA"
         elif c["provider"] == "youtube":
             text = f"{c['artist']} via YouTube (CC-BY)"
+        elif c["provider"] == "archive.org":
+            text = f"{c['artist']} ({c['license']}) via the Internet Archive"
+        elif c["provider"] == "europeana":
+            text = f"{c['artist']} ({c['license']}) via Europeana"
         elif c["provider"] == "curated":
             text = f"{c['artist']} ({c.get('license', 'Documentary Footage')})"
         else:

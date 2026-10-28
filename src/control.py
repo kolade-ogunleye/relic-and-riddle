@@ -2388,6 +2388,36 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
         if command == "resume":
             db.set_setting(PAUSED_KEY, "false")
             return f"▶️ Scheduled runs and posts resumed. Next: {html.escape(next_run() or 'not scheduled')}"
+        if command in ("filmlist", "filmfind", "filmuse", "filmdrop"):
+            # Archive film (src/archive_film.py): found where its licence is stated, used only once approved
+            from . import archive_film
+            from .telegram_images import topic_for
+            ref, *numbers = args.split()
+            topic = topic_for(db, ref)
+            key = str({t["id"]: i for i, t in enumerate(db.list_all_topics(), 1)}.get(topic["id"], ref))
+            ask = None
+            note = ""
+            if command == "filmfind":
+                specs = json.loads((config.TOPICS_DIR / "image_queries.json").read_text(encoding="utf-8"))
+                spec = specs.get(topic["id"]) or {"queries": [topic["title"]], "keywords": [topic["title"]]}
+                found = archive_film.find(topic, spec, assets_dir)
+                ask = found["ask"]
+                note = (f"🔎 Found {len(found['saved'])} new film(s) with an open licence." if found["saved"]
+                        else "🔎 No new openly licensed film was found for this topic.") + "\n\n"
+            elif command in ("filmuse", "filmdrop"):
+                picked = [int(n) for n in numbers if n.isdigit()]
+                done = archive_film.decide(assets_dir, topic["id"], picked, use=command == "filmuse")
+                note = ((("✅ In use: " if command == "filmuse" else "🗑 Dropped (never fetched again): ")
+                         + "; ".join(html.escape(t[:60]) for t in done)) if done else "⚠️ No film by those numbers.") + "\n\n"
+            text = note + archive_film.card(assets_dir, topic, ask)
+            items = archive_film.pending_list(assets_dir, topic["id"])
+            buttons = [[{"text": "🔎 Find film", "callback_data": f"filmfind:{key}"}], [HOME]]
+            if items and send_photo:
+                still = archive_film.sheet(items, Path(assets_dir) / topic["id"] / "footage" / "pending" / "sheet.jpg")
+                if still:
+                    send_photo(still, text, buttons, cache_key=f"film:{topic['id']}:{len(items)}:{note[:20]}")
+                    return ""
+            return text, buttons
         if command == "footage":
             # Footage is supplied as a file the operator holds the rights to (send the video with the
             # caption "/footage <topic>"). Links are not downloaded: a downloaded clip carries no licence

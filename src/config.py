@@ -165,6 +165,8 @@ SMITHSONIAN_API_KEY = (os.getenv("SMITHSONIAN_API_KEY") or "").strip()  # api.da
 # Europeana (European museums, libraries and archives; free key from pro.europeana.eu). Unset: the source is off
 # (the public demo key is for trying the API, not for a pipeline). Masked in logs.
 EUROPEANA_API_KEY = (os.getenv("EUROPEANA_API_KEY") or "").strip()
+# Archive film is often a whole reel (Prelinger's "Father Nile (Egypt)", 1931: 86 MB); only a 6 s segment is kept
+ARCHIVE_FILM_MAX_MB = max(20, int(os.getenv("ARCHIVE_FILM_MAX_MB") or 250))
 # Wikimedia's User-Agent policy: a contact (URL or email) for the bot, or requests may be throttled/blocked.
 COMMONS_CONTACT = (os.getenv("COMMONS_CONTACT") or "").strip()
 # Parallel ffmpeg encodes (1-8): more renders at once on a stronger GPU, fewer on a shared one.

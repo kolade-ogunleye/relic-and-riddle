@@ -17,6 +17,7 @@ and summarize() prints per-variant means and the paired, per-topic comparison.
 
 import argparse
 import json
+import logging
 import statistics
 import sys
 from contextlib import contextmanager
@@ -36,6 +37,7 @@ from src import config  # noqa: E402
 
 OUT = config.DATA_DIR / "evals" / "prompts"
 RESULTS = OUT / "results.jsonl"
+log = logging.getLogger(__name__)
 
 
 @contextmanager
@@ -101,7 +103,16 @@ def run_candidates(db, max_drafts: int = 4) -> List[Dict]:
     prompts on the same topics, at most max_drafts per night, free quota only. Returns all rows."""
     from src import free_llm, improve
     from src.asset_pipeline import pool_ready
-    free_llm.ALLOW_PAID_FALLBACK = False
+    if not free_llm.enabled():  # on the Claude engine every draft is billed: the eval is free or not at all
+        log.info("Candidate eval skipped: it runs on the free engine only (SCRIPT_ENGINE is not free).")
+        return load_rows()
+    # free_only() puts the daemon's paid fallback back afterwards: this set it off in the bot's process for
+    # good, so every later run lost its capped billed fallback (ledger audit, 2026-10-28).
+    with improve.free_only():
+        return _run_candidates(db, max_drafts, improve, pool_ready)
+
+
+def _run_candidates(db, max_drafts, improve, pool_ready) -> List[Dict]:
     OUT.mkdir(parents=True, exist_ok=True)
     rows = load_rows()
     done = {(r["topic"], r["variant"], r["run"]) for r in rows}
@@ -125,7 +136,8 @@ def run_candidates(db, max_drafts: int = 4) -> List[Dict]:
                     with RESULTS.open("a", encoding="utf-8") as f:
                         f.write(json.dumps(row) + "\n")
     except (LLMError, fact_sheet.FactStarvedTopicError, ValueError) as e:
-        print(f"Candidate eval paused: {str(e)[:160]}")
+        # In the log, not on the daemon's stdout (headless: a print reached no one; 2026-10-28).
+        log.warning("Candidate eval paused: %s", str(e)[:160])
     return rows
 
 

@@ -14,6 +14,7 @@ decisions. This module keeps them, so a recurring problem is counted instead of 
      regression is put to you; nothing changes until you tap Adopt.
    - code tier (everything else): the evidence is put to you as a card; "Queue" adds it to
      docs/improvements/queue.md for the next development session. Code is never changed automatically.
+   - info tier (POLICY_CLASSES): a count of what one of your settings does, shown as information only.
 3. A weekly digest in Telegram: what recurred, what was fixed, what waits for you, how videos did.
 
 Guardrails: the loop never touches the fact rules' strictness, the release gate or rights checks
@@ -25,6 +26,7 @@ import json
 import logging
 import re
 import threading
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -59,40 +61,100 @@ REGENERATE_EFFECT = {**{r: "the script is revised for it" for r in SCRIPT_REASON
                      "other": "it is logged for improvement; the new version is made fresh"}
 
 # Problem text -> stable class. First match wins; unknown text falls back to "<area>.other".
+# Order matters (ledger audit, 2026-10-28): a repetition hint ("repeats the phrase ...; keeping every
+# disputed fact hedged") was filed as script.facts, a Story slide's line count ("rewrite it in about 9
+# words") and "emphasis_words needs 1-3 entries" as script.length, and "Narration ends on trailing word"
+# fell to script.other. The specific checks come first; length and facts last, by whole words.
 CLASS_PATTERNS: List[Tuple[str, str]] = [
     (r"\bpoll\b", "script.poll"),
+    (r"repeats the phrase|repeated phrase", "script.repetition"),
+    (r"trailing word", "script.trailing_word"),
+    (r"terminal punctuation|closing_sentence", "script.ending"),
+    (r"share_line", "script.share_line"),
+    (r"emphasis.words?\b", "graphics.emphasis_words"),
     (r"stat_cards|stat card", "graphics.stat_cards"),
     (r"timeline", "graphics.timeline"),
     (r"scale_fact", "graphics.scale_fact"),
+    (r"cross_section", "graphics.cross_section"),
+    (r"photo_labels", "graphics.photo_labels"),
+    (r"^route\b", "graphics.route"),
     (r"first line|125 characters", "script.caption_first_line"),
     (r"hashtag", "script.hashtags"),
     (r"emoji", "script.emoji"),
     (r"trope", "script.trope"),
     (r"machine-sounding|AI phrasing", "script.ai_phrasing"),
-    (r"spoken|seconds|too long|too short|word count|words", "script.length"),
-    (r"story slides|carousel slides|carousel_caption", "script.slides"),
-    (r"hook", "script.hook"),
-    (r"untraced|not traced|unsupported|disputed|fact", "script.facts"),
+    (r"story slides?\b|carousel slides?\b|carousel_caption", "script.slides"),
+    (r"when spoken|\bseconds\b|too long|too short|word count|\bwords\b", "script.length"),
+    (r"\bhook\b", "script.hook"),
+    (r"untrace|not traced|unsupported|disputed|\bfacts?\b", "script.facts"),
 ]
 
 # What the automated video check says about a frame, in its own classes: the script patterns above read
 # "the spoken narration states 30" as a length complaint and filed a graphic/narration mismatch under
 # video.length (production, Antikythera, 2026-10-24).
+# Ledger audit, 2026-10-28: "...but the image shows..." / "...rather than..." (a picture that does not
+# show what is said) fell to video.other or, with "contradicts", to video.text_mismatch; "a grey patch
+# covering the candle sconce" was filed as video.cover; face-blur circles and repeated narration were
+# video.other; "the on-screen graphic reads '93-104M' while the narration states..." was video.length.
+# text_mismatch now needs on-screen text or a graphic as its subject; a picture against the narration is
+# picture_relevance. A narration repetition is the script's, so it joins the structure check's class.
+_PICTURE = r"(visual|image|picture|photo|background|frame)"
 QA_PATTERNS: List[Tuple[str, str]] = [
-    (r"whereas|contradict|does not match|mismatch|differs|states '|inconsisten", "video.text_mismatch"),
+    (r"repeats the phrase|repeated phrases?|already (spoken|said)", "script.repetition"),
+    (r"face.(blur|detection)|blur circle", "video.face_blur"),
+    (r"placard|signage|text panel|printed text|burned.in text", "video.picture_text"),
+    (r"\bplaced|\bplacement|appears (during|too early|too late|away from)|out of sync|desync", "video.timing"),
+    (r"\bloops\b|final frame", "video.graphic_motion"),  # the scene audit's motion_loop line (src/video_qa.py)
+    (r"^(?=.*(graphic|on.screen|\breads '|displays '|states '|text (reads|says)))"
+     r"(?=.*(whereas|contradict|does not match|mismatch|differs|inconsisten|\bwhile\b))", "video.text_mismatch"),
+    (r"rather than|instead of|\bbut the " + _PICTURE + r"|while the (spoken )?narration|"
+     + _PICTURE + r"\b.*(contradict|mismatch|does not match|differs)|does not (\w+ )?(show|illustrate|match|depict)|"
+     r"wrong (place|building|site|object)|unrelated|\bnot the ", "video.picture_relevance"),
     (r"caption|subtitle", "video.captions"),
+    (r"obstruct|obscur|patch|artifact|artefact|\bblank\b|blur|dark|low.quality|pixelat|washed|grain", "video.picture_quality"),
     (r"cut off|cropped|clipped|edge|safe.zone|overlap", "video.framing"),
-    (r"blur|dark|low.quality|pixelat|washed|grain", "video.picture_quality"),
-    (r"wrong (place|building|site|object)|unrelated|does not show|not the ", "video.picture_relevance"),
-    (r"cover|thumbnail", "video.cover"),
+    (r"\bcover\b|thumbnail", "video.cover"),
 ]
 
 
 def classify_qa(text: str) -> str:
     for pattern, klass in QA_PATTERNS:
-        if re.search(pattern, text, re.IGNORECASE):
+        if re.search(pattern, text, re.IGNORECASE | re.DOTALL):
             return klass
     return "video.other"
+
+
+# Why a run stopped, by its message: one exception type covered unrelated causes (production's
+# run.failed.RuntimeError held a voice over its ceiling, a voice under its minimum and a guardrail
+# rejection; dev's ValueError a release hold, an upload lock and a loudness failure: ledger audit,
+# 2026-10-28). The exception type stays in the detail; an unknown message keeps the type as its class.
+RUN_FAILURE_PATTERNS: List[Tuple[str, str]] = [
+    (r"voiceover is [\d.]+\s*s|hard ceiling|too short for the [\d.]+\s*s minimum", "voice_length"),
+    (r"rejected by guardrail|failed (fact|evidence) verification", "guardrail"),
+    (r"release blocked", "release_blocked"),
+    (r"approved photos|images .* are not reviewed|strong enough for the video|MissingAssetsError", "missing_photos"),
+    (r"no script source", "no_script_source"),
+    (r"ScriptUnavailableError|script writer .* attempts", "script_unavailable"),
+    (r"FactStarvedTopicError|too few verified facts", "fact_starved"),
+    (r"FreeQuotaUnavailable|quota (exceeded|is used up)|prepaid credit", "provider_quota"),
+    (r"upload lock|publication is in progress", "publication_locked"),
+    (r"loudness|peak (correction|limit)", "audio_master"),
+]
+
+
+def classify_failure(error: str) -> str:
+    for pattern, sub in RUN_FAILURE_PATTERNS:
+        if re.search(pattern, error, re.IGNORECASE):
+            return "run.failed." + sub
+    return "run.failed." + (error.split(":")[0].strip()[:40] or "unknown")
+
+
+def classify_beat_line(line: str) -> Tuple[Optional[int], str]:
+    """A self-healing line ("Beat 8: <what the check said>") by what it says, not by its beat: video.beat_8
+    grouped a museum placard, a map placed early and a Pantheon dome under one class (ledger audit,
+    2026-10-28). Returns (beat or None, class)."""
+    m = re.match(r"\s*beat\s+(\d+)\s*:\s*(.*)", line, re.IGNORECASE | re.DOTALL)
+    return (int(m.group(1)), classify_qa(m.group(2))) if m else (None, classify_qa(line))
 
 
 _buffer: List[Dict[str, str]] = []
@@ -134,11 +196,20 @@ def note_problems(problems: List[str], source: str, area: str = "script") -> Non
         note(classify(p, area), p, source)
 
 
-def record(db, klass: str, detail: str, source: str, run_id: Optional[str] = None, topic_id: Optional[str] = None) -> None:
+def record(db, klass: str, detail: str, source: str, run_id: Optional[str] = None, topic_id: Optional[str] = None) -> bool:
+    """Files one finding; the same (run, class, detail) again is not a second occurrence (one run's video
+    check said the same face-blur sentence twice and counted 2: dev, ledger audit 2026-10-28). Findings
+    without a run (reports) are always filed. Returns whether a row was added."""
     ensure_schema(db)
+    detail = str(detail)[:500]
     with db._conn() as conn:
+        if run_id is not None and conn.execute(
+                "SELECT 1 FROM findings WHERE run_id = ? AND klass = ? AND detail = ? LIMIT 1",
+                (run_id, klass, detail)).fetchone():
+            return False
         conn.execute("INSERT INTO findings (run_id, topic_id, source, klass, detail, created_at) VALUES (?,?,?,?,?,?)",
-                     (run_id, topic_id, source, klass, str(detail)[:500], _now()))
+                     (run_id, topic_id, source, klass, detail, _now()))
+    return True
 
 
 def collect_run(db, run_id: str, run_dir: Optional[Path], payload: Optional[Dict[str, Any]] = None,
@@ -151,18 +222,30 @@ def collect_run(db, run_id: str, run_dir: Optional[Path], payload: Optional[Dict
         from .models import GOOD_VERDICTS
         if f.get("verdict") is not None and f.get("verdict") not in GOOD_VERDICTS:
             items.append({"klass": "script.facts", "detail": f"{f.get('verdict')}: {f.get('claim', '')}", "source": "fact_check"})
-    if (payload.get("second_check") or {}).get("status") not in (None, "pass"):
-        items.append({"klass": "check.second_unavailable", "detail": "Second fact check unavailable", "source": "fact_check"})
+    second = payload.get("second_check") or {}
+    if second.get("status") not in (None, "pass"):
+        # A rejection is the checker working, not the checker missing: both were filed as "unavailable"
+        # (production's Antikythera run, rejected by the evidence re-check: ledger audit, 2026-10-28).
+        if second.get("status") == "fail":
+            items.append({"klass": "check.second_rejected", "source": "fact_check",
+                          "detail": "Second fact check rejected: " + _clip(second.get("summary") or "no summary", 400)})
+        else:
+            items.append({"klass": "check.second_unavailable", "detail": "Second fact check unavailable", "source": "fact_check"})
+    qa = _read_json(Path(run_dir) / "qa_report.json") if run_dir else None
+    still_reported = _beats_still_reported(qa, payload)
     for action in payload.get("self_healing_actions") or []:
         for line in action.get("fixing", []):
-            items.append({"klass": "video." + (line.split(":")[0].strip().lower().replace(" ", "_")[:40] or "other"),
-                          "detail": line, "source": "self_healing"})
+            beat, klass = classify_beat_line(line)
+            # A beat the final video check and audit no longer report on was repaired by the re-render: it
+            # is not a recurring problem (only known when the final report was written).
+            if beat is not None and still_reported is not None and beat not in still_reported:
+                continue
+            items.append({"klass": klass, "detail": line, "source": "self_healing"})
     if run_dir:
         report = _read_json(Path(run_dir) / "release_report.json")
         for c in (report or {}).get("checks", []):
             if c.get("status") != "pass":
                 items.append({"klass": f"release.{c['name']}", "detail": json.dumps(c.get("detail"))[:400], "source": "release"})
-        qa = _read_json(Path(run_dir) / "qa_report.json")
         for issue in (qa or {}).get("issues", []) if isinstance(qa, dict) else []:
             text = issue.get("issue", "") if isinstance(issue, dict) else str(issue)
             items.append({"klass": classify_qa(text), "detail": text, "source": "qa"})
@@ -178,10 +261,23 @@ def collect_run(db, run_id: str, run_dir: Optional[Path], payload: Optional[Dict
         except Exception as e:  # the audit never costs the run its other findings
             log.warning("Self-audit of %s failed: %s", run_id, e)
     if error:
-        items.append({"klass": "run.failed." + error.split(":")[0].strip()[:40], "detail": error, "source": "run"})
-    for it in items:
-        record(db, it["klass"], it["detail"], it["source"], run_id=run_id, topic_id=topic_id)
-    return len(items)
+        items.append({"klass": classify_failure(error), "detail": error, "source": "run"})
+    return sum(record(db, it["klass"], it["detail"], it["source"], run_id=run_id, topic_id=topic_id) for it in items)
+
+
+def _beats_still_reported(qa, payload: Dict[str, Any]) -> Optional[set]:
+    """The beats the final video check (qa_report.json) or the final scene audit still report on, or None
+    when there is no final report to tell (the check did not run: every repair line is kept)."""
+    if not isinstance(qa, dict):
+        return None
+    beats = set()
+    for issue in qa.get("issues") or []:
+        if isinstance(issue, dict) and isinstance(issue.get("beat"), int):
+            beats.add(issue["beat"])
+    for issue in (payload.get("self_healing") or {}).get("issues") or []:
+        if isinstance(issue, dict) and isinstance(issue.get("scene_index"), int) and issue["scene_index"] >= 0:
+            beats.add(issue["scene_index"] + 1)  # the audit's scenes count from 0, its feedback's beats from 1
+    return beats
 
 
 def _read_json(path: Path):
@@ -189,6 +285,53 @@ def _read_json(path: Path):
         return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
     except (OSError, ValueError):
         return None
+
+
+RETIRED = "retired."  # a row's class prefix once its classifier is known to have filed it wrongly: kept, not counted
+
+
+def reclassify_ledger(db) -> int:
+    """Re-files rows that the classifiers filed before their fixes, so old misfilings stop leading the
+    counts (dev's 63 script.facts rows were all "traced:" passes, from a bug fixed in 54cf7f6; the beat-
+    numbered video.beat_N classes; the regex misfilings: ledger audit, 2026-10-28). A row whose finding
+    was never a problem (a passed claim, a beat the re-render repaired) becomes "retired.<class>":
+    kept with its detail, never counted. Only rows of the classifiers' own sources are touched; it is
+    idempotent and returns how many rows changed."""
+    from .models import GOOD_VERDICTS
+    ensure_schema(db)
+    with db._conn() as conn:
+        rows = [dict(r) for r in conn.execute(
+            "SELECT id, run_id, source, klass, detail FROM findings WHERE klass NOT LIKE ?", (RETIRED + "%",)).fetchall()]
+    finals: Dict[str, Optional[set]] = {}
+    changes = []
+    for r in rows:
+        src, klass, detail = r["source"], r["klass"], r["detail"] or ""
+        new = None
+        if src == "fact_check" and klass == "script.facts" and detail.split(":")[0] in GOOD_VERDICTS:
+            new = RETIRED + klass
+        elif src == "structure" and klass.startswith(("script.", "graphics.")):
+            new = classify(detail)
+        elif src == "qa" and klass.startswith(("video.", "script.repetition")):
+            new = classify_qa(detail)
+        elif src == "self_healing" and klass.startswith("video."):
+            beat, new = classify_beat_line(detail)
+            if beat is not None and r["run_id"]:
+                if r["run_id"] not in finals:
+                    run = db.get_run(r["run_id"]) if hasattr(db, "get_run") else None
+                    finals[r["run_id"]] = _beats_still_reported(
+                        _read_json(config.OUTPUT_DIR / r["run_id"] / "qa_report.json"), (run or {}).get("script_payload") or {})
+                still = finals[r["run_id"]]
+                if still is not None and beat not in still:
+                    new = RETIRED + new
+        elif src == "run" and klass.startswith("run.failed."):
+            new = classify_failure(detail)
+        if new and new != klass:
+            changes.append((new, r["id"]))
+    if changes:
+        with db._conn() as conn:
+            conn.executemany("UPDATE findings SET klass = ? WHERE id = ?", changes)
+        log.info("Improvement ledger: %d finding(s) re-filed under their corrected class.", len(changes))
+    return len(changes)
 
 
 # ------------------------------------------------------------------ your input
@@ -253,18 +396,34 @@ def triage_issue(db, issue_id: str, critique: str, run_id: Optional[str]) -> str
 
 
 # ------------------------------------------------------------------ proposals
-def recurring(db, days: int = RECURRENCE_DAYS, min_count: int = MIN_RECURRENCE) -> List[Dict[str, Any]]:
+OPEN_STATUSES = ("testing", "ready", "queued")
+
+
+def recurring(db, days: int = RECURRENCE_DAYS, min_count: int = MIN_RECURRENCE,
+              after_decisions: bool = False) -> List[Dict[str, Any]]:
+    """Classes found at least min_count times in the last `days` days (retired rows never count).
+    after_decisions: a class you already decided (declined, adopted, reverted, or a rule that lost its
+    eval) counts only what was found after that decision: the class was proposed again the next night
+    from the same findings (ledger audit, 2026-10-28)."""
     ensure_schema(db)
     since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    decided = ("" if not after_decisions else
+               " AND (d.decided IS NULL OR f.created_at > d.decided)")
+    join = ("" if not after_decisions else
+            " LEFT JOIN (SELECT klass, MAX(decided_at) AS decided FROM proposals WHERE decided_at IS NOT NULL"
+            f" AND status NOT IN ({','.join('?' * len(OPEN_STATUSES))}) GROUP BY klass) d ON d.klass = f.klass")
+    head = tuple(OPEN_STATUSES) if after_decisions else ()
+    where = f"f.created_at >= ? AND f.klass NOT LIKE '{RETIRED}%'" + decided
     with db._conn() as conn:
-        rows = conn.execute("""SELECT klass, COUNT(*) AS n, COUNT(DISTINCT run_id) AS runs FROM findings
-                               WHERE created_at >= ? GROUP BY klass HAVING n >= ? ORDER BY n DESC""",
-                            (since, min_count)).fetchall()
+        rows = conn.execute(f"""SELECT f.klass AS klass, COUNT(*) AS n, COUNT(DISTINCT f.run_id) AS runs
+                                FROM findings f{join} WHERE {where}
+                                GROUP BY f.klass HAVING n >= ? ORDER BY n DESC""",
+                            head + (since, min_count)).fetchall()
         out = []
         for r in rows:
             examples = [x["detail"] for x in conn.execute(
-                "SELECT detail FROM findings WHERE klass = ? AND created_at >= ? ORDER BY id DESC LIMIT 5",
-                (r["klass"], since)).fetchall()]
+                f"SELECT f.detail AS detail FROM findings f{join} WHERE f.klass = ? AND {where} ORDER BY f.id DESC LIMIT 5",
+                head + (r["klass"], since)).fetchall()]
             out.append({"klass": r["klass"], "count": r["n"], "runs": r["runs"], "examples": examples})
     return out
 
@@ -304,11 +463,59 @@ class _Rule(BaseModel):
     rule: str
 
 
+# Classes that record a choice you made in settings, not a defect (ledger audit, 2026-10-28: the
+# share-alike exclusion became "needs a fix" 17 times on production). Put to you as information, with
+# the lever that changes it; never as a fix to queue.
+POLICY_CLASSES = {
+    "pictures.licence_excluded": (
+        "This is your licence policy at work, not a defect: Commons pictures under share-alike licences are "
+        "left out while IMAGES_ALLOW_SHARE_ALIKE is off. Nothing needs fixing. Turn that setting on only if you "
+        "accept share-alike terms for the pictures; otherwise this is just a count of what the policy excluded."),
+}
+
+# Gate classes and the sources that look at the same thing independently: when they found the same beat in
+# the same run, the gate held a real defect and the fix belongs upstream (production, release.visual_checks
+# 5x, each beat also found by the video check or the self-healing pass: ledger audit, 2026-10-28).
+CONFIRMING_SOURCES = {"release.visual_checks": ("qa", "self_healing")}
+GATE_CORRECT_ADVICE = ("Gate correct, fix upstream: the video check found the same beat(s) in {confirmed} of these "
+                       "{runs} run(s), so the release gate is right to hold them. Fix what put the picture there "
+                       "(scene planning, picture choice), not the gate.")
+
+
+def _gate_confirmations(db, klass: str, days: int = RECURRENCE_DAYS) -> Tuple[int, int]:
+    """(runs in which another source found the same beat as the gate's finding, runs with the gate's finding)."""
+    sources = CONFIRMING_SOURCES.get(klass)
+    if not sources:
+        return 0, 0
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    with db._conn() as conn:
+        gate = conn.execute("SELECT run_id, detail FROM findings WHERE klass = ? AND created_at >= ? AND run_id IS NOT NULL",
+                            (klass, since)).fetchall()
+        confirmed = set()
+        for g in gate:
+            detail = g["detail"] or ""
+            beats = {int(b) for b in re.findall(r'"beat":\s*(\d+)', detail)}
+            issues = [i[:60] for i in re.findall(r'"issue":\s*"((?:[^"\\]|\\.)*)', detail) if len(i) >= 20]
+            others = conn.execute(f"SELECT detail FROM findings WHERE run_id = ? AND source IN ({','.join('?' * len(sources))})",
+                                  (g["run_id"], *sources)).fetchall()
+            for o in others:
+                text = o["detail"] or ""
+                beat = classify_beat_line(text)[0]
+                if (beat is not None and beat in beats) or any(i and i in text for i in issues):
+                    confirmed.add(g["run_id"])
+                    break
+    return len(confirmed), len({g["run_id"] for g in gate})
+
+
 def make_proposals(db) -> List[Dict[str, Any]]:
     """Turns new recurring classes into proposals (one open proposal per class)."""
-    open_classes = {p["klass"] for p in proposals(db) if p["status"] in ("testing", "ready", "queued")}
+    try:  # old misfilings never lead the counts (the ledger is still proposed from if this fails)
+        reclassify_ledger(db)
+    except Exception as e:
+        log.warning("Could not re-file old findings: %s", e)
+    open_classes = {p["klass"] for p in proposals(db) if p["status"] in OPEN_STATUSES}
     made = []
-    for rec in recurring(db):
+    for rec in recurring(db, after_decisions=True):
         klass = rec["klass"]
         if klass in open_classes:
             continue
@@ -322,33 +529,57 @@ def make_proposals(db) -> List[Dict[str, Any]]:
         elif rec["runs"] < MIN_RUNS:
             continue
         pid = "imp_" + datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S") + "_" + re.sub(r"\W", "", klass)[:20]
+        if get_proposal(db, pid):  # a class proposed again within the same second (after a decision)
+            pid += "_" + str(sum(1 for p in proposals(db) if p["id"].startswith(pid)) + 1)
         prompt_tier = klass.startswith("script.") and not klass.startswith(PROTECTED)
-        change, status = None, "ready"
+        change, status, tier = None, "ready", "code"
         if prompt_tier:
             rule = _draft_rule(klass, rec["examples"])
             if rule:
-                change, status = {"rule": rule}, "testing"
-        title = (f"Writing rule for recurring '{klass}' ({rec['count']}× in {rec['runs']} runs)" if change
-                 else f"Recurring '{klass}' ({rec['count']}× in {rec['runs']} runs) needs a fix")
+                change, status, tier = {"rule": rule}, "testing", "prompt"
+        times = f"{rec['count']}× in {rec['runs']} runs"
+        title = (f"Writing rule for recurring '{klass}' ({times})" if change
+                 else f"Recurring '{klass}' ({times}) needs a fix")
+        if klass in POLICY_CLASSES:
+            tier, rec["advice"] = "info", POLICY_CLASSES[klass]
+            title = f"'{klass}' ({times}): your settings at work, not a defect"
+        elif klass in CONFIRMING_SOURCES:
+            confirmed, runs = _gate_confirmations(db, klass)
+            if confirmed:
+                rec["advice"] = GATE_CORRECT_ADVICE.format(confirmed=confirmed, runs=runs)
+                title = f"Release gate held '{klass}' ({times}): gate correct, fix upstream"
         with db._conn() as conn:
             conn.execute("""INSERT INTO proposals (id, klass, tier, title, evidence_json, change_json, status, created_at)
                             VALUES (?,?,?,?,?,?,?,?)""",
-                         (pid, klass, "prompt" if change else "code", title, json.dumps(rec), json.dumps(change), status, _now()))
+                         (pid, klass, tier, title, json.dumps(rec), json.dumps(change), status, _now()))
         made.append(get_proposal(db, pid))
     return made
+
+
+@contextmanager
+def free_only():
+    """The improvement loop's model calls on the free quota only (its own rule, module docstring), and the
+    daemon's setting put back afterwards: the nightly rule draft timed out on the free model and was sent
+    to the billed key on 27 and 28 Oct (production log, 10:08 and 10:05), and the eval switched the paid
+    fallback off for the whole daemon and never back on (ledger audit, 2026-10-28)."""
+    from . import free_llm
+    with free_llm.free_only():  # this thread only: a production run beside it keeps its paid fallback
+        yield
 
 
 def _draft_rule(klass: str, examples: List[str]) -> Optional[str]:
     try:
         from . import free_llm
-        if not free_llm.ready():
+        # Only the free engine is free: on the Claude engine free_llm.call goes to Claude itself.
+        if not (free_llm.enabled() and free_llm.ready()):
             return None
-        out = free_llm.call(
-            "You maintain the writing rules of a short history-documentary scriptwriter. A problem keeps recurring in its "
-            "drafts. Write ONE rule, at most 40 words, that would prevent it. The rule may only make the writer stricter or "
-            "clearer; it must never relax accuracy, sourcing or hedging requirements.",
-            f"Problem class: {klass}\nRecent examples:\n" + "\n".join(f"- {e}" for e in examples), _Rule,
-            role="writer", task_class="light", effort="low", max_tokens=300)
+        with free_only():
+            out = free_llm.call(
+                "You maintain the writing rules of a short history-documentary scriptwriter. A problem keeps recurring in "
+                "its drafts. Write ONE rule, at most 40 words, that would prevent it. The rule may only make the writer "
+                "stricter or clearer; it must never relax accuracy, sourcing or hedging requirements.",
+                f"Problem class: {klass}\nRecent examples:\n" + "\n".join(f"- {e}" for e in examples), _Rule,
+                role="writer", task_class="light", effort="low", max_tokens=300)
         rule = out.rule.strip()
         return rule if 10 <= len(rule) <= 320 else None
     except Exception as e:
@@ -422,7 +653,10 @@ def revert(db, pid: str, by: str) -> str:
 
 
 def decline(db, pid: str, by: str) -> str:
+    p = get_proposal(db, pid)
     _set_status(db, pid, "declined", by)
+    if p and p.get("tier") == "info":
+        return "Noted. Nothing is changed; it is shown again only if it recurs after this."
     return "Declined. The class keeps being counted; it won't be proposed again unless it recurs after this."
 
 
@@ -477,10 +711,17 @@ def card(p: Dict[str, Any]) -> Tuple[str, List[List[Dict[str, str]]]]:
         v = p["eval"]
         lines.append(f"Eval on {v['paired_topics']} topics: better on {v['wins']}, worse on {v['losses']}, "
                      f"traced claims {v['traced_delta']:+.0%}.")
+    # A policy class or a gate an independent check confirmed says so, instead of inviting a "fix" that
+    # would loosen the gate (ledger audit, 2026-10-28). The policy note is by class, so older cards get it too.
+    advice = ev.get("advice") or POLICY_CLASSES.get(p.get("klass"))
+    if advice:
+        lines.append(f"<i>{e(advice)}</i>")
     examples = [f"• {e(x[:900])}" for x in ev.get("examples", [])[:3]]
     if examples:  # whole, folded: cut at 200 characters they ended mid-word (2026-10-24)
         lines.append("<blockquote expandable>" + "\n".join(examples) + "</blockquote>")
-    if p["tier"] == "prompt":
+    if p["tier"] == "info" or p.get("klass") in POLICY_CLASSES:
+        buttons = [[{"text": "✔ Noted", "callback_data": f"impno:{p['id']}"}]]
+    elif p["tier"] == "prompt":
         buttons = [[{"text": "✅ Adopt rule", "callback_data": f"impok:{p['id']}"},
                     {"text": "✖ Decline", "callback_data": f"impno:{p['id']}"}]]
     else:
@@ -504,11 +745,33 @@ FINDING_NAMES = {"run.failed.ScriptUnavailableError": "Runs stopped: no usable s
                  "script.rounds": "Scripts that took several drafts",
                  "script.trope": "Stock phrases in a script",
                  "script.poll": "Poll questions that needed rewording",
+                 "script.poll_repaired": "Poll questions reworded by the code (no rule needed)",
                  "video.other": "Other problems the video check found",
                  "video.captions": "Captions the video check flagged",
                  "review.other": "Other reasons you gave",
                  "review.sound": "Sound, from your reviews",
                  "check.second_unavailable": "Second fact check unavailable",
+                 "check.second_rejected": "Second fact check rejected the script",
+                 # run failures by cause and the classes the corrected classifiers file (2026-10-28)
+                 "run.failed.voice_length": "Runs stopped: voiceover outside its length limits",
+                 "run.failed.guardrail": "Runs stopped: the fact checks rejected the script",
+                 "run.failed.release_blocked": "Runs stopped: the release gate held the video",
+                 "run.failed.missing_photos": "Runs stopped: not enough usable photos",
+                 "run.failed.no_script_source": "Runs stopped: no script writer configured",
+                 "run.failed.script_unavailable": "Runs stopped: no usable script",
+                 "run.failed.fact_starved": "Runs stopped: too few verified facts",
+                 "run.failed.provider_quota": "Runs stopped: model quota or credit used up",
+                 "run.failed.publication_locked": "Runs stopped: a publication was in progress",
+                 "run.failed.audio_master": "Runs stopped: the audio could not meet its loudness limits",
+                 "script.repetition": "Narration repeated a phrase",
+                 "script.ending": "Narration's ending",
+                 "script.slides": "Story or carousel slide text",
+                 "video.picture_relevance": "Pictures that don't show what is said",
+                 "video.text_mismatch": "On-screen text that differs from the narration",
+                 "video.picture_text": "Pictures with printed text (placards, signs)",
+                 "video.face_blur": "Face blurring over artwork",
+                 "video.timing": "A picture or graphic at the wrong moment",
+                 "pictures.licence_excluded": "Pictures left out by your licence setting",
                  "release.asset_rights": "Release gate: picture or music rights",
                  "release.visual_checks": "Release gate: the look at the video",
                  "graphics.emphasis_words": "Graphics: emphasised words",
@@ -535,7 +798,7 @@ def plain_name(klass: str) -> str:
     if area == "run" and rest.startswith("failed."):
         if rest[7:] in ("RuntimeError", "ValueError", "Exception", "TypeError", "KeyError", "OSError"):
             return "Runs stopped: an unexpected error"
-        return "Runs stopped: " + re.sub(r"(?<!^)(?=[A-Z])", " ", rest[7:]).replace(" Error", "").lower()
+        return "Runs stopped: " + re.sub(r"(?<!^)(?=[A-Z])", " ", rest[7:]).replace(" Error", "").replace("_", " ").lower()
     if area == "video" and rest.startswith("beat_"):
         return f"The video check, beat {rest[5:]}"
     name = CLASS_AREAS.get(area, area.replace("_", " ").capitalize())
@@ -590,8 +853,9 @@ def digest_text(db) -> str:
     since = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
     ensure_schema(db)
     with db._conn() as conn:
-        n = conn.execute("SELECT COUNT(*) FROM findings WHERE created_at >= ?", (since,)).fetchone()[0]
-        runs = conn.execute("SELECT COUNT(DISTINCT run_id) FROM findings WHERE created_at >= ?", (since,)).fetchone()[0]
+        live = f"created_at >= ? AND klass NOT LIKE '{RETIRED}%'"  # re-filed passes and repairs are not findings
+        n = conn.execute(f"SELECT COUNT(*) FROM findings WHERE {live}", (since,)).fetchone()[0]
+        runs = conn.execute(f"SELECT COUNT(DISTINCT run_id) FROM findings WHERE {live}", (since,)).fetchone()[0]
     lines = ["📰 <b>Weekly digest</b>", "",
              f"{n} findings across {runs} runs this week."]
     top = recurring(db, days=7, min_count=1)[:6]

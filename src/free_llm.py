@@ -43,6 +43,26 @@ def available() -> bool:
 # A model not listed is priced as the writer model.
 PAID_PRICES = {"gemini-3.8-flash": (0.75, 3.75)}
 ALLOW_PAID_FALLBACK = True  # evals switch this off: a test should never spend
+# Free quota only for the calls made inside free_only(), on this thread: the improvement loop's rule draft runs
+# beside a production run, and switching the module-wide flag off for it would take the paid fallback away
+# from that run's calls too (audit, 2026-10-28)
+_free_only: contextvars.ContextVar = contextvars.ContextVar("free_llm_free_only", default=False)
+
+
+def paid_fallback_allowed() -> bool:
+    return ALLOW_PAID_FALLBACK and not _free_only.get()
+
+
+class free_only:
+    """with free_only(): the calls inside use the free quota only; other threads are not affected."""
+
+    def __enter__(self):
+        self._token = _free_only.set(True)
+        return self
+
+    def __exit__(self, *exc):
+        _free_only.reset(self._token)
+        return False
 
 
 def _paid_cap(task_class: str) -> float:
@@ -79,7 +99,7 @@ def _paid_fallback(system, prompt, schema: Type[T], model: str, task_class: str,
                 return result
             except groq.GroqError as e:
                 log.info("Free Groq model unavailable too (%s).", e)
-    if not (ALLOW_PAID_FALLBACK and config.is_configured(config.GEMINI_API_KEY) and _paid_cap(task_class) > 0):
+    if not (paid_fallback_allowed() and config.is_configured(config.GEMINI_API_KEY) and _paid_cap(task_class) > 0):
         raise FreeQuotaUnavailable(why)
     if config.GEMINI_API_KEY == config.GEMINI_FREE_API_KEY:
         raise FreeQuotaUnavailable(why + " (GEMINI_API_KEY is the free key, so there is no paid fallback)")
@@ -256,7 +276,7 @@ def call(system: str, prompt, schema: Type[T], role: str = "writer", task_class:
 def claude_fallback_ready() -> bool:
     """Claude may stand in for a failed Gemini call: switched on, a key, and a monthly cap above zero
     (a cap of 0 means "no cap" to structured_call, so it never enables an uncapped fallback)."""
-    if not (config.CLAUDE_FALLBACK and config.CLAUDE_MONTHLY_BUDGET_USD > 0 and ALLOW_PAID_FALLBACK):
+    if not (config.CLAUDE_FALLBACK and config.CLAUDE_MONTHLY_BUDGET_USD > 0 and paid_fallback_allowed()):
         return False
     from .llm import claude_available
     return claude_available()

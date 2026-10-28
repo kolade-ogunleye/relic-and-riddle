@@ -53,7 +53,7 @@ def test_only_films_with_their_own_open_licence_and_named_subject_are_taken(arch
     film = usable[0]
     assert film["license"] == "Public domain" and film["source_url"] == "https://archive.org/details/PompeiiAndVesuvius"
     assert film["download_url"].endswith("/PompeiiAndVesuvius.mp4") and film["community_upload"] is False
-    assert "NOT collection:(tvarchive OR tvnews)" in archive[0] and "licenseurl:(" in archive[0]
+    assert "NOT collection:(tvarchive OR tvnews)" in archive[0]   # sorted: the same query every run and "licenseurl:(" in archive[0]
     assert ask == [{"title": "Father Nile (Pompeii edition)", "year": "1931", "contact": "Prelinger Archives: prelingerclips@gmail.com",
                     "source_url": "https://archive.org/details/FatherNile"}]   # no licence: asked for, never taken
 

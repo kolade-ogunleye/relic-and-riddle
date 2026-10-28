@@ -77,7 +77,7 @@ def _best_file(files: List[dict]) -> Optional[dict]:
 def archive_candidates(query: str, keywords: List[str], limit: int = 6) -> Tuple[List[dict], List[dict]]:
     """(films we may use, relevant films to ask about) for one search."""
     licences = " OR ".join(f'"{u}"' for u in OPEN_URLS)
-    base = f"({query}) AND mediatype:movies AND NOT collection:({' OR '.join(BROADCAST)})"
+    base = f"({query}) AND mediatype:movies AND NOT collection:({' OR '.join(sorted(BROADCAST))})"  # one query text every time
     usable, ask = [], []
     found = _get(SEARCH, {"q": f"{base} AND licenseurl:({licences})", "fl[]": ["identifier", "title"], "rows": limit,
                           "output": "json"}) or {}

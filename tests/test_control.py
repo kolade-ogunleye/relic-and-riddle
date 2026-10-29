@@ -638,6 +638,32 @@ def test_cover_variant_selection(db, tmp_path, monkeypatch):
             shutil.rmtree(run_dir)
 
 
+@pytest.mark.parametrize("daemon", [True, False])
+def test_a_locked_cover_resends_the_review_card(db, tmp_path, monkeypatch, daemon):
+    """rc72 item 14: the card is queued to go out again with the new cover, so it can be approved at once; the old
+    card stays invalid (its revision is bumped). Without the daemon's resend action, the old reply stands."""
+    from PIL import Image
+    monkeypatch.setattr("src.config.OUTPUT_DIR", tmp_path)
+    run_dir = tmp_path / "run_test_covers_456"
+    run_dir.mkdir()
+    db.create_run(run_dir.name, "01_topic")
+    db.update_run(run_dir.name, "pending_approval")
+    db.record_approval(run_dir.name, "01_topic", 22)
+    Image.new("RGB", (60, 100), "red").save(run_dir / "thumbnail_variant_b_intrigue.jpg")
+    before = db.get_approval(run_dir.name).get("revision", 0)
+    sent = []
+    actions = {"resend": lambda run_id: sent.append(run_id) or "📨 Sending again…"} if daemon else {}
+    h = make_command_handler(db, lambda: None, lambda: "", run_actions=actions)
+    reply = h("covlock", f"{run_dir.name}:b")
+    assert db.get_approval(run_dir.name)["revision"] == before + 1          # the old card is invalid either way
+    if daemon:
+        assert sent == [run_dir.name]
+        assert reply == ("✅ Cover locked: <b>Variant B (Discovery Intrigue)</b>. The review card is being sent again "
+                         "with it, below.")
+    else:
+        assert sent == [] and "Resend this run for review before approving" in reply
+
+
 def test_progress_card_lifecycle(db, monkeypatch):
     calls = []
     bot = TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})

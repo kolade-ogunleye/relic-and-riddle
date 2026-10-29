@@ -304,6 +304,28 @@ def _finish(raw: Path, out: Path, archetype: str = "megastructure") -> Path:
 
 
 # ----------------------------------------------------------------- Kling
+_NO_CREDIT = re.compile(r"balance|credit|insufficient|top.?up|recharge|arrears|quota exceeded|"
+                                      r"not enough (?:money|funds)", re.IGNORECASE)
+
+
+def out_of_credit(message: str) -> bool:
+    """A provider's refusal for want of credit ("Account balance not enough"), not for the request."""
+    return bool(_NO_CREDIT.search(message or ""))
+
+
+def fallback_note(used: List[str], tried_paid: bool) -> str:
+    """The review card's line when no AI motion was made because a paid provider is out of credit ("" otherwise):
+    "Opening motion: parallax (Kling out of credit)"."""
+    if used or not tried_paid:
+        return ""
+    from . import provider_status
+    shut = [n for n in ("kling",) if n in provider_status.capped()]
+    if not shut:
+        return ""
+    names = ", ".join(provider_status.NAMES.get(n, n) for n in shut)
+    return f"🎞 Opening motion: parallax ({names} out of credit)"
+
+
 def kling_available() -> bool:
     return config.is_configured(config.KLING_API_KEY)
 
@@ -321,7 +343,15 @@ def animate_kling(image: Path, out: Path, prompt: Optional[str] = None, archetyp
     resp = requests.post(f"{base}/image-to-video/kling-3.0", headers=headers, json=body, timeout=60)
     data = resp.json() if resp.content else {}
     if resp.status_code >= 400 or data.get("code") not in (0, None):
-        raise MotionError(f"Kling rejected the request ({resp.status_code}): {data.get('message') or resp.text[:300]}")
+        message = str(data.get('message') or resp.text[:300])
+        if out_of_credit(message):
+            # Said on the dashboard as soon as it is seen, not only in the log (production Derinkuyu, 2026-10-29:
+            # "Account balance not enough" fell back to parallax silently).
+            from . import provider_status
+            provider_status.note_capped("kling", f"the account balance is not enough ({message[:120]}); top up Kling")
+        raise MotionError(f"Kling rejected the request ({resp.status_code}): {message}")
+    from . import provider_status
+    provider_status.clear("kling")  # a request accepted: any out-of-credit notice is over
     task_id = (data.get("data") or {}).get("id")
     if not task_id:
         raise MotionError("Kling returned no task id")

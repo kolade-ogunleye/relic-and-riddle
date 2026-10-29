@@ -26,7 +26,7 @@ from pydantic import BaseModel
 from . import commons, free_llm
 from .config import MIN_SCENE_IMAGES
 from .credits import load_credits, save_credits
-from .llm import LLMError, image_block
+from .llm import LLMError, image_block, verdict_reason
 
 log = logging.getLogger(__name__)
 
@@ -73,7 +73,8 @@ def _verdicts(topic: Dict[str, Any], topic_dir: Path, images: List[Dict[str, Any
         try:
             review = free_llm.call(SYSTEM, content, PoolReview, role=role, task_class="light",
                                     effort="medium", max_tokens=6000)
-            return {v.index: v for v in review.verdicts}
+            # A reason keeps no stray working notes of the model's (llm.verdict_reason); the verdict is its own.
+            return {v.index: v.model_copy(update={"reason": verdict_reason(v.reason)}) for v in review.verdicts}
         except (LLMError, OSError) as e:
             log.warning("Photo review for %s on the %s model failed (%s).", topic["id"], role, e)
     return None

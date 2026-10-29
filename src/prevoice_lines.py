@@ -60,6 +60,7 @@ def pool_descriptions(topic_dir: Path, media: List[Path]) -> List[Dict[str, str]
     archive caption and the photo review's reason. Photos without a record (the shared suite, a clip) have
     nothing to say and are left out; a cropped copy (cache/text_crop) keeps its original's name."""
     from .credits import load_credits
+    from .llm import verdict_reason
     try:
         records = {r.get("file"): r for r in load_credits(Path(topic_dir)).get("images", []) if isinstance(r, dict)}
     except (OSError, ValueError):
@@ -70,7 +71,7 @@ def pool_descriptions(topic_dir: Path, media: List[Path]) -> List[Dict[str, str]
         if not rec or rec["file"] in seen:
             continue
         seen.add(rec["file"])
-        reason = str((rec.get("vision_review") or {}).get("reason") or "").strip()
+        reason = verdict_reason((rec.get("vision_review") or {}).get("reason"))  # a stored stray note too
         text = commons.caption(rec, 200) + (f" (the photo review: {reason})" if reason else "")
         out.append({"file": rec["file"], "text": text})
     return out[:POOL_MAX]
@@ -87,7 +88,7 @@ def judge(narration: str, photos: List[Dict[str, str]], subject: str) -> Optiona
     """[{"sentence", "kind", "photo", "reason"}] per sentence (one light, text-only call), or None when the model
     could not run. A sentence the answer skips is "abstract": never sent back on no evidence."""
     from . import free_llm
-    from .llm import LLMError
+    from .llm import LLMError, verdict_reason
     lines = sentences(narration)
     if not lines or not photos:
         return None
@@ -106,7 +107,7 @@ def judge(narration: str, photos: List[Dict[str, str]], subject: str) -> Optiona
     out = []
     for i, s in enumerate(lines, 1):
         v = by.get(i)
-        out.append({"sentence": s, "kind": v.kind if v else "abstract", "reason": (v.reason or "").strip() if v else "",
+        out.append({"sentence": s, "kind": v.kind if v else "abstract", "reason": verdict_reason(v.reason) if v else "",
                     "photo": v.photo if v and v.kind == "shown" else None})
     return out
 
@@ -126,11 +127,15 @@ def revision_note(lines: List[Dict[str, Any]], photos: List[Dict[str, str]]) -> 
             "The photos: " + "; ".join(f"{i}. {p['text']}" for i, p in enumerate(photos, 1)) + ".")
 
 
-def note(rewritten: List[Dict[str, Any]], left: List[Dict[str, Any]], why_left: str = "") -> str:
-    """The review card's line ("" when every line has a picture)."""
+def note(rewritten: List[Dict[str, Any]], left: List[Dict[str, Any]], why_left: str = "",
+         pictured: Optional[List[str]] = None) -> str:
+    """The review card's line ("" when every line has a picture). `pictured`: the lines a photo was found for
+    before the voice (the picture side), said so the operator can look at those photos."""
     def said(vs):
         return "; ".join(f"“{clip(v['sentence'])}”" for v in vs)
     parts = []
+    if pictured:
+        parts.append(f"a photo found before the voice for: {said([{'sentence': s} for s in pictured])}")
     if rewritten:
         parts.append(f"reworded before the voice: {said(rewritten)}")
     if left:
@@ -145,6 +150,50 @@ def findings(rewritten: List[Dict[str, Any]], left: List[Dict[str, Any]], why_le
              f"({clip(v.get('reason', ''), 160)})" for v in rewritten]
             + [f"before the voice, left as written{f' ({why_left})' if why_left else ''}: '{clip(v['sentence'], 120)}': "
                f"none of the topic's photos shows it ({clip(v.get('reason', ''), 160)})" for v in left])
+
+
+# The picture side first (production Derinkuyu, 2026-10-29: four lines no photo showed cost a writer call, both fact
+# checks, a length edit and a second fact-check round, 20 minutes, and the rewording was then refused). Before a line
+# goes back to the writer, the pictures are looked for: the pool's reserve context shots (descriptions only, no call)
+# and a Commons search for just those lines, bounded as the render's repair search is (GAP_LINES lines, PER_BEAT
+# photos each, through the same licence, relevance, text and look screens). The lines are judged again against the
+# larger pool; only what is still unshown goes to the writer. A photo that shows a line is recorded (SIDE_FILE) and
+# offered to the render, where it is checked against its line again like any other.
+SIDE_FILE = "picture_side.json"
+GAP_LINES = 5          # beat_images.MAX_BEATS: lines a search is made for
+SEARCH_SECONDS = 180   # the picture side's time budget a run (review rc72): the search stops there
+GAP_PREFIX = "line"    # the found photos' names, beside the render's beat and gap photos (run_dir/beat_images)
+
+
+def found_description(cred: Dict[str, Any]) -> Dict[str, str]:
+    """A photo the line search found, described as pool_descriptions describes the pool's: its Commons caption and
+    what the look saw."""
+    from .llm import verdict_reason
+    looked = verdict_reason(cred.get("looked"))
+    return {"file": Path(str(cred.get("file") or "")).name,
+            "text": commons.caption(cred, 200) + (f" (the photo review: {looked})" if looked else "")}
+
+
+def load_side(run_dir: Path) -> Dict[str, Any]:
+    """This run's picture-side record ({"photos", "reserve", "found", ...}), {} when none or unreadable."""
+    import json
+    try:
+        data = json.loads((Path(run_dir) / SIDE_FILE).read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def cited(verdicts: List[Dict[str, Any]], photos: List[Dict[str, str]], first: int) -> List[str]:
+    """The files of photos numbered after `first` (the added ones) that a "shown" verdict names."""
+    out = []
+    for v in verdicts or []:
+        n = v.get("photo")
+        if v.get("kind") == "shown" and isinstance(n, int) and first < n <= len(photos):
+            name = photos[n - 1]["file"]
+            if name not in out:
+                out.append(name)
+    return out
 
 
 def clip(text: str, n: int = 90) -> str:

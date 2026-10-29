@@ -71,6 +71,8 @@ def world(tmp_path, monkeypatch):
     (topic_dir / "credits.json").write_text(json.dumps({"reviewed": True, "images": records}), encoding="utf-8")
     judge = Judge()
     monkeypatch.setattr("src.free_llm.call", judge)
+    # The picture side (2026-10-29) searches Commons first: here it finds nothing, so a line still goes to the writer.
+    monkeypatch.setattr("src.beat_images.source_gaps", lambda *a, **k: ([], []))
     found = []
     monkeypatch.setattr(improve, "note", lambda klass, detail, source="pipeline": found.append((klass, detail)))
     coord = main.PipelineCoordinator.__new__(main.PipelineCoordinator)

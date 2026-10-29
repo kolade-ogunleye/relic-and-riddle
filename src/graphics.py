@@ -1168,6 +1168,9 @@ def make_all(payload: Dict[str, Any], topic: Dict[str, Any], work_dir: Path, pho
         place = geo.locate(topic)
     except Exception as e:
         log.warning("Map lookup failed: %s", e)
+    region = str((topic.get("location") or {}).get("region") or "").strip()
+    if place and region and not place.get("region"):  # recorded with the map, so the line naming it gets the map
+        place = dict(place, region=region)
     if place:
         jobs.append(("map", lambda: render_map(place, work_dir / "graphic_map.mp4", width=width, height=height)))
     if payload.get("timeline"):

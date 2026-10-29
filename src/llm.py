@@ -25,6 +25,7 @@ Resilience and cost control:
 
 import contextvars
 import logging
+import re
 import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -463,6 +464,29 @@ def current_task() -> str:
         return _task.get() or ""
     except LookupError:
         return ""
+
+
+# A model's own working notes left in a verdict's reason (production Derinkuyu, 2026-10-29: "Wait, make sure no
+# control tokens or formatting errors inside JSON." was logged as a picture check's reason). A sentence that talks
+# to itself or about the answer's format is not a reason; the verdict it came with stands.
+_SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+")
+_SELF_TALK = re.compile(
+    r"^\W*(?:wait\b|hmm+\b|let me\b|double[- ]check|re-?check\b|make sure\b|note to self|self[- ]correction|"
+    r"on second thought|(?:ok(?:ay)?|alright|so|now),?\s+(?:let me|wait)\b)", re.IGNORECASE)
+_FORMAT_TALK = re.compile(r"\b(?:json|control tokens?|formatting errors?|output format)\b|```", re.IGNORECASE)
+
+
+def verdict_reason(text: str) -> str:
+    """`text` (a model's one-line reason for a verdict) without its stray reasoning: only clearly meta sentences,
+    the model talking to itself ("Wait, ...", "Let me ...", "make sure ...") or about the answer's format (JSON,
+    control tokens). A reason that starts "OK," or "I think" is a reason and stays. The verdict is never changed
+    here; "" when nothing is left."""
+    text = " ".join(str(text or "").split())
+    if not text:
+        return ""
+    kept = [s for s in _SENTENCE_SPLIT.split(text)
+            if s.strip() and not _SELF_TALK.match(s) and not _FORMAT_TALK.search(s)]
+    return " ".join(kept).strip()
 
 
 def format_sources(sources: List[Source]) -> str:

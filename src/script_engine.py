@@ -34,7 +34,7 @@ from . import free_llm
 from .llm import LLMError, claude_available, format_sources, research, structured_call, task as llm_task
 from . import fact_sheet, improve, trace_check
 from .models import (CarouselSlide, DeepDivePackage, DocumentaryAct, GraphicsPlan, Poll, ScriptCore, ScriptPackage,
-                     Source, StorySlide)
+                     Source, StorySlide, ThumbnailCopy)
 
 
 log = logging.getLogger(__name__)
@@ -100,12 +100,13 @@ Location: {location}
 Topic notes (unverified): {key_facts}
 
 Requirements:
+- narration: open on the verified facts' most surprising discovery or human-stakes fact (the mystery first: viewers decide in under two seconds), never on a list of measurements; the first sentence at most 14 words. Place the site for the viewer ({location}: its region or country, not only its own name) within the first 3 sentences. Never put a unit conversion or an aside in brackets: the voice does not say it. The title, the caption and the narration tell the same story: a figure, year or discovery the title or caption leads with is told in the narration too. Word budget by role: the hook (at most 14 words) carries the discovery or mystery and, ideally, the place; the place is named inside an existing sentence ("Beneath a house in <place>, <country>, ..."), never as a sentence added for it; then 3-4 fact sentences; then the closing sentence; the total inside the Length range below. The discovery-first opening replaces measurement sentences, it is not added to them; one hedge may cover two related figures.
 - title: the Facebook Reel title shown under the video: at most 60 characters, specific and intriguing (a name, a number or a tension, not a label like "The History of X"); at most one relevant emoji.
 - caption: written like a magazine editor, not a template. First line: a curiosity-driven line of at most 110 characters (a hard limit of 125 is shown before "more"; stay well under it) that is NOT the narration's hook sentence. Then 2-3 short sentences that add context the video doesn't say (a detail, a consequence, a name), with the place worked naturally into the prose. Then one genuine question to the audience. Then the hashtags on the last line. Use 1-3 relevant emoji where they add warmth or meaning (for example one at the end of the first line and one on the question), never as labels or bullet markers, and no "📍" lines. Under 1,600 characters.
 - carousel_caption: a separate caption for the 7-slide carousel of the same topic, different wording from the Reel caption (not a rephrase of its first line): a short invitation to look through the slides ("Swipe through ..." is fine; never say which way), one fresh detail, one question, then the same hashtags. Use 1-3 relevant emoji where they add warmth or meaning, as in the caption (never a pointing hand or an arrow). Under 800 characters. It is posted as Instagram's carousel and as Facebook's photo grid, which place the caption and the photos differently.
 - No direction cues in any text (captions, title, first comment, share line, slides, stories): no pointing-hand or arrow emoji or symbols (such as 👉 👇 👆 ☝️ ➡️ ⬇️ → ↓), no "swipe right/left/up/down", and no "below" or "above" for the comments, caption or photos (write "in the comments", not "in the comments below"). Each platform places these differently and may change it.
 - No engagement bait in any text (Meta demotes it): never ask for likes or reactions ("like this if", "react with", "double tap if"), votes by reaction, shares to a number of people ("share with 5 friends"), tags ("tag someone who") or set replies ("comment YES", "type 1 if"). Ask a genuine question instead.
-- hashtags: 3-5 (Instagram allows at most 5), each starting with "#": specific to the place, era or subject (e.g. "#Cappadocia", "#ByzantineHistory"); no generic engagement tags like "#viral", "#fyp", "#ReelsViral", "#explore".
+- hashtags: 3-5 (Instagram allows at most 5), each starting with "#": specific to the place, era or subject (e.g. "#<Place>", "#<Era>History"); no generic engagement tags like "#viral", "#fyp", "#ReelsViral", "#explore".
 - story_slides: exactly 3 (hook, revelation, question). Slide 3 asks the poll's question; its body gives context and asks nothing else. Each body is one complete sentence of at most {story_words} words ({poll_words} on slide 3): it must fit three lines at the Story's text size, and long words and names take more room.
 - poll: an either/or question (at most 60 characters) and exactly 2 options (each at most 24 characters) that are its two answers, e.g. "Planned or lucky?" with "Careful planning" / "Lucky accident". Never a yes/no question with options that are not yes/no.
 - carousel_slides: exactly 7 (title slide, five fact slides, closing call-to-comment slide). Slide 7 MUST ask a humane, universally resonant, thought-provoking question that appeals to all demographics (e.g. human ingenuity, civilizational survival, what modern humans have forgotten, or enduring mysteries) rather than narrow academic trivia, compelling viewers to debate in the comments.
@@ -166,23 +167,37 @@ Keep the closing sentence and every other field as they are.
 A REPEAT finding names a phrase the narration says twice: reword the later sentence ("find" = that whole sentence) so
 the phrase is said once, keeping its facts and its hedge (one hedge can cover two related figures). Never let an edit
 say again a phrase the narration already says (the REPEATS list), and keep every disputed figure's hedge wherever the
-figure is stated (MANDATORY HEDGES)."""
+figure is stated (MANDATORY HEDGES).
+An OPENING finding is about how the narration starts: place the site (its region or country) in one of the first
+sentences, open on the story the title and caption tell, or cut the first sentence to the words the finding gives,
+each with verified facts only and every hedge kept. Never add a sentence for it: name the place inside an existing
+sentence ("Beneath a house in <place>, <country>, ..."), and let the discovery replace a measurement sentence. If the
+first sentence changes, apply the same edit to hook_sentence.
+WORD BUDGET (every edit keeps it): the hook at most 14 words, 3-4 fact sentences, the closing sentence, the total
+inside the word window a LENGTH finding names.
+GRAPHICS (stat cards, timeline, scale, cross-section, route, photo labels, emphasis words) are listed under <graphics>,
+one field per line by its path. To change one, set "target" to that path ("stat_cards[2].value") with "find" = the
+text in that field and "replace" = its new text; to remove a whole entry, set "target" to the entry ("stat_cards[2]")
+with "find" "" and "replace" "". Never copy JSON syntax (braces, quotes, commas) into "find". A disputed figure on a
+graphic keeps its hedge in its text ("about 280 ft", "up to <N> levels"), or its entry is removed. Emphasis words
+must be words the narration says: if an edit takes one out of the narration, change or remove that emphasis word too."""
 
 
 class Edit(BaseModel):
     find: str
     replace: str
+    target: Optional[str] = None   # a graphic field or entry by its <graphics> path ("stat_cards[2].value")
 
 
 class Edits(BaseModel):
     edits: List[Edit]
 
 
-GRAPHICS_SYSTEM = """You plan the on-screen graphics for a finished, fact-checked history Reel script. Use only facts stated in the narration or the research notes; never add new claims. Keep every hedge the narration uses: if it says "about", "up to", "estimated" or gives a range, the graphic must too (put the hedge in the value text, e.g. "about 280 ft", or set approximate=true). Graphics are fact-checked like the narration, and a flat figure where sources disagree is rejected. Leave a field null when the facts don't support it."""
+GRAPHICS_SYSTEM = """You plan the on-screen graphics for a finished, fact-checked history Reel script. Use only facts stated in the narration or the research notes; never add new claims. Keep every hedge the narration uses: if it says "about", "up to", "estimated" or gives a range, the graphic must too (put the hedge in the value text, e.g. "about 280 ft", or set approximate=true). Graphics are fact-checked like the narration, and a flat figure where sources disagree is rejected: a disputed figure or range (the MANDATORY HEDGES list) on a stat card, timeline, scale or cross-section carries its hedge in its own text, or is left out of the graphics. Emphasis words are only words the narration says. Leave a field null when the facts don't support it."""
 
 GRAPHICS_PROMPT = """Plan the graphics for this script.
 
-- emphasis_words: 1-3 words or short names copied exactly from the narration that carry the story (a striking number, a name, a place). They get a gold highlight on screen, so choose sparingly.
+- emphasis_words: 1-3 words or short names copied exactly from the narration that carry the story (a striking number, a name, a place). Each must be words the narration above says, character for character (a number as the narration writes it); never a word only the research notes or an earlier draft use. They get a gold highlight on screen, so choose sparingly.
 - timeline: 2-4 dated events from the story, oldest first, only dates the research supports (approximate=true for estimates; negative years for BC; labels at most 40 characters). Omit (null) if the story has fewer than two solid dates.
 - scale_fact: one striking, well-sourced size (depth, height or length) of the subject, for an on-screen comparison with a famous landmark (subject at most 28 characters); null if no reliable figure.
 - stat_cards: 1-2 headline figures from the research (value as it should appear, US units first, at most 22 characters, plus a label of at most 40 characters); null if none is striking and solid.
@@ -529,6 +544,17 @@ def spoken_length_problems(pkg: ScriptPackage) -> List[str]:
     return []
 
 
+def take_band(seconds: float) -> str:
+    """A recorded take against the band its script was planned for: "inside" (TARGET_DURATION_MIN to
+    HARD_DURATION_CEILING), "short" (read again), "long" (past the plan, kept up to VOICE_DURATION_CEILING) or
+    "over" (past that)."""
+    if seconds < TARGET_DURATION_MIN:
+        return "short"
+    if seconds <= HARD_DURATION_CEILING:
+        return "inside"
+    return "long" if seconds <= config.VOICE_DURATION_CEILING else "over"
+
+
 def refit_speed(seconds: float, speed: float = 1.0) -> Optional[float]:
     """The speed for one more take when a real voiceover ran over the ceiling, or None (it fits, or even the
     fastest allowed read would not). Aims just inside the ceiling, never past SPEECH_SPEEDUP_MAX."""
@@ -653,7 +679,10 @@ def mandatory_hedges_note(sheet: Optional[Dict[str, Any]], texts: Optional[List[
     return ("\n\nMANDATORY HEDGES: these figures are disputed. Every text that states one keeps its hedge, or an "
             "equivalent (\"about\", \"roughly\", \"an estimated\", \"up to\", a range): the narration, the caption, "
             "the carousel caption, the first comment, every story and carousel slide, and every graphic (titles and "
-            "covers are exempt). A flat figure anywhere is rejected. Never the same hedge twice in one text: two "
+            "covers are exempt). A flat figure anywhere is rejected. GRAPHICS too: a stat card's value or label, a "
+            "timeline entry, the scale figure, a cross-section depth, a route or photo label that states a disputed "
+            "figure or range carries the hedge in its own text (\"about 280 ft\", \"up to <N> levels\") or is marked "
+            "approximate; one that cannot carry it is left out of the graphics. Never the same hedge twice in one text: two "
             "figures there share one hedge (\"by one estimate, X and Y\"), or each takes a different wording.\n"
             + "\n".join(lines))
 
@@ -693,6 +722,223 @@ def _graphic_lines(key: str, value: Any) -> List[str]:
     except (KeyError, TypeError, ValueError, AttributeError):
         return []
     return [ln for ln in material.splitlines() if ln.startswith(_GRAPHIC_PREFIXES)]
+
+
+# ---------------------------------------------------------------- graphic edits (production, Derinkuyu 2026-10-29)
+# The surgical reviser was shown the draft as indented JSON and asked for find/replace text: to drop a stat card it
+# copied the card's JSON (',\n  {\n   "value": "8 to 18",\n   "label": "Subterranean level...'), which no text
+# search of the draft can find, and the whole draft was rewritten. A graphic is now edited by its fields: an edit
+# names the field or entry by path (target), and a JSON fragment without one is matched to the one entry it quotes.
+_GRAPHIC_PATH = re.compile(r"^\s*(\w+)\s*(?:\[\s*(\d+)\s*\])?\s*(?:\.\s*(\w+))?\s*$")
+_NESTED_PATH = re.compile(r"^\s*(\w+)\s*\.\s*(\w+)\s*\[\s*(\d+)\s*\]\s*(?:\.\s*(\w+))?\s*$")
+_JSON_PAIR = re.compile(r'"(\w+)"\s*:\s*("(?:[^"\\]|\\.)*("?)|-?\d+(?:\.\d+)?|true|false|null)')
+_JSON_SYNTAX = re.compile(r'[\s,{}\[\]":]+')
+
+
+def graphic_paths(draft: Dict[str, Any]) -> List[str]:
+    """Each graphic field of `draft` as 'path: value' ("stat_cards[1].value: 280 ft"), entries numbered from 1:
+    what the surgical reviser targets."""
+    out = []
+    for field in GRAPHICS_FIELDS:
+        value = draft.get(field)
+        items = value if isinstance(value, list) else [value] if isinstance(value, dict) else []
+        for i, item in enumerate(items, 1):
+            at = f"{field}[{i}]" if isinstance(value, list) else field
+            if isinstance(item, dict):
+                for k, v in item.items():
+                    if isinstance(v, list):   # a cross-section's levels
+                        out += [f"{at}.{k}[{j}].{sk}: {sv}" for j, sub in enumerate(v, 1)
+                                for sk, sv in (sub.items() if isinstance(sub, dict) else [])]
+                    elif v is not None:
+                        out.append(f"{at}.{k}: {v}")
+            elif item is not None:
+                out.append(f"{at}: {item}")
+    return out
+
+
+def _drop_entry(draft: Dict[str, Any], field: str, index: int) -> None:
+    """Removes entry `index` (0-based) of a list graphic; the whole graphic when too few entries remain for it."""
+    items = list(draft.get(field) or [])
+    del items[index]
+    draft[field] = items if len(items) >= _GRAPHIC_MIN_ENTRIES.get(field, 1) else None
+
+
+def _json_value(raw: str):
+    """A JSON fragment's value: a string (a cut-off one too), a number, true/false or null."""
+    if raw.startswith('"'):
+        body = raw[1:-1] if len(raw) > 1 and raw.endswith('"') else raw[1:]
+        try:
+            return json.loads(f'"{body}"')
+        except ValueError:
+            return body
+    return json.loads(raw)
+
+
+def _replaced(old: str, find: str, replace: str) -> Optional[str]:
+    """`old` with `find` replaced (the whole of it when `find` is "" or `old` itself); None when it is not there."""
+    if find and find in old:
+        return old.replace(find, replace)
+    if not find or find == old:
+        return replace
+    return None
+
+
+def _set_field(entry: Dict[str, Any], key: str, find: str, replace: str) -> bool:
+    """entry[key] edited: text by find/replace, a number or a flag set to the value `replace` gives."""
+    if key not in entry:
+        return False
+    old = entry[key]
+    if isinstance(old, bool):
+        flag = replace.strip().lower()
+        if flag not in ("true", "false"):
+            return False
+        entry[key] = flag == "true"
+    elif isinstance(old, (int, float)):
+        try:
+            entry[key] = float(replace) if isinstance(old, float) else int(float(replace))
+        except ValueError:
+            return False
+    elif isinstance(old, str):
+        new = _replaced(old, find, replace)
+        if new is None:
+            return False
+        entry[key] = new
+    else:
+        return False
+    return True
+
+
+def graphic_edit(draft: Dict[str, Any], target: Optional[str], find: str, replace: str) -> bool:
+    """Applies one edit to a graphic of `draft` (changed in place) by its fields, never by a text search of the
+    serialized draft: by `target` (a graphic_paths path), else by the one entry a JSON fragment in `find` quotes.
+    An entry removed takes its graphic with it when too few entries remain (_GRAPHIC_MIN_ENTRIES). False, with
+    the draft unchanged, when the edit names no graphic it can apply to."""
+    import copy
+    work = copy.deepcopy(draft)
+    done = (_apply_targeted(work, target, find, replace) if (target or "").strip()
+            else _apply_fragment(work, find, replace))
+    if done:
+        draft.clear()
+        draft.update(work)
+    return done
+
+
+def _apply_nested(draft: Dict[str, Any], m, find: str, replace: str) -> bool:
+    """A field of a graphic's own list ("cross_section.levels[2].label"), or that list's entry removed
+    ("cross_section.levels[2]" with replace ""); a cross-section left with fewer than 2 levels is removed."""
+    field, key, j, sub = m.group(1), m.group(2), int(m.group(3)) - 1, m.group(4)
+    value = draft.get(field)
+    items = value.get(key) if isinstance(value, dict) else None
+    if not isinstance(items, list) or not 0 <= j < len(items):
+        return False
+    if sub is None:
+        if replace.strip():
+            return False
+        del items[j]
+        if len(items) < 2:
+            draft[field] = None
+        return True
+    return isinstance(items[j], dict) and _set_field(items[j], sub, find, replace)
+
+
+def _apply_targeted(draft: Dict[str, Any], target: str, find: str, replace: str) -> bool:
+    nested = _NESTED_PATH.match(target or "")
+    if nested:
+        return nested.group(1) in GRAPHICS_FIELDS and _apply_nested(draft, nested, find, replace)
+    m = _GRAPHIC_PATH.match(target or "")
+    if not m or m.group(1) not in GRAPHICS_FIELDS or draft.get(m.group(1)) is None:
+        return False
+    field, index, key = m.group(1), m.group(2), m.group(3)
+    value, gone = draft[field], not replace.strip()
+    if isinstance(value, dict):   # the scale fact, the cross-section: one entry, no index
+        if index is not None:
+            return False
+        if key is None:
+            if gone:
+                draft[field] = None
+            return gone
+        return _set_field(value, key, find, replace)
+    if not isinstance(value, list):
+        return False
+    if index is None:   # the whole graphic: only removed
+        if gone and key is None:
+            draft[field] = None
+        return gone and key is None
+    i = int(index) - 1
+    if not 0 <= i < len(value):
+        return False
+    entry = value[i]
+    if key is None:
+        if gone:
+            _drop_entry(draft, field, i)
+            return True
+        if isinstance(entry, str):   # an emphasis word, a photo label
+            new = _replaced(entry, find, replace)
+            if new is None:
+                return False
+            value[i] = new
+            return True
+        return _update_entry(entry, replace)
+    if not isinstance(entry, dict) or not _set_field(entry, key, find, replace):
+        return False
+    if isinstance(entry[key], str) and not entry[key].strip():
+        _drop_entry(draft, field, i)   # an entry with an empty field says nothing
+    return True
+
+
+def _update_entry(entry: Any, replace: str) -> bool:
+    """The fields a JSON fragment in `replace` quotes, set on `entry` (only fields it already has)."""
+    new = {k: _json_value(v) for k, v, _ in _JSON_PAIR.findall(replace or "")}
+    if not isinstance(entry, dict) or not new or any(k not in entry for k in new):
+        return False
+    entry.update(new)
+    return True
+
+
+def _apply_fragment(draft: Dict[str, Any], find: str, replace: str) -> bool:
+    """An edit whose `find` is a piece of a graphic's JSON: the one entry whose fields it quotes is changed to the
+    fields `replace` quotes, or removed when `replace` holds nothing but JSON syntax. A quoted word of a word list
+    (emphasis words, photo labels) is replaced or removed the same way."""
+    find = find or ""
+    pairs = _JSON_PAIR.findall(find)
+    if not pairs:
+        word = _JSON_SYNTAX.sub(" ", find).strip()
+        if '"' not in find or not word:
+            return False
+        for field in ("emphasis_words", "photo_labels"):
+            items = draft.get(field) or []
+            if word in items:
+                i, new = items.index(word), _JSON_SYNTAX.sub(" ", replace or "").strip()
+                if new:
+                    items[i] = new
+                else:
+                    _drop_entry(draft, field, i)
+                return True
+        return False
+    wanted = [(k, _json_value(v), v.startswith('"') and not closed) for k, v, closed in pairs]
+
+    def same(have: Any, want: Any, cut: bool) -> bool:
+        if cut:   # the fragment's last string, cut off: a prefix of the field
+            return isinstance(have, str) and have.startswith(want)
+        if isinstance(want, (int, float)) and not isinstance(want, bool):
+            return isinstance(have, (int, float)) and not isinstance(have, bool) and float(have) == float(want)
+        return have == want
+
+    def matches(entry: Any) -> bool:
+        return isinstance(entry, dict) and all(same(entry.get(k), v, cut) for k, v, cut in wanted)
+    hits = [(field, i) for field in GRAPHICS_FIELDS if isinstance(draft.get(field), list)
+            for i, entry in enumerate(draft[field]) if matches(entry)]
+    hits += [(field, None) for field in GRAPHICS_FIELDS if isinstance(draft.get(field), dict) and matches(draft[field])]
+    if len(hits) != 1:
+        return False   # no entry, or more than one it could mean
+    field, i = hits[0]
+    if not _JSON_SYNTAX.sub("", replace or ""):
+        if i is None:
+            draft[field] = None
+        else:
+            _drop_entry(draft, field, i)
+        return True
+    return _update_entry(draft[field][i] if i is not None else draft[field], replace)
 
 
 def without_blocked_sentences(payload: Dict[str, Any], notes: str) -> Optional[Dict[str, Any]]:
@@ -1080,6 +1326,296 @@ def _first_sentence(narration: str) -> str:
 def _spoken_words(sentence: str) -> List[str]:
     """The sentence's words as they are said and captioned (a dash between two words separates them)."""
     return [w for w in re.split(r"[\s—–]+", sentence) if re.search(r"\w", w)]
+
+
+# ---------------------------------------------------------------- the story the draft tells (Derinkuyu, 2026-10-29)
+# Production's Derinkuyu run passed every gate with weak content: its narration never named Cappadocia or Turkey (the
+# map was rendered and placed on no beat: the planner puts it on a line naming the place), its title and caption told
+# the 1963 discovery while the narration listed measurements, and "280 feet (85 m)" stood in the narration. These are
+# checked on every writer draft (draft_problems, with the topic the run is writing) and fixed by one short edit of
+# the narration's opening (ScriptEngine._edit_story), never a full rewrite; a draft the edit cannot fix is kept with
+# the finding, as a weak hook is (blocking_problems).
+STORY_PROBLEM = "Story: "      # every story problem starts so; the writer loop recognises them
+PLACE_WITHIN = 3               # sentences: the site is placed (region or country) this early, where the map can go
+import contextvars as _contextvars
+_draft_topic: _contextvars.ContextVar = _contextvars.ContextVar("script_draft_topic", default=None)
+# A bracketed aside in the narration: a unit conversion ("(85 m)") or any other. The voice never says it
+# (audio_engine.normalize_speech_text), so the narration does not carry it either: its words are what is said,
+# captioned and measured. The captions and graphics keep their own figures.
+
+
+def spoken_narration(text: str) -> str:
+    """`text` without bracketed asides ("280 feet (85 m) underground" -> "280 feet underground"), exactly as the
+    voice drops them (audio_engine.strip_asides: nested ones whole)."""
+    if "(" not in (text or "") and ")" not in (text or ""):
+        return text
+    out = audio_engine.strip_asides(text)
+    return re.sub(r"[ \t]+([.,;:!?])", r"\1", re.sub(r"[ \t]{2,}", " ", out)).strip()
+
+
+def _folded(text: str) -> str:
+    from .unesco import _fold
+    return " " + " ".join(re.findall(r"[a-z0-9]+", _fold(str(text or "")))) + " "
+
+
+def place_names(topic: Optional[Dict[str, Any]]) -> List[str]:
+    """The names that place the topic's site for a viewer: its region's parts, its city and its country (from the
+    topic's location), less any the title already says (the site's own name places nothing)."""
+    loc = (topic or {}).get("location") or {}
+    title = _folded((topic or {}).get("title", "")) + _folded(loc.get("name", ""))
+    names = []
+    for part in [*re.split(r"\s*[/,;]\s*", str(loc.get("region") or "")), loc.get("city"), loc.get("country")]:
+        part = str(part or "").strip()
+        if part and _folded(part).strip() and _folded(part) not in title and part not in names:
+            names.append(part)
+    return names
+
+
+def place_problems(narration: str, topic: Optional[Dict[str, Any]]) -> List[str]:
+    """The site is never placed in the narration's first PLACE_WITHIN sentences."""
+    names = place_names(topic)
+    if not names:
+        return []
+    opening = _folded(" ".join(_split_sentences(narration)[:PLACE_WITHIN]))
+    if any(_folded(n) in opening for n in names):
+        return []
+    return [f"{STORY_PROBLEM}the narration never places the site in its first {PLACE_WITHIN} sentences: name "
+            f"{' or '.join(repr(n) for n in names)} in one of them (the map is shown on that line), keeping it a "
+            "verified fact."]
+
+
+_UNITS = {w: i for i, w in enumerate("zero one two three four five six seven eight nine ten eleven twelve thirteen "
+                                     "fourteen fifteen sixteen seventeen eighteen nineteen".split())}
+_TENS = {w: 10 * i for i, w in enumerate("_ _ twenty thirty forty fifty sixty seventy eighty ninety".split()) if i > 1}
+_ORDINALS = {w: i for i, w in enumerate("_ first second third fourth fifth sixth seventh eighth ninth tenth eleventh "
+                                        "twelfth thirteenth fourteenth fifteenth sixteenth seventeenth eighteenth "
+                                        "nineteenth twentieth".split()) if i > 0}
+_SCALES = {"hundred": 100, "thousand": 1000, "million": 10 ** 6, "billion": 10 ** 9}
+
+
+def spelled_numbers(text: str) -> List[float]:
+    """Numbers written as words: "two thousand" -> 2000, "twenty-five" -> 25, "eighth" -> 8, "Five" -> 5."""
+    out, total, current, seen = [], 0, 0, False
+    for word in re.findall(r"[a-z]+", (text or "").lower()) + ["."]:
+        if word in _UNITS or word in _TENS or word in _ORDINALS:
+            current += _UNITS.get(word, _TENS.get(word, _ORDINALS.get(word, 0)))
+            seen = True
+        elif word in _SCALES and seen:
+            if word == "hundred":
+                current = max(current, 1) * 100
+            else:
+                total += max(current, 1) * _SCALES[word]
+                current = 0
+        elif word == "and" and seen:
+            continue
+        else:
+            if seen:
+                out.append(float(total + current))
+            total, current, seen = 0, 0, False
+    return out
+
+
+def told_story_problems(pkg: ScriptPackage) -> List[str]:
+    """The title and the caption's first line tell a story the narration does not: a figure or year they state
+    that the narration never says (production Derinkuyu: "An ordinary basement renovation in 1963 uncovered an
+    entire hidden civilization" over a narration of measurements)."""
+    first_line = next((ln for ln in (pkg.caption or "").splitlines() if ln.strip()), "")
+    # Said as digits, as words ("two thousand", "eighth") or in the other unit (280 feet / 85 meters): the same figure.
+    said = fact_sheet.numbers_in(pkg.narration_script) + spelled_numbers(pkg.narration_script)
+    missing = []
+    for text in (pkg.title, first_line):
+        for n in fact_sheet.numbers_in(text or ""):   # the headline's digits; the narration may say them in words
+            if not fact_sheet._number_supported(n, said) and n not in missing:
+                missing.append(n)
+    if not missing:
+        return []
+    figures = ", ".join(f"{n:g}" for n in missing)
+    return [f"{STORY_PROBLEM}the title and caption tell a story the narration never says (they state {figures}): "
+            "the narration tells the same story, opening on its most surprising discovery or human stakes, or the "
+            "title and caption follow the narration."]
+
+
+# ---------------------------------------------------------------- headline figures (review rc72, item 15)
+# Titles and covers are exempt from the hedge rule, and their figures were verified by nobody: the development
+# obelisk run's title and cover said "1,200-TON" where the fact sheet gives 1,090-1,168 t. Every figure in the
+# title, the cover (thumbnail) and the caption's first line must now be the verified sheet's: an undisputed figure
+# as it is; a disputed one only as a floor at or below its range's minimum ("1,000+ tonnes"); one only a single
+# estimate gives ("by one estimate") never, since a headline cannot carry the hedge. A miss goes to the copy edit.
+HEADLINE_PROBLEM = "Headline figure in the "
+HEADLINE_MIN = 10          # smaller numbers ("3 secrets", "Top 5") are not checked
+# A unit converts only to another of its own kind (ft/m, t/lb, mi²/km²), and a bare number (a year, a count) to
+# nothing: the obelisk's "1,200-ton" once passed as the year 1922 in miles. Each unit: (kind, its size in the kind's
+# base unit). "ton" is read as the tonne, as headlines use it.
+_UNIT_SIZES = {
+    "m": ("length", 1.0), "metre": ("length", 1.0), "meter": ("length", 1.0), "metres": ("length", 1.0),
+    "meters": ("length", 1.0), "km": ("length", 1000.0), "kilometre": ("length", 1000.0),
+    "kilometer": ("length", 1000.0), "kilometres": ("length", 1000.0), "kilometers": ("length", 1000.0),
+    "ft": ("length", 0.3048), "foot": ("length", 0.3048), "feet": ("length", 0.3048), "yard": ("length", 0.9144),
+    "yards": ("length", 0.9144), "mi": ("length", 1609.34), "mile": ("length", 1609.34),
+    "miles": ("length", 1609.34),
+    "t": ("mass", 1000.0), "ton": ("mass", 1000.0), "tons": ("mass", 1000.0), "tonne": ("mass", 1000.0),
+    "tonnes": ("mass", 1000.0), "kg": ("mass", 1.0), "kilogram": ("mass", 1.0), "kilograms": ("mass", 1.0),
+    "lb": ("mass", 0.4536), "lbs": ("mass", 0.4536), "pound": ("mass", 0.4536), "pounds": ("mass", 0.4536),
+    "km²": ("area", 1.0), "km2": ("area", 1.0), "sq km": ("area", 1.0), "square kilometre": ("area", 1.0),
+    "square kilometer": ("area", 1.0), "square kilometres": ("area", 1.0), "square kilometers": ("area", 1.0),
+    "sq mi": ("area", 2.58999), "square mile": ("area", 2.58999), "square miles": ("area", 2.58999),
+    "acre": ("area", 0.004047), "acres": ("area", 0.004047), "hectare": ("area", 0.01),
+    "hectares": ("area", 0.01), "ha": ("area", 0.01),
+    "year": ("years", 1.0), "years": ("years", 1.0), "yr": ("years", 1.0), "yrs": ("years", 1.0),
+    "%": ("percent", 1.0), "percent": ("percent", 1.0), "per cent": ("percent", 1.0),
+}
+_SAME_UNIT = {"metre": "m", "meter": "m", "metres": "m", "meters": "m", "feet": "ft", "foot": "ft", "tons": "t",
+              "ton": "t", "tonne": "t", "tonnes": "t"}
+_MULTIPLIERS = {"k": 1e3, "thousand": 1e3, "million": 1e6, "billion": 1e9, "bn": 1e9}
+_UNIT_WORDS = "|".join(re.escape(u) for u in sorted(_UNIT_SIZES, key=len, reverse=True))
+_FIGURE = re.compile(
+    r"(?:\b(?P<pre>over|more than|at least|nearly|almost|upwards of)\s+)?"
+    r"(?<![\w.,])(?P<num>\d[\d,]*(?:\.\d+)?)(?P<ord>st|nd|rd|th)?"
+    r"(?:\s*(?P<mult>k|thousand|million|billion|bn)(?![a-z]))?"
+    r"(?P<plus>\s*\+)?"
+    r"(?:[\s-]*(?P<unit>" + _UNIT_WORDS + r")(?![a-z]))?", re.IGNORECASE)
+_RANGE_JOIN = re.compile(r"\s*(?:to|and|or|-|–|—)\s*", re.IGNORECASE)
+_DATE_ERA = re.compile(r"\s*(?:(?P<bc>BCE|BC)|(?P<ad>AD|CE))\b")
+# A capitalised word glued to a bare number names something ("Apollo 11", "Route 66", "Top 10"); these do not.
+_FIGURE_LEADS = {"the", "a", "an", "in", "on", "at", "by", "of", "for", "from", "since", "after", "before", "until",
+                 "over", "under", "nearly", "almost", "about", "around", "all", "its", "their", "only", "just",
+                 "and", "or", "to", "with", "built", "found", "lost", "buried", "carved", "made"}
+_SINGLE_ESTIMATE = re.compile(r"\b(?:by one estimate|one estimate|a single estimate|one source)\b", re.IGNORECASE)
+_draft_sheet: _contextvars.ContextVar = _contextvars.ContextVar("script_draft_sheet", default=None)
+
+
+class _Figure(NamedTuple):
+    value: float           # as written, multiplier applied ("1.2K" -> 1200)
+    floor: bool            # said as a floor: "1,000+", "over 1,000", "at least 1,000"
+    kind: Optional[str]    # "length", "mass", "area", "years", "percent", "ordinal" or None (a bare number)
+    unit: Optional[str]    # the unit as written, folded ("tons" -> "t")
+    base: float            # in the kind's base unit
+    era: Optional[str]     # "bc" / "ad" after a bare number: a date
+    bare_name: bool        # glued to a capitalised name ("Apollo 11")
+
+
+def _headline_texts(pkg: ScriptPackage) -> Dict[str, str]:
+    first_line = next((ln for ln in (pkg.caption or "").splitlines() if ln.strip()), "")
+    t = pkg.thumbnail
+    return {"title": pkg.title or "", "thumbnail": " · ".join((t.eyebrow, t.line1, t.line2, t.tagline)),
+            "caption": first_line}
+
+
+def _figures(text: str) -> List[_Figure]:
+    """The numbers in a text with their units. The first number of a range ("1,090 to 1,168 tonnes") takes the
+    second's unit."""
+    text = text or ""
+    found = []
+    for m in _FIGURE.finditer(text):
+        try:
+            value = float(m.group("num").replace(",", ""))
+        except ValueError:
+            continue
+        value *= _MULTIPLIERS.get((m.group("mult") or "").lower(), 1.0)
+        unit = (m.group("unit") or "").lower() or None
+        era = _DATE_ERA.match(text, m.end())
+        lead = re.search(r"([A-Za-z][\w'’]*)\s*$", text[:m.start()])
+        found.append([m, value, unit, era, bool(m.group("ord")),
+                      bool(lead and lead.group(1)[0].isupper() and lead.group(1).lower() not in _FIGURE_LEADS)])
+    for here, after in zip(found, found[1:]):
+        if not here[2] and not here[4] and after[2] and _RANGE_JOIN.fullmatch(text[here[0].end():after[0].start()]):
+            here[2] = after[2]
+            if not here[0].group("mult") and after[0].group("mult"):
+                here[1] *= _MULTIPLIERS[after[0].group("mult").lower()]
+    out = []
+    for m, value, unit, era, ordinal, glued in found:
+        kind, size = _UNIT_SIZES.get(unit, (None, 1.0)) if unit else ("ordinal" if ordinal else None, 1.0)
+        floor = bool(m.group("plus")) or bool(m.group("pre"))
+        out.append(_Figure(value, floor, kind, _SAME_UNIT.get(unit, unit), value * size,
+                           (("bc" if era.group("bc") else "ad") if era and kind is None else None),
+                           glued and kind is None and not floor))
+    return out
+
+
+def _same(n: _Figure, v: _Figure) -> bool:
+    """The same figure: equal in the same unit, or within 3% once converted between units of one kind."""
+    if n.kind != v.kind or not v.base:
+        return False
+    if n.unit == v.unit:
+        return abs(n.value - v.value) <= 1e-9 * max(1.0, abs(v.value))
+    return abs(n.base - v.base) <= 0.03 * abs(v.base)
+
+
+def _related(n: _Figure, v: _Figure, spread: float = 1.5) -> bool:
+    return n.kind == v.kind and bool(v.base) and n.base / spread <= v.base <= n.base * spread
+
+
+def _said(value: float) -> str:
+    return f"{value:,.0f}" if value >= 100 else f"{value:g}"
+
+
+def _ages(fact: Dict[str, Any], year: int) -> List[float]:
+    """How long ago each date in a fact was: "100 BC" -> 2126 in 2026, "1901" -> 125."""
+    ages = []
+    for f in _figures(f"{fact.get('statement', '')}"):
+        if f.kind is None and f.era == "bc":
+            ages.append(year + f.value - 1)
+        elif f.kind is None and (f.era == "ad" or (f.value == int(f.value) and 1000 <= f.value <= year)):
+            ages.append(year - f.value)
+    return ages
+
+
+def headline_problems(pkg: ScriptPackage, sheet: Optional[Dict[str, Any]] = None) -> List[str]:
+    """Each headline field whose figures the verified sheet does not support as stated (see above)."""
+    if sheet is None:
+        sheet = _draft_sheet.get()
+        sheet = sheet() if callable(sheet) else sheet   # the run's sheet, as the engine has it (never built here)
+    facts = (sheet or {}).get("facts") or []
+    if not facts:
+        return []
+    year = time.gmtime().tm_year
+    figures = [(f, _figures(f"{f.get('statement', '')} {f.get('hedge', '')}")) for f in facts]
+    problems = []
+    for field, text in _headline_texts(pkg).items():
+        wrong = []
+        for n in _figures(text):
+            if n.value < HEADLINE_MIN or n.bare_name:
+                continue
+            related = [f for f, vs in figures if any(_related(n, v) for v in vs)]
+            single = [f for f in related if _SINGLE_ESTIMATE.search(f.get("hedge") or "")
+                      and any(_same(n, v) for v in _figures(f.get("hedge") or ""))]
+            if single:
+                wrong.append(f"{_said(n.value)} (only one estimate gives it: a headline cannot carry the hedge; leave it out)")
+                continue
+            if any(_same(n, v) for f, vs in figures if f in related and not f.get("disputed") for v in vs):
+                continue   # an undisputed, verified figure, said as it is
+            # An age worked out from an undisputed date ("2,000-year-old" for 100 BC), never more than it
+            if n.kind == "years" and any(0.8 * age <= n.value <= age * 1.0001 for f in facts
+                                         if not f.get("disputed") for age in _ages(f, year)):
+                continue
+            if n.floor and related:
+                # The range in the headline's own unit: the related figures, converted
+                size = n.base / n.value if n.value else 1.0
+                lowest = min(v.base / size for f, vs in figures if f in related for v in vs if _related(n, v))
+                if n.value <= lowest * 1.0001:
+                    continue   # a floor at or below the sourced range's minimum
+                wrong.append(f"{_said(n.value)}+ (above the sourced minimum {lowest:,.0f})")
+                continue
+            disputed = any(f.get("disputed") for f in related)
+            wrong.append(f"{_said(n.value)} ({'disputed: say it as a floor at or below the sourced minimum, e.g. a round number with +' if disputed else 'not in the verified facts'})")
+        if wrong:
+            problems.append(f"{HEADLINE_PROBLEM}{field}: " + "; ".join(wrong) + ". A headline states only verified "
+                            "figures: an undisputed one as it is, a disputed one as a floor at or below its range's "
+                            "minimum (\"1,000+\"), none that only one estimate gives.")
+    return problems
+
+
+def _opening_faults(problems: List[str]) -> List[str]:
+    """The faults one edit of the opening fixes: the story problems and a first sentence over HOOK_MAX_WORDS."""
+    return [p for p in problems or [] if p.startswith(STORY_PROBLEM)
+            or (p.startswith(HOOK_PROBLEM) and "-word sentence" in p)]
+
+
+def story_problems(pkg: ScriptPackage, topic: Optional[Dict[str, Any]] = None) -> List[str]:
+    topic = topic if topic is not None else _draft_topic.get()
+    if topic is None:
+        return []
+    return place_problems(pkg.narration_script, topic) + told_story_problems(pkg)
 
 
 def hook_problems(narration: str) -> List[str]:
@@ -1533,7 +2069,7 @@ def split_caption_first_line(caption: str) -> str:
 # miss, a 615-character caption line and a yes/no poll with two choices. Such faults are now fixed by one short
 # edit of those fields only; the narration, its structure and the graphics stay byte for byte.
 COPY_FIELDS = ("title", "caption", "carousel_caption", "first_comment", "share_line", "hashtags", "poll",
-               "story_slides", "carousel_slides")
+               "story_slides", "carousel_slides", "thumbnail")
 _COPY_PREFIXES = (
     ("Title ", ("title",)), ("Caption's first line repeats", ("caption",)), ("Caption", ("caption",)),
     # The captions end on the hashtags line: a tag changed in the list alone would stay in the posted caption.
@@ -1543,6 +2079,8 @@ _COPY_PREFIXES = (
     ("share_line:", ("share_line",)), ("Expected 3 story slides", ("story_slides",)), ("Story slide ", ("story_slides",)),
     ("Expected 7 carousel slides", ("carousel_slides",)), ("carousel_caption", ("carousel_caption",)),
     ("The poll", ("poll",)), ("Poll options", ("poll",)),
+    (HEADLINE_PROBLEM + "title", ("title",)), (HEADLINE_PROBLEM + "thumbnail", ("thumbnail",)),
+    (HEADLINE_PROBLEM + "caption", ("caption",)),
 )
 _BAIT_FIELD = re.compile(r"^Engagement bait in the (title|caption|carousel_caption|first_comment|share_line|poll"
                          r"|story slide \d+|carousel slide \d+) \(")
@@ -1600,7 +2138,10 @@ COPY_EDIT_SYSTEM = """You fix the copy around a finished, fact-checked history v
 only so the listed problems are gone. Keep each field's facts, names, numbers and hedges; change as few words as
 the problem needs (move, cut or reword); never add a fact that is not in the verified facts, and never a figure
 without its hedge. Each field you return replaces the old one whole and must follow its rules and limits. Return
-only the fields you were given; the narration is shown for context and is not yours to change."""
+only the fields you were given; the narration is shown for context and is not yours to change. A title or caption
+leads with the story the narration tells (its discovery, figures and place), never one it does not. A headline
+(title, cover, the caption's first line) states only verified figures: an undisputed one as it is, a disputed one as a
+floor at or below its range's minimum ("1,000+"), none that only one estimate gives (reword it without the figure)."""
 
 
 class _CopyEdit(BaseModel):
@@ -1613,6 +2154,7 @@ class _CopyEdit(BaseModel):
     poll: Optional[Poll] = None
     story_slides: Optional[List[StorySlide]] = None
     carousel_slides: Optional[List[CarouselSlide]] = None
+    thumbnail: Optional[ThumbnailCopy] = None   # the cover's words, for a headline figure the sheet does not support
 
 
 def normalize_copy(pkg: ScriptPackage) -> ScriptPackage:
@@ -1693,18 +2235,20 @@ def draft_problems(pkg: ScriptPackage) -> List[str]:
     """A writer's draft's structural and spoken-length problems, reported together: measured only once the
     structure passed, a draft sent back for its structure came back the wrong length, and that cost the next
     attempt too (production, Hal Saflieni 2026-10-27)."""
-    return validate_structure(pkg) + spoken_length_problems(pkg) + hook_problems(pkg.narration_script)
+    return (validate_structure(pkg) + spoken_length_problems(pkg) + hook_problems(pkg.narration_script)
+            + story_problems(pkg) + headline_problems(pkg))
 
 
 def blocking_problems(problems: List[str]) -> List[str]:
     """The problems that send a draft back: all of them, less the hook rule's unless HOOK_FORCES_REWRITE (those
     ride along with a rewrite that happens anyway)."""
-    return list(problems) if HOOK_FORCES_REWRITE else [p for p in problems if not p.startswith(HOOK_PROBLEM)]
+    kept = (STORY_PROBLEM,) if HOOK_FORCES_REWRITE else (HOOK_PROBLEM, STORY_PROBLEM)
+    return [p for p in problems if not p.startswith(kept)]
 
 
 def _note_kept_hook(problems: List[str]) -> None:
     """A draft kept with a weak opening: said in the log and the findings ledger (script.hook)."""
-    weak = [p for p in problems if p.startswith(HOOK_PROBLEM)]
+    weak = [p for p in problems if p.startswith((HOOK_PROBLEM, STORY_PROBLEM))]
     if weak:
         log.info("Draft kept with an opening the hook rule would rewrite: %s", " ".join(weak)[:300])
         improve.note_problems(weak, "structure")
@@ -1734,10 +2278,14 @@ class ScriptEngine:
         if previous is None or _length_history["key"] != key:
             begin_length_history(key)
         _length_history["on"], _length_history["thread"] = True, threading.get_ident()
+        told = _draft_topic.set(topic)   # the story checks (place, told story) read the topic being written
+        figures = _draft_sheet.set(lambda: self._sheets.get(topic.get("id")))   # the headline figures, its sheet
         try:
             return self._generate_script(topic, max_attempts, revision_notes, previous)
         finally:
             _length_history["on"] = False
+            _draft_topic.reset(told)
+            _draft_sheet.reset(figures)
 
     def _generate_script(self, topic: Dict[str, Any], max_attempts: int = 3, revision_notes: str = "",
                          previous: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -1898,21 +2446,38 @@ class ScriptEngine:
         result = _structured(
             REVISE_SYSTEM,
             f"<verified_facts>\n{fact_sheet.as_prompt(sheet)}\n</verified_facts>\n\n"
-            f"<draft>\n{json.dumps(draft, ensure_ascii=False, indent=1)}\n</draft>\n\n<findings>\n{findings}\n</findings>"
+            f"<draft>\n{json.dumps(draft, ensure_ascii=False, indent=1)}\n</draft>\n\n"
+            + (f"<graphics>\n" + "\n".join(graphic_paths(draft)) + "\n</graphics>\n\n" if graphic_paths(draft) else "")
+            + f"<findings>\n{findings}\n</findings>"
             + mandatory_hedges_note(sheet) + repeat_rules(draft.get("narration_script") or ""),
             Edits, effort="medium", max_tokens=6000)
         text = json.dumps(draft, ensure_ascii=False)
         for e in result.edits:
             find_str = e.find.strip()
             replace_str = e.replace.strip()
+            target = (getattr(e, "target", None) or "").strip()
+            # A graphic is edited by its fields (graphic_edit): by the path the edit names, or the entry a JSON
+            # fragment in "find" quotes; a text search of the serialized draft cannot find a field's JSON.
+            if target or _JSON_PAIR.search(find_str):
+                if graphic_edit(draft, target, find_str, replace_str):
+                    text = json.dumps(draft, ensure_ascii=False)
+                    continue
+                if target and not find_str:
+                    log.warning("Graphic edit for %r not applicable; rewriting instead.", target[:60])
+                    return None
             if not find_str:
                 continue
             old = json.dumps(find_str, ensure_ascii=False)[1:-1]
             new = json.dumps(replace_str, ensure_ascii=False)[1:-1]
-            if old in text:
-                text = text.replace(old, new)
-            elif find_str in text:
-                text = text.replace(find_str, replace_str)
+            if old in text or find_str in text:
+                text = text.replace(old, new) if old in text else text.replace(find_str, replace_str)
+                try:  # the fields stay the record: a later edit, or a graphic's, works on this one's result
+                    draft = json.loads(text)
+                except ValueError as err:
+                    log.warning("Surgical edits broke the draft (%s); rewriting instead.", err)
+                    return None
+            elif graphic_edit(draft, None, find_str, replace_str):   # a quoted emphasis word or label
+                text = json.dumps(draft, ensure_ascii=False)
             else:
                 # Scan individual draft string fields
                 found = False
@@ -2011,7 +2576,9 @@ class ScriptEngine:
         log.info("Length fixed by editing the draft: %d -> %d words.",
                  len(pkg.narration_script.split()), len(fitted.narration_script.split()))
         notes, retrieved = self._sheet_context(sheet)
-        return self._with_graphics(fitted, notes, retrieved, feedback)
+        # The graphics are planned again for the edited words: with the disputed figures' hedges (a flat "8 to 18"
+        # levels card was planned here and rejected: production, Derinkuyu 2026-10-29).
+        return self._with_graphics(fitted, notes, retrieved, mandatory_hedges_note(sheet) + feedback)
 
     def _fix_repeats(self, pkg: ScriptPackage, problems: List[str], sheet: Dict[str, Any]) -> Optional[ScriptPackage]:
         """A draft whose narration says a phrase twice, with the later sentence reworded by one short edit (the
@@ -2094,6 +2661,13 @@ class ScriptEngine:
         def narrow(p: str) -> bool:
             return "when spoken" in p or p.startswith(REPEAT_PROBLEM) or copy_problem_fields(p, pkg) is not None
 
+        if (sheet is not None and _opening_faults(problems) and all(narrow(p) for p in blocking())
+                and not any("when spoken" in p for p in blocking())):   # after a length edit, on its words
+            # The site unplaced, a story the narration does not tell, a hook over its length: one short edit of the
+            # opening (production Derinkuyu 2026-10-29: these were only warned about), not a rewrite.
+            edited = self._edit_story(pkg, problems, sheet)
+            if edited is not None:
+                pkg, problems = edited, draft_problems(edited)
         if not blocking() or not all(narrow(p) for p in blocking()):
             return pkg, problems
         if any(STORY_OVERFLOW.match(p) for p in blocking()):
@@ -2102,6 +2676,9 @@ class ScriptEngine:
             if shortened is not None:
                 pkg, problems = shortened, draft_problems(shortened)
         copy = [p for p in blocking() if copy_problem_fields(p, pkg) is not None]
+        for p in copy:
+            if p.startswith(HEADLINE_PROBLEM):   # a figure the sheet does not support: a finding, then the copy edit
+                improve.note("script.headline_figure", p[:300], "structure")
         if copy and sheet is not None and all(narrow(p) for p in blocking()):
             edited = self._edit_copy(pkg, copy, sheet)
             if edited is not None:
@@ -2111,6 +2688,48 @@ class ScriptEngine:
             if fixed is not None:
                 pkg, problems = fixed, draft_problems(fixed)
         return pkg, problems
+
+    def _edit_story(self, pkg: ScriptPackage, problems: List[str], sheet: Dict[str, Any]) -> Optional[ScriptPackage]:
+        """The opening's faults (_opening_faults: the site not placed in the first sentences, a story the title and
+        caption tell that the narration does not, a first sentence over HOOK_MAX_WORDS) fixed by one surgical edit
+        with the verified facts and the mandatory hedges, or None when the edit fails, fixes none of them or brings
+        a new blocking fault (other than the length, which the caller edits as it would any other draft's). Asked
+        once per narration. The result is fact-checked in full like any draft."""
+        faults = _opening_faults(problems)
+        tried = self.__dict__.setdefault("_story_tried", set())
+        if not faults or pkg.narration_script in tried:
+            return None
+        tried.add(pkg.narration_script)
+        findings = ("OPENING: " + " ".join(faults) + f" Edit only what these need: the narration's first "
+                    f"{PLACE_WITHIN} sentences (a new first sentence of at most {HOOK_MAX_WORDS} words keeps its facts "
+                    "and hedges), and for a story the title and caption tell, the narration's opening or else the title "
+                    "and the caption's first line. Keep the length and every other sentence.")
+        try:
+            edited = self._revise_surgically(pkg.model_dump(), findings, sheet)
+        except LLMError as e:
+            log.warning("Opening edit failed (%s); the draft goes on as it was.", e)
+            return None
+        if edited is None:
+            return None
+        first_before, first_after = _first_sentence(pkg.narration_script), _first_sentence(edited.narration_script)
+        if pkg.hook_sentence.strip() == first_before and first_after != first_before:
+            edited = edited.model_copy(update={"hook_sentence": first_after})   # the hook is the first sentence
+        edited = prune_graphics(edited)
+        before, after = draft_problems(pkg), draft_problems(edited)
+        # A length problem the edit brings is a regression when the draft was inside the window (review rc72: an
+        # inserted place took a fitted 108-word draft to 114 and cost a rewrite); only a draft already the wrong
+        # length is left to the caller's length edit.
+        was_long_or_short = any("when spoken" in p for p in before)
+        new = [p for p in blocking_problems(after) if p not in blocking_problems(before)
+               and ("when spoken" not in p or not was_long_or_short)]
+        if len(_split_sentences(edited.narration_script)) > len(_split_sentences(pkg.narration_script)):
+            new.append("the edit added a sentence (the word budget: the place goes inside an existing one)")
+        if new or len(_opening_faults(after)) >= len(faults):
+            log.warning("Opening edit did not fix the opening (%s); the draft goes on as it was.",
+                        " ".join(new or _opening_faults(after))[:200])
+            return None
+        log.info("Opening edited: %s", " ".join(f[:80] for f in faults))
+        return edited
 
     def _shorten_story_slides(self, pkg: ScriptPackage, problems: List[str],
                               sheet: Optional[Dict[str, Any]] = None) -> Optional[ScriptPackage]:
@@ -2166,7 +2785,7 @@ class ScriptEngine:
             extras = _structured(
                 GRAPHICS_SYSTEM,
                 f"<narration>\n{core.narration_script}\n</narration>\n\n<research_notes>\n{notes}\n</research_notes>\n\n"
-                + GRAPHICS_PROMPT + feedback, GraphicsPlan, effort="medium")  # revision notes cover graphics too
+                + GRAPHICS_PROMPT + feedback, GraphicsPlan, effort="medium")  # revision notes and hedges cover graphics too
         except LLMError as e:
             log.warning("Graphics planning failed (%s); this script has no planned graphics.", e)
             extras = GraphicsPlan()
@@ -2235,7 +2854,7 @@ class ScriptEngine:
         if spoken_length_problems(ScriptPackage(**core.model_dump())):
             # This draft will be sent back for its length: graphics are planned only for one that can be kept.
             return ScriptPackage(**core.model_dump())
-        return self._with_graphics(core, notes, retrieved, feedback)
+        return self._with_graphics(core, notes, retrieved, mandatory_hedges_note(sheet) + feedback)
 
     @staticmethod
     def _load_curated(topic_id: str) -> Optional[Tuple[ScriptPackage, bool]]:
@@ -2257,12 +2876,14 @@ class ScriptEngine:
         # on the Tunguska development run, 2026-10-25): tidied in every public text before the checks.
         for key in ("narration_script", "hook_sentence", "closing_sentence", "caption", "carousel_caption", "first_comment"):
             if isinstance(payload.get(key), str):
+                if key in ("narration_script", "hook_sentence", "closing_sentence"):
+                    payload[key] = spoken_narration(payload[key])   # its words are what the voice says
                 payload[key] = re.sub(r"[ \t]+([.,;:!?])", r"\1", payload[key])
         payload.update({
             "fact_sheet": fact_sheet_used,  # written from the topic's verified fact sheet: trace-checked
             "topic_id": topic["id"],
             "origin": origin,
-            "word_count": len(pkg.narration_script.split()),
+            "word_count": len(payload["narration_script"].split()),
             "location": topic.get("location", {}),
             "meta_topic_categories": topic.get("meta_categories", []),
         })

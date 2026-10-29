@@ -1419,14 +1419,14 @@ class TelegramApprovalBot:
                     entry["supports_streaming"] = True
                     entry.update(_video_dimensions(it["path"]))  # without them Telegram can show 16:9 as a square
                 media.append(entry)
+            # Not protected (operator, 2026-10-29): the review video can be saved or forwarded to check it elsewhere.
             if len(media) == 1:
                 kind = media[0]["type"]
                 sent = self._api("send" + kind.capitalize(), timeout=300, files={kind: files["f0"]},
-                                 data={"chat_id": self.chat_id, "caption": media[0].get("caption", ""), "parse_mode": "HTML",
-                                       "protect_content": "true"})
+                                 data={"chat_id": self.chat_id, "caption": media[0].get("caption", ""), "parse_mode": "HTML"})
             else:
                 sent = self._api("sendMediaGroup", timeout=300, files=files,
-                                 data={"chat_id": self.chat_id, "media": json.dumps(media), "protect_content": "true"})
+                                 data={"chat_id": self.chat_id, "media": json.dumps(media)})
         finally:
             for f in files.values():
                 f.close()

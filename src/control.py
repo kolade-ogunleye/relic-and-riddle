@@ -2262,7 +2262,17 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                         pass
                     style_name = "Forensic Blueprint" if var_letter == "a" else "Discovery Intrigue" if var_letter == "b" else "Cinematic Minimal"
                     action_word = "locked" if command == "covlock" else "selected and locked"
-                    return f"✅ Cover {action_word}: <b>Variant {var_letter.upper()} ({style_name})</b> for <code>{html.escape(r_name)}</code>. Resend this run for review before approving."
+                    locked = f"✅ Cover {action_word}: <b>Variant {var_letter.upper()} ({style_name})</b>"
+                    # The review card goes out again with the new cover, so it can be approved at once (rc72); the
+                    # old card stays invalid (the revision above). A resend that fails says what it always said.
+                    resend = (run_actions or {}).get("resend")
+                    if resend is not None:
+                        try:
+                            resend(r_name)   # queues the send (the review wait sends the card)
+                            return f"{locked}. The review card is being sent again with it, below."
+                        except Exception as e:
+                            log.warning("Review card not re-sent after the cover lock for %s: %s", r_name, e)
+                    return f"{locked} for <code>{html.escape(r_name)}</code>. Resend this run for review before approving."
             return "Cover was not changed: the requested variant is missing or invalid."
         if command == "audit":
             limit = 10

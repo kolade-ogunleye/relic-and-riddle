@@ -22,7 +22,7 @@ from pydantic import BaseModel
 
 from . import commons
 from . import config
-from .llm import LLMError, structured_call, task as llm_task
+from .llm import LLMError, structured_call, task as llm_task, verdict_reason
 from .models import BeatQueries
 
 log = logging.getLogger(__name__)
@@ -94,7 +94,7 @@ def _box(box) -> List[int]:
 def _text_fields(verdict: "PictureVerdict") -> Dict[str, Any]:
     edge = (verdict.text_edge or "none").strip().lower()
     obj_edge = (verdict.object_edge or "none").strip().lower()
-    return {"text_reason": (verdict.text_reason or "").strip(),
+    return {"text_reason": verdict_reason(verdict.text_reason),
             "text_edge": edge if edge in ("top", "bottom", "left", "right", "inside") else "none",
             "text_box": _box(verdict.text_box),
             "edge_object": (verdict.edge_object or "").strip(),
@@ -133,7 +133,8 @@ def picture_look(path: Path, query: str, size: int = 512, ask: Optional[str] = N
             log.warning("Picture check for %s could not run (%s); the picture is not used.", path.name, e)
             return {"checked": False, "shows": False, "burned_in_text": False, "reason": UNAVAILABLE}
     return {"checked": True, "shows": bool(verdict.shows_subject), "burned_in_text": bool(verdict.burned_in_text),
-            "reason": (verdict.reason or "").strip(), **_text_fields(verdict)}  # whole: the card folds it
+            # whole (the card folds it), less a model's stray working notes (verdict_reason)
+            "reason": verdict_reason(verdict.reason), **_text_fields(verdict)}
 
 
 UNCHECKED_FILE = "set_aside_unchecked.json"
@@ -268,7 +269,7 @@ def line_fit(path: Path, line: str, subject: str, cache: Dict[str, Any],
     key = fit_key(digest, line)
     hit = cache.get(key)
     if isinstance(hit, dict) and "fits" in hit:
-        return {"fits": bool(hit["fits"]), "reason": str(hit.get("reason") or ""), "cached": True}
+        return {"fits": bool(hit["fits"]), "reason": verdict_reason(hit.get("reason")), "cached": True}
     try:
         look = picture_look(Path(path), line, ask=fit_question(line, subject))
     except (OSError, ValueError) as e:  # an unreadable picture: not looked at
@@ -330,10 +331,12 @@ def plan_gap_queries(beats: List[Dict[str, Any]], gap_beats: List[int], topic: D
 
 
 def source_gaps(beats: List[Dict[str, Any]], gap_beats: List[int], topic: Dict[str, Any], work_dir: Path,
-                seen: set, notes: str = "") -> Tuple[List[Path], List[Dict[str, Any]]]:
+                seen: set, notes: str = "", prefix: str = "gap",
+                deadline: Optional[float] = None) -> Tuple[List[Path], List[Dict[str, Any]]]:
     """Pictures for the beats the video check found mismatched, when the first pictures did not cover them:
     a search for what each of those sentences says, from Wikimedia Commons, through the same licence,
-    title-keyword, relevance and visual filters as the first search. Never raises."""
+    title-keyword, relevance and visual filters as the first search. `prefix` names the files (the check before
+    the voice searches for narration sentences: "line"). Never raises."""
     if not gap_beats or not config.BEAT_IMAGES_ENABLED:
         return [], []
     from . import free_llm
@@ -346,7 +349,8 @@ def source_gaps(beats: List[Dict[str, Any]], gap_beats: List[int], topic: Dict[s
         return [], []
     wanted = set(gap_beats)
     # A repair comes at the end of a long run: its downloads may wait out a rate limit (90 s, not 30).
-    paths, credits = _download([i for i in plan.items if i.beat in wanted], topic, work_dir, seen, "gap", wait=90)
+    paths, credits = _download([i for i in plan.items if i.beat in wanted], topic, work_dir, seen, prefix, wait=90,
+                               **({"deadline": deadline} if deadline is not None else {}))
     log.info("Gap pictures: %d candidates for beats %s.", len(paths), ", ".join(map(str, sorted(wanted))))
     return paths, credits
 
@@ -376,15 +380,21 @@ def _other_names(topic: Dict[str, Any]) -> List[str]:
 
 
 def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: str,
-              wait: int = 30) -> Tuple[List[Path], List[Dict[str, Any]]]:
+              wait: int = 30, deadline: Optional[float] = None) -> Tuple[List[Path], List[Dict[str, Any]]]:
     """Downloads the best openly licensed, on-subject Commons results for each planned search; records them
-    in the folder's credits.json (added to, so a later search keeps the earlier records)."""
+    in the folder's credits.json (added to, so a later search keeps the earlier records). `deadline`
+    (time.monotonic()): no further search or look once it has passed; what was found by then is kept."""
+    import time as _time
+    late = lambda: deadline is not None and _time.monotonic() > deadline  # noqa: E731
     work_dir.mkdir(parents=True, exist_ok=True)
     loc = topic.get("location") or {}
     place = ({"lat": loc["latitude"], "lon": loc["longitude"]}
              if loc.get("latitude") and loc.get("longitude") else None)
     paths, credits = [], []
     for item in items:
+        if late():
+            log.info("Picture search stopped at its time budget; %d photo(s) found by then.", len(paths))
+            break
         try:
             found = 0
             # A beat about a place other than the topic's site (a prototype, a museum) is ranked by that
@@ -408,6 +418,8 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
                                         keywords, near)
             relevant, verified, looked_away = 0, 0, 0
             for cand in ranked:
+                if late():
+                    break
                 if cand["title"] in seen or cand["relevance"] <= 0:
                     continue
                 relevant += 1

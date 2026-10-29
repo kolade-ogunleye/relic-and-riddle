@@ -81,6 +81,20 @@ ROMAN_REGAL_MAP = {
 }
 
 
+def strip_asides(text: str) -> str:
+    """`text` without bracketed asides, as the voice says it: a unit conversion ("200 feet (60 meters) deep" ->
+    "200 feet deep") or any other, nested ones whole ("a (b (c) d) e" -> "a e"); a stray bracket is dropped.
+    The narration's own text is stripped the same way (script_engine.spoken_narration)."""
+    out = re.sub(r"\s*\(\s*(?:or\s+)?\d+(?:\.\d+)?\s*(?:meters?|m|km|kilometers?|feet|ft|miles?|tons?|kg)\s*\)", "",
+                 text, flags=re.IGNORECASE)
+    while True:
+        inner = re.sub(r"\s*\([^()]*\)", "", out)
+        if inner == out:
+            break
+        out = inner
+    return out.replace("(", "").replace(")", "")
+
+
 def normalize_speech_text(text: str) -> str:
     """Pre-TTS text normalization for natural speech rendering.
     Expands regal Roman numerals (e.g. 'King Krishna I' -> 'King Krishna the First')
@@ -101,8 +115,7 @@ def normalize_speech_text(text: str) -> str:
     # Cleanly strip redundant parenthetical unit conversions to avoid awkward TTS cadence pauses
     # e.g. "200 feet (60 meters) deep" -> "200 feet deep"
     # e.g. "85 meters (280 ft)" -> "85 meters"
-    pre = re.sub(r"\s*\(\s*(?:or\s+)?\d+(?:\.\d+)?\s*(?:meters?|m|km|kilometers?|feet|ft|miles?|tons?|kg)\s*\)", "", pre, flags=re.IGNORECASE)
-    pre = re.sub(r"\s*\([^\)]*\)", "", pre)
+    pre = strip_asides(pre)
     pattern = re.compile(r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII|XIII|XIV|XV|XVI)\b")
     normalized = pattern.sub(_replace_roman, pre)
     return normalized
@@ -162,7 +175,7 @@ def honours_speed(provider_or_key: str) -> bool:
 
 
 def record_pace(key: str, measured: float, actual: float) -> None:
-    """Remembers how a real voice's length compares with the free measurement (last 10)."""
+    """Remembers how a real voice's length compares with the free measurement (the last PACE_KEPT takes)."""
     import json
     if measured <= 0 or actual <= 0:
         return
@@ -170,7 +183,7 @@ def record_pace(key: str, measured: float, actual: float) -> None:
         data = json.loads(PACE_FILE.read_text(encoding="utf-8")) if PACE_FILE.exists() else {}
     except (OSError, ValueError):
         data = {}
-    data[key] = (data.get(key, []) + [round(actual / measured, 4)])[-10:]
+    data[key] = (data.get(key, []) + [round(actual / measured, 4)])[-PACE_KEPT:]
     PACE_FILE.write_text(json.dumps(data, indent=1), encoding="utf-8")
 
 
@@ -189,6 +202,10 @@ def calibrate_pace(provider: str, voice: str, text: str, actual_seconds: float, 
 
 
 PACE_CONFIDENT_SAMPLES = 5  # takes measured before the median is trusted
+PACE_KEPT = 20              # takes remembered a voice
+PACE_RATIO_TAKES = 10       # the latest takes pace_ratio (the voice stage's own pace) reads
+PACE_BAND_SAMPLES = 10      # takes before the length window is planned on PACE_BAND_PERCENTILES, not the extremes
+PACE_BAND_PERCENTILES = (15, 85)
 PACE_OWN_SAMPLES = 3  # a voice's own takes before its pace stands on its own (a new voice borrows the slowest known)
 
 
@@ -223,7 +240,17 @@ def pace_range(key: str) -> Tuple[float, float]:
         ratio = pace_ratio(key)
         return ratio, ratio
     ratios = _with_prior(*_ratios(key))
-    return (min(ratios), max(ratios)) if ratios else (1.0, 1.0)
+    if not ratios:
+        return 1.0, 1.0
+    if len(ratios) >= PACE_BAND_SAMPLES:
+        # The takes between PACE_BAND_PERCENTILES (operator, rc72; review: the middle half made a low-edge script
+        # read short on about a quarter of takes, each a paid re-read): planned for the fastest and slowest take
+        # ever recorded, the window was narrow enough to cost rewrites. Expected: a script at the window's low edge
+        # reads short on at most ~15% of takes (read again once); one at the high edge runs past the plan on at most
+        # ~15%, kept up to VOICE_DURATION_CEILING, and the release gate checks the master (RELEASE_DURATION_MAX).
+        lo, hi = (float(np.percentile(ratios, q)) for q in PACE_BAND_PERCENTILES)
+        return round(lo, 4), round(hi, 4)
+    return min(ratios), max(ratios)
 
 
 def pace_ratio(key: str) -> float:
@@ -234,6 +261,7 @@ def pace_ratio(key: str) -> float:
     for its slowest recent take: no speed-up is left to absorb a slow one."""
     import statistics
     own, others = _ratios(key)
+    own = own[-PACE_RATIO_TAKES:]   # as before the history grew to PACE_KEPT: this safety net is unchanged
     ratios = _with_prior(own, others)
     if not ratios:
         return 1.0

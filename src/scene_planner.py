@@ -575,7 +575,8 @@ FIT_NOTE_MAX_BEATS = 4   # beats named on the card; the rest are counted
 
 def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Path], subject: str,
                  durations: Optional[List[float]] = None, line_beat: Optional[Dict[Path, int]] = None,
-                 cancel=None, max_calls: Optional[int] = None, swaps: Optional[int] = None) -> Tuple[List[Path], Dict[str, Any]]:
+                 cancel=None, max_calls: Optional[int] = None, swaps: Optional[int] = None,
+                 reserve: Optional[List[Path]] = None) -> Tuple[List[Path], Dict[str, Any]]:
     """Each photo beat's picture judged against its own line before the render (render audit 2026-10-28), with a
     bounded repair. Returns (scenes, report).
 
@@ -586,7 +587,9 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
       1. another unused still from `pool` (what the planner chose from) that does show it, the photos found
          for that line first (`line_beat`: still -> 1-based beat it was fetched for), at most `swaps` tried;
       2. one of our unplaced graphics whose declared words the line says, within the graphics caps;
-      3. the previous beat's still, held (it was judged right for its own line, and is not itself held),
+      3. where the previous shot would be held (4): an unused `reserve` photo that shows the line, else one of
+         our graphics not yet on screen (within the caps), so one picture is not shown over two lines;
+      4. the previous beat's still, held (it was judged right for its own line, and is not itself held),
          so the shot carries on rather than a picture of something else being asserted under the line;
     otherwise the pick stays. Every beat repaired by 3 or not at all is listed in report["unshown"], for the
     review card and the findings. The judge after the render stays the final gate.
@@ -682,10 +685,50 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
                     report["graphic"].append({"beat": k + 1, "from": pick.name, "to": Path(graphic).name})
                     log.info("Beat %d: our %s graphic placed, it says what the line says.", k + 1, Path(graphic).stem)
                     continue
-            # 3. the previous beat's still held, when it was right for its own line and is not itself held
             entry = {"beat": k + 1, "line": line, "picture": pick.name, "reason": first["reason"], "fallback": "kept"}
             prev = out[k - 1]
-            if fits_at.get(k - 1) and still(prev) and (k - 1) not in held:
+            holds = fits_at.get(k - 1) and still(prev) and (k - 1) not in held
+            if holds:
+                # Before the same shot is held over a second line (production Derinkuyu, 2026-10-29: beats 5/6 and
+                # 10/11 showed one picture each): a reserve photo that shows the line, else one of our graphics not
+                # yet on screen (a map, numbers, a scale), within the graphics caps.
+                spare_reserve = [Path(p) for p in reserve or [] if still(Path(p)) and picture_id(Path(p)) not in in_use]
+                found = None
+                for cand in spare_reserve[:swaps]:
+                    v = verdict(cand, line)
+                    if v is None:
+                        if report["stopped"]:
+                            break
+                        continue
+                    if v["fits"]:
+                        found = cand
+                        break
+                if found is not None:
+                    out[k], fits_at[k] = found, True
+                    report["swapped"].append({"beat": k + 1, "from": pick.name, "to": found.name, "reserve": True})
+                    log.info("Beat %d: reserve photo %s swapped in, it shows the line.", k + 1, found.name)
+                    continue
+                filler = None
+                # Never once the checks stopped (their budget, or the model down): what the graphic says would go
+                # unjudged against the line; the shot is held, as before.
+                for g in ([] if report["stopped"] else pool):
+                    if (_is_graphic(Path(g)) and Path(g).stem.startswith("graphic_")
+                            and picture_id(Path(g)) not in in_use
+                            and graphic_match.judgeable(Path(g))):   # it shows real declared content
+                        trial = list(out)
+                        trial[k] = Path(g)
+                        if _graphics_count(trial) <= MAX_GRAPHICS and _graphics_share(trial, durations) <= GRAPHICS_MAX_SHARE:
+                            filler = Path(g)
+                            break
+                if filler is not None:
+                    out[k], entry["fallback"] = filler, "graphic"
+                    report["graphic"].append({"beat": k + 1, "from": pick.name, "to": filler.name, "filler": True})
+                    log.info("Beat %d: no photo shows its line; our %s graphic instead of holding the previous shot.",
+                             k + 1, filler.stem)
+                    report["unshown"].append(entry)
+                    continue
+            # 4. the previous beat's still held, when it was right for its own line and is not itself held
+            if holds:
                 out[k], entry["fallback"] = prev, "held"
                 held.add(k)
                 report["held"].append({"beat": k + 1, "from": pick.name, "to": prev.name})
@@ -715,7 +758,8 @@ def fit_note(report: Dict[str, Any]) -> str:
         return ""
     said = []
     for u in unshown[:FIT_NOTE_MAX_BEATS]:
-        how = {"held": "the previous shot is repeated, reframed", "held_over": "the previous shot is held over it"}.get(
+        how = {"held": "the previous shot is repeated, reframed", "held_over": "the previous shot is held over it",
+               "graphic": "one of our graphics is shown instead"}.get(
             u.get("fallback"), f"{u.get('picture', 'its photo')} kept")
         said.append(f"beat {u['beat']}: “{clip(u.get('line', ''), 70)}”: no licensed photo shows it ({how})")
     more = len(unshown) - FIT_NOTE_MAX_BEATS

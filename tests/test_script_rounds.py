@@ -43,8 +43,11 @@ def test_a_length_only_miss_is_edited_to_the_window_not_rewritten(monkeypatch, c
         return ScriptPackage.model_validate(dict(previous, narration_script=" ".join(["word"] * 108) + ". " + closing))
     monkeypatch.setattr(engine, "_revise_surgically", revise)
     out = engine.generate_script({"id": "t", "title": "T"})
-    assert len(written) == 1 and len(edited) == 1           # one draft, one edit: no second full rewrite
-    assert edited[0].startswith("LENGTH:") and "105-116 words" in edited[0]
+    length = [e for e in edited if e.startswith("LENGTH:")]
+    assert len(written) == 1 and len(length) == 1           # one draft, one length edit: no second full rewrite
+    assert "105-116 words" in length[0]
+    # Its 108-word first sentence then gets one opening edit (2026-10-29), which this stub cannot fix: kept as was.
+    assert [e.split(":", 1)[0] for e in edited] == ["LENGTH", "OPENING"]
     assert len(out["narration_script"].split()) == 108 + len(closing.split()) and out["fact_sheet_used"] is True
 
 

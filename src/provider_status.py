@@ -17,8 +17,9 @@ from . import config
 
 log = logging.getLogger(__name__)
 
-NAMES = {"claude": "Claude", "gemini-billed": "the billed Gemini key"}
-FALLBACKS = {"claude": "tasks fall back to Gemini", "gemini-billed": "heavy tasks wait for the free quota"}
+NAMES = {"claude": "Claude", "gemini-billed": "the billed Gemini key", "kling": "Kling"}
+FALLBACKS = {"claude": "tasks fall back to Gemini", "gemini-billed": "heavy tasks wait for the free quota",
+             "kling": "AI motion falls back to parallax"}
 
 
 def _file():

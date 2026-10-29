@@ -47,7 +47,7 @@ def test_review_shows_cover_strip_video_and_every_story_and_slide(db, monkeypatc
     first, second = (json.loads(c[1]["media"]) for c in albums)
     assert [m["type"] for m in first] == ["photo", "photo", "video"]          # cover, scene strip, video
     assert len(second) == 10 and "3 Story frame(s)" in second[0]["caption"]  # 3 stories + 7 slides
-    assert all(c[1].get("protect_content") == "true" for c in albums)
+    assert not any(c[1].get("protect_content") for c in albums)   # saveable and forwardable (operator, 2026-10-29)
     card = [c for c in calls if c[0] == "sendMessage"][-1][1]
     buttons = [b["callback_data"] for row in json.loads(card["reply_markup"])["inline_keyboard"] for b in row]
     assert any(b.startswith("edit:") for b in buttons) and any(b.startswith("approve:") for b in buttons)

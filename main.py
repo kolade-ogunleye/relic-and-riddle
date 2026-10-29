@@ -40,7 +40,7 @@ from src.config import ASSETS_DIR, CURATED_SCRIPTS_DIR, DAILY_RUN_TIME, OUTPUT_D
 from src.credits import caption_credit_line, generate_provenance_ledger, load_credits
 from src.db import PipelineDatabase, QueueEmpty
 from src.control import clip_words, heartbeat_text, is_paused, make_command_handler, ping_healthcheck
-from src import beat_images, callouts, config, encoding, footage, graphics, motion, post_schedule, privacy, then_now
+from src import beat_images, callouts, colour_balance, config, encoding, footage, graphics, motion, post_schedule, privacy, then_now
 from src.llm import claude_available as llm_available
 from src.scene_planner import degraded_note, documentary_cuts, fit_findings, fit_note, fit_to_lines, plan_scenes, segment_beats
 from src.topic_proposer import origin_note as topic_origin_note
@@ -823,7 +823,8 @@ class PipelineCoordinator:
             step(3, "Preparing 16:9 scenes, graphics & music")
             # 4. Visual preparation & compositing
             scene_media, _ = ensure_all(scene_media)
-            hero_img = ensure_resolution(hero_img)
+            scene_media = colour_balance.balance_all(scene_media)   # a gentle cast and exposure balance
+            hero_img = prepared_still(hero_img)
             *scene_media, hero_img = privacy.anonymize_all([*scene_media, hero_img])
 
             # Inherit or load verified graphics data into payload
@@ -1984,7 +1985,9 @@ class PipelineCoordinator:
             words, speech_speed = self._fit_take(vo_path, words, speech_speed, voice_at, voice_inputs)
             words_path.write_text(json.dumps(words), encoding="utf-8")
             voice_path.write_text(json.dumps({"provider": self.audio_engine.last_provider,
-                                              "licensed": self.audio_engine.last_licensed}), encoding="utf-8")
+                                              "licensed": self.audio_engine.last_licensed,
+                                              **({"first_take": self.last_take_band}
+                                                 if getattr(self, "last_take_band", None) else {})}), encoding="utf-8")
             from src.audio_provenance import record_voice
             record_voice(vo_path, self.audio_engine.last_provider, self.audio_engine.last_licensed,
                          payload["narration_script"])
@@ -2034,8 +2037,17 @@ class PipelineCoordinator:
         again (its takes vary by about 5%). A take still over is left for the length check, which stops the
         run; its re-render then shortens the script for the pace just measured. Returns (words, speed)."""
         from src.audio_engine import honours_speed
-        from src.script_engine import TARGET_DURATION_MIN, refit_speed
+        from src.script_engine import TARGET_DURATION_MIN, refit_speed, take_band
         seconds = self.audio_engine.get_duration(vo_path)
+        # The take against the band its script was planned for (rc72: planned on the middle half of the takes, so
+        # how often a take falls outside it is watched): inside, short (read again), long but kept, or over.
+        band = take_band(seconds)
+        self.last_take_band = {"seconds": round(seconds, 2), "band": band}
+        log.info("Voice take: %.1fs, %s (planned %g-%g s; kept up to %g s).", seconds, band, TARGET_DURATION_MIN,
+                 config.HARD_DURATION_CEILING, config.VOICE_DURATION_CEILING)
+        if band != "inside":
+            from src import improve
+            improve.note("voice.take_band", f"first take {seconds:.1f}s: {band}", source="voice")
         if seconds < TARGET_DURATION_MIN:
             # A take a little under the minimum: ElevenLabs' takes vary (production 2026-10-25: 93 words read
             # 41.1 s), so it is read once more. A voice that reads at its set rate would only repeat itself.
@@ -2076,7 +2088,8 @@ class PipelineCoordinator:
         """Upscales low-resolution stills and de-identifies living faces (hero is one of the scenes)."""
         t0 = time.perf_counter()
         scene_media, low_res = ensure_all(scene_media)
-        hero_img = ensure_resolution(hero_img)
+        scene_media = colour_balance.balance_all(scene_media)   # a gentle cast and exposure balance (2026-10-29)
+        hero_img = prepared_still(hero_img)
         *scene_media, hero_img = privacy.anonymize_all([*scene_media, hero_img])
         if run_dir is not None:
             StageTimer(run_dir).record("image_prep", time.perf_counter() - t0)
@@ -2273,6 +2286,11 @@ class PipelineCoordinator:
         photos = pl.pool_descriptions(self.visual_engine.assets_dir / topic["id"], scene_media)
         if not photos:
             return payload
+        # The photos this run's picture side already found for a line are part of the pool (a resume judges the
+        # pool it judged before, and pays nothing again).
+        side = pl.load_side(run_dir)
+        known = {p["file"] for p in photos}
+        photos += [p for p in side.get("photos") or [] if isinstance(p, dict) and p.get("file") not in known]
         key = pl.keys(payload["narration_script"], photos)
         stamp = payload.get(pl.STAGE) or {}
         if all(stamp.get(k) == v for k, v in key.items()) or checkpoints.reusable(pl.STAGE, key):
@@ -2285,6 +2303,10 @@ class PipelineCoordinator:
         if verdicts is None:  # not stamped: asked again on the next run of this script
             return payload
         missing = pl.unshown(verdicts)
+        side_report: Dict[str, Any] = {}
+        if missing:  # the picture side first: the reserve photos, then a bounded search for just these lines
+            missing, verdicts, photos, side_report = self._picture_side(topic, run_id, run_dir, payload["narration_script"],
+                                                                        verdicts, missing, photos)
         final, final_verdicts, rewritten, left, why_left = payload, verdicts, [], [], ""
         if missing:
             log.info("Before the voice, %d line(s) name something no photo shows; sent back to the writer once: %s",
@@ -2327,8 +2349,11 @@ class PipelineCoordinator:
         done = pl.keys(final["narration_script"], photos)
         out = dict(final, **{pl.STAGE: {**done, "unshown": [v["sentence"] for v in pl.unshown(final_verdicts)],
                                         "rewritten": [v["sentence"] for v in rewritten],
-                                        "left": [v["sentence"] for v in left]}})
-        card = pl.note(rewritten, left, why_left)
+                                        "left": [v["sentence"] for v in left],
+                                        **({"pictured": side_report["covered"],
+                                            "writer_calls_saved": side_report["writer_calls_saved"]}
+                                           if side_report else {})}})
+        card = pl.note(rewritten, left, why_left, pictured=side_report.get("covered"))
         if card:
             out["picture_lines_note"] = card
         else:
@@ -2341,6 +2366,100 @@ class PipelineCoordinator:
         except (OSError, ValueError) as e:
             log.debug("Line-picture verdict not recorded: %s", e)
         return out
+
+    def _picture_side(self, topic, run_id, run_dir, narration, verdicts, missing, photos):
+        """Before a line no photo shows goes back to the writer (production Derinkuyu, 2026-10-29: four such lines
+        cost a writer call, both fact checks again and a length edit, 20 minutes, and the rewording was refused),
+        the pictures are looked for: the pool's reserve context shots (their descriptions; no call), then a Commons
+        search for just those lines (at most pl.GAP_LINES lines, beat_images.PER_BEAT photos each, through the
+        same licence, relevance, text and look screens as the render's repair search). After each, the lines are
+        judged again against the larger pool (one light text-only call). Returns (the lines still unshown, the
+        verdicts, the pool, a report); a photo that shows a line is recorded in run_dir/pl.SIDE_FILE for the
+        render, which checks it against its line again. Never raises, except a cancel: on any failure the lines
+        go to the writer as before."""
+        from src import prevoice_lines as pl
+        from src.credits import load_credits
+        title, first, started = topic.get("title", run_id), len(photos), time.monotonic()
+        topic_dir = self.visual_engine.assets_dir / topic["id"]
+        pool, reserve_files, found = list(photos), set(), {}
+
+        def judged_again(lines):
+            again = pl.judge(" ".join(v["sentence"] for v in lines), pool, title)
+            if again is None:
+                return lines, None
+            return pl.unshown(again), again
+
+        merged = {v["sentence"]: v for v in verdicts}
+        still = missing
+        try:
+            try:
+                turned = getattr(self, "_still_turned", set()) or set()
+                reserve = [p for p in self.visual_engine.reserve_sequence(topic) if p.name not in turned]
+            except Exception:
+                reserve = []
+            more = [d for d in pl.pool_descriptions(topic_dir, reserve) if d["file"] not in {p["file"] for p in pool}]
+            if more:
+                pool += more
+                reserve_files = {d["file"] for d in more}
+                still, again = judged_again(still)
+                merged.update({v["sentence"]: v for v in again or []})
+            if still:
+                self._check_cancel(run_id)
+                self._progress_note(run_id, title, 1, "Looking for photos of the lines no photo shows")
+                lines = pl.sentences(narration)
+                wanted = [lines.index(v["sentence"]) + 1 for v in still if v["sentence"] in lines][:pl.GAP_LINES]
+                try:
+                    seen = {r.get("title") for r in load_credits(topic_dir).get("images", []) if isinstance(r, dict)}
+                except (OSError, ValueError):
+                    seen = set()
+                _, credits = beat_images.source_gaps(
+                    [{"text": s} for s in lines], wanted, topic, run_dir / "beat_images", seen=seen,
+                    notes="\n".join(f"Beat {lines.index(v['sentence']) + 1}: no photo shows it ({v.get('reason', '')})"
+                                    for v in still if v["sentence"] in lines), prefix=pl.GAP_PREFIX,
+                    deadline=started + pl.SEARCH_SECONDS)   # the run's whole picture side stays within its budget
+                for cred in credits:
+                    d = pl.found_description(cred)
+                    if d["file"] and d["file"] not in {p["file"] for p in pool}:
+                        pool.append(d)
+                        found[d["file"]] = dict(cred, line=lines[cred["beat"] - 1] if 0 < cred.get("beat", 0) <= len(lines) else "")
+                if found:
+                    still, again = judged_again(still)
+                    merged.update({v["sentence"]: v for v in again or []})
+        except JobCancelled:
+            raise
+        except Exception as e:  # the picture side is a saving, never a new way for a run to fail
+            log.warning("Picture side before the voice could not run (%s); the lines go to the writer.", e)
+            return missing, verdicts, photos, {}
+        final_verdicts = [merged.get(v["sentence"], v) for v in verdicts]
+        names = pl.cited(final_verdicts, pool, first)
+        kept = [p for p in pool[first:] if p["file"] in names]
+        covered = [v["sentence"] for v in missing if v["sentence"] not in {s["sentence"] for s in still}]
+        report = {"covered": covered, "writer_calls_saved": 1 if covered and not still else 0,
+                  "reserve": sorted(reserve_files & set(names)), "searched": sorted(found)}
+        if kept:
+            side = pl.load_side(run_dir)
+            had = {p.get("file") for p in side.get("photos") or []}
+            record = {"photos": (side.get("photos") or []) + [p for p in kept if p["file"] not in had],
+                      "reserve": sorted(set(side.get("reserve") or []) | (reserve_files & set(names))),
+                      "found": (side.get("found") or []) + [found[n] for n in names if n in found and n not in had]}
+            try:
+                (run_dir / pl.SIDE_FILE).write_text(json.dumps(record, indent=1, ensure_ascii=False, default=str),
+                                                     encoding="utf-8")
+            except OSError as e:
+                log.debug("Picture-side record not written: %s", e)
+        # The pool the verdicts number: the photos given, then the ones that show a line, in the record's order.
+        pool_out = photos + kept
+        renumber = {p["file"]: i for i, p in enumerate(pool_out, 1)}
+        for v in final_verdicts:
+            n = v.get("photo")
+            if isinstance(n, int) and 0 < n <= len(pool):
+                v["photo"] = renumber.get(pool[n - 1]["file"])
+        log.info("Picture side before the voice: %d of %d line(s) now have a photo (%d reserve, %d found by a search "
+                 "of %d); %s.", len(covered), len(missing), len(report["reserve"]),
+                 len([n for n in names if n in found]), len(found),
+                 "no writer call needed" if report["writer_calls_saved"] else
+                 f"{len(still)} line(s) still go to the writer")
+        return still, final_verdicts, pool_out, report
 
     def _fit_pictures(self, run_id, topic, beats, scenes, durations, candidates, beat_credits, where=None,
                       file_findings=True):
@@ -2356,8 +2475,11 @@ class PipelineCoordinator:
         to_beat = (lambda b: where[b - 1] + 1 if isinstance(b, int) and 0 < b <= len(where) else b) if where else (lambda b: b)
         line_beat = {Path(c["upscaled"]): to_beat(c.get("beat")) for c in beat_credits or [] if c.get("upscaled")}
         try:
+            # The reserve photos, offered where the previous shot would otherwise be held over a second line.
+            reserve = [Path(r) for r in getattr(self, "_fit_reserve", None) or []]
             fitted, report = fit_to_lines(beats, scenes, candidates, title, durations=durations, line_beat=line_beat,
-                                          cancel=lambda: self._check_cancel(run_id))
+                                          cancel=lambda: self._check_cancel(run_id),
+                                          **({"reserve": reserve} if reserve else {}))
         except JobCancelled:
             raise
         except Exception as e:  # the check is a saving, never a new way for a run to fail
@@ -2373,6 +2495,35 @@ class PipelineCoordinator:
                      len(report["held"]), len(report["unshown"]), f" ({report['stopped']})" if report["stopped"] else "")
         return fitted, report
 
+    def _picture_side_media(self, topic, run_dir, beats, beat_credits):
+        """(reserve stills, found photos' credit records) the check before the voice found for a line
+        (prevoice_lines.SIDE_FILE), prepared like the render's own (text and edge screen, upscale, faces); a found
+        photo is filed under the beat that says its line. ([], []) when none; never raises."""
+        from src import prevoice_lines as pl
+        side = pl.load_side(run_dir)
+        if not side:
+            return [], []
+        try:
+            topic_dir = self.visual_engine.assets_dir / topic["id"]
+            turned = getattr(self, "_still_turned", set()) or set()
+            stills = [topic_dir / n for n in side.get("reserve") or [] if (topic_dir / n).is_file() and n not in turned]
+            if stills:
+                stills = beat_images.without_burned_in_text(stills, topic.get("title", ""), 0)
+                stills = [Path(p) for p in privacy.anonymize_all([prepared_still(p) for p in stills])]
+            have = {c.get("title") for c in beat_credits}
+            found = [dict(c) for c in side.get("found") or [] if isinstance(c, dict) and c.get("file")
+                     and Path(c["file"]).is_file() and c.get("title") not in have]
+            for cred, safe in zip(found, privacy.anonymize_all([prepared_still(Path(c["file"])) for c in found])):
+                cred["upscaled"] = str(safe)
+                cred["beat"] = beat_of_line(beats, cred.get("line") or "") or cred.get("beat")
+            if stills or found:
+                log.info("Pictures: %d photo(s) found before the voice for its lines (%d reserve, %d searched).",
+                         len(stills) + len(found), len(stills), len(found))
+            return stills, found
+        except Exception as e:  # a saving, never a new way for a run to fail
+            log.warning("Photos found before the voice not offered (%s).", e)
+            return [], []
+
     def _reserve_stills(self, topic, beats, candidates) -> List[Path]:
         """The pool's context shots beyond the usual cap, prepared like the others (text and edge screen, upscale,
         faces), as many as the photo beats the candidates' distinct stills cannot cover (still_shortfall): offered
@@ -2383,11 +2534,13 @@ class PipelineCoordinator:
             if short <= 0:
                 return []
             turned = getattr(self, "_still_turned", set())
-            reserve = [p for p in self.visual_engine.reserve_sequence(topic) if p.name not in turned][:short]
+            offered = {Path(c).stem for c in candidates}  # one found before the voice is offered already
+            reserve = [p for p in self.visual_engine.reserve_sequence(topic) if p.name not in turned
+                       and not any(o.startswith(p.stem) for o in offered)][:short]
             if not reserve:
                 return []
             reserve = beat_images.without_burned_in_text(reserve, topic.get("title", ""), 0)
-            reserve = privacy.anonymize_all([ensure_resolution(p) for p in reserve])
+            reserve = privacy.anonymize_all([prepared_still(p) for p in reserve])
             log.info("Pictures: %d photo beat(s) short; %d context photo(s) held in reserve against a repeat: %s.",
                      short, len(reserve), ", ".join(Path(p).name for p in reserve))
             return [Path(p) for p in reserve]
@@ -2552,16 +2705,22 @@ class PipelineCoordinator:
             then_clip, then_credits = fut_then_now.result()
         timer.record("stills_graphics_sourcing", time.perf_counter() - t0)
 
-        upscaled_beats = [ensure_resolution(path) for path in beat_paths]
+        upscaled_beats = [prepared_still(path) for path in beat_paths]
         for cred, safe in zip(beat_credits, privacy.anonymize_all(upscaled_beats)):
             cred["upscaled"] = str(safe)
         # The channel's own animated graphics (map, timeline, scale) as further candidates.
         own_graphics += [g for g in (labelled, then_clip) if g]
-        candidates = scene_media + [Path(c["upscaled"]) for c in beat_credits] + own_graphics + footage_clips
+        # The photos the check before the voice found for a line (the picture side): offered like the others, and
+        # each checked against its line again before the render (_fit_pictures).
+        side_stills, side_credits = self._picture_side_media(topic, run_dir, beats, beat_credits)
+        beat_credits += side_credits
+        candidates = (scene_media + [Path(c["upscaled"]) for c in beat_credits] + own_graphics + footage_clips
+                      + side_stills)
         # Fewer distinct pictures than photo beats (Nazca, 2026-10-28): the pool's further context shots, held in
         # reserve against a repeat; what is still short is held over two lines (_hold_short_pool) or said.
         reserve = self._reserve_stills(topic, beats, candidates)
         reserve_arg = {"reserve": reserve} if reserve else {}
+        self._fit_reserve = reserve   # the fit check prefers one over holding a shot across two lines
         master_mp4 = run_dir / f"{tid}_master.mp4"
         caption_base, feedback, qa = payload["caption"], "", None
         fb = self._feedback()
@@ -2651,12 +2810,18 @@ class PipelineCoordinator:
                     "(the lines use the topic's screened photos). Re-render to try them again.")
             # AI motion for the opening photo (only with a media budget; real footage and our graphics come first).
             self._check_cancel(run_id)
+            paid_motion = (not dry_run) or self.paid_motion_in_dry_run or config.MOTION_IN_DRY_RUNS
             scenes, motion_used = motion.apply(self.db, scenes, run_dir / "motion", memo=motion_memo, topic=topic,
-                                               allow_paid=(not dry_run) or self.paid_motion_in_dry_run or config.MOTION_IN_DRY_RUNS,
+                                               allow_paid=paid_motion,
                                                seed_dirs=self._previous_motion_dirs(),  # a regeneration keeps its paid clips
                                                durations=durations)
             payload["motion_note"] = (f"🤖 AI motion ({', '.join(motion_used)}) animates {len(motion_used)} real photo(s); "
                                       "the Reel carries the AI label") if motion_used else ""
+            if not motion_used and config.MOTION_MAX_CLIPS > 0:  # a paid provider out of credit: said on the card
+                try:
+                    payload["motion_note"] = motion.fallback_note(motion_used, paid_motion)
+                except Exception as e:
+                    log.debug("Motion fallback note not made: %s", e)
             self._check_cancel(run_id)
             # 2.5D parallax clips for the stills (local GPU); falls back to flat camera moves.
             self._progress_note(run_id, topic.get("title", run_id), 3, "Synthesizing graphics, stills & motion · animating the stills")
@@ -2765,7 +2930,7 @@ class PipelineCoordinator:
                 gap_paths, gap_credits = beat_images.source_gaps(
                     beats, gaps, topic, run_dir / "beat_images", seen={c.get("title") for c in beat_credits},
                     notes=beat_images.picture_issues(qa))
-                for cred, safe in zip(gap_credits, privacy.anonymize_all([ensure_resolution(p) for p in gap_paths])):
+                for cred, safe in zip(gap_credits, privacy.anonymize_all([prepared_still(p) for p in gap_paths])):
                     cred["upscaled"] = str(safe)
                 lines_of = original_beats([c["beat"] for c in gap_credits], where)
                 for cred in gap_credits:
@@ -3297,6 +3462,26 @@ def graph_reason(error: Exception) -> str:
     text = str(error)
     found = re.search(r"""['"]message['"]:\s*['"](.+?)['"],\s*['"](?:type|code)['"]""", text)
     return (found[1] if found else text)[:300]
+
+
+def prepared_still(path):
+    """A still as the video uses it: upscaled when low-resolution, then gently colour and brightness balanced
+    (src/colour_balance.py). Faces are de-identified after this, by the caller."""
+    return colour_balance.balanced(ensure_resolution(path))
+
+
+def beat_of_line(beats: List[Dict[str, Any]], line: str) -> Optional[int]:
+    """The beat (1-based) that says most of `line`'s words (a narration sentence; beats are cut by time, not by
+    sentence), None when none says any."""
+    words = set(re.findall(r"[a-z0-9']+", (line or "").lower()))
+    if not words:
+        return None
+    best, at = 0, None
+    for i, b in enumerate(beats or [], 1):
+        n = len(words & set(re.findall(r"[a-z0-9']+", str(b.get("text") or "").lower())))
+        if n > best:
+            best, at = n, i
+    return at
 
 
 def beat_where(beat: int, beats: List[Dict[str, Any]]) -> str:

@@ -127,7 +127,10 @@ def beat_tag(asset: Any) -> str:
     if original.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp"):
         record = _photo_record(original)
         caption = record.get("description") or str(record.get("title") or "").removeprefix("File:").rsplit(".", 1)[0]
-        parts.insert(0, "real archive picture" + (f", its archive caption: \"{_clip(caption)}\"" if caption else ""))
+        # The source's own label, never drawn on screen, and sometimes wrong: Commons filed the Hands geoglyph as the
+        # "Condor" and the check blocked a dev release over the label (Nazca, 2026-10-29).
+        parts.insert(0, "real archive picture" + (f", its archive caption (the source's label, not shown on screen, "
+                                                  f"may be wrong): \"{_clip(caption)}\"" if caption else ""))
     return f" [{'; '.join(parts)}]" if parts else ""
 
 
@@ -151,6 +154,32 @@ _CARD_DEFECT = re.compile(r"(cut off|truncat|overlap|illegib|unreadable|hard to 
 def designed_backdrop_finding(issue: str) -> bool:
     """True when a finding only says the backdrop is blank, empty or blurred (no defect of the card itself)."""
     return bool(_BACKDROP.search(issue) and _BLANK.search(issue) and not _CARD_DEFECT.search(issue))
+
+
+# A finding whose only complaint is the source's label against the picture (the label is context we pass, never on
+# screen): the picture is judged against the narration, not against its archive caption (Nazca beat 8, 2026-10-29).
+_SOURCE_LABEL = re.compile(r"\b(archive (caption|label|description|title)|source(?:'s)? (caption|label|description)|"
+                           r"metadata|file ?name)\b", re.I)
+_AGAINST_NARRATION = re.compile(r"\b(narration|narrat|line says|the line|voice ?over|spoken|subtitle|on[- ]screen text)", re.I)
+
+
+def source_label_finding(issue: str) -> bool:
+    """True when a finding only says the picture disagrees with its source's label, not with what viewers hear or see."""
+    return bool(_SOURCE_LABEL.search(issue) and not _AGAINST_NARRATION.search(issue))
+
+
+def drop_source_label_findings(report: Optional[QAReport]) -> Optional[QAReport]:
+    """The report without minor findings about a picture's archive caption alone; each dropped one is noted."""
+    if report is None:
+        return report
+    dropped = [i for i in report.issues if i.severity == "minor" and source_label_finding(i.issue)]
+    if not dropped:
+        return report
+    for i in dropped:
+        log.info("Video check: beat %s compares the picture with its source's label, not shown on screen (%s)", i.beat, i.issue)
+    note = " Not counted (the source's label, not shown on screen): " + "; ".join(f"beat {i.beat}: {i.issue}" for i in dropped)
+    return report.model_copy(update={"issues": [i for i in report.issues if i not in dropped],
+                                     "summary": (report.summary or "") + note})
 
 
 def drop_designed_backdrops(report: Optional[QAReport], assets: Optional[List[Any]]) -> Optional[QAReport]:
@@ -282,7 +311,7 @@ def review_render(video: Path, beats: List[Dict[str, Any]], cover: Path, work_di
                     {"type": "text", "text": "Report issues by beat number (use 0 for the cover)."}]
         report = (free_llm.call(SYSTEM, content, QAReport, role="checker", effort="low", max_tokens=4000)
                   if free_llm.enabled() else structured_call(SYSTEM, content, QAReport, effort="low", max_tokens=4000))
-        return drop_designed_backdrops(report, assets)
+        return drop_source_label_findings(drop_designed_backdrops(report, assets))
     except (LLMError, subprocess.SubprocessError, OSError, ValueError) as e:
         log.warning("Video QA could not run: %s", e)
         return None

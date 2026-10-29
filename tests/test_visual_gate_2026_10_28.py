@@ -177,7 +177,7 @@ def test_each_beat_says_how_its_picture_was_made(tmp_path):
     scenes = _composition(tmp_path)
     tags = [video_qa.beat_tag(s) for s in scenes]
     assert "privacy blurs applied over present-day faces" in tags[0]
-    assert 'its archive caption: "The Pantheon in Rome, with visitors"' in tags[0]
+    assert 'not shown on screen, may be wrong): "The Pantheon in Rome, with visitors"' in tags[0]
     assert "AI motion" in tags[1] and "Amber Room 1917" in tags[1] and "privacy" not in tags[1]
     assert tags[2] == ' [real archive film "Pompeii And Vesuvius" (1950); a wide shot shown whole, fitted over a blurred, darkened copy of itself]'
     assert tags[3] == " [our own graphic: numbers card]"

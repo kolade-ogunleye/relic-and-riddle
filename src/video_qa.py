@@ -609,8 +609,19 @@ class QualityAuditor:
             # A map or route shows where the story is set, so the place named any time before it counts (a Hal
             # Saflieni map after "Paola, Malta" in the first line was blocked as out of step: 2026-10-25).
             locator = graphic_match.kind_of(asset_path) in ("map", "route")
+            window_start = 0.0 if locator else c_start - 2.5
+            # The cut after the hook: a graphic the hook names follows it there, since the hook keeps its photo
+            # (scene_planner.lock_narrative_graphics), so the hook's words are its words. The 2.5 s window missed
+            # "city" (0.9 s) and "280" (2.3 s) before a cut at 6.4 s and blocked the release (production, rc72,
+            # 2026-10-29). Only when the hook itself names it, as the planner's rule asks; elsewhere the window holds.
+            if i == 1 and not locator:
+                hook_start = timeline[0].get("start", 0.0)
+                hook_words = [w for w in all_words_list if hook_start <= w.get("start", 0.0) < c_start]
+                hook_heard = timeline[0].get("text", "") + " " + " ".join(w.get("word", "") for w in hook_words)
+                if graphic_match.score(asset_path, hook_heard) >= graphic_match.THRESHOLD:
+                    window_start = min(window_start, hook_start)
             in_window = [w for w in all_words_list
-                         if (0.0 if locator else c_start - 2.5) <= w.get("start", 0.0) <= (c_end + 2.5)]
+                         if window_start <= w.get("start", 0.0) <= (c_end + 2.5)]
             heard = cut.get("text", "") + " " + " ".join(w.get("word", "") for w in in_window)
             if graphic_match.score(asset_path, heard) < graphic_match.THRESHOLD:
                 issues.append({

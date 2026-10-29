@@ -182,7 +182,9 @@ FORM = "/footage topic | source: URL | licence: CC BY 4.0 | licence_url: URL"
 
 
 def _capped(lines: List[str], cap: Optional[int]) -> List[str]:
-    if cap is None or len(lines) <= cap:
+    # One item past the cap is shown, not counted: "1 item: the full list is in the reply" stood in for a one-line
+    # list, and as long as the line itself (production review card, 2026-10-29).
+    if cap is None or len(lines) <= cap + 1:
         return lines
     if cap == 0:  # nothing shown: say how many there are, not "…and N more" under no item
         return [f"<i>{len(lines)} item{'s' if len(lines) != 1 else ''}: {CARD_LIST_MORE}</i>"]
@@ -1145,9 +1147,13 @@ class TelegramApprovalBot:
             # What blocks first, then what does not (dev, 2026-10-27, Trepanation: ten files awaiting rights
             # review came first and the blocking visual_checks finding was cut off behind "…and 10 more").
             later = [c for c in open_checks if not any(c is b for b in blocking)]
+            # A blocked check's minor findings are notes, after every reason (production, rc72, 2026-10-29: a minor
+            # photo note was listed as a reason the release was blocked).
             found = "\n".join(_capped([f"• {e(c['name'])}: {e(p)}" for c in blocking for p in check_problems(c)]
                                       + [f"• {e(c['name'])}" + (" (not blocking)" if blocked else "") + f": {e(p)}"
-                                         for c in later for p in check_problems(c)], cap))
+                                         for c in later for p in check_problems(c)]
+                                      + [f"• {e(c['name'])} (minor, not blocking): {e(p)}"
+                                         for c in open_checks for p in check_problems(c, "notes")], cap))
             line = ("⛔ <b>Release gate:</b> blocked. This version can't be posted: Edit, Regenerate or Reject it.\n"
                     if blocked else "⚠️ <b>Release gate:</b> needs review before a live post.\n")
             line += f"<blockquote expandable>{found}</blockquote>\n"
@@ -1307,7 +1313,9 @@ class TelegramApprovalBot:
                 if _tg_len(block) > spare:
                     block = ""
             full = full.replace(marker, block, 1)
-        return full
+        # Where the rest is, said once: each shortened list repeated it (production review card, 2026-10-29).
+        first, sep, rest = full.partition(f": {CARD_LIST_MORE}")
+        return first + sep + rest.replace(f": {CARD_LIST_MORE}", "")
 
     def send_approval_request(self, video_path: Path, thumbnail_path: Path, script_payload: Dict[str, Any], run_id: str) -> Optional[int]:
         """Everything one Approve publishes, then the card: an album with the cover, a scene strip and

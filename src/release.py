@@ -2,6 +2,7 @@
 
 import json
 import math
+import re
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -123,9 +124,14 @@ def write_release_report(run, dry_run=False):
         # Shown, not blocking (MINOR_FINDINGS_BLOCK_RELEASE=false): the reviewer sees them on the card.
         checks.append({"name": "visual_checks", "status": "pass", "detail": found, "minor": True})
     else:
+        # The reasons are what blocks; a minor finding that does not block is kept apart as a note. Passing every
+        # finding listed a minor turnstile-photo note among the blocked reasons (production, rc72, 2026-10-29).
+        notes = [i for i in found if not any(i is b for b in blocking)]
         add("visual_checks", audited_master and not found,
-            found or ("Visual audit of this master found no issues." if audited_master
-                      else "No completed visual audit recorded."))  # a passed audit used to read as none recorded
+            blocking or ("Visual audit of this master found no issues." if audited_master
+                         else "No completed visual audit recorded."))  # a passed audit used to read as none recorded
+        if notes:
+            checks[-1]["notes"] = notes
     for key in ("thumbnail_cover_path", "thumbnail_grid_path"):
         add(key, bool(run.get(key)) and Path(run[key]).is_file(), run.get(key))
     if profile.requires_youtube_thumbnail:
@@ -145,13 +151,33 @@ def blocking_checks(report, dry_run=False):
     return [c for c in (report or {}).get("checks", []) if c.get("status") in blocking_statuses]
 
 
-def check_problems(check) -> list:
-    """A check's findings in words: an audit issue's own sentence, not the dict it is stored as."""
-    detail = check.get("detail")
+def plain_finding(issue) -> str:
+    """An audit finding as the operator reads it. The graphic check's own sentence ("Scene 1: Graphic
+    'graphic_scale.mp4' missing narration keywords ['280', '85', 'city', 'depth']") counted scenes from 0
+    and read as code on the review card (production, rc72, 2026-10-29); beats count from 1 there."""
+    if not isinstance(issue, dict):
+        return str(issue or "")
+    text = str(issue.get("issue") or issue.get("detail") or "")
+    if issue.get("type") == "semantic_desync" and isinstance(issue.get("scene_index"), int) and issue["scene_index"] >= 0:
+        from .graphic_match import kind_of
+        kind = kind_of(Path(str(issue.get("asset") or ""))) or "original"
+        shown = re.search(r"\[([^\]]*)\]", text)
+        words = ", ".join(w.strip(" '\"") for w in shown.group(1).split(",") if w.strip(" '\"")) if shown else ""
+        return (f"Beat {issue['scene_index'] + 1}: the {kind} graphic appears without the words it shows nearby"
+                + (f" ({words})" if words else ""))
+    return text
+
+
+def check_problems(check, key: str = "detail") -> list:
+    """A check's findings in words: an audit issue's own sentence, not the dict it is stored as. `key`: "notes"
+    for the minor findings kept beside a blocked check."""
+    detail = check.get(key)
+    if key != "detail" and not detail:
+        return []
     items = detail if isinstance(detail, list) else [detail]
     # A video-check finding says where it is and how serious ("beat 6, 0:21-0:26 (minor): ...").
     found = [(f"{i['where']}" + (f" ({i['severity']})" if i.get("severity") else "") + ": " if isinstance(i, dict) and i.get("where") else "")
-             + (str(i.get("issue") or i.get("detail") or "") if isinstance(i, dict) else str(i or "")) for i in items]
+             + plain_finding(i) for i in items]
     # A file is named, not its whole path (asset_rights lists the files still awaiting review).
     found = [Path(f).name if " " not in f and ("/" in f or "\\" in f) and Path(f).suffix else f for f in found]
     return [f for f in found if f] or ["no detail recorded"]

@@ -10,6 +10,7 @@ both paths write to the same SQLite row, and the first decision wins.
 Nothing is ever approved automatically: no decision before the timeout means "timeout".
 """
 
+import copy
 import html
 import json
 import logging
@@ -135,6 +136,14 @@ _MASKER = SecretMasker()
 _HTTP = threading.local()
 _POOL = requests.adapters.HTTPAdapter(pool_connections=2, pool_maxsize=16)
 CONNECT_TIMEOUT = 6  # a stalled connect fails fast (edits retry) instead of waiting out the OS timeout
+
+
+class TelegramRateLimited(RuntimeError):
+    """Telegram's flood control on a message edit (HTTP 429), with the seconds it asked the bot to wait."""
+
+    def __init__(self, method: str, retry_after: float, description: str = ""):
+        super().__init__(f"Telegram {method} failed: HTTP 429 {description}".rstrip())
+        self.retry_after = float(retry_after)
 
 
 def _post(url, timeout=30, **kwargs):
@@ -591,6 +600,19 @@ class TelegramApprovalBot:
         self._last_progress_edit: Dict[int, float] = {}
         self._last_progress_step: Dict[int, int] = {}
         import threading
+        # Telegram's flood control, per message (edit_message_text): until when its edits are held, the latest
+        # content asked for meanwhile (with its order, so an older edit never replaces a newer one) and the timer
+        # that sends it once the wait is over.
+        self._edit_lock = threading.Lock()
+        self._edit_seq = 0
+        self._edit_held_until: Dict[int, float] = {}
+        self._edit_pending: Dict[int, tuple] = {}
+        self._edit_timers: Dict[int, Any] = {}
+        self._edit_sending: Set[int] = set()     # messages whose held edit is being sent
+        self._edit_chat_held_until = 0.0         # flood control is usually per chat: every edit waits
+        self._edit_delivered: Dict[int, int] = {}  # the latest edit (its order) shown on each message
+        self._edit_closed = False                # drained: edits go straight out, nothing is held or timed
+        self._edit_timer = threading.Timer  # replaceable in tests
         self._panel_revisions = {}
         self._panel_aliases = {}
         self._panel_media = {}
@@ -1046,6 +1068,11 @@ class TelegramApprovalBot:
                 raise RuntimeError(f"Telegram {method} failed: {_MASKER.mask(str(e))}") from None
             data = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
             retry_after = (data.get("parameters") or {}).get("retry_after")
+            if method == "editMessageText" and resp.status_code == 429 and retry_after:
+                # A text edit is not waited for here: edit_message_text holds that message's edits for the time
+                # Telegram gave and then sends the latest content once. Waiting and retrying in place blocked the
+                # run for 16 s an edit and was refused again (production 2026-10-26: 25 refusals in 40 minutes).
+                raise TelegramRateLimited(method, retry_after, str(data.get("description", "")))
             # Flood control (HTTP 429): wait as told, briefly, then retry. Uploads are not resent (their
             # file handles are consumed), and a long wait is left to the caller.
             if method != "answerCallbackQuery" and resp.status_code == 429 and retry_after and retry_after <= 30 and attempt < 2 and "files" not in kwargs:
@@ -1200,8 +1227,11 @@ class TelegramApprovalBot:
         if script_payload.get("fact_sheet_note"):
             text += "\n" + _format_note(script_payload["fact_sheet_note"])
         if script_payload.get("trimmed_sentences"):  # said, so the reviewer can judge the flow without them
-            text += "\n" + _format_note("✂️ Removed after the fact check blocked them: "
-                                          + " ".join(f"“{x}”" for x in script_payload["trimmed_sentences"]))
+            where = list(script_payload.get("trimmed_from") or [])  # where each was read, beyond the narration
+            where += [""] * (len(script_payload["trimmed_sentences"]) - len(where))
+            text += "\n" + _format_note("✂️ Removed after the fact check blocked them: " + " ".join(
+                f"“{x}”" + (f" ({w})" if w and w != "narration" else "")
+                for x, w in zip(script_payload["trimmed_sentences"], where)))
         if script_payload.get("picture_lines_note"):  # lines checked against the photos before the voice (2026-10-28)
             text += "\n" + _format_note(script_payload["picture_lines_note"])
         if script_payload.get("voice_note"):
@@ -2114,9 +2144,34 @@ class TelegramApprovalBot:
         return sum(results)
 
     def edit_message_text(self, message_id: int, text: str, buttons: Optional[list] = None) -> bool:
-        """Edits an existing Telegram message in-place (HTML) and updates or removes buttons."""
+        """Edits an existing Telegram message in-place (HTML) and updates or removes buttons.
+        True means shown, or queued: while Telegram's flood control has the bot wait (a 429 on an edit holds the
+        chat's edits for the time it gave), or while a held edit of this message is being sent, the content is kept
+        and sent once the wait is over; a later edit of the same message replaces it (the latest wins). A queued
+        edit that then fails is logged, and one whose message is gone marks it missing (_missing_messages), so the
+        next edit of it returns False and its caller posts a fresh one."""
         if not self.is_configured() or not message_id:
             return False
+        content = (text, copy.deepcopy(buttons))  # a caller may change its list after a queued edit returns
+        with self._edit_lock:  # the order edits were asked for: the latest content wins a hold
+            self._edit_seq += 1
+            seq = self._edit_seq
+        if message_id in self._missing_messages:
+            # Known to be gone (deleted by a clear, a redraw or an install): no request, no log line; the
+            # caller posts a fresh one as it would after a failed edit (six attempts on one cleared panel in
+            # the three seconds after a restart, 2026-10-24).
+            return False
+        if self._edit_is_held(message_id, seq, content):
+            return True  # sent when the wait is over, unless a later edit replaces it first
+        return self._deliver_edit(message_id, seq, content)
+
+    def _deliver_edit(self, message_id: int, seq: int, content: tuple, hold_on_limit: bool = True) -> bool:
+        """One editMessageText request for `content`. A 429 holds the edits (hold_on_limit) and counts as queued;
+        on shutdown (drain) it is only logged."""
+        with self._edit_lock:
+            if seq < self._edit_delivered.get(message_id, -1):
+                return True  # a newer content is already shown: this older one is not sent after it
+        text, buttons = content
         from .telegram_pages import panel as paginate
         text, buttons = paginate(self.db, _MASKER.mask(text), buttons)
         markup = {"inline_keyboard": format_responsive_keyboard(buttons) if buttons else []}
@@ -2128,14 +2183,23 @@ class TelegramApprovalBot:
             "disable_web_page_preview": "true",
             "reply_markup": json.dumps(markup),
         }
-        if message_id in self._missing_messages:
-            # Known to be gone (deleted by a clear, a redraw or an install): no request, no log line; the
-            # caller posts a fresh one as it would after a failed edit (six attempts on one cleared panel in
-            # the three seconds after a restart, 2026-10-24).
+
+        def shown() -> bool:
+            with self._edit_lock:
+                self._edit_delivered[message_id] = max(seq, self._edit_delivered.get(message_id, -1))
+            return True
+
+        def limited(e: TelegramRateLimited) -> bool:
+            if hold_on_limit and not self._edit_closed:
+                self._hold_edits(message_id, e.retry_after, seq, content)
+                return True
+            log.warning("Could not edit message text %s before shutting down: %s", message_id, e)
             return False
         try:
             self._api("editMessageText", data=data)
-            return True
+            return shown()
+        except TelegramRateLimited as e:
+            return limited(e)
         except Exception as e:
             err_msg = str(e).lower()
             if "message to edit not found" in err_msg:
@@ -2145,7 +2209,7 @@ class TelegramApprovalBot:
                 log.info("Message %s is no longer in the chat; a fresh one replaces it.", message_id)
                 return False
             if "message is not modified" in err_msg:
-                return True
+                return shown()
             if "can't parse entities" in err_msg:
                 log.warning("Telegram parse error in edit_message_text (%s); falling back to plain text", e)
                 try:
@@ -2153,11 +2217,142 @@ class TelegramApprovalBot:
                     fallback_data.pop("parse_mode", None)
                     fallback_data["text"] = re.sub(r"<[^>]+>", "", text)[:4000]
                     self._api("editMessageText", data=fallback_data)
-                    return True
+                    return shown()
+                except TelegramRateLimited as e2:
+                    return limited(e2)
                 except Exception as e2:
                     log.warning("Fallback plain text edit also failed: %s", e2)
             log.warning("Could not edit message text %s: %s", message_id, e)
             return False
+
+    def _keep_latest_edit(self, message_id: int, seq: int, content: tuple) -> None:
+        """Keeps `content` as the message's edit to send when its hold ends, unless a later one is kept already
+        (called under _edit_lock)."""
+        if seq >= self._edit_pending.get(message_id, (-1, None))[0] and seq >= self._edit_delivered.get(message_id, -1):
+            self._edit_pending[message_id] = (seq, content)
+
+    def _held_edit_timer(self, message_id: int, until: float):
+        """A new timer to send the message's held edit at `until`, or None when one is set or a send of it is in
+        flight (which sends what is queued after it). Called under _edit_lock; the caller starts it outside."""
+        if message_id in self._edit_timers or message_id in self._edit_sending or self._edit_closed:
+            return None
+        timer = self._edit_timer(max(0.0, until - time.monotonic()), self._send_held_edit, args=(message_id,))
+        timer.daemon = True
+        self._edit_timers[message_id] = timer
+        return timer
+
+    def _edit_is_held(self, message_id: int, seq: int, content: tuple) -> bool:
+        """Whether this edit must wait: Telegram asked the bot to wait before editing in this chat (its flood control
+        is usually per chat), or a held edit of this message is being sent. If so the content is kept to be sent
+        then (the latest asked for wins), and no request is made now."""
+        with self._edit_lock:
+            until = max(self._edit_held_until.get(message_id, 0.0), self._edit_chat_held_until)
+            if self._edit_closed or (time.monotonic() >= until and message_id not in self._edit_sending):
+                return False
+            self._keep_latest_edit(message_id, seq, content)
+            timer = self._held_edit_timer(message_id, until)
+        if timer is not None:
+            timer.start()
+        return True
+
+    def _hold_edits(self, message_id: int, seconds: float, seq: int, content: tuple) -> None:
+        """Telegram's flood control refused an edit: the chat's edits are held for the time it gave (they are not
+        tried again meanwhile, which only lengthens the wait), and each message's latest content is sent once then."""
+        with self._edit_lock:
+            until = time.monotonic() + max(0.0, seconds) + 0.5
+            until = self._edit_held_until[message_id] = max(until, self._edit_held_until.get(message_id, 0.0))
+            self._edit_chat_held_until = max(until, self._edit_chat_held_until)
+            self._keep_latest_edit(message_id, seq, content)
+            timer = self._held_edit_timer(message_id, until)
+        if timer is not None:
+            timer.start()
+            # A long wait freezes the progress and review cards: said as a warning, not a note.
+            log.log(logging.WARNING if seconds > 60 else logging.INFO,
+                    "Telegram asked the bot to wait %.0f s before editing message %s; its latest content is sent "
+                    "then.", seconds, message_id)
+
+    _HOLD_SLACK = 0.05  # a timer may wake a hair before its time; that is the time
+
+    def _take_held_edit(self, message_id: int):
+        """Under _edit_lock: the message's queued edit to send now (it is then marked as being sent), or None. While
+        the message's or the chat's hold is still on (a longer hold came after this timer was set, or the send was
+        refused again) nothing is sent, and a timer for the end of the hold is returned for the caller to start."""
+        self._edit_sending.discard(message_id)
+        until = max(self._edit_held_until.get(message_id, 0.0), self._edit_chat_held_until)
+        if time.monotonic() < until - self._HOLD_SLACK:
+            timer = self._held_edit_timer(message_id, until) if message_id in self._edit_pending else None
+            return None, timer
+        self._edit_held_until.pop(message_id, None)
+        pending = self._edit_pending.pop(message_id, None)
+        if pending is not None:
+            self._edit_sending.add(message_id)
+        return pending, None
+
+    def _send_held_edit(self, message_id: int) -> None:
+        """The hold is over: the latest content asked for meanwhile is sent, once. Edits made while it is in flight
+        are queued and sent after it, so an older content never lands last; a send refused again waits out its new
+        hold on a timer (never a loop of requests)."""
+        with self._edit_lock:
+            self._edit_timers.pop(message_id, None)
+            if message_id in self._edit_sending:
+                return
+            pending, timer = self._take_held_edit(message_id)
+        try:
+            while pending is not None:
+                try:
+                    self._deliver_edit(message_id, *pending)
+                except Exception as e:  # the timer thread never raises; the next edit tries again
+                    log.warning("Could not send the held edit of message %s: %s", message_id, _MASKER.mask(str(e)))
+                with self._edit_lock:  # the sending mark is cleared in the same step: nothing is left queued unsent
+                    pending, timer = self._take_held_edit(message_id)
+        except BaseException:
+            with self._edit_lock:
+                self._edit_sending.discard(message_id)
+            raise
+        if timer is not None:
+            timer.start()
+
+    def _wait_for_held_sends(self, seconds: float = 5.0) -> None:
+        """Waits (at most `seconds`) for held edits already on their way, so a drain sends what queued behind them."""
+        deadline = time.monotonic() + seconds
+        while True:
+            with self._edit_lock:
+                if not self._edit_sending:
+                    return
+            if time.monotonic() >= deadline:
+                break
+            threading.Event().wait(0.02)
+        log.warning("A held Telegram edit was still being sent after %.0f s; draining without it.", seconds)
+
+    FLUSH_WAIT_SECONDS = 5.0  # a drain waits out a chat hold this short before its final sends
+
+    def _flush_held_edits(self, final: bool = False, wait_limit: float = FLUSH_WAIT_SECONDS) -> None:
+        """Shutdown: the timers are cancelled and every held edit is sent now, once (a final card is not lost, and
+        no timer reaches the network after the bot is done). `final`: no more edits are held or timed after it.
+        A chat hold with at most FLUSH_WAIT_SECONDS left is waited out first; a longer one is not (said in the log),
+        and its edits are tried anyway."""
+        with self._edit_lock:
+            if final:
+                self._edit_closed = True
+            left = self._edit_chat_held_until - time.monotonic() if self._edit_pending else 0.0
+        if 0 < left <= min(self.FLUSH_WAIT_SECONDS, wait_limit):
+            threading.Event().wait(left)
+        elif left > 0:
+            log.warning("Telegram holds edits for %.0f s more; sending the held edits before stopping anyway.", left)
+        with self._edit_lock:
+            timers = list(self._edit_timers.values())
+            self._edit_timers.clear()
+            pending = dict(self._edit_pending)
+            self._edit_pending.clear()
+            self._edit_held_until.clear()
+            self._edit_chat_held_until = 0.0
+        for timer in timers:
+            timer.cancel()
+        for message_id, (seq, content) in pending.items():
+            try:
+                self._deliver_edit(message_id, seq, content, hold_on_limit=False)
+            except Exception as e:
+                log.warning("Could not send the held edit of message %s: %s", message_id, _MASKER.mask(str(e)))
 
     NUDGE_SECONDS = 60
 
@@ -2471,17 +2666,39 @@ class TelegramApprovalBot:
         self.jobs.submit(self._background(), "Receiving media", work, lambda job, result: False,
                          resource=f"telegram-upload:{update.get('update_id')}")
 
+    DRAIN_SECONDS = 10.0  # the whole drain: its passes, its waits and the final sends
+
     def drain(self) -> None:
         """Waits for queued navigation and background commands to finish (shutdown, tests). Navigation
-        work can queue more navigation, so the pools are drained until both are empty."""
+        work can queue more navigation, so the pools are drained until both are empty, within DRAIN_SECONDS
+        in all; what is left then is said in the log."""
+        deadline = time.monotonic() + self.DRAIN_SECONDS
+
+        def left() -> float:
+            return max(0.0, deadline - time.monotonic())
+        joined: list = []  # every pool drained, to say which are still busy when the time is up
         while True:
+            self._wait_for_held_sends(min(5.0, left()))  # a held edit already on its way first, then what queued
             with self._panel_lock:
                 pools = [p for p in (self._navigation_pool, self._workers, self._cleanup) if p is not None]
                 self._navigation_pool = self._workers = self._cleanup = None
-            if not pools:
+            last = not pools or not left()
+            # Held edits go now; on the last pass nothing is held or timed after it.
+            self._flush_held_edits(final=last, wait_limit=left())
+            if last:
+                self._wait_for_held_sends(min(5.0, left()))  # a timer that took its edit just before the flush
+                with self._edit_lock:
+                    unsent = len(self._edit_pending) + len(self._edit_sending)
+                busy = [p for p in joined + pools if any(t.is_alive() for t in getattr(p, "_threads", ()))]
+                if unsent or busy:
+                    log.warning("Telegram drain stopped after %.0f s with %d edit(s) unsent and %d pool(s) still "
+                                "busy.", self.DRAIN_SECONDS, unsent, len(busy))
                 return
+            joined += pools
             for pool in pools:
-                pool.shutdown(wait=True)
+                pool.shutdown(wait=False)
+                for thread in list(getattr(pool, "_threads", ())):
+                    thread.join(left())
 
     def _queue_navigation(self, work):
         if not self._dispatch_slots.acquire(blocking=False):

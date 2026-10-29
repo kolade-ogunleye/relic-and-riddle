@@ -104,7 +104,7 @@ Requirements:
 - No direction cues in any text (captions, title, first comment, share line, slides, stories): no pointing-hand or arrow emoji or symbols (such as 👉 👇 👆 ☝️ ➡️ ⬇️ → ↓), no "swipe right/left/up/down", and no "below" or "above" for the comments, caption or photos (write "in the comments", not "in the comments below"). Each platform places these differently and may change it.
 - No engagement bait in any text (Meta demotes it): never ask for likes or reactions ("like this if", "react with", "double tap if"), votes by reaction, shares to a number of people ("share with 5 friends"), tags ("tag someone who") or set replies ("comment YES", "type 1 if"). Ask a genuine question instead.
 - hashtags: 3-5 (Instagram allows at most 5), each starting with "#": specific to the place, era or subject (e.g. "#Cappadocia", "#ByzantineHistory"); no generic engagement tags like "#viral", "#fyp", "#ReelsViral", "#explore".
-- story_slides: exactly 3 (hook, revelation, question). Slide 3 asks the poll's question; its body gives context and asks nothing else. Each body is one complete sentence of at most 18 words: it must fit three lines at the Story's text size.
+- story_slides: exactly 3 (hook, revelation, question). Slide 3 asks the poll's question; its body gives context and asks nothing else. Each body is one complete sentence of at most {story_words} words ({poll_words} on slide 3): it must fit three lines at the Story's text size, and long words and names take more room.
 - poll: an either/or question (at most 60 characters) and exactly 2 options (each at most 24 characters) that are its two answers, e.g. "Planned or lucky?" with "Careful planning" / "Lucky accident". Never a yes/no question with options that are not yes/no.
 - carousel_slides: exactly 7 (title slide, five fact slides, closing call-to-comment slide). Slide 7 MUST ask a humane, universally resonant, thought-provoking question that appeals to all demographics (e.g. human ingenuity, civilizational survival, what modern humans have forgotten, or enduring mysteries) rather than narrow academic trivia, compelling viewers to debate in the comments.
 - first_comment: a debate-starting question, with no hashtags (Instagram's 5-hashtag cap covers the whole post).
@@ -451,7 +451,13 @@ def repeated_phrases(text: str, n: int = 3) -> List[str]:
     return found
 
 
-MAX_TRIMMED_SENTENCES = 2
+MAX_TRIMMED_SENTENCES = 2   # distinct blocked claims a trim may take out; more is a rewrite's
+_TRIM_MIN_WORDS = 4         # shorter text is too likely to appear in a checker's note by chance
+# Graphics are optional: an entry a checker blocked is dropped, and the whole graphic when too few entries remain
+# for it to stand (validate_structure's counts); nothing is ever replaced.
+_GRAPHIC_MIN_ENTRIES = {"timeline": 2, "route": 2, "stat_cards": 1}
+_GRAPHIC_PREFIXES = ("Timeline:", "Scale graphic:", "Scale reference:", "Number card:", "Cross-section", "Route stop:",
+                     "Photo labels")
 
 
 def _norm_words(text: str) -> str:
@@ -460,24 +466,203 @@ def _norm_words(text: str) -> str:
     return " ".join(re.sub(r"(?<![a-z0-9])'|'(?![a-z0-9])", " ", text).split())
 
 
+# A sentence opening on one of these leans on the one before it.
+_BACK_REFERENCE = re.compile(r"^\W*(?:this|that|these|those|it|its|they|their|such|the\s+same|both|he|she|his|her|but|then|yet|so"
+                             r"|still|instead|later|there|here)\b",
+                             re.IGNORECASE)
+
+
+def _split_sentences(text: str) -> List[str]:
+    return [x for x in re.split(r"(?<=[.!?])\s+", (text or "").strip()) if x.strip()]
+
+
+def _graphic_lines(key: str, value: Any) -> List[str]:
+    """A graphic's text exactly as the fact checkers are shown it (ClaimFactChecker._material)."""
+    from .fact_checker import ClaimFactChecker
+    bare = {"narration_script": "", "caption": "", "first_comment": "", "story_slides": [], "carousel_slides": [],
+            "thumbnail": {k: "" for k in ("eyebrow", "line1", "line2", "tagline")}, key: value}
+    try:
+        material = ClaimFactChecker._material(bare)
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return []
+    return [ln for ln in material.splitlines() if ln.startswith(_GRAPHIC_PREFIXES)]
+
+
 def without_blocked_sentences(payload: Dict[str, Any], notes: str) -> Optional[Dict[str, Any]]:
-    """The draft with the narration sentences a checker quoted as blocking taken out, or None when there is
-    nothing safe to take out. Used once, after the last rewrite failed on a claim or two (production
-    2026-10-25: three Antikythera drafts, the last blocked only on "The bronze lump was pulled specifically
-    from the Aegean Sea."). Nothing is written, so nothing new can be claimed; the hook and the closing
-    sentence are never removed; and the result must pass every check again (structure, spoken length and
-    both fact checkers), so a gap that leaves it too short, or a claim repeated elsewhere, still fails."""
-    narration = payload.get("narration_script") or ""
+    """The draft with the sentences a checker quoted as blocking taken out, or None when there is nothing safe to
+    take out (the reason is logged). Used once, after the last rewrite failed on a claim or two (production
+    2026-10-25: three Antikythera drafts, the last blocked only on "The bronze lump was pulled specifically from the
+    Aegean Sea."). A sentence goes from wherever it is read: the narration, both captions, the first comment, a
+    story or carousel slide's body; a graphic's entry is dropped (a claim outside the narration still rejected the
+    script: dev, Paracas, 2026-10-26). Nothing is written, so nothing new can be claimed. Headlines (title, cover,
+    slide headings, poll) and set pieces (the hook, the closing sentence, each caption's first line, a body's only
+    sentence) are never removed: a blocked claim there means no trim. The result must pass every check again
+    (structure, spoken length and both fact checkers), so a gap that leaves it too short, or a claim repeated in
+    other words, still fails."""
     quoted = f" {_norm_words(notes)} "  # whole words: a sentence must appear in the notes word for word
-    sentences = [x for x in re.split(r"(?<=[.!?])\s+", narration.strip()) if x.strip()]
-    keep_ends = {_norm_words(payload.get("hook_sentence")), _norm_words(payload.get("closing_sentence"))}
-    blocked = [x for i, x in enumerate(sentences)
-               if len(_norm_words(x).split()) >= 4 and f" {_norm_words(x)} " in quoted
-               and 0 < i < len(sentences) - 1 and _norm_words(x) not in keep_ends]
-    if not blocked or len(blocked) > MAX_TRIMMED_SENTENCES:
+
+    def blocked(text: str) -> bool:
+        words = _norm_words(text)
+        return len(words.split()) >= _TRIM_MIN_WORDS and f" {words} " in quoted
+
+    def refuse(why: str) -> None:
+        log.info("The blocked claims are not trimmed (%s); the rejection stands.", why)
         return None
-    trimmed = " ".join(x for x in sentences if x not in blocked)
-    return dict(payload, narration_script=trimmed, trimmed_sentences=blocked)
+
+    def dangling(parts: List[str], hits: List[str]) -> Optional[str]:
+        """The kept sentence right after a removed one that points back at it ("It sank in 60 BC. That date makes
+        it the oldest..."): left on its own it says nothing, or the wrong thing."""
+        for i, x in enumerate(parts):
+            if x in hits:
+                after = next((y for y in parts[i + 1:] if y not in hits), None)
+                if after and _BACK_REFERENCE.match(after):
+                    return after
+        return None
+
+    removed: Dict[str, List[str]] = {}  # each removed text (as first written) -> where it was read
+    graphic_claims: Dict[str, str] = {}  # a removed graphic line -> the words it was matched on (without its label)
+
+    def take(text: str, where: str, claim: Optional[str] = None) -> None:
+        """Records `text` as removed from `where`: the same words read in two places are one entry. `claim` marks a
+        graphic's line and gives the words it was matched on."""
+        key = next((k for k in removed if _norm_words(k) == _norm_words(text)), text)
+        places = removed.setdefault(key, [])
+        if where not in places:
+            places.append(where)
+        if claim is not None:
+            graphic_claims[key] = claim
+
+    def claim_count() -> int:
+        """How many claims the removals are: each removed sentence is one (two sentences are one only in the same
+        words), and a graphic's line adds one only when no removed sentence holds its claim and it holds none, so a
+        graphic never links two sentences into one claim."""
+        sentences = {f" {_norm_words(k)} " for k in removed if k not in graphic_claims}
+        count = len(sentences)
+        for line, claim in graphic_claims.items():
+            words = f" {_norm_words(claim)} "
+            if not any(words in x or x in words for x in sentences):
+                count += 1
+        return count
+
+    # Headlines and set pieces: a blocked claim in one of them can't be taken out.
+    thumb = payload.get("thumbnail") or {}
+    fixed = [("the title", payload.get("title")), ("the hook", payload.get("hook_sentence")),
+             ("the closing sentence", payload.get("closing_sentence")),
+             ("the cover", " ".join(str(thumb.get(k) or "") for k in ("eyebrow", "line1", "line2", "tagline"))),
+             ("the poll", (payload.get("poll") or {}).get("question"))]
+    # A heading as each checker reads it: "line1 line2" (the first checker), and after the kicker (the second).
+    for i, s in enumerate(payload.get("story_slides") or [], 1):
+        fixed += [(f"story slide {i}'s heading", f"{s.get(k) or ''} {s.get('line1') or ''} {s.get('line2') or ''}")
+                  for k in ("", "kicker")]
+    fixed += [(f"carousel slide {i}'s heading", c.get("heading"))
+              for i, c in enumerate(payload.get("carousel_slides") or [], 1)]
+    for where, text in fixed:
+        if text and blocked(text):
+            return refuse(f"{where} carries one")
+
+    out = dict(payload)
+    sentences = _split_sentences(payload.get("narration_script"))
+    keep_ends = {_norm_words(payload.get("hook_sentence")), _norm_words(payload.get("closing_sentence"))}
+    cut = [x for x in sentences if blocked(x)]
+    for x in cut:
+        i = sentences.index(x)
+        if not 0 < i < len(sentences) - 1 or _norm_words(x) in keep_ends:
+            return refuse("the narration's opening or closing sentence carries one")
+        take(x, "narration")
+    after = dangling(sentences, cut)
+    if after:
+        return refuse(f"the narration's next sentence points back at it ({after[:60]!r})")
+    if cut:
+        out["narration_script"] = " ".join(x for x in sentences if x not in cut)
+
+    for field, name in (("caption", "caption"), ("carousel_caption", "carousel caption")):
+        text = payload.get(field)
+        if not text:
+            continue
+        lines, first, changed = text.split("\n"), True, False
+        whole = [x for ln in lines if ln.strip() and not ln.lstrip().startswith("#") for x in _split_sentences(ln)]
+        after = dangling(whole, [x for x in whole if blocked(x)])
+        if after:
+            return refuse(f"the {name}'s next sentence points back at it ({after[:60]!r})")
+        for n, line in enumerate(lines):
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
+            parts = _split_sentences(line)
+            hits = [x for x in parts if blocked(x)]
+            if hits and first:
+                return refuse(f"the {name}'s first line carries one")
+            first = False
+            if hits:
+                for x in hits:
+                    take(x, name)
+                lines[n] = " ".join(x for x in parts if x not in hits) or None  # a line left empty goes
+                changed = True
+        if changed:
+            out[field] = re.sub(r"\n{3,}", "\n\n", "\n".join(ln for ln in lines if ln is not None)).strip()
+
+    def body_without(body: str, where: str, poll: bool = False) -> Optional[str]:
+        """The body less its blocked sentences, or None when nothing would be left of it (on the poll frame, which
+        drops a body's questions (multi_format), a question alone is nothing)."""
+        parts = _split_sentences(body)
+        hits = [x for x in parts if blocked(x)]
+        if not hits:
+            return body
+        rest = [x for x in parts if x not in hits]
+        if not [x for x in rest if not (poll and x.rstrip().endswith("?"))] or dangling(parts, hits):
+            return None
+        for x in hits:
+            take(x, where)
+        return " ".join(rest)
+
+    comment = payload.get("first_comment")
+    if comment:
+        kept = body_without(comment, "first comment")
+        if kept is None:
+            return refuse("the first comment would be left empty or pointing back at it")
+        out["first_comment"] = kept
+    for field, name in (("story_slides", "story slide"), ("carousel_slides", "carousel slide")):
+        slides = payload.get(field) or []
+        new = []
+        for i, s in enumerate(slides, 1):
+            body = s.get("body") or ""
+            kept = body_without(body, f"{name} {i}", poll=field == "story_slides" and i == len(slides))
+            if kept is None:
+                return refuse(f"{name} {i}'s body would be left empty or pointing back at it")
+            new.append(dict(s, body=kept) if kept != body else s)
+        if slides:
+            out[field] = new
+
+    for key in ("timeline", "route", "stat_cards"):
+        entries = payload.get(key) or []
+        keep = []
+        for e in entries:
+            hits = [ln for ln in _graphic_lines(key, [e]) if blocked(ln.split(":", 1)[-1])]
+            for ln in hits:
+                take(ln, key.replace("_", " "), claim=ln.split(":", 1)[-1])
+            if not hits:
+                keep.append(e)
+        if len(keep) != len(entries):
+            out[key] = keep if len(keep) >= _GRAPHIC_MIN_ENTRIES[key] else None
+    for key in ("scale_fact", "cross_section", "photo_labels"):
+        if payload.get(key):
+            hits = [ln for ln in _graphic_lines(key, payload[key]) if blocked(ln.split(":", 1)[-1])]
+            for ln in hits:
+                take(ln, key.replace("_", " "), claim=ln.split(":", 1)[-1])
+            if hits:
+                out[key] = None
+
+    if not removed:
+        return refuse("no blocked claim is quoted word for word in a sentence that can be taken out")
+    claims = claim_count()
+    if claims > MAX_TRIMMED_SENTENCES:
+        return refuse(f"{claims} claims to take out; more than {MAX_TRIMMED_SENTENCES} is a rewrite's")
+    if out.get("emphasis_words"):  # a highlight on words the narration no longer says is dropped (not a claim)
+        narration = (out.get("narration_script") or "").lower()
+        out["emphasis_words"] = [w for w in out["emphasis_words"] if w.lower() in narration] or None
+    out["word_count"] = len((out.get("narration_script") or "").split())
+    out["trimmed_sentences"] = list(removed)
+    out["trimmed_from"] = [", ".join(w) for w in removed.values()]
+    return out
 
 
 # ---------------------------------------------------------------- share and follow (Meta's creator tips, 2026-10-25)
@@ -794,6 +979,39 @@ def _bait_fields(pkg: ScriptPackage) -> List[Tuple[str, str]]:
     return fields
 
 
+# A ruler for the Story body's word budget: a sentence of the long words (about 7 letters on average) that names,
+# places and measurements make; an average sentence fits a word or two more.
+_STORY_RULER = "Engineers recorded twelve separate chambers beneath the plateau during careful modern surveys".split()
+_STORY_WORDS_FALLBACK = 12   # what the ruler measured (2026-10-28), if the fonts can't be read
+_POLL_BODY_SLACK = 2         # the poll frame also stacks the question and both options: its context line is shorter
+_story_word_limits: Dict[bool, int] = {}
+
+
+def story_body_word_limit(asks_poll: bool = False) -> int:
+    """The most words the writer is asked for in a Story body, measured on the frame as it is drawn
+    (multi_format.story_body_lines): one less than the ruler fits in STORY_BODY_LINES wherever its sentence starts,
+    since a writer lands on the limit and names run longer than the ruler's words. The prompt said 18 words, and 18
+    words take four lines; fourteen long ones did too (8 rejections, production and development, 2026-10-25/28)."""
+    if asks_poll not in _story_word_limits:
+        try:
+            from .multi_format import STORY_BODY_LINES, story_body_lines
+            ruler = _STORY_RULER * 3
+            fits = 1
+            while fits < 3 * len(_STORY_RULER) and all(
+                    story_body_lines(" ".join(ruler[r:r + fits + 1]) + ".") <= STORY_BODY_LINES
+                    for r in range(len(_STORY_RULER))):
+                fits += 1
+            limit = max(6, fits - 1)
+        except (OSError, ImportError, ValueError) as e:
+            log.debug("Story body not measured (%s); asking for %d words.", e, _STORY_WORDS_FALLBACK)
+            limit = _STORY_WORDS_FALLBACK
+        _story_word_limits[asks_poll] = limit - (_POLL_BODY_SLACK if asks_poll else 0)
+    return _story_word_limits[asks_poll]
+
+
+STORY_OVERFLOW = re.compile(r"^Story slide (\d)'s body takes \d+ lines on the frame")
+
+
 def validate_structure(pkg: ScriptPackage) -> List[str]:
     """Returns a list of problems; empty means the package is structurally publishable. The opening's hook rule
     is a new draft's (draft_problems)."""
@@ -848,7 +1066,7 @@ def validate_structure(pkg: ScriptPackage) -> List[str]:
             lines = story_body_lines(s.body, asks_poll=i == 3)
             if lines > STORY_BODY_LINES:
                 words = len(s.body.split())
-                fit = max(8, words * STORY_BODY_LINES // lines - 1)
+                fit = max(6, min(story_body_word_limit(asks_poll=i == 3), words * STORY_BODY_LINES // lines - 1))
                 problems.append(f"Story slide {i}'s body takes {lines} lines on the frame (at most {STORY_BODY_LINES}); "
                                 f"rewrite it in about {fit} words ({words} now), keeping one complete sentence.")
     if len(pkg.carousel_slides) != 7:
@@ -923,6 +1141,7 @@ class _Shortened(BaseModel):
 
 
 SHORTEN_SYSTEM = """You shorten on-screen labels of a history documentary's graphics to fit their character limits. Keep each label's meaning and facts exactly: drop words, use a shorter phrasing, never add a fact, a number or a name, never change one. Return the labels in the same order."""
+STORY_SHORTEN_SYSTEM = """You shorten the body lines of a history video's Story frames so each fits three lines on screen. Keep each body's meaning and facts exactly: drop words or use a shorter phrasing; never add a fact, a number or a name, never change one, and keep every hedge ("about", "up to", "estimated"). Each result is one complete sentence of at most the words given; the poll frame's body (slide 3) gives context and asks no question. Return the bodies in the same order."""
 
 
 def shorten_graphic_text(pkg: ScriptPackage) -> ScriptPackage:
@@ -1204,6 +1423,12 @@ class ScriptEngine:
                 if pkg is not None:
                     pkg = prune_graphics(pkg)
                     problems = blocking_problems(draft_problems(pkg))
+                    if problems and all(STORY_OVERFLOW.match(p) for p in problems):
+                        # Only a Story body runs long: it is shortened, not the whole draft rewritten, which must
+                        # pass both fact checks again (production 2026-10-28: "Story slide 3's body takes 4 lines").
+                        shortened = self._shorten_story_slides(pkg, problems)
+                        if shortened is not None:
+                            pkg, problems = shortened, blocking_problems(draft_problems(shortened))
                     if not problems:
                         _note_kept_hook(draft_problems(pkg))
                         log.info("Revised surgically: only the rejected sentences changed.")
@@ -1242,6 +1467,15 @@ class ScriptEngine:
                 # Structure, length and the opening together: one rewrite fixes all of them.
                 problems = draft_problems(pkg)
                 blocking = blocking_problems(problems)
+                if (any(STORY_OVERFLOW.match(p) for p in blocking)
+                        and all(STORY_OVERFLOW.match(p) or "when spoken" in p for p in blocking)):
+                    # A Story body over three lines is shortened in place (one short call); a length miss left
+                    # with it is then edited below, as on its own.
+                    shortened = self._shorten_story_slides(pkg, blocking)
+                    if shortened is not None:
+                        pkg = shortened
+                        problems = draft_problems(pkg)
+                        blocking = blocking_problems(problems)
                 if not blocking:
                     _note_kept_hook(problems)
                     return self._finalize(pkg, topic, origin=writer_origin(), fact_sheet_used=self._sheet(topic) is not None)
@@ -1415,6 +1649,44 @@ class ScriptEngine:
         notes, retrieved = self._sheet_context(sheet)
         return self._with_graphics(fitted, notes, retrieved, feedback)
 
+    def _shorten_story_slides(self, pkg: ScriptPackage, problems: List[str]) -> Optional[ScriptPackage]:
+        """A draft whose Story bodies run past three lines, with only those bodies shortened (one short call), or
+        None when the call fails or a body still misses: the caller rewrites as before. Nothing else changes, so
+        the narration, its measured length and its graphics stand; each shortened body must be one sentence,
+        shorter than it was, fit the frame as drawn, and (slide 3) ask nothing; the draft is then checked again,
+        both fact checks included, like any other."""
+        from .multi_format import STORY_BODY_LINES, story_body_lines
+        over = sorted({int(m.group(1)) for m in (STORY_OVERFLOW.match(p) for p in problems) if m})
+        items = [(i, story_body_word_limit(asks_poll=i == 3), pkg.story_slides[i - 1].body)
+                 for i in over if 1 <= i <= len(pkg.story_slides)]
+        if not items:
+            return None
+        prompt = "\n".join(f"Slide {i} (at most {limit} words): {body}" for i, limit, body in items)
+        try:
+            if free_llm.enabled():
+                out = free_llm.structured(STORY_SHORTEN_SYSTEM, prompt, _Shortened, role="writer", task_class="light")
+            else:
+                out = structured_call(STORY_SHORTEN_SYSTEM, prompt, _Shortened, effort="low", max_tokens=800)
+        except (LLMError, OSError, ValueError) as e:
+            log.warning("Story slide shortening failed (%s); rewriting the draft.", e)
+            return None
+        if len(out.texts) != len(items):
+            log.warning("Story slide shortening returned %d bodies for %d; rewriting the draft.", len(out.texts), len(items))
+            return None
+        slides = list(pkg.story_slides)
+        for (i, limit, old), new in zip(items, out.texts):
+            new = " ".join((new or "").split())
+            poll = i == 3
+            if (not new or len(new.split()) >= len(old.split()) or len(_split_sentences(new)) != 1
+                    or not new.endswith((".", "!")) and not (new.endswith("?") and not poll)
+                    or story_body_lines(new, asks_poll=poll) > STORY_BODY_LINES):
+                log.warning("Story slide %d's shortened body still misses (%r); rewriting the draft.", i, new[:90])
+                return None
+            slides[i - 1] = slides[i - 1].model_copy(update={"body": new})
+            log.info("Story slide %d's body shortened: %d -> %d words.", i, len(old.split()), len(new.split()))
+        improve.note_problems([p for p in problems if STORY_OVERFLOW.match(p)], "structure")  # still the writer's miss
+        return pkg.model_copy(update={"story_slides": slides})
+
     @staticmethod
     def _sheet_context(sheet: Dict[str, Any]) -> Tuple[str, List[Source]]:
         """The writer's view of a fact sheet: the verified facts as notes, and its sources best tier first."""
@@ -1447,6 +1719,8 @@ class ScriptEngine:
             hook=topic.get("hook", ""),
             location=", ".join(v for v in (loc.get("name"), loc.get("city"), loc.get("country")) if v),
             key_facts="; ".join(topic.get("key_facts", [])),
+            story_words=story_body_word_limit(),
+            poll_words=story_body_word_limit(asks_poll=True),
         )
         sheet = self._sheet(topic)
         if sheet is not None:

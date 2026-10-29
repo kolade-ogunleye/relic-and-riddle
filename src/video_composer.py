@@ -518,10 +518,13 @@ def _audio_chain(vo_idx: int, bg_idx: int, pad: float = 0.0, card_at: Optional[f
 def _master_chain(gain_db: float) -> str:
     """Gain + true-peak-safe limiter (limiting at 4x rate catches inter-sample peaks) with dynamic range breathing room.
     A 16 kHz low-pass ahead of the limiter: AAC at 192 kb/s drops that band, and dropping it after the limiter made a
-    -1.9 dBTP programme encode at +1.0 dBTP (Roman concrete, 2026-10-28; docs/reviews/aac-overshoot-2026-10-28)."""
+    -1.9 dBTP programme encode at +1.0 dBTP (Roman concrete, 2026-10-28; docs/reviews/aac-overshoot-2026-10-28).
+    The ceiling and the band are shared with finalize_encoded_audio, which limits once more if the encode still
+    overshoots."""
+    from .encoded_audio import LOWPASS_HZ, MASTER_LIMIT
     return (
-        f",volume={gain_db:.2f}dB,lowpass=f=16000:poles=2,aresample={AUDIO_SAMPLE_RATE * 4},"
-        f"alimiter=limit=0.80:attack=2.5:release=80:level=disabled:asc=1,"
+        f",volume={gain_db:.2f}dB,lowpass=f={LOWPASS_HZ}:poles=2,aresample={AUDIO_SAMPLE_RATE * 4},"
+        f"alimiter=limit={MASTER_LIMIT:.2f}:attack=2.5:release=80:level=disabled:asc=1,"
         f"aresample={AUDIO_SAMPLE_RATE},aformat=channel_layouts=stereo"
     )
 

@@ -58,6 +58,18 @@ def test_packed_tags_are_read_too(repo, no_git):
     assert release_info.release_label(repo) == "v1.0.0-rc10"
 
 
+def test_a_loose_tag_ref_whose_object_is_packed(repo, no_git):
+    """How a fetch leaves a release on production: the ref loose, the tag object in a pack (rc68 showed
+    the short commit on the dashboard, 2026-10-28)."""
+    _git(repo, "tag", "-a", "-m", "rc68", "v1.0.0-rc68")
+    _git(repo, "repack", "-a", "-d", "-q")                     # objects packed, refs left loose
+    _git(repo, "prune")
+    sha = (repo / ".git" / "refs" / "tags" / "v1.0.0-rc68").read_text().strip()
+    assert not (repo / ".git" / "objects" / sha[:2] / sha[2:]).exists()
+    _git(repo, "checkout", "-q", "--detach", "v1.0.0-rc68")
+    assert release_info.release_label(repo) == "v1.0.0-rc68"
+
+
 def test_a_lightweight_tag_on_a_branch_head(repo, no_git):
     _git(repo, "tag", "v1.0.0")
     assert release_info.release_label(repo) == "v1.0.0"

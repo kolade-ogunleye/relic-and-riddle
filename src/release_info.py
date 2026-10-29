@@ -59,10 +59,12 @@ def _resolve_ref(git_dir: Path, ref: str) -> Optional[str]:
 
 
 def _peel(git_dir: Path, sha: str) -> str:
-    """The commit an annotated tag object names; anything else (a commit, a packed object) as is."""
+    """The commit an annotated tag object names, loose or packed; anything else (a commit) as is."""
     obj = git_dir / "objects" / sha[:2] / sha[2:]
     if not obj.is_file():
-        return sha
+        body = _packed_tag(git_dir, sha)
+        match = re.match(rb"object ([0-9a-f]{40})\n", body or b"")
+        return match.group(1).decode() if match else sha
     try:
         data = zlib.decompress(obj.read_bytes())
     except zlib.error:
@@ -71,6 +73,51 @@ def _peel(git_dir: Path, sha: str) -> str:
         return sha
     match = re.search(rb"\x00object ([0-9a-f]{40})\n", data)
     return match.group(1).decode() if match else sha
+
+
+def _packed_tag(git_dir: Path, sha: str) -> Optional[bytes]:
+    """A tag object's body from a pack (version-2 index). A fetch leaves the tag ref loose and its object
+    packed: rc68's dashboard showed the commit, not the tag (2026-10-28). Deltified objects are skipped
+    (git stores tag objects whole); the label then falls back as before."""
+    want = bytes.fromhex(sha)
+    pack_dir = git_dir / "objects" / "pack"
+    if not pack_dir.is_dir():
+        return None
+    for idx in pack_dir.glob("*.idx"):
+        try:
+            with idx.open("rb") as f:
+                if f.read(8) != b"\xfftOc\x00\x00\x00\x02":
+                    continue
+                fanout = f.read(1024)
+                lo = int.from_bytes(fanout[(want[0] - 1) * 4:want[0] * 4], "big") if want[0] else 0
+                hi = int.from_bytes(fanout[want[0] * 4:want[0] * 4 + 4], "big")
+                total = int.from_bytes(fanout[1020:1024], "big")
+                while lo < hi:  # the names are sorted
+                    mid = (lo + hi) // 2
+                    f.seek(1032 + mid * 20)
+                    name = f.read(20)
+                    if name == want:
+                        break
+                    lo, hi = (mid + 1, hi) if name < want else (lo, mid)
+                else:
+                    continue
+                f.seek(1032 + total * 24 + mid * 4)
+                offset = int.from_bytes(f.read(4), "big")
+                if offset & 0x80000000:
+                    f.seek(1032 + total * 28 + (offset & 0x7FFFFFFF) * 8)
+                    offset = int.from_bytes(f.read(8), "big")
+            with idx.with_suffix(".pack").open("rb") as p:
+                p.seek(offset)
+                byte = p.read(1)[0]
+                kind = (byte >> 4) & 7
+                while byte & 0x80:
+                    byte = p.read(1)[0]
+                if kind != 4:  # not stored as a whole tag object
+                    return None
+                return zlib.decompressobj().decompress(p.read(64 * 1024))
+        except (OSError, IndexError, zlib.error):
+            continue
+    return None
 
 
 def _tag_for(git_dir: Path, commit: str) -> Optional[str]:

@@ -10,6 +10,7 @@ import html
 import io
 import logging
 import re
+import threading
 import time
 from pathlib import Path
 from typing import Iterator, List, Optional
@@ -208,8 +209,281 @@ def search(query: str, limit: int = 50, max_wait: int = 60) -> list:
                                "ImageDescription|Categories|ObjectName|GPSLatitude|GPSLongitude",
     }
     resp = _get(API, params=params, timeout=30, max_wait=max_wait)
-    pages = resp.json().get("query", {}).get("pages", {})
+    data = resp.json()
+    # A deepcategory: over a large tree is applied to only some of it ("Deep category query returned too many
+    # categories. Only a subset of categories has been applied."): said, so a widened search is not taken as whole.
+    warning = str((data.get("warnings") or {}).get("search") or "")
+    _last_search.partial = "subset" in warning.lower() or "too many categories" in warning.lower()
+    pages = data.get("query", {}).get("pages", {})
     return sorted(pages.values(), key=lambda p: p.get("index", 0))
+
+
+_last_search = threading.local()   # .partial: the last search() on this thread applied only part of a category
+
+
+# Commons search matches every word, so a precise per-beat query often finds nothing (dev Nazca, 2026-10-28:
+# "Nazca lines ground level trench" 0 results, "ground" in the Nazca lines category 23). A query with fewer than
+# WIDEN_BELOW results is tried again shorter, at most WIDEN_MAX_EXTRA more searches, stopping at the first that
+# fails, each restricted to something the topic structurally is: its own Commons category (deepcategory:), else
+# its place's category (incategory:), else its coordinates (nearcoord:). A word from the title is never the anchor:
+# "Under", "Salt" or "Roman" found railway tunnels, Salt Lake City and other Roman kilns (review, 2026-10-29).
+# Nothing to anchor on: no widening. The precise query, and every filter after the search (licence, keywords,
+# resolution, author, the look, the line check), are as before.
+WIDEN_BELOW = 8
+WIDEN_MAX_EXTRA = 3
+NEAR_KM = 10            # a coordinate anchor's radius (a city's 20 km held its scooters and bridges)
+_FILLER = {"the", "a", "an", "of", "in", "on", "at", "and", "or", "to", "for", "with", "from", "by", "near", "not"}
+_OPERATORS = {"AND", "OR", "NOT"}
+_ANCHORS: dict = {}     # topic key -> (when, its anchor): looked up once, again after ANCHOR_TTL (None: sooner)
+ANCHOR_TTL, NO_ANCHOR_TTL = 24 * 3600, 3600
+
+
+def _words(text: str) -> List[str]:
+    """Search words: hyphens split, quotes, brackets and the search operators (AND, OR, NOT, a leading -) dropped."""
+    text = re.sub(r"['’]s\b", "", (text or "").replace("-", " "))   # "Heng's" is Heng
+    return [w for w in re.findall(r"[^\W_][\w'’]*", text) if w not in _OPERATORS]
+
+
+def _similar(a: str, b: str) -> bool:
+    """One word for another: equal, a plural, or one letter apart in a long word (Odessa / Odesa)."""
+    a, b = normalize(a), normalize(b)
+    if a == b or a.rstrip("s") == b.rstrip("s"):
+        return True
+    if min(len(a), len(b)) < 5 or abs(len(a) - len(b)) > 1:
+        return False
+    if len(a) == len(b):
+        return sum(x != y for x, y in zip(a, b)) <= 1
+    short, long_ = sorted((a, b), key=len)
+    return any(long_[:i] + long_[i + 1:] == short for i in range(len(long_)))
+
+
+def _category_words(name: str) -> List[str]:
+    """A category's own words: no "Category:", no disambiguation in brackets, no filler."""
+    name = re.sub(r"\([^)]*\)", " ", name.split(":", 1)[-1])
+    return [w for w in _words(name) if w.lower() not in _FILLER]
+
+
+def _matches(category: str, words: List[str]) -> int:
+    """How many of the category's words the topic's words name (0 unless all of them do)."""
+    own = _category_words(category)
+    return len(own) if own and all(any(_similar(c, w) for w in words) for c in own) else 0
+
+
+def _files(categories: List[str], max_wait: int) -> dict:
+    """{category: (files, subcategories)} from Commons' category counts."""
+    if not categories:
+        return {}
+    resp = _get(API, params={"action": "query", "format": "json", "prop": "categoryinfo",
+                             "titles": "|".join(categories)}, timeout=20, max_wait=max_wait)
+    out = {}
+    for page in (resp.json().get("query") or {}).get("pages", {}).values():
+        info = page.get("categoryinfo") or {}
+        out[page.get("title")] = (int(info.get("files") or 0), int(info.get("subcats") or 0))
+    return out
+
+
+def _in_order(words: List[str], sequences: List[List[str]]) -> bool:
+    """`words` appear in this order in one of `sequences` ("Roman concrete" is not the typeface "Concrete Roman")."""
+    for seq in sequences:
+        i = 0
+        for w in seq:
+            if i < len(words) and _similar(words[i], w):
+                i += 1
+        if i == len(words):
+            return True
+    return False
+
+
+def _qualified_elsewhere(category: str, words: List[str]) -> bool:
+    """A bracketed qualifier the topic does not name: a namesake ("Zhang Heng (actress)", "Archimedes (genus)")."""
+    brackets = " ".join(re.findall(r"\(([^)]*)\)", category.split(":", 1)[-1]))
+    return any(not any(_similar(q, w) for w in words) for q in _words(brackets) if q.lower() not in _FILLER)
+
+
+PLACE_SUBCATS_MAX = 10   # a place's category with more subcategories is a city, region or sea, not a site
+
+
+def _fullness(category: str, words: List[str]) -> int:
+    """How fully a category is the topic's name: its words `words` name (a bracketed one too, "Heracleion
+    (Thonis)"), less the bracketed qualifiers they do not name ("Archimedes (genus)", a fossil, against "Claw of
+    Archimedes"; "Zhang Heng (actress)")."""
+    name = category.split(":", 1)[-1]
+    brackets = " ".join(re.findall(r"\(([^)]*)\)", name))
+    main = [w for w in _words(re.sub(r"\([^)]*\)", " ", name)) if w.lower() not in _FILLER]
+    qualifiers = [w for w in _words(brackets) if w.lower() not in _FILLER]
+    named = lambda w: any(_similar(w, x) for x in words)  # noqa: E731
+    return sum(1 for w in main if named(w)) + sum(1 if named(w) else -1 for w in qualifiers)
+
+
+def topic_anchor(topic: dict, place: str = "", photos: Optional[List[dict]] = None,
+                 aliases: Optional[List[str]] = None, max_wait: int = 30) -> Optional[dict]:
+    """What widened searches are restricted to, for `topic` (or a beat about `place`, another site): {"kind":
+    "category", "name", "deep"}, a Commons category with files whose words the topic's title, id, other names
+    (`aliases`, e.g. its image queries) and place name together; else {"kind": "near", "lat", "lon"} from the
+    topic's coordinates; else None.
+      - The topic's own (a name word in it) goes before its place's, and is searched deep (deepcategory:); a place's,
+        or one known only from the photos filed in it, is searched flat (incategory:), a place's only when it is a
+        site: one with more than PLACE_SUBCATS_MAX subcategories is a city, region or sea, and the coordinates are
+        used instead, or nothing.
+      - Its words must keep the name's order ("Concrete Roman" is a typeface), and a bracketed qualifier the topic
+        does not name makes it a namesake ("Zhang Heng (actress)"). A category the topic's approved `photos` (credit
+        records) are filed in also counts as its own (two photos, or one when a name search found it).
+      - Then one the photos are filed in (an opus caementicium over a TV series called "Mystery!"), then the fuller
+        name ("Claw of Archimedes" over "Archimedes (genus)", "Colossi of Memnon" over "Memnon"; words that are not
+        the name's count against it), then the one the photos are filed in most, then the one their text names
+        most, then the one found from the most specific search (the title's part after its last "of", its first
+        other name), then the order found.
+    Kept in this process's memory for up to a day (lost on a restart; an empty answer is asked again within the
+    hour, it may have been a failed search)."""
+    loc = topic.get("location") or {}
+    place = (place or "").strip()
+    key = (topic.get("id"), place)
+    if key in _ANCHORS:
+        when, cached = _ANCHORS[key]
+        if time.monotonic() - when < (ANCHOR_TTL if cached else NO_ANCHOR_TTL):
+            return cached
+    title = re.sub(r"\S*\d\S*", " ", topic.get("title") or "")   # "1,500-Mile" says nothing of the topic
+    ident = str(topic.get("id") or "").replace("_", " ")
+    names = [] if place else [" ".join(str(a).split()) for a in aliases or [] if str(a).strip()]
+    # The name words: the title's, the id's and the first other name's (the pool's main search: "Houfeng Didong
+    # Yi" for a title naming its inventor). Later other names are context searches ("Abu Qir Bay"), never names.
+    name_words = [] if place else _words(title) + _words(ident) + (_words(names[0]) if names else [])
+    place_words = _words(place or loc.get("name") or "")
+    queries: List[str] = []
+    if not place:
+        parts = [" ".join(x.split()) for x in re.split(r":|&|\bof\b", title, flags=re.I)]
+        parts = [re.sub(r"^(?:the|a|an)\s+", "", x, flags=re.I) for x in parts if x]
+        queries += parts[::-1] + names + [" ".join(_words(title)), ident]   # the most specific first
+    queries += [" ".join(place_words)] if place_words else []
+    naming = {q for q in parts[::-1] + names[:1]} if not place else set()
+    sequences = [_words(title) + place_words, _words(ident) + place_words] + ([_words(names[0]) + place_words] if names else [])
+    texts = [_words(" ".join([str(im.get("title") or ""), str(im.get("description") or "")]
+                             + [str(c) for c in im.get("categories") or []])) for im in photos or []]
+    filed = [{normalize(str(c)) for c in im.get("categories") or []} for im in photos or []]
+    scored = {}
+    try:
+        order = 0
+        for rank, q in enumerate(dict.fromkeys(q.strip() for q in queries if q.strip())):
+            for cat in find_categories(q, limit=5, max_wait=max_wait):
+                order += 1
+                if cat in scored:
+                    continue
+                # The topic's photos filed in it: two of them, or one when a name search found it.
+                in_pool = sum(normalize(cat.split(":", 1)[-1]) in f for f in filed)
+                main = _category_words(cat)
+                named = (bool(name_words) and bool(_matches(cat, name_words + place_words))
+                         and _fullness(cat, name_words) > 0 and not _qualified_elsewhere(cat, name_words + place_words)
+                         and _in_order(main, sequences)
+                         # all of it the place's words: the place ("Bothnian Sea" for a sea's anomaly), not the topic
+                         and not all(any(_similar(c, w) for w in place_words) for c in main))
+                own = named or (not place and (in_pool >= 2 or (in_pool and q in naming)))
+                if not (own or _matches(cat, place_words)):
+                    continue
+                mentions = sum(all(any(_similar(c, w) for w in text) for c in main) for text in texts)
+                # The name's words it names, less unnamed qualifiers and less words that are not the name's
+                # ("Damascus steel" over "Ancient City of Damascus", "Gol Gumbaz" over "Interior of Gol Gumbaz").
+                if own:
+                    full = _fullness(cat, name_words) - sum(1 for w in main if not any(_similar(w, x) for x in name_words))
+                else:
+                    full = _fullness(cat, place_words)
+                scored[cat] = (own, in_pool > 0, full, in_pool, mentions, -rank, -order, named, cat)
+        best = sorted(scored.values(), reverse=True)[:5]
+        counts = _files([c[-1] for c in best], max_wait) if best else {}
+        found = None
+        for own, *_, named, cat in best:
+            files, subcats = counts.get(cat, (0, 0))
+            if not files and not (own and subcats):
+                continue
+            if not own and subcats > PLACE_SUBCATS_MAX:
+                log.info("Commons category %s is a whole city or region (%d subcategories): not an anchor.", cat, subcats)
+                continue
+            # Deep only for a category named for the topic; one known only by where its photos are filed (a
+            # building's, "the CIA headquarters" for an operation run there) is searched flat, as a place is.
+            found = {"kind": "category", "name": cat.split(":", 1)[-1], "deep": named}
+            break
+    except Exception as e:  # the anchor only widens a search: never a reason for the beat's search to fail
+        log.info("Commons category of %s not looked up (%s).", topic.get("id"), e)
+        return None   # not cached: asked again next time
+    if found is None and not place:
+        lat, lon = _float(loc.get("latitude")), _float(loc.get("longitude"))
+        if lat is not None and lon is not None and (lat, lon) != (0.0, 0.0):
+            found = {"kind": "near", "lat": lat, "lon": lon}
+    _ANCHORS[key] = (time.monotonic(), found)
+    return found
+
+
+def anchor_filter(anchor: Optional[dict]) -> str:
+    """The search keyword an anchor adds ("" for none)."""
+    if not anchor:
+        return ""
+    if anchor["kind"] == "category":
+        return f'{"deepcategory" if anchor.get("deep") else "incategory"}:"{anchor["name"]}"'
+    return f"nearcoord:{NEAR_KM}km,{anchor['lat']:.4f},{anchor['lon']:.4f}"
+
+
+def widen_queries(query: str, anchor: Optional[dict], keywords: Optional[List[str]] = None,
+                  max_extra: int = WIDEN_MAX_EXTRA) -> List[str]:
+    """Shorter forms of `query`, most specific first, each restricted to `anchor` (anchor_filter): its proper
+    nouns, each title keyword, its first word; the last is the anchor alone (what the category or place has).
+    [] without an anchor. A form that is the query again (filler aside) is left out."""
+    restrict = anchor_filter(anchor)
+    if not restrict or max_extra <= 0:
+        return []
+    words = [w for w in _words(query) if w.lower() not in _FILLER]
+    same = {" ".join(sorted(normalize(w) for w in words))}
+    forms: List[str] = []
+
+    def add(extra: List[str]) -> None:
+        key = " ".join(sorted({normalize(w) for w in extra}))
+        if extra and key not in same:
+            same.add(key)
+            forms.append(" ".join(extra + [restrict]))
+    add([w for w in words if w[:1].isupper()])
+    for kw in keywords or []:
+        add([w for w in _words(kw) if w.lower() not in _FILLER])
+    add(words[:1])
+    return forms[:max_extra - 1] + [restrict]
+
+
+def _page_key(page) -> str:
+    if isinstance(page, dict):
+        return str(page.get("pageid") or page.get("title") or id(page))
+    return repr(page)
+
+
+def search_widened(query: str, anchor, keywords: Optional[List[str]] = None, limit: int = 50,
+                   max_wait: int = 60, below: int = WIDEN_BELOW, max_extra: int = WIDEN_MAX_EXTRA):
+    """(results, [(query, results), ...]): search(query), and when it finds fewer than `below` results, the
+    widen_queries forms in order, at most `max_extra` more searches and none after one fails, until `below` are
+    found; merged in order, each file once. `anchor` may be a function giving it, asked only when widening."""
+    pages = list(search(query, limit=limit, max_wait=max_wait))
+    tried = [(query, len(pages))]
+    seen = {_page_key(p) for p in pages}
+    if len(pages) >= below:
+        return pages, tried
+    anchor = anchor() if callable(anchor) else anchor
+    for wider in widen_queries(query, anchor, keywords, max_extra):
+        if len(pages) >= below:
+            break
+        try:
+            _last_search.partial = False
+            found = list(search(wider, limit=limit, max_wait=max_wait))
+        except (requests.RequestException, ValueError) as e:
+            log.info("Commons search %r failed (%s); no wider search after it, the results so far stand.", wider, e)
+            tried.append((wider, -1))
+            break
+        if getattr(_last_search, "partial", False):
+            # Only part of the category tree was searched: its results are not the category's, and the next form
+            # would be cut the same way. Not used; no wider search with this anchor.
+            log.info("Commons search %r covered only part of its category; not used, no wider search after it.", wider)
+            tried.append((wider, -2))
+            break
+        tried.append((wider, len(found)))
+        for p in found:
+            if _page_key(p) not in seen:
+                seen.add(_page_key(p))
+                pages.append(p)
+    return pages, tried
 
 
 def find_categories(topic_text: str, limit: int = 5, max_wait: int = 30) -> List[str]:

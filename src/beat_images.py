@@ -351,6 +351,30 @@ def source_gaps(beats: List[Dict[str, Any]], gap_beats: List[int], topic: Dict[s
     return paths, credits
 
 
+def _pool_records(topic: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """The credit records of the topic's usable photos (Topic, Kept, Context): which Commons category is the
+    topic's own is read from them (commons.topic_anchor). [] without a pool."""
+    try:
+        from .credits import load_credits
+        from .image_review import tier
+        images = load_credits(Path(config.ASSETS_DIR) / str(topic.get("id") or "")).get("images", [])
+        return [im for im in images if tier(im) in ("topic", "kept", "context")]
+    except (OSError, ValueError, KeyError, TypeError):
+        return []
+
+
+def _other_names(topic: Dict[str, Any]) -> List[str]:
+    """The topic's other names: the Commons searches its photo pool was fetched with (image_queries.json), so a
+    category named after the object rather than the title is found (commons.topic_anchor). [] without them."""
+    try:
+        import json as _json
+        specs = _json.loads((Path(config.TOPICS_DIR) / "image_queries.json").read_text(encoding="utf-8"))
+        spec = specs.get(str(topic.get("id") or "")) or {}
+        return [str(q) for q in spec.get("queries") or [] if isinstance(q, str)]
+    except (OSError, ValueError, AttributeError):
+        return []
+
+
 def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: str,
               wait: int = 30) -> Tuple[List[Path], List[Dict[str, Any]]]:
     """Downloads the best openly licensed, on-subject Commons results for each planned search; records them
@@ -372,8 +396,14 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
                 keywords = list(item.keywords) + [w for w in commons.normalize(elsewhere).split() if len(w) > 3]
                 near = None
             # Short wait cap: a rate-limited Commons shouldn't stall a production run. Results are
-            # ranked by what their metadata says they show (commons.relevance), best first.
-            results = list(commons.search(item.query, limit=30, max_wait=60))
+            # ranked by what their metadata says they show (commons.relevance), best first. A precise query that
+            # finds almost nothing is tried shorter, within the topic's (or the beat's place's) Commons category or
+            # coordinates (commons.search_widened, dev Nazca 2026-10-28): more candidates only, through the same
+            # filters and looks below.
+            results, tried = commons.search_widened(
+                item.query, lambda: commons.topic_anchor(topic, elsewhere, photos=_pool_records(topic),
+                                                         aliases=_other_names(topic)),
+                list(item.keywords), limit=30, max_wait=60)
             ranked = commons.best_first(list(commons.candidates(results, keywords, config.BEAT_IMAGES_ALLOW_SHARE_ALIKE)),
                                         keywords, near)
             relevant, verified, looked_away = 0, 0, 0
@@ -413,8 +443,10 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
                     break
             # The run's record of why a beat got pictures or none: "0 candidates for 5 beats" on production
             # (2026-10-24, Antikythera) could not be told apart from a broken search without these counts.
-            log.debug("Beat %d %r: %d Commons results, %d usable (share-alike %s), %d relevant, %d verified, %d set aside by the look, %d kept.",
-                      item.beat, item.query[:80], len(results), len(ranked),
+            searches = "; ".join(f"{q!r}: {n}" for q, n in tried)
+            log.debug("Beat %d %r: %d Commons results (%s), %d usable (share-alike %s), %d relevant, %d verified, "
+                      "%d set aside by the look, %d kept.",
+                      item.beat, item.query[:80], len(results), searches, len(ranked),
                       "allowed" if config.BEAT_IMAGES_ALLOW_SHARE_ALIKE else "excluded", relevant, verified, looked_away, found)
             # Only when the licence was the reason: results can also fail on keyword, size or author (audit, 2026-10-28)
             share_alike = 0 if ranked or config.BEAT_IMAGES_ALLOW_SHARE_ALIKE else len(list(

@@ -145,8 +145,9 @@ def test_each_beats_search_leaves_its_counts_in_the_run_log(monkeypatch, tmp_pat
         paths, credits = beat_images.source(BEATS, TOPIC, tmp_path)
     assert paths == [] and credits == []
     line = next(r.getMessage() for r in caplog.records if r.levelno == logging.DEBUG and "Commons results" in r.getMessage())
-    assert line == ("Beat 1 'Antikythera mechanism fragment': 3 Commons results, 0 usable (share-alike excluded), "
-                    "0 relevant, 0 verified, 0 set aside by the look, 0 kept.")
+    # The queries tried and what each found (a query with few results is widened: commons.search_widened).
+    assert line.startswith("Beat 1 'Antikythera mechanism fragment': 3 Commons results ('Antikythera mechanism fragment': 3")
+    assert line.endswith("), 0 usable (share-alike excluded), 0 relevant, 0 verified, 0 set aside by the look, 0 kept.")
 
 
 def test_a_picture_that_does_not_show_the_subject_is_set_aside_after_a_look(monkeypatch, tmp_path, caplog):

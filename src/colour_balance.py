@@ -8,7 +8,7 @@ prepared still gets two capped, deterministic corrections:
 
 - a lamp's colour cast is neutralised toward grey, at CAST_STRENGTH of the way and with each channel's gain held
   within GAIN_LIMIT, so a warm lamp-lit room stays warm, only less tinted. Only a lamp-lit scene is corrected: dim
-  (95th-percentile luminance under DIM_P95), no daylight sky in its upper half, no vegetation (FOLIAGE_MIN), and
+  (95th-percentile luminance under DIM_P95, or a bright frame lit yellow-green: LAMP_GREEN_HUE), no daylight sky in its upper half, no vegetation (FOLIAGE_MIN), and
   even its brightest unclipped surfaces tinted (a white light shows as near-white highlights). The cast is measured only on neutral candidates:
   the least saturated NEUTRAL_SHARE of the mid-tones, never sky blue or foliage green. A natural scene's colour (a
   blue sky, desert sand, sea, foliage, red sandstone, a painted pot on a grey plinth) is never neutralised
@@ -42,7 +42,7 @@ from .config import BASE_DIR
 
 log = logging.getLogger(__name__)
 
-VERSION = 3
+VERSION = 4
 OPERATION = "colour_balance"
 CACHE_DIR = BASE_DIR / "cache" / "colour_balance"
 CAST_MIN = 0.04        # a channel this far (as a gain) from grey is a cast; below it the colours are left alone
@@ -56,6 +56,11 @@ FOLIAGE_HUE = (80.0, 170.0)
 FOLIAGE_MIN = 0.03     # this share of the frame green and saturated is vegetation in daylight (a lamp yellows greens)
 FOLIAGE_LUMA = 30.0    # 8-bit luminance: darker "green" pixels are JPEG noise in shadow, not vegetation
 WARM_CAST_HUE = (10.0, 48.0)   # a cast in this hue is warm light or a warm material: left as it is
+# A bright frame is daylight, except one lit yellow-green by its lamps: production's Derinkuyu stone door (29 Oct,
+# 95th-percentile luminance 0.79, highlights at saturation 0.52, neutral candidates at hue 62) passed as daylit and
+# reached the video neon lime. Daylight shows near-white highlights; these lamps tint even the brightest surfaces.
+LAMP_GREEN_HUE = (48.0, 75.0)
+BRIGHT_LAMP_TINT = 0.40
 NEUTRAL_SHARE = 0.35   # the least saturated share of the candidate mid-tones on which the cast is measured
 GAIN_LIMIT = (0.85, 1.18)
 DARK_BELOW = 0.30      # mean luminance (0-1) under which an exposure is lifted
@@ -105,14 +110,16 @@ def scene(a: np.ndarray) -> Dict[str, Any]:
     if unclipped.sum() > 50:
         bright = unclipped & (y >= np.percentile(y[unclipped], 100 * (1 - HIGHLIGHT_SHARE)))
         tint = float(sat[bright].mean())
-    lamp_lit = (p95 < DIM_P95 and not daylight_sky and tint >= HIGHLIGHT_TINT
-                and float(foliage.mean()) < FOLIAGE_MIN)
     cand = (y > 20) & (y < 235) & ~sky & ~foliage
     neutral = None
     if cand.sum() > 100:
         keep = cand & (sat <= np.percentile(sat[cand], 100 * NEUTRAL_SHARE))
         if keep.sum() > 50:
             neutral = a[keep].mean(axis=0)
+    green_lamp = (neutral is not None and tint >= BRIGHT_LAMP_TINT
+                  and LAMP_GREEN_HUE[0] <= _hue(neutral) <= LAMP_GREEN_HUE[1])
+    lamp_lit = ((p95 < DIM_P95 or green_lamp) and not daylight_sky and tint >= HIGHLIGHT_TINT
+                and float(foliage.mean()) < FOLIAGE_MIN)
     return {"sky": sky, "foliage": foliage, "daylight_sky": daylight_sky, "p95_luma": p95, "highlight_tint": tint,
             "lamp_lit": lamp_lit, "neutral": neutral}
 

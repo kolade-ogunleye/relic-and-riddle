@@ -98,3 +98,20 @@ applies. The foliage veto now ignores pixels darker than luminance 30, which wer
 Per-photo settings and neutral hue: `measurements_v3.json`. Before/after: `v3_amber_03_before_after.jpg`,
 `v3_lycurgus_09_before_after.jpg` (unchanged in colour), `v3_derinkuyu_19_before_after.jpg` (lift only) and
 `v3_derinkuyu_25_before_after.jpg` (yellow-green cast still taken out).
+
+## Version 4 (production review, 29 Oct)
+
+Production's Derinkuyu review (rc72) showed the rolling stone door neon lime. Two causes, both fixed:
+
+1. Production's photo 08 (the stone door; production's pool differs from development's) is bright: 95th-percentile
+   luminance 0.79, above `DIM_P95` 0.72, so it passed as daylight and was never balanced, although its highlights
+   are strongly tinted (saturation 0.52) and its neutral candidates sit at hue 62 deg. Daylight shows near-white
+   highlights; these lamps tint even the brightest surfaces. A bright frame now counts as lamp-lit when its highlight
+   tint is at least `BRIGHT_LAMP_TINT` 0.40 and its neutral hue is yellow-green (`LAMP_GREEN_HUE` 48-75 deg). Warm
+   (10-48) and every other bright scene is unchanged: on the ten development pools above, v4 changes no photo's
+   settings against v3.
+2. The master's film-print LUT crushed blue (docs/reviews/film-grade-2026-10-29/).
+
+`v4_prod_stone_door_old_new.jpg`: left, the photo as posted (unbalanced, old grade: mean 157/154/37); right, balanced
+v4 through the new grade (148/148/73). Also: `art_direction.grade_bias` is 0 for a hero whose off-white lamp cast
+the balance reduces (the door's was +0.040, which put the cast back); warm light keeps its bias.

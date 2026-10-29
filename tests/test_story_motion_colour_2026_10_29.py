@@ -362,6 +362,17 @@ def test_a_warm_cast_is_left_warm(tmp_path):
     assert cb.scene(np.asarray(Image.open(src).convert("RGB"), dtype=float))["lamp_lit"]
 
 
+def test_a_bright_frame_lit_yellow_green_is_balanced_but_bright_warm_sand_is_not(tmp_path):
+    """Production, 29 Oct: Derinkuyu's stone door was bright (95th percentile 0.79) and lit yellow-green, so it
+    passed as daylight and reached the video neon lime. Bright warm sand (no sky, tinted highlights) stays as it is."""
+    lime = np.clip(_wall(14) * 1.6 * np.array([1.0, 1.02, 0.35]), 0, 255)
+    sand = np.clip(_wall(15) * 1.6 * np.array([1.0, 0.78, 0.45]), 0, 255)
+    lime_plan = cb.plan(Image.open(_img(tmp_path, "lime.jpg", lime)))
+    assert lime_plan and lime_plan["gains"][2] > 1.05
+    sand_plan = cb.plan(Image.open(_img(tmp_path, "sand.jpg", sand)))
+    assert sand_plan is None or sand_plan["gains"] == [1.0, 1.0, 1.0]
+
+
 def test_dark_green_noise_is_not_vegetation(tmp_path):
     a = _wall(13) * np.array([1.15, 1.12, 0.7])
     a[:40] = np.random.default_rng(13).normal([10, 22, 8], 3, (40, 96, 3))   # deep shadow, green JPEG noise

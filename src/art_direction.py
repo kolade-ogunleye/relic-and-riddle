@@ -156,6 +156,19 @@ def grade_bias(hero: Optional[Path], limit: float = 0.05) -> float:
         return 0.0
     if len(data) < 3:
         return 0.0
+    try:   # a hero whose lamp cast colour_balance reduces (an off-white one, not warm light): a bias would put the
+        # cast back (29 Oct, Derinkuyu's door: +0.040). Warm light keeps its warmth, so its bias stays.
+        import numpy as np
+        from . import colour_balance
+        with Image.open(hero) as im:
+            small = im.convert("RGB")
+            small.thumbnail((colour_balance.STAT_SIDE, colour_balance.STAT_SIDE))
+            sc = colour_balance.scene(np.asarray(small, dtype=np.float64))
+        warm = colour_balance.WARM_CAST_HUE
+        if sc["lamp_lit"] and sc["neutral"] is not None and not warm[0] <= colour_balance._hue(sc["neutral"]) <= warm[1]:
+            return 0.0
+    except Exception:
+        pass
     n = len(data) // 3
     r = sum(data[0::3]) / n
     b = sum(data[2::3]) / n

@@ -529,6 +529,98 @@ def _master_chain(gain_db: float) -> str:
     )
 
 
+# The film grade (2026-10-29). The Kodak 2383 print LUT expects log film scans; on our display-referred stills it
+# also pushed every colour warm/yellow and up to 2.5x more saturated, so a lamp-lit stone door that colour_balance
+# had taken from 70/71/31 to 85/84/45 came out 79/76/26 and read neon lime. The grade now keeps only the print's
+# tone (its grey response: the contrast, black density and highlight roll-off) and takes the hue from the picture:
+# each colour is scaled as a whole by the print's curve on a norm halfway between its luminance and its brightest
+# channel (hue and saturation kept, no channel clipped), then given a small, bounded chroma lift.
+# Measured on 40 stills of 10 topics: docs/reviews/film-grade-2026-10-29.
+FILM_PRINT_LUT = BASE_DIR / "assets" / "luts" / "kodak_2383.cube"
+FILM_LUT_DIR = BASE_DIR / "cache" / "luts"
+FILM_TONE_VERSION = 1
+FILM_TONE_NORM_MIX = 0.5     # 0 = luminance (washes bright warm colours out), 1 = brightest channel (flatter)
+FILM_TONE_CHROMA = 1.03      # the print's richness, bounded: more than this grows a warm material into a cast
+FILM_PRE_CURVE = "curves=master='0/0.02 0.5/0.50 1/0.98'"   # the pre-LUT black lift and white headroom (unchanged)
+_LUMA_709 = (0.2126, 0.7152, 0.0722)
+
+
+def _read_cube(path: Path):
+    """A .cube 3D LUT as an array [b][g][r] -> rgb (red runs fastest in the file)."""
+    import numpy as np
+    rows = []
+    for line in Path(path).read_text(encoding="utf-8", errors="replace").splitlines():
+        s = line.strip()
+        if s and (s[0].isdigit() or s[0] in ".-"):
+            rows.append([float(v) for v in s.split()[:3]])
+    a = np.asarray(rows, dtype=np.float64)
+    n = round(len(a) ** (1 / 3))
+    if n < 2 or n ** 3 != len(a):
+        raise ValueError(f"{Path(path).name} is not a 3D LUT")
+    return a.reshape(n, n, n, 3)
+
+
+def hue_safe_print_table(lut, mix: float = FILM_TONE_NORM_MIX, chroma: float = FILM_TONE_CHROMA):
+    """The print LUT's tone without its colour: a table of the same size whose greys stay grey (at the print's
+    mean grey response) and whose colours keep their hue, with relative chroma changed by at most `chroma`."""
+    import numpy as np
+    n = lut.shape[0]
+    v = np.linspace(0.0, 1.0, n)
+    b, g, r = np.meshgrid(v, v, v, indexing="ij")
+    x = np.stack([r, g, b], axis=-1)
+    tone = np.array([lut[i, i, i] for i in range(n)]).mean(axis=1)   # the grey axis, neutralised
+    w = np.asarray(_LUMA_709)
+    norm = mix * x.max(axis=-1) + (1 - mix) * (x @ w)
+    gain = np.where(norm > 1e-6, np.interp(norm, v, tone) / np.maximum(norm, 1e-6), 1.0)
+    out = x * gain[..., None]
+    out = out / np.maximum(out.max(axis=-1), 1.0)[..., None]   # over white: the whole colour scaled, hue kept
+    out[norm <= 1e-6] = tone[0]                                 # black is the print's black, neutral
+    y = out @ w
+    c = (out - y[..., None]) * chroma
+    with np.errstate(divide="ignore", invalid="ignore"):         # the chroma lift shrinks to stay in gamut
+        room = np.minimum(np.where(c > 0, (1 - y[..., None]) / c, np.inf),
+                          np.where(c < 0, -y[..., None] / c, np.inf)).min(axis=-1)
+    out = y[..., None] + c * np.clip(room, 0.0, 1.0)[..., None]
+    return np.clip(out, 0.0, 1.0)
+
+
+def hue_safe_print_lut(source: Path = FILM_PRINT_LUT, out_dir: Optional[Path] = None) -> Path:
+    """The hue-safe version of `source` as a .cube file (cached by the source's content and the settings)."""
+    import hashlib
+    data = Path(source).read_bytes()
+    key = hashlib.sha256(data + f"|v{FILM_TONE_VERSION}|{FILM_TONE_NORM_MIX}|{FILM_TONE_CHROMA}".encode()).hexdigest()[:12]
+    out = Path(out_dir or FILM_LUT_DIR) / f"{Path(source).stem}_tone_{key}.cube"
+    if out.is_file():
+        return out
+    table = hue_safe_print_table(_read_cube(source))
+    n = table.shape[0]
+    body = "\n".join(f"{r:.6f} {g:.6f} {b:.6f}" for r, g, b in table.reshape(-1, 3))
+    text = (f'TITLE "{Path(source).stem} tone only (hue kept)"\nLUT_3D_SIZE {n}\n'
+            f"DOMAIN_MIN 0.0 0.0 0.0\nDOMAIN_MAX 1.0 1.0 1.0\n{body}\n")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    tmp = out.with_name(f"{out.name}.{os.getpid()}.tmp")       # concurrent renders never read half a table
+    tmp.write_bytes(text.encode("ascii"))
+    os.replace(tmp, out)
+    return out
+
+
+def film_grade_filter(grade_bias: float = 0.0, source: Path = FILM_PRINT_LUT, out_dir: Optional[Path] = None) -> str:
+    """The master's film grade: the pre-curve and the hue-safe print LUT (a gentle neutral contrast when the LUT
+    is missing or unreadable), then the topic's bounded warm/cool bias."""
+    grade = "eq=contrast=1.07:brightness=0.008:saturation=1.03,curves=master='0/0.02 0.2/0.19 0.5/0.51 0.8/0.82 1/0.98'"
+    if Path(source).exists():
+        try:
+            lut = hue_safe_print_lut(source, out_dir)
+            lut_str = str(lut.resolve()).replace("\\", "/").replace(":", "\\:")
+            grade = f"{FILM_PRE_CURVE},lut3d='{lut_str}'"
+        except (OSError, ValueError) as e:
+            log.warning("Film print LUT not usable (%s); the neutral contrast grade is used.", e)
+    bias = max(-0.05, min(0.05, float(grade_bias or 0.0)))
+    if bias:  # the topic's own warmth or coolness, bounded, after the film print
+        grade += f",colorbalance=rs={bias:.3f}:bs={-bias:.3f}:rm={bias / 2:.3f}:bm={-bias / 2:.3f}"
+    return grade
+
+
 class VideoComposer:
     def __init__(self, fonts_dir: Path = FONTS_DIR):
         self.fonts_dir = fonts_dir
@@ -1019,16 +1111,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         ass_str = str(ass_path.resolve()).replace("\\", "/").replace(":", "\\:")
         fonts_str = str(self.fonts_dir.resolve()).replace("\\", "/").replace(":", "\\:")
         vignette_aspect = "16/9" if width > height else "9/16"
-        # Studio-grade cinema grade: Kodak 2383 3D film print LUT emulation with pre-LUT luminance stabilization
-        lut_path = BASE_DIR / "assets" / "luts" / "kodak_2383.cube"
-        if lut_path.exists():
-            lut_str = str(lut_path.resolve()).replace("\\", "/").replace(":", "\\:")
-            film_grade = f"curves=master='0/0.02 0.5/0.50 1/0.98',lut3d='{lut_str}'"
-        else:
-            film_grade = "eq=contrast=1.07:brightness=0.008:saturation=1.08,curves=master='0/0.02 0.2/0.19 0.5/0.51 0.8/0.82 1/0.98':red='0/0.01 0.5/0.50 1/0.99':blue='0/0.04 0.5/0.49 1/0.94'"
-        bias = max(-0.05, min(0.05, float(grade_bias or 0.0)))
-        if bias:  # the topic's own warmth or coolness, bounded, after the film print
-            film_grade += f",colorbalance=rs={bias:.3f}:bs={-bias:.3f}:rm={bias / 2:.3f}:bm={-bias / 2:.3f}"
+        # The Kodak 2383 print's tone with the picture's own hue (2026-10-29: the full LUT turned a balanced
+        # lamp-lit door neon lime); film_grade_filter, above, has the why and the measurements.
+        film_grade = film_grade_filter(grade_bias)
         # The graded picture before the captions, split off for the end card's background (its last frame).
         card_split = "split[v_graded][v_card_src];[v_graded]" if card else ""
         filter_parts.append(

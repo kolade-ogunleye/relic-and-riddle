@@ -1,0 +1,5754 @@
+{
+ "date": "2026-10-29",
+ "method": "see README.md",
+ "chains": {
+  "old": "curves=master='0/0.02 0.5/0.50 1/0.98',lut3d='C\\:/Users/omokolade/GitHub/relic-and-riddle/assets/luts/kodak_2383.cube'",
+  "new": "curves=master='0/0.02 0.5/0.50 1/0.98',lut3d='C\\:/tmp/fg/luts/kodak_2383_tone_9fdb5a3d3e7a.cube'"
+ },
+ "summary": {
+  "raw": {
+   "old": {
+    "stills": 40,
+    "cast_added_max": 0.6657,
+    "stills_cast_added_over_0.01": 25,
+    "sat_ratio_min_mean_max": [
+     0.754,
+     1.271,
+     2.498
+    ],
+    "hue_shift_deg_mean": 5.01,
+    "hue_shift_deg_max": 8.78,
+    "b_over_g_ratio_min": 0.657,
+    "luma_std_ratio_mean": 1.193
+   },
+   "new": {
+    "stills": 40,
+    "cast_added_max": 0.0175,
+    "stills_cast_added_over_0.01": 1,
+    "sat_ratio_min_mean_max": [
+     0.904,
+     1.009,
+     1.096
+    ],
+    "hue_shift_deg_mean": 1.35,
+    "hue_shift_deg_max": 3.35,
+    "b_over_g_ratio_min": 0.966,
+    "luma_std_ratio_mean": 1.19
+   }
+  },
+  "balanced": {
+   "old": {
+    "stills": 40,
+    "cast_added_max": 0.5789,
+    "stills_cast_added_over_0.01": 25,
+    "sat_ratio_min_mean_max": [
+     0.882,
+     1.293,
+     2.498
+    ],
+    "hue_shift_deg_mean": 5.05,
+    "hue_shift_deg_max": 8.78,
+    "b_over_g_ratio_min": 0.657,
+    "luma_std_ratio_mean": 1.203
+   },
+   "new": {
+    "stills": 40,
+    "cast_added_max": 0.0246,
+    "stills_cast_added_over_0.01": 1,
+    "sat_ratio_min_mean_max": [
+     0.961,
+     1.013,
+     1.096
+    ],
+    "hue_shift_deg_mean": 1.32,
+    "hue_shift_deg_max": 3.29,
+    "b_over_g_ratio_min": 0.958,
+    "luma_std_ratio_mean": 1.199
+   }
+  }
+ },
+ "iterations_balanced": {
+  "old": {
+   "cast_added_max": 0.5789,
+   "stills_cast_added_over_0.01": 25,
+   "sat_ratio_mean": 1.293,
+   "sat_ratio_max": 2.498,
+   "hue_shift_deg_mean": 5.05,
+   "luma_std_ratio_mean": 1.203
+  },
+  "blend50": {
+   "cast_added_max": 0.2096,
+   "stills_cast_added_over_0.01": 20,
+   "sat_ratio_mean": 1.131,
+   "sat_ratio_max": 1.727,
+   "hue_shift_deg_mean": 2.84,
+   "luma_std_ratio_mean": 1.079
+  },
+  "tone100": {
+   "cast_added_max": 0.0219,
+   "stills_cast_added_over_0.01": 1,
+   "sat_ratio_mean": 0.985,
+   "sat_ratio_max": 1.061,
+   "hue_shift_deg_mean": 1.39,
+   "luma_std_ratio_mean": 1.225
+  },
+  "tone105": {
+   "cast_added_max": 0.0277,
+   "stills_cast_added_over_0.01": 3,
+   "sat_ratio_mean": 1.023,
+   "sat_ratio_max": 1.111,
+   "hue_shift_deg_mean": 1.33,
+   "luma_std_ratio_mean": 1.225
+  },
+  "hyb110": {
+   "cast_added_max": 0.0601,
+   "stills_cast_added_over_0.01": 5,
+   "sat_ratio_mean": 1.028,
+   "sat_ratio_max": 1.116,
+   "hue_shift_deg_mean": 1.34,
+   "luma_std_ratio_mean": 1.225
+  },
+  "max100": {
+   "cast_added_max": 0.0205,
+   "stills_cast_added_over_0.01": 1,
+   "sat_ratio_mean": 0.989,
+   "sat_ratio_max": 1.066,
+   "hue_shift_deg_mean": 1.32,
+   "luma_std_ratio_mean": 1.165
+  },
+  "max105": {
+   "cast_added_max": 0.0263,
+   "stills_cast_added_over_0.01": 5,
+   "sat_ratio_mean": 1.028,
+   "sat_ratio_max": 1.116,
+   "hue_shift_deg_mean": 1.27,
+   "luma_std_ratio_mean": 1.165
+  },
+  "mid100": {
+   "cast_added_max": 0.0211,
+   "stills_cast_added_over_0.01": 1,
+   "sat_ratio_mean": 0.99,
+   "sat_ratio_max": 1.064,
+   "hue_shift_deg_mean": 1.36,
+   "luma_std_ratio_mean": 1.199
+  },
+  "mid105": {
+   "cast_added_max": 0.0268,
+   "stills_cast_added_over_0.01": 5,
+   "sat_ratio_mean": 1.028,
+   "sat_ratio_max": 1.114,
+   "hue_shift_deg_mean": 1.3,
+   "luma_std_ratio_mean": 1.199
+  },
+  "lum100n": {
+   "cast_added_max": 0.0219,
+   "stills_cast_added_over_0.01": 1,
+   "sat_ratio_mean": 0.992,
+   "sat_ratio_max": 1.061,
+   "hue_shift_deg_mean": 1.38,
+   "luma_std_ratio_mean": 1.22
+  }
+ },
+ "rows": [
+  {
+   "topic": "derinkuyu_underground_city",
+   "still": "01_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 3.38,
+    "sat_ratio": 2.096,
+    "mean_rgb_before": [
+     126.9,
+     124.0,
+     112.3
+    ],
+    "mean_rgb_after": [
+     135.1,
+     126.4,
+     102.3
+    ],
+    "mean_colour_sat_before": 0.115,
+    "mean_colour_sat_after": 0.243,
+    "blue_ratio": 0.911,
+    "b_over_g_ratio": 0.893,
+    "cast_before": 0.0259,
+    "cast_after": 0.0834,
+    "neutral_before": [
+     134.9,
+     136.5,
+     130.7
+    ],
+    "neutral_after": [
+     160.8,
+     158.0,
+     141.7
+    ],
+    "luma_std_ratio": 1.562,
+    "luma_mean_ratio": 1.022
+   },
+   "new": {
+    "hue_shift_deg": 2.22,
+    "sat_ratio": 1.043,
+    "mean_rgb_before": [
+     126.9,
+     124.0,
+     112.3
+    ],
+    "mean_rgb_after": [
+     129.8,
+     126.7,
+     114.8
+    ],
+    "mean_colour_sat_before": 0.115,
+    "mean_colour_sat_after": 0.115,
+    "blue_ratio": 1.022,
+    "b_over_g_ratio": 1.0,
+    "cast_before": 0.0259,
+    "cast_after": 0.0284,
+    "neutral_before": [
+     134.9,
+     136.5,
+     130.7
+    ],
+    "neutral_after": [
+     145.8,
+     147.4,
+     140.6
+    ],
+    "luma_std_ratio": 1.55,
+    "luma_mean_ratio": 1.022
+   }
+  },
+  {
+   "topic": "derinkuyu_underground_city",
+   "still": "01_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 3.38,
+    "sat_ratio": 2.096,
+    "mean_rgb_before": [
+     126.9,
+     124.0,
+     112.3
+    ],
+    "mean_rgb_after": [
+     135.1,
+     126.4,
+     102.3
+    ],
+    "mean_colour_sat_before": 0.115,
+    "mean_colour_sat_after": 0.243,
+    "blue_ratio": 0.911,
+    "b_over_g_ratio": 0.893,
+    "cast_before": 0.0259,
+    "cast_after": 0.0834,
+    "neutral_before": [
+     134.9,
+     136.5,
+     130.7
+    ],
+    "neutral_after": [
+     160.8,
+     158.0,
+     141.7
+    ],
+    "luma_std_ratio": 1.562,
+    "luma_mean_ratio": 1.022
+   },
+   "new": {
+    "hue_shift_deg": 2.22,
+    "sat_ratio": 1.043,
+    "mean_rgb_before": [
+     126.9,
+     124.0,
+     112.3
+    ],
+    "mean_rgb_after": [
+     129.8,
+     126.7,
+     114.8
+    ],
+    "mean_colour_sat_before": 0.115,
+    "mean_colour_sat_after": 0.115,
+    "blue_ratio": 1.022,
+    "b_over_g_ratio": 1.0,
+    "cast_before": 0.0259,
+    "cast_after": 0.0284,
+    "neutral_before": [
+     134.9,
+     136.5,
+     130.7
+    ],
+    "neutral_after": [
+     145.8,
+     147.4,
+     140.6
+    ],
+    "luma_std_ratio": 1.55,
+    "luma_mean_ratio": 1.022
+   }
+  },
+  {
+   "topic": "derinkuyu_underground_city",
+   "still": "10_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 6.14,
+    "sat_ratio": 1.555,
+    "mean_rgb_before": [
+     119.0,
+     115.3,
+     114.1
+    ],
+    "mean_rgb_after": [
+     125.7,
+     115.8,
+     108.0
+    ],
+    "mean_colour_sat_before": 0.041,
+    "mean_colour_sat_after": 0.141,
+    "blue_ratio": 0.946,
+    "b_over_g_ratio": 0.943,
+    "cast_before": 0.0173,
+    "cast_after": 0.045,
+    "neutral_before": [
+     128.1,
+     125.5,
+     124.1
+    ],
+    "neutral_after": [
+     127.0,
+     120.4,
+     116.5
+    ],
+    "luma_std_ratio": 1.397,
+    "luma_mean_ratio": 1.013
+   },
+   "new": {
+    "hue_shift_deg": 2.99,
+    "sat_ratio": 1.035,
+    "mean_rgb_before": [
+     119.0,
+     115.3,
+     114.1
+    ],
+    "mean_rgb_after": [
+     122.0,
+     117.0,
+     115.4
+    ],
+    "mean_colour_sat_before": 0.041,
+    "mean_colour_sat_after": 0.054,
+    "blue_ratio": 1.011,
+    "b_over_g_ratio": 0.997,
+    "cast_before": 0.0173,
+    "cast_after": 0.0205,
+    "neutral_before": [
+     128.1,
+     125.5,
+     124.1
+    ],
+    "neutral_after": [
+     135.7,
+     132.3,
+     130.7
+    ],
+    "luma_std_ratio": 1.392,
+    "luma_mean_ratio": 1.017
+   }
+  },
+  {
+   "topic": "derinkuyu_underground_city",
+   "still": "10_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 6.14,
+    "sat_ratio": 1.555,
+    "mean_rgb_before": [
+     119.0,
+     115.3,
+     114.1
+    ],
+    "mean_rgb_after": [
+     125.7,
+     115.8,
+     108.0
+    ],
+    "mean_colour_sat_before": 0.041,
+    "mean_colour_sat_after": 0.141,
+    "blue_ratio": 0.946,
+    "b_over_g_ratio": 0.943,
+    "cast_before": 0.0173,
+    "cast_after": 0.045,
+    "neutral_before": [
+     128.1,
+     125.5,
+     124.1
+    ],
+    "neutral_after": [
+     127.0,
+     120.4,
+     116.5
+    ],
+    "luma_std_ratio": 1.397,
+    "luma_mean_ratio": 1.013
+   },
+   "new": {
+    "hue_shift_deg": 2.99,
+    "sat_ratio": 1.035,
+    "mean_rgb_before": [
+     119.0,
+     115.3,
+     114.1
+    ],
+    "mean_rgb_after": [
+     122.0,
+     117.0,
+     115.4
+    ],
+    "mean_colour_sat_before": 0.041,
+    "mean_colour_sat_after": 0.054,
+    "blue_ratio": 1.011,
+    "b_over_g_ratio": 0.997,
+    "cast_before": 0.0173,
+    "cast_after": 0.0205,
+    "neutral_before": [
+     128.1,
+     125.5,
+     124.1
+    ],
+    "neutral_after": [
+     135.7,
+     132.3,
+     130.7
+    ],
+    "luma_std_ratio": 1.392,
+    "luma_mean_ratio": 1.017
+   }
+  },
+  {
+   "topic": "derinkuyu_underground_city",
+   "still": "23_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 4.49,
+    "sat_ratio": 0.79,
+    "mean_rgb_before": [
+     38.6,
+     25.7,
+     18.4
+    ],
+    "mean_rgb_after": [
+     29.1,
+     18.9,
+     13.5
+    ],
+    "mean_colour_sat_before": 0.522,
+    "mean_colour_sat_after": 0.536,
+    "blue_ratio": 0.732,
+    "b_over_g_ratio": 0.994,
+    "cast_before": 0.1586,
+    "cast_after": 0.1784,
+    "neutral_before": [
+     35.8,
+     31.1,
+     41.1
+    ],
+    "neutral_after": [
+     29.8,
+     24.1,
+     31.3
+    ],
+    "luma_std_ratio": 0.939,
+    "luma_mean_ratio": 0.743
+   },
+   "new": {
+    "hue_shift_deg": 2.51,
+    "sat_ratio": 0.974,
+    "mean_rgb_before": [
+     38.6,
+     25.7,
+     18.4
+    ],
+    "mean_rgb_after": [
+     28.4,
+     19.1,
+     13.2
+    ],
+    "mean_colour_sat_before": 0.522,
+    "mean_colour_sat_after": 0.535,
+    "blue_ratio": 0.716,
+    "b_over_g_ratio": 0.966,
+    "cast_before": 0.1586,
+    "cast_after": 0.1368,
+    "neutral_before": [
+     35.8,
+     31.1,
+     41.1
+    ],
+    "neutral_after": [
+     32.5,
+     27.7,
+     34.3
+    ],
+    "luma_std_ratio": 1.013,
+    "luma_mean_ratio": 0.737
+   }
+  },
+  {
+   "topic": "derinkuyu_underground_city",
+   "still": "23_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": true,
+   "old": {
+    "hue_shift_deg": 5.24,
+    "sat_ratio": 1.009,
+    "mean_rgb_before": [
+     60.8,
+     44.3,
+     27.9
+    ],
+    "mean_rgb_after": [
+     47.6,
+     31.0,
+     17.6
+    ],
+    "mean_colour_sat_before": 0.541,
+    "mean_colour_sat_after": 0.629,
+    "blue_ratio": 0.632,
+    "b_over_g_ratio": 0.903,
+    "cast_before": 0.0583,
+    "cast_after": 0.096,
+    "neutral_before": [
+     47.1,
+     43.8,
+     48.2
+    ],
+    "neutral_after": [
+     34.5,
+     30.8,
+     35.9
+    ],
+    "luma_std_ratio": 1.064,
+    "luma_mean_ratio": 0.727
+   },
+   "new": {
+    "hue_shift_deg": 1.95,
+    "sat_ratio": 1.004,
+    "mean_rgb_before": [
+     60.8,
+     44.3,
+     27.9
+    ],
+    "mean_rgb_after": [
+     44.6,
+     32.5,
+     19.6
+    ],
+    "mean_colour_sat_before": 0.541,
+    "mean_colour_sat_after": 0.561,
+    "blue_ratio": 0.702,
+    "b_over_g_ratio": 0.958,
+    "cast_before": 0.0583,
+    "cast_after": 0.0638,
+    "neutral_before": [
+     47.1,
+     43.8,
+     48.2
+    ],
+    "neutral_after": [
+     35.7,
+     33.6,
+     38.0
+    ],
+    "luma_std_ratio": 1.125,
+    "luma_mean_ratio": 0.732
+   }
+  },
+  {
+   "topic": "derinkuyu_underground_city",
+   "still": "32_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 5.41,
+    "sat_ratio": 0.754,
+    "mean_rgb_before": [
+     35.8,
+     31.6,
+     15.2
+    ],
+    "mean_rgb_after": [
+     25.4,
+     22.5,
+     11.5
+    ],
+    "mean_colour_sat_before": 0.576,
+    "mean_colour_sat_after": 0.547,
+    "blue_ratio": 0.758,
+    "b_over_g_ratio": 1.065,
+    "cast_before": 0.57,
+    "cast_after": 0.6153,
+    "neutral_before": [
+     58.3,
+     54.0,
+     30.3
+    ],
+    "neutral_after": [
+     40.0,
+     35.0,
+     19.5
+    ],
+    "luma_std_ratio": 0.875,
+    "luma_mean_ratio": 0.714
+   },
+   "new": {
+    "hue_shift_deg": 3.35,
+    "sat_ratio": 0.977,
+    "mean_rgb_before": [
+     35.8,
+     31.6,
+     15.2
+    ],
+    "mean_rgb_after": [
+     25.3,
+     22.0,
+     10.8
+    ],
+    "mean_colour_sat_before": 0.576,
+    "mean_colour_sat_after": 0.572,
+    "blue_ratio": 0.712,
+    "b_over_g_ratio": 1.021,
+    "cast_before": 0.57,
+    "cast_after": 0.5111,
+    "neutral_before": [
+     58.3,
+     54.0,
+     30.3
+    ],
+    "neutral_after": [
+     60.3,
+     57.0,
+     33.2
+    ],
+    "luma_std_ratio": 0.878,
+    "luma_mean_ratio": 0.701
+   }
+  },
+  {
+   "topic": "derinkuyu_underground_city",
+   "still": "32_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": true,
+   "old": {
+    "hue_shift_deg": 5.24,
+    "sat_ratio": 1.086,
+    "mean_rgb_before": [
+     54.9,
+     50.5,
+     29.7
+    ],
+    "mean_rgb_after": [
+     40.7,
+     35.8,
+     17.7
+    ],
+    "mean_colour_sat_before": 0.459,
+    "mean_colour_sat_after": 0.566,
+    "blue_ratio": 0.596,
+    "b_over_g_ratio": 0.84,
+    "cast_before": 0.3554,
+    "cast_after": 0.5056,
+    "neutral_before": [
+     66.1,
+     62.9,
+     42.1
+    ],
+    "neutral_after": [
+     42.8,
+     38.1,
+     23.0
+    ],
+    "luma_std_ratio": 1.005,
+    "luma_mean_ratio": 0.712
+   },
+   "new": {
+    "hue_shift_deg": 2.96,
+    "sat_ratio": 1.024,
+    "mean_rgb_before": [
+     54.9,
+     50.5,
+     29.7
+    ],
+    "mean_rgb_after": [
+     38.8,
+     35.6,
+     21.1
+    ],
+    "mean_colour_sat_before": 0.459,
+    "mean_colour_sat_after": 0.457,
+    "blue_ratio": 0.71,
+    "b_over_g_ratio": 1.006,
+    "cast_before": 0.3554,
+    "cast_after": 0.3498,
+    "neutral_before": [
+     66.1,
+     62.9,
+     42.1
+    ],
+    "neutral_after": [
+     59.9,
+     57.4,
+     38.5
+    ],
+    "luma_std_ratio": 1.013,
+    "luma_mean_ratio": 0.706
+   }
+  },
+  {
+   "topic": "derinkuyu_underground_city",
+   "still": "25_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 4.25,
+    "sat_ratio": 1.029,
+    "mean_rgb_before": [
+     69.5,
+     69.2,
+     29.4
+    ],
+    "mean_rgb_after": [
+     59.4,
+     57.1,
+     16.6
+    ],
+    "mean_colour_sat_before": 0.577,
+    "mean_colour_sat_after": 0.721,
+    "blue_ratio": 0.564,
+    "b_over_g_ratio": 0.684,
+    "cast_before": 0.6661,
+    "cast_after": 1.3318,
+    "neutral_before": [
+     103.1,
+     104.8,
+     52.0
+    ],
+    "neutral_after": [
+     73.6,
+     72.1,
+     24.3
+    ],
+    "luma_std_ratio": 1.02,
+    "luma_mean_ratio": 0.821
+   },
+   "new": {
+    "hue_shift_deg": 1.59,
+    "sat_ratio": 0.995,
+    "mean_rgb_before": [
+     69.5,
+     69.2,
+     29.4
+    ],
+    "mean_rgb_after": [
+     56.4,
+     56.1,
+     24.3
+    ],
+    "mean_colour_sat_before": 0.577,
+    "mean_colour_sat_after": 0.569,
+    "blue_ratio": 0.827,
+    "b_over_g_ratio": 1.022,
+    "cast_before": 0.6661,
+    "cast_after": 0.6415,
+    "neutral_before": [
+     103.1,
+     104.8,
+     52.0
+    ],
+    "neutral_after": [
+     98.7,
+     100.0,
+     50.6
+    ],
+    "luma_std_ratio": 1.025,
+    "luma_mean_ratio": 0.812
+   }
+  },
+  {
+   "topic": "derinkuyu_underground_city",
+   "still": "25_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": true,
+   "old": {
+    "hue_shift_deg": 4.52,
+    "sat_ratio": 1.231,
+    "mean_rgb_before": [
+     84.1,
+     83.0,
+     43.3
+    ],
+    "mean_rgb_after": [
+     77.9,
+     73.6,
+     25.5
+    ],
+    "mean_colour_sat_before": 0.485,
+    "mean_colour_sat_after": 0.672,
+    "blue_ratio": 0.59,
+    "b_over_g_ratio": 0.665,
+    "cast_before": 0.4311,
+    "cast_after": 0.9357,
+    "neutral_before": [
+     112.2,
+     112.8,
+     68.3
+    ],
+    "neutral_after": [
+     102.1,
+     99.4,
+     41.9
+    ],
+    "luma_std_ratio": 1.138,
+    "luma_mean_ratio": 0.881
+   },
+   "new": {
+    "hue_shift_deg": 1.54,
+    "sat_ratio": 1.018,
+    "mean_rgb_before": [
+     84.1,
+     83.0,
+     43.3
+    ],
+    "mean_rgb_after": [
+     73.9,
+     72.8,
+     38.6
+    ],
+    "mean_colour_sat_before": 0.485,
+    "mean_colour_sat_after": 0.477,
+    "blue_ratio": 0.892,
+    "b_over_g_ratio": 1.017,
+    "cast_before": 0.4311,
+    "cast_after": 0.4236,
+    "neutral_before": [
+     112.2,
+     112.8,
+     68.3
+    ],
+    "neutral_after": [
+     119.5,
+     119.8,
+     73.2
+    ],
+    "luma_std_ratio": 1.15,
+    "luma_mean_ratio": 0.879
+   }
+  },
+  {
+   "topic": "richat_structure_sahara_eye",
+   "still": "01_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 6.0,
+    "sat_ratio": 1.304,
+    "mean_rgb_before": [
+     182.2,
+     130.3,
+     80.5
+    ],
+    "mean_rgb_after": [
+     197.8,
+     131.6,
+     56.2
+    ],
+    "mean_colour_sat_before": 0.558,
+    "mean_colour_sat_after": 0.716,
+    "blue_ratio": 0.698,
+    "b_over_g_ratio": 0.692,
+    "cast_before": 0.4747,
+    "cast_after": 0.9295,
+    "neutral_before": [
+     172.2,
+     131.1,
+     88.6
+    ],
+    "neutral_after": [
+     225.7,
+     181.9,
+     85.1
+    ],
+    "luma_std_ratio": 1.258,
+    "luma_mean_ratio": 1.019
+   },
+   "new": {
+    "hue_shift_deg": 0.43,
+    "sat_ratio": 1.005,
+    "mean_rgb_before": [
+     182.2,
+     130.3,
+     80.5
+    ],
+    "mean_rgb_after": [
+     194.3,
+     138.5,
+     85.4
+    ],
+    "mean_colour_sat_before": 0.558,
+    "mean_colour_sat_after": 0.561,
+    "blue_ratio": 1.06,
+    "b_over_g_ratio": 0.998,
+    "cast_before": 0.4747,
+    "cast_after": 0.4731,
+    "neutral_before": [
+     172.2,
+     131.1,
+     88.6
+    ],
+    "neutral_after": [
+     181.2,
+     137.5,
+     93.2
+    ],
+    "luma_std_ratio": 1.186,
+    "luma_mean_ratio": 1.064
+   }
+  },
+  {
+   "topic": "richat_structure_sahara_eye",
+   "still": "01_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 6.0,
+    "sat_ratio": 1.304,
+    "mean_rgb_before": [
+     182.2,
+     130.3,
+     80.5
+    ],
+    "mean_rgb_after": [
+     197.8,
+     131.6,
+     56.2
+    ],
+    "mean_colour_sat_before": 0.558,
+    "mean_colour_sat_after": 0.716,
+    "blue_ratio": 0.698,
+    "b_over_g_ratio": 0.692,
+    "cast_before": 0.4747,
+    "cast_after": 0.9295,
+    "neutral_before": [
+     172.2,
+     131.1,
+     88.6
+    ],
+    "neutral_after": [
+     225.7,
+     181.9,
+     85.1
+    ],
+    "luma_std_ratio": 1.258,
+    "luma_mean_ratio": 1.019
+   },
+   "new": {
+    "hue_shift_deg": 0.43,
+    "sat_ratio": 1.005,
+    "mean_rgb_before": [
+     182.2,
+     130.3,
+     80.5
+    ],
+    "mean_rgb_after": [
+     194.3,
+     138.5,
+     85.4
+    ],
+    "mean_colour_sat_before": 0.558,
+    "mean_colour_sat_after": 0.561,
+    "blue_ratio": 1.06,
+    "b_over_g_ratio": 0.998,
+    "cast_before": 0.4747,
+    "cast_after": 0.4731,
+    "neutral_before": [
+     172.2,
+     131.1,
+     88.6
+    ],
+    "neutral_after": [
+     181.2,
+     137.5,
+     93.2
+    ],
+    "luma_std_ratio": 1.186,
+    "luma_mean_ratio": 1.064
+   }
+  },
+  {
+   "topic": "richat_structure_sahara_eye",
+   "still": "07_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 7.68,
+    "sat_ratio": 1.417,
+    "mean_rgb_before": [
+     170.2,
+     136.9,
+     123.0
+    ],
+    "mean_rgb_after": [
+     190.0,
+     146.0,
+     118.3
+    ],
+    "mean_colour_sat_before": 0.277,
+    "mean_colour_sat_after": 0.377,
+    "blue_ratio": 0.961,
+    "b_over_g_ratio": 0.901,
+    "cast_before": 0.094,
+    "cast_after": 0.1723,
+    "neutral_before": [
+     137.7,
+     119.2,
+     117.3
+    ],
+    "neutral_after": [
+     171.7,
+     139.7,
+     123.7
+    ],
+    "luma_std_ratio": 1.385,
+    "luma_mean_ratio": 1.074
+   },
+   "new": {
+    "hue_shift_deg": 0.83,
+    "sat_ratio": 1.014,
+    "mean_rgb_before": [
+     170.2,
+     136.9,
+     123.0
+    ],
+    "mean_rgb_after": [
+     186.7,
+     149.5,
+     133.8
+    ],
+    "mean_colour_sat_before": 0.277,
+    "mean_colour_sat_after": 0.283,
+    "blue_ratio": 1.087,
+    "b_over_g_ratio": 0.996,
+    "cast_before": 0.094,
+    "cast_after": 0.0966,
+    "neutral_before": [
+     137.7,
+     119.2,
+     117.3
+    ],
+    "neutral_after": [
+     144.2,
+     124.6,
+     122.0
+    ],
+    "luma_std_ratio": 1.324,
+    "luma_mean_ratio": 1.093
+   }
+  },
+  {
+   "topic": "richat_structure_sahara_eye",
+   "still": "07_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 7.68,
+    "sat_ratio": 1.417,
+    "mean_rgb_before": [
+     170.2,
+     136.9,
+     123.0
+    ],
+    "mean_rgb_after": [
+     190.0,
+     146.0,
+     118.3
+    ],
+    "mean_colour_sat_before": 0.277,
+    "mean_colour_sat_after": 0.377,
+    "blue_ratio": 0.961,
+    "b_over_g_ratio": 0.901,
+    "cast_before": 0.094,
+    "cast_after": 0.1723,
+    "neutral_before": [
+     137.7,
+     119.2,
+     117.3
+    ],
+    "neutral_after": [
+     171.7,
+     139.7,
+     123.7
+    ],
+    "luma_std_ratio": 1.385,
+    "luma_mean_ratio": 1.074
+   },
+   "new": {
+    "hue_shift_deg": 0.83,
+    "sat_ratio": 1.014,
+    "mean_rgb_before": [
+     170.2,
+     136.9,
+     123.0
+    ],
+    "mean_rgb_after": [
+     186.7,
+     149.5,
+     133.8
+    ],
+    "mean_colour_sat_before": 0.277,
+    "mean_colour_sat_after": 0.283,
+    "blue_ratio": 1.087,
+    "b_over_g_ratio": 0.996,
+    "cast_before": 0.094,
+    "cast_after": 0.0966,
+    "neutral_before": [
+     137.7,
+     119.2,
+     117.3
+    ],
+    "neutral_after": [
+     144.2,
+     124.6,
+     122.0
+    ],
+    "luma_std_ratio": 1.324,
+    "luma_mean_ratio": 1.093
+   }
+  },
+  {
+   "topic": "richat_structure_sahara_eye",
+   "still": "14_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 5.92,
+    "sat_ratio": 1.432,
+    "mean_rgb_before": [
+     97.4,
+     82.9,
+     46.1
+    ],
+    "mean_rgb_after": [
+     97.7,
+     68.1,
+     24.8
+    ],
+    "mean_colour_sat_before": 0.527,
+    "mean_colour_sat_after": 0.746,
+    "blue_ratio": 0.539,
+    "b_over_g_ratio": 0.657,
+    "cast_before": 0.5439,
+    "cast_after": 1.1228,
+    "neutral_before": [
+     100.6,
+     92.1,
+     53.1
+    ],
+    "neutral_after": [
+     61.7,
+     55.3,
+     21.8
+    ],
+    "luma_std_ratio": 1.041,
+    "luma_mean_ratio": 0.867
+   },
+   "new": {
+    "hue_shift_deg": 1.16,
+    "sat_ratio": 1.003,
+    "mean_rgb_before": [
+     97.4,
+     82.9,
+     46.1
+    ],
+    "mean_rgb_after": [
+     88.6,
+     74.0,
+     41.6
+    ],
+    "mean_colour_sat_before": 0.527,
+    "mean_colour_sat_after": 0.53,
+    "blue_ratio": 0.904,
+    "b_over_g_ratio": 1.013,
+    "cast_before": 0.5439,
+    "cast_after": 0.5384,
+    "neutral_before": [
+     100.6,
+     92.1,
+     53.1
+    ],
+    "neutral_after": [
+     87.1,
+     78.6,
+     45.8
+    ],
+    "luma_std_ratio": 1.107,
+    "luma_mean_ratio": 0.899
+   }
+  },
+  {
+   "topic": "richat_structure_sahara_eye",
+   "still": "14_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 5.92,
+    "sat_ratio": 1.432,
+    "mean_rgb_before": [
+     97.4,
+     82.9,
+     46.1
+    ],
+    "mean_rgb_after": [
+     97.7,
+     68.1,
+     24.8
+    ],
+    "mean_colour_sat_before": 0.527,
+    "mean_colour_sat_after": 0.746,
+    "blue_ratio": 0.539,
+    "b_over_g_ratio": 0.657,
+    "cast_before": 0.5439,
+    "cast_after": 1.1228,
+    "neutral_before": [
+     100.6,
+     92.1,
+     53.1
+    ],
+    "neutral_after": [
+     61.7,
+     55.3,
+     21.8
+    ],
+    "luma_std_ratio": 1.041,
+    "luma_mean_ratio": 0.867
+   },
+   "new": {
+    "hue_shift_deg": 1.16,
+    "sat_ratio": 1.003,
+    "mean_rgb_before": [
+     97.4,
+     82.9,
+     46.1
+    ],
+    "mean_rgb_after": [
+     88.6,
+     74.0,
+     41.6
+    ],
+    "mean_colour_sat_before": 0.527,
+    "mean_colour_sat_after": 0.53,
+    "blue_ratio": 0.904,
+    "b_over_g_ratio": 1.013,
+    "cast_before": 0.5439,
+    "cast_after": 0.5384,
+    "neutral_before": [
+     100.6,
+     92.1,
+     53.1
+    ],
+    "neutral_after": [
+     87.1,
+     78.6,
+     45.8
+    ],
+    "luma_std_ratio": 1.107,
+    "luma_mean_ratio": 0.899
+   }
+  },
+  {
+   "topic": "richat_structure_sahara_eye",
+   "still": "20_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 5.98,
+    "sat_ratio": 1.269,
+    "mean_rgb_before": [
+     156.3,
+     135.6,
+     124.1
+    ],
+    "mean_rgb_after": [
+     167.5,
+     144.5,
+     124.6
+    ],
+    "mean_colour_sat_before": 0.206,
+    "mean_colour_sat_after": 0.256,
+    "blue_ratio": 1.004,
+    "b_over_g_ratio": 0.942,
+    "cast_before": 0.0489,
+    "cast_after": 0.0569,
+    "neutral_before": [
+     167.4,
+     155.8,
+     154.5
+    ],
+    "neutral_after": [
+     205.6,
+     191.5,
+     184.6
+    ],
+    "luma_std_ratio": 1.252,
+    "luma_mean_ratio": 1.061
+   },
+   "new": {
+    "hue_shift_deg": 1.41,
+    "sat_ratio": 0.997,
+    "mean_rgb_before": [
+     156.3,
+     135.6,
+     124.1
+    ],
+    "mean_rgb_after": [
+     166.3,
+     143.4,
+     131.7
+    ],
+    "mean_colour_sat_before": 0.206,
+    "mean_colour_sat_after": 0.208,
+    "blue_ratio": 1.061,
+    "b_over_g_ratio": 1.003,
+    "cast_before": 0.0489,
+    "cast_after": 0.0515,
+    "neutral_before": [
+     167.4,
+     155.8,
+     154.5
+    ],
+    "neutral_after": [
+     177.3,
+     164.0,
+     163.1
+    ],
+    "luma_std_ratio": 1.231,
+    "luma_mean_ratio": 1.06
+   }
+  },
+  {
+   "topic": "richat_structure_sahara_eye",
+   "still": "20_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 5.98,
+    "sat_ratio": 1.269,
+    "mean_rgb_before": [
+     156.3,
+     135.6,
+     124.1
+    ],
+    "mean_rgb_after": [
+     167.5,
+     144.5,
+     124.6
+    ],
+    "mean_colour_sat_before": 0.206,
+    "mean_colour_sat_after": 0.256,
+    "blue_ratio": 1.004,
+    "b_over_g_ratio": 0.942,
+    "cast_before": 0.0489,
+    "cast_after": 0.0569,
+    "neutral_before": [
+     167.4,
+     155.8,
+     154.5
+    ],
+    "neutral_after": [
+     205.6,
+     191.5,
+     184.6
+    ],
+    "luma_std_ratio": 1.252,
+    "luma_mean_ratio": 1.061
+   },
+   "new": {
+    "hue_shift_deg": 1.41,
+    "sat_ratio": 0.997,
+    "mean_rgb_before": [
+     156.3,
+     135.6,
+     124.1
+    ],
+    "mean_rgb_after": [
+     166.3,
+     143.4,
+     131.7
+    ],
+    "mean_colour_sat_before": 0.206,
+    "mean_colour_sat_after": 0.208,
+    "blue_ratio": 1.061,
+    "b_over_g_ratio": 1.003,
+    "cast_before": 0.0489,
+    "cast_after": 0.0515,
+    "neutral_before": [
+     167.4,
+     155.8,
+     154.5
+    ],
+    "neutral_after": [
+     177.3,
+     164.0,
+     163.1
+    ],
+    "luma_std_ratio": 1.231,
+    "luma_mean_ratio": 1.06
+   }
+  },
+  {
+   "topic": "nazca_lines_runway_paradox",
+   "still": "01_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 0.0,
+    "sat_ratio": 134426.785,
+    "mean_rgb_before": [
+     106.3,
+     106.3,
+     106.3
+    ],
+    "mean_rgb_after": [
+     97.8,
+     92.0,
+     85.2
+    ],
+    "mean_colour_sat_before": 0.0,
+    "mean_colour_sat_after": 0.129,
+    "blue_ratio": 0.801,
+    "b_over_g_ratio": 0.926,
+    "cast_before": 0.0,
+    "cast_after": 0.08,
+    "neutral_before": [
+     103.4,
+     103.4,
+     103.4
+    ],
+    "neutral_after": [
+     94.8,
+     88.9,
+     82.0
+    ],
+    "luma_std_ratio": 1.099,
+    "luma_mean_ratio": 0.874
+   },
+   "new": {
+    "hue_shift_deg": 0.0,
+    "sat_ratio": 0.0,
+    "mean_rgb_before": [
+     106.3,
+     106.3,
+     106.3
+    ],
+    "mean_rgb_after": [
+     92.9,
+     92.9,
+     92.9
+    ],
+    "mean_colour_sat_before": 0.0,
+    "mean_colour_sat_after": 0.0,
+    "blue_ratio": 0.874,
+    "b_over_g_ratio": 1.0,
+    "cast_before": 0.0,
+    "cast_after": 0.0,
+    "neutral_before": [
+     103.4,
+     103.4,
+     103.4
+    ],
+    "neutral_after": [
+     89.8,
+     89.8,
+     89.8
+    ],
+    "luma_std_ratio": 1.102,
+    "luma_mean_ratio": 0.874
+   }
+  },
+  {
+   "topic": "nazca_lines_runway_paradox",
+   "still": "01_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 0.0,
+    "sat_ratio": 134426.785,
+    "mean_rgb_before": [
+     106.3,
+     106.3,
+     106.3
+    ],
+    "mean_rgb_after": [
+     97.8,
+     92.0,
+     85.2
+    ],
+    "mean_colour_sat_before": 0.0,
+    "mean_colour_sat_after": 0.129,
+    "blue_ratio": 0.801,
+    "b_over_g_ratio": 0.926,
+    "cast_before": 0.0,
+    "cast_after": 0.08,
+    "neutral_before": [
+     103.4,
+     103.4,
+     103.4
+    ],
+    "neutral_after": [
+     94.8,
+     88.9,
+     82.0
+    ],
+    "luma_std_ratio": 1.099,
+    "luma_mean_ratio": 0.874
+   },
+   "new": {
+    "hue_shift_deg": 0.0,
+    "sat_ratio": 0.0,
+    "mean_rgb_before": [
+     106.3,
+     106.3,
+     106.3
+    ],
+    "mean_rgb_after": [
+     92.9,
+     92.9,
+     92.9
+    ],
+    "mean_colour_sat_before": 0.0,
+    "mean_colour_sat_after": 0.0,
+    "blue_ratio": 0.874,
+    "b_over_g_ratio": 1.0,
+    "cast_before": 0.0,
+    "cast_after": 0.0,
+    "neutral_before": [
+     103.4,
+     103.4,
+     103.4
+    ],
+    "neutral_after": [
+     89.8,
+     89.8,
+     89.8
+    ],
+    "luma_std_ratio": 1.102,
+    "luma_mean_ratio": 0.874
+   }
+  },
+  {
+   "topic": "nazca_lines_runway_paradox",
+   "still": "07_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 8.44,
+    "sat_ratio": 1.062,
+    "mean_rgb_before": [
+     141.9,
+     154.1,
+     163.6
+    ],
+    "mean_rgb_after": [
+     152.9,
+     167.9,
+     168.8
+    ],
+    "mean_colour_sat_before": 0.132,
+    "mean_colour_sat_after": 0.094,
+    "blue_ratio": 1.032,
+    "b_over_g_ratio": 0.947,
+    "cast_before": 0.0185,
+    "cast_after": 0.0339,
+    "neutral_before": [
+     150.7,
+     148.3,
+     145.5
+    ],
+    "neutral_after": [
+     194.4,
+     190.3,
+     183.0
+    ],
+    "luma_std_ratio": 1.236,
+    "luma_mean_ratio": 1.079
+   },
+   "new": {
+    "hue_shift_deg": 0.96,
+    "sat_ratio": 1.016,
+    "mean_rgb_before": [
+     141.9,
+     154.1,
+     163.6
+    ],
+    "mean_rgb_after": [
+     153.1,
+     166.4,
+     177.3
+    ],
+    "mean_colour_sat_before": 0.132,
+    "mean_colour_sat_after": 0.136,
+    "blue_ratio": 1.084,
+    "b_over_g_ratio": 1.004,
+    "cast_before": 0.0185,
+    "cast_after": 0.0196,
+    "neutral_before": [
+     150.7,
+     148.3,
+     145.5
+    ],
+    "neutral_after": [
+     166.1,
+     163.1,
+     159.9
+    ],
+    "luma_std_ratio": 1.215,
+    "luma_mean_ratio": 1.08
+   }
+  },
+  {
+   "topic": "nazca_lines_runway_paradox",
+   "still": "07_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 8.44,
+    "sat_ratio": 1.062,
+    "mean_rgb_before": [
+     141.9,
+     154.1,
+     163.6
+    ],
+    "mean_rgb_after": [
+     152.9,
+     167.9,
+     168.8
+    ],
+    "mean_colour_sat_before": 0.132,
+    "mean_colour_sat_after": 0.094,
+    "blue_ratio": 1.032,
+    "b_over_g_ratio": 0.947,
+    "cast_before": 0.0185,
+    "cast_after": 0.0339,
+    "neutral_before": [
+     150.7,
+     148.3,
+     145.5
+    ],
+    "neutral_after": [
+     194.4,
+     190.3,
+     183.0
+    ],
+    "luma_std_ratio": 1.236,
+    "luma_mean_ratio": 1.079
+   },
+   "new": {
+    "hue_shift_deg": 0.96,
+    "sat_ratio": 1.016,
+    "mean_rgb_before": [
+     141.9,
+     154.1,
+     163.6
+    ],
+    "mean_rgb_after": [
+     153.1,
+     166.4,
+     177.3
+    ],
+    "mean_colour_sat_before": 0.132,
+    "mean_colour_sat_after": 0.136,
+    "blue_ratio": 1.084,
+    "b_over_g_ratio": 1.004,
+    "cast_before": 0.0185,
+    "cast_after": 0.0196,
+    "neutral_before": [
+     150.7,
+     148.3,
+     145.5
+    ],
+    "neutral_after": [
+     166.1,
+     163.1,
+     159.9
+    ],
+    "luma_std_ratio": 1.215,
+    "luma_mean_ratio": 1.08
+   }
+  },
+  {
+   "topic": "nazca_lines_runway_paradox",
+   "still": "14_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 8.31,
+    "sat_ratio": 1.203,
+    "mean_rgb_before": [
+     122.0,
+     132.4,
+     142.0
+    ],
+    "mean_rgb_after": [
+     127.7,
+     139.5,
+     141.9
+    ],
+    "mean_colour_sat_before": 0.141,
+    "mean_colour_sat_after": 0.1,
+    "blue_ratio": 0.999,
+    "b_over_g_ratio": 0.948,
+    "cast_before": 0.0112,
+    "cast_after": 0.0214,
+    "neutral_before": [
+     117.2,
+     117.1,
+     119.1
+    ],
+    "neutral_after": [
+     137.7,
+     137.2,
+     142.0
+    ],
+    "luma_std_ratio": 1.518,
+    "luma_mean_ratio": 1.045
+   },
+   "new": {
+    "hue_shift_deg": 1.25,
+    "sat_ratio": 1.019,
+    "mean_rgb_before": [
+     122.0,
+     132.4,
+     142.0
+    ],
+    "mean_rgb_after": [
+     128.3,
+     139.8,
+     151.1
+    ],
+    "mean_colour_sat_before": 0.141,
+    "mean_colour_sat_after": 0.151,
+    "blue_ratio": 1.064,
+    "b_over_g_ratio": 1.008,
+    "cast_before": 0.0112,
+    "cast_after": 0.0139,
+    "neutral_before": [
+     117.2,
+     117.1,
+     119.1
+    ],
+    "neutral_after": [
+     121.8,
+     121.7,
+     124.4
+    ],
+    "luma_std_ratio": 1.535,
+    "luma_mean_ratio": 1.056
+   }
+  },
+  {
+   "topic": "nazca_lines_runway_paradox",
+   "still": "14_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 8.31,
+    "sat_ratio": 1.203,
+    "mean_rgb_before": [
+     122.0,
+     132.4,
+     142.0
+    ],
+    "mean_rgb_after": [
+     127.7,
+     139.5,
+     141.9
+    ],
+    "mean_colour_sat_before": 0.141,
+    "mean_colour_sat_after": 0.1,
+    "blue_ratio": 0.999,
+    "b_over_g_ratio": 0.948,
+    "cast_before": 0.0112,
+    "cast_after": 0.0214,
+    "neutral_before": [
+     117.2,
+     117.1,
+     119.1
+    ],
+    "neutral_after": [
+     137.7,
+     137.2,
+     142.0
+    ],
+    "luma_std_ratio": 1.518,
+    "luma_mean_ratio": 1.045
+   },
+   "new": {
+    "hue_shift_deg": 1.25,
+    "sat_ratio": 1.019,
+    "mean_rgb_before": [
+     122.0,
+     132.4,
+     142.0
+    ],
+    "mean_rgb_after": [
+     128.3,
+     139.8,
+     151.1
+    ],
+    "mean_colour_sat_before": 0.141,
+    "mean_colour_sat_after": 0.151,
+    "blue_ratio": 1.064,
+    "b_over_g_ratio": 1.008,
+    "cast_before": 0.0112,
+    "cast_after": 0.0139,
+    "neutral_before": [
+     117.2,
+     117.1,
+     119.1
+    ],
+    "neutral_after": [
+     121.8,
+     121.7,
+     124.4
+    ],
+    "luma_std_ratio": 1.535,
+    "luma_mean_ratio": 1.056
+   }
+  },
+  {
+   "topic": "nazca_lines_runway_paradox",
+   "still": "20_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 7.77,
+    "sat_ratio": 1.116,
+    "mean_rgb_before": [
+     130.1,
+     140.3,
+     149.5
+    ],
+    "mean_rgb_after": [
+     141.0,
+     153.4,
+     155.1
+    ],
+    "mean_colour_sat_before": 0.13,
+    "mean_colour_sat_after": 0.091,
+    "blue_ratio": 1.037,
+    "b_over_g_ratio": 0.949,
+    "cast_before": 0.0102,
+    "cast_after": 0.0109,
+    "neutral_before": [
+     136.2,
+     135.6,
+     138.0
+    ],
+    "neutral_after": [
+     183.1,
+     182.6,
+     185.9
+    ],
+    "luma_std_ratio": 1.297,
+    "luma_mean_ratio": 1.084
+   },
+   "new": {
+    "hue_shift_deg": 1.43,
+    "sat_ratio": 1.019,
+    "mean_rgb_before": [
+     130.1,
+     140.3,
+     149.5
+    ],
+    "mean_rgb_after": [
+     141.4,
+     152.9,
+     164.0
+    ],
+    "mean_colour_sat_before": 0.13,
+    "mean_colour_sat_after": 0.138,
+    "blue_ratio": 1.097,
+    "b_over_g_ratio": 1.007,
+    "cast_before": 0.0102,
+    "cast_after": 0.0133,
+    "neutral_before": [
+     136.2,
+     135.6,
+     138.0
+    ],
+    "neutral_after": [
+     158.7,
+     157.9,
+     161.5
+    ],
+    "luma_std_ratio": 1.294,
+    "luma_mean_ratio": 1.09
+   }
+  },
+  {
+   "topic": "nazca_lines_runway_paradox",
+   "still": "20_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 7.77,
+    "sat_ratio": 1.116,
+    "mean_rgb_before": [
+     130.1,
+     140.3,
+     149.5
+    ],
+    "mean_rgb_after": [
+     141.0,
+     153.4,
+     155.1
+    ],
+    "mean_colour_sat_before": 0.13,
+    "mean_colour_sat_after": 0.091,
+    "blue_ratio": 1.037,
+    "b_over_g_ratio": 0.949,
+    "cast_before": 0.0102,
+    "cast_after": 0.0109,
+    "neutral_before": [
+     136.2,
+     135.6,
+     138.0
+    ],
+    "neutral_after": [
+     183.1,
+     182.6,
+     185.9
+    ],
+    "luma_std_ratio": 1.297,
+    "luma_mean_ratio": 1.084
+   },
+   "new": {
+    "hue_shift_deg": 1.43,
+    "sat_ratio": 1.019,
+    "mean_rgb_before": [
+     130.1,
+     140.3,
+     149.5
+    ],
+    "mean_rgb_after": [
+     141.4,
+     152.9,
+     164.0
+    ],
+    "mean_colour_sat_before": 0.13,
+    "mean_colour_sat_after": 0.138,
+    "blue_ratio": 1.097,
+    "b_over_g_ratio": 1.007,
+    "cast_before": 0.0102,
+    "cast_after": 0.0133,
+    "neutral_before": [
+     136.2,
+     135.6,
+     138.0
+    ],
+    "neutral_after": [
+     158.7,
+     157.9,
+     161.5
+    ],
+    "luma_std_ratio": 1.294,
+    "luma_mean_ratio": 1.09
+   }
+  },
+  {
+   "topic": "roman_self_healing_concrete",
+   "still": "01_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 8.09,
+    "sat_ratio": 2.498,
+    "mean_rgb_before": [
+     139.3,
+     138.7,
+     135.0
+    ],
+    "mean_rgb_after": [
+     152.3,
+     147.1,
+     136.2
+    ],
+    "mean_colour_sat_before": 0.031,
+    "mean_colour_sat_after": 0.106,
+    "blue_ratio": 1.008,
+    "b_over_g_ratio": 0.95,
+    "cast_before": 0.0067,
+    "cast_after": 0.0312,
+    "neutral_before": [
+     150.6,
+     151.4,
+     149.5
+    ],
+    "neutral_after": [
+     185.6,
+     183.1,
+     176.1
+    ],
+    "luma_std_ratio": 1.464,
+    "luma_mean_ratio": 1.065
+   },
+   "new": {
+    "hue_shift_deg": 2.9,
+    "sat_ratio": 1.096,
+    "mean_rgb_before": [
+     139.3,
+     138.7,
+     135.0
+    ],
+    "mean_rgb_after": [
+     147.8,
+     147.3,
+     142.8
+    ],
+    "mean_colour_sat_before": 0.031,
+    "mean_colour_sat_after": 0.034,
+    "blue_ratio": 1.057,
+    "b_over_g_ratio": 0.996,
+    "cast_before": 0.0067,
+    "cast_after": 0.0066,
+    "neutral_before": [
+     150.6,
+     151.4,
+     149.5
+    ],
+    "neutral_after": [
+     164.7,
+     165.7,
+     163.6
+    ],
+    "luma_std_ratio": 1.451,
+    "luma_mean_ratio": 1.061
+   }
+  },
+  {
+   "topic": "roman_self_healing_concrete",
+   "still": "01_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 8.09,
+    "sat_ratio": 2.498,
+    "mean_rgb_before": [
+     139.3,
+     138.7,
+     135.0
+    ],
+    "mean_rgb_after": [
+     152.3,
+     147.1,
+     136.2
+    ],
+    "mean_colour_sat_before": 0.031,
+    "mean_colour_sat_after": 0.106,
+    "blue_ratio": 1.008,
+    "b_over_g_ratio": 0.95,
+    "cast_before": 0.0067,
+    "cast_after": 0.0312,
+    "neutral_before": [
+     150.6,
+     151.4,
+     149.5
+    ],
+    "neutral_after": [
+     185.6,
+     183.1,
+     176.1
+    ],
+    "luma_std_ratio": 1.464,
+    "luma_mean_ratio": 1.065
+   },
+   "new": {
+    "hue_shift_deg": 2.9,
+    "sat_ratio": 1.096,
+    "mean_rgb_before": [
+     139.3,
+     138.7,
+     135.0
+    ],
+    "mean_rgb_after": [
+     147.8,
+     147.3,
+     142.8
+    ],
+    "mean_colour_sat_before": 0.031,
+    "mean_colour_sat_after": 0.034,
+    "blue_ratio": 1.057,
+    "b_over_g_ratio": 0.996,
+    "cast_before": 0.0067,
+    "cast_after": 0.0066,
+    "neutral_before": [
+     150.6,
+     151.4,
+     149.5
+    ],
+    "neutral_after": [
+     164.7,
+     165.7,
+     163.6
+    ],
+    "luma_std_ratio": 1.451,
+    "luma_mean_ratio": 1.061
+   }
+  },
+  {
+   "topic": "roman_self_healing_concrete",
+   "still": "10_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 3.24,
+    "sat_ratio": 1.036,
+    "mean_rgb_before": [
+     79.4,
+     71.9,
+     62.0
+    ],
+    "mean_rgb_after": [
+     81.8,
+     72.0,
+     56.9
+    ],
+    "mean_colour_sat_before": 0.219,
+    "mean_colour_sat_after": 0.305,
+    "blue_ratio": 0.918,
+    "b_over_g_ratio": 0.916,
+    "cast_before": 0.0877,
+    "cast_after": 0.1149,
+    "neutral_before": [
+     124.2,
+     118.9,
+     107.4
+    ],
+    "neutral_after": [
+     184.9,
+     176.8,
+     154.2
+    ],
+    "luma_std_ratio": 1.099,
+    "luma_mean_ratio": 1.003
+   },
+   "new": {
+    "hue_shift_deg": 1.68,
+    "sat_ratio": 0.904,
+    "mean_rgb_before": [
+     79.4,
+     71.9,
+     62.0
+    ],
+    "mean_rgb_after": [
+     79.6,
+     72.3,
+     61.9
+    ],
+    "mean_colour_sat_before": 0.219,
+    "mean_colour_sat_after": 0.222,
+    "blue_ratio": 0.999,
+    "b_over_g_ratio": 0.993,
+    "cast_before": 0.0877,
+    "cast_after": 0.1052,
+    "neutral_before": [
+     124.2,
+     118.9,
+     107.4
+    ],
+    "neutral_after": [
+     167.3,
+     159.5,
+     141.1
+    ],
+    "luma_std_ratio": 1.098,
+    "luma_mean_ratio": 1.004
+   }
+  },
+  {
+   "topic": "roman_self_healing_concrete",
+   "still": "10_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": true,
+   "old": {
+    "hue_shift_deg": 3.85,
+    "sat_ratio": 1.041,
+    "mean_rgb_before": [
+     88.4,
+     79.8,
+     70.1
+    ],
+    "mean_rgb_after": [
+     90.8,
+     79.5,
+     63.3
+    ],
+    "mean_colour_sat_before": 0.207,
+    "mean_colour_sat_after": 0.302,
+    "blue_ratio": 0.904,
+    "b_over_g_ratio": 0.907,
+    "cast_before": 0.073,
+    "cast_after": 0.0982,
+    "neutral_before": [
+     103.0,
+     99.2,
+     91.1
+    ],
+    "neutral_after": [
+     164.0,
+     157.7,
+     140.2
+    ],
+    "luma_std_ratio": 1.111,
+    "luma_mean_ratio": 0.997
+   },
+   "new": {
+    "hue_shift_deg": 1.71,
+    "sat_ratio": 0.961,
+    "mean_rgb_before": [
+     88.4,
+     79.8,
+     70.1
+    ],
+    "mean_rgb_after": [
+     88.3,
+     79.8,
+     68.8
+    ],
+    "mean_colour_sat_before": 0.207,
+    "mean_colour_sat_after": 0.221,
+    "blue_ratio": 0.982,
+    "b_over_g_ratio": 0.981,
+    "cast_before": 0.073,
+    "cast_after": 0.0976,
+    "neutral_before": [
+     103.0,
+     99.2,
+     91.1
+    ],
+    "neutral_after": [
+     147.8,
+     141.2,
+     126.0
+    ],
+    "luma_std_ratio": 1.111,
+    "luma_mean_ratio": 0.998
+   }
+  },
+  {
+   "topic": "roman_self_healing_concrete",
+   "still": "19_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 3.96,
+    "sat_ratio": 1.159,
+    "mean_rgb_before": [
+     143.6,
+     141.3,
+     139.8
+    ],
+    "mean_rgb_after": [
+     154.8,
+     146.2,
+     136.6
+    ],
+    "mean_colour_sat_before": 0.026,
+    "mean_colour_sat_after": 0.118,
+    "blue_ratio": 0.977,
+    "b_over_g_ratio": 0.944,
+    "cast_before": 0.0318,
+    "cast_after": 0.007,
+    "neutral_before": [
+     180.0,
+     185.6,
+     191.6
+    ],
+    "neutral_after": [
+     217.0,
+     218.7,
+     220.0
+    ],
+    "luma_std_ratio": 1.218,
+    "luma_mean_ratio": 1.041
+   },
+   "new": {
+    "hue_shift_deg": 2.24,
+    "sat_ratio": 1.017,
+    "mean_rgb_before": [
+     143.6,
+     141.3,
+     139.8
+    ],
+    "mean_rgb_after": [
+     148.8,
+     146.3,
+     144.8
+    ],
+    "mean_colour_sat_before": 0.026,
+    "mean_colour_sat_after": 0.027,
+    "blue_ratio": 1.035,
+    "b_over_g_ratio": 1.0,
+    "cast_before": 0.0318,
+    "cast_after": 0.0321,
+    "neutral_before": [
+     180.0,
+     185.6,
+     191.6
+    ],
+    "neutral_after": [
+     193.6,
+     199.5,
+     206.5
+    ],
+    "luma_std_ratio": 1.2,
+    "luma_mean_ratio": 1.036
+   }
+  },
+  {
+   "topic": "roman_self_healing_concrete",
+   "still": "19_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 3.96,
+    "sat_ratio": 1.159,
+    "mean_rgb_before": [
+     143.6,
+     141.3,
+     139.8
+    ],
+    "mean_rgb_after": [
+     154.8,
+     146.2,
+     136.6
+    ],
+    "mean_colour_sat_before": 0.026,
+    "mean_colour_sat_after": 0.118,
+    "blue_ratio": 0.977,
+    "b_over_g_ratio": 0.944,
+    "cast_before": 0.0318,
+    "cast_after": 0.007,
+    "neutral_before": [
+     180.0,
+     185.6,
+     191.6
+    ],
+    "neutral_after": [
+     217.0,
+     218.7,
+     220.0
+    ],
+    "luma_std_ratio": 1.218,
+    "luma_mean_ratio": 1.041
+   },
+   "new": {
+    "hue_shift_deg": 2.24,
+    "sat_ratio": 1.017,
+    "mean_rgb_before": [
+     143.6,
+     141.3,
+     139.8
+    ],
+    "mean_rgb_after": [
+     148.8,
+     146.3,
+     144.8
+    ],
+    "mean_colour_sat_before": 0.026,
+    "mean_colour_sat_after": 0.027,
+    "blue_ratio": 1.035,
+    "b_over_g_ratio": 1.0,
+    "cast_before": 0.0318,
+    "cast_after": 0.0321,
+    "neutral_before": [
+     180.0,
+     185.6,
+     191.6
+    ],
+    "neutral_after": [
+     193.6,
+     199.5,
+     206.5
+    ],
+    "luma_std_ratio": 1.2,
+    "luma_mean_ratio": 1.036
+   }
+  },
+  {
+   "topic": "roman_self_healing_concrete",
+   "still": "28_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 3.0,
+    "sat_ratio": 1.217,
+    "mean_rgb_before": [
+     183.6,
+     168.5,
+     146.4
+    ],
+    "mean_rgb_after": [
+     193.8,
+     178.0,
+     152.1
+    ],
+    "mean_colour_sat_before": 0.202,
+    "mean_colour_sat_after": 0.215,
+    "blue_ratio": 1.039,
+    "b_over_g_ratio": 0.983,
+    "cast_before": 0.1167,
+    "cast_after": 0.1003,
+    "neutral_before": [
+     176.3,
+     163.1,
+     144.4
+    ],
+    "neutral_after": [
+     233.9,
+     222.7,
+     198.4
+    ],
+    "luma_std_ratio": 1.243,
+    "luma_mean_ratio": 1.055
+   },
+   "new": {
+    "hue_shift_deg": 1.16,
+    "sat_ratio": 1.026,
+    "mean_rgb_before": [
+     183.6,
+     168.5,
+     146.4
+    ],
+    "mean_rgb_after": [
+     192.0,
+     175.8,
+     152.6
+    ],
+    "mean_colour_sat_before": 0.202,
+    "mean_colour_sat_after": 0.205,
+    "blue_ratio": 1.042,
+    "b_over_g_ratio": 0.998,
+    "cast_before": 0.1167,
+    "cast_after": 0.1167,
+    "neutral_before": [
+     176.3,
+     163.1,
+     144.4
+    ],
+    "neutral_after": [
+     189.1,
+     174.9,
+     154.9
+    ],
+    "luma_std_ratio": 1.2,
+    "luma_mean_ratio": 1.044
+   }
+  },
+  {
+   "topic": "roman_self_healing_concrete",
+   "still": "28_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 3.0,
+    "sat_ratio": 1.217,
+    "mean_rgb_before": [
+     183.6,
+     168.5,
+     146.4
+    ],
+    "mean_rgb_after": [
+     193.8,
+     178.0,
+     152.1
+    ],
+    "mean_colour_sat_before": 0.202,
+    "mean_colour_sat_after": 0.215,
+    "blue_ratio": 1.039,
+    "b_over_g_ratio": 0.983,
+    "cast_before": 0.1167,
+    "cast_after": 0.1003,
+    "neutral_before": [
+     176.3,
+     163.1,
+     144.4
+    ],
+    "neutral_after": [
+     233.9,
+     222.7,
+     198.4
+    ],
+    "luma_std_ratio": 1.243,
+    "luma_mean_ratio": 1.055
+   },
+   "new": {
+    "hue_shift_deg": 1.16,
+    "sat_ratio": 1.026,
+    "mean_rgb_before": [
+     183.6,
+     168.5,
+     146.4
+    ],
+    "mean_rgb_after": [
+     192.0,
+     175.8,
+     152.6
+    ],
+    "mean_colour_sat_before": 0.202,
+    "mean_colour_sat_after": 0.205,
+    "blue_ratio": 1.042,
+    "b_over_g_ratio": 0.998,
+    "cast_before": 0.1167,
+    "cast_after": 0.1167,
+    "neutral_before": [
+     176.3,
+     163.1,
+     144.4
+    ],
+    "neutral_after": [
+     189.1,
+     174.9,
+     154.9
+    ],
+    "luma_std_ratio": 1.2,
+    "luma_mean_ratio": 1.044
+   }
+  },
+  {
+   "topic": "amber_room_heist",
+   "still": "01_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 6.01,
+    "sat_ratio": 1.087,
+    "mean_rgb_before": [
+     104.3,
+     69.8,
+     35.7
+    ],
+    "mean_rgb_after": [
+     98.0,
+     58.0,
+     26.0
+    ],
+    "mean_colour_sat_before": 0.658,
+    "mean_colour_sat_after": 0.735,
+    "blue_ratio": 0.727,
+    "b_over_g_ratio": 0.875,
+    "cast_before": 0.4671,
+    "cast_after": 0.6276,
+    "neutral_before": [
+     132.0,
+     108.0,
+     70.6
+    ],
+    "neutral_after": [
+     125.7,
+     94.9,
+     56.8
+    ],
+    "luma_std_ratio": 1.178,
+    "luma_mean_ratio": 0.869
+   },
+   "new": {
+    "hue_shift_deg": 1.02,
+    "sat_ratio": 1.0,
+    "mean_rgb_before": [
+     104.3,
+     69.8,
+     35.7
+    ],
+    "mean_rgb_after": [
+     88.9,
+     62.2,
+     33.6
+    ],
+    "mean_colour_sat_before": 0.658,
+    "mean_colour_sat_after": 0.622,
+    "blue_ratio": 0.94,
+    "b_over_g_ratio": 1.056,
+    "cast_before": 0.4671,
+    "cast_after": 0.4021,
+    "neutral_before": [
+     132.0,
+     108.0,
+     70.6
+    ],
+    "neutral_after": [
+     134.4,
+     112.4,
+     77.0
+    ],
+    "luma_std_ratio": 1.216,
+    "luma_mean_ratio": 0.877
+   }
+  },
+  {
+   "topic": "amber_room_heist",
+   "still": "01_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 6.01,
+    "sat_ratio": 1.087,
+    "mean_rgb_before": [
+     104.3,
+     69.8,
+     35.7
+    ],
+    "mean_rgb_after": [
+     98.0,
+     58.0,
+     26.0
+    ],
+    "mean_colour_sat_before": 0.658,
+    "mean_colour_sat_after": 0.735,
+    "blue_ratio": 0.727,
+    "b_over_g_ratio": 0.875,
+    "cast_before": 0.4671,
+    "cast_after": 0.6276,
+    "neutral_before": [
+     132.0,
+     108.0,
+     70.6
+    ],
+    "neutral_after": [
+     125.7,
+     94.9,
+     56.8
+    ],
+    "luma_std_ratio": 1.178,
+    "luma_mean_ratio": 0.869
+   },
+   "new": {
+    "hue_shift_deg": 1.02,
+    "sat_ratio": 1.0,
+    "mean_rgb_before": [
+     104.3,
+     69.8,
+     35.7
+    ],
+    "mean_rgb_after": [
+     88.9,
+     62.2,
+     33.6
+    ],
+    "mean_colour_sat_before": 0.658,
+    "mean_colour_sat_after": 0.622,
+    "blue_ratio": 0.94,
+    "b_over_g_ratio": 1.056,
+    "cast_before": 0.4671,
+    "cast_after": 0.4021,
+    "neutral_before": [
+     132.0,
+     108.0,
+     70.6
+    ],
+    "neutral_after": [
+     134.4,
+     112.4,
+     77.0
+    ],
+    "luma_std_ratio": 1.216,
+    "luma_mean_ratio": 0.877
+   }
+  },
+  {
+   "topic": "amber_room_heist",
+   "still": "07_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 5.77,
+    "sat_ratio": 1.235,
+    "mean_rgb_before": [
+     132.6,
+     120.8,
+     80.8
+    ],
+    "mean_rgb_after": [
+     138.7,
+     119.1,
+     67.9
+    ],
+    "mean_colour_sat_before": 0.39,
+    "mean_colour_sat_after": 0.51,
+    "blue_ratio": 0.84,
+    "b_over_g_ratio": 0.852,
+    "cast_before": 0.1441,
+    "cast_after": 0.2272,
+    "neutral_before": [
+     158.2,
+     160.1,
+     130.9
+    ],
+    "neutral_after": [
+     173.8,
+     171.2,
+     128.6
+    ],
+    "luma_std_ratio": 1.211,
+    "luma_mean_ratio": 0.995
+   },
+   "new": {
+    "hue_shift_deg": 1.1,
+    "sat_ratio": 1.002,
+    "mean_rgb_before": [
+     132.6,
+     120.8,
+     80.8
+    ],
+    "mean_rgb_after": [
+     133.4,
+     121.3,
+     82.5
+    ],
+    "mean_colour_sat_before": 0.39,
+    "mean_colour_sat_after": 0.382,
+    "blue_ratio": 1.02,
+    "b_over_g_ratio": 1.016,
+    "cast_before": 0.1441,
+    "cast_after": 0.1339,
+    "neutral_before": [
+     158.2,
+     160.1,
+     130.9
+    ],
+    "neutral_after": [
+     169.5,
+     171.5,
+     142.0
+    ],
+    "luma_std_ratio": 1.212,
+    "luma_mean_ratio": 1.006
+   }
+  },
+  {
+   "topic": "amber_room_heist",
+   "still": "07_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 5.77,
+    "sat_ratio": 1.235,
+    "mean_rgb_before": [
+     132.6,
+     120.8,
+     80.8
+    ],
+    "mean_rgb_after": [
+     138.7,
+     119.1,
+     67.9
+    ],
+    "mean_colour_sat_before": 0.39,
+    "mean_colour_sat_after": 0.51,
+    "blue_ratio": 0.84,
+    "b_over_g_ratio": 0.852,
+    "cast_before": 0.1441,
+    "cast_after": 0.2272,
+    "neutral_before": [
+     158.2,
+     160.1,
+     130.9
+    ],
+    "neutral_after": [
+     173.8,
+     171.2,
+     128.6
+    ],
+    "luma_std_ratio": 1.211,
+    "luma_mean_ratio": 0.995
+   },
+   "new": {
+    "hue_shift_deg": 1.1,
+    "sat_ratio": 1.002,
+    "mean_rgb_before": [
+     132.6,
+     120.8,
+     80.8
+    ],
+    "mean_rgb_after": [
+     133.4,
+     121.3,
+     82.5
+    ],
+    "mean_colour_sat_before": 0.39,
+    "mean_colour_sat_after": 0.382,
+    "blue_ratio": 1.02,
+    "b_over_g_ratio": 1.016,
+    "cast_before": 0.1441,
+    "cast_after": 0.1339,
+    "neutral_before": [
+     158.2,
+     160.1,
+     130.9
+    ],
+    "neutral_after": [
+     169.5,
+     171.5,
+     142.0
+    ],
+    "luma_std_ratio": 1.212,
+    "luma_mean_ratio": 1.006
+   }
+  },
+  {
+   "topic": "amber_room_heist",
+   "still": "14_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 6.85,
+    "sat_ratio": 1.087,
+    "mean_rgb_before": [
+     163.0,
+     118.8,
+     62.5
+    ],
+    "mean_rgb_after": [
+     178.5,
+     118.1,
+     55.8
+    ],
+    "mean_colour_sat_before": 0.616,
+    "mean_colour_sat_after": 0.687,
+    "blue_ratio": 0.892,
+    "b_over_g_ratio": 0.897,
+    "cast_before": 0.3161,
+    "cast_after": 0.3954,
+    "neutral_before": [
+     187.5,
+     163.5,
+     119.0
+    ],
+    "neutral_after": [
+     208.6,
+     180.8,
+     122.2
+    ],
+    "luma_std_ratio": 1.209,
+    "luma_mean_ratio": 1.028
+   },
+   "new": {
+    "hue_shift_deg": 0.76,
+    "sat_ratio": 0.994,
+    "mean_rgb_before": [
+     163.0,
+     118.8,
+     62.5
+    ],
+    "mean_rgb_after": [
+     169.4,
+     125.5,
+     67.8
+    ],
+    "mean_colour_sat_before": 0.616,
+    "mean_colour_sat_after": 0.6,
+    "blue_ratio": 1.085,
+    "b_over_g_ratio": 1.027,
+    "cast_before": 0.3161,
+    "cast_after": 0.2998,
+    "neutral_before": [
+     187.5,
+     163.5,
+     119.0
+    ],
+    "neutral_after": [
+     206.9,
+     180.8,
+     133.7
+    ],
+    "luma_std_ratio": 1.205,
+    "luma_mean_ratio": 1.051
+   }
+  },
+  {
+   "topic": "amber_room_heist",
+   "still": "14_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 6.85,
+    "sat_ratio": 1.087,
+    "mean_rgb_before": [
+     163.0,
+     118.8,
+     62.5
+    ],
+    "mean_rgb_after": [
+     178.5,
+     118.1,
+     55.8
+    ],
+    "mean_colour_sat_before": 0.616,
+    "mean_colour_sat_after": 0.687,
+    "blue_ratio": 0.892,
+    "b_over_g_ratio": 0.897,
+    "cast_before": 0.3161,
+    "cast_after": 0.3954,
+    "neutral_before": [
+     187.5,
+     163.5,
+     119.0
+    ],
+    "neutral_after": [
+     208.6,
+     180.8,
+     122.2
+    ],
+    "luma_std_ratio": 1.209,
+    "luma_mean_ratio": 1.028
+   },
+   "new": {
+    "hue_shift_deg": 0.76,
+    "sat_ratio": 0.994,
+    "mean_rgb_before": [
+     163.0,
+     118.8,
+     62.5
+    ],
+    "mean_rgb_after": [
+     169.4,
+     125.5,
+     67.8
+    ],
+    "mean_colour_sat_before": 0.616,
+    "mean_colour_sat_after": 0.6,
+    "blue_ratio": 1.085,
+    "b_over_g_ratio": 1.027,
+    "cast_before": 0.3161,
+    "cast_after": 0.2998,
+    "neutral_before": [
+     187.5,
+     163.5,
+     119.0
+    ],
+    "neutral_after": [
+     206.9,
+     180.8,
+     133.7
+    ],
+    "luma_std_ratio": 1.205,
+    "luma_mean_ratio": 1.051
+   }
+  },
+  {
+   "topic": "amber_room_heist",
+   "still": "20_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 6.64,
+    "sat_ratio": 1.06,
+    "mean_rgb_before": [
+     140.3,
+     82.4,
+     35.7
+    ],
+    "mean_rgb_after": [
+     148.9,
+     73.4,
+     28.4
+    ],
+    "mean_colour_sat_before": 0.746,
+    "mean_colour_sat_after": 0.809,
+    "blue_ratio": 0.795,
+    "b_over_g_ratio": 0.892,
+    "cast_before": 0.6177,
+    "cast_after": 0.7816,
+    "neutral_before": [
+     157.5,
+     115.2,
+     70.8
+    ],
+    "neutral_after": [
+     161.4,
+     109.5,
+     62.3
+    ],
+    "luma_std_ratio": 1.177,
+    "luma_mean_ratio": 0.963
+   },
+   "new": {
+    "hue_shift_deg": 0.83,
+    "sat_ratio": 0.992,
+    "mean_rgb_before": [
+     140.3,
+     82.4,
+     35.7
+    ],
+    "mean_rgb_after": [
+     136.2,
+     83.1,
+     37.4
+    ],
+    "mean_colour_sat_before": 0.746,
+    "mean_colour_sat_after": 0.725,
+    "blue_ratio": 1.048,
+    "b_over_g_ratio": 1.04,
+    "cast_before": 0.6177,
+    "cast_after": 0.5529,
+    "neutral_before": [
+     157.5,
+     115.2,
+     70.8
+    ],
+    "neutral_after": [
+     167.3,
+     125.8,
+     80.1
+    ],
+    "luma_std_ratio": 1.239,
+    "luma_mean_ratio": 0.993
+   }
+  },
+  {
+   "topic": "amber_room_heist",
+   "still": "20_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 6.64,
+    "sat_ratio": 1.06,
+    "mean_rgb_before": [
+     140.3,
+     82.4,
+     35.7
+    ],
+    "mean_rgb_after": [
+     148.9,
+     73.4,
+     28.4
+    ],
+    "mean_colour_sat_before": 0.746,
+    "mean_colour_sat_after": 0.809,
+    "blue_ratio": 0.795,
+    "b_over_g_ratio": 0.892,
+    "cast_before": 0.6177,
+    "cast_after": 0.7816,
+    "neutral_before": [
+     157.5,
+     115.2,
+     70.8
+    ],
+    "neutral_after": [
+     161.4,
+     109.5,
+     62.3
+    ],
+    "luma_std_ratio": 1.177,
+    "luma_mean_ratio": 0.963
+   },
+   "new": {
+    "hue_shift_deg": 0.83,
+    "sat_ratio": 0.992,
+    "mean_rgb_before": [
+     140.3,
+     82.4,
+     35.7
+    ],
+    "mean_rgb_after": [
+     136.2,
+     83.1,
+     37.4
+    ],
+    "mean_colour_sat_before": 0.746,
+    "mean_colour_sat_after": 0.725,
+    "blue_ratio": 1.048,
+    "b_over_g_ratio": 1.04,
+    "cast_before": 0.6177,
+    "cast_after": 0.5529,
+    "neutral_before": [
+     157.5,
+     115.2,
+     70.8
+    ],
+    "neutral_after": [
+     167.3,
+     125.8,
+     80.1
+    ],
+    "luma_std_ratio": 1.239,
+    "luma_mean_ratio": 0.993
+   }
+  },
+  {
+   "topic": "odessa_catacombs",
+   "still": "01_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 4.71,
+    "sat_ratio": 1.385,
+    "mean_rgb_before": [
+     99.8,
+     77.4,
+     50.8
+    ],
+    "mean_rgb_after": [
+     93.8,
+     59.4,
+     28.3
+    ],
+    "mean_colour_sat_before": 0.491,
+    "mean_colour_sat_after": 0.698,
+    "blue_ratio": 0.557,
+    "b_over_g_ratio": 0.726,
+    "cast_before": 0.3322,
+    "cast_after": 0.7153,
+    "neutral_before": [
+     98.2,
+     81.1,
+     59.9
+    ],
+    "neutral_after": [
+     81.1,
+     57.3,
+     33.4
+    ],
+    "luma_std_ratio": 1.219,
+    "luma_mean_ratio": 0.816
+   },
+   "new": {
+    "hue_shift_deg": 1.36,
+    "sat_ratio": 1.01,
+    "mean_rgb_before": [
+     99.8,
+     77.4,
+     50.8
+    ],
+    "mean_rgb_after": [
+     84.5,
+     65.2,
+     42.8
+    ],
+    "mean_colour_sat_before": 0.491,
+    "mean_colour_sat_after": 0.494,
+    "blue_ratio": 0.842,
+    "b_over_g_ratio": 0.999,
+    "cast_before": 0.3322,
+    "cast_after": 0.3418,
+    "neutral_before": [
+     98.2,
+     81.1,
+     59.9
+    ],
+    "neutral_after": [
+     91.6,
+     75.0,
+     55.1
+    ],
+    "luma_std_ratio": 1.315,
+    "luma_mean_ratio": 0.844
+   }
+  },
+  {
+   "topic": "odessa_catacombs",
+   "still": "01_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 4.71,
+    "sat_ratio": 1.385,
+    "mean_rgb_before": [
+     99.8,
+     77.4,
+     50.8
+    ],
+    "mean_rgb_after": [
+     93.8,
+     59.4,
+     28.3
+    ],
+    "mean_colour_sat_before": 0.491,
+    "mean_colour_sat_after": 0.698,
+    "blue_ratio": 0.557,
+    "b_over_g_ratio": 0.726,
+    "cast_before": 0.3322,
+    "cast_after": 0.7153,
+    "neutral_before": [
+     98.2,
+     81.1,
+     59.9
+    ],
+    "neutral_after": [
+     81.1,
+     57.3,
+     33.4
+    ],
+    "luma_std_ratio": 1.219,
+    "luma_mean_ratio": 0.816
+   },
+   "new": {
+    "hue_shift_deg": 1.36,
+    "sat_ratio": 1.01,
+    "mean_rgb_before": [
+     99.8,
+     77.4,
+     50.8
+    ],
+    "mean_rgb_after": [
+     84.5,
+     65.2,
+     42.8
+    ],
+    "mean_colour_sat_before": 0.491,
+    "mean_colour_sat_after": 0.494,
+    "blue_ratio": 0.842,
+    "b_over_g_ratio": 0.999,
+    "cast_before": 0.3322,
+    "cast_after": 0.3418,
+    "neutral_before": [
+     98.2,
+     81.1,
+     59.9
+    ],
+    "neutral_after": [
+     91.6,
+     75.0,
+     55.1
+    ],
+    "luma_std_ratio": 1.315,
+    "luma_mean_ratio": 0.844
+   }
+  },
+  {
+   "topic": "odessa_catacombs",
+   "still": "07_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 4.91,
+    "sat_ratio": 1.46,
+    "mean_rgb_before": [
+     114.8,
+     105.5,
+     99.1
+    ],
+    "mean_rgb_after": [
+     114.4,
+     101.2,
+     88.9
+    ],
+    "mean_colour_sat_before": 0.137,
+    "mean_colour_sat_after": 0.222,
+    "blue_ratio": 0.898,
+    "b_over_g_ratio": 0.936,
+    "cast_before": 0.0179,
+    "cast_after": 0.0487,
+    "neutral_before": [
+     152.8,
+     151.1,
+     148.0
+    ],
+    "neutral_after": [
+     172.4,
+     166.6,
+     158.0
+    ],
+    "luma_std_ratio": 1.259,
+    "luma_mean_ratio": 0.965
+   },
+   "new": {
+    "hue_shift_deg": 2.16,
+    "sat_ratio": 1.014,
+    "mean_rgb_before": [
+     114.8,
+     105.5,
+     99.1
+    ],
+    "mean_rgb_after": [
+     110.2,
+     103.0,
+     96.9
+    ],
+    "mean_colour_sat_before": 0.137,
+    "mean_colour_sat_after": 0.121,
+    "blue_ratio": 0.978,
+    "b_over_g_ratio": 1.002,
+    "cast_before": 0.0179,
+    "cast_after": 0.0179,
+    "neutral_before": [
+     152.8,
+     151.1,
+     148.0
+    ],
+    "neutral_after": [
+     166.0,
+     164.1,
+     160.8
+    ],
+    "luma_std_ratio": 1.254,
+    "luma_mean_ratio": 0.971
+   }
+  },
+  {
+   "topic": "odessa_catacombs",
+   "still": "07_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 4.91,
+    "sat_ratio": 1.46,
+    "mean_rgb_before": [
+     114.8,
+     105.5,
+     99.1
+    ],
+    "mean_rgb_after": [
+     114.4,
+     101.2,
+     88.9
+    ],
+    "mean_colour_sat_before": 0.137,
+    "mean_colour_sat_after": 0.222,
+    "blue_ratio": 0.898,
+    "b_over_g_ratio": 0.936,
+    "cast_before": 0.0179,
+    "cast_after": 0.0487,
+    "neutral_before": [
+     152.8,
+     151.1,
+     148.0
+    ],
+    "neutral_after": [
+     172.4,
+     166.6,
+     158.0
+    ],
+    "luma_std_ratio": 1.259,
+    "luma_mean_ratio": 0.965
+   },
+   "new": {
+    "hue_shift_deg": 2.16,
+    "sat_ratio": 1.014,
+    "mean_rgb_before": [
+     114.8,
+     105.5,
+     99.1
+    ],
+    "mean_rgb_after": [
+     110.2,
+     103.0,
+     96.9
+    ],
+    "mean_colour_sat_before": 0.137,
+    "mean_colour_sat_after": 0.121,
+    "blue_ratio": 0.978,
+    "b_over_g_ratio": 1.002,
+    "cast_before": 0.0179,
+    "cast_after": 0.0179,
+    "neutral_before": [
+     152.8,
+     151.1,
+     148.0
+    ],
+    "neutral_after": [
+     166.0,
+     164.1,
+     160.8
+    ],
+    "luma_std_ratio": 1.254,
+    "luma_mean_ratio": 0.971
+   }
+  },
+  {
+   "topic": "odessa_catacombs",
+   "still": "13_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 6.68,
+    "sat_ratio": 1.209,
+    "mean_rgb_before": [
+     168.2,
+     117.3,
+     61.8
+    ],
+    "mean_rgb_after": [
+     183.3,
+     112.8,
+     42.7
+    ],
+    "mean_colour_sat_before": 0.632,
+    "mean_colour_sat_after": 0.767,
+    "blue_ratio": 0.69,
+    "b_over_g_ratio": 0.718,
+    "cast_before": 0.5108,
+    "cast_after": 0.8146,
+    "neutral_before": [
+     191.6,
+     147.1,
+     95.9
+    ],
+    "neutral_after": [
+     208.0,
+     161.9,
+     83.3
+    ],
+    "luma_std_ratio": 1.238,
+    "luma_mean_ratio": 0.998
+   },
+   "new": {
+    "hue_shift_deg": 0.48,
+    "sat_ratio": 1.002,
+    "mean_rgb_before": [
+     168.2,
+     117.3,
+     61.8
+    ],
+    "mean_rgb_after": [
+     175.8,
+     122.3,
+     64.6
+    ],
+    "mean_colour_sat_before": 0.632,
+    "mean_colour_sat_after": 0.633,
+    "blue_ratio": 1.045,
+    "b_over_g_ratio": 1.002,
+    "cast_before": 0.5108,
+    "cast_after": 0.513,
+    "neutral_before": [
+     191.6,
+     147.1,
+     95.9
+    ],
+    "neutral_after": [
+     202.0,
+     154.7,
+     100.8
+    ],
+    "luma_std_ratio": 1.202,
+    "luma_mean_ratio": 1.044
+   }
+  },
+  {
+   "topic": "odessa_catacombs",
+   "still": "13_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 6.68,
+    "sat_ratio": 1.209,
+    "mean_rgb_before": [
+     168.2,
+     117.3,
+     61.8
+    ],
+    "mean_rgb_after": [
+     183.3,
+     112.8,
+     42.7
+    ],
+    "mean_colour_sat_before": 0.632,
+    "mean_colour_sat_after": 0.767,
+    "blue_ratio": 0.69,
+    "b_over_g_ratio": 0.718,
+    "cast_before": 0.5108,
+    "cast_after": 0.8146,
+    "neutral_before": [
+     191.6,
+     147.1,
+     95.9
+    ],
+    "neutral_after": [
+     208.0,
+     161.9,
+     83.3
+    ],
+    "luma_std_ratio": 1.238,
+    "luma_mean_ratio": 0.998
+   },
+   "new": {
+    "hue_shift_deg": 0.48,
+    "sat_ratio": 1.002,
+    "mean_rgb_before": [
+     168.2,
+     117.3,
+     61.8
+    ],
+    "mean_rgb_after": [
+     175.8,
+     122.3,
+     64.6
+    ],
+    "mean_colour_sat_before": 0.632,
+    "mean_colour_sat_after": 0.633,
+    "blue_ratio": 1.045,
+    "b_over_g_ratio": 1.002,
+    "cast_before": 0.5108,
+    "cast_after": 0.513,
+    "neutral_before": [
+     191.6,
+     147.1,
+     95.9
+    ],
+    "neutral_after": [
+     202.0,
+     154.7,
+     100.8
+    ],
+    "luma_std_ratio": 1.202,
+    "luma_mean_ratio": 1.044
+   }
+  },
+  {
+   "topic": "odessa_catacombs",
+   "still": "19_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 5.02,
+    "sat_ratio": 1.29,
+    "mean_rgb_before": [
+     145.2,
+     116.9,
+     85.2
+    ],
+    "mean_rgb_after": [
+     150.4,
+     116.5,
+     70.5
+    ],
+    "mean_colour_sat_before": 0.413,
+    "mean_colour_sat_after": 0.531,
+    "blue_ratio": 0.828,
+    "b_over_g_ratio": 0.83,
+    "cast_before": 0.2503,
+    "cast_after": 0.3686,
+    "neutral_before": [
+     160.4,
+     136.2,
+     107.8
+    ],
+    "neutral_after": [
+     196.0,
+     170.6,
+     118.1
+    ],
+    "luma_std_ratio": 1.266,
+    "luma_mean_ratio": 0.998
+   },
+   "new": {
+    "hue_shift_deg": 0.9,
+    "sat_ratio": 1.01,
+    "mean_rgb_before": [
+     145.2,
+     116.9,
+     85.2
+    ],
+    "mean_rgb_after": [
+     147.2,
+     118.9,
+     86.4
+    ],
+    "mean_colour_sat_before": 0.413,
+    "mean_colour_sat_after": 0.413,
+    "blue_ratio": 1.015,
+    "b_over_g_ratio": 0.998,
+    "cast_before": 0.2503,
+    "cast_after": 0.2504,
+    "neutral_before": [
+     160.4,
+     136.2,
+     107.8
+    ],
+    "neutral_after": [
+     164.5,
+     139.6,
+     110.5
+    ],
+    "luma_std_ratio": 1.254,
+    "luma_mean_ratio": 1.016
+   }
+  },
+  {
+   "topic": "odessa_catacombs",
+   "still": "19_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 5.02,
+    "sat_ratio": 1.29,
+    "mean_rgb_before": [
+     145.2,
+     116.9,
+     85.2
+    ],
+    "mean_rgb_after": [
+     150.4,
+     116.5,
+     70.5
+    ],
+    "mean_colour_sat_before": 0.413,
+    "mean_colour_sat_after": 0.531,
+    "blue_ratio": 0.828,
+    "b_over_g_ratio": 0.83,
+    "cast_before": 0.2503,
+    "cast_after": 0.3686,
+    "neutral_before": [
+     160.4,
+     136.2,
+     107.8
+    ],
+    "neutral_after": [
+     196.0,
+     170.6,
+     118.1
+    ],
+    "luma_std_ratio": 1.266,
+    "luma_mean_ratio": 0.998
+   },
+   "new": {
+    "hue_shift_deg": 0.9,
+    "sat_ratio": 1.01,
+    "mean_rgb_before": [
+     145.2,
+     116.9,
+     85.2
+    ],
+    "mean_rgb_after": [
+     147.2,
+     118.9,
+     86.4
+    ],
+    "mean_colour_sat_before": 0.413,
+    "mean_colour_sat_after": 0.413,
+    "blue_ratio": 1.015,
+    "b_over_g_ratio": 0.998,
+    "cast_before": 0.2503,
+    "cast_after": 0.2504,
+    "neutral_before": [
+     160.4,
+     136.2,
+     107.8
+    ],
+    "neutral_after": [
+     164.5,
+     139.6,
+     110.5
+    ],
+    "luma_std_ratio": 1.254,
+    "luma_mean_ratio": 1.016
+   }
+  },
+  {
+   "topic": "gol_gumbaz_whispering_gallery",
+   "still": "01_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 6.2,
+    "sat_ratio": 1.212,
+    "mean_rgb_before": [
+     133.9,
+     142.3,
+     145.5
+    ],
+    "mean_rgb_after": [
+     143.8,
+     147.6,
+     136.3
+    ],
+    "mean_colour_sat_before": 0.08,
+    "mean_colour_sat_after": 0.077,
+    "blue_ratio": 0.936,
+    "b_over_g_ratio": 0.903,
+    "cast_before": 0.0585,
+    "cast_after": 0.027,
+    "neutral_before": [
+     126.7,
+     123.6,
+     115.1
+    ],
+    "neutral_after": [
+     170.5,
+     172.4,
+     164.8
+    ],
+    "luma_std_ratio": 1.335,
+    "luma_mean_ratio": 1.036
+   },
+   "new": {
+    "hue_shift_deg": 1.07,
+    "sat_ratio": 1.025,
+    "mean_rgb_before": [
+     133.9,
+     142.3,
+     145.5
+    ],
+    "mean_rgb_after": [
+     136.6,
+     146.3,
+     151.5
+    ],
+    "mean_colour_sat_before": 0.08,
+    "mean_colour_sat_after": 0.098,
+    "blue_ratio": 1.041,
+    "b_over_g_ratio": 1.013,
+    "cast_before": 0.0585,
+    "cast_after": 0.0632,
+    "neutral_before": [
+     126.7,
+     123.6,
+     115.1
+    ],
+    "neutral_after": [
+     128.3,
+     124.6,
+     115.5
+    ],
+    "luma_std_ratio": 1.286,
+    "luma_mean_ratio": 1.027
+   }
+  },
+  {
+   "topic": "gol_gumbaz_whispering_gallery",
+   "still": "01_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 6.2,
+    "sat_ratio": 1.212,
+    "mean_rgb_before": [
+     133.9,
+     142.3,
+     145.5
+    ],
+    "mean_rgb_after": [
+     143.8,
+     147.6,
+     136.3
+    ],
+    "mean_colour_sat_before": 0.08,
+    "mean_colour_sat_after": 0.077,
+    "blue_ratio": 0.936,
+    "b_over_g_ratio": 0.903,
+    "cast_before": 0.0585,
+    "cast_after": 0.027,
+    "neutral_before": [
+     126.7,
+     123.6,
+     115.1
+    ],
+    "neutral_after": [
+     170.5,
+     172.4,
+     164.8
+    ],
+    "luma_std_ratio": 1.335,
+    "luma_mean_ratio": 1.036
+   },
+   "new": {
+    "hue_shift_deg": 1.07,
+    "sat_ratio": 1.025,
+    "mean_rgb_before": [
+     133.9,
+     142.3,
+     145.5
+    ],
+    "mean_rgb_after": [
+     136.6,
+     146.3,
+     151.5
+    ],
+    "mean_colour_sat_before": 0.08,
+    "mean_colour_sat_after": 0.098,
+    "blue_ratio": 1.041,
+    "b_over_g_ratio": 1.013,
+    "cast_before": 0.0585,
+    "cast_after": 0.0632,
+    "neutral_before": [
+     126.7,
+     123.6,
+     115.1
+    ],
+    "neutral_after": [
+     128.3,
+     124.6,
+     115.5
+    ],
+    "luma_std_ratio": 1.286,
+    "luma_mean_ratio": 1.027
+   }
+  },
+  {
+   "topic": "gol_gumbaz_whispering_gallery",
+   "still": "11_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 6.21,
+    "sat_ratio": 1.551,
+    "mean_rgb_before": [
+     129.1,
+     128.7,
+     113.1
+    ],
+    "mean_rgb_after": [
+     134.0,
+     129.4,
+     100.8
+    ],
+    "mean_colour_sat_before": 0.124,
+    "mean_colour_sat_after": 0.247,
+    "blue_ratio": 0.891,
+    "b_over_g_ratio": 0.887,
+    "cast_before": 0.0246,
+    "cast_after": 0.0124,
+    "neutral_before": [
+     159.2,
+     160.7,
+     166.1
+    ],
+    "neutral_after": [
+     184.2,
+     181.3,
+     180.3
+    ],
+    "luma_std_ratio": 1.309,
+    "luma_mean_ratio": 1.004
+   },
+   "new": {
+    "hue_shift_deg": 1.56,
+    "sat_ratio": 1.026,
+    "mean_rgb_before": [
+     129.1,
+     128.7,
+     113.1
+    ],
+    "mean_rgb_after": [
+     131.0,
+     129.5,
+     114.9
+    ],
+    "mean_colour_sat_before": 0.124,
+    "mean_colour_sat_after": 0.124,
+    "blue_ratio": 1.015,
+    "b_over_g_ratio": 1.01,
+    "cast_before": 0.0246,
+    "cast_after": 0.0257,
+    "neutral_before": [
+     159.2,
+     160.7,
+     166.1
+    ],
+    "neutral_after": [
+     169.9,
+     170.7,
+     177.2
+    ],
+    "luma_std_ratio": 1.285,
+    "luma_mean_ratio": 1.01
+   }
+  },
+  {
+   "topic": "gol_gumbaz_whispering_gallery",
+   "still": "11_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 6.21,
+    "sat_ratio": 1.551,
+    "mean_rgb_before": [
+     129.1,
+     128.7,
+     113.1
+    ],
+    "mean_rgb_after": [
+     134.0,
+     129.4,
+     100.8
+    ],
+    "mean_colour_sat_before": 0.124,
+    "mean_colour_sat_after": 0.247,
+    "blue_ratio": 0.891,
+    "b_over_g_ratio": 0.887,
+    "cast_before": 0.0246,
+    "cast_after": 0.0124,
+    "neutral_before": [
+     159.2,
+     160.7,
+     166.1
+    ],
+    "neutral_after": [
+     184.2,
+     181.3,
+     180.3
+    ],
+    "luma_std_ratio": 1.309,
+    "luma_mean_ratio": 1.004
+   },
+   "new": {
+    "hue_shift_deg": 1.56,
+    "sat_ratio": 1.026,
+    "mean_rgb_before": [
+     129.1,
+     128.7,
+     113.1
+    ],
+    "mean_rgb_after": [
+     131.0,
+     129.5,
+     114.9
+    ],
+    "mean_colour_sat_before": 0.124,
+    "mean_colour_sat_after": 0.124,
+    "blue_ratio": 1.015,
+    "b_over_g_ratio": 1.01,
+    "cast_before": 0.0246,
+    "cast_after": 0.0257,
+    "neutral_before": [
+     159.2,
+     160.7,
+     166.1
+    ],
+    "neutral_after": [
+     169.9,
+     170.7,
+     177.2
+    ],
+    "luma_std_ratio": 1.285,
+    "luma_mean_ratio": 1.01
+   }
+  },
+  {
+   "topic": "gol_gumbaz_whispering_gallery",
+   "still": "20_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 3.68,
+    "sat_ratio": 1.531,
+    "mean_rgb_before": [
+     93.1,
+     89.3,
+     86.5
+    ],
+    "mean_rgb_after": [
+     86.6,
+     79.1,
+     72.3
+    ],
+    "mean_colour_sat_before": 0.071,
+    "mean_colour_sat_after": 0.165,
+    "blue_ratio": 0.836,
+    "b_over_g_ratio": 0.944,
+    "cast_before": 0.0072,
+    "cast_after": 0.0232,
+    "neutral_before": [
+     122.3,
+     121.0,
+     121.0
+    ],
+    "neutral_after": [
+     128.2,
+     125.1,
+     122.5
+    ],
+    "luma_std_ratio": 1.209,
+    "luma_mean_ratio": 0.894
+   },
+   "new": {
+    "hue_shift_deg": 3.29,
+    "sat_ratio": 1.048,
+    "mean_rgb_before": [
+     93.1,
+     89.3,
+     86.5
+    ],
+    "mean_rgb_after": [
+     83.6,
+     80.8,
+     78.9
+    ],
+    "mean_colour_sat_before": 0.071,
+    "mean_colour_sat_after": 0.056,
+    "blue_ratio": 0.912,
+    "b_over_g_ratio": 1.008,
+    "cast_before": 0.0072,
+    "cast_after": 0.0067,
+    "neutral_before": [
+     122.3,
+     121.0,
+     121.0
+    ],
+    "neutral_after": [
+     127.6,
+     126.4,
+     126.3
+    ],
+    "luma_std_ratio": 1.212,
+    "luma_mean_ratio": 0.903
+   }
+  },
+  {
+   "topic": "gol_gumbaz_whispering_gallery",
+   "still": "20_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 3.68,
+    "sat_ratio": 1.531,
+    "mean_rgb_before": [
+     93.1,
+     89.3,
+     86.5
+    ],
+    "mean_rgb_after": [
+     86.6,
+     79.1,
+     72.3
+    ],
+    "mean_colour_sat_before": 0.071,
+    "mean_colour_sat_after": 0.165,
+    "blue_ratio": 0.836,
+    "b_over_g_ratio": 0.944,
+    "cast_before": 0.0072,
+    "cast_after": 0.0232,
+    "neutral_before": [
+     122.3,
+     121.0,
+     121.0
+    ],
+    "neutral_after": [
+     128.2,
+     125.1,
+     122.5
+    ],
+    "luma_std_ratio": 1.209,
+    "luma_mean_ratio": 0.894
+   },
+   "new": {
+    "hue_shift_deg": 3.29,
+    "sat_ratio": 1.048,
+    "mean_rgb_before": [
+     93.1,
+     89.3,
+     86.5
+    ],
+    "mean_rgb_after": [
+     83.6,
+     80.8,
+     78.9
+    ],
+    "mean_colour_sat_before": 0.071,
+    "mean_colour_sat_after": 0.056,
+    "blue_ratio": 0.912,
+    "b_over_g_ratio": 1.008,
+    "cast_before": 0.0072,
+    "cast_after": 0.0067,
+    "neutral_before": [
+     122.3,
+     121.0,
+     121.0
+    ],
+    "neutral_after": [
+     127.6,
+     126.4,
+     126.3
+    ],
+    "luma_std_ratio": 1.212,
+    "luma_mean_ratio": 0.903
+   }
+  },
+  {
+   "topic": "gol_gumbaz_whispering_gallery",
+   "still": "30_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 3.73,
+    "sat_ratio": 1.783,
+    "mean_rgb_before": [
+     117.7,
+     113.6,
+     111.0
+    ],
+    "mean_rgb_after": [
+     123.7,
+     112.7,
+     101.8
+    ],
+    "mean_colour_sat_before": 0.058,
+    "mean_colour_sat_after": 0.177,
+    "blue_ratio": 0.918,
+    "b_over_g_ratio": 0.925,
+    "cast_before": 0.0171,
+    "cast_after": 0.0231,
+    "neutral_before": [
+     123.3,
+     120.3,
+     120.1
+    ],
+    "neutral_after": [
+     143.5,
+     139.0,
+     138.1
+    ],
+    "luma_std_ratio": 1.342,
+    "luma_mean_ratio": 1.002
+   },
+   "new": {
+    "hue_shift_deg": 2.7,
+    "sat_ratio": 1.037,
+    "mean_rgb_before": [
+     117.7,
+     113.6,
+     111.0
+    ],
+    "mean_rgb_after": [
+     118.7,
+     114.4,
+     111.9
+    ],
+    "mean_colour_sat_before": 0.058,
+    "mean_colour_sat_after": 0.057,
+    "blue_ratio": 1.008,
+    "b_over_g_ratio": 1.001,
+    "cast_before": 0.0171,
+    "cast_after": 0.0179,
+    "neutral_before": [
+     123.3,
+     120.3,
+     120.1
+    ],
+    "neutral_after": [
+     136.9,
+     133.4,
+     133.1
+    ],
+    "luma_std_ratio": 1.335,
+    "luma_mean_ratio": 1.008
+   }
+  },
+  {
+   "topic": "gol_gumbaz_whispering_gallery",
+   "still": "30_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 3.73,
+    "sat_ratio": 1.783,
+    "mean_rgb_before": [
+     117.7,
+     113.6,
+     111.0
+    ],
+    "mean_rgb_after": [
+     123.7,
+     112.7,
+     101.8
+    ],
+    "mean_colour_sat_before": 0.058,
+    "mean_colour_sat_after": 0.177,
+    "blue_ratio": 0.918,
+    "b_over_g_ratio": 0.925,
+    "cast_before": 0.0171,
+    "cast_after": 0.0231,
+    "neutral_before": [
+     123.3,
+     120.3,
+     120.1
+    ],
+    "neutral_after": [
+     143.5,
+     139.0,
+     138.1
+    ],
+    "luma_std_ratio": 1.342,
+    "luma_mean_ratio": 1.002
+   },
+   "new": {
+    "hue_shift_deg": 2.7,
+    "sat_ratio": 1.037,
+    "mean_rgb_before": [
+     117.7,
+     113.6,
+     111.0
+    ],
+    "mean_rgb_after": [
+     118.7,
+     114.4,
+     111.9
+    ],
+    "mean_colour_sat_before": 0.058,
+    "mean_colour_sat_after": 0.057,
+    "blue_ratio": 1.008,
+    "b_over_g_ratio": 1.001,
+    "cast_before": 0.0171,
+    "cast_after": 0.0179,
+    "neutral_before": [
+     123.3,
+     120.3,
+     120.1
+    ],
+    "neutral_after": [
+     136.9,
+     133.4,
+     133.1
+    ],
+    "luma_std_ratio": 1.335,
+    "luma_mean_ratio": 1.008
+   }
+  },
+  {
+   "topic": "sunken_city_of_heracleion",
+   "still": "01_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 5.81,
+    "sat_ratio": 1.17,
+    "mean_rgb_before": [
+     122.6,
+     154.3,
+     151.0
+    ],
+    "mean_rgb_after": [
+     124.2,
+     168.7,
+     159.0
+    ],
+    "mean_colour_sat_before": 0.205,
+    "mean_colour_sat_after": 0.264,
+    "blue_ratio": 1.053,
+    "b_over_g_ratio": 0.963,
+    "cast_before": 0.0406,
+    "cast_after": 0.0482,
+    "neutral_before": [
+     158.9,
+     167.5,
+     155.8
+    ],
+    "neutral_after": [
+     191.1,
+     198.5,
+     181.7
+    ],
+    "luma_std_ratio": 1.13,
+    "luma_mean_ratio": 1.068
+   },
+   "new": {
+    "hue_shift_deg": 0.98,
+    "sat_ratio": 0.989,
+    "mean_rgb_before": [
+     122.6,
+     154.3,
+     151.0
+    ],
+    "mean_rgb_after": [
+     132.5,
+     167.7,
+     165.0
+    ],
+    "mean_colour_sat_before": 0.205,
+    "mean_colour_sat_after": 0.21,
+    "blue_ratio": 1.092,
+    "b_over_g_ratio": 1.005,
+    "cast_before": 0.0406,
+    "cast_after": 0.0396,
+    "neutral_before": [
+     158.9,
+     167.5,
+     155.8
+    ],
+    "neutral_after": [
+     174.0,
+     182.9,
+     170.0
+    ],
+    "luma_std_ratio": 1.114,
+    "luma_mean_ratio": 1.086
+   }
+  },
+  {
+   "topic": "sunken_city_of_heracleion",
+   "still": "01_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 5.81,
+    "sat_ratio": 1.17,
+    "mean_rgb_before": [
+     122.6,
+     154.3,
+     151.0
+    ],
+    "mean_rgb_after": [
+     124.2,
+     168.7,
+     159.0
+    ],
+    "mean_colour_sat_before": 0.205,
+    "mean_colour_sat_after": 0.264,
+    "blue_ratio": 1.053,
+    "b_over_g_ratio": 0.963,
+    "cast_before": 0.0406,
+    "cast_after": 0.0482,
+    "neutral_before": [
+     158.9,
+     167.5,
+     155.8
+    ],
+    "neutral_after": [
+     191.1,
+     198.5,
+     181.7
+    ],
+    "luma_std_ratio": 1.13,
+    "luma_mean_ratio": 1.068
+   },
+   "new": {
+    "hue_shift_deg": 0.98,
+    "sat_ratio": 0.989,
+    "mean_rgb_before": [
+     122.6,
+     154.3,
+     151.0
+    ],
+    "mean_rgb_after": [
+     132.5,
+     167.7,
+     165.0
+    ],
+    "mean_colour_sat_before": 0.205,
+    "mean_colour_sat_after": 0.21,
+    "blue_ratio": 1.092,
+    "b_over_g_ratio": 1.005,
+    "cast_before": 0.0406,
+    "cast_after": 0.0396,
+    "neutral_before": [
+     158.9,
+     167.5,
+     155.8
+    ],
+    "neutral_after": [
+     174.0,
+     182.9,
+     170.0
+    ],
+    "luma_std_ratio": 1.114,
+    "luma_mean_ratio": 1.086
+   }
+  },
+  {
+   "topic": "sunken_city_of_heracleion",
+   "still": "02_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 8.78,
+    "sat_ratio": 1.0,
+    "mean_rgb_before": [
+     146.5,
+     149.1,
+     155.7
+    ],
+    "mean_rgb_after": [
+     148.3,
+     152.9,
+     155.0
+    ],
+    "mean_colour_sat_before": 0.059,
+    "mean_colour_sat_after": 0.043,
+    "blue_ratio": 0.996,
+    "b_over_g_ratio": 0.971,
+    "cast_before": 0.0164,
+    "cast_after": 0.0261,
+    "neutral_before": [
+     180.1,
+     177.0,
+     174.3
+    ],
+    "neutral_after": [
+     205.7,
+     201.4,
+     195.9
+    ],
+    "luma_std_ratio": 1.116,
+    "luma_mean_ratio": 1.018
+   },
+   "new": {
+    "hue_shift_deg": 1.43,
+    "sat_ratio": 0.975,
+    "mean_rgb_before": [
+     146.5,
+     149.1,
+     155.7
+    ],
+    "mean_rgb_after": [
+     148.8,
+     150.9,
+     157.8
+    ],
+    "mean_colour_sat_before": 0.059,
+    "mean_colour_sat_after": 0.057,
+    "blue_ratio": 1.013,
+    "b_over_g_ratio": 1.001,
+    "cast_before": 0.0164,
+    "cast_after": 0.0186,
+    "neutral_before": [
+     180.1,
+     177.0,
+     174.3
+    ],
+    "neutral_after": [
+     194.1,
+     190.3,
+     187.1
+    ],
+    "luma_std_ratio": 1.101,
+    "luma_mean_ratio": 1.013
+   }
+  },
+  {
+   "topic": "sunken_city_of_heracleion",
+   "still": "02_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 8.78,
+    "sat_ratio": 1.0,
+    "mean_rgb_before": [
+     146.5,
+     149.1,
+     155.7
+    ],
+    "mean_rgb_after": [
+     148.3,
+     152.9,
+     155.0
+    ],
+    "mean_colour_sat_before": 0.059,
+    "mean_colour_sat_after": 0.043,
+    "blue_ratio": 0.996,
+    "b_over_g_ratio": 0.971,
+    "cast_before": 0.0164,
+    "cast_after": 0.0261,
+    "neutral_before": [
+     180.1,
+     177.0,
+     174.3
+    ],
+    "neutral_after": [
+     205.7,
+     201.4,
+     195.9
+    ],
+    "luma_std_ratio": 1.116,
+    "luma_mean_ratio": 1.018
+   },
+   "new": {
+    "hue_shift_deg": 1.43,
+    "sat_ratio": 0.975,
+    "mean_rgb_before": [
+     146.5,
+     149.1,
+     155.7
+    ],
+    "mean_rgb_after": [
+     148.8,
+     150.9,
+     157.8
+    ],
+    "mean_colour_sat_before": 0.059,
+    "mean_colour_sat_after": 0.057,
+    "blue_ratio": 1.013,
+    "b_over_g_ratio": 1.001,
+    "cast_before": 0.0164,
+    "cast_after": 0.0186,
+    "neutral_before": [
+     180.1,
+     177.0,
+     174.3
+    ],
+    "neutral_after": [
+     194.1,
+     190.3,
+     187.1
+    ],
+    "luma_std_ratio": 1.101,
+    "luma_mean_ratio": 1.013
+   }
+  },
+  {
+   "topic": "sunken_city_of_heracleion",
+   "still": "03_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 3.86,
+    "sat_ratio": 1.326,
+    "mean_rgb_before": [
+     128.6,
+     115.8,
+     102.2
+    ],
+    "mean_rgb_after": [
+     133.4,
+     116.6,
+     95.9
+    ],
+    "mean_colour_sat_before": 0.205,
+    "mean_colour_sat_after": 0.281,
+    "blue_ratio": 0.938,
+    "b_over_g_ratio": 0.931,
+    "cast_before": 0.0292,
+    "cast_after": 0.0391,
+    "neutral_before": [
+     165.1,
+     162.3,
+     156.8
+    ],
+    "neutral_after": [
+     217.5,
+     212.0,
+     202.8
+    ],
+    "luma_std_ratio": 1.19,
+    "luma_mean_ratio": 1.01
+   },
+   "new": {
+    "hue_shift_deg": 1.65,
+    "sat_ratio": 1.019,
+    "mean_rgb_before": [
+     128.6,
+     115.8,
+     102.2
+    ],
+    "mean_rgb_after": [
+     130.2,
+     118.3,
+     104.3
+    ],
+    "mean_colour_sat_before": 0.205,
+    "mean_colour_sat_after": 0.199,
+    "blue_ratio": 1.02,
+    "b_over_g_ratio": 0.999,
+    "cast_before": 0.0292,
+    "cast_after": 0.0308,
+    "neutral_before": [
+     165.1,
+     162.3,
+     156.8
+    ],
+    "neutral_after": [
+     194.3,
+     190.8,
+     184.1
+    ],
+    "luma_std_ratio": 1.187,
+    "luma_mean_ratio": 1.019
+   }
+  },
+  {
+   "topic": "sunken_city_of_heracleion",
+   "still": "03_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 3.86,
+    "sat_ratio": 1.326,
+    "mean_rgb_before": [
+     128.6,
+     115.8,
+     102.2
+    ],
+    "mean_rgb_after": [
+     133.4,
+     116.6,
+     95.9
+    ],
+    "mean_colour_sat_before": 0.205,
+    "mean_colour_sat_after": 0.281,
+    "blue_ratio": 0.938,
+    "b_over_g_ratio": 0.931,
+    "cast_before": 0.0292,
+    "cast_after": 0.0391,
+    "neutral_before": [
+     165.1,
+     162.3,
+     156.8
+    ],
+    "neutral_after": [
+     217.5,
+     212.0,
+     202.8
+    ],
+    "luma_std_ratio": 1.19,
+    "luma_mean_ratio": 1.01
+   },
+   "new": {
+    "hue_shift_deg": 1.65,
+    "sat_ratio": 1.019,
+    "mean_rgb_before": [
+     128.6,
+     115.8,
+     102.2
+    ],
+    "mean_rgb_after": [
+     130.2,
+     118.3,
+     104.3
+    ],
+    "mean_colour_sat_before": 0.205,
+    "mean_colour_sat_after": 0.199,
+    "blue_ratio": 1.02,
+    "b_over_g_ratio": 0.999,
+    "cast_before": 0.0292,
+    "cast_after": 0.0308,
+    "neutral_before": [
+     165.1,
+     162.3,
+     156.8
+    ],
+    "neutral_after": [
+     194.3,
+     190.8,
+     184.1
+    ],
+    "luma_std_ratio": 1.187,
+    "luma_mean_ratio": 1.019
+   }
+  },
+  {
+   "topic": "dyatlov_pass_incident",
+   "still": "01_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 0.0,
+    "sat_ratio": 19200.011,
+    "mean_rgb_before": [
+     233.5,
+     233.5,
+     233.5
+    ],
+    "mean_rgb_after": [
+     224.6,
+     224.0,
+     223.2
+    ],
+    "mean_colour_sat_before": 0.0,
+    "mean_colour_sat_after": 0.006,
+    "blue_ratio": 0.956,
+    "b_over_g_ratio": 0.996,
+    "cast_before": 0.0,
+    "cast_after": 0.0116,
+    "neutral_before": [
+     136.8,
+     136.8,
+     136.8
+    ],
+    "neutral_after": [
+     212.0,
+     210.3,
+     207.6
+    ],
+    "luma_std_ratio": 0.968,
+    "luma_mean_ratio": 0.96
+   },
+   "new": {
+    "hue_shift_deg": 0.0,
+    "sat_ratio": 0.0,
+    "mean_rgb_before": [
+     233.5,
+     233.5,
+     233.5
+    ],
+    "mean_rgb_after": [
+     224.2,
+     224.2,
+     224.2
+    ],
+    "mean_colour_sat_before": 0.0,
+    "mean_colour_sat_after": 0.0,
+    "blue_ratio": 0.96,
+    "b_over_g_ratio": 1.0,
+    "cast_before": 0.0,
+    "cast_after": 0.0,
+    "neutral_before": [
+     136.8,
+     136.8,
+     136.8
+    ],
+    "neutral_after": [
+     143.4,
+     143.4,
+     143.4
+    ],
+    "luma_std_ratio": 0.968,
+    "luma_mean_ratio": 0.96
+   }
+  },
+  {
+   "topic": "dyatlov_pass_incident",
+   "still": "01_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 0.0,
+    "sat_ratio": 19200.011,
+    "mean_rgb_before": [
+     233.5,
+     233.5,
+     233.5
+    ],
+    "mean_rgb_after": [
+     224.6,
+     224.0,
+     223.2
+    ],
+    "mean_colour_sat_before": 0.0,
+    "mean_colour_sat_after": 0.006,
+    "blue_ratio": 0.956,
+    "b_over_g_ratio": 0.996,
+    "cast_before": 0.0,
+    "cast_after": 0.0116,
+    "neutral_before": [
+     136.8,
+     136.8,
+     136.8
+    ],
+    "neutral_after": [
+     212.0,
+     210.3,
+     207.6
+    ],
+    "luma_std_ratio": 0.968,
+    "luma_mean_ratio": 0.96
+   },
+   "new": {
+    "hue_shift_deg": 0.0,
+    "sat_ratio": 0.0,
+    "mean_rgb_before": [
+     233.5,
+     233.5,
+     233.5
+    ],
+    "mean_rgb_after": [
+     224.2,
+     224.2,
+     224.2
+    ],
+    "mean_colour_sat_before": 0.0,
+    "mean_colour_sat_after": 0.0,
+    "blue_ratio": 0.96,
+    "b_over_g_ratio": 1.0,
+    "cast_before": 0.0,
+    "cast_after": 0.0,
+    "neutral_before": [
+     136.8,
+     136.8,
+     136.8
+    ],
+    "neutral_after": [
+     143.4,
+     143.4,
+     143.4
+    ],
+    "luma_std_ratio": 0.968,
+    "luma_mean_ratio": 0.96
+   }
+  },
+  {
+   "topic": "dyatlov_pass_incident",
+   "still": "04_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 3.44,
+    "sat_ratio": 0.882,
+    "mean_rgb_before": [
+     217.7,
+     214.2,
+     186.2
+    ],
+    "mean_rgb_after": [
+     214.4,
+     209.5,
+     191.3
+    ],
+    "mean_colour_sat_before": 0.145,
+    "mean_colour_sat_after": 0.107,
+    "blue_ratio": 1.028,
+    "b_over_g_ratio": 1.051,
+    "cast_before": 0.0726,
+    "cast_after": 0.0758,
+    "neutral_before": [
+     191.5,
+     184.5,
+     169.5
+    ],
+    "neutral_after": [
+     224.3,
+     217.2,
+     198.2
+    ],
+    "luma_std_ratio": 0.984,
+    "luma_mean_ratio": 0.985
+   },
+   "new": {
+    "hue_shift_deg": 0.7,
+    "sat_ratio": 1.013,
+    "mean_rgb_before": [
+     217.7,
+     214.2,
+     186.2
+    ],
+    "mean_rgb_after": [
+     213.0,
+     209.4,
+     181.5
+    ],
+    "mean_colour_sat_before": 0.145,
+    "mean_colour_sat_after": 0.148,
+    "blue_ratio": 0.975,
+    "b_over_g_ratio": 0.998,
+    "cast_before": 0.0726,
+    "cast_after": 0.0695,
+    "neutral_before": [
+     191.5,
+     184.5,
+     169.5
+    ],
+    "neutral_after": [
+     208.7,
+     201.8,
+     185.9
+    ],
+    "luma_std_ratio": 0.968,
+    "luma_mean_ratio": 0.977
+   }
+  },
+  {
+   "topic": "dyatlov_pass_incident",
+   "still": "04_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 3.44,
+    "sat_ratio": 0.882,
+    "mean_rgb_before": [
+     217.7,
+     214.2,
+     186.2
+    ],
+    "mean_rgb_after": [
+     214.4,
+     209.5,
+     191.3
+    ],
+    "mean_colour_sat_before": 0.145,
+    "mean_colour_sat_after": 0.107,
+    "blue_ratio": 1.028,
+    "b_over_g_ratio": 1.051,
+    "cast_before": 0.0726,
+    "cast_after": 0.0758,
+    "neutral_before": [
+     191.5,
+     184.5,
+     169.5
+    ],
+    "neutral_after": [
+     224.3,
+     217.2,
+     198.2
+    ],
+    "luma_std_ratio": 0.984,
+    "luma_mean_ratio": 0.985
+   },
+   "new": {
+    "hue_shift_deg": 0.7,
+    "sat_ratio": 1.013,
+    "mean_rgb_before": [
+     217.7,
+     214.2,
+     186.2
+    ],
+    "mean_rgb_after": [
+     213.0,
+     209.4,
+     181.5
+    ],
+    "mean_colour_sat_before": 0.145,
+    "mean_colour_sat_after": 0.148,
+    "blue_ratio": 0.975,
+    "b_over_g_ratio": 0.998,
+    "cast_before": 0.0726,
+    "cast_after": 0.0695,
+    "neutral_before": [
+     191.5,
+     184.5,
+     169.5
+    ],
+    "neutral_after": [
+     208.7,
+     201.8,
+     185.9
+    ],
+    "luma_std_ratio": 0.968,
+    "luma_mean_ratio": 0.977
+   }
+  },
+  {
+   "topic": "dyatlov_pass_incident",
+   "still": "08_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 3.76,
+    "sat_ratio": 1.087,
+    "mean_rgb_before": [
+     200.7,
+     181.6,
+     137.6
+    ],
+    "mean_rgb_after": [
+     212.3,
+     195.3,
+     144.6
+    ],
+    "mean_colour_sat_before": 0.314,
+    "mean_colour_sat_after": 0.319,
+    "blue_ratio": 1.051,
+    "b_over_g_ratio": 0.977,
+    "cast_before": 0.2305,
+    "cast_after": 0.1473,
+    "neutral_before": [
+     226.5,
+     208.6,
+     161.6
+    ],
+    "neutral_after": [
+     240.7,
+     229.9,
+     192.7
+    ],
+    "luma_std_ratio": 1.013,
+    "luma_mean_ratio": 1.068
+   },
+   "new": {
+    "hue_shift_deg": 0.59,
+    "sat_ratio": 1.006,
+    "mean_rgb_before": [
+     200.7,
+     181.6,
+     137.6
+    ],
+    "mean_rgb_after": [
+     212.8,
+     192.1,
+     145.1
+    ],
+    "mean_colour_sat_before": 0.314,
+    "mean_colour_sat_after": 0.318,
+    "blue_ratio": 1.055,
+    "b_over_g_ratio": 0.997,
+    "cast_before": 0.2305,
+    "cast_after": 0.2299,
+    "neutral_before": [
+     226.5,
+     208.6,
+     161.6
+    ],
+    "neutral_after": [
+     235.4,
+     217.7,
+     168.4
+    ],
+    "luma_std_ratio": 0.969,
+    "luma_mean_ratio": 1.059
+   }
+  },
+  {
+   "topic": "dyatlov_pass_incident",
+   "still": "08_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 3.76,
+    "sat_ratio": 1.087,
+    "mean_rgb_before": [
+     200.7,
+     181.6,
+     137.6
+    ],
+    "mean_rgb_after": [
+     212.3,
+     195.3,
+     144.6
+    ],
+    "mean_colour_sat_before": 0.314,
+    "mean_colour_sat_after": 0.319,
+    "blue_ratio": 1.051,
+    "b_over_g_ratio": 0.977,
+    "cast_before": 0.2305,
+    "cast_after": 0.1473,
+    "neutral_before": [
+     226.5,
+     208.6,
+     161.6
+    ],
+    "neutral_after": [
+     240.7,
+     229.9,
+     192.7
+    ],
+    "luma_std_ratio": 1.013,
+    "luma_mean_ratio": 1.068
+   },
+   "new": {
+    "hue_shift_deg": 0.59,
+    "sat_ratio": 1.006,
+    "mean_rgb_before": [
+     200.7,
+     181.6,
+     137.6
+    ],
+    "mean_rgb_after": [
+     212.8,
+     192.1,
+     145.1
+    ],
+    "mean_colour_sat_before": 0.314,
+    "mean_colour_sat_after": 0.318,
+    "blue_ratio": 1.055,
+    "b_over_g_ratio": 0.997,
+    "cast_before": 0.2305,
+    "cast_after": 0.2299,
+    "neutral_before": [
+     226.5,
+     208.6,
+     161.6
+    ],
+    "neutral_after": [
+     235.4,
+     217.7,
+     168.4
+    ],
+    "luma_std_ratio": 0.969,
+    "luma_mean_ratio": 1.059
+   }
+  },
+  {
+   "topic": "dyatlov_pass_incident",
+   "still": "11_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 4.92,
+    "sat_ratio": 1.014,
+    "mean_rgb_before": [
+     50.5,
+     88.4,
+     107.9
+    ],
+    "mean_rgb_after": [
+     44.9,
+     76.2,
+     95.5
+    ],
+    "mean_colour_sat_before": 0.532,
+    "mean_colour_sat_after": 0.53,
+    "blue_ratio": 0.885,
+    "b_over_g_ratio": 1.026,
+    "cast_before": 0.8278,
+    "cast_after": 0.5201,
+    "neutral_before": [
+     43.1,
+     92.0,
+     101.4
+    ],
+    "neutral_after": [
+     54.2,
+     90.0,
+     102.9
+    ],
+    "luma_std_ratio": 1.251,
+    "luma_mean_ratio": 0.871
+   },
+   "new": {
+    "hue_shift_deg": 1.15,
+    "sat_ratio": 0.997,
+    "mean_rgb_before": [
+     50.5,
+     88.4,
+     107.9
+    ],
+    "mean_rgb_after": [
+     48.4,
+     77.8,
+     94.6
+    ],
+    "mean_colour_sat_before": 0.532,
+    "mean_colour_sat_after": 0.489,
+    "blue_ratio": 0.876,
+    "b_over_g_ratio": 0.995,
+    "cast_before": 0.8278,
+    "cast_after": 0.6612,
+    "neutral_before": [
+     43.1,
+     92.0,
+     101.4
+    ],
+    "neutral_after": [
+     42.0,
+     78.3,
+     89.0
+    ],
+    "luma_std_ratio": 1.295,
+    "luma_mean_ratio": 0.895
+   }
+  },
+  {
+   "topic": "dyatlov_pass_incident",
+   "still": "11_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 4.92,
+    "sat_ratio": 1.014,
+    "mean_rgb_before": [
+     50.5,
+     88.4,
+     107.9
+    ],
+    "mean_rgb_after": [
+     44.9,
+     76.2,
+     95.5
+    ],
+    "mean_colour_sat_before": 0.532,
+    "mean_colour_sat_after": 0.53,
+    "blue_ratio": 0.885,
+    "b_over_g_ratio": 1.026,
+    "cast_before": 0.8278,
+    "cast_after": 0.5201,
+    "neutral_before": [
+     43.1,
+     92.0,
+     101.4
+    ],
+    "neutral_after": [
+     54.2,
+     90.0,
+     102.9
+    ],
+    "luma_std_ratio": 1.251,
+    "luma_mean_ratio": 0.871
+   },
+   "new": {
+    "hue_shift_deg": 1.15,
+    "sat_ratio": 0.997,
+    "mean_rgb_before": [
+     50.5,
+     88.4,
+     107.9
+    ],
+    "mean_rgb_after": [
+     48.4,
+     77.8,
+     94.6
+    ],
+    "mean_colour_sat_before": 0.532,
+    "mean_colour_sat_after": 0.489,
+    "blue_ratio": 0.876,
+    "b_over_g_ratio": 0.995,
+    "cast_before": 0.8278,
+    "cast_after": 0.6612,
+    "neutral_before": [
+     43.1,
+     92.0,
+     101.4
+    ],
+    "neutral_after": [
+     42.0,
+     78.3,
+     89.0
+    ],
+    "luma_std_ratio": 1.295,
+    "luma_mean_ratio": 0.895
+   }
+  },
+  {
+   "topic": "camp_century_nuclear_ice_city",
+   "still": "01_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 0.0,
+    "sat_ratio": 36565.995,
+    "mean_rgb_before": [
+     223.8,
+     223.8,
+     223.8
+    ],
+    "mean_rgb_after": [
+     214.7,
+     214.4,
+     214.1
+    ],
+    "mean_colour_sat_before": 0.0,
+    "mean_colour_sat_after": 0.003,
+    "blue_ratio": 0.957,
+    "b_over_g_ratio": 0.998,
+    "cast_before": 0.0,
+    "cast_after": 0.0075,
+    "neutral_before": [
+     129.1,
+     129.1,
+     129.1
+    ],
+    "neutral_after": [
+     190.8,
+     190.1,
+     188.3
+    ],
+    "luma_std_ratio": 0.951,
+    "luma_mean_ratio": 0.958
+   },
+   "new": {
+    "hue_shift_deg": 0.0,
+    "sat_ratio": 0.0,
+    "mean_rgb_before": [
+     223.8,
+     223.8,
+     223.8
+    ],
+    "mean_rgb_after": [
+     214.5,
+     214.5,
+     214.5
+    ],
+    "mean_colour_sat_before": 0.0,
+    "mean_colour_sat_after": 0.0,
+    "blue_ratio": 0.959,
+    "b_over_g_ratio": 1.0,
+    "cast_before": 0.0,
+    "cast_after": 0.0,
+    "neutral_before": [
+     129.1,
+     129.1,
+     129.1
+    ],
+    "neutral_after": [
+     138.5,
+     138.5,
+     138.5
+    ],
+    "luma_std_ratio": 0.949,
+    "luma_mean_ratio": 0.959
+   }
+  },
+  {
+   "topic": "camp_century_nuclear_ice_city",
+   "still": "01_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 0.0,
+    "sat_ratio": 36565.995,
+    "mean_rgb_before": [
+     223.8,
+     223.8,
+     223.8
+    ],
+    "mean_rgb_after": [
+     214.7,
+     214.4,
+     214.1
+    ],
+    "mean_colour_sat_before": 0.0,
+    "mean_colour_sat_after": 0.003,
+    "blue_ratio": 0.957,
+    "b_over_g_ratio": 0.998,
+    "cast_before": 0.0,
+    "cast_after": 0.0075,
+    "neutral_before": [
+     129.1,
+     129.1,
+     129.1
+    ],
+    "neutral_after": [
+     190.8,
+     190.1,
+     188.3
+    ],
+    "luma_std_ratio": 0.951,
+    "luma_mean_ratio": 0.958
+   },
+   "new": {
+    "hue_shift_deg": 0.0,
+    "sat_ratio": 0.0,
+    "mean_rgb_before": [
+     223.8,
+     223.8,
+     223.8
+    ],
+    "mean_rgb_after": [
+     214.5,
+     214.5,
+     214.5
+    ],
+    "mean_colour_sat_before": 0.0,
+    "mean_colour_sat_after": 0.0,
+    "blue_ratio": 0.959,
+    "b_over_g_ratio": 1.0,
+    "cast_before": 0.0,
+    "cast_after": 0.0,
+    "neutral_before": [
+     129.1,
+     129.1,
+     129.1
+    ],
+    "neutral_after": [
+     138.5,
+     138.5,
+     138.5
+    ],
+    "luma_std_ratio": 0.949,
+    "luma_mean_ratio": 0.959
+   }
+  },
+  {
+   "topic": "camp_century_nuclear_ice_city",
+   "still": "02_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 0.0,
+    "sat_ratio": 8193.265,
+    "mean_rgb_before": [
+     245.0,
+     245.0,
+     245.0
+    ],
+    "mean_rgb_after": [
+     235.9,
+     235.7,
+     235.1
+    ],
+    "mean_colour_sat_before": 0.0,
+    "mean_colour_sat_after": 0.003,
+    "blue_ratio": 0.96,
+    "b_over_g_ratio": 0.998,
+    "cast_before": 0.0,
+    "cast_after": 0.0115,
+    "neutral_before": [
+     149.5,
+     149.5,
+     149.5
+    ],
+    "neutral_after": [
+     216.0,
+     214.2,
+     211.5
+    ],
+    "luma_std_ratio": 0.954,
+    "luma_mean_ratio": 0.962
+   },
+   "new": {
+    "hue_shift_deg": 0.0,
+    "sat_ratio": 0.0,
+    "mean_rgb_before": [
+     245.0,
+     245.0,
+     245.0
+    ],
+    "mean_rgb_after": [
+     235.7,
+     235.7,
+     235.7
+    ],
+    "mean_colour_sat_before": 0.0,
+    "mean_colour_sat_after": 0.0,
+    "blue_ratio": 0.962,
+    "b_over_g_ratio": 1.0,
+    "cast_before": 0.0,
+    "cast_after": 0.0,
+    "neutral_before": [
+     149.5,
+     149.5,
+     149.5
+    ],
+    "neutral_after": [
+     155.9,
+     155.9,
+     155.9
+    ],
+    "luma_std_ratio": 0.954,
+    "luma_mean_ratio": 0.962
+   }
+  },
+  {
+   "topic": "camp_century_nuclear_ice_city",
+   "still": "02_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 0.0,
+    "sat_ratio": 8193.265,
+    "mean_rgb_before": [
+     245.0,
+     245.0,
+     245.0
+    ],
+    "mean_rgb_after": [
+     235.9,
+     235.7,
+     235.1
+    ],
+    "mean_colour_sat_before": 0.0,
+    "mean_colour_sat_after": 0.003,
+    "blue_ratio": 0.96,
+    "b_over_g_ratio": 0.998,
+    "cast_before": 0.0,
+    "cast_after": 0.0115,
+    "neutral_before": [
+     149.5,
+     149.5,
+     149.5
+    ],
+    "neutral_after": [
+     216.0,
+     214.2,
+     211.5
+    ],
+    "luma_std_ratio": 0.954,
+    "luma_mean_ratio": 0.962
+   },
+   "new": {
+    "hue_shift_deg": 0.0,
+    "sat_ratio": 0.0,
+    "mean_rgb_before": [
+     245.0,
+     245.0,
+     245.0
+    ],
+    "mean_rgb_after": [
+     235.7,
+     235.7,
+     235.7
+    ],
+    "mean_colour_sat_before": 0.0,
+    "mean_colour_sat_after": 0.0,
+    "blue_ratio": 0.962,
+    "b_over_g_ratio": 1.0,
+    "cast_before": 0.0,
+    "cast_after": 0.0,
+    "neutral_before": [
+     149.5,
+     149.5,
+     149.5
+    ],
+    "neutral_after": [
+     155.9,
+     155.9,
+     155.9
+    ],
+    "luma_std_ratio": 0.954,
+    "luma_mean_ratio": 0.962
+   }
+  },
+  {
+   "topic": "camp_century_nuclear_ice_city",
+   "still": "03_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 7.15,
+    "sat_ratio": 1.178,
+    "mean_rgb_before": [
+     115.7,
+     130.5,
+     147.4
+    ],
+    "mean_rgb_after": [
+     118.6,
+     136.0,
+     148.4
+    ],
+    "mean_colour_sat_before": 0.215,
+    "mean_colour_sat_after": 0.2,
+    "blue_ratio": 1.007,
+    "b_over_g_ratio": 0.966,
+    "cast_before": 0.0201,
+    "cast_after": 0.0229,
+    "neutral_before": [
+     139.4,
+     135.2,
+     135.2
+    ],
+    "neutral_after": [
+     161.7,
+     156.7,
+     155.6
+    ],
+    "luma_std_ratio": 1.32,
+    "luma_mean_ratio": 1.033
+   },
+   "new": {
+    "hue_shift_deg": 1.27,
+    "sat_ratio": 1.009,
+    "mean_rgb_before": [
+     115.7,
+     130.5,
+     147.4
+    ],
+    "mean_rgb_after": [
+     121.7,
+     137.8,
+     156.3
+    ],
+    "mean_colour_sat_before": 0.215,
+    "mean_colour_sat_after": 0.222,
+    "blue_ratio": 1.061,
+    "b_over_g_ratio": 1.004,
+    "cast_before": 0.0201,
+    "cast_after": 0.0204,
+    "neutral_before": [
+     139.4,
+     135.2,
+     135.2
+    ],
+    "neutral_after": [
+     150.5,
+     146.0,
+     145.9
+    ],
+    "luma_std_ratio": 1.291,
+    "luma_mean_ratio": 1.056
+   }
+  },
+  {
+   "topic": "camp_century_nuclear_ice_city",
+   "still": "03_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 7.15,
+    "sat_ratio": 1.178,
+    "mean_rgb_before": [
+     115.7,
+     130.5,
+     147.4
+    ],
+    "mean_rgb_after": [
+     118.6,
+     136.0,
+     148.4
+    ],
+    "mean_colour_sat_before": 0.215,
+    "mean_colour_sat_after": 0.2,
+    "blue_ratio": 1.007,
+    "b_over_g_ratio": 0.966,
+    "cast_before": 0.0201,
+    "cast_after": 0.0229,
+    "neutral_before": [
+     139.4,
+     135.2,
+     135.2
+    ],
+    "neutral_after": [
+     161.7,
+     156.7,
+     155.6
+    ],
+    "luma_std_ratio": 1.32,
+    "luma_mean_ratio": 1.033
+   },
+   "new": {
+    "hue_shift_deg": 1.27,
+    "sat_ratio": 1.009,
+    "mean_rgb_before": [
+     115.7,
+     130.5,
+     147.4
+    ],
+    "mean_rgb_after": [
+     121.7,
+     137.8,
+     156.3
+    ],
+    "mean_colour_sat_before": 0.215,
+    "mean_colour_sat_after": 0.222,
+    "blue_ratio": 1.061,
+    "b_over_g_ratio": 1.004,
+    "cast_before": 0.0201,
+    "cast_after": 0.0204,
+    "neutral_before": [
+     139.4,
+     135.2,
+     135.2
+    ],
+    "neutral_after": [
+     150.5,
+     146.0,
+     145.9
+    ],
+    "luma_std_ratio": 1.291,
+    "luma_mean_ratio": 1.056
+   }
+  },
+  {
+   "topic": "camp_century_nuclear_ice_city",
+   "still": "04_commons.jpg",
+   "state": "raw",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 4.21,
+    "sat_ratio": 1.694,
+    "mean_rgb_before": [
+     234.4,
+     232.2,
+     231.5
+    ],
+    "mean_rgb_after": [
+     225.0,
+     222.5,
+     220.9
+    ],
+    "mean_colour_sat_before": 0.012,
+    "mean_colour_sat_after": 0.018,
+    "blue_ratio": 0.954,
+    "b_over_g_ratio": 0.996,
+    "cast_before": 0.0,
+    "cast_after": 0.0152,
+    "neutral_before": [
+     129.2,
+     129.2,
+     129.2
+    ],
+    "neutral_after": [
+     200.7,
+     198.4,
+     195.1
+    ],
+    "luma_std_ratio": 0.984,
+    "luma_mean_ratio": 0.958
+   },
+   "new": {
+    "hue_shift_deg": 0.69,
+    "sat_ratio": 0.998,
+    "mean_rgb_before": [
+     234.4,
+     232.2,
+     231.5
+    ],
+    "mean_rgb_after": [
+     224.9,
+     222.7,
+     222.0
+    ],
+    "mean_colour_sat_before": 0.012,
+    "mean_colour_sat_after": 0.013,
+    "blue_ratio": 0.959,
+    "b_over_g_ratio": 1.0,
+    "cast_before": 0.0,
+    "cast_after": 0.0,
+    "neutral_before": [
+     129.2,
+     129.2,
+     129.2
+    ],
+    "neutral_after": [
+     134.9,
+     134.9,
+     134.9
+    ],
+    "luma_std_ratio": 0.973,
+    "luma_mean_ratio": 0.959
+   }
+  },
+  {
+   "topic": "camp_century_nuclear_ice_city",
+   "still": "04_commons.jpg",
+   "state": "balanced",
+   "balanced_changed": false,
+   "old": {
+    "hue_shift_deg": 4.21,
+    "sat_ratio": 1.694,
+    "mean_rgb_before": [
+     234.4,
+     232.2,
+     231.5
+    ],
+    "mean_rgb_after": [
+     225.0,
+     222.5,
+     220.9
+    ],
+    "mean_colour_sat_before": 0.012,
+    "mean_colour_sat_after": 0.018,
+    "blue_ratio": 0.954,
+    "b_over_g_ratio": 0.996,
+    "cast_before": 0.0,
+    "cast_after": 0.0152,
+    "neutral_before": [
+     129.2,
+     129.2,
+     129.2
+    ],
+    "neutral_after": [
+     200.7,
+     198.4,
+     195.1
+    ],
+    "luma_std_ratio": 0.984,
+    "luma_mean_ratio": 0.958
+   },
+   "new": {
+    "hue_shift_deg": 0.69,
+    "sat_ratio": 0.998,
+    "mean_rgb_before": [
+     234.4,
+     232.2,
+     231.5
+    ],
+    "mean_rgb_after": [
+     224.9,
+     222.7,
+     222.0
+    ],
+    "mean_colour_sat_before": 0.012,
+    "mean_colour_sat_after": 0.013,
+    "blue_ratio": 0.959,
+    "b_over_g_ratio": 1.0,
+    "cast_before": 0.0,
+    "cast_after": 0.0,
+    "neutral_before": [
+     129.2,
+     129.2,
+     129.2
+    ],
+    "neutral_after": [
+     134.9,
+     134.9,
+     134.9
+    ],
+    "luma_std_ratio": 0.973,
+    "luma_mean_ratio": 0.959
+   }
+  }
+ ]
+}

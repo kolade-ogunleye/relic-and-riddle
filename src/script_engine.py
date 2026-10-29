@@ -42,6 +42,8 @@ class ScriptUnavailableError(RuntimeError):
     pass
 
 
+HOOK_MAX_WORDS = 14  # the first sentence lands inside the two seconds viewers decide in (hook_problems)
+
 SYSTEM_PROMPT = """You are a documentary scriptwriter producing short vertical Reels (1080x1920) for Facebook and Instagram in the "Historical Curiosities & Ancient Marvels" niche. Accuracy is the brand: viewers and Meta's integrity systems punish fabricated or exaggerated history, so every factual statement you write must be something you have confirmed with web search.
 
 Editorial rules:
@@ -52,6 +54,7 @@ Editorial rules:
       - Relic Artifacts: Precision Beyond Its Era (micro-mechanics, astronomical gear trains, or metallurgy more refined than its period is known for), stated as documented fact, never as "lost" or impossible technology.
       - Riddle Events & Cataclysms: Sudden Forensic Anomaly (stark physical devastation, colossal atmospheric shockwave, zero impact crater, or vanished expeditions).
       NEVER start Beat 1 with greetings ('Hey guys'), generic rhetorical questions ('Have you ever wondered'), or robotic hedge words ('Estimated,', 'Approximately,'). Hook the audience immediately with an arresting, tangible reality.
+      Lead with the mystery: viewers decide in under two seconds. The first sentence is at most {HOOK_WORDS} words and delivers the impossible fact, or poses the riddle, within its first 8 words: a stark claim carrying a number or a scale (e.g. "They carved a 100-foot temple out of a single rock, starting from the top.") or a visual-challenge question the opening picture poses (e.g. "How do you carve a temple from the top down?"). Never open on a label that names the subject before the mystery ("This massive X was...", "This is the...", "Meet the...", "Here is...", "X is a..."). The hook is a verified fact like every other sentence.
   (2) Forensic Evidence & Underlying Mechanism (Beat 2): Concrete physical evidence, exact metrics, tree rings, seismic data, metallurgy, materials, or gears.
   (3) Epistemic Integrity & Leading Hypotheses (Beat 3): Where figures or causes are debated, present the leading scientific hypotheses with fluent, natural phrasing (e.g. 'physicists calculate that...', 'physical models suggest roughly...', 'ranging between X and Y').
   (4) Civilizational / Modern Relevance & High Stakes (Beat 4): Why this anomaly matters to modern science, engineering, or planetary resilience.
@@ -74,7 +77,8 @@ Editorial rules:
 SYSTEM_PROMPT = (SYSTEM_PROMPT.replace("{WORDS_MIN}", str(TARGET_WORD_COUNT_MIN))
                  .replace("{WORDS_MAX}", str(TARGET_WORD_COUNT_MAX))
                  .replace("{SECONDS_MIN}", f"{TARGET_DURATION_MIN:g}")
-                 .replace("{SECONDS_MAX}", f"{TARGET_DURATION_MAX:g}"))
+                 .replace("{SECONDS_MAX}", f"{TARGET_DURATION_MAX:g}")
+                 .replace("{HOOK_WORDS}", str(HOOK_MAX_WORDS)))
 
 RESEARCH_SYSTEM = """You are a research assistant for a history documentary team. Use web search to establish what reliable sources (scholarship, museums, heritage bodies, reputable encyclopedias and press) say about the topic. Report concrete, citable facts with numbers and dates, note where sources disagree and give the range, flag popular claims that are myths or exaggerations, and identify the genuine open questions. Be concise and factual."""
 
@@ -96,8 +100,9 @@ Topic notes (unverified): {key_facts}
 Requirements:
 - title: the Facebook Reel title shown under the video: at most 60 characters, specific and intriguing (a name, a number or a tension, not a label like "The History of X"); at most one relevant emoji.
 - caption: written like a magazine editor, not a template. First line: a curiosity-driven line of at most 110 characters (a hard limit of 125 is shown before "more"; stay well under it) that is NOT the narration's hook sentence. Then 2-3 short sentences that add context the video doesn't say (a detail, a consequence, a name), with the place worked naturally into the prose. Then one genuine question to the audience. Then the hashtags on the last line. Use 1-3 relevant emoji where they add warmth or meaning (for example one at the end of the first line and one on the question), never as labels or bullet markers, and no "📍" lines. Under 1,600 characters.
-- carousel_caption: a separate caption for the 7-slide carousel of the same topic, different wording from the Reel caption (not a rephrase of its first line): a short invitation to look through the slides ("Swipe through ..." is fine; never say which way), one fresh detail, one question, then the same hashtags. Under 800 characters. It is posted as Instagram's carousel and as Facebook's photo grid, which place the caption and the photos differently.
+- carousel_caption: a separate caption for the 7-slide carousel of the same topic, different wording from the Reel caption (not a rephrase of its first line): a short invitation to look through the slides ("Swipe through ..." is fine; never say which way), one fresh detail, one question, then the same hashtags. Use 1-3 relevant emoji where they add warmth or meaning, as in the caption (never a pointing hand or an arrow). Under 800 characters. It is posted as Instagram's carousel and as Facebook's photo grid, which place the caption and the photos differently.
 - No direction cues in any text (captions, title, first comment, share line, slides, stories): no pointing-hand or arrow emoji or symbols (such as 👉 👇 👆 ☝️ ➡️ ⬇️ → ↓), no "swipe right/left/up/down", and no "below" or "above" for the comments, caption or photos (write "in the comments", not "in the comments below"). Each platform places these differently and may change it.
+- No engagement bait in any text (Meta demotes it): never ask for likes or reactions ("like this if", "react with", "double tap if"), votes by reaction, shares to a number of people ("share with 5 friends"), tags ("tag someone who") or set replies ("comment YES", "type 1 if"). Ask a genuine question instead.
 - hashtags: 3-5 (Instagram allows at most 5), each starting with "#": specific to the place, era or subject (e.g. "#Cappadocia", "#ByzantineHistory"); no generic engagement tags like "#viral", "#fyp", "#ReelsViral", "#explore".
 - story_slides: exactly 3 (hook, revelation, question). Slide 3 asks the poll's question; its body gives context and asks nothing else. Each body is one complete sentence of at most 18 words: it must fit three lines at the Story's text size.
 - poll: an either/or question (at most 60 characters) and exactly 2 options (each at most 24 characters) that are its two answers, e.g. "Planned or lucky?" with "Careful planning" / "Lucky accident". Never a yes/no question with options that are not yes/no.
@@ -483,8 +488,9 @@ _HASHTAG_LINE = re.compile(r"^(?:\s*#\w+)+\s*$")
 
 
 def share_line_problems(line: str) -> List[str]:
-    """Why a writer's share line can't be used: it must be short, ask for a share and a follow, and carry no
-    hashtags (they live on the caption's last line) and at most one emoji."""
+    """Why a writer's share line can't be used: it must be short, ask for a share and a follow, carry no
+    hashtags (they live on the caption's last line), at most one emoji and no engagement bait ("share with 5
+    friends", "tag someone": the end card would show it)."""
     line = " ".join((line or "").split())
     problems = []
     if len(line) > SHARE_LINE_MAX:
@@ -496,10 +502,13 @@ def share_line_problems(line: str) -> List[str]:
     if not re.search(r"\bfollow", line, re.IGNORECASE):
         problems.append("it must invite the viewer to follow.")
     if not _SHARE_VERBS.search(line):
-        problems.append("it must ask the viewer to share (send, pass on, tag) this.")
+        problems.append("it must ask the viewer to share (send, pass on) this.")
     elif is_stock_share(line):
         problems.append("it is stock phrasing: name who, for this story (\"the codebreaker you know\", "
                         "\"a friend who loves Roman engineering\"), not \"a friend\" or \"someone who loves history\".")
+    if engagement_bait(line):
+        problems.append(f"it is engagement bait ({'; '.join(engagement_bait(line))}), which Meta demotes: name who, "
+                        "for this story, never a number of people or a tag.")
     return problems
 
 
@@ -644,9 +653,157 @@ def repair_poll(question: str, options: List[str], narration: str = "") -> Optio
     return reworded if len(reworded) <= POLL_QUESTION_MAX else None
 
 
-def validate_structure(pkg: ScriptPackage) -> List[str]:
-    """Returns a list of problems; empty means the package is structurally publishable."""
+# ---------------------------------------------------------------- the hook (Meta's Creator assistant, 2026-10-28)
+# On the operator's Reel: "Lead with the mystery ... the initial phrase 'This Massive Hindu' doesn't immediately
+# reveal the mystery"; viewers decide in under two seconds and about 71% had scrolled away by the fourth. The
+# first caption burst is the first two to five words of the first sentence (video_composer's partition), so the
+# sentence itself has to open on the fact or the riddle. Checked on a writer's new drafts (draft_problems), and
+# sent back with whatever else a rewrite fixes, at no extra call: a draft whose only fault is its opening is
+# kept and the finding recorded (HOOK_FORCES_REWRITE), and kept and library scripts written before the rule
+# stay usable (validate_structure leaves the opening alone) rather than being paid for again.
+HOOK_PROBLEM = "Hook: "         # every hook problem starts so; the writer loop recognises them
+HOOK_FORCES_REWRITE = False     # True: a weak opening alone costs a writer rewrite
+HOOK_NUMBER_WITHIN = 4          # a "This X was" opening is a stark claim when its number comes this early
+_NUMBER_WORDS = set("""two three four five six seven eight nine ten eleven twelve twenty thirty forty fifty sixty
+hundred hundreds thousand thousands million millions billion billions dozen dozens half""".split())
+# Openings that name or introduce before they say anything: never a hook, whatever follows.
+_LABEL_OPENERS = re.compile(
+    r"^(?:this\s+is|these\s+are|that\s+is|those\s+are|here(?:'s|’s|\s+is|\s+are)|meet|welcome\s+to|introducing"
+    r"|let(?:'s|’s|\s+me|\s+us)|today\s+we|in\s+this\s+(?:video|reel)|we(?:'re|’re|\s+are)\s+(?:going|looking|exploring)"
+    r"|the\s+(?:story|history|tale|legend)\s+of|have\s+you\s+ever|ever\s+wondered|did\s+you\s+know"
+    r"|what\s+if\s+i\s+told\s+you)\b", re.I)
+# "This massive temple was ...": the subject's label first, the mystery after it.
+_DEMONSTRATIVE_LABEL = re.compile(
+    r"^(?:this|these|that|those)\s+(?:[\w'’-]+\s+){0,4}?(?:is|was|are|were|has|had|have|stands|stood|sits|sat"
+    r"|lies|lay|remains)\b", re.I)
+# "The X Mechanism is a ...", "Trepanation is the ...": a definition (capitalised name, then is/was a/the).
+_DEFINITION_LABEL = re.compile(r"^(?:The\s+)?(?:[A-Z][\w'’-]*\s+){1,5}(?:is|was|are|were)\s+(?:a|an|the|one)\b")
+
+
+def _first_sentence(narration: str) -> str:
+    parts = [s for s in _SENTENCE_END.split((narration or "").strip()) if s.strip()]
+    return parts[0].strip() if parts else ""
+
+
+def _spoken_words(sentence: str) -> List[str]:
+    """The sentence's words as they are said and captioned (a dash between two words separates them)."""
+    return [w for w in re.split(r"[\s—–]+", sentence) if re.search(r"\w", w)]
+
+
+def hook_problems(narration: str) -> List[str]:
+    """Why the narration's first sentence is not a hook: it opens on a label rather than the fact or the riddle,
+    or it runs past HOOK_MAX_WORDS. A question or a stark claim with an early number passes."""
+    first = _first_sentence(narration)
+    if not first:
+        return []
+    words = _spoken_words(first)
+    head = " ".join(words[:5])
+    early_number = any(re.search(r"\d", w) or w.strip(".,;:!?\"'“”‘’").lower() in _NUMBER_WORDS
+                       for w in words[:HOOK_NUMBER_WITHIN])
     problems = []
+    if _LABEL_OPENERS.match(first) or (not early_number and (_DEMONSTRATIVE_LABEL.match(first)
+                                                             or _DEFINITION_LABEL.match(first))):
+        problems.append(f"{HOOK_PROBLEM}the first sentence opens on a label ('{head} ...'), not the mystery. Open on "
+                        "the impossible fact or the riddle itself: a stark claim with its number or scale up front, "
+                        "or a question the opening picture poses; never 'This X was...', 'This is the...', "
+                        "'Meet the...' or 'X is a...'. Keep it a verified fact.")
+    if len(words) > HOOK_MAX_WORDS:
+        # Worded without "words" or "seconds", which improve.classify files under script.length.
+        problems.append(f"{HOOK_PROBLEM}the first sentence is a {len(words)}-word sentence; a hook lands in "
+                        f"{HOOK_MAX_WORDS} or fewer, since viewers decide almost at once. Cut or split it, keeping "
+                        "the fact or the riddle at its start.")
+    return problems
+
+
+# ---------------------------------------------------------------- engagement bait
+# Meta demotes posts that ask for likes, reactions, votes, shares to a number of people, tags or set comment
+# replies (about.fb.com/news/2017/12/news-feed-fyi-fighting-engagement-bait-on-facebook/). An ask to share this
+# with someone in particular ("Send this to the codebreaker you know") and a genuine question are not bait.
+# Each pattern starts a clause (the start, punctuation or an emoji before it, optionally "and"/"please"), so
+# narration that reports what people did ("the Romans would vote with stones") is not read as an ask.
+_CLAUSE = (r"(?:^|(?<=[.!?\n:;,()☀-➓\U0001F300-\U0001FAFF])|(?<=[☀-➓\U0001F300-\U0001FAFF]️))\s*"
+           r"(?:(?i:and|then|so|now|just|please|go\s+ahead\s+and)\s+)*")
+_N_PEOPLE = (r"(?:at\s+least\s+)?(?:\d+|two|three|four|five|six|seven|eight|nine|ten|twenty|fifty|a\s+hundred"
+             r"|all\s+(?:of\s+)?your|every(?:one|body)?|as\s+many)\b")
+# "to" after a reply: an ask before a verb ("Comment 1 To Vote", "Comment YES to get part 2"), a description before
+# a name, a number or a determiner ("Reply 12 to Nelson", "Type 1 to 2 years", "Reply 12 to the Admiralty";
+# rc68 reviews 9-12). One string, shared by every pattern that reads it.
+_ASK_TO = (r"to(?:(?=\s+(?i:vote|agree|disagree|choose|pick|confirm|answer|guess|win|join|enter|say|get|unlock"
+           r"|see|receive|claim|support|show|continue|keep)\b)"
+           r"|(?!\s+(?:(?:the|a|an|his|her|their|its|this|that|these|those|my|our|your)\b|\d|(?-i:[A-Z]))))")
+_BAIT_PATTERNS = [
+    # react-baiting: "Like this if ...", "Hit like if", "Double tap if", "Smash that like if"
+    re.compile(_CLAUSE + r"(?:like|love|heart|double[\s-]?tap|smash|hit)\s+(?:(?:this|it|that)\s+)?"
+               r"(?:(?:post|video|reel|photo|button|like|the\s+like(?:\s+button)?)\s+)?if\b", re.I),
+    # vote-baiting: "React with ...", "Vote with a ❤️", "Like for X, love for Y"
+    re.compile(_CLAUSE + r"(?:react|vote)\s+(?:with|using|by)\b", re.I),
+    re.compile(_CLAUSE + r"(?:like|love|haha|wow)\s+(?:this\s+)?(?:for|if)\b[^.!?\n]{1,60}?"
+               r"\b(?:like|love|haha|wow|sad|angry|care)\s+(?:this\s+)?(?:for|if)\b", re.I),
+    # share-baiting: "Share with 5 friends", "Send this to ten people", "Share if you agree"
+    re.compile(_CLAUSE + r"(?:share|send|forward|pass)\s+(?:(?:this|it)\s+)?(?:on\s+)?(?:with|to)\s+" + _N_PEOPLE
+               + r"(?:\s+(?:friends?|people|others|mates))?", re.I),
+    re.compile(_CLAUSE + r"(?:share|repost|reshare)\s+(?:(?:this|it)\s+)?if\b", re.I),
+    # tag-baiting: "Tag a friend who ...", "Tag someone", "Tag the explorer you know"
+    re.compile(_CLAUSE + r"tag\s+(?:a|an|the|your|some|any|every|\d+|two|three|four|five|friends?|someone|somebody"
+               r"|anyone|everyone|people|them|whoever|who)\b", re.I),
+    # comment-baiting: "Comment YES", "Type 1 if", "Reply 'AMEN'", "Drop a 🔥 if", "Write 'X' if"
+    # an ask after the reply makes it an instruction: an emoji, "in the comments", "below", "and tell us" (rc68 review 5)
+    re.compile(_CLAUSE + r"(?:comment|type|reply)\s+[\"“'‘]?(?:(?:yes|no)\s?/\s?(?:yes|no)\b|yes|no|yep|nope|amen|true|false|\d{1,3}(?:\s?[/,]\s?\d{1,3}\b)*)[\"”'’]?"
+               r"(?=\s*[\"”'’]?\s*(?:(?i:if|for|when|now|" + _ASK_TO + r")\b|[.!?,]?\s?[↓⇓⇩↡⤵⬇☀-➓\U0001F300-\U0001FAFF]|,?\s?(?i:in\s+the\s+(?:comments|replies)|below|and\s+(?:tell|say|share))\b|,?\s?or\s+(?:[\"“'‘]?\d+\b[\"”'’]?(?:\s+or\s+[\"“'‘]?\d+\b[\"”'’]?)*(?-i:(?!\s+(?!(?i:if|for|when|now|" + _ASK_TO + r"|in\s+the\s+(?:comments|replies)|below|and\s+(?:tell|say|share))\b)[A-Za-z]))|yes\b|no\b)|[.!?]*\s*$))", re.I),
+    # an instruction only (followed by if/for/to/when/now, or the end): "Type AB is rarer" is a fact (rc68 review)
+    re.compile(_CLAUSE + r"(?i:comment|type|reply)\s+[\"“'‘]?(?![IVXLC]+\b)[A-Z]{2,}\b(?=\s*[\"”'’]?\s*(?:(?i:if|for|when|now|" + _ASK_TO + r")\b|[.!?,]?\s?[↓⇓⇩↡⤵⬇☀-➓\U0001F300-\U0001FAFF]|,?\s?(?i:in\s+the\s+(?:comments|replies)|below|and\s+(?:tell|say|share))\b|,?\s*(?:\bor\b)?\s*[\"“'‘]?[A-Z]{2,}\b|[.!?]*\s*$))"),
+    # choices to type: "Comment A or B", "Type A for Rome, B for Greece", "Comment B." (Meta's "comment with
+    # specific answers"; rc68 review 2)
+    re.compile(_CLAUSE + r"(?i:comment|type|reply)\s+(?i:with\s+)?[\"“'‘]?[A-D](?:\s?[/,]\s?[A-D]\b)*[\"”'’]?(?=\s*(?:,?\s?(?i:or)\s+[\"“'‘]?[A-D]\b(?:[\"”'’]?\s+(?i:or)\s+[\"“'‘]?[A-D]\b)*(?!\s+(?!(?i:if|for|when|now|" + _ASK_TO + r"|in\s+the\s+(?:comments|replies)|below|and\s+(?:tell|say|share))\b)[A-Za-z])|(?i:for)\s+(?!(?i:example|instance)\b)\w|(?i:if|for|when|now|" + _ASK_TO + r")\b|[.!?,]?\s?[↓⇓⇩↡⤵⬇☀-➓\U0001F300-\U0001FAFF]|,?\s?(?i:in\s+the\s+(?:comments|replies)|below|and\s+(?:tell|say|share))\b|[.!?]+(?:\s|$)|$))(?!\.[A-Z])"),
+    # a choice mapped to each option: "Comment 1 to Rome, 2 to Greece", "Comment YES to Rome or NO to Greece"
+    # (rc68 review 10: "to" + a name alone describes a reply, so the mapping is matched as a whole)
+    re.compile(_CLAUSE + r"(?:comment|type|reply)\s+[\"“'‘]?(?:\d{1,3}|yes|no|[A-D])[\"”'’]?\s+(?:for|to)\s+"
+               r"[^,.!?\n;/—–&]{1,30}?(?:\s?[,;/—–&]|\s+(?:or|and))\s*(?:(?:or|and)\s+)?(?:(?:comment|type|reply)\s+)?"
+               r"[\"“'‘]?(?:\d{1,3}|yes|no|[A-D])[\"”'’]?\s+(?:for|to)\b", re.I),
+    re.compile(_CLAUSE + r"(?i:comment|type|reply)\s+(?i:your\s+(?:answer|guess|pick|vote)\s*:\s*)"
+               r"(?:[\"“'‘][^\"”'’]{1,20}[\"”'’]|(?![IVXLC]+\b)[A-Z]{2,}\b|[A-D]\b)"),
+    re.compile(_CLAUSE + r"(?:comment|type|reply|drop|leave)\s+(?:an?\s+)?(?:emoji|[\"“'‘]?[^\w\s\"“'‘]{1,3}[\"”'’]?)"
+               r"\s+if\b", re.I),
+    re.compile(_CLAUSE + r"(?:comment|type|reply|write)\s+[\"“'‘][^\"”'’]{1,20}[\"”'’]\s+(?:if|for)\b", re.I),
+]
+
+
+def engagement_bait(text: str) -> List[str]:
+    """The engagement-bait asks in `text` (as written, trimmed), or [] when it has none."""
+    found = []
+    # Whitespace runs collapsed first: the lookaheads stack \s* and backtracked for minutes on a caption with a long
+    # blank run ("Comment YES" + 250 spaces took 17 s; rc68 review 6). Matching is the same on normal text.
+    text = re.sub(r"\n\s*", "\n", re.sub(r"[^\S\n]+", " ", text or ""))
+    for pattern in _BAIT_PATTERNS:
+        for m in pattern.finditer(text):
+            phrase = " ".join(m.group(0).split()).strip(" ,;:")
+            if phrase and phrase not in found:
+                found.append(phrase)
+    return found
+
+
+def _bait_fields(pkg: ScriptPackage) -> List[Tuple[str, str]]:
+    """(field, text) for every public text a viewer reads: the asks live there. The narration is fact-checked
+    speech, not an ask, and checking it risked rejecting a verified script over "Type 1 diabetes..." (rc68 review 4)."""
+    closing = re.split(r"(?<=[.!?])\s+", (pkg.narration_script or "").strip())[-1:] or [""]
+    fields = [("title", pkg.title), ("narration's closing sentence", closing[0]), ("caption", pkg.caption),
+              ("carousel_caption", pkg.carousel_caption or ""), ("first_comment", pkg.first_comment),
+              ("share_line", pkg.share_line or ""), ("poll", pkg.poll.question)]
+    fields += [(f"story slide {i}", f"{s.line1} {s.line2}. {s.body}") for i, s in enumerate(pkg.story_slides, 1)]
+    fields += [(f"carousel slide {i}", f"{c.heading}. {c.body}") for i, c in enumerate(pkg.carousel_slides, 1)]
+    return fields
+
+
+def validate_structure(pkg: ScriptPackage) -> List[str]:
+    """Returns a list of problems; empty means the package is structurally publishable. The opening's hook rule
+    is a new draft's (draft_problems)."""
+    problems = []
+    for field, text in _bait_fields(pkg):
+        bait = engagement_bait(text)
+        if bait:
+            problems.append(f"Engagement bait in the {field} ({'; '.join(repr(b) for b in bait)}): Meta demotes asks for "
+                            "likes, reactions, votes, shares to a number of people, tags or set replies; ask a "
+                            "genuine question instead.")
     words = pkg.narration_script.split()
     # Sanity bounds; the precise length is the measured spoken one (spoken_length_problems), so a draft
     # shortened to fit a slow voice is not then rejected for having too few words.
@@ -816,24 +973,34 @@ _DIRECTION_MARKS = re.compile(
     r"|(?<![\w-])(?:-{1,2}>|<-{1,2}|=>)(?![\w>])")
 # What a "below"/"above" may point at; a fact ("30 m below the surface", "the carvings above the door") is
 # never one of these or is followed by what it is below or above, and is left alone.
-_UI_NOUN = (r"(?:comments?|comment\s+section|caption|thread|discussion|replies|link|post|photos?|images?|pictures?"
-            r"|slides?|gallery|video|reel|carousel)")
-_NOT_A_PLACE = r"(?!\s+(?:the|a|an|its|his|her|their|our|this|that|these|those|sea|ground|water|surface|level|\d))"
+# Only nouns that name a part of the post: "the Grand Gallery above it" and "the post below it marks the border"
+# are facts (rc68 review, 2026-10-28), so gallery, post, video and pictures are not here.
+_UI_NOUN = r"(?:photos|slides|carousel)"  # the comment-type nouns have their own pattern below (rc68 review 3)
+_NOT_A_PLACE = (r"(?!\s+(?:the|a|an|its|his|her|their|our|this|that|these|those|sea|ground|water|surface|level|it|them"
+                r"|him|which|who|whom|here|there|where|and|or|\d))")
+# After a call to act ("comment below which...", "tell us below who...") only a determiner or a place word means a
+# place: "comment below the line" is rare enough; "below which theory you back" is the prompt (rc68 review 2)
+_VERB_NOT_A_PLACE = r"(?!\s+(?:the|its|his|her|their|our|sea|ground|water|surface|level|\d))"
+# After a comment-type noun: also a pronoun, determiner or place preposition means the words go on about a place or
+# the noun itself ("the comments below it", "a discussion below in the crypt"; rc68 review 3)
+_NOUN_NOT_A_PLACE = (r"(?!\s+(?:the|its|his|her|their|our|sea|ground|water|surface|level|it|them|him|this|that|these"
+                     r"|those|a|an|in|on|at|here|there|and|or|\d)\b)")
 _DIRECTION_PHRASES = [
     # "swipe right", "swipe to the left", "swipe up through": the act, without the direction
     (re.compile(r"\b(swip(?:e|es|ed|ing))\s+(?:(?:to|towards?)\s+the\s+)?(?:right|left|up|down|forward|back(?:wards?)?"
                 r"|across|sideways|over)\b(?:\s+through\b)?", re.I), lambda m: m.group(1) + " through"),
     (re.compile(r"\b(scroll(?:s|ed|ing)?)\s+(?:up|down)\b", re.I), lambda m: m.group(1)),
     # "in the comments below", "the photos above" -> "in the comments", "the photos"
+    (re.compile(r"\b((?:the\s+)?(?:comments?|comment\s+section|caption|thread|discussion|replies|link\s+in\s+bio))"
+                r"\s+(?:(?:down|up)\s+)?(?:below|above|underneath)\b" + _NOUN_NOT_A_PLACE, re.I), lambda m: m.group(1)),
     (re.compile(r"\b((?:the\s+)?" + _UI_NOUN + r")\s+(?:(?:down|up)\s+)?(?:below|above|underneath)\b" + _NOT_A_PLACE, re.I),
      lambda m: m.group(1)),
     # "comment below", "tell us below", "drop your guess below"
     (re.compile(r"\b(comment|reply|answer|vote|weigh\s+in|sound\s+off|chime\s+in|tell\s+us|let\s+us\s+know"
                 r"|share\s+(?:it|yours|your\s+\w+)|drop\s+(?:it|yours|a\s+comment|your\s+\w+))\s+(?:(?:down|up)\s+)?"
-                r"(?:below|above)\b" + _NOT_A_PLACE, re.I), lambda m: m.group(1)),
+                r"(?:below|above)\b" + _VERB_NOT_A_PLACE, re.I), lambda m: m.group(1)),
     (re.compile(r"\b(?:see|read|check|look)\s+(?:(?:down|up)\s+)?(?:below|above)\b" + _NOT_A_PLACE, re.I),
      lambda m: _cased(m.group(0), "take a look")),
-    (re.compile(r"\s*\b(?:down\s+below|up\s+above)\b" + _NOT_A_PLACE, re.I), lambda m: ""),
 ]
 # Facebook shows a multi-photo post as a grid, not a swipe: its caption says "explore" or "see", never "swipe".
 _FB_SWIPE = [
@@ -908,11 +1075,17 @@ def normalize_copy(pkg: ScriptPackage) -> ScriptPackage:
     yes/no poll question over two choices is asked as the either/or they answer (repair_poll). No public
     copy keeps a direction-dependent cue (neutral_cues; operator, 2026-10-28)."""
     update = {}
+    if pkg.share_line and engagement_bait(pkg.share_line):
+        # The share line closes both captions and the end card: a baiting one gives way to the plain line
+        # (share_prompt) rather than costing a rewrite; the review card says the fallback was used.
+        log.info("Share line dropped as engagement bait (%s): %r", "; ".join(engagement_bait(pkg.share_line)), pkg.share_line)
+        improve.note("script.share_bait", f"engagement bait in the share line: {pkg.share_line[:80]}", "repair")
+        update["share_line"] = None
     sentences = [s for s in _SENTENCE_END.split(pkg.narration_script.strip()) if s.strip()]
     if sentences and not pkg.narration_script.strip().endswith(pkg.closing_sentence.strip()):
         update["closing_sentence"] = sentences[-1].strip()
     for key in ("title", "carousel_caption", "first_comment", "share_line"):
-        value = getattr(pkg, key)
+        value = update.get(key, getattr(pkg, key))
         if value and neutral_cues(value) != value:
             update[key] = neutral_cues(value)
     for key, fields in (("story_slides", ("kicker", "line1", "line2", "body")), ("carousel_slides", ("heading", "body")),
@@ -979,7 +1152,21 @@ def draft_problems(pkg: ScriptPackage) -> List[str]:
     """A writer's draft's structural and spoken-length problems, reported together: measured only once the
     structure passed, a draft sent back for its structure came back the wrong length, and that cost the next
     attempt too (production, Hal Saflieni 2026-10-27)."""
-    return validate_structure(pkg) + spoken_length_problems(pkg)
+    return validate_structure(pkg) + spoken_length_problems(pkg) + hook_problems(pkg.narration_script)
+
+
+def blocking_problems(problems: List[str]) -> List[str]:
+    """The problems that send a draft back: all of them, less the hook rule's unless HOOK_FORCES_REWRITE (those
+    ride along with a rewrite that happens anyway)."""
+    return list(problems) if HOOK_FORCES_REWRITE else [p for p in problems if not p.startswith(HOOK_PROBLEM)]
+
+
+def _note_kept_hook(problems: List[str]) -> None:
+    """A draft kept with a weak opening: said in the log and the findings ledger (script.hook)."""
+    weak = [p for p in problems if p.startswith(HOOK_PROBLEM)]
+    if weak:
+        log.info("Draft kept with an opening the hook rule would rewrite: %s", " ".join(weak)[:300])
+        improve.note_problems(weak, "structure")
 
 
 class ScriptEngine:
@@ -1016,8 +1203,9 @@ class ScriptEngine:
                     pkg = None
                 if pkg is not None:
                     pkg = prune_graphics(pkg)
-                    problems = draft_problems(pkg)
+                    problems = blocking_problems(draft_problems(pkg))
                     if not problems:
+                        _note_kept_hook(draft_problems(pkg))
                         log.info("Revised surgically: only the rejected sentences changed.")
                         return self._finalize(pkg, topic, origin=writer_origin(), fact_sheet_used=True)
                     log.warning("Surgical revision failed structural checks (%s); rewriting.", problems)
@@ -1051,18 +1239,21 @@ class ScriptEngine:
                     writer_error = str(e)
                     break
                 pkg = prune_graphics(pkg)  # an invalid graphic is dropped, not allowed to sink the script
-                problems = draft_problems(pkg)  # structure and length together: one rewrite fixes both
-                if not problems:
+                # Structure, length and the opening together: one rewrite fixes all of them.
+                problems = draft_problems(pkg)
+                blocking = blocking_problems(problems)
+                if not blocking:
+                    _note_kept_hook(problems)
                     return self._finalize(pkg, topic, origin=writer_origin(), fact_sheet_used=self._sheet(topic) is not None)
                 log.warning("Attempt %d failed structural checks: %s", attempt, problems)
                 self.last_draft_problems.append(f"draft {attempt}: {_short_reason(problems)}")
                 last_problems = problems
                 improve.note_problems(problems, "structure")
-                if all("when spoken" in p for p in problems):
+                if all("when spoken" in p for p in blocking):
                     # Only the length is off: the draft is edited to the window (one short call), not written
                     # again from scratch (a rewrite took 2 min 46 s and came out at the writer's usual length
                     # again; production, 2026-10-24).
-                    fitted = self._fit_length_by_editing(pkg, problems, topic, feedback)
+                    fitted = self._fit_length_by_editing(pkg, blocking, topic, feedback)
                     if fitted is not None:
                         return self._finalize(fitted, topic, origin=writer_origin(), fact_sheet_used=True)
                 found = re.search(r"(?:in|to) (\d+)-(\d+) words", " ".join(problems))
@@ -1072,14 +1263,14 @@ class ScriptEngine:
                         "time limit when spoken." if window and not found else "")
                 # A length problem is fixed on this draft, not by starting over: each fresh rewrite came out at
                 # the writer's usual length again (2026-10-23). The facts it has were already checked.
-                length_only = all("when spoken" in p for p in problems)
+                length_only = all("when spoken" in p for p in blocking)
                 carry = (f"\n\n<previous_narration>\n{pkg.narration_script}\n</previous_narration>\nAdjust this "
                          "narration to the length above, adding or removing sentences using only facts in the "
                          "research notes; keep the rest of it, and the other fields, as they are."
                          if length_only and pkg.narration_script else "")
                 feedback = (base_feedback + "\n\nA previous draft was rejected for: " + " ".join(problems) + keep
                             + " Fix these." + carry)
-                self._report(f"Draft {attempt} of {max_attempts} rejected ({_short_reason(problems)})"
+                self._report(f"Draft {attempt} of {max_attempts} rejected ({_short_reason(blocking)})"
                              + ("; rewriting" if attempt < max_attempts else ""))
             log.warning("The script writer (%s) did not produce a usable script; trying a curated script.", writer_origin())
 
@@ -1214,10 +1405,11 @@ class ScriptEngine:
         if fitted is None:
             return None
         fitted = prune_graphics(fitted)
-        still = draft_problems(fitted)
+        still = blocking_problems(draft_problems(fitted))
         if still:
             log.warning("Length edit still misses (%s); rewriting the draft.", still)
             return None
+        _note_kept_hook(draft_problems(fitted))
         log.info("Length fixed by editing the draft: %d -> %d words.",
                  len(pkg.narration_script.split()), len(fitted.narration_script.split()))
         notes, retrieved = self._sheet_context(sheet)

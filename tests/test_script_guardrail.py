@@ -129,7 +129,7 @@ def test_narrating_the_visuals_is_rejected(curated_payload):
 def test_carousel_post_uses_own_caption_with_image_credits():
     from main import PipelineCoordinator
     payload = {"caption": "Reel text\n\n📷 Images via Wikimedia Commons: Ann (CC BY 4.0)", "carousel_caption": "Swipe."}
-    assert PipelineCoordinator._carousel_caption(payload) == "Swipe.\n\n📷 Images via Wikimedia Commons: Ann (CC BY 4.0)"
+    assert PipelineCoordinator._carousel_caption(payload) == "Swipe.\n\n📷 Images via Wikimedia Commons: Ann (CC BY 4.0)\n📷 Photos adapted: cropped, with text added."
     assert PipelineCoordinator._carousel_caption({"caption": "Reel text"}) == "Reel text"
 
 

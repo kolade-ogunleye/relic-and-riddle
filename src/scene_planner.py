@@ -11,6 +11,7 @@ The result is one (image, duration) per beat for the video composer.
 """
 
 import json
+import re
 from collections import Counter
 import logging
 import time
@@ -28,7 +29,7 @@ log = logging.getLogger(__name__)
 
 MIN_BEAT, TARGET_BEAT, MAX_BEAT = 2.5, 3.2, 4.5
 
-SYSTEM = """You are a documentary film editor. Choose the best picture for each line of narration in a short vertical history video. Prefer images that literally show what the line describes; for abstract lines, pick an atmospheric image that fits. Use each image at most once where possible, start strong (the first beat is the hook), and avoid placing two near-identical images back to back. Never pick an image that contradicts the narration; real footage labelled GENERIC must never stand in for the named place. A photo's label carries its archive caption (title, description, date): use it to know what and where the photo shows, and never place a photo whose caption names a different site, object or era where the narration names this one.
+SYSTEM = """You are a documentary film editor. Choose the best picture for each line of narration in a short vertical history video. Prefer images that literally show what the line describes; for abstract lines, pick an atmospheric image that fits. Use each image at most once where possible, start strong (the first beat is the hook: open on the widest shot that shows the whole subject's scale at once, an aerial, top-down, wide or establishing view, never a detail or a close-up), and avoid placing two near-identical images back to back. Never pick an image that contradicts the narration; real footage labelled GENERIC must never stand in for the named place. A photo's label carries its archive caption (title, description, date): use it to know what and where the photo shows, and never place a photo whose caption names a different site, object or era where the narration names this one.
 Some candidates are the channel's own animated graphics (a locator map, a timeline, a scale comparison). Use each at most once, on the beat it fits: the map where the place is introduced, the timeline where the dates are told, the scale graphic where the size is stated. They add information the photos can't, so use the ones that fit; don't open the video with one unless no photo makes a stronger hook."""
 
 
@@ -101,10 +102,10 @@ def _is_graphic(p: Path) -> bool:
     return is_video(p) and Path(p).stem.startswith(("graphic_", "footage_")) and Path(p).with_suffix(".jpg").exists()
 
 
-def _photo_caption(p: Path) -> str:
-    """The archive caption of a sourced photo, from the credits.json beside it ("" if none). A derived copy
-    (text-band crop, privacy blur, upscale) has no credits beside it: its lineage leads back to the original
-    (the planner chose cropped photos blind, audit 2026-10-28)."""
+def _photo_entry(p: Path) -> Optional[Dict[str, Any]]:
+    """The credits.json entry of a sourced photo (None if none). A derived copy (text-band crop, privacy blur,
+    upscale) has no credits beside it: its lineage leads back to the original (the planner chose cropped photos
+    blind, audit 2026-10-28)."""
     p = Path(p)
     entry = None
     for _ in range(4):
@@ -117,10 +118,83 @@ def _photo_caption(p: Path) -> str:
             p = Path(sources[0]["path"])
         except (OSError, ValueError, KeyError, IndexError, TypeError):
             break
+    return entry
+
+
+def _photo_caption(p: Path) -> str:
+    """The archive caption of a sourced photo, from its credits entry ("" if none)."""
+    entry = _photo_entry(p)
     if not entry:
         return ""
     crowded = (entry.get("vision_review") or {}).get("people_prominent")
     return commons.caption(entry) + ("; prominent visitors, faces blurred: avoid for the hook" if crowded else "")
+
+
+# The opening shot (Meta's Creator assistant on the operator's Reel, 2026-10-28: "move that top-down aerial shot
+# to the 0:00 mark; show the scale immediately"; the Reel opened on a side shrine). The hook beat takes the
+# topic's strongest scale shot, judged from what is already recorded about each photo: the vision verdict's
+# reason (what the picture shows), weighted above the archive title and description; resolution breaks ties.
+_SCALE_WORDS = re.compile(
+    r"\b(?:aerial|drone|bird'?s[\s-]eye|top[\s-]down|overhead|from\s+above|from\s+the\s+air|satellite|panoram(?!io)\w*"
+    r"|wide(?:[\s-]angle)?|broad\s+view|elevated|establishing|overview|general\s+view|full\s+view|whole|entire"
+    r"|vast|skyline|landscape|scale)\b", re.I)
+_DETAIL_WORDS = re.compile(
+    r"\b(?:close[\s-]?up|details?|detailed|macro|reliefs?|frieze|inscriptions?|panel|carvings?|interior|inside"
+    r"|niches?|fragments?|texture|small)\b", re.I)
+
+
+def scale_score(entry: Optional[Dict[str, Any]]) -> Optional[float]:
+    """How strongly a photo's record says it shows the subject's whole scale (higher is wider); None when it
+    may not open the video (not a Topic or Kept photo by its verdict, or prominent visitors in it)."""
+    from .image_review import tier
+    if not entry or tier(entry) not in ("topic", "kept"):
+        return None
+    verdict = entry.get("vision_review") or {}
+    if verdict.get("people_prominent"):
+        return None
+    seen = str(verdict.get("reason") or "")
+    archive = " ".join(str(entry.get(k) or "") for k in ("title", "description"))
+    score = 2 * (len(_SCALE_WORDS.findall(seen)) - len(_DETAIL_WORDS.findall(seen)))
+    score += len(_SCALE_WORDS.findall(archive)) - len(_DETAIL_WORDS.findall(archive))
+    try:
+        pixels = float(entry.get("width") or 0) * float(entry.get("height") or 0)
+    except (TypeError, ValueError):
+        pixels = 0.0
+    return score + min(pixels, 50e6) / 1e9   # at most +0.05: resolution only breaks ties
+
+
+def hook_shot(stills: List[Path]) -> Optional[Path]:
+    """The still with the strongest recorded scale evidence, or None when no photo's record says it shows
+    the scale (the plan's own opening then stands). Ties keep pool order (best-first)."""
+    best, best_score = None, 0.5   # at least one scale mention, net of detail ones
+    for p in stills:
+        score = scale_score(_photo_entry(p))
+        if score is not None and score > best_score:
+            best, best_score = p, score
+    return best
+
+
+def open_on_scale(chosen: List[Path], stills: List[Path]) -> List[Path]:
+    """`chosen` with the hook beat on the topic's strongest scale shot (hook_shot), when the planned opening
+    is a still whose record shows less scale. A shot already placed later trades places with the opening, so
+    the set of pictures (and their credits) stays the same; footage and clips at the opening already move
+    and are kept."""
+    if not chosen or is_video(Path(chosen[0])):
+        return chosen
+    best = hook_shot(stills)
+    if best is None or Path(best) == Path(chosen[0]):
+        return chosen
+    current = scale_score(_photo_entry(Path(chosen[0])))
+    if current is not None and current >= scale_score(_photo_entry(best)):
+        return chosen
+    out = list(chosen)
+    if best in out:
+        k = out.index(best)
+        out[0], out[k] = out[k], out[0]
+    else:
+        out[0] = best
+    log.info("Opening shot: %s (the widest recorded view) instead of %s.", Path(best).name, Path(chosen[0]).name)
+    return out
 
 
 @lru_cache(maxsize=64)
@@ -413,6 +487,9 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
     # first line names the place (2026-10-25). The map's own line still accepts it one cut later.
     if chosen and stills and _is_graphic(Path(chosen[0])):
         chosen[0] = next((s for s in stills if s not in chosen), stills[0])
+    # The opening shows the scale at once (open_on_scale); an approved storyboard's opening is the operator's.
+    if notes != STORYBOARD_NOTES and stills:
+        chosen = open_on_scale(chosen, stills)
 
     # Footage supports the narration, never dominates it (Meta's originality rules): over the
     # cap, the latest footage picks become photos.

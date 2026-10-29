@@ -36,8 +36,21 @@ PRESETS = {
     "drift_right": (0.04, 70.0, 0.0),
     "rise": (0.05, 0.0, -60.0),
     "pull": (-0.08, 0.0, 0.0),
+    "hook": (0.16, 0.0, 0.0),
 }
 SEQUENCE = ["drift_left", "rise", "drift_right", "pull", "drift_left", "push", "drift_right", "rise"]
+# The opening shot moves from its first frame (Meta's Creator assistant, 2026-10-28: "the opening shot stays
+# relatively still for the first three seconds; viewers decide in under two"). Every other shot eases in and
+# out (smoothstep), which starts at rest: half a second into the hook's ~4.2 s clip it had done 4% of its move.
+# The opening's own move (HOOK_PRESET, a stronger push) eases out only: fastest at frame 0, 22% done by then.
+HOOK_PRESET = "hook"
+
+
+def ease(t: float, lead: bool = False) -> float:
+    """Share of the move done at `t` (0-1): smoothstep, or for the opening shot (`lead`) an ease-out that
+    starts at full speed (twice the average) and settles at the end."""
+    t = min(max(t, 0.0), 1.0)
+    return 1 - (1 - t) ** 2 if lead else t * t * (3 - 2 * t)
 
 
 def available() -> bool:
@@ -151,7 +164,7 @@ def render_clip(image_path: Path, out_path: Path, duration: float, preset: str =
     try:
         for i in range(frames):
             t = i / (frames - 1)
-            e = t * t * (3 - 2 * t)  # smoothstep easing
+            e = ease(t, lead=preset == HOOK_PRESET)
             z = 1.0 + zoom_amt * (e if zoom_amt > 0 else e - 1) * weight
             scale = s0 / np.maximum(z, 0.5)
             map_x = cx + u * scale + shift_x * (e - 0.5) * weight
@@ -209,11 +222,14 @@ def render_scenes(scenes, durations, work_dir: Path, transition: float) -> Optio
                 # (Nazca, 2026-10-25: the repeat was reframed but rose as before).
                 variant = shown.get(str(scene), 0)
                 shown[str(scene)] = variant + 1
-                preset = preset_for(i, len(scenes))
+                # The opening shot's move starts at frame 0 (HOOK_PRESET); the composer's transitions still
+                # follow preset_for, where it is a push.
+                preset = HOOK_PRESET if i == 0 else preset_for(i, len(scenes))
                 if variant:
-                    had = moved.get(str(scene), ())
-                    moves = ([m for m in PRESETS if m not in had and m != preset]
-                             or [m for m in PRESETS if m not in had] or list(PRESETS))
+                    had = ["push" if m == HOOK_PRESET else m for m in moved.get(str(scene), ())]  # a push too
+                    repeats = [m for m in PRESETS if m != HOOK_PRESET]
+                    moves = ([m for m in repeats if m not in had and m != preset]
+                             or [m for m in repeats if m not in had] or repeats)
                     preset = moves[(variant - 1 + i) % len(moves)]
                 moved.setdefault(str(scene), []).append(preset)
                 jobs[i] = pool.submit(clip_for, i, scene, dur + 3 * transition, preset, variant)

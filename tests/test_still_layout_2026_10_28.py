@@ -132,10 +132,11 @@ def test_carousel_badges_and_headers_never_overlap(tmp_path, monkeypatch):
             # The dossier header and the swipe cues are gone (operator, 2026-10-28: Instagram draws its own
             # counter and dots); the brand is the one header element, top-left.
             assert "header_brand" in names and not names & {"header_dossier", "swipe_cues", "swipe"}
-    # The comparison slide's REF A badge used to sit at y=35, under the header at y=70 (the brand's place now).
+    # The comparison slide's REF A badge used to sit at y=35, under the header at y=70 (the brand's place now);
+    # REF A / REF B are no longer drawn at all (they said what each photo was whatever it showed; audit 2026-10-28).
     _, lay = gen._render_carousel_slide("comparison", photos[0], photos[1], card, 3, 7, {}, "", False)
-    boxes = {e["name"]: e["box"] for e in lay.elements}
-    assert boxes["ref_a"][1] >= boxes["header_brand"][3]
+    names = {e["name"] for e in lay.elements}
+    assert "header_brand" in names and not names & {"ref_a", "ref_b"}
 
 
 def test_the_post_draw_check_catches_a_broken_layout(tmp_path, monkeypatch):

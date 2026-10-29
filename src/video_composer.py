@@ -68,6 +68,25 @@ PARALLAX_TO_TRANSITION = {
     "pull": "dissolve",
 }
 TRANS_DUR = 0.40
+# An AI motion clip keeps a locked camera (motion.build_motion_prompt: camera moves warped the architecture), so
+# an opening that is one held still for its first seconds (Meta's Creator assistant, 2026-10-28: "viewers decide
+# in under two seconds"). The opening clip gets the stills' push on top, a crop zoom that starts at frame 0 and
+# changes nothing in the picture.
+HOOK_CLIP_ZOOM = "min(1+0.0016*on,1.24)"
+
+
+def is_ai_motion_clip(path: Path) -> bool:
+    """A clip src/motion.py made from a photo (motion_NN.mp4), as opposed to footage, a graphic or a manual
+    hook clip, which move by themselves."""
+    return is_video(path) and Path(path).stem.startswith("motion_")
+
+
+def hook_clip_filter(i: int, width: int, height: int) -> str:
+    """The filter for an AI motion clip opening a vertical video: the same push-in as the opening still,
+    rendered at twice the size (as the stills are, against zoompan's jitter), from its first frame."""
+    return (f"[{i}:v]tpad=stop_mode=clone:stop=-1,scale={width * 2}:{height * 2}:force_original_aspect_ratio=increase,"
+            f"crop={width * 2}:{height * 2},zoompan=z='{HOOK_CLIP_ZOOM}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
+            f"d=1:s={width}x{height}:fps={VIDEO_FPS},setsar=1,scale=out_range=tv,format=yuv420p[v{i}]")
 
 
 class RenderError(RuntimeError):
@@ -911,6 +930,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         f"[fg_in{i}]scale=-2:{fg_h}[fg{i}];"
                         f"[bg{i}][fg{i}]overlay=(W-w)/2:(H-h)/2,fps={VIDEO_FPS},setsar=1,scale=out_range=tv,format=yuv420p[v{i}]"
                     )
+                elif i == 0 and width < height and is_ai_motion_clip(item):
+                    filter_parts.append(hook_clip_filter(i, width, height))
                 else:
                     filter_parts.append(
                         f"[{i}:v]tpad=stop_mode=clone:stop=-1,scale={width}:{height}:force_original_aspect_ratio=increase,"

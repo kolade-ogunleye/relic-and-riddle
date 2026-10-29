@@ -17,8 +17,8 @@ Reference frame 1080x1920 (9:16). Figures and their sources, read 2026-10-24:
   and screen", so this is the conservative box, not a guarantee.
 - Instagram profile grid: 3:4 since January 2025 (the centre 1080x1440 of a 9:16 cover). The older 1:1 crop
   (centre 1080x1080) is kept as the stricter bound for cover text, as it already was.
-- Carousel 4:5 (1080x1350): shown whole in both feeds; the profile grid shows its centre 3:4 (1013x1350), so
-  the 80 px side margins the slides already keep are enough.
+- Carousel 4:5 (1440x1800 since 2026-10-28, laid out in 1080-wide design px): shown whole in both feeds; the
+  profile grid shows its centre 3:4 (1013x1350 at 1080), so the 80 px side margins the slides keep are enough.
 
 A Reel goes to all three Reel platforms, so its box is the intersection of their safe areas (the largest
 inset on each side); a Story goes to the two Meta surfaces. The 16:9 documentary (YouTube long-form) keeps its

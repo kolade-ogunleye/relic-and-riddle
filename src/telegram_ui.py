@@ -32,7 +32,10 @@ SCREENS: Dict[str, Tuple[str, str, Optional[str]]] = {
     "ccov": ("🎨", "Covers", "cimages:"), "covers": ("🎨", "Covers", "cimages:"),
     "cmusic": ("🎵", "Music", HOME_CB), "musicmenu": ("🎵", "Music", HOME_CB), "mfmenu": ("🎵", "Find music", "cmusic:"),
     "mreview": ("🎵", "Music review", "cmusic:"), "mlibrary": ("🎵", "Music library", "cmusic:"),
-    "cstat": ("📊", "Status", HOME_CB), "canalytics": ("📈", "Audience", "cstat:"), "caudit": ("🛡", "Activity", "cstat:"),
+    "cstat": ("📊", "Status", HOME_CB), "canalytics": ("📈", "Audience overview", "cstat:"), "caudit": ("🛡", "Activity", "cstat:"),
+    # The analytics dashboard (2026-10-28): one platform, one video across platforms, the video picker.
+    "caplat": ("📊", "Platform analytics", "canalytics:"), "cavideo": ("🎞", "Video audience", "capick:0"),
+    "capick": ("🎞", "Videos measured", "canalytics:"),
     "cimprove": ("🧭", "Improvements", "cstat:"), "cdigest": ("📰", "Weekly digest", "cstat:"),
     "caccounts": ("🔗", "Accounts", "cstat:"), "calerts": ("🔔", "Alerts", "cstat:"), "jobs": ("🧰", "Jobs", "cstat:"),
     "chelp": ("❓", "Help", HOME_CB),

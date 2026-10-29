@@ -32,7 +32,8 @@ GROUPS = {
     "Diagnostics": [
         ("jobs", "Background jobs, with Cancel"),
         ("alerts", "Recent alerts"), ("activity", "What the operator did, with times"),
-        ("analytics", "How published posts did, every platform"),
+        ("analytics", "Audience dashboard, every platform · [/analytics ig|fb|yt|ytlong|stories, "
+                      "/analytics videos, /analytics N]"),
         ("improve", "Improvement proposals"), ("digest", "This week's digest"),
         ("accounts", "Check the publishing connections"),
         ("ask", "Ask a question of a run's records · [reply to its card with /ask and the question]"),

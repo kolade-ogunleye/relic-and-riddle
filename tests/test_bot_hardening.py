@@ -173,6 +173,31 @@ def test_progress_eta_uses_how_long_recent_runs_took(monkeypatch, tmp_path):
     assert telegram_bot.typical_run_seconds() == 19 * 60 + 60
 
 
+
+def test_a_regeneration_is_estimated_from_past_regenerations(monkeypatch, tmp_path):
+    """Self-audit, production 2026-10-26: a regeneration that kept its voice and music took 10 min and was
+    promised ~27 min, judged by full runs. Each kind is now judged by its own kind."""
+    import json as _json
+    from src import telegram_bot
+    full, regen = tmp_path / "run_full", tmp_path / "run_regen"
+    full.mkdir(), regen.mkdir()
+    (full / "timings.json").write_text(_json.dumps([
+        {"stage": "voiceover", "seconds": 120, "at": "2026-10-20T10:02:00Z"},
+        {"stage": "master_render", "seconds": 1000, "at": "2026-10-20T10:20:00Z"},
+        {"stage": "review_proxy", "seconds": 20, "at": "2026-10-20T10:21:00Z"}]), encoding="utf-8")
+    (regen / "timings.json").write_text(_json.dumps([
+        {"stage": "voiceover", "seconds": 0.2, "at": "2026-10-21T10:00:01Z"},
+        {"stage": "review_proxy", "seconds": 20, "at": "2026-10-21T10:09:40Z"}]), encoding="utf-8")
+    monkeypatch.setattr("src.config.OUTPUT_DIR", tmp_path)
+    fresh = telegram_bot.typical_run_seconds(reused_voice=False)
+    kept = telegram_bot.typical_run_seconds(reused_voice=True)
+    assert fresh > 20 * 60 and kept < 11 * 60
+    settings = {"regenerating:run_y": "pictures"}
+    db = type("D", (), {"get_setting": lambda self, k: settings.get(k), "typical_step_seconds": lambda self, t: None})()
+    *_, eta_text = telegram_bot.progress_estimate(db, {"run_id": "run_y", "start_time": __import__("time").time()}, 1, 5)[:3]
+    assert "min" in eta_text and int(eta_text.split()[0].lstrip("~")) <= 11
+
+
 def test_progress_cards_name_the_work_each_step_does(db, monkeypatch):
     # One list for the first card, live updates and Refresh; the old names were a step behind.
     from src.telegram_bot import PROGRESS_STEPS
@@ -193,3 +218,17 @@ def test_progress_is_weighted_by_how_long_each_step_takes(db):
     assert progress_figures(3, 5, 0, 1200.0, 0.0, steps)[1] == 52    # script, music and photos done
     assert progress_figures(4, 5, 0, 1200.0, 0.0, steps)[1] == 96    # the render done
     assert step_seconds(db, 5, None) is None                         # nothing known: it says so
+
+
+
+def test_a_slow_step_says_why_while_the_cause_is_fresh(monkeypatch):
+    """Self-audit, production 2026-10-26: a run promised ~16 min took 50 (free model timeouts, Telegram flood
+    control) with nothing on the card saying why."""
+    from src import slowdown, telegram_bot
+    monkeypatch.setattr(slowdown, "_latest", {})
+    bar, pct, eta = telegram_bot.progress_figures(2, 5, 900, 600, 600, [60, 60, 60, 60, 60])
+    assert "longer than usual" in eta and ":" not in eta.split(")")[-1]
+    slowdown.note("the free AI model is busy, retrying")
+    bar, pct, eta = telegram_bot.progress_figures(2, 5, 900, 600, 600, [60, 60, 60, 60, 60])
+    assert ": the free AI model is busy, retrying;" in eta
+    assert slowdown.current(now=__import__("time").time() + slowdown.FRESH_SECONDS + 1) == ""   # it goes stale

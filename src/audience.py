@@ -393,7 +393,8 @@ def due_snapshots(db, now: Optional[datetime] = None) -> List[Dict[str, Any]]:
         wanted = targets(pub, db.get_run(p["run_id"]) or {})
         stories = [t for t in wanted if _is_story(t[0])]
         others = [t for t in wanted if not _is_story(t[0])]
-        missing = [t for t in stories if (p["run_id"], t[0], STORY_SNAPSHOT) not in taken]
+        measured_before = {plat for run, plat, _snap in taken if run == p["run_id"]}  # pre-rc68 1d/3d rows
+        missing = [t for t in stories if (p["run_id"], t[0], STORY_SNAPSHOT) not in taken and t[0] not in measured_before]
         if missing and now - posted >= timedelta(hours=STORY_SNAPSHOT_HOURS):
             due.append({**pub, "snapshot": STORY_SNAPSHOT, "targets": missing})
         for name, days in SNAPSHOTS:
@@ -742,6 +743,112 @@ def analytics_text(db, limit: int = 8) -> str:
     if len(by_run) < MIN_FOR_PATTERNS:
         lines.append(f"\n<i>Fewer than {MIN_FOR_PATTERNS} videos: descriptions, not patterns.</i>")
     return "\n".join(lines)
+
+
+# ------------------------------------------------------------------ dashboard (read side)
+# The analytics dashboard (operator, 2026-10-28: "a consolidated analytics for all the platforms and separate
+# for each platform ... useful at a glance and easy to dive deeper"). These read audience_metrics only;
+# the screens are drawn in src/control.py.
+SNAPSHOT_ORDER = {STORY_SNAPSHOT: 0, "1d": 1, "3d": 2, "7d": 3, "28d": 4}
+# (key, name, icon) of each video channel. Both YouTube videos are stored as "youtube"; the run's
+# content_format tells the Short from the documentary.
+CHANNELS = (("ig", "Instagram", "📸"), ("fb", "Facebook", "📘"), ("yt", "YouTube Shorts", "▶️"),
+            ("ytlong", "YouTube long", "🎬"))
+EXTRAS = ("stories", "Stories & carousels", "🗂")
+MIN_FOR_TREND = 3  # videos at the same snapshot before the newest is compared with the platform's median
+
+
+def channel_of(label: str, content_format: Optional[str]) -> str:
+    """The dashboard channel a stored platform label belongs to: ig, fb, yt, ytlong, or stories (Stories
+    frames and carousels)."""
+    if "_" in label:
+        return "stories"
+    if label == "youtube":
+        return "ytlong" if content_format == "deep_dive" else "yt"
+    return {"instagram": "ig", "facebook": "fb"}.get(label, label)
+
+
+def compact(value: Any, unit: str = "") -> str:
+    """121, 1.2k, 13k, 1.4M; '—' for no number."""
+    if not isinstance(value, (int, float)):
+        return "—"
+    v, a = float(value), abs(float(value))
+    trim = lambda s: s.rstrip("0").rstrip(".") if "." in s else s  # noqa: E731
+    if a < 100:
+        s = trim(f"{v:.1f}")
+    elif a < 1000:
+        s = f"{v:.0f}"
+    elif a < 10_000:
+        s = trim(f"{v / 1000:.1f}") + "k"
+    elif a < 1_000_000:
+        s = f"{v / 1000:.0f}k"
+    else:
+        s = trim(f"{v / 1_000_000:.1f}") + "M"
+    return s + unit
+
+
+def measures(metrics: Dict[str, Any], duration_s: Optional[float]) -> Dict[str, Any]:
+    """derived() plus the counts a dashboard shows: average time watched (s), shares, saves, follows."""
+    def num(*keys):
+        return next((float(metrics[k]) for k in keys if isinstance(metrics.get(k), (int, float))), None)
+    avg_ms = num("ig_reels_avg_watch_time", "post_video_avg_time_watched")
+    out = {**derived(metrics, duration_s), "avg_s": round(avg_ms / 1000, 1) if avg_ms else None,
+           "shares": num("shares"), "saves": num("saved", "saves"), "follows": num("follows", "post_video_followers"),
+           "unavailable": metrics.get("unavailable")}
+    out["measured"] = not out["unavailable"] and any(out[k] is not None for k in ("views", "reach", "likes", "avg_s"))
+    return out
+
+
+def latest(snapshots: Dict[str, Dict[str, Any]], measured: bool = True) -> Optional[Tuple[str, Dict[str, Any]]]:
+    """(snapshot, measures) of the latest snapshot; with measured, the latest one that has numbers."""
+    names = sorted((s for s, m in snapshots.items() if m.get("measured") or not measured),
+                   key=lambda s: SNAPSHOT_ORDER.get(s, 9))
+    return (names[-1], snapshots[names[-1]]) if names else None
+
+
+def dashboard(db) -> List[Dict[str, Any]]:
+    """Every measured publication, newest posting first: {"run_id", "key", "title", "format", "duration_s",
+    "posted_at", "channels": {ig|fb|yt|ytlong: {snapshot: measures}}, "extras": {label: {snapshot: measures}}}."""
+    ensure_schema(db)
+    with db._conn() as conn:
+        rows = conn.execute("SELECT * FROM audience_metrics ORDER BY fetched_at").fetchall()
+        posted = {r["run_id"]: r["t"] for r in conn.execute(
+            "SELECT run_id, MIN(created_at) AS t FROM publications WHERE status = 'published' GROUP BY run_id")}
+    videos: Dict[str, Dict[str, Any]] = {}
+    for r in rows:
+        rid = r["run_id"]
+        v = videos.get(rid)
+        if v is None:
+            run = db.get_run(rid) or {}
+            v = videos[rid] = {
+                "run_id": rid, "key": db.run_key(rid), "title": (run.get("script_payload") or {}).get("title") or rid,
+                "format": run.get("content_format") or "reel", "duration_s": measured_duration(run),
+                "posted_at": _when(posted.get(rid)) or _when(r["fetched_at"]), "channels": {}, "extras": {}}
+        channel = channel_of(r["platform"], v["format"])
+        m = {**measures(json.loads(r["metrics_json"] or "{}"), v["duration_s"]),
+             "source": r["source"], "fetched_at": r["fetched_at"]}
+        home = v["extras"].setdefault(r["platform"], {}) if channel == "stories" else v["channels"].setdefault(channel, {})
+        home[r["snapshot"]] = m
+    return sorted(videos.values(), key=lambda v: v["posted_at"] or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
+
+
+def trend(videos: List[Dict[str, Any]], channel: str) -> Optional[str]:
+    """▲ / ▼ / ≈: the newest video's views on `channel` against the median of the channel's other videos
+    at the same snapshot (a 1-day count is never set against 28-day ones); None under MIN_FOR_TREND videos."""
+    from statistics import median
+    mine = [v for v in videos if latest(v["channels"].get(channel, {}))]
+    if len(mine) < MIN_FOR_TREND:
+        return None
+    snap, newest = latest(mine[0]["channels"][channel])
+    others = [v["channels"][channel][snap]["views"] for v in mine[1:]
+              if (v["channels"][channel].get(snap) or {}).get("measured") and v["channels"][channel][snap].get("views") is not None]
+    if newest.get("views") is None or len(others) + 1 < MIN_FOR_TREND:
+        return None
+    mid = median(others)
+    if not mid:
+        return "▲" if newest["views"] > 0 else "≈"
+    ratio = newest["views"] / mid
+    return "▲" if ratio > 1.1 else "▼" if ratio < 0.9 else "≈"
 
 
 # ------------------------------------------------------------------ feedback

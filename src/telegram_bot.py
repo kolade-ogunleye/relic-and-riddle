@@ -480,7 +480,10 @@ def progress_figures(step: int, total: int, elapsed: float, typical: Optional[fl
         within = min(step_elapsed, current * 0.95)  # a step is never shown complete before it is
         pct = min(99, int((sum(typical_steps[:done]) + within) / sum(typical_steps) * 100))
         if step_elapsed > current * 1.25 + 30:
+            from . import slowdown
+            why = slowdown.current()
             eta = (f"this step is taking longer than usual (usually {_minutes(current)})"
+                   + (f": {why}" if why else "")
                    + (f"; {_minutes(later)} after it" if later >= 30 else ""))
         else:
             eta = _minutes(max(0.0, current - step_elapsed) + later)
@@ -489,7 +492,9 @@ def progress_figures(step: int, total: int, elapsed: float, typical: Optional[fl
         if typical and elapsed < typical - 60:
             eta = _minutes(typical - elapsed)
         elif typical:
-            eta = f"running longer than usual (runs usually take {_minutes(typical)})"
+            from . import slowdown
+            why = slowdown.current()
+            eta = f"running longer than usual (runs usually take {_minutes(typical)})" + (f": {why}" if why else "")
         else:
             eta = "estimating…"
     bar = "▰" * (pct // 10) + "▱" * (10 - pct // 10)
@@ -504,8 +509,12 @@ def progress_estimate(db, active: Optional[dict], step: int, total: int) -> tupl
     start = float(active.get("start_time") or now)
     started = (active.get("step_started") or {}).get(str(step))
     step_elapsed = max(0.0, now - float(started)) if started else None
-    typical = typical_run_seconds()
-    bar, pct, eta = progress_figures(step, total, now - start, typical, step_elapsed, step_seconds(db, total, typical))
+    # A regeneration that keeps its voice and music is judged by past runs that did the same: judged by full runs,
+    # a 10-minute Richat regeneration was promised ~27 min (self-audit, production 2026-10-26)
+    reused = bool(active.get("run_id") and hasattr(db, "get_setting") and db.get_setting("regenerating:" + str(active["run_id"])))
+    typical = typical_run_seconds(reused_voice=reused)
+    steps = None if reused else step_seconds(db, total, typical)  # step medians come from full runs
+    bar, pct, eta = progress_figures(step, total, now - start, typical, step_elapsed, steps)
     return bar, pct, eta, int(max(0, now - start)), step_elapsed
 
 
@@ -517,7 +526,10 @@ def step_running_note(step_elapsed: Optional[float]) -> str:
     return f" · {s // 60}:{s % 60:02d} on this step"
 
 
-def typical_run_seconds(last: int = 5) -> Optional[float]:
+VOICE_REUSED_SECONDS = 10  # a voiceover stage this short was carried over, not made
+
+
+def typical_run_seconds(last: int = 5, reused_voice: Optional[bool] = None) -> Optional[float]:
     """Average wall-clock length of the most recent finished runs, from their stage timings (stages
     overlap, so it is first start to last finish, not a sum). None without history.
     Only a run made in one go to its review counts: a resumed run's stamps span the hours between its
@@ -533,11 +545,17 @@ def typical_run_seconds(last: int = 5) -> Optional[float]:
             gaps = [(b - a).total_seconds() - float(r["seconds"]) for a, b, r in zip(stamps, stamps[1:], rows[1:])]
             if any(g > 600 for g in gaps):  # idle for 10 minutes between stages: two sessions
                 continue
+            if reused_voice is not None:  # like with like: a run that carried its voice over, or one that made it
+                voice = next((float(r["seconds"]) for r in rows if r.get("stage") == "voiceover"), None)
+                if voice is None or (voice < VOICE_REUSED_SECONDS) != reused_voice:
+                    continue
             totals.append((max(stamps) - min(stamps)).total_seconds() + float(rows[0]["seconds"]))
         except (OSError, ValueError, KeyError, IndexError, TypeError):
             continue
         if len(totals) == last:
             break
+    if not totals and reused_voice is not None:
+        return typical_run_seconds(last)  # none of that kind yet: every run
     return sum(totals) / len(totals) if totals else None
 
 
@@ -1032,6 +1050,8 @@ class TelegramApprovalBot:
             # file handles are consumed), and a long wait is left to the caller.
             if method != "answerCallbackQuery" and resp.status_code == 429 and retry_after and retry_after <= 30 and attempt < 2 and "files" not in kwargs:
                 log.info("Telegram %s rate-limited; retrying in %ss.", method, retry_after)
+                from . import slowdown
+                slowdown.note("Telegram is rate-limiting the bot, waiting")
                 time.sleep(float(retry_after))
                 continue
             if method.startswith("editMessage") and "message is not modified" in str(data.get("description", "")):
@@ -1539,6 +1559,11 @@ class TelegramApprovalBot:
                 if albums:
                     self.delete_messages(albums)
                 put(self.db, "review-messages", run_id, [msg_id])
+                if decision == "rejected" and hasattr(self.db, "record_alert"):
+                    # Its clock starts now, reason or not: a rejected Nazca card with no chip tapped stayed in
+                    # the chat for good (operator, 2026-10-28). A reason or a reply settles it sooner.
+                    self.db.record_alert("reason card", message_id=msg_id, kind="transient", expires_at=(
+                        datetime.now(timezone.utc) + timedelta(minutes=REASON_CARD_MINUTES)).isoformat())
                 return
         badge = (
             # Sentence case, as everywhere else (docs/telegram-style.md); the receipt replaces it once the
@@ -3190,6 +3215,8 @@ class TelegramApprovalBot:
         text, buttons = reply if isinstance(reply, tuple) else (reply, [[DONE_BUTTON]])
         from .telegram_ui import SCREENS, parent_of
         parent = parent_of(command) if command in SCREENS and command not in ("dashboard", "cdash") else None
+        if command == "analytics" and args.strip():  # a typed sub-screen goes back to the overview, not Status
+            parent = "canalytics:"
         if target:
             if not self.update_navigation_target(target, text or "✅ Done.", navigation_buttons(buttons, parent)):
                 self.show_dashboard(text or "✅ Done.", navigation_buttons(buttons, parent), fresh=True)

@@ -20,7 +20,7 @@ from typing import Type, TypeVar
 
 from pydantic import BaseModel
 
-from . import config, gemini
+from . import config, gemini, slowdown
 from .llm import LLMError
 
 log = logging.getLogger(__name__)
@@ -218,6 +218,7 @@ def _structured_on(model: str, system: str, prompt, schema: Type[T], role: str, 
             if attempt == attempts:
                 raise LLMError(f"Free model {model} failed: {e}") from e
             log.info("Free model %s connection dropped (attempt %d); retrying in %.0fs.", model, attempt, delay)
+            slowdown.note("the free AI model's connection dropped, retrying")
             time.sleep(delay)
             delay *= 2
         except gemini.RequestTimedOut as e:
@@ -232,6 +233,7 @@ def _structured_on(model: str, system: str, prompt, schema: Type[T], role: str, 
                 return _paid_fallback(system, prompt, schema, model, task_class,
                                       f"The free model {model} did not answer in time ({attempt} attempts)")
             log.info("Free model %s timed out (attempt %d); retrying in %.0fs.", model, attempt, delay)
+            slowdown.note("the free AI model is slow to answer, retrying")
             time.sleep(delay)
             delay *= 2
         except gemini.GeminiError as e:
@@ -241,6 +243,7 @@ def _structured_on(model: str, system: str, prompt, schema: Type[T], role: str, 
                 return _paid_fallback(system, prompt, schema, model, task_class,
                                       f"The free model {model} stayed overloaded")
             log.info("Free model %s busy (attempt %d); retrying in %.0fs.", model, attempt, delay)
+            slowdown.note("the free AI model is busy, retrying")
             time.sleep(delay)
             delay *= 2
     raise LLMError("unreachable")

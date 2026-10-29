@@ -436,7 +436,8 @@ def review_caption(topic_dir: Path, ref_hint: Optional[str] = None, title: Optio
         except (TypeError, ValueError):
             return 0
     sharp = sum(1 for c in images if min(_int(c.get("width")), _int(c.get("height"))) >= 1080)
-    credit = sum(1 for c in images if str(c.get("attribution_required")).lower() == "true")
+    from .credits import needs_attribution  # a CC BY / BY-SA photo is credited even when its source left the flag unset
+    credit = sum(1 for c in images if needs_attribution(c))
     lines.append(f"Quality: {sharp} sharp enough as they are, {len(images) - sharp} to be AI-upscaled · "
                  f"licences: {len(images) - credit} need no credit, {credit} credited in the caption")
     return "\n".join(lines)
@@ -873,6 +874,416 @@ def _audience_line(db: PipelineDatabase, run_id: str) -> str:
         if nums:
             parts.append(f"{platform}: " + ", ".join(nums))
     return " · ".join(parts)
+
+
+# ------------------------------------------------------------------ analytics dashboard
+# The audience as a dashboard (operator, 2026-10-28): an overview across every platform (/analytics), one
+# screen per platform (/analytics ig|fb|yt|ytlong|stories), one per video (/analytics run 14, /analytics 3),
+# and a picker (/analytics videos). The numbers come from audience.dashboard(); nothing here calls an API.
+ANALYTICS_PAGE = 5      # videos on one platform page
+PICKER_PAGE = 10        # videos on one page of the picker
+ANALYTICS_BUDGET = 3900  # HTML characters a screen may use: one message, under Telegram's 4096
+ANALYTICS_WORDS = {"ig": "ig", "instagram": "ig", "insta": "ig", "reels": "ig", "fb": "fb", "facebook": "fb",
+                   "yt": "yt", "youtube": "yt", "shorts": "yt", "short": "yt", "ytlong": "ytlong", "long": "ytlong",
+                   "documentary": "ytlong", "doc": "ytlong", "stories": "stories", "story": "stories",
+                   "carousel": "stories", "carousels": "stories"}
+ANALYTICS_USAGE = ("<code>/analytics</code>   <code>/analytics ig</code>   <code>/analytics fb</code>   "
+                   "<code>/analytics yt</code>   <code>/analytics ytlong</code>   <code>/analytics stories</code>   "
+                   "<code>/analytics videos</code>   <code>/analytics 3</code>   <code>/analytics run 14</code>")
+SOURCE_NAMES = {"instagram-graph": "Instagram Graph", "facebook-graph": "Facebook Graph", "upload-post": "Upload-Post",
+                "expired": "expired", "youtube-graph": "no Graph"}
+
+
+def _channel_names() -> Dict[str, Tuple[str, str]]:
+    from .audience import CHANNELS, EXTRAS
+    return {key: (name, icon) for key, name, icon in (*CHANNELS, EXTRAS)}
+
+
+def _plural(n: float, word: str) -> str:
+    from .audience import compact
+    return f"{compact(n)} {word}{'' if n == 1 else 's'}"
+
+
+def _counts(m: Dict[str, Any], full: bool = False) -> List[str]:
+    """Views, reach (full), shares, saves, follows, likes, comments (full) as short parts; a count the
+    platform did not report is left out, never shown as 0."""
+    from .audience import compact
+    parts = [f"{compact(m['views'])} views" if m.get("views") is not None else "",
+             f"reach {compact(m['reach'])}" if full and m.get("reach") is not None else ""]
+    for key, word in (("shares", "share"), ("saves", "save"), ("follows", "follow"), ("likes", "like")):
+        if m.get(key) is not None and (full or m[key] or key == "shares"):
+            parts.append(_plural(m[key], word))
+    if full and m.get("comments") is not None:
+        parts.append(_plural(m["comments"], "comment"))
+    return [p for p in parts if p]
+
+
+def _retention(m: Dict[str, Any], duration_s: Optional[float] = None) -> List[str]:
+    from .audience import compact
+    parts = [f"{m['watch_ratio']:.0%} watched" if m.get("watch_ratio") is not None else "",
+             f"avg {compact(m['avg_s'])} s" + (f" of {compact(duration_s)} s" if duration_s and m.get("avg_s") else "")
+             if m.get("avg_s") is not None else "",
+             f"skip {m['skip_rate']:.0f}%" if m.get("skip_rate") is not None else ""]
+    return [p for p in parts if p]
+
+
+def _measured_text(m: Dict[str, Any], duration_s: Optional[float] = None, full: bool = False) -> str:
+    """A snapshot's numbers in one line, or "not measurable: <short reason>" (the whole reason goes in the
+    screen's details)."""
+    from .telegram_ui import label
+    if not m.get("measured"):
+        reason = m.get("unavailable") or "no numbers returned"
+        return "not measurable: " + (reason if full else label(reason, 48))
+    return ", ".join(_counts(m, full) + _retention(m, duration_s if full else None)) or "no numbers yet"
+
+
+def _extra_name(platform_label: str) -> str:
+    from .audience import PLATFORM_NAMES
+    base, _, kind = platform_label.partition("_")
+    kind = re.sub(r"^story(\d+)$", r"story \1", kind)
+    return f"{PLATFORM_NAMES.get(base, base)} {kind}".strip()
+
+
+def _upper(text: str) -> str:
+    return text[:1].upper() + text[1:]
+
+
+def _posted(v: Dict[str, Any], now: datetime) -> str:
+    from .local_time import show
+    if not v.get("posted_at"):
+        return "posting time not recorded"
+    days = max(0, (now - v["posted_at"]).days)
+    return f"posted {show(v['posted_at'], '%d %b')} ({'today' if days == 0 else f'{days} d ago'})"
+
+
+def _next_snapshot(v: Dict[str, Any], snaps: Dict[str, Any], now: datetime) -> str:
+    """The next snapshot after the latest one taken (a skipped earlier one is never taken late)."""
+    from .audience import SNAPSHOT_ORDER, SNAPSHOTS
+    from .local_time import show
+    taken = max((SNAPSHOT_ORDER.get(s, 0) for s in snaps), default=0)
+    for name, days in SNAPSHOTS:
+        if SNAPSHOT_ORDER[name] > taken and v.get("posted_at"):
+            due = v["posted_at"] + timedelta(days=days)
+            return f"next {name} {'due now' if due <= now else 'on ' + show(due, '%d %b')}"
+    return "all snapshots taken"
+
+
+def _details(v: Dict[str, Any], groups: List[Tuple[str, Dict[str, Dict[str, Any]]]], limit: int = 900) -> str:
+    """Every snapshot of `groups` [(name, {snapshot: measures})], in full, for an expandable blockquote."""
+    from .audience import SNAPSHOT_ORDER, STORY_SNAPSHOT
+    from .local_time import show
+    lines = []
+    for name, snaps in groups:
+        for snap in sorted(snaps, key=lambda s: SNAPSHOT_ORDER.get(s, 9)):
+            m = snaps[snap]
+            source = SOURCE_NAMES.get(m.get("source") or "", m.get("source") or "")
+            when = "" if snap == STORY_SNAPSHOT else f"{snap} "
+            lines.append(f"{name} {when}({show(m.get('fetched_at'), '%d %b %H:%M')}, {source}): "
+                         f"{_measured_text(m, v.get('duration_s'), full=True)}")
+    body = "\n".join(lines)
+    body = body if len(body) <= limit else body[:limit - 1].rsplit("\n", 1)[0] + "\n…"
+    return f"<blockquote expandable>{html.escape(body)}</blockquote>" if body else ""
+
+
+def _video_totals(v: Dict[str, Any]) -> Tuple[Optional[float], Optional[float]]:
+    """(views across the video channels, mean watch ratio) at each channel's latest measured snapshot."""
+    from .audience import latest
+    cells = [found[1] for snaps in v["channels"].values() if (found := latest(snaps))]
+    views = [c["views"] for c in cells if c.get("views") is not None]
+    watch = [c["watch_ratio"] for c in cells if c.get("watch_ratio") is not None]
+    return (sum(views) if views else None), (sum(watch) / len(watch) if watch else None)
+
+
+def _totals_line(cells: List[Dict[str, Any]]) -> str:
+    from .audience import compact
+    def total(key):
+        vals = [c[key] for c in cells if c.get(key) is not None]
+        return sum(vals) if vals else None
+    watch = [c["watch_ratio"] for c in cells if c.get("watch_ratio") is not None]
+    parts = [f"{compact(total('views'))} views" if total("views") is not None else "",
+             f"{sum(watch) / len(watch):.0%} watched" if watch else ""]
+    parts += [_plural(total(k), w) for k, w in (("shares", "share"), ("saves", "save"), ("follows", "follow"))
+              if total(k) is not None]
+    return ", ".join(p for p in parts if p) or "no numbers yet"
+
+
+def _sources_line(db: PipelineDatabase) -> str:
+    """Which source answered each platform at the last collection; ⚠ when a platform's Meta Graph failed."""
+    from .audience import PLATFORM_NAMES, sources_health
+    from .local_time import show
+    health = sources_health(db)
+    if not health["collected_at"]:
+        return "📡 <b>Sources</b>: no collection yet (hourly, once something is published)."
+    tokens = []
+    for base, sources in health["platforms"].items():
+        name = PLATFORM_NAMES.get(base, base)
+        answered = [SOURCE_NAMES.get(s, s) for s, e in sources.items() if e.get("ok")]
+        graph = sources.get(f"{base}-graph") or {}
+        if graph.get("failed"):
+            tokens.append(f"⚠ {name}: Graph failed" + (f", {' + '.join(answered)} answered" if answered else ", nothing answered"))
+        elif answered:
+            tokens.append(f"✓ {name}: {' + '.join(answered)}")
+        else:
+            tokens.append(f"✗ {name}: nothing answered")
+    detail = f"<blockquote expandable>{html.escape(chr(10).join(health['lines']))}</blockquote>" if health["lines"] else ""
+    return (f"📡 <b>Sources</b> at the last collection, {html.escape(show(health['collected_at'], '%d %b %H:%M'))}\n"
+            + "\n".join(html.escape(t) for t in tokens) + ("\n" + detail if detail else ""))
+
+
+def _analytics_buttons() -> List[List[Dict[str, str]]]:
+    from .telegram_ui import button
+    return [[button("📸 Instagram", "caplat:ig"), button("📘 Facebook", "caplat:fb")],
+            [button("▶️ YouTube Shorts", "caplat:yt"), button("🎬 YouTube long", "caplat:ytlong")],
+            [button("🗂 Stories & carousels", "caplat:stories"), button("🎞 Pick a video", "capick:0")]]
+
+
+def _fit(blocks: List[str], note: str = "") -> str:
+    """The screen's blocks within ANALYTICS_BUDGET: expandable details go first, then trailing blocks."""
+    from .telegram_ui import compose
+    text = compose(*blocks)
+    if len(text) <= ANALYTICS_BUDGET:
+        return text
+    blocks = [re.sub(r"\n?<blockquote expandable>.*?</blockquote>", "", b, flags=re.S) for b in blocks]
+    while len(compose(*blocks, note)) > ANALYTICS_BUDGET and len(blocks) > 1:
+        blocks.pop()
+    return compose(*blocks, note)
+
+
+def analytics_overview(db: PipelineDatabase, now: Optional[datetime] = None, note: str = ""):
+    """/analytics: the last 7 and 28 days across platforms, a row per platform with its trend, the best and
+    worst video, how much data there is, and which sources answered."""
+    from . import audience
+    from .telegram_ui import label, title, with_nav
+    now = now or datetime.now(timezone.utc)
+    buttons = with_nav(_analytics_buttons(), "cstat:")
+    videos = audience.dashboard(db)
+    head = title("canalytics", summary=note or None)
+    if not videos:
+        return _fit([head, "Nothing measured yet. Each published post is measured 1, 3, 7 and 28 days after posting "
+                           "(Instagram, Facebook and YouTube: Reels, Shorts, the long video and carousels), and each "
+                           f"Story {audience.STORY_SNAPSHOT_HOURS} hours after posting, before it expires.",
+                     _sources_line(db)]), buttons
+
+    def window(days):
+        since = now - timedelta(days=days)
+        return [v for v in videos if v["posted_at"] and v["posted_at"] >= since]
+
+    def cells(group, channel=None):
+        return [found[1] for v in group for ch, snaps in v["channels"].items()
+                if (channel is None or ch == channel) and (found := audience.latest(snaps))]
+
+    period = []
+    for days in (7, 28):
+        group = window(days)
+        period.append(f"<b>{days} days</b> ({_plural(len(group), 'video')}): " +
+                      (_totals_line(cells(group)) if group else "nothing posted"))
+    month = window(28)
+    rows = []
+    for key, name, icon in audience.CHANNELS:
+        ever = [v for v in videos if key in v["channels"]]
+        recent = [v for v in month if audience.latest(v["channels"].get(key, {}))]
+        arrow = audience.trend(videos, key) or "—"
+        if not ever:
+            rows.append(f"{icon} <b>{name}</b>: no data yet")
+        elif not recent:
+            measured = [v for v in ever if audience.latest(v["channels"][key])]
+            if measured:
+                rows.append(f"{icon} <b>{name}</b> {arrow} nothing posted in 28 days")
+            else:
+                why = (audience.latest(ever[0]["channels"][key], measured=False) or ("", {}))[1]
+                rows.append(f"{icon} <b>{name}</b>: no data yet, {html.escape(_measured_text(why))}")
+        else:
+            rows.append(f"{icon} <b>{name}</b> {arrow} {_plural(len(recent), 'video')}: {_totals_line(cells(recent, key))}")
+    extras = [m for v in month for snaps in v["extras"].values() if (found := audience.latest(snaps)) for m in [found[1]]]
+    tried = sum(len(v["extras"]) for v in month)
+    _, story_name, story_icon = audience.EXTRAS
+    rows.append(f"{story_icon} <b>{html.escape(story_name)}</b>: " + (
+        f"{len(extras)} of {tried} measured, {_totals_line(extras)}" if extras else
+        f"none of {tried} measurable" if tried else "no data yet"))
+    legend = (f"<i>▲ ▼ ≈ the newest video against the platform's own median at the same snapshot; "
+              f"— under {audience.MIN_FOR_TREND} videos.</i>")
+
+    ranked = [(v, *_video_totals(v)) for v in month]
+    best = []
+    by_views = sorted((r for r in ranked if r[1] is not None), key=lambda r: r[1], reverse=True)
+    by_watch = sorted((r for r in ranked if r[2] is not None), key=lambda r: r[2], reverse=True)
+    t = lambda v: html.escape(label(v["title"], 34))  # noqa: E731
+    if by_views:
+        best.append(f"🏆 Most views: {t(by_views[0][0])}, {audience.compact(by_views[0][1])}")
+        if len(by_views) > 1:
+            best.append(f"🔻 Fewest views: {t(by_views[-1][0])}, {audience.compact(by_views[-1][1])}")
+    if len(by_watch) > 1:
+        best.append(f"🏆 Best watched: {t(by_watch[0][0])}, {by_watch[0][2]:.0%}")
+        best.append(f"🔻 Least watched: {t(by_watch[-1][0])}, {by_watch[-1][2]:.0%}")
+    elif by_watch:
+        best.append(f"Watch %: only {t(by_watch[0][0])} so far, {by_watch[0][2]:.0%}")
+
+    measured = [v for v in videos if any(audience.latest(s) for s in v["channels"].values())]
+    need = audience.MIN_FOR_PATTERNS - len(measured)
+    if need <= 0:
+        so_far = f"📊 <b>Data so far</b>: {_plural(len(measured), 'video')}; enough to read patterns."
+    else:
+        pace = len(month) / 4  # videos a week over the last 28 days
+        when = ""
+        if pace:
+            from math import ceil
+            from .local_time import show
+            when = f", around {show(now + timedelta(weeks=ceil(need / pace)), '%d %b')} at {audience.compact(pace)} a week"
+        so_far = (f"📊 <b>Data so far</b>: {_plural(len(measured), 'video')}. Patterns from "
+                  f"{audience.MIN_FOR_PATTERNS}: {need} more{when or ', once more are posted'}. Until then these "
+                  "describe single videos.")
+    return _fit([head, "\n".join(period), "\n".join(rows) + "\n" + legend,
+                 ("<b>Best and worst</b> (28 days)\n" + "\n".join(best)) if best else "",
+                 so_far, _sources_line(db)]), buttons
+
+
+def analytics_platform(db: PipelineDatabase, channel: str, page: int = 0, now: Optional[datetime] = None):
+    """One platform: each video, newest first, its snapshots, numbers and retention, details folded."""
+    from . import audience
+    from .telegram_ui import label, title, with_nav
+    now = now or datetime.now(timezone.utc)
+    names = _channel_names()
+    name, icon = names.get(channel, (channel, "📊"))
+    stories = channel == audience.EXTRAS[0]
+    videos = [v for v in audience.dashboard(db) if (v["extras"] if stories else v["channels"].get(channel))]
+    pages = max(1, -(-len(videos) // ANALYTICS_PAGE))
+    page = min(max(0, page), pages - 1)
+    shown = videos[page * ANALYTICS_PAGE:(page + 1) * ANALYTICS_PAGE]
+    trend = None if stories else audience.trend(videos, channel)
+    summary = (f"{_plural(len(videos), 'video')} measured, newest first" +
+               (f"; page {page + 1} of {pages}" if pages > 1 else "") +
+               ("" if stories else f"\nTrend of the newest: {trend or '—'}" +
+                ("" if trend else f" (from {audience.MIN_FOR_TREND} videos at one snapshot)")))
+    head = title(icon, name, summary if videos else "No data yet: nothing on this platform has been measured.")
+    blocks = [head]
+    for n, v in enumerate(shown, page * ANALYTICS_PAGE + 1):
+        lines = [f"<b>{n}. {html.escape(label(v['title'], 60))}</b>"]
+        if stories:
+            lines.append(html.escape(_upper(_posted(v, now))))
+            for kind, snaps in sorted(v["extras"].items()):
+                snap, m = audience.latest(snaps) or audience.latest(snaps, measured=False)
+                lines.append(f"{html.escape(_extra_name(kind))} ({snap}): {html.escape(_measured_text(m))}")
+            lines.append(_details(v, [(_extra_name(k), s) for k, s in sorted(v["extras"].items())], limit=500))
+        else:
+            snaps = v["channels"][channel]
+            order = sorted(snaps, key=lambda s: audience.SNAPSHOT_ORDER.get(s, 9))
+            lines.append(html.escape(_upper(f"{_posted(v, now)} · snapshots {', '.join(order)} · {_next_snapshot(v, snaps, now)}")))
+            snap, m = audience.latest(snaps) or audience.latest(snaps, measured=False)
+            if m.get("measured"):
+                lines.append(f"{snap}: " + html.escape(", ".join(_counts(m)) or "no counts reported"))
+                kept = _retention(m, v.get("duration_s"))
+                lines.append("Retention: " + html.escape(", ".join(kept)) if kept else
+                             "Retention: not reported" + (" by Upload-Post" if m.get("source") == "upload-post" else ""))
+            else:
+                lines.append(f"{snap}: {html.escape(_measured_text(m))}")
+            lines.append(_details(v, [(name, snaps)], limit=500))
+        blocks.append("\n".join(x for x in lines if x))
+    rows = number_buttons([f"cavideo:{v['key']}" for v in shown], page * ANALYTICS_PAGE + 1)
+    rows += pager(f"caplat:{channel}:", page, pages)
+    return _fit(blocks, "<i>More on the next page, or open a video.</i>"), with_nav(rows, "canalytics:")
+
+
+def analytics_video(db: PipelineDatabase, ref: str, now: Optional[datetime] = None):
+    """One video on every platform side by side, snapshot by snapshot, then its Stories and carousels."""
+    from . import audience
+    from .telegram_ui import title, with_nav
+    now = now or datetime.now(timezone.utc)
+    videos = audience.dashboard(db)
+    run_id = db.resolve_run(str(ref).strip()) if str(ref).strip() else ""
+    v = next((x for x in videos if run_id and (x["run_id"] == run_id or x["key"] == str(ref).strip())), None)
+    nav_rows = with_nav([], "capick:0")
+    if v is None:
+        return (title("🎞", "Video audience", "No audience numbers for this video yet: each post is measured 1, 3, 7 "
+                      "and 28 days after posting.") + "\n\n" + ANALYTICS_USAGE), nav_rows
+    present = [(k, n, i) for k, n, i in audience.CHANNELS if k in v["channels"]]
+    kind = "long video" if v["format"] == "deep_dive" else "Reel and Short"
+    length = f", {audience.compact(v['duration_s'])} s" if v.get("duration_s") else ""
+    head = title("🎞", v["title"][:80], html.escape(_upper(f"{_posted(v, now)} · {kind}{length}")))
+    blocks = [head]
+    if present:
+        short = {"ig": "IG", "fb": "FB", "yt": "YT", "ytlong": "YT-L"}
+        snaps = sorted({s for k, _, _ in present for s in v["channels"][k]}, key=lambda s: audience.SNAPSHOT_ORDER.get(s, 9))
+        table = ["      " + "".join(f"{short[k]:>7}" for k, _, _ in present)]
+        for s in snaps:
+            cells = []
+            for k, _, _ in present:
+                m = v["channels"][k].get(s)
+                cells.append("·" if m is None else "×" if not m.get("measured") else
+                             audience.compact(m["views"]) if m.get("views") is not None else "✓")
+            table.append(f"{s:<6}" + "".join(f"{c:>7}" for c in cells))
+        blocks.append("<b>Views by snapshot</b>\n<pre>" + html.escape("\n".join(table)) + "</pre>\n"
+                      "<i>× not measurable, · not taken yet</i>")
+        latest_lines = []
+        for k, n, i in present:
+            snap, m = audience.latest(v["channels"][k]) or audience.latest(v["channels"][k], measured=False)
+            latest_lines.append(f"{i} {n} ({snap}): {html.escape(_measured_text(m, v.get('duration_s')))}")
+        blocks.append("<b>Latest per platform</b>\n" + "\n".join(latest_lines))
+    else:
+        blocks.append("No Reel, Short or long video measured for this post yet.")
+    if v["extras"]:
+        story_lines = []
+        for label, snaps in sorted(v["extras"].items()):
+            snap, m = audience.latest(snaps) or audience.latest(snaps, measured=False)
+            story_lines.append(f"{html.escape(_extra_name(label))} ({snap}): {html.escape(_measured_text(m))}")
+        blocks.append(f"<b>{audience.EXTRAS[1].replace('&', '&amp;')}</b>\n" + "\n".join(story_lines))
+    groups = [(n, v["channels"][k]) for k, n, _ in present] + [(_extra_name(k), s) for k, s in sorted(v["extras"].items())]
+    blocks.append("<b>Every snapshot</b>\n" + _details(v, groups, limit=1500))
+    jump = [{"text": f"{i} {n}"[:28], "callback_data": f"caplat:{k}"} for k, n, i in present]
+    rows = [jump[j:j + 2] for j in range(0, len(jump), 2)]
+    return _fit(blocks), with_nav(rows, "capick:0")
+
+
+def analytics_picker(db: PipelineDatabase, page: int = 0, now: Optional[datetime] = None):
+    """Every measured video, newest first, numbered as /analytics N opens it."""
+    from . import audience
+    from .telegram_ui import label, title, with_nav
+    now = now or datetime.now(timezone.utc)
+    videos = audience.dashboard(db)
+    pages = max(1, -(-len(videos) // PICKER_PAGE))
+    page = min(max(0, page), pages - 1)
+    shown = videos[page * PICKER_PAGE:(page + 1) * PICKER_PAGE]
+    lines = []
+    for n, v in enumerate(shown, page * PICKER_PAGE + 1):
+        views, watch = _video_totals(v)
+        where = "/".join({"ig": "IG", "fb": "FB", "yt": "YT", "ytlong": "YT-L"}[k] for k, _, _ in audience.CHANNELS
+                         if audience.latest(v["channels"].get(k, {})))
+        numbers = (f"{audience.compact(views)} views" if views is not None else "no data yet") + \
+                  (f", {watch:.0%} watched" if watch is not None else "") + (f" ({where})" if where else "")
+        lines.append(f"{n}. <b>{html.escape(label(v['title'], 48))}</b>\n    {html.escape(_upper(_posted(v, now)))}: {numbers}")
+    summary = (f"{_plural(len(videos), 'video')}, newest first" + (f"; page {page + 1} of {pages}" if pages > 1 else "")
+               if videos else "No data yet: nothing has been measured.")
+    rows = number_buttons([f"cavideo:{v['key']}" for v in shown], page * PICKER_PAGE + 1) + pager("capick:", page, pages)
+    return _fit([title("capick", summary=summary), "\n".join(lines),
+                 "<i>Tap a number, or type <code>/analytics 3</code>.</i>" if videos else ""]), with_nav(rows, "canalytics:")
+
+
+def analytics_screen(db: PipelineDatabase, args: str = "", now: Optional[datetime] = None):
+    """Typed /analytics and its subcommands: ig|fb|yt|ytlong|stories [page], videos [page], N (the picker's
+    number), run <run key or id>."""
+    from . import audience
+    raw = (args or "").replace(":", " ").split()
+    words = [w.lower() for w in raw]
+    if not words:
+        return analytics_overview(db, now)
+    if words[:2] == ["youtube", "long"]:
+        words = ["ytlong"] + words[2:]
+    if words[0] == "video" and len(words) > 1:  # /analytics video 3: the picker's number
+        words = words[1:]
+    first, rest = words[0], words[1:]
+    page = int(rest[0]) - 1 if rest and rest[0].isdigit() else 0  # typed pages count from 1
+    if first in ANALYTICS_WORDS:
+        return analytics_platform(db, ANALYTICS_WORDS[first], page, now)
+    if first in ("videos", "video", "list", "pick"):
+        return analytics_picker(db, page, now)
+    if first == "run" and rest:
+        return analytics_video(db, raw[1], now)
+    if first.isdigit():
+        videos = audience.dashboard(db)
+        n = int(first)
+        if 1 <= n <= len(videos):
+            return analytics_video(db, videos[n - 1]["run_id"], now)
+        return analytics_overview(db, now, note=f"No video {n} on the list: there are {len(videos)}.")
+    return analytics_overview(db, now, note="Not a view I know. " + ANALYTICS_USAGE)
 
 
 # Posting actions on one episode: their answer is shown on that episode's card, redrawn
@@ -2060,9 +2471,16 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 [{"text": "🔔 Alerts", "callback_data": "calerts:"}, {"text": "🛡 Activity", "callback_data": "caudit:"}],
                 [{"text": "🧭 Improvements", "callback_data": "cimprove:"}, {"text": "📰 Digest", "callback_data": "cdigest:"}],
                 [{"text": "🧰 Jobs", "callback_data": "jobs:"}], [HOME]]
-        if command in ("analytics", "canalytics"):
-            from . import audience
-            return audience.analytics_text(db), [[HOME]]
+        if command in ("analytics", "canalytics"):  # the dashboard; typed subcommands open its other screens
+            return analytics_screen(db, args)
+        if command == "caplat":  # caplat:<ig|fb|yt|ytlong|stories>[:<page from 0>]
+            channel, _, page = args.partition(":")
+            return analytics_platform(db, channel if channel in ANALYTICS_WORDS.values() else "ig",
+                                      int(page) if page.isdigit() else 0)
+        if command == "cavideo":
+            return analytics_video(db, args)
+        if command == "capick":
+            return analytics_picker(db, int(args) if args.strip().isdigit() else 0)
         if command in ("caudit", "calerts"):
             # The screen's own reply, not wrapped again: a (text, buttons) pair inside another showed its repr,
             # quotes and escapes on the Alerts screen (operator, 2026-10-25).

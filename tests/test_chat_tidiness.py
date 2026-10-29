@@ -126,3 +126,17 @@ def test_a_screen_asked_for_from_a_protected_card_replaces_the_one_panel(db, mon
     assert bot.show_navigation_panel(50, "🏛️ Dashboard", [[{"text": "x", "callback_data": "cdash:"}]])
     assert not any(m == "editMessageText" and mid == 50 for m, _, mid in calls)      # the card stays as it is
     assert ("delete", None, 40) in calls and db.get_setting("telegram_dashboard_id") == "77"
+
+
+def test_a_rejected_card_leaves_the_chat_even_when_no_reason_is_picked(db, monkeypatch):
+    """Operator, 2026-10-28: a rejected Nazca card with no reason chip tapped stayed in the chat for good."""
+    topic = db.list_all_topics()[0]["id"]
+    db.create_run("run_n", topic)
+    db.record_approval("run_n", topic, 70)
+    initialize(db)
+    bot, calls = _bot(db, monkeypatch, [])
+    monkeypatch.setattr(bot, "_reason_card", lambda *a, **k: True)
+    cq = {"id": "q", "from": {"id": 555, "first_name": "Kolade"}, "message": {"message_id": 70, "chat": {"id": 555}}}
+    bot._render_decision(cq, "run_n", "rejected", "555")
+    assert [a["message_id"] for a in db.get_expired_alerts("2999-01-01T00:00:00+00:00")] == [70]
+    assert not db.get_expired_alerts()                                           # not before its 30 minutes

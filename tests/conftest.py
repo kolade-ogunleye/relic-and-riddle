@@ -96,6 +96,14 @@ def no_real_services(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def no_stale_slowdown(monkeypatch):
+    """The slow-step note (src/slowdown.py) is process-wide: one test's "free model busy" showed on a later test's
+    progress card in the full suite (2026-10-28)."""
+    from src import slowdown
+    monkeypatch.setattr(slowdown, "_latest", {})
+
+
+@pytest.fixture(autouse=True)
 def drained_bots(no_real_services, monkeypatch):
     """Every bot a test makes is drained before that test's patches (and the network block above) are undone: a
     navigation thread left running sent a real editMessageReplyMarkup with a test token once its stub was gone

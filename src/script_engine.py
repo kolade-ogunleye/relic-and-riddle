@@ -19,6 +19,7 @@ import json
 import logging
 import math
 import re
+import threading
 import time
 from typing import Callable, Dict, Any, List, NamedTuple, Optional, Tuple
 
@@ -323,11 +324,20 @@ def _inside(a: int, b: int, window: LengthWindow, span: int = 4) -> Tuple[int, i
 def length_target_note() -> str:
     """The word range that fits, from measured pace (the prompt's fixed 105-115 words ran 53-58 s at the
     narrator's pace for name-heavy topics). Empty until three drafts have been measured."""
+    import statistics
+    fast, slow = _pace_window()
+    paces = _run_paces() if _history_on() else []
+    if len(paces) >= 2:  # this run's drafts set the range: the same one their length instructions name
+        judged = length_window(statistics.median(paces), fast, slow)
+        seen = _seen_window(judged.fast, judged.slow)
+        if seen is not None:
+            (low, high), note = _band(seen)
+            return (f"\n\nLength: write the narration in {low}-{high} words{note}, the range this run's drafts read "
+                    f"at the narrator's pace allow ({TARGET_DURATION_MIN:g}-{HARD_DURATION_CEILING - _MEASURE_MARGIN_SEC:g}"
+                    " seconds); this overrides any other word count.")
     values = [e[1] for e in _word_pace_entries()]
     if len(values) < 3:
         return ""
-    import statistics
-    fast, slow = _pace_window()
     measured = statistics.median(values)
     # The minimum for the narrator's fastest take, the comfortable maximum for its slowest (they vary for
     # ElevenLabs): the same window the length checks hold a draft to.
@@ -363,6 +373,95 @@ def fit_speed(text: str, seconds: Optional[float] = None) -> Optional[float]:
     return speed if faster is not None and faster * pace <= longest else None
 
 
+# This run's drafts, as seconds a word at the measurement voice: a rewrite changes the words (names, numbers) and so
+# the pace, and a window worked out from one draft's pace alone sent the next one back the other way (production,
+# Derinkuyu 2026-10-29: 100 words read 41.5 s, "extend to 104-108"; 106 words read 51.5 s, "cut to 99-103"; three
+# times over, the band both paces allowed being 102-105). Cleared when a run starts writing (begin_length_history).
+_draft_paces: Dict[str, float] = {}  # each draft (its normalised words) -> seconds a word, in the order measured
+# "on" only while a run is writing (generate_script): a lone check is judged on its own. "key": whose drafts these are
+# (topic, run): another topic or run starts afresh, whatever its first call carries (a re-render's saved script, a
+# regeneration, the next topic of a cycle).
+_length_history: Dict[str, Any] = {"on": False, "key": None}
+_PACES_KEPT = 4          # the latest drafts' paces only
+_PACE_OUTLIER = 0.15     # a pace this far from the run's median (one name-heavy draft) does not set the window
+
+
+def begin_length_history(key: Any = None) -> None:
+    _draft_paces.clear()
+    _length_history["key"] = key
+
+
+def _history_on() -> bool:
+    """Whether this thread is the run's writing one: a check made elsewhere (a review sweep, a review wait) is
+    judged on its own and never enters the run's history."""
+    return bool(_length_history["on"]) and _length_history.get("thread") == threading.get_ident()
+
+
+def _run_paces(current: Optional[float] = None) -> List[float]:
+    """This run's latest distinct drafts' paces, sorted; from three on, without one far from their median. The
+    draft being judged (`current`) always counts: its own pace is the one thing known for certain about it."""
+    import statistics
+    recent = list(_draft_paces.values())[-_PACES_KEPT:]
+    if len(recent) >= 3:
+        middle = statistics.median(recent)
+        kept = [x for x in recent if abs(x - middle) <= _PACE_OUTLIER * middle]
+        if not [x for x in kept if current is None or round(x, 5) != round(current, 5)]:
+            log.info("This run's draft paces are too far apart to set a window (%s); judging the draft on its own.",
+                     ", ".join(f"{x:.3f}" for x in recent))
+        recent = kept
+    if current is not None:
+        recent = recent + [current]
+    return sorted(set(round(x, 5) for x in recent))
+
+
+def _seen_window(fast: float, slow: float, current: Optional[float] = None) -> Optional[Tuple[LengthWindow, bool]]:
+    """The word window every pace this run's drafts were read at allows: enough words for the minimum at the
+    fastest per-word pace (and fastest take), few enough for the ceiling at the slowest; (window, False). When no
+    count satisfies both, the window at the middle pace, as length_window does for takes, and True. None until two
+    drafts read at different paces."""
+    paces = _run_paces(current)
+    if not _history_on() or len(paces) < 2:
+        return None
+    longest = HARD_DURATION_CEILING - _MEASURE_MARGIN_SEC
+    low = math.ceil(TARGET_DURATION_MIN / (paces[0] * fast) - 1e-9)
+    high = math.floor(longest / (paces[-1] * slow) + 1e-9)
+    if WORD_COUNT_FLOOR <= high:
+        low = max(low, WORD_COUNT_FLOOR)
+    if low > high:
+        import statistics
+        return length_window(statistics.median(paces), fast, slow), True
+    comfortable = max(low, min(high, math.floor(TARGET_DURATION_MAX / (paces[-1] * slow) + 1e-9)))
+    return LengthWindow(low, high, comfortable, fast, slow), False
+
+
+def _band(seen: Tuple[LengthWindow, bool]) -> Tuple[Tuple[int, int], str]:
+    """The run's word range: the middle of the window its paces allow, and a note when that is the middle pace's."""
+    w, middle_pace = seen
+    mid = (w.low + w.high) // 2
+    note = (" (this run's drafts read at paces too different for one window: aimed at the middle one)"
+            if middle_pace else "")
+    return _inside(mid - 2, mid + 2, w), note
+
+
+def _secs(value: float, limit: float) -> str:
+    """Seconds as said to the writer: to the hundredth near the limit, so "51.5s (limit 51.5s)" never reads as a
+    pass that failed."""
+    return f"{value:.2f}" if abs(value - limit) < 0.1 else f"{value:.1f}"
+
+
+def length_miss_words(problems: List[str]) -> Optional[int]:
+    """How many words a length problem's draft is outside the window it names ("This draft is 106 words; rewrite
+    the narration in 102-105 words" -> 1), or None when a problem is not a length one."""
+    misses = []
+    for problem in problems:
+        m = re.search(r"This draft is (\d+) words; .*?(\d+)-(\d+) words", problem)
+        if not m or "when spoken" not in problem:
+            return None
+        words, low, high = (int(x) for x in m.groups())
+        misses.append(max(low - words, words - high, 0))
+    return max(misses) if misses else None
+
+
 def spoken_length_problems(pkg: ScriptPackage) -> List[str]:
     """Measures how long the narration will run when spoken (the narrator voice is deterministic) and
     says how to fix it if the voiceover would be too long or short. Empty when fine, when a slightly faster
@@ -372,6 +471,10 @@ def spoken_length_problems(pkg: ScriptPackage) -> List[str]:
         return []
     words = len(pkg.narration_script.split()) or 1
     record_word_pace(seconds / words, pkg.narration_script)  # at the measurement voice; the pace ratio is applied on use
+    if _history_on():  # one entry a draft: measured again (a second check of it), it is not counted twice
+        key = " ".join(pkg.narration_script.lower().split())
+        _draft_paces.pop(key, None)
+        _draft_paces[key] = seconds / words
     measured = seconds
     longest = HARD_DURATION_CEILING - _MEASURE_MARGIN_SEC
     # Judged at the paces the window was (the middle one when takes vary too much for both ends), so every
@@ -381,17 +484,35 @@ def spoken_length_problems(pkg: ScriptPackage) -> List[str]:
     fast, slow = window.fast, window.slow
     seconds = measured * slow  # the ceiling, for the narrator's slowest take
     per_word = seconds / words
-    if seconds > longest and fit_speed(pkg.narration_script, seconds):
+    if seconds > longest + 1e-9 and fit_speed(pkg.narration_script, seconds):
         return []  # spoken slightly faster (the voiceover stage applies the same speed)
-    if seconds > longest:
+    # Once drafts have been read at different paces, every instruction aims at the middle of the window all those
+    # paces allow, so a rewrite at another pace lands inside it too.
+    seen = _seen_window(fast, slow, current=measured / words)
+
+    def band(default: Tuple[int, int], longer: bool) -> Tuple[Tuple[int, int], str]:
+        """The run's range when there is one, else this draft's; always moving the right way: a draft too long is
+        never told a count at or above its own, nor one too short at or below it."""
+        (low, high), note = _band(seen) if seen is not None else (default, "")
+        if (longer and low <= words) or (not longer and high >= words):
+            (low, high), note = default, ""
+        # Held so even when the window's own bounds disagree (a floor above a long draft): never the wrong way.
+        if longer:
+            low = max(low, words + 1)
+            high = max(high, low)
+        else:
+            high = min(high, words - 1)
+            low = min(low, high)
+        return (low, high), note
+    if seconds > longest + 1e-9:
         # A word count is followed far better than seconds: name this draft's count and the one to reach,
         # aiming inside the comfortable length (not just under the limit), never below the window's floor.
         # Never clamped up to the prompt's word range: for a slow voice that range itself is too long.
         target = min(words - math.ceil((seconds - longest) / per_word) - 2, window.comfortable)
         # A window, not a ceiling: told "at most 95", a writer cut 109 words to 73 (production, 2026-10-23).
-        low, target = _inside(target - 7, target, window)
-        return [f"Narration runs {seconds:.1f}s when spoken (limit {longest:g}s). This draft is {words} words; "
-                f"rewrite the narration in {low}-{target} words (names and numbers such as dates take "
+        (low, target), note = band(_inside(target - 7, target, window), longer=False)
+        return [f"Narration runs {_secs(seconds, longest)}s when spoken (limit {longest:g}s). This draft is {words} "
+                f"words; rewrite the narration in {low}-{target} words{note} (names and numbers such as dates take "
                 f"longer to say), keeping the closing sentence."]
     if measured * fast < TARGET_DURATION_MIN:
         # The minimum, for the narrator's fastest take (production 2026-10-25: 93 words read 41.1 s).
@@ -400,10 +521,10 @@ def spoken_length_problems(pkg: ScriptPackage) -> List[str]:
         seconds = measured * fast
         fast_per_word = seconds / words
         low = words + math.ceil((TARGET_DURATION_MIN - seconds) / fast_per_word) + 2
-        low, high = _inside(low, max(low + 4, window.comfortable), window)
-        return [f"Narration runs {seconds:.1f}s when spoken (minimum {TARGET_DURATION_MIN:g}s). This draft is "
-                f"{words} words; extend the narration to {low}-{high} words with more verified facts from the "
-                f"research notes, keeping the closing sentence."]
+        (low, high), note = band(_inside(low, max(low + 4, window.comfortable), window), longer=True)
+        return [f"Narration runs {_secs(seconds, TARGET_DURATION_MIN)}s when spoken (minimum "
+                f"{TARGET_DURATION_MIN:g}s). This draft is {words} words; extend the narration to {low}-{high} "
+                f"words{note} with more verified facts from the research notes, keeping the closing sentence."]
     return []
 
 
@@ -1491,6 +1612,19 @@ class ScriptEngine:
     @llm_task("script_writing")
     def generate_script(self, topic: Dict[str, Any], max_attempts: int = 3, revision_notes: str = "",
                         previous: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """The run's script (see _generate_script), with the length window kept over its drafts: started afresh
+        by a run's first call, carried on by its revisions (`previous`)."""
+        key = (topic.get("id"), getattr(self, "length_run", None))
+        if previous is None or _length_history["key"] != key:
+            begin_length_history(key)
+        _length_history["on"], _length_history["thread"] = True, threading.get_ident()
+        try:
+            return self._generate_script(topic, max_attempts, revision_notes, previous)
+        finally:
+            _length_history["on"] = False
+
+    def _generate_script(self, topic: Dict[str, Any], max_attempts: int = 3, revision_notes: str = "",
+                         previous: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         revision_notes / previous: fact-checker findings on the previous draft. The previous
         draft is edited (not rewritten) so corrections don't introduce new, unchecked claims.
@@ -1514,6 +1648,13 @@ class ScriptEngine:
                         shortened = self._shorten_story_slides(pkg, problems, sheet)
                         if shortened is not None:
                             pkg, problems = shortened, blocking_problems(draft_problems(shortened))
+                    if (problems and any("when spoken" in p for p in problems)
+                            and all("when spoken" in p or p.startswith(REPEAT_PROBLEM) for p in problems)):
+                        # The revision changed the length (production, Derinkuyu 2026-10-29: 112 words, 53.8 s):
+                        # edited to the window, not the whole fact-checked draft rewritten.
+                        fitted = self._fit_length_by_editing(pkg, problems, topic, "")
+                        if fitted is not None:
+                            return self._finalize(fitted, topic, origin=writer_origin(), fact_sheet_used=True)
                     if problems and all(p.startswith(REPEAT_PROBLEM) for p in problems):
                         # Only a repeated phrase (a hedge the revision added twice, development 2026-10-28): reworded
                         # by one short edit, not the whole draft rewritten.
@@ -1612,6 +1753,11 @@ class ScriptEngine:
             log.info("Using curated script for '%s' (human reviewed: %s).", topic["id"], reviewed)
             payload = self._finalize(pkg, topic, origin="curated")
             payload["human_reviewed"] = reviewed
+            if last_problems or writer_error:  # why the writer's drafts were not used, for the run's record
+                payload["writer_failure"] = (
+                    f"The script writer ({writer_origin()}) could not be reached: {writer_error[:300]}" if writer_error
+                    else f"The script writer ({writer_origin()}) made {self.last_drafts} attempt(s) and each failed its "
+                         f"checks (last: {' '.join(last_problems)[:400]})")
             return payload
         if topic["id"] in self._starved:  # too few verified facts and no curated script: skip the topic
             raise self._starved[topic["id"]]
@@ -1722,6 +1868,8 @@ class ScriptEngine:
             log.warning("Surgical edits broke the draft (%s); rewriting instead.", e)
             return None
 
+    _SMALL_LENGTH_MISS = 3  # words: a length edit this close gets one more edit, not a rewrite
+
     def _fit_length_by_editing(self, pkg: ScriptPackage, problems: List[str], topic: Dict[str, Any],
                                feedback: str) -> Optional[ScriptPackage]:
         """A draft whose only fault is its spoken length (and perhaps a repeated phrase), edited to the word window
@@ -1749,6 +1897,17 @@ class ScriptEngine:
             fixed = self._fix_repeats(fitted, still, sheet)
             if fixed is not None:
                 fitted, still = fixed, blocking_problems(draft_problems(fixed))
+        miss = length_miss_words(still) if still else None
+        if miss is not None and miss <= self._SMALL_LENGTH_MISS:
+            # A few words out (production, Derinkuyu 2026-10-29: 106 words against 99-103, then a full rewrite):
+            # one more short edit of these words, not a rewrite that starts the length over.
+            try:
+                again = self._revise_surgically(fitted.model_dump(), "LENGTH: " + " ".join(still), sheet)
+            except LLMError as e:
+                log.warning("Second length edit failed (%s).", e)
+                again = None
+            if again is not None:
+                fitted, still = prune_graphics(again), blocking_problems(draft_problems(prune_graphics(again)))
         if still:
             log.warning("Length edit still misses (%s); rewriting the draft.", still)
             return None
@@ -1961,7 +2120,12 @@ class ScriptEngine:
                 passed, confidence, audits = True, 0.0, []
                 msg = "Curated script (" + ("human reviewed" if script_payload.get("human_reviewed") else "UNREVIEWED; dry run only") + ")."
             else:
-                passed, confidence, audits, msg = False, 0.0, [], "No verified fact sheet; the free engine fails closed."
+                why = ("The curated script is not human-reviewed, so only a dry run may use it"
+                       if script_payload.get("origin") == "curated" else "No verified fact sheet; the free engine fails closed")
+                # The writer's own failure, when that is why the curated script was tried (production, Derinkuyu
+                # 2026-10-29: the run said "No verified fact sheet" for three drafts the wrong length).
+                failure = script_payload.get("writer_failure")
+                passed, confidence, audits, msg = False, 0.0, [], f"{why}." + (f" {failure}" if failure else "")
         else:
             passed, confidence, audits, msg = self.fact_checker.verify(script_payload, topic, allow_unreviewed_curated)
         script_payload["fact_audits"] = audits

@@ -444,29 +444,35 @@ def apply(
     fact_sheet: Optional[Dict[str, Any]] = None,
     allow_paid: bool = True,
     seed_dirs: Optional[List[Path]] = None,
+    durations: Optional[List[float]] = None,
 ) -> Tuple[List[Path], List[str]]:
     """Animates up to MOTION_MAX_CLIPS photos, the opening beat first. Returns (scenes, providers used).
     `memo` ({photo: (clip, provider)}) carries clips across a re-plan so nothing is paid for twice.
     `seed_dirs`: other runs' motion folders (the run a regeneration replaces) whose accepted clips are
-    copied in and reused. allow_paid=False (dry runs without --paid-motion): no paid clips, local parallax only."""
+    copied in and reused. allow_paid=False (dry runs without --paid-motion): no paid clips, local parallax only.
+    Only a strong shot is animated, or has a clip reused (animatable): never a context photo (Nazca, 2026-10-28:
+    a clip of the highway through the desert, made from a context shot, was carried into the regeneration), nor
+    a shot `durations` says lasts longer than the clip (it would freeze)."""
     memo = {} if memo is None else memo
     from .typography import is_video
     if config.MOTION_MAX_CLIPS <= 0:
         return scenes, []
+    ok = [animatable(p) and not (durations and i < len(durations) and durations[i] > SECONDS_OUT)
+          for i, p in enumerate(scenes)]
     # A clip this run already paid for is still on disk after a restart or a resume (the memo lives in
     # memory): reusing it costs nothing, so it is used whether or not this pass may buy one.
     memo.update({k: v for k, v in _clips_on_disk(work_dir).items() if k not in memo})
     for seed in seed_dirs or []:
         memo.update({k: v for k, v in _adopt_clips(work_dir, Path(seed)).items() if k not in memo})
     if not allow_paid or config.MEDIA_MONTHLY_BUDGET_USD <= 0:
-        reused = _reuse(scenes, memo)
+        reused = _reuse(scenes, memo, ok)
         return reused if reused[1] else (scenes, [])
     scenes, used = list(scenes), []
     work_dir.mkdir(parents=True, exist_ok=True)
 
     # Zero-waste guard: a clip already made in this run (e.g. before a re-plan) is reused, but only
     # where its own photo still appears: placed on another beat it would show the wrong subject.
-    scenes, reused = _reuse(scenes, memo)
+    scenes, reused = _reuse(scenes, memo, ok)
     if reused:
         return scenes, reused
 
@@ -475,6 +481,8 @@ def apply(
             break
         if is_video(scenes[i]):
             continue  # footage, graphics or a manual hook clip already move
+        if not ok[i]:
+            continue  # a context shot, one found for a line, or a held shot longer than the clip stays a still
         key = str(scenes[i])
         try:
             result = memo.get(key) or animate(db, Path(scenes[i]), work_dir / f"motion_{len(memo) + 1:02d}.mp4", topic=topic, fact_sheet=fact_sheet)
@@ -489,13 +497,27 @@ def apply(
     return scenes, used
 
 
-def _reuse(scenes: List[Path], memo: dict) -> Tuple[List[Path], List[str]]:
+def animatable(photo: Path) -> bool:
+    """A photo AI motion may be made from: a Topic or Kept photo, or one you supplied (src/scene_planner.strong_shot)."""
+    from .scene_planner import strong_shot
+    try:
+        return strong_shot(Path(photo))
+    except (OSError, ValueError) as e:  # an unreadable record: not animated
+        log.info("Motion: %s not animated (its record could not be read: %s).", Path(photo).name, e)
+        return False
+
+
+def _reuse(scenes: List[Path], memo: dict, ok: Optional[List[bool]] = None) -> Tuple[List[Path], List[str]]:
+    """Clips in `memo` placed where their own photo still appears, on a beat `ok` allows. A clip whose photo is
+    not animatable (a context shot: an earlier run's clip of it) is never placed."""
     scenes, reused = list(scenes), []
     for photo, (existing_clip, provider) in memo.items():
         if len(reused) >= config.MOTION_MAX_CLIPS:
             break
-        if Path(existing_clip).is_file():
+        if Path(existing_clip).is_file() and animatable(Path(photo)):
             for i in range(len(scenes)):
+                if ok is not None and not ok[i]:
+                    continue
                 if str(scenes[i]) == photo or Path(scenes[i]).resolve() == Path(photo).resolve():
                     scenes[i] = existing_clip
                     reused.append(provider)

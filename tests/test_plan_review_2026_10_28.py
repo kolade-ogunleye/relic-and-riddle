@@ -266,9 +266,14 @@ def test_render_roman_case_repaired_before_the_render_composes_once(db, monkeypa
                                [QAReport(summary="", issues=[])])
 
     assert len(renders) == 1 and len(feedbacks) == 1                  # composed once, no repair pass
-    assert renders[0] == ["aqueduct.jpg", "pantheon_dome.jpg", "lime_clasts.jpg", "lime_clasts.jpg"]
-    assert payload["picture_fit"]["unshown"][0]["beat"] == 4
-    assert "beat 4: “Today, uncontrolled cracking" in payload["scene_plan_note"]
+    # The lime shot held for the last line is one longer shot, not a second cut of it (Nazca, 2026-10-28): the
+    # card numbers the beats as the video now has them.
+    assert renders[0] == ["aqueduct.jpg", "pantheon_dome.jpg", "lime_clasts.jpg"]
+    assert payload["picture_fit"]["unshown"][0]["beat"] == 3
+    assert payload["picture_fit"]["unshown"][0]["fallback"] == "held_over"
+    assert "beat 3: “Today, uncontrolled cracking" in payload["scene_plan_note"]
+    assert "the previous shot is held over it" in payload["scene_plan_note"]
+    assert "🔁 Pictures" not in payload["scene_plan_note"]            # the one held shot is said once, above
     assert [i["klass"] for i in improve._buffer if i["source"] == "picture_fit"] == ["video.picture_relevance"]
     assert len(looks) == 3   # beats 2, 3 and 4: no spare photo to try, and the hook is not judged
 
@@ -288,8 +293,8 @@ def test_the_repair_after_the_render_cannot_put_the_pantheon_back(db, monkeypatc
                                [lambda fb: [hook, pantheon, lime, core], lambda fb: [hook, lime, core, pantheon]],
                                [flagged, QAReport(summary="", issues=[])])
 
-    assert len(renders) == 2 and renders[1][3] != "pantheon_dome.jpg"
-    assert renders[1] == ["aqueduct.jpg", "lime_clasts.jpg", "drill_core.jpg", "drill_core.jpg"]
+    assert len(renders) == 2 and "pantheon_dome.jpg" not in renders[1]
+    assert renders[1] == ["aqueduct.jpg", "lime_clasts.jpg", "drill_core.jpg"]   # the drill core held over the last line
     assert ("pantheon_dome.jpg", MODERN) in looks
 
 

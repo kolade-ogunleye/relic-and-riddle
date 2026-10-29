@@ -23,6 +23,7 @@ from . import commons, config, free_llm, graphic_match
 from .config import FOOTAGE_MAX_SHARE
 from .llm import LLMError, claude_available, image_block, structured_call, task as llm_task
 from .models import ScenePlan
+from .operator_jobs import JobCancelled
 from .typography import is_video
 
 log = logging.getLogger(__name__)
@@ -102,13 +103,14 @@ def _is_graphic(p: Path) -> bool:
     return is_video(p) and Path(p).stem.startswith(("graphic_", "footage_")) and Path(p).with_suffix(".jpg").exists()
 
 
-def _photo_entry(p: Path) -> Optional[Dict[str, Any]]:
-    """The credits.json entry of a sourced photo (None if none). A derived copy (text-band crop, privacy blur,
-    upscale) has no credits beside it: its lineage leads back to the original (the planner chose cropped photos
-    blind, audit 2026-10-28)."""
+def _photo_record(p: Path) -> Tuple[Optional[Dict[str, Any]], bool]:
+    """(credits.json entry, whether any folder on the way had a credits.json) of a sourced photo. A derived copy
+    (text-band crop, privacy blur, upscale) has no credits beside it: its lineage leads back to the original (the
+    planner chose cropped photos blind, audit 2026-10-28)."""
     p = Path(p)
-    entry = None
+    entry, credited = None, False
     for _ in range(4):
+        credited = credited or (p.parent / "credits.json").is_file()
         entry = next((e for e in _folder_credits(str(p.parent)) if e.get("file") == p.name), None)
         if entry:
             break
@@ -118,7 +120,44 @@ def _photo_entry(p: Path) -> Optional[Dict[str, Any]]:
             p = Path(sources[0]["path"])
         except (OSError, ValueError, KeyError, IndexError, TypeError):
             break
-    return entry
+    return entry, credited
+
+
+def _photo_entry(p: Path) -> Optional[Dict[str, Any]]:
+    """The credits.json entry of a sourced photo, through its lineage (None if none)."""
+    return _photo_record(p)[0]
+
+
+def strong_shot(p: Path) -> bool:
+    """A still that may open the video or be animated: a Topic or Kept photo by its record, or a photo you supplied
+    (no credits.json beside it or its sources). Never a context shot, a photo found for one line, or one never looked
+    at: Nazca on production (2026-10-28) opened on, and animated, a context photo of the highway through the desert."""
+    if is_video(Path(p)):
+        return False
+    from .image_review import tier
+    entry, credited = _photo_record(p)
+    if entry:
+        return tier(entry) in ("topic", "kept")
+    return not credited
+
+
+def picture_id(p: Path) -> str:
+    """What a picture is, whatever copy of it is placed: the file its lineage starts from (a text-band crop, an
+    upscale or a privacy blur is the same picture as its original; coverage audit 2026-10-28). Clips are their own
+    path."""
+    p = Path(p)
+    if not is_video(p):
+        from .lineage import sidecar
+        for _ in range(6):
+            try:
+                sources = json.loads(sidecar(p).read_text(encoding="utf-8")).get("sources") or []
+                p = Path(sources[0]["path"])
+            except (OSError, ValueError, KeyError, IndexError, TypeError):
+                break
+    try:
+        return str(p.resolve())
+    except OSError:
+        return str(p)
 
 
 def _photo_caption(p: Path) -> str:
@@ -178,22 +217,33 @@ def open_on_scale(chosen: List[Path], stills: List[Path]) -> List[Path]:
     """`chosen` with the hook beat on the topic's strongest scale shot (hook_shot), when the planned opening
     is a still whose record shows less scale. A shot already placed later trades places with the opening, so
     the set of pictures (and their credits) stays the same; footage and clips at the opening already move
-    and are kept."""
+    and are kept. Whatever the scale evidence, the opening is a strong shot (strong_shot): a context photo or one found for a line gives way to the first strong
+    still in pool order (best-first), one already placed before one that is not; none at all leaves the plan
+    alone."""
     if not chosen or is_video(Path(chosen[0])):
         return chosen
-    best = hook_shot(stills)
-    if best is None or Path(best) == Path(chosen[0]):
+    best, why = hook_shot(stills), "the widest recorded view"
+    if best is None:
+        if strong_shot(Path(chosen[0])):
+            return chosen
+        strong = [s for s in stills if strong_shot(Path(s))]
+        best = next((s for s in strong if s in chosen), strong[0] if strong else None)
+        why = "a Topic or Kept photo; the planned one is not"
+        if best is None:
+            return chosen
+    elif Path(best) == Path(chosen[0]):
         return chosen
-    current = scale_score(_photo_entry(Path(chosen[0])))
-    if current is not None and current >= scale_score(_photo_entry(best)):
-        return chosen
+    else:
+        current = scale_score(_photo_entry(Path(chosen[0])))
+        if current is not None and current >= scale_score(_photo_entry(best)):
+            return chosen
     out = list(chosen)
     if best in out:
         k = out.index(best)
         out[0], out[k] = out[k], out[0]
     else:
         out[0] = best
-    log.info("Opening shot: %s (the widest recorded view) instead of %s.", Path(best).name, Path(chosen[0]).name)
+    log.info("Opening shot: %s (%s) instead of %s.", Path(best).name, why, Path(chosen[0]).name)
     return out
 
 
@@ -367,11 +417,12 @@ def caption_order(beats: List[Dict[str, Any]], stills: List[Path]) -> Optional[L
 
 @llm_task("scene_plan")
 def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = "",
-                use_storyboard: bool = True) -> Tuple[List[Path], List[float], str]:
+                use_storyboard: bool = True, reserve: Optional[List[Path]] = None) -> Tuple[List[Path], List[float], str]:
     """Returns (media per beat, duration per beat, notes). A motion hook clip stays first.
     `feedback` lists problems a reviewer found with a previous plan, so they are avoided.
     `use_storyboard`: honour an approved Reel storyboard (its beats are numbered for a Reel; a
-    documentary's many cuts are planned from the narration instead)."""
+    documentary's many cuts are planned from the narration instead). `reserve`: stills offered only where a
+    picture would otherwise be shown twice (no_repeats), never to the planner or the opening."""
     durations = [b["end"] - b["start"] for b in beats]
     hook = media[0] if media and is_video(media[0]) and not _is_graphic(media[0]) else None
     stills = [p for p in media if not is_video(p)]
@@ -487,7 +538,8 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
     # first line names the place (2026-10-25). The map's own line still accepts it one cut later.
     if chosen and stills and _is_graphic(Path(chosen[0])):
         chosen[0] = next((s for s in stills if s not in chosen), stills[0])
-    # The opening shows the scale at once (open_on_scale); an approved storyboard's opening is the operator's.
+    # The opening shows the scale at once, on a Topic or Kept photo (open_on_scale); an approved storyboard's
+    # opening is the operator's and stands (a context shot there is said on the card: storyboard_opening_note).
     if notes != STORYBOARD_NOTES and stills:
         chosen = open_on_scale(chosen, stills)
 
@@ -508,7 +560,7 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
             if Path(chosen[k]).stem.startswith("graphic_") and not (keep_locked and k in locked):
                 chosen[k] = stills[k % len(stills)]
             k -= 1
-    chosen = no_repeats(chosen, stills)
+    chosen = no_repeats(chosen, stills, reserve)
     if hook is not None:
         chosen[0] = hook
     return chosen, durations, notes
@@ -594,8 +646,8 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
                 continue
             log.info("Beat %d: %s does not show its line %r (%s).", k + 1, pick.name, clip(line), first["reason"])
             # 1. another unused still that shows the line: those fetched for this line first, then pool order
-            in_use = set(out)
-            spare = [Path(p) for p in pool if still(Path(p)) and Path(p) not in in_use]
+            in_use = {picture_id(p) for p in out}   # a cropped copy of a placed photo is that photo
+            spare = [Path(p) for p in pool if still(Path(p)) and picture_id(Path(p)) not in in_use]
             spare.sort(key=lambda p: 0 if line_beat.get(p) == k + 1 else 1)  # stable: pool order otherwise
             swapped = None
             for cand in spare[:swaps]:
@@ -616,7 +668,7 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
                 break
             # 2. one of our own graphics that says what the line says, if the caps allow it
             graphic = next((g for g in pool if _is_graphic(Path(g)) and Path(g).stem.startswith("graphic_")
-                            and Path(g) not in in_use
+                            and picture_id(Path(g)) not in in_use
                             and graphic_match.judgeable(Path(g))  # one that declares nothing is never "what the line says"
                             and graphic_match.score(Path(g), line) >= graphic_match.THRESHOLD), None)
             if graphic is not None:
@@ -637,6 +689,7 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
                 log.info("Beat %d: no picture shows its line; the previous shot (%s) is held.", k + 1, prev.name)
             report["unshown"].append(entry)
     finally:
+        report["fits"] = sorted(k + 1 for k, ok in fits_at.items() if ok)   # beats whose picture was judged right
         if report["judged"]:
             beat_images.save_fit_cache(cache)
     return out, report
@@ -659,7 +712,8 @@ def fit_note(report: Dict[str, Any]) -> str:
         return ""
     said = []
     for u in unshown[:FIT_NOTE_MAX_BEATS]:
-        how = "the previous shot is repeated, reframed" if u.get("fallback") == "held" else f"{u.get('picture', 'its photo')} kept"
+        how = {"held": "the previous shot is repeated, reframed", "held_over": "the previous shot is held over it"}.get(
+            u.get("fallback"), f"{u.get('picture', 'its photo')} kept")
         said.append(f"beat {u['beat']}: “{clip(u.get('line', ''), 70)}”: no licensed photo shows it ({how})")
     more = len(unshown) - FIT_NOTE_MAX_BEATS
     return (f"{FIT_NOTE_LABEL}: " + "; ".join(said) + (f"; and {more} more" if more > 0 else "")
@@ -669,21 +723,281 @@ def fit_note(report: Dict[str, Any]) -> str:
 def fit_findings(report: Dict[str, Any]) -> List[str]:
     """One finding text per beat no picture shows, for improve.note (class video.picture_relevance)."""
     return [f"beat {u['beat']}: '{clip(u.get('line', ''), 120)}': no licensed photo shows it "
-            f"({'previous shot held' if u.get('fallback') == 'held' else u.get('picture', '') + ' kept'}; "
+            f"({'previous shot held' if u.get('fallback') in ('held', 'held_over') else u.get('picture', '') + ' kept'}; "
             f"{clip(u.get('reason', ''), 160)})" for u in (report or {}).get("unshown") or []]
 
 
-def no_repeats(chosen: List[Path], stills: List[Path]) -> List[Path]:
+def no_repeats(chosen: List[Path], stills: List[Path], reserve: Optional[List[Path]] = None) -> List[Path]:
     """No picture is shown twice while the pool still has unused photos: a repeat reads as padding.
     The swaps above take stills[k % n], which can be a photo already on another beat. Later copies
-    get the pool's next unused photo (the pool is ordered best-first); with fewer photos than beats,
-    repeats are unavoidable and stay."""
-    unused = [s for s in stills if s not in chosen]
+    get the pool's next unused photo (the pool is ordered best-first), then the `reserve`'s (context shots
+    beyond the usual cap: Nazca showed four photos twice while its fifth context photo was never used,
+    2026-10-28); with fewer photos than beats, repeats stay (hold_for_short_pool holds them instead). A picture
+    is what its lineage starts from (picture_id): a cropped copy and its original are one picture."""
+    pid = _id_memo()
+    placed = {pid(p) for p in chosen}
+    unused: List[Path] = []
+    for s in list(stills) + list(reserve or []):
+        if pid(s) not in placed:
+            placed.add(pid(s))   # each picture once in the unused list too
+            unused.append(s)
     seen = set()
     out = []
     for p in chosen:
-        if p in seen and unused:
+        if pid(p) in seen and unused:
             p = unused.pop(0)
-        seen.add(p)
+        seen.add(pid(p))
         out.append(p)
+    return out
+
+
+def _id_memo():
+    """picture_id, looked up once per path within one pass (each lookup reads lineage sidecars)."""
+    memo: Dict[str, str] = {}
+
+    def pid(p: Path) -> str:
+        key = str(p)
+        if key not in memo:
+            memo[key] = picture_id(Path(p))
+        return memo[key]
+    return pid
+
+
+# ------------------------------------------------------------------ fewer pictures than beats
+# Production Nazca, 2026-10-28: six stills for nine photo beats. The planner cycled photos (four shown twice) and
+# the fit check's fallback held the previous shot as a second, reframed cut. A picture held over two lines reads
+# as one shot; the same picture cut back in later reads as padding. So a repeated picture's beat may join a
+# neighbouring photo beat, at the beat boundaries the narration already has (cuts stay on its pauses), never past
+# HELD_SHOT_MAX and never into the hook (its motion clip lasts six seconds). A line keeps a picture that was
+# judged right for it (fit_to_lines): only a later copy, or a copy whose line no picture was found to show, may be
+# joined to a neighbour, and only to one showing the same picture or one judged to show that line too (`check`).
+# Otherwise the repeat stays, and the review card says so.
+HELD_SHOT_MAX = 2 * MAX_BEAT
+
+
+def still_shortfall(n_beats: int, media: List[Path]) -> int:
+    """How many beats the distinct stills in `media` cannot cover, as if every beat took a photo: the reserve made
+    from it is used only where a picture would otherwise repeat, so an estimate on the high side costs nothing."""
+    return max(0, n_beats - len({picture_id(p) for p in media if not is_video(Path(p))}))
+
+
+def hold_for_short_pool(beats: List[Dict[str, Any]], scenes: List[Path], durations: List[float],
+                        fits: Optional[Dict[int, bool]] = None, check=None, available: Optional[int] = None,
+                        merge: bool = True
+                        ) -> Tuple[List[Dict[str, Any]], List[Path], List[float], List[int], Dict[str, Any]]:
+    """(beats, scenes, durations, where each old beat went (old index -> new index), report) with repeated stills'
+    beats joined to neighbouring photo beats where the rules above allow (see above); nothing changes when no picture
+    repeats. `fits`: 0-based beat -> whether fit_to_lines judged its picture right for its line (absent: not judged).
+    `check(picture, line)`: True/False/None (could not look), asked before a line takes a neighbour's different
+    picture; without it, only a neighbour showing the same picture is joined. `available`: the distinct stills the
+    plan could choose from (with the reserve), which says whether the pool was short. report: "merged" (1-based new
+    beats carrying two or more lines), "shown" (1-based old beats whose line now shows a picture judged right for
+    it), "repeats" ({"beat", "first", "picture"}, new numbering), "distinct", "still_beats", "short". Nothing is
+    joined when the pool is not short (the fit check's held shot stays a reframed cut, as before) or with
+    merge=False (an approved storyboard: its beats are the operator's; the repeats are only reported)."""
+    lines = [str(b.get("text") or "") for b in beats]
+    beats, scenes, durations = [dict(b) for b in beats], [Path(p) for p in scenes], list(durations)
+    n = min(len(beats), len(scenes), len(durations))
+    beats, scenes, durations = beats[:n], scenes[:n], durations[:n]
+    groups = [[i] for i in range(n)]
+    status: Dict[int, Optional[bool]] = {i: (fits or {}).get(i) for i in range(n)}   # old beat -> its line is shown
+    shown: List[int] = []
+    asked: Dict[Tuple[str, str], Optional[bool]] = {}
+
+    pid = _id_memo()
+
+    def ids() -> List[Optional[str]]:
+        return [None if is_video(p) else pid(p) for p in scenes]
+
+    still_beats = sum(1 for i in ids() if i is not None)
+    distinct = len({i for i in ids() if i is not None})
+    short = (available if available is not None else distinct) < still_beats
+
+    def shows(picture: Path, old: int) -> bool:
+        if check is None or not lines[old].strip():
+            return False
+        key = (pid(picture), lines[old])
+        if key not in asked:
+            try:
+                asked[key] = check(picture, lines[old])
+            except JobCancelled:
+                raise
+            except Exception as e:  # a check that fails keeps the repeat
+                log.info("Held-shot check for %s could not run (%s).", Path(picture).name, e)
+                asked[key] = None
+        return asked[key] is True
+
+    while short and merge:
+        now = ids()
+        options = []
+        for k in range(len(scenes) - 1, 0, -1):   # the hook (0) is never joined
+            if now[k] is None or now.count(now[k]) < 2:
+                continue
+            first = now.index(now[k]) == k
+            if first and not any(status[o] is False for o in groups[k]):
+                continue   # the first copy keeps the line it was judged right for (or not judged against)
+            for j in (k - 1, k + 1):
+                if 1 <= j < len(scenes) and now[j] is not None and durations[j] + durations[k] <= HELD_SHOT_MAX:
+                    options.append((0 if now[j] == now[k] else 1, durations[j] + durations[k], -k, j))
+        step = None
+        for same, _, negk, j in sorted(options):
+            k = -negk
+            if same == 0 or all(shows(scenes[j], o) for o in groups[k]):
+                step = (k, j, same == 0)
+                break
+        if step is None:
+            break
+        k, j, same = step
+        if not same:
+            for o in groups[k]:
+                status[o] = True
+                if o + 1 not in shown:
+                    shown.append(o + 1)
+        lo, hi = sorted((k, j))
+        beats[lo] = {**beats[lo], "end": beats[hi].get("end", beats[lo].get("end")),
+                     "text": " ".join(t for t in (beats[lo].get("text", ""), beats[hi].get("text", "")) if t)}
+        scenes[lo], durations[lo], groups[lo] = scenes[j], durations[lo] + durations[hi], groups[lo] + groups[hi]
+        del beats[hi], scenes[hi], durations[hi], groups[hi]
+    where = [0] * n
+    for new, group in enumerate(groups):
+        for old in group:
+            where[old] = new
+    first_at: Dict[str, int] = {}
+    repeats = []
+    for k, p in enumerate(scenes):
+        if is_video(p):
+            continue
+        here = pid(p)
+        if here in first_at:
+            repeats.append({"beat": k + 1, "first": first_at[here] + 1, "picture": p.name})
+        first_at.setdefault(here, k)
+    report = {"merged": [k + 1 for k, g in enumerate(groups) if len(g) > 1], "shown": sorted(set(shown)),
+              "repeats": repeats, "distinct": distinct, "still_beats": still_beats, "short": short,
+              "storyboard": not merge}
+    if report["merged"] or repeats:
+        log.info("Pictures: %d distinct for %d photo beats; %d beat(s) now hold one picture over two or more lines, "
+                 "%d repeat(s) left.", distinct, still_beats, len(report["merged"]), len(repeats))
+    return beats, scenes, durations, where, report
+
+
+def withdrawals(planned: List[Path], wrong_beats: List[int], candidates: List[Path], floor: int = 3) -> set:
+    """The stills of `planned` to stop offering for a re-plan, so it cannot move them to another line (Nazca,
+    2026-10-25): those on `wrong_beats` (1-based; the video check found they show the wrong thing,
+    beat_images.wrong_subject_beats: never a finding that a picture repeats, which withdrew a right photo from a
+    short pool on 2026-10-28), with every copy of the same picture, while at least `floor` distinct stills stay in
+    `candidates` (counted after the gap search has added its photos). Empty when nothing may go."""
+    flagged = {planned[b - 1] for b in wrong_beats if 0 < b <= len(planned)
+               and not is_video(Path(planned[b - 1])) and not _is_graphic(Path(planned[b - 1]))}
+    if not flagged:
+        return set()
+    gone = {picture_id(f) for f in flagged}
+    left = {picture_id(c) for c in candidates if not is_video(Path(c)) and picture_id(c) not in gone}
+    if len(left) < floor:
+        log.info("Not withdrawing %s: only %d distinct still(s) would be left.",
+                 ", ".join(sorted(Path(f).name for f in flagged)), len(left))
+        return set()
+    return {c for c in candidates if picture_id(c) in gone}
+
+
+def original_beats(numbers: List[int], where: List[int]) -> Dict[int, List[int]]:
+    """1-based beats after hold_for_short_pool -> the 1-based original beats each one carries."""
+    out: Dict[int, List[int]] = {}
+    for old, new in enumerate(where):
+        if new + 1 in numbers:
+            out.setdefault(new + 1, []).append(old + 1)
+    return out
+
+
+# A beat number, not a count after it ("beat 3 and 4 seconds later", "beat 4 - 5 people"): a number followed by a
+# unit or a noun of quantity is left alone, and only an unspaced dash or "to" makes a range.
+_NOT_A_COUNT = (r"(?!\d)(?!\s*(?:%|(?:seconds?|secs?|s|minutes?|mins?|hours?|days?|weeks?|months?|years?|decades?"
+                r"|centuries|people|persons?|men|women|children|visitors|workers|times|metres?|meters?|m|km|cm|mm"
+                r"|feet|foot|ft|miles?|percent|tons?|tonnes?|kg)\b))")
+_BEAT_ITEM = rf"\d+{_NOT_A_COUNT}(?:(?:[-–]|\s+to\s+)\d+{_NOT_A_COUNT})?"
+_BEAT_LIST = re.compile(rf"\b([Bb]eats?\s+)({_BEAT_ITEM}(?:(?:\s*[,&]\s*|\s+(?:and|or)\s+){_BEAT_ITEM})*)")
+
+
+def renumber_feedback(text: str, where: List[int]) -> str:
+    """Video-check feedback, numbered by the beats the video had, in the narration's own beats (the re-plan works
+    on those): "Beat 4" of a video whose beat 4 carried lines 4 and 5 becomes "Beat 4+5"; every number of a list
+    ("Beats 4 and 5", "beats 2, 3") is mapped, and a range ("beats 2-3") runs from its first beat's first line to
+    its last beat's last line. A count after a beat number ("4 seconds", "5 people") is not a beat."""
+    groups = original_beats(list(range(1, max(where, default=-1) + 2)), where)
+
+    def item(m: "re.Match") -> str:
+        lo = groups.get(int(m.group(1)))
+        if m.group(3) is None:
+            return "+".join(map(str, lo)) if lo else m.group(0)
+        hi = groups.get(int(m.group(3)))
+        return f"{lo[0] if lo else m.group(1)}{m.group(2)}{hi[-1] if hi else m.group(3)}"
+
+    def numbers(m: "re.Match") -> str:
+        return m.group(1) + re.sub(r"(\d+)(?:([-–]|\s+to\s+)(\d+))?", item, m.group(2))
+    return _BEAT_LIST.sub(numbers, text or "")
+
+
+def storyboard_opening_note(notes: str, scenes: List[Path]) -> str:
+    """The card's warning when an approved storyboard opens on a still that is not a Topic or Kept photo (the
+    operator's choice stands; it is not animated either), else ""."""
+    if notes != STORYBOARD_NOTES or not scenes or is_video(Path(scenes[0])) or strong_shot(Path(scenes[0])):
+        return ""
+    return (f"⚠️ Opening: the approved storyboard opens on {Path(scenes[0]).name}, which is not one of the topic's "
+            "own photos (a context shot): it stays as approved, without AI motion. Edit the storyboard to open on "
+            "the subject itself.")
+
+
+HOLD_NOTE_LABEL = "🔁 Pictures"
+
+
+def hold_note(report: Dict[str, Any], reserve_used: Optional[List[str]] = None,
+              fit_report: Optional[Dict[str, Any]] = None) -> str:
+    """The review card's line when the pool had fewer pictures than photo beats ("" otherwise). A beat the fit
+    check's line already names as held over (fit_note, `fit_report`) is not said again here."""
+    report = report or {}
+    said_there = {u.get("beat") for u in (fit_report or {}).get("unshown") or [] if u.get("fallback") == "held_over"}
+    merged = [m for m in report.get("merged") or [] if m not in said_there]
+    repeats = report.get("repeats") or []
+    if not (report.get("short") or reserve_used) or not (merged or repeats or reserve_used):
+        return ""
+    said = []
+    if reserve_used:
+        said.append(f"{len(reserve_used)} context photo(s) beyond the usual cap used rather than repeat a picture "
+                    f"({', '.join(reserve_used)})")
+    if merged:
+        said.append(("beats " if len(merged) > 1 else "beat ") + ", ".join(map(str, merged))
+                    + (" each hold" if len(merged) > 1 else " holds") + " one picture over two or more lines")
+    if repeats:
+        said.append("; ".join(f"beat {r['beat']} repeats beat {r['first']}'s picture ({r['picture']})"
+                              for r in repeats[:FIT_NOTE_MAX_BEATS])
+                    + (f"; and {len(repeats) - FIT_NOTE_MAX_BEATS} more" if len(repeats) > FIT_NOTE_MAX_BEATS else ""))
+    head = f"{HOLD_NOTE_LABEL}: {report.get('distinct', '?')} distinct for {report.get('still_beats', '?')} photo beats"
+    tail = (" (the approved storyboard is kept as it is: edit it, or add photos)" if report.get("storyboard") and repeats
+            else "") + ". Add photos of the topic for a picture per line."
+    return head + ": " + "; ".join(said) + tail
+
+
+def remap_beats(report: Dict[str, Any], where: List[int], scenes: Optional[List[Path]] = None,
+                shown: Optional[List[int]] = None, keys=("swapped", "graphic", "held", "unshown")) -> Dict[str, Any]:
+    """A fit_to_lines report in the beat numbering after hold_for_short_pool (1-based old -> new). A line that now
+    shows a picture judged right for it (`shown`, old numbering) leaves "unshown"; a row names the picture its beat
+    now has (`scenes`, after the hold); a held line joined to the shot it held is said as held over, not repeated."""
+    out = dict(report or {})
+    shown = set(shown or [])
+    for key in keys:
+        rows = []
+        for row in out.get(key) or []:
+            row = dict(row)
+            old = int(row.get("beat", 0)) - 1
+            if key == "unshown" and old + 1 in shown:
+                continue
+            if 0 <= old < len(where):
+                if row.get("fallback") == "held" and old > 0 and where[old] == where[old - 1]:
+                    row["fallback"] = "held_over"
+                row["beat"] = where[old] + 1
+                if key == "unshown" and scenes is not None and where[old] < len(scenes):
+                    row["picture"] = Path(scenes[where[old]]).name
+            rows.append(row)
+        out[key] = rows
+    if out.get("fits"):
+        out["fits"] = sorted({where[b - 1] + 1 for b in out["fits"] if 0 < b <= len(where)})
     return out

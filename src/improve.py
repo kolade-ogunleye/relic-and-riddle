@@ -784,6 +784,7 @@ FINDING_NAMES = {"run.failed.ScriptUnavailableError": "Runs stopped: no usable s
                  "video.face_blur": "Face blurring over artwork",
                  "video.timing": "A picture or graphic at the wrong moment",
                  "pictures.licence_excluded": "Pictures left out by your licence setting",
+                 "pictures.short_pool": "Fewer pictures than photo beats",
                  "release.asset_rights": "Release gate: picture or music rights",
                  "release.visual_checks": "Release gate: the look at the video",
                  "graphics.emphasis_words": "Graphics: emphasised words",

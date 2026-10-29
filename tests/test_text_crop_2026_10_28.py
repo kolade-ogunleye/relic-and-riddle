@@ -312,8 +312,10 @@ def test_a_found_picture_with_text_inside_or_off_subject_is_not_cropped(monkeypa
 
 def test_the_pool_screen_and_the_beat_search_share_one_crop_rule():
     import inspect
-    assert "cropped_clear(" in inspect.getsource(beat_images.without_burned_in_text)
-    assert "cropped_clear(" in inspect.getsource(beat_images.screened_picture)
+    # Both go through clear_edges (text band, then a foreign object along an edge), which crops by cropped_clear.
+    assert "clear_edges(" in inspect.getsource(beat_images.without_burned_in_text)
+    assert "clear_edges(" in inspect.getsource(beat_images.screened_picture)
+    assert "cropped_clear(" in inspect.getsource(beat_images.clear_edges)
     assert "crop_text_band(" not in inspect.getsource(beat_images.without_burned_in_text)
 
 

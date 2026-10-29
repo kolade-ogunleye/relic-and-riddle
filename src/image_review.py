@@ -115,6 +115,14 @@ def usable_photos(images: List[Dict[str, Any]], context_max: int = CONTEXT_SHOTS
     return by["topic"] + by["kept"] + by["context"][:context_max]
 
 
+def reserve_photos(images: List[Dict[str, Any]], context_max: int = CONTEXT_SHOTS_MAX) -> List[Dict[str, Any]]:
+    """The context shots usable_photos leaves out (beyond `context_max`), most relevant first: offered to a video
+    only where a picture would otherwise be shown twice (src/scene_planner.no_repeats), never to open it or be
+    animated. Readiness and approval still count at most `context_max` (Nazca, 2026-10-28: its fifth context photo
+    went unused while four photos were shown twice)."""
+    return sorted((im for im in images if tier(im) == "context"), key=_relevance, reverse=True)[context_max:]
+
+
 # ------------------------------------------------------------------ one readiness rule, the video's
 # Production 2026-10-27/28 (run_greek_fire_siphon_1793038718, run_tunguska_event_1908_1793057943; dev
 # run_tunguska_event_1908_1792980390): pools approved by the review (yes + partly >= 5) and shown as ready

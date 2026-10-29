@@ -1836,6 +1836,7 @@ class PipelineCoordinator:
         scene_media = self.visual_engine.get_scene_sequence(topic)
         if still_turned:  # never used turned over
             scene_media = [m for m in scene_media if Path(str(m)).name not in still_turned]
+        self._still_turned = set(still_turned or ())  # the reserve photos (_reserve_stills) skip these too
         # Photos with text printed into them (a placard, a caption strip) are set aside, looked at once each.
         scene_media = beat_images.without_burned_in_text(scene_media, topic.get("title", ""), config.MIN_SCENE_IMAGES)
         from src.image_review import strong_stems
@@ -2325,15 +2326,19 @@ class PipelineCoordinator:
             log.debug("Line-picture verdict not recorded: %s", e)
         return out
 
-    def _fit_pictures(self, run_id, topic, beats, scenes, durations, candidates, beat_credits):
+    def _fit_pictures(self, run_id, topic, beats, scenes, durations, candidates, beat_credits, where=None,
+                      file_findings=True):
         """Each photo beat's picture against its line before the render (src/scene_planner.fit_to_lines): a picture
         that does not show it is swapped for one that does, else our matching graphic, else the previous shot is
-        held; a line nothing shows is filed (video.picture_relevance) and said on the card. Never raises, except
+        held; a line nothing shows is filed (video.picture_relevance, unless `file_findings` is off: the caller
+        files them after the hold) and said on the card. `where` (original beat -> beat of `beats`, 0-based) when
+        `beats` are a held video's: the found photos' lines are in the narration's numbering. Never raises, except
         a cancel: the plan stays as it was when the check fails."""
         from src import improve
         title = topic.get("title", run_id)
         self._progress_note(run_id, title, 3, "Synthesizing graphics, stills & motion · checking each picture against its line")
-        line_beat = {Path(c["upscaled"]): c.get("beat") for c in beat_credits or [] if c.get("upscaled")}
+        to_beat = (lambda b: where[b - 1] + 1 if isinstance(b, int) and 0 < b <= len(where) else b) if where else (lambda b: b)
+        line_beat = {Path(c["upscaled"]): to_beat(c.get("beat")) for c in beat_credits or [] if c.get("upscaled")}
         try:
             fitted, report = fit_to_lines(beats, scenes, candidates, title, durations=durations, line_beat=line_beat,
                                           cancel=lambda: self._check_cancel(run_id))
@@ -2343,13 +2348,100 @@ class PipelineCoordinator:
             log.warning("Picture-line check could not run (%s); the plan is kept.", e)
             return list(scenes), {"judged": 0, "cached": 0, "swapped": [], "graphic": [], "held": [], "unshown": [],
                                   "stopped": f"error: {e}"}
-        for text in fit_findings(report):
-            improve.note("video.picture_relevance", text, source="picture_fit")
+        if file_findings:
+            for text in fit_findings(report):
+                improve.note("video.picture_relevance", text, source="picture_fit")
         if report.get("judged") or report.get("cached"):
             log.info("Picture-line check: %d new look(s), %d cached; %d swapped, %d graphic, %d held, %d with no picture%s.",
                      report["judged"], report["cached"], len(report["swapped"]), len(report["graphic"]),
                      len(report["held"]), len(report["unshown"]), f" ({report['stopped']})" if report["stopped"] else "")
         return fitted, report
+
+    def _reserve_stills(self, topic, beats, candidates) -> List[Path]:
+        """The pool's context shots beyond the usual cap, prepared like the others (text and edge screen, upscale,
+        faces), as many as the photo beats the candidates' distinct stills cannot cover (still_shortfall): offered
+        only where a picture would otherwise repeat (scene_planner.no_repeats). Never raises: none on a failure."""
+        from src.scene_planner import still_shortfall
+        try:
+            short = still_shortfall(len(beats), candidates)
+            if short <= 0:
+                return []
+            turned = getattr(self, "_still_turned", set())
+            reserve = [p for p in self.visual_engine.reserve_sequence(topic) if p.name not in turned][:short]
+            if not reserve:
+                return []
+            reserve = beat_images.without_burned_in_text(reserve, topic.get("title", ""), 0)
+            reserve = privacy.anonymize_all([ensure_resolution(p) for p in reserve])
+            log.info("Pictures: %d photo beat(s) short; %d context photo(s) held in reserve against a repeat: %s.",
+                     short, len(reserve), ", ".join(Path(p).name for p in reserve))
+            return [Path(p) for p in reserve]
+        except Exception as e:  # the reserve is a saving, never a new way for a run to fail
+            log.warning("Reserve photos not prepared (%s); a short pool repeats or holds pictures instead.", e)
+            return []
+
+    HELD_CHECK_CALLS = 8   # new looks a run's held shots may ask for (a cached verdict costs nothing)
+    _held_looks: Optional[int] = None   # what is left of it this run (reset where the render stage starts)
+
+    def _hold_short_pool(self, run_id, topic, beats, scenes, durations, fit_report, available, storyboard=False):
+        """A picture held over two lines instead of cut back in later (scene_planner.hold_for_short_pool): a line
+        takes a neighbour's different picture only when the light model judges that picture right for it (the fit
+        check's cached verdicts first; at most HELD_CHECK_CALLS new looks a run, none once a look fails or the fit
+        check found the model down). An approved storyboard is not changed (its repeats are said). The fit check's
+        findings are filed here, for the lines still unshown after the hold. Returns (beats, scenes, durations,
+        fit_report, hold_report, where) for the video from here on, the fit report in its numbering. Never raises,
+        except a cancel: the plan stays as it was on a failure."""
+        from src import improve
+        from src.credits import sha256_file
+        from src.scene_planner import hold_for_short_pool, remap_beats
+        same = (list(beats), list(scenes), list(durations), fit_report,
+                {"merged": [], "shown": [], "repeats": [], "distinct": 0, "still_beats": 0, "short": False},
+                list(range(len(beats))))
+        try:
+            fits = {b - 1: True for b in fit_report.get("fits") or []}
+            fits.update({u["beat"] - 1: False for u in fit_report.get("unshown") or [] if isinstance(u.get("beat"), int)})
+            cache = beat_images.load_fit_cache()
+            subject = topic.get("title", topic.get("id", ""))
+            down = str(fit_report.get("stopped") or "")
+            if self._held_looks is None:
+                self._held_looks = self.HELD_CHECK_CALLS
+            spent, digests = [False], {}
+
+            def check(picture, line):
+                if not config.PICTURE_VISION_CHECK or down.startswith(("the picture check could not run", "error")):
+                    return None
+                if str(picture) not in digests:   # one hash per photo, whatever the lines asked about it
+                    digests[str(picture)] = sha256_file(Path(picture))
+                digest = digests[str(picture)]
+                if beat_images.fit_key(digest, line) not in cache:
+                    if self._held_looks <= 0:
+                        return None
+                    self._check_cancel(run_id)
+                    self._held_looks -= 1
+                    spent[0] = True
+                verdict = beat_images.line_fit(Path(picture), line, subject, cache, digest=digest)
+                if verdict is None:   # the model is down: every further look would wait out its retry
+                    self._held_looks = 0
+                    return None
+                return verdict["fits"]
+
+            try:
+                beats, scenes, durations, where, held = hold_for_short_pool(beats, scenes, durations, fits=fits,
+                                                                             check=check, available=available,
+                                                                             merge=not storyboard)
+            finally:
+                if spent[0]:
+                    beat_images.save_fit_cache(cache)
+            if held["merged"]:
+                fit_report = remap_beats(fit_report, where, scenes, held["shown"])
+            result = (beats, scenes, durations, fit_report, held, where)
+        except JobCancelled:
+            raise
+        except Exception as e:  # the hold is a saving, never a new way for a run to fail
+            log.warning("Held shots could not be planned (%s); the plan is kept.", e)
+            result = same
+        for text in fit_findings(result[3]):
+            improve.note("video.picture_relevance", text, source="picture_fit")
+        return result
 
     def _render_approve_publish(self, topic, run_id, run_dir, payload, scene_media, hero_img,
                                 vo_path, bed_path, words, vo_dur, auto_approve, dry_run, previous_status,
@@ -2450,6 +2542,10 @@ class PipelineCoordinator:
         # The channel's own animated graphics (map, timeline, scale) as further candidates.
         own_graphics += [g for g in (labelled, then_clip) if g]
         candidates = scene_media + [Path(c["upscaled"]) for c in beat_credits] + own_graphics + footage_clips
+        # Fewer distinct pictures than photo beats (Nazca, 2026-10-28): the pool's further context shots, held in
+        # reserve against a repeat; what is still short is held over two lines (_hold_short_pool) or said.
+        reserve = self._reserve_stills(topic, beats, candidates)
+        reserve_arg = {"reserve": reserve} if reserve else {}
         master_mp4 = run_dir / f"{tid}_master.mp4"
         caption_base, feedback, qa = payload["caption"], "", None
         fb = self._feedback()
@@ -2457,6 +2553,11 @@ class PipelineCoordinator:
             feedback = "The human reviewer sent the previous version back for its pictures." + (
                 f" Their words: {fb['text']}" if fb.get("text") else "")
         motion_memo: Dict[str, Any] = {}
+        # The narration's own beats: every plan starts from them; a hold (_hold_short_pool) joins some for the video
+        # it makes, and the video check numbers the beats that video has (`where` maps one to the other).
+        from src.typography import is_video
+        plan_beats, where = beats, list(range(len(beats)))
+        short_noted, self._held_looks = False, None   # the held shots' look budget is the run's
         planned: List[Path] = []   # the first plan's picks, so a placement-only repair can move one
         durations: List[float] = []
         late_graphics: List[Dict[str, Any]] = []
@@ -2464,14 +2565,22 @@ class PipelineCoordinator:
         for attempt in (1, 2):  # a second pass only if the video check finds a picture mismatch
             from src.scene_planner import repair_placement
             repaired = repair_placement(planned, durations, late_graphics) if attempt == 2 and late_graphics and planned else None
-            if repaired is not None:
+            from src.scene_planner import picture_id
+            available = len({picture_id(c) for c in candidates + reserve if not is_video(Path(c))})
+            if repaired is not None:   # the video's own beats (the move is within the plan it judged)
                 scenes, plan_notes = repaired, "placement repaired in place: " + "; ".join(i.get("issue", "") for i in late_graphics)
                 log.info("Scene placement repaired without a second plan: %s", plan_notes[:160])
             else:
-                scenes, durations, plan_notes = plan_scenes(beats, candidates, feedback=feedback)
+                beats = plan_beats
+                scenes, durations, plan_notes = plan_scenes(beats, candidates, feedback=feedback, **reserve_arg)
                 log.info("Scene plan: %d beats (%s).", len(beats), plan_notes[:120])
             # Each photo against its own line, before motion, parallax and the render (render audit 2026-10-28).
-            scenes, fit_report = self._fit_pictures(run_id, topic, beats, scenes, durations, candidates, beat_credits)
+            scenes, fit_report = self._fit_pictures(run_id, topic, beats, scenes, durations, candidates, beat_credits,
+                                                    where=where if repaired is not None else None, file_findings=False)
+            from src.scene_planner import STORYBOARD_NOTES
+            beats, scenes, durations, fit_report, held, step = self._hold_short_pool(
+                run_id, topic, beats, scenes, durations, fit_report, available, storyboard=plan_notes == STORYBOARD_NOTES)
+            where = [step[w] for w in where] if repaired is not None else step
             planned = list(scenes)
             used = beat_images.used_credits(scenes, beat_credits)
             used_footage = [c for c in footage_credits if Path(c["file"]) in scenes]
@@ -2482,11 +2591,26 @@ class PipelineCoordinator:
             if len(caption) > 2200:  # can't credit them within Instagram's limit, so don't use them
                 log.warning("Image/footage credits would overflow the caption; using the topic's images and our graphics only.")
                 candidates, used, used_footage, caption = scene_media + own_graphics, [], [], caption_base
-                scenes, durations, plan_notes = plan_scenes(beats, candidates, feedback=feedback)
-                scenes, fit_report = self._fit_pictures(run_id, topic, beats, scenes, durations, candidates, [])
+                beats = plan_beats    # a fresh plan: from the narration's own beats again
+                available = len({picture_id(c) for c in candidates + reserve if not is_video(Path(c))})
+                scenes, durations, plan_notes = plan_scenes(beats, candidates, feedback=feedback, **reserve_arg)
+                scenes, fit_report = self._fit_pictures(run_id, topic, beats, scenes, durations, candidates, [],
+                                                        file_findings=False)
+                beats, scenes, durations, fit_report, held, where = self._hold_short_pool(
+                    run_id, topic, beats, scenes, durations, fit_report, available, storyboard=plan_notes == STORYBOARD_NOTES)
                 planned = list(scenes)  # the plan the repair pass judges (the overflow re-plan replaced the first)
             payload["caption"] = caption
-            payload["scene_plan_note"] = "\n".join(n for n in (degraded_note(plan_notes), fit_note(fit_report)) if n)
+            from src.scene_planner import hold_note, storyboard_opening_note
+            reserve_used = sorted({Path(r).name for r in reserve if picture_id(r) in {picture_id(s) for s in scenes}})
+            payload["scene_plan_note"] = "\n".join(n for n in (degraded_note(plan_notes), storyboard_opening_note(plan_notes, scenes),
+                                                               fit_note(fit_report), hold_note(held, reserve_used, fit_report)) if n)
+            payload["picture_hold"] = {**held, "reserve_used": reserve_used}
+            if hold_note(held, reserve_used) and not short_noted:  # for the audit ledger, once per run
+                short_noted = True
+                from src import improve
+                improve.note("pictures.short_pool", f"{held['distinct']} distinct pictures for {held['still_beats']} photo "
+                             f"beats: {len(held['merged'])} held over two or more lines, {len(held['repeats'])} repeated, "
+                             f"{len(reserve_used)} reserve context photo(s) used", source="scene_plan")
             payload["picture_fit"] = {k: fit_report.get(k) for k in ("judged", "cached", "swapped", "graphic", "held",
                                                                       "unshown", "stopped")}
             used_graphics = [p.stem.replace("graphic_", "") for p in own_graphics if p in scenes]
@@ -2513,7 +2637,8 @@ class PipelineCoordinator:
             self._check_cancel(run_id)
             scenes, motion_used = motion.apply(self.db, scenes, run_dir / "motion", memo=motion_memo, topic=topic,
                                                allow_paid=(not dry_run) or self.paid_motion_in_dry_run or config.MOTION_IN_DRY_RUNS,
-                                               seed_dirs=self._previous_motion_dirs())  # a regeneration keeps its paid clips
+                                               seed_dirs=self._previous_motion_dirs(),  # a regeneration keeps its paid clips
+                                               durations=durations)
             payload["motion_note"] = (f"🤖 AI motion ({', '.join(motion_used)}) animates {len(motion_used)} real photo(s); "
                                       "the Reel carries the AI label") if motion_used else ""
             self._check_cancel(run_id)
@@ -2616,23 +2741,19 @@ class PipelineCoordinator:
             # Beats whose picture doesn't show what is said get their own Commons search when the first
             # pictures did not cover them (same licence, relevance and privacy steps as the first search).
             gaps = beat_images.mismatched_beats(qa)
-            # A picture the check found wrong for its line is not offered again: told only "beat 5 shows a
-            # car", the re-plan moved the car to beat 6 (Nazca, 2026-10-25). Enough pictures stay to fill it.
-            from src.scene_planner import _is_graphic
-            from src.typography import is_video
-            flagged = {planned[b - 1] for b in gaps if 0 < b <= len(planned)
-                       and not is_video(planned[b - 1]) and not _is_graphic(Path(planned[b - 1]))}
-            remaining = [c for c in candidates if c not in flagged]
-            if flagged and sum(1 for c in remaining if not is_video(c) and not _is_graphic(Path(c))) >= 3:
-                candidates = remaining
-                feedback += "\nThe picture(s) flagged above are no longer offered; choose among the others."
-                payload["self_healing_actions"][-1]["withdrawn"] = sorted(Path(f).name for f in flagged)
+            # The re-plan works on the narration's own beats: the findings' beat numbers (the video's) are said in
+            # those, and the photos found for a beat are filed under the first line it carried.
+            from src.scene_planner import original_beats, renumber_feedback, withdrawals
+            feedback = renumber_feedback(feedback, where)
             if gaps:
                 gap_paths, gap_credits = beat_images.source_gaps(
                     beats, gaps, topic, run_dir / "beat_images", seen={c.get("title") for c in beat_credits},
                     notes=beat_images.picture_issues(qa))
                 for cred, safe in zip(gap_credits, privacy.anonymize_all([ensure_resolution(p) for p in gap_paths])):
                     cred["upscaled"] = str(safe)
+                lines_of = original_beats([c["beat"] for c in gap_credits], where)
+                for cred in gap_credits:
+                    cred["beat"] = (lines_of.get(cred["beat"]) or [cred["beat"]])[0]
                 if gap_credits:
                     beat_credits += gap_credits
                     candidates += [Path(c["upscaled"]) for c in gap_credits]
@@ -2640,6 +2761,15 @@ class PipelineCoordinator:
                     feedback += ("\nNew pictures were found for beat(s) " + ", ".join(map(str, found_for))
                                  + ": use them where they show what is said.")
                     payload["self_healing_actions"][-1]["new_pictures"] = [c.get("title") for c in gap_credits]
+            # A picture the check found wrong for its line is not offered again: told only "beat 5 shows a
+            # car", the re-plan moved the car to beat 6 (Nazca, 2026-10-25). Never for a finding that a picture
+            # repeats (it was right where first used: Nazca, 2026-10-28), and only while 3 distinct stills stay,
+            # counted with the photos the gap search just found.
+            flagged = withdrawals(planned, beat_images.wrong_subject_beats(qa), candidates)
+            if flagged:
+                candidates = [c for c in candidates if c not in flagged]
+                feedback += "\nThe picture(s) flagged above are no longer offered; choose among the others."
+                payload["self_healing_actions"][-1]["withdrawn"] = sorted({Path(f).name for f in flagged})
         t0 = time.perf_counter()
         self._check_cancel(run_id)
         if getattr(self, "progress_msg_id", None):

@@ -215,6 +215,18 @@ class VisualEngine:
             resolved = [hook_video] + resolved[1:]
         return resolved
 
+    def reserve_sequence(self, topic: Dict[str, Any]) -> List[Path]:
+        """The approved pool's context shots beyond the video's usual cap (image_review.reserve_photos), best
+        first: used only where a picture would otherwise repeat. Empty for a pool not approved or without credits."""
+        topic_dir = self.assets_dir / topic["id"]
+        if not (topic_dir / CREDITS_FILE).exists():
+            return []
+        credits = load_credits(topic_dir)
+        if not credits.get("reviewed"):
+            return []
+        from .image_review import reserve_photos
+        return [topic_dir / c["file"] for c in reserve_photos(credits["images"]) if (topic_dir / c["file"]).is_file()]
+
     @staticmethod
     def hero_image(scene_media: List[Path]) -> Path:
         """First still image in the sequence (a motion hook clip can't be a cover)."""

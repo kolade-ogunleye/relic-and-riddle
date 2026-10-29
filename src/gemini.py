@@ -51,6 +51,23 @@ class QuotaExhausted(GeminiError):
     """The key's quota (free-tier daily limit) is used up."""
 
 
+class EmptyReply(GeminiError):
+    """HTTP 200 with no answer in it (run audit 2026-10-29: the billed key's "did not match the schema: 'parts'"):
+    the message says why, from the reply's finishReason or blockReason. Another sample may answer."""
+
+
+def _no_output_reason(body: Dict[str, Any]) -> str:
+    """Why a generateContent reply carries no text: its finish or block reason and what its tokens went on."""
+    cand = ((body.get("candidates") or [{}])[0]) if isinstance(body, dict) else {}
+    meta = (body.get("usageMetadata") or {}) if isinstance(body, dict) else {}
+    said = [f"finishReason {cand.get('finishReason')}" if cand.get("finishReason") else "",
+            f"blockReason {(body.get('promptFeedback') or {}).get('blockReason')}"
+            if (body.get("promptFeedback") or {}).get("blockReason") else "",
+            f"{meta.get('thoughtsTokenCount')} thinking tokens" if meta.get("thoughtsTokenCount") else "",
+            "no candidates" if not body.get("candidates") else ""]
+    return ", ".join(s for s in said if s) or "no reason given"
+
+
 def _post(body: Dict[str, Any], timeout: float = 300, key: str = None) -> Dict[str, Any]:
     key = key if key is not None else GEMINI_API_KEY
     if not is_configured(key):
@@ -277,9 +294,20 @@ def structured(system: str, prompt: Union[str, list], schema: Type[T], model: st
             meta = body_json.get("usageMetadata") or {}
             _set_usage(meta.get("promptTokenCount", 0),
                        meta.get("candidatesTokenCount", 0) + meta.get("thoughtsTokenCount", 0))
-            text = body_json["candidates"][0]["content"]["parts"][0]["text"]
+        except (AttributeError, ValueError) as e:
+            raise GeminiError(f"Gemini vision reply was not JSON: {e}") from e
+        # The answer's text parts, a thought part aside; a reply with none says why (it was logged only as
+        # "did not match the schema: 'parts'", run audit 2026-10-29).
+        cands = body_json.get("candidates") or [{}]
+        parts = ((cands[0] or {}).get("content") or {}).get("parts") or []
+        text = "".join(p.get("text", "") for p in parts if isinstance(p, dict) and not p.get("thought")).strip()
+        if not text:
+            why = _no_output_reason(body_json)
+            log.info("Gemini vision reply from %s had no output (%s).", model or GEMINI_MODEL, why)
+            raise EmptyReply(f"Gemini vision reply had no output ({why}).")
+        try:
             return schema.model_validate(json.loads(text))
-        except (KeyError, IndexError, ValueError) as e:
+        except ValueError as e:
             raise GeminiError(f"Gemini vision output did not match the schema: {e}") from e
 
     data = _post({
@@ -291,6 +319,10 @@ def structured(system: str, prompt: Union[str, list], schema: Type[T], model: st
     usage = data.get("usage") or {}
     _set_usage(usage.get("total_input_tokens", 0), usage.get("total_output_tokens", 0))
     text = "".join(b.get("text", "") for b in _text_blocks(data)).strip()
+    if not text:   # completed, but no text step: said as such, not as a schema mismatch
+        steps = ", ".join(sorted({str(s.get("type")) for s in data.get("steps", []) if isinstance(s, dict)})) or "none"
+        log.info("Gemini reply from %s had no output (steps: %s).", model or GEMINI_MODEL, steps)
+        raise EmptyReply(f"Gemini reply had no output (steps: {steps}).")
     try:
         return schema.model_validate(json.loads(text))
     except (ValueError, json.JSONDecodeError) as e:

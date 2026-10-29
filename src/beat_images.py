@@ -18,11 +18,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 from PIL import Image
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from . import commons
 from . import config
-from .llm import LLMError, structured_call, task as llm_task, verdict_reason
+from .llm import LLMError, degenerate_reason, structured_call, task as llm_task, verdict_reason
 from .models import BeatQueries
 
 log = logging.getLogger(__name__)
@@ -45,21 +45,37 @@ def verify_visual_relevance(cand_title: str, query: str = "") -> bool:
     return not any(p in text for p in reject_patterns)
 
 
+TEXT_EDGES = ("none", "top", "bottom", "left", "right", "inside")
+OBJECT_EDGES = ("none", "top", "bottom", "left", "right")
+REASON_WORDS = 25   # asked of each reason; llm.degenerate_reason refuses one past llm.REASON_MAX_CHARS
+
+
+def _every_field_required(schema: Dict[str, Any]) -> None:
+    schema["required"] = list(schema.get("properties", {}))
+
+
 class PictureVerdict(BaseModel):
+    # Every field is required in the schema the model answers to, and the edges are enums (run audit 2026-10-29:
+    # with defaults the model left edge and box out, "text: true, edge: none, box: []" was cached and the photo set
+    # aside in every run since; a free-string edge and an unbounded reason came back as working notes). The Python
+    # defaults stay: they keep verdicts written before these fields, and callers' stubs, valid.
+    model_config = ConfigDict(json_schema_extra=_every_field_required)
     shows_subject: bool       # the picture shows what was searched for
     burned_in_text: bool = False  # a caption strip, scale bar, watermark, logo or other text printed into the picture
     # What the text is and where (2026-10-28): the run log said "set aside, it does not show the subject (burned-in
     # text: <a sentence about the subject>)" for a photo set aside for its museum label (Trepanation, Hal Saflieni).
-    text_reason: str = ""
-    text_edge: str = "none"   # "top"/"bottom"/"left"/"right": all of the text lies in a band along that edge; "inside"
+    text_reason: str = Field("", description=f"What the text is and where; at most {REASON_WORDS} words, \"\" when "
+                                             "there is none.")
+    # "top"/"bottom"/"left"/"right": all of the text lies in a band along that edge; "inside"; "none" without text
+    text_edge: str = Field("none", json_schema_extra={"enum": list(TEXT_EDGES)})
     text_box: List[float] = []  # [ymin, xmin, ymax, xmax] around all of the text, 0-1000
     # Something that is not part of the scene intruding along one edge (Nazca photo 6 on production, 2026-10-28: an
     # aircraft wing across the top 9%, which the judge after the render read as a "dark red strip" in the video).
-    # Defaults keep verdicts written before these fields valid.
     edge_object: str = ""     # what it is: "an aircraft wing", "a window frame", "a finger", "a lens hood"
-    object_edge: str = "none"  # "top"/"bottom"/"left"/"right": the edge it comes in from
+    object_edge: str = Field("none", json_schema_extra={"enum": list(OBJECT_EDGES)})  # the edge it comes in from
     object_box: List[float] = []  # [ymin, xmin, ymax, xmax] around all of it, 0-1000
-    reason: str               # one short sentence, from the picture itself
+    reason: str = Field(description=f"One short sentence about the subject, from the picture itself; at most "
+                                    f"{REASON_WORDS} words.")
 
 
 PICTURE_SYSTEM = ("You judge whether a photograph shows the subject a documentary beat was looking for. Judge the picture "
@@ -72,16 +88,35 @@ PICTURE_SYSTEM = ("You judge whether a photograph shows the subject a documentar
                   "printed text. When there is text: text_reason says what it is and where; text_edge is \"top\", "
                   "\"bottom\", \"left\" or \"right\" when all of it lies in a band along that edge of the picture, "
                   "otherwise \"inside\"; text_box is [ymin, xmin, ymax, xmax] around all of it, as integers from 0 to "
-                  "1000. Also say whether something that is not part of the scene intrudes along an edge of the picture: "
+                  "1000. Text always comes with its text_box, or at least its text_edge; \"none\" and [] are for a "
+                  "picture without text. Also say whether something that is not part of the scene intrudes along an edge of the picture: "
                   "part of the aircraft, vehicle or window the photo was taken from (a wing, a strut, a window frame, "
                   "a car's bonnet or mirror), a finger, a camera strap or a lens hood. When "
                   "there is: edge_object names it in a few words; object_edge is \"top\", \"bottom\", \"left\" or "
                   "\"right\", the edge it comes in from; object_box is [ymin, xmin, ymax, xmax] around all of it, as "
                   "integers from 0 to 1000. Part of the subject or its setting (a wall, a tree, the ground, the sky) "
-                  "is not an intrusion: then edge_object stays empty. reason is about the subject only.")
+                  "is not an intrusion: then edge_object stays empty. reason is about the subject only. Every reason "
+                  "is one short sentence about the picture, never about the answer.")
 
 
 UNAVAILABLE = "not looked at: the picture check could not run"
+# One picture, one short answer at a low thinking level: 45 s per request, on the free and the billed key alike (a
+# failed billed look cost about 250 s at the 120 s vision default, run audit 2026-10-29).
+PICTURE_LOOK_TIMEOUT = 45.0
+
+
+def look_problem(verdict: "PictureVerdict", asked: str = "") -> str:
+    """Why an answer cannot stand as a look, or "" when it can: text with neither a box nor an edge (cached that way,
+    a photo was set aside in every run, run audit 2026-10-29), or a reason that runs on, repeats itself, holds the
+    model's working notes or repeats the question (llm.degenerate_reason). `asked`: the question's fixed wording."""
+    edge = (verdict.text_edge or "none").strip().lower()
+    if verdict.burned_in_text and not _box(verdict.text_box) and edge not in TEXT_EDGES[1:]:
+        return "it says there is text but gives neither its box nor its edge"
+    for said in (verdict.reason, verdict.text_reason, verdict.edge_object):
+        problem = degenerate_reason(said, asked)
+        if problem:
+            return problem
+    return ""
 
 
 def _box(box) -> List[int]:
@@ -102,14 +137,17 @@ def _text_fields(verdict: "PictureVerdict") -> Dict[str, Any]:
             "object_box": _box(verdict.object_box)}
 
 
+@llm_task("picture_check")   # the run's call log and timings name these calls (they were "other")
 def picture_look(path: Path, query: str, size: int = 512, ask: Optional[str] = None) -> Dict[str, Any]:
     """One look at the pixels: {"checked", "shows", "burned_in_text", "reason", "text_reason", "text_edge",
     "text_box", "edge_object", "object_edge", "object_box"}, the picture sent at `size` px on its long side. A
-    check that fails is asked once more; one that still cannot run says checked False and shows False: a picture
-    nobody looked at is not used (operator, 2026-10-27: it was kept as showing its subject, and the gate is to be
-    enforced). Turning the check off (PICTURE_VISION_CHECK=false) is the only way a picture goes unlooked at.
-    `ask` replaces the question put with the picture (the line check before the render asks about a narration
-    line, not a search)."""
+    check that fails is asked once more (not when the billed key has already been tried twice: the same wait
+    again); one that still cannot run says checked False and shows False: a picture nobody looked at is not used
+    (operator, 2026-10-27: it was kept as showing its subject, and the gate is to be enforced). Turning the check
+    off (PICTURE_VISION_CHECK=false) is the only way a picture goes unlooked at. An answer that cannot stand as a
+    look (look_problem) is asked once more at once; a second such answer is used for this run with "invalid"
+    saying why, and is never cached (without_burned_in_text, line_fit). `ask` replaces the question put with the
+    picture (the line check before the render asks about a narration line, not a search)."""
     if not config.PICTURE_VISION_CHECK:
         return {"checked": False, "shows": True, "burned_in_text": False, "reason": "not checked"}
     from . import free_llm
@@ -117,24 +155,36 @@ def picture_look(path: Path, query: str, size: int = 512, ask: Optional[str] = N
     import time
     question = ask or f"Searched for: {query}\nDoes this picture show it?"
     content = [{"type": "text", "text": question}, image_block(path, size)]
+    asked = PICTURE_SYSTEM + " " + (question.replace(query, " ") if query else question)  # the fixed wording only
+    verdict, problem = None, ""
     for attempt in (1, 2):
         try:
             if free_llm.claude_engine():
-                verdict = structured_call(PICTURE_SYSTEM, content, PictureVerdict, effort="low", max_tokens=400,
-                                          models=config.LIGHT_TASK_MODELS)
+                answer = structured_call(PICTURE_SYSTEM, content, PictureVerdict, effort="low", max_tokens=400,
+                                         models=config.LIGHT_TASK_MODELS)
             else:
-                verdict = free_llm.structured(PICTURE_SYSTEM, content, PictureVerdict, role="checker", task_class="light")
-            break
+                answer = free_llm.structured(PICTURE_SYSTEM, content, PictureVerdict, role="checker", task_class="light",
+                                             thinking="low", request_timeout=PICTURE_LOOK_TIMEOUT)
         except Exception as e:  # unavailable or malformed
-            if attempt == 1:
+            if verdict is not None:   # the first answer could not stand; it is what there is
+                break
+            if attempt == 1 and not isinstance(e, free_llm.PaidFallbackFailed):
                 log.info("Picture check for %s failed (%s); asking again in %.0f s.", path.name, e, config.PICTURE_CHECK_RETRY_SECONDS)
                 time.sleep(config.PICTURE_CHECK_RETRY_SECONDS)
                 continue
             log.warning("Picture check for %s could not run (%s); the picture is not used.", path.name, e)
             return {"checked": False, "shows": False, "burned_in_text": False, "reason": UNAVAILABLE}
+        verdict, problem = answer, look_problem(answer, asked)
+        if not problem:
+            break
+        if attempt == 1:
+            log.info("Picture check for %s gave an answer that cannot stand (%s); asking again.", path.name, problem)
+    if problem:
+        log.info("Picture check for %s: the answer still cannot stand (%s); used for this run, not kept.",
+                 path.name, problem)
     return {"checked": True, "shows": bool(verdict.shows_subject), "burned_in_text": bool(verdict.burned_in_text),
             # whole (the card folds it), less a model's stray working notes (verdict_reason)
-            "reason": verdict_reason(verdict.reason), **_text_fields(verdict)}
+            "reason": verdict_reason(verdict.reason), **_text_fields(verdict), **({"invalid": problem} if problem else {})}
 
 
 UNCHECKED_FILE = "set_aside_unchecked.json"
@@ -171,7 +221,8 @@ def picture_shows(path: Path, query: str) -> Tuple[bool, str]:
 
 def _text_verdict(look: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """A picture_look as the screen's verdict ({"text", "reason", "edge", "box", "object", "object_edge",
-    "object_box", "shows", "subject"}), None when nobody looked. "object" is "" when nothing intrudes."""
+    "object_box", "shows", "subject"}, and "invalid" when the answer could not stand), None when nobody looked.
+    "object" is "" when nothing intrudes."""
     if not look.get("checked"):
         return None
     text = bool(look["burned_in_text"])
@@ -180,7 +231,19 @@ def _text_verdict(look: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             "edge": look.get("text_edge", "none"), "box": look.get("text_box") or [],
             "object": obj, "object_edge": look.get("object_edge", "none") if obj else "none",
             "object_box": (look.get("object_box") or []) if obj else [],
-            "shows": bool(look["shows"]), "subject": look["reason"]}
+            "shows": bool(look["shows"]), "subject": look["reason"],
+            **({"invalid": look["invalid"]} if look.get("invalid") else {})}
+
+
+def unusable_verdict(verdict: Dict[str, Any]) -> str:
+    """Why a cached screen verdict is looked at again, or "": text with neither a box nor an edge (Derinkuyu's
+    rolling-stone-door photos, cached so in screen 3 and set aside in every run since, run audit 2026-10-29), or a
+    reason that cannot stand (Richat's cached reason runs to 21,768 characters)."""
+    if verdict.get("invalid"):
+        return str(verdict["invalid"])
+    if verdict.get("text") and not _box(verdict.get("box")) and str(verdict.get("edge") or "none") not in TEXT_EDGES[1:]:
+        return "text with neither a box nor an edge"
+    return degenerate_reason(verdict.get("reason"))
 
 
 def screened_picture(path: Path, query: str) -> Tuple[bool, str, Path]:
@@ -278,8 +341,9 @@ def line_fit(path: Path, line: str, subject: str, cache: Dict[str, Any],
     if not look.get("checked"):
         return None
     reason = str(look.get("reason") or "")
-    cache[key] = {"fits": bool(look["shows"]), "reason": reason, "file": Path(path).name,
-                  "line": _line_words(line)[:160], "v": FIT_VERSION}
+    if not look.get("invalid"):   # an answer that could not stand is used once, never kept (picture_look)
+        cache[key] = {"fits": bool(look["shows"]), "reason": reason, "file": Path(path).name,
+                      "line": _line_words(line)[:160], "v": FIT_VERSION}
     return {"fits": bool(look["shows"]), "reason": reason, "cached": False}
 
 
@@ -379,6 +443,19 @@ def _other_names(topic: Dict[str, Any]) -> List[str]:
         return []
 
 
+def _topic_names(topic: Dict[str, Any]) -> List[str]:
+    """The topic's own names (title, id, place, country): what every file of its category says, so never a beat's
+    own subject (commons.beat_words). Not the pool's searches (image_queries.json): those name subjects too."""
+    loc = topic.get("location") or {}
+    return [str(v) for v in (topic.get("title"), str(topic.get("id") or "").replace("_", " "), loc.get("name"),
+                             loc.get("country")) if v]
+
+
+# Photos set aside in a row before a beat's search stops: past that the search is not finding the beat's subject,
+# and each look costs time (run audit 2026-10-29: 20 in a row, about 5 minutes, for one beat).
+SET_ASIDE_IN_A_ROW = 4
+
+
 def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: str,
               wait: int = 30, deadline: Optional[float] = None) -> Tuple[List[Path], List[Dict[str, Any]]]:
     """Downloads the best openly licensed, on-subject Commons results for each planned search; records them
@@ -391,6 +468,7 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
     place = ({"lat": loc["latitude"], "lon": loc["longitude"]}
              if loc.get("latitude") and loc.get("longitude") else None)
     paths, credits = [], []
+    names = _topic_names(topic)
     for item in items:
         if late():
             log.info("Picture search stopped at its time budget; %d photo(s) found by then.", len(paths))
@@ -416,12 +494,21 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
                 list(item.keywords), limit=30, max_wait=60)
             ranked = commons.best_first(list(commons.candidates(results, keywords, config.BEAT_IMAGES_ALLOW_SHARE_ALIKE)),
                                         keywords, near)
-            relevant, verified, looked_away = 0, 0, 0
+            relevant, verified, looked_away, in_a_row, off_beat = 0, 0, 0, 0, 0
             for cand in ranked:
                 if late():
                     break
+                form = cand.pop("widened", "")   # the wider search that found it (commons.search_widened), if any
                 if cand["title"] in seen or cand["relevance"] <= 0:
                     continue
+                # A file from the whole category (a wider search naming only the topic) counts as relevant on the
+                # topic's name alone: it must name the beat's own subject before a look is paid for (run audit
+                # 2026-10-29: a beat about a church set aside 20 underground photos in a row, about 5 minutes).
+                if form and commons.anchor_only(form, names):
+                    own = commons.beat_words(item.query, item.keywords, names + [form])
+                    if own and not commons.mentions(cand, own):
+                        off_beat += 1
+                        continue
                 relevant += 1
                 if not verify_visual_relevance(cand["title"], item.query):
                     continue
@@ -443,7 +530,13 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
                         log.info("Beat %d: %r set aside, it does not show the subject (%s).", item.beat, cand["title"][:70], why)
                     dest.unlink(missing_ok=True)
                     looked_away += 1
+                    in_a_row += 1
+                    if in_a_row >= SET_ASIDE_IN_A_ROW:   # the search is not finding this subject: no more looks
+                        log.info("Beat %d: %d photos in a row set aside by the look; no more looked at for this beat.",
+                                 item.beat, in_a_row)
+                        break
                     continue
+                in_a_row = 0
                 seen.add(cand["title"])
                 # A cropped copy is what the video uses; its original stays here, where the folder's credits.json
                 # names it and the copy's lineage points (its credit and rights resolve to the original).
@@ -453,6 +546,9 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
                 found += 1
                 if found >= PER_BEAT:
                     break
+            if off_beat:
+                log.debug("Beat %d: %d file(s) from the whole category left unlooked at, they do not name the beat's "
+                          "subject.", item.beat, off_beat)
             # The run's record of why a beat got pictures or none: "0 candidates for 5 beats" on production
             # (2026-10-24, Antikythera) could not be told apart from a broken search without these counts.
             searches = "; ".join(f"{q!r}: {n}" for q, n in tried)
@@ -567,6 +663,10 @@ TEXT_SCREEN_FILE = ".picture_text.json"  # per topic folder: {sha256: {"text": b
 # Screen 3 (2026-10-28): the same look also names a foreign object along an edge (Nazca photo 6's aircraft wing), so
 # every photo is looked at once more; a screen-2 verdict stands (no object) while the new look cannot run.
 TEXT_SCREEN_VERSION = 3
+# Answer check 1 (run audit 2026-10-29): a look whose answer cannot stand (look_problem) is never cached, and a verdict
+# cached before this that cannot stand (unusable_verdict: text with neither box nor edge, a run-on reason) is looked at
+# again, once; the rest of the screen-3 verdicts stand.
+ANSWER_CHECK = 1
 TEXT_SCREEN_SIZE = 1024   # the same light-model call; the picture costs about four times the image tokens
 # Text in a band along one edge (a label under a specimen, a logo in a corner strip, a scale bar) is cropped away
 # rather than the photo dropped (production Richat x3, Hal Saflieni, dev Trepanation, 2026-10-26/27). Trepanation
@@ -581,6 +681,7 @@ EDGE_OBJECT_CROP = "edge_object_crop"
 
 # Bands tried, in turn, when the screen names an object's edge but not its extent; the last is TEXT_CROP_MAX.
 OBJECT_TRY_BANDS = (0.06, 0.10, TEXT_CROP_MAX)
+TEXT_TRY_BANDS = OBJECT_TRY_BANDS   # the same for text named at an edge without its box (run audit 2026-10-29)
 
 
 def _edge_box(edge: str, fraction: float) -> List[int]:
@@ -696,8 +797,27 @@ def clear_edges(path: Path, verdict: Dict[str, Any], look_again) -> Tuple[Option
     not looked at again, leaves the photo as it is: a doubtful intrusion never costs a good photo. One rule for the
     pool screen and the photos found per beat."""
     use = Path(path)
+    if verdict.get("text") and verdict.get("edge") in ("top", "bottom", "left", "right") and not _box(verdict.get("box")):
+        # Its edge without its extent, as for a foreign object below (run audit 2026-10-29: text cached with no box
+        # was set aside uncropped): a growing band is cut from that edge, looked at again after each, up to the band
+        # that may be cut; still seen there, the photo is not used.
+        why, edge = TEXT_PREFIX + verdict_reason(verdict.get("reason", "")), verdict["edge"]
+        for fraction in TEXT_TRY_BANDS:
+            crop, again = cropped_clear(use, edge, _edge_box(edge, fraction), look_again)
+            if crop is None or not again:
+                log.info("Photo %s: text along the %s edge could not be cropped or looked at again.", use.name, edge)
+                return None, verdict, why
+            if not again.get("text"):
+                log.info("Photo %s has text printed into it (%s); cropped away: the %s %.0f%%.", use.name,
+                         why[len(TEXT_PREFIX):], edge, 100 * fraction)
+                use, verdict = crop, again
+                break
+        else:
+            log.info("Photo %s: text along the %s edge is still seen with the %s %.0f%% cut.", use.name, edge, edge,
+                     100 * TEXT_TRY_BANDS[-1])
+            return None, verdict, why
     if verdict.get("text"):
-        why = TEXT_PREFIX + str(verdict.get("reason", ""))
+        why = TEXT_PREFIX + verdict_reason(verdict.get("reason", ""))
         crop, again = cropped_clear(use, verdict.get("edge", "none"), verdict.get("box") or [], look_again)
         if crop is None or not again or again.get("text"):
             if crop is not None:
@@ -768,24 +888,35 @@ def without_burned_in_text(photos: List[Path], subject: str, minimum: int) -> Li
         cache = {}
     changed, down = False, False
 
+    def _logged(verdict: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        # A cached reason is said without a model's stray notes or a run-on (llm.verdict_reason); the cache is as it was
+        return {**verdict, "reason": verdict_reason(verdict.get("reason"))} if isinstance(verdict, dict) else verdict
+
     def verdict_for(p: Path) -> Optional[Dict[str, Any]]:
         nonlocal changed, down
         digest = sha256_file(p)
         verdict = cache.get(digest)
-        if (verdict is None or verdict.get("screen", 1) < TEXT_SCREEN_VERSION) and not down:
+        # A verdict cached before answers were checked (ANSWER_CHECK) that cannot stand (unusable_verdict) is looked
+        # at again, as an older screen's is: only those photos, not the whole pool (no screen-version bump).
+        bad = unusable_verdict(verdict) if isinstance(verdict, dict) and not verdict.get("answer_check") else ""
+        if bad and not down:
+            log.info("Photo %s: its cached screen verdict is looked at again (%s).", p.name, bad)
+        if (verdict is None or verdict.get("screen", 1) < TEXT_SCREEN_VERSION or bad) and not down:
             seen = _text_verdict(picture_look(p, subject, TEXT_SCREEN_SIZE))
             if seen is None:
                 # Not looked at: an older verdict stands, or none (kept, asked again next run). The rest of this
                 # pool is not asked now: each look would wait out its retry (a screen-version bump asks them all).
                 down = True
                 log.info("Picture screen could not run for %s; the other photos keep their verdicts this run.", p.name)
-                return verdict
+                return _logged(verdict)
             verdict = {"text": seen["text"], "reason": seen["reason"], "edge": seen["edge"], "box": seen["box"],
-                       "screen": TEXT_SCREEN_VERSION}
+                       "screen": TEXT_SCREEN_VERSION, "answer_check": ANSWER_CHECK}
             if seen["object"]:   # written only when there is one: the record stays as it was for the rest
                 verdict.update(object=seen["object"], object_edge=seen["object_edge"], object_box=seen["object_box"])
+            if seen.get("invalid"):   # used this run, never cached: looked at again next run
+                return {**verdict, "invalid": seen["invalid"]}
             cache[digest], changed = verdict, True
-        return verdict
+        return _logged(verdict)
 
     flagged, cropped = [], {}
     for p in photos:

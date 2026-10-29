@@ -470,23 +470,99 @@ def current_task() -> str:
 # control tokens or formatting errors inside JSON." was logged as a picture check's reason). A sentence that talks
 # to itself or about the answer's format is not a reason; the verdict it came with stands.
 _SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+")
+# Run audit 2026-10-29 (production Derinkuyu): "Well alright, let's wrap this up...", "Done well done perfectly
+# done..." also came back as reasons; a sentence that opens by winding the answer up is working notes too.
 _SELF_TALK = re.compile(
     r"^\W*(?:wait\b|hmm+\b|let me\b|double[- ]check|re-?check\b|make sure\b|note to self|self[- ]correction|"
-    r"on second thought|(?:ok(?:ay)?|alright|so|now),?\s+(?:let me|wait)\b)", re.IGNORECASE)
+    r"on second thought|(?:ok(?:ay)?|alright|so|now),?\s+(?:let me|wait)\b|"
+    r"(?:well,?\s+)?(?:ok(?:ay)?|alright|all right|so|now)[,.!]?\s+let'?s\b|well,?\s+(?:alright|all right|ok(?:ay)?)\b|"
+    r"let'?s\s+(?:wrap|finish|double|re-?check|make sure|output|write|format)\b|done\b[\s,.!]*(?:well|perfectly|done)\b)",
+    re.IGNORECASE)
 _FORMAT_TALK = re.compile(r"\b(?:json|control tokens?|formatting errors?|output format)\b|```", re.IGNORECASE)
+_FIELD_NAME = re.compile(r"\b[a-z]+_[a-z_]+\b")   # "text_edge", "shows_subject": the answer's own fields named
+REASON_MAX_CHARS = 300   # a one-sentence reason; longer is a model running on (Richat's cached 21,768-character one)
+_ECHO_WORDS = 8          # this many words in a row from the question: the question repeated, not a reason
+
+
+def _reason_words(text: str) -> List[str]:
+    return re.findall(r"[a-z0-9]+(?:'[a-z]+)?", str(text or "").lower())
+
+
+def _repeat_at(words: List[str], n: int = 3, times: int = 3) -> int:
+    """Where a degenerate repetition starts: the index of the second occurrence of the first `n`-word run that
+    occurs `times` times, or -1. A run said twice is ordinary prose; three times is a model looping."""
+    seen: dict = {}
+    for i in range(len(words) - n + 1):
+        seen.setdefault(tuple(words[i:i + n]), []).append(i)
+    looping = [spots for spots in seen.values() if len(spots) >= times]
+    return min(spots[1] for spots in looping) if looping else -1
+
+
+_COMMON = {"the", "a", "an", "of", "and", "or", "in", "on", "at", "to", "is", "it", "its", "this", "that", "with",
+           "not", "no", "as", "by", "for", "from", "are", "be", "which", "photo", "picture", "image", "shows"}
+
+
+def _repetitive(words: List[str]) -> bool:
+    """A reason that loops: a three-word run three times, or one word making a fifth of five or more words
+    ("Done well done perfectly done")."""
+    if _repeat_at(words) >= 0:
+        return True
+    content = [w for w in words if w not in _COMMON and len(w) > 2]
+    if len(words) < 5 or not content:
+        return False
+    top = max(content.count(w) for w in set(content))
+    return top >= 3 and top / len(words) >= 0.2
+
+
+def degenerate_reason(text: str, prompt: str = "") -> str:
+    """Why `text`, a model's one-line reason, cannot be trusted as an answer at all, or "" when it can: it runs
+    past REASON_MAX_CHARS, repeats itself, holds the model's working notes ("Wait, ...", "Well alright, let's
+    ..."), names the answer's fields, or repeats `prompt` (the question it was asked) _ECHO_WORDS words at a time.
+    A caller asks again rather than keep such an answer (run audit 2026-10-29: these were cached as verdicts)."""
+    text = " ".join(str(text or "").split())
+    if not text:
+        return ""
+    if len(text) > REASON_MAX_CHARS:
+        return f"its reason runs to {len(text)} characters"
+    words = _reason_words(text)
+    if _repetitive(words):
+        return "its reason repeats itself"
+    if any(_SELF_TALK.match(s) or _FORMAT_TALK.search(s) for s in _SENTENCE_SPLIT.split(text)):
+        return "its reason holds the model's working notes"
+    if _FIELD_NAME.search(text):
+        return "its reason names the answer's fields"
+    asked = _reason_words(prompt)
+    if len(words) >= _ECHO_WORDS and len(asked) >= _ECHO_WORDS:
+        runs = {tuple(asked[i:i + _ECHO_WORDS]) for i in range(len(asked) - _ECHO_WORDS + 1)}
+        if any(tuple(words[i:i + _ECHO_WORDS]) in runs for i in range(len(words) - _ECHO_WORDS + 1)):
+            return "its reason repeats the question"
+    return ""
 
 
 def verdict_reason(text: str) -> str:
     """`text` (a model's one-line reason for a verdict) without its stray reasoning: only clearly meta sentences,
-    the model talking to itself ("Wait, ...", "Let me ...", "make sure ...") or about the answer's format (JSON,
-    control tokens). A reason that starts "OK," or "I think" is a reason and stays. The verdict is never changed
-    here; "" when nothing is left."""
+    the model talking to itself ("Wait, ...", "Let me ...", "make sure ...", "Well alright, let's ...") or about
+    the answer's format (JSON, control tokens), a sentence said again, and a loop (a three-word run said a third
+    time: cut where it starts repeating); at most REASON_MAX_CHARS, cut at a word. A reason that starts "OK," or
+    "I think" is a reason and stays. The verdict is never changed here; "" when nothing is left. Applied to cached
+    reasons too, so an old run-on is not logged whole."""
     text = " ".join(str(text or "").split())
     if not text:
         return ""
-    kept = [s for s in _SENTENCE_SPLIT.split(text)
-            if s.strip() and not _SELF_TALK.match(s) and not _FORMAT_TALK.search(s)]
-    return " ".join(kept).strip()
+    kept, said = [], set()
+    for s in _SENTENCE_SPLIT.split(text):
+        key = " ".join(_reason_words(s))
+        if s.strip() and not _SELF_TALK.match(s) and not _FORMAT_TALK.search(s) and key not in said:
+            kept.append(s)
+            said.add(key)
+    out = " ".join(kept).strip()
+    words = out.split()
+    loop = _repeat_at([" ".join(_reason_words(w)) for w in words])
+    if loop >= 0:
+        out = " ".join(words[:loop]).rstrip(" ,;:") + "…"
+    if len(out) > REASON_MAX_CHARS:
+        out = out[:REASON_MAX_CHARS].rsplit(" ", 1)[0].rstrip(" ,;:") + "…"
+    return out
 
 
 def format_sources(sources: List[Source]) -> str:

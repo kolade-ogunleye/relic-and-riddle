@@ -31,6 +31,11 @@ class FreeQuotaUnavailable(LLMError):
     """No free key, or its free quota is used up for now."""
 
 
+class PaidFallbackFailed(LLMError):
+    """The billed key was tried (twice when the failure was transient) and failed: asking again at once repeats
+    the same wait (a picture look that failed this way cost about 250 s before its own retry, run audit 2026-10-29)."""
+
+
 def enabled() -> bool:
     return config.SCRIPT_ENGINE == "free"
 
@@ -85,10 +90,19 @@ def _thinking(level: str) -> dict:
 
 
 _thinking_level: contextvars.ContextVar = contextvars.ContextVar("free_llm_thinking", default=None)
+# A per-request time limit on the free and the billed key alike (structured(request_timeout=...)): a one-picture
+# look waited 120 s per billed try (run audit 2026-10-29). None: each call's own default.
+_request_timeout: contextvars.ContextVar = contextvars.ContextVar("free_llm_request_timeout", default=None)
+
+
+def _limit(timeout) -> dict:
+    """The timeout keyword only when one was set (a stub without it keeps working)."""
+    return {"timeout": timeout} if timeout else {}
 
 
 def _paid_fallback(system, prompt, schema: Type[T], model: str, task_class: str, why: str) -> T:
     thinking = _thinking_level.get()
+    request_timeout = _request_timeout.get()
     # A light, text-only task first tries the second free model (when enabled after measurement).
     if task_class == "light" and isinstance(prompt, str) and config.GROQ_LIGHT_FALLBACK:
         from . import groq
@@ -121,7 +135,8 @@ def _paid_fallback(system, prompt, schema: Type[T], model: str, task_class: str,
     # quota is not, as a second try cannot change it.
     for billed_try in (1, 2):
         try:
-            result = gemini.structured(system, prompt, schema, model=model, key=config.GEMINI_API_KEY, **_thinking(thinking))
+            result = gemini.structured(system, prompt, schema, model=model, key=config.GEMINI_API_KEY,
+                                       **_thinking(thinking), **_limit(request_timeout))
             break
         except gemini.CreditExhausted as e:  # prepaid credit spent: the same wait as the cap, until the operator tops up
             from . import provider_status
@@ -129,10 +144,11 @@ def _paid_fallback(system, prompt, schema: Type[T], model: str, task_class: str,
                                         "billing in Google AI Studio")
             raise FreeQuotaUnavailable(f"{why} The paid fallback cannot run either: {e}") from e
         except gemini.GeminiError as e:  # the billed key failed too (its own quota, an outage)
-            transient = isinstance(e, (gemini.RequestTimedOut, gemini.ConnectionDropped)) or \
+            # A reply with no output (EmptyReply) is sent once more too: another sample usually answers.
+            transient = isinstance(e, (gemini.RequestTimedOut, gemini.ConnectionDropped, gemini.EmptyReply)) or \
                 "overloaded" in str(e).lower() or "503" in str(e)
             if billed_try == 2 or not transient or isinstance(e, gemini.QuotaExhausted):
-                raise LLMError(f"{why} The paid fallback also failed: {e}") from e
+                raise PaidFallbackFailed(f"{why} The paid fallback also failed: {e}") from e
             log.info("Billed Gemini call failed (%s); trying once more.", type(e).__name__)
             time.sleep(10)
     from . import provider_status
@@ -149,6 +165,23 @@ def _paid_fallback(system, prompt, schema: Type[T], model: str, task_class: str,
 _announced: set = set()  # reasons for using the billed key already said in this process's log
 SPARE_COOLDOWN_SECONDS = 3600
 _spare_down_until = 0.0  # monotonic time before which a failed spare key is not tried again
+# After the free key's 429 on a model, light calls on that model skip it for a while, as the spare key is skipped
+# after it fails: every light call hit the free 429 first and then the billed key (run audit 2026-10-29). Heavy
+# calls still ask the free key first: a free script or fact check is worth the wait of a refused request.
+FREE_COOLDOWN_SECONDS = 600
+_free_down_until: dict = {}  # (free key, model) -> monotonic time before which light calls skip the free key
+
+
+def free_cooling(model: str) -> bool:
+    """Whether the free key refused `model` (HTTP 429) within FREE_COOLDOWN_SECONDS."""
+    return time.monotonic() < _free_down_until.get((config.GEMINI_FREE_API_KEY, model), 0.0)
+
+
+def _billed_ready(task_class: str) -> bool:
+    """Whether the billed key may take a `task_class` call (its monthly spend is checked when it does): only then
+    is the free key skipped while it cools down; with nothing behind it, the free key is still asked."""
+    return (paid_fallback_allowed() and config.is_configured(config.GEMINI_API_KEY)
+            and config.GEMINI_API_KEY != config.GEMINI_FREE_API_KEY and _paid_cap(task_class) > 0)
 
 
 def _spare_key() -> str:
@@ -161,9 +194,12 @@ def _spare_key() -> str:
 
 
 def structured(system: str, prompt, schema: Type[T], role: str = "writer", attempts: int = 4,
-               task_class: str = "heavy", timeout: float = None, thinking: str = None) -> T:
+               task_class: str = "heavy", timeout: float = None, thinking: str = None,
+               request_timeout: float = None) -> T:
     """Schema-constrained output from the free model ("writer") or the different checking model ("checker").
     task_class "light" (photo review, sound plan) or "heavy" (writing, checking) picks the paid-fallback cap.
+    `timeout`: an operator is waiting (a timeout gives way, never reaches the billed key). `request_timeout`: each
+    request's limit on the free and the billed key, the usual fallbacks unchanged (a one-picture look: 45 s).
     Every call is recorded in the current run's llm_calls.jsonl (src/ops.py) with its length and tokens."""
     from .llm import current_task
     from .ops import record_llm_call
@@ -172,6 +208,7 @@ def structured(system: str, prompt, schema: Type[T], role: str = "writer", attem
         model = config.FREE_LIGHT_MODEL  # its own free limits; photo review (images) stays on the main models
     started = time.perf_counter()
     token = _thinking_level.set(thinking)
+    limit_token = _request_timeout.set(request_timeout)
     try:
         result = _structured_on(model, system, prompt, schema, role, attempts, task_class, timeout, thinking)
     except Exception as e:
@@ -179,6 +216,7 @@ def structured(system: str, prompt, schema: Type[T], role: str = "writer", attem
         raise
     finally:
         _thinking_level.reset(token)
+        _request_timeout.reset(limit_token)
     tokens_in, tokens_out = gemini.last_usage()
     record_llm_call(current_task(), model, time.perf_counter() - started, tokens_in=tokens_in or 0,
                     tokens_out=tokens_out or 0, role=role)
@@ -193,25 +231,37 @@ def _structured_on(model: str, system: str, prompt, schema: Type[T], role: str, 
     if task_class == "heavy" and not config.FREE_TIER_HEAVY:
         return _paid_fallback(system, prompt, schema, model, task_class,
                               "heavy tasks use the billed key here (FREE_TIER_HEAVY=false)")
-    wait = {"timeout": timeout} if timeout else {}
+    wait = _limit(timeout or _request_timeout.get())
+
+    def refused(e) -> T:   # the free key's quota: the spare key (while it answers), then the billed key
+        global _spare_down_until
+        spare = _spare_key()
+        if spare and time.monotonic() >= _spare_down_until:
+            try:
+                return gemini.structured(system, prompt, schema, model=model, key=spare, **_thinking(thinking), **wait)
+            except gemini.GeminiError as e2:
+                # Skipped for a while after failing: production lost 5 minutes on every call to a spare
+                # key that never answered before reaching the billed key.
+                _spare_down_until = time.monotonic() + SPARE_COOLDOWN_SECONDS
+                log.info("Spare free key unavailable too (%s); not tried again for %d min.",
+                         e2, SPARE_COOLDOWN_SECONDS // 60)
+        return _paid_fallback(system, prompt, schema, model, task_class,
+                              f"The free Gemini quota is used up for now ({model}): {e}")
+
+    spare_up = bool(_spare_key()) and time.monotonic() >= _spare_down_until
+    if task_class == "light" and free_cooling(model) and (spare_up or _billed_ready(task_class)):
+        # Said once per reason by _paid_fallback; the free key is asked again when the cooldown is over.
+        return refused(f"refused within the last {FREE_COOLDOWN_SECONDS // 60} min (HTTP 429), not asked again yet")
     delay = 15.0
     for attempt in range(1, attempts + 1):
         try:
             return gemini.structured(system, prompt, schema, model=model, key=config.GEMINI_FREE_API_KEY, **_thinking(thinking), **wait)
         except gemini.QuotaExhausted as e:
-            global _spare_down_until
-            spare = _spare_key()
-            if spare and time.monotonic() >= _spare_down_until:
-                try:
-                    return gemini.structured(system, prompt, schema, model=model, key=spare, **_thinking(thinking), **wait)
-                except gemini.GeminiError as e2:
-                    # Skipped for a while after failing: production lost 5 minutes on every call to a spare
-                    # key that never answered before reaching the billed key.
-                    _spare_down_until = time.monotonic() + SPARE_COOLDOWN_SECONDS
-                    log.info("Spare free key unavailable too (%s); not tried again for %d min.",
-                             e2, SPARE_COOLDOWN_SECONDS // 60)
-            return _paid_fallback(system, prompt, schema, model, task_class,
-                                  f"The free Gemini quota is used up for now ({model}): {e}")
+            if task_class == "light" and (spare_up or _billed_ready(task_class)):   # only with a key to go to
+                log.info("Free Gemini quota refused %s (HTTP 429); light calls use the %s key for %d min.",
+                         model, "spare" if spare_up else "billed", FREE_COOLDOWN_SECONDS // 60)
+                _free_down_until[(config.GEMINI_FREE_API_KEY, model)] = time.monotonic() + FREE_COOLDOWN_SECONDS
+            return refused(e)
         except gemini.ConnectionDropped as e:
             # A dropped connection (Richat's documentary check died on one after 8 minutes): send again.
             # It is not a quota or capacity problem, so it never moves the work to the billed key.

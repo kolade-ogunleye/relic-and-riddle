@@ -482,8 +482,55 @@ def search_widened(query: str, anchor, keywords: Optional[List[str]] = None, lim
         for p in found:
             if _page_key(p) not in seen:
                 seen.add(_page_key(p))
-                pages.append(p)
+                # Which wider form found it (candidates() passes it on): a form that names only the topic is the
+                # whole category, whose files must name the beat's own subject to be looked at (anchor_only).
+                pages.append({**p, "widened": wider} if isinstance(p, dict) else p)
     return pages, tried
+
+
+_RESTRICT = re.compile(r'(?:deep|in)category:"[^"]*"|nearcoord:\S+')
+
+
+def _name_words(names: List[str]) -> List[str]:
+    """The words of names, a restrict's category name included ('incategory:"X"' gives X's words)."""
+    out: List[str] = []
+    for name in names:
+        named = re.search(r'category:"([^"]*)"', name or "")
+        text = named.group(1) if named else _RESTRICT.sub(" ", name or "")
+        out += [normalize(w) for w in _words(text) if w.lower() not in _FILLER]
+    return out
+
+
+def anchor_only(form: str, topic_names: List[str]) -> bool:
+    """Whether a widened search `form` names nothing but its anchor and the topic (`topic_names`: its title, place,
+    other names): 'Derinkuyu incategory:"Underground City of Derinkuyu"' or the anchor alone, which return the whole
+    category (run audit 2026-10-29: a beat about a church set aside 20 underground photos in a row)."""
+    names = _name_words(list(topic_names) + _RESTRICT.findall(form))
+    own = [w for w in _words(_RESTRICT.sub(" ", form)) if w.lower() not in _FILLER]
+    return not [w for w in own if not any(_similar(w, n) for n in names)]
+
+
+def beat_words(query: str, keywords: List[str], topic_names: List[str]) -> List[str]:
+    """The beat's own words: those of its search and title keywords that are not the topic's names (nor filler, nor
+    shorter than four letters). "church exterior Derinkuyu" for Derinkuyu: ["church", "exterior"]."""
+    names = _name_words(list(topic_names))
+    out: List[str] = []
+    for w in _words(" ".join([query or ""] + list(keywords or []))):
+        n = normalize(w)
+        if len(n) >= 4 and n not in _FILLER and not any(_similar(n, m) for m in names) and n not in out:
+            out.append(n)
+    return out
+
+
+def mentions(cand: dict, words: List[str]) -> bool:
+    """Whether a candidate's title, description or categories name one of `words` (a plural, a stem or a one-letter
+    spelling difference counts: commons._similar)."""
+    text = normalize(" ".join([cand.get("title", ""), cand.get("description", "")] + list(cand.get("categories") or [])))
+    tokens = set(re.findall(r"[^\W_]+", text))
+
+    def same(w: str, t: str) -> bool:
+        return _similar(w, t) or (min(len(w), len(t)) >= 5 and (t.startswith(w) or w.startswith(t)))
+    return any(same(w, t) for w in words for t in tokens)
 
 
 def find_categories(topic_text: str, limit: int = 5, max_wait: int = 30) -> List[str]:
@@ -561,6 +608,7 @@ def candidates(pages: list, keywords: List[str], allow_sa: bool = False, min_pix
             "categories": [c for c in _plain(meta.get("Categories", {}).get("value", "")).split("|") if c][:15],
             "lat": _float(meta.get("GPSLatitude", {}).get("value")),
             "lon": _float(meta.get("GPSLongitude", {}).get("value")),
+            **({"widened": page["widened"]} if page.get("widened") else {}),   # search_widened's form
         }
 
 

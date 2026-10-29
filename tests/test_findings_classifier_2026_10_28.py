@@ -351,3 +351,13 @@ def test_free_only_holds_for_its_own_thread_and_a_run_beside_it_keeps_the_paid_f
         inside.append(free_llm.paid_fallback_allowed())
     worker.join(5)
     assert inside == [False] and beside == [True] and free_llm.paid_fallback_allowed() is True
+
+
+def test_a_policy_no_longer_in_force_is_not_proposed(db, monkeypatch):
+    """Share-alike turned on: findings made while it was off are not put to the operator again (prod, 2026-10-28)."""
+    from src import config
+    monkeypatch.setattr(config, "IMAGES_ALLOW_SHARE_ALIKE", True)
+    for i in range(3):
+        improve.record(db, "pictures.licence_excluded", f"beat {i}: 2 of 3 Commons result(s) usable only with "
+                       "share-alike licences (IMAGES_ALLOW_SHARE_ALIKE is off)", "pictures", run_id=_run(db, f"run_sa{i}"))
+    assert "pictures.licence_excluded" not in {p["klass"] for p in improve.make_proposals(db)}

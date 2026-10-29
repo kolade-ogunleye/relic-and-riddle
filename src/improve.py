@@ -473,6 +473,16 @@ POLICY_CLASSES = {
         "accept share-alike terms for the pictures; otherwise this is just a count of what the policy excluded."),
 }
 
+# Whether each policy still applies: findings made before the operator changed the setting (prod, 2026-10-28)
+# must not come back as a count of what it excludes.
+POLICY_IN_FORCE = {"pictures.licence_excluded": lambda: not _config().IMAGES_ALLOW_SHARE_ALIKE}
+
+
+def _config():
+    from . import config
+    return config
+
+
 # Gate classes and the sources that look at the same thing independently: when they found the same beat in
 # the same run, the gate held a real defect and the fix belongs upstream (production, release.visual_checks
 # 5x, each beat also found by the video check or the self-healing pass: ledger audit, 2026-10-28).
@@ -519,6 +529,8 @@ def make_proposals(db) -> List[Dict[str, Any]]:
         klass = rec["klass"]
         if klass in open_classes:
             continue
+        if klass in POLICY_CLASSES and not POLICY_IN_FORCE.get(klass, lambda: True)():
+            continue  # the setting is now the other way: old counts describe a policy no longer in force
         # Recurring means across runs (21 rejections in one run's drafts are one problem) and, for reports,
         # still-open ones (a report filed before reports were linked cannot be told apart, so it never counts).
         if klass.startswith("issue."):

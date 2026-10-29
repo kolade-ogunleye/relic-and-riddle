@@ -3839,6 +3839,7 @@ def main(argv=None) -> int:
                 + (["--dry-run"] if config.BOT_RUNS_DRY else [])  # nothing posts from a bot-started run by default
                 + (["--schedule-posts"] if POST_SCHEDULING else []) + list(extra or []),
                 cwd=str(BASE_DIR),
+                env=config.worker_environment(),  # an .env edit applies from the next run, not the next restart
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,

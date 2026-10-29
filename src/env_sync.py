@@ -45,6 +45,30 @@ def names_and_values(path: Path) -> Dict[str, str]:
     return out
 
 
+# An old name still read when the new one is unset (src/config.py); with both present the old one does nothing.
+ALIASES = {"BEAT_IMAGES_ALLOW_SHARE_ALIKE": "IMAGES_ALLOW_SHARE_ALIKE"}
+
+
+def repeated(path: Path) -> List[str]:
+    """Settings written more than once, or under an old name beside the new one, in plain words: the operator
+    turned on one of two IMAGES_ALLOW_SHARE_ALIKE lines and the other stayed in effect (prod, 2026-10-28).
+    The first line is the one start-up reads. Secret values are never shown."""
+    seen: Dict[str, List[Tuple[int, str]]] = {}
+    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        m = NAME.match(line)
+        if m and not line.lstrip().startswith("#"):
+            seen.setdefault(m.group(1), []).append((number, line.split("=", 1)[1].strip()))
+    notes = []
+    for name, lines in seen.items():
+        if len(lines) > 1:
+            shown = "" if is_secret(name) else f"; in effect: {lines[0][1]}"
+            notes.append(f"{name} is on lines {', '.join(str(n) for n, _ in lines)}: the first one counts{shown}")
+    for old, new in ALIASES.items():
+        if old in seen and new in seen:
+            notes.append(f"{old} (line {seen[old][0][0]}) does nothing while {new} is set")
+    return notes
+
+
 def is_secret(name: str) -> bool:
     return bool(SECRET.search(name))
 
@@ -231,6 +255,13 @@ def sync_on_start(env_path: Path = None, example_path: Path = None) -> str:
         sections.append([f"<b>Yours to decide</b> ({len(differ)}): missing, and the template differs from what runs now:"]
                         + bullets(f"{k}: template {v} · now {now}" for k, v, now in differ)
                         + ["To take the template's: <code>python scripts/env_reconcile.py --apply --include-changes</code>"])
+    try:
+        twice = repeated(env_path) if env_path.is_file() else []
+    except OSError:
+        twice = []
+    if twice:
+        sections.append([f"<b>Written twice in .env</b> ({len(twice)}): delete the extra line so the file says one thing:"]
+                        + bullets(twice))
     if secrets:
         live = [k for k in secrets if k in LIVE_CREDENTIALS]
         when = ([f"Taken in within 2 minutes of being added, no restart: {', '.join(live)}. "

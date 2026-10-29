@@ -391,10 +391,13 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
             log.debug("Beat %d %r: %d Commons results, %d usable (share-alike %s), %d relevant, %d verified, %d set aside by the look, %d kept.",
                       item.beat, item.query[:80], len(results), len(ranked),
                       "allowed" if config.BEAT_IMAGES_ALLOW_SHARE_ALIKE else "excluded", relevant, verified, looked_away, found)
-            if results and not ranked and not config.BEAT_IMAGES_ALLOW_SHARE_ALIKE:
+            # Only when the licence was the reason: results can also fail on keyword, size or author (audit, 2026-10-28)
+            share_alike = 0 if ranked or config.BEAT_IMAGES_ALLOW_SHARE_ALIKE else len(list(
+                commons.candidates(results, keywords, True)))
+            if share_alike:
                 from . import improve  # the operator's lever, filed where the digest will show it
-                improve.note("pictures.licence_excluded", f"beat {item.beat}: {len(results)} Commons result(s), none usable "
-                             "without share-alike licences (IMAGES_ALLOW_SHARE_ALIKE)", source="pictures")
+                improve.note("pictures.licence_excluded", f"beat {item.beat}: {share_alike} of {len(results)} Commons result(s) usable only "
+                             "with share-alike licences (IMAGES_ALLOW_SHARE_ALIKE is off)", source="pictures")
         except (requests.RequestException, OSError, Image.DecompressionBombError) as e:
             log.warning("Beat %d image search failed (%s); continuing.", item.beat, e)
     if credits:  # the same record a topic folder keeps, so the scene planner can caption these too

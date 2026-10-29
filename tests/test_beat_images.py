@@ -224,3 +224,25 @@ def test_topic_photos_with_printed_text_are_set_aside_once_and_cached(monkeypatc
     beat_images.without_burned_in_text(photos, "Tunguska", minimum=4)
     assert looks == []                                                                # cached by hash
     assert beat_images.without_burned_in_text(photos, "Tunguska", minimum=6) == photos  # never below the minimum
+
+
+def test_the_licence_finding_is_filed_only_when_the_licence_was_the_reason(monkeypatch, tmp_path):
+    # Audit 2026-10-28: results can also fail on keyword, size or author; "none usable without share-alike"
+    # was filed for those too. Now only when share-alike files were among them, and how many.
+    monkeypatch.setattr("src.free_llm.ready", lambda: True)
+    monkeypatch.setattr(beat_images, "plan_queries", lambda b, t: BeatQueries(items=[
+        BeatQuery(beat=1, query="Antikythera mechanism fragment", keywords=["antikythera"])]))
+    monkeypatch.setattr(beat_images.commons, "search", lambda q, limit, max_wait: ["r1", "r2", "r3"])
+    monkeypatch.setattr(beat_images.config, "BEAT_IMAGES_ALLOW_SHARE_ALIKE", False)
+    notes = []
+    monkeypatch.setattr("src.improve.note", lambda klass, detail, source=None: notes.append((klass, detail)))
+    share_alike = {False: [], True: ["sa1", "sa2"]}
+    monkeypatch.setattr(beat_images.commons, "candidates", lambda pages, kw, sa: iter(share_alike[sa]))
+    monkeypatch.setattr(beat_images.commons, "best_first", lambda cands, kw, place: [])
+    beat_images.source(BEATS, TOPIC, tmp_path / "a")
+    assert notes == [("pictures.licence_excluded",
+                      "beat 1: 2 of 3 Commons result(s) usable only with share-alike licences (IMAGES_ALLOW_SHARE_ALIKE is off)")]
+    notes.clear()
+    share_alike[True] = []                                   # excluded for size or keyword, not the licence
+    beat_images.source(BEATS, TOPIC, tmp_path / "b")
+    assert notes == []

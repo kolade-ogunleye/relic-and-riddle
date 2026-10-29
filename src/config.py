@@ -8,6 +8,7 @@ Handles environment variables, directory paths, and locked video/thumbnail specs
 import os
 import sys
 from pathlib import Path
+from typing import Dict, Optional
 
 # Force UTF-8 for console output on Windows
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
@@ -36,10 +37,36 @@ for p in [DATA_DIR, TOPICS_DIR, CURATED_SCRIPTS_DIR, SFX_DIR, ASSETS_DIR, FONTS_
     p.mkdir(parents=True, exist_ok=True)
 
 
+ENV_FILE_KEYS: set = set()  # keys this process took from .env (not set in the real environment)
+
+
 def _load_env_file(path: Path) -> None:
     """Minimal KEY=VALUE .env loader. Real environment variables always win."""
+    for k, v in read_env_file(path).items():
+        if k not in os.environ:
+            ENV_FILE_KEYS.add(k)
+        os.environ.setdefault(k, v)
+
+
+def worker_environment(path: Optional[Path] = None) -> Dict[str, str]:
+    """The environment for a run's worker: this process's, with .env read again for the keys that came from it.
+    The daemon reads .env once at start, and a worker inherited those values, so an operator's edit (prod,
+    2026-10-28: IMAGES_ALLOW_SHARE_ALIKE=true) silently waited for a restart. Real environment variables still win."""
+    env = dict(os.environ)
+    current = read_env_file(path or BASE_DIR / ".env")
+    for k in ENV_FILE_KEYS - set(current):
+        env.pop(k, None)  # taken out of .env since
+    for k, v in current.items():
+        if k in ENV_FILE_KEYS or k not in env:
+            env[k] = v
+    return env
+
+
+def read_env_file(path: Path) -> Dict[str, str]:
+    """KEY=VALUE pairs of an .env file ({} when there is none)."""
+    values: Dict[str, str] = {}
     if not path.exists():
-        return
+        return values
     with open(path, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
@@ -55,7 +82,8 @@ def _load_env_file(path: Path) -> None:
                 v = v.split(" #", 1)[0].strip()
             elif "\t#" in v:
                 v = v.split("\t#", 1)[0].strip()
-            os.environ.setdefault(k, v)
+            values.setdefault(k, v)  # the first line wins, as at start-up
+    return values
 
 
 _load_env_file(BASE_DIR / ".env")

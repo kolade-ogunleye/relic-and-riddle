@@ -230,3 +230,38 @@ def test_a_run_carried_before_the_fix_passes_when_the_gate_checks_it_again(tmp_p
     assert "rebind_rights(Path(audio[\"path\"]))" in inspect.getsource(release.write_release_report)
     rebind_rights(second / "voiceover.mp3")
     assert inspect_audio_rights(second / "voiceover.mp3", "voice", "", script="Words.")[0] is True
+
+
+def test_a_carried_bed_passes_the_gate_and_a_changed_bed_fails(db, tmp_path, monkeypatch):
+    """The bed carry-over with real rights records (audit, 2026-10-28: the fake records above never exercised it)."""
+    import main, json
+    from types import SimpleNamespace
+    from src.checkpoints import Checkpoints
+    from src.audio_provenance import record_bed, inspect_audio_rights, rebind_rights
+    monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
+    prev, new = tmp_path / "run_prev", tmp_path / "run_new"; prev.mkdir(); new.mkdir()
+    for d in (prev, new): (d / "voiceover.mp3").write_bytes(b"same voice")
+    (prev / "ambient_bed.wav").write_bytes(b"bed")
+    record_bed(prev / "ambient_bed.wav", {"source": "none"})
+    for n in ("music_selection.json", "sound_plan.json"): (prev / n).write_text("{}")
+    Checkpoints(prev).complete("bed", {"x": 1}, [prev / n for n in main.PipelineCoordinator.BED_FILES])
+    c = SimpleNamespace(_operator_feedback={"reason": "pictures", "from_run": "run_prev"}, db=db, BED_FILES=main.PipelineCoordinator.BED_FILES)
+    c._feedback = lambda: main.PipelineCoordinator._feedback(c)
+    c._previous_run_dir = lambda: main.PipelineCoordinator._previous_run_dir(c)
+    main.PipelineCoordinator._seed_bed_from_previous(c, new, new / "voiceover.mp3")
+    ok, rec = inspect_audio_rights(new / "ambient_bed.wav", "music", "")
+    assert ok is True and rec["carried_from"].endswith("ambient_bed.wav")
+    (new / "ambient_bed.wav").write_bytes(b"remixed")
+    assert rebind_rights(new / "ambient_bed.wav") is False
+    assert inspect_audio_rights(new / "ambient_bed.wav", "music", "")[0] is False
+
+
+def test_evidence_copied_from_another_run_is_refused_and_says_so(tmp_path):
+    from src.audio_provenance import record_bed, inspect_audio_rights
+    prev, new = tmp_path / "run_prev", tmp_path / "run_new"; prev.mkdir(); new.mkdir()
+    (prev / "ambient_bed.wav").write_bytes(b"bed")
+    record_bed(prev / "ambient_bed.wav", {"source": "none"})
+    (new / "ambient_bed.wav").write_bytes(b"bed")
+    (new / "ambient_bed.wav.rights.json").write_bytes((prev / "ambient_bed.wav.rights.json").read_bytes())
+    ok, why = inspect_audio_rights(new / "ambient_bed.wav", "music", "")
+    assert ok is False and "names another file (run_prev)" in why

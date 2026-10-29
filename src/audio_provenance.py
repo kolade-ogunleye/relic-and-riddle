@@ -118,8 +118,12 @@ def inspect_audio_rights(path, kind, caption, script=None):
     evidence = path.with_suffix(path.suffix + ".rights.json")
     try:
         record = json.loads(evidence.read_text(encoding="utf-8"))
-        if record["sha256"] != sha256_file(path) or Path(record["path"]).resolve() != path.resolve():
+        if record["sha256"] != sha256_file(path):
             return False, "Audio changed after rights evidence was recorded"
+        if Path(record["path"]).resolve() != path.resolve():
+            # The same bytes, evidence copied from another run and not rebound: said as it is, since "Audio changed"
+            # hid six such refusals on production (audit, 2026-10-28). Still refused.
+            return False, f"Rights evidence names another file ({Path(record['path']).parent.name}) and was not rebound to this run"
         if kind == "voice":
             if script is not None:
                 from .checkpoints import fingerprint

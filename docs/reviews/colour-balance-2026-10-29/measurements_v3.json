@@ -1,0 +1,1718 @@
+[
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "01_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 80.5,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "02_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 46.6,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "03_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 228.6,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "04_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 235.3,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "05_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 50.4,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "06_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 46.1,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "07_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 28.6,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "08_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 346.2,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "09_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 286.4,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "10_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 23.6,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "11_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 0.3,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "12_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 20.8,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "13_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "14_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 28.6,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "15_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 346.2,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "16_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 286.4,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "17_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 348.0,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "18_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 38.3,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "19_commons.jpg",
+  "settings": null,
+  "lamp_lit": true,
+  "neutral_hue": 42.4,
+  "warm_cast_left": true
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "20_commons.jpg",
+  "settings": {
+   "gains": [
+    0.9536,
+    0.9792,
+    1.18
+   ],
+   "gamma": 1.0,
+   "cast": 0.3771,
+   "mean_luma": 0.3691
+  },
+  "lamp_lit": true,
+  "neutral_hue": 52.8,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "21_commons.jpg",
+  "settings": {
+   "gains": [
+    0.8965,
+    1.049,
+    1.0192
+   ],
+   "gamma": 1.0,
+   "cast": 0.1426,
+   "mean_luma": 0.4162
+  },
+  "lamp_lit": true,
+  "neutral_hue": 350.6,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "22_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "23_commons.jpg",
+  "settings": {
+   "gains": [
+    0.9607,
+    1.0422,
+    0.8858
+   ],
+   "gamma": 0.75,
+   "cast": 0.1506,
+   "mean_luma": 0.1171
+  },
+  "lamp_lit": true,
+  "neutral_hue": 267.2,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "24_commons.jpg",
+  "settings": {
+   "gains": [
+    0.9674,
+    0.9707,
+    1.18
+   ],
+   "gamma": 0.79,
+   "cast": 0.4004,
+   "mean_luma": 0.2332
+  },
+  "lamp_lit": true,
+  "neutral_hue": 59.1,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "25_commons.jpg",
+  "settings": {
+   "gains": [
+    0.9735,
+    0.9614,
+    1.18
+   ],
+   "gamma": 0.8212,
+   "cast": 0.6647,
+   "mean_luma": 0.2585
+  },
+  "lamp_lit": true,
+  "neutral_hue": 62.6,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "26_commons.jpg",
+  "settings": {
+   "gains": [
+    0.9739,
+    0.9798,
+    1.1726
+   ],
+   "gamma": 0.75,
+   "cast": 0.2311,
+   "mean_luma": 0.09
+  },
+  "lamp_lit": true,
+  "neutral_hue": 57.6,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "27_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "28_commons.jpg",
+  "settings": {
+   "gains": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "gamma": 0.7992,
+   "cast": 0.0,
+   "mean_luma": 0.2406
+  },
+  "lamp_lit": false,
+  "neutral_hue": 66.0,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "29_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 45.5,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "30_commons.jpg",
+  "settings": {
+   "gains": [
+    0.9574,
+    0.9776,
+    1.18
+   ],
+   "gamma": 0.75,
+   "cast": 0.357,
+   "mean_luma": 0.1336
+  },
+  "lamp_lit": true,
+  "neutral_hue": 54.0,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "31_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 26.0,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "32_commons.jpg",
+  "settings": {
+   "gains": [
+    0.9442,
+    0.9796,
+    1.18
+   ],
+   "gamma": 0.75,
+   "cast": 0.5847,
+   "mean_luma": 0.1262
+  },
+  "lamp_lit": true,
+  "neutral_hue": 52.1,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "01_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 30.7,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "02_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 16.4,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "03_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 16.0,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "04_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 23.9,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "05_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 18.9,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "06_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 11.5,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "07_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 5.3,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "08_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 17.1,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "09_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 331.8,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "10_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 338.0,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "11_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 20.8,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "12_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 326.7,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "13_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 53.1,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "14_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 50.5,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "15_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 32.1,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "16_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 42.7,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "17_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 36.4,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "18_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 352.7,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "19_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 27.7,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "20_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 6.0,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "01_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "02_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "03_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "04_commons.jpg",
+  "settings": null,
+  "lamp_lit": true,
+  "neutral_hue": 104.6,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "05_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 13.5,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "06_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "07_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 35.4,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "08_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 343.0,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "09_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 346.4,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "10_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "11_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "12_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 34.7,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "13_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 172.7,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "14_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 237.1,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "15_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 305.5,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "16_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 219.8,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "17_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 17.6,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "18_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 31.8,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "19_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 45.3,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "20_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 243.7,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "01_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "02_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "03_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "04_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 353.5,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "05_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 20.8,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "06_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 8.2,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "07_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 274.8,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "08_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 24.7,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "09_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 27.9,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "10_commons.jpg",
+  "settings": {
+   "gains": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "gamma": 0.8609,
+   "cast": 0.0,
+   "mean_luma": 0.291
+  },
+  "lamp_lit": false,
+  "neutral_hue": 41.9,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "11_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 31.1,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "12_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "13_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 14.0,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "14_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 24.9,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "15_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 64.5,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "16_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "17_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 37.4,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "18_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 35.9,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "19_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 212.4,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "20_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "21_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 26.4,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "22_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "23_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "24_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 35.2,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "25_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 28.5,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "26_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "27_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "28_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "01_commons.jpg",
+  "settings": null,
+  "lamp_lit": true,
+  "neutral_hue": 37.1,
+  "warm_cast_left": true
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "02_commons.jpg",
+  "settings": null,
+  "lamp_lit": true,
+  "neutral_hue": 37.5,
+  "warm_cast_left": true
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "03_commons.jpg",
+  "settings": null,
+  "lamp_lit": true,
+  "neutral_hue": 32.6,
+  "warm_cast_left": true
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "04_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 35.4,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "05_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 64.4,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "06_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 37.9,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "07_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 65.4,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "08_commons.jpg",
+  "settings": null,
+  "lamp_lit": true,
+  "neutral_hue": 33.2,
+  "warm_cast_left": true
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "09_commons.jpg",
+  "settings": null,
+  "lamp_lit": true,
+  "neutral_hue": 32.7,
+  "warm_cast_left": true
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "10_commons.jpg",
+  "settings": null,
+  "lamp_lit": true,
+  "neutral_hue": 31.3,
+  "warm_cast_left": true
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "11_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 35.8,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "12_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 31.9,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "13_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 39.0,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "14_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 39.8,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "15_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 34.6,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "16_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 27.7,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "17_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 34.7,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "18_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 40.1,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "19_commons.jpg",
+  "settings": null,
+  "lamp_lit": true,
+  "neutral_hue": 30.9,
+  "warm_cast_left": true
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "20_commons.jpg",
+  "settings": null,
+  "lamp_lit": true,
+  "neutral_hue": 32.1,
+  "warm_cast_left": true
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "01_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 38.0,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "02_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 47.5,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "03_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 291.8,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "04_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 359.3,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "05_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 46.6,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "06_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 341.5,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "07_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 258.7,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "08_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 317.6,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "09_commons.jpg",
+  "settings": {
+   "gains": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "gamma": 0.8542,
+   "cast": 0.1033,
+   "mean_luma": 0.2855
+  },
+  "lamp_lit": true,
+  "neutral_hue": 43.3,
+  "warm_cast_left": true
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "10_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 35.4,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "11_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 37.0,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "12_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 35.1,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "13_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 31.2,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "14_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 51.1,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "15_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 34.7,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "16_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 42.9,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "17_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 23.6,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "01_commons.jpg",
+  "settings": null,
+  "lamp_lit": true,
+  "neutral_hue": 33.7,
+  "warm_cast_left": true
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "02_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 30.4,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "03_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 45.7,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "04_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 28.3,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "05_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 10.0,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "06_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 26.5,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "07_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 41.6,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "08_commons.jpg",
+  "settings": null,
+  "lamp_lit": true,
+  "neutral_hue": 28.6,
+  "warm_cast_left": true
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "09_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 33.4,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "10_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 28.9,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "11_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 34.3,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "12_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 10.5,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "13_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 32.3,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "14_commons.jpg",
+  "settings": null,
+  "lamp_lit": true,
+  "neutral_hue": 31.2,
+  "warm_cast_left": true
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "15_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 31.3,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "16_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 48.9,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "17_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 32.5,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "18_commons.jpg",
+  "settings": null,
+  "lamp_lit": true,
+  "neutral_hue": 32.3,
+  "warm_cast_left": true
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "19_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 32.5,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "gobekli_tepe_enclosure_d",
+  "photo": "01_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 40.4,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "gobekli_tepe_enclosure_d",
+  "photo": "02_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 39.5,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "gobekli_tepe_enclosure_d",
+  "photo": "03_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 42.7,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "gobekli_tepe_enclosure_d",
+  "photo": "04_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "gobekli_tepe_enclosure_d",
+  "photo": "05_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 38.7,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "gobekli_tepe_enclosure_d",
+  "photo": "06_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "gobekli_tepe_enclosure_d",
+  "photo": "07_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "gobekli_tepe_enclosure_d",
+  "photo": "08_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 27.6,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "gobekli_tepe_enclosure_d",
+  "photo": "09_commons.jpg",
+  "settings": null,
+  "lamp_lit": true,
+  "neutral_hue": 27.6,
+  "warm_cast_left": true
+ },
+ {
+  "topic": "gobekli_tepe_enclosure_d",
+  "photo": "10_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "gobekli_tepe_enclosure_d",
+  "photo": "11_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 52.1,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "01_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 42.6,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "02_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 56.2,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "03_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 39.2,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "04_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 41.1,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "05_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 21.1,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "06_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 40.8,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "07_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 40.6,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "08_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "09_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "10_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 42.7,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "11_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 88.4,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "12_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 35.1,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "13_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 37.3,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "14_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 26.0,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "15_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 34.9,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "16_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 24.6,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "17_commons.jpg",
+  "settings": {
+   "gains": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "gamma": 0.75,
+   "cast": 0.1287,
+   "mean_luma": 0.1029
+  },
+  "lamp_lit": true,
+  "neutral_hue": 44.2,
+  "warm_cast_left": true
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "18_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 22.7,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "19_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 73.4,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "20_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 22.4,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "01_commons.jpg",
+  "settings": null,
+  "lamp_lit": true,
+  "neutral_hue": 20.1,
+  "warm_cast_left": true
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "02_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 16.7,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "03_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 14.8,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "04_commons.jpg",
+  "settings": null,
+  "lamp_lit": true,
+  "neutral_hue": 28.8,
+  "warm_cast_left": true
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "05_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 5.5,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "06_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 5.5,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "07_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 54.7,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "08_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 216.7,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "09_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "10_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "11_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 53.1,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "12_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 53.5,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "13_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": 53.9,
+  "warm_cast_left": false
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "14_commons.jpg",
+  "settings": null,
+  "lamp_lit": false,
+  "neutral_hue": null,
+  "warm_cast_left": false
+ }
+]

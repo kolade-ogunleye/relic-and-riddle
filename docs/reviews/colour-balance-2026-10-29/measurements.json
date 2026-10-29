@@ -1,0 +1,2701 @@
+[
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "01_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.646,
+  "highlight_tint": 0.105,
+  "before": {
+   "mean_luma": 0.489,
+   "contrast_std": 0.105,
+   "sat_all": 0.1224,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.023
+  },
+  "after": {
+   "mean_luma": 0.489,
+   "contrast_std": 0.105,
+   "sat_all": 0.1224,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.023
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "02_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.811,
+  "highlight_tint": 0.275,
+  "before": {
+   "mean_luma": 0.515,
+   "contrast_std": 0.202,
+   "sat_all": 0.3689,
+   "sat_sky": 0.6068,
+   "sat_foliage": 0.2454,
+   "neutral_cast": 0.145
+  },
+  "after": {
+   "mean_luma": 0.515,
+   "contrast_std": 0.202,
+   "sat_all": 0.3689,
+   "sat_sky": 0.6068,
+   "sat_foliage": 0.2454,
+   "neutral_cast": 0.145
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "03_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.918,
+  "highlight_tint": 0.152,
+  "before": {
+   "mean_luma": 0.426,
+   "contrast_std": 0.251,
+   "sat_all": 0.3397,
+   "sat_sky": 0.1728,
+   "sat_foliage": 0.5598,
+   "neutral_cast": 0.019
+  },
+  "after": {
+   "mean_luma": 0.426,
+   "contrast_std": 0.251,
+   "sat_all": 0.3397,
+   "sat_sky": 0.1728,
+   "sat_foliage": 0.5598,
+   "neutral_cast": 0.019
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "04_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.939,
+  "highlight_tint": 0.063,
+  "before": {
+   "mean_luma": 0.446,
+   "contrast_std": 0.257,
+   "sat_all": 0.2184,
+   "sat_sky": 0.1776,
+   "sat_foliage": 0.459,
+   "neutral_cast": 0.009
+  },
+  "after": {
+   "mean_luma": 0.446,
+   "contrast_std": 0.257,
+   "sat_all": 0.2184,
+   "sat_sky": 0.1776,
+   "sat_foliage": 0.459,
+   "neutral_cast": 0.009
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "05_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.592,
+  "highlight_tint": 0.207,
+  "before": {
+   "mean_luma": 0.442,
+   "contrast_std": 0.114,
+   "sat_all": 0.4013,
+   "sat_sky": 0.5269,
+   "sat_foliage": 0.3987,
+   "neutral_cast": 0.031
+  },
+  "after": {
+   "mean_luma": 0.442,
+   "contrast_std": 0.114,
+   "sat_all": 0.4013,
+   "sat_sky": 0.5269,
+   "sat_foliage": 0.3987,
+   "neutral_cast": 0.031
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "06_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.882,
+  "highlight_tint": 0.035,
+  "before": {
+   "mean_luma": 0.522,
+   "contrast_std": 0.265,
+   "sat_all": 0.1535,
+   "sat_sky": 0.249,
+   "sat_foliage": 0.3116,
+   "neutral_cast": 0.003
+  },
+  "after": {
+   "mean_luma": 0.522,
+   "contrast_std": 0.265,
+   "sat_all": 0.1535,
+   "sat_sky": 0.249,
+   "sat_foliage": 0.3116,
+   "neutral_cast": 0.003
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "07_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.92,
+  "highlight_tint": 0.147,
+  "before": {
+   "mean_luma": 0.533,
+   "contrast_std": 0.277,
+   "sat_all": 0.3035,
+   "sat_sky": 0.3517,
+   "sat_foliage": null,
+   "neutral_cast": 0.05
+  },
+  "after": {
+   "mean_luma": 0.533,
+   "contrast_std": 0.277,
+   "sat_all": 0.3035,
+   "sat_sky": 0.3517,
+   "sat_foliage": null,
+   "neutral_cast": 0.05
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "08_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.815,
+  "highlight_tint": 0.024,
+  "before": {
+   "mean_luma": 0.311,
+   "contrast_std": 0.224,
+   "sat_all": 0.3415,
+   "sat_sky": 0.2047,
+   "sat_foliage": null,
+   "neutral_cast": 0.081
+  },
+  "after": {
+   "mean_luma": 0.311,
+   "contrast_std": 0.224,
+   "sat_all": 0.3415,
+   "sat_sky": 0.2047,
+   "sat_foliage": null,
+   "neutral_cast": 0.081
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "09_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.766,
+  "highlight_tint": 0.041,
+  "before": {
+   "mean_luma": 0.574,
+   "contrast_std": 0.178,
+   "sat_all": 0.0905,
+   "sat_sky": 0.2116,
+   "sat_foliage": null,
+   "neutral_cast": 0.004
+  },
+  "after": {
+   "mean_luma": 0.574,
+   "contrast_std": 0.178,
+   "sat_all": 0.0905,
+   "sat_sky": 0.2116,
+   "sat_foliage": null,
+   "neutral_cast": 0.004
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "10_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.646,
+  "highlight_tint": 0.132,
+  "before": {
+   "mean_luma": 0.461,
+   "contrast_std": 0.139,
+   "sat_all": 0.1203,
+   "sat_sky": 0.2478,
+   "sat_foliage": 0.2516,
+   "neutral_cast": 0.015
+  },
+  "after": {
+   "mean_luma": 0.461,
+   "contrast_std": 0.139,
+   "sat_all": 0.1203,
+   "sat_sky": 0.2478,
+   "sat_foliage": 0.2516,
+   "neutral_cast": 0.015
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "11_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.757,
+  "highlight_tint": 0.026,
+  "before": {
+   "mean_luma": 0.427,
+   "contrast_std": 0.196,
+   "sat_all": 0.2406,
+   "sat_sky": 0.5575,
+   "sat_foliage": 0.2413,
+   "neutral_cast": 0.009
+  },
+  "after": {
+   "mean_luma": 0.427,
+   "contrast_std": 0.196,
+   "sat_all": 0.2406,
+   "sat_sky": 0.5575,
+   "sat_foliage": 0.2413,
+   "neutral_cast": 0.009
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "12_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.755,
+  "highlight_tint": 0.357,
+  "before": {
+   "mean_luma": 0.581,
+   "contrast_std": 0.15,
+   "sat_all": 0.4715,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.238
+  },
+  "after": {
+   "mean_luma": 0.581,
+   "contrast_std": 0.15,
+   "sat_all": 0.4715,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.238
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "13_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.579,
+  "highlight_tint": 0.086,
+  "before": {
+   "mean_luma": 0.468,
+   "contrast_std": 0.079,
+   "sat_all": 0.0948,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.009
+  },
+  "after": {
+   "mean_luma": 0.468,
+   "contrast_std": 0.079,
+   "sat_all": 0.0948,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.009
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "14_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.92,
+  "highlight_tint": 0.147,
+  "before": {
+   "mean_luma": 0.533,
+   "contrast_std": 0.277,
+   "sat_all": 0.3035,
+   "sat_sky": 0.3517,
+   "sat_foliage": null,
+   "neutral_cast": 0.05
+  },
+  "after": {
+   "mean_luma": 0.533,
+   "contrast_std": 0.277,
+   "sat_all": 0.3035,
+   "sat_sky": 0.3517,
+   "sat_foliage": null,
+   "neutral_cast": 0.05
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "15_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.815,
+  "highlight_tint": 0.024,
+  "before": {
+   "mean_luma": 0.311,
+   "contrast_std": 0.224,
+   "sat_all": 0.3415,
+   "sat_sky": 0.2047,
+   "sat_foliage": null,
+   "neutral_cast": 0.081
+  },
+  "after": {
+   "mean_luma": 0.311,
+   "contrast_std": 0.224,
+   "sat_all": 0.3415,
+   "sat_sky": 0.2047,
+   "sat_foliage": null,
+   "neutral_cast": 0.081
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "16_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.766,
+  "highlight_tint": 0.041,
+  "before": {
+   "mean_luma": 0.574,
+   "contrast_std": 0.178,
+   "sat_all": 0.0905,
+   "sat_sky": 0.2116,
+   "sat_foliage": null,
+   "neutral_cast": 0.004
+  },
+  "after": {
+   "mean_luma": 0.574,
+   "contrast_std": 0.178,
+   "sat_all": 0.0905,
+   "sat_sky": 0.2116,
+   "sat_foliage": null,
+   "neutral_cast": 0.004
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "17_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.732,
+  "highlight_tint": 0.053,
+  "before": {
+   "mean_luma": 0.516,
+   "contrast_std": 0.16,
+   "sat_all": 0.0985,
+   "sat_sky": 0.1657,
+   "sat_foliage": null,
+   "neutral_cast": 0.006
+  },
+  "after": {
+   "mean_luma": 0.516,
+   "contrast_std": 0.16,
+   "sat_all": 0.0985,
+   "sat_sky": 0.1657,
+   "sat_foliage": null,
+   "neutral_cast": 0.006
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "18_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.695,
+  "highlight_tint": 0.125,
+  "before": {
+   "mean_luma": 0.57,
+   "contrast_std": 0.108,
+   "sat_all": 0.2462,
+   "sat_sky": null,
+   "sat_foliage": 0.318,
+   "neutral_cast": 0.092
+  },
+  "after": {
+   "mean_luma": 0.57,
+   "contrast_std": 0.108,
+   "sat_all": 0.2462,
+   "sat_sky": null,
+   "sat_foliage": 0.318,
+   "neutral_cast": 0.092
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "19_commons.jpg",
+  "changed": true,
+  "settings": {
+   "gains": [
+    0.9065,
+    0.9974,
+    1.18
+   ],
+   "gamma": 1.0,
+   "cast": 1.0013,
+   "mean_luma": 0.3237
+  },
+  "lamp_lit": true,
+  "daylight_sky": false,
+  "p95_luma": 0.598,
+  "highlight_tint": 0.553,
+  "before": {
+   "mean_luma": 0.324,
+   "contrast_std": 0.194,
+   "sat_all": 0.7496,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 1.001
+  },
+  "after": {
+   "mean_luma": 0.314,
+   "contrast_std": 0.19,
+   "sat_all": 0.6775,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.673
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "20_commons.jpg",
+  "changed": true,
+  "settings": {
+   "gains": [
+    0.9536,
+    0.9792,
+    1.18
+   ],
+   "gamma": 1.0,
+   "cast": 0.3771,
+   "mean_luma": 0.3691
+  },
+  "lamp_lit": true,
+  "daylight_sky": false,
+  "p95_luma": 0.668,
+  "highlight_tint": 0.434,
+  "before": {
+   "mean_luma": 0.369,
+   "contrast_std": 0.175,
+   "sat_all": 0.4483,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.377
+  },
+  "after": {
+   "mean_luma": 0.363,
+   "contrast_std": 0.173,
+   "sat_all": 0.3308,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.19
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "21_commons.jpg",
+  "changed": true,
+  "settings": {
+   "gains": [
+    0.8965,
+    1.049,
+    1.0192
+   ],
+   "gamma": 1.0,
+   "cast": 0.1426,
+   "mean_luma": 0.4162
+  },
+  "lamp_lit": true,
+  "daylight_sky": false,
+  "p95_luma": 0.711,
+  "highlight_tint": 0.571,
+  "before": {
+   "mean_luma": 0.416,
+   "contrast_std": 0.172,
+   "sat_all": 0.5703,
+   "sat_sky": 0.3943,
+   "sat_foliage": null,
+   "neutral_cast": 0.143
+  },
+  "after": {
+   "mean_luma": 0.411,
+   "contrast_std": 0.17,
+   "sat_all": 0.5409,
+   "sat_sky": 0.4546,
+   "sat_foliage": null,
+   "neutral_cast": 0.136
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "22_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.579,
+  "highlight_tint": 0.071,
+  "before": {
+   "mean_luma": 0.35,
+   "contrast_std": 0.115,
+   "sat_all": 0.1263,
+   "sat_sky": null,
+   "sat_foliage": 0.2297,
+   "neutral_cast": 0.032
+  },
+  "after": {
+   "mean_luma": 0.35,
+   "contrast_std": 0.115,
+   "sat_all": 0.1263,
+   "sat_sky": null,
+   "sat_foliage": 0.2297,
+   "neutral_cast": 0.032
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "23_commons.jpg",
+  "changed": true,
+  "settings": {
+   "gains": [
+    0.9607,
+    1.0422,
+    0.8858
+   ],
+   "gamma": 0.75,
+   "cast": 0.1506,
+   "mean_luma": 0.1171
+  },
+  "lamp_lit": true,
+  "daylight_sky": false,
+  "p95_luma": 0.308,
+  "highlight_tint": 0.723,
+  "before": {
+   "mean_luma": 0.117,
+   "contrast_std": 0.093,
+   "sat_all": 0.5533,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.151
+  },
+  "after": {
+   "mean_luma": 0.19,
+   "contrast_std": 0.109,
+   "sat_all": 0.5583,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.055
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "24_commons.jpg",
+  "changed": true,
+  "settings": {
+   "gains": [
+    0.9674,
+    0.9707,
+    1.18
+   ],
+   "gamma": 0.79,
+   "cast": 0.4005,
+   "mean_luma": 0.2332
+  },
+  "lamp_lit": true,
+  "daylight_sky": false,
+  "p95_luma": 0.465,
+  "highlight_tint": 0.297,
+  "before": {
+   "mean_luma": 0.233,
+   "contrast_std": 0.118,
+   "sat_all": 0.476,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.4
+  },
+  "after": {
+   "mean_luma": 0.307,
+   "contrast_std": 0.118,
+   "sat_all": 0.3684,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.206
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "25_commons.jpg",
+  "changed": true,
+  "settings": {
+   "gains": [
+    0.9735,
+    0.9614,
+    1.18
+   ],
+   "gamma": 0.8212,
+   "cast": 0.6647,
+   "mean_luma": 0.2585
+  },
+  "lamp_lit": true,
+  "daylight_sky": false,
+  "p95_luma": 0.484,
+  "highlight_tint": 0.477,
+  "before": {
+   "mean_luma": 0.258,
+   "contrast_std": 0.143,
+   "sat_all": 0.5813,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.665
+  },
+  "after": {
+   "mean_luma": 0.314,
+   "contrast_std": 0.153,
+   "sat_all": 0.4879,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.427
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "26_commons.jpg",
+  "changed": true,
+  "settings": {
+   "gains": [
+    0.9739,
+    0.9798,
+    1.1726
+   ],
+   "gamma": 0.75,
+   "cast": 0.2311,
+   "mean_luma": 0.09
+  },
+  "lamp_lit": true,
+  "daylight_sky": false,
+  "p95_luma": 0.207,
+  "highlight_tint": 0.289,
+  "before": {
+   "mean_luma": 0.09,
+   "contrast_std": 0.07,
+   "sat_all": 0.374,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.231
+  },
+  "after": {
+   "mean_luma": 0.155,
+   "contrast_std": 0.089,
+   "sat_all": 0.252,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.095
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "27_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.63,
+  "highlight_tint": 0.097,
+  "before": {
+   "mean_luma": 0.34,
+   "contrast_std": 0.15,
+   "sat_all": 0.1938,
+   "sat_sky": null,
+   "sat_foliage": 0.2468,
+   "neutral_cast": 0.069
+  },
+  "after": {
+   "mean_luma": 0.34,
+   "contrast_std": 0.15,
+   "sat_all": 0.1938,
+   "sat_sky": null,
+   "sat_foliage": 0.2468,
+   "neutral_cast": 0.069
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "28_commons.jpg",
+  "changed": true,
+  "settings": {
+   "gains": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "gamma": 0.7992,
+   "cast": 0.0,
+   "mean_luma": 0.2406
+  },
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.495,
+  "highlight_tint": 0.198,
+  "before": {
+   "mean_luma": 0.241,
+   "contrast_std": 0.137,
+   "sat_all": 0.1881,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.087
+  },
+  "after": {
+   "mean_luma": 0.312,
+   "contrast_std": 0.139,
+   "sat_all": 0.1888,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.086
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "29_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.732,
+  "highlight_tint": 0.102,
+  "before": {
+   "mean_luma": 0.487,
+   "contrast_std": 0.142,
+   "sat_all": 0.199,
+   "sat_sky": null,
+   "sat_foliage": 0.2508,
+   "neutral_cast": 0.073
+  },
+  "after": {
+   "mean_luma": 0.487,
+   "contrast_std": 0.142,
+   "sat_all": 0.199,
+   "sat_sky": null,
+   "sat_foliage": 0.2508,
+   "neutral_cast": 0.073
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "30_commons.jpg",
+  "changed": true,
+  "settings": {
+   "gains": [
+    0.9574,
+    0.9776,
+    1.18
+   ],
+   "gamma": 0.75,
+   "cast": 0.357,
+   "mean_luma": 0.1336
+  },
+  "lamp_lit": true,
+  "daylight_sky": false,
+  "p95_luma": 0.288,
+  "highlight_tint": 0.331,
+  "before": {
+   "mean_luma": 0.134,
+   "contrast_std": 0.104,
+   "sat_all": 0.3987,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.357
+  },
+  "after": {
+   "mean_luma": 0.207,
+   "contrast_std": 0.12,
+   "sat_all": 0.2786,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.158
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "31_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.791,
+  "highlight_tint": 0.072,
+  "before": {
+   "mean_luma": 0.559,
+   "contrast_std": 0.135,
+   "sat_all": 0.1293,
+   "sat_sky": null,
+   "sat_foliage": 0.2305,
+   "neutral_cast": 0.035
+  },
+  "after": {
+   "mean_luma": 0.559,
+   "contrast_std": 0.135,
+   "sat_all": 0.1293,
+   "sat_sky": null,
+   "sat_foliage": 0.2305,
+   "neutral_cast": 0.035
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "32_commons.jpg",
+  "changed": true,
+  "settings": {
+   "gains": [
+    0.9442,
+    0.9796,
+    1.18
+   ],
+   "gamma": 0.75,
+   "cast": 0.5847,
+   "mean_luma": 0.1262
+  },
+  "lamp_lit": true,
+  "daylight_sky": false,
+  "p95_luma": 0.306,
+  "highlight_tint": 0.462,
+  "before": {
+   "mean_luma": 0.126,
+   "contrast_std": 0.096,
+   "sat_all": 0.5614,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.585
+  },
+  "after": {
+   "mean_luma": 0.199,
+   "contrast_std": 0.11,
+   "sat_all": 0.4566,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.359
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "01_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.775,
+  "highlight_tint": 0.41,
+  "before": {
+   "mean_luma": 0.555,
+   "contrast_std": 0.143,
+   "sat_all": 0.5524,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.475
+  },
+  "after": {
+   "mean_luma": 0.555,
+   "contrast_std": 0.143,
+   "sat_all": 0.5524,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.475
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "02_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.868,
+  "highlight_tint": 0.12,
+  "before": {
+   "mean_luma": 0.475,
+   "contrast_std": 0.28,
+   "sat_all": 0.5316,
+   "sat_sky": 0.5927,
+   "sat_foliage": 0.3752,
+   "neutral_cast": 0.105
+  },
+  "after": {
+   "mean_luma": 0.475,
+   "contrast_std": 0.28,
+   "sat_all": 0.5316,
+   "sat_sky": 0.5927,
+   "sat_foliage": 0.3752,
+   "neutral_cast": 0.105
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "03_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.754,
+  "highlight_tint": 0.137,
+  "before": {
+   "mean_luma": 0.371,
+   "contrast_std": 0.221,
+   "sat_all": 0.2708,
+   "sat_sky": 0.323,
+   "sat_foliage": null,
+   "neutral_cast": 0.034
+  },
+  "after": {
+   "mean_luma": 0.371,
+   "contrast_std": 0.221,
+   "sat_all": 0.2708,
+   "sat_sky": 0.323,
+   "sat_foliage": null,
+   "neutral_cast": 0.034
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "04_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.839,
+  "highlight_tint": 0.246,
+  "before": {
+   "mean_luma": 0.438,
+   "contrast_std": 0.245,
+   "sat_all": 0.3555,
+   "sat_sky": 0.3169,
+   "sat_foliage": null,
+   "neutral_cast": 0.092
+  },
+  "after": {
+   "mean_luma": 0.438,
+   "contrast_std": 0.245,
+   "sat_all": 0.3555,
+   "sat_sky": 0.3169,
+   "sat_foliage": null,
+   "neutral_cast": 0.092
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "05_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.778,
+  "highlight_tint": 0.083,
+  "before": {
+   "mean_luma": 0.487,
+   "contrast_std": 0.192,
+   "sat_all": 0.2871,
+   "sat_sky": 0.2396,
+   "sat_foliage": 0.2696,
+   "neutral_cast": 0.046
+  },
+  "after": {
+   "mean_luma": 0.487,
+   "contrast_std": 0.192,
+   "sat_all": 0.2871,
+   "sat_sky": 0.2396,
+   "sat_foliage": 0.2696,
+   "neutral_cast": 0.046
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "06_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.798,
+  "highlight_tint": 0.251,
+  "before": {
+   "mean_luma": 0.432,
+   "contrast_std": 0.314,
+   "sat_all": 0.2734,
+   "sat_sky": 0.4874,
+   "sat_foliage": null,
+   "neutral_cast": 0.086
+  },
+  "after": {
+   "mean_luma": 0.432,
+   "contrast_std": 0.314,
+   "sat_all": 0.2734,
+   "sat_sky": 0.4874,
+   "sat_foliage": null,
+   "neutral_cast": 0.086
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "07_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.738,
+  "highlight_tint": 0.326,
+  "before": {
+   "mean_luma": 0.575,
+   "contrast_std": 0.097,
+   "sat_all": 0.2589,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.093
+  },
+  "after": {
+   "mean_luma": 0.575,
+   "contrast_std": 0.097,
+   "sat_all": 0.2589,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.093
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "08_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.757,
+  "highlight_tint": 0.366,
+  "before": {
+   "mean_luma": 0.619,
+   "contrast_std": 0.09,
+   "sat_all": 0.3202,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.115
+  },
+  "after": {
+   "mean_luma": 0.619,
+   "contrast_std": 0.09,
+   "sat_all": 0.3202,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.115
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "09_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.908,
+  "highlight_tint": 0.089,
+  "before": {
+   "mean_luma": 0.556,
+   "contrast_std": 0.227,
+   "sat_all": 0.2952,
+   "sat_sky": 0.3104,
+   "sat_foliage": null,
+   "neutral_cast": 0.041
+  },
+  "after": {
+   "mean_luma": 0.556,
+   "contrast_std": 0.227,
+   "sat_all": 0.2952,
+   "sat_sky": 0.3104,
+   "sat_foliage": null,
+   "neutral_cast": 0.041
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "10_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.775,
+  "highlight_tint": 0.196,
+  "before": {
+   "mean_luma": 0.588,
+   "contrast_std": 0.199,
+   "sat_all": 0.2654,
+   "sat_sky": 0.3591,
+   "sat_foliage": null,
+   "neutral_cast": 0.061
+  },
+  "after": {
+   "mean_luma": 0.588,
+   "contrast_std": 0.199,
+   "sat_all": 0.2654,
+   "sat_sky": 0.3591,
+   "sat_foliage": null,
+   "neutral_cast": 0.061
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "11_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.879,
+  "highlight_tint": 0.076,
+  "before": {
+   "mean_luma": 0.604,
+   "contrast_std": 0.192,
+   "sat_all": 0.1858,
+   "sat_sky": 0.2019,
+   "sat_foliage": null,
+   "neutral_cast": 0.022
+  },
+  "after": {
+   "mean_luma": 0.604,
+   "contrast_std": 0.192,
+   "sat_all": 0.1858,
+   "sat_sky": 0.2019,
+   "sat_foliage": null,
+   "neutral_cast": 0.022
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "12_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.803,
+  "highlight_tint": 0.121,
+  "before": {
+   "mean_luma": 0.51,
+   "contrast_std": 0.182,
+   "sat_all": 0.2752,
+   "sat_sky": 0.2759,
+   "sat_foliage": null,
+   "neutral_cast": 0.05
+  },
+  "after": {
+   "mean_luma": 0.51,
+   "contrast_std": 0.182,
+   "sat_all": 0.2752,
+   "sat_sky": 0.2759,
+   "sat_foliage": null,
+   "neutral_cast": 0.05
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "13_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.945,
+  "highlight_tint": 0.026,
+  "before": {
+   "mean_luma": 0.469,
+   "contrast_std": 0.258,
+   "sat_all": 0.3221,
+   "sat_sky": 0.2517,
+   "sat_foliage": 0.4952,
+   "neutral_cast": 0.007
+  },
+  "after": {
+   "mean_luma": 0.469,
+   "contrast_std": 0.258,
+   "sat_all": 0.3221,
+   "sat_sky": 0.2517,
+   "sat_foliage": 0.4952,
+   "neutral_cast": 0.007
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "14_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.46,
+  "highlight_tint": 0.502,
+  "before": {
+   "mean_luma": 0.33,
+   "contrast_std": 0.129,
+   "sat_all": 0.4888,
+   "sat_sky": null,
+   "sat_foliage": 0.4864,
+   "neutral_cast": 0.537
+  },
+  "after": {
+   "mean_luma": 0.33,
+   "contrast_std": 0.129,
+   "sat_all": 0.4888,
+   "sat_sky": null,
+   "sat_foliage": 0.4864,
+   "neutral_cast": 0.537
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "15_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.758,
+  "highlight_tint": 0.093,
+  "before": {
+   "mean_luma": 0.56,
+   "contrast_std": 0.129,
+   "sat_all": 0.4836,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.238
+  },
+  "after": {
+   "mean_luma": 0.56,
+   "contrast_std": 0.129,
+   "sat_all": 0.4836,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.238
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "16_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.844,
+  "highlight_tint": 0.139,
+  "before": {
+   "mean_luma": 0.538,
+   "contrast_std": 0.199,
+   "sat_all": 0.2354,
+   "sat_sky": 0.23,
+   "sat_foliage": null,
+   "neutral_cast": 0.016
+  },
+  "after": {
+   "mean_luma": 0.538,
+   "contrast_std": 0.199,
+   "sat_all": 0.2354,
+   "sat_sky": 0.23,
+   "sat_foliage": null,
+   "neutral_cast": 0.016
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "17_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.922,
+  "highlight_tint": 0.226,
+  "before": {
+   "mean_luma": 0.317,
+   "contrast_std": 0.371,
+   "sat_all": 0.1987,
+   "sat_sky": 0.4419,
+   "sat_foliage": 0.3548,
+   "neutral_cast": 0.054
+  },
+  "after": {
+   "mean_luma": 0.317,
+   "contrast_std": 0.371,
+   "sat_all": 0.1987,
+   "sat_sky": 0.4419,
+   "sat_foliage": 0.3548,
+   "neutral_cast": 0.054
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "18_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.874,
+  "highlight_tint": 0.114,
+  "before": {
+   "mean_luma": 0.564,
+   "contrast_std": 0.189,
+   "sat_all": 0.2205,
+   "sat_sky": 0.1782,
+   "sat_foliage": null,
+   "neutral_cast": 0.051
+  },
+  "after": {
+   "mean_luma": 0.564,
+   "contrast_std": 0.189,
+   "sat_all": 0.2205,
+   "sat_sky": 0.1782,
+   "sat_foliage": null,
+   "neutral_cast": 0.051
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "19_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.773,
+  "highlight_tint": 0.019,
+  "before": {
+   "mean_luma": 0.468,
+   "contrast_std": 0.154,
+   "sat_all": 0.2785,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.052
+  },
+  "after": {
+   "mean_luma": 0.468,
+   "contrast_std": 0.154,
+   "sat_all": 0.2785,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.052
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "20_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.796,
+  "highlight_tint": 0.083,
+  "before": {
+   "mean_luma": 0.555,
+   "contrast_std": 0.219,
+   "sat_all": 0.2293,
+   "sat_sky": 0.1812,
+   "sat_foliage": 0.3137,
+   "neutral_cast": 0.047
+  },
+  "after": {
+   "mean_luma": 0.555,
+   "contrast_std": 0.219,
+   "sat_all": 0.2293,
+   "sat_sky": 0.1812,
+   "sat_foliage": 0.3137,
+   "neutral_cast": 0.047
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "01_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.529,
+  "highlight_tint": 0.0,
+  "before": {
+   "mean_luma": 0.421,
+   "contrast_std": 0.078,
+   "sat_all": 0.0,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.0
+  },
+  "after": {
+   "mean_luma": 0.421,
+   "contrast_std": 0.078,
+   "sat_all": 0.0,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.0
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "02_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.627,
+  "highlight_tint": 0.125,
+  "before": {
+   "mean_luma": 0.525,
+   "contrast_std": 0.082,
+   "sat_all": 0.0962,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.037
+  },
+  "after": {
+   "mean_luma": 0.525,
+   "contrast_std": 0.082,
+   "sat_all": 0.0962,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.037
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "03_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.791,
+  "highlight_tint": 0.123,
+  "before": {
+   "mean_luma": 0.542,
+   "contrast_std": 0.106,
+   "sat_all": 0.0823,
+   "sat_sky": 0.173,
+   "sat_foliage": null,
+   "neutral_cast": 0.024
+  },
+  "after": {
+   "mean_luma": 0.542,
+   "contrast_std": 0.106,
+   "sat_all": 0.0823,
+   "sat_sky": 0.173,
+   "sat_foliage": null,
+   "neutral_cast": 0.024
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "04_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": true,
+  "daylight_sky": false,
+  "p95_luma": 0.648,
+  "highlight_tint": 0.226,
+  "before": {
+   "mean_luma": 0.311,
+   "contrast_std": 0.201,
+   "sat_all": 0.3303,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.007
+  },
+  "after": {
+   "mean_luma": 0.311,
+   "contrast_std": 0.201,
+   "sat_all": 0.3303,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.007
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "05_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.716,
+  "highlight_tint": 0.108,
+  "before": {
+   "mean_luma": 0.516,
+   "contrast_std": 0.109,
+   "sat_all": 0.1243,
+   "sat_sky": 0.1721,
+   "sat_foliage": null,
+   "neutral_cast": 0.015
+  },
+  "after": {
+   "mean_luma": 0.516,
+   "contrast_std": 0.109,
+   "sat_all": 0.1243,
+   "sat_sky": 0.1721,
+   "sat_foliage": null,
+   "neutral_cast": 0.015
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "06_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.804,
+  "highlight_tint": 0.082,
+  "before": {
+   "mean_luma": 0.628,
+   "contrast_std": 0.114,
+   "sat_all": 0.0642,
+   "sat_sky": 0.2899,
+   "sat_foliage": null,
+   "neutral_cast": 0.012
+  },
+  "after": {
+   "mean_luma": 0.628,
+   "contrast_std": 0.114,
+   "sat_all": 0.0642,
+   "sat_sky": 0.2899,
+   "sat_foliage": null,
+   "neutral_cast": 0.012
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "07_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.833,
+  "highlight_tint": 0.08,
+  "before": {
+   "mean_luma": 0.599,
+   "contrast_std": 0.175,
+   "sat_all": 0.2496,
+   "sat_sky": 0.3602,
+   "sat_foliage": null,
+   "neutral_cast": 0.017
+  },
+  "after": {
+   "mean_luma": 0.599,
+   "contrast_std": 0.175,
+   "sat_all": 0.2496,
+   "sat_sky": 0.3602,
+   "sat_foliage": null,
+   "neutral_cast": 0.017
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "08_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.75,
+  "highlight_tint": 0.046,
+  "before": {
+   "mean_luma": 0.556,
+   "contrast_std": 0.131,
+   "sat_all": 0.0947,
+   "sat_sky": 0.1903,
+   "sat_foliage": null,
+   "neutral_cast": 0.009
+  },
+  "after": {
+   "mean_luma": 0.556,
+   "contrast_std": 0.131,
+   "sat_all": 0.0947,
+   "sat_sky": 0.1903,
+   "sat_foliage": null,
+   "neutral_cast": 0.009
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "09_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.723,
+  "highlight_tint": 0.094,
+  "before": {
+   "mean_luma": 0.545,
+   "contrast_std": 0.174,
+   "sat_all": 0.1885,
+   "sat_sky": 0.3409,
+   "sat_foliage": null,
+   "neutral_cast": 0.014
+  },
+  "after": {
+   "mean_luma": 0.545,
+   "contrast_std": 0.174,
+   "sat_all": 0.1885,
+   "sat_sky": 0.3409,
+   "sat_foliage": null,
+   "neutral_cast": 0.014
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "10_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.845,
+  "highlight_tint": 0.051,
+  "before": {
+   "mean_luma": 0.553,
+   "contrast_std": 0.183,
+   "sat_all": 0.082,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.019
+  },
+  "after": {
+   "mean_luma": 0.553,
+   "contrast_std": 0.183,
+   "sat_all": 0.082,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.019
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "11_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.857,
+  "highlight_tint": 0.1,
+  "before": {
+   "mean_luma": 0.56,
+   "contrast_std": 0.199,
+   "sat_all": 0.1462,
+   "sat_sky": 0.2265,
+   "sat_foliage": null,
+   "neutral_cast": 0.042
+  },
+  "after": {
+   "mean_luma": 0.56,
+   "contrast_std": 0.199,
+   "sat_all": 0.1462,
+   "sat_sky": 0.2265,
+   "sat_foliage": null,
+   "neutral_cast": 0.042
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "12_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.769,
+  "highlight_tint": 0.309,
+  "before": {
+   "mean_luma": 0.449,
+   "contrast_std": 0.21,
+   "sat_all": 0.3462,
+   "sat_sky": 0.3029,
+   "sat_foliage": 0.3816,
+   "neutral_cast": 0.065
+  },
+  "after": {
+   "mean_luma": 0.449,
+   "contrast_std": 0.21,
+   "sat_all": 0.3462,
+   "sat_sky": 0.3029,
+   "sat_foliage": 0.3816,
+   "neutral_cast": 0.065
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "13_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.777,
+  "highlight_tint": 0.045,
+  "before": {
+   "mean_luma": 0.468,
+   "contrast_std": 0.163,
+   "sat_all": 0.1459,
+   "sat_sky": 0.2331,
+   "sat_foliage": 0.261,
+   "neutral_cast": 0.011
+  },
+  "after": {
+   "mean_luma": 0.468,
+   "contrast_std": 0.163,
+   "sat_all": 0.1459,
+   "sat_sky": 0.2331,
+   "sat_foliage": 0.261,
+   "neutral_cast": 0.011
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "14_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.648,
+  "highlight_tint": 0.085,
+  "before": {
+   "mean_luma": 0.516,
+   "contrast_std": 0.133,
+   "sat_all": 0.1859,
+   "sat_sky": 0.3315,
+   "sat_foliage": 0.2436,
+   "neutral_cast": 0.009
+  },
+  "after": {
+   "mean_luma": 0.516,
+   "contrast_std": 0.133,
+   "sat_all": 0.1859,
+   "sat_sky": 0.3315,
+   "sat_foliage": 0.2436,
+   "neutral_cast": 0.009
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "15_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.788,
+  "highlight_tint": 0.208,
+  "before": {
+   "mean_luma": 0.465,
+   "contrast_std": 0.229,
+   "sat_all": 0.3036,
+   "sat_sky": 0.3354,
+   "sat_foliage": 0.4261,
+   "neutral_cast": 0.006
+  },
+  "after": {
+   "mean_luma": 0.465,
+   "contrast_std": 0.229,
+   "sat_all": 0.3036,
+   "sat_sky": 0.3354,
+   "sat_foliage": 0.4261,
+   "neutral_cast": 0.006
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "16_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.696,
+  "highlight_tint": 0.076,
+  "before": {
+   "mean_luma": 0.507,
+   "contrast_std": 0.171,
+   "sat_all": 0.2311,
+   "sat_sky": 0.3182,
+   "sat_foliage": 0.2898,
+   "neutral_cast": 0.026
+  },
+  "after": {
+   "mean_luma": 0.507,
+   "contrast_std": 0.171,
+   "sat_all": 0.2311,
+   "sat_sky": 0.3182,
+   "sat_foliage": 0.2898,
+   "neutral_cast": 0.026
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "17_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.692,
+  "highlight_tint": 0.321,
+  "before": {
+   "mean_luma": 0.436,
+   "contrast_std": 0.176,
+   "sat_all": 0.2896,
+   "sat_sky": 0.3185,
+   "sat_foliage": 0.4494,
+   "neutral_cast": 0.023
+  },
+  "after": {
+   "mean_luma": 0.436,
+   "contrast_std": 0.176,
+   "sat_all": 0.2896,
+   "sat_sky": 0.3185,
+   "sat_foliage": 0.4494,
+   "neutral_cast": 0.023
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "18_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.678,
+  "highlight_tint": 0.312,
+  "before": {
+   "mean_luma": 0.428,
+   "contrast_std": 0.19,
+   "sat_all": 0.3885,
+   "sat_sky": 0.4476,
+   "sat_foliage": 0.5124,
+   "neutral_cast": 0.043
+  },
+  "after": {
+   "mean_luma": 0.428,
+   "contrast_std": 0.19,
+   "sat_all": 0.3885,
+   "sat_sky": 0.4476,
+   "sat_foliage": 0.5124,
+   "neutral_cast": 0.043
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "19_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.695,
+  "highlight_tint": 0.12,
+  "before": {
+   "mean_luma": 0.581,
+   "contrast_std": 0.123,
+   "sat_all": 0.2203,
+   "sat_sky": 0.3325,
+   "sat_foliage": null,
+   "neutral_cast": 0.041
+  },
+  "after": {
+   "mean_luma": 0.581,
+   "contrast_std": 0.123,
+   "sat_all": 0.2203,
+   "sat_sky": 0.3325,
+   "sat_foliage": null,
+   "neutral_cast": 0.041
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "20_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.746,
+  "highlight_tint": 0.105,
+  "before": {
+   "mean_luma": 0.547,
+   "contrast_std": 0.184,
+   "sat_all": 0.2304,
+   "sat_sky": 0.3369,
+   "sat_foliage": 0.2748,
+   "neutral_cast": 0.011
+  },
+  "after": {
+   "mean_luma": 0.547,
+   "contrast_std": 0.184,
+   "sat_all": 0.2304,
+   "sat_sky": 0.3369,
+   "sat_foliage": 0.2748,
+   "neutral_cast": 0.011
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "01_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.741,
+  "highlight_tint": 0.051,
+  "before": {
+   "mean_luma": 0.547,
+   "contrast_std": 0.137,
+   "sat_all": 0.0441,
+   "sat_sky": 0.1947,
+   "sat_foliage": null,
+   "neutral_cast": 0.006
+  },
+  "after": {
+   "mean_luma": 0.547,
+   "contrast_std": 0.137,
+   "sat_all": 0.0441,
+   "sat_sky": 0.1947,
+   "sat_foliage": null,
+   "neutral_cast": 0.006
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "02_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.867,
+  "highlight_tint": 0.08,
+  "before": {
+   "mean_luma": 0.56,
+   "contrast_std": 0.188,
+   "sat_all": 0.1312,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.035
+  },
+  "after": {
+   "mean_luma": 0.56,
+   "contrast_std": 0.188,
+   "sat_all": 0.1312,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.035
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "03_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.781,
+  "highlight_tint": 0.263,
+  "before": {
+   "mean_luma": 0.226,
+   "contrast_std": 0.278,
+   "sat_all": 0.2344,
+   "sat_sky": null,
+   "sat_foliage": 0.5532,
+   "neutral_cast": 0.194
+  },
+  "after": {
+   "mean_luma": 0.226,
+   "contrast_std": 0.278,
+   "sat_all": 0.2344,
+   "sat_sky": null,
+   "sat_foliage": 0.5532,
+   "neutral_cast": 0.194
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "04_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.713,
+  "highlight_tint": 0.056,
+  "before": {
+   "mean_luma": 0.397,
+   "contrast_std": 0.212,
+   "sat_all": 0.1855,
+   "sat_sky": 0.2066,
+   "sat_foliage": null,
+   "neutral_cast": 0.024
+  },
+  "after": {
+   "mean_luma": 0.397,
+   "contrast_std": 0.212,
+   "sat_all": 0.1855,
+   "sat_sky": 0.2066,
+   "sat_foliage": null,
+   "neutral_cast": 0.024
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "05_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.963,
+  "highlight_tint": 0.227,
+  "before": {
+   "mean_luma": 0.538,
+   "contrast_std": 0.189,
+   "sat_all": 0.2231,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.062
+  },
+  "after": {
+   "mean_luma": 0.538,
+   "contrast_std": 0.189,
+   "sat_all": 0.2231,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.062
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "06_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.739,
+  "highlight_tint": 0.13,
+  "before": {
+   "mean_luma": 0.481,
+   "contrast_std": 0.178,
+   "sat_all": 0.3942,
+   "sat_sky": 0.2496,
+   "sat_foliage": null,
+   "neutral_cast": 0.108
+  },
+  "after": {
+   "mean_luma": 0.481,
+   "contrast_std": 0.178,
+   "sat_all": 0.3942,
+   "sat_sky": 0.2496,
+   "sat_foliage": null,
+   "neutral_cast": 0.108
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "07_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.583,
+  "highlight_tint": 0.06,
+  "before": {
+   "mean_luma": 0.311,
+   "contrast_std": 0.167,
+   "sat_all": 0.158,
+   "sat_sky": 0.2232,
+   "sat_foliage": null,
+   "neutral_cast": 0.007
+  },
+  "after": {
+   "mean_luma": 0.311,
+   "contrast_std": 0.167,
+   "sat_all": 0.158,
+   "sat_sky": 0.2232,
+   "sat_foliage": null,
+   "neutral_cast": 0.007
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "08_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.751,
+  "highlight_tint": 0.072,
+  "before": {
+   "mean_luma": 0.526,
+   "contrast_std": 0.17,
+   "sat_all": 0.1836,
+   "sat_sky": 0.2082,
+   "sat_foliage": null,
+   "neutral_cast": 0.017
+  },
+  "after": {
+   "mean_luma": 0.526,
+   "contrast_std": 0.17,
+   "sat_all": 0.1836,
+   "sat_sky": 0.2082,
+   "sat_foliage": null,
+   "neutral_cast": 0.017
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "09_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.653,
+  "highlight_tint": 0.014,
+  "before": {
+   "mean_luma": 0.393,
+   "contrast_std": 0.168,
+   "sat_all": 0.3823,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.133
+  },
+  "after": {
+   "mean_luma": 0.393,
+   "contrast_std": 0.168,
+   "sat_all": 0.3823,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.133
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "10_commons.jpg",
+  "changed": true,
+  "settings": {
+   "gains": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "gamma": 0.8609,
+   "cast": 0.0,
+   "mean_luma": 0.291
+  },
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.807,
+  "highlight_tint": 0.133,
+  "before": {
+   "mean_luma": 0.291,
+   "contrast_std": 0.285,
+   "sat_all": 0.3249,
+   "sat_sky": null,
+   "sat_foliage": 0.2496,
+   "neutral_cast": 0.084
+  },
+  "after": {
+   "mean_luma": 0.323,
+   "contrast_std": 0.29,
+   "sat_all": 0.3262,
+   "sat_sky": null,
+   "sat_foliage": 0.2218,
+   "neutral_cast": 0.066
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "11_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.748,
+  "highlight_tint": 0.11,
+  "before": {
+   "mean_luma": 0.453,
+   "contrast_std": 0.216,
+   "sat_all": 0.3652,
+   "sat_sky": 0.2924,
+   "sat_foliage": null,
+   "neutral_cast": 0.083
+  },
+  "after": {
+   "mean_luma": 0.453,
+   "contrast_std": 0.216,
+   "sat_all": 0.3652,
+   "sat_sky": 0.2924,
+   "sat_foliage": null,
+   "neutral_cast": 0.083
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "12_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.914,
+  "highlight_tint": 0.0,
+  "before": {
+   "mean_luma": 0.426,
+   "contrast_std": 0.315,
+   "sat_all": 0.0,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.0
+  },
+  "after": {
+   "mean_luma": 0.426,
+   "contrast_std": 0.315,
+   "sat_all": 0.0,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "13_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.688,
+  "highlight_tint": 0.14,
+  "before": {
+   "mean_luma": 0.399,
+   "contrast_std": 0.198,
+   "sat_all": 0.2859,
+   "sat_sky": 0.2169,
+   "sat_foliage": null,
+   "neutral_cast": 0.034
+  },
+  "after": {
+   "mean_luma": 0.399,
+   "contrast_std": 0.198,
+   "sat_all": 0.2859,
+   "sat_sky": 0.2169,
+   "sat_foliage": null,
+   "neutral_cast": 0.034
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "14_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.792,
+  "highlight_tint": 0.138,
+  "before": {
+   "mean_luma": 0.416,
+   "contrast_std": 0.269,
+   "sat_all": 0.3292,
+   "sat_sky": 0.2354,
+   "sat_foliage": null,
+   "neutral_cast": 0.03
+  },
+  "after": {
+   "mean_luma": 0.416,
+   "contrast_std": 0.269,
+   "sat_all": 0.3292,
+   "sat_sky": 0.2354,
+   "sat_foliage": null,
+   "neutral_cast": 0.03
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "15_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": true,
+  "p95_luma": 0.706,
+  "highlight_tint": 0.064,
+  "before": {
+   "mean_luma": 0.473,
+   "contrast_std": 0.182,
+   "sat_all": 0.1662,
+   "sat_sky": 0.2338,
+   "sat_foliage": null,
+   "neutral_cast": 0.011
+  },
+  "after": {
+   "mean_luma": 0.473,
+   "contrast_std": 0.182,
+   "sat_all": 0.1662,
+   "sat_sky": 0.2338,
+   "sat_foliage": null,
+   "neutral_cast": 0.011
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "16_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.834,
+  "highlight_tint": 0.166,
+  "before": {
+   "mean_luma": 0.526,
+   "contrast_std": 0.158,
+   "sat_all": 0.1628,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.087
+  },
+  "after": {
+   "mean_luma": 0.526,
+   "contrast_std": 0.158,
+   "sat_all": 0.1628,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.087
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "17_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.851,
+  "highlight_tint": 0.018,
+  "before": {
+   "mean_luma": 0.623,
+   "contrast_std": 0.166,
+   "sat_all": 0.1649,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.035
+  },
+  "after": {
+   "mean_luma": 0.623,
+   "contrast_std": 0.166,
+   "sat_all": 0.1649,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.035
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "18_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.784,
+  "highlight_tint": 0.121,
+  "before": {
+   "mean_luma": 0.63,
+   "contrast_std": 0.097,
+   "sat_all": 0.2018,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.066
+  },
+  "after": {
+   "mean_luma": 0.63,
+   "contrast_std": 0.097,
+   "sat_all": 0.2018,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.066
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "19_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.851,
+  "highlight_tint": 0.03,
+  "before": {
+   "mean_luma": 0.56,
+   "contrast_std": 0.247,
+   "sat_all": 0.1824,
+   "sat_sky": 0.3443,
+   "sat_foliage": null,
+   "neutral_cast": 0.03
+  },
+  "after": {
+   "mean_luma": 0.56,
+   "contrast_std": 0.247,
+   "sat_all": 0.1824,
+   "sat_sky": 0.3443,
+   "sat_foliage": null,
+   "neutral_cast": 0.03
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "20_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.868,
+  "highlight_tint": 0.021,
+  "before": {
+   "mean_luma": 0.692,
+   "contrast_std": 0.193,
+   "sat_all": 0.0374,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.008
+  },
+  "after": {
+   "mean_luma": 0.692,
+   "contrast_std": 0.193,
+   "sat_all": 0.0374,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.008
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "21_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.621,
+  "highlight_tint": 0.154,
+  "before": {
+   "mean_luma": 0.41,
+   "contrast_std": 0.126,
+   "sat_all": 0.3295,
+   "sat_sky": null,
+   "sat_foliage": 0.5822,
+   "neutral_cast": 0.113
+  },
+  "after": {
+   "mean_luma": 0.41,
+   "contrast_std": 0.126,
+   "sat_all": 0.3295,
+   "sat_sky": null,
+   "sat_foliage": 0.5822,
+   "neutral_cast": 0.113
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "22_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.89,
+  "highlight_tint": 0.15,
+  "before": {
+   "mean_luma": 0.669,
+   "contrast_std": 0.169,
+   "sat_all": 0.1759,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.1
+  },
+  "after": {
+   "mean_luma": 0.669,
+   "contrast_std": 0.169,
+   "sat_all": 0.1759,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.1
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "23_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.922,
+  "highlight_tint": 0.113,
+  "before": {
+   "mean_luma": 0.799,
+   "contrast_std": 0.084,
+   "sat_all": 0.1678,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.081
+  },
+  "after": {
+   "mean_luma": 0.799,
+   "contrast_std": 0.084,
+   "sat_all": 0.1678,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.081
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "24_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.797,
+  "highlight_tint": 0.139,
+  "before": {
+   "mean_luma": 0.641,
+   "contrast_std": 0.103,
+   "sat_all": 0.2367,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.101
+  },
+  "after": {
+   "mean_luma": 0.641,
+   "contrast_std": 0.103,
+   "sat_all": 0.2367,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.101
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "25_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.996,
+  "highlight_tint": 0.016,
+  "before": {
+   "mean_luma": 0.478,
+   "contrast_std": 0.267,
+   "sat_all": 0.136,
+   "sat_sky": 0.3564,
+   "sat_foliage": null,
+   "neutral_cast": 0.015
+  },
+  "after": {
+   "mean_luma": 0.478,
+   "contrast_std": 0.267,
+   "sat_all": 0.136,
+   "sat_sky": 0.3564,
+   "sat_foliage": null,
+   "neutral_cast": 0.015
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "26_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.863,
+  "highlight_tint": 0.168,
+  "before": {
+   "mean_luma": 0.718,
+   "contrast_std": 0.129,
+   "sat_all": 0.2086,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.116
+  },
+  "after": {
+   "mean_luma": 0.718,
+   "contrast_std": 0.129,
+   "sat_all": 0.2086,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.116
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "27_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.828,
+  "highlight_tint": 0.155,
+  "before": {
+   "mean_luma": 0.636,
+   "contrast_std": 0.144,
+   "sat_all": 0.1473,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.085
+  },
+  "after": {
+   "mean_luma": 0.636,
+   "contrast_std": 0.144,
+   "sat_all": 0.1473,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.085
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "28_commons.jpg",
+  "changed": false,
+  "settings": null,
+  "lamp_lit": false,
+  "daylight_sky": false,
+  "p95_luma": 0.848,
+  "highlight_tint": 0.162,
+  "before": {
+   "mean_luma": 0.673,
+   "contrast_std": 0.175,
+   "sat_all": 0.1993,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.121
+  },
+  "after": {
+   "mean_luma": 0.673,
+   "contrast_std": 0.175,
+   "sat_all": 0.1993,
+   "sat_sky": null,
+   "sat_foliage": null,
+   "neutral_cast": 0.121
+  }
+ }
+]

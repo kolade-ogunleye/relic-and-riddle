@@ -25,7 +25,7 @@ from .config import (
     VIDEO_HEIGHT,
 )
 from .credits import CONTACT_SHEET, CREDITS_FILE, load_credits
-from .typography import cover_crop, fit_font, fit_line, get_font, is_video, text_size
+from .typography import cover_crop, fit_font, fit_line, get_font, is_video, spoken_units, text_size
 
 log = logging.getLogger(__name__)
 
@@ -247,6 +247,7 @@ class VisualEngine:
         copy = dict(script_payload.get("thumbnail", {}))
         if "badge" not in copy:
             copy["badge"] = extract_curiosity_badge(script_payload)
+        copy = _in_spoken_units(copy, script_payload)
 
         im = cover_crop(hero_image_path, (VIDEO_WIDTH, VIDEO_HEIGHT))
         self._text_cy = calm_center_y(im)  # badge/minimal titles sit where the photo is calmest
@@ -539,7 +540,7 @@ class VisualEngine:
         shade.putalpha(grad.resize((w, h)))
         bg = Image.alpha_composite(im, shade)
 
-        copy = documentary_cover_copy(script_payload)
+        copy = _in_spoken_units(documentary_cover_copy(script_payload), script_payload)
         eyebrow, line1, line2, tagline = copy["eyebrow"], copy["line1"], copy["line2"], copy["tagline"]
 
         max_text_w = int(w * 0.5)
@@ -627,6 +628,13 @@ class VisualEngine:
         Delegates to studio-grade depth-layered engine with strict timestamp safe zone clearance.
         """
         return self.generate_depth_layered_thumbnail(hero_image_path, script_payload, output_path, aspect_ratio="16:9")
+
+
+def _in_spoken_units(copy: Dict[str, Any], script_payload: Dict[str, Any]) -> Dict[str, Any]:
+    """The cover's lines with each figure in the unit the narration speaks (Richat's cover said "40+ KM" while the
+    narration said "25 miles": one unit per run, 2026-10-29)."""
+    narration = script_payload.get("narration_script") or ""
+    return {k: spoken_units(v, narration) if isinstance(v, str) else v for k, v in copy.items()}
 
 
 def documentary_cover_copy(script_payload: Dict[str, Any]) -> Dict[str, str]:

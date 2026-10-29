@@ -124,8 +124,9 @@ def _balanced(words: List[str], font, width: float, max_lines: int) -> Optional[
 def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> Dict[str, Any]:
     """Where everything goes: the share line's size and lines, the follow line's size and the capsule's box, all
     inside the Reel safe area's centred width."""
+    from .typography import drawable
     max_w = REEL.centred_width(width, height)
-    words = share.split() or ["…"]
+    words = drawable(share, "Montserrat").split() or ["…"]  # no emoji or missing-glyph boxes (2026-10-29)
     share_font, lines = None, None
     for max_lines, sizes in ((3, SHARE_SIZES), (4, SHARE_SIZES[-1:]), (5, (46,))):   # longer: more lines, then smaller
         for size in sizes:

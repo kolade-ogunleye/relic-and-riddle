@@ -24,7 +24,7 @@ from PIL import Image, ImageDraw, ImageFilter
 
 from . import geo
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
-from .typography import fit_font, fit_lines, get_font
+from .typography import drawable, fit_font, fit_lines, get_font, spoken_units
 from .art_direction import accent, type_scale, count_start, push_in, MOTION
 from .encoding import bounded_encode
 
@@ -58,6 +58,7 @@ def _text(d: ImageDraw.ImageDraw, xy, text: str, font, fill, anchor: str = "la")
     """d.text with real transparency. Pillow ignores the alpha of text ink (alpha 0 still paints solid),
     so partly transparent text is drawn through an alpha mask instead."""
     alpha = fill[3] if len(fill) == 4 else 255
+    text = drawable(text, font)  # no emoji, no missing-glyph boxes (2026-10-29)
     if alpha <= 0 or not text:
         return
     if alpha >= 255:
@@ -654,25 +655,46 @@ def _split_number(value: str) -> Tuple[str, Optional[float], str]:
 def _shown_value(value: str, p: float) -> str:
     """A number card's figure `p` of the way through its count-up, written as the writer wrote it: a thousands
     separator only where the value has one ("1404-1438" was drawn as "1,404-1438": Voynich, 2026-10-25), and
-    a year (a plain four-digit number) shown whole from the start, never counted up from zero."""
+    a year (a plain four-digit number) shown whole from the start, never counted up from zero. Every figure in
+    the value counts together: "280 FT (85 M)" counted the feet up while the metres sat at 85 from the first
+    frame, so the two units disagreed until the count landed (number card, 2026-10-29)."""
     import re
-    pre, num, post = _split_number(value)
-    if num is None:
-        return value
-    raw = re.search(r"\d[\d,]*(?:\.\d+)?", value).group(0)
-    separated = "," in raw
-    if not separated and "." not in raw and 1000 <= num <= 2199:  # a year, or reads as one
-        p = 1.0
-    decimals = len(raw.split(".")[1]) if "." in raw else 0
-    cur = num * p
-    spec = ("," if separated else "") + (f".{decimals}f" if decimals else "")
-    txt = format(cur if decimals else round(cur), spec)
-    return f"{pre}{txt}{post}"
+
+    def counted(m) -> str:
+        raw = m.group(0)
+        num = float(raw.replace(",", ""))
+        separated = "," in raw
+        q = 1.0 if not separated and "." not in raw and 1000 <= num <= 2199 else p  # a year, or reads as one
+        decimals = len(raw.split(".")[1]) if "." in raw else 0
+        spec = ("," if separated else "") + (f".{decimals}f" if decimals else "")
+        return format(num * q if decimals else round(num * q), spec)
+    return re.sub(r"\d[\d,]*(?:\.\d+)?", counted, value)
 
 
-def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Path] = None, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> Optional[Path]:
-    """1-2 headline figures counting up to their value, each with its label, over a dark photo backdrop."""
-    cards = cards[:2]
+def _stat_plan(d: ImageDraw.ImageDraw, card: Dict[str, Any], f_num_size: int, max_w: int, label_px: int,
+               pitch: int) -> Dict[str, Any]:
+    """One number card's text, measured around its centre (offsets from cy): the value's font (sized on its final
+    figure, the widest the count reaches), the rule under it, the label's lines, and the block's top and bottom.
+    The rule sits below the value's measured ink: a large single figure ("40+ KM") reached through it (2026-10-29)."""
+    value = card["value"].upper()
+    value_font = fit_font(d, value, "Anton", f_num_size, max_w, 50)
+    v_top, v_bottom = d.textbbox((0, -30), value, font=value_font, anchor="mm")[1::2]
+    rule = max(60, v_bottom + 18)
+    lines, f_fit = fit_lines(d, card["label"].upper(), get_font("Montserrat", label_px), max_w, 2)
+    step = max(1, round(pitch * f_fit.size / label_px))
+    rows = [rule + 45 + step * j for j in range(len(lines))]
+    bottom = max([rule + 2] + [d.textbbox((0, y), line, font=f_fit, anchor="mm")[3] for y, line in zip(rows, lines)])
+    return {"value_font": value_font, "rule": rule, "lines": lines, "label_font": f_fit, "rows": rows,
+            "top": v_top, "bottom": bottom}
+
+
+def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Path] = None, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
+                      narration: str = "") -> Optional[Path]:
+    """1-2 headline figures counting up to their value, each with its label, over a dark photo backdrop.
+    `narration`: the run's narration, whose units the figures are drawn in (typography.spoken_units)."""
+    # One unit per run: a figure in the other system is drawn in the unit the voice speaks (2026-10-29).
+    cards = [dict(c, value=spoken_units(str(c.get("value") or ""), narration),
+                  label=spoken_units(str(c.get("label") or ""), narration)) for c in cards[:2]]
     if not cards:
         return None
     n = int(CLIP_SECONDS * VIDEO_FPS)
@@ -691,7 +713,24 @@ def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Pa
         centres = [(width // 2, (top + bottom) // 2)] if len(cards) == 1 else [(width // 2, top + 190), (width // 2, bottom - 230)]
         max_w = min(width - 160, centred_text_width(width, height))  # clear of Shorts' icon column
     f_num_size = int(ts["figure"] * (1.15 if len(cards) == 1 else 1.0))
-    f_lab = get_font("Montserrat", ts["label"])
+    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    # Every card ends above the caption band's gap (get_text_bounds' bottom, safe_zones.graphics_box) and clear of
+    # the other card: a label kept whole on three or more lines ran past it and under the second figure
+    # (2026-10-29). A card that would is lifted by its overrun (the one above with it); when the two still do not
+    # fit between the bounds, the labels are set smaller, a step at a time, never cut.
+    for scale in (1.0, 0.9, 0.8, 0.7, 0.6, 0.5):
+        plans = [_stat_plan(probe, card, f_num_size, max_w, max(16, int(ts["label"] * scale)), 46) for card in cards]
+        if width > height:
+            placed = centres
+            break
+        placed, limit = [], bottom
+        for (cx, cy), plan in reversed(list(zip(centres, plans))):
+            cy = min(cy, limit - plan["bottom"])
+            placed.insert(0, (cx, cy))
+            limit = cy + plan["top"] - 24
+        if all(cy + plan["top"] >= top for (cx, cy), plan in zip(placed, plans)):
+            break
+    centres = placed
 
     def shown(card: Dict[str, Any], p: float) -> str:
         return _shown_value(card["value"], p)
@@ -701,18 +740,16 @@ def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Pa
             t = i / VIDEO_FPS
             im = _pushed_in(bg, push_in(t, CLIP_SECONDS))  # a slow push on the backdrop: a card never sits static
             d = ImageDraw.Draw(im, "RGBA")
-            for k, (card, (cx, cy)) in enumerate(zip(cards, centres)):
+            for k, (card, plan, (cx, cy)) in enumerate(zip(cards, plans, centres)):
                 start = count_start(k)  # every count rests by count_done_by of the clip
                 a = _ease((t - start) / MOTION["reveal"])
                 if a <= 0:
                     continue
                 count = _ease((t - start) / MOTION["count"])
-                value_font = fit_font(d, card["value"].upper(), "Anton", f_num_size, max_w, 50)
-                _text(d, (cx, cy - 30), shown(card, count).upper(), font=value_font, fill=(*GOLD, int(255 * a)), anchor="mm")
-                d.line([(cx - 80, cy + 60), (cx + 80, cy + 60)], fill=(*WHITE, int(160 * a)), width=3)
-                card_lines, f_fit = fit_lines(d, card["label"].upper(), f_lab, max_w, 2)
-                for j, line in enumerate(card_lines):
-                    _text(d, (cx, cy + 105 + 46 * j), line, font=f_fit, fill=(*WHITE, int(255 * a)), anchor="mm")
+                _text(d, (cx, cy - 30), shown(card, count).upper(), font=plan["value_font"], fill=(*GOLD, int(255 * a)), anchor="mm")
+                d.line([(cx - 80, cy + plan["rule"]), (cx + 80, cy + plan["rule"])], fill=(*WHITE, int(160 * a)), width=3)
+                for y, line in zip(plan["rows"], plan["lines"]):
+                    _text(d, (cx, cy + y), line, font=plan["label_font"], fill=(*WHITE, int(255 * a)), anchor="mm")
             yield im
 
     return _encode(frames(), out, n, width=width, height=height)
@@ -1152,7 +1189,8 @@ def make_all(payload: Dict[str, Any], topic: Dict[str, Any], work_dir: Path, pho
     made: List[Path] = []
     jobs = []
     if payload.get("stat_cards"):
-        jobs.append(("numbers", lambda: render_stat_cards(payload["stat_cards"], work_dir / "graphic_numbers.mp4", photo, width=width, height=height)))
+        jobs.append(("numbers", lambda: render_stat_cards(payload["stat_cards"], work_dir / "graphic_numbers.mp4", photo, width=width, height=height,
+                                                                narration=payload.get("narration_script") or "")))
     if payload.get("cross_section"):
         jobs.append(("cross-section", lambda: render_cross_section(payload["cross_section"], work_dir / "graphic_section.mp4", width=width, height=height)))
     if payload.get("route"):
@@ -1194,6 +1232,8 @@ def make_all(payload: Dict[str, Any], topic: Dict[str, Any], work_dir: Path, pho
                   "height": height, "fps": VIDEO_FPS, "encoder": get_video_encoder(),
                   "spec": {key: payload.get(key) for key in ("stat_cards", "cross_section", "route",
                            "timeline", "scale_fact", "rolling_stone_defense", "ventilation_airflow")}}
+        if name == "numbers":  # its figures are drawn in the narration's units (2026-10-29)
+            inputs["narration"] = payload.get("narration_script") or ""
         checkpoint = Checkpoints(work_dir / "stage_cache" / name)
         try:
             if checkpoint.reusable("graphic", inputs):

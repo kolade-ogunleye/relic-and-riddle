@@ -3,8 +3,9 @@ src/multi_format.py
 ===================
 Companion assets derived from the Reel's script package, for manual posting:
 1. 3-frame Story sequence (1080x1920): hook, revelation, question. The poll itself is
-   added as a native Instagram poll sticker when posting; frame 3 leaves room for it and
-   the question/options are saved in companion_posting.json.
+   added as a native Instagram poll sticker when posting; frame 3 asks the question, draws no
+   options or reply instruction, leaves POLL_STICKER_ROOM empty for the sticker, and the
+   question/options are saved in companion_posting.json.
 2. 7-slide carousel (1440x1800, 4:5): cover, matched-photo fact slides, closing question.
 Stories and carousels are posted on their own schedule (src/post_schedule.py).
 """
@@ -19,7 +20,8 @@ from typing import Any, Dict, List, Tuple
 from PIL import Image, ImageDraw
 
 from .config import VIDEO_WIDTH, VIDEO_HEIGHT
-from .typography import fit_line, fit_text, cover_crop, fit_font, get_font, is_video, text_size, wrap_text
+from .typography import (drawable, fit_line, fit_text, cover_crop, fit_font, get_font, is_video, spoken_units,
+                         text_size, wrap_text)
 
 log = logging.getLogger(__name__)
 
@@ -27,6 +29,12 @@ GOLD = (255, 215, 0)
 WHITE = (255, 255, 255)
 LIGHT = (225, 225, 225)
 
+
+# The poll frame's room for the native poll sticker, which the operator places when posting (y range on the
+# 1080x1920 frame). Nothing is drawn there: the frame asks the question and the sticker answers it. It drew its
+# own A and B option boxes and "REPLY WITH A OR B" until 2026-10-29: fake poll controls and a set-reply ask,
+# which the engagement-bait check itself flags ("Reply A").
+POLL_STICKER_ROOM = (1300, 1560)
 
 STORY_BODY_PX = 40      # the Story body's size; never shrunk below it (2026-10-25: 30 px read as ~11 pt)
 STORY_BODY_LINES = 3
@@ -103,8 +111,9 @@ def ensure_legible(im: Image.Image, box: Tuple[int, int, int, int], text_rgb=(23
 class MultiFormatGenerator:
     def generate_story_sequence(self, hero_img_path: Path, script_payload: Dict[str, Any], output_dir: Path,
                                 scene_images: List[Path] = None) -> List[Path]:
-        """Three Story frames, each on its own matched photo: hook, reveal, and an A-or-B question
-        (the native poll sticker can't be posted through the API, so the question invites replies).
+        """Three Story frames, each on its own matched photo: hook, reveal, and the poll's question
+        (the native poll sticker can't be posted through the API: the operator adds it in POLL_STICKER_ROOM,
+        which the frame keeps empty; the frame draws no options of its own and asks for no set reply).
         Text sits on the calmest band of the photo inside Story-safe zones (clear of the profile bar
         at the top and the reply bar at the bottom), over a soft gradient rather than a box."""
         out_dir = output_dir / "stories"
@@ -115,6 +124,12 @@ class MultiFormatGenerator:
         photos = self._match_photos(cards, stills) if len(stills) > 1 else [hero_img_path] * len(cards)
         names = ["story_01_hook.jpg", "story_02_reveal.jpg", "story_03_question.jpg"]
         poll = script_payload.get("poll") or {}
+        # One unit per run: figures in the unit the narration speaks (2026-10-29); matched to photos as written.
+        narration = script_payload.get("narration_script") or ""
+        slides_data = [{k: (spoken_units(v, narration) if isinstance(v, str) else v) for k, v in s.items()}
+                       for s in slides_data]
+        if poll.get("question"):
+            poll = dict(poll, question=spoken_units(poll["question"], narration))
         layout = []  # each frame's text block, for the audit and the evidence renders
 
         from . import still_layout
@@ -189,7 +204,10 @@ class MultiFormatGenerator:
         sx0, sy0, sx1, sy1 = safe_box("story", VIDEO_WIDTH, VIDEO_HEIGHT)
         max_w = min(VIDEO_WIDTH - 2 * 110, sx1 - sx0)
         wide_w = sx1 - sx0 - 20                                  # the whole safe width, less a hair for the stroke
-        lay = Layout("story", (VIDEO_WIDTH, VIDEO_HEIGHT), (sx0, sy0, sx1, sy1), tight=tight)
+        asks_poll = i == count - 1 and len(poll.get("options", [])) >= 2
+        lay = Layout("story", (VIDEO_WIDTH, VIDEO_HEIGHT), (sx0, sy0, sx1, sy1), tight=tight,
+                     protected=[("poll_sticker_room", (0, POLL_STICKER_ROOM[0], VIDEO_WIDTH, POLL_STICKER_ROOM[1]))]
+                     if asks_poll else None)
         base = cover_crop(photo, (VIDEO_WIDTH, VIDEO_HEIGHT)).convert("RGB")
         cy = calm_center_y(base, candidates=(640, 790, 940), band=520)  # bands inside the Story box
         d = ImageDraw.Draw(base, "RGBA")
@@ -208,12 +226,12 @@ class MultiFormatGenerator:
                    fit_line(d, l2, "Anton", t_size, max_w, t_min, stroke=3, quiet=True)[1].size)
         l1, font_t, s1 = fit_line(d, l1, "Anton", size, max_w, size, stroke=3)
         l2, _, s2 = fit_line(d, l2, "Anton", size, max_w, size, stroke=3)
-        has_options = i == count - 1 and len(poll.get("options", [])) >= 2
+        has_options = asks_poll
         body = slide["body"]
         if has_options:  # one question per frame: the poll's; the body keeps only its context
             body = " ".join(s for s in re.split(r"(?<=[.!?])\s+", body) if not s.rstrip().endswith("?"))
         k_h = text_size(d, kicker, font_k)[1] + 2 * pad_y if kicker else 0
-        tail = (40 + 2 * 120 + 70) if has_options else (90 if i == 0 else 20)
+        tail = 90 if i == 0 else 20
         fixed = k_h + 20 + 2 * (size + 12) + 28 + tail
         room = (sy1 - (sy0 + 20)) - fixed                      # the height left for the body inside the box
         n_room = max(1, (room - 48) // 54 + 1)
@@ -263,22 +281,8 @@ class MultiFormatGenerator:
             lay.text(d, (VIDEO_WIDTH // 2, y + 30), "FULL STORY IN OUR NEW REEL", get_font("Montserrat", 32), "reel_pointer",
                      anchor="mt", fill=GOLD, stroke_width=2, stroke_fill=(10, 10, 12, 220))
             y_end = y + 30 + 40
-        if has_options:
-            font_o = get_font("Anton", 42)
-            ox0, ox1 = max(120, sx0), min(VIDEO_WIDTH - 120, sx1)
-            for j, (prefix, option) in enumerate(zip(["A", "B"], poll["options"][:2])):
-                oy = y + 40 + j * 120
-                d.rounded_rectangle([ox0, oy, ox1, oy + 96], radius=24, fill=(10, 10, 12, 215),
-                                    outline=(255, 215, 0, 230), width=2)
-                lay.add(f"option_{prefix}", (ox0, oy, ox1, oy + 96))
-                d.text((ox0 + 30, oy + 48), prefix, font=font_o, fill=GOLD, anchor="lm")
-                opt, f_opt, o_short = fit_line(d, option.upper(), "Montserrat", 34, ox1 - ox0 - 100 - 30, 22)
-                if o_short:
-                    lay.shortened.append(f"option_{prefix}")
-                d.text((ox0 + 100, oy + 48), opt, font=f_opt, fill=WHITE, anchor="lm")
-            lay.text(d, (VIDEO_WIDTH // 2, y + 40 + 2 * 120 + 20), "REPLY WITH A OR B", get_font("Montserrat", 32), "weigh_in",
-                     anchor="mt", fill=LIGHT, stroke_width=2, stroke_fill=(10, 10, 12, 220))
-            y_end = y + 40 + 2 * 120 + 20 + 40
+        # The poll frame ends on its question: no option boxes and no "REPLY WITH A OR B" (2026-10-29). The
+        # native sticker, placed by the operator in POLL_STICKER_ROOM, is the only way to answer it.
         from .still_layout import union
         ux0, uy0, ux1, uy1 = union([tuple(e["box"]) for e in lay.elements])
         lay.meta = {"frame": None, "size": [VIDEO_WIDTH, VIDEO_HEIGHT],
@@ -286,7 +290,9 @@ class MultiFormatGenerator:
                     "body_px": font_b.size, "body_lines": len(body_lines),
                     "text_box": [min(ux0, (VIDEO_WIDTH - max(max_w, body_w)) // 2), min(uy0, int(pill_box[1])),
                                  max(ux1, (VIDEO_WIDTH + max(max_w, body_w)) // 2), max(uy1, int(y_end))],
-                    "safe_box": [sx0, sy0, sx1, sy1]}
+                    "safe_box": [sx0, sy0, sx1, sy1],
+                    **({"poll_sticker_room": [0, POLL_STICKER_ROOM[0], VIDEO_WIDTH, POLL_STICKER_ROOM[1]]}
+                       if has_options else {})}
         return base, lay
 
     # 4:5 is the tallest ratio Meta's content-publishing API accepts for feed images (4:5 to 1.91:1);
@@ -546,6 +552,7 @@ class MultiFormatGenerator:
 
     @staticmethod
     def _text(d, lay, xy, text, font, fill, anchor="lt", **kw):
+        text = drawable(text, font)  # no emoji, no missing-glyph boxes (2026-10-29)
         d.text(xy, text, font=font, fill=fill, anchor=anchor, **kw)
         return tuple(d.textbbox(xy, text, font=font, anchor=anchor, stroke_width=kw.get("stroke_width", 0)))
 
@@ -867,10 +874,14 @@ class MultiFormatGenerator:
         photos = self._carousel_photos(cards, stills, output_dir)
         from .script_engine import share_prompt
         share = share_prompt(script_payload)  # the closing slide asks for a share and a follow (2026-10-25)
+        narration = script_payload.get("narration_script") or ""
 
         slides = []
         for i, card in enumerate(cards):
             archetype = self.route_carousel_archetype(card, i, total)
+            # One unit per run: figures in the unit the narration speaks (2026-10-29), after the photo match.
+            card = dict(card, **{k: spoken_units(card[k], narration) for k in ("heading", "body")
+                                 if isinstance(card.get(k), str)})
             photo = photos[i]
             photo_next = photos[(i + 1) % len(photos)]
             im, lay, attempts = still_layout.drawn(

@@ -239,7 +239,8 @@ def test_story_frames_carry_no_arrow(gen, tmp_path, monkeypatch):
     payload = {"story_slides": [slide, slide, slide], "poll": PAYLOAD["poll"], "title": "T", "caption": "", "first_comment": ""}
     photos = _photos(tmp_path)
     gen.generate_story_sequence(photos[0], payload, tmp_path, scene_images=photos)
-    assert "FULL STORY IN OUR NEW REEL" in drawn and "REPLY WITH A OR B" in drawn
+    assert "FULL STORY IN OUR NEW REEL" in drawn
+    assert not any("REPLY" in t for t in drawn)       # no set-reply ask on the poll frame (2026-10-29)
     assert not any(_DIRECTION_MARKS.search(t) or "BELOW" in t for t in drawn)
     manifest = json.loads((tmp_path / "companion_posting.json").read_text(encoding="utf-8"))
     assert "below" not in manifest["platforms"]["facebook_reels"]["caption"]

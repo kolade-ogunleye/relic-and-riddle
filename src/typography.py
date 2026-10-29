@@ -6,9 +6,10 @@ Copy comes from an LLM, so its length is not fixed: text is shrunk, then wrapped
 to stay inside the safe width instead of running off the canvas.
 """
 
+import re as _re_mod
 from functools import lru_cache
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
@@ -31,6 +32,49 @@ def get_font(name: str, size: int, fonts_dir: Path = FONTS_DIR, weight: Optional
         # Variable fonts default to their lightest instance; pin a legible weight.
         font.set_variation_by_axes([weight or VARIABLE_WEIGHTS[name]])
     return font
+
+
+# No emoji in rendered art (the binding gates), and nothing the bundled font has no glyph for: Montserrat has
+# none for emoji or their variation selector, so a writer's emoji at the end of the carousel's closing line was
+# drawn as two empty boxes, "□□" (production carousel, 2026-10-29). Pictographs, dingbats, flags, the joiner and
+# the variation selectors are dropped wherever art text is fitted or drawn; any other character is kept only
+# when the font draws it with a glyph of its own rather than its missing-glyph box (.notdef).
+ART_EMOJI = _re_mod.compile("[\U0001F000-\U0001FAFF\u2600-\u27BF\u2B00-\u2BFF\u200D\uFE0E\uFE0F\u20E3]")
+
+
+@lru_cache(maxsize=16)
+def _notdef(path: str) -> Tuple[Tuple[int, int], bytes]:
+    font = ImageFont.truetype(path, 40)
+    mask = font.getmask("\U0010FFFD")                    # a private-use code point no bundled font maps
+    return mask.size, bytes(mask)
+
+
+@lru_cache(maxsize=4096)
+def _has_glyph(path: str, ch: str) -> bool:
+    font = ImageFont.truetype(path, 40)
+    mask = font.getmask(ch)
+    return (mask.size, bytes(mask)) != _notdef(path)
+
+
+def drawable(text: str, font) -> str:
+    """`text` as the font can draw it and the gates allow: emoji and characters without a glyph in `font` (a
+    FreeTypeFont or a bundled family name) removed, and the spaces they leave tidied ("marvel 🌍." ->
+    "marvel."). Plain ASCII is returned as it is."""
+    if not text or text.isascii():
+        return text or ""
+    if isinstance(font, str):
+        font = get_font(font, 40)
+    path = getattr(font, "path", None)
+    kept = []
+    for ch in ART_EMOJI.sub("", text):
+        if ch.isascii() or ch.isspace() or not path or _has_glyph(str(path), ch):
+            kept.append(ch)
+    out = "".join(kept)
+    if out == text:
+        return text
+    out = _re_mod.sub(r"[^\S\n]{2,}", " ", out)
+    out = _re_mod.sub(r"[^\S\n]+([.,!?;:…])", r"\1", out)
+    return out.strip()
 
 
 def text_size(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont) -> Tuple[int, int]:
@@ -81,7 +125,7 @@ def fit_lines(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont
     The text shrinks (down to FIT_MIN_RATIO of its size) until it fits in max_lines; if it still does not,
     whole sentences are kept while they fit, so the frame ends on a full stop; if not even the first sentence
     fits, every line is kept (a longer block, never a fragment). Each outcome other than a plain fit is logged."""
-    text = " ".join((text or "").split())
+    text = drawable(" ".join((text or "").split()), font)
     if not text:
         return [], font
     name = _font_name(font)
@@ -155,7 +199,7 @@ def fit_text(draw: ImageDraw.ImageDraw, text: str, name: str, size: int, max_wid
     size; step the size down by 2 px to `min_size`; keep whole sentences (if `sentences`); last, shorten at a
     word boundary with an ellipsis. Widths include the outline stroke. Returns (lines, font, shortened);
     `quiet`: a trial fit, not logged."""
-    text = " ".join((text or "").split())
+    text = drawable(" ".join((text or "").split()), name)
     if not text:
         return [], get_font(name, size, weight=weight), False
     font = None
@@ -200,3 +244,117 @@ def cover_crop(path: Path, size: Tuple[int, int]) -> Image.Image:
 
 def is_video(path: Path) -> bool:
     return Path(path).suffix.lower() in VIDEO_SUFFIXES
+
+
+# ---------------------------------------------------------------- one unit per run (2026-10-29)
+# The narration is the source of truth for a figure's unit: Richat's covers said "40+ KM" while the voice said
+# "25 miles (40 km)" (production, 29 Oct). A figure drawn in the other system is redrawn in the unit the
+# narration speaks, using the narration's own pair for it ("25 miles (40 km)"), so no figure is drawn that the
+# fact review did not see; a figure the narration gives in one unit only is left as written. A figure drawn
+# with both units puts the narration's first ("85 M (280 FT)" -> "280 FT (85 M)" when the voice says feet).
+# unit token -> (dimension, system, singular, abbreviation)
+_UNITS = {
+    "km": ("length", "metric", "km", "km"), "kilometre": ("length", "metric", "kilometre", "km"),
+    "kilometres": ("length", "metric", "kilometre", "km"), "kilometer": ("length", "metric", "kilometer", "km"),
+    "kilometers": ("length", "metric", "kilometer", "km"),
+    "m": ("length", "metric", "m", "m"), "metre": ("length", "metric", "metre", "m"),
+    "metres": ("length", "metric", "metre", "m"), "meter": ("length", "metric", "meter", "m"),
+    "meters": ("length", "metric", "meter", "m"),
+    "cm": ("length", "metric", "cm", "cm"), "centimetres": ("length", "metric", "centimetre", "cm"),
+    "centimeters": ("length", "metric", "centimeter", "cm"),
+    "mi": ("length", "imperial", "mile", "miles"), "mile": ("length", "imperial", "mile", "miles"),
+    "miles": ("length", "imperial", "mile", "miles"),
+    "ft": ("length", "imperial", "ft", "ft"), "foot": ("length", "imperial", "foot", "ft"),
+    "feet": ("length", "imperial", "foot", "ft"),
+    "in": ("length", "imperial", "inch", "in"), "inch": ("length", "imperial", "inch", "in"),
+    "inches": ("length", "imperial", "inch", "in"),
+    "yd": ("length", "imperial", "yard", "yd"), "yard": ("length", "imperial", "yard", "yd"),
+    "yards": ("length", "imperial", "yard", "yd"),
+    "km²": ("area", "metric", "km²", "km²"), "sq km": ("area", "metric", "sq km", "sq km"),
+    "square kilometres": ("area", "metric", "square kilometre", "sq km"),
+    "square kilometers": ("area", "metric", "square kilometer", "sq km"),
+    "sq mi": ("area", "imperial", "sq mi", "sq mi"), "square miles": ("area", "imperial", "square mile", "sq mi"),
+    "kg": ("mass", "metric", "kg", "kg"), "kilograms": ("mass", "metric", "kilogram", "kg"),
+    "kilogrammes": ("mass", "metric", "kilogramme", "kg"), "tonnes": ("mass", "metric", "tonne", "tonnes"),
+    "lb": ("mass", "imperial", "lb", "lb"), "lbs": ("mass", "imperial", "lb", "lb"),
+    "pounds": ("mass", "imperial", "pound", "lb"),
+}
+_UNIT_ALT = "|".join(sorted((_re_mod.escape(u) for u in _UNITS), key=len, reverse=True))
+_NUM = r"\d[\d,]*(?:\.\d+)?"
+# A figure: its number, an optional "+" (a floor), a space or a hyphen ("25-MILE") and its unit. "in" and "m"
+# need the space or hyphen, so "5M visitors" or "in" after a number in a sentence is not read as one.
+_FIGURE = _re_mod.compile(r"(?<![\w.])(?P<num>" + _NUM + r")(?P<plus>\+?)(?P<sep>[ \u00a0-]?)(?P<unit>" + _UNIT_ALT
+                          + r")(?![\w²])", _re_mod.IGNORECASE)
+_PAIR = _re_mod.compile(r"(?<![\w.])(?P<n1>" + _NUM + r")\s*(?P<u1>" + _UNIT_ALT + r")(?![\w²])\s*[(/]\s*(?:about\s+|or\s+"
+                        r"|roughly\s+|some\s+|nearly\s+|almost\s+)?(?P<n2>" + _NUM + r")\s*(?P<u2>" + _UNIT_ALT
+                        + r")(?![\w²])\s*\)?", _re_mod.IGNORECASE)
+
+
+def _unit(token: str):
+    info = _UNITS.get(" ".join(token.lower().split()))
+    return info
+
+
+def _figure_ok(m) -> bool:
+    return bool(m.group("sep")) or m.group("unit").lower() not in ("m", "in")
+
+
+def _number(raw: str) -> float:
+    return float(raw.replace(",", ""))
+
+
+def spoken_units(text: str, narration: str) -> str:
+    """`text` (a cover line, a slide, a number card) with each figure in the unit the narration speaks for it."""
+    if not text or not narration or not _FIGURE.search(text):
+        return text or ""
+    spoken: Dict[str, str] = {}                           # dimension -> the system the narration speaks first
+    for m in _FIGURE.finditer(narration):
+        info = _unit(m.group("unit"))
+        if info and _figure_ok(m):
+            spoken.setdefault(info[0], info[1])
+    pairs = []                                            # ((value, unit), (value, unit)) the narration gives
+    for m in _PAIR.finditer(narration):
+        a, b = _unit(m.group("u1")), _unit(m.group("u2"))
+        if a and b and a[0] == b[0] and a[1] != b[1]:
+            pairs.append(((m.group("n1"), m.group("u1")), (m.group("n2"), m.group("u2"))))
+
+    def styled(token: str, like: str, adjective: bool) -> str:
+        """The narration's unit written as the drawn one was: abbreviated where it was ("KM" -> "MILES": miles
+        has no abbreviation a viewer reads at a glance), singular before a noun ("25-MILE"), in its case."""
+        _, _, singular, abbr = _unit(token)
+        short = like.lower() in {u[3] for u in _UNITS.values()} | {"mi", "lbs"}
+        if adjective:
+            word = abbr if short and abbr not in ("miles", "tonnes") else singular
+        else:
+            word = abbr if short else " ".join(token.lower().split())
+        return word.upper() if like.isupper() else word
+
+    def in_spoken_unit(m) -> Optional[str]:
+        info = _unit(m.group("unit"))
+        if not info or not _figure_ok(m) or spoken.get(info[0], info[1]) == info[1]:
+            return None
+        value = _number(m.group("num"))
+        for one, other in pairs:
+            for (n, u), (n2, u2) in ((one, other), (other, one)):
+                if _unit(u)[:2] + _unit(u)[3:] == info[:2] + info[3:] and _number(n) == value and _unit(u2)[1] == spoken[info[0]]:
+                    sep = m.group("sep")
+                    return f"{n2}{m.group('plus')}{sep}{styled(u2, m.group('unit'), sep == '-')}"
+        return None
+
+    # Both units drawn: the narration's first.
+    def swap(m) -> str:
+        a, b = _FIGURE.fullmatch(m.group("a")), _FIGURE.fullmatch(m.group("b"))
+        ia, ib = (_unit(a.group("unit")) if a else None), (_unit(b.group("unit")) if b else None)
+        if ia and ib and ia[0] == ib[0] and ia[1] != ib[1] and _figure_ok(a) and _figure_ok(b):
+            dual.append(m.group(0))
+            if spoken.get(ia[0]) == ib[1]:
+                return f"{m.group('b')}{m.group('mid')}{m.group('a')}{m.group('end')}"
+        return m.group(0)
+    dual: List[str] = []
+    fig = r"\d[\d,]*(?:\.\d+)?\+?[ \u00a0-]?(?:" + _UNIT_ALT + r")(?![\w²])"
+    out = _re_mod.sub(r"(?<![\w.])(?P<a>" + fig + r")(?P<mid>\s*\(\s*)(?P<b>" + fig + r")(?P<end>\s*\))", swap, text,
+                      flags=_re_mod.IGNORECASE)
+    if dual:  # both units already drawn: only their order follows the narration ("280 FT (85 M)" stays whole)
+        return out
+    # One unit drawn, the other system's: the narration's own figure in its unit.
+    return _FIGURE.sub(lambda m: in_spoken_unit(m) or m.group(0), text)

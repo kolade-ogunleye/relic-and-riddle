@@ -290,12 +290,25 @@ def _footage_share(chosen: List[Path], durations: List[float]) -> float:
 def lock_narrative_graphics(beats: List[Dict[str, Any]], graphics: List[Path]) -> Dict[int, Path]:
     """Puts each original graphic on the beat that says what it shows (its declared figures, names
     and labels, as whole words; see src/graphic_match.py), best matches first, one graphic per beat.
-    Beat 0 is the hook and keeps its photo or video."""
-    pairs = sorted(((graphic_match.score(g, b.get("text", "")), idx, gi)
-                    for gi, g in enumerate(graphics) if Path(g).stem.startswith("graphic_")
-                    for idx, b in enumerate(beats) if idx > 0), reverse=True)
+    Beat 0 is the hook and keeps its photo or video.
+
+    The map is placed first (map_beat): on the beat that names the place most strongly, the earliest of equals,
+    or the beat after the hook when that is the hook."""
     locked: Dict[int, Path] = {}
     placed: set = set()
+    # Production Derinkuyu, 2026-10-29: "in Cappadocia, Turkey" (beat 2) and the last line ("Derinkuyu ... between
+    # Greece and Turkey") named the place equally; ties went to the latest beat, the graphics cap then dropped the
+    # latest locked graphic (the map), and the scale graphic followed the hook onto the place's words instead.
+    for gi, g in enumerate(graphics):
+        if graphic_match.kind_of(g) == "map":
+            at = map_beat(beats, g)
+            if at is not None:
+                locked[at] = g
+                placed.add(gi)
+            break
+    pairs = sorted(((graphic_match.score(g, b.get("text", "")), idx, gi)
+                    for gi, g in enumerate(graphics) if Path(g).stem.startswith("graphic_") and gi not in placed
+                    for idx, b in enumerate(beats) if idx > 0), reverse=True)
     for s, idx, gi in pairs:
         if s < graphic_match.THRESHOLD:
             break
@@ -311,6 +324,24 @@ def lock_narrative_graphics(beats: List[Dict[str, Any]], graphics: List[Path]) -
                 locked[1] = g
                 break
     return locked
+
+
+def map_beat(beats: List[Dict[str, Any]], graphic: Path) -> Optional[int]:
+    """The beat the locator map belongs on: the one whose words name its place (the site, region or country it
+    declares) most strongly, the earliest of equals, since the map belongs where the place is introduced; the
+    beat after the hook when that strongest naming is the hook's (the opening shot is a picture). None when no
+    beat names the place, or there is no beat after the hook."""
+    if len(beats) < 2:
+        return None
+    scored = [(graphic_match.score(graphic, b.get("text", "")), -idx) for idx, b in enumerate(beats)]
+    best, neg = max(scored)
+    if best < graphic_match.THRESHOLD:
+        return None
+    return max(1, -neg)
+
+
+def _is_map(p: Path) -> bool:
+    return Path(p).stem.startswith("graphic_") and graphic_match.kind_of(p) == "map"
 
 
 def repair_placement(planned: List[Path], durations: List[float], issues: List[Dict[str, Any]]) -> Optional[List[Path]]:
@@ -555,14 +586,19 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
         k -= 1
     # Our own graphics carry information, but a Reel of diagrams loses the place: at most
     # MAX_GRAPHICS of them and GRAPHICS_MAX_SHARE of the runtime; extras become photos.
-    # Unlocked graphics go first; a graphic locked to the beat that names it goes only if still over.
+    # Unlocked graphics go first; a graphic locked to the beat that names it goes only if still over, and the
+    # map, locked where the place is named, last of all (production Derinkuyu, 2026-10-29: four locked graphics
+    # for a cap of three, and the map, latest on screen, was the one dropped).
     over = lambda: _graphics_count(chosen) > MAX_GRAPHICS or _graphics_share(chosen, durations) > GRAPHICS_MAX_SHARE  # noqa: E731
-    for keep_locked in (True, False):
+    for spared in ("locked", "map", ""):
         k = len(chosen) - 1
         while over() and k >= 0:
-            if Path(chosen[k]).stem.startswith("graphic_") and not (keep_locked and k in locked):
+            keep = (k in locked and (spared == "locked" or (spared == "map" and _is_map(Path(chosen[k])))))
+            if Path(chosen[k]).stem.startswith("graphic_") and not keep:
                 chosen[k] = stills[k % len(stills)]
             k -= 1
+    if any(_is_map(Path(g)) for g in locked.values()) and not any(_is_map(Path(c)) for c in chosen):
+        log.warning("The locator map was locked to the beat that names the place but is not in the plan.")
     chosen = no_repeats(chosen, stills, reserve)
     if hook is not None:
         chosen[0] = hook

@@ -2217,6 +2217,11 @@ class PipelineCoordinator:
                 payload["carousel_caption"] = with_share_line(payload["carousel_caption"], share)
             credit = caption_credit_line(load_credits(ASSETS_DIR / tid))
             if credit:  # CC BY images must be attributed where the work is shared
+                # The credit line replaces any earlier one (beat_images.credit_caption). A revision of a verified
+                # script (the line-picture rewording) starts from a caption that already carries it: appended
+                # again, the two blocks took an unchanged caption past 2,200 characters and the rewording of
+                # three narration lines was refused for it (production Derinkuyu, 2026-10-29).
+                payload["caption"] = beat_images.credit_caption(payload["caption"], {"images": []}, [])
                 payload["caption"] = f"{payload['caption']}\n\n{credit}"
                 if len(payload["caption"]) > 2200:
                     passed, notes = False, "Caption plus image credits exceeds Instagram's 2,200 characters."
@@ -2313,8 +2318,12 @@ class PipelineCoordinator:
                      len(missing), " | ".join(v["sentence"] for v in missing)[:300])
             import copy
             revised = None
+            draft = copy.deepcopy(payload)
+            # The writer revises the copy as it wrote it: the image credit block is added again after its checks,
+            # never twice (production Derinkuyu, 2026-10-29).
+            draft["caption"] = beat_images.credit_caption(draft.get("caption") or "", {"images": []}, [])
             try:
-                revised = self._write_and_check_script(topic, run_id, run_dir, dry_run, initial_payload=copy.deepcopy(payload),
+                revised = self._write_and_check_script(topic, run_id, run_dir, dry_run, initial_payload=draft,
                                                        initial_notes=pl.revision_note(missing, photos))
                 from src.fact_evidence import current_fact_review
                 if not current_fact_review(revised):

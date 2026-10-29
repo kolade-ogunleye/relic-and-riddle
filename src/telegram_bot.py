@@ -674,7 +674,7 @@ class TelegramApprovalBot:
         message_id = self.notify(text, buttons=buttons, record_alert=False)
         if type(message_id) is int:
             self.db.set_setting("telegram_dashboard_id", str(message_id))
-            self._panel_media[message_id] = False
+            self._record_kind(message_id, media=False)
             # One panel in the chat: the one this replaces goes (a review card is never the panel).
             if previous and self._current_panel(previous) != message_id:
                 self._delete_soon(self._current_panel(previous))
@@ -706,7 +706,8 @@ class TelegramApprovalBot:
                     return type(self._show_dashboard_locked(text, buttons, fresh=True)) is int
                 finally:
                     _PANEL.reset(token)
-        media = self._panel_media.get(current, is_media)
+        media = self._is_media(current, is_media)
+        edited = False
         if not media:
             edited = self.edit_message_text(current, text, buttons=buttons)
             if edited:
@@ -719,7 +720,10 @@ class TelegramApprovalBot:
                     self.db.set_setting("telegram_dashboard_id", str(current))
                     if anchor not in protected:
                         self._delete_soon(anchor)
-            return edited
+            if edited or not self._is_media(current):
+                return edited
+            # The edit found a photo/audio/video panel this process had no record of (a restart, a worker
+            # process): it is replaced by a text message below, as a known media panel is.
         result = self._api("sendMessage", data={"chat_id": self.chat_id,
             "text": safe_html_truncate(_MASKER.mask(text), 4000), "parse_mode": "HTML",
             "disable_web_page_preview": "true", "reply_markup": json.dumps({"inline_keyboard": format_responsive_keyboard(buttons) if buttons else []})})
@@ -729,7 +733,7 @@ class TelegramApprovalBot:
         stored = self.db.get_setting("telegram_dashboard_id")
         anchor = self._current_panel(int(stored)) if stored and stored.isdigit() else None
         self._panel_aliases[current] = new_id
-        self._panel_media[new_id] = False
+        self._record_kind(new_id, media=False)
         self._panel_revisions[new_id] = self._panel_revisions.get(current, 0)
         for screens in (self._panel_screen, self._panel_origin, self._panel_trail):  # the same panel, a new message
             if current in screens:
@@ -846,7 +850,7 @@ class TelegramApprovalBot:
             else:
                 mid = self.notify(text, buttons=buttons, record_alert=False)
                 if type(mid) is int:
-                    self._panel_media[mid] = False
+                    self._record_kind(mid, media=False)
                     destination[0] = (mid, False, self._panel_revisions.get(mid, 0))
         def complete(job, result):
             if job["state"] == "completed":
@@ -1097,6 +1101,11 @@ class TelegramApprovalBot:
                         put(self.db, "outbound", f"{self.chat_id}:{message['message_id']}", message['message_id'])
                         if run_id:
                             put(self.db, "message-run", f"{self.chat_id}:{message['message_id']}", run_id)
+            if method in {"sendMessage", "sendPhoto", "sendAudio", "sendVideo", "sendMediaGroup", "editMessageMedia"}:
+                # Each card's kind, so a later edit uses the method its message takes (_record_kind).
+                for message in result if isinstance(result, list) else [result]:
+                    if isinstance(message, dict) and type(message.get("message_id")) is int:
+                        self._record_kind(message["message_id"], media=method != "sendMessage")
             return result
         raise RuntimeError(f"Telegram {method} failed: still rate-limited")
 
@@ -2143,6 +2152,55 @@ class TelegramApprovalBot:
 
         return sum(results)
 
+    MEDIA_MESSAGES_KEY = "telegram_media_messages"  # message ids known to be photo/audio/video (no text to edit)
+    MEDIA_MESSAGES_KEPT = 300
+
+    def _media_ids(self) -> List[int]:
+        try:
+            value = json.loads(self.db.get_setting(self.MEDIA_MESSAGES_KEY) or "[]") if hasattr(self.db, "get_setting") else []
+        except (TypeError, ValueError):
+            return []
+        return [m for m in value if type(m) is int] if isinstance(value, list) else []
+
+    def _record_kind(self, message_id: Optional[int], media: bool) -> None:
+        """Records whether a tracked message is media (photo/audio/video with a caption) or text, in memory and in
+        the database: a new process (a restart, the run's worker) knew nothing of it and sent editMessageText to a
+        photo panel ("there is no text in the message to edit": dev 2026-10-28, production 2026-10-29)."""
+        if not message_id:
+            return
+        cache = getattr(self, "_panel_media", None)
+        if cache is None:
+            cache = self._panel_media = {}
+        cache[message_id] = bool(media)
+        if not hasattr(self.db, "set_setting"):
+            return
+        try:
+            ids = self._media_ids()
+            if media and message_id not in ids:
+                ids = (ids + [message_id])[-self.MEDIA_MESSAGES_KEPT:]
+            elif not media and message_id in ids:
+                ids = [m for m in ids if m != message_id]
+            else:
+                return  # unchanged: no write
+            self.db.set_setting(self.MEDIA_MESSAGES_KEY, json.dumps(ids))
+        except Exception as e:  # bookkeeping never breaks a screen
+            log.debug("Could not record the kind of message %s: %s", message_id, e)
+
+    def _is_media(self, message_id: Optional[int], default: bool = False) -> bool:
+        """Whether a message is media: this process's record first, then the one kept in the database."""
+        cache = getattr(self, "_panel_media", None) or {}
+        if message_id in cache:
+            return cache[message_id]
+        return True if message_id and message_id in self._media_ids() else default
+
+    def _edit_caption_instead(self, message_id: int, text: str, buttons: Optional[list]) -> bool:
+        """A text edit meant for a media message: its caption takes the text when it fits Telegram's 1,024
+        characters; otherwise False, and the caller sends a fresh card, as after any failed edit."""
+        if len(_MASKER.mask(text)) > 1024:
+            log.info("Message %s is media and the new text is longer than a caption; a fresh card replaces it.", message_id)
+            return False
+        return self.edit_message_caption(message_id, text, buttons)
+
     def edit_message_text(self, message_id: int, text: str, buttons: Optional[list] = None) -> bool:
         """Edits an existing Telegram message in-place (HTML) and updates or removes buttons.
         True means shown, or queued: while Telegram's flood control has the bot wait (a 429 on an edit holds the
@@ -2161,8 +2219,14 @@ class TelegramApprovalBot:
             # caller posts a fresh one as it would after a failed edit (six attempts on one cleared panel in
             # the three seconds after a restart, 2026-10-24).
             return False
+        if self._is_media(message_id):
+            # A photo/audio/video message has a caption, not text: its caption is edited instead (a panel never
+            # gets here: show_navigation_panel replaces a media panel with a text message).
+            return self._edit_caption_instead(message_id, text, buttons)
         if self._edit_is_held(message_id, seq, content):
             return True  # sent when the wait is over, unless a later edit replaces it first
+        # False when Telegram answers that the message is media: it is recorded so, the caller replaces it now
+        # (a panel) or sends a fresh card, and a later edit of it goes to its caption.
         return self._deliver_edit(message_id, seq, content)
 
     def _deliver_edit(self, message_id: int, seq: int, content: tuple, hold_on_limit: bool = True) -> bool:
@@ -2210,6 +2274,12 @@ class TelegramApprovalBot:
                 return False
             if "message is not modified" in err_msg:
                 return shown()
+            if "there is no text in the message to edit" in err_msg:
+                # A media message (photo/audio/video with a caption): recorded as such, so the caller edits its
+                # caption or replaces it (edit_message_text, show_navigation_panel), and no later edit asks again.
+                self._record_kind(message_id, media=True)
+                log.info("Message %s is media, not text; its caption is edited or it is replaced.", message_id)
+                return False
             if "can't parse entities" in err_msg:
                 log.warning("Telegram parse error in edit_message_text (%s); falling back to plain text", e)
                 try:
@@ -2532,7 +2602,7 @@ class TelegramApprovalBot:
                 self._api("editMessageMedia", data={"chat_id": self.chat_id, "message_id": panel[1],
                     "media": json.dumps({"type": "audio", "media": "attach://audio", "caption": safe_html_truncate(caption, 1024), "parse_mode": "HTML"}),
                     "reply_markup": json.dumps({"inline_keyboard": navigation_buttons(buttons)})}, files={"audio": audio})
-            self._panel_media[panel[1]] = True
+            self._record_kind(panel[1], media=True)
             return True
         if not self.is_configured():
             return False
@@ -2612,7 +2682,7 @@ class TelegramApprovalBot:
             panel[3] = True
             if not self.edit_message_media(panel[1], path, caption, navigation_buttons(buttons), cache_key):
                 raise RuntimeError("Could not update the media panel")
-            self._panel_media[panel[1]] = True
+            self._record_kind(panel[1], media=True)
             return True
         if not self.is_configured():
             return False
@@ -2788,7 +2858,7 @@ class TelegramApprovalBot:
                             if cq.get("data"):
                                 from .telegram_ui import step
                                 self._panel_trail[mid] = step(self._panel_trail.get(mid, []), cq["data"])
-                            self._panel_media[mid] = bool(message.get("photo") or message.get("audio") or message.get("video") or message.get("document"))
+                            self._record_kind(mid, media=bool(message.get("photo") or message.get("audio") or message.get("video") or message.get("document") or message.get("animation")))
                 msg = update.get("message") or {}
                 action = (cq or {}).get("data", "").partition(":")[0]
                 media_upload = msg.get("caption") and any(msg.get(k) for k in ("photo","document","video","audio","voice"))

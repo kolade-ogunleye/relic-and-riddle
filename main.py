@@ -258,6 +258,7 @@ class PipelineCoordinator:
         with publication_lock(self.db.db_path, "topic-images:" + tid):
             self.db.create_run(run_id, tid, content_format="reel")
             self.db.set_setting("run_mode:" + run_id, "dry_run" if dry_run else "live")
+            claim_run(self.db, run_id)  # this process makes it, reviews it and acts on it (resume_reviews)
             self.topic_engine.record_status(tid, "in_production", run_id=run_id)
         log.info("Run %s: topic '%s'", run_id, topic["title"])
         if _regenerations:  # its place in a chain of regenerations (read by run --regenerate-from)
@@ -306,6 +307,7 @@ class PipelineCoordinator:
             raise
         finally:
             sink.stop()
+            release_run(self.db, run_id)
 
         if result["status"] == "regenerate":
             if _regenerations < MAX_REGENERATIONS:
@@ -642,6 +644,7 @@ class PipelineCoordinator:
             if not self.db.get_run(run_id):
                 self.db.create_run(run_id, tid, parent_run_id=parent_run_id, content_format="deep_dive")
                 self.db.set_setting("run_mode:" + run_id, "dry_run" if dry_run else "live")
+            claim_run(self.db, run_id)  # released once its review is settled (_review_documentary)
         log.info("Starting Deep-Dive Documentary run %s for topic '%s'", run_id, topic["title"])
         # The documentary has its own progress card, like the Reel: without one it ran (and failed) unseen.
         card_title = f"{topic['title']} · 16:9 documentary"
@@ -1048,10 +1051,15 @@ class PipelineCoordinator:
         """Sends a rendered documentary for review and acts on the decision (approve publishes it to YouTube,
         or simulates that in dry run). An auto-approved one is already decided."""
         if produced.get("status") != "pending_approval":
+            if produced.get("run_id"):
+                release_run(self.db, produced["run_id"])
             return produced
         if dry_run:
             self.db.set_setting("run_mode:" + produced["run_id"], "dry_run")
-        return {**produced, **self.request_approval(produced["run_id"], dry_run=dry_run)}
+        try:
+            return {**produced, **self.request_approval(produced["run_id"], dry_run=dry_run)}
+        finally:
+            release_run(self.db, produced["run_id"])
 
     def _alert(self, text: str, buttons: Optional[list] = None) -> None:
         self.telegram_bot.notify(text, buttons)
@@ -1189,24 +1197,29 @@ class PipelineCoordinator:
 
     REVIEW_ACTED_PREFIX = "review-acted:"
 
-    def _decide_review(self, run_id: str, act) -> Tuple[Optional[str], Any]:
+    def _decide_review(self, run_id: str, act, decided: Optional[str] = None) -> Tuple[Optional[str], Any]:
         """The one wait on a review's decision, and acting on it, across every process: a Resend (the Reviews
         list, the reminder's "Bring the card down") while the first wait ran started a second wait, and one
         Approve was acted on twice: two Reel bookings, the Stories and the carousel posted twice (reviews of
         2026-10-25). The wait and `act(decision)` both run under the run's review lock; an Approve already acted
         on (its decision time is recorded first) is never acted on again by a later wait. Returns (None, None)
-        when another wait owns the review, (decision, None) when this Approve was already acted on."""
+        when another wait owns the review, (decision, None) when this Approve was already acted on.
+        `decided` is a decision already made (the auto-approve flag): it is acted on under the same lock and
+        marker, without a wait, so a review wait resumed elsewhere cannot act on it again (dev, 2026-10-29)."""
         db_path = getattr(self.db, "db_path", None)
         if db_path is None:
-            decision = self.telegram_bot.wait_for_decision(run_id, self._approval_window())
+            decision = decided or self.telegram_bot.wait_for_decision(run_id, self._approval_window())
             return decision, act(decision)
         from src.publication_lock import exclusive
         with exclusive(db_path, "review-wait:" + run_id) as mine:
             if not mine:
                 log.info("A wait on %s's review is already running; it acts on the decision, not this one.", run_id)
                 return None, None
-            self.telegram_bot.approval_window = self._approval_window   # a resend's window is sized again from it
-            decision = self.telegram_bot.wait_for_decision(run_id, self._approval_window())
+            if decided:
+                decision = decided
+            else:
+                self.telegram_bot.approval_window = self._approval_window   # a resend's window is sized again from it
+                decision = self.telegram_bot.wait_for_decision(run_id, self._approval_window())
             if decision != "approved":
                 return decision, act(decision)
             stamp = str((self.db.get_approval(run_id) or {}).get("decision_timestamp") or "")
@@ -1304,6 +1317,7 @@ class PipelineCoordinator:
         topic = self.topic_engine.get_topic_by_id(run["topic_id"])
         previous_status = "published" if topic["times_published"] else "queued"
         self.db.update_run(run_id, "producing")
+        claim_run(self.db, run_id)
         self.db.reset_approval(run_id)  # the new version waits for its own decision
         self.topic_engine.record_status(topic["id"], "in_production", run_id=run_id)
         log.info("Resuming run %s", run_id)
@@ -1333,6 +1347,7 @@ class PipelineCoordinator:
             raise
         finally:
             sink.stop()
+            release_run(self.db, run_id)
         if result.get("status") == "regenerate":
             # Regenerate on a re-rendered run's review starts the new version, as it does after a first render
             # (production 2026-10-25: it was recorded and nothing followed).
@@ -2136,6 +2151,7 @@ class PipelineCoordinator:
             if getattr(self, "progress_msg_id", None):
                 self.telegram_bot.update_progress_card(self.progress_msg_id, 1, 5, topic["title"], run_id, text)
         self.script_engine.progress = show
+        self.script_engine.length_run = run_id  # its drafts' length window is this run's (script_engine)
         earlier: List[str] = []  # every draft's rejection, so a later draft can't restate one in new words
         drafts, structural = 0, []  # every draft written, the engine's own structural rejections included
         for revision in range(MAX_FACT_REVISIONS + 1):
@@ -2828,7 +2844,9 @@ class PipelineCoordinator:
         act = (lambda d: self._after_approval(run_id, dry_run=dry_run, previous_status=previous_status)
                if d == "approved" else self._settle_decision(run_id, tid, d))
         if auto_approve:
-            acted = act(decision)
+            decision, acted = self._decide_review(run_id, act, decided=decision)
+            if decision is None:  # a wait elsewhere holds this review and acts on the Approve: not twice
+                return {**result, "decision": "pending", "status": "pending_approval"}
         else:
             self.telegram_bot.send_approval_request(review_mp4, thumb_916, payload, run_id)
             decision, acted = self._decide_review(run_id, act)
@@ -3565,6 +3583,70 @@ def reconcile_interrupted_runs(db: PipelineDatabase, topic_engine=None) -> List[
     return done
 
 
+RUN_OWNER_PREFIX = "run_owner:"
+
+
+def claim_run(db, run_id: str) -> None:
+    """Records this process (pid and creation identity) as the one making run_id, until it releases it or
+    ends. Another process never resumes a review wait for a run a live process owns (resume_reviews)."""
+    from src.process_state import identity
+    try:
+        db.set_setting(RUN_OWNER_PREFIX + run_id, json.dumps({"pid": os.getpid(), "identity": identity(os.getpid()),
+                                                              "at": datetime.now(timezone.utc).isoformat()}))
+    except Exception as e:  # never fails the run; the review lock still guards the act itself
+        log.warning("Could not record the owner of %s: %s", run_id, e)
+
+
+def release_run(db, run_id: str) -> None:
+    """Clears the owner record, only when it is this process's."""
+    try:
+        record = json.loads(db.get_setting(RUN_OWNER_PREFIX + run_id) or "{}")
+        if record.get("pid") == os.getpid():
+            db.set_setting(RUN_OWNER_PREFIX + run_id, "")
+    except Exception as e:
+        log.debug("Could not release the owner of %s: %s", run_id, e)
+
+
+def _claimed_before_boot(record: dict) -> bool:
+    """Whether an owner record was written before this machine last started. After a reboot a dead owner's pid
+    is often reused by a service process this account may not open, which identity() reports as "unknown"
+    (alive): without this its review was never resumed again. False when it can't be told."""
+    try:
+        claimed = datetime.fromisoformat(str(record["at"]))
+        claimed = claimed if claimed.tzinfo else claimed.replace(tzinfo=timezone.utc)
+        if os.name == "nt":
+            import ctypes
+            tick = ctypes.WinDLL("kernel32").GetTickCount64
+            tick.restype = ctypes.c_ulonglong
+            uptime = tick() / 1000.0
+        else:
+            uptime = float(Path("/proc/uptime").read_text().split()[0])
+    except Exception:
+        return False
+    return claimed.timestamp() < time.time() - uptime - 60  # a minute's margin for clock adjustment
+
+
+def run_owned_elsewhere(db, run_id: str) -> Optional[int]:
+    """The pid of another live process that owns run_id, else None. A process that can't be checked counts
+    as alive (never declared dead on a guess); a pid reused by a new process (other identity) does not."""
+    from src.process_state import identity
+    try:
+        record = json.loads(db.get_setting(RUN_OWNER_PREFIX + run_id) or "{}")
+    except (TypeError, ValueError):
+        return None
+    pid = record.get("pid")
+    if not isinstance(pid, int) or pid == os.getpid():
+        return None
+    if _claimed_before_boot(record):  # its process ended with the last boot, whoever has the pid now
+        return None
+    observed = identity(pid)
+    if observed is None:
+        return None
+    if observed == "unknown" or record.get("identity") in (None, "unknown") or observed == record.get("identity"):
+        return pid
+    return None
+
+
 def resume_reviews(coordinator, follow, waiting: Optional[set] = None, decided_only: bool = False) -> List[str]:
     """Every rendered run still awaiting its decision gets a wait, without re-sending the card: at startup
     all of them, and then periodically those already decided (a decision made from the command line, or
@@ -3580,6 +3662,14 @@ def resume_reviews(coordinator, follow, waiting: Optional[set] = None, decided_o
     except Exception as e:
         log.warning("Could not resume review waits: %s", e)
         return []
+    # A run another live process is making or finishing is its own: the CLI's auto-approved dry run was
+    # still acting on its Approve (status pending_approval) when the bot resumed its wait and published it
+    # a second time (dev, 2026-10-29 06:19, Richat). In production that would be a second post.
+    owned = {r: run_owned_elsewhere(coordinator.db, r) for r in runs}
+    for run_id, pid in owned.items():
+        if pid:
+            log.info("Not resuming the review wait for %s: process %s owns it.", run_id, pid)
+    runs = [r for r in runs if not owned[r]]
     for run_id in runs:
         log.info("Resuming the review wait for %s.", run_id)
         follow(run_id, resend=False)

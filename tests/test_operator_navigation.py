@@ -334,6 +334,7 @@ def test_jobs_screen_is_plain(db):
     bot = _bot(db, calls)
     done = threading.Event()
     bot.start_operator_job("Image review", lambda: None, resource="review:x")           # draws its own screen
+    bot.drain()  # jobs run on a worker pool: the instant one has finished (not merely been queued) before the screen is read
     bot.start_operator_job("Researching topic ideas", lambda: done.wait(5) and None, resource="topic-research")
     text, buttons = bot.jobs_view()
     assert "<b>Running now</b>" in text and "⏳ Researching topic ideas" in text

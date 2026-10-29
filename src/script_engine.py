@@ -160,7 +160,11 @@ If you change the narration's last sentence, apply the same edit to closing_sent
 A LENGTH finding names a word window for the narration. Too short: add one or two sentences made only of
 verified facts, placed before the closing sentence ("find" = the sentence before it, "replace" = that sentence
 followed by the new ones). Too long: remove or condense sentences until the narration is inside the window.
-Keep the closing sentence and every other field as they are."""
+Keep the closing sentence and every other field as they are.
+A REPEAT finding names a phrase the narration says twice: reword the later sentence ("find" = that whole sentence) so
+the phrase is said once, keeping its facts and its hedge (one hedge can cover two related figures). Never let an edit
+say again a phrase the narration already says (the REPEATS list), and keep every disputed figure's hedge wherever the
+figure is stated (MANDATORY HEDGES)."""
 
 
 class Edit(BaseModel):
@@ -416,39 +420,120 @@ def refit_speed(seconds: float, speed: float = 1.0) -> Optional[float]:
 _PHRASE_STOPWORDS = {"the", "a", "an", "of", "to", "in", "and", "was", "were", "is", "it", "its", "that", "this", "on", "at", "for", "by", "with", "as"}
 
 
-def repeated_phrases(text: str, n: int = 3) -> List[str]:
-    """Phrases of n+ words said twice in a narration: any repeated opening of a sentence (the hedge "By one
-    estimate" twice in a row), and any repeated run of n words that is not only small words. Names and
-    numbers repeated on purpose rarely form a three-word run that is repeated exactly."""
+def _phrase_runs(text: str, n: int = 3) -> Tuple[List[str], List[str]]:
+    """The narration's sentence openings (first n words) and its runs of n words that the repeat rule counts, in
+    order: within a sentence, not only small words, and holding no name or number."""
     sentences = [x.strip() for x in re.split(r"(?<=[.!?])\s+", text or "") if x.strip()]
-    found: List[str] = []
-    openings: Dict[str, int] = {}
+    openings: List[str] = []
     for sent in sentences:
         words = re.findall(r"[A-Za-z']+", sent.lower())
         if len(words) >= n:
-            key = " ".join(words[:n])
-            openings[key] = openings.get(key, 0) + 1
-    found += [k for k, c in openings.items() if c > 1]
+            openings.append(" ".join(words[:n]))
     # Within sentences, not across them; a run holding a name or a number is a deliberate repeat ("the
     # Richat Structure", "Catherine Palace"), not wording, and is left alone.
-    seen: Dict[str, int] = {}
-    tokens: List[List[str]] = [re.findall(r"[\w']+", sent) for sent in sentences]
-    grams = []
-    for toks in tokens:
+    grams: List[str] = []
+    for toks in (re.findall(r"[\w']+", sent) for sent in sentences):
         for i in range(len(toks) - n + 1):
             gram = toks[i:i + n]
             if any(t[:1].isupper() and i + j > 0 for j, t in enumerate(gram)) or any(any(ch.isdigit() for ch in t) for t in gram):
                 continue
-            grams.append([t.lower() for t in gram])
-    for gram in grams:
-        if sum(w not in _PHRASE_STOPWORDS for w in gram) < 2:
-            continue
-        key = " ".join(gram)
-        seen[key] = seen.get(key, 0) + 1
-    for k, c in seen.items():  # one entry per repeated stretch: overlapping runs of it are the same repeat
-        if c > 1 and not any(" ".join(k.split()[:n - 1]) in f or " ".join(k.split()[1:]) in f for f in found):
+            gram = [t.lower() for t in gram]
+            if sum(w not in _PHRASE_STOPWORDS for w in gram) >= 2:
+                grams.append(" ".join(gram))
+    return openings, grams
+
+
+def repeated_phrases(text: str, n: int = 3) -> List[str]:
+    """Phrases of n+ words said twice in a narration: any repeated opening of a sentence (the hedge "By one
+    estimate" twice in a row), and any repeated run of n words that is not only small words. Names and
+    numbers repeated on purpose rarely form a three-word run that is repeated exactly."""
+    openings, grams = _phrase_runs(text, n)
+    found = [k for k in dict.fromkeys(openings) if openings.count(k) > 1]
+    for k in dict.fromkeys(grams):  # one entry per repeated stretch: overlapping runs of it are the same repeat
+        if grams.count(k) > 1 and not any(" ".join(k.split()[:n - 1]) in f or " ".join(k.split()[1:]) in f for f in found):
             found.append(k)
     return found
+
+
+REPEAT_PROBLEM = "The narration repeats the phrase "   # validate_structure's wording; the editors recognise it
+REPEAT_RULE = ("No phrase twice in the narration: no two sentences open with the same three words, and no run of three "
+               "ordinary words (not a name or a number) is said twice. One hedge can cover two related figures (\"by one "
+               "estimate, X and Y\"); otherwise word the second hedge differently (\"roughly\", \"an estimated\", \"up "
+               "to\", a range).")
+_MAX_LISTED_PHRASES = 80
+
+
+def repeat_rules(narration: str) -> str:
+    """The repeat rule for an editor, with the phrases this narration already says: an edit that adds or changes
+    a sentence must not say one of them again (a length edit added "geoglyphs etched into" a second time, twice:
+    development, Nazca 2026-10-28). Every sentence opening is listed; past the cap the runs are the first and the
+    last ones, since a length edit adds its sentences just before the closing one."""
+    openings, grams = _phrase_runs(narration)
+    openings = list(dict.fromkeys(openings))
+    grams = [g for g in dict.fromkeys(grams) if g not in openings]
+    room = max(0, _MAX_LISTED_PHRASES - len(openings))
+    if len(grams) > room:
+        grams = grams[:room // 2] + grams[len(grams) - (room - room // 2):]
+    used = openings + grams
+    listed = "; ".join(f'"{x}"' for x in used)
+    return f"\n\nREPEATS: {REPEAT_RULE}" + (f" Already said (never again in a new or changed sentence): {listed}." if used else "")
+
+
+def _hedge_words(fact: Dict[str, Any]) -> str:
+    """The words a disputed fact's hedge adds to its statement ("by one estimate"), when the hedge is the statement
+    with one stretch of words added; "" when it rephrases the statement (the hedged wording alone is then shown)."""
+    statement = re.findall(r"[\w'%.-]+", (fact.get("statement") or "").lower())
+    hedge = re.findall(r"[\w'%.-]+", (fact.get("hedge") or "").lower())
+    ops = [op for op in difflib.SequenceMatcher(None, statement, hedge, autojunk=False).get_opcodes() if op[0] != "equal"]
+    if len(ops) != 1 or ops[0][0] != "insert":
+        return ""
+    _, _, _, j1, j2 = ops[0]
+    return " ".join(hedge[j1:j2])
+
+
+def _clip(text: str, limit: int) -> str:
+    """`text` within `limit` characters, cut after a sentence or else between words (never inside a figure)."""
+    text = " ".join((text or "").split())
+    if len(text) <= limit:
+        return text
+    head = text[:limit + 1]
+    end = max(head.rfind(". "), head.rfind("; "))
+    if end > limit // 2:
+        return head[:end + 1]
+    return head[:head.rfind(" ")].rstrip(",;:") + " ..." if " " in head else head[:limit]
+
+
+def _concerns(fact: Dict[str, Any], texts: List[str]) -> bool:
+    """Whether one of `texts` states the fact: a figure of its, or three of its longer words."""
+    joined = " ".join(texts).lower()
+    figures = set(fact_sheet.numbers_in(fact.get("statement") or "") + fact_sheet.numbers_in(fact.get("hedge") or ""))
+    if figures & set(fact_sheet.numbers_in(joined)):
+        return True
+    words = {w for w in re.findall(r"[a-z']{5,}", (fact.get("statement") or "").lower())}
+    return len(words & set(re.findall(r"[a-z']{5,}", joined))) >= 3
+
+
+def mandatory_hedges_note(sheet: Optional[Dict[str, Any]], texts: Optional[List[str]] = None) -> str:
+    """The disputed figures and the hedge each keeps, wherever it is stated: the checkers require it in the
+    captions, slides, stories, first comment and graphics as in the narration (development, Nazca 2026-10-28: a
+    carousel caption and a slide dropped "by one estimate" and the draft was rejected). Titles and covers are
+    headlines, which the checkers exempt. `texts`: only the facts those texts state (an edit of a few lines)."""
+    facts = [f for f in (sheet or {}).get("facts", []) if f.get("disputed") and f.get("hedge")]
+    if texts is not None:
+        facts = [f for f in facts if _concerns(f, texts)]
+    if not facts:
+        return ""
+    lines = []
+    for f in facts:
+        words = _hedge_words(f)
+        lines.append(f"- {_clip(f['statement'], 160)} -> hedged: {_clip(f['hedge'], 220)}"
+                     + (f' (the hedge: "{words}")' if words else ""))
+    return ("\n\nMANDATORY HEDGES: these figures are disputed. Every text that states one keeps its hedge, or an "
+            "equivalent (\"about\", \"roughly\", \"an estimated\", \"up to\", a range): the narration, the caption, "
+            "the carousel caption, the first comment, every story and carousel slide, and every graphic (titles and "
+            "covers are exempt). A flat figure anywhere is rejected. Never the same hedge twice in one text: two "
+            "figures there share one hedge (\"by one estimate, X and Y\"), or each takes a different wording.\n"
+            + "\n".join(lines))
 
 
 MAX_TRIMMED_SENTENCES = 2   # distinct blocked claims a trim may take out; more is a rewrite's
@@ -1114,7 +1199,7 @@ def validate_structure(pkg: ScriptPackage) -> List[str]:
     if repeated:
         # Production 2026-10-25: two sentences in a row opened "By one estimate," (both facts disputed); the
         # viewer hears a template, and the video check flagged it after the voiceover was paid for.
-        problems.append("The narration repeats the phrase " + ", ".join(f"'{r}'" for r in repeated)
+        problems.append(REPEAT_PROBLEM + ", ".join(f"'{r}'" for r in repeated)
                         + "; say it once (one hedge can cover two related figures) or reword the second, keeping every "
                           "disputed fact hedged.")
     if "📍" in pkg.caption:
@@ -1426,9 +1511,15 @@ class ScriptEngine:
                     if problems and all(STORY_OVERFLOW.match(p) for p in problems):
                         # Only a Story body runs long: it is shortened, not the whole draft rewritten, which must
                         # pass both fact checks again (production 2026-10-28: "Story slide 3's body takes 4 lines").
-                        shortened = self._shorten_story_slides(pkg, problems)
+                        shortened = self._shorten_story_slides(pkg, problems, sheet)
                         if shortened is not None:
                             pkg, problems = shortened, blocking_problems(draft_problems(shortened))
+                    if problems and all(p.startswith(REPEAT_PROBLEM) for p in problems):
+                        # Only a repeated phrase (a hedge the revision added twice, development 2026-10-28): reworded
+                        # by one short edit, not the whole draft rewritten.
+                        fixed = self._fix_repeats(pkg, problems, sheet)
+                        if fixed is not None:
+                            pkg, problems = fixed, blocking_problems(draft_problems(fixed))
                     if not problems:
                         _note_kept_hook(draft_problems(pkg))
                         log.info("Revised surgically: only the rejected sentences changed.")
@@ -1471,9 +1562,15 @@ class ScriptEngine:
                         and all(STORY_OVERFLOW.match(p) or "when spoken" in p for p in blocking)):
                     # A Story body over three lines is shortened in place (one short call); a length miss left
                     # with it is then edited below, as on its own.
-                    shortened = self._shorten_story_slides(pkg, blocking)
+                    shortened = self._shorten_story_slides(pkg, blocking, self._sheet(topic))
                     if shortened is not None:
                         pkg = shortened
+                        problems = draft_problems(pkg)
+                        blocking = blocking_problems(problems)
+                if blocking and all(p.startswith(REPEAT_PROBLEM) for p in blocking) and self._sheet(topic) is not None:
+                    fixed = self._fix_repeats(pkg, blocking, self._sheet(topic))
+                    if fixed is not None:
+                        pkg = fixed
                         problems = draft_problems(pkg)
                         blocking = blocking_problems(problems)
                 if not blocking:
@@ -1483,8 +1580,9 @@ class ScriptEngine:
                 self.last_draft_problems.append(f"draft {attempt}: {_short_reason(problems)}")
                 last_problems = problems
                 improve.note_problems(problems, "structure")
-                if all("when spoken" in p for p in blocking):
-                    # Only the length is off: the draft is edited to the window (one short call), not written
+                if (any("when spoken" in p for p in blocking)
+                        and all("when spoken" in p or p.startswith(REPEAT_PROBLEM) for p in blocking)):
+                    # Only the length is off (with, at most, a repeated phrase the same edit rewords): the draft is edited to the window (one short call), not written
                     # again from scratch (a rewrite took 2 min 46 s and came out at the writer's usual length
                     # again; production, 2026-10-24).
                     fitted = self._fit_length_by_editing(pkg, blocking, topic, feedback)
@@ -1555,7 +1653,8 @@ class ScriptEngine:
         result = _structured(
             REVISE_SYSTEM,
             f"<verified_facts>\n{fact_sheet.as_prompt(sheet)}\n</verified_facts>\n\n"
-            f"<draft>\n{json.dumps(draft, ensure_ascii=False, indent=1)}\n</draft>\n\n<findings>\n{findings}\n</findings>",
+            f"<draft>\n{json.dumps(draft, ensure_ascii=False, indent=1)}\n</draft>\n\n<findings>\n{findings}\n</findings>"
+            + mandatory_hedges_note(sheet) + repeat_rules(draft.get("narration_script") or ""),
             Edits, effort="medium", max_tokens=6000)
         text = json.dumps(draft, ensure_ascii=False)
         for e in result.edits:
@@ -1625,14 +1724,18 @@ class ScriptEngine:
 
     def _fit_length_by_editing(self, pkg: ScriptPackage, problems: List[str], topic: Dict[str, Any],
                                feedback: str) -> Optional[ScriptPackage]:
-        """A draft whose only fault is its spoken length, edited to the word window with verified facts
-        (the surgical reviser), then given its graphics. None when there is no fact sheet, the edit fails
+        """A draft whose only fault is its spoken length (and perhaps a repeated phrase), edited to the word window
+        with verified facts (the surgical reviser), a repeat the edit leaves reworded by one more short edit, then
+        given its graphics. None when there is no fact sheet, the edit fails
         or the result still misses: the caller rewrites as before."""
         sheet = self._sheet(topic)
         if sheet is None:
             return None
         try:
-            fitted = self._revise_surgically(pkg.model_dump(), "LENGTH: " + " ".join(problems), sheet)
+            length = [p for p in problems if not p.startswith(REPEAT_PROBLEM)]
+            repeats = [p for p in problems if p.startswith(REPEAT_PROBLEM)]
+            fitted = self._revise_surgically(pkg.model_dump(), "LENGTH: " + " ".join(length)
+                                             + (" REPEAT: " + " ".join(repeats) if repeats else ""), sheet)
         except LLMError as e:
             log.warning("Length edit failed (%s); rewriting the draft.", e)
             return None
@@ -1640,6 +1743,12 @@ class ScriptEngine:
             return None
         fitted = prune_graphics(fitted)
         still = blocking_problems(draft_problems(fitted))
+        if still and all(p.startswith(REPEAT_PROBLEM) for p in still):
+            # The edit reached the length but said a phrase twice ("geoglyphs etched into", development
+            # 2026-10-28, twice, each followed by a full rewrite): reworded by one more short edit.
+            fixed = self._fix_repeats(fitted, still, sheet)
+            if fixed is not None:
+                fitted, still = fixed, blocking_problems(draft_problems(fixed))
         if still:
             log.warning("Length edit still misses (%s); rewriting the draft.", still)
             return None
@@ -1649,7 +1758,25 @@ class ScriptEngine:
         notes, retrieved = self._sheet_context(sheet)
         return self._with_graphics(fitted, notes, retrieved, feedback)
 
-    def _shorten_story_slides(self, pkg: ScriptPackage, problems: List[str]) -> Optional[ScriptPackage]:
+    def _fix_repeats(self, pkg: ScriptPackage, problems: List[str], sheet: Dict[str, Any]) -> Optional[ScriptPackage]:
+        """A draft whose narration says a phrase twice, with the later sentence reworded by one short edit (the
+        surgical reviser, told the phrases already said and the mandatory hedges), or None when the edit fails: the
+        caller rewrites as before. The result is checked again in full by the caller, both fact checks included."""
+        repeats = [p for p in problems if p.startswith(REPEAT_PROBLEM)]
+        if not repeats:
+            return None
+        try:
+            fixed = self._revise_surgically(pkg.model_dump(), "REPEAT: " + " ".join(repeats), sheet)
+        except LLMError as e:
+            log.warning("Repeat edit failed (%s); rewriting the draft.", e)
+            return None
+        if fixed is None:
+            return None
+        log.info("Repeated phrase reworded by a short edit: %s", " ".join(repeats)[:200])
+        return prune_graphics(fixed)
+
+    def _shorten_story_slides(self, pkg: ScriptPackage, problems: List[str],
+                              sheet: Optional[Dict[str, Any]] = None) -> Optional[ScriptPackage]:
         """A draft whose Story bodies run past three lines, with only those bodies shortened (one short call), or
         None when the call fails or a body still misses: the caller rewrites as before. Nothing else changes, so
         the narration, its measured length and its graphics stand; each shortened body must be one sentence,
@@ -1661,7 +1788,8 @@ class ScriptEngine:
                  for i in over if 1 <= i <= len(pkg.story_slides)]
         if not items:
             return None
-        prompt = "\n".join(f"Slide {i} (at most {limit} words): {body}" for i, limit, body in items)
+        prompt = ("\n".join(f"Slide {i} (at most {limit} words): {body}" for i, limit, body in items)
+                  + mandatory_hedges_note(sheet, texts=[body for _, _, body in items]))
         try:
             if free_llm.enabled():
                 out = free_llm.structured(STORY_SHORTEN_SYSTEM, prompt, _Shortened, role="writer", task_class="light")
@@ -1747,7 +1875,8 @@ class ScriptEngine:
                 + f"\n\n<verified_facts>\n{fact_sheet.as_prompt(sheet)}\n</verified_facts>"
                 + raw_evidence_str
                 + f"\n<retrieved_sources>\n{format_sources(retrieved)}\n</retrieved_sources>\n"
-                + FACTS_ONLY_RULES + improve.learned_rules() + feedback
+                + FACTS_ONLY_RULES + mandatory_hedges_note(sheet) + f"\n\nREPEATS: {REPEAT_RULE}"
+                + improve.learned_rules() + feedback
             )
         elif free_llm.enabled():
             raise LLMError("No verified fact sheet could be built; the free engine writes only from one.")

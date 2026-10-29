@@ -272,10 +272,15 @@ class UploadPostPublisher:
             return {"set": True, "error": None, "thumbnails": body.get("thumbnails")}
         return {"set": False, "error": f"HTTP {response.status_code}: {body.get('error') or body.get('message') or body}"[:300]}
 
-    def publish_photos(self, kind: str, photos: List[str], caption: str, platforms: List[str], key: str) -> Dict[str, Any]:
+    def publish_photos(self, kind: str, photos: List[str], caption: str, platforms: List[str], key: str,
+                       alt_texts: Optional[List[str]] = None, first_comment: str = "") -> Dict[str, Any]:
         _assert_recovery_unlocked()
         """A carousel (several photos, one post) or a single Story frame (kind="story", one photo).
-        Docs: docs.upload-post.com/api/upload-photo/ (media_type / facebook_media_type = STORIES)."""
+        Docs: docs.upload-post.com/api/upload-photo/ (media_type / facebook_media_type = STORIES).
+        A carousel's `alt_texts` (one per photo, in order) go as instagram_alt_text / facebook_alt_text, each a
+        JSON list (the documented per-photo form; at most 1,000 characters an item); Stories take none. Its
+        `first_comment` goes as each platform's own <platform>_first_comment (a failed first comment never
+        fails the post, Upload-Post reports it under `warnings`)."""
         if not self.configured():
             raise NotConfigured("UPLOAD_POST_API_KEY / UPLOAD_POST_USER not set")
         data: List[Tuple[str, str]] = [("user", self.user), *[("platform[]", p) for p in platforms],
@@ -288,6 +293,12 @@ class UploadPostPublisher:
             # Graph field it mirrors (no_story) suppresses the post's feed and timeline story, which would keep the
             # carousel out of followers' feeds (operator review, 2026-10-25).
             data += [("title", caption), ("description", caption)]
+            alts = [str(a or "").strip()[:1000] for a in (alt_texts or [])]
+            if len(alts) == len(photos) and all(alts):
+                data += [(f"{p}_alt_text", json.dumps(alts, ensure_ascii=False)) for p in platforms
+                         if p in ("instagram", "facebook")]
+            if first_comment.strip():
+                data += [(f"{p}_first_comment", first_comment.strip()) for p in platforms]
         if self.facebook_page_id:
             data.append(("facebook_page_id", self.facebook_page_id))
 
@@ -592,8 +603,18 @@ def _caption_for(kind: str, caption: str, platforms: List[str]) -> str:
     a multi-photo post shown as a grid, also says nothing about swiping (facebook_photo_caption)."""
     if kind == "story" or not caption:
         return caption
+    from .credits import is_attribution_line
     from .script_engine import facebook_photo_caption, neutral_cues
-    return facebook_photo_caption(caption) if platforms == ["facebook"] else neutral_cues(caption)
+    clean = facebook_photo_caption if platforms == ["facebook"] else neutral_cues
+    # Credit lines go as they are: a photo's own title is quoted in its credit, whatever words it has.
+    lines = caption.splitlines()
+    credits = [ln for ln in lines if is_attribution_line(ln)]
+    if not credits:
+        return clean(caption)
+    body = "\n".join(ln for ln in lines if not is_attribution_line(ln)).rstrip()
+    if clean(body) == body:
+        return caption
+    return (clean(body).rstrip() + "\n\n" + "\n".join(credits)).strip()
 
 
 class MetaPublisher:
@@ -757,33 +778,50 @@ class MetaPublisher:
         return {"status": "published", "post_urls": res.get("post_urls") or {}, "thumbnail": res.get("thumbnail")}
 
     def publish_photos(self, run_id: str, topic_id: str, kind: str, photos: List[str], caption: str = "",
-                       platforms: Optional[List[str]] = None, dry_run: bool = False, retry_tag: str = "") -> Dict[str, Any]:
+                       platforms: Optional[List[str]] = None, dry_run: bool = False, retry_tag: str = "",
+                       first_comment: str = "") -> Dict[str, Any]:
         """Stories (one post per frame, in order) or a carousel, via Upload-Post only (the direct
         Graph publishers here handle Reels only). Same outcome rules as Reels: an unknown outcome
         stops there so nothing is posted twice. `retry_tag` names a deliberate re-send of a failed
-        platform (operator, 2026-10-24) so its idempotency keys differ from the first attempt's."""
+        platform (operator, 2026-10-24) so its idempotency keys differ from the first attempt's.
+        A carousel's slides carry alt text built from what each shows (multi_format.slide_alt_text);
+        `first_comment` (the credits, when they do not fit the caption) is posted under it on each platform."""
         platforms = platforms or ["facebook", "instagram"]
         if not dry_run:
             _assert_recovery_unlocked()
         channel = f"upload-post:{kind}"
         tag = f"-{retry_tag}" if retry_tag else ""
         # (photos, platforms, key) per request. Stories: one frame per request, in order. A carousel goes as
-        # one post; when the run made Facebook's copy (carousel_fb/, no swipe cues), Facebook gets that one.
+        # one post per platform group; Facebook gets its own request, from its copy when the run made one
+        # (carousel_fb/: no "swipe" in its text), with at most four photos: its grid shows four tiles and put
+        # "+3" over the fourth of seven, hiding the closing slide (multi_format.facebook_pick; audit 2026-10-28).
+        # Upload-Post puts a Facebook multi-photo post's caption on its first photo, which is the cover.
         if kind == "story":
             batches = [([p], platforms, f"{run_id}-{kind}-{i}{tag}") for i, p in enumerate(photos, 1)]
         else:
+            from .multi_format import facebook_pick
             slides = photos[:10]  # Instagram carousels: max 10
             fb_copy = [Path(p).parent.parent / "carousel_fb" / Path(p).name for p in slides]
-            if "facebook" in platforms and len(platforms) > 1 and all(f.is_file() for f in fb_copy):
-                batches = [(slides, [x for x in platforms if x != "facebook"], f"{run_id}-{kind}-1{tag}"),
-                           ([str(f) for f in fb_copy], ["facebook"], f"{run_id}-{kind}-facebook-1{tag}")]
+            fb_slides = facebook_pick([str(f) for f in fb_copy] if all(f.is_file() for f in fb_copy) else slides)
+            others = [x for x in platforms if x != "facebook"]
+            if "facebook" in platforms and others:
+                batches = [(slides, others, f"{run_id}-{kind}-1{tag}"),
+                           (fb_slides, ["facebook"], f"{run_id}-{kind}-facebook-1{tag}")]
+            elif "facebook" in platforms:
+                batches = [(fb_slides, ["facebook"], f"{run_id}-{kind}-1{tag}")]
             else:
                 batches = [(slides, platforms, f"{run_id}-{kind}-1{tag}")]
+        alt_texts = {}
+        if kind != "story":  # Stories take no alt text through Upload-Post
+            from .multi_format import slide_alt_text
+            alt_texts = {key: [slide_alt_text(Path(p)) for p in batch] for batch, _, key in batches}
         if dry_run:  # the real plan, each request recorded as it would be sent, nothing sent
             for i, (batch, batch_platforms, key) in enumerate(batches, 1):
                 self.db.record_publication(topic_id, run_id, channel, "simulated",
                                            {"part": i, "platforms": batch_platforms, "request_id": key, "photos": batch,
-                                            "caption": _caption_for(kind, caption, batch_platforms)})
+                                            "caption": _caption_for(kind, caption, batch_platforms),
+                                            **({"alt_text": alt_texts.get(key), "first_comment": first_comment}
+                                               if kind != "story" else {})})
             log.info("Dry run: %s not posted (%d request(s) planned).", kind, len(batches))
             return {"status": "simulated", "posted_parts": 0, "planned_parts": len(batches)}
         up = next((p for p in self.publishers if isinstance(p, UploadPostPublisher)), None)
@@ -792,7 +830,9 @@ class MetaPublisher:
         done = []
         for i, (batch, batch_platforms, key) in enumerate(batches, 1):
             try:
-                res = up.publish_photos(kind, batch, _caption_for(kind, caption, batch_platforms), batch_platforms, key)
+                res = up.publish_photos(kind, batch, _caption_for(kind, caption, batch_platforms), batch_platforms, key,
+                                        alt_texts=alt_texts.get(key),
+                                        first_comment=first_comment if kind != "story" else "")
             except PublishFailed as e:
                 self.db.record_publication(topic_id, run_id, channel, "failed", {"error": str(e), "part": i})
                 status = "unknown" if done else "failed"  # earlier frames already went out

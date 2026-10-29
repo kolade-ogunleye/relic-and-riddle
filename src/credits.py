@@ -36,8 +36,14 @@ def sha256_file(path: Optional[Path]) -> str:
     return h.hexdigest()
 
 
+def needs_attribution(record) -> bool:
+    """A CC BY / BY-SA licence always requires attribution, whatever the source recorded (Openverse entries leave
+    attribution_required unset; the rc68 review found a BY-SA carousel posted with no author line, 2026-10-28)."""
+    return bool(record.get("attribution_required")) or str(record.get("license", "")).strip().lower().startswith("cc by")
+
+
 def asset_attribution(record):
-    if not record.get("attribution_required"):
+    if not needs_attribution(record):
         return ""
     # One line whatever the source: a newline in a field put the rest of the credit in the caption without
     # the 📷 prefix, where it counted as public prose and failed the facts check (development, 2026-10-26; audit 2026-10-28)
@@ -53,14 +59,14 @@ def add_provenance_attributions(payload, ledger):
     if not credits_to_add:
         return payload
 
-    from .beat_images import CREDIT_PREFIX
+    from .beat_images import CREDIT_PREFIXES
     for credit in credits_to_add:
         if credit not in payload.get("description", ""):
             payload["description"] = payload.get("description", "").rstrip() + "\n\n" + credit
         if credit not in payload.get("caption", ""):
             cand = payload.get("caption", "").rstrip() + "\n\n" + credit
-            if len(cand) > 2200 and CREDIT_PREFIX in payload.get("caption", ""):
-                lines = [ln for ln in payload["caption"].splitlines() if not ln.startswith(CREDIT_PREFIX)]
+            if len(cand) > 2200 and any(p in payload.get("caption", "") for p in CREDIT_PREFIXES):
+                lines = [ln for ln in payload["caption"].splitlines() if not ln.startswith(CREDIT_PREFIXES)]
                 payload["caption"] = "\n".join(lines).strip()
                 cand = payload.get("caption", "").rstrip() + "\n\n" + credit
             if len(cand) <= 2200:
@@ -311,6 +317,9 @@ def save_credits(topic_dir: Path, data: Dict[str, Any]) -> None:
     write_json(topic_dir / CREDITS_FILE, data)
 
 
+CREDIT_ADAPTED = " · adapted: cropped, with motion and text added"
+
+
 def caption_credit_line(credits: Dict[str, Any]) -> str:
     """One compact attribution line for images whose licence requires it."""
     seen, parts = set(), []
@@ -321,7 +330,10 @@ def caption_credit_line(credits: Dict[str, Any]) -> str:
         if key not in seen:
             seen.add(key)
             parts.append(f"{key[0]} ({key[1]})")
-    return ("📷 Images via Wikimedia Commons: " + "; ".join(parts)) if parts else ""
+    # CC BY 4.0 s3(a)(1)(B): the video crops, moves and captions each photo, and says so (rc68 review 2)
+    # The prefix stays as it is (beat_images.CREDIT_PREFIX finds and replaces this line); the notice goes at its end
+    from .beat_images import CREDIT_PREFIX
+    return (CREDIT_PREFIX + " " + "; ".join(parts) + CREDIT_ADAPTED) if parts else ""
 
 
 # ---------------------------------------------------------------- review helpers

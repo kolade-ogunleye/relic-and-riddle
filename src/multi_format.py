@@ -5,13 +5,14 @@ Companion assets derived from the Reel's script package, for manual posting:
 1. 3-frame Story sequence (1080x1920): hook, revelation, question. The poll itself is
    added as a native Instagram poll sticker when posting; frame 3 leaves room for it and
    the question/options are saved in companion_posting.json.
-2. 7-slide carousel (1080x1350, 4:5): cover, matched-photo fact slides, closing question.
+2. 7-slide carousel (1440x1800, 4:5): cover, matched-photo fact slides, closing question.
 Stories and carousels are posted on their own schedule (src/post_schedule.py).
 """
 
 import json
 import logging
 import re
+import threading
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -289,9 +290,51 @@ class MultiFormatGenerator:
         return base, lay
 
     # 4:5 is the tallest ratio Meta's content-publishing API accepts for feed images (4:5 to 1.91:1);
-    # the profile grid shows the centre 3:4 of it, so cover text stays in the middle.
-    CAROUSEL_SIZE = (1080, 1350)
-    PHOTO_H = 760  # fact slides: photo on top, editorial text panel below
+    # the profile grid shows the centre 3:4 of it, so cover text stays in the middle. 1440x1800 is Meta's
+    # recommended 4:5 feed size and the widest the Graph API takes (operator, 2026-10-28: sharper slides, same
+    # layout). Every carousel pixel value below is a design value on the 1080-wide canvas, drawn through
+    # `_px(cw)` (x cw / 1080), so a 1440 slide is the 1080 slide's layout at 4/3 the resolution.
+    CAROUSEL_SIZE = (1440, 1800)
+    CAROUSEL_DESIGN_W = 1080
+    # JPEG: quality 97 with full-resolution colour (4:4:4). 4:2:0 halves the chroma, which fringed the gold type and
+    # capped its colour fidelity at ~38 dB PSNR at any quality; 4:4:4 at 97 measured >= 50 dB there and 46 dB luma,
+    # the largest of 28 production slides 1.6 MB (Meta's limit is 8 MB; docs/reviews/carousel-1440-2026-10-28).
+    CAROUSEL_JPEG = {"quality": 97, "subsampling": 0, "optimize": True}
+    PHOTO_H = 760  # fact slides: photo on top, editorial text panel below (design px)
+
+    @classmethod
+    def _px(cls, cw: int):
+        """Design px (on the 1080-wide canvas) to this canvas's px: px(80) is 80 at 1080 and 107 at 1440."""
+        s = cw / cls.CAROUSEL_DESIGN_W
+
+        def px(v):
+            return int(round(v * s))
+
+        def exact(v):  # a font size or stroke width: exactly x 4/3 (FreeType and Pillow take fractional ones)
+            v = v * s
+            return int(v) if v == int(v) else v
+        px.s, px.exact = s, exact
+        return px
+
+    @staticmethod
+    def _fit_text(d, text: str, family: str, size: int, width: int, max_lines: int, min_size: int, px=round, **kw):
+        """fit_text decided on the design canvas (design sizes, strokes and floor; `width` in canvas px) and drawn
+        at this canvas's scale: the lines break where the 1080 slide breaks them and each font is the 1080 size
+        x 4/3. Fitted on the large canvas itself, fit_text's 2 px steps and the fonts' hinting picked other sizes
+        and line breaks (a cover heading that fitted its 920 px on one line went onto two at 1440)."""
+        lines, font, short = fit_text(d, text, family, size, int(round(width / getattr(px, "s", 1.0))), max_lines,
+                                      min_size, **kw)
+        return lines, get_font(family, getattr(px, "exact", px)(font.size)), short
+
+    @staticmethod
+    def _fill(photo: Path, size: Tuple[int, int]) -> Image.Image:
+        """The photo scaled and centre-cropped to `size` in one Lanczos resample from the file itself (the
+        pipeline's upscaled copy for a low-resolution source), never from a smaller intermediate."""
+        return cover_crop(photo, size).convert("RGB")
+
+    @classmethod
+    def _save_slide(cls, im: Image.Image, path: Path) -> None:
+        im.save(path, "JPEG", **cls.CAROUSEL_JPEG)
 
     def _match_photos(self, cards: List[Dict[str, Any]], stills: List[Path]) -> List[Path]:
         """One photo per slide, matched to what the slide says (the scene planner's vision matching)."""
@@ -303,6 +346,33 @@ class MultiFormatGenerator:
         except Exception as e:  # matching is a refinement; rotation is the fallback
             log.warning("Carousel photo matching failed (%s); rotating photos.", e)
             return [stills[i % len(stills)] for i in range(len(cards))]
+
+    def _carousel_photos(self, cards: List[Dict[str, Any]], stills: List[Path], output_dir: Path) -> List[Path]:
+        """The slides' photos, matched once per run and shared by both copies (platform audit, 2026-10-28: the
+        Instagram and Facebook copies were matched separately, in parallel, and showed different photos for the
+        same slide). The match is kept in carousel_photos.json beside the copies; the second copy to be drawn
+        waits for the first and reuses it, and a later redraw of one copy reuses it while the cards and the
+        photo pool are the same. A run drawn before the record existed reuses the other copy's recorded photos."""
+        output_dir = Path(output_dir)
+        record = output_dir / CAROUSEL_PHOTOS
+        key = {"cards": [f"{c.get('heading', '')}|{c.get('body', '')}" for c in cards],
+               "stills": [str(Path(p)) for p in stills]}
+        with _photo_lock(output_dir):
+            try:
+                kept = json.loads(record.read_text(encoding="utf-8")) if record.is_file() else {}
+            except (OSError, ValueError):
+                kept = {}
+            chosen = [Path(x) for x in kept.get("photos") or []]
+            if kept.get("key") == key and len(chosen) == len(cards) and all(x.is_file() for x in chosen):
+                return chosen
+            chosen = _recorded_photos(output_dir, cards) or self._match_photos(cards, stills)
+            try:
+                output_dir.mkdir(parents=True, exist_ok=True)
+                record.write_text(json.dumps({"key": key, "photos": [str(x) for x in chosen]}, indent=1,
+                                             ensure_ascii=False), encoding="utf-8", newline="\n")
+            except OSError as e:  # the record is a convenience; the slides are still drawn
+                log.warning("Carousel photo match not recorded (%s).", e)
+            return chosen
 
     @staticmethod
     def route_carousel_archetype(card: Dict[str, Any], index: int, total: int) -> str:
@@ -326,23 +396,15 @@ class MultiFormatGenerator:
 
     @staticmethod
     def _get_card_category(card: Dict[str, Any], archetype: str) -> str:
-        """Derives a dynamic editorial category label for the slide badge."""
-        text = (card.get("heading", "") + " " + card.get("body", "")).lower()
-        if archetype == "debate":
-            return "FORENSIC DEBATE"
-        if archetype == "blueprint" or any(w in text for w in ("blueprint", "metric", "engineered", "shaft", "ventilation", "channel", "door")):
-            return "ENGINEERING BLUEPRINT"
-        if archetype == "comparison" or any(w in text for w in ("versus", "vs", "compare", "surface", "contrast", "above and below")):
-            return "COMPARATIVE EVIDENCE"
-        if archetype == "colossal_stat" or any(w in text for w in ("tons", "feet", "meters", "capacity", "levels", "stories")):
-            return "ARCHAEOLOGICAL METRIC"
-        if any(w in text for w in ("carved", "rock", "stone", "tuff", "excavated", "cut")):
-            return "ARCHIVAL EVIDENCE"
-        if any(w in text for w in ("who", "built", "dug", "phrygian", "hittite", "byzantine", "mystery", "enigma")):
-            return "HISTORICAL ENIGMA"
-        if any(w in text for w in ("discovery", "found", "breach", "basement", "revealed", "chickens", "wall")):
-            return "DISCOVERY RECORD"
-        return "FIELD INVESTIGATION"
+        """The slide's badge, or "" for none. A slide may not state a qualifier its script did not (platform
+        audit, 2026-10-28): keyword labels put "DISCOVERY RECORD" on a slide about marine concrete ("seawalls"
+        has "wall"), "ARCHIVAL EVIDENCE" and "ENGINEERING BLUEPRINT" on slides that cite no archive or blueprint,
+        and "FORENSIC" on a question. Nothing on a card says what kind of evidence it is (it has a heading and
+        a body), so fact slides carry no badge; the closing slide is labelled for what it does, and only when
+        it does it: it asks the reader a question."""
+        if archetype == "debate" and "?" in f"{card.get('heading', '')} {card.get('body', '')}":
+            return "YOUR TAKE"
+        return ""
 
     @staticmethod
     def _draw_badge(
@@ -396,29 +458,40 @@ class MultiFormatGenerator:
     @staticmethod
     def _ig_counter(cw: int) -> Tuple[int, int, int, int]:
         """Where Instagram overlays its carousel counter: the measured pill (above) with room for "10/10" and
-        narrower phones: the right 280 px of the top 140 px."""
-        return (cw - 280, 0, cw, 140)
+        narrower phones: the right 280 px of the top 140 px (design px; the counter is drawn at a fixed share
+        of the media's width, so it scales with the canvas)."""
+        px = MultiFormatGenerator._px(cw)
+        return (cw - px(280), 0, cw, px(140))
 
     def _zone(self, cw: int, chh: int):
         """Where a slide's text and badges stay: the canvas less 40 px each side (the profile grid's 3:4 crop
-        takes 33 px off each side of a 4:5 slide) and 30 px top and bottom."""
-        return (40, 30, cw - 40, chh - 30)
+        takes 33 px off each side of a 4:5 slide) and 30 px top and bottom (design px)."""
+        px = self._px(cw)
+        return (px(40), px(30), cw - px(40), chh - px(30))
 
     def _header_bottom(self, d: ImageDraw.ImageDraw, cw: int, tight: bool) -> int:
         """The bottom of the header band: the brand, top-left."""
-        b = d.textbbox((80, self.HEADER_Y), "RELIC & RIDDLE", font=get_font("Montserrat", 28), anchor="lt", stroke_width=2)
-        return b[3] + (10 if tight else 0)
+        px = self._px(cw)
+        b = d.textbbox((px(80), px(self.HEADER_Y)), "RELIC & RIDDLE", font=get_font("Montserrat", px.exact(28)), anchor="lt",
+                       stroke_width=px.exact(2))
+        return b[3] + (px(10) if tight else 0)
 
     def _footer_top(self, chh: int) -> int:
         """The lowest y a slide's text may reach: the zone's bottom less two gaps. Nothing is drawn under the
-        text any more (the swipe cues are gone, operator 2026-10-28; Instagram's dots sit below the media)."""
-        return self._zone(0, chh)[3] - 2 * self.BAND_GAP
+        text any more (the swipe cues are gone, operator 2026-10-28; Instagram's dots sit below the media).
+        The canvas is 4:5, so its width follows from `chh`."""
+        cw = chh * 4 // 5
+        return self._zone(cw, chh)[3] - 2 * self._px(cw)(self.BAND_GAP)
 
     def _plan_panel(self, d, heading: str, body: str, width: int, room: int, h_spec, b_spec, tight: bool,
-                    h_stroke: int = 0, b_stroke: int = 0, h_pitch: float = 1.1, body_max: int = 4):
+                    h_stroke: int = 0, b_stroke: int = 0, h_pitch: float = 1.1, body_max: int = 4, px=round):
         """Heading and body measured to fit `width` x `room`: the heading on one line (shrinking to its floor),
         else on two; the body wrapped, shrunk to 80% of its size, then kept to whole sentences, and only last
-        shortened at a word with an ellipsis. Returns the plan the panel is drawn from."""
+        shortened at a word with an ellipsis. Returns the plan the panel is drawn from. `h_spec`, `b_spec` and
+        the strokes are design px, `width` and `room` canvas px; the plan's fonts and steps are canvas px (_px)."""
+        # Planned in design px (the 1080 slide's sizes, lines and line count), drawn at the canvas's scale.
+        s = getattr(px, "s", 1.0)
+        width, room = int(round(width / s)), int(room / s)
         h_size, h_min = h_spec
         b_size = b_spec
         if tight:
@@ -427,22 +500,26 @@ class MultiFormatGenerator:
                                             quiet=True)
         if h_short:
             h_lines, font_h, h_short = fit_text(d, heading, "Anton", h_size, width, 2, h_min, stroke=h_stroke, sentences=False)
-        h_step = int(font_h.size * h_pitch)
-        h_height = len(h_lines) * h_step
+        h_height = len(h_lines) * int(font_h.size * h_pitch)
         b_min = max(28, int(b_size * 0.8))
         b_step = int(round(b_size * 1.38))
         left = room - h_height
         max_lines = max(1, min(body_max, (left - int(b_size * 1.25)) // b_step + 1)) if left > b_size else 1
         b_lines, font_b, b_short = fit_text(d, body, "Montserrat", b_size, width, max_lines, b_min, stroke=b_stroke) \
             if body.strip() else ([], get_font("Montserrat", b_size), False)
-        b_step = int(round(font_b.size * 1.38))
+        fpx = getattr(px, "exact", px)
+        font_h, font_b = get_font("Anton", fpx(font_h.size)), get_font("Montserrat", fpx(font_b.size))
+        h_step, b_step = int(font_h.size * h_pitch), int(round(font_b.size * 1.38))
         shortened = (["heading"] if h_short else []) + (["body"] if b_short else [])
         return {"h_lines": h_lines, "font_h": font_h, "h_step": h_step, "b_lines": b_lines, "font_b": font_b,
-                "b_step": b_step, "height": h_height + len(b_lines) * b_step, "shortened": shortened}
+                "b_step": b_step, "height": len(h_lines) * h_step + len(b_lines) * b_step, "shortened": shortened}
 
     def _draw_panel(self, d, lay, plan, x: int, y: int, h_fill=WHITE, b_fill=LIGHT, h_stroke=0, b_stroke=0,
-                    h_stroke_fill=None, b_stroke_fill=None, gap: int = 0) -> int:
-        """Draws a planned heading and body from `y`; records each as one block; returns the y below them."""
+                    h_stroke_fill=None, b_stroke_fill=None, gap: int = 0, px=round) -> int:
+        """Draws a planned heading and body from `y`; records each as one block; returns the y below them.
+        Strokes and `gap` are design px, drawn through `px` (_px)."""
+        exact = getattr(px, "exact", px)
+        h_stroke, b_stroke, gap = exact(h_stroke), exact(b_stroke), px(gap)
         hk = {"stroke_width": h_stroke, "stroke_fill": h_stroke_fill} if h_stroke else {}
         bk = {"stroke_width": b_stroke, "stroke_fill": b_stroke_fill} if b_stroke else {}
         boxes = []
@@ -457,7 +534,7 @@ class MultiFormatGenerator:
         heading_bottom = max((bx[3] for bx in boxes if bx), default=None)
         if heading_bottom is not None and plan["b_lines"]:
             body_top = d.textbbox((x, y), plan["b_lines"][0], font=plan["font_b"], anchor="lt", stroke_width=bk.get("stroke_width", 0))[1]
-            y += max(0, heading_bottom + 6 - body_top)
+            y += max(0, heading_bottom + px(6) - body_top)
         boxes = []
         for line in plan["b_lines"]:
             boxes.append(self._text(d, lay, (x, y), line, plan["font_b"], b_fill, **bk))
@@ -473,9 +550,16 @@ class MultiFormatGenerator:
         return tuple(d.textbbox(xy, text, font=font, anchor=anchor, stroke_width=kw.get("stroke_width", 0)))
 
     @staticmethod
-    def _badge(d, lay, name, text, x0, y0, font, max_w: int = 920, **kw):
-        """A badge that fits its width, recorded as its pill."""
-        text, font, short = fit_line(d, text, _font_family(font), font.size, max_w - 2 * kw.get("pad_x", 18), 16)
+    def _badge(d, lay, name, text, x0, y0, font, max_w: int = 920, px=round, **kw):
+        """A badge that fits its width, recorded as its pill. `max_w`, the padding, radius and border are design
+        px, drawn through `px` (_px)."""
+        design = {k: kw.get(k, v) for k, v in (("pad_x", 18), ("pad_y", 8), ("radius", 4), ("border_width", 1))}
+        kw = {**kw, **{k: px(v) for k, v in design.items()}}
+        family = _font_family(font)
+        lines, font, short = MultiFormatGenerator._fit_text(d, text, family, int(round(font.size / getattr(px, "s", 1.0))),
+                                                            px(max_w - 2 * design["pad_x"]), 1, 16, px=px,
+                                                            sentences=False)
+        text = lines[0] if lines else ""
         box = MultiFormatGenerator._draw_badge(d, text, x0, y0, font, **kw)
         if lay is not None:
             lay.add(name, box)
@@ -486,44 +570,47 @@ class MultiFormatGenerator:
     def _render_cover(self, photo: Path, card: Dict[str, Any], cw: int, chh: int,
                       lay=None, tight: bool = False) -> Image.Image:
         heading, body = card["heading"].upper(), card["body"]
-        im = cover_crop(photo, self.CAROUSEL_SIZE).convert("RGB")
+        px = self._px(cw)
+        im = self._fill(photo, (cw, chh))
         d = ImageDraw.Draw(im, "RGBA")
         for y in range(chh // 3, chh):
             a = int(235 * ((y - chh / 3) / (chh * 2 / 3)) ** 1.4)
             d.line([(0, y), (cw, y)], fill=(8, 8, 10, a))
-        im = ensure_legible(im, (40, chh - 720, cw - 40, chh - 80))  # up to 3 heading lines and the body
+        im = ensure_legible(im, (px(40), chh - px(720), cw - px(40), chh - px(80)), feather=px(60))  # up to 3 heading lines and the body
         d = ImageDraw.Draw(im, "RGBA")
-        width = cw - 160
-        h_size = 96 if tight else 110
-        font_h = fit_font(d, heading, "Anton", h_size, width, 56)
-        lines, font_h, h_short = fit_text(d, heading, "Anton", font_h.size, width, 3, 48 if tight else 56, stroke=3, sentences=False)
-        cover_lines, font_cb, b_short = fit_text(d, body, "Montserrat", 32 if tight else 36, width, 2, 28, stroke=2)
+        x, width, h_stroke, b_stroke = px(80), cw - px(160), px.exact(3), px.exact(2)
+        font_h = fit_font(d, heading, "Anton", 96 if tight else 110, 920, 56)   # design px, as _fit_text
+        lines, font_h, h_short = self._fit_text(d, heading, "Anton", font_h.size, width, 3, 48 if tight else 56, px=px,
+                                                stroke=3, sentences=False)
+        cover_lines, font_cb, b_short = self._fit_text(d, body, "Montserrat", 32 if tight else 36, width, 2, 28, px=px,
+                                                       stroke=2)
         step = int(font_h.size * 1.05)
         # The old placement (heading baselines from chh-470, body two rows under), moved up only when the body
         # would pass the footer line. The SWIPE cue's row it used to clear is gone (operator, 2026-10-28: Instagram
         # shows its own dots), so a long cover keeps the room down to the footer line.
         footer = self._footer_top(chh)
-        y = chh - 470 - (len(lines) - 1) * 60
+        y = chh - px(470) - (len(lines) - 1) * px(60)
         # The body clears the heading's measured bottom: an accented or descending heading line reaches below
         # its baseline step, and the body overlapped it on every redraw (review, 2026-10-28).
         drop = 0
         if lines and cover_lines:
             last = y + (len(lines) - 1) * step
-            h_bottom = d.textbbox((80, last), lines[-1], font=font_h, anchor="ls", stroke_width=3)[3]
-            b_top = d.textbbox((80, last + step + 20), cover_lines[0], font=font_cb, anchor="ls", stroke_width=2)[1]
-            drop = max(0, h_bottom + 6 - b_top)
-        body_bottom = y + len(lines) * step + 20 + drop + 48 * max(0, len(cover_lines) - 1) + 12
+            h_bottom = d.textbbox((x, last), lines[-1], font=font_h, anchor="ls", stroke_width=h_stroke)[3]
+            b_top = d.textbbox((x, last + step + px(20)), cover_lines[0], font=font_cb, anchor="ls", stroke_width=b_stroke)[1]
+            drop = max(0, h_bottom + px(6) - b_top)
+        body_bottom = y + len(lines) * step + px(20) + drop + px(48) * max(0, len(cover_lines) - 1) + px(12)
         if body_bottom > footer:
             y -= body_bottom - footer
         boxes = []
         for line in lines:
-            boxes.append(self._text(d, lay, (80, y), line, font_h, WHITE, anchor="ls", stroke_width=3, stroke_fill=(8, 8, 10, 230)))
+            boxes.append(self._text(d, lay, (x, y), line, font_h, WHITE, anchor="ls", stroke_width=h_stroke,
+                                    stroke_fill=(8, 8, 10, 230)))
             y += step
         y += drop
         bboxes = []
         for j, line in enumerate(cover_lines):
-            bboxes.append(self._text(d, lay, (80, y + 20 + 48 * j), line, font_cb, LIGHT, anchor="ls",
-                                     stroke_width=2, stroke_fill=(8, 8, 10, 220)))
+            bboxes.append(self._text(d, lay, (x, y + px(20) + px(48) * j), line, font_cb, LIGHT, anchor="ls",
+                                     stroke_width=b_stroke, stroke_fill=(8, 8, 10, 220)))
         if lay is not None:
             lay.block("heading", boxes)
             lay.block("body", bboxes)
@@ -534,7 +621,8 @@ class MultiFormatGenerator:
                           lay=None, tight: bool = False) -> Image.Image:
         """Archetype A: Full-Bleed Immersive Photo with floating translucent charcoal badges."""
         heading, body = card["heading"].upper(), card["body"]
-        im = cover_crop(photo, self.CAROUSEL_SIZE).convert("RGB")
+        px = self._px(cw)
+        im = self._fill(photo, (cw, chh))
         d = ImageDraw.Draw(im, "RGBA")
         d.rectangle([(0, 0), (cw, chh)], fill=(6, 8, 12, 70))
         for y in range(chh // 2, chh):
@@ -542,100 +630,107 @@ class MultiFormatGenerator:
             d.line([(0, y), (cw, y)], fill=(8, 10, 14, a))
         bottom = self._footer_top(chh)
         # Measured first: badge, heading and body stacked upward from the cues, at the old place when they fit.
-        top_min = chh // 2 + 40                                   # where the shading gradient is already deep
-        plan = self._plan_panel(d, heading, body, cw - 160, bottom - (top_min + 90) - 18, (76, 44), 40, tight,
-                                h_stroke=3, b_stroke=2, h_pitch=1.08)
-        block_h = 90 + plan["height"] + 18
-        top = min(chh - 530, bottom - block_h)
-        im = ensure_legible(im, (40, top - 30, cw - 40, chh - 50))  # badge, heading and body
+        top_min = chh // 2 + px(40)                               # where the shading gradient is already deep
+        tag = self._tag(self._get_card_category(card, "immersive"), index)
+        badge_h = px(90) if tag else 0                            # no badge: the heading starts where it sat
+        plan = self._plan_panel(d, heading, body, cw - px(160), bottom - (top_min + badge_h) - px(18), (76, 44), 40, tight,
+                                h_stroke=3, b_stroke=2, h_pitch=1.08, px=px)
+        block_h = badge_h + plan["height"] + px(18)
+        top = min(chh - px(530) + (px(90) - badge_h), bottom - block_h)
+        im = ensure_legible(im, (px(40), top - px(30), cw - px(40), chh - px(50)), feather=px(60))  # badge, heading and body
         d = ImageDraw.Draw(im, "RGBA")
-        category = self._get_card_category(card, "immersive")
-        tag = self._tag(category, index)
-        self._badge(d, lay, "badge", tag, 80, top, get_font("Montserrat", 24), text_color=GOLD, border_color=GOLD,
-                    border_width=2, radius=8)
-        self._draw_panel(d, lay, plan, 80, top + 90, h_stroke=3, b_stroke=2, h_stroke_fill=(6, 8, 10, 240),
-                         b_stroke_fill=(6, 8, 10, 220), gap=18)
+        if tag:
+            self._badge(d, lay, "badge", tag, px(80), top, get_font("Montserrat", px.exact(24)), text_color=GOLD, border_color=GOLD,
+                        border_width=2, radius=8, px=px)
+        self._draw_panel(d, lay, plan, px(80), top + badge_h, h_stroke=3, b_stroke=2, h_stroke_fill=(6, 8, 10, 240),
+                         b_stroke_fill=(6, 8, 10, 220), gap=18, px=px)
         return im
 
     def _render_comparison(self, photo1: Path, photo2: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
                            lay=None, tight: bool = False) -> Image.Image:
         """Archetype B: Side-by-Side Comparative Card."""
         heading, body = card["heading"].upper(), card["body"]
+        px = self._px(cw)
         im = Image.new("RGB", (cw, chh), (12, 14, 18))
-        h_half = 380
-        im.paste(cover_crop(photo1, (cw, h_half)).convert("RGB"), (0, 0))
-        im.paste(cover_crop(photo2, (cw, h_half)).convert("RGB"), (0, h_half))
+        h_half = px(380)
+        im.paste(self._fill(photo1, (cw, h_half)), (0, 0))
+        im.paste(self._fill(photo2, (cw, h_half)), (0, h_half))
         d = ImageDraw.Draw(im, "RGBA")
-        d.line([(0, h_half), (cw, h_half)], fill=GOLD, width=3)
-        d.line([(0, 2 * h_half), (cw, 2 * h_half)], fill=GOLD, width=2)
-        f_sub = get_font("Montserrat", 22)
-        # REF A sat at y=35, under the slide's own header at y=70 (measured overlap, 2026-10-28; the brand is there now): it
-        # now starts below the header band.
-        ref_a_y = max(35, self._header_bottom(d, cw, tight) + self.BAND_GAP)
-        self._badge(d, lay, "ref_a", "REF A // SURFACE CONTEXT", 60, ref_a_y, f_sub, text_color=WHITE, border_color=GOLD,
-                    fill_color=(10, 12, 16, 220), radius=6)
-        self._badge(d, lay, "ref_b", "REF B // SUBTERRANEAN DEPTH", 60, h_half + 35, f_sub, text_color=GOLD,
-                    border_color=GOLD, fill_color=(10, 12, 16, 220), radius=6)
-        category = self._get_card_category(card, "comparison")
-        tag = self._tag(category, index)
-        self._badge(d, lay, "badge", tag, 80, 2 * h_half + 25, get_font("Montserrat", 24), text_color=GOLD,
-                    border_color=GOLD, radius=6)
-        y = 2 * h_half + 85
-        plan = self._plan_panel(d, heading, body, cw - 160, self._footer_top(chh) - y, (64, 38), 38, tight)
-        self._draw_panel(d, lay, plan, 80, y)
+        d.line([(0, h_half), (cw, h_half)], fill=GOLD, width=px(3))
+        d.line([(0, 2 * h_half), (cw, 2 * h_half)], fill=GOLD, width=px(2))
+        # No "REF A // SURFACE CONTEXT" / "REF B // SUBTERRANEAN DEPTH" over the two photos: every comparison
+        # slide said so, whatever it showed (it called the Pantheon's dome subterranean; platform audit,
+        # 2026-10-28). The photos are matched to the slide's words, not to a role, so nothing is said about them.
+        tag = self._tag(self._get_card_category(card, "comparison"), index)
+        if tag:
+            self._badge(d, lay, "badge", tag, px(80), 2 * h_half + px(25), get_font("Montserrat", px.exact(24)), text_color=GOLD,
+                        border_color=GOLD, radius=6, px=px)
+        y = 2 * h_half + px(85 if tag else 40)
+        plan = self._plan_panel(d, heading, body, cw - px(160), self._footer_top(chh) - y, (64, 38), 38, tight, px=px)
+        self._draw_panel(d, lay, plan, px(80), y, px=px)
         return im
 
     def _render_blueprint(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
                           lay=None, tight: bool = False) -> Image.Image:
         """Archetype C: Sourced Measurement & Blueprint Card."""
         heading, body = card["heading"].upper(), card["body"]
+        px = self._px(cw)
         im = Image.new("RGB", (cw, chh), (10, 16, 24))
-        p_h = 620
-        im.paste(cover_crop(photo, (cw, p_h)).convert("RGB"), (0, 0))
+        p_h = px(620)
+        im.paste(self._fill(photo, (cw, p_h)), (0, 0))
         d = ImageDraw.Draw(im, "RGBA")
-        for x in range(60, cw, 70):
-            d.line([(x, p_h), (x, chh)], fill=(20, 36, 52, 70), width=1)
-        for y_g in range(p_h, chh, 70):
-            d.line([(0, y_g), (cw, y_g)], fill=(20, 36, 52, 70), width=1)
-        d.line([(0, p_h), (cw, p_h)], fill=GOLD, width=3)
-        category = self._get_card_category(card, "blueprint")
-        tag = self._tag(category, index)
-        self._badge(d, lay, "badge", tag, 80, p_h + 25, get_font("Montserrat", 24), text_color=GOLD, border_color=GOLD,
-                    fill_color=(8, 12, 18, 230), radius=4)
-        y = p_h + 85
-        plan = self._plan_panel(d, heading, body, cw - 160, self._footer_top(chh) - y, (64, 38), 40, tight, body_max=5)
-        self._draw_panel(d, lay, plan, 80, y)
+        for x in range(px(60), cw, px(70)):
+            d.line([(x, p_h), (x, chh)], fill=(20, 36, 52, 70), width=px(1))
+        for y_g in range(p_h, chh, px(70)):
+            d.line([(0, y_g), (cw, y_g)], fill=(20, 36, 52, 70), width=px(1))
+        d.line([(0, p_h), (cw, p_h)], fill=GOLD, width=px(3))
+        tag = self._tag(self._get_card_category(card, "blueprint"), index)
+        if tag:
+            self._badge(d, lay, "badge", tag, px(80), p_h + px(25), get_font("Montserrat", px.exact(24)), text_color=GOLD,
+                        border_color=GOLD, fill_color=(8, 12, 18, 230), radius=4, px=px)
+        y = p_h + px(85 if tag else 40)
+        plan = self._plan_panel(d, heading, body, cw - px(160), self._footer_top(chh) - y, (64, 38), 40, tight, body_max=5,
+                                px=px)
+        self._draw_panel(d, lay, plan, px(80), y, px=px)
         return im
 
     def _render_colossal_stat(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
                               lay=None, tight: bool = False) -> Image.Image:
         """Archetype D: High-Impact Colossal Stat Card."""
         heading, body = card["heading"].upper(), card["body"]
+        px = self._px(cw)
         im = Image.new("RGB", (cw, chh), (11, 14, 18))
-        p_h = 520
-        im.paste(cover_crop(photo, (cw, p_h)).convert("RGB"), (0, 0))
+        p_h, fade = px(520), px(140)
+        im.paste(self._fill(photo, (cw, p_h)), (0, 0))
         d = ImageDraw.Draw(im, "RGBA")
-        for y in range(p_h - 140, p_h):
-            a = int(255 * ((y - (p_h - 140)) / 140) ** 1.5)
+        for y in range(p_h - fade, p_h):
+            a = int(255 * ((y - (p_h - fade)) / fade) ** 1.5)
             d.line([(0, y), (cw, y)], fill=(11, 14, 18, a))
-        category = self._get_card_category(card, "colossal_stat")
-        tag = self._tag(category, index)
-        self._badge(d, lay, "badge", tag, 80, p_h + 10, get_font("Montserrat", 24), text_color=GOLD, border_color=GOLD,
-                    fill_color=(16, 20, 26, 230), radius=6)
-        stat_match = re.search(r"(\b\d+[\d,]*\+?(?:\s*(?:TONS?|PEOPLE|FEET|FT|METERS?|M|STORIES|LEVELS))?)\b", f"{heading} {body}", re.IGNORECASE)
-        stat_text = stat_match.group(1).upper() if stat_match else category  # no slide number (2026-10-28)
-        stat_text, f_stat, s_short = fit_line(d, stat_text, "Anton", 96 if tight else 110, cw - 160, 56)
-        box = self._text(d, lay, (80, p_h + 65), stat_text, f_stat, GOLD)
-        if lay is not None:
-            lay.add("stat", box)
-            if s_short:
-                lay.shortened.append("stat")
-        y = p_h + 65 + int(f_stat.size * 1.1)
-        ver_y = self._footer_top(chh) - 46                                # its pill's top: the pill ends on the footer line
-        plan = self._plan_panel(d, heading, body, cw - 160, ver_y - self.BAND_GAP - y, (62, 38), 38, tight, h_pitch=1.15)
-        self._draw_panel(d, lay, plan, 80, y)
-        self._badge(d, lay, "verified", "VERIFIED BY ARCHEOLOGICAL RECORD", 80, ver_y, get_font("Montserrat", 22),
-                    text_color=GOLD, border_color=(255, 215, 0, 180), fill_color=(16, 20, 26, 230), radius=6)
+        tag = self._tag(self._get_card_category(card, "colossal_stat"), index)
+        if tag:
+            self._badge(d, lay, "badge", tag, px(80), p_h + px(10), get_font("Montserrat", px.exact(24)), text_color=GOLD,
+                        border_color=GOLD, fill_color=(16, 20, 26, 230), radius=6, px=px)
+        y = p_h + px(65 if tag else 30)
+        # The figure is the card's own (its first number, with its unit when it has one); a card without one
+        # gets no stat line rather than a label in its place.
+        stat_match = re.search(r"(\b\d+[\d,]*\+?(?:\s*(?:TONS?|PEOPLE|FEET|FT|METERS?|M|STORIES|LEVELS))?)\b",
+                               f"{heading} {body}", re.IGNORECASE)
+        if stat_match:
+            stat_lines, f_stat, s_short = self._fit_text(d, stat_match.group(1).upper(), "Anton", 96 if tight else 110,
+                                                         cw - px(160), 1, 56, px=px, sentences=False)
+            stat_text = stat_lines[0] if stat_lines else ""
+            box = self._text(d, lay, (px(80), y), stat_text, f_stat, GOLD)
+            if lay is not None:
+                lay.add("stat", box)
+                if s_short:
+                    lay.shortened.append("stat")
+            y += int(f_stat.size * 1.1)
+        # No "VERIFIED BY ARCHEOLOGICAL RECORD" pill: it was drawn on every stat slide whether or not anything
+        # was verified, and by what (platform audit, 2026-10-28). The fact review traces the package's claims,
+        # not a source per slide, so no slide can say what verified it; the panel has the room down to the footer.
+        plan = self._plan_panel(d, heading, body, cw - px(160), self._footer_top(chh) - y, (62, 38), 38, tight, h_pitch=1.15,
+                                px=px)
+        self._draw_panel(d, lay, plan, px(80), y, px=px)
         return im
 
     def _render_debate(self, photo: Path, card: Dict[str, Any], index: int, total: int, cw: int, chh: int, poll: Dict[str, Any], f_small,
@@ -643,33 +738,35 @@ class MultiFormatGenerator:
         """Archetype E: Forensic Closing Dilemma / Debate Card. `share`: the share-and-follow line, above the
         comments footer (Meta's creator tips, 2026-10-25)."""
         heading, body = card["heading"].upper(), card["body"]
+        px = self._px(cw)
         im = Image.new("RGB", (cw, chh), (12, 14, 18))
-        p_h = 560
-        im.paste(cover_crop(photo, (cw, p_h)).convert("RGB"), (0, 0))
+        p_h, fade = px(560), px(160)
+        im.paste(self._fill(photo, (cw, p_h)), (0, 0))
         d = ImageDraw.Draw(im, "RGBA")
-        for y in range(p_h - 160, p_h):
-            a = int(255 * ((y - (p_h - 160)) / 160) ** 1.5)
+        for y in range(p_h - fade, p_h):
+            a = int(255 * ((y - (p_h - fade)) / fade) ** 1.5)
             d.line([(0, y), (cw, y)], fill=(12, 14, 18, a))
-        category = self._get_card_category(card, "debate")
-        tag = self._tag(category, index)
-        self._badge(d, lay, "badge", tag, 80, p_h + 20, get_font("Montserrat", 24), text_color=GOLD, border_color=GOLD,
-                    fill_color=(16, 18, 22, 230), radius=6)
+        tag = self._tag(self._get_card_category(card, "debate"), index)
+        if tag:
+            self._badge(d, lay, "badge", tag, px(80), p_h + px(20), get_font("Montserrat", px.exact(24)), text_color=GOLD,
+                        border_color=GOLD, fill_color=(16, 18, 22, 230), radius=6, px=px)
         # No arrow after the call to comment (operator, 2026-10-28: where the comments are differs between
         # Instagram's carousel and Facebook's photo grid). It sits on the footer line, now that the swipe cues
         # under it are gone (it was 120 px up, clear of them).
-        footer_y = self._footer_top(chh) - 8                              # its baseline: descenders stay above the line
-        footer = self._text(d, lay, (80, footer_y), "TELL US IN THE COMMENTS", f_small, GOLD, anchor="ls")
-        share_lines, f_share, sh_short = fit_text(d, share, "Montserrat", 34, cw - 160, 2, 28) if share else ([], None, False)
+        footer_y = self._footer_top(chh) - px(8)                          # its baseline: descenders stay above the line
+        footer = self._text(d, lay, (px(80), footer_y), "TELL US IN THE COMMENTS", f_small, GOLD, anchor="ls")
+        share_lines, f_share, sh_short = (self._fit_text(d, share, "Montserrat", 34, cw - px(160), 2, 28, px=px) if share
+                                          else ([], None, False))
         step = int(f_share.size * 1.3) if f_share else 0
-        share_top = footer_y - 56 - step * len(share_lines)               # above the footer
-        y = p_h + 80
-        room = (share_top - 24 if share_lines else footer[1] - self.BAND_GAP) - y
-        plan = self._plan_panel(d, heading, body, cw - 160, room, (68, 42), 40, tight, h_pitch=1.15, body_max=3)
-        self._draw_panel(d, lay, plan, 80, y)
+        share_top = footer_y - px(56) - step * len(share_lines)           # above the footer
+        y = p_h + px(80 if tag else 40)
+        room = (share_top - px(24) if share_lines else footer[1] - px(self.BAND_GAP)) - y
+        plan = self._plan_panel(d, heading, body, cw - px(160), room, (68, 42), 40, tight, h_pitch=1.15, body_max=3, px=px)
+        self._draw_panel(d, lay, plan, px(80), y, px=px)
         if share_lines:
             ys, boxes = share_top, []
             for line in share_lines:
-                boxes.append(self._text(d, lay, (80, ys), line, f_share, WHITE))
+                boxes.append(self._text(d, lay, (px(80), ys), line, f_share, WHITE))
                 ys += step
             if lay is not None:
                 lay.block("share", boxes)
@@ -682,18 +779,21 @@ class MultiFormatGenerator:
     def _render_editorial_split(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
                                 lay=None, tight: bool = False) -> Image.Image:
         heading, body = card["heading"].upper(), card["body"]
+        px = self._px(cw)
+        p_h, fade = px(self.PHOTO_H), px(180)
         im = Image.new("RGB", (cw, chh), (13, 16, 21))
-        im.paste(cover_crop(photo, (cw, self.PHOTO_H)).convert("RGB"), (0, 0))
+        im.paste(self._fill(photo, (cw, p_h)), (0, 0))
         d = ImageDraw.Draw(im, "RGBA")
-        for y in range(self.PHOTO_H - 180, self.PHOTO_H):
-            d.line([(0, y), (cw, y)], fill=(13, 16, 21, int(255 * ((y - (self.PHOTO_H - 180)) / 180) ** 1.6)))
-        category = self._get_card_category(card, "editorial_split")
-        tag = self._tag(category, index)
-        self._badge(d, lay, "badge", tag, 80, self.PHOTO_H + 25, get_font("Montserrat", 24), text_color=GOLD,
-                    border_color=GOLD, radius=6)
-        y = self.PHOTO_H + 85
-        plan = self._plan_panel(d, heading, body, cw - 160, self._footer_top(chh) - y, (66, 40), 42, tight, body_max=5)
-        self._draw_panel(d, lay, plan, 80, y)
+        for y in range(p_h - fade, p_h):
+            d.line([(0, y), (cw, y)], fill=(13, 16, 21, int(255 * ((y - (p_h - fade)) / fade) ** 1.6)))
+        tag = self._tag(self._get_card_category(card, "editorial_split"), index)
+        if tag:
+            self._badge(d, lay, "badge", tag, px(80), p_h + px(25), get_font("Montserrat", px.exact(24)), text_color=GOLD,
+                        border_color=GOLD, radius=6, px=px)
+        y = p_h + px(85 if tag else 40)
+        plan = self._plan_panel(d, heading, body, cw - px(160), self._footer_top(chh) - y, (66, 40), 42, tight, body_max=5,
+                                px=px)
+        self._draw_panel(d, lay, plan, px(80), y, px=px)
         return im
 
     def _render_carousel_slide(self, archetype: str, photo: Path, photo_next: Path, card: Dict[str, Any], i: int,
@@ -712,7 +812,8 @@ class MultiFormatGenerator:
         cw, chh = self.CAROUSEL_SIZE
         lay = Layout("carousel", (cw, chh), self._zone(cw, chh), tight=tight,
                      protected=[("instagram_counter", self._ig_counter(cw))])
-        f_small = get_font("Montserrat", 28)
+        px = self._px(cw)
+        f_small = get_font("Montserrat", px.exact(28))
         if archetype == "cover":
             im = self._render_cover(photo, card, cw, chh, lay=lay, tight=tight)
         elif archetype == "immersive":
@@ -732,22 +833,22 @@ class MultiFormatGenerator:
         # luminance was mostly black sky, so a badge over a bright solar panel was left at 1.1:1 (measured 2026-10-25).
         # The brand is top-left, clear of Instagram's counter (see HEADER_Y); no counter, bar or dots of our own.
         d = ImageDraw.Draw(im, "RGBA")
-        xy = (80, self.HEADER_Y)
+        xy = (px(80), px(self.HEADER_Y))
         brand_w = d.textlength("RELIC & RIDDLE", font=f_small)
-        im = ensure_legible(im, (50, 50, int(80 + brand_w + 30), 100), feather=60)
+        im = ensure_legible(im, (px(50), px(50), int(px(80) + brand_w + px(30)), px(100)), feather=px(60))
         d = ImageDraw.Draw(im, "RGBA")
-        box = d.textbbox(xy, "RELIC & RIDDLE", font=f_small, anchor="lt", stroke_width=2)
+        box = d.textbbox(xy, "RELIC & RIDDLE", font=f_small, anchor="lt", stroke_width=px.exact(2))
         if tight:  # a solid pill behind the brand, whatever the photo does there
-            box = (box[0] - 12, box[1] - 8, box[2] + 12, box[3] + 8)
-            d.rounded_rectangle(box, radius=8, fill=(8, 10, 14, 215))
-        d.text(xy, "RELIC & RIDDLE", font=f_small, fill=(235, 235, 235, 255), anchor="lt", stroke_width=2,
+            box = (box[0] - px(12), box[1] - px(8), box[2] + px(12), box[3] + px(8))
+            d.rounded_rectangle(box, radius=px(8), fill=(8, 10, 14, 215))
+        d.text(xy, "RELIC & RIDDLE", font=f_small, fill=(235, 235, 235, 255), anchor="lt", stroke_width=px.exact(2),
                stroke_fill=(8, 10, 14, 230))
         lay.add("header_brand", box)
         return im, lay
 
     def generate_carousel_sequence(self, scene_images: List[Path], script_payload: Dict[str, Any], output_dir: Path,
                                    facebook: bool = False) -> List[Path]:
-        """Multi-Template Editorial Carousel (1080x1350, 4:5):
+        """Multi-Template Editorial Carousel (CAROUSEL_SIZE, 1440x1800, 4:5):
         Dynamically routes each slide to one of 5 National Geographic / The Economist archetypes
         (Full-Bleed Immersive, Comparative Side-by-Side, Architectural Blueprint, Colossal Stat, Debate).
         facebook=True: the same slides for Facebook's multi-photo post (carousel_fb/). Neither copy has a swipe
@@ -763,7 +864,7 @@ class MultiFormatGenerator:
         cards = script_payload["carousel_slides"]
         poll = script_payload.get("poll") or {}
         total = len(cards)
-        photos = self._match_photos(cards, stills)
+        photos = self._carousel_photos(cards, stills, output_dir)
         from .script_engine import share_prompt
         share = share_prompt(script_payload)  # the closing slide asks for a share and a follow (2026-10-25)
 
@@ -776,7 +877,7 @@ class MultiFormatGenerator:
                 lambda tight: self._render_carousel_slide(archetype, photo, photo_next, card, i, total, poll, share,
                                                           facebook, tight=tight))
             path = out_dir / f"carousel_slide_{i + 1:02d}.jpg"
-            im.save(path, quality=95)
+            self._save_slide(im, path)
             still_layout.save(path, lay, {"renderer": "multi_format.redraw_carousel_slide", "archetype": archetype,
                                           "photo": str(photo), "photo_next": str(photo_next), "card": card, "index": i,
                                           "total": total, "poll": poll, "share": share, "facebook": facebook}, attempts)
@@ -784,6 +885,179 @@ class MultiFormatGenerator:
 
         log.info("Generated %d multi-template carousel slides -> %s", len(slides), out_dir)
         return slides
+
+
+CAROUSEL_PHOTOS = "carousel_photos.json"
+_photo_locks: Dict[str, threading.Lock] = {}
+_photo_locks_guard = threading.Lock()
+
+
+def _photo_lock(output_dir: Path) -> threading.Lock:
+    with _photo_locks_guard:
+        return _photo_locks.setdefault(str(Path(output_dir).resolve()), threading.Lock())
+
+
+def _recorded_photos(output_dir: Path, cards: List[Dict[str, Any]]) -> List[Path]:
+    """The photos a copy drawn before carousel_photos.json existed recorded for these cards ([] if none)."""
+    from . import still_layout
+    for copy in ("carousel", "carousel_fb"):
+        folder = Path(output_dir) / copy
+        recs = [still_layout.load(folder / f"carousel_slide_{i + 1:02d}.jpg") or {} for i in range(len(cards))]
+        recipes = [r.get("recipe") or {} for r in recs]
+        photos = [Path(r.get("photo") or "") for r in recipes]
+        same = all((r.get("card") or {}).get("heading") == c.get("heading") and (r.get("card") or {}).get("body") == c.get("body")
+                   for r, c in zip(recipes, cards))
+        if same and all(str(x) not in ("", ".") and x.is_file() for x in photos):
+            return photos
+    return []
+
+
+# ---------------------------------------------------------------- what a posted slide shows
+# A slide's record (still_layout.json beside it) keeps its card and photos, so the publisher can say what each
+# posted slide shows (alt text), credit every photo it shows, and pick Facebook's photos.
+
+def slide_record(slide: Path) -> Dict[str, Any]:
+    from . import still_layout
+    return (still_layout.load(Path(slide)) or {}).get("recipe") or {}
+
+
+def slide_photos(slide: Path) -> List[Path]:
+    """The photos a slide shows: its own, and on a comparison slide the second one under it."""
+    rec = slide_record(slide)
+    photos = [rec.get("photo")] + ([rec.get("photo_next")] if rec.get("archetype") == "comparison" else [])
+    return [Path(x) for x in photos if x]
+
+
+def photo_credit(photo: Path) -> Dict[str, Any]:
+    """The credits.json entry of a sourced photo ({} if none). A derived copy (crop, blur, upscale) has no entry
+    beside it; its lineage leads back to the original."""
+    photo = Path(photo)
+    for _ in range(4):
+        try:
+            data = json.loads((photo.parent / "credits.json").read_text(encoding="utf-8"))
+            images = data if isinstance(data, list) else data.get("images", [])
+            entry = next((e for e in images if e.get("file") == photo.name), None)
+        except (OSError, ValueError, AttributeError):
+            entry = None
+        if entry:
+            return entry
+        try:
+            from .lineage import sidecar
+            photo = Path(json.loads(sidecar(photo).read_text(encoding="utf-8"))["sources"][0]["path"])
+        except (OSError, ValueError, KeyError, IndexError, TypeError):
+            return {}
+    return {}
+
+
+CAROUSEL_SHARE_ALIKE = "📷 These slides are licensed CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/"
+
+
+CAROUSEL_ADAPTED = "📷 Photos adapted: cropped, with text added."
+
+
+def carousel_credits(slides: List[Path]) -> Tuple[List[str], bool]:
+    """The credit line of every photo the slides show whose licence asks for one, in slide order, once each
+    (credits.asset_attribution's format), and whether the slides could be read at all. A CC BY-SA photo makes
+    the slides an adaptation under the same licence, which they then say (as the video does)."""
+    from .credits import asset_attribution, is_share_alike
+    lines, share_alike, readable = [], False, bool(slides)
+    for slide in slides:
+        if not slide_record(slide):
+            readable = False
+        for photo in slide_photos(slide):
+            entry = photo_credit(photo)
+            line = asset_attribution(entry) if entry else ""
+            if entry and is_share_alike(entry.get("license", "")):
+                share_alike = True
+            if line and line not in lines:
+                lines.append(line)
+    # CC BY 4.0 s3(a)(1)(B): say that the photos were changed (each slide crops its photo and sets text on it)
+    adapted = [CAROUSEL_ADAPTED] if lines else []
+    return ([CAROUSEL_SHARE_ALIKE] if share_alike else []) + lines + adapted, readable
+
+
+ALT_TEXT_MAX = 1000  # Instagram's and Upload-Post's limit per photo
+_CAMERA_FILE = re.compile(r"\b(?:DSCN?|IMG|DCP)_?\d{3,}\w*\b", re.IGNORECASE)
+
+
+def _photo_subject(photo: Path) -> str:
+    """What a photo shows, in plain words, from its archive record: the description, else the file title."""
+    entry = photo_credit(photo)
+    text = str(entry.get("description") or "").strip() or re.sub(
+        r"^File:|\.(jpe?g|png|tiff?|webp)$", "", str(entry.get("title") or ""), flags=re.I)
+    text = re.sub(r"<[^>]+>", " ", _CAMERA_FILE.sub(" ", text)).replace("_", " ")
+    text = " ".join(text.split()).strip(" .,-")
+    # Its first sentence: uploaders append notes ("Title is mistake. Tree image is taken ...").
+    parts = re.split(r"(?<=[.!?])\s+(?=[A-Z])", text)
+    first = parts[0]
+    for more in parts[1:]:
+        if len(first) >= 20:
+            break
+        first += " " + more
+    text = first.strip(" .,-")
+    return text[:300].rsplit(" ", 1)[0] if len(text) > 300 else text
+
+
+def _sentence(text: str) -> str:
+    text = " ".join(str(text or "").split())
+    return text if not text or text[-1] in ".?!" else text + "."
+
+
+def slide_alt_text(slide: Path) -> str:
+    """Alt text for one posted slide: what its photo shows (the archive's own description), then the words on
+    it, in the case the script wrote them ("" when the slide has no record). Plain sentences, at most 1,000
+    characters; it states nothing the slide and the photo's record do not."""
+    rec = slide_record(slide)
+    card = rec.get("card") or {}
+    if not rec or not (card.get("heading") or card.get("body")):
+        return ""
+    subjects = [x for x in (_photo_subject(photo) for photo in slide_photos(slide)) if x]
+    if len(subjects) > 1:
+        picture = f"Two photos: {_sentence(subjects[0])[:-1]}; and {_sentence(subjects[1])}"
+    elif subjects:
+        picture = f"Photo: {_sentence(subjects[0])}"
+    else:
+        picture = ""
+    from .script_engine import facebook_photo_caption, neutral_cues
+    clean = facebook_photo_caption if Path(slide).parent.name == "carousel_fb" else neutral_cues
+    words = [_sentence(clean(card.get("heading", ""))), _sentence(clean(card.get("body", "")))]
+    if rec.get("archetype") == "debate":
+        words += [_sentence(rec.get("share") or ""), "Tell us in the comments."]
+    text = " ".join(x for x in [picture, "Text on the slide:", *words] if x)
+    if len(text) > ALT_TEXT_MAX:
+        text = text[:ALT_TEXT_MAX - 1].rsplit(" ", 1)[0] + "…"
+    return text
+
+
+FACEBOOK_PHOTOS = 4
+
+
+def facebook_pick(slides: List[str], limit: int = FACEBOOK_PHOTOS) -> List[str]:
+    """The slides Facebook's multi-photo post gets: its grid shows four tiles and puts "+N" over the last one, so
+    a seven-photo post hid the closing share-and-follow slide (platform audit, 2026-10-28). The cover, the
+    closing slide, and between them the strongest content slides: those drawn as designed (no layout problem,
+    nothing shortened), showing a photo the post does not already show, then the earliest (the script's order is
+    its order of importance: the reveal comes first). Kept in slide order."""
+    slides = list(slides)
+    if len(slides) <= limit:
+        return slides
+    from . import still_layout
+    first, last, middle = slides[0], slides[-1], list(enumerate(slides[1:-1], 1))
+    shown = {str(p) for p in slide_photos(Path(first)) + slide_photos(Path(last))}
+
+    def rank(item):
+        i, slide = item
+        rec = still_layout.load(Path(slide)) or {}
+        photos = {str(p) for p in slide_photos(Path(slide))}
+        return (bool(rec.get("problems")), len(rec.get("shortened") or []), bool(photos and photos <= shown), i)
+
+    picked = []
+    while middle and len(picked) < limit - 2:  # one at a time: a pick's photos count as shown for the next
+        best = min(middle, key=rank)
+        middle.remove(best)
+        picked.append(best)
+        shown |= {str(p) for p in slide_photos(Path(best[1]))}
+    return [first] + [slide for _, slide in sorted(picked)] + [last]
 
 
 def _font_family(font) -> str:
@@ -822,6 +1096,6 @@ def redraw_carousel_slide(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
                                          recipe["card"], int(recipe["index"]), int(recipe["total"]),
                                          recipe.get("poll") or {}, recipe.get("share") or "", bool(recipe.get("facebook")),
                                          tight=True)
-    im.save(path, quality=95)
+    gen._save_slide(im, path)
     prior = still_layout.load(path) or {}
     return still_layout.save(path, lay, recipe, int(prior.get("attempts", 1)) + 1)

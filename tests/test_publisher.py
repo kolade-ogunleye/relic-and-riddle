@@ -229,10 +229,13 @@ def test_carousel_is_one_post_with_caption_and_max_ten(monkeypatch, run, tmp_pat
                         or _response(200, {"success": True, "results": {"instagram": {"success": True, "url": "u"}}}))
     up = UploadPostPublisher(api_key="k" * 20, user="u")
     res = MetaPublisher(db=run, publishers=[up]).publish_photos("r1", "01_topic", "carousel", _photos(tmp_path, 12), caption="Cap")
-    assert res["status"] == "published" and len(calls) == 1
+    # Instagram's carousel takes ten; Facebook's grid gets its own request of four (platform audit, 2026-10-28).
+    assert res["status"] == "published" and len(calls) == 2
     data, nfiles = calls[0]
-    assert nfiles == 10 and data["title"] == "Cap" and "media_type" not in data
+    assert nfiles == 10 and data["title"] == "Cap" and "media_type" not in data and data["platform[]"] == "instagram"
     assert "facebook_no_story" not in data  # it would keep the post out of feeds (2026-10-25)
+    data, nfiles = calls[1]
+    assert nfiles == 4 and data["title"] == "Cap" and data["platform[]"] == "facebook"
 
 
 def test_story_failure_after_first_frame_is_unknown(monkeypatch, run, tmp_path):

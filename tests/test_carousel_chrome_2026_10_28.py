@@ -173,8 +173,10 @@ def test_no_slide_chrome_on_either_copy(gen, tmp_path, monkeypatch):
     assert not any("SWIPE" in t or "ARCHIVAL RECORD" in t or " OF 0" in t or "// 0" in t or " DATA" in t for t in drawn)
     assert not any(ch in t for t in drawn for ch in "→←↑↓"), [t for t in drawn if any(ch in t for ch in "→←↑↓")]
     assert not dots                                                            # no progress dots
-    # The progress bar was a 2-3 px line across the slide near its bottom (y = 1305).
-    assert not any(isinstance(xy, list) and len(xy) == 2 and xy[0][1] == xy[1][1] > 1250 and w in (2, 3) for xy, w in lines)
+    # The progress bar was a 2-3 px line across the slide near its bottom (y = 1305 of 1350; 3-4 px at 1440).
+    chh = gen.CAROUSEL_SIZE[1]
+    assert not any(isinstance(xy, list) and len(xy) == 2 and xy[0][1] == xy[1][1] > chh * 1250 // 1350 and w in (2, 3, 4)
+                   for xy, w in lines)
 
 
 def test_facebooks_grid_copy_never_says_swipe_on_a_slide(gen, tmp_path, monkeypatch):
@@ -194,8 +196,9 @@ def test_facebooks_grid_copy_never_says_swipe_on_a_slide(gen, tmp_path, monkeypa
 def test_nothing_lies_under_instagrams_counter_and_every_check_passes(gen, tmp_path):
     photos = _photos(tmp_path)
     cw, chh = gen.CAROUSEL_SIZE
+    px = gen._px(cw)                                                         # 1080-wide design px to the canvas's
     counter = gen._ig_counter(cw)
-    assert counter[0] <= cw - 240 and counter[3] >= 110                      # the right of the top ~110 px
+    assert counter[0] <= cw - px(240) and counter[3] >= px(110)              # the right of the top ~110 px
     for archetype in ARCHETYPES:
         for tight in (False, True):
             for facebook in (False, True):
@@ -207,7 +210,7 @@ def test_nothing_lies_under_instagrams_counter_and_every_check_passes(gen, tmp_p
                 for e in lay.elements:
                     assert not still_layout.intersects(tuple(e["box"]), counter), (archetype, e)
                 brand = next(e["box"] for e in lay.elements if e["name"] == "header_brand")
-                assert brand[0] < cw // 2 and brand[3] <= 135                # top-left; out whole in a square crop
+                assert brand[0] < cw // 2 and brand[3] <= (chh - cw) // 2     # top-left; out whole in a square crop
 
 
 def test_the_check_reports_anything_drawn_under_the_counter():
@@ -221,10 +224,11 @@ def test_the_check_reports_anything_drawn_under_the_counter():
 def test_the_text_uses_the_band_the_cues_reserved(gen, tmp_path):
     photos = _photos(tmp_path)
     cw, chh = gen.CAROUSEL_SIZE
-    assert gen._footer_top(chh) == chh - 30 - 2 * gen.BAND_GAP                # was chh - 67 - 16, above the cues
+    px = gen._px(cw)
+    assert gen._footer_top(chh) == chh - px(30) - 2 * px(gen.BAND_GAP)       # was chh - 67 - 16, above the cues
     _, lay = gen._render_carousel_slide("debate", photos[0], photos[1], CARDS[6], 6, 7, {}, "Send this on.", False)
     footer = next(e["box"] for e in lay.elements if e["name"] == "footer")
-    assert footer[3] <= gen._footer_top(chh) and footer[3] > chh - 100       # on the footer line, not 120 px up
+    assert footer[3] <= gen._footer_top(chh) and footer[3] > chh - px(100)   # on the footer line, not 120 px up
 
 
 def test_story_frames_carry_no_arrow(gen, tmp_path, monkeypatch):
@@ -239,3 +243,31 @@ def test_story_frames_carry_no_arrow(gen, tmp_path, monkeypatch):
     assert not any(_DIRECTION_MARKS.search(t) or "BELOW" in t for t in drawn)
     manifest = json.loads((tmp_path / "companion_posting.json").read_text(encoding="utf-8"))
     assert "below" not in manifest["platforms"]["facebook_reels"]["caption"]
+
+
+
+def test_place_words_in_facts_are_never_rewritten():
+    """rc68 review, 2026-10-28: "the Grand Gallery above it" lost its "above"; a fact must stay a fact."""
+    from src.script_engine import neutral_cues
+    for fact in ("lies beyond the Grand Gallery above it.", "The post below it marks the old border.",
+                 "the gallery above.", "the river down below.", "the chamber below is sealed"):
+        assert neutral_cues(fact) == fact, fact
+    assert neutral_cues("Tell us in the comments below!") == "Tell us in the comments!"
+    assert neutral_cues("Comment down below what you think") == "Comment what you think"
+
+
+
+def test_comment_prompts_followed_by_which_who_and_are_still_cleaned():
+    """rc68 review 2, 2026-10-28: widening the place rule let these through to both platforms."""
+    from src.script_engine import facebook_photo_caption, neutral_cues
+    cases = {"Comment below which theory you back.": "Comment which theory you back.",
+             "Tell us below who built it.": "Tell us who built it.",
+             "Comment below and tell us why.": "Comment and tell us why.",
+             "Vote below or share it.": "Vote or share it.",
+             "Sound off below and we'll read every one.": "Sound off and we'll read every one.",
+             "Tell us in the comments below which one.": "Tell us in the comments which one.",
+             "Join the discussion below.": "Join the discussion."}
+    for draft, expected in cases.items():
+        assert neutral_cues(draft) == expected, draft
+        assert "below" not in facebook_photo_caption(draft).lower(), draft
+    assert neutral_cues("the photos above it show the vault") == "the photos above it show the vault"

@@ -1,0 +1,110 @@
+{
+ "q90 4:2:0": {
+  "slides": 28,
+  "max_bytes": 796103,
+  "mean_bytes": 518847,
+  "min_psnr_y": 39.75,
+  "min_psnr_text_y": 39.6,
+  "min_psnr_text_chroma": 37.73,
+  "mean_psnr_text_chroma": 46.84
+ },
+ "q90 4:4:4": {
+  "slides": 28,
+  "max_bytes": 879111,
+  "mean_bytes": 593258,
+  "min_psnr_y": 39.77,
+  "min_psnr_text_y": 39.64,
+  "min_psnr_text_chroma": 47.38,
+  "mean_psnr_text_chroma": 50.73
+ },
+ "q92 4:2:0": {
+  "slides": 28,
+  "max_bytes": 880943,
+  "mean_bytes": 570989,
+  "min_psnr_y": 40.86,
+  "min_psnr_text_y": 40.9,
+  "min_psnr_text_chroma": 37.85,
+  "mean_psnr_text_chroma": 47.11
+ },
+ "q92 4:4:4": {
+  "slides": 28,
+  "max_bytes": 981101,
+  "mean_bytes": 656752,
+  "min_psnr_y": 40.88,
+  "min_psnr_text_y": 40.96,
+  "min_psnr_text_chroma": 48.19,
+  "mean_psnr_text_chroma": 51.22
+ },
+ "q95 4:2:0": {
+  "slides": 28,
+  "max_bytes": 1148031,
+  "mean_bytes": 742755,
+  "min_psnr_y": 43.25,
+  "min_psnr_text_y": 43.62,
+  "min_psnr_text_chroma": 37.95,
+  "mean_psnr_text_chroma": 47.62
+ },
+ "q95 4:4:4": {
+  "slides": 28,
+  "max_bytes": 1288751,
+  "mean_bytes": 857807,
+  "min_psnr_y": 43.28,
+  "min_psnr_text_y": 43.74,
+  "min_psnr_text_chroma": 49.45,
+  "mean_psnr_text_chroma": 52.07
+ },
+ "q97 4:2:0": {
+  "slides": 28,
+  "max_bytes": 1428402,
+  "mean_bytes": 925572,
+  "min_psnr_y": 45.95,
+  "min_psnr_text_y": 46.37,
+  "min_psnr_text_chroma": 38.01,
+  "mean_psnr_text_chroma": 48.17
+ },
+ "q97 4:4:4": {
+  "slides": 28,
+  "max_bytes": 1636323,
+  "mean_bytes": 1092536,
+  "min_psnr_y": 46.02,
+  "min_psnr_text_y": 46.65,
+  "min_psnr_text_chroma": 50.35,
+  "mean_psnr_text_chroma": 52.93
+ },
+ "q98 4:2:0": {
+  "slides": 28,
+  "max_bytes": 1591305,
+  "mean_bytes": 1039950,
+  "min_psnr_y": 47.81,
+  "min_psnr_text_y": 47.35,
+  "min_psnr_text_chroma": 38.04,
+  "mean_psnr_text_chroma": 48.48
+ },
+ "q98 4:4:4": {
+  "slides": 28,
+  "max_bytes": 1829465,
+  "mean_bytes": 1233333,
+  "min_psnr_y": 47.91,
+  "min_psnr_text_y": 48.04,
+  "min_psnr_text_chroma": 50.91,
+  "mean_psnr_text_chroma": 53.29
+ },
+ "q100 4:2:0": {
+  "slides": 28,
+  "max_bytes": 2139756,
+  "mean_bytes": 1440606,
+  "min_psnr_y": 49.02,
+  "min_psnr_text_y": 48.37,
+  "min_psnr_text_chroma": 38.05,
+  "mean_psnr_text_chroma": 49.23
+ },
+ "q100 4:4:4": {
+  "slides": 28,
+  "max_bytes": 2966729,
+  "mean_bytes": 2020067,
+  "min_psnr_y": 49.36,
+  "min_psnr_text_y": 49.36,
+  "min_psnr_text_chroma": 51.66,
+  "mean_psnr_text_chroma": 54.4
+ }
+}

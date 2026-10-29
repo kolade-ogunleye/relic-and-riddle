@@ -26,7 +26,10 @@ from .models import BeatQueries
 
 log = logging.getLogger(__name__)
 
-CREDIT_PREFIX = "📷 Images via Wikimedia Commons:"
+# Photos come from Wikimedia Commons and partner archives (Europeana, Openverse, The Met...); the old wording is
+# still recognised so a caption written before rc68 has its line replaced, never doubled (rc68 review 3)
+CREDIT_PREFIX = "📷 Images via Wikimedia Commons and partner archives:"
+CREDIT_PREFIXES = (CREDIT_PREFIX, "📷 Images via Wikimedia Commons:")
 MAX_BEATS = 5          # only the most concrete beats get their own search
 PER_BEAT = 3           # candidates per beat (2 found "2 candidates for 5 beats" on three Kailasa runs, 2026-10-24)
 
@@ -420,7 +423,7 @@ def credit_caption(caption: str, topic_credits: Dict[str, Any], extra: List[Dict
     Idempotent, so a resumed run doesn't stack credit lines."""
     from .credits import caption_credit_line
     new = caption_credit_line({"images": topic_credits.get("images", []) + extra})
-    kept = [ln for ln in caption.split("\n") if not ln.startswith(CREDIT_PREFIX)]
+    kept = [ln for ln in caption.split("\n") if not ln.startswith(CREDIT_PREFIXES)]
     body = "\n".join(kept).rstrip()
     return f"{body}\n\n{new}" if new else body
 

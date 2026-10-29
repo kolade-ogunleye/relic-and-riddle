@@ -32,7 +32,7 @@ def test_credit_line_dedupes_and_skips_non_attribution():
         {"artist": "A", "license": "CC BY 4.0", "attribution_required": True},
         {"artist": "NASA", "license": "Public domain", "attribution_required": False},
     ]})
-    assert line == "📷 Images via Wikimedia Commons: A (CC BY 4.0)"
+    assert line == "📷 Images via Wikimedia Commons and partner archives: A (CC BY 4.0) · adapted: cropped, with motion and text added"  # CC BY s3(a)(1)(B)
     assert caption_credit_line({"images": []}) == ""
 
 

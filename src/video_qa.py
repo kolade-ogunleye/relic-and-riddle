@@ -790,8 +790,9 @@ class QualityAuditor:
             try:
                 with Image.open(slide_path) as im:
                     w, h = im.size
-                    # Check aspect ratio: standard carousels are 1080x1350 (4:5) or 1080x1080 (1:1)
-                    if (w, h) not in ((1080, 1350), (1080, 1080), (1080, 1920)):
+                    # Check aspect ratio: carousels are 1440x1800 (4:5, Meta's recommended feed size, since
+                    # 2026-10-28); slides drawn before then are 1080x1350, and 1:1 and 9:16 stay accepted
+                    if (w, h) not in ((1440, 1800), (1080, 1350), (1080, 1080), (1080, 1920)):
                         issues.append({
                             "type": "non_standard_aspect_ratio",
                             "severity": "minor",
@@ -816,8 +817,9 @@ class QualityAuditor:
                     # Safe margin text/element clipping check at extreme borders in the typography safe band
                     text_band_top = int(h * 0.58)
                     text_band_bottom = int(h * 0.92)
-                    left_strip = gray.crop((0, text_band_top, 12, text_band_bottom))
-                    right_strip = gray.crop((w - 12, text_band_top, w, text_band_bottom))
+                    edge = round(12 * w / 1080)  # 12 px of the 1080-wide design canvas
+                    left_strip = gray.crop((0, text_band_top, edge, text_band_bottom))
+                    right_strip = gray.crop((w - edge, text_band_top, w, text_band_bottom))
                     l_stat = ImageStat.Stat(left_strip)
                     r_stat = ImageStat.Stat(right_strip)
                     if l_stat.stddev and l_stat.stddev[0] > 60.0:

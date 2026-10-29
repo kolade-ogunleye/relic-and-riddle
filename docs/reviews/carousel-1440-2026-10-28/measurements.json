@@ -1,0 +1,406 @@
+{
+ "summary": {
+  "slides_after": 28,
+  "sizes_after": [
+   [
+    1440,
+    1800
+   ]
+  ],
+  "layout_problems_after": 0,
+  "shortened_after": 0,
+  "protected_after_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ],
+  "max_bytes_after": 1574758,
+  "mean_bytes_after": 1056858,
+  "max_bytes_before": 694663,
+  "min_src_px_per_px_after": 1.44,
+  "fb_copy_identical_to_ig": true
+ },
+ "slides": [
+  {
+   "slide": "roman/carousel/carousel_slide_01.jpg",
+   "archetype": "cover",
+   "before": {
+    "size": [
+     1080,
+     1350
+    ],
+    "bytes": 301042,
+    "problems": [],
+    "src_px_per_px": 2.84
+   },
+   "after": {
+    "size": [
+     1440,
+     1800
+    ],
+    "bytes": 703482,
+    "problems": [],
+    "shortened": [],
+    "src_px_per_px": 2.13
+   },
+   "design_box_delta_px": {
+    "x": 3,
+    "y": 1
+   }
+  },
+  {
+   "slide": "roman/carousel/carousel_slide_02.jpg",
+   "archetype": "comparison",
+   "before": {
+    "size": [
+     1080,
+     1350
+    ],
+    "bytes": 484931,
+    "problems": [],
+    "src_px_per_px": 3.55
+   },
+   "after": {
+    "size": [
+     1440,
+     1800
+    ],
+    "bytes": 1117101,
+    "problems": [],
+    "shortened": [],
+    "src_px_per_px": 2.67
+   },
+   "design_box_delta_px": {
+    "x": 9,
+    "y": 2
+   }
+  },
+  {
+   "slide": "roman/carousel/carousel_slide_03.jpg",
+   "archetype": "editorial_split",
+   "before": {
+    "size": [
+     1080,
+     1350
+    ],
+    "bytes": 469983,
+    "problems": [],
+    "src_px_per_px": 5.56
+   },
+   "after": {
+    "size": [
+     1440,
+     1800
+    ],
+    "bytes": 1111200,
+    "problems": [],
+    "shortened": [],
+    "src_px_per_px": 4.17
+   },
+   "design_box_delta_px": {
+    "x": 4,
+    "y": 2
+   }
+  },
+  {
+   "slide": "roman/carousel/carousel_slide_04.jpg",
+   "archetype": "immersive",
+   "before": {
+    "size": [
+     1080,
+     1350
+    ],
+    "bytes": 448614,
+    "problems": [],
+    "src_px_per_px": 2.9
+   },
+   "after": {
+    "size": [
+     1440,
+     1800
+    ],
+    "bytes": 1153752,
+    "problems": [],
+    "shortened": [],
+    "src_px_per_px": 2.17
+   },
+   "design_box_delta_px": {
+    "x": 7,
+    "y": 1
+   }
+  },
+  {
+   "slide": "roman/carousel/carousel_slide_05.jpg",
+   "archetype": "editorial_split",
+   "before": {
+    "size": [
+     1080,
+     1350
+    ],
+    "bytes": 450234,
+    "problems": [],
+    "src_px_per_px": 3.02
+   },
+   "after": {
+    "size": [
+     1440,
+     1800
+    ],
+    "bytes": 1074347,
+    "problems": [],
+    "shortened": [],
+    "src_px_per_px": 2.27
+   },
+   "design_box_delta_px": {
+    "x": 5,
+    "y": 2
+   }
+  },
+  {
+   "slide": "roman/carousel/carousel_slide_06.jpg",
+   "archetype": "immersive",
+   "before": {
+    "size": [
+     1080,
+     1350
+    ],
+    "bytes": 430836,
+    "problems": [],
+    "src_px_per_px": 2.85
+   },
+   "after": {
+    "size": [
+     1440,
+     1800
+    ],
+    "bytes": 1026014,
+    "problems": [],
+    "shortened": [],
+    "src_px_per_px": 2.13
+   },
+   "design_box_delta_px": {
+    "x": 9,
+    "y": 1
+   }
+  },
+  {
+   "slide": "roman/carousel/carousel_slide_07.jpg",
+   "archetype": "debate",
+   "before": {
+    "size": [
+     1080,
+     1350
+    ],
+    "bytes": 467828,
+    "problems": [],
+    "src_px_per_px": 4.12
+   },
+   "after": {
+    "size": [
+     1440,
+     1800
+    ],
+    "bytes": 891800,
+    "problems": [],
+    "shortened": [],
+    "src_px_per_px": 3.09
+   },
+   "design_box_delta_px": {
+    "x": 10,
+    "y": 1
+   }
+  },
+  {
+   "slide": "nazca/carousel/carousel_slide_01.jpg",
+   "archetype": "cover",
+   "before": {
+    "size": [
+     1080,
+     1350
+    ],
+    "bytes": 665727,
+    "problems": [],
+    "src_px_per_px": 1.92
+   },
+   "after": {
+    "size": [
+     1440,
+     1800
+    ],
+    "bytes": 1547724,
+    "problems": [],
+    "shortened": [],
+    "src_px_per_px": 1.44
+   },
+   "design_box_delta_px": {
+    "x": 2,
+    "y": 0
+   }
+  },
+  {
+   "slide": "nazca/carousel/carousel_slide_02.jpg",
+   "archetype": "immersive",
+   "before": {
+    "size": [
+     1080,
+     1350
+    ],
+    "bytes": 441966,
+    "problems": [],
+    "src_px_per_px": 2.84
+   },
+   "after": {
+    "size": [
+     1440,
+     1800
+    ],
+    "bytes": 1041711,
+    "problems": [],
+    "shortened": [],
+    "src_px_per_px": 2.13
+   },
+   "design_box_delta_px": {
+    "x": 10,
+    "y": 1
+   }
+  },
+  {
+   "slide": "nazca/carousel/carousel_slide_03.jpg",
+   "archetype": "editorial_split",
+   "before": {
+    "size": [
+     1080,
+     1350
+    ],
+    "bytes": 452962,
+    "problems": [],
+    "src_px_per_px": 3.41
+   },
+   "after": {
+    "size": [
+     1440,
+     1800
+    ],
+    "bytes": 1134926,
+    "problems": [],
+    "shortened": [],
+    "src_px_per_px": 2.56
+   },
+   "design_box_delta_px": {
+    "x": 6,
+    "y": 2
+   }
+  },
+  {
+   "slide": "nazca/carousel/carousel_slide_04.jpg",
+   "archetype": "immersive",
+   "before": {
+    "size": [
+     1080,
+     1350
+    ],
+    "bytes": 694663,
+    "problems": [],
+    "src_px_per_px": 1.92
+   },
+   "after": {
+    "size": [
+     1440,
+     1800
+    ],
+    "bytes": 1574758,
+    "problems": [],
+    "shortened": [],
+    "src_px_per_px": 1.44
+   },
+   "design_box_delta_px": {
+    "x": 9,
+    "y": 1
+   }
+  },
+  {
+   "slide": "nazca/carousel/carousel_slide_05.jpg",
+   "archetype": "colossal_stat",
+   "before": {
+    "size": [
+     1080,
+     1350
+    ],
+    "bytes": 352422,
+    "problems": [],
+    "src_px_per_px": 5.33
+   },
+   "after": {
+    "size": [
+     1440,
+     1800
+    ],
+    "bytes": 806521,
+    "problems": [],
+    "shortened": [],
+    "src_px_per_px": 4.0
+   },
+   "design_box_delta_px": {
+    "x": 8,
+    "y": 2
+   }
+  },
+  {
+   "slide": "nazca/carousel/carousel_slide_06.jpg",
+   "archetype": "comparison",
+   "before": {
+    "size": [
+     1080,
+     1350
+    ],
+    "bytes": 333976,
+    "problems": [],
+    "src_px_per_px": 3.14
+   },
+   "after": {
+    "size": [
+     1440,
+     1800
+    ],
+    "bytes": 869835,
+    "problems": [],
+    "shortened": [],
+    "src_px_per_px": 2.36
+   },
+   "design_box_delta_px": {
+    "x": 6,
+    "y": 2
+   }
+  },
+  {
+   "slide": "nazca/carousel/carousel_slide_07.jpg",
+   "archetype": "debate",
+   "before": {
+    "size": [
+     1080,
+     1350
+    ],
+    "bytes": 292510,
+    "problems": [],
+    "src_px_per_px": 3.59
+   },
+   "after": {
+    "size": [
+     1440,
+     1800
+    ],
+    "bytes": 742844,
+    "problems": [],
+    "shortened": [],
+    "src_px_per_px": 2.69
+   },
+   "design_box_delta_px": {
+    "x": 10,
+    "y": 1
+   }
+  }
+ ]
+}

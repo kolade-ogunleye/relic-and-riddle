@@ -61,7 +61,7 @@ def test_credit_caption_replaces_line_and_is_idempotent():
     extra = [{"artist": "Bob", "license": "CC BY 2.0", "attribution_required": True}]
     caption = "Story.\n\n📷 Images via Wikimedia Commons: Ann (CC BY 4.0)"
     once = beat_images.credit_caption(caption, topic, extra)
-    assert once == "Story.\n\n📷 Images via Wikimedia Commons: Ann (CC BY 4.0); Bob (CC BY 2.0)"
+    assert once == "Story.\n\n📷 Images via Wikimedia Commons and partner archives: Ann (CC BY 4.0); Bob (CC BY 2.0) · adapted: cropped, with motion and text added"
     assert beat_images.credit_caption(once, topic, extra) == once
     assert beat_images.credit_caption("Story.", {"images": []}, []) == "Story."
 

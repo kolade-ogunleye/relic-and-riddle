@@ -1,0 +1,1234 @@
+{
+ "roman/carousel/carousel_slide_01.jpg": {
+  "archetype": "cover",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 301042,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "01_commons_dd73115b10a3ea8e.jpg",
+  "source_px_per_slide_px": 2.84,
+  "boxes_design_px": {
+   "heading": [
+    77,
+    797,
+    995,
+    884
+   ],
+   "body": [
+    78,
+    966,
+    957,
+    1047
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "roman/carousel/carousel_slide_02.jpg": {
+  "archetype": "comparison",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 484931,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "03_commons.jpg",
+  "source_px_per_slide_px": 3.55,
+  "boxes_design_px": {
+   "heading": [
+    80,
+    800,
+    443,
+    858
+   ],
+   "body": [
+    80,
+    870,
+    992,
+    960
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "roman/carousel/carousel_slide_03.jpg": {
+  "archetype": "editorial_split",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 469983,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "04_commons.jpg",
+  "source_px_per_slide_px": 5.56,
+  "boxes_design_px": {
+   "heading": [
+    80,
+    800,
+    628,
+    859
+   ],
+   "body": [
+    80,
+    872,
+    898,
+    1021
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "roman/carousel/carousel_slide_04.jpg": {
+  "archetype": "immersive",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 448614,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "06_commons.jpg",
+  "source_px_per_slide_px": 2.9,
+  "boxes_design_px": {
+   "heading": [
+    77,
+    907,
+    709,
+    980
+   ],
+   "body": [
+    78,
+    1008,
+    950,
+    1105
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "roman/carousel/carousel_slide_05.jpg": {
+  "archetype": "editorial_split",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 450234,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "08_commons.jpg",
+  "source_px_per_slide_px": 3.02,
+  "boxes_design_px": {
+   "heading": [
+    80,
+    800,
+    656,
+    859
+   ],
+   "body": [
+    79,
+    872,
+    937,
+    1021
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "roman/carousel/carousel_slide_06.jpg": {
+  "archetype": "immersive",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 430836,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "10_commons_eba609c821740c47.jpg",
+  "source_px_per_slide_px": 2.85,
+  "boxes_design_px": {
+   "heading": [
+    77,
+    907,
+    700,
+    980
+   ],
+   "body": [
+    78,
+    1008,
+    913,
+    1154
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "roman/carousel/carousel_slide_07.jpg": {
+  "archetype": "debate",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 467828,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "12_commons.jpg",
+  "source_px_per_slide_px": 4.12,
+  "boxes_design_px": {
+   "badge": [
+    80,
+    580,
+    263,
+    615
+   ],
+   "heading": [
+    80,
+    640,
+    462,
+    700
+   ],
+   "body": [
+    80,
+    718,
+    983,
+    813
+   ],
+   "share": [
+    80,
+    1136,
+    845,
+    1214
+   ],
+   "footer": [
+    80,
+    1260,
+    488,
+    1281
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "roman/carousel_fb/carousel_slide_01.jpg": {
+  "archetype": "cover",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 301042,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "01_commons_dd73115b10a3ea8e.jpg",
+  "source_px_per_slide_px": 2.84,
+  "boxes_design_px": {
+   "heading": [
+    77,
+    797,
+    995,
+    884
+   ],
+   "body": [
+    78,
+    966,
+    957,
+    1047
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "roman/carousel_fb/carousel_slide_02.jpg": {
+  "archetype": "comparison",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 484931,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "03_commons.jpg",
+  "source_px_per_slide_px": 3.55,
+  "boxes_design_px": {
+   "heading": [
+    80,
+    800,
+    443,
+    858
+   ],
+   "body": [
+    80,
+    870,
+    992,
+    960
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "roman/carousel_fb/carousel_slide_03.jpg": {
+  "archetype": "editorial_split",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 469983,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "04_commons.jpg",
+  "source_px_per_slide_px": 5.56,
+  "boxes_design_px": {
+   "heading": [
+    80,
+    800,
+    628,
+    859
+   ],
+   "body": [
+    80,
+    872,
+    898,
+    1021
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "roman/carousel_fb/carousel_slide_04.jpg": {
+  "archetype": "immersive",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 448614,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "06_commons.jpg",
+  "source_px_per_slide_px": 2.9,
+  "boxes_design_px": {
+   "heading": [
+    77,
+    907,
+    709,
+    980
+   ],
+   "body": [
+    78,
+    1008,
+    950,
+    1105
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "roman/carousel_fb/carousel_slide_05.jpg": {
+  "archetype": "editorial_split",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 450234,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "08_commons.jpg",
+  "source_px_per_slide_px": 3.02,
+  "boxes_design_px": {
+   "heading": [
+    80,
+    800,
+    656,
+    859
+   ],
+   "body": [
+    79,
+    872,
+    937,
+    1021
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "roman/carousel_fb/carousel_slide_06.jpg": {
+  "archetype": "immersive",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 430836,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "10_commons_eba609c821740c47.jpg",
+  "source_px_per_slide_px": 2.85,
+  "boxes_design_px": {
+   "heading": [
+    77,
+    907,
+    700,
+    980
+   ],
+   "body": [
+    78,
+    1008,
+    913,
+    1154
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "roman/carousel_fb/carousel_slide_07.jpg": {
+  "archetype": "debate",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 467828,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "12_commons.jpg",
+  "source_px_per_slide_px": 4.12,
+  "boxes_design_px": {
+   "badge": [
+    80,
+    580,
+    263,
+    615
+   ],
+   "heading": [
+    80,
+    640,
+    462,
+    700
+   ],
+   "body": [
+    80,
+    718,
+    983,
+    813
+   ],
+   "share": [
+    80,
+    1136,
+    845,
+    1214
+   ],
+   "footer": [
+    80,
+    1260,
+    488,
+    1281
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "nazca/carousel/carousel_slide_01.jpg": {
+  "archetype": "cover",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 665727,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "02_commons.jpg",
+  "source_px_per_slide_px": 1.92,
+  "boxes_design_px": {
+   "heading": [
+    77,
+    781,
+    757,
+    884
+   ],
+   "body": [
+    78,
+    985,
+    965,
+    1073
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "nazca/carousel/carousel_slide_02.jpg": {
+  "archetype": "immersive",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 441966,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "06_commons_e3cf85989c79a369.jpg",
+  "source_px_per_slide_px": 2.84,
+  "boxes_design_px": {
+   "heading": [
+    77,
+    907,
+    662,
+    980
+   ],
+   "body": [
+    78,
+    1008,
+    990,
+    1107
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "nazca/carousel/carousel_slide_03.jpg": {
+  "archetype": "editorial_split",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 452962,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "08_commons.jpg",
+  "source_px_per_slide_px": 3.41,
+  "boxes_design_px": {
+   "heading": [
+    80,
+    800,
+    503,
+    859
+   ],
+   "body": [
+    80,
+    872,
+    987,
+    1022
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "nazca/carousel/carousel_slide_04.jpg": {
+  "archetype": "immersive",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 694663,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "10_commons.jpg",
+  "source_px_per_slide_px": 1.92,
+  "boxes_design_px": {
+   "heading": [
+    77,
+    907,
+    607,
+    980
+   ],
+   "body": [
+    77,
+    1008,
+    979,
+    1153
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "nazca/carousel/carousel_slide_05.jpg": {
+  "archetype": "colossal_stat",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 352422,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "03_commons_7fa7d5c28eafb508.jpg",
+  "source_px_per_slide_px": 5.33,
+  "boxes_design_px": {
+   "stat": [
+    80,
+    550,
+    569,
+    647
+   ],
+   "heading": [
+    80,
+    671,
+    663,
+    724
+   ],
+   "body": [
+    80,
+    742,
+    980,
+    872
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "nazca/carousel/carousel_slide_06.jpg": {
+  "archetype": "comparison",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 333976,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "04_commons.jpg",
+  "source_px_per_slide_px": 3.14,
+  "boxes_design_px": {
+   "heading": [
+    80,
+    800,
+    597,
+    858
+   ],
+   "body": [
+    80,
+    870,
+    954,
+    960
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "nazca/carousel/carousel_slide_07.jpg": {
+  "archetype": "debate",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 292510,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "09_commons.jpg",
+  "source_px_per_slide_px": 3.59,
+  "boxes_design_px": {
+   "badge": [
+    80,
+    580,
+    263,
+    615
+   ],
+   "heading": [
+    80,
+    640,
+    548,
+    700
+   ],
+   "body": [
+    80,
+    718,
+    965,
+    811
+   ],
+   "share": [
+    80,
+    1136,
+    988,
+    1207
+   ],
+   "footer": [
+    80,
+    1260,
+    488,
+    1281
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "nazca/carousel_fb/carousel_slide_01.jpg": {
+  "archetype": "cover",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 665727,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "02_commons.jpg",
+  "source_px_per_slide_px": 1.92,
+  "boxes_design_px": {
+   "heading": [
+    77,
+    781,
+    757,
+    884
+   ],
+   "body": [
+    78,
+    985,
+    965,
+    1073
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "nazca/carousel_fb/carousel_slide_02.jpg": {
+  "archetype": "immersive",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 441966,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "06_commons_e3cf85989c79a369.jpg",
+  "source_px_per_slide_px": 2.84,
+  "boxes_design_px": {
+   "heading": [
+    77,
+    907,
+    662,
+    980
+   ],
+   "body": [
+    78,
+    1008,
+    990,
+    1107
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "nazca/carousel_fb/carousel_slide_03.jpg": {
+  "archetype": "editorial_split",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 452962,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "08_commons.jpg",
+  "source_px_per_slide_px": 3.41,
+  "boxes_design_px": {
+   "heading": [
+    80,
+    800,
+    503,
+    859
+   ],
+   "body": [
+    80,
+    872,
+    987,
+    1022
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "nazca/carousel_fb/carousel_slide_04.jpg": {
+  "archetype": "immersive",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 694663,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "10_commons.jpg",
+  "source_px_per_slide_px": 1.92,
+  "boxes_design_px": {
+   "heading": [
+    77,
+    907,
+    607,
+    980
+   ],
+   "body": [
+    77,
+    1008,
+    979,
+    1153
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "nazca/carousel_fb/carousel_slide_05.jpg": {
+  "archetype": "colossal_stat",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 352422,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "03_commons_7fa7d5c28eafb508.jpg",
+  "source_px_per_slide_px": 5.33,
+  "boxes_design_px": {
+   "stat": [
+    80,
+    550,
+    569,
+    647
+   ],
+   "heading": [
+    80,
+    671,
+    663,
+    724
+   ],
+   "body": [
+    80,
+    742,
+    980,
+    872
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "nazca/carousel_fb/carousel_slide_06.jpg": {
+  "archetype": "comparison",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 333976,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "04_commons.jpg",
+  "source_px_per_slide_px": 3.14,
+  "boxes_design_px": {
+   "heading": [
+    80,
+    800,
+    597,
+    858
+   ],
+   "body": [
+    80,
+    870,
+    954,
+    960
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ },
+ "nazca/carousel_fb/carousel_slide_07.jpg": {
+  "archetype": "debate",
+  "size": [
+   1080,
+   1350
+  ],
+  "bytes": 292510,
+  "problems": [],
+  "shortened": [],
+  "attempts": 1,
+  "photo": "09_commons.jpg",
+  "source_px_per_slide_px": 3.59,
+  "boxes_design_px": {
+   "badge": [
+    80,
+    580,
+    263,
+    615
+   ],
+   "heading": [
+    80,
+    640,
+    548,
+    700
+   ],
+   "body": [
+    80,
+    718,
+    965,
+    811
+   ],
+   "share": [
+    80,
+    1136,
+    988,
+    1207
+   ],
+   "footer": [
+    80,
+    1260,
+    488,
+    1281
+   ],
+   "header_brand": [
+    78,
+    68,
+    314,
+    93
+   ]
+  },
+  "protected_design_px": [
+   [
+    800,
+    0,
+    1080,
+    140
+   ]
+  ]
+ }
+}

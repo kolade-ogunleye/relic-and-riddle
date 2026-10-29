@@ -1489,11 +1489,13 @@ class PipelineCoordinator:
         if not frames:
             return "🔁 The frame to retry is no longer on disk."
         run = self.db.get_run(post["run_id"]) or {}
-        caption = self._carousel_caption(run.get("script_payload") or {}) if post["kind"] == "carousel" else ""
+        caption, comment = (self._carousel_post(run.get("script_payload") or {}, frames) if post["kind"] == "carousel"
+                            else ("", ""))
         attempt = int(detail.get("retries") or 0) + 1
         platforms = sorted(failed)
         res = self.publisher.publish_photos(post["run_id"], run.get("topic_id"), post["kind"], frames, caption=caption,
-                                            platforms=platforms, retry_tag=f"retry{attempt}-{'-'.join(platforms)}")
+                                            platforms=platforms, retry_tag=f"retry{attempt}-{'-'.join(platforms)}",
+                                            **({"first_comment": comment} if comment else {}))
         new_detail = dict(detail, retries=attempt, last_retry={k: res.get(k) for k in ("status", "error", "post_urls")})
         if res.get("status") == "published":
             new_detail["failed"] = {}
@@ -2391,7 +2393,8 @@ class PipelineCoordinator:
                             "picks": file_inputs([Path("src/image_review.py")]),
                             "copy": {key: payload.get(key) for key in ("title", "thumbnail", "story_slides", "carousel_slides", "poll", "share_line")},
                             "rules": file_inputs([Path("src/visual_engine.py"), Path("src/multi_format.py"),
-                                                  Path("src/typography.py"), Path("src/config.py"), Path("src/safe_zones.py")]),
+                                                  Path("src/typography.py"), Path("src/config.py"), Path("src/safe_zones.py"),
+                                                  Path("src/script_engine.py"), Path("src/still_layout.py")]),
                             "fonts": file_inputs([FONTS_DIR / name for name in FONT_FILES.values()])}
         if getattr(self, "progress_msg_id", None):
             try:
@@ -2833,23 +2836,60 @@ class PipelineCoordinator:
         self._alert(f"⏰ Missed the {html.escape(missed)} slot for {html.escape(self.db.run_label(post['run_id']))} "
                     f"(the daemon was off or paused). Moved to {html.escape(post_schedule.fmt(slot))}.")
 
+    CAROUSEL_CAPTION_MAX = 2200  # Instagram's caption and comment limit
+
     @staticmethod
-    def _carousel_caption(payload: Dict[str, Any]) -> str:
-        """The carousel's own text (Meta and Upload-Post flag duplicate captions), plus the image
-        credit line the licences require. Older scripts without one fall back to the Reel caption."""
+    def _carousel_caption(payload: Dict[str, Any], slides: Optional[List[str]] = None) -> str:
+        """The carousel's caption (see _carousel_post)."""
+        return PipelineCoordinator._carousel_post(payload, slides)[0]
+
+    @staticmethod
+    def _carousel_post(payload: Dict[str, Any], slides: Optional[List[str]] = None) -> Tuple[str, str]:
+        """(caption, first comment) for a carousel. The caption is the carousel's own text (Meta and Upload-Post
+        flag duplicate captions; older scripts without one fall back to the Reel caption), then a credit line
+        for every photo the slides show whose licence asks for one (credits.asset_attribution, read from each
+        slide's record): the Reel caption's first credit line covered neither every photo nor only these
+        (platform audit, 2026-10-28). Credits that would take the caption over Instagram's 2,200 characters go
+        in the first comment instead. A slide without a record (drawn before records were kept) adds the Reel
+        caption's summary credit line, as before."""
+        from src.multi_format import carousel_credits
         own = (payload.get("carousel_caption") or "").strip()
-        if not own:
-            return payload.get("caption", "")
-        credits = [ln for ln in payload.get("caption", "").splitlines() if ln.startswith(beat_images.CREDIT_PREFIX)]
-        return own + ("\n\n" + credits[0] if credits else "")
+        base = own or payload.get("caption", "")
+        slides = [Path(s) for s in slides or []]
+        if slides and (slides[0].parent.parent / "carousel_fb").is_dir():  # one caption goes to both platforms:
+            # credit what Facebook's copy shows as well (a carousel packaged before rc68 matched its photos apart)
+            slides += sorted((slides[0].parent.parent / "carousel_fb").glob("carousel_slide_*.jpg"))
+        lines, readable = carousel_credits(slides)
+        if not readable:  # some slide has no record: the Reel caption's summary line covers what it showed
+            from src.credits import CREDIT_ADAPTED
+            from src.multi_format import CAROUSEL_ADAPTED
+            borrowed = [ln.replace(CREDIT_ADAPTED, "") for ln in payload.get("caption", "").splitlines()
+                        if ln.startswith(beat_images.CREDIT_PREFIXES)][:1]
+            lines = [ln for ln in lines if ln != CAROUSEL_ADAPTED] + borrowed + ([CAROUSEL_ADAPTED] if borrowed or lines else [])
+        have = {ln.strip() for ln in base.splitlines()}
+        missing = [ln for ln in lines if ln.strip() not in have]
+        if not missing:
+            return base, ""
+        limit = PipelineCoordinator.CAROUSEL_CAPTION_MAX
+        block = "\n".join(missing)
+        if len(base.rstrip()) + 2 + len(block) <= limit:
+            return base.rstrip() + "\n\n" + block, ""
+        comment, left = [], []
+        for ln in missing:
+            (comment if len("\n".join(comment + [ln])) <= limit else left).append(ln)
+        if left:
+            log.warning("Carousel credits do not fit the caption or its first comment; %d line(s) left out: %s",
+                        len(left), "; ".join(left)[:300])
+        return base, "\n".join(comment)
 
     def _post_photos(self, post: Dict[str, Any], run: Dict[str, Any], kind: str) -> str:
         files = [f for f in post["files"] if Path(f).exists()]
         if not files:
             self.db.update_scheduled_post(post["id"], "failed", detail={"error": "image files are missing"})
             return "failed"
-        caption = self._carousel_caption(run["script_payload"]) if kind == "carousel" else ""
-        res = self.publisher.publish_photos(post["run_id"], run["topic_id"], kind, files, caption=caption)
+        caption, comment = self._carousel_post(run["script_payload"], files) if kind == "carousel" else ("", "")
+        res = self.publisher.publish_photos(post["run_id"], run["topic_id"], kind, files, caption=caption,
+                                            **({"first_comment": comment} if comment else {}))
         self.db.update_scheduled_post(post["id"], res["status"], detail=res)
         name = {"story": "Stories", "carousel": "Carousel"}[kind]
         label = html.escape(self.db.run_label(post["run_id"]))
@@ -3006,8 +3046,9 @@ class PipelineCoordinator:
             if stories:
                 pub["stories"] = self.publisher.publish_photos(run_id, tid, "story", stories, dry_run=True)
             if slides:
-                pub["carousel"] = self.publisher.publish_photos(run_id, tid, "carousel", slides,
-                                                                caption=self._carousel_caption(payload), dry_run=True)
+                caption, comment = self._carousel_post(payload, slides)
+                pub["carousel"] = self.publisher.publish_photos(run_id, tid, "carousel", slides, caption=caption,
+                                                                dry_run=True, **({"first_comment": comment} if comment else {}))
         self._stamp_review(run_id, status, pub)
         return {"status": status, "publish_result": pub}
 
@@ -3916,7 +3957,7 @@ def main(argv=None) -> int:
 
         PRODUCE_KEY = "produce_remaining"  # episodes still to start in a /produce batch
 
-        def continue_batch(status: Optional[str], resumed: bool = False) -> None:
+        def continue_batch(status: Optional[str], resumed: bool = False, manual: bool = True) -> None:
             """/produce N in the daemon (operator, 2026-10-25: "bot says I don't know /produce"; production runs the
             daemon, where the batch was never wired): the next episode starts once this run's worker has ended
             cleanly, which is after the operator's decision on its review; a crash or an empty queue ends the batch.
@@ -3926,11 +3967,14 @@ def main(argv=None) -> int:
                 remaining = int(coordinator.db.get_setting(PRODUCE_KEY) or 0)
             except (TypeError, ValueError, AttributeError):
                 remaining = 0
-            if remaining <= 0 or resumed:
+            if remaining <= 0 or resumed or not manual:  # the daily run is not one of the batch's episodes
                 return
             if batch_expired(coordinator.db):
                 coordinator.db.set_setting(PRODUCE_KEY, "0")
                 log.info("A /produce batch older than %d h was dropped instead of continued.", BATCH_MAX_HOURS)
+                bot.notify(f"⏹ <b>Batch stopped</b>: it was started more than {BATCH_MAX_HOURS} h ago (or before this "
+                           f"release), so its {remaining} remaining episode(s) were not started. Send /produce again to "
+                           "make more.")
                 return
             if status in ("published", "simulated", "rejected", "scheduled"):
                 coordinator.db.set_setting(PRODUCE_KEY, str(remaining - 1))
@@ -3986,7 +4030,7 @@ def main(argv=None) -> int:
             finally:
                 run_lock.release()
                 try:
-                    continue_batch(status, resumed=resume is not None)
+                    continue_batch(status, resumed=resume is not None, manual=manual)
                 except Exception as e:
                     log.warning("Batch continuation failed: %s", e)
 

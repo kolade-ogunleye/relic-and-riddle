@@ -37,6 +37,27 @@ UNESCO_XML_URL = "https://whc.unesco.org/en/list/xml/"
 CACHE_DIR = config.BASE_DIR / "cache" / "unesco"
 CACHE_FILE = CACHE_DIR / "sites.xml"
 CACHE_TTL_DAYS = 30
+DOWNLOAD_RETRY_SECONDS = 600   # after a failed download, the next is tried no sooner (in memory only)
+_failed_downloads: Dict[str, float] = {}   # cache path -> when its download last failed
+
+
+def _rows(content: bytes) -> int:
+    """How many sites (rows with a numeric id_number) an XML dataset lists; 0 when it does not parse."""
+    try:
+        root = ET.fromstring(content)
+    except ET.ParseError:
+        return 0
+    return sum(1 for row in root.iter("row")
+               if (row.findtext("id_number") or "").strip().isdigit())
+
+
+def has_dataset(path: Optional[Path] = None) -> bool:
+    """Whether `path` (the cache by default) holds a real UNESCO dataset: it parses and lists at least one site."""
+    path = path or CACHE_FILE
+    try:
+        return path.is_file() and _rows(path.read_bytes()) > 0
+    except OSError:
+        return False
 # The engineering themes the Ideas panel offers (Ideas → UNESCO marvels), each with the words that place a site in it.
 THEME_KEYWORDS = {
     "subterranean": ["subterranean", "underground", "cave", "hypogeum", "catacomb", "salt", "mine", "tunnel", "quarry"],
@@ -98,43 +119,54 @@ class UNESCOSite(BaseModel):
 
 
 class UNESCOEngine:
-    def __init__(self, cache_file: Path = CACHE_FILE):
-        self.cache_file = cache_file
+    def __init__(self, cache_file: Optional[Path] = None):
+        self.cache_file = cache_file or CACHE_FILE   # read at call time: the tests point it at a scratch folder
         self._sites: Optional[Dict[int, UNESCOSite]] = None
 
-    def _ensure_cache(self) -> Path:
-        """Downloads the official UNESCO dataset if missing or older than CACHE_TTL_DAYS."""
-        self.cache_file.parent.mkdir(parents=True, exist_ok=True)
-        is_stale = (
-            not self.cache_file.exists()
-            or (time.time() - self.cache_file.stat().st_mtime) > (CACHE_TTL_DAYS * 86400)
-        )
-        if is_stale:
-            try:
-                log.info("Downloading official UNESCO World Heritage dataset from %s...", UNESCO_XML_URL)
-                resp = requests.get(
-                    UNESCO_XML_URL,
-                    timeout=30,
-                    headers={"User-Agent": "RelicAndRiddlePipeline/2.0 (Historical Research Project)"},
-                )
-                resp.raise_for_status()
-                # Verify that it is valid XML before writing
-                ET.fromstring(resp.content)
-                self.cache_file.write_bytes(resp.content)
-                log.info("Saved UNESCO dataset (%d bytes) to %s.", len(resp.content), self.cache_file)
-            except Exception as e:
-                log.warning("Could not download UNESCO dataset (%s); using existing cache if present.", e)
-                if not self.cache_file.exists():
-                    # Create an empty XML structure fallback
-                    self.cache_file.write_text("<query><row></row></query>", encoding="utf-8")
-        return self.cache_file
+    def _ensure_cache(self) -> Optional[Path]:
+        """The cached UNESCO dataset, downloaded when missing, invalid or older than CACHE_TTL_DAYS; a stale one when the
+        download fails; None when there is no valid dataset at all. Only a dataset that parses and lists at least one
+        site is ever written or trusted: an empty stub written on a failed download was treated as fresh for 30 days
+        (discovery saw no sites), and the next download is tried again after DOWNLOAD_RETRY_SECONDS, not 30 days."""
+        path = self.cache_file
+        valid = has_dataset(path)
+        if valid and (time.time() - path.stat().st_mtime) <= CACHE_TTL_DAYS * 86400:
+            return path
+        failed = _failed_downloads.get(str(path))
+        if failed is not None and time.time() - failed < DOWNLOAD_RETRY_SECONDS:
+            return path if valid else None
+        try:
+            log.info("Downloading official UNESCO World Heritage dataset from %s...", UNESCO_XML_URL)
+            resp = requests.get(
+                UNESCO_XML_URL,
+                timeout=30,
+                headers={"User-Agent": "RelicAndRiddlePipeline/2.0 (Historical Research Project)"},
+            )
+            resp.raise_for_status()
+            if not _rows(resp.content):
+                raise ValueError("the download lists no sites")
+            path.parent.mkdir(parents=True, exist_ok=True)
+            partial = path.with_name(path.name + ".partial")
+            partial.write_bytes(resp.content)
+            partial.replace(path)
+            _failed_downloads.pop(str(path), None)
+            log.info("Saved UNESCO dataset (%d bytes) to %s.", len(resp.content), path)
+            return path
+        except Exception as e:
+            _failed_downloads[str(path)] = time.time()
+            log.warning("Could not download UNESCO dataset (%s); %s.", e,
+                        "using the cached one" if valid else "no sites until a download succeeds")
+            return path if valid else None
 
     def load_sites(self) -> Dict[int, UNESCOSite]:
-        """Loads and parses the UNESCO dataset into memory."""
+        """Loads and parses the UNESCO dataset into memory (empty, and tried again on the next call, when there is
+        none)."""
         if self._sites is not None:
             return self._sites
 
         path = self._ensure_cache()
+        if path is None:
+            return {}
         sites: Dict[int, UNESCOSite] = {}
         try:
             tree = ET.parse(str(path))

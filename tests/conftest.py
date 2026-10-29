@@ -155,6 +155,21 @@ def no_repo_writes(monkeypatch, tmp_path_factory):
     monkeypatch.setattr(music, "LIBRARY", library)
 
 
+def pytest_configure(config):
+    config.addinivalue_line("markers", "real_unesco: the test reads the real downloaded UNESCO site list (read only)")
+
+
+@pytest.fixture(autouse=True)
+def scratch_unesco_cache(request, monkeypatch, tmp_path_factory):
+    """Tests never write the real UNESCO cache: a failed (blocked) download once left an empty stub there that the
+    next run took for the real list (2026-10-29). The cache is a scratch path unless a test is marked real_unesco,
+    and the in-memory download back-off starts empty either way."""
+    from src import unesco
+    monkeypatch.setattr(unesco, "_failed_downloads", {})
+    if request.node.get_closest_marker("real_unesco") is None:
+        monkeypatch.setattr(unesco, "CACHE_FILE", tmp_path_factory.mktemp("unesco") / "sites.xml")
+
+
 @pytest.fixture
 def db(tmp_path):
     bank = tmp_path / "topic_bank.json"

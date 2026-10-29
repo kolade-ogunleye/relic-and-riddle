@@ -1,13 +1,19 @@
 import pytest
 
-from src.unesco import CACHE_FILE, UNESCOEngine
+from src.unesco import UNESCOEngine, has_dataset
 from src.audio_engine import normalize_speech_text
 from src.video_composer import _is_atomic_boundary, partition_words_grammatical
 from src.fact_sheet import _apply_rules
 from src.models import DraftFact
 from src.db import calculate_vps
 
-needs_unesco = pytest.mark.skipif(not CACHE_FILE.exists(), reason="UNESCO site list not downloaded (it is fetched on first use)")
+
+
+def needs_unesco(test):
+    """The real downloaded site list, read only; skipped unless it is a real dataset (parses, lists a site): an empty
+    stub once un-skipped these tests (2026-10-29)."""
+    return pytest.mark.real_unesco(pytest.mark.skipif(
+        not has_dataset(), reason="UNESCO site list not downloaded (it is fetched on first use)")(test))
 
 
 @needs_unesco

@@ -535,6 +535,43 @@ TEXT_CROP_DIR = config.BASE_DIR / "cache" / "text_crop"
 EDGE_OBJECT_CROP = "edge_object_crop"
 
 
+# Bands tried, in turn, when the screen names an object's edge but not its extent; the last is TEXT_CROP_MAX.
+OBJECT_TRY_BANDS = (0.06, 0.10, TEXT_CROP_MAX)
+
+
+def _edge_box(edge: str, fraction: float) -> List[int]:
+    """The box (0-1000) whose band along `edge` is `fraction` of the picture, margin included (_crop_band)."""
+    k = int(round((fraction - TEXT_CROP_MARGIN) * 1000))
+    return {"top": [0, 0, k, 1000], "bottom": [1000 - k, 0, 1000, 1000],
+            "left": [0, 0, 1000, k], "right": [0, 1000 - k, 1000, 1000]}[edge]
+
+
+def intrusion_noted(path: Path) -> bool:
+    """Whether the screen saw a foreign object in this very file and it was not cropped away (a cropped copy has its
+    own file): such a photo may still fill a beat, but never opens the video or is animated (dev run, 2026-10-28:
+    the wing photo opened as "the widest recorded view")."""
+    from .credits import sha256_file
+    from .lineage import sidecar
+    import json as _json
+    path = Path(path)
+    for _ in range(6):  # an upscaled or blurred copy is judged by the photo it was made from; an edge crop is clear
+        try:
+            record = _json.loads(sidecar(path).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            break
+        if record.get("operation") == EDGE_OBJECT_CROP:
+            return False
+        try:
+            path = Path(record["sources"][0]["path"])
+        except (KeyError, IndexError, TypeError):
+            break
+    try:
+        cache = _json.loads((path.parent / TEXT_SCREEN_FILE).read_text(encoding="utf-8"))
+        return bool((cache.get(sha256_file(path)) or {}).get("object"))
+    except (OSError, ValueError, AttributeError):
+        return False
+
+
 def _crop_band(edge: str, box: List[int]) -> float:
     """The fraction of the picture to cut from `edge` to remove all of the text in `box` (0-1000)."""
     ymin, xmin, ymax, xmax = (v / 1000 for v in box)
@@ -556,7 +593,7 @@ def crop_text_band(path: Path, edge: str, box: List[int], operation: str = "text
     path = Path(path)
     if edge not in ("top", "bottom", "left", "right") or len(box) != 4:
         return None
-    cut = _crop_band(edge, box)
+    cut = round(_crop_band(edge, box), 4)  # 0.135 + 0.015 is a hair over 0.15 in floating point
     if cut <= TEXT_CROP_MARGIN or cut > TEXT_CROP_MAX:
         return None
     with Image.open(path) as im:
@@ -628,8 +665,26 @@ def clear_edges(path: Path, verdict: Dict[str, Any], look_again) -> Tuple[Option
         use, verdict = crop, again
     if verdict.get("object"):
         what, edge, box = str(verdict["object"]), verdict.get("object_edge", "none"), verdict.get("object_box") or []
-        if edge not in ("top", "bottom", "left", "right") or len(box) != 4:
-            # Named but not placed in a band: the photo stays as it is (a wrong guess must not cost a good photo).
+        if edge in ("top", "bottom", "left", "right") and len(box) != 4:
+            # The edge without its extent: the light model names the side but often gives no box (Nazca photo 6's
+            # wing, top edge, empty box, then opened the dev run of 2026-10-28). Cut a growing band from that edge,
+            # looking again after each, up to the band that may be cut; still seen there, the photo is not used.
+            for fraction in OBJECT_TRY_BANDS:
+                crop, again = cropped_clear(use, edge, _edge_box(edge, fraction), look_again, EDGE_OBJECT_CROP, what)
+                if crop is None or not again:
+                    log.info("Photo %s: %s along the %s edge could not be cropped or looked at again; kept as it is.",
+                             use.name, what, edge)
+                    return use, verdict, ""
+                if not again.get("object"):
+                    log.info("Photo %s: %s along the %s edge; cropped away: the %s %.0f%%.", use.name, what, edge,
+                             edge, 100 * fraction)
+                    return crop, again, ""
+            log.info("Photo %s: %s along the %s edge is still seen with the %s %.0f%% cut; not used.", use.name, what,
+                     edge, edge, 100 * OBJECT_TRY_BANDS[-1])
+            return None, verdict, OBJECT_PREFIX + what
+        if edge not in ("top", "bottom", "left", "right"):
+            # Named but on no edge: the photo stays as it is (a wrong guess must not cost a good photo), but it
+            # never opens the video or is animated (intrusion_noted).
             log.info("Photo %s: %s noted, not along one edge in a band that can be cut; kept as it is.", use.name, what)
             return use, verdict, ""
         if _crop_band(edge, box) > TEXT_CROP_MAX:   # it takes too much of the picture: not used

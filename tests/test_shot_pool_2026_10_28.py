@@ -492,7 +492,7 @@ def test_the_screen_asks_about_edge_intrusions():
     assert "vignette" not in text            # common in archive photos, and a corner is not one edge band
 
 
-@pytest.mark.parametrize("edge, box", [("none", []), ("top", []), ("top", [90, 0, 10, 1000])])
+@pytest.mark.parametrize("edge, box", [("none", []), ("none", [0, 0, 90, 1000])])
 def test_an_intrusion_that_cannot_be_placed_in_a_band_keeps_the_photo(screen, monkeypatch, tmp_path, edge, box):
     photos = [_with_wing(tmp_path / "06_commons.jpg"), _jpg(tmp_path / "08_commons.jpg", size=(1600, 1200))]
 
@@ -501,6 +501,59 @@ def test_an_intrusion_that_cannot_be_placed_in_a_band_keeps_the_photo(screen, mo
                 "edge_object": "a dark corner", "object_edge": edge, "object_box": box}
     monkeypatch.setattr(beat_images, "picture_look", look)
     assert beat_images.without_burned_in_text(photos, "s", minimum=1) == photos
+
+
+def _edge_only_looks(monkeypatch, clear_below):
+    """The screen names the wing and its edge but gives no box (Nazca photo 6, dev run 2026-10-28); it is no longer
+    seen once the picture is `clear_below` px tall or less."""
+    looks = []
+
+    def look(path, query, size=512):
+        with Image.open(path) as im:
+            h = im.height
+        looks.append(h)
+        base = {"checked": True, "shows": True, "burned_in_text": False, "reason": "aerial view of the geoglyphs"}
+        if Path(path).name.startswith("06") and h > clear_below:
+            return {**base, "edge_object": "an aircraft wing", "object_edge": "top", "object_box": []}
+        return base
+    monkeypatch.setattr(beat_images, "picture_look", look)
+    return looks
+
+
+def test_an_edge_without_its_extent_is_cut_in_growing_bands(screen, monkeypatch, tmp_path):
+    photos = [_with_wing(tmp_path / "06_commons.jpg"), _jpg(tmp_path / "08_commons.jpg", size=(1600, 1200))]
+    looks = _edge_only_looks(monkeypatch, clear_below=2160)            # gone once 10% is cut
+    kept = beat_images.without_burned_in_text(photos, "Nazca Lines", minimum=1)
+    assert kept[0] != photos[0] and kept[1] == photos[1]
+    with Image.open(kept[0]) as im:
+        assert im.height == 2160
+    assert looks[:3] == [2400, 2256, 2160]                             # the original, then 6%, then 10%
+    assert not beat_images.intrusion_noted(kept[0])                    # the crop is clear
+
+
+def test_an_edge_object_still_seen_at_the_largest_band_sets_the_photo_aside(screen, monkeypatch, tmp_path):
+    photos = [_with_wing(tmp_path / "06_commons.jpg"), _jpg(tmp_path / "08_commons.jpg", size=(1600, 1200))]
+    _edge_only_looks(monkeypatch, clear_below=0)
+    assert beat_images.without_burned_in_text(photos, "Nazca Lines", minimum=1) == [photos[1]]
+    assert beat_images.without_burned_in_text(photos, "Nazca Lines", minimum=2) == photos     # never below the minimum
+
+
+def test_a_photo_with_an_intrusion_left_in_never_opens_or_moves(screen, monkeypatch, tmp_path):
+    """Kept as it is (no edge to cut from), it may fill a beat, but it is not a strong shot; nor is any copy made
+    from it (the dev run opened on the wing photo's upscaled copy, 2026-10-28)."""
+    photos = [_with_wing(tmp_path / "06_commons.jpg"), _jpg(tmp_path / "08_commons.jpg", size=(1600, 1200))]
+    monkeypatch.setattr(beat_images, "picture_look", lambda path, q, size=512: {
+        "checked": True, "shows": True, "burned_in_text": False, "reason": "r",
+        **({"edge_object": "an aircraft wing", "object_edge": "none", "object_box": []}
+           if Path(path).name.startswith("06") else {})})
+    assert beat_images.without_burned_in_text(photos, "s", minimum=1) == photos
+    assert beat_images.intrusion_noted(photos[0]) and not beat_images.intrusion_noted(photos[1])
+    assert not sp.strong_shot(photos[0])
+    copy = tmp_path / "upscaled" / "06_commons_abc.jpg"
+    copy.parent.mkdir()
+    Image.open(photos[0]).resize((800, 1200)).save(copy, "JPEG")
+    record_derived(copy, [photos[0]], "upscale", {})
+    assert beat_images.intrusion_noted(copy) and not sp.strong_shot(copy)
 
 
 def test_a_crop_that_cannot_be_looked_at_again_keeps_the_original(screen, monkeypatch, tmp_path):

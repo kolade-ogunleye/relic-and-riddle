@@ -134,6 +134,9 @@ def strong_shot(p: Path) -> bool:
     at: Nazca on production (2026-10-28) opened on, and animated, a context photo of the highway through the desert."""
     if is_video(Path(p)):
         return False
+    from .beat_images import intrusion_noted
+    if intrusion_noted(p):  # a wing or frame the screen saw and could not crop away (dev run, 2026-10-28)
+        return False
     from .image_review import tier
     entry, credited = _photo_record(p)
     if entry:

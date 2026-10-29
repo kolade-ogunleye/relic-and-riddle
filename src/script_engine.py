@@ -33,7 +33,8 @@ from .fact_checker import ClaimFactChecker
 from . import free_llm
 from .llm import LLMError, claude_available, format_sources, research, structured_call, task as llm_task
 from . import fact_sheet, improve, trace_check
-from .models import DeepDivePackage, DocumentaryAct, GraphicsPlan, ScriptCore, ScriptPackage, Source
+from .models import (CarouselSlide, DeepDivePackage, DocumentaryAct, GraphicsPlan, Poll, ScriptCore, ScriptPackage,
+                     Source, StorySlide)
 
 
 log = logging.getLogger(__name__)
@@ -1492,11 +1493,133 @@ def facebook_photo_caption(text: str) -> str:
     return out if out == before else _tidy(out)
 
 
+CAPTION_FIRST_LINE_MAX = 125   # what Instagram shows before "more"
+# A caption sentence ends after . ! or ?, any closing quote or bracket, and any emoji that decorates it ("... cracks. 🏛️");
+# or, with no full stop, after an emoji followed by a capital ("Rome's concrete heals itself 🏛️ Lime clasts ...").
+_EMOJI_RUN = "(?:[\U0001F300-\U0001FAFF☀-➿][︎️‍\U0001F3FB-\U0001F3FF]*)"
+_CAPTION_SENTENCE_END = re.compile(
+    r"(?:(?<=[.!?])[\"'”’)]*(?:\s*" + _EMOJI_RUN + r")*|(?<=\S)\s*" + _EMOJI_RUN + r"+(?=\s+[\"“‘(]?[A-Z]))(?=\s+\S)")
+_TRAILING_HASHTAGS = re.compile(r"(?:\s+#\w+)+\s*$")
+
+
+def split_caption_first_line(caption: str) -> str:
+    """The caption with a first line over CAPTION_FIRST_LINE_MAX characters broken after as many whole sentences as
+    fit within it (at least one; the hook shown before "more" is not cut to a stub like "One renovation."): same
+    words, the rest on the next line, and hashtags that ended that line on their own last line. Unchanged when the
+    line fits, holds one sentence, or its first sentence alone is over the limit (that needs new wording: the copy
+    edit's). Production, Roman concrete 2026-10-29: a 615-character first line cost a whole writer attempt."""
+    lines = (caption or "").split("\n")
+    first = next((i for i, ln in enumerate(lines) if ln.strip()), None)
+    if first is None or len(lines[first]) <= CAPTION_FIRST_LINE_MAX:
+        return caption
+    line = lines[first].strip()
+    end = None
+    for m in _CAPTION_SENTENCE_END.finditer(line):   # greedy: the last sentence end that still fits
+        if len(line[:m.end()].strip()) > CAPTION_FIRST_LINE_MAX:
+            break
+        end = m.end()
+    if end is None:
+        return caption
+    head, rest = line[:end].strip(), line[end:].strip()
+    tags = _TRAILING_HASHTAGS.search(rest)
+    tail = [rest[:tags.start()].strip(), tags.group(0).strip()] if tags and tags.start() > 0 else [rest]
+    lines[first:first + 1] = [head] + tail
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------- the copy edit (production, Roman concrete 2026-10-29)
+# A fault confined to the copy around the narration (caption, poll, slides, title, hashtags, first comment, share
+# line) cost a whole rewrite, which re-rolled the narration and its length: three attempts were spent on a length
+# miss, a 615-character caption line and a yes/no poll with two choices. Such faults are now fixed by one short
+# edit of those fields only; the narration, its structure and the graphics stay byte for byte.
+COPY_FIELDS = ("title", "caption", "carousel_caption", "first_comment", "share_line", "hashtags", "poll",
+               "story_slides", "carousel_slides")
+_COPY_PREFIXES = (
+    ("Title ", ("title",)), ("Caption's first line repeats", ("caption",)), ("Caption", ("caption",)),
+    # The captions end on the hashtags line: a tag changed in the list alone would stay in the posted caption.
+    ("Hashtags must", ("hashtags", "caption", "carousel_caption")),
+    ("Generic hashtags", ("hashtags", "caption", "carousel_caption")),
+    ("The caption and first comment carry", ("caption", "first_comment", "hashtags", "carousel_caption")),
+    ("share_line:", ("share_line",)), ("Expected 3 story slides", ("story_slides",)), ("Story slide ", ("story_slides",)),
+    ("Expected 7 carousel slides", ("carousel_slides",)), ("carousel_caption", ("carousel_caption",)),
+    ("The poll", ("poll",)), ("Poll options", ("poll",)),
+)
+_BAIT_FIELD = re.compile(r"^Engagement bait in the (title|caption|carousel_caption|first_comment|share_line|poll"
+                         r"|story slide \d+|carousel slide \d+) \(")
+
+
+def _copy_texts(pkg: ScriptPackage) -> Dict[str, str]:
+    """Each copy field's public text, for finding which one holds a phrase."""
+    return {"title": pkg.title, "caption": pkg.caption, "carousel_caption": pkg.carousel_caption or "",
+            "first_comment": pkg.first_comment, "share_line": pkg.share_line or "",
+            "story_slides": " ".join(f"{s.line1} {s.line2} {s.body}" for s in pkg.story_slides),
+            "carousel_slides": " ".join(f"{c.heading} {c.body}" for c in pkg.carousel_slides)}
+
+
+def copy_problem_fields(problem: str, pkg: ScriptPackage) -> Optional[Tuple[str, ...]]:
+    """The copy fields a structural problem lies in, or None when it touches the narration (its words, length,
+    ending, repeats, hook), the graphics, or is not recognised: only a fault confined to the copy is the copy edit's."""
+    m = _BAIT_FIELD.match(problem)
+    if m:
+        field = m.group(1)
+        return ("story_slides",) if field.startswith("story") else ("carousel_slides",) if field.startswith("carousel slide") \
+            else (field,)
+    for prefix, fields in _COPY_PREFIXES:
+        if problem.startswith(prefix):
+            return fields
+    trope = re.match(r"^Contains pseudo-archaeology trope '(.+)'\.$", problem)
+    phrasing = re.match(r"^Uses machine-sounding phrasing \((.+?)\); rewrite", problem)
+    phrases = ([trope.group(1)] if trope else
+               [p.strip() for p in phrasing.group(1).split(", ") if p.strip()] if phrasing else [])
+    if not phrases:
+        return None
+    hit = lambda text, p: re.search(r"\b" + re.escape(p) + r"\b", text, re.IGNORECASE)  # noqa: E731  (as the detector matches)
+    if any(hit(pkg.narration_script, p) for p in phrases):
+        return None
+    fields = tuple(f for f, text in _copy_texts(pkg).items() if any(hit(text, p) for p in phrases))
+    return fields or None
+
+
+def copy_only(problems: List[str], pkg: ScriptPackage) -> bool:
+    return bool(problems) and all(copy_problem_fields(p, pkg) is not None for p in problems)
+
+
+def _field_rules(fields: Tuple[str, ...]) -> str:
+    """The writer's own rules for these fields (USER_PROMPT_TEMPLATE's), with the rules every text follows."""
+    rules = {}
+    for line in USER_PROMPT_TEMPLATE.split("\n- ")[1:]:
+        name = line.split(":", 1)[0].strip()
+        rules[name] = "- " + line.strip()
+    general = [r for n, r in rules.items() if n.startswith("No ")]
+    chosen = [rules[f] for f in fields if f in rules]
+    return "\n".join(chosen + general).format(story_words=story_body_word_limit(),
+                                              poll_words=story_body_word_limit(asks_poll=True))
+
+
+COPY_EDIT_SYSTEM = """You fix the copy around a finished, fact-checked history video: only the fields you are given,
+only so the listed problems are gone. Keep each field's facts, names, numbers and hedges; change as few words as
+the problem needs (move, cut or reword); never add a fact that is not in the verified facts, and never a figure
+without its hedge. Each field you return replaces the old one whole and must follow its rules and limits. Return
+only the fields you were given; the narration is shown for context and is not yours to change."""
+
+
+class _CopyEdit(BaseModel):
+    title: Optional[str] = None
+    caption: Optional[str] = None
+    carousel_caption: Optional[str] = None
+    first_comment: Optional[str] = None
+    share_line: Optional[str] = None
+    hashtags: Optional[List[str]] = None
+    poll: Optional[Poll] = None
+    story_slides: Optional[List[StorySlide]] = None
+    carousel_slides: Optional[List[CarouselSlide]] = None
+
+
 def normalize_copy(pkg: ScriptPackage) -> ScriptPackage:
     """Bookkeeping a draft gets wrong without being wrong, fixed without a rewrite (each was a full
     model call; dev, 2026-10-23): closing_sentence is set to the narration's actual last sentence, and a
-    caption first line over 125 characters that holds several sentences is broken after the last
-    sentence that fits (same words, new line). A single sentence over the limit still needs a rewrite. A
+    caption first line over 125 characters that holds several sentences is broken after the whole
+    sentences that fit (split_caption_first_line: same words, new line). A first sentence over the limit gets the copy edit. A
     yes/no poll question over two choices is asked as the either/or they answer (repair_poll). No public
     copy keeps a direction-dependent cue (neutral_cues; operator, 2026-10-28)."""
     update = {}
@@ -1527,18 +1650,11 @@ def normalize_copy(pkg: ScriptPackage) -> ScriptPackage:
     cued = [k for k in update if k != "closing_sentence"]
     if cued:
         log.info("Direction cues (pointing hands, arrows, swipe right, below/above) removed from: %s.", ", ".join(cued))
-    lines = caption.split("\n")
-    first = next((i for i, ln in enumerate(lines) if ln.strip()), None)
-    if first is not None and len(lines[first]) > 125:
-        parts = [s for s in _SENTENCE_END.split(lines[first].strip()) if s]
-        keep = []
-        for s in parts:
-            if len(" ".join(keep + [s])) > 125:
-                break
-            keep.append(s)
-        if keep and len(keep) < len(parts):
-            lines[first:first + 1] = [" ".join(keep), " ".join(parts[len(keep):])]
-            update["caption"] = "\n".join(lines)
+    split = split_caption_first_line(caption)
+    if split != caption:
+        log.info("Caption's first line (%d characters) broken after the sentences that fit.",
+                 len(next((ln for ln in caption.splitlines() if ln.strip()), "")))
+        update["caption"] = split
     # A yes/no poll question over two choices is asked as the either/or they answer (repair_poll), not
     # sent back for a whole rewrite (Hal Saflieni, 2026-10-27).
     reworded = repair_poll(pkg.poll.question, pkg.poll.options, pkg.narration_script)
@@ -1641,13 +1757,11 @@ class ScriptEngine:
                     pkg = None
                 if pkg is not None:
                     pkg = prune_graphics(pkg)
-                    problems = blocking_problems(draft_problems(pkg))
-                    if problems and all(STORY_OVERFLOW.match(p) for p in problems):
-                        # Only a Story body runs long: it is shortened, not the whole draft rewritten, which must
-                        # pass both fact checks again (production 2026-10-28: "Story slide 3's body takes 4 lines").
-                        shortened = self._shorten_story_slides(pkg, problems, sheet)
-                        if shortened is not None:
-                            pkg, problems = shortened, blocking_problems(draft_problems(shortened))
+                    # A Story body that runs long, a copy fault or a repeat: edited, not the whole draft rewritten,
+                    # which must pass both fact checks again (production 2026-10-28: "Story slide 3's body takes 4
+                    # lines"; 2026-10-29: a caption line and a poll).
+                    pkg, problems = self._narrow_edits(pkg, draft_problems(pkg), sheet)
+                    problems = blocking_problems(problems)
                     if (problems and any("when spoken" in p for p in problems)
                             and all("when spoken" in p or p.startswith(REPEAT_PROBLEM) for p in problems)):
                         # The revision changed the length (production, Derinkuyu 2026-10-29: 112 words, 53.8 s):
@@ -1655,12 +1769,8 @@ class ScriptEngine:
                         fitted = self._fit_length_by_editing(pkg, problems, topic, "")
                         if fitted is not None:
                             return self._finalize(fitted, topic, origin=writer_origin(), fact_sheet_used=True)
-                    if problems and all(p.startswith(REPEAT_PROBLEM) for p in problems):
-                        # Only a repeated phrase (a hedge the revision added twice, development 2026-10-28): reworded
-                        # by one short edit, not the whole draft rewritten.
-                        fixed = self._fix_repeats(pkg, problems, sheet)
-                        if fixed is not None:
-                            pkg, problems = fixed, blocking_problems(draft_problems(fixed))
+                    # (A lone repeated phrase, a hedge the revision added twice (development 2026-10-28), was
+                    # reworded by _narrow_edits above.)
                     if not problems:
                         _note_kept_hook(draft_problems(pkg))
                         log.info("Revised surgically: only the rejected sentences changed.")
@@ -1698,22 +1808,11 @@ class ScriptEngine:
                 pkg = prune_graphics(pkg)  # an invalid graphic is dropped, not allowed to sink the script
                 # Structure, length and the opening together: one rewrite fixes all of them.
                 problems = draft_problems(pkg)
+                # Story bodies, copy faults and a lone repeat are edited in place (short calls), the narration and
+                # its length kept; a length miss left with them is then edited below, as on its own (production,
+                # Roman concrete 2026-10-29: a caption line, then a poll, each cost a rewrite and a new length).
+                pkg, problems = self._narrow_edits(pkg, problems, self._sheet(topic))
                 blocking = blocking_problems(problems)
-                if (any(STORY_OVERFLOW.match(p) for p in blocking)
-                        and all(STORY_OVERFLOW.match(p) or "when spoken" in p for p in blocking)):
-                    # A Story body over three lines is shortened in place (one short call); a length miss left
-                    # with it is then edited below, as on its own.
-                    shortened = self._shorten_story_slides(pkg, blocking, self._sheet(topic))
-                    if shortened is not None:
-                        pkg = shortened
-                        problems = draft_problems(pkg)
-                        blocking = blocking_problems(problems)
-                if blocking and all(p.startswith(REPEAT_PROBLEM) for p in blocking) and self._sheet(topic) is not None:
-                    fixed = self._fix_repeats(pkg, blocking, self._sheet(topic))
-                    if fixed is not None:
-                        pkg = fixed
-                        problems = draft_problems(pkg)
-                        blocking = blocking_problems(problems)
                 if not blocking:
                     _note_kept_hook(problems)
                     return self._finalize(pkg, topic, origin=writer_origin(), fact_sheet_used=self._sheet(topic) is not None)
@@ -1890,13 +1989,10 @@ class ScriptEngine:
         if fitted is None:
             return None
         fitted = prune_graphics(fitted)
-        still = blocking_problems(draft_problems(fitted))
-        if still and all(p.startswith(REPEAT_PROBLEM) for p in still):
-            # The edit reached the length but said a phrase twice ("geoglyphs etched into", development
-            # 2026-10-28, twice, each followed by a full rewrite): reworded by one more short edit.
-            fixed = self._fix_repeats(fitted, still, sheet)
-            if fixed is not None:
-                fitted, still = fixed, blocking_problems(draft_problems(fixed))
+        # The edit reached the length but said a phrase twice ("geoglyphs etched into", development 2026-10-28,
+        # twice, each followed by a full rewrite), or left a copy fault: reworded by one more short edit.
+        fitted, still = self._narrow_edits(fitted, draft_problems(fitted), sheet)
+        still = blocking_problems(still)
         miss = length_miss_words(still) if still else None
         if miss is not None and miss <= self._SMALL_LENGTH_MISS:
             # A few words out (production, Derinkuyu 2026-10-29: 106 words against 99-103, then a full rewrite):
@@ -1933,6 +2029,88 @@ class ScriptEngine:
             return None
         log.info("Repeated phrase reworded by a short edit: %s", " ".join(repeats)[:200])
         return prune_graphics(fixed)
+
+    def _edit_copy(self, pkg: ScriptPackage, problems: List[str], sheet: Dict[str, Any]) -> Optional[ScriptPackage]:
+        """A draft whose copy faults (caption, poll, slides, title, hashtags, first comment, share line) are fixed by
+        one short writer call that edits only the fields they lie in, or None when the call fails, a fault remains or
+        a new one appears: the caller goes on as before (a rewrite). The narration, hook, closing sentence, sources
+        and graphics are carried over untouched, so the measured length stands; the caller checks the result again
+        in full, and both fact checks see it like any other draft."""
+        faults = [p for p in problems if copy_problem_fields(p, pkg) is not None]
+        fields = tuple(f for f in dict.fromkeys(f for p in faults for f in copy_problem_fields(p, pkg))
+                       if f != "carousel_caption" or pkg.carousel_caption)   # never one written where there was none
+        if not faults or not fields:
+            return None
+        current = {f: v for f, v in pkg.model_dump().items() if f in fields}
+        texts = [json.dumps(current, ensure_ascii=False), pkg.narration_script]   # the copy may restate its figures
+        prompt = (f"<narration>\n{pkg.narration_script}\n</narration>\n\n"
+                  f"<verified_facts>\n{fact_sheet.as_prompt(sheet)}\n</verified_facts>\n\n"
+                  f"<fields>\n{json.dumps(current, ensure_ascii=False, indent=1)}\n</fields>\n\n"
+                  f"<problems>\n" + "\n".join(f"- {p}" for p in faults) + "\n</problems>\n\n"
+                  f"<field_rules>\n{_field_rules(fields)}\n</field_rules>"
+                  + mandatory_hedges_note(sheet, texts=texts) + repeat_rules(pkg.narration_script)
+                  + "\nThe copy may restate the narration's facts, but no field says one phrase twice."
+                  + f"\n\nReturn only these fields, each whole: {', '.join(fields)}.")
+        try:
+            if free_llm.enabled():
+                out = free_llm.structured(COPY_EDIT_SYSTEM, prompt, _CopyEdit, role="writer", task_class="light")
+            else:
+                out = structured_call(COPY_EDIT_SYSTEM, prompt, _CopyEdit, effort="low", max_tokens=4000)
+        except (LLMError, OSError, ValueError) as e:
+            log.warning("Copy edit failed (%s); rewriting the draft.", e)
+            return None
+        update = {f: v for f, v in out.model_dump().items() if f in fields and v is not None}
+        if not update:
+            log.warning("Copy edit returned none of %s; rewriting the draft.", ", ".join(fields))
+            return None
+        try:
+            fixed = normalize_copy(ScriptPackage.model_validate({**pkg.model_dump(), **update}))
+        except ValidationError as e:
+            log.warning("Copy edit broke the draft (%s); rewriting.", e)
+            return None
+        kept = ("narration_script", "hook_sentence", "closing_sentence", "sources", *GRAPHICS_FIELDS)
+        if any(getattr(fixed, k) != getattr(pkg, k) for k in kept):  # never: the edit holds none of them
+            log.warning("Copy edit changed the narration or graphics; rewriting the draft.")
+            return None
+        before, after = validate_structure(pkg), validate_structure(fixed)
+        left = [p for p in after if copy_problem_fields(p, fixed) is not None]
+        new = [p for p in after if p not in before]
+        if left or new:
+            log.warning("Copy edit still misses (%s); rewriting the draft.", " ".join(dict.fromkeys(left + new))[:300])
+            return None
+        improve.note_problems(faults, "structure")  # still the writer's miss, for the findings ledger
+        log.info("Copy fixed by a short edit of %s: %s", ", ".join(update), " ".join(faults)[:300])
+        return fixed
+
+    def _narrow_edits(self, pkg: ScriptPackage, problems: List[str], sheet: Optional[Dict[str, Any]]
+                      ) -> Tuple[ScriptPackage, List[str]]:
+        """The short edits a draft's faults allow, when every blocking one is a Story body too long, a copy fault, a
+        repeated phrase or the spoken length: the Story bodies shortened, the copy edited, a lone repeat reworded,
+        each checked again in full (draft_problems). The length itself is left to _fit_length_by_editing. Returns
+        the draft and its problems, unchanged when an edit cannot apply (the caller rewrites as before)."""
+        def blocking() -> List[str]:
+            return blocking_problems(problems)
+
+        def narrow(p: str) -> bool:
+            return "when spoken" in p or p.startswith(REPEAT_PROBLEM) or copy_problem_fields(p, pkg) is not None
+
+        if not blocking() or not all(narrow(p) for p in blocking()):
+            return pkg, problems
+        if any(STORY_OVERFLOW.match(p) for p in blocking()):
+            # A Story body over three lines is shortened in place (one short call), as on its own.
+            shortened = self._shorten_story_slides(pkg, blocking(), sheet)
+            if shortened is not None:
+                pkg, problems = shortened, draft_problems(shortened)
+        copy = [p for p in blocking() if copy_problem_fields(p, pkg) is not None]
+        if copy and sheet is not None and all(narrow(p) for p in blocking()):
+            edited = self._edit_copy(pkg, copy, sheet)
+            if edited is not None:
+                pkg, problems = edited, draft_problems(edited)
+        if blocking() and all(p.startswith(REPEAT_PROBLEM) for p in blocking()) and sheet is not None:
+            fixed = self._fix_repeats(pkg, blocking(), sheet)
+            if fixed is not None:
+                pkg, problems = fixed, draft_problems(fixed)
+        return pkg, problems
 
     def _shorten_story_slides(self, pkg: ScriptPackage, problems: List[str],
                               sheet: Optional[Dict[str, Any]] = None) -> Optional[ScriptPackage]:

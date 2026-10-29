@@ -122,7 +122,11 @@ def card_numbers_off_narration(payload: Dict[str, Any]) -> List[str]:
     """A number card echoes the narration: a figure on it that the narration never says would contradict the
     voice on screen, and both could still be "in the sheet" when a count is disputed (the gear count of the
     Antikythera mechanism, 35/30 one way and 29 another, 2026-10-24)."""
-    narration = fact_sheet.numbers_in(payload.get("narration_script") or "")
+    from .script_engine import spelled_numbers   # here: script_engine imports this module
+    # Said as digits or as words: a card of 8 levels over "eight to 18 levels" was rejected and dropped
+    # (production, Derinkuyu 2026-10-29).
+    text = payload.get("narration_script") or ""
+    narration = fact_sheet.numbers_in(text) + spelled_numbers(text)
     problems = []
     for card in payload.get("stat_cards") or []:
         for n in fact_sheet.numbers_in(str(card.get("value", ""))):
@@ -141,7 +145,25 @@ def _empirical_rhetoric(claim: str) -> bool:
     # General qualitative contrasts with modern times are non-empirical unless stating specific measurements/dates
     if re.search(r"\bmodern builders?\b|\bmodern construction\b|\bmodern buildings?\b|\bmodern architecture\b", text, re.I) and not re.search(r"\d", text):
         return False
-    return bool(re.search(r"\d|\b(?:outlast\w*|stronger|superior|best engineering|indestructible|heal\w*|fail\w*|decades|centur\w*|more durable|oldest|largest|tallest)\b", text, re.I))
+    if _counted_time_span(text):
+        return True
+    return bool(re.search(r"\d|\b(?:outlast\w*|stronger|superior|best engineering|indestructible|heal\w*|fail\w*|more durable|oldest|largest|tallest)\b", text, re.I))
+
+
+# A span of time is a claim when it is counted or dated ("three centuries", "the eighth century", "a century later",
+# "in the 8th century" by its digit); uncounted ("Centuries of everyday life hid the massive world waiting below",
+# "for decades", "centuries-old") it frames the story and asserts nothing to trace (production, Derinkuyu 2026-10-29).
+_TIME_SPAN = re.compile(r"\b(decades?|centur(?:y|ies)|millenni(?:um|a|ums))\b", re.I)
+
+
+def _counted_time_span(text: str) -> bool:
+    from .script_engine import spelled_numbers   # here: script_engine imports this module
+    for m in _TIME_SPAN.finditer(text):
+        before = re.findall(r"[A-Za-z]+", text[:m.start()])[-3:]
+        singular = m.group(1).lower() in ("decade", "century", "millennium")
+        if spelled_numbers(" ".join(before)) or (singular and before and before[-1].lower() in ("a", "an", "half")):
+            return True
+    return False
 
 
 def _validate_trace(report, sheet):

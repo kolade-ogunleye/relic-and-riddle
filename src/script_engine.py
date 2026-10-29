@@ -478,6 +478,41 @@ def length_miss_words(problems: List[str]) -> Optional[int]:
     return max(misses) if misses else None
 
 
+# A draft just past the plan's ceiling (51.6-53 s at the narrator's slowest take) gets one trim attempt and then
+# passes, since the voice keeps a take up to VOICE_DURATION_CEILING (54.5 s): such drafts ended runs at the last
+# attempt (run audit 2026-10-29, item 9). Held 1.5 s under the voice's ceiling, so a kept draft's take still fits.
+NEAR_MISS_CEILING = min(HARD_DURATION_CEILING + 1.0, config.VOICE_DURATION_CEILING - 1.5)
+_near_misses_kept: Dict[str, float] = {}   # narration (its words) -> seconds, for drafts kept after their trim attempt
+_NEAR_MISSES_KEPT_MAX = 32
+
+
+def _narration_key(text: str) -> str:
+    """The narration's words, as the near-miss record knows them (punctuation and spacing tidied by _finalize)."""
+    return " ".join(re.findall(r"\w+", (text or "").lower()))
+
+
+def near_miss_seconds(problems: List[str]) -> Optional[float]:
+    """The spoken seconds of a draft whose every problem is its length just past the plan's ceiling (at most
+    NEAR_MISS_CEILING), or None (no problems, another fault, too short, or further past it)."""
+    seconds = []
+    for problem in problems:
+        m = re.match(r"Narration runs (\d+(?:\.\d+)?)s when spoken \(limit ", problem)
+        if not m:
+            return None
+        seconds.append(float(m.group(1)))
+    return max(seconds) if seconds and max(seconds) <= NEAR_MISS_CEILING + 1e-9 else None
+
+
+def keep_near_miss(pkg: ScriptPackage, seconds: float) -> None:
+    """Records a draft kept after its trim attempt: spoken_length_problems passes it from then on (the run's final
+    checks, a fact revision's), as long as it still reads within NEAR_MISS_CEILING."""
+    for text in (pkg.narration_script, spoken_narration(pkg.narration_script)):
+        _near_misses_kept.pop(_narration_key(text), None)
+        _near_misses_kept[_narration_key(text)] = seconds
+    while len(_near_misses_kept) > _NEAR_MISSES_KEPT_MAX:
+        _near_misses_kept.pop(next(iter(_near_misses_kept)))
+
+
 def spoken_length_problems(pkg: ScriptPackage) -> List[str]:
     """Measures how long the narration will run when spoken (the narrator voice is deterministic) and
     says how to fix it if the voiceover would be too long or short. Empty when fine, when a slightly faster
@@ -520,6 +555,9 @@ def spoken_length_problems(pkg: ScriptPackage) -> List[str]:
             high = min(high, words - 1)
             low = min(low, high)
         return (low, high), note
+    if (seconds > longest + 1e-9 and seconds <= NEAR_MISS_CEILING + 1e-9
+            and _narration_key(pkg.narration_script) in _near_misses_kept):
+        return []   # kept after its trim attempt (keep_near_miss)
     if seconds > longest + 1e-9:
         # A word count is followed far better than seconds: name this draft's count and the one to reach,
         # aiming inside the comfortable length (not just under the limit), never below the window's floor.
@@ -1782,8 +1820,13 @@ def validate_structure(pkg: ScriptPackage) -> List[str]:
         problems.append("Title uses more than one emoji.")
     if len(pkg.title) > 60:
         problems.append(f"Title is {len(pkg.title)} characters; max 60.")
-    if len(pkg.caption) > 2200:
-        problems.append(f"Caption is {len(pkg.caption)} characters; Instagram max is 2,200.")
+    # The caption as written, without the credit lines the pipeline appends (a regenerated run's draft carries the
+    # last render's): their 📷 and 🎬 were counted as its emoji, and the copy edit then stripped them (production,
+    # Derinkuyu 2026-10-29). add_provenance_attributions keeps the credited caption within 2,200.
+    from .credits import split_attribution
+    written_caption = split_attribution(pkg.caption)[0]
+    if len(written_caption) > 2200:
+        problems.append(f"Caption is {len(written_caption)} characters; Instagram max is 2,200.")
     if not 3 <= len(pkg.hashtags) <= 5 or not all(h.startswith("#") and " " not in h for h in pkg.hashtags):
         problems.append("Hashtags must be 3-5 single-word tags starting with '#' (Instagram allows at most 5).")
     if len(re.findall(r"(?<!\w)#\w", pkg.caption + " " + pkg.first_comment)) > 5:
@@ -1791,7 +1834,7 @@ def validate_structure(pkg: ScriptPackage) -> List[str]:
     first_line = next((ln for ln in pkg.caption.splitlines() if ln.strip()), "")
     if len(first_line) > 125:
         problems.append(f"Caption's first line is {len(first_line)} characters; keep it within the 125 shown before 'more'.")
-    emoji = len(EMOJI_RE.findall(pkg.caption))
+    emoji = len(EMOJI_RE.findall(written_caption))
     if emoji > 4:
         problems.append(f"Caption uses {emoji} emoji; 1-3 relevant ones read human, more reads like spam.")
     if pkg.share_line:
@@ -2280,8 +2323,16 @@ class ScriptEngine:
         _length_history["on"], _length_history["thread"] = True, threading.get_ident()
         told = _draft_topic.set(topic)   # the story checks (place, told story) read the topic being written
         figures = _draft_sheet.set(lambda: self._sheets.get(topic.get("id")))   # the headline figures, its sheet
+        # A regenerated run's payload carries the last render's credit lines: the writer, the edits and the checks
+        # see the copy without them, and they are appended again to what comes back (production, Derinkuyu
+        # 2026-10-29: their 📷/🎬 were counted as caption emoji, the copy edit stripped them, and the photo titles
+        # and Commons ids were then checked as figures).
+        from .credits import hold_attribution, restore_attribution
+        held: Dict[str, List[str]] = {}
+        if previous is not None:
+            previous, held = hold_attribution(previous)
         try:
-            return self._generate_script(topic, max_attempts, revision_notes, previous)
+            return restore_attribution(self._generate_script(topic, max_attempts, revision_notes, previous), held)
         finally:
             _length_history["on"] = False
             _draft_topic.reset(told)
@@ -2539,7 +2590,9 @@ class ScriptEngine:
         """A draft whose only fault is its spoken length (and perhaps a repeated phrase), edited to the word window
         with verified facts (the surgical reviser), a repeat the edit leaves reworded by one more short edit, then
         given its graphics. None when there is no fact sheet, the edit fails
-        or the result still misses: the caller rewrites as before."""
+        or the result still misses: the caller rewrites as before. A draft just past the plan's ceiling
+        (near_miss_seconds) is kept after this one trim attempt: the trimmed draft when only that is left of its
+        faults, else the draft as it came."""
         sheet = self._sheet(topic)
         if sheet is None:
             return None
@@ -2550,9 +2603,9 @@ class ScriptEngine:
                                              + (" REPEAT: " + " ".join(repeats) if repeats else ""), sheet)
         except LLMError as e:
             log.warning("Length edit failed (%s); rewriting the draft.", e)
-            return None
+            return self._kept_near_miss(pkg, problems)
         if fitted is None:
-            return None
+            return self._kept_near_miss(pkg, problems)
         fitted = prune_graphics(fitted)
         # The edit reached the length but said a phrase twice ("geoglyphs etched into", development 2026-10-28,
         # twice, each followed by a full rewrite), or left a copy fault: reworded by one more short edit.
@@ -2569,9 +2622,11 @@ class ScriptEngine:
                 again = None
             if again is not None:
                 fitted, still = prune_graphics(again), blocking_problems(draft_problems(prune_graphics(again)))
+        if still and self._kept_near_miss(fitted, still) is not None:
+            still = []   # trimmed once and just past the plan's ceiling: kept (NEAR_MISS_CEILING)
         if still:
             log.warning("Length edit still misses (%s); rewriting the draft.", still)
-            return None
+            return self._kept_near_miss(pkg, problems)
         _note_kept_hook(draft_problems(fitted))
         log.info("Length fixed by editing the draft: %d -> %d words.",
                  len(pkg.narration_script.split()), len(fitted.narration_script.split()))
@@ -2579,6 +2634,21 @@ class ScriptEngine:
         # The graphics are planned again for the edited words: with the disputed figures' hedges (a flat "8 to 18"
         # levels card was planned here and rejected: production, Derinkuyu 2026-10-29).
         return self._with_graphics(fitted, notes, retrieved, mandatory_hedges_note(sheet) + feedback)
+
+    def _kept_near_miss(self, pkg: ScriptPackage, problems: List[str]) -> Optional[ScriptPackage]:
+        """`pkg`, recorded as kept (keep_near_miss), when its only blocking problem is its length just past the plan's
+        ceiling and nothing else blocks once it is; else None (the caller rewrites as before)."""
+        seconds = near_miss_seconds(blocking_problems(problems))
+        if seconds is None:
+            return None
+        keep_near_miss(pkg, seconds)
+        if blocking_problems(draft_problems(pkg)):   # read again, it is not inside NEAR_MISS_CEILING after all
+            _near_misses_kept.pop(_narration_key(pkg.narration_script), None)
+            return None
+        log.info("Draft kept at %.1fs spoken after its trim attempt (plan %gs; takes are kept up to %gs).",
+                 seconds, HARD_DURATION_CEILING - _MEASURE_MARGIN_SEC, config.VOICE_DURATION_CEILING)
+        improve.note("script.length_near_miss", f"kept at {seconds:.1f}s after one trim attempt", "repair")
+        return pkg
 
     def _fix_repeats(self, pkg: ScriptPackage, problems: List[str], sheet: Dict[str, Any]) -> Optional[ScriptPackage]:
         """A draft whose narration says a phrase twice, with the later sentence reworded by one short edit (the
@@ -2608,7 +2678,10 @@ class ScriptEngine:
                        if f != "carousel_caption" or pkg.carousel_caption)   # never one written where there was none
         if not faults or not fields:
             return None
-        current = {f: v for f, v in pkg.model_dump().items() if f in fields}
+        # The copy someone wrote, without the pipeline's credit lines: told the caption had too many emoji, the edit
+        # removed the credits' 📷/🎬 (production, Derinkuyu 2026-10-29). They are appended again to its result.
+        from .credits import hold_attribution, restore_attribution
+        current, held = hold_attribution({f: v for f, v in pkg.model_dump().items() if f in fields})
         texts = [json.dumps(current, ensure_ascii=False), pkg.narration_script]   # the copy may restate its figures
         prompt = (f"<narration>\n{pkg.narration_script}\n</narration>\n\n"
                   f"<verified_facts>\n{fact_sheet.as_prompt(sheet)}\n</verified_facts>\n\n"
@@ -2626,7 +2699,7 @@ class ScriptEngine:
         except (LLMError, OSError, ValueError) as e:
             log.warning("Copy edit failed (%s); rewriting the draft.", e)
             return None
-        update = {f: v for f, v in out.model_dump().items() if f in fields and v is not None}
+        update = restore_attribution({f: v for f, v in out.model_dump().items() if f in fields and v is not None}, held)
         if not update:
             log.warning("Copy edit returned none of %s; rewriting the draft.", ", ".join(fields))
             return None

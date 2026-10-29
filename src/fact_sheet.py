@@ -112,10 +112,22 @@ def _unesco_evidence(topic: Dict[str, Any]):
     return engine.as_evidence(site), Source(title=f"UNESCO World Heritage Centre - {site.site}", url=url)
 
 
+# Digits that are no figure of the story: web addresses (a Commons page's curid=31074216 was checked as the figure
+# 3.10746e+07), Commons file titles ("File:Derinkuyu Underground City 9843 Nevit.JPG") and licence versions
+# ("CC BY-SA 4.0"). They reach the checks when a credit line loses its 📷 (production, Derinkuyu 2026-10-29).
+_NOT_FIGURES = re.compile(
+    r"(?:https?://|www\.)\S+"
+    r"|\bcurid=\d+"
+    r"|\b(?:File|Image):[^|\n]*"
+    r"|\b(?:CC(?:[ -]BY(?:[ -](?:SA|NC|ND))*|0)|GFDL|GPL|OGL|FAL)[ -]?v?\d+(?:\.\d+)*",
+    re.IGNORECASE)
+
+
 def numbers_in(text: str) -> List[float]:
-    """Numbers as values: '20,000' -> 20000, '85 m' -> 85, '8th century' -> 8, '1963' -> 1963."""
+    """Numbers as values: '20,000' -> 20000, '85 m' -> 85, '8th century' -> 8, '1963' -> 1963. Addresses, file
+    titles and licence versions are not read (_NOT_FIGURES)."""
     out = []
-    for m in re.findall(r"\d[\d,]*(?:\.\d+)?", text):
+    for m in re.findall(r"\d[\d,]*(?:\.\d+)?", _NOT_FIGURES.sub(" ", text or "")):
         try:
             out.append(float(m.replace(",", "")))
         except ValueError:

@@ -239,10 +239,52 @@ _SHARE_ALIKE = re.compile(r"^cc by-sa [2-4]", re.IGNORECASE)
 SHARE_ALIKE_NOTICE = "🎬 This video is licensed CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/"
 
 
+# A photo credit as asset_attribution writes it ("artist | title | licence | source URL | licence URL"), recognised
+# by that shape even without its 📷: a copy edit told the caption had too many emoji removed the credits' emoji, and
+# their photo titles and Commons ids were then checked as figures (production, Derinkuyu 2026-10-29).
+_CREDIT_SHAPE = re.compile(r"^[^|\n]*\|[^|\n]*\|\s*(?:public domain|pd\b|pd-|cc0|cc by)[^|\n]*\|\s*https?://", re.IGNORECASE)
+
+
 def is_attribution_line(line: str) -> bool:
     """A credit line the pipeline adds to public copy (image, footage, music, the share-alike notice).
     The notice is matched exactly, not by its emoji, so model-written text starting with 🎬 is not one."""
-    return line.startswith(("📷", "🎥", "🎵")) or line.strip() == SHARE_ALIKE_NOTICE
+    return (line.startswith(("📷", "🎥", "🎵")) or line.strip() == SHARE_ALIKE_NOTICE
+            or bool(_CREDIT_SHAPE.match(line.strip())))
+
+
+def split_attribution(text: str) -> tuple:
+    """(the text without the pipeline's credit lines, those lines in order). The writer, the copy edit and the
+    caption's length and emoji checks see only the copy someone wrote: the credits are the pipeline's, and their
+    📷 and 🎬 counted as the caption's emoji (production, Derinkuyu 2026-10-29)."""
+    lines = (text or "").splitlines()
+    held = [line for line in lines if is_attribution_line(line)]
+    if not held:
+        return text or "", []
+    kept = "\n".join(line for line in lines if not is_attribution_line(line))
+    return re.sub(r"\n{3,}", "\n\n", kept).rstrip(), held
+
+
+ATTRIBUTED_FIELDS = ("caption", "carousel_caption", "first_comment")
+
+
+def hold_attribution(payload: Dict[str, Any]) -> tuple:
+    """(a copy of `payload` with the credit lines taken out of its copy fields, {field: those lines}): a
+    regenerated run starts from a payload that already carries the last render's credits."""
+    out, held = dict(payload), {}
+    for field in ATTRIBUTED_FIELDS:
+        if isinstance(out.get(field), str):
+            out[field], lines = split_attribution(out[field])
+            if lines:
+                held[field] = lines
+    return out, held
+
+
+def restore_attribution(payload: Dict[str, Any], held: Dict[str, List[str]]) -> Dict[str, Any]:
+    """`payload` with the credit lines hold_attribution took out appended again, in their order, where missing."""
+    for field, lines in (held or {}).items():
+        if isinstance(payload.get(field), str):
+            payload[field] = keep_attribution("\n".join(lines), payload[field])
+    return payload
 
 
 def is_hashtag_line(line: str) -> bool:

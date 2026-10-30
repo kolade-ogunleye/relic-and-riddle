@@ -1432,8 +1432,11 @@ def _ffmpeg_path(p: Path) -> str:
 
 
 def caption_contrast(video: Path, ass_file: Path, out_dir: Path, fonts_dir: Optional[Path] = None,
-                     samples: int = 6) -> Dict[str, Any]:
-    """The captions' ratio on the delivered master: {"samples": [{"t", "contrast"}], "min"}."""
+                     samples: int = 6, until: Optional[float] = None) -> Dict[str, Any]:
+    """The captions' ratio on the delivered master: {"samples": [{"t", "contrast"}], "min"}. Only captions that are
+    on screen are judged: none starting at or after `until` (the end card's start), where the card replaces them
+    (production, 30 Oct: the last caption's midpoint fell in the card, the bare stone read 2.08:1 and blocked the
+    review)."""
     import numpy as np
     from .config import FONTS_DIR
     from .typography import ring_contrast
@@ -1443,6 +1446,8 @@ def caption_contrast(video: Path, ass_file: Path, out_dir: Path, fonts_dir: Opti
         if line.startswith("Dialogue:") and ",CapText," in line:
             parts = line.split(",", 9)
             events.append((_parse_ass_time(parts[1].strip()), _parse_ass_time(parts[2].strip())))
+    if until is not None:
+        events = [(s, min(e, until)) for s, e in events if s < until - 0.1]
     if not events:
         return {"samples": [], "min": None}
     events.sort()
@@ -1486,7 +1491,14 @@ def text_contrast_audit(run_dir: Path, video: Optional[Path] = None, ass_file: O
     captions = None
     if video and Path(video).is_file() and ass_file and Path(ass_file).is_file():
         try:
-            captions = caption_contrast(Path(video), Path(ass_file), run_dir / "audit" / "caption_contrast")
+            until = None
+            for comp in run_dir.glob("*.composition.json"):   # the end card replaces the captions from its start
+                try:
+                    until = (json.loads(comp.read_text(encoding="utf-8")).get("end_card") or {}).get("start_s")
+                except (OSError, ValueError):
+                    pass
+            captions = caption_contrast(Path(video), Path(ass_file), run_dir / "audit" / "caption_contrast",
+                                        until=float(until) if until else None)
             if captions["min"] is not None and captions["min"] < TEXT_CONTRAST:
                 worst = min((s for s in captions["samples"] if s["contrast"] is not None), key=lambda s: s["contrast"])
                 found.append(f"captions: {worst['contrast']:.2f}:1 at {worst['t']:.2f}s on the master (needs {TEXT_CONTRAST}:1)")

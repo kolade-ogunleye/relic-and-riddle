@@ -2,8 +2,8 @@
 src/end_card.py
 ===============
 The Reel's closing card, appended after the narration. Plain type, no capsule ("plain_v4", operator decision
-2026-10-29: the approved capsule v3 read as a button, visual critic round 4): the channel name, a gold rule, the
-share ask in bone on two lines where it fits at 54 px or more, then FOLLOW FOR THE NEXT RELIC as one line of
+2026-10-29: the approved capsule v3 read as a button, visual critic round 4): the channel name, a gold rule drawn
+out from a small gold diamond (the brand's mark, kept at the operator's request), the share ask in bone on two lines where it fits at 54 px or more, then FOLLOW FOR THE NEXT RELIC as one line of
 tracked gold capitals. No outline, no dark ground behind it, no sheen.
 
 The last shot keeps pushing in while it is dimmed and, when busy, softened, by the least that makes the card
@@ -265,9 +265,12 @@ def frames(last: Image.Image, share: str, stats: Optional[Dict[str, Any]] = None
         if a > 0:
             _tracked(d, width / 2, TOP - 120, BRAND, f_brand, (*GOLD, int(255 * a)), 6)
         r = ease((t - 0.25) / 0.5)
-        if r > 0:   # the rule draws out from the centre, both ways at once
+        if r > 0:   # the rule draws out from a gold diamond, both ways at once (the brand's mark, operator 2026-10-29)
             cx = width / 2
-            d.line([(cx - 170 * r, rule_y), (cx + 170 * r, rule_y)], fill=(*GOLD, 235), width=4)
+            d.polygon([(cx, rule_y - 9), (cx + 9, rule_y), (cx, rule_y + 9), (cx - 9, rule_y)],
+                      fill=(*GOLD, int(255 * min(1, r * 2))))
+            d.line([(cx + 20, rule_y), (cx + 20 + 170 * r, rule_y)], fill=(*GOLD, 235), width=4)
+            d.line([(cx - 20, rule_y), (cx - 20 - 170 * r, rule_y)], fill=(*GOLD, 235), width=4)
         for k, (li, wi, w) in enumerate(words):   # the share line rises word by word
             wa = ease((t - 0.45 - 0.055 * k) / 0.3)
             if wa <= 0:

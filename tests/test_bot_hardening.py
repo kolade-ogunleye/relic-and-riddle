@@ -90,8 +90,12 @@ def test_a_reused_clip_stays_on_its_own_photo(monkeypatch, db, tmp_path):
     monkeypatch.setattr("src.config.MEDIA_MONTHLY_BUDGET_USD", 5.0)
     monkeypatch.setattr("src.config.MOTION_MAX_CLIPS", 1)
     memo = {str(a): (clip, "kling")}
+    bought = []
+    monkeypatch.setattr(motion, "animate", lambda *a, **k: bought.append(a) or None)
+    monkeypatch.setattr(motion, "can_move", lambda p: False)   # b is not bought for here: only placement is tested
     scenes, used = motion.apply(db, [b, a], tmp_path / "m", memo=memo)  # the re-plan moved photo a to beat 2
-    assert scenes == [b, clip] and used == ["kling"]
+    # The clip opens the video or is not placed (2026-10-29): on beat 2 it is never moved onto b, and not used.
+    assert scenes == [b, a] and used == [] and bought == []
 
 
 def test_progress_of_a_finished_run_is_not_kept_alive(db):

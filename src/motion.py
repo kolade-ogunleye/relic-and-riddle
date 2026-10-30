@@ -40,6 +40,7 @@ from .video_qa import verify_motion_hook_integrity
 log = logging.getLogger(__name__)
 
 last_fallback_reason: Optional[str] = None
+last_motion_rejection = ""   # "no visible motion" when this run's paid clip was refused for it (fallback_note)
 
 SECONDS_OUT = 6.0  # trimmed length used in the video (longest beat plus transitions)
 KLING_EST_PRICE_PER_SEC = 0.14  # estimate for the budget guard; Kling bills per task
@@ -210,24 +211,72 @@ def changed_share(first: Any, later: List[Any], threshold: float = 18.0) -> floa
     return worst
 
 
-def content_change_share(clip: Path) -> float:
-    """How much of the frame's content changes across the clip (see MAX_CONTENT_CHANGE)."""
-    import io
+def _grab(clip: Path, t: float, blur: float = 2.0):
+    """One frame of `clip` at t seconds, grey, 270x480 and blurred, as float32 (0-255)."""
     import numpy as np
     from PIL import ImageFilter
+    png = subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{t:.2f}", "-i", str(clip), "-frames:v", "1",
+                          "-f", "image2pipe", "-vcodec", "png", "-"], capture_output=True, timeout=60).stdout
+    im = Image.open(io.BytesIO(png)).convert("L").resize((270, 480))
+    if blur:
+        im = im.filter(ImageFilter.GaussianBlur(blur))
+    return np.asarray(im, dtype=np.float32)
 
-    def grab(t: float):
-        png = subprocess.run(["ffmpeg", "-v", "error", "-ss", f"{t:.2f}", "-i", str(clip), "-frames:v", "1",
-                              "-f", "image2pipe", "-vcodec", "png", "-"], capture_output=True, timeout=60).stdout
-        im = Image.open(io.BytesIO(png)).convert("L").resize((270, 480)).filter(ImageFilter.GaussianBlur(2))
-        return np.asarray(im, dtype=np.float32)
 
+def content_change_share(clip: Path) -> float:
+    """How much of the frame's content changes across the clip (see MAX_CONTENT_CHANGE)."""
     try:
         times = [SECONDS_OUT * f for f in (0.25, 0.5, 0.75, 0.95)]
-        return changed_share(grab(0.1), [grab(t) for t in times])
+        return changed_share(_grab(clip, 0.1), [_grab(clip, t) for t in times])
     except Exception as e:  # unmeasurable: treat as changed, never as faithful
         log.warning("Could not measure the clip's content change (%s).", e)
         return 1.0
+
+
+# The opposite failure: a clip that does not move. Production Derinkuyu (2026-10-29): a paid Kling clip of a lamp-lit
+# corridor passed the homography and content checks (inlier ratio 0.997, 0% content change) because nothing in it
+# moved: first and last frames differed by 2.5/255 on average with no global shift, a still for six seconds where
+# the free parallax would have pushed in. Two measures on the 270x480 frames, the first frame against four later
+# ones; either one shows visible motion:
+#   - camera or subject displacement: the 90th percentile of the dense optical-flow magnitude, as a share of the
+#     frame height (a push moves the edges, a pan moves everything);
+#   - local motion (water, smoke, people, moving light): the share of 30x30 regions whose mean absolute difference
+#     from the first frame exceeds MOTION_REGION_DIFF.
+# Calibrated (2026-10-29) on synthetic 6.5 s clips encoded as _finish does (H.264 CRF 17), from a dark cave photo
+# and a bright daylight one (flow / regions): a still with encoder noise and a 2.5/255 light flicker 0.01-0.02% / 0%;
+# a 0.5% push 0.18-0.19% / 0% (fails); a 1% push 0.37-0.40% / 4-10% (the margin); a 2% push 0.74-0.79% / 17-23%;
+# a 3% push 1.2% / 37-39%; a 1% pan 0.49% / 17-22%; a 3% pan 1.5% / 47-51%; water rippling over the bottom fifth
+# 1.4-2.0% / 19%; smoke drifting over a tenth 0.02-0.3% / 12.5%. The free parallax pushes in 10%. Production's
+# rejected-to-be Derinkuyu clip (2.5/255 mean change, no shift) sits with the still, far below both thresholds.
+MIN_FLOW_SHARE = 0.005      # 0.5% of the frame height (2.4 px at 480, ~10 px at 1920)
+MOTION_REGION_DIFF = 8.0    # a region's mean change, of 255, counted as moving
+MIN_MOVING_SHARE = 0.08     # 8% of the regions moving
+
+
+def motion_amount(clip: Path) -> Dict[str, float]:
+    """{"flow_share", "moving_share", "mean_diff"} across the clip (see MIN_FLOW_SHARE). Raises when the clip
+    cannot be read: the caller treats that as no motion, never as motion."""
+    import cv2
+    import numpy as np
+    first = _grab(clip, 0.1, blur=1.0)
+    later = [_grab(clip, SECONDS_OUT * f, blur=1.0) for f in (0.25, 0.5, 0.75, 0.95)]
+    h, w = first.shape
+    th, tw = h // 30, w // 30
+    flow_share = moving = mean_diff = 0.0
+    a = first.astype(np.uint8)
+    for frame in later:
+        flow = cv2.calcOpticalFlowFarneback(a, frame.astype(np.uint8), None, 0.5, 4, 21, 3, 5, 1.1, 0)
+        magnitude = np.hypot(flow[..., 0], flow[..., 1])
+        flow_share = max(flow_share, float(np.percentile(magnitude, 90)) / h)
+        diff = np.abs(frame - first)
+        tiles = diff[:th * 30, :tw * 30].reshape(th, 30, tw, 30).mean(axis=(1, 3))
+        moving = max(moving, float((tiles > MOTION_REGION_DIFF).mean()))
+        mean_diff = max(mean_diff, float(diff.mean()))
+    return {"flow_share": round(flow_share, 5), "moving_share": round(moving, 4), "mean_diff": round(mean_diff, 2)}
+
+
+def visible_motion(measured: Dict[str, float]) -> bool:
+    return measured.get("flow_share", 0.0) >= MIN_FLOW_SHARE or measured.get("moving_share", 0.0) >= MIN_MOVING_SHARE
 
 
 def _keep_rejected(clip: Path, frames: List[Path], qa: Dict[str, Any]) -> None:
@@ -263,10 +312,37 @@ def _finish(raw: Path, out: Path, archetype: str = "megastructure") -> Path:
         check=True, timeout=300, capture_output=True
     )
     raw.unlink(missing_ok=True)
+    _gate(out, archetype)
+    return out
 
+
+# The gates' version, in each accepted clip's .qa.json: a clip accepted under older gates (no motion check) is
+# measured again before it is reused or carried over (production Derinkuyu, 2026-10-29: the still clip was carried
+# into the re-render "already paid for").
+GATE_VERSION = 2
+
+
+def _sha256(path: Path) -> str:
+    import hashlib
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def _gate(out: Path, archetype: str = "megastructure", keep: bool = True) -> Dict[str, Any]:
+    """The clip's checks: geometry (homography), content fidelity and visible motion. Returns the measurements
+    (also written beside an accepted clip as .qa.json); raises MotionError on a rejection. keep=False (another
+    run's clip, checked before it is carried over): a rejected clip is left where it is, never moved or deleted."""
     # Extract first and near-last frame to verify against morphological hallucination
     f0 = out.with_name(f"{out.stem}_verify_f0.jpg")
     f_end = out.with_name(f"{out.stem}_verify_fend.jpg")
+
+    def reject(qa: Dict[str, Any], what: str) -> None:
+        if keep:
+            _keep_rejected(out, [f0, f_end], qa)
+        raise MotionError(f"{what}: {qa.get('reason')}")
     try:
         try:  # one frame each: seconds, never minutes; a hung ffmpeg must not hold the run
             subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", "0.2", "-i", str(out), "-frames:v", "1", str(f0)],
@@ -278,29 +354,69 @@ def _finish(raw: Path, out: Path, archetype: str = "megastructure") -> Path:
         qa = verify_motion_hook_integrity(f0, f_end, archetype=archetype)
         if not qa.get("pass", False):
             log.warning("AI video motion hook failed anti-hallucination verification: %s", qa.get("reason"))
-            _keep_rejected(out, [f0, f_end], qa)
-            raise MotionError(f"Anti-hallucination homography check failed: {qa.get('reason')}")
+            reject(qa, "Anti-hallucination homography check failed")
         changed = content_change_share(out)
         qa["content_change_share"] = round(changed, 3)
         if changed > MAX_CONTENT_CHANGE:
             # The homography check passed a clip that painted sky over Kailasa's rock overhang: the
             # camera geometry held while the content was rewritten. Large regional change is rejected.
             qa["pass"], qa["reason"] = False, f"{changed:.0%} of the frame's regions changed content"
-            _keep_rejected(out, [f0, f_end], qa)
-            raise MotionError(f"Content-fidelity check failed: {qa['reason']}")
-        log.info("AI motion hook verified: %s (inliers=%d, ratio=%.2f, content change %.0f%%)", qa.get("reason"),
-                 qa.get("inliers", 0), qa.get("inlier_ratio", 0.0), 100 * changed)
-        # The accepted clip's measurements too (rejected ones were already kept): the gate's thresholds can
-        # only be calibrated from both sides, and production had no rejections to learn from (2026-10-24).
+            reject(qa, "Content-fidelity check failed")
         try:
-            out.with_suffix(".qa.json").write_text(json.dumps({**qa, "archetype": archetype, "accepted": True}, indent=1), encoding="utf-8")
-        except (OSError, TypeError, ValueError) as e:
-            log.debug("Motion QA record not written: %s", e)
+            moved = motion_amount(out)
+        except Exception as e:  # unmeasurable: treated as a still, never as motion
+            log.warning("Could not measure the clip's motion (%s).", e)
+            moved = {"flow_share": 0.0, "moving_share": 0.0, "mean_diff": 0.0}
+        qa.update(moved)
+        if not visible_motion(moved):
+            # Paid for, faithful and still: the beat keeps its free parallax push instead (see MIN_FLOW_SHARE).
+            qa["pass"], qa["reason"] = False, (
+                f"no visible motion (flow {100 * moved['flow_share']:.2f}% of the height < {100 * MIN_FLOW_SHARE:.1f}%, "
+                f"{100 * moved['moving_share']:.0f}% of regions moving < {100 * MIN_MOVING_SHARE:.0f}%)")
+            log.warning("AI motion clip %s rejected: %s.", out.name, qa["reason"])
+            reject(qa, "Motion check failed")
+        log.info("AI motion hook verified: %s (inliers=%d, ratio=%.2f, content change %.0f%%, flow %.2f%%, "
+                 "%.0f%% of regions moving)", qa.get("reason"), qa.get("inliers", 0), qa.get("inlier_ratio", 0.0),
+                 100 * changed, 100 * moved["flow_share"], 100 * moved["moving_share"])
+        qa.update(archetype=archetype, accepted=True, gate=GATE_VERSION)
+        if keep:
+            # The accepted clip's measurements too (rejected ones were already kept): the gate's thresholds can
+            # only be calibrated from both sides, and production had no rejections to learn from (2026-10-24).
+            # The clip's hash ties them to this clip: a reuse trusts them only for the same bytes.
+            try:
+                qa["sha256"] = _sha256(out)
+                out.with_suffix(".qa.json").write_text(json.dumps(qa, indent=1), encoding="utf-8")
+            except (OSError, TypeError, ValueError) as e:
+                log.debug("Motion QA record not written: %s", e)
+        return qa
     finally:
         f0.unlink(missing_ok=True)
         f_end.unlink(missing_ok=True)
 
-    return out
+
+def passes_gates(clip: Path, keep: bool = True) -> bool:
+    """A clip on disk (this run's, after a restart, or another run's before it is carried over) against today's
+    gates. Its .qa.json is trusted only when it records this GATE_VERSION, a pass and this clip's hash; otherwise
+    the clip is measured again (the archetype its record names, else the strictest). keep: as for _gate."""
+    clip = Path(clip)
+    record_path = clip.with_suffix(".qa.json")
+    record: Dict[str, Any] = {}
+    try:
+        record = json.loads(record_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        pass
+    try:
+        if (record.get("gate") == GATE_VERSION and record.get("accepted") and record.get("pass", True)
+                and record.get("sha256") == _sha256(clip)):
+            return True
+    except OSError:
+        return False
+    try:
+        _gate(clip, str(record.get("archetype") or "relic_artifact"), keep=keep)
+        return True
+    except (MotionError, OSError, ValueError, subprocess.SubprocessError) as e:
+        log.warning("Motion: %s is not reused (%s).", clip.name, e)
+        return False
 
 
 # ----------------------------------------------------------------- Kling
@@ -314,13 +430,15 @@ def out_of_credit(message: str) -> bool:
 
 
 def fallback_note(used: List[str], tried_paid: bool) -> str:
-    """The review card's line when no AI motion was made because a paid provider is out of credit ("" otherwise):
-    "Opening motion: parallax (Kling out of credit)"."""
+    """The review card's line when no AI motion was made because a paid provider is out of credit, or because this
+    run's paid clip showed no visible motion ("" otherwise): "Opening motion: parallax (Kling out of credit)"."""
     if used or not tried_paid:
         return ""
     from . import provider_status
     shut = [n for n in ("kling",) if n in provider_status.capped()]
     if not shut:
+        if last_motion_rejection:  # paid for and refused: the operator sees where the money went
+            return f"🎞 Opening motion: parallax (the paid clip had {last_motion_rejection}; kept in motion/rejected)"
         return ""
     names = ", ".join(provider_status.NAMES.get(n, n) for n in shut)
     return f"🎞 Opening motion: parallax ({names} out of credit)"
@@ -482,18 +600,26 @@ def apply(
     copied in and reused. allow_paid=False (dry runs without --paid-motion): no paid clips, local parallax only.
     Only a strong shot is animated, or has a clip reused (animatable): never a context photo (Nazca, 2026-10-28:
     a clip of the highway through the desert, made from a context shot, was carried into the regeneration), nor
-    a shot `durations` says lasts longer than the clip (it would freeze)."""
+    a shot `durations` says lasts longer than the clip (it would freeze).
+    The clip is the motion hook: it opens the video. A later beat takes one only as the "one more" of
+    MOTION_MAX_CLIPS >= 2, once the opening moves (footage or a hook clip there already, or the clip made for it);
+    when the opening still cannot take one, no clip is bought or placed (opening_slots). Production Derinkuyu
+    (2026-10-29): the paid clip was placed third, at 12.7 s, with a parallax still opening the video."""
     memo = {} if memo is None else memo
     from .typography import is_video
+    global last_motion_rejection
+    last_motion_rejection = ""
     if config.MOTION_MAX_CLIPS <= 0:
         return scenes, []
-    ok = [animatable(p) and not (durations and i < len(durations) and durations[i] > SECONDS_OUT)
-          for i, p in enumerate(scenes)]
+    ok = opening_slots(scenes, durations)
     # A clip this run already paid for is still on disk after a restart or a resume (the memo lives in
-    # memory): reusing it costs nothing, so it is used whether or not this pass may buy one.
+    # memory): reusing it costs nothing, so it is used whether or not this pass may buy one. A clip on disk or
+    # carried over passes today's checks again first (passes_gates).
     memo.update({k: v for k, v in _clips_on_disk(work_dir).items() if k not in memo})
     for seed in seed_dirs or []:
         memo.update({k: v for k, v in _adopt_clips(work_dir, Path(seed)).items() if k not in memo})
+    if not any(ok):
+        return scenes, []
     if not allow_paid or config.MEDIA_MONTHLY_BUDGET_USD <= 0:
         reused = _reuse(scenes, memo, ok)
         return reused if reused[1] else (scenes, [])
@@ -514,6 +640,12 @@ def apply(
         if not ok[i]:
             continue  # a context shot, one found for a line, or a held shot longer than the clip stays a still
         key = str(scenes[i])
+        if key not in memo and can_move(Path(scenes[i])) is False:
+            log.info("Motion: no clip bought for %s: nothing its record names can move (water, fire, smoke, sky, "
+                     "foliage, people, cloth, dust or sand); it keeps the free parallax.", Path(scenes[i]).name)
+            if i == 0:
+                break  # the opening stays a still: a later clip would not open the video
+            continue
         try:
             result = memo.get(key) or animate(db, Path(scenes[i]), work_dir / f"motion_{len(memo) + 1:02d}.mp4", topic=topic, fact_sheet=fact_sheet)
         except TypeError:
@@ -521,10 +653,78 @@ def apply(
         if result is not None:
             memo[key] = result
         if result is None:
-            break  # nothing available or affordable: stop asking
+            if "no visible motion" in (last_fallback_reason or ""):
+                last_motion_rejection = "no visible motion"
+            break  # nothing available or affordable, or the opening's clip was rejected: stop asking
         scenes[i] = result[0]
         used.append(result[1])
     return scenes, used
+
+
+def opening_slots(scenes: List[Path], durations: Optional[List[float]] = None) -> List[bool]:
+    """Per beat, whether it may take (or have reused) a motion clip. The opening (beat 1) when it is a strong
+    still no longer than the clip; a later beat only as the "one more" of MOTION_MAX_CLIPS >= 2, and only when
+    the opening moves: it is footage or a clip already, or may take one itself. All False when the opening is a
+    still that may not take one (said in the log): the clip would not open the video, so none is paid for."""
+    from .typography import is_video
+    if not scenes:
+        return []
+
+    def fits(i: int) -> bool:
+        return animatable(scenes[i]) and not (durations and i < len(durations) and durations[i] > SECONDS_OUT)
+    ok = [False] * len(scenes)
+    if not is_video(Path(scenes[0])):
+        ok[0] = fits(0)
+        if not ok[0]:
+            longer = bool(durations) and durations[0] > SECONDS_OUT
+            log.info("Motion: no clip: the opening shot %s %s, and a clip on a later beat would not open the video.",
+                     Path(scenes[0]).name, f"lasts {durations[0]:.1f}s, longer than the {SECONDS_OUT:.0f}s clip"
+                     if longer else "is not a Topic or Kept photo")
+            return ok
+    if config.MOTION_MAX_CLIPS >= 2:
+        for i in range(1, len(scenes)):
+            ok[i] = fits(i)
+    return ok
+
+
+# What can plausibly move in a photo, from what is already recorded about it (the pool review's verdict, which
+# says what the picture shows, and the archive title and description): no new vision call. A clip of solid stone
+# under a locked camera is a still (production Derinkuyu, 2026-10-29: "a rolling stone door mechanism and
+# corridor", paid for and static). Lamps are left out: an electric lamp's light does not move.
+_CAN_MOVE = re.compile(
+    r"\b(?:water|waters|river|rivers|sea|seas|ocean|lake|lagoon|waves?|surf|waterfalls?|streams?|fountains?"
+    r"|flood\w*|rain|snow\w*|tides?|harbou?r|shore|beach|fire|fires|flames?|torch(?:es)?|candles?|bonfires?|burning"
+    r"|smoke|smoking|steam|mist|misty|fog|foggy|haze|clouds?|cloudy|sky|skies|sunset|sunrise|storm"
+    r"|trees?|forest|woods|jungle|foliage|leaves|grass\w*|palms?|reeds?|vegetation|plants?|crops?|fields?"
+    r"|people|person|visitors?|tourists?|crowds?|pilgrims?|worshipp?ers?|dancers?|dancing|workers?|men|women|children"
+    r"|cloth|fabric|flags?|banners?|curtains?|sails?|robes?|garments?|dust|dusty|sand|sandy|dunes?|desert"
+    r"|birds?|animals?|horses?|camels?|cattle|boats?|ships?)\b", re.I)
+_NONE_OF = re.compile(r"\b(?:no|without|empty of|devoid of|free of)\s+(?:\w+\s+){0,2}$", re.I)
+
+
+def can_move(photo: Path) -> Optional[bool]:
+    """True when the photo's record names something that can move, False when the record names nothing that can,
+    None when there is no record (a photo you supplied: your choice, and the motion check still judges the clip)."""
+    from .scene_planner import _photo_entry
+    try:
+        entry = _photo_entry(Path(photo))
+    except (OSError, ValueError) as e:
+        log.info("Motion: %s's record could not be read (%s).", Path(photo).name, e)
+        return None
+    if not entry:
+        return None
+    verdict = entry.get("vision_review") or {}
+    if verdict.get("people_prominent"):
+        return True
+    # What the photo review saw in the pixels decides first (2026-10-29, image_review.PhotoVerdict.can_move): the
+    # caption's words below are the fallback for a verdict made before the review said so.
+    if isinstance(verdict.get("can_move"), bool):
+        return verdict["can_move"]
+    text = " ".join(str(v or "") for v in (verdict.get("reason"), entry.get("title"), entry.get("description")))
+    for m in _CAN_MOVE.finditer(text):
+        if not _NONE_OF.search(text[max(0, m.start() - 40):m.start()]):
+            return True
+    return False
 
 
 def animatable(photo: Path) -> bool:
@@ -539,10 +739,12 @@ def animatable(photo: Path) -> bool:
 
 def _reuse(scenes: List[Path], memo: dict, ok: Optional[List[bool]] = None) -> Tuple[List[Path], List[str]]:
     """Clips in `memo` placed where their own photo still appears, on a beat `ok` allows. A clip whose photo is
-    not animatable (a context shot: an earlier run's clip of it) is never placed."""
-    scenes, reused = list(scenes), []
+    not animatable (a context shot: an earlier run's clip of it) is never placed. A clip for a later beat is
+    placed only when the opening moves (opening_slots): with the opening still a still, none is."""
+    from .typography import is_video
+    original, scenes, placed = list(scenes), list(scenes), []
     for photo, (existing_clip, provider) in memo.items():
-        if len(reused) >= config.MOTION_MAX_CLIPS:
+        if len(placed) >= config.MOTION_MAX_CLIPS:
             break
         if Path(existing_clip).is_file() and animatable(Path(photo)):
             for i in range(len(scenes)):
@@ -550,14 +752,18 @@ def _reuse(scenes: List[Path], memo: dict, ok: Optional[List[bool]] = None) -> T
                     continue
                 if str(scenes[i]) == photo or Path(scenes[i]).resolve() == Path(photo).resolve():
                     scenes[i] = existing_clip
-                    reused.append(provider)
+                    placed.append((i, provider))
                     break
-    return scenes, reused
+    if ok is not None and scenes and not is_video(Path(scenes[0])):
+        return original, []
+    return scenes, [prov for i, prov in sorted(placed)]
 
 
-def _clip_records(work_dir: Path) -> List[Tuple[Path, Path, Path, str]]:
+def _clip_records(work_dir: Path, keep: bool = True) -> List[Tuple[Path, Path, Path, str]]:
     """(photo, clip, anchor, provider) for the accepted clips in work_dir. Lineage is written only for a
-    clip that passed its checks, and it must still verify: clip, anchor frame and photo unchanged."""
+    clip that passed its checks, and it must still verify: clip, anchor frame and photo unchanged. The clip
+    must also pass today's checks (passes_gates: one accepted before the motion check is measured again);
+    keep=False for another run's folder, which is never changed."""
     from .lineage import sidecar, source_chain
     found = []
     for record in sorted(Path(work_dir).glob("motion_*.mp4.lineage.json")):
@@ -573,6 +779,8 @@ def _clip_records(work_dir: Path) -> List[Tuple[Path, Path, Path, str]]:
                 anchor_data = json.loads(sidecar(anchor).read_text(encoding="utf-8"))
                 if anchor_data.get("operation") == "motion_anchor_frame":
                     photo = Path(anchor_data["sources"][0]["path"])
+            if not passes_gates(clip, keep=keep):
+                continue
             found.append((photo, clip, anchor, (data.get("settings") or {}).get("provider", "ai-motion")))
         except (OSError, ValueError, KeyError, IndexError, TypeError) as e:
             log.info("Motion: not reusing %s (%s).", clip.name, e)
@@ -593,12 +801,16 @@ def _adopt_clips(work_dir: Path, seed_dir: Path) -> dict:
     if not seed_dir.is_dir() or seed_dir.resolve() == Path(work_dir).resolve():
         return found
     work_dir.mkdir(parents=True, exist_ok=True)
-    for photo, clip, anchor, provider in _clip_records(seed_dir):
+    for photo, clip, anchor, provider in _clip_records(seed_dir, keep=False):  # each passes today's checks first
         new_clip, new_anchor = Path(work_dir) / clip.name, Path(work_dir) / anchor.name
         if new_clip.exists():
             continue
         try:
             shutil.copy2(clip, new_clip)
+            if clip.with_suffix(".qa.json").is_file():  # its measurements (passes_gates trusts them for these bytes)
+                qa = json.loads(clip.with_suffix(".qa.json").read_text(encoding="utf-8"))
+                if qa.get("gate") == GATE_VERSION:
+                    new_clip.with_suffix(".qa.json").write_text(json.dumps(qa, indent=1), encoding="utf-8")
             if anchor.resolve() != photo.resolve():
                 shutil.copy2(anchor, new_anchor)
             else:

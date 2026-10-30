@@ -374,8 +374,9 @@ def paid(monkeypatch):
 def test_motion_animates_only_the_topic_photo(db, mixed, paid, tmp_path):
     ctx, top, _ = mixed
     scenes, used = motion.apply(db, [ctx, top], tmp_path / "motion")
-    assert paid == ["08_commons.jpg"] and used == ["kling-3.0"]
-    assert scenes[0] == ctx and scenes[1].name.startswith("motion_")
+    # The clip opens the video or is not bought (2026-10-29): with a context shot opening, the topic photo on
+    # beat 2 is not animated either (production Derinkuyu placed its paid clip third, at 12.7 s).
+    assert paid == [] and used == [] and scenes == [ctx, top]
 
 
 def test_a_clip_made_from_a_context_photo_is_not_reused(db, mixed, paid, tmp_path):
@@ -385,7 +386,8 @@ def test_a_clip_made_from_a_context_photo_is_not_reused(db, mixed, paid, tmp_pat
     old_clip.write_bytes(b"paid earlier")
     memo = {str(ctx): (old_clip, "kling-3.0")}
     scenes, used = motion.apply(db, [ctx, top], tmp_path / "motion", memo=memo)
-    assert scenes[0] == ctx and old_clip not in scenes and paid == ["08_commons.jpg"]
+    # The clip opens the video or is not bought (2026-10-29): nothing for the topic photo on beat 2 either.
+    assert scenes == [ctx, top] and old_clip not in scenes and paid == []
     # Without a budget (a dry run) nothing new is bought, and the context clip still is not placed.
     scenes, used = motion.apply(db, [ctx], tmp_path / "motion", memo=memo, allow_paid=False)
     assert scenes == [ctx] and used == []
@@ -394,7 +396,8 @@ def test_a_clip_made_from_a_context_photo_is_not_reused(db, mixed, paid, tmp_pat
 def test_a_held_shot_longer_than_the_clip_is_not_animated(db, mixed, paid, tmp_path):
     _, top, top2 = mixed
     scenes, _ = motion.apply(db, [top, top2], tmp_path / "motion", durations=[motion.SECONDS_OUT + 1.0, 3.2])
-    assert paid == ["02_commons.jpg"] and scenes[0] == top
+    # The clip opens the video or is not bought (2026-10-29): the held opening stays a still and beat 2 gets none.
+    assert paid == [] and scenes == [top, top2]
 
 
 # ------------------------------------------------------------------ 3. a foreign object along an edge

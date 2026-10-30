@@ -20,6 +20,11 @@ def _paid_clip(tmp_path):
     Image.new("RGB", (40, 70), "white").save(anchor)
     clip.write_bytes(b"accepted kling clip")
     motion._record_lineage(photo, anchor, (clip, "kling-3.0"), "kling-3.0")
+    # Its checks' record, as _finish writes it (2026-10-29): a clip on disk or carried over is reused only when it
+    # passed today's gates; the record for these bytes is trusted, so the reuse is tested, not the measurement.
+    import json
+    clip.with_suffix(".qa.json").write_text(json.dumps({"pass": True, "accepted": True, "gate": motion.GATE_VERSION,
+                                                        "sha256": motion._sha256(clip)}), encoding="utf-8")
     return photo, work, clip
 
 

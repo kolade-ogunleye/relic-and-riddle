@@ -29,8 +29,10 @@ from .typography import cover_crop, fit_font, fit_line, get_font, is_video, spok
 
 log = logging.getLogger(__name__)
 
-GOLD = (255, 215, 0, 255)
-WHITE = (255, 255, 255, 255)
+# Brand tokens (src/brand.py, visual overhaul 2026-10-29): the one gold and the bone text every surface shares.
+from . import brand as _brand
+GOLD = _brand.rgba(_brand.GOLD)
+WHITE = _brand.rgba(_brand.BONE)
 SAFE_TEXT_WIDTH = VIDEO_WIDTH - 2 * 110
 COVER_STYLES = ("badge", "lower_third", "minimal", "depth_sandwich")
 
@@ -488,7 +490,7 @@ class VisualEngine:
         cx = VIDEO_WIDTH // 2
 
         eye_box = [cx - eye_box_w // 2, start_y, cx + eye_box_w // 2, start_y + eye_box_h]
-        draw.rounded_rectangle(eye_box, radius=10, fill=(12, 12, 12, 220), outline=(255, 215, 0, 240), width=2)
+        draw.rounded_rectangle(eye_box, radius=10, fill=(12, 12, 12, 220), outline=_brand.rgba(_brand.GOLD, 240), width=2)
         draw.text((cx, start_y + eye_box_h // 2), eyebrow, font=font_eye, fill=GOLD, anchor="mm")
         if lay is not None:
             lay.add("eyebrow", eye_box)
@@ -498,7 +500,7 @@ class VisualEngine:
         if tagline:
             tag_y0 = title_y1 + gap_tag
             tag_box = [cx - tag_box_w // 2, tag_y0, cx + tag_box_w // 2, tag_y0 + tag_box_h]
-            draw.rounded_rectangle(tag_box, radius=12, fill=(14, 14, 14, 225), outline=(255, 215, 0, 240), width=2)
+            draw.rounded_rectangle(tag_box, radius=12, fill=(14, 14, 14, 225), outline=_brand.rgba(_brand.GOLD, 240), width=2)
             draw.text((cx, tag_y0 + tag_box_h // 2), tagline, font=font_tag, fill=WHITE, anchor="mm")
             if lay is not None:
                 lay.add("tagline", tag_box)

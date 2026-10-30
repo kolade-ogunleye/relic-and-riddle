@@ -227,8 +227,12 @@ def test_the_text_uses_the_band_the_cues_reserved(gen, tmp_path):
     px = gen._px(cw)
     assert gen._footer_top(chh) == chh - px(30) - 2 * px(gen.BAND_GAP)       # was chh - 67 - 16, above the cues
     _, lay = gen._render_carousel_slide("debate", photos[0], photos[1], CARDS[6], 6, 7, {}, "Send this on.", False)
-    footer = next(e["box"] for e in lay.elements if e["name"] == "footer")
-    assert footer[3] <= gen._footer_top(chh) and footer[3] > chh - px(100)   # on the footer line, not 120 px up
+    # 2026-10-29: no "TELL US IN THE COMMENTS" footer (operator decision); every slide's stack ends on one shared
+    # line inside the profile grid's square crop, the share line last on the closing slide.
+    names = [e["name"] for e in lay.elements]
+    assert "footer" not in names and "share" in names
+    share = next(e["box"] for e in lay.elements if e["name"] == "share")
+    assert share[3] <= px(gen.KEY_BOTTOM) and share[3] >= px(gen.KEY_BOTTOM - gen.KEY_GAP) - px(14)
 
 
 def test_story_frames_carry_no_arrow(gen, tmp_path, monkeypatch):
@@ -239,7 +243,7 @@ def test_story_frames_carry_no_arrow(gen, tmp_path, monkeypatch):
     payload = {"story_slides": [slide, slide, slide], "poll": PAYLOAD["poll"], "title": "T", "caption": "", "first_comment": ""}
     photos = _photos(tmp_path)
     gen.generate_story_sequence(photos[0], payload, tmp_path, scene_images=photos)
-    assert "FULL STORY IN OUR NEW REEL" in drawn
+    assert "FULL STORY IN OUR NEW REEL" in "".join(drawn)   # tracked: drawn a letter at a time (2026-10-29)
     assert not any("REPLY" in t for t in drawn)       # no set-reply ask on the poll frame (2026-10-29)
     assert not any(_DIRECTION_MARKS.search(t) or "BELOW" in t for t in drawn)
     manifest = json.loads((tmp_path / "companion_posting.json").read_text(encoding="utf-8"))

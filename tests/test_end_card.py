@@ -88,6 +88,8 @@ def test_a_busy_frame_is_softened_and_a_plain_one_is_not():
     assert end_card.fit_dim(Image.new("RGB", (1080, 1920), (120, 140, 170)))[2]["soften"] == 0.0
 
 
+@pytest.mark.skip(reason="The capsule was removed on 2026-10-29 (operator decision: it read as a button); "
+                         "end_card is plain type (tests/test_brand_overhaul_2026_10_29.py).")
 def test_the_finished_capsule_outline_is_symmetric():
     # Operator, 2026-10-25: the two traced halves did not meet (one edge a pixel higher, a step at the centre),
     # from PIL's wide lines being offset by their drawing direction.

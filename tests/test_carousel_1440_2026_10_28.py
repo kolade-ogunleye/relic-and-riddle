@@ -98,20 +98,21 @@ def test_every_archetype_normal_and_tight_both_copies_lays_out_cleanly_at_1440(g
             assert brand[0] < cw // 2 and brand[3] <= (chh - cw) // 2     # out whole in a square grid crop
 
 
-def test_a_1080_canvas_draws_exactly_the_boxes_it_drew_before(gen, tmp_path, monkeypatch):
-    """S = 1: the scaled renderer is the old renderer (recorded from it before the change)."""
+def test_a_1080_canvas_draws_every_recorded_case_cleanly(gen, tmp_path, monkeypatch):
+    """S = 1: every case of the fixture (recorded from the pre-1440 renderer) still lays out without a problem on
+    the 1080 canvas. Until the visual overhaul (2026-10-29) this compared the boxes exactly; the overhaul's
+    bottom-aligned stacks move every box, so the cases are kept and the exact boxes retired."""
     monkeypatch.setattr(MultiFormatGenerator, "CAROUSEL_SIZE", (1080, 1350))
     expected = json.loads(FIXTURE.read_text(encoding="utf-8"))
     photos = _photos(tmp_path / "photos")
     seen = 0
-    for key, want in expected.items():
+    for key in expected:
         ci, archetype, fit, _ = key.split("/")
         ci = int(ci)
         _, lay = gen._render_carousel_slide(archetype, photos[ci % 3], photos[(ci + 1) % 3], CARDS[ci], ci, 7, POLL, SHARE,
                                             False, tight=fit == "tight")
         rec = lay.to_dict()
-        assert rec["size"] == [1080, 1350]
-        assert {k: rec[k] for k in want} == want, key
+        assert rec["size"] == [1080, 1350] and lay.problems() == [], (key, lay.problems())
         seen += 1
     assert seen == 28
 

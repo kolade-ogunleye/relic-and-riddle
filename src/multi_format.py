@@ -20,14 +20,17 @@ from typing import Any, Dict, List, Tuple
 from PIL import Image, ImageDraw
 
 from .config import VIDEO_WIDTH, VIDEO_HEIGHT
-from .typography import (drawable, fit_line, fit_text, cover_crop, fit_font, get_font, is_video, spoken_units,
-                         text_size, wrap_text)
+from .typography import (cap_height, drawable, fit_line, fit_text, cover_crop, get_font, is_video,
+                         plan_text, record_contrast, spoken_units, text_size, tracked_width, wrap_text)
+from . import brand
 
 log = logging.getLogger(__name__)
 
-GOLD = (255, 215, 0)
-WHITE = (255, 255, 255)
-LIGHT = (225, 225, 225)
+# Brand tokens (src/brand.py, visual overhaul 2026-10-29): one gold across every surface, bone text, ink grounds.
+GOLD = brand.GOLD
+WHITE = brand.BONE
+LIGHT = brand.BONE
+INK = brand.INK
 
 
 # The poll frame's room for the native poll sticker, which the operator places when posting (y range on the
@@ -36,14 +39,83 @@ LIGHT = (225, 225, 225)
 # which the engagement-bait check itself flags ("Reply A").
 POLL_STICKER_ROOM = (1300, 1560)
 
-STORY_BODY_PX = 40      # the Story body's size; never shrunk below it (2026-10-25: 30 px read as ~11 pt)
+STORY_BODY_PX = 46      # the Story body's size; never shrunk below it (2026-10-25: 30 px read as ~11 pt; 40 until
+                        # the overhaul of 2026-10-29, which sets it at the critic's measured 46-48 px, ~16 pt)
 STORY_BODY_LINES = 3
+STORY_MARGIN = 84       # the Story's text column starts here, 19 px inside the safe box (2026-10-29: left-aligned)
 
 
 def story_body_width() -> int:
+    """The Story text column: the safe box less STORY_MARGIN's inset on each side (912 px at 1080x1920)."""
     from .safe_zones import safe_box
     sx0, _, sx1, _ = safe_box("story", VIDEO_WIDTH, VIDEO_HEIGHT)
-    return min(VIDEO_WIDTH - 2 * 110, sx1 - sx0)
+    inset = STORY_MARGIN - sx0
+    return (sx1 - inset) - (sx0 + inset)
+
+
+def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: float = 0.30, cap: float = 0.90,
+          floor: float = 0.18, colour=None, pct: float = 95) -> Image.Image:
+    """An ink gradient behind one text band, deep only as far as the band's own brightness needs (its `pct`
+    percentile luminance brought toward `target`), fading over `feather` px above and below: never a box and
+    never the whole frame (visual overhaul, 2026-10-29: a 35% shade over every Story and a fixed vignette band
+    left bright stone at 3:1 and dark photos darker than they needed). Each line's own halo (place_text) does
+    the rest, line by line."""
+    import numpy as np
+    W, H = im.size
+    colour = colour or INK
+    a = np.asarray(im.convert("RGB"), dtype=np.float32) / 255.0
+    band = a[max(0, int(y0)):max(int(y0) + 1, int(y1))] @ np.array([0.2126, 0.7152, 0.0722], np.float32)
+    p = float(np.percentile(band, pct)) if band.size else 0.0
+    strength = float(np.clip(1 - target / max(p, 1e-3), floor, cap))
+    y = np.arange(H, dtype=np.float32)
+    v = np.where((y >= y0) & (y <= y1), 1.0, np.where(y < y0, 1 - (y0 - y) / feather, 1 - (y - y1) / feather))
+    v = np.clip(v, 0, 1)
+    v = v * v * (3 - 2 * v)
+    mask = Image.fromarray((v * 255 * strength).astype(np.uint8).reshape(H, 1)).resize((W, H))
+    layer = Image.new("RGBA", im.size, tuple(colour) + (255,))
+    layer.putalpha(mask)
+    out = Image.alpha_composite(im.convert("RGBA"), layer)
+    return out if im.mode == "RGBA" else out.convert(im.mode)
+
+
+KICKER_TRACK = 0.15     # a kicker's letter spacing, as a share of its size (Montserrat 800, tracked caps)
+
+
+def kicker_width(text: str, font) -> float:
+    """A kicker's drawn width: its gold bar (a quarter of the cap height wide) and gap, then the tracked text."""
+    ch = cap_height(font)
+    return ch * 0.26 + ch * 0.66 + tracked_width(text, font, font.size * KICKER_TRACK)
+
+
+def draw_kicker(im: Image.Image, x: float, baseline: float, text: str, font, colour=None, lay=None,
+                name: str = "kicker", plates=None) -> Tuple[Image.Image, Tuple[int, int, int, int]]:
+    """A kicker: a solid gold bar the height of its capitals, then the words in tracked gold capitals (the covers'
+    eyebrow). A label, never a pill or a button."""
+    colour = colour or GOLD
+    ch = cap_height(font)
+    bar_w, gap = max(4, round(ch * 0.26)), round(ch * 0.66)
+    d = ImageDraw.Draw(im)
+    d.rectangle([round(x), round(baseline - ch), round(x) + bar_w - 1, round(baseline)], fill=tuple(colour))
+    plate = plan_text(im, (x + bar_w + gap, baseline), text, font, colour, "ls", track=font.size * KICKER_TRACK)
+    im = plate.draw(im)
+    box = (int(round(x)), min(plate.box[1], int(round(baseline - ch))), plate.box[2], max(plate.box[3], int(round(baseline))))
+    if lay is not None:
+        lay.add(name, box)
+        lay.elements[-1].update(plate.record())
+    if plates is not None:
+        plates.setdefault(name, []).append(plate)
+    return im, box
+
+
+def _fit_kicker(text: str, font, width: float) -> Tuple[str, bool]:
+    """A kicker that fits `width` at this size: whole, else shortened at a word with an ellipsis (logged)."""
+    if not text or kicker_width(text, font) <= width:
+        return text, False
+    words = text.split()
+    while len(words) > 1 and kicker_width(" ".join(words) + "…", font) > width:
+        words.pop()
+    log.warning("Kicker shortened to fit %d px: %s", width, text)
+    return " ".join(words) + "…", True
 
 
 def story_body_lines(body: str, asks_poll: bool = False) -> int:
@@ -142,6 +214,7 @@ class MultiFormatGenerator:
             layout.append({**lay.meta, "frame": name})
             path = out_dir / name
             base.save(path, quality=95)
+            _delivered_contrast(lay, path)
             still_layout.save(path, lay, recipe, attempts)
             slides.append(path)
         (out_dir / "layout.json").write_text(json.dumps(layout, indent=2), encoding="utf-8")
@@ -163,6 +236,8 @@ class MultiFormatGenerator:
         companion_manifest = {
             "story_poll_sticker": script_payload.get("poll", {}),
             "story_frames": [p.name for p in slides],
+            # What each frame credits on itself (Stories carry no caption; story_credit, 2026-10-29)
+            "story_credits": {e["frame"]: e["photo_credit"].get("lines", []) for e in layout},
             "first_comment": first_comment,
             "platforms": {
                 "instagram_reels": {
@@ -194,105 +269,151 @@ class MultiFormatGenerator:
 
     def _render_story_frame(self, photo: Path, slide: Dict[str, Any], i: int, count: int, poll: Dict[str, Any],
                             tight: bool = False):
-        """One Story frame and its measured layout. Every block is measured with the font's real metrics
-        before anything is drawn, the whole stack is placed inside the Story box (safe_zones.STORY: Meta's 14%
-        top, 35% bottom, 6% sides) and each drawn box is recorded for the post-draw check (still_layout).
-        `tight`: the second, tighter fit (smaller title and kicker, the body over the whole safe width)."""
+        """One Story frame and its measured layout (visual overhaul, 2026-10-29): a left-aligned editorial column
+        at STORY_MARGIN, a kicker (gold bar, tracked gold capitals), a two-tone Anton title (bone, then gold), the
+        Montserrat body in balanced lines, and on the first frame the pointer to the Reel. Every block is measured
+        with the font's real metrics before anything is drawn and placed inside the Story box (safe_zones.STORY:
+        Meta's 14% top, 35% bottom, 6% sides), on the calmest band of the photo; an adaptive ink gradient sits
+        behind that band only, and each line is drawn at a measured contrast (typography.place_text: >= 4.5:1 on
+        the pixels touching its glyphs), the ratio recorded with its box for the post-draw check (still_layout).
+        `tight`: the second, tighter fit (smaller title and kicker). A photo whose licence asks for attribution is
+        credited at the foot of the box (story_credit), recorded as the `photo_credit` element and in the frame's
+        layout.json entry."""
         from .safe_zones import safe_box
         from .still_layout import Layout
         from .visual_engine import calm_center_y
         sx0, sy0, sx1, sy1 = safe_box("story", VIDEO_WIDTH, VIDEO_HEIGHT)
-        max_w = min(VIDEO_WIDTH - 2 * 110, sx1 - sx0)
-        wide_w = sx1 - sx0 - 20                                  # the whole safe width, less a hair for the stroke
+        x = STORY_MARGIN
+        max_w = story_body_width()
         asks_poll = i == count - 1 and len(poll.get("options", [])) >= 2
         lay = Layout("story", (VIDEO_WIDTH, VIDEO_HEIGHT), (sx0, sy0, sx1, sy1), tight=tight,
                      protected=[("poll_sticker_room", (0, POLL_STICKER_ROOM[0], VIDEO_WIDTH, POLL_STICKER_ROOM[1]))]
                      if asks_poll else None)
+        lay.plates = {}
         base = cover_crop(photo, (VIDEO_WIDTH, VIDEO_HEIGHT)).convert("RGB")
-        cy = calm_center_y(base, candidates=(640, 790, 940), band=520)  # bands inside the Story box
-        d = ImageDraw.Draw(base, "RGBA")
-        # Global 35% dark underlay across the entire base image to tame bright sunlit stone/sand
-        d.rectangle([(0, 0), (VIDEO_WIDTH, VIDEO_HEIGHT)], fill=(6, 6, 8, 90))
-        for y in range(VIDEO_HEIGHT):  # soft vignette band behind the text, darkest at its centre
-            k = max(0.0, 1 - abs(y - cy) / 520)
-            d.line([(0, y), (VIDEO_WIDTH, y)], fill=(6, 6, 8, int(220 * k ** 1.3)))
-        kicker, l1, l2 = slide["kicker"].upper(), slide["line1"].upper(), slide["line2"].upper()
-        if i == count - 1 and len(poll.get("options", [])) >= 2 and poll.get("question"):
-            l1, l2 = split_balanced(poll["question"].upper())  # the frame asks the question its options answer
-        pad_x, pad_y = 26, 12
-        kicker, font_k, k_short = fit_line(d, kicker, "Montserrat", 30 if tight else 34, max_w - 2 * pad_x, 22)
-        t_size, t_min = (88, 48) if tight else (104, 56)
-        size = min(fit_line(d, l1, "Anton", t_size, max_w, t_min, stroke=3, quiet=True)[1].size,
-                   fit_line(d, l2, "Anton", t_size, max_w, t_min, stroke=3, quiet=True)[1].size)
-        l1, font_t, s1 = fit_line(d, l1, "Anton", size, max_w, size, stroke=3)
-        l2, _, s2 = fit_line(d, l2, "Anton", size, max_w, size, stroke=3)
-        has_options = asks_poll
-        body = slide["body"]
-        if has_options:  # one question per frame: the poll's; the body keeps only its context
-            body = " ".join(s for s in re.split(r"(?<=[.!?])\s+", body) if not s.rstrip().endswith("?"))
-        k_h = text_size(d, kicker, font_k)[1] + 2 * pad_y if kicker else 0
-        tail = 90 if i == 0 else 20
-        fixed = k_h + 20 + 2 * (size + 12) + 28 + tail
-        room = (sy1 - (sy0 + 20)) - fixed                      # the height left for the body inside the box
-        n_room = max(1, (room - 48) // 54 + 1)
-        # Never smaller than its design size: shrunk to 30 px it read about 11 pt on a phone (operator,
-        # 2026-10-25). The script stage keeps each body within three lines at this size (story_body_lines);
-        # a longer one is set over the whole safe width before it takes a fourth line, and is never cut
-        # unless the box has no room left for it (then at a sentence, else a word, with an ellipsis).
-        body_lines, font_b, b_short, body_w = [], get_font("Montserrat", STORY_BODY_PX), False, max_w
-        if body.strip():
-            for w in ([wide_w] if tight else [max_w, wide_w]):
-                body_lines, font_b, b_short = fit_text(d, body, "Montserrat", STORY_BODY_PX, w, STORY_BODY_LINES,
-                                                       STORY_BODY_PX, stroke=2, quiet=True)
-                body_w = w
-                if not b_short:
+        d = ImageDraw.Draw(base)
+        # The photo's credit, when its licence asks for one (story_credit; 2026-10-29): at the foot of the Story box,
+        # above the reply bar and clear of the poll sticker's room, which both sit lower. Set in the data face (IBM
+        # Plex Mono), left-aligned on the text column; its backing is shaded only as far as 4.5:1 needs, before any
+        # text is drawn; the frame's text block then stays above it.
+        credit = dict(story_credit(photo))
+        text_floor = sy1
+        c_fill = brand.STONE_LT
+        if credit["required"]:
+            for c_px in range(STORY_CREDIT_PX, STORY_CREDIT_MIN_PX - 1, -2):  # at most three lines, never under 22 px
+                font_c = get_font(brand.DATA_FONT, c_px, weight=500)
+                c_drawn = [ln for line in credit["lines"] for ln in _credit_wrap(d, drawable(line, font_c), font_c, max_w)]
+                if len(c_drawn) <= STORY_CREDIT_LINES:
                     break
+            c_lead = round(c_px * STORY_CREDIT_LEADING / STORY_CREDIT_PX)
+            c_bottom = sy1 - 10
+            c_top = c_bottom - len(c_drawn) * c_lead
+            c_w = max(text_size(d, ln, font_c)[0] for ln in c_drawn)
+            backing = (x - 16, c_top - 8, x + c_w + 16, c_bottom + 6)
+            before = _contrast(base, backing, c_fill)
+            # A soft band of ink across the frame, not a box (a feathered rectangle read as a caption bar, 2026-10-29);
+            # each line then gets its own halo if the photo still shows through too brightly.
+            base = scrim(base, c_top - 10, c_bottom + 8, feather=90, target=0.16, cap=0.85, floor=0.0)
+            d = ImageDraw.Draw(base)
+            credit.update(drawn=c_drawn, px=c_px, backing=list(backing), contrast_unshaded=before,
+                          contrast=_contrast(base, backing, c_fill),
+                          complete=all(drawable(line, font_c) == line for line in credit["lines"]))  # no glyph missing
+            text_floor = c_top - STORY_CREDIT_GAP
+        kicker, l1, l2 = slide["kicker"].upper(), slide["line1"].upper(), slide["line2"].upper()
+        if asks_poll and poll.get("question"):
+            l1, l2 = split_balanced(poll["question"].upper())  # the frame asks the question its options answer
+        body = slide["body"]
+        if asks_poll:  # one question per frame: the poll's; the body keeps only its context
+            body = " ".join(s for s in re.split(r"(?<=[.!?])\s+", body) if not s.rstrip().endswith("?"))
+
+        # Measured first: the kicker on one line, both title lines at one size (the larger the better, to the
+        # column's width), the body at its fixed size in balanced lines.
+        k_px = 34 if tight else 40
+        font_k = get_font("Montserrat", k_px, weight=800)
+        while kicker and kicker_width(kicker, font_k) > max_w and font_k.size > 24:
+            font_k = get_font("Montserrat", font_k.size - 2, weight=800)
+        kicker, k_short = _fit_kicker(kicker, font_k, max_w)
+        t_size, t_min = (124, 56) if tight else (150, 64)
+        size = min(fit_line(d, l1, "Anton", t_size, max_w, t_min, quiet=True)[1].size,
+                   fit_line(d, l2, "Anton", t_size, max_w, t_min, quiet=True)[1].size)
+        l1, font_t, s1 = fit_line(d, l1, "Anton", size, max_w, size)
+        l2, _, s2 = fit_line(d, l2, "Anton", size, max_w, size)
+        cap_k, cap_t = cap_height(font_k), cap_height(font_t)
+        b_step = round(STORY_BODY_PX * 1.36)
+        b_gap = round(STORY_BODY_PX * 1.62)                       # title's baseline to the body's first baseline
+        body_lines, font_b, b_short = [], get_font("Montserrat", STORY_BODY_PX), False
+        fixed = cap_k + 30 + cap_t + round(cap_t * 1.13) + 40 + (110 if i == 0 else 0)
+        room = (text_floor - (sy0 + 30)) - fixed                  # the height left for the body inside the box
+        n_room = max(1, (room - b_gap) // b_step + 1)
+        # Never smaller than its design size (operator, 2026-10-25). The script stage keeps each body within three
+        # lines at this size (story_body_lines); a longer one takes more lines while the box has room, and is cut
+        # only when it has none (then at a sentence, else a word, with an ellipsis).
+        if body.strip():
+            body_lines, font_b, b_short = fit_text(d, body, "Montserrat", STORY_BODY_PX, max_w, STORY_BODY_LINES,
+                                                   STORY_BODY_PX, quiet=True)
             if b_short:
-                body_w = wide_w if tight else max_w
-                body_lines, font_b, b_short = fit_text(d, body, "Montserrat", STORY_BODY_PX, body_w,
-                                                       max(STORY_BODY_LINES, n_room), STORY_BODY_PX, stroke=2)
+                body_lines, font_b, b_short = fit_text(d, body, "Montserrat", STORY_BODY_PX, max_w,
+                                                       max(STORY_BODY_LINES, n_room), STORY_BODY_PX)
         lay.shortened = [n for n, short in (("kicker", k_short), ("title_1", s1), ("title_2", s2), ("body", b_short)) if short]
-        block = k_h + 20 + 2 * (size + 12) + 28 + len(body_lines) * 54 + tail
-        # Keep the whole block (with options or the Reel pointer) inside the Story box.
-        y = max(sy0 + 20, min(cy - block // 2, sy1 - block))
-        # Translucent dark charcoal pill behind kicker for WCAG AAA legibility (mathematically centered)
-        kx = VIDEO_WIDTH // 2
-        k_cy = y + k_h // 2
-        k_bbox = d.textbbox((kx, k_cy), kicker, font=font_k, anchor="mm")
-        pill_box = [k_bbox[0] - pad_x, k_bbox[1] - pad_y, k_bbox[2] + pad_x, k_bbox[3] + pad_y]
-        d.rounded_rectangle(pill_box, radius=14, fill=(10, 10, 14, 215), outline=(255, 215, 0, 180), width=2)
-        d.text((kx, k_cy), kicker, font=font_k, fill=GOLD, anchor="mm")
-        lay.add("kicker", pill_box)
-        y = pill_box[3] + 20
-        lay.text(d, (VIDEO_WIDTH // 2, y), l1, font_t, "title_1", anchor="mt", fill=WHITE, stroke_width=3, stroke_fill=(10, 10, 12, 230))
-        y += size + 12
-        lay.text(d, (VIDEO_WIDTH // 2, y), l2, font_t, "title_2", anchor="mt", fill=GOLD, stroke_width=3, stroke_fill=(10, 10, 12, 230))
-        y += size + 40
-        boxes = []
-        for line in body_lines:
-            boxes.append(lay.text(d, (VIDEO_WIDTH // 2, y), line, font_b, "body", anchor="mt", record=False, fill=LIGHT,
-                                  stroke_width=2, stroke_fill=(10, 10, 12, 220)))
-            y += 54
-        lay.block("body", boxes)
-        y_end = y
-        # No arrow on the pointer or the reply line (operator, 2026-10-28: a pointer must point the right way,
-        # and each platform places its own controls differently and may move them): the words say where to go.
-        if i == 0:
-            lay.text(d, (VIDEO_WIDTH // 2, y + 30), "FULL STORY IN OUR NEW REEL", get_font("Montserrat", 32), "reel_pointer",
-                     anchor="mt", fill=GOLD, stroke_width=2, stroke_fill=(10, 10, 12, 220))
-            y_end = y + 30 + 40
+
+        # Baselines, relative to the block's top.
+        rows: List[Tuple[str, float, str, Any, Any, float]] = []   # (name, baseline, text, font, fill, track)
+        y = cap_k if kicker else 0
+        y_t1 = y + (30 if kicker else 0) + cap_t
+        y_t2 = y_t1 + round(cap_t * 1.13)
+        rows += [("title_1", y_t1, l1, font_t, WHITE, 0), ("title_2", y_t2, l2, font_t, GOLD, 0)]
+        y = y_t2
+        for j, line in enumerate(body_lines):
+            y = y_t2 + b_gap + j * b_step
+            rows.append(("body", y, line, font_b, LIGHT, 0))
+        font_p = get_font("Montserrat", 32 if tight else 36, weight=800)
+        if i == 0:  # No arrow on the pointer (operator, 2026-10-28): the words say where to go.
+            y += 96
+            rows.append(("reel_pointer", y, "FULL STORY IN OUR NEW REEL", font_p, GOLD, font_p.size * 0.11))
+        bottom = max(d.textbbox((x, yy), txt, font=f, anchor="ls")[3] for _, yy, txt, f, _, _ in rows)
+        block = bottom
+        cy = calm_center_y(base, candidates=(560, 720, 880), band=520)  # bands inside the Story box
+        top = max(sy0 + 30, min(cy - block // 2, text_floor - block))   # above the photo credit, when there is one
+        base = scrim(base, top - 40, top + block + 30, feather=320, target=0.28)
+        im = base.convert("RGBA")
+        if kicker:
+            im, k_box = draw_kicker(im, x, top + cap_k, kicker, font_k, GOLD, lay, plates=lay.plates)
+        bodies = []
+        for name, yy, txt, f, fill, track in rows:
+            plate = plan_text(im, (x, top + yy), txt, f, fill, "ls", track=track)
+            im = plate.draw(im)
+            lay.plates.setdefault(name, []).append(plate)
+            if name == "body":
+                bodies.append(plate)
+            else:
+                lay.add(name, plate.box)
+                lay.elements[-1].update(plate.record())
+        record_contrast(lay, "body", bodies)
+        y_end = top + block
         # The poll frame ends on its question: no option boxes and no "REPLY WITH A OR B" (2026-10-29). The
         # native sticker, placed by the operator in POLL_STICKER_ROOM, is the only way to answer it.
         from .still_layout import union
         ux0, uy0, ux1, uy1 = union([tuple(e["box"]) for e in lay.elements])
-        lay.meta = {"frame": None, "size": [VIDEO_WIDTH, VIDEO_HEIGHT],
+        if credit["required"]:  # drawn last, recorded as its own element (text_box stays the frame's text block)
+            plates = []
+            for k, ln in enumerate(c_drawn):
+                plate = plan_text(im, (x, c_top + k * c_lead), ln, font_c, c_fill, "la", halo_px=9)
+                im = plate.draw(im)
+                plates.append(plate)
+            lay.plates["photo_credit"] = plates
+            credit["box"] = list(record_contrast(lay, "photo_credit", plates))
+            # The credit's ratio as drawn: the lowest of its lines on the pixels touching their glyphs.
+            measured = [p.contrast for p in plates if p.contrast is not None]
+            if measured:
+                credit["contrast"] = round(min(measured), 2)
+        base = im.convert("RGB")
+        lay.meta = {"frame": None, "size": [VIDEO_WIDTH, VIDEO_HEIGHT], "photo_credit": credit,
                     "body_source": " ".join(body.split()), "body_drawn": " ".join(body_lines),
                     "body_px": font_b.size, "body_lines": len(body_lines),
-                    "text_box": [min(ux0, (VIDEO_WIDTH - max(max_w, body_w)) // 2), min(uy0, int(pill_box[1])),
-                                 max(ux1, (VIDEO_WIDTH + max(max_w, body_w)) // 2), max(uy1, int(y_end))],
+                    "text_box": [min(ux0, x), uy0, max(ux1, x + max_w), max(uy1, int(y_end))],
                     "safe_box": [sx0, sy0, sx1, sy1],
                     **({"poll_sticker_room": [0, POLL_STICKER_ROOM[0], VIDEO_WIDTH, POLL_STICKER_ROOM[1]]}
-                       if has_options else {})}
+                       if asks_poll else {})}
         return base, lay
 
     # 4:5 is the tallest ratio Meta's content-publishing API accepts for feed images (4:5 to 1.91:1);
@@ -574,234 +695,243 @@ class MultiFormatGenerator:
                 lay.shortened.append(name)
         return box
 
+    # The overhaul's slide grammar (visual critic round 4, 2026-10-29). Every slide's text is one stack, measured
+    # first and set bottom-aligned on one shared line, KEY_BOTTOM less KEY_GAP: the line sits inside the profile
+    # grid's 1:1 crop (it takes 135 design px off each end of a 4:5 slide), so the same block reads in the grid,
+    # the feed and the viewer. Slides alternate full-bleed photographs and photo-over-ink splits (the router's
+    # "immersive" and "editorial_split"; blueprint and stat slides are splits, comparison a two-photo split).
+    # Light text is drawn at a measured contrast (typography.place_text), over an adaptive ink gradient behind the
+    # block only; no pill, badge outline or box anywhere (operator, 2026-10-28: no slide chrome). Sizes are design
+    # px on the 1080-wide canvas, drawn through _px.
+    KEY_TOP, KEY_BOTTOM, KEY_GAP = 169, 1181, 18
+    MARGIN = 84
+    SPLIT_PHOTO_H = 675
+
+    def _stack(self, im: Image.Image, lay, rows: List[Dict[str, Any]], x: int, bottom: int, plates: Dict[str, list]):
+        """Draws `rows` (each {"name", "text", "font", "fill", "y": its baseline relative to the stack's top,
+        optional "track", "x": an x offset}) so the stack's lowest ink sits on `bottom`; records each row (rows of
+        one name as one block, with their lowest measured ratio). Returns (image, the stack's top)."""
+        d = ImageDraw.Draw(im)
+        drawn = [r for r in rows if r.get("text")]
+        if not drawn:
+            return im, bottom
+        low = max(d.textbbox((x + r.get("x", 0), r["y"]), r["text"], font=r["font"], anchor="ls")[3] for r in drawn)
+        off = bottom - low
+        by_name: Dict[str, list] = {}
+        for r in drawn:
+            if r.get("kicker"):
+                im, _ = draw_kicker(im, x, off + r["y"], r["text"], r["font"], r["fill"], lay, r["name"], plates)
+                continue
+            plate = plan_text(im, (x + r.get("x", 0), off + r["y"]), r["text"], r["font"], r["fill"], "ls",
+                              track=r.get("track", 0), min_halo=r.get("min_halo", 0.0))
+            im = plate.draw(im)
+            by_name.setdefault(r["name"], []).append(plate)
+            plates.setdefault(r["name"], []).append(plate)
+        for name, ps in by_name.items():
+            record_contrast(lay, name, ps)
+        top = min(d.textbbox((x + r.get("x", 0), off + r["y"]), r["text"], font=r["font"], anchor="ls")[1] for r in drawn)
+        return im, top
+
+    def _rows(self, d, px, heading: str, body: str, width: int, kicker: str = "", stat: str = "", h_spec=(112, 60),
+              b_lines: int = 3, two_tone: bool = False, scale: float = 1.0, body_spec=(38, 32)):
+        """A slide's text stack, measured (sizes in design px x `scale`): an optional kicker, an optional figure
+        (its unit beside it, smaller, in bone), the heading on one or two balanced lines, the body in balanced
+        lines. Returns (rows, shortened)."""
+        fx = getattr(px, "exact", px)
+        rows, y, short = [], 0, []
+        if kicker:
+            fk = get_font("Montserrat", fx(34 * scale), weight=800)
+            text, ks = _fit_kicker(kicker, fk, width)
+            y += cap_height(fk)
+            rows.append({"name": "kicker", "text": text, "font": fk, "fill": GOLD, "y": y, "kicker": True})
+            y += px(26 * scale)
+            short += ["kicker"] if ks else []
+        if stat:
+            m = re.match(r"(\S+)\s*(.*)", stat)
+            num, unit = m.group(1), m.group(2).strip()
+            size = 225 * scale
+            while True:
+                fs, fu = get_font("Anton", fx(size)), get_font("Anton", fx(max(40, size * 0.42)))
+                w = d.textlength(num, font=fs) + (px(18) + d.textlength(unit, font=fu) if unit else 0)
+                if w <= width or size <= 96:
+                    break
+                size -= 6
+            y += cap_height(fs)
+            rows.append({"name": "stat", "text": num, "font": fs, "fill": GOLD, "y": y})
+            if unit:
+                rows.append({"name": "stat", "text": unit, "font": fu, "fill": WHITE, "y": y,
+                             "x": int(d.textlength(num, font=fs)) + px(18)})
+            y += px(30 * scale)
+        if two_tone and len(heading.split()) > 1:
+            # Two-tone: two balanced lines, each as large as the narrower of the two allows (one size for both).
+            halves = [h for h in split_balanced(heading) if h]
+            fits = [self._fit_text(d, h, "Anton", int(h_spec[0] * scale), width, 1, int(h_spec[1] * scale), px=px,
+                                   sentences=False, quiet=True) for h in halves]
+            font_h = min((f[1] for f in fits), key=lambda f: f.size)
+            h_short = any(f[2] for f in fits)
+            h_lines = [f[0][0] if f[0] else "" for f in fits]
+        else:
+            h_lines, font_h, h_short = self._fit_text(d, heading, "Anton", int(h_spec[0] * scale), width, 1,
+                                                      int(h_spec[1] * scale), px=px, sentences=False, quiet=True)
+            if h_short:
+                h_lines, font_h, h_short = self._fit_text(d, heading, "Anton", int(h_spec[0] * scale), width, 2,
+                                                          int(h_spec[1] * scale * 0.9), px=px, sentences=False)
+        ch = cap_height(font_h)
+        for j, line in enumerate(h_lines):
+            y += ch if j == 0 else round(ch * 1.13)
+            rows.append({"name": "heading", "text": line, "font": font_h,
+                         "fill": GOLD if (two_tone and j == len(h_lines) - 1) else WHITE, "y": y})
+        short += ["heading"] if h_short else []
+        if body.strip():
+            b_size = int(body_spec[0] * scale)
+            b_lines_, font_b, b_short = self._fit_text(d, body, "Montserrat", b_size, width, b_lines,
+                                                       min(body_spec[1], b_size), px=px)
+            step = round(font_b.size * 1.44)
+            y += round(font_b.size * 2.0)
+            for j, line in enumerate(b_lines_):
+                rows.append({"name": "body", "text": line, "font": font_b, "fill": LIGHT, "y": y + j * step})
+            short += ["body"] if b_short else []
+        return rows, short
+
+    def _slide_text(self, im: Image.Image, lay, cw: int, chh: int, heading: str, body: str, kicker: str = "",
+                    stat: str = "", full: bool = True, two_tone: bool = False, tight: bool = False, b_lines: int = 3,
+                    h_spec=(112, 60), extra=None):
+        """Plans a slide's stack at the largest scale whose top clears KEY_TOP, shades behind it (a full-bleed
+        photo) and draws it bottom-aligned on the shared line. `extra(rows, y)`: rows appended below the body."""
+        px = self._px(cw)
+        d = ImageDraw.Draw(im)
+        width = cw - 2 * px(self.MARGIN)
+        bottom = px(self.KEY_BOTTOM - self.KEY_GAP)
+        for scale in ((0.88, 0.8, 0.72) if tight else (1.0, 0.92, 0.84, 0.76, 0.7)):
+            rows, short = self._rows(d, px, heading, body, width, kicker, stat, h_spec, b_lines, two_tone, scale)
+            if extra:
+                rows = extra(rows, scale)
+            drawn = [r for r in rows if r.get("text")]
+            if not drawn:
+                break
+            low = max(d.textbbox((0, r["y"]), r["text"], font=r["font"], anchor="ls")[3] for r in drawn)
+            high = min(d.textbbox((0, r["y"]), r["text"], font=r["font"], anchor="ls")[1] for r in drawn)
+            if bottom - (low - high) >= px(self.KEY_TOP):
+                break
+        else:
+            log.warning("Carousel slide text taller than the key area at its smallest scale: %.60s", heading)
+        if lay is not None:
+            lay.shortened += short
+        drawn = [r for r in rows if r.get("text")]
+        if full and drawn:
+            low = max(d.textbbox((0, r["y"]), r["text"], font=r["font"], anchor="ls")[3] for r in drawn)
+            high = min(d.textbbox((0, r["y"]), r["text"], font=r["font"], anchor="ls")[1] for r in drawn)
+            im = scrim(im, bottom - (low - high) - px(40), chh, feather=px(300), target=0.26)
+        plates = getattr(lay, "plates", None) if lay is not None else None
+        if plates is None:
+            plates = {}
+            if lay is not None:
+                lay.plates = plates
+        im, _ = self._stack(im.convert("RGBA"), lay, rows, px(self.MARGIN), bottom, plates)
+        return im.convert("RGB")
+
+    def _split_ground(self, photo: Path, cw: int, chh: int, photo2: Path = None) -> Image.Image:
+        """Photo over ink: the photo (or two, stacked) across the top, fading into the ink panel the text sits on."""
+        px = self._px(cw)
+        ph = px(self.SPLIT_PHOTO_H)
+        im = Image.new("RGB", (cw, chh), brand.INK2)
+        if photo2 is None:
+            im.paste(self._fill(photo, (cw, ph + px(150))), (0, 0))
+        else:
+            half = (ph + px(150)) // 2
+            im.paste(self._fill(photo, (cw, half - px(3))), (0, 0))
+            im.paste(self._fill(photo2, (cw, half - px(3))), (0, half + px(3)))
+        return scrim(im, ph + px(60), chh, feather=px(180), target=0.0, cap=1.0, floor=1.0, colour=brand.INK2)
+
     def _render_cover(self, photo: Path, card: Dict[str, Any], cw: int, chh: int,
                       lay=None, tight: bool = False) -> Image.Image:
-        heading, body = card["heading"].upper(), card["body"]
-        px = self._px(cw)
+        """The cover: full-bleed, the heading in two balanced Anton lines (bone, then gold), the body under it."""
         im = self._fill(photo, (cw, chh))
-        d = ImageDraw.Draw(im, "RGBA")
-        for y in range(chh // 3, chh):
-            a = int(235 * ((y - chh / 3) / (chh * 2 / 3)) ** 1.4)
-            d.line([(0, y), (cw, y)], fill=(8, 8, 10, a))
-        im = ensure_legible(im, (px(40), chh - px(720), cw - px(40), chh - px(80)), feather=px(60))  # up to 3 heading lines and the body
-        d = ImageDraw.Draw(im, "RGBA")
-        x, width, h_stroke, b_stroke = px(80), cw - px(160), px.exact(3), px.exact(2)
-        font_h = fit_font(d, heading, "Anton", 96 if tight else 110, 920, 56)   # design px, as _fit_text
-        lines, font_h, h_short = self._fit_text(d, heading, "Anton", font_h.size, width, 3, 48 if tight else 56, px=px,
-                                                stroke=3, sentences=False)
-        cover_lines, font_cb, b_short = self._fit_text(d, body, "Montserrat", 32 if tight else 36, width, 2, 28, px=px,
-                                                       stroke=2)
-        step = int(font_h.size * 1.05)
-        # The old placement (heading baselines from chh-470, body two rows under), moved up only when the body
-        # would pass the footer line. The SWIPE cue's row it used to clear is gone (operator, 2026-10-28: Instagram
-        # shows its own dots), so a long cover keeps the room down to the footer line.
-        footer = self._footer_top(chh)
-        y = chh - px(470) - (len(lines) - 1) * px(60)
-        # The body clears the heading's measured bottom: an accented or descending heading line reaches below
-        # its baseline step, and the body overlapped it on every redraw (review, 2026-10-28).
-        drop = 0
-        if lines and cover_lines:
-            last = y + (len(lines) - 1) * step
-            h_bottom = d.textbbox((x, last), lines[-1], font=font_h, anchor="ls", stroke_width=h_stroke)[3]
-            b_top = d.textbbox((x, last + step + px(20)), cover_lines[0], font=font_cb, anchor="ls", stroke_width=b_stroke)[1]
-            drop = max(0, h_bottom + px(6) - b_top)
-        body_bottom = y + len(lines) * step + px(20) + drop + px(48) * max(0, len(cover_lines) - 1) + px(12)
-        if body_bottom > footer:
-            y -= body_bottom - footer
-        boxes = []
-        for line in lines:
-            boxes.append(self._text(d, lay, (x, y), line, font_h, WHITE, anchor="ls", stroke_width=h_stroke,
-                                    stroke_fill=(8, 8, 10, 230)))
-            y += step
-        y += drop
-        bboxes = []
-        for j, line in enumerate(cover_lines):
-            bboxes.append(self._text(d, lay, (x, y + px(20) + px(48) * j), line, font_cb, LIGHT, anchor="ls",
-                                     stroke_width=b_stroke, stroke_fill=(8, 8, 10, 220)))
-        if lay is not None:
-            lay.block("heading", boxes)
-            lay.block("body", bboxes)
-            lay.shortened += (["heading"] if h_short else []) + (["body"] if b_short else [])
-        return im
+        return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], two_tone=True, tight=tight,
+                                b_lines=2, h_spec=(150, 72))
 
     def _render_immersive(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
                           lay=None, tight: bool = False) -> Image.Image:
-        """Archetype A: Full-Bleed Immersive Photo with floating translucent charcoal badges."""
-        heading, body = card["heading"].upper(), card["body"]
-        px = self._px(cw)
+        """Full-bleed photograph, the stack over an ink gradient at its foot."""
         im = self._fill(photo, (cw, chh))
-        d = ImageDraw.Draw(im, "RGBA")
-        d.rectangle([(0, 0), (cw, chh)], fill=(6, 8, 12, 70))
-        for y in range(chh // 2, chh):
-            a = int(220 * ((y - chh / 2) / (chh / 2)) ** 1.3)
-            d.line([(0, y), (cw, y)], fill=(8, 10, 14, a))
-        bottom = self._footer_top(chh)
-        # Measured first: badge, heading and body stacked upward from the cues, at the old place when they fit.
-        top_min = chh // 2 + px(40)                               # where the shading gradient is already deep
         tag = self._tag(self._get_card_category(card, "immersive"), index)
-        badge_h = px(90) if tag else 0                            # no badge: the heading starts where it sat
-        plan = self._plan_panel(d, heading, body, cw - px(160), bottom - (top_min + badge_h) - px(18), (76, 44), 40, tight,
-                                h_stroke=3, b_stroke=2, h_pitch=1.08, px=px)
-        block_h = badge_h + plan["height"] + px(18)
-        top = min(chh - px(530) + (px(90) - badge_h), bottom - block_h)
-        im = ensure_legible(im, (px(40), top - px(30), cw - px(40), chh - px(50)), feather=px(60))  # badge, heading and body
-        d = ImageDraw.Draw(im, "RGBA")
-        if tag:
-            self._badge(d, lay, "badge", tag, px(80), top, get_font("Montserrat", px.exact(24)), text_color=GOLD, border_color=GOLD,
-                        border_width=2, radius=8, px=px)
-        self._draw_panel(d, lay, plan, px(80), top + badge_h, h_stroke=3, b_stroke=2, h_stroke_fill=(6, 8, 10, 240),
-                         b_stroke_fill=(6, 8, 10, 220), gap=18, px=px)
-        return im
+        return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], kicker=tag, tight=tight,
+                                h_spec=(112, 60))
 
     def _render_comparison(self, photo1: Path, photo2: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
                            lay=None, tight: bool = False) -> Image.Image:
-        """Archetype B: Side-by-Side Comparative Card."""
-        heading, body = card["heading"].upper(), card["body"]
-        px = self._px(cw)
-        im = Image.new("RGB", (cw, chh), (12, 14, 18))
-        h_half = px(380)
-        im.paste(self._fill(photo1, (cw, h_half)), (0, 0))
-        im.paste(self._fill(photo2, (cw, h_half)), (0, h_half))
-        d = ImageDraw.Draw(im, "RGBA")
-        d.line([(0, h_half), (cw, h_half)], fill=GOLD, width=px(3))
-        d.line([(0, 2 * h_half), (cw, 2 * h_half)], fill=GOLD, width=px(2))
-        # No "REF A // SURFACE CONTEXT" / "REF B // SUBTERRANEAN DEPTH" over the two photos: every comparison
-        # slide said so, whatever it showed (it called the Pantheon's dome subterranean; platform audit,
-        # 2026-10-28). The photos are matched to the slide's words, not to a role, so nothing is said about them.
+        """Two photographs stacked over the ink panel. No "REF A // SURFACE CONTEXT" labels over them: every
+        comparison slide said so, whatever it showed (platform audit, 2026-10-28)."""
+        im = self._split_ground(photo1, cw, chh, photo2)
         tag = self._tag(self._get_card_category(card, "comparison"), index)
-        if tag:
-            self._badge(d, lay, "badge", tag, px(80), 2 * h_half + px(25), get_font("Montserrat", px.exact(24)), text_color=GOLD,
-                        border_color=GOLD, radius=6, px=px)
-        y = 2 * h_half + px(85 if tag else 40)
-        plan = self._plan_panel(d, heading, body, cw - px(160), self._footer_top(chh) - y, (64, 38), 38, tight, px=px)
-        self._draw_panel(d, lay, plan, px(80), y, px=px)
-        return im
+        return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], kicker=tag, full=False,
+                                tight=tight, b_lines=4, h_spec=(96, 56))
 
     def _render_blueprint(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
                           lay=None, tight: bool = False) -> Image.Image:
-        """Archetype C: Sourced Measurement & Blueprint Card."""
-        heading, body = card["heading"].upper(), card["body"]
-        px = self._px(cw)
-        im = Image.new("RGB", (cw, chh), (10, 16, 24))
-        p_h = px(620)
-        im.paste(self._fill(photo, (cw, p_h)), (0, 0))
-        d = ImageDraw.Draw(im, "RGBA")
-        for x in range(px(60), cw, px(70)):
-            d.line([(x, p_h), (x, chh)], fill=(20, 36, 52, 70), width=px(1))
-        for y_g in range(p_h, chh, px(70)):
-            d.line([(0, y_g), (cw, y_g)], fill=(20, 36, 52, 70), width=px(1))
-        d.line([(0, p_h), (cw, p_h)], fill=GOLD, width=px(3))
+        """A structure slide: the split layout (the drafting grid it drew was decoration that said nothing)."""
+        im = self._split_ground(photo, cw, chh)
         tag = self._tag(self._get_card_category(card, "blueprint"), index)
-        if tag:
-            self._badge(d, lay, "badge", tag, px(80), p_h + px(25), get_font("Montserrat", px.exact(24)), text_color=GOLD,
-                        border_color=GOLD, fill_color=(8, 12, 18, 230), radius=4, px=px)
-        y = p_h + px(85 if tag else 40)
-        plan = self._plan_panel(d, heading, body, cw - px(160), self._footer_top(chh) - y, (64, 38), 40, tight, body_max=5,
-                                px=px)
-        self._draw_panel(d, lay, plan, px(80), y, px=px)
-        return im
+        return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], kicker=tag, full=False,
+                                tight=tight, b_lines=4, h_spec=(96, 56))
 
     def _render_colossal_stat(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
                               lay=None, tight: bool = False) -> Image.Image:
-        """Archetype D: High-Impact Colossal Stat Card."""
+        """A figure slide: the split layout led by the card's own figure (its first number, with its unit when it
+        has one); a card without one gets no figure rather than a label in its place. No "VERIFIED BY
+        ARCHEOLOGICAL RECORD" pill (platform audit, 2026-10-28)."""
         heading, body = card["heading"].upper(), card["body"]
-        px = self._px(cw)
-        im = Image.new("RGB", (cw, chh), (11, 14, 18))
-        p_h, fade = px(520), px(140)
-        im.paste(self._fill(photo, (cw, p_h)), (0, 0))
-        d = ImageDraw.Draw(im, "RGBA")
-        for y in range(p_h - fade, p_h):
-            a = int(255 * ((y - (p_h - fade)) / fade) ** 1.5)
-            d.line([(0, y), (cw, y)], fill=(11, 14, 18, a))
-        tag = self._tag(self._get_card_category(card, "colossal_stat"), index)
-        if tag:
-            self._badge(d, lay, "badge", tag, px(80), p_h + px(10), get_font("Montserrat", px.exact(24)), text_color=GOLD,
-                        border_color=GOLD, fill_color=(16, 20, 26, 230), radius=6, px=px)
-        y = p_h + px(65 if tag else 30)
-        # The figure is the card's own (its first number, with its unit when it has one); a card without one
-        # gets no stat line rather than a label in its place.
+        im = self._split_ground(photo, cw, chh)
         stat_match = re.search(r"(\b\d+[\d,]*\+?(?:\s*(?:TONS?|PEOPLE|FEET|FT|METERS?|M|STORIES|LEVELS))?)\b",
                                f"{heading} {body}", re.IGNORECASE)
-        if stat_match:
-            stat_lines, f_stat, s_short = self._fit_text(d, stat_match.group(1).upper(), "Anton", 96 if tight else 110,
-                                                         cw - px(160), 1, 56, px=px, sentences=False)
-            stat_text = stat_lines[0] if stat_lines else ""
-            box = self._text(d, lay, (px(80), y), stat_text, f_stat, GOLD)
-            if lay is not None:
-                lay.add("stat", box)
-                if s_short:
-                    lay.shortened.append("stat")
-            y += int(f_stat.size * 1.1)
-        # No "VERIFIED BY ARCHEOLOGICAL RECORD" pill: it was drawn on every stat slide whether or not anything
-        # was verified, and by what (platform audit, 2026-10-28). The fact review traces the package's claims,
-        # not a source per slide, so no slide can say what verified it; the panel has the room down to the footer.
-        plan = self._plan_panel(d, heading, body, cw - px(160), self._footer_top(chh) - y, (62, 38), 38, tight, h_pitch=1.15,
-                                px=px)
-        self._draw_panel(d, lay, plan, px(80), y, px=px)
-        return im
+        stat = stat_match.group(1).upper() if stat_match else ""
+        if lay is not None and stat:
+            lay.meta["stat"] = stat
+        tag = self._tag(self._get_card_category(card, "colossal_stat"), index)
+        return self._slide_text(im, lay, cw, chh, heading, body, kicker=tag, stat=stat, full=False, tight=tight,
+                                b_lines=3, h_spec=(84, 52))
 
     def _render_debate(self, photo: Path, card: Dict[str, Any], index: int, total: int, cw: int, chh: int, poll: Dict[str, Any], f_small,
                        share: str = "", lay=None, tight: bool = False) -> Image.Image:
-        """Archetype E: Forensic Closing Dilemma / Debate Card. `share`: the share-and-follow line, above the
-        comments footer (Meta's creator tips, 2026-10-25)."""
-        heading, body = card["heading"].upper(), card["body"]
+        """The closing slide: full-bleed, the heading (its last line gold), the card's question, then the run's
+        share-and-follow line (operator decision 2026-10-25) as a sentence under a short gold rule. No "TELL US IN
+        THE COMMENTS" footer (operator decision 2026-10-29: a second ask beside the share line)."""
         px = self._px(cw)
-        im = Image.new("RGB", (cw, chh), (12, 14, 18))
-        p_h, fade = px(560), px(160)
-        im.paste(self._fill(photo, (cw, p_h)), (0, 0))
-        d = ImageDraw.Draw(im, "RGBA")
-        for y in range(p_h - fade, p_h):
-            a = int(255 * ((y - (p_h - fade)) / fade) ** 1.5)
-            d.line([(0, y), (cw, y)], fill=(12, 14, 18, a))
+        im = self._fill(photo, (cw, chh))
         tag = self._tag(self._get_card_category(card, "debate"), index)
-        if tag:
-            self._badge(d, lay, "badge", tag, px(80), p_h + px(20), get_font("Montserrat", px.exact(24)), text_color=GOLD,
-                        border_color=GOLD, fill_color=(16, 18, 22, 230), radius=6, px=px)
-        # No arrow after the call to comment (operator, 2026-10-28: where the comments are differs between
-        # Instagram's carousel and Facebook's photo grid). It sits on the footer line, now that the swipe cues
-        # under it are gone (it was 120 px up, clear of them).
-        footer_y = self._footer_top(chh) - px(8)                          # its baseline: descenders stay above the line
-        footer = self._text(d, lay, (px(80), footer_y), "TELL US IN THE COMMENTS", f_small, GOLD, anchor="ls")
-        share_lines, f_share, sh_short = (self._fit_text(d, share, "Montserrat", 34, cw - px(160), 2, 28, px=px) if share
-                                          else ([], None, False))
-        step = int(f_share.size * 1.3) if f_share else 0
-        share_top = footer_y - px(56) - step * len(share_lines)           # above the footer
-        y = p_h + px(80 if tag else 40)
-        room = (share_top - px(24) if share_lines else footer[1] - px(self.BAND_GAP)) - y
-        plan = self._plan_panel(d, heading, body, cw - px(160), room, (68, 42), 40, tight, h_pitch=1.15, body_max=3, px=px)
-        self._draw_panel(d, lay, plan, px(80), y, px=px)
-        if share_lines:
-            ys, boxes = share_top, []
-            for line in share_lines:
-                boxes.append(self._text(d, lay, (px(80), ys), line, f_share, WHITE))
-                ys += step
-            if lay is not None:
-                lay.block("share", boxes)
-                if sh_short:
-                    lay.shortened.append("share")
-        if lay is not None:
-            lay.add("footer", footer)
+        width = cw - 2 * px(self.MARGIN)
+        d = ImageDraw.Draw(im)
+        rule = {}
+
+        def with_share(rows, scale):
+            if not share:
+                return rows
+            lines, f_share, sh_short = self._fit_text(d, share, "Montserrat", int(36 * scale), width, 2, 28, px=px)
+            if sh_short and lay is not None and "share" not in lay.shortened:
+                lay.shortened.append("share")
+            last = max((r["y"] for r in rows), default=0)
+            rule["y"] = last + px(46 * scale)                       # the rule's top, relative to the stack
+            y = rule["y"] + px(6) + px(26 * scale) + cap_height(f_share)
+            step = round(f_share.size * 1.38)
+            return rows + [{"name": "share", "text": ln, "font": f_share, "fill": WHITE, "y": y + j * step}
+                           for j, ln in enumerate(lines)]
+
+        im = self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], kicker=tag, two_tone=True,
+                              tight=tight, b_lines=3, h_spec=(112, 60), extra=with_share)
+        share_box = next((e["box"] for e in (lay.elements if lay is not None else []) if e["name"] == "share"), None)
+        if share_box and "y" in rule:
+            # The gold rule: 6 design px tall, 96 wide, its own height above the share line's first cap.
+            top = share_box[1] - px(26) - px(6)
+            ImageDraw.Draw(im).rectangle([px(self.MARGIN), top, px(self.MARGIN) + px(96), top + px(6) - 1], fill=GOLD)
         return im
 
     def _render_editorial_split(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
                                 lay=None, tight: bool = False) -> Image.Image:
-        heading, body = card["heading"].upper(), card["body"]
-        px = self._px(cw)
-        p_h, fade = px(self.PHOTO_H), px(180)
-        im = Image.new("RGB", (cw, chh), (13, 16, 21))
-        im.paste(self._fill(photo, (cw, p_h)), (0, 0))
-        d = ImageDraw.Draw(im, "RGBA")
-        for y in range(p_h - fade, p_h):
-            d.line([(0, y), (cw, y)], fill=(13, 16, 21, int(255 * ((y - (p_h - fade)) / fade) ** 1.6)))
+        """Photo over ink, the stack on the ink panel."""
+        im = self._split_ground(photo, cw, chh)
         tag = self._tag(self._get_card_category(card, "editorial_split"), index)
-        if tag:
-            self._badge(d, lay, "badge", tag, px(80), p_h + px(25), get_font("Montserrat", px.exact(24)), text_color=GOLD,
-                        border_color=GOLD, radius=6, px=px)
-        y = p_h + px(85 if tag else 40)
-        plan = self._plan_panel(d, heading, body, cw - px(160), self._footer_top(chh) - y, (66, 40), 42, tight, body_max=5,
-                                px=px)
-        self._draw_panel(d, lay, plan, px(80), y, px=px)
-        return im
+        return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], kicker=tag, full=False,
+                                tight=tight, b_lines=4, h_spec=(96, 56))
 
     def _render_carousel_slide(self, archetype: str, photo: Path, photo_next: Path, card: Dict[str, Any], i: int,
                                total: int, poll: Dict[str, Any], share: str, facebook: bool, tight: bool = False):
@@ -819,6 +949,7 @@ class MultiFormatGenerator:
         cw, chh = self.CAROUSEL_SIZE
         lay = Layout("carousel", (cw, chh), self._zone(cw, chh), tight=tight,
                      protected=[("instagram_counter", self._ig_counter(cw))])
+        lay.plates = {}
         px = self._px(cw)
         f_small = get_font("Montserrat", px.exact(28))
         if archetype == "cover":
@@ -836,21 +967,15 @@ class MultiFormatGenerator:
         else:
             im = self._render_editorial_split(photo, card, i, cw, chh, lay=lay, tight=tight)
 
-        # Shade behind the brand's own extent, not a band across the slide: the band's 90th-percentile
-        # luminance was mostly black sky, so a badge over a bright solar panel was left at 1.1:1 (measured 2026-10-25).
-        # The brand is top-left, clear of Instagram's counter (see HEADER_Y); no counter, bar or dots of our own.
-        d = ImageDraw.Draw(im, "RGBA")
-        xy = (px(80), px(self.HEADER_Y))
-        brand_w = d.textlength("RELIC & RIDDLE", font=f_small)
-        im = ensure_legible(im, (px(50), px(50), int(px(80) + brand_w + px(30)), px(100)), feather=px(60))
-        d = ImageDraw.Draw(im, "RGBA")
-        box = d.textbbox(xy, "RELIC & RIDDLE", font=f_small, anchor="lt", stroke_width=px.exact(2))
-        if tight:  # a solid pill behind the brand, whatever the photo does there
-            box = (box[0] - px(12), box[1] - px(8), box[2] + px(12), box[3] + px(8))
-            d.rounded_rectangle(box, radius=px(8), fill=(8, 10, 14, 215))
-        d.text(xy, "RELIC & RIDDLE", font=f_small, fill=(235, 235, 235, 255), anchor="lt", stroke_width=px.exact(2),
-               stroke_fill=(8, 10, 14, 230))
-        lay.add("header_brand", box)
+        # The brand, top-left (clear of Instagram's counter, see HEADER_Y): Cinzel in tracked bone capitals, drawn at
+        # a measured contrast like every other line (a halo where the photo is bright), never on a pill.
+        brand_font = get_font("Cinzel", px.exact(30), weight=700)
+        plate = plan_text(im, (px(80), px(self.HEADER_Y) + cap_height(brand_font)), "RELIC & RIDDLE", brand_font, WHITE,
+                          "ls", track=px(3), min_halo=0.6 if tight else 0.0, halo_px=31)
+        im = plate.draw(im.convert("RGB"))
+        lay.add("header_brand", plate.box)
+        lay.elements[-1].update(plate.record())
+        lay.plates.setdefault("header_brand", []).append(plate)
         return im, lay
 
     def generate_carousel_sequence(self, scene_images: List[Path], script_payload: Dict[str, Any], output_dir: Path,
@@ -889,6 +1014,7 @@ class MultiFormatGenerator:
                                                           facebook, tight=tight))
             path = out_dir / f"carousel_slide_{i + 1:02d}.jpg"
             self._save_slide(im, path)
+            _delivered_contrast(lay, path)
             still_layout.save(path, lay, {"renderer": "multi_format.redraw_carousel_slide", "archetype": archetype,
                                           "photo": str(photo), "photo_next": str(photo_next), "card": card, "index": i,
                                           "total": total, "poll": poll, "share": share, "facebook": facebook}, attempts)
@@ -987,6 +1113,101 @@ def carousel_credits(slides: List[Path]) -> Tuple[List[str], bool]:
     return ([CAROUSEL_SHARE_ALIKE] if share_alike else []) + lines + adapted, readable
 
 
+# ---------------------------------------------------------------- a Story frame's photo credit
+# A Story goes out one frame per request with no caption (publisher.publish_photos: "Stories take none"), so a CC BY
+# or BY-SA photo on a frame was credited nowhere (design review, 2026-10-29). CC licences ask for attribution "in any
+# reasonable manner based on the medium": on a Story that is the frame itself. The frame names the author, the
+# licence and its address, and says it was adapted (each frame crops its photo and sets text on it, as the carousel
+# says); a BY-SA photo makes the frame an adaptation under BY-SA, which it then states, as the slides and the video do.
+STORY_CREDIT_PX = 26        # ~9.5 pt on a phone: small, and read at a glance like a printed photo credit
+STORY_CREDIT_LEADING = 34
+STORY_CREDIT_MIN_PX = 22    # a long name or a share-alike notice is set smaller before it takes a fourth line
+STORY_CREDIT_LINES = 3
+STORY_CREDIT_GAP = 28       # between the frame's text block and the credit (the credit's backing fades over 18 px)
+STORY_CREDIT_CONTRAST = 4.5  # WCAG AA for small text, against the pixels under the line
+STORY_ADAPTED = "adapted: cropped, with text added"
+STORY_SHARE_ALIKE = ("CC BY-SA 4.0", "creativecommons.org/licenses/by-sa/4.0")
+
+
+def _short_url(url: str) -> str:
+    return re.sub(r"^(?:https?:)?//(?:www\.)?", "", str(url or "").strip()).rstrip("/")
+
+
+def story_credit(photo) -> Dict[str, Any]:
+    """What a Story frame showing `photo` must credit on itself: {"required", "lines", ...}. Public-domain and CC0
+    photos need none, and our own graphics and maps have no credits entry (their map data is public domain)."""
+    from .credits import author_name, is_share_alike, needs_attribution
+    entry = photo_credit(Path(photo)) if photo else {}
+    if not entry:
+        return {"required": False, "reason": "no credits entry (our own graphic, or a photo with no record)", "lines": []}
+    licence = " ".join(str(entry.get("license") or "").split())
+    if not needs_attribution(entry):
+        return {"required": False, "reason": "licence asks for no attribution", "license": licence, "lines": []}
+    author, share_alike, url = author_name(entry), is_share_alike(licence), _short_url(entry.get("license_url"))
+    lines = [f"Photo: {author} · {licence} · {STORY_ADAPTED}"]
+    # An adaptation carries the address of the licence it is under (BY-SA 3.0 s4(b), 4.0 s3(b)): for a BY-SA photo
+    # that is BY-SA 4.0, the frame's own; a BY photo's frame gives the photo's licence address (BY 4.0 s3(a)(1)(C)).
+    if share_alike:
+        lines.append(f"This frame: {STORY_SHARE_ALIKE[0]} · {STORY_SHARE_ALIKE[1]}")
+    elif url:
+        lines.append(url)
+    return {"required": True, "author": author, "license": licence, "license_url": entry.get("license_url") or "",
+            "share_alike": share_alike, "source_url": entry.get("source_url") or "", "lines": lines}
+
+
+def _credit_wrap(d, line: str, font, width: int) -> List[str]:
+    """A credit line wrapped at its " · " breaks first (so "adapted: cropped, with text added" is never split from
+    itself), and word by word only inside a part that is wider than the line on its own."""
+    out: List[str] = []
+    for part in line.split(" · "):
+        if out and text_size(d, f"{out[-1]} · {part}", font)[0] <= width:
+            out[-1] = f"{out[-1]} · {part}"
+        else:
+            out += wrap_text(d, part, font, width)
+    return out
+
+
+def _contrast(im: Image.Image, box, text_rgb) -> float:
+    """WCAG contrast of `text_rgb` against the bright end (90th-percentile luminance) of the pixels in `box`."""
+    import numpy as np
+    region = np.asarray(im.convert("RGB").crop(tuple(int(v) for v in box)), dtype=np.float32) / 255.0
+    lin = np.where(region <= 0.03928, region / 12.92, ((region + 0.055) / 1.055) ** 2.4)
+    bg = float(np.percentile(lin @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32), 90))
+    return round((_rel_luminance(text_rgb) + 0.05) / (bg + 0.05), 2)
+
+
+def story_credit_report(frames: List[Path]) -> Dict[str, Any]:
+    """For the release report: {"credited": [{"frame", "lines"}], "problems": [...]}. Every frame whose photo's
+    licence asks for attribution must carry that credit, drawn whole, at the contrast it needs; a frame without its
+    layout record cannot show what it credited, which is a problem too."""
+    credited, problems = [], []
+    by_dir: Dict[str, Dict[str, Any]] = {}
+    for frame in [Path(f) for f in frames]:
+        folder = str(frame.parent)
+        if folder not in by_dir:
+            try:
+                by_dir[folder] = {e.get("frame"): e for e in json.loads((frame.parent / "layout.json").read_text(encoding="utf-8"))}
+            except (OSError, ValueError, AttributeError):
+                by_dir[folder] = {}
+        photo = slide_record(frame).get("photo")
+        drawn = (by_dir[folder].get(frame.name) or {}).get("photo_credit")
+        if not photo or drawn is None:
+            problems.append(f"{frame.name}: no layout record of its photo and credit (drawn before 2026-10-29?)")
+            continue
+        expected = story_credit(photo)
+        if not expected["required"]:
+            continue
+        if drawn.get("lines") != expected["lines"]:
+            problems.append(f"{frame.name}: the frame credits {drawn.get('lines')}, its photo needs {expected['lines']}")
+        elif not drawn.get("complete"):
+            problems.append(f"{frame.name}: the credit could not be drawn whole (a character the font lacks): {drawn.get('drawn')}")
+        elif float(drawn.get("contrast") or 0) < STORY_CREDIT_CONTRAST:
+            problems.append(f"{frame.name}: the credit's contrast is {drawn.get('contrast')}:1, under {STORY_CREDIT_CONTRAST}:1")
+        else:
+            credited.append({"frame": frame.name, "lines": expected["lines"]})
+    return {"credited": credited, "problems": problems}
+
+
 ALT_TEXT_MAX = 1000  # Instagram's and Upload-Post's limit per photo
 _CAMERA_FILE = re.compile(r"\b(?:DSCN?|IMG|DCP)_?\d{3,}\w*\b", re.IGNORECASE)
 
@@ -1032,8 +1253,8 @@ def slide_alt_text(slide: Path) -> str:
     from .script_engine import facebook_photo_caption, neutral_cues
     clean = facebook_photo_caption if Path(slide).parent.name == "carousel_fb" else neutral_cues
     words = [_sentence(clean(card.get("heading", ""))), _sentence(clean(card.get("body", "")))]
-    if rec.get("archetype") == "debate":
-        words += [_sentence(rec.get("share") or ""), "Tell us in the comments."]
+    if rec.get("archetype") == "debate":  # the closing slide's share line; no comments footer (2026-10-29)
+        words += [_sentence(rec.get("share") or "")]
     text = " ".join(x for x in [picture, "Text on the slide:", *words] if x)
     if len(text) > ALT_TEXT_MAX:
         text = text[:ALT_TEXT_MAX - 1].rsplit(" ", 1)[0] + "…"
@@ -1071,6 +1292,20 @@ def facebook_pick(slides: List[str], limit: int = FACEBOOK_PHOTOS) -> List[str]:
     return [first] + [slide for _, slide in sorted(picked)] + [last]
 
 
+def _delivered_contrast(lay, path: Path) -> None:
+    """Each placed element's ratio measured again on the saved JPEG (what is posted), written into its layout
+    record, which still_layout keeps and video_qa.still_contrast_problems asserts (2026-10-29)."""
+    from .typography import remeasure
+    plates = getattr(lay, "plates", None)
+    if not plates:
+        return
+    try:
+        with Image.open(path) as im:
+            remeasure(lay, im.convert("RGB"), plates)
+    except OSError as e:  # the planned ratios stay recorded
+        log.warning("Contrast not re-measured on %s (%s).", Path(path).name, e)
+
+
 def _font_family(font) -> str:
     """The bundled family a loaded font came from (for refitting it at another size)."""
     from .typography import FONT_FILES
@@ -1086,6 +1321,7 @@ def redraw_story_frame(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
     im, lay = gen._render_story_frame(Path(recipe["photo"]), recipe["slide"], int(recipe["index"]), int(recipe["count"]),
                                       recipe.get("poll") or {}, tight=True)
     im.save(path, quality=95)
+    _delivered_contrast(lay, path)
     layout_file = Path(path).parent / "layout.json"
     try:
         entries = json.loads(layout_file.read_text(encoding="utf-8")) if layout_file.is_file() else []
@@ -1108,5 +1344,6 @@ def redraw_carousel_slide(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
                                          recipe.get("poll") or {}, recipe.get("share") or "", bool(recipe.get("facebook")),
                                          tight=True)
     gen._save_slide(im, path)
+    _delivered_contrast(lay, path)
     prior = still_layout.load(path) or {}
     return still_layout.save(path, lay, recipe, int(prior.get("attempts", 1)) + 1)

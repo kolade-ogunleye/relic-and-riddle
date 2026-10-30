@@ -9,22 +9,42 @@ to stay inside the safe width instead of running off the canvas.
 import re as _re_mod
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 from .config import FONTS_DIR
 
-FONT_FILES = {"Anton": "Anton-Regular.ttf", "Montserrat": "Montserrat-Variable.ttf", "Cinzel": "Cinzel-Variable.ttf"}
+FONT_FILES = {"Anton": "Anton-Regular.ttf", "Montserrat": "Montserrat-Variable.ttf", "Cinzel": "Cinzel-Variable.ttf",
+              "IBM Plex Mono": "IBMPlexMono-SemiBold.ttf"}
 VARIABLE_WEIGHTS = {"Montserrat": 600, "Cinzel": 700}  # SemiBold labels; Bold display serif for titles (art direction, 2026-10-24)
+# Static families: one file per weight. IBM Plex Mono 2.5.0 (OFL 1.1, fonts/license_evidence.json) is the data font
+# from 2026-10-29 (visual critic round 4): figures, units beside a figure, scale bars, photo credits. Fixed-pitch,
+# so a count-up's digits hold their place, with a plain zero (JetBrains Mono's dotted one reads as code).
+STATIC_WEIGHTS = {"IBM Plex Mono": {500: "IBMPlexMono-Medium.ttf", 600: "IBMPlexMono-SemiBold.ttf"}}
 VIDEO_SUFFIXES = (".mp4", ".mov", ".mkv", ".webm")
+
+
+def font_file(name: str, weight: Optional[int] = None) -> str:
+    """The bundled file for a family (and, for a static family, the weight nearest `weight`)."""
+    if name in STATIC_WEIGHTS and weight:
+        files = STATIC_WEIGHTS[name]
+        return files[min(files, key=lambda w: abs(w - weight))]
+    return FONT_FILES[name]
+
+
+def bundled_font_files() -> List[str]:
+    """Every font file a renderer may load (for checkpoints and the release's font-rights check)."""
+    files = list(FONT_FILES.values()) + [f for weights in STATIC_WEIGHTS.values() for f in weights.values()]
+    return list(dict.fromkeys(files))
 
 
 @lru_cache(maxsize=96)
 def get_font(name: str, size: int, fonts_dir: Path = FONTS_DIR, weight: Optional[int] = None) -> ImageFont.FreeTypeFont:
     """A bundled font at `size`; `weight` picks an instance of a variable font (the type hierarchy uses
-    Montserrat 500/600/700 and Cinzel 700), else the pinned default."""
-    path = fonts_dir / FONT_FILES[name]
+    Montserrat 500/600/700 and Cinzel 700) or a static family's file (IBM Plex Mono 500/600), else the pinned
+    default."""
+    path = fonts_dir / font_file(name, weight)
     if not path.exists():
         raise FileNotFoundError(f"Required font missing: {path}")
     font = ImageFont.truetype(str(path), size)
@@ -91,19 +111,56 @@ def fit_font(draw: ImageDraw.ImageDraw, text: str, name: str, size: int, max_wid
     return get_font(name, min_size)
 
 
+NBSP = " "
+
+
+def _words(text: str) -> List[str]:
+    """Words split at ordinary white space only: a no-break space (glue) holds a figure to its unit."""
+    return [w for w in _re_mod.split(r"[^\S ]+", text or "") if w]
+
+
+def _plain(text: str) -> str:
+    return (text or "").replace(NBSP, " ")
+
+
 def wrap_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, max_width: int) -> List[str]:
+    """Greedy word wrap. A figure glued to its unit (glue) moves to the next line with it; the lines come back
+    with ordinary spaces (they are drawn and compared as the writer wrote them)."""
     lines: List[str] = []
     current = ""
-    for word in text.split():
+    for word in _words(glue(text)):
         candidate = f"{current} {word}".strip()
-        if current and text_size(draw, candidate, font)[0] > max_width:
+        if current and text_size(draw, _plain(candidate), font)[0] > max_width:
             lines.append(current)
             current = word
         else:
             current = candidate
     if current:
         lines.append(current)
-    return lines
+    return [_plain(ln) for ln in lines]
+
+
+def balanced_wrap(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, max_width: int,
+                  stroke: int = 0) -> List[str]:
+    """`text` on as many lines as the greedy wrap needs at `max_width`, broken so the widest line is as narrow as
+    it can be (visual overhaul, 2026-10-29: the greedy wrap left one-word last lines, "rings." alone under two
+    full ones). The narrowest width that still wraps into the same number of lines is found by bisection; the
+    lines are the greedy wrap at that width, so a figure still never breaks from its unit."""
+    lines = wrap_text(draw, text, font, max_width - 2 * stroke)
+    if len(lines) < 2:
+        return lines
+    words = _words(glue(text))
+    lo = max(line_width(draw, _plain(w), font, stroke) for w in words)
+    hi = max_width
+    best = lines
+    while lo < hi:
+        mid = (lo + hi) // 2
+        trial = wrap_text(draw, text, font, mid - 2 * stroke)
+        if len(trial) <= len(lines) and all(line_width(draw, ln, font, stroke) <= mid for ln in trial):
+            best, hi = trial, mid
+        else:
+            lo = mid + 1
+    return best
 
 
 import logging as _logging
@@ -115,7 +172,8 @@ FIT_MIN_RATIO = 0.75   # a text block may shrink to three quarters of its design
 
 def _font_name(font: ImageFont.FreeTypeFont) -> Optional[str]:
     base = Path(getattr(font, "path", "") or "").name
-    return next((n for n, f in FONT_FILES.items() if f == base), None)
+    return next((n for n, f in FONT_FILES.items() if f == base), None) or next(
+        (n for n, files in STATIC_WEIGHTS.items() if base in files.values()), None)
 
 
 def fit_lines(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, max_width: int,
@@ -137,7 +195,7 @@ def fit_lines(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont
         if len(lines) <= max_lines:
             if size != font.size:
                 _log.info("Text set at %dpx instead of %dpx to fit %d lines: %.60s", size, font.size, max_lines, text)
-            return lines, f
+            return (balanced_wrap(draw, text, f, max_width) if len(lines) > 1 else lines), f
     f = font if len(sizes) == 1 else get_font(name, sizes[-1])
     sentences = _re.split(r"(?<=[.!?])\s+", text)
     kept: List[str] = []
@@ -193,12 +251,13 @@ def _shorten(draw, text, font, max_width, max_lines, stroke):
 
 def fit_text(draw: ImageDraw.ImageDraw, text: str, name: str, size: int, max_width: int, max_lines: int,
              min_size: int, stroke: int = 0, sentences: bool = True, weight: Optional[int] = None,
-             quiet: bool = False) -> Tuple[List[str], ImageFont.FreeTypeFont, bool]:
+             quiet: bool = False, balance: bool = True) -> Tuple[List[str], ImageFont.FreeTypeFont, bool]:
     """Text fitted to a box with the font's real metrics, so it can never run past the box (still-layout
     audit, 2026-10-28: a Story body cut at "35 meshing", a cover tagline missing). In order: wrap at the design
     size; step the size down by 2 px to `min_size`; keep whole sentences (if `sentences`); last, shorten at a
     word boundary with an ellipsis. Widths include the outline stroke. Returns (lines, font, shortened);
-    `quiet`: a trial fit, not logged."""
+    `quiet`: a trial fit, not logged. A text that fits is broken into balanced lines (`balance`, 2026-10-29)
+    and a figure never breaks from its unit (glue)."""
     text = drawable(" ".join((text or "").split()), name)
     if not text:
         return [], get_font(name, size, weight=weight), False
@@ -209,6 +268,8 @@ def fit_text(draw: ImageDraw.ImageDraw, text: str, name: str, size: int, max_wid
         if ok and len(lines) <= max_lines:
             if s != size and not quiet:
                 _log.info("Text set at %dpx instead of %dpx to fit %d line(s) of %d px: %.60s", s, size, max_lines, max_width, text)
+            if balance and len(lines) > 1:  # the same lines' count, the widest as narrow as it can be (2026-10-29)
+                lines = balanced_wrap(draw, text, font, max_width, stroke)
             return lines, font, False
     if sentences:
         parts = _re.split(r"(?<=[.!?])\s+", text)
@@ -358,3 +419,282 @@ def spoken_units(text: str, narration: str) -> str:
         return out
     # One unit drawn, the other system's: the narration's own figure in its unit.
     return _FIGURE.sub(lambda m: in_spoken_unit(m) or m.group(0), text)
+
+
+# ---------------------------------------------------------------- a figure and its unit on one line (2026-10-29)
+# "180 FT" broke as "180" at a line's end and "FT" at the next one's start (visual critic round 4); a figure is
+# held to its unit, to a count word after it ("20,000 PEOPLE", "104 MILLION YEARS") and to a prefix before it
+# ("c. 780", "AD 1200") by no-break spaces, which every wrap here keeps together.
+_GLUE_WORDS = (_UNIT_ALT + r"|million|billion|thousand|hundred|years?|centuries|people|tons?|tonnes|levels?|storeys|"
+               r"stories|floors|degrees|bce?|ad|ce|percent|%")
+_GLUE_AFTER = _re_mod.compile(r"(?<![\w.])(\d[\d,]*(?:\.\d+)?\+?)((?: (?:" + _GLUE_WORDS + r")(?![\w²]))+)",
+                              _re_mod.IGNORECASE)
+_GLUE_BEFORE = _re_mod.compile(r"(?<![\w.])(c\.|ca\.|ad|about|~)\s+(?=\d)", _re_mod.IGNORECASE)
+
+
+def glue(text: str) -> str:
+    """`text` with a no-break space between each figure and its unit (and count words, and a prefix)."""
+    if not text or not any(ch.isdigit() for ch in text):
+        return text or ""
+    out = _GLUE_AFTER.sub(lambda m: m.group(1) + m.group(2).replace(" ", NBSP), text)
+    return _GLUE_BEFORE.sub(lambda m: m.group(1) + NBSP, out)
+
+
+# ---------------------------------------------------------------- text placed at a measured contrast (2026-10-29)
+# Every light text element on a photograph is measured where it is read: its glyph colour against the brightest
+# tenth (90th percentile of relative luminance) of the ring 2-10 px outside its glyphs, on the pixels as composed.
+# While that ratio is under the target, an ink halo shaped like the glyphs (dilated, blurred) is raised under them
+# 8% at a time, up to 95%: only as dark as that photo needs there, never a box (visual critic round 4: an even
+# gradient left some lines at 3:1 over bright stone and darkened others that needed nothing). The glyph mask is kept,
+# so the delivered pixels (after JPEG, or the video's film grade) are measured again with the same ring, and the
+# ratio is recorded in the still's layout (still_layout) for video_qa to assert.
+_RING_INNER, _RING_OUTER = 5, 21   # dilation kernels: the ring is 2..10 px outside the glyphs
+
+
+def rel_luminance(rgb) -> float:
+    import numpy as np
+    c = np.asarray(rgb[:3], dtype=np.float64) / 255.0
+    c = np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
+    return float(c @ np.array([0.2126, 0.7152, 0.0722]))
+
+
+def contrast_ratio(a, b) -> float:
+    la, lb = rel_luminance(a), rel_luminance(b)
+    return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+
+def _lin(pixels):
+    import numpy as np
+    c = pixels.astype(np.float32) / 255.0
+    return np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4) @ np.array([0.2126, 0.7152, 0.0722], np.float32)
+
+
+def ring_contrast(rgb, mask, origin=(0, 0), fill=None, light: bool = True) -> Optional[float]:
+    """WCAG ratio of one text element on `rgb` (H x W x 3 uint8 array): the glyphs' colour (the median of their
+    eroded interior on these pixels, or `fill`) against the 90th (light text) or 10th (dark text) percentile
+    relative luminance of the ring 2-10 px outside the glyphs. `mask`: the element's glyph mask (uint8, 0/255)
+    with its top-left at `origin`. None when the ring has too few pixels (the element is off the canvas)."""
+    import cv2
+    import numpy as np
+    ox, oy = int(origin[0]), int(origin[1])
+    h, w = mask.shape
+    reg = rgb[max(0, oy):max(0, oy + h), max(0, ox):max(0, ox + w)]
+    m = mask[max(0, -oy):max(0, -oy) + reg.shape[0], max(0, -ox):max(0, -ox) + reg.shape[1]]
+    g = (m > 127).astype(np.uint8)
+    ring = cv2.dilate(g, np.ones((_RING_OUTER, _RING_OUTER), np.uint8)) - cv2.dilate(g, np.ones((_RING_INNER, _RING_INNER), np.uint8))
+    bg = reg[ring > 0]
+    if len(bg) < 50:
+        return None
+    lb = float(np.percentile(_lin(bg), 90 if light else 10))
+    inner = cv2.erode(g, np.ones((3, 3), np.uint8))
+    if fill is None and inner.sum() > 30:
+        lt = float(np.median(_lin(reg[inner > 0])))
+    else:
+        lt = rel_luminance(fill)
+    return round((max(lt, lb) + 0.05) / (min(lt, lb) + 0.05), 2)
+
+
+def _draw_tracked(d: ImageDraw.ImageDraw, xy, text: str, font, fill, anchor: str = "la", track: float = 0,
+                  stroke: int = 0, stroke_fill=None) -> Tuple[int, int, int, int]:
+    """d.text with letter spacing `track` (px between letters); returns the drawn box (stroke included)."""
+    kw = {"stroke_width": stroke, "stroke_fill": stroke_fill} if stroke else {}
+    if not track:
+        d.text(xy, text, font=font, fill=fill, anchor=anchor, **kw)
+        return tuple(int(round(v)) for v in d.textbbox(xy, text, font=font, anchor=anchor, stroke_width=stroke))
+    widths = [d.textlength(c, font=font) for c in text]
+    total = sum(widths) + track * (len(text) - 1)
+    x0 = xy[0] - (total / 2 if anchor[0] == "m" else total if anchor[0] == "r" else 0)
+    x, v = x0, anchor[1]
+    for c, cw in zip(text, widths):
+        d.text((x, xy[1]), c, font=font, fill=fill, anchor="l" + v, **kw)
+        x += cw + track
+    b = d.textbbox((x0, xy[1]), text, font=font, anchor="l" + v, stroke_width=stroke)
+    return int(round(x0)) - stroke, int(b[1]), int(round(x0 + total)) + stroke, int(b[3])
+
+
+def tracked_width(text: str, font, track: float = 0) -> float:
+    d = ImageDraw.Draw(Image.new("L", (8, 8)))
+    return d.textlength(text, font=font) + track * max(0, len(text) - 1)
+
+
+def cap_height(font) -> int:
+    """The font's cap height in px (the top of "H" above its baseline)."""
+    return -font.getbbox("H", anchor="ls")[1]
+
+
+class TextPlate:
+    """One text element planned on its background: glyph masks, the ink halo it needs and the ratio measured on
+    the composed pixels. `draw(im)` composites it (also at a partial `alpha` or shifted `dy`, for animation);
+    `measure(im)` re-measures it on the delivered pixels."""
+
+    def __init__(self, text, font, fill, xy, anchor, track, stroke, stroke_fill, halo_px, shadow, size):
+        import numpy as np
+        self.text, self.font, self.fill, self.xy, self.anchor = text, font, tuple(fill[:3]), xy, anchor
+        self.track, self.stroke, self.stroke_fill, self.shadow = track, stroke, stroke_fill, shadow
+        self.light = rel_luminance(self.fill) > 0.3
+        self.halo, self.contrast, self.contrast_unaided, self.halo_mask = 0.0, None, None, None
+        m = Image.new("L", size, 0)
+        _draw_tracked(ImageDraw.Draw(m), xy, text, font, 255, anchor, track)
+        full = m
+        if stroke:
+            full = Image.new("L", size, 0)
+            _draw_tracked(ImageDraw.Draw(full), xy, text, font, 255, anchor, track, stroke, 255)
+        bb = full.getbbox()
+        self.empty = bb is None
+        if self.empty:
+            self.origin, self.box, self.glyphs, self.full = (0, 0), (0, 0, 0, 0), None, None
+            return
+        pad = int(halo_px or 0) + 16
+        x0, y0 = max(0, bb[0] - pad), max(0, bb[1] - pad)
+        x1, y1 = min(size[0], bb[2] + pad), min(size[1], bb[3] + pad)
+        self.origin, self.box = (x0, y0), tuple(int(v) for v in bb)
+        self.glyphs = np.asarray(m.crop((x0, y0, x1, y1)))
+        self.full = full.crop((x0, y0, x1, y1))
+        if halo_px:
+            import cv2
+            from PIL import ImageFilter
+            k = int(halo_px) | 1
+            grown = cv2.dilate((np.asarray(self.full) > 127).astype(np.uint8) * 255, np.ones((k, k), np.uint8))
+            self.halo_mask = Image.fromarray(grown).filter(ImageFilter.GaussianBlur(halo_px * 0.55))
+
+    def _layer(self, base: Image.Image, halo: float, alpha: float = 1.0) -> Image.Image:
+        """The element composed over `base` (an RGBA crop at the plate's origin)."""
+        from PIL import ImageFilter
+        out = base
+        if halo > 0 and self.halo_mask is not None:
+            from .brand import INK
+            ink = Image.new("RGBA", base.size, INK + (255,))
+            ink.putalpha(self.halo_mask.point(lambda v: int(v * halo * alpha)))
+            out = Image.alpha_composite(out, ink)
+        loc = (self.xy[0] - self.origin[0], self.xy[1] - self.origin[1])
+        if self.shadow:
+            sl = Image.new("RGBA", base.size, (0, 0, 0, 0))
+            _draw_tracked(ImageDraw.Draw(sl), (loc[0], loc[1] + 3), self.text, self.font, (0, 0, 0, int(120 * alpha)),
+                          self.anchor, self.track, self.stroke, (0, 0, 0, int(120 * alpha)))
+            out = Image.alpha_composite(out, sl.filter(ImageFilter.GaussianBlur(3)))
+        txt = Image.new("RGBA", base.size, (0, 0, 0, 0))
+        sf = self.stroke_fill
+        if sf is not None and len(sf) == 3:
+            sf = tuple(sf) + (255,)
+        _draw_tracked(ImageDraw.Draw(txt), loc, self.text, self.font, self.fill + (255,), self.anchor, self.track,
+                      self.stroke, sf)
+        if alpha < 1.0:
+            txt.putalpha(txt.getchannel("A").point(lambda v: int(v * alpha)))
+        return Image.alpha_composite(out, txt)
+
+    def _crop(self, im: Image.Image, dy: int = 0) -> Image.Image:
+        h, w = self.glyphs.shape
+        return im.convert("RGBA").crop((self.origin[0], self.origin[1] + dy, self.origin[0] + w, self.origin[1] + dy + h))
+
+    def solve(self, im: Image.Image, target: float, min_halo: float = 0.0, max_halo: float = 0.95) -> "TextPlate":
+        """The least halo (in 8% steps from `min_halo`) at which the composed element measures `target`."""
+        import numpy as np
+        if self.empty:
+            return self
+        base = self._crop(im)
+        self.contrast_unaided = ring_contrast(np.asarray(base.convert("RGB")), self.glyphs, (0, 0), self.fill, self.light)
+        halo = min_halo if self.halo_mask is not None else 0.0
+        r = ring_contrast(np.asarray(self._layer(base, halo).convert("RGB")), self.glyphs, (0, 0),
+                          None if self.light else self.fill, self.light)
+        while self.light and self.halo_mask is not None and r is not None and r < target and halo < max_halo:
+            halo = min(max_halo, halo + 0.08)
+            r = ring_contrast(np.asarray(self._layer(base, halo).convert("RGB")), self.glyphs, (0, 0), None, True)
+        self.halo, self.contrast = round(halo, 2), r
+        return self
+
+    def draw(self, im: Image.Image, alpha: float = 1.0, dy: int = 0) -> Image.Image:
+        """`im` with the element composited (its halo at the solved strength), faded by `alpha`, moved `dy` px."""
+        if self.empty or alpha <= 0:
+            return im
+        mode = im.mode
+        rgba = im.convert("RGBA")
+        rgba.paste(self._layer(self._crop(rgba, int(dy)), self.halo, alpha), (self.origin[0], self.origin[1] + int(dy)))
+        return rgba if mode == "RGBA" else rgba.convert(mode)
+
+    def draw_halo(self, im: Image.Image, alpha: float = 1.0, dy: int = 0) -> Image.Image:
+        """Only the element's ink halo (for text whose glyphs change frame to frame, as a count-up's digits: the
+        halo of the final value, drawn under each frame's figure)."""
+        if self.empty or alpha <= 0 or self.halo <= 0 or self.halo_mask is None:
+            return im
+        from .brand import INK
+        mode = im.mode
+        rgba = im.convert("RGBA")
+        base = self._crop(rgba, int(dy))
+        ink = Image.new("RGBA", base.size, INK + (255,))
+        ink.putalpha(self.halo_mask.point(lambda v: int(v * self.halo * alpha)))
+        rgba.paste(Image.alpha_composite(base, ink), (self.origin[0], self.origin[1] + int(dy)))
+        return rgba if mode == "RGBA" else rgba.convert(mode)
+
+    def measure(self, im: Image.Image) -> Optional[float]:
+        """The element's ratio on the delivered pixels `im` (the same ring, the glyph colour as it came out)."""
+        import numpy as np
+        if self.empty:
+            return None
+        return ring_contrast(np.asarray(im.convert("RGB")), self.glyphs, self.origin, None if self.light else self.fill,
+                             self.light)
+
+    def record(self) -> Dict[str, Any]:
+        """What the still's layout keeps about this element."""
+        return {"contrast": self.contrast, "contrast_unaided": self.contrast_unaided, "halo": self.halo,
+                "fill": list(self.fill), "font": Path(getattr(self.font, "path", "") or "").name,
+                "px": round(float(self.font.size), 1)}
+
+
+def plan_text(im: Image.Image, xy, text: str, font, fill, anchor: str = "la", track: float = 0, stroke: int = 0,
+              stroke_fill=None, target: Optional[float] = None, halo_px: Optional[int] = None, min_halo: float = 0.0,
+              shadow: bool = False, max_halo: float = 0.95) -> TextPlate:
+    """A TextPlate for `text` at `xy` on `im`, its halo solved for `target` (brand.PLACE_TARGET by default).
+    `halo_px`: the halo's spread (default: a third of the font size, 21-31 px: under 21 the halo does not reach the
+    outer edge of the 10 px ring it is measured on, and a thin face on a bright photo stayed under 3:1)."""
+    from .brand import INK, PLACE_TARGET
+    text = drawable(text, font)
+    halo_px = halo_px if halo_px is not None else int(min(31, max(21, font.size // 3)))
+    plate = TextPlate(text, font, fill, xy, anchor, track, stroke, stroke_fill if stroke_fill is not None else INK,
+                      halo_px, shadow, im.size)
+    return plate.solve(im, PLACE_TARGET if target is None else target, min_halo, max_halo)
+
+
+def place_text(im: Image.Image, xy, text: str, font, fill, anchor: str = "la", track: float = 0, stroke: int = 0,
+               stroke_fill=None, target: Optional[float] = None, halo_px: Optional[int] = None, min_halo: float = 0.0,
+               shadow: bool = False, layout=None, name: str = "", zone=None, record: bool = True):
+    """Draws one text element at a measured contrast (see above): returns (image, plate). With `layout` (a
+    still_layout.Layout) the element's box is recorded under `name` with its measured ratio, so the still's
+    record says how legible each line is, not only where it is."""
+    plate = plan_text(im, xy, text, font, fill, anchor, track, stroke, stroke_fill, target, halo_px, min_halo, shadow)
+    out = plate.draw(im)
+    if layout is not None and record and not plate.empty:
+        layout.add(name, plate.box, zone)
+        layout.elements[-1].update(plate.record())
+    return out, plate
+
+
+def record_contrast(layout, name: str, plates: List[TextPlate], zone=None):
+    """Several placed lines recorded as one block (still_layout.Layout.block) with the lowest ratio among them."""
+    plates = [p for p in plates if not p.empty]
+    if layout is None or not plates:
+        return None
+    from .still_layout import union
+    box = layout.add(name, union([p.box for p in plates]), zone)
+    worst = min(plates, key=lambda p: p.contrast if p.contrast is not None else 99.0)
+    layout.elements[-1].update(worst.record())
+    return box
+
+
+def remeasure(layout, im: Image.Image, plates: Dict[str, List[TextPlate]]) -> None:
+    """The delivered ratios (after JPEG, say) written over the planned ones in `layout`'s elements, by name."""
+    for e in getattr(layout, "elements", []):
+        ps = [p for p in plates.get(e["name"], []) if not p.empty]
+        vals = [v for v in (p.measure(im) for p in ps) if v is not None]
+        if vals:
+            e["contrast_planned"] = e.get("contrast")
+            e["contrast"] = min(vals)
+
+
+def spoken_system(narration: str, dimension: str = "length") -> Optional[str]:
+    """The unit system ("metric" or "imperial") the narration speaks first for a dimension, None if it gives
+    none: a figure drawn without a figure to copy (a map's scale bar, 2026-10-29) is drawn in this system."""
+    for m in _FIGURE.finditer(narration or ""):
+        info = _unit(m.group("unit"))
+        if info and _figure_ok(m) and info[0] == dimension:
+            return info[1]
+    return None

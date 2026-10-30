@@ -24,7 +24,8 @@ from PIL import Image, ImageDraw, ImageFilter
 
 from . import geo
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
-from .typography import drawable, fit_font, fit_lines, get_font, spoken_units
+from .typography import (cap_height, drawable, fit_font, fit_lines, fit_text, get_font, plan_text,
+                         spoken_system, spoken_units, tracked_width)
 from .art_direction import accent, type_scale, count_start, push_in, MOTION
 from .encoding import bounded_encode
 
@@ -32,8 +33,11 @@ log = logging.getLogger(__name__)
 
 CLIP_SECONDS = 6.0
 W, H = VIDEO_WIDTH, VIDEO_HEIGHT
-SEA, LAND, HOME, BORDER, GRID = (13, 16, 21), (40, 43, 48), (92, 74, 42), (96, 98, 104), (24, 28, 34)
-GOLD, WHITE, MUTED = (255, 215, 0), (255, 255, 255), (170, 170, 175)
+from . import brand
+# Brand tokens (src/brand.py, visual overhaul 2026-10-29): one gold, bone text, the ink ground.
+SEA, LAND, HOME, BORDER, GRID = brand.INK, (40, 43, 48), (92, 74, 42), (96, 98, 104), (24, 28, 34)
+GOLD, WHITE, MUTED = brand.GOLD, brand.BONE, brand.STONE_LT
+M = 84  # a 9:16 graphic's left text margin (19 px inside the Reel box), shared with the Story column
 # Where a 9:16 graphic may put text and figures: the Reel box every platform leaves free (safe_zones: Meta's
 # 14/35/6 %, YouTube Shorts' right-hand icon column), less the caption band at its bottom. TEXT_TOP stays a
 # little below the box's top edge, as it was; TEXT_MAX_W is the widest text centred on the frame.
@@ -214,6 +218,97 @@ def _encode(frames: Iterable[Image.Image], out: Path, n: int, width: int = VIDEO
     return out
 
 
+# ------------------------------------------------------- contrast on the graded frame (2026-10-29)
+# A graphic's text is measured where the viewer reads it: on its last frame after the master's film grade
+# (video_composer.film_grade_filter, noise and vignette), with the glyph masks it was drawn with. The planned and
+# graded ratios of each element are kept beside the clip (<clip>.contrast.json) for video_qa.graphic_contrast_problems.
+CONTRAST_SIDECAR = ".contrast.json"
+
+
+def graded_frame(frame: Image.Image, work: Path) -> Optional[Image.Image]:
+    """`frame` through the master's picture chain (format, hue-safe film print, noise, vignette); None when ffmpeg
+    cannot run here (the planned ratios are still recorded)."""
+    try:
+        from .video_composer import film_grade_filter
+        work.mkdir(parents=True, exist_ok=True)
+        src, dst = work / "_contrast_in.png", work / "_contrast_out.png"
+        frame.convert("RGB").save(src)
+        aspect = "16/9" if frame.width > frame.height else "9/16"
+        vf = (f"format=yuv420p,{film_grade_filter(0.0, out_dir=work)},format=yuv420p,"
+              f"noise=alls=8:allf=t+u:all_seed=7,vignette=PI/4.2:aspect={aspect},format=rgb24")
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(src), "-vf", vf, "-frames:v", "1", str(dst)],
+                       check=True, timeout=120, capture_output=True)
+        with Image.open(dst) as im:
+            out = im.convert("RGB")
+        src.unlink(missing_ok=True)
+        dst.unlink(missing_ok=True)
+        return out
+    except Exception as e:  # a measurement, never a reason to lose the graphic
+        log.warning("Graded contrast not measured (%s).", e)
+        return None
+
+
+def record_contrast(out: Path, frame: Image.Image, plates: List[Tuple[str, Any]]) -> Dict[str, Any]:
+    """Each element's ratio on the clip's last frame as drawn and as graded, written beside the clip."""
+    import json
+    graded = graded_frame(frame, Path(out).parent / "stage_cache" / "contrast")
+    rows = []
+    for name, plate in plates:
+        if plate is None or plate.empty:
+            continue
+        rows.append({"name": name, "text": plate.text, "planned": plate.contrast, "drawn": plate.measure(frame),
+                     "graded": plate.measure(graded) if graded is not None else None, "halo": plate.halo,
+                     "box": list(plate.box)})
+    vals = [r["graded"] if r["graded"] is not None else r["drawn"] for r in rows]
+    vals = [v for v in vals if v is not None]
+    record = {"clip": Path(out).name, "target": brand.TEXT_CONTRAST, "graded": graded is not None,
+              "min": min(vals) if vals else None, "elements": rows}
+    Path(str(out) + CONTRAST_SIDECAR).write_text(json.dumps(record, indent=1, ensure_ascii=False), encoding="utf-8",
+                                                 newline="\n")
+    return record
+
+
+def _label_plates(frame: Image.Image, cx: int, y: int, title: str, sub: str) -> List[Tuple[str, Any]]:
+    """The place label as knockout type, no pill (2026-10-29): the place in bone Anton, the country under it in
+    tracked gold Montserrat, each on its own ink halo at least 80% deep (the map under it is busy at any value),
+    raised further while the ratio is short of the target. Planned on the final frame; drawn on every frame."""
+    max_w = centred_text_width(frame.width, frame.height) - 20
+    d = ImageDraw.Draw(frame)
+    # One line down to 56 px, else two balanced lines (a long name, "Richat Structure, the Eye of the Sahara"),
+    # the last on the label's baseline, so the country line and the pin keep their places.
+    lines, f1, _ = fit_text(d, title.upper(), "Anton", 120, max_w, 1, 56, sentences=False, quiet=True)
+    if d.textlength(lines[0] if lines else "", font=f1) > max_w:
+        lines, f1, _ = fit_text(d, title.upper(), "Anton", 88, max_w, 2, 48, sentences=False)
+    f2 = get_font("Montserrat", 40, weight=800)
+    while tracked_width(sub.upper(), f2, f2.size * 0.15) > max_w and f2.size > 24:
+        f2 = get_font("Montserrat", f2.size - 2, weight=800)
+    step = round(cap_height(f1) * 1.15)
+    plates = [("place", plan_text(frame, (cx, y - step * (len(lines) - 1 - k)), ln, f1, WHITE, "ms", halo_px=25,
+                                  min_halo=0.8)) for k, ln in enumerate(lines)]
+    plates.append(("country", plan_text(frame, (cx, y + 20 + cap_height(f2) + 16), sub.upper(), f2, GOLD, "ms",
+                                        track=f2.size * 0.15, halo_px=21, min_halo=0.8)))
+    return plates
+
+
+# Nice lengths for a scale bar, in its unit.
+SCALE_STEPS = (5, 10, 20, 25, 50, 100, 150, 200, 250, 300, 500, 1000)
+
+
+def scale_bar(lat: float, px_per_deg_lat: float, narration: str) -> Dict[str, Any]:
+    """A scale bar for the map's last frame, in the unit the narration speaks for lengths (2026-10-29: the drawn
+    unit follows the voice; km when the narration gives no length): its length in that unit (the longest nice
+    length up to 260 px), its px and label."""
+    import math
+    phi = math.radians(lat)
+    km_per_deg = (111132.92 - 559.82 * math.cos(2 * phi) + 1.175 * math.cos(4 * phi)) / 1000.0
+    imperial = spoken_system(narration) == "imperial"
+    unit_km = 1.609344 if imperial else 1.0
+    px_per_unit = px_per_deg_lat / km_per_deg * unit_km
+    value = max([v for v in SCALE_STEPS if v * px_per_unit <= 260] or [SCALE_STEPS[0]])
+    return {"value": value, "unit": "MI" if imperial else "KM", "px": round(value * px_per_unit, 1),
+            "label": f"{value} {'MI' if imperial else 'KM'}", "km_per_deg_lat": round(km_per_deg, 3)}
+
+
 def _label_box(im: Image.Image, cx: int, y: int, title: str, sub: str, alpha: float) -> Image.Image:
     """Place-name label: Anton title over a gold Montserrat line, on a soft dark pill."""
     if alpha <= 0:
@@ -235,7 +330,9 @@ def _label_box(im: Image.Image, cx: int, y: int, title: str, sub: str, alpha: fl
 
 
 # ---------------------------------------------------------------------- map
-LAND_TINT, HOME_TINT = (74, 76, 82), (122, 100, 66)  # home: warm but not a flood of gold (big countries)
+# Land a step lighter than it was (74, 76, 82 / 122, 100, 66): after the film grade the land and the sea were close
+# in value (visual critic round 4, 2026-10-29); home stays warm but not a flood of gold (big countries).
+LAND_TINT, HOME_TINT = (88, 92, 100), (150, 122, 72)
 
 
 @lru_cache(maxsize=1)
@@ -254,9 +351,15 @@ def _relief() -> Optional[Image.Image]:
 
 def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: float, home, project,
                 final_view: Tuple[float, float, float, float], label_bottom_fraction: float = 1.0,
-                reserved: Tuple[Tuple[float, float, float, float], ...] = ()) -> Image.Image:
+                reserved: Tuple[Tuple[float, float, float, float], ...] = (),
+                final_safe: Optional[Tuple[float, float, float, float]] = None,
+                transient: Optional[List[Dict[str, Any]]] = None) -> Image.Image:
     """The map background: hillshaded land (the topic's country in warm gold), a navy sea with a
-    soft coastal glow, thin borders, and neighbouring countries named at Natural Earth's label points."""
+    soft coastal glow, thin borders, and neighbouring countries named at Natural Earth's label points.
+    final_safe: the safe box of the last frame, in base pixels; a name drawn into the base must lie in it.
+    transient: given, the names outside the close-up are not drawn into the base but added to it
+    ({"name", "sprite": an L mask, "box": its base box}) for the frames to draw while wholly visible;
+    the names drawn into the base are added with "sprite": None."""
     import numpy as np
     lon_span, lat_span = bw / (kx * coslat), bh / kx
     lon_min, lat_max = lon0 - lon_span / 2, lat0 + lat_span / 2
@@ -337,16 +440,33 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
             continue
         m = 60  # clear of the close-up's edge, so the last frame shows no name touching it
         inside = fx0 + m <= box[0] and box[2] <= fx1 - m and fy0 + m <= box[1] and box[3] <= fy1 - m
+        if inside and final_safe is not None:  # and inside the Reel's safe box on the last frame (so on every frame)
+            inside = (final_safe[0] <= box[0] and box[2] <= final_safe[2]
+                      and final_safe[1] <= box[1] and box[3] <= final_safe[3])
         outside = box[2] < fx0 or box[0] > fx1 or box[3] < fy0 or box[1] > fy1
-        if not (inside or outside) or any(not (box[2] < p[0] or box[0] > p[2] or box[3] < p[1] or box[1] > p[3]) for p in placed):
+        if not (inside or outside or transient is not None) or any(not (box[2] < p[0] or box[0] > p[2] or box[3] < p[1] or box[1] > p[3]) for p in placed):
             continue
         placed.append(box)
+        if not inside and transient is not None:
+            # A name not wholly inside the close-up's safe box is crossed by the frame's edge as the camera
+            # zooms in: drawn into the base, it showed cut ("THUANIA", "ND": Derinkuyu, prod 2026-10-29). It
+            # is drawn on the frames instead, only while it is wholly inside the safe box, fading out before.
+            sprite = Image.new("L", (int(r - l) + 8, int(b - t) + 8), 0)
+            ImageDraw.Draw(sprite).text((4 - l + x, 4 - t + y), drawable(name, font), font=font, fill=255, anchor="mm")
+            transient.append({"name": c["display"], "sprite": sprite,
+                              "box": (l - 4, t - 4, l - 4 + sprite.width, t - 4 + sprite.height)})
+            continue
+        if transient is not None:  # drawn into the base: recorded so its place on each frame can be checked
+            transient.append({"name": c["display"], "sprite": None, "box": box})
         _text(draw, (x, y), name, font=font, fill=(150, 152, 160), anchor="mm")
     return base
 
 
-def render_map(place: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> Optional[Path]:
-    """Regional locator map: eases from a ~40° view to ~18° around the site, pin drop, label."""
+def render_map(place: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
+               narration: str = "") -> Optional[Path]:
+    """Regional locator map: eases from a ~40° view to ~18° around the site, pin drop, label, and on a 9:16
+    frame a scale bar in the narration's unit once the camera rests (2026-10-29). `narration`: the run's
+    narration (typography.spoken_system)."""
     if not geo.available():
         return None
     lat0, lon0 = place["lat"], place["lon"]
@@ -369,19 +489,44 @@ def render_map(place: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heigh
     half_w = min(width // 2, 60 + max(len(label) * 22, len(country) * 18))
     to_base = lambda x, y: (final_view[0] + x * (final_view[2] - final_view[0]) / width,  # noqa: E731
                             final_view[1] + y * (final_view[3] - final_view[1]) / height)
-    reserved = (to_base(width // 2 - half_w, label_y - 90) + to_base(width // 2 + half_w, height // 2 + 70),)
+    reserved = (to_base(width // 2 - half_w, label_y - 200) + to_base(width // 2 + half_w, height // 2 + 70),)
+    portrait = height > width
+    # The scale bar: the final close-up shows `span_close` degrees of longitude across the frame at cos(lat) scale,
+    # so one degree of latitude is width / span_close px there; the bar appears only once the zoom has stopped.
+    bar = scale_bar(lat0, width / span_close, narration) if portrait else None
+    bar_y = TEXT_BOTTOM - 22
+    if bar:  # no neighbour's name under the bar and its label
+        reserved += (to_base(M - 20, bar_y - 70) + to_base(M + bar["px"] + 260, bar_y + 30),)
+    sx0, sy0, sx1, sy1 = get_text_box(width, height)
+    labels: List[Dict[str, Any]] = []
     base = relief_base(lat0, lon0, bw, bh, kx, coslat, geo.find_country(place["country"]), project, final_view,
-                       label_bottom_fraction=get_text_bounds(width, height)[1] / height, reserved=reserved)
+                       label_bottom_fraction=get_text_bounds(width, height)[1] / height, reserved=reserved,
+                       final_safe=to_base(sx0, sy0) + to_base(sx1, sy1), transient=labels)
 
     n = int(CLIP_SECONDS * VIDEO_FPS)
+    zooms = [span_wide / (span_wide + (span_close - span_wide) * _ease(i / VIDEO_FPS / 1.6)) for i in range(n)]
+    plan = map_label_plan(labels, zooms, width, height, bw, bh)
+    # The place label and the bar's figure are planned on the camera's resting view (their halos solved there).
+    zf_last = zooms[-1]
+    rest = base.resize((width, height), Image.BICUBIC, box=(bw / 2 - bw / 2 / zf_last, bh / 2 - bh / 2 / zf_last,
+                                                            bw / 2 + bw / 2 / zf_last, bh / 2 + bh / 2 / zf_last)).convert("RGB")
+    label_plates = _label_plates(rest, width // 2, label_y, label, country)
+    bar_plate = None
+    if bar:
+        bar_plate = plan_text(rest, (M + bar["px"] + 22, bar_y + 13), bar["label"], get_font(brand.DATA_FONT, 38, weight=600),
+                              WHITE, "ls", track=1, min_halo=0.6, halo_px=17)
+    last: List[Image.Image] = []
 
     def frames():
         for i in range(n):
             t = i / VIDEO_FPS
-            zoom = span_wide / (span_wide + (span_close - span_wide) * _ease(t / 1.6))
+            zoom = zooms[i]
             cw, ch = bw / zoom, bh / zoom
             box = (bw / 2 - cw / 2, bh / 2 - ch / 2, bw / 2 + cw / 2, bh / 2 + ch / 2)
             im = base.resize((width, height), Image.BICUBIC, box=box).convert("RGB")
+            for lab in plan[i]:
+                if lab["mask"] is not None:
+                    im.paste((150, 152, 160), lab["box"][:2], lab["mask"])
             d = ImageDraw.Draw(im, "RGBA")
             cx, cy = width // 2, height // 2
             # Pulse rings after the pin lands.
@@ -396,10 +541,69 @@ def render_map(place: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heigh
                 py = cy - 160 * (1 - drop) - (12 * math.sin(math.pi * min(1.0, (t - 1.6) / 0.25)) if 1.6 <= t <= 1.85 else 0)
                 d.ellipse([cx - 22, py - 22, cx + 22, py + 22], fill=(*accent(), 255), outline=(20, 20, 20, 255), width=4)
                 d.ellipse([cx - 7, py - 7, cx + 7, py + 7], fill=(20, 20, 20, 255))
-            im = _label_box(im, cx, label_y, label, country, _ease((t - 1.5) / 0.4))
+            a = _ease((t - 1.5) / 0.4)
+            for _, plate in label_plates:  # knockout labels rise 12 px as they fade in
+                im = plate.draw(im, a, dy=round(12 * (1 - a)))
+            if bar:
+                ab = _ease((t - 1.75) / 0.3)
+                if ab > 0:
+                    d = ImageDraw.Draw(im, "RGBA")
+                    x1 = M + bar["px"]
+                    col = (*WHITE, int(255 * ab))
+                    d.line([(M, bar_y), (x1, bar_y)], fill=col, width=5)
+                    for xx in (M, x1):
+                        d.line([(xx, bar_y - 14), (xx, bar_y + 2)], fill=col, width=5)
+                    im = bar_plate.draw(im, ab)
+            if i == n - 1:
+                last.append(im.copy())
             yield im
 
-    return _encode(frames(), out, n, width=width, height=height)
+    result = _encode(frames(), out, n, width=width, height=height)
+    if result and last:
+        record_contrast(out, last[0], label_plates + ([("scale", bar_plate)] if bar_plate else []))
+        if bar:
+            import json
+            Path(str(out) + ".scale.json").write_text(json.dumps(bar, indent=1), encoding="utf-8", newline="\n")
+    return result
+
+
+def map_label_plan(labels: List[Dict[str, Any]], zooms: List[float], width: int, height: int,
+                   bw: int, bh: int) -> List[List[Dict[str, Any]]]:
+    """Each frame's country names: {"name", "box": its frame pixels, "mask": what is pasted, None for a name
+    drawn into the base}. A name outside the close-up is shown only while its whole box lies in the safe box
+    (get_text_box); the zoom only ever carries it outward, so it is shown from the first frame until just
+    before it would be cut, fading out over 0.3 s. A name not wholly inside on the first frame is not drawn."""
+    safe = get_text_box(width, height)
+    fade = max(1, round(0.3 * VIDEO_FPS))
+
+    def frame_box(box, zoom):
+        cw, ch = bw / zoom, bh / zoom
+        x0, y0 = bw / 2 - cw / 2, bh / 2 - ch / 2
+        sx, sy = width / cw, height / ch
+        left, top = round((box[0] - x0) * sx), round((box[1] - y0) * sy)
+        return (left, top, left + max(1, round((box[2] - box[0]) * sx)), top + max(1, round((box[3] - box[1]) * sy)))
+
+    def within(b):
+        return safe[0] <= b[0] and b[2] <= safe[2] and safe[1] <= b[1] and b[3] <= safe[3]
+
+    plan: List[List[Dict[str, Any]]] = [[] for _ in zooms]
+    for lab in labels:
+        boxes = [frame_box(lab["box"], z) for z in zooms]
+        if lab["sprite"] is None:
+            for i, b in enumerate(boxes):
+                plan[i].append({"name": lab["name"], "box": b, "mask": None})
+            continue
+        shown = 0
+        while shown < len(boxes) and within(boxes[shown]):
+            shown += 1
+        for i in range(shown):
+            b = boxes[i]
+            mask = lab["sprite"].resize((b[2] - b[0], b[3] - b[1]), Image.BICUBIC)
+            alpha = min(1.0, (shown - i) / fade)
+            if alpha < 1.0:
+                mask = mask.point(lambda v, a=alpha: int(v * a))
+            plan[i].append({"name": lab["name"], "box": b, "mask": mask})
+    return plan
 
 
 def get_text_bounds(width: int, height: int) -> Tuple[int, int]:
@@ -495,39 +699,95 @@ def render_timeline(events: List[Dict[str, Any]], out: Path, width: int = VIDEO_
                             ly = spine_y + 74 + 34 * j
                             _text(d, (x, ly), line, font=f_lab, fill=(*WHITE, a), anchor="mt")
                 yield im
+        return _encode(frames(), out, n, width=width, height=height)
     else:
-        # Vertical: spine draws downward
-        x0 = 190
-        # The spine spans the box with room for the first year's glyphs above its first dot and the last
-        # entry's two label lines below its last one (both were drawn past the bounds before, measured 2026-10-24).
-        y_first, y_last = top + 70, bottom - 110
-        step = (y_last - y_first) / (len(events) - 1)
-        f_year, f_lab = get_font("Anton", 74), get_font("Montserrat", 34)
+        # Vertical (2026-10-29): a gold-dim spine draws down, each date lands with its label. Two events get the
+        # large years and two-line labels; more get smaller years and one-line labels fitted to the column (a
+        # label that cannot fit one line at its floor size takes two, never cut). Measured first: if the last
+        # entry's label would pass the graphics box's bottom (graphics_box()[3], above the caption band) the
+        # spine is lifted, and when the entries no longer fit between the bounds the type steps down.
+        x0 = M + 18
+        xt = x0 + 56
+        label_w = TEXT_RIGHT - xt - 4
+        probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+        many = len(events) > 2
+        for scale in (1.0, 0.92, 0.84, 0.76, 0.68, 0.6):
+            f_year = get_font("Anton", int((104 if many else 180) * scale))
+            cap_y = cap_height(f_year)
+            lab_px = int((38 if many else 42) * scale)
+            entries = []
+            texts = [drawable(e["label"].upper(), "Montserrat") for e in events]
+            floor = max(26, round(lab_px * 0.78))
+            if many:  # one size for every label: the smallest at which those that fit one line do; the rest take two
+                fits = [fit_text(probe, tx, "Montserrat", lab_px, label_w - 2 * len(tx), 1, floor, sentences=False,
+                                 weight=800, quiet=True) for tx in texts]
+                common = min([f[1].size for f in fits if not f[2]] or [floor])
+            for e, text in zip(events, texts):
+                if many:
+                    lines, f_lab, short = fit_text(probe, text, "Montserrat", common, label_w - 2 * len(text), 1, common,
+                                                   sentences=False, weight=800, quiet=True)
+                    if short:
+                        lines, f_lab, _ = fit_text(probe, text, "Montserrat", common, label_w - 2 * len(text), 2, common,
+                                                   weight=800, quiet=True)
+                else:
+                    lines, f_lab, _ = fit_text(probe, text, "Montserrat", lab_px, label_w - 2 * len(text), 2,
+                                               max(22, int(lab_px * 0.8)), weight=800, quiet=True)
+                f_lab = get_font("Montserrat", f_lab.size, weight=800)
+                step = round(f_lab.size * 1.3)
+                gap = round(f_lab.size * (1.4 if many else 1.6))
+                # offsets from the entry's dot: the year's top, and the last label row's ink bottom
+                e_top = -cap_y // 2
+                rows = [cap_y // 2 + gap + j * step for j in range(len(lines))]
+                e_bottom = max(probe.textbbox((0, y), ln, font=f_lab, anchor="ls")[3] for y, ln in zip(rows, lines))
+                entries.append({"year": year_text(e["year"], e.get("approximate", False)).upper(), "lines": lines,
+                                "font": f_lab, "rows": rows, "top": e_top, "bottom": e_bottom})
+            y_first = top + 30 - entries[0]["top"]
+            y_last = bottom - entries[-1]["bottom"]                    # lifted so its last row ends on the bound
+            need = max(entries[k]["bottom"] - entries[k + 1]["top"] + 34 for k in range(len(entries) - 1))
+            step_y = (y_last - y_first) / (len(entries) - 1)
+            if step_y >= need:
+                break
+        if scale < 1.0:
+            log.info("Timeline type set at %d%% to keep %d entries above the caption band.", round(scale * 100), len(events))
+        spine_gold, track = brand.GOLD_DIM, 2
+        ground = Image.new("RGB", (width, height), brand.INK)
+        plates = []
+        for k, en in enumerate(entries):
+            y = y_first + step_y * k
+            en["y"] = y
+            en["year_plate"] = plan_text(ground, (xt, y + cap_y // 2), en["year"], f_year, GOLD, "ls")
+            en["label_plates"] = [plan_text(ground, (xt + 4, y + r), ln, en["font"], WHITE, "ls", track=track)
+                                  for r, ln in zip(en["rows"], en["lines"])]
+            plates += [(f"year{k}", en["year_plate"])] + [(f"label{k}", p) for p in en["label_plates"]]
+        last: List[Image.Image] = []
 
         def frames():
             for i in range(n):
                 t = i / VIDEO_FPS
-                im = bg.copy()
+                im = ground.copy()
                 d = ImageDraw.Draw(im, "RGBA")
-                spine = y_first + (y_last - y_first) * _ease(t / 1.0)
-                d.line([(x0, y_first), (x0, spine)], fill=(*accent(), 255), width=6)
-                for k, e in enumerate(events):
+                spine = y_first + (entries[-1]["y"] - y_first) * _ease(t / 1.0)
+                d.line([(x0, y_first), (x0, spine)], fill=(*spine_gold, 255), width=6)
+                for k, en in enumerate(entries):
                     appear = _ease((t - 0.4 - 0.45 * k) / 0.4)
                     if appear <= 0:
                         continue
-                    y = y_first + step * k
-                    a = int(255 * appear)
                     r = 16 * appear
-                    d.ellipse([x0 - r, y - r, x0 + r, y + r], fill=(*accent(), a))
-                    xt = x0 + 50 + int(30 * (1 - appear))
-                    _text(d, (xt, y - 8), year_text(e["year"], e.get("approximate", False)), font=f_year, fill=(*GOLD, a), anchor="ls")
-                    v_lines, f_fit = fit_lines(d, e["label"], f_lab, min(width - xt - 90, get_text_box(width, height)[2] - xt), 2)
-                    for j, line in enumerate(v_lines):
-                        _text(d, (xt, y + 18 + 42 * j), line, font=f_fit, fill=(*WHITE, a), anchor="lt")
+                    y = en["y"]
+                    d.ellipse([x0 - r, y - r, x0 + r, y + r], fill=(*GOLD, int(255 * appear)))
+                    dy = round(14 * (1 - appear))
+                    im = en["year_plate"].draw(im, appear, dy)
+                    for p in en["label_plates"]:
+                        im = p.draw(im, appear, dy)
+                    d = ImageDraw.Draw(im, "RGBA")
+                if i == n - 1:
+                    last.append(im.copy())
                 yield im
 
-    return _encode(frames(), out, n, width=width, height=height)
-
+        result = _encode(frames(), out, n, width=width, height=height)
+        if result and last:
+            record_contrast(out, last[0], plates)
+        return result
 
 # -------------------------------------------------------------------- scale
 def pick_reference(feet: float) -> Optional[Tuple[str, float, str]]:
@@ -688,9 +948,189 @@ def _stat_plan(d: ImageDraw.ImageDraw, card: Dict[str, Any], f_num_size: int, ma
             "top": v_top, "bottom": bottom}
 
 
+def figure_parts(value: str) -> Dict[str, str]:
+    """A number card's value in its drawn parts: what comes before the figure ("ABOUT", "EST."), the figure
+    ("280", "25+", "94–104"), its unit ("FT", "MILLION YEARS") and a figure in brackets ("85 M"), which the card
+    sets as its second, data-face line. A value with no figure is all `unit` (drawn as it is)."""
+    import re
+    m = re.match(r"^\s*(?P<pre>[^\d(]*?)\s*(?P<num>\d[\d,.]*(?:\s*[–-]\s*\d[\d,.]*)?\+?)\s*(?P<unit>[^()]*?)\s*"
+                 r"(?:\((?P<sec>[^)]*)\))?\s*$", value or "")
+    if not m:
+        return {"pre": "", "num": "", "unit": (value or "").strip(), "sec": ""}
+    return {k: " ".join((m.group(k) or "").split()) for k in ("pre", "num", "unit", "sec")}
+
+
+def _cells(d: ImageDraw.ImageDraw, text: str, font) -> List[Tuple[str, float]]:
+    """Each character of a figure with its advance: digits on one fixed cell (the widest digit), so a count-up
+    rolls in place without the unit beside it moving."""
+    cell = max(d.textlength(c, font=font) for c in "0123456789")
+    return [(c, cell if c.isdigit() else d.textlength(c, font=font)) for c in text]
+
+
+def _stat_layout(d: ImageDraw.ImageDraw, card: Dict[str, Any], num_px: int, width: int, scale: float = 1.0) -> Dict[str, Any]:
+    """One card measured (offsets from its block's top, x from the left margin): the figure's font fitted so the
+    figure and its unit stay inside the graphics box, the label in up to two lines, the bracketed figure in the
+    data face (IBM Plex Mono), the prefix as a kicker."""
+    parts = figure_parts(card["value"].upper())
+    pre, num, unit, sec = parts["pre"], parts["num"], parts["unit"], parts["sec"]
+    if not num:                          # no figure: the value is drawn as a heading
+        num, unit = "", parts["unit"]
+    size = num_px
+    while True:
+        f_num = get_font("Anton", size)
+        f_unit = get_font("Anton", max(48, round(size * 0.37)))
+        num_w = sum(w for _, w in _cells(d, num, f_num)) if num else 0
+        unit_w = d.textlength(unit, font=f_unit) if unit else 0
+        if num_w + (24 if num and unit else 0) + unit_w <= width or size <= 120:
+            break
+        size -= 10
+    rows: List[Dict[str, Any]] = []
+    y = 0
+    if pre:
+        f_k = get_font("Montserrat", round(40 * scale), weight=800)
+        y += cap_height(f_k)
+        rows.append({"name": "prefix", "kind": "kicker", "text": pre, "font": f_k, "y": y})
+        y += round(34 * scale)
+    y += cap_height(f_num if num else f_unit)
+    num_y = y
+    if num:
+        rows.append({"name": "figure", "kind": "figure", "text": num, "font": f_num, "y": y, "width": num_w})
+    if unit:
+        rows.append({"name": "unit", "kind": "text", "text": unit, "font": f_unit, "y": y, "x": (num_w + 24) if num else 0,
+                     "fill": WHITE})
+    f_lab_px = round(46 * scale)
+    lines, f_lab, _ = fit_text(d, card["label"].upper(), "Montserrat", f_lab_px, width - 120, 2,  # 3 px tracking
+                               max(26, round(f_lab_px * 0.75)), weight=800, quiet=True)
+    f_lab = get_font("Montserrat", f_lab.size, weight=800)
+    y += round(f_lab.size * 1.75)
+    for j, line in enumerate(lines):
+        rows.append({"name": "label", "kind": "text", "text": line, "font": f_lab, "y": y + j * round(f_lab.size * 1.26),
+                     "fill": WHITE, "track": 3})
+    y += (len(lines) - 1) * round(f_lab.size * 1.26)
+    if sec:
+        f_sec = get_font(brand.DATA_FONT, round(46 * scale), weight=600)
+        y += round(f_sec.size * 1.45)
+        rows.append({"name": "secondary", "kind": "count", "text": sec, "font": f_sec, "y": y, "fill": WHITE})
+    probe_rows = [r for r in rows if r["kind"] != "kicker"]
+    low = max(d.textbbox((0, r["y"]), r["text"], font=r["font"], anchor="ls")[3] for r in probe_rows)
+    high = min([0] + [d.textbbox((0, r["y"]), r["text"], font=r["font"], anchor="ls")[1] for r in rows])
+    return {"rows": rows, "top": high, "bottom": low, "height": low - high, "num_y": num_y, "figure_px": size}
+
+
 def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Path] = None, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
                       narration: str = "") -> Optional[Path]:
-    """1-2 headline figures counting up to their value, each with its label, over a dark photo backdrop.
+    """1-2 headline figures counting up to their value, each with its label (visual overhaul, 2026-10-29).
+    9:16: left-aligned on the text margin over the photo itself (pushing in), an adaptive ink gradient behind the
+    block; the figure in gold Anton with its digits on fixed cells, right-aligned so they roll in place, its unit
+    in bone beside it, the pair fitted inside the graphics box (safe_zones.graphics_box: clear of Shorts' icon
+    column and the caption band); a bracketed figure ("(85 m)") in the data face under the label, counting with
+    it. Every line is drawn at a measured contrast, re-measured on the graded last frame (<clip>.contrast.json).
+    `narration`: the run's narration, whose units the figures are drawn in (typography.spoken_units)."""
+    # One unit per run: a figure in the other system is drawn in the unit the voice speaks (2026-10-29).
+    cards = [dict(c, value=spoken_units(str(c.get("value") or ""), narration),
+                  label=spoken_units(str(c.get("label") or ""), narration)) for c in cards[:2]]
+    if not cards:
+        return None
+    if width > height:
+        return _render_stat_cards_landscape(cards, out, photo, width, height)
+    from .typography import cover_crop
+    n = int(CLIP_SECONDS * VIDEO_FPS)
+    top, bottom = get_text_bounds(width, height)
+    text_w = TEXT_RIGHT - M - 4
+    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    # Measured first: both cards between the bounds (the lower one ending on the graphics box's bottom at most),
+    # the type stepped down together when they do not fit.
+    for scale in (1.0, 0.9, 0.8, 0.7, 0.6):
+        num_px = round((380 if len(cards) == 1 else 230) * scale)
+        plans = [_stat_layout(probe, c, num_px, text_w, scale) for c in cards]
+        gap = 90
+        total = sum(p["height"] for p in plans) + gap * (len(plans) - 1)
+        if total <= bottom - top:
+            break
+    y = max(top, (top + bottom) // 2 - total // 2)
+    for p in plans:
+        p["y0"] = y - p["top"]
+        y += p["height"] + gap
+    if photo and Path(photo).exists():
+        bg = cover_crop(Path(photo), (width, height)).convert("RGB")
+    else:
+        bg = Image.new("RGB", (width, height), SEA)
+    from .multi_format import scrim
+    bg = scrim(bg, plans[0]["y0"] + plans[0]["top"] - 40, plans[-1]["y0"] + plans[-1]["bottom"] + 40, feather=380,
+               target=0.24).convert("RGB")
+    rest = _pushed_in(bg, push_in((n - 1) / VIDEO_FPS, CLIP_SECONDS))
+    plates: List[Tuple[str, Any]] = []
+    for p in plans:   # each line planned on the resting frame: its halo, and for a figure one plate per character
+        for r in p["rows"]:
+            yy = p["y0"] + r["y"]
+            if r["kind"] == "kicker":
+                r["bar"] = (M, round(yy - cap_height(r["font"])), M + max(4, round(cap_height(r["font"]) * 0.26)) - 1, round(yy))
+                ch = cap_height(r["font"])
+                r["plates"] = [plan_text(rest, (M + max(4, round(ch * 0.26)) + round(ch * 0.66), yy), r["text"], r["font"],
+                                         GOLD, "ls", track=r["font"].size * 0.15)]
+            elif r["kind"] == "figure":
+                x, r["plates"], r["cells"] = M, [], []
+                for c, w in _cells(probe, r["text"], r["font"]):
+                    cx = x + w / 2
+                    r["plates"].append(plan_text(rest, (cx, yy), c, r["font"], GOLD, "ms", halo_px=25))
+                    x += w
+                r["x_end"] = x
+            elif r["kind"] == "count":
+                r["plates"] = [plan_text(rest, (M, yy), r["text"], r["font"], r["fill"], "ls", track=r.get("track", 0))]
+                r["x_end"] = M + probe.textlength(r["text"], font=r["font"])
+            else:
+                r["plates"] = [plan_text(rest, (M + r.get("x", 0), yy), r["text"], r["font"], r["fill"], "ls",
+                                         track=r.get("track", 0))]
+            plates += [(r["name"], pl) for pl in r["plates"]]
+    last: List[Image.Image] = []
+
+    def frames():
+        for i in range(n):
+            t = i / VIDEO_FPS
+            im = _pushed_in(bg, push_in(t, CLIP_SECONDS))  # a slow push on the photo: a card never sits static
+            for k, (card, p) in enumerate(zip(cards, plans)):
+                start = count_start(k)  # every count rests by count_done_by of the clip
+                a = _ease((t - start) / MOTION["reveal"])
+                if a <= 0:
+                    continue
+                count = _ease((t - start) / MOTION["count"])
+                dy = round(14 * (1 - a))
+                for r in p["rows"]:
+                    yy = p["y0"] + r["y"] + dy
+                    if r["kind"] == "figure":
+                        for pl in r["plates"]:
+                            im = pl.draw_halo(im, a, dy)
+                        shown = _shown_value(r["text"], count)
+                        d = ImageDraw.Draw(im, "RGBA")
+                        x = r["x_end"] - sum(w for _, w in _cells(d, shown, r["font"]))
+                        for c, w in _cells(d, shown, r["font"]):   # right-aligned on the final figure's cells
+                            _text(d, (x + w / 2, yy), c, r["font"], (*GOLD, int(255 * a)), anchor="ms")
+                            x += w
+                    elif r["kind"] == "count":
+                        pl = r["plates"][0]
+                        im = pl.draw_halo(im, a, dy)
+                        d = ImageDraw.Draw(im, "RGBA")
+                        _text(d, (r["x_end"], yy), _shown_value(r["text"], count), r["font"], (*r["fill"], int(255 * a)),
+                              anchor="rs")
+                    else:
+                        if r["kind"] == "kicker":
+                            x0, y0, x1, y1 = r["bar"]
+                            ImageDraw.Draw(im, "RGBA").rectangle([x0, y0 + dy, x1, y1 + dy], fill=(*GOLD, int(255 * a)))
+                        for pl in r["plates"]:
+                            im = pl.draw(im, a, dy)
+            if i == n - 1:
+                last.append(im.copy())
+            yield im
+
+    result = _encode(frames(), out, n, width=width, height=height)
+    if result and last:
+        record_contrast(out, last[0], plates)
+    return result
+
+
+def _render_stat_cards_landscape(cards: List[Dict[str, Any]], out: Path, photo: Optional[Path] = None, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
+                      narration: str = "") -> Optional[Path]:
+    """16:9 (the documentary): 1-2 headline figures counting up, centred, over a dark photo backdrop.
     `narration`: the run's narration, whose units the figures are drawn in (typography.spoken_units)."""
     # One unit per run: a figure in the other system is drawn in the unit the voice speaks (2026-10-29).
     cards = [dict(c, value=spoken_units(str(c.get("value") or ""), narration),
@@ -753,6 +1193,7 @@ def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Pa
             yield im
 
     return _encode(frames(), out, n, width=width, height=height)
+
 
 
 # ------------------------------------------------------------ cross-section
@@ -1210,17 +1651,19 @@ def make_all(payload: Dict[str, Any], topic: Dict[str, Any], work_dir: Path, pho
     if place and region and not place.get("region"):  # recorded with the map, so the line naming it gets the map
         place = dict(place, region=region)
     if place:
-        jobs.append(("map", lambda: render_map(place, work_dir / "graphic_map.mp4", width=width, height=height)))
+        jobs.append(("map", lambda: render_map(place, work_dir / "graphic_map.mp4", width=width, height=height,
+                                               narration=payload.get("narration_script") or "")))
     if payload.get("timeline"):
         jobs.append(("timeline", lambda: render_timeline(payload["timeline"], work_dir / "graphic_timeline.mp4", width=width, height=height)))
     if payload.get("scale_fact"):
         jobs.append(("scale", lambda: render_scale(payload["scale_fact"], work_dir / "graphic_scale.mp4", width=width, height=height)))
     def _run_job(name, job):
         from .checkpoints import Checkpoints, file_inputs
-        from .typography import FONT_FILES, FONTS_DIR
+        from .typography import FONTS_DIR, bundled_font_files
         from .lineage import sidecar
         source_files = [Path(__file__), Path(__file__).with_name("typography.py"),
-                        *[FONTS_DIR / filename for filename in FONT_FILES.values()]]
+                        Path(__file__).with_name("brand.py"),
+                        *[FONTS_DIR / filename for filename in bundled_font_files()]]
         if photo and name == "numbers":
             source_files.append(Path(photo))
         if name == "scale":
@@ -1232,7 +1675,7 @@ def make_all(payload: Dict[str, Any], topic: Dict[str, Any], work_dir: Path, pho
                   "height": height, "fps": VIDEO_FPS, "encoder": get_video_encoder(),
                   "spec": {key: payload.get(key) for key in ("stat_cards", "cross_section", "route",
                            "timeline", "scale_fact", "rolling_stone_defense", "ventilation_airflow")}}
-        if name == "numbers":  # its figures are drawn in the narration's units (2026-10-29)
+        if name in ("numbers", "map"):  # figures (a map's scale bar) in the narration's units (2026-10-29)
             inputs["narration"] = payload.get("narration_script") or ""
         checkpoint = Checkpoints(work_dir / "stage_cache" / name)
         try:

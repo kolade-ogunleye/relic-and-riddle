@@ -124,7 +124,8 @@ def test_a_stat_slide_shows_the_cards_own_figure_and_no_verified_badge(topic, mo
                                             {}, "", False, tight=tight)
         names = {e["name"] for e in lay.elements}
         assert lay.problems() == [] and "stat" in names and not names & {"verified", "badge"}
-        assert "134 METERS" in drawn and not any("VERIFIED" in t for t in drawn)
+        # The figure and its unit are drawn as two lines on one baseline since 2026-10-29 (the unit smaller, in bone).
+        assert "134" in drawn and "METERS" in drawn and not any("VERIFIED" in t for t in drawn)
     # A stat-routed card with no figure gets no stat line (it used to show the category label instead).
     _, lay = gen._render_carousel_slide("colossal_stat", topic["photos"][0], topic["photos"][1],
                                         {"heading": "DEEP", "body": "The mine runs deep below the town."}, 2, 7, {}, "", False)
@@ -194,7 +195,7 @@ def test_alt_text_says_what_the_photo_shows_and_what_the_slide_says(topic, rotat
     assert alts[0].startswith("Photo: The vault of building 1 seen from below.") and "DSC" not in alts[0]
     assert "ROMAN CONCRETE SECRETS." in alts[0] and ROMAN["carousel_slides"][0]["body"] in alts[0]
     assert alts[1].startswith("Two photos: The vault of building 2 seen from below; and The vault of building 3")
-    assert "Tell us in the comments." in alts[6]
+    assert "comments" not in alts[6].lower()  # no comments footer on the closing slide (operator, 2026-10-29)
     huge = dict(ROMAN, carousel_slides=[dict(c, body=c["body"] * 30) for c in ROMAN["carousel_slides"]])
     slides = MultiFormatGenerator().generate_carousel_sequence(topic["photos"], huge, topic["run"] / "huge")
     assert all(len(slide_alt_text(s)) <= 1000 for s in slides)

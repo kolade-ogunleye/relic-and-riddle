@@ -26,7 +26,7 @@ def test_facebook_copy_has_no_swipe_cue_or_counter(tmp_path, monkeypatch):
     slides, drawn = _render(tmp_path, monkeypatch, facebook=True)
     assert len(slides) == 3 and all(s.parent.name == "carousel_fb" for s in slides)
     assert not any("SWIPE" in t or " OF 0" in t or "ARCHIVAL RECORD" in t or "// 0" in t or " DATA" in t for t in drawn)
-    assert any("RELIC & RIDDLE" in t for t in drawn)  # the brand mark stays
+    assert "RELIC & RIDDLE" in "".join(drawn)  # the brand mark stays (tracked, drawn a letter at a time, 2026-10-29)
 
 
 def test_instagram_copy_has_no_slide_chrome_either(tmp_path, monkeypatch):
@@ -36,4 +36,4 @@ def test_instagram_copy_has_no_slide_chrome_either(tmp_path, monkeypatch):
     slides, drawn = _render(tmp_path, monkeypatch, facebook=False)
     assert all(s.parent.name == "carousel" for s in slides)
     assert not any("SWIPE" in t or " OF 0" in t or "ARCHIVAL RECORD" in t or "// 0" in t or " DATA" in t for t in drawn)
-    assert any("RELIC & RIDDLE" in t for t in drawn)
+    assert "RELIC & RIDDLE" in "".join(drawn)

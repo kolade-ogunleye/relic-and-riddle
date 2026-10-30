@@ -38,12 +38,8 @@ from .config import (
     CAPTION_PAD_X,
     CAPTION_PAD_Y,
     CAPTION_BORDER_RADIUS,
-    COL_ACTIVE,
-    COL_EMPHASIS,
     EMPHASIS_POP,
-    COL_PAST,
-    COL_FUTURE,
-    COL_BACK,
+    COL_BACK,  # the pill; the text colours are the brand's (below)
     TARGET_LUFS,
     TARGET_TRUE_PEAK,
     VIDEO_WIDTH,
@@ -52,6 +48,16 @@ from .config import (
 )
 from .typography import is_video
 from .parallax import preset_for
+from . import brand as _brand
+
+# Caption colours from the brand tokens (visual overhaul, 2026-10-29): spoken words in bone, the script's key words
+# in the brand gold (#FFD700 until then, one of three golds on screen), upcoming words in light stone. The style
+# stays the pill: measured on graded frames of three topics (docs/reviews/brand-overhaul-2026-10-29), the pill
+# kept spoken words at 9.1:1 or better and gold at 6.0:1, where the critic's stroke-and-halo fell to 4.07:1 and
+# 2.56:1 on bright desert; the old grey upcoming words read 3.70:1 on the pill, so they are light stone now.
+COL_ACTIVE = COL_PAST = _brand.ass_colour(_brand.BONE)
+COL_EMPHASIS = _brand.ass_colour(_brand.GOLD)
+COL_FUTURE = _brand.ass_colour(_brand.STONE_LT)
 
 log = logging.getLogger(__name__)
 

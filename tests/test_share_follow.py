@@ -83,9 +83,15 @@ def test_the_closing_carousel_slide_carries_the_line(tmp_path):
                                              {"question": "Q?", "options": ["A", "B"]}, get_font("Montserrat", 28), share=LINE)
     finally:
         ImageDraw.ImageDraw.text = real
-    share_rows = [y for y, t in drawn if t.split()[0] in LINE.split()[:3] and t in LINE]
+    # Each line's first draw is at its canvas position (its glyph mask; the later draws are into local crops).
+    firsts = {}
+    for y, t in drawn:
+        firsts.setdefault(t, y)
+    share_rows = [y for t, y in firsts.items() if t.split() and t.split()[0] in LINE.split()[:3] and t in LINE]
     body_y = next(y for y, t in drawn if t == "One body line.")
-    footer_y = next(y for y, t in drawn if t.startswith("TELL US"))
-    assert share_rows and all(body_y < y < footer_y for y in share_rows)         # between the body and the footer
+    # No "TELL US IN THE COMMENTS" footer since 2026-10-29 (operator decision: one ask, the share line), so the
+    # share line is the last text on the slide, below the body.
+    assert share_rows and all(body_y < y for y in share_rows)
+    assert not any(t.startswith("TELL US") for _, t in drawn)
 
 

@@ -51,8 +51,14 @@ def test_the_poll_frame_asks_the_question_with_no_reply_ask_and_no_option_boxes(
     names = [e["name"] for e in lay.elements]
     assert not [n for n in names if n.startswith("option_") or n == "weigh_in"], names
     assert not any("REPLY" in t for t in drawn) and not engagement_bait(" ".join(drawn)), drawn
-    assert not [t for t in drawn if t in ("A", "B") or "DESIGN" in t or "CHANCE" in t]  # no options of our own
-    assert " ".join(t for t in drawn if t.isupper()).count("LUCKY") == 1               # the question, once
+    # no options of our own (read from the placed lines: a tracked kicker is drawn a letter at a time, 2026-10-29)
+    lines = [p.text for ps in lay.plates.values() for p in ps]
+    assert not [t for t in lines if t in ("A", "B") or "DESIGN" in t or "CHANCE" in t]
+    assert not any("DESIGN" in t or "CHANCE" in t for t in drawn)
+    # The question, once. Counted from the frame's placed lines: since the overhaul (2026-10-29) each line is drawn
+    # several times while its contrast is measured (glyph masks, halo trials), so raw draw calls repeat it.
+    placed = " ".join(p.text for ps in lay.plates.values() for p in ps)
+    assert placed.count("LUCKY") == 1
     assert lay.problems() == [] and lay.protected[0]["name"] == "poll_sticker_room"
 
 
@@ -118,14 +124,15 @@ def test_figures_are_drawn_in_the_unit_the_narration_speaks():
 
 
 def test_the_number_card_and_carousel_use_the_narration_unit(gen, tmp_path, monkeypatch):
+    # Since 2026-10-29 the card sets the figure on fixed digit cells (a character at a time) and its unit beside it
+    # as its own line: the planned lines are read, not the draw calls.
     seen = []
-    real = graphics._text
-    monkeypatch.setattr(graphics, "_text", lambda d, xy, text, font, fill, anchor="la":
-                        seen.append(text) or real(d, xy, text, font, fill, anchor))
+    real = graphics.plan_text
+    monkeypatch.setattr(graphics, "plan_text", lambda im, xy, text, *a, **k: seen.append(text) or real(im, xy, text, *a, **k))
     monkeypatch.setattr(graphics, "_encode", lambda frames, out, n, width=1080, height=1920:
                         [f for _, f in zip(range(n), frames)] and out)
     graphics.render_stat_cards([{"value": "40+ km", "label": "Across the rings"}], tmp_path / "n.mp4", narration=RICHAT)
-    assert "25+ MILES" in seen and "KM" not in " ".join(seen)
+    assert "".join(seen).startswith("25+MILES") and "KM" not in " ".join(seen)
     drawn = _spy_text(monkeypatch)
     photo = _photo(tmp_path)
     gen._render_carousel_slide("immersive", photo, photo, {"heading": spoken_units("40+ km wide", RICHAT),
@@ -145,13 +152,14 @@ def test_a_number_cards_text_ends_above_the_caption_gap(cards, tmp_path, monkeyp
     bottom = safe_zones.graphics_box()[3]
     assert bottom == graphics.TEXT_BOTTOM == 1058
     boxes = []
-    real = graphics._text
+    real = graphics.plan_text
 
-    def spy(d, xy, text, font, fill, anchor="la"):
-        if text:
-            boxes.append((text, d.textbbox(xy, text, font=font, anchor=anchor)))
-        return real(d, xy, text, font, fill, anchor)
-    monkeypatch.setattr(graphics, "_text", spy)
+    def spy(im, xy, text, *a, **k):  # each planned line and its box (2026-10-29: the card plans its lines first)
+        plate = real(im, xy, text, *a, **k)
+        if text and not plate.empty:
+            boxes.append((text, plate.box))
+        return plate
+    monkeypatch.setattr(graphics, "plan_text", spy)
     monkeypatch.setattr(graphics, "_encode", lambda frames, out, n, width=1080, height=1920:
                         [f for _, f in zip(range(n), frames)] and out)
     graphics.render_stat_cards(cards, tmp_path / "n.mp4")
@@ -162,12 +170,19 @@ def test_a_number_cards_text_ends_above_the_caption_gap(cards, tmp_path, monkeyp
     assert min(b[1][1] for b in boxes) >= top - 2
     # the two cards never overlap: the first card's lowest line ends above the second figure's top
     if len(cards) == 2:
-        second = [b for t, b in boxes if t == cards[1]["value"].upper()]
-        first_lines = [b for t, b in boxes if t and t in cards[0]["label"].upper() and t != cards[0]["value"].upper()]
-        assert max(b[3] for b in first_lines) < min(b[1] for b in second)
+        # the second card's figure is drawn a digit at a time; its first characters are the second card's first boxes
+        first_count = sum(1 for t, _ in boxes if len(t) > 1 and t in cards[0]["label"].upper())
+        first_lines = [b for t, b in boxes if len(t) > 1 and t in cards[0]["label"].upper()]
+        second_num = graphics.figure_parts(cards[1]["value"].upper())["num"]
+        start = next(i for i in range(len(boxes)) if "".join(t for t, _ in boxes[i:i + len(second_num)]) == second_num)
+        second = [b for _, b in boxes[start:start + len(second_num)]]
+        assert first_count and max(b[3] for b in first_lines) < min(b[1] for b in second)
 
 
 def test_a_two_unit_card_counts_both_units_on_the_frame(tmp_path, monkeypatch):
+    # Since 2026-10-29 the card draws "280 FT (85 M)" as the figure (digit by digit, on fixed cells), its unit, and
+    # the bracketed figure under the label in the data face; both figures count on every frame. Each frame's two
+    # counted figures are read back from the draw calls: the digits, then the "M" line.
     seen = []
     real = graphics._text
     monkeypatch.setattr(graphics, "_text", lambda d, xy, text, font, fill, anchor="la":
@@ -175,7 +190,13 @@ def test_a_two_unit_card_counts_both_units_on_the_frame(tmp_path, monkeypatch):
     monkeypatch.setattr(graphics, "_encode", lambda frames, out, n, width=1080, height=1920:
                         [f for _, f in zip(range(n), frames)] and out)
     graphics.render_stat_cards([{"value": "280 FT (85 M)", "label": "Depth"}], tmp_path / "n.mp4", narration=DERINKUYU)
-    values = [t for t in seen if "FT" in t]
+    values, digits = [], ""
+    for t in seen:
+        if len(t) == 1:
+            digits += t
+        elif t.endswith(" M"):
+            values.append(f"{digits} FT ({t})")
+            digits = ""
     assert values[-1] == "280 FT (85 M)"
     for v in values:                                   # every frame: the two figures are the same depth
         ft, m = (int(x) for x in re.findall(r"\d+", v))

@@ -47,6 +47,32 @@
       "license_sha256": "f2b3029aba64c378bf0963b62945eee15e564fe4330b934c8f2eb058282b5e83",
       "source_url": "https://raw.githubusercontent.com/google/fonts/main/ofl/cinzel/OFL.txt",
       "checked_on": "2026-10-24"
+    },
+    {
+      "file": "IBMPlexMono-Medium.ttf",
+      "sha256": "98fbd727aae340b236955879dabed4d991aac9e8e90b3b2a67ce4a59221cc97c",
+      "copyright": "Copyright 2017 IBM Corp. All rights reserved.",
+      "version": "Version 2.005",
+      "license_description": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL",
+      "license_url": "http://scripts.sil.org/OFL",
+      "license_file": "licenses/IBMPlexMono-Medium.ttf.OFL.txt",
+      "license_sha256": "91c25c350d3cac39da2736d74f7ba37ef648f5237a4e330a240615bc8d8c4360",
+      "source_url": "https://github.com/IBM/plex/releases/download/%40ibm/plex-mono%402.5.0/ibm-plex-mono.zip",
+      "release": "@ibm/plex-mono 2.5.0 (archive sha256 6d23f01257663d8cc49a0d64c22ced630b79e0e2a0ac08a0da86e9a38bbc481c); TTF copied unmodified; Reserved Font Name \"Plex\"",
+      "checked_on": "2026-10-29"
+    },
+    {
+      "file": "IBMPlexMono-SemiBold.ttf",
+      "sha256": "f04d7c488ddf7d1fa99f2574efc3406ea4cbe17bb1af3a1ab960f84d0c96a172",
+      "copyright": "Copyright 2017 IBM Corp. All rights reserved.",
+      "version": "Version 2.005",
+      "license_description": "This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: http://scripts.sil.org/OFL",
+      "license_url": "http://scripts.sil.org/OFL",
+      "license_file": "licenses/IBMPlexMono-SemiBold.ttf.OFL.txt",
+      "license_sha256": "91c25c350d3cac39da2736d74f7ba37ef648f5237a4e330a240615bc8d8c4360",
+      "source_url": "https://github.com/IBM/plex/releases/download/%40ibm/plex-mono%402.5.0/ibm-plex-mono.zip",
+      "release": "@ibm/plex-mono 2.5.0 (archive sha256 6d23f01257663d8cc49a0d64c22ced630b79e0e2a0ac08a0da86e9a38bbc481c); TTF copied unmodified; Reserved Font Name \"Plex\"",
+      "checked_on": "2026-10-29"
     }
   ]
 }

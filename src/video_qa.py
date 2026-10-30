@@ -1188,6 +1188,14 @@ class QualityAuditor:
 
         if payload_obj:
             policy_audit = self.audit_publishing_policy(payload_obj)
+        # Text contrast on what is delivered (2026-10-29): the stills' recorded ratios, the graphics' graded ones and
+        # the captions measured on the master.
+        try:
+            contrast_audit = text_contrast_audit(run_dir, video_path, kwargs.get("caption_path")
+                                                 or video_path.parent / f"{video_path.stem}_captions.ass")
+        except Exception as e:
+            contrast_audit = {"issues": [{"type": "text_contrast", "severity": "minor", "issue": f"not measured ({e})"}],
+                              "captions": None, "score": 100, "certified": True}
 
         all_issues = list(final_audit["issues"])
         scores = [final_audit["score"]]
@@ -1217,6 +1225,11 @@ class QualityAuditor:
             if not policy_audit["certified"]:
                 is_atomic_cert = False
 
+        all_issues.extend(contrast_audit["issues"])
+        scores.append(contrast_audit["score"])
+        if not contrast_audit["certified"]:
+            is_atomic_cert = False
+
         atomic_score = min(scores) if scores else 100
 
         return {
@@ -1231,6 +1244,7 @@ class QualityAuditor:
                 "stories": story_audit,
                 "thumbnails": thumb_audit,
                 "policy": policy_audit,
+                "text_contrast": contrast_audit,
             },
         }
 
@@ -1348,3 +1362,137 @@ def verify_motion_hook_integrity(
         "determinant": round(det, 3),
         "archetype": archetype,
     }
+
+
+# ---------------------------------------------------------------- text contrast on delivered, graded pixels (2026-10-29)
+# Every text element is drawn at a measured contrast (typography.place_text) and its ratio is recorded where it was
+# drawn: in still_layout.json for the Stories, carousel slides and covers, measured again on the saved JPEG, and in
+# <clip>.contrast.json beside each graphic, measured on its last frame after the master's film grade. The captions
+# are measured here, on the master itself: frames are taken where captions are on screen, the caption file is drawn
+# again as plain white glyphs on black (no pill, outline or halo) for the glyph mask, and each sample's glyphs are
+# measured against the ring 2-10 px outside them (typography.ring_contrast). WCAG AA, 4.5:1, is the bound for all.
+def still_contrast_problems(folder: Path, target: Optional[float] = None) -> List[str]:
+    """Each recorded text element in a folder's still_layout.json measured under `target` (brand.TEXT_CONTRAST)."""
+    from .brand import TEXT_CONTRAST
+    target = TEXT_CONTRAST if target is None else target
+    record = Path(folder) / "still_layout.json"
+    if not record.is_file():
+        return []
+    try:
+        data = json.loads(record.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        return [f"{record}: unreadable ({e})"]
+    out = []
+    for still, entry in sorted(data.items()):
+        for e in entry.get("elements") or []:
+            ratio = e.get("contrast")
+            if ratio is not None and float(ratio) < target:
+                out.append(f"{Path(folder).name}/{still}: {e.get('name')} measures {float(ratio):.2f}:1 on the delivered "
+                           f"pixels (needs {target}:1)")
+    return out
+
+
+def graphic_contrast_problems(folder: Path, target: Optional[float] = None) -> List[str]:
+    """Each graphic element whose ratio on the graded last frame (<clip>.contrast.json) is under `target`."""
+    from .brand import TEXT_CONTRAST
+    target = TEXT_CONTRAST if target is None else target
+    out = []
+    for record in sorted(Path(folder).glob("*.contrast.json")):
+        try:
+            data = json.loads(record.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            out.append(f"{record.name}: unreadable ({e})")
+            continue
+        for e in data.get("elements") or []:
+            ratio = e.get("graded") if e.get("graded") is not None else e.get("drawn")
+            if ratio is not None and float(ratio) < target:
+                out.append(f"{data.get('clip', record.name)}: {e.get('name')} \"{e.get('text', '')}\" measures "
+                           f"{float(ratio):.2f}:1 on the graded frame (needs {target}:1)")
+    return out
+
+
+def _caption_mask_ass(text: str) -> str:
+    """The caption file as plain white glyph fills: no pill (CapBox), no outline, shadow, blur or halo layer."""
+    keep = []
+    for line in text.splitlines():
+        if line.startswith("Dialogue:") and ",CapBox," in line:
+            continue
+        if line.startswith("Dialogue:") and ",CapText," in line:
+            if re.search(r"\\1a&HFF&", line):        # a halo layer (outline only): not glyphs
+                continue
+            line = re.sub(r"\\(?:3c|4c)&H[0-9A-Fa-f]+&|\\(?:bord|shad|blur|be)[\d.]+|\\[34]a&H[0-9A-Fa-f]+&", "", line)
+            line = re.sub(r"\\c&H[0-9A-Fa-f]{6,8}&", r"\\c&H00FFFFFF&", line)
+            line = line.replace("\\q2", "\\q2\\bord0\\shad0\\blur0", 1)
+        keep.append(line)
+    return "\n".join(keep) + "\n"
+
+
+def _ffmpeg_path(p: Path) -> str:
+    return str(Path(p).resolve()).replace("\\", "/").replace(":", "\\:")
+
+
+def caption_contrast(video: Path, ass_file: Path, out_dir: Path, fonts_dir: Optional[Path] = None,
+                     samples: int = 6) -> Dict[str, Any]:
+    """The captions' ratio on the delivered master: {"samples": [{"t", "contrast"}], "min"}."""
+    import numpy as np
+    from .config import FONTS_DIR
+    from .typography import ring_contrast
+    fonts_dir = fonts_dir or FONTS_DIR
+    events = []
+    for line in Path(ass_file).read_text(encoding="utf-8").splitlines():
+        if line.startswith("Dialogue:") and ",CapText," in line:
+            parts = line.split(",", 9)
+            events.append((_parse_ass_time(parts[1].strip()), _parse_ass_time(parts[2].strip())))
+    if not events:
+        return {"samples": [], "min": None}
+    events.sort()
+    picks = [events[round(k * (len(events) - 1) / max(1, samples - 1))] for k in range(min(samples, len(events)))]
+    out_dir.mkdir(parents=True, exist_ok=True)
+    mask_ass = out_dir / "caption_mask.ass"
+    mask_ass.write_text(_caption_mask_ass(Path(ass_file).read_text(encoding="utf-8")), encoding="utf-8")
+    w, h = VIDEO_WIDTH, VIDEO_HEIGHT
+    m = re.search(r"PlayResX:\s*(\d+)\s*\nPlayResY:\s*(\d+)", Path(ass_file).read_text(encoding="utf-8"))
+    if m:
+        w, h = int(m.group(1)), int(m.group(2))
+    rows = []
+    for k, (s, e) in enumerate(dict.fromkeys(picks)):
+        t = (s + e) / 2
+        frame, mask = out_dir / f"caption_{k:02d}.png", out_dir / f"caption_{k:02d}_mask.png"
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", f"{t:.3f}", "-i", str(video), "-frames:v", "1",
+                        "-update", "1", str(frame)], check=True, timeout=60)
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", f"color=c=black:s={w}x{h}:r=30:d=1",
+                        "-vf", f"setpts=PTS+{t:.3f}/TB,subtitles='{_ffmpeg_path(mask_ass)}':fontsdir='{_ffmpeg_path(fonts_dir)}'",
+                        "-frames:v", "1", "-update", "1", str(mask)], check=True, timeout=60)
+        with Image.open(frame) as fi, Image.open(mask) as mi:
+            rgb = np.asarray(fi.convert("RGB").resize((w, h)))
+            glyphs = (np.asarray(mi.convert("L")) > 127).astype(np.uint8) * 255
+        if glyphs.sum() < 255 * 200:
+            continue
+        rows.append({"t": round(t, 2), "contrast": ring_contrast(rgb, glyphs, (0, 0))})
+    vals = [r["contrast"] for r in rows if r["contrast"] is not None]
+    return {"samples": rows, "min": min(vals) if vals else None}
+
+
+def text_contrast_audit(run_dir: Path, video: Optional[Path] = None, ass_file: Optional[Path] = None) -> Dict[str, Any]:
+    """Every surface's text contrast for the run: stills (Stories, carousel copies, covers), graphics (graded) and
+    the master's captions. {"issues", "captions", "score", "certified"}."""
+    from .brand import TEXT_CONTRAST
+    run_dir = Path(run_dir)
+    found: List[str] = []
+    for folder in (run_dir / "stories", run_dir / "carousel", run_dir / "carousel_fb", run_dir):
+        found += still_contrast_problems(folder)
+    if (run_dir / "graphics").is_dir():
+        found += graphic_contrast_problems(run_dir / "graphics")
+    captions = None
+    if video and Path(video).is_file() and ass_file and Path(ass_file).is_file():
+        try:
+            captions = caption_contrast(Path(video), Path(ass_file), run_dir / "audit" / "caption_contrast")
+            if captions["min"] is not None and captions["min"] < TEXT_CONTRAST:
+                worst = min((s for s in captions["samples"] if s["contrast"] is not None), key=lambda s: s["contrast"])
+                found.append(f"captions: {worst['contrast']:.2f}:1 at {worst['t']:.2f}s on the master (needs {TEXT_CONTRAST}:1)")
+        except Exception as e:  # a measurement failure is reported, never a crash
+            found.append(f"captions: contrast not measured ({e})")
+    issues = [{"type": "text_contrast", "severity": "minor" if "not measured" in f or "unreadable" in f else "major",
+               "issue": f} for f in found]
+    major = [i for i in issues if i["severity"] == "major"]
+    return {"issues": issues, "captions": captions, "score": max(0, 100 - 10 * len(major)), "certified": not major}

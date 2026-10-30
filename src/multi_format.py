@@ -79,23 +79,29 @@ def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: flo
 
 
 KICKER_TRACK = 0.15     # a kicker's letter spacing, as a share of its size (Montserrat 800, tracked caps)
+KICKER_RULE = 1.0       # the kicker's gold rule: as long as the capitals are tall
+KICKER_GAP = 0.55       # and this far from the words
 
 
 def kicker_width(text: str, font) -> float:
-    """A kicker's drawn width: its gold bar (a quarter of the cap height wide) and gap, then the tracked text."""
+    """A kicker's drawn width: its gold rule and gap, then the tracked text."""
     ch = cap_height(font)
-    return ch * 0.26 + ch * 0.66 + tracked_width(text, font, font.size * KICKER_TRACK)
+    return KICKER_RULE * ch + KICKER_GAP * ch + tracked_width(text, font, font.size * KICKER_TRACK)
 
 
 def draw_kicker(im: Image.Image, x: float, baseline: float, text: str, font, colour=None, lay=None,
                 name: str = "kicker", plates=None) -> Tuple[Image.Image, Tuple[int, int, int, int]]:
-    """A kicker: a solid gold bar the height of its capitals, then the words in tracked gold capitals (the covers'
-    eyebrow). A label, never a pill or a button."""
+    """A kicker: a short gold rule at mid-cap height, then the words in tracked gold capitals (the covers'
+    eyebrow). A label, never a pill or a button. A cap-height vertical bar read as a letter I before the words
+    ("I DID YOU KNOW?", 2026-10-29), so the rule lies flat."""
     colour = colour or GOLD
     ch = cap_height(font)
-    bar_w, gap = max(4, round(ch * 0.26)), round(ch * 0.66)
+    bar_w, gap = max(8, round(ch * KICKER_RULE)), round(ch * KICKER_GAP)
+    thick = max(3, round(ch * 0.16))
+    mid = baseline - ch / 2
     d = ImageDraw.Draw(im)
-    d.rectangle([round(x), round(baseline - ch), round(x) + bar_w - 1, round(baseline)], fill=tuple(colour))
+    d.rectangle([round(x), round(mid - thick / 2), round(x) + bar_w - 1, round(mid - thick / 2) + thick - 1],
+                fill=tuple(colour))
     plate = plan_text(im, (x + bar_w + gap, baseline), text, font, colour, "ls", track=font.size * KICKER_TRACK)
     im = plate.draw(im)
     box = (int(round(x)), min(plate.box[1], int(round(baseline - ch))), plate.box[2], max(plate.box[3], int(round(baseline))))

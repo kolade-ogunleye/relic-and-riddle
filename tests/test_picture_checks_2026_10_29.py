@@ -324,3 +324,23 @@ def test_an_empty_billed_reply_is_sent_once_more(keys, monkeypatch):
     monkeypatch.setattr(gemini, "structured", flaky)
     assert free_llm.structured("s", "p", object, task_class="light") == "ok"
     assert [k for k, _ in keys] == ["free-key-1029", "paid-key-1029", "paid-key-1029"]
+
+
+def test_a_line_outside_the_topic_is_searched_by_its_own_general_words(monkeypatch, tmp_path):
+    """Production, 30 Oct (Roman concrete): "modern concrete crumbles" found nothing, every wider form being in the
+    topic's category. When the planner marks a line outside the topic, its broad search is asked unrestricted;
+    a line about the subject itself never is."""
+    asked = []
+    monkeypatch.setattr(commons, "search_widened", lambda *a, **k: ([], [("q", 0)]))
+    monkeypatch.setattr(commons, "search", lambda q, limit=50, max_wait=60: asked.append(q) or ["r"])
+    monkeypatch.setattr(commons, "candidates", lambda pages, kw, sa: iter([_cand("Cracked concrete wall")] if pages else []))
+    monkeypatch.setattr(commons, "download_jpeg", lambda url, dest, max_wait=30: _jpg(dest))
+    monkeypatch.setattr(beat_images, "screened_picture", lambda path, q: (True, "ok", path))
+    out = BeatQuery(beat=1, query="cracked concrete bridge spalling", keywords=["concrete"], outside_topic=True,
+                    broad="cracked concrete")
+    _, credits = beat_images._download([out], DERINKUYU, tmp_path, set(), "beat")
+    assert asked == ["cracked concrete"] and credits
+    asked.clear()
+    inside = BeatQuery(beat=2, query="whispering gallery dome interior", keywords=["gallery"], broad="gallery")
+    beat_images._download([inside], DERINKUYU, tmp_path / "b", set(), "beat")
+    assert asked == []                                            # the subject itself stays in its category

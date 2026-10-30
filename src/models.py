@@ -242,6 +242,11 @@ class BeatQuery(BaseModel):
     query: str           # Wikimedia Commons search for the concrete subject of that beat
     keywords: List[str]  # lowercase words, one of which a relevant file title must contain
     place: Optional[str] = None  # the named place the subject is at, when it is not the documentary's own site
+    # The sentence is about something that is not the documentary's subject or site (modern concrete in a Roman
+    # concrete video, 2026-10-30): then `broad` is a 2-3 word general search for it, asked outside the topic's
+    # category. False for anything about the subject itself, however generic its words.
+    outside_topic: bool = False
+    broad: Optional[str] = None
 
 
 class BeatQueries(BaseModel):

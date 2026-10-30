@@ -379,7 +379,8 @@ def source(beats: List[Dict[str, Any]], topic: Dict[str, Any], work_dir: Path, p
 
 
 GAP_SYSTEM = """You plan picture research for a short history documentary. The video check found that these beats' pictures do not show what the narration says. For each beat, write one precise Wikimedia Commons search for what that sentence is about, plus 1-4 lowercase keywords that a relevant file title would contain. Stay on the documentary's subject: the thing named, or the same kind of thing from the same civilisation or period (for "Roman aqueducts", a Roman aqueduct; for "modern concrete cracking", a photograph of cracked concrete), never a look-alike from another subject. Prefer a specific named example (a named aqueduct, harbour, specimen or document) over a generic scene.
-When the thing named stands somewhere other than the documentary's own site (a prototype it was modelled on, a museum, another city), set place to that place's name as a Commons category would spell it; otherwise leave place null."""
+When the thing named stands somewhere other than the documentary's own site (a prototype it was modelled on, a museum, another city), set place to that place's name as a Commons category would spell it; otherwise leave place null.
+Set outside_topic true only when the sentence is about something that is NOT the documentary's subject or site at all (in a video about Roman concrete, "modern concrete crumbles within decades"; in a video about a temple, "today's skyscrapers"); then set broad to a 2-3 word general Commons search for that thing ("cracked concrete"). For anything about the subject itself, however generic the words (a gallery, a dome, a door of the site), outside_topic is false and broad null."""
 
 
 @llm_task("beat_gap_queries")
@@ -493,6 +494,16 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
                 item.query, lambda: commons.topic_anchor(topic, elsewhere, photos=_pool_records(topic),
                                                          aliases=_other_names(topic)),
                 list(item.keywords), limit=30, max_wait=60)
+            broad = (getattr(item, "broad", None) or "").strip()
+            if getattr(item, "outside_topic", False) and broad and len(results) < commons.WIDEN_BELOW:
+                # A line about something outside the topic: its subject is not in the topic's category, so every
+                # wider form finds nothing it can use (production Roman concrete, 30 Oct: 0 candidates). Its own
+                # general search, unrestricted; the keyword filter and the looks below still judge every file.
+                have = {r.get("pageid") or r.get("title") for r in results if isinstance(r, dict)}
+                extra = [r for r in commons.search(broad, limit=30, max_wait=60)
+                         if not isinstance(r, dict) or (r.get("pageid") or r.get("title")) not in have]
+                results = list(results) + extra
+                tried = list(tried) + [(broad, len(extra))]
             ranked = commons.best_first(list(commons.candidates(results, keywords, config.BEAT_IMAGES_ALLOW_SHARE_ALIKE)),
                                         keywords, near)
             relevant, verified, looked_away, in_a_row, off_beat = 0, 0, 0, 0, 0

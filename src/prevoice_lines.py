@@ -117,27 +117,54 @@ def unshown(verdicts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     return [v for v in verdicts or [] if v.get("kind") == "unshown"]
 
 
-def revision_note(lines: List[Dict[str, Any]], photos: List[Dict[str, str]]) -> str:
-    """The writer's brief: just these sentences, toward what the photos show; every other sentence word for word."""
+def revision_note(lines: List[Dict[str, Any]], photos: List[Dict[str, str]], minimal: bool = False) -> str:
+    """The writer's brief: just these sentences, toward what the photos show; every other sentence word for word.
+    `minimal`: a regeneration for the pictures, whose script was otherwise approved as it is: the fewest words
+    changed, the same facts."""
     named = "; ".join(f"“{v['sentence']}”" + (f" ({v['reason']})" if v.get("reason") else "") for v in lines)
     return ("Before the voiceover: these narration sentences name something none of the video's licensed photos "
             f"shows, so the picture under them would show something else: {named}. Reword just these sentences "
             "toward what the photos do show, or say them as an idea, number or question with nothing in particular "
             "to see. Keep every other sentence word for word, keep the length, and use only the verified facts. "
-            "The photos: " + "; ".join(f"{i}. {p['text']}" for i, p in enumerate(photos, 1)) + ".")
+            + ("The reviewer sent this version back for its pictures only: change as few words as you can in these "
+               "sentences, keep the same facts in them, and change nothing else at all. " if minimal else "")
+            + "The photos: " + "; ".join(f"{i}. {p['text']}" for i, p in enumerate(photos, 1)) + ".")
+
+
+# A regeneration whose reason is the pictures (production Derinkuyu re-render, 2026-10-29): the script it kept word
+# for word left three lines that no photo showed, and nothing could reword them. It may now reword just those lines.
+PICTURES_REASON = "pictures"
+
+
+def rewords_for(feedback: Dict[str, Any]) -> bool:
+    """Whether a regeneration with this feedback may reword the lines no picture shows in the script it keeps: only
+    one sent back for its pictures (a sound, voice or cover review keeps the words, and their voice, as before)."""
+    return (feedback or {}).get("reason") == PICTURES_REASON
+
+
+def other_lines_changed(before: str, after: str, allowed: List[str]) -> List[str]:
+    """The sentences of `before` other than `allowed` that `after` no longer says word for word (spacing aside), in
+    order: [] when the rewording changed only the allowed sentences."""
+    def norm(x: str) -> str:
+        return " ".join((x or "").split())
+    now = {norm(x) for x in sentences(after)}
+    free = {norm(x) for x in allowed}
+    return [x for x in sentences(before) if norm(x) not in free and norm(x) not in now]
 
 
 def note(rewritten: List[Dict[str, Any]], left: List[Dict[str, Any]], why_left: str = "",
-         pictured: Optional[List[str]] = None) -> str:
+         pictured: Optional[List[str]] = None, regeneration: str = "") -> str:
     """The review card's line ("" when every line has a picture). `pictured`: the lines a photo was found for
-    before the voice (the picture side), said so the operator can look at those photos."""
+    before the voice (the picture side), said so the operator can look at those photos. `regeneration`: the reason
+    of the regeneration that kept this script (PICTURES_REASON), said with a rewording so it is not a surprise."""
     def said(vs):
         return "; ".join(f"“{clip(v['sentence'])}”" for v in vs)
     parts = []
     if pictured:
         parts.append(f"a photo found before the voice for: {said([{'sentence': s} for s in pictured])}")
     if rewritten:
-        parts.append(f"reworded before the voice: {said(rewritten)}")
+        parts.append(f"reworded before the voice{' (you sent it back for its pictures; every other line is kept word for word, and the voiceover is new)' if regeneration else ''}: "
+                     f"{said(rewritten)}")
     if left:
         parts.append(f"left as written{f' ({why_left})' if why_left else ''}: {said(left)}. Reword or drop the "
                      "line(s) with Regenerate, or add a photo that shows it")

@@ -29,7 +29,7 @@ def test_the_prompts_story_budget_is_inside_what_the_frame_measures():
     # The ruler's long words still fit with one word more than the limit, wherever the sentence starts.
     assert all(story_body_lines(" ".join(ruler[r:r + limit + 1]) + ".") <= STORY_BODY_LINES
                for r in range(len(script_engine._STORY_RULER)))
-    assert poll < limit <= 14
+    assert poll == limit <= 14   # the poll frame draws no option boxes (2026-10-29), so it gets the full budget
 
 
 def test_the_writer_is_told_the_measured_budget(monkeypatch):
@@ -78,7 +78,7 @@ def _surgical(monkeypatch, curated_payload, shortened_texts):
 def test_a_surgical_revision_long_only_on_a_story_slide_is_shortened_not_rewritten(monkeypatch, curated_payload):
     out, calls = _surgical(monkeypatch, curated_payload, [SHORT_BODY])
     assert calls["writer"] == 0                                          # no full rewrite
-    assert len(calls["shorten"]) == 1 and calls["shorten"][0].startswith("Slide 3 (at most 10 words): ")
+    assert len(calls["shorten"]) == 1 and calls["shorten"][0].startswith(f"Slide 3 (at most {story_body_word_limit(asks_poll=True)} words): ")
     assert out["story_slides"][2]["body"] == SHORT_BODY and out["fact_sheet_used"] is True
     assert out["story_slides"][:2] == curated_payload["story_slides"][:2]  # nothing else touched
 

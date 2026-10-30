@@ -889,7 +889,8 @@ ANALYTICS_WORDS = {"ig": "ig", "instagram": "ig", "insta": "ig", "reels": "ig", 
                    "carousel": "stories", "carousels": "stories"}
 ANALYTICS_USAGE = ("<code>/analytics</code>   <code>/analytics ig</code>   <code>/analytics fb</code>   "
                    "<code>/analytics yt</code>   <code>/analytics ytlong</code>   <code>/analytics stories</code>   "
-                   "<code>/analytics videos</code>   <code>/analytics 3</code>   <code>/analytics run 14</code>")
+                   "<code>/analytics videos</code>   <code>/analytics 3</code>   <code>/analytics run 14</code>   "
+                   "<code>/analytics chart</code>")
 SOURCE_NAMES = {"instagram-graph": "Instagram Graph", "facebook-graph": "Facebook Graph", "upload-post": "Upload-Post",
                 "expired": "expired", "youtube-graph": "no Graph"}
 
@@ -1034,7 +1035,22 @@ def _analytics_buttons() -> List[List[Dict[str, str]]]:
     from .telegram_ui import button
     return [[button("📸 Instagram", "caplat:ig"), button("📘 Facebook", "caplat:fb")],
             [button("▶️ YouTube Shorts", "caplat:yt"), button("🎬 YouTube long", "caplat:ytlong")],
-            [button("🗂 Stories & carousels", "caplat:stories"), button("🎞 Pick a video", "capick:0")]]
+            [button("🗂 Stories & carousels", "caplat:stories"), button("🎞 Pick a video", "capick:0")],
+            # The 7-day views of the last six Reels as one picture (audience_chart, 2026-10-29).
+            [button("📊 Chart", "cachart:")]]
+
+
+def audience_chart_text(db: PipelineDatabase, note: str = ""):
+    """The chart's figures as text: what /analytics chart shows when no photo can be sent (2026-10-29)."""
+    from . import audience, audience_chart
+    from .telegram_ui import title, with_nav
+    reels = audience_chart.reels_at_7d(db)
+    lines = [title("cachart", summary=note or None), html.escape(audience_chart.headline(reels)) + "."]
+    for r in reels:
+        figures = " · ".join(f"{name} {audience.compact(r['views'][p]) if r['views'].get(p) is not None else '—'}"
+                             for p, name in audience_chart.NAMES.items())
+        lines.append(f"<b>{html.escape(str(r['title']))}</b>\n{figures}")
+    return "\n\n".join(lines), with_nav([], "canalytics:")
 
 
 def _fit(blocks: List[str], note: str = "") -> str:
@@ -2263,8 +2279,17 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     style_name = "Forensic Blueprint" if var_letter == "a" else "Discovery Intrigue" if var_letter == "b" else "Cinematic Minimal"
                     action_word = "locked" if command == "covlock" else "selected and locked"
                     locked = f"✅ Cover {action_word}: <b>Variant {var_letter.upper()} ({style_name})</b>"
-                    # The review card goes out again with the new cover, so it can be approved at once (rc72); the
-                    # old card stays invalid (the revision above). A resend that fails says what it always said.
+                    # The review in the chat shows the new cover and can be approved at once: its cover photo is
+                    # replaced in place and the same card bound to the new copy. Resending the whole review (rc72)
+                    # put a second card in the chat (prod, 2026-10-29); it stays the fallback, and replaces the
+                    # earlier card. A resend that fails says what it always said.
+                    refresh = (run_actions or {}).get("cover")
+                    if refresh is not None:
+                        try:
+                            if refresh(r_name):
+                                return f"{locked}. The review card above now shows it; approve from there."
+                        except Exception as e:
+                            log.warning("Review card not updated in place after the cover lock for %s: %s", r_name, e)
                     resend = (run_actions or {}).get("resend")
                     if resend is not None:
                         try:
@@ -2482,7 +2507,21 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                 [{"text": "🧭 Improvements", "callback_data": "cimprove:"}, {"text": "📰 Digest", "callback_data": "cdigest:"}],
                 [{"text": "🧰 Jobs", "callback_data": "jobs:"}], [HOME]]
         if command in ("analytics", "canalytics"):  # the dashboard; typed subcommands open its other screens
+            if args.replace(":", " ").lower().split()[:1] in (["chart"], ["graph"]):  # /analytics chart (2026-10-29)
+                return handle("cachart", "")
             return analytics_screen(db, args)
+        if command in ("cachart", "chart"):
+            # The audience chart as a photo, like the contact sheet: sent, then "" so no text reply follows.
+            # Without a photo sender (or when sending fails) its figures come as text (2026-10-29).
+            if send_photo is None:
+                return audience_chart_text(db)
+            from . import audience_chart
+            from .config import OUTPUT_DIR
+            from .telegram_ui import with_nav
+            info = audience_chart.chart_for(db, Path(OUTPUT_DIR) / "audience_chart.png")
+            if send_photo(Path(info["path"]), html.escape(info["caption"]), with_nav([], "canalytics:")):
+                return ""
+            return audience_chart_text(db, note="The chart could not be sent; its figures are below.")
         if command == "caplat":  # caplat:<ig|fb|yt|ytlong|stories>[:<page from 0>]
             channel, _, page = args.partition(":")
             return analytics_platform(db, channel if channel in ANALYTICS_WORDS.values() else "ig",

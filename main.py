@@ -2277,13 +2277,19 @@ class PipelineCoordinator:
         none for a kept or already-voiced script, or one already judged against these photos (resume, re-render,
         a library script that was judged). Never raises, except a cancel."""
         from src import improve, prevoice_lines as pl
-        if not pl.enabled() or kept_words or not payload.get("narration_script"):
+        # A regeneration whose reason is the pictures keeps its script, but a line no picture can show may be
+        # reworded, minimally (production Derinkuyu re-render, 2026-10-29: "Pictures" kept the script word for word,
+        # so the three lines no photo showed went on screen over unrelated photos again). Only those lines change,
+        # through the same writer and both fact checks; every other line is kept word for word or the rewording is
+        # refused; a reworded script is voiced again (its old take is for other words).
+        for_pictures = bool(kept_words) and pl.rewords_for(self._feedback())
+        if not pl.enabled() or (kept_words and not for_pictures) or not payload.get("narration_script"):
             return payload
         if (run_dir / "voiceover.mp3").is_file() and (run_dir / "words.json").is_file():
             return payload  # a take this run already paid for is never thrown away by this check
         try:  # a regeneration resumed before its voice was copied still keeps the words (review, 2026-10-28)
             previous = self._previous_run_dir()
-            if previous is not None and (previous / "voiceover.mp3").is_file() and json.loads(
+            if not for_pictures and previous is not None and (previous / "voiceover.mp3").is_file() and json.loads(
                     (previous / "script_metadata.json").read_text(encoding="utf-8")).get("narration_script") == payload["narration_script"]:
                 return payload  # the previous run's paid take is for these exact words: never reworded here
         except (OSError, ValueError, AttributeError):
@@ -2298,7 +2304,12 @@ class PipelineCoordinator:
         photos += [p for p in side.get("photos") or [] if isinstance(p, dict) and p.get("file") not in known]
         key = pl.keys(payload["narration_script"], photos)
         stamp = payload.get(pl.STAGE) or {}
-        if all(stamp.get(k) == v for k, v in key.items()) or checkpoints.reusable(pl.STAGE, key):
+        # The kept script's stamp is the previous run's verdict, which left its lines unshown: a pictures regeneration
+        # asks again (this run's own checkpoint still holds on a resume). So does a new run of a script whose stamp
+        # left lines unshown (a library script whose rewording was refused, production Derinkuyu 2026-10-29, by a
+        # caption bug since fixed): another run tries the rewording once more, a resume of this one does not.
+        stamped = all(stamp.get(k) == v for k, v in key.items()) and not stamp.get("left")
+        if (stamped and not for_pictures) or checkpoints.reusable(pl.STAGE, key):
             log.info("Line-picture check before the voice: already judged for this script and these photos.")
             return payload
         title = topic.get("title", run_id)
@@ -2324,7 +2335,7 @@ class PipelineCoordinator:
             draft["caption"] = beat_images.credit_caption(draft.get("caption") or "", {"images": []}, [])
             try:
                 revised = self._write_and_check_script(topic, run_id, run_dir, dry_run, initial_payload=draft,
-                                                       initial_notes=pl.revision_note(missing, photos))
+                                                       initial_notes=pl.revision_note(missing, photos, minimal=for_pictures))
                 from src.fact_evidence import current_fact_review
                 if not current_fact_review(revised):
                     self._verify_final_copy(revised, topic)
@@ -2336,6 +2347,11 @@ class PipelineCoordinator:
                 # The revision fell back to another script (the curated one): not a rewording of these lines, so
                 # the card would name sentences it never changed (review, 2026-10-28)
                 revised, why_left = None, "the rewording fell back to another script"
+            if revised is not None and for_pictures:
+                changed = pl.other_lines_changed(payload["narration_script"], revised["narration_script"],
+                                                 [v["sentence"] for v in missing])
+                if changed:   # a pictures regeneration keeps every other line word for word, or nothing changes
+                    revised, why_left = None, f"the rewording changed other lines too (“{pl.clip(changed[0], 60)}”)"
             if revised is not None:
                 again = pl.judge(revised["narration_script"], photos, title)
                 now = pl.sentences(revised["narration_script"])
@@ -2361,8 +2377,11 @@ class PipelineCoordinator:
                                         "left": [v["sentence"] for v in left],
                                         **({"pictured": side_report["covered"],
                                             "writer_calls_saved": side_report["writer_calls_saved"]}
-                                           if side_report else {})}})
-        card = pl.note(rewritten, left, why_left, pictured=side_report.get("covered"))
+                                           if side_report else {}),
+                                        # why a kept script was looked at again, and that its rewording is the only change
+                                        **({"regeneration": pl.PICTURES_REASON} if for_pictures else {})}})
+        card = pl.note(rewritten, left, why_left, pictured=side_report.get("covered"),
+                       regeneration=pl.PICTURES_REASON if for_pictures else "")
         if card:
             out["picture_lines_note"] = card
         else:
@@ -2909,6 +2928,10 @@ class PipelineCoordinator:
                 note = end_card_note(payload.get("end_card"))
                 if note:  # shown on the card (info), never a block
                     quality_audit.setdefault("issues", []).append(note)
+                # Each line no picture shows, in the card's issue list as "no picture shows: <line>" (info: shown,
+                # never a block; operator, 2026-10-29), from the fit check's record of this render's plan.
+                from src.scene_planner import no_picture_issues
+                quality_audit.setdefault("issues", []).extend(no_picture_issues(payload.get("picture_fit")))
             except Exception as e:
                 log.warning("Quality audit could not run: %s", e)
 
@@ -3209,6 +3232,14 @@ class PipelineCoordinator:
         if not files:
             self.db.update_scheduled_post(post["id"], "failed", detail={"error": "image files are missing"})
             return "failed"
+        if kind == "story":   # frames redrawn after booking must still carry their photo credits (2026-10-29)
+            from src.release import story_credit_problems
+            problems = story_credit_problems(Path(files[0]).parent.parent) or []
+            if problems:
+                self.db.update_scheduled_post(post["id"], "failed", detail={"error": "Story credits: " + "; ".join(problems)})
+                self._alert(f"❌ Stories not posted for {html.escape(self.db.run_label(post['run_id']))}: "
+                            + html.escape("; ".join(problems)[:300]))
+                return "failed"
         caption, comment = self._carousel_post(run["script_payload"], files) if kind == "carousel" else ("", "")
         res = self.publisher.publish_photos(post["run_id"], run["topic_id"], kind, files, caption=caption,
                                             **({"first_comment": comment} if comment else {}))
@@ -3584,6 +3615,15 @@ def regeneration_plan(fb: Dict[str, Any]) -> str:
         return "Redoes the <b>script</b>, revised for what you said (so a new voiceover and music bed follow)."
     if not reuses("script"):
         return "It is made fresh from the script step (this run was told to), so nothing is carried over."
+    from src import prevoice_lines
+    if reason == "pictures" and prevoice_lines.enabled():
+        # Said as it is done (2026-10-29): a line no picture shows may be reworded before the voice
+        # (_lines_against_pictures), so the voice is kept only when no line needs that.
+        return ("Keeps the <b>script word for word</b> (if it still passes today's checks). Redoes the <b>pictures</b>: "
+                "they are re-planned, and photos are searched for again (Commons, then open museum archives) for any "
+                "line no picture shows. Only a line that still has none is reworded, with the same verified facts and "
+                "fact-checked again; then the voiceover is recorded again and a new music bed follows. Otherwise its "
+                "voiceover and music bed carry over.")
     redo = {"pictures": " Redoes the <b>pictures</b>: they are re-planned.",
             "sound": " Redoes the <b>music</b>: a different track is used.",
             "voice": " The voice is noted for improvement; it is not changed automatically.",
@@ -4293,6 +4333,7 @@ def main(argv=None) -> int:
             run_actions={"pubok": coordinator.confirm_posted,
                          "pubno": coordinator.confirm_not_posted,
                          "resend": resend_for_review,
+                         "cover": bot.refresh_review_cover,
                          "edit": getattr(coordinator, "edit_copy", None),
                          "simpub": coordinator.simulate_publish,
                          "rerender": rerender_in_bot,
@@ -4761,6 +4802,7 @@ def main(argv=None) -> int:
                                        run_actions={"pubok": coordinator.confirm_posted,
                                                     "pubno": coordinator.confirm_not_posted,
                                                     "resend": resend_for_review,
+                                                    "cover": bot.refresh_review_cover,
                                                     "edit": getattr(coordinator, "edit_copy", None),
                                                     "simpub": coordinator.simulate_publish,
                                                     "rerender": rerender_run,

@@ -36,6 +36,8 @@ SCREENS: Dict[str, Tuple[str, str, Optional[str]]] = {
     # The analytics dashboard (2026-10-28): one platform, one video across platforms, the video picker.
     "caplat": ("📊", "Platform analytics", "canalytics:"), "cavideo": ("🎞", "Video audience", "capick:0"),
     "capick": ("🎞", "Videos measured", "canalytics:"),
+    # The audience chart (2026-10-29): a photo of the last six Reels' 7-day views, ← back to the overview.
+    "cachart": ("📊", "Audience chart", "canalytics:"),
     "cimprove": ("🧭", "Improvements", "cstat:"), "cdigest": ("📰", "Weekly digest", "cstat:"),
     "caccounts": ("🔗", "Accounts", "cstat:"), "calerts": ("🔔", "Alerts", "cstat:"), "jobs": ("🧰", "Jobs", "cstat:"),
     "chelp": ("❓", "Help", HOME_CB),
@@ -48,7 +50,7 @@ SCREENS.update({
     "history": SCREENS["chistory"], "posts": SCREENS["cposts"], "photos": SCREENS["cimages"], "images": SCREENS["cimages"],
     "image": SCREENS["imagehelp"], "music": SCREENS["cmusic"], "covers": SCREENS["ccov"], "ideas": SCREENS["cideas"],
     "proposals": SCREENS["cprop"], "discover": SCREENS["cdisc"], "jobs": SCREENS["jobs"], "alerts": SCREENS["calerts"],
-    "audit": SCREENS["caudit"], "activity": SCREENS["caudit"], "analytics": SCREENS["canalytics"], "improve": SCREENS["cimprove"],
+    "audit": SCREENS["caudit"], "activity": SCREENS["caudit"], "analytics": SCREENS["canalytics"], "chart": SCREENS["cachart"], "improve": SCREENS["cimprove"],
     "digest": SCREENS["cdigest"], "accounts": SCREENS["caccounts"], "help": SCREENS["chelp"],
 })
 

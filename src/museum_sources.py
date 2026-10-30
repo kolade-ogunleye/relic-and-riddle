@@ -20,15 +20,23 @@ The Library of Congress is not included: loc.gov answers automated clients with 
 and getting around that would not be appropriate.
 
 Requests are made one at a time with a pause between, and identify the bot like commons.HEADERS.
+
+Used by the topic's pool fetch (scripts/fetch_commons_images.py) and, since 2026-10-29, by the search for a single
+narration line when Commons has nothing for it (src/beat_images.py): the same picture checks follow (the look at
+the pixels, burned-in text, credits recorded). Those searches are cached (CACHE_FILE) so a resume or a re-render
+asks no museum again.
 """
 
 import html
 import logging
+import threading
 import time
+from pathlib import Path
 from typing import Dict, List, Optional
 
 import requests
 
+from . import config
 from .commons import HEADERS
 from .credits import normalize
 
@@ -39,18 +47,28 @@ NASA = "https://images-api.nasa.gov"
 SI = "https://api.si.edu/openaccess/api/v1.0/search"
 EUROPEANA = "https://api.europeana.eu/record/v2/search.json"
 PAUSE = 1.0
+_last_request = 0.0
+_failures = 0     # requests that did not answer: a search that saw one is not cached (asked again next time)
 
 
 def _get(url: str, params: Optional[dict] = None, timeout: float = 30, headers: Optional[dict] = None) -> Optional[dict]:
-    time.sleep(PAUSE)
+    global _last_request, _failures
+    # The pause is between requests (one at a time, as before); the first of a burst is not held back (2026-10-29).
+    wait = PAUSE - (time.monotonic() - _last_request)
+    if wait > 0:
+        time.sleep(wait)
+    _last_request = time.monotonic()
     try:
         r = requests.get(url, params=params, headers={**HEADERS, **(headers or {})}, timeout=timeout)
         if r.status_code != 200 or "json" not in r.headers.get("Content-Type", ""):
             log.info("%s answered HTTP %s; skipping.", url.split("/")[2], r.status_code)
+            if r.status_code != 404:   # a missing object is an answer; a refusal or an outage is not
+                _failures += 1
             return None
         return r.json()
     except (requests.RequestException, ValueError) as e:
         log.info("%s unavailable (%s); skipping.", url.split("/")[2], e)
+        _failures += 1
         return None
 
 
@@ -178,13 +196,101 @@ def europeana_search(query: str, limit: int = 12, media_type: str = "IMAGE") -> 
 SOURCES = {"met": met_search, "nasa": nasa_search, "smithsonian": smithsonian_search, "europeana": europeana_search}
 
 
+def _names_subject(cand: Dict, kws: List[str]) -> bool:
+    text = normalize(f"{cand.get('title', '')} {cand.get('description', '')} {' '.join(cand.get('categories') or [])}")
+    return not kws or any(k in text for k in kws)
+
+
 def search_all(query: str, keywords: List[str], sources=tuple(SOURCES)) -> List[Dict]:
     """Candidates from the museum sources whose title or description names the subject."""
     kws = [normalize(k) for k in keywords]
     out = []
     for name in sources:
         for cand in SOURCES[name](query):
-            text = normalize(f"{cand['title']} {cand['description']} {' '.join(cand['categories'])}")
-            if not kws or any(k in text for k in kws):
+            if _names_subject(cand, kws):
                 out.append(cand)
+    return out
+
+
+# ------------------------------------------------------------------ the search for one narration line
+# Production Derinkuyu, 2026-10-29: three lines (livestock and food supplies; sections sealed in the Arab-Byzantine
+# wars; the 1923 population exchange) had no Commons photo, and went on screen over unrelated pictures. Before a
+# line is given up on, the museums and archives with free, documented open-access APIs are asked too: The Met (CC0
+# objects, no key), NASA (its own works, no key), the Smithsonian (CC0 media, with an api.data.gov key only: the
+# public DEMO_KEY is for trying the API, not for a pipeline) and Europeana (open rights statements only, with its
+# key). Every result passes credits.license_allowed again when it is read (a licence setting changed since it was
+# cached counts), and the caller looks at each picture as it looks at a Commons one.
+CACHE_FILE = config.BASE_DIR / "cache" / "museum_search.json"
+CACHE_DAYS = 14          # a museum's open-access set changes slowly; a fortnight-old answer is still good
+LINE_LIMIT = 6           # objects asked for per source (The Met answers one request per object)
+DOWN_SECONDS = 600       # a source that failed is not asked again for this long (each line would wait on it)
+_down_until: Dict[str, float] = {}
+_cache_lock = threading.Lock()
+
+
+def line_sources() -> tuple:
+    """The sources a line search asks, in order: those that need a key only with one configured."""
+    names = ["met", "nasa"]
+    if config.SMITHSONIAN_API_KEY:
+        names.append("smithsonian")
+    if config.EUROPEANA_API_KEY:
+        names.append("europeana")
+    return tuple(names)
+
+
+def _cache_key(name: str, query: str, limit: int) -> str:
+    return f"{name}|{limit}|{' '.join(normalize(query).split())}"
+
+
+def _load_cache() -> Dict:
+    import json
+    try:
+        data = json.loads(Path(CACHE_FILE).read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def cached_search(query: str, keywords: List[str], sources: Optional[tuple] = None, limit: int = LINE_LIMIT,
+                  deadline: Optional[float] = None) -> List[Dict]:
+    """Candidates for one search from the museum sources (line_sources() unless given), each source's answer cached
+    for CACHE_DAYS by (source, query); an answer that saw a failed request is not cached, and that source rests for
+    DOWN_SECONDS. Only candidates whose metadata names the subject (keywords) and whose licence the project allows.
+    `deadline` (time.monotonic()): no further source is asked once it has passed. Never raises."""
+    global _failures
+    from .atomic_files import write_json
+    from .credits import license_allowed
+    kws = [normalize(k) for k in keywords or []]
+    now = time.time()
+    with _cache_lock:
+        cache = _load_cache()
+    fresh, out = {}, []
+    for name in sources or line_sources():
+        if name not in SOURCES:
+            continue
+        key = _cache_key(name, query, limit)
+        hit = cache.get(key)
+        if isinstance(hit, dict) and now - float(hit.get("at") or 0) < CACHE_DAYS * 86400:
+            found = list(hit.get("found") or [])
+        else:
+            if (deadline is not None and time.monotonic() > deadline) or _down_until.get(name, 0) > time.monotonic():
+                continue
+            before = _failures
+            try:
+                found = SOURCES[name](query, limit=limit)
+            except Exception as e:  # a museum is a saving, never a new way for a run to fail
+                log.info("%s search for %r failed (%s); not asked again for now.", name, query[:60], e)
+                found, _failures = [], _failures + 1
+            if _failures > before:
+                _down_until[name] = time.monotonic() + DOWN_SECONDS
+            else:
+                fresh[key] = {"at": now, "found": found}
+        out += [dict(c) for c in found if isinstance(c, dict) and c.get("download_url")
+                and license_allowed(str(c.get("license") or "")) and _names_subject(c, kws)]
+    if fresh:
+        try:
+            with _cache_lock:   # read again: another line's search may have written meanwhile
+                write_json(Path(CACHE_FILE), {**_load_cache(), **fresh})
+        except (OSError, ValueError, TypeError) as e:
+            log.debug("Museum search cache not written: %s", e)
     return out

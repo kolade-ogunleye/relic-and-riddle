@@ -152,6 +152,8 @@ if YOUTUBE_SHORTS_PRIVACY not in ("public", "unlisted", "private"):
 MEDIA_MONTHLY_BUDGET_USD = float(os.getenv("MEDIA_MONTHLY_BUDGET_USD") or 0)
 # AI motion (src/motion.py): Veo through the Gemini API (billing on), then Kling. Runs only when
 # MEDIA_MONTHLY_BUDGET_USD > 0. Veo Fast is the default: Standard costs about 3x more per second.
+# Museum and archive open-access searches for a line Commons cannot show (2026-10-29); "false" turns them off.
+MUSEUM_LINE_SEARCH = (os.getenv("MUSEUM_LINE_SEARCH") or "true").lower() in ("true", "1", "yes")
 MOTION_MAX_CLIPS = int(os.getenv("MOTION_MAX_CLIPS") or 1)  # the opening still; 2 = also one more
 KLING_API_KEY = (os.getenv("KLING_API_KEY") or "").strip()
 # Script research, writing and fact checks: "free" = Gemini free tier on GEMINI_FREE_API_KEY (a key from a

@@ -198,8 +198,11 @@ def source(beats: List[Dict[str, Any]], topic: Dict[str, Any], work_dir: Path, p
 
 def credit_line(used: List[Dict[str, Any]]) -> str:
     """One caption line naming each used clip's creator and source, as the licences/API terms ask."""
+    from .credits import author_name
     parts, seen = [], set()
     for c in used:
+        # The author's name, not a free-text artist field printed whole (a 778-character notice, 2026-10-29)
+        c = dict(c, artist=author_name(c)) if c.get("artist") else c
         if c["provider"] == "commons":
             text = f"{c['artist']} ({c['license']}) via Wikimedia Commons"
         elif c["provider"] == "nasa":

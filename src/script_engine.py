@@ -1703,6 +1703,12 @@ _BAIT_PATTERNS = [
                r"(?:(?:post|video|reel|photo|button|like|the\s+like(?:\s+button)?)\s+)?if\b", re.I),
     # vote-baiting: "React with ...", "Vote with a ❤️", "Like for X, love for Y"
     re.compile(_CLAUSE + r"(?:react|vote)\s+(?:with|using|by)\b", re.I),
+    # an order to vote, at a clause's start: "Vote: orbit or on foot?" (missed: prod, 2026-10-29), "Vote now",
+    # "Cast your vote", "Vote for your favourite", "Vote A or B", "Vote below". A vote told ("the Romans would vote
+    # with stones", "Would you vote for Rome?") is not at a clause's start, and "Vote counts ..." is a noun.
+    re.compile(_CLAUSE + r"(?:cast\s+(?:your|a)\s+votes?\b|vote(?:\s*[:!]|\s+(?:now|below|here|today)\b"
+               r"|\s+for\s+(?:your|which|whichever|one|a|an|the)\b|\s+in\s+the\s+(?:comments|replies|poll)\b"
+               r"|\s+[A-D]\b(?=\s*(?:or\b|[/,])|\s*[.!?]*\s*$)))", re.I),
     re.compile(_CLAUSE + r"(?:like|love|haha|wow)\s+(?:this\s+)?(?:for|if)\b[^.!?\n]{1,60}?"
                r"\b(?:like|love|haha|wow|sad|angry|care)\s+(?:this\s+)?(?:for|if)\b", re.I),
     # share-baiting: "Share with 5 friends", "Send this to ten people", "Share if you agree"
@@ -1764,7 +1770,8 @@ def _bait_fields(pkg: ScriptPackage) -> List[Tuple[str, str]]:
 # places and measurements make; an average sentence fits a word or two more.
 _STORY_RULER = "Engineers recorded twelve separate chambers beneath the plateau during careful modern surveys".split()
 _STORY_WORDS_FALLBACK = 12   # what the ruler measured (2026-10-28), if the fonts can't be read
-_POLL_BODY_SLACK = 2         # the poll frame also stacks the question and both options: its context line is shorter
+_POLL_BODY_SLACK = 0         # the poll frame's body has the same three lines: it draws no option boxes since rc73
+                             # (multi_format.POLL_STICKER_ROOM), so its context line is not shortened (2026-10-29)
 _story_word_limits: Dict[bool, int] = {}
 
 

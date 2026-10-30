@@ -137,13 +137,50 @@ def write_release_report(run, dry_run=False):
     if profile.requires_youtube_thumbnail:
         thumbnail = payload.get("thumbnail_youtube")
         add("youtube_thumbnail", bool(thumbnail) and Path(thumbnail).is_file(), thumbnail)
-    status = "fail" if any(c["status"] == "fail" for c in checks) else (
+    # Stories go out with no caption, so image_attribution (caption and description) never saw their photos'
+    # credits; each frame must carry its own (2026-10-29). A run with no Story frames has nothing to check.
+    stories = story_credit_problems(master.parent)
+    if stories is not None:
+        add("story_credits", not stories, stories or "Every Story frame credits its photo as its licence asks.")
+    status ="fail" if any(c["status"] == "fail" for c in checks) else (
         "needs_review" if any(c["status"] == "needs_review" for c in checks) else "pass")
     report = {"schema_version": "1.0", "checked_at": datetime.now(timezone.utc).isoformat(),
               "profile": profile.model_dump(), "status": status, "dry_run": dry_run, "checks": checks}
     master.parent.mkdir(parents=True, exist_ok=True)
     (master.parent / "release_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     return report
+
+
+def story_frames(run_dir: Path) -> list:
+    """The run's Story frames, as main.py books and posts them (run_dir/stories/story_*.jpg)."""
+    return sorted((Path(run_dir) / "stories").glob("story_*.jpg"))
+
+
+def _plain_story_problem(text: str) -> str:
+    """multi_format.story_credit_report's sentence in the operator's words (2026-10-29): "Story frame 2", not
+    "story_02_reveal.jpg", and credit lines quoted, not a Python list."""
+    import ast
+    text = re.sub(r"^story_0*(\d+)\w*\.jpg:", lambda m: f"Story frame {int(m.group(1))}:", str(text))
+    text = text.replace("no layout record of its photo and credit (drawn before 2026-10-29?)",
+                        "no record of its photo and credit (made before Story credits were drawn: redraw the Stories)")
+
+    def lines(m):
+        try:
+            found = ast.literal_eval(m.group(0))
+        except (ValueError, SyntaxError):
+            return m.group(0)
+        return " / ".join(f'"{x}"' for x in found) if isinstance(found, list) and found else "nothing"
+    return re.sub(r"\[[^\[\]]*\]|\bNone\b", lines, text)
+
+
+def story_credit_problems(run_dir: Path):
+    """None when the run has no Story frames; otherwise its frames' credit problems in plain words ([] when
+    every frame credits its photo whole, at 4.5:1 contrast or more, as its licence asks)."""
+    frames = story_frames(run_dir)
+    if not frames:
+        return None
+    from .multi_format import story_credit_report
+    return [_plain_story_problem(p) for p in story_credit_report(frames)["problems"]]
 
 
 def blocking_checks(report, dry_run=False):

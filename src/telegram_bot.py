@@ -1323,13 +1323,18 @@ class TelegramApprovalBot:
         Review media is protected (no forwarding or saving of unreleased work)."""
         previous = self.db.get_approval(run_id) if hasattr(self.db, "get_approval") else None
         self.db.record_approval(run_id, script_payload.get("topic_id", ""), None)
-        from .telegram_state import put
+        from .telegram_state import put, get as get_state_early
         put(self.db, "review-media", run_id, None)
         if not self.is_configured():
             log.warning("Telegram not configured. Review with: python main.py review approve|reject %s", run_id)
             return None
+        earlier_card = (get_state_early(self.db, "review-messages", run_id) or [None])[-1]
         if previous and previous.get("telegram_message_id"):
             self._strip_buttons(previous["telegram_message_id"])  # a resend leaves one live card
+        elif isinstance(earlier_card, int):
+            # An edit or a cover lock clears the approval's card id first, so the card the chat still showed
+            # kept its buttons while the new one was delivered: two live review cards (prod, 2026-10-29).
+            self._strip_buttons(earlier_card)
         release = None
         try:
             report_file = Path(video_path).parent / "release_report.json"
@@ -1378,10 +1383,67 @@ class TelegramApprovalBot:
                 old.append(notice)
                 put(self.db, "timeout-notice", run_id, None)
             put(self.db, "review-messages", run_id, media_ids + [card])
+            # The first album opens with the cover (_send_review_media): a cover lock replaces that photo in
+            # place (refresh_review_cover) instead of delivering the whole review again.
+            put(self.db, "review-cover", run_id, media_ids[0] if media_ids and Path(thumbnail_path).is_file() else None)
             stale = sorted(set(old) - set(media_ids) - {card})
             if stale:
-                self.delete_messages(stale)
+                removed = self.delete_messages(stale)
+                log.info("Replaced the earlier review of %s: %d of %d message(s) removed.", run_id, removed, len(stale))
         return card
+
+    def refresh_review_cover(self, run_id: str) -> bool:
+        """After a cover lock, the review in the chat shows the locked cover and stays the one live card:
+        its cover photo is replaced in place (editMessageMedia) and the same card is bound to the new copy.
+        A lock re-sent the whole review, a second card with its albums 51 s after the first (prod, 2026-10-29,
+        Derinkuyu: cards 1744 and 1760). Returns False when the review cannot be refreshed in place (no
+        recorded card or cover photo, the edit failed, the review closed); the caller then resends it,
+        which replaces the earlier card."""
+        from .telegram_state import get, put, review_fingerprint
+        if not self.is_configured():
+            return False
+        run = self.db.get_run(run_id) or {}
+        approval = self.db.get_approval(run_id) or {}
+        if run.get("status") != "pending_approval" or approval.get("decision") != "pending":
+            return False
+        messages = [m for m in (get(self.db, "review-messages", run_id) or []) if isinstance(m, int)]
+        cover_id = get(self.db, "review-cover", run_id)
+        if not messages or not isinstance(cover_id, int) or cover_id not in messages[:-1]:
+            return False
+        card = messages[-1]
+        if approval.get("telegram_message_id") not in (None, card):
+            return False  # another card is current: not this one to rebind
+        root = Path(run.get("master_video_path") or "").parent
+        cover = Path(run.get("thumbnail_cover_path") or root / "thumbnail_cover.jpg")
+        if not cover.is_file():
+            return False
+        payload = run.get("script_payload") or {}
+        media = {"type": "photo", "media": "attach://photo_file", "parse_mode": "HTML",
+                 "caption": f"Cover · {html.escape(str(payload.get('title', '')))}"}
+        try:
+            fingerprint = review_fingerprint(self.db, run_id)
+            with cover.open("rb") as f:
+                self._api("editMessageMedia", files={"photo_file": f},
+                          data={"chat_id": self.chat_id, "message_id": cover_id, "media": json.dumps(media)})
+        except Exception as e:
+            if "message is not modified" not in str(e).lower():
+                log.warning("Could not replace the cover on the review of %s: %s", run_id, _MASKER.mask(str(e)))
+                return False
+        if fingerprint != review_fingerprint(self.db, run_id):
+            return False  # changed again while the photo went up: a resend delivers the current copy
+        put(self.db, "review-media", run_id, fingerprint)
+        put(self.db, "review-card", f"{run_id}:{card}", fingerprint)
+        with self.db._conn() as conn:  # the lock cleared the card id (its old copy); the same card is current again
+            bound = conn.execute("UPDATE approvals SET telegram_message_id=? WHERE run_id=? AND decision='pending' "
+                                 "AND (telegram_message_id IS NULL OR telegram_message_id=?)",
+                                 (card, run_id, card)).rowcount
+        if not bound:
+            return False
+        from .card_ledger import record as record_card
+        record_card(run_id, "review-cover", f"Cover photo (message {cover_id}) replaced in place; card {card} bound to the new copy.",
+                    None, card)
+        log.info("Review card %s of %s now shows the locked cover (edited in place).", card, run_id)
+        return True
 
     def _superseded_review_messages(self, run_id: str) -> List[int]:
         """The card and albums of earlier runs of this topic that were sent back to Regenerate: the new

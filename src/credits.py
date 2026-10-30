@@ -42,13 +42,93 @@ def needs_attribution(record) -> bool:
     return bool(record.get("attribution_required")) or str(record.get("license", "")).strip().lower().startswith("cc by")
 
 
+# The author's name in a free-text artist field. Commons' Artist holds whatever the uploader wrote, and
+# credits.json keeps it as fetched: Derinkuyu photo 18's is "This Photo was taken by Wolfgang Moroder. Feel free to
+# use my photos, but please mention me as the author ..." (nine sentences), which every credit printed whole; others
+# read "Nevit Dilmen (talk)", "User:Kleuske", a user-page URL, or "Unknown artistUnknown artist" (development
+# assets, design review 2026-10-29). Only a name the text states is taken; when none is clear, the uploader the
+# entry records, else "Unknown". Nothing is guessed.
+_NAME = r"(?P<name>(?:[^\W\d_]\.\s*)*[^.,;:!?()\[\]|<>\n]+)"   # "J. R. Smith": initials, then up to a stop
+_TAKEN_BY = re.compile(r"\b(?:taken|shot|made|created|photographed|captured|drawn|painted)\s+by\s+(?:the\s+)?"
+                       r"(?:(?:user|photographer|artist)\s+)?" + _NAME, re.I)
+_LEAD_BY = re.compile(r"^(?:(?:photo(?:graph)?|picture|image|credit|author|photographer)s?\s*(?:by\b|:)|by\b)\s*"
+                      + _NAME, re.I)
+_COPYRIGHT = re.compile(r"(?:©|\(c\)|(?:^|(?<=[.!?] ))copyright\b)\s*(?:\d{4}(?:\s*[-–]\s*\d{4})?\s*,?\s*)?(?:by\s+)?"
+                        + _NAME, re.I)
+_USER_PAGE = re.compile(r"^(?:(?:https?:)?//[^/\s]*wiki[mp]edia\.org/wiki/)?User:(?P<name>[^/#?\s|]+)$", re.I)
+_USER_HREF = re.compile(r"""href=["'][^"']*?(?:\bUser:|Special:EmailUser/)([^"'/#?&]+)["']""", re.I)
+_USER_CATEGORY = re.compile(r"^(?:Category:)?User:([^/]+)/", re.I)
+_TALK = re.compile(r"\s*\((?:talk|contribs?|talk\s*[·|]\s*contribs?)\)", re.I)
+_DOUBLED = re.compile(r"^([A-ZÀ-ɏ].{3,}?)\s?\1$")       # two spans run together: "Unknown artistUnknown artist"
+_NOT_A_NAME = re.compile(r"^(?:me|myself|the author|author|the uploader|uploader|this user|i|we|us|you|unknown)$", re.I)
+AUTHOR_MAX = 80  # longer than a name and its place ("Warren LeMay from Cullowhee, NC, United States" is 46)
+
+
+def _stated_name(text: str) -> str:
+    """A name a pattern found, tidied, or "" when it is not one (a pronoun, a placeholder, a sentence)."""
+    name = re.sub(r"^[\s:;,.\-–—|]+|[\s:;,\-–—|]+$", "", text or "")
+    name = re.sub(r"(?<=[^\W\d_]{2})\.$", "", re.sub(r"[\s,]+(?:19|20)\d\d$", "", name))  # "Jane Doe 2010"
+    if not name or len(name) > AUTHOR_MAX or len(name.split()) > 6 or _NOT_A_NAME.match(name):
+        return ""
+    return name if re.search(r"[^\W\d_]", name) else ""
+
+
+def author_name(record) -> str:
+    """Who to credit for a photo, from its credits entry: the name the artist field states ("taken by X",
+    "Photo by X", "© X", a Commons user page), else the field as it is when it is a plain name (so existing credit
+    lines do not change), else the one short phrase left once its notices to re-users are dropped, else the
+    uploader its HTML links to or the entry records, else "Unknown"."""
+    import html as _html
+    from urllib.parse import unquote
+    raw = str((record or {}).get("artist") or "")
+    plain = " ".join(raw.split())
+    text = " ".join(_html.unescape(re.sub(r"<[^>]+>", " ", raw)).split())
+    text = _TALK.sub("", _DOUBLED.sub(r"\1", text)).strip()
+    if not text:
+        return "Unknown"
+    page = _USER_PAGE.match(text)
+    if page:
+        return unquote(page.group("name")).replace("_", " ")
+    stated = False                              # "taken by the author": a credit phrase naming no one
+    for pattern in (_TAKEN_BY, _LEAD_BY, _COPYRIGHT):
+        found = pattern.search(text)
+        name = _stated_name(found.group("name")) if found else ""
+        if name:
+            return name
+        stated = stated or bool(found)
+    from .commons import _NOT_AUTHOR, _NOTICE   # one list of re-user notices and placeholders (Commons fetch)
+    kept = [s for s in re.split(r"(?<=\w\w[.!?])\s+", text) if s.strip() and not _NOTICE.match(s.strip())]
+    if not stated and kept == [text] and text == plain and len(text) <= AUTHOR_MAX and not _NOT_AUTHOR.match(text):
+        return text                             # a plain name: printed exactly as before
+    if len(kept) == 1 and not stated and not _NOT_AUTHOR.match(kept[0]):
+        name = _stated_name(kept[0])            # one short phrase left once the notices are dropped
+        if name:
+            return name
+    users = [unquote(u).replace("_", " ") for u in _USER_HREF.findall(raw)]
+    uploader = str((record or {}).get("uploaded_by") or "").strip()
+    if uploader and not uploader.isdigit():     # a Telegram upload records the sender's numeric id: not a name
+        users.append(uploader)
+    # A self-published Commons file sits in its uploader's own categories ("User:Moroder/Taken with Nikon D800");
+    # used only when they name one account.
+    accounts = {m.group(1).replace("_", " ") for c in (record or {}).get("categories") or []
+                for m in [_USER_CATEGORY.match(str(c))] if m}
+    if len(accounts) == 1:
+        users.append(accounts.pop())
+    for user in users:
+        name = _stated_name(user)
+        if name:
+            return name
+    return "Unknown"
+
+
 def asset_attribution(record):
     if not needs_attribution(record):
         return ""
     # One line whatever the source: a newline in a field put the rest of the credit in the caption without
     # the 📷 prefix, where it counted as public prose and failed the facts check (development, 2026-10-26; audit 2026-10-28)
-    return "📷 " + " | ".join(" ".join(str(record.get(key) or "Unknown").split()) for key in
-                              ("artist", "title", "license", "source_url", "license_url"))
+    # The author is the name the artist field states, not the whole field (author_name; design review 2026-10-29).
+    return "📷 " + " | ".join(" ".join(str((author_name(record) if key == "artist" else record.get(key)) or "Unknown").split())
+                              for key in ("artist", "title", "license", "source_url", "license_url"))
 
 
 def add_provenance_attributions(payload, ledger):
@@ -368,7 +448,7 @@ def caption_credit_line(credits: Dict[str, Any]) -> str:
     for c in credits.get("images", []):
         if not c.get("attribution_required", True):
             continue
-        key = (c.get("artist") or "Unknown", c.get("license") or "")
+        key = (author_name(c), c.get("license") or "")  # the name, not the whole artist field (2026-10-29)
         if key not in seen:
             seen.add(key)
             parts.append(f"{key[0]} ({key[1]})")

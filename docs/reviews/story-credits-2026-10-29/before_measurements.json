@@ -1,0 +1,106 @@
+{
+ "A_derinkuyu_cc_by_sa": {
+  "photo": "assets\\derinkuyu_underground_city\\18_commons.jpg",
+  "license": "CC BY-SA 3.0",
+  "artist_field_chars": 778,
+  "credit_record": null,
+  "elements": [
+   {
+    "name": "kicker",
+    "box": [
+     271,
+     684,
+     808,
+     734
+    ]
+   },
+   {
+    "name": "title_1",
+    "box": [
+     420,
+     751,
+     660,
+     848
+    ]
+   },
+   {
+    "name": "title_2",
+    "box": [
+     198,
+     867,
+     881,
+     964
+    ]
+   },
+   {
+    "name": "body",
+    "box": [
+     139,
+     1012,
+     940,
+     1155
+    ]
+   }
+  ],
+  "problems": [],
+  "safe_box": [
+   65,
+   269,
+   1015,
+   1248
+  ],
+  "contrast_at_credit_band": 6.11
+ },
+ "B_antikythera_cc0": {
+  "photo": "assets\\antikythera_mechanism\\15_commons.jpg",
+  "license": "CC0",
+  "artist_field_chars": 30,
+  "credit_record": null,
+  "elements": [
+   {
+    "name": "kicker",
+    "box": [
+     347,
+     711,
+     732,
+     761
+    ]
+   },
+   {
+    "name": "title_1",
+    "box": [
+     381,
+     778,
+     699,
+     873
+    ]
+   },
+   {
+    "name": "title_2",
+    "box": [
+     264,
+     894,
+     815,
+     991
+    ]
+   },
+   {
+    "name": "body",
+    "box": [
+     165,
+     1039,
+     914,
+     1136
+    ]
+   }
+  ],
+  "problems": [],
+  "safe_box": [
+   65,
+   269,
+   1015,
+   1248
+  ],
+  "contrast_at_credit_band": 7.74
+ }
+}

@@ -593,12 +593,20 @@ def sources_health(db) -> Dict[str, Any]:
 def derived(metrics: Dict[str, Any], duration_s: Optional[float]) -> Dict[str, Optional[float]]:
     def num(k):
         v = metrics.get(k)
-        return float(v) if isinstance(v, (int, float)) else None
-    reach = num("reach") or num("post_impressions_unique")
+        return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else None
+
+    def first(*keys):
+        # The first figure the platform reported, a real 0 included (2026-10-29): `a or b` turned a stored 0
+        # views into None, so the dashboard and digest showed a Reel nobody watched as a gap.
+        for k in keys:
+            if num(k) is not None:
+                return num(k)
+        return None
+    reach = first("reach", "post_impressions_unique")
     avg_ms = num("ig_reels_avg_watch_time") or num("post_video_avg_time_watched")
     saves = num("saved") if num("saved") is not None else num("saves")  # Meta's name, then Upload-Post's
     return {
-        "views": num("views") or num("fb_reels_total_plays") or num("plays"),
+        "views": first("views", "fb_reels_total_plays", "plays"),
         "reach": reach,
         "watch_ratio": round(avg_ms / 1000 / duration_s, 3) if avg_ms and duration_s else None,
         "skip_rate": num("reels_skip_rate"),

@@ -40,6 +40,11 @@ class PhotoVerdict(BaseModel):
     safe: bool                                   # no human remains on display, no identifiable bystanders as subject
     duplicate_of: Optional[int] = None           # a better photo of nearly the same view, if any
     people_prominent: bool = False               # visitors are a prominent part of it (their faces get blurred)
+    # Something in it that can plausibly move (water, fire, smoke, sky or clouds, foliage, people, cloth, dust or
+    # sand, animals), from this same look (2026-10-29): motion.can_move read only the recorded words (the review's
+    # reason, the archive title and description), which need not say what is in the pixels. None on a verdict made
+    # before the field (motion.can_move then reads the words, as before).
+    can_move: Optional[bool] = None
     reason: str                                  # one short sentence
 
 
@@ -53,6 +58,7 @@ SYSTEM = """You review the photo pool for one topic of a fact-checked history do
 - safe: false for photos whose subject is human remains (other than ancient skulls or bones displayed as museum artefacts), injuries, or identifiable private people who are the main subject.
 - duplicate_of: the number of a better photo showing nearly the same view, else null.
 - people_prominent: true if present-day visitors or bystanders are a prominent part of the picture (their faces will be blurred, which draws the eye).
+- can_move: true if the picture holds something that could plausibly move in a short, gentle animation of it: water, fire, smoke, sky or clouds, foliage, people, cloth, dust or sand, animals; false if everything in it is still (stone, walls, objects, a bare interior).
 Judge from what you see; the caption tells you what the archive says it is. Be strict: a wrong picture is worse than no picture."""
 
 

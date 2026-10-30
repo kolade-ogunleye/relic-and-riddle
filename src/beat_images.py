@@ -22,6 +22,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from . import commons
 from . import config
+from . import museum_sources
 from .llm import LLMError, degenerate_reason, structured_call, task as llm_task, verdict_reason
 from .models import BeatQueries
 
@@ -495,55 +496,71 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
             ranked = commons.best_first(list(commons.candidates(results, keywords, config.BEAT_IMAGES_ALLOW_SHARE_ALIKE)),
                                         keywords, near)
             relevant, verified, looked_away, in_a_row, off_beat = 0, 0, 0, 0, 0
-            for cand in ranked:
-                if late():
-                    break
-                form = cand.pop("widened", "")   # the wider search that found it (commons.search_widened), if any
-                if cand["title"] in seen or cand["relevance"] <= 0:
-                    continue
-                # A file from the whole category (a wider search naming only the topic) counts as relevant on the
-                # topic's name alone: it must name the beat's own subject before a look is paid for (run audit
-                # 2026-10-29: a beat about a church set aside 20 underground photos in a row, about 5 minutes).
-                if form and commons.anchor_only(form, names):
-                    own = commons.beat_words(item.query, item.keywords, names + [form])
-                    if own and not commons.mentions(cand, own):
-                        off_beat += 1
-                        continue
-                relevant += 1
-                if not verify_visual_relevance(cand["title"], item.query):
-                    continue
-                verified += 1
-                dest = work_dir / f"{prefix}{item.beat:02d}_{found + 1}.jpg"
-                commons.download_jpeg(cand["download_url"], dest, max_wait=wait)
-                # The pool screen's look (1024 px, an edge band of text cropped away and looked at again): a found
-                # photo with a label strip was set aside at 512 px, uncropped (audit 2026-10-28).
-                shows, why, use = screened_picture(dest, item.query)
-                if why == UNAVAILABLE:  # nobody looked: left out, and said on the card (found again next run)
-                    _note_unchecked(work_dir, item.beat, cand)
-                    dest.unlink(missing_ok=True)
-                    continue
-                if not shows:  # the pixels say otherwise: not this one
-                    if why.startswith(TEXT_PREFIX):
-                        log.info("Beat %d: %r set aside, it has text printed into it (%s).", item.beat, cand["title"][:70],
-                                 why[len(TEXT_PREFIX):])
-                    else:
-                        log.info("Beat %d: %r set aside, it does not show the subject (%s).", item.beat, cand["title"][:70], why)
-                    dest.unlink(missing_ok=True)
-                    looked_away += 1
-                    in_a_row += 1
-                    if in_a_row >= SET_ASIDE_IN_A_ROW:   # the search is not finding this subject: no more looks
-                        log.info("Beat %d: %d photos in a row set aside by the look; no more looked at for this beat.",
-                                 item.beat, in_a_row)
+            museum = []
+
+            def batches():
+                yield ranked
+                # Commons kept nothing for this line: the museums and archives with open-access APIs are asked
+                # next (production Derinkuyu, 2026-10-29: three lines had no Commons photo and were shown over
+                # unrelated pictures). Their results go through the same looks below; cached per search.
+                if not found and not late() and getattr(config, "MUSEUM_LINE_SEARCH", True):
+                    museum[:] = museum_sources.cached_search(item.query, list(item.keywords), deadline=deadline)
+                    if museum:
+                        yield commons.best_first(museum, keywords, near)
+
+            for batch in batches():
+                in_a_row = 0   # a new source: its set-asides are counted afresh
+                for cand in batch:
+                    if late():
                         break
-                    continue
-                in_a_row = 0
-                seen.add(cand["title"])
-                # A cropped copy is what the video uses; its original stays here, where the folder's credits.json
-                # names it and the copy's lineage points (its credit and rights resolve to the original).
-                cand.update(file=str(use), beat=item.beat, looked=why, **({"cropped_from": str(dest)} if use != dest else {}))
-                paths.append(use)
-                credits.append(cand)
-                found += 1
+                    form = cand.pop("widened", "")   # the wider search that found it (commons.search_widened), if any
+                    if cand["title"] in seen or cand["relevance"] <= 0:
+                        continue
+                    # A file from the whole category (a wider search naming only the topic) counts as relevant on the
+                    # topic's name alone: it must name the beat's own subject before a look is paid for (run audit
+                    # 2026-10-29: a beat about a church set aside 20 underground photos in a row, about 5 minutes).
+                    if form and commons.anchor_only(form, names):
+                        own = commons.beat_words(item.query, item.keywords, names + [form])
+                        if own and not commons.mentions(cand, own):
+                            off_beat += 1
+                            continue
+                    relevant += 1
+                    if not verify_visual_relevance(cand["title"], item.query):
+                        continue
+                    verified += 1
+                    dest = work_dir / f"{prefix}{item.beat:02d}_{found + 1}.jpg"
+                    commons.download_jpeg(cand["download_url"], dest, max_wait=wait)
+                    # The pool screen's look (1024 px, an edge band of text cropped away and looked at again): a found
+                    # photo with a label strip was set aside at 512 px, uncropped (audit 2026-10-28).
+                    shows, why, use = screened_picture(dest, item.query)
+                    if why == UNAVAILABLE:  # nobody looked: left out, and said on the card (found again next run)
+                        _note_unchecked(work_dir, item.beat, cand)
+                        dest.unlink(missing_ok=True)
+                        continue
+                    if not shows:  # the pixels say otherwise: not this one
+                        if why.startswith(TEXT_PREFIX):
+                            log.info("Beat %d: %r set aside, it has text printed into it (%s).", item.beat, cand["title"][:70],
+                                     why[len(TEXT_PREFIX):])
+                        else:
+                            log.info("Beat %d: %r set aside, it does not show the subject (%s).", item.beat, cand["title"][:70], why)
+                        dest.unlink(missing_ok=True)
+                        looked_away += 1
+                        in_a_row += 1
+                        if in_a_row >= SET_ASIDE_IN_A_ROW:   # the search is not finding this subject: no more looks
+                            log.info("Beat %d: %d photos in a row set aside by the look; no more looked at for this beat.",
+                                     item.beat, in_a_row)
+                            break
+                        continue
+                    in_a_row = 0
+                    seen.add(cand["title"])
+                    # A cropped copy is what the video uses; its original stays here, where the folder's credits.json
+                    # names it and the copy's lineage points (its credit and rights resolve to the original).
+                    cand.update(file=str(use), beat=item.beat, looked=why, **({"cropped_from": str(dest)} if use != dest else {}))
+                    paths.append(use)
+                    credits.append(cand)
+                    found += 1
+                    if found >= PER_BEAT:
+                        break
                 if found >= PER_BEAT:
                     break
             if off_beat:
@@ -556,6 +573,8 @@ def _download(items, topic: Dict[str, Any], work_dir: Path, seen: set, prefix: s
                       "%d set aside by the look, %d kept.",
                       item.beat, item.query[:80], len(results), searches, len(ranked),
                       "allowed" if config.BEAT_IMAGES_ALLOW_SHARE_ALIKE else "excluded", relevant, verified, looked_away, found)
+            if museum:
+                log.debug("Beat %d: %d museum and archive candidate(s) after Commons kept none.", item.beat, len(museum))
             # Only when the licence was the reason: results can also fail on keyword, size or author (audit, 2026-10-28)
             share_alike = 0 if ranked or config.BEAT_IMAGES_ALLOW_SHARE_ALIKE else len(list(
                 commons.candidates(results, keywords, True)))

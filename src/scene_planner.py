@@ -635,8 +635,8 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
     rest (the light model is down: each further try would wait out its retry) and the plan is kept."""
     from . import beat_images
     out = [Path(p) for p in scenes]
-    report: Dict[str, Any] = {"judged": 0, "cached": 0, "swapped": [], "graphic": [], "held": [], "unshown": [],
-                              "stopped": ""}
+    report: Dict[str, Any] = {"judged": 0, "cached": 0, "swapped": [], "graphic": [], "held": [], "related": [],
+                              "unshown": [], "stopped": ""}
     if not config.PICTURE_VISION_CHECK or not getattr(config, "PRE_RENDER_PICTURE_FIT", True):
         report["stopped"] = "off"
         return out, report
@@ -722,6 +722,20 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
                     log.info("Beat %d: our %s graphic placed, it says what the line says.", k + 1, Path(graphic).stem)
                     continue
             entry = {"beat": k + 1, "line": line, "picture": pick.name, "reason": first["reason"], "fallback": "kept"}
+            # Never the unrelated pick (production Derinkuyu, 2026-10-29: "and food supplies" over a painted stone
+            # panel, "individual sections" over a dark rock close-up): an unused photo whose recorded descriptions
+            # (its archive caption, what the photo review and earlier looks saw) name what the line names, chosen
+            # from what is already known, with no new call; one already judged wrong for this line never.
+            spare_all = [Path(p) for p in list(pool) + list(reserve or []) if still(Path(p))
+                         and picture_id(Path(p)) not in in_use]
+            related = related_shot(line, spare_all, cache)
+            if related is not None:
+                out[k], entry["fallback"], entry["related"] = related, "related", related.name
+                report["related"].append({"beat": k + 1, "from": pick.name, "to": related.name})
+                log.info("Beat %d: no photo shows its line; %s, which shows what it names, instead of %s.",
+                         k + 1, related.name, pick.name)
+                report["unshown"].append(entry)
+                continue
             prev = out[k - 1]
             holds = fits_at.get(k - 1) and still(prev) and (k - 1) not in held
             if holds:
@@ -769,6 +783,15 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
                 held.add(k)
                 report["held"].append({"beat": k + 1, "from": pick.name, "to": prev.name})
                 log.info("Beat %d: no picture shows its line; the previous shot (%s) is held.", k + 1, prev.name)
+            elif still(prev) and related_before(k, out, fits_at, report) and _held_run(out, durations, k) <= HELD_SHOT_MAX:
+                # 5. the previous related shot held longer (the opening, a shot judged right for its line, or one
+                # chosen above as related), within HELD_SHOT_MAX on screen: a picture held on is never a claim,
+                # and a photo of something else under the words is (operator, 2026-10-29).
+                out[k], entry["fallback"] = prev, "held"
+                held.add(k)
+                report["held"].append({"beat": k + 1, "from": pick.name, "to": prev.name, "longer": True})
+                log.info("Beat %d: no picture shows its line; the previous related shot (%s) is held on rather than %s.",
+                         k + 1, prev.name, pick.name)
             report["unshown"].append(entry)
     finally:
         report["fits"] = sorted(k + 1 for k, ok in fits_at.items() if ok)   # beats whose picture was judged right
@@ -780,6 +803,106 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
 def _digest(p: Path) -> str:
     from .credits import sha256_file
     return sha256_file(p)
+
+
+# A related shot (operator, 2026-10-29: "never an unrelated photo"): when no photo shows a line, one whose recorded
+# descriptions name what the line names is the next best, judged from what is already known about each photo. The
+# words compared are the line's own (lightly singularized), less those that name nothing to see.
+_RELATED_STOP = graphic_match.STOPWORDS | {
+    "also", "always", "among", "another", "away", "back", "began", "came", "come", "does", "done", "even", "ever",
+    "find", "first", "found", "full", "gave", "give", "going", "gone", "half", "held", "itself", "keep", "kept", "known",
+    "last", "later", "long", "made", "make", "might", "must", "never", "next", "once", "onto", "own", "people",
+    "perhaps", "seen", "shall", "should", "show", "shown", "shows", "since", "something", "still", "take", "taken",
+    "tell", "than", "thing", "things", "today", "told", "took", "toward", "towards", "upon", "used", "using", "want",
+    "well", "whole", "will", "within", "without", "work", "world", "yet", "hundred", "thousand", "million", "thousands",
+    "hundreds", "millions", "century", "centuries", "photo", "photograph", "picture", "image", "shot", "view", "close",
+    "individual", "entire", "single", "several", "certain", "great", "small", "large", "huge", "tiny", "real",
+    "true", "whose", "they're", "there's", "it's", "people's"}
+
+
+def subject_words(text: str) -> set:
+    """What a line names to see, as words: its own words of four letters or more, lightly singularized, less the
+    ones that name nothing in particular (graphic_match.STOPWORDS and _RELATED_STOP); no numbers."""
+    return {t for t in graphic_match.tokens(text) if len(t) > 3 and t[0].isalpha() and t not in _RELATED_STOP}
+
+
+def _known_text(p: Path, cache: Optional[Dict[str, Any]] = None) -> str:
+    """Everything already recorded about what a photo shows: its archive caption, what the photo review saw, what the
+    look that kept it saw (a photo found for a line), and the reasons of the looks that judged it right for a line
+    (beat_images' fit cache, by file name). No call."""
+    entry = _photo_entry(p) or {}
+    parts = [_photo_caption(p), str((entry.get("vision_review") or {}).get("reason") or ""), str(entry.get("looked") or "")]
+    name = Path(p).name
+    for hit in (cache or {}).values():
+        if isinstance(hit, dict) and hit.get("fits") and hit.get("file") == name:
+            parts.append(str(hit.get("reason") or ""))
+    return " ".join(x for x in parts if x)
+
+
+def _judged_wrong(p: Path, line: str, cache: Optional[Dict[str, Any]]) -> bool:
+    """Whether a cached look already found this photo wrong for this very line."""
+    from . import beat_images
+    try:
+        hit = (cache or {}).get(beat_images.fit_key(_digest(p), line))
+    except OSError:
+        return False
+    return isinstance(hit, dict) and hit.get("fits") is False
+
+
+def related_shot(line: str, candidates: List[Path], cache: Optional[Dict[str, Any]] = None) -> Optional[Path]:
+    """The candidate still whose recorded descriptions name the most of what `line` names (subject_words), at least
+    one word; a photo a cached look found wrong for this line is never one. None when none names anything the line
+    does. Ties keep the candidates' order (the planner's pool order: the topic's own photos first)."""
+    words = subject_words(line)
+    if not words:
+        return None
+    best, score = None, 0
+    for cand in candidates:
+        if is_video(Path(cand)):
+            continue
+        named = len(words & graphic_match.tokens(_known_text(Path(cand), cache)))
+        if named > score and not _judged_wrong(Path(cand), line, cache):
+            best, score = Path(cand), named
+    return best
+
+
+def related_before(k: int, out: List[Path], fits_at: Dict[int, bool], report: Dict[str, Any]) -> bool:
+    """Whether the picture before beat k (0-based) is a related one to hold on: the opening shot (the topic's
+    strongest picture), one judged right for its own line, or one chosen as related or held on for a related one."""
+    if k - 1 == 0 or fits_at.get(k - 1):
+        return True
+    return any(r.get("beat") == k and Path(str(r.get("to"))).name == Path(out[k - 1]).name
+               for r in (report.get("related") or []) + (report.get("held") or []))
+
+
+def _held_run(out: List[Path], durations: List[float], k: int) -> float:
+    """Seconds the picture before beat k (0-based) would stay on screen if beat k held it too."""
+    total = durations[k] if k < len(durations) else MAX_BEAT
+    j = k - 1
+    while j >= 0 and picture_id(out[j]) == picture_id(out[k - 1]):
+        total += durations[j] if j < len(durations) else MAX_BEAT
+        j -= 1
+    return total
+
+
+NO_PICTURE_ISSUE = "no picture shows: "
+
+
+def no_picture_issues(fit: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """The review card's issue rows (info: shown, never a block) for the lines no picture shows, one per line, as
+    "no picture shows: <line>" (operator, 2026-10-29), from the fit check's report (payload["picture_fit"])."""
+    rows, seen = [], set()
+    for u in (fit or {}).get("unshown") or []:
+        line = " ".join(str(u.get("line") or "").split())
+        if not line or line in seen:
+            continue
+        seen.add(line)
+        how = {"held": "the previous related shot is held", "held_over": "the previous related shot is held",
+               "graphic": "one of our graphics is shown", "related": "a related photo of what it names is shown"}.get(
+            u.get("fallback"), "its planned photo stayed")
+        rows.append({"type": "picture_line", "card": "Pictures", "severity": "info", "beat": u.get("beat"),
+                     "line": line, "issue": f"{NO_PICTURE_ISSUE}{line} (beat {u.get('beat', '?')}: {how})"})
+    return rows
 
 
 def clip(text: str, n: int = 90) -> str:
@@ -795,7 +918,8 @@ def fit_note(report: Dict[str, Any]) -> str:
     said = []
     for u in unshown[:FIT_NOTE_MAX_BEATS]:
         how = {"held": "the previous shot is repeated, reframed", "held_over": "the previous shot is held over it",
-               "graphic": "one of our graphics is shown instead"}.get(
+               "graphic": "one of our graphics is shown instead",
+               "related": f"a related photo of what it names is shown instead ({u.get('related', 'a photo')})"}.get(
             u.get("fallback"), f"{u.get('picture', 'its photo')} kept")
         said.append(f"beat {u['beat']}: “{clip(u.get('line', ''), 70)}”: no licensed photo shows it ({how})")
     more = len(unshown) - FIT_NOTE_MAX_BEATS
@@ -805,9 +929,14 @@ def fit_note(report: Dict[str, Any]) -> str:
 
 def fit_findings(report: Dict[str, Any]) -> List[str]:
     """One finding text per beat no picture shows, for improve.note (class video.picture_relevance)."""
+    def how(u):
+        if u.get("fallback") in ("held", "held_over"):
+            return "previous shot held"
+        if u.get("fallback") == "related":
+            return f"related photo {u.get('related', '')} shown"
+        return u.get("picture", "") + " kept"
     return [f"beat {u['beat']}: '{clip(u.get('line', ''), 120)}': no licensed photo shows it "
-            f"({'previous shot held' if u.get('fallback') in ('held', 'held_over') else u.get('picture', '') + ' kept'}; "
-            f"{clip(u.get('reason', ''), 160)})" for u in (report or {}).get("unshown") or []]
+            f"({how(u)}; {clip(u.get('reason', ''), 160)})" for u in (report or {}).get("unshown") or []]
 
 
 def no_repeats(chosen: List[Path], stills: List[Path], reserve: Optional[List[Path]] = None) -> List[Path]:
@@ -1060,7 +1189,7 @@ def hold_note(report: Dict[str, Any], reserve_used: Optional[List[str]] = None,
 
 
 def remap_beats(report: Dict[str, Any], where: List[int], scenes: Optional[List[Path]] = None,
-                shown: Optional[List[int]] = None, keys=("swapped", "graphic", "held", "unshown")) -> Dict[str, Any]:
+                shown: Optional[List[int]] = None, keys=("swapped", "graphic", "held", "related", "unshown")) -> Dict[str, Any]:
     """A fit_to_lines report in the beat numbering after hold_for_short_pool (1-based old -> new). A line that now
     shows a picture judged right for it (`shown`, old numbering) leaves "unshown"; a row names the picture its beat
     now has (`scenes`, after the hold); a held line joined to the shot it held is said as held over, not repeated."""

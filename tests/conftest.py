@@ -145,6 +145,7 @@ def no_repo_writes(monkeypatch, tmp_path_factory):
     monkeypatch.setattr("src.env_sync.ROOT", sandbox)  # a daemon started by a test never touches the real .env
     monkeypatch.setattr("src.audio_engine.PACE_FILE", sandbox / "voice_pace.json")
     monkeypatch.setattr("src.colour_balance.CACHE_DIR", sandbox / "colour_balance")  # balanced copies of test photos
+    monkeypatch.setattr("src.museum_sources.CACHE_FILE", sandbox / "museum_search.json")  # never a real run's searches
     monkeypatch.setattr("src.script_engine.WORD_PACE_FILE", sandbox / "word_pace.json")
     # A test that spends a budget to its cap must not mark the real environment's provider as shut.
     monkeypatch.setattr("src.provider_status._file", lambda: sandbox / "provider_status.json")

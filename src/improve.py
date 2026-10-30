@@ -55,7 +55,9 @@ SCRIPT_REASONS = ("facts", "hook", "pacing", "cover")  # a regenerate for these 
 # What a regeneration does with each reason, said as it is (the card promised "with your feedback" for
 # reasons no step acted on: 2026-10-23 audit).
 REGENERATE_EFFECT = {**{r: "the script is revised for it" for r in SCRIPT_REASONS},
-                     "pictures": "the pictures are re-planned for it",
+                     # 2026-10-29: a line no picture shows may be reworded (that line only, fact-checked again)
+                     "pictures": ("the pictures are re-planned for it, and a line no picture shows is reworded "
+                                  "(that line only) and voiced again"),
                      "sound": "a different music track is used",
                      "voice": "it is logged for improvement; the voice itself is not changed automatically",
                      "other": "it is logged for improvement; the new version is made fresh"}

@@ -26,7 +26,7 @@ from PIL import Image
 
 log = logging.getLogger(__name__)
 
-GOLD = (255, 215, 0)
+from .brand import GOLD  # the brand's one gold (src/brand.py, 2026-10-29); #FFD700 until then
 DEFAULT_PALETTE: Dict[str, Any] = {"accent": (120, 190, 255), "accent_hex": "#78BEFF", "source": "default (cool complement to gold)"}
 READABLE_FRACTION = 0.022          # the smallest text, as a fraction of the frame height
 MIN_CONTRAST = 4.5                 # accent against the dark backdrop (WCAG AA for text)
@@ -157,7 +157,17 @@ def grade_bias(hero: Optional[Path], limit: float = 0.05) -> float:
     if len(data) < 3:
         return 0.0
     try:   # a hero whose lamp cast colour_balance reduces (an off-white one, not warm light): a bias would put the
-        # cast back (29 Oct, Derinkuyu's door: +0.040). Warm light keeps its warmth, so its bias stays.
+        # cast back (29 Oct, Derinkuyu's door: +0.040). Warm light keeps its warmth, so its bias stays. A balanced
+        # copy is judged by its own record: v5 corrects the door so well that it no longer measures as cast.
+        import json
+        from .lineage import sidecar
+        record = sidecar(Path(hero))
+        if record.is_file():
+            made = json.loads(record.read_text(encoding="utf-8"))
+            settings = made.get("settings") or {}
+            if made.get("operation") == "colour_balance" and (
+                    settings.get("lamp_step") or any(abs(float(g) - 1.0) > 1e-3 for g in settings.get("gains") or [])):
+                return 0.0
         import numpy as np
         from . import colour_balance
         with Image.open(hero) as im:

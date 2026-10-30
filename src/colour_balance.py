@@ -16,7 +16,9 @@ prepared still gets two capped, deterministic corrections:
   warm cast (neutral candidates' hue within WARM_CAST_HUE): candle, torch and tungsten light, which viewers read as
   natural, share that hue with warm materials (amber, gold, ochre, bronze, wood), and nothing in the pixels tells
   the two apart (final rc72 review: the Amber Room's panels were cooled toward grey, and Derinkuyu photo 19 turned
-  greenish). Only the off-white casts are taken out: yellow-green (the murk that started this), magenta, blue;
+  greenish). Only the off-white casts are taken out: yellow-green (the murk that started this), magenta, blue.
+  A yellow-green cast the capped gains cannot reach is finished by the lamp step (VERSION 5): only hues on the
+  green side of 48 deg lose saturation and lean toward amber, luminance kept, so warm materials are untouched;
 - a very dark exposure (mean luminance under DARK_BELOW) is lifted by a gamma curve, at most to MAX_LIFT of the way
   toward LIFT_TARGET and never below MIN_GAMMA, applied to the luminance with every channel scaled alike (so its
   saturation and hue are kept): black stays black and white stays white, so contrast is not flattened and a dark
@@ -42,7 +44,7 @@ from .config import BASE_DIR
 
 log = logging.getLogger(__name__)
 
-VERSION = 4
+VERSION = 5
 OPERATION = "colour_balance"
 CACHE_DIR = BASE_DIR / "cache" / "colour_balance"
 CAST_MIN = 0.04        # a channel this far (as a gain) from grey is a cast; below it the colours are left alone
@@ -61,6 +63,15 @@ WARM_CAST_HUE = (10.0, 48.0)   # a cast in this hue is warm light or a warm mate
 # reached the video neon lime. Daylight shows near-white highlights; these lamps tint even the brightest surfaces.
 LAMP_GREEN_HUE = (48.0, 75.0)
 BRIGHT_LAMP_TINT = 0.40
+# The lamp step (VERSION 5, 29 Oct design critic round 4): on a yellow-green lamp-lit scene the blue gain stops at
+# GAIN_LIMIT, so the stone door kept a cast of 0.42-0.47 and still read lime. A bigger blue gain would amplify the
+# starved blue channel's noise; instead the green side of the warm range (hue LAMP_STEP_HUE: full from 58 deg,
+# fading out by 92) keeps LAMP_STEP_KEEP of its saturation and is pulled LAMP_STEP_PULL of the way to 48 deg, with
+# each pixel's luminance kept. Nothing at or below 48 deg (WARM_CAST_HUE: candle, amber, gold, ochre) is touched,
+# so warm materials neither cool nor turn orange; the critic's 28-88 band took a third of their saturation.
+LAMP_STEP_HUE = (48.0, 58.0, 78.0, 92.0)   # zero below the first, full between the middle two, zero past the last
+LAMP_STEP_KEEP = 0.4
+LAMP_STEP_PULL = 0.5
 NEUTRAL_SHARE = 0.35   # the least saturated share of the candidate mid-tones on which the cast is measured
 GAIN_LIMIT = (0.85, 1.18)
 DARK_BELOW = 0.30      # mean luminance (0-1) under which an exposure is lifted
@@ -170,17 +181,65 @@ def plan(im: Image.Image) -> Optional[Dict[str, Any]]:
         gamma = float(np.clip(np.log(target) / np.log(mean_luma), MIN_GAMMA, 1.0))
     if np.allclose(gains, 1, atol=1e-3) and gamma > 0.995:
         return None
-    return {"gains": [round(float(g), 4) for g in gains], "gamma": round(gamma, 4), "cast": round(cast, 4),
-            "mean_luma": round(mean_luma, 4)}
+    out = {"gains": [round(float(g), 4) for g in gains], "gamma": round(gamma, 4), "cast": round(cast, 4),
+           "mean_luma": round(mean_luma, 4)}
+    # The lamp step only where the gains took out a yellow-green cast (2026-10-29, VERSION 5): magenta and blue
+    # casts are already within reach of the gains, and every other scene keeps v4's settings exactly.
+    if (cast >= CAST_MIN and not warm and not np.allclose(gains, 1, atol=1e-3)
+            and LAMP_GREEN_HUE[0] < _hue(sc["neutral"]) <= LAMP_GREEN_HUE[1]):
+        out["lamp_step"] = {"keep": LAMP_STEP_KEEP, "pull": LAMP_STEP_PULL, "hue": list(LAMP_STEP_HUE)}
+    return out
+
+
+def _smooth(x: np.ndarray) -> np.ndarray:
+    x = np.clip(x, 0.0, 1.0)
+    return x * x * (3 - 2 * x)
+
+
+def lamp_step(a: np.ndarray, keep: float = LAMP_STEP_KEEP, pull: float = LAMP_STEP_PULL,
+              band=LAMP_STEP_HUE) -> np.ndarray:
+    """`a` (RGB, 0-1) with its yellow-green side desaturated and pulled toward amber, each pixel's luminance kept.
+    Pixels at or below band[0] (warm light and warm materials) come back exactly as they were. The hue mapping is
+    monotonic while pull < 0.59 (the smooth ramp's steepest point), so no two hues swap order and nothing bands."""
+    lo, full, top, end = band
+    # The band lies within hue 0-120, where red or green is the brightest channel and blue the dimmest.
+    x = a.reshape(-1, 3).astype(np.float32)
+    r, g, b = x[:, 0], x[:, 1], x[:, 2]
+    v = np.maximum(r, g)
+    d = v - b
+    idx = np.flatnonzero((b <= np.minimum(r, g)) & (d > 1e-6))   # hue 0-120: blue the dimmest channel
+    r, g, v, d = r[idx], g[idx], v[idx], d[idx]
+    hue = np.where(r >= g, 60 * (g - b[idx]) / d, 60 * (2 - (r - b[idx]) / d))
+    inside = (hue > lo) & (hue < end)            # only these pixels move: a 12 MP photo is done in about a second
+    if not inside.any():
+        return a
+    idx, hue, v, d = idx[inside], hue[inside], v[inside], d[inside]
+    w = _smooth((hue - lo) / (full - lo)) * (1 - _smooth((hue - top) / (end - top)))
+    h = hue - pull * w * (hue - lo)
+    s = d / v * (1 - w * (1 - keep))
+    f = h / 60
+    low = v * (1 - s)                            # HSV to RGB in the 0-120 sector: blue is the floor
+    mid_r = v * (1 - s * (f - 1))                # 60-120: green brightest, red falling
+    mid_g = v * (1 - s * (1 - f))                # 0-60: red brightest, green rising
+    rgb = np.stack([np.where(f < 1, v, mid_r), np.where(f < 1, mid_g, v), low], axis=-1)
+    weights = np.array([0.299, 0.587, 0.114], dtype=np.float32)
+    y0, y1 = x[idx] @ weights, rgb @ weights
+    rgb = np.clip(rgb * (y0 / np.maximum(y1, 1e-6))[:, None], 0, 1)   # each pixel's luminance kept
+    out = a.reshape(-1, 3).copy()
+    out[idx] = rgb
+    return out.reshape(a.shape)
 
 
 def apply(im: Image.Image, settings: Dict[str, Any]) -> Image.Image:
-    """`im` with the planned gains and gamma (deterministic)."""
+    """`im` with the planned gains, gamma and lamp step (deterministic)."""
     a = np.asarray(im.convert("RGB"), dtype=np.float64) / 255
     a = np.clip(a * np.array(settings["gains"]), 0, 1)
     if settings["gamma"] < 1:     # on the luminance, every channel scaled alike: lifted without washing the colour out
         y = _luma(a)
         a = np.clip(a * (np.power(np.maximum(y, 1e-6), settings["gamma"]) / np.maximum(y, 1e-6))[..., None], 0, 1)
+    step = settings.get("lamp_step")
+    if step:
+        a = lamp_step(a, step["keep"], step["pull"], tuple(step["hue"]))
     return Image.fromarray(np.round(a * 255).astype(np.uint8), "RGB")
 
 

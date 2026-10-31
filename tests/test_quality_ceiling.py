@@ -145,7 +145,7 @@ def test_multi_template_carousel_generation(tmp_path):
     assert len(slides) == 7
     for slide in slides:
         assert slide.exists()
-        assert Image.open(slide).size == (1080, 1350)
+        assert Image.open(slide).size == (1440, 1800)                         # Meta's recommended 4:5 size
 
 
 def test_wcag_aaa_contrast_and_occlusion_auditing():

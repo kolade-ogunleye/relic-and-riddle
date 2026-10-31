@@ -17,7 +17,7 @@ import subprocess
 import threading
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional, Set, Union
 
 from .config import BASE_DIR, VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
 
@@ -36,8 +36,21 @@ PRESETS = {
     "drift_right": (0.04, 70.0, 0.0),
     "rise": (0.05, 0.0, -60.0),
     "pull": (-0.08, 0.0, 0.0),
+    "hook": (0.16, 0.0, 0.0),
 }
 SEQUENCE = ["drift_left", "rise", "drift_right", "pull", "drift_left", "push", "drift_right", "rise"]
+# The opening shot moves from its first frame (Meta's Creator assistant, 2026-10-28: "the opening shot stays
+# relatively still for the first three seconds; viewers decide in under two"). Every other shot eases in and
+# out (smoothstep), which starts at rest: half a second into the hook's ~4.2 s clip it had done 4% of its move.
+# The opening's own move (HOOK_PRESET, a stronger push) eases out only: fastest at frame 0, 22% done by then.
+HOOK_PRESET = "hook"
+
+
+def ease(t: float, lead: bool = False) -> float:
+    """Share of the move done at `t` (0-1): smoothstep, or for the opening shot (`lead`) an ease-out that
+    starts at full speed (twice the average) and settles at the end."""
+    t = min(max(t, 0.0), 1.0)
+    return 1 - (1 - t) ** 2 if lead else t * t * (3 - 2 * t)
 
 
 def available() -> bool:
@@ -88,6 +101,24 @@ def _cover_crop(rgb, out_w: int, out_h: int):
     return cv2.resize(rgb[y0:y0 + ch, x0:x0 + cw], (out_w, out_h), interpolation=cv2.INTER_LANCZOS4)
 
 
+REPEAT_ZOOM = 1.35  # a repeated photo is framed this much tighter, on another part of the picture
+REPEAT_FOCUS = [(0.5, 0.36), (0.5, 0.64), (0.36, 0.5), (0.64, 0.5)]  # centres of the tighter frame, by repeat
+
+
+def repeat_crop(rgb, out_w: int, out_h: int, variant: int):
+    """The frame a photo's `variant`-th repeat uses: tighter, centred on another part of it, so a photo the
+    story needs twice reads as a new shot (operator, 2026-10-25: beat 8 reused beat 1's frame exactly)."""
+    import cv2
+    if variant <= 0:
+        return _cover_crop(rgb, out_w, out_h)
+    big_w, big_h = int(out_w * REPEAT_ZOOM), int(out_h * REPEAT_ZOOM)
+    big = _cover_crop(rgb, big_w, big_h)
+    fx, fy = REPEAT_FOCUS[(variant - 1) % len(REPEAT_FOCUS)]
+    x0 = int(min(max(0, fx * big_w - out_w / 2), big_w - out_w))
+    y0 = int(min(max(0, fy * big_h - out_h / 2), big_h - out_h))
+    return cv2.resize(big[y0:y0 + out_h, x0:x0 + out_w], (out_w, out_h), interpolation=cv2.INTER_LANCZOS4)
+
+
 def preset_for(index: int, total: int) -> str:
     """First and last shots push in (matching loop seam); the rest vary."""
     if index == 0 or index == total - 1:
@@ -100,7 +131,7 @@ from .encoding import bounded_encode
 
 @bounded_encode
 def render_clip(image_path: Path, out_path: Path, duration: float, preset: str = "push",
-                fps: int = VIDEO_FPS, size=(VIDEO_WIDTH, VIDEO_HEIGHT)) -> Path:
+                fps: int = VIDEO_FPS, size=(VIDEO_WIDTH, VIDEO_HEIGHT), variant: int = 0) -> Path:
     """Renders a parallax clip of `duration` seconds from one still."""
     import cv2
     import numpy as np
@@ -110,7 +141,7 @@ def render_clip(image_path: Path, out_path: Path, duration: float, preset: str =
     bgr = cv2.imread(str(image_path), cv2.IMREAD_COLOR)
     if bgr is None:
         raise OSError(f"Cannot read {image_path}")
-    base = _cover_crop(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB), bw, bh)
+    base = repeat_crop(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB), bw, bh, variant)
     depth = depth_map(base)
 
     zoom_amt, shift_x, shift_y = PRESETS[preset]
@@ -133,7 +164,7 @@ def render_clip(image_path: Path, out_path: Path, duration: float, preset: str =
     try:
         for i in range(frames):
             t = i / (frames - 1)
-            e = t * t * (3 - 2 * t)  # smoothstep easing
+            e = ease(t, lead=preset == HOOK_PRESET)
             z = 1.0 + zoom_amt * (e if zoom_amt > 0 else e - 1) * weight
             scale = s0 / np.maximum(z, 0.5)
             map_x = cx + u * scale + shift_x * (e - 0.5) * weight
@@ -146,12 +177,13 @@ def render_clip(image_path: Path, out_path: Path, duration: float, preset: str =
     if proc.returncode != 0:
         raise RuntimeError(f"ffmpeg failed encoding {out_path.name}")
     from .lineage import record_derived
-    record_derived(out_path, [image_path], "parallax", {"preset": preset, "duration": duration, "fps": fps})
+    record_derived(out_path, [image_path], "parallax", {"preset": preset, "duration": duration, "fps": fps, "variant": variant})
     return out_path
 
 
-def render_scenes(scenes, durations, work_dir: Path, transition: float) -> Optional[list]:
-    """Parallax clip per still (videos pass through). Returns new media list, or None if unavailable."""
+def render_scenes(scenes, durations, work_dir: Path, transition: float,
+                  exempt_indices: Optional[Any] = None) -> Optional[list]:
+    """Parallax clip per still (videos, gap reconstructions and macro drifts pass through). Returns new media list, or None if unavailable."""
     if not available():
         log.info("Parallax unavailable (model or libraries missing); using flat camera moves.")
         return None
@@ -161,20 +193,21 @@ def render_scenes(scenes, durations, work_dir: Path, transition: float) -> Optio
     from .checkpoints import Checkpoints, file_inputs
     from .lineage import sidecar
 
+    exempt_set = set(exempt_indices or [])
     work_dir.mkdir(parents=True, exist_ok=True)
     _session()  # load the model once before the worker threads share it
     renderer = file_inputs([Path(__file__), MODEL_PATH])
 
-    def clip_for(i, scene, duration, preset):
+    def clip_for(i, scene, duration, preset, variant=0):
         # A clip is reused (QA re-plan, resume) only for the same still, timing, move, size and
         # renderer, and only while it and its lineage record are intact.
         clip = work_dir / f"scene_{i + 1:02d}.mp4"
         inputs = {"image": file_inputs([Path(scene)]), "duration": duration, "preset": preset,
-                  "fps": VIDEO_FPS, "size": [VIDEO_WIDTH, VIDEO_HEIGHT], "renderer": renderer}
+                  "fps": VIDEO_FPS, "size": [VIDEO_WIDTH, VIDEO_HEIGHT], "renderer": renderer, "variant": variant}
         checkpoint = Checkpoints(work_dir / "stage_cache" / clip.stem)
         if checkpoint.reusable("clip", inputs):
             return clip, False
-        render_clip(Path(scene), clip, duration, preset)
+        render_clip(Path(scene), clip, duration, preset, variant=variant)
         try:
             checkpoint.complete("clip", inputs, [clip, sidecar(clip)])
         except (OSError, ValueError) as e:  # caching is an optimisation; the fresh clip stands
@@ -183,9 +216,28 @@ def render_scenes(scenes, durations, work_dir: Path, transition: float) -> Optio
 
     jobs = {}
     with ThreadPoolExecutor(max_workers=4) as pool:  # OpenCV/NumPy release the GIL while warping
+        shown: dict = {}   # photo -> how many times it has been shown
+        moved: dict = {}   # photo -> the moves it was shown with
         for i, (scene, dur) in enumerate(zip(scenes, durations)):
-            if not is_video(scene):
-                jobs[i] = pool.submit(clip_for, i, scene, dur + 3 * transition, preset_for(i, len(scenes)))
+            p = Path(scene)
+            is_reconstruction = p.stem.startswith(("gap_gen_", "gen_"))
+            is_macro = i in exempt_set
+            if not is_video(p) and not is_reconstruction and not is_macro:
+                # A photo shown again gets another frame and a move it has not had, never the same shot twice
+                # (Nazca, 2026-10-25: the repeat was reframed but rose as before).
+                variant = shown.get(str(scene), 0)
+                shown[str(scene)] = variant + 1
+                # The opening shot's move starts at frame 0 (HOOK_PRESET); the composer's transitions still
+                # follow preset_for, where it is a push.
+                preset = HOOK_PRESET if i == 0 else preset_for(i, len(scenes))
+                if variant:
+                    had = ["push" if m == HOOK_PRESET else m for m in moved.get(str(scene), ())]  # a push too
+                    repeats = [m for m in PRESETS if m != HOOK_PRESET]
+                    moves = ([m for m in repeats if m not in had and m != preset]
+                             or [m for m in repeats if m not in had] or repeats)
+                    preset = moves[(variant - 1 + i) % len(moves)]
+                moved.setdefault(str(scene), []).append(preset)
+                jobs[i] = pool.submit(clip_for, i, scene, dur + 3 * transition, preset, variant)
         results = {i: job.result() for i, job in jobs.items()}
         out = [results[i][0] if i in results else scene for i, scene in enumerate(scenes)]
     rendered = sum(1 for _, fresh in results.values() if fresh)

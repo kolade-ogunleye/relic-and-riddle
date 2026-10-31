@@ -65,14 +65,14 @@ def test_library_first_by_default_then_paid_score(library, monkeypatch):
 def test_music_review_flow(library, db):
     sent = []
     h = make_command_handler(db, lambda: None, lambda: "", send_audio=lambda p, cap, b: sent.append((cap, b)) or True)
-    assert h("music", "") == ""
+    assert h("mreview", "") == ""
     btn = sent[-1][1][0][0] if isinstance(sent[-1][1][0], list) else sent[-1][1][0]
     key = btn["callback_data"].split(":")[1]
     assert "Kept" in h("mkeep", key)
     btn2 = sent[-1][1][0][0] if isinstance(sent[-1][1][0], list) else sent[-1][1][0]
     key2 = btn2["callback_data"].split(":")[1]
-    assert key2 != key and "Removed" in h("mdel", key2)
-    assert "No tracks waiting" in h("music", "")
+    assert key2 != key and "Removed" in h("mdel", key2)[0]
+    assert "No tracks waiting" in h("mreview", "")[0]
     lib = json.loads((library / "library.json").read_text(encoding="utf-8"))
     assert len(lib) == 3 and all(t["reviewed"] for t in lib)
 

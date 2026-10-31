@@ -20,13 +20,14 @@ import os
 import re
 import subprocess
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 import edge_tts
 import numpy as np
 import requests
 import soundfile as sf
 
+from . import sfx_palette
 from .config import (
     AZURE_SPEECH_KEY,
     AZURE_SPEECH_REGION,
@@ -80,6 +81,20 @@ ROMAN_REGAL_MAP = {
 }
 
 
+def strip_asides(text: str) -> str:
+    """`text` without bracketed asides, as the voice says it: a unit conversion ("200 feet (60 meters) deep" ->
+    "200 feet deep") or any other, nested ones whole ("a (b (c) d) e" -> "a e"); a stray bracket is dropped.
+    The narration's own text is stripped the same way (script_engine.spoken_narration)."""
+    out = re.sub(r"\s*\(\s*(?:or\s+)?\d+(?:\.\d+)?\s*(?:meters?|m|km|kilometers?|feet|ft|miles?|tons?|kg)\s*\)", "",
+                 text, flags=re.IGNORECASE)
+    while True:
+        inner = re.sub(r"\s*\([^()]*\)", "", out)
+        if inner == out:
+            break
+        out = inner
+    return out.replace("(", "").replace(")", "")
+
+
 def normalize_speech_text(text: str) -> str:
     """Pre-TTS text normalization for natural speech rendering.
     Expands regal Roman numerals (e.g. 'King Krishna I' -> 'King Krishna the First')
@@ -100,14 +115,21 @@ def normalize_speech_text(text: str) -> str:
     # Cleanly strip redundant parenthetical unit conversions to avoid awkward TTS cadence pauses
     # e.g. "200 feet (60 meters) deep" -> "200 feet deep"
     # e.g. "85 meters (280 ft)" -> "85 meters"
-    pre = re.sub(r"\s*\(\s*(?:or\s+)?\d+(?:\.\d+)?\s*(?:meters?|m|km|kilometers?|feet|ft|miles?|tons?|kg)\s*\)", "", pre, flags=re.IGNORECASE)
-    pre = re.sub(r"\s*\([^\)]*\)", "", pre)
+    pre = strip_asides(pre)
     pattern = re.compile(r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII|XIII|XIV|XV|XVI)\b")
     normalized = pattern.sub(_replace_roman, pre)
     return normalized
 
 
-def measure_spoken_seconds(text: str) -> Optional[float]:
+def rate_with_speed(base: str, speed: float) -> str:
+    """An edge-tts/Azure prosody rate ("-2%") made `speed` times faster ("+4%" for 1.06)."""
+    import re
+    m = re.fullmatch(r"\s*([+-]?\d+(?:\.\d+)?)%\s*", base or "0%")
+    pct = (1 + (float(m.group(1)) if m else 0.0) / 100) * speed - 1
+    return f"{round(pct * 100):+d}%"
+
+
+def measure_spoken_seconds(text: str, speed: float = 1.0) -> Optional[float]:
     """How long the narration runs when spoken: one edge-tts pass of exactly what the voiceover will
     say (normalized text, narrator voice, rate and pitch), measured like the real voiceover. The
     voice is deterministic, so this is a measurement, not an estimate. None if it can't be made."""
@@ -115,7 +137,8 @@ def measure_spoken_seconds(text: str) -> Optional[float]:
 
     tmp = Path(tempfile.mkdtemp(prefix="spoken_len_")) / "probe.mp3"
     try:
-        c = edge_tts.Communicate(normalize_speech_text(text), NARRATOR_VOICE, rate=NARRATOR_RATE, pitch=NARRATOR_PITCH)
+        c = edge_tts.Communicate(normalize_speech_text(text), NARRATOR_VOICE, rate=rate_with_speed(NARRATOR_RATE, speed),
+                                 pitch=NARRATOR_PITCH)
         asyncio.run(asyncio.wait_for(c.save(str(tmp)), timeout=60))  # a stalled service must not hang the stage
         return AudioEngine.get_duration(tmp)
     except Exception as e:  # offline or the service is down: the post-voiceover check still guards
@@ -143,8 +166,16 @@ def production_voice_key() -> str:
     return voice_key("azure", NARRATOR_VOICE)
 
 
+def honours_speed(provider_or_key: str) -> bool:
+    """Whether a voice reads at the rate it is asked for. Azure and Edge do, natively. Production's ElevenLabs
+    model ignores its speed setting (a take asked to be 5% faster read 1% slower, 2026-10-25), and a finished
+    take is never time-stretched: the operator heard the 4% stretch as awkward (2026-10-25). So an ElevenLabs
+    narration must fit the time limit as written."""
+    return not str(provider_or_key).startswith("elevenlabs")
+
+
 def record_pace(key: str, measured: float, actual: float) -> None:
-    """Remembers how a real voice's length compares with the free measurement (last 10)."""
+    """Remembers how a real voice's length compares with the free measurement (the last PACE_KEPT takes)."""
     import json
     if measured <= 0 or actual <= 0:
         return
@@ -152,32 +183,91 @@ def record_pace(key: str, measured: float, actual: float) -> None:
         data = json.loads(PACE_FILE.read_text(encoding="utf-8")) if PACE_FILE.exists() else {}
     except (OSError, ValueError):
         data = {}
-    data[key] = (data.get(key, []) + [round(actual / measured, 4)])[-10:]
+    data[key] = (data.get(key, []) + [round(actual / measured, 4)])[-PACE_KEPT:]
     PACE_FILE.write_text(json.dumps(data, indent=1), encoding="utf-8")
 
 
-def calibrate_pace(provider: str, voice: str, text: str, actual_seconds: float) -> None:
-    """After a real voiceover: record its length against the free measurement of the same text."""
+def calibrate_pace(provider: str, voice: str, text: str, actual_seconds: float, speed: float = 1.0) -> None:
+    """After a real voiceover: record its length against the free measurement of the same text, at the
+    same speed (a voiceover read faster would otherwise teach a false, faster pace)."""
     if provider == "edge-tts":
         return  # the measurement itself
     key = voice_key("elevenlabs", voice, ELEVENLABS_MODEL) if provider == "elevenlabs" else voice_key(provider, voice)
     try:
-        measured = measure_spoken_seconds(text)
+        measured = measure_spoken_seconds(text, speed=speed)
         if measured:
             record_pace(key, measured, actual_seconds)
     except Exception as e:  # calibration must never fail a run
         log.warning("Could not record the voice pace: %s", e)
 
 
-def pace_ratio(key: str) -> float:
-    """Median real/measured length ratio for this voice; 1.0 until it has been measured."""
+PACE_CONFIDENT_SAMPLES = 5  # takes measured before the median is trusted
+PACE_KEPT = 20              # takes remembered a voice
+PACE_RATIO_TAKES = 10       # the latest takes pace_ratio (the voice stage's own pace) reads
+PACE_BAND_SAMPLES = 10      # takes before the length window is planned on PACE_BAND_PERCENTILES, not the extremes
+PACE_BAND_PERCENTILES = (15, 85)
+PACE_OWN_SAMPLES = 3  # a voice's own takes before its pace stands on its own (a new voice borrows the slowest known)
+
+
+def _ratios(key: str) -> Tuple[List[float], List[float]]:
+    """(this voice's recorded takes, those of the provider's other voices), as real/measured length ratios: an Azure
+    voice honours its speed and reads unlike ElevenLabs, so a new voice borrows only from its own provider."""
     import json
-    import statistics
     try:
-        ratios = json.loads(PACE_FILE.read_text(encoding="utf-8")).get(key, [])
+        data = json.loads(PACE_FILE.read_text(encoding="utf-8"))
     except (OSError, ValueError):
+        return [], []
+    own = [r for r in data.get(key, []) if isinstance(r, (int, float))]
+    provider = key.split(":", 1)[0]
+    others = [r for k, v in data.items() if k != key and k.split(":", 1)[0] == provider
+              for r in (v or []) if isinstance(r, (int, float))]
+    return own, others
+
+
+def _with_prior(own: List[float], others: List[float]) -> List[float]:
+    """A voice with fewer than PACE_OWN_SAMPLES takes of its own is planned with every voice's takes too, so
+    a new narrator starts no faster than the slowest one measured: a voice changed in .env had no history and was
+    planned at the measurement's pace, and its first take could run over (operator, 2026-10-27)."""
+    return own if len(own) >= PACE_OWN_SAMPLES else own + others
+
+
+def pace_range(key: str) -> Tuple[float, float]:
+    """(fastest, slowest) real/measured ratio for planning both ends of the length window. A voice that honours
+    its speed setting has one pace (pace_ratio at both ends). ElevenLabs' takes of one script vary by about 10%
+    (production 2026-10-25: 0.997-1.100), so a script is checked against its slowest take for the ceiling and
+    its fastest for the minimum: planning only for the slowest let a 93-word script read 41.1 s against 42."""
+    if honours_speed(key):
+        ratio = pace_ratio(key)
+        return ratio, ratio
+    ratios = _with_prior(*_ratios(key))
+    if not ratios:
+        return 1.0, 1.0
+    if len(ratios) >= PACE_BAND_SAMPLES:
+        # The takes between PACE_BAND_PERCENTILES (operator, rc72; review: the middle half made a low-edge script
+        # read short on about a quarter of takes, each a paid re-read): planned for the fastest and slowest take
+        # ever recorded, the window was narrow enough to cost rewrites. Expected: a script at the window's low edge
+        # reads short on at most ~15% of takes (read again once); one at the high edge runs past the plan on at most
+        # ~15%, kept up to VOICE_DURATION_CEILING, and the release gate checks the master (RELEASE_DURATION_MAX).
+        lo, hi = (float(np.percentile(ratios, q)) for q in PACE_BAND_PERCENTILES)
+        return round(lo, 4), round(hi, 4)
+    return min(ratios), max(ratios)
+
+
+def pace_ratio(key: str) -> float:
+    """Real/measured length ratio for this voice; 1.0 until it has been measured. The median once there are
+    PACE_CONFIDENT_SAMPLES takes; before that the slowest take seen, so a script is planned for the slow end
+    (production's ElevenLabs narrator had two takes, 1.018 and 1.075, and the median let a draft through
+    that read 3% too long, 2026-10-25). A voice that cannot be read faster (honours_speed) is always planned
+    for its slowest recent take: no speed-up is left to absorb a slow one."""
+    import statistics
+    own, others = _ratios(key)
+    own = own[-PACE_RATIO_TAKES:]   # as before the history grew to PACE_KEPT: this safety net is unchanged
+    ratios = _with_prior(own, others)
+    if not ratios:
         return 1.0
-    return statistics.median(ratios) if ratios else 1.0
+    if not honours_speed(key) or len(own) < PACE_CONFIDENT_SAMPLES:
+        return max(ratios)
+    return statistics.median(own)
 
 
 def split_boundary(text: str, start: float, dur: float) -> Words:
@@ -261,6 +351,7 @@ class AudioEngine:
         self.voice = voice
         self.last_sfx_sources: List[Dict[str, Any]] = []
         self.rate = rate
+        self.speed = 1.0  # set per narration (generate_narration): a long one is spoken slightly faster
         self.pitch = pitch
         self.eleven_key = eleven_key if eleven_key is not None else ELEVENLABS_API_KEY
         self.eleven_voice = eleven_voice if eleven_voice is not None else ELEVENLABS_VOICE_ID
@@ -268,9 +359,11 @@ class AudioEngine:
         self.azure_region = azure_region if azure_region is not None else AZURE_SPEECH_REGION
 
     @staticmethod
-    def eleven_payload(text: str, model: str) -> Dict[str, Any]:
+    def eleven_payload(text: str, model: str, speed: float = 1.0) -> Dict[str, Any]:
         """Request body for one model: style and speaker boost exist only on the v2 models."""
-        settings: Dict[str, Any] = {"stability": 0.50, "similarity_boost": 0.85, "speed": ELEVENLABS_SPEED}
+        # ElevenLabs accepts speed 0.7-1.2.
+        settings: Dict[str, Any] = {"stability": 0.50, "similarity_boost": 0.85,
+                                    "speed": round(min(1.2, ELEVENLABS_SPEED * speed), 3)}
         if model.startswith(("eleven_multilingual_v2", "eleven_monolingual")):
             settings.update(style=0.35, use_speaker_boost=True)
         return {"text": text, "model_id": model, "voice_settings": settings}
@@ -278,13 +371,13 @@ class AudioEngine:
     def _generate_elevenlabs(self, text: str, output_path: Path) -> Words:
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{self.eleven_voice}/with-timestamps"
         resp = requests.post(url, headers={"xi-api-key": self.eleven_key},
-                             json=self.eleven_payload(text, ELEVENLABS_MODEL), timeout=120)
+                             json=self.eleven_payload(text, ELEVENLABS_MODEL, self.speed), timeout=120)
         if resp.status_code in (400, 422) and ELEVENLABS_FALLBACK_MODEL and ELEVENLABS_FALLBACK_MODEL != ELEVENLABS_MODEL:
             # The model may not support timestamped output (or these settings); a rejected request is not billed.
             log.warning("ElevenLabs %s rejected the request (HTTP %d); using %s.", ELEVENLABS_MODEL,
                         resp.status_code, ELEVENLABS_FALLBACK_MODEL)
             resp = requests.post(url, headers={"xi-api-key": self.eleven_key},
-                                 json=self.eleven_payload(text, ELEVENLABS_FALLBACK_MODEL), timeout=120)
+                                 json=self.eleven_payload(text, ELEVENLABS_FALLBACK_MODEL, self.speed), timeout=120)
         resp.raise_for_status()
         data = resp.json()
 
@@ -319,7 +412,8 @@ class AudioEngine:
                         output_path.unlink()
                     except Exception:
                         pass
-                c = edge_tts.Communicate(text, self.voice, rate=self.rate, pitch=self.pitch, boundary="WordBoundary")
+                c = edge_tts.Communicate(text, self.voice, rate=rate_with_speed(self.rate, self.speed), pitch=self.pitch,
+                                         boundary="WordBoundary")
                 words: Words = []
                 with open(output_path, "wb") as f:
                     async for chunk in c.stream():
@@ -359,7 +453,7 @@ class AudioEngine:
         synth.synthesis_word_boundary.connect(on_boundary)
         escaped_text = escape_ssml_preserving_tags(text)
         ssml = (f'<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">'
-                f'<voice name="{self.voice}"><prosody rate="{self.rate}" pitch="{self.pitch}">'
+                f'<voice name="{self.voice}"><prosody rate="{rate_with_speed(self.rate, self.speed)}" pitch="{self.pitch}">'
                 f"{escaped_text}</prosody></voice></speak>")
         result = synth.speak_ssml_async(ssml).get()
         if result.reason != speechsdk.ResultReason.SynthesizingAudioCompleted:
@@ -372,6 +466,15 @@ class AudioEngine:
     # Set after each narration: which provider voiced it, whether it is commercially licensed,
     # and why a better provider was skipped.
     last_provider: str = ""
+
+    @staticmethod
+    def preferred_provider(allow_paid: bool) -> str:
+        """The provider this run would try first: ElevenLabs when preferred, configured and allowed to spend;
+        otherwise Azure. A carried-over voiceover from any other provider is re-made (2026-10-24: with
+        ELEVENLABS_IN_DRY_RUNS switched on, a remake must not keep the Azure voice of its predecessor)."""
+        if allow_paid and VOICE_PREFER == "elevenlabs" and is_configured(ELEVENLABS_API_KEY):
+            return "elevenlabs"
+        return "azure"
     last_licensed: bool = False
     fallback_reason: str = ""
 
@@ -381,9 +484,11 @@ class AudioEngine:
         return bool(quota and quota.get("tier") and quota["tier"] != "free")
 
     def generate_narration(self, text: str, output_path: Path, licensed_only: bool = False,
-                           allow_paid: bool = True) -> Words:
+                           allow_paid: bool = True, speed: float = 1.0) -> Words:
         """licensed_only (real runs): skip unlicensed voices; raise NoLicensedVoice if none is left.
-        allow_paid=False (dry runs): don't spend ElevenLabs credits."""
+        allow_paid=False (dry runs): don't spend ElevenLabs credits. speed: spoken this much faster
+        (script_engine.fit_speed: a narration slightly over the limit)."""
+        self.speed = speed
         orig_text = text
         text = normalize_speech_text(text)
         self.fallback_reason = ""
@@ -480,16 +585,13 @@ class AudioEngine:
     # Sound effects play only where the narration says the action or thing they depict (first
     # matching word, whole words only: substrings put an ocean under "research").
     # Tuple format: (words, gain, optional_procedural_synth_name)
-    SFX_CUES = {
-        "sfx_hammer.wav": (("knock", "knocked", "knocking", "hammer", "hammered", "smash", "smashed"), 0.40, "_synth_chisel_strike"),
-        "sfx_stone_door.wav": (("door", "doors"), 0.45, "_synth_stone_grind"),
-        "sfx_gear_ratchet.wav": (("gear", "gears", "clockwork", "ratchet", "cogwheel", "cogwheels"), 0.35, "_synth_gear_ratchet"),
-        "sfx_water_surge.wav": (("submerged", "sea", "seas", "ocean", "shipwreck", "wreck", "diver", "divers", "underwater", "seabed"), 0.38, "_synth_water_surge"),
-        "sfx_chisel.wav": (("chisel", "chiseled", "chiselled", "carve", "carved", "carving", "hewn", "quarried", "quarry"), 0.36, "_synth_chisel_strike"),
-    }
-    # The cavern-wind layer is for places under the ground; the revelation hit for an actual finding.
-    UNDERGROUND_WORDS = {"underground", "subterranean", "cave", "caves", "cavern", "caverns", "tunnel", "tunnels",
-                         "shaft", "shafts", "hypogeum", "catacomb", "catacombs", "mine", "mines", "crypt"}
+    # One palette (src/sfx_palette.py) for the cues, the plan and the generator: {name: (keywords, gain, synth)}.
+    SFX_CUES = sfx_palette.cues()
+    # Continuous setting layers: the cavern wind for a story told under the ground, and from 2026-10-25 the
+    # desert, the sea and the mountains, each only when the narration names that setting.
+    SETTING_LAYERS = sfx_palette.layers()
+    UNDERGROUND_WORDS = set(SETTING_LAYERS["sfx_cavern_wind.wav"])
+    # The revelation hit is for an actual finding.
     REVELATION_WORDS = {"discovered", "discovering", "rediscovered", "rediscovering", "uncovered", "revealed",
                         "unearthed", "secret", "impossible"}
 
@@ -541,9 +643,78 @@ class AudioEngine:
         return any(cls._spoken(w) & cls.UNDERGROUND_WORDS for w in words or [])
 
     @classmethod
+    def setting_layer(cls, words: Optional[Words]) -> Optional[str]:
+        """The continuous texture for the setting the narration names first (a story told under the ground
+        gets the cavern draft wherever else it goes), or None: a story told nowhere in particular gets no layer."""
+        counts: Dict[str, int] = {}
+        first: Dict[str, int] = {}
+        for i, w in enumerate(words or []):
+            spoken = cls._spoken(w)
+            for name, layer_words in cls.SETTING_LAYERS.items():
+                if spoken & set(layer_words):
+                    counts[name] = counts.get(name, 0) + 1
+                    first.setdefault(name, i)
+        # The setting named most: one "cave" does not put a cliff temple underground (measured on six narrations,
+        # 2026-10-25); the layer words themselves leave out passing words such as "sand", which put a story told
+        # at sea in the desert.
+        if not counts:
+            return None
+        return min(counts, key=lambda n: (-counts[n], first[n]))
+
+    # A setting layer sits this far under the music bed: present under the score, never competing with it
+    # (the narration ducks both further). The earlier cavern draft sat 25 dB under it, which is silence.
+    LAYER_DB_BELOW_MUSIC = 14.0
+
+    @staticmethod
+    def licensed(name: str) -> bool:
+        """Whether a recording with intact rights evidence exists for `name`."""
+        from .audio_provenance import sfx_rights
+        path = SFX_DIR / name
+        return path.exists() and sfx_rights(path) is not None
+
+    @classmethod
     def revelation_time(cls, words: Optional[Words]) -> Optional[float]:
         return next((float(w.get("start", 0.0)) for w in words or [] if cls._spoken(w) & cls.REVELATION_WORDS), None)
     MUSIC_RMS = 0.05  # bed level for music (about -26 dBFS); the mix ducks it further under speech
+    # The end card's sound (src/end_card.py), relative to the music bed. With no narration to duck it the music
+    # would come up to its full bed level, louder than it sat under the voice; END_CARD_MUSIC_DB is the starting
+    # level, and the composer then measures the card in the mastered programme and sets it 6 LU under the narrated
+    # body (VideoComposer.end_card_level). The whoosh opens the card and the bell lands with the sheen.
+    END_CARD_MUSIC_DB = -7.5
+    END_CARD_WHOOSH_DB = -2.5
+    END_CARD_BELL_DB = 2.0
+    END_CARD_FADE_OUT = 1.2   # s: the music resolves over the card's last moments
+
+    def _end_card_sound(self, bed: np.ndarray, at: float, sr: int) -> None:
+        """The end card's sound mixed into `bed` in place: the music held under the programme from `at`, a soft
+        whoosh as the card opens, the bell as its sheen crosses, and a short fade so the ring ends with the card.
+        The bell is a recording with rights evidence or nothing (no synthesized stand-in)."""
+        from .end_card import BELL_AT, WHOOSH_AT
+        total = len(bed)
+        i0 = int(at * sr)
+        if i0 >= total:
+            return
+        ramp = min(int(0.3 * sr), total - i0)
+        level = 10 ** (self.END_CARD_MUSIC_DB / 20)
+        bed[i0:i0 + ramp] *= np.linspace(1.0, level, ramp)[:, None]
+        bed[i0 + ramp:] *= level
+        music_level = self.MUSIC_RMS * level
+
+        def at_level(audio: np.ndarray, db: float) -> np.ndarray:
+            return audio * (music_level * 10 ** (db / 20) / (float(np.sqrt(np.mean(np.square(audio)))) or 1.0))
+        whoosh = at_level(self._effect("sfx_whoosh.wav", self._synth_transition_whoosh(duration_sec=0.45, sr=sr), sr),
+                          self.END_CARD_WHOOSH_DB)
+        w0 = max(0, int((at + WHOOSH_AT - 0.15) * sr))
+        n = max(0, min(len(whoosh), total - w0))
+        bed[w0:w0 + n] += whoosh[:n]
+        if self.licensed("sfx_bell_toll.wav"):
+            bell = at_level(self._effect("sfx_bell_toll.wav", np.full((1, 2), 0.1, dtype=np.float32), sr), self.END_CARD_BELL_DB)
+            b0 = int((at + BELL_AT) * sr)
+            n = max(0, min(len(bell), total - b0))
+            bed[b0:b0 + n] += bell[:n]
+        tail = min(int(0.5 * sr), total - i0)
+        if tail > 0:
+            bed[total - tail:] *= np.linspace(1.0, 0.0, tail)[:, None]
 
     @staticmethod
     def _synth_gear_ratchet(duration_sec: float = 0.8, sr: int = 48000) -> np.ndarray:
@@ -727,8 +898,10 @@ class AudioEngine:
     def generate_ambient_bed(self, duration: float, output_path: Path, words: Optional[Words] = None, sr: int = 48000,
                              music_path: Optional[Path] = None, music_paths: Optional[List[Path]] = None,
                              cue_timestamps: Optional[List[float]] = None, loop_seamless: bool = False,
-                             sound_plan: Optional[Dict[str, Any]] = None) -> Path:
-        """Music (if given, with seamless crossfades/movements) or a synthesized drone, plus narration SFX and act boundary risers."""
+                             sound_plan: Optional[Dict[str, Any]] = None, end_card_at: Optional[float] = None) -> Path:
+        """Music (if given, with seamless crossfades/movements) or a synthesized drone, plus narration SFX and act boundary risers.
+        end_card_at: where the Reel's end card starts (src/end_card.py); the bed then runs on under the card and
+        carries its sound."""
         total = int(sr * duration)
         self.last_sfx_sources = []  # licensed effect recordings mixed into this bed
         valid_paths = [Path(p) for p in (music_paths or []) if Path(p).exists()]
@@ -748,7 +921,8 @@ class AudioEngine:
                     bed[:micro] *= np.linspace(0.0, 1.0, micro)[:, None]
                     bed[-micro:] *= np.linspace(1.0, 0.0, micro)[:, None]
             else:
-                fin, fout = min(int(1.0 * sr), total // 4), min(int(2.5 * sr), total // 4)
+                fout_s = self.END_CARD_FADE_OUT if end_card_at is not None else 2.5   # under a card: resolves late
+                fin, fout = min(int(1.0 * sr), total // 4), min(int(fout_s * sr), total // 4)
                 bed[:fin] *= np.linspace(0.0, 1.0, fin)[:, None]
                 bed[-fout:] *= np.linspace(1.0, 0.0, fout)[:, None]
         else:
@@ -765,14 +939,19 @@ class AudioEngine:
         if sound_plan:
             bed *= self.music_envelope(sound_plan.get("moments", []), total, sr)[:, None]
 
-        # Triple-stem foley stem 2: continuous cavern draft wind, only for a story told underground
-        if self.is_underground(words):
-            cavern_draft = self._effect("sfx_cavern_wind.wav", self._synth_cavern_draft(total, sr), sr, loop_to=total)
+        # Triple-stem foley stem 2: one continuous setting layer. The cavern draft for a story told underground
+        # (synthesized if no recording exists); the desert, sea or mountain wind for one told there, from the
+        # licensed recording only (a synthesized draft is a cavern, not a desert: without the recording, no layer).
+        layer = self.setting_layer(words)
+        if layer and (layer == "sfx_cavern_wind.wav" or self.licensed(layer)):
+            texture = self._effect(layer, self._synth_cavern_draft(total, sr), sr, loop_to=total)
+            level = float(np.sqrt(np.mean(np.square(texture)))) or 1.0
+            texture = texture * (self.MUSIC_RMS * 10 ** (-self.LAYER_DB_BELOW_MUSIC / 20) / level)
             fin_d, fout_d = min(int(1.0 * sr), total // 4), min(int(2.0 * sr), total // 4)
             if fin_d and fout_d:
-                cavern_draft[:fin_d] *= np.linspace(0.0, 1.0, fin_d)[:, None]
-                cavern_draft[-fout_d:] *= np.linspace(1.0, 0.0, fout_d)[:, None]
-            bed += cavern_draft
+                texture[:fin_d] *= np.linspace(0.0, 1.0, fin_d)[:, None]
+                texture[-fout_d:] *= np.linspace(1.0, 0.0, fout_d)[:, None]
+            bed += texture
 
         # Procedural Foley: Opening hook reveal impact at ~0.15s
         if total > int(0.20 * sr):
@@ -851,6 +1030,9 @@ class AudioEngine:
             i0 = int(cue * sr)
             n = max(0, min(len(effect), total - i0))
             bed[i0:i0 + n] += effect[:n] * (gain * 0.40)
+
+        if end_card_at is not None:
+            self._end_card_sound(bed, float(end_card_at), sr)
 
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         sf.write(str(output_path), np.clip(bed, -1.0, 1.0), sr)

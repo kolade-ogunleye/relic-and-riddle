@@ -21,7 +21,7 @@ from pydantic import BaseModel
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
 from .graphics import _text, CLIP_SECONDS, GOLD, TEXT_BOTTOM, TEXT_TOP, WHITE, _ease, _encode, _wrap
 from .llm import LLMError, image_block, task as llm_task
-from .typography import cover_crop, get_font, is_video
+from .typography import cover_crop, fit_lines, get_font, is_video
 
 log = logging.getLogger(__name__)
 W, H = VIDEO_WIDTH, VIDEO_HEIGHT
@@ -105,10 +105,10 @@ def render(photo: Path, points: List[tuple], out: Path, width: int = VIDEO_WIDTH
         # Position label on the SAME side as the feature to keep leader lines short and direct,
         # avoiding long diagonal lines that slice across the subject
         on_right = x >= width / 2
-        lines = _wrap(measure, label.upper(), font, int(width * 0.28) if width > height else 360)[:2]
-        tw = max(measure.textlength(ln, font=font) for ln in lines)
+        lines, label_font = fit_lines(measure, label.upper(), font, int(width * 0.28) if width > height else 360, 2)
+        tw = max(measure.textlength(ln, font=label_font) for ln in lines)
         lx = width - 70 - tw if on_right else 70
-        layout[k] = (lines, lx, slot_y, tw, on_right)
+        layout[k] = (lines, lx, slot_y, tw, on_right, label_font)
 
     def frames():
         for i in range(n):
@@ -123,7 +123,7 @@ def render(photo: Path, points: List[tuple], out: Path, width: int = VIDEO_WIDTH
                 if a <= 0:
                     continue
                 px, py = width / 2 + (x - width / 2) * z, height / 2 + (y - height / 2) * z
-                lines, lx, ly, tw, on_right = layout[k]
+                lines, lx, ly, tw, on_right, label_font = layout[k]
                 anchor_x = lx - 16 if on_right else lx + tw + 16
                 d.line([(px, py), (anchor_x, ly)], fill=(*GOLD, int(230 * a)), width=4)
                 pulse = 14 + 8 * abs(((t * 1.2) % 1.0) - 0.5) * 2
@@ -134,7 +134,7 @@ def render(photo: Path, points: List[tuple], out: Path, width: int = VIDEO_WIDTH
                 d.rounded_rectangle([lx - 18, ly - hh / 2 - 8, lx + tw + 18, ly + hh / 2 + 8], radius=14,
                                     fill=(10, 10, 12, int(205 * a)), outline=(*GOLD, int(220 * a)), width=2)
                 for j, line in enumerate(lines):
-                    _text(d, (lx, ly - hh / 2 + 20 + line_step * j), line, font=font, fill=(*WHITE, int(255 * a)), anchor="lm")
+                    _text(d, (lx, ly - hh / 2 + 20 + line_step * j), line, font=label_font, fill=(*WHITE, int(255 * a)), anchor="lm")
             yield im
 
     return _encode(frames(), out, n, width=width, height=height)

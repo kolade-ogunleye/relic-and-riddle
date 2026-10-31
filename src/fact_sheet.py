@@ -69,6 +69,7 @@ CRITICAL NEGATIVE FILTERING:
 - Do NOT include peripheral regional geography, surrounding municipal conquests, colonial founding dates, territorial border treaties, unrelated nearby town elevations, or unrelated ancient plague rumors.
 - Do NOT include researcher personal biographies or childhood refugee backgrounds.
 - Every single fact MUST directly substantiate the central anomaly, mystery, engineering mechanism, or physical evidence of the topic.
+- The one exception: include exactly one fact saying where the subject is (its country, and region if quoted), when a quote states it. Narration names the place, so an unsourced location is rejected.
 Each fact must be ONE checkable statement, worded as it could be said on screen, and must cite the quote numbers that support it. Never state anything the cited quotes don't say. Every number in a fact must appear in its quotes. Dual calendar notations refer to the exact same calendar event day and must NOT be marked as disputed.
 If quotes or sources genuinely disagree on measurements, dates, or energy yields, set disputed=true and provide a natural, fluent, conversational hedge (e.g. 'scientists calculate between 10 and 15 megatons', 'physical models suggest roughly 50 meters', 'ranging from 60 to 85 meters').
 CRITICAL: NEVER write robotic prefixes like 'estimated <statement>' or 'approximately <statement>'. Hedges must read as compelling, grammatically complete human documentary narration.
@@ -111,10 +112,22 @@ def _unesco_evidence(topic: Dict[str, Any]):
     return engine.as_evidence(site), Source(title=f"UNESCO World Heritage Centre - {site.site}", url=url)
 
 
+# Digits that are no figure of the story: web addresses (a Commons page's curid=31074216 was checked as the figure
+# 3.10746e+07), Commons file titles ("File:Derinkuyu Underground City 9843 Nevit.JPG") and licence versions
+# ("CC BY-SA 4.0"). They reach the checks when a credit line loses its 📷 (production, Derinkuyu 2026-10-29).
+_NOT_FIGURES = re.compile(
+    r"(?:https?://|www\.)\S+"
+    r"|\bcurid=\d+"
+    r"|\b(?:File|Image):[^|\n]*"
+    r"|\b(?:CC(?:[ -]BY(?:[ -](?:SA|NC|ND))*|0)|GFDL|GPL|OGL|FAL)[ -]?v?\d+(?:\.\d+)*",
+    re.IGNORECASE)
+
+
 def numbers_in(text: str) -> List[float]:
-    """Numbers as values: '20,000' -> 20000, '85 m' -> 85, '8th century' -> 8, '1963' -> 1963."""
+    """Numbers as values: '20,000' -> 20000, '85 m' -> 85, '8th century' -> 8, '1963' -> 1963. Addresses, file
+    titles and licence versions are not read (_NOT_FIGURES)."""
     out = []
-    for m in re.findall(r"\d[\d,]*(?:\.\d+)?", text):
+    for m in re.findall(r"\d[\d,]*(?:\.\d+)?", _NOT_FIGURES.sub(" ", text or "")):
         try:
             out.append(float(m.replace(",", "")))
         except ValueError:
@@ -170,8 +183,10 @@ def build(topic: Dict[str, Any], web_search_uses: int = 10) -> Dict[str, Any]:
     quotes = quotes[:MAX_QUOTES]
     if not quotes:
         raise ValueError("Research returned no quotable evidence; cannot build a fact sheet.")
+    place = ", ".join(dict.fromkeys(x for x in (loc.get("name"), loc.get("region"), loc.get("country")) if x and x != "Global"))
     topic_focus = (f"Topic Title: {topic.get('title', '')}\n"
-                   f"Hook: {topic.get('hook', '')}\n"
+                   + (f"Place (may be wrong; state only what the quotes say): {place}\n" if place else "")
+                   + f"Hook: {topic.get('hook', '')}\n"
                    f"Core Key Facts / Thesis: {'; '.join(topic.get('key_facts', []))}\n")
     listing = "\n".join(f"Q{i}: [{_host(q['url'])}, tier {quote_tier(q)}] {q['quote'][:600]}" for i, q in enumerate(quotes, 1))
     draft = free_llm.call(SYSTEM, f"<topic_focus>\n{topic_focus}</topic_focus>\n\n<research_notes>\n{notes}\n</research_notes>\n\n<evidence_quotes>\n{listing}\n</evidence_quotes>",
@@ -286,7 +301,9 @@ def save(sheet: Dict[str, Any]) -> None:
 def load(topic_id: str, max_age_days: int = FACT_SHEET_MAX_AGE_DAYS) -> Optional[Dict[str, Any]]:
     p = path_for(topic_id)
     if not p.exists():
-        return None
+        from .script_library import seed_fact_sheet
+        if not seed_fact_sheet(topic_id, p):  # research done elsewhere (development) and shipped with a release
+            return None
     sheet = json.loads(p.read_text(encoding="utf-8"))
     if sheet.get("rules_version") != RULES_VERSION:
         log.info("Fact sheet %s was built under older evidence rules; it will be rebuilt.", topic_id)
@@ -308,8 +325,10 @@ def load(topic_id: str, max_age_days: int = FACT_SHEET_MAX_AGE_DAYS) -> Optional
 
 
 def ensure(topic: Dict[str, Any]) -> Dict[str, Any]:
-    """The cached sheet if fresh and fact-dense, else builds a new one."""
-    cached = load(topic["id"])
+    """The cached sheet if fresh and fact-dense, else builds a new one (always, for a run started afresh
+    from its research: --fresh-from facts)."""
+    from .script_library import reuses
+    cached = load(topic["id"]) if reuses("facts") else None
     if cached and len(cached.get("facts", [])) >= MIN_VERIFIED_FACTS:
         return cached
     return build(topic)

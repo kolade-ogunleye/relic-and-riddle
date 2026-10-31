@@ -43,3 +43,18 @@ def test_chapter_counters_do_not_hide_real_numerical_claims():
     assert untraced_numbers({"caption": "Act 2: Architecture", "description": "0:45 Chapter 3: History"}, sheet) == []
     problems = untraced_numbers({"caption": "Act 2: There are 85 levels"}, sheet)
     assert any("85" in problem for problem in problems)
+
+
+def test_the_share_alike_notice_is_attribution_not_a_claim():
+    # An edit of only the title and first comment failed on the notice's "4.0" (dev, 2026-10-23).
+    from src.credits import SHARE_ALIKE_NOTICE
+    from src.trace_check import untraced_numbers
+    sheet = {"facts": []}
+    copy = f"The room vanished.\n{SHARE_ALIKE_NOTICE}\n📷 Someone | File:Room 02.jpg | CC BY 4.0"
+    assert untraced_numbers({"caption": copy, "description": copy}, sheet) == []
+
+
+def test_a_model_line_starting_with_the_notice_emoji_is_still_checked():
+    from src.trace_check import untraced_numbers
+    problems = untraced_numbers({"caption": "🎬 It held 85 panels of amber"}, {"facts": []})
+    assert any("85" in problem for problem in problems)

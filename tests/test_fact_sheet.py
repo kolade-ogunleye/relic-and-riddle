@@ -106,3 +106,26 @@ def test_mentioning_a_source_word_is_not_an_attribution():
     assert "si.edu" in fact_sheet._named_sources("The Smithsonian calls it unsolved.")
     assert fact_sheet._named_sources("there is no official figure") == set()
     assert ".gov" in fact_sheet._named_sources("according to official sources, eight levels")
+
+
+def test_the_fact_sheet_is_told_where_the_topic_is_and_asked_for_one_sourced_location_fact(monkeypatch):
+    from src import fact_sheet, free_evidence, free_llm
+    seen = {}
+
+    class Stop(Exception):
+        pass
+
+    def capture(system, prompt, *a, **k):
+        seen.update(system=system, prompt=prompt)
+        raise Stop
+    monkeypatch.setattr(free_llm, "enabled", lambda: True)
+    monkeypatch.setattr(free_evidence, "quotes_for", lambda topic, kw: (
+        [{"url": "https://en.wikipedia.org/wiki/Richat_Structure", "quote": "It is in Mauritania."}], []))
+    monkeypatch.setattr(fact_sheet, "_unesco_evidence", lambda topic: ([], None))
+    monkeypatch.setattr(free_llm, "call", capture)
+    topic = {"id": "richat", "title": "The Richat Structure",
+             "location": {"name": "Ouadane", "region": "Adrar Plateau", "country": "Mauritania"}}
+    with pytest.raises(Stop):
+        fact_sheet.build(topic)
+    assert "Place (may be wrong; state only what the quotes say): Ouadane, Adrar Plateau, Mauritania" in seen["prompt"]
+    assert "exactly one fact saying where the subject is" in seen["system"]

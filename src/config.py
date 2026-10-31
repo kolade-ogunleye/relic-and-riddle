@@ -8,6 +8,7 @@ Handles environment variables, directory paths, and locked video/thumbnail specs
 import os
 import sys
 from pathlib import Path
+from typing import Dict, Optional
 
 # Force UTF-8 for console output on Windows
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
@@ -18,6 +19,8 @@ if sys.stdout and hasattr(sys.stdout, "reconfigure"):
         pass
 
 # Base Paths
+# RELIC_APP_ROOT is set by the production launcher (src/service_runtime.py), not in .env: it decides
+# where .env is read from.
 BASE_DIR = Path(os.getenv("RELIC_APP_ROOT") or Path(__file__).resolve().parent.parent).resolve()
 DATA_DIR = BASE_DIR / "data"
 TOPICS_DIR = DATA_DIR / "topics"
@@ -34,10 +37,36 @@ for p in [DATA_DIR, TOPICS_DIR, CURATED_SCRIPTS_DIR, SFX_DIR, ASSETS_DIR, FONTS_
     p.mkdir(parents=True, exist_ok=True)
 
 
+ENV_FILE_KEYS: set = set()  # keys this process took from .env (not set in the real environment)
+
+
 def _load_env_file(path: Path) -> None:
     """Minimal KEY=VALUE .env loader. Real environment variables always win."""
+    for k, v in read_env_file(path).items():
+        if k not in os.environ:
+            ENV_FILE_KEYS.add(k)
+        os.environ.setdefault(k, v)
+
+
+def worker_environment(path: Optional[Path] = None) -> Dict[str, str]:
+    """The environment for a run's worker: this process's, with .env read again for the keys that came from it.
+    The daemon reads .env once at start, and a worker inherited those values, so an operator's edit (prod,
+    2026-10-28: IMAGES_ALLOW_SHARE_ALIKE=true) silently waited for a restart. Real environment variables still win."""
+    env = dict(os.environ)
+    current = read_env_file(path or BASE_DIR / ".env")
+    for k in ENV_FILE_KEYS - set(current):
+        env.pop(k, None)  # taken out of .env since
+    for k, v in current.items():
+        if k in ENV_FILE_KEYS or k not in env:
+            env[k] = v
+    return env
+
+
+def read_env_file(path: Path) -> Dict[str, str]:
+    """KEY=VALUE pairs of an .env file ({} when there is none)."""
+    values: Dict[str, str] = {}
     if not path.exists():
-        return
+        return values
     with open(path, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
@@ -53,7 +82,8 @@ def _load_env_file(path: Path) -> None:
                 v = v.split(" #", 1)[0].strip()
             elif "\t#" in v:
                 v = v.split("\t#", 1)[0].strip()
-            os.environ.setdefault(k, v)
+            values.setdefault(k, v)  # the first line wins, as at start-up
+    return values
 
 
 _load_env_file(BASE_DIR / ".env")
@@ -71,6 +101,9 @@ CLAUDE_MODEL = (os.getenv("CLAUDE_MODEL") or "claude-opus-5-5").strip()
 CLAUDE_FALLBACK_MODELS = [m.strip() for m in (os.getenv("CLAUDE_FALLBACK_MODELS") or "claude-sonnet-5-5").split(",") if m.strip()]
 # Optional monthly spend cap in USD (0 = no cap). When reached: use CLAUDE_BUDGET_MODEL, or stop if empty.
 CLAUDE_MONTHLY_BUDGET_USD = float(os.getenv("CLAUDE_MONTHLY_BUDGET_USD") or 0)
+# On the free engine, Claude stands in when both free and billed Gemini fail (off by default; needs
+# ANTHROPIC_API_KEY and CLAUDE_MONTHLY_BUDGET_USD above zero, which caps it).
+CLAUDE_FALLBACK = os.getenv("CLAUDE_FALLBACK", "false").strip().lower() in ("true", "1", "yes")
 CLAUDE_BUDGET_MODEL = (os.getenv("CLAUDE_BUDGET_MODEL") or "").strip()
 
 # Second, independent fact check (runs after the first passes). Claude models in order of
@@ -87,10 +120,40 @@ LIGHT_TASK_MODELS = [m.strip() for m in (os.getenv("LIGHT_TASK_MODELS") or "clau
 # Music: "library" = approved free tracks first, ElevenLabs Music only if none fits;
 # "elevenlabs" = generated score first (paid plan).
 MUSIC_PREFER = (os.getenv("MUSIC_PREFER") or "library").strip().lower()
+# Tracks one "Find new tracks" tap downloads per mood (CC0/CC BY from Openverse; each needs review).
+MUSIC_FETCH_PER_MOOD = max(1, int(os.getenv("MUSIC_FETCH_PER_MOOD") or 3))
+# The 16:9 documentary's YouTube visibility once published: public, unlisted or private.
+YOUTUBE_PRIVACY = (os.getenv("YOUTUBE_PRIVACY") or "public").strip().lower()
+if YOUTUBE_PRIVACY not in ("public", "unlisted", "private"):
+    YOUTUBE_PRIVACY = "public"
+# Which video formats run: "reel" (9:16), "documentary" (16:9, being rebuilt: docs/documentary-rebuild.md)
+# or both. A format not listed is paused on every route (Telegram, command line, the documentary after
+# a Reel); the daily scheduled run makes every listed format.
+VIDEO_FORMATS = [f for f in (x.strip().lower() for x in (os.getenv("VIDEO_FORMATS") or "reel").split(","))
+                 if f in ("reel", "documentary")] or ["reel"]
+
+
+def documentary_enabled() -> bool:
+    return "documentary" in VIDEO_FORMATS
+
+
+def effective_format(requested: str) -> "str | None":
+    """A requested run format ("reel", "deep-dive", "dual") narrowed to VIDEO_FORMATS; None if none is on."""
+    want = {"reel": {"reel"}, "deep-dive": {"documentary"}, "dual": {"reel", "documentary"}}.get(requested, {"reel"})
+    have = want & set(VIDEO_FORMATS)
+    return "dual" if len(have) == 2 else "reel" if have == {"reel"} else "deep-dive" if have else None
+# Approved Reels are also uploaded to YouTube as Shorts: a separate upload after Facebook and
+# Instagram, so a YouTube problem never changes the Reel's own outcome.
+YOUTUBE_SHORTS = os.getenv("YOUTUBE_SHORTS", "false").strip().lower() in ("true", "1", "yes")
+YOUTUBE_SHORTS_PRIVACY = (os.getenv("YOUTUBE_SHORTS_PRIVACY") or YOUTUBE_PRIVACY).strip().lower()
+if YOUTUBE_SHORTS_PRIVACY not in ("public", "unlisted", "private"):
+    YOUTUBE_SHORTS_PRIVACY = YOUTUBE_PRIVACY
 # Cap on pay-per-use media APIs (AI video), USD per month; 0 = paid media APIs disabled.
 MEDIA_MONTHLY_BUDGET_USD = float(os.getenv("MEDIA_MONTHLY_BUDGET_USD") or 0)
 # AI motion (src/motion.py): Veo through the Gemini API (billing on), then Kling. Runs only when
 # MEDIA_MONTHLY_BUDGET_USD > 0. Veo Fast is the default: Standard costs about 3x more per second.
+# Museum and archive open-access searches for a line Commons cannot show (2026-10-29); "false" turns them off.
+MUSEUM_LINE_SEARCH = (os.getenv("MUSEUM_LINE_SEARCH") or "true").lower() in ("true", "1", "yes")
 MOTION_MAX_CLIPS = int(os.getenv("MOTION_MAX_CLIPS") or 1)  # the opening still; 2 = also one more
 KLING_API_KEY = (os.getenv("KLING_API_KEY") or "").strip()
 # Script research, writing and fact checks: "free" = Gemini free tier on GEMINI_FREE_API_KEY (a key from a
@@ -108,6 +171,16 @@ FREE_WRITER_MODEL = (os.getenv("FREE_WRITER_MODEL") or "gemini-3.8-flash").strip
 # own free Gemini model, which has its own free limits in the same project; empty = the writer/checker
 # models. Set only after scripts/compare_light_engines.py --candidate gemini:<model> holds up.
 FREE_LIGHT_MODEL = (os.getenv("FREE_LIGHT_MODEL") or "").strip()
+# Heavy tasks (scripts, fact sheets, fact checks) on the free key first (true), or straight to the capped
+# billed key (false). Development and production share one free key, so by production's daily run its
+# quota is used up and every heavy call was refused first; false there skips that, and the free quota
+# stays with development. Light tasks always try the free key.
+FREE_TIER_HEAVY = os.getenv("FREE_TIER_HEAVY", "true").strip().lower() in ("true", "1", "yes")
+# The picture plan (which photo goes with which sentence) is retried within the run before photos are
+# matched by their captions instead: SCENE_PLAN_ATTEMPTS tries, the first wait SCENE_PLAN_RETRY_SECONDS,
+# doubling each time (3 tries, 60 s: about 3 minutes of waiting at most).
+SCENE_PLAN_ATTEMPTS = max(1, int(os.getenv("SCENE_PLAN_ATTEMPTS") or 3))
+SCENE_PLAN_RETRY_SECONDS = max(0.0, float(os.getenv("SCENE_PLAN_RETRY_SECONDS") or 60))
 # Second free model for light, text-only tasks (src/groq.py); off until measured against Gemini.
 GROQ_API_KEY = (os.getenv("GROQ_API_KEY") or "").strip()
 GROQ_MODEL = (os.getenv("GROQ_MODEL") or "openai/gpt-oss-120b").strip()
@@ -119,6 +192,18 @@ GEMINI_API_KEY = (os.getenv("GEMINI_API_KEY") or "").strip()
 PAID_FALLBACK_LIGHT_MONTHLY_USD = float(os.getenv("PAID_FALLBACK_LIGHT_MONTHLY_USD") or 0)
 PAID_FALLBACK_HEAVY_MONTHLY_USD = float(os.getenv("PAID_FALLBACK_HEAVY_MONTHLY_USD") or 0)
 SMITHSONIAN_API_KEY = (os.getenv("SMITHSONIAN_API_KEY") or "").strip()  # api.data.gov key (free); masked in logs
+# Europeana (European museums, libraries and archives; free key from pro.europeana.eu). Unset: the source is off
+# (the public demo key is for trying the API, not for a pipeline). Masked in logs.
+EUROPEANA_API_KEY = (os.getenv("EUROPEANA_API_KEY") or "").strip()
+# Archive film is often a whole reel (Prelinger's "Father Nile (Egypt)", 1931: 86 MB); only a 6 s segment is kept
+ARCHIVE_FILM_MAX_MB = max(20, int(os.getenv("ARCHIVE_FILM_MAX_MB") or 250))
+# Wikimedia's User-Agent policy: a contact (URL or email) for the bot, or requests may be throttled/blocked.
+COMMONS_CONTACT = (os.getenv("COMMONS_CONTACT") or "").strip()
+# Parallel ffmpeg encodes (1-8): more renders at once on a stronger GPU, fewer on a shared one.
+try:
+    RENDER_ENCODING_SLOTS = max(1, min(8, int(os.getenv("RENDER_ENCODING_SLOTS") or 2)))
+except ValueError:
+    RENDER_ENCODING_SLOTS = 2
 GEMINI_MODEL = (os.getenv("GEMINI_MODEL") or "gemini-3.8-flash").strip()
 
 # Voice
@@ -129,8 +214,23 @@ ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "pNInz6obpgDQGcFmaJgB")
 ELEVENLABS_MODEL = (os.getenv("ELEVENLABS_MODEL") or "eleven_v4").strip()
 ELEVENLABS_FALLBACK_MODEL = (os.getenv("ELEVENLABS_FALLBACK_MODEL") or "eleven_multilingual_v2").strip()
 ELEVENLABS_SPEED = float(os.getenv("ELEVENLABS_SPEED") or 1.0)
+# A narration a little over the time limit is spoken up to this much faster instead of being rewritten
+# (each rewrite is a full model call and can overshoot both ways). 1.08 = at most 8% faster.
+SPEECH_SPEEDUP_MAX = max(1.0, min(1.15, float(os.getenv("SPEECH_SPEEDUP_MAX") or 1.08)))
 # Dry runs voice with the free licensed voice (Azure F0) so tests don't spend ElevenLabs credits.
 ELEVENLABS_IN_DRY_RUNS = os.getenv("ELEVENLABS_IN_DRY_RUNS", "false").lower() in ("true", "1", "yes")
+# Dry runs skip the paid AI motion clip (Veo/Kling) unless this is on: on, a dry run looks like the live
+# product (within MEDIA_MONTHLY_BUDGET_USD), so validation shows what will actually be posted.
+MOTION_IN_DRY_RUNS = os.getenv("MOTION_IN_DRY_RUNS", "false").lower() in ("true", "1", "yes")
+# A minor finding of the visual audit (a graphic a second late, say) blocks release by default, as every
+# finding did. Off, a master whose only findings are minor passes the gate with them listed on the review
+# card for the reviewer; major and critical findings always block (operator's choice, 2026-10-24). Off by
+# default: minors are shown and the operator decides from their severity (operator, 2026-10-28).
+MINOR_FINDINGS_BLOCK_RELEASE = os.getenv("MINOR_FINDINGS_BLOCK_RELEASE", "false").lower() in ("true", "1", "yes")
+# Runs started from the bot (main.py bot: development) are dry runs unless this is false: a Render there
+# started a live run, so Approve & Post would have posted to the connected accounts. Production runs the
+# daemon, whose own --dry-run flag decides.
+BOT_RUNS_DRY = os.getenv("BOT_RUNS_DRY", "true").strip().lower() in ("true", "1", "yes")
 
 # Publisher 1: Upload-Post.com (https://docs.upload-post.com/api/upload-video/)
 UPLOAD_POST_API_KEY = os.getenv("UPLOAD_POST_API_KEY", "")
@@ -143,7 +243,8 @@ META_ACCESS_TOKEN = os.getenv("META_ACCESS_TOKEN", "")
 META_IG_ACCOUNT_ID = os.getenv("META_IG_ACCOUNT_ID", "")
 # Publisher 3: Facebook Page Reels direct (fallback, Facebook only). Page token with
 # pages_show_list, pages_read_engagement, pages_manage_posts; defaults to META_ACCESS_TOKEN.
-META_PAGE_ID = os.getenv("META_PAGE_ID", "")
+# The same Page Upload-Post posts to, so its id is the default: only the Page token is ours to add (2026-10-27)
+META_PAGE_ID = os.getenv("META_PAGE_ID", "") or UPLOAD_POST_FACEBOOK_PAGE_ID
 META_PAGE_ACCESS_TOKEN = os.getenv("META_PAGE_ACCESS_TOKEN", "")
 META_GRAPH_VERSION = os.getenv("META_GRAPH_VERSION", "v26.0")
 
@@ -194,28 +295,53 @@ TARGET_TRUE_PEAK = -1.5
 
 TARGET_DURATION_MIN = 42.0
 TARGET_DURATION_MAX = 48.0
-HARD_DURATION_CEILING = 52.0  # longest voiceover allowed; the master is exactly as long as the voiceover
+HARD_DURATION_CEILING = 52.0  # longest voiceover allowed; a Reel master is the voiceover plus the end card (end_card.SECONDS)
 RELEASE_DURATION_MAX = 58.0  # release-gate tolerance for the Reel master (re-measured at publish time)
-TARGET_WORD_COUNT_MIN = 105
+# The longest RECORDED take kept (operator, 2026-10-28: "apply 54.5"). The script is still planned under
+# HARD_DURATION_CEILING; a take that lands past it is kept up to this, so ElevenLabs' +/-7% take spread no longer
+# fails a run after the voice is paid for (52.9, 53.7 and 54.4 s on production, 25 Oct). 54.5 s plus the 2.9 s
+# end card is a 57.4 s master: inside RELEASE_DURATION_MAX and YouTube Shorts' 60 s.
+VOICE_DURATION_CEILING = float(os.getenv("VOICE_DURATION_CEILING") or 54.5)
+TARGET_WORD_COUNT_MIN = 105  # what the writer is asked for (about 45 s at a typical pace)
 TARGET_WORD_COUNT_MAX = 115
+# Sanity bounds only: the measured spoken length decides (production 2026-10-23: at the licensed voice's
+# pace 105 words ran 52.9 s, so a fixed 105-115 window and the 51.5 s limit left no valid draft).
+WORD_COUNT_FLOOR = 85
+WORD_COUNT_CEILING = 130
 MIN_SCENE_IMAGES = 5
 # Local AI upscaler for low-resolution stills (https://github.com/xinntao/Real-ESRGAN, portable Vulkan build).
 REALESRGAN_BIN = os.getenv("REALESRGAN_BIN", str(BASE_DIR / "tools" / "realesrgan" / "realesrgan-ncnn-vulkan.exe"))
 # Per-beat images searched on Wikimedia Commons during a run. CC BY-SA images are excluded by
 # default: share-alike asks that adaptations (the video) be released under the same licence.
 BEAT_IMAGES_ENABLED = os.getenv("BEAT_IMAGES_ENABLED", "true").lower() in ("true", "1", "yes")
+# A found picture is looked at (a light vision call) before it is kept: the title and metadata checks let a
+# photograph of the wrong temple through (quality step 1, 2026-10-24). At most one call per kept candidate.
+PICTURE_VISION_CHECK = os.getenv("PICTURE_VISION_CHECK", "true").lower() in ("true", "1", "yes")
+# A picture check that fails (model overloaded, rate-limited, down) is asked once more after this wait before the
+# picture is left out (operator, 2026-10-27: the gate is enforced, but a good photo is not lost to a blip).
+PICTURE_CHECK_RETRY_SECONDS = max(0.0, float(os.getenv("PICTURE_CHECK_RETRY_SECONDS") or 15))
+# A look at each rendered Story frame and carousel slide (quality step 5, 2026-10-25): findings are shown on
+# the review card and kept in the ledger; they do not block a release until the check is calibrated.
+STILL_VISION_CHECK = os.getenv("STILL_VISION_CHECK", "true").lower() in ("true", "1", "yes")
 # Operator-supplied footage (src/footage.py). Share of runtime footage may take (Meta's originality
 # rules: third-party clips support our narration, never replace it), and the quality bar.
 FOOTAGE_ENABLED = os.getenv("FOOTAGE_ENABLED", "true").lower() in ("true", "1", "yes")
 FOOTAGE_MAX_SHARE = float(os.getenv("FOOTAGE_MAX_SHARE") or 0.4)
 FOOTAGE_MAX_MB = int(os.getenv("FOOTAGE_MAX_MB") or 600)  # per download (AI motion results)
-BEAT_IMAGES_ALLOW_SHARE_ALIKE = (os.getenv("BEAT_IMAGES_ALLOW_SHARE_ALIKE") or "false").lower() in ("true", "1", "yes")
+# One switch for every image path (fetch, upload, release). With it on, a video that uses a CC BY-SA
+# image is itself released under CC BY-SA 4.0 (the release gate requires that notice in the post).
+IMAGES_ALLOW_SHARE_ALIKE = (os.getenv("IMAGES_ALLOW_SHARE_ALIKE") or os.getenv("BEAT_IMAGES_ALLOW_SHARE_ALIKE") or "false").lower() in ("true", "1", "yes")
+BEAT_IMAGES_ALLOW_SHARE_ALIKE = IMAGES_ALLOW_SHARE_ALIKE  # earlier name
 CALLOUTS_ENABLED = (os.getenv("CALLOUTS_ENABLED") or "false").lower() in ("true", "1", "yes")
 FACE_PRIVACY_ENABLED = (os.getenv("FACE_PRIVACY_ENABLED") or "true").lower() in ("true", "1", "yes")
 FACE_PRIVACY_SKIN_THRESHOLD = float(os.getenv("FACE_PRIVACY_SKIN_THRESHOLD") or 0.35)
 
 # Narration & Voiceover (edge-tts and Azure Speech)
 VOICE_PREFER = (os.getenv("VOICE_PREFER") or "elevenlabs").strip().lower()  # "elevenlabs" or "azure"
+
+# Generative Gap-Filling Subsystem (Phase 2.5, v1.0.0-rc78)
+GENERATIVE_GAP_FILLING = os.getenv("GENERATIVE_GAP_FILLING", "true").lower() in ("true", "1", "yes")
+MAX_GAP_IMAGES_PER_RUN = int(os.getenv("MAX_GAP_IMAGES_PER_RUN", "2"))
 VOICE_REQUIRE_LICENSED = os.getenv("VOICE_REQUIRE_LICENSED", "true").lower() in ("true", "1", "yes")  # real runs need a commercial voice licence
 NARRATOR_VOICE = (os.getenv("NARRATOR_VOICE") or "en-US-BrianMultilingualNeural").strip()
 # Licensed free voice fallback: Azure Speech (F0 tier: 0.5M characters/month), same voice.
@@ -228,9 +354,10 @@ NARRATOR_PITCH = (os.getenv("NARRATOR_PITCH") or "-2Hz").strip()
 FONT_NAME = (os.getenv("FONT_NAME") or "Anton").strip()
 FONT_SIZE = int(os.getenv("FONT_SIZE") or 72)
 FONT_SIZE_ASS = 128  # Compensates for libass PlayResX/PlayResY scale to deliver exact 72px rendered height
-# Bottom 35% of the frame (672 px) is Meta's Reels safe zone for its own UI (username,
-# caption, audio row); captions sit just above it, baseline at y = 1248.
-CAPTION_MARGIN_V = 672
+# The bottom band the Reel platforms draw their own interface over (safe_zones.REEL: Meta's 35%, 672 px,
+# the same figure on YouTube Shorts); the caption pill ends above it.
+from .safe_zones import REEL as _REEL_UI  # noqa: E402
+CAPTION_MARGIN_V = _REEL_UI.bottom
 MIN_BURST_WORDS = 2
 TARGET_BURST_WORDS = 3
 MAX_BURST_WORDS = 5

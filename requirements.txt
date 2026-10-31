@@ -16,4 +16,5 @@ opencv-python-headless==4.14.0.94
 
 # dev
 pytest==9.0.3
+pytest-xdist==3.8.0  # the suite on 4 workers: 85 s instead of 2-3 min, before and inside an install window
 httpx==0.28.1  # tests build SDK errors with it; anthropic 1.x no longer installs it

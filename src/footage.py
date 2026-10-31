@@ -36,17 +36,22 @@ ALLOWED_HOSTS = {
     "commons": {"upload.wikimedia.org"},
     # AI motion results (src/motion.py). A leading dot allows that domain's subdomains.
     "kling": {".klingai.com"},
+    # Archive film (src/archive_film.py): archive.org/download redirects to its ia*.us.archive.org servers.
+    "archive": {"archive.org", ".archive.org"},
+    # Europeana's holders serve their own files: any https host, still size-capped, video-only and re-encoded.
+    "europeana": {"*"},
 }
 CREDIT_PREFIX = "🎥 Footage:"
 
 
 def _host_allowed(host: str, provider: str) -> bool:
-    return any(host == h or (h.startswith(".") and host.endswith(h)) for h in ALLOWED_HOSTS[provider])
+    return bool(host) and any(h == "*" or host == h or (h.startswith(".") and host.endswith(h)) for h in ALLOWED_HOSTS[provider])
 
 
 # ----------------------------------------------------------- download & clip
-def download(url: str, provider: str, dest: Path, extra_headers: Optional[dict] = None) -> Path:
-    """HTTPS from the provider's media hosts only, streamed with a size cap."""
+def download(url: str, provider: str, dest: Path, extra_headers: Optional[dict] = None, max_bytes: Optional[int] = None) -> Path:
+    """HTTPS from the provider's media hosts only, streamed with a size cap (archive film has its own, larger one)."""
+    cap = max_bytes or MAX_BYTES
     parsed = urlparse(url)
     if parsed.scheme != "https" or not _host_allowed(parsed.hostname or "", provider):
         raise ValueError(f"refusing to download from {parsed.scheme}://{parsed.hostname}")
@@ -57,10 +62,10 @@ def download(url: str, provider: str, dest: Path, extra_headers: Optional[dict] 
             target = urlparse(resp.headers.get("Location", ""))
             if target.scheme != "https" or not _host_allowed(target.hostname or "", provider):
                 raise ValueError(f"refusing redirect to {target.hostname}")
-            return download(resp.headers["Location"], provider, dest)  # credentials are not forwarded
+            return download(resp.headers["Location"], provider, dest, max_bytes=cap)  # credentials are not forwarded
         resp.raise_for_status()
         declared = int(resp.headers.get("Content-Length") or 0)
-        if declared > MAX_BYTES:  # don't start a download that would only hit the cap
+        if declared > cap:  # don't start a download that would only hit the cap
             raise ValueError(f"download exceeds the size cap ({declared / 1e6:.0f} MB)")
         ctype = resp.headers.get("Content-Type", "")
         if not (ctype.startswith("video/") or ctype in ("application/ogg", "application/octet-stream", "binary/octet-stream")):
@@ -69,7 +74,7 @@ def download(url: str, provider: str, dest: Path, extra_headers: Optional[dict] 
         with open(dest, "wb") as f:
             for chunk in resp.iter_content(1 << 20):
                 size += len(chunk)
-                if size > MAX_BYTES:
+                if size > cap:
                     raise ValueError("download exceeds the size cap")
                 f.write(chunk)
     return dest
@@ -91,6 +96,22 @@ def probe(path: Path) -> Dict[str, Any]:
             "duration": float(data.get("format", {}).get("duration") or 0)}
 
 
+FILL = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30"
+# A wide shot (archive film is 4:3 at 640x480) is shown whole, fitted to the width over a blurred, darkened copy of
+# itself: filling the frame cropped a 270 px strip and blew it up four times (Pompeii And Vesuvius, 1950: half a
+# sculpture, soft; 2026-10-28).
+FIT = ("[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=24:2,eq=brightness=-0.18[bg];"
+       "[0:v]scale=1080:-2:flags=lanczos[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2,fps=30")
+
+
+def frame_filter(info: Dict[str, Any]) -> List[str]:
+    """ffmpeg's filter arguments for a 1080x1920 frame: a vertical source fills it; a wide one is fitted whole."""
+    w, h = info.get("width") or 0, info.get("height") or 0
+    if w and h and w / h > 0.8:  # wider than 4:5: a fill would crop most of it away
+        return ["-filter_complex", FIT]
+    return ["-vf", FILL]
+
+
 def make_segment(src: Path, info: Dict[str, Any], out: Path) -> Path:
     """A muted 1080x1920 H.264 segment from the core b-roll part of the video, plus a poster frame."""
     dur = info["duration"]
@@ -104,7 +125,7 @@ def make_segment(src: Path, info: Dict[str, Any], out: Path) -> Path:
     else:
         start = max(0.0, (dur - SEGMENT_SECONDS) / 2)
     subprocess.run(["ffmpeg", "-y", "-v", "error", "-protocol_whitelist", "file", "-ss", f"{start:.2f}", "-t", f"{SEGMENT_SECONDS:.2f}",
-                    "-i", str(src), "-an", "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30",
+                    "-i", str(src), "-an", *frame_filter(info),
                     "-c:v", "libx264", "-preset", "medium", "-crf", "17", "-pix_fmt", "yuv420p", str(out)],
                    check=True, timeout=600, capture_output=True)
     subprocess.run(["ffmpeg", "-y", "-v", "error", "-protocol_whitelist", "file", "-ss", f"{SEGMENT_SECONDS / 2:.2f}", "-i", str(out),
@@ -177,14 +198,21 @@ def source(beats: List[Dict[str, Any]], topic: Dict[str, Any], work_dir: Path, p
 
 def credit_line(used: List[Dict[str, Any]]) -> str:
     """One caption line naming each used clip's creator and source, as the licences/API terms ask."""
+    from .credits import author_name
     parts, seen = [], set()
     for c in used:
+        # The author's name, not a free-text artist field printed whole (a 778-character notice, 2026-10-29)
+        c = dict(c, artist=author_name(c)) if c.get("artist") else c
         if c["provider"] == "commons":
             text = f"{c['artist']} ({c['license']}) via Wikimedia Commons"
         elif c["provider"] == "nasa":
             text = "NASA"
         elif c["provider"] == "youtube":
             text = f"{c['artist']} via YouTube (CC-BY)"
+        elif c["provider"] == "archive.org":
+            text = f"{c['artist']} ({c['license']}) via the Internet Archive"
+        elif c["provider"] == "europeana":
+            text = f"{c['artist']} ({c['license']}) via Europeana"
         elif c["provider"] == "curated":
             text = f"{c['artist']} ({c.get('license', 'Documentary Footage')})"
         else:

@@ -61,7 +61,7 @@ def generate_key(path):
 def load_key(path):
     try:
         key = base64.b64decode(Path(path).read_bytes().strip(), altchars=b"-_", validate=True)
-    except (OSError, ValueError) as exc:
+    except (OSError, ValueError):
         raise BackupError("Backup recovery key unavailable; run the explicit keygen command first") from None
     if len(key) != 32:
         raise BackupError("Backup recovery key must contain 32 random bytes, base64 encoded")

@@ -1,0 +1,24 @@
+{
+ "source": "assets\\trepanation_miracle\\14_commons.jpg",
+ "source_size": [
+  1960,
+  3008
+ ],
+ "crop_size": [
+  1960,
+  2575
+ ],
+ "text_box": [
+  871,
+  322,
+  940,
+  597
+ ],
+ "edge": "bottom",
+ "cut_fraction": 0.144,
+ "crop_name": "14_commons.jpg",
+ "lineage_operation": "text_crop",
+ "lineage_sources": [
+  "14_commons.jpg"
+ ]
+}

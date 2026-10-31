@@ -8,6 +8,7 @@ Operations & maintenance suite for the Autonomous Meta Content Pipeline.
 3. Pre-Flight Health Checker: FFmpeg/ffprobe, disk space, fonts, connectivity, credentials.
 """
 
+import json
 import logging
 import re
 import shutil
@@ -15,8 +16,9 @@ import socket
 import subprocess
 import time
 from logging.handlers import RotatingFileHandler
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Optional, Tuple
 
 import requests
 
@@ -45,13 +47,16 @@ class SecretMasker:
         "KLING_API_KEY",
         "HEALTHCHECK_PING_URL",  # the ping URL itself is the credential
         "SMITHSONIAN_API_KEY",
+        "EUROPEANA_API_KEY",
+        "GEMINI_FREE_API_KEY_SPARE",  # were missing: an error carrying either was shown unmasked
+        "GROQ_API_KEY",
     )
 
-    def __init__(self):
-        self.sensitive_tokens = [
-            v for v in (getattr(config, n, "") for n in self.SECRET_NAMES)
-            if is_configured(v) and len(v) > 4
-        ]
+    @property
+    def sensitive_tokens(self):
+        # Read at each use, not once at start: a credential taken from .env while the daemon runs
+        # (env_sync.pick_up_credentials) is masked from its first log line
+        return [v for v in (getattr(config, n, "") for n in self.SECRET_NAMES) if is_configured(v) and len(v) > 4]
 
     def mask(self, text: str) -> str:
         if not text:
@@ -300,3 +305,84 @@ class PreFlightHealthChecker:
                 for k, (ok, msg) in results.items()
             },
         }
+
+
+# ------------------------------------------------------------------ per-run evidence
+# A run's own log at DEBUG (output/<run>/run.log) and a record of every model call it made
+# (output/<run>/llm_calls.jsonl: task, model, seconds, tokens, outcome). pipeline.log keeps INFO for every
+# process at once; following one run from start to end through it meant guessing where the minutes went
+# (2026-10-24: the script stage's rounds could be timed only from gaps between unrelated lines).
+_run_dir_for_evidence: Optional[Path] = None
+NOISY_AT_DEBUG = ("PIL", "matplotlib", "numba", "onnxruntime", "charset_normalizer", "asyncio", "fontTools", "h5py",
+                  "urllib3", "httpx", "httpcore", "requests", "apscheduler", "telegram", "edge_tts", "google",
+                  # the Anthropic SDK and its vendored HTTP stack dump every request, prompt included (2026-10-24:
+                  # 270 of 300 lines in a Claude script stage's run.log)
+                  "anthropic", "httpx2", "httpcore2")
+
+
+class RunLog:
+    """Attaches a masked DEBUG file handler for one run's folder; the other handlers keep their level."""
+
+    def __init__(self, run_dir: Path):
+        self.run_dir = Path(run_dir)
+        self.handler: Optional[logging.Handler] = None
+        self._restore: list = []
+
+    def start(self) -> "RunLog":
+        global _run_dir_for_evidence
+        root = logging.getLogger()
+        try:
+            self.run_dir.mkdir(parents=True, exist_ok=True)
+            handler = logging.FileHandler(self.run_dir / "run.log", encoding="utf-8")
+        except OSError as e:
+            log.debug("Run log unavailable (%s).", e)
+            return self
+        handler.setLevel(logging.DEBUG)
+        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)-7s %(name)s: %(message)s"))
+        handler.addFilter(_MaskingFilter(SecretMasker()))
+        for h in root.handlers:  # they go on showing INFO and up, whatever the root level becomes
+            self._restore.append((h, h.level))
+            if h.level < logging.INFO:
+                h.setLevel(logging.INFO)
+        self._restore.append((root, root.level))
+        if root.level > logging.DEBUG:
+            root.setLevel(logging.DEBUG)
+        for name in NOISY_AT_DEBUG:  # a library's tag dumps are not the run's story (PIL filled the first run.log)
+            noisy = logging.getLogger(name)
+            self._restore.append((noisy, noisy.level))
+            if noisy.level < logging.INFO:
+                noisy.setLevel(logging.INFO)
+        root.addHandler(handler)
+        self.handler = handler
+        _run_dir_for_evidence = self.run_dir
+        return self
+
+    def stop(self) -> None:
+        global _run_dir_for_evidence
+        if self.handler is None:
+            return
+        root = logging.getLogger()
+        root.removeHandler(self.handler)
+        self.handler.close()
+        for target, level in self._restore:
+            target.setLevel(level)
+        self.handler, self._restore = None, []
+        if _run_dir_for_evidence == self.run_dir:
+            _run_dir_for_evidence = None
+
+
+def record_llm_call(task: str, model: str, seconds: float, tokens_in: int = 0, tokens_out: int = 0,
+                    outcome: str = "ok", role: str = "", searches: int = 0) -> None:
+    """One line per model call in the current run's llm_calls.jsonl. Never raises."""
+    run_dir = _run_dir_for_evidence
+    if run_dir is None:
+        return
+    try:
+        line = {"at": datetime.now(timezone.utc).isoformat(), "task": task, "role": role, "model": model,
+                "seconds": round(seconds, 2), "tokens_in": tokens_in, "tokens_out": tokens_out, "outcome": outcome}
+        if searches:
+            line["searches"] = searches
+        with (run_dir / "llm_calls.jsonl").open("a", encoding="utf-8") as f:
+            f.write(json.dumps(line) + "\n")
+    except (OSError, TypeError, ValueError) as e:
+        log.debug("Model call not recorded: %s", e)

@@ -1,10 +1,10 @@
 {
- "topic_id": "03_kailasa_temple_monolith",
- "built_at": "2026-10-15T21:24:50.640431+00:00",
+ "topic_id": "kailasa_temple_monolith",
+ "built_at": "2026-10-20T19:29:23.822724+00:00",
  "facts": [
   {
-   "id": "fact-1",
-   "statement": "The Ellora Caves complex in Maharashtra consists of 34 monasteries and temples extending over more than 2 kilometres along a basalt cliff.",
+   "id": "kailasa-cave16-scale",
+   "statement": "Designated as Cave 16, the Kailasa temple is the largest rock-cut Hindu temple among the 34 monuments spanning over two kilometres along the basalt cliff at Ellora.",
    "kind": "number",
    "disputed": false,
    "hedge": "",
@@ -13,30 +13,7 @@
      "url": "https://whc.unesco.org/en/list/243",
      "tier": 1,
      "quote": "UNESCO World Heritage Site #243 (Ellora Caves): These 34 monasteries and temples, extending over more than 2 km, were dug side by side in the wall of a high basalt cliff, not far from Aurangabad, in Maharashtra. Ellora, with its uninterrupted sequence of monuments dating from A.D. 600 to 1000, brings the civilization of ancient India to life. Not only is the Ellora complex a unique artistic creation and a technological exploit but, with its sanctuaries devoted to Buddhism, Hinduism and Jainism, it illustrates the spirit of tolerance that was characteristic of ancient India."
-    }
-   ]
-  },
-  {
-   "id": "fact-2",
-   "statement": "The Ellora Caves were inscribed on the UNESCO World Heritage List in 1983.",
-   "kind": "date",
-   "disputed": false,
-   "hedge": "",
-   "evidence": [
-    {
-     "url": "https://whc.unesco.org/en/list/243",
-     "tier": 1,
-     "quote": "Inscribed on the UNESCO World Heritage List in 1983 under criteria (i)(iii)(vi)."
-    }
-   ]
-  },
-  {
-   "id": "fact-3",
-   "statement": "The Kailasa temple, designated as Cave 16, is the largest rock-cut Hindu temple at the Ellora Caves.",
-   "kind": "name",
-   "disputed": false,
-   "hedge": "",
-   "evidence": [
+    },
     {
      "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
      "tier": 2,
@@ -50,23 +27,28 @@
    ]
   },
   {
-   "id": "fact-4",
-   "statement": "The top of the structure over the sanctuary of the Kailasa temple stands 32.6 metres (107 feet) above the courtyard below.",
-   "kind": "number",
-   "disputed": true,
-   "hedge": "estimated The top of the structure over the sanctuary of the Kailasa temple stands 32.6 metres (107 feet) above the courtyard below.",
+   "id": "kailasa-monolithic-bedrock",
+   "statement": "Archaeologists determine that the massive cliff-face structure was sculpted entirely out of a single rock.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
    "evidence": [
     {
      "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
      "tier": 2,
-     "quote": "The top of the structure over the sanctuary is 32.6 metres (107 ft) above the level of the court below."
+     "quote": "A megalith carved into a cliff face, it is considered one of the most remarkable cave temples in the world because of its size, architecture, and sculptural treatment."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "Although the rock face slopes downwards from the rear of the temple to the front, archaeologists believe it was sculpted from a single rock."
     }
    ]
   },
   {
-   "id": "fact-5",
-   "statement": "The Kailasa temple was created through vertical excavation, with carvers starting at the top of the rock and working downwards.",
-   "kind": "event",
+   "id": "kailasa-vertical-excavation",
+   "statement": "Builders executed the monument using top-down vertical excavation, carving downward from the summit of the mountain cliff rather than building from the ground up.",
+   "kind": "other",
    "disputed": false,
    "hedge": "",
    "evidence": [
@@ -78,68 +60,25 @@
    ]
   },
   {
-   "id": "fact-6",
-   "statement": "Most of the excavation of the Kailasa temple is generally attributed to the eighth-century Rashtrakuta king Krishna I, who ruled around 756 to 773.",
-   "kind": "name",
-   "disputed": false,
-   "hedge": "",
-   "evidence": [
-    {
-     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
-     "tier": 2,
-     "quote": "Most of the excavation of the temple is generally attributed to the eighth century Rashtrakuta king Krishna I (r. c."
-    },
-    {
-     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
-     "tier": 2,
-     "quote": "756 – 773), with some elements completed later."
-    }
-   ]
-  },
-  {
-   "id": "fact-7",
-   "statement": "The attribution of the Kailasa temple to Krishna I is disputed among scholars because linking inscriptions are not physically attached to the caves and do not date his reign.",
+   "id": "kailasa-quarry-efficiency",
+   "statement": "Excavating the temple directly as a monolith out of bedrock required less physical effort than transporting large stones to erect a freestanding temple of equal size.",
    "kind": "other",
-   "disputed": true,
-   "hedge": "attribution is not completely certain",
-   "evidence": [
-    {
-     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
-     "tier": 2,
-     "quote": "The Kailasa temple lacks a dedicatory inscription, but there is no doubt that it was commissioned by a Rashtrakuta ruler."
-    },
-    {
-     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
-     "tier": 2,
-     "quote": "756–773 CE), based on two epigraphs that link the temple to \"Krishnaraja\" (IAST Kṛṣṇarāja):\n\nThe Vadodara copper-plate inscription (c."
-    },
-    {
-     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
-     "tier": 2,
-     "quote": "However, the attribution of the temple to Krishna I is not completely certain because these epigraphs are not physically connected to the caves, and do not date Krishnaraja's reign."
-    }
-   ]
-  },
-  {
-   "id": "fact-8",
-   "statement": "Art historian Hermann Goetz theorized that construction of the Kailasa temple began during the reign of Dantidurga.",
-   "kind": "name",
    "disputed": false,
    "hedge": "",
    "evidence": [
     {
      "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
      "tier": 2,
-     "quote": "Based on this, art historian Hermann Goetz (1952) theorized that the construction of the Kailasa temple began during the reign of Dantidurga."
+     "quote": "Moreover, quarrying a monolithic temple would have actually involved less effort than transporting large stones to build a new temple of similar size."
     }
    ]
   },
   {
-   "id": "fact-9",
-   "statement": "Archaeologist M. K. Dhavalikar estimated that 250 labourers could have excavated the Kailasa temple within 5.5 years assuming each cut about 4 cubic feet of rock per day.",
+   "id": "kailasa-excavation-calculation",
+   "statement": "At a cutting rate of four cubic feet of rock per person each day, a workforce of 250 laborers could have carved the Kailasa temple in 5.5 years.",
    "kind": "number",
    "disputed": true,
-   "hedge": "estimated Archaeologist M. K. Dhavalikar estimated that 250 labourers could have excavated the Kailasa temple within 5.5 years assuming each cut about 4 cubic feet of rock per day.",
+   "hedge": "by one estimate, at a cutting rate of four cubic feet of rock per person each day, a workforce of 250 laborers could have carved the Kailasa temple in 5.5 years.",
    "evidence": [
     {
      "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
@@ -149,8 +88,8 @@
    ]
   },
   {
-   "id": "fact-10",
-   "statement": "The main shrine of the Kailasa temple closely resembles the Virupaksha Temple at Pattadakal.",
+   "id": "kailasa-unified-master-plan",
+   "statement": "Architectural evidence demonstrates that the entire monolithic complex was planned from the outset, with no primary structure added as an afterthought.",
    "kind": "other",
    "disputed": false,
    "hedge": "",
@@ -158,64 +97,213 @@
     {
      "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
      "tier": 2,
-     "quote": "The main shrine is very similar to (although much larger than) the Virupaksha Temple at Pattadakal, which itself is a replica of the Kailasa temple at Kanchi."
+     "quote": "Dhavalikar pointed out that no major part of the monolithic temple appears to have been an afterthought: architectural evidence suggests that the entire temple was planned at the beginning."
     }
    ]
   },
   {
-   "id": "fact-11",
-   "statement": "The Mingan Archipelago National Park Reserve was established in Quebec in 1984 to protect the largest concentration of erosion monoliths in Canada.",
+   "id": "kailasa-prototype-model",
+   "statement": "The primary shrine of Kailasa was constructed utilizing the blueprint and architectural prototype of the Virupaksha Temple at Pattadakal.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "The main shrine is very similar to (although much larger than) the Virupaksha Temple at Pattadakal, which itself is a replica of the Kailasa temple at Kanchi."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "If one assumes that the architects of the Virupaksha temple helped construct the Kailasa temple at Ellora, the construction of a massive temple during the reign of a single monarch does not seem impossible."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "The architects already had a blueprint and a prototype, which must have significantly reduced the effort involved in constructing a new temple."
+    }
+   ]
+  },
+  {
+   "id": "kailasa-architectural-hybrid",
+   "statement": "The rock-cut temple merges regional engineering traditions by incorporating distinct Chalukya and Pallava artistic styles directly into the monument.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "The temple architecture shows traces of Pallava and Chalukya styles."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "The Kailasa temple features the use of several distinct architectural and sculptural styles."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "The presence of non-Rashtrakuta styles in the temple can be attributed to the involvement of Chalukya and Pallava artists."
+    }
+   ]
+  },
+  {
+   "id": "kailasa-astronomical-alignment",
+   "statement": "Archaeoastronomical surveys demonstrate that the temple's structural layout incorporates mathematical sacred geometry and a precise solar axis orientation.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://doi.org/10.47772/ijriss.2026.100701198",
+     "tier": 1,
+     "quote": "This paper offers a systematic multi domain investigation of astronomical alignment and cosmological context of Kailasa Temple at Ellora."
+    },
+    {
+     "url": "https://doi.org/10.47772/ijriss.2026.100701198",
+     "tier": 1,
+     "quote": "The study incorporates astronomical alignment, integrating architectural design, sacred geometry, solar axis orientation, an extended analysis of the Nandi Mandapa and ritual timing."
+    },
+    {
+     "url": "https://doi.org/10.55640/ijre-02-05-01",
+     "tier": 1,
+     "quote": "The architectural marvels of Indian temples, particularly from the classical period, exhibit a remarkable integration of mathematics and geometry."
+    }
+   ]
+  },
+  {
+   "id": "kailasa-textual-framework",
+   "statement": "The cosmological design and proportions of the temple reflect classical guidelines outlined in Chapter 56 of the 6th century CE Brihat Samhita.",
    "kind": "date",
    "disputed": false,
    "hedge": "",
    "evidence": [
     {
-     "url": "https://www.nationalgeographic.com/travel/article/mingan-archipelago-canada-park",
+     "url": "https://doi.org/10.47772/ijriss.2026.100701198",
      "tier": 1,
-     "quote": "Photograph by Michael Melford, National Geographic TRAVEL Mingan Archipelago National Park Reserve 6 min read Location: Quebec Date Established: 1984 Size: 24,711 acres Famous for the largest concentration of erosion monoliths in Canada, the Mingan Archipelago National Park Reserve encompasses close to a thousand islands and islets sprinkled along 93 miles from east to west."
-    },
-    {
-     "url": "https://canadiangeographic.ca/articles/the-mingan-archipelago-a-land-shaped-by-time/",
-     "tier": 3,
-     "quote": "Many of these species aren’t found anywhere else in the region — one of the reasons why, in 1984, Parks Canada established Mingan Archipelago National Park Reserve to protect its rich biodiversity."
+     "quote": "Evidence is drawn from epigraphic records, drawing on the primary prescriptive text Varahamihira's Brihat Samhita (6th century CE, Chapter 56), epigraphic records, the peer-reviewed archaeoastronomical study by Vahia, Jamkhedkar and Mahajani (2017), and set up architectural scholarship."
     }
    ]
   },
   {
-   "id": "fact-12",
-   "statement": "Sources disagree on the age of the limestone formations in the Mingan Archipelago, dating them to between 450 million and nearly 500 million years ago.",
-   "kind": "number",
-   "disputed": true,
-   "hedge": "between 450 million and nearly 500 million years",
+   "id": "kailasa-patronage-inscription",
+   "statement": "The ancient Vadodara copper-plate inscription proclaims that the temple was so astonishing that both the gods and its own architect marveled at its creation.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
    "evidence": [
     {
-     "url": "https://www.nationalgeographic.com/travel/article/mingan-archipelago-canada-park",
-     "tier": 1,
-     "quote": "Difficult to imagine today, the sedimentary rock formations date back almost 500 million years to a time when a warm, shallow tropical sea covered today’s St."
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "756–773 CE), based on two epigraphs that link the temple to \"Krishnaraja\" (IAST Kṛṣṇarāja):\n\nThe Vadodara copper-plate inscription (c."
     },
     {
-     "url": "https://canadiangeographic.ca/articles/the-mingan-archipelago-a-land-shaped-by-time/",
-     "tier": 3,
-     "quote": "That 450-million-year-old limestone is still being shaped today, and when pieces break away, exposed fossils reveal the natural history and scientific significance of the archipelago dating back to when the first marine organisms evolved in the ancient Champlain Sea at the edge of the Canadian Shield."
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "It mentions Krishnaraja as the patron of Kailasanatha, and also mentions a Shiva temple at Elapura (Ellora)."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "It states that the king constructed a temple so wondrous that even the gods and the architect were astonished."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "Most scholars believe that this is a reference to the Kailasanatha Shiva temple at Ellora."
     }
    ]
   },
   {
-   "id": "fact-13",
-   "statement": "The Mingan Archipelago spans approximately 93 miles (152 kilometres) and contains close to or more than 1,000 islands and islets.",
-   "kind": "number",
+   "id": "kailasa-commencement-patron",
+   "statement": "Excavation of the Kailasa temple commenced under the eighth-century Rashtrakuta king Krishna I.",
+   "kind": "name",
    "disputed": true,
-   "hedge": "around 1,000",
+   "hedge": "While traditional scholarship attributes the primary founding of the temple to King Krishna I, competing stylistic analysis suggests excavation began earlier during the reign of Dantidurga.",
    "evidence": [
     {
-     "url": "https://www.nationalgeographic.com/travel/article/mingan-archipelago-canada-park",
-     "tier": 1,
-     "quote": "Photograph by Michael Melford, National Geographic TRAVEL Mingan Archipelago National Park Reserve 6 min read Location: Quebec Date Established: 1984 Size: 24,711 acres Famous for the largest concentration of erosion monoliths in Canada, the Mingan Archipelago National Park Reserve encompasses close to a thousand islands and islets sprinkled along 93 miles from east to west."
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "Most of the excavation of the temple is generally attributed to the eighth century Rashtrakuta king Krishna I (r. c."
     },
     {
-     "url": "https://canadiangeographic.ca/articles/the-mingan-archipelago-a-land-shaped-by-time/",
-     "tier": 3,
-     "quote": "The Mingan Archipelago, a coastal chain of more than 1,000 islands and islets spanning 152 kilometres, is an important haven for seabirds, rare plants, marine life and other wildlife, as well as home to the largest concentration of erosion monoliths in Canada."
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "756–773 CE), based on two epigraphs that link the temple to \"Krishnaraja\" (IAST Kṛṣṇarāja):\n\nThe Vadodara copper-plate inscription (c."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "Based on this, art historian Hermann Goetz (1952) theorized that the construction of the Kailasa temple began during the reign of Dantidurga."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "Dhavalikar (1982) analyzed the architecture of the temple, and concluded that the major part of the temple was completed during the reign of Krishna I, although he agreed with Goetz that some other parts of the temple complex can be dated to the later rulers."
+    }
+   ]
+  },
+  {
+   "id": "kailasa-ravana-monument",
+   "statement": "Carved into the edifice is a massive relief depicting Ravana shaking Mount Kailasa, considered one of the foremost achievements of Indian rock sculpture.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "Dhavalikar admits that the most important sculpture of the temple, which depicts Ravana shaking the Kailasa mountain, appears to have been built after the main edifice."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "This sculpture is considered one of the finest pieces of Indian art, and it is possible that the temple came to be known as Kailasa after it."
+    }
+   ]
+  },
+  {
+   "id": "kailasa-legend-kokasa",
+   "statement": "A medieval Marathi legend recounts that an architect named Kokasa carved the structure from the summit down so the queen could view the completed shikhara within a week's time.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "A medieval Marathi legend appears to refer to the construction of the Kailasa temple."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "She vowed to construct a temple if her wish was granted, and promised to observe a fast until she could see the shikhara (top) of this temple."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "One architect named Kokasa assured the king that the queen would be able to see the shikhara of a temple within a week's time."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Kailasa_Temple,_Ellora",
+     "tier": 2,
+     "quote": "He started building the temple from the top, by carving a rock."
+    }
+   ]
+  },
+  {
+   "id": "kailasa-ellora-dating",
+   "statement": "The monolithic complex belongs to a sequence of rock-cut sanctuaries excavated into the cliff wall between A.D. 600 and 1000.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://whc.unesco.org/en/list/243",
+     "tier": 1,
+     "quote": "UNESCO World Heritage Site #243 (Ellora Caves): These 34 monasteries and temples, extending over more than 2 km, were dug side by side in the wall of a high basalt cliff, not far from Aurangabad, in Maharashtra. Ellora, with its uninterrupted sequence of monuments dating from A.D. 600 to 1000, brings the civilization of ancient India to life. Not only is the Ellora complex a unique artistic creation and a technological exploit but, with its sanctuaries devoted to Buddhism, Hinduism and Jainism, it illustrates the spirit of tolerance that was characteristic of ancient India."
     }
    ]
   }
@@ -226,6 +314,16 @@
    "title": "UNESCO World Heritage Centre - Ellora Caves",
    "url": "https://whc.unesco.org/en/list/243",
    "tier": 1
+  },
+  {
+   "title": "Peer-reviewed journal article (International Journal of Research and Innovation in Social Science): Carved in Cosmos: Cosmological Design and Archaeoastronomical Perspectives on the Kailasa Temple, Ellora",
+   "url": "https://doi.org/10.47772/ijriss.2026.100701198",
+   "tier": 3
+  },
+  {
+   "title": "Peer-reviewed journal article (International Journal of Research in Engineering): DIVINE DESIGN: HOW GEOMETRY AND MATHEMATICS SHAPED INDIA’S TEMPLE ARCHITECTURE",
+   "url": "https://doi.org/10.55640/ijre-02-05-01",
+   "tier": 3
   },
   {
    "title": "Wikipedia: Monolith",
@@ -267,5 +365,6 @@
    "url": "https://travelsofsamwise.substack.com/p/the-absolute-insanity-of-ellora?utm_medium=web&triedRedirect=true",
    "tier": 3
   }
- ]
+ ],
+ "rules_version": 2
 }

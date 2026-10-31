@@ -14,7 +14,8 @@ def record_voice(path, provider, licensed, script):
               "script_fingerprint": fingerprint(script)}
     if not record["sha256"]:
         raise ValueError("Cannot record absent narration")
-    path.with_suffix(path.suffix + ".rights.json").write_text(json.dumps(record, indent=2), encoding="utf-8")
+    with open(path.with_suffix(path.suffix + ".rights.json"), "w", encoding="utf-8", newline="\n") as handle:  # LF: the repository refuses CRLF
+        handle.write(json.dumps(record, indent=2))
     return record
 
 
@@ -25,7 +26,8 @@ def record_sfx(path, provider, prompt, plan, commercial):
               "prompt": prompt, "commercial_license_recorded": commercial is True}
     if not record["sha256"]:
         raise ValueError("Cannot record an absent sound effect")
-    path.with_suffix(path.suffix + ".rights.json").write_text(json.dumps(record, indent=2), encoding="utf-8")
+    with open(path.with_suffix(path.suffix + ".rights.json"), "w", encoding="utf-8", newline="\n") as handle:  # LF: the repository refuses CRLF
+        handle.write(json.dumps(record, indent=2))
     return record
 
 
@@ -74,8 +76,31 @@ def record_bed(path, music, sfx=None):
         record["rights_status"] = "unverified"
     if not record["sha256"]:
         raise ValueError("Cannot record absent music bed")
-    path.with_suffix(path.suffix + ".rights.json").write_text(json.dumps(record, indent=2), encoding="utf-8")
+    with open(path.with_suffix(path.suffix + ".rights.json"), "w", encoding="utf-8", newline="\n") as handle:  # LF: the repository refuses CRLF
+        handle.write(json.dumps(record, indent=2))
     return record
+
+
+def rebind_rights(path) -> bool:
+    """A carried-over file's rights record names the run folder it was made in. Rebinds the record to this copy
+    when the bytes are the same (the hash recorded at generation still matches), keeping every other field and
+    noting where it came from. A record whose hash does not match is left as it is, so the release gate still
+    refuses it. Every regenerated run on production was sent for review as "blocked: Audio changed after
+    rights evidence was recorded" though its voice and bed were byte-identical copies (2026-10-26, audit 28 Oct)."""
+    path = Path(path)
+    evidence = path.with_suffix(path.suffix + ".rights.json")
+    try:
+        record = json.loads(evidence.read_text(encoding="utf-8"))
+        here = str(path.resolve())
+        if not isinstance(record, dict) or record.get("path") == here or record.get("sha256") != sha256_file(path):
+            return False
+        record["carried_from"] = record["path"]
+        record["path"] = here
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
+    with open(evidence, "w", encoding="utf-8", newline="\n") as handle:  # LF: the repository refuses CRLF
+        handle.write(json.dumps(record, indent=2))
+    return True
 
 
 def audio_source_inputs(path):
@@ -93,8 +118,12 @@ def inspect_audio_rights(path, kind, caption, script=None):
     evidence = path.with_suffix(path.suffix + ".rights.json")
     try:
         record = json.loads(evidence.read_text(encoding="utf-8"))
-        if record["sha256"] != sha256_file(path) or Path(record["path"]).resolve() != path.resolve():
+        if record["sha256"] != sha256_file(path):
             return False, "Audio changed after rights evidence was recorded"
+        if Path(record["path"]).resolve() != path.resolve():
+            # The same bytes, evidence copied from another run and not rebound: said as it is, since "Audio changed"
+            # hid six such refusals on production (audit, 2026-10-28). Still refused.
+            return False, f"Rights evidence names another file ({Path(record['path']).parent.name}) and was not rebound to this run"
         if kind == "voice":
             if script is not None:
                 from .checkpoints import fingerprint

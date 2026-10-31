@@ -72,7 +72,32 @@ def load_library(available_only: bool = True) -> List[Dict[str, Any]]:
 
 def save_library(tracks: List[Dict[str, Any]]) -> None:
     MUSIC_DIR.mkdir(parents=True, exist_ok=True)
-    LIBRARY.write_text(json.dumps(tracks, indent=2, ensure_ascii=False), encoding="utf-8")
+    import tempfile
+    with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=MUSIC_DIR, delete=False) as stream:
+        stream.write(json.dumps(tracks, indent=2, ensure_ascii=False))
+        temporary = Path(stream.name)
+    try:
+        temporary.replace(LIBRARY)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def register_download(track, content):
+    """Merge a download without replacing intervening operator decisions."""
+    from .publication_lock import publication_lock
+    with publication_lock(LIBRARY, "music-library"):
+        tracks = load_library(available_only=False)
+        if any(t.get("source_url") == track["source_url"] for t in tracks):
+            return False
+        path = MUSIC_DIR / track["file"]
+        if MUSIC_DIR.resolve() not in path.resolve().parents:
+            raise ValueError("Invalid music destination")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("xb") as stream:
+            stream.write(content)
+        tracks.append(track)
+        save_library(tracks)
+        return True
 
 
 def pick_library_track(mood: str, min_seconds: float = 0, exclude: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
@@ -118,11 +143,13 @@ def pick_documentary_movements(primary_mood: str, num_movements: int = 3, exclud
 
 
 def mark_used(file: str) -> None:
-    tracks = load_library(available_only=False)
-    for t in tracks:
-        if t["file"] == file:
-            t["uses"] = t.get("uses", 0) + 1
-    save_library(tracks)
+    from .publication_lock import publication_lock
+    with publication_lock(LIBRARY, "music-library"):
+        tracks = load_library(available_only=False)
+        for t in tracks:
+            if t["file"] == file:
+                t["uses"] = t.get("uses", 0) + 1
+        save_library(tracks)
 
 
 def license_name(track: Dict[str, Any]) -> str:
@@ -159,16 +186,17 @@ def generate_elevenlabs(mood: str, seconds: float, out_path: Path) -> Path:
 
 
 def music_for(payload: Dict[str, Any], seconds: float, work_dir: Path, voice_quota: Optional[dict],
-              is_documentary: bool = False) -> Dict[str, Any]:
+              is_documentary: bool = False, exclude: Optional[List[str]] = None) -> Dict[str, Any]:
     """
     Returns {"path": Path|None, "paths": List[Path]|None, "source": "elevenlabs"|"library"|"none", "mood": str, "credit": str, "file": str}.
+    `exclude`: library files not to use (a Regenerate for "Music / sound" must not get the same track).
     """
     mood = choose_mood(payload)
 
     def library():
         can_eleven = bool(is_configured(ELEVENLABS_API_KEY) and elevenlabs_paid(voice_quota))
         if is_documentary and not can_eleven:
-            movements = pick_documentary_movements(mood, num_movements=3)
+            movements = pick_documentary_movements(mood, num_movements=3, exclude=exclude)
             if movements:
                 paths = [MUSIC_DIR / t["file"] for t in movements]
                 credits = [credit_line(t) for t in movements if credit_line(t)]
@@ -179,9 +207,9 @@ def music_for(payload: Dict[str, Any], seconds: float, work_dir: Path, voice_quo
                 return {"path": paths[0], "paths": paths, "source": "library", "mood": mood,
                         "credit": " \n".join(credits), "file": movements[0]["file"],
                         "tracks": [{**t, "path": str(MUSIC_DIR / t["file"])} for t in movements]}
-        track = pick_library_track(mood, seconds)
+        track = pick_library_track(mood, seconds, exclude=exclude)
         if not track and not can_eleven:
-            track = pick_library_track(mood, 0)
+            track = pick_library_track(mood, 0, exclude=exclude)
         if track:
             log.info("Music: library track '%s' (%s).", track["title"], track["mood"])
             mark_used(track["file"])
@@ -213,7 +241,8 @@ def music_for(payload: Dict[str, Any], seconds: float, work_dir: Path, voice_quo
 # ------------------------------------------------------------------ review
 def track_key(track: Dict[str, Any]) -> str:
     """Short stable key for Telegram buttons: the 8-character id at the end of the file name."""
-    return Path(track["file"]).stem.rsplit("_", 1)[-1]
+    import hashlib
+    return hashlib.sha256(track["file"].encode("utf-8")).hexdigest()[:24]
 
 
 def pending_tracks() -> List[Dict[str, Any]]:
@@ -228,26 +257,32 @@ def _find(key: str) -> Dict[str, Any]:
 
 
 def approve_track(key: str) -> str:
-    tracks = load_library(available_only=False)
-    for t in tracks:
-        if track_key(t) == key:
-            t["reviewed"] = True
-            save_library(tracks)
-            return f"Kept “{t['title']}” ({t['mood']})."
+    from .publication_lock import publication_lock
+    with publication_lock(LIBRARY, "music-library"):
+        tracks = load_library(available_only=False)
+        for t in tracks:
+            if track_key(t) == key:
+                t["reviewed"] = True
+                save_library(tracks)
+                return f"Kept “{t['title']}” ({t['mood']})."
     raise ValueError("That track is no longer in the library.")
 
 
 def remove_track(key: str) -> str:
-    track = _find(key)
-    (MUSIC_DIR / track["file"]).unlink(missing_ok=True)
-    save_library([t for t in load_library(available_only=False) if t["file"] != track["file"]])
-    return f"Removed “{track['title']}”."
+    from .publication_lock import publication_lock
+    with publication_lock(LIBRARY, "music-library"):
+        track = _find(key)
+        (MUSIC_DIR / track["file"]).unlink(missing_ok=True)
+        save_library([t for t in load_library(available_only=False) if t["file"] != track["file"]])
+        return f"Removed “{track['title']}”."
 
 
 def review_caption(track: Dict[str, Any], remaining: int) -> str:
     import html
     lic = license_name(track)
-    return (f"🎵 <b>{html.escape(track['title'])}</b> by {html.escape(track['creator'])}\n"
+    import re
+    title = re.sub(r"\.(mp3|wav|ogg|flac|m4a)$", "", track["title"], flags=re.I).replace("_", " ")
+    return (f"🎵 <b>{html.escape(title)}</b> by {html.escape(track['creator'])}\n"
             f"Mood: {html.escape(track['mood'])} · {track['duration_ms'] // 1000}s · {html.escape(lic)}\n"
-            f"{html.escape(track.get('source_url', ''))}\n"
-            f"{remaining} track(s) left to review. Keep it if it would sit well under a documentary voice.")
+            f"{html.escape(track.get('source_url', ''))}\n\n"
+            f"{remaining} {'track' if remaining == 1 else 'tracks'} left to review. Keep it if it would sit well under a documentary voice.")

@@ -25,28 +25,12 @@ sys.path.insert(0, str(ROOT))
 from src import config  # noqa: E402
 from src.audio_engine import AudioEngine  # noqa: E402
 from src.audio_provenance import record_sfx  # noqa: E402
+from src.sfx_palette import CREDITS_PER_SECOND, PALETTE  # noqa: E402
 
 URL = "https://api.elevenlabs.io/v1/sound-generation"
-CREDITS_PER_SECOND = 40
 
-# name: (prompt, seconds, loop). Names match AudioEngine.SFX_CUES and the bed's layers.
-PACK = {
-    "sfx_hammer.wav": ("A heavy sledgehammer strikes an old stone wall once, a dull crack and crumbling plaster "
-                       "debris, dry close recording, no music", 2.0, False),
-    "sfx_stone_door.wav": ("A massive round millstone door rolls slowly along a carved rock groove, deep grinding "
-                           "rumble with stone-on-stone friction, small underground tunnel acoustics", 3.5, False),
-    "sfx_gear_ratchet.wav": ("Small ancient bronze gears turn and click, a delicate mechanical ratchet, "
-                             "close-up and intimate, quiet room", 2.0, False),
-    "sfx_water_surge.wav": ("A deep underwater swell rolls past, muffled ocean current heard from below the "
-                            "surface, low and calm", 3.0, False),
-    "sfx_chisel.wav": ("An iron chisel struck by a wooden mallet carves soft stone, three steady strikes with "
-                       "small chips falling, dry close recording", 2.0, False),
-    "sfx_cavern_wind.wav": ("A low hollow wind draft moving through deep underground stone tunnels, subtle and "
-                            "constant, no voices, no music", 10.0, True),
-    # No impact/braam: two generations came back 2.9% and 4.4% clipped, so the clean synthesized
-    # one stays (AudioEngine._synth_sub_bass_braam).
-    "sfx_whoosh.wav": ("A soft airy cinematic transition whoosh, subtle and smooth, no impact", 1.0, False),
-}
+# name: (prompt, seconds, loop), from the one palette the bed and the sound plan read (src/sfx_palette.py).
+PACK = {name: (e.prompt, e.seconds, e.loop) for name, e in PALETTE.items()}
 
 
 MAX_CLIPPED = 0.005  # share of samples at full scale above which a recording sounds distorted
@@ -113,6 +97,9 @@ def main() -> int:
             continue
         record_sfx(path, "elevenlabs-sound-effects", prompt, tier, commercial=True)
         print(f"  {name}: {seconds:g}s{' (loop)' if loop else ''}, {clipped:.2%} clipped")
+    after = AudioEngine().voice_quota() or {}
+    if after.get("used") is not None and quota.get("used") is not None:
+        print(f"Credits used: {after['used'] - quota['used']} (remaining {after.get('limit', 0) - after['used']})")
     return 0
 
 

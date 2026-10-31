@@ -106,6 +106,7 @@ def test_due_reel_then_story_post_in_order(coord, monkeypatch):
     photos = []
     monkeypatch.setattr(coord.publisher, "publish_photos",
                         lambda run_id, tid, kind, files, caption="": photos.append((kind, len(files))) or {"status": "published"})
+    monkeypatch.setattr("src.release.story_credit_problems", lambda run_dir: [])   # the frames carry their credits
 
     coord.post_due(now=reel_at - timedelta(minutes=1))
     assert coord.db.get_run("r1")["status"] == "scheduled"  # not yet
@@ -171,7 +172,7 @@ def test_status_lists_upcoming_posts(coord):
     from src.control import status_text
     coord.schedule_run("r1", now=et(2026, 10, 13, 9, 30))
     text = status_text(coord.db, None)
-    assert "Upcoming posts:" in text and "Reel" in text and "next carousel slot" in text
+    assert "Upcoming posts:" in text and "Reel" in text and ("after its Reel" in text or "Carousel" in text)
 
 
 def test_carousel_waits_48h_after_its_reel(coord, monkeypatch):
@@ -200,3 +201,20 @@ def test_only_one_process_posts_at_a_time(coord, monkeypatch):
         assert mine
         coord.post_due(now=ps.next_reel_slot(now) + timedelta(minutes=1))
     assert {p["kind"] for p in coord.db.list_scheduled_posts()} == {"reel", "story", "carousel"}
+
+
+def test_a_story_whose_credits_fail_is_not_posted(coord, monkeypatch):
+    """A Story frame redrawn after booking without its photo credit is held back at posting (2026-10-29)."""
+    now = et(2026, 10, 13, 9, 30)
+    coord.schedule_run("r1", now=now)
+    reel_at = ps.next_reel_slot(now)
+    monkeypatch.setattr(coord, "publish_run", _published(coord))
+    photos = []
+    monkeypatch.setattr(coord.publisher, "publish_photos",
+                        lambda run_id, tid, kind, files, caption="": photos.append(kind) or {"status": "published"})
+    monkeypatch.setattr("src.release.story_credit_problems", lambda run_dir: ["Story frame 1: no photo credit drawn"])
+    coord.post_due(now=reel_at + timedelta(minutes=1))
+    coord.post_due(now=reel_at + timedelta(minutes=46))
+    assert "story" not in photos
+    story = [p for p in coord.db.list_scheduled_posts(include_done=True) if p["kind"] == "story"]         if "include_done" in coord.db.list_scheduled_posts.__code__.co_varnames else []
+    assert all(p["status"] == "failed" for p in story)

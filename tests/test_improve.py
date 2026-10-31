@@ -93,7 +93,7 @@ def test_issue_is_filed_with_its_run_and_class(db):
     run_id = _run(db)
     key = db.run_key(run_id)
     res = make_command_handler(db, lambda: None, lambda: "")("issue", f"run {key} the map label covers the pin")
-    assert "Logged" in res
+    assert "Report saved" in res
     issue = db.list_open_issues()[0]
     assert issue["run_id"] == run_id and "map label" in issue["critique"]
 
@@ -110,4 +110,33 @@ def test_audience_rates_use_the_measured_length():
     d = audience.derived({"views": 1000, "reach": 800, "ig_reels_avg_watch_time": 21000, "shares": 8, "saved": 4,
                           "reels_skip_rate": 35.0}, 42.0)
     assert d == {"views": 1000.0, "reach": 800.0, "watch_ratio": 0.5, "skip_rate": 35.0,
-                 "share_rate": 0.01, "save_rate": 0.005}
+                 "share_rate": 0.01, "save_rate": 0.005, "likes": None, "comments": None}
+
+
+def test_proposals_need_separate_runs_and_open_reports(db, monkeypatch, tmp_path):
+    from src import config, improve
+    monkeypatch.setattr(improve, "_draft_rule", lambda klass, examples: None)
+    for i in range(5):  # one run's drafts rejected five times: one problem, not a recurring one
+        improve.record(db, "script.facts", f"claim {i}", "guardrail", run_id="r1")
+    for n in range(3):
+        db.record_issue(f"iss_{n}", "the bot panel is cut off")
+        improve.record(db, "issue.bot", "panel cut off", f"issue:iss_{n}")
+    assert [p["klass"] for p in improve.make_proposals(db)] == ["issue.bot"]   # three open linked reports
+    monkeypatch.setattr(config, "ISSUES_DIR", tmp_path)
+    for n in range(3):
+        (tmp_path / f"iss_{n}.md").write_text("- Status: fixed — done\n", encoding="utf-8")
+    improve.sync_issue_files(db)
+    with db._conn() as conn:
+        assert conn.execute("SELECT COUNT(*) FROM findings WHERE klass = 'issue.bot'").fetchone()[0] == 0
+
+
+def test_a_video_check_finding_is_filed_in_its_own_class_not_the_scripts():
+    # Production, Antikythera, 2026-10-24: a graphic/narration mismatch was filed as video.length because
+    # the script patterns read "the spoken narration states" as a length complaint.
+    from src.improve import classify_qa
+    assert classify_qa("The graphic on screen states '29 bronze gears visible today', whereas the spoken narration "
+                       "states '30 of which remain visible today'.") == "video.text_mismatch"
+    assert classify_qa("Caption text runs under the lower safe zone.") == "video.captions"
+    assert classify_qa("The photo shows the wrong building: not the temple named.") == "video.picture_relevance"
+    assert classify_qa("The frame is very dark and grainy.") == "video.picture_quality"
+    assert classify_qa("Something else entirely.") == "video.other"

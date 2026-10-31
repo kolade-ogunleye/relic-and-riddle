@@ -1,0 +1,1154 @@
+{
+ "stills": {
+  "richat/stories/story_01_hook.jpg": {
+   "min_contrast": 4.97,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "kicker": 5.99,
+    "title_1": 8.71,
+    "title_2": 5.01,
+    "reel_pointer": 4.97,
+    "body": 6.74,
+    "photo_credit": 5.85
+   }
+  },
+  "richat/stories/story_02_reveal.jpg": {
+   "min_contrast": 4.85,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "kicker": 5.64,
+    "title_1": 9.17,
+    "title_2": 4.85,
+    "body": 6.75
+   }
+  },
+  "richat/stories/story_03_question.jpg": {
+   "min_contrast": 5.16,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "kicker": 10.87,
+    "title_1": 17.1,
+    "title_2": 5.16
+   }
+  },
+  "richat/carousel/carousel_slide_01.jpg": {
+   "min_contrast": 5.21,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "heading": 5.58,
+    "body": 7.52,
+    "header_brand": 5.21
+   }
+  },
+  "richat/carousel/carousel_slide_02.jpg": {
+   "min_contrast": 4.83,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "heading": 7.59,
+    "body": 7.62,
+    "header_brand": 4.83
+   }
+  },
+  "richat/carousel/carousel_slide_03.jpg": {
+   "min_contrast": 5.06,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "heading": 15.32,
+    "body": 15.22,
+    "header_brand": 5.06
+   }
+  },
+  "richat/carousel/carousel_slide_04.jpg": {
+   "min_contrast": 5.34,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "heading": 15.34,
+    "body": 15.22,
+    "header_brand": 5.34
+   }
+  },
+  "richat/carousel/carousel_slide_05.jpg": {
+   "min_contrast": 9.56,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "heading": 15.34,
+    "body": 15.23,
+    "header_brand": 9.56
+   }
+  },
+  "richat/carousel/carousel_slide_06.jpg": {
+   "min_contrast": 5.07,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "heading": 9.19,
+    "body": 8.49,
+    "header_brand": 5.07
+   }
+  },
+  "richat/carousel/carousel_slide_07.jpg": {
+   "min_contrast": 4.77,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "kicker": 4.93,
+    "heading": 4.77,
+    "body": 7.99,
+    "share": 8.11,
+    "header_brand": 13.82
+   }
+  },
+  "gumbaz/stories/story_01_hook.jpg": {
+   "min_contrast": 5.45,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "kicker": 5.89,
+    "title_1": 9.03,
+    "title_2": 5.63,
+    "reel_pointer": 5.45,
+    "body": 6.39,
+    "photo_credit": 5.73
+   }
+  },
+  "gumbaz/stories/story_02_reveal.jpg": {
+   "min_contrast": 4.88,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "kicker": 4.88,
+    "title_1": 7.55,
+    "title_2": 4.96,
+    "body": 6.73,
+    "photo_credit": 7.24
+   }
+  },
+  "gumbaz/stories/story_03_question.jpg": {
+   "min_contrast": 4.88,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "kicker": 4.88,
+    "title_1": 7.28,
+    "title_2": 4.89,
+    "body": 10.28,
+    "photo_credit": 5.77
+   }
+  },
+  "gumbaz/carousel/carousel_slide_01.jpg": {
+   "min_contrast": 4.8,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "heading": 4.94,
+    "body": 9.87,
+    "header_brand": 4.8
+   }
+  },
+  "gumbaz/carousel/carousel_slide_02.jpg": {
+   "min_contrast": 5.22,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "stat": 9.62,
+    "heading": 15.34,
+    "body": 15.32,
+    "header_brand": 5.22
+   }
+  },
+  "gumbaz/carousel/carousel_slide_03.jpg": {
+   "min_contrast": 4.93,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "heading": 15.34,
+    "body": 15.23,
+    "header_brand": 4.93
+   }
+  },
+  "gumbaz/carousel/carousel_slide_04.jpg": {
+   "min_contrast": 5.58,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "heading": 8.98,
+    "body": 9.4,
+    "header_brand": 5.58
+   }
+  },
+  "gumbaz/carousel/carousel_slide_05.jpg": {
+   "min_contrast": 5.25,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "heading": 15.37,
+    "body": 15.23,
+    "header_brand": 5.25
+   }
+  },
+  "gumbaz/carousel/carousel_slide_06.jpg": {
+   "min_contrast": 5.17,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "heading": 7.78,
+    "body": 9.96,
+    "header_brand": 5.17
+   }
+  },
+  "gumbaz/carousel/carousel_slide_07.jpg": {
+   "min_contrast": 5.19,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "kicker": 9.53,
+    "heading": 6.27,
+    "body": 7.76,
+    "share": 5.97,
+    "header_brand": 5.19
+   }
+  },
+  "derinkuyu/stories/story_01_hook.jpg": {
+   "min_contrast": 4.92,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "kicker": 5.02,
+    "title_1": 7.42,
+    "title_2": 4.92,
+    "reel_pointer": 6.0,
+    "body": 6.73,
+    "photo_credit": 7.69
+   }
+  },
+  "derinkuyu/stories/story_02_reveal.jpg": {
+   "min_contrast": 5.09,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "kicker": 6.14,
+    "title_1": 8.72,
+    "title_2": 5.09,
+    "body": 5.76,
+    "photo_credit": 6.64
+   }
+  },
+  "derinkuyu/stories/story_03_question.jpg": {
+   "min_contrast": 4.8,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "kicker": 5.03,
+    "title_1": 7.13,
+    "title_2": 4.8,
+    "body": 7.04,
+    "photo_credit": 6.8
+   }
+  },
+  "derinkuyu/carousel/carousel_slide_01.jpg": {
+   "min_contrast": 4.8,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "heading": 4.8,
+    "body": 8.37,
+    "header_brand": 16.07
+   }
+  },
+  "derinkuyu/carousel/carousel_slide_02.jpg": {
+   "min_contrast": 6.03,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "heading": 9.24,
+    "body": 7.61,
+    "header_brand": 6.03
+   }
+  },
+  "derinkuyu/carousel/carousel_slide_03.jpg": {
+   "min_contrast": 5.12,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "heading": 15.37,
+    "body": 15.23,
+    "header_brand": 5.12
+   }
+  },
+  "derinkuyu/carousel/carousel_slide_04.jpg": {
+   "min_contrast": 5.18,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "heading": 7.79,
+    "body": 7.81,
+    "header_brand": 5.18
+   }
+  },
+  "derinkuyu/carousel/carousel_slide_05.jpg": {
+   "min_contrast": 5.19,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "heading": 15.34,
+    "body": 15.33,
+    "header_brand": 5.19
+   }
+  },
+  "derinkuyu/carousel/carousel_slide_06.jpg": {
+   "min_contrast": 5.5,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "heading": 9.13,
+    "body": 9.96,
+    "header_brand": 5.5
+   }
+  },
+  "derinkuyu/carousel/carousel_slide_07.jpg": {
+   "min_contrast": 4.88,
+   "problems": [],
+   "shortened": [],
+   "elements": {
+    "kicker": 4.9,
+    "heading": 4.88,
+    "body": 7.1,
+    "share": 7.88,
+    "header_brand": 5.41
+   }
+  }
+ },
+ "graphics": {
+  "richat/graphic_map.mp4": {
+   "min_graded": 5.45,
+   "max_bottom": 1049,
+   "max_right": 873,
+   "elements": [
+    [
+     "place",
+     "RICHAT STRUCTURE",
+     10.71
+    ],
+    [
+     "country",
+     "MAURITANIA",
+     8.04
+    ],
+    [
+     "scale",
+     "250 MI",
+     5.45
+    ]
+   ]
+  },
+  "richat/graphic_numbers.mp4": {
+   "min_graded": 7.0,
+   "max_bottom": 886,
+   "max_right": 868,
+   "elements": [
+    [
+     "figure",
+     "2",
+     7.0
+    ],
+    [
+     "figure",
+     "5",
+     7.87
+    ],
+    [
+     "figure",
+     "+",
+     7.99
+    ],
+    [
+     "unit",
+     "MILES",
+     10.67
+    ],
+    [
+     "label",
+     "ACROSS THE RINGS",
+     10.72
+    ]
+   ]
+  },
+  "richat/graphic_timeline.mp4": {
+   "min_graded": 8.94,
+   "max_bottom": 1058,
+   "max_right": 859,
+   "elements": [
+    [
+     "year0",
+     "1969",
+     8.94
+    ],
+    [
+     "label0",
+     "IMPACT THEORY DISPROVED",
+     13.7
+    ],
+    [
+     "year1",
+     "2022",
+     10.6
+    ],
+    [
+     "label1",
+     "NAMED GEOLOGICAL",
+     15.38
+    ],
+    [
+     "label1",
+     "HERITAGE SITE",
+     14.66
+    ]
+   ]
+  },
+  "richat/scale_bar": {
+   "value": 250,
+   "unit": "MI",
+   "px": 218.0,
+   "label": "250 MI",
+   "km_per_deg_lat": 110.719
+  },
+  "gumbaz/graphic_map.mp4": {
+   "min_graded": 5.35,
+   "max_bottom": 1049,
+   "max_right": 819,
+   "elements": [
+    [
+     "place",
+     "GOL GUMBAZ",
+     9.35
+    ],
+    [
+     "country",
+     "INDIA",
+     7.3
+    ],
+    [
+     "scale",
+     "250 MI",
+     5.35
+    ]
+   ]
+  },
+  "gumbaz/graphic_numbers.mp4": {
+   "min_graded": 6.78,
+   "max_bottom": 992,
+   "max_right": 783,
+   "elements": [
+    [
+     "prefix",
+     "EST.",
+     6.78
+    ],
+    [
+     "figure",
+     "1",
+     7.22
+    ],
+    [
+     "figure",
+     "4",
+     7.77
+    ],
+    [
+     "figure",
+     "4",
+     8.09
+    ],
+    [
+     "unit",
+     "FT",
+     10.5
+    ],
+    [
+     "label",
+     "EXTERNAL",
+     10.43
+    ],
+    [
+     "label",
+     "DOME DIAMETER",
+     11.0
+    ],
+    [
+     "secondary",
+     "44 M",
+     8.78
+    ]
+   ]
+  },
+  "gumbaz/scale_bar": {
+   "value": 250,
+   "unit": "MI",
+   "px": 218.1,
+   "label": "250 MI",
+   "km_per_deg_lat": 110.667
+  },
+  "derinkuyu/graphic_map.mp4": {
+   "min_graded": 5.58,
+   "max_bottom": 1049,
+   "max_right": 775,
+   "elements": [
+    [
+     "place",
+     "DERINKUYU",
+     14.41
+    ],
+    [
+     "country",
+     "TURKEY",
+     7.26
+    ],
+    [
+     "scale",
+     "250 MI",
+     5.58
+    ]
+   ]
+  },
+  "derinkuyu/graphic_numbers.mp4": {
+   "min_graded": 6.54,
+   "max_bottom": 963,
+   "max_right": 783,
+   "elements": [
+    [
+     "prefix",
+     "ABOUT",
+     6.54
+    ],
+    [
+     "figure",
+     "2",
+     6.74
+    ],
+    [
+     "figure",
+     "8",
+     9.42
+    ],
+    [
+     "figure",
+     "0",
+     9.93
+    ],
+    [
+     "unit",
+     "FT",
+     13.45
+    ],
+    [
+     "label",
+     "BELOW THE SURFACE",
+     13.5
+    ],
+    [
+     "secondary",
+     "85 M",
+     9.44
+    ]
+   ]
+  },
+  "derinkuyu/graphic_timeline.mp4": {
+   "min_graded": 8.8,
+   "max_bottom": 1058,
+   "max_right": 759,
+   "elements": [
+    [
+     "year0",
+     "C. 700 BC",
+     8.8
+    ],
+    [
+     "label0",
+     "POSSIBLY PHRYGIAN TUNNELS",
+     13.28
+    ],
+    [
+     "year1",
+     "C. AD 780",
+     9.83
+    ],
+    [
+     "label1",
+     "EXPANDED AGAINST RAIDERS",
+     14.55
+    ],
+    [
+     "year2",
+     "1923",
+     9.51
+    ],
+    [
+     "label2",
+     "ABANDONED AFTER THE",
+     15.13
+    ],
+    [
+     "label2",
+     "POPULATION EXCHANGE",
+     15.31
+    ],
+    [
+     "year3",
+     "1963",
+     9.7
+    ],
+    [
+     "label3",
+     "REDISCOVERED BEHIND A WALL",
+     15.33
+    ]
+   ]
+  },
+  "derinkuyu/scale_bar": {
+   "value": 250,
+   "unit": "MI",
+   "px": 217.5,
+   "label": "250 MI",
+   "km_per_deg_lat": 111.004
+  }
+ },
+ "end_card": {
+  "richat": {
+   "share_lines": [
+    "Send this to a space",
+    "enthusiast you know."
+   ],
+   "share_size": 58,
+   "follow_size": 35,
+   "contrast": {
+    "brand": 10.2,
+    "share": 15.66,
+    "follow": 9.94
+   },
+   "box": [
+    206.6,
+    847,
+    873.4,
+    873
+   ]
+  },
+  "gumbaz": {
+   "share_lines": [
+    "Send this to an acoustic",
+    "architecture fan."
+   ],
+   "share_size": 54,
+   "follow_size": 35,
+   "contrast": {
+    "brand": 9.15,
+    "share": 15.58,
+    "follow": 10.51
+   },
+   "box": [
+    206.6,
+    837,
+    873.4,
+    863
+   ]
+  },
+  "derinkuyu": {
+   "share_lines": [
+    "Send this to a",
+    "friend who loves",
+    "ancient engineering."
+   ],
+   "share_size": 62,
+   "follow_size": 35,
+   "contrast": {
+    "brand": 8.56,
+    "share": 15.12,
+    "follow": 9.93
+   },
+   "box": [
+    206.6,
+    933,
+    873.4,
+    959
+   ]
+  }
+ },
+ "gates": {
+  "richat/story_credits": {
+   "story_01_hook.jpg": {
+    "required": true,
+    "contrast": 5.91,
+    "box": [
+     85,
+     1144,
+     643,
+     1236
+    ]
+   },
+   "story_02_reveal.jpg": {
+    "required": false,
+    "contrast": null,
+    "box": null
+   },
+   "story_03_question.jpg": {
+    "required": false,
+    "contrast": null,
+    "box": null
+   }
+  },
+  "gumbaz/story_credits": {
+   "story_01_hook.jpg": {
+    "required": true,
+    "contrast": 5.76,
+    "box": [
+     85,
+     1144,
+     643,
+     1236
+    ]
+   },
+   "story_02_reveal.jpg": {
+    "required": true,
+    "contrast": 7.3,
+    "box": [
+     85,
+     1144,
+     643,
+     1236
+    ]
+   },
+   "story_03_question.jpg": {
+    "required": true,
+    "contrast": 5.79,
+    "box": [
+     85,
+     1144,
+     643,
+     1236
+    ]
+   }
+  },
+  "derinkuyu/story_credits": {
+   "story_01_hook.jpg": {
+    "required": true,
+    "contrast": 7.75,
+    "box": [
+     84,
+     1152,
+     994,
+     1237
+    ]
+   },
+   "story_02_reveal.jpg": {
+    "required": true,
+    "contrast": 6.65,
+    "box": [
+     84,
+     1152,
+     994,
+     1237
+    ]
+   },
+   "story_03_question.jpg": {
+    "required": true,
+    "contrast": 6.91,
+    "box": [
+     84,
+     1152,
+     994,
+     1237
+    ]
+   }
+  },
+  "engagement_bait": {},
+  "graphics_box": [
+   65,
+   288,
+   888,
+   1058
+  ]
+ },
+ "captions_pill_vs_stroke": {
+  "richat": {
+   "beat:pill": {
+    "min_full": 5.3,
+    "min_phone": 5.31,
+    "by_colour_full": {
+     "bone": 9.2,
+     "gold": 6.05,
+     "grey": 5.3
+    },
+    "by_colour_phone": {
+     "bone": 9.2,
+     "gold": 6.06,
+     "grey": 5.31
+    },
+    "band_covered": 0.277
+   },
+   "beat:stroke_halo": {
+    "min_full": 2.54,
+    "min_phone": 2.39,
+    "by_colour_full": {
+     "bone": 4.15,
+     "gold": 3.17,
+     "grey": 2.54
+    },
+    "by_colour_phone": {
+     "bone": 3.88,
+     "gold": 2.94,
+     "grey": 2.39
+    },
+    "band_covered": 0.315
+   },
+   "bright:pill": {
+    "min_full": 5.27,
+    "min_phone": 5.27,
+    "by_colour_full": {
+     "bone": 9.12,
+     "gold": 6.01,
+     "grey": 5.27
+    },
+    "by_colour_phone": {
+     "bone": 9.15,
+     "gold": 6.01,
+     "grey": 5.27
+    },
+    "band_covered": 0.278
+   },
+   "bright:stroke_halo": {
+    "min_full": 2.18,
+    "min_phone": 2.02,
+    "by_colour_full": {
+     "bone": 4.07,
+     "gold": 2.74,
+     "grey": 2.18
+    },
+    "by_colour_phone": {
+     "bone": 3.75,
+     "gold": 2.56,
+     "grey": 2.02
+    },
+    "band_covered": 0.326
+   }
+  },
+  "gumbaz": {
+   "beat:pill": {
+    "min_full": 6.71,
+    "min_phone": 6.72,
+    "by_colour_full": {
+     "bone": 11.44,
+     "gold": 7.65,
+     "grey": 6.71
+    },
+    "by_colour_phone": {
+     "bone": 11.51,
+     "gold": 7.69,
+     "grey": 6.72
+    },
+    "band_covered": 0.141
+   },
+   "beat:stroke_halo": {
+    "min_full": 6.89,
+    "min_phone": 6.69,
+    "by_colour_full": {
+     "bone": 11.92,
+     "gold": 8.07,
+     "grey": 6.89
+    },
+    "by_colour_phone": {
+     "bone": 11.67,
+     "gold": 7.8,
+     "grey": 6.69
+    },
+    "band_covered": 0.133
+   },
+   "bright:pill": {
+    "min_full": 5.71,
+    "min_phone": 5.87,
+    "by_colour_full": {
+     "bone": 9.92,
+     "gold": 6.54,
+     "grey": 5.71
+    },
+    "by_colour_phone": {
+     "bone": 10.3,
+     "gold": 6.74,
+     "grey": 5.87
+    },
+    "band_covered": 0.205
+   },
+   "bright:stroke_halo": {
+    "min_full": 4.31,
+    "min_phone": 4.46,
+    "by_colour_full": {
+     "bone": 7.97,
+     "gold": 7.25,
+     "grey": 4.31
+    },
+    "by_colour_phone": {
+     "bone": 7.25,
+     "gold": 6.47,
+     "grey": 4.46
+    },
+    "band_covered": 0.206
+   }
+  },
+  "derinkuyu": {
+   "beat:pill": {
+    "min_full": 5.77,
+    "min_phone": 5.78,
+    "by_colour_full": {
+     "bone": 10.16,
+     "gold": 6.58,
+     "grey": 5.77
+    },
+    "by_colour_phone": {
+     "bone": 10.17,
+     "gold": 6.6,
+     "grey": 5.78
+    },
+    "band_covered": 0.257
+   },
+   "beat:stroke_halo": {
+    "min_full": 3.88,
+    "min_phone": 3.7,
+    "by_colour_full": {
+     "bone": 7.92,
+     "gold": 4.93,
+     "grey": 3.88
+    },
+    "by_colour_phone": {
+     "bone": 7.43,
+     "gold": 4.73,
+     "grey": 3.7
+    },
+    "band_covered": 0.238
+   },
+   "bright:pill": {
+    "min_full": 6.32,
+    "min_phone": 6.33,
+    "by_colour_full": {
+     "bone": 10.67,
+     "gold": 7.49,
+     "grey": 6.32
+    },
+    "by_colour_phone": {
+     "bone": 10.67,
+     "gold": 7.5,
+     "grey": 6.33
+    },
+    "band_covered": 0.258
+   },
+   "bright:stroke_halo": {
+    "min_full": 5.06,
+    "min_phone": 4.86,
+    "by_colour_full": {
+     "bone": 8.08,
+     "gold": 6.74,
+     "grey": 5.06
+    },
+    "by_colour_phone": {
+     "bone": 7.79,
+     "gold": 6.62,
+     "grey": 4.86
+    },
+    "band_covered": 0.22
+   }
+  }
+ },
+ "captions_pill_vs_stroke_grey909090": {
+  "richat": {
+   "beat:pill": {
+    "min_full": 3.73,
+    "min_phone": 3.73,
+    "by_colour_full": {
+     "gold": 6.05,
+     "grey": 3.73,
+     "bone": 9.2
+    },
+    "by_colour_phone": {
+     "gold": 6.06,
+     "grey": 3.73,
+     "bone": 9.2
+    },
+    "band_covered": 0.276
+   },
+   "beat:stroke_halo": {
+    "min_full": 1.78,
+    "min_phone": 1.68,
+    "by_colour_full": {
+     "gold": 3.17,
+     "grey": 1.78,
+     "bone": 4.15
+    },
+    "by_colour_phone": {
+     "gold": 2.94,
+     "grey": 1.68,
+     "bone": 3.88
+    },
+    "band_covered": 0.315
+   },
+   "bright:pill": {
+    "min_full": 3.7,
+    "min_phone": 3.71,
+    "by_colour_full": {
+     "gold": 6.01,
+     "grey": 3.7,
+     "bone": 9.12
+    },
+    "by_colour_phone": {
+     "gold": 6.01,
+     "grey": 3.71,
+     "bone": 9.15
+    },
+    "band_covered": 0.278
+   },
+   "bright:stroke_halo": {
+    "min_full": 1.53,
+    "min_phone": 1.42,
+    "by_colour_full": {
+     "gold": 2.74,
+     "grey": 1.53,
+     "bone": 4.07
+    },
+    "by_colour_phone": {
+     "gold": 2.56,
+     "grey": 1.42,
+     "bone": 3.75
+    },
+    "band_covered": 0.326
+   }
+  },
+  "gumbaz": {
+   "beat:pill": {
+    "min_full": 4.72,
+    "min_phone": 4.73,
+    "by_colour_full": {
+     "gold": 7.65,
+     "grey": 4.72,
+     "bone": 11.44
+    },
+    "by_colour_phone": {
+     "gold": 7.69,
+     "grey": 4.73,
+     "bone": 11.51
+    },
+    "band_covered": 0.141
+   },
+   "beat:stroke_halo": {
+    "min_full": 4.85,
+    "min_phone": 4.7,
+    "by_colour_full": {
+     "gold": 8.07,
+     "grey": 4.85,
+     "bone": 11.92
+    },
+    "by_colour_phone": {
+     "gold": 7.8,
+     "grey": 4.7,
+     "bone": 11.67
+    },
+    "band_covered": 0.133
+   },
+   "bright:pill": {
+    "min_full": 4.01,
+    "min_phone": 4.13,
+    "by_colour_full": {
+     "gold": 6.54,
+     "grey": 4.01,
+     "bone": 9.92
+    },
+    "by_colour_phone": {
+     "gold": 6.74,
+     "grey": 4.13,
+     "bone": 10.3
+    },
+    "band_covered": 0.205
+   },
+   "bright:stroke_halo": {
+    "min_full": 3.03,
+    "min_phone": 3.14,
+    "by_colour_full": {
+     "gold": 7.25,
+     "grey": 3.03,
+     "bone": 7.97
+    },
+    "by_colour_phone": {
+     "gold": 6.47,
+     "grey": 3.14,
+     "bone": 7.25
+    },
+    "band_covered": 0.206
+   }
+  },
+  "derinkuyu": {
+   "beat:pill": {
+    "min_full": 4.05,
+    "min_phone": 4.07,
+    "by_colour_full": {
+     "gold": 6.58,
+     "grey": 4.05,
+     "bone": 10.16
+    },
+    "by_colour_phone": {
+     "gold": 6.6,
+     "grey": 4.07,
+     "bone": 10.17
+    },
+    "band_covered": 0.257
+   },
+   "beat:stroke_halo": {
+    "min_full": 2.72,
+    "min_phone": 2.6,
+    "by_colour_full": {
+     "gold": 4.93,
+     "grey": 2.72,
+     "bone": 7.92
+    },
+    "by_colour_phone": {
+     "gold": 4.73,
+     "grey": 2.6,
+     "bone": 7.43
+    },
+    "band_covered": 0.238
+   },
+   "bright:pill": {
+    "min_full": 4.44,
+    "min_phone": 4.45,
+    "by_colour_full": {
+     "gold": 7.49,
+     "grey": 4.44,
+     "bone": 10.67
+    },
+    "by_colour_phone": {
+     "gold": 7.5,
+     "grey": 4.45,
+     "bone": 10.67
+    },
+    "band_covered": 0.258
+   },
+   "bright:stroke_halo": {
+    "min_full": 3.56,
+    "min_phone": 3.42,
+    "by_colour_full": {
+     "gold": 6.74,
+     "grey": 3.56,
+     "bone": 8.08
+    },
+    "by_colour_phone": {
+     "gold": 6.62,
+     "grey": 3.42,
+     "bone": 7.79
+    },
+    "band_covered": 0.22
+   }
+  }
+ }
+}

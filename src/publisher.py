@@ -16,9 +16,11 @@ Every outcome is explicit:
 Only "published" counts toward a topic's publish history.
 """
 
+import contextlib
 import json
 import logging
 import os
+import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -33,6 +35,12 @@ from .db import PipelineDatabase
 log = logging.getLogger(__name__)
 
 
+# One timeout for a request that sends a file: with a (connect, read) pair, urllib3 keeps the short connect value
+# while the body is sent, so a write that stalls 15 s on a slow uplink aborted the upload ("The write operation timed
+# out": the YouTube Short, production, 2026-10-26; the Telegram review videos had the same, telegram_bot._post).
+UPLOAD_TIMEOUT = 900
+
+
 def _assert_recovery_unlocked():
     if (config.BASE_DIR / ".restore-isolated").exists():
         raise PublishFailed("Publishing is disabled in this isolated recovery copy")
@@ -45,9 +53,11 @@ class NotConfigured(Exception):
 class PublishFailed(Exception):
     """Definitely not published; safe to try the next publisher."""
 
-    def __init__(self, message: str = "", status: Optional[int] = None):
+    def __init__(self, message: str = "", status: Optional[int] = None, code: Optional[int] = None,
+                 subcode: Optional[int] = None):
         super().__init__(message)
         self.status = status
+        self.code, self.subcode = code, subcode  # Graph's error code and error_subcode, when it gave them
 
 
 class PublishUnknown(Exception):
@@ -60,7 +70,7 @@ def _now() -> str:
 
 class UploadPostPublisher:
     name = "upload-post"
-    platforms = ("facebook", "instagram")
+    platforms = ("facebook", "instagram", "youtube")
 
     def __init__(self, api_key: str = None, user: str = None, base_url: str = None, facebook_page_id: str = None,
                  poll_interval: float = 10.0, poll_timeout: float = 900.0):
@@ -85,6 +95,8 @@ class UploadPostPublisher:
         if not self.configured():
             raise NotConfigured("UPLOAD_POST_API_KEY / UPLOAD_POST_USER not set")
         meta, media = envelope["metadata"], envelope["media"]
+        if envelope["platforms"] == ["youtube"]:
+            return self._publish_youtube(envelope)
         data: List[Tuple[str, str]] = [
             ("user", self.user),
             *[("platform[]", p) for p in envelope["platforms"]],
@@ -103,7 +115,7 @@ class UploadPostPublisher:
             ("is_ai_generated", "true" if meta["is_ai_generated"] else "false"),
             ("facebook_is_ai_generated", "true" if meta["is_ai_generated"] else "false"),
             ("async_upload", "true"),
-            ("request_id", envelope["run_id"]),
+            ("request_id", envelope.get("request_id") or envelope["run_id"]),  # a retry names its own key
         ]
         if self.facebook_page_id:
             data.append(("facebook_page_id", self.facebook_page_id))
@@ -114,11 +126,11 @@ class UploadPostPublisher:
                 with open(media["video_path"], "rb") as vf, open(media["thumbnail_path"], "rb") as tf:
                     response = requests.post(
                         f"{self.base_url}/upload",
-                        headers=self._headers(envelope["run_id"]),
+                        headers=self._headers(envelope.get("request_id") or envelope["run_id"]),
                         data=data,
                         files={"video": (Path(media["video_path"]).name, vf, "video/mp4"),
                                "cover_image": (Path(media["thumbnail_path"]).name, tf, "image/jpeg")},
-                        timeout=(15, 600),
+                        timeout=UPLOAD_TIMEOUT,
                     )
                 break
             except requests.ConnectionError as e:
@@ -140,10 +152,135 @@ class UploadPostPublisher:
         request_id = body.get("request_id") or envelope["run_id"]
         return self._poll(request_id)
 
-    def publish_photos(self, kind: str, photos: List[str], caption: str, platforms: List[str], key: str) -> Dict[str, Any]:
+    def _publish_youtube(self, envelope: Dict[str, Any]) -> Dict[str, Any]:
+        """The 16:9 documentary to YouTube (docs.upload-post.com/api/upload-video, YouTube fields): the
+        YouTube title (100 characters), description, tags, Education category, the AI-content disclosure,
+        not made for kids, and the 16:9 thumbnail as a file (2 MB maximum; needs a verified channel)."""
+        meta, media = envelope["metadata"], envelope["media"]
+        data: List[Tuple[str, str]] = [
+            ("user", self.user), ("platform[]", "youtube"),
+            ("title", (meta.get("youtube_title") or meta["title"])[:100]),
+            ("youtube_title", (meta.get("youtube_title") or meta["title"])[:100]),
+            ("youtube_description", (meta.get("description") or meta["caption"])[:5000]),
+            *[("tags[]", tag) for tag in (meta.get("tags") or [])[:30]],
+            ("categoryId", "27"),  # Education
+            ("privacyStatus", config.YOUTUBE_PRIVACY),
+            ("selfDeclaredMadeForKids", "false"),
+            ("containsSyntheticMedia", "true" if meta["is_ai_generated"] else "false"),
+            ("defaultLanguage", "en"), ("defaultAudioLanguage", "en"),
+            ("async_upload", "true"), ("request_id", envelope["run_id"]),
+        ]
+        files = {}
+        handles = []
+        try:
+            video = open(media["video_path"], "rb")
+            handles.append(video)
+            files["video"] = (Path(media["video_path"]).name, video, "video/mp4")
+            thumb = Path(media["thumbnail_path"])
+            if thumb.is_file() and thumb.stat().st_size <= 2 * 1024 * 1024:
+                handle = open(thumb, "rb")
+                handles.append(handle)
+                files["thumbnail"] = (thumb.name, handle, "image/jpeg")
+            else:
+                log.warning("YouTube thumbnail missing or over 2 MB (%s); YouTube will pick a frame.", thumb.name)
+            response = requests.post(f"{self.base_url}/upload", headers=self._headers(envelope["run_id"]),
+                                     data=data, files=files, timeout=1800)
+        except requests.ConnectionError as e:
+            raise PublishFailed(f"Could not connect to Upload-Post: {e}") from e
+        except requests.Timeout as e:
+            raise PublishUnknown(f"Upload-Post timed out after the YouTube upload started: {e}") from e
+        finally:
+            for handle in handles:
+                handle.close()
+        body = self._json(response)
+        if response.status_code >= 500:
+            raise PublishUnknown(f"Upload-Post server error {response.status_code}: {body}")
+        if response.status_code >= 400 or not body.get("success"):
+            raise PublishFailed(f"Upload-Post rejected the YouTube upload ({response.status_code}): {body.get('message') or body}")
+        if "results" in body:
+            return self._summarize(body["results"], body)
+        return self._poll(body.get("request_id") or envelope["run_id"])
+
+    def publish_short(self, envelope: Dict[str, Any]) -> Dict[str, Any]:
+        """The approved 9:16 Reel to YouTube. YouTube makes a vertical video of 3 minutes or less a Short
+        by itself (no flag exists); a custom thumbnail is not sent, since Shorts take a frame. Its own
+        idempotency key: reusing the Reel's would return the Reel's upload instead of making this one."""
+        _assert_recovery_unlocked()
+        if not self.configured():
+            raise NotConfigured("UPLOAD_POST_API_KEY / UPLOAD_POST_USER not set")
+        meta, media = envelope["metadata"], envelope["media"]
+        key = envelope["run_id"] + ":youtube-short"
+        tags = " ".join(meta.get("hashtags") or [])
+        data: List[Tuple[str, str]] = [
+            ("user", self.user), ("platform[]", "youtube"),
+            ("title", meta["title"][:100]), ("youtube_title", meta["title"][:100]),
+            ("youtube_description", (meta["caption"] + ("\n\n" + tags if tags and tags not in meta["caption"] else ""))[:5000]),
+            *[("tags[]", t.lstrip("#")) for t in (meta.get("hashtags") or [])[:30]],
+            ("categoryId", "27"),  # Education
+            ("privacyStatus", config.YOUTUBE_SHORTS_PRIVACY),
+            ("selfDeclaredMadeForKids", "false"),
+            ("containsSyntheticMedia", "true" if meta["is_ai_generated"] else "false"),
+            ("defaultLanguage", "en"), ("defaultAudioLanguage", "en"),
+            ("async_upload", "true"), ("request_id", key),
+        ]
+        if meta.get("first_comment"):
+            data.append(("youtube_first_comment", meta["first_comment"]))
+        # Our own captions, word for word (YouTube's automatic ones misspell names): Upload-Post attaches the file
+        # through the YouTube Captions API once the video is processed (docs.upload-post.com/api/upload-video,
+        # youtube_subtitle_file; operator, 2026-10-27).
+        srt = Path(media["video_path"]).with_suffix(".srt")
+        if srt.is_file():
+            data += [("youtube_subtitle_language", "en"), ("youtube_subtitle_name", "English")]
+        try:
+            with open(media["video_path"], "rb") as vf, (open(srt, "rb") if srt.is_file() else contextlib.nullcontext()) as sf:
+                files = {"video": (Path(media["video_path"]).name, vf, "video/mp4")}
+                if sf is not None:
+                    files["youtube_subtitle_file"] = (srt.name, sf, "text/plain")
+                response = requests.post(f"{self.base_url}/upload", headers=self._headers(key), data=data,
+                                         files=files, timeout=UPLOAD_TIMEOUT)
+        except requests.ConnectionError as e:
+            raise PublishFailed(f"Could not connect to Upload-Post: {e}") from e
+        except requests.Timeout as e:
+            raise PublishUnknown(f"Upload-Post timed out after the Short's upload started: {e}") from e
+        body = self._json(response)
+        if response.status_code >= 500:
+            raise PublishUnknown(f"Upload-Post server error {response.status_code}: {body}")
+        if response.status_code >= 400 or not body.get("success"):
+            raise PublishFailed(f"Upload-Post rejected the Short ({response.status_code}): {body.get('message') or body}")
+        if "results" in body:
+            return self._summarize(body["results"], body)
+        return self._poll(body.get("request_id") or key)
+
+    def set_youtube_thumbnail(self, video_id: str, image: Path) -> Dict[str, Any]:
+        """A custom thumbnail for a published YouTube video or Short (Upload-Post's youtube/thumbnail endpoint:
+        JPG/PNG at most 2 MB, 1080x1920 recommended for a Short, verified channel required). Best-effort:
+        returns {"set": bool, "error": str|None}; never raises (operator, 2026-10-24: the first Short had none)."""
+        image = Path(image)
+        if not image.is_file():
+            return {"set": False, "error": "thumbnail file missing"}
+        if image.stat().st_size > 2 * 1024 * 1024:
+            return {"set": False, "error": f"thumbnail over 2 MB ({image.stat().st_size // 1024} KB)"}
+        try:
+            with open(image, "rb") as handle:
+                response = requests.post(f"{self.base_url}/uploadposts/youtube/thumbnail", headers=self._headers(),
+                                         data=[("user", self.user), ("video_id", video_id)],
+                                         files={"thumbnail": (image.name, handle, "image/jpeg")}, timeout=300)
+        except requests.RequestException as e:
+            return {"set": False, "error": f"could not reach Upload-Post: {e}"}
+        body = self._json(response)
+        if response.status_code < 400 and body.get("success"):
+            return {"set": True, "error": None, "thumbnails": body.get("thumbnails")}
+        return {"set": False, "error": f"HTTP {response.status_code}: {body.get('error') or body.get('message') or body}"[:300]}
+
+    def publish_photos(self, kind: str, photos: List[str], caption: str, platforms: List[str], key: str,
+                       alt_texts: Optional[List[str]] = None, first_comment: str = "") -> Dict[str, Any]:
         _assert_recovery_unlocked()
         """A carousel (several photos, one post) or a single Story frame (kind="story", one photo).
-        Docs: docs.upload-post.com/api/upload-photo/ (media_type / facebook_media_type = STORIES)."""
+        Docs: docs.upload-post.com/api/upload-photo/ (media_type / facebook_media_type = STORIES).
+        A carousel's `alt_texts` (one per photo, in order) go as instagram_alt_text / facebook_alt_text, each a
+        JSON list (the documented per-photo form; at most 1,000 characters an item); Stories take none. Its
+        `first_comment` goes as each platform's own <platform>_first_comment (a failed first comment never
+        fails the post, Upload-Post reports it under `warnings`)."""
         if not self.configured():
             raise NotConfigured("UPLOAD_POST_API_KEY / UPLOAD_POST_USER not set")
         data: List[Tuple[str, str]] = [("user", self.user), *[("platform[]", p) for p in platforms],
@@ -151,7 +288,17 @@ class UploadPostPublisher:
         if kind == "story":
             data += [("media_type", "STORIES"), ("facebook_media_type", "STORIES")]
         else:
+            # On Facebook a carousel is a multi-photo post (Pages have no organic swipe carousel). It is not sent
+            # facebook_no_story: Upload-Post documents it only as "do not publish a story from this post", and the
+            # Graph field it mirrors (no_story) suppresses the post's feed and timeline story, which would keep the
+            # carousel out of followers' feeds (operator review, 2026-10-25).
             data += [("title", caption), ("description", caption)]
+            alts = [str(a or "").strip()[:1000] for a in (alt_texts or [])]
+            if len(alts) == len(photos) and all(alts):
+                data += [(f"{p}_alt_text", json.dumps(alts, ensure_ascii=False)) for p in platforms
+                         if p in ("instagram", "facebook")]
+            if first_comment.strip():
+                data += [(f"{p}_first_comment", first_comment.strip()) for p in platforms]
         if self.facebook_page_id:
             data.append(("facebook_page_id", self.facebook_page_id))
 
@@ -162,7 +309,7 @@ class UploadPostPublisher:
                 response = requests.post(
                     f"{self.base_url}/upload_photos", headers=self._headers(key), data=data,
                     files=[("photos[]", (Path(p).name, h, "image/jpeg")) for p, h in zip(photos, handles)],
-                    timeout=(15, 300))
+                    timeout=UPLOAD_TIMEOUT)
                 break
             except requests.ConnectionError as e:
                 if attempt == 2:
@@ -220,7 +367,14 @@ class UploadPostPublisher:
             return {"status": "published", "post_urls": {r["platform"]: r.get("post_url") or r.get("url") for r in live},
                     "skipped": [r["platform"] for r in skipped], "raw": raw}
         if live and failed:
-            raise PublishUnknown(f"Partial publish: ok={[r['platform'] for r in live]} failed={[r['platform'] for r in failed]}")
+            # The failed platform's own reason travels with the outcome (the first Stories, 2026-10-24: only
+            # "failed=['instagram']" was kept and the cause was lost), and the record lets a retry target it.
+            reasons = {r["platform"]: str(r.get("error") or r.get("message") or r.get("detail") or "no reason given")[:300] for r in failed}
+            why = "; ".join(f"{p}: {reason}" for p, reason in reasons.items())
+            error = PublishUnknown(f"Partial publish: ok={[r['platform'] for r in live]} failed={list(reasons)} ({why})")
+            error.failed = reasons  # type: ignore[attr-defined]
+            error.ok = {r["platform"]: r.get("post_url") or r.get("url") for r in live}  # type: ignore[attr-defined]
+            raise error
         raise PublishFailed(f"Upload-Post reported no successful platform: {raw}")
 
 
@@ -343,9 +497,53 @@ class FacebookPageReelsPublisher:
         except ValueError:
             body = {"raw": resp.text[:500]}
         if not resp.ok or "error" in body:
+            err = body.get("error") if isinstance(body.get("error"), dict) else {}
             raise PublishFailed(f"Graph {method} {url.split('?')[0]} -> {resp.status_code}: {body.get('error', body)}",
-                                status=resp.status_code)
+                                status=resp.status_code, code=err.get("code"), subcode=err.get("error_subcode"))
         return body
+
+    CAPTION_LOCALE = "en_US"
+
+    def upload_captions(self, video_id: str, srt_path: Path, locale: str = CAPTION_LOCALE) -> Dict[str, Any]:
+        """Closed captions for a posted Facebook video: POST /{video-id}/captions with an SRT named
+        name.<locale>.srt (Graph reference: video/captions). Upload-Post sends caption files to YouTube and
+        LinkedIn only, so a Reel on Facebook had none (operator, 2026-10-25). Meta documents the endpoint for
+        videos; a Reel is a Page video, so this is tried on one. A locale already on the video is replaced."""
+        if not self.configured():
+            raise NotConfigured("META_PAGE_ID / page access token not set")
+        srt_path = Path(srt_path)
+        if not srt_path.is_file():
+            raise PublishFailed(f"No caption file at {srt_path.name}")
+        url = f"{self.graph}/{video_id}/captions"
+
+        def send() -> Dict[str, Any]:
+            with open(srt_path, "rb") as fh:
+                return self._call("POST", url, timeout=120, data={"access_token": self.token, "default_locale": locale},
+                                  files={"captions_file": (f"captions.{locale}.srt", fh, "text/plain")})  # Graph refuses application/x-subrip (400 #100, 2026-10-27)
+        try:
+            return {"status": "published", "video_id": str(video_id), "locale": locale, "result": send()}
+        except PublishFailed as e:
+            if 482 not in (e.code, e.subcode):  # anything but "this locale is already on the video"
+                raise
+        self._call("POST", url, timeout=60, data={"access_token": self.token, "locales_to_delete": json.dumps([locale])})
+        return {"status": "published", "video_id": str(video_id), "locale": locale, "replaced": True, "result": send()}
+
+    def set_cover(self, video_id: str, image_path: Path) -> Dict[str, Any]:
+        """The cover of a posted Facebook video: POST /{video-id}/thumbnails with the image as `source` and
+        is_preferred=true (Graph reference: video/thumbnails; a video on a Page, at most 10 MB, the video's aspect
+        ratio). Meta documents it for Page videos; a Reel is one, so it is tried on one (operator, 2026-10-26)."""
+        if not self.configured():
+            raise NotConfigured("META_PAGE_ID / page access token not set")
+        image_path = Path(image_path)
+        if not image_path.is_file():
+            raise PublishFailed(f"No cover image at {image_path.name}")
+        if image_path.stat().st_size > 10 * 1024 * 1024:
+            raise PublishFailed(f"The cover is {image_path.stat().st_size // 1048576} MB; Facebook takes at most 10 MB")
+        with open(image_path, "rb") as fh:
+            result = self._call("POST", f"{self.graph}/{video_id}/thumbnails", timeout=120,
+                                data={"access_token": self.token, "is_preferred": "true"},
+                                files={"source": (image_path.name, fh, "image/jpeg")})
+        return {"status": "published", "video_id": str(video_id), "result": result}
 
     def publish(self, envelope: Dict[str, Any]) -> Dict[str, Any]:
         if not self.configured():
@@ -398,6 +596,27 @@ class FacebookPageReelsPublisher:
         raise PublishFailed("Facebook video not ready in time; nothing was published.")
 
 
+def _caption_for(kind: str, caption: str, platforms: List[str]) -> str:
+    """The caption a carousel request carries (operator, 2026-10-28: a posted Facebook carousel's pointing hand
+    pointed right while its caption sat above the photos). No request carries a direction cue (neutral_cues:
+    the script stage removes them, and an operator's edit is held to the same rule). Facebook's own request,
+    a multi-photo post shown as a grid, also says nothing about swiping (facebook_photo_caption)."""
+    if kind == "story" or not caption:
+        return caption
+    from .credits import is_attribution_line
+    from .script_engine import facebook_photo_caption, neutral_cues
+    clean = facebook_photo_caption if platforms == ["facebook"] else neutral_cues
+    # Credit lines go as they are: a photo's own title is quoted in its credit, whatever words it has.
+    lines = caption.splitlines()
+    credits = [ln for ln in lines if is_attribution_line(ln)]
+    if not credits:
+        return clean(caption)
+    body = "\n".join(ln for ln in lines if not is_attribution_line(ln)).rstrip()
+    if clean(body) == body:
+        return caption
+    return (clean(body).rstrip() + "\n\n" + "\n".join(credits)).strip()
+
+
 class MetaPublisher:
     def __init__(self, db: Optional[PipelineDatabase] = None, publishers: Optional[list] = None):
         self.db = db or PipelineDatabase()
@@ -424,6 +643,9 @@ class MetaPublisher:
                 "meta_topic_categories": script_payload.get("meta_topic_categories", []),
                 "first_comment": script_payload.get("first_comment", ""),
                 "is_ai_generated": META_IS_AI_GENERATED,
+                "youtube_title": script_payload.get("youtube_title", ""),
+                "description": script_payload.get("description", ""),
+                "tags": script_payload.get("tags", []),
             },
             "created_at": _now(),
         }
@@ -443,16 +665,20 @@ class MetaPublisher:
         if getattr(config, "VOICE_REQUIRE_LICENSED", True):
             from .config import OUTPUT_DIR
             voice_path = OUTPUT_DIR / run_id / "voice.json"
-            voice_meta = {}
-            if voice_path.is_file():
+            voice_meta, unreadable = {}, ""
+            if not voice_path.is_file():
+                unreadable = "its voice record (voice.json) is missing"
+            else:
                 try:
                     voice_meta = json.loads(voice_path.read_text(encoding="utf-8"))
-                except Exception:
-                    pass
+                except (OSError, ValueError) as e:  # still blocked (fails closed), but for the true reason
+                    unreadable = f"its voice record (voice.json) could not be read ({e})"
             is_licensed = voice_meta.get("licensed", False)
             provider = voice_meta.get("provider", "unknown")
             if not is_licensed:
                 err_msg = (
+                    f"Commercial Voice License Required: the licence of this Reel's voice cannot be confirmed: "
+                    f"{unreadable}. Re-voice or resend the run." if unreadable else
                     f"Commercial Voice License Required: This Reel was voiced using {provider} (unlicensed). "
                     "Meta Content Monetization Program (CMP) policies prohibit commercial publishing without "
                     "a commercial license. Please configure a valid Azure Speech key or ElevenLabs paid plan, "
@@ -495,8 +721,10 @@ class MetaPublisher:
                 self.db.record_publication(tid, run_id, pub.name, "failed", {"error": str(e)})
             except PublishUnknown as e:
                 log.error("%s outcome UNKNOWN; not failing over to avoid a duplicate post: %s", pub.name, e)
-                self.db.record_publication(tid, run_id, pub.name, "unknown", {"error": str(e)})
-                return {"status": "unknown", "channel": pub.name, "error": str(e), "published": done}
+                failed, ok = getattr(e, "failed", {}) or {}, getattr(e, "ok", {}) or {}  # a partial names its sides
+                self.db.record_publication(tid, run_id, pub.name, "unknown", {"error": str(e), "failed": failed, "ok": ok,
+                                                                               "platforms": sorted(covers)})
+                return {"status": "unknown", "channel": pub.name, "error": str(e), "published": done, "failed": failed, "ok": ok}
             if not remaining:
                 break
 
@@ -513,35 +741,110 @@ class MetaPublisher:
         msg = "; ".join(errors) if errors else "no publisher is configured"
         return {"status": "failed", "error": msg}
 
+    def publish_short(self, envelope: Dict[str, Any], dry_run: bool = False) -> Dict[str, Any]:
+        """The Reel as a YouTube Short, after Facebook and Instagram. Its outcome is its own: recorded as
+        channel "youtube-shorts" and never changing the Reel's status. Only Upload-Post can do it."""
+        tid, run_id = envelope["topic_id"], envelope["run_id"]
+        if dry_run:
+            self.db.record_publication(tid, run_id, "youtube-shorts", "simulated", {"privacy": config.YOUTUBE_SHORTS_PRIVACY})
+            log.info("Dry run: the YouTube Short was not uploaded.")
+            return {"status": "simulated"}
+        uploader = next((p for p in self.publishers if hasattr(p, "publish_short")), None)
+        try:
+            if uploader is None:
+                raise NotConfigured("no publisher can upload YouTube Shorts")
+            res = uploader.publish_short(envelope)
+        except NotConfigured as e:
+            log.info("YouTube Short skipped: %s", e)
+            return {"status": "skipped", "error": str(e)}
+        except PublishFailed as e:
+            self.db.record_publication(tid, run_id, "youtube-shorts", "failed", {"error": str(e)})
+            return {"status": "failed", "error": str(e)}
+        except PublishUnknown as e:
+            self.db.record_publication(tid, run_id, "youtube-shorts", "unknown", {"error": str(e)})
+            return {"status": "unknown", "error": str(e)}
+        # The Short is up; now its thumbnail (a frame otherwise). Best-effort and recorded either way: the
+        # first Short (2026-10-24) went out with none, since the upload itself cannot carry one.
+        url = (res.get("post_urls") or {}).get("youtube") or ""
+        video_id = (re.search(r"[?&]v=([A-Za-z0-9_-]{6,})", url) or re.search(r"shorts/([A-Za-z0-9_-]{6,})", url) or [None, None])[1]
+        if video_id and hasattr(uploader, "set_youtube_thumbnail"):
+            try:
+                res["thumbnail"] = uploader.set_youtube_thumbnail(video_id, Path(envelope["media"]["thumbnail_path"]))
+            except Exception as e:  # never costs the Short its receipt
+                res["thumbnail"] = {"set": False, "error": str(e)[:200]}
+            if not res["thumbnail"].get("set"):
+                log.warning("YouTube Short thumbnail not set (%s); YouTube shows a frame.", res["thumbnail"].get("error"))
+        self.db.record_publication(tid, run_id, "youtube-shorts", "published", res)
+        return {"status": "published", "post_urls": res.get("post_urls") or {}, "thumbnail": res.get("thumbnail")}
+
     def publish_photos(self, run_id: str, topic_id: str, kind: str, photos: List[str], caption: str = "",
-                       platforms: Optional[List[str]] = None, dry_run: bool = False) -> Dict[str, Any]:
+                       platforms: Optional[List[str]] = None, dry_run: bool = False, retry_tag: str = "",
+                       first_comment: str = "") -> Dict[str, Any]:
         """Stories (one post per frame, in order) or a carousel, via Upload-Post only (the direct
         Graph publishers here handle Reels only). Same outcome rules as Reels: an unknown outcome
-        stops there so nothing is posted twice."""
+        stops there so nothing is posted twice. `retry_tag` names a deliberate re-send of a failed
+        platform (operator, 2026-10-24) so its idempotency keys differ from the first attempt's.
+        A carousel's slides carry alt text built from what each shows (multi_format.slide_alt_text);
+        `first_comment` (the credits, when they do not fit the caption) is posted under it on each platform."""
         platforms = platforms or ["facebook", "instagram"]
         if not dry_run:
             _assert_recovery_unlocked()
         channel = f"upload-post:{kind}"
-        if dry_run:
-            self.db.record_publication(topic_id, run_id, channel, "simulated", {"photos": photos})
-            return {"status": "simulated"}
+        tag = f"-{retry_tag}" if retry_tag else ""
+        # (photos, platforms, key) per request. Stories: one frame per request, in order. A carousel goes as
+        # one post per platform group; Facebook gets its own request, from its copy when the run made one
+        # (carousel_fb/: no "swipe" in its text), with at most four photos: its grid shows four tiles and put
+        # "+3" over the fourth of seven, hiding the closing slide (multi_format.facebook_pick; audit 2026-10-28).
+        # Upload-Post puts a Facebook multi-photo post's caption on its first photo, which is the cover.
+        if kind == "story":
+            batches = [([p], platforms, f"{run_id}-{kind}-{i}{tag}") for i, p in enumerate(photos, 1)]
+        else:
+            from .multi_format import facebook_pick
+            slides = photos[:10]  # Instagram carousels: max 10
+            fb_copy = [Path(p).parent.parent / "carousel_fb" / Path(p).name for p in slides]
+            fb_slides = facebook_pick([str(f) for f in fb_copy] if all(f.is_file() for f in fb_copy) else slides)
+            others = [x for x in platforms if x != "facebook"]
+            if "facebook" in platforms and others:
+                batches = [(slides, others, f"{run_id}-{kind}-1{tag}"),
+                           (fb_slides, ["facebook"], f"{run_id}-{kind}-facebook-1{tag}")]
+            elif "facebook" in platforms:
+                batches = [(fb_slides, ["facebook"], f"{run_id}-{kind}-1{tag}")]
+            else:
+                batches = [(slides, platforms, f"{run_id}-{kind}-1{tag}")]
+        alt_texts = {}
+        if kind != "story":  # Stories take no alt text through Upload-Post
+            from .multi_format import slide_alt_text
+            alt_texts = {key: [slide_alt_text(Path(p)) for p in batch] for batch, _, key in batches}
+        if dry_run:  # the real plan, each request recorded as it would be sent, nothing sent
+            for i, (batch, batch_platforms, key) in enumerate(batches, 1):
+                self.db.record_publication(topic_id, run_id, channel, "simulated",
+                                           {"part": i, "platforms": batch_platforms, "request_id": key, "photos": batch,
+                                            "caption": _caption_for(kind, caption, batch_platforms),
+                                            **({"alt_text": alt_texts.get(key), "first_comment": first_comment}
+                                               if kind != "story" else {})})
+            log.info("Dry run: %s not posted (%d request(s) planned).", kind, len(batches))
+            return {"status": "simulated", "posted_parts": 0, "planned_parts": len(batches)}
         up = next((p for p in self.publishers if isinstance(p, UploadPostPublisher)), None)
         if up is None or not up.configured():
             return {"status": "failed", "error": "Upload-Post is not configured (needed for Stories and carousels)"}
-        batches = [[p] for p in photos] if kind == "story" else [photos[:10]]  # Instagram carousels: max 10
         done = []
-        for i, batch in enumerate(batches, 1):
-            key = f"{run_id}-{kind}-{i}"
+        for i, (batch, batch_platforms, key) in enumerate(batches, 1):
             try:
-                res = up.publish_photos(kind, batch, caption, platforms, key)
+                res = up.publish_photos(kind, batch, _caption_for(kind, caption, batch_platforms), batch_platforms, key,
+                                        alt_texts=alt_texts.get(key),
+                                        first_comment=first_comment if kind != "story" else "")
             except PublishFailed as e:
                 self.db.record_publication(topic_id, run_id, channel, "failed", {"error": str(e), "part": i})
                 status = "unknown" if done else "failed"  # earlier frames already went out
                 return {"status": status, "error": str(e), "posted_parts": len(done)}
             except PublishUnknown as e:
-                self.db.record_publication(topic_id, run_id, channel, "unknown", {"error": str(e), "part": i})
-                return {"status": "unknown", "error": str(e), "posted_parts": len(done)}
-            self.db.record_publication(topic_id, run_id, channel, "published", dict(res, part=i))
+                failed, ok = getattr(e, "failed", {}) or {}, getattr(e, "ok", {}) or {}
+                self.db.record_publication(topic_id, run_id, channel, "unknown",
+                                           {"error": str(e), "part": i, "failed": failed, "ok": ok, "platforms": batch_platforms})
+                return {"status": "unknown", "error": str(e), "posted_parts": len(done), "part": i, "failed": failed, "ok": ok}
+            # The request id and platforms are kept: audience metrics are fetched by them later.
+            self.db.record_publication(topic_id, run_id, channel, "published",
+                                       dict(res, part=i, request_id=key, platforms=batch_platforms))
             done.append(res)
         urls: Dict[str, Any] = {}
         for r in done:

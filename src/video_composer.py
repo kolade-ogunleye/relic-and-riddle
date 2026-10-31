@@ -38,12 +38,8 @@ from .config import (
     CAPTION_PAD_X,
     CAPTION_PAD_Y,
     CAPTION_BORDER_RADIUS,
-    COL_ACTIVE,
-    COL_EMPHASIS,
     EMPHASIS_POP,
-    COL_PAST,
-    COL_FUTURE,
-    COL_BACK,
+    COL_BACK,  # the pill; the text colours are the brand's (below)
     TARGET_LUFS,
     TARGET_TRUE_PEAK,
     VIDEO_WIDTH,
@@ -52,6 +48,16 @@ from .config import (
 )
 from .typography import is_video
 from .parallax import preset_for
+from . import brand as _brand
+
+# Caption colours from the brand tokens (visual overhaul, 2026-10-29): spoken words in bone, the script's key words
+# in the brand gold (#FFD700 until then, one of three golds on screen), upcoming words in light stone. The style
+# stays the pill: measured on graded frames of three topics (docs/reviews/brand-overhaul-2026-10-29), the pill
+# kept spoken words at 9.1:1 or better and gold at 6.0:1, where the critic's stroke-and-halo fell to 4.07:1 and
+# 2.56:1 on bright desert; the old grey upcoming words read 3.70:1 on the pill, so they are light stone now.
+COL_ACTIVE = COL_PAST = _brand.ass_colour(_brand.BONE)
+COL_EMPHASIS = _brand.ass_colour(_brand.GOLD)
+COL_FUTURE = _brand.ass_colour(_brand.STONE_LT)
 
 log = logging.getLogger(__name__)
 
@@ -68,21 +74,47 @@ PARALLAX_TO_TRANSITION = {
     "pull": "dissolve",
 }
 TRANS_DUR = 0.40
+# An AI motion clip keeps a locked camera (motion.build_motion_prompt: camera moves warped the architecture), so
+# an opening that is one held still for its first seconds (Meta's Creator assistant, 2026-10-28: "viewers decide
+# in under two seconds"). The opening clip gets the stills' push on top, a crop zoom that starts at frame 0 and
+# changes nothing in the picture.
+HOOK_CLIP_ZOOM = "min(1+0.0016*on,1.24)"
+
+
+def is_ai_motion_clip(path: Path) -> bool:
+    """A clip src/motion.py made from a photo (motion_NN.mp4), as opposed to footage, a graphic or a manual
+    hook clip, which move by themselves."""
+    return is_video(path) and Path(path).stem.startswith("motion_")
+
+
+def hook_clip_filter(i: int, width: int, height: int) -> str:
+    """The filter for an AI motion clip opening a vertical video: the same push-in as the opening still,
+    rendered at twice the size (as the stills are, against zoompan's jitter), from its first frame."""
+    return (f"[{i}:v]tpad=stop_mode=clone:stop=-1,scale={width * 2}:{height * 2}:force_original_aspect_ratio=increase,"
+            f"crop={width * 2}:{height * 2},zoompan=z='{HOOK_CLIP_ZOOM}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
+            f"d=1:s={width}x{height}:fps={VIDEO_FPS},setsar=1,scale=out_range=tv,format=yuv420p[v{i}]")
 
 
 class RenderError(RuntimeError):
     pass
 
 
+FFMPEG_TIMEOUT_SECONDS = 3600  # a documentary master takes ~12 min; a hung ffmpeg must not hold a run forever
+
+
 def _run_ffmpeg(cmd: List[str]) -> subprocess.CompletedProcess:
-    res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    try:
+        res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                             timeout=FFMPEG_TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired as e:
+        raise RenderError(f"ffmpeg did not finish within {FFMPEG_TIMEOUT_SECONDS}s; stopped.") from e
     if res.returncode != 0:
         tail = "\n".join(res.stderr.strip().splitlines()[-15:])
         raise RenderError(f"ffmpeg failed (exit {res.returncode}):\n{tail}")
     return res
 
 
-from .encoding import bounded_encode, get_video_encoder as _get_video_encoder
+from .encoding import bounded_encode, get_video_encoder as _get_video_encoder, get_intermediate_video_encoder as _get_intermediate_video_encoder
 
 
 def _ass_escape(text: str) -> str:
@@ -90,7 +122,11 @@ def _ass_escape(text: str) -> str:
     return text.replace("\\", "").replace("{", "(").replace("}", ")").replace("\n", " ")
 
 
-MAX_CAPTION_WIDTH = 650  # px: inside Meta's safe zone, leaving >= 185px clear on both sides
+from .safe_zones import CAPTION_CLEARANCE, REEL as _REEL_UI
+
+# The widest caption text, centred: its pill (text plus padding) fills at most the width every Reel platform
+# leaves free (safe_zones.REEL.centred_width, 696 px: Shorts' icon column takes the right 192 px). 640 px.
+MAX_CAPTION_WIDTH = _REEL_UI.centred_width() - 2 * CAPTION_PAD_X
 
 
 TERMINAL_PUNCT = re.compile(r"[\.\?!…]+[\"\'”’\)]*$")
@@ -255,7 +291,7 @@ def partition_words_grammatical(
             rem = n - i
             rem_clean = [re.sub(r"[\,\;\.]+$", "", x.get("word", "")) for x in sent[i:]]
             rem_txt = " ".join(rem_clean)
-            if min_words <= rem <= max_words and len(rem_txt) <= max_chars:
+            if min_words <= rem <= max_words and len(rem_txt) <= max_chars and _fits_caption_width(sent[i:]):
                 memo[i] = [sent[i:]]
                 return memo[i]
 
@@ -272,6 +308,8 @@ def partition_words_grammatical(
                     after = _solve(i + size)
                     if after is not None:
                         chunk = sent[i:i + size]
+                        if len(chunk) > 1 and not _fits_caption_width(chunk):
+                            continue  # a burst its pill cannot hold inside the platforms' safe width is never a choice
                         clean_chunk = [re.sub(r"[\,\;\.]+$", "", x.get("word", "")) for x in chunk]
                         txt = " ".join(clean_chunk)
                         first_w = re.sub(r"[^\w]", "", clean_chunk[0]).lower()
@@ -306,6 +344,8 @@ def partition_words_grammatical(
                             best = [chunk] + after
             if best is None:
                 cut = min(rem, target_words)
+                while cut > 1 and not _fits_caption_width(sent[i:i + cut]):
+                    cut -= 1  # shorter bursts rather than a pill wider than the safe width
                 best = [sent[i:i + cut]] + (_solve(i + cut) or [sent[i + cut:]])
             memo[i] = best
             return best
@@ -366,7 +406,24 @@ def _caption_fit_size(phrase: Any, scale: float = 1.0, max_width: int = MAX_CAPT
     width = draw.textlength(plain, font=get_font("Anton", FONT_SIZE)) * scale
     if width <= max_width:
         return FONT_SIZE
-    return max(48, int(FONT_SIZE * max_width / width))
+    return max(CAPTION_MIN_SIZE, int(FONT_SIZE * max_width / width))
+
+
+CAPTION_MIN_SIZE = 48  # px: the smallest a caption shrinks to; below this it is not readable on a phone
+END_CARD_BELOW_BODY_LU = 6.0  # the end card sits this far under the narrated body (the approved prototype: about 6)
+
+
+def _fits_caption_width(phrase: Any, max_width: int = MAX_CAPTION_WIDTH) -> bool:
+    """Whether a burst can be shown inside the caption width at the smallest readable size. A burst that
+    cannot would get a pill wider than the area the platforms leave free (safe_zones.REEL), so the phrase
+    builder never forms one from more than one word (measured 2026-10-24)."""
+    from .typography import get_font
+    from PIL import Image, ImageDraw
+    words = [w if isinstance(w, str) else (w.get("word", "") if isinstance(w, dict) else str(w)) for w in phrase]
+    if words:
+        words[-1] = re.sub(r"[\,\;\.]+$", "", words[-1])
+    draw = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    return draw.textlength(" ".join(words).upper(), font=get_font("Anton", CAPTION_MIN_SIZE)) <= max_width
 
 
 
@@ -388,7 +445,9 @@ def format_word_caption(
     if not enable_small_caps:
         return f"{{\\c{colour}\\fscx100\\fscy100}}{clean.upper()}"
 
-    tokens = re.findall(r"[A-Za-z]+|[^A-Za-z]+", clean)
+    # A possessive or contraction is one word: "Kailasa's" keeps one full-size initial, and the s after the
+    # apostrophe is small (the first posted Reel showed KAILASA'S with a full-size S, 2026-10-24).
+    tokens = re.findall(r"[A-Za-z]+(?:['’][A-Za-z]+)*|[^A-Za-z]+", clean)
     out = []
     sc_base = sc_scale
     init_tag = f"\\c{colour}\\fscx100\\fscy100"
@@ -405,7 +464,7 @@ def format_word_caption(
     }
 
     for tok in tokens:
-        if tok.isalpha():
+        if tok[:1].isalpha():  # a word, possibly with an apostrophe inside it
             upper = tok.upper()
             if upper in ACRONYMS or upper in ROMAN_NUMERALS or (tok.isupper() and 2 <= len(tok) <= 4):
                 out.append(f"{{{init_tag}}}{upper}")
@@ -441,27 +500,131 @@ def emphasis_indices(words: List[Dict[str, Any]], terms: Optional[List[str]]) ->
     return picked
 
 
-def _audio_chain(vo_idx: int, bg_idx: int) -> str:
-    """Voice cleanup + optical vocal leveling + center spectral pocket carving + ducked stereo bed."""
+def _audio_chain(vo_idx: int, bg_idx: int, pad: float = 0.0, card_at: Optional[float] = None, card_db: float = 0.0) -> str:
+    """Voice cleanup + optical vocal leveling + center spectral pocket carving + ducked stereo bed.
+    pad: seconds of silence after the voice (the end card), so the mix runs on with the bed alone.
+    card_at/card_db: the end card's level set from card_at on (a 0.3 s ramp), measured per run."""
+    pad_filter = f"apad=pad_dur={pad:.3f}," if pad > 0 else ""
+    card_filter = ""
+    if card_at is not None and card_db:
+        lin = 10 ** (card_db / 20)
+        card_filter = f",volume='1+({lin:.5f}-1)*min(max((t-{card_at:.3f})/0.3,0),1)':eval=frame"
     return (
-        f"[{vo_idx}:a]aresample={AUDIO_SAMPLE_RATE},aformat=channel_layouts=stereo,"
+        f"[{vo_idx}:a]aresample={AUDIO_SAMPLE_RATE},aformat=channel_layouts=stereo,{pad_filter}"
         f"highpass=f=85,compand=attacks=0.02:decays=0.15:points=-80/-80|-40/-35|-20/-16|0/-10,"
         f"equalizer=f=3500:width_type=q:w=1.2:g=1.8,equalizer=f=7000:width_type=q:w=2.0:g=-2.2,"
         f"asplit[v_main][v_sc];"
         f"[{bg_idx}:a]aresample={AUDIO_SAMPLE_RATE},aformat=channel_layouts=stereo,"
         f"equalizer=f=3200:width_type=q:w=1.5:g=-3.0[bg_carved];"
         f"[bg_carved][v_sc]sidechaincompress=threshold=0.08:ratio=7:attack=15:release=220[bg_ducked];"
-        f"[v_main][bg_ducked]amix=inputs=2:duration=first:dropout_transition=2:normalize=0,aformat=channel_layouts=stereo"
+        f"[v_main][bg_ducked]amix=inputs=2:duration=first:dropout_transition=2:normalize=0,aformat=channel_layouts=stereo{card_filter}"
     )
 
 
 def _master_chain(gain_db: float) -> str:
-    """Gain + true-peak-safe limiter (limiting at 4x rate catches inter-sample peaks) with dynamic range breathing room."""
+    """Gain + true-peak-safe limiter (limiting at 4x rate catches inter-sample peaks) with dynamic range breathing room.
+    A 16 kHz low-pass ahead of the limiter: AAC at 192 kb/s drops that band, and dropping it after the limiter made a
+    -1.9 dBTP programme encode at +1.0 dBTP (Roman concrete, 2026-10-28; docs/reviews/aac-overshoot-2026-10-28).
+    The ceiling and the band are shared with finalize_encoded_audio, which limits once more if the encode still
+    overshoots."""
+    from .encoded_audio import LOWPASS_HZ, MASTER_LIMIT
     return (
-        f",volume={gain_db:.2f}dB,aresample={AUDIO_SAMPLE_RATE * 4},"
-        f"alimiter=limit=0.80:attack=2.5:release=80:level=disabled:asc=1,"
+        f",volume={gain_db:.2f}dB,lowpass=f={LOWPASS_HZ}:poles=2,aresample={AUDIO_SAMPLE_RATE * 4},"
+        f"alimiter=limit={MASTER_LIMIT:.2f}:attack=2.5:release=80:level=disabled:asc=1,"
         f"aresample={AUDIO_SAMPLE_RATE},aformat=channel_layouts=stereo"
     )
+
+
+# The film grade (2026-10-29). The Kodak 2383 print LUT expects log film scans; on our display-referred stills it
+# also pushed every colour warm/yellow and up to 2.5x more saturated, so a lamp-lit stone door that colour_balance
+# had taken from 70/71/31 to 85/84/45 came out 79/76/26 and read neon lime. The grade now keeps only the print's
+# tone (its grey response: the contrast, black density and highlight roll-off) and takes the hue from the picture:
+# each colour is scaled as a whole by the print's curve on a norm halfway between its luminance and its brightest
+# channel (hue and saturation kept, no channel clipped), then given a small, bounded chroma lift.
+# Measured on 40 stills of 10 topics: docs/reviews/film-grade-2026-10-29.
+FILM_PRINT_LUT = BASE_DIR / "assets" / "luts" / "kodak_2383.cube"
+FILM_LUT_DIR = BASE_DIR / "cache" / "luts"
+FILM_TONE_VERSION = 1
+FILM_TONE_NORM_MIX = 0.5     # 0 = luminance (washes bright warm colours out), 1 = brightest channel (flatter)
+FILM_TONE_CHROMA = 1.03      # the print's richness, bounded: more than this grows a warm material into a cast
+FILM_PRE_CURVE = "curves=master='0/0.02 0.5/0.50 1/0.98'"   # the pre-LUT black lift and white headroom (unchanged)
+_LUMA_709 = (0.2126, 0.7152, 0.0722)
+
+
+def _read_cube(path: Path):
+    """A .cube 3D LUT as an array [b][g][r] -> rgb (red runs fastest in the file)."""
+    import numpy as np
+    rows = []
+    for line in Path(path).read_text(encoding="utf-8", errors="replace").splitlines():
+        s = line.strip()
+        if s and (s[0].isdigit() or s[0] in ".-"):
+            rows.append([float(v) for v in s.split()[:3]])
+    a = np.asarray(rows, dtype=np.float64)
+    n = round(len(a) ** (1 / 3))
+    if n < 2 or n ** 3 != len(a):
+        raise ValueError(f"{Path(path).name} is not a 3D LUT")
+    return a.reshape(n, n, n, 3)
+
+
+def hue_safe_print_table(lut, mix: float = FILM_TONE_NORM_MIX, chroma: float = FILM_TONE_CHROMA):
+    """The print LUT's tone without its colour: a table of the same size whose greys stay grey (at the print's
+    mean grey response) and whose colours keep their hue, with relative chroma changed by at most `chroma`."""
+    import numpy as np
+    n = lut.shape[0]
+    v = np.linspace(0.0, 1.0, n)
+    b, g, r = np.meshgrid(v, v, v, indexing="ij")
+    x = np.stack([r, g, b], axis=-1)
+    tone = np.array([lut[i, i, i] for i in range(n)]).mean(axis=1)   # the grey axis, neutralised
+    w = np.asarray(_LUMA_709)
+    norm = mix * x.max(axis=-1) + (1 - mix) * (x @ w)
+    gain = np.where(norm > 1e-6, np.interp(norm, v, tone) / np.maximum(norm, 1e-6), 1.0)
+    out = x * gain[..., None]
+    out = out / np.maximum(out.max(axis=-1), 1.0)[..., None]   # over white: the whole colour scaled, hue kept
+    out[norm <= 1e-6] = tone[0]                                 # black is the print's black, neutral
+    y = out @ w
+    c = (out - y[..., None]) * chroma
+    with np.errstate(divide="ignore", invalid="ignore"):         # the chroma lift shrinks to stay in gamut
+        room = np.minimum(np.where(c > 0, (1 - y[..., None]) / c, np.inf),
+                          np.where(c < 0, -y[..., None] / c, np.inf)).min(axis=-1)
+    out = y[..., None] + c * np.clip(room, 0.0, 1.0)[..., None]
+    return np.clip(out, 0.0, 1.0)
+
+
+def hue_safe_print_lut(source: Path = FILM_PRINT_LUT, out_dir: Optional[Path] = None) -> Path:
+    """The hue-safe version of `source` as a .cube file (cached by the source's content and the settings)."""
+    import hashlib
+    data = Path(source).read_bytes()
+    key = hashlib.sha256(data + f"|v{FILM_TONE_VERSION}|{FILM_TONE_NORM_MIX}|{FILM_TONE_CHROMA}".encode()).hexdigest()[:12]
+    out = Path(out_dir or FILM_LUT_DIR) / f"{Path(source).stem}_tone_{key}.cube"
+    if out.is_file():
+        return out
+    table = hue_safe_print_table(_read_cube(source))
+    n = table.shape[0]
+    body = "\n".join(f"{r:.6f} {g:.6f} {b:.6f}" for r, g, b in table.reshape(-1, 3))
+    text = (f'TITLE "{Path(source).stem} tone only (hue kept)"\nLUT_3D_SIZE {n}\n'
+            f"DOMAIN_MIN 0.0 0.0 0.0\nDOMAIN_MAX 1.0 1.0 1.0\n{body}\n")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    tmp = out.with_name(f"{out.name}.{os.getpid()}.tmp")       # concurrent renders never read half a table
+    tmp.write_bytes(text.encode("ascii"))
+    os.replace(tmp, out)
+    return out
+
+
+def film_grade_filter(grade_bias: float = 0.0, source: Path = FILM_PRINT_LUT, out_dir: Optional[Path] = None) -> str:
+    """The master's film grade: the pre-curve and the hue-safe print LUT (a gentle neutral contrast when the LUT
+    is missing or unreadable), then the topic's bounded warm/cool bias."""
+    grade = "eq=contrast=1.07:brightness=0.008:saturation=1.03,curves=master='0/0.02 0.2/0.19 0.5/0.51 0.8/0.82 1/0.98'"
+    if Path(source).exists():
+        try:
+            lut = hue_safe_print_lut(source, out_dir)
+            lut_str = str(lut.resolve()).replace("\\", "/").replace(":", "\\:")
+            grade = f"{FILM_PRE_CURVE},lut3d='{lut_str}'"
+        except (OSError, ValueError) as e:
+            log.warning("Film print LUT not usable (%s); the neutral contrast grade is used.", e)
+    bias = max(-0.05, min(0.05, float(grade_bias or 0.0)))
+    if bias:  # the topic's own warmth or coolness, bounded, after the film print
+        grade += f",colorbalance=rs={bias:.3f}:bs={-bias:.3f}:rm={bias / 2:.3f}:bm={-bias / 2:.3f}"
+    return grade
 
 
 class VideoComposer:
@@ -526,6 +689,7 @@ class VideoComposer:
         width: int = VIDEO_WIDTH,
         height: int = VIDEO_HEIGHT,
         margin_v: Optional[int] = None,
+        reconstruction_intervals: Optional[List[Tuple[float, float]]] = None,
     ) -> Path:
         """Dynamic running-speech kinetic captions:
         1. Grammatical phrasing: sensitive to punctuation (. ? ! …) so every new sentence starts fresh.
@@ -550,6 +714,7 @@ ScaledBorderAndShadow: yes
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: CapText,Montserrat,38,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0.5,0,1,1.8,1.2,2,0,0,{eff_margin_v},1
 Style: CapBox,Montserrat,38,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,2,0,0,0,1
+Style: ReconBadge,Montserrat,22,&H40E2DAC8,&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,1.5,0,1,0,0,8,0,0,310,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -565,6 +730,7 @@ ScaledBorderAndShadow: yes
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: CapText,{FONT_NAME},{FONT_SIZE_ASS},{COL_PAST},&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0.5,0,1,0,0,5,0,0,0,1
 Style: CapBox,{FONT_NAME},{FONT_SIZE_ASS},{COL_BACK},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
+Style: ReconBadge,Montserrat,22,&H40E2DAC8,&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,1.5,0,1,0,0,8,0,0,310,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -579,7 +745,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if pi < len(phrases) - 1:
                 next_start = phrases[pi + 1][0]["start"]
             else:
-                next_start = phrase[-1]["start"] + phrase[-1]["dur"] + 0.10
+                dur = phrase[-1].get("dur", phrase[-1].get("end", phrase[-1]["start"] + 0.5) - phrase[-1]["start"])
+                next_start = phrase[-1]["start"] + dur + 0.10
 
             phrase_start = phrase[0]["start"]
             phrase_end = next_start
@@ -609,8 +776,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 box_w = int(round(text_w + CAPTION_PAD_X * 2))
                 box_h = int(round(text_h + CAPTION_PAD_Y * 2))
                 box_x = int(round(center_x - box_w / 2))
-                # Align vertical center: compensate for Anton font's ascent/baseline visual center shift
-                text_visual_center_y = center_y + int(round(7.5 * (fit / FONT_SIZE)))
+                # The pill ends above the band the platforms draw over (eff_margin_v = safe_zones.REEL.bottom):
+                # its centre used to sit on that line, so its lower half was under Meta's caption and audio
+                # row (measured on the first publication: pills at y 1202-1309 against the line at 1248).
+                shift = int(round(7.5 * (fit / FONT_SIZE)))  # Anton's visual centre sits below the geometric one
+                center_y = height - eff_margin_v - CAPTION_CLEARANCE - box_h // 2 - shift
+                text_visual_center_y = center_y + shift
                 box_y = int(round(text_visual_center_y - box_h / 2))
                 path = rounded_rect_path(box_w, box_h, CAPTION_BORDER_RADIUS)
 
@@ -656,6 +827,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
             base += len(phrase)
 
+        # Append historical reconstruction badges on layer 2 if present
+        if reconstruction_intervals:
+            for start_t, end_t in reconstruction_intervals:
+                badge_text = r"{\an8\fs22\c&HE2DAC8&\alpha&H40&\b1}[ HISTORICAL RECONSTRUCTION ]"
+                raw_events.append((2, start_t, end_t, "ReconBadge", badge_text))
+
         # Sort all events chronologically (layer 0 background pill always appears under layer 1 text)
         raw_events.sort(key=lambda e: (e[1], e[0]))
 
@@ -684,7 +861,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     def calibrate_gain(self, vo_path: Path, bed_path: Path, tolerance: float = 0.5, accept: float = 1.0,
                        max_iter: int = 6, target_lufs: float = TARGET_LUFS,
-                       target_true_peak: float = TARGET_TRUE_PEAK) -> float:
+                       target_true_peak: float = TARGET_TRUE_PEAK, pad: float = 0.0,
+                       card_at: Optional[float] = None, card_db: float = 0.0) -> float:
         """
         Finds the gain that lands the limited mix on target_lufs (within `tolerance` LU,
         the usual delivery tolerance). The limiter absorbs part of each gain step, so steps
@@ -694,19 +872,33 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         from .credits import sha256_file
         # Same voice + bed + targets always converge to the same gain (each pass decodes the full
         # mix), so a re-render (QA re-plan, deep-dive) reuses it instead of re-measuring.
-        key = (sha256_file(vo_path), sha256_file(bed_path), tolerance, accept, max_iter, target_lufs, target_true_peak)
+        key = (sha256_file(vo_path), sha256_file(bed_path), tolerance, accept, max_iter, target_lufs, target_true_peak, round(pad, 3),
+               card_at, round(card_db, 2))
         cache = self.__dict__.setdefault("_gain_cache", {})
         if all(key[:2]) and key in cache:
             log.info("Mastering: reusing calibrated gain %+.2f dB for unchanged audio", cache[key])
             return cache[key]
-        gain = self._calibrate_gain(vo_path, bed_path, tolerance, accept, max_iter, target_lufs, target_true_peak)
+        gain = self._calibrate_gain(vo_path, bed_path, tolerance, accept, max_iter, target_lufs, target_true_peak, pad,
+                                    card_at, card_db)
         if all(key[:2]):
             cache[key] = gain
         return gain
 
+    def end_card_level(self, vo_path: Path, bed_path: Path, card_at: float, pad: float, gain: float) -> Dict[str, float]:
+        """The end card's loudness against the narrated body in the mastered programme, and the correction (dB)
+        that sets it END_CARD_BELOW_BODY_LU under the body: the bed's music level differs from run to run, so the
+        card's level is measured, not assumed (6.3 to 8.7 LU under the body on three masters, 2026-10-25)."""
+        chain = _audio_chain(0, 1, pad) + _master_chain(gain)
+        body, _ = self._measure(vo_path, bed_path, chain + f",atrim=end={card_at:.3f}")
+        card, _ = self._measure(vo_path, bed_path, chain + f",atrim=start={card_at:.3f},asetpts=PTS-STARTPTS")
+        correction = max(-12.0, min(12.0, (body - END_CARD_BELOW_BODY_LU) - card))
+        log.info("End card: %.1f LUFS against the body's %.1f; set %+.1f dB", card, body, correction)
+        return {"body_lufs": round(body, 1), "card_lufs": round(card, 1), "correction_db": round(correction, 1)}
+
     def _calibrate_gain(self, vo_path: Path, bed_path: Path, tolerance: float, accept: float,
-                        max_iter: int, target_lufs: float, target_true_peak: float) -> float:
-        base = _audio_chain(0, 1)
+                        max_iter: int, target_lufs: float, target_true_peak: float, pad: float = 0.0,
+                        card_at: Optional[float] = None, card_db: float = 0.0) -> float:
+        base = _audio_chain(0, 1, pad, card_at, card_db)
         integrated, _ = self._measure(vo_path, bed_path, base)
         gain = target_lufs - integrated
         best_gain, best_err = gain, float("inf")
@@ -787,8 +979,15 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         height: int = VIDEO_HEIGHT,
         aspect_ratio: str = "9:16",
         delivery_profile=None,
+        grade_bias: float = 0.0,
+        end_card: str = "",
+        macro_drifts: Optional[List[int]] = None,
     ) -> Path:
         """
+        end_card: the share line of the end card appended after the narration (Reels only, src/end_card.py); the
+        bed must run on for end_card.SECONDS more (generate_ambient_bed(end_card_at=vo_dur)). Empty: no card.
+        grade_bias: a bounded warm (+) / cool (-) shift measured from the topic's hero photograph
+        (art direction, 2026-10-24), applied after the film LUT; 0 leaves the grade as it was.
         durations: seconds on screen per scene (e.g. from scene_planner beats). Each cut is
         a short cross-fade centred on the beat boundary. Without durations, scenes share
         the narration equally.
@@ -804,8 +1003,36 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         font_inputs = file_inputs([self.fonts_dir / filename for filename in FONT_FILES.values()])
         if not all(source_inputs.values()) or not all(font_inputs.values()):
             raise RenderError("Render sources and bundled fonts must exist")
+
+        n = len(scene_images)
+        if not durations or len(durations) != n:
+            durations = [(vo_dur + TRANS_DUR) / n] * n
+
+        # Historical reconstruction badge intervals
+        recon_intervals = []
+        cur_t = 0.0
+        for i, item in enumerate(scene_images):
+            dur = durations[i] if i < len(durations) else (vo_dur / max(1, len(scene_images)))
+            p = Path(item)
+            is_recon = p.stem.startswith(("gap_gen_", "gen_"))
+            if not is_recon:
+                try:
+                    from .lineage import source_chain
+                    chain = source_chain(p)
+                    is_recon = any(Path(s.get("path", "")).stem.startswith(("gap_gen_", "gen_")) for s in chain)
+                except Exception:
+                    pass
+            if is_recon:
+                recon_intervals.append((cur_t, cur_t + dur))
+            cur_t += dur
+
         ass_path = output_mp4_path.parent / (output_mp4_path.stem + "_captions.ass")
-        self.build_subtitles(words, ass_path, emphasis=emphasis, width=width, height=height)
+        self.build_subtitles(words, ass_path, emphasis=emphasis, width=width, height=height,
+                             reconstruction_intervals=recon_intervals)
+        from . import end_card as card_mod
+        card = bool((end_card or "").strip()) and width < height
+        card_seconds = card_mod.SECONDS if card else 0.0
+        self.last_end_card = None
 
         # Export sidecar SRT and VTT closed captions for YouTube / platform transcript indexing
         srt_path = output_mp4_path.parent / (output_mp4_path.stem + ".srt")
@@ -813,15 +1040,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         self.export_subtitles_srt(words, srt_path)
         self.export_subtitles_vtt(words, vtt_path)
 
-        n = len(scene_images)
-        if not durations or len(durations) != n:
-            durations = [(vo_dur + TRANS_DUR) / n] * n
         # Transition k starts half a fade before boundary k so the cut lands on the beat.
         boundaries = [sum(durations[:k + 1]) for k in range(n - 1)]
         offsets = [max(0.0, b - TRANS_DUR / 2) for b in boundaries]
         clip_durs = [d + TRANS_DUR for d in durations]
         clip_durs[-1] += TRANS_DUR  # tail headroom; the output is cut to the narration length
         w2, h2 = width * 2, height * 2
+        macro_indices = set(macro_drifts or [])
 
         input_args: List[str] = []
         filter_parts: List[str] = []
@@ -839,6 +1064,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         f"[fg_in{i}]scale=-2:{fg_h}[fg{i}];"
                         f"[bg{i}][fg{i}]overlay=(W-w)/2:(H-h)/2,fps={VIDEO_FPS},setsar=1,scale=out_range=tv,format=yuv420p[v{i}]"
                     )
+                elif i == 0 and width < height and is_ai_motion_clip(item):
+                    filter_parts.append(hook_clip_filter(i, width, height))
                 else:
                     filter_parts.append(
                         f"[{i}:v]tpad=stop_mode=clone:stop=-1,scale={width}:{height}:force_original_aspect_ratio=increase,"
@@ -847,7 +1074,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 continue
 
             input_args += ["-loop", "1", "-t", f"{clip_dur:.3f}", "-i", str(item)]
-            if i == 0 or i == n - 1:  # matching forward drift for the loop seam
+            if i in macro_indices:
+                # Tier 3 Intentional Relic Macro Drift: intimate optical push-in (1.00x -> 1.35x dynamic zoom)
+                # into the microscopic craftsmanship and material texture of the relic over an unphotographed beat.
+                z, x, y = "min(1.0+0.0025*on,1.35)", "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
+            elif i == 0 or i == n - 1:  # matching forward drift for the loop seam
                 z, x, y = "min(pzoom+0.0016,1.24)", "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
             elif i % 2 == 1:
                 z, x, y = "max(1.20-0.0014*on,1.0)", "iw/2-(iw/zoom/2)+sin(on/35)*32", "ih/2-(ih/zoom/2)"
@@ -901,34 +1132,43 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             filter_parts.append("[v0]null[video_raw]")
 
         input_args += ["-i", str(vo_path), "-i", str(bed_path)]
+        if card:  # the card's sound is the bed running on: a bed made for the narration alone would cut out
+            import soundfile as sf
+            bed_seconds = sf.info(str(bed_path)).duration
+            if bed_seconds < vo_dur + card_seconds - 0.02:
+                raise RenderError(f"The ambient bed runs {bed_seconds:.2f}s; the end card needs "
+                                  f"{vo_dur + card_seconds:.2f}s (make it with end_card_at).")
+        # The whole programme is mastered together: narration, and the card after it with the bed alone.
         gain = self.calibrate_gain(vo_path, bed_path, target_lufs=profile.target_lufs,
-                                   target_true_peak=profile.target_true_peak)
-        filter_parts.append(_audio_chain(n, n + 1) + _master_chain(gain) + "[a_final]")
+                                   target_true_peak=profile.target_true_peak, pad=card_seconds)
+        card_at, card_db, card_level = (vo_dur if card else None), 0.0, None
+        if card:  # the card's own level, measured in the mastered programme, then the whole mastered again
+            card_level = self.end_card_level(vo_path, bed_path, vo_dur, card_seconds, gain)
+            card_db = card_level["correction_db"] if abs(card_level["correction_db"]) >= 0.5 else 0.0
+            if card_db:
+                gain = self.calibrate_gain(vo_path, bed_path, target_lufs=profile.target_lufs,
+                                           target_true_peak=profile.target_true_peak, pad=card_seconds,
+                                           card_at=card_at, card_db=card_db)
+        filter_parts.append(_audio_chain(n, n + 1, card_seconds, card_at, card_db) + _master_chain(gain) + "[a_final]")
 
         ass_str = str(ass_path.resolve()).replace("\\", "/").replace(":", "\\:")
         fonts_str = str(self.fonts_dir.resolve()).replace("\\", "/").replace(":", "\\:")
         vignette_aspect = "16/9" if width > height else "9/16"
-        # Studio-grade cinema grade: Kodak 2383 3D film print LUT emulation with pre-LUT luminance stabilization
-        lut_path = BASE_DIR / "assets" / "luts" / "kodak_2383.cube"
-        if lut_path.exists():
-            lut_str = str(lut_path.resolve()).replace("\\", "/").replace(":", "\\:")
-            film_grade = f"curves=master='0/0.02 0.5/0.50 1/0.98',lut3d='{lut_str}'"
-        else:
-            film_grade = "eq=contrast=1.07:brightness=0.008:saturation=1.08,curves=master='0/0.02 0.2/0.19 0.5/0.51 0.8/0.82 1/0.98':red='0/0.01 0.5/0.50 1/0.99':blue='0/0.04 0.5/0.49 1/0.94'"
+        # The Kodak 2383 print's tone with the picture's own hue (2026-10-29: the full LUT turned a balanced
+        # lamp-lit door neon lime); film_grade_filter, above, has the why and the measurements.
+        film_grade = film_grade_filter(grade_bias)
+        # The graded picture before the captions, split off for the end card's background (its last frame).
+        card_split = "split[v_graded][v_card_src];[v_graded]" if card else ""
         filter_parts.append(
             f"[video_raw]format=yuv420p,{film_grade},format=yuv420p,"
-            f"noise=alls=8:allf=t+u,vignette=PI/4.2:aspect={vignette_aspect},"
+            f"noise=alls=8:allf=t+u,vignette=PI/4.2:aspect={vignette_aspect},{card_split}"
             f"subtitles='{ass_str}':fontsdir='{fonts_str}',scale=out_range=tv,format=yuv420p[v_final]"
         )
+        if card:
+            filter_parts.append(f"[v_card_src]trim=start={max(0.0, vo_dur - 0.2):.3f}:end={vo_dur:.3f}[v_last]")
 
         encoder_args = _get_video_encoder()
-
-        cmd = [
-            "ffmpeg", "-y", "-hide_banner", "-nostats",
-            "-threads", str(os.cpu_count() or 0),
-            *input_args,
-            "-filter_complex", ";".join(filter_parts),
-            "-map", "[v_final]", "-map", "[a_final]",
+        delivery_args = [
             *encoder_args,
             "-threads", str(os.cpu_count() or 0),
             "-pix_fmt", "yuv420p", "-color_range", "tv",
@@ -939,11 +1179,16 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             "-c:a", "aac", "-b:a", "192k", "-ar", str(AUDIO_SAMPLE_RATE), "-ac", "2",
             "-max_muxing_queue_size", "8192",
             "-movflags", "+faststart",
-            "-t", f"{vo_dur:.2f}",
-            str(output_mp4_path),
         ]
+        head = ["ffmpeg", "-y", "-hide_banner", "-nostats", "-threads", str(os.cpu_count() or 0),
+                *input_args, "-filter_complex", ";".join(filter_parts)]
         log.info("Rendering master -> %s", output_mp4_path.name)
-        _run_ffmpeg(cmd)
+        if not card:
+            _run_ffmpeg([*head, "-map", "[v_final]", "-map", "[a_final]", *delivery_args,
+                         "-t", f"{vo_dur:.2f}", str(output_mp4_path)])
+        else:
+            self.last_end_card = self._render_with_end_card(head, delivery_args, end_card, vo_dur, output_mp4_path)
+            self.last_end_card["level"] = card_level
         from .encoded_audio import finalize_encoded_audio
         encoded_audio = finalize_encoded_audio(output_mp4_path, profile.target_lufs, profile.target_true_peak)
         if source_inputs != file_inputs([*scene_images, vo_path, bed_path]):
@@ -956,12 +1201,67 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     "scenes": file_inputs(scene_images), "voiceover": file_inputs([vo_path]),
                     "ambient_bed": file_inputs([bed_path]), "fonts": font_inputs,
                     "captions": file_inputs([ass_path, output_mp4_path.with_suffix(".srt"), output_mp4_path.with_suffix(".vtt")]), "words_fingerprint": fingerprint(words),
-                    "width": width, "height": height, "renderer_sha256": sha256_file(Path(__file__))}
+                    "width": width, "height": height, "renderer_sha256": sha256_file(Path(__file__)),
+                    "end_card": self.last_end_card}
         manifest_path = output_mp4_path.with_suffix(".composition.json")
         manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
         size_mb = os.path.getsize(output_mp4_path) / (1024 * 1024)
         log.info("Master rendered: %s (%.2f MB)", output_mp4_path.name, size_mb)
         return output_mp4_path
+
+    @staticmethod
+    def _render_with_end_card(head: List[str], delivery_args: List[str], share: str, vo_dur: float,
+                              output_mp4_path: Path) -> Dict[str, Any]:
+        """The master with the end card after the narration, in two passes. The first renders the narrated body
+        (visually lossless), the whole mastered programme (narration, then the bed alone under the card) and the
+        graded last frame without captions; the second draws the card over that frame and encodes body and card
+        as one delivery file. Returns what the card measured, for the record."""
+        from . import end_card as card_mod
+        stem = output_mp4_path.parent / output_mp4_path.stem
+        body, audio, last = Path(f"{stem}_body.mkv"), Path(f"{stem}_programme.wav"), Path(f"{stem}_card_bg.png")
+        total = vo_dur + card_mod.SECONDS
+        inter_encoder = _get_intermediate_video_encoder()
+        try:
+            _run_ffmpeg([*head,
+                         "-map", "[v_final]", *inter_encoder, "-pix_fmt", "yuv420p",
+                         "-r", str(VIDEO_FPS), "-t", f"{vo_dur:.3f}", str(body),
+                         "-map", "[v_last]", "-update", "1", "-frames:v", "1000", str(last),
+                         "-map", "[a_final]", "-c:a", "pcm_s24le", "-ar", str(AUDIO_SAMPLE_RATE), "-ac", "2",
+                         "-t", f"{total:.3f}", str(audio)])
+            stats: Dict[str, Any] = {}
+            with Image.open(last) as im:
+                background = im.convert("RGB")
+            card_frames = card_mod.frames(background, share, stats)
+            w, h = card_mod.WIDTH, card_mod.HEIGHT
+            cmd = ["ffmpeg", "-y", "-hide_banner", "-nostats", "-v", "error",
+                   "-i", str(body), "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-r", str(card_mod.FPS),
+                   "-i", "-", "-i", str(audio),
+                   "-filter_complex", "[0:v]setsar=1[b];[1:v]scale=out_range=tv,format=yuv420p,setsar=1[c];"
+                                      "[b][c]concat=n=2:v=1:a=0[v]",
+                   "-map", "[v]", "-map", "2:a", *delivery_args, "-t", f"{total:.2f}", str(output_mp4_path)]
+            errors = output_mp4_path.parent / f"{output_mp4_path.stem}_card_ffmpeg.log"
+            with open(errors, "wb") as err:
+                proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stderr=err)
+                try:
+                    for frame in card_frames:
+                        proc.stdin.write(frame.tobytes())
+                except BrokenPipeError:
+                    pass
+                finally:
+                    proc.stdin.close()
+                try:
+                    code = proc.wait(timeout=FFMPEG_TIMEOUT_SECONDS)
+                except subprocess.TimeoutExpired as e:
+                    proc.kill()
+                    raise RenderError(f"ffmpeg did not finish the end card within {FFMPEG_TIMEOUT_SECONDS}s; stopped.") from e
+            if code != 0:
+                raise RenderError("End card encode failed: " + errors.read_text(encoding="utf-8", errors="replace")[-600:])
+            errors.unlink(missing_ok=True)
+        finally:
+            for path in (body, audio, last):
+                path.unlink(missing_ok=True)
+        return {"variant": card_mod.VARIANT, "start_s": round(vo_dur, 3), "duration_s": card_mod.SECONDS,
+                "text": share, **stats}
 
     def compose_deep_dive(
         self,
@@ -990,8 +1290,96 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         )
 
     @staticmethod
+    def splice_single_beat(
+        master_mp4: Path,
+        beat_index: int,
+        replacement_asset: Path,
+        durations: List[float],
+        output_mp4_path: Path,
+        width: int = VIDEO_WIDTH,
+        height: int = VIDEO_HEIGHT,
+    ) -> Path:
+        """
+        Micro-patching engine: replace a single beat's visual clip without re-rendering the whole master.
+        Keeps the mastered audio stream untouched via copy (-c:a copy).
+        Uses GPU hardware acceleration (h264_nvenc) when available to encode the spliced stream in ~2-4s.
+        """
+        if not master_mp4.is_file():
+            raise FileNotFoundError(f"Master video not found: {master_mp4}")
+        if beat_index < 0 or beat_index >= len(durations):
+            raise ValueError(f"Invalid beat index {beat_index} for {len(durations)} durations")
+
+        t_start = sum(durations[:beat_index])
+        beat_dur = durations[beat_index]
+        t_end = t_start + beat_dur
+        n_beats = len(durations)
+
+        encoder_args = _get_video_encoder()
+        delivery_args = [
+            *encoder_args,
+            "-pix_fmt", "yuv420p",
+            "-r", str(VIDEO_FPS),
+            "-c:a", "copy",
+            "-movflags", "+faststart",
+        ]
+
+        replacement_asset = Path(replacement_asset)
+        input_args = ["-i", str(master_mp4)]
+        filter_parts = []
+
+        if is_video(replacement_asset):
+            input_args += ["-t", f"{beat_dur:.3f}", "-i", str(replacement_asset)]
+            filter_parts.append(
+                f"[1:v]scale={width}:{height}:force_original_aspect_ratio=increase,"
+                f"crop={width}:{height},fps={VIDEO_FPS},setsar=1,scale=out_range=tv,format=yuv420p[v_mid]"
+            )
+        else:
+            w2, h2 = width * 2, height * 2
+            frames = int(beat_dur * VIDEO_FPS) + 1
+            z, x, y = "min(pzoom+0.0014,1.20)", "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
+            input_args += ["-loop", "1", "-t", f"{beat_dur:.3f}", "-i", str(replacement_asset)]
+            filter_parts.append(
+                f"[1:v]scale={w2}:{h2}:force_original_aspect_ratio=increase,crop={w2}:{h2},"
+                f"zoompan=z='{z}':x='{x}':y='{y}':d={frames}:s={width}x{height}:fps={VIDEO_FPS},"
+                f"setsar=1,scale=out_range=tv,format=yuv420p[v_mid]"
+            )
+
+        if beat_index == 0:
+            filter_parts.append(f"[0:v]trim=start={t_end:.3f},setpts=PTS-STARTPTS[v_post]")
+            filter_parts.append("[v_mid][v_post]concat=n=2:v=1:a=0[v_out]")
+        elif beat_index == n_beats - 1:
+            filter_parts.append(f"[0:v]trim=end={t_start:.3f},setpts=PTS-STARTPTS[v_pre]")
+            filter_parts.append("[v_pre][v_mid]concat=n=2:v=1:a=0[v_out]")
+        else:
+            filter_parts.append(f"[0:v]trim=end={t_start:.3f},setpts=PTS-STARTPTS[v_pre]")
+            filter_parts.append(f"[0:v]trim=start={t_end:.3f},setpts=PTS-STARTPTS[v_post]")
+            filter_parts.append("[v_pre][v_mid][v_post]concat=n=3:v=1:a=0[v_out]")
+
+        cmd = [
+            "ffmpeg", "-y", "-hide_banner", "-nostats",
+            "-threads", str(os.cpu_count() or 0),
+            *input_args,
+            "-filter_complex", ";".join(filter_parts),
+            "-map", "[v_out]",
+            "-map", "0:a",
+            *delivery_args,
+            str(output_mp4_path),
+        ]
+        log.info("Splicing beat %d into master -> %s", beat_index + 1, output_mp4_path.name)
+        _run_ffmpeg(cmd)
+        return output_mp4_path
+
+    @staticmethod
     def make_review_proxy(master_mp4: Path, proxy_path: Path) -> Path:
-        """Small 720p copy for phone review over Telegram (bot uploads are capped near 50 MB)."""
+        """Small 720p copy for phone review over Telegram (bot uploads are capped near 50 MB). The video
+        bitrate is sized to the duration so a 5-minute documentary fits too (1.5 Mbit/s would not)."""
+        try:
+            seconds = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                                                     "-of", "default=noprint_wrappers=1:nokey=1", str(master_mp4)],
+                                                    timeout=60).decode().strip())
+        except (OSError, ValueError, subprocess.SubprocessError):
+            seconds = 60.0
+        video_kbps = max(400, min(1500, int(44 * 8 * 1024 / max(seconds, 1)) - 128))
         _run_ffmpeg([
             "ffmpeg", "-y", "-hide_banner", "-nostats",
             "-threads", str(os.cpu_count() or 0),
@@ -999,7 +1387,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             "-vf", "scale='if(gt(iw,ih),-2,720)':'if(gt(iw,ih),720,-2)'",
             "-c:v", "libx264", "-preset", "fast", "-crf", "28",
             "-threads", str(os.cpu_count() or 0),
-            "-maxrate", "1500k", "-bufsize", "3000k", "-pix_fmt", "yuv420p",
+            "-maxrate", f"{video_kbps}k", "-bufsize", f"{video_kbps * 2}k", "-pix_fmt", "yuv420p",
             "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", str(proxy_path),
         ])
         log.info("Review proxy: %s (%.1f MB)", proxy_path.name, os.path.getsize(proxy_path) / (1024 * 1024))

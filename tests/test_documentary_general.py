@@ -62,3 +62,130 @@ def test_documentary_planning_ignores_a_reel_storyboard(tmp_path, monkeypatch):
     assert notes != scene_planner.STORYBOARD_NOTES
     _, _, notes = scene_planner.plan_scenes(beats, stills)
     assert notes == scene_planner.STORYBOARD_NOTES  # Reels still honour it
+
+
+def test_a_rejected_documentary_draft_is_rewritten_with_the_findings(db, tmp_path, monkeypatch):
+    monkeypatch.setattr("src.config.VIDEO_FORMATS", ["reel", "documentary"])
+    import main
+
+    class Stop(Exception):
+        pass
+
+    class Visuals:
+        def get_scene_sequence(self, topic):
+            return []
+
+        def hero_image(self, media):
+            return None
+
+    feedbacks, verdicts = [], iter([(False, ["'In Mauritania.' (Act 1; untraced: no place fact)"]), (True, [])])
+
+    class Writer:
+        def generate_deep_dive(self, topic, feedback=""):
+            feedbacks.append(feedback)
+            return type("Pkg", (), {"full_narration": "x", "acts": [], "title": "T",
+                                    "model_dump_json": lambda self, **k: "{}"})()
+
+        def verify_deep_dive_act_by_act(self, pkg, topic):
+            return next(verdicts)
+
+    def stop(title):
+        raise Stop
+    coordinator = object.__new__(main.PipelineCoordinator)
+    coordinator.db = db
+    coordinator.visual_engine, coordinator.script_engine = Visuals(), Writer()
+    monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
+    monkeypatch.setattr(main, "documentary_cover", stop)  # the first step after the script passes
+    result = coordinator.produce_deep_dive({"id": "01_topic", "title": "Topic 1"}, dry_run=True)
+    assert "fact verification failed" not in str(result)  # the second draft passed; it went on to the cover
+    assert feedbacks[0] == "" and "In Mauritania." in feedbacks[1] and len(feedbacks) == 2
+
+
+def test_the_documentary_shows_a_progress_card_that_becomes_its_failure_card(db, tmp_path, monkeypatch):
+    monkeypatch.setattr("src.config.VIDEO_FORMATS", ["reel", "documentary"])
+    import main
+
+    class Visuals:
+        def get_scene_sequence(self, topic):
+            return []
+
+        def hero_image(self, media):
+            return None
+
+    class Writer:
+        def generate_deep_dive(self, topic, feedback=""):
+            return type("Pkg", (), {"full_narration": "x", "acts": [], "title": "T"})()
+
+        def verify_deep_dive_act_by_act(self, pkg, topic):
+            return False, ["'In Mauritania.' (Act 1; untraced: no place fact)"]
+
+    calls = []
+
+    class Bot:
+        def send_progress_card(self, run_id, title):
+            calls.append(("start", title))
+            return 77
+
+        def update_progress_card(self, *a, **k):
+            calls.append(("step", a[1]))
+
+        def finish_progress_card(self, mid, title, run_id, success=True, error=""):
+            calls.append(("finish", mid, success, "Mauritania" in error))
+            return True
+
+        def notify(self, *a, **k):
+            calls.append(("alert",))
+    coordinator = object.__new__(main.PipelineCoordinator)
+    coordinator.db, coordinator.telegram_bot = db, Bot()
+    coordinator.visual_engine, coordinator.script_engine = Visuals(), Writer()
+    monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
+    result = coordinator.produce_deep_dive({"id": "01_topic", "title": "Topic 1"}, dry_run=True)
+    assert result["status"] == "failed"
+    assert calls[0] == ("start", "Topic 1 · 16:9 documentary")
+    assert calls[-1] == ("finish", 77, False, True) and ("alert",) not in calls  # one failure card, no extra alert
+
+
+def test_a_rendered_documentary_is_sent_for_review_and_acted_on(db, tmp_path, monkeypatch):
+    import main
+    run_id = "run_01_topic_1_long"
+    db.create_run(run_id, "01_topic", content_format="deep_dive")
+    db.update_run(run_id, "pending_approval", master_video_path=tmp_path / "doc.mp4",
+                  thumbnail_cover_path=tmp_path / "thumb.jpg", script_payload={"title": "T"})
+    sent, acted = [], []
+
+    class Bot:
+        def send_approval_request(self, video, thumb, payload, rid):
+            sent.append(rid)
+
+        def wait_for_decision(self, rid, window):
+            return "approved"
+    coordinator = object.__new__(main.PipelineCoordinator)
+    coordinator.db, coordinator.telegram_bot = db, Bot()
+    monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
+    monkeypatch.setattr(coordinator, "_approval_window", lambda: 60, raising=False)
+    monkeypatch.setattr(coordinator, "_after_approval", lambda rid, dry_run=False: acted.append((rid, dry_run)) or {"status": "simulated"})
+    produced = {"run_id": run_id, "status": "pending_approval"}  # what a dry, not auto-approved render returns
+    result = coordinator._review_documentary(produced, dry_run=True)
+    assert sent == [run_id] and acted == [(run_id, True)] and result["status"] == "simulated"
+
+
+def test_an_approved_documentary_publishes_without_a_topic_id_in_its_payload(db, tmp_path, monkeypatch):
+    # The Richat documentary's simulated YouTube publish failed with KeyError: 'topic_id'.
+    import json
+    import main
+    from src import release
+    from src.publisher import MetaPublisher
+    run_id = "run_01_topic_2_long"
+    for name in ("doc.mp4", "thumb.jpg", "grid.jpg"):
+        (tmp_path / name).write_bytes(b"x")
+    db.create_run(run_id, "01_topic", content_format="deep_dive")
+    db.update_run(run_id, "pending_approval", master_video_path=tmp_path / "doc.mp4",
+                  thumbnail_cover_path=tmp_path / "thumb.jpg", thumbnail_grid_path=tmp_path / "grid.jpg",
+                  script_payload={"title": "T", "caption": "C", "delivery_profile": "deep_dive_16x9"})
+    monkeypatch.setattr(release, "require_release", lambda run, dry_run=False: None)
+    coordinator = object.__new__(main.PipelineCoordinator)
+    coordinator.db, coordinator.publisher = db, MetaPublisher(db=db, publishers=[])
+    coordinator.topic_engine = type("T", (), {"record_status": lambda self, *a, **k: None})()
+    assert coordinator.publish_run(run_id, dry_run=True)["status"] == "simulated"
+    envelope = json.loads(db.list_publications(run_id)[0]["response_payload_json"])["envelope"]
+    assert envelope["topic_id"] == "01_topic" and envelope["platforms"] == ["youtube"]

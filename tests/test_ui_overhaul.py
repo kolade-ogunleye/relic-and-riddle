@@ -51,6 +51,9 @@ def test_poll_once_rbac_audit_logging(tmp_path, monkeypatch):
     monkeypatch.setattr(bot, "_api", lambda method, **kw: [unauth_update] if method == "getUpdates" else [])
     handled = []
     bot.poll_once(command_handler=lambda c, a: handled.append((c, a)) or "ok", timeout=0)
+    if bot._workers is not None:
+        bot._workers.shutdown(wait=True)
+        bot._workers = None
     assert len(handled) == 0  # Not executed
     logs = db.list_audit_logs()
     assert len(logs) == 1
@@ -69,6 +72,9 @@ def test_poll_once_rbac_audit_logging(tmp_path, monkeypatch):
     }
     monkeypatch.setattr(bot, "_api", lambda method, **kw: [auth_update] if method == "getUpdates" else [])
     bot.poll_once(command_handler=lambda c, a: handled.append((c, a)) or "ok", timeout=0)
+    if bot._workers is not None:
+        bot._workers.shutdown(wait=True)
+        bot._workers = None
     assert len(handled) == 1
     assert handled[0][0] == "status"
     logs = db.list_audit_logs()
@@ -111,18 +117,19 @@ def test_queue_readiness_badges_and_render_button(tmp_path):
     h = make_command_handler(db, lambda: None, lambda: rendered.append("run") or "Started run", assets_dir=assets_dir)
 
     q_res = h("queue", "")
-    assert "🟢 Ready to Render" in q_res
-    assert "🟡 Needs Image Review" in q_res
+    assert "🟢 Ready to render" in q_res
+    assert "🟡 Needs image review" in q_res
     assert "🔵 Script Ready" in q_res
 
     # One-tap render #1 button triggers render
     qrender_res, q_buttons = h("qrender", "01_ready")   # the queue comes back with its buttons
-    assert "Started run" in qrender_res and any(b["callback_data"] == "done:" for b in q_buttons)
+    assert "Started run" in qrender_res and any(b["callback_data"] == "cdash:" for row in q_buttons for b in row)
     assert len(rendered) == 1
 
 
 def test_cover_flip_and_lock(tmp_path, monkeypatch):
-    run_dir = Path("output") / "run_test_overhaul_cover"
+    monkeypatch.setattr("src.config.OUTPUT_DIR", tmp_path)
+    run_dir = tmp_path / "run_test_overhaul_cover"
     run_dir.mkdir(parents=True, exist_ok=True)
     try:
         Image.new("RGB", (100, 100), color="blue").save(run_dir / "thumbnail_variant_a_blueprint.jpg")
@@ -154,7 +161,11 @@ def test_cover_flip_and_lock(tmp_path, monkeypatch):
         media_arg = json.loads(api_calls[-1][1]["data"]["media"])
         assert media_arg["media"] == "telegram_fid_variant_a"
 
-        # 3. Lock variant B
+        # 3. Lock variant B on a current pending review
+        topic = db.list_all_topics()[0]["id"]
+        db.create_run(run_dir.name, topic)
+        db.update_run(run_dir.name, "pending_approval")
+        db.record_approval(run_dir.name, topic, 42)
         h = make_command_handler(db, lambda: None, lambda: "")
         lock_res = h("covlock", "run_test_overhaul_cover:b")
         assert "Discovery Intrigue" in lock_res
@@ -164,7 +175,7 @@ def test_cover_flip_and_lock(tmp_path, monkeypatch):
         # 4. View audit log command
         db.record_audit_event("123", username="admin", action="command", payload="/covers", status="allowed")
         audit_res = h("audit", "")
-        assert "AUDIT LOG" in audit_res
+        assert "Activity" in audit_res
     finally:
         import shutil
         if run_dir.exists():
@@ -217,7 +228,7 @@ def test_expandable_blockquotes_present():
     txt = proposal_text(prop)
     assert "<blockquote expandable>" in txt
     assert "</blockquote>" in txt
-    assert "Key Verified Facts:" in txt
+    assert "Verified facts" in txt
 
 
 def test_startup_dashboard_card_and_cockpit(tmp_path):
@@ -250,19 +261,19 @@ def test_startup_dashboard_card_and_cockpit(tmp_path):
     assert "RELIC &amp; RIDDLE" in d_txt
     assert "Kailasa Monolith" in d_txt
     assert any("qrefresh:" in b["callback_data"] for row in d_btns for b in row)
-    assert any("ccov:" in b["callback_data"] for row in d_btns for b in row)
+    assert any("cimages:" in b["callback_data"] for row in d_btns for b in row)  # Covers live under Pictures (2026-10-25)
 
     # 4. Cockpit pause and resume toggle
     pause_reply, _ = h("cpause", "")
-    assert "Scheduler Paused!" in pause_reply
+    assert "Paused</b>" in pause_reply
     assert "paused" in pause_reply
 
     resume_reply, _ = h("cresume", "")
-    assert "Scheduler Resumed!" in resume_reply
+    assert "Resumed</b>" in resume_reply
     assert "active" in resume_reply
 
     # 5. /help includes cockpit pointer
-    help_reply = h("help", "")
+    help_reply, _ = h("help", "")
     assert "/pause" in help_reply
     assert "/dashboard" in help_reply
 

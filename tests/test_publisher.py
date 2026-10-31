@@ -1,3 +1,4 @@
+import json
 from unittest.mock import MagicMock
 
 import pytest
@@ -219,6 +220,7 @@ def test_story_frames_post_one_by_one_as_stories(monkeypatch, run, tmp_path):
     url, _, data, nfiles = calls[0]
     assert url == "https://api.upload-post.com/api/upload_photos" and nfiles == 1
     assert data["media_type"] == "STORIES" and data["facebook_media_type"] == "STORIES"
+    assert "facebook_no_story" not in data
 
 
 def test_carousel_is_one_post_with_caption_and_max_ten(monkeypatch, run, tmp_path):
@@ -227,9 +229,13 @@ def test_carousel_is_one_post_with_caption_and_max_ten(monkeypatch, run, tmp_pat
                         or _response(200, {"success": True, "results": {"instagram": {"success": True, "url": "u"}}}))
     up = UploadPostPublisher(api_key="k" * 20, user="u")
     res = MetaPublisher(db=run, publishers=[up]).publish_photos("r1", "01_topic", "carousel", _photos(tmp_path, 12), caption="Cap")
-    assert res["status"] == "published" and len(calls) == 1
+    # Instagram's carousel takes ten; Facebook's grid gets its own request of four (platform audit, 2026-10-28).
+    assert res["status"] == "published" and len(calls) == 2
     data, nfiles = calls[0]
-    assert nfiles == 10 and data["title"] == "Cap" and "media_type" not in data
+    assert nfiles == 10 and data["title"] == "Cap" and "media_type" not in data and data["platform[]"] == "instagram"
+    assert "facebook_no_story" not in data  # it would keep the post out of feeds (2026-10-25)
+    data, nfiles = calls[1]
+    assert nfiles == 4 and data["title"] == "Cap" and data["platform[]"] == "facebook"
 
 
 def test_story_failure_after_first_frame_is_unknown(monkeypatch, run, tmp_path):
@@ -289,3 +295,115 @@ def test_licensed_voice_allows_live_publication(monkeypatch, run, envelope, tmp_
     assert res["status"] == "published"
     pub.publish.assert_called_once()
 
+
+
+def test_documentary_goes_to_youtube_with_its_own_fields(monkeypatch, envelope):
+    captured = {}
+
+    def fake_post(url, headers, data, files, timeout):
+        captured.update(data=data, files=set(files))
+        return _response(200, {"success": True, "results": {"youtube": {"success": True, "url": "https://youtu.be/x"}}})
+
+    monkeypatch.setattr(requests, "post", fake_post)
+    doc = dict(envelope, platforms=["youtube"])
+    doc["metadata"] = dict(envelope["metadata"], youtube_title="The 18-Story City Under Cappadocia" * 5,
+                           description="Chapters\n0:00 Intro", tags=["history", "derinkuyu"])
+    res = UploadPostPublisher(api_key="k" * 20, user="profile").publish(doc)
+    data = dict(captured["data"])
+    assert res["status"] == "published"
+    assert [v for k, v in captured["data"] if k == "platform[]"] == ["youtube"]
+    assert len(data["youtube_title"]) <= 100 and data["youtube_description"].startswith("Chapters")
+    assert [v for k, v in captured["data"] if k == "tags[]"] == ["history", "derinkuyu"]
+    assert data["containsSyntheticMedia"] == "true" and data["selfDeclaredMadeForKids"] == "false"
+    assert data["categoryId"] == "27" and data["privacyStatus"] in ("public", "unlisted", "private")
+    assert "instagram_title" not in data and "media_type" not in data          # none of the Reel fields
+    assert captured["files"] == {"video", "thumbnail"}
+
+
+def test_facebook_gets_its_own_carousel_copy_without_swipe_cues(monkeypatch, run, tmp_path):
+    calls = []
+    monkeypatch.setattr(requests, "post", lambda url, headers, data, files, timeout: calls.append(
+        (headers["Idempotency-Key"], [v for k, v in data if k == "platform[]"], [f[1][1].read() for f in files]))
+        or _response(200, {"success": True, "results": {"instagram": {"success": True, "url": "u"}}}))
+    ig, fb = tmp_path / "carousel", tmp_path / "carousel_fb"
+    ig.mkdir(); fb.mkdir()
+    slides = []
+    for i in range(1, 4):
+        (ig / f"carousel_slide_{i:02d}.jpg").write_bytes(b"IG")
+        (fb / f"carousel_slide_{i:02d}.jpg").write_bytes(b"FB")
+        slides.append(str(ig / f"carousel_slide_{i:02d}.jpg"))
+    up = UploadPostPublisher(api_key="k" * 20, user="u")
+    res = MetaPublisher(db=run, publishers=[up]).publish_photos("r1", "01_topic", "carousel", slides, caption="Cap")
+    assert res["status"] == "published" and len(calls) == 2
+    assert calls[0][:2] == ("r1-carousel-1", ["instagram"])  # the swipe copy, under the key it always had
+    assert calls[1][:2] == ("r1-carousel-facebook-1", ["facebook"])
+    assert calls[0][2] == [b"IG"] * 3 and calls[1][2] == [b"FB"] * 3  # Facebook's request carries its own copy
+
+
+def test_a_dry_run_records_the_real_plan_for_each_platform(run, tmp_path):
+    # Dry runs skipped Stories and carousels, so the Facebook carousel copy was never exercised before a post.
+    ig, fb = tmp_path / "carousel", tmp_path / "carousel_fb"
+    ig.mkdir(); fb.mkdir()
+    slides = []
+    for i in (1, 2):
+        (ig / f"carousel_slide_{i:02d}.jpg").write_bytes(b"0")
+        (fb / f"carousel_slide_{i:02d}.jpg").write_bytes(b"0")
+        slides.append(str(ig / f"carousel_slide_{i:02d}.jpg"))
+    res = MetaPublisher(db=run, publishers=[]).publish_photos("r1", "01_topic", "carousel", slides, dry_run=True)
+    assert res == {"status": "simulated", "posted_parts": 0, "planned_parts": 2}
+    rows = [json.loads(p["response_payload_json"]) for p in run.list_publications("r1")]
+    assert [(r["request_id"], r["platforms"]) for r in rows] == [("r1-carousel-1", ["instagram"]),
+                                                                  ("r1-carousel-facebook-1", ["facebook"])]
+    assert all("carousel_fb" in p for p in rows[1]["photos"])
+
+
+def test_a_partial_publish_names_each_failed_platforms_reason_and_carries_it():
+    # 2026-10-24: only "failed=['instagram']" survived; the cause was lost and nothing could target the retry.
+    from src.publisher import PublishUnknown, UploadPostPublisher
+    results = [{"platform": "facebook", "success": True, "post_url": "https://fb/1"},
+               {"platform": "instagram", "success": False, "error": "Media processing failed (code 2207026)"}]
+    try:
+        UploadPostPublisher._summarize(results, {"results": results})
+    except PublishUnknown as e:
+        assert "instagram: Media processing failed (code 2207026)" in str(e)
+        assert e.failed == {"instagram": "Media processing failed (code 2207026)"} and e.ok == {"facebook": "https://fb/1"}
+    else:
+        raise AssertionError("a partial publish must stay unknown")
+
+
+def test_a_published_short_gets_its_thumbnail_set_best_effort(db, monkeypatch, tmp_path):
+    # 2026-10-24: the first Short went out with a frame as thumbnail; Upload-Post can set one afterwards.
+    from types import SimpleNamespace
+    from src.publisher import MetaPublisher
+    cover = tmp_path / "cover.jpg"
+    cover.write_bytes(b"\xff\xd8" + b"0" * 1000)
+    calls = []
+    uploader = SimpleNamespace(
+        publish_short=lambda envelope: {"status": "published", "post_urls": {"youtube": "https://www.youtube.com/watch?v=y6_GqrOprXE"}},
+        set_youtube_thumbnail=lambda video_id, image: calls.append((video_id, image.name)) or {"set": True, "error": None})
+    service = MetaPublisher.__new__(MetaPublisher)
+    service.db, service.publishers = db, [uploader]
+    topic = db.list_all_topics()[0]["id"]
+    db.create_run("run_y", topic)
+    envelope = {"topic_id": topic, "run_id": "run_y", "media": {"thumbnail_path": str(cover)}, "metadata": {}}
+    out = service.publish_short(envelope)
+    assert calls == [("y6_GqrOprXE", "cover.jpg")] and out["thumbnail"] == {"set": True, "error": None}
+    recorded = db.list_publications("run_y")[-1]
+    assert recorded["channel"] == "youtube-shorts" and '"set": true' in recorded["response_payload_json"]
+
+
+def test_set_youtube_thumbnail_respects_the_size_limit_and_reports_refusals(monkeypatch, tmp_path):
+    from types import SimpleNamespace
+    from src.publisher import UploadPostPublisher
+    up = UploadPostPublisher(api_key="k", user="RelicAndRiddle", base_url="https://api.upload-post.com/api")
+    big = tmp_path / "big.jpg"
+    big.write_bytes(b"0" * (2 * 1024 * 1024 + 1))
+    assert up.set_youtube_thumbnail("vid", big)["set"] is False
+    small = tmp_path / "small.jpg"
+    small.write_bytes(b"\xff\xd8" + b"0" * 10)
+    import src.publisher as pub
+    monkeypatch.setattr(pub.requests, "post", lambda *a, **k: SimpleNamespace(status_code=403, json=lambda: {"error": "custom thumbnails require a verified channel", "youtube_status": 403}, text=""))
+    res = up.set_youtube_thumbnail("vid", small)
+    assert res["set"] is False and "verified channel" in res["error"]
+    monkeypatch.setattr(pub.requests, "post", lambda *a, **k: SimpleNamespace(status_code=200, json=lambda: {"success": True, "video_id": "vid", "thumbnails": {"high": {"url": "u"}}}, text=""))
+    assert up.set_youtube_thumbnail("vid", small) == {"set": True, "error": None, "thumbnails": {"high": {"url": "u"}}}

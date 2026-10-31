@@ -27,6 +27,7 @@ from .config import DATA_DIR, TOPICS_DIR
 DB_PATH = DATA_DIR / "pipeline.db"
 # A topic stuck "in_production" longer than this is assumed to be from a crashed run.
 STALE_PRODUCTION_HOURS = 6
+TIMEOUT_HOLD_DAYS = 7  # a timed-out review's topic waits this long for Resend or Reject before it is made again
 
 log = logging.getLogger(__name__)
 
@@ -149,9 +150,12 @@ class PipelineDatabase:
             """)
             # Additive migrations for databases created by earlier versions.
             self._add_column(conn, "runs", "error", "TEXT")
+            self._add_column(conn, "topics", "added_json", "TEXT")  # who added the topic, how and when
             self._add_column(conn, "runs", "parent_run_id", "TEXT")
             self._add_column(conn, "runs", "content_format", "TEXT DEFAULT 'reel'")
             self._add_column(conn, "approvals", "decided_by", "TEXT")
+            self._add_column(conn, "approvals", "expires_at", "REAL")
+            self._add_column(conn, "approvals", "revision", "INTEGER DEFAULT 0")
             conn.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT, updated_at TEXT)")
             conn.execute("""
             CREATE TABLE IF NOT EXISTS llm_usage (
@@ -247,13 +251,15 @@ class PipelineDatabase:
                 cur = conn.execute("""
                 INSERT INTO topics (
                     id, title, sub_theme, hook, location_json, key_facts_json,
-                    hashtags_json, meta_categories_json, status, times_published, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'queued', 0, ?)
+                    hashtags_json, meta_categories_json, added_json, status, times_published, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'queued', 0, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     title = excluded.title, sub_theme = excluded.sub_theme, hook = excluded.hook,
                     location_json = excluded.location_json, key_facts_json = excluded.key_facts_json,
-                    hashtags_json = excluded.hashtags_json, meta_categories_json = excluded.meta_categories_json
+                    hashtags_json = excluded.hashtags_json, meta_categories_json = excluded.meta_categories_json,
+                    added_json = excluded.added_json
                 WHERE topics.title IS NOT excluded.title OR topics.hook IS NOT excluded.hook
+                   OR topics.added_json IS NOT excluded.added_json
                    OR topics.sub_theme IS NOT excluded.sub_theme OR topics.location_json IS NOT excluded.location_json
                    OR topics.key_facts_json IS NOT excluded.key_facts_json OR topics.hashtags_json IS NOT excluded.hashtags_json
                    OR topics.meta_categories_json IS NOT excluded.meta_categories_json
@@ -261,6 +267,7 @@ class PipelineDatabase:
                     t["id"], t.get("title", ""), t.get("sub_theme", ""), t.get("hook", ""),
                     json.dumps(t.get("location", {})), json.dumps(t.get("key_facts", [])),
                     json.dumps(t.get("hashtags", [])), json.dumps(t.get("meta_categories", [])),
+                    json.dumps(t["added"]) if t.get("added") else None,
                     now,
                 ))
                 changed += cur.rowcount
@@ -280,6 +287,7 @@ class PipelineDatabase:
             "key_facts": json.loads(row["key_facts_json"] or "[]"),
             "hashtags": json.loads(row["hashtags_json"] or "[]"),
             "meta_categories": json.loads(row["meta_categories_json"] or "[]"),
+            "added": json.loads(row["added_json"] or "{}") if "added_json" in row.keys() else {},
             "status": row["status"],
             "priority": row["priority"] if "priority" in row.keys() else 0,
             "times_published": row["times_published"],
@@ -290,22 +298,24 @@ class PipelineDatabase:
     def ranked_topics(self) -> List[Dict[str, Any]]:
         """
         Topics in the order production would pick them using a 4-pillar round-robin scheduler:
-        1. Identifies eligible candidate topics (queued first, then failed/stale).
+        1. Identifies eligible candidate topics (queued, and stale in-production; a failed one waits for you).
         2. Scores each candidate's Virality Potential Score (VPS).
         3. Identifies the primary sub_theme of the most recently produced/published topic.
         4. Interleaves diverse themes: prioritizes candidates from a DIFFERENT sub_theme
            to avoid viewer fatigue from consecutive similar topics.
         5. Within eligible candidates, ranks by:
-           - Status ('queued' over 'failed')
+           - Status ('queued' over stale 'in_production')
            - Virality Potential Score (highest VPS first)
            - Times published (least published first)
            - Insertion order (rowid ASC)
         """
         stale_before = (datetime.now(timezone.utc) - timedelta(hours=STALE_PRODUCTION_HOURS)).isoformat()
         with self._conn() as conn:
+            # A failed topic waits for you (Back to the queue, /requeue): it was picked again on its own while the
+            # queue listed it under "Can be restored", and the failure card said it was set aside (2026-10-25).
             rows = conn.execute("""
             SELECT * FROM topics
-            WHERE status IN ('queued', 'failed')
+            WHERE status = 'queued'
                OR (status = 'in_production' AND updated_at < ?)
             ORDER BY CASE status WHEN 'queued' THEN 0 ELSE 1 END, times_published ASC, rowid ASC
             """, (stale_before,)).fetchall()
@@ -316,9 +326,22 @@ class PipelineDatabase:
             ORDER BY updated_at DESC
             LIMIT 1
             """).fetchone()
+            # Dry runs that reached a simulated publish. Nothing went out, so the topic returns to the queue
+            # unpublished, and it came first again: validation remade the same topic run after run
+            # (dev, 2026-10-23). A rehearsed topic now waits behind those not yet made.
+            rehearsed = dict(conn.execute(
+                "SELECT topic_id, COUNT(*) FROM runs WHERE status = 'simulated' GROUP BY topic_id").fetchall())
+            # A render whose review timed out waits for Resend or Reject; its topic is not made again meanwhile
+            # (a later run produced it a second time while the first render still waited: 2026-10-23 audit).
+            held = {r[0] for r in conn.execute(
+                "SELECT topic_id FROM runs WHERE status = 'timeout' AND updated_at >= ?",
+                ((datetime.now(timezone.utc) - timedelta(days=TIMEOUT_HOLD_DAYS)).isoformat(),))}
+        rows = [r for r in rows if r["id"] not in held]
 
         if not rows:
-            raise QueueEmpty("No unpublished topics left. Add new ones with /propose (or `python main.py topic propose`).")
+            if held:  # not empty: what is left waits for a decision on a timed-out review
+                raise QueueEmpty("Every topic left waits for a timed-out review: Resend or Reject it (Reviews).")
+            raise QueueEmpty("No unpublished topics left. Add new ones with /ideas research (or `python main.py topic propose`).")
 
         candidates = [self._topic_from_row(r) for r in rows]
         last_theme = (last_topic["sub_theme"] or "").lower().strip() if last_topic else ""
@@ -332,7 +355,8 @@ class PipelineDatabase:
             vps = calculate_vps(t)
             times_pub = t.get("times_published", 0)
             priority = t.get("priority", 0)
-            return (-priority, theme_clash, status_prio, -vps, times_pub)
+            # An operator's Bump (priority) still comes first; then topics not yet rehearsed in a dry run.
+            return (-priority, rehearsed.get(t["id"], 0), theme_clash, status_prio, -vps, times_pub)
 
         return sorted(candidates, key=candidate_sort_key)
 
@@ -364,29 +388,35 @@ class PipelineDatabase:
     def bump_topic(self, topic_id: str) -> bool:
         """Promotes a topic to highest priority in the queue."""
         with self._conn() as conn:
+            conn.execute("BEGIN IMMEDIATE")
             row = conn.execute("SELECT COALESCE(MAX(priority), 0) FROM topics").fetchone()
             max_p = row[0] if row else 0
             t_row = conn.execute("SELECT status FROM topics WHERE id = ?", (topic_id,)).fetchone()
             if t_row and t_row[0] in ("archived", "rejected", "failed"):
-                cur = conn.execute("UPDATE topics SET priority = ?, status = 'queued', updated_at = ? WHERE id = ?",
+                cur = conn.execute("UPDATE topics SET priority = ?, status = 'queued', updated_at = ? "
+                                   "WHERE id = ? AND status IN ('archived', 'rejected', 'failed')",
                                    (max_p + 1, _now(), topic_id))
             else:
-                cur = conn.execute("UPDATE topics SET priority = ?, updated_at = ? WHERE id = ?",
+                cur = conn.execute("UPDATE topics SET priority = ?, updated_at = ? WHERE id = ? AND status = 'queued'",
                                    (max_p + 1, _now(), topic_id))
             return cur.rowcount > 0
 
     def drop_topic(self, topic_id: str) -> bool:
         """Removes a topic from the active queue by marking it 'archived'."""
         with self._conn() as conn:
-            cur = conn.execute("UPDATE topics SET status = 'archived', priority = 0, updated_at = ? WHERE id = ?",
+            cur = conn.execute("UPDATE topics SET status = 'archived', priority = 0, updated_at = ? WHERE id = ? AND status='queued'",
                                (_now(), topic_id))
             return cur.rowcount > 0
 
-    def requeue_topic(self, topic_id: str):
-        """Returns a topic to the queue without touching its publish count."""
+    def requeue_topic(self, topic_id: str, stale: bool = False) -> bool:
+        """Returns a topic to the queue (an explicit operator decision; published topics included) without
+        touching its publish count. Refused while the topic is being made or already queued; `stale` lets a
+        topic still marked in production come back when the caller found its last run over (control.stale_topics)."""
+        blocked = "('queued')" if stale else "('queued', 'in_production')"
         with self._conn() as conn:
-            conn.execute("UPDATE topics SET priority = 0, updated_at = ? WHERE id = ?", (_now(), topic_id))
-        self.record_topic_status(topic_id, "queued")
+            cur = conn.execute(f"""UPDATE topics SET priority = 0, status = 'queued', updated_at = ?
+                WHERE id = ? AND status NOT IN {blocked}""", (_now(), topic_id))
+            return cur.rowcount == 1
 
     def repair_simulated_publications(self) -> List[str]:
         """
@@ -497,7 +527,8 @@ class PipelineDatabase:
         place = (topic.get("location") or {}).get("name") or topic.get("title", "")
         when = ""
         try:
-            when = datetime.fromisoformat(run["created_at"]).astimezone().strftime("%d %b %H:%M")
+            from .local_time import local
+            when = local(run["created_at"]).strftime("%d %b %H:%M")  # the operator's DEFAULT_TIMEZONE
         except (TypeError, ValueError):
             pass
         label = f'"{title}"'
@@ -520,8 +551,10 @@ class PipelineDatabase:
             conn.execute("""
             INSERT INTO approvals (run_id, topic_id, telegram_message_id, decision, created_at)
             VALUES (?, ?, ?, 'pending', ?)
-            ON CONFLICT(run_id) DO UPDATE SET telegram_message_id = excluded.telegram_message_id
+            ON CONFLICT(run_id) DO UPDATE SET telegram_message_id = excluded.telegram_message_id, revision = revision + 1, expires_at = NULL,
+                created_at = excluded.created_at  -- delivered now: the stale sweep counts from the newest card (2026-10-25)
             """, (run_id, topic_id, message_id, _now()))
+            conn.execute("UPDATE approvals SET expires_at=? WHERE run_id=?", (time.time() + 86400, run_id))
 
     def update_approval_decision(self, run_id: str, decision: str, decided_by: Optional[str] = None) -> bool:
         """Records a decision only while the approval is still pending. Returns True if applied."""
@@ -531,6 +564,29 @@ class PipelineDatabase:
             WHERE run_id = ? AND decision = 'pending'
             """, (decision, _now(), decided_by, run_id))
             return cur.rowcount == 1
+
+    def decide_telegram_review(self, run_id, message_id, decision, actor):
+        """Only the current delivered card may decide an unexpired review."""
+        with self._conn() as conn:
+            cur = conn.execute("""UPDATE approvals SET decision=?, decision_timestamp=?, decided_by=?
+                WHERE run_id=? AND decision='pending' AND telegram_message_id=? AND expires_at>?
+                AND EXISTS (SELECT 1 FROM runs WHERE runs.run_id=approvals.run_id
+                            AND status IN ('pending_approval', 'producing'))""",
+                (decision, _now(), actor, run_id, message_id, time.time()))
+            return cur.rowcount == 1
+
+    def commit_review_copy(self, run_id, revision, payload):
+        """CAS the reviewed payload and invalidate its buttons in the same transaction."""
+        with self._conn() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            cur = conn.execute("""UPDATE approvals SET telegram_message_id=NULL, revision=revision+1
+                WHERE run_id=? AND revision=? AND decision='pending'
+                AND EXISTS (SELECT 1 FROM runs WHERE runs.run_id=approvals.run_id AND status='pending_approval')""", (run_id, revision))
+            if cur.rowcount != 1:
+                return False
+            conn.execute("UPDATE runs SET script_payload_json=?, updated_at=? WHERE run_id=? AND status='pending_approval'",
+                         (json.dumps(payload), _now(), run_id))
+            return True
 
     # ---------------------------------------------------------------- settings
     def get_setting(self, key: str, default: Optional[str] = None) -> Optional[str]:
@@ -545,14 +601,30 @@ class PipelineDatabase:
             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
             """, (key, value, _now()))
 
+    def request_run_cancel(self, run_id):
+        """Accept only while producing; never cancel an upload or infer its outcome."""
+        with self._conn() as conn:
+            result = conn.execute("""INSERT INTO settings (key,value,updated_at)
+                SELECT ?, 'requested', ? FROM runs WHERE run_id=? AND status='producing'
+                ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at""",
+                ("cancel_run:" + run_id, _now(), run_id))
+            return result.rowcount > 0
+
     # -------------------------------------------------------- active progress
     def set_active_progress(self, run_id: str, topic_title: str, step: int, total_steps: int,
                             details: str = "", message_id: Optional[int] = None,
                             start_time: Optional[float] = None) -> None:
         """Stores the active running render state so Telegram /clear and /status can track it."""
         current = self.get_active_progress() or {}
+        if current.get("run_id") != run_id:
+            current = {}
         st = start_time if start_time is not None else current.get("start_time", time.time())
         mid = message_id if message_id is not None else current.get("message_id")
+        # When each step was first reported (step 1 starts with the run), and since when the detail line
+        # has said what it says: the card shows how long a step has been running instead of a stale note.
+        steps = dict(current.get("step_started") or {"1": st})
+        steps.setdefault(str(step), time.time())
+        same_detail = current.get("step") == step and current.get("details") == details
         payload = {
             "run_id": run_id,
             "topic_title": topic_title,
@@ -561,8 +633,13 @@ class PipelineDatabase:
             "details": details,
             "message_id": mid,
             "start_time": st,
+            "step_started": steps,
+            "details_since": current.get("details_since", time.time()) if same_detail else time.time(),
             "updated_at": _now(),
         }
+        from .process_state import identity
+        payload["owner_pid"] = current.get("owner_pid", os.getpid())
+        payload["owner_identity"] = current.get("owner_identity", identity(os.getpid()))
         self.set_setting("active_progress", json.dumps(payload))
 
     def get_active_progress(self) -> Optional[Dict[str, Any]]:
@@ -576,11 +653,21 @@ class PipelineDatabase:
         except (ValueError, AttributeError):
             run_id = None
         run = self.get_run(run_id) if run_id else None
-        if run is not None and run.get("status") != "producing":
-            self.clear_active_progress()
+        # Stale when its run finished or no longer exists (a record for a missing run never cleared, so the
+        # dashboard kept offering Progress instead of making the next topic). Runs are created first.
+        if run is None or run.get("status") != "producing":
+            self.clear_active_progress(run_id)
             return None
         try:
-            return json.loads(val)
+            progress = json.loads(val)
+            from .process_state import identity
+            owner = progress.get("owner_identity")
+            observed = identity(progress["owner_pid"]) if progress.get("owner_pid") else "unknown"
+            if owner and owner != "unknown" and observed != "unknown" and observed != owner:
+                progress["worker_state"] = "interrupted"
+            else:
+                progress["worker_state"] = "running" if owner and owner != "unknown" and observed == owner else "unverified"
+            return progress
         except Exception:
             return None
 
@@ -602,10 +689,42 @@ class PipelineDatabase:
                 deleted[table] = conn.execute(f"DELETE FROM {table} WHERE {column} < ?", (cutoff,)).rowcount
         return deleted
 
-    def clear_active_progress(self) -> None:
+    PROGRESS_HISTORY_KEY = "progress_step_history"
+
+    def record_progress_history(self, run_id: str, keep: int = 8) -> None:
+        """At a run's successful end: how long each progress step took, for the next runs' estimates."""
+        active = self.get_active_progress()
+        if not active or active.get("run_id") != run_id or not active.get("step_started"):
+            return
+        total = int(active.get("total_steps") or 0)
+        starts = {int(k): float(v) for k, v in active["step_started"].items()}
+        if total < 1 or sorted(starts) != list(range(1, total + 1)):
+            return  # a step was never reported: durations would be wrong
+        ends = [starts[n + 1] for n in range(1, total)] + [time.time()]
+        durations = [round(max(0.0, ends[n - 1] - starts[n]), 1) for n in range(1, total + 1)]
+        try:
+            history = json.loads(self.get_setting(self.PROGRESS_HISTORY_KEY) or "[]")
+        except ValueError:
+            history = []
+        history = [h for h in history if isinstance(h, list) and len(h) == total][-(keep - 1):] + [durations]
+        self.set_setting(self.PROGRESS_HISTORY_KEY, json.dumps(history))
+
+    def typical_step_seconds(self, total: int) -> Optional[List[float]]:
+        """The median length of each progress step over recent successful runs (None without history)."""
+        try:
+            history = [h for h in json.loads(self.get_setting(self.PROGRESS_HISTORY_KEY) or "[]")
+                       if isinstance(h, list) and len(h) == total]
+        except ValueError:
+            return None
+        if not history:
+            return None
+        import statistics
+        return [float(statistics.median(h[n] for h in history)) for n in range(total)]
+
+    def clear_active_progress(self, run_id=None) -> None:
         """Clears active render state when a job completes, fails, or is cancelled."""
         with self._conn() as conn:
-            conn.execute("DELETE FROM settings WHERE key = 'active_progress'")
+            conn.execute("DELETE FROM settings WHERE key = 'active_progress' AND (? IS NULL OR json_extract(value, '$.run_id')=?)", (run_id,run_id))
 
     # ------------------------------------------------------------- llm usage
     def record_llm_usage(self, model: str, input_tokens: int, output_tokens: int, web_searches: int, cost_usd: float,
@@ -642,10 +761,20 @@ class PipelineDatabase:
             WHERE substr(created_at, 1, 7) = ? GROUP BY COALESCE(task, 'other') ORDER BY cost DESC""", (month,)).fetchall()
         return [dict(r) for r in rows]
 
+    def timed_out_reviews(self) -> List[Dict[str, Any]]:
+        """Renders whose review timed out within TIMEOUT_HOLD_DAYS: they wait for Resend or Reject."""
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=TIMEOUT_HOLD_DAYS)).isoformat()
+        with self._conn() as conn:
+            rows = conn.execute("SELECT run_id, topic_id, updated_at FROM runs WHERE status = 'timeout' AND updated_at >= ? "
+                                "ORDER BY updated_at DESC", (cutoff,)).fetchall()
+        return [dict(r) for r in rows]
+
     def list_recent_runs(self, limit: int = 5) -> List[Dict[str, Any]]:
         with self._conn() as conn:
             rows = conn.execute(
-                "SELECT run_id, topic_id, status, error, parent_run_id, content_format, updated_at FROM runs ORDER BY created_at DESC LIMIT ?", (limit,)
+                # rowid breaks ties: two runs created in the same millisecond sorted in an undefined order (a
+                # flaky dashboard test on Windows' clock, 2026-10-24).
+                "SELECT run_id, topic_id, status, error, parent_run_id, content_format, created_at, updated_at, master_video_path FROM runs ORDER BY created_at DESC, rowid DESC LIMIT ?", (limit,)
             ).fetchall()
         return [dict(r) for r in rows]
 
@@ -653,10 +782,17 @@ class PipelineDatabase:
         """Puts a timed-out approval back to pending so the run can be reviewed again."""
         with self._conn() as conn:
             cur = conn.execute("""
-            UPDATE approvals SET decision = 'pending', decision_timestamp = NULL, decided_by = NULL
+            UPDATE approvals SET decision = 'pending', decision_timestamp = NULL, decided_by = NULL, created_at = ?
             WHERE run_id = ? AND decision = 'timeout'
-            """, (run_id,))
+            """, (_now(), run_id))
             return cur.rowcount == 1
+
+    def reset_approval(self, run_id: str) -> None:
+        """A run made again needs a new decision: the earlier one was for the version it replaces
+        (2026-10-24: a re-render read the earlier Approve 8 ms after its new card was sent)."""
+        with self._conn() as conn:
+            conn.execute("UPDATE approvals SET decision = 'pending', decision_timestamp = NULL, decided_by = NULL "
+                         "WHERE run_id = ?", (run_id,))
 
     def get_approval(self, run_id: str) -> Optional[Dict[str, Any]]:
         with self._conn() as conn:
@@ -787,6 +923,10 @@ class PipelineDatabase:
                     mids.add(r[0])
             except Exception:
                 pass
+            tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            if "telegram_transport" in tables:
+                for row in conn.execute("SELECT value FROM telegram_transport WHERE namespace='outbound'"):
+                    mids.add(int(json.loads(row[0])))
             return sorted(mids, reverse=True)
 
     def record_issue(self, issue_id: str, critique: str, run_id: Optional[str] = None, user_id: Optional[str] = None, evidence_path: Optional[str] = None) -> Dict[str, Any]:
@@ -797,6 +937,16 @@ class PipelineDatabase:
             VALUES (?, ?, ?, ?, ?, 'open', ?)
             """, (issue_id, run_id, critique, str(user_id) if user_id else None, str(evidence_path) if evidence_path else None, now))
         return {"id": issue_id, "run_id": run_id, "critique": critique, "created_at": now}
+
+    def resolve_issue(self, issue_id: str, diagnosis: str) -> bool:
+        """Closes an open issue with what was found and done; an already closed one is left as it is."""
+        with self._conn() as conn:
+            return conn.execute("UPDATE issues SET status='fixed', diagnosis=? WHERE id=? AND status='open'",
+                                (diagnosis, issue_id)).rowcount == 1
+
+    def count_issues(self, status: str) -> int:
+        with self._conn() as conn:
+            return conn.execute("SELECT COUNT(*) FROM issues WHERE status=?", (status,)).fetchone()[0]
 
     def list_open_issues(self) -> List[Dict[str, Any]]:
         with self._conn() as conn:

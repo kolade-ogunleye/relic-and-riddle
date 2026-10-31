@@ -1,0 +1,172 @@
+{
+ "roman/carousel/carousel_slide_01.jpg": {
+  "card": "ROMAN CONCRETE SECRETS: Why ancient Roman monuments endure while modern structures crumble after decades.",
+  "labels_the_card_does_not_say": []
+ },
+ "roman/carousel/carousel_slide_02.jpg": {
+  "card": "MODERN DECAY: Modern concrete structures can begin to crumble just a few decades after construction.",
+  "labels_the_card_does_not_say": [
+   "REF A // SURFACE CONTEXT",
+   "REF B // SUBTERRANEAN DEPTH",
+   "COMPARATIVE EVIDENCE"
+  ]
+ },
+ "roman/carousel/carousel_slide_03.jpg": {
+  "card": "THE PANTHEON'S DOME: Dedicated in AD 128, it remains the world's largest unreinforced concrete dome.",
+  "labels_the_card_does_not_say": [
+   "FIELD INVESTIGATION"
+  ]
+ },
+ "roman/carousel/carousel_slide_04.jpg": {
+  "card": "HARSH ENVIRONMENTS: Roman concrete withstood severe marine conditions in docks, seawalls, and sewers.",
+  "labels_the_card_does_not_say": [
+   "DISCOVERY RECORD"
+  ]
+ },
+ "roman/carousel/carousel_slide_05.jpg": {
+  "card": "THE HOT-MIXING SECRET: Volcanic pozzolans and quicklime produced self-healing properties inside the concrete.",
+  "labels_the_card_does_not_say": [
+   "FIELD INVESTIGATION"
+  ]
+ },
+ "roman/carousel/carousel_slide_06.jpg": {
+  "card": "OVERTURNING HISTORY: Chemical evidence overturned longstanding assumptions based on the texts of Vitruvius.",
+  "labels_the_card_does_not_say": [
+   "FIELD INVESTIGATION"
+  ]
+ },
+ "roman/carousel/carousel_slide_07.jpg": {
+  "card": "LOST INGENUITY: Did ancient civilizations build with a deeper respect for future generations than we do?",
+  "labels_the_card_does_not_say": [
+   "FORENSIC DEBATE"
+  ]
+ },
+ "roman/carousel_fb/carousel_slide_01.jpg": {
+  "card": "ROMAN CONCRETE SECRETS: Why ancient Roman monuments endure while modern structures crumble after decades.",
+  "labels_the_card_does_not_say": []
+ },
+ "roman/carousel_fb/carousel_slide_02.jpg": {
+  "card": "MODERN DECAY: Modern concrete structures can begin to crumble just a few decades after construction.",
+  "labels_the_card_does_not_say": [
+   "REF A // SURFACE CONTEXT",
+   "REF B // SUBTERRANEAN DEPTH",
+   "COMPARATIVE EVIDENCE"
+  ]
+ },
+ "roman/carousel_fb/carousel_slide_03.jpg": {
+  "card": "THE PANTHEON'S DOME: Dedicated in AD 128, it remains the world's largest unreinforced concrete dome.",
+  "labels_the_card_does_not_say": [
+   "FIELD INVESTIGATION"
+  ]
+ },
+ "roman/carousel_fb/carousel_slide_04.jpg": {
+  "card": "HARSH ENVIRONMENTS: Roman concrete withstood severe marine conditions in docks, seawalls, and sewers.",
+  "labels_the_card_does_not_say": [
+   "DISCOVERY RECORD"
+  ]
+ },
+ "roman/carousel_fb/carousel_slide_05.jpg": {
+  "card": "THE HOT-MIXING SECRET: Volcanic pozzolans and quicklime produced self-healing properties inside the concrete.",
+  "labels_the_card_does_not_say": [
+   "FIELD INVESTIGATION"
+  ]
+ },
+ "roman/carousel_fb/carousel_slide_06.jpg": {
+  "card": "OVERTURNING HISTORY: Chemical evidence overturned longstanding assumptions based on the texts of Vitruvius.",
+  "labels_the_card_does_not_say": [
+   "FIELD INVESTIGATION"
+  ]
+ },
+ "roman/carousel_fb/carousel_slide_07.jpg": {
+  "card": "LOST INGENUITY: Did ancient civilizations build with a deeper respect for future generations than we do?",
+  "labels_the_card_does_not_say": [
+   "FORENSIC DEBATE"
+  ]
+ },
+ "nazca/carousel/carousel_slide_01.jpg": {
+  "card": "The Nazca Lines: How shallow trenches carved into Peru's desert soil survived for over two thousand years.",
+  "labels_the_card_does_not_say": []
+ },
+ "nazca/carousel/carousel_slide_02.jpg": {
+  "card": "Scraping the Earth: Builders cleared reddish pebbles coated in iron oxide to reveal lighter clay earth below.",
+  "labels_the_card_does_not_say": [
+   "FIELD INVESTIGATION"
+  ]
+ },
+ "nazca/carousel/carousel_slide_03.jpg": {
+  "card": "Mist as a Shield: Morning mist provides moisture that hardens exposed clay, preventing erosion from wind.",
+  "labels_the_card_does_not_say": [
+   "FIELD INVESTIGATION"
+  ]
+ },
+ "nazca/carousel/carousel_slide_04.jpg": {
+  "card": "Simple Surveying: Archaeologists found wooden stakes at the ends of lines, showing how makers aligned them.",
+  "labels_the_card_does_not_say": [
+   "DISCOVERY RECORD"
+  ]
+ },
+ "nazca/carousel/carousel_slide_05.jpg": {
+  "card": "Massive Animal Shapes: By one estimate, the etched condor spans 134 meters, and the hummingbird spans 93 meters.",
+  "labels_the_card_does_not_say": [
+   "ARCHAEOLOGICAL METRIC",
+   "VERIFIED BY ARCHEOLOGICAL RECORD"
+  ]
+ },
+ "nazca/carousel/carousel_slide_06.jpg": {
+  "card": "Modern Drone Finds: In the 21st century, researchers using drones identified hundreds of new geoglyphs.",
+  "labels_the_card_does_not_say": [
+   "REF A // SURFACE CONTEXT",
+   "REF B // SUBTERRANEAN DEPTH",
+   "COMPARATIVE EVIDENCE"
+  ]
+ },
+ "nazca/carousel/carousel_slide_07.jpg": {
+  "card": "Earthly Ambition: Did ancient people build vast monuments for themselves, or to speak to the cosmos?",
+  "labels_the_card_does_not_say": [
+   "FORENSIC DEBATE"
+  ]
+ },
+ "nazca/carousel_fb/carousel_slide_01.jpg": {
+  "card": "The Nazca Lines: How shallow trenches carved into Peru's desert soil survived for over two thousand years.",
+  "labels_the_card_does_not_say": []
+ },
+ "nazca/carousel_fb/carousel_slide_02.jpg": {
+  "card": "Scraping the Earth: Builders cleared reddish pebbles coated in iron oxide to reveal lighter clay earth below.",
+  "labels_the_card_does_not_say": [
+   "FIELD INVESTIGATION"
+  ]
+ },
+ "nazca/carousel_fb/carousel_slide_03.jpg": {
+  "card": "Mist as a Shield: Morning mist provides moisture that hardens exposed clay, preventing erosion from wind.",
+  "labels_the_card_does_not_say": [
+   "FIELD INVESTIGATION"
+  ]
+ },
+ "nazca/carousel_fb/carousel_slide_04.jpg": {
+  "card": "Simple Surveying: Archaeologists found wooden stakes at the ends of lines, showing how makers aligned them.",
+  "labels_the_card_does_not_say": [
+   "DISCOVERY RECORD"
+  ]
+ },
+ "nazca/carousel_fb/carousel_slide_05.jpg": {
+  "card": "Massive Animal Shapes: By one estimate, the etched condor spans 134 meters, and the hummingbird spans 93 meters.",
+  "labels_the_card_does_not_say": [
+   "ARCHAEOLOGICAL METRIC",
+   "VERIFIED BY ARCHEOLOGICAL RECORD"
+  ]
+ },
+ "nazca/carousel_fb/carousel_slide_06.jpg": {
+  "card": "Modern Drone Finds: In the 21st century, researchers using drones identified hundreds of new geoglyphs.",
+  "labels_the_card_does_not_say": [
+   "REF A // SURFACE CONTEXT",
+   "REF B // SUBTERRANEAN DEPTH",
+   "COMPARATIVE EVIDENCE"
+  ]
+ },
+ "nazca/carousel_fb/carousel_slide_07.jpg": {
+  "card": "Earthly Ambition: Did ancient people build vast monuments for themselves, or to speak to the cosmos?",
+  "labels_the_card_does_not_say": [
+   "FORENSIC DEBATE"
+  ]
+ }
+}

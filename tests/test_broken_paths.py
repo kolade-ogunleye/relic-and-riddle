@@ -5,6 +5,7 @@ Regression tests for code paths that used to fail outright.
 """
 
 import numpy as np
+import pytest
 from PIL import Image
 
 from src import visual_engine
@@ -67,6 +68,7 @@ def _unesco():
     return engine
 
 
+@pytest.mark.real_unesco
 def test_unesco_never_injects_evidence_from_another_site():
     engine = _unesco()
     # Its location name is a province; Golestan Palace in Tehran is a different property.
@@ -77,6 +79,7 @@ def test_unesco_never_injects_evidence_from_another_site():
     assert engine.match_topic(_bank_topic("damascus_steel_nanotubes")) is None  # pinned: metallurgy, not the city
 
 
+@pytest.mark.real_unesco
 def test_unesco_finds_the_real_site():
     engine = _unesco()
     expected = {"kailasa_temple_monolith": 243, "gobekli_tepe_enclosure_d": 1572,  # Türkiye spelled as Turkey

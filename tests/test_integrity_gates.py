@@ -161,6 +161,7 @@ def test_openalex_tier_depends_on_venue_and_relevance(monkeypatch):
     assert "https://doi.org/10.1/offtopic" not in by_url  # irrelevant works are not evidence
 
 
+@pytest.mark.real_unesco
 def test_unesco_evidence_reaches_the_fact_sheet():
     # Regression: a NameError inside the optional UNESCO block was swallowed, so no topic got this evidence.
     from src.fact_sheet import _unesco_evidence

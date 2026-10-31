@@ -1,0 +1,1492 @@
+{
+"1/cover/normal/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+77,
+782,
+991,
+910
+]
+},
+{
+"name": "body",
+"box": [
+78,
+960,
+953,
+1048
+]
+},
+{
+"name": "header_brand",
+"box": [
+78,
+68,
+314,
+93
+]
+}
+],
+"shortened": []
+},
+"1/cover/tight/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+77,
+782,
+991,
+910
+]
+},
+{
+"name": "body",
+"box": [
+78,
+963,
+955,
+1047
+]
+},
+{
+"name": "header_brand",
+"box": [
+66,
+60,
+326,
+101
+]
+}
+],
+"shortened": []
+},
+"1/immersive/normal/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+77,
+907,
+884,
+1020
+]
+},
+{
+"name": "body",
+"box": [
+78,
+1026,
+959,
+1124
+]
+},
+{
+"name": "header_brand",
+"box": [
+78,
+68,
+314,
+93
+]
+}
+],
+"shortened": []
+},
+"1/immersive/tight/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+77,
+907,
+775,
+1006
+]
+},
+{
+"name": "body",
+"box": [
+78,
+1012,
+953,
+1101
+]
+},
+{
+"name": "header_brand",
+"box": [
+66,
+60,
+326,
+101
+]
+}
+],
+"shortened": []
+},
+"1/comparison/normal/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+80,
+800,
+754,
+891
+]
+},
+{
+"name": "body",
+"box": [
+80,
+897,
+996,
+986
+]
+},
+{
+"name": "header_brand",
+"box": [
+78,
+68,
+314,
+93
+]
+}
+],
+"shortened": []
+},
+"1/comparison/tight/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+80,
+800,
+670,
+879
+]
+},
+{
+"name": "body",
+"box": [
+80,
+885,
+898,
+965
+]
+},
+{
+"name": "header_brand",
+"box": [
+66,
+60,
+326,
+101
+]
+}
+],
+"shortened": []
+},
+"1/blueprint/normal/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+80,
+660,
+754,
+751
+]
+},
+{
+"name": "body",
+"box": [
+80,
+757,
+957,
+851
+]
+},
+{
+"name": "header_brand",
+"box": [
+78,
+68,
+314,
+93
+]
+}
+],
+"shortened": []
+},
+"1/blueprint/tight/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+80,
+660,
+670,
+739
+]
+},
+{
+"name": "body",
+"box": [
+80,
+745,
+951,
+830
+]
+},
+{
+"name": "header_brand",
+"box": [
+66,
+60,
+326,
+101
+]
+}
+],
+"shortened": []
+},
+"1/colossal_stat/normal/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "stat",
+"box": [
+80,
+550,
+188,
+647
+]
+},
+{
+"name": "heading",
+"box": [
+80,
+671,
+735,
+759
+]
+},
+{
+"name": "body",
+"box": [
+80,
+765,
+996,
+854
+]
+},
+{
+"name": "header_brand",
+"box": [
+78,
+68,
+314,
+93
+]
+}
+],
+"shortened": []
+},
+"1/colossal_stat/tight/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "stat",
+"box": [
+80,
+550,
+174,
+634
+]
+},
+{
+"name": "heading",
+"box": [
+80,
+655,
+651,
+732
+]
+},
+{
+"name": "body",
+"box": [
+80,
+738,
+898,
+818
+]
+},
+{
+"name": "header_brand",
+"box": [
+66,
+60,
+326,
+101
+]
+}
+],
+"shortened": []
+},
+"1/debate/normal/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+80,
+600,
+795,
+697
+]
+},
+{
+"name": "body",
+"box": [
+80,
+703,
+957,
+797
+]
+},
+{
+"name": "share",
+"box": [
+80,
+1136,
+981,
+1208
+]
+},
+{
+"name": "footer",
+"box": [
+80,
+1260,
+488,
+1281
+]
+},
+{
+"name": "header_brand",
+"box": [
+78,
+68,
+314,
+93
+]
+}
+],
+"shortened": []
+},
+"1/debate/tight/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+80,
+600,
+702,
+683
+]
+},
+{
+"name": "body",
+"box": [
+80,
+689,
+951,
+774
+]
+},
+{
+"name": "share",
+"box": [
+80,
+1136,
+981,
+1208
+]
+},
+{
+"name": "footer",
+"box": [
+80,
+1260,
+488,
+1281
+]
+},
+{
+"name": "header_brand",
+"box": [
+66,
+60,
+326,
+101
+]
+}
+],
+"shortened": []
+},
+"1/editorial_split/normal/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+80,
+800,
+772,
+893
+]
+},
+{
+"name": "body",
+"box": [
+80,
+899,
+922,
+1048
+]
+},
+{
+"name": "header_brand",
+"box": [
+78,
+68,
+314,
+93
+]
+}
+],
+"shortened": []
+},
+"1/editorial_split/tight/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+80,
+800,
+691,
+882
+]
+},
+{
+"name": "body",
+"box": [
+80,
+888,
+971,
+975
+]
+},
+{
+"name": "header_brand",
+"box": [
+66,
+60,
+326,
+101
+]
+}
+],
+"shortened": []
+},
+"5/cover/normal/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+77,
+768,
+930,
+881
+]
+},
+{
+"name": "body",
+"box": [
+78,
+932,
+932,
+1007
+]
+},
+{
+"name": "header_brand",
+"box": [
+78,
+68,
+314,
+93
+]
+}
+],
+"shortened": [
+"body"
+]
+},
+"5/cover/tight/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+77,
+768,
+930,
+881
+]
+},
+{
+"name": "body",
+"box": [
+78,
+932,
+932,
+1007
+]
+},
+{
+"name": "header_brand",
+"box": [
+66,
+60,
+326,
+101
+]
+}
+],
+"shortened": [
+"body"
+]
+},
+"5/immersive/normal/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+77,
+907,
+995,
+1029
+]
+},
+{
+"name": "body",
+"box": [
+78,
+1054,
+990,
+1221
+]
+},
+{
+"name": "header_brand",
+"box": [
+78,
+68,
+314,
+93
+]
+}
+],
+"shortened": [
+"body"
+]
+},
+"5/immersive/tight/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+77,
+907,
+995,
+1029
+]
+},
+{
+"name": "body",
+"box": [
+78,
+1054,
+951,
+1202
+]
+},
+{
+"name": "header_brand",
+"box": [
+66,
+60,
+326,
+101
+]
+}
+],
+"shortened": [
+"body"
+]
+},
+"5/comparison/normal/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+80,
+800,
+992,
+918
+]
+},
+{
+"name": "body",
+"box": [
+80,
+932,
+1000,
+1084
+]
+},
+{
+"name": "header_brand",
+"box": [
+78,
+68,
+314,
+93
+]
+}
+],
+"shortened": [
+"body"
+]
+},
+"5/comparison/tight/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+80,
+800,
+927,
+910
+]
+},
+{
+"name": "body",
+"box": [
+80,
+922,
+949,
+1066
+]
+},
+{
+"name": "header_brand",
+"box": [
+66,
+60,
+326,
+101
+]
+}
+],
+"shortened": [
+"body"
+]
+},
+"5/blueprint/normal/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+80,
+660,
+992,
+778
+]
+},
+{
+"name": "body",
+"box": [
+80,
+792,
+988,
+1000
+]
+},
+{
+"name": "header_brand",
+"box": [
+78,
+68,
+314,
+93
+]
+}
+],
+"shortened": [
+"body"
+]
+},
+"5/blueprint/tight/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+80,
+660,
+927,
+770
+]
+},
+{
+"name": "body",
+"box": [
+80,
+782,
+953,
+965
+]
+},
+{
+"name": "header_brand",
+"box": [
+66,
+60,
+326,
+101
+]
+}
+],
+"shortened": [
+"body"
+]
+},
+"5/colossal_stat/normal/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+80,
+550,
+992,
+671
+]
+},
+{
+"name": "body",
+"box": [
+80,
+688,
+1000,
+840
+]
+},
+{
+"name": "header_brand",
+"box": [
+78,
+68,
+314,
+93
+]
+}
+],
+"shortened": [
+"body"
+]
+},
+"5/colossal_stat/tight/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+80,
+550,
+1000,
+658
+]
+},
+{
+"name": "body",
+"box": [
+80,
+674,
+949,
+818
+]
+},
+{
+"name": "header_brand",
+"box": [
+66,
+60,
+326,
+101
+]
+}
+],
+"shortened": [
+"body"
+]
+},
+"5/debate/normal/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+80,
+600,
+992,
+721
+]
+},
+{
+"name": "body",
+"box": [
+80,
+738,
+988,
+857
+]
+},
+{
+"name": "share",
+"box": [
+80,
+1136,
+981,
+1208
+]
+},
+{
+"name": "footer",
+"box": [
+80,
+1260,
+488,
+1281
+]
+},
+{
+"name": "header_brand",
+"box": [
+78,
+68,
+314,
+93
+]
+}
+],
+"shortened": [
+"body"
+]
+},
+"5/debate/tight/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+80,
+600,
+970,
+718
+]
+},
+{
+"name": "body",
+"box": [
+80,
+734,
+949,
+834
+]
+},
+{
+"name": "share",
+"box": [
+80,
+1136,
+981,
+1208
+]
+},
+{
+"name": "footer",
+"box": [
+80,
+1260,
+488,
+1281
+]
+},
+{
+"name": "header_brand",
+"box": [
+66,
+60,
+326,
+101
+]
+}
+],
+"shortened": [
+"body"
+]
+},
+"5/editorial_split/normal/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+80,
+800,
+992,
+918
+]
+},
+{
+"name": "body",
+"box": [
+80,
+932,
+917,
+1103
+]
+},
+{
+"name": "header_brand",
+"box": [
+78,
+68,
+314,
+93
+]
+}
+],
+"shortened": [
+"body"
+]
+},
+"5/editorial_split/tight/ig": {
+"zone": [
+40,
+30,
+1040,
+1320
+],
+"protected": [
+{
+"name": "instagram_counter",
+"box": [
+800,
+0,
+1080,
+140
+]
+}
+],
+"elements": [
+{
+"name": "heading",
+"box": [
+80,
+800,
+960,
+913
+]
+},
+{
+"name": "body",
+"box": [
+80,
+926,
+990,
+1114
+]
+},
+{
+"name": "header_brand",
+"box": [
+66,
+60,
+326,
+101
+]
+}
+],
+"shortened": [
+"body"
+]
+}
+}

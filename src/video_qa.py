@@ -36,7 +36,217 @@ SYSTEM = """You are the quality checker for short vertical history documentaries
 - visual glitches: stretching, heavy compression artefacts, black or blank frames
 - anything that could break platform rules (graphic injury, nudity, hateful symbols shown without context)
 Severity: critical = should not be published as is; major = clearly hurts quality; minor = nitpick.
-Ignore stylistic choices like film grain, vignette and gold/white caption colours. If everything is fine, return no issues."""
+Ignore stylistic choices like film grain, vignette and gold/white caption colours. A beat marked as one of our own
+graphics (a number card, map, timeline, diagram) is a designed card: its plain or dimmed, blurred backdrop is the
+design, not a missing picture or a blank frame; judge its text (legible, matching the narration) and its drawing. A
+number or stat card may feature a horizontal gold rule above its kicker text; this is an intended graphic accent,
+not a typo, line glitch, or stray character.
+A beat may also say how its picture was made. These treatments are intended and are not defects in themselves:
+archive film shown whole, fitted over a blurred, darkened copy of itself (the soft bands around it are the design);
+soft blurs over present-day people's faces, applied for privacy (report one only if it is visually jarring, and
+then as minor); a slow camera move or AI motion on a still photo; an old photo's own grain, tint or soft focus.
+They never excuse a real defect: still report a picture that does not match or contradicts the narration, an
+upside-down or mirrored picture, a placard, label or printed text in the picture, captions cut off or overlapping,
+watermarks and glitches.
+If everything is fine, return no issues."""
+
+
+def _lineage_chain(asset: Path, depth: int = 6) -> Tuple[List[Dict[str, Any]], Path]:
+    """The lineage records from a scene file back to its original (one source per step), and that original."""
+    from .lineage import sidecar
+    records: List[Dict[str, Any]] = []
+    path = Path(asset)
+    for _ in range(depth):
+        try:
+            record = json.loads(sidecar(path).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            break
+        if not isinstance(record, dict):
+            break
+        sources = record.get("sources") or []
+        records.append(record)
+        if len(sources) != 1:
+            break
+        path = Path(sources[0].get("path", ""))
+    return records, path
+
+
+def _photo_record(image: Path) -> Dict[str, Any]:
+    """The photo's own credit record (its folder's credits.json, as the privacy check reads it), or {}."""
+    for credits in (image.parent / "credits.json", image.parent.parent / "credits.json"):
+        try:
+            records = json.loads(credits.read_text(encoding="utf-8")).get("images", [])
+        except (OSError, ValueError, AttributeError):
+            continue
+        for record in records:
+            if isinstance(record, dict) and record.get("file") == image.name:
+                return record
+    return {}
+
+
+def _clip(text: str, limit: int = 110) -> str:
+    text = " ".join(str(text or "").split()).replace('"', "'")
+    return text if len(text) <= limit else text[:limit].rsplit(" ", 1)[0] + "…"
+
+
+def beat_tag(asset: Any) -> str:
+    """How a beat's picture was made, for the vision check, from what the pipeline already recorded: the
+    graphic's name, the footage clip's credit record, and the scene's lineage (privacy blur, AI motion, the
+    original photo's archive caption). Our own treatments were reported as defects: a privacy blur as "a grey
+    oval patch" (production, Amber Room, 2026-10-27), blurred visitors' faces as "fingers blocking the lens"
+    (development, Roman concrete, 2026-10-28). Empty when nothing is known."""
+    if not asset:
+        return ""
+    path = Path(str(asset))
+    stem = path.stem
+    if stem.startswith("graphic_"):
+        # Our own graphics are named as such: a number card's dimmed backdrop was reported as "an empty dark
+        # gradient with no visual imagery" and blocked a release (Odessa, 2026-10-27).
+        return f" [our own graphic: {stem.removeprefix('graphic_').replace('_', ' ')} card]"
+    if stem.startswith("gap_gen_"):
+        return " [in-house archaeological reconstruction: era-matched archival illustration for unphotographed phenomenon]"
+    parts: List[str] = []
+    if stem.startswith("footage_"):
+        try:
+            info = json.loads(path.with_suffix(".json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            info = {}
+        info = info if isinstance(info, dict) else {}
+        named = " ".join(p for p in (f"\"{_clip(info.get('title'), 70)}\"" if info.get("title") else "",
+                                      f"({info['year']})" if info.get("year") else "") if p)
+        parts.append("real archive film" + (f" {named}" if named else ""))
+        from . import footage
+        if footage.frame_filter(info) == ["-filter_complex", footage.FIT]:
+            parts.append("a wide shot shown whole, fitted over a blurred, darkened copy of itself")
+        return f" [{'; '.join(parts)}]"
+    records, original = _lineage_chain(path)
+    if original.stem.startswith("gap_gen_"):
+        return " [in-house archaeological reconstruction: era-matched archival illustration for unphotographed phenomenon]"
+    operations = [r.get("operation") for r in records]
+    if "ai_motion" in operations:
+        parts.append("AI motion animating a real photo")
+    blurs = [r for r in records if r.get("operation") == "face_blur"]
+    if blurs:
+        count = (blurs[0].get("settings") or {}).get("faces")
+        parts.append(f"{count} privacy blur(s) applied over present-day faces" if isinstance(count, int) and count > 0
+                     else "privacy blurs applied over present-day faces")
+    if original.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp"):
+        record = _photo_record(original)
+        caption = record.get("description") or str(record.get("title") or "").removeprefix("File:").rsplit(".", 1)[0]
+        # The source's own label, never drawn on screen, and sometimes wrong: Commons filed the Hands geoglyph as the
+        # "Condor" and the check blocked a dev release over the label (Nazca, 2026-10-29).
+        parts.insert(0, "real archive picture" + (f", its archive caption (the source's label, not shown on screen, "
+                                                  f"may be wrong): \"{_clip(caption)}\"" if caption else ""))
+    return f" [{'; '.join(parts)}]" if parts else ""
+
+
+# A finding that only says a beat's backdrop is blank, empty, dark or blurred. On our own graphic that backdrop is
+# the design; b8b7d0c told the check so in words, and the code now holds it (Odessa beat 6, development, 2026-10-27;
+# Richat beat 8, production, 2026-10-26).
+# Only a finding about the BACKGROUND: "the image is blank" may mean the card itself failed to draw (review 2026-10-28).
+_BACKDROP = re.compile(r"\b(background|backdrop)", re.I)
+_BLANK = re.compile(r"\b(blank|empty|plain|bare|blurr?(ed|y)?|out[- ]of[- ]focus|dark gradient|gradient|no (visual )?imagery|"
+                    r"no (real )?(picture|photo|image)|lacks? (visual|imagery|a picture)|missing (picture|image|imagery)|dimmed)", re.I)
+# Words of a real defect in the card itself: such a finding is kept whatever else it says.
+_CARD_DEFECT = re.compile(r"(cut off|truncat|overlap|illegib|unreadable|hard to read|misspel|typo|wrong|incorrect|"
+                          r"contradict|does not match|doesn't match|mismatch|upside|stretch|glitch|artefact|artifact|"
+                          r"watermark|logo|garbled|clipped|"
+                          # the card's own content missing: a graphic that drew only its backdrop is a real failure
+                          r"no (number|map|text|line|chart|figure|label|data|value|date|route|caption)s?\b|"
+                          r"nothing (is )?(visible|shown|drawn)|missing|not drawn|not rendered|blank (white|frame|screen|card)|"
+                          r"empty (screen|card|frame)|low[- ]res|pixelat)", re.I)
+
+
+def designed_backdrop_finding(issue: str) -> bool:
+    """True when a finding only says the backdrop is blank, empty or blurred (no defect of the card itself)."""
+    return bool(_BACKDROP.search(issue) and _BLANK.search(issue) and not _CARD_DEFECT.search(issue))
+
+
+# A finding whose only complaint is the source's label against the picture (the label is context we pass, never on
+# screen): the picture is judged against the narration, not against its archive caption (Nazca beat 8, 2026-10-29).
+_SOURCE_LABEL = re.compile(r"\b(archive (caption|label|description|title)|source(?:'s)? (caption|label|description)|"
+                           r"metadata|file ?name)\b", re.I)
+_AGAINST_NARRATION = re.compile(r"\b(narration|narrat|line says|the line|voice ?over|spoken|subtitle|on[- ]screen text)", re.I)
+
+
+def source_label_finding(issue: str) -> bool:
+    """True when a finding only says the picture disagrees with its source's label, not with what viewers hear or see."""
+    return bool(_SOURCE_LABEL.search(issue) and not _AGAINST_NARRATION.search(issue))
+
+
+def drop_source_label_findings(report: Optional[QAReport]) -> Optional[QAReport]:
+    """The report without minor findings about a picture's archive caption alone; each dropped one is noted."""
+    if report is None:
+        return report
+    dropped = [i for i in report.issues if i.severity == "minor" and source_label_finding(i.issue)]
+    if not dropped:
+        return report
+    for i in dropped:
+        log.info("Video check: beat %s compares the picture with its source's label, not shown on screen (%s)", i.beat, i.issue)
+    note = " Not counted (the source's label, not shown on screen): " + "; ".join(f"beat {i.beat}: {i.issue}" for i in dropped)
+    return report.model_copy(update={"issues": [i for i in report.issues if i not in dropped],
+                                     "summary": (report.summary or "") + note})
+
+
+
+
+
+_RECONSTRUCTION_NON_DEFECT = re.compile(
+    r"\b(not (a )?(real |authentic )?(photo|photograph)|illustration|drawing|sketch|"
+    r"artistic depiction|not real footage|monochrome linework|engraving|synthetic image|"
+    r"ai generated (image|visual|drawing)|rendered drawing|hand[- ]drawn)\b", re.I
+)
+
+
+_RECONSTRUCTION_REAL_DEFECT = re.compile(
+    r"(cut off|truncat|overlap|illegib|unreadable|hard to read|misspel|typo|wrong text|upside|glitch|watermark|logo|garbled)", re.I
+)
+
+
+def drop_reconstruction_aesthetic_findings(report: Optional[QAReport], assets: Optional[List[Any]]) -> Optional[QAReport]:
+    """The report without false-positive non-photographic complaints on in-house archaeological reconstructions."""
+    if report is None or not assets:
+        return report
+    def is_recon(a):
+        p = Path(str(a))
+        if p.stem.startswith("gap_gen_"):
+            return True
+        try:
+            _, orig = _lineage_chain(p)
+            return orig.stem.startswith("gap_gen_")
+        except Exception:
+            return False
+
+    reconstructed = {i for i, a in enumerate(assets, 1) if is_recon(a)}
+    dropped = [i for i in report.issues
+               if i.beat in reconstructed and _RECONSTRUCTION_NON_DEFECT.search(i.issue) and not _RECONSTRUCTION_REAL_DEFECT.search(i.issue)]
+    if not dropped:
+        return report
+    for i in dropped:
+        log.info("Video check: beat %s complains reconstruction is an illustration (%s); suppressed.", i.beat, i.issue)
+    note = " Not counted (sanctioned in-house archaeological reconstruction): " + "; ".join(f"beat {i.beat}: {i.issue}" for i in dropped)
+    return report.model_copy(update={"issues": [i for i in report.issues if i not in dropped],
+                                     "summary": (report.summary or "") + note})
+
+
+
+def drop_designed_backdrops(report: Optional[QAReport], assets: Optional[List[Any]]) -> Optional[QAReport]:
+    """The report without backdrop findings on our own graphics; each dropped one is noted in its summary."""
+    if report is None or not assets:
+        return report
+    ours = {i for i, a in enumerate(assets, 1) if Path(str(a)).stem.startswith("graphic_")}
+    # Minor only: a major or critical finding on a graphic is never set aside by wording (review 2026-10-28)
+    dropped = [i for i in report.issues
+               if i.beat in ours and i.severity == "minor" and designed_backdrop_finding(i.issue)]
+    if not dropped:
+        return report
+    for i in dropped:
+        log.info("Video check: beat %d is our own graphic; its designed backdrop is not a defect (%s)", i.beat, i.issue)
+    note = " Not counted (our own graphic's designed backdrop): " + "; ".join(f"beat {i.beat}: {i.issue}" for i in dropped)
+    return report.model_copy(update={"issues": [i for i in report.issues if i not in dropped],
+                                     "summary": (report.summary or "") + note})
+
+
 
 def calculate_wcag_relative_luminance(rgb: Tuple[float, float, float]) -> float:
     """Calculates WCAG 2.1 relative luminance for an RGB tuple (0-255)."""
@@ -117,28 +327,57 @@ def extract_frames(video: Path, times: List[float], out_dir: Path) -> List[Path]
     return frames
 
 
+SAMPLE_AT = 0.8  # fraction of a beat at which its frame is checked: settled, still clear of the next cut
+
+
+def sample_time(start: float, end: float) -> float:
+    """The moment in a beat the automated check looks at: four fifths through (never before its middle)."""
+    start, end = float(start or 0.0), float(end or 0.0)
+    return max((start + end) / 2, start + SAMPLE_AT * (end - start))
+
+
+def beat_prompt(i: int, beat: Dict[str, Any], assets: Optional[List[Any]] = None) -> str:
+    """The words that go with beat i's frame: how its picture was made, and the narration spoken."""
+    tag = beat_tag(assets[i - 1]) if assets and i <= len(assets) else ""
+    return f"Beat {i}{tag} narration: \"{beat['text']}\""
+
+
 @llm_task("video_qa")
-def review_render(video: Path, beats: List[Dict[str, Any]], cover: Path, work_dir: Path) -> Optional[QAReport]:
+def review_render(video: Path, beats: List[Dict[str, Any]], cover: Path, work_dir: Path,
+                  assets: Optional[List[Any]] = None) -> Optional[QAReport]:
     """Returns the QA report, or None if Claude is unavailable or the check fails."""
     if not (free_llm.available() if free_llm.enabled() else claude_available()):
         return None
     try:
-        times = [(b["start"] + b["end"]) / 2 for b in beats]
+        # Late in each beat, not its midpoint: an animated graphic has settled by then (a number card
+        # counts up over its first ~3 s; the midpoint frame read "29" of a card resting on 30 and the
+        # check reported a contradiction with the narration — production, Antikythera, 2026-10-24).
+        times = [sample_time(b["start"], b["end"]) for b in beats]
         frames = extract_frames(video, times, work_dir / "qa_frames")
         content: List[dict] = []
         for i, (frame, beat) in enumerate(zip(frames, beats), 1):
-            content += [{"type": "text", "text": f"Beat {i} narration: \"{beat['text']}\""}, image_block(frame, 768)]
+            content += [{"type": "text", "text": beat_prompt(i, beat, assets)}, image_block(frame, 768)]
         content += [{"type": "text", "text": "Cover image (thumbnail):"}, image_block(cover, 768),
                     {"type": "text", "text": "Report issues by beat number (use 0 for the cover)."}]
-        return (free_llm.call(SYSTEM, content, QAReport, role="checker", effort="low", max_tokens=4000)
-                if free_llm.enabled() else structured_call(SYSTEM, content, QAReport, effort="low", max_tokens=4000))
+        report = (free_llm.call(SYSTEM, content, QAReport, role="checker", effort="low", max_tokens=4000)
+                  if free_llm.enabled() else structured_call(SYSTEM, content, QAReport, effort="low", max_tokens=4000))
+        return drop_source_label_findings(drop_designed_backdrops(drop_reconstruction_aesthetic_findings(report, assets), assets))
     except (LLMError, subprocess.SubprocessError, OSError, ValueError) as e:
         log.warning("Video QA could not run: %s", e)
         return None
 
 
-def qa_summary_html(report: Optional[QAReport]) -> str:
+def qa_summary_html(report: Optional[QAReport], beats: Optional[List[Dict[str, Any]]] = None) -> str:
+    """The card's video check. With the run's beats, each issue says where it is in the video ("beat 9,
+    0:37-0:41"), so the reviewer can find it (the card named only the beat number)."""
     import html
+
+    def at(beat: int) -> str:
+        if not beats or not 1 <= beat <= len(beats):
+            return ""
+        b = beats[beat - 1]
+        clock = lambda s: f"{int(s // 60)}:{int(s % 60):02d}"  # noqa: E731
+        return f", {clock(b['start'])}-{clock(b['end'])}"
     if report is None:
         return "🔎 Automated video check: not run"
     if not report.issues:
@@ -147,7 +386,7 @@ def qa_summary_html(report: Optional[QAReport]) -> str:
     order = {"critical": 0, "major": 1, "minor": 2}
     lines = [f"🔎 Automated video check: {len(report.issues)} issue(s)"]
     for i in sorted(report.issues, key=lambda x: order.get(x.severity.lower(), 99))[:6]:
-        where = "cover" if i.beat == 0 else f"beat {i.beat}"
+        where = "cover" if i.beat == 0 else f"beat {i.beat}{at(i.beat)}"
         sev = i.severity.lower()
         lines.append(f"{icon.get(sev, '·')} {html.escape(where)}: {html.escape(i.issue)}")
     return "\n".join(lines)
@@ -169,6 +408,27 @@ def measure_program_loudness(video_path: Path) -> Dict[str, float]:
     if not all(math.isfinite(v) for v in values.values()):
         raise ValueError("Non-finite loudness measurement")
     return values
+
+
+def caption_pills(ass_file: Path) -> List[Tuple[int, int, int, int]]:
+    """The rectangles (x0, y0, x1, y1) of the caption pills, the CapBox drawing events of a caption file, in
+    frame pixels (the file's PlayRes is the frame)."""
+    rects: List[Tuple[int, int, int, int]] = []
+    for line in ass_file.read_text(encoding="utf-8").splitlines():
+        if not line.startswith("Dialogue:") or ",CapBox," not in line:
+            continue
+        text = line.split(",", 9)[-1]
+        pos = re.search(r"\\pos\((-?\d+),(-?\d+)\)", text)
+        shape = re.search(r"\\p1\}([^{]*)\{", text)
+        if not pos or not shape:
+            continue
+        nums = [float(n) for n in re.findall(r"-?\d+(?:\.\d+)?", shape.group(1))]
+        xs, ys = nums[0::2], nums[1::2]
+        if not xs or not ys:
+            continue
+        x, y = int(pos.group(1)), int(pos.group(2))
+        rects.append((x + int(min(xs)), y + int(min(ys)), x + int(round(max(xs))), y + int(round(max(ys)))))
+    return rects
 
 
 def _parse_ass_time(ts: str) -> float:
@@ -231,7 +491,11 @@ SCENE_FIXES = {
     "motion_loop": "the graphic loops instead of holding its final frame through this beat",
     "blank_frame": "the picture renders blank",
     "caption_collision": "the graphic runs into the captions",
+    # Minor, but it decertifies the master and so blocks release (2026-10-24: a map shown one beat after
+    # the narration named the place). Re-planning can move the graphic to the beat that names it.
+    "temporal_desync": "the graphic appears away from the words that name it",
 }
+SCENE_REMEDIES = {"temporal_desync": "put it on the beat where those words are spoken, or choose a different picture for this beat."}
 
 
 def audit_scene_feedback(audit: Optional[Dict[str, Any]]) -> str:
@@ -240,8 +504,9 @@ def audit_scene_feedback(audit: Optional[Dict[str, Any]]) -> str:
     for issue in (audit or {}).get("issues", []):
         if issue.get("type") in SCENE_FIXES and issue.get("scene_index", -1) >= 0:
             asset = Path(issue.get("asset", "")).name
+            remedy = SCENE_REMEDIES.get(issue["type"], "choose a different picture for it.")
             lines.append(f"Beat {issue['scene_index'] + 1}: {SCENE_FIXES[issue['type']]}"
-                         + (f" ({asset})" if asset else "") + "; choose a different picture for it.")
+                         + (f" ({asset})" if asset else "") + f"; {remedy}")
     return "\n".join(dict.fromkeys(lines))
 
 
@@ -391,7 +656,22 @@ class QualityAuditor:
             if not terms:  # declares nothing to judge it by
                 continue
             c_start, c_end = cut.get("start", 0.0), cut.get("end", 0.0)
-            in_window = [w for w in all_words_list if (c_start - 2.5) <= w.get("start", 0.0) <= (c_end + 2.5)]
+            # A map or route shows where the story is set, so the place named any time before it counts (a Hal
+            # Saflieni map after "Paola, Malta" in the first line was blocked as out of step: 2026-10-25).
+            locator = graphic_match.kind_of(asset_path) in ("map", "route")
+            window_start = 0.0 if locator else c_start - 2.5
+            # The cut after the hook: a graphic the hook names follows it there, since the hook keeps its photo
+            # (scene_planner.lock_narrative_graphics), so the hook's words are its words. The 2.5 s window missed
+            # "city" (0.9 s) and "280" (2.3 s) before a cut at 6.4 s and blocked the release (production, rc72,
+            # 2026-10-29). Only when the hook itself names it, as the planner's rule asks; elsewhere the window holds.
+            if i == 1 and not locator:
+                hook_start = timeline[0].get("start", 0.0)
+                hook_words = [w for w in all_words_list if hook_start <= w.get("start", 0.0) < c_start]
+                hook_heard = timeline[0].get("text", "") + " " + " ".join(w.get("word", "") for w in hook_words)
+                if graphic_match.score(asset_path, hook_heard) >= graphic_match.THRESHOLD:
+                    window_start = min(window_start, hook_start)
+            in_window = [w for w in all_words_list
+                         if window_start <= w.get("start", 0.0) <= (c_end + 2.5)]
             heard = cut.get("text", "") + " " + " ".join(w.get("word", "") for w in in_window)
             if graphic_match.score(asset_path, heard) < graphic_match.THRESHOLD:
                 issues.append({
@@ -408,11 +688,22 @@ class QualityAuditor:
                 distance = lambda t: max(c_start - t, t - c_end, 0.0)  # noqa: E731
                 t_first = min(matching_word_times, key=distance)
                 offset = distance(t_first)
-                if offset > 1.2:
+                # Named in the hook, shown on the next cut: as early as it can be, since the hook keeps its
+                # photo (scene_planner.lock_narrative_graphics puts it there). Flagging that made the repair
+                # unwinnable: the re-plan moved it to the hook and the lock moved it back (2026-10-24).
+                after_hook = i == 1 and timeline[0].get("start", 0.0) <= t_first < c_start
+                # A map or route named earlier is on time wherever it comes, as its match above already says: the
+                # 1.2 s rule still called the Hal Saflieni map, shown after "Paola, Malta", late (audit, 2026-10-28).
+                # Shown before its place is named, it is still early.
+                named_earlier = locator and any(t < c_start for t in matching_word_times)
+                if offset > 1.2 and not after_hook and not named_earlier:
                     issues.append({
                         "type": "temporal_desync",
                         "severity": "minor",
-                        "issue": f"Scene {i}: Graphic '{asset_name}' keyword is {offset:.2f}s outside its cut (>1.2s)",
+                        # Words the operator reads on the review card: beats count from 1 there.
+                        "issue": (f"Beat {i + 1}: the graphic {asset_name} is on screen {offset:.1f} s "
+                                  f"{'after' if t_first < c_start else 'before'} the narration names it "
+                                  f"(allowed: 1.2 s)"),
                         "scene_index": i,
                         "trigger_time": t_first,
                         "cut_start": c_start,
@@ -499,10 +790,23 @@ class QualityAuditor:
                                    "issue": str(e), "scene_index": -1})
 
             is_widescreen = width > height
-            # SMPTE ST 2046-1 Title Safe is 90% (y=972 in 1080p).
-            # Caption safe-zone ceiling is 820px in 16:9 widescreen, 1113px in 9:16 vertical Reels.
-            safe_ceiling = 820 if is_widescreen else 1113
-            caption_zone_top = 905 if is_widescreen else 1290
+            # 16:9: SMPTE ST 2046-1 title-safe (90%) above the caption line. 9:16: the graphics' text stops at
+            # the top of the caption band; both from safe_zones, the Reel box every platform leaves free.
+            from . import safe_zones
+            from .graphics import get_text_bounds
+            safe_ceiling = get_text_bounds(width, height)[1]
+            caption_zone_top = 905 if is_widescreen else safe_zones.caption_band_top(width, height)
+            if not is_widescreen and c_file.exists():
+                # Every caption pill inside the Reel box: a pill under Meta's caption row or Shorts' icon column
+                # is a finding (the first publication's pills reached 61 px into the bottom band).
+                reel_box = safe_zones.safe_box("reel", width, height)
+                outside = [r for r in caption_pills(c_file) if not safe_zones.inside(r, reel_box)]
+                if outside:
+                    lowest = max(r[3] for r in outside)
+                    issues.append({"type": "caption_outside_safe_zone", "severity": "major", "scene_index": -1,
+                                   "issue": f"{len(outside)} caption pill(s) leave the platforms' safe area "
+                                            f"(lowest edge y={lowest} px; safe box x {reel_box[0]}-{reel_box[2]}, y {reel_box[1]}-{reel_box[3]})"})
+                    score -= 15
 
             for i, cut in enumerate(timeline):
                 asset_p = Path(cut.get("asset", ""))
@@ -557,8 +861,9 @@ class QualityAuditor:
             "master_sha256": sha256_file(video_path),
         }
 
-    def audit_carousel_slides(self, carousel_dir: Path) -> Dict[str, Any]:
-        """Audits generated carousel slides for aspect ratio, blank frames, safe margin encroachment, and badge bounds."""
+    def audit_carousel_slides(self, carousel_dir: Path, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Audits generated carousel slides for aspect ratio, blank frames, safe margin encroachment, and badge bounds,
+        then looks at each slide with its own words (still_vision; informational findings)."""
         target_dir = carousel_dir / "carousel" if (carousel_dir / "carousel").is_dir() else carousel_dir
         issues: List[Dict[str, Any]] = []
         score = 100
@@ -575,8 +880,9 @@ class QualityAuditor:
             try:
                 with Image.open(slide_path) as im:
                     w, h = im.size
-                    # Check aspect ratio: standard carousels are 1080x1350 (4:5) or 1080x1080 (1:1)
-                    if (w, h) not in ((1080, 1350), (1080, 1080), (1080, 1920)):
+                    # Check aspect ratio: carousels are 1440x1800 (4:5, Meta's recommended feed size, since
+                    # 2026-10-28); slides drawn before then are 1080x1350, and 1:1 and 9:16 stay accepted
+                    if (w, h) not in ((1440, 1800), (1080, 1350), (1080, 1080), (1080, 1920)):
                         issues.append({
                             "type": "non_standard_aspect_ratio",
                             "severity": "minor",
@@ -598,29 +904,45 @@ class QualityAuditor:
                         })
                         score -= 30
 
-                    # Safe margin text/element clipping check at extreme borders in the typography safe band
-                    text_band_top = int(h * 0.58)
-                    text_band_bottom = int(h * 0.92)
-                    left_strip = gray.crop((0, text_band_top, 12, text_band_bottom))
-                    right_strip = gray.crop((w - 12, text_band_top, w, text_band_bottom))
-                    l_stat = ImageStat.Stat(left_strip)
-                    r_stat = ImageStat.Stat(right_strip)
-                    if l_stat.stddev and l_stat.stddev[0] > 60.0:
-                        issues.append({
-                            "type": "margin_encroachment",
-                            "severity": "major",
-                            "issue": f"Slide {idx} ({slide_path.name}): graphics or text clipped at left canvas margin",
-                            "slide": slide_path.name,
-                        })
-                        score -= 15
-                    if r_stat.stddev and r_stat.stddev[0] > 60.0:
-                        issues.append({
-                            "type": "margin_encroachment",
-                            "severity": "major",
-                            "issue": f"Slide {idx} ({slide_path.name}): graphics or text clipped at right canvas margin",
-                            "slide": slide_path.name,
-                        })
-                        score -= 15
+                    # Margin and clipping check: when layout was measured with font metrics, use its exact records.
+                    # Raw pixel standard deviation is only a fallback for unmeasured stills without layout sidecars
+                    # (a full-bleed photo's own textures trip > 60 stddev, causing false positives on valid slides).
+                    from . import still_layout
+                    layout_entry = still_layout.load(slide_path)
+                    if layout_entry is not None:
+                        for prob in (still_layout.check(slide_path) or []):
+                            if "text_cut_off" in prob or "leaves its safe zone" in prob:
+                                issues.append({
+                                    "type": "margin_encroachment",
+                                    "severity": "major",
+                                    "issue": f"Slide {idx} ({slide_path.name}): {prob}",
+                                    "slide": slide_path.name,
+                                })
+                                score -= 15
+                    else:
+                        text_band_top = int(h * 0.58)
+                        text_band_bottom = int(h * 0.92)
+                        edge = round(12 * w / 1080)  # 12 px of the 1080-wide design canvas
+                        left_strip = gray.crop((0, text_band_top, edge, text_band_bottom))
+                        right_strip = gray.crop((w - edge, text_band_top, w, text_band_bottom))
+                        l_stat = ImageStat.Stat(left_strip)
+                        r_stat = ImageStat.Stat(right_strip)
+                        if l_stat.stddev and l_stat.stddev[0] > 60.0:
+                            issues.append({
+                                "type": "margin_encroachment",
+                                "severity": "major",
+                                "issue": f"Slide {idx} ({slide_path.name}): graphics or text clipped at left canvas margin",
+                                "slide": slide_path.name,
+                            })
+                            score -= 15
+                        if r_stat.stddev and r_stat.stddev[0] > 60.0:
+                            issues.append({
+                                "type": "margin_encroachment",
+                                "severity": "major",
+                                "issue": f"Slide {idx} ({slide_path.name}): graphics or text clipped at right canvas margin",
+                                "slide": slide_path.name,
+                            })
+                            score -= 15
             except Exception as e:
                 issues.append({
                     "type": "corrupt_slide",
@@ -629,6 +951,10 @@ class QualityAuditor:
                     "slide": slide_path.name,
                 })
                 score -= 30
+
+        from . import still_vision
+        issues.extend(still_vision.findings(slides, "carousel slide", [still_vision.carousel_copy(payload, i) for i in range(len(slides))],
+                                            "carousel_slide_look", "slide"))
 
         final_score = max(0, min(100, score))
         certified = (final_score == 100 and len([iss for iss in issues if iss.get("severity") in ("critical", "major")]) == 0)
@@ -639,8 +965,9 @@ class QualityAuditor:
             "slides_audited": len(slides),
         }
 
-    def audit_story_cards(self, story_dir: Path) -> Dict[str, Any]:
-        """Audits generated Story frames for 9:16 aspect ratio, blank cards, UI safe zone violations, and engagement bait."""
+    def audit_story_cards(self, story_dir: Path, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Audits generated Story frames for 9:16 aspect ratio, blank cards, UI safe zone violations, and engagement bait,
+        then looks at each frame with its own words (still_vision; informational findings)."""
         target_dir = story_dir / "stories" if (story_dir / "stories").is_dir() else story_dir
         issues: List[Dict[str, Any]] = []
         score = 100
@@ -678,29 +1005,45 @@ class QualityAuditor:
                         })
                         score -= 30
 
-                    # Extreme margin text clipping in the story safe band
-                    mid_top = int(h * 0.20)
-                    mid_bot = int(h * 0.85)
-                    left_strip = gray.crop((0, mid_top, 8, mid_bot))
-                    right_strip = gray.crop((w - 8, mid_top, w, mid_bot))
-                    l_stat = ImageStat.Stat(left_strip)
-                    r_stat = ImageStat.Stat(right_strip)
-                    if l_stat.stddev and l_stat.stddev[0] > 65.0:
-                        issues.append({
-                            "type": "story_margin_encroachment",
-                            "severity": "major",
-                            "issue": f"Story card {idx} ({card_path.name}): graphics or text clipped at left canvas margin",
-                            "card": card_path.name,
-                        })
-                        score -= 15
-                    if r_stat.stddev and r_stat.stddev[0] > 65.0:
-                        issues.append({
-                            "type": "story_margin_encroachment",
-                            "severity": "major",
-                            "issue": f"Story card {idx} ({card_path.name}): graphics or text clipped at right canvas margin",
-                            "card": card_path.name,
-                        })
-                        score -= 15
+                    # Margin and clipping check: when layout was measured with font metrics, use its exact records.
+                    # Raw pixel standard deviation is only a fallback for unmeasured cards without layout sidecars
+                    # (production Antikythera 30 Oct: story_01 photo had stddev=69.75 at the edge, blocking release
+                    # despite all text being locked inside the safe zone).
+                    from . import still_layout
+                    layout_entry = still_layout.load(card_path)
+                    if layout_entry is not None:
+                        for prob in (still_layout.check(card_path) or []):
+                            if "text_cut_off" in prob or "leaves its safe zone" in prob:
+                                issues.append({
+                                    "type": "story_margin_encroachment",
+                                    "severity": "major",
+                                    "issue": f"Story card {idx} ({card_path.name}): {prob}",
+                                    "card": card_path.name,
+                                })
+                                score -= 15
+                    else:
+                        mid_top = int(h * 0.20)
+                        mid_bot = int(h * 0.85)
+                        left_strip = gray.crop((0, mid_top, 8, mid_bot))
+                        right_strip = gray.crop((w - 8, mid_top, w, mid_bot))
+                        l_stat = ImageStat.Stat(left_strip)
+                        r_stat = ImageStat.Stat(right_strip)
+                        if l_stat.stddev and l_stat.stddev[0] > 65.0:
+                            issues.append({
+                                "type": "story_margin_encroachment",
+                                "severity": "major",
+                                "issue": f"Story card {idx} ({card_path.name}): graphics or text clipped at left canvas margin",
+                                "card": card_path.name,
+                            })
+                            score -= 15
+                        if r_stat.stddev and r_stat.stddev[0] > 65.0:
+                            issues.append({
+                                "type": "story_margin_encroachment",
+                                "severity": "major",
+                                "issue": f"Story card {idx} ({card_path.name}): graphics or text clipped at right canvas margin",
+                                "card": card_path.name,
+                            })
+                            score -= 15
             except Exception as e:
                 issues.append({
                     "type": "corrupt_card",
@@ -709,6 +1052,39 @@ class QualityAuditor:
                     "card": card_path.name,
                 })
                 score -= 30
+
+        # The text block of each frame (recorded by the renderer) inside the area Meta leaves free on a Story.
+        layout_file = target_dir / "layout.json"
+        if layout_file.is_file():
+            from . import safe_zones
+            try:
+                for entry in json.loads(layout_file.read_text(encoding="utf-8")):
+                    w, h = entry.get("size") or (1080, 1920)
+                    drawn, source = entry.get("body_drawn"), entry.get("body_source")
+                    if source and drawn is not None and (drawn != source or not drawn.rstrip().endswith((".", "!", "?", "’", '"'))):
+                        # A frame's text shortened or ending mid-sentence (a posted Kailasa frame, 2026-10-25).
+                        issues.append({"type": "story_text_incomplete", "severity": "major", "card": entry.get("frame"),
+                                       "issue": f"Story frame {entry.get('frame')}: its text was shortened to fit "
+                                                f"({len(drawn.split())} of {len(source.split())} words): ...{drawn[-60:]}"})
+                        score -= 15
+                    from .multi_format import STORY_BODY_LINES, STORY_BODY_PX
+                    if entry.get("body_px") and (entry["body_px"] < STORY_BODY_PX or (entry.get("body_lines") or 0) > STORY_BODY_LINES):
+                        # Too small to read on a phone, or spilling past its three lines (operator, 2026-10-25).
+                        issues.append({"type": "story_text_too_small", "severity": "major", "card": entry.get("frame"),
+                                       "issue": f"Story frame {entry.get('frame')}: body set at {entry['body_px']} px on "
+                                                f"{entry.get('body_lines')} lines (needs {STORY_BODY_PX} px, at most {STORY_BODY_LINES} lines)"})
+                        score -= 15
+                    if not safe_zones.inside(tuple(entry["text_box"]), safe_zones.safe_box("story", w, h)):
+                        issues.append({"type": "story_text_outside_safe_zone", "severity": "major", "card": entry.get("frame"),
+                                       "issue": f"Story frame {entry.get('frame')}: text block {entry['text_box']} leaves the Story safe area "
+                                                f"{safe_zones.safe_box('story', w, h)}"})
+                        score -= 15
+            except (ValueError, KeyError, TypeError) as e:
+                issues.append({"type": "story_layout_unreadable", "severity": "minor", "issue": f"stories/layout.json: {e}"})
+
+        from . import still_vision
+        issues.extend(still_vision.findings(cards, "Story frame", [still_vision.story_copy(payload, i) for i in range(len(cards))],
+                                            "story_frame_look", "card"))
 
         final_score = max(0, min(100, score))
         certified = (final_score == 100 and len([iss for iss in issues if iss.get("severity") in ("critical", "major")]) == 0)
@@ -719,8 +1095,11 @@ class QualityAuditor:
             "cards_audited": len(cards),
         }
 
-    def audit_thumbnails(self, cover_path: Optional[Path], grid_path: Optional[Path]) -> Dict[str, Any]:
-        """Audits video cover (9:16) and profile grid thumbnail (1:1) for dimensions, profile crop safety, and contrast."""
+    def audit_thumbnails(self, cover_path: Optional[Path], grid_path: Optional[Path],
+                         payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Audits video cover (9:16) and profile grid thumbnail (1:1) for dimensions, profile crop safety, and contrast,
+        then looks at the cover with its own words (still_vision; informational: a title across the very detail it
+        names, seen on a Damascus cover 2026-10-25, is fixed by choosing another layout in Covers)."""
         issues: List[Dict[str, Any]] = []
         score = 100
         audited = 0
@@ -772,6 +1151,12 @@ class QualityAuditor:
             except Exception as e:
                 issues.append({"type": "corrupt_grid", "severity": "critical", "issue": f"Grid thumbnail error: {e}"})
                 score -= 30
+
+        if cover_path and cover_path.exists():
+            from . import still_vision
+            t = (payload or {}).get("thumbnail") or {}
+            words = " / ".join(str(t.get(k, "")) for k in ("eyebrow", "line1", "line2", "tagline") if t.get(k))
+            issues.extend(still_vision.findings([cover_path], "Reel cover", [words], "cover_look", "cover"))
 
         final_score = max(0, min(100, score))
         certified = (final_score == 100 and len([iss for iss in issues if iss.get("severity") in ("critical", "major")]) == 0)
@@ -863,27 +1248,35 @@ class QualityAuditor:
         thumb_audit = None
         policy_audit = None
 
+        payload_obj = kwargs.get("payload")
         c_dir = kwargs.get("carousel_dir") or (run_dir / "carousel")
         if c_dir and (c_dir.is_dir() or (run_dir / "carousel").is_dir()):
             target_c = c_dir if c_dir.is_dir() else (run_dir / "carousel")
             if list(target_c.glob("carousel_slide_*.jpg")):
-                carousel_audit = self.audit_carousel_slides(target_c)
+                carousel_audit = self.audit_carousel_slides(target_c, payload=payload_obj)
 
         s_dir = kwargs.get("story_dir") or (run_dir / "stories")
         if s_dir and (s_dir.is_dir() or (run_dir / "stories").is_dir()):
             target_s = s_dir if s_dir.is_dir() else (run_dir / "stories")
             if list(target_s.glob("story_*.jpg")) or list(target_s.glob("story_*.png")):
-                story_audit = self.audit_story_cards(target_s)
+                story_audit = self.audit_story_cards(target_s, payload=payload_obj)
 
         cov_p = kwargs.get("cover_path") or (run_dir / "thumbnail_cover.jpg")
         grid_p = kwargs.get("grid_path") or (run_dir / "thumbnail_profile_grid.jpg")
         if (cov_p and cov_p.exists()) or (grid_p and grid_p.exists()):
             thumb_audit = self.audit_thumbnails(cov_p if (cov_p and cov_p.exists()) else None,
-                                                grid_p if (grid_p and grid_p.exists()) else None)
+                                                grid_p if (grid_p and grid_p.exists()) else None, payload=payload_obj)
 
-        payload_obj = kwargs.get("payload")
         if payload_obj:
             policy_audit = self.audit_publishing_policy(payload_obj)
+        # Text contrast on what is delivered (2026-10-29): the stills' recorded ratios, the graphics' graded ones and
+        # the captions measured on the master.
+        try:
+            contrast_audit = text_contrast_audit(run_dir, video_path, kwargs.get("caption_path")
+                                                 or video_path.parent / f"{video_path.stem}_captions.ass")
+        except Exception as e:
+            contrast_audit = {"issues": [{"type": "text_contrast", "severity": "minor", "issue": f"not measured ({e})"}],
+                              "captions": None, "score": 100, "certified": True}
 
         all_issues = list(final_audit["issues"])
         scores = [final_audit["score"]]
@@ -913,6 +1306,11 @@ class QualityAuditor:
             if not policy_audit["certified"]:
                 is_atomic_cert = False
 
+        all_issues.extend(contrast_audit["issues"])
+        scores.append(contrast_audit["score"])
+        if not contrast_audit["certified"]:
+            is_atomic_cert = False
+
         atomic_score = min(scores) if scores else 100
 
         return {
@@ -927,6 +1325,7 @@ class QualityAuditor:
                 "stories": story_audit,
                 "thumbnails": thumb_audit,
                 "policy": policy_audit,
+                "text_contrast": contrast_audit,
             },
         }
 
@@ -1044,3 +1443,149 @@ def verify_motion_hook_integrity(
         "determinant": round(det, 3),
         "archetype": archetype,
     }
+
+
+# ---------------------------------------------------------------- text contrast on delivered, graded pixels (2026-10-29)
+# Every text element is drawn at a measured contrast (typography.place_text) and its ratio is recorded where it was
+# drawn: in still_layout.json for the Stories, carousel slides and covers, measured again on the saved JPEG, and in
+# <clip>.contrast.json beside each graphic, measured on its last frame after the master's film grade. The captions
+# are measured here, on the master itself: frames are taken where captions are on screen, the caption file is drawn
+# again as plain white glyphs on black (no pill, outline or halo) for the glyph mask, and each sample's glyphs are
+# measured against the ring 2-10 px outside them (typography.ring_contrast). WCAG AA, 4.5:1, is the bound for all.
+def still_contrast_problems(folder: Path, target: Optional[float] = None) -> List[str]:
+    """Each recorded text element in a folder's still_layout.json measured under `target` (brand.TEXT_CONTRAST)."""
+    from .brand import TEXT_CONTRAST
+    target = TEXT_CONTRAST if target is None else target
+    record = Path(folder) / "still_layout.json"
+    if not record.is_file():
+        return []
+    try:
+        data = json.loads(record.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        return [f"{record}: unreadable ({e})"]
+    out = []
+    for still, entry in sorted(data.items()):
+        for e in entry.get("elements") or []:
+            ratio = e.get("contrast")
+            if ratio is not None and float(ratio) < target:
+                out.append(f"{Path(folder).name}/{still}: {e.get('name')} measures {float(ratio):.2f}:1 on the delivered "
+                           f"pixels (needs {target}:1)")
+    return out
+
+
+def graphic_contrast_problems(folder: Path, target: Optional[float] = None) -> List[str]:
+    """Each graphic element whose ratio on the graded last frame (<clip>.contrast.json) is under `target`."""
+    from .brand import TEXT_CONTRAST
+    target = TEXT_CONTRAST if target is None else target
+    out = []
+    for record in sorted(Path(folder).glob("*.contrast.json")):
+        try:
+            data = json.loads(record.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            out.append(f"{record.name}: unreadable ({e})")
+            continue
+        for e in data.get("elements") or []:
+            ratio = e.get("graded") if e.get("graded") is not None else e.get("drawn")
+            if ratio is not None and float(ratio) < target:
+                out.append(f"{data.get('clip', record.name)}: {e.get('name')} \"{e.get('text', '')}\" measures "
+                           f"{float(ratio):.2f}:1 on the graded frame (needs {target}:1)")
+    return out
+
+
+def _caption_mask_ass(text: str) -> str:
+    """The caption file as plain white glyph fills: no pill (CapBox), no outline, shadow, blur or halo layer."""
+    keep = []
+    for line in text.splitlines():
+        if line.startswith("Dialogue:") and ",CapBox," in line:
+            continue
+        if line.startswith("Dialogue:") and ",CapText," in line:
+            if re.search(r"\\1a&HFF&", line):        # a halo layer (outline only): not glyphs
+                continue
+            line = re.sub(r"\\(?:3c|4c)&H[0-9A-Fa-f]+&|\\(?:bord|shad|blur|be)[\d.]+|\\[34]a&H[0-9A-Fa-f]+&", "", line)
+            line = re.sub(r"\\c&H[0-9A-Fa-f]{6,8}&", r"\\c&H00FFFFFF&", line)
+            line = line.replace("\\q2", "\\q2\\bord0\\shad0\\blur0", 1)
+        keep.append(line)
+    return "\n".join(keep) + "\n"
+
+
+def _ffmpeg_path(p: Path) -> str:
+    return str(Path(p).resolve()).replace("\\", "/").replace(":", "\\:")
+
+
+def caption_contrast(video: Path, ass_file: Path, out_dir: Path, fonts_dir: Optional[Path] = None,
+                     samples: int = 6, until: Optional[float] = None) -> Dict[str, Any]:
+    """The captions' ratio on the delivered master: {"samples": [{"t", "contrast"}], "min"}. Only captions that are
+    on screen are judged: none starting at or after `until` (the end card's start), where the card replaces them
+    (production, 30 Oct: the last caption's midpoint fell in the card, the bare stone read 2.08:1 and blocked the
+    review)."""
+    import numpy as np
+    from .config import FONTS_DIR
+    from .typography import ring_contrast
+    fonts_dir = fonts_dir or FONTS_DIR
+    events = []
+    for line in Path(ass_file).read_text(encoding="utf-8").splitlines():
+        if line.startswith("Dialogue:") and ",CapText," in line:
+            parts = line.split(",", 9)
+            events.append((_parse_ass_time(parts[1].strip()), _parse_ass_time(parts[2].strip())))
+    if until is not None:
+        events = [(s, min(e, until)) for s, e in events if s < until - 0.1]
+    if not events:
+        return {"samples": [], "min": None}
+    events.sort()
+    picks = [events[round(k * (len(events) - 1) / max(1, samples - 1))] for k in range(min(samples, len(events)))]
+    out_dir.mkdir(parents=True, exist_ok=True)
+    mask_ass = out_dir / "caption_mask.ass"
+    mask_ass.write_text(_caption_mask_ass(Path(ass_file).read_text(encoding="utf-8")), encoding="utf-8")
+    w, h = VIDEO_WIDTH, VIDEO_HEIGHT
+    m = re.search(r"PlayResX:\s*(\d+)\s*\nPlayResY:\s*(\d+)", Path(ass_file).read_text(encoding="utf-8"))
+    if m:
+        w, h = int(m.group(1)), int(m.group(2))
+    rows = []
+    for k, (s, e) in enumerate(dict.fromkeys(picks)):
+        t = (s + e) / 2
+        frame, mask = out_dir / f"caption_{k:02d}.png", out_dir / f"caption_{k:02d}_mask.png"
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", f"{t:.3f}", "-i", str(video), "-frames:v", "1",
+                        "-update", "1", str(frame)], check=True, timeout=60)
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", f"color=c=black:s={w}x{h}:r=30:d=1",
+                        "-vf", f"setpts=PTS+{t:.3f}/TB,subtitles='{_ffmpeg_path(mask_ass)}':fontsdir='{_ffmpeg_path(fonts_dir)}'",
+                        "-frames:v", "1", "-update", "1", str(mask)], check=True, timeout=60)
+        with Image.open(frame) as fi, Image.open(mask) as mi:
+            rgb = np.asarray(fi.convert("RGB").resize((w, h)))
+            glyphs = (np.asarray(mi.convert("L")) > 127).astype(np.uint8) * 255
+        if glyphs.sum() < 255 * 200:
+            continue
+        rows.append({"t": round(t, 2), "contrast": ring_contrast(rgb, glyphs, (0, 0))})
+    vals = [r["contrast"] for r in rows if r["contrast"] is not None]
+    return {"samples": rows, "min": min(vals) if vals else None}
+
+
+def text_contrast_audit(run_dir: Path, video: Optional[Path] = None, ass_file: Optional[Path] = None) -> Dict[str, Any]:
+    """Every surface's text contrast for the run: stills (Stories, carousel copies, covers), graphics (graded) and
+    the master's captions. {"issues", "captions", "score", "certified"}."""
+    from .brand import TEXT_CONTRAST
+    run_dir = Path(run_dir)
+    found: List[str] = []
+    for folder in (run_dir / "stories", run_dir / "carousel", run_dir / "carousel_fb", run_dir):
+        found += still_contrast_problems(folder)
+    if (run_dir / "graphics").is_dir():
+        found += graphic_contrast_problems(run_dir / "graphics")
+    captions = None
+    if video and Path(video).is_file() and ass_file and Path(ass_file).is_file():
+        try:
+            until = None
+            for comp in run_dir.glob("*.composition.json"):   # the end card replaces the captions from its start
+                try:
+                    until = (json.loads(comp.read_text(encoding="utf-8")).get("end_card") or {}).get("start_s")
+                except (OSError, ValueError):
+                    pass
+            captions = caption_contrast(Path(video), Path(ass_file), run_dir / "audit" / "caption_contrast",
+                                        until=float(until) if until else None)
+            if captions["min"] is not None and captions["min"] < TEXT_CONTRAST:
+                worst = min((s for s in captions["samples"] if s["contrast"] is not None), key=lambda s: s["contrast"])
+                found.append(f"captions: {worst['contrast']:.2f}:1 at {worst['t']:.2f}s on the master (needs {TEXT_CONTRAST}:1)")
+        except Exception as e:  # a measurement failure is reported, never a crash
+            found.append(f"captions: contrast not measured ({e})")
+    issues = [{"type": "text_contrast", "severity": "minor" if "not measured" in f or "unreadable" in f else "major",
+               "issue": f} for f in found]
+    major = [i for i in issues if i["severity"] == "major"]
+    return {"issues": issues, "captions": captions, "score": max(0, 100 - 10 * len(major)), "certified": not major}

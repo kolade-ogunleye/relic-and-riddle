@@ -1,0 +1,576 @@
+{
+  "timeline": [
+    {
+      "year": -1350,
+      "approximate": false,
+      "label": "Colossi carved for Amenhotep III"
+    },
+    {
+      "year": -27,
+      "approximate": false,
+      "label": "Earthquake shatters northern colossus"
+    },
+    {
+      "year": 196,
+      "approximate": false,
+      "label": "Last recorded vocalization"
+    },
+    {
+      "year": 199,
+      "approximate": true,
+      "label": "Upper tiers reconstructed"
+    }
+  ],
+  "scale_fact": {
+    "value": 60.0,
+    "unit": "ft",
+    "dimension": "height",
+    "subject": "Colossi of Memnon",
+    "approximate": false
+  },
+  "stat_cards": [
+    {
+      "value": "estimated 720 tons",
+      "label": "weight of each colossus"
+    },
+    {
+      "value": "1350 BC",
+      "label": "standing since"
+    }
+  ],
+  "cross_section": null,
+  "route": null,
+  "photo_labels": [
+    "northern colossus",
+    "pedestals",
+    "upper tiers"
+  ],
+  "emphasis_words": [
+    "27 BC",
+    "720 tons",
+    "Amenhotep III"
+  ],
+  "title": "Why Did This 720-Ton Titan Sing at Dawn? 🌅",
+  "hook_sentence": "In 27 BC, a major earthquake shattered the northern colossus, collapsing the statue from the waist up and cracking its lower half.",
+  "narration_script": "In 27 BC, a major earthquake shattered the northern colossus, collapsing the statue from the waist up and cracking its lower half. Following the earthquake damage, the northern monument became famous throughout the ancient world for emitting a reported cry at dawn. Reaching a total height of 60 feet (18 m) including their 13-foot (4 m) pedestals, each colossus weighs an estimated 720 tons. The last reliable historical record of the statue vocalizing dates to the year 196 AD. Local tradition dates the reconstruction of the statue's upper tiers to around 199 AD. Still, the colossi have stood since 1350 BC, originally carved to guard the memorial temple where Amenhotep III was worshipped.",
+  "closing_sentence": "Still, the colossi have stood since 1350 BC, originally carved to guard the memorial temple where Amenhotep III was worshipped.",
+  "caption": "For centuries, travelers gathered at dawn across Egypt's Theban Necropolis to witness stone make a sound. 🌅\n\nIn November 130 AD, the poet Julia Balbilla inscribed poetry on the colossus commemorating multiple hearings of the sound during an imperial visit with Emperor Hadrian. Local tradition dates the reconstruction of the statue's upper tiers to around 199 AD, attributing the repair to Roman Emperor Septimius Severus. By one estimate, the base of the vocal colossus preserves approximately 90 surviving traveler inscriptions testifying whether or not the visitor heard the sound.\n\nWould you travel across an empire just to hear a shattered stone speak at dawn? 🏛️\n\n#ColossiOfMemnon #AncientEgypt #Luxor #RomanEmpire #Archaeology\n\n📷 Images via Wikimedia Commons: Marc Ryckaert (MJJR) (CC BY 3.0); Unknown (CC BY 4.0); Ray in Manila (CC BY 2.0)",
+  "first_comment": "If restoring a shattered wonder risks losing its unique voice forever, would you choose architectural repair or acoustic mystery?",
+  "hashtags": [
+    "#ColossiOfMemnon",
+    "#AncientEgypt",
+    "#Luxor",
+    "#RomanEmpire",
+    "#Archaeology"
+  ],
+  "thumbnail": {
+    "eyebrow": "THEBAN NECROPOLIS",
+    "line1": "THE SINGING",
+    "line2": "720-TON TITAN",
+    "tagline": "VOICE OF THE DESERT"
+  },
+  "story_slides": [
+    {
+      "kicker": "ANCIENT MARVELS",
+      "line1": "THE SHATTERED",
+      "line2": "VOCAL TITAN",
+      "body": "In 27 BC, a major earthquake shattered the northern colossus, cracking its lower half."
+    },
+    {
+      "kicker": "THE MORNING SOUND",
+      "line1": "A CRY AT",
+      "line2": "FIRST LIGHT",
+      "body": "Following the earthquake damage, the monument became famous for emitting a cry at dawn."
+    },
+    {
+      "kicker": "WHICH WAS BETTER?",
+      "line1": "RESTORATION",
+      "line2": "OR ACOUSTICS",
+      "body": "Local tradition attributes the repair to Roman Emperor Septimius Severus around 199 AD."
+    }
+  ],
+  "poll": {
+    "question": "Which choice was better?",
+    "options": [
+      "Rebuild the stone",
+      "Keep the morning cry"
+    ]
+  },
+  "carousel_slides": [
+    {
+      "heading": "THE SINGING COLOSSI",
+      "body": "Two monumental statues standing before the ruined Mortuary Temple in Egypt."
+    },
+    {
+      "heading": "SACRED GUARDIANS",
+      "body": "The colossi have stood since 1350 BC, guarding where Amenhotep III was worshipped."
+    },
+    {
+      "heading": "COLOSSAL SCALE",
+      "body": "Reaching 60 feet (18 m) tall, each colossus weighs an estimated 720 tons."
+    },
+    {
+      "heading": "THE EARTHQUAKE OF 27 BC",
+      "body": "In 27 BC, a major earthquake shattered the northern colossus, cracking its lower half."
+    },
+    {
+      "heading": "THE CRY AT DAWN",
+      "body": "Following the earthquake damage, the monument became famous for emitting a cry at dawn."
+    },
+    {
+      "heading": "ROMAN RECONSTRUCTION",
+      "body": "Local tradition dates the reconstruction of the upper tiers to around 199 AD."
+    },
+    {
+      "heading": "VANISHED WONDERS",
+      "body": "Would you preserve an anomaly, or restore an ancient ruin back to its unbroken form?"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Wikipedia: Colossi of Memnon",
+      "url": "https://en.wikipedia.org/wiki/Colossi_of_Memnon"
+    },
+    {
+      "title": "World History Encyclopedia: Colossi of Memnon",
+      "url": "https://www.worldhistory.org/Colossi_of_Memnon/"
+    },
+    {
+      "title": "Strabo, Geography (Book XVII, Chapter 1)",
+      "url": "https://penelope.uchicago.edu/Thayer/E/Roman/Texts/Strabo/17A3*.html"
+    }
+  ],
+  "carousel_caption": "Swipe through the extraordinary forensic journey of Egypt's vocal giants. In November 130 AD, the poet Julia Balbilla inscribed poetry on the colossus commemorating multiple hearings of the sound during an imperial visit with Emperor Hadrian. Would you have repaired the damaged monument if it meant silencing its morning voice forever? 🏛️\n\n#ColossiOfMemnon #AncientEgypt #Luxor #RomanEmpire #Archaeology",
+  "fact_sheet": true,
+  "topic_id": "singing_colossi_of_memnon",
+  "origin": "gemini-free",
+  "word_count": 113,
+  "location": {
+    "name": "Colossi of Memnon",
+    "city": "Luxor",
+    "region": "Upper Egypt",
+    "country": "Egypt"
+  },
+  "meta_topic_categories": [
+    "History & Philosophy",
+    "Travel & Culture"
+  ],
+  "topic_origin_note": "🗂 Topic origin: the original topic bank (added before origins were recorded)",
+  "fact_sheet_note": "🧾 Written from a verified fact sheet: 14 facts with quoted evidence (5 disputed, used only with their hedges)",
+  "fact_audits": [
+    {
+      "claim": "The subject is a 720-ton titan that sang at dawn.",
+      "where": "[title]",
+      "fact_ids": [
+        "fact_3",
+        "fact_8"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Fact 3 states each colossus weighs an estimated 720 tons (titles are exempt from statistical hedging words), and Fact 8 states the monument became famous for emitting a reported cry at dawn."
+    },
+    {
+      "claim": "In 27 BC, a major earthquake shattered the northern colossus, collapsing the statue from the waist up and cracking its lower half.",
+      "where": "[narration]",
+      "fact_ids": [
+        "fact_6"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_6 exactly."
+    },
+    {
+      "claim": "Following the earthquake damage, the northern monument became famous throughout the ancient world for emitting a reported cry at dawn.",
+      "where": "[narration]",
+      "fact_ids": [
+        "fact_8"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_8 exactly."
+    },
+    {
+      "claim": "Reaching a total height of 60 feet (18 m) including their 13-foot (4 m) pedestals, each colossus weighs an estimated 720 tons.",
+      "where": "[narration]",
+      "fact_ids": [
+        "fact_3"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_3, with imperial conversions provided and the required hedge 'estimated' preserved."
+    },
+    {
+      "claim": "The last reliable historical record of the statue vocalizing dates to the year 196 AD.",
+      "where": "[narration]",
+      "fact_ids": [
+        "fact_13"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_13 exactly."
+    },
+    {
+      "claim": "Local tradition dates the reconstruction of the statue's upper tiers to around 199 AD.",
+      "where": "[narration]",
+      "fact_ids": [
+        "fact_14"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_14."
+    },
+    {
+      "claim": "The colossi have stood since 1350 BC, originally carved to guard the memorial temple where Amenhotep III was worshipped.",
+      "where": "[narration]",
+      "fact_ids": [
+        "fact_2"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_2."
+    },
+    {
+      "claim": "For centuries, travelers gathered at dawn across Egypt's Theban Necropolis to witness stone make a sound.",
+      "where": "[caption]",
+      "fact_ids": [
+        "fact_1",
+        "fact_8",
+        "fact_10",
+        "fact_11"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Synthesizes fact_1 (Theban Necropolis), fact_8 (cry at dawn), and facts 10 and 11 (travelers and visitors testifying between 20 BC/AD and 250 AD)."
+    },
+    {
+      "claim": "In November 130 AD, the poet Julia Balbilla inscribed poetry on the colossus commemorating multiple hearings of the sound during an imperial visit with Emperor Hadrian.",
+      "where": "[caption]",
+      "fact_ids": [
+        "fact_12"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_12 exactly."
+    },
+    {
+      "claim": "Local tradition dates the reconstruction of the statue's upper tiers to around 199 AD, attributing the repair to Roman Emperor Septimius Severus.",
+      "where": "[caption]",
+      "fact_ids": [
+        "fact_14"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_14 exactly."
+    },
+    {
+      "claim": "By one estimate, the base of the vocal colossus preserves approximately 90 surviving traveler inscriptions testifying whether or not the visitor heard the sound.",
+      "where": "[caption]",
+      "fact_ids": [
+        "fact_11"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Preserves the required disputed fact hedge ('By one estimate') matching fact_11."
+    },
+    {
+      "claim": "In November 130 AD, the poet Julia Balbilla inscribed poetry on the colossus commemorating multiple hearings of the sound during an imperial visit with Emperor Hadrian.",
+      "where": "[carousel caption]",
+      "fact_ids": [
+        "fact_12"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_12 exactly."
+    },
+    {
+      "claim": "Theban Necropolis features a singing 720-ton titan.",
+      "where": "[on-screen cover]",
+      "fact_ids": [
+        "fact_1",
+        "fact_3",
+        "fact_8"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Accurately references location (fact_1), estimated weight (fact_3; covers exempt from mandatory hedging words), and vocalization (fact_8)."
+    },
+    {
+      "claim": "In 27 BC, a major earthquake shattered the northern colossus, cracking its lower half.",
+      "where": "[story]",
+      "fact_ids": [
+        "fact_6"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_6."
+    },
+    {
+      "claim": "Following the earthquake damage, the monument became famous for emitting a cry at dawn.",
+      "where": "[story]",
+      "fact_ids": [
+        "fact_8"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_8."
+    },
+    {
+      "claim": "Local tradition attributes the repair to Roman Emperor Septimius Severus around 199 AD.",
+      "where": "[story]",
+      "fact_ids": [
+        "fact_14"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_14."
+    },
+    {
+      "claim": "Two monumental statues stand before the ruined Mortuary Temple in Egypt.",
+      "where": "[slide]",
+      "fact_ids": [
+        "fact_1"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_1."
+    },
+    {
+      "claim": "The colossi have stood since 1350 BC, guarding where Amenhotep III was worshipped.",
+      "where": "[slide]",
+      "fact_ids": [
+        "fact_2"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_2."
+    },
+    {
+      "claim": "Reaching 60 feet (18 m) tall, each colossus weighs an estimated 720 tons.",
+      "where": "[slide]",
+      "fact_ids": [
+        "fact_3"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_3, retaining the estimated hedge."
+    },
+    {
+      "claim": "In 27 BC, a major earthquake shattered the northern colossus, cracking its lower half.",
+      "where": "[slide]",
+      "fact_ids": [
+        "fact_6"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_6."
+    },
+    {
+      "claim": "Following the earthquake damage, the monument became famous for emitting a cry at dawn.",
+      "where": "[slide]",
+      "fact_ids": [
+        "fact_8"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_8."
+    },
+    {
+      "claim": "Local tradition dates the reconstruction of the upper tiers to around 199 AD.",
+      "where": "[slide]",
+      "fact_ids": [
+        "fact_14"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_14."
+    },
+    {
+      "claim": "1350 BC - Colossi carved for Amenhotep III",
+      "where": "[graphic]",
+      "fact_ids": [
+        "fact_2"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_2."
+    },
+    {
+      "claim": "27 BC - Earthquake shatters northern colossus",
+      "where": "[graphic]",
+      "fact_ids": [
+        "fact_6"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_6."
+    },
+    {
+      "claim": "AD 196 - Last recorded vocalization",
+      "where": "[graphic]",
+      "fact_ids": [
+        "fact_13"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_13."
+    },
+    {
+      "claim": "c. AD 199 - Upper tiers reconstructed",
+      "where": "[graphic]",
+      "fact_ids": [
+        "fact_14"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_14."
+    },
+    {
+      "claim": "Colossi of Memnon height is 60 ft (18 m).",
+      "where": "[graphic]",
+      "fact_ids": [
+        "fact_3"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_3 (18 meters total height)."
+    },
+    {
+      "claim": "Estimated 720 tons weight of each colossus.",
+      "where": "[graphic]",
+      "fact_ids": [
+        "fact_3"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_3, hedge retained."
+    },
+    {
+      "claim": "1350 BC standing since.",
+      "where": "[graphic]",
+      "fact_ids": [
+        "fact_2"
+      ],
+      "claim_type": "domain_fact",
+      "verdict": "traced",
+      "note": "Matches fact_2."
+    }
+  ],
+  "consensus_confidence": 100.0,
+  "second_check": {
+    "status": "pass",
+    "confidence": 100.0,
+    "audits": [
+      {
+        "claim": "In 27 BC, a major earthquake shattered the northern colossus, collapsing it from the waist up and cracking its lower half.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          11,
+          13
+        ],
+        "note": "Supported by the evidence text noting the 27 BCE earthquake that shattered the northern colossus, collapsed it from the waist up, and cracked its lower half, as well as Q11 and Q13."
+      },
+      {
+        "claim": "Following the earthquake damage, the northern monument became famous throughout the ancient world for emitting a reported cry at dawn.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          14,
+          15,
+          16
+        ],
+        "note": "Supported by Q14, Q15, and Q16, which describe the northern colossus's reported cry at dawn, Strabo hearing it in 20 BCE, and visitors from outside Egypt arriving to hear it."
+      },
+      {
+        "claim": "Including their 13-foot (4 m) pedestals, the colossi reach a height of 60 feet (18 m) and weigh an estimated 720 tons each.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          6,
+          7
+        ],
+        "note": "Directly supported by Q6 (and Q7)."
+      },
+      {
+        "claim": "The last reliable recorded mention of the statue vocalizing dates to 196 AD.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          22
+        ],
+        "note": "Directly supported by Q22."
+      },
+      {
+        "claim": "Local tradition dates the reconstruction of the statue's upper tiers to around 199 AD, attributing the repair to Roman Emperor Septimius Severus.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          23
+        ],
+        "note": "Directly supported by Q23."
+      },
+      {
+        "claim": "The colossi have stood since 1350 BC, originally carved to guard the memorial temple where Amenhotep III was worshipped.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          3,
+          4,
+          5
+        ],
+        "note": "Directly supported by Q3, Q4, and Q5."
+      },
+      {
+        "claim": "In November 130 AD, the poet Julia Balbilla inscribed poetry on the colossus recording multiple visits/hearings of the sound during an imperial visit with Emperor Hadrian.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          21
+        ],
+        "note": "Directly supported by Q21."
+      },
+      {
+        "claim": "The base of the vocal colossus preserves approximately 90 surviving inscriptions of tourists recording whether or not they heard the sound.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          20
+        ],
+        "note": "Directly supported by Q20."
+      },
+      {
+        "claim": "Two monumental statues stand at the front of the ruined Mortuary Temple of Amenhotep III in Egypt.",
+        "claim_type": "domain_fact",
+        "verdict": "supported",
+        "quote_ids": [
+          1
+        ],
+        "note": "Directly supported by Q1."
+      },
+      {
+        "claim": "Would you travel across an empire just to hear a shattered stone speak at dawn?",
+        "claim_type": "rhetorical_framing",
+        "verdict": "supported",
+        "quote_ids": [],
+        "note": "Audience engagement question posing no empirical or verifiable historical assertions."
+      },
+      {
+        "claim": "If restoring a shattered wonder risks losing its unique voice forever, would you choose architectural repair or acoustic mystery?",
+        "claim_type": "rhetorical_framing",
+        "verdict": "supported",
+        "quote_ids": [],
+        "note": "Rhetorical reflection asserting no verifiable factual data."
+      }
+    ],
+    "summary": "[evidence re-check (gemini-3.7-flash)] All 11 claims supported by the quoted evidence."
+  },
+  "guardrail_passed": true,
+  "script_rounds": 1,
+  "script_round_reasons": [],
+  "fact_review": {
+    "public_fingerprint": "ce0c62b929c7f485a37139be3d295e31003b4e3f0beeb0a2c84ac37ede234676",
+    "sheet_path": "fact_sheet.json",
+    "sheet_sha256": "beb5b4f32f9033985ed89f6a78560f7f114a6df639f7d8cc7557bfaecd4eb56e",
+    "review_rules_fingerprint": "79415fa9c90d9a5027f19d13e77f998cf14dfdf848dc59042819e993438c455d"
+  }
+}

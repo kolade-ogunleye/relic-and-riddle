@@ -31,12 +31,41 @@ class GeminiError(RuntimeError):
     pass
 
 
+class ConnectionDropped(GeminiError):
+    """The connection failed or closed before a response (not a timeout): sending again is safe."""
+
+
 def available() -> bool:
     return is_configured(GEMINI_API_KEY)
 
 
+class RequestTimedOut(GeminiError):
+    """No answer within the request's time limit (the model may be slow or overloaded)."""
+
+
+class CreditExhausted(GeminiError):
+    """HTTP 402: the key's prepaid credit is spent (2026-10-24, the billed key); nothing works until a top-up."""
+
+
 class QuotaExhausted(GeminiError):
     """The key's quota (free-tier daily limit) is used up."""
+
+
+class EmptyReply(GeminiError):
+    """HTTP 200 with no answer in it (run audit 2026-10-29: the billed key's "did not match the schema: 'parts'"):
+    the message says why, from the reply's finishReason or blockReason. Another sample may answer."""
+
+
+def _no_output_reason(body: Dict[str, Any]) -> str:
+    """Why a generateContent reply carries no text: its finish or block reason and what its tokens went on."""
+    cand = ((body.get("candidates") or [{}])[0]) if isinstance(body, dict) else {}
+    meta = (body.get("usageMetadata") or {}) if isinstance(body, dict) else {}
+    said = [f"finishReason {cand.get('finishReason')}" if cand.get("finishReason") else "",
+            f"blockReason {(body.get('promptFeedback') or {}).get('blockReason')}"
+            if (body.get("promptFeedback") or {}).get("blockReason") else "",
+            f"{meta.get('thoughtsTokenCount')} thinking tokens" if meta.get("thoughtsTokenCount") else "",
+            "no candidates" if not body.get("candidates") else ""]
+    return ", ".join(s for s in said if s) or "no reason given"
 
 
 def _post(body: Dict[str, Any], timeout: float = 300, key: str = None) -> Dict[str, Any]:
@@ -46,6 +75,10 @@ def _post(body: Dict[str, Any], timeout: float = 300, key: str = None) -> Dict[s
     try:
         resp = requests.post(URL, headers={"x-goog-api-key": key, "Content-Type": "application/json"},
                              json=body, timeout=timeout)
+    except requests.Timeout as e:  # the caller's own limit, not a dropped line
+        raise RequestTimedOut(f"Gemini request failed: {e}") from e
+    except requests.ConnectionError as e:
+        raise ConnectionDropped(f"Gemini request failed: {e}") from e
     except requests.RequestException as e:
         raise GeminiError(f"Gemini request failed: {e}") from e
     if resp.status_code == 429:
@@ -53,12 +86,19 @@ def _post(body: Dict[str, Any], timeout: float = 300, key: str = None) -> Dict[s
                 "billing on the key's Google Cloud project (5,000 grounded searches/month are then free)."
                 if body.get("tools") else "")
         raise QuotaExhausted("Gemini quota exceeded (HTTP 429)." + hint)
+    if resp.status_code == 402:  # prepaid billing: the key's credit is spent until the operator tops it up
+        raise CreditExhausted("The Gemini key's prepaid credit is depleted (HTTP 402); top up the project's "
+                              "billing in Google AI Studio.")
     if resp.status_code == 503:
         raise GeminiError("Gemini is temporarily overloaded (HTTP 503); try again later.")
     try:
         data = resp.json()
     except ValueError:
         raise GeminiError(f"Gemini returned HTTP {resp.status_code} with no JSON.")
+    if isinstance(data, list):  # some errors arrive as a one-element list, [{"error": {...}}] (2026-10-24: the
+        data = next((d for d in data if isinstance(d, dict)), {"error": data})  # billed key's failure read as AttributeError)
+    if not isinstance(data, dict):
+        raise GeminiError(f"Gemini error HTTP {resp.status_code}: {str(data)[:300]}")
     if not resp.ok or data.get("errors"):
         raise GeminiError(f"Gemini error HTTP {resp.status_code}: {data.get('errors') or data.get('error') or data}")
     if data.get("status") not in ("completed",):
@@ -178,7 +218,20 @@ def _inline_refs(schema: Dict[str, Any]) -> Dict[str, Any]:
     return walk(schema)
 
 
-def structured(system: str, prompt: Union[str, list], schema: Type[T], model: str = None, key: str = None) -> T:
+def vision_timeout(n_images: int) -> float:
+    """Seconds allowed for a vision request: 60 plus 12 per picture, between 120 and 600."""
+    return float(min(600, max(120, 60 + 12 * n_images)))
+
+
+THINKING_LEVELS = {"low": "low", "medium": "medium"}  # a caller's effort -> Gemini 3 thinkingLevel; "high" is the default
+
+
+def structured(system: str, prompt: Union[str, list], schema: Type[T], model: str = None, key: str = None,
+               timeout: float = None, thinking: str = None) -> T:
+    """`thinking`: the caller's effort ("low"/"medium"); on the vision call it becomes generationConfig
+    .thinkingConfig.thinkingLevel, since by default the model thinks at length (a 10-beat scene plan spent
+    20,000 output tokens and 2.5 minutes thinking, 2026-10-24). A model that rejects the field is called
+    again without it."""
     if isinstance(prompt, list):
         parts = []
         for b in prompt:
@@ -207,13 +260,29 @@ def structured(system: str, prompt: Union[str, list], schema: Type[T], model: st
                 "response_schema": _inline_refs(schema.model_json_schema())
             }
         }
+        level = THINKING_LEVELS.get((thinking or "").lower())
+        if level:
+            body["generationConfig"]["thinkingConfig"] = {"thinkingLevel": level}
         # Images are the point of this call: if it fails, the caller learns it failed. A text-only
         # retry would answer questions about pictures it never saw.
-        try:
-            resp = requests.post(url, headers={"x-goog-api-key": target_key, "Content-Type": "application/json"},
-                                 json=body, timeout=120)
-        except requests.RequestException as e:
-            raise GeminiError(f"Gemini vision request failed: {e}") from e
+        # The time allowed grows with the pictures sent: a 20-photo scene plan timed out at a flat 120 s.
+        n_images = sum(1 for part in parts if "inline_data" in part)
+
+        def post(payload):
+            try:
+                return requests.post(url, headers={"x-goog-api-key": target_key, "Content-Type": "application/json"},
+                                     json=payload, timeout=timeout or vision_timeout(n_images))
+            except requests.Timeout as e:
+                raise RequestTimedOut(f"Gemini vision request failed: {e}") from e
+            except requests.ConnectionError as e:  # a dropped line, not a slow answer: safe to send again
+                raise ConnectionDropped(f"Gemini vision request failed: {e}") from e
+            except requests.RequestException as e:
+                raise GeminiError(f"Gemini vision request failed: {e}") from e
+        resp = post(body)
+        if resp.status_code == 400 and level and "thinking" in resp.text.lower():
+            log.info("%s does not take thinkingLevel; sent again without it.", model or GEMINI_MODEL)
+            del body["generationConfig"]["thinkingConfig"]
+            resp = post(body)
         if resp.status_code == 429:
             raise QuotaExhausted("Gemini quota exceeded (HTTP 429).")
         if resp.status_code == 503:
@@ -225,9 +294,20 @@ def structured(system: str, prompt: Union[str, list], schema: Type[T], model: st
             meta = body_json.get("usageMetadata") or {}
             _set_usage(meta.get("promptTokenCount", 0),
                        meta.get("candidatesTokenCount", 0) + meta.get("thoughtsTokenCount", 0))
-            text = body_json["candidates"][0]["content"]["parts"][0]["text"]
+        except (AttributeError, ValueError) as e:
+            raise GeminiError(f"Gemini vision reply was not JSON: {e}") from e
+        # The answer's text parts, a thought part aside; a reply with none says why (it was logged only as
+        # "did not match the schema: 'parts'", run audit 2026-10-29).
+        cands = body_json.get("candidates") or [{}]
+        parts = ((cands[0] or {}).get("content") or {}).get("parts") or []
+        text = "".join(p.get("text", "") for p in parts if isinstance(p, dict) and not p.get("thought")).strip()
+        if not text:
+            why = _no_output_reason(body_json)
+            log.info("Gemini vision reply from %s had no output (%s).", model or GEMINI_MODEL, why)
+            raise EmptyReply(f"Gemini vision reply had no output ({why}).")
+        try:
             return schema.model_validate(json.loads(text))
-        except (KeyError, IndexError, ValueError) as e:
+        except ValueError as e:
             raise GeminiError(f"Gemini vision output did not match the schema: {e}") from e
 
     data = _post({
@@ -235,10 +315,14 @@ def structured(system: str, prompt: Union[str, list], schema: Type[T], model: st
         "input": f"{system}\n\n{prompt}",
         "response_format": {"type": "text", "mime_type": "application/json",
                             "schema": _inline_refs(schema.model_json_schema())},
-    }, key=key)
+    }, key=key, timeout=timeout or 300)
     usage = data.get("usage") or {}
     _set_usage(usage.get("total_input_tokens", 0), usage.get("total_output_tokens", 0))
     text = "".join(b.get("text", "") for b in _text_blocks(data)).strip()
+    if not text:   # completed, but no text step: said as such, not as a schema mismatch
+        steps = ", ".join(sorted({str(s.get("type")) for s in data.get("steps", []) if isinstance(s, dict)})) or "none"
+        log.info("Gemini reply from %s had no output (steps: %s).", model or GEMINI_MODEL, steps)
+        raise EmptyReply(f"Gemini reply had no output (steps: {steps}).")
     try:
         return schema.model_validate(json.loads(text))
     except (ValueError, json.JSONDecodeError) as e:

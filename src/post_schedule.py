@@ -10,7 +10,7 @@ When each kind of post goes out (POST_TIMEZONE, US Eastern by default).
 All times are timezone-aware; the database stores them in UTC.
 """
 
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Iterable, Optional
 from zoneinfo import ZoneInfo
 
@@ -66,4 +66,30 @@ def next_carousel_slot(now: datetime) -> datetime:
 
 
 def fmt(when: datetime) -> str:
-    return when.astimezone(tz()).strftime("%a %d %b %H:%M %Z")
+    """A slot as the operator reads it: their own time first, the audience's zone in brackets when the two
+    differ ("Tue 27 Oct 17:00 MDT (19:00 EDT audience)"). The chat showed the audience time first and the
+    operator's in brackets, which read as two different appointments (operator, 2026-10-24)."""
+    audience = when.astimezone(tz())
+    if config.TIMEZONE == config.POST_TIMEZONE:
+        return audience.strftime("%a %d %b %H:%M %Z")
+    from .local_time import local
+    mine = local(when)
+    theirs = audience.strftime("%a %H:%M %Z" if audience.date() != mine.date() else "%H:%M %Z")
+    return f"{mine.strftime('%a %d %b %H:%M %Z')} ({theirs} audience)"
+
+
+def fmt_ahead(when: datetime, now: Optional[datetime] = None) -> str:
+    """fmt() plus how far away it is ("· in 2 d 21 h", "· in 40 min", "· 3 h ago"), for the panels."""
+    now = now or datetime.now(timezone.utc)
+    seconds = (when - now).total_seconds()
+    past, seconds = seconds < 0, abs(seconds)
+    days, rem = divmod(int(seconds), 86400)
+    hours, rem = divmod(rem, 3600)
+    minutes = rem // 60
+    if days:
+        span = f"{days} d {hours} h"
+    elif hours:
+        span = f"{hours} h {minutes:02d} min"
+    else:
+        span = f"{minutes} min"
+    return f"{fmt(when)} · {span + ' ago' if past else 'in ' + span}"

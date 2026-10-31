@@ -129,7 +129,7 @@ def test_narrating_the_visuals_is_rejected(curated_payload):
 def test_carousel_post_uses_own_caption_with_image_credits():
     from main import PipelineCoordinator
     payload = {"caption": "Reel text\n\n📷 Images via Wikimedia Commons: Ann (CC BY 4.0)", "carousel_caption": "Swipe."}
-    assert PipelineCoordinator._carousel_caption(payload) == "Swipe.\n\n📷 Images via Wikimedia Commons: Ann (CC BY 4.0)"
+    assert PipelineCoordinator._carousel_caption(payload) == "Swipe.\n\n📷 Images via Wikimedia Commons: Ann (CC BY 4.0)\n📷 Photos adapted: cropped, with text added."
     assert PipelineCoordinator._carousel_caption({"caption": "Reel text"}) == "Reel text"
 
 
@@ -223,3 +223,124 @@ def test_over_long_graphic_labels_are_shortened_before_any_is_dropped(curated_pa
     # A rewrite that still doesn't fit drops only that card; the other stays.
     monkeypatch.setattr(free_llm, "call", lambda *a, **k: script_engine._Shortened(texts=["x" * 41]))
     assert [c.label for c in script_engine.prune_graphics(pkg).stat_cards] == ["standing"]
+
+
+def test_writer_failures_are_named_not_blamed_on_configuration(curated_payload, monkeypatch):
+    from src import script_engine
+    monkeypatch.setattr(script_engine, "_ready", lambda: True)
+    engine = ScriptEngine()
+    bad = dict(curated_payload, narration_script=curated_payload["narration_script"][:-1] + " that", closing_sentence="x")
+    monkeypatch.setattr(engine, "_generate_with_claude", lambda topic, feedback: ScriptPackage.model_validate(bad))
+    monkeypatch.setattr(engine, "_load_curated", lambda topic_id: None)
+    with pytest.raises(ScriptUnavailableError) as raised:
+        engine.generate_script({"id": "no_curated_topic", "title": "T"})
+    assert "made 3 attempts" in str(raised.value) and "trailing word 'that'" in str(raised.value)
+    assert "ANTHROPIC_API_KEY" not in str(raised.value)
+
+
+def test_surgical_revision_that_keeps_a_rejected_claim_falls_back_to_a_rewrite(curated_payload, monkeypatch):
+    from src import script_engine
+    claim = "Metallurgical analysis determined that finer pearlite spacing refined the microstructure"
+    previous = dict(curated_payload, caption=curated_payload["caption"] + " " + claim + ".")
+    monkeypatch.setattr(script_engine, "_structured", lambda *a, **k: script_engine.Edits(edits=[]))  # the edit misses
+    monkeypatch.setattr(script_engine.fact_sheet, "as_prompt", lambda sheet: "facts")
+    findings = f"1 blocking claim(s): '{claim}.' (unsupported: the source says 'likely')"
+    assert ScriptEngine()._revise_surgically(previous, findings, {"facts": []}) is None
+
+
+def test_the_hedge_quoted_in_a_finding_is_not_mistaken_for_the_rejected_claim(curated_payload, monkeypatch):
+    from src import script_engine
+    hedge = "measurements of the landmark range from 40 to nearly 50 kilometers across"
+    previous = dict(curated_payload, caption=curated_payload["caption"] + " A 30-mile ring hides in West Africa.")
+    fixed = curated_payload["caption"] + " The ring's " + hedge + "."
+    monkeypatch.setattr(script_engine, "_structured", lambda *a, **k: script_engine.Edits(edits=[
+        script_engine.Edit(find="A 30-mile ring hides in West Africa.", replace="The ring's " + hedge + ".")]))
+    monkeypatch.setattr(script_engine.fact_sheet, "as_prompt", lambda sheet: "facts")
+    findings = ("1 untraceable claim(s): 'A 30-mile ring hides in West Africa for good.' ([caption]; untraced: "
+                f"it drops the required hedge ('{hedge}').)")
+    revised = ScriptEngine()._revise_surgically(previous, findings, {"facts": []})
+    assert revised is not None and revised.caption == fixed
+
+
+def test_a_slow_voice_never_leaves_the_writer_without_a_valid_length(curated_payload, monkeypatch):
+    # Production 2026-10-23: at about 0.5 s a word, 105 words ran 52.9 s, past the 51.5 s limit, while
+    # the word check refused anything under 105; three drafts failed and the run with them.
+    from src import audio_engine, script_engine
+    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: 0.5 * len(text.split()) / speed)
+    monkeypatch.setattr(audio_engine, "pace_ratio", lambda key: 1.0)
+    closing = curated_payload["closing_sentence"]
+
+    def draft(n):
+        body = " ".join(["stone"] * (n - len(closing.split())))
+        return _pkg(curated_payload, narration_script=f"{body} {closing}")
+
+    long_problem = script_engine.spoken_length_problems(draft(116))  # 58 s: past what a faster read fits
+    target = int(long_problem[0].split("narration in ")[1].split()[0].split("-")[1])
+    assert target < 103  # an achievable target, not clamped to the prompt's 105
+    fits = draft(target)
+    assert script_engine.spoken_length_problems(fits) == []
+    assert not any("words" in p for p in validate_structure(fits))  # and the word check accepts it
+
+
+def test_extraterrestrial_as_impact_science_is_not_the_trope():
+    # A Richat draft was rejected for "once considered an extraterrestrial impact crater".
+    from src.script_engine import find_banned_tropes
+    assert find_banned_tropes("The feature was once considered an extraterrestrial impact crater.") == []
+    assert find_banned_tropes("Iron from an extraterrestrial meteorite.") == []
+    assert find_banned_tropes("Some claim extraterrestrial visitors built it.") == ["extraterrestrial"]
+    assert find_banned_tropes("Built by aliens.") == ["aliens"]
+
+
+def test_draft_bookkeeping_is_fixed_without_a_rewrite(curated_payload):
+    # Dev (2026-10-23): two Amber Room drafts were rewritten for a closing_sentence that didn't match the
+    # narration's last sentence and a 152-character caption first line holding two sentences.
+    from src.script_engine import normalize_copy
+    narration = curated_payload["narration_script"]
+    first = "The Amber Room vanished in 1945 after the siege. Nobody has found a single amber panel since then, despite eight decades of searching across Europe."
+    pkg = _pkg(curated_payload, closing_sentence="A different closing line.", caption=first + "\nMore text.")
+    fixed = normalize_copy(pkg)
+    assert narration.strip().endswith(fixed.closing_sentence)
+    assert fixed.caption.split("\n")[0] == "The Amber Room vanished in 1945 after the siege."
+    assert fixed.caption.replace("\n", " ").split() == pkg.caption.replace("\n", " ").split()  # same words
+    long_sentence = "x" * 130
+    assert normalize_copy(_pkg(curated_payload, caption=long_sentence)).caption == long_sentence  # still a rewrite
+
+
+def test_a_short_draft_is_extended_not_rewritten_from_scratch(curated_payload, monkeypatch):
+    # Production, 2026-10-23: three fresh rewrites each ran shorter (38.8, 37.3, 35.8 s) while told
+    # "add about N words". The retry now carries the draft and a word window, and converges.
+    from src import audio_engine, script_engine
+    monkeypatch.setattr(script_engine, "_ready", lambda: True)
+    monkeypatch.setattr(audio_engine, "pace_ratio", lambda key: 1.0)
+    monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: len(text.split()) * 0.4 / speed)
+    engine = ScriptEngine()
+    monkeypatch.setattr(engine, "_load_curated", lambda topic_id: None)
+    monkeypatch.setattr(engine, "_sheet", lambda topic: None)
+    seen = []
+    base = [f"word{i}" for i in range(400)]  # distinct words: a repeated phrase is itself sent back (2026-10-25)
+    short = " ".join(base[:70])  # with the closing sentence, well under 42 s at 0.4 s a word
+
+    def write(topic, feedback):
+        seen.append(feedback)
+        import re
+        found = re.search(r"extend the narration to (\d+)-(\d+) words", feedback)
+        words = base[: int(found.group(1)) + 1] if found else short.split()
+        closing = curated_payload["closing_sentence"]
+        text = " ".join(words).rstrip(".") + ". " + closing
+        return ScriptPackage.model_validate(dict(curated_payload, narration_script=text))
+    monkeypatch.setattr(engine, "_generate_with_claude", write)
+    monkeypatch.setattr(engine, "_finalize", lambda pkg, topic, **k: {"narration_script": pkg.narration_script})
+    out = engine.generate_script({"id": "t", "title": "T"})
+    assert len(seen) == 2                                   # the second draft, written to the window, passes
+    assert "<previous_narration>" in seen[1] and "extend the narration to" in seen[1]
+    assert len(out["narration_script"].split()) * 0.4 >= script_engine.TARGET_DURATION_MIN
+
+
+def test_a_narration_that_repeats_a_phrase_is_sent_back():
+    # Production 2026-10-25: two sentences in a row opened "By one estimate," and the video check caught it
+    # after the voiceover was paid for. A name or a number said twice is not a repeat.
+    from src.script_engine import repeated_phrases
+    assert repeated_phrases("It was found in 1901. By one estimate, it had 35 gears. By one estimate, one had 223 teeth.") == ["by one estimate"]
+    assert repeated_phrases("The Richat Structure is vast. Seen from orbit, the Richat Structure looks like an eye.") == []
+    assert repeated_phrases("Rings are 30 metres wide. Outer rings are 70 metres wide.") == []
+    assert repeated_phrases("It tracked the Moon. It predicted eclipses.") == []

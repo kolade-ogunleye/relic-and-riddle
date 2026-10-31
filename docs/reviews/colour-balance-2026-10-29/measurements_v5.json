@@ -1,0 +1,8964 @@
+[
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "01_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3000,
+   4000
+  ],
+  "raw": {
+   "cast": 0.023,
+   "neutral_hue": 80.5,
+   "sat": 0.1224,
+   "luma_std": 26.78,
+   "lime_share": 0.0005
+  },
+  "v4": {
+   "cast": 0.023,
+   "neutral_hue": 80.5,
+   "sat": 0.1224,
+   "luma_std": 26.78,
+   "lime_share": 0.0005,
+   "hue_shift": 0.0,
+   "warm_px": 5561,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.023,
+   "neutral_hue": 80.5,
+   "sat": 0.1224,
+   "luma_std": 26.78,
+   "lime_share": 0.0005,
+   "hue_shift": 0.0,
+   "warm_px": 5561,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "02_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   2048,
+   2048
+  ],
+  "raw": {
+   "cast": 0.1447,
+   "neutral_hue": 46.6,
+   "sat": 0.3689,
+   "luma_std": 51.61,
+   "lime_share": 0.0206
+  },
+  "v4": {
+   "cast": 0.1447,
+   "neutral_hue": 46.6,
+   "sat": 0.3689,
+   "luma_std": 51.61,
+   "lime_share": 0.0206,
+   "hue_shift": 0.0,
+   "warm_px": 27432,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1447,
+   "neutral_hue": 46.6,
+   "sat": 0.3689,
+   "luma_std": 51.61,
+   "lime_share": 0.0206,
+   "hue_shift": 0.0,
+   "warm_px": 27432,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "03_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   2047,
+   2048
+  ],
+  "raw": {
+   "cast": 0.0193,
+   "neutral_hue": 228.6,
+   "sat": 0.3397,
+   "luma_std": 63.94,
+   "lime_share": 0.2855
+  },
+  "v4": {
+   "cast": 0.0193,
+   "neutral_hue": 228.6,
+   "sat": 0.3397,
+   "luma_std": 63.94,
+   "lime_share": 0.2855,
+   "hue_shift": 0.0,
+   "warm_px": 4399,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0193,
+   "neutral_hue": 228.6,
+   "sat": 0.3397,
+   "luma_std": 63.94,
+   "lime_share": 0.2855,
+   "hue_shift": 0.0,
+   "warm_px": 4399,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "04_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   2048,
+   2046
+  ],
+  "raw": {
+   "cast": 0.0087,
+   "neutral_hue": 235.3,
+   "sat": 0.2184,
+   "luma_std": 65.55,
+   "lime_share": 0.0124
+  },
+  "v4": {
+   "cast": 0.0087,
+   "neutral_hue": 235.3,
+   "sat": 0.2184,
+   "luma_std": 65.55,
+   "lime_share": 0.0124,
+   "hue_shift": 0.0,
+   "warm_px": 20964,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0087,
+   "neutral_hue": 235.3,
+   "sat": 0.2184,
+   "luma_std": 65.55,
+   "lime_share": 0.0124,
+   "hue_shift": 0.0,
+   "warm_px": 20964,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "05_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3008,
+   2000
+  ],
+  "raw": {
+   "cast": 0.0308,
+   "neutral_hue": 50.4,
+   "sat": 0.4013,
+   "luma_std": 29.04,
+   "lime_share": 0.0586
+  },
+  "v4": {
+   "cast": 0.0308,
+   "neutral_hue": 50.4,
+   "sat": 0.4013,
+   "luma_std": 29.04,
+   "lime_share": 0.0586,
+   "hue_shift": 0.0,
+   "warm_px": 5380,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0308,
+   "neutral_hue": 50.4,
+   "sat": 0.4013,
+   "luma_std": 29.04,
+   "lime_share": 0.0586,
+   "hue_shift": 0.0,
+   "warm_px": 5380,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "06_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3008,
+   2000
+  ],
+  "raw": {
+   "cast": 0.0032,
+   "neutral_hue": 46.1,
+   "sat": 0.1535,
+   "luma_std": 67.47,
+   "lime_share": 0.0039
+  },
+  "v4": {
+   "cast": 0.0032,
+   "neutral_hue": 46.1,
+   "sat": 0.1535,
+   "luma_std": 67.47,
+   "lime_share": 0.0039,
+   "hue_shift": 0.0,
+   "warm_px": 71,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0032,
+   "neutral_hue": 46.1,
+   "sat": 0.1535,
+   "luma_std": 67.47,
+   "lime_share": 0.0039,
+   "hue_shift": 0.0,
+   "warm_px": 71,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "07_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   1503,
+   1027
+  ],
+  "raw": {
+   "cast": 0.0502,
+   "neutral_hue": 28.6,
+   "sat": 0.3035,
+   "luma_std": 70.58,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0502,
+   "neutral_hue": 28.6,
+   "sat": 0.3035,
+   "luma_std": 70.58,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 4195,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0502,
+   "neutral_hue": 28.6,
+   "sat": 0.3035,
+   "luma_std": 70.58,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 4195,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "08_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   1009,
+   1515
+  ],
+  "raw": {
+   "cast": 0.0814,
+   "neutral_hue": 346.2,
+   "sat": 0.3415,
+   "luma_std": 57.2,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0814,
+   "neutral_hue": 346.2,
+   "sat": 0.3415,
+   "luma_std": 57.2,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 7349,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0814,
+   "neutral_hue": 346.2,
+   "sat": 0.3415,
+   "luma_std": 57.2,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 7349,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "09_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   2592,
+   3872
+  ],
+  "raw": {
+   "cast": 0.0038,
+   "neutral_hue": 286.4,
+   "sat": 0.0905,
+   "luma_std": 45.5,
+   "lime_share": 0.0003
+  },
+  "v4": {
+   "cast": 0.0038,
+   "neutral_hue": 286.4,
+   "sat": 0.0905,
+   "luma_std": 45.5,
+   "lime_share": 0.0003,
+   "hue_shift": 0.0,
+   "warm_px": 3096,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0038,
+   "neutral_hue": 286.4,
+   "sat": 0.0905,
+   "luma_std": 45.5,
+   "lime_share": 0.0003,
+   "hue_shift": 0.0,
+   "warm_px": 3096,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "10_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   1712,
+   2288
+  ],
+  "raw": {
+   "cast": 0.0154,
+   "neutral_hue": 23.6,
+   "sat": 0.1203,
+   "luma_std": 35.54,
+   "lime_share": 0.0018
+  },
+  "v4": {
+   "cast": 0.0154,
+   "neutral_hue": 23.6,
+   "sat": 0.1203,
+   "luma_std": 35.54,
+   "lime_share": 0.0018,
+   "hue_shift": 0.0,
+   "warm_px": 1887,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0154,
+   "neutral_hue": 23.6,
+   "sat": 0.1203,
+   "luma_std": 35.54,
+   "lime_share": 0.0018,
+   "hue_shift": 0.0,
+   "warm_px": 1887,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "11_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   1712,
+   2288
+  ],
+  "raw": {
+   "cast": 0.009,
+   "neutral_hue": 0.3,
+   "sat": 0.2406,
+   "luma_std": 50.0,
+   "lime_share": 0.0022
+  },
+  "v4": {
+   "cast": 0.009,
+   "neutral_hue": 0.3,
+   "sat": 0.2406,
+   "luma_std": 50.0,
+   "lime_share": 0.0022,
+   "hue_shift": 0.0,
+   "warm_px": 889,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.009,
+   "neutral_hue": 0.3,
+   "sat": 0.2406,
+   "luma_std": 50.0,
+   "lime_share": 0.0022,
+   "hue_shift": 0.0,
+   "warm_px": 889,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "12_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   2288,
+   1712
+  ],
+  "raw": {
+   "cast": 0.2383,
+   "neutral_hue": 20.8,
+   "sat": 0.4715,
+   "luma_std": 38.24,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.2383,
+   "neutral_hue": 20.8,
+   "sat": 0.4715,
+   "luma_std": 38.24,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 48555,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.2383,
+   "neutral_hue": 20.8,
+   "sat": 0.4715,
+   "luma_std": 38.24,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 48555,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "13_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   1448,
+   2100
+  ],
+  "raw": {
+   "cast": 0.0087,
+   "neutral_hue": 12.0,
+   "sat": 0.0948,
+   "luma_std": 20.1,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0087,
+   "neutral_hue": 12.0,
+   "sat": 0.0948,
+   "luma_std": 20.1,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 3924,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0087,
+   "neutral_hue": 12.0,
+   "sat": 0.0948,
+   "luma_std": 20.1,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 3924,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "14_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   1503,
+   1027
+  ],
+  "raw": {
+   "cast": 0.0502,
+   "neutral_hue": 28.6,
+   "sat": 0.3035,
+   "luma_std": 70.58,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0502,
+   "neutral_hue": 28.6,
+   "sat": 0.3035,
+   "luma_std": 70.58,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 4195,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0502,
+   "neutral_hue": 28.6,
+   "sat": 0.3035,
+   "luma_std": 70.58,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 4195,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "15_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   1009,
+   1515
+  ],
+  "raw": {
+   "cast": 0.0814,
+   "neutral_hue": 346.2,
+   "sat": 0.3415,
+   "luma_std": 57.2,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0814,
+   "neutral_hue": 346.2,
+   "sat": 0.3415,
+   "luma_std": 57.2,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 7349,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0814,
+   "neutral_hue": 346.2,
+   "sat": 0.3415,
+   "luma_std": 57.2,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 7349,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "16_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   2592,
+   3872
+  ],
+  "raw": {
+   "cast": 0.0038,
+   "neutral_hue": 286.4,
+   "sat": 0.0905,
+   "luma_std": 45.5,
+   "lime_share": 0.0003
+  },
+  "v4": {
+   "cast": 0.0038,
+   "neutral_hue": 286.4,
+   "sat": 0.0905,
+   "luma_std": 45.5,
+   "lime_share": 0.0003,
+   "hue_shift": 0.0,
+   "warm_px": 3096,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0038,
+   "neutral_hue": 286.4,
+   "sat": 0.0905,
+   "luma_std": 45.5,
+   "lime_share": 0.0003,
+   "hue_shift": 0.0,
+   "warm_px": 3096,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "17_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   1920,
+   2880
+  ],
+  "raw": {
+   "cast": 0.0061,
+   "neutral_hue": 348.0,
+   "sat": 0.0985,
+   "luma_std": 40.76,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0061,
+   "neutral_hue": 348.0,
+   "sat": 0.0985,
+   "luma_std": 40.76,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 5049,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0061,
+   "neutral_hue": 348.0,
+   "sat": 0.0985,
+   "luma_std": 40.76,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 5049,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "18_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   4851,
+   7165
+  ],
+  "raw": {
+   "cast": 0.0923,
+   "neutral_hue": 38.3,
+   "sat": 0.2462,
+   "luma_std": 27.47,
+   "lime_share": 0.0997
+  },
+  "v4": {
+   "cast": 0.0923,
+   "neutral_hue": 38.3,
+   "sat": 0.2462,
+   "luma_std": 27.47,
+   "lime_share": 0.0997,
+   "hue_shift": 0.0,
+   "warm_px": 20121,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0923,
+   "neutral_hue": 38.3,
+   "sat": 0.2462,
+   "luma_std": 27.47,
+   "lime_share": 0.0997,
+   "hue_shift": 0.0,
+   "warm_px": 20121,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "19_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.02,
+  "size": [
+   4928,
+   3264
+  ],
+  "raw": {
+   "cast": 1.0013,
+   "neutral_hue": 42.4,
+   "sat": 0.7496,
+   "luma_std": 49.57,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 1.0013,
+   "neutral_hue": 42.4,
+   "sat": 0.7496,
+   "luma_std": 49.57,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 42479,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 1.0013,
+   "neutral_hue": 42.4,
+   "sat": 0.7496,
+   "luma_std": 49.57,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 42479,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "20_commons.jpg",
+  "settings_v4": {
+   "gains": [
+    0.9536,
+    0.9792,
+    1.18
+   ],
+   "gamma": 1.0,
+   "cast": 0.3771,
+   "mean_luma": 0.3691
+  },
+  "settings_v5": {
+   "gains": [
+    0.9536,
+    0.9792,
+    1.18
+   ],
+   "gamma": 1.0,
+   "cast": 0.3771,
+   "mean_luma": 0.3691,
+   "lamp_step": {
+    "keep": 0.4,
+    "pull": 0.5,
+    "hue": [
+     48.0,
+     58.0,
+     78.0,
+     92.0
+    ]
+   }
+  },
+  "same_settings_as_v4": true,
+  "lamp_step": true,
+  "max_pixel_diff_vs_v4": 64,
+  "apply_seconds": 5.19,
+  "size": [
+   4000,
+   3000
+  ],
+  "raw": {
+   "cast": 0.3771,
+   "neutral_hue": 52.8,
+   "sat": 0.4483,
+   "luma_std": 44.72,
+   "lime_share": 0.2148
+  },
+  "v4": {
+   "cast": 0.1886,
+   "neutral_hue": 54.7,
+   "sat": 0.3299,
+   "luma_std": 44.05,
+   "lime_share": 0.1111,
+   "hue_shift": 2.61,
+   "warm_px": 21353,
+   "warm_hue_change": 2.21,
+   "warm_sat_ratio": 0.756
+  },
+  "v5": {
+   "cast": 0.0975,
+   "neutral_hue": 52.1,
+   "sat": 0.2829,
+   "luma_std": 44.04,
+   "lime_share": 0.0034,
+   "hue_shift": 1.71,
+   "warm_px": 20610,
+   "warm_hue_change": 0.53,
+   "warm_sat_ratio": 0.983
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "21_commons.jpg",
+  "settings_v4": {
+   "gains": [
+    0.8965,
+    1.049,
+    1.0192
+   ],
+   "gamma": 1.0,
+   "cast": 0.1426,
+   "mean_luma": 0.4162
+  },
+  "settings_v5": {
+   "gains": [
+    0.8965,
+    1.049,
+    1.0192
+   ],
+   "gamma": 1.0,
+   "cast": 0.1426,
+   "mean_luma": 0.4162
+  },
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 1.74,
+  "size": [
+   4000,
+   3000
+  ],
+  "raw": {
+   "cast": 0.1426,
+   "neutral_hue": 350.6,
+   "sat": 0.5703,
+   "luma_std": 43.76,
+   "lime_share": 0.0024
+  },
+  "v4": {
+   "cast": 0.1347,
+   "neutral_hue": 22.1,
+   "sat": 0.5408,
+   "luma_std": 43.38,
+   "lime_share": 0.0188,
+   "hue_shift": 8.94,
+   "warm_px": 33364,
+   "warm_hue_change": 7.66,
+   "warm_sat_ratio": 0.938
+  },
+  "v5": {
+   "cast": 0.1347,
+   "neutral_hue": 22.1,
+   "sat": 0.5408,
+   "luma_std": 43.38,
+   "lime_share": 0.0188,
+   "hue_shift": 0.0,
+   "warm_px": 32369,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "22_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4000,
+   3000
+  ],
+  "raw": {
+   "cast": 0.0324,
+   "neutral_hue": 26.8,
+   "sat": 0.1263,
+   "luma_std": 29.34,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0324,
+   "neutral_hue": 26.8,
+   "sat": 0.1263,
+   "luma_std": 29.34,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 2097,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0324,
+   "neutral_hue": 26.8,
+   "sat": 0.1263,
+   "luma_std": 29.34,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 2097,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "23_commons.jpg",
+  "settings_v4": {
+   "gains": [
+    0.9607,
+    1.0422,
+    0.8858
+   ],
+   "gamma": 0.75,
+   "cast": 0.1506,
+   "mean_luma": 0.1171
+  },
+  "settings_v5": {
+   "gains": [
+    0.9607,
+    1.0422,
+    0.8858
+   ],
+   "gamma": 0.75,
+   "cast": 0.1506,
+   "mean_luma": 0.1171
+  },
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 3.97,
+  "size": [
+   4000,
+   3000
+  ],
+  "raw": {
+   "cast": 0.1506,
+   "neutral_hue": 267.2,
+   "sat": 0.5533,
+   "luma_std": 23.71,
+   "lime_share": 0.0004
+  },
+  "v4": {
+   "cast": 0.0551,
+   "neutral_hue": 278.3,
+   "sat": 0.558,
+   "luma_std": 27.71,
+   "lime_share": 0.0034,
+   "hue_shift": 7.55,
+   "warm_px": 33550,
+   "warm_hue_change": 6.21,
+   "warm_sat_ratio": 1.041
+  },
+  "v5": {
+   "cast": 0.0551,
+   "neutral_hue": 278.3,
+   "sat": 0.558,
+   "luma_std": 27.71,
+   "lime_share": 0.0034,
+   "hue_shift": 0.0,
+   "warm_px": 36000,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "24_commons.jpg",
+  "settings_v4": {
+   "gains": [
+    0.9674,
+    0.9707,
+    1.18
+   ],
+   "gamma": 0.79,
+   "cast": 0.4004,
+   "mean_luma": 0.2332
+  },
+  "settings_v5": {
+   "gains": [
+    0.9674,
+    0.9707,
+    1.18
+   ],
+   "gamma": 0.79,
+   "cast": 0.4004,
+   "mean_luma": 0.2332,
+   "lamp_step": {
+    "keep": 0.4,
+    "pull": 0.5,
+    "hue": [
+     48.0,
+     58.0,
+     78.0,
+     92.0
+    ]
+   }
+  },
+  "same_settings_as_v4": true,
+  "lamp_step": true,
+  "max_pixel_diff_vs_v4": 49,
+  "apply_seconds": 8.9,
+  "size": [
+   4000,
+   3000
+  ],
+  "raw": {
+   "cast": 0.4004,
+   "neutral_hue": 59.1,
+   "sat": 0.476,
+   "luma_std": 30.13,
+   "lime_share": 0.7948
+  },
+  "v4": {
+   "cast": 0.2047,
+   "neutral_hue": 59.1,
+   "sat": 0.3672,
+   "luma_std": 30.13,
+   "lime_share": 0.6022,
+   "hue_shift": 2.0,
+   "warm_px": 1026,
+   "warm_hue_change": 4.45,
+   "warm_sat_ratio": 0.752
+  },
+  "v5": {
+   "cast": 0.0788,
+   "neutral_hue": 55.1,
+   "sat": 0.2238,
+   "luma_std": 30.14,
+   "lime_share": 0.0214,
+   "hue_shift": 3.58,
+   "warm_px": 2625,
+   "warm_hue_change": 0.88,
+   "warm_sat_ratio": 0.97
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "25_commons.jpg",
+  "settings_v4": {
+   "gains": [
+    0.9735,
+    0.9614,
+    1.18
+   ],
+   "gamma": 0.8212,
+   "cast": 0.6647,
+   "mean_luma": 0.2585
+  },
+  "settings_v5": {
+   "gains": [
+    0.9735,
+    0.9614,
+    1.18
+   ],
+   "gamma": 0.8212,
+   "cast": 0.6647,
+   "mean_luma": 0.2585,
+   "lamp_step": {
+    "keep": 0.4,
+    "pull": 0.5,
+    "hue": [
+     48.0,
+     58.0,
+     78.0,
+     92.0
+    ]
+   }
+  },
+  "same_settings_as_v4": true,
+  "lamp_step": true,
+  "max_pixel_diff_vs_v4": 58,
+  "apply_seconds": 8.49,
+  "size": [
+   4000,
+   3000
+  ],
+  "raw": {
+   "cast": 0.6647,
+   "neutral_hue": 62.6,
+   "sat": 0.5813,
+   "luma_std": 36.53,
+   "lime_share": 0.9091
+  },
+  "v4": {
+   "cast": 0.4258,
+   "neutral_hue": 61.5,
+   "sat": 0.4897,
+   "luma_std": 38.9,
+   "lime_share": 0.8668,
+   "hue_shift": 1.93,
+   "warm_px": 1980,
+   "warm_hue_change": 4.56,
+   "warm_sat_ratio": 0.823
+  },
+  "v5": {
+   "cast": 0.1215,
+   "neutral_hue": 55.1,
+   "sat": 0.2436,
+   "luma_std": 38.91,
+   "lime_share": 0.0396,
+   "hue_shift": 4.89,
+   "warm_px": 3805,
+   "warm_hue_change": 1.25,
+   "warm_sat_ratio": 0.963
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "26_commons.jpg",
+  "settings_v4": {
+   "gains": [
+    0.9739,
+    0.9798,
+    1.1726
+   ],
+   "gamma": 0.75,
+   "cast": 0.2311,
+   "mean_luma": 0.09
+  },
+  "settings_v5": {
+   "gains": [
+    0.9739,
+    0.9798,
+    1.1726
+   ],
+   "gamma": 0.75,
+   "cast": 0.2311,
+   "mean_luma": 0.09,
+   "lamp_step": {
+    "keep": 0.4,
+    "pull": 0.5,
+    "hue": [
+     48.0,
+     58.0,
+     78.0,
+     92.0
+    ]
+   }
+  },
+  "same_settings_as_v4": true,
+  "lamp_step": true,
+  "max_pixel_diff_vs_v4": 40,
+  "apply_seconds": 6.73,
+  "size": [
+   4000,
+   3000
+  ],
+  "raw": {
+   "cast": 0.2311,
+   "neutral_hue": 57.6,
+   "sat": 0.374,
+   "luma_std": 17.81,
+   "lime_share": 0.1735
+  },
+  "v4": {
+   "cast": 0.0962,
+   "neutral_hue": 52.3,
+   "sat": 0.254,
+   "luma_std": 22.66,
+   "lime_share": 0.0134,
+   "hue_shift": 6.34,
+   "warm_px": 24967,
+   "warm_hue_change": 6.55,
+   "warm_sat_ratio": 0.714
+  },
+  "v5": {
+   "cast": 0.0623,
+   "neutral_hue": 47.6,
+   "sat": 0.2346,
+   "luma_std": 22.66,
+   "lime_share": 0.0029,
+   "hue_shift": 1.38,
+   "warm_px": 25556,
+   "warm_hue_change": 0.47,
+   "warm_sat_ratio": 0.986
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "27_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4000,
+   3000
+  ],
+  "raw": {
+   "cast": 0.0694,
+   "neutral_hue": 45.8,
+   "sat": 0.1938,
+   "luma_std": 38.2,
+   "lime_share": 0.0012
+  },
+  "v4": {
+   "cast": 0.0694,
+   "neutral_hue": 45.8,
+   "sat": 0.1938,
+   "luma_std": 38.2,
+   "lime_share": 0.0012,
+   "hue_shift": 0.0,
+   "warm_px": 19749,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0694,
+   "neutral_hue": 45.8,
+   "sat": 0.1938,
+   "luma_std": 38.2,
+   "lime_share": 0.0012,
+   "hue_shift": 0.0,
+   "warm_px": 19749,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "28_commons.jpg",
+  "settings_v4": {
+   "gains": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "gamma": 0.7992,
+   "cast": 0.0,
+   "mean_luma": 0.2406
+  },
+  "settings_v5": {
+   "gains": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "gamma": 0.7992,
+   "cast": 0.0,
+   "mean_luma": 0.2406
+  },
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 3.87,
+  "size": [
+   4000,
+   3000
+  ],
+  "raw": {
+   "cast": 0.0874,
+   "neutral_hue": 66.0,
+   "sat": 0.1881,
+   "luma_std": 34.88,
+   "lime_share": 0.0152
+  },
+  "v4": {
+   "cast": 0.0864,
+   "neutral_hue": 65.8,
+   "sat": 0.1883,
+   "luma_std": 35.5,
+   "lime_share": 0.0149,
+   "hue_shift": 2.28,
+   "warm_px": 2002,
+   "warm_hue_change": 2.82,
+   "warm_sat_ratio": 0.993
+  },
+  "v5": {
+   "cast": 0.0864,
+   "neutral_hue": 65.8,
+   "sat": 0.1883,
+   "luma_std": 35.5,
+   "lime_share": 0.0149,
+   "hue_shift": 0.0,
+   "warm_px": 2082,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "29_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4000,
+   3000
+  ],
+  "raw": {
+   "cast": 0.0731,
+   "neutral_hue": 45.5,
+   "sat": 0.199,
+   "luma_std": 36.19,
+   "lime_share": 0.0016
+  },
+  "v4": {
+   "cast": 0.0731,
+   "neutral_hue": 45.5,
+   "sat": 0.199,
+   "luma_std": 36.19,
+   "lime_share": 0.0016,
+   "hue_shift": 0.0,
+   "warm_px": 20934,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0731,
+   "neutral_hue": 45.5,
+   "sat": 0.199,
+   "luma_std": 36.19,
+   "lime_share": 0.0016,
+   "hue_shift": 0.0,
+   "warm_px": 20934,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "30_commons.jpg",
+  "settings_v4": {
+   "gains": [
+    0.9574,
+    0.9776,
+    1.18
+   ],
+   "gamma": 0.75,
+   "cast": 0.357,
+   "mean_luma": 0.1336
+  },
+  "settings_v5": {
+   "gains": [
+    0.9574,
+    0.9776,
+    1.18
+   ],
+   "gamma": 0.75,
+   "cast": 0.357,
+   "mean_luma": 0.1336,
+   "lamp_step": {
+    "keep": 0.4,
+    "pull": 0.5,
+    "hue": [
+     48.0,
+     58.0,
+     78.0,
+     92.0
+    ]
+   }
+  },
+  "same_settings_as_v4": true,
+  "lamp_step": true,
+  "max_pixel_diff_vs_v4": 50,
+  "apply_seconds": 7.24,
+  "size": [
+   4000,
+   3000
+  ],
+  "raw": {
+   "cast": 0.357,
+   "neutral_hue": 54.0,
+   "sat": 0.3987,
+   "luma_std": 26.65,
+   "lime_share": 0.3053
+  },
+  "v4": {
+   "cast": 0.1586,
+   "neutral_hue": 53.3,
+   "sat": 0.2795,
+   "luma_std": 30.63,
+   "lime_share": 0.1295,
+   "hue_shift": 4.95,
+   "warm_px": 17846,
+   "warm_hue_change": 6.1,
+   "warm_sat_ratio": 0.684
+  },
+  "v5": {
+   "cast": 0.0838,
+   "neutral_hue": 51.3,
+   "sat": 0.2285,
+   "luma_std": 30.63,
+   "lime_share": 0.0063,
+   "hue_shift": 2.35,
+   "warm_px": 15642,
+   "warm_hue_change": 0.89,
+   "warm_sat_ratio": 0.968
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "31_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4000,
+   3000
+  ],
+  "raw": {
+   "cast": 0.0345,
+   "neutral_hue": 26.0,
+   "sat": 0.1293,
+   "luma_std": 34.32,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0345,
+   "neutral_hue": 26.0,
+   "sat": 0.1293,
+   "luma_std": 34.32,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 2321,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0345,
+   "neutral_hue": 26.0,
+   "sat": 0.1293,
+   "luma_std": 34.32,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 2321,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "derinkuyu_underground_city",
+  "photo": "32_commons.jpg",
+  "settings_v4": {
+   "gains": [
+    0.9442,
+    0.9796,
+    1.18
+   ],
+   "gamma": 0.75,
+   "cast": 0.5847,
+   "mean_luma": 0.1262
+  },
+  "settings_v5": {
+   "gains": [
+    0.9442,
+    0.9796,
+    1.18
+   ],
+   "gamma": 0.75,
+   "cast": 0.5847,
+   "mean_luma": 0.1262,
+   "lamp_step": {
+    "keep": 0.4,
+    "pull": 0.5,
+    "hue": [
+     48.0,
+     58.0,
+     78.0,
+     92.0
+    ]
+   }
+  },
+  "same_settings_as_v4": true,
+  "lamp_step": true,
+  "max_pixel_diff_vs_v4": 74,
+  "apply_seconds": 7.5,
+  "size": [
+   4000,
+   3000
+  ],
+  "raw": {
+   "cast": 0.5847,
+   "neutral_hue": 52.1,
+   "sat": 0.5614,
+   "luma_std": 24.6,
+   "lime_share": 0.1558
+  },
+  "v4": {
+   "cast": 0.3595,
+   "neutral_hue": 53.0,
+   "sat": 0.4564,
+   "luma_std": 27.99,
+   "lime_share": 0.28,
+   "hue_shift": 2.59,
+   "warm_px": 27913,
+   "warm_hue_change": 2.27,
+   "warm_sat_ratio": 0.821
+  },
+  "v5": {
+   "cast": 0.1868,
+   "neutral_hue": 51.5,
+   "sat": 0.3848,
+   "luma_std": 27.98,
+   "lime_share": 0.0423,
+   "hue_shift": 2.08,
+   "warm_px": 23235,
+   "warm_hue_change": 0.85,
+   "warm_sat_ratio": 0.968
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "01_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   3840,
+   2491
+  ],
+  "raw": {
+   "cast": 0.4752,
+   "neutral_hue": 30.7,
+   "sat": 0.5524,
+   "luma_std": 36.54,
+   "lime_share": 0.0056
+  },
+  "v4": {
+   "cast": 0.4752,
+   "neutral_hue": 30.7,
+   "sat": 0.5524,
+   "luma_std": 36.54,
+   "lime_share": 0.0056,
+   "hue_shift": 0.0,
+   "warm_px": 41970,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.4752,
+   "neutral_hue": 30.7,
+   "sat": 0.5524,
+   "luma_std": 36.54,
+   "lime_share": 0.0056,
+   "hue_shift": 0.0,
+   "warm_px": 41970,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "02_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   3840,
+   2536
+  ],
+  "raw": {
+   "cast": 0.1048,
+   "neutral_hue": 16.4,
+   "sat": 0.5316,
+   "luma_std": 71.47,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.1048,
+   "neutral_hue": 16.4,
+   "sat": 0.5316,
+   "luma_std": 71.47,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 10673,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1048,
+   "neutral_hue": 16.4,
+   "sat": 0.5316,
+   "luma_std": 71.47,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 10673,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "03_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3840,
+   2367
+  ],
+  "raw": {
+   "cast": 0.0338,
+   "neutral_hue": 16.0,
+   "sat": 0.2708,
+   "luma_std": 56.27,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0338,
+   "neutral_hue": 16.0,
+   "sat": 0.2708,
+   "luma_std": 56.27,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 20955,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0338,
+   "neutral_hue": 16.0,
+   "sat": 0.2708,
+   "luma_std": 56.27,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 20955,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "04_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3840,
+   2367
+  ],
+  "raw": {
+   "cast": 0.0924,
+   "neutral_hue": 23.9,
+   "sat": 0.3555,
+   "luma_std": 62.41,
+   "lime_share": 0.1308
+  },
+  "v4": {
+   "cast": 0.0924,
+   "neutral_hue": 23.9,
+   "sat": 0.3555,
+   "luma_std": 62.41,
+   "lime_share": 0.1308,
+   "hue_shift": 0.0,
+   "warm_px": 9782,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0924,
+   "neutral_hue": 23.9,
+   "sat": 0.3555,
+   "luma_std": 62.41,
+   "lime_share": 0.1308,
+   "hue_shift": 0.0,
+   "warm_px": 9782,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "05_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   9930,
+   5190
+  ],
+  "raw": {
+   "cast": 0.0456,
+   "neutral_hue": 18.9,
+   "sat": 0.2871,
+   "luma_std": 49.04,
+   "lime_share": 0.0229
+  },
+  "v4": {
+   "cast": 0.0456,
+   "neutral_hue": 18.9,
+   "sat": 0.2871,
+   "luma_std": 49.04,
+   "lime_share": 0.0229,
+   "hue_shift": 0.0,
+   "warm_px": 20570,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0456,
+   "neutral_hue": 18.9,
+   "sat": 0.2871,
+   "luma_std": 49.04,
+   "lime_share": 0.0229,
+   "hue_shift": 0.0,
+   "warm_px": 20570,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "06_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.02,
+  "size": [
+   5568,
+   3712
+  ],
+  "raw": {
+   "cast": 0.0864,
+   "neutral_hue": 11.5,
+   "sat": 0.2734,
+   "luma_std": 79.99,
+   "lime_share": 0.0002
+  },
+  "v4": {
+   "cast": 0.0864,
+   "neutral_hue": 11.5,
+   "sat": 0.2734,
+   "luma_std": 79.99,
+   "lime_share": 0.0002,
+   "hue_shift": 0.0,
+   "warm_px": 19162,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0864,
+   "neutral_hue": 11.5,
+   "sat": 0.2734,
+   "luma_std": 79.99,
+   "lime_share": 0.0002,
+   "hue_shift": 0.0,
+   "warm_px": 19162,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "07_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   5568,
+   3712
+  ],
+  "raw": {
+   "cast": 0.0926,
+   "neutral_hue": 5.3,
+   "sat": 0.2589,
+   "luma_std": 24.75,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0926,
+   "neutral_hue": 5.3,
+   "sat": 0.2589,
+   "luma_std": 24.75,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 26435,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0926,
+   "neutral_hue": 5.3,
+   "sat": 0.2589,
+   "luma_std": 24.75,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 26435,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "08_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   5568,
+   3712
+  ],
+  "raw": {
+   "cast": 0.1153,
+   "neutral_hue": 17.1,
+   "sat": 0.3202,
+   "luma_std": 22.83,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.1153,
+   "neutral_hue": 17.1,
+   "sat": 0.3202,
+   "luma_std": 22.83,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 35248,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1153,
+   "neutral_hue": 17.1,
+   "sat": 0.3202,
+   "luma_std": 22.83,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 35248,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "09_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   5568,
+   3712
+  ],
+  "raw": {
+   "cast": 0.0409,
+   "neutral_hue": 331.8,
+   "sat": 0.2952,
+   "luma_std": 57.84,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0409,
+   "neutral_hue": 331.8,
+   "sat": 0.2952,
+   "luma_std": 57.84,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 13657,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0409,
+   "neutral_hue": 331.8,
+   "sat": 0.2952,
+   "luma_std": 57.84,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 13657,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "10_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   5568,
+   3712
+  ],
+  "raw": {
+   "cast": 0.0607,
+   "neutral_hue": 338.0,
+   "sat": 0.2654,
+   "luma_std": 50.82,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0607,
+   "neutral_hue": 338.0,
+   "sat": 0.2654,
+   "luma_std": 50.82,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 16330,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0607,
+   "neutral_hue": 338.0,
+   "sat": 0.2654,
+   "luma_std": 50.82,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 16330,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "11_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   5568,
+   3712
+  ],
+  "raw": {
+   "cast": 0.0219,
+   "neutral_hue": 20.8,
+   "sat": 0.1858,
+   "luma_std": 48.96,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0219,
+   "neutral_hue": 20.8,
+   "sat": 0.1858,
+   "luma_std": 48.96,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 19063,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0219,
+   "neutral_hue": 20.8,
+   "sat": 0.1858,
+   "luma_std": 48.96,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 19063,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "12_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   5568,
+   3712
+  ],
+  "raw": {
+   "cast": 0.0498,
+   "neutral_hue": 326.7,
+   "sat": 0.2752,
+   "luma_std": 46.4,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0498,
+   "neutral_hue": 326.7,
+   "sat": 0.2752,
+   "luma_std": 46.4,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 10605,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0498,
+   "neutral_hue": 326.7,
+   "sat": 0.2752,
+   "luma_std": 46.4,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 10605,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "13_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4448,
+   4451
+  ],
+  "raw": {
+   "cast": 0.0069,
+   "neutral_hue": 53.1,
+   "sat": 0.3221,
+   "luma_std": 65.89,
+   "lime_share": 0.1267
+  },
+  "v4": {
+   "cast": 0.0069,
+   "neutral_hue": 53.1,
+   "sat": 0.3221,
+   "luma_std": 65.89,
+   "lime_share": 0.1267,
+   "hue_shift": 0.0,
+   "warm_px": 445,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0069,
+   "neutral_hue": 53.1,
+   "sat": 0.3221,
+   "luma_std": 65.89,
+   "lime_share": 0.1267,
+   "hue_shift": 0.0,
+   "warm_px": 445,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "14_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4144,
+   4184
+  ],
+  "raw": {
+   "cast": 0.5371,
+   "neutral_hue": 50.5,
+   "sat": 0.4888,
+   "luma_std": 32.9,
+   "lime_share": 0.2439
+  },
+  "v4": {
+   "cast": 0.5371,
+   "neutral_hue": 50.5,
+   "sat": 0.4888,
+   "luma_std": 32.9,
+   "lime_share": 0.2439,
+   "hue_shift": 0.0,
+   "warm_px": 41278,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.5371,
+   "neutral_hue": 50.5,
+   "sat": 0.4888,
+   "luma_std": 32.9,
+   "lime_share": 0.2439,
+   "hue_shift": 0.0,
+   "warm_px": 41278,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "15_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4928,
+   3280
+  ],
+  "raw": {
+   "cast": 0.2376,
+   "neutral_hue": 32.1,
+   "sat": 0.4836,
+   "luma_std": 32.97,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.2376,
+   "neutral_hue": 32.1,
+   "sat": 0.4836,
+   "luma_std": 32.97,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 41112,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.2376,
+   "neutral_hue": 32.1,
+   "sat": 0.4836,
+   "luma_std": 32.97,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 41112,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "16_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4928,
+   3280
+  ],
+  "raw": {
+   "cast": 0.0163,
+   "neutral_hue": 42.7,
+   "sat": 0.2354,
+   "luma_std": 50.72,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0163,
+   "neutral_hue": 42.7,
+   "sat": 0.2354,
+   "luma_std": 50.72,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 21916,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0163,
+   "neutral_hue": 42.7,
+   "sat": 0.2354,
+   "luma_std": 50.72,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 21916,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "17_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   5288,
+   3000
+  ],
+  "raw": {
+   "cast": 0.0537,
+   "neutral_hue": 36.4,
+   "sat": 0.1987,
+   "luma_std": 94.63,
+   "lime_share": 0.1673
+  },
+  "v4": {
+   "cast": 0.0537,
+   "neutral_hue": 36.4,
+   "sat": 0.1987,
+   "luma_std": 94.63,
+   "lime_share": 0.1673,
+   "hue_shift": 0.0,
+   "warm_px": 3808,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0537,
+   "neutral_hue": 36.4,
+   "sat": 0.1987,
+   "luma_std": 94.63,
+   "lime_share": 0.1673,
+   "hue_shift": 0.0,
+   "warm_px": 3808,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "18_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4928,
+   2768
+  ],
+  "raw": {
+   "cast": 0.051,
+   "neutral_hue": 352.7,
+   "sat": 0.2205,
+   "luma_std": 48.08,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.051,
+   "neutral_hue": 352.7,
+   "sat": 0.2205,
+   "luma_std": 48.08,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 15717,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.051,
+   "neutral_hue": 352.7,
+   "sat": 0.2205,
+   "luma_std": 48.08,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 15717,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "19_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4288,
+   2848
+  ],
+  "raw": {
+   "cast": 0.0521,
+   "neutral_hue": 27.7,
+   "sat": 0.2785,
+   "luma_std": 39.18,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0521,
+   "neutral_hue": 27.7,
+   "sat": 0.2785,
+   "luma_std": 39.18,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 31264,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0521,
+   "neutral_hue": 27.7,
+   "sat": 0.2785,
+   "luma_std": 39.18,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 31264,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "richat_structure_sahara_eye",
+  "photo": "20_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   3304,
+   3430
+  ],
+  "raw": {
+   "cast": 0.0474,
+   "neutral_hue": 6.0,
+   "sat": 0.2293,
+   "luma_std": 55.78,
+   "lime_share": 0.0206
+  },
+  "v4": {
+   "cast": 0.0474,
+   "neutral_hue": 6.0,
+   "sat": 0.2293,
+   "luma_std": 55.78,
+   "lime_share": 0.0206,
+   "hue_shift": 0.0,
+   "warm_px": 26996,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0474,
+   "neutral_hue": 6.0,
+   "sat": 0.2293,
+   "luma_std": 55.78,
+   "lime_share": 0.0206,
+   "hue_shift": 0.0,
+   "warm_px": 26996,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "01_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   2480,
+   3508
+  ],
+  "raw": {
+   "cast": 0.0,
+   "neutral_hue": 0.0,
+   "sat": 0.0,
+   "luma_std": 19.91,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0,
+   "neutral_hue": 0.0,
+   "sat": 0.0,
+   "luma_std": 19.91,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 0
+  },
+  "v5": {
+   "cast": 0.0,
+   "neutral_hue": 0.0,
+   "sat": 0.0,
+   "luma_std": 19.91,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 0
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "02_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3872,
+   2592
+  ],
+  "raw": {
+   "cast": 0.0368,
+   "neutral_hue": 29.1,
+   "sat": 0.0962,
+   "luma_std": 21.01,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0368,
+   "neutral_hue": 29.1,
+   "sat": 0.0962,
+   "luma_std": 21.01,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 331,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0368,
+   "neutral_hue": 29.1,
+   "sat": 0.0962,
+   "luma_std": 21.01,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 331,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "03_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   1600,
+   1067
+  ],
+  "raw": {
+   "cast": 0.0243,
+   "neutral_hue": 17.9,
+   "sat": 0.0823,
+   "luma_std": 26.92,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0243,
+   "neutral_hue": 17.9,
+   "sat": 0.0823,
+   "luma_std": 26.92,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 25,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0243,
+   "neutral_hue": 17.9,
+   "sat": 0.0823,
+   "luma_std": 26.92,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 25,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "04_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3395,
+   2952
+  ],
+  "raw": {
+   "cast": 0.0074,
+   "neutral_hue": 104.6,
+   "sat": 0.3303,
+   "luma_std": 51.25,
+   "lime_share": 0.0001
+  },
+  "v4": {
+   "cast": 0.0074,
+   "neutral_hue": 104.6,
+   "sat": 0.3303,
+   "luma_std": 51.25,
+   "lime_share": 0.0001,
+   "hue_shift": 0.0,
+   "warm_px": 27818,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0074,
+   "neutral_hue": 104.6,
+   "sat": 0.3303,
+   "luma_std": 51.25,
+   "lime_share": 0.0001,
+   "hue_shift": 0.0,
+   "warm_px": 27818,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "05_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   1600,
+   1067
+  ],
+  "raw": {
+   "cast": 0.0154,
+   "neutral_hue": 13.5,
+   "sat": 0.1243,
+   "luma_std": 27.72,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0154,
+   "neutral_hue": 13.5,
+   "sat": 0.1243,
+   "luma_std": 27.72,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 905,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0154,
+   "neutral_hue": 13.5,
+   "sat": 0.1243,
+   "luma_std": 27.72,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 905,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "06_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   2096,
+   1397
+  ],
+  "raw": {
+   "cast": 0.0118,
+   "neutral_hue": 74.1,
+   "sat": 0.0642,
+   "luma_std": 29.13,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0118,
+   "neutral_hue": 74.1,
+   "sat": 0.0642,
+   "luma_std": 29.13,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 1
+  },
+  "v5": {
+   "cast": 0.0118,
+   "neutral_hue": 74.1,
+   "sat": 0.0642,
+   "luma_std": 29.13,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 1
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "07_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3872,
+   2592
+  ],
+  "raw": {
+   "cast": 0.0172,
+   "neutral_hue": 35.4,
+   "sat": 0.2496,
+   "luma_std": 44.71,
+   "lime_share": 0.0052
+  },
+  "v4": {
+   "cast": 0.0172,
+   "neutral_hue": 35.4,
+   "sat": 0.2496,
+   "luma_std": 44.71,
+   "lime_share": 0.0052,
+   "hue_shift": 0.0,
+   "warm_px": 1752,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0172,
+   "neutral_hue": 35.4,
+   "sat": 0.2496,
+   "luma_std": 44.71,
+   "lime_share": 0.0052,
+   "hue_shift": 0.0,
+   "warm_px": 1752,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "08_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3872,
+   2592
+  ],
+  "raw": {
+   "cast": 0.0092,
+   "neutral_hue": 343.0,
+   "sat": 0.0947,
+   "luma_std": 33.5,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0092,
+   "neutral_hue": 343.0,
+   "sat": 0.0947,
+   "luma_std": 33.5,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 670,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0092,
+   "neutral_hue": 343.0,
+   "sat": 0.0947,
+   "luma_std": 33.5,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 670,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "09_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   3872,
+   2592
+  ],
+  "raw": {
+   "cast": 0.0138,
+   "neutral_hue": 346.4,
+   "sat": 0.1885,
+   "luma_std": 44.4,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0138,
+   "neutral_hue": 346.4,
+   "sat": 0.1885,
+   "luma_std": 44.4,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 627,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0138,
+   "neutral_hue": 346.4,
+   "sat": 0.1885,
+   "luma_std": 44.4,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 627,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "10_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3872,
+   2592
+  ],
+  "raw": {
+   "cast": 0.0186,
+   "neutral_hue": 45.8,
+   "sat": 0.082,
+   "luma_std": 46.62,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0186,
+   "neutral_hue": 45.8,
+   "sat": 0.082,
+   "luma_std": 46.62,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 247,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0186,
+   "neutral_hue": 45.8,
+   "sat": 0.082,
+   "luma_std": 46.62,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 247,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "11_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   2888,
+   1925
+  ],
+  "raw": {
+   "cast": 0.0419,
+   "neutral_hue": 33.3,
+   "sat": 0.1462,
+   "luma_std": 50.87,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0419,
+   "neutral_hue": 33.3,
+   "sat": 0.1462,
+   "luma_std": 50.87,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 1902,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0419,
+   "neutral_hue": 33.3,
+   "sat": 0.1462,
+   "luma_std": 50.87,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 1902,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "12_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   4928,
+   3264
+  ],
+  "raw": {
+   "cast": 0.0676,
+   "neutral_hue": 34.7,
+   "sat": 0.3462,
+   "luma_std": 53.44,
+   "lime_share": 0.2119
+  },
+  "v4": {
+   "cast": 0.0676,
+   "neutral_hue": 34.7,
+   "sat": 0.3462,
+   "luma_std": 53.44,
+   "lime_share": 0.2119,
+   "hue_shift": 0.0,
+   "warm_px": 2888,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0676,
+   "neutral_hue": 34.7,
+   "sat": 0.3462,
+   "luma_std": 53.44,
+   "lime_share": 0.2119,
+   "hue_shift": 0.0,
+   "warm_px": 2888,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "13_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   4928,
+   3264
+  ],
+  "raw": {
+   "cast": 0.0109,
+   "neutral_hue": 172.7,
+   "sat": 0.1459,
+   "luma_std": 41.62,
+   "lime_share": 0.0187
+  },
+  "v4": {
+   "cast": 0.0109,
+   "neutral_hue": 172.7,
+   "sat": 0.1459,
+   "luma_std": 41.62,
+   "lime_share": 0.0187,
+   "hue_shift": 0.0,
+   "warm_px": 4068,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0109,
+   "neutral_hue": 172.7,
+   "sat": 0.1459,
+   "luma_std": 41.62,
+   "lime_share": 0.0187,
+   "hue_shift": 0.0,
+   "warm_px": 4068,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "14_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4928,
+   3264
+  ],
+  "raw": {
+   "cast": 0.0093,
+   "neutral_hue": 237.1,
+   "sat": 0.1859,
+   "luma_std": 33.87,
+   "lime_share": 0.0018
+  },
+  "v4": {
+   "cast": 0.0093,
+   "neutral_hue": 237.1,
+   "sat": 0.1859,
+   "luma_std": 33.87,
+   "lime_share": 0.0018,
+   "hue_shift": 0.0,
+   "warm_px": 1672,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0093,
+   "neutral_hue": 237.1,
+   "sat": 0.1859,
+   "luma_std": 33.87,
+   "lime_share": 0.0018,
+   "hue_shift": 0.0,
+   "warm_px": 1672,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "15_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4928,
+   3264
+  ],
+  "raw": {
+   "cast": 0.006,
+   "neutral_hue": 305.5,
+   "sat": 0.3036,
+   "luma_std": 58.4,
+   "lime_share": 0.1225
+  },
+  "v4": {
+   "cast": 0.006,
+   "neutral_hue": 305.5,
+   "sat": 0.3036,
+   "luma_std": 58.4,
+   "lime_share": 0.1225,
+   "hue_shift": 0.0,
+   "warm_px": 3283,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.006,
+   "neutral_hue": 305.5,
+   "sat": 0.3036,
+   "luma_std": 58.4,
+   "lime_share": 0.1225,
+   "hue_shift": 0.0,
+   "warm_px": 3283,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "16_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4928,
+   3264
+  ],
+  "raw": {
+   "cast": 0.0262,
+   "neutral_hue": 219.8,
+   "sat": 0.2311,
+   "luma_std": 43.5,
+   "lime_share": 0.1388
+  },
+  "v4": {
+   "cast": 0.0262,
+   "neutral_hue": 219.8,
+   "sat": 0.2311,
+   "luma_std": 43.5,
+   "lime_share": 0.1388,
+   "hue_shift": 0.0,
+   "warm_px": 3411,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0262,
+   "neutral_hue": 219.8,
+   "sat": 0.2311,
+   "luma_std": 43.5,
+   "lime_share": 0.1388,
+   "hue_shift": 0.0,
+   "warm_px": 3411,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "17_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4928,
+   3264
+  ],
+  "raw": {
+   "cast": 0.0228,
+   "neutral_hue": 17.6,
+   "sat": 0.2896,
+   "luma_std": 44.79,
+   "lime_share": 0.1048
+  },
+  "v4": {
+   "cast": 0.0228,
+   "neutral_hue": 17.6,
+   "sat": 0.2896,
+   "luma_std": 44.79,
+   "lime_share": 0.1048,
+   "hue_shift": 0.0,
+   "warm_px": 15041,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0228,
+   "neutral_hue": 17.6,
+   "sat": 0.2896,
+   "luma_std": 44.79,
+   "lime_share": 0.1048,
+   "hue_shift": 0.0,
+   "warm_px": 15041,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "18_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4928,
+   3264
+  ],
+  "raw": {
+   "cast": 0.0476,
+   "neutral_hue": 31.8,
+   "sat": 0.3885,
+   "luma_std": 48.54,
+   "lime_share": 0.1399
+  },
+  "v4": {
+   "cast": 0.0476,
+   "neutral_hue": 31.8,
+   "sat": 0.3885,
+   "luma_std": 48.54,
+   "lime_share": 0.1399,
+   "hue_shift": 0.0,
+   "warm_px": 4142,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0476,
+   "neutral_hue": 31.8,
+   "sat": 0.3885,
+   "luma_std": 48.54,
+   "lime_share": 0.1399,
+   "hue_shift": 0.0,
+   "warm_px": 4142,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "19_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4928,
+   3264
+  ],
+  "raw": {
+   "cast": 0.0413,
+   "neutral_hue": 45.3,
+   "sat": 0.2203,
+   "luma_std": 31.49,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0413,
+   "neutral_hue": 45.3,
+   "sat": 0.2203,
+   "luma_std": 31.49,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 2687,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0413,
+   "neutral_hue": 45.3,
+   "sat": 0.2203,
+   "luma_std": 31.49,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 2687,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "nazca_lines_runway_paradox",
+  "photo": "20_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   3872,
+   2592
+  ],
+  "raw": {
+   "cast": 0.0111,
+   "neutral_hue": 243.7,
+   "sat": 0.2304,
+   "luma_std": 46.94,
+   "lime_share": 0.0065
+  },
+  "v4": {
+   "cast": 0.0111,
+   "neutral_hue": 243.7,
+   "sat": 0.2304,
+   "luma_std": 46.94,
+   "lime_share": 0.0065,
+   "hue_shift": 0.0,
+   "warm_px": 4495,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0111,
+   "neutral_hue": 243.7,
+   "sat": 0.2304,
+   "luma_std": 46.94,
+   "lime_share": 0.0065,
+   "hue_shift": 0.0,
+   "warm_px": 4495,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "01_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   2048,
+   1536
+  ],
+  "raw": {
+   "cast": 0.0056,
+   "neutral_hue": 94.0,
+   "sat": 0.0441,
+   "luma_std": 34.97,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0056,
+   "neutral_hue": 94.0,
+   "sat": 0.0441,
+   "luma_std": 34.97,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 149,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0056,
+   "neutral_hue": 94.0,
+   "sat": 0.0441,
+   "luma_std": 34.97,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 149,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "02_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   6000,
+   6000
+  ],
+  "raw": {
+   "cast": 0.0354,
+   "neutral_hue": 29.0,
+   "sat": 0.1312,
+   "luma_std": 47.93,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0354,
+   "neutral_hue": 29.0,
+   "sat": 0.1312,
+   "luma_std": 47.93,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 7078,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0354,
+   "neutral_hue": 29.0,
+   "sat": 0.1312,
+   "luma_std": 47.93,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 7078,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "03_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.02,
+  "size": [
+   3838,
+   3024
+  ],
+  "raw": {
+   "cast": 0.1941,
+   "neutral_hue": 31.1,
+   "sat": 0.2344,
+   "luma_std": 71.0,
+   "lime_share": 0.1034
+  },
+  "v4": {
+   "cast": 0.1941,
+   "neutral_hue": 31.1,
+   "sat": 0.2344,
+   "luma_std": 71.0,
+   "lime_share": 0.1034,
+   "hue_shift": 0.0,
+   "warm_px": 23568,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1941,
+   "neutral_hue": 31.1,
+   "sat": 0.2344,
+   "luma_std": 71.0,
+   "lime_share": 0.1034,
+   "hue_shift": 0.0,
+   "warm_px": 23568,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "04_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   6000,
+   4577
+  ],
+  "raw": {
+   "cast": 0.0241,
+   "neutral_hue": 353.5,
+   "sat": 0.1855,
+   "luma_std": 53.95,
+   "lime_share": 0.0003
+  },
+  "v4": {
+   "cast": 0.0241,
+   "neutral_hue": 353.5,
+   "sat": 0.1855,
+   "luma_std": 53.95,
+   "lime_share": 0.0003,
+   "hue_shift": 0.0,
+   "warm_px": 10268,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0241,
+   "neutral_hue": 353.5,
+   "sat": 0.1855,
+   "luma_std": 53.95,
+   "lime_share": 0.0003,
+   "hue_shift": 0.0,
+   "warm_px": 10268,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "05_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   5698,
+   4875
+  ],
+  "raw": {
+   "cast": 0.0624,
+   "neutral_hue": 20.8,
+   "sat": 0.2231,
+   "luma_std": 48.3,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0624,
+   "neutral_hue": 20.8,
+   "sat": 0.2231,
+   "luma_std": 48.3,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 35636,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0624,
+   "neutral_hue": 20.8,
+   "sat": 0.2231,
+   "luma_std": 48.3,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 35636,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "06_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   5892,
+   3913
+  ],
+  "raw": {
+   "cast": 0.1078,
+   "neutral_hue": 8.2,
+   "sat": 0.3942,
+   "luma_std": 45.28,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.1078,
+   "neutral_hue": 8.2,
+   "sat": 0.3942,
+   "luma_std": 45.28,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 31881,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1078,
+   "neutral_hue": 8.2,
+   "sat": 0.3942,
+   "luma_std": 45.28,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 31881,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "07_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4928,
+   3264
+  ],
+  "raw": {
+   "cast": 0.0075,
+   "neutral_hue": 274.8,
+   "sat": 0.158,
+   "luma_std": 42.69,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0075,
+   "neutral_hue": 274.8,
+   "sat": 0.158,
+   "luma_std": 42.69,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 15735,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0075,
+   "neutral_hue": 274.8,
+   "sat": 0.158,
+   "luma_std": 42.69,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 15735,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "08_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   3264,
+   2448
+  ],
+  "raw": {
+   "cast": 0.0171,
+   "neutral_hue": 24.7,
+   "sat": 0.1836,
+   "luma_std": 43.43,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0171,
+   "neutral_hue": 24.7,
+   "sat": 0.1836,
+   "luma_std": 43.43,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 14643,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0171,
+   "neutral_hue": 24.7,
+   "sat": 0.1836,
+   "luma_std": 43.43,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 14643,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "09_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   2600,
+   2491
+  ],
+  "raw": {
+   "cast": 0.1328,
+   "neutral_hue": 27.9,
+   "sat": 0.3823,
+   "luma_std": 42.83,
+   "lime_share": 0.0008
+  },
+  "v4": {
+   "cast": 0.1328,
+   "neutral_hue": 27.9,
+   "sat": 0.3823,
+   "luma_std": 42.83,
+   "lime_share": 0.0008,
+   "hue_shift": 0.0,
+   "warm_px": 55840,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1328,
+   "neutral_hue": 27.9,
+   "sat": 0.3823,
+   "luma_std": 42.83,
+   "lime_share": 0.0008,
+   "hue_shift": 0.0,
+   "warm_px": 55840,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "10_commons.jpg",
+  "settings_v4": {
+   "gains": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "gamma": 0.8609,
+   "cast": 0.0,
+   "mean_luma": 0.291
+  },
+  "settings_v5": {
+   "gains": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "gamma": 0.8609,
+   "cast": 0.0,
+   "mean_luma": 0.291
+  },
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.56,
+  "size": [
+   1500,
+   1087
+  ],
+  "raw": {
+   "cast": 0.0843,
+   "neutral_hue": 41.9,
+   "sat": 0.3249,
+   "luma_std": 72.77,
+   "lime_share": 0.0013
+  },
+  "v4": {
+   "cast": 0.0653,
+   "neutral_hue": 40.9,
+   "sat": 0.3284,
+   "luma_std": 74.06,
+   "lime_share": 0.0012,
+   "hue_shift": 2.44,
+   "warm_px": 16074,
+   "warm_hue_change": 0.76,
+   "warm_sat_ratio": 1.004
+  },
+  "v5": {
+   "cast": 0.0653,
+   "neutral_hue": 40.9,
+   "sat": 0.3284,
+   "luma_std": 74.06,
+   "lime_share": 0.0012,
+   "hue_shift": 0.0,
+   "warm_px": 16127,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "11_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3585,
+   7377
+  ],
+  "raw": {
+   "cast": 0.0831,
+   "neutral_hue": 31.1,
+   "sat": 0.3652,
+   "luma_std": 55.13,
+   "lime_share": 0.0011
+  },
+  "v4": {
+   "cast": 0.0831,
+   "neutral_hue": 31.1,
+   "sat": 0.3652,
+   "luma_std": 55.13,
+   "lime_share": 0.0011,
+   "hue_shift": 0.0,
+   "warm_px": 22501,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0831,
+   "neutral_hue": 31.1,
+   "sat": 0.3652,
+   "luma_std": 55.13,
+   "lime_share": 0.0011,
+   "hue_shift": 0.0,
+   "warm_px": 22501,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "12_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4450,
+   3420
+  ],
+  "raw": {
+   "cast": 0.0,
+   "neutral_hue": 0.0,
+   "sat": 0.0,
+   "luma_std": 80.22,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0,
+   "neutral_hue": 0.0,
+   "sat": 0.0,
+   "luma_std": 80.22,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 0
+  },
+  "v5": {
+   "cast": 0.0,
+   "neutral_hue": 0.0,
+   "sat": 0.0,
+   "luma_std": 80.22,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "13_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   3024,
+   4032
+  ],
+  "raw": {
+   "cast": 0.0338,
+   "neutral_hue": 14.0,
+   "sat": 0.2859,
+   "luma_std": 50.5,
+   "lime_share": 0.0003
+  },
+  "v4": {
+   "cast": 0.0338,
+   "neutral_hue": 14.0,
+   "sat": 0.2859,
+   "luma_std": 50.5,
+   "lime_share": 0.0003,
+   "hue_shift": 0.0,
+   "warm_px": 29289,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0338,
+   "neutral_hue": 14.0,
+   "sat": 0.2859,
+   "luma_std": 50.5,
+   "lime_share": 0.0003,
+   "hue_shift": 0.0,
+   "warm_px": 29289,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "14_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3024,
+   4032
+  ],
+  "raw": {
+   "cast": 0.0302,
+   "neutral_hue": 24.9,
+   "sat": 0.3292,
+   "luma_std": 68.64,
+   "lime_share": 0.0012
+  },
+  "v4": {
+   "cast": 0.0302,
+   "neutral_hue": 24.9,
+   "sat": 0.3292,
+   "luma_std": 68.64,
+   "lime_share": 0.0012,
+   "hue_shift": 0.0,
+   "warm_px": 20371,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0302,
+   "neutral_hue": 24.9,
+   "sat": 0.3292,
+   "luma_std": 68.64,
+   "lime_share": 0.0012,
+   "hue_shift": 0.0,
+   "warm_px": 20371,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "15_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   2448,
+   3264
+  ],
+  "raw": {
+   "cast": 0.0108,
+   "neutral_hue": 64.5,
+   "sat": 0.1662,
+   "luma_std": 46.39,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0108,
+   "neutral_hue": 64.5,
+   "sat": 0.1662,
+   "luma_std": 46.39,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 9094,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0108,
+   "neutral_hue": 64.5,
+   "sat": 0.1662,
+   "luma_std": 46.39,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 9094,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "16_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   3812,
+   2694
+  ],
+  "raw": {
+   "cast": 0.0871,
+   "neutral_hue": 32.4,
+   "sat": 0.1628,
+   "luma_std": 40.38,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0871,
+   "neutral_hue": 32.4,
+   "sat": 0.1628,
+   "luma_std": 40.38,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 1511,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0871,
+   "neutral_hue": 32.4,
+   "sat": 0.1628,
+   "luma_std": 40.38,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 1511,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "17_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3889,
+   2814
+  ],
+  "raw": {
+   "cast": 0.0354,
+   "neutral_hue": 37.4,
+   "sat": 0.1649,
+   "luma_std": 42.37,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0354,
+   "neutral_hue": 37.4,
+   "sat": 0.1649,
+   "luma_std": 42.37,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 19384,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0354,
+   "neutral_hue": 37.4,
+   "sat": 0.1649,
+   "luma_std": 42.37,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 19384,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "18_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   5304,
+   7956
+  ],
+  "raw": {
+   "cast": 0.0659,
+   "neutral_hue": 35.9,
+   "sat": 0.2018,
+   "luma_std": 24.65,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0659,
+   "neutral_hue": 35.9,
+   "sat": 0.2018,
+   "luma_std": 24.65,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 22353,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0659,
+   "neutral_hue": 35.9,
+   "sat": 0.2018,
+   "luma_std": 24.65,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 22353,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "19_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4032,
+   3024
+  ],
+  "raw": {
+   "cast": 0.0299,
+   "neutral_hue": 212.4,
+   "sat": 0.1824,
+   "luma_std": 63.01,
+   "lime_share": 0.0001
+  },
+  "v4": {
+   "cast": 0.0299,
+   "neutral_hue": 212.4,
+   "sat": 0.1824,
+   "luma_std": 63.01,
+   "lime_share": 0.0001,
+   "hue_shift": 0.0,
+   "warm_px": 10220,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0299,
+   "neutral_hue": 212.4,
+   "sat": 0.1824,
+   "luma_std": 63.01,
+   "lime_share": 0.0001,
+   "hue_shift": 0.0,
+   "warm_px": 10220,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "20_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   1096,
+   1765
+  ],
+  "raw": {
+   "cast": 0.0082,
+   "neutral_hue": 82.8,
+   "sat": 0.0374,
+   "luma_std": 49.32,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0082,
+   "neutral_hue": 82.8,
+   "sat": 0.0374,
+   "luma_std": 49.32,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 0
+  },
+  "v5": {
+   "cast": 0.0082,
+   "neutral_hue": 82.8,
+   "sat": 0.0374,
+   "luma_std": 49.32,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "21_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   1012,
+   2190
+  ],
+  "raw": {
+   "cast": 0.1131,
+   "neutral_hue": 26.4,
+   "sat": 0.3295,
+   "luma_std": 32.15,
+   "lime_share": 0.1368
+  },
+  "v4": {
+   "cast": 0.1131,
+   "neutral_hue": 26.4,
+   "sat": 0.3295,
+   "luma_std": 32.15,
+   "lime_share": 0.1368,
+   "hue_shift": 0.0,
+   "warm_px": 20735,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1131,
+   "neutral_hue": 26.4,
+   "sat": 0.3295,
+   "luma_std": 32.15,
+   "lime_share": 0.1368,
+   "hue_shift": 0.0,
+   "warm_px": 20735,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "22_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3746,
+   2869
+  ],
+  "raw": {
+   "cast": 0.0997,
+   "neutral_hue": 41.4,
+   "sat": 0.1759,
+   "luma_std": 43.01,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0997,
+   "neutral_hue": 41.4,
+   "sat": 0.1759,
+   "luma_std": 43.01,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 8061,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0997,
+   "neutral_hue": 41.4,
+   "sat": 0.1759,
+   "luma_std": 43.01,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 8061,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "23_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   3269,
+   2857
+  ],
+  "raw": {
+   "cast": 0.081,
+   "neutral_hue": 36.2,
+   "sat": 0.1678,
+   "luma_std": 21.5,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.081,
+   "neutral_hue": 36.2,
+   "sat": 0.1678,
+   "luma_std": 21.5,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 9476,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.081,
+   "neutral_hue": 36.2,
+   "sat": 0.1678,
+   "luma_std": 21.5,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 9476,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "24_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   5304,
+   7955
+  ],
+  "raw": {
+   "cast": 0.1009,
+   "neutral_hue": 35.2,
+   "sat": 0.2367,
+   "luma_std": 26.26,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.1009,
+   "neutral_hue": 35.2,
+   "sat": 0.2367,
+   "luma_std": 26.26,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 30197,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1009,
+   "neutral_hue": 35.2,
+   "sat": 0.2367,
+   "luma_std": 26.26,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 30197,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "25_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.02,
+  "size": [
+   6000,
+   4000
+  ],
+  "raw": {
+   "cast": 0.0145,
+   "neutral_hue": 28.5,
+   "sat": 0.136,
+   "luma_std": 68.2,
+   "lime_share": 0.001
+  },
+  "v4": {
+   "cast": 0.0145,
+   "neutral_hue": 28.5,
+   "sat": 0.136,
+   "luma_std": 68.2,
+   "lime_share": 0.001,
+   "hue_shift": 0.0,
+   "warm_px": 6519,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0145,
+   "neutral_hue": 28.5,
+   "sat": 0.136,
+   "luma_std": 68.2,
+   "lime_share": 0.001,
+   "hue_shift": 0.0,
+   "warm_px": 6519,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "26_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   3905,
+   3231
+  ],
+  "raw": {
+   "cast": 0.1156,
+   "neutral_hue": 35.0,
+   "sat": 0.2086,
+   "luma_std": 32.93,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.1156,
+   "neutral_hue": 35.0,
+   "sat": 0.2086,
+   "luma_std": 32.93,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 29789,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1156,
+   "neutral_hue": 35.0,
+   "sat": 0.2086,
+   "luma_std": 32.93,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 29789,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "27_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   3647,
+   2673
+  ],
+  "raw": {
+   "cast": 0.0852,
+   "neutral_hue": 39.0,
+   "sat": 0.1473,
+   "luma_std": 36.6,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0852,
+   "neutral_hue": 39.0,
+   "sat": 0.1473,
+   "luma_std": 36.6,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 86,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0852,
+   "neutral_hue": 39.0,
+   "sat": 0.1473,
+   "luma_std": 36.6,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 86,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "roman_self_healing_concrete",
+  "photo": "28_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   3558,
+   2529
+  ],
+  "raw": {
+   "cast": 0.1212,
+   "neutral_hue": 35.7,
+   "sat": 0.1993,
+   "luma_std": 44.59,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.1212,
+   "neutral_hue": 35.7,
+   "sat": 0.1993,
+   "luma_std": 44.59,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 26315,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1212,
+   "neutral_hue": 35.7,
+   "sat": 0.1993,
+   "luma_std": 44.59,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 26315,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "01_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   6000,
+   4000
+  ],
+  "raw": {
+   "cast": 0.476,
+   "neutral_hue": 37.1,
+   "sat": 0.6955,
+   "luma_std": 40.29,
+   "lime_share": 0.002
+  },
+  "v4": {
+   "cast": 0.476,
+   "neutral_hue": 37.1,
+   "sat": 0.6955,
+   "luma_std": 40.29,
+   "lime_share": 0.002,
+   "hue_shift": 0.0,
+   "warm_px": 39767,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.476,
+   "neutral_hue": 37.1,
+   "sat": 0.6955,
+   "luma_std": 40.29,
+   "lime_share": 0.002,
+   "hue_shift": 0.0,
+   "warm_px": 39767,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "02_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   9615,
+   3201
+  ],
+  "raw": {
+   "cast": 0.5432,
+   "neutral_hue": 37.5,
+   "sat": 0.753,
+   "luma_std": 43.46,
+   "lime_share": 0.0032
+  },
+  "v4": {
+   "cast": 0.5432,
+   "neutral_hue": 37.5,
+   "sat": 0.753,
+   "luma_std": 43.46,
+   "lime_share": 0.0032,
+   "hue_shift": 0.0,
+   "warm_px": 20340,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.5432,
+   "neutral_hue": 37.5,
+   "sat": 0.753,
+   "luma_std": 43.46,
+   "lime_share": 0.0032,
+   "hue_shift": 0.0,
+   "warm_px": 20340,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "03_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.02,
+  "size": [
+   6000,
+   4000
+  ],
+  "raw": {
+   "cast": 0.1724,
+   "neutral_hue": 32.6,
+   "sat": 0.554,
+   "luma_std": 40.79,
+   "lime_share": 0.0001
+  },
+  "v4": {
+   "cast": 0.1724,
+   "neutral_hue": 32.6,
+   "sat": 0.554,
+   "luma_std": 40.79,
+   "lime_share": 0.0001,
+   "hue_shift": 0.0,
+   "warm_px": 36669,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1724,
+   "neutral_hue": 32.6,
+   "sat": 0.554,
+   "luma_std": 40.79,
+   "lime_share": 0.0001,
+   "hue_shift": 0.0,
+   "warm_px": 36669,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "04_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   6000,
+   4000
+  ],
+  "raw": {
+   "cast": 0.476,
+   "neutral_hue": 35.4,
+   "sat": 0.7278,
+   "luma_std": 45.08,
+   "lime_share": 0.001
+  },
+  "v4": {
+   "cast": 0.476,
+   "neutral_hue": 35.4,
+   "sat": 0.7278,
+   "luma_std": 45.08,
+   "lime_share": 0.001,
+   "hue_shift": 0.0,
+   "warm_px": 39232,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.476,
+   "neutral_hue": 35.4,
+   "sat": 0.7278,
+   "luma_std": 45.08,
+   "lime_share": 0.001,
+   "hue_shift": 0.0,
+   "warm_px": 39232,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "05_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4096,
+   3864
+  ],
+  "raw": {
+   "cast": 0.1373,
+   "neutral_hue": 64.4,
+   "sat": 0.5227,
+   "luma_std": 53.97,
+   "lime_share": 0.1282
+  },
+  "v4": {
+   "cast": 0.1373,
+   "neutral_hue": 64.4,
+   "sat": 0.5227,
+   "luma_std": 53.97,
+   "lime_share": 0.1282,
+   "hue_shift": 0.0,
+   "warm_px": 32336,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1373,
+   "neutral_hue": 64.4,
+   "sat": 0.5227,
+   "luma_std": 53.97,
+   "lime_share": 0.1282,
+   "hue_shift": 0.0,
+   "warm_px": 32336,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "06_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   6000,
+   4000
+  ],
+  "raw": {
+   "cast": 0.2945,
+   "neutral_hue": 37.9,
+   "sat": 0.594,
+   "luma_std": 43.56,
+   "lime_share": 0.0005
+  },
+  "v4": {
+   "cast": 0.2945,
+   "neutral_hue": 37.9,
+   "sat": 0.594,
+   "luma_std": 43.56,
+   "lime_share": 0.0005,
+   "hue_shift": 0.0,
+   "warm_px": 38683,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.2945,
+   "neutral_hue": 37.9,
+   "sat": 0.594,
+   "luma_std": 43.56,
+   "lime_share": 0.0005,
+   "hue_shift": 0.0,
+   "warm_px": 38683,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "07_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4096,
+   3856
+  ],
+  "raw": {
+   "cast": 0.1382,
+   "neutral_hue": 65.4,
+   "sat": 0.4574,
+   "luma_std": 53.06,
+   "lime_share": 0.13
+  },
+  "v4": {
+   "cast": 0.1382,
+   "neutral_hue": 65.4,
+   "sat": 0.4574,
+   "luma_std": 53.06,
+   "lime_share": 0.13,
+   "hue_shift": 0.0,
+   "warm_px": 30593,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1382,
+   "neutral_hue": 65.4,
+   "sat": 0.4574,
+   "luma_std": 53.06,
+   "lime_share": 0.13,
+   "hue_shift": 0.0,
+   "warm_px": 30593,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "08_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   6000,
+   4000
+  ],
+  "raw": {
+   "cast": 0.1444,
+   "neutral_hue": 33.2,
+   "sat": 0.5389,
+   "luma_std": 42.03,
+   "lime_share": 0.0003
+  },
+  "v4": {
+   "cast": 0.1444,
+   "neutral_hue": 33.2,
+   "sat": 0.5389,
+   "luma_std": 42.03,
+   "lime_share": 0.0003,
+   "hue_shift": 0.0,
+   "warm_px": 35995,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1444,
+   "neutral_hue": 33.2,
+   "sat": 0.5389,
+   "luma_std": 42.03,
+   "lime_share": 0.0003,
+   "hue_shift": 0.0,
+   "warm_px": 35995,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "09_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   1920,
+   1080
+  ],
+  "raw": {
+   "cast": 0.7907,
+   "neutral_hue": 32.7,
+   "sat": 0.8035,
+   "luma_std": 38.92,
+   "lime_share": 0.0066
+  },
+  "v4": {
+   "cast": 0.7907,
+   "neutral_hue": 32.7,
+   "sat": 0.8035,
+   "luma_std": 38.92,
+   "lime_share": 0.0066,
+   "hue_shift": 0.0,
+   "warm_px": 33949,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.7907,
+   "neutral_hue": 32.7,
+   "sat": 0.8035,
+   "luma_std": 38.92,
+   "lime_share": 0.0066,
+   "hue_shift": 0.0,
+   "warm_px": 33949,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "10_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   1920,
+   1080
+  ],
+  "raw": {
+   "cast": 0.794,
+   "neutral_hue": 31.3,
+   "sat": 0.8058,
+   "luma_std": 39.66,
+   "lime_share": 0.0052
+  },
+  "v4": {
+   "cast": 0.794,
+   "neutral_hue": 31.3,
+   "sat": 0.8058,
+   "luma_std": 39.66,
+   "lime_share": 0.0052,
+   "hue_shift": 0.0,
+   "warm_px": 32411,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.794,
+   "neutral_hue": 31.3,
+   "sat": 0.8058,
+   "luma_std": 39.66,
+   "lime_share": 0.0052,
+   "hue_shift": 0.0,
+   "warm_px": 32411,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "11_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   1920,
+   1080
+  ],
+  "raw": {
+   "cast": 0.19,
+   "neutral_hue": 35.8,
+   "sat": 0.4916,
+   "luma_std": 69.44,
+   "lime_share": 0.008
+  },
+  "v4": {
+   "cast": 0.19,
+   "neutral_hue": 35.8,
+   "sat": 0.4916,
+   "luma_std": 69.44,
+   "lime_share": 0.008,
+   "hue_shift": 0.0,
+   "warm_px": 26457,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.19,
+   "neutral_hue": 35.8,
+   "sat": 0.4916,
+   "luma_std": 69.44,
+   "lime_share": 0.008,
+   "hue_shift": 0.0,
+   "warm_px": 26457,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "12_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   6000,
+   4000
+  ],
+  "raw": {
+   "cast": 0.2816,
+   "neutral_hue": 31.9,
+   "sat": 0.6123,
+   "luma_std": 54.86,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.2816,
+   "neutral_hue": 31.9,
+   "sat": 0.6123,
+   "luma_std": 54.86,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 39281,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.2816,
+   "neutral_hue": 31.9,
+   "sat": 0.6123,
+   "luma_std": 54.86,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 39281,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "13_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   1920,
+   1080
+  ],
+  "raw": {
+   "cast": 0.307,
+   "neutral_hue": 39.0,
+   "sat": 0.6801,
+   "luma_std": 47.79,
+   "lime_share": 0.0045
+  },
+  "v4": {
+   "cast": 0.307,
+   "neutral_hue": 39.0,
+   "sat": 0.6801,
+   "luma_std": 47.79,
+   "lime_share": 0.0045,
+   "hue_shift": 0.0,
+   "warm_px": 32251,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.307,
+   "neutral_hue": 39.0,
+   "sat": 0.6801,
+   "luma_std": 47.79,
+   "lime_share": 0.0045,
+   "hue_shift": 0.0,
+   "warm_px": 32251,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "14_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   1920,
+   1080
+  ],
+  "raw": {
+   "cast": 0.3241,
+   "neutral_hue": 39.8,
+   "sat": 0.6626,
+   "luma_std": 47.07,
+   "lime_share": 0.0019
+  },
+  "v4": {
+   "cast": 0.3241,
+   "neutral_hue": 39.8,
+   "sat": 0.6626,
+   "luma_std": 47.07,
+   "lime_share": 0.0019,
+   "hue_shift": 0.0,
+   "warm_px": 31786,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.3241,
+   "neutral_hue": 39.8,
+   "sat": 0.6626,
+   "luma_std": 47.07,
+   "lime_share": 0.0019,
+   "hue_shift": 0.0,
+   "warm_px": 31786,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "15_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   6000,
+   4000
+  ],
+  "raw": {
+   "cast": 0.4001,
+   "neutral_hue": 34.6,
+   "sat": 0.6915,
+   "luma_std": 47.71,
+   "lime_share": 0.0015
+  },
+  "v4": {
+   "cast": 0.4001,
+   "neutral_hue": 34.6,
+   "sat": 0.6915,
+   "luma_std": 47.71,
+   "lime_share": 0.0015,
+   "hue_shift": 0.0,
+   "warm_px": 37714,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.4001,
+   "neutral_hue": 34.6,
+   "sat": 0.6915,
+   "luma_std": 47.71,
+   "lime_share": 0.0015,
+   "hue_shift": 0.0,
+   "warm_px": 37714,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "16_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   6000,
+   4000
+  ],
+  "raw": {
+   "cast": 0.3559,
+   "neutral_hue": 27.7,
+   "sat": 0.6943,
+   "luma_std": 41.64,
+   "lime_share": 0.0001
+  },
+  "v4": {
+   "cast": 0.3559,
+   "neutral_hue": 27.7,
+   "sat": 0.6943,
+   "luma_std": 41.64,
+   "lime_share": 0.0001,
+   "hue_shift": 0.0,
+   "warm_px": 40350,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.3559,
+   "neutral_hue": 27.7,
+   "sat": 0.6943,
+   "luma_std": 41.64,
+   "lime_share": 0.0001,
+   "hue_shift": 0.0,
+   "warm_px": 40350,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "17_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   1920,
+   1080
+  ],
+  "raw": {
+   "cast": 0.6269,
+   "neutral_hue": 34.7,
+   "sat": 0.7715,
+   "luma_std": 44.4,
+   "lime_share": 0.01
+  },
+  "v4": {
+   "cast": 0.6269,
+   "neutral_hue": 34.7,
+   "sat": 0.7715,
+   "luma_std": 44.4,
+   "lime_share": 0.01,
+   "hue_shift": 0.0,
+   "warm_px": 31950,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.6269,
+   "neutral_hue": 34.7,
+   "sat": 0.7715,
+   "luma_std": 44.4,
+   "lime_share": 0.01,
+   "hue_shift": 0.0,
+   "warm_px": 31950,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "18_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   1920,
+   1080
+  ],
+  "raw": {
+   "cast": 0.1345,
+   "neutral_hue": 40.1,
+   "sat": 0.4804,
+   "luma_std": 64.74,
+   "lime_share": 0.0134
+  },
+  "v4": {
+   "cast": 0.1345,
+   "neutral_hue": 40.1,
+   "sat": 0.4804,
+   "luma_std": 64.74,
+   "lime_share": 0.0134,
+   "hue_shift": 0.0,
+   "warm_px": 25905,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1345,
+   "neutral_hue": 40.1,
+   "sat": 0.4804,
+   "luma_std": 64.74,
+   "lime_share": 0.0134,
+   "hue_shift": 0.0,
+   "warm_px": 25905,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "19_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3240,
+   4320
+  ],
+  "raw": {
+   "cast": 0.7395,
+   "neutral_hue": 30.9,
+   "sat": 0.8182,
+   "luma_std": 41.81,
+   "lime_share": 0.0004
+  },
+  "v4": {
+   "cast": 0.7395,
+   "neutral_hue": 30.9,
+   "sat": 0.8182,
+   "luma_std": 41.81,
+   "lime_share": 0.0004,
+   "hue_shift": 0.0,
+   "warm_px": 40544,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.7395,
+   "neutral_hue": 30.9,
+   "sat": 0.8182,
+   "luma_std": 41.81,
+   "lime_share": 0.0004,
+   "hue_shift": 0.0,
+   "warm_px": 40544,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "amber_room_heist",
+  "photo": "20_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   1920,
+   1080
+  ],
+  "raw": {
+   "cast": 0.6352,
+   "neutral_hue": 32.1,
+   "sat": 0.7683,
+   "luma_std": 43.49,
+   "lime_share": 0.0089
+  },
+  "v4": {
+   "cast": 0.6352,
+   "neutral_hue": 32.1,
+   "sat": 0.7683,
+   "luma_std": 43.49,
+   "lime_share": 0.0089,
+   "hue_shift": 0.0,
+   "warm_px": 30576,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.6352,
+   "neutral_hue": 32.1,
+   "sat": 0.7683,
+   "luma_std": 43.49,
+   "lime_share": 0.0089,
+   "hue_shift": 0.0,
+   "warm_px": 30576,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "01_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3024,
+   4032
+  ],
+  "raw": {
+   "cast": 0.0878,
+   "neutral_hue": 38.0,
+   "sat": 0.3928,
+   "luma_std": 54.07,
+   "lime_share": 0.0143
+  },
+  "v4": {
+   "cast": 0.0878,
+   "neutral_hue": 38.0,
+   "sat": 0.3928,
+   "luma_std": 54.07,
+   "lime_share": 0.0143,
+   "hue_shift": 0.0,
+   "warm_px": 31808,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0878,
+   "neutral_hue": 38.0,
+   "sat": 0.3928,
+   "luma_std": 54.07,
+   "lime_share": 0.0143,
+   "hue_shift": 0.0,
+   "warm_px": 31808,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "02_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   3024,
+   4032
+  ],
+  "raw": {
+   "cast": 0.0732,
+   "neutral_hue": 47.5,
+   "sat": 0.3484,
+   "luma_std": 56.77,
+   "lime_share": 0.0034
+  },
+  "v4": {
+   "cast": 0.0732,
+   "neutral_hue": 47.5,
+   "sat": 0.3484,
+   "luma_std": 56.77,
+   "lime_share": 0.0034,
+   "hue_shift": 0.0,
+   "warm_px": 30402,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0732,
+   "neutral_hue": 47.5,
+   "sat": 0.3484,
+   "luma_std": 56.77,
+   "lime_share": 0.0034,
+   "hue_shift": 0.0,
+   "warm_px": 30402,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "03_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   2909,
+   4183
+  ],
+  "raw": {
+   "cast": 0.0052,
+   "neutral_hue": 291.8,
+   "sat": 0.2356,
+   "luma_std": 58.87,
+   "lime_share": 0.0006
+  },
+  "v4": {
+   "cast": 0.0052,
+   "neutral_hue": 291.8,
+   "sat": 0.2356,
+   "luma_std": 58.87,
+   "lime_share": 0.0006,
+   "hue_shift": 0.0,
+   "warm_px": 15772,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0052,
+   "neutral_hue": 291.8,
+   "sat": 0.2356,
+   "luma_std": 58.87,
+   "lime_share": 0.0006,
+   "hue_shift": 0.0,
+   "warm_px": 15772,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "04_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   2608,
+   3823
+  ],
+  "raw": {
+   "cast": 0.0245,
+   "neutral_hue": 359.3,
+   "sat": 0.2847,
+   "luma_std": 61.78,
+   "lime_share": 0.0008
+  },
+  "v4": {
+   "cast": 0.0245,
+   "neutral_hue": 359.3,
+   "sat": 0.2847,
+   "luma_std": 61.78,
+   "lime_share": 0.0008,
+   "hue_shift": 0.0,
+   "warm_px": 22453,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0245,
+   "neutral_hue": 359.3,
+   "sat": 0.2847,
+   "luma_std": 61.78,
+   "lime_share": 0.0008,
+   "hue_shift": 0.0,
+   "warm_px": 22453,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "05_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   2720,
+   3649
+  ],
+  "raw": {
+   "cast": 0.082,
+   "neutral_hue": 46.6,
+   "sat": 0.3528,
+   "luma_std": 45.49,
+   "lime_share": 0.0012
+  },
+  "v4": {
+   "cast": 0.082,
+   "neutral_hue": 46.6,
+   "sat": 0.3528,
+   "luma_std": 45.49,
+   "lime_share": 0.0012,
+   "hue_shift": 0.0,
+   "warm_px": 22735,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.082,
+   "neutral_hue": 46.6,
+   "sat": 0.3528,
+   "luma_std": 45.49,
+   "lime_share": 0.0012,
+   "hue_shift": 0.0,
+   "warm_px": 22735,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "06_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   2438,
+   4026
+  ],
+  "raw": {
+   "cast": 0.0293,
+   "neutral_hue": 341.5,
+   "sat": 0.3549,
+   "luma_std": 55.65,
+   "lime_share": 0.0003
+  },
+  "v4": {
+   "cast": 0.0293,
+   "neutral_hue": 341.5,
+   "sat": 0.3549,
+   "luma_std": 55.65,
+   "lime_share": 0.0003,
+   "hue_shift": 0.0,
+   "warm_px": 13588,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0293,
+   "neutral_hue": 341.5,
+   "sat": 0.3549,
+   "luma_std": 55.65,
+   "lime_share": 0.0003,
+   "hue_shift": 0.0,
+   "warm_px": 13588,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "07_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   2551,
+   3317
+  ],
+  "raw": {
+   "cast": 0.0091,
+   "neutral_hue": 258.7,
+   "sat": 0.2911,
+   "luma_std": 45.41,
+   "lime_share": 0.0008
+  },
+  "v4": {
+   "cast": 0.0091,
+   "neutral_hue": 258.7,
+   "sat": 0.2911,
+   "luma_std": 45.41,
+   "lime_share": 0.0008,
+   "hue_shift": 0.0,
+   "warm_px": 18111,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0091,
+   "neutral_hue": 258.7,
+   "sat": 0.2911,
+   "luma_std": 45.41,
+   "lime_share": 0.0008,
+   "hue_shift": 0.0,
+   "warm_px": 18111,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "08_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   2551,
+   3298
+  ],
+  "raw": {
+   "cast": 0.0073,
+   "neutral_hue": 317.6,
+   "sat": 0.2372,
+   "luma_std": 56.41,
+   "lime_share": 0.0013
+  },
+  "v4": {
+   "cast": 0.0073,
+   "neutral_hue": 317.6,
+   "sat": 0.2372,
+   "luma_std": 56.41,
+   "lime_share": 0.0013,
+   "hue_shift": 0.0,
+   "warm_px": 16676,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0073,
+   "neutral_hue": 317.6,
+   "sat": 0.2372,
+   "luma_std": 56.41,
+   "lime_share": 0.0013,
+   "hue_shift": 0.0,
+   "warm_px": 16676,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "09_commons.jpg",
+  "settings_v4": {
+   "gains": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "gamma": 0.8542,
+   "cast": 0.1033,
+   "mean_luma": 0.2855
+  },
+  "settings_v5": {
+   "gains": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "gamma": 0.8542,
+   "cast": 0.1033,
+   "mean_luma": 0.2855
+  },
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 3.07,
+  "size": [
+   2268,
+   3667
+  ],
+  "raw": {
+   "cast": 0.1033,
+   "neutral_hue": 43.3,
+   "sat": 0.3642,
+   "luma_std": 45.66,
+   "lime_share": 0.0322
+  },
+  "v4": {
+   "cast": 0.1069,
+   "neutral_hue": 43.7,
+   "sat": 0.3651,
+   "luma_std": 45.85,
+   "lime_share": 0.032,
+   "hue_shift": 1.21,
+   "warm_px": 28432,
+   "warm_hue_change": 0.91,
+   "warm_sat_ratio": 1.002
+  },
+  "v5": {
+   "cast": 0.1069,
+   "neutral_hue": 43.7,
+   "sat": 0.3651,
+   "luma_std": 45.85,
+   "lime_share": 0.032,
+   "hue_shift": 0.0,
+   "warm_px": 28465,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "10_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   2448,
+   3264
+  ],
+  "raw": {
+   "cast": 0.3521,
+   "neutral_hue": 35.4,
+   "sat": 0.581,
+   "luma_std": 72.34,
+   "lime_share": 0.0327
+  },
+  "v4": {
+   "cast": 0.3521,
+   "neutral_hue": 35.4,
+   "sat": 0.581,
+   "luma_std": 72.34,
+   "lime_share": 0.0327,
+   "hue_shift": 0.0,
+   "warm_px": 35861,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.3521,
+   "neutral_hue": 35.4,
+   "sat": 0.581,
+   "luma_std": 72.34,
+   "lime_share": 0.0327,
+   "hue_shift": 0.0,
+   "warm_px": 35861,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "11_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   2448,
+   3264
+  ],
+  "raw": {
+   "cast": 0.2706,
+   "neutral_hue": 37.0,
+   "sat": 0.5097,
+   "luma_std": 79.62,
+   "lime_share": 0.0463
+  },
+  "v4": {
+   "cast": 0.2706,
+   "neutral_hue": 37.0,
+   "sat": 0.5097,
+   "luma_std": 79.62,
+   "lime_share": 0.0463,
+   "hue_shift": 0.0,
+   "warm_px": 31222,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.2706,
+   "neutral_hue": 37.0,
+   "sat": 0.5097,
+   "luma_std": 79.62,
+   "lime_share": 0.0463,
+   "hue_shift": 0.0,
+   "warm_px": 31222,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "12_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   2438,
+   3250
+  ],
+  "raw": {
+   "cast": 0.342,
+   "neutral_hue": 35.1,
+   "sat": 0.6117,
+   "luma_std": 75.31,
+   "lime_share": 0.0492
+  },
+  "v4": {
+   "cast": 0.342,
+   "neutral_hue": 35.1,
+   "sat": 0.6117,
+   "luma_std": 75.31,
+   "lime_share": 0.0492,
+   "hue_shift": 0.0,
+   "warm_px": 35473,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.342,
+   "neutral_hue": 35.1,
+   "sat": 0.6117,
+   "luma_std": 75.31,
+   "lime_share": 0.0492,
+   "hue_shift": 0.0,
+   "warm_px": 35473,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "13_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3402,
+   2229
+  ],
+  "raw": {
+   "cast": 0.0767,
+   "neutral_hue": 31.2,
+   "sat": 0.4609,
+   "luma_std": 51.52,
+   "lime_share": 0.0057
+  },
+  "v4": {
+   "cast": 0.0767,
+   "neutral_hue": 31.2,
+   "sat": 0.4609,
+   "luma_std": 51.52,
+   "lime_share": 0.0057,
+   "hue_shift": 0.0,
+   "warm_px": 28407,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0767,
+   "neutral_hue": 31.2,
+   "sat": 0.4609,
+   "luma_std": 51.52,
+   "lime_share": 0.0057,
+   "hue_shift": 0.0,
+   "warm_px": 28407,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "14_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3402,
+   2057
+  ],
+  "raw": {
+   "cast": 0.0772,
+   "neutral_hue": 51.1,
+   "sat": 0.3573,
+   "luma_std": 61.57,
+   "lime_share": 0.0046
+  },
+  "v4": {
+   "cast": 0.0772,
+   "neutral_hue": 51.1,
+   "sat": 0.3573,
+   "luma_std": 61.57,
+   "lime_share": 0.0046,
+   "hue_shift": 0.0,
+   "warm_px": 22311,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0772,
+   "neutral_hue": 51.1,
+   "sat": 0.3573,
+   "luma_std": 61.57,
+   "lime_share": 0.0046,
+   "hue_shift": 0.0,
+   "warm_px": 22311,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "15_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   2266,
+   3005
+  ],
+  "raw": {
+   "cast": 0.0594,
+   "neutral_hue": 34.7,
+   "sat": 0.3393,
+   "luma_std": 72.21,
+   "lime_share": 0.0405
+  },
+  "v4": {
+   "cast": 0.0594,
+   "neutral_hue": 34.7,
+   "sat": 0.3393,
+   "luma_std": 72.21,
+   "lime_share": 0.0405,
+   "hue_shift": 0.0,
+   "warm_px": 20523,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0594,
+   "neutral_hue": 34.7,
+   "sat": 0.3393,
+   "luma_std": 72.21,
+   "lime_share": 0.0405,
+   "hue_shift": 0.0,
+   "warm_px": 20523,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "16_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   2600,
+   3900
+  ],
+  "raw": {
+   "cast": 0.2112,
+   "neutral_hue": 42.9,
+   "sat": 0.6039,
+   "luma_std": 51.84,
+   "lime_share": 0.0003
+  },
+  "v4": {
+   "cast": 0.2112,
+   "neutral_hue": 42.9,
+   "sat": 0.6039,
+   "luma_std": 51.84,
+   "lime_share": 0.0003,
+   "hue_shift": 0.0,
+   "warm_px": 37054,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.2112,
+   "neutral_hue": 42.9,
+   "sat": 0.6039,
+   "luma_std": 51.84,
+   "lime_share": 0.0003,
+   "hue_shift": 0.0,
+   "warm_px": 37054,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "lycurgus_cup_nanotech",
+  "photo": "17_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   2438,
+   4026
+  ],
+  "raw": {
+   "cast": 0.0614,
+   "neutral_hue": 23.6,
+   "sat": 0.3391,
+   "luma_std": 73.97,
+   "lime_share": 0.0025
+  },
+  "v4": {
+   "cast": 0.0614,
+   "neutral_hue": 23.6,
+   "sat": 0.3391,
+   "luma_std": 73.97,
+   "lime_share": 0.0025,
+   "hue_shift": 0.0,
+   "warm_px": 15987,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0614,
+   "neutral_hue": 23.6,
+   "sat": 0.3391,
+   "luma_std": 73.97,
+   "lime_share": 0.0025,
+   "hue_shift": 0.0,
+   "warm_px": 15987,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "01_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   2592,
+   1944
+  ],
+  "raw": {
+   "cast": 0.3323,
+   "neutral_hue": 33.7,
+   "sat": 0.4725,
+   "luma_std": 24.96,
+   "lime_share": 0.0046
+  },
+  "v4": {
+   "cast": 0.3323,
+   "neutral_hue": 33.7,
+   "sat": 0.4725,
+   "luma_std": 24.96,
+   "lime_share": 0.0046,
+   "hue_shift": 0.0,
+   "warm_px": 46273,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.3323,
+   "neutral_hue": 33.7,
+   "sat": 0.4725,
+   "luma_std": 24.96,
+   "lime_share": 0.0046,
+   "hue_shift": 0.0,
+   "warm_px": 46273,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "02_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   4160,
+   3120
+  ],
+  "raw": {
+   "cast": 0.0237,
+   "neutral_hue": 30.4,
+   "sat": 0.2986,
+   "luma_std": 55.94,
+   "lime_share": 0.0008
+  },
+  "v4": {
+   "cast": 0.0237,
+   "neutral_hue": 30.4,
+   "sat": 0.2986,
+   "luma_std": 55.94,
+   "lime_share": 0.0008,
+   "hue_shift": 0.0,
+   "warm_px": 11543,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0237,
+   "neutral_hue": 30.4,
+   "sat": 0.2986,
+   "luma_std": 55.94,
+   "lime_share": 0.0008,
+   "hue_shift": 0.0,
+   "warm_px": 11543,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "03_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   3120,
+   4160
+  ],
+  "raw": {
+   "cast": 0.0203,
+   "neutral_hue": 45.7,
+   "sat": 0.2674,
+   "luma_std": 55.87,
+   "lime_share": 0.0017
+  },
+  "v4": {
+   "cast": 0.0203,
+   "neutral_hue": 45.7,
+   "sat": 0.2674,
+   "luma_std": 55.87,
+   "lime_share": 0.0017,
+   "hue_shift": 0.0,
+   "warm_px": 17967,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0203,
+   "neutral_hue": 45.7,
+   "sat": 0.2674,
+   "luma_std": 55.87,
+   "lime_share": 0.0017,
+   "hue_shift": 0.0,
+   "warm_px": 17967,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "04_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   3120,
+   4160
+  ],
+  "raw": {
+   "cast": 0.0162,
+   "neutral_hue": 28.3,
+   "sat": 0.257,
+   "luma_std": 48.62,
+   "lime_share": 0.0004
+  },
+  "v4": {
+   "cast": 0.0162,
+   "neutral_hue": 28.3,
+   "sat": 0.257,
+   "luma_std": 48.62,
+   "lime_share": 0.0004,
+   "hue_shift": 0.0,
+   "warm_px": 22646,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0162,
+   "neutral_hue": 28.3,
+   "sat": 0.257,
+   "luma_std": 48.62,
+   "lime_share": 0.0004,
+   "hue_shift": 0.0,
+   "warm_px": 22646,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "05_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   3120,
+   4160
+  ],
+  "raw": {
+   "cast": 0.0234,
+   "neutral_hue": 10.0,
+   "sat": 0.2907,
+   "luma_std": 53.81,
+   "lime_share": 0.0078
+  },
+  "v4": {
+   "cast": 0.0234,
+   "neutral_hue": 10.0,
+   "sat": 0.2907,
+   "luma_std": 53.81,
+   "lime_share": 0.0078,
+   "hue_shift": 0.0,
+   "warm_px": 15731,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0234,
+   "neutral_hue": 10.0,
+   "sat": 0.2907,
+   "luma_std": 53.81,
+   "lime_share": 0.0078,
+   "hue_shift": 0.0,
+   "warm_px": 15731,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "06_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   3120,
+   4160
+  ],
+  "raw": {
+   "cast": 0.0108,
+   "neutral_hue": 26.5,
+   "sat": 0.3479,
+   "luma_std": 42.73,
+   "lime_share": 0.0032
+  },
+  "v4": {
+   "cast": 0.0108,
+   "neutral_hue": 26.5,
+   "sat": 0.3479,
+   "luma_std": 42.73,
+   "lime_share": 0.0032,
+   "hue_shift": 0.0,
+   "warm_px": 22424,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0108,
+   "neutral_hue": 26.5,
+   "sat": 0.3479,
+   "luma_std": 42.73,
+   "lime_share": 0.0032,
+   "hue_shift": 0.0,
+   "warm_px": 22424,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "07_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3120,
+   4160
+  ],
+  "raw": {
+   "cast": 0.0174,
+   "neutral_hue": 41.6,
+   "sat": 0.2232,
+   "luma_std": 53.13,
+   "lime_share": 0.0017
+  },
+  "v4": {
+   "cast": 0.0174,
+   "neutral_hue": 41.6,
+   "sat": 0.2232,
+   "luma_std": 53.13,
+   "lime_share": 0.0017,
+   "hue_shift": 0.0,
+   "warm_px": 15647,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0174,
+   "neutral_hue": 41.6,
+   "sat": 0.2232,
+   "luma_std": 53.13,
+   "lime_share": 0.0017,
+   "hue_shift": 0.0,
+   "warm_px": 15647,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "08_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   5568,
+   3712
+  ],
+  "raw": {
+   "cast": 0.3796,
+   "neutral_hue": 28.6,
+   "sat": 0.5731,
+   "luma_std": 41.22,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.3796,
+   "neutral_hue": 28.6,
+   "sat": 0.5731,
+   "luma_std": 41.22,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 41566,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.3796,
+   "neutral_hue": 28.6,
+   "sat": 0.5731,
+   "luma_std": 41.22,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 41566,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "09_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4849,
+   3233
+  ],
+  "raw": {
+   "cast": 0.8805,
+   "neutral_hue": 33.4,
+   "sat": 0.7039,
+   "luma_std": 40.95,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.8805,
+   "neutral_hue": 33.4,
+   "sat": 0.7039,
+   "luma_std": 40.95,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 43734,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.8805,
+   "neutral_hue": 33.4,
+   "sat": 0.7039,
+   "luma_std": 40.95,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 43734,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "10_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   5064,
+   3376
+  ],
+  "raw": {
+   "cast": 0.1128,
+   "neutral_hue": 28.9,
+   "sat": 0.3193,
+   "luma_std": 55.51,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.1128,
+   "neutral_hue": 28.9,
+   "sat": 0.3193,
+   "luma_std": 55.51,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 35680,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1128,
+   "neutral_hue": 28.9,
+   "sat": 0.3193,
+   "luma_std": 55.51,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 35680,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "11_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   5568,
+   3712
+  ],
+  "raw": {
+   "cast": 0.5896,
+   "neutral_hue": 34.3,
+   "sat": 0.6435,
+   "luma_std": 47.43,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.5896,
+   "neutral_hue": 34.3,
+   "sat": 0.6435,
+   "luma_std": 47.43,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 43776,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.5896,
+   "neutral_hue": 34.3,
+   "sat": 0.6435,
+   "luma_std": 47.43,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 43776,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "12_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   5568,
+   3712
+  ],
+  "raw": {
+   "cast": 0.0229,
+   "neutral_hue": 10.5,
+   "sat": 0.3559,
+   "luma_std": 54.07,
+   "lime_share": 0.1327
+  },
+  "v4": {
+   "cast": 0.0229,
+   "neutral_hue": 10.5,
+   "sat": 0.3559,
+   "luma_std": 54.07,
+   "lime_share": 0.1327,
+   "hue_shift": 0.0,
+   "warm_px": 2753,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0229,
+   "neutral_hue": 10.5,
+   "sat": 0.3559,
+   "luma_std": 54.07,
+   "lime_share": 0.1327,
+   "hue_shift": 0.0,
+   "warm_px": 2753,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "13_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   5482,
+   3655
+  ],
+  "raw": {
+   "cast": 0.5084,
+   "neutral_hue": 32.3,
+   "sat": 0.6418,
+   "luma_std": 40.57,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.5084,
+   "neutral_hue": 32.3,
+   "sat": 0.6418,
+   "luma_std": 40.57,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 43680,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.5084,
+   "neutral_hue": 32.3,
+   "sat": 0.6418,
+   "luma_std": 40.57,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 43680,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "14_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   5063,
+   3375
+  ],
+  "raw": {
+   "cast": 0.6279,
+   "neutral_hue": 31.2,
+   "sat": 0.628,
+   "luma_std": 39.21,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.6279,
+   "neutral_hue": 31.2,
+   "sat": 0.628,
+   "luma_std": 39.21,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 42798,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.6279,
+   "neutral_hue": 31.2,
+   "sat": 0.628,
+   "luma_std": 39.21,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 42798,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "15_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   5053,
+   3369
+  ],
+  "raw": {
+   "cast": 0.5402,
+   "neutral_hue": 31.3,
+   "sat": 0.6432,
+   "luma_std": 44.58,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.5402,
+   "neutral_hue": 31.3,
+   "sat": 0.6432,
+   "luma_std": 44.58,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 43769,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.5402,
+   "neutral_hue": 31.3,
+   "sat": 0.6432,
+   "luma_std": 44.58,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 43769,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "16_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   5568,
+   3712
+  ],
+  "raw": {
+   "cast": 0.0332,
+   "neutral_hue": 48.9,
+   "sat": 0.2673,
+   "luma_std": 42.7,
+   "lime_share": 0.0016
+  },
+  "v4": {
+   "cast": 0.0332,
+   "neutral_hue": 48.9,
+   "sat": 0.2673,
+   "luma_std": 42.7,
+   "lime_share": 0.0016,
+   "hue_shift": 0.0,
+   "warm_px": 21762,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0332,
+   "neutral_hue": 48.9,
+   "sat": 0.2673,
+   "luma_std": 42.7,
+   "lime_share": 0.0016,
+   "hue_shift": 0.0,
+   "warm_px": 21762,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "17_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   2875,
+   4312
+  ],
+  "raw": {
+   "cast": 0.4807,
+   "neutral_hue": 32.5,
+   "sat": 0.6019,
+   "luma_std": 33.92,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.4807,
+   "neutral_hue": 32.5,
+   "sat": 0.6019,
+   "luma_std": 33.92,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 43493,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.4807,
+   "neutral_hue": 32.5,
+   "sat": 0.6019,
+   "luma_std": 33.92,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 43493,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "18_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   5568,
+   3712
+  ],
+  "raw": {
+   "cast": 0.3685,
+   "neutral_hue": 32.3,
+   "sat": 0.5599,
+   "luma_std": 35.99,
+   "lime_share": 0.0005
+  },
+  "v4": {
+   "cast": 0.3685,
+   "neutral_hue": 32.3,
+   "sat": 0.5599,
+   "luma_std": 35.99,
+   "lime_share": 0.0005,
+   "hue_shift": 0.0,
+   "warm_px": 40660,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.3685,
+   "neutral_hue": 32.3,
+   "sat": 0.5599,
+   "luma_std": 35.99,
+   "lime_share": 0.0005,
+   "hue_shift": 0.0,
+   "warm_px": 40660,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "odessa_catacombs",
+  "photo": "19_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   5568,
+   3712
+  ],
+  "raw": {
+   "cast": 0.2508,
+   "neutral_hue": 32.5,
+   "sat": 0.4364,
+   "luma_std": 51.68,
+   "lime_share": 0.0032
+  },
+  "v4": {
+   "cast": 0.2508,
+   "neutral_hue": 32.5,
+   "sat": 0.4364,
+   "luma_std": 51.68,
+   "lime_share": 0.0032,
+   "hue_shift": 0.0,
+   "warm_px": 39137,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.2508,
+   "neutral_hue": 32.5,
+   "sat": 0.4364,
+   "luma_std": 51.68,
+   "lime_share": 0.0032,
+   "hue_shift": 0.0,
+   "warm_px": 39137,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "gobekli_tepe_enclosure_d",
+  "photo": "01_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4000,
+   3000
+  ],
+  "raw": {
+   "cast": 0.0614,
+   "neutral_hue": 40.4,
+   "sat": 0.332,
+   "luma_std": 57.05,
+   "lime_share": 0.0001
+  },
+  "v4": {
+   "cast": 0.0614,
+   "neutral_hue": 40.4,
+   "sat": 0.332,
+   "luma_std": 57.05,
+   "lime_share": 0.0001,
+   "hue_shift": 0.0,
+   "warm_px": 34796,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0614,
+   "neutral_hue": 40.4,
+   "sat": 0.332,
+   "luma_std": 57.05,
+   "lime_share": 0.0001,
+   "hue_shift": 0.0,
+   "warm_px": 34796,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "gobekli_tepe_enclosure_d",
+  "photo": "02_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4000,
+   3000
+  ],
+  "raw": {
+   "cast": 0.1462,
+   "neutral_hue": 39.5,
+   "sat": 0.3406,
+   "luma_std": 55.25,
+   "lime_share": 0.0001
+  },
+  "v4": {
+   "cast": 0.1462,
+   "neutral_hue": 39.5,
+   "sat": 0.3406,
+   "luma_std": 55.25,
+   "lime_share": 0.0001,
+   "hue_shift": 0.0,
+   "warm_px": 37419,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1462,
+   "neutral_hue": 39.5,
+   "sat": 0.3406,
+   "luma_std": 55.25,
+   "lime_share": 0.0001,
+   "hue_shift": 0.0,
+   "warm_px": 37419,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "gobekli_tepe_enclosure_d",
+  "photo": "03_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4000,
+   3000
+  ],
+  "raw": {
+   "cast": 0.0886,
+   "neutral_hue": 42.7,
+   "sat": 0.393,
+   "luma_std": 43.37,
+   "lime_share": 0.0234
+  },
+  "v4": {
+   "cast": 0.0886,
+   "neutral_hue": 42.7,
+   "sat": 0.393,
+   "luma_std": 43.37,
+   "lime_share": 0.0234,
+   "hue_shift": 0.0,
+   "warm_px": 13669,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0886,
+   "neutral_hue": 42.7,
+   "sat": 0.393,
+   "luma_std": 43.37,
+   "lime_share": 0.0234,
+   "hue_shift": 0.0,
+   "warm_px": 13669,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "gobekli_tepe_enclosure_d",
+  "photo": "04_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   4000,
+   3000
+  ],
+  "raw": {
+   "cast": 0.0616,
+   "neutral_hue": 30.9,
+   "sat": 0.1713,
+   "luma_std": 49.36,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0616,
+   "neutral_hue": 30.9,
+   "sat": 0.1713,
+   "luma_std": 49.36,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 15821,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0616,
+   "neutral_hue": 30.9,
+   "sat": 0.1713,
+   "luma_std": 49.36,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 15821,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "gobekli_tepe_enclosure_d",
+  "photo": "05_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   4000,
+   3000
+  ],
+  "raw": {
+   "cast": 0.1287,
+   "neutral_hue": 38.7,
+   "sat": 0.4409,
+   "luma_std": 58.37,
+   "lime_share": 0.0002
+  },
+  "v4": {
+   "cast": 0.1287,
+   "neutral_hue": 38.7,
+   "sat": 0.4409,
+   "luma_std": 58.37,
+   "lime_share": 0.0002,
+   "hue_shift": 0.0,
+   "warm_px": 35916,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1287,
+   "neutral_hue": 38.7,
+   "sat": 0.4409,
+   "luma_std": 58.37,
+   "lime_share": 0.0002,
+   "hue_shift": 0.0,
+   "warm_px": 35916,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "gobekli_tepe_enclosure_d",
+  "photo": "06_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   3645,
+   2018
+  ],
+  "raw": {
+   "cast": 0.0648,
+   "neutral_hue": 40.3,
+   "sat": 0.1746,
+   "luma_std": 42.31,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0648,
+   "neutral_hue": 40.3,
+   "sat": 0.1746,
+   "luma_std": 42.31,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 12543,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0648,
+   "neutral_hue": 40.3,
+   "sat": 0.1746,
+   "luma_std": 42.31,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 12543,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "gobekli_tepe_enclosure_d",
+  "photo": "07_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   4500,
+   1814
+  ],
+  "raw": {
+   "cast": 0.0,
+   "neutral_hue": 0.0,
+   "sat": 0.0006,
+   "luma_std": 24.93,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0,
+   "neutral_hue": 0.0,
+   "sat": 0.0006,
+   "luma_std": 24.93,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 0
+  },
+  "v5": {
+   "cast": 0.0,
+   "neutral_hue": 0.0,
+   "sat": 0.0006,
+   "luma_std": 24.93,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 0
+  }
+ },
+ {
+  "topic": "gobekli_tepe_enclosure_d",
+  "photo": "08_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   1722,
+   2269
+  ],
+  "raw": {
+   "cast": 0.1157,
+   "neutral_hue": 27.6,
+   "sat": 0.2779,
+   "luma_std": 31.19,
+   "lime_share": 0.0023
+  },
+  "v4": {
+   "cast": 0.1157,
+   "neutral_hue": 27.6,
+   "sat": 0.2779,
+   "luma_std": 31.19,
+   "lime_share": 0.0023,
+   "hue_shift": 0.0,
+   "warm_px": 39917,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1157,
+   "neutral_hue": 27.6,
+   "sat": 0.2779,
+   "luma_std": 31.19,
+   "lime_share": 0.0023,
+   "hue_shift": 0.0,
+   "warm_px": 39917,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "gobekli_tepe_enclosure_d",
+  "photo": "09_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   2268,
+   1722
+  ],
+  "raw": {
+   "cast": 0.1153,
+   "neutral_hue": 27.6,
+   "sat": 0.2778,
+   "luma_std": 31.16,
+   "lime_share": 0.0022
+  },
+  "v4": {
+   "cast": 0.1153,
+   "neutral_hue": 27.6,
+   "sat": 0.2778,
+   "luma_std": 31.16,
+   "lime_share": 0.0022,
+   "hue_shift": 0.0,
+   "warm_px": 39929,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1153,
+   "neutral_hue": 27.6,
+   "sat": 0.2778,
+   "luma_std": 31.16,
+   "lime_share": 0.0022,
+   "hue_shift": 0.0,
+   "warm_px": 39929,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "gobekli_tepe_enclosure_d",
+  "photo": "10_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   1193,
+   1338
+  ],
+  "raw": {
+   "cast": 0.1046,
+   "neutral_hue": 31.4,
+   "sat": 0.232,
+   "luma_std": 30.8,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.1046,
+   "neutral_hue": 31.4,
+   "sat": 0.232,
+   "luma_std": 30.8,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 37878,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1046,
+   "neutral_hue": 31.4,
+   "sat": 0.232,
+   "luma_std": 30.8,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 37878,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "gobekli_tepe_enclosure_d",
+  "photo": "11_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   4032,
+   3024
+  ],
+  "raw": {
+   "cast": 0.0786,
+   "neutral_hue": 52.1,
+   "sat": 0.3704,
+   "luma_std": 53.92,
+   "lime_share": 0.0073
+  },
+  "v4": {
+   "cast": 0.0786,
+   "neutral_hue": 52.1,
+   "sat": 0.3704,
+   "luma_std": 53.92,
+   "lime_share": 0.0073,
+   "hue_shift": 0.0,
+   "warm_px": 19404,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0786,
+   "neutral_hue": 52.1,
+   "sat": 0.3704,
+   "luma_std": 53.92,
+   "lime_share": 0.0073,
+   "hue_shift": 0.0,
+   "warm_px": 19404,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "01_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   3072,
+   4096
+  ],
+  "raw": {
+   "cast": 0.0268,
+   "neutral_hue": 42.6,
+   "sat": 0.16,
+   "luma_std": 56.41,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0268,
+   "neutral_hue": 42.6,
+   "sat": 0.16,
+   "luma_std": 56.41,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 9431,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0268,
+   "neutral_hue": 42.6,
+   "sat": 0.16,
+   "luma_std": 56.41,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 9431,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "02_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   5504,
+   8256
+  ],
+  "raw": {
+   "cast": 0.014,
+   "neutral_hue": 56.2,
+   "sat": 0.1797,
+   "luma_std": 71.5,
+   "lime_share": 0.0023
+  },
+  "v4": {
+   "cast": 0.014,
+   "neutral_hue": 56.2,
+   "sat": 0.1797,
+   "luma_std": 71.5,
+   "lime_share": 0.0023,
+   "hue_shift": 0.0,
+   "warm_px": 4275,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.014,
+   "neutral_hue": 56.2,
+   "sat": 0.1797,
+   "luma_std": 71.5,
+   "lime_share": 0.0023,
+   "hue_shift": 0.0,
+   "warm_px": 4275,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "03_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.02,
+  "size": [
+   3072,
+   2048
+  ],
+  "raw": {
+   "cast": 0.1027,
+   "neutral_hue": 39.2,
+   "sat": 0.3986,
+   "luma_std": 67.8,
+   "lime_share": 0.0307
+  },
+  "v4": {
+   "cast": 0.1027,
+   "neutral_hue": 39.2,
+   "sat": 0.3986,
+   "luma_std": 67.8,
+   "lime_share": 0.0307,
+   "hue_shift": 0.0,
+   "warm_px": 31029,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1027,
+   "neutral_hue": 39.2,
+   "sat": 0.3986,
+   "luma_std": 67.8,
+   "lime_share": 0.0307,
+   "hue_shift": 0.0,
+   "warm_px": 31029,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "04_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   2400,
+   1800
+  ],
+  "raw": {
+   "cast": 0.0331,
+   "neutral_hue": 41.1,
+   "sat": 0.2385,
+   "luma_std": 82.78,
+   "lime_share": 0.0118
+  },
+  "v4": {
+   "cast": 0.0331,
+   "neutral_hue": 41.1,
+   "sat": 0.2385,
+   "luma_std": 82.78,
+   "lime_share": 0.0118,
+   "hue_shift": 0.0,
+   "warm_px": 9007,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0331,
+   "neutral_hue": 41.1,
+   "sat": 0.2385,
+   "luma_std": 82.78,
+   "lime_share": 0.0118,
+   "hue_shift": 0.0,
+   "warm_px": 9007,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "05_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   5504,
+   8256
+  ],
+  "raw": {
+   "cast": 0.0033,
+   "neutral_hue": 21.1,
+   "sat": 0.2119,
+   "luma_std": 72.87,
+   "lime_share": 0.0002
+  },
+  "v4": {
+   "cast": 0.0033,
+   "neutral_hue": 21.1,
+   "sat": 0.2119,
+   "luma_std": 72.87,
+   "lime_share": 0.0002,
+   "hue_shift": 0.0,
+   "warm_px": 20255,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0033,
+   "neutral_hue": 21.1,
+   "sat": 0.2119,
+   "luma_std": 72.87,
+   "lime_share": 0.0002,
+   "hue_shift": 0.0,
+   "warm_px": 20255,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "06_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.02,
+  "size": [
+   3072,
+   2048
+  ],
+  "raw": {
+   "cast": 0.09,
+   "neutral_hue": 40.8,
+   "sat": 0.3789,
+   "luma_std": 76.16,
+   "lime_share": 0.059
+  },
+  "v4": {
+   "cast": 0.09,
+   "neutral_hue": 40.8,
+   "sat": 0.3789,
+   "luma_std": 76.16,
+   "lime_share": 0.059,
+   "hue_shift": 0.0,
+   "warm_px": 27126,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.09,
+   "neutral_hue": 40.8,
+   "sat": 0.3789,
+   "luma_std": 76.16,
+   "lime_share": 0.059,
+   "hue_shift": 0.0,
+   "warm_px": 27126,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "07_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   2400,
+   1800
+  ],
+  "raw": {
+   "cast": 0.0378,
+   "neutral_hue": 40.6,
+   "sat": 0.2059,
+   "luma_std": 82.11,
+   "lime_share": 0.002
+  },
+  "v4": {
+   "cast": 0.0378,
+   "neutral_hue": 40.6,
+   "sat": 0.2059,
+   "luma_std": 82.11,
+   "lime_share": 0.002,
+   "hue_shift": 0.0,
+   "warm_px": 9754,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0378,
+   "neutral_hue": 40.6,
+   "sat": 0.2059,
+   "luma_std": 82.11,
+   "lime_share": 0.002,
+   "hue_shift": 0.0,
+   "warm_px": 9754,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "08_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   1920,
+   3413
+  ],
+  "raw": {
+   "cast": 0.0044,
+   "neutral_hue": 134.1,
+   "sat": 0.1168,
+   "luma_std": 42.88,
+   "lime_share": 0.0005
+  },
+  "v4": {
+   "cast": 0.0044,
+   "neutral_hue": 134.1,
+   "sat": 0.1168,
+   "luma_std": 42.88,
+   "lime_share": 0.0005,
+   "hue_shift": 0.0,
+   "warm_px": 2095,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0044,
+   "neutral_hue": 134.1,
+   "sat": 0.1168,
+   "luma_std": 42.88,
+   "lime_share": 0.0005,
+   "hue_shift": 0.0,
+   "warm_px": 2095,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "09_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3072,
+   2048
+  ],
+  "raw": {
+   "cast": 0.0603,
+   "neutral_hue": 44.8,
+   "sat": 0.2778,
+   "luma_std": 72.28,
+   "lime_share": 0.0974
+  },
+  "v4": {
+   "cast": 0.0603,
+   "neutral_hue": 44.8,
+   "sat": 0.2778,
+   "luma_std": 72.28,
+   "lime_share": 0.0974,
+   "hue_shift": 0.0,
+   "warm_px": 18533,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0603,
+   "neutral_hue": 44.8,
+   "sat": 0.2778,
+   "luma_std": 72.28,
+   "lime_share": 0.0974,
+   "hue_shift": 0.0,
+   "warm_px": 18533,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "10_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   1800,
+   2400
+  ],
+  "raw": {
+   "cast": 0.0614,
+   "neutral_hue": 42.7,
+   "sat": 0.269,
+   "luma_std": 75.96,
+   "lime_share": 0.003
+  },
+  "v4": {
+   "cast": 0.0614,
+   "neutral_hue": 42.7,
+   "sat": 0.269,
+   "luma_std": 75.96,
+   "lime_share": 0.003,
+   "hue_shift": 0.0,
+   "warm_px": 9935,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0614,
+   "neutral_hue": 42.7,
+   "sat": 0.269,
+   "luma_std": 75.96,
+   "lime_share": 0.003,
+   "hue_shift": 0.0,
+   "warm_px": 9935,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "11_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   8256,
+   4644
+  ],
+  "raw": {
+   "cast": 0.0016,
+   "neutral_hue": 88.4,
+   "sat": 0.0951,
+   "luma_std": 53.23,
+   "lime_share": 0.0003
+  },
+  "v4": {
+   "cast": 0.0016,
+   "neutral_hue": 88.4,
+   "sat": 0.0951,
+   "luma_std": 53.23,
+   "lime_share": 0.0003,
+   "hue_shift": 0.0,
+   "warm_px": 526,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0016,
+   "neutral_hue": 88.4,
+   "sat": 0.0951,
+   "luma_std": 53.23,
+   "lime_share": 0.0003,
+   "hue_shift": 0.0,
+   "warm_px": 526,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "12_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   3072,
+   2048
+  ],
+  "raw": {
+   "cast": 0.1266,
+   "neutral_hue": 35.1,
+   "sat": 0.3232,
+   "luma_std": 63.26,
+   "lime_share": 0.0189
+  },
+  "v4": {
+   "cast": 0.1266,
+   "neutral_hue": 35.1,
+   "sat": 0.3232,
+   "luma_std": 63.26,
+   "lime_share": 0.0189,
+   "hue_shift": 0.0,
+   "warm_px": 33211,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1266,
+   "neutral_hue": 35.1,
+   "sat": 0.3232,
+   "luma_std": 63.26,
+   "lime_share": 0.0189,
+   "hue_shift": 0.0,
+   "warm_px": 33211,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "13_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   2400,
+   1800
+  ],
+  "raw": {
+   "cast": 0.053,
+   "neutral_hue": 37.3,
+   "sat": 0.2109,
+   "luma_std": 74.83,
+   "lime_share": 0.0058
+  },
+  "v4": {
+   "cast": 0.053,
+   "neutral_hue": 37.3,
+   "sat": 0.2109,
+   "luma_std": 74.83,
+   "lime_share": 0.0058,
+   "hue_shift": 0.0,
+   "warm_px": 10531,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.053,
+   "neutral_hue": 37.3,
+   "sat": 0.2109,
+   "luma_std": 74.83,
+   "lime_share": 0.0058,
+   "hue_shift": 0.0,
+   "warm_px": 10531,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "14_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   6638,
+   3734
+  ],
+  "raw": {
+   "cast": 0.1384,
+   "neutral_hue": 26.0,
+   "sat": 0.3236,
+   "luma_std": 68.57,
+   "lime_share": 0.0158
+  },
+  "v4": {
+   "cast": 0.1384,
+   "neutral_hue": 26.0,
+   "sat": 0.3236,
+   "luma_std": 68.57,
+   "lime_share": 0.0158,
+   "hue_shift": 0.0,
+   "warm_px": 32175,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1384,
+   "neutral_hue": 26.0,
+   "sat": 0.3236,
+   "luma_std": 68.57,
+   "lime_share": 0.0158,
+   "hue_shift": 0.0,
+   "warm_px": 32175,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "15_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   2400,
+   1800
+  ],
+  "raw": {
+   "cast": 0.0152,
+   "neutral_hue": 34.9,
+   "sat": 0.1976,
+   "luma_std": 80.89,
+   "lime_share": 0.0071
+  },
+  "v4": {
+   "cast": 0.0152,
+   "neutral_hue": 34.9,
+   "sat": 0.1976,
+   "luma_std": 80.89,
+   "lime_share": 0.0071,
+   "hue_shift": 0.0,
+   "warm_px": 6566,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0152,
+   "neutral_hue": 34.9,
+   "sat": 0.1976,
+   "luma_std": 80.89,
+   "lime_share": 0.0071,
+   "hue_shift": 0.0,
+   "warm_px": 6566,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "16_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   5400,
+   3600
+  ],
+  "raw": {
+   "cast": 0.1091,
+   "neutral_hue": 24.6,
+   "sat": 0.3065,
+   "luma_std": 69.03,
+   "lime_share": 0.0297
+  },
+  "v4": {
+   "cast": 0.1091,
+   "neutral_hue": 24.6,
+   "sat": 0.3065,
+   "luma_std": 69.03,
+   "lime_share": 0.0297,
+   "hue_shift": 0.0,
+   "warm_px": 31772,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1091,
+   "neutral_hue": 24.6,
+   "sat": 0.3065,
+   "luma_std": 69.03,
+   "lime_share": 0.0297,
+   "hue_shift": 0.0,
+   "warm_px": 31772,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "17_commons.jpg",
+  "settings_v4": {
+   "gains": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "gamma": 0.75,
+   "cast": 0.1287,
+   "mean_luma": 0.1029
+  },
+  "settings_v5": {
+   "gains": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "gamma": 0.75,
+   "cast": 0.1287,
+   "mean_luma": 0.1029
+  },
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 1.41,
+  "size": [
+   1800,
+   2400
+  ],
+  "raw": {
+   "cast": 0.1287,
+   "neutral_hue": 44.2,
+   "sat": 0.1829,
+   "luma_std": 33.51,
+   "lime_share": 0.0086
+  },
+  "v4": {
+   "cast": 0.0031,
+   "neutral_hue": 11.5,
+   "sat": 0.1829,
+   "luma_std": 36.9,
+   "lime_share": 0.009,
+   "hue_shift": 1.42,
+   "warm_px": 13625,
+   "warm_hue_change": 1.36,
+   "warm_sat_ratio": 0.999
+  },
+  "v5": {
+   "cast": 0.0031,
+   "neutral_hue": 11.5,
+   "sat": 0.1829,
+   "luma_std": 36.9,
+   "lime_share": 0.009,
+   "hue_shift": 0.0,
+   "warm_px": 13575,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "18_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   5400,
+   3600
+  ],
+  "raw": {
+   "cast": 0.067,
+   "neutral_hue": 22.7,
+   "sat": 0.246,
+   "luma_std": 65.14,
+   "lime_share": 0.0133
+  },
+  "v4": {
+   "cast": 0.067,
+   "neutral_hue": 22.7,
+   "sat": 0.246,
+   "luma_std": 65.14,
+   "lime_share": 0.0133,
+   "hue_shift": 0.0,
+   "warm_px": 21356,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.067,
+   "neutral_hue": 22.7,
+   "sat": 0.246,
+   "luma_std": 65.14,
+   "lime_share": 0.0133,
+   "hue_shift": 0.0,
+   "warm_px": 21356,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "19_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   2400,
+   1800
+  ],
+  "raw": {
+   "cast": 0.0082,
+   "neutral_hue": 73.4,
+   "sat": 0.1485,
+   "luma_std": 46.9,
+   "lime_share": 0.001
+  },
+  "v4": {
+   "cast": 0.0082,
+   "neutral_hue": 73.4,
+   "sat": 0.1485,
+   "luma_std": 46.9,
+   "lime_share": 0.001,
+   "hue_shift": 0.0,
+   "warm_px": 2499,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0082,
+   "neutral_hue": 73.4,
+   "sat": 0.1485,
+   "luma_std": 46.9,
+   "lime_share": 0.001,
+   "hue_shift": 0.0,
+   "warm_px": 2499,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "kailasa_temple_monolith",
+  "photo": "20_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   5400,
+   3600
+  ],
+  "raw": {
+   "cast": 0.0217,
+   "neutral_hue": 22.4,
+   "sat": 0.1909,
+   "luma_std": 60.46,
+   "lime_share": 0.0004
+  },
+  "v4": {
+   "cast": 0.0217,
+   "neutral_hue": 22.4,
+   "sat": 0.1909,
+   "luma_std": 60.46,
+   "lime_share": 0.0004,
+   "hue_shift": 0.0,
+   "warm_px": 17047,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0217,
+   "neutral_hue": 22.4,
+   "sat": 0.1909,
+   "luma_std": 60.46,
+   "lime_share": 0.0004,
+   "hue_shift": 0.0,
+   "warm_px": 17047,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "01_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.01,
+  "size": [
+   3000,
+   2128
+  ],
+  "raw": {
+   "cast": 0.162,
+   "neutral_hue": 20.1,
+   "sat": 0.3765,
+   "luma_std": 46.37,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.162,
+   "neutral_hue": 20.1,
+   "sat": 0.3765,
+   "luma_std": 46.37,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 42781,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.162,
+   "neutral_hue": 20.1,
+   "sat": 0.3765,
+   "luma_std": 46.37,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 42781,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "02_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3000,
+   2068
+  ],
+  "raw": {
+   "cast": 0.038,
+   "neutral_hue": 16.7,
+   "sat": 0.2523,
+   "luma_std": 48.78,
+   "lime_share": 0.0003
+  },
+  "v4": {
+   "cast": 0.038,
+   "neutral_hue": 16.7,
+   "sat": 0.2523,
+   "luma_std": 48.78,
+   "lime_share": 0.0003,
+   "hue_shift": 0.0,
+   "warm_px": 16146,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.038,
+   "neutral_hue": 16.7,
+   "sat": 0.2523,
+   "luma_std": 48.78,
+   "lime_share": 0.0003,
+   "hue_shift": 0.0,
+   "warm_px": 16146,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "03_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3000,
+   2057
+  ],
+  "raw": {
+   "cast": 0.1157,
+   "neutral_hue": 14.8,
+   "sat": 0.4037,
+   "luma_std": 51.6,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.1157,
+   "neutral_hue": 14.8,
+   "sat": 0.4037,
+   "luma_std": 51.6,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 30922,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1157,
+   "neutral_hue": 14.8,
+   "sat": 0.4037,
+   "luma_std": 51.6,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 30922,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "04_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3000,
+   2045
+  ],
+  "raw": {
+   "cast": 0.1705,
+   "neutral_hue": 28.8,
+   "sat": 0.3806,
+   "luma_std": 42.62,
+   "lime_share": 0.0006
+  },
+  "v4": {
+   "cast": 0.1705,
+   "neutral_hue": 28.8,
+   "sat": 0.3806,
+   "luma_std": 42.62,
+   "lime_share": 0.0006,
+   "hue_shift": 0.0,
+   "warm_px": 37942,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1705,
+   "neutral_hue": 28.8,
+   "sat": 0.3806,
+   "luma_std": 42.62,
+   "lime_share": 0.0006,
+   "hue_shift": 0.0,
+   "warm_px": 37942,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "05_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   2944,
+   2078
+  ],
+  "raw": {
+   "cast": 0.0606,
+   "neutral_hue": 5.5,
+   "sat": 0.2898,
+   "luma_std": 47.84,
+   "lime_share": 0.0004
+  },
+  "v4": {
+   "cast": 0.0606,
+   "neutral_hue": 5.5,
+   "sat": 0.2898,
+   "luma_std": 47.84,
+   "lime_share": 0.0004,
+   "hue_shift": 0.0,
+   "warm_px": 20156,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0606,
+   "neutral_hue": 5.5,
+   "sat": 0.2898,
+   "luma_std": 47.84,
+   "lime_share": 0.0004,
+   "hue_shift": 0.0,
+   "warm_px": 20156,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "06_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   2954,
+   2068
+  ],
+  "raw": {
+   "cast": 0.0501,
+   "neutral_hue": 5.5,
+   "sat": 0.2516,
+   "luma_std": 38.55,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0501,
+   "neutral_hue": 5.5,
+   "sat": 0.2516,
+   "luma_std": 38.55,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 5264,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0501,
+   "neutral_hue": 5.5,
+   "sat": 0.2516,
+   "luma_std": 38.55,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 5264,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "07_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   3888,
+   2592
+  ],
+  "raw": {
+   "cast": 0.023,
+   "neutral_hue": 54.7,
+   "sat": 0.2421,
+   "luma_std": 50.51,
+   "lime_share": 0.0132
+  },
+  "v4": {
+   "cast": 0.023,
+   "neutral_hue": 54.7,
+   "sat": 0.2421,
+   "luma_std": 50.51,
+   "lime_share": 0.0132,
+   "hue_shift": 0.0,
+   "warm_px": 4900,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.023,
+   "neutral_hue": 54.7,
+   "sat": 0.2421,
+   "luma_std": 50.51,
+   "lime_share": 0.0132,
+   "hue_shift": 0.0,
+   "warm_px": 4900,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "08_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   2864,
+   1438
+  ],
+  "raw": {
+   "cast": 0.7017,
+   "neutral_hue": 216.7,
+   "sat": 0.6777,
+   "luma_std": 23.07,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.7017,
+   "neutral_hue": 216.7,
+   "sat": 0.6777,
+   "luma_std": 23.07,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 0
+  },
+  "v5": {
+   "cast": 0.7017,
+   "neutral_hue": 216.7,
+   "sat": 0.6777,
+   "luma_std": 23.07,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 0
+  }
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "09_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   1600,
+   1174
+  ],
+  "raw": {
+   "cast": 0.0702,
+   "neutral_hue": 37.3,
+   "sat": 0.1251,
+   "luma_std": 40.71,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0702,
+   "neutral_hue": 37.3,
+   "sat": 0.1251,
+   "luma_std": 40.71,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 24,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0702,
+   "neutral_hue": 37.3,
+   "sat": 0.1251,
+   "luma_std": 40.71,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 24,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "10_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   1599,
+   1173
+  ],
+  "raw": {
+   "cast": 0.0643,
+   "neutral_hue": 38.5,
+   "sat": 0.1144,
+   "luma_std": 40.44,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0643,
+   "neutral_hue": 38.5,
+   "sat": 0.1144,
+   "luma_std": 40.44,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 10
+  },
+  "v5": {
+   "cast": 0.0643,
+   "neutral_hue": 38.5,
+   "sat": 0.1144,
+   "luma_std": 40.44,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 10
+  }
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "11_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   1687,
+   1106
+  ],
+  "raw": {
+   "cast": 0.1244,
+   "neutral_hue": 53.1,
+   "sat": 0.2403,
+   "luma_std": 50.91,
+   "lime_share": 0.0006
+  },
+  "v4": {
+   "cast": 0.1244,
+   "neutral_hue": 53.1,
+   "sat": 0.2403,
+   "luma_std": 50.91,
+   "lime_share": 0.0006,
+   "hue_shift": 0.0,
+   "warm_px": 10596,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1244,
+   "neutral_hue": 53.1,
+   "sat": 0.2403,
+   "luma_std": 50.91,
+   "lime_share": 0.0006,
+   "hue_shift": 0.0,
+   "warm_px": 10596,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "12_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   1687,
+   1106
+  ],
+  "raw": {
+   "cast": 0.1271,
+   "neutral_hue": 53.5,
+   "sat": 0.2406,
+   "luma_std": 51.39,
+   "lime_share": 0.0006
+  },
+  "v4": {
+   "cast": 0.1271,
+   "neutral_hue": 53.5,
+   "sat": 0.2406,
+   "luma_std": 51.39,
+   "lime_share": 0.0006,
+   "hue_shift": 0.0,
+   "warm_px": 10597,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.1271,
+   "neutral_hue": 53.5,
+   "sat": 0.2406,
+   "luma_std": 51.39,
+   "lime_share": 0.0006,
+   "hue_shift": 0.0,
+   "warm_px": 10597,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "13_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   1687,
+   1106
+  ],
+  "raw": {
+   "cast": 0.129,
+   "neutral_hue": 53.9,
+   "sat": 0.24,
+   "luma_std": 51.28,
+   "lime_share": 0.0007
+  },
+  "v4": {
+   "cast": 0.129,
+   "neutral_hue": 53.9,
+   "sat": 0.24,
+   "luma_std": 51.28,
+   "lime_share": 0.0007,
+   "hue_shift": 0.0,
+   "warm_px": 10607,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.129,
+   "neutral_hue": 53.9,
+   "sat": 0.24,
+   "luma_std": 51.28,
+   "lime_share": 0.0007,
+   "hue_shift": 0.0,
+   "warm_px": 10607,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "hal_saflieni_hypogeum",
+  "photo": "14_commons.jpg",
+  "settings_v4": null,
+  "settings_v5": null,
+  "same_settings_as_v4": true,
+  "lamp_step": false,
+  "max_pixel_diff_vs_v4": 0,
+  "apply_seconds": 0.0,
+  "size": [
+   1153,
+   1600
+  ],
+  "raw": {
+   "cast": 0.0729,
+   "neutral_hue": 38.1,
+   "sat": 0.1294,
+   "luma_std": 47.19,
+   "lime_share": 0.0
+  },
+  "v4": {
+   "cast": 0.0729,
+   "neutral_hue": 38.1,
+   "sat": 0.1294,
+   "luma_std": 47.19,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 64,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  },
+  "v5": {
+   "cast": 0.0729,
+   "neutral_hue": 38.1,
+   "sat": 0.1294,
+   "luma_std": 47.19,
+   "lime_share": 0.0,
+   "hue_shift": 0.0,
+   "warm_px": 64,
+   "warm_hue_change": 0.0,
+   "warm_sat_ratio": 1.0
+  }
+ },
+ {
+  "topic": "production_derinkuyu",
+  "photo": "prod08.jpg",
+  "settings_v4": {
+   "gains": [
+    0.9717,
+    0.9616,
+    1.18
+   ],
+   "gamma": 1.0,
+   "cast": 0.7126,
+   "mean_luma": 0.5293
+  },
+  "settings_v5": {
+   "gains": [
+    0.9717,
+    0.9616,
+    1.18
+   ],
+   "gamma": 1.0,
+   "cast": 0.7126,
+   "mean_luma": 0.5293,
+   "lamp_step": {
+    "keep": 0.4,
+    "pull": 0.5,
+    "hue": [
+     48.0,
+     58.0,
+     78.0,
+     92.0
+    ]
+   }
+  },
+  "same_settings_as_v4": true,
+  "lamp_step": true,
+  "max_pixel_diff_vs_v4": 81,
+  "apply_seconds": 6.45,
+  "size": [
+   4000,
+   3000
+  ],
+  "raw": {
+   "cast": 0.7126,
+   "neutral_hue": 62.2,
+   "sat": 0.6021,
+   "luma_std": 47.31,
+   "lime_share": 0.9268
+  },
+  "v4": {
+   "cast": 0.4685,
+   "neutral_hue": 61.2,
+   "sat": 0.5149,
+   "luma_std": 46.25,
+   "lime_share": 0.8834,
+   "hue_shift": 1.29,
+   "warm_px": 908,
+   "warm_hue_change": 3.96,
+   "warm_sat_ratio": 0.864
+  },
+  "v5": {
+   "cast": 0.1306,
+   "neutral_hue": 54.8,
+   "sat": 0.2525,
+   "luma_std": 46.25,
+   "lime_share": 0.0446,
+   "hue_shift": 4.92,
+   "warm_px": 2464,
+   "warm_hue_change": 0.65,
+   "warm_sat_ratio": 0.982
+  }
+ }
+]

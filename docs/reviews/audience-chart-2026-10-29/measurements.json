@@ -1,0 +1,140 @@
+{
+ "empty": {
+  "headline": "No audience data yet",
+  "subtitle": "Each Reel's views are counted 7 days after posting; the chart fills in from the first one measured.",
+  "mono_font": "IBM Plex Mono",
+  "size": [
+   1200,
+   453
+  ],
+  "titles": null,
+  "smallest_text_px_at_400": 12.0,
+  "lowest_contrast": 9.08
+ },
+ "one_reel": {
+  "headline": "Instagram leads on the one Reel so far",
+  "subtitle": "Views 7 days after posting; more Reels join as they reach 7 days.",
+  "mono_font": "IBM Plex Mono",
+  "size": [
+   1200,
+   685
+  ],
+  "titles": [
+   "Derinkuyu: the city under Cappadocia"
+  ],
+  "smallest_text_px_at_400": 12.0,
+  "lowest_contrast": 6.48
+ },
+ "six_reels": {
+  "headline": "Instagram leads on every Reel",
+  "subtitle": "Views 7 days after posting, last 6 Reels, newest on top.",
+  "mono_font": "IBM Plex Mono",
+  "size": [
+   1200,
+   1277
+  ],
+  "titles": [
+   "Derinkuyu: the city under Cappadocia",
+   "Gol Gumbaz: the whispering gallery",
+   "The Richat Structure, the Eye of the Sahara",
+   "Roman concrete that heals itself",
+   "Zhang Heng's seismoscope",
+   "The Piri Reis map of 1513"
+  ],
+  "smallest_text_px_at_400": 12.0,
+  "lowest_contrast": 6.48
+ },
+ "missing_facebook": {
+  "headline": "Instagram leads on every Reel",
+  "subtitle": "Views 7 days after posting, last 6 Reels, newest on top. No Facebook figures yet.",
+  "mono_font": "IBM Plex Mono",
+  "size": [
+   1200,
+   1323
+  ],
+  "titles": [
+   "Derinkuyu: the city under Cappadocia",
+   "Gol Gumbaz: the whispering gallery",
+   "The Richat Structure, the Eye of the Sahara",
+   "Roman concrete that heals itself",
+   "Zhang Heng's seismoscope",
+   "The Piri Reis map of 1513"
+  ],
+  "smallest_text_px_at_400": 12.0,
+  "lowest_contrast": 6.48
+ },
+ "mixed_leaders_gaps": {
+  "headline": "YouTube leads on 2 of 5 Reels",
+  "subtitle": "Views 7 days after posting, last 6 Reels, newest on top. One Reel has one platform only, not compared.",
+  "mono_font": "IBM Plex Mono",
+  "size": [
+   1200,
+   1323
+  ],
+  "titles": [
+   "Derinkuyu: the city under Cappadocia",
+   "Gol Gumbaz: the whispering gallery",
+   "Dyatlov Pass",
+   "Roman concrete that heals itself",
+   "Zhang Heng's seismoscope",
+   "The Piri Reis map of 1513"
+  ],
+  "smallest_text_px_at_400": 12.0,
+  "lowest_contrast": 6.48
+ },
+ "large_numbers_long_titles": {
+  "headline": "Instagram leads on 3 of 4 Reels",
+  "subtitle": "Views 7 days after posting, last 4 Reels, newest on top.",
+  "mono_font": "IBM Plex Mono",
+  "size": [
+   1200,
+   1025
+  ],
+  "titles": [
+   "The Sunken City of Heracleion, lost beneath the Bay of…",
+   "Camp Century: the nuclear city the US Army built…",
+   "Supercalifragilisticexpialidociousandthensomemorew…",
+   "Flannan Isles lighthouse the keepers who vanished"
+  ],
+  "smallest_text_px_at_400": 12.0,
+  "lowest_contrast": 6.48
+ },
+ "six_reels_fallback_font": {
+  "mono_font": "Montserrat (fallback)",
+  "headline": "Instagram leads on every Reel"
+ },
+ "dev_db": {
+  "audience_metrics_rows": 0,
+  "headline": "No audience data yet",
+  "caption": "No audience data yet.",
+  "rows_drawn": 0,
+  "mono_font": "Montserrat (fallback)"
+ },
+ "cvd": {
+  "normal": {
+   "instagram~youtube": 51.3,
+   "instagram~facebook": 93.4,
+   "youtube~facebook": 85.0
+  },
+  "protan": {
+   "instagram~youtube": 51.3,
+   "instagram~facebook": 85.3,
+   "youtube~facebook": 40.3
+  },
+  "deutan": {
+   "instagram~youtube": 34.0,
+   "instagram~facebook": 88.9,
+   "youtube~facebook": 57.0
+  },
+  "tritan": {
+   "instagram~youtube": 32.8,
+   "instagram~facebook": 77.2,
+   "youtube~facebook": 106.3
+  },
+  "contrast_vs_ink": {
+   "instagram": 10.6,
+   "youtube": 6.48,
+   "facebook": 7.86
+  }
+ }
+}

@@ -21,6 +21,8 @@ def wired(db, monkeypatch, tmp_path):
     monkeypatch.setattr(tp, "BANK", db.topic_bank_file)
     monkeypatch.setattr(tp, "QUERIES", queries)
     monkeypatch.setattr(tp, "claude_available", lambda: True)
+    from src import free_llm
+    monkeypatch.setattr(free_llm, "claude_engine", lambda: True)  # these tests exercise the Claude engine path
     monkeypatch.setattr(tp, "research", lambda *a, **k: ("notes", [Source(title="s", url="https://real.org/a")]))
     return db, queries
 
@@ -46,8 +48,11 @@ def test_add_appends_to_bank_queries_and_db(wired, monkeypatch):
     assert db.get_topic_by_id(topic_id)["status"] == "queued"
     assert json.loads(queries.read_text(encoding="utf-8"))[topic_id]["keywords"] == ["site"]
     assert tp.pending(db) == {}
+    assert tp.add(db, "roman_dodecahedron") == "roman_dodecahedron"          # a repeated tap: same topic...
+    bank = json.loads(tp.BANK.read_text(encoding="utf-8"))
+    assert sum(t["id"] == "roman_dodecahedron" for t in bank["topics"]) == 1   # ...never a duplicate
     with pytest.raises(ValueError):
-        tp.add(db, "roman_dodecahedron")
+        tp.add(db, "never_proposed")
 
 
 def test_skip_removes_pending(wired, monkeypatch):
@@ -60,7 +65,7 @@ def test_skip_removes_pending(wired, monkeypatch):
 
 def test_proposal_text_escapes():
     text = tp.proposal_text(_proposal("a", title="<b>bad</b>"))
-    assert "<b>bad</b>" not in text and "Topic proposal" in text
+    assert "<b>bad</b>" not in text.replace("<b>&lt;b&gt;bad&lt;/b&gt;</b>", "") and "Verified facts" in text
 
 
 @pytest.mark.parametrize("title, dup", [
@@ -93,6 +98,21 @@ def test_proposals_command_resends_pending(wired, monkeypatch):
     tp.propose(db)
     sent = []
     h = make_command_handler(db, lambda: None, lambda: "", send_message=lambda text, buttons: sent.append(buttons) or True)
-    assert "1 proposal" in h("proposals", "")
+    text, buttons = h("proposals", "")
+    assert "Tunnel of Eupalinos" in text and not sent
+    assert any(b["callback_data"] == "ptadd:0:eupalinos" for row in buttons for b in row)
     tp.skip(db, "eupalinos")
-    assert "No topic proposals waiting" in h("proposals", "")
+    text, buttons = h("proposals", "")
+    assert "No topic proposals waiting" in text
+
+
+def test_free_engine_research_never_calls_claude(wired, monkeypatch):
+    from src import free_llm, gemini
+    db, _ = wired
+    monkeypatch.setattr(free_llm, "claude_engine", lambda: False)      # SCRIPT_ENGINE=free with an Anthropic key present
+    monkeypatch.setattr(tp, "research", lambda *a, **k: pytest.fail("Claude research on the free engine"))
+    monkeypatch.setattr(tp, "structured_call", lambda *a, **k: pytest.fail("Claude structuring on the free engine"))
+    monkeypatch.setattr(gemini, "available", lambda: True)
+    monkeypatch.setattr(gemini, "research", lambda *a, **k: ("notes", [Source(title="s", url="https://real.org/a")]))
+    monkeypatch.setattr(gemini, "structured", lambda *a, **k: TopicProposals(topics=[_proposal("eupalinos", title="Tunnel of Eupalinos")]))
+    assert [p.slug for p in tp.propose(db)] == ["eupalinos"]

@@ -20,7 +20,7 @@ def test_wait_picks_up_cli_decision(db):
     assert bot.wait_for_decision("r1", timeout_seconds=5) == "approved"
 
 
-def test_unauthorized_click_is_ignored(db, monkeypatch):
+def test_unauthorized_click_is_ignored(db, monkeypatch, delivered_review):
     db.create_run("r1", "01_topic")
     db.record_approval("r1", "01_topic")
     bot = TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
@@ -29,6 +29,7 @@ def test_unauthorized_click_is_ignored(db, monkeypatch):
     cq = {"id": "q", "data": "approve:r1", "from": {"id": 999}, "message": {"chat": {"id": 555}, "message_id": 1}}
     assert bot._handle_callback(cq, "r1") is None
     assert db.get_approval("r1")["decision"] == "pending"
+    delivered_review("r1", 1)
     cq["from"]["id"] = 555
     assert bot._handle_callback(cq, "r1") == "approved"
 
@@ -114,3 +115,22 @@ def test_timed_out_approval_can_be_reopened(db):
     assert db.get_approval("r1")["decision"] == "pending"
     db.update_approval_decision("r1", "approved", decided_by="cli")
     assert not db.reopen_approval("r1")  # only timeouts can be reopened
+
+
+def test_a_notice_without_buttons_is_transient_and_one_with_buttons_stays(db, monkeypatch):
+    # One live panel in the chat (operator, 2026-10-24): notices that ask nothing leave after six hours.
+    from datetime import datetime, timezone
+    bot = TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
+    monkeypatch.setattr(bot, "_api", lambda method, **kw: {"message_id": 5})
+    bot.notify("✅ Stories posted for a run")
+    bot.notify("Confirm this went live?", buttons=[[{"text": "Yes", "callback_data": "pubok:1"}]])
+    bot.notify("Kept on purpose", transient=False)
+    bot.notify("Gone in a minute", transient=True, ttl_minutes=1)
+    with db._conn() as conn:
+        rows = conn.execute("SELECT text, kind, expires_at FROM alerts ORDER BY id").fetchall()
+    kinds = [(r[0][:12], r[1]) for r in rows]
+    assert kinds == [("✅ Stories po", "transient"), ("Confirm this", "persistent"), ("Kept on purp", "persistent"), ("Gone in a mi", "transient")]
+    hours = (datetime.fromisoformat(rows[0][2]) - datetime.now(timezone.utc)).total_seconds() / 3600
+    assert 5.9 < hours <= 6.0 and rows[1][2] is None
+    minutes = (datetime.fromisoformat(rows[3][2]) - datetime.now(timezone.utc)).total_seconds() / 60
+    assert 0.9 < minutes <= 1.0

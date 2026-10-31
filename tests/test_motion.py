@@ -116,3 +116,21 @@ def test_dry_runs_buy_no_motion_unless_asked(monkeypatch, tmp_path):
     monkeypatch.setattr(motion, "providers", lambda *a, **k: pytest.fail("a dry run bought a clip"))
     scenes = [tmp_path / "a.jpg"]
     assert motion.apply(None, scenes, tmp_path, allow_paid=False) == (scenes, [])
+
+
+def test_an_accepted_clip_leaves_its_measurements_beside_it(monkeypatch, tmp_path):
+    # Quality step 3 (2026-10-24): production had no rejected clips to calibrate the gate from; the accepted
+    # ones now record their numbers too, so the thresholds can be judged from both sides.
+    import json
+    import subprocess
+    raw = tmp_path / "raw.mp4"
+    subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "lavfi", "-i", "testsrc=size=320x568:rate=30:duration=6.5",
+                    "-pix_fmt", "yuv420p", str(raw)], check=True)
+    qa = {"pass": True, "reason": "Camera geometry held", "inlier_ratio": 0.71, "inliers": 180}
+    monkeypatch.setattr(motion, "verify_motion_hook_integrity", lambda f0, f1, archetype: qa)
+    monkeypatch.setattr(motion, "content_change_share", lambda clip: 0.04)
+    out = tmp_path / "motion_01.mp4"
+    assert _REAL_FINISH(raw, out, archetype="megastructure") == out and out.is_file()
+    record = json.loads((tmp_path / "motion_01.qa.json").read_text())
+    assert record["accepted"] is True and record["inlier_ratio"] == 0.71 and record["content_change_share"] == 0.04
+    assert record["archetype"] == "megastructure" and not (tmp_path / "rejected").exists()

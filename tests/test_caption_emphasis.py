@@ -1,4 +1,5 @@
-from src.config import COL_EMPHASIS, COL_FUTURE, EMPHASIS_POP
+from src.config import EMPHASIS_POP
+from src.video_composer import COL_EMPHASIS, COL_FUTURE  # the brand's caption colours since 2026-10-29
 from src.video_composer import VideoComposer, emphasis_indices
 
 WORDS = [{"word": w, "start": i * 0.4, "dur": 0.35} for i, w in

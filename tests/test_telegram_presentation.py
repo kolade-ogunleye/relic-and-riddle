@@ -1,0 +1,188 @@
+import json
+
+from src import control
+from src.telegram_bot import TelegramApprovalBot
+from src.telegram_presentation import format_html, format_payload
+
+
+def test_one_style_preserves_evidence_and_is_idempotent():
+    quote = '<blockquote expandable>EXACT <u>evidence</u>\n\n\n━ ━\n<code>ID</code></blockquote>'
+    original = '📋 <b><u>TOPIC QUEUE</u></b>\nDetails\n━━━━━━━━━━\n\n' + quote
+    rendered = format_html(original)
+    assert rendered.startswith('📋 <b>Topic queue</b>\n\nDetails')
+    assert quote in rendered and '━━━━━━━━━━' not in rendered
+    assert format_html(rendered) == rendered
+    assert format_html('<pre><code>EXACT\n\n\n  spacing</code></pre>') == '<pre><code>EXACT\n\n\n  spacing</code></pre>'
+
+
+def test_text_photo_and_audio_share_style_without_touching_actions():
+    original = {'parse_mode': 'HTML', 'caption': '🎵 <b><u>MUSIC REVIEW</u></b>\nListen first', 'reply_markup': 'unchanged'}
+    formatted = format_payload('sendAudio', original)
+    assert formatted['caption'] == '🎵 <b>Music review</b>\n\nListen first'
+    assert formatted['reply_markup'] == original['reply_markup'] and '<u>' in original['caption']
+    edited = format_payload('editMessageMedia', {'media': json.dumps(dict(original, type='photo', media='file-id'))})
+    assert json.loads(edited['media'])['caption'] == formatted['caption']
+    assert format_payload('answerCallbackQuery', {'text': 'raw'}) == {'text': 'raw'}
+    assert len(format_payload('sendPhoto', dict(original, caption='x' * 1024))['caption']) <= 1024
+
+
+def test_clear_then_start_leaves_one_clean_dashboard_even_after_restart(db, monkeypatch):
+    calls = []
+    def api(method, **kwargs):
+        calls.append((method, kwargs.get('data', {})))
+        if method == 'getUpdates':
+            return [{'update_id': 1, 'message': {'message_id': 600, 'text': '/clear', 'chat': {'id': 555}, 'from': {'id': 555}}}]
+        return {'message_id': 900}
+    bot = TelegramApprovalBot(db=db, bot_token='123:abc', chat_id='555', approver_ids={'555'})
+    monkeypatch.setattr(bot, '_api', api)
+    handler = control.make_command_handler(db, lambda: None, lambda: '', send_message=bot.notify)
+    bot.poll_once(handler)
+    bot.drain()
+    sends = [d for method, d in calls if method == 'sendMessage']
+    assert len(sends) == 1 and 'CHAT CLEARED' not in sends[0]['text']
+    assert 'RELIC' in sends[0]['text']
+    # After a restart, Telegram's /start still leaves exactly one panel: a new one at the bottom (the old
+    # one may be gone from the operator's view after "Clear history"), with the persisted one removed.
+    fresh = TelegramApprovalBot(db=db, bot_token='123:abc', chat_id='555', approver_ids={'555'})
+    def next_api(method, **kwargs):
+        calls.append((method, kwargs.get('data', {})))
+        if method == 'getUpdates':
+            return [{'update_id': 2, 'message': {'message_id': 901, 'text': '/start', 'chat': {'id': 555}, 'from': {'id': 555}}}]
+        return {'message_id': 902}
+    monkeypatch.setattr(fresh, '_api', next_api)
+    fresh.poll_once(handler)
+    fresh.drain()
+    assert len([1 for method, _ in calls if method == 'sendMessage']) == 2
+    assert any(method == 'deleteMessage' and data.get('message_id') == 900 for method, data in calls)
+    assert db.get_setting('telegram_dashboard_id') == '902'
+
+
+def test_ready_commands_get_a_copy_button_and_placeholders_do_not():
+    import json
+    from src.telegram_presentation import format_payload
+    text = ('<b>Add topic</b>\n\n<code>/add The Lost Labyrinth of Hawara</code>\n<code>/add &lt;topic title&gt;</code>')
+    markup = json.dumps({"inline_keyboard": [[{"text": "← Dashboard", "callback_data": "cdash:"}]]})
+    rows = json.loads(format_payload("sendMessage", {"parse_mode": "HTML", "text": text, "reply_markup": markup})["reply_markup"])["inline_keyboard"]
+    assert rows[0] == [{"text": "📎 Copy /add The Lost Labyrinth of H…", "copy_text": {"text": "/add The Lost Labyrinth of Hawara"}}]
+    assert len(rows) == 2 and rows[1][0]["callback_data"] == "cdash:"      # the placeholder template gets none
+    again = format_payload("editMessageText", {"parse_mode": "HTML", "text": text, "reply_markup": json.dumps({"inline_keyboard": rows})})
+    assert len(json.loads(again["reply_markup"])["inline_keyboard"]) == 2  # never doubled on an edit
+
+
+def test_two_dashboard_refreshes_at_once_leave_one_panel(db, monkeypatch):
+    # Production 2026-10-23: at startup the dashboard card and a queued "Dashboard" tap both found the stored
+    # panel gone, and each posted a new one.
+    import threading
+    import time
+    db.set_setting('telegram_dashboard_id', '768')
+    sent, lock = [], threading.Lock()
+
+    def api(method, **kwargs):
+        data = kwargs.get('data', {})
+        if method == 'editMessageText':
+            time.sleep(0.05)  # both callers are in flight together
+            if str(data.get('message_id')) == '768':
+                raise RuntimeError('Telegram editMessageText failed: HTTP 400 Bad Request: message to edit not found')
+            return {'message_id': int(data['message_id'])}
+        if method == 'sendMessage':
+            with lock:
+                sent.append(900 + len(sent))
+                return {'message_id': sent[-1]}
+        return True
+    bot = TelegramApprovalBot(db=db, bot_token='123:abc', chat_id='555', approver_ids={'555'})
+    monkeypatch.setattr(bot, '_api', api)
+    threads = [threading.Thread(target=bot.show_dashboard, args=('🏛 Panel', [[{'text': 'x', 'callback_data': 'cdash:'}]]))
+               for _ in range(2)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert sent == [900] and db.get_setting('telegram_dashboard_id') == '900'
+
+
+def test_a_message_without_buttons_gets_a_way_back_and_a_transient_one_expires(db, monkeypatch):
+    # The daily heartbeat had no button and never went away, so heartbeats stacked up in the chat.
+    sent = []
+    bot = TelegramApprovalBot(db=db, bot_token='123:abc', chat_id='555', approver_ids={'555'})
+    monkeypatch.setattr(bot, '_api', lambda method, **k: sent.append(k.get('data', {})) or {'message_id': 77})
+    bot.notify('💓 Daily heartbeat', silent=True, transient=True, ttl_minutes=60, record_alert=False)
+    markup = json.loads(sent[0]['reply_markup'])
+    assert markup['inline_keyboard'][-1][0]['callback_data'] == 'cdash:'
+    with db._conn() as conn:
+        row = conn.execute("SELECT kind, expires_at FROM alerts WHERE message_id = 77").fetchone()
+    assert row['kind'] == 'transient' and row['expires_at']  # recorded, so cleanup removes it
+
+
+def test_a_failed_run_finishes_the_live_progress_card_not_the_first_one(db, monkeypatch):
+    # Production 2026-10-23: Refresh Progress had moved the card (789 -> 795); the failure tried 789, so the
+    # live card stayed at "step 1, 0%" and a separate failure card was posted.
+    edited = []
+    bot = TelegramApprovalBot(db=db, bot_token='123:abc', chat_id='555', approver_ids={'555'})
+    monkeypatch.setattr(bot, 'edit_message_text', lambda mid, text, buttons=None: edited.append(mid) or True)
+    db.create_run('run_x', '01_topic')
+    db.set_setting('active_progress', json.dumps({'run_id': 'run_x', 'message_id': 795, 'step': 1}))
+    db.update_run('run_x', 'failed', error='boom')
+    assert bot.finish_progress_card(789, 'Topic', 'run_x', success=False, error='boom')
+    assert edited == [795]
+
+
+def test_a_screen_opened_in_another_message_becomes_the_one_panel(db, monkeypatch):
+    # "← Dashboard" on a failure card turned it into the dashboard but left the old queue panel behind.
+    deleted = []
+    bot = TelegramApprovalBot(db=db, bot_token='123:abc', chat_id='555', approver_ids={'555'})
+    monkeypatch.setattr(bot, 'edit_message_text', lambda mid, text, buttons=None: True)
+    monkeypatch.setattr(bot, '_delete_soon', lambda mid: deleted.append(mid))
+    db.set_setting('telegram_dashboard_id', '788')
+    assert bot.show_navigation_panel(801, '🏛 Dashboard', [[{'text': 'x', 'callback_data': 'cdash:'}]])
+    assert deleted == [788] and db.get_setting('telegram_dashboard_id') == '801'
+    # The panel itself, or a review card waiting for a decision, is never treated that way.
+    deleted.clear()
+    assert bot.show_navigation_panel(801, '🏛 Dashboard')
+    assert deleted == []
+
+
+def test_a_decided_review_leaves_no_reminder_and_becomes_a_receipt(db, monkeypatch):
+    # The reminder ("Bring the card down") stayed after the approval, and the card kept saying
+    # "delivery not yet confirmed" after the dry run had finished.
+    sent, deleted, edited = [], [], []
+    bot = TelegramApprovalBot(db=db, bot_token='123:abc', chat_id='555', approver_ids={'555'})
+    monkeypatch.setattr(bot, '_api', lambda method, **k: sent.append(method) or {'message_id': 900 + len(sent)})
+    monkeypatch.setattr(bot, '_delete_soon', lambda mid: deleted.append(mid))
+    monkeypatch.setattr(bot, 'edit_message_text', lambda mid, text, buttons=None: edited.append((mid, text)) or True)
+    monkeypatch.setattr(bot, 'show_dashboard', lambda *a, **k: 950)
+    db.create_run('run_x', '01_topic')
+    db.record_approval('run_x', '01_topic', 820)
+    calls = iter([{'decision': 'pending'}, {'decision': 'pending'}, {'decision': 'approved', 'decided_by': 't'}])
+    monkeypatch.setattr(db, 'get_approval', lambda rid: {**next(calls, {'decision': 'approved'}), 'telegram_message_id': 820})
+    bot.background_polling = True
+    assert bot.wait_for_decision('run_x', timeout_seconds=7200, poll_interval=0, reminder_after=0) == 'approved'
+    assert deleted and deleted[-1] > 900  # the reminder sent during the wait was removed
+    assert bot.stamp_review_outcome('run_x', 'Approved · dry run: nothing was posted.')
+    # One panel: the receipt is the dashboard's "Last review" line, and the card leaves the chat.
+    from src.control import last_review_outcome
+    assert 'nothing was posted' in last_review_outcome(db)
+    assert 'deleteMessages' in sent and not any(mid == 820 for mid, _ in edited)
+
+
+def test_a_decided_reviews_albums_leave_with_its_card(db, monkeypatch):
+    # The cover, video, Stories and carousel albums stayed in the chat after the decision.
+    import json as _json
+    from src.telegram_state import put, get, initialize
+    initialize(db)
+    bot = TelegramApprovalBot(db=db, bot_token='123:abc', chat_id='555', approver_ids={'555'})
+    calls = []
+    monkeypatch.setattr(bot, '_api', lambda method, **k: calls.append((method, k.get('data') or {})) or {'message_id': 960})
+    monkeypatch.setattr(bot, 'show_dashboard', lambda *a, **k: 950)
+    db.create_run('run_y', '01_topic')
+    db.record_approval('run_y', '01_topic', 830)
+    put(db, 'review-messages', 'run_y', [826, 827, 828, 829, 830])
+    bot.stamp_review_outcome('run_y', 'Approved · dry run: nothing was posted.')
+    deleted = [m for method, data in calls if method == 'deleteMessages' for m in _json.loads(data['message_ids'])]
+    assert set(deleted) == {826, 827, 828, 829, 830} and get(db, 'review-messages', 'run_y') == []
+
+
+def test_the_last_review_line_expires(db, monkeypatch):
+    import json as _json
+    from src import control
+    db.set_setting(control.LAST_REVIEW_KEY, _json.dumps({"text": "old", "at": 0}))
+    assert control.last_review_outcome(db) is None

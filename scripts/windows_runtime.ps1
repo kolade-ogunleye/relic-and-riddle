@@ -69,6 +69,15 @@ if ($Action -eq 'InstallTask') {
         "`$actual = & .\.venv\Scripts\python.exe -c 'from src.config import TELEGRAM_BOT_TOKEN; print(TELEGRAM_BOT_TOKEN.split(chr(58))[0])'",
         "if (`$LASTEXITCODE -ne 0 -or `$actual.Trim() -ne '$ExpectedBotId') { throw 'Bot identity mismatch; worker not started.' }",
         "if (Test-Path 'logs/runtime-$Environment.stop') { exit 0 }",
+        # One worker at a time: a task restart that killed only this launcher left its worker running, and
+        # each later start added another bot (seven competed for one token on 2026-10-23).
+        "if (Test-Path 'logs/runtime-$Environment.pid.json') {",
+        "    `$prior = Get-Content 'logs/runtime-$Environment.pid.json' -Raw | ConvertFrom-Json",
+        "    `$alive = Get-Process -Id `$prior.pid -ErrorAction SilentlyContinue",
+        "    if (`$alive -and -not `$alive.HasExited -and `$alive.Path -eq (Join-Path '$quotedApp' '.venv\Scripts\python.exe') -and `$alive.StartTime.ToUniversalTime().Ticks -eq ([datetimeoffset]`$prior.started).UtcDateTime.Ticks) {",
+        "        throw 'A worker from an earlier start is still running; stop it with scripts/windows_runtime.ps1 -Action Stop.'",
+        '    }',
+        '}',
         "`$worker = Start-Process -FilePath '.\.venv\Scripts\python.exe' -ArgumentList '-u main.py $command' -WorkingDirectory '$quotedApp' -WindowStyle Hidden -RedirectStandardOutput 'logs/runtime-$Environment.stdout.log' -RedirectStandardError 'logs/runtime-$Environment.stderr.log' -PassThru",
         "@{ pid = `$worker.Id; started = `$worker.StartTime.ToUniversalTime().ToString('o') } | ConvertTo-Json | Set-Content 'logs/runtime-$Environment.pid.json'",
         'while (-not $worker.WaitForExit(1000)) {',
@@ -82,6 +91,17 @@ if ($Action -eq 'InstallTask') {
         'exit $worker.ExitCode'
     )
     $launcher | Set-Content -LiteralPath $launcherPath -Encoding UTF8
+    # Headless (operator, 2026-10-25): with Windows Terminal as the default terminal, a console the task starts
+    # visibly opens a new Terminal tab, and closing that tab killed the launcher (exit 0xC000013A) while its
+    # Python worker lived on. Windows Script Host starts PowerShell hidden at creation, so no console window or
+    # tab ever appears; the worker inherits that hidden console. Output stays in logs/runtime-<Environment>.*.log.
+    $powershellPath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+    $shimPath = Join-Path $app "logs/runtime-$Environment.vbs"
+    $shim = @(
+        'Set shell = CreateObject("WScript.Shell")',
+        ('WScript.Quit shell.Run("""' + $powershellPath + '"" -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File ""' + $launcherPath + '""", 0, True)')
+    )
+    $shim | Set-Content -LiteralPath $shimPath -Encoding ASCII
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
     $definition = $scheduler.NewTask(0)
     $definition.RegistrationInfo.Description = "Relic & Riddle $Environment daemon $Mode; preserves host .env. Requires this user's login session."
@@ -97,8 +117,8 @@ if ($Action -eq 'InstallTask') {
     $trigger = $definition.Triggers.Create(9) # AtLogon for this user, not arbitrary users.
     $trigger.UserId = $identity
     $actionDefinition = $definition.Actions.Create(0)
-    $actionDefinition.Path = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
-    $actionDefinition.Arguments = "-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$launcherPath`""
+    $actionDefinition.Path = "$env:SystemRoot\System32\wscript.exe"
+    $actionDefinition.Arguments = "//B //Nologo `"$shimPath`""
     $actionDefinition.WorkingDirectory = $app
     $folder.RegisterTaskDefinition($taskName, $definition, 6, $identity, $null, 3) | Out-Null
 } else {
@@ -116,10 +136,10 @@ if ($Action -eq 'InstallTask') {
         if (Test-Path -LiteralPath $database) {
             Push-Location -LiteralPath $app
             try {
-                $countCode = "import sqlite3; from pathlib import Path; c=sqlite3.connect(Path('data/pipeline.db').resolve().as_uri()+'?mode=ro',uri=True); print(c.execute('SELECT COUNT(*) FROM runs WHERE status=?',('producing',)).fetchone()[0])"
+                $countCode = "import sqlite3; from pathlib import Path; from src.operator_jobs import live_job_count; c=sqlite3.connect(Path('data/pipeline.db').resolve().as_uri()+'?mode=ro',uri=True); print(c.execute('SELECT COUNT(*) FROM runs WHERE status IN (?,?)',('producing','publishing')).fetchone()[0]+live_job_count(c))"
                 $active = & .\.venv\Scripts\python.exe -c $countCode
                 if ($LASTEXITCODE -ne 0 -or [int]$active -gt 0) {
-                    throw 'A production run is active; let it finish or explicitly recover it before stopping for deployment.'
+                    throw 'A run/upload or background operator job is active or unverifiable; let it finish or explicitly cancel/reconcile it before stopping for deployment.'
                 }
             } finally { Pop-Location }
         }
@@ -135,7 +155,7 @@ if ($Action -eq 'InstallTask') {
             $worker = Get-Process -Id $record.pid -ErrorAction SilentlyContinue
             if ($worker -and -not $worker.HasExited) {
                 if ($worker.Path -ne (Join-Path $app '.venv\Scripts\python.exe') -or
-                    $worker.StartTime.ToUniversalTime().ToString('o') -ne $record.started) {
+                    $worker.StartTime.ToUniversalTime().Ticks -ne ([datetimeoffset]$record.started).UtcDateTime.Ticks) {
                     throw 'Worker PID identity changed; no process terminated.'
                 }
                 throw 'The task ended but its Python worker survived; cleanup remains blocked.'

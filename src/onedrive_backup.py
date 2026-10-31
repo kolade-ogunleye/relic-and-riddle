@@ -4,7 +4,6 @@ import re
 import time
 import uuid
 from contextlib import contextmanager
-from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote, urlparse
 

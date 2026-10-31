@@ -1,0 +1,4 @@
+# Line endings: LF in the repository and the working tree for every text file (git detects binaries
+# itself), so a file written on Windows and one written on Linux diff only by content.
+# Added 2026-10-24 after CRLF churn bloated several release diffs.
+* text=auto eol=lf

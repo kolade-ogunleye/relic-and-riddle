@@ -54,7 +54,8 @@ def load_storyboard(topic_dir: Path) -> Optional[List[Dict[str, Any]]]:
 
 def save_storyboard(topic_dir: Path, storyboard: List[Dict[str, Any]]) -> Path:
     path = topic_dir / STORYBOARD_FILE
-    path.write_text(json.dumps(storyboard, indent=2, ensure_ascii=False), encoding="utf-8")
+    from .atomic_files import write_json
+    write_json(path, storyboard)
     return path
 
 

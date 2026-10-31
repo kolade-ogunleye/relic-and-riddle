@@ -88,3 +88,71 @@ def test_openalex_scholarly_evidence_synthesis(monkeypatch):
     assert len(sources) == 1
     assert sources[0]["url"] == "https://doi.org/10.1038/nature05357"
 
+
+
+def test_interactive_calls_wait_briefly_and_never_bill_on_a_timeout(monkeypatch):
+    from src import config, free_llm
+    monkeypatch.setattr(config, "SCRIPT_ENGINE", "free", raising=False)
+    monkeypatch.setattr(free_llm, "enabled", lambda: True)
+    monkeypatch.setattr(free_llm, "available", lambda: True)
+    seen = []
+    def stalled(system, prompt, schema, model=None, key=None, timeout=None):
+        seen.append(timeout)
+        raise gemini.GeminiError("Gemini request failed: Read timed out.")
+    monkeypatch.setattr(gemini, "structured", stalled)
+    monkeypatch.setattr(free_llm, "_paid_fallback", lambda *a, **k: pytest.fail("a timeout must not bill"))
+    with pytest.raises(Exception):
+        free_llm.call("s", "p", object, role="checker", task_class="light", interactive=True)
+    assert seen == [free_llm.INTERACTIVE_TIMEOUT]
+
+
+def test_a_low_effort_vision_call_limits_thinking_and_falls_back_when_refused(monkeypatch):
+    # A 10-beat scene plan spent 20,000 output tokens and 2.5 minutes thinking (production 2026-10-24).
+    import json as _json
+    from types import SimpleNamespace
+    from src import config as cfg
+    monkeypatch.setattr(cfg, "GEMINI_API_KEY", "paid-key-456")
+    bodies = []
+
+    def post(url, headers=None, json=None, timeout=None):
+        import copy
+        bodies.append(copy.deepcopy(json))
+        if "thinkingConfig" in json["generationConfig"] and len(bodies) == 1:
+            return SimpleNamespace(status_code=400, text='{"error": "Unknown name thinking_config"}', json=lambda: {})
+        return SimpleNamespace(status_code=200, text="", json=lambda: {"usageMetadata": {}, "candidates": [{"content": {"parts": [{"text": _json.dumps({"claims": []})}]}}]})
+    monkeypatch.setattr(gemini.requests, "post", post)
+    out = gemini.structured("s", [{"type": "text", "text": "p"}], trace_check.TraceReport, model="gemini-3.8-flash", key="paid-key-456", thinking="low")
+    assert out.claims == [] and len(bodies) == 2
+    assert bodies[0]["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "low"} and "thinkingConfig" not in bodies[1]["generationConfig"]
+    bodies.clear()
+    gemini.structured("s", [{"type": "text", "text": "p"}], trace_check.TraceReport, model="gemini-3.8-flash", key="paid-key-456")
+    assert len(bodies) == 1 and "thinkingConfig" not in bodies[0]["generationConfig"]   # no effort given: the default
+
+
+def test_a_gemini_error_body_that_is_a_list_reads_as_the_error_not_an_attribute_error(monkeypatch):
+    # 2026-10-24: the billed key's refusal came as [{"error": {...}}]; data.get raised AttributeError and
+    # every run on the fallback died without saying why.
+    from types import SimpleNamespace
+    body = [{"error": {"code": 400, "message": "the real reason", "status": "INVALID_ARGUMENT"}}]
+    monkeypatch.setattr(gemini.requests, "post", lambda *a, **k: SimpleNamespace(status_code=400, ok=False, text="", json=lambda: body))
+    with pytest.raises(gemini.GeminiError, match="the real reason"):
+        gemini._post({"contents": []}, key="paid-key-456")
+
+
+def test_a_depleted_prepaid_credit_shuts_the_billed_key_until_a_call_goes_through(db, monkeypatch):
+    from types import SimpleNamespace
+    from src import config, provider_status
+    monkeypatch.setattr(config, "GEMINI_FREE_API_KEY", "free-key-123")
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "paid-key-456")
+    monkeypatch.setattr(config, "PAID_FALLBACK_HEAVY_MONTHLY_USD", 10.0)
+    monkeypatch.setattr(free_llm, "ALLOW_PAID_FALLBACK", True)
+    monkeypatch.setattr("src.db.PipelineDatabase", lambda *a, **k: db)
+    depleted = [{"error": {"code": 402, "message": "Your prepayment credits are depleted.", "status": "RESOURCE_EXHAUSTED"}}]
+    monkeypatch.setattr(gemini.requests, "post", lambda *a, **k: SimpleNamespace(status_code=402, ok=False, text="", json=lambda: depleted))
+    with pytest.raises(free_llm.FreeQuotaUnavailable, match="prepaid credit"):   # a wait, like the monthly cap, not a run failure
+        free_llm._paid_fallback("s", "p", trace_check.TraceReport, "gemini-3.8-flash", "heavy", "quota used up.")
+    assert "AI Studio" in provider_status.capped()["gemini-billed"]["message"]
+    monkeypatch.setattr(gemini, "structured", lambda *a, **k: trace_check.TraceReport(claims=[]))   # topped up
+    monkeypatch.setattr(gemini, "last_usage", lambda: (10, 2))
+    free_llm._paid_fallback("s", "p", trace_check.TraceReport, "gemini-3.8-flash", "heavy", "quota used up.")
+    assert "gemini-billed" not in provider_status.capped()                       # topped up: the notice is gone

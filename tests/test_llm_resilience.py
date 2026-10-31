@@ -41,6 +41,7 @@ def wire(monkeypatch):
         msgs = _Messages(behaviour)
         recorded = []
         monkeypatch.setattr(llm, "ANTHROPIC_API_KEY", "sk-test")
+        monkeypatch.setattr(llm.time, "sleep", lambda s: None)  # the retry pause
         monkeypatch.setattr(llm, "CLAUDE_MODEL", "claude-opus-5-5")
         monkeypatch.setattr(llm, "CLAUDE_FALLBACK_MODELS", list(fallbacks))
         monkeypatch.setattr(llm, "CLAUDE_MONTHLY_BUDGET_USD", budget)
@@ -59,7 +60,7 @@ def test_overloaded_primary_falls_back_to_next_model(wire):
     msgs, recorded = wire({"claude-opus-5-5": _err(anthropic.InternalServerError, 529, "overloaded"),
                            "claude-sonnet-5-5": _ok("claude-sonnet-5-5", POLL)})
     assert llm.structured_call("s", "p", Poll) == POLL
-    assert msgs.models == ["claude-opus-5-5", "claude-sonnet-5-5"]
+    assert msgs.models == ["claude-opus-5-5", "claude-opus-5-5", "claude-sonnet-5-5"]   # Opus twice, then Sonnet (2026-10-25)
     assert recorded[0]["model"] == "claude-sonnet-5-5" and recorded[0]["cost_usd"] == pytest.approx(3.0)
 
 
@@ -138,3 +139,30 @@ def test_media_budget_blocks_paid_calls(db, monkeypatch):
     assert media_budget.allow(db, 0.60)
     media_budget.record(db, "veo-3.1-fast", "hook", 0.60)
     assert not media_budget.allow(db, 0.60) and media_budget.allow(db, 0.40)
+
+
+def test_a_structured_answer_that_does_not_parse_is_asked_again_then_fails_as_an_llm_error(monkeypatch):
+    # Writer trial 2026-10-24: a Sonnet trace check degenerated into "ok. ok. ok." until max_tokens; the SDK's
+    # parse raised pydantic's ValidationError and the script stage died on it instead of asking once more.
+    from pydantic import BaseModel
+
+    class Out(BaseModel):
+        text: str
+    answers = []
+
+    def parse(**kw):
+        answers.append(1)
+        if answers.count(1) in bad:
+            Out.model_validate_json('{"text": "trunc')                     # a real ValidationError (invalid JSON)
+        return SimpleNamespace(stop_reason="end_turn", parsed_output=Out(text="ok"), content=[], model="claude-opus-5-5",
+                               _request_id="r", usage=SimpleNamespace(input_tokens=1, output_tokens=1))
+    monkeypatch.setattr(llm, "_client", lambda: SimpleNamespace(beta=SimpleNamespace(messages=SimpleNamespace(parse=parse))))
+    monkeypatch.setattr(llm, "model_chain", lambda models=None: ["claude-opus-5-5"])
+    monkeypatch.setattr(llm, "_record", lambda r: None)
+    bad = {1}
+    assert llm.structured_call("s", "p", Out).text == "ok" and len(answers) == 2      # one more sample parsed
+    answers.clear()
+    bad = {1, 2}
+    with pytest.raises(llm.LLMError, match="did not parse twice"):
+        llm.structured_call("s", "p", Out)
+    assert len(answers) == 2

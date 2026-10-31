@@ -1,0 +1,335 @@
+{
+ "topic_id": "wieliczka_salt_mine",
+ "built_at": "2026-10-26T00:33:20.222231+00:00",
+ "facts": [
+  {
+   "id": "fact-1",
+   "statement": "The Wieliczka Salt Mine is located in the town of Wieliczka, near Kraków in southern Poland.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine",
+     "tier": 2,
+     "quote": "The Wieliczka Salt Mine (Polish: Kopalnia soli Wieliczka) is a salt mine in the town of Wieliczka, near Kraków in southern Poland."
+    }
+   ]
+  },
+  {
+   "id": "fact-2",
+   "statement": "The subterranean salt deposits formed during the Late Miocene epoch through tectonic folding and thickening of Badenian evaporites.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://doi.org/10.5038/1937-8602.54.1.9",
+     "tier": 1,
+     "quote": "In this region the rock-salt deposits formed as a result of the Late Miocene folding and local tectonic thickening of Badenian evaporites."
+    }
+   ]
+  },
+  {
+   "id": "fact-3",
+   "statement": "The mine's rock salt naturally displays various shades of grey, resembling unpolished granite rather than white crystalline salt.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine",
+     "tier": 2,
+     "quote": "The rock salt is naturally of varying shades of grey, resembling unpolished granite rather than the white crystalline substance that might be expected."
+    }
+   ]
+  },
+  {
+   "id": "fact-4",
+   "statement": "Surface brine was harvested for sodium chloride from Neolithic times until the thirteenth century, when workers began digging shafts to mine rock salt directly.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine",
+     "tier": 2,
+     "quote": "From Neolithic times, sodium chloride (table salt) was produced there from the upwelling brine."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine",
+     "tier": 2,
+     "quote": "Since the 13th century, brine welling up to the surface had been collected and processed for its sodium chloride (table-salt) content."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine",
+     "tier": 2,
+     "quote": "In this period, wells began to be sunk, and the first shafts to be dug to extract the rock salt."
+    }
+   ]
+  },
+  {
+   "id": "fact-5",
+   "statement": "Continuous commercial mining at Wieliczka operated from the thirteenth century until 1996, when extraction ceased due to mine flooding and declining salt prices.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine",
+     "tier": 2,
+     "quote": "The Wieliczka salt mine, excavated from the 13th century, produced table salt continuously until 1996, as one of the world's oldest operating salt mines."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine",
+     "tier": 2,
+     "quote": "Due to falling salt prices and mine flooding, commercial salt mining was discontinued in 1996."
+    }
+   ]
+  },
+  {
+   "id": "fact-6",
+   "statement": "The mine excavations descend to a maximum depth of 327 meters below the surface.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, the mine excavations descend to a maximum depth of 327 meters below the surface.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine",
+     "tier": 2,
+     "quote": "The Wieliczka Salt Mine reaches a depth of 327 metres (1,073 ft), and extends via horizontal passages and chambers for over 287 kilometres (178 miles)."
+    }
+   ]
+  },
+  {
+   "id": "fact-7",
+   "statement": "The mine's labyrinth of horizontal passages and chambers spans roughly 287 to 300 kilometers.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "Engineering surveys and heritage records place the total extent of underground galleries between 287 and 300 kilometers.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine",
+     "tier": 2,
+     "quote": "The Wieliczka Salt Mine reaches a depth of 327 metres (1,073 ft), and extends via horizontal passages and chambers for over 287 kilometres (178 miles)."
+    },
+    {
+     "url": "https://whc.unesco.org/en/news/147/",
+     "tier": 1,
+     "quote": "Its 300 kilometres of galleries which contain famous works of art, altars and statues sculpted in salt were threatened by humidity."
+    }
+   ]
+  },
+  {
+   "id": "fact-8",
+   "statement": "Miners distinguished three grades of rock salt: clay-rich opaque green salt, sandy crystalline spiza salt, and highly pure crystalline szybik salt.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine",
+     "tier": 2,
+     "quote": "Scientific American identified three different qualities of salt around this time."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine",
+     "tier": 2,
+     "quote": "Green salt contained clay and was opaque."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine",
+     "tier": 2,
+     "quote": "Spiza salt was sandy and crystalline."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine",
+     "tier": 2,
+     "quote": "Szybik salt was the purest and most crystalline."
+    }
+   ]
+  },
+  {
+   "id": "fact-9",
+   "statement": "Miners hauled salt to the surface using Hungarian and Saxon horse treadmills before adopting machine drills and blasting in the late 1890s.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine",
+     "tier": 2,
+     "quote": "Over the period of the mine's operation, many chambers were dug and various technologies were added, such as the Hungarian horse treadmill and the Saxon treadmill for hauling salt to the surface."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine",
+     "tier": 2,
+     "quote": "By the late 1890s, machine drills and blasting were used to extract salt."
+    }
+   ]
+  },
+  {
+   "id": "fact-10",
+   "statement": "Underground miners carved four chapels and dozens of statues directly out of the native rock salt.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, underground miners carved four chapels and dozens of statues directly out of the native rock salt.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine",
+     "tier": 2,
+     "quote": "Its attractions include the shafts and labyrinthine passageways, displays of historic salt-mining technology, an underground lake, four chapels and numerous statues carved by miners out of the rock salt, and more recent sculptures by contemporary artists."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine",
+     "tier": 2,
+     "quote": "The mine is currently one of Poland's official national Historic Monuments (Pomniki historii), whose attractions include dozens of statues and four chapels carved out of the rock salt by the miners."
+    }
+   ]
+  },
+  {
+   "id": "fact-11",
+   "statement": "The subterranean chapels feature chandeliers carved out of natural rock salt.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://whc.unesco.org/pg.cfm?cid=31&id_site=32",
+     "tier": 1,
+     "quote": "Description is available under license CC-BY-SA IGO 3.0 Reales minas de sal de Wieliczka y Bochnia source: UNESCO/CPE Description is available under license CC-BY-SA IGO 3.0 ヴィエリチカ・ボフニア王立岩塩坑 クラクフ南東の岩塩鉱山で、11世紀には岩塩の採掘が始まっていた。坑道の最深部は地下375m、坑内には岩塩層をくりぬいた礼拝堂があり、聖者像や祭壇など無数の岩塩彫刻で飾られており、地下礼拝堂には、岩のシャンデリアもある。 source: NFUAJ Koninklijke zoutmijnen Wieliczka en Bochnia De koninklijke Wieliczka en Bochnia zoutmijnen bevinden zich op dezelfde geologische steenzoutafzetting in het zuiden van Polen."
+    }
+   ]
+  },
+  {
+   "id": "fact-12",
+   "statement": "Artificial ventilation introduced in the late nineteenth century brought humidity into the mine, threatening severe damage to the carved salt sculptures.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine",
+     "tier": 2,
+     "quote": "This was due to the threat of serious damage being done to the sculptures from humidity caused by artificial ventilation introduced in the later 19th century."
+    },
+    {
+     "url": "https://whc.unesco.org/en/news/147/",
+     "tier": 1,
+     "quote": "Its 300 kilometres of galleries which contain famous works of art, altars and statues sculpted in salt were threatened by humidity."
+    }
+   ]
+  },
+  {
+   "id": "fact-13",
+   "statement": "Wieliczka was designated as one of the original UNESCO World Heritage Sites in 1978.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://whc.unesco.org/en/list/32",
+     "tier": 1,
+     "quote": "Inscribed on the UNESCO World Heritage List in 1978 under criteria (iv)."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine",
+     "tier": 2,
+     "quote": "In 1978 the Wieliczka Salt Mine was placed on the original UNESCO list of World Heritage Sites."
+    }
+   ]
+  },
+  {
+   "id": "fact-14",
+   "statement": "UNESCO placed the mine on the List of World Heritage in Danger from 1989 to 1998 while dehumidifying equipment was installed to protect the salt art.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine",
+     "tier": 2,
+     "quote": "The mine was on the List of World Heritage in Danger from 1989 to 1998."
+    },
+    {
+     "url": "https://whc.unesco.org/en/news/147/",
+     "tier": 1,
+     "quote": "Since the start of preservation work on the site, UNESCO's World Heritage Fund has contributed US$100,000 towards the cost of installing efficient dehumidifying equipment in the mine."
+    }
+   ]
+  },
+  {
+   "id": "fact-15",
+   "statement": "The mine's 3.5-kilometer tourist route represents less than 2 percent of its total subterranean passageways.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, the mine's 3.5-kilometer tourist route represents less than 2 percent of its total subterranean passageways.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine",
+     "tier": 2,
+     "quote": "The mine features an underground lake, exhibits on the history of salt mining, and a 3.5-kilometre (2.2-mile) visitors' route (less than 2 percent of the mine passages' total length) including statues carved from the rock salt at various times."
+    }
+   ]
+  }
+ ],
+ "dropped": [],
+ "sources": [
+  {
+   "title": "UNESCO World Heritage Centre - Wieliczka and Bochnia Royal Salt Mines",
+   "url": "https://whc.unesco.org/en/list/32",
+   "tier": 1
+  },
+  {
+   "title": "Scholarly work: A Brief History of Salt and Its Influence on Civilization",
+   "url": "https://doi.org/10.1002/9781119405245.ch1",
+   "tier": 3
+  },
+  {
+   "title": "Peer-reviewed journal article (Journal of Multidisciplinary Academic Tourism): Evaluation of Çankırı and Iğdır salt caves within the scope of health and recreation tourism",
+   "url": "https://doi.org/10.31822/jomat.2024-sp-2-93",
+   "tier": 3
+  },
+  {
+   "title": "Peer-reviewed journal article (Studia Universitatis Babes-Bolyai Geologia): Natural and historic heritage of the Bochnia Salt Mine (South Poland)",
+   "url": "https://doi.org/10.5038/1937-8602.54.1.9",
+   "tier": 3
+  },
+  {
+   "title": "Wikipedia: Wieliczka Salt Mine",
+   "url": "https://en.wikipedia.org/wiki/Wieliczka_Salt_Mine",
+   "tier": 2
+  },
+  {
+   "title": "whc.unesco.org",
+   "url": "https://whc.unesco.org/en/news/147/",
+   "tier": 1
+  },
+  {
+   "title": "whc.unesco.org",
+   "url": "https://whc.unesco.org/pg.cfm?cid=31&id_site=32",
+   "tier": 1
+  },
+  {
+   "title": "whc.unesco.org",
+   "url": "https://whc.unesco.org/en/list/32",
+   "tier": 1
+  },
+  {
+   "title": "www.thevintagenews.com",
+   "url": "https://www.thevintagenews.com/2017/11/25/salt-mine/",
+   "tier": 3
+  },
+  {
+   "title": "www.getty.edu",
+   "url": "https://www.getty.edu/vow/ULANFullDisplay?find=&role=&nation=&subjectid=500311713",
+   "tier": 1
+  },
+  {
+   "title": "whc.unesco.org",
+   "url": "https://whc.unesco.org/en/list/32ter",
+   "tier": 1
+  }
+ ],
+ "rules_version": 2
+}

@@ -89,7 +89,7 @@ def test_publish_cannot_bypass_release_gate(tmp_path, monkeypatch):
            "script_payload": {"origin": "deep_dive_engine", "guardrail_passed": False},
            "topic_id": "test"}
     coordinator = PipelineCoordinator.__new__(PipelineCoordinator)
-    coordinator.db = SimpleNamespace(get_run=lambda _: run, db_path=tmp_path / "test.db")
+    coordinator.db = SimpleNamespace(get_run=lambda _: run, get_setting=lambda _: None, db_path=tmp_path / "test.db")
     def must_not_publish(*a, **k):
         pytest.fail("Publisher called before release passed")
     coordinator.publisher = SimpleNamespace(build_envelope=must_not_publish)

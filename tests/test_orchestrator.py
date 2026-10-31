@@ -84,7 +84,10 @@ def test_failed_fact_check_is_revised_then_fails_closed(db, monkeypatch, tmp_pat
     db.create_run("r9", "01_topic")
     with pytest.raises(RuntimeError, match="guardrail"):
         coord._produce_and_publish({"id": "01_topic"}, "r9", tmp_path, True, True, "queued")
-    assert notes_seen == ["", "bad claim 1", "bad claim 2"]  # original + MAX_FACT_REVISIONS rewrites
+    assert len(notes_seen) == 3  # original + MAX_FACT_REVISIONS rewrites
+    assert notes_seen[:2] == ["", "bad claim 1"]
+    # The latest findings lead; every earlier draft's rejection follows, so none comes back reworded.
+    assert notes_seen[2].startswith("bad claim 2") and "- bad claim 1" in notes_seen[2]
 
 
 def test_resume_reuses_passed_script_and_voiceover(db, monkeypatch, tmp_path, curated_payload):
@@ -164,17 +167,20 @@ def test_not_posted_requeues(rendered_run, monkeypatch):
     assert rendered_run.db.get_run("r1")["status"] == "failed"
 
 
-def test_approval_button_uses_short_key(db, monkeypatch):
+def test_approval_button_uses_short_key(db, monkeypatch, tmp_path):
+    # A long run name still fits Telegram's 64-byte callback limit through the run's short key, and
+    # that key decides the current, delivered review (approvals need a delivered card: audit F01/F04).
+    from tests.test_telegram_release_safety import ready_review
     from src.telegram_bot import TelegramApprovalBot
-    db.create_run("run_12_flannan_isle_lighthouse_disappearance_1791781280", "01_topic")
     rid = "run_12_flannan_isle_lighthouse_disappearance_1791781280"
-    db.record_approval(rid, "01_topic")
+    ready_review(db, tmp_path, run_id=rid, mid=1)
     bot = TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
     monkeypatch.setattr(bot, "_api", lambda method, **kw: {})
     key = db.run_key(rid)
-    assert len(f"approve:{key}".encode()) <= 64
+    assert len(f"approve:{key}".encode()) <= 64 < len(f"approve:{rid}_long_documentary_suffix".encode())
     cq = {"id": "q", "data": f"approve:{key}", "from": {"id": 555}, "message": {"chat": {"id": 555}, "message_id": 1}}
     assert bot._handle_callback(cq) == "approved"
+    bot.drain()
     assert db.get_approval(rid)["decision"] == "approved"
 
 
@@ -218,5 +224,27 @@ def test_render_adds_beat_images_and_replans_once_on_picture_mismatch(db, monkey
 
     assert plans[0] == ([topic_img, beat_img], "") and plans[1][1] == "Beat 1: Image shows a beach"
     assert len(renders) == 2  # one re-render, then stop
-    assert payload["caption"] == "Story.\n\n📷 Images via Wikimedia Commons: Bob (CC BY 4.0)"
-    assert payload["beat_image_note"].startswith("🔍 1 beat-specific image")
+    assert payload["caption"] == "Story.\n\n📷 Images via Wikimedia Commons and partner archives: Bob (CC BY 4.0) · adapted: cropped, with motion and text added"
+    assert payload["beat_image_note"].startswith("🔍 1 photo(s) from outside the topic's set") and "line 1" in payload["beat_image_note"]
+
+
+def test_the_opening_shot_is_a_picture_never_a_pinned_graphic(tmp_path, monkeypatch):
+    # Nazca (dev, 2026-10-25): the opening line names the place, so the map was pinned to it and opened the video.
+    from PIL import Image
+    from src import scene_planner
+    photos = []
+    for i in range(3):
+        p = tmp_path / f"{i:02d}_commons.jpg"
+        Image.new("RGB", (64, 64), (i * 40, 0, 0)).save(p)
+        photos.append(p)
+    graphic = tmp_path / "graphic_map.mp4"
+    graphic.write_bytes(b"x")
+    Image.new("RGB", (64, 64)).save(graphic.with_suffix(".jpg"))  # its poster frame: what marks a graphic
+    beats = [{"start": 0, "end": 3, "text": "Across southern Peru's Nazca Desert"},
+             {"start": 3, "end": 6, "text": "figures etched into soil"}, {"start": 6, "end": 9, "text": "lines"}]
+    monkeypatch.setattr(scene_planner, "lock_narrative_graphics", lambda b, g: {0: graphic})
+    monkeypatch.setattr(scene_planner.free_llm, "enabled", lambda: False)
+    monkeypatch.setattr(scene_planner, "claude_available", lambda: False)
+    from pathlib import Path
+    chosen, _, _ = scene_planner.plan_scenes(beats, photos + [graphic], use_storyboard=False)
+    assert not scene_planner._is_graphic(Path(chosen[0])) and Path(chosen[0]) in photos

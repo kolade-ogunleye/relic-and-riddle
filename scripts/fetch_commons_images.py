@@ -94,6 +94,19 @@ def interleave(ranked_lists: list) -> list:
 
 def fetch_topic(topic: dict, spec: dict, allow_sa: bool, target_images: int = TARGET_IMAGES,
                 assets_dir: Optional[Path] = None) -> int:
+    """Openly licensed images first (public domain, CC0, CC BY). CC BY-SA, when allowed, only fills what is
+    still missing afterwards: a video that uses one must itself be released under CC BY-SA, so most
+    videos should not need one. Returns the topic's image count."""
+    count = _fetch_pass(topic, spec, False, target_images, assets_dir)
+    if allow_sa and count < target_images:
+        count = _fetch_pass(topic, spec, True, target_images, assets_dir)
+    return count
+
+
+def _fetch_pass(topic: dict, spec: dict, allow_sa: bool, target_images: int = TARGET_IMAGES,
+                assets_dir: Optional[Path] = None) -> int:
+    from src.operator_jobs import checkpoint
+    checkpoint()
     topic_dir = (assets_dir or ASSETS_DIR) / topic["id"]  # resolved per call, never frozen at import
     topic_dir.mkdir(parents=True, exist_ok=True)
     credits = load_credits(topic_dir)
@@ -131,10 +144,12 @@ def fetch_topic(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
     from src.museum_sources import search_all
     ranked_lists = []
     for q in spec["queries"]:
+        checkpoint()
         ranked_lists.append(best_first(list(candidates(query_pages(q), keywords, allow_sa)), keywords, place))
         if spec.get("museums", True):
             ranked_lists.append(best_first(search_all(q, keywords), keywords, place))
     for cand in interleave(ranked_lists):
+        checkpoint()
         if cand["relevance"] <= 0 or namesake(cand):
             continue  # metadata says off-subject, nowhere near the site, or a namesake
         if len(images) >= target_images:
@@ -152,6 +167,8 @@ def fetch_topic(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
             continue
         cand["file"] = dest.name
         images.append(cand)
+        credits["reviewed"] = False
+        save_credits(topic_dir, credits)
         have.add(cand["title"])
         added += 1
 
@@ -159,6 +176,7 @@ def fetch_topic(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
     if len(images) < target_images:
         cat_search_terms = [topic.get("title", ""), spec.get("keywords", [""])[0]]
         for term in cat_search_terms:
+            checkpoint()
             if not term or len(images) >= target_images:
                 break
             cats = find_categories(term, limit=3)
@@ -166,6 +184,7 @@ def fetch_topic(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
                 cat_clean = cat.replace("Category:", "").strip()
                 cat_q = f'incategory:"{cat_clean}"'
                 for cand in best_first(list(candidates(search(cat_q), keywords, allow_sa)), keywords, place):
+                    checkpoint()
                     if len(images) >= target_images:
                         break
                     if cand["relevance"] <= 0 or namesake(cand):
@@ -182,6 +201,8 @@ def fetch_topic(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
                         continue
                     cand["file"] = dest.name
                     images.append(cand)
+                    credits["reviewed"] = False
+                    save_credits(topic_dir, credits)
                     have.add(cand["title"])
                     added += 1
                 if len(images) >= target_images:
@@ -190,7 +211,9 @@ def fetch_topic(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
     # 3. Museum Fallback: Openverse (Commercial CC Only, with Strict Dimension Gating)
     if len(images) < target_images:
         for query in spec["queries"]:
+            checkpoint()
             for cand in search_openverse(query, limit=15):
+                checkpoint()
                 if len(images) >= target_images:
                     break
                 # Same subject rules as Commons: a topic word in the title, and no namesake.
@@ -207,6 +230,8 @@ def fetch_topic(topic: dict, spec: dict, allow_sa: bool, target_images: int = TA
                     continue
                 cand["file"] = dest.name
                 images.append(cand)
+                credits["reviewed"] = False
+                save_credits(topic_dir, credits)
                 have.add(cand["title"])
                 added += 1
             if len(images) >= target_images:

@@ -51,3 +51,90 @@ def test_upscaled_result_is_cached_and_bounded(tmp_path, monkeypatch):
     assert upscale.ensure_resolution(p) == out and len(calls) == 1               # cached
     paths, low = upscale.ensure_all([p, _img(tmp_path, "big.jpg", (4000, 3000))])
     assert low == 1 and paths[1].name == "big.jpg"
+
+
+def _fake_4x(tile):
+    # Nearest-neighbour 4x: lets the tiling be checked exactly against a whole-image upscale.
+    import numpy as np
+    return tile.repeat(4, axis=2).repeat(4, axis=3)
+
+
+def test_tiled_upscale_matches_a_whole_image_upscale_at_awkward_sizes():
+    import numpy as np
+    rng = np.random.default_rng(1)
+    for h, w in ((37, 53), (192, 192), (400, 250)):          # smaller than, equal to and larger than a tile
+        rgb = rng.integers(0, 256, (h, w, 3), dtype=np.uint8)
+        out = upscale.upscale_array(rgb, run=_fake_4x)
+        assert out.shape == (h * 4, w * 4, 3)
+        assert np.array_equal(out, rgb.repeat(4, axis=0).repeat(4, axis=1))   # no seams, no padding leaks
+
+
+def test_onnx_is_preferred_then_vulkan_then_plain(tmp_path, monkeypatch):
+    model = tmp_path / "model.onnx"
+    model.write_bytes(b"x")
+    binary = tmp_path / "realesrgan.exe"
+    binary.write_bytes(b"")
+    monkeypatch.setattr(upscale, "ONNX_MODEL", model)
+    monkeypatch.setattr(upscale, "REALESRGAN_BIN", str(binary))
+    monkeypatch.setattr(upscale, "CACHE_DIR", tmp_path / "cache")
+    used = []
+    monkeypatch.setattr(upscale, "_upscale_onnx", lambda p: used.append("onnx") or Image.new("RGB", (5120, 3840)))
+    out = upscale.ensure_resolution(_img(tmp_path, "a.jpg", (1280, 960)))
+    assert used == ["onnx"] and out.exists()
+    assert upscale.backend() == "onnx"
+
+    def broken(p):                                            # e.g. no GPU device: fall through
+        raise RuntimeError("no device")
+
+    def fake_run(args, **kw):
+        used.append("ncnn")
+        Image.new("RGB", (5120, 3840)).save(Path(args[args.index("-o") + 1]))
+    monkeypatch.setattr(upscale, "_upscale_onnx", broken)
+    monkeypatch.setattr(upscale.subprocess, "run", fake_run)
+    out = upscale.ensure_resolution(_img(tmp_path, "b.jpg", (1280, 960)))
+    assert used[-1] == "ncnn" and out.exists()
+    monkeypatch.setattr(upscale.subprocess, "run", lambda *a, **k: (_ for _ in ()).throw(OSError("vulkan")))
+    p = _img(tmp_path, "c.jpg", (1280, 960))
+    assert upscale.ensure_resolution(p) == p                  # nothing works: the original, plainly resized
+
+
+def test_lineage_records_the_backend(tmp_path, monkeypatch):
+    import json
+    from src.lineage import sidecar
+    model = tmp_path / "model.onnx"
+    model.write_bytes(b"x")
+    monkeypatch.setattr(upscale, "ONNX_MODEL", model)
+    monkeypatch.setattr(upscale, "CACHE_DIR", tmp_path / "cache")
+    monkeypatch.setattr(upscale, "_upscale_onnx", lambda p: Image.new("RGB", (5120, 3840)))
+    out = upscale.ensure_resolution(_img(tmp_path, "d.jpg", (1280, 960)))
+    assert json.loads(sidecar(out).read_text(encoding="utf-8"))["settings"]["backend"] == "onnx"
+
+
+def test_parallel_callers_create_one_gpu_session(monkeypatch):
+    # Four image-prep threads each created a DirectML session at once and the worker crashed (0xC0000005).
+    import sys
+    import threading
+    import time
+    import types
+    from src import upscale
+    created = []
+
+    class Session:
+        def __init__(self, *a, **k):
+            time.sleep(0.05)  # the window in which the others arrive
+            created.append(1)
+
+        def get_providers(self):
+            return ["DmlExecutionProvider"]
+
+    fake = types.SimpleNamespace(get_available_providers=lambda: ["DmlExecutionProvider"],
+                                 SessionOptions=lambda: types.SimpleNamespace(log_severity_level=0),
+                                 InferenceSession=Session)
+    monkeypatch.setitem(sys.modules, "onnxruntime", fake)
+    monkeypatch.setattr(upscale, "_session", None)
+    threads = [threading.Thread(target=upscale._onnx_session) for _ in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert len(created) == 1

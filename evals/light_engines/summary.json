@@ -1,0 +1,42 @@
+{
+  "plans": [
+    {
+      "run": "run_kailasa_temple_monolith_1792524470",
+      "gemini": true,
+      "groq": true,
+      "agreement": 0.17
+    }
+  ],
+  "ask": [
+    {
+      "engine": "gemini",
+      "recorded": true,
+      "invented_records": []
+    },
+    {
+      "engine": "groq",
+      "recorded": true,
+      "invented_records": []
+    },
+    {
+      "engine": "gemini",
+      "recorded": true,
+      "invented_records": []
+    },
+    {
+      "engine": "groq",
+      "recorded": true,
+      "invented_records": []
+    },
+    {
+      "engine": "gemini",
+      "recorded": true,
+      "invented_records": []
+    },
+    {
+      "engine": "groq",
+      "recorded": true,
+      "invented_records": []
+    }
+  ]
+}

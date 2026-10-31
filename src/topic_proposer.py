@@ -18,6 +18,7 @@ import unicodedata
 from typing import Dict, List, Optional
 
 from .config import TOPICS_DIR
+from .topic_store import serialized
 from .db import PipelineDatabase
 from .llm import claude_available, format_sources, research, structured_call, task as llm_task
 from .models import TopicProposal, TopicProposals
@@ -60,7 +61,9 @@ def near_duplicate(title: str, existing: List[str]) -> Optional[str]:
 
 
 def _bank() -> dict:
-    return json.loads(BANK.read_text(encoding="utf-8"))
+    from .topic_store import transaction
+    with transaction(BANK):
+        return json.loads(BANK.read_text(encoding="utf-8"))
 
 
 def pending(db: PipelineDatabase) -> Dict[str, dict]:
@@ -72,8 +75,11 @@ def _normalize_id(tid: str) -> str:
     return parts[1] if len(parts) > 1 and parts[0].isdigit() else tid
 
 
+@serialized
 @llm_task("topic_proposals")
 def propose(db: PipelineDatabase, n: int = 3) -> List[TopicProposal]:
+    from .operator_jobs import checkpoint
+    checkpoint()
     from . import gemini
     if not claude_available() and not gemini.available():
         raise RuntimeError("Neither ANTHROPIC_API_KEY nor GEMINI_API_KEY is configured.")
@@ -85,13 +91,16 @@ def propose(db: PipelineDatabase, n: int = 3) -> List[TopicProposal]:
                 "and whether Wikimedia Commons is likely to have openly licensed images of it.")
 
     notes, retrieved = None, None
-    if claude_available():
+    from . import free_llm
+    use_claude = free_llm.claude_engine()  # the configured engine decides; an Anthropic key alone does not
+    if use_claude:
         try:
             notes, retrieved = research(RESEARCH_SYSTEM, prompt, web_search_uses=8, effort="medium")
         except Exception as e:
             log.warning("Claude research for proposals failed (%s); trying Gemini fallback.", e)
             if not gemini.available():
                 raise
+    checkpoint()
     if notes is None:
         if not gemini.available():
             raise RuntimeError("Gemini is not configured as fallback.")
@@ -109,14 +118,16 @@ def propose(db: PipelineDatabase, n: int = 3) -> List[TopicProposal]:
         "image_queries: 2-4 Wikimedia Commons searches. image_keywords: 2-6 lowercase words, at least one of which "
         f"must appear in a relevant image file title. {sources_instruction}"
     )
+    checkpoint()
     proposals = None
-    if claude_available():
+    if use_claude:
         try:
             proposals = structured_call(STRUCTURE_SYSTEM, struct_prompt, TopicProposals, effort="medium")
         except Exception as e:
             log.warning("Claude structured call failed (%s); trying Gemini fallback.", e)
             if not gemini.available():
                 raise
+    checkpoint()
     if proposals is None:
         proposals = gemini.structured(STRUCTURE_SYSTEM, struct_prompt, TopicProposals)
     def _norm_url(u: str) -> str:
@@ -153,13 +164,34 @@ def propose(db: PipelineDatabase, n: int = 3) -> List[TopicProposal]:
         fresh.append(p)
         if len(fresh) >= n:
             break
+    checkpoint()
     db.set_setting(PENDING_KEY, json.dumps(store))
     return fresh
 
 
+def added_record(by: str, via: str) -> Dict[str, str]:
+    """Where a topic came from, kept with it in the bank (shown on its review card)."""
+    from datetime import datetime, timezone
+    return {"by": by, "via": via, "at": datetime.now(timezone.utc).strftime("%Y-%m-%d")}
+
+
+def origin_note(topic: Dict) -> str:
+    """The review card's line on where the topic came from."""
+    added = topic.get("added") or {}
+    if not added:
+        return "🗂 Topic origin: the original topic bank (added before origins were recorded)"
+    return f"🗂 Topic origin: {added.get('by', '?')}, {added.get('via', '?')}, {added.get('at', '?')}"
+
+
+@serialized
 def add(db: PipelineDatabase, slug: str) -> str:
     """Appends an approved proposal to the bank and its image searches."""
     store = pending(db)
+    if any(t["id"] == slug for t in _bank().get("topics", [])):
+        db._seed_topics_from_json()
+        store.pop(slug, None)
+        db.set_setting(PENDING_KEY, json.dumps(store))
+        return slug
     if slug not in store:
         raise ValueError(f"No pending proposal '{slug}'.")
     p = TopicProposal.model_validate(store.pop(slug))
@@ -170,9 +202,9 @@ def add(db: PipelineDatabase, slug: str) -> str:
         "location": p.location.model_dump(), "key_facts": p.key_facts,
         "meta_categories": ["History & Philosophy", "Travel & Culture"], "hashtags": p.hashtags,
         "sources": [s.model_dump() for s in p.sources],
+        "added": added_record("research proposal", f"approved in Telegram ({len(p.sources)} sources)"),
     })
     bank["total"] = len(bank["topics"])
-    BANK.write_text(json.dumps(bank, indent=2, ensure_ascii=False), encoding="utf-8")
     queries = json.loads(QUERIES.read_text(encoding="utf-8"))
     if p.image_queries and p.image_keywords:
         queries[topic_id] = {"queries": p.image_queries, "keywords": [k.lower() for k in p.image_keywords]}
@@ -184,12 +216,14 @@ def add(db: PipelineDatabase, slug: str) -> str:
             "keywords": decomp["keywords"],
             "archetypes": decomp.get("archetypes", {}),
         }
-    QUERIES.write_text(json.dumps(queries, indent=2, ensure_ascii=False), encoding="utf-8")
+    from .topic_store import commit
+    commit(BANK, QUERIES, bank, queries)
     db.set_setting(PENDING_KEY, json.dumps(store))
     db._seed_topics_from_json()
     return topic_id
 
 
+@serialized
 def skip(db: PipelineDatabase, slug: str) -> None:
     store = pending(db)
     store.pop(slug, None)
@@ -201,8 +235,8 @@ def proposal_text(p: TopicProposal) -> str:
     facts = "\n".join(f"• {e(f)}" for f in p.key_facts)
     loc = ", ".join(x for x in (p.location.name, p.location.country) if x)
     src = "\n".join(f"📚 {e(s.url)}" for s in p.sources[:3])
-    return (f"💡 <b>Topic proposal: {e(p.title)}</b>\n📍 {e(loc)} · {e(p.sub_theme)}\n\n"
+    return (f"<b>{e(p.title)}</b>\n📍 {e(loc)} · {e(p.sub_theme)}\n\n"
             f"<i>\"{e(p.hook)}\"</i>\n\n"
-            f"<blockquote expandable><b>Key Verified Facts:</b>\n{facts}\n\n"
-            f"<b>Editorial Rationale:</b> {e(p.why_it_works)}\n\n"
+            f"<blockquote expandable><b>Verified facts</b>\n{facts}\n\n"
+            f"<b>Why it works</b>: {e(p.why_it_works)}\n\n"
             f"{src}</blockquote>")[:4000]

@@ -26,7 +26,7 @@ from pydantic import BaseModel
 from . import commons, free_llm
 from .config import MIN_SCENE_IMAGES
 from .credits import load_credits, save_credits
-from .llm import LLMError, image_block
+from .llm import LLMError, image_block, verdict_reason
 
 log = logging.getLogger(__name__)
 
@@ -40,6 +40,11 @@ class PhotoVerdict(BaseModel):
     safe: bool                                   # no human remains on display, no identifiable bystanders as subject
     duplicate_of: Optional[int] = None           # a better photo of nearly the same view, if any
     people_prominent: bool = False               # visitors are a prominent part of it (their faces get blurred)
+    # Something in it that can plausibly move (water, fire, smoke, sky or clouds, foliage, people, cloth, dust or
+    # sand, animals), from this same look (2026-10-29): motion.can_move read only the recorded words (the review's
+    # reason, the archive title and description), which need not say what is in the pixels. None on a verdict made
+    # before the field (motion.can_move then reads the words, as before).
+    can_move: Optional[bool] = None
     reason: str                                  # one short sentence
 
 
@@ -53,11 +58,160 @@ SYSTEM = """You review the photo pool for one topic of a fact-checked history do
 - safe: false for photos whose subject is human remains (other than ancient skulls or bones displayed as museum artefacts), injuries, or identifiable private people who are the main subject.
 - duplicate_of: the number of a better photo showing nearly the same view, else null.
 - people_prominent: true if present-day visitors or bystanders are a prominent part of the picture (their faces will be blurred, which draws the eye).
+- can_move: true if the picture holds something that could plausibly move in a short, gentle animation of it: water, fire, smoke, sky or clouds, foliage, people, cloth, dust or sand, animals; false if everything in it is still (stone, walls, objects, a bare interior).
 Judge from what you see; the caption tells you what the archive says it is. Be strict: a wrong picture is worse than no picture."""
 
 
 def _human_decided(credits: Dict[str, Any]) -> bool:
     return credits.get("reviewed_by") == "operator"
+
+
+def _verdicts(topic: Dict[str, Any], topic_dir: Path, images: List[Dict[str, Any]]) -> Optional[Dict[int, PhotoVerdict]]:
+    """The vision model's verdict per photo (1-based), or None when no model could look."""
+    loc = topic.get("location") or {}
+    content: List[dict] = [{"type": "text", "text": (
+        f"Topic: {topic.get('title', topic['id'])}\nPlace: {loc.get('name', '')}, {loc.get('country', '')}\n"
+        f"Key facts: {'; '.join(topic.get('key_facts', [])[:5])}\n\nPhotos:")}]
+    for i, img in enumerate(images, 1):
+        content += [{"type": "text", "text": f"Photo {i}: {commons.caption(img)}"}, image_block(topic_dir / img["file"])]
+    content.append({"type": "text", "text": f"Return one verdict for each of the {len(images)} photos."})
+    for role in ("checker", "writer"):  # either free model will do; one is often overloaded
+        try:
+            review = free_llm.call(SYSTEM, content, PoolReview, role=role, task_class="light",
+                                    effort="medium", max_tokens=6000)
+            # A reason keeps no stray working notes of the model's (llm.verdict_reason); the verdict is its own.
+            return {v.index: v.model_copy(update={"reason": verdict_reason(v.reason)}) for v in review.verdicts}
+        except (LLMError, OSError) as e:
+            log.warning("Photo review for %s on the %s model failed (%s).", topic["id"], role, e)
+    return None
+
+
+# ------------------------------------------------------------------ which approved photos a video may use
+# Operator, 2026-10-25: photos that only partly showed the topic (other finds from the same wreck, the
+# island) and photos never looked at reached the Antikythera video and carousel. Every photo now carries a
+# tier, and a video uses the topic's own photos, the ones the operator chose to keep, and at most a couple
+# of context shots; never a weak or unchecked one.
+CONTEXT_SHOTS_MAX = 2
+TIER_LABELS = {"topic": "Topic", "kept": "Kept by you", "context": "Context", "unchecked": "Unchecked", "weak": "Weak"}
+
+
+def tier(img: Dict[str, Any]) -> str:
+    """topic | kept | context | unchecked | weak, from the photo's vision verdict and the operator's keep."""
+    if img.get("operator_keep"):
+        return "kept"
+    v = img.get("vision_review") or {}
+    if "shows_topic" not in v:
+        return "unchecked"
+    if not (v.get("usable") and v.get("safe")) or v.get("duplicate_of"):
+        return "weak"
+    return {"yes": "topic", "partly": "context"}.get(v.get("shows_topic"), "weak")
+
+
+def _relevance(img: Dict[str, Any]) -> float:
+    try:
+        return float(img.get("relevance") or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def usable_photos(images: List[Dict[str, Any]], context_max: int = CONTEXT_SHOTS_MAX) -> List[Dict[str, Any]]:
+    """The photos a video may use, best first: the topic's own (most relevant first), those you kept, then at
+    most `context_max` context shots. Unchecked and weak photos are left out."""
+    by = {t: sorted((im for im in images if tier(im) == t), key=_relevance, reverse=True)
+          for t in ("topic", "kept", "context")}
+    return by["topic"] + by["kept"] + by["context"][:context_max]
+
+
+def reserve_photos(images: List[Dict[str, Any]], context_max: int = CONTEXT_SHOTS_MAX) -> List[Dict[str, Any]]:
+    """The context shots usable_photos leaves out (beyond `context_max`), most relevant first: offered to a video
+    only where a picture would otherwise be shown twice (src/scene_planner.no_repeats), never to open it or be
+    animated. Readiness and approval still count at most `context_max` (Nazca, 2026-10-28: its fifth context photo
+    went unused while four photos were shown twice)."""
+    return sorted((im for im in images if tier(im) == "context"), key=_relevance, reverse=True)[context_max:]
+
+
+# ------------------------------------------------------------------ one readiness rule, the video's
+# Production 2026-10-27/28 (run_greek_fire_siphon_1793038718, run_tunguska_event_1908_1793057943; dev
+# run_tunguska_event_1908_1792980390): pools approved by the review (yes + partly >= 5) and shown as ready
+# (every photo counted) failed at run start because the video counts only Topic + Kept + at most
+# CONTEXT_SHOTS_MAX Context ("Only 4 of the 6 approved photos ... 2 Topic, 4 Context"). Approval, readiness,
+# the screens and the refill all ask this one function now; the video's rule itself is unchanged.
+def readiness(images: List[Dict[str, Any]], reviewed: bool = True, need: int = MIN_SCENE_IMAGES,
+              context_max: int = CONTEXT_SHOTS_MAX) -> Dict[str, Any]:
+    """How a pool stands against the video's rule (usable_photos >= need). `ready`: approved and enough
+    usable now. `pending`: approved, short now, but its unchecked photos (screened at run start) could make
+    up the difference. `short`: how many usable photos are missing."""
+    counts = {t: 0 for t in TIER_LABELS}
+    for im in images:
+        counts[tier(im)] += 1
+    usable = len(usable_photos(images, context_max))
+    ready = bool(reviewed) and usable >= need
+    return {**counts, "usable": usable, "need": need, "context_max": context_max, "short": max(0, need - usable),
+            "ready": ready, "pending": bool(reviewed) and not ready and usable + counts["unchecked"] >= need}
+
+
+def video_ready(images: List[Dict[str, Any]], reviewed: bool = True) -> bool:
+    """True when a video can be made from these photos as they are (the rule get_scene_sequence enforces)."""
+    return readiness(images, reviewed)["ready"]
+
+
+def readiness_text(images: List[Dict[str, Any]], need: int = MIN_SCENE_IMAGES) -> str:
+    """'2 topic photos, 4 context, at most 2 context count: 4 of 5 usable' (unchecked and weak ones named)."""
+    r = readiness(images, need=need)
+    parts = [f"{r['topic']} topic photo{'s' if r['topic'] != 1 else ''}"]
+    if r["kept"]:
+        parts.append(f"{r['kept']} kept by you")
+    parts.append(f"{r['context']} context")
+    if r["context"] > r["context_max"]:
+        parts.append(f"at most {r['context_max']} context count")
+    if r["unchecked"]:
+        parts.append(f"{r['unchecked']} not yet checked")
+    if r["weak"]:
+        parts.append(f"{r['weak']} weak")
+    return ", ".join(parts) + f": {r['usable']} of {need} usable"
+
+
+def strong_stems(topic_dir: Path) -> Optional[set]:
+    """File stems of the photos that show the topic or that you kept: the only ones a Story frame, a carousel
+    slide or a cover uses (no context shots there). None for a folder without credits (photos you supplied)."""
+    if not (Path(topic_dir) / "credits.json").is_file():
+        return None
+    return {Path(im["file"]).stem for im in load_credits(topic_dir).get("images", []) if tier(im) in ("topic", "kept")}
+
+
+def only_strong(paths: List[Path], stems: Optional[set]) -> List[Path]:
+    """`paths` (prepared copies keep their source's stem as a prefix) narrowed to the strong photos; the
+    list as given when nothing is known or none is strong (a frame needs a picture)."""
+    if stems is None:
+        return list(paths)
+    strong = [p for p in paths if any(Path(p).stem.startswith(s) for s in stems)]
+    return strong or list(paths)
+
+
+def screen_unchecked(topic: Dict[str, Any], topic_dir: Path) -> int:
+    """Gives every photo without a vision verdict one, whatever was decided about the set: photos added after
+    an approval were never looked at (production 2026-10-25). Only those photos are sent; nothing is dropped
+    and the approval is not changed (the tier decides use). Returns how many were screened."""
+    credits = load_credits(topic_dir)
+    pending = [im for im in credits.get("images", []) if tier(im) == "unchecked"][:MAX_PHOTOS]
+    if not pending:
+        return 0
+    by_index = _verdicts(topic, topic_dir, pending)
+    if by_index is None:
+        log.warning("Photos of %s not screened: no vision model answered; they stay unused.", topic["id"])
+        return 0
+    for i, img in enumerate(pending, 1):
+        v = by_index.get(i)
+        img["vision_review"] = (v.model_dump() if v else {"reason": "no verdict returned"}) | {"kept": tier({"vision_review": v.model_dump()}) in ("topic", "context") if v else False}
+    save_credits(topic_dir, credits)
+    try:  # the sheet's numbers follow the tiers: redrawn, so /photos drop and keep N mean the photo shown as N
+        from .credits import write_contact_sheet
+        write_contact_sheet(topic_dir, credits["images"])
+    except Exception as e:
+        log.debug("Contact sheet of %s not redrawn: %s", topic["id"], e)
+    log.info("Screened %d new photo(s) of %s: %s.", len(pending), topic["id"],
+             ", ".join(f"{im['file']}={tier(im)}" for im in pending))
+    return len(pending)
 
 
 def pool_fingerprint(images: List[Dict[str, Any]]) -> str:
@@ -74,47 +228,41 @@ def review_pool(topic: Dict[str, Any], topic_dir: Path, apply: bool = True, forc
         return {"topic": topic["id"], "status": "operator decision stands", "kept": len(credits["images"])}
     if not force and credits.get("review_fingerprint") and \
             credits["review_fingerprint"] == pool_fingerprint(credits.get("images", [])):
-        status = "approved" if credits.get("reviewed") else "held"
-        return {"topic": topic["id"], "status": f"{status} (unchanged since last review)", "kept": len(credits.get("images", []))}
+        # An approval made before 2026-10-28 counted yes + partly; the video's rule decides what is said now.
+        status = "approved" if video_ready(credits.get("images", []), credits.get("reviewed")) else "held"
+        return {"topic": topic["id"], "status": f"{status} (unchanged since last review)", "kept": len(credits.get("images", [])),
+                "readiness": readiness_text(credits.get("images", []))}
     images = credits["images"][:MAX_PHOTOS]
     if not images:
         return {"topic": topic["id"], "status": "no photos", "kept": 0}
-    loc = topic.get("location") or {}
-    content: List[dict] = [{"type": "text", "text": (
-        f"Topic: {topic.get('title', topic['id'])}\nPlace: {loc.get('name', '')}, {loc.get('country', '')}\n"
-        f"Key facts: {'; '.join(topic.get('key_facts', [])[:5])}\n\nPhotos:")}]
-    for i, img in enumerate(images, 1):
-        content += [{"type": "text", "text": f"Photo {i}: {commons.caption(img)}"}, image_block(topic_dir / img["file"])]
-    content.append({"type": "text", "text": f"Return one verdict for each of the {len(images)} photos."})
-    review = None
-    for role in ("checker", "writer"):  # either free model will do; one is often overloaded
-        try:
-            review = free_llm.call(SYSTEM, content, PoolReview, role=role, task_class="light",
-                                    effort="medium", max_tokens=6000)
-            break
-        except (LLMError, OSError) as e:
-            log.warning("Photo review for %s on the %s model failed (%s).", topic["id"], role, e)
-    if review is None:
+    by_index = _verdicts(topic, topic_dir, images)
+    if by_index is None:
         log.warning("Photo review for %s could not run; pool stays unapproved.", topic["id"])
         return {"topic": topic["id"], "status": "review unavailable", "kept": 0}
-    by_index = {v.index: v for v in review.verdicts}
     kept, dropped = [], []
     for i, img in enumerate(images, 1):
         v = by_index.get(i)
-        ok = bool(v and v.shows_topic in ("yes", "partly") and v.usable and v.safe and not v.duplicate_of)
+        # A photo you kept (/keep) stays whatever the model says: a re-review dropped kept photos and marked
+        # them rejected, so a refill would never fetch them again (review, 2026-10-25).
+        ok = bool(img.get("operator_keep")) or bool(v and v.shows_topic in ("yes", "partly") and v.usable and v.safe and not v.duplicate_of)
         img["vision_review"] = (v.model_dump() if v else {"reason": "no verdict returned"}) | {"kept": ok}
         (kept if ok else dropped).append(img)
     # Photos that show the topic itself come first, then context; crowded ones (blurred faces) last.
     kept.sort(key=lambda im: (im["vision_review"].get("people_prominent", False),
                               0 if im["vision_review"].get("shows_topic") == "yes" else 1))
-    approved = len(kept) >= MIN_SCENE_IMAGES
+    # Approved only when the video could use the kept photos (Topic + Kept + at most CONTEXT_SHOTS_MAX
+    # Context): yes + partly >= 5 approved pools the video then refused (production 2026-10-28).
+    approved = video_ready(kept)
+    usable_note = readiness_text(kept)
     summary = {"topic": topic["id"], "status": "approved" if approved else "held", "kept": len(kept),
+               "readiness": usable_note,
                "dropped": [(d["file"], d["vision_review"].get("reason", "")) for d in dropped]}
     if apply:
         credits.update(images=kept, reviewed=approved, reviewed_by="vision" if approved else None,
                        review_fingerprint=pool_fingerprint(kept),
                        review_note=(f"Vision review {datetime.now(timezone.utc):%Y-%m-%d}: kept {len(kept)} of "
-                                    f"{len(images)}" + ("" if approved else f"; held: fewer than {MIN_SCENE_IMAGES}")),
+                                    f"{len(images)} ({usable_note})"
+                                    + ("" if approved else f"; held: fewer than {MIN_SCENE_IMAGES} usable for the video")),
                        rejected_by_review=credits.get("rejected_by_review", []) + dropped)
         save_credits(topic_dir, credits)
     return summary

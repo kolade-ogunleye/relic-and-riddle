@@ -10,7 +10,10 @@ def _real():
 
 def _credits(d, n, **extra):
     d.mkdir(parents=True, exist_ok=True)
-    imgs = [{"file": f"{i:02d}_commons.jpg"} for i in range(1, n + 1)]
+    # Each photo carries a "shows the topic" verdict: readiness counts as the video counts (2026-10-28), and a
+    # photo never looked at is one the video would not use.
+    imgs = [{"file": f"{i:02d}_commons.jpg", "vision_review": {"shows_topic": "yes", "usable": True, "safe": True}}
+            for i in range(1, n + 1)]
     for im in imgs:
         (d / im["file"]).write_bytes(b"x")
     (d / "credits.json").write_text(json.dumps({"images": imgs, **extra}), encoding="utf-8")

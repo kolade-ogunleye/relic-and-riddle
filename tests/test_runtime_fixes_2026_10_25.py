@@ -1,0 +1,243 @@
+"""The runtime review of 2026-10-25: one wait per review across processes (a Resend while the first wait ran
+acted on one Approve twice), a run booked once only, the stale sweep counting from the newest card and saying
+so, and a long review card kept to one formatted message."""
+from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
+
+import main
+from src.publication_lock import publication_lock
+from src.telegram_bot import CARD_PAGE_LIMIT, TelegramApprovalBot, _tg_len
+
+
+def _coordinator(db, bot, **extra):
+    """A stand-in with the real wait-and-act methods bound to it."""
+    me = SimpleNamespace(db=db, telegram_bot=bot, _approval_window=lambda: 60,
+                         REVIEW_ACTED_PREFIX=main.PipelineCoordinator.REVIEW_ACTED_PREFIX, **extra)
+    me._decide_review = lambda run_id, act: main.PipelineCoordinator._decide_review(me, run_id, act)
+    me._wait_for_review = lambda run_id: main.PipelineCoordinator._wait_for_review(me, run_id)
+    me._schedule_run = lambda run_id, now=None: main.PipelineCoordinator._schedule_run(me, run_id, now)
+    me._refused_for_good = main.PipelineCoordinator._refused_for_good
+    return me
+
+
+def _waiter(db, calls):
+    bot = SimpleNamespace(wait_for_decision=lambda run_id, seconds, **kw: calls.append(run_id) or "approved")
+    return _coordinator(db, bot)
+
+
+def test_a_second_wait_on_a_review_is_not_started(db):
+    calls = []
+    me = _waiter(db, calls)
+    with publication_lock(db.db_path, "review-wait:run_x"):        # the first wait (another process or thread)
+        assert main.PipelineCoordinator._wait_for_review(me, "run_x") is None
+    assert calls == []
+    assert main.PipelineCoordinator._wait_for_review(me, "run_x") == "approved" and calls == ["run_x"]
+
+
+def test_a_resend_during_a_wait_only_brings_the_card_down(db, tmp_path):
+    topic = db.list_all_topics()[0]["id"]
+    db.create_run("run_y", topic)
+    db.update_run("run_y", "pending_approval", master_video_path=str(tmp_path / "m.mp4"), thumbnail_cover_path=str(tmp_path / "c.jpg"))
+    db.record_approval("run_y", topic, 5)
+    sent, waited = [], []
+    bot = SimpleNamespace(send_approval_request=lambda *a: sent.append(a[-1]),
+                          wait_for_decision=lambda run_id, seconds, **kw: waited.append(run_id) or "approved")
+    me = _coordinator(db, bot, _after_approval=lambda *a, **k: {"after": True})
+    with publication_lock(db.db_path, "review-wait:run_y"):
+        result = main.PipelineCoordinator.request_approval(me, "run_y")
+    assert sent == ["run_y"] and waited == [] and result["already_waiting"] and "after" not in result
+
+
+def test_a_run_is_booked_once(db, tmp_path):
+    topic = db.list_all_topics()[0]["id"]
+    db.create_run("run_z", topic)
+    db.update_run("run_z", "scheduled", master_video_path=str(tmp_path / "m.mp4"))
+    db.add_scheduled_post("run_z", "reel", "2026-10-27T16:00:00+00:00", [])
+    me = _coordinator(db, None)
+    out = main.PipelineCoordinator.schedule_run(me, "run_z")
+    assert out["already_booked"] and len(db.list_scheduled_posts(("pending",), run_id="run_z")) == 1
+
+
+def test_a_resent_review_is_not_swept_by_its_first_delivery_time(db):
+    from src.telegram_state import initialize
+    initialize(db)
+    topic = db.list_all_topics()[0]["id"]
+    db.create_run("run_s", topic)
+    db.record_approval("run_s", topic, 1)
+    old = (datetime.now(timezone.utc) - timedelta(hours=30)).isoformat()
+    with db._conn() as conn:
+        conn.execute("UPDATE approvals SET created_at=? WHERE run_id='run_s'", (old,))
+    db.record_approval("run_s", topic, 2)                               # sent again now
+    notices = []
+    bot = TelegramApprovalBot.__new__(TelegramApprovalBot)
+    bot.db, bot.notify = db, lambda *a, **k: notices.append(a[0]) or 9
+    bot.dismiss_approval_buttons = lambda run_id: None
+    assert bot.cleanup_stale_approvals() == 0
+    with db._conn() as conn:
+        conn.execute("UPDATE approvals SET created_at=? WHERE run_id='run_s'", (old,))
+    assert bot.cleanup_stale_approvals() == 1 and "No decision" in notices[-1]   # and it says so, with Resend
+
+
+def test_a_long_review_card_keeps_its_narration_and_stays_one_message():
+    narration = " ".join(["word"] * 110)
+    findings = [{"severity": "info", "card": "cover_look", "issue": "a long note " * 25} for _ in range(6)]
+    payload = {"title": "T", "narration_script": narration, "caption": "Opening line. " + "More. " * 300,
+               "carousel_caption": "Swipe through.", "self_healing": {"issues": findings},
+               "qa_summary": "🔎 Automated video check: 6 issue(s)\n" + "\n".join("· beat 2: " + "x " * 120 for _ in range(6))}
+    card = TelegramApprovalBot.format_card_text(payload, "run_x")
+    assert narration in card and "[shortened:" not in card and _tg_len(card) <= CARD_PAGE_LIMIT
+    assert "<b>Caption:</b>" in card and "<b>Carousel caption:</b>" in card
+    assert "the full list is in the reply under this card" in card       # the folded lists say where the rest is
+    # ...and that reply holds every item whole, inside Telegram's limit (operator, 2026-10-28)
+    from src.telegram_bot import detail_messages
+    full = TelegramApprovalBot._card_text(payload, "run_x", None, None, 10 ** 6)
+    details = detail_messages(full)
+    assert details and all(_tg_len(m) <= CARD_PAGE_LIMIT for m in details)
+    assert sum(m.count("a long note") for m in details) == full.count("a long note")
+    assert all(m.count("<blockquote expandable>") == m.count("</blockquote>") for m in details)
+
+
+def test_an_approve_is_acted_on_once_however_many_waits_see_it(db, tmp_path):
+    # Review of 2026-10-25: a wait that took the lock after the first had acted saw "approved" and acted again
+    topic = db.list_all_topics()[0]["id"]
+    db.create_run("run_once", topic)
+    db.update_run("run_once", "pending_approval", master_video_path=str(tmp_path / "m.mp4"))
+    db.record_approval("run_once", topic, 7)
+    db.update_approval_decision("run_once", "approved", decided_by="test")
+    acted = []
+    bot = SimpleNamespace(wait_for_decision=lambda run_id, seconds, **kw: "approved")
+    me = _coordinator(db, bot)
+    first = main.PipelineCoordinator._decide_review(
+        me, "run_once", lambda d: acted.append(d) or db.update_run("run_once", "scheduled") or {"booked": 1})
+    second = main.PipelineCoordinator._decide_review(me, "run_once", lambda d: acted.append(d) or {"booked": 2})
+    assert acted == ["approved"] and first == ("approved", {"booked": 1}) and second == ("approved", None)
+
+
+def test_a_resend_of_an_approved_review_is_refused(db, tmp_path):
+    import pytest
+    topic = db.list_all_topics()[0]["id"]
+    db.create_run("run_ap", topic)
+    db.update_run("run_ap", "pending_approval", master_video_path=str(tmp_path / "m.mp4"))
+    db.record_approval("run_ap", topic, 8)
+    db.update_approval_decision("run_ap", "approved", decided_by="test")
+    me = _coordinator(db, SimpleNamespace())
+    with pytest.raises(ValueError, match="already approved"):
+        main.PipelineCoordinator.request_approval(me, "run_ap", resend=True)
+
+
+def test_waits_racing_on_one_approve_act_once(db, tmp_path):
+    # The re-check's case: the first wait acting (its backup, its booking) while a resend's or the sweep's wait
+    # arrives; every wait sees "approved", one acts.
+    import threading
+    import time as _time
+    topic = db.list_all_topics()[0]["id"]
+    db.create_run("run_race", topic)
+    db.update_run("run_race", "pending_approval", master_video_path=str(tmp_path / "m.mp4"))
+    db.record_approval("run_race", topic, 9)
+    db.update_approval_decision("run_race", "approved", decided_by="test")
+    acted, results = [], []
+    bot = SimpleNamespace(wait_for_decision=lambda run_id, seconds, **kw: "approved")
+    me = _coordinator(db, bot)
+
+    def slow_act(decision):
+        acted.append(decision)
+        _time.sleep(0.3)                                                # the backup and booking take a while
+        db.update_run("run_race", "scheduled")                          # as _after_approval leaves it
+        return {"booked": True}
+
+    threads = [threading.Thread(target=lambda: results.append(main.PipelineCoordinator._decide_review(me, "run_race", slow_act)))
+               for _ in range(4)]
+    for t in threads:
+        t.start()
+        _time.sleep(0.02)
+    for t in threads:
+        t.join()
+    assert acted == ["approved"] and sum(1 for r in results if r[1]) == 1
+
+
+def test_an_approve_whose_action_failed_is_acted_on_again(db, tmp_path):
+    # Verification of c27168a: the "acted" mark stayed after the action raised, and the run sat approved,
+    # never posted, with a resend refused
+    import pytest
+    topic = db.list_all_topics()[0]["id"]
+    db.create_run("run_fail", topic)
+    db.update_run("run_fail", "pending_approval", master_video_path=str(tmp_path / "m.mp4"))
+    db.record_approval("run_fail", topic, 11)
+    db.update_approval_decision("run_fail", "approved", decided_by="test")
+    me = _coordinator(db, SimpleNamespace(wait_for_decision=lambda run_id, seconds, **kw: "approved"))
+
+    def boom(decision):
+        raise ValueError("release gate unavailable")
+    with pytest.raises(ValueError):
+        main.PipelineCoordinator._decide_review(me, "run_fail", boom)
+    acted = []
+    out = main.PipelineCoordinator._decide_review(me, "run_fail", lambda d: acted.append(d) or {"booked": True})
+    assert acted == ["approved"] and out == ("approved", {"booked": True})
+
+
+def test_an_interrupted_approve_with_nothing_booked_is_acted_on(db, tmp_path):
+    topic = db.list_all_topics()[0]["id"]
+    db.create_run("run_int", topic)
+    db.update_run("run_int", "pending_approval", master_video_path=str(tmp_path / "m.mp4"))
+    db.record_approval("run_int", topic, 12)
+    db.update_approval_decision("run_int", "approved", decided_by="test")
+    stamp = db.get_approval("run_int")["decision_timestamp"]
+    db.set_setting(main.PipelineCoordinator.REVIEW_ACTED_PREFIX + "run_int", stamp)   # marked, then the process ended
+    acted = []
+    me = _coordinator(db, SimpleNamespace(wait_for_decision=lambda run_id, seconds, **kw: "approved"))
+    main.PipelineCoordinator._decide_review(me, "run_int", lambda d: acted.append(d) or {})
+    assert acted == ["approved"]
+
+
+def test_every_reminder_a_wait_sent_is_removed(db):
+    from src.telegram_bot import TelegramApprovalBot
+    topic = db.list_all_topics()[0]["id"]
+    db.create_run("run_rem", topic)
+    db.record_approval("run_rem", topic, 13)
+    bot = TelegramApprovalBot(db=db, bot_token="123:abc", chat_id="555", approver_ids={"555"})
+    sent, deleted, polls = [], [], [0]
+    bot.notify = lambda text, **kw: sent.append(text) or (500 + len(sent))
+    bot._delete_soon = lambda mid: deleted.append(mid)
+    bot.background_polling = True
+    real = db.get_approval
+
+    def approval(run_id):
+        polls[0] += 1
+        if polls[0] == 3:
+            db.record_approval("run_rem", topic, 14)                # brought down again: a second reminder follows
+        if polls[0] == 6:
+            db.update_approval_decision("run_rem", "approved", decided_by="test")
+        return real(run_id)
+    db.get_approval = approval
+    assert bot.wait_for_decision("run_rem", 600, poll_interval=0, reminder_after=0) == "approved"
+    reminders = [500 + i + 1 for i, t in enumerate(sent) if t.startswith("⏰")]
+    assert len(reminders) == 2 and set(reminders) <= set(deleted)
+
+
+def test_an_approve_the_release_gate_refuses_is_settled_not_retried(db, tmp_path):
+    # Dev, 2026-10-26: a version the gate blocks, approved from the command line, was retried by the sweep
+    # every two minutes with an alert each time
+    import pytest
+    topic = db.list_all_topics()[0]["id"]
+    db.create_run("run_block", topic)
+    db.update_run("run_block", "pending_approval", master_video_path=str(tmp_path / "m.mp4"))
+    db.record_approval("run_block", topic, 15)
+    db.update_approval_decision("run_block", "approved", decided_by="cli")
+    me = _coordinator(db, SimpleNamespace(wait_for_decision=lambda run_id, seconds, **kw: "approved"),
+                      topic_engine=SimpleNamespace(record_status=lambda *a, **k: None))
+
+    def blocked(decision):
+        raise ValueError("Release blocked: visual_checks: a label is visible")
+    with pytest.raises(ValueError):
+        main.PipelineCoordinator._decide_review(me, "run_block", blocked)
+    run = db.get_run("run_block")
+    assert run["status"] == "failed" and "Approved, then refused: Release blocked" in run["error"]
+    acted = []                                                     # nothing acts on it again
+    assert main.PipelineCoordinator._decide_review(me, "run_block", lambda d: acted.append(d)) == ("approved", None)
+    assert acted == []
+
+
+def test_a_passing_failure_is_retried():
+    assert not main.PipelineCoordinator._refused_for_good(ValueError("Publication is in progress or its outcome is unknown"))
+    assert not main.PipelineCoordinator._refused_for_good(OSError("network"))
+    assert main.PipelineCoordinator._refused_for_good(ValueError("Release blocked: x"))

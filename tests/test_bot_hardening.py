@@ -29,7 +29,7 @@ def test_review_card_shows_the_release_gates_measurements_not_a_fixed_claim():
         {"name": "asset_rights", "status": "needs_review", "detail": ["C:/x/motion/motion_01.mp4"]}]}
     card = TelegramApprovalBot.format_card_text({"title": "T"}, "run_x", release=report)
     assert "42.3 s" in card and "-14.2 LUFS" in card and "A/V drift 7 ms" in card
-    assert "asset_rights: needs_review (motion_01.mp4)" in card
+    assert "asset_rights: motion_01.mp4" in card and "C:/x/motion" not in card
     assert "Balanced Sub-Bass" not in card
     assert "not run yet" in TelegramApprovalBot.format_card_text({"title": "T"}, "run_x")
 
@@ -44,6 +44,7 @@ def test_taps_made_while_down_are_applied_and_stale_commands_are_not(db, monkeyp
     ]
     bot, calls = _bot(db, monkeypatch, updates)
     bot.poll_once(lambda c, a: seen.append(c) or "ok")
+    bot.drain()
     first = next(d for m, d in calls if m == "getUpdates")
     assert "offset" not in first          # unconfirmed updates are fetched, not skipped
     assert seen == ["status"]             # the hour-old /run is not replayed
@@ -57,6 +58,7 @@ def test_clear_keeps_review_cards_waiting_for_a_decision(db, monkeypatch):
                                             "from": {"id": 555}, "chat": {"id": 555}}}]
     bot, calls = _bot(db, monkeypatch, updates)
     bot.poll_once(lambda c, a: "ok")
+    bot.drain()
     deleted = [mid for m, d in calls if m == "deleteMessages" for mid in __import__("json").loads(d["message_ids"])]
     assert deleted and 590 not in deleted and 599 in deleted
 
@@ -69,7 +71,7 @@ def test_slow_commands_run_beside_the_poller(db, monkeypatch):
     bot.poll_once(lambda c, a: time.sleep(1.0) or "answer")
     assert time.monotonic() - started < 0.8      # the poller is not blocked
     bot._background().shutdown(wait=True)
-    assert any(m == "sendMessage" and "answer" in d.get("text", "") for m, d in calls)
+    assert any(m in {"sendMessage", "editMessageText"} and "answer" in d.get("text", "") for m, d in calls)
 
 
 def test_chat_messages_never_carry_the_bot_token(db, monkeypatch):
@@ -88,8 +90,12 @@ def test_a_reused_clip_stays_on_its_own_photo(monkeypatch, db, tmp_path):
     monkeypatch.setattr("src.config.MEDIA_MONTHLY_BUDGET_USD", 5.0)
     monkeypatch.setattr("src.config.MOTION_MAX_CLIPS", 1)
     memo = {str(a): (clip, "kling")}
+    bought = []
+    monkeypatch.setattr(motion, "animate", lambda *a, **k: bought.append(a) or None)
+    monkeypatch.setattr(motion, "can_move", lambda p: False)   # b is not bought for here: only placement is tested
     scenes, used = motion.apply(db, [b, a], tmp_path / "m", memo=memo)  # the re-plan moved photo a to beat 2
-    assert scenes == [b, clip] and used == ["kling"]
+    # The clip opens the video or is not placed (2026-10-29): on beat 2 it is never moved onto b, and not used.
+    assert scenes == [b, a] and used == [] and bought == []
 
 
 def test_progress_of_a_finished_run_is_not_kept_alive(db):
@@ -110,15 +116,17 @@ def test_done_closes_a_card_and_navigation_keeps_its_buttons(db, monkeypatch):
     bot, calls = _bot(db, monkeypatch, upd)
     h = make_command_handler(db, lambda: None, lambda: "started")
     bot.poll_once(h)
+    bot.drain()
     assert any(m == "deleteMessage" and d.get("message_id") == 41 for m, d in calls)        # Done closed it
     calls.clear()
     upd.append({"update_id": 2, "callback_query": {"id": "q2", "data": "qrefresh:", "from": {"id": 555},
                                                    "message": {"chat": {"id": 555}, "message_id": 42}}})
     bot.poll_once(h)
+    bot.drain()
     edit = next(d for m, d in calls if m == "editMessageText")
     assert edit["message_id"] == 42                                                         # in place...
     buttons = [b["callback_data"] for row in _json.loads(edit["reply_markup"])["inline_keyboard"] for b in row]
-    assert "qrefresh:" in buttons and "done:" in buttons                                    # ...with its buttons
+    assert "qrefresh:" in buttons and "cdash:" in buttons                                    # ...with its buttons
     assert not any(m == "editMessageReplyMarkup" for m, d in calls)                         # never stripped first
 
 
@@ -152,6 +160,79 @@ def test_progress_eta_uses_how_long_recent_runs_took(monkeypatch, tmp_path):
     run.mkdir()
     (run / "timings.json").write_text(_json.dumps([
         {"stage": "a", "seconds": 60, "at": "2026-10-20T10:01:00Z"},
-        {"stage": "b", "seconds": 30, "at": "2026-10-20T10:20:00Z"}]), encoding="utf-8")
+        {"stage": "b", "seconds": 600, "at": "2026-10-20T10:15:00Z"},
+        {"stage": "review_proxy", "seconds": 20, "at": "2026-10-20T10:20:00Z"}]), encoding="utf-8")
     monkeypatch.setattr("src.config.OUTPUT_DIR", tmp_path)
     assert telegram_bot.typical_run_seconds() == 19 * 60 + 60   # first start to last finish
+    # A resumed run (2026-10-24: its stamps spanned two sessions hours apart) and one that stopped before
+    # its review are not a run's length.
+    resumed, early = tmp_path / "run_resumed", tmp_path / "run_early"
+    resumed.mkdir(), early.mkdir()
+    (resumed / "timings.json").write_text(_json.dumps([
+        {"stage": "a", "seconds": 60, "at": "2026-10-20T09:00:00Z"},
+        {"stage": "voiceover", "seconds": 0.1, "at": "2026-10-20T11:28:00Z"},
+        {"stage": "review_proxy", "seconds": 20, "at": "2026-10-20T11:45:00Z"}]), encoding="utf-8")
+    (early / "timings.json").write_text(_json.dumps([
+        {"stage": "script_and_fact_check", "seconds": 240, "at": "2026-10-20T12:04:00Z"}]), encoding="utf-8")
+    assert telegram_bot.typical_run_seconds() == 19 * 60 + 60
+
+
+
+def test_a_regeneration_is_estimated_from_past_regenerations(monkeypatch, tmp_path):
+    """Self-audit, production 2026-10-26: a regeneration that kept its voice and music took 10 min and was
+    promised ~27 min, judged by full runs. Each kind is now judged by its own kind."""
+    import json as _json
+    from src import telegram_bot
+    full, regen = tmp_path / "run_full", tmp_path / "run_regen"
+    full.mkdir(), regen.mkdir()
+    (full / "timings.json").write_text(_json.dumps([
+        {"stage": "voiceover", "seconds": 120, "at": "2026-10-20T10:02:00Z"},
+        {"stage": "master_render", "seconds": 1000, "at": "2026-10-20T10:20:00Z"},
+        {"stage": "review_proxy", "seconds": 20, "at": "2026-10-20T10:21:00Z"}]), encoding="utf-8")
+    (regen / "timings.json").write_text(_json.dumps([
+        {"stage": "voiceover", "seconds": 0.2, "at": "2026-10-21T10:00:01Z"},
+        {"stage": "review_proxy", "seconds": 20, "at": "2026-10-21T10:09:40Z"}]), encoding="utf-8")
+    monkeypatch.setattr("src.config.OUTPUT_DIR", tmp_path)
+    fresh = telegram_bot.typical_run_seconds(reused_voice=False)
+    kept = telegram_bot.typical_run_seconds(reused_voice=True)
+    assert fresh > 20 * 60 and kept < 11 * 60
+    settings = {"regenerating:run_y": "pictures"}
+    db = type("D", (), {"get_setting": lambda self, k: settings.get(k), "typical_step_seconds": lambda self, t: None})()
+    *_, eta_text = telegram_bot.progress_estimate(db, {"run_id": "run_y", "start_time": __import__("time").time()}, 1, 5)[:3]
+    assert "min" in eta_text and int(eta_text.split()[0].lstrip("~")) <= 11
+
+
+def test_progress_cards_name_the_work_each_step_does(db, monkeypatch):
+    # One list for the first card, live updates and Refresh; the old names were a step behind.
+    from src.telegram_bot import PROGRESS_STEPS
+    bot, calls = _bot(db, monkeypatch, [])
+    db.create_run("run_p", db.list_all_topics()[0]["id"])
+    bot.send_progress_card("run_p", "T")
+    first = [d["text"] for m, d in calls if m == "sendMessage"][-1]
+    assert all(step in first for step in PROGRESS_STEPS) and "Mastering narration" not in first
+    assert PROGRESS_STEPS[1].startswith("Music")  # what runs after the voiceover is reported
+
+
+def test_progress_is_weighted_by_how_long_each_step_takes(db):
+    # Measured on 8 runs: the script stage and the render are most of a run, the checks a minute
+    # (a flat 20% a step showed 60% done before the render had started).
+    from src.telegram_bot import STEP_SHARES, progress_figures, step_seconds
+    steps = step_seconds(db, 5, 1200.0)
+    assert steps == [share * 1200.0 for share in STEP_SHARES] and abs(sum(STEP_SHARES) - 1) < 1e-9
+    assert progress_figures(3, 5, 0, 1200.0, 0.0, steps)[1] == 52    # script, music and photos done
+    assert progress_figures(4, 5, 0, 1200.0, 0.0, steps)[1] == 96    # the render done
+    assert step_seconds(db, 5, None) is None                         # nothing known: it says so
+
+
+
+def test_a_slow_step_says_why_while_the_cause_is_fresh(monkeypatch):
+    """Self-audit, production 2026-10-26: a run promised ~16 min took 50 (free model timeouts, Telegram flood
+    control) with nothing on the card saying why."""
+    from src import slowdown, telegram_bot
+    monkeypatch.setattr(slowdown, "_latest", {})
+    bar, pct, eta = telegram_bot.progress_figures(2, 5, 900, 600, 600, [60, 60, 60, 60, 60])
+    assert "longer than usual" in eta and ":" not in eta.split(")")[-1]
+    slowdown.note("the free AI model is busy, retrying")
+    bar, pct, eta = telegram_bot.progress_figures(2, 5, 900, 600, 600, [60, 60, 60, 60, 60])
+    assert ": the free AI model is busy, retrying;" in eta
+    assert slowdown.current(now=__import__("time").time() + slowdown.FRESH_SECONDS + 1) == ""   # it goes stale

@@ -1,0 +1,297 @@
+{
+ "topic_id": "unfinished_obelisk_aswan",
+ "built_at": "2026-10-26T03:45:11.899816+00:00",
+ "facts": [
+  {
+   "id": "fact-1",
+   "statement": "The unfinished obelisk is located in the northern region of the ancient stone quarries in Aswan, Egypt.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Unfinished_obelisk",
+     "tier": 2,
+     "quote": "The unfinished obelisk is the largest known ancient obelisk  and is located in the northern region of the stone quarries of ancient Egypt in Aswan, Egypt."
+    }
+   ]
+  },
+  {
+   "id": "fact-2",
+   "statement": "The monument is the largest obelisk ever attempted by the ancient Egyptians, measuring nearly one-third larger than any obelisk ever erected.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://doi.org/10.5281/zenodo.21345371",
+     "tier": 3,
+     "quote": "The Unfinished Obelisk at Aswan, abandoned in its quarry pit during the New Kingdom, remains toour knowledge the largest obelisk ever attempted by the ancient Egyptians."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Unfinished_obelisk",
+     "tier": 2,
+     "quote": "The unfinished obelisk is nearly one-third larger than any ancient Egyptian obelisk ever erected."
+    }
+   ]
+  },
+  {
+   "id": "fact-3",
+   "statement": "If finished, the obelisk would have measured around 41.75 metres in length.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "Surveys place the completed monument's length between roughly 41.75 metres and 42 metres.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Unfinished_obelisk",
+     "tier": 2,
+     "quote": "If finished it would have measured around 41.75 metres (137.0 ft) and would have weighed nearly 1,090 tonnes (1,200 short tons)."
+    },
+    {
+     "url": "https://egymonuments.gov.eg/monuments/the-unfinished-obelisk/",
+     "tier": 3,
+     "quote": "Had it been finished, it would have weighed 1168 tonnes, and stood at a height of around 42 metres, taller than any other ancient Egyptian obelisk. to download A Guide to Aswan click here!"
+    }
+   ]
+  },
+  {
+   "id": "fact-4",
+   "statement": "Had the monolith been finished, it would have weighed nearly 1,090 tonnes.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "Calculations of the finished obelisk's weight range from nearly 1,090 tonnes to 1,168 tonnes.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Unfinished_obelisk",
+     "tier": 2,
+     "quote": "If finished it would have measured around 41.75 metres (137.0 ft) and would have weighed nearly 1,090 tonnes (1,200 short tons)."
+    },
+    {
+     "url": "https://egymonuments.gov.eg/monuments/the-unfinished-obelisk/",
+     "tier": 3,
+     "quote": "Had it been finished, it would have weighed 1168 tonnes, and stood at a height of around 42 metres, taller than any other ancient Egyptian obelisk. to download A Guide to Aswan click here!"
+    }
+   ]
+  },
+  {
+   "id": "fact-5",
+   "statement": "Ancient quarry workers carved the obelisk directly out of bedrock, leaving its bottom side still attached to the granite.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Unfinished_obelisk",
+     "tier": 2,
+     "quote": "The obelisk's creators began to carve it directly out of bedrock, but cracks appeared in the granite and the project was abandoned."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Unfinished_obelisk",
+     "tier": 2,
+     "quote": "The bottom side of the obelisk is still attached to the bedrock."
+    }
+   ]
+  },
+  {
+   "id": "fact-6",
+   "statement": "Work on the obelisk was abandoned after structural cracks and multiple fissures appeared in the granite.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Unfinished_obelisk",
+     "tier": 2,
+     "quote": "The obelisk's creators began to carve it directly out of bedrock, but cracks appeared in the granite and the project was abandoned."
+    },
+    {
+     "url": "https://egymonuments.gov.eg/monuments/the-unfinished-obelisk/",
+     "tier": 3,
+     "quote": "1473–1458 BC) for the temple of Amun in Karnak, work was abandoned because of flaws in the stone and the presence of multiple fissures."
+    }
+   ]
+  },
+  {
+   "id": "fact-7",
+   "statement": "The quarry trench preserves direct physical evidence of ancient stone-working techniques, including visible tool marks and ochre-colored lines marking where workers were cutting.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Unfinished_obelisk",
+     "tier": 2,
+     "quote": "The unfinished obelisk offers unusual insights into ancient Egyptian stone-working techniques, with marks from workers' tools still clearly visible as well as ochre-colored lines marking where they were working."
+    },
+    {
+     "url": "https://www.ucl.ac.uk/museums-static/digitalegypt/stone/quarries.html",
+     "tier": 1,
+     "quote": "XIX.2,3) The surface of the stone was then painted with red ochre to mark the stones, to be cut."
+    }
+   ]
+  },
+  {
+   "id": "fact-8",
+   "statement": "Quarry workers removed the upper layers of rock using burning and wedging before flattening the face of the obelisk.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://www.gutenberg.org/files/59320/59320-h/59320-h.htm",
+     "tier": 3,
+     "quote": "Removal of top layers of rock by burning and wedging • 4, 5 5."
+    },
+    {
+     "url": "https://www.gutenberg.org/files/59320/59320-h/59320-h.htm",
+     "tier": 3,
+     "quote": "Rendering the face of the obelisk flat • 7 9."
+    }
+   ]
+  },
+  {
+   "id": "fact-9",
+   "statement": "Early archaeological analysis identified two broad approaches ancient engineers could have used to extract the obelisk: removing the north wall to create an exit corridor, or raising it by sideways rocking-and-packing.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://doi.org/10.5281/zenodo.21345371",
+     "tier": 3,
+     "quote": "Engelbach (1922, 1923)established the foundational account of its quarrying and identified two broad approaches toextraction from the pit: removing the north wall to create an exit corridor, and raising the obelisk bysideways rocking-and-packing until it cleared the pit walls."
+    }
+   ]
+  },
+  {
+   "id": "fact-10",
+   "statement": "Modern engineering studies have not established which extraction method was intended, what forces and materials were required, or whether moving the monolith was within the structural limits of the granite.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://doi.org/10.5281/zenodo.21345371",
+     "tier": 3,
+     "quote": "Henein (2009) substantially advancedunderstanding of the undercutting geometry through analysis of a nearby partially-undercut block.Neither Engelbach nor Henein, however, worked through the mechanics of extraction in sufficientdetail to establish which approach was intended, what forces and materials were required, or whetherthe operation was within the structural limits of the granite itself.The extraction problem has attracted claims of mystery because no single solution has previouslybeen worked out in sufficient mechanical detail to be convincing."
+    }
+   ]
+  },
+  {
+   "id": "fact-11",
+   "statement": "The obelisk was commissioned during the New Kingdom, possibly ordered by Queen Hatshepsut for the Temple of Amun at Karnak to complement the monolith later known as the Lateran Obelisk.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://doi.org/10.5281/zenodo.21345371",
+     "tier": 3,
+     "quote": "The Unfinished Obelisk at Aswan, abandoned in its quarry pit during the New Kingdom, remains toour knowledge the largest obelisk ever attempted by the ancient Egyptians."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Unfinished_obelisk",
+     "tier": 2,
+     "quote": "Its creation was possibly ordered by Hatshepsut (1508–1458 BC), possibly to complement what would later be known as the Lateran Obelisk (which was originally at Karnak, and was later brought to the Lateran Palace in Rome)."
+    },
+    {
+     "url": "https://egymonuments.gov.eg/monuments/the-unfinished-obelisk/",
+     "tier": 3,
+     "quote": "1473–1458 BC) for the temple of Amun in Karnak, work was abandoned because of flaws in the stone and the presence of multiple fissures."
+    }
+   ]
+  },
+  {
+   "id": "fact-12",
+   "statement": "After lying covered by sand for thousands of years, the unfinished obelisk was uncovered in the early twentieth century and studied in detail by Reginald Engelbach in 1922.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Unfinished_obelisk",
+     "tier": 2,
+     "quote": "It was studied in detail by Reginald Engelbach in 1922."
+    },
+    {
+     "url": "https://egymonuments.gov.eg/monuments/the-unfinished-obelisk/",
+     "tier": 3,
+     "quote": "The Unfinished Obelisk was discovered in the early twentieth century after it had been covered by sand for thousands of years."
+    }
+   ]
+  },
+  {
+   "id": "fact-13",
+   "statement": "Archaeologists working at the Aswan quarries discovered an unfinished, partly worked obelisk base alongside ancient rock carvings in 2005.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Unfinished_obelisk",
+     "tier": 2,
+     "quote": "Besides the unfinished obelisk, an unfinished, partly worked obelisk base was discovered in 2005 at the quarries of Aswan."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Unfinished_obelisk",
+     "tier": 2,
+     "quote": "Also discovered were some rock carvings and remains that may correspond to the site where most of the famous obelisks were worked."
+    }
+   ]
+  }
+ ],
+ "dropped": [],
+ "sources": [
+  {
+   "title": "Scholarly work: The Unfinished Obelisk at Aswan: A Mechanical and Structural Analysis of Extraction",
+   "url": "https://doi.org/10.5281/zenodo.21345371",
+   "tier": 3
+  },
+  {
+   "title": "Peer-reviewed journal article (International Journal of Multidisciplinary Studies in Architecture and Cultural Heritage): Highlights on the Deterioration of Rock Art at Unfinished Obelisk Quarry in Aswan-Egypt",
+   "url": "https://doi.org/10.21608/ijmsac.2019.182180",
+   "tier": 3
+  },
+  {
+   "title": "Wikipedia: Unfinished obelisk",
+   "url": "https://en.wikipedia.org/wiki/Unfinished_obelisk",
+   "tier": 2
+  },
+  {
+   "title": "Wikipedia: Stone quarries of ancient Egypt",
+   "url": "https://en.wikipedia.org/wiki/Stone_quarries_of_ancient_Egypt",
+   "tier": 2
+  },
+  {
+   "title": "www.gutenberg.org",
+   "url": "https://www.gutenberg.org/files/59320/59320-h/59320-h.htm",
+   "tier": 3
+  },
+  {
+   "title": "whc.unesco.org",
+   "url": "https://whc.unesco.org/en/list/88",
+   "tier": 1
+  },
+  {
+   "title": "egymonuments.gov.eg",
+   "url": "https://egymonuments.gov.eg/monuments/the-unfinished-obelisk/",
+   "tier": 3
+  },
+  {
+   "title": "www.uffizi.it",
+   "url": "https://www.uffizi.it/en/artworks/doryphoros-torso",
+   "tier": 3
+  },
+  {
+   "title": "www.ucl.ac.uk",
+   "url": "https://www.ucl.ac.uk/museums-static/digitalegypt/stone/quarries.html",
+   "tier": 1
+  },
+  {
+   "title": "ancientegyptonline.co.uk",
+   "url": "https://ancientegyptonline.co.uk/abu-rawash/",
+   "tier": 3
+  }
+ ],
+ "rules_version": 2
+}

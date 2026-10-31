@@ -1,0 +1,83 @@
+{
+  "voynich": {
+    "share": "Send this to the codebreaker you know.",
+    "dim": {
+      "floor": 0.74,
+      "peak": 0.94,
+      "soften": 0.81,
+      "texture": 42.4,
+      "band": 22.8,
+      "band_std": 3.5,
+      "above": 34.5,
+      "below": 39.8
+    },
+    "box": [
+      196.5,
+      950.4,
+      883.5,
+      1009.6
+    ],
+    "share_lines": [
+      "Send this to the",
+      "codebreaker",
+      "you know."
+    ],
+    "share_size": 66,
+    "follow_size": 32,
+    "safe_width": 696
+  },
+  "nazca": {
+    "share": "Send this to the friend who'd spot the next one.",
+    "dim": {
+      "floor": 0.7,
+      "peak": 0.95,
+      "soften": 0.85,
+      "texture": 44.6,
+      "band": 18.2,
+      "band_std": 4.5,
+      "above": 39.7,
+      "below": 27.8
+    },
+    "box": [
+      196.5,
+      950.4,
+      883.5,
+      1009.6
+    ],
+    "share_lines": [
+      "Send this to the",
+      "friend who'd spot",
+      "the next one."
+    ],
+    "share_size": 66,
+    "follow_size": 32,
+    "safe_width": 696
+  },
+  "memnon": {
+    "share": "Send this to the friend who'd stay up for dawn.",
+    "dim": {
+      "floor": 0.68,
+      "peak": 0.96,
+      "soften": 0.85,
+      "texture": 60.7,
+      "band": 15.9,
+      "band_std": 5.6,
+      "above": 39.7,
+      "below": 34.5
+    },
+    "box": [
+      196.5,
+      950.4,
+      883.5,
+      1009.6
+    ],
+    "share_lines": [
+      "Send this to the",
+      "friend who'd",
+      "stay up for dawn."
+    ],
+    "share_size": 66,
+    "follow_size": 32,
+    "safe_width": 696
+  }
+}

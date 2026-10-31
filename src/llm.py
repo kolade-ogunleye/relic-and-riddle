@@ -25,6 +25,8 @@ Resilience and cost control:
 
 import contextvars
 import logging
+import re
+import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Callable, List, Optional, Tuple, Type, TypeVar, Union
@@ -107,7 +109,8 @@ def claude_available() -> bool:
 def _client() -> anthropic.Anthropic:
     if not claude_available():
         raise LLMError("ANTHROPIC_API_KEY is not configured.")
-    return anthropic.Anthropic(api_key=ANTHROPIC_API_KEY, max_retries=3)
+    # Retries are counted here, not inside the SDK (operator, 2026-10-25: Opus twice, then Sonnet once).
+    return anthropic.Anthropic(api_key=ANTHROPIC_API_KEY, max_retries=0)
 
 
 def call_cost(model: str, usage) -> float:
@@ -161,25 +164,55 @@ def _model_kwargs(model: str, effort: str) -> dict:
     return kw
 
 
+PRIMARY_TRIES = 2         # Opus (CLAUDE_MODEL): two tries
+FALLBACK_TRIES = 1        # then each fallback model (Sonnet) once, as the last try
+RETRY_PAUSE_SECONDS = 5
+
+
+def _send_again(send: Callable[[str], object], model: str):
+    """A continuation on the same model (a pause_turn): one more try if the connection or server fails."""
+    try:
+        return send(model)
+    except (anthropic.InternalServerError, anthropic.RateLimitError, anthropic.APIConnectionError):
+        time.sleep(RETRY_PAUSE_SECONDS)
+        return send(model)
+
+
 def _first_request(send: Callable[[str], object], models: Optional[List[str]] = None) -> Tuple[object, str]:
     """Sends the first request down the model chain. Returns (response, model used)."""
     last: Optional[Exception] = None
-    for model in model_chain(models):
-        try:
-            return send(model), model
-        except anthropic.BadRequestError as e:
-            if "credit" in str(e).lower():
-                raise CreditExhausted("Anthropic credit balance is too low; add credit in the Claude Console.") from e
-            if "usage limit" in str(e).lower():
-                raise CreditExhausted("The Anthropic account's API usage limit is reached (set in the Claude Console "
-                                      f"under Limits); raise it to continue. Details: {e}") from e
-            raise LLMError(f"Claude rejected the request: {e}") from e
-        except (anthropic.InternalServerError, anthropic.NotFoundError, anthropic.RateLimitError,
-                anthropic.APIConnectionError) as e:
-            log.warning("%s unavailable (%s); trying the next model.", model, type(e).__name__)
-            last = e
-        except anthropic.AuthenticationError as e:
-            raise LLMError("ANTHROPIC_API_KEY was rejected.") from e
+    from . import provider_status
+    chain = model_chain(models)
+    for position, model in enumerate(chain):
+        tries = PRIMARY_TRIES if position == 0 else FALLBACK_TRIES
+        for attempt in range(1, tries + 1):
+            try:
+                response = send(model)
+                provider_status.clear("claude")
+                return response, model
+            except anthropic.BadRequestError as e:
+                if "credit" in str(e).lower():
+                    provider_status.note_capped("claude", "the credit balance is too low; add credit in the Claude Console")
+                    raise CreditExhausted("Anthropic credit balance is too low; add credit in the Claude Console.") from e
+                if "usage limit" in str(e).lower():
+                    provider_status.note_capped("claude", "the API usage limit set in the Claude Console is reached; "
+                                                "raise it under Limits", until=provider_status.until_from(str(e)))
+                    raise CreditExhausted("The Anthropic account's API usage limit is reached (set in the Claude Console "
+                                          f"under Limits); raise it to continue. Details: {e}") from e
+                raise LLMError(f"Claude rejected the request: {e}") from e
+            except anthropic.NotFoundError as e:  # the model itself is not available: straight to the next one
+                log.warning("%s unavailable (%s); trying the next model.", model, type(e).__name__)
+                last = e
+                break
+            except (anthropic.InternalServerError, anthropic.RateLimitError, anthropic.APIConnectionError) as e:
+                last = e
+                if attempt < tries:
+                    log.warning("%s failed (%s); trying it once more.", model, type(e).__name__)
+                    time.sleep(RETRY_PAUSE_SECONDS)
+                    continue
+                log.warning("%s unavailable (%s); trying the next model.", model, type(e).__name__)
+            except anthropic.AuthenticationError as e:
+                raise LLMError("ANTHROPIC_API_KEY was rejected.") from e
     raise LLMError(f"All Claude models failed; last error: {last}")
 
 
@@ -213,6 +246,29 @@ def _collect_sources(blocks, sources: List[Source], seen: set) -> None:
                 sources.append(Source(title=title or url, url=url))
 
 
+class _CallRecord:
+    """One line in the run's llm_calls.jsonl for a web-searching call, whose turn may be several requests
+    (pause_turn continuations): their tokens are summed and the searches counted. Until 2026-10-24 only
+    structured calls were recorded, and the second opinion's 180-300k-token search request was invisible
+    in a run's evidence while it was the run's largest cost."""
+
+    def __init__(self):
+        import time as _time
+        self.started, self.tokens_in, self.tokens_out, self.searches = _time.perf_counter(), 0, 0, 0
+
+    def add(self, response) -> None:
+        usage = getattr(response, "usage", None)
+        self.tokens_in += int(getattr(usage, "input_tokens", 0) or 0)
+        self.tokens_out += int(getattr(usage, "output_tokens", 0) or 0)
+        self.searches += int(getattr(getattr(usage, "server_tool_use", None), "web_search_requests", 0) or 0)
+
+    def done(self, model: str, outcome: str = "ok") -> None:
+        import time as _time
+        from .ops import record_llm_call
+        record_llm_call(current_task(), model, _time.perf_counter() - self.started, tokens_in=self.tokens_in,
+                        tokens_out=self.tokens_out, outcome=outcome, searches=self.searches)
+
+
 def research(system: str, prompt: str, *, web_search_uses: int, effort: str = "high",
              max_tokens: int = 16000, models: Optional[List[str]] = None) -> Tuple[str, List[Source]]:
     """Web-search-grounded answer. Returns (text, sources the search actually returned)."""
@@ -239,22 +295,29 @@ def research(system: str, prompt: str, *, web_search_uses: int, effort: str = "h
                 )
             raise
 
-    response, model = _first_request(send, models)
-    for _ in range(_MAX_CONTINUATIONS):
-        _record(response)
-        _collect_sources(response.content, sources, seen)
-        if response.stop_reason == "pause_turn":
-            # Long server-tool turn: resume on the same model with the partial turn unchanged.
-            messages.append({"role": "assistant", "content": response.content})
-            response = send(model)
-            continue
-        _check_stop(response)
+    record, model = _CallRecord(), "claude"
+    try:
+        response, model = _first_request(send, models)
+        for _ in range(_MAX_CONTINUATIONS):
+            _record(response)
+            record.add(response)
+            _collect_sources(response.content, sources, seen)
+            if response.stop_reason == "pause_turn":
+                # Long server-tool turn: resume on the same model with the partial turn unchanged.
+                messages.append({"role": "assistant", "content": response.content})
+                response = _send_again(send, model)
+                continue
+            _check_stop(response)
 
-        text = "".join(b.text for b in response.content if b.type == "text").strip()
-        if not text:
-            raise LLMError("Research returned no text.")
-        return text, sources
-    raise LLMError("Claude did not finish after repeated pause_turn continuations.")
+            text = "".join(b.text for b in response.content if b.type == "text").strip()
+            if not text:
+                raise LLMError("Research returned no text.")
+            record.done(model)
+            return text, sources
+        raise LLMError("Claude did not finish after repeated pause_turn continuations.")
+    except Exception as e:  # the run's record says what failed and how long it took
+        record.done(model, outcome=type(e).__name__)
+        raise
 
 
 def research_with_evidence(system: str, prompt: str, *, web_search_uses: int, effort: str = "high",
@@ -289,29 +352,36 @@ def research_with_evidence(system: str, prompt: str, *, web_search_uses: int, ef
                 )
             raise
 
-    response, model = _first_request(send, models)
-    for _ in range(_MAX_CONTINUATIONS):
-        _record(response)
-        _collect_sources(response.content, sources, seen)
-        for block in response.content:
-            if getattr(block, "type", None) != "text":
+    record, model = _CallRecord(), "claude"
+    try:
+        response, model = _first_request(send, models)
+        for _ in range(_MAX_CONTINUATIONS):
+            _record(response)
+            record.add(response)
+            _collect_sources(response.content, sources, seen)
+            for block in response.content:
+                if getattr(block, "type", None) != "text":
+                    continue
+                for c in block.citations or []:
+                    quote = (getattr(c, "cited_text", "") or "").strip()
+                    url = getattr(c, "url", None)
+                    if url and quote and (url, quote) not in seen_quotes:
+                        seen_quotes.add((url, quote))
+                        quotes.append({"url": url, "title": getattr(c, "title", "") or url, "quote": quote})
+            if response.stop_reason == "pause_turn":
+                messages.append({"role": "assistant", "content": response.content})
+                response = _send_again(send, model)
                 continue
-            for c in block.citations or []:
-                quote = (getattr(c, "cited_text", "") or "").strip()
-                url = getattr(c, "url", None)
-                if url and quote and (url, quote) not in seen_quotes:
-                    seen_quotes.add((url, quote))
-                    quotes.append({"url": url, "title": getattr(c, "title", "") or url, "quote": quote})
-        if response.stop_reason == "pause_turn":
-            messages.append({"role": "assistant", "content": response.content})
-            response = send(model)
-            continue
-        _check_stop(response)
-        text = "".join(b.text for b in response.content if b.type == "text").strip()
-        if not text:
-            raise LLMError("Research returned no text.")
-        return text, sources, quotes
-    raise LLMError("Claude did not finish after repeated pause_turn continuations.")
+            _check_stop(response)
+            text = "".join(b.text for b in response.content if b.type == "text").strip()
+            if not text:
+                raise LLMError("Research returned no text.")
+            record.done(model)
+            return text, sources, quotes
+        raise LLMError("Claude did not finish after repeated pause_turn continuations.")
+    except Exception as e:
+        record.done(model, outcome=type(e).__name__)
+        raise
 
 
 def image_block(path, max_side: int = 512) -> dict:
@@ -359,12 +429,140 @@ def structured_call(system: str, prompt: Union[str, list], schema: Type[T], *, e
                 )
             raise
 
-    response, _ = _first_request(send, models)
+    from .ops import record_llm_call
+    import time as _time
+    started = _time.perf_counter()
+    for attempt in (1, 2):
+        try:
+            response, model_used = _first_request(send, models)
+            break
+        except ValueError as e:
+            # The SDK could not parse the answer (pydantic's ValidationError is a ValueError): a truncated or
+            # degenerate body, as when a trace check repeated "ok." until max_tokens (writer trial, 2026-10-24).
+            # One more sample usually parses; after that the caller gets an LLMError, not a crash.
+            record_llm_call(current_task(), "claude", _time.perf_counter() - started, outcome=type(e).__name__)
+            if attempt == 2:
+                raise LLMError(f"Claude's structured answer did not parse twice: {str(e)[:200]}") from e
+            log.warning("Claude's structured answer did not parse (%s); asking once more.", str(e)[:120])
+            started = _time.perf_counter()
+        except Exception as e:  # the run's record says what failed and how long it took
+            record_llm_call(current_task(), "claude", _time.perf_counter() - started, outcome=type(e).__name__)
+            raise
+    usage = getattr(response, "usage", None)
+    record_llm_call(current_task(), model_used, _time.perf_counter() - started,
+                    tokens_in=int(getattr(usage, "input_tokens", 0) or 0), tokens_out=int(getattr(usage, "output_tokens", 0) or 0))
     _record(response)
     _check_stop(response)
     if response.parsed_output is None:
         raise LLMError(f"No structured output returned (stop_reason={response.stop_reason}).")
     return response.parsed_output
+
+
+def current_task() -> str:
+    """The task label of the model call in progress (llm.task), or ''."""
+    try:
+        return _task.get() or ""
+    except LookupError:
+        return ""
+
+
+# A model's own working notes left in a verdict's reason (production Derinkuyu, 2026-10-29: "Wait, make sure no
+# control tokens or formatting errors inside JSON." was logged as a picture check's reason). A sentence that talks
+# to itself or about the answer's format is not a reason; the verdict it came with stands.
+_SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+")
+# Run audit 2026-10-29 (production Derinkuyu): "Well alright, let's wrap this up...", "Done well done perfectly
+# done..." also came back as reasons; a sentence that opens by winding the answer up is working notes too.
+_SELF_TALK = re.compile(
+    r"^\W*(?:wait\b|hmm+\b|let me\b|double[- ]check|re-?check\b|make sure\b|note to self|self[- ]correction|"
+    r"on second thought|(?:ok(?:ay)?|alright|so|now),?\s+(?:let me|wait)\b|"
+    r"(?:well,?\s+)?(?:ok(?:ay)?|alright|all right|so|now)[,.!]?\s+let'?s\b|well,?\s+(?:alright|all right|ok(?:ay)?)\b|"
+    r"let'?s\s+(?:wrap|finish|double|re-?check|make sure|output|write|format)\b|done\b[\s,.!]*(?:well|perfectly|done)\b)",
+    re.IGNORECASE)
+_FORMAT_TALK = re.compile(r"\b(?:json|control tokens?|formatting errors?|output format)\b|```", re.IGNORECASE)
+_FIELD_NAME = re.compile(r"\b[a-z]+_[a-z_]+\b")   # "text_edge", "shows_subject": the answer's own fields named
+REASON_MAX_CHARS = 300   # a one-sentence reason; longer is a model running on (Richat's cached 21,768-character one)
+_ECHO_WORDS = 8          # this many words in a row from the question: the question repeated, not a reason
+
+
+def _reason_words(text: str) -> List[str]:
+    return re.findall(r"[a-z0-9]+(?:'[a-z]+)?", str(text or "").lower())
+
+
+def _repeat_at(words: List[str], n: int = 3, times: int = 3) -> int:
+    """Where a degenerate repetition starts: the index of the second occurrence of the first `n`-word run that
+    occurs `times` times, or -1. A run said twice is ordinary prose; three times is a model looping."""
+    seen: dict = {}
+    for i in range(len(words) - n + 1):
+        seen.setdefault(tuple(words[i:i + n]), []).append(i)
+    looping = [spots for spots in seen.values() if len(spots) >= times]
+    return min(spots[1] for spots in looping) if looping else -1
+
+
+_COMMON = {"the", "a", "an", "of", "and", "or", "in", "on", "at", "to", "is", "it", "its", "this", "that", "with",
+           "not", "no", "as", "by", "for", "from", "are", "be", "which", "photo", "picture", "image", "shows"}
+
+
+def _repetitive(words: List[str]) -> bool:
+    """A reason that loops: a three-word run three times, or one word making a fifth of five or more words
+    ("Done well done perfectly done")."""
+    if _repeat_at(words) >= 0:
+        return True
+    content = [w for w in words if w not in _COMMON and len(w) > 2]
+    if len(words) < 5 or not content:
+        return False
+    top = max(content.count(w) for w in set(content))
+    return top >= 3 and top / len(words) >= 0.2
+
+
+def degenerate_reason(text: str, prompt: str = "") -> str:
+    """Why `text`, a model's one-line reason, cannot be trusted as an answer at all, or "" when it can: it runs
+    past REASON_MAX_CHARS, repeats itself, holds the model's working notes ("Wait, ...", "Well alright, let's
+    ..."), names the answer's fields, or repeats `prompt` (the question it was asked) _ECHO_WORDS words at a time.
+    A caller asks again rather than keep such an answer (run audit 2026-10-29: these were cached as verdicts)."""
+    text = " ".join(str(text or "").split())
+    if not text:
+        return ""
+    if len(text) > REASON_MAX_CHARS:
+        return f"its reason runs to {len(text)} characters"
+    words = _reason_words(text)
+    if _repetitive(words):
+        return "its reason repeats itself"
+    if any(_SELF_TALK.match(s) or _FORMAT_TALK.search(s) for s in _SENTENCE_SPLIT.split(text)):
+        return "its reason holds the model's working notes"
+    if _FIELD_NAME.search(text):
+        return "its reason names the answer's fields"
+    asked = _reason_words(prompt)
+    if len(words) >= _ECHO_WORDS and len(asked) >= _ECHO_WORDS:
+        runs = {tuple(asked[i:i + _ECHO_WORDS]) for i in range(len(asked) - _ECHO_WORDS + 1)}
+        if any(tuple(words[i:i + _ECHO_WORDS]) in runs for i in range(len(words) - _ECHO_WORDS + 1)):
+            return "its reason repeats the question"
+    return ""
+
+
+def verdict_reason(text: str) -> str:
+    """`text` (a model's one-line reason for a verdict) without its stray reasoning: only clearly meta sentences,
+    the model talking to itself ("Wait, ...", "Let me ...", "make sure ...", "Well alright, let's ...") or about
+    the answer's format (JSON, control tokens), a sentence said again, and a loop (a three-word run said a third
+    time: cut where it starts repeating); at most REASON_MAX_CHARS, cut at a word. A reason that starts "OK," or
+    "I think" is a reason and stays. The verdict is never changed here; "" when nothing is left. Applied to cached
+    reasons too, so an old run-on is not logged whole."""
+    text = " ".join(str(text or "").split())
+    if not text:
+        return ""
+    kept, said = [], set()
+    for s in _SENTENCE_SPLIT.split(text):
+        key = " ".join(_reason_words(s))
+        if s.strip() and not _SELF_TALK.match(s) and not _FORMAT_TALK.search(s) and key not in said:
+            kept.append(s)
+            said.add(key)
+    out = " ".join(kept).strip()
+    words = out.split()
+    loop = _repeat_at([" ".join(_reason_words(w)) for w in words])
+    if loop >= 0:
+        out = " ".join(words[:loop]).rstrip(" ,;:") + "…"
+    if len(out) > REASON_MAX_CHARS:
+        out = out[:REASON_MAX_CHARS].rsplit(" ", 1)[0].rstrip(" ,;:") + "…"
+    return out
 
 
 def format_sources(sources: List[Source]) -> str:

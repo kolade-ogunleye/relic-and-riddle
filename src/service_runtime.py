@@ -88,7 +88,7 @@ def execute(command, settings, *, snapshot_id=""):
         # Local deliverable archiving preserves the environment's existing flag.
         config.BACKUP_TRANSPORT = "sync-folder"
         os.chdir(settings.app_root)
-        sys.argv = [str(settings.app_root / "main.py"), "daemon", "--dry-run"]
+        sys.argv = [str(settings.app_root / "main.py"), "daemon"]  # live since 2026-10-25 (operator): every production run is a posting candidate
         runpy.run_path(sys.argv[0], run_name="__main__")
         return {"contract_version": CONTRACT_VERSION, "state": "stopped"}, 0
     configure_backup(settings, config)

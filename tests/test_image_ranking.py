@@ -9,7 +9,7 @@ def page(title, w, h, grade_cat=None):
     cats = [{"title": grade_cat}] if grade_cat else []
     return {"title": f"File:{title}.jpg", "categories": cats, "imageinfo": [{
         "mime": "image/jpeg", "width": w, "height": h, "url": "u", "size": 1000, "descriptionurl": "d",
-        "extmetadata": {"LicenseShortName": {"value": "CC BY 4.0"}}}]}
+        "extmetadata": {"LicenseShortName": {"value": "CC BY 4.0"}, "Artist": {"value": "A. Photographer"}}}]}
 
 
 def test_grade_then_resolution():
@@ -127,3 +127,26 @@ def test_namesakes_and_off_topic_fallbacks_are_refused(monkeypatch, tmp_path):
     import json
     titles = [i["title"] for i in json.loads((tmp_path / "zhang" / "credits.json").read_text())["images"]]
     assert titles == ["File:Zhang Heng seismoscope replica.jpg"]
+
+
+def test_share_alike_only_fills_what_open_licences_cannot(monkeypatch, tmp_path):
+    from src import config
+    monkeypatch.setattr(config, "IMAGES_ALLOW_SHARE_ALIKE", True)
+    sa = page("Zhang Heng seismoscope share alike", 4000, 3000)
+    sa["imageinfo"][0]["extmetadata"]["LicenseShortName"]["value"] = "CC BY-SA 4.0"
+    open_ = page("Zhang Heng seismoscope open", 3000, 2000)
+    monkeypatch.setattr(fetch, "search", lambda q, **k: [sa, open_])   # the BY-SA one ranks higher (bigger)
+    monkeypatch.setattr(fetch, "search_graded", lambda q, **k: [])
+    monkeypatch.setattr("src.museum_sources.search_all", lambda q, kws: [])
+    monkeypatch.setattr(fetch, "find_categories", lambda *a, **k: [])
+    monkeypatch.setattr(fetch, "search_openverse", lambda q, limit=15: [])
+    monkeypatch.setattr(fetch, "download_jpeg", lambda url, dest, **k: dest.write_bytes(b"jpg"))
+    monkeypatch.setattr("src.storyboard.generate_storyboard", lambda *a, **k: None)
+    spec = {"queries": ["Zhang Heng"], "keywords": ["zhang heng", "seismoscope"]}
+    import json
+    fetch.fetch_topic({"id": "z1", "title": "Zhang Heng"}, spec, allow_sa=True, target_images=1, assets_dir=tmp_path)
+    one = [i["license"] for i in json.loads((tmp_path / "z1" / "credits.json").read_text())["images"]]
+    assert one == ["CC BY 4.0"]                                         # open licence first, BY-SA not needed
+    fetch.fetch_topic({"id": "z2", "title": "Zhang Heng"}, spec, allow_sa=True, target_images=2, assets_dir=tmp_path)
+    two = [i["license"] for i in json.loads((tmp_path / "z2" / "credits.json").read_text())["images"]]
+    assert two == ["CC BY 4.0", "CC BY-SA 4.0"]                         # BY-SA only fills the gap

@@ -11,9 +11,11 @@
 - Keep development's existing feature flags and spending settings unchanged.
   Production uses its own configured licensed providers and existing spending
   caps. Do not equate dry-run mode with zero API cost.
-- Production remains in validation/dry-run mode until explicitly activated.
-  Archive validation runs before activation; retain all paid usage records,
-  publication evidence, operator settings, and backups.
+- Production was activated by the operator on 2026-10-25: there is no dry run on
+  production, and every run is a posting candidate (approval still decides). The
+  validation runs were archived first (`archive/reset-<UTC>` on the VM, made by
+  `scripts/production_reset.py`); keep publication evidence, operator settings and
+  backups.
 - See `docs/deployment.md` for provisioning, validation, promotion, and rollback.
 - Production startup was migrated through the lab's controlled automation to
   `RelicAndRiddle-Production-Unattended` (`LAB\rr-pipeline$`) and
@@ -30,6 +32,14 @@
   `docs/deployment-reconciliation.md` for the current ownership and backlog.
   Deployment uses approved host administration; source ownership does not grant
   the daily SSH user administrative privileges.
+- Once the release deployer is installed (`docs/deployment.md`, "Automatic
+  release deployment"), production installs signed release tags itself as
+  `LAB\rr-deploy$`. A smartcard-signed tag is the release approval: sign only a
+  commit that passed the full suite and the development test, and never sign on
+  the operator's behalf without their go-ahead for that release. Do not weaken
+  the signer list, the idle gate or the rollback to get a release out; the
+  elevated promotion procedure stays the fallback and is required to install or
+  change the deployer and launcher.
 - Address Telegram defects before an end-to-end production episode/approval run.
   Focused runtime/provider acceptance checks and release reconciliation may be
   performed independently when requested. An empty issue table or an old

@@ -1,0 +1,152 @@
+{
+ "A_derinkuyu_cc_by_sa": {
+  "photo": "assets\\derinkuyu_underground_city\\18_commons.jpg",
+  "license": "CC BY-SA 3.0",
+  "artist_field_chars": 778,
+  "credit_record": {
+   "required": true,
+   "author": "Wolfgang Moroder",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "share_alike": true,
+   "source_url": "https://commons.wikimedia.org/wiki/File:Rolling_stone_door_Derinkuyu.jpg",
+   "lines": [
+    "Photo: Wolfgang Moroder · CC BY-SA 3.0 · adapted: cropped, with text added",
+    "This frame: CC BY-SA 4.0 · creativecommons.org/licenses/by-sa/4.0"
+   ],
+   "drawn": [
+    "Photo: Wolfgang Moroder · CC BY-SA 3.0",
+    "adapted: cropped, with text added",
+    "This frame: CC BY-SA 4.0 · creativecommons.org/licenses/by-sa/4.0"
+   ],
+   "px": 26,
+   "backing": [
+    75,
+    1128,
+    1004,
+    1244
+   ],
+   "contrast_unshaded": 6.13,
+   "contrast": 6.13,
+   "complete": false,
+   "box": [
+    89,
+    1134,
+    990,
+    1234
+   ]
+  },
+  "elements": [
+   {
+    "name": "kicker",
+    "box": [
+     271,
+     596,
+     808,
+     646
+    ]
+   },
+   {
+    "name": "title_1",
+    "box": [
+     420,
+     663,
+     660,
+     760
+    ]
+   },
+   {
+    "name": "title_2",
+    "box": [
+     198,
+     779,
+     881,
+     876
+    ]
+   },
+   {
+    "name": "body",
+    "box": [
+     139,
+     924,
+     940,
+     1067
+    ]
+   },
+   {
+    "name": "photo_credit",
+    "box": [
+     89,
+     1134,
+     990,
+     1234
+    ]
+   }
+  ],
+  "problems": [],
+  "safe_box": [
+   65,
+   269,
+   1015,
+   1248
+  ],
+  "contrast_at_credit_band": 5.16
+ },
+ "B_antikythera_cc0": {
+  "photo": "assets\\antikythera_mechanism\\15_commons.jpg",
+  "license": "CC0",
+  "artist_field_chars": 30,
+  "credit_record": {
+   "required": false,
+   "reason": "licence asks for no attribution",
+   "license": "CC0",
+   "lines": []
+  },
+  "elements": [
+   {
+    "name": "kicker",
+    "box": [
+     347,
+     711,
+     732,
+     761
+    ]
+   },
+   {
+    "name": "title_1",
+    "box": [
+     381,
+     778,
+     699,
+     873
+    ]
+   },
+   {
+    "name": "title_2",
+    "box": [
+     264,
+     894,
+     815,
+     991
+    ]
+   },
+   {
+    "name": "body",
+    "box": [
+     165,
+     1039,
+     914,
+     1136
+    ]
+   }
+  ],
+  "problems": [],
+  "safe_box": [
+   65,
+   269,
+   1015,
+   1248
+  ],
+  "contrast_at_credit_band": 7.74
+ }
+}

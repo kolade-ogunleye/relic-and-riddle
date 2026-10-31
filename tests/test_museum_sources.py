@@ -48,6 +48,6 @@ def test_smithsonian_key_travels_in_a_header_not_the_url(monkeypatch):
         seen.update(params=params, headers=headers)
         return {"response": {"rows": []}}
     monkeypatch.setattr(ms, "_get", get)
-    monkeypatch.setenv("SMITHSONIAN_API_KEY", "secret-key")
+    monkeypatch.setattr("src.config.SMITHSONIAN_API_KEY", "secret-key")  # read once, in config
     ms.smithsonian_search("x")
     assert seen["headers"] == {"X-Api-Key": "secret-key"} and "secret-key" not in str(seen["params"])

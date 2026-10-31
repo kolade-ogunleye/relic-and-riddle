@@ -2,7 +2,7 @@
 
 *Relics and riddles of history, in 45 seconds.*
 
-A documentary production pipeline that researches, fact-checks, voices, renders and publishes short vertical Reels (9:16) about historical curiosities and ancient marvels, with an optional 16:9 documentary cut. Every on-screen and spoken claim is traced to quoted evidence in a verified fact sheet, every asset carries provenance and rights evidence, and nothing posts until a human approves it in Telegram.
+A documentary production pipeline that researches, fact-checks, voices, renders and publishes short vertical Reels (9:16) about historical curiosities and ancient marvels, with an optional 16:9 documentary cut (a work in progress, paused in production by `VIDEO_FORMATS`: see `docs/documentary-rebuild.md`). Approved Reels can also be uploaded as YouTube Shorts (`YOUTUBE_SHORTS`). Every on-screen and spoken claim is traced to quoted evidence in a verified fact sheet, every asset carries provenance and rights evidence, and nothing posts until a human approves it in Telegram.
 
 ```
 Evidence (UNESCO registry + Wikipedia + OpenAlex scholarly works)
@@ -178,14 +178,14 @@ python main.py backup [--all]
 When the daemon or the bot is running, approvers can work from Telegram:
 
 - **Review cards:** 720p preview, covers, transcript and fact notes, with Approve / Reject / Regenerate.
-- **Commands (selection):** `/status`, `/next`, `/run`, `/pause`, `/resume`, `/queue`, `/covers`, `/images`, `/review N`, `/drop N 2 4`, `/swap N 2 4`, `/propose`, `/music`, `/issue`, `/alerts`, `/help` for the full list. Send a video with the caption `/footage <topic>` to add footage.
+- **Commands (selection):** `/dashboard`, `/render` (`/render 4`: that topic, moved to the front), `/produce 3`, `/reviews`, `/posts` (with `slots`, and `now`, `move`, `cancel`, `retry` followed by the episode's number on Posting), `/status`, `/queue` (with `bump 4`, `drop 4`, `requeue 4`, `undo`, `all`), `/photos 4` (with `fetch`, `review`, `keep 2 7`, `drop 1 5`, `upload`), `/covers`, `/music`, `/ideas`, `/pause`, `/resume`; `/help` lists every group. The older names were removed on 2026-10-25; only Telegram's own `/start` opens the Dashboard. Send a photo with the caption `/photos <topic> | source: URL | licence: … | licence_url: URL | author: Name` to add it to a set. Send a video (up to 20 MB) with the caption `/footage <topic> | source: URL | licence: … | licence_url: URL` to add footage. Posting lists every booked episode; 🗓 Slots shows the coming week's Reel, Stories and carousel slots, booked or free, and the slot each waiting carousel will take. Post now and Cancel ask before they act.
 - **Alerts:** published, failed and timed-out runs, voice fallbacks, missed posting slots and the daily heartbeat.
 
 ---
 
 ## Tests
 
-61 test modules, 528 tests, all network-blocked (a test that opens a real connection fails):
+1,203 tests (1,197 in the deployer's git-less, ffmpeg-only environment), all network-blocked (a test that opens a real connection fails):
 
 ```bash
 pytest -q

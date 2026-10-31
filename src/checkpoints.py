@@ -18,6 +18,19 @@ def file_inputs(paths):
     return {str(Path(p).resolve()): sha256_file(Path(p)) for p in paths}
 
 
+def portable_inputs(run_dir, paths):
+    """file_inputs keyed by the name of a file inside run_dir (and the path of one outside it), so a
+    stage's record means the same in another run's folder: a regeneration carries the music bed over
+    with the voiceover it was made for (2026-10-24)."""
+    run_dir = Path(run_dir).resolve()
+    out = {}
+    for p in paths:
+        p = Path(p).resolve()
+        key = p.name if p.parent == run_dir else str(p)
+        out[key] = sha256_file(p)
+    return out
+
+
 class Checkpoints:
     def __init__(self, run_dir):
         self.path = Path(run_dir) / "checkpoints.json"
@@ -36,11 +49,19 @@ class Checkpoints:
                     all(expected and sha256_file(Path(p)) == expected for p, expected in outputs.items()))
 
     def complete(self, stage, inputs, outputs):
+        self._write(stage, fingerprint(inputs), outputs)
+
+    def adopt(self, stage, inputs_fingerprint, outputs):
+        """A stage's record carried over from another run of the same work (its inputs fingerprint, these
+        copies of its outputs): a regeneration reuses the voiceover it already paid for."""
+        self._write(stage, inputs_fingerprint, outputs)
+
+    def _write(self, stage, inputs_fingerprint, outputs):
         hashes = file_inputs(outputs)
         if not hashes or not all(hashes.values()):
             raise ValueError(f"Cannot checkpoint incomplete stage: {stage}")
         records = self.read()
-        records[stage] = {"inputs": fingerprint(inputs), "outputs": hashes}
+        records[stage] = {"inputs": inputs_fingerprint, "outputs": hashes}
         self.path.parent.mkdir(parents=True, exist_ok=True)
         handle, temporary = tempfile.mkstemp(dir=self.path.parent, suffix=".json.tmp")
         try:

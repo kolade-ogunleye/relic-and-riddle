@@ -105,6 +105,10 @@ class ScriptCore(BaseModel):
     carousel_slides: List[CarouselSlide]
     sources: List[Source]
     carousel_caption: Optional[str] = None  # its own text: Meta/Upload-Post flag duplicate captions
+    # One warm sentence asking viewers to share this with someone and to follow for the next story (Meta's
+    # creator tips, 2026-10-25): shown at the end of the video, in both captions and on the last carousel
+    # slide. Optional: older and curated scripts get a plain line (script_engine.share_prompt).
+    share_line: Optional[str] = None
 
 
 class GraphicsPlan(BaseModel):
@@ -156,6 +160,10 @@ class DeepDivePackage(BaseModel):
 
 # Structured outputs may vary enum casing ("Supported"), so normalize before validating.
 Verdict = Annotated[Literal["supported", "disputed", "unsupported", "false"], BeforeValidator(lambda v: str(v).strip().lower())]
+# A claim that passed, in each checker's own word: the fact checker's "supported", the trace check's
+# "traced", the second check's "supported"/"hedged_ok". The card counted only "supported", so 23 traced
+# claims showed as "Integrity Alert: 23 disputed/hedged" (production, 2026-10-23).
+GOOD_VERDICTS = frozenset({"supported", "traced", "hedged_ok"})
 
 
 class ClaimAudit(BaseModel):
@@ -233,6 +241,12 @@ class BeatQuery(BaseModel):
     beat: int            # 1-based beat number
     query: str           # Wikimedia Commons search for the concrete subject of that beat
     keywords: List[str]  # lowercase words, one of which a relevant file title must contain
+    place: Optional[str] = None  # the named place the subject is at, when it is not the documentary's own site
+    # The sentence is about something that is not the documentary's subject or site (modern concrete in a Roman
+    # concrete video, 2026-10-30): then `broad` is a 2-3 word general search for it, asked outside the topic's
+    # category. False for anything about the subject itself, however generic its words.
+    outside_topic: bool = False
+    broad: Optional[str] = None
 
 
 class BeatQueries(BaseModel):

@@ -17,6 +17,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
 import requests
+from urllib.parse import quote
 
 from . import config
 from .config import is_configured
@@ -26,6 +27,7 @@ log = logging.getLogger(__name__)
 CHECK_HOURS = 12
 NEEDED = ("instagram", "facebook")
 SETTING = "publishing_check"
+SCHEMA_VERSION = 3
 
 
 def _upload_post() -> Dict[str, Any]:
@@ -35,14 +37,21 @@ def _upload_post() -> Dict[str, Any]:
     headers = {"Authorization": f"Apikey {config.UPLOAD_POST_API_KEY}"}
     out: Dict[str, Any] = {"configured": True}
     try:
-        body = requests.get(f"{base}/uploadposts/users/{config.UPLOAD_POST_USER}", headers=headers, timeout=30).json()
-        accounts = (body.get("profile") or {}).get("social_accounts") or {}
+        response = requests.get(f"{base}/uploadposts/users/{quote(config.UPLOAD_POST_USER, safe='')}", headers=headers, timeout=30)
+        response.raise_for_status()
+        body = response.json()
+        profile = body.get("profile")
+        if body.get("success") is False or not isinstance(profile, dict) or not isinstance(profile.get("social_accounts"), dict):
+            raise ValueError("Unexpected profile response")
+        accounts = profile["social_accounts"]
         out["connected"] = sorted(k for k, v in accounts.items() if isinstance(v, dict) and v)
         out["reauth"] = sorted(k for k, v in accounts.items() if isinstance(v, dict) and v.get("reauth_required"))
-        pages = requests.get(f"{base}/uploadposts/facebook/pages", params={"profile": config.UPLOAD_POST_USER},
-                             headers=headers, timeout=30).json()
+        page_response = requests.get(f"{base}/uploadposts/facebook/pages", params={"profile": config.UPLOAD_POST_USER},
+                                    headers=headers, timeout=30)
+        page_response.raise_for_status()
+        pages = page_response.json()
         out["facebook_pages"] = len(pages.get("pages") or [])
-        out["facebook_page_configured"] = is_configured(config.UPLOAD_POST_FACEBOOK_PAGE_ID)
+        out["facebook_page_configured"] = bool(profile.get("facebook_page_id")) or is_configured(config.UPLOAD_POST_FACEBOOK_PAGE_ID)
     except (requests.RequestException, ValueError) as e:
         out["error"] = type(e).__name__
     return out
@@ -77,6 +86,8 @@ def problems(result: Dict[str, Any]) -> List[str]:
                 out.append(f"Upload-Post needs you to re-authenticate: {', '.join(up['reauth'])}.")
             if "facebook" in up.get("connected", []) and not up.get("facebook_page_configured"):
                 out.append("UPLOAD_POST_FACEBOOK_PAGE_ID is not set (Facebook posts and analytics need the Page ID).")
+    if meta.get("configured") and meta.get("valid") is None:
+        out.append("Meta account verification is unknown; retry Check accounts before publishing.")
     if meta.get("configured") and meta.get("valid") is False:
         out.append("META_ACCESS_TOKEN is rejected by Meta: generate a new one (with instagram_manage_insights for audience data).")
     if not up.get("configured") and not meta.get("configured"):
@@ -85,25 +96,35 @@ def problems(result: Dict[str, Any]) -> List[str]:
 
 
 def check(db, force: bool = False) -> Dict[str, Any]:
-    raw = db.get_setting(SETTING)
-    if raw and not force:
-        try:
-            cached = json.loads(raw)
-            if datetime.now(timezone.utc) - datetime.fromisoformat(cached["checked_at"]) < timedelta(hours=CHECK_HOURS):
-                return cached
-        except (ValueError, KeyError):
-            pass
-    result = {"checked_at": datetime.now(timezone.utc).isoformat(), "upload_post": _upload_post(), "meta": _meta()}
+    prior = cached(db)
+    if prior and not prior.get("stale") and not force:
+        return prior
+    result = {"configuration": configuration_fingerprint(), "schema_version": SCHEMA_VERSION, "checked_at": datetime.now(timezone.utc).isoformat(), "upload_post": _upload_post(), "meta": _meta()}
     result["problems"] = problems(result)
     db.set_setting(SETTING, json.dumps(result))
     return result
 
 
+def configuration_fingerprint():
+    import hashlib
+    values = [config.UPLOAD_POST_BASE_URL, config.UPLOAD_POST_USER, config.UPLOAD_POST_API_KEY,
+              config.UPLOAD_POST_FACEBOOK_PAGE_ID, config.META_IG_ACCOUNT_ID, config.META_ACCESS_TOKEN]
+    return hashlib.sha256(json.dumps(values).encode()).hexdigest()
+
+
 def cached(db) -> Dict[str, Any]:
-    """The last check without calling anything (for fast screens); {} if never checked."""
     try:
-        return json.loads(db.get_setting(SETTING) or "{}")
-    except ValueError:
+        result = json.loads(db.get_setting(SETTING) or "{}")
+        if not isinstance(result, dict) or not result:
+            return {}
+        age = datetime.now(timezone.utc) - datetime.fromisoformat(result["checked_at"])
+        result["stale"] = (result.get("configuration") != configuration_fingerprint()
+                           or result.get("schema_version") != SCHEMA_VERSION or age > timedelta(hours=CHECK_HOURS))
+        result["problems"] = problems(result)
+        if result["stale"]:
+            result["problems"].insert(0, "Account check is stale or configuration changed; run Check accounts.")
+        return result
+    except (ValueError, TypeError, KeyError, AttributeError):
         return {}
 
 
@@ -113,7 +134,9 @@ def status_line(db) -> str:
     if not res:
         return "Publishing accounts: not checked yet"
     up = res.get("upload_post") or {}
-    when = res["checked_at"][:16].replace("T", " ")
+    from .local_time import show
+    when = show(res["checked_at"], "%d %b %H:%M %Z")
+    names = {"facebook": "Facebook", "instagram": "Instagram", "youtube": "YouTube"}
     if not res.get("problems"):
-        return f"Publishing accounts: ✅ {', '.join(up.get('connected', [])) or 'Meta direct'} ready (checked {when} UTC)"
-    return "Publishing accounts: ⚠️ " + " ".join(html.escape(p) for p in res["problems"]) + f" (checked {when} UTC)"
+        return f"Publishing accounts: ✅ {', '.join(names.get(n, n) for n in up.get('connected', [])) or 'Meta direct'} ready (checked {when})"
+    return "Publishing accounts: ⚠️ " + " ".join(html.escape(p) for p in res["problems"]) + f" (checked {when})"

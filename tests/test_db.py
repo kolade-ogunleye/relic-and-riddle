@@ -4,12 +4,16 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 
-def test_next_topic_prefers_queued_then_failed_and_never_repeats_published(db):
+def test_next_topic_is_queued_only_and_never_repeats_published_or_failed(db):
+    # A failed topic waits for an explicit Back to the queue (2026-10-25: it was picked again on its own).
     from src.db import QueueEmpty
     db.record_topic_status("01_topic", "published")
     db.record_topic_status("02_topic", "failed")
     assert db.get_next_topic()["id"] == "03_topic"
     db.record_topic_status("03_topic", "rejected")
+    with pytest.raises(QueueEmpty):          # 02 failed: it waits for you
+        db.get_next_topic()
+    db.requeue_topic("02_topic")
     assert db.get_next_topic()["id"] == "02_topic"
     db.record_topic_status("02_topic", "in_production")
     with pytest.raises(QueueEmpty):          # 01 is published: no automatic repeat
@@ -87,3 +91,28 @@ def test_only_one_caller_can_claim_publication(db):
     assert claims.count(True) == 1
     assert db.get_run("claim")["status"] == "publishing"
 
+
+
+def test_a_topic_rehearsed_in_a_dry_run_waits_behind_new_ones(db):
+    # A simulated approval returns the topic unpublished; it then came first again, so validation
+    # remade the same topic run after run (dev, 2026-10-23).
+    first = db.ranked_topics()[0]["id"]
+    db.create_run("run_dry", first)
+    db.update_run("run_dry", "simulated")
+    assert db.ranked_topics()[0]["id"] != first
+
+
+def test_a_bump_still_overrides_the_rehearsal_order(db):
+    first = db.ranked_topics()[0]["id"]
+    db.create_run("run_dry", first)
+    db.update_run("run_dry", "simulated")
+    with db._conn() as conn:
+        conn.execute("UPDATE topics SET priority = 5 WHERE id = ?", (first,))
+    assert db.ranked_topics()[0]["id"] == first
+
+
+def test_the_nightly_prebuild_follows_the_production_order(db, monkeypatch):
+    import main
+    from src import visual_engine
+    monkeypatch.setattr(visual_engine.VisualEngine, "get_scene_sequence", lambda self, t: [])
+    assert [t["id"] for t in main.prebuild_candidates(db, 3)] == [t["id"] for t in db.ranked_topics()[:3]]

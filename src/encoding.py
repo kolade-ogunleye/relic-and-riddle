@@ -1,6 +1,5 @@
 """Shared encoder detection with a tested CPU fallback."""
 import logging
-import os
 import subprocess
 from functools import wraps
 from threading import BoundedSemaphore, Lock
@@ -14,10 +13,8 @@ _DETECT_LOCK = Lock()  # one probe per process: parallel renderers must agree on
 
 
 def _slot_count():
-    try:
-        return max(1, min(8, int(os.getenv("RENDER_ENCODING_SLOTS", "2"))))
-    except ValueError:
-        return 2
+    from . import config
+    return config.RENDER_ENCODING_SLOTS
 
 
 _ENCODING_SLOTS = BoundedSemaphore(_slot_count())
@@ -56,4 +53,13 @@ def get_video_encoder() -> List[str]:
         log.info("Hardware acceleration fallback: libx264 (CPU)")
         _DETECTED_ENCODER = ["-c:v", "libx264", "-preset", VIDEO_PRESET, "-crf", str(VIDEO_CRF)]
         return _DETECTED_ENCODER
+
+
+def get_intermediate_video_encoder() -> List[str]:
+    """Fast, visually-lossless encoder arguments for intermediate scratch renders."""
+    enc = get_video_encoder()
+    if enc and len(enc) > 1 and enc[1] == "h264_nvenc":
+        return ["-c:v", "h264_nvenc", "-preset", "p1", "-cq", "12"]
+    return ["-c:v", "libx264", "-preset", "veryfast", "-crf", "10"]
+
 

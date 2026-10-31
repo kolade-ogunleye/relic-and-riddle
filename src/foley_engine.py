@@ -194,14 +194,17 @@ class FoleyEngine:
             return audio  # Open air remains completely dry
 
         ir = cls.generate_environment_ir(environment, duration_sec=1.5, sr=sr)
+        was_mono = (audio.ndim == 1)
+        sig = np.column_stack((audio, audio)) if was_mono else audio
         try:
-            convolved = signal.fftconvolve(audio, ir, mode="full", axes=0)[:len(audio)]
+            convolved = signal.fftconvolve(sig, ir, mode="full", axes=0)[:len(sig)]
             # Match RMS scale of wet signal to dry signal
-            dry_rms = np.sqrt(np.mean(np.square(audio))) or 1.0
+            dry_rms = np.sqrt(np.mean(np.square(sig))) or 1.0
             wet_rms = np.sqrt(np.mean(np.square(convolved))) or 1.0
             convolved_scaled = convolved * (dry_rms / wet_rms)
-            blended = (1.0 - wet) * audio + wet * convolved_scaled
-            return blended.astype(np.float32)
+            blended = (1.0 - wet) * sig + wet * convolved_scaled
+            out = blended.astype(np.float32)
+            return out[:, 0] if was_mono else out
         except Exception as e:
             log.warning("Convolution reverb failed (%s); retaining dry audio.", e)
             return audio

@@ -49,12 +49,16 @@ class VoiceProsody:
     @classmethod
     def apply_prosody_azure(cls, text: str) -> str:
         """Injects SSML micro-pauses (<break time="..."/>) and subtle rate slows
-        for Azure Speech and edge-tts."""
+        for Azure Speech."""
         out = text
 
         # 1. Micro-pause before astonishing empirical measurements
         # "measuring only 70 nanometers" -> "measuring only <break time=\"200ms\"/> 70 nanometers"
         def _measure_sub(match: re.Match) -> str:
+            start = match.start()
+            prefix = out[max(0, start - 35):start]
+            if re.search(r'<break\s+time=["\'][^"\']+["\']\s*/>\s*$', prefix) or prefix.rstrip().endswith("..."):
+                return match.group(0)
             val, unit = match.group(1), match.group(2)
             return f'<break time="200ms"/> {val} {unit}'
 
@@ -73,24 +77,30 @@ class VoiceProsody:
             is_mystery = any(phrase in s.lower() for phrase in MYSTERY_PHRASES)
 
             if (is_question or is_mystery) and len(s.strip()) > 10:
-                s = f'<break time="350ms"/> {s.strip()}'
+                s_clean = s.strip()
+                if not re.match(r'^<break\s+time=["\'][^"\']+["\']\s*/>', s_clean) and not s_clean.startswith("..."):
+                    s = f'<break time="350ms"/> {s_clean}'
 
             processed_sentences.append(s + punct)
 
         out = "".join(processed_sentences)
 
         # Clean up any consecutive break tags
-        out = re.sub(r'(<break time="\d+ms"/>\s*)+', r'\1', out)
+        out = re.sub(r'(<break time=["\']\d+ms["\']/>\s*)+', r'\1', out)
         return out.strip()
 
     @classmethod
     def apply_prosody_elevenlabs(cls, text: str) -> str:
-        """Injects punctuation-based pacing cues (ellipses and em-dashes) for ElevenLabs,
-        which natively reads '... ' with a 300-400ms reflective breath pause."""
+        """Injects punctuation-based pacing cues (ellipses and em-dashes) for ElevenLabs and edge-tts,
+        which natively read '... ' with a 300-400ms reflective breath pause without speaking XML tags."""
         out = text
 
         # 1. Insert cadence ellipsis before astonishing empirical measurements
         def _measure_sub(match: re.Match) -> str:
+            start = match.start()
+            prefix = out[max(0, start - 35):start]
+            if prefix.rstrip().endswith("...") or re.search(r'<break\s+time=["\'][^"\']+["\']\s*/>\s*$', prefix):
+                return match.group(0)
             val, unit = match.group(1), match.group(2)
             return f"... {val} {unit}"
 
@@ -108,8 +118,9 @@ class VoiceProsody:
 
             if (is_question or is_mystery) and len(s.strip()) > 10:
                 # Prepend ellipsis pause if not already present
-                if not s.strip().startswith("..."):
-                    s = f"... {s.strip()}"
+                s_clean = s.strip()
+                if not s_clean.startswith("...") and not re.match(r'^<break\s+time=["\'][^"\']+["\']\s*/>', s_clean):
+                    s = f"... {s_clean}"
 
             processed_sentences.append(s + punct)
 
@@ -123,9 +134,9 @@ class VoiceProsody:
     def prepare_speech_text(cls, text: str, provider: str = "azure") -> str:
         """Tailors narration text for the designated TTS engine."""
         prov = (provider or "azure").lower().strip()
-        if "elevenlabs" in prov:
+        if "elevenlabs" in prov or "edge" in prov:
             return cls.apply_prosody_elevenlabs(text)
-        elif "azure" in prov or "edge" in prov:
+        elif "azure" in prov:
             return cls.apply_prosody_azure(text)
         return text
 

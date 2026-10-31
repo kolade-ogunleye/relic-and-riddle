@@ -140,7 +140,9 @@ def measure_spoken_seconds(text: str, speed: float = 1.0) -> Optional[float]:
 
     tmp = Path(tempfile.mkdtemp(prefix="spoken_len_")) / "probe.mp3"
     try:
-        c = edge_tts.Communicate(normalize_speech_text(text), NARRATOR_VOICE, rate=rate_with_speed(NARRATOR_RATE, speed),
+        norm = normalize_speech_text(text)
+        prosody_text = VoiceProsody.prepare_speech_text(norm, "edge-tts")
+        c = edge_tts.Communicate(prosody_text, NARRATOR_VOICE, rate=rate_with_speed(NARRATOR_RATE, speed),
                                  pitch=NARRATOR_PITCH)
         asyncio.run(asyncio.wait_for(c.save(str(tmp)), timeout=60))  # a stalled service must not hang the stage
         return AudioEngine.get_duration(tmp)
@@ -555,7 +557,7 @@ class AudioEngine:
                                   + (self.fallback_reason or "set up ElevenLabs (paid plan) or Azure Speech") + ".")
 
         log.info("Synthesizing voiceover via edge-tts (%s; test runs only)...", self.voice)
-        edge_text = VoiceProsody.apply_prosody_azure(text)
+        edge_text = VoiceProsody.prepare_speech_text(text, "edge-tts")
         words = asyncio.run(self._generate_edge_tts(edge_text, output_path))
         if not words:
             raise RuntimeError("edge-tts returned no word boundaries; captions cannot be timed.")

@@ -44,22 +44,34 @@ class StemComposer:
             return {"sub_bass": empty, "rhythm": empty, "melody": empty, "air": empty}
 
         sig = audio.astype(np.float32)
-
-        # 1. Main split at 800 Hz (Low Half vs High Half)
         nyquist = sr / 2.0
-        sos_lp_mid = signal.butter(2, FREQ_MID_CROSSOVER, "lp", fs=sr, output="sos")
-        sos_hp_mid = signal.butter(2, FREQ_MID_CROSSOVER, "hp", fs=sr, output="sos")
+
+        # Boundary safety: clamp crossover frequencies strictly below Nyquist
+        if nyquist <= FREQ_SUB_BASS:
+            empty = np.zeros_like(sig)
+            return {"sub_bass": sig, "rhythm": empty, "melody": empty, "air": empty}
+
+        c1 = min(FREQ_SUB_BASS, nyquist * 0.90)
+        c2 = min(FREQ_MID_CROSSOVER, nyquist * 0.95)
+        c3 = min(FREQ_AIR, nyquist * 0.98)
+        if c2 <= c1:
+            c2 = (c1 + nyquist) / 2.0
+        if c3 <= c2:
+            c3 = (c2 + nyquist) / 2.0
+
+        # 1. Main split at c2 (Low Half vs High Half)
+        sos_lp_mid = signal.butter(2, c2, "lp", fs=sr, output="sos")
+        sos_hp_mid = signal.butter(2, c2, "hp", fs=sr, output="sos")
         low_half = signal.sosfiltfilt(sos_lp_mid, sig, axis=0)
         high_half = signal.sosfiltfilt(sos_hp_mid, sig, axis=0)
 
-        # 3. Sub-split low_half at 120 Hz -> Sub-Bass & Rhythm
-        sos_lp_sub = signal.butter(2, FREQ_SUB_BASS, "lp", fs=sr, output="sos")
-        sos_hp_sub = signal.butter(2, FREQ_SUB_BASS, "hp", fs=sr, output="sos")
+        # 2. Sub-split low_half at c1 -> Sub-Bass & Rhythm
+        sos_lp_sub = signal.butter(2, c1, "lp", fs=sr, output="sos")
+        sos_hp_sub = signal.butter(2, c1, "hp", fs=sr, output="sos")
         band_sub = signal.sosfiltfilt(sos_lp_sub, low_half, axis=0)
         band_rhythm = signal.sosfiltfilt(sos_hp_sub, low_half, axis=0)
 
-        # 4. Sub-split high_half at 4500 Hz -> Melody & Air
-        c3 = min(FREQ_AIR, nyquist - 100.0)
+        # 3. Sub-split high_half at c3 -> Melody & Air
         sos_lp_air = signal.butter(2, c3, "lp", fs=sr, output="sos")
         sos_hp_air = signal.butter(2, c3, "hp", fs=sr, output="sos")
         band_melody = signal.sosfiltfilt(sos_lp_air, high_half, axis=0)
@@ -153,17 +165,20 @@ class StemComposer:
         if audio.size == 0 or len(audio) < 32:
             return audio
 
-        total_samples = len(audio)
-        orig_rms = float(np.sqrt(np.mean(np.square(audio)))) or 1e-4
+        was_mono = (audio.ndim == 1)
+        audio_2d = np.column_stack((audio, audio)) if was_mono else audio
+
+        total_samples = len(audio_2d)
+        orig_rms = float(np.sqrt(np.mean(np.square(audio_2d)))) or 1e-4
 
         # 1. 4-Band Crossover Decomposition
-        stems = cls.decompose_stems(audio, sr=sr)
+        stems = cls.decompose_stems(audio_2d, sr=sr)
 
         # 2. Dynamic Story Arc Envelopes
         envelopes = cls.build_gain_envelopes(moments, total_samples, sr=sr)
 
         # 3. Apply Multi-Band Gain Shaping
-        sculpted = np.zeros_like(audio, dtype=np.float32)
+        sculpted = np.zeros_like(audio_2d, dtype=np.float32)
         for band_name in ("sub_bass", "rhythm", "melody", "air"):
             band_audio = stems[band_name]
             band_gain = envelopes[band_name][:, None]
@@ -175,4 +190,5 @@ class StemComposer:
         if current_rms > 0:
             sculpted *= (desired_rms / current_rms)
 
-        return np.clip(sculpted, -1.0, 1.0).astype(np.float32)
+        out = np.clip(sculpted, -1.0, 1.0).astype(np.float32)
+        return out[:, 0] if was_mono else out

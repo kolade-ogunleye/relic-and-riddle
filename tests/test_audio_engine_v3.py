@@ -226,3 +226,42 @@ def test_end_to_end_ambient_bed_synthesis(tmp_path, sample_rate):
     # Overall RMS must be healthy (bed around -26 dBFS, i.e. ~0.04 - 0.08)
     bed_rms = np.sqrt(np.mean(np.square(audio)))
     assert 0.02 <= bed_rms <= 0.15, f"Unexpected bed RMS: {bed_rms}"
+
+
+def test_mono_audio_and_nyquist_safety():
+    """Verifies that 1D mono audio and low sample-rate inputs do not crash or broadcast excessively."""
+    # 1. 1D Mono input to StemComposer
+    mono_audio = np.random.randn(48000).astype(np.float32)
+    moments = [{"t": 0.5, "kind": "reveal"}]
+    sculpted = StemComposer.apply_adaptive_scoring(mono_audio, moments, sr=48000)
+    assert sculpted.shape == (48000,)
+    assert np.all(np.isfinite(sculpted))
+
+    # 2. Low sample-rate (Nyquist < 800 Hz)
+    low_sr_audio = np.random.randn(2000, 2).astype(np.float32)
+    sculpted_low = StemComposer.apply_adaptive_scoring(low_sr_audio, moments, sr=1000)
+    assert sculpted_low.shape == (2000, 2)
+    assert np.all(np.isfinite(sculpted_low))
+
+    # 3. 1D Mono input to FoleyEngine convolution reverb
+    mono_foley = np.random.randn(24000).astype(np.float32)
+    reverbed = FoleyEngine.apply_environment_reverb(mono_foley, "underground", wet=0.25, sr=48000)
+    assert reverbed.shape == (24000,)
+    assert np.all(np.isfinite(reverbed))
+
+
+def test_voice_prosody_idempotency_and_edge_tts_safety():
+    """Verifies that prosody injection is idempotent and edge-tts never receives XML break tags."""
+    script = "Measuring only 70 nanometers across. Could Roman glassmakers control these particles?"
+
+    # 1. Edge-TTS must receive ellipsis pauses, never XML <break> tags
+    edge_text = VoiceProsody.prepare_speech_text(script, "edge-tts")
+    assert "<break" not in edge_text
+    assert "... 70 nanometers" in edge_text
+    assert "... Could Roman glassmakers" in edge_text
+
+    # 2. Idempotency: calling apply_prosody_azure repeatedly must not stack breaks
+    azure_once = VoiceProsody.apply_prosody_azure(script)
+    azure_twice = VoiceProsody.apply_prosody_azure(azure_once)
+    assert azure_once == azure_twice
+    assert azure_twice.count("<break") == 2  # exactly one before measurement, one before question

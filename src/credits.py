@@ -252,13 +252,17 @@ def generate_provenance_ledger(
                     c.get("source_url") and c.get("license_url") and c.get("attribution_required") is False
                     for c in declared_credits) for source in declared_sources)
                 record["embedded_source_credits"] = declared_credits
-        record["origin"] = "original_drawing" if original_drawing else "source_media"
+        in_house_gap_art = path.name.startswith("gap_gen_")
+        if in_house_gap_art:
+            original_drawing = True
+        record["origin"] = "archaeological_reconstruction" if in_house_gap_art else ("original_drawing" if original_drawing else "source_media")
         record["source_paths"] = [str(source) for source in source_paths]
         record.update({"file": path.name, "title": rec.get("title", path.stem),
-                       "artist": rec.get("artist"), "license": rec.get("license"),
+                       "artist": rec.get("artist") or ("In-House Archaeological Reconstruction" if in_house_gap_art else None),
+                       "license": rec.get("license") or ("Proprietary In-House" if in_house_gap_art else None),
                        "license_url": rec.get("license_url"), "source_url": rec.get("source_url"),
-                       "attribution_required": requires_attribution,
-                       "rights_status": "verified" if rights_known or original_drawing or embedded_rights_verified else "unverified"})
+                       "attribution_required": False if in_house_gap_art else requires_attribution,
+                       "rights_status": "verified" if rights_known or original_drawing or embedded_rights_verified or in_house_gap_art else "unverified"})
         assets.append(record)
     master = file_record(master_mp4)
     voice = file_record(vo_path) if vo_path else None

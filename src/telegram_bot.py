@@ -1257,6 +1257,8 @@ class TelegramApprovalBot:
             text += "\n" + _format_note(script_payload["motion_note"])
         if script_payload.get("graphics_note"):
             text += "\n" + _format_note(script_payload["graphics_note"])
+        if script_payload.get("reconstruction_note"):
+            text += "\n" + _format_note(script_payload["reconstruction_note"])
         if script_payload.get("footage_note"):
             text += "\n" + _format_note(script_payload["footage_note"])
         # Each outside photo whole, folded (operator, 2026-10-25: cut mid-word); a run made before the lines were

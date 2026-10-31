@@ -634,7 +634,9 @@ FIT_NOTE_MAX_BEATS = 4   # beats named on the card; the rest are counted
 def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Path], subject: str,
                  durations: Optional[List[float]] = None, line_beat: Optional[Dict[Path, int]] = None,
                  cancel=None, max_calls: Optional[int] = None, swaps: Optional[int] = None,
-                 reserve: Optional[List[Path]] = None) -> Tuple[List[Path], Dict[str, Any]]:
+                 reserve: Optional[List[Path]] = None,
+                 topic: Optional[Dict[str, Any]] = None,
+                 work_dir: Optional[Path] = None) -> Tuple[List[Path], Dict[str, Any]]:
     """Each photo beat's picture judged against its own line before the render (render audit 2026-10-28), with a
     bounded repair. Returns (scenes, report).
 
@@ -647,6 +649,7 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
       2. one of our unplaced graphics whose declared words the line says, within the graphics caps;
       3. where the previous shot would be held (4): an unused `reserve` photo that shows the line, else one of
          our graphics not yet on screen (within the caps), so one picture is not shown over two lines;
+      3.5 [Phase 2.5]: era-matched generative gap art, synthesized and quarantined pre-render;
       4. the previous beat's still, held (it was judged right for its own line, and is not itself held),
          so the shot carries on rather than a picture of something else being asserted under the line;
     otherwise the pick stays. Every beat repaired by 3 or not at all is listed in report["unshown"], for the
@@ -658,7 +661,7 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
     from . import beat_images
     out = [Path(p) for p in scenes]
     report: Dict[str, Any] = {"judged": 0, "cached": 0, "swapped": [], "graphic": [], "held": [], "related": [],
-                              "unshown": [], "stopped": ""}
+                              "generated": [], "unshown": [], "stopped": ""}
     if not config.PICTURE_VISION_CHECK or not getattr(config, "PRE_RENDER_PICTURE_FIT", True):
         report["stopped"] = "off"
         return out, report
@@ -799,6 +802,35 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
                              k + 1, filler.stem)
                     report["unshown"].append(entry)
                     continue
+            # 3.5 [Phase 2.5] Generative Gap-Filling Subsystem
+            gen_limit = getattr(config, "MAX_GAP_IMAGES_PER_RUN", 2)
+            gen_count = len(report.get("generated", []))
+            target_work_dir = work_dir or (pool[0].parent if pool else None)
+            if getattr(config, "GENERATIVE_GAP_FILLING", True) and gen_count < gen_limit and target_work_dir is not None:
+                from . import image_gen, image_quarantine
+                era = (topic or {}).get("era") or "classical_antiquity"
+                cand_art = image_gen.synthesize_gap_asset(
+                    beat_index=k + 1,
+                    line_text=line,
+                    era=era,
+                    topic=topic or {"title": subject},
+                    work_dir=target_work_dir
+                )
+                if cand_art and cand_art.exists():
+                    ok, q_reason = image_quarantine.verify_gap_asset(cand_art, line, era)
+                    if ok:
+                        out[k], entry["fallback"] = cand_art, "generated_art"
+                        report.setdefault("generated", []).append({
+                            "beat": k + 1,
+                            "from": pick.name,
+                            "to": cand_art.name,
+                            "line": line
+                        })
+                        fits_at[k] = True
+                        log.info("Beat %d: synthesized and verified era-matched gap art -> %s", k + 1, cand_art.name)
+                        continue
+                    else:
+                        log.info("Beat %d: gap art quarantined (%s); degrading to Tier 2/3.", k + 1, q_reason)
             # 4. the previous beat's still held, when it was right for its own line and is not itself held
             if holds:
                 out[k], entry["fallback"] = prev, "held"
@@ -830,6 +862,8 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
                 report["held"].append({"beat": k + 1, "from": pick.name, "to": out[0].name, "quarantine_anchor": True})
                 log.info("Beat %d: asset quarantine: planned %s contradicts line %r; holding hero anchor (%s) to prevent QA gate block.",
                          k + 1, pick.name, clip(line), out[0].name)
+            entry["macro_drift"] = True
+            report.setdefault("macro_drifts", []).append(k)
             report["unshown"].append(entry)
     finally:
         report["fits"] = sorted(k + 1 for k, ok in fits_at.items() if ok)   # beats whose picture was judged right

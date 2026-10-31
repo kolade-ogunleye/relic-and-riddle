@@ -483,10 +483,15 @@ def render_map(place: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heigh
     final_view = (bw / 2 - bw / 2 / zf, bh / 2 - bh / 2 / zf, bw / 2 + bw / 2 / zf, bh / 2 + bh / 2 / zf)
     label = place["label"]
     country = place["country"]
+    city = str(place.get("city") or "").strip()
+    if city and city.lower() != label.lower() and city.lower() != country.lower():
+        sub_label = f"{city}, {country}"
+    else:
+        sub_label = country
     label_y = int(height * 0.18) if width > height else max(TEXT_TOP + 70, height // 2 - 210)
     # Keep neighbours' names clear of the place label and the pin in the final close-up: the band from
     # the label's top to just below the pin, across the label's width plus a margin (output pixels).
-    half_w = min(width // 2, 60 + max(len(label) * 22, len(country) * 18))
+    half_w = min(width // 2, 60 + max(len(label) * 22, len(sub_label) * 18))
     to_base = lambda x, y: (final_view[0] + x * (final_view[2] - final_view[0]) / width,  # noqa: E731
                             final_view[1] + y * (final_view[3] - final_view[1]) / height)
     reserved = (to_base(width // 2 - half_w, label_y - 200) + to_base(width // 2 + half_w, height // 2 + 70),)
@@ -510,7 +515,7 @@ def render_map(place: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heigh
     zf_last = zooms[-1]
     rest = base.resize((width, height), Image.BICUBIC, box=(bw / 2 - bw / 2 / zf_last, bh / 2 - bh / 2 / zf_last,
                                                             bw / 2 + bw / 2 / zf_last, bh / 2 + bh / 2 / zf_last)).convert("RGB")
-    label_plates = _label_plates(rest, width // 2, label_y, label, country)
+    label_plates = _label_plates(rest, width // 2, label_y, label, sub_label)
     bar_plate = None
     if bar:
         bar_plate = plan_text(rest, (M + bar["px"] + 22, bar_y + 13), bar["label"], get_font(brand.DATA_FONT, 38, weight=600),
@@ -1654,8 +1659,15 @@ def make_all(payload: Dict[str, Any], topic: Dict[str, Any], work_dir: Path, pho
     except Exception as e:
         log.warning("Map lookup failed: %s", e)
     region = str((topic.get("location") or {}).get("region") or "").strip()
-    if place and region and not place.get("region"):  # recorded with the map, so the line naming it gets the map
-        place = dict(place, region=region)
+    city = str((topic.get("location") or {}).get("city") or "").strip()
+    if place:
+        updates = {}
+        if region and not place.get("region"):  # recorded with the map, so the line naming it gets the map
+            updates["region"] = region
+        if city and not place.get("city"):
+            updates["city"] = city
+        if updates:
+            place = dict(place, **updates)
     if place:
         jobs.append(("map", lambda: render_map(place, work_dir / "graphic_map.mp4", width=width, height=height,
                                                narration=payload.get("narration_script") or "")))

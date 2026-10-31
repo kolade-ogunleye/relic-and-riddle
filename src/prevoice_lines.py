@@ -24,7 +24,7 @@ from .checkpoints import fingerprint
 
 log = logging.getLogger(__name__)
 
-VERSION = 1            # changes when the question does: an older verdict is asked again
+VERSION = 2            # changes when the question does: an older verdict is asked again
 STAGE = "picture_lines"
 RECORD_FILE = "picture_lines.json"
 NOTE_LABEL = "🖼 Lines no photo shows"
@@ -33,8 +33,9 @@ POOL_MAX = 24          # image_review.MAX_PHOTOS: the pool a video can draw on
 
 class LineVerdict(BaseModel):
     index: int                                        # 1-based, as numbered in the request
-    kind: Literal["shown", "abstract", "unshown"]
+    kind: Literal["shown", "abstract", "generable", "unshown"]
     photo: Optional[int] = None                       # the photo that shows it, for "shown"
+    modality: Optional[Literal["historical_scene", "technical_schematic", "modern_scientific"]] = None
     reason: str = ""                                  # one short sentence
 
 
@@ -45,7 +46,8 @@ class LineReport(BaseModel):
 SYSTEM = """You check the narration of a short, fact-checked history documentary against the licensed photos its video can show, before the narration is recorded. You get the numbered sentences and a description of every photo. For each sentence answer:
 - "shown": it names something that can be seen (a place, building, object, material, person, event or process) and one of the photos shows that very thing; give the photo's number.
 - "abstract": it names nothing in particular to see: an idea, a number or date, a comparison, a question, a feeling or a conclusion. Our own graphics or any photo of the documentary's subject can carry it.
-- "unshown": it names something that can be seen and no photo shows it: a different place, era, building or object than every photo shows (modern bridges when the photos are all ancient Roman buildings).
+- "generable": it names an unphotographed historical scene (a 70 BC shipwreck, ancient tomb sealing), artisan craft/metallurgy (Roman furnace melting, casting), or microscopic/forensic science (embedded nanoparticles, chemical bonds, modern laboratory replication). Give modality ("historical_scene", "technical_schematic", or "modern_scientific"). Our Era Illustration and Schematic Engine will illustrate it.
+- "unshown": it names something that can be seen, no photo shows it, and it should NOT be illustrated: an irrelevant or out-of-context modern object or setting (modern highway/bridges when the video is about an ancient temple).
 Judge from the descriptions only. A photo of the documentary's subject does not show a different thing the sentence names. reason: one short sentence."""
 
 
@@ -108,13 +110,19 @@ def judge(narration: str, photos: List[Dict[str, str]], subject: str) -> Optiona
     for i, s in enumerate(lines, 1):
         v = by.get(i)
         out.append({"sentence": s, "kind": v.kind if v else "abstract", "reason": verdict_reason(v.reason) if v else "",
-                    "photo": v.photo if v and v.kind == "shown" else None})
+                    "photo": v.photo if v and v.kind == "shown" else None,
+                    "modality": getattr(v, "modality", None) if v else None})
     return out
 
 
 def unshown(verdicts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """The concrete sentences no photo shows; abstract and shown ones are never sent back."""
+    """The concrete sentences no photo shows; abstract, shown and generable ones are never sent back."""
     return [v for v in verdicts or [] if v.get("kind") == "unshown"]
+
+
+def generable(verdicts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """The sentences approved for era-conditioned illustration or scientific schematics."""
+    return [v for v in verdicts or [] if v.get("kind") == "generable"]
 
 
 def revision_note(lines: List[Dict[str, Any]], photos: List[Dict[str, str]], minimal: bool = False) -> str:

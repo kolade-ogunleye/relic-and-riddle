@@ -689,6 +689,7 @@ class VideoComposer:
         width: int = VIDEO_WIDTH,
         height: int = VIDEO_HEIGHT,
         margin_v: Optional[int] = None,
+        reconstruction_intervals: Optional[List[Tuple[float, float]]] = None,
     ) -> Path:
         """Dynamic running-speech kinetic captions:
         1. Grammatical phrasing: sensitive to punctuation (. ? ! …) so every new sentence starts fresh.
@@ -713,6 +714,7 @@ ScaledBorderAndShadow: yes
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: CapText,Montserrat,38,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0.5,0,1,1.8,1.2,2,0,0,{eff_margin_v},1
 Style: CapBox,Montserrat,38,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,2,0,0,0,1
+Style: ReconBadge,Montserrat,24,&H40E2DAC8,&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,1.5,0,1,0,0,2,0,0,120,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -728,6 +730,7 @@ ScaledBorderAndShadow: yes
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: CapText,{FONT_NAME},{FONT_SIZE_ASS},{COL_PAST},&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0.5,0,1,0,0,5,0,0,0,1
 Style: CapBox,{FONT_NAME},{FONT_SIZE_ASS},{COL_BACK},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
+Style: ReconBadge,Montserrat,24,&H40E2DAC8,&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,1.5,0,1,0,0,2,0,0,120,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -742,7 +745,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if pi < len(phrases) - 1:
                 next_start = phrases[pi + 1][0]["start"]
             else:
-                next_start = phrase[-1]["start"] + phrase[-1]["dur"] + 0.10
+                dur = phrase[-1].get("dur", phrase[-1].get("end", phrase[-1]["start"] + 0.5) - phrase[-1]["start"])
+                next_start = phrase[-1]["start"] + dur + 0.10
 
             phrase_start = phrase[0]["start"]
             phrase_end = next_start
@@ -822,6 +826,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 raw_events.append((1, target["start"], t_end, "CapText", text_content))
 
             base += len(phrase)
+
+        # Append historical reconstruction badges on layer 2 if present
+        if reconstruction_intervals:
+            for start_t, end_t in reconstruction_intervals:
+                badge_text = r"{\an2\fs22\c&HE2DAC8&\alpha&H40&\b1}[ HISTORICAL RECONSTRUCTION ]"
+                raw_events.append((2, start_t, end_t, "ReconBadge", badge_text))
 
         # Sort all events chronologically (layer 0 background pill always appears under layer 1 text)
         raw_events.sort(key=lambda e: (e[1], e[0]))
@@ -971,6 +981,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         delivery_profile=None,
         grade_bias: float = 0.0,
         end_card: str = "",
+        macro_drifts: Optional[List[int]] = None,
     ) -> Path:
         """
         end_card: the share line of the end card appended after the narration (Reels only, src/end_card.py); the
@@ -992,8 +1003,23 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         font_inputs = file_inputs([self.fonts_dir / filename for filename in FONT_FILES.values()])
         if not all(source_inputs.values()) or not all(font_inputs.values()):
             raise RenderError("Render sources and bundled fonts must exist")
+
+        n = len(scene_images)
+        if not durations or len(durations) != n:
+            durations = [(vo_dur + TRANS_DUR) / n] * n
+
+        # Historical reconstruction badge intervals
+        recon_intervals = []
+        cur_t = 0.0
+        for i, item in enumerate(scene_images):
+            dur = durations[i] if i < len(durations) else (vo_dur / max(1, len(scene_images)))
+            if Path(item).stem.startswith(("gap_gen_", "gen_")):
+                recon_intervals.append((cur_t, cur_t + dur))
+            cur_t += dur
+
         ass_path = output_mp4_path.parent / (output_mp4_path.stem + "_captions.ass")
-        self.build_subtitles(words, ass_path, emphasis=emphasis, width=width, height=height)
+        self.build_subtitles(words, ass_path, emphasis=emphasis, width=width, height=height,
+                             reconstruction_intervals=recon_intervals)
         from . import end_card as card_mod
         card = bool((end_card or "").strip()) and width < height
         card_seconds = card_mod.SECONDS if card else 0.0
@@ -1005,15 +1031,13 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         self.export_subtitles_srt(words, srt_path)
         self.export_subtitles_vtt(words, vtt_path)
 
-        n = len(scene_images)
-        if not durations or len(durations) != n:
-            durations = [(vo_dur + TRANS_DUR) / n] * n
         # Transition k starts half a fade before boundary k so the cut lands on the beat.
         boundaries = [sum(durations[:k + 1]) for k in range(n - 1)]
         offsets = [max(0.0, b - TRANS_DUR / 2) for b in boundaries]
         clip_durs = [d + TRANS_DUR for d in durations]
         clip_durs[-1] += TRANS_DUR  # tail headroom; the output is cut to the narration length
         w2, h2 = width * 2, height * 2
+        macro_indices = set(macro_drifts or [])
 
         input_args: List[str] = []
         filter_parts: List[str] = []
@@ -1041,7 +1065,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 continue
 
             input_args += ["-loop", "1", "-t", f"{clip_dur:.3f}", "-i", str(item)]
-            if i == 0 or i == n - 1:  # matching forward drift for the loop seam
+            if i in macro_indices:
+                # Tier 3 Intentional Relic Macro Drift: intimate optical push-in (1.00x -> 1.35x dynamic zoom)
+                # into the microscopic craftsmanship and material texture of the relic over an unphotographed beat.
+                z, x, y = "min(1.0+0.0025*on,1.35)", "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
+            elif i == 0 or i == n - 1:  # matching forward drift for the loop seam
                 z, x, y = "min(pzoom+0.0016,1.24)", "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
             elif i % 2 == 1:
                 z, x, y = "max(1.20-0.0014*on,1.0)", "iw/2-(iw/zoom/2)+sin(on/35)*32", "ih/2-(ih/zoom/2)"

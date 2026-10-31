@@ -88,8 +88,8 @@ def terms(path: Path) -> Dict[str, int]:
     weighted: Dict[str, int] = {}
     if kind == "map":
         place = inputs.get("place") or {}
-        # The region too ("Nevşehir / Cappadocia"): a line that places the site by its region is the map's line.
-        for word in _distinctive(" ".join(str(place.get(k, "")) for k in ("label", "name", "country", "region"))):
+        # The region and city too ("London", "Nevşehir / Cappadocia"): a line that places the site by its city or region is the map's line.
+        for word in _distinctive(" ".join(str(place.get(k, "")) for k in ("label", "name", "country", "region", "city"))):
             weighted[_stem(word)] = NAME_WEIGHT
         return weighted
     if kind not in SPEC_KEYS:

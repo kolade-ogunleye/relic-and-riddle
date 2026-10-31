@@ -2503,10 +2503,13 @@ class PipelineCoordinator:
         to_beat = (lambda b: where[b - 1] + 1 if isinstance(b, int) and 0 < b <= len(where) else b) if where else (lambda b: b)
         line_beat = {Path(c["upscaled"]): to_beat(c.get("beat")) for c in beat_credits or [] if c.get("upscaled")}
         try:
+            from src.config import OUTPUT_DIR
+            run_dir = OUTPUT_DIR / run_id
             # The reserve photos, offered where the previous shot would otherwise be held over a second line.
             reserve = [Path(r) for r in getattr(self, "_fit_reserve", None) or []]
             fitted, report = fit_to_lines(beats, scenes, candidates, title, durations=durations, line_beat=line_beat,
                                           cancel=lambda: self._check_cancel(run_id),
+                                          topic=topic, work_dir=run_dir,
                                           **({"reserve": reserve} if reserve else {}))
         except JobCancelled:
             raise
@@ -2824,10 +2827,23 @@ class PipelineCoordinator:
                 improve.note("pictures.short_pool", f"{held['distinct']} distinct pictures for {held['still_beats']} photo "
                              f"beats: {len(held['merged'])} held over two or more lines, {len(held['repeats'])} repeated, "
                              f"{len(reserve_used)} reserve context photo(s) used", source="scene_plan")
-            payload["picture_fit"] = {k: fit_report.get(k) for k in ("judged", "cached", "swapped", "graphic", "held",
+            payload["picture_fit"] = {k: fit_report.get(k) for k in ("judged", "cached", "swapped", "graphic", "generated", "held",
                                                                       "unshown", "stopped")}
             used_graphics = [p.stem.replace("graphic_", "") for p in own_graphics if p in scenes]
             payload["graphics_note"] = ("🗺 Original graphics in this video: " + ", ".join(used_graphics)) if used_graphics else ""
+            generated_list = fit_report.get("generated", [])
+            if generated_list:
+                payload["reconstruction_note"] = (
+                    f"🏛 Archival Reconstructions ({len(generated_list)}): "
+                    + "; ".join(f"Beat {g['beat']} ({clip_words(g.get('line', ''), 80)})" for g in generated_list)
+                )
+                from src import improve
+                for g in generated_list:
+                    improve.note(
+                        "visual.archaeological_reconstruction",
+                        f"Beat {g['beat']}: synthesized era-matched linework on archival substrate for unphotographed line '{g.get('line', '')[:80]}'",
+                        source="generative_gap_filler"
+                    )
             payload["footage_credits"] = used_footage
             payload["footage_note"] = (f"🎥 {len(used_footage)} real footage clip(s) "
                                        f"({sum(c['place_specific'] for c in used_footage)} of the actual site): "
@@ -2889,7 +2905,8 @@ class PipelineCoordinator:
                 self.video_composer.compose_video(scenes, vo_path, bed_path, words, vo_dur, master_mp4, durations=durations,
                                                   emphasis=payload.get("emphasis_words"),
                                                   grade_bias=float((payload.get("art_direction") or {}).get("grade_bias") or 0.0),
-                                                  end_card=card_share)
+                                                  end_card=card_share,
+                                                  macro_drifts=fit_report.get("macro_drifts", []))
                 outputs = [master_mp4, master_mp4.with_name(master_mp4.stem + "_captions.ass"),
                            master_mp4.with_suffix(".composition.json"), master_mp4.with_suffix(".srt"), master_mp4.with_suffix(".vtt")]
                 if all(path.is_file() for path in outputs):

@@ -57,9 +57,10 @@ def needs_upscale(path: Path) -> bool:
     Two-Tier Quality Gate:
     1. Native Full HD Resolution Bypass: If an image contains physical dimensions that cover
        the full 1080x1920 video frame (w >= VIDEO_WIDTH and h >= VIDEO_HEIGHT), and its 9:16
-       vertical crop provides at least 1.20x native optical coverage (crop_w >= NATIVE_HEADROOM_WIDTH),
-       it is optically sharp and bypasses expensive multi-hour neural tile upscaling.
-    2. Sub-Resolution Neural Upscale: Images with sub-1080p crop density (crop_w < NATIVE_HEADROOM_WIDTH
+       vertical crop provides at least 1.0x native optical coverage (crop_w >= VIDEO_WIDTH),
+       it has 100% native optical 1:1 pixel coverage across every frame pixel and does not
+       require neural upscaling.
+    2. Sub-Resolution Neural Upscale: Images with sub-1080p crop density (crop_w < VIDEO_WIDTH
        or sub-HD sensor dimensions) are upscaled 4x with Real-ESRGAN x4plus.
     """
     if is_video(path):
@@ -67,10 +68,10 @@ def needs_upscale(path: Path) -> bool:
     with Image.open(path) as im:
         w, h = im.size
         crop_w = vertical_crop_width(im.size)
-        # Tier 1: Natively high-resolution stills with >= 1.20x zoom headroom
-        if crop_w >= NATIVE_HEADROOM_WIDTH and (h >= VIDEO_HEIGHT or w >= VIDEO_HEIGHT):
+        # Tier 1: Natively high-resolution stills covering full 1080x1920 video frame with 1:1 pixel coverage
+        if crop_w >= VIDEO_WIDTH and (h >= VIDEO_HEIGHT or w >= VIDEO_HEIGHT):
             return False
-        # Tier 2: Sub-1080p or narrow crops require Real-ESRGAN 4x upscaling
+        # Tier 2: Sub-1080p crops require Real-ESRGAN 4x upscaling
         return crop_w < MIN_CROP_WIDTH
 
 

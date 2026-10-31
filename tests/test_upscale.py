@@ -138,3 +138,60 @@ def test_parallel_callers_create_one_gpu_session(monkeypatch):
     for t in threads:
         t.join()
     assert len(created) == 1
+
+
+def test_clamp_envelope_crops_wide_to_square():
+    # Landscape: clamps width to height centered
+    im_wide = Image.new("RGB", (3840, 2000), (10, 20, 30))
+    clamped_wide = upscale.clamp_envelope(im_wide)
+    assert clamped_wide.size == (2000, 2000)
+
+    # Square: unchanged
+    im_sq = Image.new("RGB", (1080, 1080), (10, 20, 30))
+    clamped_sq = upscale.clamp_envelope(im_sq)
+    assert clamped_sq.size == (1080, 1080)
+
+    # Portrait: unchanged
+    im_tall = Image.new("RGB", (1080, 1920), (10, 20, 30))
+    clamped_tall = upscale.clamp_envelope(im_tall)
+    assert clamped_tall.size == (1080, 1920)
+
+
+def test_stretch_ratio_calculation():
+    # 1080p landscape still: needs 1920 / 1080 = 1.778x stretch
+    assert round(upscale.stretch_ratio((1920, 1080)), 3) == 1.778
+    # 2K landscape still: needs 1920 / 1440 = 1.333x stretch
+    assert round(upscale.stretch_ratio((2560, 1440)), 3) == 1.333
+    # 720p landscape still: needs 1920 / 720 = 2.667x stretch
+    assert round(upscale.stretch_ratio((1280, 720)), 3) == 2.667
+    # 4K landscape: needs 1920 / 2160 = 0.889 -> max(1080/3840, 1920/2160) = 0.889
+    assert round(upscale.stretch_ratio((3840, 2160)), 3) == 0.889
+
+
+def test_cpu_adaptive_polish_for_moderate_stretch(tmp_path, monkeypatch):
+    import json
+    from src.lineage import sidecar
+    # Force CPU-only environment
+    monkeypatch.setattr(upscale, "is_gpu_accelerated", lambda: False)
+    model = tmp_path / "model.onnx"
+    model.write_bytes(b"x")
+    monkeypatch.setattr(upscale, "ONNX_MODEL", model)
+    monkeypatch.setattr(upscale, "CACHE_DIR", tmp_path / "cache")
+
+    # A 1080p landscape photo has stretch = 1.778x <= 1.80x: should use cpu_lanczos_polish
+    p = _img(tmp_path, "landscape_1080p.jpg", (1920, 1080))
+    out = upscale.ensure_resolution(p)
+    assert out != p and out.exists()
+
+    meta = json.loads(sidecar(out).read_text(encoding="utf-8"))
+    assert meta["settings"]["backend"] == "cpu_lanczos_polish"
+    assert meta["settings"]["model"] == "lanczos-3-unsharp-polish"
+
+
+def test_two_tier_optical_gate_bypasses_full_hd_sensor_coverage(tmp_path):
+    # 4K image whose 9:16 crop width is >= 1080 and height >= 1920: bypasses
+    # crop_w = 2033 * 9 / 16 = 1143 >= 1080
+    assert not upscale.needs_upscale(_img(tmp_path, "richat_4k.jpg", (3840, 2033)))
+    # Sub-1080p crop density: needs upscale
+    assert upscale.needs_upscale(_img(tmp_path, "sub_hd.jpg", (1280, 960)))
+

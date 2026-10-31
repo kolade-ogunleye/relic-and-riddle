@@ -145,7 +145,7 @@ _sleep = time.sleep
 def _structured(system, prompt, schema, **claude_kwargs):
     """The free writer model when SCRIPT_ENGINE=free, otherwise Claude."""
     if free_llm.enabled():
-        return free_llm.structured(system, prompt, schema, role="writer")
+        return free_llm.call(system, prompt, schema, role="writer", task_class="heavy", **claude_kwargs)
     return structured_call(system, prompt, schema, **claude_kwargs)
 
 
@@ -2750,7 +2750,7 @@ class ScriptEngine:
                   + f"\n\nReturn only these fields, each whole: {', '.join(fields)}.")
         try:
             if free_llm.enabled():
-                out = free_llm.structured(COPY_EDIT_SYSTEM, prompt, _CopyEdit, role="writer", task_class="light")
+                out = free_llm.call(COPY_EDIT_SYSTEM, prompt, _CopyEdit, role="writer", task_class="light", effort="low", max_tokens=4000)
             else:
                 out = structured_call(COPY_EDIT_SYSTEM, prompt, _CopyEdit, effort="low", max_tokens=4000)
         except (LLMError, OSError, ValueError) as e:
@@ -2878,7 +2878,7 @@ class ScriptEngine:
                   + mandatory_hedges_note(sheet, texts=[body for _, _, body in items]))
         try:
             if free_llm.enabled():
-                out = free_llm.structured(STORY_SHORTEN_SYSTEM, prompt, _Shortened, role="writer", task_class="light")
+                out = free_llm.call(STORY_SHORTEN_SYSTEM, prompt, _Shortened, role="writer", task_class="light", effort="low", max_tokens=800)
             else:
                 out = structured_call(STORY_SHORTEN_SYSTEM, prompt, _Shortened, effort="low", max_tokens=800)
         except (LLMError, OSError, ValueError) as e:

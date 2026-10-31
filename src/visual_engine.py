@@ -1,10 +1,10 @@
 """
 src/visual_engine.py
 ====================
-Scene sequencing and the locked Variant B thumbnail engine.
+Scene sequencing and museum-grade archival cover packaging engine.
 1. Resolves topic-specific scene media (images, plus an optional motion hook clip).
    A topic without its own media fails fast instead of borrowing another topic's imagery.
-2. Renders the Variant B (85% opacity halo) cover in two formats:
+2. Renders the archival curatorial exhibition plate and depth-layered covers in two formats:
    - 1080x1920 (9:16 Reel cover)
    - 1080x1080 (1:1 Instagram profile-grid crop)
 """
@@ -377,9 +377,9 @@ class VisualEngine:
             lay.add("rule", (cx - 70, cy - size - 72, cx + 70, cy - size - 68))
         rows = [("eyebrow", (cx, cy - size - 30), eyebrow, font_eye, GOLD),
                 ("title_1", (cx, cy - size // 2), line1, font_title, WHITE),
-                ("title_2", (cx, cy + size // 2 + 40), line2, font_title, WHITE)]
+                ("title_2", (cx, cy + size // 2 + 40), line2, font_title, GOLD)]
         if tagline:
-            rows.append(("tagline", (cx, cy + size + 40 + 30 + font_tag.size // 2), tagline, font_tag, GOLD))
+            rows.append(("tagline", (cx, cy + size + 40 + 30 + font_tag.size // 2), tagline, font_tag, WHITE))
         for name, xy, text, font, fill in rows:
             if not text:
                 continue
@@ -454,7 +454,7 @@ class VisualEngine:
         return sandwich
 
     def _cover_badge(self, im: Image.Image, copy: Dict[str, str], lay=None, tight: bool = False) -> Image.Image:
-        """The original Variant B: centred title on an 85% halo, gold-outlined eyebrow and tagline pills."""
+        """Archival exhibition plate: centred two-tone title on feathered ink scrim, crisp curatorial plate cards."""
         measure = ImageDraw.Draw(im)
         eyebrow, line1, line2, tagline, font_eye, font_title, font_tag = self._fit_copy(
             measure, copy, tight, "Cinzel", THUMB_TITLE_FONT_SIZE, THUMB_EYEBROW_FONT_SIZE, THUMB_TAGLINE_FONT_SIZE,
@@ -481,16 +481,16 @@ class VisualEngine:
         bg_w = max(w_l1, w_l2) + 120
         bg_h = (title_y1 - title_y0) + 90
         halo = Image.new("RGBA", (VIDEO_WIDTH, VIDEO_HEIGHT), (0, 0, 0, 0))
-        ImageDraw.Draw(halo).rounded_rectangle(
+        ImageDraw.Draw(halo).rectangle(
             [(VIDEO_WIDTH - bg_w) // 2, title_cy - bg_h // 2, (VIDEO_WIDTH + bg_w) // 2, title_cy + bg_h // 2],
-            radius=30, fill=(0, 0, 0, 160),
+            fill=(11, 14, 18, 160),
         )
         im = Image.alpha_composite(im, halo.filter(ImageFilter.GaussianBlur(32)))
         draw = ImageDraw.Draw(im)
         cx = VIDEO_WIDTH // 2
 
         eye_box = [cx - eye_box_w // 2, start_y, cx + eye_box_w // 2, start_y + eye_box_h]
-        draw.rounded_rectangle(eye_box, radius=10, fill=(12, 12, 12, 220), outline=_brand.rgba(_brand.GOLD, 240), width=2)
+        draw.rectangle(eye_box, fill=(11, 14, 18, 225), outline=_brand.rgba(_brand.GOLD, 210), width=1)
         draw.text((cx, start_y + eye_box_h // 2), eyebrow, font=font_eye, fill=GOLD, anchor="mm")
         if lay is not None:
             lay.add("eyebrow", eye_box)
@@ -500,7 +500,7 @@ class VisualEngine:
         if tagline:
             tag_y0 = title_y1 + gap_tag
             tag_box = [cx - tag_box_w // 2, tag_y0, cx + tag_box_w // 2, tag_y0 + tag_box_h]
-            draw.rounded_rectangle(tag_box, radius=12, fill=(14, 14, 14, 225), outline=_brand.rgba(_brand.GOLD, 240), width=2)
+            draw.rectangle(tag_box, fill=(11, 14, 18, 225), outline=_brand.rgba(_brand.GOLD, 160), width=1)
             draw.text((cx, tag_y0 + tag_box_h // 2), tagline, font=font_tag, fill=WHITE, anchor="mm")
             if lay is not None:
                 lay.add("tagline", tag_box)

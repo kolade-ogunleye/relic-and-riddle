@@ -16,6 +16,7 @@ Includes the 3-Tier Degradation Ladder:
 import base64
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 
@@ -132,12 +133,21 @@ def synthesize_gap_asset(
     """
     if not is_available():
         return None
+
+    work_p = Path(work_dir)
+    work_p.mkdir(parents=True, exist_ok=True)
+    out_path = work_p / f"gap_gen_beat_{beat_index}.jpg"
+    if out_path.is_file() and out_path.stat().st_size > 0:
+        log.info("Reusing existing synthesized gap asset for Beat %d -> %s", beat_index, out_path.name)
+        return out_path
         
     era_key = era if era in ERA_PROMPTS else "classical_antiquity"
     style_prompt = ERA_PROMPTS[era_key]
     
-    # Modern scientific override: If the modality is modern scientific, route away from antique etching
-    if modality == "modern_scientific":
+    # Modern scientific override: If the modality is modern scientific or sentence describes lab analysis, route away from antique etching
+    is_modern = (modality == "modern_scientific" or
+                 bool(re.search(r"\b(microscop|nanoparticle|laboratory|electron|spectrom|x-ray|ct scan|modern analysis|modern test|chemical bond)\b", line_text, re.I)))
+    if is_modern:
         style_prompt = ERA_PROMPTS["modern_cold_war"]
         era_key = "modern_cold_war"
         
@@ -149,8 +159,6 @@ def synthesize_gap_asset(
     if not raw_bytes:
         return None
         
-    work_p = Path(work_dir)
-    work_p.mkdir(parents=True, exist_ok=True)
     raw_path = work_p / f"raw_gen_beat_{beat_index}.jpg"
     raw_path.write_bytes(raw_bytes)
     

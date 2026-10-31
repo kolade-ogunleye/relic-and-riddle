@@ -400,3 +400,50 @@ def test_recon_badge_upper_third_and_lineage_derivation(tmp_path):
     assert r"{\an8\fs22\c&HE2DAC8&\alpha&H40&\b1}[ HISTORICAL RECONSTRUCTION ]" in content
 
 
+# ---------------------------------------------------------------------------
+# 13. Gap Asset Cache Reuse & Keyword-Driven Modality Fallback
+# ---------------------------------------------------------------------------
+
+def test_gap_asset_cache_reuse_and_keyword_override(tmp_path):
+    """Verifies that synthesize_gap_asset reuses existing files without calling the API,
+    and automatically detects modern scientific keywords even if modality is omitted."""
+    from src import image_gen
+    
+    # 1. Existing file reuse
+    existing = tmp_path / "gap_gen_beat_5.jpg"
+    existing.write_bytes(b"\xff\xd8\xff\xe0existing_jpeg_data")
+    
+    with patch("src.image_gen.is_available", return_value=True), \
+         patch("src.image_gen.generate_raw_linework") as mock_gen:
+        
+        result = image_gen.synthesize_gap_asset(
+            beat_index=5,
+            line_text="ancient bronze gears were cast",
+            era="classical_antiquity",
+            topic={"title": "Antikythera"},
+            work_dir=tmp_path
+        )
+        assert result == existing
+        assert mock_gen.call_count == 0  # Zero API spend on reuse!
+
+    # 2. Keyword-driven modern scientific detection
+    work_dir2 = tmp_path / "work2"
+    with patch("src.image_gen.is_available", return_value=True), \
+         patch("src.image_gen.generate_raw_linework", return_value=b"\xff\xd8\xff\xe0raw") as mock_gen, \
+         patch("src.substrate_compositor.composite_linework_onto_substrate"):
+        
+        image_gen.synthesize_gap_asset(
+            beat_index=2,
+            line_text="modern x-ray tomography scans reveal hidden gear teeth",
+            era="classical_antiquity",
+            topic={"title": "Antikythera"},
+            work_dir=work_dir2,
+            modality="historical_scene"  # Intentionally omitted / default
+        )
+        assert mock_gen.call_count == 1
+        prompt_used = mock_gen.call_args[0][0]
+        # Must have auto-switched to technical blueprint despite era="classical_antiquity"
+        assert "technical engineering schematic" in prompt_used
+
+
+

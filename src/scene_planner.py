@@ -809,12 +809,14 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
             if getattr(config, "GENERATIVE_GAP_FILLING", True) and gen_count < gen_limit and target_work_dir is not None:
                 from . import image_gen, image_quarantine
                 era = (topic or {}).get("era") or "classical_antiquity"
+                modality = beats[k].get("modality") if isinstance(beats[k], dict) else None
                 cand_art = image_gen.synthesize_gap_asset(
                     beat_index=k + 1,
                     line_text=line,
                     era=era,
                     topic=topic or {"title": subject},
-                    work_dir=target_work_dir
+                    work_dir=target_work_dir,
+                    modality=modality or "historical_scene"
                 )
                 if cand_art and cand_art.exists():
                     ok, q_reason = image_quarantine.verify_gap_asset(cand_art, line, era)

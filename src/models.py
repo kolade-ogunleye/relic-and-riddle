@@ -90,6 +90,12 @@ class FactSheetDraft(BaseModel):
     facts: List[DraftFact]
 
 
+class SentenceTrace(BaseModel):
+    sentence: str
+    fact_ids: List[str] = []
+    trace_type: Literal["domain_fact", "open_historical_debate", "epistemic_negation", "rhetorical_framing"] = "domain_fact"
+
+
 class ScriptCore(BaseModel):
     """What the script writer produces in one structured call."""
     title: str
@@ -109,6 +115,7 @@ class ScriptCore(BaseModel):
     # creator tips, 2026-10-25): shown at the end of the video, in both captions and on the last carousel
     # slide. Optional: older and curated scripts get a plain line (script_engine.share_prompt).
     share_line: Optional[str] = None
+    sentence_trace: Optional[List[SentenceTrace]] = None
 
 
 class GraphicsPlan(BaseModel):

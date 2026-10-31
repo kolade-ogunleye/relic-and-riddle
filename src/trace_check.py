@@ -196,8 +196,25 @@ def check(payload: Dict[str, Any], sheet: Dict[str, Any]) -> Tuple[bool, float, 
     sheet = with_reference_evidence(sheet, payload)
     numbers = untraced_numbers(payload, sheet) + card_numbers_off_narration(payload)
     package = "\n".join(f"[{w}] {t}" for w, t in surfaces(payload))
-    report = free_llm.call(SYSTEM, f"<fact_sheet>\n{fact_sheet.as_prompt(sheet)}\n</fact_sheet>\n\n<package>\n{package}\n</package>",
-                           TraceReport, role="checker", effort="medium", max_tokens=8000)
+    traces = payload.get("sentence_trace") or []
+    trace_hint = ""
+    if traces:
+        trace_lines = []
+        for t in traces:
+            s_text = t.get("sentence") if isinstance(t, dict) else getattr(t, "sentence", str(t))
+            f_ids = t.get("fact_ids") if isinstance(t, dict) else getattr(t, "fact_ids", [])
+            t_type = t.get("trace_type") if isinstance(t, dict) else getattr(t, "trace_type", "")
+            trace_lines.append(f"- \"{s_text}\" -> declared facts: {f_ids} ({t_type})")
+        if trace_lines:
+            trace_hint = (
+                "\n\n<writer_sentence_trace>\n"
+                "The writer declared the following sentence-to-fact associations during generation. "
+                "Audit each independently: do NOT accept a fact_id if the statement is not actually supported by that fact:\n"
+                + "\n".join(trace_lines)
+                + "\n</writer_sentence_trace>"
+            )
+    prompt = f"<fact_sheet>\n{fact_sheet.as_prompt(sheet)}\n</fact_sheet>\n\n<package>\n{package}\n</package>{trace_hint}"
+    report = free_llm.call(SYSTEM, prompt, TraceReport, role="checker", effort="medium", max_tokens=8000)
     report = _validate_trace(report, sheet)
     if not report.claims:
         return False, 0.0, [], "Fact checker returned no reviewed claims."

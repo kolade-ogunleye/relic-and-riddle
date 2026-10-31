@@ -114,6 +114,28 @@ Requirements:
 - share_line: one warm sentence of at most 90 characters, no hashtags, at most one emoji, that asks the viewer to share this with someone (say who, for this topic: "a friend who loves ancient engineering") and to follow for the next story. Worded for this topic, never a stock slogan ("share this with a friend", "someone who loves history" are rejected). Put the share ask first and the follow invitation after it ("Send this to the codebreaker you know, and follow for the next relic."): the video's end card shows the share ask on its own, under the channel name, with its own FOLLOW line. It closes both captions and the carousel too.
 - sources: the pages you used, with real URLs."""
 
+VERIFIED_USER_PROMPT_TEMPLATE = """Write the complete script package for this topic from the verified fact sheet.
+
+Topic title: {title}
+Sub-theme: {sub_theme}
+Location: {location}
+
+Requirements:
+- narration: open on the verified facts' most surprising discovery, central anomaly, or human-stakes tension (the mystery first: viewers decide in under two seconds), never on a list of measurements; the first sentence at most 14 words. Build the opening hook strictly from verified facts or genuine open debates; never invent unverified framing. Place the site for the viewer ({location}: its region or country, not only its own name) within the first 3 sentences. Never put a unit conversion or an aside in brackets: the voice does not say it. The title, the caption and the narration tell the same story: a figure, year or discovery the title or caption leads with is told in the narration too. Word budget by role: the hook (at most 14 words) carries the discovery or mystery and, ideally, the place; the place is named inside an existing sentence ("Beneath a house in <place>, <country>, ..."), never as a sentence added for it; then 3-4 fact sentences; then the closing sentence; the total inside the Length range below. The discovery-first opening replaces measurement sentences, it is not added to them; one hedge may cover two related figures.
+- sentence_trace: For every single sentence in the narration_script, provide an entry in sentence_trace: the exact sentence text, the supporting fact_ids from <verified_facts> (e.g. ["F1"], ["F3"]), and trace_type ("domain_fact", "open_historical_debate", "epistemic_negation", or "rhetorical_framing"). If a sentence expresses an open debate or rhetorical question without a specific fact, set fact_ids=[] and set trace_type accordingly.
+- title: the Facebook Reel title shown under the video: at most 60 characters, specific and intriguing (a name, a number or a tension, not a label like "The History of X"); at most one relevant emoji.
+- caption: written like a magazine editor, not a template. First line: a curiosity-driven line of at most 110 characters (a hard limit of 125 is shown before "more"; stay well under it) that is NOT the narration's hook sentence. Then 2-3 short sentences that add context the video doesn't say (a detail, a consequence, a name), with the place worked naturally into the prose. Then one genuine question to the audience. Then the hashtags on the last line. Use 1-3 relevant emoji where they add warmth or meaning (for example one at the end of the first line and one on the question), never as labels or bullet markers, and no "📍" lines. Under 1,600 characters.
+- carousel_caption: a separate caption for the 7-slide carousel of the same topic, different wording from the Reel caption (not a rephrase of its first line): a short invitation to look through the slides ("Swipe through ..." is fine; never say which way), one fresh detail, one question, then the same hashtags. Use 1-3 relevant emoji where they add warmth or meaning, as in the caption (never a pointing hand or an arrow). Under 800 characters. It is posted as Instagram's carousel and as Facebook's photo grid, which place the caption and the photos differently.
+- No direction cues in any text (captions, title, first comment, share line, slides, stories): no pointing-hand or arrow emoji or symbols (such as 👉 👇 👆 ☝️ ➡️ ⬇️ → ↓), no "swipe right/left/up/down", and no "below" or "above" for the comments, caption or photos (write "in the comments", not "in the comments below"). Each platform places these differently and may change it.
+- No engagement bait in any text (Meta demotes it): never ask for likes or reactions ("like this if", "react with", "double tap if"), votes by reaction, shares to a number of people ("share with 5 friends"), tags ("tag someone who") or set replies ("comment YES", "type 1 if"). Ask a genuine question instead.
+- hashtags: 3-5 (Instagram allows at most 5), each starting with "#": specific to the place, era or subject (e.g. "#<Place>", "#<Era>History"); no generic engagement tags like "#viral", "#fyp", "#ReelsViral", "#explore".
+- story_slides: exactly 3 (hook, revelation, question). Slide 3 asks the poll's question; its body gives context and asks nothing else. Each body is one complete sentence of at most {story_words} words ({poll_words} on slide 3): it must fit three lines at the Story's text size, and long words and names take more room.
+- poll: an either/or question (at most 60 characters) and exactly 2 options (each at most 24 characters) that are its two answers, e.g. "Planned or lucky?" with "Careful planning" / "Lucky accident". Never a yes/no question with options that are not yes/no.
+- carousel_slides: exactly 7 (title slide, five fact slides, closing call-to-comment slide). Slide 7 MUST ask a humane, universally resonant, thought-provoking question that appeals to all demographics (e.g. human ingenuity, civilizational survival, what modern humans have forgotten, or enduring mysteries) rather than narrow academic trivia, compelling viewers to debate in the comments.
+- first_comment: a debate-starting question, with no hashtags (Instagram's 5-hashtag cap covers the whole post).
+- share_line: one warm sentence of at most 90 characters, no hashtags, at most one emoji, that asks the viewer to share this with someone (say who, for this topic: "a friend who loves ancient engineering") and to follow for the next story. Worded for this topic, never a stock slogan ("share this with a friend", "someone who loves history" are rejected). Put the share ask first and the follow invitation after it ("Send this to the codebreaker you know, and follow for the next relic."): the video's end card shows the share ask on its own, under the channel name, with its own FOLLOW line. It closes both captions and the carousel too.
+- sources: the pages you used, with real URLs."""
+
 AI_ORIGINS = ("claude", "gemini-free")  # scripts written by a model (vs curated by hand)
 SECOND_CHECK_ATTEMPTS = 3        # the free second check, when unavailable, is tried this many times in all
 SECOND_CHECK_RETRY_SECONDS = 60  # a per-minute quota is back by then
@@ -142,6 +164,9 @@ hedging (e.g. 'physicists calculate that...', 'models suggest roughly...', 'rang
 CRITICAL BAN ON ROBOTIC PREFIXES: NEVER start sentences with 'Estimated,' or 'Approximately,'. Integrate hedges seamlessly into verbs or clauses.
 Do not add details, names, causes, numbers or dates that are not in a fact, and do not derive new figures (no subtracting dates, no unit-free rounding).
 State verified physical, chemical, and historical facts directly and authoritatively. Do not use dictionary etymologies (no "monos meaning single and lithos meaning stone", no Latin/Greek roots). Do not quote individual researcher names or study publication dates (e.g. do not say 'Geologist X has said' or 'A July 2017 study reported') unless hedging a scientific hypothesis (e.g. 'Researchers propose that...').
+NARRATIVE TENSION & HOOK GROUNDING:
+All dramatic curiosity, narrative hooks, and opening tension must arise strictly from the contrast between two verified facts (e.g. 'structures standing 2,000 years vs modern concrete crumbling') or from an explicit open debate/question in <verified_facts>.
+HARD BAN ON SENSATIONAL DRAMATIZATION: NEVER use emotional embellishment words like 'baffled', 'mystified', 'astonished', 'stunned', or 'miraculous' unless an evidence quote explicitly uses that exact word.
 CRITICAL THEMATIC UNITY & ZERO-DRIFT RULE:
 Every single sentence in the narration must directly advance the central subject, engineering marvel, physical anomaly, chemical mechanism, or civilizational contrast of the topic.
 HARD BAN ON TOPIC DRIFT: NEVER pivot in later beats to regional municipal history, local colonial founding dates, territorial border conquests, or unrelated town elevations (e.g. never talk about 280 BC Etruscan land treaties when discussing concrete).
@@ -155,6 +180,10 @@ List sources only from retrieved_sources."""
 REVISE_SYSTEM = """You fix a short history video package so it passes fact-checking. For each finding, replace ONLY
 the rejected sentence or phrase: hedge it naturally using fluent English (e.g. 'models suggest', 'scientists calculate', 'roughly'), or replace it with a verified
 fact, or remove it. CRITICAL: NEVER prepend robotic prefixes like 'Estimated,' or 'Approximately,' to fix a sentence.
+CRITICAL GROUNDING IN REVISIONS:
+When replacing or fixing an untraced claim, you must ONLY use vocabulary, dates, measurements, and statements that exist in <verified_facts>.
+DO NOT introduce outside parametric memory or unlisted adjectives (e.g. do not introduce terms like 'alkaline', 'volcanic', or unlisted builder names unless they appear in <verified_facts>).
+If a claim cannot be substantiated by an existing fact ID, delete it cleanly or replace it with a verified fact from <verified_facts>.
 Titles and on-screen covers are intrigue headlines and must NEVER be hedged with 'Estimated'.
 Return exact find/replace edits: "find" must be copied character-for-character from the draft
 (a whole sentence or phrase), "replace" is its new text ("" to delete). Fix every place the claim appears
@@ -2928,7 +2957,7 @@ class ScriptEngine:
             )
 
             prompt = (
-                USER_PROMPT_TEMPLATE.format(**fields)
+                VERIFIED_USER_PROMPT_TEMPLATE.format(**fields)
                 + f"\n\n<verified_facts>\n{fact_sheet.as_prompt(sheet)}\n</verified_facts>"
                 + raw_evidence_str
                 + f"\n<retrieved_sources>\n{format_sources(retrieved)}\n</retrieved_sources>\n"

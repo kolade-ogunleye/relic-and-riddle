@@ -150,10 +150,47 @@ def render_clip(image_path: Path, out_path: Path, duration: float, preset: str =
     cx, cy = bw / 2, bh / 2
     s0 = 1.0 / OVERSCAN * (bw / out_w)  # output pixel -> base pixel at rest (fills the frame)
     d = cv2.remap(depth, (cx + u * s0).astype(np.float32), (cy + v * s0).astype(np.float32), cv2.INTER_LINEAR)
-    # 2.5D Depth Displacement: Slicing foreground stone doorways from background tunnels for 3D travel with occlusion
     d_norm = np.clip(d, 0.0, 1.0)
-    fg_mask = np.clip((d_norm - 0.50) / 0.50, 0.0, 1.0)
-    weight = 0.20 + 0.80 * (d_norm ** 1.35) + 0.25 * (fg_mask ** 2)
+
+    # Adaptive Depth Discontinuity Gating:
+    # If the scene exhibits a significant depth step (p85 - p25 >= 0.22) and coherent foreground presence (10-75%),
+    # separate the foreground subject, inpaint the background under dilated mask (Telea), and project on
+    # dual independent camera planes to eliminate rubber-sheet stretching.
+    p85 = float(np.percentile(d_norm, 85))
+    p25 = float(np.percentile(d_norm, 25))
+    depth_step = p85 - p25
+
+    depth_u8 = (d_norm * 255).astype(np.uint8)
+    otsu_thresh, _ = cv2.threshold(depth_u8, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    split_val = otsu_thresh / 255.0
+    fg_coverage = float(np.mean(d_norm > split_val))
+
+    use_dual_plane = depth_step >= 0.22 and (0.10 <= fg_coverage <= 0.75)
+
+    if use_dual_plane:
+        raw_fg = (depth > split_val).astype(np.uint8) * 255
+        k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+        clean_fg = cv2.morphologyEx(raw_fg, cv2.MORPH_CLOSE, k)
+        clean_fg = cv2.morphologyEx(clean_fg, cv2.MORPH_OPEN, k)
+
+        dilate_k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (19, 19))
+        inpaint_mask = cv2.dilate(clean_fg, dilate_k)
+
+        inpaint_h, inpaint_w = base.shape[:2]
+        if inpaint_w > 960:
+            scale_inp = 960.0 / inpaint_w
+            small_base = cv2.resize(base, (960, int(inpaint_h * scale_inp)), interpolation=cv2.INTER_AREA)
+            small_mask = cv2.resize(inpaint_mask, (960, int(inpaint_h * scale_inp)), interpolation=cv2.INTER_NEAREST)
+            small_bg = cv2.inpaint(small_base, small_mask, 5, cv2.INPAINT_TELEA)
+            bg_clean = cv2.resize(small_bg, (inpaint_w, inpaint_h), interpolation=cv2.INTER_LINEAR)
+        else:
+            bg_clean = cv2.inpaint(base, inpaint_mask, 5, cv2.INPAINT_TELEA)
+
+        feather_fg = cv2.GaussianBlur(clean_fg.astype(np.float32) / 255.0, (11, 11), 3.0).astype(np.float32)
+        w_bg, w_fg = 0.25, 1.05
+    else:
+        fg_mask = np.clip((d_norm - 0.50) / 0.50, 0.0, 1.0)
+        weight = 0.20 + 0.80 * (d_norm ** 1.35) + 0.25 * (fg_mask ** 2)
 
     frames = max(2, int(round(duration * fps)))
     proc = subprocess.Popen(
@@ -165,11 +202,29 @@ def render_clip(image_path: Path, out_path: Path, duration: float, preset: str =
         for i in range(frames):
             t = i / (frames - 1)
             e = ease(t, lead=preset == HOOK_PRESET)
-            z = 1.0 + zoom_amt * (e if zoom_amt > 0 else e - 1) * weight
-            scale = s0 / np.maximum(z, 0.5)
-            map_x = cx + u * scale + shift_x * (e - 0.5) * weight
-            map_y = cy + v * scale + shift_y * (e - 0.5) * weight
-            frame = cv2.remap(base, map_x, map_y, cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
+            if use_dual_plane:
+                # Background plane (distant perspective)
+                z_bg = 1.0 + zoom_amt * (e if zoom_amt > 0 else e - 1) * w_bg
+                scale_bg = np.float32(s0 / np.maximum(z_bg, 0.5))
+                map_bg_x = (cx + u * scale_bg + shift_x * (e - 0.5) * w_bg).astype(np.float32)
+                map_bg_y = (cy + v * scale_bg + shift_y * (e - 0.5) * w_bg).astype(np.float32)
+                frame_bg = cv2.remap(bg_clean, map_bg_x, map_bg_y, cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+
+                # Foreground plane (near subject with sub-pixel alpha feathering)
+                z_fg = 1.0 + zoom_amt * (e if zoom_amt > 0 else e - 1) * w_fg
+                scale_fg = np.float32(s0 / np.maximum(z_fg, 0.5))
+                map_fg_x = (cx + u * scale_fg + shift_x * (e - 0.5) * w_fg).astype(np.float32)
+                map_fg_y = (cy + v * scale_fg + shift_y * (e - 0.5) * w_fg).astype(np.float32)
+                frame_fg = cv2.remap(base, map_fg_x, map_fg_y, cv2.INTER_CUBIC, borderMode=cv2.BORDER_CONSTANT)
+                alpha = cv2.remap(feather_fg, map_fg_x, map_fg_y, cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)[:, :, None]
+
+                frame = (frame_fg * alpha + frame_bg * (1.0 - alpha)).astype(np.uint8)
+            else:
+                z = 1.0 + zoom_amt * (e if zoom_amt > 0 else e - 1) * weight
+                scale = s0 / np.maximum(z, 0.5)
+                map_x = cx + u * scale + shift_x * (e - 0.5) * weight
+                map_y = cy + v * scale + shift_y * (e - 0.5) * weight
+                frame = cv2.remap(base, map_x, map_y, cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
             proc.stdin.write(frame.tobytes())
     finally:
         proc.stdin.close()
@@ -177,7 +232,7 @@ def render_clip(image_path: Path, out_path: Path, duration: float, preset: str =
     if proc.returncode != 0:
         raise RuntimeError(f"ffmpeg failed encoding {out_path.name}")
     from .lineage import record_derived
-    record_derived(out_path, [image_path], "parallax", {"preset": preset, "duration": duration, "fps": fps, "variant": variant})
+    record_derived(out_path, [image_path], "parallax", {"preset": preset, "duration": duration, "fps": fps, "variant": variant, "dual_plane": use_dual_plane})
     return out_path
 
 

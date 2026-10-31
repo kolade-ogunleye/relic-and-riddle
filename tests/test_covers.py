@@ -91,9 +91,13 @@ def test_3_variant_thumbnail_suite_generation(tmp_path):
     var_a = tmp_path / "thumbnail_variant_a_blueprint.jpg"
     var_b = tmp_path / "thumbnail_variant_b_intrigue.jpg"
     var_c = tmp_path / "thumbnail_variant_c_minimal.jpg"
+    var_d = tmp_path / "thumbnail_variant_d_split.jpg"
+    var_e = tmp_path / "thumbnail_variant_e_depth.jpg"
     assert var_a.exists() and Image.open(var_a).size == (1080, 1920)
     assert var_b.exists() and Image.open(var_b).size == (1080, 1920)
     assert var_c.exists() and Image.open(var_c).size == (1080, 1920)
+    assert var_d.exists() and Image.open(var_d).size == (1080, 1920)
+    assert var_e.exists() and Image.open(var_e).size == (1080, 1920)
 
 
 

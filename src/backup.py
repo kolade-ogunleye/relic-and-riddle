@@ -40,6 +40,8 @@ GOLD_FILES = [
     "thumbnail_variant_a_blueprint.jpg",
     "thumbnail_variant_b_intrigue.jpg",
     "thumbnail_variant_c_minimal.jpg",
+    "thumbnail_variant_d_split.jpg",
+    "thumbnail_variant_e_depth.jpg",
     "verified_script.json",
     "qa_report.json",
     "provenance.json",

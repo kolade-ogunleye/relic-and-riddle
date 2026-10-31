@@ -2694,7 +2694,7 @@ class TelegramApprovalBot:
         """Flips the cover variant in-place on an existing Telegram photo message using editMessageMedia."""
         var_letter = variant_letter.lower()
         from .config import OUTPUT_DIR
-        if Path(run_name).name != run_name or run_name in (".", "..") or var_letter not in ("a", "b", "c"):
+        if Path(run_name).name != run_name or run_name in (".", "..") or var_letter not in ("a", "b", "c", "d", "e"):
             return False
         r_dir = (OUTPUT_DIR / run_name).resolve()
         if r_dir.parent != OUTPUT_DIR.resolve():
@@ -2703,11 +2703,19 @@ class TelegramApprovalBot:
             return False
         var_file = (r_dir / f"thumbnail_variant_{var_letter}_blueprint.jpg" if var_letter == "a"
                     else r_dir / f"thumbnail_variant_{var_letter}_intrigue.jpg" if var_letter == "b"
-                    else r_dir / f"thumbnail_variant_{var_letter}_minimal.jpg")
+                    else r_dir / f"thumbnail_variant_{var_letter}_minimal.jpg" if var_letter == "c"
+                    else r_dir / f"thumbnail_variant_{var_letter}_split.jpg" if var_letter == "d"
+                    else r_dir / f"thumbnail_variant_{var_letter}_depth.jpg")
         if not var_file.exists():
             return False
 
-        styles = {"a": "Forensic Blueprint", "b": "Discovery Intrigue", "c": "Cinematic Minimal"}
+        styles = {
+            "a": "Forensic Blueprint",
+            "b": "Curatorial Plate",
+            "c": "Cinematic Minimal",
+            "d": "Archival Split",
+            "e": "3D Depth Sandwich",
+        }
         style_name = styles.get(var_letter, var_letter.upper())
         # ✓ the cover the video has, 👁 the one shown (a flip ticked the preview as if chosen: 2026-10-25);
         # Lock only while the video waits for its review, as on the Covers screen.
@@ -2719,10 +2727,14 @@ class TelegramApprovalBot:
         buttons = [
             [
                 {"text": f"{mark('a')} A: Blueprint", "callback_data": f"cov:{run_name}:a"},
-                {"text": f"{mark('b')} B: Intrigue", "callback_data": f"cov:{run_name}:b"},
+                {"text": f"{mark('b')} B: Plate", "callback_data": f"cov:{run_name}:b"},
             ],
             [
                 {"text": f"{mark('c')} C: Minimal", "callback_data": f"cov:{run_name}:c"},
+                {"text": f"{mark('d')} D: Split", "callback_data": f"cov:{run_name}:d"},
+            ],
+            [
+                {"text": f"{mark('e')} E: Depth", "callback_data": f"cov:{run_name}:e"},
             ],
             *([[{"text": f"🔒 Lock {var_letter.upper()}", "callback_data": f"covlock:{run_name}:{var_letter}"}]]
               if reviewable else []),
@@ -2731,7 +2743,7 @@ class TelegramApprovalBot:
         caption = (
             f"🎨 <b>Thumbnail Cover Studio</b> • <code>{html.escape(run_name)}</code>\n\n"
             f"Previewing: <b>Variant {var_letter.upper()} ({style_name})</b>\n"
-            f"Tap A, B, or C to flip preview in-place, or Lock to finalize:"
+            f"Tap A, B, C, D, or E to flip preview in-place, or Lock to finalize:"
         )
         cache_key = f"cover:{run_name}:{var_letter}"
         cached_id = self.db.get_cached_telegram_media(cache_key)

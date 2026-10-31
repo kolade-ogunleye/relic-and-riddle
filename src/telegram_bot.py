@@ -3658,6 +3658,11 @@ class TelegramApprovalBot:
                             if decision:
                                 return decision
                 except Exception as e:
+                    if "409" in str(e) and "Conflict" in str(e):
+                        log.info("Another bot instance owns getUpdates; switching to passive database polling.")
+                        self.background_polling = True
+                        time.sleep(poll_interval)
+                        continue
                     log.warning("Telegram polling error (will retry): %s", e)
                     time.sleep(poll_interval)
 

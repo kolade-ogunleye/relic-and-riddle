@@ -9,6 +9,7 @@ requests==2.34.2
 msal==1.39.0  # personal OneDrive device sign-in and silent token refresh
 cryptography==50.0.2  # encrypted backup archives and token cache
 soundfile==0.13.1
+scipy>=1.10.0
 pip-audit==2.10.1
 onnxruntime-directml==1.24.4; sys_platform == "win32"
 onnxruntime==1.24.4; sys_platform != "win32"

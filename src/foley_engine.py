@@ -11,7 +11,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
-from scipy import signal
+try:
+    from scipy import signal
+except ImportError:
+    signal = None
 
 from . import sfx_palette
 from .config import SFX_DIR
@@ -64,7 +67,7 @@ class FoleyEngine:
     def apply_spectral_filter(cls, audio: np.ndarray, category: str, sr: int = 48000) -> np.ndarray:
         """Applies zero-phase category spectral filtering to carve vocal pockets
         and optimize transient clarity."""
-        if audio.size == 0 or len(audio) < 16:
+        if audio.size == 0 or len(audio) < 16 or signal is None:
             return audio
 
         filtered = audio.copy()
@@ -186,7 +189,7 @@ class FoleyEngine:
     def apply_environment_reverb(cls, audio: np.ndarray, environment: str, wet: float = 0.20,
                                  sr: int = 48000) -> np.ndarray:
         """Applies spatial environment convolution reverb to `audio` with specified wet/dry mix."""
-        if audio.size == 0 or wet <= 0.0:
+        if audio.size == 0 or wet <= 0.0 or signal is None:
             return audio
 
         env_clean = (environment or "dry").lower().strip()

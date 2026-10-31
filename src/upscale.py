@@ -28,14 +28,15 @@ from typing import List, Optional, Tuple
 
 from PIL import Image
 
-from .config import BASE_DIR, REALESRGAN_BIN, VIDEO_WIDTH
+from .config import BASE_DIR, REALESRGAN_BIN, VIDEO_WIDTH, VIDEO_HEIGHT
 from .typography import is_video
 
 log = logging.getLogger(__name__)
 
 CACHE_DIR = BASE_DIR / "cache" / "upscaled"
-MIN_CROP_WIDTH = int(VIDEO_WIDTH * 1.25)   # zoom headroom
-TARGET_CROP_WIDTH = VIDEO_WIDTH * 2         # the composer renders camera moves at 2x
+MIN_CROP_WIDTH = int(VIDEO_WIDTH * 1.25)          # 1,350 px (ceiling headroom)
+NATIVE_HEADROOM_WIDTH = int(VIDEO_WIDTH * 1.20)   # 1,296 px (1.20x native optical coverage threshold)
+TARGET_CROP_WIDTH = VIDEO_WIDTH * 2                # the composer renders camera moves at 2x
 ONNX_MODEL = BASE_DIR / "tools" / "models" / "realesrgan_x4plus.onnx"
 TILE = 192        # model input per tile (fixed size: DirectML compiles one shape)
 TILE_PAD = 16     # context around each tile, discarded after inference (no seams)
@@ -52,10 +53,25 @@ def vertical_crop_width(size: Tuple[int, int]) -> int:
 
 
 def needs_upscale(path: Path) -> bool:
+    """
+    Two-Tier Quality Gate:
+    1. Native Full HD Resolution Bypass: If an image contains physical dimensions that cover
+       the full 1080x1920 video frame (w >= VIDEO_WIDTH and h >= VIDEO_HEIGHT), and its 9:16
+       vertical crop provides at least 1.20x native optical coverage (crop_w >= NATIVE_HEADROOM_WIDTH),
+       it is optically sharp and bypasses expensive multi-hour neural tile upscaling.
+    2. Sub-Resolution Neural Upscale: Images with sub-1080p crop density (crop_w < NATIVE_HEADROOM_WIDTH
+       or sub-HD sensor dimensions) are upscaled 4x with Real-ESRGAN x4plus.
+    """
     if is_video(path):
         return False
     with Image.open(path) as im:
-        return vertical_crop_width(im.size) < MIN_CROP_WIDTH
+        w, h = im.size
+        crop_w = vertical_crop_width(im.size)
+        # Tier 1: Natively high-resolution stills with >= 1.20x zoom headroom
+        if crop_w >= NATIVE_HEADROOM_WIDTH and (h >= VIDEO_HEIGHT or w >= VIDEO_HEIGHT):
+            return False
+        # Tier 2: Sub-1080p or narrow crops require Real-ESRGAN 4x upscaling
+        return crop_w < MIN_CROP_WIDTH
 
 
 def backend() -> str:

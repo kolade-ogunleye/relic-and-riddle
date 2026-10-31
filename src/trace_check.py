@@ -169,12 +169,15 @@ def _counted_time_span(text: str) -> bool:
 
 def _is_empirical_claim(claim: Any) -> bool:
     """Whether a claim asserts an empirical factual claim requiring citation identifiers."""
-    ctype = getattr(claim, "claim_type", None)
-    if ctype is not None:
-        # Pure schema-driven: domain_fact strictly requires fact_ids / quote_ids.
-        # open_historical_debate, epistemic_negation, and rhetorical_framing do not require quote IDs.
-        return ctype == "domain_fact"
-    # Legacy fallback for bare strings (e.g. tests directly evaluating strings)
+    ctype = getattr(claim, "claim_type", None) or (claim.get("claim_type") if isinstance(claim, dict) else None)
+    text = getattr(claim, "claim", str(claim)) if not isinstance(claim, str) else claim
+    if ctype == "domain_fact":
+        return True
+    if ctype in ("open_historical_debate", "epistemic_negation"):
+        return False
+    if ctype == "rhetorical_framing":
+        # Guard against uncited empirical claims disguised as rhetorical framing
+        return _empirical_rhetoric(text)
     return _empirical_rhetoric(str(claim))
 
 
@@ -219,7 +222,7 @@ def check(payload: Dict[str, Any], sheet: Dict[str, Any]) -> Tuple[bool, float, 
     if not report.claims:
         return False, 0.0, [], "Fact checker returned no reviewed claims."
     audits = [c.model_dump() for c in report.claims]
-    bad = [c for c in report.claims if c.verdict != "traced"]
+    bad = [c for c in report.claims if c.verdict in ("contradicts", "overstated") or (c.verdict != "traced" and _is_empirical_claim(c))]
     total = len(report.claims) or 1
     confidence = round(100.0 * (total - len(bad)) / total, 1)
     findings = [f"'{c.claim}' ({c.where}; {c.verdict}: {c.note})" for c in bad] + [f"'{p}' (number check)" for p in numbers]
@@ -239,7 +242,7 @@ def check_act(act_text: str, sheet: Dict[str, Any], act_number: int) -> Tuple[bo
     report = _validate_trace(report, sheet)
     if not report.claims:
         return False, [f"Act {act_number}: no claims were reviewed."]
-    bad = [c for c in report.claims if c.verdict != "traced"]
+    bad = [c for c in report.claims if c.verdict in ("contradicts", "overstated") or (c.verdict != "traced" and _is_empirical_claim(c))]
     findings = [f"'{c.claim}' (Act {act_number}; {c.verdict}: {c.note})" for c in bad]
     return len(bad) == 0, findings
 
@@ -247,6 +250,7 @@ def check_act(act_text: str, sheet: Dict[str, Any], act_number: int) -> Tuple[bo
 
 class EvidenceVerdict(BaseModel):
     claim: str
+    where: str = "narration"       # narration, caption, title, on-screen cover, slide, story, graphic, comment
     claim_type: Literal["domain_fact", "epistemic_negation", "open_historical_debate", "rhetorical_framing"] = "domain_fact"
     verdict: Literal["supported", "hedged_ok", "unsupported", "contradicted"]
     quote_ids: List[int] = []
@@ -260,6 +264,7 @@ class EvidenceReport(BaseModel):
 EVIDENCE_SYSTEM = """You are an independent fact checker. You get a short history video package and numbered
 evidence quotes (exact sentences from Wikipedia and the pages it cites). Judge every factual claim in the
 package against the QUOTES ONLY, ignoring any summary wording:
+For each claim, record where from the package tags ([narration], [caption], [slide], [story], [graphic], [title], [comment], [on-screen cover]).
 - domain_fact: Specific historical, archaeological, geographical, physical, or numerical assertions about the subject. Must cite quote numbers.
   * supported: a quote states it;
   * hedged_ok: quotes disagree, give estimates, or are vague, and the package hedges accordingly ("about", "estimated", a range, "sources range");
@@ -322,5 +327,5 @@ def evidence_check(payload: Dict[str, Any], sheet: Dict[str, Any]) -> Tuple[str,
     conf = round(100.0 * (total - len(bad)) / total, 1)
     name = f"evidence re-check ({free_llm.config.FREE_CHECKER_MODEL})"
     if bad:
-        return "fail", conf, audits, f"[{name}] {len(bad)} blocking claim(s): " + "; ".join(f"'{c.claim}' ({c.verdict}: {c.note})" for c in bad)
+        return "fail", conf, audits, f"[{name}] {len(bad)} blocking claim(s): " + "; ".join(f"'{c.claim}' ({c.where}; {c.verdict}: {c.note})" for c in bad)
     return "pass", conf, audits, f"[{name}] All {len(report.claims)} claims supported by the quoted evidence."

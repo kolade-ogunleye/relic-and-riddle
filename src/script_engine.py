@@ -3099,17 +3099,22 @@ class ScriptEngine:
     def _free_second_check(self, payload: Dict[str, Any], sheet: Optional[Dict[str, Any]]):
         """The free evidence check, tried again after a wait when it is unavailable: a per-minute quota
         comes back, and a finished script is worth two minutes more (a run was lost to one unavailable
-        check, dev 2026-10-23). Still fails closed when it stays unavailable."""
+        check, dev 2026-10-23). If Gemini quota is exhausted and Claude is available, escalates to
+        Claude second_opinion fallback before failing closed."""
         if sheet is None:
             return "fail", 0.0, [], "No fact sheet: the free engine can't check this script."
+        result = ("unavailable", 0.0, [], "Not attempted yet")
         for attempt in range(1, SECOND_CHECK_ATTEMPTS + 1):
             result = trace_check.evidence_check(payload, sheet)
             if result[0] != "unavailable" or attempt == SECOND_CHECK_ATTEMPTS:
-                return result
+                break
             log.info("Second fact check unavailable (%s); trying again in %d s (%d of %d).",
                      result[3], SECOND_CHECK_RETRY_SECONDS, attempt, SECOND_CHECK_ATTEMPTS)
             self._report(f"Second fact check unavailable; trying again in {SECOND_CHECK_RETRY_SECONDS} s")
             _sleep(SECOND_CHECK_RETRY_SECONDS)
+        if result[0] == "unavailable" and claude_available():
+            log.info("Free second check unavailable (%s); escalating to Claude second_opinion fallback.", result[3])
+            return self.fact_checker.second_opinion(payload)
         return result
 
     def is_deep_dive_eligible(self, topic: Dict[str, Any], visual_count: int = 0) -> bool:

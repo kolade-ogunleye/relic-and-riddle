@@ -28,6 +28,9 @@ import requests
 import soundfile as sf
 
 from . import sfx_palette
+from .foley_engine import FoleyEngine
+from .stem_composer import StemComposer
+from .voice_prosody import VoiceProsody
 from .config import (
     AZURE_SPEECH_KEY,
     AZURE_SPEECH_REGION,
@@ -512,7 +515,8 @@ class AudioEngine:
                 return None
             try:
                 log.info("Synthesizing voiceover via ElevenLabs (%s)...", self.eleven_voice)
-                words = self._generate_elevenlabs(text, output_path)
+                eleven_text = VoiceProsody.apply_prosody_elevenlabs(text)
+                words = self._generate_elevenlabs(eleven_text, output_path)
                 self.last_provider, self.last_licensed = "elevenlabs", licensed
                 return align_words_with_script(orig_text, words)
             except Exception as e:
@@ -526,7 +530,8 @@ class AudioEngine:
                 return None
             try:
                 log.info("Synthesizing voiceover via Azure Speech (%s)...", self.voice)
-                words = self._generate_azure(text, output_path)
+                azure_text = VoiceProsody.apply_prosody_azure(text)
+                words = self._generate_azure(azure_text, output_path)
                 if not words:
                     raise RuntimeError("Azure Speech returned no word boundaries")
                 self.last_provider, self.last_licensed = "azure", True
@@ -550,7 +555,8 @@ class AudioEngine:
                                   + (self.fallback_reason or "set up ElevenLabs (paid plan) or Azure Speech") + ".")
 
         log.info("Synthesizing voiceover via edge-tts (%s; test runs only)...", self.voice)
-        words = asyncio.run(self._generate_edge_tts(text, output_path))
+        edge_text = VoiceProsody.apply_prosody_azure(text)
+        words = asyncio.run(self._generate_edge_tts(edge_text, output_path))
         if not words:
             raise RuntimeError("edge-tts returned no word boundaries; captions cannot be timed.")
         self.last_provider, self.last_licensed = "edge-tts", False
@@ -935,9 +941,11 @@ class AudioEngine:
                 drone[-fade:] *= ramp[::-1]
             bed = np.column_stack((drone, drone)) * 0.22
 
-        # Music follows the story's moments (src/sound_plan.py): swells on reveals, rises through tension.
+        # Music follows the story's moments via Linkwitz-Riley 4-stem adaptive scoring:
+        # Pre-reveal rhythm choke (-18 dB), sub-bass punch, and melodic swell.
         if sound_plan:
-            bed *= self.music_envelope(sound_plan.get("moments", []), total, sr)[:, None]
+            moments = sound_plan.get("moments", [])
+            bed = StemComposer.apply_adaptive_scoring(bed, moments, sr=sr, target_rms=self.MUSIC_RMS if valid_paths else None)
 
         # Triple-stem foley stem 2: one continuous setting layer. The cavern draft for a story told underground
         # (synthesized if no recording exists); the desert, sea or mountain wind for one told there, from the
@@ -1015,11 +1023,22 @@ class AudioEngine:
             if n_b > 0:
                 bed[cue_idx:cue_idx + n_b] += braam[:n_b] * 0.75
 
+        # Determine spatial environment acoustic convolution
+        env_name = "underground" if layer == "sfx_cavern_wind.wav" else (
+            "submerged" if layer == "sfx_sea_waves.wav" else (
+                "desert" if layer == "sfx_desert_wind.wav" else (
+                    "open_air" if layer == "sfx_mountain_wind.wav" else "dry"
+                )
+            )
+        )
+
         planned = {}
         for m in (sound_plan or {}).get("moments", []):
             if m.get("effect") and m["effect"] in self.SFX_CUES:
                 planned.setdefault(m["effect"], m["t"])
-        for name, cue in (planned if sound_plan else self.sfx_cue_times(words)).items():
+        cues_to_render = planned if sound_plan else self.sfx_cue_times(words)
+
+        for name, cue in cues_to_render.items():
             cue_spec = self.SFX_CUES[name]
             gain = cue_spec[1]
             synth_func = cue_spec[2] if len(cue_spec) > 2 else "_synth_stone_grind"
@@ -1027,9 +1046,15 @@ class AudioEngine:
             if synth_sfx.ndim == 1:
                 synth_sfx = np.column_stack((synth_sfx, synth_sfx))
             effect = self._effect(name, synth_sfx, sr)  # licensed recording if present, else synthesized
+
+            # Apply category spectral filter and room impulse convolution
+            category = FoleyEngine.get_category(name)
+            effect_cond = FoleyEngine.apply_spectral_filter(effect, category, sr=sr)
+            effect_conv = FoleyEngine.apply_environment_reverb(effect_cond, env_name, wet=0.20, sr=sr)
+
             i0 = int(cue * sr)
-            n = max(0, min(len(effect), total - i0))
-            bed[i0:i0 + n] += effect[:n] * (gain * 0.40)
+            n = max(0, min(len(effect_conv), total - i0))
+            bed[i0:i0 + n] += effect_conv[:n] * (gain * 0.40)
 
         if end_card_at is not None:
             self._end_card_sound(bed, float(end_card_at), sr)

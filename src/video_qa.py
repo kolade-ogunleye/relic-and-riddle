@@ -120,6 +120,8 @@ def beat_tag(asset: Any) -> str:
             parts.append("a wide shot shown whole, fitted over a blurred, darkened copy of itself")
         return f" [{'; '.join(parts)}]"
     records, original = _lineage_chain(path)
+    if original.stem.startswith("gap_gen_"):
+        return " [in-house archaeological reconstruction: era-matched archival illustration for unphotographed phenomenon]"
     operations = [r.get("operation") for r in records]
     if "ai_motion" in operations:
         parts.append("AI motion animating a real photo")
@@ -186,6 +188,9 @@ def drop_source_label_findings(report: Optional[QAReport]) -> Optional[QAReport]
                                      "summary": (report.summary or "") + note})
 
 
+
+
+
 _RECONSTRUCTION_NON_DEFECT = re.compile(
     r"\b(not (a )?(real |authentic )?(photo|photograph)|illustration|drawing|sketch|"
     r"artistic depiction|not real footage|monochrome linework|engraving|synthetic image|"
@@ -202,7 +207,17 @@ def drop_reconstruction_aesthetic_findings(report: Optional[QAReport], assets: O
     """The report without false-positive non-photographic complaints on in-house archaeological reconstructions."""
     if report is None or not assets:
         return report
-    reconstructed = {i for i, a in enumerate(assets, 1) if Path(str(a)).stem.startswith("gap_gen_")}
+    def is_recon(a):
+        p = Path(str(a))
+        if p.stem.startswith("gap_gen_"):
+            return True
+        try:
+            _, orig = _lineage_chain(p)
+            return orig.stem.startswith("gap_gen_")
+        except Exception:
+            return False
+
+    reconstructed = {i for i, a in enumerate(assets, 1) if is_recon(a)}
     dropped = [i for i in report.issues
                if i.beat in reconstructed and _RECONSTRUCTION_NON_DEFECT.search(i.issue) and not _RECONSTRUCTION_REAL_DEFECT.search(i.issue)]
     if not dropped:
@@ -231,33 +246,6 @@ def drop_designed_backdrops(report: Optional[QAReport], assets: Optional[List[An
     return report.model_copy(update={"issues": [i for i in report.issues if i not in dropped],
                                      "summary": (report.summary or "") + note})
 
-
-_RECONSTRUCTION_NON_DEFECT = re.compile(
-    r"\b(not (a )?(real |authentic )?(photo|photograph)|illustration|drawing|sketch|"
-    r"artistic depiction|not real footage|monochrome linework|engraving|synthetic image|"
-    r"ai generated (image|visual|drawing)|rendered drawing|hand[- ]drawn)\b", re.I
-)
-
-
-_RECONSTRUCTION_REAL_DEFECT = re.compile(
-    r"(cut off|truncat|overlap|illegib|unreadable|hard to read|misspel|typo|wrong text|upside|glitch|watermark|logo|garbled)", re.I
-)
-
-
-def drop_reconstruction_aesthetic_findings(report: Optional[QAReport], assets: Optional[List[Any]]) -> Optional[QAReport]:
-    """The report without false-positive non-photographic complaints on in-house archaeological reconstructions."""
-    if report is None or not assets:
-        return report
-    reconstructed = {i for i, a in enumerate(assets, 1) if Path(str(a)).stem.startswith("gap_gen_")}
-    dropped = [i for i in report.issues
-               if i.beat in reconstructed and _RECONSTRUCTION_NON_DEFECT.search(i.issue) and not _RECONSTRUCTION_REAL_DEFECT.search(i.issue)]
-    if not dropped:
-        return report
-    for i in dropped:
-        log.info("Video check: beat %s complains reconstruction is an illustration (%s); suppressed.", i.beat, i.issue)
-    note = " Not counted (sanctioned in-house archaeological reconstruction): " + "; ".join(f"beat {i.beat}: {i.issue}" for i in dropped)
-    return report.model_copy(update={"issues": [i for i in report.issues if i not in dropped],
-                                     "summary": (report.summary or "") + note})
 
 
 def calculate_wcag_relative_luminance(rgb: Tuple[float, float, float]) -> float:

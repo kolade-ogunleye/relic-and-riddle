@@ -2881,7 +2881,8 @@ class PipelineCoordinator:
             self._progress_note(run_id, topic.get("title", run_id), 3, "Synthesizing graphics, stills & motion · animating the stills")
             t0 = time.perf_counter()
             try:
-                scenes = render_parallax(scenes, durations, run_dir / "parallax", TRANS_DUR) or scenes
+                scenes = render_parallax(scenes, durations, run_dir / "parallax", TRANS_DUR,
+                                         exempt_indices=fit_report.get("macro_drifts", [])) or scenes
             except Exception as e:
                 log.warning("Parallax rendering failed (%s); using flat camera moves.", e)
             timer.record(f"parallax_attempt{attempt}", time.perf_counter() - t0)

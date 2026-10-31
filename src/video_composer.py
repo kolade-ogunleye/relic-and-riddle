@@ -714,7 +714,7 @@ ScaledBorderAndShadow: yes
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: CapText,Montserrat,38,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0.5,0,1,1.8,1.2,2,0,0,{eff_margin_v},1
 Style: CapBox,Montserrat,38,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,2,0,0,0,1
-Style: ReconBadge,Montserrat,24,&H40E2DAC8,&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,1.5,0,1,0,0,2,0,0,120,1
+Style: ReconBadge,Montserrat,22,&H40E2DAC8,&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,1.5,0,1,0,0,8,0,0,310,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -730,7 +730,7 @@ ScaledBorderAndShadow: yes
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: CapText,{FONT_NAME},{FONT_SIZE_ASS},{COL_PAST},&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0.5,0,1,0,0,5,0,0,0,1
 Style: CapBox,{FONT_NAME},{FONT_SIZE_ASS},{COL_BACK},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
-Style: ReconBadge,Montserrat,24,&H40E2DAC8,&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,1.5,0,1,0,0,2,0,0,120,1
+Style: ReconBadge,Montserrat,22,&H40E2DAC8,&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,1.5,0,1,0,0,8,0,0,310,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -830,7 +830,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         # Append historical reconstruction badges on layer 2 if present
         if reconstruction_intervals:
             for start_t, end_t in reconstruction_intervals:
-                badge_text = r"{\an2\fs22\c&HE2DAC8&\alpha&H40&\b1}[ HISTORICAL RECONSTRUCTION ]"
+                badge_text = r"{\an8\fs22\c&HE2DAC8&\alpha&H40&\b1}[ HISTORICAL RECONSTRUCTION ]"
                 raw_events.append((2, start_t, end_t, "ReconBadge", badge_text))
 
         # Sort all events chronologically (layer 0 background pill always appears under layer 1 text)
@@ -1013,7 +1013,16 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         cur_t = 0.0
         for i, item in enumerate(scene_images):
             dur = durations[i] if i < len(durations) else (vo_dur / max(1, len(scene_images)))
-            if Path(item).stem.startswith(("gap_gen_", "gen_")):
+            p = Path(item)
+            is_recon = p.stem.startswith(("gap_gen_", "gen_"))
+            if not is_recon:
+                try:
+                    from .lineage import source_chain
+                    chain = source_chain(p)
+                    is_recon = any(Path(s.get("path", "")).stem.startswith(("gap_gen_", "gen_")) for s in chain)
+                except Exception:
+                    pass
+            if is_recon:
                 recon_intervals.append((cur_t, cur_t + dur))
             cur_t += dur
 

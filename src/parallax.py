@@ -17,7 +17,7 @@ import subprocess
 import threading
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional, Set, Union
 
 from .config import BASE_DIR, VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
 
@@ -181,8 +181,9 @@ def render_clip(image_path: Path, out_path: Path, duration: float, preset: str =
     return out_path
 
 
-def render_scenes(scenes, durations, work_dir: Path, transition: float) -> Optional[list]:
-    """Parallax clip per still (videos pass through). Returns new media list, or None if unavailable."""
+def render_scenes(scenes, durations, work_dir: Path, transition: float,
+                  exempt_indices: Optional[Any] = None) -> Optional[list]:
+    """Parallax clip per still (videos, gap reconstructions and macro drifts pass through). Returns new media list, or None if unavailable."""
     if not available():
         log.info("Parallax unavailable (model or libraries missing); using flat camera moves.")
         return None
@@ -192,6 +193,7 @@ def render_scenes(scenes, durations, work_dir: Path, transition: float) -> Optio
     from .checkpoints import Checkpoints, file_inputs
     from .lineage import sidecar
 
+    exempt_set = set(exempt_indices or [])
     work_dir.mkdir(parents=True, exist_ok=True)
     _session()  # load the model once before the worker threads share it
     renderer = file_inputs([Path(__file__), MODEL_PATH])
@@ -217,7 +219,10 @@ def render_scenes(scenes, durations, work_dir: Path, transition: float) -> Optio
         shown: dict = {}   # photo -> how many times it has been shown
         moved: dict = {}   # photo -> the moves it was shown with
         for i, (scene, dur) in enumerate(zip(scenes, durations)):
-            if not is_video(scene):
+            p = Path(scene)
+            is_reconstruction = p.stem.startswith(("gap_gen_", "gen_"))
+            is_macro = i in exempt_set
+            if not is_video(p) and not is_reconstruction and not is_macro:
                 # A photo shown again gets another frame and a move it has not had, never the same shot twice
                 # (Nazca, 2026-10-25: the repeat was reframed but rose as before).
                 variant = shown.get(str(scene), 0)

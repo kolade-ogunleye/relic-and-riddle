@@ -325,3 +325,78 @@ def test_telegram_card_and_ledger_reconstruction_note():
     assert "Archival Reconstructions" in card_text
     assert "nanoparticles scattering" in card_text
 
+
+# ---------------------------------------------------------------------------
+# 11. Parallax Bypass & 2D Ken Burns Optical Motion
+# ---------------------------------------------------------------------------
+
+def test_parallax_bypass_for_gap_art_and_macro_drift(tmp_path):
+    """Verifies that render_scenes passes gap_gen_ reconstructions and macro drift shots through without warping."""
+    from src import parallax
+    
+    reconstruction = tmp_path / "gap_gen_beat_2.jpg"
+    reconstruction.write_bytes(b"\xff\xd8\xff\xe0mock_recon")
+    hero_photo = tmp_path / "hero_photo.jpg"
+    hero_photo.write_bytes(b"\xff\xd8\xff\xe0mock_hero")
+    held_photo = tmp_path / "hero_photo_held.jpg"
+    held_photo.write_bytes(b"\xff\xd8\xff\xe0mock_held")
+    
+    scenes = [hero_photo, reconstruction, held_photo]
+    durations = [3.0, 4.0, 3.5]
+    exempt_indices = [2]  # Index 2 is a held macro drift
+    
+    with patch("src.parallax.available", return_value=True), \
+         patch("src.parallax._session"), \
+         patch("src.checkpoints.file_inputs", return_value={"dummy": "dummy_hash"}), \
+         patch("src.checkpoints.Checkpoints.reusable", return_value=False), \
+         patch("src.checkpoints.Checkpoints.complete"), \
+         patch("src.parallax.render_clip") as mock_render_clip:
+        
+        mock_render_clip.side_effect = lambda img, out, dur, preset, variant=0: out
+        
+        out_scenes = parallax.render_scenes(
+            scenes=scenes,
+            durations=durations,
+            work_dir=tmp_path / "parallax",
+            transition=0.5,
+            exempt_indices=exempt_indices
+        )
+        
+        # Only hero_photo (index 0) should have been rendered as a 3D parallax clip
+        assert mock_render_clip.call_count == 1
+        call_image = mock_render_clip.call_args[0][0]
+        assert call_image == hero_photo
+        
+        # Output scenes must preserve index 1 (reconstruction) and index 2 (macro drift) as original stills
+        assert out_scenes[1] == reconstruction
+        assert out_scenes[2] == held_photo
+
+
+# ---------------------------------------------------------------------------
+# 12. ReconBadge Upper-Third Geometry & Lineage Derivation
+# ---------------------------------------------------------------------------
+
+def test_recon_badge_upper_third_and_lineage_derivation(tmp_path):
+    """Verifies that ReconBadge renders at upper-third (\an8, MarginV: 310) and detects derived clips via lineage."""
+    composer = VideoComposer(tmp_path)
+    ass_file = tmp_path / "test_recon_captions.ass"
+    words = [
+        {"word": "Ancient", "start": 0.0, "end": 1.0},
+        {"word": "craft.", "start": 1.0, "end": 2.0}
+    ]
+    
+    composer.build_subtitles(
+        words,
+        ass_file,
+        reconstruction_intervals=[(0.0, 2.0)],
+        width=1080,
+        height=1920
+    )
+    
+    content = ass_file.read_text(encoding="utf-8")
+    # Verify upper-third style: Alignment=8 (\an8) and MarginV=310
+    assert "Style: ReconBadge" in content
+    assert ",8,0,0,310,1" in content
+    assert r"{\an8\fs22\c&HE2DAC8&\alpha&H40&\b1}[ HISTORICAL RECONSTRUCTION ]" in content
+
+

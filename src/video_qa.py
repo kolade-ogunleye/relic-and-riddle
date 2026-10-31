@@ -38,7 +38,9 @@ SYSTEM = """You are the quality checker for short vertical history documentaries
 Severity: critical = should not be published as is; major = clearly hurts quality; minor = nitpick.
 Ignore stylistic choices like film grain, vignette and gold/white caption colours. A beat marked as one of our own
 graphics (a number card, map, timeline, diagram) is a designed card: its plain or dimmed, blurred backdrop is the
-design, not a missing picture or a blank frame; judge its text (legible, matching the narration) and its drawing.
+design, not a missing picture or a blank frame; judge its text (legible, matching the narration) and its drawing. A
+number or stat card may feature a horizontal gold rule above its kicker text; this is an intended graphic accent,
+not a typo, line glitch, or stray character.
 A beat may also say how its picture was made. These treatments are intended and are not defects in themselves:
 archive film shown whole, fitted over a blurred, darkened copy of itself (the soft bands around it are the design);
 soft blurs over present-day people's faces, applied for privacy (report one only if it is visually jarring, and

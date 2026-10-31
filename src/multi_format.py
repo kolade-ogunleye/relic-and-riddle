@@ -378,7 +378,10 @@ class MultiFormatGenerator:
             rows.append(("reel_pointer", y, "FULL STORY IN OUR NEW REEL", font_p, GOLD, font_p.size * 0.11))
         bottom = max(d.textbbox((x, yy), txt, font=f, anchor="ls")[3] for _, yy, txt, f, _, _ in rows)
         block = bottom
-        cy = calm_center_y(base, candidates=(560, 720, 880), band=520)  # bands inside the Story box
+        top_cand = sy0 + 40 + block // 2
+        mid_cand = (sy0 + text_floor) // 2
+        bot_cand = text_floor - 20 - block // 2
+        cy = calm_center_y(base, candidates=(top_cand, 720, mid_cand, bot_cand), band=block)  # bands inside the Story box
         top = max(sy0 + 30, min(cy - block // 2, text_floor - block))   # above the photo credit, when there is one
         base = scrim(base, top - 40, top + block + 30, feather=320, target=0.28)
         im = base.convert("RGBA")
@@ -523,6 +526,11 @@ class MultiFormatGenerator:
             return "colossal_stat"
         if any(w in text for w in ("versus", "vs", "compared", "surface", "unlike", "contrast", "above and below", "then and now", "modern")):
             return "comparison"
+        relic_keywords = ("gear", "gears", "dial", "dials", "fragment", "fragments", "inscription", "inscriptions",
+                          "bronze", "relic", "artifact", "tablet", "device", "pointer", "teeth",
+                          "astronomical", "clockwork", "corroded", "ancient computer")
+        if any(w in text for w in relic_keywords):
+            return "blueprint" if any(w in text for w in ("shaft", "ventilation", "channel", "door", "rolling stone", "tunnel", "chiseled", "engineered", "mechanism", "structure", "architecture", "block")) else "editorial_split"
         if any(w in text for w in ("shaft", "ventilation", "channel", "door", "rolling stone", "tunnel", "chiseled", "engineered", "mechanism", "structure", "architecture", "block")):
             return "blueprint"
         return "immersive" if index % 2 == 1 else "editorial_split"

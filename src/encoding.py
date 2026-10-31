@@ -54,3 +54,12 @@ def get_video_encoder() -> List[str]:
         _DETECTED_ENCODER = ["-c:v", "libx264", "-preset", VIDEO_PRESET, "-crf", str(VIDEO_CRF)]
         return _DETECTED_ENCODER
 
+
+def get_intermediate_video_encoder() -> List[str]:
+    """Fast, visually-lossless encoder arguments for intermediate scratch renders."""
+    enc = get_video_encoder()
+    if enc and len(enc) > 1 and enc[1] == "h264_nvenc":
+        return ["-c:v", "h264_nvenc", "-preset", "p1", "-cq", "12"]
+    return ["-c:v", "libx264", "-preset", "veryfast", "-crf", "10"]
+
+

@@ -140,3 +140,21 @@ def test_storyboard_lock_preserves_motion_hook_and_animated_graphics(tmp_path):
     assert scenes[1] == map_vid
     # Beat 2 gets locked storyboard image img_3
     assert scenes[2] == imgs[2]
+
+
+def test_pinned_beats_stay_locked_in_scene_planning(tmp_path):
+    imgs = [tmp_path / f"img_{i}.jpg" for i in range(4)]
+    for img in imgs:
+        img.write_bytes(b"jpeg")
+
+    beats = [
+        {"start": 0, "end": 3, "text": "beat 0"},
+        {"start": 3, "end": 6, "text": "beat 1"},
+        {"start": 6, "end": 9, "text": "beat 2"},
+        {"start": 9, "end": 12, "text": "beat 3"},
+    ]
+    # Pin beat 1 to imgs[3] and beat 2 to imgs[0]
+    pinned = {1: imgs[3], 2: imgs[0]}
+    scenes, _, _ = sp.plan_scenes(beats, imgs, use_storyboard=False, pinned=pinned)
+    assert scenes[1] == imgs[3]
+    assert scenes[2] == imgs[0]

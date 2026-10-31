@@ -451,12 +451,14 @@ def caption_order(beats: List[Dict[str, Any]], stills: List[Path]) -> Optional[L
 
 @llm_task("scene_plan")
 def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = "",
-                use_storyboard: bool = True, reserve: Optional[List[Path]] = None) -> Tuple[List[Path], List[float], str]:
+                use_storyboard: bool = True, reserve: Optional[List[Path]] = None,
+                pinned: Optional[Dict[int, Path]] = None) -> Tuple[List[Path], List[float], str]:
     """Returns (media per beat, duration per beat, notes). A motion hook clip stays first.
     `feedback` lists problems a reviewer found with a previous plan, so they are avoided.
     `use_storyboard`: honour an approved Reel storyboard (its beats are numbered for a Reel; a
     documentary's many cuts are planned from the narration instead). `reserve`: stills offered only where a
-    picture would otherwise be shown twice (no_repeats), never to the planner or the opening."""
+    picture would otherwise be shown twice (no_repeats), never to the planner or the opening.
+    `pinned`: {0-based beat index: Path} beats verified as passing in a previous pass, locked against re-planning."""
     durations = [b["end"] - b["start"] for b in beats]
     hook = media[0] if media and is_video(media[0]) and not _is_graphic(media[0]) else None
     stills = [p for p in media if not is_video(p)]
@@ -502,8 +504,14 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
                     content += [{"type": "text", "text": f"Image {i}" + (f" ({cap}):" if cap else ":")}, image_block(p)]
             lines = "\n".join(f"Beat {i}: {b['text']}" for i, b in enumerate(beats, 1))
             fix = f"\n\nA reviewer found these problems with the previous choice; fix them:\n{feedback}" if feedback else ""
+            pinned_txt = ""
+            if pinned:
+                pinned_notes = [f"Beat {k + 1} is already verified and locked to Image {options.index(p) + 1} ({p.name}); do NOT change it."
+                                for k, p in pinned.items() if p in options]
+                if pinned_notes:
+                    pinned_txt = "\n\nLocked beats (keep these exact images):\n" + "\n".join(pinned_notes)
             content.append({"type": "text", "text": (
-                f"Narration beats ({n}):\n{lines}{fix}\n\n"
+                f"Narration beats ({n}):\n{lines}{fix}{pinned_txt}\n\n"
                 f"Return exactly {n} image numbers (1-{len(options)}), one per beat, in order.")})
             # Pictures that follow the narration are the point of the video, so a failed plan is tried
             # again within the run (the stages before it are kept), waiting longer each time, before the
@@ -518,6 +526,10 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
                 else:
                     picks = [i - 1 for i in plan.images]
                     if len(picks) == n and all(0 <= i < len(options) for i in picks):
+                        if pinned:
+                            for k, p in pinned.items():
+                                if 0 <= k < n and p in options:
+                                    picks[k] = options.index(p)
                         order, notes = picks, plan.notes
                         break
                     failure = f"Scene plan attempt {attempt} had {len(picks)} picks for {n} beats or bad numbers"
@@ -554,19 +566,25 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
     # Hard-lock narrative-matching graphics to their corresponding spoken beats
     locked = lock_narrative_graphics(beats, graphics)  # never beat 0: the opening shot is a picture (below)
     for idx, g in locked.items():
-        if idx < len(chosen):
+        if idx < len(chosen) and (not pinned or idx not in pinned):
             chosen[idx] = g
     # A locked graphic appears only on its beat: any other copy (the planner's own pick) becomes a photo.
     if stills:
         for k, p in enumerate(chosen):
-            if p in locked.values() and locked.get(k) != p:
+            if p in locked.values() and locked.get(k) != p and (not pinned or k not in pinned):
                 chosen[k] = stills[k % len(stills)]
 
     # A graphic the planner placed where the narration doesn't say what it shows becomes a photo.
     if stills:
         for k in range(len(chosen)):
-            if k not in locked and k < len(beats):
+            if k not in locked and (not pinned or k not in pinned) and k < len(beats):
                 chosen[k] = keep_if_it_matches(Path(chosen[k]), beats[k].get("text", ""), stills[k % len(stills)])
+
+    # Verified pinned beats from a previous pass are preserved unconditionally
+    if pinned:
+        for k, p in pinned.items():
+            if 0 <= k < len(chosen) and p in options:
+                chosen[k] = p
 
     # The opening shot is a picture, never a graphic: the planner opened the Nazca video on the map, since the
     # first line names the place (2026-10-25). The map's own line still accepts it one cut later.
@@ -599,7 +617,11 @@ def plan_scenes(beats: List[Dict[str, Any]], media: List[Path], feedback: str = 
             k -= 1
     if any(_is_map(Path(g)) for g in locked.values()) and not any(_is_map(Path(c)) for c in chosen):
         log.warning("The locator map was locked to the beat that names the place but is not in the plan.")
-    chosen = no_repeats(chosen, stills, reserve)
+    chosen = no_repeats(chosen, stills, reserve, pinned=pinned)
+    if pinned:
+        for k, p in pinned.items():
+            if 0 <= k < len(chosen) and p in options:
+                chosen[k] = p
     if hook is not None:
         chosen[0] = hook
     return chosen, durations, notes
@@ -792,6 +814,22 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
                 report["held"].append({"beat": k + 1, "from": pick.name, "to": prev.name, "longer": True})
                 log.info("Beat %d: no picture shows its line; the previous related shot (%s) is held on rather than %s.",
                          k + 1, prev.name, pick.name)
+            elif still(prev) and related_before(k, out, fits_at, report):
+                # 6. Pre-render asset quarantine: when the planned picture contradicts its line, holding
+                # the previous related shot past HELD_SHOT_MAX is strictly preferred over asserting a contradictory
+                # photograph on screen (which triggers major QA gate blocks).
+                out[k], entry["fallback"] = prev, "held"
+                held.add(k)
+                report["held"].append({"beat": k + 1, "from": pick.name, "to": prev.name, "quarantine_hold": True})
+                log.info("Beat %d: asset quarantine: planned %s contradicts line %r; holding previous related shot (%s) to prevent QA gate block.",
+                         k + 1, pick.name, clip(line), prev.name)
+            elif still(out[0]):
+                # 7. Fallback to anchor relic/site hero shot rather than asserting a contradictory asset
+                out[k], entry["fallback"] = out[0], "held"
+                held.add(k)
+                report["held"].append({"beat": k + 1, "from": pick.name, "to": out[0].name, "quarantine_anchor": True})
+                log.info("Beat %d: asset quarantine: planned %s contradicts line %r; holding hero anchor (%s) to prevent QA gate block.",
+                         k + 1, pick.name, clip(line), out[0].name)
             report["unshown"].append(entry)
     finally:
         report["fits"] = sorted(k + 1 for k, ok in fits_at.items() if ok)   # beats whose picture was judged right
@@ -939,13 +977,15 @@ def fit_findings(report: Dict[str, Any]) -> List[str]:
             f"({how(u)}; {clip(u.get('reason', ''), 160)})" for u in (report or {}).get("unshown") or []]
 
 
-def no_repeats(chosen: List[Path], stills: List[Path], reserve: Optional[List[Path]] = None) -> List[Path]:
+def no_repeats(chosen: List[Path], stills: List[Path], reserve: Optional[List[Path]] = None,
+               pinned: Optional[Dict[int, Path]] = None) -> List[Path]:
     """No picture is shown twice while the pool still has unused photos: a repeat reads as padding.
     The swaps above take stills[k % n], which can be a photo already on another beat. Later copies
     get the pool's next unused photo (the pool is ordered best-first), then the `reserve`'s (context shots
     beyond the usual cap: Nazca showed four photos twice while its fifth context photo was never used,
     2026-10-28); with fewer photos than beats, repeats stay (hold_for_short_pool holds them instead). A picture
-    is what its lineage starts from (picture_id): a cropped copy and its original are one picture."""
+    is what its lineage starts from (picture_id): a cropped copy and its original are one picture.
+    `pinned`: {0-based beat index: Path} beats verified as passing in a previous pass, locked against swapping."""
     pid = _id_memo()
     placed = {pid(p) for p in chosen}
     unused: List[Path] = []
@@ -955,11 +995,17 @@ def no_repeats(chosen: List[Path], stills: List[Path], reserve: Optional[List[Pa
             unused.append(s)
     seen = set()
     out = []
-    for p in chosen:
-        if pid(p) in seen and unused:
+    for k, p in enumerate(chosen):
+        if pinned and k in pinned:
+            p = pinned[k]
+        elif pid(p) in seen and unused:
             p = unused.pop(0)
         seen.add(pid(p))
         out.append(p)
+    if pinned:
+        for k, p in pinned.items():
+            if 0 <= k < len(out):
+                out[k] = p
     return out
 
 

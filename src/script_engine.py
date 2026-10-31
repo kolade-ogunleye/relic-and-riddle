@@ -2553,21 +2553,42 @@ class ScriptEngine:
                 if found:
                     text = json.dumps(draft, ensure_ascii=False)
                 else:
-                    # Resilient fallback: locate sentence by normalized core (ignoring quotation/punctuation diffs)
-                    core = re.sub(r"[^\w\s]", "", find_str).strip()
-                    if len(core) >= 15:
+                    # Resilient fallback: locate sentence by normalized core (ignoring quotation, whitespace & punctuation diffs)
+                    core = " ".join(re.sub(r"[^\w\s]", " ", find_str).lower().split())
+                    if len(core) >= 12:
                         for k, v in draft.items():
-                            if isinstance(v, str) and core in re.sub(r"[^\w\s]", "", v):
-                                sentences = re.split(r"(?<=[.!?])\s+", v)
-                                new_sentences = []
-                                for s in sentences:
-                                    if core in re.sub(r"[^\w\s]", "", s):
-                                        if replace_str:
-                                            new_sentences.append(replace_str)
-                                        found = True
-                                    else:
-                                        new_sentences.append(s)
-                                draft[k] = " ".join(new_sentences)
+                            if isinstance(v, str):
+                                norm_v = " ".join(re.sub(r"[^\w\s]", " ", v).lower().split())
+                                if core in norm_v:
+                                    sentences = re.split(r"(?<=[.!?])\s+", v)
+                                    new_sentences = []
+                                    for s in sentences:
+                                        norm_s = " ".join(re.sub(r"[^\w\s]", " ", s).lower().split())
+                                        if core in norm_s or norm_s in core:
+                                            if replace_str:
+                                                new_sentences.append(replace_str)
+                                            found = True
+                                        else:
+                                            new_sentences.append(s)
+                                    draft[k] = " ".join(new_sentences)
+                            elif isinstance(v, list):
+                                for item in v:
+                                    if isinstance(item, dict):
+                                        for sub_k, sub_v in item.items():
+                                            if isinstance(sub_v, str):
+                                                norm_sub = " ".join(re.sub(r"[^\w\s]", " ", sub_v).lower().split())
+                                                if core in norm_sub:
+                                                    sentences = re.split(r"(?<=[.!?])\s+", sub_v)
+                                                    new_sentences = []
+                                                    for s in sentences:
+                                                        norm_s = " ".join(re.sub(r"[^\w\s]", " ", s).lower().split())
+                                                        if core in norm_s or norm_s in core:
+                                                            if replace_str:
+                                                                new_sentences.append(replace_str)
+                                                            found = True
+                                                        else:
+                                                            new_sentences.append(s)
+                                                    item[sub_k] = " ".join(new_sentences)
                         if found:
                             text = json.dumps(draft, ensure_ascii=False)
                     if not found:
@@ -2580,7 +2601,7 @@ class ScriptEngine:
         revised = plain(text)
         # A rejected claim is a quote followed by its reason in brackets; quotes inside the reason (the required
         # hedge, the source's wording) are what the draft should say, not claims (Richat kept its hedge, 2026-10-23).
-        for claim in re.findall(r"'([^']{25,})'\s*\(", findings):
+        for claim in re.findall(r"['\"`]([^'\"`]{20,})['\"`]\s*\(", findings):
             if plain(claim) in revised:
                 log.warning("Surgical revision kept a rejected claim (%r); rewriting instead.", claim[:60])
                 return None

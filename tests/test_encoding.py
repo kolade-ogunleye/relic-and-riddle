@@ -44,3 +44,18 @@ def test_nested_workers_cannot_exceed_encoding_slots(monkeypatch):
         assert list(pool.map(encode_job, range(8))) == list(range(8))
     assert peak <= 2
     assert active == 0
+
+
+def test_intermediate_video_encoder_nvenc(monkeypatch):
+    monkeypatch.setattr(encoding, "_DETECTED_ENCODER", ["-c:v", "h264_nvenc", "-preset", "p4", "-cq", "21"])
+    inter = encoding.get_intermediate_video_encoder()
+    assert inter[1] == "h264_nvenc"
+    assert "-preset" in inter and inter[inter.index("-preset") + 1] == "p1"
+
+
+def test_intermediate_video_encoder_cpu_fallback(monkeypatch):
+    monkeypatch.setattr(encoding, "_DETECTED_ENCODER", ["-c:v", "libx264", "-preset", "medium", "-crf", "18"])
+    inter = encoding.get_intermediate_video_encoder()
+    assert inter[1] == "libx264"
+    assert "-crf" in inter and inter[inter.index("-crf") + 1] == "10"
+

@@ -988,8 +988,14 @@ def _stat_layout(d: ImageDraw.ImageDraw, card: Dict[str, Any], num_px: int, widt
     y = 0
     if pre:
         f_k = get_font("Montserrat", round(40 * scale), weight=800)
+        bar_w = round(44 * scale)
+        bar_h = max(3, round(4 * scale))
+        y += bar_h
+        bar_y = y
+        y += round(14 * scale)
         y += cap_height(f_k)
-        rows.append({"name": "prefix", "kind": "kicker", "text": pre, "font": f_k, "y": y})
+        rows.append({"name": "prefix", "kind": "kicker", "text": pre, "font": f_k, "y": y,
+                     "bar": (0, round(bar_y - bar_h), bar_w, round(bar_y))})
         y += round(34 * scale)
     y += cap_height(f_num if num else f_unit)
     num_y = y
@@ -1064,9 +1070,9 @@ def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Pa
         for r in p["rows"]:
             yy = p["y0"] + r["y"]
             if r["kind"] == "kicker":
-                r["bar"] = (M, round(yy - cap_height(r["font"])), M + max(4, round(cap_height(r["font"]) * 0.26)) - 1, round(yy))
-                ch = cap_height(r["font"])
-                r["plates"] = [plan_text(rest, (M + max(4, round(ch * 0.26)) + round(ch * 0.66), yy), r["text"], r["font"],
+                bx0, by0, bx1, by1 = r.get("bar", (0, 0, 44, 4))
+                r["rule"] = (M + bx0, p["y0"] + by0, M + bx1, p["y0"] + by1)
+                r["plates"] = [plan_text(rest, (M, yy), r["text"], r["font"],
                                          GOLD, "ls", track=r["font"].size * 0.15)]
             elif r["kind"] == "figure":
                 x, r["plates"], r["cells"] = M, [], []
@@ -1114,7 +1120,7 @@ def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Pa
                               anchor="rs")
                     else:
                         if r["kind"] == "kicker":
-                            x0, y0, x1, y1 = r["bar"]
+                            x0, y0, x1, y1 = r.get("rule", r.get("bar", (M, yy, M + 44, yy + 3)))
                             ImageDraw.Draw(im, "RGBA").rectangle([x0, y0 + dy, x1, y1 + dy], fill=(*GOLD, int(255 * a)))
                         for pl in r["plates"]:
                             im = pl.draw(im, a, dy)

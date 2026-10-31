@@ -327,6 +327,15 @@ def test_the_opening_or_a_held_related_shot_is_held_on_rather_than_an_unrelated_
                                              "A rock-cut city", durations=[3.0, 3.0, 3.0, 3.0])
     assert out[2:] == [p("shaft.jpg"), p("shaft.jpg")] and [u["fallback"] for u in report["unshown"]] == ["held", "held"]
 
+    # Pre-render asset quarantine: even when held run exceeds HELD_SHOT_MAX, holding previous related
+    # shot is strictly preferred over asserting a contradictory still on screen.
+    out, report = scene_planner.fit_to_lines(_beats(HOOK, SHAFT, WARS, "And sealed again."),
+                                             [p("hook.jpg"), p("shaft.jpg"), p("panel.jpg"), p("rock.jpg")],
+                                             [p(n) for n in ("hook.jpg", "shaft.jpg", "panel.jpg", "rock.jpg")],
+                                             "A rock-cut city", durations=[3.0, 10.0, 10.0, 10.0])
+    assert out[2:] == [p("shaft.jpg"), p("shaft.jpg")]
+    assert all(u["fallback"] == "held" for u in report["unshown"])
+
 
 def test_each_line_no_picture_shows_is_an_issue_on_the_card():
     fit_report = {"unshown": [{"beat": 3, "line": STORES, "fallback": "related", "related": "stable.jpg"},

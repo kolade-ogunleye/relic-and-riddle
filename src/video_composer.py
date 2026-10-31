@@ -114,7 +114,7 @@ def _run_ffmpeg(cmd: List[str]) -> subprocess.CompletedProcess:
     return res
 
 
-from .encoding import bounded_encode, get_video_encoder as _get_video_encoder
+from .encoding import bounded_encode, get_video_encoder as _get_video_encoder, get_intermediate_video_encoder as _get_intermediate_video_encoder
 
 
 def _ass_escape(text: str) -> str:
@@ -1183,9 +1183,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         stem = output_mp4_path.parent / output_mp4_path.stem
         body, audio, last = Path(f"{stem}_body.mkv"), Path(f"{stem}_programme.wav"), Path(f"{stem}_card_bg.png")
         total = vo_dur + card_mod.SECONDS
+        inter_encoder = _get_intermediate_video_encoder()
         try:
             _run_ffmpeg([*head,
-                         "-map", "[v_final]", "-c:v", "libx264", "-preset", "veryfast", "-crf", "10", "-pix_fmt", "yuv420p",
+                         "-map", "[v_final]", *inter_encoder, "-pix_fmt", "yuv420p",
                          "-r", str(VIDEO_FPS), "-t", f"{vo_dur:.3f}", str(body),
                          "-map", "[v_last]", "-update", "1", "-frames:v", "1000", str(last),
                          "-map", "[a_final]", "-c:a", "pcm_s24le", "-ar", str(AUDIO_SAMPLE_RATE), "-ac", "2",
@@ -1250,6 +1251,86 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             height=1080,
             aspect_ratio="16:9",
         )
+
+    @staticmethod
+    def splice_single_beat(
+        master_mp4: Path,
+        beat_index: int,
+        replacement_asset: Path,
+        durations: List[float],
+        output_mp4_path: Path,
+        width: int = VIDEO_WIDTH,
+        height: int = VIDEO_HEIGHT,
+    ) -> Path:
+        """
+        Micro-patching engine: replace a single beat's visual clip without re-rendering the whole master.
+        Keeps the mastered audio stream untouched via copy (-c:a copy).
+        Uses GPU hardware acceleration (h264_nvenc) when available to encode the spliced stream in ~2-4s.
+        """
+        if not master_mp4.is_file():
+            raise FileNotFoundError(f"Master video not found: {master_mp4}")
+        if beat_index < 0 or beat_index >= len(durations):
+            raise ValueError(f"Invalid beat index {beat_index} for {len(durations)} durations")
+
+        t_start = sum(durations[:beat_index])
+        beat_dur = durations[beat_index]
+        t_end = t_start + beat_dur
+        n_beats = len(durations)
+
+        encoder_args = _get_video_encoder()
+        delivery_args = [
+            *encoder_args,
+            "-pix_fmt", "yuv420p",
+            "-r", str(VIDEO_FPS),
+            "-c:a", "copy",
+            "-movflags", "+faststart",
+        ]
+
+        replacement_asset = Path(replacement_asset)
+        input_args = ["-i", str(master_mp4)]
+        filter_parts = []
+
+        if is_video(replacement_asset):
+            input_args += ["-t", f"{beat_dur:.3f}", "-i", str(replacement_asset)]
+            filter_parts.append(
+                f"[1:v]scale={width}:{height}:force_original_aspect_ratio=increase,"
+                f"crop={width}:{height},fps={VIDEO_FPS},setsar=1,scale=out_range=tv,format=yuv420p[v_mid]"
+            )
+        else:
+            w2, h2 = width * 2, height * 2
+            frames = int(beat_dur * VIDEO_FPS) + 1
+            z, x, y = "min(pzoom+0.0014,1.20)", "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
+            input_args += ["-loop", "1", "-t", f"{beat_dur:.3f}", "-i", str(replacement_asset)]
+            filter_parts.append(
+                f"[1:v]scale={w2}:{h2}:force_original_aspect_ratio=increase,crop={w2}:{h2},"
+                f"zoompan=z='{z}':x='{x}':y='{y}':d={frames}:s={width}x{height}:fps={VIDEO_FPS},"
+                f"setsar=1,scale=out_range=tv,format=yuv420p[v_mid]"
+            )
+
+        if beat_index == 0:
+            filter_parts.append(f"[0:v]trim=start={t_end:.3f},setpts=PTS-STARTPTS[v_post]")
+            filter_parts.append("[v_mid][v_post]concat=n=2:v=1:a=0[v_out]")
+        elif beat_index == n_beats - 1:
+            filter_parts.append(f"[0:v]trim=end={t_start:.3f},setpts=PTS-STARTPTS[v_pre]")
+            filter_parts.append("[v_pre][v_mid]concat=n=2:v=1:a=0[v_out]")
+        else:
+            filter_parts.append(f"[0:v]trim=end={t_start:.3f},setpts=PTS-STARTPTS[v_pre]")
+            filter_parts.append(f"[0:v]trim=start={t_end:.3f},setpts=PTS-STARTPTS[v_post]")
+            filter_parts.append("[v_pre][v_mid][v_post]concat=n=3:v=1:a=0[v_out]")
+
+        cmd = [
+            "ffmpeg", "-y", "-hide_banner", "-nostats",
+            "-threads", str(os.cpu_count() or 0),
+            *input_args,
+            "-filter_complex", ";".join(filter_parts),
+            "-map", "[v_out]",
+            "-map", "0:a",
+            *delivery_args,
+            str(output_mp4_path),
+        ]
+        log.info("Splicing beat %d into master -> %s", beat_index + 1, output_mp4_path.name)
+        _run_ffmpeg(cmd)
+        return output_mp4_path
 
     @staticmethod
     def make_review_proxy(master_mp4: Path, proxy_path: Path) -> Path:

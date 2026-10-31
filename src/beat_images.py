@@ -164,8 +164,16 @@ def picture_look(path: Path, query: str, size: int = 512, ask: Optional[str] = N
                 answer = structured_call(PICTURE_SYSTEM, content, PictureVerdict, effort="low", max_tokens=400,
                                          models=config.LIGHT_TASK_MODELS)
             else:
-                answer = free_llm.structured(PICTURE_SYSTEM, content, PictureVerdict, role="checker", task_class="light",
-                                             thinking="low", request_timeout=PICTURE_LOOK_TIMEOUT)
+                try:
+                    answer = free_llm.structured(PICTURE_SYSTEM, content, PictureVerdict, role="checker", task_class="light",
+                                                 thinking="low", request_timeout=PICTURE_LOOK_TIMEOUT)
+                except free_llm.LLMError as err:
+                    if free_llm.claude_fallback_ready():
+                        log.warning("Gemini picture check failed (%s); using Claude fallback.", err)
+                        answer = structured_call(PICTURE_SYSTEM, content, PictureVerdict, effort="low", max_tokens=400,
+                                                 models=config.LIGHT_TASK_MODELS)
+                    else:
+                        raise
         except Exception as e:  # unavailable or malformed
             if verdict is not None:   # the first answer could not stand; it is what there is
                 break

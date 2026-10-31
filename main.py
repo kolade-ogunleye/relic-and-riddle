@@ -2769,9 +2769,9 @@ class PipelineCoordinator:
         late_graphics: List[Dict[str, Any]] = []
         pinned_beats: Dict[int, Path] = {}
         self._check_cancel(run_id)
-        for attempt in (1, 2):  # a second pass only if the video check finds a picture mismatch
+        for attempt in (1, 2, 3):  # up to 3 passes: monotonic self-healing converges defective beats
             from src.scene_planner import repair_placement
-            repaired = repair_placement(planned, durations, late_graphics) if attempt == 2 and late_graphics and planned else None
+            repaired = repair_placement(planned, durations, late_graphics) if attempt >= 2 and late_graphics and planned else None
             from src.scene_planner import picture_id
             available = len({picture_id(c) for c in candidates + reserve if not is_video(Path(c))})
             if repaired is not None:   # the video's own beats (the move is within the plan it judged)
@@ -2780,7 +2780,7 @@ class PipelineCoordinator:
             else:
                 beats = plan_beats
                 plan_kwargs = dict(reserve_arg)
-                if attempt == 2 and pinned_beats:
+                if attempt >= 2 and pinned_beats:
                     import inspect
                     try:
                         sig = inspect.signature(plan_scenes)
@@ -2973,7 +2973,7 @@ class PipelineCoordinator:
             # defects go back to the scene planner for one corrected render.
             feedback = "\n".join(f for f in (beat_images.picture_issues(qa),
                                              audit_scene_feedback(payload.get("self_healing"))) if f)
-            if not feedback or attempt == 2:
+            if not feedback or attempt == 3:
                 break
             from src.scene_planner import placement_only
             late_graphics = placement_only((payload.get("self_healing") or {}).get("issues"), beat_images.picture_issues(qa))
@@ -3013,19 +3013,19 @@ class PipelineCoordinator:
                 payload["self_healing_actions"][-1]["withdrawn"] = sorted({Path(f).name for f in flagged})
             # Hard-pin verified beats that fit their line, were not flagged by QA, and are not gap beats
             wrong_beats = set(beat_images.wrong_subject_beats(qa)) | set(gaps or [])
-            if hasattr(fit_report, "get") and planned:
-                passing_fits = set(fit_report.get("fits", []))
+            fit_mismatches = set(fit_report.get("mismatches", [])) if hasattr(fit_report, "get") else set()
+            disqualified_beats = wrong_beats | fit_mismatches
+            if planned:
                 pinned_beats = {
                     k: planned[k]
                     for k in range(len(planned))
-                    if (k + 1) in passing_fits
-                    and (k + 1) not in wrong_beats
+                    if (k + 1) not in disqualified_beats
                     and planned[k] in candidates
                     and not is_video(planned[k])
                 }
                 if pinned_beats:
-                    log.info("Self-healing: pinned %d verified passing beat(s) for attempt 2: %s",
-                             len(pinned_beats), [f"Beat {k+1}: {p.name}" for k, p in pinned_beats.items()])
+                    log.info("Self-healing: pinned %d verified passing beat(s) for attempt %d: %s",
+                             len(pinned_beats), attempt + 1, [f"Beat {k+1}: {p.name}" for k, p in pinned_beats.items()])
         t0 = time.perf_counter()
         self._check_cancel(run_id)
         if getattr(self, "progress_msg_id", None):

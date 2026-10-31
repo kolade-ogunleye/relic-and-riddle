@@ -854,30 +854,45 @@ class QualityAuditor:
                         })
                         score -= 30
 
-                    # Safe margin text/element clipping check at extreme borders in the typography safe band
-                    text_band_top = int(h * 0.58)
-                    text_band_bottom = int(h * 0.92)
-                    edge = round(12 * w / 1080)  # 12 px of the 1080-wide design canvas
-                    left_strip = gray.crop((0, text_band_top, edge, text_band_bottom))
-                    right_strip = gray.crop((w - edge, text_band_top, w, text_band_bottom))
-                    l_stat = ImageStat.Stat(left_strip)
-                    r_stat = ImageStat.Stat(right_strip)
-                    if l_stat.stddev and l_stat.stddev[0] > 60.0:
-                        issues.append({
-                            "type": "margin_encroachment",
-                            "severity": "major",
-                            "issue": f"Slide {idx} ({slide_path.name}): graphics or text clipped at left canvas margin",
-                            "slide": slide_path.name,
-                        })
-                        score -= 15
-                    if r_stat.stddev and r_stat.stddev[0] > 60.0:
-                        issues.append({
-                            "type": "margin_encroachment",
-                            "severity": "major",
-                            "issue": f"Slide {idx} ({slide_path.name}): graphics or text clipped at right canvas margin",
-                            "slide": slide_path.name,
-                        })
-                        score -= 15
+                    # Margin and clipping check: when layout was measured with font metrics, use its exact records.
+                    # Raw pixel standard deviation is only a fallback for unmeasured stills without layout sidecars
+                    # (a full-bleed photo's own textures trip > 60 stddev, causing false positives on valid slides).
+                    from . import still_layout
+                    layout_entry = still_layout.load(slide_path)
+                    if layout_entry is not None:
+                        for prob in (still_layout.check(slide_path) or []):
+                            if "text_cut_off" in prob or "leaves its safe zone" in prob:
+                                issues.append({
+                                    "type": "margin_encroachment",
+                                    "severity": "major",
+                                    "issue": f"Slide {idx} ({slide_path.name}): {prob}",
+                                    "slide": slide_path.name,
+                                })
+                                score -= 15
+                    else:
+                        text_band_top = int(h * 0.58)
+                        text_band_bottom = int(h * 0.92)
+                        edge = round(12 * w / 1080)  # 12 px of the 1080-wide design canvas
+                        left_strip = gray.crop((0, text_band_top, edge, text_band_bottom))
+                        right_strip = gray.crop((w - edge, text_band_top, w, text_band_bottom))
+                        l_stat = ImageStat.Stat(left_strip)
+                        r_stat = ImageStat.Stat(right_strip)
+                        if l_stat.stddev and l_stat.stddev[0] > 60.0:
+                            issues.append({
+                                "type": "margin_encroachment",
+                                "severity": "major",
+                                "issue": f"Slide {idx} ({slide_path.name}): graphics or text clipped at left canvas margin",
+                                "slide": slide_path.name,
+                            })
+                            score -= 15
+                        if r_stat.stddev and r_stat.stddev[0] > 60.0:
+                            issues.append({
+                                "type": "margin_encroachment",
+                                "severity": "major",
+                                "issue": f"Slide {idx} ({slide_path.name}): graphics or text clipped at right canvas margin",
+                                "slide": slide_path.name,
+                            })
+                            score -= 15
             except Exception as e:
                 issues.append({
                     "type": "corrupt_slide",
@@ -940,29 +955,45 @@ class QualityAuditor:
                         })
                         score -= 30
 
-                    # Extreme margin text clipping in the story safe band
-                    mid_top = int(h * 0.20)
-                    mid_bot = int(h * 0.85)
-                    left_strip = gray.crop((0, mid_top, 8, mid_bot))
-                    right_strip = gray.crop((w - 8, mid_top, w, mid_bot))
-                    l_stat = ImageStat.Stat(left_strip)
-                    r_stat = ImageStat.Stat(right_strip)
-                    if l_stat.stddev and l_stat.stddev[0] > 65.0:
-                        issues.append({
-                            "type": "story_margin_encroachment",
-                            "severity": "major",
-                            "issue": f"Story card {idx} ({card_path.name}): graphics or text clipped at left canvas margin",
-                            "card": card_path.name,
-                        })
-                        score -= 15
-                    if r_stat.stddev and r_stat.stddev[0] > 65.0:
-                        issues.append({
-                            "type": "story_margin_encroachment",
-                            "severity": "major",
-                            "issue": f"Story card {idx} ({card_path.name}): graphics or text clipped at right canvas margin",
-                            "card": card_path.name,
-                        })
-                        score -= 15
+                    # Margin and clipping check: when layout was measured with font metrics, use its exact records.
+                    # Raw pixel standard deviation is only a fallback for unmeasured cards without layout sidecars
+                    # (production Antikythera 30 Oct: story_01 photo had stddev=69.75 at the edge, blocking release
+                    # despite all text being locked inside the safe zone).
+                    from . import still_layout
+                    layout_entry = still_layout.load(card_path)
+                    if layout_entry is not None:
+                        for prob in (still_layout.check(card_path) or []):
+                            if "text_cut_off" in prob or "leaves its safe zone" in prob:
+                                issues.append({
+                                    "type": "story_margin_encroachment",
+                                    "severity": "major",
+                                    "issue": f"Story card {idx} ({card_path.name}): {prob}",
+                                    "card": card_path.name,
+                                })
+                                score -= 15
+                    else:
+                        mid_top = int(h * 0.20)
+                        mid_bot = int(h * 0.85)
+                        left_strip = gray.crop((0, mid_top, 8, mid_bot))
+                        right_strip = gray.crop((w - 8, mid_top, w, mid_bot))
+                        l_stat = ImageStat.Stat(left_strip)
+                        r_stat = ImageStat.Stat(right_strip)
+                        if l_stat.stddev and l_stat.stddev[0] > 65.0:
+                            issues.append({
+                                "type": "story_margin_encroachment",
+                                "severity": "major",
+                                "issue": f"Story card {idx} ({card_path.name}): graphics or text clipped at left canvas margin",
+                                "card": card_path.name,
+                            })
+                            score -= 15
+                        if r_stat.stddev and r_stat.stddev[0] > 65.0:
+                            issues.append({
+                                "type": "story_margin_encroachment",
+                                "severity": "major",
+                                "issue": f"Story card {idx} ({card_path.name}): graphics or text clipped at right canvas margin",
+                                "card": card_path.name,
+                            })
+                            score -= 15
             except Exception as e:
                 issues.append({
                     "type": "corrupt_card",

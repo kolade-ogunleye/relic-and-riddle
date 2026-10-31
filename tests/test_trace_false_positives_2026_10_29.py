@@ -220,3 +220,16 @@ def test_a_draft_further_past_the_ceiling_is_still_rewritten(monkeypatch, measur
     monkeypatch.setattr(engine, "_revise_surgically", lambda previous, findings, sheet: None)
     out = engine.generate_script({"id": "t1", "title": "T"})
     assert len(written) == 2 and len(out["narration_script"].split()) == 100
+
+
+def test_open_question_and_mystery_claims_not_forced_to_empirical():
+    # Production Roman concrete (2026-10-31): "Whether Roman builders understood the exact chemistry
+    # or deliberately engineered the self-healing process is an open question." was forced to empirical
+    # because of "heal", and failed for having no quote IDs.
+    claim1 = "Whether Roman builders understood the exact chemistry or deliberately engineered the self-healing process is an open question."
+    assert not trace_check._empirical_rhetoric(claim1)
+    claim2 = "How ancient builders engineered the massive stone blocks remains a mystery."
+    assert not trace_check._empirical_rhetoric(claim2)
+    claim3 = "Whether the mechanism was unique or mass produced is still debated."
+    assert not trace_check._empirical_rhetoric(claim3)
+

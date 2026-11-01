@@ -363,12 +363,19 @@ class VisualEngine:
     def _cover_monograph(self, im: Image.Image, copy: Dict[str, str], lay=None, tight: bool = False) -> Image.Image:
         """The Monograph Editorial: Monumental Anton display title, left-aligned architectural datum,
         directional feathered ink scrim, flat horizontal gold kicker."""
-        im = scrim(im, y0=VIDEO_HEIGHT * 0.48, y1=VIDEO_HEIGHT * 0.88, feather=320, target=0.22, cap=0.92)
+        im = scrim(im, y0=VIDEO_HEIGHT * 0.44, y1=VIDEO_HEIGHT * 0.90, feather=360, target=0.25, cap=0.94)
+        x0 = 110
+
+        # Brand masthead at upper quadrant
+        font_brand = get_font("Cinzel", 30, weight=700)
+        ImageDraw.Draw(im).text((x0, 470), "RELIC & RIDDLE", font=font_brand, fill=WHITE, anchor="lt")
+        bw = ImageDraw.Draw(im).textbbox((x0, 470), "RELIC & RIDDLE", font=font_brand, anchor="lt")[2]
+        ImageDraw.Draw(im).line([(x0, 506), (bw, 506)], fill=GOLD, width=1)
+
         measure = ImageDraw.Draw(im)
         eyebrow, line1, line2, tagline, font_eye, font_title, font_tag = self._fit_copy(
-            measure, copy, tight, "Anton", 88, 32, 32, lay, tag_width=SAFE_TEXT_WIDTH
+            measure, copy, tight, "Anton", 140, 36, 36, lay, tag_width=SAFE_TEXT_WIDTH
         )
-        x0 = 110
         h_eye = font_eye.size
         h_t = font_title.size
         h_tag = font_tag.size if tagline else 0
@@ -397,12 +404,19 @@ class VisualEngine:
     def _cover_curatorial(self, im: Image.Image, copy: Dict[str, str], lay=None, tight: bool = False) -> Image.Image:
         """The Curatorial Specimen: Classical Roman lapidary Cinzel display title,
         excavation cataloguing, flat horizontal gold rule."""
-        im = scrim(im, y0=VIDEO_HEIGHT * 0.48, y1=VIDEO_HEIGHT * 0.88, feather=340, target=0.24, cap=0.90)
+        im = scrim(im, y0=VIDEO_HEIGHT * 0.44, y1=VIDEO_HEIGHT * 0.90, feather=360, target=0.24, cap=0.92)
+        x0 = 110
+
+        # Brand masthead at upper quadrant
+        font_brand = get_font("Cinzel", 30, weight=700)
+        ImageDraw.Draw(im).text((x0, 470), "RELIC & RIDDLE", font=font_brand, fill=WHITE, anchor="lt")
+        bw = ImageDraw.Draw(im).textbbox((x0, 470), "RELIC & RIDDLE", font=font_brand, anchor="lt")[2]
+        ImageDraw.Draw(im).line([(x0, 506), (bw, 506)], fill=GOLD, width=1)
+
         measure = ImageDraw.Draw(im)
         eyebrow, line1, line2, tagline, font_eye, font_title, font_tag = self._fit_copy(
-            measure, copy, tight, "Cinzel", 72, 30, 30, lay, tag_width=SAFE_TEXT_WIDTH
+            measure, copy, tight, "Cinzel", 96, 32, 32, lay, tag_width=SAFE_TEXT_WIDTH
         )
-        x0 = 110
         h_eye = font_eye.size
         h_t = font_title.size
         h_tag = font_tag.size if tagline else 0
@@ -428,24 +442,22 @@ class VisualEngine:
         return im
 
     def _cover_split(self, im: Image.Image, copy: Dict[str, str], lay=None, tight: bool = False) -> Image.Image:
-        """The Archival Split-Ground: 55% raw unoccluded relic photo on top,
-        45% museum ink foundation on bottom with 1px gold hairline divider and center diamond knot."""
-        split_y = int(VIDEO_HEIGHT * 0.55)
-        ink_base = Image.new("RGBA", (VIDEO_WIDTH, VIDEO_HEIGHT), (0, 0, 0, 0))
-        idraw = ImageDraw.Draw(ink_base)
-        idraw.rectangle([0, split_y, VIDEO_WIDTH, VIDEO_HEIGHT], fill=(11, 14, 18, 255))
-        idraw.line([(0, split_y), (VIDEO_WIDTH, split_y)], fill=GOLD, width=1)
+        """The Archival Split-Ground: 52% raw unoccluded relic photo on top,
+        feathered museum ink foundation on bottom with 1px gold hairline divider and center diamond knot."""
+        split_y = int(VIDEO_HEIGHT * 0.52)
+        im = scrim(im, y0=split_y - 120, y1=VIDEO_HEIGHT, feather=260, target=0.08, cap=0.98, floor=0.60)
+        x0 = 110
+        idraw = ImageDraw.Draw(im)
+        idraw.line([(x0, split_y), (VIDEO_WIDTH - x0, split_y)], fill=GOLD, width=1)
         cx = VIDEO_WIDTH // 2
         d_size = 5
         idraw.polygon([(cx, split_y - d_size), (cx + d_size, split_y),
                        (cx, split_y + d_size), (cx - d_size, split_y)], fill=GOLD)
-        im = Image.alpha_composite(im.convert("RGBA"), ink_base)
 
         measure = ImageDraw.Draw(im)
         eyebrow, line1, line2, tagline, font_eye, font_title, font_tag = self._fit_copy(
-            measure, copy, tight, "Cinzel", 72, 30, 30, lay, tag_width=SAFE_TEXT_WIDTH
+            measure, copy, tight, "Cinzel", 92, 32, 32, lay, tag_width=SAFE_TEXT_WIDTH
         )
-        x0 = 110
         h_eye = font_eye.size
         h_t = font_title.size
         h_tag = font_tag.size if tagline else 0
@@ -473,39 +485,48 @@ class VisualEngine:
     def _cover_forensic(self, im: Image.Image, copy: Dict[str, str], lay=None, tight: bool = False) -> Image.Image:
         """The Forensic Blueprint: Prussian blueprint wash, subtle drafting grid,
         corner registration crosshairs (+), unboxed technical typography."""
-        bp = Image.new("RGBA", (VIDEO_WIDTH, VIDEO_HEIGHT), (0, 0, 0, 0))
-        bdraw = ImageDraw.Draw(bp)
-        bdraw.rectangle([0, 0, VIDEO_WIDTH, VIDEO_HEIGHT], fill=(11, 20, 32, 170))
+        im = scrim(im, y0=VIDEO_HEIGHT * 0.22, y1=VIDEO_HEIGHT * 0.90, feather=300, target=0.24, cap=0.92)
+        bdraw = ImageDraw.Draw(im)
         for gx in range(60, VIDEO_WIDTH, 60):
-            bdraw.line([(gx, 0), (gx, VIDEO_HEIGHT)], fill=(79, 179, 191, 24), width=1)
-        for gy in range(60, VIDEO_HEIGHT, 60):
-            bdraw.line([(0, gy), (VIDEO_WIDTH, gy)], fill=(79, 179, 191, 24), width=1)
+            bdraw.line([(gx, 440), (gx, 1480)], fill=(79, 179, 191, 18), width=1)
+        for gy in range(440, 1480, 60):
+            bdraw.line([(60, gy), (1020, gy)], fill=(79, 179, 191, 18), width=1)
         clen = 14
         for cx_pt, cy_pt in [(100, 480), (VIDEO_WIDTH - 100, 480), (100, 1440), (VIDEO_WIDTH - 100, 1440)]:
             bdraw.line([(cx_pt - clen, cy_pt), (cx_pt + clen, cy_pt)], fill=GOLD, width=1)
             bdraw.line([(cx_pt, cy_pt - clen), (cx_pt, cy_pt + clen)], fill=GOLD, width=1)
 
-        im = Image.alpha_composite(im.convert("RGBA"), bp)
         measure = ImageDraw.Draw(im)
         eyebrow, line1, line2, tagline, font_eye, font_title, font_tag = self._fit_copy(
-            measure, copy, tight, "Cinzel", 72, 30, 30, lay, tag_width=SAFE_TEXT_WIDTH
+            measure, copy, tight, "Anton", 116, 32, 32, lay, tag_width=SAFE_TEXT_WIDTH
         )
         x0 = 110
         h_eye = font_eye.size
         h_t = font_title.size
         h_tag = font_tag.size if tagline else 0
-        gap_kicker_title = 22 if tight else 26
-        gap_lines = 16 if tight else 20
-        gap_tag = 24 if tight else 28
+
+        # Top title layout
+        y_eye = 490
+        gap_kicker_title = 20 if tight else 24
+        gap_lines = 12 if tight else 16
+        y_l1 = y_eye + h_eye + gap_kicker_title
+        y_l2 = y_l1 + h_t + gap_lines if line2 else None
+
+        title_bot = (y_l2 + h_t) if line2 else (y_l1 + h_t)
+        ring_cy = int(title_bot + 220)
+        ring_r = 170
+        ring_cx = VIDEO_WIDTH // 2
+
+        # Draw gold focus ring + cardinal registration ticks
+        d = ImageDraw.Draw(im)
+        d.ellipse([ring_cx - ring_r, ring_cy - ring_r, ring_cx + ring_r, ring_cy + ring_r], outline=GOLD, width=2)
+        t_len = 14
+        d.line([(ring_cx - ring_r - t_len, ring_cy), (ring_cx - ring_r + t_len, ring_cy)], fill=GOLD, width=1)
+        d.line([(ring_cx + ring_r - t_len, ring_cy), (ring_cx + ring_r + t_len, ring_cy)], fill=GOLD, width=1)
+        d.line([(ring_cx, ring_cy - ring_r - t_len), (ring_cx, ring_cy - ring_r + t_len)], fill=GOLD, width=1)
+        d.line([(ring_cx, ring_cy + ring_r - t_len), (ring_cx, ring_cy + ring_r + t_len)], fill=GOLD, width=1)
 
         y_tag = 1440 - h_tag
-        if line2:
-            y_l2 = (y_tag - gap_tag - h_t) if tagline else (1440 - h_t)
-            y_l1 = y_l2 - gap_lines - h_t
-        else:
-            y_l2 = None
-            y_l1 = (y_tag - gap_tag - h_t) if tagline else (1440 - h_t)
-        y_eye = y_l1 - gap_kicker_title - h_eye
 
         im = draw_flat_kicker(im, x0, y_eye, eyebrow, font_eye, GOLD, lay=lay)
         _draw(ImageDraw.Draw(im), lay, "title_1", (x0, y_l1), line1, font_title, WHITE, "lt")

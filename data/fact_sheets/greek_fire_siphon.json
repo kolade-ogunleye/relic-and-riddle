@@ -1,0 +1,224 @@
+{
+ "topic_id": "greek_fire_siphon",
+ "built_at": "2026-10-23T06:02:25.039628+00:00",
+ "facts": [
+  {
+   "id": "fact-1",
+   "statement": "Petroleum-based Greek fire was deployed as an incendiary mixture administered through a siphon.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Early_thermal_weapons",
+     "tier": 2,
+     "quote": "Incendiary mixtures, such as the petroleum-based Greek fire, could be launched by throwing machines or administered through a siphon."
+    }
+   ]
+  },
+  {
+   "id": "fact-2",
+   "statement": "Greek fire could also be projected toward enemy forces using mechanical throwing machines.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Early_thermal_weapons",
+     "tier": 2,
+     "quote": "Incendiary mixtures, such as the petroleum-based Greek fire, could be launched by throwing machines or administered through a siphon."
+    }
+   ]
+  },
+  {
+   "id": "fact-3",
+   "statement": "Artillery engines hurled breakable containers, barrels, and fire pots filled with Greek fire, pitch, and other flammable compounds.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Early_thermal_weapons",
+     "tier": 2,
+     "quote": "Generally referred to as \"artillery\", these engines could hurl, fire or shoot missiles and most could be used or adapted for throwing thermal weapons, by attacking and defending forces."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Early_thermal_weapons",
+     "tier": 2,
+     "quote": "Barrels, fire pots and other breakable containers of pitch, Greek fire, and other incendiary mixtures could be thrown; other machines fired arrows and bolts, which could be ignited, or adapted to carry flammable mixtures."
+    }
+   ]
+  },
+  {
+   "id": "fact-4",
+   "statement": "In the 10th century, Byzantine forces defeated Kievan Rus' longships in the Golden Horn using Greek fire.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Golden_Horn",
+     "tier": 2,
+     "quote": "In the 10th century the Kievan Rus' dragged their longships out of the Bosphorus, around Galata, and relaunched them in the Horn; the Byzantines defeated them with Greek fire."
+    }
+   ]
+  },
+  {
+   "id": "fact-5",
+   "statement": "Early thermal weapons using heat or burning action were deployed in warfare from approximately the 8th century BC until the mid-16th century AD.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Early_thermal_weapons",
+     "tier": 2,
+     "quote": "Early thermal weapons, which used heat or burning action to destroy or damage enemy personnel, fortifications or territories, were employed in warfare during the ancient and post-classical periods (approximately the 8th century BC until the mid-16th century AD)."
+    }
+   ]
+  },
+  {
+   "id": "fact-6",
+   "statement": "Certain thermal weapons based on quicklime or oil could not be extinguished with water, requiring defenders to smother the flames with sand or earth.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Early_thermal_weapons",
+     "tier": 2,
+     "quote": "Some thermal weapons (such as quicklime or oil) could not be extinguished or eased by water, in which case sand or earth could be used."
+    }
+   ]
+  },
+  {
+   "id": "fact-7",
+   "statement": "Crusader troops stored supplies of vinegar and water inside wooden siege towers to counter Byzantine and Muslim fire weapons.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Early_thermal_weapons",
+     "tier": 2,
+     "quote": "The wooden siege engines of the Crusaders were vulnerable to attack from the Byzantine and Muslim fire-weapons, so the troops inside siege towers kept stores of water and vinegar."
+    }
+   ]
+  },
+  {
+   "id": "fact-8",
+   "statement": "Anti-personnel thermal mixtures employed in early warfare included hot pitch, oil, resin, and animal fat.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Early_thermal_weapons",
+     "tier": 2,
+     "quote": "Other anti-personnel weapons included the use of hot pitch, oil, resin, animal fat and other similar compounds."
+    }
+   ]
+  },
+  {
+   "id": "fact-9",
+   "statement": "Defenders shielded wooden siege engines and hoardings against thermal attacks by draping them with soaked hides.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Early_thermal_weapons",
+     "tier": 2,
+     "quote": "Defense from thermal weapons and fire attacks was usually water or other liquids such as urine; hides were soaked and draped over vulnerable wooden hoardings and siege engines, vats and barrels of liquid were collected and stored by defenders and attackers."
+    }
+   ]
+  },
+  {
+   "id": "fact-10",
+   "statement": "Artillery engines launched arrows and bolts that were ignited or modified to carry flammable incendiary mixtures.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Early_thermal_weapons",
+     "tier": 2,
+     "quote": "Barrels, fire pots and other breakable containers of pitch, Greek fire, and other incendiary mixtures could be thrown; other machines fired arrows and bolts, which could be ignited, or adapted to carry flammable mixtures."
+    }
+   ]
+  },
+  {
+   "id": "fact-11",
+   "statement": "Modern incendiary systems, including napalm and flame throwers, trace their direct technical ancestry back to early thermal weapons.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Early_thermal_weapons",
+     "tier": 2,
+     "quote": "Development of the early weapons has continued ever since, with modern war weapons such as napalm, flame throwers, and other explosives having direct roots in the original early thermal weapons."
+    }
+   ]
+  }
+ ],
+ "dropped": [],
+ "sources": [
+  {
+   "title": "Scholarly work: Ravenna and the Traditions of Late Antique and Early Byzantine Craftsmanship",
+   "url": "https://doi.org/10.1515/9783110684346",
+   "tier": 3
+  },
+  {
+   "title": "Scholarly work: An introduction to the Byzantine administration in Syro-Palestine on the eve of the Arab conquest",
+   "url": "https://doi.org/10.18778/7969-661-1",
+   "tier": 3
+  },
+  {
+   "title": "Peer-reviewed journal article (Fire Safety Science): Historical Aspects Of Fires, After Impact, In Vehicles Of War",
+   "url": "https://doi.org/10.3801/iafss.fss.1-761",
+   "tier": 3
+  },
+  {
+   "title": "Wikipedia: Early thermal weapons",
+   "url": "https://en.wikipedia.org/wiki/Early_thermal_weapons",
+   "tier": 2
+  },
+  {
+   "title": "Wikipedia: Golden Horn",
+   "url": "https://en.wikipedia.org/wiki/Golden_Horn",
+   "tier": 2
+  },
+  {
+   "title": "topostext.org",
+   "url": "https://topostext.org/work/129#21.7.1",
+   "tier": 3
+  },
+  {
+   "title": "www.cs.uky.edu",
+   "url": "https://www.cs.uky.edu/~raphael/sol/sol-entries/pi/3252",
+   "tier": 1
+  },
+  {
+   "title": "www.urban-transport-magazine.com",
+   "url": "https://www.urban-transport-magazine.com/en/istanbul-opens-fourth-tram-line-at-the-golden-horn/",
+   "tier": 3
+  },
+  {
+   "title": "www.trtworld.com",
+   "url": "https://www.trtworld.com/magazine/how-istanbul-s-wounded-golden-horn-became-turkey-s-success-story-24597",
+   "tier": 3
+  },
+  {
+   "title": "www.aa.com.tr",
+   "url": "https://www.aa.com.tr/en/economy/erdogan-breaks-ground-for-tersane-istanbul-/1400828",
+   "tier": 2
+  },
+  {
+   "title": "news.bbc.co.uk",
+   "url": "https://news.bbc.co.uk/2/hi/europe/7820924.stm",
+   "tier": 3
+  }
+ ],
+ "rules_version": 2
+}

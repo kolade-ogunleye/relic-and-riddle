@@ -33,7 +33,8 @@
         "usable": true,
         "safe": true,
         "duplicate_of": null,
-        "reason": "Shows the landscape and earthen mounds along the route of the Great Wall of Gorgan in Golestan.",
+        "people_prominent": false,
+        "reason": "Shows the surrounding landscape and terrain mounds in the area of the Great Wall of Gorgan in Golestan province.",
         "kept": true
       }
     },
@@ -68,12 +69,13 @@
         "usable": true,
         "safe": true,
         "duplicate_of": null,
-        "reason": "Shows the surrounding steppe landscape and terrain traversed by the Great Wall of Gorgan.",
+        "people_prominent": false,
+        "reason": "Shows the regional landscape and river valley context along the corridor of the defensive wall.",
         "kept": true
       }
     }
   ],
-  "review_note": "Vision review 2026-10-20: kept 2 of 2; held: fewer than 5",
+  "review_note": "Vision review 2026-10-25: kept 2 of 4; held: fewer than 5",
   "rejected_by_review": [
     {
       "title": "File:Folio 17a. Sadd-i Iskandar (Bodleian Library, MS. Elliot 339).jpg",
@@ -380,7 +382,50 @@
         "reason": "operator-assistant review: off-subject",
         "kept": false
       }
+    },
+    {
+      "title": "Great Wall of Gorgan - panoramio",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/54/Great_Wall_of_Gorgan_-_panoramio.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=59979915",
+      "artist": "Lars Holmer",
+      "license": "CC BY 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "32_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "partly",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": 1,
+        "people_prominent": false,
+        "reason": "Exact duplicate of Photo 1.",
+        "kept": false
+      }
+    },
+    {
+      "title": "Great Wall of Gorgan - panoramio (1)",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/b/bb/Great_Wall_of_Gorgan_-_panoramio_%281%29.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=59979921",
+      "artist": "Lars Holmer",
+      "license": "CC BY 3.0",
+      "license_url": "https://creativecommons.org/licenses/by/3.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "33_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "partly",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": 2,
+        "people_prominent": false,
+        "reason": "Exact duplicate of Photo 2.",
+        "kept": false
+      }
     }
   ],
-  "reviewed_by": null
+  "reviewed_by": null,
+  "review_fingerprint": "01_commons.jpg,02_commons.jpg"
 }

@@ -307,7 +307,7 @@ def evidence_check(payload: Dict[str, Any], sheet: Dict[str, Any]) -> Tuple[str,
             # On Gemini whatever the writer engine: a different model family from a Claude writer, and a
             # fraction of a cent (the web-searching second opinion on the Claude engine cost $1.70 a call for
             # scripts that already had a verified fact sheet; writer trial, 2026-10-24).
-            report = free_llm.call(EVIDENCE_SYSTEM, prompt, EvidenceReport, role="checker", effort="medium", max_tokens=8000)
+            report = free_llm.structured(EVIDENCE_SYSTEM, prompt, EvidenceReport, role="checker", thinking="medium")
         else:
             report = free_llm.call(EVIDENCE_SYSTEM, prompt, EvidenceReport, role="checker", effort="medium", max_tokens=8000)
     except free_llm.FreeQuotaUnavailable as e:

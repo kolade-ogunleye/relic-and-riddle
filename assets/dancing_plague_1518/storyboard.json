@@ -4,8 +4,8 @@
     "type": "HOOK",
     "label": "Opening Hook",
     "text": "In July 1518, a woman began dancing in a Strasbourg street and could not stop, and within weeks dozens more joined her.",
-    "file": "01_commons.jpg",
-    "title": "File:The dancing mania Wellcome M0014846.jpg",
+    "file": "06_commons.jpg",
+    "title": "<div class='fn'> The dancing mania, by Hondius</div>",
     "license": "CC BY 4.0"
   },
   {
@@ -13,35 +13,8 @@
     "type": "LANDSCAPE",
     "label": "Terrain & Scale",
     "text": "Began with a woman known as Frau Troffea in July 1518 Records describe dozens and perhaps up to 400 dancers over several weeks Reports that people danced to death are uncertain; contemporary sources are limited Authorities first encouraged the dancing, even hiring musicians Explanations include mass psychogenic illness amid famine and disease; ergot poisoning is a disputed theory",
-    "file": "02_commons.jpg",
-    "title": "File:Epileptici en hun begeleiders op weg naar de brug bij Molenbeek Pelgrimage naar Molenbeek (serietitel), RP-P-1904-526.jpg",
-    "license": "CC0"
-  },
-  {
-    "beat": 3,
-    "type": "INTERIOR",
-    "label": "Inner Structure",
-    "text": "Began with a woman known as Frau Troffea in July 1518 Records describe dozens and perhaps up to 400 dancers over several weeks Reports that people danced to death are uncertain; contemporary sources are limited Authorities first encouraged the dancing, even hiring musicians Explanations include mass psychogenic illness amid famine and disease; ergot poisoning is a disputed theory",
-    "file": "03_commons.jpg",
-    "title": "File:The dancing mania, by Hondius Wellcome M0013485.jpg",
+    "file": "07_commons.jpg",
+    "title": "<div class='fn'> The dancing mania</div>",
     "license": "CC BY 4.0"
-  },
-  {
-    "beat": 4,
-    "type": "ARTIFACT",
-    "label": "Physical Evidence",
-    "text": "Began with a woman known as Frau Troffea in July 1518 Records describe dozens and perhaps up to 400 dancers over several weeks Reports that people danced to death are uncertain; contemporary sources are limited Authorities first encouraged the dancing, even hiring musicians Explanations include mass psychogenic illness amid famine and disease; ergot poisoning is a disputed theory",
-    "file": "04_commons.jpg",
-    "title": "File:Twee epileptici en hun begeleiders op weg naar Molenbeek Pelgrimage naar Molenbeek (serietitel), RP-P-1904-525.jpg",
-    "license": "CC0"
-  },
-  {
-    "beat": 5,
-    "type": "SCHEMATIC",
-    "label": "Survey / Blueprint",
-    "text": "Began with a woman known as Frau Troffea in July 1518 Records describe dozens and perhaps up to 400 dancers over several weeks Reports that people danced to death are uncertain; contemporary sources are limited Authorities first encouraged the dancing, even hiring musicians Explanations include mass psychogenic illness amid famine and disease; ergot poisoning is a disputed theory",
-    "file": "05_commons.jpg",
-    "title": "File:Twee doedelzakspelers Pelgrimage naar Molenbeek (serietitel), RP-P-OB-75.242.jpg",
-    "license": "CC0"
   }
 ]

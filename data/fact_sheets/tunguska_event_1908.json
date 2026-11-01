@@ -1,10 +1,29 @@
 {
- "topic_id": "20_tunguska_event_1908",
- "built_at": "2026-10-18T20:46:40.909408+00:00",
+ "topic_id": "tunguska_event_1908",
+ "built_at": "2026-10-25T12:26:47.383901+00:00",
  "facts": [
   {
-   "id": "fact-1",
-   "statement": "On the morning of 30 June [O.S. 17 June] 1908, at around 7:14 KRAT (0:14 UT), a massive explosion occurred over the Central Siberian taiga near the Podkamennaya Tunguska River.",
+   "id": "tunguska-loc-01",
+   "statement": "The cataclysm occurred near the Podkamennaya Tunguska River in Central Siberia, then part of the Russian Empire.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
+     "tier": 2,
+     "quote": "17 June] 1908, at around 7:14 KRAT (0:14 UT) in Central Siberia, then part of the Russian Empire."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
+     "tier": 2,
+     "quote": "This cataclysm occurred in a remote and sparsely populated region of the taiga, near the Podkamennaya Tunguska River after which it is named."
+    }
+   ]
+  },
+  {
+   "id": "tunguska-date-02",
+   "statement": "The explosion struck on the morning of 30 June 1908 at around 7:14 local time.",
    "kind": "date",
    "disputed": false,
    "hedge": "",
@@ -22,26 +41,30 @@
     {
      "url": "https://en.wikipedia.org/wiki/Tunguska_event",
      "tier": 2,
-     "quote": "This cataclysm occurred in a remote and sparsely populated region of the taiga, near the Podkamennaya Tunguska River after which it is named."
-    },
-    {
-     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
-     "tier": 2,
-     "quote": "On the morning of Tuesday, 30 June [O.S."
-    },
-    {
-     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
-     "tier": 2,
      "quote": "At around 7:14 KRAT (0:14 UT), a powerful and deafening explosion was heard over the taiga in the Podkamennaya Tunguska basin."
     }
    ]
   },
   {
-   "id": "fact-2",
-   "statement": "The Tunguska explosion flattened several million trees across more than 2,150 km2 (830 sq mi) of forest in a radial pattern.",
+   "id": "tunguska-bolide-03",
+   "statement": "Eyewitnesses observed a bolide brighter and seemingly larger than the Sun blazing across the atmosphere for at least 1,000 kilometres.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
+     "tier": 2,
+     "quote": "17 June] 1908, a bolide, described by several witnesses as having a brightness and apparent size greater than that of the Sun, traversed Earth's atmosphere over a distance of at least 1,000 kilometres (620 mi)."
+    }
+   ]
+  },
+  {
+   "id": "tunguska-forest-04",
+   "statement": "The blast devastated more than 2,150 square kilometres of taiga forest, flattening trees in a distinctive radial pattern.",
    "kind": "number",
    "disputed": true,
-   "hedge": "researchers have estimated that the Tunguska explosion flattened several million trees across more than 2,150 km2 (830 sq mi) of forest in a radial pattern.",
+   "hedge": "by one estimate, the blast devastated more than 2,150 square kilometres of taiga forest, flattening trees in a distinctive radial pattern.",
    "evidence": [
     {
      "url": "https://en.wikipedia.org/wiki/Tunguska_event",
@@ -56,63 +79,11 @@
    ]
   },
   {
-   "id": "fact-3",
-   "statement": "The Tunguska event was caused by a meteoroid measuring between 50–60 m (160–200 ft) in diameter.",
+   "id": "tunguska-thermal-05",
+   "statement": "The blast's initial thermal pulse ignited sporadic fires and radiated intense heat felt up to 80 kilometres away.",
    "kind": "number",
    "disputed": true,
-   "hedge": "Physical models suggest the object was roughly 50 to 60 meters wide, though no surviving cosmic fragments have ever been formally identified.",
-   "evidence": [
-    {
-     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
-     "tier": 2,
-     "quote": "The scientific consensus thus attributes this event to a meteor air burst, the atmospheric explosion of a celestial body, although no fragment has been formally identified."
-    },
-    {
-     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
-     "tier": 2,
-     "quote": "By cross-referencing eyewitness accounts and physical modeling, researchers favor the hypothesis of a 50–60 m (160–200 ft) diameter meteoroid moving at high speed from south-east."
-    }
-   ]
-  },
-  {
-   "id": "fact-4",
-   "statement": "The celestial body exploded at an altitude between 5–10 km (3.1–6.2 mi), releasing an energy between 10 and 15 megatons of TNT.",
-   "kind": "number",
-   "disputed": true,
-   "hedge": "Scientists calculate the air burst detonated between 5 and 10 kilometers above the taiga, unleashing an explosive yield between 10 and 15 megatons.",
-   "evidence": [
-    {
-     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
-     "tier": 2,
-     "quote": "The object would have exploded between 5–10 km (3.1–6.2 mi) in altitude, releasing an energy often estimated between 10 and 15 megatons of TNT, which is enough to destroy an entire major city."
-    }
-   ]
-  },
-  {
-   "id": "fact-5",
-   "statement": "The atmospheric shock wave shattered windows within a radius of nearly 200 kilometres (120 mi) and knocked witnesses to the ground.",
-   "kind": "number",
-   "disputed": true,
-   "hedge": "researchers have estimated that the atmospheric shock wave shattered windows within a radius of nearly 200 kilometres (120 mi) and knocked witnesses to the ground.",
-   "evidence": [
-    {
-     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
-     "tier": 2,
-     "quote": "The shock wave knocked several witnesses to the ground, killed at least three people as well as numerous animals, and shattered windows within a 200 km (120 mi) radius."
-    },
-    {
-     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
-     "tier": 2,
-     "quote": "Perceived over 800 kilometres (500 mi) away, the shock wave spread over hundreds of kilometers and shattered windows within a radius of nearly 200 kilometres (120 mi)."
-    }
-   ]
-  },
-  {
-   "id": "fact-6",
-   "statement": "Heat from the explosion's initial thermal pulse was felt up to about 80 kilometres (50 mi) from the epicenter.",
-   "kind": "number",
-   "disputed": true,
-   "hedge": "researchers have estimated that heat from the explosion's initial thermal pulse was felt up to about 80 kilometres (50 mi) from the epicenter.",
+   "hedge": "by one estimate, the blast's initial thermal pulse ignited sporadic fires and radiated intense heat felt up to 80 kilometres away.",
    "evidence": [
     {
      "url": "https://en.wikipedia.org/wiki/Tunguska_event",
@@ -122,16 +93,26 @@
    ]
   },
   {
-   "id": "fact-7",
-   "statement": "Russian and German seismological stations recorded the blast with a magnitude close to 5 on the Richter scale.",
+   "id": "tunguska-shock-06",
+   "statement": "The shock wave shattered windows across a 200-kilometre radius and generated seismic tremors registering near magnitude 5 on the Richter scale.",
    "kind": "number",
    "disputed": true,
-   "hedge": "researchers have estimated that russian and German seismological stations recorded the blast with a magnitude close to 5 on the Richter scale.",
+   "hedge": "by one estimate, the shock wave shattered windows across a 200-kilometre radius and generated seismic tremors registering near magnitude 5 on the Richter scale.",
    "evidence": [
     {
      "url": "https://en.wikipedia.org/wiki/Tunguska_event",
      "tier": 2,
+     "quote": "The shock wave knocked several witnesses to the ground, killed at least three people as well as numerous animals, and shattered windows within a 200 km (120 mi) radius."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
+     "tier": 2,
      "quote": "The blast was recorded by various Russian and German seismological stations with a magnitude close to 5 on the Richter scale, while atmospheric waves generated by the shock wave were detected worldwide."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
+     "tier": 2,
+     "quote": "Perceived over 800 kilometres (500 mi) away, the shock wave spread over hundreds of kilometers and shattered windows within a radius of nearly 200 kilometres (120 mi)."
     },
     {
      "url": "https://en.wikipedia.org/wiki/Tunguska_event",
@@ -141,122 +122,8 @@
    ]
   },
   {
-   "id": "fact-8",
-   "statement": "Intense bright nights were reported across an area spanning between 10,000,000 and 12,000,000 km2 (3,900,000 to 4,600,000 sq mi) of western Eurasia.",
-   "kind": "number",
-   "disputed": true,
-   "hedge": "researchers have estimated that intense bright nights were reported across an area spanning between 10,000,000 and 12,000,000 km2 (3,900,000 to 4,600,000 sq mi) of western Eurasia.",
-   "evidence": [
-    {
-     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
-     "tier": 2,
-     "quote": "From 30 June to 3 July, intense bright nights were observed across western Eurasia over an area of more than 10,000,000 km2 (3,900,000 sq mi)."
-    },
-    {
-     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
-     "tier": 2,
-     "quote": "On the evening of 30 June, bright nights of rare intensity were reported across an area of 10,000,000 to 12,000,000 km2 (3,900,000 to 4,600,000 sq mi), to the extent that it became possible to read a newspaper or photograph monuments around midnight without artificial lighting."
-    }
-   ]
-  },
-  {
-   "id": "fact-9",
-   "statement": "Leonid Kulik organized the first scientific expedition to investigate the blast in 1921 and reached the epicenter in 1927.",
-   "kind": "name",
-   "disputed": false,
-   "hedge": "",
-   "evidence": [
-    {
-     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
-     "tier": 2,
-     "quote": "Although the Russian press and various correspondents reported the blast in the following days, it was not until 1921 that a first scientific expedition was organized under the direction of Leonid Kulik, who discovered the site of the epicenter only in 1927."
-    }
-   ]
-  },
-  {
-   "id": "fact-10",
-   "statement": "Lake Cheko formed as an impact crater gouged out by a fragment of the 1908 exploding celestial body.",
-   "kind": "event",
-   "disputed": true,
-   "hedge": "While some researchers proposed Lake Cheko was an impact crater, sediment core analyses indicate the lake is significantly older than the 1908 explosion.",
-   "evidence": [
-    {
-     "url": "https://doi.org/10.31951/2658-3518-2024-a-4-594",
-     "tier": 1,
-     "quote": "It was revealed that both lakes have funnel shape with a depth of 60 and 34 m, respectively, and are similar in shape and size to Lake Cheko, which, according to some researchers, is an impact crater formed by a celestial body as a result of the “Tunguska Event 1908”."
-    },
-    {
-     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
-     "tier": 2,
-     "quote": "Lake Cheko, located approximately 8 km (5.0 mi) northeast of the epicenter and unrecorded before 1908, may be an impact crater formed by a secondary fragment of the celestial body that detached before its explosion."
-    },
-    {
-     "url": "https://doi.org/10.1134%2FS1028334X17100269",
-     "tier": 1,
-     "quote": "The vertical distributions of 137 Cs and 210 Pb activity and visually counted varves in the core of lake bottom sediments indicate that Cheko Lake is significantly older than the 1908 Tunguska Event; therefore, the lake basin cannot be a crater or a trace of the explosion as was supposed earlier by some researchers."
-    }
-   ]
-  },
-  {
-   "id": "fact-11",
-   "statement": "Surviving trees within 4-5 km of the epicenter experienced suppressed growth starting the year after the blast and continuing for a 4-5-year period.",
-   "kind": "number",
-   "disputed": false,
-   "hedge": "",
-   "evidence": [
-    {
-     "url": "https://doi.org/10.1089/1531107041939402",
-     "tier": 1,
-     "quote": "We analyzed tree rings in wood samples collected from some of the few surviving trees found close to the epicenter (within 4-5 km) of the Tunguska event that occurred on the last day of June 1908."
-    },
-    {
-     "url": "https://doi.org/10.1089/1531107041939402",
-     "tier": 1,
-     "quote": "Tree-ring growth shows a depression starting in the year after the event and continuing during a 4-5-year period."
-    }
-   ]
-  },
-  {
-   "id": "fact-12",
-   "statement": "Microscopic analysis of wood surviving near the epicenter revealed light rings, reduced maximum density, and deformed cells on the 1908 annual ring boundary.",
-   "kind": "other",
-   "disputed": false,
-   "hedge": "",
-   "evidence": [
-    {
-     "url": "https://doi.org/10.1089/1531107041939402",
-     "tier": 1,
-     "quote": "We analyzed tree rings in wood samples collected from some of the few surviving trees found close to the epicenter (within 4-5 km) of the Tunguska event that occurred on the last day of June 1908."
-    },
-    {
-     "url": "https://doi.org/10.1089/1531107041939402",
-     "tier": 1,
-     "quote": "The most remarkable traces of the event were found in the rings' anatomical structure: (1) formation of \"light\" rings and a reduction of maximum density in 1908; (2) non-thickened tracheids (the cells that make up most of the wood volume) in the transition and latewood zones (the middle and last-formed parts of the ring, respectively); and (3) deformed tracheids, which are located on the 1908 annual ring outer boundary."
-    }
-   ]
-  },
-  {
-   "id": "fact-13",
-   "statement": "The incoming bolide traversed the atmosphere over a distance of at least 1,000 kilometres (620 mi) and was visible across Central Siberia from up to 600 to 1,500 kilometres (370 to 930 mi) away.",
-   "kind": "number",
-   "disputed": true,
-   "hedge": "researchers have estimated that the incoming bolide traversed the atmosphere over a distance of at least 1,000 kilometres (620 mi) and was visible across Central Siberia from up to 600 to 1,500 kilometres (370 to 930 mi) away.",
-   "evidence": [
-    {
-     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
-     "tier": 2,
-     "quote": "17 June] 1908, a bolide, described by several witnesses as having a brightness and apparent size greater than that of the Sun, traversed Earth's atmosphere over a distance of at least 1,000 kilometres (620 mi)."
-    },
-    {
-     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
-     "tier": 2,
-     "quote": "Moving from south-east to north-west while leaving a thin white trail, the object was seen across Central Siberia from a distance of up to 600 to 1,500 kilometres (370 to 930 mi), observation being further facilitated by a perfectly clear sky that day."
-    }
-   ]
-  },
-  {
-   "id": "fact-14",
-   "statement": "Atmospheric pressure waves were recorded by barographs across the globe, but their direct link to the 1908 blast was only recognized in the 1930s.",
+   "id": "tunguska-atmos-07",
+   "statement": "Atmospheric pressure waves generated by the explosion rippled across the globe and were detected by barographs worldwide.",
    "kind": "event",
    "disputed": false,
    "hedge": "",
@@ -272,29 +139,147 @@
      "quote": "Atmospheric waves generated by the blast were also detected by barographs across the world, but their connection to the 1908 event was only established in the 1930s."
     }
    ]
+  },
+  {
+   "id": "tunguska-nights-08",
+   "statement": "Intense luminous night skies illuminated western Eurasia from 30 June to 3 July across an area exceeding 10,000,000 square kilometres.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, intense luminous night skies illuminated western Eurasia from 30 June to 3 July across an area exceeding 10,000,000 square kilometres.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
+     "tier": 2,
+     "quote": "From 30 June to 3 July, intense bright nights were observed across western Eurasia over an area of more than 10,000,000 km2 (3,900,000 sq mi)."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
+     "tier": 2,
+     "quote": "On the evening of 30 June, bright nights of rare intensity were reported across an area of 10,000,000 to 12,000,000 km2 (3,900,000 to 4,600,000 sq mi), to the extent that it became possible to read a newspaper or photograph monuments around midnight without artificial lighting."
+    }
+   ]
+  },
+  {
+   "id": "tunguska-kulik-09",
+   "statement": "Leonid Kulik organized the first scientific expedition to investigate the catastrophe in 1921 and reached the blast epicenter in 1927.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
+     "tier": 2,
+     "quote": "Although the Russian press and various correspondents reported the blast in the following days, it was not until 1921 that a first scientific expedition was organized under the direction of Leonid Kulik, who discovered the site of the epicenter only in 1927."
+    }
+   ]
+  },
+  {
+   "id": "tunguska-consensus-10",
+   "statement": "Scientific consensus attributes the event to an atmospheric meteor air burst, though no celestial fragment has ever been formally identified.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
+     "tier": 2,
+     "quote": "The scientific consensus thus attributes this event to a meteor air burst, the atmospheric explosion of a celestial body, although no fragment has been formally identified."
+    }
+   ]
+  },
+  {
+   "id": "tunguska-diameter-11",
+   "statement": "Physical modeling and trajectory analysis suggest the incoming meteoroid measured 50 to 60 metres across.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "Physical models suggest the incoming celestial body measured roughly 50 to 60 meters across.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
+     "tier": 2,
+     "quote": "By cross-referencing eyewitness accounts and physical modeling, researchers favor the hypothesis of a 50–60 m (160–200 ft) diameter meteoroid moving at high speed from south-east."
+    }
+   ]
+  },
+  {
+   "id": "tunguska-yield-12",
+   "statement": "The meteoroid detonated between 5 and 10 kilometres in altitude, releasing an explosive energy between 10 and 15 megatons of TNT.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "Scientists calculate the airburst released between 10 and 15 megatons of TNT.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
+     "tier": 2,
+     "quote": "The object would have exploded between 5–10 km (3.1–6.2 mi) in altitude, releasing an energy often estimated between 10 and 15 megatons of TNT, which is enough to destroy an entire major city."
+    }
+   ]
+  },
+  {
+   "id": "tunguska-treerings-13",
+   "statement": "Wood samples from surviving trees near the epicenter revealed deformed tracheid cells and light rings in 1908, followed by 4 to 5 years of suppressed growth.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://doi.org/10.1089/1531107041939402",
+     "tier": 1,
+     "quote": "We analyzed tree rings in wood samples collected from some of the few surviving trees found close to the epicenter (within 4-5 km) of the Tunguska event that occurred on the last day of June 1908."
+    },
+    {
+     "url": "https://doi.org/10.1089/1531107041939402",
+     "tier": 1,
+     "quote": "Tree-ring growth shows a depression starting in the year after the event and continuing during a 4-5-year period."
+    },
+    {
+     "url": "https://doi.org/10.1089/1531107041939402",
+     "tier": 1,
+     "quote": "The most remarkable traces of the event were found in the rings' anatomical structure: (1) formation of \"light\" rings and a reduction of maximum density in 1908; (2) non-thickened tracheids (the cells that make up most of the wood volume) in the transition and latewood zones (the middle and last-formed parts of the ring, respectively); and (3) deformed tracheids, which are located on the 1908 annual ring outer boundary."
+    }
+   ]
+  },
+  {
+   "id": "tunguska-cheko-14",
+   "statement": "Researchers debated whether Lake Cheko formed as an impact crater carved out by a surviving fragment of the exploding meteoroid.",
+   "kind": "event",
+   "disputed": true,
+   "hedge": "While some researchers proposed Lake Cheko formed as an impact crater, sediment core analyses indicate the lake basin is significantly older than the 1908 explosion.",
+   "evidence": [
+    {
+     "url": "https://doi.org/10.31951/2658-3518-2024-a-4-594",
+     "tier": 1,
+     "quote": "It was revealed that both lakes have funnel shape with a depth of 60 and 34 m, respectively, and are similar in shape and size to Lake Cheko, which, according to some researchers, is an impact crater formed by a celestial body as a result of the “Tunguska Event 1908”."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Tunguska_event",
+     "tier": 2,
+     "quote": "Lake Cheko, located approximately 8 km (5.0 mi) northeast of the epicenter and unrecorded before 1908, may be an impact crater formed by a secondary fragment of the celestial body that detached before its explosion."
+    },
+    {
+     "url": "https://doi.org/10.1134%2FS1028334X17100269",
+     "tier": 3,
+     "quote": "The vertical distributions of 137 Cs and 210 Pb activity and visually counted varves in the core of lake bottom sediments indicate that Cheko Lake is significantly older than the 1908 Tunguska Event; therefore, the lake basin cannot be a crater or a trace of the explosion as was supposed earlier by some researchers."
+    }
+   ]
   }
  ],
  "dropped": [],
  "sources": [
   {
-   "title": "UNESCO World Heritage Centre - Uvs Nuur Basin",
-   "url": "https://whc.unesco.org/en/list/769",
-   "tier": 1
-  },
-  {
-   "title": "Peer-Reviewed Work: The Tunguska Event in 1908: Evidence from Tree-Ring Anatomy",
+   "title": "Peer-reviewed journal article (Astrobiology): The Tunguska Event in 1908: Evidence from Tree-Ring Anatomy",
    "url": "https://doi.org/10.1089/1531107041939402",
-   "tier": 1
+   "tier": 3
   },
   {
-   "title": "Peer-Reviewed Work: Sediments and morphology of deep lakes of Central Tunguska Plateau (Krasnoyarsk krai, Evenkia): on the problem of the Tunguska Event at 1908",
+   "title": "Peer-reviewed journal article (Limnology and Freshwater Biology): Sediments and morphology of deep lakes of Central Tunguska Plateau (Krasnoyarsk krai, Evenkia): on the problem of the Tunguska Event at 1908",
    "url": "https://doi.org/10.31951/2658-3518-2024-a-4-594",
-   "tier": 1
+   "tier": 3
   },
   {
-   "title": "Peer-Reviewed Work: Morphology of Lakes of the Central Tunguska Plateau (Krasnoyarsk Krai, Evenkiya): New Data on the Problem of the Tunguska Event of 1908",
+   "title": "Peer-reviewed journal article (Doklady Earth Sciences): Morphology of Lakes of the Central Tunguska Plateau (Krasnoyarsk Krai, Evenkiya): New Data on the Problem of the Tunguska Event of 1908",
    "url": "https://doi.org/10.1134/s1028334x23600044",
-   "tier": 1
+   "tier": 3
   },
   {
    "title": "Wikipedia: Tunguska event",
@@ -309,22 +294,22 @@
   {
    "title": "doi.org",
    "url": "https://doi.org/10.1134%2FS1028334X17100269",
-   "tier": 1
+   "tier": 3
   },
   {
    "title": "doi.org",
    "url": "https://doi.org/10.1023%2FB:MOON.0000047474.85788.01",
-   "tier": 1
+   "tier": 3
   },
   {
    "title": "doi.org",
    "url": "https://doi.org/10.1038%2Fnature.2013.13163",
-   "tier": 1
+   "tier": 3
   },
   {
    "title": "doi.org",
    "url": "https://doi.org/10.1038%2Fnature12671",
-   "tier": 1
+   "tier": 3
   },
   {
    "title": "www.smithsonianmag.com",
@@ -334,7 +319,8 @@
   {
    "title": "doi.org",
    "url": "https://doi.org/10.1038%2Fnature01238",
-   "tier": 1
+   "tier": 3
   }
- ]
+ ],
+ "rules_version": 2
 }

@@ -1,0 +1,322 @@
+{
+ "topic_id": "richat_structure_sahara_eye",
+ "built_at": "2026-10-23T07:21:40.023127+00:00",
+ "facts": [
+  {
+   "id": "fact-1",
+   "statement": "The Richat Structure is situated near Ouadane on the Adrar Plateau within the Adrar Region of Mauritania.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Richat_Structure",
+     "tier": 2,
+     "quote": "The Richat Structure, or Guelb er Richât (Arabic: قلب الريشات, romanized: Qalb ar-Rīšāt, Hassaniyya: [galb er.riːʃaːt] ), often called the Eye of Africa is a prominent circular geological feature at the northwestern edge of the Taoudeni Basin, on the Adrar Plateau of the Sahara."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Richat_Structure",
+     "tier": 2,
+     "quote": "It is located near Ouadane in the Adrar Region of Mauritania."
+    }
+   ]
+  },
+  {
+   "id": "fact-2",
+   "statement": "The circular geological formation spans a diameter of 40 kilometres (25 mi).",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "Geological field surveys record the feature at 40 kilometres across, though satellite observations describe it as spanning almost 50 kilometres.",
+   "evidence": [
+    {
+     "url": "https://doi.org/10.5281/zenodo.17972936",
+     "tier": 3,
+     "quote": "The Richat Structure (Eye of the Sahara, Mauritania), a≈ 50 km circular feature, is conventionally explained as the slow erosion of a approx 100 million year old igneous dome."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Richat_Structure",
+     "tier": 2,
+     "quote": "It is an eroded geological dome, 40 kilometres (25 mi) in diameter, caused by a subsurface igneous intrusion deforming the overlying sedimentary rock layers, causing the rock to be exposed as concentric rings with the oldest layers exposed at the centre of the structure."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Richat_Structure",
+     "tier": 2,
+     "quote": "The Richat Structure is a deeply eroded, slightly elliptical dome with a diameter of 40 kilometres (25 mi)."
+    },
+    {
+     "url": "https://earthobservatory.nasa.gov/images/2561/richat-structure-mauritania",
+     "tier": 1,
+     "quote": "Described by some as looking like an outsized ammonite in the desert,the structure [which has a diameter of almost 50 kilometers (30 miles)] hasbecome a landmark for shuttle crews."
+    }
+   ]
+  },
+  {
+   "id": "fact-3",
+   "statement": "Visible from space as a massive desert landmark, the concentric formation has served as a visual reference point for space shuttle crews.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Ouadane",
+     "tier": 2,
+     "quote": "Ouadane is the closest town to the Richat Structure, a massive circular landmark visible from space."
+    },
+    {
+     "url": "https://earthobservatory.nasa.gov/images/2561/richat-structure-mauritania",
+     "tier": 1,
+     "quote": "Described by some as looking like an outsized ammonite in the desert,the structure [which has a diameter of almost 50 kilometers (30 miles)] hasbecome a landmark for shuttle crews."
+    }
+   ]
+  },
+  {
+   "id": "fact-4",
+   "statement": "Geologists identify the structure as an eroded dome created when a subsurface igneous intrusion deformed the overlying sedimentary rock into concentric rings.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Richat_Structure",
+     "tier": 2,
+     "quote": "It is an eroded geological dome, 40 kilometres (25 mi) in diameter, caused by a subsurface igneous intrusion deforming the overlying sedimentary rock layers, causing the rock to be exposed as concentric rings with the oldest layers exposed at the centre of the structure."
+    },
+    {
+     "url": "https://doi.org/10.1007/s12517-021-08734-4",
+     "tier": 3,
+     "quote": "We emphasize that (1) the Richat intrusion is characterized by the presence of two important circular magnetic signals that coincide with gabbroic ring dykes partly exposed at the surface, (2) its overall circular structure rests above a deep mafic (gabbroic) body, (3) the upwelling of magma at the surface has been facilitated by the presence of concentric faults and (4) the central zone of the complex recorded intense hydrothermal alteration."
+    }
+   ]
+  },
+  {
+   "id": "fact-5",
+   "statement": "The sedimentary rock layers that form the outer rings of the structure dip outward at angles between 10 and 20 degrees.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, the sedimentary rock layers that form the outer rings of the structure dip outward at angles between 10 and 20 degrees.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Richat_Structure",
+     "tier": 2,
+     "quote": "The sedimentary rocks composing this structure dip outward at 10–20°."
+    }
+   ]
+  },
+  {
+   "id": "fact-6",
+   "statement": "The heart of the structure features a siliceous breccia covering an area at least 30 kilometres in diameter, reaching a thickness of at least 40 metres at its center.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, the heart of the structure features a siliceous breccia covering an area at least 30 kilometres in diameter, reaching a thickness of at least 40 metres at its center.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Richat_Structure",
+     "tier": 2,
+     "quote": "Its center consists of a siliceous breccia covering an area that is at least 30 kilometres (19 mi) in diameter.Exposed within the interior of the Richat Structure is a variety of intrusive and extrusive igneous rocks."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Richat_Structure",
+     "tier": 2,
+     "quote": "The siliceous megabreccia is at least 40 metres (130 ft) thick in its center to only a few meters thick along its edges."
+    }
+   ]
+  },
+  {
+   "id": "fact-7",
+   "statement": "Concentric gabbroic ring dikes frame the complex, consisting of an inner ring about 30 metres wide and an outer ring about 70 metres wide.",
+   "kind": "number",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Richat_Structure",
+     "tier": 2,
+     "quote": "The inner ring dike is about 30 metres (98 ft) in width, 3 kilometres (1.9 mi) from the center of the Richat Structure."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Richat_Structure",
+     "tier": 2,
+     "quote": "The outer ring dike is about 70 metres (230 ft) in width, 8 kilometres (5.0 mi) from the center of the structure."
+    },
+    {
+     "url": "https://doi.org/10.1007/s12517-021-08734-4",
+     "tier": 3,
+     "quote": "We emphasize that (1) the Richat intrusion is characterized by the presence of two important circular magnetic signals that coincide with gabbroic ring dykes partly exposed at the surface, (2) its overall circular structure rests above a deep mafic (gabbroic) body, (3) the upwelling of magma at the surface has been facilitated by the presence of concentric faults and (4) the central zone of the complex recorded intense hydrothermal alteration."
+    }
+   ]
+  },
+  {
+   "id": "fact-8",
+   "statement": "Dating of the carbonatite rocks shows they cooled between 94 and 104 million years ago, closely matching the hydrothermal event that produced the central breccia.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Richat_Structure",
+     "tier": 2,
+     "quote": "The carbonatite rocks have been dated as having cooled between 94 and 104 million years ago."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Richat_Structure",
+     "tier": 2,
+     "quote": "The hydrothermal alteration, which created this breccia, has been dated to have occurred about 98.2 ± 2.6 million years ago using the 40Ar/39Ar method."
+    }
+   ]
+  },
+  {
+   "id": "fact-9",
+   "statement": "Initially considered an extraterrestrial impact crater, the impact theory was disproved when suspected shock-metamorphism coesite was identified in 1969 as mislabeled barite.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Richat_Structure",
+     "tier": 2,
+     "quote": "It was initially considered to be an impact structure (as is clearly the case with the other three), but a closer study in the 1950s to 1960s suggested that it might instead have been formed by terrestrial processes."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Richat_Structure",
+     "tier": 2,
+     "quote": "After field and laboratory studies in the 1960s, no significant evidence was found for shock metamorphism or other deformation indicative of a hypervelocity extraterrestrial impact."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Richat_Structure",
+     "tier": 2,
+     "quote": "Coesite, an indicator of shock metamorphism, was initially reported as being present in rock samples from the structure, but a further analysis in 1969 concluded that barite had been misidentified as coesite."
+    }
+   ]
+  },
+  {
+   "id": "fact-10",
+   "statement": "In October 2022, the International Union of Geological Sciences designated the formation as one of the world's first 100 official geological heritage sites.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Richat_Structure",
+     "tier": 2,
+     "quote": "It was selected as one of the 100 geological heritage sites identified by the International Union of Geological Sciences (IUGS) to be of the highest scientific value."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Richat_Structure",
+     "tier": 2,
+     "quote": "In respect of it being \"a spectacular example of a magmatic concentric alkaline complex\", the International Union of Geological Sciences (IUGS) included the Richat Structure in its assemblage of 100 geological heritage sites around the world, in October 2022."
+    }
+   ]
+  },
+  {
+   "id": "fact-11",
+   "statement": "Prehistoric human habitation is evidenced by exceptional accumulations of Acheulean artifacts alongside Middle Stone Age Aterian tools dating from roughly 145,000 to 29,000 years ago.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Richat_Structure",
+     "tier": 2,
+     "quote": "The organisation defines an IUGS Geological Heritage Site as \"a key place with geological elements and/or processes of international scientific relevance, used as a reference, and/or with a substantial contribution to the development of geological sciences through history.\"\n\n\n \n\nThe Richat Structure is the location of exceptional accumulations of Acheulean artifacts."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Richat_Structure",
+     "tier": 2,
+     "quote": "In addition to Acheulean artifacts, the Richat Structure contains Middle Stone Age Aterian stone artifacts produced by modern humans, dating to the latest Middle Pleistocene to Late Pleistocene period, around 145,000-29,000 years ago."
+    }
+   ]
+  },
+  {
+   "id": "fact-12",
+   "statement": "Thousands of prehistoric stone burial mounds built in various distinct architectural styles line the protruding dikes of the formation.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, thousands of prehistoric stone burial mounds built in various distinct architectural styles line the protruding dikes of the formation.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Richat_Structure",
+     "tier": 2,
+     "quote": "The protruding land dikes of the Richat Structure are lined with thousands of stone burial mounds in various styles."
+    }
+   ]
+  },
+  {
+   "id": "fact-13",
+   "statement": "Fringe theories proposing the formation as Plato's lost city of Atlantis are refuted by geological reality, as the feature is an ancient, natural inland terrestrial dome rather than a sunken island.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Richat_Structure",
+     "tier": 2,
+     "quote": "The Richat Structure has been the subject of unsubstantiated fringe claims to be the site of Atlantis mentioned in the works of Plato."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Richat_Structure",
+     "tier": 2,
+     "quote": "Rafferty, other than superficially matching Plato's Atlantis description in being circular, in its particular details, including being a geologically ancient natural structure, the Richat Structure bears little resemblance to Plato's description of Atlantis, with the Richat Structure's location far inland in a desert contradicting Plato's information regarding the location of Atlantis."
+    }
+   ]
+  }
+ ],
+ "dropped": [],
+ "sources": [
+  {
+   "title": "Scholarly work: The Eye of the Sahara",
+   "url": "https://doi.org/10.5281/zenodo.18456721",
+   "tier": 3
+  },
+  {
+   "title": "Scholarly work: New Theory and New Challenge for the Richat Structure Formation",
+   "url": "https://doi.org/10.5281/zenodo.17972936",
+   "tier": 3
+  },
+  {
+   "title": "Scholarly work: 🔎 Richat Structure 👁 Elevation Map (3D model)",
+   "url": "https://doi.org/10.5281/zenodo.10356201",
+   "tier": 3
+  },
+  {
+   "title": "Wikipedia: Richat Structure",
+   "url": "https://en.wikipedia.org/wiki/Richat_Structure",
+   "tier": 2
+  },
+  {
+   "title": "Wikipedia: Ouadane",
+   "url": "https://en.wikipedia.org/wiki/Ouadane",
+   "tier": 2
+  },
+  {
+   "title": "earthobservatory.nasa.gov",
+   "url": "https://earthobservatory.nasa.gov/images/2561/richat-structure-mauritania",
+   "tier": 1
+  },
+  {
+   "title": "doi.org",
+   "url": "https://doi.org/10.1007/s12517-021-08734-4",
+   "tier": 3
+  },
+  {
+   "title": "doi.org",
+   "url": "https://doi.org/10.1007%2Fs12517-021-08734-4",
+   "tier": 3
+  },
+  {
+   "title": "prehistoireouestsaharienne.wordpress.com",
+   "url": "https://prehistoireouestsaharienne.wordpress.com/2025/05/10/inventaire-des-peintures-rupestres-du-plateau-du-tagant/",
+   "tier": 3
+  },
+  {
+   "title": "prehistoireouestsaharienne.wordpress.com",
+   "url": "https://prehistoireouestsaharienne.wordpress.com/2020/06/27/les-gravures-rupestres-de-ladrar-de-mauritanie-iii-autres-stations/",
+   "tier": 3
+  },
+  {
+   "title": "www.esa.int",
+   "url": "https://www.esa.int/Applications/Observing_the_Earth/Earth_from_Space_Eye_of_Africa",
+   "tier": 1
+  }
+ ],
+ "rules_version": 2
+}

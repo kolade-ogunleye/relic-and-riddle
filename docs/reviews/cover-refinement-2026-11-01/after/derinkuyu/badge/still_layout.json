@@ -1,0 +1,195 @@
+{
+ "thumbnail_cover.jpg": {
+  "kind": "cover",
+  "size": [
+   1080,
+   1920
+  ],
+  "zone": [
+   60,
+   440,
+   1020,
+   1480
+  ],
+  "tight": false,
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     85,
+     462,
+     383,
+     486
+    ],
+    "contrast": 1.16,
+    "contrast_unaided": 1.06,
+    "halo": 0.0,
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "font": "Cinzel-Variable.ttf",
+    "px": 32.0,
+    "contrast_planned": 1.16
+   },
+   {
+    "name": "eyebrow",
+    "box": [
+     86,
+     1101,
+     413,
+     1128
+    ],
+    "contrast": 9.0,
+    "contrast_unaided": 9.02,
+    "halo": 0.0,
+    "fill": [
+     242,
+     182,
+     48
+    ],
+    "font": "Montserrat-Variable.ttf",
+    "px": 36.0,
+    "contrast_planned": 9.02
+   },
+   {
+    "name": "title_1",
+    "box": [
+     88,
+     1150,
+     853,
+     1245
+    ],
+    "contrast": 15.85,
+    "contrast_unaided": 15.84,
+    "halo": 0.0,
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "font": "Anton-Regular.ttf",
+    "px": 108.0,
+    "contrast_planned": 15.84
+   },
+   {
+    "name": "title_2",
+    "box": [
+     86,
+     1255,
+     985,
+     1375
+    ],
+    "contrast": 10.13,
+    "contrast_unaided": 10.12,
+    "halo": 0.0,
+    "fill": [
+     242,
+     182,
+     48
+    ],
+    "font": "Anton-Regular.ttf",
+    "px": 138.0,
+    "contrast_planned": 10.12
+   },
+   {
+    "name": "tagline",
+    "box": [
+     87,
+     1401,
+     426,
+     1434
+    ],
+    "contrast": 8.59,
+    "contrast_unaided": 8.67,
+    "halo": 0.0,
+    "fill": [
+     184,
+     177,
+     163
+    ],
+    "font": "Montserrat-Variable.ttf",
+    "px": 38.0,
+    "contrast_planned": 8.67
+   }
+  ],
+  "shortened": [],
+  "protected": [
+   {
+    "name": "reviewed photographic feature",
+    "box": [
+     349,
+     560,
+     731,
+     1002
+    ]
+   }
+  ],
+  "problems": [],
+  "attempts": 1,
+  "recipe": {
+   "renderer": "visual_engine.redraw_cover",
+   "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\derinkuyu_underground_city\\19_commons.jpg",
+   "copy": {
+    "eyebrow": "BURIED HISTORY",
+    "line1": "BEHIND ONE WALL...",
+    "line2": "A FORGOTTEN CITY",
+    "tagline": "DERINKUYU, 1963",
+    "badge": "BURIED HISTORY"
+   },
+   "style": "badge",
+   "text_cy": 960,
+   "focus": {
+    "focus_box": [
+     0.305,
+     0.29,
+     0.6,
+     0.805
+    ],
+    "sha256": "58687861b7dafec02f83b220d90bf1357427142d53aa15f3080e01b0c102f75c",
+    "reviewed": "2026-11-01 visual composition review"
+   },
+   "composition": {
+    "version": "cover-composition-2",
+    "mode": "reviewed_focus",
+    "source_size": [
+     4928,
+     3264
+    ],
+    "source_box": [
+     171.50812064965194,
+     0,
+     4287.703016241298,
+     3264
+    ],
+    "image_box": [
+     0,
+     312,
+     1080,
+     1168
+    ],
+    "focus_box": [
+     0.305,
+     0.29,
+     0.6,
+     0.805
+    ],
+    "protected_box": [
+     349,
+     560,
+     731,
+     1002
+    ],
+    "aperture": [
+     72,
+     560,
+     1008,
+     1001
+    ],
+    "reviewed": "2026-11-01 visual composition review",
+    "source_sha256": "58687861b7dafec02f83b220d90bf1357427142d53aa15f3080e01b0c102f75c"
+   }
+  }
+ }
+}

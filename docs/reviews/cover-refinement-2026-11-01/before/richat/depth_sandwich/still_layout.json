@@ -1,0 +1,144 @@
+{
+ "thumbnail_cover.jpg": {
+  "kind": "cover",
+  "size": [
+   1080,
+   1920
+  ],
+  "zone": [
+   60,
+   440,
+   1020,
+   1480
+  ],
+  "tight": false,
+  "elements": [
+   {
+    "name": "rule",
+    "box": [
+     60,
+     1046,
+     1020,
+     1050
+    ]
+   },
+   {
+    "name": "brand",
+    "box": [
+     85,
+     472,
+     360,
+     494
+    ],
+    "contrast": 12.36,
+    "contrast_unaided": 12.27,
+    "halo": 0.0,
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "font": "Cinzel-Variable.ttf",
+    "px": 29.0,
+    "contrast_planned": 12.27
+   },
+   {
+    "name": "eyebrow",
+    "box": [
+     114,
+     1090,
+     364,
+     1111
+    ],
+    "contrast": 10.43,
+    "contrast_unaided": 10.6,
+    "halo": 0.0,
+    "fill": [
+     242,
+     182,
+     48
+    ],
+    "font": "IBMPlexMono-SemiBold.ttf",
+    "px": 30.0,
+    "contrast_planned": 10.6
+   },
+   {
+    "name": "title_1",
+    "box": [
+     113,
+     1139,
+     703,
+     1250
+    ],
+    "contrast": 16.65,
+    "contrast_unaided": 16.6,
+    "halo": 0.0,
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "font": "Anton-Regular.ttf",
+    "px": 128.0,
+    "contrast_planned": 16.6
+   },
+   {
+    "name": "title_2",
+    "box": [
+     114,
+     1262,
+     673,
+     1374
+    ],
+    "contrast": 10.52,
+    "contrast_unaided": 10.6,
+    "halo": 0.0,
+    "fill": [
+     242,
+     182,
+     48
+    ],
+    "font": "Anton-Regular.ttf",
+    "px": 128.0,
+    "contrast_planned": 10.6
+   },
+   {
+    "name": "tagline",
+    "box": [
+     113,
+     1404,
+     452,
+     1428
+    ],
+    "contrast": 16.53,
+    "contrast_unaided": 16.6,
+    "halo": 0.0,
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "font": "Montserrat-Variable.ttf",
+    "px": 32.0,
+    "contrast_planned": 16.6
+   }
+  ],
+  "shortened": [],
+  "protected": [],
+  "problems": [],
+  "attempts": 1,
+  "recipe": {
+   "renderer": "visual_engine.redraw_cover",
+   "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\02_commons.jpg",
+   "copy": {
+    "eyebrow": "DESERT ANOMALY",
+    "line1": "THE 25-MILE",
+    "line2": "SAHARA EYE",
+    "tagline": "CARVED BY NATURE",
+    "badge": "DESERT ANOMALY"
+   },
+   "style": "depth_sandwich",
+   "text_cy": 760
+  }
+ }
+}

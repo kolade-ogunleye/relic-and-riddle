@@ -1,0 +1,329 @@
+{
+ "topic_id": "voynich_manuscript",
+ "built_at": "2026-10-25T21:57:50.863605+00:00",
+ "facts": [
+  {
+   "id": "fact-1",
+   "statement": "The Voynich manuscript is preserved at Yale University's Beinecke Rare Book and Manuscript Library in New Haven, Connecticut.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "Since 1969, it has been held in Yale University's Beinecke Rare Book and Manuscript Library."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Beinecke_Rare_Book_and_Manuscript_Library",
+     "tier": 2,
+     "quote": "The Beinecke Rare Book and Manuscript Library is the rare book library and literary archive of Yale University Library in New Haven, Connecticut."
+    }
+   ]
+  },
+  {
+   "id": "fact-2",
+   "statement": "Radiocarbon dating conducted at the University of Arizona in 2009 established that the manuscript's parchment dates between 1404 and 1438.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "Samples from various parts of the manuscript were radiocarbon dated at the University of Arizona in 2009."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "The results were consistent for all samples tested and indicated a date for the parchment between 1404 and 1438."
+    }
+   ]
+  },
+  {
+   "id": "fact-3",
+   "statement": "Protein testing in 2014 determined that the parchment was made from calfskin, while multispectral analysis proved it was not an overwritten palimpsest.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "Protein testing in 2014 revealed that the parchment was made from calfskin, and multispectral analysis showed that it had not been written on before the manuscript was created (i.e., it is not a palimpsest)."
+    }
+   ]
+  },
+  {
+   "id": "fact-4",
+   "statement": "Energy-dispersive X-ray spectroscopy in 2009 revealed that the manuscript's inks contain major amounts of carbon, iron, sulphur, potassium, and calcium, with trace levels of copper and occasionally zinc.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "In 2009, energy-dispersive X-ray spectroscopy (EDS) revealed that the inks contained major amounts of carbon, iron, sulphur, potassium and calcium with trace amounts of copper and occasionally zinc."
+    }
+   ]
+  },
+  {
+   "id": "fact-5",
+   "statement": "The manuscript measures 23.5 by 16.2 by 5 centimeters, comprising hundreds of vellum pages gathered into 18 quires of uneven size.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, the manuscript measures 23.5 by 16.2 by 5 centimeters, comprising hundreds of vellum pages gathered into 18 quires of uneven size.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "The manuscript measures 23.5 by 16.2 by 5 cm (9.3 by 6.4 by 2.0 in), with hundreds of vellum pages collected into 18 quires of uneven size (one, two, four, five and seven sheets)."
+    }
+   ]
+  },
+  {
+   "id": "fact-6",
+   "statement": "The codex consists of around 240 pages, with the exact count dependent on how its unusual foldout folios are tallied.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, the codex consists of around 240 pages, with the exact count dependent on how its unusual foldout folios are tallied.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "The manuscript consists of around 240 pages, but there is evidence that some of the pages are missing."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "The total number of pages is around 240, but the exact number depends on how the manuscript's unusual foldouts are counted."
+    }
+   ]
+  },
+  {
+   "id": "fact-7",
+   "statement": "Numbering gaps in the quires and pages indicate the manuscript originally possessed at least 272 pages across 20 quires.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, numbering gaps in the quires and pages indicate the manuscript originally possessed at least 272 pages across 20 quires.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "From the various numbering gaps in the quires and pages, it seems likely that in the past, the manuscript had at least 272 pages in 20 quires, some of which were already missing when Wilfrid Voynich acquired the manuscript in 1912."
+    }
+   ]
+  },
+  {
+   "id": "fact-8",
+   "statement": "The manuscript is named after Polish book dealer Wilfrid Voynich, who acquired it in 1912.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "The manuscript is named after Wilfrid Voynich, a Polish book dealer who purchased it in 1912."
+    }
+   ]
+  },
+  {
+   "id": "fact-9",
+   "statement": "The earliest confirmed owner of the manuscript was Georg Baresch, a seventeenth-century alchemist from Prague.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "The first confirmed owner was Georg Baresch, a 17th-century alchemist from Prague."
+    }
+   ]
+  },
+  {
+   "id": "fact-10",
+   "statement": "Illustrations throughout the volume feature fantastical drawings depicting human figures, astrological symbols, and botanical diagrams of unidentified plants.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "Most of the pages have fantastical illustrations and diagrams, some crudely coloured, with sections of the manuscript showing people, unidentified plants and astrological symbols."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "Just as one would expect in a normal book whose chapters focused on different subjects, the different sections of the manuscript (based on the drawings of plants, stars, bathing women, etc., accompanying them) have different sets of overrepresented words."
+    }
+   ]
+  },
+  {
+   "id": "fact-11",
+   "statement": "The text is written from left to right in an unidentified script where an alphabet of 20 to 25 characters accounts for virtually the entire work.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, the text is written from left to right in an unidentified script where an alphabet of 20 to 25 characters accounts for virtually the entire work.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "The bulk of the text in the 240-page manuscript is written in an unknown script, running left to right."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "There is some dispute as to whether certain characters are distinct, but a script of 20–25 characters would account for virtually all of the text; the exceptions are a few dozen rarer characters that occur only once or twice each."
+    }
+   ]
+  },
+  {
+   "id": "fact-12",
+   "statement": "The manuscript contains 9,000 unique words.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "Lexical analyses vary, with counts of unique words ranging from 8,114 to 9,000.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "The manuscript has roughly 38,000 words, of which 9,000 are unique."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "The text consists of over 170,000 characters, with spaces dividing the text into about 35,000 groups of varying length, usually referred to as words or word tokens (37,919); 8,114 of those words are considered unique word types."
+    }
+   ]
+  },
+  {
+   "id": "fact-13",
+   "statement": "The text consists of over 170,000 characters partitioned by spaces into distinct word groups.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, the text consists of over 170,000 characters partitioned by spaces into distinct word groups.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "The text consists of over 170,000 characters, with spaces dividing the text into about 35,000 groups of varying length, usually referred to as words or word tokens (37,919); 8,114 of those words are considered unique word types."
+    }
+   ]
+  },
+  {
+   "id": "fact-14",
+   "statement": "The text displays statistical frequency patterns typical of natural human language, conforming to Zipf's law where the most common word appears roughly twice as often as the second most common.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "There are a number of patterns of word length, frequency, etc. found in the manuscript that are consistent with natural language (i.e. languages that occur organically in a human community)."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "The word found most frequently in the manuscript appears roughly twice as often as the second-most-common word, and three times as often as the third-most-common, following Zipf's law."
+    }
+   ]
+  },
+  {
+   "id": "fact-15",
+   "statement": "American and British military cryptographers from both World War I and World War II attempted to decipher the codex without success.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "The Voynich manuscript has been studied by both professional and amateur cryptographers, including American and British codebreakers from both World War I and World War II."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "The manuscript has never been demonstrably deciphered, and none of the proposed hypotheses have been independently verified."
+    }
+   ]
+  },
+  {
+   "id": "fact-16",
+   "statement": "The current goatskin binding dates to the book's ownership by the Collegio Romano, while early insect damage indicates it originally had a wooden cover.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "The goatskin binding and covers are not original to the book, but date to its possession by the Collegio Romano."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+     "tier": 2,
+     "quote": "Insect holes are present on the first and last folios of the manuscript in the current order and suggest that a wooden cover was present before the later covers."
+    }
+   ]
+  }
+ ],
+ "dropped": [],
+ "sources": [
+  {
+   "title": "Peer-reviewed journal article (Cryptologia): A Milestone in Voynich Manuscript Research: Voynich 100 Conference in Monte Porzio Catone, Italy",
+   "url": "https://doi.org/10.1080/01611194.2013.797045",
+   "tier": 3
+  },
+  {
+   "title": "Peer-reviewed journal article (Cryptologia): Review of The Voynich Manuscript by Raymond Clemens and The Voynich Manuscript: The world's most Mysterious and Esoteric Codex by Stephen Skinner",
+   "url": "https://doi.org/10.1080/01611194.2018.1435196",
+   "tier": 3
+  },
+  {
+   "title": "Wikipedia: Voynich manuscript",
+   "url": "https://en.wikipedia.org/wiki/Voynich_manuscript",
+   "tier": 2
+  },
+  {
+   "title": "Wikipedia: Beinecke Rare Book and Manuscript Library",
+   "url": "https://en.wikipedia.org/wiki/Beinecke_Rare_Book_and_Manuscript_Library",
+   "tier": 2
+  },
+  {
+   "title": "archiviopug.org",
+   "url": "https://archiviopug.org/2016/10/22/the-journey-to-america-of-a-set-of-manuscripts-from-the-collegium-romanum",
+   "tier": 3
+  },
+  {
+   "title": "www.theguardian.com",
+   "url": "https://www.theguardian.com/uk/2004/jan/25/arts.highereducation",
+   "tier": 2
+  },
+  {
+   "title": "www.the-tls.co.uk",
+   "url": "https://www.the-tls.co.uk/articles/public/voynich-manuscript-solution/",
+   "tier": 3
+  },
+  {
+   "title": "www.theguardian.com",
+   "url": "https://www.theguardian.com/world/2016/aug/21/tiny-spanish-publisher-wins-rights-voynich-manuscript-book-no-one-can-read",
+   "tier": 2
+  },
+  {
+   "title": "www.nytimes.com",
+   "url": "https://www.nytimes.com/2001/11/18/arts/music-a-metaphor-powerful-and-poetic.html",
+   "tier": 2
+  },
+  {
+   "title": "www.jasondavies.com",
+   "url": "https://www.jasondavies.com/voynich/#f1r/0.373/0.422/2.00",
+   "tier": 3
+  }
+ ],
+ "rules_version": 2
+}

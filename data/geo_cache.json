@@ -182,5 +182,21 @@
   "country": "Greece",
   "label": "Rhodes",
   "approximate": false
+ },
+ "colossi of memnon|egypt": {
+  "lat": 25.720555555556,
+  "lon": 32.610555555556,
+  "qid": "Q750209",
+  "country": "Egypt",
+  "label": "Colossi of Memnon",
+  "approximate": false
+ },
+ "derinkuyu underground city|turkey": {
+  "lat": 38.373403,
+  "lon": 34.735034,
+  "qid": "Q1328958",
+  "country": "Turkey",
+  "label": "Derinkuyu Underground City",
+  "approximate": false
  }
 }

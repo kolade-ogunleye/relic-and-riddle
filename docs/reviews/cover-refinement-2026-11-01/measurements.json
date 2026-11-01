@@ -1,0 +1,1270 @@
+{
+  "before": {
+    "richat/depth_sandwich": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 10.43,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\02_commons.jpg",
+        "copy": {
+          "eyebrow": "DESERT ANOMALY",
+          "line1": "THE 25-MILE",
+          "line2": "SAHARA EYE",
+          "tagline": "CARVED BY NATURE",
+          "badge": "DESERT ANOMALY"
+        },
+        "style": "depth_sandwich",
+        "text_cy": 760
+      }
+    },
+    "richat/badge": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 6.49,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\02_commons.jpg",
+        "copy": {
+          "eyebrow": "DESERT ANOMALY",
+          "line1": "THE 25-MILE",
+          "line2": "SAHARA EYE",
+          "tagline": "CARVED BY NATURE",
+          "badge": "DESERT ANOMALY"
+        },
+        "style": "badge",
+        "text_cy": 760
+      }
+    },
+    "richat/minimal": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 6.05,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\02_commons.jpg",
+        "copy": {
+          "eyebrow": "DESERT ANOMALY",
+          "line1": "THE 25-MILE",
+          "line2": "SAHARA EYE",
+          "tagline": "CARVED BY NATURE",
+          "badge": "DESERT ANOMALY"
+        },
+        "style": "minimal",
+        "text_cy": 760
+      }
+    },
+    "richat/lower_third": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 7.09,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\02_commons.jpg",
+        "copy": {
+          "eyebrow": "DESERT ANOMALY",
+          "line1": "THE 25-MILE",
+          "line2": "SAHARA EYE",
+          "tagline": "CARVED BY NATURE",
+          "badge": "DESERT ANOMALY"
+        },
+        "style": "lower_third",
+        "text_cy": 760
+      }
+    },
+    "gumbaz_exterior/depth_sandwich": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 7.93,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\gol_gumbaz_whispering_gallery\\03_commons.jpg",
+        "copy": {
+          "eyebrow": "ANCIENT ACOUSTICS",
+          "line1": "THE 144-FOOT",
+          "line2": "WHISPERING DOME",
+          "tagline": "BUILT WITHOUT RINGS",
+          "badge": "EST. 144 FT (44 M)"
+        },
+        "style": "depth_sandwich",
+        "text_cy": 1160
+      }
+    },
+    "gumbaz_exterior/badge": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 6.12,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\gol_gumbaz_whispering_gallery\\03_commons.jpg",
+        "copy": {
+          "eyebrow": "ANCIENT ACOUSTICS",
+          "line1": "THE 144-FOOT",
+          "line2": "WHISPERING DOME",
+          "tagline": "BUILT WITHOUT RINGS",
+          "badge": "EST. 144 FT (44 M)"
+        },
+        "style": "badge",
+        "text_cy": 1160
+      }
+    },
+    "gumbaz_exterior/minimal": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 7.24,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\gol_gumbaz_whispering_gallery\\03_commons.jpg",
+        "copy": {
+          "eyebrow": "ANCIENT ACOUSTICS",
+          "line1": "THE 144-FOOT",
+          "line2": "WHISPERING DOME",
+          "tagline": "BUILT WITHOUT RINGS",
+          "badge": "EST. 144 FT (44 M)"
+        },
+        "style": "minimal",
+        "text_cy": 1160
+      }
+    },
+    "gumbaz_exterior/lower_third": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 7.93,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\gol_gumbaz_whispering_gallery\\03_commons.jpg",
+        "copy": {
+          "eyebrow": "ANCIENT ACOUSTICS",
+          "line1": "THE 144-FOOT",
+          "line2": "WHISPERING DOME",
+          "tagline": "BUILT WITHOUT RINGS",
+          "badge": "EST. 144 FT (44 M)"
+        },
+        "style": "lower_third",
+        "text_cy": 1160
+      }
+    },
+    "derinkuyu/depth_sandwich": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 6.97,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\derinkuyu_underground_city\\19_commons.jpg",
+        "copy": {
+          "eyebrow": "BURIED HISTORY",
+          "line1": "BEHIND ONE WALL...",
+          "line2": "A FORGOTTEN CITY",
+          "tagline": "DERINKUYU, 1963",
+          "badge": "BURIED HISTORY"
+        },
+        "style": "depth_sandwich",
+        "text_cy": 1160
+      }
+    },
+    "derinkuyu/badge": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 6.97,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\derinkuyu_underground_city\\19_commons.jpg",
+        "copy": {
+          "eyebrow": "BURIED HISTORY",
+          "line1": "BEHIND ONE WALL...",
+          "line2": "A FORGOTTEN CITY",
+          "tagline": "DERINKUYU, 1963",
+          "badge": "BURIED HISTORY"
+        },
+        "style": "badge",
+        "text_cy": 1160
+      }
+    },
+    "derinkuyu/minimal": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 5.88,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\derinkuyu_underground_city\\19_commons.jpg",
+        "copy": {
+          "eyebrow": "BURIED HISTORY",
+          "line1": "BEHIND ONE WALL...",
+          "line2": "A FORGOTTEN CITY",
+          "tagline": "DERINKUYU, 1963",
+          "badge": "BURIED HISTORY"
+        },
+        "style": "minimal",
+        "text_cy": 1160
+      }
+    },
+    "derinkuyu/lower_third": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 6.97,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\derinkuyu_underground_city\\19_commons.jpg",
+        "copy": {
+          "eyebrow": "BURIED HISTORY",
+          "line1": "BEHIND ONE WALL...",
+          "line2": "A FORGOTTEN CITY",
+          "tagline": "DERINKUYU, 1963",
+          "badge": "BURIED HISTORY"
+        },
+        "style": "lower_third",
+        "text_cy": 1160
+      }
+    },
+    "gumbaz/depth_sandwich": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 10.39,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\22_commons_466e53f5c2d25a35.jpg",
+        "copy": {
+          "eyebrow": "ANCIENT ACOUSTICS",
+          "line1": "THE 144-FOOT",
+          "line2": "WHISPERING DOME",
+          "tagline": "BUILT WITHOUT RINGS",
+          "badge": "EST. 144 FT (44 M)"
+        },
+        "style": "depth_sandwich",
+        "text_cy": 760
+      }
+    },
+    "gumbaz/badge": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 7.87,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\22_commons_466e53f5c2d25a35.jpg",
+        "copy": {
+          "eyebrow": "ANCIENT ACOUSTICS",
+          "line1": "THE 144-FOOT",
+          "line2": "WHISPERING DOME",
+          "tagline": "BUILT WITHOUT RINGS",
+          "badge": "EST. 144 FT (44 M)"
+        },
+        "style": "badge",
+        "text_cy": 760
+      }
+    },
+    "gumbaz/minimal": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 8.91,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\22_commons_466e53f5c2d25a35.jpg",
+        "copy": {
+          "eyebrow": "ANCIENT ACOUSTICS",
+          "line1": "THE 144-FOOT",
+          "line2": "WHISPERING DOME",
+          "tagline": "BUILT WITHOUT RINGS",
+          "badge": "EST. 144 FT (44 M)"
+        },
+        "style": "minimal",
+        "text_cy": 760
+      }
+    },
+    "gumbaz/lower_third": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 9.11,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\22_commons_466e53f5c2d25a35.jpg",
+        "copy": {
+          "eyebrow": "ANCIENT ACOUSTICS",
+          "line1": "THE 144-FOOT",
+          "line2": "WHISPERING DOME",
+          "tagline": "BUILT WITHOUT RINGS",
+          "badge": "EST. 144 FT (44 M)"
+        },
+        "style": "lower_third",
+        "text_cy": 760
+      }
+    }
+  },
+  "after": {
+    "richat/depth_sandwich": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 15.18,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\02_commons.jpg",
+        "copy": {
+          "eyebrow": "DESERT ANOMALY",
+          "line1": "THE 25-MILE",
+          "line2": "SAHARA EYE",
+          "tagline": "CARVED BY NATURE",
+          "badge": "DESERT ANOMALY"
+        },
+        "style": "depth_sandwich",
+        "text_cy": 960,
+        "focus": {
+          "focus_box": [
+            0.235,
+            0.285,
+            0.755,
+            0.77
+          ],
+          "sha256": "51366952e983c5614ac094c46c160ae1b7d58d3ee4bff9c7b391922de4bfc339",
+          "reviewed": "2026-11-01 visual composition review"
+        },
+        "composition": {
+          "version": "cover-composition-2",
+          "mode": "contain",
+          "source_size": [
+            3840,
+            2536
+          ],
+          "source_box": [
+            0,
+            0,
+            3840,
+            2536
+          ],
+          "image_box": [
+            130,
+            528,
+            949,
+            1069
+          ],
+          "aperture": [
+            84,
+            528,
+            996,
+            1069
+          ]
+        }
+      }
+    },
+    "richat/badge": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 1.41,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\02_commons.jpg",
+        "copy": {
+          "eyebrow": "DESERT ANOMALY",
+          "line1": "THE 25-MILE",
+          "line2": "SAHARA EYE",
+          "tagline": "CARVED BY NATURE",
+          "badge": "DESERT ANOMALY"
+        },
+        "style": "badge",
+        "text_cy": 960,
+        "focus": {
+          "focus_box": [
+            0.235,
+            0.285,
+            0.755,
+            0.77
+          ],
+          "sha256": "51366952e983c5614ac094c46c160ae1b7d58d3ee4bff9c7b391922de4bfc339",
+          "reviewed": "2026-11-01 visual composition review"
+        },
+        "composition": {
+          "version": "cover-composition-2",
+          "mode": "reviewed_focus",
+          "source_size": [
+            3840,
+            2536
+          ],
+          "source_box": [
+            331.38531415594247,
+            0,
+            3470.8251324753974,
+            2536
+          ],
+          "image_box": [
+            0,
+            312,
+            1080,
+            1184
+          ],
+          "focus_box": [
+            0.235,
+            0.285,
+            0.755,
+            0.77
+          ],
+          "protected_box": [
+            196,
+            560,
+            884,
+            984
+          ],
+          "aperture": [
+            72,
+            560,
+            1008,
+            983
+          ],
+          "reviewed": "2026-11-01 visual composition review",
+          "source_sha256": "51366952e983c5614ac094c46c160ae1b7d58d3ee4bff9c7b391922de4bfc339"
+        }
+      }
+    },
+    "richat/minimal": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 8.92,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\02_commons.jpg",
+        "copy": {
+          "eyebrow": "DESERT ANOMALY",
+          "line1": "THE 25-MILE",
+          "line2": "SAHARA EYE",
+          "tagline": "CARVED BY NATURE",
+          "badge": "DESERT ANOMALY"
+        },
+        "style": "minimal",
+        "text_cy": 960,
+        "focus": {
+          "focus_box": [
+            0.235,
+            0.285,
+            0.755,
+            0.77
+          ],
+          "sha256": "51366952e983c5614ac094c46c160ae1b7d58d3ee4bff9c7b391922de4bfc339",
+          "reviewed": "2026-11-01 visual composition review"
+        },
+        "composition": {
+          "version": "cover-composition-2",
+          "mode": "contain",
+          "source_size": [
+            3840,
+            2536
+          ],
+          "source_box": [
+            0,
+            0,
+            3840,
+            2536
+          ],
+          "image_box": [
+            117,
+            898,
+            962,
+            1456
+          ],
+          "aperture": [
+            60,
+            898,
+            1020,
+            1456
+          ]
+        }
+      }
+    },
+    "richat/lower_third": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 1.54,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\02_commons.jpg",
+        "copy": {
+          "eyebrow": "DESERT ANOMALY",
+          "line1": "THE 25-MILE",
+          "line2": "SAHARA EYE",
+          "tagline": "CARVED BY NATURE",
+          "badge": "DESERT ANOMALY"
+        },
+        "style": "lower_third",
+        "text_cy": 960,
+        "focus": {
+          "focus_box": [
+            0.235,
+            0.285,
+            0.755,
+            0.77
+          ],
+          "sha256": "51366952e983c5614ac094c46c160ae1b7d58d3ee4bff9c7b391922de4bfc339",
+          "reviewed": "2026-11-01 visual composition review"
+        },
+        "composition": {
+          "version": "cover-composition-2",
+          "mode": "reviewed_focus",
+          "source_size": [
+            3840,
+            2536
+          ],
+          "source_box": [
+            380.05865102639297,
+            0,
+            3420.5278592375366,
+            2536
+          ],
+          "image_box": [
+            0,
+            303,
+            1080,
+            1204
+          ],
+          "focus_box": [
+            0.235,
+            0.285,
+            0.755,
+            0.77
+          ],
+          "protected_box": [
+            185,
+            559,
+            895,
+            997
+          ],
+          "aperture": [
+            72,
+            560,
+            1008,
+            997
+          ],
+          "reviewed": "2026-11-01 visual composition review",
+          "source_sha256": "51366952e983c5614ac094c46c160ae1b7d58d3ee4bff9c7b391922de4bfc339"
+        }
+      }
+    },
+    "gumbaz_exterior/depth_sandwich": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 15.19,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\gol_gumbaz_whispering_gallery\\03_commons.jpg",
+        "copy": {
+          "eyebrow": "ANCIENT ACOUSTICS",
+          "line1": "THE 144-FOOT",
+          "line2": "WHISPERING DOME",
+          "tagline": "BUILT WITHOUT RINGS",
+          "badge": "EST. 144 FT (44 M)"
+        },
+        "style": "depth_sandwich",
+        "text_cy": 960,
+        "focus": {
+          "focus_box": [
+            0.28,
+            0.035,
+            0.735,
+            0.43
+          ],
+          "sha256": "cf542a9a779fd80401fd5b93a139192474450c452f7450e6d89c31b2e5b4230c",
+          "reviewed": "2026-11-01 visual composition review"
+        },
+        "composition": {
+          "version": "cover-composition-2",
+          "mode": "contain",
+          "source_size": [
+            4080,
+            1836
+          ],
+          "source_box": [
+            0,
+            0,
+            4080,
+            1836
+          ],
+          "image_box": [
+            84,
+            593,
+            996,
+            1003
+          ],
+          "aperture": [
+            84,
+            528,
+            996,
+            1068
+          ]
+        }
+      }
+    },
+    "gumbaz_exterior/badge": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 7.25,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\gol_gumbaz_whispering_gallery\\03_commons.jpg",
+        "copy": {
+          "eyebrow": "ANCIENT ACOUSTICS",
+          "line1": "THE 144-FOOT",
+          "line2": "WHISPERING DOME",
+          "tagline": "BUILT WITHOUT RINGS",
+          "badge": "EST. 144 FT (44 M)"
+        },
+        "style": "badge",
+        "text_cy": 960,
+        "focus": {
+          "focus_box": [
+            0.28,
+            0.035,
+            0.735,
+            0.43
+          ],
+          "sha256": "cf542a9a779fd80401fd5b93a139192474450c452f7450e6d89c31b2e5b4230c",
+          "reviewed": "2026-11-01 visual composition review"
+        },
+        "composition": {
+          "version": "cover-composition-2",
+          "mode": "reviewed_focus",
+          "source_size": [
+            4080,
+            1836
+          ],
+          "source_box": [
+            999.6694214876034,
+            0,
+            3141.818181818182,
+            1836
+          ],
+          "image_box": [
+            0,
+            570,
+            1080,
+            1496
+          ],
+          "focus_box": [
+            0.28,
+            0.035,
+            0.735,
+            0.43
+          ],
+          "protected_box": [
+            71,
+            602,
+            1008,
+            969
+          ],
+          "aperture": [
+            72,
+            560,
+            1008,
+            1010
+          ],
+          "reviewed": "2026-11-01 visual composition review",
+          "source_sha256": "cf542a9a779fd80401fd5b93a139192474450c452f7450e6d89c31b2e5b4230c"
+        }
+      }
+    },
+    "gumbaz_exterior/minimal": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 8.93,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\gol_gumbaz_whispering_gallery\\03_commons.jpg",
+        "copy": {
+          "eyebrow": "ANCIENT ACOUSTICS",
+          "line1": "THE 144-FOOT",
+          "line2": "WHISPERING DOME",
+          "tagline": "BUILT WITHOUT RINGS",
+          "badge": "EST. 144 FT (44 M)"
+        },
+        "style": "minimal",
+        "text_cy": 960,
+        "focus": {
+          "focus_box": [
+            0.28,
+            0.035,
+            0.735,
+            0.43
+          ],
+          "sha256": "cf542a9a779fd80401fd5b93a139192474450c452f7450e6d89c31b2e5b4230c",
+          "reviewed": "2026-11-01 visual composition review"
+        },
+        "composition": {
+          "version": "cover-composition-2",
+          "mode": "contain",
+          "source_size": [
+            4080,
+            1836
+          ],
+          "source_box": [
+            0,
+            0,
+            4080,
+            1836
+          ],
+          "image_box": [
+            60,
+            957,
+            1020,
+            1389
+          ],
+          "aperture": [
+            60,
+            891,
+            1020,
+            1456
+          ]
+        }
+      }
+    },
+    "gumbaz_exterior/lower_third": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 6.04,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\gol_gumbaz_whispering_gallery\\03_commons.jpg",
+        "copy": {
+          "eyebrow": "ANCIENT ACOUSTICS",
+          "line1": "THE 144-FOOT",
+          "line2": "WHISPERING DOME",
+          "tagline": "BUILT WITHOUT RINGS",
+          "badge": "EST. 144 FT (44 M)"
+        },
+        "style": "lower_third",
+        "text_cy": 960,
+        "focus": {
+          "focus_box": [
+            0.28,
+            0.035,
+            0.735,
+            0.43
+          ],
+          "sha256": "cf542a9a779fd80401fd5b93a139192474450c452f7450e6d89c31b2e5b4230c",
+          "reviewed": "2026-11-01 visual composition review"
+        },
+        "composition": {
+          "version": "cover-composition-2",
+          "mode": "reviewed_focus",
+          "source_size": [
+            4080,
+            1836
+          ],
+          "source_box": [
+            999.6694214876034,
+            0,
+            3141.818181818182,
+            1836
+          ],
+          "image_box": [
+            0,
+            565,
+            1080,
+            1491
+          ],
+          "focus_box": [
+            0.28,
+            0.035,
+            0.735,
+            0.43
+          ],
+          "protected_box": [
+            71,
+            597,
+            1008,
+            964
+          ],
+          "aperture": [
+            72,
+            560,
+            1008,
+            1000
+          ],
+          "reviewed": "2026-11-01 visual composition review",
+          "source_sha256": "cf542a9a779fd80401fd5b93a139192474450c452f7450e6d89c31b2e5b4230c"
+        }
+      }
+    },
+    "derinkuyu/depth_sandwich": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 15.23,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\derinkuyu_underground_city\\19_commons.jpg",
+        "copy": {
+          "eyebrow": "BURIED HISTORY",
+          "line1": "BEHIND ONE WALL...",
+          "line2": "A FORGOTTEN CITY",
+          "tagline": "DERINKUYU, 1963",
+          "badge": "BURIED HISTORY"
+        },
+        "style": "depth_sandwich",
+        "text_cy": 960,
+        "focus": {
+          "focus_box": [
+            0.305,
+            0.29,
+            0.6,
+            0.805
+          ],
+          "sha256": "58687861b7dafec02f83b220d90bf1357427142d53aa15f3080e01b0c102f75c",
+          "reviewed": "2026-11-01 visual composition review"
+        },
+        "composition": {
+          "version": "cover-composition-2",
+          "mode": "contain",
+          "source_size": [
+            4928,
+            3264
+          ],
+          "source_box": [
+            0,
+            0,
+            4928,
+            3264
+          ],
+          "image_box": [
+            136,
+            528,
+            944,
+            1063
+          ],
+          "aperture": [
+            84,
+            528,
+            996,
+            1063
+          ]
+        }
+      }
+    },
+    "derinkuyu/badge": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 1.16,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\derinkuyu_underground_city\\19_commons.jpg",
+        "copy": {
+          "eyebrow": "BURIED HISTORY",
+          "line1": "BEHIND ONE WALL...",
+          "line2": "A FORGOTTEN CITY",
+          "tagline": "DERINKUYU, 1963",
+          "badge": "BURIED HISTORY"
+        },
+        "style": "badge",
+        "text_cy": 960,
+        "focus": {
+          "focus_box": [
+            0.305,
+            0.29,
+            0.6,
+            0.805
+          ],
+          "sha256": "58687861b7dafec02f83b220d90bf1357427142d53aa15f3080e01b0c102f75c",
+          "reviewed": "2026-11-01 visual composition review"
+        },
+        "composition": {
+          "version": "cover-composition-2",
+          "mode": "reviewed_focus",
+          "source_size": [
+            4928,
+            3264
+          ],
+          "source_box": [
+            171.50812064965194,
+            0,
+            4287.703016241298,
+            3264
+          ],
+          "image_box": [
+            0,
+            312,
+            1080,
+            1168
+          ],
+          "focus_box": [
+            0.305,
+            0.29,
+            0.6,
+            0.805
+          ],
+          "protected_box": [
+            349,
+            560,
+            731,
+            1002
+          ],
+          "aperture": [
+            72,
+            560,
+            1008,
+            1001
+          ],
+          "reviewed": "2026-11-01 visual composition review",
+          "source_sha256": "58687861b7dafec02f83b220d90bf1357427142d53aa15f3080e01b0c102f75c"
+        }
+      }
+    },
+    "derinkuyu/minimal": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 8.97,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\derinkuyu_underground_city\\19_commons.jpg",
+        "copy": {
+          "eyebrow": "BURIED HISTORY",
+          "line1": "BEHIND ONE WALL...",
+          "line2": "A FORGOTTEN CITY",
+          "tagline": "DERINKUYU, 1963",
+          "badge": "BURIED HISTORY"
+        },
+        "style": "minimal",
+        "text_cy": 960,
+        "focus": {
+          "focus_box": [
+            0.305,
+            0.29,
+            0.6,
+            0.805
+          ],
+          "sha256": "58687861b7dafec02f83b220d90bf1357427142d53aa15f3080e01b0c102f75c",
+          "reviewed": "2026-11-01 visual composition review"
+        },
+        "composition": {
+          "version": "cover-composition-2",
+          "mode": "contain",
+          "source_size": [
+            4928,
+            3264
+          ],
+          "source_box": [
+            0,
+            0,
+            4928,
+            3264
+          ],
+          "image_box": [
+            120,
+            900,
+            959,
+            1456
+          ],
+          "aperture": [
+            60,
+            900,
+            1020,
+            1456
+          ]
+        }
+      }
+    },
+    "derinkuyu/lower_third": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 1.21,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\derinkuyu_underground_city\\19_commons.jpg",
+        "copy": {
+          "eyebrow": "BURIED HISTORY",
+          "line1": "BEHIND ONE WALL...",
+          "line2": "A FORGOTTEN CITY",
+          "tagline": "DERINKUYU, 1963",
+          "badge": "BURIED HISTORY"
+        },
+        "style": "lower_third",
+        "text_cy": 960,
+        "focus": {
+          "focus_box": [
+            0.305,
+            0.29,
+            0.6,
+            0.805
+          ],
+          "sha256": "58687861b7dafec02f83b220d90bf1357427142d53aa15f3080e01b0c102f75c",
+          "reviewed": "2026-11-01 visual composition review"
+        },
+        "composition": {
+          "version": "cover-composition-2",
+          "mode": "reviewed_focus",
+          "source_size": [
+            4928,
+            3264
+          ],
+          "source_box": [
+            124.75949367088607,
+            0,
+            4335.392405063291,
+            3264
+          ],
+          "image_box": [
+            0,
+            317,
+            1080,
+            1154
+          ],
+          "focus_box": [
+            0.305,
+            0.29,
+            0.6,
+            0.805
+          ],
+          "protected_box": [
+            353,
+            559,
+            727,
+            991
+          ],
+          "aperture": [
+            72,
+            560,
+            1008,
+            991
+          ],
+          "reviewed": "2026-11-01 visual composition review",
+          "source_sha256": "58687861b7dafec02f83b220d90bf1357427142d53aa15f3080e01b0c102f75c"
+        }
+      }
+    },
+    "gumbaz/depth_sandwich": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 15.19,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\22_commons_466e53f5c2d25a35.jpg",
+        "copy": {
+          "eyebrow": "ANCIENT ACOUSTICS",
+          "line1": "THE 144-FOOT",
+          "line2": "WHISPERING DOME",
+          "tagline": "BUILT WITHOUT RINGS",
+          "badge": "EST. 144 FT (44 M)"
+        },
+        "style": "depth_sandwich",
+        "text_cy": 960,
+        "focus": null,
+        "composition": {
+          "version": "cover-composition-2",
+          "mode": "contain",
+          "source_size": [
+            8533,
+            3840
+          ],
+          "source_box": [
+            0,
+            0,
+            8533,
+            3840
+          ],
+          "image_box": [
+            84,
+            593,
+            996,
+            1003
+          ],
+          "aperture": [
+            84,
+            528,
+            996,
+            1068
+          ]
+        }
+      }
+    },
+    "gumbaz/badge": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 8.93,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\22_commons_466e53f5c2d25a35.jpg",
+        "copy": {
+          "eyebrow": "ANCIENT ACOUSTICS",
+          "line1": "THE 144-FOOT",
+          "line2": "WHISPERING DOME",
+          "tagline": "BUILT WITHOUT RINGS",
+          "badge": "EST. 144 FT (44 M)"
+        },
+        "style": "badge",
+        "text_cy": 960,
+        "focus": null,
+        "composition": {
+          "version": "cover-composition-2",
+          "mode": "contain",
+          "source_size": [
+            8533,
+            3840
+          ],
+          "source_box": [
+            0,
+            0,
+            8533,
+            3840
+          ],
+          "image_box": [
+            0,
+            556,
+            1080,
+            1042
+          ],
+          "aperture": [
+            0,
+            528,
+            1080,
+            1070
+          ]
+        }
+      }
+    },
+    "gumbaz/minimal": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 8.93,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\22_commons_466e53f5c2d25a35.jpg",
+        "copy": {
+          "eyebrow": "ANCIENT ACOUSTICS",
+          "line1": "THE 144-FOOT",
+          "line2": "WHISPERING DOME",
+          "tagline": "BUILT WITHOUT RINGS",
+          "badge": "EST. 144 FT (44 M)"
+        },
+        "style": "minimal",
+        "text_cy": 960,
+        "focus": null,
+        "composition": {
+          "version": "cover-composition-2",
+          "mode": "contain",
+          "source_size": [
+            8533,
+            3840
+          ],
+          "source_box": [
+            0,
+            0,
+            8533,
+            3840
+          ],
+          "image_box": [
+            60,
+            957,
+            1020,
+            1389
+          ],
+          "aperture": [
+            60,
+            891,
+            1020,
+            1456
+          ]
+        }
+      }
+    },
+    "gumbaz/lower_third": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 8.93,
+      "recipe": {
+        "renderer": "visual_engine.redraw_cover",
+        "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\22_commons_466e53f5c2d25a35.jpg",
+        "copy": {
+          "eyebrow": "ANCIENT ACOUSTICS",
+          "line1": "THE 144-FOOT",
+          "line2": "WHISPERING DOME",
+          "tagline": "BUILT WITHOUT RINGS",
+          "badge": "EST. 144 FT (44 M)"
+        },
+        "style": "lower_third",
+        "text_cy": 960,
+        "focus": null,
+        "composition": {
+          "version": "cover-composition-2",
+          "mode": "contain",
+          "source_size": [
+            8533,
+            3840
+          ],
+          "source_box": [
+            0,
+            0,
+            8533,
+            3840
+          ],
+          "image_box": [
+            48,
+            572,
+            1032,
+            1015
+          ],
+          "aperture": [
+            48,
+            528,
+            1032,
+            1060
+          ]
+        }
+      }
+    }
+  }
+}

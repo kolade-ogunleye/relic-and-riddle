@@ -1,0 +1,47 @@
+[
+  {
+    "beat": 1,
+    "type": "HOOK",
+    "label": "Opening Hook",
+    "text": "Beneath the city of Odesa runs one of the largest tunnel networks in the world, dug mostly by limestone miners.",
+    "file": "12_commons.jpg",
+    "title": "Odesa-Catacombs of Moldovanka-entrance",
+    "license": "CC BY-SA 4.0"
+  },
+  {
+    "beat": 2,
+    "type": "LANDSCAPE",
+    "label": "Terrain & Scale",
+    "text": "Estimated at roughly 2,500 km (about 1,500 miles) of tunnels Mostly former limestone quarries; the stone was used to build the city in the 19th century Used by smugglers, and by Soviet partisans during World War II Large parts are unmapped, and people have died after getting lost A small section is open as a museum",
+    "file": "01_commons.jpg",
+    "title": "Odessa Catacombs Monument",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "beat": 3,
+    "type": "INTERIOR",
+    "label": "Inner Structure",
+    "text": "Estimated at roughly 2,500 km (about 1,500 miles) of tunnels Mostly former limestone quarries; the stone was used to build the city in the 19th century Used by smugglers, and by Soviet partisans during World War II Large parts are unmapped, and people have died after getting lost A small section is open as a museum",
+    "file": "19_commons.jpg",
+    "title": "Odesa-Catacombs of Moldovanka-entrance hallway-1",
+    "license": "CC BY-SA 4.0"
+  },
+  {
+    "beat": 4,
+    "type": "ARTIFACT",
+    "label": "Physical Evidence",
+    "text": "Estimated at roughly 2,500 km (about 1,500 miles) of tunnels Mostly former limestone quarries; the stone was used to build the city in the 19th century Used by smugglers, and by Soviet partisans during World War II Large parts are unmapped, and people have died after getting lost A small section is open as a museum",
+    "file": "02_commons.jpg",
+    "title": "Odessa Catacombs. The main weapon of a thief is politeness ǃ",
+    "license": "CC BY-SA 4.0"
+  },
+  {
+    "beat": 5,
+    "type": "SCHEMATIC",
+    "label": "Survey / Blueprint",
+    "text": "Estimated at roughly 2,500 km (about 1,500 miles) of tunnels Mostly former limestone quarries; the stone was used to build the city in the 19th century Used by smugglers, and by Soviet partisans during World War II Large parts are unmapped, and people have died after getting lost A small section is open as a museum",
+    "file": "03_commons.jpg",
+    "title": "Odessa Catacombs. A room for training",
+    "license": "CC BY-SA 4.0"
+  }
+]

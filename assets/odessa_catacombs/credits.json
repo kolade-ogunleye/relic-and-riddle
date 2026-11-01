@@ -1,5 +1,409 @@
 {
-  "reviewed": false,
-  "images": [],
-  "review_note": "Reviewed 2026-10-20: kept 0 of 0; NOT approved: fewer than 5 usable images"
+  "reviewed": true,
+  "images": [
+    {
+      "title": "Odessa Catacombs Monument",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/8/8e/Odessa_Catacombs_Monument.JPG",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=10319696",
+      "artist": "Marion Golsteijn",
+      "license": "CC BY-SA 3.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "01_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Memorial to Soviet partisans inside the catacombs dating to 1941",
+        "kept": true
+      }
+    },
+    {
+      "title": "Odesa-Catacombs of Moldovanka-inside-5",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/d/d0/Odesa-Catacombs_of_Moldovanka-inside-5.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=177638912",
+      "artist": "Galvm",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "08_commons.jpg",
+      "vision_review": {
+        "index": 8,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Clear museum exhibition of World War II partisan relics inside the catacombs",
+        "kept": true
+      }
+    },
+    {
+      "title": "Odesa-Odesa catacombs natural monument in 2025-02",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/d/dc/Odesa-Odesa_catacombs_natural_monument_in_2025-02.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=195736072",
+      "artist": "Galvm",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "09_commons.jpg",
+      "vision_review": {
+        "index": 9,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Clear view of a limestone quarry chamber in the catacombs",
+        "kept": true
+      }
+    },
+    {
+      "title": "Odesa-Odesa catacombs natural monument in 2025-04",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/9/9b/Odesa-Odesa_catacombs_natural_monument_in_2025-04.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=195736078",
+      "artist": "Galvm",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "10_commons.jpg",
+      "vision_review": {
+        "index": 10,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Detailed view of the coquina limestone walls within the catacombs",
+        "kept": true
+      }
+    },
+    {
+      "title": "Odesa-Odesa catacombs natural monument in 2025-06",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/e/e8/Odesa-Odesa_catacombs_natural_monument_in_2025-06.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=195736081",
+      "artist": "Galvm",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "11_commons.jpg",
+      "vision_review": {
+        "index": 11,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Low-ceilinged quarry gallery in the catacombs",
+        "kept": true
+      }
+    },
+    {
+      "title": "Odesa-Odesa catacombs natural monument in 2025-01",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/0/03/Odesa-Odesa_catacombs_natural_monument_in_2025-01.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=195736075",
+      "artist": "Galvm",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "13_commons.jpg",
+      "vision_review": {
+        "index": 13,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Clear view of an underground limestone corridor intersection with a directional signpost",
+        "kept": true
+      }
+    },
+    {
+      "title": "Odesa-Catacombs of Moldovanka-inside-4",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/a/ae/Odesa-Catacombs_of_Moldovanka-inside-4.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=177638911",
+      "artist": "Galvm",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "14_commons.jpg",
+      "vision_review": {
+        "index": 14,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "High-quality view of the underground museum exhibit on historical thieves and smugglers",
+        "kept": true
+      }
+    },
+    {
+      "title": "Odesa-Odesa catacombs natural monument in 2025-07",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/57/Odesa-Odesa_catacombs_natural_monument_in_2025-07.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=195736086",
+      "artist": "Galvm",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "15_commons.jpg",
+      "vision_review": {
+        "index": 15,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Clear view of a flooded subterranean gallery inside the catacombs",
+        "kept": true
+      }
+    },
+    {
+      "title": "Odesa-Catacombs of Moldovanka-inside-2",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/b/be/Odesa-Catacombs_of_Moldovanka-inside-2.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=177638908",
+      "artist": "Galvm",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "16_commons.jpg",
+      "vision_review": {
+        "index": 16,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Exhibition showing a Cold War era bomb shelter repurposed inside the catacombs",
+        "kept": true
+      }
+    },
+    {
+      "title": "Odesa-Odesa catacombs natural monument in 2025-05",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/a/a9/Odesa-Odesa_catacombs_natural_monument_in_2025-05.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=195736079",
+      "artist": "Galvm",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "17_commons.jpg",
+      "vision_review": {
+        "index": 17,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Limestone geological strata visible within the quarry tunnels",
+        "kept": true
+      }
+    },
+    {
+      "title": "Odesa-Catacombs of Moldovanka-inside-8",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/c/c6/Odesa-Catacombs_of_Moldovanka-inside-8.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=177638920",
+      "artist": "Galvm",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "18_commons.jpg",
+      "vision_review": {
+        "index": 18,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Museum exhibit illustrating 19th-century limestone quarrying methods in the catacombs",
+        "kept": true
+      }
+    },
+    {
+      "title": "Odesa-Catacombs of Moldovanka-entrance hallway-1",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/d/dc/Odesa-Catacombs_of_Moldovanka-entrance_hallway-1.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=177638902",
+      "artist": "Galvm",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "19_commons.jpg",
+      "vision_review": {
+        "index": 19,
+        "shows_topic": "yes",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Gated shelter entrance tunnel inside the Moldovanka catacombs museum",
+        "kept": true
+      }
+    },
+    {
+      "title": "Odesa-Catacombs of Moldovanka-entrance",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/e/ec/Odesa-Catacombs_of_Moldovanka-entrance.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=177638903",
+      "artist": "Galvm",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "12_commons.jpg",
+      "vision_review": {
+        "index": 12,
+        "shows_topic": "partly",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Street-level entrance pavilion leading down to the Moldovanka section of the catacombs",
+        "kept": true
+      }
+    }
+  ],
+  "review_note": "Vision review 2026-10-25: kept 13 of 19",
+  "reviewed_by": "vision",
+  "review_fingerprint": "01_commons.jpg,08_commons.jpg,09_commons.jpg,10_commons.jpg,11_commons.jpg,12_commons.jpg,13_commons.jpg,14_commons.jpg,15_commons.jpg,16_commons.jpg,17_commons.jpg,18_commons.jpg,19_commons.jpg",
+  "rejected_by_review": [
+    {
+      "title": "Odessa Catacombs. The main weapon of a thief is politeness ǃ",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/5/57/Odessa_Catacombs._The_main_weapon_of_a_thief_is_politeness_%C7%83.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=123694789",
+      "artist": "Vi Ko",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "02_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": 14,
+        "people_prominent": false,
+        "reason": "Low resolution with a harsh flash reflection; a much clearer view of the same exhibit is shown in photo 14",
+        "kept": false
+      }
+    },
+    {
+      "title": "Odessa Catacombs. A room for training",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/6/62/Odessa_Catacombs._A_room_for_training.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=123694787",
+      "artist": "Vi Ko",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "03_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": 14,
+        "people_prominent": false,
+        "reason": "Blurry, low resolution, and harsh glare on the mannequin exhibit",
+        "kept": false
+      }
+    },
+    {
+      "title": "Odessa Catacombs. Meeting room",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/2/23/Odessa_Catacombs._Meeting_room.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=123694788",
+      "artist": "Vi Ko",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "04_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Blurry and grainy shot with harsh flash lighting",
+        "kept": false
+      }
+    },
+    {
+      "title": "Odessa Catacombs 03",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/1/12/Odessa_Catacombs_03.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=123694783",
+      "artist": "Vi Ko",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "05_commons.jpg",
+      "vision_review": {
+        "index": 5,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Very blurry, noisy, and low quality image of a catacomb tunnel",
+        "kept": false
+      }
+    },
+    {
+      "title": "Odessa Catacombs 01",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/7a/Odessa_Catacombs_01.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=123694784",
+      "artist": "Vi Ko",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "06_commons.jpg",
+      "vision_review": {
+        "index": 6,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Very blurry and underexposed tunnel view",
+        "kept": false
+      }
+    },
+    {
+      "title": "Odessa Catacombs 02",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/71/Odessa_Catacombs_02.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=123694786",
+      "artist": "Vi Ko",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "07_commons.jpg",
+      "vision_review": {
+        "index": 7,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": 5,
+        "people_prominent": false,
+        "reason": "Very blurry and nearly identical to photo 5",
+        "kept": false
+      }
+    }
+  ]
 }

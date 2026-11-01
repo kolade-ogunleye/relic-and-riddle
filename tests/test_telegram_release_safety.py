@@ -314,6 +314,7 @@ def test_credits_already_in_the_new_caption_are_not_doubled():
 
 def _numbered_bot(db, monkeypatch, fail_card=False):
     """An offline bot whose sends get increasing message ids; records deletions."""
+    monkeypatch.setattr("src.telegram_bot.config.TELEGRAM_CARDS_V2", False)
     bot = TelegramApprovalBot(db=db, bot_token="123:offline", chat_id="555", approver_ids={"555"})
     state = {"next": 400, "deleted": []}
 
@@ -559,3 +560,18 @@ def test_the_reject_card_says_where_the_topic_went(db, tmp_path, monkeypatch):
     cq = {"id": "q", "from": {"id": 555, "first_name": "Kolade"}, "message": {"message_id": 202, "chat": {"id": 555}}}
     bot._render_decision(cq, "review", "rejected", 555)
     assert "set aside" in edits[-1] and "goes back to the queue" not in edits[-1]
+
+
+def test_all_notify_calls_have_explicit_group():
+    import ast
+    for rel_path in ["main.py", "src/telegram_bot.py"]:
+        path = Path(rel_path)
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        missing = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call):
+                if isinstance(node.func, ast.Attribute) and node.func.attr == "notify":
+                    has_group = any(kw.arg == "group" for kw in node.keywords)
+                    if not has_group:
+                        missing.append((path.name, node.lineno))
+        assert not missing, f"Missing explicit group= keyword in notify() calls: {missing}"

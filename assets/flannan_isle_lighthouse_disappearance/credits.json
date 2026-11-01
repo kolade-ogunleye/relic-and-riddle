@@ -36,7 +36,8 @@
         "usable": true,
         "safe": true,
         "duplicate_of": null,
-        "reason": "Official British Admiralty chart of the Flannan Isles published in 1903, showing the geographical context of Eilean Mòr shortly after the disappearance.",
+        "people_prominent": false,
+        "reason": "Authentic 1903 British Admiralty chart showing the geography and soundings around the Flannan Isles.",
         "kept": true
       }
     },
@@ -69,12 +70,13 @@
         "usable": true,
         "safe": true,
         "duplicate_of": null,
-        "reason": "1898 hydrographic chart and coastal elevation sketches of the Flannan Isles, showing the island group around the time the lighthouse was established.",
+        "people_prominent": false,
+        "reason": "1898 hydrographic survey chart and coastal silhouettes of the Flannan Isles, providing visual geographic context.",
         "kept": true
       }
     }
   ],
-  "review_note": "Vision review 2026-10-20: kept 2 of 2; held: fewer than 5",
+  "review_note": "Vision review 2026-10-23: kept 2 of 2; held: fewer than 5",
   "rejected_by_review": [
     {
       "title": "File:03 St. Patrick, The Ryan Window, by J. Clarke & Sons, St. Flannan's Church Killaloe.png",
@@ -164,5 +166,6 @@
       }
     }
   ],
-  "reviewed_by": null
+  "reviewed_by": null,
+  "review_fingerprint": "01_commons.jpg,02_commons.jpg"
 }

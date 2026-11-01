@@ -33,12 +33,162 @@
         "usable": true,
         "safe": true,
         "duplicate_of": null,
-        "reason": "19th-century scientific engraving depicting a reconstruction of Zhang Heng's seismoscope with the dragons and toads.",
+        "people_prominent": false,
+        "reason": "19th-century illustration depicting Zhang Heng's earthquake detector (seismoscope) with dragons and toads.",
         "kept": true
       }
     }
   ],
-  "review_note": "Vision review 2026-10-20: kept 1 of 1; held: fewer than 5",
+  "review_note": "Vision review 2026-10-25: kept 1 of 8; held: fewer than 5",
   "reviewed_by": null,
-  "rejected_by_review": []
+  "rejected_by_review": [
+    {
+      "title": "20251004 Tomb of Zhang Heng 05",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/e/e8/20251004_Tomb_of_Zhang_Heng_05.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=176246973",
+      "artist": "Windmemories",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "02_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Shows the tomb mound and stele of Zhang Heng in Nanyang, a different site that does not show the detector.",
+        "kept": false
+      }
+    },
+    {
+      "title": "20251004 Tomb of Zhang Heng 04",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/76/20251004_Tomb_of_Zhang_Heng_04.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=176246972",
+      "artist": "Windmemories",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "03_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Shows an entrance gate at the Tomb of Zhang Heng in Nanyang, a different site.",
+        "kept": false
+      }
+    },
+    {
+      "title": "20251004 Tomb of Zhang Heng 03",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/d/df/20251004_Tomb_of_Zhang_Heng_03.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=176246974",
+      "artist": "Windmemories",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "04_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Shows a modern statue of Zhang Heng at his tomb complex rather than the earthquake detector.",
+        "kept": false
+      }
+    },
+    {
+      "title": "20251004 Tomb of Zhang Heng 01",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/c/c4/20251004_Tomb_of_Zhang_Heng_01.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=176246970",
+      "artist": "Windmemories",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "05_commons.jpg",
+      "vision_review": {
+        "index": 5,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Shows the courtyard and memorial hall at Zhang Heng's tomb in Nanyang, not the earthquake detector.",
+        "kept": false
+      }
+    },
+    {
+      "title": "20251004 Tomb of Zhang Heng 07",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/1/18/20251004_Tomb_of_Zhang_Heng_07.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=176246977",
+      "artist": "Windmemories",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "06_commons.jpg",
+      "vision_review": {
+        "index": 6,
+        "shows_topic": "no",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Mostly text plaque marking Zhang Heng's tomb as a cultural relic site; does not show the detector.",
+        "kept": false
+      }
+    },
+    {
+      "title": "20251004 Tomb of Zhang Heng 06",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/f1/20251004_Tomb_of_Zhang_Heng_06.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=176246976",
+      "artist": "Windmemories",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "07_commons.jpg",
+      "vision_review": {
+        "index": 7,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Shows a commemorative stone stele at Zhang Heng's tomb complex, a different site.",
+        "kept": false
+      }
+    },
+    {
+      "title": "20251004 Tomb of Zhang Heng 02",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/f/f0/20251004_Tomb_of_Zhang_Heng_02.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=176246971",
+      "artist": "Windmemories",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "08_commons.jpg",
+      "vision_review": {
+        "index": 8,
+        "shows_topic": "no",
+        "usable": true,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Shows a brick stele pavilion at Zhang Heng's tomb complex, a different site.",
+        "kept": false
+      }
+    }
+  ],
+  "review_fingerprint": "01_commons.jpg"
 }

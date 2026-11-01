@@ -1,0 +1,327 @@
+{
+ "topic_id": "nazca_lines_runway_paradox",
+ "built_at": "2026-10-25T20:59:57.647402+00:00",
+ "facts": [
+  {
+   "id": "nazca-location",
+   "statement": "The Nazca lines are a vast group of geoglyphs etched into the soil of the Nazca Desert in southern Peru.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "The Nazca lines (, ) are a group of geoglyphs made in the soil of the Nazca Desert in southern Peru."
+    }
+   ]
+  },
+  {
+   "id": "nazca-dating-phases",
+   "statement": "The geoglyphs were created between 500 BC and 500 AD, spanning the earlier Paracas phase and the subsequent Nazca phase.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "They were created between 500 BC and 500 AD by people making depressions or shallow incisions in the desert floor, removing pebbles and leaving different-colored dirt exposed."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "There are two major phases of the Nazca lines, Paracas phase, from 400 to 200 BC, and Nazca phase, from 200 BC to 500 AD."
+    }
+   ]
+  },
+  {
+   "id": "nazca-earthwork-technique",
+   "statement": "Builders etched the figures by scraping away reddish-brown surface pebbles coated in iron oxide to reveal the contrasting, light-colored clay earth beneath.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "They were created between 500 BC and 500 AD by people making depressions or shallow incisions in the desert floor, removing pebbles and leaving different-colored dirt exposed."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "Such trenches were made by removing the reddish-brown, iron oxide-coated pebbles that cover the surface of the Nazca Desert."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "When this gravel is removed, the light-colored clay earth exposed in the bottom of the trench contrasts sharply in color and tone with the surrounding land surface, producing visible lines."
+    }
+   ]
+  },
+  {
+   "id": "nazca-preservation-mechanism",
+   "statement": "Morning mist provides moisture that hardens the exposed clay into a protective layer, shielding the shallow trenches from wind and preventing erosion.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "Because of its isolation and the dry, windless, stable climate of the plateau, the lines have mostly been preserved naturally."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "With moisture from morning mist, it hardens to form a protective layer that shields the lines from winds, thereby preventing erosion."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "The very dry, windless, and constant climate of the Nazca region has preserved the lines well."
+    }
+   ]
+  },
+  {
+   "id": "nazca-trench-depth",
+   "statement": "The trenches forming the lines are shallow incisions typically cut between 10 and 15 centimeters into the desert floor.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, the trenches forming the lines are shallow incisions typically cut between 10 and 15 centimeters into the desert floor.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "They were created between 500 BC and 500 AD by people making depressions or shallow incisions in the desert floor, removing pebbles and leaving different-colored dirt exposed."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "The lines are typically 10 to 15 cm (4–6 in) deep."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "Most of the lines are formed on the ground by a shallow trench, with a depth between 10 and 15 cm (4 and 6 in)."
+    }
+   ]
+  },
+  {
+   "id": "nazca-line-width",
+   "statement": "The width of the trenches varies from 30 centimeters to 1.8 meters across, with more than half measuring slightly over 33 centimeters wide.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, the width of the trenches varies from 30 centimeters to 1.8 meters across, with more than half measuring slightly over 33 centimeters wide.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "The width of the lines varies considerably, but more than half are slightly more than 33 cm (13 in) wide."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "In some places they may be only 30 cm (12 in) wide, and in others reach 1.8 m (6 ft) wide."
+    }
+   ]
+  },
+  {
+   "id": "nazca-area-dispute",
+   "statement": "Surveys record the total surface area covered by the geoglyphs as ranging between 50 square kilometers and 450 square kilometers.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "archaeological surveys describe the complex as covering anywhere from 50 square kilometers to nearly 450 square kilometers",
+   "evidence": [
+    {
+     "url": "https://whc.unesco.org/en/list/700",
+     "tier": 1,
+     "quote": "UNESCO World Heritage Site #700 (Lines and Geoglyphs of Nasca and Palpa): Located in the arid Peruvian coastal plain, some 400 km south of Lima, the geoglyphs of Nasca and the pampas of Jumana cover about 450 km2 . These lines, which were scratched on the surface of the ground between 500 B.C. and A.D. 500, are among archaeology's greatest enigmas because of their quantity, nature, size and continuity. The geoglyphs depict living creatures, stylized plants and imaginary beings, as well as geometric figures several kilometres long. They are believed to have had ritual astronomical functions."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "The combined length of all the lines is more than 1,300 km (800 mi), and the group covers an area of about 50 km2 (19 sq mi)."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "In total, the earthwork project is huge and complex: the area encompassing the lines is nearly 450 km2 (170 mi2), and the largest figures can span nearly 370 m (1,200 ft)."
+    }
+   ]
+  },
+  {
+   "id": "nazca-straight-lines-count",
+   "statement": "The complex contains over 800 straight lines, with individual lines extending as far as 30 miles across the plateau.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, the complex contains over 800 straight lines, with individual lines extending as far as 30 miles across the plateau.",
+   "evidence": [
+    {
+     "url": "https://www.trtworld.com/magazine/what-is-the-mystery-behind-the-ancient-nazca-lines-50318",
+     "tier": 3,
+     "quote": "In total, there are over 800 straight lines, 300 geometric figures and 70 animal and plant designs which are called biomorphs."
+    },
+    {
+     "url": "https://www.trtworld.com/magazine/what-is-the-mystery-behind-the-ancient-nazca-lines-50318",
+     "tier": 3,
+     "quote": "Some of the straight lines go up to 30 miles, while the biomorphs vary from 50 to 1200 feet in length, meaning as large as the Empire State Building."
+    }
+   ]
+  },
+  {
+   "id": "nazca-biomorph-sizes",
+   "statement": "Among more than 70 figurative animal and plant geoglyphs, the spider measures 47 meters long, the hummingbird 93 meters, and the condor 134 meters.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, among more than 70 figurative animal and plant geoglyphs, the spider measures 47 meters long, the hummingbird 93 meters, and the condor 134 meters.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "Hundreds are simple lines and geometric shapes; more than 70 are zoomorphic designs, including a hummingbird, arachnid, fish, condor, heron, monkey, lizard, dog, cat, and a human."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "Some figures have been measured: the hummingbird is 93 m (305 ft) long, the condor is 134 m (440 ft), the monkey is 93 by 58 m (305 by 190 ft), and the spider is 47 m (154 ft)."
+    }
+   ]
+  },
+  {
+   "id": "nazca-wooden-stakes",
+   "statement": "Archaeological surveys discovered wooden stakes positioned at the ends of several lines, corroborating that builders employed simple surveying equipment.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "Scholars have theorized that the Nazca people could have used simple tools and surveying equipment to construct the lines."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "Archaeological surveys have found wooden stakes in the ground at the end of some lines, which supports this theory."
+    }
+   ]
+  },
+  {
+   "id": "nazca-aerial-observation",
+   "statement": "While many of the designs are best viewed from the air at altitudes around 500 meters, they are also visible from surrounding foothills.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, while many of the designs are best viewed from the air at altitudes around 500 meters, they are also visible from surrounding foothills.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "Some of the Nazca lines form shapes that are best seen from the air (at around 500 m [1,600 ft]), although they are also visible from the surrounding foothills and other high places."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "Although the lines were partially visible from nearby hills, the first to report them in the twentieth century were Peruvian military and civilian pilots."
+    }
+   ]
+  },
+  {
+   "id": "nazca-drone-discoveries",
+   "statement": "In the twenty-first century, researchers employing drones identified several hundred previously unrecorded geoglyphs etched into the landscape.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "In the 21st century, several hundred new figures have been found with the use of drones, and archaeologists believe that there are more to be found."
+    },
+    {
+     "url": "https://www.nationalgeographic.com/news/2018/04/new-nasca-nazca-lines-discovery-peru-archaeology/",
+     "tier": 1,
+     "quote": "Exclusive: New Nasca Lines Discovered in Peru | National Geographic 1:39 See Newly Discovered Ancient Drawings in Peru Desert Researchers surveying in southern Peru with drones have captured images of ancient geoglyphs, and more than 50 of the massive ancient drawings are considered new discoveries by archaeologists."
+    },
+    {
+     "url": "https://www.nationalgeographic.com/news/2018/04/new-nasca-nazca-lines-discovery-peru-archaeology/",
+     "tier": 1,
+     "quote": "NEWS Exclusive: Massive Ancient Drawings Found in Peruvian Desert Armed with satellites and drones, archaeologists discover new Nasca lines and dozens of other enigmatic geoglyphs carved into the earth."
+    }
+   ]
+  },
+  {
+   "id": "nazca-unesco-listing",
+   "statement": "UNESCO inscribed the lines and geoglyphs on the World Heritage List in 1994 under cultural criteria one, three, and four.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://whc.unesco.org/en/list/700",
+     "tier": 1,
+     "quote": "UNESCO World Heritage Site #700 (Lines and Geoglyphs of Nasca and Palpa): Located in the arid Peruvian coastal plain, some 400 km south of Lima, the geoglyphs of Nasca and the pampas of Jumana cover about 450 km2 . These lines, which were scratched on the surface of the ground between 500 B.C. and A.D. 500, are among archaeology's greatest enigmas because of their quantity, nature, size and continuity. The geoglyphs depict living creatures, stylized plants and imaginary beings, as well as geometric figures several kilometres long. They are believed to have had ritual astronomical functions."
+    },
+    {
+     "url": "https://whc.unesco.org/en/list/700",
+     "tier": 1,
+     "quote": "Inscribed on the UNESCO World Heritage List in 1994 under criteria (i)(iii)(iv)."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+     "tier": 2,
+     "quote": "They were designated in 1994 as a UNESCO World Heritage Site."
+    }
+   ]
+  }
+ ],
+ "dropped": [
+  {
+   "id": "nazca-solstice-alignment",
+   "reason": "numbers not in its evidence: [1941.0]"
+  }
+ ],
+ "sources": [
+  {
+   "title": "UNESCO World Heritage Centre - Lines and Geoglyphs of Nasca and Palpa",
+   "url": "https://whc.unesco.org/en/list/700",
+   "tier": 1
+  },
+  {
+   "title": "Wikipedia: Nazca lines",
+   "url": "https://en.wikipedia.org/wiki/Nazca_lines",
+   "tier": 2
+  },
+  {
+   "title": "www.bbc.com",
+   "url": "https://www.bbc.com/news/science-environment-30422994",
+   "tier": 2
+  },
+  {
+   "title": "www.nationalgeographic.com",
+   "url": "https://www.nationalgeographic.com/news/2018/04/new-nasca-nazca-lines-discovery-peru-archaeology/",
+   "tier": 1
+  },
+  {
+   "title": "www.trtworld.com",
+   "url": "https://www.trtworld.com/magazine/what-is-the-mystery-behind-the-ancient-nazca-lines-50318",
+   "tier": 3
+  },
+  {
+   "title": "doi.org",
+   "url": "https://doi.org/10.1007%2F978-1-4615-0597-6_12",
+   "tier": 3
+  },
+  {
+   "title": "doi.org",
+   "url": "https://doi.org/10.1007%2F978-3-319-47052-8_12",
+   "tier": 3
+  },
+  {
+   "title": "www.ncbi.nlm.nih.gov",
+   "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4034249",
+   "tier": 1
+  }
+ ],
+ "rules_version": 2
+}

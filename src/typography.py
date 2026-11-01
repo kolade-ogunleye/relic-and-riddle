@@ -569,9 +569,15 @@ class TextPlate:
         loc = (self.xy[0] - self.origin[0], self.xy[1] - self.origin[1])
         if self.shadow:
             sl = Image.new("RGBA", base.size, (0, 0, 0, 0))
-            _draw_tracked(ImageDraw.Draw(sl), (loc[0], loc[1] + 3), self.text, self.font, (0, 0, 0, int(120 * alpha)),
-                          self.anchor, self.track, self.stroke, (0, 0, 0, int(120 * alpha)))
-            out = Image.alpha_composite(out, sl.filter(ImageFilter.GaussianBlur(3)))
+            if self.light:
+                shadow_col = (0, 0, 0, int(180 * alpha))
+                s_dy, s_blur = 3, 4
+            else:
+                shadow_col = (255, 255, 255, int(140 * alpha))
+                s_dy, s_blur = 1, 2
+            _draw_tracked(ImageDraw.Draw(sl), (loc[0], loc[1] + s_dy), self.text, self.font, shadow_col,
+                          self.anchor, self.track, self.stroke, shadow_col)
+            out = Image.alpha_composite(out, sl.filter(ImageFilter.GaussianBlur(s_blur)))
         txt = Image.new("RGBA", base.size, (0, 0, 0, 0))
         sf = self.stroke_fill
         if sf is not None and len(sf) == 3:

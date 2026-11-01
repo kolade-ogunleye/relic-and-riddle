@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "description": "Manually reviewed normalized source regions. Exact file hashes prevent reuse after a crop or replacement; unknown photographs use whole-image containment.",
+  "photos": [
+    {
+      "source": "assets/richat_structure_sahara_eye/02_commons.jpg",
+      "sha256": "51366952e983c5614ac094c46c160ae1b7d58d3ee4bff9c7b391922de4bfc339",
+      "focus_box": [
+        0.235,
+        0.285,
+        0.755,
+        0.77
+      ],
+      "description": "The central eye and its surrounding ring circumference",
+      "reviewed": "2026-11-01 visual composition review"
+    },
+    {
+      "source": "assets/gol_gumbaz_whispering_gallery/03_commons.jpg",
+      "sha256": "cf542a9a779fd80401fd5b93a139192474450c452f7450e6d89c31b2e5b4230c",
+      "focus_box": [
+        0.28,
+        0.035,
+        0.735,
+        0.43
+      ],
+      "description": "The full central dome and its architectural base",
+      "reviewed": "2026-11-01 visual composition review"
+    },
+    {
+      "source": "assets/derinkuyu_underground_city/19_commons.jpg",
+      "sha256": "58687861b7dafec02f83b220d90bf1357427142d53aa15f3080e01b0c102f75c",
+      "focus_box": [
+        0.305,
+        0.29,
+        0.6,
+        0.805
+      ],
+      "description": "The stone door, lit doorway and passage",
+      "reviewed": "2026-11-01 visual composition review"
+    }
+  ]
+}

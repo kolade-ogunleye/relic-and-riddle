@@ -1,0 +1,230 @@
+{
+  "before": {
+    "richat/depth_sandwich": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 0,
+      "minimum_contrast": null
+    },
+    "richat/badge": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 0,
+      "minimum_contrast": null
+    },
+    "richat/minimal": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 0,
+      "minimum_contrast": null
+    },
+    "richat/lower_third": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 0,
+      "minimum_contrast": null
+    },
+    "gumbaz_exterior/depth_sandwich": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 0,
+      "minimum_contrast": null
+    },
+    "gumbaz_exterior/badge": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 0,
+      "minimum_contrast": null
+    },
+    "gumbaz_exterior/minimal": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 0,
+      "minimum_contrast": null
+    },
+    "gumbaz_exterior/lower_third": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 0,
+      "minimum_contrast": null
+    },
+    "derinkuyu/depth_sandwich": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 0,
+      "minimum_contrast": null
+    },
+    "derinkuyu/badge": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 0,
+      "minimum_contrast": null
+    },
+    "derinkuyu/minimal": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 0,
+      "minimum_contrast": null
+    },
+    "derinkuyu/lower_third": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 0,
+      "minimum_contrast": null
+    },
+    "gumbaz/depth_sandwich": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 0,
+      "minimum_contrast": null
+    },
+    "gumbaz/badge": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 0,
+      "minimum_contrast": null
+    },
+    "gumbaz/minimal": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 0,
+      "minimum_contrast": null
+    },
+    "gumbaz/lower_third": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 0,
+      "minimum_contrast": null
+    }
+  },
+  "after": {
+    "richat/depth_sandwich": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 10.43
+    },
+    "richat/badge": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 6.49
+    },
+    "richat/minimal": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 6.05
+    },
+    "richat/lower_third": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 7.09
+    },
+    "gumbaz_exterior/depth_sandwich": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 7.93
+    },
+    "gumbaz_exterior/badge": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 6.12
+    },
+    "gumbaz_exterior/minimal": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 7.24
+    },
+    "gumbaz_exterior/lower_third": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 7.93
+    },
+    "derinkuyu/depth_sandwich": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 6.97
+    },
+    "derinkuyu/badge": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 6.97
+    },
+    "derinkuyu/minimal": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 5.88
+    },
+    "derinkuyu/lower_third": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 6.97
+    },
+    "gumbaz/depth_sandwich": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 10.39
+    },
+    "gumbaz/badge": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 7.87
+    },
+    "gumbaz/minimal": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 8.91
+    },
+    "gumbaz/lower_third": {
+      "problems": [],
+      "shortened": [],
+      "attempts": 1,
+      "measured_text_elements": 5,
+      "minimum_contrast": 9.11
+    }
+  }
+}

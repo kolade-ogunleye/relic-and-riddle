@@ -77,3 +77,10 @@ data/word_pace.json
 
 # Fresh asset sets fetched for comparison before swapping in
 staging/
+
+# Untracked stray database and release bundles
+pipeline.db
+*.bundle
+.claude/
+**/.picture_text.json
+assets/**/footage/

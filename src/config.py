@@ -262,6 +262,20 @@ def _approver_ids(raw: str) -> set:
 TELEGRAM_APPROVER_IDS = _approver_ids(os.getenv("TELEGRAM_APPROVER_IDS", TELEGRAM_CHAT_ID)) - {TELEGRAM_BOT_TOKEN.split(":")[0]}
 APPROVAL_TIMEOUT_SECONDS = int(os.getenv("APPROVAL_TIMEOUT_SECONDS", "3600"))
 
+# Telegram Bot Chat Upgrade v2 (Topics & Two-Card System)
+# Feature-flagged: disabled by default until operator acceptance.
+RELIC_ENVIRONMENT = (os.getenv("RELIC_ENVIRONMENT") or "development").strip().lower()
+TELEGRAM_CARDS_V2 = os.getenv("TELEGRAM_CARDS_V2", "false").lower() in ("true", "1", "yes")
+RELIC_STRICT_TOPICS = os.getenv("RELIC_STRICT_TOPICS", "false").lower() in ("true", "1", "yes")
+
+TELEGRAM_TOPICS = {
+    "studio": int(os.getenv("TELEGRAM_TOPIC_STUDIO", "4906")),
+    "needs": int(os.getenv("TELEGRAM_TOPIC_NEEDS", "4907")),
+    "reviews": int(os.getenv("TELEGRAM_TOPIC_REVIEWS", "4908")),
+    "runs": int(os.getenv("TELEGRAM_TOPIC_RUNS", "4909")),
+    "info": int(os.getenv("TELEGRAM_TOPIC_INFO", "4910")),
+}
+
 # Operations: daily "alive" message time, and an optional dead-man's-switch URL
 # (e.g. a free https://healthchecks.io check) pinged on each heartbeat and finished run.
 HEARTBEAT_TIME = os.getenv("HEARTBEAT_TIME", "08:00")

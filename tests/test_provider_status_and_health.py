@@ -10,9 +10,9 @@ from src import config, control, improve, provider_status
 
 def test_a_shut_provider_is_recorded_with_its_date_and_dropped_when_it_passes(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "DATA_DIR", tmp_path)
-    message = ("You have reached your specified API usage limits. You will regain access on 2026-11-01 at 00:00 UTC")
+    message = ("You have reached your specified API usage limits. You will regain access on 2027-11-01 at 00:00 UTC")
     provider_status.note_capped("claude", "the usage limit is reached", until=provider_status.until_from(message))
-    assert provider_status.until_from(message) == "2026-11-01T00:00:00+00:00"
+    assert provider_status.until_from(message) == "2027-11-01T00:00:00+00:00"
     assert "claude" in provider_status.capped()
     provider_status.note_capped("gemini-billed", "cap spent", until="2000-01-01T00:00:00+00:00")  # long past
     assert set(provider_status.capped()) == {"claude"}
@@ -37,7 +37,7 @@ def test_a_usage_limit_error_from_claude_is_noted_and_a_success_clears_it(tmp_pa
     monkeypatch.setattr(llm, "model_chain", lambda models=None: ["claude-opus-5-5"])
     response = httpx.Response(400, request=httpx.Request("POST", "https://api.anthropic.com/v1/messages"))
     err = anthropic.BadRequestError("You have reached your specified API usage limits. You will regain access on "
-                                    "2026-11-01 at 00:00 UTC", response=response, body=None)
+                                    "2027-11-01 at 00:00 UTC", response=response, body=None)
 
     def refuse(model):
         raise err
@@ -47,7 +47,7 @@ def test_a_usage_limit_error_from_claude_is_noted_and_a_success_clears_it(tmp_pa
         pass
     else:
         raise AssertionError("a usage limit must raise CreditExhausted")
-    assert provider_status.capped()["claude"]["until"] == "2026-11-01T00:00:00+00:00"
+    assert provider_status.capped()["claude"]["until"] == "2027-11-01T00:00:00+00:00"
     assert llm._first_request(lambda model: "ok") == ("ok", "claude-opus-5-5")
     assert provider_status.capped() == {}
 

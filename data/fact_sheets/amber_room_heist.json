@@ -1,0 +1,308 @@
+{
+ "topic_id": "amber_room_heist",
+ "built_at": "2026-10-23T18:48:11.708301+00:00",
+ "facts": [
+  {
+   "id": "amber-room-location",
+   "statement": "The Amber Room was housed inside the Catherine Palace at Tsarskoye Selo near Saint Petersburg, Russia.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "The Amber Room (German: Bernsteinzimmer; Russian: Янтарная комната, romanized: Yantarnaya Komnata) was a chamber decorated in  amber panels backed with gold leaf and mirrors, located in the Catherine Palace of Tsarskoye Selo near Saint Petersburg."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "In Russia, the room was installed in the Catherine Palace."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Catherine_Palace",
+     "tier": 2,
+     "quote": "The Catherine Palace (Russian: Екатерининский дворец, romanized: Yekaterininskiy dvorets, IPA: [jɪkətʲɪˈrʲinʲɪnskʲɪj dvɐˈrʲets]) is a Rococo palace in Tsarskoye Selo (Pushkin), located 30 kilometres (19 mi) south of St."
+    }
+   ]
+  },
+  {
+   "id": "amber-room-origins-design",
+   "statement": "Commissioned in 1701 for Prussia's Charlottenburg Palace, the chamber was designed by German baroque sculptor Andreas Schlüter and crafted by Danish amber master Gottfried Wolfram.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "The Amber Room was intended in 1701 for the Charlottenburg Palace, in Berlin, Prussia, but was eventually installed at the Berlin City Palace."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "It was designed by German baroque sculptor Andreas Schlüter and Danish amber craftsman Gottfried Wolfram."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "The Amber Room had begun in 1701 with the purpose of being installed at Charlottenburg Palace, the residence of Frederick, the first King in Prussia, at the urging of his second wife, Sophia Charlotte."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "The concept and design of the room was drafted by Andreas Schlüter."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "It was fabricated by Gottfried Wolfram, master craftsman to the Danish court of King Frederick IV of Denmark, with help from the amber masters Ernst Schacht and Gottfried Turau from Danzig, now Gdańsk in Poland."
+    }
+   ]
+  },
+  {
+   "id": "amber-room-diplomatic-gift",
+   "statement": "In 1716, King Frederick William I of Prussia presented the amber panels as a diplomatic gift to Tsar Peter the Great of Russia.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "It remained in Berlin until 1716, when it was given by the Prussian King Frederick William I to his ally Tsar Peter the Great of the Russian Empire."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "Peter the Great of Russia admired it during a visit, and in 1716, King Frederick I's son  Frederick William I presented the room to Peter as a gift, which forged a Russo-Prussian alliance against Sweden."
+    }
+   ]
+  },
+  {
+   "id": "amber-room-expansion-rastrelli",
+   "statement": "To fit a hall roughly six times larger at the Catherine Palace, architect Bartolomeo Francesco Rastrelli expanded the room using mirrors, gilded accents, and additional amber elements.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "It was Peter's daughter Empress Elizabeth who decided the amber treasure should be installed at Catherine Palace, where the Russian imperial family typically spent their summers."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "In order to fit the Amber Room into a roughly six times larger hall for the Catherine Palace, the Italian architect Bartolomeo Francesco Rastrelli, in the service of the Russian court, had to enlarge it with gold and mirror elements."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "King Frederick II of Prussia presented the empress with additional amber elements that had not been used in its earlier installation in the Berlin Palace."
+    }
+   ]
+  },
+  {
+   "id": "amber-room-scale-and-weight",
+   "statement": "Following eighteenth-century expansions, the completed room covered more than 55 square metres and contained over 6 tonnes of amber.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, following eighteenth-century expansions, the completed room covered more than 55 square metres and contained over 6 tonnes of amber.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "After expansion and several renovations, it covered more than 55 square metres (590 ft2) and contained over 6 tonnes (13,000 lb) of amber."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "After several other 18th-century renovations, the room covered more than 55 square metres (590 ft2) and contained over 6 tonnes (13,000 lb) of amber."
+    }
+   ]
+  },
+  {
+   "id": "amber-room-wallpaper-concealment",
+   "statement": "Soviet curators attempted to conceal the fragile amber walls from invading German forces behind mundane wallpaper.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "The Amber Room was therefore hidden behind mundane wallpaper, in an attempt to keep German forces from seizing it, but the attempt to hide such a well-known piece of art failed."
+    }
+   ]
+  },
+  {
+   "id": "amber-room-nazi-looting-1941",
+   "statement": "In 1941, German soldiers of Army Group North disassembled the Amber Room in 36 hours under expert supervision and shipped it to Königsberg Castle.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "The Amber Room was looted during World War II by the Army Group North of Nazi Germany, and taken to Königsberg for reconstruction and display."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "German soldiers of Army Group North disassembled the Amber Room within 36 hours under the supervision of two experts."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "On 14 October 1941, the priceless room reached Königsberg in East Prussia, for storage and display in the town's castle."
+    }
+   ]
+  },
+  {
+   "id": "amber-room-crated-storage-1944",
+   "statement": "In early 1944, as Allied forces advanced, the room was disassembled and packed into crates for storage in the Königsberg Castle basement.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "Some time in early 1944, with Allied forces closing in on Germany, the room was disassembled and crated for storage in the Castle basement."
+    }
+   ]
+  },
+  {
+   "id": "amber-room-loss-of-documentation-1944",
+   "statement": "Official documentation tracking the location of the Amber Room ends in August 1944, when Allied bombers heavily fire-bombed Königsberg.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "Königsberg was destroyed by Allied bombers in August 1944 and documentation of the room location ends there."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "In August 1944, Königsberg was heavily fire-bombed by the Royal Air Force."
+    }
+   ]
+  },
+  {
+   "id": "amber-room-recovered-mosaic-1997",
+   "statement": "In 1997, an original Italian stone mosaic titled 'Feel and Touch' from the Amber Room was recovered in Germany from the family of a former soldier.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "In 1997, an Italian stone mosaic \"Feel and Touch\" that was part of a set of four stones which had decorated the Amber Room was found in Germany, in the possession of the family of a soldier who claimed to have helped pack up the amber chamber."
+    }
+   ]
+  },
+  {
+   "id": "amber-room-destruction-investigation-2004",
+   "statement": "A 2004 investigation concluded that the room was most likely incinerated when Königsberg Castle was bombed by British aircraft and later burned and shelled by Soviet artillery.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "In 2004, a lengthy investigation by British investigative journalists Catherine Scott-Clark and Adrian Levy concluded that the Amber Room was most likely destroyed when Königsberg Castle was damaged, first during the bombing of Königsberg by the Royal Air Force in 1944 and then by the Soviets' burning of the castle followed by shelling of the remaining walls."
+    }
+   ]
+  },
+  {
+   "id": "amber-room-reconstruction-2003",
+   "statement": "A full-scale reconstruction of the Amber Room, initiated in 1979, was completed and inaugurated inside the Catherine Palace in 2003.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "A reconstruction was made, starting in 1979 and completed and installed in the Catherine Palace in 2003."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "In 1979, the decision was taken to create a reconstructed Amber Room at the Catherine Palace in Pushkin."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Amber_Room",
+     "tier": 2,
+     "quote": "After decades of work by Russian craftsmen and donations from Germany, it was completed and inaugurated in 2003."
+    }
+   ]
+  }
+ ],
+ "dropped": [
+  {
+   "id": "amber-room-brittle-condition-1941",
+   "reason": "numbers not in its evidence: [1941.0]"
+  }
+ ],
+ "sources": [
+  {
+   "title": "Peer-reviewed journal article (Open Chemistry): Analytical methods to differentiate Romanian amber and Baltic amber for archaeological applications",
+   "url": "https://doi.org/10.2478/s11532-009-0053-8",
+   "tier": 3
+  },
+  {
+   "title": "Peer-reviewed journal article (Applied Microbiology): Glucose Disappearance in Biological Treatment Systems",
+   "url": "https://doi.org/10.1128/aem.14.6.857-864.1966",
+   "tier": 3
+  },
+  {
+   "title": "Wikipedia: Amber Room",
+   "url": "https://en.wikipedia.org/wiki/Amber_Room",
+   "tier": 2
+  },
+  {
+   "title": "Wikipedia: Catherine Palace",
+   "url": "https://en.wikipedia.org/wiki/Catherine_Palace",
+   "tier": 2
+  },
+  {
+   "title": "www.theguardian.com",
+   "url": "https://www.theguardian.com/books/2004/jul/18/historybooks.highereducation",
+   "tier": 2
+  },
+  {
+   "title": "listverse.com",
+   "url": "https://listverse.com/2018/07/28/10-rumored-locations-of-the-lost-amber-room/",
+   "tier": 3
+  },
+  {
+   "title": "www.nbcnews.com",
+   "url": "https://www.nbcnews.com/news/world/amber-room-go-inside-search-missing-8th-wonder-world-n371631",
+   "tier": 3
+  },
+  {
+   "title": "historycollection.co",
+   "url": "https://historycollection.co/nazis-amber-room/",
+   "tier": 3
+  },
+  {
+   "title": "www.livescience.com",
+   "url": "https://www.livescience.com/amber-room-nazi-wreck-poland.html",
+   "tier": 2
+  },
+  {
+   "title": "www.theguardian.com",
+   "url": "https://www.theguardian.com/world/2020/oct/01/nazi-shipwreck-found-off-poland-may-solve-amber-room-mystery",
+   "tier": 2
+  }
+ ],
+ "rules_version": 2
+}

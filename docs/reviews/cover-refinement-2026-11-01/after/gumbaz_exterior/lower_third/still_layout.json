@@ -1,0 +1,195 @@
+{
+ "thumbnail_cover.jpg": {
+  "kind": "cover",
+  "size": [
+   1080,
+   1920
+  ],
+  "zone": [
+   60,
+   440,
+   1020,
+   1480
+  ],
+  "tight": false,
+  "elements": [
+   {
+    "name": "brand",
+    "box": [
+     85,
+     462,
+     383,
+     486
+    ],
+    "contrast": 7.26,
+    "contrast_unaided": 7.65,
+    "halo": 0.0,
+    "fill": [
+     11,
+     14,
+     18
+    ],
+    "font": "Cinzel-Variable.ttf",
+    "px": 32.0,
+    "contrast_planned": 7.29
+   },
+   {
+    "name": "eyebrow",
+    "box": [
+     83,
+     1100,
+     484,
+     1127
+    ],
+    "contrast": 9.94,
+    "contrast_unaided": 9.97,
+    "halo": 0.0,
+    "fill": [
+     242,
+     182,
+     48
+    ],
+    "font": "Montserrat-Variable.ttf",
+    "px": 36.0,
+    "contrast_planned": 9.97
+   },
+   {
+    "name": "title_1",
+    "box": [
+     85,
+     1149,
+     674,
+     1254
+    ],
+    "contrast": 13.06,
+    "contrast_unaided": 12.96,
+    "halo": 0.0,
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "font": "Anton-Regular.ttf",
+    "px": 120.0,
+    "contrast_planned": 12.96
+   },
+   {
+    "name": "title_2",
+    "box": [
+     85,
+     1264,
+     984,
+     1380
+    ],
+    "contrast": 11.39,
+    "contrast_unaided": 11.31,
+    "halo": 0.0,
+    "fill": [
+     243,
+     237,
+     226
+    ],
+    "font": "Anton-Regular.ttf",
+    "px": 132.0,
+    "contrast_planned": 11.31
+   },
+   {
+    "name": "tagline",
+    "box": [
+     87,
+     1406,
+     538,
+     1434
+    ],
+    "contrast": 6.04,
+    "contrast_unaided": 6.1,
+    "halo": 0.0,
+    "fill": [
+     184,
+     177,
+     163
+    ],
+    "font": "Montserrat-Variable.ttf",
+    "px": 38.0,
+    "contrast_planned": 6.1
+   }
+  ],
+  "shortened": [],
+  "protected": [
+   {
+    "name": "reviewed photographic feature",
+    "box": [
+     71,
+     597,
+     1008,
+     964
+    ]
+   }
+  ],
+  "problems": [],
+  "attempts": 1,
+  "recipe": {
+   "renderer": "visual_engine.redraw_cover",
+   "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\gol_gumbaz_whispering_gallery\\03_commons.jpg",
+   "copy": {
+    "eyebrow": "ANCIENT ACOUSTICS",
+    "line1": "THE 144-FOOT",
+    "line2": "WHISPERING DOME",
+    "tagline": "BUILT WITHOUT RINGS",
+    "badge": "EST. 144 FT (44 M)"
+   },
+   "style": "lower_third",
+   "text_cy": 960,
+   "focus": {
+    "focus_box": [
+     0.28,
+     0.035,
+     0.735,
+     0.43
+    ],
+    "sha256": "cf542a9a779fd80401fd5b93a139192474450c452f7450e6d89c31b2e5b4230c",
+    "reviewed": "2026-11-01 visual composition review"
+   },
+   "composition": {
+    "version": "cover-composition-2",
+    "mode": "reviewed_focus",
+    "source_size": [
+     4080,
+     1836
+    ],
+    "source_box": [
+     999.6694214876034,
+     0,
+     3141.818181818182,
+     1836
+    ],
+    "image_box": [
+     0,
+     565,
+     1080,
+     1491
+    ],
+    "focus_box": [
+     0.28,
+     0.035,
+     0.735,
+     0.43
+    ],
+    "protected_box": [
+     71,
+     597,
+     1008,
+     964
+    ],
+    "aperture": [
+     72,
+     560,
+     1008,
+     1000
+    ],
+    "reviewed": "2026-11-01 visual composition review",
+    "source_sha256": "cf542a9a779fd80401fd5b93a139192474450c452f7450e6d89c31b2e5b4230c"
+   }
+  }
+ }
+}

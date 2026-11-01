@@ -1,0 +1,1576 @@
+{
+  "richat": {
+    "name": "Eye of the Sahara",
+    "hero": "assets\\richat_structure_sahara_eye\\02_commons.jpg",
+    "hero_sha256": "51366952e983c5614ac094c46c160ae1b7d58d3ee4bff9c7b391922de4bfc339",
+    "payload": {
+      "timeline": [
+        {
+          "year": 1969,
+          "approximate": false,
+          "label": "Impact theory disproved"
+        },
+        {
+          "year": 2022,
+          "approximate": false,
+          "label": "Named geological heritage site"
+        }
+      ],
+      "scale_fact": null,
+      "stat_cards": null,
+      "cross_section": null,
+      "route": null,
+      "photo_labels": [
+        "concentric rings",
+        "eroded dome",
+        "sedimentary rock"
+      ],
+      "emphasis_words": [
+        "concentric rings",
+        "bullseye"
+      ],
+      "title": "The Desert Bullseye Visible From Orbit 👁️",
+      "hook_sentence": "Visible from space as a massive desert landmark, concentric rings span the sands.",
+      "narration_script": "Visible from space as a massive desert landmark, concentric rings span the sands. Geological field surveys record the feature at 25 miles (40 km) across, though satellite observations describe it as spanning almost 31 miles (50 km). The eroded dome formed when subsurface igneous intrusion deformed overlying sedimentary rock. Initially considered an extraterrestrial impact crater, the theory was disproved in 1969 when suspected shock minerals were identified as mislabeled barite. In October 2022, the International Union of Geological Sciences designated this formation among the world's first 100 official geological heritage sites. The colossal eroded bullseye endures as an unmistakable beacon across the sands.",
+      "closing_sentence": "The colossal eroded bullseye endures as an unmistakable beacon across the sands.",
+      "caption": "A colossal concentric bullseye marks the vast Sahara desert from space.\n🌍 Near Ouadane on the Adrar Plateau of Mauritania, prehistoric hunters once traversed these ridges, leaving Stone Age tools dating between roughly 145,000 and 29,000 years ago. By one estimate, thousands of prehistoric stone burial mounds built in distinct architectural styles also line the formation's protruding dikes. Field geology confirms this ancient natural inland dome is not Plato's Atlantis. What natural landscape on Earth looks most extraordinary to you from orbit? 🛰️ Send this to a space enthusiast you know, and follow for the next natural marvel.\n\n#RichatStructure #Mauritania #GeologyLovers #SaharaDesert\n\n📷 Images via Wikimedia Commons and partner archives: SentinelHub (CC BY 2.0); Pierre Markuse from Hamm, Germany (CC BY 2.0) · adapted: cropped, with motion and text added",
+      "first_comment": "Would you explore this vast desert dome on foot, or does its full scale only make sense when seen from orbit?",
+      "hashtags": [
+        "#RichatStructure",
+        "#Mauritania",
+        "#GeologyLovers",
+        "#SaharaDesert"
+      ],
+      "thumbnail": {
+        "eyebrow": "DESERT ANOMALY",
+        "line1": "THE 25-MILE",
+        "line2": "SAHARA EYE",
+        "tagline": "CARVED BY NATURE"
+      },
+      "story_slides": [
+        {
+          "kicker": "ORBITAL MYSTERY",
+          "line1": "THE DESERT EYE",
+          "line2": "SEEN FROM SPACE",
+          "body": "A colossal concentric formation marks the vast Mauritanian desert."
+        },
+        {
+          "kicker": "GEOLOGIC ORIGIN",
+          "line1": "ANCIENT DOME",
+          "line2": "EROSION AT WORK",
+          "body": "Subsurface igneous intrusion pushed sedimentary rock upward into concentric rings."
+        },
+        {
+          "kicker": "SURFACE EXPLORATION",
+          "line1": "ORBIT OR GROUND",
+          "line2": "HOW TO VIEW IT",
+          "body": "Best way to view the Eye?"
+        }
+      ],
+      "poll": {
+        "question": "Best way to view the Eye?",
+        "options": [
+          "From Earth orbit",
+          "Walking the ridges"
+        ]
+      },
+      "carousel_slides": [
+        {
+          "heading": "THE EYE OF THE SAHARA",
+          "body": "A concentric formation in Mauritania that has long fascinated observers from orbit."
+        },
+        {
+          "heading": "ORBITAL LANDMARK",
+          "body": "Visible from space, the concentric formation serves as a prominent desert landmark."
+        },
+        {
+          "heading": "IMPACT THEORY DISPROVED",
+          "body": "Initially considered an impact crater, the theory was disproved in 1969."
+        },
+        {
+          "heading": "MAGMATIC UPLIFT",
+          "body": "Subsurface igneous intrusion deformed overlying sedimentary rock into concentric rings."
+        },
+        {
+          "heading": "ANCIENT COOLING",
+          "body": "Carbonatite rocks cooled between 94 and 104 million years ago beneath the surface."
+        },
+        {
+          "heading": "GLOBAL HERITAGE",
+          "body": "In October 2022, international scientists named it one of Earth's top 100 heritage sites."
+        },
+        {
+          "heading": "EARTH'S HIDDEN MARVELS",
+          "body": "What natural wonders on Earth do you think look most magnificent when seen from space?"
+        }
+      ],
+      "sources": [
+        {
+          "title": "NASA Earth Observatory: Richat Structure, Mauritania",
+          "url": "https://earthobservatory.nasa.gov/images/2561/richat-structure-mauritania"
+        },
+        {
+          "title": "European Space Agency: Earth from Space: Eye of Africa",
+          "url": "https://www.esa.int/Applications/Observing_the_Earth/Earth_from_Space_Eye_of_Africa"
+        },
+        {
+          "title": "Wikipedia: Richat Structure",
+          "url": "https://en.wikipedia.org/wiki/Richat_Structure"
+        }
+      ],
+      "carousel_caption": "Swipe through the concentric rings of the Eye of the Sahara. 🌍 Dating of the carbonatite rocks shows they cooled between 94 and 104 million years ago as deep molten rock intruded upward. Which geologic wonder on our planet surprises you the most? 🛰️ Send this to a space enthusiast you know, and follow for the next natural marvel.\n\n#RichatStructure #Mauritania #GeologyLovers #SaharaDesert",
+      "share_line": "Send this to a space enthusiast you know, and follow for the next natural marvel.",
+      "fact_sheet": true,
+      "topic_id": "richat_structure_sahara_eye",
+      "origin": "gemini-free",
+      "word_count": 103,
+      "location": {
+        "name": "Ouadane",
+        "city": "Adrar Plateau",
+        "region": "Adrar Plateau",
+        "country": "Mauritania",
+        "latitude": 0.0,
+        "longitude": 0.0
+      },
+      "meta_topic_categories": [
+        "History & Philosophy",
+        "Science & Tech",
+        "Travel & Culture"
+      ],
+      "topic_origin_note": "🗂 Topic origin: the original topic bank (added before origins were recorded)",
+      "fact_sheet_note": "🧾 Written from a verified fact sheet: 13 facts with quoted evidence (4 disputed, used only with their hedges)",
+      "fact_audits": [
+        {
+          "claim": "Visible from space as a massive desert landmark, concentric rings span the sands.",
+          "where": "narration",
+          "fact_ids": [
+            "fact-3"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches fact-3 stating the concentric formation is visible from space as a massive desert landmark."
+        },
+        {
+          "claim": "Geological field surveys record the feature at 25 miles (40 km) across, though satellite observations describe it as spanning almost 31 miles (50 km).",
+          "where": "narration",
+          "fact_ids": [
+            "fact-2"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Correctly retains the required disputed formulation comparing field surveys (40 km / 25 mi) to satellite observations (almost 50 km / 31 mi)."
+        },
+        {
+          "claim": "The eroded dome formed when subsurface igneous intrusion deformed overlying sedimentary rock.",
+          "where": "narration",
+          "fact_ids": [
+            "fact-4"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches fact-4 stating geologists identify it as an eroded dome created by subsurface igneous intrusion deforming overlying sedimentary rock."
+        },
+        {
+          "claim": "Initially considered an extraterrestrial impact crater, the theory was disproved in 1969 when suspected shock minerals were identified as mislabeled barite.",
+          "where": "narration",
+          "fact_ids": [
+            "fact-9"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Directly supported by fact-9."
+        },
+        {
+          "claim": "In October 2022, the International Union of Geological Sciences designated this formation among the world's first 100 official geological heritage sites.",
+          "where": "narration",
+          "fact_ids": [
+            "fact-10"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Directly supported by fact-10."
+        },
+        {
+          "claim": "The Richat Structure is situated near Ouadane on the Adrar Plateau of Mauritania.",
+          "where": "caption",
+          "fact_ids": [
+            "fact-1"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Directly supported by fact-1."
+        },
+        {
+          "claim": "Prehistoric hunters traversed these ridges, leaving Stone Age tools dating between roughly 145,000 and 29,000 years ago.",
+          "where": "caption",
+          "fact_ids": [
+            "fact-11"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Supported by fact-11, which records Middle Stone Age Aterian tools dating from roughly 145,000 to 29,000 years ago alongside Acheulean artifacts."
+        },
+        {
+          "claim": "By one estimate, thousands of prehistoric stone burial mounds built in distinct architectural styles also line the formation's protruding dikes.",
+          "where": "caption",
+          "fact_ids": [
+            "fact-12"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Maintains the required hedge 'by one estimate' per fact-12."
+        },
+        {
+          "claim": "Field geology confirms this ancient natural inland dome is not Plato's Atlantis.",
+          "where": "caption",
+          "fact_ids": [
+            "fact-13"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Supported by fact-13."
+        },
+        {
+          "claim": "Dating of the carbonatite rocks shows they cooled between 94 and 104 million years ago as deep molten rock intruded upward.",
+          "where": "carousel caption",
+          "fact_ids": [
+            "fact-8"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Directly supported by fact-8."
+        },
+        {
+          "claim": "DESERT ANOMALY THE 25-MILE SAHARA EYE CARVED BY NATURE",
+          "where": "on-screen cover",
+          "fact_ids": [
+            "fact-2",
+            "fact-4"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Covers/thumbnails are exempt from mandatory statistical hedging words; supported by fact-2 and fact-4."
+        },
+        {
+          "claim": "A colossal concentric formation marks the vast Mauritanian desert.",
+          "where": "story",
+          "fact_ids": [
+            "fact-1",
+            "fact-3"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Supported by fact-1 and fact-3."
+        },
+        {
+          "claim": "Subsurface igneous intrusion pushed sedimentary rock upward into concentric rings.",
+          "where": "story",
+          "fact_ids": [
+            "fact-4"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Supported by fact-4."
+        },
+        {
+          "claim": "THE EYE OF THE SAHARA: A concentric formation in Mauritania that has long fascinated observers from orbit.",
+          "where": "slide",
+          "fact_ids": [
+            "fact-1",
+            "fact-3"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Supported by fact-1 and fact-3."
+        },
+        {
+          "claim": "Visible from space, the concentric formation serves as a prominent desert landmark.",
+          "where": "slide",
+          "fact_ids": [
+            "fact-3"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Directly supported by fact-3."
+        },
+        {
+          "claim": "Initially considered an impact crater, the theory was disproved in 1969.",
+          "where": "slide",
+          "fact_ids": [
+            "fact-9"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Directly supported by fact-9."
+        },
+        {
+          "claim": "Subsurface igneous intrusion deformed overlying sedimentary rock into concentric rings.",
+          "where": "slide",
+          "fact_ids": [
+            "fact-4"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Directly supported by fact-4."
+        },
+        {
+          "claim": "Carbonatite rocks cooled between 94 and 104 million years ago beneath the surface.",
+          "where": "slide",
+          "fact_ids": [
+            "fact-8"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Directly supported by fact-8."
+        },
+        {
+          "claim": "In October 2022, international scientists named it one of Earth's top 100 heritage sites.",
+          "where": "slide",
+          "fact_ids": [
+            "fact-10"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Directly supported by fact-10."
+        },
+        {
+          "claim": "Timeline: 1969 - Impact theory disproved",
+          "where": "graphic",
+          "fact_ids": [
+            "fact-9"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Directly supported by fact-9."
+        },
+        {
+          "claim": "Timeline: 2022 - Named geological heritage site",
+          "where": "graphic",
+          "fact_ids": [
+            "fact-10"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Directly supported by fact-10."
+        },
+        {
+          "claim": "Photo labels (features said to be visible): concentric rings, eroded dome, sedimentary rock",
+          "where": "graphic",
+          "fact_ids": [
+            "fact-3",
+            "fact-4"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Supported by fact-3 and fact-4."
+        }
+      ],
+      "consensus_confidence": 100.0,
+      "second_check": {
+        "status": "pass",
+        "confidence": 100.0,
+        "audits": [
+          {
+            "claim": "The Richat Structure is a massive concentric desert landmark in Mauritania visible from orbit.",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              1,
+              4,
+              7
+            ],
+            "note": "Supported by Q1, Q4, and Q7, which confirm the structure's concentric rings and that it is a circular landmark visible from space."
+          },
+          {
+            "claim": "The structure has an estimated diameter of 40 km (25 mi) to nearly 50 km (31 mi).",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              3,
+              4,
+              5,
+              6
+            ],
+            "note": "Supported by Q3, Q4, Q5, and Q6, which record measurements of 40 kilometres (25 miles) across and diameters of roughly or almost 50 kilometres (30 miles)."
+          },
+          {
+            "claim": "The eroded dome formed when a subsurface igneous intrusion deformed overlying sedimentary rock layers.",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              4
+            ],
+            "note": "Directly supported by Q4, which states it is an eroded geological dome caused by a subsurface igneous intrusion deforming the overlying sedimentary rock layers into concentric rings."
+          },
+          {
+            "claim": "Initially considered an impact structure, the impact theory was disproved in 1969 when suspected shock minerals were found to be misidentified barite.",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              16,
+              17,
+              18
+            ],
+            "note": "Supported by Q16, Q17, and Q18, which state that it was initially considered an impact structure, shock metamorphism was ruled out in the 1960s, and a 1969 analysis determined that barite had been misidentified as coesite."
+          },
+          {
+            "claim": "In October 2022, the International Union of Geological Sciences selected the Richat Structure as one of the world's 100 geological heritage sites.",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              19,
+              20
+            ],
+            "note": "Directly supported by Q19 and Q20."
+          },
+          {
+            "claim": "The Richat Structure is located near Ouadane on the Adrar Plateau of Mauritania.",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              1,
+              2
+            ],
+            "note": "Supported by Q1 and Q2."
+          },
+          {
+            "claim": "Stone Age tools found at the Richat Structure date to between approximately 145,000 and 29,000 years ago.",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              22
+            ],
+            "note": "Supported by Q22, which dates Middle Stone Age Aterian artifacts at the site to between around 145,000 and 29,000 years ago."
+          },
+          {
+            "claim": "Thousands of stone burial mounds in various styles line the protruding dikes of the formation.",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              23
+            ],
+            "note": "Directly supported by Q23."
+          },
+          {
+            "claim": "Geological analysis contradicts claims identifying the inland Richat Structure as Plato's Atlantis.",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              24,
+              25
+            ],
+            "note": "Supported by Q24 and Q25, which note that claims identifying it as Atlantis are unsubstantiated fringe claims and contradicted by its ancient geological origin and inland desert location."
+          },
+          {
+            "claim": "Carbonatite rocks at the formation have been dated to having cooled between 94 and 104 million years ago.",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              14
+            ],
+            "note": "Directly supported by Q14."
+          }
+        ],
+        "summary": "[evidence re-check (gemini-3.7-flash)] All 10 claims supported by the quoted evidence."
+      },
+      "guardrail_passed": true,
+      "script_rounds": 1,
+      "fact_rounds": 1,
+      "script_round_reasons": [],
+      "fact_review": {
+        "public_fingerprint": "c22a4778e3d8d480f86f90c7a38733fd370961cd7a666213f33e3c9b00ad11fe",
+        "sheet_path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\fact_sheets\\richat_structure_sahara_eye.json",
+        "sheet_sha256": "0bcbe56c8c744a67feac810ccd147ff8e56b2fef14f31ee0151cc66382be5dbb",
+        "review_rules_fingerprint": "79415fa9c90d9a5027f19d13e77f998cf14dfdf848dc59042819e993438c455d"
+      },
+      "picture_lines": {
+        "v": 1,
+        "script": "48d2ae7712bf6d52861a5b99f746ce03a86aa8cd975f041225e77afc4a8c47ad",
+        "pool": "2931ccd8889e6e907e506ad12a2d28108afcbc0f73d3eaf7d9938cd9b571a872",
+        "unshown": [],
+        "rewritten": [
+          "Space shuttle crews tracked Mauritania by a massive concentric desert landmark.",
+          "Subsurface magma deformed overlying sedimentary rock, leaving outer dikes about 230 feet (70 m) wide.",
+          "Suspected shock minerals from an extraterrestrial impact were disproved in 1969 as mislabeled barite."
+        ],
+        "left": []
+      },
+      "picture_lines_note": "🖼 Lines no photo shows: reworded before the voice: “Space shuttle crews tracked Mauritania by a massive concentric desert landmark.”; “Subsurface magma deformed overlying sedimentary rock, leaving outer dikes about 230 feet…”; “Suspected shock minerals from an extraterrestrial impact were disproved in 1969 as mislab…”."
+    }
+  },
+  "gumbaz": {
+    "name": "Gol Gumbaz",
+    "hero": "cache\\upscaled\\22_commons_466e53f5c2d25a35.jpg",
+    "hero_sha256": "de4bf135249fc1ee313263f7795b4c4de3a095552b8422abc3e138385c5a1051",
+    "payload": {
+      "timeline": null,
+      "scale_fact": null,
+      "stat_cards": [
+        {
+          "value": "Est. 144 ft (44 m)",
+          "label": "External dome diameter"
+        }
+      ],
+      "cross_section": null,
+      "route": null,
+      "photo_labels": [
+        "masonry dome",
+        "whispering gallery",
+        "pendentive systems"
+      ],
+      "emphasis_words": [
+        "Gol Gumbaz",
+        "Bijapur",
+        "1656"
+      ],
+      "title": "The 144-Foot Whispering Vault of Gol Gumbaz 🏛️",
+      "hook_sentence": "Can a quiet whisper travel across an estimated 144-foot (44 m) masonry dome?",
+      "narration_script": "Can a quiet whisper travel across an estimated 144-foot (44 m) masonry dome? Inside the dark gray basalt mausoleum of Gol Gumbaz in Bijapur, sound waves are guided continuously along the curved boundary of a prominent whispering gallery. This massive dome combines bricks of varying dimensions with lime mortar, gaining structural integrity without metal tension rings on pendentive systems attributed to Central Asian traditions. Construction began in the early 17th century and ceased in 1656 upon Mohammad Adil Shah's death, leaving several decorative elements unfinished. Yet the unfinished monument still prompts modern builders to wonder how ancient masonry mastered acoustics so completely.",
+      "closing_sentence": "Yet the unfinished monument still prompts modern builders to wonder how ancient masonry mastered acoustics so completely.",
+      "caption": "Sound travels along curved stone in ways modern halls still strive to replicate.\n🏛️ Inside Gol Gumbaz in Bijapur, Karnataka, lime mortar binds massive brick layers without a single metal tension ring. By one estimate, its central dome reached an external diameter of 144 feet (44 m), making it the largest unsupported dome in India when work ceased in 1656. Pendentive arches drawn from Central Asian architectural traditions carry the entire weight. Did seventeenth-century builders plan this sound phenomenon or discover it by chance? 🤔 Send this to an acoustic architecture fan, and follow for our next ancient marvel! 🏛️\n\n#GolGumbaz #Bijapur #AncientEngineering #IndianArchitecture\n\n📷 Images via Wikimedia Commons and partner archives: Pinakpani (CC BY 4.0) · adapted: cropped, with motion and text added",
+      "first_comment": "Did the builders deliberately calculate this acoustic effect, or was it an accidental masterpiece of geometry?",
+      "hashtags": [
+        "#GolGumbaz",
+        "#Bijapur",
+        "#AncientEngineering",
+        "#IndianArchitecture"
+      ],
+      "thumbnail": {
+        "eyebrow": "ANCIENT ACOUSTICS",
+        "line1": "THE 144-FOOT",
+        "line2": "WHISPERING DOME",
+        "tagline": "BUILT WITHOUT RINGS"
+      },
+      "story_slides": [
+        {
+          "kicker": "ANCIENT MARVEL",
+          "line1": "THE ACOUSTIC DOME",
+          "line2": "OF GOL GUMBAZ",
+          "body": "Sound circles this vast chamber along its curved boundary."
+        },
+        {
+          "kicker": "NO METAL RINGS",
+          "line1": "BRICK AND MORTAR",
+          "line2": "WITHOUT TENSION",
+          "body": "By one estimate, the central dome spans 144 feet (44 m)."
+        },
+        {
+          "kicker": "ACOUSTIC MYSTERY",
+          "line1": "INTENTIONAL DESIGN",
+          "line2": "OR PURE CHANCE?",
+          "body": "Construction halted in 1656 after Mohammad Adil Shah died."
+        }
+      ],
+      "poll": {
+        "question": "Intentional design or lucky accident?",
+        "options": [
+          "Planned acoustics",
+          "Lucky accident"
+        ]
+      },
+      "carousel_slides": [
+        {
+          "heading": "THE WHISPERING VAULT",
+          "body": "How did seventeenth-century builders create an acoustic wonder in Bijapur, India?"
+        },
+        {
+          "heading": "MASSIVE SCALE",
+          "body": "By one estimate, the central dome has an external diameter of 44 meters (144 feet)."
+        },
+        {
+          "heading": "ACOUSTIC GUIDANCE",
+          "body": "Sound waves are guided continuously along the curved boundary of the gallery."
+        },
+        {
+          "heading": "ENGINEERING WITHOUT METAL",
+          "body": "The dome achieved structural integrity using bricks and mortar without metal rings."
+        },
+        {
+          "heading": "CENTRAL ASIAN ROOTS",
+          "body": "The pendentive support system is attributed to Central Asian building traditions."
+        },
+        {
+          "heading": "UNFINISHED MONUMENT",
+          "body": "Work ceased in 1656 upon Mohammad Adil Shah's death, leaving elements unfinished."
+        },
+        {
+          "heading": "LOST INGENUITY?",
+          "body": "Did ancient builders master acoustic physics that modern architecture has forgotten?"
+        }
+      ],
+      "sources": [
+        {
+          "title": "UNESCO World Heritage Centre - Monuments and Forts of the Deccan Sultanate",
+          "url": "https://whc.unesco.org/en/tentativelists/5887/"
+        },
+        {
+          "title": "Wikipedia - Gol Gumbaz",
+          "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz"
+        },
+        {
+          "title": "Journal of Optics - Nonlinear and quantum optics with whispering gallery resonators",
+          "url": "https://doi.org/10.1088/2040-8978/18/12/123002"
+        }
+      ],
+      "carousel_caption": "Swipe through the architectural anatomy of Gol Gumbaz in Bijapur. 🏛️ By one estimate, its central dome has an external diameter of 144 feet (44 m) without metal tension rings. Could modern acoustics ever match such historic masonry? 🤔 Send this to an acoustic architecture fan, and follow for our next ancient marvel! 🏛️\n\n#GolGumbaz #Bijapur #AncientEngineering #IndianArchitecture",
+      "share_line": "Send this to an acoustic architecture fan, and follow for our next ancient marvel! 🏛️",
+      "fact_sheet": true,
+      "topic_id": "gol_gumbaz_whispering_gallery",
+      "origin": "gemini-free",
+      "word_count": 102,
+      "location": {
+        "name": "Bijapur",
+        "city": "Karnataka",
+        "region": "Karnataka",
+        "country": "India",
+        "latitude": 0.0,
+        "longitude": 0.0
+      },
+      "meta_topic_categories": [
+        "History & Philosophy",
+        "Science & Tech",
+        "Travel & Culture"
+      ],
+      "topic_origin_note": "🗂 Topic origin: the original topic bank (added before origins were recorded)",
+      "fact_sheet_note": "🧾 Written from a verified fact sheet: 15 facts with quoted evidence (7 disputed, used only with their hedges)",
+      "fact_audits": [
+        {
+          "claim": "Gol Gumbaz has a 144-foot whispering dome vault.",
+          "where": "[title]",
+          "fact_ids": [
+            "fact-3",
+            "fact-4"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Titles are exempt from mandatory statistical hedging words; correctly reflects the site's whispering gallery and external diameter."
+        },
+        {
+          "claim": "The masonry dome has an estimated external diameter of 144 feet (44 m).",
+          "where": "[narration]",
+          "fact_ids": [
+            "fact-4"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Accurately conveys the disputed diameter with the required hedge ('estimated')."
+        },
+        {
+          "claim": "Gol Gumbaz is a dark gray basalt mausoleum located in Bijapur.",
+          "where": "[narration]",
+          "fact_ids": [
+            "fact-1"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches fact-1 exactly."
+        },
+        {
+          "claim": "Sound waves are guided continuously along the curved boundary of a prominent whispering gallery in the monument.",
+          "where": "[narration]",
+          "fact_ids": [
+            "fact-2",
+            "fact-3"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Directly matches the definition and presence of the whispering gallery effect at Gol Gumbaz."
+        },
+        {
+          "claim": "The dome combines bricks of varying dimensions with lime mortar, gaining structural integrity without metal tension rings.",
+          "where": "[narration]",
+          "fact_ids": [
+            "fact-8",
+            "fact-9"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Accurately reflects the construction materials and absence of metal tension rings."
+        },
+        {
+          "claim": "The pendentive system of the dome is attributed to Central Asian traditions.",
+          "where": "[narration]",
+          "fact_ids": [
+            "fact-10"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches fact-10."
+        },
+        {
+          "claim": "Construction began in the early 17th century and ceased in 1656 upon Mohammad Adil Shah's death, leaving several decorative elements unfinished.",
+          "where": "[narration]",
+          "fact_ids": [
+            "fact-11"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches fact-11 verbatim in meaning."
+        },
+        {
+          "claim": "The unfinished monument prompts modern builders to wonder how ancient masonry mastered acoustics so completely.",
+          "where": "[narration]",
+          "fact_ids": [],
+          "claim_type": "rhetorical_framing",
+          "verdict": "traced",
+          "note": "Philosophical closing framing connecting the history to modern wonder."
+        },
+        {
+          "claim": "Inside Gol Gumbaz in Bijapur, Karnataka, lime mortar binds massive brick layers without a single metal tension ring.",
+          "where": "[caption]",
+          "fact_ids": [
+            "fact-1",
+            "fact-8",
+            "fact-9"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches fact-1, fact-8, and fact-9."
+        },
+        {
+          "claim": "By one estimate, the central dome reached an external diameter of 144 feet (44 m), making it the largest unsupported dome in India when work ceased in 1656.",
+          "where": "[caption]",
+          "fact_ids": [
+            "fact-4",
+            "fact-11"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Preserves the required 'By one estimate' hedge for disputed fact-4 and aligns with fact-11."
+        },
+        {
+          "claim": "Pendentive arches drawn from Central Asian architectural traditions carry the weight of the dome.",
+          "where": "[caption]",
+          "fact_ids": [
+            "fact-10"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Consistent with fact-10."
+        },
+        {
+          "claim": "By one estimate, the central dome has an external diameter of 144 feet (44 m) without metal tension rings.",
+          "where": "[carousel caption]",
+          "fact_ids": [
+            "fact-4",
+            "fact-9"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Hedged with 'By one estimate' per fact-4 and accurately cites absence of metal tension rings per fact-9."
+        },
+        {
+          "claim": "A 144-foot whispering dome was built without tension rings.",
+          "where": "[on-screen cover]",
+          "fact_ids": [
+            "fact-3",
+            "fact-4",
+            "fact-9"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "On-screen covers are exempt from mandatory statistical hedging words; factually depicts the site's dimensions and engineering."
+        },
+        {
+          "claim": "Sound circles the chamber along its curved boundary.",
+          "where": "[story]",
+          "fact_ids": [
+            "fact-2",
+            "fact-3"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches acoustic phenomenon of the whispering gallery."
+        },
+        {
+          "claim": "By one estimate, the central dome spans 144 feet (44 m) using brick and mortar without metal tension rings.",
+          "where": "[story]",
+          "fact_ids": [
+            "fact-4",
+            "fact-8",
+            "fact-9"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Retains the required hedge 'By one estimate' and matches facts 4, 8, and 9."
+        },
+        {
+          "claim": "Construction halted in 1656 after Mohammad Adil Shah died.",
+          "where": "[story]",
+          "fact_ids": [
+            "fact-11"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Directly matches fact-11."
+        },
+        {
+          "claim": "By one estimate, the central dome has an external diameter of 44 meters (144 feet).",
+          "where": "[slide]",
+          "fact_ids": [
+            "fact-4"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches fact-4 with exact required hedging."
+        },
+        {
+          "claim": "Sound waves are guided continuously along the curved boundary of the gallery.",
+          "where": "[slide]",
+          "fact_ids": [
+            "fact-2",
+            "fact-3"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches fact-2 and fact-3."
+        },
+        {
+          "claim": "The dome achieved structural integrity using bricks and mortar without metal rings.",
+          "where": "[slide]",
+          "fact_ids": [
+            "fact-8",
+            "fact-9"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches fact-8 and fact-9."
+        },
+        {
+          "claim": "The pendentive support system is attributed to Central Asian building traditions.",
+          "where": "[slide]",
+          "fact_ids": [
+            "fact-10"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches fact-10."
+        },
+        {
+          "claim": "Work ceased in 1656 upon Mohammad Adil Shah's death, leaving elements unfinished.",
+          "where": "[slide]",
+          "fact_ids": [
+            "fact-11"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches fact-11."
+        },
+        {
+          "claim": "The external dome diameter is estimated at 144 ft (44 m).",
+          "where": "[graphic]",
+          "fact_ids": [
+            "fact-4"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Properly hedged ('Est.') and matches fact-4."
+        },
+        {
+          "claim": "The structure features a masonry dome, whispering gallery, and pendentive systems.",
+          "where": "[graphic]",
+          "fact_ids": [
+            "fact-1",
+            "fact-3",
+            "fact-8",
+            "fact-10"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches architectural features outlined in fact-1, fact-3, fact-8, and fact-10."
+        }
+      ],
+      "consensus_confidence": 100.0,
+      "second_check": {
+        "status": "pass",
+        "confidence": 100.0,
+        "audits": [
+          {
+            "claim": "Gol Gumbaz is a dark gray basalt mausoleum located in Bijapur, Karnataka.",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              1,
+              2
+            ],
+            "note": "Q1 and Q2 confirm Gol Gumbaz is a dark gray basalt mausoleum located in the city of Bijapur in Karnataka, India."
+          },
+          {
+            "claim": "The central dome of Gol Gumbaz has an external diameter of approximately 144 feet (44 meters).",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              5,
+              6,
+              7
+            ],
+            "note": "Q5, Q6, and Q7 state that the dome has an external diameter of approximately 144 ft (44 m)."
+          },
+          {
+            "claim": "In its whispering gallery, sound waves are guided along the curved boundary.",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              3,
+              4
+            ],
+            "note": "Q3 explains whispering gallery modes as the acoustic phenomenon of guiding a wave by a curved boundary, and Q4 notes the central dome's whispering gallery."
+          },
+          {
+            "claim": "The central dome is constructed of bricks of varying size cemented with layers of lime mortar.",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              9,
+              10
+            ],
+            "note": "Q9 states the dome is made of bricks of varying size cemented with layers of lime mortar, reiterated in Q10."
+          },
+          {
+            "claim": "The central dome of Gol Gumbaz does not make use of metal tension rings.",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              11
+            ],
+            "note": "Q11 explicitly confirms that the central dome of the Gol Gumbaz does not make use of metal tension rings."
+          },
+          {
+            "claim": "The pendentive support system of Gol Gumbaz is attributed to Central Asian architectural traditions.",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              12
+            ],
+            "note": "Q12 states that the conceptual origin of the pendentive support system is generally attributed to Central Asia."
+          },
+          {
+            "claim": "Construction of Gol Gumbaz began in the early 17th century during Mohammed Adil Shah's reign and halted upon his death in 1656, leaving several decorative elements unfinished.",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              13,
+              14
+            ],
+            "note": "Q13 and Q14 confirm that construction began in the early 17th century following Adil Shah's ascension and halted upon his death in 1656, leaving several decorative elements unfinished."
+          },
+          {
+            "claim": "Gol Gumbaz was the largest unsupported dome in India at the time of its completion.",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              5
+            ],
+            "note": "Q5 confirms that with an external diameter of 44 m (144 ft), it was the largest unsupported dome in India at the time of its completion."
+          }
+        ],
+        "summary": "[evidence re-check (gemini-3.7-flash)] All 8 claims supported by the quoted evidence."
+      },
+      "guardrail_passed": true,
+      "script_rounds": 2,
+      "fact_rounds": 2,
+      "script_round_reasons": [
+        "REJECTED by fact checker: 1 untraceable claim(s): 'The dark gray basalt monument itself boasts an external diameter of 144 feet (44 m).' ([carousel caption]; contradicts: Fact-4 states the central dom"
+      ],
+      "fact_review": {
+        "public_fingerprint": "b8e0cc5d9eae7d386cdae91b3ebac32e8292cf626049f92fa6809518aee7aa6d",
+        "sheet_path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\fact_sheets\\gol_gumbaz_whispering_gallery.json",
+        "sheet_sha256": "cb59590791f506f2c78bbec32ea9b96940bc2150ed488911c520f554cb5d0130",
+        "review_rules_fingerprint": "79415fa9c90d9a5027f19d13e77f998cf14dfdf848dc59042819e993438c455d"
+      },
+      "picture_lines": {
+        "v": 1,
+        "script": "c00ae782bf10ad104b26e769f224c5c6d731e0d638ba7398127e49e96d4ab200",
+        "pool": "22b15726a7bad07b497f1f9d8e349e2284c4643cc938111a21abff67859d92b2",
+        "unshown": [],
+        "rewritten": [],
+        "left": []
+      }
+    }
+  },
+  "derinkuyu": {
+    "name": "Derinkuyu",
+    "hero": "assets\\derinkuyu_underground_city\\19_commons.jpg",
+    "hero_sha256": "58687861b7dafec02f83b220d90bf1357427142d53aa15f3080e01b0c102f75c",
+    "payload": {
+      "_review": "Curated fallback used only when Claude is unavailable. Drafted by Claude with hedged claims (depth, door weight, dating); a person must check it against the sources and set _reviewed_by_human to true before it can be published.",
+      "_reviewed_by_human": false,
+      "title": "The City Hidden Behind One Basement Wall",
+      "hook_sentence": "In 1963, a man renovating his house in Cappadocia knocked through a wall and found a tunnel.",
+      "narration_script": "In 1963, a man renovating his house in Cappadocia knocked through a wall and found a tunnel. It led into Derinkuyu, an underground city carved roughly 280 feet (85 m) down into soft volcanic rock. Its levels held stables, wells, chapels and food stores, while dozens of ventilation shafts carried fresh air to the deepest rooms. Rolling stone doors, some weighing up to half a ton, sealed each level from the inside. Its earliest tunnels may be nearly three thousand years old, and Byzantine-era Christians later expanded it to hide from raids. For decades after its last residents left, a whole city lay forgotten beneath ordinary homes, behind a single wall.",
+      "closing_sentence": "For decades after its last residents left, a whole city lay forgotten beneath ordinary homes, behind a single wall.",
+      "caption": "One renovation. One wall. One forgotten city.\n\nIn 1963, a resident of Derinkuyu in central Turkey broke through a wall in his home and found the entrance to a vast underground settlement. Carved into soft volcanic tuff, it held stables, wells, chapels and storerooms, sealed by rolling stone doors. Its earliest phases may date back to the first millennium BC, and it was greatly expanded in the Byzantine era as a refuge from raids.\n\nCould you spend weeks underground to stay safe?\n\n#Derinkuyu #Cappadocia #UndergroundCity #ByzantineHistory #Archaeology",
+      "first_comment": "Cappadocia has dozens of underground settlements, and new ones are still being found. Would you go down into one?",
+      "hashtags": [
+        "#Derinkuyu",
+        "#Cappadocia",
+        "#UndergroundCity",
+        "#ByzantineHistory",
+        "#Archaeology"
+      ],
+      "thumbnail": {
+        "eyebrow": "BURIED HISTORY",
+        "line1": "BEHIND ONE WALL...",
+        "line2": "A FORGOTTEN CITY",
+        "tagline": "DERINKUYU, 1963"
+      },
+      "story_slides": [
+        {
+          "kicker": "DID YOU KNOW?",
+          "line1": "ONE MAN KNOCKED",
+          "line2": "THROUGH HIS WALL...",
+          "body": "Cappadocia, Turkey, 1963"
+        },
+        {
+          "kicker": "WHAT HE FOUND",
+          "line1": "AN UNDERGROUND CITY",
+          "line2": "~85 METRES DEEP",
+          "body": "Stables, wells, chapels and stone doors."
+        },
+        {
+          "kicker": "YOUR TURN",
+          "line1": "WOULD YOU HIDE",
+          "line2": "DOWN THERE?",
+          "body": "Full story in our latest Reel."
+        }
+      ],
+      "poll": {
+        "question": "Would you hide underground for weeks?",
+        "options": [
+          "Yes, safety first",
+          "No, I need daylight"
+        ]
+      },
+      "carousel_slides": [
+        {
+          "heading": "BEHIND ONE WALL...",
+          "body": "How a 1963 home renovation revealed Derinkuyu."
+        },
+        {
+          "heading": "THE DISCOVERY",
+          "body": "A resident broke through a wall and found a passage leading down."
+        },
+        {
+          "heading": "CARVED, NOT BUILT",
+          "body": "Dug into soft volcanic tuff, roughly 85 metres at its deepest."
+        },
+        {
+          "heading": "BUILT TO LIVE IN",
+          "body": "Stables, wells, chapels and storerooms on many levels."
+        },
+        {
+          "heading": "STONE DOORS",
+          "body": "Rolling stone wheels, some up to half a ton, sealed levels from inside."
+        },
+        {
+          "heading": "WHO DUG IT?",
+          "body": "Begun possibly in the first millennium BC; expanded in Byzantine times."
+        },
+        {
+          "heading": "YOUR THEORY?",
+          "body": "Tell us in the comments and follow for more history."
+        }
+      ],
+      "sources": [
+        {
+          "title": "Derinkuyu underground city (Wikipedia)",
+          "url": "https://en.wikipedia.org/wiki/Derinkuyu_underground_city"
+        },
+        {
+          "title": "UNESCO: Göreme National Park and the Rock Sites of Cappadocia",
+          "url": "https://whc.unesco.org/en/list/357/"
+        }
+      ]
+    }
+  },
+  "gumbaz_exterior": {
+    "name": "Gol Gumbaz · exterior",
+    "hero": "assets\\gol_gumbaz_whispering_gallery\\03_commons.jpg",
+    "hero_sha256": "cf542a9a779fd80401fd5b93a139192474450c452f7450e6d89c31b2e5b4230c",
+    "payload": {
+      "timeline": null,
+      "scale_fact": null,
+      "stat_cards": [
+        {
+          "value": "Est. 144 ft (44 m)",
+          "label": "External dome diameter"
+        }
+      ],
+      "cross_section": null,
+      "route": null,
+      "photo_labels": [
+        "masonry dome",
+        "whispering gallery",
+        "pendentive systems"
+      ],
+      "emphasis_words": [
+        "Gol Gumbaz",
+        "Bijapur",
+        "1656"
+      ],
+      "title": "The 144-Foot Whispering Vault of Gol Gumbaz 🏛️",
+      "hook_sentence": "Can a quiet whisper travel across an estimated 144-foot (44 m) masonry dome?",
+      "narration_script": "Can a quiet whisper travel across an estimated 144-foot (44 m) masonry dome? Inside the dark gray basalt mausoleum of Gol Gumbaz in Bijapur, sound waves are guided continuously along the curved boundary of a prominent whispering gallery. This massive dome combines bricks of varying dimensions with lime mortar, gaining structural integrity without metal tension rings on pendentive systems attributed to Central Asian traditions. Construction began in the early 17th century and ceased in 1656 upon Mohammad Adil Shah's death, leaving several decorative elements unfinished. Yet the unfinished monument still prompts modern builders to wonder how ancient masonry mastered acoustics so completely.",
+      "closing_sentence": "Yet the unfinished monument still prompts modern builders to wonder how ancient masonry mastered acoustics so completely.",
+      "caption": "Sound travels along curved stone in ways modern halls still strive to replicate.\n🏛️ Inside Gol Gumbaz in Bijapur, Karnataka, lime mortar binds massive brick layers without a single metal tension ring. By one estimate, its central dome reached an external diameter of 144 feet (44 m), making it the largest unsupported dome in India when work ceased in 1656. Pendentive arches drawn from Central Asian architectural traditions carry the entire weight. Did seventeenth-century builders plan this sound phenomenon or discover it by chance? 🤔 Send this to an acoustic architecture fan, and follow for our next ancient marvel! 🏛️\n\n#GolGumbaz #Bijapur #AncientEngineering #IndianArchitecture\n\n📷 Images via Wikimedia Commons and partner archives: Pinakpani (CC BY 4.0) · adapted: cropped, with motion and text added",
+      "first_comment": "Did the builders deliberately calculate this acoustic effect, or was it an accidental masterpiece of geometry?",
+      "hashtags": [
+        "#GolGumbaz",
+        "#Bijapur",
+        "#AncientEngineering",
+        "#IndianArchitecture"
+      ],
+      "thumbnail": {
+        "eyebrow": "ANCIENT ACOUSTICS",
+        "line1": "THE 144-FOOT",
+        "line2": "WHISPERING DOME",
+        "tagline": "BUILT WITHOUT RINGS"
+      },
+      "story_slides": [
+        {
+          "kicker": "ANCIENT MARVEL",
+          "line1": "THE ACOUSTIC DOME",
+          "line2": "OF GOL GUMBAZ",
+          "body": "Sound circles this vast chamber along its curved boundary."
+        },
+        {
+          "kicker": "NO METAL RINGS",
+          "line1": "BRICK AND MORTAR",
+          "line2": "WITHOUT TENSION",
+          "body": "By one estimate, the central dome spans 144 feet (44 m)."
+        },
+        {
+          "kicker": "ACOUSTIC MYSTERY",
+          "line1": "INTENTIONAL DESIGN",
+          "line2": "OR PURE CHANCE?",
+          "body": "Construction halted in 1656 after Mohammad Adil Shah died."
+        }
+      ],
+      "poll": {
+        "question": "Intentional design or lucky accident?",
+        "options": [
+          "Planned acoustics",
+          "Lucky accident"
+        ]
+      },
+      "carousel_slides": [
+        {
+          "heading": "THE WHISPERING VAULT",
+          "body": "How did seventeenth-century builders create an acoustic wonder in Bijapur, India?"
+        },
+        {
+          "heading": "MASSIVE SCALE",
+          "body": "By one estimate, the central dome has an external diameter of 44 meters (144 feet)."
+        },
+        {
+          "heading": "ACOUSTIC GUIDANCE",
+          "body": "Sound waves are guided continuously along the curved boundary of the gallery."
+        },
+        {
+          "heading": "ENGINEERING WITHOUT METAL",
+          "body": "The dome achieved structural integrity using bricks and mortar without metal rings."
+        },
+        {
+          "heading": "CENTRAL ASIAN ROOTS",
+          "body": "The pendentive support system is attributed to Central Asian building traditions."
+        },
+        {
+          "heading": "UNFINISHED MONUMENT",
+          "body": "Work ceased in 1656 upon Mohammad Adil Shah's death, leaving elements unfinished."
+        },
+        {
+          "heading": "LOST INGENUITY?",
+          "body": "Did ancient builders master acoustic physics that modern architecture has forgotten?"
+        }
+      ],
+      "sources": [
+        {
+          "title": "UNESCO World Heritage Centre - Monuments and Forts of the Deccan Sultanate",
+          "url": "https://whc.unesco.org/en/tentativelists/5887/"
+        },
+        {
+          "title": "Wikipedia - Gol Gumbaz",
+          "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz"
+        },
+        {
+          "title": "Journal of Optics - Nonlinear and quantum optics with whispering gallery resonators",
+          "url": "https://doi.org/10.1088/2040-8978/18/12/123002"
+        }
+      ],
+      "carousel_caption": "Swipe through the architectural anatomy of Gol Gumbaz in Bijapur. 🏛️ By one estimate, its central dome has an external diameter of 144 feet (44 m) without metal tension rings. Could modern acoustics ever match such historic masonry? 🤔 Send this to an acoustic architecture fan, and follow for our next ancient marvel! 🏛️\n\n#GolGumbaz #Bijapur #AncientEngineering #IndianArchitecture",
+      "share_line": "Send this to an acoustic architecture fan, and follow for our next ancient marvel! 🏛️",
+      "fact_sheet": true,
+      "topic_id": "gol_gumbaz_whispering_gallery",
+      "origin": "gemini-free",
+      "word_count": 102,
+      "location": {
+        "name": "Bijapur",
+        "city": "Karnataka",
+        "region": "Karnataka",
+        "country": "India",
+        "latitude": 0.0,
+        "longitude": 0.0
+      },
+      "meta_topic_categories": [
+        "History & Philosophy",
+        "Science & Tech",
+        "Travel & Culture"
+      ],
+      "topic_origin_note": "🗂 Topic origin: the original topic bank (added before origins were recorded)",
+      "fact_sheet_note": "🧾 Written from a verified fact sheet: 15 facts with quoted evidence (7 disputed, used only with their hedges)",
+      "fact_audits": [
+        {
+          "claim": "Gol Gumbaz has a 144-foot whispering dome vault.",
+          "where": "[title]",
+          "fact_ids": [
+            "fact-3",
+            "fact-4"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Titles are exempt from mandatory statistical hedging words; correctly reflects the site's whispering gallery and external diameter."
+        },
+        {
+          "claim": "The masonry dome has an estimated external diameter of 144 feet (44 m).",
+          "where": "[narration]",
+          "fact_ids": [
+            "fact-4"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Accurately conveys the disputed diameter with the required hedge ('estimated')."
+        },
+        {
+          "claim": "Gol Gumbaz is a dark gray basalt mausoleum located in Bijapur.",
+          "where": "[narration]",
+          "fact_ids": [
+            "fact-1"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches fact-1 exactly."
+        },
+        {
+          "claim": "Sound waves are guided continuously along the curved boundary of a prominent whispering gallery in the monument.",
+          "where": "[narration]",
+          "fact_ids": [
+            "fact-2",
+            "fact-3"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Directly matches the definition and presence of the whispering gallery effect at Gol Gumbaz."
+        },
+        {
+          "claim": "The dome combines bricks of varying dimensions with lime mortar, gaining structural integrity without metal tension rings.",
+          "where": "[narration]",
+          "fact_ids": [
+            "fact-8",
+            "fact-9"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Accurately reflects the construction materials and absence of metal tension rings."
+        },
+        {
+          "claim": "The pendentive system of the dome is attributed to Central Asian traditions.",
+          "where": "[narration]",
+          "fact_ids": [
+            "fact-10"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches fact-10."
+        },
+        {
+          "claim": "Construction began in the early 17th century and ceased in 1656 upon Mohammad Adil Shah's death, leaving several decorative elements unfinished.",
+          "where": "[narration]",
+          "fact_ids": [
+            "fact-11"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches fact-11 verbatim in meaning."
+        },
+        {
+          "claim": "The unfinished monument prompts modern builders to wonder how ancient masonry mastered acoustics so completely.",
+          "where": "[narration]",
+          "fact_ids": [],
+          "claim_type": "rhetorical_framing",
+          "verdict": "traced",
+          "note": "Philosophical closing framing connecting the history to modern wonder."
+        },
+        {
+          "claim": "Inside Gol Gumbaz in Bijapur, Karnataka, lime mortar binds massive brick layers without a single metal tension ring.",
+          "where": "[caption]",
+          "fact_ids": [
+            "fact-1",
+            "fact-8",
+            "fact-9"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches fact-1, fact-8, and fact-9."
+        },
+        {
+          "claim": "By one estimate, the central dome reached an external diameter of 144 feet (44 m), making it the largest unsupported dome in India when work ceased in 1656.",
+          "where": "[caption]",
+          "fact_ids": [
+            "fact-4",
+            "fact-11"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Preserves the required 'By one estimate' hedge for disputed fact-4 and aligns with fact-11."
+        },
+        {
+          "claim": "Pendentive arches drawn from Central Asian architectural traditions carry the weight of the dome.",
+          "where": "[caption]",
+          "fact_ids": [
+            "fact-10"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Consistent with fact-10."
+        },
+        {
+          "claim": "By one estimate, the central dome has an external diameter of 144 feet (44 m) without metal tension rings.",
+          "where": "[carousel caption]",
+          "fact_ids": [
+            "fact-4",
+            "fact-9"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Hedged with 'By one estimate' per fact-4 and accurately cites absence of metal tension rings per fact-9."
+        },
+        {
+          "claim": "A 144-foot whispering dome was built without tension rings.",
+          "where": "[on-screen cover]",
+          "fact_ids": [
+            "fact-3",
+            "fact-4",
+            "fact-9"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "On-screen covers are exempt from mandatory statistical hedging words; factually depicts the site's dimensions and engineering."
+        },
+        {
+          "claim": "Sound circles the chamber along its curved boundary.",
+          "where": "[story]",
+          "fact_ids": [
+            "fact-2",
+            "fact-3"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches acoustic phenomenon of the whispering gallery."
+        },
+        {
+          "claim": "By one estimate, the central dome spans 144 feet (44 m) using brick and mortar without metal tension rings.",
+          "where": "[story]",
+          "fact_ids": [
+            "fact-4",
+            "fact-8",
+            "fact-9"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Retains the required hedge 'By one estimate' and matches facts 4, 8, and 9."
+        },
+        {
+          "claim": "Construction halted in 1656 after Mohammad Adil Shah died.",
+          "where": "[story]",
+          "fact_ids": [
+            "fact-11"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Directly matches fact-11."
+        },
+        {
+          "claim": "By one estimate, the central dome has an external diameter of 44 meters (144 feet).",
+          "where": "[slide]",
+          "fact_ids": [
+            "fact-4"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches fact-4 with exact required hedging."
+        },
+        {
+          "claim": "Sound waves are guided continuously along the curved boundary of the gallery.",
+          "where": "[slide]",
+          "fact_ids": [
+            "fact-2",
+            "fact-3"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches fact-2 and fact-3."
+        },
+        {
+          "claim": "The dome achieved structural integrity using bricks and mortar without metal rings.",
+          "where": "[slide]",
+          "fact_ids": [
+            "fact-8",
+            "fact-9"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches fact-8 and fact-9."
+        },
+        {
+          "claim": "The pendentive support system is attributed to Central Asian building traditions.",
+          "where": "[slide]",
+          "fact_ids": [
+            "fact-10"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches fact-10."
+        },
+        {
+          "claim": "Work ceased in 1656 upon Mohammad Adil Shah's death, leaving elements unfinished.",
+          "where": "[slide]",
+          "fact_ids": [
+            "fact-11"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches fact-11."
+        },
+        {
+          "claim": "The external dome diameter is estimated at 144 ft (44 m).",
+          "where": "[graphic]",
+          "fact_ids": [
+            "fact-4"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Properly hedged ('Est.') and matches fact-4."
+        },
+        {
+          "claim": "The structure features a masonry dome, whispering gallery, and pendentive systems.",
+          "where": "[graphic]",
+          "fact_ids": [
+            "fact-1",
+            "fact-3",
+            "fact-8",
+            "fact-10"
+          ],
+          "claim_type": "domain_fact",
+          "verdict": "traced",
+          "note": "Matches architectural features outlined in fact-1, fact-3, fact-8, and fact-10."
+        }
+      ],
+      "consensus_confidence": 100.0,
+      "second_check": {
+        "status": "pass",
+        "confidence": 100.0,
+        "audits": [
+          {
+            "claim": "Gol Gumbaz is a dark gray basalt mausoleum located in Bijapur, Karnataka.",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              1,
+              2
+            ],
+            "note": "Q1 and Q2 confirm Gol Gumbaz is a dark gray basalt mausoleum located in the city of Bijapur in Karnataka, India."
+          },
+          {
+            "claim": "The central dome of Gol Gumbaz has an external diameter of approximately 144 feet (44 meters).",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              5,
+              6,
+              7
+            ],
+            "note": "Q5, Q6, and Q7 state that the dome has an external diameter of approximately 144 ft (44 m)."
+          },
+          {
+            "claim": "In its whispering gallery, sound waves are guided along the curved boundary.",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              3,
+              4
+            ],
+            "note": "Q3 explains whispering gallery modes as the acoustic phenomenon of guiding a wave by a curved boundary, and Q4 notes the central dome's whispering gallery."
+          },
+          {
+            "claim": "The central dome is constructed of bricks of varying size cemented with layers of lime mortar.",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              9,
+              10
+            ],
+            "note": "Q9 states the dome is made of bricks of varying size cemented with layers of lime mortar, reiterated in Q10."
+          },
+          {
+            "claim": "The central dome of Gol Gumbaz does not make use of metal tension rings.",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              11
+            ],
+            "note": "Q11 explicitly confirms that the central dome of the Gol Gumbaz does not make use of metal tension rings."
+          },
+          {
+            "claim": "The pendentive support system of Gol Gumbaz is attributed to Central Asian architectural traditions.",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              12
+            ],
+            "note": "Q12 states that the conceptual origin of the pendentive support system is generally attributed to Central Asia."
+          },
+          {
+            "claim": "Construction of Gol Gumbaz began in the early 17th century during Mohammed Adil Shah's reign and halted upon his death in 1656, leaving several decorative elements unfinished.",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              13,
+              14
+            ],
+            "note": "Q13 and Q14 confirm that construction began in the early 17th century following Adil Shah's ascension and halted upon his death in 1656, leaving several decorative elements unfinished."
+          },
+          {
+            "claim": "Gol Gumbaz was the largest unsupported dome in India at the time of its completion.",
+            "claim_type": "domain_fact",
+            "verdict": "supported",
+            "quote_ids": [
+              5
+            ],
+            "note": "Q5 confirms that with an external diameter of 44 m (144 ft), it was the largest unsupported dome in India at the time of its completion."
+          }
+        ],
+        "summary": "[evidence re-check (gemini-3.7-flash)] All 8 claims supported by the quoted evidence."
+      },
+      "guardrail_passed": true,
+      "script_rounds": 2,
+      "fact_rounds": 2,
+      "script_round_reasons": [
+        "REJECTED by fact checker: 1 untraceable claim(s): 'The dark gray basalt monument itself boasts an external diameter of 144 feet (44 m).' ([carousel caption]; contradicts: Fact-4 states the central dom"
+      ],
+      "fact_review": {
+        "public_fingerprint": "b8e0cc5d9eae7d386cdae91b3ebac32e8292cf626049f92fa6809518aee7aa6d",
+        "sheet_path": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\data\\fact_sheets\\gol_gumbaz_whispering_gallery.json",
+        "sheet_sha256": "cb59590791f506f2c78bbec32ea9b96940bc2150ed488911c520f554cb5d0130",
+        "review_rules_fingerprint": "79415fa9c90d9a5027f19d13e77f998cf14dfdf848dc59042819e993438c455d"
+      },
+      "picture_lines": {
+        "v": 1,
+        "script": "c00ae782bf10ad104b26e769f224c5c6d731e0d638ba7398127e49e96d4ab200",
+        "pool": "22b15726a7bad07b497f1f9d8e349e2284c4643cc938111a21abff67859d92b2",
+        "unshown": [],
+        "rewritten": [],
+        "left": []
+      }
+    }
+  }
+}

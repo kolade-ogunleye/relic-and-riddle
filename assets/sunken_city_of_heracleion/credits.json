@@ -35,12 +35,57 @@
         "usable": true,
         "safe": true,
         "duplicate_of": null,
-        "reason": "Aerial view of Abu Qir Bay, the body of water beneath which the sunken city of Thonis-Heracleion lies.",
+        "people_prominent": false,
+        "reason": "Aerial view showing Abu Qir Bay, the body of water under which the ruins of Thonis-Heracleion lie.",
         "kept": true
       }
     }
   ],
-  "review_note": "Vision review 2026-10-20: kept 1 of 1; held: fewer than 5",
+  "review_note": "Vision review 2026-10-25: kept 1 of 3; held: fewer than 5",
   "reviewed_by": null,
-  "rejected_by_review": []
+  "rejected_by_review": [
+    {
+      "title": "Agios Titos (Heracleion)",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/4/4f/Agios_Titos_%28Heracleion%29.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=9583312",
+      "artist": "PawełMM",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "02_commons.jpg",
+      "vision_review": {
+        "index": 2,
+        "shows_topic": "no",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Depicts the Church of Saint Titus in Heraklion, Crete, confusing it with the ancient Egyptian port of Heracleion.",
+        "kept": false
+      }
+    },
+    {
+      "title": "Abu Qir Bay-2025-9-7",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/8/8d/Abu_Qir_Bay-2025-9-7.jpg",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=174874032",
+      "artist": "TRJN",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "03_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "no",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Shows a racehorse named Abu Qir Bay, which merely shares the name of the bay.",
+        "kept": false
+      }
+    }
+  ],
+  "review_fingerprint": "01_commons.jpg"
 }

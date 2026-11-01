@@ -1,6 +1,9 @@
 {
   "reviewed": false,
-  "images": [
+  "images": [],
+  "review_note": "Vision review 2026-10-29: kept 0 of 4 (0 topic photos, 0 context: 0 of 5 usable); held: fewer than 5 usable for the video",
+  "reviewed_by": null,
+  "rejected_by_review": [
     {
       "title": "File:Camp Century layout plan.png",
       "download_url": "https://upload.wikimedia.org/wikipedia/commons/a/a0/Camp_Century_layout_plan.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
@@ -25,11 +28,12 @@
       "vision_review": {
         "index": 1,
         "shows_topic": "yes",
-        "usable": true,
+        "usable": false,
         "safe": true,
         "duplicate_of": null,
-        "reason": "Archival site plan schematic of Camp Century showing the trench network, reactor, and living quarters.",
-        "kept": true
+        "people_prominent": false,
+        "reason": "Low-resolution, compressed diagram with pixelated text that would look poor full-screen; also superseded by the color version.",
+        "kept": false
       }
     },
     {
@@ -59,15 +63,68 @@
       "vision_review": {
         "index": 2,
         "shows_topic": "yes",
-        "usable": true,
+        "usable": false,
         "safe": true,
         "duplicate_of": null,
-        "reason": "Technical report diagram showing the progressive deformation and closure of the ice trenches at Camp Century over time.",
-        "kept": true
+        "people_prominent": false,
+        "reason": "Low-resolution scanned page containing mostly technical text and line plots that would be illegible and look poor full-screen.",
+        "kept": false
+      }
+    },
+    {
+      "title": "File:Camp Century layout color.png",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/1/17/Camp_Century_layout_color.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Camp_Century_layout_color.png",
+      "artist": "Zygerth",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+      "attribution_required": true,
+      "year": 2020,
+      "width": 1116,
+      "height": 1362,
+      "grade": 0,
+      "description": "Derived from: Technical report 174 (PDF), fig. 26, p. 34 (in the public domain)\nCamp Century Evolution of Concept and History of Design Construction and Performance, U.S. Army Materiel Command\nPDF\nColors from (7min 50sec) in \n\nhttps://archive.org/details/TheU.S.ArmysTopSecretArcticCityUnderTheIceCampCenturyRestoredClassifiedFilm",
+      "categories": [
+        "PD US Army",
+        "Camp Century",
+        "Self-published work"
+      ],
+      "lat": null,
+      "lon": null,
+      "relevance": 8.0,
+      "file": "04_commons.jpg",
+      "vision_review": {
+        "index": 3,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Tiny resolution (under 500 pixels tall) and heavily compressed, causing text labels to blur and look poor full-screen.",
+        "kept": false
+      }
+    },
+    {
+      "title": "Camp Century layout color",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/1/17/Camp_Century_layout_color.png",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=93002302",
+      "artist": "Zygerth",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "05_commons.jpg",
+      "vision_review": {
+        "index": 4,
+        "shows_topic": "yes",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": 3,
+        "people_prominent": false,
+        "reason": "Identical low-resolution duplicate of Photo 3.",
+        "kept": false
       }
     }
   ],
-  "review_note": "Vision review 2026-10-20: kept 2 of 2; held: fewer than 5",
-  "reviewed_by": null,
-  "rejected_by_review": []
+  "review_fingerprint": ""
 }

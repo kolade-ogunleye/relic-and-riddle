@@ -4,35 +4,53 @@
     "type": "HOOK",
     "label": "Opening Hook",
     "text": "In 1963, a man renovating his house in Cappadocia knocked through a wall and found a tunnel.",
-    "file": "16_commons.jpg",
-    "title": "File:Saint Theodore Church Derinkuyu Front Entrance.jpg",
-    "license": "CC BY 2.0"
+    "file": "04_commons.jpg",
+    "title": "File:Derinkuyu Underground City, Nevşehir Province, Turkey - panoramio.jpg",
+    "license": "CC BY 3.0"
   },
   {
     "beat": 2,
     "type": "LANDSCAPE",
     "label": "Terrain & Scale",
     "text": "It led into Derinkuyu, an underground city carved roughly 280 feet (85 m) down into soft volcanic rock.",
-    "file": "04_commons.jpg",
-    "title": "File:Derinkuyu Underground City, Nevşehir Province, Turkey - panoramio.jpg",
-    "license": "CC BY 3.0"
+    "file": "17_commons.jpg",
+    "title": "File:Underground City - Derinkuyu, Nevşehir Province, Turkey - October 5, 2025.jpg",
+    "license": "CC BY-SA 4.0"
   },
   {
     "beat": 3,
     "type": "INTERIOR",
     "label": "Inner Structure",
     "text": "Its levels held stables, wells, chapels and food stores, while dozens of ventilation shafts carried fresh air to the deepest rooms.",
-    "file": "14_commons.jpg",
-    "title": "File:DerinkuyuKirche.jpg",
-    "license": "CC BY 3.0"
+    "file": "18_commons.jpg",
+    "title": "File:Rolling stone door Derinkuyu.jpg",
+    "license": "CC BY-SA 3.0"
   },
   {
     "beat": 4,
     "type": "ARTIFACT",
     "label": "Physical Evidence",
     "text": "Rolling stone doors, some weighing up to half a ton, sealed each level from the inside.",
-    "file": "15_commons.jpg",
-    "title": "File:DerinkuyuKircheInnen.jpg",
-    "license": "CC BY 3.0"
+    "file": "19_commons.jpg",
+    "title": "File:DERINKUYU UNDERGROUND CITY - panoramio.jpg",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "beat": 5,
+    "type": "SCHEMATIC",
+    "label": "Survey / Blueprint",
+    "text": "Its earliest tunnels may be nearly three thousand years old, and Byzantine-era Christians later expanded it to hide from raids.",
+    "file": "20_commons.jpg",
+    "title": "File:Derinkuyu Underground City 9843 Nevit Enhancer.jpg",
+    "license": "CC BY-SA 3.0"
+  },
+  {
+    "beat": 6,
+    "type": "CLIMAX",
+    "label": "Anomaly & Debate",
+    "text": "For decades after its last residents left, a whole city lay forgotten beneath ordinary homes, behind a single wall.",
+    "file": "21_commons.jpg",
+    "title": "File:Derinkuyu Underground City 9831 Nevit Enhancer.jpg",
+    "license": "CC BY-SA 3.0"
   }
 ]

@@ -1,0 +1,267 @@
+{
+ "topic_id": "damascus_steel_nanotubes",
+ "built_at": "2026-10-23T05:15:29.026041+00:00",
+ "facts": [
+  {
+   "id": "damascus-01",
+   "statement": "Damascus steel is a high-carbon crucible steel forged in the Near East, characterized by distinctive surface patterns reminiscent of flowing water.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Damascus_steel",
+     "tier": 2,
+     "quote": "Damascus steel (Arabic: فولاذ دمشقي, romanized: fūlāḏ Damašqiyy) is the high-carbon crucible steel of the blades of historical swords forged using the wootz process in the Near East, characterized by distinctive patterns of banding and mottling reminiscent of flowing water, sometimes in a \"ladder\" or \"rose\" pattern."
+    }
+   ]
+  },
+  {
+   "id": "damascus-02",
+   "statement": "The crucible steel-making techniques used to produce the material were originally developed in India and Sri Lanka.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Damascus_steel",
+     "tier": 2,
+     "quote": "Originally, it came from India and Sri Lanka, where the steel-making techniques used were first developed."
+    }
+   ]
+  },
+  {
+   "id": "damascus-03",
+   "statement": "From the 3rd century to the 17th century, ingots of wootz steel were shipped from South India to production centers across the Middle East.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Damascus_steel",
+     "tier": 2,
+     "quote": "In addition to being made into blades in India (particularly Golconda) and Sri Lanka, wootz / ukku was exported as ingots to various production centers, including Khorasan, and Isfahan, where the steel was used to produce blades, as well as across the Middle East."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Damascus_steel",
+     "tier": 2,
+     "quote": "From the 3rd century to the 17th century, steel ingots were being shipped to the Middle East from South India."
+    }
+   ]
+  },
+  {
+   "id": "damascus-04",
+   "statement": "Although imported steel was forged into swords within Damascus, there is no evidence of local crucible steel smelting in the city.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Damascus_steel",
+     "tier": 2,
+     "quote": "In Damascus, where many of these swords were sold, there is no evidence of local production of crucible steel, though there is evidence of imported steel being forged into swords in Damascus."
+    }
+   ]
+  },
+  {
+   "id": "damascus-05",
+   "statement": "One proposed origin for the name derives from 'damas', the Arabic root word for watered, referencing the steel's characteristic flowing surface pattern.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Damascus_steel",
+     "tier": 2,
+     "quote": "The origin of the name \"Damascus steel\" is contentious."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Damascus_steel",
+     "tier": 2,
+     "quote": "Drawing from al-Kindi and al-Biruni, there are three potential sources for the term \"Damascus\" in the context of steel:\n\nThe word \"damas\" is the root word for \"watered\" in Arabic with \"water\" being \"ma\" in Arabic and Damascus blades are often described as exhibiting a water-pattern on their surface, and are often referred to as \"watered steel\" in multiple languages."
+    }
+   ]
+  },
+  {
+   "id": "damascus-06",
+   "statement": "Islamic scholar al-Biruni documented that crucible steel swords were crafted by a smith named Damasqui.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Damascus_steel",
+     "tier": 2,
+     "quote": "Islamic scholars al-Kindi (circa 800 CE – 873 CE) and al-Biruni (circa 973 CE – 1048 CE) both wrote about swords and steel made for swords, based on their surface appearance, geographical location of production or forging, or the name of the smith."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Damascus_steel",
+     "tier": 2,
+     "quote": "Al-Biruni mentions a sword-smith called Damasqui who made swords of crucible steel."
+    }
+   ]
+  },
+  {
+   "id": "damascus-07",
+   "statement": "Trace elements including tungsten, nickel, and manganese worked in combination with ancient production methods to make the blades both hard and flexible.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Damascus_steel",
+     "tier": 2,
+     "quote": "The production process of Damascus steel and the traces of elements such as tungsten, nickel and manganese found in it, which are also used in modern high-speed varieties, made the blades very flexible and very hard at the same time, extraordinary qualities considering their age."
+    }
+   ]
+  },
+  {
+   "id": "damascus-08",
+   "statement": "Surviving patterned crucible steel blades were frequently tempered to retain a bend after being flexed past their elastic limit.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Damascus_steel",
+     "tier": 2,
+     "quote": "In fact, extant examples of patterned crucible steel swords were often tempered in such a way as to retain a bend after being flexed past their elastic limit."
+    }
+   ]
+  },
+  {
+   "id": "damascus-09",
+   "statement": "Tensile testing by Verhoeven, Peterson, and Baker recorded an average yield strength of 740 megapascals in Damascus steel, compared to 550 megapascals in hot-rolled steel.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, tensile testing by Verhoeven, Peterson, and Baker recorded an average yield strength of 740 megapascals in Damascus steel, compared to 550 megapascals in hot-rolled steel.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Damascus_steel",
+     "tier": 2,
+     "quote": "Verhoeven, Peterson, and Baker completed mechanical characterization of a Damascus sword, performing tensile testing as well as hardness testing."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Damascus_steel",
+     "tier": 2,
+     "quote": "The average yield strength of 740 MPa was higher than the hot-rolled steel yield strength of 550 MPa, and the average tensile strength of 1070 MPa was higher than the hot-rolled steel tensile strength of 965 MPa."
+    }
+   ]
+  },
+  {
+   "id": "damascus-10",
+   "statement": "Mechanical evaluation showed Damascus steel achieved an average tensile strength of 1070 megapascals, exceeding the 965 megapascals of hot-rolled steel.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, mechanical evaluation showed Damascus steel achieved an average tensile strength of 1070 megapascals, exceeding the 965 megapascals of hot-rolled steel.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Damascus_steel",
+     "tier": 2,
+     "quote": "The average yield strength of 740 MPa was higher than the hot-rolled steel yield strength of 550 MPa, and the average tensile strength of 1070 MPa was higher than the hot-rolled steel tensile strength of 965 MPa."
+    }
+   ]
+  },
+  {
+   "id": "damascus-11",
+   "statement": "Metallurgical analysis determined that finer pearlite spacing refined the microstructure of Damascus steel, boosting its mechanical strength.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Damascus_steel",
+     "tier": 2,
+     "quote": "These results are likely due to the finer pearlite spacing in the Damascus steel, refining the microstructure."
+    }
+   ]
+  },
+  {
+   "id": "damascus-12",
+   "statement": "Rockwell hardness measurements taken from historical Damascus steel ranged from 62 to 67.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, rockwell hardness measurements taken from historical Damascus steel ranged from 62 to 67.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Damascus_steel",
+     "tier": 2,
+     "quote": "Rockwell hardness measurements of the Damascus steel ranged from 62 to 67."
+    }
+   ]
+  },
+  {
+   "id": "damascus-13",
+   "statement": "The legend that Damascus blades were quenched by thrusting them six times into the body of an enslaved person originated as a prank article published in the Chicago Tribune on November 4, 1894.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Damascus_steel",
+     "tier": 2,
+     "quote": "It was previously incorrectly believed that the steel was hardened by thrusting it six times into the back and thighs of an enslaved person."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Damascus_steel",
+     "tier": 2,
+     "quote": "The misconception originated in an article in the November 4, 1894 issue of the Chicago Tribune titled Tempering Damascus Blades."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Damascus_steel",
+     "tier": 2,
+     "quote": "The note asserts that a certain \"Prof. von Eulenspiegel\" found a scroll \"among the ruins of ancient Tyre\"; \"Eulenspiegel\" is the name of a legendary prankster of medieval Germany."
+    }
+   ]
+  }
+ ],
+ "dropped": [],
+ "sources": [
+  {
+   "title": "Scholarly work: Where the Damascus Steel Meets Nanotechnology and Additive Manufacturing",
+   "url": "https://doi.org/10.54026/jmms/1107",
+   "tier": 3
+  },
+  {
+   "title": "Wikipedia: Damascus steel",
+   "url": "https://en.wikipedia.org/wiki/Damascus_steel",
+   "tier": 2
+  },
+  {
+   "title": "Wikipedia: Old city of Damascus",
+   "url": "https://en.wikipedia.org/wiki/Old_city_of_Damascus",
+   "tier": 2
+  },
+  {
+   "title": "www.newscientist.com",
+   "url": "https://www.newscientist.com/article/dn10604-secrets-out-for-saracen-sabres/",
+   "tier": 2
+  },
+  {
+   "title": "www.mse.iastate.edu",
+   "url": "https://www.mse.iastate.edu/news/john-verhoeven/",
+   "tier": 1
+  },
+  {
+   "title": "doi.org",
+   "url": "https://doi.org/10.1007%2Fs11837-998-0419-y",
+   "tier": 3
+  },
+  {
+   "title": "doi.org",
+   "url": "https://doi.org/10.1038%2F444286a",
+   "tier": 3
+  },
+  {
+   "title": "doi.org",
+   "url": "https://doi.org/10.1038%2Fnews061113-11",
+   "tier": 3
+  },
+  {
+   "title": "doi.org",
+   "url": "https://doi.org/10.1557%2FPROC-462-105",
+   "tier": 3
+  }
+ ],
+ "rules_version": 2
+}

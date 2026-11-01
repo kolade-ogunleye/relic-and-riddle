@@ -1,0 +1,71 @@
+{
+ "thumbnail_cover.jpg": {
+  "kind": "cover",
+  "size": [
+   1080,
+   1920
+  ],
+  "zone": [
+   60,
+   440,
+   1020,
+   1480
+  ],
+  "tight": false,
+  "elements": [
+   {
+    "name": "eyebrow",
+    "box": [
+     110,
+     1115,
+     467,
+     1155
+    ]
+   },
+   {
+    "name": "title_1",
+    "box": [
+     110,
+     1171,
+     883,
+     1264
+    ]
+   },
+   {
+    "name": "title_2",
+    "box": [
+     110,
+     1301,
+     882,
+     1388
+    ]
+   },
+   {
+    "name": "tagline",
+    "box": [
+     110,
+     1440,
+     474,
+     1466
+    ]
+   }
+  ],
+  "shortened": [],
+  "protected": [],
+  "problems": [],
+  "attempts": 1,
+  "recipe": {
+   "renderer": "visual_engine.redraw_cover",
+   "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\02_commons.jpg",
+   "copy": {
+    "eyebrow": "DESERT ANOMALY",
+    "line1": "THE 25-MILE",
+    "line2": "SAHARA EYE",
+    "tagline": "CARVED BY NATURE",
+    "badge": "DESERT ANOMALY"
+   },
+   "style": "lower_third",
+   "text_cy": 760
+  }
+ }
+}

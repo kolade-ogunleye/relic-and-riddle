@@ -6,21 +6,30 @@
     "exclude": ["kirche", "church", "telephone", "street", "mosque"]
   },
   "roman_self_healing_concrete": {
-    "queries": ["Roman concrete", "opus caementicium", "Caesarea Maritima harbour", "Pantheon Rome dome interior"],
-    "keywords": ["roman concrete", "opus caementicium", "caementicium", "caesarea", "pantheon", "pozzolan"]
+    "queries": ["Roman concrete", "opus caementicium", "Caesarea Maritima harbour", "Pantheon Rome dome interior", "Trajan's Market Rome concrete vaults", "Baths of Caracalla ruins concrete", "Portus Roman harbour", "Baiae Roman ruins underwater", "pozzolana Pozzuoli", "Pantheon Rome exterior portico"],
+    "keywords": ["roman concrete", "opus caementicium", "caementicium", "caesarea", "pantheon", "pozzolan", "trajan", "caracalla", "portus", "baiae", "pozzuoli", "pozzolana", "baths of"]
   },
   "kailasa_temple_monolith": {
     "queries": ["Kailasa temple Ellora", "Ellora Cave 16", "Kailasanatha Ellora"],
     "keywords": ["kailasa", "kailash", "ellora"]
   },
-  "antikythera_mechanism": {"queries": ["Antikythera mechanism"], "keywords": ["antikythera"]},
-  "gobekli_tepe_enclosure_d": {"queries": ["Göbekli Tepe"], "keywords": ["gobekli"]},
+  "antikythera_mechanism": {
+    "queries": ["Antikythera mechanism"],
+    "keywords": ["antikythera"]
+  },
+  "gobekli_tepe_enclosure_d": {
+    "queries": ["Göbekli Tepe"],
+    "keywords": ["gobekli"]
+  },
   "damascus_steel_nanotubes": {
     "queries": ["Damascus steel", "wootz steel", "watered steel", "shamshir", "crucible steel blade"],
     "keywords": ["damascus steel", "wootz", "damascene", "watered steel", "shamshir", "crucible steel"],
     "exclude": ["pattern welded", "pattern-welded", "hunting knife", "dragon blade", "kitchen", "modern"]
   },
-  "camp_century_nuclear_ice_city": {"queries": ["Camp Century", "Project Iceworm"], "keywords": ["camp century", "iceworm"]},
+  "camp_century_nuclear_ice_city": {
+    "queries": ["Camp Century", "Project Iceworm"],
+    "keywords": ["camp century", "iceworm"]
+  },
   "hal_saflieni_hypogeum": {
     "queries": ["Hal Saflieni Hypogeum", "Hypogeum Paola Malta"],
     "keywords": ["hypogeum", "saflieni"]
@@ -29,8 +38,14 @@
     "queries": ["Madrid Skylitzes Greek fire", "Skylitzes Matritensis", "Byzantine dromon", "Byzantine navy"],
     "keywords": ["skylitzes", "dromon", "byzantine navy", "byzantine ship", "byzantine fleet"]
   },
-  "unfinished_obelisk_aswan": {"queries": ["Unfinished obelisk Aswan"], "keywords": ["unfinished obelisk"]},
-  "piri_reis_1513_map": {"queries": ["Piri Reis map"], "keywords": ["piri reis"]},
+  "unfinished_obelisk_aswan": {
+    "queries": ["Unfinished obelisk Aswan"],
+    "keywords": ["unfinished obelisk"]
+  },
+  "piri_reis_1513_map": {
+    "queries": ["Piri Reis map"],
+    "keywords": ["piri reis"]
+  },
   "flannan_isle_lighthouse_disappearance": {
     "queries": ["Flannan Isles lighthouse", "Flannan Isles", "Eilean Mor Flannan"],
     "keywords": ["flannan isle", "flannan lighthouse", "eilean mor"],
@@ -55,7 +70,10 @@
     "keywords": ["zhang heng", "seismoscope", "houfeng", "seismograph"],
     "exclude": ["boatman", "senkaji", "suikoden", "kuniyoshi", "ziyi", "108 heroes", "108 heroes", "heroes"]
   },
-  "voynich_manuscript": {"queries": ["Voynich manuscript"], "keywords": ["voynich"]},
+  "voynich_manuscript": {
+    "queries": ["Voynich manuscript"],
+    "keywords": ["voynich"]
+  },
   "odessa_catacombs": {
     "queries": ["Odessa catacombs", "Odesa catacombs"],
     "keywords": ["catacomb"]
@@ -68,7 +86,10 @@
     "queries": ["Amber Room", "Amber Room Catherine Palace", "Bernsteinzimmer"],
     "keywords": ["amber room", "bernsteinzimmer"]
   },
-  "gol_gumbaz_whispering_gallery": {"queries": ["Gol Gumbaz"], "keywords": ["gol gumbaz", "gol gumbad"]},
+  "gol_gumbaz_whispering_gallery": {
+    "queries": ["Gol Gumbaz"],
+    "keywords": ["gol gumbaz", "gol gumbad"]
+  },
   "tunguska_event_1908": {
     "queries": ["Tunguska event", "Tunguska 1908", "Tunguska Kulik expedition"],
     "keywords": ["tunguska"]
@@ -81,7 +102,10 @@
     "queries": ["Dyatlov Pass", "Dyatlov group", "Kholat Syakhl"],
     "keywords": ["dyatlov", "kholat"]
   },
-  "lycurgus_cup_nanotech": {"queries": ["Lycurgus Cup"], "keywords": ["lycurgus cup"]},
+  "lycurgus_cup_nanotech": {
+    "queries": ["Lycurgus Cup"],
+    "keywords": ["lycurgus cup"]
+  },
   "wieliczka_salt_mine": {
     "queries": ["Wieliczka salt mine chapel", "Wieliczka Salt Mine", "St. Kinga's Chapel Wieliczka"],
     "keywords": ["wieliczka"],
@@ -103,5 +127,9 @@
   "acoustic_kitty_cia": {
     "queries": ["CIA Original Headquarters Building", "CIA headquarters Langley"],
     "keywords": ["original headquarters building", "cia headquarters", "acoustic kitty"]
+  },
+  "singing_colossi_of_memnon": {
+    "queries": ["Colossi of Memnon Luxor", "Colossi of Memnon David Roberts lithograph", "Colossi of Memnon graffiti inscriptions"],
+    "keywords": ["memnon", "colossi", "amenhotep", "luxor"]
   }
 }

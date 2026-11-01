@@ -1,7 +1,7 @@
 {
   "reviewed": false,
   "images": [],
-  "review_note": "Vision review 2026-10-20: kept 0 of 10; held: fewer than 5",
+  "review_note": "Vision review 2026-10-25: kept 0 of 1; held: fewer than 5",
   "reviewed_by": null,
   "rejected_by_review": [
     {
@@ -313,6 +313,28 @@
         "reason": "Official case document page, but it is low-resolution and mostly text.",
         "kept": false
       }
+    },
+    {
+      "title": "3d model of dyatlov pass 1",
+      "download_url": "https://upload.wikimedia.org/wikipedia/commons/7/79/3d_model_of_dyatlov_pass_1.png",
+      "source_url": "https://commons.wikimedia.org/w/index.php?curid=104411574",
+      "artist": "Merikanto",
+      "license": "CC BY-SA 4.0",
+      "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "provider": "openverse",
+      "year": null,
+      "file": "11_commons.jpg",
+      "vision_review": {
+        "index": 1,
+        "shows_topic": "partly",
+        "usable": false,
+        "safe": true,
+        "duplicate_of": null,
+        "people_prominent": false,
+        "reason": "Extremely low-resolution, blurry 3D digital terrain model of the pass with poor visual quality.",
+        "kept": false
+      }
     }
-  ]
+  ],
+  "review_fingerprint": ""
 }

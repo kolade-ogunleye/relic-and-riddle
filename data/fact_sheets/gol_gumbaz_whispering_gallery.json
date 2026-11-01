@@ -1,0 +1,305 @@
+{
+ "topic_id": "gol_gumbaz_whispering_gallery",
+ "built_at": "2026-10-29T12:53:28.245136+00:00",
+ "facts": [
+  {
+   "id": "fact-1",
+   "statement": "Gol Gumbaz is a dark gray basalt mausoleum located in the city of Bijapur, officially known as Vijayapura, in northern Karnataka, India.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz",
+     "tier": 2,
+     "quote": "'Round Dome'), also written as Gol Gumbad, is a dark gray basalt mausoleum located in the city of Bijapur in northern Karnataka, India."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Bijapur",
+     "tier": 2,
+     "quote": "Bijapur (officially Vijayapura) is the district headquarters of the Bijapur district of the Karnataka state of India."
+    }
+   ]
+  },
+  {
+   "id": "fact-2",
+   "statement": "The whispering gallery effect is an acoustic phenomenon where sound waves are guided continuously along a curved boundary.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://doi.org/10.1088/2040-8978/18/12/123002",
+     "tier": 1,
+     "quote": "Optical whispering gallery modes (WGMs) derive their name from a famous acoustic phenomenon of guiding a wave by a curved boundary observed nearly a century ago.This phenomenon has a rather general nature, equally applicable to sound and all other waves.It enables resonators of unique properties attractive both in science and engineering.Very high quality factors of optical WGM resonators persisting in a wide wavelength range spanning from radio frequencies to ultraviolet light, their small mode volume, and tunable in-and out-coupling make them exceptionally efficient for nonlinear optical app"
+    }
+   ]
+  },
+  {
+   "id": "fact-3",
+   "statement": "The monument features a prominent whispering gallery running around the perimeter of its central dome.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz",
+     "tier": 2,
+     "quote": "The central dome's whispering gallery has since become a popular tourist attraction."
+    }
+   ]
+  },
+  {
+   "id": "fact-4",
+   "statement": "The central dome has an external diameter of 44 meters (144 feet), making it the largest unsupported dome in India at the time of its completion.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, the central dome has an external diameter of 44 meters (144 feet), making it the largest unsupported dome in India at the time of its completion.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz",
+     "tier": 2,
+     "quote": "With an external diameter of 44 m (144 ft), it was the largest unsupported dome in India and among the largest domes of the medieval era at the time of its completion."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz",
+     "tier": 2,
+     "quote": "The total width of the mausoleum, including the minarets at each corner, is 205 ft (62 m), and is topped by a hemispherical dome approximately 144 ft (44 m) in diameter."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz",
+     "tier": 2,
+     "quote": "Its external diameter is 44 m (144 ft) and its internal diameter is approximately 38 m (125 ft)."
+    }
+   ]
+  },
+  {
+   "id": "fact-5",
+   "statement": "The internal diameter of the central dome measures approximately 38 meters (125 feet).",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, the internal diameter of the central dome measures approximately 38 meters (125 feet).",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz",
+     "tier": 2,
+     "quote": "Its external diameter is 44 m (144 ft) and its internal diameter is approximately 38 m (125 ft)."
+    }
+   ]
+  },
+  {
+   "id": "fact-6",
+   "statement": "The interior hall forms a single chamber measuring roughly 135.5 feet (41.3 meters) across and 178 feet (54 meters) in height from the floor to the dome's apex.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, the interior hall forms a single chamber measuring roughly 135.5 feet (41.3 meters) across and 178 feet (54 meters) in height from the floor to the dome's apex.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz",
+     "tier": 2,
+     "quote": "The interior hall is a huge single chamber, approximately 135.5 ft (41.3 m) across and 178 ft (54 m) in height from the floor to the top of the dome."
+    }
+   ]
+  },
+  {
+   "id": "fact-7",
+   "statement": "The dome measures 9 feet (2.7 meters) thick at its apex and expands to a thickness of 10 feet (3.0 meters) at its base.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, the dome measures 9 feet (2.7 meters) thick at its apex and expands to a thickness of 10 feet (3.0 meters) at its base.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz",
+     "tier": 2,
+     "quote": "The dome is 9 ft (2.7 m) thick at its apex and widens to a thickness of 10 ft (3.0 m) at its base, and is made of bricks of varying size cemented with layers of lime mortar."
+    }
+   ]
+  },
+  {
+   "id": "fact-8",
+   "statement": "The massive dome is built from bricks of varying dimensions bound together with layers of lime mortar.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz",
+     "tier": 2,
+     "quote": "The Gol Gumbaz was built in three distinct stages, beginning with the construction of the foundation and a raised platform at its center, followed by the building of the four exterior basalt walls joined by octagonal minarets at each corner, and culminating in the erection of the massive central dome made of brick and layers of lime mortar."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz",
+     "tier": 2,
+     "quote": "The dome is 9 ft (2.7 m) thick at its apex and widens to a thickness of 10 ft (3.0 m) at its base, and is made of bricks of varying size cemented with layers of lime mortar."
+    }
+   ]
+  },
+  {
+   "id": "fact-9",
+   "statement": "The engineering design of the central dome achieves its structural integrity without the use of metal tension rings.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz",
+     "tier": 2,
+     "quote": "Paul's Cathedral in London, the central dome of the Gol Gumbaz does not make use of metal tension rings."
+    }
+   ]
+  },
+  {
+   "id": "fact-10",
+   "statement": "The conceptual origin of the pendentive support system supporting the dome is attributed to Central Asian architectural traditions.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz",
+     "tier": 2,
+     "quote": "The conceptual origin of the Gol Gumbaz's pendentive support system is generally attributed to Central Asia, from where it likely spread to the Deccan via Persia during the 14th and 15th centuries."
+    }
+   ]
+  },
+  {
+   "id": "fact-11",
+   "statement": "Construction of the mausoleum began in the early 17th century and ceased in 1656 upon Mohammad Adil Shah's death, leaving several decorative elements unfinished.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz",
+     "tier": 2,
+     "quote": "Construction of the monument began in the early 17th century following Adil Shah's ascension to the throne, and halted in 1656 after his death; at the time, the structure was not yet fully complete, with several decorative elements remaining unfinished."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz",
+     "tier": 2,
+     "quote": "Construction of the Gol Gumbaz began during the early years of Mohammed Adil Shah's reign, and continued until his death in 1656."
+    }
+   ]
+  },
+  {
+   "id": "fact-12",
+   "statement": "The total width of the mausoleum measures 205 feet (62 meters), flanked by octagonal minarets at each corner.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, the total width of the mausoleum measures 205 feet (62 meters), flanked by octagonal minarets at each corner.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz",
+     "tier": 2,
+     "quote": "The Gol Gumbaz was built in three distinct stages, beginning with the construction of the foundation and a raised platform at its center, followed by the building of the four exterior basalt walls joined by octagonal minarets at each corner, and culminating in the erection of the massive central dome made of brick and layers of lime mortar."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz",
+     "tier": 2,
+     "quote": "The total width of the mausoleum, including the minarets at each corner, is 205 ft (62 m), and is topped by a hemispherical dome approximately 144 ft (44 m) in diameter."
+    }
+   ]
+  },
+  {
+   "id": "fact-13",
+   "statement": "A prominent cornice supported by corbels projects 11.5 feet (3.5 meters) outward from each exterior wall.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, a prominent cornice supported by corbels projects 11.5 feet (3.5 meters) outward from each exterior wall.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz",
+     "tier": 2,
+     "quote": "A large cornice projects 11.5 ft (3.5 m) from each wall of the building, and is supported by corbels."
+    }
+   ]
+  },
+  {
+   "id": "fact-14",
+   "statement": "Historians speculate that the Abyssinian architect Malik Yaqut played a significant role in designing the Gol Gumbaz.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz",
+     "tier": 2,
+     "quote": "While the chief architect of the mausoleum is not known from any contemporary inscriptions, historians have speculated that Malik Yaqut, an Abyssinian slave architect who oversaw the completion of the Jamiya Masjid during Mohammed's reign, played a significant role in the design of the Gol Gumbaz."
+    }
+   ]
+  },
+  {
+   "id": "fact-15",
+   "statement": "Engineers repaired radial cracking in the dome by applying a 6.5-centimeter (2.6-inch) layer of gunite to the exterior in 1937 and to the interior surface in 1949.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, engineers repaired radial cracking in the dome by applying a 6.5-centimeter (2.6-inch) layer of gunite to the exterior in 1937 and to the interior surface in 1949.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz",
+     "tier": 2,
+     "quote": "The administration also repaired a damaged cornice on the eastern side of the Gol Gumbaz in 1900, and performed further repair work of the monument's central dome in 1937, which had begun to show radial cracks and signs of damage due to rainwater seepage."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz",
+     "tier": 2,
+     "quote": "Officials attempted to waterproof the dome and repair the cracked sections by covering the exterior with a 6.5 cm (2.6 in) thick layer of gunite, and repeated the process on the interior surface of the dome in 1949."
+    }
+   ]
+  }
+ ],
+ "dropped": [],
+ "sources": [
+  {
+   "title": "Peer-reviewed journal article (Journal of Optics): Nonlinear and quantum optics with whispering gallery resonators",
+   "url": "https://doi.org/10.1088/2040-8978/18/12/123002",
+   "tier": 3
+  },
+  {
+   "title": "Scholarly work: Acoustics, Echoes, and Whispering Galleries in Romantic Literature",
+   "url": "https://doi.org/10.1093/oso/9780192843777.003.0008",
+   "tier": 3
+  },
+  {
+   "title": "Wikipedia: Gol Gumbaz",
+   "url": "https://en.wikipedia.org/wiki/Gol_Gumbaz",
+   "tier": 2
+  },
+  {
+   "title": "Wikipedia: Bijapur",
+   "url": "https://en.wikipedia.org/wiki/Bijapur",
+   "tier": 2
+  },
+  {
+   "title": "whc.unesco.org",
+   "url": "https://whc.unesco.org/en/tentativelists/5887/",
+   "tier": 1
+  },
+  {
+   "title": "doi.org",
+   "url": "https://doi.org/10.1007/s12040-018-0917-4",
+   "tier": 3
+  },
+  {
+   "title": "doi.org",
+   "url": "https://doi.org/10.1007%2Fs12040-018-0917-4",
+   "tier": 3
+  },
+  {
+   "title": "vijayapura.nic.in",
+   "url": "https://vijayapura.nic.in/en/tourist-place/gol-gumbaz/",
+   "tier": 3
+  },
+  {
+   "title": "dsal.uchicago.edu",
+   "url": "https://dsal.uchicago.edu/cgi-bin/app/platts_query.py?qs=%DA%AF%D9%86%D8%A8%D8%AF&searchhws=yes",
+   "tier": 1
+  },
+  {
+   "title": "doi.org",
+   "url": "https://doi.org/10.1007%2Fs00004-010-0013-9",
+   "tier": 3
+  }
+ ],
+ "rules_version": 2
+}

@@ -1,10 +1,10 @@
 """
 src/visual_engine.py
 ====================
-Scene sequencing and the locked Variant B thumbnail engine.
+Scene sequencing and the branded thumbnail variant engine.
 1. Resolves topic-specific scene media (images, plus an optional motion hook clip).
    A topic without its own media fails fast instead of borrowing another topic's imagery.
-2. Renders the Variant B (85% opacity halo) cover in two formats:
+2. Renders the cover variants with bold display type in two formats:
    - 1080x1920 (9:16 Reel cover)
    - 1080x1080 (1:1 Instagram profile-grid crop)
 """
@@ -13,19 +13,16 @@ import logging
 from pathlib import Path
 from typing import List, Dict, Any, Tuple
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
 from .config import (
     ASSETS_DIR,
     MIN_SCENE_IMAGES,
-    THUMB_EYEBROW_FONT_SIZE,
-    THUMB_TITLE_FONT_SIZE,
-    THUMB_TAGLINE_FONT_SIZE,
     VIDEO_WIDTH,
     VIDEO_HEIGHT,
 )
 from .credits import CONTACT_SHEET, CREDITS_FILE, load_credits
-from .typography import cover_crop, fit_font, fit_line, get_font, is_video, spoken_units, text_size
+from .typography import cover_crop, fit_font, get_font, is_video, spoken_units, text_size
 
 log = logging.getLogger(__name__)
 
@@ -33,7 +30,6 @@ log = logging.getLogger(__name__)
 from . import brand as _brand
 GOLD = _brand.rgba(_brand.GOLD)
 WHITE = _brand.rgba(_brand.BONE)
-SAFE_TEXT_WIDTH = VIDEO_WIDTH - 2 * 110
 COVER_STYLES = ("badge", "lower_third", "minimal", "depth_sandwich")
 
 class MissingAssetsError(FileNotFoundError):
@@ -54,22 +50,17 @@ def grid_crop(cover: Image.Image) -> Image.Image:
     return cover.crop((0, top, VIDEO_WIDTH, top + VIDEO_WIDTH))
 
 
-def _draw(draw, lay, name: str, xy, text: str, font, fill, anchor: str):
-    """Draws one line and records its measured box; None for an empty line."""
-    if not text:
-        return None
-    draw.text(xy, text, font=font, fill=fill, anchor=anchor)
-    box = draw.textbbox(xy, text, font=font, anchor=anchor)
-    return lay.add(name, box) if lay is not None else box
-
-
 def redraw_cover(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
     """Draws a cover again with the tighter fit, from its kept recipe, in place (still_vision: the look
     reported its text cut off or overlapping); the profile-grid copy is cut again from the main cover."""
     from . import still_layout
     engine = VisualEngine()
     engine._text_cy = int(recipe.get("text_cy") or VIDEO_HEIGHT // 2)
-    im = cover_crop(Path(recipe["hero"]), (VIDEO_WIDTH, VIDEO_HEIGHT))
+    with Image.open(recipe["hero"]) as source:
+        engine._hero_source = ImageOps.exif_transpose(source).convert("RGBA")
+    from .cover_design import reviewed_focus
+    engine._hero_focus = reviewed_focus(Path(recipe["hero"]), recipe.get("focus"))
+    im = ImageOps.fit(engine._hero_source, (VIDEO_WIDTH, VIDEO_HEIGHT), Image.Resampling.LANCZOS)
     render = {"lower_third": engine._cover_lower_third, "minimal": engine._cover_minimal,
               "depth_sandwich": engine._cover_depth_sandwich}.get(recipe.get("style"), engine._cover_badge)
     lay = still_layout.Layout("cover", (VIDEO_WIDTH, VIDEO_HEIGHT), cover_text_zone(), tight=True)
@@ -81,10 +72,14 @@ def redraw_cover(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
     out.save(tmp, quality=95)
     import os
     os.replace(tmp, path)
+    from .cover_design import delivered_contrast
+    delivered_contrast(lay, path)
     if path.name == "thumbnail_cover.jpg":
         grid_crop(out).save(path.with_name("thumbnail_profile_grid.jpg"), quality=95)
     prior = still_layout.load(path) or {}
-    return still_layout.save(path, lay, recipe, int(prior.get("attempts", 1)) + 1)
+    return still_layout.save(path, lay, {**recipe, "focus": engine._hero_focus,
+                                        "composition": lay.meta.get("composition")},
+                             int(prior.get("attempts", 1)) + 1)
 
 
 def calm_center_y(im: Image.Image, candidates=(760, 960, 1160), band: int = 440) -> int:
@@ -239,8 +234,8 @@ class VisualEngine:
         """Cover in one of COVER_STYLES (rotated per run so neighbouring grid posts differ).
         Every layout keeps its text inside the centre 1080x1080 square, which survives both the
         1:1 and the 3:4 profile-grid crops, and draws every line of its copy (eyebrow, title, tagline).
-        Also renders the complete 3-Variant Thumbnail Suite (Forensic Blueprint, Discovery Intrigue,
-        Cinematic Minimal) for human review and A/B selection. Each cover is measured and checked after
+        Also renders the complete 3-Variant Thumbnail Suite (Evidence Plate, Discovery,
+        Cinema) for human review and A/B selection. Each cover is measured and checked after
         drawing (still_layout); a failing one is drawn once more with the tighter fit."""
         output_dir.mkdir(parents=True, exist_ok=True)
         out_916_path = output_dir / "thumbnail_cover.jpg"
@@ -251,16 +246,24 @@ class VisualEngine:
             copy["badge"] = extract_curiosity_badge(script_payload)
         copy = _in_spoken_units(copy, script_payload)
 
-        im = cover_crop(hero_image_path, (VIDEO_WIDTH, VIDEO_HEIGHT))
-        self._text_cy = calm_center_y(im)  # badge/minimal titles sit where the photo is calmest
+        with Image.open(hero_image_path) as source:
+            self._hero_source = ImageOps.exif_transpose(source).convert("RGBA")
+        from .cover_design import reviewed_focus
+        self._hero_focus = reviewed_focus(Path(hero_image_path))
+        im = ImageOps.fit(self._hero_source, (VIDEO_WIDTH, VIDEO_HEIGHT), Image.Resampling.LANCZOS)
+        self._text_cy = VIDEO_HEIGHT // 2  # legacy recipe field; photo and text now have separate spaces
 
         def save(path: Path, chosen: str) -> Image.Image:
             out, lay, attempts = self._render_checked(im, copy, chosen)
             out = out.convert("RGB")
             out.save(path, quality=95)
+            from .cover_design import delivered_contrast
+            delivered_contrast(lay, path)
             from . import still_layout
             still_layout.save(path, lay, {"renderer": "visual_engine.redraw_cover", "hero": str(hero_image_path),
-                                          "copy": copy, "style": chosen, "text_cy": self._text_cy}, attempts)
+                                          "copy": copy, "style": chosen, "text_cy": self._text_cy,
+                                          "focus": self._hero_focus,
+                                          "composition": lay.meta.get("composition")}, attempts)
             return out
 
         # The 3-variant 9:16 suite is for Reels; a documentary (variants=False) uses its 16:9 thumbnail.
@@ -286,225 +289,24 @@ class VisualEngine:
             return render(im.copy(), copy, lay=lay, tight=tight), lay
         return still_layout.drawn(draw)
 
-    @staticmethod
-    def _shadowed_text(im: Image.Image, xy, text: str, font, fill, anchor: str) -> Image.Image:
-        """Text with a soft drop shadow, for layouts without a backing box."""
-        shadow = Image.new("RGBA", im.size, (0, 0, 0, 0))
-        ImageDraw.Draw(shadow).text((xy[0] + 3, xy[1] + 5), text, font=font, fill=(0, 0, 0, 200), anchor=anchor)
-        im = Image.alpha_composite(im, shadow.filter(ImageFilter.GaussianBlur(8)))
-        ImageDraw.Draw(im).text(xy, text, font=font, fill=fill, anchor=anchor)
-        return im
-
-    @staticmethod
-    def _fit_copy(draw, copy: Dict[str, str], tight: bool, title_family: str, title_size: int, eye_size: int,
-                  tag_size: int, lay=None, tag_width: int = SAFE_TEXT_WIDTH):
-        """The cover's four lines fitted with the fonts' real metrics: one title size for both lines (down to
-        44 px, then shortened at a word with an ellipsis), the eyebrow and tagline each on one line."""
-        k = 0.85 if tight else 1.0
-        eyebrow, font_eye, s_e = fit_line(draw, copy.get("eyebrow", "").upper(), "Montserrat", int(eye_size * k), SAFE_TEXT_WIDTH, 20)
-        t_min = 40 if tight else 44   # a smaller title before a shortened one (56 px left a 28-letter line off the canvas)
-        l1, l2 = copy.get("line1", "").upper(), copy.get("line2", "").upper()
-        size = min(fit_line(draw, l1, title_family, int(title_size * k), SAFE_TEXT_WIDTH, t_min, quiet=True)[1].size,
-                   fit_line(draw, l2, title_family, int(title_size * k), SAFE_TEXT_WIDTH, t_min, quiet=True)[1].size)
-        l1, font_title, s1 = fit_line(draw, l1, title_family, size, SAFE_TEXT_WIDTH, size)
-        l2, _, s2 = fit_line(draw, l2, title_family, size, SAFE_TEXT_WIDTH, size)
-        tagline, font_tag, s_t = fit_line(draw, copy.get("tagline", "").upper(), "Montserrat", int(tag_size * k), tag_width, 22)
-        if lay is not None:
-            lay.shortened = [n for n, s in (("eyebrow", s_e), ("title_1", s1), ("title_2", s2), ("tagline", s_t)) if s]
-        return eyebrow, l1, l2, tagline, font_eye, font_title, font_tag
-
     def _cover_lower_third(self, im: Image.Image, copy: Dict[str, str], lay=None, tight: bool = False) -> Image.Image:
-        """Cinematic: dark gradient rising from the bottom of the square, left-aligned title, the tagline under
-        it (it was left out of this layout, so Richat 2's cover had no "MAURITANIA'S BULLSEYE", 2026-10-26)."""
-        square_bottom = VIDEO_HEIGHT // 2 + VIDEO_WIDTH // 2
-        grad = Image.new("L", (1, VIDEO_HEIGHT), 0)
-        for y in range(VIDEO_HEIGHT):  # 0 above the middle, up to ~80% at the square's bottom and below
-            grad.putpixel((0, y), int(205 * min(1.0, max(0.0, (y - VIDEO_HEIGHT * 0.45) / (square_bottom - VIDEO_HEIGHT * 0.45)))))
-        shade = Image.new("RGBA", im.size, (0, 0, 0, 255))
-        shade.putalpha(grad.resize(im.size))
-        im = Image.alpha_composite(im, shade)
-        draw = ImageDraw.Draw(im)
-        x0 = 110
-        eyebrow, line1, line2, tagline, font_eye, font_title, font_tag = self._fit_copy(
-            draw, copy, tight, "Cinzel", 118, 34, 34, lay, tag_width=SAFE_TEXT_WIDTH)
-        size = font_title.size
-        zone_bottom = cover_text_zone()[3]
-        y2 = square_bottom - 150  # clear of the square crop's bottom edge
-        if tagline:  # the tagline's row under the title, inside the square: the block rises if it must
-            tag_box = draw.textbbox((x0, y2 + size // 2 + 44), tagline, font=font_tag, anchor="lm")
-            y2 -= max(0, tag_box[3] - zone_bottom)
-        y1 = y2 - size - 10
-        # Each line placed from the measured box under it, not the font size: an accented capital ("ÉPHÈSE")
-        # rises above the cap height and overlapped the line above on every redraw (review, 2026-10-28).
-        if line1 and line2:
-            top2 = draw.textbbox((x0, y2), line2, font=font_title, anchor="lm")[1]
-            y1 -= max(0, draw.textbbox((x0, y1), line1, font=font_title, anchor="lm")[3] - (top2 - 10))
-        ye = y1 - size // 2 - 40
-        bbox_eye = draw.textbbox((0, 0), eyebrow, font=font_eye, anchor="lt")
-        th_eye = bbox_eye[3] - bbox_eye[1]
-        if line1 or line2:
-            top1 = draw.textbbox((x0, y1 if line1 else y2), line1 or line2, font=font_title, anchor="lm")[1]
-            ye -= max(0, ye + th_eye // 2 + max(th_eye + 14, 32) // 2 - (top1 - 16))
-        cy_eye = ye + th_eye // 2
-        bar_h = max(th_eye + 14, 32)
-        draw.rectangle([x0, cy_eye - bar_h // 2, x0 + 8, cy_eye + bar_h // 2], fill=GOLD)
-        eye = _draw(draw, lay, "eyebrow", (x0 + 26, cy_eye), eyebrow, font_eye, GOLD, "lm")
-        if lay is not None and eye:
-            lay.elements[-1]["box"][0] = x0  # the gold bar belongs to the eyebrow
-            lay.elements[-1]["box"][1] = min(lay.elements[-1]["box"][1], cy_eye - bar_h // 2)
-            lay.elements[-1]["box"][3] = max(lay.elements[-1]["box"][3], cy_eye + bar_h // 2)
-        _draw(draw, lay, "title_1", (x0, y1), line1, font_title, WHITE, "lm")
-        _draw(draw, lay, "title_2", (x0, y2), line2, font_title, GOLD, "lm")
-        if tagline:
-            _draw(draw, lay, "tagline", (x0, y2 + size // 2 + 44), tagline, font_tag, WHITE, "lm")
-        return im
+        return self._cover_design(im, copy, "lower_third", lay, tight)
 
     def _cover_minimal(self, im: Image.Image, copy: Dict[str, str], lay=None, tight: bool = False) -> Image.Image:
-        """Minimal: no boxes; a thin gold rule, eyebrow, title and tagline with soft shadows, centred."""
-        veil = Image.new("RGBA", im.size, (0, 0, 0, 70))  # light overall dim keeps white text readable
-        im = Image.alpha_composite(im, veil)
-        draw = ImageDraw.Draw(im)
-        eyebrow, line1, line2, tagline, font_eye, font_title, font_tag = self._fit_copy(
-            draw, copy, tight, "Cinzel", 104, 32, 32, lay)
-        size = font_title.size
-        cx, cy = VIDEO_WIDTH // 2, getattr(self, "_text_cy", VIDEO_HEIGHT // 2)
-        zx0, zy0, zx1, zy1 = cover_text_zone()
-        # The whole stack, rule to tagline, inside the square: measured, then moved in if it reaches an edge.
-        top, bottom = cy - size - 74, cy + size // 2 + 40 + (size // 2 + 30 + 2 * font_tag.size if tagline else size // 2)
-        cy += max(0, zy0 - top) - max(0, bottom - zy1)
-        draw.line([cx - 70, cy - size - 70, cx + 70, cy - size - 70], fill=GOLD, width=4)
-        if lay is not None:
-            lay.add("rule", (cx - 70, cy - size - 72, cx + 70, cy - size - 68))
-        rows = [("eyebrow", (cx, cy - size - 30), eyebrow, font_eye, GOLD),
-                ("title_1", (cx, cy - size // 2), line1, font_title, WHITE),
-                ("title_2", (cx, cy + size // 2 + 40), line2, font_title, WHITE)]
-        if tagline:
-            rows.append(("tagline", (cx, cy + size + 40 + 30 + font_tag.size // 2), tagline, font_tag, GOLD))
-        for name, xy, text, font, fill in rows:
-            if not text:
-                continue
-            if lay is not None:
-                lay.add(name, draw.textbbox(xy, text, font=font, anchor="mm"))
-            im = self._shadowed_text(im, xy, text, font, fill, "mm")
-            draw = ImageDraw.Draw(im)
-        return im
+        return self._cover_design(im, copy, "minimal", lay, tight)
 
     def _cover_depth_sandwich(self, im: Image.Image, copy: Dict[str, str], lay=None, tight: bool = False) -> Image.Image:
-        """Studio-grade 3D depth-layered cover: typography sandwiched between background
-        and foreground architectural elements with warm torchlight rim lighting."""
-        import cv2
-        import numpy as np
-
-        mask, coverage = extract_foreground_mask(im)
-
-        bg = im.convert("RGBA")
-        veil = Image.new("RGBA", bg.size, (10, 14, 18, 90))
-        bg = Image.alpha_composite(bg, veil)
-
-        cx = VIDEO_WIDTH // 2
-        cy = getattr(self, "_text_cy", VIDEO_HEIGHT // 2)
-        cy = max(760, min(1160, cy))
-
-        measure = ImageDraw.Draw(bg)
-        eyebrow, line1, line2, tagline, font_eye, font_title, font_tag = self._fit_copy(
-            measure, copy, tight, "Cinzel", THUMB_TITLE_FONT_SIZE, THUMB_EYEBROW_FONT_SIZE, THUMB_TAGLINE_FONT_SIZE,
-            lay, tag_width=SAFE_TEXT_WIDTH - 68)
-        title_size = font_title.size
-        gap = 14 if tight else 0  # the tighter fit opens the rows a little
-
-        rows = [("eyebrow", (cx, cy - title_size - 40 - gap), eyebrow, font_eye, GOLD, 220),
-                ("title_1", (cx, cy - title_size // 2), line1, font_title, WHITE, 240),
-                ("title_2", (cx, cy + title_size // 2 + 10 + gap), line2, font_title, GOLD, 240)]
-        if tagline:
-            rows.append(("tagline", (cx, cy + title_size + 40 + 2 * gap), tagline, font_tag, WHITE, 220))
-        rows = [r for r in rows if r[2]]
-
-        text_layer = Image.new("RGBA", bg.size, (0, 0, 0, 0))
-        tdraw = ImageDraw.Draw(text_layer)
-
-        shadow_layer = Image.new("RGBA", bg.size, (0, 0, 0, 0))
-        sdraw = ImageDraw.Draw(shadow_layer)
-        for _, (x, y), text, font, _, alpha in rows:
-            sdraw.text((x + 4, y + 6), text, font=font, fill=(0, 0, 0, alpha), anchor="mm")
-        shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(12))
-        bg = Image.alpha_composite(bg, shadow_layer)
-
-        for name, xy, text, font, fill, _ in rows:
-            tdraw.text(xy, text, font=font, fill=fill, anchor="mm")
-            if lay is not None:
-                lay.add(name, tdraw.textbbox(xy, text, font=font, anchor="mm"))
-
-        sandwich = Image.alpha_composite(bg, text_layer)
-
-        if 0.15 <= coverage <= 0.60:
-            text_box_y0 = max(0, cy - title_size - 60)
-            text_box_y1 = min(mask.shape[0], cy + title_size + 60)
-            box_slice = mask[text_box_y0:text_box_y1, :]
-            num_labels, _ = cv2.connectedComponents(box_slice)
-            occlusion = float(np.count_nonzero(box_slice)) / (box_slice.size + 1e-6)
-            # Only composite depth sandwich if mask is a clean, coherent subject (low fragment count)
-            # and occlusion is moderate (<=22%), preventing mottled stone/texture from bleeding over typography
-            if 0.03 <= occlusion <= 0.22 and num_labels <= 12:
-                feathered_mask = cv2.GaussianBlur(mask, (15, 15), 0)
-                fg_alpha = Image.fromarray(feathered_mask, mode="L")
-                fg_im = im.convert("RGBA")
-                fg_im.putalpha(fg_alpha)
-                sandwich = Image.alpha_composite(sandwich, fg_im)
-
-        return sandwich
+        # Retained style ID: the evidence plate replaces the unreliable foreground mask.
+        return self._cover_design(im, copy, "depth_sandwich", lay, tight)
 
     def _cover_badge(self, im: Image.Image, copy: Dict[str, str], lay=None, tight: bool = False) -> Image.Image:
-        """The original Variant B: centred title on an 85% halo, gold-outlined eyebrow and tagline pills."""
-        measure = ImageDraw.Draw(im)
-        eyebrow, line1, line2, tagline, font_eye, font_title, font_tag = self._fit_copy(
-            measure, copy, tight, "Cinzel", THUMB_TITLE_FONT_SIZE, THUMB_EYEBROW_FONT_SIZE, THUMB_TAGLINE_FONT_SIZE,
-            lay, tag_width=SAFE_TEXT_WIDTH - 68)
+        # Retained style ID: discovery now uses a plain kicker and a bold headline.
+        return self._cover_design(im, copy, "badge", lay, tight)
 
-        w_eye, h_eye = text_size(measure, eyebrow, font_eye)
-        w_l1, h_l1 = text_size(measure, line1, font_title)
-        w_l2, h_l2 = text_size(measure, line2, font_title)
-        w_tag, h_tag = text_size(measure, tagline, font_tag) if tagline else (0, 0)
-
-        eye_box_w, eye_box_h = w_eye + 56, h_eye + 28
-        tag_box_w, tag_box_h = (w_tag + 68, h_tag + 32) if tagline else (0, 0)
-        gap_eye, gap_lines, gap_tag = (34, 22, 38) if tight else (28, 16, 32)
-
-        center_y = getattr(self, "_text_cy", VIDEO_HEIGHT // 2)
-        total_h = eye_box_h + gap_eye + h_l1 + gap_lines + h_l2 + (gap_tag + tag_box_h if tagline else 0)
-        zx0, zy0, zx1, zy1 = cover_text_zone()
-        start_y = max(zy0, min(center_y - total_h // 2, zy1 - total_h))  # the whole stack inside the square
-        title_y0 = start_y + eye_box_h + gap_eye
-        title_y1 = title_y0 + h_l1 + gap_lines + h_l2
-        title_cy = (title_y0 + title_y1) // 2
-
-        # Soft-feathered halo behind the title
-        bg_w = max(w_l1, w_l2) + 120
-        bg_h = (title_y1 - title_y0) + 90
-        halo = Image.new("RGBA", (VIDEO_WIDTH, VIDEO_HEIGHT), (0, 0, 0, 0))
-        ImageDraw.Draw(halo).rounded_rectangle(
-            [(VIDEO_WIDTH - bg_w) // 2, title_cy - bg_h // 2, (VIDEO_WIDTH + bg_w) // 2, title_cy + bg_h // 2],
-            radius=30, fill=(0, 0, 0, 160),
-        )
-        im = Image.alpha_composite(im, halo.filter(ImageFilter.GaussianBlur(32)))
-        draw = ImageDraw.Draw(im)
-        cx = VIDEO_WIDTH // 2
-
-        eye_box = [cx - eye_box_w // 2, start_y, cx + eye_box_w // 2, start_y + eye_box_h]
-        draw.rounded_rectangle(eye_box, radius=10, fill=(12, 12, 12, 220), outline=_brand.rgba(_brand.GOLD, 240), width=2)
-        draw.text((cx, start_y + eye_box_h // 2), eyebrow, font=font_eye, fill=GOLD, anchor="mm")
-        if lay is not None:
-            lay.add("eyebrow", eye_box)
-        _draw(draw, lay, "title_1", (cx, title_y0 + h_l1 // 2), line1, font_title, WHITE, "mm")
-        _draw(draw, lay, "title_2", (cx, title_y0 + h_l1 + gap_lines + h_l2 // 2), line2, font_title, GOLD, "mm")
-
-        if tagline:
-            tag_y0 = title_y1 + gap_tag
-            tag_box = [cx - tag_box_w // 2, tag_y0, cx + tag_box_w // 2, tag_y0 + tag_box_h]
-            draw.rounded_rectangle(tag_box, radius=12, fill=(14, 14, 14, 225), outline=_brand.rgba(_brand.GOLD, 240), width=2)
-            draw.text((cx, tag_y0 + tag_box_h // 2), tagline, font=font_tag, fill=WHITE, anchor="mm")
-            if lay is not None:
-                lay.add("tagline", tag_box)
-        return im
+    def _cover_design(self, im, copy, style, lay, tight):
+        from .cover_design import render_cover
+        return render_cover(im, copy, style, getattr(self, "_text_cy", VIDEO_HEIGHT // 2), lay, tight,
+                            source=getattr(self, "_hero_source", None), focus=getattr(self, "_hero_focus", None))
 
     def generate_depth_layered_thumbnail(
         self,

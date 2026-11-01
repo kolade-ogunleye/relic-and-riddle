@@ -1,0 +1,272 @@
+{
+ "topic_id": "gobekli_tepe_enclosure_d",
+ "built_at": "2026-10-23T02:33:08.031252+00:00",
+ "facts": [
+  {
+   "id": "gobekli_tepe_discovery",
+   "statement": "The ancient temple complex of Göbekli Tepe was discovered in southeastern Turkey in 1995.",
+   "kind": "event",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://doi.org/10.4236/ojpp.2024.144059",
+     "tier": 1,
+     "quote": "In 1995, the ancient temple complex of Göbekli Tepe, dating to the 9th millennium BC, was discovered in southeastern Türkiye."
+    }
+   ]
+  },
+  {
+   "id": "gobekli_tepe_radiocarbon_dates",
+   "statement": "Radiocarbon dating indicates the earliest exposed structures at Göbekli Tepe were constructed between 9500 and 9000 BCE.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Göbekli_Tepe",
+     "tier": 2,
+     "quote": "Radiocarbon dating shows that the earliest exposed structures at Göbekli Tepe were built between 9500 and 9000 BCE, towards the end of the Pre-Pottery Neolithic A (PPNA) period."
+    }
+   ]
+  },
+  {
+   "id": "gobekli_tepe_pre_pottery_era",
+   "statement": "The megalithic sanctuary was built by hunter-gatherers during the Pre-Pottery Neolithic age between 9,600 and 8,200 BCE.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://whc.unesco.org/en/list/1572",
+     "tier": 1,
+     "quote": "UNESCO World Heritage Site #1572 (Göbekli Tepe): Located in the Germuş mountains of south-eastern Anatolia, this property presents monumental round-oval and rectangular megalithic structures erected by hunter-gatherers in the Pre-Pottery Neolithic age between 9,600 and 8,200 BCE. These monuments were probably used in connection with rituals, most likely of a funerary nature. Distinctive T-shaped pillars are carved with images of wild animals, providing insight into the way of life and beliefs of people living in Upper Mesopotamia about 11,500 years ago."
+    }
+   ]
+  },
+  {
+   "id": "gobekli_tepe_monumental_architecture",
+   "statement": "The site features monumental round-oval and rectangular structures erected on a rocky mountaintop.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://whc.unesco.org/en/list/1572",
+     "tier": 1,
+     "quote": "UNESCO World Heritage Site #1572 (Göbekli Tepe): Located in the Germuş mountains of south-eastern Anatolia, this property presents monumental round-oval and rectangular megalithic structures erected by hunter-gatherers in the Pre-Pottery Neolithic age between 9,600 and 8,200 BCE. These monuments were probably used in connection with rituals, most likely of a funerary nature. Distinctive T-shaped pillars are carved with images of wild animals, providing insight into the way of life and beliefs of people living in Upper Mesopotamia about 11,500 years ago."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Göbekli_Tepe",
+     "tier": 2,
+     "quote": "Göbekli Tepe, a monumental complex built on a rocky mountaintop with no clear evidence of agricultural cultivation, has played a prominent role in this debate."
+    }
+   ]
+  },
+  {
+   "id": "gobekli_tepe_t_shaped_pillars",
+   "statement": "The enclosures are defined by distinctive T-shaped stone pillars carved with images of wild animals.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://whc.unesco.org/en/list/1572",
+     "tier": 1,
+     "quote": "UNESCO World Heritage Site #1572 (Göbekli Tepe): Located in the Germuş mountains of south-eastern Anatolia, this property presents monumental round-oval and rectangular megalithic structures erected by hunter-gatherers in the Pre-Pottery Neolithic age between 9,600 and 8,200 BCE. These monuments were probably used in connection with rituals, most likely of a funerary nature. Distinctive T-shaped pillars are carved with images of wild animals, providing insight into the way of life and beliefs of people living in Upper Mesopotamia about 11,500 years ago."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Göbekli_Tepe",
+     "tier": 2,
+     "quote": "The stone pillars in the enclosures at Göbekli Tepe are T-shaped, similar to other Pre-Pottery Neolithic sites in the region."
+    }
+   ]
+  },
+  {
+   "id": "gobekli_tepe_flint_artifacts",
+   "statement": "Flint artifacts litter the entire site, stretching from the ridge-top down across the slopes.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Göbekli_Tepe",
+     "tier": 2,
+     "quote": "Göbekli Tepe is littered with flint artifacts, from the ridge-top site to the slopes."
+    }
+   ]
+  },
+  {
+   "id": "gobekli_tepe_pillar_43_calendar",
+   "statement": "V-symbols carved on Pillar 43 in Enclosure D have been interpreted as a lunisolar calendar system with 11 epagomenal days.",
+   "kind": "number",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://doi.org/10.1080/1751696x.2024.2373876",
+     "tier": 1,
+     "quote": "Here, an earlier astronomical interpretation for Gobekli Tepe’s symbolism is supported and extended by showing how V-symbols on Pillar 43 in Enclosure D can be interpreted in terms of a lunisolar calendar system with 11 epagomenal days, which would make it the oldest known example of its type."
+    }
+   ]
+  },
+  {
+   "id": "gobekli_tepe_settlement_interpretation_debate",
+   "statement": "Archaeologists debate whether Göbekli Tepe was purely a nomad sanctuary or a permanent settlement with domestic structures and water management.",
+   "kind": "other",
+   "disputed": true,
+   "hedge": "Early excavators viewed the complex strictly as a sanctuary for nomads, though later findings suggest a settlement with domestic tools and cereal processing.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Göbekli_Tepe",
+     "tier": 2,
+     "quote": "Findings published in 2019 suggest a settlement at Göbekli Tepe, with domestic structures, extensive cereal processing, a water supply, and tools associated with daily life."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Göbekli_Tepe",
+     "tier": 2,
+     "quote": "This contrasts with a previous interpretation of the site as a sanctuary used by nomads, with few or no permanent inhabitants."
+    }
+   ]
+  },
+  {
+   "id": "gobekli_tepe_terrazzo_floors",
+   "statement": "The younger complexes at Göbekli Tepe feature smoothed terrazzo floors carefully hewn directly out of the bedrock.",
+   "kind": "other",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Göbekli_Tepe",
+     "tier": 2,
+     "quote": "Its floor has been carefully hewn out of the bedrock and smoothed, reminiscent of the terrazzo floors of the younger complexes at Göbekli Tepe."
+    }
+   ]
+  },
+  {
+   "id": "gobekli_tepe_landslides",
+   "statement": "The stone enclosures lie more than 10 meters below the highest areas of the settlement and suffered multiple landslides during occupation.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, the stone enclosures lie more than 10 meters below the highest areas of the settlement and suffered multiple landslides during occupation.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Göbekli_Tepe",
+     "tier": 2,
+     "quote": "The enclosures, lying over 10 metres (33 ft) below the highest areas of the settlement, suffered several landslides during the occupation period of Göbekli Tepe."
+    }
+   ]
+  },
+  {
+   "id": "gobekli_tepe_labor_estimates",
+   "statement": "Experimental archaeology indicates that between 12 and 24 workers could have erected all exposed Pre-Pottery Neolithic B structures in under four months.",
+   "kind": "number",
+   "disputed": true,
+   "hedge": "by one estimate, experimental archaeology indicates that between 12 and 24 workers could have erected all exposed Pre-Pottery Neolithic B structures in under four months.",
+   "evidence": [
+    {
+     "url": "https://en.wikipedia.org/wiki/Göbekli_Tepe",
+     "tier": 2,
+     "quote": "Experiments at Göbekli Tepe itself have suggested that all the PPNB structures exposed could have been built by 12–24 people in less than four months, allowing for time spent quarrying stone and gathering, and preparing food."
+    }
+   ]
+  },
+  {
+   "id": "gobekli_tepe_tas_tepeler_network",
+   "statement": "Göbekli Tepe sits centrally among a network of contemporary Pre-Pottery Neolithic sites known as Taş Tepeler.",
+   "kind": "name",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://doi.org/10.1080/1751696x.2024.2373876",
+     "tier": 1,
+     "quote": "It is located centrally among a group of Taş Tepeler pre-pottery Neolithic sites which include Karahan Tepe and Sayburç."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Göbekli_Tepe",
+     "tier": 2,
+     "quote": "Göbekli Tepe is near the village of Örencik in Şanliurfa Province in the Taş Tepeler ('Stone Hills'), in the foothills of the Taurus Mountains."
+    }
+   ]
+  },
+  {
+   "id": "gobekli_tepe_unesco_status",
+   "statement": "UNESCO inscribed Göbekli Tepe as a World Heritage Site in 2018, recognizing it as one of humanity's earliest manifestations of monumental architecture.",
+   "kind": "date",
+   "disputed": false,
+   "hedge": "",
+   "evidence": [
+    {
+     "url": "https://whc.unesco.org/en/list/1572",
+     "tier": 1,
+     "quote": "Inscribed on the UNESCO World Heritage List in 2018 under criteria (i)(ii)(iv)."
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Göbekli_Tepe",
+     "tier": 2,
+     "quote": "Göbekli Tepe was designated a UNESCO World Heritage Site in 2018, recognising its outstanding universal value as \"one of the first manifestations of human-made monumental architecture\"."
+    }
+   ]
+  }
+ ],
+ "dropped": [],
+ "sources": [
+  {
+   "title": "UNESCO World Heritage Centre - Göbekli Tepe",
+   "url": "https://whc.unesco.org/en/list/1572",
+   "tier": 1
+  },
+  {
+   "title": "Peer-reviewed journal article (Time and Mind): Representations of calendars and time at Göbekli Tepe and Karahan Tepe support an astronomical interpretation of their symbolism",
+   "url": "https://doi.org/10.1080/1751696x.2024.2373876",
+   "tier": 3
+  },
+  {
+   "title": "Peer-reviewed journal article (Open Journal of Philosophy): From Göbekli Tepe to the Nebelivka Temple: A Comparative Analysis of the Structural Components of the Oldest Temple Complexes in Asia and Europe",
+   "url": "https://doi.org/10.4236/ojpp.2024.144059",
+   "tier": 3
+  },
+  {
+   "title": "Wikipedia: Neolithic in the Near East",
+   "url": "https://en.wikipedia.org/wiki/Neolithic_in_the_Near_East",
+   "tier": 2
+  },
+  {
+   "title": "Wikipedia: Göbekli Tepe",
+   "url": "https://en.wikipedia.org/wiki/Göbekli_Tepe",
+   "tier": 2
+  },
+  {
+   "title": "www.persee.fr",
+   "url": "https://www.persee.fr/doc/paleo_0153-9345_2011_num_37_1_5439",
+   "tier": 3
+  },
+  {
+   "title": "www.persee.fr",
+   "url": "https://www.persee.fr/doc/paleo_0153-9345_2013_num_39_2_5519",
+   "tier": 3
+  },
+  {
+   "title": "doi.org",
+   "url": "https://doi.org/10.3406%2Fpaleo.2011.5439",
+   "tier": 3
+  },
+  {
+   "title": "doi.org",
+   "url": "https://doi.org/10.4312%2Fdp.32.1",
+   "tier": 3
+  },
+  {
+   "title": "doi.org",
+   "url": "https://doi.org/10.4312%2Fdp.41.2",
+   "tier": 3
+  },
+  {
+   "title": "journals.uni-lj.si",
+   "url": "https://journals.uni-lj.si/DocumentaPraehistorica/article/view/32.1",
+   "tier": 3
+  }
+ ],
+ "rules_version": 2
+}

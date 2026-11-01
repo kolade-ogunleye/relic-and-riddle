@@ -1,0 +1,71 @@
+{
+ "thumbnail_cover.jpg": {
+  "kind": "cover",
+  "size": [
+   1080,
+   1920
+  ],
+  "zone": [
+   60,
+   440,
+   1020,
+   1480
+  ],
+  "tight": false,
+  "elements": [
+   {
+    "name": "eyebrow",
+    "box": [
+     337,
+     606,
+     743,
+     658
+    ]
+   },
+   {
+    "name": "title_1",
+    "box": [
+     241,
+     682,
+     838,
+     741
+    ]
+   },
+   {
+    "name": "title_2",
+    "box": [
+     116,
+     758,
+     961,
+     818
+    ]
+   },
+   {
+    "name": "tagline",
+    "box": [
+     266,
+     853,
+     814,
+     915
+    ]
+   }
+  ],
+  "shortened": [],
+  "protected": [],
+  "problems": [],
+  "attempts": 1,
+  "recipe": {
+   "renderer": "visual_engine.redraw_cover",
+   "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\cache\\upscaled\\22_commons_466e53f5c2d25a35.jpg",
+   "copy": {
+    "eyebrow": "ANCIENT ACOUSTICS",
+    "line1": "THE 144-FOOT",
+    "line2": "WHISPERING DOME",
+    "tagline": "BUILT WITHOUT RINGS",
+    "badge": "EST. 144 FT (44 M)"
+   },
+   "style": "badge",
+   "text_cy": 760
+  }
+ }
+}

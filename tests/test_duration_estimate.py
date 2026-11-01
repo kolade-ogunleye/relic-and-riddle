@@ -77,7 +77,8 @@ def test_measurement_speaks_what_the_voiceover_will_speak(monkeypatch, real_meas
     monkeypatch.setattr(audio_engine.AudioEngine, "get_duration", staticmethod(lambda p: 47.5))
     raw = "It ran 280 feet (85 m) down."
     assert real_measure(raw) == 47.5
-    assert seen["text"] == audio_engine.normalize_speech_text(raw)
+    expected_text = audio_engine.VoiceProsody.prepare_speech_text(audio_engine.normalize_speech_text(raw), "edge-tts")
+    assert seen["text"] == expected_text
     assert (seen["voice"], seen["rate"], seen["pitch"]) == (config.NARRATOR_VOICE, config.NARRATOR_RATE, config.NARRATOR_PITCH)
 
 

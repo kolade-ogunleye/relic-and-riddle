@@ -225,6 +225,20 @@ class PipelineDatabase:
                 file_type TEXT DEFAULT 'photo',
                 updated_at TEXT NOT NULL
             )""")
+            conn.execute("""
+            CREATE TABLE IF NOT EXISTS telegram_cards (
+                card_id TEXT PRIMARY KEY,
+                topic_id INTEGER NOT NULL,
+                message_id INTEGER NOT NULL,
+                revision INTEGER NOT NULL DEFAULT 1,
+                card_kind TEXT NOT NULL,
+                payload TEXT NOT NULL,
+                expires_at TEXT,
+                updated_at TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )""")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_cards_topic ON telegram_cards(topic_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_telegram_cards_expires ON telegram_cards(expires_at)")
         self._seed_topics_from_json()
 
     @staticmethod
@@ -990,3 +1004,113 @@ class PipelineDatabase:
                 "file_id = excluded.file_id, file_type = excluded.file_type, updated_at = excluded.updated_at",
                 (cache_key, file_id, file_type, now)
             )
+
+    # ------------------------------------------------------------ Telegram v2 Card Store & CAS
+    def put_telegram_card(self, card_id: str, topic_id: int, message_id: int, card_kind: str,
+                          payload: Dict[str, Any], expires_at: Optional[str] = None,
+                          revision: int = 1) -> Dict[str, Any]:
+        """Stores or replaces a live card representation in SQLite."""
+        now = _now()
+        payload_json = json.dumps(payload, ensure_ascii=False)
+        with self._conn() as conn:
+            conn.execute("""
+                INSERT INTO telegram_cards (card_id, topic_id, message_id, revision, card_kind, payload, expires_at, updated_at, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(card_id) DO UPDATE SET
+                    topic_id = excluded.topic_id,
+                    message_id = excluded.message_id,
+                    revision = excluded.revision,
+                    card_kind = excluded.card_kind,
+                    payload = excluded.payload,
+                    expires_at = excluded.expires_at,
+                    updated_at = excluded.updated_at
+            """, (card_id, int(topic_id), int(message_id), int(revision), card_kind, payload_json, expires_at, now, now))
+        return self.get_telegram_card(card_id)
+
+    def get_telegram_card(self, card_id: str) -> Optional[Dict[str, Any]]:
+        """Fetches a card record with deserialized payload."""
+        with self._conn() as conn:
+            row = conn.execute("SELECT * FROM telegram_cards WHERE card_id = ?", (card_id,)).fetchone()
+            if not row:
+                return None
+            data = dict(row)
+            try:
+                data["payload"] = json.loads(data["payload"])
+            except Exception:
+                pass
+            return data
+
+    def list_telegram_cards(self, topic_id: Optional[int] = None, card_kind: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Lists cards, optionally filtered by topic or card kind."""
+        query = "SELECT * FROM telegram_cards WHERE 1=1"
+        params = []
+        if topic_id is not None:
+            query += " AND topic_id = ?"
+            params.append(int(topic_id))
+        if card_kind is not None:
+            query += " AND card_kind = ?"
+            params.append(card_kind)
+        query += " ORDER BY updated_at DESC"
+        with self._conn() as conn:
+            rows = conn.execute(query, tuple(params)).fetchall()
+            results = []
+            for r in rows:
+                d = dict(r)
+                try:
+                    d["payload"] = json.loads(d["payload"])
+                except Exception:
+                    pass
+                results.append(d)
+            return results
+
+    def cas_update_telegram_card(self, card_id: str, old_revision: int, new_payload: Dict[str, Any],
+                                 message_id: Optional[int] = None, expires_at: Optional[str] = None) -> bool:
+        """Atomically updates a card's payload and increments revision iff revision == old_revision."""
+        now = _now()
+        payload_json = json.dumps(new_payload, ensure_ascii=False)
+        with self._conn() as conn:
+            if message_id is not None:
+                cur = conn.execute("""
+                    UPDATE telegram_cards
+                    SET revision = revision + 1, payload = ?, message_id = ?, expires_at = ?, updated_at = ?
+                    WHERE card_id = ? AND revision = ?
+                """, (payload_json, int(message_id), expires_at, now, card_id, int(old_revision)))
+            else:
+                cur = conn.execute("""
+                    UPDATE telegram_cards
+                    SET revision = revision + 1, payload = ?, expires_at = COALESCE(?, expires_at), updated_at = ?
+                    WHERE card_id = ? AND revision = ?
+                """, (payload_json, expires_at, now, card_id, int(old_revision)))
+            return cur.rowcount > 0
+
+    def delete_telegram_card(self, card_id: str) -> bool:
+        """Deletes a card record from the store."""
+        with self._conn() as conn:
+            cur = conn.execute("DELETE FROM telegram_cards WHERE card_id = ?", (card_id,))
+            return cur.rowcount > 0
+
+    def sweep_expired_telegram_cards(self, max_age_hours: float = 40.0) -> List[Dict[str, Any]]:
+        """Returns cards that have passed their expires_at OR exceed max_age_hours since created_at."""
+        from datetime import timedelta
+        now_dt = datetime.now(timezone.utc)
+        now_str = now_dt.isoformat()
+        cutoff_str = (now_dt - timedelta(hours=max_age_hours)).isoformat()
+        with self._conn() as conn:
+            rows = conn.execute("""
+                SELECT * FROM telegram_cards
+                WHERE (expires_at IS NOT NULL AND expires_at <= ?)
+                   OR (created_at <= ?)
+            """, (now_str, cutoff_str)).fetchall()
+            expired = []
+            for r in rows:
+                d = dict(r)
+                try:
+                    d["payload"] = json.loads(d["payload"])
+                except Exception:
+                    pass
+                expired.append(d)
+            if expired:
+                ids = [d["card_id"] for d in expired]
+                placeholders = ",".join("?" * len(ids))
+                conn.execute(f"DELETE FROM telegram_cards WHERE card_id IN ({placeholders})", ids)
+            return expired

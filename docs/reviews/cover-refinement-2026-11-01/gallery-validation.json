@@ -1,0 +1,13 @@
+{
+  "browser": "Microsoft Edge, headless",
+  "combinations": 48,
+  "comparison_pairs": 16,
+  "script_errors": [],
+  "phone_image_width": 180,
+  "responsive_widths": [
+    390,
+    768,
+    1440
+  ],
+  "horizontal_overflow": false
+}

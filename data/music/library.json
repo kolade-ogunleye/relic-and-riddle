@@ -11,7 +11,7 @@
     "mood": "mysterious",
     "duration_ms": 69891,
     "reviewed": true,
-    "uses": 68
+    "uses": 72
   },
   {
     "file": "mysterious/mystery_ambient_documentaries_mysterious_42c8b27a.mp3",
@@ -25,7 +25,7 @@
     "mood": "mysterious",
     "duration_ms": 67566,
     "reviewed": true,
-    "uses": 69
+    "uses": 72
   },
   {
     "file": "mysterious/creepy_sadness_749d8bad.mp3",
@@ -39,7 +39,7 @@
     "mood": "mysterious",
     "duration_ms": 152621,
     "reviewed": true,
-    "uses": 68
+    "uses": 72
   },
   {
     "file": "mysterious/space_atmosphere_03_remastered_wav_21aefbca.mp3",
@@ -53,7 +53,7 @@
     "mood": "mysterious",
     "duration_ms": 99277,
     "reviewed": true,
-    "uses": 69
+    "uses": 72
   },
   {
     "file": "epic/epic_orchestra_b80fd751.mp3",
@@ -67,7 +67,7 @@
     "mood": "epic",
     "duration_ms": 217151,
     "reviewed": true,
-    "uses": 2
+    "uses": 5
   },
   {
     "file": "epic/epic_heroic_orchestral_dramatic_mp3_c666607b.mp3",
@@ -81,7 +81,7 @@
     "mood": "epic",
     "duration_ms": 87602,
     "reviewed": true,
-    "uses": 3
+    "uses": 4
   },
   {
     "file": "epic/dramatic_increasing_beeb91cc.mp3",
@@ -95,7 +95,7 @@
     "mood": "epic",
     "duration_ms": 96433,
     "reviewed": true,
-    "uses": 3
+    "uses": 4
   },
   {
     "file": "epic/epic_orchestral_strings_6de166bd.mp3",
@@ -109,7 +109,7 @@
     "mood": "epic",
     "duration_ms": 58483,
     "reviewed": true,
-    "uses": 3
+    "uses": 4
   },
   {
     "file": "melancholic/melancholic_piano_music_mp3_c0c2ed68.mp3",
@@ -179,7 +179,7 @@
     "mood": "tense",
     "duration_ms": 119276,
     "reviewed": true,
-    "uses": 1
+    "uses": 2
   },
   {
     "file": "tense/horror_suspense_drone_texture_a1f075a7.mp3",
@@ -193,7 +193,7 @@
     "mood": "tense",
     "duration_ms": 65730,
     "reviewed": true,
-    "uses": 1
+    "uses": 2
   },
   {
     "file": "tense/rhythmic_suspense_drums_mp3_ccc86b6d.mp3",
@@ -235,7 +235,7 @@
     "mood": "mysterious",
     "duration_ms": 144149,
     "reviewed": true,
-    "uses": 69
+    "uses": 72
   },
   {
     "file": "melancholic/disabled_emotions_suite_part_5_2cb29e99.mp3",
@@ -264,5 +264,75 @@
     "duration_ms": 86292,
     "reviewed": true,
     "uses": 1
+  },
+  {
+    "file": "melancholic/4_moments_reprise_d0aaf1e7.mp3",
+    "title": "4 Moments (Reprise)",
+    "creator": "Keffy Kay",
+    "license": "by",
+    "license_version": "3.0",
+    "license_url": "https://creativecommons.org/licenses/by/3.0/",
+    "source_url": "https://www.jamendo.com/track/710706",
+    "source": "jamendo",
+    "mood": "melancholic",
+    "duration_ms": 271000,
+    "reviewed": true,
+    "uses": 0
+  },
+  {
+    "file": "tense/scaryscape_thrillfeedcussions_wav_a519e572.mp3",
+    "title": "scaryscape_thrillfeedcussions.wav",
+    "creator": "suonho",
+    "license": "by",
+    "license_version": "4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "source_url": "https://freesound.org/people/suonho/sounds/58960",
+    "source": "freesound",
+    "mood": "tense",
+    "duration_ms": 86292,
+    "reviewed": true,
+    "uses": 1
+  },
+  {
+    "file": "epic/epic_symphonic_dubstep_mp3_baa77d3c.mp3",
+    "title": "Epic Symphonic Dubstep.mp3",
+    "creator": "SoundFlakes",
+    "license": "by",
+    "license_version": "4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "source_url": "https://freesound.org/people/SoundFlakes/sounds/523339",
+    "source": "freesound",
+    "mood": "epic",
+    "duration_ms": 121356,
+    "reviewed": false,
+    "uses": 0
+  },
+  {
+    "file": "epic/ww2_1945_action_loop_wav_5d248b6c.mp3",
+    "title": "ww2_1945_action_loop.wav",
+    "creator": "X3nus",
+    "license": "by",
+    "license_version": "4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "source_url": "https://freesound.org/people/X3nus/sounds/565185",
+    "source": "freesound",
+    "mood": "epic",
+    "duration_ms": 96000,
+    "reviewed": false,
+    "uses": 0
+  },
+  {
+    "file": "epic/orchestral_strings_warm_a_wav_c584755a.mp3",
+    "title": "Orchestral Strings, Warm, A.wav",
+    "creator": "InspectorJ",
+    "license": "by",
+    "license_version": "4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "source_url": "https://freesound.org/people/InspectorJ/sounds/402656",
+    "source": "freesound",
+    "mood": "epic",
+    "duration_ms": 53953,
+    "reviewed": false,
+    "uses": 0
   }
 ]

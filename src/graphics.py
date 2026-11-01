@@ -654,9 +654,48 @@ def _wrap(draw: ImageDraw.ImageDraw, text: str, font, width: int) -> List[str]:
     return lines + ([cur] if cur else [])
 
 
-def render_timeline(events: List[Dict[str, Any]], out: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> Optional[Path]:
-    """Timeline: the spine draws down (or across in landscape), then each date appears in order.
-    Entries are evenly spaced: an ordered sequence, not a time scale."""
+def years_between(a: int, b: int) -> int:
+    """Calendar years from year `a` to year `b` (negative years are BC; there is no year 0)."""
+    return (b - a) - (1 if a < 0 < b else 0)
+
+
+def gap_text(a: dict[str, Any], b: dict[str, Any]) -> str:
+    """The elapsed time drawn on the spine between two entries ("1,479 YEARS LATER"; "ABOUT ..." when either
+    date is approximate; "" for less than two years)."""
+    years = years_between(int(a["year"]), int(b["year"]))
+    if years < 2:
+        return ""
+    about = "ABOUT " if (a.get("approximate") or b.get("approximate")) else ""
+    return f"{about}{years:,} YEARS LATER"
+
+
+def spaced_positions(events: list[dict[str, Any]], y_first: float, y_last: float, need: float) -> list[float]:
+    """Each entry's y on the vertical spine: every step at least `need`, and the room left over shared out by the
+    logarithm of the years elapsed, so 2,600 years read longer than 40 without squeezing the recent dates
+    (2026-11-01; evenly spaced before, an ordered list rather than a time scale)."""
+    import math
+    from itertools import pairwise
+    n = len(events)
+    if n < 2:
+        return [y_first]
+    gaps = [math.log10(1 + max(0, years_between(int(a["year"]), int(b["year"]))))
+            for a, b in pairwise(events)]
+    spare = (y_last - y_first) - need * (n - 1)
+    if spare <= 0 or sum(gaps) <= 0:
+        step = (y_last - y_first) / (n - 1)
+        return [y_first + step * k for k in range(n)]
+    ys, y = [y_first], y_first
+    for g in gaps:
+        y += need + spare * g / sum(gaps)
+        ys.append(y)
+    return ys
+
+
+def render_timeline(events: List[Dict[str, Any]], out: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
+                    photo: Path | None = None) -> Optional[Path]:
+    """Timeline: the spine draws down (or across in landscape), then each date appears in order. In 9:16 the
+    entries are spaced by the time between them (spaced_positions), the elapsed years are written on the spine
+    between them, and the topic's photo, blurred and dark, is the ground (`photo`; plain ink without one)."""
     events = sorted(events, key=lambda e: e["year"])[:4]
     if len(events) < 2:
         return None
@@ -748,6 +787,7 @@ def render_timeline(events: List[Dict[str, Any]], out: Path, width: int = VIDEO_
                                 "font": f_lab, "rows": rows, "top": e_top, "bottom": e_bottom})
             y_first = top + 30 - entries[0]["top"]
             y_last = bottom - entries[-1]["bottom"]                    # lifted so its last row ends on the bound
+            f_gap = get_font("Montserrat", max(24, int((30 if many else 36) * scale)), weight=700)
             need = max(entries[k]["bottom"] - entries[k + 1]["top"] + 34 for k in range(len(entries) - 1))
             step_y = (y_last - y_first) / (len(entries) - 1)
             if step_y >= need:
@@ -755,15 +795,35 @@ def render_timeline(events: List[Dict[str, Any]], out: Path, width: int = VIDEO_
         if scale < 1.0:
             log.info("Timeline type set at %d%% to keep %d entries above the caption band.", round(scale * 100), len(events))
         spine_gold, track = brand.GOLD_DIM, 2
-        ground = Image.new("RGB", (width, height), brand.INK)
+        ground = _backdrop(photo, width, height) if photo else Image.new("RGB", (width, height), brand.INK)
         plates = []
+        ys = spaced_positions(events, y_first, y_last, need)   # by the time between them, where there is room
         for k, en in enumerate(entries):
-            y = y_first + step_y * k
+            y = ys[k]
             en["y"] = y
             en["year_plate"] = plan_text(ground, (xt, y + cap_y // 2), en["year"], f_year, GOLD, "ls")
             en["label_plates"] = [plan_text(ground, (xt + 4, y + r), ln, en["font"], WHITE, "ls", track=track)
                                   for r, ln in zip(en["rows"], en["lines"])]
             plates += [(f"year{k}", en["year_plate"])] + [(f"label{k}", p) for p in en["label_plates"]]
+        # The time since the previous date, after each year on its baseline ("1923  1,143 YEARS LATER"): the
+        # vertical room between the platforms' bands holds four entries and nothing more, so it takes no height.
+        gaps = []
+
+        def fits(text, en):
+            return en["year_plate"].box[2] + 28 + probe.textlength(text, font=f_gap) + 3 * len(text) <= TEXT_RIGHT
+        wanted = [(k, gap_text(events[k - 1], events[k])) for k in range(1, len(entries))]
+        wanted = [(k, t) for k, t in wanted if t]
+        # One wording for the whole timeline: "... YEARS LATER" where every one fits, else "... YEARS" for all.
+        if not all(fits(t, entries[k]) for k, t in wanted):
+            wanted = [(k, t.removesuffix(" LATER")) for k, t in wanted]
+        for k, text in wanted:
+            en = entries[k]
+            if not fits(text, en):
+                continue
+            plate = plan_text(ground, (en["year_plate"].box[2] + 28, en["y"] + cap_y // 2), text, f_gap,
+                              brand.STONE_LT, "ls", track=3)
+            gaps.append((k, plate))
+            plates.append((f"gap{k}", plate))
         last: List[Image.Image] = []
 
         def frames():
@@ -785,6 +845,11 @@ def render_timeline(events: List[Dict[str, Any]], out: Path, width: int = VIDEO_
                     for p in en["label_plates"]:
                         im = p.draw(im, appear, dy)
                     d = ImageDraw.Draw(im, "RGBA")
+                for k, plate in gaps:   # the elapsed time lands with its year (fully drawn by the same frame)
+                    shown = _ease((t - 0.4 - 0.45 * k) / 0.4)
+                    if shown > 0:
+                        im = plate.draw(im, shown, round(14 * (1 - shown)))
+                        d = ImageDraw.Draw(im, "RGBA")
                 if i == n - 1:
                     last.append(im.copy())
                 yield im
@@ -1672,7 +1737,8 @@ def make_all(payload: Dict[str, Any], topic: Dict[str, Any], work_dir: Path, pho
         jobs.append(("map", lambda: render_map(place, work_dir / "graphic_map.mp4", width=width, height=height,
                                                narration=payload.get("narration_script") or "")))
     if payload.get("timeline"):
-        jobs.append(("timeline", lambda: render_timeline(payload["timeline"], work_dir / "graphic_timeline.mp4", width=width, height=height)))
+        jobs.append(("timeline", lambda: render_timeline(payload["timeline"], work_dir / "graphic_timeline.mp4", width=width,
+                                                         height=height, photo=photo)))
     if payload.get("scale_fact"):
         jobs.append(("scale", lambda: render_scale(payload["scale_fact"], work_dir / "graphic_scale.mp4", width=width, height=height)))
     def _run_job(name, job):

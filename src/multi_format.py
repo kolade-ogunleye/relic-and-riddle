@@ -576,8 +576,10 @@ class MultiFormatGenerator:
 
     def _tag(self, category: str, index: int) -> str:
         """A slide's badge: its category. No slide number ("ENGINEERING // 07"): Instagram shows its own "N/M"
-        counter and dots, and our slide-style chrome made the carousel look awkward (operator, 2026-10-28)."""
-        return category
+        counter and dots, and our slide-style chrome made the carousel look awkward (operator, 2026-10-28).
+        A slide with no category in Facebook's copy carries the subject's name instead (_kicker_subject): each
+        photo of a Facebook multi-photo post is opened on its own, without the post's caption."""
+        return category or getattr(self, "_kicker_subject", "")
 
     # Carousel chrome (operator, 2026-10-28): "the design we added to the Instagram carousel to make it look like
     # a slide is needless as Instagram has its own look". The dossier counter ("ARCHIVAL RECORD // 01 OF 07"),
@@ -948,7 +950,8 @@ class MultiFormatGenerator:
                                 tight=tight, b_lines=4, h_spec=(96, 56))
 
     def _render_carousel_slide(self, archetype: str, photo: Path, photo_next: Path, card: Dict[str, Any], i: int,
-                               total: int, poll: Dict[str, Any], share: str, facebook: bool, tight: bool = False):
+                               total: int, poll: Dict[str, Any], share: str, facebook: bool, tight: bool = False,
+                               subject: str = ""):
         """One carousel slide and its measured layout: the archetype's own text, then the brand in its band at the
         top-left. Nothing is drawn under Instagram's counter (`protected`). Both copies are free of slide chrome
         (operator, 2026-10-28); `facebook` now changes only the words: the grid copy's slide text says nothing
@@ -960,6 +963,9 @@ class MultiFormatGenerator:
         clean = facebook_photo_caption if facebook else neutral_cues
         card = dict(card, heading=clean(card.get("heading") or ""), body=clean(card.get("body") or ""))
         share = clean(share or "")
+        # Facebook: every photo after the cover names its subject (2026-11-01). Instagram's swipe keeps the
+        # sequence together; Facebook's viewer opens one photo at a time, with the caption on the first only.
+        self._kicker_subject = subject.upper() if facebook and i > 0 else ""
         cw, chh = self.CAROUSEL_SIZE
         lay = Layout("carousel", (cw, chh), self._zone(cw, chh), tight=tight,
                      protected=[("instagram_counter", self._ig_counter(cw))])
@@ -1026,6 +1032,7 @@ class MultiFormatGenerator:
         from .script_engine import share_prompt
         share = share_prompt(script_payload)  # the closing slide asks for a share and a follow (2026-10-25)
         narration = script_payload.get("narration_script") or ""
+        subject = standalone_subject(script_payload) if facebook else ""
 
         slides = []
         for i, card in enumerate(cards):
@@ -1037,13 +1044,14 @@ class MultiFormatGenerator:
             photo_next = photos[(i + 1) % len(photos)]
             im, lay, attempts = still_layout.drawn(
                 lambda tight: self._render_carousel_slide(archetype, photo, photo_next, card, i, total, poll, share,
-                                                          facebook, tight=tight))
+                                                          facebook, tight=tight, subject=subject))
             path = out_dir / f"carousel_slide_{i + 1:02d}.jpg"
             self._save_slide(im, path)
             _delivered_contrast(lay, path)
             still_layout.save(path, lay, {"renderer": "multi_format.redraw_carousel_slide", "archetype": archetype,
                                           "photo": str(photo), "photo_next": str(photo_next), "card": card, "index": i,
-                                          "total": total, "poll": poll, "share": share, "facebook": facebook}, attempts)
+                                          "total": total, "poll": poll, "share": share, "facebook": facebook,
+                                          "subject": subject}, attempts)
             slides.append(path)
 
         log.info("Generated %d multi-template carousel slides -> %s", len(slides), out_dir)
@@ -1361,6 +1369,19 @@ def redraw_story_frame(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
     return still_layout.save(path, lay, recipe, int(prior.get("attempts", 1)) + 1)
 
 
+SUBJECT_MAX_WORDS = 6
+
+
+def standalone_subject(script_payload: Dict[str, Any]) -> str:
+    """The subject's name for Facebook's standalone photos: the carousel cover's heading ("THE EYE OF THE SAHARA"),
+    the script's own words, never a qualifier it did not state; "" when it is missing or too long to be a name."""
+    from .script_engine import facebook_photo_caption
+    cards = script_payload.get("carousel_slides") or []
+    heading = " ".join(facebook_photo_caption(str((cards[0] if cards else {}).get("heading") or "")).split())
+    heading = heading.rstrip(" .!?:")
+    return heading if heading and len(heading.split()) <= SUBJECT_MAX_WORDS else ""
+
+
 def redraw_carousel_slide(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
     """Draws one carousel slide again with the tighter fit, from its kept recipe, in place."""
     from . import still_layout
@@ -1368,7 +1389,7 @@ def redraw_carousel_slide(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
     im, lay = gen._render_carousel_slide(recipe["archetype"], Path(recipe["photo"]), Path(recipe["photo_next"]),
                                          recipe["card"], int(recipe["index"]), int(recipe["total"]),
                                          recipe.get("poll") or {}, recipe.get("share") or "", bool(recipe.get("facebook")),
-                                         tight=True)
+                                         tight=True, subject=recipe.get("subject") or "")
     gen._save_slide(im, path)
     _delivered_contrast(lay, path)
     prior = still_layout.load(path) or {}

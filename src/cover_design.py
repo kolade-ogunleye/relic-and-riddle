@@ -381,8 +381,11 @@ def _monument(im, copy, lay, tight, source, focus):
              + sum(text_size(measure, t, f)[1] + gaps["title"] for _, t, f, _ in title_rows) + 14
              + sum(text_size(measure, t, f)[1] for t, f, _ in tag_rows))
     top = 1434 - stack
-    im = _full_bleed(source, focus, (440 + top) / 2, lay)
-    im = _shade(im, top - 40, 1920, strength=0.86, feather=300)
+    # The subject sits in the clear band above the type, and the shade starts just above the stack: a deeper
+    # fade (feather 300 from 40 px above) dimmed the dome and the eye themselves. The type's own measured halo
+    # (place_text) keeps it at contrast wherever the shade is lighter.
+    im = _full_bleed(source, focus, (440 + top - 120) / 2, lay)
+    im = _shade(im, top - 10, 1920, strength=0.86, feather=170)
     im = _brand(im, lay)
 
     y = top

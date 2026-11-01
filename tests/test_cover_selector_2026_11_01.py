@@ -26,6 +26,9 @@ def test_monument_needs_a_figure() -> None:
     assert monument_figure({"line1": "THE 25-MILE", "line2": "SAHARA EYE"})[:2] == ("25", "MILES")
     assert monument_figure({"tagline": "DERINKUYU, 1963"})[:2] == ("1963", "")
     assert monument_figure({"line1": "5M VISITORS"}) is None          # "M" without a space is not metres
+    year_only = {"eyebrow": "BURIED HISTORY", "line1": "BEHIND ONE WALL", "line2": "A FORGOTTEN CITY",
+                 "tagline": "DERINKUYU, 1963"}
+    assert "monument" not in cover_selector.fitting(year_only)       # a date is not a scale
 
 
 def test_the_previous_style_is_not_repeated_while_another_fits() -> None:

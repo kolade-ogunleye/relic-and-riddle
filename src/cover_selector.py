@@ -4,8 +4,8 @@ Until 2026-11-01 the cover rotated through four styles by run number, so a quart
 in whichever style did worst, and one of the four (lower_third) differed from Discovery only in its headline
 colour. Now:
 
-1. Fit rules: only the styles the run's copy can carry. "monument" needs a figure for its hero (a measured
-   figure, or a year); the others always fit.
+1. Fit rules: only the styles the run's copy can carry. "monument" needs a measured figure (a number with its
+   unit) for its hero; the others always fit.
 2. Neighbours differ: the style the previous run went out in is skipped while another fits (the profile grid
    reads as a set, which is why the rotation existed).
 3. Every fitting style is tried MIN_TRIES times (measured Reels, on any platform) before the numbers are used,
@@ -34,9 +34,15 @@ ENGAGED = 0.03   # shares + saves per account reached that count as a full engag
 
 
 def fitting(copy: dict[str, Any]) -> list[str]:
-    """The styles in COVER_STYLES this cover copy can carry, in COVER_STYLES order."""
+    """The styles in COVER_STYLES this cover copy can carry, in COVER_STYLES order. "monument" needs a measured
+    figure (a number with its unit): a bare year draws, but it is a date, not a scale, and made the weakest hero
+    (Derinkuyu's "1963", review 2026-11-01)."""
     from .cover_design import monument_figure
-    return [s for s in COVER_STYLES if s != "monument" or monument_figure(copy) is not None]
+
+    def measured(c):
+        found = monument_figure(c)
+        return found is not None and bool(found[1])
+    return [s for s in COVER_STYLES if s != "monument" or measured(copy)]
 
 
 VIDEO_PLATFORMS = ("instagram", "facebook", "youtube")

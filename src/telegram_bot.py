@@ -2694,43 +2694,35 @@ class TelegramApprovalBot:
         """Flips the cover variant in-place on an existing Telegram photo message using editMessageMedia."""
         var_letter = variant_letter.lower()
         from .config import OUTPUT_DIR
-        if Path(run_name).name != run_name or run_name in (".", "..") or var_letter not in ("a", "b", "c", "d", "e"):
+        if Path(run_name).name != run_name or run_name in (".", "..") or var_letter not in ("a", "b", "c"):
             return False
         r_dir = (OUTPUT_DIR / run_name).resolve()
         if r_dir.parent != OUTPUT_DIR.resolve():
             return False
         if not r_dir.is_dir():
             return False
-        from .control import cover_variant_path, chosen_cover
-        var_file = cover_variant_path(r_dir, var_letter)
-        if not var_file or not var_file.exists():
+        var_file = (r_dir / f"thumbnail_variant_{var_letter}_blueprint.jpg" if var_letter == "a"
+                    else r_dir / f"thumbnail_variant_{var_letter}_intrigue.jpg" if var_letter == "b"
+                    else r_dir / f"thumbnail_variant_{var_letter}_minimal.jpg")
+        if not var_file.exists():
             return False
 
-        styles = {
-            "a": "Monograph Editorial",
-            "b": "Curatorial Specimen",
-            "c": "Archival Split-Ground",
-            "d": "Forensic Blueprint",
-            "e": "3D Depth Sandwich",
-        }
+        styles = {"a": "Forensic Blueprint", "b": "Discovery Intrigue", "c": "Cinematic Minimal"}
         style_name = styles.get(var_letter, var_letter.upper())
         # ✓ the cover the video has, 👁 the one shown (a flip ticked the preview as if chosen: 2026-10-25);
         # Lock only while the video waits for its review, as on the Covers screen.
+        from .control import chosen_cover
         chosen = chosen_cover(r_dir)
         mark = lambda v: "✓" if v == chosen else ("👁" if v == var_letter else "📌")  # noqa: E731
         run_rec = self.db.get_run(run_name) or {}
         reviewable = run_rec.get("status") == "pending_approval" and (self.db.get_approval(run_name) or {}).get("decision") == "pending"
         buttons = [
             [
-                {"text": f"{mark('a')} A: Monograph", "callback_data": f"cov:{run_name}:a"},
-                {"text": f"{mark('b')} B: Curatorial", "callback_data": f"cov:{run_name}:b"},
+                {"text": f"{mark('a')} A: Blueprint", "callback_data": f"cov:{run_name}:a"},
+                {"text": f"{mark('b')} B: Intrigue", "callback_data": f"cov:{run_name}:b"},
             ],
             [
-                {"text": f"{mark('c')} C: Split", "callback_data": f"cov:{run_name}:c"},
-                {"text": f"{mark('d')} D: Forensic", "callback_data": f"cov:{run_name}:d"},
-            ],
-            [
-                {"text": f"{mark('e')} E: Depth", "callback_data": f"cov:{run_name}:e"},
+                {"text": f"{mark('c')} C: Minimal", "callback_data": f"cov:{run_name}:c"},
             ],
             *([[{"text": f"🔒 Lock {var_letter.upper()}", "callback_data": f"covlock:{run_name}:{var_letter}"}]]
               if reviewable else []),
@@ -2739,7 +2731,7 @@ class TelegramApprovalBot:
         caption = (
             f"🎨 <b>Thumbnail Cover Studio</b> • <code>{html.escape(run_name)}</code>\n\n"
             f"Previewing: <b>Variant {var_letter.upper()} ({style_name})</b>\n"
-            f"Tap A, B, C, D, or E to flip preview in-place, or Lock to finalize:"
+            f"Tap A, B, or C to flip preview in-place, or Lock to finalize:"
         )
         cache_key = f"cover:{run_name}:{var_letter}"
         cached_id = self.db.get_cached_telegram_media(cache_key)
@@ -3666,11 +3658,6 @@ class TelegramApprovalBot:
                             if decision:
                                 return decision
                 except Exception as e:
-                    if "409" in str(e) and "Conflict" in str(e):
-                        log.info("Another bot instance owns getUpdates; switching to passive database polling.")
-                        self.background_polling = True
-                        time.sleep(poll_interval)
-                        continue
                     log.warning("Telegram polling error (will retry): %s", e)
                     time.sleep(poll_interval)
 

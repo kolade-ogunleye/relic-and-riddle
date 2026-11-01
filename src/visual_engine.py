@@ -1,17 +1,17 @@
 """
 src/visual_engine.py
 ====================
-Scene sequencing and museum-grade archival cover packaging engine.
+Scene sequencing and the locked Variant B thumbnail engine.
 1. Resolves topic-specific scene media (images, plus an optional motion hook clip).
    A topic without its own media fails fast instead of borrowing another topic's imagery.
-2. Renders the archival curatorial exhibition plate and depth-layered covers in two formats:
+2. Renders the Variant B (85% opacity halo) cover in two formats:
    - 1080x1920 (9:16 Reel cover)
    - 1080x1080 (1:1 Instagram profile-grid crop)
 """
 
 import logging
 from pathlib import Path
-from typing import List, Dict, Any, Tuple, Optional
+from typing import List, Dict, Any, Tuple
 
 from PIL import Image, ImageDraw, ImageFilter
 
@@ -25,8 +25,7 @@ from .config import (
     VIDEO_HEIGHT,
 )
 from .credits import CONTACT_SHEET, CREDITS_FILE, load_credits
-from .multi_format import scrim
-from .typography import cap_height, cover_crop, fit_font, fit_line, get_font, is_video, place_text, spoken_units, text_size
+from .typography import cover_crop, fit_font, fit_line, get_font, is_video, spoken_units, text_size
 
 log = logging.getLogger(__name__)
 
@@ -35,33 +34,10 @@ from . import brand as _brand
 GOLD = _brand.rgba(_brand.GOLD)
 WHITE = _brand.rgba(_brand.BONE)
 SAFE_TEXT_WIDTH = VIDEO_WIDTH - 2 * 110
-COVER_STYLES = ("monograph", "curatorial", "split_ground", "forensic", "depth_sandwich")
+COVER_STYLES = ("badge", "lower_third", "minimal", "depth_sandwich")
 
 class MissingAssetsError(FileNotFoundError):
     pass
-
-
-def draw_flat_kicker(im: Image.Image, x: int, y_top: int, text: str, font, colour=GOLD, lay=None):
-    """Draws a flat horizontal bar (36px wide x 3px high) centered vertically on text cap height,
-    followed by the kicker text. Eliminates the vertical bar 'I PANTHEON' defect."""
-    rule_w, rule_h = 36, 3
-    spacing = 14
-    ch = cap_height(font)
-    rule_y = y_top + ch // 2 - rule_h // 2
-
-    r_draw = ImageDraw.Draw(im)
-    r_draw.rectangle([x, rule_y, x + rule_w, rule_y + rule_h], fill=colour)
-
-    text_x = x + rule_w + spacing
-    im, plate = place_text(im, (text_x, y_top), text, font, colour, anchor="la", track=1.5,
-                           shadow=False, layout=lay, name="eyebrow")
-    if lay is not None and lay.elements:
-        b = list(lay.elements[-1]["box"])
-        b[0] = min(b[0], x)
-        b[1] = min(b[1], rule_y)
-        b[3] = max(b[3], rule_y + rule_h)
-        lay.elements[-1]["box"] = b
-    return im
 
 
 def cover_text_zone() -> Tuple[int, int, int, int]:
@@ -94,7 +70,8 @@ def redraw_cover(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
     engine = VisualEngine()
     engine._text_cy = int(recipe.get("text_cy") or VIDEO_HEIGHT // 2)
     im = cover_crop(Path(recipe["hero"]), (VIDEO_WIDTH, VIDEO_HEIGHT))
-    render = engine._style_dispatch(recipe.get("style"))
+    render = {"lower_third": engine._cover_lower_third, "minimal": engine._cover_minimal,
+              "depth_sandwich": engine._cover_depth_sandwich}.get(recipe.get("style"), engine._cover_badge)
     lay = still_layout.Layout("cover", (VIDEO_WIDTH, VIDEO_HEIGHT), cover_text_zone(), tight=True)
     out = render(im, dict(recipe.get("copy") or {}), lay=lay, tight=True).convert("RGB")
     path = Path(path)
@@ -286,47 +263,23 @@ class VisualEngine:
                                           "copy": copy, "style": chosen, "text_cy": self._text_cy}, attempts)
             return out
 
-        # The 5-variant 9:16 suite is for Reels; a documentary (variants=False) uses its 16:9 thumbnail.
+        # The 3-variant 9:16 suite is for Reels; a documentary (variants=False) uses its 16:9 thumbnail.
         if variants:
-            # 4 Boxless Editorial Archetypes + 3D Depth
-            save(output_dir / "thumbnail_variant_a_monograph.jpg", "monograph")
-            save(output_dir / "thumbnail_variant_b_curatorial.jpg", "curatorial")
-            save(output_dir / "thumbnail_variant_c_split.jpg", "split_ground")
-            save(output_dir / "thumbnail_variant_d_forensic.jpg", "forensic")
-            save(output_dir / "thumbnail_variant_e_depth.jpg", "depth_sandwich")
+            save(output_dir / "thumbnail_variant_a_blueprint.jpg", "depth_sandwich")
+            save(output_dir / "thumbnail_variant_b_intrigue.jpg", "badge")
+            save(output_dir / "thumbnail_variant_c_minimal.jpg", "minimal")
 
-            # Preserved legacy filenames for 100% backward compatibility
-            save(output_dir / "thumbnail_variant_a_blueprint.jpg", "forensic")
-            save(output_dir / "thumbnail_variant_b_intrigue.jpg", "monograph")
-            save(output_dir / "thumbnail_variant_c_minimal.jpg", "curatorial")
-            save(output_dir / "thumbnail_variant_d_split.jpg", "split_ground")
-
-        final_916 = save(out_916_path, style if style in COVER_STYLES else "monograph")
+        final_916 = save(out_916_path, style if style in COVER_STYLES else "badge")
         grid_crop(final_916).save(out_1x1_path, quality=95)
-        log.info("Thumbnails generated (%s, with 5-variant suite): %s, %s", style, out_916_path.name, out_1x1_path.name)
+        log.info("Thumbnails generated (%s, with 3-variant suite): %s, %s", style, out_916_path.name, out_1x1_path.name)
         return out_916_path, out_1x1_path
-
-    def _style_dispatch(self, style: Optional[str]):
-        routes = {
-            "monograph": self._cover_monograph,
-            "curatorial": self._cover_curatorial,
-            "split_ground": self._cover_split,
-            "forensic": self._cover_forensic,
-            "depth_sandwich": self._cover_depth_sandwich,
-            # Aliases & backward compatibility
-            "badge": self._cover_monograph,
-            "minimal": self._cover_curatorial,
-            "lower_third": self._cover_curatorial,
-            "archival_split": self._cover_split,
-            "forensic_blueprint": self._cover_forensic,
-        }
-        return routes.get(style, self._cover_monograph)
 
     def _render_checked(self, im: Image.Image, copy: Dict[str, str], style: str):
         """(image, layout, attempts): the style drawn, checked, and drawn once more with the tighter fit if its
         measured layout fails."""
         from . import still_layout
-        render = self._style_dispatch(style)
+        render = {"lower_third": self._cover_lower_third, "minimal": self._cover_minimal,
+                  "depth_sandwich": self._cover_depth_sandwich}.get(style, self._cover_badge)
 
         def draw(tight: bool):
             lay = still_layout.Layout("cover", (VIDEO_WIDTH, VIDEO_HEIGHT), cover_text_zone(), tight=tight)
@@ -360,197 +313,81 @@ class VisualEngine:
             lay.shortened = [n for n, s in (("eyebrow", s_e), ("title_1", s1), ("title_2", s2), ("tagline", s_t)) if s]
         return eyebrow, l1, l2, tagline, font_eye, font_title, font_tag
 
-    def _cover_monograph(self, im: Image.Image, copy: Dict[str, str], lay=None, tight: bool = False) -> Image.Image:
-        """The Monograph Editorial: Monumental Anton display title, left-aligned architectural datum,
-        directional feathered ink scrim, flat horizontal gold kicker."""
-        im = scrim(im, y0=VIDEO_HEIGHT * 0.44, y1=VIDEO_HEIGHT * 0.90, feather=360, target=0.25, cap=0.94)
-        x0 = 110
-
-        # Brand masthead at upper quadrant
-        font_brand = get_font("Cinzel", 30, weight=700)
-        ImageDraw.Draw(im).text((x0, 470), "RELIC & RIDDLE", font=font_brand, fill=WHITE, anchor="lt")
-        bw = ImageDraw.Draw(im).textbbox((x0, 470), "RELIC & RIDDLE", font=font_brand, anchor="lt")[2]
-        ImageDraw.Draw(im).line([(x0, 506), (bw, 506)], fill=GOLD, width=1)
-
-        measure = ImageDraw.Draw(im)
-        eyebrow, line1, line2, tagline, font_eye, font_title, font_tag = self._fit_copy(
-            measure, copy, tight, "Anton", 140, 36, 36, lay, tag_width=SAFE_TEXT_WIDTH
-        )
-        h_eye = font_eye.size
-        h_t = font_title.size
-        h_tag = font_tag.size if tagline else 0
-
-        gap_kicker_title = 24 if tight else 28
-        gap_lines = 14 if tight else 18
-        gap_tag = 26 if tight else 30
-
-        y_tag = 1440 - h_tag
-        if line2:
-            y_l2 = (y_tag - gap_tag - h_t) if tagline else (1440 - h_t)
-            y_l1 = y_l2 - gap_lines - h_t
-        else:
-            y_l2 = None
-            y_l1 = (y_tag - gap_tag - h_t) if tagline else (1440 - h_t)
-        y_eye = y_l1 - gap_kicker_title - h_eye
-
-        im = draw_flat_kicker(im, x0, y_eye, eyebrow, font_eye, GOLD, lay=lay)
-        _draw(ImageDraw.Draw(im), lay, "title_1", (x0, y_l1), line1, font_title, WHITE, "lt")
-        if line2 and y_l2 is not None:
-            _draw(ImageDraw.Draw(im), lay, "title_2", (x0, y_l2), line2, font_title, GOLD, "lt")
-        if tagline:
-            _draw(ImageDraw.Draw(im), lay, "tagline", (x0, y_tag), tagline, font_tag, WHITE, "lt")
-        return im
-
-    def _cover_curatorial(self, im: Image.Image, copy: Dict[str, str], lay=None, tight: bool = False) -> Image.Image:
-        """The Curatorial Specimen: Classical Roman lapidary Cinzel display title,
-        excavation cataloguing, flat horizontal gold rule."""
-        im = scrim(im, y0=VIDEO_HEIGHT * 0.44, y1=VIDEO_HEIGHT * 0.90, feather=360, target=0.24, cap=0.92)
-        x0 = 110
-
-        # Brand masthead at upper quadrant
-        font_brand = get_font("Cinzel", 30, weight=700)
-        ImageDraw.Draw(im).text((x0, 470), "RELIC & RIDDLE", font=font_brand, fill=WHITE, anchor="lt")
-        bw = ImageDraw.Draw(im).textbbox((x0, 470), "RELIC & RIDDLE", font=font_brand, anchor="lt")[2]
-        ImageDraw.Draw(im).line([(x0, 506), (bw, 506)], fill=GOLD, width=1)
-
-        measure = ImageDraw.Draw(im)
-        eyebrow, line1, line2, tagline, font_eye, font_title, font_tag = self._fit_copy(
-            measure, copy, tight, "Cinzel", 96, 32, 32, lay, tag_width=SAFE_TEXT_WIDTH
-        )
-        h_eye = font_eye.size
-        h_t = font_title.size
-        h_tag = font_tag.size if tagline else 0
-        gap_kicker_title = 22 if tight else 26
-        gap_lines = 16 if tight else 20
-        gap_tag = 24 if tight else 28
-
-        y_tag = 1440 - h_tag
-        if line2:
-            y_l2 = (y_tag - gap_tag - h_t) if tagline else (1440 - h_t)
-            y_l1 = y_l2 - gap_lines - h_t
-        else:
-            y_l2 = None
-            y_l1 = (y_tag - gap_tag - h_t) if tagline else (1440 - h_t)
-        y_eye = y_l1 - gap_kicker_title - h_eye
-
-        im = draw_flat_kicker(im, x0, y_eye, eyebrow, font_eye, GOLD, lay=lay)
-        _draw(ImageDraw.Draw(im), lay, "title_1", (x0, y_l1), line1, font_title, WHITE, "lt")
-        if line2 and y_l2 is not None:
-            _draw(ImageDraw.Draw(im), lay, "title_2", (x0, y_l2), line2, font_title, GOLD, "lt")
-        if tagline:
-            _draw(ImageDraw.Draw(im), lay, "tagline", (x0, y_tag), tagline, font_tag, WHITE, "lt")
-        return im
-
-    def _cover_split(self, im: Image.Image, copy: Dict[str, str], lay=None, tight: bool = False) -> Image.Image:
-        """The Archival Split-Ground: 52% raw unoccluded relic photo on top,
-        feathered museum ink foundation on bottom with 1px gold hairline divider and center diamond knot."""
-        split_y = int(VIDEO_HEIGHT * 0.52)
-        im = scrim(im, y0=split_y - 120, y1=VIDEO_HEIGHT, feather=260, target=0.08, cap=0.98, floor=0.60)
-        x0 = 110
-        idraw = ImageDraw.Draw(im)
-        idraw.line([(x0, split_y), (VIDEO_WIDTH - x0, split_y)], fill=GOLD, width=1)
-        cx = VIDEO_WIDTH // 2
-        d_size = 5
-        idraw.polygon([(cx, split_y - d_size), (cx + d_size, split_y),
-                       (cx, split_y + d_size), (cx - d_size, split_y)], fill=GOLD)
-
-        measure = ImageDraw.Draw(im)
-        eyebrow, line1, line2, tagline, font_eye, font_title, font_tag = self._fit_copy(
-            measure, copy, tight, "Cinzel", 92, 32, 32, lay, tag_width=SAFE_TEXT_WIDTH
-        )
-        h_eye = font_eye.size
-        h_t = font_title.size
-        h_tag = font_tag.size if tagline else 0
-        gap_kicker_title = 22 if tight else 26
-        gap_lines = 16 if tight else 20
-        gap_tag = 24 if tight else 28
-
-        y_tag = 1440 - h_tag
-        if line2:
-            y_l2 = (y_tag - gap_tag - h_t) if tagline else (1440 - h_t)
-            y_l1 = y_l2 - gap_lines - h_t
-        else:
-            y_l2 = None
-            y_l1 = (y_tag - gap_tag - h_t) if tagline else (1440 - h_t)
-        y_eye = y_l1 - gap_kicker_title - h_eye
-
-        im = draw_flat_kicker(im, x0, y_eye, eyebrow, font_eye, GOLD, lay=lay)
-        _draw(ImageDraw.Draw(im), lay, "title_1", (x0, y_l1), line1, font_title, WHITE, "lt")
-        if line2 and y_l2 is not None:
-            _draw(ImageDraw.Draw(im), lay, "title_2", (x0, y_l2), line2, font_title, GOLD, "lt")
-        if tagline:
-            _draw(ImageDraw.Draw(im), lay, "tagline", (x0, y_tag), tagline, font_tag, WHITE, "lt")
-        return im
-
-    def _cover_forensic(self, im: Image.Image, copy: Dict[str, str], lay=None, tight: bool = False) -> Image.Image:
-        """The Forensic Blueprint: Prussian blueprint wash, subtle drafting grid,
-        corner registration crosshairs (+), unboxed technical typography."""
-        im = scrim(im, y0=VIDEO_HEIGHT * 0.22, y1=VIDEO_HEIGHT * 0.90, feather=300, target=0.24, cap=0.92)
-        bdraw = ImageDraw.Draw(im)
-        for gx in range(60, VIDEO_WIDTH, 60):
-            bdraw.line([(gx, 440), (gx, 1480)], fill=(79, 179, 191, 18), width=1)
-        for gy in range(440, 1480, 60):
-            bdraw.line([(60, gy), (1020, gy)], fill=(79, 179, 191, 18), width=1)
-        clen = 14
-        for cx_pt, cy_pt in [(100, 480), (VIDEO_WIDTH - 100, 480), (100, 1440), (VIDEO_WIDTH - 100, 1440)]:
-            bdraw.line([(cx_pt - clen, cy_pt), (cx_pt + clen, cy_pt)], fill=GOLD, width=1)
-            bdraw.line([(cx_pt, cy_pt - clen), (cx_pt, cy_pt + clen)], fill=GOLD, width=1)
-
-        measure = ImageDraw.Draw(im)
-        eyebrow, line1, line2, tagline, font_eye, font_title, font_tag = self._fit_copy(
-            measure, copy, tight, "Anton", 116, 32, 32, lay, tag_width=SAFE_TEXT_WIDTH
-        )
-        x0 = 110
-        h_eye = font_eye.size
-        h_t = font_title.size
-        h_tag = font_tag.size if tagline else 0
-
-        # Top title layout
-        y_eye = 490
-        gap_kicker_title = 20 if tight else 24
-        gap_lines = 12 if tight else 16
-        y_l1 = y_eye + h_eye + gap_kicker_title
-        y_l2 = y_l1 + h_t + gap_lines if line2 else None
-
-        title_bot = (y_l2 + h_t) if line2 else (y_l1 + h_t)
-        ring_cy = int(title_bot + 220)
-        ring_r = 170
-        ring_cx = VIDEO_WIDTH // 2
-
-        # Draw gold focus ring + cardinal registration ticks
-        d = ImageDraw.Draw(im)
-        d.ellipse([ring_cx - ring_r, ring_cy - ring_r, ring_cx + ring_r, ring_cy + ring_r], outline=GOLD, width=2)
-        t_len = 14
-        d.line([(ring_cx - ring_r - t_len, ring_cy), (ring_cx - ring_r + t_len, ring_cy)], fill=GOLD, width=1)
-        d.line([(ring_cx + ring_r - t_len, ring_cy), (ring_cx + ring_r + t_len, ring_cy)], fill=GOLD, width=1)
-        d.line([(ring_cx, ring_cy - ring_r - t_len), (ring_cx, ring_cy - ring_r + t_len)], fill=GOLD, width=1)
-        d.line([(ring_cx, ring_cy + ring_r - t_len), (ring_cx, ring_cy + ring_r + t_len)], fill=GOLD, width=1)
-
-        y_tag = 1440 - h_tag
-
-        im = draw_flat_kicker(im, x0, y_eye, eyebrow, font_eye, GOLD, lay=lay)
-        _draw(ImageDraw.Draw(im), lay, "title_1", (x0, y_l1), line1, font_title, WHITE, "lt")
-        if line2 and y_l2 is not None:
-            _draw(ImageDraw.Draw(im), lay, "title_2", (x0, y_l2), line2, font_title, GOLD, "lt")
-        if tagline:
-            _draw(ImageDraw.Draw(im), lay, "tagline", (x0, y_tag), tagline, font_tag, WHITE, "lt")
-        return im
-
-    # Backward compatibility aliases
     def _cover_lower_third(self, im: Image.Image, copy: Dict[str, str], lay=None, tight: bool = False) -> Image.Image:
-        return self._cover_curatorial(im, copy, lay=lay, tight=tight)
+        """Cinematic: dark gradient rising from the bottom of the square, left-aligned title, the tagline under
+        it (it was left out of this layout, so Richat 2's cover had no "MAURITANIA'S BULLSEYE", 2026-10-26)."""
+        square_bottom = VIDEO_HEIGHT // 2 + VIDEO_WIDTH // 2
+        grad = Image.new("L", (1, VIDEO_HEIGHT), 0)
+        for y in range(VIDEO_HEIGHT):  # 0 above the middle, up to ~80% at the square's bottom and below
+            grad.putpixel((0, y), int(205 * min(1.0, max(0.0, (y - VIDEO_HEIGHT * 0.45) / (square_bottom - VIDEO_HEIGHT * 0.45)))))
+        shade = Image.new("RGBA", im.size, (0, 0, 0, 255))
+        shade.putalpha(grad.resize(im.size))
+        im = Image.alpha_composite(im, shade)
+        draw = ImageDraw.Draw(im)
+        x0 = 110
+        eyebrow, line1, line2, tagline, font_eye, font_title, font_tag = self._fit_copy(
+            draw, copy, tight, "Cinzel", 118, 34, 34, lay, tag_width=SAFE_TEXT_WIDTH)
+        size = font_title.size
+        zone_bottom = cover_text_zone()[3]
+        y2 = square_bottom - 150  # clear of the square crop's bottom edge
+        if tagline:  # the tagline's row under the title, inside the square: the block rises if it must
+            tag_box = draw.textbbox((x0, y2 + size // 2 + 44), tagline, font=font_tag, anchor="lm")
+            y2 -= max(0, tag_box[3] - zone_bottom)
+        y1 = y2 - size - 10
+        # Each line placed from the measured box under it, not the font size: an accented capital ("ÉPHÈSE")
+        # rises above the cap height and overlapped the line above on every redraw (review, 2026-10-28).
+        if line1 and line2:
+            top2 = draw.textbbox((x0, y2), line2, font=font_title, anchor="lm")[1]
+            y1 -= max(0, draw.textbbox((x0, y1), line1, font=font_title, anchor="lm")[3] - (top2 - 10))
+        ye = y1 - size // 2 - 40
+        bbox_eye = draw.textbbox((0, 0), eyebrow, font=font_eye, anchor="lt")
+        th_eye = bbox_eye[3] - bbox_eye[1]
+        if line1 or line2:
+            top1 = draw.textbbox((x0, y1 if line1 else y2), line1 or line2, font=font_title, anchor="lm")[1]
+            ye -= max(0, ye + th_eye // 2 + max(th_eye + 14, 32) // 2 - (top1 - 16))
+        cy_eye = ye + th_eye // 2
+        bar_h = max(th_eye + 14, 32)
+        draw.rectangle([x0, cy_eye - bar_h // 2, x0 + 8, cy_eye + bar_h // 2], fill=GOLD)
+        eye = _draw(draw, lay, "eyebrow", (x0 + 26, cy_eye), eyebrow, font_eye, GOLD, "lm")
+        if lay is not None and eye:
+            lay.elements[-1]["box"][0] = x0  # the gold bar belongs to the eyebrow
+            lay.elements[-1]["box"][1] = min(lay.elements[-1]["box"][1], cy_eye - bar_h // 2)
+            lay.elements[-1]["box"][3] = max(lay.elements[-1]["box"][3], cy_eye + bar_h // 2)
+        _draw(draw, lay, "title_1", (x0, y1), line1, font_title, WHITE, "lm")
+        _draw(draw, lay, "title_2", (x0, y2), line2, font_title, GOLD, "lm")
+        if tagline:
+            _draw(draw, lay, "tagline", (x0, y2 + size // 2 + 44), tagline, font_tag, WHITE, "lm")
+        return im
 
     def _cover_minimal(self, im: Image.Image, copy: Dict[str, str], lay=None, tight: bool = False) -> Image.Image:
-        return self._cover_curatorial(im, copy, lay=lay, tight=tight)
-
-    def _cover_badge(self, im: Image.Image, copy: Dict[str, str], lay=None, tight: bool = False) -> Image.Image:
-        return self._cover_monograph(im, copy, lay=lay, tight=tight)
-
-    def _cover_forensic_blueprint(self, im: Image.Image, copy: Dict[str, str], lay=None, tight: bool = False) -> Image.Image:
-        return self._cover_forensic(im, copy, lay=lay, tight=tight)
-
-    def _cover_archival_split(self, im: Image.Image, copy: Dict[str, str], lay=None, tight: bool = False) -> Image.Image:
-        return self._cover_split(im, copy, lay=lay, tight=tight)
+        """Minimal: no boxes; a thin gold rule, eyebrow, title and tagline with soft shadows, centred."""
+        veil = Image.new("RGBA", im.size, (0, 0, 0, 70))  # light overall dim keeps white text readable
+        im = Image.alpha_composite(im, veil)
+        draw = ImageDraw.Draw(im)
+        eyebrow, line1, line2, tagline, font_eye, font_title, font_tag = self._fit_copy(
+            draw, copy, tight, "Cinzel", 104, 32, 32, lay)
+        size = font_title.size
+        cx, cy = VIDEO_WIDTH // 2, getattr(self, "_text_cy", VIDEO_HEIGHT // 2)
+        zx0, zy0, zx1, zy1 = cover_text_zone()
+        # The whole stack, rule to tagline, inside the square: measured, then moved in if it reaches an edge.
+        top, bottom = cy - size - 74, cy + size // 2 + 40 + (size // 2 + 30 + 2 * font_tag.size if tagline else size // 2)
+        cy += max(0, zy0 - top) - max(0, bottom - zy1)
+        draw.line([cx - 70, cy - size - 70, cx + 70, cy - size - 70], fill=GOLD, width=4)
+        if lay is not None:
+            lay.add("rule", (cx - 70, cy - size - 72, cx + 70, cy - size - 68))
+        rows = [("eyebrow", (cx, cy - size - 30), eyebrow, font_eye, GOLD),
+                ("title_1", (cx, cy - size // 2), line1, font_title, WHITE),
+                ("title_2", (cx, cy + size // 2 + 40), line2, font_title, WHITE)]
+        if tagline:
+            rows.append(("tagline", (cx, cy + size + 40 + 30 + font_tag.size // 2), tagline, font_tag, GOLD))
+        for name, xy, text, font, fill in rows:
+            if not text:
+                continue
+            if lay is not None:
+                lay.add(name, draw.textbbox(xy, text, font=font, anchor="mm"))
+            im = self._shadowed_text(im, xy, text, font, fill, "mm")
+            draw = ImageDraw.Draw(im)
+        return im
 
     def _cover_depth_sandwich(self, im: Image.Image, copy: Dict[str, str], lay=None, tight: bool = False) -> Image.Image:
         """Studio-grade 3D depth-layered cover: typography sandwiched between background
@@ -615,6 +452,59 @@ class VisualEngine:
                 sandwich = Image.alpha_composite(sandwich, fg_im)
 
         return sandwich
+
+    def _cover_badge(self, im: Image.Image, copy: Dict[str, str], lay=None, tight: bool = False) -> Image.Image:
+        """The original Variant B: centred title on an 85% halo, gold-outlined eyebrow and tagline pills."""
+        measure = ImageDraw.Draw(im)
+        eyebrow, line1, line2, tagline, font_eye, font_title, font_tag = self._fit_copy(
+            measure, copy, tight, "Cinzel", THUMB_TITLE_FONT_SIZE, THUMB_EYEBROW_FONT_SIZE, THUMB_TAGLINE_FONT_SIZE,
+            lay, tag_width=SAFE_TEXT_WIDTH - 68)
+
+        w_eye, h_eye = text_size(measure, eyebrow, font_eye)
+        w_l1, h_l1 = text_size(measure, line1, font_title)
+        w_l2, h_l2 = text_size(measure, line2, font_title)
+        w_tag, h_tag = text_size(measure, tagline, font_tag) if tagline else (0, 0)
+
+        eye_box_w, eye_box_h = w_eye + 56, h_eye + 28
+        tag_box_w, tag_box_h = (w_tag + 68, h_tag + 32) if tagline else (0, 0)
+        gap_eye, gap_lines, gap_tag = (34, 22, 38) if tight else (28, 16, 32)
+
+        center_y = getattr(self, "_text_cy", VIDEO_HEIGHT // 2)
+        total_h = eye_box_h + gap_eye + h_l1 + gap_lines + h_l2 + (gap_tag + tag_box_h if tagline else 0)
+        zx0, zy0, zx1, zy1 = cover_text_zone()
+        start_y = max(zy0, min(center_y - total_h // 2, zy1 - total_h))  # the whole stack inside the square
+        title_y0 = start_y + eye_box_h + gap_eye
+        title_y1 = title_y0 + h_l1 + gap_lines + h_l2
+        title_cy = (title_y0 + title_y1) // 2
+
+        # Soft-feathered halo behind the title
+        bg_w = max(w_l1, w_l2) + 120
+        bg_h = (title_y1 - title_y0) + 90
+        halo = Image.new("RGBA", (VIDEO_WIDTH, VIDEO_HEIGHT), (0, 0, 0, 0))
+        ImageDraw.Draw(halo).rounded_rectangle(
+            [(VIDEO_WIDTH - bg_w) // 2, title_cy - bg_h // 2, (VIDEO_WIDTH + bg_w) // 2, title_cy + bg_h // 2],
+            radius=30, fill=(0, 0, 0, 160),
+        )
+        im = Image.alpha_composite(im, halo.filter(ImageFilter.GaussianBlur(32)))
+        draw = ImageDraw.Draw(im)
+        cx = VIDEO_WIDTH // 2
+
+        eye_box = [cx - eye_box_w // 2, start_y, cx + eye_box_w // 2, start_y + eye_box_h]
+        draw.rounded_rectangle(eye_box, radius=10, fill=(12, 12, 12, 220), outline=_brand.rgba(_brand.GOLD, 240), width=2)
+        draw.text((cx, start_y + eye_box_h // 2), eyebrow, font=font_eye, fill=GOLD, anchor="mm")
+        if lay is not None:
+            lay.add("eyebrow", eye_box)
+        _draw(draw, lay, "title_1", (cx, title_y0 + h_l1 // 2), line1, font_title, WHITE, "mm")
+        _draw(draw, lay, "title_2", (cx, title_y0 + h_l1 + gap_lines + h_l2 // 2), line2, font_title, GOLD, "mm")
+
+        if tagline:
+            tag_y0 = title_y1 + gap_tag
+            tag_box = [cx - tag_box_w // 2, tag_y0, cx + tag_box_w // 2, tag_y0 + tag_box_h]
+            draw.rounded_rectangle(tag_box, radius=12, fill=(14, 14, 14, 225), outline=_brand.rgba(_brand.GOLD, 240), width=2)
+            draw.text((cx, tag_y0 + tag_box_h // 2), tagline, font=font_tag, fill=WHITE, anchor="mm")
+            if lay is not None:
+                lay.add("tagline", tag_box)
+        return im
 
     def generate_depth_layered_thumbnail(
         self,

@@ -371,31 +371,8 @@ def shown_and_more(items: List[str], shown: int = SECTION_SHOWN, where: str = "P
     return out
 
 
-COVER_VARIANTS = {
-    "a": "thumbnail_variant_a_monograph.jpg",
-    "b": "thumbnail_variant_b_curatorial.jpg",
-    "c": "thumbnail_variant_c_split.jpg",
-    "d": "thumbnail_variant_d_forensic.jpg",
-    "e": "thumbnail_variant_e_depth.jpg",
-}
-LEGACY_COVER_VARIANTS = {
-    "a": "thumbnail_variant_a_blueprint.jpg",
-    "b": "thumbnail_variant_b_intrigue.jpg",
-    "c": "thumbnail_variant_c_minimal.jpg",
-    "d": "thumbnail_variant_d_split.jpg",
-    "e": "thumbnail_variant_e_depth.jpg",
-}
-
-
-def cover_variant_path(run_dir: Path, variant_letter: str) -> Optional[Path]:
-    """Resolves the variant file for variant_letter ('a'..'e'), trying the new editorial name first then legacy."""
-    v = variant_letter.lower()
-    for mapping in (COVER_VARIANTS, LEGACY_COVER_VARIANTS):
-        if v in mapping:
-            p = run_dir / mapping[v]
-            if p.is_file():
-                return p
-    return None
+COVER_VARIANTS = {"a": "thumbnail_variant_a_blueprint.jpg", "b": "thumbnail_variant_b_intrigue.jpg",
+                  "c": "thumbnail_variant_c_minimal.jpg"}
 
 
 def chosen_cover(run_dir: Path) -> Optional[str]:
@@ -405,11 +382,7 @@ def chosen_cover(run_dir: Path) -> Optional[str]:
         return None
     from .credits import sha256_file
     digest = sha256_file(cover)
-    found = {}
-    for v in ("a", "b", "c", "d", "e"):
-        p = cover_variant_path(run_dir, v)
-        if p is not None:
-            found[v] = p
+    found = {v: run_dir / f for v, f in COVER_VARIANTS.items() if (run_dir / f).is_file()}
     for v, path in found.items():
         if sha256_file(path) == digest:
             return v
@@ -2186,7 +2159,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             back = [[{"text": "🎬 Reviews", "callback_data": "creviews:"}], [HOME]]
 
             def has_covers(d):
-                return any(cover_variant_path(d, v) is not None for v in ("a", "b", "c", "d", "e"))
+                return any((d / f"thumbnail_variant_{v}.jpg").exists() for v in ("a_blueprint", "b_intrigue", "c_minimal"))
 
             def run_folder(run):
                 if run and run.get("master_video_path"):
@@ -2232,26 +2205,20 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     run_dir = rendered[0]
             run_rec = db.get_run(run_dir.name) or {}
             reviewable = run_rec.get("status") == "pending_approval" and (db.get_approval(run_dir.name) or {}).get("decision") == "pending"
-            var_a = cover_variant_path(run_dir, "a")
-            var_b = cover_variant_path(run_dir, "b")
-            var_c = cover_variant_path(run_dir, "c")
-            var_d = cover_variant_path(run_dir, "d")
-            var_e = cover_variant_path(run_dir, "e")
+            var_a = run_dir / "thumbnail_variant_a_blueprint.jpg"
+            var_b = run_dir / "thumbnail_variant_b_intrigue.jpg"
+            var_c = run_dir / "thumbnail_variant_c_minimal.jpg"
             # The variant the video's cover is now (it always said B: review, 2026-10-25)
             chosen = chosen_cover(run_dir)
-            selected = chosen or ("a" if var_a else "b" if var_b else "c" if var_c else "d" if var_d else "e")   # the one previewed
+            selected = chosen or ("b" if var_b.exists() else "a" if var_a.exists() else "c")   # the one previewed
             mark = lambda v, name: ("✓ " if v == chosen else "📌 ") + f"{v.upper()}: {name}"  # noqa: E731
             buttons = [
                 [
-                    {"text": mark("a", "Monograph"), "callback_data": f"cov:{run_dir.name}:a"},
-                    {"text": mark("b", "Curatorial"), "callback_data": f"cov:{run_dir.name}:b"},
+                    {"text": mark("a", "Blueprint"), "callback_data": f"cov:{run_dir.name}:a"},
+                    {"text": mark("b", "Intrigue"), "callback_data": f"cov:{run_dir.name}:b"},
                 ],
                 [
-                    {"text": mark("c", "Split"), "callback_data": f"cov:{run_dir.name}:c"},
-                    {"text": mark("d", "Forensic"), "callback_data": f"cov:{run_dir.name}:d"},
-                ],
-                [
-                    {"text": mark("e", "Depth"), "callback_data": f"cov:{run_dir.name}:e"},
+                    {"text": mark("c", "Minimal"), "callback_data": f"cov:{run_dir.name}:c"},
                     {"text": "🔄 Refresh", "callback_data": "ccov:"},
                 ],
             ]
@@ -2262,14 +2229,14 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             caption = (
                 f"🎨 <b>Cover Studio</b> · {label}\n\n"
                 f"Previewing: <b>Variant {selected.upper()}</b>\n"
-                + ("Tap A, B, C, D or E to flip the preview, or Lock to choose it for this video."
+                + ("Tap A, B or C to flip the preview, or Lock to choose it for this video."
                    if reviewable else "<i>Preview only: this video isn't awaiting review, so its cover can't be "
                    "changed. Covers are chosen from a video's review card.</i>")
             )
-            cover_to_show = {"a": var_a, "b": var_b, "c": var_c, "d": var_d, "e": var_e}.get(selected, var_a)
-            if not cover_to_show or not cover_to_show.exists():
-                cover_to_show = next((p for p in (var_a, var_b, var_c, var_d, var_e) if p and p.exists()), var_a)
-            if send_photo and cover_to_show and cover_to_show.exists():
+            cover_to_show = {"a": var_a, "b": var_b, "c": var_c}[selected]
+            if not cover_to_show.exists():
+                cover_to_show = var_b if var_b.exists() else (var_a if var_a.exists() else var_c)
+            if send_photo and cover_to_show.exists():
                 send_photo(cover_to_show, caption, buttons, cache_key=f"cover:{run_dir.name}:{selected}")
                 return ""
             return caption
@@ -2278,7 +2245,7 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
             if len(parts) >= 2:
                 r_name, var_letter = parts[0], parts[1].lower()
                 from .config import OUTPUT_DIR
-                if Path(r_name).name != r_name or r_name in (".","..") or var_letter not in ("a","b","c","d","e"):
+                if Path(r_name).name != r_name or r_name in (".","..") or var_letter not in ("a","b","c"):
                     raise ValueError("Invalid cover reference")
                 r_dir = (OUTPUT_DIR / r_name).resolve()
                 if r_dir.parent != OUTPUT_DIR.resolve():
@@ -2290,8 +2257,10 @@ def make_command_handler(db: PipelineDatabase, next_run: Callable[[], Optional[s
                     return "This review is closed; its cover cannot be changed."
                 if command == "cov":
                     return "Preview selection only. Use the cover panel to preview and Lock to commit."
-                var_file = cover_variant_path(r_dir, var_letter)
-                if var_file and var_file.exists():
+                var_file = (r_dir / f"thumbnail_variant_{var_letter}_blueprint.jpg" if var_letter == "a"
+                            else r_dir / f"thumbnail_variant_{var_letter}_intrigue.jpg" if var_letter == "b"
+                            else r_dir / f"thumbnail_variant_{var_letter}_minimal.jpg")
+                if var_file.exists():
                     approval = db.get_approval(r_name) or {}
                     with db._conn() as conn:
                         changed = conn.execute("UPDATE approvals SET telegram_message_id=NULL, revision=revision+1 WHERE run_id=? AND decision='pending' AND revision=?", (r_name, approval.get("revision",0))).rowcount

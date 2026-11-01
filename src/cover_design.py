@@ -125,26 +125,50 @@ def _paint(im, rows, x, top, centered, lay):
     return im
 
 
-def _brand(im, lay, centered=False, paper=False):
-    """The masthead, drawn at a measured contrast like every other cover line.
+BRAND_TEXT = "RELIC & RIDDLE"
+BRAND_PX, BRAND_TRACK = 40, 3.0
+MARK_R, MARK_GAP = 10, 16   # the gold diamond (the brand's mark, as on the end card) and its gap to the name
 
-    On the paper ground (a known light, flat field) it is ink. On photographs it
-    is always bone with the solved ink halo (brand.PLACE_TARGET), matching the
-    carousel header: a mean-luminance switch between ink and bone, with the halo
-    disabled, left the masthead unreadable on mid-tone or busy photographs.
+
+def _brand(im, lay, centered=False, paper=False):
+    """The masthead: the gold diamond mark, then RELIC & RIDDLE, at a measured contrast like every other line.
+
+    40 px Cinzel Bold (2026-11-01): at 32 px regular it was 11 px tall on a 390 px phone and a smear in the
+    profile grid; the diamond is what still registers at grid size. On the paper ground (a known light, flat
+    field) the name is ink and the mark dark gold. On photographs the name is always bone with the solved ink
+    halo (brand.PLACE_TARGET), as the carousel header is: a mean-luminance switch between ink and bone, with the
+    halo disabled, left it unreadable on mid-tone or busy photographs.
     """
-    xy = (540 if centered else 84, 462)
-    anchor = "mt" if centered else "lt"
-    font = get_font("Cinzel", 32)
+    font = get_font("Cinzel", BRAND_PX, weight=700)
+    measure = ImageDraw.Draw(im)
+    name_w = text_size(measure, BRAND_TEXT, font)[0] + BRAND_TRACK * (len(BRAND_TEXT) - 1)
+    group = 2 * MARK_R + MARK_GAP + name_w
+    x0 = round(540 - group / 2) if centered else 84
+    top = 462
+    cap = font.getbbox("R", anchor="lt")
+    cy = top + (cap[1] + cap[3]) / 2
+    cx = x0 + MARK_R
+    xy = (x0 + 2 * MARK_R + MARK_GAP, top)
     if paper:
-        im, plate = place_text(im, xy, "RELIC & RIDDLE", font, brand.INK,
-                               anchor=anchor, track=2.0, halo_px=0, shadow=False)
+        im, plate = place_text(im, xy, BRAND_TEXT, font, brand.INK,
+                               anchor="lt", track=BRAND_TRACK, halo_px=0, shadow=False)
+        mark, edge = brand.GOLD_DIM, None
     else:
-        # 32 px Cinzel is a thin face: a 40 px halo allowed to reach full strength is what clears
-        # brand.PLACE_TARGET on a pure-white sky; the 0.35 floor keeps busy texture off the glyph edges.
-        plate = plan_text(im, xy, "RELIC & RIDDLE", font, brand.BONE, anchor, 2.0,
+        # A 40 px halo allowed to reach full strength is what clears brand.PLACE_TARGET on a pure-white sky;
+        # the 0.35 floor keeps busy texture off the glyph edges.
+        plate = plan_text(im, xy, BRAND_TEXT, font, brand.BONE, "lt", BRAND_TRACK,
                           halo_px=40, min_halo=0.35, shadow=True, max_halo=1.0)
         im = plate.draw(im)
+        mark, edge = brand.GOLD, brand.INK
+    diamond = [(cx, cy - MARK_R), (cx + MARK_R, cy), (cx, cy + MARK_R), (cx - MARK_R, cy)]
+    rgba = im.convert("RGBA")
+    d = ImageDraw.Draw(rgba)
+    if edge is not None:
+        d.polygon(diamond, outline=edge + (255,), width=3)
+    d.polygon(diamond, fill=mark + (255,))
+    im = rgba if im.mode == "RGBA" else rgba.convert(im.mode)
+    if lay is not None:
+        lay.add("brand_mark", (cx - MARK_R, cy - MARK_R, cx + MARK_R, cy + MARK_R))
     record_contrast(lay, "brand", [plate])
     if lay is not None:
         lay.meta.setdefault("plates", {})["brand"] = [plate]

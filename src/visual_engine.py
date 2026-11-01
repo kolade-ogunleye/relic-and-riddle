@@ -59,7 +59,9 @@ def redraw_cover(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
     with Image.open(recipe["hero"]) as source:
         engine._hero_source = ImageOps.exif_transpose(source).convert("RGBA")
     from .cover_design import reviewed_focus
-    engine._hero_focus = reviewed_focus(Path(recipe["hero"]), recipe.get("focus"))
+    from .photo_hygiene import clean_hero
+    engine._hero_focus_reviewed = reviewed_focus(Path(recipe["hero"]), recipe.get("focus"))
+    engine._hero_source, engine._hero_focus = clean_hero(engine._hero_source, engine._hero_focus_reviewed)
     im = ImageOps.fit(engine._hero_source, (VIDEO_WIDTH, VIDEO_HEIGHT), Image.Resampling.LANCZOS)
     render = {"lower_third": engine._cover_lower_third, "minimal": engine._cover_minimal,
               "depth_sandwich": engine._cover_depth_sandwich}.get(recipe.get("style"), engine._cover_badge)
@@ -77,7 +79,7 @@ def redraw_cover(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
     if path.name == "thumbnail_cover.jpg":
         grid_crop(out).save(path.with_name("thumbnail_profile_grid.jpg"), quality=95)
     prior = still_layout.load(path) or {}
-    return still_layout.save(path, lay, {**recipe, "focus": engine._hero_focus,
+    return still_layout.save(path, lay, {**recipe, "focus": engine._hero_focus_reviewed,
                                         "composition": lay.meta.get("composition")},
                              int(prior.get("attempts", 1)) + 1)
 
@@ -249,7 +251,9 @@ class VisualEngine:
         with Image.open(hero_image_path) as source:
             self._hero_source = ImageOps.exif_transpose(source).convert("RGBA")
         from .cover_design import reviewed_focus
-        self._hero_focus = reviewed_focus(Path(hero_image_path))
+        from .photo_hygiene import clean_hero
+        self._hero_focus_reviewed = reviewed_focus(Path(hero_image_path))
+        self._hero_source, self._hero_focus = clean_hero(self._hero_source, self._hero_focus_reviewed)
         im = ImageOps.fit(self._hero_source, (VIDEO_WIDTH, VIDEO_HEIGHT), Image.Resampling.LANCZOS)
         self._text_cy = VIDEO_HEIGHT // 2  # legacy recipe field; photo and text now have separate spaces
 
@@ -262,7 +266,7 @@ class VisualEngine:
             from . import still_layout
             still_layout.save(path, lay, {"renderer": "visual_engine.redraw_cover", "hero": str(hero_image_path),
                                           "copy": copy, "style": chosen, "text_cy": self._text_cy,
-                                          "focus": self._hero_focus,
+                                          "focus": self._hero_focus_reviewed,
                                           "composition": lay.meta.get("composition")}, attempts)
             return out
 

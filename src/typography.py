@@ -299,8 +299,10 @@ def fit_line(draw: ImageDraw.ImageDraw, text: str, name: str, size: int, max_wid
 
 def cover_crop(path: Path, size: Tuple[int, int]) -> Image.Image:
     """Scales and center-crops an image to fill `size` without distorting it."""
+    from .photo_hygiene import without_caption_strip
     with Image.open(path) as im:
-        return ImageOps.fit(im.convert("RGBA"), size, Image.LANCZOS)
+        clean, _ = without_caption_strip(ImageOps.exif_transpose(im).convert("RGBA"))
+        return ImageOps.fit(clean, size, Image.LANCZOS)
 
 
 def is_video(path: Path) -> bool:

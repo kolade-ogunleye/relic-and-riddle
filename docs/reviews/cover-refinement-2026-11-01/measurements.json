@@ -383,7 +383,7 @@
       "shortened": [],
       "attempts": 1,
       "measured_text_elements": 5,
-      "minimum_contrast": 1.41,
+      "minimum_contrast": 5.06,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
         "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\02_commons.jpg",
@@ -509,7 +509,7 @@
       "shortened": [],
       "attempts": 1,
       "measured_text_elements": 5,
-      "minimum_contrast": 1.54,
+      "minimum_contrast": 5.33,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
         "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\02_commons.jpg",
@@ -635,7 +635,7 @@
       "shortened": [],
       "attempts": 1,
       "measured_text_elements": 5,
-      "minimum_contrast": 7.25,
+      "minimum_contrast": 5.17,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
         "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\gol_gumbaz_whispering_gallery\\03_commons.jpg",
@@ -761,7 +761,7 @@
       "shortened": [],
       "attempts": 1,
       "measured_text_elements": 5,
-      "minimum_contrast": 6.04,
+      "minimum_contrast": 5.17,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
         "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\gol_gumbaz_whispering_gallery\\03_commons.jpg",
@@ -887,7 +887,7 @@
       "shortened": [],
       "attempts": 1,
       "measured_text_elements": 5,
-      "minimum_contrast": 1.16,
+      "minimum_contrast": 5.4,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
         "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\derinkuyu_underground_city\\19_commons.jpg",
@@ -1013,7 +1013,7 @@
       "shortened": [],
       "attempts": 1,
       "measured_text_elements": 5,
-      "minimum_contrast": 1.21,
+      "minimum_contrast": 5.46,
       "recipe": {
         "renderer": "visual_engine.redraw_cover",
         "hero": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\derinkuyu_underground_city\\19_commons.jpg",

@@ -233,8 +233,17 @@ class VisualEngine:
 
     @staticmethod
     def hero_image(scene_media: List[Path]) -> Path:
-        """First still image in the sequence (a motion hook clip can't be a cover)."""
-        return next(p for p in scene_media if not is_video(p))
+        """The cover's photograph: the sequence's first still (a motion hook clip can't be a cover), unless another
+        strong still of the same topic scores clearly higher (hero_photo, 2026-11-01). The strong photos are the
+        ones the topic folder's credits mark as showing the topic or kept (image_review.strong_stems)."""
+        first = next(p for p in scene_media if not is_video(p))
+        from .hero_photo import pick
+        from .image_review import strong_stems
+        try:
+            stems = strong_stems(Path(first).parent)
+        except (OSError, ValueError, KeyError):  # an unreadable credits file: compare nothing, keep the first
+            return first
+        return pick(scene_media, stems)
 
     def generate_thumbnails(self, hero_image_path: Path, script_payload: Dict[str, Any], output_dir: Path,
                             style: str = "badge", variants: bool = True) -> Tuple[Path, Path]:

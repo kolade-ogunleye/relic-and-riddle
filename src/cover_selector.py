@@ -22,7 +22,6 @@ so a resumed run picks the same style from the same numbers.
 from __future__ import annotations
 
 import logging
-import random
 from typing import Any
 
 from .visual_engine import COVER_STYLES
@@ -69,48 +68,23 @@ def reward(row: dict[str, Any]) -> float | None:
 
 
 def evidence(rows: list[dict[str, Any]]) -> dict[str, list[float]]:
-    """Each style's rewards, one per run, from audience.table rows on every video platform.
-
-    A platform's own level is taken out first (each reward against that platform's median, around 0.5), since
-    YouTube, Facebook and Instagram report different rates on different scales; then each run counts once, the
-    mean of its platforms, so a Reel measured on three platforms is not three votes."""
-    from statistics import median
-    usable = [(r, reward(r)) for r in rows
-              if r.get("platform") in VIDEO_PLATFORMS and not r.get("unavailable") and r.get("cover_style")]
-    usable = [(r, v) for r, v in usable if v is not None]
-    level = {p: median([v for r, v in usable if r["platform"] == p])
-             for p in {r["platform"] for r, _ in usable}}
-    per_run: dict[str, tuple[str, list[float]]] = {}
-    for r, v in usable:
-        adjusted = min(1.0, max(0.0, 0.5 + v - level[r["platform"]]))
-        per_run.setdefault(r.get("run_id") or id(r), (r["cover_style"], []))[1].append(adjusted)
-    out: dict[str, list[float]] = {}
-    for style, values in per_run.values():
-        out.setdefault(style, []).append(sum(values) / len(values))
-    return out
+    """Each style's rewards, one per run, from audience.table rows on every video platform (learning.per_run_evidence:
+    each platform's own level taken out, a Reel measured on three platforms counted once)."""
+    from .learning import per_run_evidence
+    scored = [(r, v) for r in rows
+              if r.get("platform") in VIDEO_PLATFORMS and not r.get("unavailable") and r.get("cover_style")
+              for v in [reward(r)] if v is not None]
+    return per_run_evidence(scored, "cover_style")
 
 
 def choose(copy: dict[str, Any], rows: list[dict[str, Any]], previous: str | None = None,
            seed: str = "") -> tuple[str, str]:
     """(style, why) for a cover with `copy`, given audience.table `rows` and the previous run's style."""
+    from . import learning
     options = fitting(copy)
     if previous in options and len(options) > 1:
         options = [s for s in options if s != previous]
-    seen = evidence(rows)
-    rng = random.Random(f"cover:{seed}")
-    tries = {s: len(seen.get(s, [])) for s in options}
-    fewest = min(tries.values())
-    if fewest < MIN_TRIES:
-        pool = [s for s in options if tries[s] == fewest]
-        style = rng.choice(pool)
-        return style, f"exploring: {style} has {fewest} measured Reel(s) of {MIN_TRIES} before the numbers count"
-    draws = {}
-    for s in options:
-        gains = sum(seen[s])
-        draws[s] = rng.betavariate(1 + gains, 1 + len(seen[s]) - gains)
-    style = max(options, key=lambda s: draws[s])
-    means = ", ".join(f"{s} {sum(seen[s]) / len(seen[s]):.2f} ({len(seen[s])})" for s in options)
-    return style, f"learned: {style} drew highest; mean reward {means}"
+    return learning.choose(options, evidence(rows), seed, "cover", MIN_TRIES)
 
 
 def cover_copy(payload: dict[str, Any]) -> dict[str, Any]:

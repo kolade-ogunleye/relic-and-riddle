@@ -2980,7 +2980,9 @@ class ScriptEngine:
                 + "Use only facts supported by the research notes. List sources only from retrieved_sources."
                 + feedback
             )
-        core = _structured(SYSTEM_PROMPT, prompt + length_target_note(), ScriptCore, effort="high")
+        from .hook_learning import steer_note
+        core = _structured(SYSTEM_PROMPT, prompt + steer_note(topic.get("hook_form")) + length_target_note(), ScriptCore,
+                           effort="high")
         if spoken_length_problems(ScriptPackage(**core.model_dump())):
             # This draft will be sent back for its length: graphics are planned only for one that can be kept.
             return ScriptPackage(**core.model_dump())

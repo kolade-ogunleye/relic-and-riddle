@@ -2161,6 +2161,11 @@ class PipelineCoordinator:
                                 initial_payload=None, initial_notes="") -> Dict[str, Any]:
         tid = topic["id"]
         revision_notes, payload = initial_notes, initial_payload
+        # The hook's form, learned from how earlier Reels' first three seconds did (src/hook_learning.py). The
+        # writer is steered; the form it actually wrote is what is measured.
+        from src import hook_learning
+        hook_form, hook_why = hook_learning.for_run(self.db, run_id, topic)
+        topic = {**topic, "hook_form": hook_form}
 
         def show(text: str) -> None:  # step 1 is long; the card says which draft it is on
             if getattr(self, "progress_msg_id", None):
@@ -2234,6 +2239,8 @@ class PipelineCoordinator:
         payload["script_rounds"] = max(drafts, revision + 1)
         payload["fact_rounds"] = revision + 1
         payload["script_round_reasons"] = [r[:200] for r in structural + earlier]
+        payload["hook_plan"] = {"asked": hook_form, "written": hook_learning.classify(payload.get("hook_sentence", "")),
+                                "why": hook_why}
         from src.config import DATA_DIR
         sheet_file = DATA_DIR / "fact_sheets" / f"{tid}.json"
         if passed and sheet_file.is_file():
@@ -2875,6 +2882,8 @@ class PipelineCoordinator:
                                                durations=durations)
             payload["motion_note"] = (f"🤖 AI motion ({', '.join(motion_used)}) animates {len(motion_used)} real photo(s); "
                                       "the Reel carries the AI label") if motion_used else ""
+            from src import hook_learning
+            payload["opening"] = {"shot": hook_learning.opening_shot(scenes, run_dir / "motion")}
             if not motion_used and config.MOTION_MAX_CLIPS > 0:  # a paid provider out of credit: said on the card
                 try:
                     payload["motion_note"] = motion.fallback_note(motion_used, paid_motion)

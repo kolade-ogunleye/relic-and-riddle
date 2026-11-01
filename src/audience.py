@@ -654,24 +654,29 @@ def measured_duration(run: Dict[str, Any]) -> Optional[float]:
     return float(m.group(1)) if m else None
 
 
+LEGACY_ROTATION = ("badge", "lower_third", "minimal", "depth_sandwich")   # main.py's rotation until 2026-11-01
+
+
 def cover_style(db, run_id: str, run: dict[str, Any]) -> str | None:
     """The cover style a run's Reel went out with: the style recorded beside its cover (still_layout recipe),
-    else the per-run rotation that chose it (main.py: COVER_STYLES by run key). None when neither is known."""
+    else the per-run rotation that chose it before cover_selector (LEGACY_ROTATION by run key). None when neither
+    is known."""
     import sqlite3
     from pathlib import Path
 
     from . import still_layout
-    from .visual_engine import COVER_STYLES
+    from .visual_engine import RENDERABLE_STYLES
     if run.get("master_video_path"):
         entry = still_layout.load(Path(run["master_video_path"]).parent / "thumbnail_cover.jpg") or {}
         style = (entry.get("recipe") or {}).get("style")
-        if style in COVER_STYLES:
+        if style in RENDERABLE_STYLES:
             return style
     try:
         key = db.run_key(run_id)
     except (sqlite3.Error, ValueError, TypeError):  # no run row: no rotation to recover
         return None
-    return COVER_STYLES[int(key) % len(COVER_STYLES)] if str(key).isdigit() else None
+    # Runs without a record predate cover_selector: they were rotated through the order in use then.
+    return LEGACY_ROTATION[int(key) % len(LEGACY_ROTATION)] if str(key).isdigit() else None
 
 
 def table(db) -> List[Dict[str, Any]]:

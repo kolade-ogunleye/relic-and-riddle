@@ -283,6 +283,165 @@ def _photograph(im, source, aperture, lay):
     return im
 
 
+_YEAR = __import__("re").compile(r"(?<![\w.])(1[0-9]{3}|20[0-9]{2})(?![\w])")
+
+
+def monument_figure(copy):
+    """(number, unit, field, span) of the figure a "monument" cover makes its hero, or None.
+
+    The first measured figure in the title lines, the badge or the tagline ("THE 144-FOOT" -> ("144", "FT");
+    "THE 25-MILE" -> ("25", "MILES")), else a year in the tagline or eyebrow ("DERINKUYU, 1963" -> ("1963", "")).
+    `span` is the figure's place in that field, so the line it came from can be shown without repeating it.
+    """
+    from .typography import _FIGURE, _figure_ok, _unit
+    for field in ("line1", "line2", "badge", "tagline"):
+        text = str(copy.get(field) or "")
+        for m in _FIGURE.finditer(text):
+            info = _unit(m.group("unit"))
+            if info and _figure_ok(m):
+                return m.group("num") + m.group("plus"), info[3].upper(), field, m.span()
+    for field in ("tagline", "eyebrow"):
+        m = _YEAR.search(str(copy.get(field) or ""))
+        if m:
+            return m.group(1), "", field, m.span()
+    return None
+
+
+def _without(text, span):
+    """`text` with the figure at `span` removed, and the article or punctuation it leaves dangling."""
+    import re
+    out = (text[:span[0]] + text[span[1]:]).strip()
+    out = re.sub(r"^(THE|A|AN)\s*$", "", out.strip(), flags=re.IGNORECASE)
+    out = re.sub(r"^(THE|A|AN)\s+(?=[,.]|$)", "", out, flags=re.IGNORECASE)
+    return re.sub(r"\s{2,}", " ", out).strip(" ,;:-")
+
+
+def _monument(im, copy, lay, tight, source, focus):
+    """The "monument number" cover (2026-11-01): one measured figure as the hero, in gold Anton across the
+    centre square, over the full-bleed photograph; the subject's name below it and the eyebrow above.
+
+    It replaces lower_third in the rotation (lower_third differed from Discovery only in its headline colour).
+    The line the figure came from is shown without it ("THE 144-FOOT" is not repeated under "144 FT"), and the
+    figure's own field is dropped when nothing else is left in it. A reviewed focus frames the photograph as
+    Discovery does; otherwise the whole photograph fills the canvas.
+    """
+    found = monument_figure(copy)
+    if found is None:  # no figure to make the hero: Discovery is the fallback (cover_selector never picks this)
+        return render_cover(im, copy, "badge", lay=lay, tight=tight, source=source, focus=focus)
+    number, unit, field, span = found
+    rest = dict(copy)
+    if field in ("line1", "line2", "tagline", "eyebrow"):
+        rest[field] = _without(str(copy[field]), span)
+    # The same figure elsewhere in the copy (badge "EST. 144 FT (44 M)" and line1 "THE 144-FOOT") is not
+    # repeated under the hero either.
+    for other in ("line1", "line2", "tagline"):
+        if other != field:
+            found_other = monument_figure({other: rest.get(other)})
+            if found_other and found_other[0] == number:
+                rest[other] = _without(str(rest[other]), found_other[3])
+    titles = [(name, str(rest.get(key) or "").strip().upper()) for name, key in (("title_1", "line1"),
+                                                                                  ("title_2", "line2"))]
+    titles = [(n, t) for n, t in titles if t]
+    eyebrow = str(rest.get("eyebrow") or "").strip().upper()
+    tagline = str(rest.get("tagline") or "").strip().upper()
+
+    margin, width = 84, 1080 - 2 * 84
+    measure = ImageDraw.Draw(im)
+    factor = 0.88 if tight else 1.0
+    # The figure: as large as fits the width, up to 330 px (it is the cover's one idea).
+    from .typography import fit_font
+    num_font = fit_font(measure, number, "Anton", int(330 * factor), width - (260 if unit else 0), 160)
+    unit_font = get_font("Anton", max(64, int(num_font.size * 0.36)))
+    eyebrow_rows, title_rows, tag_rows = [], [], []
+    if eyebrow:
+        lines, f_e, _ = fit_text(measure, eyebrow, "Montserrat", int(36 * factor), width, 1, 28, sentences=False,
+                                 weight=800)
+        eyebrow_rows = [(lines[0], f_e, brand.GOLD)]
+    if titles:
+        # One size for both title lines: the largest at which each fits on one line (down to 64 px), each kept
+        # as its own element (title_1, title_2) as in every other style; a line too long even then wraps.
+        size = int(104 * factor)
+        while size > 64 and any(text_size(measure, t, get_font("Anton", size))[0] > width for _, t in titles):
+            size -= 2
+        shortened = []
+        for name, text in titles:
+            lines, f_t, short = fit_text(measure, text, "Anton", size, width, 2, min(size, 64), sentences=False)
+            title_rows += [(name, line, f_t, brand.BONE) for line in lines]
+            if short:
+                shortened.append(name)
+        if lay is not None:
+            lay.shortened = shortened
+    if tagline:
+        lines, f_g, _ = fit_text(measure, tagline, "Montserrat", int(36 * factor), width, 1, 28, sentences=False)
+        tag_rows = [(lines[0], f_g, brand.STONE_LT)]
+
+    num_h = cap_h(num_font)
+    gaps = {"eyebrow": 26, "number": 34, "title": 10, "tagline": 0}
+    stack = (sum(text_size(measure, t, f)[1] + gaps["eyebrow"] for t, f, _ in eyebrow_rows) + num_h + gaps["number"]
+             + sum(text_size(measure, t, f)[1] + gaps["title"] for _, t, f, _ in title_rows) + 14
+             + sum(text_size(measure, t, f)[1] for t, f, _ in tag_rows))
+    top = 1434 - stack
+    im = _full_bleed(source, focus, (440 + top) / 2, lay)
+    im = _shade(im, top - 40, 1920, strength=0.86, feather=300)
+    im = _brand(im, lay)
+
+    y = top
+    plates = {}
+
+    def put(name, text, font, fill, xy, anchor="lt", target=5.1):
+        nonlocal im
+        im, plate = place_text(im, xy, text, font, fill, anchor=anchor, target=target)
+        plates.setdefault(name, []).append(plate)
+
+    for t, f, c in eyebrow_rows:
+        put("eyebrow", t, f, c, (margin, y))
+        y += text_size(measure, t, f)[1] + gaps["eyebrow"]
+    base = y + num_h
+    put("figure", number, num_font, brand.GOLD, (margin, base), anchor="ls")
+    if unit:
+        nx = margin + text_size(measure, number, num_font)[0] + 22
+        put("figure_unit", unit, unit_font, brand.GOLD, (nx, base), anchor="ls")
+    y = base + gaps["number"]
+    for name, t, f, c in title_rows:
+        put(name, t, f, c, (margin, y))
+        y += text_size(measure, t, f)[1] + gaps["title"]
+    y += 14
+    for t, f, c in tag_rows:
+        put("tagline", t, f, c, (margin, y))
+    for name, ps in plates.items():
+        record_contrast(lay, name, ps)
+    if lay is not None:
+        lay.meta.setdefault("plates", {}).update(plates)
+        lay.meta["monument"] = {"number": number, "unit": unit, "from": field}
+    return im
+
+
+def _full_bleed(source, focus, cy, lay):
+    """The photograph filling the 9:16 canvas, its reviewed feature (else its centre) placed at x 540, y `cy`
+    as far as the canvas allows: the monument cover is photograph-first behind its type, not an inset."""
+    src = ImageOps.exif_transpose(source).convert("RGBA")
+    sw, sh = src.size
+    scale = max(1080 / sw, 1920 / sh)
+    w, h = round(sw * scale), round(sh * scale)
+    fx, fy = 0.5, 0.5
+    if focus:
+        b = focus["focus_box"]
+        fx, fy = (b[0] + b[2]) / 2, (b[1] + b[3]) / 2
+    left = min(0, max(1080 - w, round(540 - fx * w)))
+    top = min(0, max(1920 - h, round(cy - fy * h)))
+    canvas = Image.new("RGBA", (1080, 1920))
+    canvas.paste(src.resize((w, h), Image.Resampling.LANCZOS), (left, top))
+    if lay is not None:
+        lay.meta["composition"] = {"version": DESIGN_VERSION, "mode": "monument_full_bleed",
+                                   "image_box": [left, top, left + w, top + h], "source_size": [sw, sh],
+                                   **({"focus_box": focus["focus_box"]} if focus else {})}
+    return canvas
+
+
+def cap_h(font):
+    return -font.getbbox("8", anchor="ls")[1]
+
+
 def render_cover(im, copy, style, center_y=960, lay=None, tight=False, source=None, focus=None):
     """Render the three existing choices and the editorial rotation.
 
@@ -295,6 +454,8 @@ def render_cover(im, copy, style, center_y=960, lay=None, tight=False, source=No
     feature; absent such a record, they also retain the complete photograph.
     """
     source = source if source is not None else im
+    if style == "monument":
+        return _monument(im, copy, lay, tight, source, focus)
     centered = style == "minimal"
     margin = 96 if style == "depth_sandwich" else 84
     width = 1080 - 2 * margin

@@ -30,7 +30,11 @@ log = logging.getLogger(__name__)
 from . import brand as _brand
 GOLD = _brand.rgba(_brand.GOLD)
 WHITE = _brand.rgba(_brand.BONE)
-COVER_STYLES = ("badge", "lower_third", "minimal", "depth_sandwich")
+# The styles a Reel cover can go out in (cover_selector picks among those that fit). lower_third left the
+# rotation on 2026-11-01 (it differed from Discovery only in its headline colour); "monument" took its place.
+# Every style ever posted stays drawable, so a kept recipe can always be redrawn (RENDERABLE_STYLES).
+COVER_STYLES = ("badge", "monument", "minimal", "depth_sandwich")
+RENDERABLE_STYLES = COVER_STYLES + ("lower_third",)
 
 class MissingAssetsError(FileNotFoundError):
     pass
@@ -64,7 +68,8 @@ def redraw_cover(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
     engine._hero_source, engine._hero_focus = clean_hero(engine._hero_source, engine._hero_focus_reviewed)
     im = ImageOps.fit(engine._hero_source, (VIDEO_WIDTH, VIDEO_HEIGHT), Image.Resampling.LANCZOS)
     render = {"lower_third": engine._cover_lower_third, "minimal": engine._cover_minimal,
-              "depth_sandwich": engine._cover_depth_sandwich}.get(recipe.get("style"), engine._cover_badge)
+              "depth_sandwich": engine._cover_depth_sandwich,
+              "monument": engine._cover_monument}.get(recipe.get("style"), engine._cover_badge)
     lay = still_layout.Layout("cover", (VIDEO_WIDTH, VIDEO_HEIGHT), cover_text_zone(), tight=True)
     out = render(im, dict(recipe.get("copy") or {}), lay=lay, tight=True).convert("RGB")
     path = Path(path)
@@ -276,7 +281,7 @@ class VisualEngine:
             save(output_dir / "thumbnail_variant_b_intrigue.jpg", "badge")
             save(output_dir / "thumbnail_variant_c_minimal.jpg", "minimal")
 
-        final_916 = save(out_916_path, style if style in COVER_STYLES else "badge")
+        final_916 = save(out_916_path, style if style in RENDERABLE_STYLES else "badge")
         grid_crop(final_916).save(out_1x1_path, quality=95)
         log.info("Thumbnails generated (%s, with 3-variant suite): %s, %s", style, out_916_path.name, out_1x1_path.name)
         return out_916_path, out_1x1_path
@@ -286,7 +291,8 @@ class VisualEngine:
         measured layout fails."""
         from . import still_layout
         render = {"lower_third": self._cover_lower_third, "minimal": self._cover_minimal,
-                  "depth_sandwich": self._cover_depth_sandwich}.get(style, self._cover_badge)
+                  "depth_sandwich": self._cover_depth_sandwich,
+                  "monument": self._cover_monument}.get(style, self._cover_badge)
 
         def draw(tight: bool):
             lay = still_layout.Layout("cover", (VIDEO_WIDTH, VIDEO_HEIGHT), cover_text_zone(), tight=tight)
@@ -295,6 +301,10 @@ class VisualEngine:
 
     def _cover_lower_third(self, im: Image.Image, copy: Dict[str, str], lay=None, tight: bool = False) -> Image.Image:
         return self._cover_design(im, copy, "lower_third", lay, tight)
+
+    def _cover_monument(self, im: Image.Image, copy: dict[str, str], lay=None, tight: bool = False) -> Image.Image:
+        # One measured figure as the hero over the full-bleed photograph (cover_design._monument).
+        return self._cover_design(im, copy, "monument", lay, tight)
 
     def _cover_minimal(self, im: Image.Image, copy: Dict[str, str], lay=None, tight: bool = False) -> Image.Image:
         return self._cover_design(im, copy, "minimal", lay, tight)

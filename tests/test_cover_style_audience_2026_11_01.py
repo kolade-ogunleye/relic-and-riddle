@@ -5,7 +5,6 @@ from pathlib import Path
 
 from src import audience, still_layout
 from src.still_layout import Layout
-from src.visual_engine import COVER_STYLES
 
 
 def _row(run_id: str, style: str, skip: float, share: float, platform: str = "instagram") -> dict:
@@ -22,10 +21,17 @@ def test_the_recorded_style_beside_the_cover_wins(db, tmp_path: Path) -> None:
     assert audience.cover_style(db, "run_s", run) == "minimal"
 
 
+def test_a_retired_style_on_record_is_still_recognised(db, tmp_path: Path) -> None:
+    db.create_run("run_l", "01_topic")
+    cover = tmp_path / "thumbnail_cover.jpg"
+    still_layout.save(cover, Layout("cover", (1080, 1920), (0, 0, 1080, 1920)), {"style": "lower_third"})
+    assert audience.cover_style(db, "run_l", {"master_video_path": str(tmp_path / "m.mp4")}) == "lower_third"
+
+
 def test_without_a_record_the_rotation_is_recovered(db) -> None:
     db.create_run("run_r", "01_topic")
     key = int(db.run_key("run_r"))
-    assert audience.cover_style(db, "run_r", {}) == COVER_STYLES[key % len(COVER_STYLES)]
+    assert audience.cover_style(db, "run_r", {}) == audience.LEGACY_ROTATION[key % len(audience.LEGACY_ROTATION)]
 
 
 def test_two_styles_are_compared_by_median_and_flagged_early() -> None:

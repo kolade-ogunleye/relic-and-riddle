@@ -50,7 +50,6 @@ from src.parallax import render_scenes as render_parallax
 from src.video_composer import TRANS_DUR
 from src.video_qa import QualityAuditor, audit_scene_feedback, qa_summary_html, review_render
 from src.control import failed_heading
-from src.visual_engine import COVER_STYLES
 from src.ops import AssetLifecycleManager, PreFlightHealthChecker, setup_logging
 from src.fact_sheet import FactStarvedTopicError
 from src.stage_timer import StageTimer
@@ -2665,8 +2664,10 @@ class PipelineCoordinator:
             log.info(payload["source_note"])
 
         # Stills setup
-        key = self.db.run_key(run_id)  # rotate cover layouts so neighbouring grid posts differ
-        style = COVER_STYLES[int(key) % len(COVER_STYLES)] if key.isdigit() else COVER_STYLES[0]
+        # The cover style: those the copy fits, never the previous run's, the audience's numbers deciding once
+        # each has been tried (src/cover_selector.py; a per-run rotation until 2026-11-01).
+        from src import cover_selector
+        style, _style_why = cover_selector.for_run(self.db, run_id, payload)
 
         # 7. Master render
         self._check_cancel(run_id)

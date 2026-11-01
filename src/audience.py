@@ -654,6 +654,26 @@ def measured_duration(run: Dict[str, Any]) -> Optional[float]:
     return float(m.group(1)) if m else None
 
 
+def cover_style(db, run_id: str, run: dict[str, Any]) -> str | None:
+    """The cover style a run's Reel went out with: the style recorded beside its cover (still_layout recipe),
+    else the per-run rotation that chose it (main.py: COVER_STYLES by run key). None when neither is known."""
+    import sqlite3
+    from pathlib import Path
+
+    from . import still_layout
+    from .visual_engine import COVER_STYLES
+    if run.get("master_video_path"):
+        entry = still_layout.load(Path(run["master_video_path"]).parent / "thumbnail_cover.jpg") or {}
+        style = (entry.get("recipe") or {}).get("style")
+        if style in COVER_STYLES:
+            return style
+    try:
+        key = db.run_key(run_id)
+    except (sqlite3.Error, ValueError, TypeError):  # no run row: no rotation to recover
+        return None
+    return COVER_STYLES[int(key) % len(COVER_STYLES)] if str(key).isdigit() else None
+
+
 def table(db) -> List[Dict[str, Any]]:
     """Latest snapshot per published run and platform, with derived rates."""
     ensure_schema(db)
@@ -672,7 +692,8 @@ def table(db) -> List[Dict[str, Any]]:
         out.append({"run_id": run_id, "platform": platform, "snapshot": r["snapshot"], "fetched_at": r["fetched_at"],
                     "title": (run.get("script_payload") or {}).get("title", run_id),
                     "unavailable": metrics.get("unavailable"), **derived(metrics, duration),
-                    "end_card": card.get("variant") if card else None, **card_retention(metrics, duration, card)})
+                    "end_card": card.get("variant") if card else None, **card_retention(metrics, duration, card),
+                    "cover_style": cover_style(db, run_id, run)})
     return out
 
 
@@ -694,6 +715,43 @@ def end_card_comparison(rows: List[Dict[str, Any]]) -> Optional[str]:
     drops = [r["card_drop"] for r in with_card if r.get("card_drop") is not None]
     drop = f"; the card loses {sum(drops) / len(drops):.0%} of viewers" if drops else ""
     return f"• End card: with it {describe(with_card)}; without {describe(without)}{drop}."
+
+
+MIN_PER_STYLE = 8   # Instagram Reels per cover style before the comparison is read as more than an early signal
+
+
+def cover_style_comparison(rows: list[dict[str, Any]]) -> str | None:
+    """One digest line comparing the rotated cover styles on Instagram, where the cover is seen (feed, Reels tab,
+    profile grid), by the rates that do not depend on a topic's reach: 3-second skip rate (lower is better), shares
+    and saves per account reached, and watch ratio. Each style's median, so one viral topic does not decide it.
+    None until two styles have been measured; labelled an early signal until each has MIN_PER_STYLE Reels."""
+    from statistics import median
+    ig = [r for r in rows if r["platform"] == "instagram" and not r.get("unavailable") and r.get("cover_style")]
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for r in ig:
+        groups.setdefault(r["cover_style"], []).append(r)
+    if len(groups) < 2:
+        return None
+
+    def med(group, key):
+        vals = [r[key] for r in group if r.get(key) is not None]
+        return median(vals) if vals else None
+
+    def describe(style, group):
+        skip, share, save, watch = (med(group, k) for k in ("skip_rate", "share_rate", "save_rate", "watch_ratio"))
+        bits = [f"skip {skip:.0f}%" if skip is not None else None,
+                f"shares {share:.1%}" if share is not None else None,
+                f"saves {save:.1%}" if save is not None else None,
+                f"watched {watch:.0%}" if watch is not None else None]
+        return f"{style} ({len(group)}): " + (", ".join(b for b in bits if b) or "no rates yet")
+
+    def order(item):
+        skip = med(item[1], "skip_rate")
+        return (skip is None, skip if skip is not None else 0.0)
+    parts = [describe(style, group) for style, group in sorted(groups.items(), key=order)]
+    early = min(len(g) for g in groups.values()) < MIN_PER_STYLE
+    note = f" <i>Early signal: fewer than {MIN_PER_STYLE} Reels per style.</i>" if early else ""
+    return "• Cover styles (Instagram, median, lowest skip first): " + "; ".join(parts) + "." + note
 
 
 PLATFORM_NAMES = {"instagram": "Instagram", "facebook": "Facebook", "youtube": "YouTube"}
@@ -719,9 +777,9 @@ def digest_lines(db) -> List[str]:
         mine = sorted((r for r in rows if r["platform"] == platform), key=lambda r: -(r["views"] or 0))[:4]
         for r in mine:
             lines.append(f"• {PLATFORM_NAMES[platform]} · {html.escape(r['title'][:40])} ({r['snapshot']}): {_parts(r)}")
-    comparison = end_card_comparison(rows)
-    if comparison:
-        lines.append(comparison)
+    for comparison in (end_card_comparison(rows), cover_style_comparison(rows)):
+        if comparison:
+            lines.append(comparison)
     if len({r["run_id"] for r in rows}) < MIN_FOR_PATTERNS:
         lines.append(f"<i>Fewer than {MIN_FOR_PATTERNS} videos: read these as descriptions, not patterns.</i>")
     return lines

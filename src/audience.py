@@ -749,9 +749,12 @@ def opening_fields(run: dict[str, Any], metrics: dict[str, Any], duration_s: flo
     opening = payload.get("opening") if isinstance(payload.get("opening"), dict) else {}
     card = payload.get("end_card") if isinstance(payload.get("end_card"), dict) else {}
     drops = beat_drops(metrics, duration_s, payload.get("beat_times") or [], card.get("start_s"))
+    from .engagement_learning import caption_question, classify_question, classify_share
     return {"hook_form": classify(str(payload.get("hook_sentence") or "")), "opening_shot": opening.get("shot"),
             "hold_3s": hold_at(metrics, duration_s),
-            "worst_beat": max(drops, key=lambda d: d["lost"]) if drops else None}
+            "worst_beat": max(drops, key=lambda d: d["lost"]) if drops else None,
+            "share_form": classify_share(str(payload.get("share_line") or "")),
+            "question_form": classify_question(caption_question(str(payload.get("caption") or "")))}
 
 
 def table(db) -> List[Dict[str, Any]]:
@@ -878,6 +881,41 @@ def opening_comparison(rows: list[dict[str, Any]]) -> list[str]:
     return lines
 
 
+def asks_comparison(rows: list[dict[str, Any]]) -> list[str]:
+    """Digest lines comparing how Reels asked, per video platform: the share line's form by shares plus saves per
+    account reached, the caption question's form by comments per account reached (each kind's median, best
+    first), once two kinds are measured there; an early signal until each has MIN_PER_STYLE videos."""
+    from statistics import median
+
+    def rate(r, kind):
+        reach = r.get("reach")
+        if kind == "share":
+            if r.get("share_rate") is None and r.get("save_rate") is None:
+                return None
+            return (r.get("share_rate") or 0.0) + (r.get("save_rate") or 0.0)
+        return r["comments"] / reach if r.get("comments") is not None and reach else None
+
+    lines = []
+    for field, kind, title, unit in (("share_form", "share", "Share asks", "shared or saved"),
+                                     ("question_form", "comment", "Caption questions", "commented")):
+        for platform in VIDEO_PLATFORMS:
+            groups: dict[str, list[float]] = {}
+            for r in rows:
+                if r["platform"] == platform and not r.get("unavailable") and r.get(field):
+                    v = rate(r, kind)
+                    if v is not None:
+                        groups.setdefault(r[field], []).append(v)
+            if len(groups) < 2:
+                continue
+            ranked = sorted(groups.items(), key=lambda kv: -median(kv[1]))
+            parts = [f"{k} ({len(v)}): {median(v):.2%} {unit}" for k, v in ranked]
+            early = min(len(v) for v in groups.values()) < MIN_PER_STYLE
+            note = f" <i>Early signal: fewer than {MIN_PER_STYLE} videos per kind.</i>" if early else ""
+            lines.append(f"• {title} · {PLATFORM_NAMES.get(platform, platform)} (per account reached, best first): "
+                         + "; ".join(parts) + "." + note)
+    return lines
+
+
 PLATFORM_NAMES = {"instagram": "Instagram", "facebook": "Facebook", "youtube": "YouTube"}
 
 
@@ -901,7 +939,8 @@ def digest_lines(db) -> List[str]:
         mine = sorted((r for r in rows if r["platform"] == platform), key=lambda r: -(r["views"] or 0))[:4]
         for r in mine:
             lines.append(f"• {PLATFORM_NAMES[platform]} · {html.escape(r['title'][:40])} ({r['snapshot']}): {_parts(r)}")
-    for comparison in (end_card_comparison(rows), *opening_comparison(rows), *cover_style_comparison(rows)):
+    for comparison in (end_card_comparison(rows), *opening_comparison(rows), *asks_comparison(rows),
+                       *cover_style_comparison(rows)):
         if comparison:
             lines.append(comparison)
     if len({r["run_id"] for r in rows}) < MIN_FOR_PATTERNS:

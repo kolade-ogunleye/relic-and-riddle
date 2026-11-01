@@ -2165,7 +2165,9 @@ class PipelineCoordinator:
         # writer is steered; the form it actually wrote is what is measured.
         from src import hook_learning
         hook_form, hook_why = hook_learning.for_run(self.db, run_id, topic)
-        topic = {**topic, "hook_form": hook_form}
+        from src import engagement_learning
+        asks, asks_why = engagement_learning.for_run(self.db, run_id)   # share line and caption question forms
+        topic = {**topic, "hook_form": hook_form, "engagement_forms": asks}
 
         def show(text: str) -> None:  # step 1 is long; the card says which draft it is on
             if getattr(self, "progress_msg_id", None):
@@ -2241,6 +2243,11 @@ class PipelineCoordinator:
         payload["script_round_reasons"] = [r[:200] for r in structural + earlier]
         payload["hook_plan"] = {"asked": hook_form, "written": hook_learning.classify(payload.get("hook_sentence", "")),
                                 "why": hook_why}
+        payload["engagement_plan"] = {
+            "asked": list(asks) if asks else None, "why": asks_why,
+            "written": [engagement_learning.classify_share(payload.get("share_line", "")),
+                        engagement_learning.classify_question(
+                            engagement_learning.caption_question(payload.get("caption", "")))]}
         from src.config import DATA_DIR
         sheet_file = DATA_DIR / "fact_sheets" / f"{tid}.json"
         if passed and sheet_file.is_file():

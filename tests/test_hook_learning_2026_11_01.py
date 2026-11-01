@@ -60,8 +60,9 @@ def test_hold_at_three_seconds_comes_from_the_retention_graph() -> None:
 
 def test_opening_fields_measure_earlier_runs_too() -> None:
     run = {"script_payload": {"hook_sentence": "How did it stay hidden?"}}
-    assert audience.opening_fields(run, {}, None) == {"hook_form": "question", "opening_shot": None, "hold_3s": None,
-                                                       "worst_beat": None}
+    fields = audience.opening_fields(run, {}, None)
+    assert {k: fields[k] for k in ("hook_form", "opening_shot", "hold_3s", "worst_beat")} == {
+        "hook_form": "question", "opening_shot": None, "hold_3s": None, "worst_beat": None}
 
 
 def test_the_digest_compares_openings_per_platform() -> None:

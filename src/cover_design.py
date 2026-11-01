@@ -151,6 +151,39 @@ def _brand(im, lay, centered=False, paper=False):
     return im
 
 
+def _ambient(backdrop, photo_box, grid=(4, 20), dim=0.6, reach=560):
+    """A streak-free colour field from the edge-extended photograph.
+
+    Clamping edge pixels outward repeats each edge column (or row) for the
+    whole margin, so any texture along the edge became hard vertical streaks
+    (Richat's cloud edge, 2026-11-01). Resampling through a coarse grid keeps
+    each region's local colour (sky continues as sky, no ghost subject) while
+    removing that column-wise detail. The field then dims towards ink with
+    distance from the photograph so the canvas edge reads as depth, not smear.
+    """
+    import numpy as np
+    w, h = backdrop.size
+    def smooth(cells):
+        coarse = backdrop.convert("RGB").resize(cells, Image.Resampling.BOX)
+        out = coarse.resize((w, h), Image.Resampling.BICUBIC).filter(ImageFilter.GaussianBlur(64))
+        return np.asarray(out, dtype=np.float32)
+
+    near, far = smooth(grid), smooth((3, 6))
+    x0, y0, x1, y1 = photo_box
+    yy, xx = np.ogrid[:h, :w]
+    dx = np.maximum(np.maximum(x0 - xx, xx - (x1 - 1)), 0)
+    dy = np.maximum(np.maximum(y0 - yy, yy - (y1 - 1)), 0)
+    t = np.clip(np.hypot(dx, dy) / reach, 0, 1)
+    t = (t * t * (3 - 2 * t))[..., None]
+    # Close to the photograph: its local colours. Further out: a broad wash of
+    # the same palette (no column structure left), dimming towards ink.
+    blend = np.clip(t * 2.2, 0, 1)
+    arr = near + (far - near) * blend
+    ink = np.array(brand.INK, dtype=np.float32)
+    out = ink + (arr - ink) * (1 - dim * t)
+    return Image.fromarray(np.clip(out, 0, 255).astype("uint8")).convert("RGBA")
+
+
 def _immersive(source, aperture, focus, lay):
     """Scale the reviewed feature into its aperture, retaining photographic context.
 
@@ -175,7 +208,7 @@ def _immersive(source, aperture, focus, lay):
     xx = np.clip(np.arange(1080) - left, 0, size[0] - 1)
     yy = np.clip(np.arange(1920) - top, 0, size[1] - 1)
     backdrop = np.asarray(photo)[yy[:, None], xx[None, :]]
-    im = Image.fromarray(backdrop).filter(ImageFilter.GaussianBlur(60))
+    im = _ambient(Image.fromarray(backdrop), (left, top, left + size[0], top + size[1]))
     # Feather just the physical photograph's outer edge into that backdrop.
     # Limit the fade to the margin outside the explicitly reviewed feature.
     margin = max(0, min(fx0 * sx, fy0 * sy, (sw - fx1) * sx, (sh - fy1) * sy))

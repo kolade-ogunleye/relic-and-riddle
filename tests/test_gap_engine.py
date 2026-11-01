@@ -68,17 +68,20 @@ def test_substrate_compositor_all_eras(tmp_path):
 # 3. Image Generator & Modern Scientific Override
 # ---------------------------------------------------------------------------
 
-def test_image_gen_modern_scientific_override():
+def test_image_gen_modern_scientific_override(tmp_path):
     """Verifies that modern scientific lines route to technical blueprint prompts rather than antiquity etchings."""
-    with patch("src.image_gen.generate_raw_linework") as mock_gen, \
+    # Isolation (2026-11-01): without a GEMINI_API_KEY in the environment is_available() is False and
+    # synthesize_gap_asset returns before prompting, so this only passed where a real key was configured.
+    with patch("src.image_gen.is_available", return_value=True), \
+         patch("src.image_gen.generate_raw_linework") as mock_gen, \
          patch("src.substrate_compositor.composite_linework_onto_substrate") as mock_comp:
         
         mock_gen.return_value = b"fake_jpeg_bytes"
         mock_comp.return_value = Image.new("RGB", (100, 100))
         
         topic = {"title": "The Lycurgus Cup", "era": "classical_antiquity"}
-        work_dir = Path("tmp_test_dir")
-        
+        work_dir = tmp_path / "tmp_test_dir"  # was the repository root's tmp_test_dir
+
         # Test 1: Historical scene in classical antiquity
         image_gen.synthesize_gap_asset(
             beat_index=8,

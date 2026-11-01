@@ -981,13 +981,25 @@ class MultiFormatGenerator:
         else:
             im = self._render_editorial_split(photo, card, i, cw, chh, lay=lay, tight=tight)
 
-        # The brand, top-left (clear of Instagram's counter, see HEADER_Y): Cinzel in tracked bone capitals, drawn at
-        # a measured contrast like every other line (a halo where the photo is bright), never on a pill.
-        brand_font = get_font("Cinzel", px.exact(30), weight=700)
-        plate = plan_text(im, (px(80), px(self.HEADER_Y) + cap_height(brand_font)), "RELIC & RIDDLE", brand_font, WHITE,
-                          "ls", track=px(3), min_halo=0.6 if tight else 0.0, halo_px=31)
+        # The brand, top-left (clear of Instagram's counter, see HEADER_Y): the gold diamond mark, then Cinzel Bold
+        # in tracked bone capitals at the covers' 40 px (one masthead across covers and carousels, 2026-11-01; 30 px
+        # before), drawn at a measured contrast like every other line (a halo where the photo is bright), never on
+        # a pill.
+        from .cover_design import MARK_GAP, MARK_R
+        brand_font = get_font("Cinzel", px.exact(40), weight=700)
+        r, gap = px(MARK_R), px(MARK_GAP)
+        x0, base = px(80), px(self.HEADER_Y) + cap_height(brand_font)
+        plate = plan_text(im, (x0 + 2 * r + gap, base), "RELIC & RIDDLE", brand_font, WHITE,
+                          "ls", track=px(3), min_halo=0.6 if tight else 0.0, halo_px=36)
         im = plate.draw(im.convert("RGB"))
-        lay.add("header_brand", plate.box)
+        cx, cy = x0 + r, base - cap_height(brand_font) / 2
+        diamond = [(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)]
+        d = ImageDraw.Draw(im)
+        d.polygon(diamond, outline=INK, width=max(2, px(3)))
+        d.polygon(diamond, fill=GOLD)
+        # One header element, as before: its box takes in the mark.
+        bx = plate.box
+        lay.add("header_brand", (min(bx[0], cx - r), min(bx[1], cy - r), max(bx[2], cx + r), max(bx[3], cy + r)))
         lay.elements[-1].update(plate.record())
         lay.plates.setdefault("header_brand", []).append(plate)
         return im, lay

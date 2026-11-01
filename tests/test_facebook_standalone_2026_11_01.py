@@ -56,3 +56,18 @@ def test_facebook_photos_name_the_subject_and_instagram_slides_do_not(tmp_path: 
     assert "kicker" not in fb["carousel_slide_01.jpg"][1]  # the cover already is the subject
     for rec in fb.values():
         assert rec[0]["facebook"] is True
+
+
+def test_facebook_text_survives_a_square_grid_tile(tmp_path: Path) -> None:
+    """Facebook's multi-photo grid shows the 4:5 slides in tiles that may be square: every text element below
+    the header (the subject kicker included) must sit inside the slide's centre square."""
+    gen = MultiFormatGenerator()
+    gen.generate_carousel_sequence(_photos(tmp_path), PAYLOAD, tmp_path / "fb", facebook=True)
+    for slide in sorted((tmp_path / "fb" / "carousel_fb").glob("carousel_slide_*.jpg")):
+        rec = still_layout.load(slide)
+        w, h = Image.open(slide).size
+        top, bottom = (h - w) / 2, (h + w) / 2
+        for e in rec["elements"]:
+            if e["name"] == "header_brand" or e.get("contrast") is None:
+                continue
+            assert top <= e["box"][1] and e["box"][3] <= bottom, (slide.name, e["name"], e["box"], top, bottom)

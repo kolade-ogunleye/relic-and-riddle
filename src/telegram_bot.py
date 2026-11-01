@@ -2701,37 +2701,33 @@ class TelegramApprovalBot:
             return False
         if not r_dir.is_dir():
             return False
-        var_file = (r_dir / f"thumbnail_variant_{var_letter}_blueprint.jpg" if var_letter == "a"
-                    else r_dir / f"thumbnail_variant_{var_letter}_intrigue.jpg" if var_letter == "b"
-                    else r_dir / f"thumbnail_variant_{var_letter}_minimal.jpg" if var_letter == "c"
-                    else r_dir / f"thumbnail_variant_{var_letter}_split.jpg" if var_letter == "d"
-                    else r_dir / f"thumbnail_variant_{var_letter}_depth.jpg")
-        if not var_file.exists():
+        from .control import cover_variant_path, chosen_cover
+        var_file = cover_variant_path(r_dir, var_letter)
+        if not var_file or not var_file.exists():
             return False
 
         styles = {
-            "a": "Forensic Blueprint",
-            "b": "Curatorial Plate",
-            "c": "Cinematic Minimal",
-            "d": "Archival Split",
+            "a": "Monograph Editorial",
+            "b": "Curatorial Specimen",
+            "c": "Archival Split-Ground",
+            "d": "Forensic Blueprint",
             "e": "3D Depth Sandwich",
         }
         style_name = styles.get(var_letter, var_letter.upper())
         # ✓ the cover the video has, 👁 the one shown (a flip ticked the preview as if chosen: 2026-10-25);
         # Lock only while the video waits for its review, as on the Covers screen.
-        from .control import chosen_cover
         chosen = chosen_cover(r_dir)
         mark = lambda v: "✓" if v == chosen else ("👁" if v == var_letter else "📌")  # noqa: E731
         run_rec = self.db.get_run(run_name) or {}
         reviewable = run_rec.get("status") == "pending_approval" and (self.db.get_approval(run_name) or {}).get("decision") == "pending"
         buttons = [
             [
-                {"text": f"{mark('a')} A: Blueprint", "callback_data": f"cov:{run_name}:a"},
-                {"text": f"{mark('b')} B: Plate", "callback_data": f"cov:{run_name}:b"},
+                {"text": f"{mark('a')} A: Monograph", "callback_data": f"cov:{run_name}:a"},
+                {"text": f"{mark('b')} B: Curatorial", "callback_data": f"cov:{run_name}:b"},
             ],
             [
-                {"text": f"{mark('c')} C: Minimal", "callback_data": f"cov:{run_name}:c"},
-                {"text": f"{mark('d')} D: Split", "callback_data": f"cov:{run_name}:d"},
+                {"text": f"{mark('c')} C: Split", "callback_data": f"cov:{run_name}:c"},
+                {"text": f"{mark('d')} D: Forensic", "callback_data": f"cov:{run_name}:d"},
             ],
             [
                 {"text": f"{mark('e')} E: Depth", "callback_data": f"cov:{run_name}:e"},

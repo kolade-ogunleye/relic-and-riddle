@@ -535,6 +535,22 @@ class MultiFormatGenerator:
             return "blueprint"
         return "immersive" if index % 2 == 1 else "editorial_split"
 
+    REPEATABLE = ("colossal_stat",)   # a figure slide follows its content: two in a row stay two
+
+    @classmethod
+    def sequence_archetypes(cls, cards: list[dict[str, Any]]) -> list[str]:
+        """Each slide's archetype (route_carousel_archetype), then a pass over the set so two neighbours never get
+        the same photo treatment (2026-11-01: Richat's slides 4 and 5 were both comparisons): the second becomes
+        the full-bleed or the split archetype, whichever neither neighbour has. Figure slides keep theirs."""
+        total = len(cards)
+        out = [cls.route_carousel_archetype(c, i, total) for i, c in enumerate(cards)]
+        for i in range(1, total - 1):
+            if out[i] == out[i - 1] and out[i] not in cls.REPEATABLE:
+                after = out[i + 1] if i + 1 < total else None
+                out[i] = next((a for a in ("immersive", "editorial_split") if a not in (out[i - 1], after)),
+                              "editorial_split" if out[i - 1] == "immersive" else "immersive")
+        return out
+
     @staticmethod
     def _get_card_category(card: Dict[str, Any], archetype: str) -> str:
         """The slide's badge, or "" for none. A slide may not state a qualifier its script did not (platform
@@ -1035,8 +1051,9 @@ class MultiFormatGenerator:
         subject = standalone_subject(script_payload) if facebook else ""
 
         slides = []
+        archetypes = self.sequence_archetypes(cards)
         for i, card in enumerate(cards):
-            archetype = self.route_carousel_archetype(card, i, total)
+            archetype = archetypes[i]
             # One unit per run: figures in the unit the narration speaks (2026-10-29), after the photo match.
             card = dict(card, **{k: spoken_units(card[k], narration) for k in ("heading", "body")
                                  if isinstance(card.get(k), str)})

@@ -12,8 +12,9 @@ the form is how that fact is delivered:
 - figure: the most striking verified number first ("280 feet below a Turkish village, ...");
 - contradiction: what seems impossible, and that it is true ("It has no foundations, yet it has stood ...").
 
-Each run is steered to one form by learning.choose (each tried MIN_TRIES times, then Thompson sampling on the
-hook reward); the form actually written is classified from the hook sentence, since the writer may not follow
+Once any Reel's first three seconds are measured, each run is steered to one form by learning.choose (each
+tried MIN_TRIES times, then Thompson sampling on the hook reward); before that the writer is not steered. The
+form actually written is classified from the hook sentence, since the writer may not follow
 the steer, and that is what is measured. "figure" is offered only when the topic's notes hold a number.
 """
 from __future__ import annotations
@@ -110,6 +111,27 @@ def steer_note(form: str | None) -> str:
             f"the most surprising verified one): {STEERS[form]}")
 
 
+def revision_note(form: str, hook: str) -> str:
+    """The findings for the soft check's one revision: recast the first sentence in `form`, same fact, nothing
+    else changed (read by the surgical reviser, which edits only the sentences named)."""
+    return (f"Hook form: the first sentence (also hook_sentence) \"{hook}\" is not in the asked form "
+            f"({form}). {STEERS[form]} Rewrite only that sentence (and hook_sentence to match), keeping the same "
+            "verified fact, its hedge if it has one, and at most 14 words. Change nothing else.")
+
+
+def follow_rate(rows: list[dict[str, Any]]) -> str | None:
+    """A digest line on how often the writer opened in the asked form (from each run's hook_plan), or None before
+    any run was steered."""
+    plans = {r["run_id"]: r["hook_plan"] for r in rows if isinstance(r.get("hook_plan"), dict)
+             and r["hook_plan"].get("asked")}
+    if not plans:
+        return None
+    first = sum(1 for p in plans.values() if p.get("written") == p["asked"] and not p.get("revised"))
+    after = sum(1 for p in plans.values() if p.get("revised"))
+    return (f"• Hook steer: {len(plans)} run(s) asked; {first} opened in the asked form at once, {after} after one "
+            "revision, the rest kept their passed draft.")
+
+
 def for_run(db, run_id: str, topic: dict[str, Any]) -> tuple[str | None, str]:
     """choose() for a pipeline run, from the audience table; (None, why) when the numbers cannot be read, so the
     writer gets no steer rather than a guess."""
@@ -119,6 +141,10 @@ def for_run(db, run_id: str, topic: dict[str, Any]) -> tuple[str | None, str]:
     except Exception as e:  # noqa: BLE001 - a broken metrics table must never stop a script
         log.warning("Hook form not chosen (%s); the writer gets no steer.", e)
         return None, f"no steer: audience numbers unreadable ({e})"
+    if not evidence(rows):
+        # Nothing measured yet (a new channel, or no first-three-seconds numbers): the writer writes as it always
+        # has, and the forms those Reels open with seed the comparison once they are measured.
+        return None, "no steer: no Reel's first three seconds measured yet"
     form, why = choose(topic, rows, seed=run_id)
     log.info("Hook form %s (%s).", form, why)
     return form, why

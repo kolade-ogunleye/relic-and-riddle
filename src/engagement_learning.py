@@ -125,6 +125,8 @@ def for_run(db, run_id: str) -> tuple[tuple[str, str] | None, str]:
     except Exception as e:  # noqa: BLE001 - a broken metrics table must never stop a script
         log.warning("Engagement forms not chosen (%s); the writer gets no steer.", e)
         return None, f"no steer: audience numbers unreadable ({e})"
+    if not (_evidence(rows, "share_form", share_reward) or _evidence(rows, "question_form", question_reward)):
+        return None, "no steer: no Reel's shares or comments measured yet"
     forms, why = choose(rows, seed=run_id)
     log.info("Engagement forms %s / %s (%s).", forms[0], forms[1], why)
     return forms, why

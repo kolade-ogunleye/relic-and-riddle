@@ -2241,8 +2241,27 @@ class PipelineCoordinator:
         payload["script_rounds"] = max(drafts, revision + 1)
         payload["fact_rounds"] = revision + 1
         payload["script_round_reasons"] = [r[:200] for r in structural + earlier]
-        payload["hook_plan"] = {"asked": hook_form, "written": hook_learning.classify(payload.get("hook_sentence", "")),
-                                "why": hook_why}
+        # Soft check on the hook's form: a passed draft that opens in another form than asked is revised once,
+        # its first sentence only, and the revision is kept only if it passes the fact checks again and is in
+        # the asked form. Accuracy outranks the form: otherwise the passed draft stands.
+        written = hook_learning.classify(payload.get("hook_sentence", ""))
+        revised = None
+        if (passed and hook_form and written and written != hook_form
+                and payload.get("origin") in ("claude", "gemini-free")):
+            revised = False
+            try:
+                retry = self.script_engine.generate_script(
+                    topic, revision_notes=hook_learning.revision_note(hook_form, payload.get("hook_sentence", "")),
+                    previous=payload)
+                r_passed, retry, r_notes = self.script_engine.verify_claims(retry, topic=topic,
+                                                                           allow_unreviewed_curated=dry_run)
+                if r_passed and hook_learning.classify(retry.get("hook_sentence", "")) == hook_form:
+                    payload, notes, written, revised = retry, r_notes, hook_form, True
+                    payload["fact_rounds"] = revision + 2
+                    payload["script_round_reasons"] = [r[:200] for r in structural + earlier]
+            except Exception as e:  # noqa: BLE001 - the passed draft stands whatever the revision does
+                log.warning("Hook form revision not used (%s); the passed draft stands.", e)
+        payload["hook_plan"] = {"asked": hook_form, "written": written, "revised": revised, "why": hook_why}
         payload["engagement_plan"] = {
             "asked": list(asks) if asks else None, "why": asks_why,
             "written": [engagement_learning.classify_share(payload.get("share_line", "")),

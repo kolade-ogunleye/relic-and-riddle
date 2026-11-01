@@ -97,8 +97,9 @@ def ensure_schema(db) -> None:
 
 
 def _secrets() -> List[str]:
-    return [s for s in (config.META_ACCESS_TOKEN, config.META_PAGE_ACCESS_TOKEN, config.UPLOAD_POST_API_KEY)
-            if s and len(s) >= 6]
+    from . import youtube_analytics
+    return [s for s in (config.META_ACCESS_TOKEN, config.META_PAGE_ACCESS_TOKEN, config.UPLOAD_POST_API_KEY,
+                        *youtube_analytics.secrets()) if s and len(s) >= 6]
 
 
 def _redact(text: Any) -> str:
@@ -482,6 +483,32 @@ def _record_sources(db, collected_at: str, run_id: str, snapshot: str, outcomes:
                           for label, source, outcome, detail in outcomes])
 
 
+def _add_youtube_retention(data: dict[str, Any], res: dict[str, Any], item: dict[str, Any], outcomes: list,
+                           label: str, run_id: str, snapshot: str) -> None:
+    """A Short's retention curve from YouTube Analytics (src/youtube_analytics.py), into its metrics as
+    yt_retention_graph, when the owner's consent is configured; its outcome is logged and kept like any
+    source's, and a failure never costs the counts already measured."""
+    from . import youtube_analytics
+    if not youtube_analytics.configured():
+        return
+    vid = youtube_analytics.video_id(res)
+    if not vid:
+        outcomes.append((label, "youtube-analytics", "skipped", "no video id recorded"))
+        return
+    posted = _when(item.get("posted_at"))
+    try:
+        curve = youtube_analytics.retention(vid, posted.date() if posted else None)
+    except (RuntimeError, requests.RequestException, KeyError, ValueError) as e:
+        outcomes.append((label, "youtube-analytics", "failed", _redact(e)))
+        log.warning("Audience %s %s %s: YouTube Analytics failed: %s", run_id, snapshot, label, _redact(e))
+        return
+    if curve:
+        data["yt_retention_graph"] = curve
+        outcomes.append((label, "youtube-analytics", "ok", f"retention curve ({len(curve)} points)"))
+    else:
+        outcomes.append((label, "youtube-analytics", "skipped", "no retention rows yet"))
+
+
 def collect(db, now: Optional[datetime] = None) -> int:
     """Takes every due snapshot; returns how many rows were stored. Meta's Graph first, Upload-Post when
     the Graph cannot answer. A platform that cannot be measured is stored as unavailable (so it never
@@ -543,6 +570,8 @@ def collect(db, now: Optional[datetime] = None) -> int:
                         data = {"source": "upload-post", "unavailable": reason[:300]}
                         outcomes.append((label, "upload-post", "failed", (found or {}).get("unavailable") or "no metrics"))
                         log.warning("Audience %s %s %s: no source answered: %s", run_id, snapshot, label, reason)
+                if base == "youtube" and not data.get("unavailable"):
+                    _add_youtube_retention(data, res, item, outcomes, label, run_id, snapshot)
                 rows[label] = data
         except (RuntimeError, requests.RequestException) as e:
             log.warning("Audience metrics for %s (%s) unavailable: %s", run_id, snapshot, _redact(e))
@@ -679,22 +708,29 @@ def cover_style(db, run_id: str, run: dict[str, Any]) -> str | None:
     return LEGACY_ROTATION[int(key) % len(LEGACY_ROTATION)] if str(key).isdigit() else None
 
 
+def _curve(metrics: dict[str, Any]) -> dict[int, float] | None:
+    """A video's retention curve as {point: share watching}, the last point being the video's end: Facebook's
+    graph (fortieths) or YouTube's (hundredths, audienceWatchRatio: above 1 where Shorts loop); None without one."""
+    for key in ("post_video_retention_graph", "yt_retention_graph"):
+        graph = metrics.get(key)
+        if isinstance(graph, dict) and graph:
+            try:
+                return {int(k): float(v) for k, v in graph.items()}
+            except (TypeError, ValueError):
+                return None
+    return None
+
+
 def hold_at(metrics: dict[str, Any], duration_s: float | None, seconds: float = 3.0) -> float | None:
-    """The share of viewers still watching `seconds` in, read from Facebook's retention graph (fortieths of the
-    video, as card_retention reads it); None without a graph or a length."""
-    graph = metrics.get("post_video_retention_graph")
-    if not isinstance(graph, dict) or not duration_s:
-        return None
-    try:
-        points = {int(k): float(v) for k, v in graph.items()}
-    except (TypeError, ValueError):
-        return None
-    if not points:
+    """The share of viewers still watching `seconds` in, from the video's retention curve (Facebook's or
+    YouTube's), at most 1 (a Short's loops count once); None without a curve or a length."""
+    points = _curve(metrics)
+    if not points or not duration_s:
         return None
     last = max(points)
     at = min(last, max(0, round(seconds / duration_s * last)))
     value = points.get(at, points[min(points, key=lambda k: abs(k - at))])
-    return round(value, 3)
+    return round(min(1.0, value), 3)
 
 
 BEAT_DROP_FLAG = 0.15   # a beat that loses this share of the viewers it started with is filed as a finding
@@ -713,17 +749,12 @@ def _retention_at(points: dict[int, float], duration_s: float, t: float) -> floa
 
 def beat_drops(metrics: dict[str, Any], duration_s: float | None, beats: list[dict[str, Any]],
                end_s: float | None = None) -> list[dict[str, Any]]:
-    """Each narration beat after the hook with the share of its starting viewers it lost, from Facebook's
-    retention graph: [{"text", "start", "end", "lost"}], in order; [] without a graph, a length or beats. A beat
-    runs to the next one's start (the last to `end_s`, the end card's start, else the video's end)."""
-    graph = metrics.get("post_video_retention_graph")
-    if not isinstance(graph, dict) or not duration_s or not beats:
-        return []
-    try:
-        points = {int(k): float(v) for k, v in graph.items()}
-    except (TypeError, ValueError):
-        return []
-    if not points:
+    """Each narration beat after the hook with the share of its starting viewers it lost, from the video's
+    retention curve (Facebook's or YouTube's): [{"text", "start", "end", "lost"}], in order; [] without a curve,
+    a length or beats. A beat runs to the next one's start (the last to `end_s`, the end card's start, else the
+    video's end)."""
+    points = _curve(metrics)
+    if not points or not duration_s or not beats:
         return []
     out = []
     starts = [float(b.get("start") or 0.0) for b in beats]
@@ -753,6 +784,7 @@ def opening_fields(run: dict[str, Any], metrics: dict[str, Any], duration_s: flo
     return {"hook_form": classify(str(payload.get("hook_sentence") or "")), "opening_shot": opening.get("shot"),
             "hold_3s": hold_at(metrics, duration_s),
             "worst_beat": max(drops, key=lambda d: d["lost"]) if drops else None,
+            "hook_plan": payload.get("hook_plan") if isinstance(payload.get("hook_plan"), dict) else None,
             "share_form": classify_share(str(payload.get("share_line") or "")),
             "question_form": classify_question(caption_question(str(payload.get("caption") or "")))}
 
@@ -939,8 +971,9 @@ def digest_lines(db) -> List[str]:
         mine = sorted((r for r in rows if r["platform"] == platform), key=lambda r: -(r["views"] or 0))[:4]
         for r in mine:
             lines.append(f"• {PLATFORM_NAMES[platform]} · {html.escape(r['title'][:40])} ({r['snapshot']}): {_parts(r)}")
-    for comparison in (end_card_comparison(rows), *opening_comparison(rows), *asks_comparison(rows),
-                       *cover_style_comparison(rows)):
+    from .hook_learning import follow_rate
+    for comparison in (end_card_comparison(rows), *opening_comparison(rows), follow_rate(rows),
+                       *asks_comparison(rows), *cover_style_comparison(rows)):
         if comparison:
             lines.append(comparison)
     if len({r["run_id"] for r in rows}) < MIN_FOR_PATTERNS:

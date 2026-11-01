@@ -697,6 +697,49 @@ def hold_at(metrics: dict[str, Any], duration_s: float | None, seconds: float = 
     return round(value, 3)
 
 
+BEAT_DROP_FLAG = 0.15   # a beat that loses this share of the viewers it started with is filed as a finding
+HOOK_SECONDS = 3.0      # the opening is the hook's (hook_learning); beats are read after it
+
+
+def _retention_at(points: dict[int, float], duration_s: float, t: float) -> float:
+    """The share still watching at `t` seconds, linearly between the graph's fortieths."""
+    last = max(points)
+    x = min(last, max(0.0, t / duration_s * last))
+    lo, hi = int(x), min(last, int(x) + 1)
+    a = points.get(lo, points[min(points, key=lambda k: abs(k - lo))])
+    b = points.get(hi, points[min(points, key=lambda k: abs(k - hi))])
+    return a + (b - a) * (x - lo)
+
+
+def beat_drops(metrics: dict[str, Any], duration_s: float | None, beats: list[dict[str, Any]],
+               end_s: float | None = None) -> list[dict[str, Any]]:
+    """Each narration beat after the hook with the share of its starting viewers it lost, from Facebook's
+    retention graph: [{"text", "start", "end", "lost"}], in order; [] without a graph, a length or beats. A beat
+    runs to the next one's start (the last to `end_s`, the end card's start, else the video's end)."""
+    graph = metrics.get("post_video_retention_graph")
+    if not isinstance(graph, dict) or not duration_s or not beats:
+        return []
+    try:
+        points = {int(k): float(v) for k, v in graph.items()}
+    except (TypeError, ValueError):
+        return []
+    if not points:
+        return []
+    out = []
+    starts = [float(b.get("start") or 0.0) for b in beats]
+    for i, b in enumerate(beats):
+        start = max(starts[i], HOOK_SECONDS)
+        end = starts[i + 1] if i + 1 < len(beats) else float(end_s or duration_s)
+        if end <= start:
+            continue
+        before, after = _retention_at(points, duration_s, start), _retention_at(points, duration_s, end)
+        if before <= 0:
+            continue
+        out.append({"text": str(b.get("text") or ""), "start": round(start, 1), "end": round(end, 1),
+                    "lost": round(max(0.0, (before - after) / before), 3)})
+    return out
+
+
 def opening_fields(run: dict[str, Any], metrics: dict[str, Any], duration_s: float | None) -> dict[str, Any]:
     """How a Reel opened and how its first three seconds did: the hook's form as written (hook_learning.classify:
     read from the sentence itself, so earlier runs are measured too), the opening shot recorded at render, and
@@ -704,8 +747,11 @@ def opening_fields(run: dict[str, Any], metrics: dict[str, Any], duration_s: flo
     from .hook_learning import classify
     payload = run.get("script_payload") or {}
     opening = payload.get("opening") if isinstance(payload.get("opening"), dict) else {}
+    card = payload.get("end_card") if isinstance(payload.get("end_card"), dict) else {}
+    drops = beat_drops(metrics, duration_s, payload.get("beat_times") or [], card.get("start_s"))
     return {"hook_form": classify(str(payload.get("hook_sentence") or "")), "opening_shot": opening.get("shot"),
-            "hold_3s": hold_at(metrics, duration_s)}
+            "hold_3s": hold_at(metrics, duration_s),
+            "worst_beat": max(drops, key=lambda d: d["lost"]) if drops else None}
 
 
 def table(db) -> List[Dict[str, Any]]:
@@ -1017,6 +1063,19 @@ def file_findings(db) -> int:
               ("watch_ratio", "audience.retention", lambda v, m: v < m * 0.8, "watched {v:.0%} (channel median {m:.0%})"),
               ("share_rate", "audience.shares", lambda v, m: v < m * 0.5, "shares {v:.2%} (channel median {m:.2%})"))
     n = 0
+    # The beat that lost the most viewers, on its own measure (not against the channel's median): a beat that
+    # loses BEAT_DROP_FLAG of the viewers it started with is where the script or the edit lets them go.
+    for r in rows:
+        beat = r.get("worst_beat")
+        if beat and beat["lost"] >= BEAT_DROP_FLAG and (r["run_id"], "audience.beat_drop") not in filed:
+            run = db.get_run(r["run_id"]) or {}
+            words = beat["text"] if len(beat["text"]) <= 90 else beat["text"][:87] + "..."
+            improve.record(db, "audience.beat_drop",
+                           f"{PLATFORM_NAMES[r['platform']]}: lost {beat['lost']:.0%} of viewers during "
+                           f"\"{words}\" ({beat['start']:.1f}-{beat['end']:.1f} s)",
+                           "audience", run_id=r["run_id"], topic_id=run.get("topic_id"))
+            filed.add((r["run_id"], "audience.beat_drop"))
+            n += 1
     for metric, klass, weak, detail in checks:
         for platform in ("instagram", "facebook", "youtube"):
             values = [r for r in rows if r["platform"] == platform and r.get(metric) is not None]

@@ -2680,6 +2680,8 @@ class PipelineCoordinator:
         self._check_cancel(run_id)
         # Match pictures to narration beats; cuts land on the beat boundaries.
         beats = segment_beats(words, vo_dur)
+        # Kept with the run: the audience's retention curve is read beat by beat later (audience.beat_drops).
+        payload["beat_times"] = [{"start": round(float(b["start"]), 2), "text": str(b.get("text") or "")} for b in beats]
         # Extra candidates searched for the concrete subject of individual beats (openly licensed).
         # One query plan (picture subjects per beat) serves both beat images and real footage.
         query_plan = None

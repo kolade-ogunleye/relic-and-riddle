@@ -7,7 +7,14 @@ stay whole. No saliency mask is treated as a semantic subject detector.
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
 from . import brand
-from .typography import fit_text, get_font, place_text, record_contrast, text_size
+from .typography import (
+    fit_text,
+    get_font,
+    place_text,
+    plan_text,
+    record_contrast,
+    text_size,
+)
 
 DESIGN_VERSION = "cover-composition-2"
 
@@ -119,7 +126,13 @@ def _paint(im, rows, x, top, centered, lay):
 
 
 def _brand(im, lay, centered=False, paper=False):
-    import numpy as np
+    """The masthead, drawn at a measured contrast like every other cover line.
+
+    On the paper ground (a known light, flat field) it is ink. On photographs it
+    is always bone with the solved ink halo (brand.PLACE_TARGET), matching the
+    carousel header: a mean-luminance switch between ink and bone, with the halo
+    disabled, left the masthead unreadable on mid-tone or busy photographs.
+    """
     xy = (540 if centered else 84, 462)
     anchor = "mt" if centered else "lt"
     font = get_font("Cinzel", 32)
@@ -127,19 +140,11 @@ def _brand(im, lay, centered=False, paper=False):
         im, plate = place_text(im, xy, "RELIC & RIDDLE", font, brand.INK,
                                anchor=anchor, track=2.0, halo_px=0, shadow=False)
     else:
-        # Sample underlying ground luminance behind the masthead (Rec. 709)
-        w = 340 if centered else 320
-        x0 = max(0, xy[0] - (w // 2 if centered else 10))
-        y0 = max(0, xy[1] - 10)
-        x1 = min(im.width, x0 + w + 20)
-        y1 = min(im.height, y0 + 55)
-        crop = im.convert("RGB").crop((x0, y0, x1, y1))
-        arr = np.asarray(crop, dtype=np.float32)
-        luma = float(np.mean(0.2126 * arr[..., 0] + 0.7152 * arr[..., 1] + 0.0722 * arr[..., 2]))
-        is_bright = luma >= 135.0
-        fill = brand.INK if is_bright else brand.BONE
-        im, plate = place_text(im, xy, "RELIC & RIDDLE", font, fill,
-                               anchor=anchor, track=2.0, halo_px=0, shadow=True)
+        # 32 px Cinzel is a thin face: a 40 px halo allowed to reach full strength is what clears
+        # brand.PLACE_TARGET on a pure-white sky; the 0.35 floor keeps busy texture off the glyph edges.
+        plate = plan_text(im, xy, "RELIC & RIDDLE", font, brand.BONE, anchor, 2.0,
+                          halo_px=40, min_halo=0.35, shadow=True, max_halo=1.0)
+        im = plate.draw(im)
     record_contrast(lay, "brand", [plate])
     if lay is not None:
         lay.meta.setdefault("plates", {})["brand"] = [plate]

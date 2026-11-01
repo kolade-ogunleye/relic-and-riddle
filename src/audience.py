@@ -722,21 +722,15 @@ def end_card_comparison(rows: List[Dict[str, Any]]) -> Optional[str]:
     return f"• End card: with it {describe(with_card)}; without {describe(without)}{drop}."
 
 
-MIN_PER_STYLE = 8   # Instagram Reels per cover style before the comparison is read as more than an early signal
+MIN_PER_STYLE = 8   # videos per cover style on a platform before its comparison is more than an early signal
 
 
-def cover_style_comparison(rows: list[dict[str, Any]]) -> str | None:
-    """One digest line comparing the rotated cover styles on Instagram, where the cover is seen (feed, Reels tab,
-    profile grid), by the rates that do not depend on a topic's reach: 3-second skip rate (lower is better), shares
-    and saves per account reached, and watch ratio. Each style's median, so one viral topic does not decide it.
-    None until two styles have been measured; labelled an early signal until each has MIN_PER_STYLE Reels."""
+def cover_style_comparison(rows: list[dict[str, Any]]) -> list[str]:
+    """Digest lines comparing the cover styles, one per video platform (Instagram, Facebook, YouTube) on which two
+    styles have been measured, by the rates that do not depend on a topic's reach: 3-second skip rate where
+    Instagram reports it (lowest first), shares and saves per account reached, and watch ratio. Each style's
+    median, so one viral topic does not decide it; an early signal until each has MIN_PER_STYLE videos there."""
     from statistics import median
-    ig = [r for r in rows if r["platform"] == "instagram" and not r.get("unavailable") and r.get("cover_style")]
-    groups: dict[str, list[dict[str, Any]]] = {}
-    for r in ig:
-        groups.setdefault(r["cover_style"], []).append(r)
-    if len(groups) < 2:
-        return None
 
     def med(group, key):
         vals = [r[key] for r in group if r.get(key) is not None]
@@ -751,12 +745,23 @@ def cover_style_comparison(rows: list[dict[str, Any]]) -> str | None:
         return f"{style} ({len(group)}): " + (", ".join(b for b in bits if b) or "no rates yet")
 
     def order(item):
-        skip = med(item[1], "skip_rate")
-        return (skip is None, skip if skip is not None else 0.0)
-    parts = [describe(style, group) for style, group in sorted(groups.items(), key=order)]
-    early = min(len(g) for g in groups.values()) < MIN_PER_STYLE
-    note = f" <i>Early signal: fewer than {MIN_PER_STYLE} Reels per style.</i>" if early else ""
-    return "• Cover styles (Instagram, median, lowest skip first): " + "; ".join(parts) + "." + note
+        skip, watch = med(item[1], "skip_rate"), med(item[1], "watch_ratio")
+        return (skip is None, skip if skip is not None else -(watch or 0.0))
+
+    lines = []
+    for platform in VIDEO_PLATFORMS:
+        groups: dict[str, list[dict[str, Any]]] = {}
+        for r in rows:
+            if r["platform"] == platform and not r.get("unavailable") and r.get("cover_style"):
+                groups.setdefault(r["cover_style"], []).append(r)
+        if len(groups) < 2:
+            continue
+        parts = [describe(style, group) for style, group in sorted(groups.items(), key=order)]
+        early = min(len(g) for g in groups.values()) < MIN_PER_STYLE
+        note = f" <i>Early signal: fewer than {MIN_PER_STYLE} videos per style.</i>" if early else ""
+        lines.append(f"• Cover styles · {PLATFORM_NAMES.get(platform, platform)} (median, best first): "
+                     + "; ".join(parts) + "." + note)
+    return lines
 
 
 PLATFORM_NAMES = {"instagram": "Instagram", "facebook": "Facebook", "youtube": "YouTube"}
@@ -782,7 +787,7 @@ def digest_lines(db) -> List[str]:
         mine = sorted((r for r in rows if r["platform"] == platform), key=lambda r: -(r["views"] or 0))[:4]
         for r in mine:
             lines.append(f"• {PLATFORM_NAMES[platform]} · {html.escape(r['title'][:40])} ({r['snapshot']}): {_parts(r)}")
-    for comparison in (end_card_comparison(rows), cover_style_comparison(rows)):
+    for comparison in (end_card_comparison(rows), *cover_style_comparison(rows)):
         if comparison:
             lines.append(comparison)
     if len({r["run_id"] for r in rows}) < MIN_FOR_PATTERNS:

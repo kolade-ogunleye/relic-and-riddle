@@ -1372,7 +1372,7 @@ def redraw_story_frame(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
 SUBJECT_MAX_WORDS = 6
 
 
-def standalone_subject(script_payload: Dict[str, Any]) -> str:
+def standalone_subject(script_payload: dict[str, Any]) -> str:
     """The subject's name for Facebook's standalone photos: the carousel cover's heading ("THE EYE OF THE SAHARA"),
     the script's own words, never a qualifier it did not state; "" when it is missing or too long to be a name."""
     from .script_engine import facebook_photo_caption

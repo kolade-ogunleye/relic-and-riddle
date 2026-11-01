@@ -10,9 +10,13 @@ FIGURE = {"eyebrow": "ANCIENT ACOUSTICS", "line1": "THE 144-FOOT", "line2": "WHI
 NO_FIGURE = {"eyebrow": "LOST CODE", "line1": "THE BOOK", "line2": "NOBODY CAN READ", "tagline": "STILL UNSOLVED"}
 
 
-def _row(style: str, skip: float, share: float, save: float = 0.0, platform: str = "instagram") -> dict:
+_RUN = iter(range(10**6))
+
+
+def _row(style: str, skip: float, share: float, save: float = 0.0, platform: str = "instagram",
+         run_id: str = "") -> dict:
     return {"platform": platform, "unavailable": None, "cover_style": style, "skip_rate": skip,
-            "share_rate": share, "save_rate": save}
+            "share_rate": share, "save_rate": save, "run_id": run_id or f"r{next(_RUN)}"}
 
 
 def test_monument_needs_a_figure() -> None:
@@ -49,11 +53,25 @@ def test_the_choice_is_repeatable_for_a_run() -> None:
     assert len({cover_selector.choose(FIGURE, rows, seed="same")[0] for _ in range(5)}) == 1
 
 
-def test_reward_is_bounded_and_ignores_other_platforms() -> None:
+def test_reward_is_bounded_and_reads_each_platforms_rates() -> None:
     assert cover_selector.reward(_row("badge", 0, 0.5)) == 1.0
     assert cover_selector.reward(_row("badge", 100, 0.0)) == 0.0
     assert cover_selector.reward({"skip_rate": None, "share_rate": None, "save_rate": None}) is None
-    assert cover_selector.evidence([_row("badge", 10, 0.1, platform="facebook")]) == {}
+    youtube = {"views": 1000.0, "likes": 50.0, "watch_ratio": 1.4}      # likes per view, a loop capped at 1
+    assert cover_selector.reward(youtube) == 1.0
+
+
+def test_every_platform_counts_once_per_run_and_against_its_own_level() -> None:
+    rows = [_row("badge", 30, 0.02, run_id="r1"), _row("minimal", 60, 0.0, run_id="r2")]
+    rows += [dict(_row("badge", None, 0.02, platform="facebook", run_id="r1"), skip_rate=None),
+             dict(_row("minimal", None, 0.0, platform="facebook", run_id="r2"), skip_rate=None)]
+    seen = cover_selector.evidence(rows)
+    assert len(seen["badge"]) == 1 and len(seen["minimal"]) == 1   # one vote per run, both platforms in it
+    assert seen["badge"][0] > 0.5 > seen["minimal"][0]              # each against its platform's median
+    youtube_only = [dict(_row("badge", None, None, platform="youtube"), skip_rate=None, share_rate=None,
+                         save_rate=None, views=100.0, likes=4.0)]
+    assert list(cover_selector.evidence(youtube_only)) == ["badge"]
+    assert abs(cover_selector.evidence(youtube_only)["badge"][0] - 0.5) < 1e-9
 
 
 def test_for_run_uses_the_payload_copy_and_survives_missing_numbers(db, monkeypatch) -> None:

@@ -36,22 +36,34 @@ def test_without_a_record_the_rotation_is_recovered(db) -> None:
 
 def test_two_styles_are_compared_by_median_and_flagged_early() -> None:
     rows = [_row("a1", "badge", 40, 0.010), _row("a2", "badge", 42, 0.012), _row("a3", "badge", 90, 0.0),
-            _row("b1", "minimal", 30, 0.020), _row("b2", "minimal", 32, 0.018),
-            _row("f1", "badge", 10, 0.5, platform="facebook")]
-    line = audience.cover_style_comparison(rows)
+            _row("b1", "minimal", 30, 0.020), _row("b2", "minimal", 32, 0.018)]
+    [line] = audience.cover_style_comparison(rows)
+    assert line.startswith("• Cover styles · Instagram")
     assert line.index("minimal (2)") < line.index("badge (3)")          # lowest skip first
     assert "badge (3): skip 42%" in line                                 # the median: one outlier does not decide
     assert "Early signal" in line
 
 
+def test_every_video_platform_gets_its_own_line() -> None:
+    rows = [_row("a1", "badge", 40, 0.01), _row("b1", "minimal", 30, 0.02)]
+    for platform in ("facebook", "youtube"):
+        rows += [dict(_row("a1", "badge", None, 0.01), platform=platform, watch_ratio=0.4),
+                 dict(_row("b1", "minimal", None, 0.02), platform=platform, watch_ratio=0.7)]
+    lines = audience.cover_style_comparison(rows)
+    assert [ln.split(" (")[0] for ln in lines] == ["• Cover styles · Instagram", "• Cover styles · Facebook",
+                                                   "• Cover styles · YouTube"]
+    fb = lines[1]
+    assert fb.index("minimal (1)") < fb.index("badge (1)")               # no skip rate there: best watch first
+
+
 def test_one_style_alone_is_not_a_comparison() -> None:
-    assert audience.cover_style_comparison([_row("a1", "badge", 40, 0.01)]) is None
+    assert audience.cover_style_comparison([_row("a1", "badge", 40, 0.01)]) == []
 
 
-def test_enough_reels_drop_the_early_label() -> None:
+def test_enough_videos_drop_the_early_label() -> None:
     rows = [_row(f"a{i}", "badge", 40, 0.01) for i in range(audience.MIN_PER_STYLE)]
     rows += [_row(f"b{i}", "minimal", 30, 0.02) for i in range(audience.MIN_PER_STYLE)]
-    assert "Early signal" not in audience.cover_style_comparison(rows)
+    assert "Early signal" not in audience.cover_style_comparison(rows)[0]
 
 
 def test_the_digest_carries_the_comparison(db, monkeypatch) -> None:

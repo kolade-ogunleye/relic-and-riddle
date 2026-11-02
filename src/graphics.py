@@ -1372,6 +1372,10 @@ def _silhouette_width(label: str) -> float:
     return SILHOUETTE_WIDTH[_landmark_kind(label)]
 
 
+SCALE_TEXT_GAP = 44   # px of clear air between a 9:16 scale drawing and its words (2026-11-02)
+SECTION_FOOT = 24     # px of ground drawn under a depth shaft's floor
+
+
 def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, height):
     """9:16 scale (see render_scale), inside the Reel text box: the subject and its figure above, the drawing,
     then one line of meaning. Words and drawing start on the shared inset edge (INSET_X0), the drawing ends at
@@ -1408,7 +1412,9 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
     y_fig = y_sub + 24 + cap_height(f_fig)
     mean_h = 2 * int(cap_height(f_mean) * 1.6)
     y_mean0 = bottom - mean_h + cap_height(f_mean)
-    draw_bottom = bottom - mean_h - 28
+    # Clear air between the drawing (incl. the ground section under the shaft floor, SECTION_FOOT) and the line
+    # of meaning, and between the figure and anything rising above the ground (operator, 2026-11-02: they touched).
+    draw_bottom = bottom - mean_h - SCALE_TEXT_GAP - SECTION_FOOT
     ground = Image.new("RGB", (width, height), SEA)
     xt = x0                                                # on the inset edge, well inside the box
     plates = [("subject", plan_text(ground, (xt, y_sub), subject, f_sub, MUTED, "ls", track=3)),
@@ -1423,8 +1429,8 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         line_y = y_fig + 70
         above = max(0.0, ref_feet - feet)
         px_ft = (draw_bottom - line_y) / max(feet, 1.0)
-        if above * px_ft > line_y - (y_fig + 16):
-            px_ft = (draw_bottom - (y_fig + 16)) / (feet + above)
+        if above * px_ft > line_y - (y_fig + SCALE_TEXT_GAP):
+            px_ft = (draw_bottom - (y_fig + SCALE_TEXT_GAP)) / (feet + above)
         px_ft = min(px_ft, (x1 - x0 - 120) / max(1.0, ref_feet * width_per_px))
         floor_y = draw_bottom
         line_y = floor_y - feet * px_ft
@@ -1437,9 +1443,16 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
         base_y = draw_bottom
         block = 190
         room = x1 - x0 - 60 - block - 40                    # beside the subject's block
-        px_ft = min((base_y - (y_fig + 40)) / max(feet, ref_feet), room / max(1.0, ref_feet * width_per_px))
+        px_ft = min((base_y - (y_fig + SCALE_TEXT_GAP + 40)) / max(feet, ref_feet),
+                    room / max(1.0, ref_feet * width_per_px))
         shaft = (x0 + 30, x0 + 30 + block)
         ref_cx = shaft[1] + 40 + max(room, ref_feet * px_ft * width_per_px) / 2
+        # The subject's block is labelled with its own figure, so the gold block reads as the subject at a
+        # glance (round-2 panel, 2026-11-02); the same words as the figure above, never new ones.
+        f_blk = get_font("Montserrat", 28, weight=800)
+        blk_text = hedge + measurement_text(feet).split(" (")[0]   # hedged like the figure: never more precise
+        plates.append(("block_label", plan_text(ground, ((shaft[0] + shaft[1]) / 2, base_y - feet * px_ft - 16),
+                                                blk_text, f_blk, GOLD, "ms", track=2)))
     last: list = []
 
     def frames():
@@ -1448,9 +1461,9 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
             im = ground.copy()
             d = ImageDraw.Draw(im, "RGBA")
             if depth:
-                d.rectangle([x0, line_y, x1, floor_y + 24], fill=(*EARTH, 255))            # the ground, in section
+                d.rectangle([x0, line_y, x1, floor_y + SECTION_FOOT], fill=(*EARTH, 255))  # the ground, in section
                 for k in range(1, 6):                                                      # faint strata
-                    yy = line_y + (floor_y + 24 - line_y) * k / 6
+                    yy = line_y + (floor_y + SECTION_FOOT - line_y) * k / 6
                     d.line([(x0, yy), (x1, yy)], fill=(*EARTH_LINE, 255), width=2)
                 dig = _ease((t - 0.3) / 1.2)
                 y_end = line_y + (floor_y - line_y) * dig
@@ -1472,7 +1485,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
                 if rr > 0:
                     _silhouette(d, ref_label, ref_cx, base_y, ref_feet * px_ft * rr, ref_grey)
             for name, plate in plates:
-                at = {"subject": 0.1, "figure": 0.4}.get(name, 2.7)
+                at = {"subject": 0.1, "figure": 0.4, "block_label": 1.5}.get(name, 2.7)
                 a = _ease((t - at) / 0.4)
                 if a > 0:
                     im = plate.draw(im, a, round(10 * (1 - a)))

@@ -440,7 +440,9 @@ def _monument(im, copy, lay, tight, source, focus):
         tag_rows = [(lines[0], f_g, brand.STONE_LT)]
 
     num_h = cap_h(num_font)
-    gaps = {"eyebrow": 26, "number": 34 + DIM_ROOM, "title": 10, "tagline": 0}
+    # The dimension line marks a measurement; a year or a bare count has no length (operator, 2026-11-02).
+    measured_figure = bool(unit)
+    gaps = {"eyebrow": 26, "number": 34 + (DIM_ROOM if measured_figure else 0), "title": 10, "tagline": 0}
     stack = (sum(text_size(measure, t, f)[1] + gaps["eyebrow"] for t, f, _ in eyebrow_rows) + num_h + gaps["number"]
              + sum(text_size(measure, t, f)[1] + gaps["title"] for _, t, f, _ in title_rows) + 14
              + sum(text_size(measure, t, f)[1] for t, f, _ in tag_rows))
@@ -471,15 +473,17 @@ def _monument(im, copy, lay, tight, source, focus):
         nx = right + 22
         put("figure_unit", unit, unit_font, brand.GOLD, (nx, base), anchor="ls")
         right = nx + text_size(measure, unit, unit_font)[0]
-    # The style's signature (2026-11-02): a dimension line under the figure, end ticks up, as on a survey drawing.
-    fig_bottom = max(p.box[3] for ps in plates.values() for p in ps if not p.empty)
-    dy = fig_bottom + 30
-    d = ImageDraw.Draw(im)
-    d.line([(margin, dy), (right, dy)], fill=brand.GOLD + (255,), width=4)
-    for xx in (margin, right):
-        d.line([(xx, dy - 16), (xx, dy + 2)], fill=brand.GOLD + (255,), width=4)
-    if lay is not None:
-        lay.add("dimension", (margin, dy - 16, right, dy + 2))
+    # The style's signature (2026-11-02): a dimension line under a measured figure, end ticks up, as on a
+    # survey drawing. Never under a year or a count: it would claim a length that is not there.
+    if measured_figure:
+        fig_bottom = max(p.box[3] for ps in plates.values() for p in ps if not p.empty)
+        dy = fig_bottom + 30
+        d = ImageDraw.Draw(im)
+        d.line([(margin, dy), (right, dy)], fill=brand.GOLD + (255,), width=4)
+        for xx in (margin, right):
+            d.line([(xx, dy - 16), (xx, dy + 2)], fill=brand.GOLD + (255,), width=4)
+        if lay is not None:
+            lay.add("dimension", (margin, dy - 16, right, dy + 2))
     y = base + gaps["number"]
     for name, t, f, c in title_rows:
         put(name, t, f, c, (margin, y))

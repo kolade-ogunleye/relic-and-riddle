@@ -25,7 +25,7 @@ def test_a_measured_figure_is_the_hero() -> None:
 def test_without_a_figure_it_is_a_two_tone_headline_of_few_words() -> None:
     _, plates = youtube_thumbnail.render(_photo(), {"line1": "BEHIND ONE WALL... AND MORE WORDS", "line2": "A FORGOTTEN CITY"})
     texts = {n: p.text for n, p in plates}
-    assert texts["title_1"] == "BEHIND ONE WALL..." and texts["title_2"] == "A FORGOTTEN CITY"
+    assert texts["title_1"] == "BEHIND ONE WALL\u2026" and texts["title_2"] == "A FORGOTTEN CITY"   # round 4: typeset
     fills = {n: p.fill for n, p in plates}
     assert fills["title_1"] == brand.BONE and fills["title_2"] == brand.GOLD
 

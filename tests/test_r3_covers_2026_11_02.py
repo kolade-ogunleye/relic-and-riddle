@@ -21,6 +21,12 @@ from src.still_layout import Layout
 SHEETS = Path(__file__).resolve().parents[1] / "data" / "fact_sheets"
 RICHAT_SHEET = json.loads((SHEETS / "richat_structure_sahara_eye.json").read_text(encoding="utf-8"))
 GUMBAZ_SHEET = json.loads((SHEETS / "gol_gumbaz_whispering_gallery.json").read_text(encoding="utf-8"))
+# Round 4: the same sheet with fact-4's hedge carrying no lead phrase, so "EST." is drawn spelled out ("ESTIMATED",
+# one kicker line). r7: the real sheet's "by one estimate" is drawn as ESTIMATED too, so the monument stands on both.
+GUMBAZ_SHEET_NO_LEAD = json.loads(json.dumps(GUMBAZ_SHEET))
+for _f in GUMBAZ_SHEET_NO_LEAD["facts"]:
+    if _f.get("id") == "fact-4":
+        _f["hedge"] = ""
 RICHAT = {"eyebrow": "DESERT ANOMALY", "line1": "THE 25-MILE", "line2": "SAHARA EYE", "tagline": "CARVED BY NATURE"}
 GUMBAZ = {"eyebrow": "ANCIENT ACOUSTICS", "line1": "THE 144-FOOT", "line2": "WHISPERING DOME",
           "tagline": "BUILT WITHOUT RINGS", "badge": "EST. 144 FT (44 M)"}
@@ -60,7 +66,9 @@ def test_a_disputed_range_figure_is_a_conflict_and_never_a_monument_hero() -> No
 def test_an_estimate_stands_only_with_the_copys_qualifier_and_its_dimension_word() -> None:
     fig = figure_check(GUMBAZ, GUMBAZ_SHEET)
     assert fig["hedged"] and not fig["conflict"] and fig["qualifier"] == "EST." and fig["qualifier_from"] == "badge"
-    assert fig["dimension"] == "EXTERNAL DIAMETER" and fig["monument_ok"]
+    assert fig["dimension"] == "EXTERNAL DIAMETER" and fig["drawn_qualifier"] == "ESTIMATED"
+    assert fig["monument_ok"]                                     # r7 (operator default): one word, one line
+    assert figure_check(GUMBAZ, GUMBAZ_SHEET_NO_LEAD)["monument_ok"]
     bare = {k: v for k, v in GUMBAZ.items() if k != "badge"}
     assert not figure_check(bare, GUMBAZ_SHEET)["monument_ok"]   # a hedged figure with no qualifier
     assert "monument" not in cover_selector.fitting(bare, figure_check(bare, GUMBAZ_SHEET))
@@ -111,11 +119,11 @@ def test_monument_keeps_the_qualifier_attached_and_readable_in_the_grid() -> Non
 
 
 def test_monument_sets_the_claims_dimension_word_under_the_unit() -> None:
-    fig = figure_check(GUMBAZ, GUMBAZ_SHEET)
+    fig = figure_check(GUMBAZ, GUMBAZ_SHEET_NO_LEAD)
     _, lay = _cover(GUMBAZ, "monument", fig)
     names = _names(lay)
-    assert lay.meta["monument_figure"] == {"qualifier": "EST.", "qualifier_from": "badge",
-                                           "dimension": "EXTERNAL DIAMETER"}
+    assert lay.meta["monument_figure"] == {"qualifier": "ESTIMATED", "qualifier_from": "badge",
+                                           "dimension": "EXTERNAL DIAMETER", "copy_qualifier": "EST."}
     dim, unit, rule = names["figure_dim"], names["figure_unit"], names["dimension"]
     assert dim["box"][1] > unit["box"][3] and abs(dim["box"][0] - unit["box"][0]) <= 6   # unit over dimension
     assert rule["box"][2] >= dim["box"][2] and rule["box"][1] > names["figure"]["box"][3]
@@ -239,7 +247,8 @@ def test_thumbnail_figure_keeps_its_qualifier_and_dimension_outside_the_word_bud
     meta = {}
     _, plates = youtube_thumbnail.render(_photo(), GUMBAZ, meta=meta, figure=figure_check(GUMBAZ, GUMBAZ_SHEET))
     texts = {n: [p.text for k, p in plates if k == n] for n, _ in plates}
-    assert texts["figure_qualifier"] == ["EST."] and texts["figure"] == ["144"] and texts["figure_unit"] == ["FT"]
+    assert texts["figure_qualifier"] == ["ESTIMATED"]                  # r7: the sheet's single estimate, one word
+    assert texts["figure"] == ["144"] and texts["figure_unit"] == ["FT"]
     assert " ".join(texts["figure_dim"]) == "EXTERNAL DIAMETER" and texts["title"] == ["WHISPERING DOME"]
     assert all(p.contrast >= 4.5 for _, p in plates)
     assert meta["downscale"]["figure_qualifier"]["cap_168"] >= youtube_thumbnail.LINE_FLOOR
@@ -275,9 +284,15 @@ def test_thumbnail_is_measured_at_feed_size() -> None:
 
 
 def test_thumbnail_ink_feather_ends_short_of_the_subject() -> None:
+    # r7 (operator default): the fade is a soft gradient from the type's edge, so it now ends by the subject's centre
+    # (meta["focus_x"]) rather than at x 1040, which made the hard vertical edge; the type still ends before 1040.
     assert youtube_thumbnail.SHADE_END == 1040
-    im, _ = youtube_thumbnail.render(_photo((200, 170, 120)), {"line1": "THE 25-MILE", "line2": "SAHARA EYE"})
-    assert np.max(np.abs(np.asarray(im.crop((1060, 700, 1080, 720))).mean(axis=(0, 1)) - (200, 170, 120))) < 4
+    meta = {}
+    im, plates = youtube_thumbnail.render(_photo((200, 170, 120)), {"line1": "THE 25-MILE", "line2": "SAHARA EYE"},
+                                          meta=meta)
+    x = meta["focus_x"]
+    assert np.max(np.abs(np.asarray(im.crop((x, 700, x + 20, 720))).mean(axis=(0, 1)) - (200, 170, 120))) < 4
+    assert max(p.box[2] for _, p in plates) <= youtube_thumbnail.SHADE_END
 
 
 # --- the engine wiring -------------------------------------------------------------------------------------------
@@ -304,7 +319,7 @@ def test_engine_checks_the_figure_against_the_runs_sheet_and_keeps_it_in_the_rec
 
 def test_qualifier_is_set_in_the_eyebrow_face_with_a_clear_gap_under_the_eyebrow() -> None:
     from src.cover_design import EYEBROW_QUALIFIER_GAP, QUALIFIER_FONT
-    fig = figure_check(GUMBAZ, GUMBAZ_SHEET)
+    fig = figure_check(GUMBAZ, GUMBAZ_SHEET_NO_LEAD)
     _, lay = _cover(GUMBAZ, "monument", fig)
     q = lay.meta["plates"]["figure_qualifier"][0]
     assert QUALIFIER_FONT in Path(q.font.path).name and "Mono" not in Path(q.font.path).name

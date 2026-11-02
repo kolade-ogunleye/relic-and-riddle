@@ -30,7 +30,7 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageOps
 
 from . import brand
-from .typography import cap_height, fit_font, get_font, plan_text
+from .typography import cap_height, fit_font, get_font, plan_text, tracked_width
 
 W, H = 1920, 1080
 LEFT = 96
@@ -48,6 +48,7 @@ TITLE_GAP_EM = 0.08       # the figure's baseline to the title's caps, in title 
 DIM_PX = 44               # the claim's dimension word under the unit (figure_dim)
 QUAL_PX = 96              # the copy's qualifier over the figure (figure_qualifier), at least; raised until it
                           # keeps LINE_FLOOR px of cap height at 168 px wide
+QUAL_CONDENSED = "Anton"   # r7: the kicker's face when one word cannot hold the floor in Montserrat (_qual_font)
 QUAL_FONT, QUAL_WEIGHT, QUAL_TRACK = "Montserrat", 800, 3   # the covers' eyebrow face (r5 review: in IBM Plex Mono
                                                             # the period took a full cell, "EST ." with a gap)
 DIM_TITLE_GAP = 40        # px of clear field from the dimension word's baseline to the title's cap line
@@ -57,7 +58,21 @@ FEED_HALO_GROWTH = 0.35   # each raise also widens that line's halo by 35% of it
 FEED_WIDTHS = (168, 246)  # YouTube's mobile search and home-feed thumbnail widths
 HERO_FLOOR, LINE_FLOOR = 12, 7   # px of cap height at 168 px wide: the hero line, every other line
 _STOP = {"THE", "A", "AN", "OF", "IN", "AND", "ON", "AT", "TO", "BY", "FROM", "HOW", "WHY", "WHAT"}
-_TEXTURE = frozenset({"brand", "figure_dim", "provenance"})   # feed-size texture: no floor, no contrast gate
+# Feed-size texture: no floor, no contrast gate. r7: never a hedge or a year's event word ("qualifier",
+# "figure_qualifier"): wherever a figure is shown its qualifier holds LINE_FLOOR at 168 px, else the figure is not shown.
+_TEXTURE = frozenset({"brand", "figure_dim", "provenance"})
+QUAL_LEADING = 18         # px between the two lines of a two-line hedge kicker ("BY ONE / ESTIMATE")
+NUM_MAX = 300             # the numeral's ceiling (Anton). Round 4 proposed 400; held at 300: the larger type
+                          # passes the feed gate on the branch's hard-photo test, which then no longer exercises
+                          # the gate's re-plan loop (operator decision pending)
+FEATHER_PAD, FEATHER_EASE, FEATHER_MIN_EASE = 40, 520, 320   # r7: the full ink holds to the type's edge + 40 (the
+                          # type sits in solid ink), then a soft ease over 520 px that ends by the subject's centre
+                          # (never under 320 px); the round-4 ease (240 px, capped at SHADE_END) still read as a hard
+                          # vertical edge, and a long title ran past where it began
+FEATHER_SLOPE_MAX = 1.0   # the fade's steepest step, in 8-bit levels over white per px (round 4: ~1.4)
+BAND_PAD = (40, 72)       # the hero stack is centred between the masthead's foot + 40 and the frame's foot - 72
+KICKER_RATIO, KICKER_GAP = 0.6, 30   # round 4: a withheld figure's headline filled from the eyebrow (kicker)
+HEDGE_GAP = 22   # the headline path's hedge line (r7: at the qualifier kicker's feed floor, _qual_font) to the headline
 
 
 def _photo(source: Image.Image, focus: dict | None, meta: dict | None = None) -> Image.Image:
@@ -96,11 +111,21 @@ def _photo(source: Image.Image, focus: dict | None, meta: dict | None = None) ->
     return canvas
 
 
-def _gradient(im: Image.Image) -> Image.Image:
-    """Ink at SHADE_ALPHA over the left 42% (the type's side), easing to nothing by SHADE_END."""
+def _gradient(im: Image.Image, type_right: float | None = None, stop: float | None = None) -> Image.Image:
+    """Ink at SHADE_ALPHA over the left 42% (the type's side), easing to nothing by SHADE_END. With the type's
+    measured right edge (round 4), the full ink holds to that edge plus FEATHER_PAD, so every line sits in solid
+    ink (r7: it was capped short of a long title), and then eases over FEATHER_EASE, its steepest step under
+    FEATHER_SLOPE_MAX: a soft gradient with no visible vertical edge. `stop`: the subject's centre on the canvas;
+    the ink is gone by there (never sooner than FEATHER_MIN_EASE past the solid ink)."""
     import numpy as np
+    solid, end = SHADE_SOLID, SHADE_END
+    if type_right is not None:
+        solid = type_right + FEATHER_PAD
+        end = solid + FEATHER_EASE
+        if stop is not None:
+            end = max(solid + FEATHER_MIN_EASE, min(end, stop))
     x = np.arange(W, dtype=np.float32)
-    t = np.clip((x - SHADE_SOLID) / (SHADE_END - SHADE_SOLID), 0, 1)
+    t = np.clip((x - solid) / max(1.0, end - solid), 0, 1)
     a = (1 - t * t * (3 - 2 * t)) * SHADE_ALPHA
     alpha = Image.fromarray((a * 255).astype("uint8")[None, :]).resize((W, H))
     ink = Image.new("RGBA", (W, H), brand.INK + (255,))
@@ -122,22 +147,34 @@ def _content(text: str) -> set:
     return {w for w in re.findall(r"[A-Z0-9']+", str(text or "").upper()) if w not in _STOP and len(w) > 1}
 
 
+def _type_edge(plates) -> float | None:
+    """The drawn type's right edge (every plate), or None when nothing is drawn."""
+    boxes = [p.box[2] for _, p in plates if not p.empty]
+    return float(max(boxes)) if boxes else None
+
+
 def render(source: Image.Image, copy: dict[str, Any], focus: dict | None = None,
            meta: dict | None = None, figure: dict | None = None, youtube_title: str | None = None,
-           illustration: bool = False) -> tuple[Image.Image, list]:
+           illustration: bool = False, reveal: str | None = None) -> tuple[Image.Image, list]:
     """(the 1920x1080 thumbnail, its text plates) from a hero photograph and the cover copy. `meta`, when given,
     receives the crop's zoom and the reviewed feature's box on the canvas (`focus_box`). `figure`: the fact
     sheet's word on the hero figure (cover_design.figure_check); `youtube_title`: the video's title, so the
-    thumbnail does not repeat it; `illustration`: the photo is a generated illustration (the disclosure label).
+    thumbnail does not repeat it; `illustration`: the photo is a generated illustration (the disclosure label);
+    `reveal`: the script's reveal or takeaway line (a tagline that answers it is never drawn).
 
     The feed-size gate closes the loop (r5 review, 2026-11-02: the delivered Gol Gumbaz sample planned its title
     at 5.1 full size and measured 4.43 at 246 px wide, failing its own gate): a line whose ratio falls under 4.5
-    at feed size is planned again with a higher target and a wider halo until it holds or FEED_TARGET_MAX."""
+    at feed size is planned again with a higher target and a wider halo until it holds or FEED_TARGET_MAX. The
+    first pass also measures the type's right edge, and the ink's feather is fitted to it (round 4)."""
     targets: dict[str, float] = {}
     given = dict(meta or {})
+    edge = None
     while True:
         trial = dict(given)   # each attempt starts from the caller's meta, so nothing stale carries over
-        im, plates = _render(source, copy, focus, trial, figure, youtube_title, illustration, targets)
+        im, plates = _render(source, copy, focus, trial, figure, youtube_title, illustration, targets, edge, reveal)
+        if edge is None and _type_edge(plates) is not None:
+            edge = _type_edge(plates)
+            continue
         low = [n for n in _low_contrast(trial) if targets.get(n, PLATE_TARGET) + FEED_TARGET_STEP <= FEED_TARGET_MAX]
         if not low:
             break
@@ -145,6 +182,8 @@ def render(source: Image.Image, copy: dict[str, Any], focus: dict | None = None,
             targets[n] = targets.get(n, PLATE_TARGET) + FEED_TARGET_STEP
     if targets:
         trial["feed_targets"] = {n: round(t, 2) for n, t in targets.items()}
+    if edge is not None:
+        trial["ink_edge"] = round(edge)
     if meta is not None:
         meta.update(trial)
     return im, plates
@@ -156,7 +195,39 @@ def _low_contrast(meta: dict) -> list:
             and row.get("contrast_246") is not None and row["contrast_246"] < 4.5]
 
 
-def _render(source, copy, focus, meta, figure, youtube_title, illustration, targets):
+def _qual_font(text: str, width: float):
+    """(lines, font, track) for a qualifier or event kicker at LINE_FLOOR px of cap height at 168 px wide: one line
+    (tracked, else untracked), else two at the word break that balances them (16:9 has the height the 9:16 cover
+    lacks: "BY ONE / ESTIMATE" over the figure); else (r7) in Anton, the brand's condensed display face, at the same
+    cap floor: one word cannot break, and the column beside a reviewed feature is ~660 px ("ESTIMATED" in
+    Montserrat 800 is 710, "REDISCOVERED" 975). None when no such setting fits `width`."""
+    size = QUAL_PX
+    while cap_height(get_font(QUAL_FONT, size, weight=QUAL_WEIGHT)) * FEED_WIDTHS[0] / W < LINE_FLOOR:
+        size += 4
+    font = get_font(QUAL_FONT, size, weight=QUAL_WEIGHT)
+    for track in (QUAL_TRACK, 0):
+        if tracked_width(text, font, track) <= width:
+            return [text], font, track
+    words = text.split()
+    best = None
+    for k in range(1, len(words)):
+        a, b = " ".join(words[:k]), " ".join(words[k:])
+        wide = max(tracked_width(a, font, QUAL_TRACK), tracked_width(b, font, QUAL_TRACK))
+        if wide <= width and (best is None or wide < best[0]):
+            best = (wide, [a, b])
+    if best:
+        return best[1], font, QUAL_TRACK
+    size = QUAL_PX
+    while cap_height(get_font(QUAL_CONDENSED, size)) * FEED_WIDTHS[0] / W < LINE_FLOOR:
+        size += 2
+    condensed = get_font(QUAL_CONDENSED, size)
+    for track in (QUAL_TRACK, 0):
+        if tracked_width(text, condensed, track) <= width:
+            return [text], condensed, track
+    return None
+
+
+def _render(source, copy, focus, meta, figure, youtube_title, illustration, targets, edge=None, reveal=None):
     def feed(name: str, font) -> dict:
         """plan_text's target (and, once raised, a wider halo: at feed size a 21-31 px halo shrinks to 3-4 px and
         stops separating the glyph from a busy photo) for line `name`."""
@@ -169,17 +240,38 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
     from .cover_design import (
         _YEAR,
         _without,
+        drawn_qualifier,
         figure_qualifier,
+        hedge_line,
         monument_figure,
+        must_withhold,
+        resolving_tagline,
         withhold_figure,
     )
-    if figure and figure.get("conflict"):
+    from .multi_format import typeset
+    why = resolving_tagline(copy, reveal)
+    if why:
+        meta["tagline_dropped"] = {"tagline": copy.get("tagline"), "reason": why}
+        copy = dict(copy, tagline="")
+    if must_withhold(figure):
+        # A range or disputed value, or (r7) an estimate whose hedge cannot be shown legibly: no figure anywhere.
         withheld = withhold_figure(copy, figure)
         if withheld != dict(copy):
             meta["figure_withheld"] = {"number": figure.get("number"), "unit": figure.get("unit"),
                                        "reason": figure.get("reason")}
+            if not figure.get("conflict"):
+                meta["figure_declined"] = figure.get("reason") or "the figure's hedge cannot be shown"
         copy = withheld
-    im = _gradient(_photo(source, focus, meta))
+
+    def withhold_here(why, found_):
+        """The figure lifted out of the copy: its qualifier cannot hold the feed floor here (r7)."""
+        nonlocal copy
+        fig = figure if (figure and figure.get("unit")) else {"number": found_[0], "unit": found_[1]}
+        meta["figure_declined"] = why
+        meta["figure_withheld"] = {"number": fig.get("number"), "unit": fig.get("unit"), "reason": why}
+        copy = withhold_figure(copy, fig, force=True)
+    photo = _photo(source, focus, meta)
+    im = _gradient(photo, edge, meta.get("focus_x"))
     measure = ImageDraw.Draw(im)
     plates = []
 
@@ -195,6 +287,8 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
     d.polygon(diamond, outline=brand.INK + (255,), width=3)
     d.polygon(diamond, fill=brand.GOLD + (255,))
     plates.append(("brand", name))
+    # The band under the masthead the hero stack is centred in (round 4: it sat at a fixed y 560).
+    centre = round((top + cap_height(f_brand) + BAND_PAD[0] + H - BAND_PAD[1]) / 2)
 
     # The type never reaches the reviewed feature: its column ends 48 px short of it.
     right = TEXT_RIGHT
@@ -203,19 +297,50 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
         right = fb[0] - 48                       # frame's right side: the type keeps its column (recorded below)
     width = right - LEFT
     found = monument_figure(copy)
-    qualifier = figure_qualifier(copy, found)[0] if (found and found[1]) else ""
-    if found and found[1] and figure and figure.get("hedged") and not qualifier:
+    q_raw = figure_qualifier(copy, found)[0] if (found and found[1]) else ""
+    same = bool(figure and found and str(figure.get("number")) == found[0])
+    qualifier = ""
+    if q_raw:
+        qualifier = str(figure.get("drawn_qualifier") or "") if (same and figure.get("drawn_qualifier")) else (
+            drawn_qualifier(q_raw, found[1]))
+    q_fit, q_name = None, "figure_qualifier"
+    if found and found[1] and figure and figure.get("sheet_missing"):
+        meta["figure_declined"] = figure.get("reason") or "the payload was fact-checked but its sheet did not load"
+        found = None
+    elif found and found[1] and figure and figure.get("hedged") and not qualifier:
         meta["figure_declined"] = "the sheet hedges this figure and the copy carries no qualifier for it"
         found = None   # never one bare number for an estimate: the headline carries it as written instead
+    elif found and found[1] and qualifier:
+        q_fit = _qual_font(qualifier, width)
+        if q_fit is None:
+            # The hedge does not hold the feed floor: the figure is shown nowhere (r7, operator default; round 4
+            # set it in the headline with the hedge as texture, so the figure read bare at feed size).
+            withhold_here(f"the hedge {qualifier!r} does not fit at feed size", found)
+            found = None
     dimension = str((figure or {}).get("dimension") or "") if (found and found[1]) else ""
     year = None
     if not (found and found[1]) and "figure_declined" not in meta:
-        # No measured figure: a year from the tagline or the eyebrow is the hero when the copy has one.
+        # No measured figure: a year from the tagline or the eyebrow is the hero when the copy has one. With the
+        # fact sheet's word on it (round 4), only with the sheet's own event word set above it ("REDISCOVERED").
         for field in ("tagline", "eyebrow"):
             m = _YEAR.search(str(copy.get(field) or ""))
             if m:
                 year = (m.group(1), "", field, m.span())
                 break
+        if year and figure and figure.get("kind") == "year" and str(figure.get("number")) == year[0]:
+            event = str(figure.get("event") or "")
+            q_fit = _qual_font(event, width) if event else None
+            if not event:
+                meta["year_declined"] = figure.get("reason") or "the fact sheet gives no event word for this year"
+                year = None
+            elif q_fit is None:
+                # r7: the event word cannot hold the feed floor ("REDISCOVERED", 12 capitals): the year is not the
+                # hero (round 4 set the word as texture and 1963 read bare at feed size). The covers decline it too.
+                meta["year_declined"] = f"the event word {event!r} does not fit at feed size"
+                year = None
+            else:
+                qualifier = event
+                meta["year_event"] = event
     hero = found if (found and found[1]) else year
     if hero:
         number, unit, field, span = hero
@@ -239,34 +364,32 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
                 title = alt[1]
             else:
                 meta["title_overlap"] = True
-        f_num = fit_font(measure, number, "Anton", 300, width - (300 if unit else 0), 160)
+        title = typeset(title)
+        # The numeral fills its column up to NUM_MAX.
+        f_num = fit_font(measure, number, "Anton", NUM_MAX, width - (300 if unit else 0), 160)
         f_unit = get_font("Anton", max(80, int(f_num.size * UNIT_RATIO)))
         f_dim = get_font("Montserrat", DIM_PX, weight=700)
         dim_lines = (dimension.split() if dimension and measure.textlength(dimension, font=f_dim) > 300 else (
             [dimension] if dimension else []))[:2] if unit else []
-        f_q = None
-        if qualifier:
-            size = QUAL_PX
-            while cap_height(get_font(QUAL_FONT, size, weight=QUAL_WEIGHT)) * FEED_WIDTHS[0] / W < LINE_FLOOR:
-                size += 4
-            f_q = get_font(QUAL_FONT, size, weight=QUAL_WEIGHT)
+        q_lines, f_q, q_track = q_fit if (q_fit and qualifier) else ([], None, QUAL_TRACK)
+        num_w = measure.textlength(number, font=f_num)
         f_t = fit_font(measure, title, "Anton", 150, width, 90) if title else None
         gap_t = round(TITLE_GAP_EM * f_t.size) if f_t else 0
         if dim_lines:   # the dimension word ends on the figure's baseline: the title keeps clear of it (r5: ~12 px)
             gap_t = max(gap_t, DIM_TITLE_GAP)
-        q_h = cap_height(f_q) + 28 if f_q else 0
+        q_h = (len(q_lines) * cap_height(f_q) + (len(q_lines) - 1) * QUAL_LEADING + 28) if f_q else 0
         stack = q_h + cap_height(f_num) + (gap_t + cap_height(f_t) if f_t else 0)
-        base = round(560 - stack / 2 + q_h + cap_height(f_num))
-        if f_q:
-            p_q = plan_text(im, (LEFT, base - cap_height(f_num) - 28), qualifier, f_q, brand.GOLD, "ls", QUAL_TRACK,
-                            **feed("figure_qualifier", f_q))
+        base = round(centre - stack / 2 + q_h + cap_height(f_num))
+        for k, line in enumerate(q_lines if f_q else []):
+            yq = base - cap_height(f_num) - 28 - (len(q_lines) - 1 - k) * (cap_height(f_q) + QUAL_LEADING)
+            p_q = plan_text(im, (LEFT, yq), line, f_q, brand.GOLD, "ls", q_track, **feed(q_name, f_q))
             im = p_q.draw(im)
-            plates.append(("figure_qualifier", p_q))
+            plates.append((q_name, p_q))
         p_num = plan_text(im, (LEFT, base), number, f_num, brand.GOLD, "ls", **feed("figure", f_num))
         im = p_num.draw(im)
         plates.append(("figure", p_num))
         if unit:
-            nx = LEFT + measure.textlength(number, font=f_num) + 20
+            nx = LEFT + num_w + 20
             pitch = cap_height(f_dim) + 12
             unit_base = base - (len(dim_lines) * pitch + 6 if dim_lines else 0)
             p_unit = plan_text(im, (nx, unit_base), unit, f_unit, brand.GOLD, "ls", **feed("figure_unit", f_unit))
@@ -283,14 +406,57 @@ def _render(source, copy, focus, meta, figure, youtube_title, illustration, targ
             im = p_t.draw(im)
             plates.append(("title", p_t))
     else:
+        hedge = hedge_line(copy, figure)
+        h_fit = _qual_font(hedge[0], width) if hedge else None
+        if hedge and h_fit is None:
+            found_h = monument_figure(copy)
+            if found_h:
+                withhold_here(f"the hedge {hedge[0]!r} does not fit at feed size", found_h)
+            hedge = None
         l1, l2 = _words(copy.get("line1", ""), 3), _words(copy.get("line2", ""), 3)
-        lines = [(t, c) for t, c in ((l1, brand.BONE), (l2, brand.GOLD)) if t]
+        kicker = ""
+        if bool(l1) != bool(l2) and ("figure_withheld" in meta or "figure_declined" in meta):
+            # Round 4: a withheld or declined figure left one headline line (Richat: "SAHARA EYE" alone, a third
+            # of the left half empty). The other line of the two-tone system comes from the verified copy: the
+            # eyebrow, else the tagline, when it is short, new to the headline and not the video title again.
+            kept = l1 or l2
+            fill = next(((k, _words(str(copy.get(k) or ""), 3)) for k in ("eyebrow", "tagline")
+                         if str(copy.get(k) or "").strip() and len(str(copy.get(k)).split()) <= 3
+                         and not _content(copy.get(k)) <= _content(kept)
+                         and not (youtube_title and len(_content(copy.get(k)) & _content(youtube_title)) >= 2)),
+                        None)
+            if fill:
+                meta["headline_fill_from"] = fill[0]
+                kicker = typeset(fill[1])
+        lines = [(typeset(t), c) for t, c in ((l1, brand.BONE), (l2, brand.GOLD)) if t]
+        h_lines, f_h, h_track = h_fit if (hedge and h_fit) else ([], None, QUAL_TRACK)
         size = 190
         while size > 96 and any(measure.textlength(t, font=get_font("Anton", size)) > width for t, _ in lines):
             size -= 4
         f = get_font("Anton", size)
         pitch = int(cap_height(f) * 1.18)
-        y = 560 - (pitch * len(lines)) // 2 + cap_height(f)
+        h_h = (len(h_lines) * cap_height(f_h) + (len(h_lines) - 1) * QUAL_LEADING + HEDGE_GAP) if f_h else 0
+        f_k = None
+        if kicker:
+            # The filled line sits over the kept one as a kicker, in bone Anton at most KICKER_RATIO of its size:
+            # the kept line stays the hero at full size (at one shared size both fell under the feed floor).
+            f_k = fit_font(measure, kicker, "Anton", int(size * KICKER_RATIO), width, 72)
+            h_h += cap_height(f_k) + KICKER_GAP
+        y = round(centre - (pitch * (len(lines) - 1) + cap_height(f) + h_h) / 2 + h_h + cap_height(f))
+        if f_k:
+            p_k = plan_text(im, (LEFT, y - cap_height(f) - KICKER_GAP), kicker, f_k, brand.BONE, "ls",
+                            **feed("kicker", f_k))
+            im = p_k.draw(im)
+            plates.append(("kicker", p_k))
+        if f_h:
+            # The hedge on its own line above the headline (round 4), as on the covers ("ESTIMATED"), at the
+            # feed floor and gated like every other line (r7: it was texture).
+            foot = y - cap_height(f) - (cap_height(f_k) + KICKER_GAP if f_k else 0) - HEDGE_GAP
+            for k, line in enumerate(h_lines):
+                yh = foot - (len(h_lines) - 1 - k) * (cap_height(f_h) + QUAL_LEADING)
+                p_h = plan_text(im, (LEFT, yh), line, f_h, brand.GOLD, "ls", h_track, **feed("qualifier", f_h))
+                im = p_h.draw(im)
+                plates.append(("qualifier", p_h))
         for k, (t, colour) in enumerate(lines):
             p = plan_text(im, (LEFT, y + k * pitch), t, f, colour, "ls", **feed(f"title_{k + 1}", f))
             im = p.draw(im)
@@ -342,10 +508,13 @@ def downscale_check(im: Image.Image, meta: dict) -> bool:
         if row["cap_168"] < floor:
             fails.append(f"{name} {row['cap_168']} px cap at 168 wide (floor {floor})")
         # Contrast is gated on the 246 px home-feed tile: at 168 px the resampling blurs every stroke into its
-        # halo, so the ring measure there reads low even for the 300 px figure (recorded, not gated).
+        # halo, so the ring measure there reads low even for the 300 px figure (recorded, not gated). Round 4
+        # tried gating the hero lines at 168 too: raising a line's target and halo does not lift its 168 px
+        # measure on a busy photo, so the gate could not be met; it stays recorded.
         c = row["contrast_246"]
         if c is not None and c < 4.5:
             fails.append(f"{name} contrast {c} at 246 wide")
+
         if p.box[2] > SHADE_END:
             fails.append(f"{name} reaches past the ink's fade (x {p.box[2]})")
     meta["downscale"], meta["downscale_fails"], meta["downscale_ok"] = out, fails, not fails

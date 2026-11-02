@@ -33,7 +33,8 @@ def test_the_figure_is_the_hero_and_not_repeated(monkeypatch) -> None:
 def test_the_rest_of_a_figure_line_is_kept(monkeypatch) -> None:
     _, lay, drawn = _draw({"eyebrow": "SAHARA ANOMALY", "line1": "THE 30-MILE DOME", "line2": "SEEN FROM SPACE",
                            "tagline": "MAURITANIA'S BULLSEYE"}, monkeypatch)
-    assert "DOME" in drawn and "SEEN FROM SPACE" in drawn and "MAURITANIA'S BULLSEYE" in drawn
+    # Round 4: the tagline is tracked (drawn a letter at a time) and typeset (a curly apostrophe).
+    assert "DOME" in drawn and "SEEN FROM SPACE" in drawn and "MAURITANIA\u2019SBULLSEYE" in drawn.replace(" ", "")
     assert lay.meta["monument"]["unit"] == "MILES"
 
 

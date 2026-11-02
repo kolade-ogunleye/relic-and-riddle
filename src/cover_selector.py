@@ -37,20 +37,32 @@ RETIRED = ("minimal",)
 PAPER = "depth_sandwich"   # the light paper card: never two in any three neighbouring grid tiles while avoidable
 RHYTHM = 3                 # how many previous covers the paper rule looks back over (a grid column, round 3)
 ENGAGED = 0.03   # shares + saves per account reached that count as a full engagement reward
+PAPER_MIN_FILL = 0.35   # round 4: the reviewed feature must fill at least this share of the paper card's window
 
 
-def fitting(copy: dict[str, Any], figure: dict[str, Any] | None = None) -> list[str]:
+def fitting(copy: dict[str, Any], figure: dict[str, Any] | None = None, focus: dict[str, Any] | None = None,
+            source_size: tuple[int, int] | None = None) -> list[str]:
     """The styles in COVER_STYLES this cover copy can carry, in COVER_STYLES order. "monument" needs a measured
     figure (a number with its unit): a bare year draws, but it is a date, not a scale, and made the weakest hero
     (Derinkuyu's "1963", review 2026-11-01). With the fact sheet's word on that figure (`figure`, from
     cover_design.figure_check; round 3) it also needs the sheet to let the number stand alone: not a range or a
-    disputed value, a hedge only with the copy's own qualifier, and the claim's word for what it measures."""
-    from .cover_design import monument_figure
+    disputed value, a hedge only with the copy's own qualifier, and the claim's word for what it measures.
+
+    Round 4: with the hero's reviewed focus (`focus`, cover_design.reviewed_focus, and the photo's `source_size`)
+    the paper card fits only when that feature fills at least PAPER_MIN_FILL of its window
+    (cover_design.sandwich_fill), while another style fits; without a focus record nothing changes."""
+    from .cover_design import monument_figure, sandwich_fill
 
     def measured(c):
         found = monument_figure(c)
         return found is not None and bool(found[1]) and (figure is None or bool(figure.get("monument_ok")))
-    return [s for s in COVER_STYLES if s not in RETIRED and (s != "monument" or measured(copy))]
+    out = [s for s in COVER_STYLES if s not in RETIRED and (s != "monument" or measured(copy))]
+    if PAPER in out and len(out) > 1 and focus and source_size:
+        share = sandwich_fill(copy, focus, source_size, figure)
+        if share is not None and share < PAPER_MIN_FILL:
+            log.info("Paper card not offered: the reviewed feature fills %.0f%% of its window.", share * 100)
+            out = [s for s in out if s != PAPER]
+    return out
 
 
 VIDEO_PLATFORMS = ("instagram", "facebook", "youtube")
@@ -88,11 +100,13 @@ def evidence(rows: list[dict[str, Any]]) -> dict[str, list[float]]:
 
 def choose(copy: dict[str, Any], rows: list[dict[str, Any]], previous: str | None = None,
            seed: str = "", recent: list[str | None] | None = None,
-           figure: dict[str, Any] | None = None) -> tuple[str, str]:
+           figure: dict[str, Any] | None = None, focus: dict[str, Any] | None = None,
+           source_size: tuple[int, int] | None = None) -> tuple[str, str]:
     """(style, why) for a cover with `copy`, given audience.table `rows`, the previous run's style and, when known,
-    the styles of the runs before this one, newest first (`recent`; `previous` is taken as its first when absent)."""
+    the styles of the runs before this one, newest first (`recent`; `previous` is taken as its first when absent).
+    `focus` and `source_size`: the hero's reviewed focus and pixel size, for the paper card's fill rule."""
     from . import learning
-    options = fitting(copy, figure)
+    options = fitting(copy, figure, focus, source_size)
     if previous in options and len(options) > 1:
         options = [s for s in options if s != previous]
     recent = list(recent) if recent is not None else ([previous] if previous else [])
@@ -110,9 +124,10 @@ def cover_copy(payload: dict[str, Any]) -> dict[str, Any]:
     return copy
 
 
-def for_run(db, run_id: str, payload: dict[str, Any]) -> tuple[str, str]:
+def for_run(db, run_id: str, payload: dict[str, Any], hero: Any = None) -> tuple[str, str]:
     """choose() for a pipeline run's script payload: its audience evidence, the style of the run before it,
-    seeded by the run."""
+    seeded by the run. `hero` (round 4, optional): the cover photograph's path, so the paper card's fill rule can
+    read its reviewed focus; without it the rule is off, as before."""
     from . import audience
     copy = cover_copy(payload)
     try:
@@ -134,6 +149,28 @@ def for_run(db, run_id: str, payload: dict[str, Any]) -> tuple[str, str]:
     figure = cover_figure(copy, payload)
     if figure and not figure.get("monument_ok"):
         log.info("Monument not offered: %s.", figure.get("reason"))
-    style, why = choose(copy, rows, previous, seed=run_id, recent=recent, figure=figure)
+    focus, size = _hero_focus(hero)
+    style, why = choose(copy, rows, previous, seed=run_id, recent=recent, figure=figure, focus=focus,
+                        source_size=size)
     log.info("Cover style %s (%s; previous run: %s).", style, why, previous or "none")
     return style, why
+
+
+def _hero_focus(hero: Any) -> tuple[dict[str, Any] | None, tuple[int, int] | None]:
+    """(reviewed focus, pixel size) of the cover photograph at `hero`, or (None, None)."""
+    if not hero:
+        return None, None
+    from pathlib import Path
+
+    from PIL import Image, ImageOps
+
+    from .cover_design import reviewed_focus
+    try:
+        focus = reviewed_focus(Path(hero))
+        if not focus:
+            return None, None
+        with Image.open(hero) as im:
+            return focus, ImageOps.exif_transpose(im).size
+    except OSError as e:
+        log.warning("Cover photo unreadable for the paper card's fill rule (%s).", e)
+        return None, None

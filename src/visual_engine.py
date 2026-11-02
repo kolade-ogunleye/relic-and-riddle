@@ -450,11 +450,21 @@ class VisualEngine:
         script_payload: Dict[str, Any],
         output_path: Path,
     ) -> Path:
-        """
-        16:9 Widescreen Key-Art Thumbnail (1920x1080) for YouTube / Facebook In-Stream.
-        Delegates to studio-grade depth-layered engine with strict timestamp safe zone clearance.
-        """
-        return self.generate_depth_layered_thumbnail(hero_image_path, script_payload, output_path, aspect_ratio="16:9")
+        """16:9 thumbnail (1920x1080) for the YouTube documentary: the covers' system (youtube_thumbnail): the
+        photograph full-bleed, the masthead, one figure or a two-tone Anton headline on a left ink gradient,
+        YouTube's timestamp corner clear. The depth-layered engine stays for its own callers."""
+        from . import youtube_thumbnail
+        from .cover_design import reviewed_focus
+        from .photo_hygiene import clean_hero
+        with Image.open(hero_image_path) as source:
+            src = ImageOps.exif_transpose(source).convert("RGBA")
+        src, focus = clean_hero(src, reviewed_focus(Path(hero_image_path)))
+        copy = _in_spoken_units(documentary_cover_copy(script_payload), script_payload)
+        im, _ = youtube_thumbnail.render(src, copy, focus)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        im.save(output_path, quality=95)
+        log.info("YouTube thumbnail generated: %s", output_path.name)
+        return output_path
 
 
 def _in_spoken_units(copy: Dict[str, Any], script_payload: Dict[str, Any]) -> Dict[str, Any]:

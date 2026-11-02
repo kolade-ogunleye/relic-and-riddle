@@ -510,11 +510,115 @@ def unmeasured_cover_figures(payload: dict[str, Any], sheet: dict[str, Any]) -> 
     return problems
 
 
+# A bare year on the cover (round-4 panel, standards editor, 2026-11-02): "DERINKUYU, 1963" under "A FORGOTTEN CITY"
+# reads as the city's founding date, but the sheet's 1963 is when it was rediscovered (the city is 8th-7th century
+# BC). A cover line that carries a year also carries what happened in it, in the sheet's own word for that year or
+# one of the same family ("FOUND 1963" for "rediscovered in 1963"). Only a family the sheet's statement names counts,
+# so "BUILT 1963" is refused for a rediscovery. Rejected back to the writer, never rewritten here.
+_YEAR = re.compile(r"(?<![\d,.])(1\d{3}|20\d{2})(?![\d,.]\d)(?!\s*(?:-|\u2013)?\s*(?:FT|FEET|FOOT|M|KM|MI|MILES?|"
+                   r"METRES?|METERS?|TONS?|TONNES?|KG|LB|STEPS?|PEOPLE|ROOMS?|LEVELS?|STONES?)\b)", re.IGNORECASE)
+# Each family holds only words a viewer reads as the same event in that year (round-7 review, 2026-11-02): "CLOSED
+# 1985" for "reopened in 1985", "FLOODED 1900" for "destroyed by fire in 1900" or "DESTROYED 1911" for "stolen in
+# 1911" say something the sheet does not, so opening and closing, and each kind of loss, are families of their own.
+_DISCOVERY = frozenset({"found", "discovered", "discovery", "rediscovered", "rediscovery", "uncovered", "unearthed"})
+_EVENT_FAMILIES: tuple[frozenset[str], ...] = (_DISCOVERY,) + tuple(frozenset(f) for f in (
+    {"spotted", "sighted"}, {"identified"},
+    {"excavated", "excavation", "dug"}, {"explored"}, {"surveyed", "mapped"},
+    {"built", "build", "constructed", "construction", "erected"}, {"carved", "hewn"},
+    {"completed", "completion", "finished"}, {"begun", "started"}, {"commissioned"},
+    {"founded", "founding", "established"}, {"settled"},
+    {"abandoned", "abandonment", "deserted"}, {"emptied"},
+    {"destroyed", "destruction", "ruined", "razed", "demolished"}, {"burned", "burnt"}, {"stolen", "looted"},
+    {"sacked"}, {"flooded"}, {"collapsed"}, {"damaged"}, {"bombed"}, {"buried"}, {"lost"}, {"vanished"},
+    {"sunk", "sank"}, {"wrecked"},
+    {"opened", "reopened", "restored", "restoration", "rebuilt"}, {"closed", "sealed"}, {"renovated", "repaired"},
+    {"moved", "relocated"}, {"returned"}, {"sold"}, {"bought", "acquired"},
+    {"consecrated", "dedicated"}, {"inaugurated", "unveiled"},
+    {"listed", "inscribed"}, {"declared"}, {"named", "renamed"},
+))
+_EVENT_WORDS = frozenset().union(*_EVENT_FAMILIES)
+# "HIDDEN UNTIL 1963" says what ended in a year of discovery as plainly as "FOUND 1963".
+_UNTIL_HIDDEN = frozenset({"lost", "hidden", "forgotten", "buried", "unknown", "sealed", "unseen"})
+_NEAR_YEAR = (8, 3)   # words before and after the year in the sheet's clause that may name its event
+# An "-ed" verb outside the curated words names the year's event only right before "in <year>" ("consecrated in
+# 1150"), and never one that says what was known, counted or written then rather than what happened to the site
+# ("It was estimated in 1963 that ...": "ESTIMATED 1963" tells the viewer nothing about the site).
+_NOT_EVENTS = frozenset({
+    "estimated", "calculated", "measured", "counted", "recorded", "reported", "noted", "documented", "described",
+    "mentioned", "published", "claimed", "suggested", "believed", "assumed", "thought", "considered",
+    "dated", "proposed", "argued", "speculated", "theorized", "theorised", "hypothesized", "hypothesised",
+    "concluded", "confirmed", "stated", "observed", "photographed", "filmed", "visited", "studied", "analysed",
+    "analyzed", "examined", "tested", "sampled", "cited", "quoted", "translated", "printed", "edited", "revised",
+    "updated", "issued", "released", "awarded", "elected", "appointed", "married", "killed", "died", "lived",
+    "worked", "served", "wanted", "decided", "planned", "attempted", "tried", "needed",
+})
+
+
+def _event_words(statement: str, year: str) -> tuple[set[str], set[str]]:
+    """(own, allowed) for the event of `year`, from the sheet's words beside it ("rediscovered in 1963", "abandoned
+    following the 1923 population exchange"): own holds the curated event words there, plus an "-ed" verb outside
+    them only when it stands right before "in <year>" and is not one of _NOT_EVENTS; allowed adds the family each
+    curated word belongs to ("FOUND" for "rediscovered")."""
+    own: set[str] = set()
+    for clause in _CLAUSE.split(statement or ""):
+        words = [w.rstrip(".,") for w in _words(clause)]
+        for i, w in enumerate(words):
+            if w != year:
+                continue
+            near = words[max(0, i - _NEAR_YEAR[0]):i] + words[i + 1:i + 1 + _NEAR_YEAR[1]]
+            own |= {v for v in near if v in _EVENT_WORDS}
+            if i >= 2 and words[i - 1] == "in":
+                v = words[i - 2]
+                if v.isalpha() and len(v) > 4 and v.endswith("ed") and v not in _NOT_EVENTS:
+                    own.add(v)
+    allowed = set(own)
+    for fam in _EVENT_FAMILIES:
+        if fam & own:
+            allowed |= fam
+    return own, allowed
+
+
+def bare_cover_years(payload: dict[str, Any], sheet: dict[str, Any]) -> list[str]:
+    """Cover lines with a year the sheet dates an event to, but without the event: "DERINKUYU, 1963" must be
+    "DERINKUYU \u00b7 FOUND 1963" (the sheet: "rediscovered in 1963"). Years no fact holds are left to the number
+    checks above. A line whose words name the year's event passes ("FOUND 1963", "REDISCOVERED 1963", and for a
+    discovery "HIDDEN UNTIL 1963"); one naming another event ("BUILT 1963") does not."""
+    facts = [f for f in sheet.get("facts") or [] if isinstance(f, dict)]
+    problems = []
+    for field, line in cover_lines(payload).items():
+        for m in _YEAR.finditer(line):
+            year = m.group(1)
+            dated = [f for f in facts if re.search(rf"(?<![\d,.]){year}(?![\d,.]\d)", f.get("statement", ""))]
+            if not dated:
+                continue
+            own: set[str] = set()
+            allowed: set[str] = set()
+            for f in dated:
+                o, a = _event_words(f.get("statement", ""), year)
+                own, allowed = own | o, allowed | a
+            said = {w for w in _words(line) if w.isalpha()}
+            if said & allowed or ("until" in said and said & _UNTIL_HIDDEN and allowed & _DISCOVERY):
+                continue
+            fact = dated[0]
+            word = sorted(own & _EVENT_WORDS) or sorted(own)
+            hint = f" (e.g. '{word[0].upper()} {year}')" if word else ""
+            wrong = sorted(said & _EVENT_WORDS)
+            what = (f"puts '{wrong[0].upper()}' in the year {year}, which the sheet does not" if wrong else
+                    f"gives the year {year} without what happened in it: next to a place a bare year reads as its "
+                    "founding date")
+            problems.append(
+                f"{COVER_PROBLEM}the {field} '{line}' {what}. The sheet ({fact.get('id', 'a fact')}) says "
+                f"\"{fact.get('statement', '')}\". Say the event with the year in the sheet's own word{hint}, or "
+                "leave the year off the cover.")
+            break
+    return problems
+
+
 def cover_copy_problems(payload: dict[str, Any], sheet: dict[str, Any]) -> list[str]:
     """The cover's words-and-measures rules (the figure rule is script_engine.headline_problems')."""
     if not (sheet or {}).get("facts"):
         return []
-    return dropped_limits(payload, sheet) + unmeasured_cover_figures(payload, sheet)
+    return dropped_limits(payload, sheet) + unmeasured_cover_figures(payload, sheet) + bare_cover_years(payload, sheet)
 
 
 def headline_gate(payload: dict[str, Any], sheet: dict[str, Any]) -> list[str]:

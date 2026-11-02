@@ -375,6 +375,26 @@ def _spread(xs: Sequence[tuple[str, float]], near: float = NEAR, step: float = S
     return out
 
 
+def _posted_ts(posted_at: Any) -> float | None:
+    """A row's post time as epoch seconds, or None with no or an unreadable date."""
+    if posted_at in (None, ""):
+        return None
+    from . import local_time
+    try:
+        return local_time.local(posted_at).timestamp()
+    except (TypeError, ValueError, OverflowError, OSError):
+        return None
+
+
+def newest_first(reels: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The rows newest posting first, so the subtitle's "newest on top" is true whatever order a caller passes
+    (round-4 panel, 2026-11-02: a caller's oldest-first list drew 19 OCT on top). Stable: rows posted at the same
+    time, and undated rows (after every dated one), keep the caller's order."""
+    keyed = [(_posted_ts(r.get("posted_at")), i, r) for i, r in enumerate(reels)]
+    dated = sorted((k for k in keyed if k[0] is not None), key=lambda k: (-k[0], k[1]))
+    return [r for _, _, r in dated] + [r for ts, _, r in keyed if ts is None]
+
+
 def _date(today: Optional[datetime]) -> str:
     if today is None:
         from . import local_time
@@ -384,10 +404,11 @@ def _date(today: Optional[datetime]) -> str:
 
 def render(reels: Sequence[Dict[str, Any]], out_path: Optional[Path] = None, *, sample: bool = False,
            today: Optional[datetime] = None, mono_dir: Optional[Path] = None) -> Tuple[Image.Image, Dict[str, Any]]:
-    """The chart for `reels` (reels_at_7d's shape, newest first) as a 1200 px wide image, saved as PNG when
-    `out_path` is given. Returns (image, info): info has the headline, the drawn texts with their boxes and
-    colours, the fonts used and the layout figures the tests check."""
-    reels = list(reels)[:LIMIT]
+    """The chart for `reels` (reels_at_7d's shape) as a 1200 px wide image, saved as PNG when `out_path` is given:
+    the newest LIMIT rows, newest on top, whatever order they come in (newest_first). Returns (image, info): info has
+    the headline, the drawn texts with their boxes and colours, the fonts used and the layout figures the tests
+    check."""
+    reels = newest_first(reels)[:LIMIT]
     fonts = _Fonts(mono_dir)
     probe = _Canvas(1)
     head = headline(reels).upper()

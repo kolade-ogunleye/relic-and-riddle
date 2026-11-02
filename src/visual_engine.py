@@ -71,6 +71,8 @@ def redraw_cover(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
               "depth_sandwich": engine._cover_depth_sandwich,
               "monument": engine._cover_monument}.get(recipe.get("style"), engine._cover_badge)
     lay = still_layout.Layout("cover", (VIDEO_WIDTH, VIDEO_HEIGHT), cover_text_zone(), tight=True)
+    engine._figure = recipe.get("figure")
+    engine._illustration = bool(recipe.get("illustration"))
     out = render(im, dict(recipe.get("copy") or {}), lay=lay, tight=True).convert("RGB")
     path = Path(path)
     # Written aside, then swapped in: the video judge may be reading this cover while the audit redraws it
@@ -85,7 +87,8 @@ def redraw_cover(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
         grid_crop(out).save(path.with_name("thumbnail_profile_grid.jpg"), quality=95)
     prior = still_layout.load(path) or {}
     return still_layout.save(path, lay, {**recipe, "focus": engine._hero_focus_reviewed,
-                                        "composition": lay.meta.get("composition")},
+                                        "composition": lay.meta.get("composition"),
+                                        "grid_proof": lay.meta.get("grid_proof")},
                              int(prior.get("attempts", 1)) + 1)
 
 
@@ -261,6 +264,11 @@ class VisualEngine:
         if "badge" not in copy:
             copy["badge"] = extract_curiosity_badge(script_payload)
         copy = _in_spoken_units(copy, script_payload)
+        # What the fact sheet says about the hero figure (round 3): a range or disputed value never stands as one
+        # number, a hedged one only with its qualifier, and the claim's dimension word travels with it.
+        self._figure = cover_figure(copy, script_payload)
+        from .scene_planner import is_illustration
+        self._illustration = is_illustration(Path(hero_image_path))
 
         with Image.open(hero_image_path) as source:
             self._hero_source = ImageOps.exif_transpose(source).convert("RGBA")
@@ -281,7 +289,12 @@ class VisualEngine:
             still_layout.save(path, lay, {"renderer": "visual_engine.redraw_cover", "hero": str(hero_image_path),
                                           "copy": copy, "style": chosen, "text_cy": self._text_cy,
                                           "focus": self._hero_focus_reviewed,
-                                          "composition": lay.meta.get("composition")}, attempts)
+                                          "composition": lay.meta.get("composition"),
+                                          "figure": self._figure, "illustration": self._illustration,
+                                          "grid_proof": lay.meta.get("grid_proof")}, attempts)
+            proof = lay.meta.get("grid_proof") or {}
+            if proof and not proof.get("ok"):
+                log.warning("Cover %s (%s) at profile-grid size: %s", path.name, chosen, "; ".join(proof["fails"]))
             return out
 
         # The 3-variant 9:16 suite is for Reels; a documentary (variants=False) uses its 16:9 thumbnail.
@@ -329,7 +342,9 @@ class VisualEngine:
     def _cover_design(self, im, copy, style, lay, tight):
         from .cover_design import render_cover
         return render_cover(im, copy, style, getattr(self, "_text_cy", VIDEO_HEIGHT // 2), lay, tight,
-                            source=getattr(self, "_hero_source", None), focus=getattr(self, "_hero_focus", None))
+                            source=getattr(self, "_hero_source", None), focus=getattr(self, "_hero_focus", None),
+                            figure=getattr(self, "_figure", None),
+                            illustration=bool(getattr(self, "_illustration", False)))
 
     def generate_depth_layered_thumbnail(
         self,
@@ -460,9 +475,25 @@ class VisualEngine:
             src = ImageOps.exif_transpose(source).convert("RGBA")
         src, focus = clean_hero(src, reviewed_focus(Path(hero_image_path)))
         copy = _in_spoken_units(documentary_cover_copy(script_payload), script_payload)
-        im, _ = youtube_thumbnail.render(src, copy, focus)
+        # The badge is not drawn here; it is read for the qualifier the covers' copy sets on the figure ("EST.").
+        copy.setdefault("badge", _in_spoken_units({"b": extract_curiosity_badge(script_payload)}, script_payload)["b"])
+        from .scene_planner import is_illustration
+        meta: dict[str, Any] = {}
+        im, _ = youtube_thumbnail.render(src, copy, focus, meta=meta, figure=cover_figure(copy, script_payload),
+                                         youtube_title=script_payload.get("youtube_title") or None,
+                                         illustration=is_illustration(Path(hero_image_path)))
         output_path.parent.mkdir(parents=True, exist_ok=True)
         im.save(output_path, quality=95)
+        # The feed-size proof on the delivered JPEG (round 3), kept beside the thumbnail for QA to read.
+        with Image.open(output_path) as saved:
+            qa = youtube_thumbnail.downscale_check(saved.convert("RGB"), meta)
+        import json
+        output_path.with_suffix(".qa.json").write_text(json.dumps(
+            {k: meta.get(k) for k in ("downscale", "downscale_ok", "downscale_fails", "title_overlap",
+                                      "figure_withheld", "tension_from", "text_over_focus")},
+            indent=1, ensure_ascii=False), encoding="utf-8")
+        if not qa:
+            log.warning("YouTube thumbnail at feed size: %s", "; ".join(meta.get("downscale_fails") or []))
         log.info("YouTube thumbnail generated: %s", output_path.name)
         return output_path
 
@@ -481,6 +512,33 @@ def _topic_folder(photo: Path) -> Path:
         if (src.parent / "credits.json").is_file():
             return src.parent
     return photo.parent
+
+
+def fact_sheet_for(script_payload: dict[str, Any]) -> dict[str, Any] | None:
+    """The run's verified fact sheet, or None: the one the fact review used (payload["fact_review"]["sheet_path"]),
+    else the topic's sheet when the payload says it was written from one (payload["fact_sheet"])."""
+    import json
+    path = str(((script_payload.get("fact_review") or {}).get("sheet_path")) or "")
+    try:
+        if path:
+            data = json.loads(Path(path).read_text(encoding="utf-8"))
+            return data if isinstance(data, dict) else None
+        if script_payload.get("fact_sheet") and script_payload.get("topic_id"):
+            from . import fact_sheet
+            return fact_sheet.load(str(script_payload["topic_id"]), max_age_days=3650)
+    except (OSError, ValueError, KeyError) as e:
+        log.warning("Fact sheet unreadable for the cover's figure check (%s).", e)
+    return None
+
+
+def cover_figure(copy: dict[str, Any], script_payload: dict[str, Any]) -> dict[str, Any] | None:
+    """cover_design.figure_check for this cover copy against the run's fact sheet (None without a sheet or a
+    measured figure): what the covers, the selector and the YouTube thumbnail may draw of the hero figure."""
+    from .cover_design import figure_check
+    sheet = fact_sheet_for(script_payload)
+    if sheet is None:
+        return None
+    return figure_check(_in_spoken_units(dict(copy), script_payload), sheet, script_payload)
 
 
 def _in_spoken_units(copy: Dict[str, Any], script_payload: Dict[str, Any]) -> Dict[str, Any]:

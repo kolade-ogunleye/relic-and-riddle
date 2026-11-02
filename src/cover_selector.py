@@ -8,8 +8,9 @@ colour. Now:
    unit) for its hero; the others always fit.
 2. Neighbours differ: the style the previous run went out in is skipped while another fits (the profile grid
    reads as a set, which is why the rotation existed). The paper card (depth_sandwich) is the one light tile in
-   an ink grid, so it is also skipped while either of the two previous covers used it and another style fits
-   (grid rhythm, 2026-11-02 panel round 2).
+   an ink grid, so it is also skipped while any of the RHYTHM previous covers used it and another style fits
+   (grid rhythm, 2026-11-02 panel round 2; three since round 3: on a 3-wide grid post n-3 sits directly above
+   post n, so a two-post lookback still stacked two cream tiles in one column).
 3. Every fitting style is tried MIN_TRIES times (measured Reels, on any platform) before the numbers are used,
    least-tried first.
 4. Then Thompson sampling: each style's reward is a Beta posterior over its Reels' rewards, and the style with
@@ -34,19 +35,21 @@ MIN_TRIES = 3
 # Retired for new selections (operator, 2026-11-02): minimal stays renderable for old runs and redraws.
 RETIRED = ("minimal",)
 PAPER = "depth_sandwich"   # the light paper card: never two in any three neighbouring grid tiles while avoidable
-RHYTHM = 2                 # how many previous covers the paper rule looks back over
+RHYTHM = 3                 # how many previous covers the paper rule looks back over (a grid column, round 3)
 ENGAGED = 0.03   # shares + saves per account reached that count as a full engagement reward
 
 
-def fitting(copy: dict[str, Any]) -> list[str]:
+def fitting(copy: dict[str, Any], figure: dict[str, Any] | None = None) -> list[str]:
     """The styles in COVER_STYLES this cover copy can carry, in COVER_STYLES order. "monument" needs a measured
     figure (a number with its unit): a bare year draws, but it is a date, not a scale, and made the weakest hero
-    (Derinkuyu's "1963", review 2026-11-01)."""
+    (Derinkuyu's "1963", review 2026-11-01). With the fact sheet's word on that figure (`figure`, from
+    cover_design.figure_check; round 3) it also needs the sheet to let the number stand alone: not a range or a
+    disputed value, a hedge only with the copy's own qualifier, and the claim's word for what it measures."""
     from .cover_design import monument_figure
 
     def measured(c):
         found = monument_figure(c)
-        return found is not None and bool(found[1])
+        return found is not None and bool(found[1]) and (figure is None or bool(figure.get("monument_ok")))
     return [s for s in COVER_STYLES if s not in RETIRED and (s != "monument" or measured(copy))]
 
 
@@ -84,11 +87,12 @@ def evidence(rows: list[dict[str, Any]]) -> dict[str, list[float]]:
 
 
 def choose(copy: dict[str, Any], rows: list[dict[str, Any]], previous: str | None = None,
-           seed: str = "", recent: list[str | None] | None = None) -> tuple[str, str]:
+           seed: str = "", recent: list[str | None] | None = None,
+           figure: dict[str, Any] | None = None) -> tuple[str, str]:
     """(style, why) for a cover with `copy`, given audience.table `rows`, the previous run's style and, when known,
     the styles of the runs before this one, newest first (`recent`; `previous` is taken as its first when absent)."""
     from . import learning
-    options = fitting(copy)
+    options = fitting(copy, figure)
     if previous in options and len(options) > 1:
         options = [s for s in options if s != previous]
     recent = list(recent) if recent is not None else ([previous] if previous else [])
@@ -126,6 +130,10 @@ def for_run(db, run_id: str, payload: dict[str, Any]) -> tuple[str, str]:
     except Exception as e:  # noqa: BLE001 - selection still works without the neighbour rule
         log.warning("Previous cover style unknown (%s).", e)
     previous = recent[0] if recent else None
-    style, why = choose(copy, rows, previous, seed=run_id, recent=recent)
+    from .visual_engine import cover_figure
+    figure = cover_figure(copy, payload)
+    if figure and not figure.get("monument_ok"):
+        log.info("Monument not offered: %s.", figure.get("reason"))
+    style, why = choose(copy, rows, previous, seed=run_id, recent=recent, figure=figure)
     log.info("Cover style %s (%s; previous run: %s).", style, why, previous or "none")
     return style, why

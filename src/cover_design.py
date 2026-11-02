@@ -64,6 +64,53 @@ def _shade(im, top, bottom, strength=0.78, feather=280):
     return Image.alpha_composite(im.convert("RGBA"), layer)
 
 
+def _scrim(im, box, strength=0.55, feather=120):
+    """An INK scrim confined to `box`, eased to nothing over `feather` px outside it (round 3: the monument's
+    full-width shade turned the lower half of every tile to flat ink and dimmed the subject under the type).
+
+    The falloff is the box blurred by a Gaussian (sigma feather / SCRIM_SIGMAS), not a linear ramp: a ramp's
+    plateau and foot are kinks, and over a bright wall they read as a grey rectangle with a hard right edge
+    (r5 review, 2026-11-02, Gol Gumbaz's interior). A Gaussian has no kink anywhere, so the edge is invisible;
+    the box is first grown by SCRIM_GROW sigmas so the type keeps ~93% of `strength` at its own edge."""
+    import numpy as np
+    from scipy.ndimage import gaussian_filter
+    w, h = im.size
+    sigma = max(1.0, feather / SCRIM_SIGMAS)
+    k = SCRIM_DOWNSAMPLE
+    x0, y0, x1, y1 = (v / k for v in box)
+    pad = SCRIM_GROW * sigma / k
+    yy, xx = np.ogrid[:-(-h // k), :-(-w // k)]
+    inside = ((xx + 0.5 >= x0 - pad) & (xx + 0.5 <= x1 + pad) & (yy + 0.5 >= y0 - pad)
+              & (yy + 0.5 <= y1 + pad)).astype(np.float32)
+    # mode="nearest": the canvas edge continues the mask, so a stack against the left edge stays shaded there.
+    v = gaussian_filter(inside, sigma / k, mode="nearest", truncate=4.0)
+    alpha = Image.fromarray(np.clip(v * strength * 255, 0, 255).astype("uint8")).resize(
+        (w, h), Image.Resampling.BICUBIC)
+    layer = Image.new("RGBA", im.size, brand.INK + (255,))
+    layer.putalpha(alpha)
+    return Image.alpha_composite(im.convert("RGBA"), layer)
+
+
+SCRIM_SIGMAS = 3.5      # _scrim: the feather spans this many sigmas past the box (~2% of strength left there)
+SCRIM_DOWNSAMPLE = 4    # _scrim: the mask is solved at 1/4 size (a smooth field; bicubic up)
+SCRIM_GROW = 1.5        # _scrim: the box grows by this many sigmas first, so the type keeps ~93% of strength
+
+
+def cap_h_of(font):
+    """A font's cap height (the top of "H" above its baseline), 0 for no font."""
+    return -font.getbbox("H", anchor="ls")[1] if font is not None else 0
+
+
+MONUMENT_SCRIM, MONUMENT_SCRIM_FEATHER = 0.6, 200    # round 3: the type stack's own scrim, not a full-width shade;
+                                                     # r5: a Gaussian falloff over 200 px (no visible edge)
+DIM_WORD_PX, DIM_WORD_TRACK = 38, 2.0                # the claim's dimension word under the monument's unit
+QUALIFIER_GAP, QUALIFIER_TRACK = 24, 3.0             # the qualifier kicker's foot to the figure's cap line
+QUALIFIER_FONT, QUALIFIER_WEIGHT = "Montserrat", 800  # the eyebrow's face (r5 review: in IBM Plex Mono the period took
+                                                      # a full monospace cell and "EST." read as "EST .")
+EYEBROW_QUALIFIER_GAP = 44                           # the eyebrow's ink foot to the qualifier's cap line (was ~20)
+GRID_WIDTHS = (124, 180)                             # the profile grid's tile widths on phones (3:4 crop)
+GRID_SCALE = tuple(w / 1080 for w in GRID_WIDTHS)
+QUALIFIER_GRID_CAP = 9                               # px of cap height a qualifier keeps at 124 px wide
 EYEBROW_PX, EYEBROW_MIN, EYEBROW_TRACK = 40, 36, 4.0   # Montserrat 800 tracked capitals, every style (2026-11-02)
 TAGLINE_PX, TAGLINE_MIN = 38, 32                        # never under 32 px: at 24-30 it vanished in the grid
 _STOP = {"THE", "A", "AN", "OF", "IN", "AND", "ON", "AT", "TO", "BY"}
@@ -98,7 +145,7 @@ def _rows(im, copy, width, style, tight):
     measure = ImageDraw.Draw(im)
     factor = 0.88 if tight else 1
     sizes = {
-        "depth_sandwich": (118, 128),
+        "depth_sandwich": (110, 118),   # round 3: the window takes the room (still 9 px cap at 124 px)
         "badge": (108, 164),
         "minimal": (100, 142),
         "lower_third": (120, 138),
@@ -190,6 +237,51 @@ MINIMAL_GAPS = (40, 22)   # minimal: masthead foot -> eyebrow caps, eyebrow foot
 MARK_R, MARK_GAP = 13, 20   # the gold diamond (the brand's mark, as on the end card) and its gap to the name
 
 
+MAST_HALO_MAX = 0.3                 # above this planned halo, the masthead gets a band scrim instead
+MAST_SCRIM = (0.2, 0.75, 0.05)      # band strengths tried: from, to, step
+MAST_SCRIM_MIN_EASE = 36            # px the band needs to ease out above a protected photo, else no band
+MAST_SCRIM_FEATHER = (170, 140)     # the band's ease above the masthead's line, and below from its cap centre
+                                    # (never onto a protected photograph below it)
+
+
+def _mast_scrim(im, lay, xy, font, plate):
+    """(image, plate): the least INK band (MAST_SCRIM steps) under which the masthead clears brand.PLACE_TARGET
+    with a halo of at most MAST_HALO_MAX; the original plan when no band up to the strongest does (a pure-white
+    striped sky keeps the full halo: legibility first)."""
+    import numpy as np
+    box = font.getbbox(BRAND_TEXT, anchor="lt")
+    y0, y1 = xy[1] + box[1] - 6, xy[1] + box[3] + 6
+    # The band eases out from the masthead's cap centre, not its foot (r5 review, 2026-11-02): eased from the
+    # foot it had only the 40-60 px left above a full-width photo, a flat dark plateau then a fast ramp, read as
+    # a hard line across Gol Gumbaz's sky. From the centre the knee sits behind the glyphs and the ramp is long.
+    mid = (y0 + y1) / 2
+    yy = np.arange(im.height, dtype=np.float32)
+    up, down = MAST_SCRIM_FEATHER
+    below = [b["box"][1] for b in (lay.protected if lay is not None else []) if b["box"][1] >= y1]
+    if below:   # the reviewed feature (or a contained photograph) under the masthead stays ungraded
+        down = max(1, min(down, min(below) - 2 - mid))
+        if down < MAST_SCRIM_MIN_EASE:
+            # A band that has to stop within a few px of the photograph reads as a hard seam across it
+            # (round 3 review, 2026-11-02): keep the measured glyph halo instead.
+            return im, plate
+    d = np.where(yy < y0, (y0 - yy) / up, np.where(yy > mid, (yy - mid) / down, 0))
+    v = np.clip(1 - d, 0, 1)
+    v = v * v * (3 - 2 * v)
+    strength = MAST_SCRIM[0]
+    while strength <= MAST_SCRIM[1] + 1e-9:
+        layer = Image.new("RGBA", im.size, brand.INK + (255,))
+        layer.putalpha(Image.fromarray((v * strength * 255).astype("uint8")[:, None]).resize(im.size))
+        trial = Image.alpha_composite(im.convert("RGBA"), layer)
+        p = plan_text(trial, xy, BRAND_TEXT, font, brand.BONE, "lt", BRAND_TRACK, halo_px=24, min_halo=0.0,
+                      shadow=True, max_halo=MAST_HALO_MAX)
+        if p.contrast is not None and p.contrast >= brand.PLACE_TARGET:
+            if lay is not None:
+                lay.meta["mast_scrim"] = {"strength": round(strength, 2), "band": [round(y0), round(y1)]}
+            return trial, p
+        strength += MAST_SCRIM[2]
+    return im, plate
+
+
 def _brand(im, lay, centered=False, paper=False):
     """The masthead: the gold diamond mark, then RELIC & RIDDLE, at a measured contrast like every other line.
 
@@ -220,6 +312,10 @@ def _brand(im, lay, centered=False, paper=False):
         # the 0.35 floor keeps busy texture off the glyph edges.
         plate = plan_text(im, xy, BRAND_TEXT, font, brand.BONE, "lt", BRAND_TRACK,
                           halo_px=40, min_halo=0.35, shadow=True, max_halo=1.0)
+        if plate.halo > MAST_HALO_MAX:
+            # Round 3: over a bright sky the glyph-shaped halo grew into a grey rounded box. An eased INK band
+            # across the masthead's line takes the load instead, so a smaller halo still clears the target.
+            im, plate = _mast_scrim(im, lay, xy, font, plate)
         im = plate.draw(im)
         mark, edge = brand.GOLD, brand.INK
     diamond = [(cx, cy - MARK_R), (cx + MARK_R, cy), (cx, cy + MARK_R), (cx - MARK_R, cy)]
@@ -270,7 +366,7 @@ def _ambient(backdrop, photo_box, grid=(4, 20), dim=0.6, reach=560):
     return Image.fromarray(np.clip(out, 0, 255).astype("uint8")).convert("RGBA")
 
 
-def _immersive(source, aperture, focus, lay):
+def _immersive(source, aperture, focus, lay, full_width=False):
     """Scale the reviewed feature into its aperture, retaining photographic context.
 
     The protected feature remains unshaded. Type may sit on surrounding context,
@@ -282,11 +378,23 @@ def _immersive(source, aperture, focus, lay):
     fx0, fy0, fx1, fy1 = [v * (sw if i % 2 == 0 else sh) for i, v in enumerate(focus["focus_box"])]
     x0, y0, x1, y1 = aperture
     scale = min((x1 - x0) / (fx1 - fx0), (y1 - y0) / (fy1 - fy0))
-    scale = min(scale, 2.0, 4096 / max(sw, sh))
+    if full_width:
+        # Round 3 (Discovery): the photograph spans the canvas width, never a floating window in dead ink. The
+        # reviewed feature still fits its band (clear of the masthead and the type); the cap is lifted to what
+        # fills the width.
+        fill = 1080 / sw
+        scale = min(scale, max(IMMERSIVE_MAX_SCALE, fill), 4096 / max(sw, sh))
+        if (fy1 - fy0) * fill <= y1 - y0:   # filling the width still keeps the feature inside its band
+            scale = max(scale, fill)
+    else:
+        scale = min(scale, 2.0, 4096 / max(sw, sh))
     size = (round(sw * scale), round(sh * scale))
     sx, sy = size[0] / sw, size[1] / sh
     left = round((x0 + x1) / 2 - (fx0 + fx1) * sx / 2)
     top = round((y0 + y1) / 2 - (fy0 + fy1) * sy / 2)
+    full_width = full_width and size[0] >= 1080   # else (a tall feature) the old feathered window stands
+    if full_width:
+        left = min(0, max(1080 - size[0], left))   # no ink at either side
     # Extend the same projected photograph's edge colours, not a second crop
     # of the subject. A sky therefore continues into sky without a ghost dome.
     import numpy as np
@@ -295,14 +403,45 @@ def _immersive(source, aperture, focus, lay):
     yy = np.clip(np.arange(1920) - top, 0, size[1] - 1)
     backdrop = np.asarray(photo)[yy[:, None], xx[None, :]]
     im = _ambient(Image.fromarray(backdrop), (left, top, left + size[0], top + size[1]))
+    if full_width and top > 0:
+        # Above a full-width photograph the canvas continues its own top row (the edge-extended backdrop,
+        # unblurred) and eases into the ambient field over FULL_WIDTH_BLEND px, so the photo's top edge is not
+        # a hard seam (round 3 review, 2026-11-02: a visible line across Gol Gumbaz's sky and over Richat).
+        ys = np.arange(1920, dtype=np.float32)
+        ease = np.clip((ys - (top - FULL_WIDTH_BLEND)) / FULL_WIDTH_BLEND, 0, 1)
+        ease[ys >= top + size[1]] = 0   # never the clamped rows below the photo (they streak)
+        ease = (ease * ease * (3 - 2 * ease))[:, None]
+        # Smoothed across (not down): the continued row keeps its colour run but loses the column texture that
+        # clamping repeats into vertical streaks.
+        raw = Image.fromarray(backdrop).convert("RGB").resize((24, 1920), Image.Resampling.BOX).resize(
+            (1080, 1920), Image.Resampling.BICUBIC).convert("RGBA")
+        raw.putalpha(Image.fromarray((np.repeat(ease, 1080, axis=1) * 255).astype("uint8")))
+        im = Image.alpha_composite(im, raw)
     # Feather just the physical photograph's outer edge into that backdrop.
     # Limit the fade to the margin outside the explicitly reviewed feature.
-    margin = max(0, min(fx0 * sx, fy0 * sy, (sw - fx1) * sx, (sh - fy1) * sy))
-    feather = min(64, int(margin * 0.8))
-    if feather > 1:
-        yy, xx = np.ogrid[:size[1], :size[0]]
-        edge = np.minimum(np.minimum(xx, size[0] - 1 - xx), np.minimum(yy, size[1] - 1 - yy))
-        mask = np.clip(edge / feather, 0, 1)
+    clear = 0   # rows of the photograph's top left to the ambient field (the inset window only)
+    if full_width:   # only the top edge can end inside the canvas; the shade below does the bottom fade
+        margin = max(0, fy0 * sy)
+        feather = min(64, int(margin * 0.8))
+        if feather > 1:
+            mask = np.clip(np.arange(size[1], dtype=np.float32) / feather, 0, 1)[:, None] + np.zeros((1, size[0]))
+            photo.putalpha(Image.fromarray((mask * mask * (3 - 2 * mask) * 255).astype("uint8")))
+    else:
+        # The inset window (a feature too tall to fill the width inside its band). Its top edge stays
+        # INSET_CLEAR px under the masthead's foot (r5 review, 2026-11-02: Richat's window started 12 px under
+        # RELIC & RIDDLE, so the name sat on the photo's edge); the context above that row is the ambient field.
+        # Each edge fades over its own margin outside the feature (one shared minimum gave hard sides).
+        clear = max(0, min(fy0 * sy, (_brand_foot() + INSET_CLEAR) - top))
+        margins = (fx0 * sx, fy0 * sy - clear, (sw - fx1) * sx, (sh - fy1) * sy)   # left, top, right, bottom
+        f = [min(INSET_FEATHER_MAX, int(max(0, m) * 0.8)) for m in margins]
+        f[1] = min(INSET_FEATHER_MAX, int(max(0, margins[1]) - 2))   # the top fades over all its room: soft edge
+        yy = np.arange(size[1], dtype=np.float32)[:, None] - clear
+        xx = np.arange(size[0], dtype=np.float32)[None, :]
+
+        def ramp(dist, width):
+            return np.clip(dist / width, 0, 1) if width > 1 else (dist >= 0).astype(np.float32)
+        mask = np.minimum(np.minimum(ramp(xx, f[0]), ramp(size[0] - 1 - xx, f[2])),
+                          np.minimum(ramp(yy, f[1]), ramp(size[1] - 1 - clear - yy, f[3])))
         photo.putalpha(Image.fromarray((mask * mask * (3 - 2 * mask) * 255).astype("uint8")))
     visible = photo.crop((-left, -top, 1080 - left, 1920 - top))
     im = Image.alpha_composite(im, visible)
@@ -314,14 +453,28 @@ def _immersive(source, aperture, focus, lay):
             "version": DESIGN_VERSION, "mode": "reviewed_focus", "source_size": [sw, sh],
             "source_box": [max(0, -left / sx), max(0, -top / sy),
                            min(sw, (1080 - left) / sx), min(sh, (1920 - top) / sy)],
-            "image_box": [max(0, left), max(0, top), min(1080, left + size[0]), min(1920, top + size[1])],
+            "image_box": [max(0, left), max(0, top + clear), min(1080, left + size[0]), min(1920, top + size[1])],
             "focus_box": focus["focus_box"], "protected_box": protected,
             "aperture": list(aperture), "reviewed": focus["reviewed"], "source_sha256": focus["sha256"],
+            "full_width": bool(full_width),
         }
     return im
 
 
-def _photograph(im, source, aperture, lay):
+IMMERSIVE_MAX_SCALE = 3.0   # Discovery full width: the most a reviewed feature is enlarged
+FULL_WIDTH_TOP = 580       # Discovery full width: the reviewed feature's band starts below the masthead's halo
+FULL_WIDTH_BLEND = 220      # px above a full-width photo over which its continued top row eases into the field
+INSET_CLEAR = 24            # Discovery inset window: px of clear field between the masthead's foot and the
+                            # photo's first row (which then fades in to the feature: half strength ~45 px down)
+INSET_FEATHER_MAX = 120     # the inset window's widest edge fade (each edge within its own margin)
+
+
+def _brand_foot():
+    """The masthead's ink foot (y) on every style."""
+    return BRAND_TOP + get_font("Cinzel", BRAND_PX, weight=700).getbbox(BRAND_TEXT, anchor="lt")[3]
+
+
+def _photograph(im, source, aperture, lay, bottom=False):
     """Contain the complete photo, with neither distortion nor an invented crop.
 
     The source may be landscape, portrait or square. Its exact pasted rectangle
@@ -332,7 +485,8 @@ def _photograph(im, source, aperture, lay):
     source = ImageOps.exif_transpose(source).convert("RGBA")
     photo = ImageOps.contain(source, (x1 - x0, y1 - y0), Image.Resampling.LANCZOS)
     x = x0 + (x1 - x0 - photo.width) // 2
-    y = y0 + (y1 - y0 - photo.height) // 2
+    # Bottom-aligned on the paper card (round 3), so the window's foot keeps its set gap to the kicker.
+    y = y1 - photo.height if bottom else y0 + (y1 - y0 - photo.height) // 2
     im.alpha_composite(photo, (x, y))
     box = [x, y, x + photo.width, y + photo.height]
     if lay is not None:
@@ -369,6 +523,150 @@ def monument_figure(copy):
     return None
 
 
+# Round 3 (2026-11-02): a hero figure carries its hedge, says what it measures, and never turns a disputed or
+# ranged figure into one bare number (operator rule: figures are never more precise than the fact sheet).
+QUALIFIERS = ("UP TO", "MORE THAN", "AT LEAST", "ABOUT", "ALMOST", "NEARLY", "OVER", "SOME", "AROUND", "ROUGHLY",
+              "APPROX.", "APPROXIMATELY", "CIRCA", "EST.", "C.")
+_QUAL = "|".join(__import__("re").escape(q) for q in sorted(QUALIFIERS, key=len, reverse=True))
+_DIMENSIONS = ("diameter", "across", "wide", "width", "deep", "depth", "tall", "high", "height", "long", "length",
+               "thick", "circumference")
+_DIM_MODIFIERS = ("external", "internal", "outer", "inner")
+_HEDGE_WORDS = ("approximately", "about", "roughly", "almost", "nearly", "some", "up to", "more than", "over",
+                "at least", "around", "estimated", "an estimated", "circa")
+
+
+def figure_qualifier(copy, found):
+    """(qualifier, field) for the hero figure `found` (monument_figure's tuple): the qualifier the copy itself
+    sets before that number, in the figure's own field first ("UP TO 144-FOOT"), else in another field carrying
+    the same number (the badge "EST. 144 FT (44 M)"). ("", "") when the copy states it flat."""
+    import re
+    if not found:
+        return "", ""
+    number, field = found[0], found[2]
+    pattern = re.compile(r"(?<![\w.])(" + _QUAL + r")\s*" + re.escape(number) + r"(?![\d])", re.IGNORECASE)
+    for key in (field, "badge", "line1", "line2", "tagline", "eyebrow"):
+        m = pattern.search(str(copy.get(key) or ""))
+        if m:
+            q = m.group(1).upper()
+            return (q if q.endswith(".") or q not in ("EST", "C", "APPROX") else q + "."), key
+    return "", ""
+
+
+def _numbers(text):
+    import re
+    return {float(n.replace(",", "")) for n in re.findall(r"\d[\d,]*(?:\.\d+)?", str(text or ""))}
+
+
+def _dimension_near(text, start, end):
+    """The dimension word the claim itself uses nearest to the figure at text[start:end] ("EXTERNAL DIAMETER"),
+    from the same clause, or ""."""
+    import re
+    best = None
+    for m in re.finditer(r"\b(" + "|".join(_DIMENSIONS) + r")\b", text, re.IGNORECASE):
+        gap = start - m.end() if m.end() <= start else m.start() - end
+        clause = text[min(m.end(), start):max(m.start(), end)]
+        if gap > 60 or re.search(r"[;.]\s|\band\b", clause):
+            continue
+        if best is None or gap < best[0]:
+            best = (gap, m)
+    if best is None:
+        return ""
+    m = best[1]
+    word = m.group(1).upper()
+    before = re.search(r"\b(" + "|".join(_DIM_MODIFIERS) + r")\s+$", text[:m.start()], re.IGNORECASE)
+    return f"{before.group(1).upper()} {word}" if before else word
+
+
+def figure_check(copy, sheet=None, payload=None):
+    """What the fact sheet says about the copy's hero figure, or None (no measured figure, or no sheet to ask).
+
+    {"number", "unit", "field", "qualifier", "qualifier_from", "fact_id", "dimension", "hedged", "conflict",
+    "monument_ok", "reason"}. `conflict` is a figure the sheet gives as a range or marks disputed with another
+    value in its hedge (Richat: 40 km, "almost 50 km" from orbit): it is never drawn as one number. `hedged` is
+    an estimate (disputed with the same value, or "approximately" in the claim): a hero shows it only with the
+    copy's own qualifier. `dimension` is only ever the claim's own word (Gol Gumbaz: "EXTERNAL DIAMETER"); the
+    payload's matching stat card label is the fallback source. Nothing here invents a word.
+    """
+    import re
+
+    from .typography import _FIGURE, _figure_ok, _unit
+    found = monument_figure(copy)
+    if not found or not found[1] or not isinstance(sheet, dict):
+        return None
+    number, unit, field = found[0], found[1], found[2]
+    value = float(number.rstrip("+").replace(",", ""))
+    qualifier, q_from = figure_qualifier(copy, found)
+    out = {"number": number, "unit": unit, "field": field, "qualifier": qualifier, "qualifier_from": q_from,
+           "fact_id": "", "dimension": "", "hedged": False, "conflict": False, "monument_ok": False, "reason": ""}
+    match = None
+    for fact in sheet.get("facts") or []:
+        if not isinstance(fact, dict):
+            continue
+        statement = str(fact.get("statement") or "")
+        for m in _FIGURE.finditer(statement):
+            info = _unit(m.group("unit"))
+            if (info and _figure_ok(m) and info[3].upper() == unit
+                    and abs(float(m.group("num").replace(",", "")) - value) < 1e-9):
+                match = (fact, statement, m)
+                break
+        if match:
+            break
+    if match is None:
+        out["reason"] = "the figure is not in the fact sheet in this unit"
+        return out
+    fact, statement, m = match
+    out["fact_id"] = str(fact.get("id") or "")
+    # A range in the claim ("8 to 9 kilometres", "94-104"), or a hedge giving another value, is a conflict.
+    ranged = (re.search(r"\d[\d,.]*\s*(?:to|-|–|and)\s*$", statement[:m.start()])
+              or re.match(r"\s*(?:to|-|–)\s*\d", statement[m.end():]))
+    other = _numbers(fact.get("hedge")) - _numbers(statement)
+    out["conflict"] = bool(ranged) or bool(fact.get("disputed") and other)
+    lead = statement[max(0, m.start() - 28):m.start()].lower()
+    out["hedged"] = bool(fact.get("disputed")) or any(re.search(r"\b" + re.escape(w) + r"\s+$", lead)
+                                                       for w in _HEDGE_WORDS)
+    out["dimension"] = _dimension_near(statement, m.start(), m.end())
+    if not out["dimension"]:
+        for card in (payload or {}).get("stat_cards") or []:
+            if isinstance(card, dict) and value in _numbers(card.get("value")):
+                label = str(card.get("label") or "")
+                hit = re.search(r"\b(" + "|".join(_DIMENSIONS) + r")\b", label, re.IGNORECASE)
+                if hit:
+                    out["dimension"] = _dimension_near(label, hit.start(), hit.start())
+                    break
+    if out["conflict"]:
+        out["reason"] = "the sheet gives this figure as a range or disputes its value"
+    elif out["hedged"] and not qualifier:
+        out["reason"] = "the sheet hedges this figure and the copy carries no qualifier for it"
+    elif not out["dimension"]:
+        out["reason"] = "the claim does not say what the figure measures"
+    else:
+        out["monument_ok"] = True
+    return out
+
+
+def withhold_figure(copy, figure):
+    """The copy with a conflicted figure (figure_check: a range or a disputed value) lifted out of every line
+    that states it, with the qualifier in front of it: the cover falls back to a non-numeric headline rather than
+    one number the sheet does not give (operator default, round 3). Only payload words remain; none is added."""
+    import re
+
+    from .typography import _FIGURE, _figure_ok, _unit
+    out = dict(copy)
+    if not figure or not figure.get("conflict"):
+        return out
+    value = float(str(figure["number"]).rstrip("+").replace(",", ""))
+    for key in ("eyebrow", "line1", "line2", "tagline", "badge"):
+        text = str(out.get(key) or "")
+        for m in reversed(list(_FIGURE.finditer(text))):
+            info = _unit(m.group("unit"))
+            if info and _figure_ok(m) and abs(float(m.group("num").replace(",", "")) - value) < 1e-9:
+                start = m.start()
+                q = re.search(r"(?<![\w.])(" + _QUAL + r")\s*$", text[:start], re.IGNORECASE)
+                text = _without(text, (q.start() if q else start, m.end()))
+        out[key] = text
+    return out
+
+
 def _without(text, span):
     """`text` with the figure at `span` removed, and the article or punctuation it leaves dangling."""
     import re
@@ -378,7 +676,7 @@ def _without(text, span):
     return re.sub(r"\s{2,}", " ", out).strip(" ,;:-")
 
 
-def _monument(im, copy, lay, tight, source, focus):
+def _monument(im, copy, lay, tight, source, focus, figure=None):
     """The "monument number" cover (2026-11-01): one measured figure as the hero, in gold Anton across the
     centre square, over the full-bleed photograph; the subject's name below it and the eyebrow above.
 
@@ -386,14 +684,30 @@ def _monument(im, copy, lay, tight, source, focus):
     The line the figure came from is shown without it ("THE 144-FOOT" is not repeated under "144 FT"), and the
     figure's own field is dropped when nothing else is left in it. A reviewed focus frames the photograph as
     Discovery does; otherwise the whole photograph fills the canvas.
+
+    Round 3 (2026-11-02): the figure keeps the copy's own qualifier ("EST.", "UP TO") as a kicker attached above
+    it, large enough to read in the profile grid; the claim's dimension word ("EXTERNAL DIAMETER", from the fact
+    sheet via figure_check) sits under the unit; a figure the sheet ranges, disputes or hedges without a
+    qualifier is never the hero (Discovery is drawn instead); the shade is a scrim behind the type only.
     """
     found = monument_figure(copy)
-    if found is None:  # no figure to make the hero: Discovery is the fallback (cover_selector never picks this)
-        return render_cover(im, copy, "badge", lay=lay, tight=tight, source=source, focus=focus)
+    if found is None or (figure and found[1] and not figure.get("monument_ok")):
+        # No figure to make the hero, or one the sheet will not let stand alone: Discovery is the fallback.
+        if lay is not None and figure:
+            lay.meta["monument_declined"] = figure.get("reason") or "figure check"
+        return render_cover(im, withhold_figure(copy, figure), "badge", lay=lay, tight=tight, source=source,
+                            focus=focus)
     number, unit, field, span = found
+    qualifier, q_from = figure_qualifier(copy, found) if unit else ("", "")
+    dimension = str((figure or {}).get("dimension") or "") if unit else ""
     rest = dict(copy)
     if field in ("line1", "line2", "tagline", "eyebrow"):
-        rest[field] = _without(str(copy[field]), span)
+        cut = span
+        if qualifier and q_from == field:   # "UP TO 144-FOOT": the qualifier goes up with the figure
+            import re
+            q = re.search(r"(?<![\w.])(" + _QUAL + r")\s*$", str(copy[field])[:span[0]], re.IGNORECASE)
+            cut = (q.start() if q else span[0], span[1])
+        rest[field] = _without(str(copy[field]), cut)
     # The same figure elsewhere in the copy (badge "EST. 144 FT (44 M)" and line1 "THE 144-FOOT") is not
     # repeated under the hero either.
     for other in ("line1", "line2", "tagline"):
@@ -410,10 +724,26 @@ def _monument(im, copy, lay, tight, source, focus):
     margin, width = 84, 1080 - 2 * 84
     measure = ImageDraw.Draw(im)
     factor = 0.88 if tight else 1.0
-    # The figure: as large as fits the width, up to 330 px (it is the cover's one idea).
-    from .typography import fit_font
-    num_font = fit_font(measure, number, "Anton", int(420 * factor), width - (240 if unit else 0), 160)
+    from .typography import fit_font, tracked_width
+    # The unit block right of the figure: the unit, and under it the claim's dimension word (one or two lines).
+    dim_font = get_font("Montserrat", DIM_WORD_PX, weight=700)
+    dim_lines = []
+    if dimension:
+        words = dimension.split()
+        one = " ".join(words)
+        dim_lines = [one] if len(words) == 1 or tracked_width(one, dim_font, DIM_WORD_TRACK) <= 300 else words[:2]
+    dim_w = max([tracked_width(t, dim_font, DIM_WORD_TRACK) for t in dim_lines] or [0])
+    reserve = max(240, int(dim_w) + 22) if unit else 0
+    # The figure: as large as fits the width, up to 420 px (it is the cover's one idea).
+    num_font = fit_font(measure, number, "Anton", int(420 * factor), width - reserve, 160)
     unit_font = get_font("Anton", max(72, int(num_font.size * 0.33)))
+    q_font = None
+    if qualifier:
+        # Read in the 124 px profile grid: at least QUALIFIER_GRID_CAP px of cap height there (grid_proof).
+        size = 60
+        while cap_h_of(get_font(QUALIFIER_FONT, size, weight=QUALIFIER_WEIGHT)) * GRID_SCALE[0] < QUALIFIER_GRID_CAP:
+            size += 2
+        q_font = get_font(QUALIFIER_FONT, size, weight=QUALIFIER_WEIGHT)
     eyebrow_rows, title_rows, tag_rows = [], [], []
     if eyebrow:
         lines, f_e, _ = _eyebrow_lines(measure, eyebrow, width)
@@ -440,43 +770,72 @@ def _monument(im, copy, lay, tight, source, focus):
         tag_rows = [(lines[0], f_g, brand.STONE_LT)]
 
     num_h = cap_h(num_font)
+    q_h = cap_h_of(q_font) + QUALIFIER_GAP if q_font else 0
     # The dimension line marks a measurement; a year or a bare count has no length (operator, 2026-11-02).
     measured_figure = bool(unit)
     gaps = {"eyebrow": 26, "number": 34 + (DIM_ROOM if measured_figure else 0), "title": 10, "tagline": 0}
-    stack = (sum(text_size(measure, t, f)[1] + gaps["eyebrow"] for t, f, _ in eyebrow_rows) + num_h + gaps["number"]
-             + sum(text_size(measure, t, f)[1] + gaps["title"] for _, t, f, _ in title_rows) + 14
+    # A qualifier under the eyebrow: the two kickers keep EYEBROW_QUALIFIER_GAP of clear field, ink to ink, so they
+    # read as two lines (eyebrow, then the figure's own hedge), not one crowded block.
+    eyebrow_to_q = None
+    if q_font and eyebrow_rows:
+        t, f, _ = eyebrow_rows[-1]
+        eyebrow_to_q = f.getbbox(t, anchor="lt")[3] + EYEBROW_QUALIFIER_GAP - (text_size(measure, t, f)[1]
+                                                                              + gaps["eyebrow"])
+        q_h += eyebrow_to_q
+    stack = (sum(text_size(measure, t, f)[1] + gaps["eyebrow"] for t, f, _ in eyebrow_rows) + q_h + num_h
+             + gaps["number"] + sum(text_size(measure, t, f)[1] + gaps["title"] for _, t, f, _ in title_rows) + 14
              + sum(text_size(measure, t, f)[1] for t, f, _ in tag_rows))
     top = 1434 - stack
-    # The subject sits in the clear band above the type, and the shade starts just above the stack: a deeper
-    # fade (feather 300 from 40 px above) dimmed the dome and the eye themselves. The type's own measured halo
-    # (place_text) keeps it at contrast wherever the shade is lighter.
+    # The subject sits in the clear band above the type. Round 3: the shade is a scrim confined to the type
+    # stack (the photo outside it, and the focus band above it, stay ungraded); each line's own measured halo
+    # (place_text) still holds it at contrast wherever the scrim is light.
     im = _full_bleed(source, focus, (440 + top - 120) / 2, lay)
-    im = _shade(im, top - 10, 1920, strength=0.86, feather=170)
+    widths = ([text_size(measure, t, f)[0] for t, f, _ in eyebrow_rows + tag_rows]
+              + [text_size(measure, t, f)[0] for _, t, f, _ in title_rows]
+              + [text_size(measure, number, num_font)[0] + (reserve if unit else 0)])
+    stack_right = min(1080, margin + max(widths))
+    im = _scrim(im, (margin, top, stack_right, 1434), MONUMENT_SCRIM, MONUMENT_SCRIM_FEATHER)
+    if lay is not None:
+        lay.meta["scrim"] = {"box": [margin, top, stack_right, 1434], "strength": MONUMENT_SCRIM,
+                             "feather": MONUMENT_SCRIM_FEATHER}
     im = _brand(im, lay)
 
     y = top
     plates = {}
 
-    def put(name, text, font, fill, xy, anchor="lt", target=5.1):
+    def put(name, text, font, fill, xy, anchor="lt", target=5.1, track=None):
         nonlocal im
         im, plate = place_text(im, xy, text, font, fill, anchor=anchor, target=target,
-                               track=EYEBROW_TRACK if name == "eyebrow" else 0)
+                               track=(EYEBROW_TRACK if name == "eyebrow" else 0) if track is None else track)
         plates.setdefault(name, []).append(plate)
 
     for t, f, c in eyebrow_rows:
         put("eyebrow", t, f, c, (margin, y))
         y += text_size(measure, t, f)[1] + gaps["eyebrow"]
+    if q_font:
+        y += eyebrow_to_q or 0
+        put("figure_qualifier", qualifier, q_font, brand.GOLD, (margin, y + cap_h_of(q_font)), anchor="ls",
+            track=QUALIFIER_TRACK)
+        y += q_h - (eyebrow_to_q or 0)
     base = y + num_h
     put("figure", number, num_font, brand.GOLD, (margin, base), anchor="ls")
     right = margin + text_size(measure, number, num_font)[0]
     if unit:
         nx = right + 22
-        put("figure_unit", unit, unit_font, brand.GOLD, (nx, base), anchor="ls")
-        right = nx + text_size(measure, unit, unit_font)[0]
+        # Unit over the dimension word, the block's last baseline locked to the numeral's.
+        dim_pitch = cap_h_of(dim_font) + 12
+        unit_base = base - (len(dim_lines) * dim_pitch + 6 if dim_lines else 0)
+        put("figure_unit", unit, unit_font, brand.GOLD, (nx, unit_base), anchor="ls")
+        block_right = nx + text_size(measure, unit, unit_font)[0]
+        for k, t in enumerate(dim_lines):
+            yb = base - (len(dim_lines) - 1 - k) * dim_pitch
+            put("figure_dim", t, dim_font, brand.STONE_LT, (nx, yb), anchor="ls", target=5.1, track=DIM_WORD_TRACK)
+            block_right = max(block_right, nx + tracked_width(t, dim_font, DIM_WORD_TRACK))
+        right = round(block_right)
     # The style's signature (2026-11-02): a dimension line under a measured figure, end ticks up, as on a
     # survey drawing. Never under a year or a count: it would claim a length that is not there.
     if measured_figure:
-        fig_bottom = max(p.box[3] for ps in plates.values() for p in ps if not p.empty)
+        fig_bottom = max(p.box[3] for n, ps in plates.items() if n.startswith("figure") for p in ps if not p.empty)
         dy = fig_bottom + 30
         d = ImageDraw.Draw(im)
         d.line([(margin, dy), (right, dy)], fill=brand.GOLD + (255,), width=4)
@@ -496,6 +855,9 @@ def _monument(im, copy, lay, tight, source, focus):
     if lay is not None:
         lay.meta.setdefault("plates", {}).update(plates)
         lay.meta["monument"] = {"number": number, "unit": unit, "from": field}
+        if qualifier or dimension:
+            lay.meta["monument_figure"] = {"qualifier": qualifier, "qualifier_from": q_from,
+                                           "dimension": dimension}
     return im
 
 
@@ -525,7 +887,8 @@ def cap_h(font):
     return -font.getbbox("8", anchor="ls")[1]
 
 
-def render_cover(im, copy, style, center_y=960, lay=None, tight=False, source=None, focus=None):
+def render_cover(im, copy, style, center_y=960, lay=None, tight=False, source=None, focus=None, figure=None,
+                 illustration=False):
     """Render the three existing choices and the editorial rotation.
 
     A: a bone-paper archival print, inset image over a compact caption.
@@ -535,12 +898,33 @@ def render_cover(im, copy, style, center_y=960, lay=None, tight=False, source=No
 
     A/C preserve the full source. B/editorial can frame a manually reviewed
     feature; absent such a record, they also retain the complete photograph.
+
+    `figure` (figure_check, round 3): what the fact sheet says about the copy's hero figure. A conflicted one
+    (a range, a disputed value) is lifted out of the headline on every style; the monument draws a figure only
+    when the check lets it stand. `illustration`: the hero is a generated illustration, so the window carries
+    the on-screen disclosure label (the existing wording, video_composer.RECON_BADGE_LABEL).
     """
+    if figure and figure.get("conflict"):
+        withheld = withhold_figure(copy, figure)
+        if lay is not None and withheld != dict(copy):
+            lay.meta["figure_withheld"] = {"number": figure.get("number"), "unit": figure.get("unit"),
+                                           "reason": figure.get("reason")}
+        copy = withheld
+    out = _render(im, copy, style, lay, tight, source, focus, figure)
+    if illustration:
+        out = _provenance(out, lay)
+    if lay is not None:
+        lay.meta["grid_proof"] = grid_proof(out, lay)
+    return out
+
+
+def _render(im, copy, style, lay, tight, source, focus, figure):
     source = source if source is not None else im
     if style == "monument":
-        return _monument(im, copy, lay, tight, source, focus)
+        return _monument(im, copy, lay, tight, source, focus, figure)
     centered = style == "minimal"
-    margin = 96 if style == "depth_sandwich" else 84
+    paper = style == "depth_sandwich"
+    margin = 96 if paper else 84
     width = 1080 - 2 * margin
     rows, shortened = _rows(im, copy, width, style, tight)
     # Very long generated copy shares the central square with the photograph:
@@ -556,27 +940,35 @@ def render_cover(im, copy, style, center_y=960, lay=None, tight=False, source=No
             row["height"] = text_size(ImageDraw.Draw(im), row["text"], row["font"])[1]
     if lay is not None:
         lay.shortened = shortened
-    height = _height(rows)
-    if style == "badge":
+    if style in ("badge", "depth_sandwich"):
+        # One kicker treatment on both (round 3): ink tracked capitals on a solid gold tab.
         for row in rows:
             if row["name"] == "eyebrow":
                 row.update(tab=True, fill=brand.INK, gap=row["gap"] + TAB_PAD[1] + 6)
     height = _height(rows)
-    paper = style == "depth_sandwich"
     if focus and style in ("badge", "lower_third"):
         top = 1434 - height
-        im = _immersive(source, (72, 560, 1008, top - 100), focus, lay)
+        full = style == "badge"
+        # The feature's band starts clear of the masthead's measured halo (BRAND_TOP + cap + 40 px halo): at 530
+        # the halo washed the reviewed feature's top edge (round 3 review, 2026-11-02).
+        im = _immersive(source, (0 if full else 72, FULL_WIDTH_TOP if full else 560, 1080 if full else 1008, top - 100),
+                        focus, lay,
+                        full_width=full)
         im = _shade(im, top + 10, 1920, strength=0.84 if style == "badge" else 0.78, feather=100)
         im = _brand(im, lay)
         return _paint(im, rows, margin, top, False, lay)
-    # A quiet continuation of the photograph outside the profile crop, fading
-    # into an ink ground behind the deliberately arranged central composition.
-    im = _shade(im, 0, im.height, strength=70 / 255, feather=1)
-    im = _shade(im, 420, 1500, strength=1.0, feather=180)
-    # Ink is an editorial ground, not a colour grade applied to the photograph.
-    ImageDraw.Draw(im).rectangle((0, 420, 1079, 1499), fill=brand.INK + (255,))
     if paper:
+        # Round 3: the photograph appears once, inside the card, on a flat ink mat (no blurred continuation of
+        # the same photograph above and below it).
+        im = Image.new("RGBA", im.size, brand.INK + (255,))
         ImageDraw.Draw(im).rectangle((60, 440, 1019, 1479), fill=brand.BONE + (255,))
+    else:
+        # A quiet continuation of the photograph outside the profile crop, fading
+        # into an ink ground behind the deliberately arranged central composition.
+        im = _shade(im, 0, im.height, strength=70 / 255, feather=1)
+        im = _shade(im, 420, 1500, strength=1.0, feather=180)
+        # Ink is an editorial ground, not a colour grade applied to the photograph.
+        ImageDraw.Draw(im).rectangle((0, 420, 1079, 1499), fill=brand.INK + (255,))
     im = _brand(im, lay, centered, paper)
     if style == "minimal":
         # Measured ink to ink (2026-11-02 round 2): the masthead's foot to the eyebrow's caps MINIMAL_GAPS[0], the
@@ -594,18 +986,122 @@ def render_cover(im, copy, style, center_y=960, lay=None, tight=False, source=No
         height = _height(rows)
         photo_top = top + height + 40
         aperture = (60, photo_top, 1020, 1456)
+    elif paper:
+        # One internal grid on the card (round 3): the window, kicker, headline and tagline share x 96-984; the
+        # window's foot to the kicker tab is twice the kicker-to-headline gap; the room saved goes to the window.
+        top = SANDWICH_FOOT - height
+        kicker = next((r for r in rows if r["name"] == "eyebrow"), None)
+        tab_top = top - TAB_PAD[1] if kicker else top
+        gap = 2 * (kicker["gap"] - TAB_PAD[1] if kicker else 22)
+        aperture = (margin, SANDWICH_WINDOW_TOP, 1080 - margin, tab_top - gap)
     else:
         top = 1434 - height
-        image_margin = 84 if style == "depth_sandwich" else (0 if style == "badge" else 48)
+        image_margin = 0 if style == "badge" else 48
         aperture = (image_margin, 528, 1080 - image_margin, top - 40)
-    im = _photograph(im, source, aperture, lay)
-    if style in ("depth_sandwich", "lower_third"):
+    im = _photograph(im, source, aperture, lay, bottom=paper)
+    if paper and lay is not None:
+        lay.meta["sandwich"] = {"aperture": list(aperture), "card": [60, 440, 1019, 1479]}
+    if style == "lower_third":
         y = top - 21
         right = 1080 - margin
         ImageDraw.Draw(im).line((margin, y, right, y), fill=brand.GOLD_DIM + (255,), width=1)
         if lay is not None:
             lay.add("rule", (margin, y, right, y + 1))
     return _paint(im, rows, 540 if centered else margin, top, centered, lay)
+
+
+SANDWICH_WINDOW_TOP = 524   # the paper card's window starts under the masthead
+SANDWICH_FOOT = 1450        # the card's type ends here (the card's own foot is 1479)
+
+
+def _provenance(im, lay):
+    """The on-screen disclosure over a generated hero illustration: the existing wording
+    (video_composer.RECON_BADGE_LABEL), IBM Plex Mono in STONE_LT on an INK plate at the window's lower-left edge,
+    inside the profile-grid square, measured like every other line."""
+    from .video_composer import RECON_BADGE_LABEL
+    comp = (lay.meta.get("composition") if lay is not None else None) or {}
+    box = comp.get("image_box") or [84, 560, 996, 1100]
+    x0, y1 = max(84, int(box[0]) + 24), min(1460, int(box[3]) - 24)
+    font = get_font(brand.DATA_FONT, PROVENANCE_PX, weight=600)
+    from .typography import tracked_width
+    w = tracked_width(RECON_BADGE_LABEL, font, 1.0)
+    cap = cap_h_of(font)
+    plate = (x0, y1 - cap - 2 * PROVENANCE_PAD[1], x0 + w + 2 * PROVENANCE_PAD[0], y1)
+    im = im.convert("RGBA")
+    ImageDraw.Draw(im).rectangle(plate, fill=brand.INK + (255,))
+    im, p = place_text(im, (x0 + PROVENANCE_PAD[0], y1 - PROVENANCE_PAD[1]), RECON_BADGE_LABEL, font,
+                       brand.STONE_LT, anchor="ls", target=5.1, track=1.0, halo_px=0)
+    if lay is not None:
+        # Kept in the renderer's record, not as a layout element: it sits on the photograph on purpose (the
+        # window it labels), which the layout check would otherwise report as an overlap.
+        lay.meta.setdefault("plates", {})["provenance"] = [p]
+        lay.meta["provenance"] = {"label": RECON_BADGE_LABEL, "plate": [round(v) for v in plate],
+                                  "contrast": p.contrast}
+    return im
+
+
+PROVENANCE_PX, PROVENANCE_PAD = 30, (14, 10)
+
+# The profile-grid proof (round 3): which recorded elements must carry the hook at grid size, and their floors in
+# px of cap height at 124 px wide. Texture elements (eyebrow, tagline, dimension word, disclosure) may go small,
+# but must never be the only carrier of a fact-bearing word (a qualifier, a unit, a date).
+GRID_HOOK = {"title_1": 9, "title_2": 9, "figure": 9, "figure_unit": 9, "figure_qualifier": 9, "brand": 5}
+GRID_TEXTURE = ("eyebrow", "tagline", "figure_dim", "provenance")
+CROP_34 = (0, 240, 1080, 1680)
+
+
+def grid_proof(im, lay):
+    """The cover as the profile grid shows it: each recorded text element's cap height in px at 124 and 180 px
+    wide (the centred 3:4 crop), its contrast measured on the downscaled tile, whether it stays inside the crop,
+    the tile's mean L* (colour-balance QA reads it), and what fails: a hook element under its floor or outside the
+    crop, or a fact-bearing word carried only by texture."""
+    import re
+
+    import numpy as np
+
+    from .typography import _FIGURE
+    plates = lay.meta.get("plates", {}) if lay is not None else {}
+    crop = im.convert("RGB").crop(CROP_34)
+    small = crop.resize((GRID_WIDTHS[0], round(GRID_WIDTHS[0] * 4 / 3)), Image.Resampling.LANCZOS)
+    blurred = Image.new("RGB", im.size)
+    blurred.paste(small.resize(crop.size, Image.Resampling.BICUBIC), CROP_34[:2])
+    elements, fails = {}, []
+    for name, ps in plates.items():
+        ps = [p for p in ps if not p.empty]
+        if not ps:
+            continue
+        cap = min(cap_h_of(p.font) for p in ps)
+        inside = all(CROP_34[1] <= p.box[1] and p.box[3] <= CROP_34[3] for p in ps)
+        vals = [v for v in (p.measure(blurred) for p in ps) if v is not None]
+        kind = "hook" if name in GRID_HOOK else "texture"
+        elements[name] = {"class": kind, "cap_124": round(cap * GRID_SCALE[0], 1),
+                          "cap_180": round(cap * GRID_SCALE[1], 1), "inside_34": inside,
+                          "contrast_124": round(min(vals), 2) if vals else None,
+                          "text": " ".join(p.text for p in ps)}
+        if kind == "hook":
+            if cap * GRID_SCALE[0] < GRID_HOOK[name]:
+                fails.append(f"{name} {cap * GRID_SCALE[0]:.1f} px cap at 124 px (floor {GRID_HOOK[name]})")
+            if not inside:
+                fails.append(f"{name} outside the 3:4 crop")
+    hook_text = " ".join(e["text"] for e in elements.values() if e["class"] == "hook").upper()
+
+    def facts(text):
+        # A qualifier is fact-bearing only attached to a figure ("OVER 4,000", "EST. 144"): as a plain word
+        # ("LOOKING OVER THE CITY", "SOME SAY") it is texture like any other (r5 review: false grid warnings).
+        out = {m.group(1).upper() for m in re.finditer(r"(?<![\w.])(" + _QUAL + r")\s*(?=\d)", text, re.IGNORECASE)}
+        out |= {m.group(0).upper() for m in _FIGURE.finditer(text)}
+        out |= set(_YEAR.findall(text))
+        return out
+    for name, e in elements.items():
+        if e["class"] == "texture" and name != "provenance":
+            alone = {w for w in facts(e["text"]) if w not in hook_text}
+            if alone:
+                fails.append(f"{name} alone carries {', '.join(sorted(alone))} (texture at grid size)")
+    arr = np.asarray(small, dtype=np.float32) / 255
+    lin = np.where(arr <= 0.04045, arr / 12.92, ((arr + 0.055) / 1.055) ** 2.4)
+    y = (lin @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)).mean()
+    lstar = 116 * (y ** (1 / 3) if y > 0.008856 else 7.787 * y + 16 / 116) - 16
+    return {"ok": not fails, "fails": fails, "elements": elements, "mean_lstar": round(float(lstar), 1)}
 
 
 def delivered_contrast(lay, path):

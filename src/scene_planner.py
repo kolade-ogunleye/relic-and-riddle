@@ -847,7 +847,9 @@ def fit_to_lines(beats: List[Dict[str, Any]], scenes: List[Path], pool: List[Pat
                     log.info("Beat %d: no photo shows its line; filled by the %s tier (%s).", k + 1, tier, asset.name)
                     report["unshown"].append(entry)
                     continue
-            if holds or cascade_on:
+            # A named subject goes map, then held shot (follow-up review, 2026-11-02): a graphic not matched to that
+            # very thing is never put between them.
+            if (holds or cascade_on) and not named:
                 filler = None
                 # Never once the checks stopped (their budget, or the model down): what the graphic says would go
                 # unjudged against the line; the shot is held, as before.

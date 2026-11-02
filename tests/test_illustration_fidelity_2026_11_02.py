@@ -97,7 +97,8 @@ def test_find_references_takes_only_open_licences_whose_title_names_the_subject(
              {"path": str(other), "title": "A Greek bronze statue", "license": "Public domain"},
              {"path": str(tiny), "title": "Antikythera mechanism", "license": "CC0"},
              {"path": str(good), "title": "Antikythera mechanism (fragment A)", "license": "CC BY 4.0",
-              "source_url": "https://commons.example/x", "license_url": "https://creativecommons.org/licenses/by/4.0/"}]
+              "source_url": "https://commons.example/x", "license_url": "https://creativecommons.org/licenses/by/4.0/",
+              "artist": "Jane Doe"}]   # a CC BY reference needs its artist too (follow-up review, 2026-11-02)
     refs, why = image_gen.find_references(GEARS, TOPIC, local, tmp_path, remote=False)
     assert why == "" and [Path(r["path"]).name for r in refs] == ["good.jpg"]
     assert refs[0]["licence"] == "CC BY 4.0" and refs[0]["source"] == "topic_photo" and refs[0]["sha256"]

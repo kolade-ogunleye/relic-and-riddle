@@ -637,11 +637,31 @@ _TERM_STOP = {"the", "a", "an", "its", "it", "this", "that", "these", "those", "
               "our", "you", "your", "one", "two", "three", "each", "every", "some", "most", "all", "no", "not"}
 
 
+_SENTENCE_START = re.compile(r"(?:^|[.!?;:]\s+|[\"\u201c(]\s*)$")
+
+
+def _line_names(line: str, topic: dict[str, Any] | None = None) -> list[str]:
+    """The line's own proper names: capitalised words that are not function words. A sentence's first word is
+    capitalised by grammar, not because it is a name ("Divers found...", "Like the..."), so it counts only when it
+    is also a word of the topic's title (follow-up review, 2026-11-02)."""
+    text = str(line or "")
+    title = set(_norm(str((topic or {}).get("title") or "")).split())
+    names: list[str] = []
+    for m in re.finditer(r"[A-Z][A-Za-z'\-]{2,}", text):
+        w = m.group(0)
+        if w.lower().strip("'") in _TERM_STOP:
+            continue
+        if _SENTENCE_START.search(text[:m.start()]) and _norm(w.removesuffix("'s")) not in title:
+            continue
+        names.append(w)
+    return names
+
+
 def subject_terms(line: str, topic: dict[str, Any] | None = None) -> list[str]:
     """The words that name the line's particular subject: its proper names (capitalised words, a sentence's first
-    word only when it is not a function word), else the topic's title words. Normalised, at most four, in order."""
-    words = re.findall(r"[A-Z][A-Za-z'\-]{2,}", str(line or ""))
-    names = [w for w in words if w.lower().strip("'") not in _TERM_STOP]
+    word only when the topic's title has it too: _line_names), else the topic's title words. Normalised, at most
+    four, in order."""
+    names = _line_names(line, topic)
     if not names:
         names = [w for w in re.findall(r"[A-Za-z'\-]{4,}", str((topic or {}).get("title") or ""))
                  if w.lower() not in _TERM_STOP]
@@ -664,6 +684,18 @@ def names_subject(text: str, terms: Sequence[str]) -> bool:
     if len(terms) <= 2:
         return len(hits) == len(terms)
     return terms[0] in hits and len(hits) >= 2
+
+
+_ATTRIBUTION_LICENCE = re.compile(r"^cc[ -]by\b", re.IGNORECASE)   # CC BY and CC BY-SA (not CC0)
+
+
+def attribution_complete(licence: str, artist: str, license_url: str, source_url: str) -> bool:
+    """Whether a reference carries what its licence needs to be credited: a CC BY or CC BY-SA one only with its
+    artist, licence URL and source URL all known (a credit missing any of them is unverifiable, and the provenance
+    ledger would mark it so); public domain and CC0 need none of them."""
+    if not _ATTRIBUTION_LICENCE.match(str(licence or "").strip()):
+        return True
+    return all(str(v or "").strip() for v in (artist, license_url, source_url))
 
 
 def reference_licence_ok(licence: str) -> bool:
@@ -764,6 +796,10 @@ def find_references(line: str, topic: dict[str, Any] | None, local: Sequence[dic
         title = str(c.get("title") or "")
         if not (path.is_file() and reference_licence_ok(str(c.get("license") or "")) and names_subject(title, terms)):
             continue
+        if not attribution_complete(str(c.get("license") or ""), str(c.get("artist") or ""),
+                                    str(c.get("license_url") or ""), str(c.get("source_url") or "")):
+            log.info("Reference %s skipped: its CC BY credit lacks the artist, licence URL or source URL.", path.name)
+            continue
         digest = _file_digest(path)
         if not digest or digest in seen or not _readable_image(path):
             continue
@@ -786,6 +822,10 @@ def find_references(line: str, topic: dict[str, Any] | None, local: Sequence[dic
                 continue
             if cand.get("provider") == "loc" and not _loc_unrestricted(cand):
                 continue
+            if not attribution_complete(str(cand.get("license") or ""), str(cand.get("artist") or ""),
+                                        str(cand.get("license_url") or ""),
+                                        str(cand.get("source_url") or cand.get("download_url") or "")):
+                continue   # checked before the download: an uncreditable CC BY file is never fetched
             got = _download_reference(cand, Path(work_dir))
             digest = _file_digest(got) if got else ""
             if not got or not digest or digest in seen:
@@ -850,16 +890,30 @@ def review_note(generated: Sequence[dict[str, Any]]) -> str:
             + " · Your approval is required (never auto-approved).")
 
 
-def auto_approve_refusal(payload: dict[str, Any] | None) -> str:
-    """Why this run may not be auto-approved ("" when it may): it put an AI illustration on screen (the picture
-    check's record, payload["picture_fit"]["generated"]); every illustrated beat waits for the operator."""
+def auto_approve_refusal(payload: dict[str, Any] | None, scenes: Sequence[Any] = ()) -> str:
+    """Why this run may not be auto-approved ("" when it may): it put an AI illustration on screen; every
+    illustrated beat waits for the operator. Read from the picture check's record (payload["picture_fit"]
+    ["generated"]) and, since a path without that record (the deep dive) shows illustrations too, from the
+    `scenes` themselves: a file the planner names as an illustration (scene_planner.is_illustration) or whose
+    lineage records origin "ai_illustration"."""
     fit = (payload or {}).get("picture_fit") or {}
     generated = fit.get("generated") if isinstance(fit, dict) else None
-    if not generated:
+    if generated:
+        beats = ", ".join(str(g.get("beat")) for g in generated if isinstance(g, dict))
+        return (f"auto-approve refused: the video shows an AI illustration (beat {beats}); an illustration is "
+                "approved by the operator on the review card, never automatically")
+    from .scene_planner import is_illustration
+    drawn: list[str] = []
+    for s in scenes or ():
+        if not isinstance(s, (str, Path)) or not str(s):
+            continue
+        p = Path(s)
+        if (is_illustration(p) or _lineage_inputs(p).get("origin") == "ai_illustration") and p.name not in drawn:
+            drawn.append(p.name)
+    if not drawn:
         return ""
-    beats = ", ".join(str(g.get("beat")) for g in generated if isinstance(g, dict))
-    return (f"auto-approve refused: the video shows an AI illustration (beat {beats}); an illustration is approved "
-            "by the operator on the review card, never automatically")
+    return (f"auto-approve refused: the video shows an AI illustration ({', '.join(drawn[:6])}); an illustration "
+            "is approved by the operator on the review card, never automatically")
 
 
 # ------------------------------------------------------------------ the house-style path (the planner's)
@@ -916,7 +970,9 @@ def illustrate_beat(line: str, spec: dict[str, Any], work_dir: Path, aspect: str
     key = cache_key(line, era, aspect, references=[r.get("sha256") or r["path"] for r in refs])
     info["key"] = key
     size = target_size(aspect)
-    checked = dict(spec, visual=visual)   # the rubric knows a named subject needs its reference comparison
+    # The rubric knows a named subject needs its reference comparison, and why it is drawn: a reconstruction may
+    # add only what the narrated line and its descriptors describe (image_quarantine.reference_check).
+    checked = dict(spec, visual=visual, why_illustrated=reason, line=spec.get("line") or line)
     out = work / f"gap_gen_{key}.jpg"
     cand_dir = work / CANDIDATE_DIR
     best_raw = cand_dir / f"{key}_best.png"
@@ -987,14 +1043,25 @@ def synthesize_gap_asset(
     work_dir: Path,
     modality: str = "historical_scene",
     aspect: str = "9:16",
+    visual: str | None = None,
+    references: Sequence[dict[str, Any]] = (),
 ) -> Path | None:
     """The legacy era-matched linework for one line, composited over paper, or None.
+
+    Never a named subject without a reference (follow-up review, 2026-11-02): this path sends no reference to the
+    model, so a line marked NAMED_SUBJECT (`visual`) or one naming a proper subject of its own (_line_names) with no
+    `references` gets None, with the reason logged; the planner uses illustrate_beat, never this. The topic's title
+    is no longer put in the prompt (it drew the titled thing from the model's memory).
 
     Fixed 2026-11-02: a compositing failure returns None (never the raw file, which would air unbadged and
     miscredited); the file is keyed by the line, era, prompt version and model (cache_key), not the beat number,
     and its lineage records the key; an older beat-numbered file is reused only when its lineage names this line
     (or it has none). The caller re-verifies every file it gets (src/image_quarantine.verify_gap_asset)."""
     if not is_available() or work_dir is None:
+        return None
+    if not references and (visual == NAMED_SUBJECT or _line_names(line_text, topic)):
+        log.info("Legacy gap art refused for %r: a named subject is drawn only from a reference image of it "
+                 "(illustrate_beat), and none was given.", line_text[:60])
         return None
     work_p = Path(work_dir)
     work_p.mkdir(parents=True, exist_ok=True)
@@ -1023,8 +1090,7 @@ def synthesize_gap_asset(
         log.info("Reusing synthesized gap asset for %r -> %s", line_text[:60], cached.name)
         return cached
 
-    subject = topic.get("title") or topic.get("name") or "historical relic"
-    full_prompt = f"{style_prompt} Subject: {subject}. Depicting: {line_text}. Clear focal subject, intricate linework."
+    full_prompt = f"{style_prompt} Depicting: {line_text}. Clear focal subject, intricate linework."
     log.info("Generating era-matched gap art for Beat %d (%s): '%s'...", beat_index, era_key, line_text[:60])
     raw_bytes = generate_raw_linework(full_prompt)
     if not raw_bytes:

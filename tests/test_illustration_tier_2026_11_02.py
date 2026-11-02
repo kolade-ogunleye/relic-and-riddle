@@ -357,13 +357,39 @@ def test_abstract_never_generates_and_named_subject_without_evidence_does_not(wo
     assert "no fact-sheet fact" in skipped.get(4, "")
 
 
-def test_named_subject_with_descriptors_is_illustrated_before_the_map(world):
-    run = world.tmp / "run"
+def test_named_subject_with_descriptors_is_illustrated_before_the_map(world, monkeypatch):
+    # Rewritten (follow-up review, 2026-11-02; this test is not on origin/main): it expected an illustration of a
+    # named subject with NO reference, passing only because the fixture's fake illustrate_beat ignores the rule.
+    # Under the rule a named subject is drawn only from a reference: without one nothing is drawn; with one (here
+    # a reconstruction line) it is illustrated before the map, and the reference reaches illustrate_beat.
+    fake, got = image_gen.illustrate_beat, []
+
+    def ruled(line, spec, work_dir, aspect="9:16", budget=None, others=(), references=(), visual=None, reason="", **k):
+        got.append({"refs": list(references), "visual": visual, "reason": reason})
+        if visual == pc.NAMED_SUBJECT and (not references or reason not in image_gen.ILLUSTRATION_REASONS):
+            return None, {"reason": "a named subject is drawn only from a reference image of it", "calls": 0}
+        return fake(line, spec, work_dir, aspect, budget, others)
+    monkeypatch.setattr(image_gen, "illustrate_beat", ruled)
     lines = ["The aqueduct strides across the valley.", GEARS] + FILL[:10]
-    _record(run, [{"sentence": GEARS, "kind": "unshown", "visual": pc.NAMED_SUBJECT}])
     photos = _photos(world.tmp / "x", len(lines))
+
+    run = world.tmp / "run"
+    _record(run, [{"sentence": GEARS, "kind": "unshown", "visual": pc.NAMED_SUBJECT}])
+    monkeypatch.setattr(image_gen, "find_references", lambda *a, **k: ([], "no reference"))
     out, _ = scene_planner.fit_to_lines(_beats(lines), photos, photos, "Antikythera", work_dir=run)
+    assert not out[1].name.startswith("gap_gen_") and world.made == []
+
+    ref = world.tmp / "refs" / "fragment.jpg"
+    ref.parent.mkdir(parents=True, exist_ok=True)
+    Image.new("RGB", (300, 300), (150, 120, 60)).save(ref)
+    one = {"path": str(ref), "title": "Antikythera mechanism fragment", "licence": "CC0", "sha256": "abc"}
+    monkeypatch.setattr(image_gen, "find_references", lambda *a, **k: ([one], ""))
+    run2 = world.tmp / "run2"
+    _record(run2, [{"sentence": GEARS, "kind": "unshown", "visual": pc.NAMED_SUBJECT}])
+    out, report = scene_planner.fit_to_lines(_beats(lines), photos, photos, "Antikythera", work_dir=run2)
     assert out[1].name.startswith("gap_gen_") and world.made == [GEARS]
+    assert got[-1]["refs"] == [one] and got[-1]["reason"] == image_gen.RECONSTRUCTION_REASON
+    assert not any(t["beat"] == 2 and t["tier"] == pc.MAP for t in report["tiers"])
 
 
 def test_no_generation_once_the_checks_stopped(world):

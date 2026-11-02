@@ -1044,7 +1044,7 @@ class PipelineCoordinator:
 
         from src.release import write_release_report
         release = write_release_report(self.db.get_run(run_id), dry_run=dry_run)
-        auto_approve = self._auto_approve_allowed(run_id, payload, auto_approve)
+        auto_approve = self._auto_approve_allowed(run_id, payload, auto_approve, scenes=extended_scenes)
         blocked = self._blocked_at_gate(run_id, release, dry_run, "auto-approve flag") if auto_approve else None
         if blocked:
             return {"run_id": run_id, "parent_run_id": parent_run_id, "topic_id": tid, "status": "blocked",
@@ -1271,14 +1271,16 @@ class PipelineCoordinator:
                     self.db.set_setting(key, "")  # a passing failure: a later wait (or a resend) acts on it again
                 raise
 
-    def _auto_approve_allowed(self, run_id: str, payload: dict[str, Any] | None, auto_approve: bool) -> bool:
+    def _auto_approve_allowed(self, run_id: str, payload: dict[str, Any] | None, auto_approve: bool,
+                              scenes: list[Any] | tuple[Any, ...] = ()) -> bool:
         """Whether the auto-approve flag may decide this run: never when it shows an AI illustration (operator,
         2026-11-02: an illustration must reliably depict its subject, and the operator approves each one on the review
-        card). A refused flag sends the run to review instead, with the reason logged and alerted."""
+        card), read from payload["picture_fit"] and from the rendered `scenes` themselves (the deep dive records no
+        picture_fit). A refused flag sends the run to review instead, with the reason logged and alerted."""
         if not auto_approve:
             return False
         from src.image_gen import auto_approve_refusal
-        why = auto_approve_refusal(payload)
+        why = auto_approve_refusal(payload, scenes)
         if not why:
             return True
         log.warning("%s: %s; sent for review instead.", run_id, why)
@@ -3196,7 +3198,7 @@ class PipelineCoordinator:
         # 8-9. Human approval (never implicit). The production card is finished either way.
         self._finish_progress(topic.get("title", tid), run_id, success=True)
         decision = None
-        auto_approve = self._auto_approve_allowed(run_id, payload, auto_approve)
+        auto_approve = self._auto_approve_allowed(run_id, payload, auto_approve, scenes=scenes)
         blocked = self._blocked_at_gate(run_id, release, dry_run, "auto-approve flag") if auto_approve else None
         if blocked:
             return {"run_id": run_id, "topic_id": tid, "decision": None, "status": "blocked", "error": blocked,

@@ -310,3 +310,12 @@ def test_source_drops_a_pair_the_gate_rejects(tmp_path, monkeypatch):
         old_is_photograph=True, graphic_or_sensitive=False, best_match=1, confidence="high", note=""))
     _fake_view(monkeypatch)
     assert then_now.source({"location": {"name": "Gate Town", "country": "X"}}, tmp_path / "w") is None
+
+
+def test_the_pipeline_passes_the_timed_words_to_the_callouts() -> None:
+    """Labels reveal on the word that names them, so the render hands callouts.make the narration's words."""
+    import inspect
+
+    import main
+    source = inspect.getsource(main.PipelineCoordinator._render_approve_publish)
+    assert 'callouts.make, payload, topic, scene_media, run_dir / "graphics", words=words' in source

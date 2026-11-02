@@ -2797,7 +2797,7 @@ class PipelineCoordinator:
 
             fut_beats = pool.submit(beat_images.source, beats, topic, run_dir / "beat_images", plan=query_plan) if query_plan else None
             fut_footage = pool.submit(footage.source, beats, topic, run_dir / "footage", plan=query_plan) if query_plan else None
-            fut_callouts = pool.submit(callouts.make, payload, topic, scene_media, run_dir / "graphics")
+            fut_callouts = pool.submit(callouts.make, payload, topic, scene_media, run_dir / "graphics", words=words)
             fut_then_now = pool.submit(then_now.make, topic, run_dir / "graphics")
 
             thumb_916, thumb_1x1 = fut_thumb.result()

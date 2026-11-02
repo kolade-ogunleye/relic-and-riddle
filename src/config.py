@@ -481,7 +481,9 @@ MUSEUM_ARTIC_ENABLED = os.getenv("MUSEUM_ARTIC_ENABLED", "false").lower() in ("t
 # confirmed from the development container (no route to ai.google.dev): the operator must confirm it is current and
 # reachable with GEMINI_API_KEY (image_gen.doctor() lists the models the key can reach). A configured model the key
 # cannot reach means no illustration is generated (fail closed, logged).
-IMAGE_GEN_MODEL = (os.getenv("IMAGE_GEN_MODEL") or "gemini-2.5-flash-image").strip()
+# Verified against ai.google.dev/gemini-api/docs/image-generation on 2026-11-02: imagen-3.0-generate-002 was shut
+# down on 2025-11-10; gemini-3-pro-image is "optimized for professional asset production" (no shutdown announced).
+IMAGE_GEN_MODEL = (os.getenv("IMAGE_GEN_MODEL") or "gemini-3-pro-image").strip()
 IMAGE_GEN_API = (os.getenv("IMAGE_GEN_API") or "auto").strip().lower()   # auto | gemini | imagen
 IMAGE_GEN_CANDIDATES = max(1, min(4, int(os.getenv("IMAGE_GEN_CANDIDATES", "4"))))   # requests per beat, at most
 IMAGE_GEN_MAX_CALLS_PER_RUN = max(0, int(os.getenv("IMAGE_GEN_MAX_CALLS_PER_RUN", "8")))  # rejected ones count too
@@ -492,6 +494,15 @@ IMAGE_GEN_LONGFORM_SECONDS = float(os.getenv("IMAGE_GEN_LONGFORM_SECONDS", "180"
 # The text screen needs local OCR (pytesseract and the tesseract binary): without it every candidate is rejected.
 IMAGE_GEN_REQUIRE_OCR = os.getenv("IMAGE_GEN_REQUIRE_OCR", "true").lower() in ("true", "1", "yes")
 IMAGE_GEN_MIN_SHARPNESS = float(os.getenv("IMAGE_GEN_MIN_SHARPNESS", "40"))   # Laplacian variance of the fitted frame
+# Reference-grounded illustration (2026-11-02): reference images sent with a request (1-3), the reference comparison's
+# minimum confidence for "same object, nothing added", whether museum/LoC images may be fetched as references, and the
+# requested output size (generationConfig.imageConfig.imageSize: 512 | 1K | 2K | 4K; Gemini 3 image models only).
+IMAGE_GEN_REFERENCE_MAX = max(1, min(3, int(os.getenv("IMAGE_GEN_REFERENCE_MAX", "3"))))
+IMAGE_GEN_REFERENCE_MIN_CONFIDENCE = float(os.getenv("IMAGE_GEN_REFERENCE_MIN_CONFIDENCE", "0.85"))
+IMAGE_GEN_REMOTE_REFERENCES = os.getenv("IMAGE_GEN_REMOTE_REFERENCES", "true").lower() in ("true", "1", "yes")
+IMAGE_GEN_IMAGE_SIZE = (os.getenv("IMAGE_GEN_IMAGE_SIZE") or "2K").strip()
+# A reference shown on screen as the exact photo needs at least this short side (px).
+IMAGE_GEN_SHOW_MIN_SIDE = max(64, min(8192, int(os.getenv("IMAGE_GEN_SHOW_MIN_SIDE", "720"))))
 IMAGE_GEN_TIMEOUT = float(os.getenv("IMAGE_GEN_TIMEOUT", "60"))
 # <<< Illustration tier ---------------------------------------------------------------------------------------------
 

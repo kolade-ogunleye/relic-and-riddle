@@ -47,7 +47,6 @@ import base64
 import hashlib
 import json
 import logging
-import os
 import re
 import shutil
 import threading
@@ -72,39 +71,24 @@ ALLOWED_SURFACES = ("beat",)   # never a hook, cover, thumbnail or story slide
 # The default image model (2026-11-02). ai.google.dev/gemini-api/docs/image-generation (fetched 2026-11-02): "Gemini 3
 # Pro Image is optimized for professional asset production", the premium choice "for the most complex visual tasks";
 # its reference-image table gives it "up to 6 images of objects with high-fidelity to include in the final image"
-# (Nano Banana 2.1, gemini-nano-banana-2.1, is the recommended high-efficiency workhorse). config.py still names
-# LEGACY_DEFAULT_MODEL as its default (config.py is being edited elsewhere): that value, when IMAGE_GEN_MODEL is not
-# set in the environment, means DEFAULT_MODEL here; any model the operator names is used as named.
+# (Nano Banana 2.1, gemini-nano-banana-2.1, is the recommended high-efficiency workhorse). config.IMAGE_GEN_MODEL
+# defaults to it; any model the operator names is used as named.
 DEFAULT_MODEL = "gemini-3-pro-image"
-LEGACY_DEFAULT_MODEL = "gemini-2.5-flash-image"
 
 
-def _env_int(name: str, default: int, lo: int, hi: int) -> int:
-    try:
-        return max(lo, min(hi, int(os.getenv(name, str(default)))))
-    except ValueError:
-        return default
-
-
-def _env_float(name: str, default: float) -> float:
-    try:
-        return float(os.getenv(name, str(default)))
-    except ValueError:
-        return default
-
-
-# Reference-grounded generation (module constants: config.py is being edited elsewhere).
-REFERENCE_MAX = _env_int("IMAGE_GEN_REFERENCE_MAX", 3, 1, 3)               # reference images in one request
-REFERENCE_MIN_CONFIDENCE = _env_float("IMAGE_GEN_REFERENCE_MIN_CONFIDENCE", 0.85)   # the comparison's "yes"
-REMOTE_REFERENCES = os.getenv("IMAGE_GEN_REMOTE_REFERENCES", "true").lower() in ("true", "1", "yes")
-IMAGE_SIZE = (os.getenv("IMAGE_GEN_IMAGE_SIZE") or "2K").strip()          # generationConfig.imageConfig.imageSize
+# Reference-grounded generation: settings live in src/config.py (IMAGE_GEN_REFERENCE_*, IMAGE_GEN_REMOTE_REFERENCES,
+# IMAGE_GEN_IMAGE_SIZE); read here once.
+REFERENCE_MAX = config.IMAGE_GEN_REFERENCE_MAX                    # reference images in one request
+REFERENCE_MIN_CONFIDENCE = config.IMAGE_GEN_REFERENCE_MIN_CONFIDENCE   # the comparison's "yes"
+REMOTE_REFERENCES = config.IMAGE_GEN_REMOTE_REFERENCES
+IMAGE_SIZE = config.IMAGE_GEN_IMAGE_SIZE                          # generationConfig.imageConfig.imageSize
 REFERENCE_SOURCES = ("met", "nasa", "smithsonian", "europeana", "loc")     # museum_sources, LoC verified live
 REFERENCE_DIR = "illustration_refs"
 REFERENCE_MAX_BYTES = 20 * 1024 * 1024
 REFERENCE_MIN_SIDE = 256
 REFERENCE_SIDE = 1536          # a reference is sent as a JPEG at most this many pixels on its long side
 NAMED_SUBJECT = "named_subject"   # src/picture_coverage.NAMED_SUBJECT (not imported: that module is light)
-SHOW_MIN_SIDE = _env_int("IMAGE_GEN_SHOW_MIN_SIDE", 720, 64, 8192)   # a reference shown on screen: its short side
+SHOW_MIN_SIDE = config.IMAGE_GEN_SHOW_MIN_SIDE   # a reference shown on screen: its short side
 # Why a named subject may be illustrated at all (operator refinement, 2026-11-02): a reference fit to show is SHOWN
 # (the exact tier), never redrawn. Only (a) a line about what no photo can show (a reconstruction: the original
 # appearance, an interior, a mechanism in use, how it was built), or (b) every reference unfit for the screen (too
@@ -205,11 +189,8 @@ def is_available() -> bool:
 
 
 def model_id() -> str:
-    """The configured image model; config's legacy default, not set in the environment, means DEFAULT_MODEL."""
-    value = str(getattr(config, "IMAGE_GEN_MODEL", "") or "").strip().removeprefix("models/")
-    if value == LEGACY_DEFAULT_MODEL and not (os.getenv("IMAGE_GEN_MODEL") or "").strip():
-        return DEFAULT_MODEL
-    return value
+    """The configured image model (config.IMAGE_GEN_MODEL, default DEFAULT_MODEL)."""
+    return str(getattr(config, "IMAGE_GEN_MODEL", "") or DEFAULT_MODEL).strip().removeprefix("models/")
 
 
 def api_style(model: str | None = None) -> str:

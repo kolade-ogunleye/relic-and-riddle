@@ -178,11 +178,12 @@ def test_the_reference_is_sent_as_an_inline_image_part(tmp_path, monkeypatch):
 
 
 def test_the_default_model_is_gemini_3_pro_image_unless_one_is_named(monkeypatch):
-    monkeypatch.delenv("IMAGE_GEN_MODEL", raising=False)
-    monkeypatch.setattr(config, "IMAGE_GEN_MODEL", image_gen.LEGACY_DEFAULT_MODEL, raising=False)
-    assert image_gen.model_id() == "gemini-3-pro-image" == image_gen.DEFAULT_MODEL
-    monkeypatch.setenv("IMAGE_GEN_MODEL", image_gen.LEGACY_DEFAULT_MODEL)
-    assert image_gen.model_id() == image_gen.LEGACY_DEFAULT_MODEL          # named by the operator: used as named
+    # The default now lives in config (settings inventory); a model the operator names is used as named.
+    assert image_gen.DEFAULT_MODEL == "gemini-3-pro-image"
+    if not __import__("os").getenv("IMAGE_GEN_MODEL"):
+        assert config.IMAGE_GEN_MODEL == "gemini-3-pro-image"
+    monkeypatch.setattr(config, "IMAGE_GEN_MODEL", "gemini-3-pro-image", raising=False)
+    assert image_gen.model_id() == "gemini-3-pro-image"
     monkeypatch.setattr(config, "IMAGE_GEN_MODEL", "gemini-nano-banana-2.1", raising=False)
     assert image_gen.model_id() == "gemini-nano-banana-2.1"
 

@@ -108,6 +108,21 @@ TRANS_DUR = 0.40
 HOOK_CLIP_ZOOM = "min(1+0.0016*on,1.24)"
 
 
+def graphic_vignette_enable(scene_images: List[Path], durations: List[float]) -> str:
+    """The vignette filter's `enable` option keeping it off over graphic clips (graphic_*.mp4), "" when none.
+
+    Scene i is on screen from the boundary before it to the boundary after it (cuts are centred on boundaries)."""
+    spans, start = [], 0.0
+    for item, dur in zip(scene_images, durations):
+        if Path(item).name.startswith("graphic_"):
+            spans.append((start, start + dur))
+        start += dur
+    if not spans:
+        return ""
+    inside = "+".join(f"between(t\\,{a:.3f}\\,{b:.3f})" for a, b in spans)
+    return f":enable='not({inside})'"
+
+
 def is_ai_motion_clip(path: Path) -> bool:
     """A clip src/motion.py made from a photo (motion_NN.mp4), as opposed to footage, a graphic or a manual
     hook clip, which move by themselves."""
@@ -1390,6 +1405,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         ass_str = str(ass_path.resolve()).replace("\\", "/").replace(":", "\\:")
         fonts_str = str(self.fonts_dir.resolve()).replace("\\", "/").replace(":", "\\:")
         vignette_aspect = "16/9" if width > height else "9/16"
+        # Graphics are drawn to their own measured contrast: the lens vignette is lifted while one is on screen,
+        # so a graphic can use the frame's full width (2026-11-02; at the edges it read 2.7:1 after grading).
+        vignette_enable = graphic_vignette_enable(scene_images, durations)
         # The Kodak 2383 print's tone with the picture's own hue (2026-10-29: the full LUT turned a balanced
         # lamp-lit door neon lime); film_grade_filter, above, has the why and the measurements.
         film_grade = film_grade_filter(grade_bias)
@@ -1397,7 +1415,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         card_split = "split[v_graded][v_card_src];[v_graded]" if card else ""
         filter_parts.append(
             f"[video_raw]format=yuv420p,{film_grade},format=yuv420p,"
-            f"noise=alls=8:allf=t+u,vignette=PI/4.2:aspect={vignette_aspect},{card_split}"
+            f"noise=alls=8:allf=t+u,vignette=PI/4.2:aspect={vignette_aspect}{vignette_enable},{card_split}"
             f"subtitles='{ass_str}':fontsdir='{fonts_str}',scale=out_range=tv,format=yuv420p[v_final]"
         )
         if card:

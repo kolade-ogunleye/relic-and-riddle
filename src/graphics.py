@@ -37,6 +37,7 @@ from . import brand
 # Brand tokens (src/brand.py, visual overhaul 2026-10-29): one gold, bone text, the ink ground.
 SEA, LAND, HOME, BORDER, GRID = brand.INK, (40, 43, 48), (92, 74, 42), (96, 98, 104), (24, 28, 34)
 GOLD, WHITE, MUTED = brand.GOLD, brand.BONE, brand.STONE_LT
+GOLD_LINE = brand.GOLD_DIM
 M = 84  # a 9:16 graphic's left text margin (19 px inside the Reel box), shared with the Story column
 # Where a 9:16 graphic may put text and figures: the Reel box every platform leaves free (safe_zones: Meta's
 # 14/35/6 %, YouTube Shorts' right-hand icon column), less the caption band at its bottom. TEXT_TOP stays a
@@ -867,14 +868,18 @@ def pick_reference(feet: float) -> Optional[Tuple[str, float, str]]:
 
 
 def render_scale(fact: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> Optional[Path]:
-    """Two bars, the subject (gold) and a landmark (grey), growing to true proportion.
-    Depths grow downward from a ground line; heights grow upward."""
+    """The subject's size against a familiar landmark, to true proportion. 9:16 (2026-11-01 review, 5/10
+    before): a depth is a shaft drilled down from a ground line with the landmark standing on its floor, a height
+    a block risen beside the landmark on a shared baseline; the landmark is drawn as its silhouette, and one
+    line says what the comparison means. 16:9: two bars, the subject (gold) and the landmark (grey)."""
     feet = fact["value"] * (3.28084 if fact["unit"] == "m" else 1.0)
     ref = pick_reference(feet)
     if ref is None or feet <= 0:
         return None
     ref_label, ref_feet, _ = ref
     depth = fact.get("dimension") == "depth"
+    if width < height:
+        return _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, height)
     n = int(CLIP_SECONDS * VIDEO_FPS)
     longest = max(feet, ref_feet)
     top, bottom = get_text_bounds(width, height)
@@ -934,6 +939,166 @@ def render_scale(fact: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
             yield im
 
     return _encode(frames(), out, n, width=width, height=height)
+
+
+def _silhouette(d: ImageDraw.ImageDraw, label: str, cx: float, base_y: float, h: float, colour) -> float:
+    """The reference landmark drawn as its outline, `h` px tall, standing on `base_y`: the Statue of Liberty
+    (foundation and pedestal to the raised torch), Elizabeth Tower (shaft, clock stage, belfry, spire), the
+    Great Pyramid, else a standing person. Returns the drawn width."""
+    fill = (*colour, 255)
+    y = lambda f: base_y - h * f  # 0 = base, 1 = top
+    low = label.lower()
+    if "liberty" in low:
+        w = h * 0.36
+        d.polygon([(cx - w / 2, y(0)), (cx + w / 2, y(0)), (cx + w * 0.36, y(0.17)), (cx - w * 0.36, y(0.17))], fill=fill)
+        d.rectangle([cx - w * 0.26, y(0.40), cx + w * 0.26, y(0.17)], fill=fill)            # pedestal
+        d.polygon([(cx - w * 0.30, y(0.40)), (cx + w * 0.30, y(0.40)), (cx + w * 0.22, y(0.47)),
+                   (cx - w * 0.22, y(0.47))], fill=fill)
+        d.polygon([(cx - w * 0.13, y(0.47)), (cx + w * 0.13, y(0.47)), (cx + w * 0.08, y(0.80)),
+                   (cx - w * 0.09, y(0.80))], fill=fill)                                    # robe
+        r = h * 0.025
+        d.ellipse([cx - r, y(0.83) - r, cx + r, y(0.83) + r], fill=fill)                    # head
+        for k in range(-2, 3):                                                              # crown rays
+            d.line([(cx + k * r * 0.5, y(0.85)), (cx + k * r * 1.4, y(0.88))], fill=fill, width=max(1, int(h * 0.006)))
+        d.line([(cx + w * 0.06, y(0.79)), (cx + w * 0.10, y(0.95))], fill=fill, width=max(2, int(h * 0.022)))   # arm
+        d.polygon([(cx + w * 0.07, y(0.95)), (cx + w * 0.13, y(0.95)), (cx + w * 0.10, y(1.0))], fill=fill)    # torch
+        return w
+    if "elizabeth" in low or "big ben" in low:
+        w = h * 0.13
+        d.rectangle([cx - w / 2, y(0.72), cx + w / 2, y(0)], fill=fill)
+        d.rectangle([cx - w * 0.6, y(0.80), cx + w * 0.6, y(0.70)], fill=fill)              # clock stage
+        r = w * 0.38
+        d.ellipse([cx - r, y(0.75) - r, cx + r, y(0.75) + r], fill=(*SEA, 255))             # clock face
+        d.rectangle([cx - w * 0.45, y(0.86), cx + w * 0.45, y(0.80)], fill=fill)            # belfry
+        d.polygon([(cx - w * 0.45, y(0.86)), (cx + w * 0.45, y(0.86)), (cx, y(1.0))], fill=fill)
+        return w * 1.2
+    if "pyramid" in low:
+        w = h * 1.57
+        d.polygon([(cx - w / 2, y(0)), (cx + w / 2, y(0)), (cx, y(1.0))], fill=fill)
+        return w
+    _person(d, int(cx), base_y, h, colour, upward=True)
+    return h * 0.3
+
+
+EARTH, EARTH_LINE = (38, 31, 24), (52, 43, 33)   # the ground in section: dark warm earth, its strata a step up
+
+
+def _silhouette_width(label: str) -> float:
+    """A landmark silhouette's width per px of its height (as _silhouette draws it)."""
+    low = label.lower()
+    return 0.36 if "liberty" in low else 0.16 if ("elizabeth" in low or "big ben" in low) else 1.57 if "pyramid" in low else 0.3
+
+
+def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, height):
+    """9:16 scale (see render_scale), inside the Reel text box: the subject and its figure above, the drawing,
+    then one line of meaning."""
+    x0, top, x1, bottom = get_text_box(width, height)
+    n = int(CLIP_SECONDS * VIDEO_FPS)
+    hedge = "ABOUT " if fact.get("approximate", True) else ""
+    ref_name = ref_label.split(" (")[0]
+    subject = str(fact.get("subject") or "").upper()
+    figure = hedge + measurement_text(feet) + (" DEEP" if depth else " TALL")
+    gap = abs(ref_feet - feet)
+    if depth:
+        meaning = ([f"THE {ref_name.upper()}, {measurement_text(ref_feet).split(' (')[0]},",
+                    f"WOULD SHOW ONLY ITS TOP {measurement_text(gap).split(' (')[0]}."] if ref_feet > feet else
+                   [f"THE {ref_name.upper()} WOULD VANISH:",
+                    f"ITS TOP {measurement_text(gap).split(' (')[0]} BELOW THE SURFACE."])
+    else:
+        ratio = max(feet, ref_feet) / min(feet, ref_feet)
+        taller, shorter = (subject.title() if feet > ref_feet else "The " + ref_name), (
+            "the " + ref_name if feet > ref_feet else subject.lower())
+        meaning = [f"{ref_name.upper()}: {measurement_text(ref_feet).split(' (')[0]}.",
+                   (f"ABOUT {ratio:.0f} TIMES TALLER." if ratio >= 1.5 else "NEARLY THE SAME HEIGHT.")]
+        del taller, shorter
+    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    wide = x1 - x0 - 8
+    f_sub = fit_font(probe, subject, "Montserrat", 30, wide, 22)
+    f_sub = get_font("Montserrat", f_sub.size, weight=800)
+    f_fig = fit_font(probe, figure, "Anton", 76, wide, 48)
+    f_mean = get_font("Montserrat", 30, weight=700)
+    while any(probe.textlength(t, font=f_mean) > wide for t in meaning) and f_mean.size > 22:
+        f_mean = get_font("Montserrat", f_mean.size - 2, weight=700)
+    y_sub = top + 10 + cap_height(f_sub)
+    y_fig = y_sub + 24 + cap_height(f_fig)
+    mean_h = 2 * int(cap_height(f_mean) * 1.6)
+    y_mean0 = bottom - mean_h + cap_height(f_mean)
+    draw_bottom = bottom - mean_h - 28
+    ground = Image.new("RGB", (width, height), SEA)
+    xt = x0 + 4                                            # glyph side-bearings stay inside the box
+    plates = [("subject", plan_text(ground, (xt, y_sub), subject, f_sub, MUTED, "ls", track=3)),
+              ("figure", plan_text(ground, (xt, y_fig), figure, f_fig, GOLD, "ls")),
+              *[(f"meaning{k}", plan_text(ground, (xt, y_mean0 + k * int(cap_height(f_mean) * 1.6)), t, f_mean,
+                                         WHITE, "ls", track=1)) for k, t in enumerate(meaning)]]
+    ref_grey = brand.STONE_LT
+    width_per_px = _silhouette_width(ref_label)            # the landmark's width per px of its height
+    if depth:
+        # The landmark stands on the shaft's floor, inside it: room above the ground for any part taller than
+        # the depth, and a shaft wide enough to hold it.
+        line_y = y_fig + 70
+        above = max(0.0, ref_feet - feet)
+        px_ft = (draw_bottom - line_y) / max(feet, 1.0)
+        if above * px_ft > line_y - (y_fig + 16):
+            px_ft = (draw_bottom - (y_fig + 16)) / (feet + above)
+        px_ft = min(px_ft, (x1 - x0 - 120) / max(1.0, ref_feet * width_per_px))
+        floor_y = draw_bottom
+        line_y = floor_y - feet * px_ft
+        ref_w = ref_feet * px_ft * width_per_px
+        half = max(ref_w / 2 + 50, 150)
+        cx = (x0 + x1) / 2
+        shaft = (cx - half, cx + half)
+        ref_cx = cx
+    else:
+        base_y = draw_bottom
+        block = 190
+        room = x1 - x0 - 60 - block - 40                    # beside the subject's block
+        px_ft = min((base_y - (y_fig + 40)) / max(feet, ref_feet), room / max(1.0, ref_feet * width_per_px))
+        shaft = (x0 + 30, x0 + 30 + block)
+        ref_cx = shaft[1] + 40 + max(room, ref_feet * px_ft * width_per_px) / 2
+    last: list = []
+
+    def frames():
+        for i in range(n):
+            t = i / VIDEO_FPS
+            im = ground.copy()
+            d = ImageDraw.Draw(im, "RGBA")
+            if depth:
+                d.rectangle([x0, line_y, x1, floor_y + 24], fill=(*EARTH, 255))            # the ground, in section
+                for k in range(1, 6):                                                      # faint strata
+                    yy = line_y + (floor_y + 24 - line_y) * k / 6
+                    d.line([(x0, yy), (x1, yy)], fill=(*EARTH_LINE, 255), width=2)
+                dig = _ease((t - 0.3) / 1.2)
+                y_end = line_y + (floor_y - line_y) * dig
+                d.rectangle([shaft[0], line_y, shaft[1], y_end], fill=(*SEA, 255), outline=(*GOLD, 255), width=3)
+                drop = _ease((t - 1.6) / 1.0)
+                if drop > 0:
+                    hh = ref_feet * px_ft
+                    base = floor_y - (1 - drop) * (floor_y - line_y + hh + 40)
+                    _silhouette(d, ref_label, ref_cx, base, hh, ref_grey)
+                    d.rectangle([x0, line_y - 2, x1, line_y + 1], fill=(*WHITE, 255))     # ground line over it
+                else:
+                    d.rectangle([x0, line_y - 2, x1, line_y + 1], fill=(*WHITE, 255))
+            else:
+                d.rectangle([x0, base_y, x1, base_y + 3], fill=(*WHITE, 255))
+                rise = _ease((t - 0.3) / 1.2)
+                hs = feet * px_ft * rise
+                d.rectangle([shaft[0], base_y - hs, shaft[1], base_y], fill=(*GOLD, 255))
+                rr = _ease((t - 1.2) / 1.2)
+                if rr > 0:
+                    _silhouette(d, ref_label, ref_cx, base_y, ref_feet * px_ft * rr, ref_grey)
+            for name, plate in plates:
+                at = {"subject": 0.1, "figure": 0.4}.get(name, 2.7)
+                a = _ease((t - at) / 0.4)
+                if a > 0:
+                    im = plate.draw(im, a, round(10 * (1 - a)))
+            if i == n - 1:
+                last.append(im.copy())
+            yield im
+
+    result = _encode(frames(), out, n, width=width, height=height)
+    if result and last:
+        record_contrast(out, last[0], plates)
+    return result
 
 
 def _person(d: ImageDraw.ImageDraw, cx: int, base_y: float, height: float, colour, upward: bool = True) -> None:

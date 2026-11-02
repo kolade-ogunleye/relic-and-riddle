@@ -111,11 +111,26 @@ def _height(rows):
     return sum(r["height"] + r["gap"] for r in rows)
 
 
+TAB_PAD = (24, 14)   # Discovery's eyebrow tab: horizontal, vertical padding
+DIM_ROOM = 36        # Monument: the dimension line's room under the figure
+
+
 def _paint(im, rows, x, top, centered, lay):
     plates = {}
     for row in rows:
+        if row.get("tab"):
+            # Discovery's badge (2026-11-02): the eyebrow on a solid gold tab, ink capitals on it.
+            w_txt, _ = text_size(ImageDraw.Draw(im), row["text"], row["font"])
+            cap = row["font"].getbbox("H", anchor="lt")
+            x_tab = x - w_txt / 2 - TAB_PAD[0] if centered else x - TAB_PAD[0] // 2
+            box = (x_tab, top + cap[1] - TAB_PAD[1], x_tab + w_txt + 2 * TAB_PAD[0] - (0 if centered else TAB_PAD[0] // 2),
+                   top + cap[3] + TAB_PAD[1])
+            ImageDraw.Draw(im).rectangle(box, fill=brand.GOLD + (255,))
+            if lay is not None:
+                lay.meta.setdefault("tabs", {})[row["name"]] = [round(v) for v in box]
         im, plate = place_text(im, (x, top), row["text"], row["font"], row["fill"],
-                               anchor="mt" if centered else "lt", target=5.1)
+                               anchor="mt" if centered else "lt", target=5.1,
+                               halo_px=0 if row.get("tab") else None)
         plates.setdefault(row["name"], []).append(plate)
         top += row["height"] + row["gap"]
     for name, ps in plates.items():
@@ -126,8 +141,8 @@ def _paint(im, rows, x, top, centered, lay):
 
 
 BRAND_TEXT = "RELIC & RIDDLE"
-BRAND_PX, BRAND_TRACK = 40, 3.0
-MARK_R, MARK_GAP = 10, 16   # the gold diamond (the brand's mark, as on the end card) and its gap to the name
+BRAND_PX, BRAND_TRACK = 64, 4.0
+MARK_R, MARK_GAP = 13, 20   # the gold diamond (the brand's mark, as on the end card) and its gap to the name
 
 
 def _brand(im, lay, centered=False, paper=False):
@@ -143,7 +158,9 @@ def _brand(im, lay, centered=False, paper=False):
     measure = ImageDraw.Draw(im)
     name_w = text_size(measure, BRAND_TEXT, font)[0] + BRAND_TRACK * (len(BRAND_TEXT) - 1)
     group = 2 * MARK_R + MARK_GAP + name_w
-    x0 = round(540 - group / 2) if centered else 84
+    # One place on every style (2026-11-02 design review: it moved between left and centre): centred on the
+    # canvas, the same band in the profile grid's square on every tile.
+    x0 = round(540 - group / 2)
     top = 462
     cap = font.getbbox("R", anchor="lt")
     cy = top + (cap[1] + cap[3]) / 2
@@ -350,8 +367,8 @@ def _monument(im, copy, lay, tight, source, focus):
     factor = 0.88 if tight else 1.0
     # The figure: as large as fits the width, up to 330 px (it is the cover's one idea).
     from .typography import fit_font
-    num_font = fit_font(measure, number, "Anton", int(330 * factor), width - (260 if unit else 0), 160)
-    unit_font = get_font("Anton", max(64, int(num_font.size * 0.36)))
+    num_font = fit_font(measure, number, "Anton", int(420 * factor), width - (240 if unit else 0), 160)
+    unit_font = get_font("Anton", max(72, int(num_font.size * 0.33)))
     eyebrow_rows, title_rows, tag_rows = [], [], []
     if eyebrow:
         lines, f_e, _ = fit_text(measure, eyebrow, "Montserrat", int(36 * factor), width, 1, 28, sentences=False,
@@ -376,7 +393,7 @@ def _monument(im, copy, lay, tight, source, focus):
         tag_rows = [(lines[0], f_g, brand.STONE_LT)]
 
     num_h = cap_h(num_font)
-    gaps = {"eyebrow": 26, "number": 34, "title": 10, "tagline": 0}
+    gaps = {"eyebrow": 26, "number": 34 + DIM_ROOM, "title": 10, "tagline": 0}
     stack = (sum(text_size(measure, t, f)[1] + gaps["eyebrow"] for t, f, _ in eyebrow_rows) + num_h + gaps["number"]
              + sum(text_size(measure, t, f)[1] + gaps["title"] for _, t, f, _ in title_rows) + 14
              + sum(text_size(measure, t, f)[1] for t, f, _ in tag_rows))
@@ -401,9 +418,20 @@ def _monument(im, copy, lay, tight, source, focus):
         y += text_size(measure, t, f)[1] + gaps["eyebrow"]
     base = y + num_h
     put("figure", number, num_font, brand.GOLD, (margin, base), anchor="ls")
+    right = margin + text_size(measure, number, num_font)[0]
     if unit:
-        nx = margin + text_size(measure, number, num_font)[0] + 22
+        nx = right + 22
         put("figure_unit", unit, unit_font, brand.GOLD, (nx, base), anchor="ls")
+        right = nx + text_size(measure, unit, unit_font)[0]
+    # The style's signature (2026-11-02): a dimension line under the figure, end ticks up, as on a survey drawing.
+    fig_bottom = max(p.box[3] for ps in plates.values() for p in ps if not p.empty)
+    dy = fig_bottom + 30
+    d = ImageDraw.Draw(im)
+    d.line([(margin, dy), (right, dy)], fill=brand.GOLD + (255,), width=4)
+    for xx in (margin, right):
+        d.line([(xx, dy - 16), (xx, dy + 2)], fill=brand.GOLD + (255,), width=4)
+    if lay is not None:
+        lay.add("dimension", (margin, dy - 16, right, dy + 2))
     y = base + gaps["number"]
     for name, t, f, c in title_rows:
         put(name, t, f, c, (margin, y))
@@ -477,6 +505,11 @@ def render_cover(im, copy, style, center_y=960, lay=None, tight=False, source=No
     if lay is not None:
         lay.shortened = shortened
     height = _height(rows)
+    if style == "badge":
+        for row in rows:
+            if row["name"] == "eyebrow":
+                row.update(tab=True, fill=brand.INK, gap=row["gap"] + TAB_PAD[1] + 6)
+    height = _height(rows)
     paper = style == "depth_sandwich"
     if paper:
         for row in rows:
@@ -497,7 +530,7 @@ def render_cover(im, copy, style, center_y=960, lay=None, tight=False, source=No
         ImageDraw.Draw(im).rectangle((60, 440, 1019, 1479), fill=brand.BONE + (255,))
     im = _brand(im, lay, centered, paper)
     if style == "minimal":
-        top = 534
+        top = 560   # below the 64 px masthead (2026-11-02)
         photo_top = top + height + 40
         aperture = (60, photo_top, 1020, 1456)
     else:

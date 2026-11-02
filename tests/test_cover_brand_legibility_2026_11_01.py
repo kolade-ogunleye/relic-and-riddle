@@ -77,7 +77,5 @@ def test_brand_mark_sits_before_the_name_and_group_is_placed(centered: bool) -> 
     assert mark[2] < name[0]                                   # the diamond, then a gap, then the name
     assert out.getpixel(((mark[0] + mark[2]) // 2, (mark[1] + mark[3]) // 2)) == brand.GOLD
     assert mark[1] < (name[1] + name[3]) / 2 < mark[3]         # on the name's centre line
-    if centered:
-        assert abs((mark[0] + name[2]) / 2 - W / 2) <= 6
-    else:
-        assert mark[0] == 84
+    # One place on every style since the 2026-11-02 design review: the mark-and-name group is centred.
+    assert abs((mark[0] + name[2]) / 2 - W / 2) <= 6

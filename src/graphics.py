@@ -4046,7 +4046,7 @@ def render_ventilation_airflow(
     return _render_ventilation_wide(spec, out, width, height)
 
 
-# ----------------------------------------------- LiDAR subterranean radar scan
+# ----------------------------------------------- every graphic for a run (make_all)
 PHOTO_BUILDERS = frozenset({"numbers", "timeline"})  # builders that draw the hero photo as a backdrop
 RETIRED_DIAGRAM_KEYS = ("rolling_stone_defense", "ventilation_airflow")  # payload keys make_all no longer draws
 

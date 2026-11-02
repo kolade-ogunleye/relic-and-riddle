@@ -255,11 +255,42 @@ def register(old: Path, new: Path, matrix: Any, work_dir: Path, stats: dict[str,
     return op, np_
 
 
+# Capture year at source (panel round 4). Commons' DateTimeOriginal often comes from the Information template's date,
+# which for postcards, photochroms, lantern slides, stereograph cards and printmaking (engravings, lithographs) is
+# the date the object was published, not when the photo was taken, so "THEN 1900" would misstate it. An old
+# candidate is refused (fail closed) when its title or categories name such a publication object, or its date text
+# (when the record carries it as "date_text"), title or description says the date is a publication date.
+# Only those objects are named: a bare "print" is not one. "Albumen prints", "Gelatin silver prints" and
+# "Photographic prints" are how Commons files real 19th-century photographs, whose dates are capture dates
+# (round-4 review: matching every print refused most of the genuine old-photo pool).
+PUBLISHED_OBJECT = re.compile(r"\b(post ?cards?|photochroms?|lantern slides?|magic lantern|stereographs?|stereo ?cards?|"
+                              r"stereoviews?|stereoscopic cards?|engravings?|(?:chromo)?lithographs?|woodcuts?|"
+                              r"etchings?)\b", re.IGNORECASE)
+PUBLISHED_DATE = re.compile(r"\b(published|publication|printed|issued)\b", re.IGNORECASE)
+
+
+def capture_dated(cand: dict[str, Any]) -> bool:
+    """Does the candidate's year read as when the photo was taken (not when a postcard or print was issued)?"""
+    title = re.sub(r"[_]+", " ", str(cand.get("title") or ""))
+    cats = " | ".join(str(c) for c in cand.get("categories") or [])
+    if PUBLISHED_OBJECT.search(title) or PUBLISHED_OBJECT.search(cats):
+        return False
+    said = " ".join(str(cand.get(k) or "") for k in ("date_text", "title", "description"))
+    return not PUBLISHED_DATE.search(said)
+
+
 def _candidates(query: str, keywords: list[str], old: bool) -> list[dict[str, Any]]:
     pages = commons.search(query, limit=40, max_wait=60)
     found = commons.candidates(pages, keywords, config.BEAT_IMAGES_ALLOW_SHARE_ALIKE,
                                **({"min_pixels": 400_000, "min_height": 600} if old else {}))
-    return [c for c in found if c.get("year") and ((c["year"] <= OLD_BEFORE) if old else (c["year"] >= NEW_FROM))]
+    out = [c for c in found if c.get("year") and ((c["year"] <= OLD_BEFORE) if old else (c["year"] >= NEW_FROM))]
+    if not old:
+        return out
+    kept = [c for c in out if capture_dated(c)]
+    for c in out:
+        if c not in kept:
+            log.info("Then-and-now: %s skipped: its date reads as a publication date, not a capture year.", c.get("title"))
+    return kept
 
 
 def source(topic: dict[str, Any], work_dir: Path) -> tuple[Path, dict[str, Any], Path, dict[str, Any]] | None:
@@ -341,9 +372,16 @@ def source(topic: dict[str, Any], work_dir: Path) -> tuple[Path, dict[str, Any],
 # the platforms' interface), 16:9 left and right. The divider is BONE. Each year is a mono THEN / NOW kicker in
 # tracked gold over the year in Anton bone, no box, at a measured contrast on every background it sits on (recorded beside the clip).
 # The years are the ones passed in, from each photo's own record; nothing is added.
-KICKER_PX = {"portrait": 28, "landscape": 28}
+# Panel round 4: the kickers read at about 7 pt on a phone (a 20 px cap). Now a 34 px cap on 9:16 (IBM Plex Mono
+# 600 at 48 px, about 0.3 of the year's cap), 40 px on 16:9, tracked 0.15 of size; and one colour for the pair (both
+# gold, or both bone when either fails 4.5:1 at a full halo), so the two labels read in one colour role.
+KICKER_PX = {"portrait": 48, "landscape": 40}
 YEAR_PX = {"portrait": 128, "landscape": 112}
-KICKER_TRACK = 0.22                 # the kicker's letter spacing, as a share of its size
+KICKER_TRACK = 0.15                 # the kicker's letter spacing, as a share of its size
+# Panel round 4: one slow push, identical on both photos (the same scale and centre, eased, 1.00 -> 1 + PUSH over
+# the clip), so registration holds and the split hold is not a still frame. The divider, shades and markers stay
+# fixed on screen.
+PUSH = 0.04
 DIVIDER_W = 5
 WIPE = {"then": 1.2, "to_split": 0.5, "dwell": 0.4, "to_far": 0.5, "settle": 0.8}   # seconds; then the split holds
 SWEEP_TO = 0.8                      # the share of the frame the recent photo reaches before settling back
@@ -377,6 +415,20 @@ def divider_at(t: float, width: int, height: int) -> float:
     if t < t4:
         return split + (far - split) * _ease_io((t - t3) / WIPE["to_far"])
     return far + (split - far) * _ease_io((t - t4) / WIPE["settle"])
+
+
+def push_at(t: float) -> float:
+    """The photos' shared zoom at `t`: 1 at the start, 1 + PUSH at the end, eased."""
+    return 1.0 + PUSH * _ease_io(t / CLIP_SECONDS)
+
+
+def pushed(src: Image.Image, t: float, size: tuple[int, int]) -> Image.Image:
+    """`src` (cover-cropped at (1 + PUSH) x the frame, so the push shows the photo's own detail) at the push's zoom
+    for `t`, centred, at frame `size`: at zoom 1 the whole of `src`, at 1 + PUSH its centre 1 / (1 + PUSH)."""
+    z = push_at(t)
+    cw, ch = src.width / z, src.height / z
+    x0, y0 = (src.width - cw) / 2, (src.height - ch) / 2
+    return src.resize(size, Image.LANCZOS, box=(x0, y0, x0 + cw, y0 + ch))
 
 
 def compose(a: Image.Image, b: Image.Image, pos: float) -> Image.Image:
@@ -429,8 +481,26 @@ def _marker_plate(split_frame: Image.Image, alone: Image.Image, xy: tuple[int, i
 # Its depth holds over the marker (the hull of the anchor and the marker's box) and falls smoothly to nothing
 # SHADE_FALL screen pixels beyond it. Used only when the halo alone falls short; deepened in SHADE_STEPS until
 # the marker holds its floor.
+# Panel round 4: the corner gradient still read as a dark smudge on a dome or a facade, so render() now draws the
+# shade as a full-width edge band: full depth from the frame's top across its width down through the
+# marker, then the same SHADE_FALL smoothstep below, and on every frame kept to the part of the screen its own
+# photo shows at that frame's divider (photo_extent). So THEN's band covers the whole old photo while it is alone
+# and only the THEN panel at the split; it never darkens the recent photo (round-4 review: on 16:9 THEN's band
+# darkened the top of the NOW photo too). The NOW band on 9:16 hangs off the divider wherever it is (full depth
+# from the divider down through the marker), so its top is the divider's own edge, never a cut across the photo.
+# shade_corner stays for the corner form.
+# Round-4 review of the band as rendered (twice): a full-width band, even graduated from the edge, read as a flat grey
+# header bar over the top ~35% of a bright 16:9 frame, with a visible lower edge, and it was the first thing seen
+# (THEN alone). The shade is now a local glow behind the marker only (band_mask): ink at full depth over the
+# marker's lines and BAND_PAD px round them, falling on a smoothstep (no edge) to nothing BAND_FALL px beyond, in
+# every direction, so it starts fading at the marker's top and is gone a short way below its last line. It is
+# deepened in BAND_STEPS from a light start and stops at the first depth at which the marker holds its floor, and it
+# is kept to its own photo at each frame's divider (photo_extent), so on 9:16 NOW's glow hangs from the divider at
+# rest (its upper fall is cut by the divider's own edge) and never darkens the old photo.
 SHADE_ALPHA, SHADE_FALL = 0.5, 180
 SHADE_STEPS = (0.5, 0.62, 0.75, 0.88)
+BAND_PAD, BAND_FALL = 12, 84        # screen px: full depth this far round the marker's lines, gone this far beyond
+BAND_STEPS = (0.2, 0.28, 0.36, 0.45, 0.55, 0.65, 0.75, 0.88)
 
 
 def panel_box(which: str, width: int, height: int) -> tuple[int, int, int, int]:
@@ -453,25 +523,63 @@ def shade_corner(which: str, boxes: list, width: int, height: int) -> tuple[int,
 
 
 def _shade_mask(size: tuple[int, int], boxes: list, corner: tuple[int, int] | None = None,
-                alpha: float = SHADE_ALPHA) -> Image.Image:
+                alpha: float = SHADE_ALPHA, pad: float = 0, fall: float = SHADE_FALL,
+                lines: bool = False) -> Image.Image:
     """An ink gradient (L mode, 0..255 at `alpha`) anchored at `corner` (default the top-left) on the frame's edge:
     full over the hull of the anchor and the box round the markers' `boxes`, then a smoothstep to 0 over SHADE_FALL px of screen
     distance past that hull (measured in pixels, so the fall-off is the same width on 9:16 and 16:9; panel round 3
-    review: a fade over normalised ellipse radius came to ~30 px on 16:9, a hard-edged half-disc)."""
+    review: a fade over normalised ellipse radius came to ~30 px on 16:9, a hard-edged half-disc). `pad` holds full
+    depth that many px past the hull and `fall` sets the fall-off's width; `lines` measures from each of `boxes`
+    itself, not a hull (glow_mask's local glow: a block's empty corner beside a short kicker read as a grey box)."""
     import cv2
     import numpy as np
     w, h = size
     ax, ay = corner if corner is not None else (0, 0)
     x0, y0 = min(b[0] for b in boxes), min(b[1] for b in boxes)
     x1, y1 = max(b[2] for b in boxes), max(b[3] for b in boxes)     # the marker's lines as one block
-    pts = np.array([(ax, ay), (x0, y0), (x1, y0), (x1, y1), (x0, y1)], np.float32)
-    hull = cv2.convexHull(pts).round().astype(np.int32)
     outside = np.full((h, w), 255, np.uint8)
-    cv2.fillConvexPoly(outside, hull, 0)
+    if lines:
+        for b in boxes:
+            cv2.rectangle(outside, (round(b[0]), round(b[1])), (round(b[2]) - 1, round(b[3]) - 1), 0, -1)
+    else:
+        pts = np.array([(ax, ay), (x0, y0), (x1, y0), (x1, y1), (x0, y1)], np.float32)
+        cv2.fillConvexPoly(outside, cv2.convexHull(pts).round().astype(np.int32), 0)
     d = cv2.distanceTransform(outside, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)   # px to the hull; 0 inside it
-    f = np.clip(d / SHADE_FALL, 0.0, 1.0)
+    f = np.clip((d - pad) / fall, 0.0, 1.0)
     f = 1.0 - f * f * (3 - 2 * f)            # smoothstep fall-off
     return Image.fromarray(np.round(255 * alpha * f).astype(np.uint8), "L")
+
+
+def glow_mask(boxes: list, width: int, height: int, alpha: float = SHADE_ALPHA) -> Image.Image:
+    """Ink (L mode, 0..255 at `alpha`) at full depth over each of the marker's lines `boxes` grown by BAND_PAD,
+    then a smoothstep to 0 over BAND_FALL px of screen distance past the nearest line: a soft glow behind the
+    marker that follows its lines' shape, no edge and no box."""
+    return _shade_mask((width, height), boxes, None, alpha, pad=BAND_PAD, fall=BAND_FALL, lines=True)
+
+
+def photo_extent(which: str, pos: float, width: int, height: int) -> tuple[int, int, int, int]:
+    """Where the old (THEN) or recent (NOW) photo shows with the divider at `pos` (compose): THEN before it, NOW
+    after it."""
+    p = round(max(0, min(max(width, height), pos)))
+    if width > height:
+        return (0, 0, p, height) if which == "then" else (p, 0, width, height)
+    return (0, 0, width, p) if which == "then" else (0, p, width, height)
+
+
+def clip_to_photo(mask: Image.Image, which: str, pos: float) -> Image.Image:
+    """`mask` kept to the part of the screen `which`'s photo shows at divider `pos` (nothing elsewhere)."""
+    x0, y0, x1, y1 = photo_extent(which, pos, mask.width, mask.height)
+    out = Image.new("L", mask.size, 0)
+    if x1 > x0 and y1 > y0:
+        out.paste(mask.crop((x0, y0, x1, y1)), (x0, y0))
+    return out
+
+
+def band_mask(which: str, boxes: list, width: int, height: int, alpha: float = SHADE_ALPHA,
+              pos: float | None = None) -> Image.Image:
+    """The marker's shade: its glow (glow_mask), kept to the part of the screen its own photo shows with the
+    divider at `pos` (default the split, where the clip rests), so neither shade darkens the other photo."""
+    return clip_to_photo(glow_mask(boxes, width, height, alpha), which, _split_at(width, height) if pos is None else pos)
 
 
 def _union(masks: list) -> Image.Image:
@@ -492,9 +600,12 @@ def _shade(im: Image.Image, mask: Image.Image, alpha: float = 1.0) -> Image.Imag
 
 
 def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> Path:
-    """The old photo, the recent one wiped across it, then both side by side to the end, each with its year."""
-    a = cover_crop(old, (width, height)).convert("RGB")
-    b = cover_crop(new, (width, height)).convert("RGB")
+    """The old photo, the recent one wiped across it, then both side by side to the end, each with its year; both
+    photos under one slow push (push_at)."""
+    size = (width, height)
+    big = (round(width * (1 + PUSH)), round(height * (1 + PUSH)))
+    a_src = cover_crop(old, big).convert("RGB")
+    b_src = cover_crop(new, big).convert("RGB")
     n = int(CLIP_SECONDS * VIDEO_FPS)
     key = "landscape" if width > height else "portrait"
     kicker_font = get_font(DATA_FONT, KICKER_PX[key], weight=600)
@@ -502,17 +613,24 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     track = KICKER_PX[key] * KICKER_TRACK
     split = _split_at(width, height)
     edge = max(width, height)
-    # Each marker is planned where it rests (the split) and solved again on the whole photo it also sits on.
-    split_frame, then_frame, now_frame = compose(a, b, split), compose(a, b, edge), compose(a, b, 0)
+    # Each marker is planned where it rests (the split, at the end of the push, where the clip holds) and solved
+    # again on the whole photo it also sits on (THEN alone at the start; NOW at its widest, the sweep's far end).
+    t_far = sum(v for k, v in WIPE.items() if k != "settle")
+    split_frame = compose(pushed(a_src, CLIP_SECONDS, size), pushed(b_src, CLIP_SECONDS, size), split)
+    then_frame = compose(pushed(a_src, 0.0, size), pushed(b_src, 0.0, size), edge)
+    now_frame = compose(pushed(a_src, t_far, size), pushed(b_src, t_far, size), 0)
+    pair_colour: list[Any] = [None]      # one kicker colour for both markers (None: each tries gold first)
+    colours: dict[str, Any] = {}         # the kicker colour each marker was planned in
 
     def plan_marker(which: str, year: int, alone: Image.Image) -> list:
         x, y, anchor = marker_xy(which, width, height)
         nudge = 0 if anchor[0] == "r" else -4   # Anton's side bearing, so the year's stem lines up with the kicker
         # A floor under each halo: the thin mono kicker lost its edge to the grade's chroma smear on a bare photo.
         # Gold, unless a bright sky keeps it under 4.5:1 at a full halo: then bone, which clears it there.
-        for colour in (GOLD, WHITE):
+        for colour in ((pair_colour[0],) if pair_colour[0] is not None else (GOLD, WHITE)):
             kicker = _marker_plate(split_frame, alone, (x, y), which.upper(), kicker_font, colour, anchor, track,
                                    halo_px=36, min_halo=0.5, target=PLACE_TARGET + 0.6)
+            colours[which] = colour
             if (kicker.contrast or 0) >= PLACE_TARGET and (kicker.measure(alone) or 0) >= PLACE_TARGET:
                 break
         figure = _marker_plate(split_frame, alone, (x + nudge, y + round(KICKER_PX[key] * 1.5)), str(year),
@@ -531,39 +649,56 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
         on_split, on_alone = drawn(ps, split_frame), drawn(ps, alone)
         return any(min(p.measure(on_split) or 0, p.measure(on_alone) or 0) < PLACE_TARGET for p in ps)
 
-    plates: dict[str, list] = {}
-    shades: dict[str, Image.Image] = {}
     split0 = split_frame
-    for which, year, alone0 in (("then", old_year, then_frame), ("now", new_year, now_frame)):
-        alone = _shade(alone0, _union([(m, 1.0) for m in shades.values()])) if shades else alone0
-        ps = plan_marker(which, year, alone)
-        if short(ps, alone):
-            # A bright, busy photo the halo alone cannot quiet: an ink gradient from the panel's corner under the
-            # marker (no edge, no box), deepened step by step; the marker is planned again on the shaded pictures.
-            boxes = [p.box for p in ps]
-            corner = shade_corner(which, boxes, width, height)
-            for depth in SHADE_STEPS:
-                shades[which] = _shade_mask((width, height), boxes, corner, depth)
-                both = _union([(m, 1.0) for m in shades.values()])
-                split_frame, alone = _shade(split0, both), _shade(alone0, both)
-                ps = plan_marker(which, year, alone)
-                if not short(ps, alone):
-                    break
-        plates[which] = ps
+
+    def shaded(im: Image.Image, shades: dict[str, Image.Image], pos: float,
+               alphas: dict[str, float] | None = None) -> Image.Image:
+        """`im` (composed with the divider at `pos`) under every band, each kept to its own photo's part of the
+        screen at `pos`; overlapping ones as one (the deeper wins, never stacked)."""
+        if not shades:
+            return im
+        return _shade(im, _union([(clip_to_photo(m, w, pos), 1.0 if alphas is None else alphas[w])
+                                  for w, m in shades.items()]))
+
+    def plan_all() -> tuple[dict[str, list], dict[str, Image.Image]]:
+        nonlocal split_frame
+        split_frame = split0
+        plates: dict[str, list] = {}
+        shades: dict[str, Image.Image] = {}      # each marker's glow on the whole frame; clipped per frame
+        for which, year, alone0, at in (("then", old_year, then_frame, edge), ("now", new_year, now_frame, 0)):
+            alone = shaded(alone0, shades, at)
+            ps = plan_marker(which, year, alone)
+            if short(ps, alone):
+                # A bright, busy photo the halo alone cannot quiet: a soft ink glow behind the marker only (no
+                # edge, no bar), deepened step by step from light; the marker is planned again on the shaded
+                # pictures.
+                boxes = [p.box for p in ps]
+                for depth in BAND_STEPS:
+                    shades[which] = band_mask(which, boxes, width, height, depth, pos=edge if which == "then" else 0)
+                    split_frame, alone = shaded(split0, shades, split), shaded(alone0, shades, at)
+                    ps = plan_marker(which, year, alone)
+                    if not short(ps, alone):
+                        break
+            plates[which] = ps
+        return plates, shades
+
+    plates, shades = plan_all()
+    if len(set(colours.values())) > 1:      # one gold, one bone: both bone, so the pair reads in one colour role
+        pair_colour[0] = WHITE
+        plates, shades = plan_all()
     final: dict[str, Image.Image] = {}
 
     def frames():
         for i in range(n):
             t = i / VIDEO_FPS
             pos = divider_at(t, width, height)
-            im = compose(a, b, pos)
+            im = compose(pushed(a_src, t, size), pushed(b_src, t, size), pos)
             # THEN shows while its panel covers it; NOW from when the recent photo has crossed it.
             then_clear = pos - max(p.box[2] if width > height else p.box[3] for p in plates["then"])
             now_clear = min(p.box[0] if width > height else p.box[1] for p in plates["now"]) - pos
             alphas = {"then": _ease((t - 0.2) / 0.4) * max(0.0, min(1.0, then_clear / 40)),
                       "now": max(0.0, min(1.0, now_clear / 40)) if t > WIPE["then"] else 0.0}
-            if shades:   # every shade under every marker, overlapping ones as one (the deeper wins, never stacked)
-                im = _shade(im, _union([(shades[w], alphas[w]) for w in shades]))
+            im = shaded(im, shades, pos, alphas)   # each band on its own photo only, at this frame's divider
             for which in ("then", "now"):
                 for p in plates[which]:
                     im = p.draw(im, alphas[which])

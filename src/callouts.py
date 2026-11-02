@@ -79,8 +79,9 @@ what you are pointing at; never guess. If no photo clearly shows at least two fe
 
 @llm_task("photo_callouts")
 def plan(photos: list[Path], labels: list[str], topic_title: str, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> tuple | None:
-    """(photo, [(label, x_px, y_px, area)]) for confidently located features (area: the share of the frame the
-    feature covers), or None. Each point is then checked on its own (verify)."""
+    """(photo, [(label, x_px, y_px, area, w_px, h_px)]) for confidently located features (area: the share of the
+    frame the feature covers; w_px, h_px: its extent on the frame, which sizes the focus spotlight), or None. Each
+    point is then checked on its own (verify)."""
     stills = [p for p in photos if not is_video(p)][:MAX_PHOTOS]
     from . import free_llm
     if not (free_llm.ready() and stills and labels):
@@ -109,7 +110,8 @@ def plan(photos: list[Path], labels: list[str], topic_title: str, width: int = V
         return None
     wanted = {lbl.lower() for lbl in labels}
     top, bottom = (int(height * 0.12), int(height * 0.82)) if width > height else (TEXT_TOP, TEXT_BOTTOM)
-    points = [(f.label, f.x * width, f.y * height, max(0.0, f.w) * max(0.0, f.h)) for f in result.features
+    points = [(f.label, f.x * width, f.y * height, max(0.0, f.w) * max(0.0, f.h), max(0.0, f.w) * width,
+               max(0.0, f.h) * height) for f in result.features
               if f.visible and f.confidence == "high" and f.label.lower() in wanted
               and 0.05 < f.x < 0.95 and (top - 80) <= (f.y * height) <= (bottom + 40)]
     if len(points) < 2:
@@ -147,6 +149,40 @@ PUSH_IN = 0.06                                       # the background's push-in 
 RISES = (110, 150, 200, 260, 340, 440)               # leader lengths tried, shortest first
 SIDE_RUNS = (90, 140, 200)                           # side-attached fallback: horizontal leader lengths
 STUB = 40                                            # 9:16: the straight run out of the plate edge before the one bend
+
+
+# The push-in, as one object (zoom(t), where a photo point lands at(t), the crop shown, a dot's track) so the
+# layout, the caption-band check, the spotlight and the frames all use the same push. It is the centred push,
+# 1 -> 1 + PUSH_IN linear over the clip (so loupe_mag holds). Round 4 tried aiming its centre at each label as it
+# was said; the review found that with PUSH_IN 0.06 the clamp that keeps the crop on the photo allows only
+# (1 - 1/z) of a half-frame, about 3 %, so the crop sat pinned to the photo's edge from about 1 s on: a corner drift
+# rather than a visible aim, which kinked the 9:16 stone-door leader. Aiming would need headroom beyond the frame
+# (starting zoomed in, which crops the photo the labels were planned and checked on), so the push stays centred and
+# the spotlight carries the hierarchy.
+
+
+class Push:
+    """The background's centred push-in: zoom(t), and where a point on the unzoomed frame lands at(t)."""
+
+    def __init__(self, width: int, height: int):
+        self.width, self.height = width, height
+
+    def zoom(self, t: float) -> float:
+        return 1.0 + PUSH_IN * max(0.0, min(1.0, t / CLIP_SECONDS))
+
+    def at(self, x: float, y: float, t: float) -> tuple[float, float]:
+        z = self.zoom(t)
+        return self.width / 2 + (x - self.width / 2) * z, self.height / 2 + (y - self.height / 2) * z
+
+    def crop(self, t: float) -> tuple[float, float, float, float]:
+        """The part of the frame-sized photo shown at `t`."""
+        z = self.zoom(t)
+        cw, ch = self.width / z, self.height / z
+        return (self.width - cw) / 2, (self.height - ch) / 2, (self.width + cw) / 2, (self.height + ch) / 2
+
+    def track(self, x: float, y: float) -> list[tuple[float, float]]:
+        """The positions the point takes: where it starts and where it ends (a straight line out from the centre)."""
+        return [self.at(x, y, 0.0), self.at(x, y, CLIP_SECONDS)]
 
 
 def text_box(width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> tuple[int, int, int, int]:
@@ -242,9 +278,11 @@ def _stub(path: list[tuple[float, float]]) -> float:
     return ((bx - ax) ** 2 + (by - ay) ** 2) ** 0.5
 
 
-def _route_ok(dot: tuple[float, float], end: tuple[float, float], edge: str, zoomed: tuple[float, float]) -> bool:
-    """The 45-degree run fits with a stub of STUB px or more, where the dot starts and where the push-in takes it."""
-    for d in (dot, zoomed):
+def _route_ok(dot: tuple[float, float], end: tuple[float, float], edge: str, zoomed: Any) -> bool:
+    """The 45-degree run fits with a stub of STUB px or more, where the dot starts and where the push-in takes it
+    (`zoomed`: one position, or every position along the push)."""
+    rest = [zoomed] if zoomed and isinstance(zoomed[0], (int, float)) else list(zoomed)
+    for d in (dot, *rest):
         along = abs(d[1] - end[1]) if edge in ("top", "bottom") else abs(d[0] - end[0])
         across = abs(d[0] - end[0]) if edge in ("top", "bottom") else abs(d[1] - end[1])
         if across >= 1 and along - across < STUB:
@@ -255,15 +293,17 @@ def _route_ok(dot: tuple[float, float], end: tuple[float, float], edge: str, zoo
 
 
 def _candidates(x: float, y: float, pw: int, ph: int, bounds: tuple, landscape: bool, width: int,
-                height: int | None = None) -> list[dict]:
+                height: int | None = None, track: list[tuple[float, float]] | None = None) -> list[dict]:
     """Placements for a pw x ph plate for the dot at (x, y), each with a preference `rank` (lower is better), the
     edge its leader meets and its leader path. Top/bottom attachments (centred text) rank before side ones."""
     bx0, by0, bx1, by1 = bounds
     out: list[dict] = []
     outward = 1 if x >= width / 2 else -1
     above_first = y - RISES[0] - ph >= by0   # above the feature when there is room, as a caption reads
-    z = 1.0 + PUSH_IN
-    zoomed = (width / 2 + (x - width / 2) * z, (height or 2 * y) / 2 + (y - (height or 2 * y) / 2) * z)
+    if track is None:
+        z = 1.0 + PUSH_IN
+        track = [(width / 2 + (x - width / 2) * z, (height or 2 * y) / 2 + (y - (height or 2 * y) / 2) * z)]
+    zoomed = track
 
     def add(box: tuple, edge: str, elbow: float | None, rank: float) -> None:
         if box[0] < bx0 or box[2] > bx1 or box[1] < by0 or box[3] > by1:
@@ -310,27 +350,29 @@ def _pair_cost(a: dict, b: dict) -> float:
 
 
 def layout_labels(points: list[tuple], width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
-                  loupe: bool = True) -> list[dict[str, Any]]:
+                  loupe: bool = True, push: Push | None = None) -> list[dict[str, Any]]:
     """Where each label goes: its lines and font, its plate box (inside text_box), the edge its leader meets
     ("top"/"bottom"/"left"/"right"), its text anchor, and the leader's fixed end at that edge's centre. In the order
     of `points` (each (label, x, y[, area])). All labels are placed together (a small branch-and-bound over each
     label's candidate placements), so an early label never takes the only room a later one had. A label that still
     clashes with another or crosses its leader is marked `conflict` (declutter drops it). `loupe`: False when the
-    photo has no native detail to magnify (see loupe_mag)."""
+    photo has no native detail to magnify (see loupe_mag). `push`: the push-in rendered (default the centred one);
+    every position it takes each dot to is checked."""
     landscape = width > height
     key = "landscape" if landscape else "portrait"
     bounds = bx0, by0, bx1, by1 = text_box(width, height)
     measure = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    z = 1.0 + PUSH_IN
+    push = push or Push(width, height)
     lr = _loupe_r(width, height)
+    tracks = [push.track(p[1], p[2]) for p in points]
 
-    def dot_box(x: float, y: float, r: float) -> tuple:   # the dot where it starts and where the push-in takes it
-        zx, zy = width / 2 + (x - width / 2) * z, height / 2 + (y - height / 2) * z
-        return (min(x, zx) - r, min(y, zy) - r, max(x, zx) + r, max(y, zy) + r)
+    def dot_box(k: int, r: float) -> tuple:   # the dot wherever the push-in takes it
+        xs, ys = [q[0] for q in tracks[k]], [q[1] for q in tracks[k]]
+        return (min(xs) - r, min(ys) - r, max(xs) + r, max(ys) + r)
 
     li = loupe_index(points) if loupe else None
     loupes = [k == li for k in range(len(points))]
-    dots = [dot_box(p[1], p[2], lr if lp else DOT_R) for p, lp in zip(points, loupes)]
+    dots = [dot_box(k, lr if lp else DOT_R) for k, lp in enumerate(loupes)]
     fitted, cands = [], []
     for k, p in enumerate(points):
         label, x, y = p[0], p[1], p[2]
@@ -341,14 +383,14 @@ def layout_labels(points: list[tuple], width: int = VIDEO_WIDTH, height: int = V
         fitted.append((lines, font, step, pw, ph))
         if loupes[k]:   # the inset rides with its plate: stacked beyond it (top/bottom leader) or beside it (side)
             tall = [c for c in _candidates(x, y, max(pw, 2 * lr), ph + LOUPE_GAP + 2 * lr, bounds, landscape, width,
-                                           height) if c["edge"] in ("top", "bottom")]
+                                           height, tracks[k]) if c["edge"] in ("top", "bottom")]
             wide = [c for c in _candidates(x, y, pw + LOUPE_GAP + 2 * lr, max(ph, 2 * lr), bounds, landscape, width,
-                                           height) if c["edge"] in ("left", "right")]
+                                           height, tracks[k]) if c["edge"] in ("left", "right")]
             cs = sorted(tall + wide, key=lambda c: c["rank"])
             cs = [c for c in cs if not _overlaps(c["box"], dots[k], LOUPE_LEADER)
                   and (c["elbow"] is None or abs(c["elbow"] - x) >= lr + LOUPE_LEADER)] or cs
         else:
-            cs = _candidates(x, y, pw, ph, bounds, landscape, width, height)
+            cs = _candidates(x, y, pw, ph, bounds, landscape, width, height, tracks[k])
         for c in cs:
             c["static"] = c["rank"] + 10_000 * (
                 _overlaps(c["box"], dots[k], LABEL_GAP // 2)
@@ -416,6 +458,122 @@ def layout_labels(points: list[tuple], width: int = VIDEO_WIDTH, height: int = V
                     "loupe": loupes[k], "loupe_at": loupe_at, "conflict": bool(conflict),
                     "elbow": (round(c["elbow"]), p[2]) if c["elbow"] is not None else None})
     return out
+
+
+# Caption band (panel round 4: a low dot ran its leader from the plate down through the caption pills). No dot (its
+# pulse ring, or its loupe's source ring) may reach caption_top, where it starts or anywhere the push takes it. A
+# leader runs from the dot to its plate, and every plate sits inside text_box (above the band), so a leader never
+# reaches lower than its dot: keeping the dots out keeps the leaders out. Applied in make() before declutter, so
+# layout_labels and declutter keep their contracts. 16:9: the burned-in captions' zone, as video_qa checks it.
+CAPTION_TOP_169 = 905                                # y at 1080 tall (src/video_qa.py caption_zone_top)
+
+
+def caption_top(width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> int:
+    """The highest y a caption reaches: the top of the 9:16 caption band, or the 16:9 caption zone."""
+    if width > height:
+        return round(CAPTION_TOP_169 * height / 1080)
+    return safe_zones.caption_band_top(width, height)
+
+
+def clear_of_captions(points: list[tuple], width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
+                      mag: float = 0.0, push: Push | None = None) -> list[tuple]:
+    """`points` without any whose dot reaches the caption band at the start of the clip or anywhere along the push
+    (`mag`: the loupe's magnification, 0 for none; the loupe's feature is ringed at loupe_r / mag)."""
+    push = push or Push(width, height)
+    top = caption_top(width, height)
+    li = loupe_index(points) if mag > 0 else None
+    kept = []
+    for k, p in enumerate(points):
+        r = (_loupe_r(width, height) / mag + 5) if k == li else DOT_R
+        low = max(q[1] for q in [(p[1], p[2]), *push.track(p[1], p[2])])
+        if low + r >= top:
+            log.info("Callouts: '%s' dropped: its dot reaches the caption band (y %d >= %d).", p[0], round(low + r), top)
+            continue
+        kept.append(p)
+    return kept
+
+
+# Focus spotlight (panel round 4: two labels at equal weight on an evenly lit wall gave the frame no hierarchy).
+# While a label is the newest one said, the frame outside a soft ellipse round its feature is darkened SPOT_DARK
+# more, on top of the global dim. The ellipse is the vision model's feature extent (w, h) grown by SPOT_PAD, never
+# under SPOT_MIN, never over SPOT_MAX of the frame's short side, feathered over SPOT_FEATHER px, and it rides the
+# push. It eases in over the dot and the leader (DOT_GROW + LEADER_DRAW) and moves to the next label on that label's
+# cue. It is drawn under the plates, leaders and loupe, so their fills and text are measured over it as before.
+SPOT_DARK, SPOT_PAD, SPOT_FEATHER = 0.2, 1.25, 140
+SPOT_MIN = 1.5 * DOT_R
+SPOT_MAX = 0.35
+SPOT_SCALE = 4                                       # the mask is drawn at 1/SPOT_SCALE and smoothed up
+
+# Measuring under the spotlight (round-4 review). The spotlight moves, so no single frame bounds every label: at the
+# clip's last frame an earlier label sits in ground 20 % darker than while it was the newest. Each label's text and
+# non-text marks are therefore measured on every probe frame from when its plate is fully open to the end (every
+# MEASURE_STEP, and each point where the spotlight starts or finishes moving), and planned and guarded on the worst
+# of them; the recorded "drawn" ratio is the lowest over every delivered frame the label is fully shown on.
+MEASURE_STEP = 0.5                                   # seconds between a label's probe frames
+
+
+def probe_frames(k: int, starts: list[float], n: int, fps: float = VIDEO_FPS) -> list[int]:
+    """The frame indices label `k` is measured on: from the first frame its plate is fully open to the last frame,
+    every MEASURE_STEP, plus each frame where the spotlight starts or settles (a label's start, and that plus the
+    dot and leader's draw)."""
+    import math
+    last = n - 1
+    first = min(last, math.ceil((starts[k] + DOT_GROW + LEADER_DRAW + LABEL_FADE) * fps - 1e-6))
+    ts = {first, last}
+    ts |= {math.ceil((s + d) * fps - 1e-6) for s in starts for d in (0.0, DOT_GROW + LEADER_DRAW)}
+    step = max(1, round(MEASURE_STEP * fps))
+    ts |= set(range(first, last + 1, step))
+    return sorted(i for i in ts if first <= i <= last)
+
+
+def spot_axes(point: tuple, width: int, height: int) -> tuple[float, float]:
+    """The spotlight's semi-axes for `point`: its feature's extent (w_px, h_px), else a circle of its area."""
+    if len(point) > 5 and point[4] and point[5]:
+        a, b = float(point[4]) / 2, float(point[5]) / 2
+    elif len(point) > 3 and point[3]:
+        a = b = (float(point[3]) * width * height) ** 0.5 / 2
+    else:
+        return SPOT_MIN, SPOT_MIN
+    cap = SPOT_MAX * min(width, height)
+    return (min(cap, max(SPOT_MIN, a * SPOT_PAD)), min(cap, max(SPOT_MIN, b * SPOT_PAD)))
+
+
+def spot_mask(size: tuple[int, int], centre: tuple[float, float], axes: tuple[float, float]) -> Any:
+    """1 inside the ellipse, a smoothstep to 0 over SPOT_FEATHER px past it (float array, frame size)."""
+    import numpy as np
+    w, h = size
+    sw, sh = max(1, w // SPOT_SCALE), max(1, h // SPOT_SCALE)
+    ys, xs = np.mgrid[0:sh, 0:sw].astype(np.float32)
+    xs, ys = (xs + 0.5) * w / sw, (ys + 0.5) * h / sh
+    a, b = axes
+    d = np.sqrt(((xs - centre[0]) / a) ** 2 + ((ys - centre[1]) / b) ** 2)
+    u = np.clip((d - 1.0) * min(a, b) / SPOT_FEATHER, 0.0, 1.0)
+    small = 1.0 - u * u * (3 - 2 * u)
+    up = Image.fromarray(np.round(small * 255).astype(np.uint8), "L").resize((w, h), Image.BILINEAR)
+    return np.asarray(up, dtype=np.float32) / 255
+
+
+def spotlight(im: Image.Image, t: float, points: list[tuple], starts: list[float], push: Push) -> Image.Image:
+    """`im` darkened SPOT_DARK outside the newest label's ellipse (crossfading from the one before on its cue)."""
+    import numpy as np
+    order = sorted(range(len(points)), key=lambda k: starts[k])
+    begun = [k for k in order if t >= starts[k]]
+    if not begun:
+        return im
+    ramp = DOT_GROW + LEADER_DRAW
+    strength = SPOT_DARK * _ease((t - starts[begun[0]]) / ramp)
+    if strength <= 0:
+        return im
+    cur = begun[-1]
+    w_cur = _ease_io((t - starts[cur]) / ramp) if len(begun) > 1 else 1.0
+    z = push.zoom(t)
+    inside = 0.0
+    for k, wk in ((cur, w_cur), *(((begun[-2], 1.0 - w_cur),) if len(begun) > 1 and w_cur < 1 else ())):
+        a, b = spot_axes(points[k], im.width, im.height)
+        inside = inside + wk * spot_mask(im.size, push.at(points[k][1], points[k][2], t), (a * z, b * z))
+    factor = 1.0 - strength * (1.0 - np.clip(inside, 0.0, 1.0))
+    arr = np.asarray(im.convert("RGB"), dtype=np.float32) * factor[..., None]
+    return Image.fromarray(np.clip(arr + 0.5, 0, 255).astype(np.uint8), "RGB")
 
 
 def declutter(points: list[tuple], width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
@@ -641,17 +799,19 @@ def native_scale(photo: Path, width: int, height: int) -> float:
 
 def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
            reveal: list[float] | None = None) -> Path:
-    """Slow push-in on the photo; each feature at its cue (`reveal[k]`, the word that names it; else a fixed
-    stagger), from LEAD_FRAMES before it: its dot grows (or its loupe's source ring), the leader draws out to the
-    plate, the plate wipes open from that edge. Once a newer label is said the older ones' leaders, dots and
-    outlines step back to DIM_OLDER; their text stays full. Labels stay inside the platforms' text box."""
+    """Slow centred push-in on the photo (Push); each feature at its cue (`reveal[k]`, the word that names it; else
+    a fixed stagger), from LEAD_FRAMES before it: its dot grows (or its loupe's source ring), the leader draws out to the
+    plate, the plate wipes open from that edge, and the spotlight moves to it. Once a newer label is said the older
+    ones' leaders, dots and outlines step back to DIM_OLDER; their text stays full. Labels stay inside the
+    platforms' text box."""
     base = cover_crop(photo, (width, height)).convert("RGB")
     n = int(CLIP_SECONDS * VIDEO_FPS)
     native = native_scale(photo, width, height)
     mag = loupe_mag(native)
-    labels = layout_labels(points, width, height, loupe=mag > 0)
     cues = list(reveal) if reveal and len(reveal) == len(points) else stagger_times([p[0] for p in points])
     starts = [c - LEAD_FRAMES / VIDEO_FPS for c in cues]
+    push = Push(width, height)
+    labels = layout_labels(points, width, height, loupe=mag > 0, push=push)
     nexts = [min((s for s in starts if s > starts[k] + 1e-6), default=None) for k in range(len(points))]
     landscape = width > height
     loupe_r = _loupe_r(width, height)
@@ -662,29 +822,41 @@ def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH
     vk = view.width / width if view is not None else 1.0
 
     def background(t: float) -> Image.Image:
-        z = 1.0 + PUSH_IN * (t / CLIP_SECONDS)  # gentle push-in, centred (points scale with it)
-        cw, ch = width / z, height / z
-        im = base.resize((width, height), Image.LANCZOS,
-                         box=((width - cw) / 2, (height - ch) / 2, (width + cw) / 2, (height + ch) / 2)).convert("RGB")
+        # gentle centred push-in (points move with it), dimmed slightly so labels read, then the focus spotlight
+        # on the newest label's feature
+        im = base.resize((width, height), Image.LANCZOS, box=push.crop(t)).convert("RGB")
         d = ImageDraw.Draw(im, "RGBA")
-        d.rectangle([0, 0, width, height], fill=(0, 0, 0, int(70 * _ease(t / 0.8))))  # dim slightly so labels read
-        return im
+        d.rectangle([0, 0, width, height], fill=(0, 0, 0, int(70 * _ease(t / 0.8))))
+        return spotlight(im, t, points, starts, push)
 
     def plates_on(im: Image.Image, lab: dict[str, Any], a: float, outline: float = 1.0) -> None:
         d = ImageDraw.Draw(im, "RGBA")
         d.rounded_rectangle(lab["box"], radius=12, fill=rgba(INK, int(PLATE_ALPHA * a)),
                             outline=rgba(GOLD, int(220 * a * outline)), width=2)
 
-    # The label lines are planned on the clip's last frame, plates up, and drawn from those plans on every frame.
-    t_end = (n - 1) / VIDEO_FPS
-    ref = background(t_end)
-    for lab in labels:
-        plates_on(ref, lab, 1.0)
-    for lab in labels:
+    # Each label line is planned on the worst of the label's probe frames (probe_frames: the spotlight moves, so the
+    # last frame alone no longer bounds the frames where the label was the newest), plates up, and drawn from that
+    # plan on every frame: the plan with the deepest halo the line needed on any of them.
+    probes = [probe_frames(k, starts, n) for k in range(len(points))]
+    grounds: dict[int, Image.Image] = {}
+
+    def ground(i: int) -> Image.Image:
+        if i not in grounds:
+            g = background(i / VIDEO_FPS)
+            for lab in labels:
+                plates_on(g, lab, 1.0)
+            grounds[i] = g
+        return grounds[i]
+
+    for k, lab in enumerate(labels):
         cy = (lab["box"][1] + lab["box"][3]) / 2
         first = cy - lab["step"] * (len(lab["lines"]) - 1) / 2
-        lab["plates"] = [plan_text(ref, (lab["text_x"], round(first + j * lab["step"])), line, lab["font"], WHITE,
-                                   anchor=lab["anchor"]) for j, line in enumerate(lab["lines"])]
+        lab["plates"] = []
+        for j, line in enumerate(lab["lines"]):
+            xy = (lab["text_x"], round(first + j * lab["step"]))
+            plans = [plan_text(ground(i), xy, line, lab["font"], WHITE, anchor=lab["anchor"]) for i in probes[k]]
+            lab["plates"].append(max(plans, key=lambda q: (q.halo, -(q.contrast if q.contrast is not None else 99.0))))
+    grounds.clear()
     guard = [0] * len(points)       # each label's step in _GUARD
 
     def ring(d: ImageDraw.ImageDraw, cx: float, cy: float, r: float, a: float, mk: Any = None) -> None:
@@ -695,7 +867,7 @@ def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH
             mk.ellipse([cx - r - 1, cy - r - 1, cx + r + 1, cy + r + 1], outline=255, width=2)
 
     def draw(t: float, masks: dict | None = None) -> Image.Image:
-        z = 1.0 + PUSH_IN * (t / CLIP_SECONDS)
+        z = push.zoom(t)
         bg = background(t)
         im = bg.copy()
         for k, p in enumerate(points):
@@ -707,7 +879,7 @@ def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH
             lab = labels[k]
             casing, dim_to = _GUARD[guard[k]]
             dim = 1.0 if nexts[k] is None else 1 - (1 - dim_to) * _ease((t - nexts[k]) / 0.25)
-            px, py = width / 2 + (x - width / 2) * z, height / 2 + (y - height / 2) * z
+            px, py = push.at(x, y, t)
             if landscape:
                 path = [(px, py), *([(lab["elbow"][0], py)] if lab["elbow"] else []), lab["end"]]
             else:
@@ -763,18 +935,25 @@ def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH
                 im = Image.composite(layer, im, _wipe_mask((width, height), lab["box"], lab["attach"], w))
         return im
 
-    def measure_nontext() -> tuple[Image.Image, list[dict[str, Any]]]:
-        masks: dict = {}
-        frame = draw(t_end, masks)
-        rows = []
-        for k, mk in masks.items():
-            for e, m in mk.items():
-                band = LEADER_HALO if e == "leader" else 2
-                rows.append({"name": f"label_{k + 1}_{e}", "ratio": nontext_contrast(frame, m, band),
-                             "casing": _GUARD[guard[k]][0], "dim": _GUARD[guard[k]][1]})
-        return frame, rows
+    def measure_nontext() -> list[dict[str, Any]]:
+        """Each leader, dot and loupe ring at its lowest ratio over its label's probe frames."""
+        worst: dict[str, dict[str, Any]] = {}
+        for i in sorted({i for ps in probes for i in ps}):
+            masks: dict = {}
+            frame = draw(i / VIDEO_FPS, masks)
+            for k, mk in masks.items():
+                if i not in probes[k]:
+                    continue
+                for e, m in mk.items():
+                    band = LEADER_HALO if e == "leader" else 2
+                    name, r = f"label_{k + 1}_{e}", nontext_contrast(frame, m, band)
+                    old = worst.get(name)
+                    if old is None or (r is not None and (old["ratio"] is None or r < old["ratio"])):
+                        worst[name] = {"name": name, "ratio": r, "t": round(i / VIDEO_FPS, 3),
+                                       "casing": _GUARD[guard[k]][0], "dim": _GUARD[guard[k]][1]}
+        return sorted(worst.values(), key=lambda r: (int(r["name"].split("_")[1]), r["name"]))
 
-    _, rows = measure_nontext()
+    rows = measure_nontext()
     for _ in range(len(_GUARD) - 1):
         short = {int(r["name"].split("_")[1]) - 1 for r in rows if r["ratio"] is not None and r["ratio"] < NONTEXT_MIN}
         short = {k for k in short if guard[k] < len(_GUARD) - 1}
@@ -782,25 +961,40 @@ def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH
             break
         for k in short:
             guard[k] += 1
-        _, rows = measure_nontext()
-    final: dict[str, Image.Image] = {}
+        rows = measure_nontext()
+    # Each label's lines are recorded on the delivered frame where they measure lowest, among every frame from when
+    # its plate is fully open (probes[k][0]) to the end.
+    low: dict[int, tuple[float, int, Image.Image]] = {}
 
     def frames():
         for i in range(n):
             im = draw(i / VIDEO_FPS)
-            final["frame"] = im
+            for k, lab in enumerate(labels):
+                if probes[k] and i >= probes[k][0]:
+                    v = min((r for r in (q.measure(im) for q in lab["plates"]) if r is not None), default=None)
+                    if v is not None and (k not in low or v < low[k][0]):
+                        low[k] = (v, i, im)
             yield im
 
     clip = _encode(frames(), out, n, width=width, height=height)
-    if "frame" in final:
-        record_contrast(clip, final["frame"], [(f"label_{k + 1}_{j + 1}", p) for k, lab in enumerate(labels)
-                                               for j, p in enumerate(lab["plates"])])
+    if low:
         import json
+        elements = []
+        for i in sorted({v[1] for v in low.values()}):
+            ks = [k for k, v in low.items() if v[1] == i]
+            got = record_contrast(clip, low[ks[0]][2], [(f"label_{k + 1}_{j + 1}", q) for k in ks
+                                                        for j, q in enumerate(labels[k]["plates"])])
+            elements += [dict(e, t=round(i / VIDEO_FPS, 3)) for e in got.get("elements", [])]
+        elements.sort(key=lambda e: [int(v) for v in e["name"].split("_")[1:]])
         side = Path(str(clip) + ".contrast.json")
         try:
             rec = json.loads(side.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             rec = {"clip": Path(clip).name}
+        vals = [e["graded"] if e.get("graded") is not None else e.get("drawn") for e in elements]
+        vals = [v for v in vals if v is not None]
+        rec["elements"], rec["min"] = elements, (min(vals) if vals else None)
+        rec["measured_on"] = "each label's lowest delivered frame from its plate fully open to the end (t)"
         rec["nontext_target"] = NONTEXT_MIN
         rec["nontext"] = rows
         rec["loupe_mag"] = mag if any(lab["loupe"] for lab in labels) else None
@@ -926,7 +1120,12 @@ def make(payload: dict[str, Any], topic: dict[str, Any], photos: list[Path], wor
         if len(points) < 2:
             log.info("Callouts: fewer than two labels passed their check; no graphic.")
             return None
-        points = declutter(points, width, height, loupe=loupe_mag(native_scale(photo, width, height)) > 0)
+        mag = loupe_mag(native_scale(photo, width, height))
+        points = clear_of_captions(points, width, height, mag)
+        if len(points) < 2:
+            log.info("Callouts: fewer than two labels clear the caption band; no graphic.")
+            return None
+        points = declutter(points, width, height, loupe=mag > 0)
         anchor, reveal = reveal_times([p[0] for p in points], payload.get("beat_times"), words, squeeze=False)
         said = [k for k, t in enumerate(reveal) if t is not None]   # a label said after the clip ends is not drawn
         if len(said) < 2:

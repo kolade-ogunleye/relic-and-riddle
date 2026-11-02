@@ -9,7 +9,7 @@ from src import audience, hook_learning, youtube_analytics
 QUESTION_HOOK = "How did a whole city stay hidden under Cappadocia?"
 
 
-def _coordinator(db, payload, retry_hook, retry_passes=True, retry_raises=False, monkeypatch=None):
+def _coordinator(db, payload, retry_hook, retry_passes=True, retry_raises=False, monkeypatch=None, plain_verify=False):
     import main
     calls = []
 
@@ -26,6 +26,8 @@ def _coordinator(db, payload, retry_hook, retry_passes=True, retry_raises=False,
 
         def verify_claims(self, p, topic=None, allow_unreviewed_curated=False):
             ok = p.get("hook_sentence") != retry_hook or retry_passes
+            if plain_verify:   # as the real verify_claims: it does not set guardrail_passed itself
+                return ok, dict(p), "PASSED" if ok else "REJECTED: unsupported claim in the hook."
             return ok, dict(p, guardrail_passed=ok), "PASSED" if ok else "REJECTED: unsupported claim in the hook."
 
         def _load_curated(self, topic_id):
@@ -175,3 +177,19 @@ def test_measured_reels_start_the_steer(db, monkeypatch) -> None:
     monkeypatch.setattr(audience, "table", lambda db: rows)
     form, why = hook_learning.for_run(db, "run_x", {"id": "t"})
     assert form in hook_learning.FORMS and why.startswith("exploring")
+
+
+def test_an_accepted_revision_is_recorded_like_any_passed_draft(db, tmp_path, curated_payload, monkeypatch):
+    """PR review (2026-11-02): the revision replaced the payload after guardrail_passed was set, so the fact
+    review record raised. It now runs before the share line, credits and the guardrail record."""
+    import json as _json
+
+    from src import config as _config
+    sheets = tmp_path / "data" / "fact_sheets"
+    sheets.mkdir(parents=True)
+    (sheets / "t.json").write_text(_json.dumps({"facts": []}), encoding="utf-8")
+    monkeypatch.setattr(_config, "DATA_DIR", tmp_path / "data")
+    c, _ = _coordinator(db, _payload(curated_payload), QUESTION_HOOK, monkeypatch=monkeypatch, plain_verify=True)
+    out = c._write_and_check_script({"id": "t", "title": "T"}, "run_x", tmp_path, dry_run=True)
+    assert out["hook_sentence"] == QUESTION_HOOK and out["hook_plan"]["revised"] is True
+    assert out["guardrail_passed"] is True and "fact_review" in out

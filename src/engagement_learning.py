@@ -42,6 +42,9 @@ QUESTION_STEERS = {
     "open": "Make the caption's question an open one the viewer can answer from their own experience.",
 }
 SHARED = 0.03      # shares + saves per account reached that count as a full reward
+# The Reel's own rows only: carousel and Story rows carry the run's fields but are other posts (PR review,
+# 2026-11-02).
+VIDEO_PLATFORMS = ("instagram", "facebook", "youtube")
 COMMENTED = 0.01   # comments per account reached that count as a full reward
 
 
@@ -96,7 +99,8 @@ def question_reward(row: dict[str, Any]) -> float | None:
 
 def _evidence(rows, key, reward):
     from .learning import per_run_evidence
-    scored = [(r, v) for r in rows if not r.get("unavailable") and r.get(key) for v in [reward(r)] if v is not None]
+    scored = [(r, v) for r in rows if r.get("platform") in VIDEO_PLATFORMS and not r.get("unavailable")
+              and r.get(key) for v in [reward(r)] if v is not None]
     return per_run_evidence(scored, key)
 
 

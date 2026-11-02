@@ -950,10 +950,12 @@ def without_burned_in_text(photos: List[Path], subject: str, minimum: int) -> Li
     the run log says which carry text or an intrusion."""
     from .credits import sha256_file
     import json as _json
+    # The screen cache stays beside the topic's own photos: a caption-strip copy lives under cache/text_crop
+    # (PR review, 2026-11-02: the whole pool's cache followed the first photo there).
+    folder = Path(photos[0]).parent if photos else None
     photos = without_caption_strips(photos)
     if not config.PICTURE_VISION_CHECK or not photos:
         return list(photos)
-    folder = Path(photos[0]).parent
     cache_path = folder / TEXT_SCREEN_FILE
     try:
         cache = _json.loads(cache_path.read_text(encoding="utf-8")) if cache_path.exists() else {}

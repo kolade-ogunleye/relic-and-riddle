@@ -26,6 +26,9 @@ from typing import Any
 log = logging.getLogger(__name__)
 
 FORMS = ("discovery", "question", "figure", "contradiction")
+# The Reel's own rows only: audience.table also holds carousel and Story rows, which carry the run's fields but
+# did not open with its hook (PR review, 2026-11-02).
+VIDEO_PLATFORMS = ("instagram", "facebook", "youtube")
 STEERS = {
     "discovery": "Deliver it as a discovery: say plainly what was found and where, as a revelation.",
     "question": "Deliver it as a question the viewer cannot yet answer and the Reel then answers (a rhetorical "
@@ -92,8 +95,8 @@ def reward(row: dict[str, Any]) -> float | None:
 def evidence(rows: list[dict[str, Any]]) -> dict[str, list[float]]:
     """Each written hook form's rewards, one per run, from audience.table rows on every video platform."""
     from .learning import per_run_evidence
-    scored = [(r, v) for r in rows if not r.get("unavailable") and r.get("hook_form") for v in [reward(r)]
-              if v is not None]
+    scored = [(r, v) for r in rows if r.get("platform") in VIDEO_PLATFORMS and not r.get("unavailable")
+              and r.get("hook_form") for v in [reward(r)] if v is not None]
     return per_run_evidence(scored, "hook_form")
 
 

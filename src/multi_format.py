@@ -186,6 +186,9 @@ def ensure_legible(im: Image.Image, box: Tuple[int, int, int, int], text_rgb=(23
     return Image.composite(black, im.convert("RGB"), shade)
 
 
+_render_state = threading.local()   # the slide being drawn on this thread: its subject
+
+
 class MultiFormatGenerator:
     def generate_story_sequence(self, hero_img_path: Path, script_payload: Dict[str, Any], output_dir: Path,
                                 scene_images: List[Path] = None) -> List[Path]:
@@ -595,9 +598,12 @@ class MultiFormatGenerator:
     def _tag(self, category: str, index: int) -> str:
         """A slide's badge: its category. No slide number ("ENGINEERING // 07"): Instagram shows its own "N/M"
         counter and dots, and our slide-style chrome made the carousel look awkward (operator, 2026-10-28).
-        A slide with no category in Facebook's copy carries the subject's name instead (_kicker_subject): each
-        photo of a Facebook multi-photo post is opened on its own, without the post's caption."""
-        return category or getattr(self, "_kicker_subject", "")
+        Every slide after the cover carries the subject's name (_render_state, per thread), before its category
+        when it has one: each photo of a Facebook multi-photo post is opened on its own, without the caption."""
+        subject = getattr(_render_state, "subject", "")
+        if subject and category:
+            return f"{subject} · {category}"     # the closing slide names its subject too (PR review, 2026-11-02)
+        return category or subject
 
     # Carousel chrome (operator, 2026-10-28): "the design we added to the Instagram carousel to make it look like
     # a slide is needless as Instagram has its own look". The dossier counter ("ARCHIVAL RECORD // 01 OF 07"),
@@ -989,7 +995,8 @@ class MultiFormatGenerator:
         # Every slide after the cover names its subject in its kicker: Facebook's viewer opens one photo at a time
         # with the caption on the first only (2026-11-01), and Instagram's copy carries the same kicker so the two
         # copies keep one system and the gold rule (2026-11-02 design review).
-        self._kicker_subject = subject.upper() if i > 0 else ""
+        # Per thread: the Instagram and Facebook copies render at once on one generator (PR review, 2026-11-02).
+        _render_state.subject = subject.upper() if i > 0 else ""
         cw, chh = self.CAROUSEL_SIZE
         lay = Layout("carousel", (cw, chh), self._zone(cw, chh), tight=tight,
                      protected=[("instagram_counter", self._ig_counter(cw))])

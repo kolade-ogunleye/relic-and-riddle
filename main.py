@@ -2214,6 +2214,27 @@ class PipelineCoordinator:
                     payload["human_reviewed"] = reviewed
                     passed, payload, notes = self.script_engine.verify_claims(payload, topic=topic, allow_unreviewed_curated=dry_run)
 
+        # Soft check on the hook's form: a passed draft that opens in another form than asked is revised once,
+        # its first sentence only, and the revision is kept only if it passes the fact checks again and is in
+        # the asked form. Accuracy outranks the form: otherwise the passed draft stands. It runs before the
+        # share line, the credits and the guardrail record, so an accepted revision gets all of them as any
+        # passed draft does (PR review, 2026-11-02: it lost guardrail_passed and failed the fact record).
+        written = hook_learning.classify(payload.get("hook_sentence", ""))
+        revised = None
+        if (passed and hook_form and written and written != hook_form
+                and payload.get("origin") in ("claude", "gemini-free")):
+            revised = False
+            try:
+                retry = self.script_engine.generate_script(
+                    topic, revision_notes=hook_learning.revision_note(hook_form, payload.get("hook_sentence", "")),
+                    previous=payload)
+                r_passed, retry, r_notes = self.script_engine.verify_claims(retry, topic=topic,
+                                                                           allow_unreviewed_curated=dry_run)
+                if r_passed and hook_learning.classify(retry.get("hook_sentence", "")) == hook_form:
+                    payload, notes, written, revised = retry, r_notes, hook_form, True
+                    drafts += 1
+            except Exception as e:  # noqa: BLE001 - the passed draft stands whatever the revision does
+                log.warning("Hook form revision not used (%s); the passed draft stands.", e)
         if passed:
             # Meta's creator tips (2026-10-25): ask viewers to share, invite them to follow. One line, the
             # writer's when it passes its checks, before the hashtags of both captions; the same line closes
@@ -2239,28 +2260,8 @@ class PipelineCoordinator:
         # Every draft the writer produced, not only the fact-check rounds (the record read "1 round" for a run
         # whose log showed two drafts rejected inside the engine: Memnon, 2026-10-25).
         payload["script_rounds"] = max(drafts, revision + 1)
-        payload["fact_rounds"] = revision + 1
+        payload["fact_rounds"] = revision + 1 + (1 if revised else 0)
         payload["script_round_reasons"] = [r[:200] for r in structural + earlier]
-        # Soft check on the hook's form: a passed draft that opens in another form than asked is revised once,
-        # its first sentence only, and the revision is kept only if it passes the fact checks again and is in
-        # the asked form. Accuracy outranks the form: otherwise the passed draft stands.
-        written = hook_learning.classify(payload.get("hook_sentence", ""))
-        revised = None
-        if (passed and hook_form and written and written != hook_form
-                and payload.get("origin") in ("claude", "gemini-free")):
-            revised = False
-            try:
-                retry = self.script_engine.generate_script(
-                    topic, revision_notes=hook_learning.revision_note(hook_form, payload.get("hook_sentence", "")),
-                    previous=payload)
-                r_passed, retry, r_notes = self.script_engine.verify_claims(retry, topic=topic,
-                                                                           allow_unreviewed_curated=dry_run)
-                if r_passed and hook_learning.classify(retry.get("hook_sentence", "")) == hook_form:
-                    payload, notes, written, revised = retry, r_notes, hook_form, True
-                    payload["fact_rounds"] = revision + 2
-                    payload["script_round_reasons"] = [r[:200] for r in structural + earlier]
-            except Exception as e:  # noqa: BLE001 - the passed draft stands whatever the revision does
-                log.warning("Hook form revision not used (%s); the passed draft stands.", e)
         payload["hook_plan"] = {"asked": hook_form, "written": written, "revised": revised, "why": hook_why}
         payload["engagement_plan"] = {
             "asked": list(asks) if asks else None, "why": asks_why,

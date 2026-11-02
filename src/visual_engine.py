@@ -240,7 +240,7 @@ class VisualEngine:
         from .hero_photo import pick
         from .image_review import strong_stems
         try:
-            stems = strong_stems(Path(first).parent)
+            stems = strong_stems(_topic_folder(Path(first)))
         except (OSError, ValueError, KeyError):  # an unreadable credits file: compare nothing, keep the first
             return first
         return pick(scene_media, stems)
@@ -465,6 +465,22 @@ class VisualEngine:
         im.save(output_path, quality=95)
         log.info("YouTube thumbnail generated: %s", output_path.name)
         return output_path
+
+
+def _topic_folder(photo: Path) -> Path:
+    """The folder holding a photo's credits: its own, or, for a derived copy (a caption-strip crop under
+    cache/text_crop), its original's, through its lineage record (PR review, 2026-11-02)."""
+    if (photo.parent / "credits.json").is_file():
+        return photo.parent
+    try:
+        from .lineage import source_chain
+        sources = [Path(r["path"]) for r in source_chain(photo) if r.get("kind") != "lineage"]
+    except (OSError, ValueError, KeyError):
+        sources = []
+    for src in reversed(sources):
+        if (src.parent / "credits.json").is_file():
+            return src.parent
+    return photo.parent
 
 
 def _in_spoken_units(copy: Dict[str, Any], script_payload: Dict[str, Any]) -> Dict[str, Any]:

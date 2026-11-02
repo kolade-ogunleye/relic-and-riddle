@@ -203,30 +203,49 @@ _RECONSTRUCTION_NON_DEFECT = re.compile(
 _RECONSTRUCTION_REAL_DEFECT = re.compile(
     r"(cut off|truncat|overlap|illegib|unreadable|hard to read|misspel|typo|wrong text|upside|glitch|watermark|logo|garbled)", re.I
 )
+# What an illustration fails to show is a generation failure, never a matter of style (QA lead, 2026-11-02).
+_CONTENT_MISS = re.compile(r"(does ?n[o']t (show|depict|match|feature|include)|not (show|depict|match)|missing|absent|"
+                           r"lacks?|not visible|isn't visible|cannot see|can't see|not pictured)", re.IGNORECASE)
+
+
+def is_reconstruction(asset: Any) -> bool:
+    """Whether a scene file is a generated illustration (by its name, or its lineage back to one): the beats on
+    which the video composer puts the reconstruction badge."""
+    p = Path(str(asset))
+    if p.stem.startswith(("gap_gen_", "gen_")):
+        return True
+    try:
+        _, orig = _lineage_chain(p)
+        return orig.stem.startswith(("gap_gen_", "gen_"))
+    except (OSError, ValueError):
+        return False
+
+
+def reconstruction_style_finding(severity: str, issue: str) -> bool:
+    """True when a finding on a badged illustration only remarks that it is an illustration (its style): never a
+    critical finding, a wrong, invented or anachronistic subject, a content miss, or a real defect."""
+    text = issue or ""
+    return (str(severity).lower() != "critical" and bool(_RECONSTRUCTION_NON_DEFECT.search(text))
+            and not _RECONSTRUCTION_REAL_DEFECT.search(text) and not _WRONG_SUBJECT.search(text)
+            and not _CONTENT_MISS.search(text) and not re.search(r"badge|disclos", text, re.IGNORECASE))
 
 
 def drop_reconstruction_aesthetic_findings(report: Optional[QAReport], assets: Optional[List[Any]]) -> Optional[QAReport]:
-    """The report without false-positive non-photographic complaints on in-house archaeological reconstructions."""
+    """The report without pure style remarks ("it is an illustration, not a photo") on beats whose picture is a
+    labelled illustration, the reconstruction badge on screen for that beat (the composer badges exactly these:
+    is_reconstruction). A finding that matches _WRONG_SUBJECT (an anachronism, an invented or wrong subject), says
+    what it fails to show, names a real defect, or is critical is always kept (QA lead, 2026-11-02)."""
     if report is None or not assets:
         return report
-    def is_recon(a):
-        p = Path(str(a))
-        if p.stem.startswith("gap_gen_"):
-            return True
-        try:
-            _, orig = _lineage_chain(p)
-            return orig.stem.startswith("gap_gen_")
-        except Exception:
-            return False
-
-    reconstructed = {i for i, a in enumerate(assets, 1) if is_recon(a)}
+    reconstructed = {i for i, a in enumerate(assets, 1) if is_reconstruction(a)}
     dropped = [i for i in report.issues
-               if i.beat in reconstructed and _RECONSTRUCTION_NON_DEFECT.search(i.issue) and not _RECONSTRUCTION_REAL_DEFECT.search(i.issue)]
+               if i.beat in reconstructed and reconstruction_style_finding(str(i.severity), i.issue)]
     if not dropped:
         return report
     for i in dropped:
-        log.info("Video check: beat %s complains reconstruction is an illustration (%s); suppressed.", i.beat, i.issue)
-    note = " Not counted (sanctioned in-house archaeological reconstruction): " + "; ".join(f"beat {i.beat}: {i.issue}" for i in dropped)
+        log.info("Video check: beat %s only remarks that its labelled illustration is an illustration (%s); not counted.",
+                 i.beat, i.issue)
+    note = " Not counted (style remark on a labelled illustration): " + "; ".join(f"beat {i.beat}: {i.issue}" for i in dropped)
     return report.model_copy(update={"issues": [i for i in report.issues if i not in dropped],
                                      "summary": (report.summary or "") + note})
 
@@ -264,11 +283,17 @@ _WRONG_SUBJECT = re.compile(
     r"(contradict|wrong|incorrect|misleading|mislabel|invent|fabricat|fake|anachronis|modern (car|vehicle|building|"
     r"city|road|highway|street|tourist|people|person|sign|structure)|different (site|place|building|temple|object|"
     r"era|period|country|city|monument|subject|civili[sz]ation)|another (site|place|building|temple|object|country|"
-    r"city|monument|civili[sz]ation)|unrelated (site|place|building|object|subject)|irrelevant|offensive|misrepresent)",
+    r"city|monument|civili[sz]ation)|unrelated (site|place|building|object|subject)|irrelevant|offensive|misrepresent|"
+    # "shows X instead of / rather than Y" names a different subject on screen (2026-11-02, QA lead); "an
+    # illustration rather than a photo" is about the medium, not the subject, and is left to the rules above.
+    r"(instead of|rather than)(?!\s+(an?\s+|the\s+)?(real\s+|actual\s+|authentic\s+|genuine\s+)?"
+    r"(photo|photograph|picture|image|footage)s?\b)|"
+    r"\bshow(s|n|ing)?\b[^.;]{1,80}?,?\s+not\s+(the|a|an|its)\b)",
     re.IGNORECASE)
 _PICTURE_DEFECT = re.compile(
     r"(watermark|logo|cut off|truncat|overlap|illegib|unreadable|caption|subtitle|text in|printed text|placard|label|"
-    r"glitch|artefact|artifact|stretch|blank|black frame|upside|mirrored|pixelat|low[- ]res|blurry|nudity|injur)", re.IGNORECASE)
+    r"glitch|artefact|artifact|stretch|blank|black frame|upside|mirrored|pixelat|low[- ]res|blurry|nudity|injur|"
+    r"badge|disclos)", re.IGNORECASE)
 COVERAGE_WARNING = "covered by a lower tier ({tier}): "
 
 
@@ -279,28 +304,70 @@ def coverage_warning(issue: str) -> bool:
     return bool(_NOT_SHOWN.search(text) and not _WRONG_SUBJECT.search(text) and not _PICTURE_DEFECT.search(text))
 
 
+COVERAGE_CEILING_BEATS = 2       # more downgraded beats than this, and they all block again
+COVERAGE_CEILING_SHARE = 0.25    # or more than this share of the runtime
+
+
+def _downgradable(row: dict[str, Any], tier: str, planned: str | None) -> bool:
+    """Whether a finding on a cascade-filled beat may become a warning (2026-11-02, QA lead): never a critical one;
+    never on the illustration tier (a generated picture that still does not show its line failed to generate);
+    on a named-subject line only when a detail crop or archive film of the same subject filled it; and only a
+    finding that says the very thing named is not shown (coverage_warning)."""
+    from . import picture_coverage as pc
+    if row.get("severity") not in ("minor", "major"):
+        return False
+    if tier == pc.RECONSTRUCTION:
+        return False
+    if planned == pc.NAMED_SUBJECT and tier not in (pc.DETAIL_CROP, pc.ARCHIVE_FILM):
+        return False
+    return coverage_warning(str(row.get("issue") or ""))
+
+
 def coverage_severity(issues: list[dict[str, Any]], coverage: dict[str, Any] | None) -> list[dict[str, Any]]:
     """The video check's findings (payload["video_check"]["issues"] rows: beat, severity, issue) with each finding on
     a beat a lower cascade tier filled (picture_coverage.cascade_beats) that only says the very thing named is not
-    shown turned into a warning: severity "info" (shown on the card, never a block, src/release.py), "warning": True,
-    its original severity and the tier kept. Every other finding is returned as it was. Never raises."""
+    shown turned into a warning (_downgradable): severity "info" (shown on the card, never a block, src/release.py),
+    "warning": True, its original severity and the tier kept. A ceiling: when the warnings would cover more than
+    COVERAGE_CEILING_BEATS beats or COVERAGE_CEILING_SHARE of the runtime, none is downgraded (they block, marked
+    "coverage_ceiling"). Every other finding is returned as it was. Never raises."""
     from .picture_coverage import cascade_beats
+    rows_in = list(issues or [])
+    if not (isinstance(coverage, dict) and coverage.get("beats")):
+        if rows_in:
+            log.warning("Video check: no beat coverage record could be loaded; every finding keeps its severity.")
+        return rows_in
     try:
         lower = cascade_beats(coverage)
-    except (TypeError, ValueError, KeyError):
-        lower = {}
-    out = []
-    for row in issues or []:
+        meta = {int(r["beat"]): r for r in coverage.get("beats") or [] if isinstance(r, dict) and isinstance(r.get("beat"), int)}
+    except (TypeError, ValueError, KeyError) as e:
+        log.warning("Video check: the beat coverage record could not be read (%s); findings keep their severity.", e)
+        return rows_in
+    out, downgraded = [], set()
+    for row in rows_in:
         if not isinstance(row, dict):
             out.append(row)
             continue
-        tier = lower.get(row.get("beat")) if isinstance(row.get("beat"), int) else None
-        if tier and row.get("severity") in ("minor", "major", "critical") and coverage_warning(str(row.get("issue") or "")):
+        beat = row.get("beat") if isinstance(row.get("beat"), int) else None
+        tier = lower.get(beat) if beat is not None else None
+        if tier and _downgradable(row, tier, (meta.get(beat) or {}).get("planned_visual")):
             row = {**row, "severity": "info", "warning": True, "was": row["severity"], "tier": tier,
                    "issue": COVERAGE_WARNING.format(tier=tier.replace("_", " ")) + str(row.get("issue") or "")}
-            log.info("Video check: beat %s is covered by the %s tier; its finding is a warning: %s", row["beat"], tier,
-                     row["issue"][:160])
+            downgraded.add(beat)
         out.append(row)
+    if not downgraded:
+        return out
+    seconds = {b: float(r.get("seconds") or 0.0) for b, r in meta.items()}
+    runtime = sum(seconds.values())
+    share = (sum(seconds.get(b, 0.0) for b in downgraded) / runtime) if runtime > 0 else 0.0
+    if len(downgraded) > COVERAGE_CEILING_BEATS or share > COVERAGE_CEILING_SHARE:
+        log.warning("Video check: %d beat(s) (%.0f%% of the runtime) would be covered by lower tiers; over the ceiling, "
+                    "their findings block.", len(downgraded), share * 100)
+        return [{**orig, "coverage_ceiling": True} if isinstance(new, dict) and new.get("warning") else orig
+                for orig, new in zip(rows_in, out)]
+    for row in out:
+        if isinstance(row, dict) and row.get("warning"):
+            log.info("Video check: beat %s is covered by the %s tier; its finding is a warning: %s", row["beat"],
+                     row["tier"], row["issue"][:160])
     return out
 
 

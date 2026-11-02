@@ -15,6 +15,14 @@ whatever stood under it was flagged. Two halves:
    our designed graphics, and last a labelled reconstruction (the existing image_gen path and its cap). Holding the
    previous shot (HELD) is what is left when nothing in the cascade could fill the beat.
 
+The cascade follows the line's planned visual class (2026-11-02, illustration panel; src/scene_planner.fit_to_lines):
+- named_subject: the exact photo, then a detail crop or archive film of the same subject, then a labelled
+  illustration of that subject (only when the fact sheet gives physical descriptors, src/image_gen.spec_from_facts),
+  then the map or a graphic, then a held shot. A same-kind photo is not used for a named subject: it would need an
+  on-screen "COMPARABLE EXAMPLE" label, which the composer does not draw yet.
+- kind_of_thing: the order above (TIERS), the illustration second to last.
+- abstract: never an illustration.
+
 Which tier filled each beat is recorded in the run folder (COVERAGE_FILE), so the video check and the operator see
 it: a beat a lower tier covered honestly is a warning, never a blocker (src/video_qa.coverage_severity), while a
 beat showing a wrong or invented subject stays a blocker.
@@ -175,22 +183,34 @@ def _norm(text: str) -> str:
     return " ".join("".join(c.lower() if c.isalnum() else " " for c in str(text or "")).split())
 
 
-def planned_visuals(run_dir: Path, beats: list[dict[str, Any]]) -> list[str | None]:
-    """Each beat's planned visual class from the check before the voice (prevoice_lines.RECORD_FILE's verdicts):
-    the class of the sentence that carries the beat's words (the sentence the beat starts in), None when unknown."""
+def beat_verdicts(run_dir: Path | None, beats: list[dict[str, Any]]) -> list[dict[str, Any] | None]:
+    """Each beat's verdict from the check before the voice (prevoice_lines.RECORD_FILE): the verdict of the sentence
+    that carries the beat's words (the sentence the beat starts in), with its planned visual class and whether it
+    is a protected line ("protected", prevoice_lines.protect); None when unknown."""
+    if run_dir is None:
+        return [None] * len(beats)
     try:
         from .prevoice_lines import RECORD_FILE
         record = json.loads((Path(run_dir) / RECORD_FILE).read_text(encoding="utf-8"))
         verdicts = [v for v in record.get("verdicts") or [] if isinstance(v, dict)]
     except (OSError, ValueError, AttributeError):
         return [None] * len(beats)
-    sentences = [(_norm(v.get("sentence")), v.get("visual")) for v in verdicts]
-    out: list[str | None] = []
+    sentences = [(_norm(v.get("sentence")), v) for v in verdicts]
+    out: list[dict[str, Any] | None] = []
     for b in beats:
         words = _norm(b.get("text"))
         head = " ".join(words.split()[:4])
-        hit = next((vis for sent, vis in sentences if words and (words in sent or (head and head in sent))), None)
-        out.append(hit if hit in VISUAL_CLASSES else None)
+        out.append(next((v for sent, v in sentences if words and (words in sent or (head and head in sent))), None))
+    return out
+
+
+def planned_visuals(run_dir: Path, beats: list[dict[str, Any]]) -> list[str | None]:
+    """Each beat's planned visual class from the check before the voice (prevoice_lines.RECORD_FILE's verdicts):
+    the class of the sentence that carries the beat's words (the sentence the beat starts in), None when unknown."""
+    out: list[str | None] = []
+    for v in beat_verdicts(run_dir, beats):
+        vis = (v or {}).get("visual")
+        out.append(vis if vis in VISUAL_CLASSES else None)
     return out
 
 
@@ -220,8 +240,12 @@ def coverage(beats: list[dict[str, Any]], scenes: list[Path], fit: dict[str, Any
             if tier == UNJUDGED and i in fits:
                 tier = EXACT
             cascade = False
+        try:
+            seconds = max(0.0, float(beat.get("end", 0) or 0) - float(beat.get("start", 0) or 0))
+        except (TypeError, ValueError):
+            seconds = 0.0
         out.append({"beat": i, "line": " ".join(str(beat.get("text") or "").split()), "picture": name,
-                    "tier": tier, "cascade": cascade,
+                    "tier": tier, "cascade": cascade, "seconds": round(seconds, 3),
                     "planned_visual": (visuals[i - 1] if visuals and i <= len(visuals) else None) or beat.get("visual")})
     return out
 

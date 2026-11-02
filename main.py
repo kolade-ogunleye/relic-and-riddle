@@ -2375,11 +2375,15 @@ class PipelineCoordinator:
             return payload
         # Only a line naming a particular thing goes back (prevoice_lines.needs_rewrite); an unshown kind-of-thing line
         # is left to the render's fallback cascade (src/picture_coverage.py).
-        missing = pl.needs_rewrite(verdicts)
+        # With the payload, protected "marvel" lines the fact check supports with a source are kept from the writer and
+        # routed to the render's cascade (illustration panel, 2026-11-02).
+        missing = pl.needs_rewrite(verdicts, payload)
         side_report: Dict[str, Any] = {}
         if missing:  # the picture side first: the reserve photos, then a bounded search for just these lines
             missing, verdicts, photos, side_report = self._picture_side(topic, run_id, run_dir, payload["narration_script"],
                                                                         verdicts, missing, photos)
+            missing = pl.needs_rewrite(verdicts, payload) if missing else missing
+        protected = pl.protected_sentences(payload)
         final, final_verdicts, rewritten, left, why_left = payload, verdicts, [], [], ""
         if missing:
             log.info("Before the voice, %d line(s) name something no photo shows; sent back to the writer (at most %d "
@@ -2415,11 +2419,15 @@ class PipelineCoordinator:
                                                      [v["sentence"] for v in missing])
                     if changed:   # a pictures regeneration keeps every other line word for word, or nothing changes
                         revised, why_left = None, f"the rewording changed other lines too (“{pl.clip(changed[0], 60)}”)"
+                if revised is not None:
+                    lost = pl.protected_rewrite_problem(payload["narration_script"], revised["narration_script"], protected)
+                    if lost:  # a protected line keeps its numbers and names, or the rewording is refused
+                        revised, why_left = None, lost
                 if revised is None:
                     break
                 again = pl.judge(revised["narration_script"], photos, title)
                 now = pl.sentences(revised["narration_script"])
-                still = pl.needs_rewrite(again) if again is not None else [v for v in asked if v["sentence"] in now]
+                still = pl.needs_rewrite(again, revised) if again is not None else [v for v in asked if v["sentence"] in now]
                 if not still:
                     final, final_verdicts, rewritten = revised, again or [], missing
                     break

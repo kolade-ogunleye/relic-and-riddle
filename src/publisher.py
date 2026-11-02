@@ -617,6 +617,23 @@ def _caption_for(kind: str, caption: str, platforms: List[str]) -> str:
     return (clean(body).rstrip() + "\n\n" + "\n".join(credits)).strip()
 
 
+ILLUSTRATION_DISCLOSURE = "Contains AI-generated illustrations where no photograph exists."
+
+
+def used_illustrations(script_payload: dict[str, Any]) -> bool:
+    """Whether the run put a generated illustration on screen (the picture check's record, payload["picture_fit"])."""
+    fit = script_payload.get("picture_fit") or {}
+    return bool(isinstance(fit, dict) and fit.get("generated"))
+
+
+def with_disclosure(text: str, script_payload: dict[str, Any]) -> str:
+    """`text` with ILLUSTRATION_DISCLOSURE appended when the run used an illustration (once; unchanged otherwise)."""
+    text = text or ""
+    if not used_illustrations(script_payload) or ILLUSTRATION_DISCLOSURE in text:
+        return text
+    return (text.rstrip() + "\n\n" + ILLUSTRATION_DISCLOSURE) if text.strip() else ILLUSTRATION_DISCLOSURE
+
+
 class MetaPublisher:
     def __init__(self, db: Optional[PipelineDatabase] = None, publishers: Optional[list] = None):
         self.db = db or PipelineDatabase()
@@ -637,14 +654,15 @@ class MetaPublisher:
             },
             "metadata": {
                 "title": script_payload["title"],
-                "caption": script_payload["caption"],
+                "caption": with_disclosure(script_payload["caption"], script_payload),
                 "location": script_payload.get("location", {}),
                 "hashtags": script_payload.get("hashtags", []),
                 "meta_topic_categories": script_payload.get("meta_topic_categories", []),
                 "first_comment": script_payload.get("first_comment", ""),
                 "is_ai_generated": META_IS_AI_GENERATED,
                 "youtube_title": script_payload.get("youtube_title", ""),
-                "description": script_payload.get("description", ""),
+                "description": (with_disclosure(script_payload.get("description", ""), script_payload)
+                                if script_payload.get("description") else ""),
                 "tags": script_payload.get("tags", []),
             },
             "created_at": _now(),

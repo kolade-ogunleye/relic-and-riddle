@@ -253,13 +253,26 @@ def generate_provenance_ledger(
                     for c in declared_credits) for source in declared_sources)
                 record["embedded_source_credits"] = declared_credits
         in_house_gap_art = path.name.startswith("gap_gen_")
+        illustration_credit = ""
         if in_house_gap_art:
             original_drawing = True
+            # A generated illustration says so (2026-11-02, illustration panel): its model and what it was drawn
+            # from. The "origin" value stays (tests/test_gap_engine.py locks it); "illustration" carries the detail.
+            try:
+                inputs = (json.loads(sidecar(path).read_text(encoding="utf-8")).get("settings") or {}).get("inputs") or {}
+            except (OSError, ValueError, AttributeError):
+                inputs = {}
+            model = str(inputs.get("model") or "an image model")
+            based_on = ", ".join(str(d) for d in inputs.get("descriptors") or [])
+            record["illustration"] = {"origin": "ai_illustration", "model": model,
+                                      "based_on": f"based on: {based_on}" if based_on else "",
+                                      "fact_ids": list(inputs.get("fact_ids") or [])}
+            illustration_credit = f"AI illustration ({model})" + (f", based on: {based_on}" if based_on else "")
         record["origin"] = "archaeological_reconstruction" if in_house_gap_art else ("original_drawing" if original_drawing else "source_media")
         record["source_paths"] = [str(source) for source in source_paths]
         record.update({"file": path.name, "title": rec.get("title", path.stem),
-                       "artist": rec.get("artist") or ("In-House Archaeological Reconstruction" if in_house_gap_art else None),
-                       "license": rec.get("license") or ("Proprietary In-House" if in_house_gap_art else None),
+                       "artist": rec.get("artist") or (illustration_credit if in_house_gap_art else None),
+                       "license": rec.get("license") or ("AI-generated illustration, not a photograph" if in_house_gap_art else None),
                        "license_url": rec.get("license_url"), "source_url": rec.get("source_url"),
                        "attribution_required": False if in_house_gap_art else requires_attribution,
                        "rights_status": "verified" if rights_known or original_drawing or embedded_rights_verified or in_house_gap_art else "unverified"})

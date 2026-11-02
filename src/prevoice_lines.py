@@ -21,6 +21,7 @@ the previous one left fewer such lines than it was given; still nothing blocks a
 """
 
 import logging
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
 
@@ -138,12 +139,169 @@ def plan_visual(kind: str, visual: str | None) -> str:
     return {"abstract": ABSTRACT, "generable": KIND_OF_THING}.get(kind, NAMED_SUBJECT)
 
 
-def needs_rewrite(verdicts: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """The unshown sentences that go back to the writer: those naming a particular thing (named_subject, or no
-    class recorded). An unshown kind-of-thing line is left to the render's cascade (a same-kind photo, a detail,
-    film, a map, a graphic), and an abstract one is never unshown."""
-    from .picture_coverage import ABSTRACT, KIND_OF_THING
-    return [v for v in unshown(verdicts) if v.get("visual") not in (KIND_OF_THING, ABSTRACT)]
+def needs_rewrite(verdicts: list[dict[str, Any]], payload: dict[str, Any] | None = None,
+                  fact_sheet: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    """The sentences that go back to the writer: the unshown ones naming a particular thing (named_subject, or no
+    class recorded); an unshown kind-of-thing line is left to the render's cascade (a same-kind photo, a detail,
+    film, a map, a graphic, an illustration), and an abstract one is never unshown.
+
+    With the script's payload (2026-11-02, illustration panel), also a "generable" named-subject line the fact
+    sheet gives no physical descriptor for (no honest illustration can be drawn of it); and protected "marvel"
+    lines (protect) are kept from the writer when the fact check supports them with a source: they are routed to
+    the render's cascade, marked "route": "cascade", and get the illustration slots first. A protected line with
+    no sourced support still goes to the writer, as before. Without a payload, a verdict protect() already marked
+    protected and sourced is likewise kept from the writer."""
+    from .picture_coverage import ABSTRACT, KIND_OF_THING, NAMED_SUBJECT
+    if payload is not None:
+        protect(verdicts, payload, fact_sheet)
+    out = []
+    for v in verdicts or []:
+        named_unshown = v.get("kind") == "unshown" and v.get("visual") not in (KIND_OF_THING, ABSTRACT)
+        undrawable = (payload is not None and v.get("kind") == "generable" and v.get("visual") == NAMED_SUBJECT
+                      and not has_descriptors(v.get("sentence", ""), payload, fact_sheet))
+        if not (named_unshown or undrawable):
+            continue
+        if v.get("protected") and v.get("sourced"):
+            v["route"] = "cascade"
+            continue
+        out.append(v)
+    return out
+
+
+# ------------------------------------------------------------------ protected "marvel" lines (2026-11-02)
+# The operator's intent: a striking fact is not rewritten away for lack of a photo. Protected: the hook and the closing
+# sentence, and any sentence carrying a figure the packaging shows (a stat card, the title, the thumbnail's two lines,
+# the second story slide).
+_ENTITY_STOP = {"The", "A", "An", "This", "That", "These", "Those", "It", "Its", "In", "On", "At", "By", "For", "And",
+                "But", "Or", "Yet", "So", "When", "Where", "What", "Why", "How", "Who", "Today", "Then", "There", "Here",
+                "One", "Some", "Many", "Most", "Each", "Every", "No", "Not", "As", "If", "Of", "To", "From", "With"}
+_NUMBER_WORDS = re.compile(r"\b(hundreds?|thousands?|millions?|billions?|dozens?|half|twice|thrice|one|two|three|four|"
+                           r"five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|forty|fifty|sixty|seventy|eighty|"
+                           r"ninety)\b", re.IGNORECASE)
+
+
+def _norm_sentence(x: str) -> str:
+    return " ".join(re.sub(r"[^a-z0-9 ]", " ", str(x or "").lower()).split())
+
+
+def _figures(text: str) -> set:
+    from .fact_sheet import numbers_in
+    return {round(n, 3) for n in numbers_in(text or "")}
+
+
+def packaging_figures(payload: dict[str, Any]) -> set:
+    """The figures the packaging shows: stat cards, the title, the thumbnail's two lines and story slide 2."""
+    parts = [str(payload.get("title") or "")]
+    for card in payload.get("stat_cards") or []:
+        if isinstance(card, dict):
+            parts += [str(card.get("value") or ""), str(card.get("label") or "")]
+    thumb = payload.get("thumbnail") or {}
+    if isinstance(thumb, dict):
+        parts += [str(thumb.get("line1") or ""), str(thumb.get("line2") or "")]
+    slides = payload.get("story_slides") or []
+    if len(slides) > 1 and isinstance(slides[1], dict):
+        parts += [str(slides[1].get(f) or "") for f in ("kicker", "line1", "line2", "body")]
+    return set().union(*(_figures(x) for x in parts)) if parts else set()
+
+
+def protected_sentences(payload: dict[str, Any]) -> list[str]:
+    """The narration's protected sentences: the hook, the closing sentence, and any sentence carrying a figure the
+    packaging shows (packaging_figures)."""
+    lines = sentences(payload.get("narration_script") or "")
+    ends = [_norm_sentence(payload.get(k)) for k in ("hook_sentence", "closing_sentence") if payload.get(k)]
+    figures = packaging_figures(payload)
+    out = []
+    for s in lines:
+        n = _norm_sentence(s)
+        if (n and any(e and (e in n or n in e) for e in ends)) or (figures and _figures(s) & figures):
+            out.append(s)
+    return out
+
+
+def _sheet_for(payload: dict[str, Any], fact_sheet: dict[str, Any] | None) -> dict[str, Any] | None:
+    if fact_sheet is not None:
+        return fact_sheet
+    import json
+    path = ((payload.get("fact_review") or {}).get("sheet_path")) or ""
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8")) if path else None
+        return data if isinstance(data, dict) else None
+    except (OSError, ValueError):
+        return None
+
+
+def sourced(sentence: str, payload: dict[str, Any], fact_sheet: dict[str, Any] | None = None) -> bool:
+    """Whether the fact check supports this sentence with a source: the payload's fact review is current
+    (fact_evidence.current_fact_review) and the sentence's trace names facts of the sheet that carry evidence with
+    a source address."""
+    try:
+        from .fact_evidence import current_fact_review
+        if not current_fact_review(payload):
+            return False
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return False
+    sheet = _sheet_for(payload, fact_sheet) or {}
+    facts = {str(f.get("id")): f for f in sheet.get("facts") or [] if isinstance(f, dict)}
+    target = _norm_sentence(sentence)
+    for row in payload.get("sentence_trace") or []:
+        if not isinstance(row, dict) or not target or _norm_sentence(row.get("sentence")) != target:
+            continue
+        for fid in row.get("fact_ids") or []:
+            f = facts.get(str(fid))
+            if f and any(isinstance(e, dict) and str(e.get("url") or "").startswith("http") for e in f.get("evidence") or []):
+                return True
+    return False
+
+
+def protect(verdicts: list[dict[str, Any]], payload: dict[str, Any],
+            fact_sheet: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+    """Marks the verdicts of protected sentences "protected": True (and "sourced" when the fact check supports them
+    with a source), in place; returns the verdicts."""
+    keep = {_norm_sentence(s) for s in protected_sentences(payload or {})}
+    for v in verdicts or []:
+        if _norm_sentence(v.get("sentence")) in keep:
+            v["protected"] = True
+            v["sourced"] = sourced(v.get("sentence", ""), payload, fact_sheet)
+    return verdicts
+
+
+def has_descriptors(sentence: str, payload: dict[str, Any], fact_sheet: dict[str, Any] | None = None) -> bool:
+    """Whether the fact sheet gives this line's subject the physical descriptors an honest illustration needs."""
+    from .image_gen import spec_from_facts
+    spec, _ = spec_from_facts(sentence, None, _sheet_for(payload or {}, fact_sheet), payload)
+    return spec is not None
+
+
+def entities(text: str) -> set:
+    """Named entities, roughly: capitalized words not opening a sentence, and the stop words aside."""
+    out = set()
+    for s in sentences(text):
+        words = re.findall(r"[A-Za-z][A-Za-z'’-]*", s)
+        out |= {_bare(w) for w in words[1:] if w[0].isupper() and w not in _ENTITY_STOP and len(w) > 1}
+    return out
+
+
+def _bare(word: str) -> str:
+    """A word without its possessive ("Antikythera's" -> "Antikythera")."""
+    return re.sub(r"['’]s$", "", word)
+
+
+def lost_facts(before: str, after: str) -> list[str]:
+    """The numbers (figures and number words) and named entities of `before` that `after` no longer says."""
+    lost = [f"{n:g}" for n in sorted(_figures(before) - _figures(after))]
+    said = {w.lower() for w in _NUMBER_WORDS.findall(after or "")}
+    lost += [w for w in dict.fromkeys(x.lower() for x in _NUMBER_WORDS.findall(before or "")) if w not in said]
+    lost += sorted(entities(before) - {_bare(w) for w in re.findall(r"[A-Za-z][A-Za-z'’-]*", after or "")})
+    return lost
+
+
+def protected_rewrite_problem(before_narration: str, after_narration: str, protected: list[str]) -> str:
+    """Why a rewording must be refused: it lost a number or a named entity of a protected sentence ("" if none)."""
+    for s in protected or []:
+        lost = lost_facts(s, after_narration)
+        if lost:
+            return f"the rewording lost {', '.join(lost[:4])} from the protected line “{clip(s, 60)}”"
+    return ""
 
 
 def rounds() -> int:
@@ -167,12 +325,24 @@ def generable(verdicts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 def revision_note(lines: List[Dict[str, Any]], photos: List[Dict[str, str]], minimal: bool = False) -> str:
     """The writer's brief: just these sentences, toward what the photos show; every other sentence word for word.
     `minimal`: a regeneration for the pictures, whose script was otherwise approved as it is: the fewest words
-    changed, the same facts."""
-    named = "; ".join(f"“{v['sentence']}”" + (f" ({v['reason']})" if v.get("reason") else "") for v in lines)
-    return ("Before the voiceover: these narration sentences name something none of the video's licensed photos "
-            f"shows, so the picture under them would show something else: {named}. Reword just these sentences "
-            "toward what the photos do show, or say them as an idea, number or question with nothing in particular "
-            "to see. Keep every other sentence word for word, keep the length, and use only the verified facts. "
+    changed, the same facts. A protected line (protect: the hook, the closing line, a line carrying a packaging
+    figure) is never asked to move toward the photos: only to be stated as the verified facts support it, with
+    every number and name kept (a rewording that loses one is refused: protected_rewrite_problem)."""
+    plain = [v for v in lines if not v.get("protected")]
+    kept = [v for v in lines if v.get("protected")]
+    note = ""
+    if plain:
+        named = "; ".join(f"“{v['sentence']}”" + (f" ({v['reason']})" if v.get("reason") else "") for v in plain)
+        note += ("Before the voiceover: these narration sentences name something none of the video's licensed photos "
+                 f"shows, so the picture under them would show something else: {named}. Reword just these sentences "
+                 "toward what the photos do show, or say them as an idea, number or question with nothing in particular "
+                 "to see. ")
+    if kept:
+        named = "; ".join(f"“{v['sentence']}”" for v in kept)
+        note += ("These protected sentences carry the story's striking facts: " + named + ". Do not reword them toward "
+                 "what the photos show; a labelled illustration will carry them. Change them only as far as the verified "
+                 "facts require, and keep every number and every name in them. ")
+    return (note + "Keep every other sentence word for word, keep the length, and use only the verified facts. "
             + ("The reviewer sent this version back for its pictures only: change as few words as you can in these "
                "sentences, keep the same facts in them, and change nothing else at all. " if minimal else "")
             + "The photos: " + "; ".join(f"{i}. {p['text']}" for i, p in enumerate(photos, 1)) + ".")

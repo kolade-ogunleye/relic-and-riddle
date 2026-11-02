@@ -101,6 +101,39 @@ PARALLAX_TO_TRANSITION = {
     "pull": "dissolve",
 }
 TRANS_DUR = 0.40
+# The on-screen disclosure over a generated illustration, in one place (2026-11-02). The wording stays until the
+# operator decides on "AI ILLUSTRATION · NOT A PHOTO" (tests lock the current text).
+RECON_BADGE_LABEL = "[ HISTORICAL RECONSTRUCTION ]"
+
+
+def _is_reconstruction_scene(item) -> bool:
+    p = Path(item)
+    if p.stem.startswith(("gap_gen_", "gen_")):
+        return True
+    try:
+        from .lineage import source_chain
+        return any(Path(s.get("path", "")).stem.startswith(("gap_gen_", "gen_")) for s in source_chain(p))
+    except Exception:  # noqa: BLE001 - an unreadable lineage is no reconstruction claim
+        return False
+
+
+def reconstruction_badge_intervals(scene_images, durations, vo_dur: float) -> list[tuple[float, float]]:
+    """(start, end) seconds the reconstruction badge is on screen: each generated illustration's beat, widened by
+    TRANS_DUR / 2 on each side so the crossfades into and out of it are covered (2026-11-02, the clip is visible
+    from TRANS_DUR / 2 before its cut), clamped at 0 and merged where they touch."""
+    out: list[tuple[float, float]] = []
+    cur_t = 0.0
+    n = max(1, len(scene_images))
+    for i, item in enumerate(scene_images):
+        dur = durations[i] if durations and i < len(durations) else (vo_dur / n)
+        if _is_reconstruction_scene(item):
+            start, end = max(0.0, cur_t - TRANS_DUR / 2), cur_t + dur + TRANS_DUR / 2
+            if out and start <= out[-1][1]:
+                out[-1] = (out[-1][0], max(out[-1][1], end))
+            else:
+                out.append((start, end))
+        cur_t += dur
+    return out
 # An AI motion clip keeps a locked camera (motion.build_motion_prompt: camera moves warped the architecture), so
 # an opening that is one held still for its first seconds (Meta's Creator assistant, 2026-10-28: "viewers decide
 # in under two seconds"). The opening clip gets the stills' push on top, a crop zoom that starts at frame 0 and
@@ -1067,7 +1100,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
         # The AI-reconstruction disclosure (layer 2 plate, layer 3 text) while a reconstruction is on screen
         if reconstruction_intervals:
-            label = "[ HISTORICAL RECONSTRUCTION ]"
+            label = RECON_BADGE_LABEL
             # Bone IBM Plex Mono on an INK plate, top-left: the 5% title-safe corner on 16:9; on 9:16 inside the Meta
             # inset below the Reel's top bar (x 84, y 300). The 9:16 badge was 22px, centred and unplated until the
             # caption review of 2026-11-02 (operator approved moving it).
@@ -1259,23 +1292,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         if not durations or len(durations) != n:
             durations = [(vo_dur + TRANS_DUR) / n] * n
 
-        # Historical reconstruction badge intervals
-        recon_intervals = []
-        cur_t = 0.0
-        for i, item in enumerate(scene_images):
-            dur = durations[i] if i < len(durations) else (vo_dur / max(1, len(scene_images)))
-            p = Path(item)
-            is_recon = p.stem.startswith(("gap_gen_", "gen_"))
-            if not is_recon:
-                try:
-                    from .lineage import source_chain
-                    chain = source_chain(p)
-                    is_recon = any(Path(s.get("path", "")).stem.startswith(("gap_gen_", "gen_")) for s in chain)
-                except Exception:
-                    pass
-            if is_recon:
-                recon_intervals.append((cur_t, cur_t + dur))
-            cur_t += dur
+        # Historical reconstruction badge intervals (crossfades included: reconstruction_badge_intervals)
+        recon_intervals = reconstruction_badge_intervals(scene_images, durations, vo_dur)
 
         ass_path = output_mp4_path.parent / (output_mp4_path.stem + "_captions.ass")
         self.build_subtitles(words, ass_path, emphasis=emphasis, width=width, height=height,

@@ -467,3 +467,25 @@ MUSEUM_OPENVERSE_ENABLED = os.getenv("MUSEUM_OPENVERSE_ENABLED", "false").lower(
 MUSEUM_LOC_ENABLED = os.getenv("MUSEUM_LOC_ENABLED", "false").lower() in ("true", "1", "yes")
 MUSEUM_ARTIC_ENABLED = os.getenv("MUSEUM_ARTIC_ENABLED", "false").lower() in ("true", "1", "yes")
 # <<< Picture coverage ------------------------------------------------------------------------------------------
+
+# >>> Illustration tier (2026-11-02): labelled illustrations for lines no authoritative photo shows -----------------
+# Added as one block by the illustration-tier change (src/image_gen.py, src/image_quarantine.py,
+# src/scene_planner.fit_to_lines); the lines above are owned by other changes.
+# The image model and its API style. "auto" reads the style from the model id: an "imagen-*" model uses the legacy
+# :predict endpoint, anything else the Gemini generateContent endpoint (image output). The default model id is NOT
+# confirmed from the development container (no route to ai.google.dev): the operator must confirm it is current and
+# reachable with GEMINI_API_KEY (image_gen.doctor() lists the models the key can reach). A configured model the key
+# cannot reach means no illustration is generated (fail closed, logged).
+IMAGE_GEN_MODEL = (os.getenv("IMAGE_GEN_MODEL") or "gemini-2.5-flash-image").strip()
+IMAGE_GEN_API = (os.getenv("IMAGE_GEN_API") or "auto").strip().lower()   # auto | gemini | imagen
+IMAGE_GEN_CANDIDATES = max(1, min(4, int(os.getenv("IMAGE_GEN_CANDIDATES", "4"))))   # requests per beat, at most
+IMAGE_GEN_MAX_CALLS_PER_RUN = max(0, int(os.getenv("IMAGE_GEN_MAX_CALLS_PER_RUN", "8")))  # rejected ones count too
+IMAGE_GEN_MAX_LONGFORM = max(0, int(os.getenv("IMAGE_GEN_MAX_LONGFORM", "4")))   # illustrated beats, long-form video
+IMAGE_GEN_MAX_RUNTIME_SHARE = float(os.getenv("IMAGE_GEN_MAX_RUNTIME_SHARE", "0.15"))  # of a Reel/Short's runtime
+IMAGE_GEN_MIN_SHOT_SECONDS = float(os.getenv("IMAGE_GEN_MIN_SHOT_SECONDS", "1.5"))     # never on a shorter shot
+IMAGE_GEN_LONGFORM_SECONDS = float(os.getenv("IMAGE_GEN_LONGFORM_SECONDS", "180"))     # longer = long-form caps
+# The text screen needs local OCR (pytesseract and the tesseract binary): without it every candidate is rejected.
+IMAGE_GEN_REQUIRE_OCR = os.getenv("IMAGE_GEN_REQUIRE_OCR", "true").lower() in ("true", "1", "yes")
+IMAGE_GEN_MIN_SHARPNESS = float(os.getenv("IMAGE_GEN_MIN_SHARPNESS", "40"))   # Laplacian variance of the fitted frame
+IMAGE_GEN_TIMEOUT = float(os.getenv("IMAGE_GEN_TIMEOUT", "60"))
+# <<< Illustration tier ---------------------------------------------------------------------------------------------

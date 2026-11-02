@@ -22,6 +22,21 @@ labelled illustration fills it instead. Its rules:
   legacy Imagen :predict API. The key goes in the x-goog-api-key header, never the URL. model_status() lists the
   models the key can reach; a configured model it cannot reach means nothing is generated (fail closed, logged).
 
+Reliable depiction (operator, 2026-11-02: "Any illustration we're going to be using for no-photo must reliably
+depict that thing... that's the whole point"), a hard requirement of this tier:
+- A named subject (src/picture_coverage.NAMED_SUBJECT: one particular object or place) is drawn ONLY from at least
+  one openly licensed or public-domain reference image of that very thing (find_references): the topic's approved
+  photos (credits.json Topic/Kept), museum_sources candidates (PD/CC0/CC BY/CC BY-SA, the title naming the subject)
+  or the Library of Congress (worldwide-unrestricted only). Up to REFERENCE_MAX of them go into the request as image
+  parts with REFERENCE_INSTRUCTION. No reference: nothing is requested (the cascade's next tier fills the beat) and
+  the reason is recorded. A kind of thing may be drawn without a reference, from its fact-sheet descriptors alone.
+- Two independent vision checks must BOTH pass (src/image_quarantine.score_candidate; either one unable to run
+  rejects): the reference comparison (candidate beside its references: same object, same structure, nothing added)
+  and the descriptor checklist (without the reference, another prompt framing and, where configured, another model).
+- Every reference is recorded in the illustration's lineage and credits ("based on: <title>, <licence>"), and every
+  illustrated beat goes on the review card with its references; a run with an illustration is never auto-approved
+  (auto_approve_refusal).
+
 The legacy entry point synthesize_gap_asset (era prompts, light-paper compositing) is kept for its callers and
 tests; it no longer returns an uncomposited file and its cache is keyed by the line, not the beat number.
 """
@@ -32,6 +47,7 @@ import base64
 import hashlib
 import json
 import logging
+import os
 import re
 import shutil
 import threading
@@ -52,6 +68,78 @@ PROMPT_VERSION = "engraving-2026-11-02"
 CANDIDATE_DIR = "illustration_candidates"
 BUDGET_FILE = "illustration_budget.json"
 ALLOWED_SURFACES = ("beat",)   # never a hook, cover, thumbnail or story slide
+
+# The default image model (2026-11-02). ai.google.dev/gemini-api/docs/image-generation (fetched 2026-11-02): "Gemini 3
+# Pro Image is optimized for professional asset production", the premium choice "for the most complex visual tasks";
+# its reference-image table gives it "up to 6 images of objects with high-fidelity to include in the final image"
+# (Nano Banana 2.1, gemini-nano-banana-2.1, is the recommended high-efficiency workhorse). config.py still names
+# LEGACY_DEFAULT_MODEL as its default (config.py is being edited elsewhere): that value, when IMAGE_GEN_MODEL is not
+# set in the environment, means DEFAULT_MODEL here; any model the operator names is used as named.
+DEFAULT_MODEL = "gemini-3-pro-image"
+LEGACY_DEFAULT_MODEL = "gemini-2.5-flash-image"
+
+
+def _env_int(name: str, default: int, lo: int, hi: int) -> int:
+    try:
+        return max(lo, min(hi, int(os.getenv(name, str(default)))))
+    except ValueError:
+        return default
+
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+
+
+# Reference-grounded generation (module constants: config.py is being edited elsewhere).
+REFERENCE_MAX = _env_int("IMAGE_GEN_REFERENCE_MAX", 3, 1, 3)               # reference images in one request
+REFERENCE_MIN_CONFIDENCE = _env_float("IMAGE_GEN_REFERENCE_MIN_CONFIDENCE", 0.85)   # the comparison's "yes"
+REMOTE_REFERENCES = os.getenv("IMAGE_GEN_REMOTE_REFERENCES", "true").lower() in ("true", "1", "yes")
+IMAGE_SIZE = (os.getenv("IMAGE_GEN_IMAGE_SIZE") or "2K").strip()          # generationConfig.imageConfig.imageSize
+REFERENCE_SOURCES = ("met", "nasa", "smithsonian", "europeana", "loc")     # museum_sources, LoC verified live
+REFERENCE_DIR = "illustration_refs"
+REFERENCE_MAX_BYTES = 20 * 1024 * 1024
+REFERENCE_MIN_SIDE = 256
+REFERENCE_SIDE = 1536          # a reference is sent as a JPEG at most this many pixels on its long side
+NAMED_SUBJECT = "named_subject"   # src/picture_coverage.NAMED_SUBJECT (not imported: that module is light)
+SHOW_MIN_SIDE = _env_int("IMAGE_GEN_SHOW_MIN_SIDE", 720, 64, 8192)   # a reference shown on screen: its short side
+# Why a named subject may be illustrated at all (operator refinement, 2026-11-02): a reference fit to show is SHOWN
+# (the exact tier), never redrawn. Only (a) a line about what no photo can show (a reconstruction: the original
+# appearance, an interior, a mechanism in use, how it was built), or (b) every reference unfit for the screen (too
+# small, watermarked, cluttered) yet reliable as a reference.
+RECONSTRUCTION_REASON = "reconstruction"
+UNFIT_REASON = "references_unfit_for_screen"
+ILLUSTRATION_REASONS = (RECONSTRUCTION_REASON, UNFIT_REASON)
+_RECONSTRUCTION = re.compile(
+    r"\b(original(ly)?|once (stood|rose|held|had|looked|was|were|housed|filled)|when (it was |they were )?(new|built|"
+    r"complete|completed|finished|working)|at (its|their) (height|peak)|in (its|their) heyday|would have|used to|"
+    r"inside|interior|within (its|the|a)|how (it|they) (was|were) (built|made|raised|assembled)|being (built|raised|"
+    r"assembled)|under construction|(construction|building|assembly) of|assembl(ed|ing)|in use|in operation|worked|"
+    r"working|turn(ed|ing|s)?|rotat\w*|"
+    r"powered|operated|cranked|meshed|before (it|they) (fell|collapsed|sank|burned|was destroyed))\b", re.IGNORECASE)
+
+
+def is_reconstruction_line(line: str) -> bool:
+    """Whether the line is about what no photograph can show: the original appearance, an interior, a mechanism
+    in use or how it was built."""
+    return bool(_RECONSTRUCTION.search(str(line or "")))
+
+
+def illustration_reason(line: str, unfit: Sequence[str] = (), n_refs: int = 0) -> str:
+    """RECONSTRUCTION_REASON, UNFIT_REASON, or "" when a named subject may not be illustrated. `unfit`: the kind
+    of unfitness each reference showed when it was considered for the screen ("screen": too small, text or a
+    watermark, cluttered; "line": it does not show what the line says; "unknown": no check could run)."""
+    if is_reconstruction_line(line):
+        return RECONSTRUCTION_REASON
+    kinds = list(unfit)
+    if n_refs and len(kinds) >= n_refs and all(k == "screen" for k in kinds):
+        return UNFIT_REASON
+    return ""
+REFERENCE_INSTRUCTION = ("The attached reference image(s) show this very object. Draw this object as a scratchboard "
+                         "engraving; keep its structure exactly (the number, shape and proportions of its parts); "
+                         "add nothing not in the reference or the facts above.")
 
 
 # ------------------------------------------------------------------ legacy era prompts (synthesize_gap_asset)
@@ -117,7 +205,11 @@ def is_available() -> bool:
 
 
 def model_id() -> str:
-    return str(getattr(config, "IMAGE_GEN_MODEL", "") or "").strip().removeprefix("models/")
+    """The configured image model; config's legacy default, not set in the environment, means DEFAULT_MODEL."""
+    value = str(getattr(config, "IMAGE_GEN_MODEL", "") or "").strip().removeprefix("models/")
+    if value == LEGACY_DEFAULT_MODEL and not (os.getenv("IMAGE_GEN_MODEL") or "").strip():
+        return DEFAULT_MODEL
+    return value
 
 
 def api_style(model: str | None = None) -> str:
@@ -214,9 +306,42 @@ def _decode_imagen(data: dict[str, Any]) -> bytes | None:
     return base64.b64decode(b64) if b64 else None
 
 
-def generate_image(prompt: str, aspect_ratio: str = "9:16", timeout: float | None = None) -> bytes | None:
+def _reference_part(path: Path) -> dict[str, Any] | None:
+    """A reference image as a generateContent part (inlineData, a JPEG at most REFERENCE_SIDE px), or None when
+    it cannot be read. https://ai.google.dev/api/generate-content (fetched 2026-11-02): Part.inlineData is a Blob
+    {mimeType, data (base64)}."""
+    import io
+
+    from PIL import Image, ImageOps
+    try:
+        with Image.open(path) as im:
+            im = ImageOps.exif_transpose(im).convert("RGB")
+            im.thumbnail((REFERENCE_SIDE, REFERENCE_SIDE))
+            buf = io.BytesIO()
+            im.save(buf, "JPEG", quality=90)
+    except (OSError, ValueError) as e:
+        log.warning("Reference %s unreadable (%s).", Path(path).name, e)
+        return None
+    return {"inlineData": {"mimeType": "image/jpeg", "data": base64.b64encode(buf.getvalue()).decode("ascii")}}
+
+
+def _sizes_image(model: str) -> bool:
+    """Whether the model takes imageConfig.imageSize (the Gemini 3 / Nano Banana 2.x image models; the legacy 2.5
+    Flash Image is sent no size)."""
+    return model.startswith(("gemini-3", "gemini-nano-banana"))
+
+
+def generate_image(prompt: str, aspect_ratio: str = "9:16", timeout: float | None = None,
+                   references: Sequence[Path] = ()) -> bytes | None:
     """One image from the configured model, or None. Fails closed: no key, generation off, or a configured model
-    the key cannot reach (model_status) means no request is made."""
+    the key cannot reach (model_status) means no request is made.
+
+    `references`: images of the very subject, sent after the prompt as inlineData parts of the same user turn
+    (https://ai.google.dev/api/generate-content, fetched 2026-11-02: contents[].parts[] each a text or an inlineData
+    Blob; ImageConfig.aspectRatio "If not specified, the model will choose a default aspect ratio based on any
+    reference images provided", ImageConfig.imageSize 512/1K/2K/4K. The image-generation guide,
+    ai.google.dev/gemini-api/docs/image-generation, shows the same text-then-images order). A reference that cannot
+    be read, or the legacy Imagen API (no image input here), means no request (fail closed)."""
     if not is_available():
         log.info("Illustration tier unavailable (no GEMINI_API_KEY, or GENERATIVE_GAP_FILLING is off).")
         return None
@@ -226,15 +351,28 @@ def generate_image(prompt: str, aspect_ratio: str = "9:16", timeout: float | Non
         return None
     model, style = status["model"], status["style"]
     timeout = float(timeout or getattr(config, "IMAGE_GEN_TIMEOUT", 60.0))
+    ref_parts: list[dict[str, Any]] = []
+    for ref in list(references or [])[:REFERENCE_MAX]:
+        part = _reference_part(Path(ref))
+        if part is None:
+            log.warning("Illustration skipped: reference %s could not be read.", Path(ref).name)
+            return None
+        ref_parts.append(part)
     if style == "imagen":
+        if ref_parts:
+            log.warning("Illustration skipped: the Imagen API path sends no reference image (model %s).", model)
+            return None
         url = f"{API_BASE}/models/{model}:predict"
         body: dict[str, Any] = {"instances": [{"prompt": prompt}],
                                 "parameters": {"sampleCount": 1, "aspectRatio": aspect_ratio}}
     else:
         # Exclusions are sentences in the prompt: generateContent takes no negative prompt.
         url = f"{API_BASE}/models/{model}:generateContent"
-        body = {"contents": [{"role": "user", "parts": [{"text": prompt}]}],
-                "generationConfig": {"responseModalities": ["IMAGE"], "imageConfig": {"aspectRatio": aspect_ratio}}}
+        image_config: dict[str, Any] = {"aspectRatio": aspect_ratio}
+        if IMAGE_SIZE and _sizes_image(model):
+            image_config["imageSize"] = IMAGE_SIZE
+        body = {"contents": [{"role": "user", "parts": [{"text": prompt}, *ref_parts]}],
+                "generationConfig": {"responseModalities": ["IMAGE"], "imageConfig": image_config}}
     try:
         resp = requests.post(url, headers=_headers(), json=body, timeout=timeout)
         if resp.status_code != 200:
@@ -460,10 +598,14 @@ def build_prompt(spec: dict[str, Any]) -> str:
 
 # ------------------------------------------------------------------ the cache
 def cache_key(line: str, era: str, aspect: str = "9:16", model: str | None = None,
-              prompt_version: str = PROMPT_VERSION) -> str:
+              prompt_version: str = PROMPT_VERSION, references: Sequence[str] = ()) -> str:
     """Hash of the line's words, the era, the prompt version, the model and the frame: never the beat number, so a
-    re-plan that moves or rewords a line never reuses another line's picture."""
-    blob = json.dumps([_norm(line), era, prompt_version, model or model_id(), aspect], ensure_ascii=False)
+    re-plan that moves or rewords a line never reuses another line's picture. `references`: the reference images'
+    digests (another reference is another picture); none leaves the key as it was."""
+    parts: list[Any] = [_norm(line), era, prompt_version, model or model_id(), aspect]
+    if references:
+        parts.append(sorted(str(r) for r in references))
+    blob = json.dumps(parts, ensure_ascii=False)
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]
 
 
@@ -488,6 +630,238 @@ def _record(out: Path, inputs: dict[str, Any]) -> None:
         log.warning("Lineage recording skipped for %s: %s", out.name, e)
 
 
+# ------------------------------------------------------------------ references (reliable depiction, 2026-11-02)
+_TERM_STOP = {"the", "a", "an", "its", "it", "this", "that", "these", "those", "in", "on", "at", "of", "and", "but",
+              "for", "from", "with", "by", "to", "into", "inside", "under", "over", "when", "where", "while", "after",
+              "before", "today", "yet", "there", "here", "then", "they", "their", "he", "she", "his", "her", "we",
+              "our", "you", "your", "one", "two", "three", "each", "every", "some", "most", "all", "no", "not"}
+
+
+def subject_terms(line: str, topic: dict[str, Any] | None = None) -> list[str]:
+    """The words that name the line's particular subject: its proper names (capitalised words, a sentence's first
+    word only when it is not a function word), else the topic's title words. Normalised, at most four, in order."""
+    words = re.findall(r"[A-Z][A-Za-z'\-]{2,}", str(line or ""))
+    names = [w for w in words if w.lower().strip("'") not in _TERM_STOP]
+    if not names:
+        names = [w for w in re.findall(r"[A-Za-z'\-]{4,}", str((topic or {}).get("title") or ""))
+                 if w.lower() not in _TERM_STOP]
+    out: list[str] = []
+    for w in names:
+        n = _norm(w.removesuffix("'s"))
+        if n and n not in out:
+            out.append(n)
+    return out[:4]
+
+
+def names_subject(text: str, terms: Sequence[str]) -> bool:
+    """Whether `text` (a reference's title) names the subject: every term when there are one or two, else the
+    first term and at least two in all. No terms: never (a reference must be of the very thing)."""
+    terms = [t for t in terms if t]
+    if not terms:
+        return False
+    have = set(_norm(text).split())
+    hits = [t for t in terms if all(w in have for w in t.split())]
+    if len(terms) <= 2:
+        return len(hits) == len(terms)
+    return terms[0] in hits and len(hits) >= 2
+
+
+def reference_licence_ok(licence: str) -> bool:
+    """Public domain, CC0, CC BY (and CC BY-SA where the project's licence policy allows it), never anything else
+    (src/credits.license_allowed)."""
+    from .credits import license_allowed
+    return bool(licence) and license_allowed(str(licence))
+
+
+def _loc_unrestricted(cand: dict[str, Any]) -> bool:
+    """A Library of Congress candidate whose recorded rights say "no known restrictions" with no U.S.-only limit
+    (checked again here: a cached answer may predate src/museum_sources.loc_search's U.S.-only refusal)."""
+    from . import museum_sources as ms
+    rights = str(cand.get("description") or "").lower()
+    return any(p in rights for p in ms._NO_KNOWN_RESTRICTIONS) and not any(p in rights for p in ms._LOC_US_ONLY)
+
+
+def _file_digest(path: Path) -> str:
+    try:
+        from .credits import sha256_file
+        return sha256_file(Path(path))
+    except (OSError, ValueError):
+        return ""
+
+
+def _readable_image(path: Path) -> bool:
+    from PIL import Image
+    try:
+        with Image.open(path) as im:
+            return min(im.size) >= REFERENCE_MIN_SIDE
+    except (OSError, ValueError):
+        return False
+
+
+def _download_reference(cand: dict[str, Any], work_dir: Path) -> Path | None:
+    """The candidate's file in work_dir/REFERENCE_DIR (https only, at most REFERENCE_MAX_BYTES, readable, at least
+    REFERENCE_MIN_SIDE px), or None. Never raises."""
+    from urllib.parse import urlparse
+
+    from .commons import HEADERS
+    url = str(cand.get("download_url") or "")
+    if urlparse(url).scheme != "https":
+        return None
+    import io
+
+    from PIL import Image, ImageOps
+    out = Path(work_dir) / REFERENCE_DIR / (hashlib.sha256(url.encode("utf-8")).hexdigest()[:16] + ".jpg")
+    if out.is_file() and _readable_image(out):
+        return out
+    try:
+        with requests.get(url, headers=HEADERS, timeout=30, stream=True) as r:
+            if r.status_code != 200:
+                return None
+            size, chunks = 0, []
+            for chunk in r.iter_content(64 * 1024):
+                size += len(chunk)
+                if size > REFERENCE_MAX_BYTES:
+                    return None
+                chunks.append(chunk)
+        # Saved as a JPEG whatever was served (a TIFF or PNG): the request, the checks and the review card read it.
+        with Image.open(io.BytesIO(b"".join(chunks))) as im:
+            im = ImageOps.exif_transpose(im).convert("RGB")
+            if min(im.size) < REFERENCE_MIN_SIDE:
+                return None
+            out.parent.mkdir(parents=True, exist_ok=True)
+            im.save(out, "JPEG", quality=92)
+    except (requests.RequestException, OSError, ValueError, Image.DecompressionBombError) as e:
+        log.info("Reference %s not fetched (%s).", url[:80], type(e).__name__)
+        return None
+    return out
+
+
+def _reference(path: Path, title: str, licence: str, source: str, url: str = "", license_url: str = "",
+               artist: str = "") -> dict[str, Any]:
+    return {"path": str(path), "title": _clean(title, 160), "licence": str(licence), "license_url": str(license_url or ""),
+            "url": str(url or ""), "source": source, "artist": _clean(artist, 120), "sha256": _file_digest(Path(path))}
+
+
+def find_references(line: str, topic: dict[str, Any] | None, local: Sequence[dict[str, Any]] = (),
+                    work_dir: Path | None = None, remote: bool | None = None,
+                    limit: int = REFERENCE_MAX) -> tuple[list[dict[str, Any]], str]:
+    """(references, "") for a named-subject line: openly licensed or public-domain images of that very thing, at
+    most `limit`; ([], why) when there is none.
+
+    `local`: the topic's approved photos as {"path", "title", "description", "license", "license_url", "source_url",
+    "artist"} (src/scene_planner builds them from credits.json, Topic/Kept only). Then, when `remote` (default: the
+    tier is available and REMOTE_REFERENCES), the museum sources (REFERENCE_SOURCES via the cached line search,
+    src/museum_sources.cached_search), each file fetched into the run folder. A reference qualifies only when its
+    licence is open (reference_licence_ok) and its TITLE names the subject (names_subject); a Library of Congress
+    one only when its rights are unrestricted worldwide."""
+    terms = subject_terms(line, topic)
+    if not terms:
+        return [], "the line names no subject a reference could be matched to"
+    refs: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for c in local:
+        path = Path(str(c.get("path") or ""))
+        title = str(c.get("title") or "")
+        if not (path.is_file() and reference_licence_ok(str(c.get("license") or "")) and names_subject(title, terms)):
+            continue
+        digest = _file_digest(path)
+        if not digest or digest in seen or not _readable_image(path):
+            continue
+        seen.add(digest)
+        refs.append(_reference(path, title, str(c.get("license")), "topic_photo", c.get("source_url") or "",
+                               c.get("license_url") or "", c.get("artist") or ""))
+        if len(refs) >= limit:
+            return refs, ""
+    remote = (is_available() and REMOTE_REFERENCES) if remote is None else remote
+    if remote and work_dir is not None:
+        from . import museum_sources as ms
+        sources = tuple(n for n in REFERENCE_SOURCES if n in ms.line_sources() or n == "loc")
+        try:
+            found = ms.cached_search(" ".join(terms), terms, sources=sources)
+        except Exception as e:  # noqa: BLE001 - a museum is a saving, never a new way for a run to fail
+            log.info("Reference search for %r failed (%s).", terms, e)
+            found = []
+        for cand in found:
+            if not (reference_licence_ok(str(cand.get("license") or "")) and names_subject(str(cand.get("title") or ""), terms)):
+                continue
+            if cand.get("provider") == "loc" and not _loc_unrestricted(cand):
+                continue
+            got = _download_reference(cand, Path(work_dir))
+            digest = _file_digest(got) if got else ""
+            if not got or not digest or digest in seen:
+                continue
+            seen.add(digest)
+            refs.append(_reference(got, str(cand.get("title") or ""), str(cand.get("license")),
+                                   str(cand.get("provider") or "museum"), cand.get("source_url") or cand.get("download_url") or "",
+                                   cand.get("license_url") or "", cand.get("artist") or ""))
+            if len(refs) >= limit:
+                break
+    if not refs:
+        return [], (f"no openly licensed reference image of {' '.join(terms)} (a named subject is never drawn "
+                    "without one)")
+    return refs, ""
+
+
+def based_on(references: Sequence[dict[str, Any]]) -> str:
+    """"based on: <title>, <licence>; ..." for the credits and the review card ("" when none)."""
+    items = [f"{r.get('title') or Path(str(r.get('path') or '')).name}, {r.get('licence') or 'licence unknown'}"
+             for r in references or [] if isinstance(r, dict)]
+    return ("based on: " + "; ".join(items)) if items else ""
+
+
+def screen_unfit(path: Path) -> str:
+    """Why a reference image is unfit for the screen by its pixels alone ("" when its size allows it): its short
+    side under SHOW_MIN_SIDE, or it cannot be read."""
+    from PIL import Image
+    try:
+        with Image.open(path) as im:
+            w, h = im.size
+    except (OSError, ValueError) as e:
+        return f"unreadable ({e})"
+    return f"too small to show ({w}x{h}, short side under {SHOW_MIN_SIDE}px)" if min(w, h) < SHOW_MIN_SIDE else ""
+
+
+def reference_credit(ref: dict[str, Any]) -> dict[str, Any]:
+    """A credit record (the shape src/credits.py reads) for a reference shown on screen as a photo."""
+    licence = str(ref.get("licence") or "")
+    return {"file": str(ref.get("path") or ""), "title": ref.get("title") or "", "artist": ref.get("artist") or "Unknown",
+            "license": licence, "license_url": ref.get("license_url") or "", "source_url": ref.get("url") or "",
+            "attribution_required": licence.strip().lower().startswith("cc by"), "provider": ref.get("source") or "",
+            "origin": "reference_shown"}
+
+
+# ------------------------------------------------------------------ operator approval (2026-11-02)
+def review_note(generated: Sequence[dict[str, Any]]) -> str:
+    """The review card's line for the run's illustrated beats: each beat with its narrated line, the illustration
+    and its reference(s), and that the run waits for the operator ("" when none)."""
+    rows = [g for g in generated or [] if isinstance(g, dict)]
+    if not rows:
+        return ""
+    parts = []
+    for g in rows:
+        refs = [r for r in g.get("references") or [] if isinstance(r, dict)]
+        ref_text = "; ".join(f"{r.get('title') or 'untitled'} ({r.get('licence') or '?'}"
+                             + (f", {r['url']}" if r.get("url") else "") + ")" for r in refs)
+        why = {RECONSTRUCTION_REASON: " (a reconstruction no photo can show)",
+               UNFIT_REASON: " (every reference unfit for the screen)"}.get(str(g.get("why_illustrated") or ""), "")
+        parts.append(f"Beat {g.get('beat')} “{_clean(g.get('line') or '', 120)}” → {g.get('to') or 'illustration'}{why}"
+                     + (f", based on: {ref_text}" if ref_text else ", no reference (kind of thing, drawn from the facts)"))
+    return (f"🏛 Archival Reconstructions ({len(rows)}): " + " · ".join(parts)
+            + " · Your approval is required (never auto-approved).")
+
+
+def auto_approve_refusal(payload: dict[str, Any] | None) -> str:
+    """Why this run may not be auto-approved ("" when it may): it put an AI illustration on screen (the picture
+    check's record, payload["picture_fit"]["generated"]); every illustrated beat waits for the operator."""
+    fit = (payload or {}).get("picture_fit") or {}
+    generated = fit.get("generated") if isinstance(fit, dict) else None
+    if not generated:
+        return ""
+    beats = ", ".join(str(g.get("beat")) for g in generated if isinstance(g, dict))
+    return (f"auto-approve refused: the video shows an AI illustration (beat {beats}); an illustration is approved "
+            "by the operator on the review card, never automatically")
+
+
 # ------------------------------------------------------------------ the house-style path (the planner's)
 def checkers_ready() -> tuple[bool, str]:
     """Whether the rubric's checkers can run: a candidate is never requested only to be rejected unlooked-at."""
@@ -504,13 +878,30 @@ def checkers_ready() -> tuple[bool, str]:
 
 def illustrate_beat(line: str, spec: dict[str, Any], work_dir: Path, aspect: str = "9:16",
                     budget: Budget | None = None, others: Sequence[Path] = (), candidates: int | None = None,
-                    surface: str = "beat") -> tuple[Path | None, dict[str, Any]]:
+                    surface: str = "beat", references: Sequence[dict[str, Any]] = (),
+                    visual: str | None = None, reason: str = "") -> tuple[Path | None, dict[str, Any]]:
     """The best passing candidate for `line` (src/image_quarantine.score_candidate), composited in the house style
-    and saved as run_dir/gap_gen_<key>.jpg with its lineage (line, era, model, prompt version, descriptors); or None.
-    A file already made for this key is reused only after it passes the rubric again. Returns (path, info)."""
-    info: dict[str, Any] = {"calls": 0, "rejected": [], "reused": False, "model": model_id(), "reason": ""}
+    and saved as run_dir/gap_gen_<key>.jpg with its lineage (line, era, model, prompt version, descriptors,
+    references); or None. A file already made for this key is reused only after it passes the rubric again.
+
+    `visual` NAMED_SUBJECT: drawn only from `references` (find_references), which go into the request and into the
+    reference comparison, and only for one of ILLUSTRATION_REASONS (`reason`, illustration_reason); otherwise
+    nothing is requested. Returns (path, info)."""
+    refs = [dict(r) for r in references or [] if isinstance(r, dict) and Path(str(r.get("path") or "")).is_file()]
+    refs = refs[:REFERENCE_MAX]
+    info: dict[str, Any] = {"calls": 0, "rejected": [], "reused": False, "model": model_id(), "reason": "",
+                            "references": refs, "visual": visual, "why_illustrated": reason}
     if surface not in ALLOWED_SURFACES:
         info["reason"] = f"never on a {surface}"
+        return None, info
+    if visual == NAMED_SUBJECT and not refs:
+        info["reason"] = "a named subject is drawn only from a reference image of it, and there is none"
+        log.info("Illustration skipped for %r: %s.", line[:60], info["reason"])
+        return None, info
+    if visual == NAMED_SUBJECT and reason not in ILLUSTRATION_REASONS:
+        info["reason"] = ("a named subject with a reference is illustrated only for a reconstruction or when every "
+                          "reference is unfit for the screen (a reference fit to show is shown instead)")
+        log.info("Illustration skipped for %r: %s.", line[:60], info["reason"])
         return None, info
     if not is_available():
         info["reason"] = "generation off or no key"
@@ -521,9 +912,11 @@ def illustrate_beat(line: str, spec: dict[str, Any], work_dir: Path, aspect: str
     from . import image_quarantine as q
     work = Path(work_dir)
     era = spec.get("era") if spec.get("era") in ERA_IDIOM else "classical_antiquity"
-    key = cache_key(line, era, aspect)
+    ref_paths = [Path(str(r["path"])) for r in refs]
+    key = cache_key(line, era, aspect, references=[r.get("sha256") or r["path"] for r in refs])
     info["key"] = key
     size = target_size(aspect)
+    checked = dict(spec, visual=visual)   # the rubric knows a named subject needs its reference comparison
     out = work / f"gap_gen_{key}.jpg"
     cand_dir = work / CANDIDATE_DIR
     best_raw = cand_dir / f"{key}_best.png"
@@ -533,12 +926,13 @@ def illustrate_beat(line: str, spec: dict[str, Any], work_dir: Path, aspect: str
         log.info("Illustration skipped for %r: %s.", line[:60], why)
         return None, info
     if out.is_file() and best_raw.is_file() and _lineage_inputs(out).get("key") == key:
-        ok, reasons, _ = q.score_candidate(best_raw, out, spec, size, [o for o in others if Path(o) != out])
+        ok, reasons, _ = q.score_candidate(best_raw, out, checked, size, [o for o in others if Path(o) != out],
+                                           references=ref_paths)
         if ok:
             info["reused"] = True
             return out, info
         info["rejected"].append({"reused": out.name, "why": reasons})
-    prompt = build_prompt(spec)
+    prompt = build_prompt(spec) + (" " + REFERENCE_INSTRUCTION if ref_paths else "")
     n = int(candidates if candidates is not None else getattr(config, "IMAGE_GEN_CANDIDATES", 4))
     cand_dir.mkdir(parents=True, exist_ok=True)
     best: tuple[float, Path, Path] | None = None
@@ -547,7 +941,7 @@ def illustrate_beat(line: str, spec: dict[str, Any], work_dir: Path, aspect: str
             info["reason"] = "the run's illustration call cap is reached"
             break
         info["calls"] += 1
-        raw_bytes = generate_image(prompt, aspect_ratio=aspect)
+        raw_bytes = generate_image(prompt, aspect_ratio=aspect, **({"references": ref_paths} if ref_paths else {}))
         if not raw_bytes:
             info["rejected"].append({"candidate": i, "why": ["no image returned"]})
             continue
@@ -559,7 +953,7 @@ def illustrate_beat(line: str, spec: dict[str, Any], work_dir: Path, aspect: str
         except (OSError, ValueError) as e:
             info["rejected"].append({"candidate": i, "why": [f"could not be composited: {e}"]})
             continue
-        ok, reasons, score = q.score_candidate(raw_path, final_path, spec, size, others)
+        ok, reasons, score = q.score_candidate(raw_path, final_path, checked, size, others, references=ref_paths)
         if not ok:
             info["rejected"].append({"candidate": i, "why": reasons})
             continue
@@ -576,7 +970,10 @@ def illustrate_beat(line: str, spec: dict[str, Any], work_dir: Path, aspect: str
         return None, info
     _record(out, {"key": key, "line": line, "era": era, "aspect": aspect, "model": model_id(), "api": api_style(),
                   "prompt_version": PROMPT_VERSION, "descriptors": list(spec.get("required") or []),
-                  "fact_ids": list(spec.get("fact_ids") or []), "origin": "ai_illustration"})
+                  "fact_ids": list(spec.get("fact_ids") or []), "origin": "ai_illustration", "visual": visual,
+                  "why_illustrated": reason,
+                  "references": [{k: r.get(k) for k in ("path", "url", "title", "licence", "license_url", "source",
+                                                        "artist", "sha256")} for r in refs]})
     log.info("Illustration for %r: %s (best of %d request(s)).", line[:60], out.name, info["calls"])
     return out, info
 

@@ -131,10 +131,21 @@ def asset_attribution(record):
                               for key in ("artist", "title", "license", "source_url", "license_url"))
 
 
+def _reference_records(data) -> list[dict[str, Any]]:
+    """The reference images the run's illustrations were drawn from, as credit records (an attribution licence's
+    terms reach the drawing made from it)."""
+    return [{"artist": r.get("artist") or "Unknown", "title": r.get("title"), "license": r.get("licence"),
+             "source_url": r.get("url"), "license_url": r.get("license_url")}
+            for record in data.get("assets", []) for r in (record.get("illustration") or {}).get("references") or []
+            if isinstance(r, dict)]
+
+
 def add_provenance_attributions(payload, ledger):
     data = json.loads(Path(ledger).read_text(encoding="utf-8"))
     credits_to_add = [asset_attribution(record) for record in data.get("assets", []) if asset_attribution(record)]
-    if any(is_share_alike(record.get("license", "")) for record in data.get("assets", [])):
+    credits_to_add += [line for line in (asset_attribution(r) for r in _reference_records(data))
+                       if line and line not in credits_to_add]
+    if any(is_share_alike(record.get("license", "")) for record in data.get("assets", []) + _reference_records(data)):
         credits_to_add.insert(0, SHARE_ALIKE_NOTICE)
     if not credits_to_add:
         return payload
@@ -264,9 +275,19 @@ def generate_provenance_ledger(
                 inputs = {}
             model = str(inputs.get("model") or "an image model")
             based_on = ", ".join(str(d) for d in inputs.get("descriptors") or [])
+            # The reference images it was drawn from (reliable depiction, 2026-11-02), so a reviewer can trace it:
+            # "based on: <reference title>, <licence>".
+            refs = [r for r in inputs.get("references") or [] if isinstance(r, dict)]
+            if refs:
+                based_on = "; ".join(f"{r.get('title') or Path(str(r.get('path') or '')).name}, "
+                                     f"{r.get('licence') or 'licence unknown'}" for r in refs)
             record["illustration"] = {"origin": "ai_illustration", "model": model,
                                       "based_on": f"based on: {based_on}" if based_on else "",
                                       "fact_ids": list(inputs.get("fact_ids") or [])}
+            if refs:
+                record["illustration"]["references"] = [
+                    {k: r.get(k) for k in ("title", "licence", "license_url", "url", "source", "artist", "path", "sha256")}
+                    for r in refs]
             illustration_credit = f"AI illustration ({model})" + (f", based on: {based_on}" if based_on else "")
         record["origin"] = "archaeological_reconstruction" if in_house_gap_art else ("original_drawing" if original_drawing else "source_media")
         record["source_paths"] = [str(source) for source in source_paths]

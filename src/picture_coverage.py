@@ -23,6 +23,13 @@ The cascade follows the line's planned visual class (2026-11-02, illustration pa
 - kind_of_thing: the order above (TIERS), the illustration second to last.
 - abstract: never an illustration.
 
+Reliable depiction (operator, 2026-11-02): a named subject is illustrated only from an openly licensed reference
+image of that very thing (src/image_gen.find_references). A beat that took an illustration carries its references
+in its row ("illustration": {"references", "visual"}); a beat the illustration tier passed over carries why
+("illustration_skipped"), e.g. no reference of the subject; why each reference was not shown as the exact photo
+("references_not_shown"). The illustration's reason ("why_illustrated": a reconstruction, or every reference unfit
+for the screen) is kept with it. A named subject's crop is located on the named feature (located_crop).
+
 Which tier filled each beat is recorded in the run folder (COVERAGE_FILE), so the video check and the operator see
 it: a beat a lower tier covered honestly is a warning, never a blocker (src/video_qa.coverage_severity), while a
 beat showing a wrong or invented subject stays a blocker.
@@ -154,6 +161,119 @@ def detail_crop(photo: Path, out_dir: Path, used: Sequence[Box], aspect: float,
     return out, box
 
 
+# ------------------------------------------------------------------ located crops (named subjects, 2026-11-02)
+# Operator refinement: a crop under a named-subject line must be OF the named thing. Its feature is located in the
+# approved photo by a vision check (the callouts locator's schema and rule, src/callouts.Located: "high" confidence
+# only, never a guess), the crop is cut around it, and a second look confirms the crop shows it; either check that
+# cannot run, or answers otherwise, means no crop (fail closed). A crop chosen by detail alone (detail_crop) serves
+# kind-of-thing and abstract lines only.
+LOCATE_MARGIN = 1.6      # the crop spans this multiple of the located feature's extent (context around it)
+LOCATE_SYSTEM = ("You locate one named feature in a photo for a history documentary. Say whether that exact feature "
+                 "is visible and where: x, y as fractions of the width and height at its centre, w, h its extent as "
+                 "fractions of the width and height. Use confidence \"high\" only when you are sure that exact feature "
+                 "is what you point at; never guess. Return JSON with the fields label, visible, x, y, w, h, confidence.")
+
+
+def locate_feature(photo: Path, subject: str, line: str = "") -> Box | None:
+    """The named feature's box (fractions) in `photo`, from one vision call answered with src/callouts.Located;
+    None unless it is visible with "high" confidence and a usable extent. Fails closed."""
+    from . import free_llm
+    from .callouts import Located
+    from .llm import image_block
+    try:
+        if not free_llm.ready():
+            return None
+        prompt = f"Feature: {subject}" + (f"\nThe narration says: {line}" if line else "")
+        v = free_llm.structured(LOCATE_SYSTEM, [prompt, image_block(Path(photo), 1024)], Located, role="checker",
+                                task_class="light")
+    except Exception as e:  # noqa: BLE001 - a locator that cannot run locates nothing
+        log.info("Feature locator for %s could not run (%s).", Path(photo).name, e)
+        return None
+    if not isinstance(v, Located) or not v.visible or v.confidence != "high":
+        return None
+    w, h = max(0.0, min(1.0, float(v.w))), max(0.0, min(1.0, float(v.h)))
+    if w <= 0 or h <= 0 or not (0.0 <= v.x <= 1.0 and 0.0 <= v.y <= 1.0):
+        return None
+    return (max(0.0, v.x - w / 2), max(0.0, v.y - h / 2), min(1.0, v.x + w / 2), min(1.0, v.y + h / 2))
+
+
+def crop_shows(crop: Path, subject: str) -> bool:
+    """The second check: a look at the crop itself says it shows `subject` (src/beat_images.picture_look). A look
+    that could not run is a no."""
+    from .beat_images import picture_look
+    try:
+        look = picture_look(Path(crop), subject)
+    except (OSError, ValueError):
+        return False
+    return bool(look.get("checked") and look.get("shows") and not look.get("burned_in_text"))
+
+
+def window_around(size: tuple[int, int], feature: Box, aspect: float, min_width: int = 0) -> Box | None:
+    """A window of the frame's `aspect` centred on `feature` (fractions), LOCATE_MARGIN times its extent, inside
+    the photo; None when it would be narrower than min_width source px or could not hold the whole feature."""
+    w, h = size
+    if w <= 0 or h <= 0 or aspect <= 0:
+        return None
+    fw, fh = (feature[2] - feature[0]) * w, (feature[3] - feature[1]) * h
+    cw = max(fw * LOCATE_MARGIN, fh * LOCATE_MARGIN * aspect, float(min_width))
+    ch = cw / aspect
+    shrink = min(1.0, w / cw, h / ch)
+    cw, ch = cw * shrink, ch * shrink
+    if cw < min_width or cw < fw or ch < fh:
+        return None
+    cx, cy = (feature[0] + feature[2]) / 2 * w, (feature[1] + feature[3]) / 2 * h
+    x0, y0 = min(max(0.0, cx - cw / 2), w - cw), min(max(0.0, cy - ch / 2), h - ch)
+    return (x0 / w, y0 / h, (x0 + cw) / w, (y0 + ch) / h)
+
+
+def _save_crop(photo: Path, im, box: Box, out_dir: Path, settings: dict[str, Any]) -> Path | None:
+    from .lineage import record_derived
+    px = (round(box[0] * im.size[0]), round(box[1] * im.size[1]), round(box[2] * im.size[0]), round(box[3] * im.size[1]))
+    n = 1
+    while (Path(out_dir) / DETAIL_DIR / str(n) / Path(photo).name).exists():
+        n += 1
+    out = Path(out_dir) / DETAIL_DIR / str(n) / Path(photo).name
+    try:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        im.crop(px).save(out, "JPEG", quality=95)
+        record_derived(out, [photo], DETAIL_OPERATION, {"box": [round(x, 4) for x in box], **settings})
+    except (OSError, ValueError) as e:
+        log.debug("Crop of %s not saved (%s).", Path(photo).name, e)
+        return None
+    return out
+
+
+def located_crop(photo: Path, out_dir: Path, used: Sequence[Box], aspect: float, subject: str, line: str = "",
+                 min_width: int = 0, locate=None, confirm=None) -> tuple[Path, Box] | None:
+    """A crop of `photo` around the named feature (locate_feature, then window_around), not repeating a region
+    already shown, that a second look confirms shows it (crop_shows); (path, box) or None. `locate` / `confirm`
+    replace the two checks (tests). A crop the second look rejects is removed."""
+    from PIL import Image, ImageOps
+    locate = locate or locate_feature
+    confirm = confirm or crop_shows
+    try:
+        with Image.open(photo) as raw:
+            im = ImageOps.exif_transpose(raw).convert("RGB")
+    except (OSError, ValueError):
+        return None
+    feature = locate(Path(photo), subject, line)
+    if feature is None:
+        return None
+    box = window_around(im.size, feature, aspect, min_width)
+    if box is None or any(iou(box, u) > DETAIL_MAX_IOU for u in used):
+        return None
+    out = _save_crop(photo, im, box, out_dir, {"located": subject, "feature": [round(x, 4) for x in feature]})
+    if out is None:
+        return None
+    if not confirm(out, subject):
+        log.info("Located crop of %s does not show %r on a second look; not used.", Path(photo).name, subject)
+        out.unlink(missing_ok=True)
+        from .lineage import sidecar
+        sidecar(out).unlink(missing_ok=True)
+        return None
+    return out, box
+
+
 def is_detail_crop(p: Path) -> bool:
     """Whether a scene file is a detail crop this module made (by its lineage record's operation)."""
     from .lineage import sidecar
@@ -227,6 +347,11 @@ def coverage(beats: list[dict[str, Any]], scenes: list[Path], fit: dict[str, Any
             rows_by_beat[row["beat"]] = row
     fits = set(fit.get("fits") or [])
     held = {r.get("beat") for r in fit.get("held") or [] if isinstance(r, dict)}
+    drawn = {g.get("beat"): g for g in fit.get("generated") or [] if isinstance(g, dict)}
+    passed_over = {r.get("beat"): str(r.get("why") or "") for r in fit.get("illustration_skipped") or []
+                   if isinstance(r, dict)}   # the last reason per beat
+    unshown_refs = {r.get("beat"): list(r.get("why") or []) for r in fit.get("references_not_shown") or []
+                    if isinstance(r, dict)}
     out = []
     for i, (beat, pic) in enumerate(zip(beats, scenes), 1):
         name = Path(pic).name
@@ -244,9 +369,18 @@ def coverage(beats: list[dict[str, Any]], scenes: list[Path], fit: dict[str, Any
             seconds = max(0.0, float(beat.get("end", 0) or 0) - float(beat.get("start", 0) or 0))
         except (TypeError, ValueError):
             seconds = 0.0
-        out.append({"beat": i, "line": " ".join(str(beat.get("text") or "").split()), "picture": name,
-                    "tier": tier, "cascade": cascade, "seconds": round(seconds, 3),
-                    "planned_visual": (visuals[i - 1] if visuals and i <= len(visuals) else None) or beat.get("visual")})
+        row = {"beat": i, "line": " ".join(str(beat.get("text") or "").split()), "picture": name,
+               "tier": tier, "cascade": cascade, "seconds": round(seconds, 3),
+               "planned_visual": (visuals[i - 1] if visuals and i <= len(visuals) else None) or beat.get("visual")}
+        g = drawn.get(i)
+        if g is not None and Path(str(g.get("to") or "")).name == name:
+            row["illustration"] = {"references": [dict(r) for r in g.get("references") or [] if isinstance(r, dict)],
+                                   "visual": g.get("visual"), "why_illustrated": g.get("why_illustrated") or ""}
+        elif i in passed_over:
+            row["illustration_skipped"] = passed_over[i]
+        if i in unshown_refs:
+            row["references_not_shown"] = unshown_refs[i]
+        out.append(row)
     return out
 
 

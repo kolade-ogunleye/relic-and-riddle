@@ -1044,6 +1044,7 @@ class PipelineCoordinator:
 
         from src.release import write_release_report
         release = write_release_report(self.db.get_run(run_id), dry_run=dry_run)
+        auto_approve = self._auto_approve_allowed(run_id, payload, auto_approve)
         blocked = self._blocked_at_gate(run_id, release, dry_run, "auto-approve flag") if auto_approve else None
         if blocked:
             return {"run_id": run_id, "parent_run_id": parent_run_id, "topic_id": tid, "status": "blocked",
@@ -1269,6 +1270,24 @@ class PipelineCoordinator:
                 else:
                     self.db.set_setting(key, "")  # a passing failure: a later wait (or a resend) acts on it again
                 raise
+
+    def _auto_approve_allowed(self, run_id: str, payload: dict[str, Any] | None, auto_approve: bool) -> bool:
+        """Whether the auto-approve flag may decide this run: never when it shows an AI illustration (operator,
+        2026-11-02: an illustration must reliably depict its subject, and the operator approves each one on the review
+        card). A refused flag sends the run to review instead, with the reason logged and alerted."""
+        if not auto_approve:
+            return False
+        from src.image_gen import auto_approve_refusal
+        why = auto_approve_refusal(payload)
+        if not why:
+            return True
+        log.warning("%s: %s; sent for review instead.", run_id, why)
+        try:
+            self._alert(f"🏛 <b>Auto-approve refused</b>\n\n<b>{html.escape(self.db.run_label(run_id))}</b>\n"
+                        + html.escape(why) + "\nThe review card lists each illustration with its reference(s).")
+        except Exception as e:  # noqa: BLE001 - the refusal stands whether or not the alert is delivered
+            log.warning("Auto-approve refusal alert not sent (%s).", e)
+        return False
 
     def _blocked_at_gate(self, run_id: str, report: Optional[Dict[str, Any]], dry_run: bool, by: str) -> Optional[str]:
         """An approval that does not come from the Telegram card (the auto-approve flag, the CLI) meets the
@@ -2925,10 +2944,10 @@ class PipelineCoordinator:
             payload["graphics_note"] = ("🗺 Original graphics in this video: " + ", ".join(used_graphics)) if used_graphics else ""
             generated_list = fit_report.get("generated", [])
             if generated_list:
-                payload["reconstruction_note"] = (
-                    f"🏛 Archival Reconstructions ({len(generated_list)}): "
-                    + "; ".join(f"Beat {g['beat']} ({clip_words(g.get('line', ''), 80)})" for g in generated_list)
-                )
+                # Every illustrated beat on the review card with its narrated line, the illustration and its
+                # reference(s) (reliable depiction, 2026-11-02); the run waits for the operator (never auto-approved).
+                from src.image_gen import review_note
+                payload["reconstruction_note"] = review_note(generated_list)
                 from src import improve
                 for g in generated_list:
                     improve.note(
@@ -2940,6 +2959,11 @@ class PipelineCoordinator:
             payload["footage_note"] = (f"🎥 {len(used_footage)} real footage clip(s) "
                                        f"({sum(c['place_specific'] for c in used_footage)} of the actual site): "
                                        + "; ".join(f"{c['provider']}: {c['source_url']}" for c in used_footage)) if used_footage else ""
+            # A reference image of a named subject shown as its exact photo (src/scene_planner._show_reference) is
+            # credited like any beat image (reliable depiction, 2026-11-02).
+            on_screen = {str(Path(p)) for p in scenes}
+            used = list(used) + [c for c in fit_report.get("reference_credits") or []
+                                 if isinstance(c, dict) and str(Path(str(c.get("file") or ""))) in on_screen]
             payload["beat_image_credits"] = used
             # What each one is and which line it is for: the card said only "check they show the right thing",
             # and a Wells Cathedral clock came into an Antikythera video unnoticed (2026-10-25).
@@ -3172,6 +3196,7 @@ class PipelineCoordinator:
         # 8-9. Human approval (never implicit). The production card is finished either way.
         self._finish_progress(topic.get("title", tid), run_id, success=True)
         decision = None
+        auto_approve = self._auto_approve_allowed(run_id, payload, auto_approve)
         blocked = self._blocked_at_gate(run_id, release, dry_run, "auto-approve flag") if auto_approve else None
         if blocked:
             return {"run_id": run_id, "topic_id": tid, "decision": None, "status": "blocked", "error": blocked,

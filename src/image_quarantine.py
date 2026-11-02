@@ -17,7 +17,16 @@ Two entry points:
        off, then the vision check's text answer alone decides) and the vision check sees none;
     5. the vision check (one structured call): every required descriptor shown, no anachronism, no face of an
        identifiable person, the subject inside the safe zone, and it could NOT be mistaken for a photograph;
-    6. a perceptual hash at least PHASH_MIN_DISTANCE bits from every other visual of the run.
+    6. a perceptual hash at least PHASH_MIN_DISTANCE bits from every other visual of the run;
+    7. reliable depiction (operator, 2026-11-02): the reference comparison (reference_check), a separate vision call
+       given the candidate AND the reference image(s) of the very subject side by side: the same object, the same
+       structural elements (count, shape, proportions), nothing added that the reference does not show, each a
+       structured yes/no, with a confidence of at least image_gen.REFERENCE_MIN_CONFIDENCE. It and the descriptor
+       checklist (5, which never sees the reference, framed differently and asked of another model where one is
+       configured: vision_models) are independent; BOTH must pass. A named subject with no reference is rejected.
+
+The vision calls send the image as a content block (llm.image_block): free_llm.structured takes no `images`
+argument, so the earlier calls raised and every candidate was rejected unlooked-at (fixed 2026-11-02).
 """
 
 from __future__ import annotations
@@ -104,6 +113,27 @@ class QuarantineVerdict(BaseModel):
     reason: str = ""
 
 
+def _image(path: Path, max_side: int = 1024) -> dict[str, Any]:
+    """An image content block for free_llm.structured (src/llm.image_block)."""
+    from .llm import image_block
+    return image_block(Path(path), max_side=max_side)
+
+
+# Which model answers which check (free_llm.structured's role: "checker" is config.FREE_CHECKER_MODEL, "writer"
+# config.FREE_WRITER_MODEL): the descriptor checklist and the reference comparison are asked of different models,
+# so the two checks do not share a model's blind spot. Where both roles name one model, only the prompt framing
+# differs (vision_models says so).
+DESCRIPTOR_ROLE = "checker"
+REFERENCE_ROLE = "writer"
+
+
+def vision_models() -> dict[str, Any]:
+    """{"descriptor": model, "reference": model, "distinct": bool} for the two independent checks."""
+    d = str(getattr(config, "FREE_CHECKER_MODEL", "") or "")
+    r = str(getattr(config, "FREE_WRITER_MODEL", "") or "")
+    return {"descriptor": d, "reference": r, "distinct": bool(d and r and d != r)}
+
+
 def _vision_ready() -> bool:
     from . import free_llm
     try:
@@ -127,7 +157,7 @@ def check_historical_anachronism(image_path: Path, line_text: str, era: str) -> 
               "4. Anything that could be mistaken for a real photograph.\n"
               "If any of these is present set passed=false with a short reason; otherwise passed=true.")
     try:
-        verdict = free_llm.structured(system, prompt, QuarantineVerdict, images=[image_path], role="checker",
+        verdict = free_llm.structured(system, [prompt, _image(image_path)], QuarantineVerdict, role="checker",
                                       task_class="light")
     except Exception as e:  # noqa: BLE001 - fail closed on any checker failure
         log.info("Quarantine vision check failed (%s); rejected.", e)
@@ -247,7 +277,7 @@ def vision_rubric(image_path: Path, spec: dict[str, Any]) -> tuple[bool, str]:
               "subject_in_safe_zone: the subject sits in the middle third, clear of the frame edges and the lower fifth.\n"
               "could_be_mistaken_for_photograph: a viewer could take it for a real photograph.")
     try:
-        v = free_llm.structured(system, prompt, IllustrationVerdict, images=[image_path], role="checker",
+        v = free_llm.structured(system, [prompt, _image(image_path)], IllustrationVerdict, role=DESCRIPTOR_ROLE,
                                 task_class="light")
     except Exception as e:  # noqa: BLE001 - fail closed on any checker failure
         return False, f"the vision check failed: {e}"
@@ -262,6 +292,70 @@ def vision_rubric(image_path: Path, spec: dict[str, Any]) -> tuple[bool, str]:
                              (v.could_be_mistaken_for_photograph, "it could be mistaken for a photograph")) if bad]
     if problems:
         return False, "; ".join(problems) + (f" ({v.reason})" if v.reason else "")
+    return True, PASS
+
+
+class ReferenceComparison(BaseModel):
+    """The reference comparison's answer. Every default is the failing direction: a field the model leaves out
+    rejects the candidate."""
+    same_object: bool = False
+    same_count_of_parts: bool = False
+    same_shapes: bool = False
+    same_proportions: bool = False
+    nothing_added: bool = False
+    added: list[str] = []
+    confidence: float = 0.0
+    reason: str = ""
+
+
+def reference_check(image_path: Path, references: Sequence[Path], spec: dict[str, Any]) -> tuple[bool, str]:
+    """Check 7: the candidate beside its reference image(s), one structured call (REFERENCE_ROLE's model). Passes
+    only on a confident yes to every question and nothing added. FAILS CLOSED: no reference, an unreadable one, the
+    check unavailable or failing all reject."""
+    from . import free_llm
+    from .image_gen import REFERENCE_MIN_CONFIDENCE
+    refs = [Path(r) for r in references or []]
+    if not refs:
+        return False, "no reference image to compare with"
+    if not _vision_ready():
+        return False, "the reference comparison is not available"
+    try:
+        blocks: list[Any] = [_image(image_path)] + [_image(r) for r in refs]
+    except (OSError, ValueError) as e:
+        return False, f"an image could not be read for the reference comparison: {e}"
+    system = ("You compare a drawn illustration with photographs or museum images of a real object, for a history "
+              "documentary that shows the drawing only if it depicts that very object faithfully. Be strict; when "
+              "unsure, answer in the failing direction with a low confidence. Return JSON with exactly the fields "
+              "'same_object', 'same_count_of_parts', 'same_shapes', 'same_proportions', 'nothing_added', 'added' "
+              "(list of strings), 'confidence' (0 to 1) and 'reason'.")
+    prompt = ("The FIRST image is a drawing (a scratchboard engraving, light lines on a dark ground: the style itself "
+              f"is intended). The other {len(refs)} image(s) are references of the real object"
+              + (f" ({spec.get('topic')})" if spec.get("topic") else "") + ".\n"
+              "same_object: the drawing depicts the same object or place the references show, not merely one like it.\n"
+              "same_count_of_parts: its structural elements (arches, columns, gears, levels, openings...) are the same "
+              "in number as in the references, wherever both show them.\n"
+              "same_shapes: those elements have the same shapes.\n"
+              "same_proportions: the overall and relative proportions match the references.\n"
+              "nothing_added: the drawing shows no element, part, figure or decoration that the references do not show "
+              "(a plain dark background is not an addition); list any addition under 'added'.\n"
+              "confidence: how sure you are of these answers taken together.")
+    try:
+        v = free_llm.structured(system, [prompt, *blocks], ReferenceComparison, role=REFERENCE_ROLE,
+                                task_class="light")
+    except Exception as e:  # noqa: BLE001 - fail closed on any checker failure
+        return False, f"the reference comparison failed: {e}"
+    if not isinstance(v, ReferenceComparison):
+        return False, "the reference comparison returned no verdict"
+    problems = [msg for bad, msg in ((not v.same_object, "not the same object as the reference"),
+                                     (not v.same_count_of_parts, "a different number of structural parts"),
+                                     (not v.same_shapes, "different shapes"),
+                                     (not v.same_proportions, "different proportions"),
+                                     (not v.nothing_added or bool(v.added),
+                                      "adds what the reference does not show" + (f" ({', '.join(v.added[:4])})" if v.added else "")),
+                                     (float(v.confidence) < REFERENCE_MIN_CONFIDENCE,
+                                      f"confidence {float(v.confidence):.2f} under {REFERENCE_MIN_CONFIDENCE:.2f}")) if bad]
+    if problems:
+        return False, "reference comparison: " + "; ".join(problems) + (f" ({v.reason})" if v.reason else "")
     return True, PASS
 
 
@@ -290,8 +384,13 @@ def raw_rubric(raw: Image.Image, target_size: tuple[int, int]) -> tuple[bool, li
 
 
 def score_candidate(raw_path: Path, final_path: Path, spec: dict[str, Any], target_size: tuple[int, int],
-                    others: Sequence[Path] = ()) -> tuple[bool, list[str], float]:
-    """The whole rubric for one candidate: (passed, reasons it failed, score). Fails closed on any error."""
+                    others: Sequence[Path] = (), references: Sequence[Path] = ()) -> tuple[bool, list[str], float]:
+    """The whole rubric for one candidate: (passed, reasons it failed, score). Fails closed on any error.
+    `references`: the images the candidate was drawn from; given, the reference comparison (7) must pass too; a
+    named subject (spec["visual"]) without one is rejected."""
+    from .image_gen import NAMED_SUBJECT
+    if spec.get("visual") == NAMED_SUBJECT and not references:
+        return False, ["a named subject without a reference image is never shown"], 0.0
     try:
         with Image.open(raw_path) as im:
             raw = im.convert("RGB")
@@ -317,6 +416,10 @@ def score_candidate(raw_path: Path, final_path: Path, spec: dict[str, Any], targ
     ok, why = vision_rubric(Path(final_path), spec)
     if not ok:
         return False, [why], 0.0
+    if references:
+        ok, why = reference_check(Path(final_path), references, spec)
+        if not ok:
+            return False, [why], 0.0
     stats = tone_stats(raw)
     # Among passing candidates: crisper line work and coverage nearest the middle of the band are preferred.
     mid = sum(INK_COVERAGE) / 2

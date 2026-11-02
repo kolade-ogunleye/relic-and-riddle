@@ -641,6 +641,29 @@ def origin_label(origin: str) -> str:
     return {"curated": "curated script", "claude": "Claude"}.get(origin, origin)
 
 
+
+def illustration_review_items(payload: dict[str, Any], run_dir: Path) -> list[list[dict[str, Any]]]:
+    """Albums (at most 10 photos each) showing each illustrated beat of the run (payload["picture_fit"]["generated"])
+    followed by its reference image(s), captioned with the beat's narrated line and each reference's title and
+    licence. Files that are missing are left out; [] when the run has no illustration."""
+    e = html.escape
+    items: list[dict[str, Any]] = []
+    for g in (payload.get("picture_fit") or {}).get("generated") or []:
+        if not isinstance(g, dict):
+            continue
+        art = Path(str(g.get("path") or "")) if g.get("path") else Path(run_dir) / str(g.get("to") or "")
+        if not art.is_file():
+            continue
+        refs = [r for r in g.get("references") or [] if isinstance(r, dict) and Path(str(r.get("path") or "")).is_file()]
+        items.append({"type": "photo", "path": art, "caption": (
+            f"🏛 Beat {e(str(g.get('beat')))} illustration (needs your approval) · “{e(str(g.get('line') or '')[:600])}”"
+            + ("" if refs else " · no reference: a kind of thing, drawn from the facts"))})
+        for r in refs:
+            items.append({"type": "photo", "path": Path(str(r["path"])), "caption": (
+                f"Reference for beat {e(str(g.get('beat')))}: {e(str(r.get('title') or '')[:300])} "
+                f"({e(str(r.get('licence') or '?'))}" + (f", {e(str(r['url'])[:300])}" if r.get("url") else "") + ")")})
+    return [items[i:i + 10] for i in range(0, len(items), 10)]
+
 class TelegramApprovalBot:
     def __init__(
         self,
@@ -1638,6 +1661,10 @@ class TelegramApprovalBot:
             "cells": rows,
         })
 
+        illustrated = [g for g in (payload.get("picture_fit") or {}).get("generated") or [] if isinstance(g, dict)]
+        if illustrated:
+            from .image_gen import review_note
+            blocks.append({"type": "paragraph", "text": review_note(illustrated)})
         script_text = payload.get("narration_script", "")
         lines = [s.strip() + "." for s in script_text.split(". ") if s.strip()][:4]
         if lines:
@@ -1832,6 +1859,10 @@ class TelegramApprovalBot:
             log.warning("Video is %.1f MB, over Telegram's bot upload limit; review it locally: %s", size_mb, video_path)
         if first:
             sent += self._album(first) or []
+        # Every illustrated beat beside its reference(s) and its narrated line (reliable depiction, 2026-11-02): the
+        # operator approves each illustration on the review itself.
+        for batch in illustration_review_items(payload, run_dir):
+            sent += self._album(batch) or []
         stills = sorted((run_dir / "stories").glob("story_*.jpg")) + sorted((run_dir / "carousel").glob("carousel_slide_*.jpg"))
         n_story = len(list((run_dir / "stories").glob("story_*.jpg")))
         for start in range(0, len(stills), 10):

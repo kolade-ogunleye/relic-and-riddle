@@ -105,3 +105,31 @@ def test_a_cropped_first_photo_still_finds_its_topic_credits(tmp_path, monkeypat
     cropped = beat_images.without_burned_in_text([first, context], "s", minimum=1)
     assert cropped[0].parent != topic                       # the first photo is now a caption-strip copy
     assert VisualEngine.hero_image(cropped) == cropped[0]   # the context shot cannot take its place
+
+
+def test_the_timeline_records_and_tracks_its_backdrop_photo(tmp_path, monkeypatch) -> None:
+    from src import graphics
+    from src.lineage import sidecar
+
+    monkeypatch.setattr(graphics.geo, "locate", lambda topic: None)
+    monkeypatch.setattr("src.encoding.get_video_encoder", lambda: ["-c:v", "libx264"])
+    calls = []
+
+    def render(spec, path, **kwargs):
+        calls.append(kwargs.get("photo"))
+        path.write_bytes(b"rendered clip")
+        path.with_suffix(".jpg").write_bytes(b"poster")
+        return path
+
+    monkeypatch.setattr(graphics, "render_timeline", render)
+    photo = tmp_path / "hero.jpg"
+    Image.new("RGB", (64, 64), (90, 80, 70)).save(photo)
+    payload = {"timeline": [{"year": 100, "label": "First"}]}
+    clip = graphics.make_all(payload, {}, tmp_path, photo=photo)[0]
+    record = json.loads(sidecar(clip).read_text(encoding="utf-8"))
+    assert str(photo.resolve()) in record["settings"]["media_sources"]
+    assert graphics.make_all(payload, {}, tmp_path, photo=photo) == [clip]
+    assert len(calls) == 1
+    Image.new("RGB", (64, 64), (10, 200, 30)).save(photo)  # a different hero photo rebuilds the clip
+    graphics.make_all(payload, {}, tmp_path, photo=photo)
+    assert len(calls) == 2

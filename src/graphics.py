@@ -2788,6 +2788,9 @@ def render_ventilation_airflow(
 
 
 # ----------------------------------------------- LiDAR subterranean radar scan
+PHOTO_BUILDERS = frozenset({"numbers", "timeline"})  # builders that draw the hero photo as a backdrop
+
+
 def make_all(payload: Dict[str, Any], topic: Dict[str, Any], work_dir: Path, photo: Optional[Path] = None, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
              palette: Optional[Dict[str, Any]] = None) -> List[Path]:
     """Every graphic the script and topic support. Never raises: graphics are optional.
@@ -2841,7 +2844,7 @@ def make_all(payload: Dict[str, Any], topic: Dict[str, Any], work_dir: Path, pho
         source_files = [Path(__file__), Path(__file__).with_name("typography.py"),
                         Path(__file__).with_name("brand.py"),
                         *[FONTS_DIR / filename for filename in bundled_font_files()]]
-        if photo and name == "numbers":
+        if photo and name in PHOTO_BUILDERS:  # timeline also draws the photo (2026-11-02)
             source_files.append(Path(photo))
         if name == "scale":
             source_files.append(REFERENCE_FILE)
@@ -2864,7 +2867,7 @@ def make_all(payload: Dict[str, Any], topic: Dict[str, Any], work_dir: Path, pho
             original_builders = {"cross-section", "timeline", "scale", "defense", "ventilation", "numbers"}
             if result and name in original_builders:
                 from .lineage import record_graphic
-                media = [photo] if name == "numbers" and photo else []
+                media = [photo] if name in PHOTO_BUILDERS and photo else []
                 record_graphic(result, Path(__file__), {"payload": payload, "builder": name,
                                "width": width, "height": height}, media,
                                dependencies=[REFERENCE_FILE] if name == "scale" else [])

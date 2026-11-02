@@ -375,7 +375,9 @@ class MultiFormatGenerator:
         font_p = get_font("Montserrat", 32 if tight else 36, weight=800)
         if i == 0:  # No arrow on the pointer (operator, 2026-10-28): the words say where to go.
             y += 96
-            rows.append(("reel_pointer", y, "FULL STORY IN OUR NEW REEL", font_p, GOLD, font_p.size * 0.11))
+            # In bone (2026-11-01): gold is the frame's one first read (the title's second line); the kicker's
+            # gold rule and capitals are the brand's kicker, and a third gold line competed with both.
+            rows.append(("reel_pointer", y, "FULL STORY IN OUR NEW REEL", font_p, WHITE, font_p.size * 0.11))
         bottom = max(d.textbbox((x, yy), txt, font=f, anchor="ls")[3] for _, yy, txt, f, _, _ in rows)
         block = bottom
         top_cand = sy0 + 40 + block // 2

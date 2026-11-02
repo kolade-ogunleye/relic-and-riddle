@@ -310,3 +310,17 @@ def test_reel_plates_stay_in_the_reel_box_and_below_the_graphics(tmp_path):
     graphics_bottom = safe_zones.graphics_box()[3]
     assert pills and all(safe_zones.inside(p, box) for p in pills)
     assert all(p[0] >= 65 and p[2] <= 888 and p[1] > graphics_bottom and p[3] <= 1248 for p in pills)
+
+
+def test_portrait_reconstruction_badge_is_readable_top_left(tmp_path):
+    """Operator-approved move (2026-11-02): 30px bone Plex Mono on an INK plate at x 84, y 300, inside the Reel box."""
+    from src.config import RECON_SIZE_PORTRAIT
+
+    words = _timed("Ancient craft.")
+    ass = VideoComposer().build_subtitles(words, tmp_path / "p.ass", reconstruction_intervals=[(0.0, 2.0)]).read_text(encoding="utf-8")
+    style = next(ln for ln in ass.splitlines() if ln.startswith("Style: ReconBadge,")).split(",")
+    assert style[18] == "7"  # top-left alignment
+    (_, _, plate), = _events(ass, "ReconPlate")
+    assert r"\pos(84,300)" in plate
+    width = get_font("IBM Plex Mono", RECON_SIZE_PORTRAIT, weight=600).getlength("[ HISTORICAL RECONSTRUCTION ]")
+    assert 84 + width + 60 <= 888  # plate stays clear of the right rail

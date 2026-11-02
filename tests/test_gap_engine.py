@@ -397,10 +397,12 @@ def test_recon_badge_upper_third_and_lineage_derivation(tmp_path):
     )
     
     content = ass_file.read_text(encoding="utf-8")
-    # Verify upper-third style: Alignment=8 (\an8) and MarginV=310
+    # The badge sits top-left on a plate inside the Meta inset (x 84, y 300) at 30px; it was a 22px centred
+    # upper-third label (\an8, MarginV 310) until the operator approved the move (caption review, 2026-11-02).
     assert "Style: ReconBadge" in content
-    assert ",8,0,0,310,1" in content
-    assert r"{\an8\fs22\c&HE2DAC8&\alpha&H40&\b1}[ HISTORICAL RECONSTRUCTION ]" in content
+    assert "Style: ReconPlate" in content
+    assert r"\an7\pos(98," in content and "}[ HISTORICAL RECONSTRUCTION ]" in content
+    assert r"{\pos(84,300)\p1}" in content
 
 
 # ---------------------------------------------------------------------------

@@ -60,6 +60,7 @@ from .config import (
     SIDECAR_MIN_CUE,
     SIDECAR_MAX_CUE,
     RECON_FONT,
+    RECON_SIZE_PORTRAIT,
     RECON_SIZE_WIDE,
     RECON_PLATE_ALPHA,
     TARGET_LUFS,
@@ -951,11 +952,13 @@ class VideoComposer:
                 f"Style: ReconPlate,{RECON_FONT},{badge_fs},{recon_plate},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
             )
         else:
+            badge_px = RECON_SIZE_PORTRAIT
+            badge_fs = ass_font_size(RECON_FONT, badge_px, 600)
             styles = (
                 f"Style: CapText,{FONT_NAME},{FONT_SIZE_ASS},{COL_PAST},&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0.5,0,1,0,0,5,0,0,0,1\n"
                 f"Style: CapBox,{FONT_NAME},{FONT_SIZE_ASS},{COL_BACK},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
-                f"Style: ReconBadge,{RECON_FONT},22,&H40E2DAC8,&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,1.5,0,1,0,0,8,0,0,310,1\n"
-                f"Style: ReconPlate,{RECON_FONT},22,{recon_plate},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
+                f"Style: ReconBadge,{RECON_FONT},{badge_fs},{COL_ACTIVE},&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,1.5,0,1,0,0,7,0,0,0,1\n"
+                f"Style: ReconPlate,{RECON_FONT},{badge_fs},{recon_plate},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
             )
         header = f"""[Script Info]
 ScriptType: v4.00+
@@ -1050,22 +1053,16 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         # The AI-reconstruction disclosure (layer 2 plate, layer 3 text) while a reconstruction is on screen
         if reconstruction_intervals:
             label = "[ HISTORICAL RECONSTRUCTION ]"
-            if is_widescreen:
-                # Bone IBM Plex Mono on an INK plate in the top-left corner of the 5% title-safe area
-                pad_x, pad_y = round(14 * height / 1080), round(8 * height / 1080)
-                b_top, b_bottom = _ink_band(RECON_FONT, badge_px, badge_fs, 600)
-                tw = get_font(RECON_FONT, badge_px, weight=600).getlength(label) + 1.5 * len(label)
-                x0, y0 = round(0.05 * width), round(0.05 * height)
-                text_pos = (x0 + pad_x, round(y0 + pad_y - b_top))
-                badge_text = f"{{\\an7\\pos({text_pos[0]},{text_pos[1]})}}{label}"
-            else:
-                # 9:16 keeps its upper-third placement and type (locked by tests/test_gap_engine.py), on a plate
-                pad_x, pad_y = 12, 8
-                b_px = max(8, round(22 * _font_vmetrics(RECON_FONT, 600)[0] / sum(_font_vmetrics(RECON_FONT, 600)[1:])))
-                b_top, b_bottom = _ink_band(RECON_FONT, b_px, 22, 600)
-                tw = get_font(RECON_FONT, b_px, weight=600).getlength(label) + 1.5 * len(label)
-                x0, y0 = round(width / 2 - tw / 2 - pad_x), round(310 + b_top - pad_y)
-                badge_text = r"{\an8\fs22\c&HE2DAC8&\alpha&H40&\b1}" + label
+            # Bone IBM Plex Mono on an INK plate, top-left: the 5% title-safe corner on 16:9; on 9:16 inside the Meta
+            # inset below the Reel's top bar (x 84, y 300). The 9:16 badge was 22px, centred and unplated until the
+            # caption review of 2026-11-02 (operator approved moving it).
+            scale = height / 1080 if is_widescreen else 1
+            pad_x, pad_y = round(14 * scale), round(8 * scale)
+            b_top, b_bottom = _ink_band(RECON_FONT, badge_px, badge_fs, 600)
+            tw = get_font(RECON_FONT, badge_px, weight=600).getlength(label) + 1.5 * len(label)
+            x0, y0 = (round(0.05 * width), round(0.05 * height)) if is_widescreen else (84, 300)
+            text_pos = (x0 + pad_x, round(y0 + pad_y - b_top))
+            badge_text = f"{{\\an7\\pos({text_pos[0]},{text_pos[1]})}}{label}"
             plate_w, plate_h = round(tw + 2 * pad_x), round(b_bottom - b_top + 2 * pad_y)
             plate_text = f"{{\\pos({x0},{y0})\\p1}}{rounded_rect_path(plate_w, plate_h, 8)}{{\\p0}}"
             for start_t, end_t in reconstruction_intervals:

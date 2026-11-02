@@ -2360,17 +2360,24 @@ _ANAPHORA = re.compile(r"^\W*(?:it|its|this|that|these|those|they|their|them|he|
                        re.IGNORECASE)
 
 
+# slide_strength's tiers (review of round 4, 2026-11-02): the figure slide is the deck's one number hero and the
+# only tile that is not a heading-and-body stack, so it outranks the drawn slide, which outranks a myth-bust (a text
+# claim, usually on a stand-in photo). With two content tiles the figure and the drawn slide both make the post.
+STRENGTH_FIGURE, STRENGTH_DRAWN, STRENGTH_MYTH_BUST = 3, 2, 1
+
+
 def slide_strength(rec: dict[str, Any]) -> int:
-    """How strongly a slide's record says it stands on its own as a tile (round 4, 2026-11-02): 1 for a figure slide
-    (a stat, or the colossal_stat archetype), the drawn slide (diagram), or a myth-bust (its heading or body
-    contradicts an earlier view: "IMPACT THEORY DISPROVED"); else 0."""
+    """How strongly a slide's record says it stands on its own as a tile (round 4, 2026-11-02), highest first:
+    STRENGTH_FIGURE for a figure slide (a stat, or the colossal_stat archetype), STRENGTH_DRAWN for the drawn slide
+    (diagram), STRENGTH_MYTH_BUST for a myth-bust (its heading or body contradicts an earlier view: "IMPACT THEORY
+    DISPROVED"); else 0. A slide that is several of these takes the highest."""
     recipe = rec.get("recipe") or {}
     card = recipe.get("card") or {}
-    if recipe.get("archetype") in ("colossal_stat", "diagram"):
-        return 1
-    if any(e.get("name") == "stat" for e in rec.get("elements") or []):
-        return 1
-    return 1 if _MYTH_BUST.search(f"{card.get('heading', '')} {card.get('body', '')}") else 0
+    if recipe.get("archetype") == "colossal_stat" or any(e.get("name") == "stat" for e in rec.get("elements") or []):
+        return STRENGTH_FIGURE
+    if recipe.get("archetype") == "diagram":
+        return STRENGTH_DRAWN
+    return STRENGTH_MYTH_BUST if _MYTH_BUST.search(f"{card.get('heading', '')} {card.get('body', '')}") else 0
 
 
 def standalone_problems(rec: dict[str, Any]) -> list[str]:
@@ -2392,8 +2399,8 @@ def facebook_pick(slides: List[str], limit: int = FACEBOOK_PHOTOS) -> List[str]:
     a seven-photo post hid the closing share-and-follow slide (platform audit, 2026-10-28). The cover, the
     closing slide, and between them the strongest content slides: those drawn as designed (no layout problem,
     nothing shortened), standing alone (standalone_problems), a single photo, the strongest (slide_strength: a
-    figure, the drawn slide, a myth-bust), showing a photo the post does not already show, then the earliest (the
-    script's order is its order of importance: the reveal comes first). Kept in slide order."""
+    figure, then the drawn slide, then a myth-bust), showing a photo the post does not already show, then the
+    earliest (the script's order is its order of importance: the reveal comes first). Kept in slide order."""
     slides = list(slides)
     if len(slides) <= limit:
         return slides

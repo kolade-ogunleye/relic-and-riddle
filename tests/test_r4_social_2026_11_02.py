@@ -78,12 +78,21 @@ def _rec(archetype="immersive", heading="H", body="A body.", elements=()):
 
 
 def test_slide_strength_reads_figures_drawings_and_myth_busts() -> None:
-    assert slide_strength(_rec("colossal_stat")) == 1
-    assert slide_strength(_rec("diagram")) == 1
-    assert slide_strength(_rec(elements=("stat",))) == 1
-    assert slide_strength(_rec(heading="IMPACT THEORY DISPROVED")) == 1
-    assert slide_strength(_rec(body="Initially considered an impact crater, the theory was disproved in 1969.")) == 1
+    assert slide_strength(_rec("colossal_stat")) == multi_format.STRENGTH_FIGURE
+    assert slide_strength(_rec("diagram")) == multi_format.STRENGTH_DRAWN
+    assert slide_strength(_rec(elements=("stat",))) == multi_format.STRENGTH_FIGURE
+    assert slide_strength(_rec(heading="IMPACT THEORY DISPROVED")) == multi_format.STRENGTH_MYTH_BUST
+    assert slide_strength(_rec(body="Initially considered an impact crater, the theory was disproved in 1969.")) \
+        == multi_format.STRENGTH_MYTH_BUST
     assert slide_strength(_rec(heading="ORBITAL LANDMARK", body="Visible from space.")) == 0
+
+
+def test_the_figure_outranks_the_drawn_slide_which_outranks_a_myth_bust() -> None:
+    figure, drawn, myth = (slide_strength(_rec("colossal_stat")), slide_strength(_rec("diagram")),
+                           slide_strength(_rec(heading="IMPACT THEORY DISPROVED")))
+    assert figure > drawn > myth > 0
+    # a myth-bust that also carries the figure is a figure slide
+    assert slide_strength(_rec(heading="IMPACT THEORY DISPROVED", elements=("stat",))) == figure
 
 
 def test_standalone_problems_flag_a_body_that_leans_on_another_slide() -> None:
@@ -93,11 +102,13 @@ def test_standalone_problems_flag_a_body_that_leans_on_another_slide() -> None:
     assert standalone_problems(_rec(heading="ORBITAL LANDMARK", body="Visible from space, the formation ...")) == []
 
 
-def _slides(tmp_path, specs):
-    """Saved slides with layout records: specs of (archetype, heading, body, photo colour)."""
-    out = []
+def _slides(tmp_path, specs, same_photo=None):
+    """Saved slides with layout records: specs of (archetype, heading, body, photo colour). same_photo maps a slide's
+    index to an earlier one whose photo file it shows too (a stand-in photo the deck repeats)."""
+    out, photos = [], []
     for i, (arch, heading, body, colour) in enumerate(specs):
-        photo = _photo(tmp_path / f"p{i}.jpg", colour)
+        photo = photos[(same_photo or {})[i]] if i in (same_photo or {}) else _photo(tmp_path / f"p{i}.jpg", colour)
+        photos.append(photo)
         path = tmp_path / f"carousel_slide_{i + 1:02d}.jpg"
         Image.new("RGB", (8, 8)).save(path)
         lay = still_layout.Layout("carousel", (CW, CH), (0, 0, CW, CH))
@@ -121,6 +132,30 @@ def test_facebook_picks_the_strongest_slides_before_photo_novelty(tmp_path) -> N
     assert picked == ["carousel_slide_01.jpg", "carousel_slide_03.jpg", "carousel_slide_05.jpg",
                       "carousel_slide_07.jpg"]
     # the gallery's five: the cover, the closing slide, the two strong slides, then the earliest other
+    five = [Path(x).name for x in facebook_pick(slides, multi_format.FACEBOOK_GALLERY)]
+    assert five == ["carousel_slide_01.jpg", "carousel_slide_02.jpg", "carousel_slide_03.jpg",
+                    "carousel_slide_05.jpg", "carousel_slide_07.jpg"]
+
+
+def test_facebook_keeps_the_figure_slide_over_a_myth_bust_when_both_repeat_a_photo(tmp_path) -> None:
+    """Review of round 4: the Richat deck's posted set dropped its 94-104 MILLION YEARS AGO figure for IMPACT THEORY
+    DISPROVED. Both repeat a photo the post already shows (the figure's is the cover's, the myth-bust's the closing
+    slide's), so the earlier slide won the tie. The figure and the drawn map outrank the myth-bust."""
+    slides = _slides(tmp_path, [
+        ("cover", "THE EYE OF THE SAHARA", "Cover.", (10, 10, 10)),
+        ("diagram", "ORBITAL LANDMARK", "Visible from space.", (20, 20, 20)),
+        ("editorial_split", "IMPACT THEORY DISPROVED", "Initially considered an impact crater.", (70, 70, 70)),
+        ("immersive", "MAGMATIC UPLIFT", "Subsurface intrusion.", (40, 40, 40)),
+        ("colossal_stat", "ANCIENT COOLING", "Between 94 and 104 million years ago.", (10, 10, 10)),
+        ("immersive", "GLOBAL HERITAGE", "Named in 2022.", (60, 60, 60)),
+        ("debate", "YOUR TAKE", "What do you think?", (70, 70, 70)),
+    ], same_photo={4: 0, 6: 2})
+    # the photos repeat as in the render: slide 5 shows the cover's, the closing slide slide 3's
+    photos = [set(map(str, multi_format.slide_photos(Path(x)))) for x in slides]
+    assert photos[4] == photos[0] and photos[6] == photos[2]
+    picked = [Path(x).name for x in facebook_pick(slides)]
+    assert picked == ["carousel_slide_01.jpg", "carousel_slide_02.jpg", "carousel_slide_05.jpg",
+                      "carousel_slide_07.jpg"]
     five = [Path(x).name for x in facebook_pick(slides, multi_format.FACEBOOK_GALLERY)]
     assert five == ["carousel_slide_01.jpg", "carousel_slide_02.jpg", "carousel_slide_03.jpg",
                     "carousel_slide_05.jpg", "carousel_slide_07.jpg"]

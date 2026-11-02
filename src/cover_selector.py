@@ -7,7 +7,9 @@ colour. Now:
 1. Fit rules: only the styles the run's copy can carry. "monument" needs a measured figure (a number with its
    unit) for its hero; the others always fit.
 2. Neighbours differ: the style the previous run went out in is skipped while another fits (the profile grid
-   reads as a set, which is why the rotation existed).
+   reads as a set, which is why the rotation existed). The paper card (depth_sandwich) is the one light tile in
+   an ink grid, so it is also skipped while either of the two previous covers used it and another style fits
+   (grid rhythm, 2026-11-02 panel round 2).
 3. Every fitting style is tried MIN_TRIES times (measured Reels, on any platform) before the numbers are used,
    least-tried first.
 4. Then Thompson sampling: each style's reward is a Beta posterior over its Reels' rewards, and the style with
@@ -29,6 +31,10 @@ from .visual_engine import COVER_STYLES
 log = logging.getLogger(__name__)
 
 MIN_TRIES = 3
+# Retired for new selections (operator, 2026-11-02): minimal stays renderable for old runs and redraws.
+RETIRED = ("minimal",)
+PAPER = "depth_sandwich"   # the light paper card: never two in any three neighbouring grid tiles while avoidable
+RHYTHM = 2                 # how many previous covers the paper rule looks back over
 ENGAGED = 0.03   # shares + saves per account reached that count as a full engagement reward
 
 
@@ -41,7 +47,7 @@ def fitting(copy: dict[str, Any]) -> list[str]:
     def measured(c):
         found = monument_figure(c)
         return found is not None and bool(found[1])
-    return [s for s in COVER_STYLES if s != "monument" or measured(copy)]
+    return [s for s in COVER_STYLES if s not in RETIRED and (s != "monument" or measured(copy))]
 
 
 VIDEO_PLATFORMS = ("instagram", "facebook", "youtube")
@@ -78,12 +84,16 @@ def evidence(rows: list[dict[str, Any]]) -> dict[str, list[float]]:
 
 
 def choose(copy: dict[str, Any], rows: list[dict[str, Any]], previous: str | None = None,
-           seed: str = "") -> tuple[str, str]:
-    """(style, why) for a cover with `copy`, given audience.table `rows` and the previous run's style."""
+           seed: str = "", recent: list[str | None] | None = None) -> tuple[str, str]:
+    """(style, why) for a cover with `copy`, given audience.table `rows`, the previous run's style and, when known,
+    the styles of the runs before this one, newest first (`recent`; `previous` is taken as its first when absent)."""
     from . import learning
     options = fitting(copy)
     if previous in options and len(options) > 1:
         options = [s for s in options if s != previous]
+    recent = list(recent) if recent is not None else ([previous] if previous else [])
+    if PAPER in options and PAPER in recent[:RHYTHM] and len(options) > 1:
+        options = [s for s in options if s != PAPER]
     return learning.choose(options, evidence(rows), seed, "cover", MIN_TRIES)
 
 
@@ -106,14 +116,16 @@ def for_run(db, run_id: str, payload: dict[str, Any]) -> tuple[str, str]:
     except Exception as e:  # noqa: BLE001 - a broken metrics table must never stop a render
         log.warning("Cover selection without audience numbers (%s).", e)
         rows = []
-    previous = None
+    recent: list[str | None] = []
     try:
         for run in db.list_recent_runs(limit=6):
             if run["run_id"] != run_id:
-                previous = audience.cover_style(db, run["run_id"], run)
-                break
+                recent.append(audience.cover_style(db, run["run_id"], run))
+                if len(recent) >= RHYTHM:
+                    break
     except Exception as e:  # noqa: BLE001 - selection still works without the neighbour rule
         log.warning("Previous cover style unknown (%s).", e)
-    style, why = choose(copy, rows, previous, seed=run_id)
+    previous = recent[0] if recent else None
+    style, why = choose(copy, rows, previous, seed=run_id, recent=recent)
     log.info("Cover style %s (%s; previous run: %s).", style, why, previous or "none")
     return style, why

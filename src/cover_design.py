@@ -64,6 +64,35 @@ def _shade(im, top, bottom, strength=0.78, feather=280):
     return Image.alpha_composite(im.convert("RGBA"), layer)
 
 
+EYEBROW_PX, EYEBROW_MIN, EYEBROW_TRACK = 40, 36, 4.0   # Montserrat 800 tracked capitals, every style (2026-11-02)
+TAGLINE_PX, TAGLINE_MIN = 38, 32                        # never under 32 px: at 24-30 it vanished in the grid
+_STOP = {"THE", "A", "AN", "OF", "IN", "AND", "ON", "AT", "TO", "BY"}
+
+
+def display(text):
+    """Display copy as drawn: three full stops become one true ellipsis (U+2026), as a shortened line ends."""
+    import re
+    return re.sub(r"\s*\.{3}", "\u2026", str(text or ""))
+
+
+def redundant_tagline(copy):
+    """True when every word of the tagline already stands in the headline or the eyebrow (a subline that
+    repeats the place adds a line, not information, and is omitted)."""
+    import re
+    def words(t):
+        return {w for w in re.findall(r"[A-Z0-9']+", str(t or "").upper()) if w not in _STOP}
+    tag = words(copy.get("tagline"))
+    return bool(tag) and tag <= words(" ".join(str(copy.get(k) or "") for k in ("line1", "line2", "eyebrow")))
+
+
+def _eyebrow_lines(measure, text, width, size=EYEBROW_PX):
+    """The eyebrow on one line in Montserrat 800 with EYEBROW_TRACK between letters, never under EYEBROW_MIN
+    (shortened at a word with an ellipsis before it shrinks further). Returns (lines, font, shortened)."""
+    room = width - EYEBROW_TRACK * max(0, len(text) - 1)
+    return fit_text(measure, text, "Montserrat", max(EYEBROW_MIN, size), int(room), 1, EYEBROW_MIN,
+                    sentences=False, weight=800)
+
+
 def _rows(im, copy, width, style, tight):
     """Fit deliberate headline hierarchy, retaining all four supplied fields."""
     measure = ImageDraw.Draw(im)
@@ -74,20 +103,31 @@ def _rows(im, copy, width, style, tight):
         "minimal": (100, 142),
         "lower_third": (120, 138),
     }[style]
+    paper = style == "depth_sandwich"
+    # Two-tone everywhere it applies (2026-11-02): the second title line is gold on ink; ink on the paper card.
     specs = [
-        ("eyebrow", "eyebrow", brand.DATA_FONT if style == "depth_sandwich" else "Montserrat",
-         36, 28, brand.GOLD, 22),
+        ("eyebrow", "eyebrow", "Montserrat", EYEBROW_PX, EYEBROW_MIN, brand.GOLD, 22),
         ("title_1", "line1", "Anton", sizes[0], 64, brand.BONE, 10),
         ("title_2", "line2", "Anton", sizes[1], 64,
-         brand.GOLD if style == "badge" else brand.BONE, 26),
-        ("tagline", "tagline", "Montserrat", 38, 30, brand.STONE_LT, 0),
+         brand.GOLD if style in ("badge", "minimal") else brand.BONE, 26),
+        ("tagline", "tagline", "Montserrat", TAGLINE_PX, TAGLINE_MIN, brand.STONE_LT, 0),
     ]
     rows, shortened = [], []
     for name, key, face, size, minimum, colour, gap in specs:
-        text = str(copy.get(key) or "").strip().upper()
-        if not text:
+        text = display(copy.get(key)).strip().upper()
+        if not text or (name == "tagline" and redundant_tagline(copy)):
             continue
-        size = int(size * factor)
+        if name == "eyebrow":
+            lines, font, short = _eyebrow_lines(measure, text, width)
+            if short:
+                shortened.append(name)
+            rows += [{"name": name, "text": line, "font": font, "fill": colour, "track": EYEBROW_TRACK,
+                      "height": text_size(measure, line, font)[1], "gap": gap} for line in lines]
+            continue
+        if name == "tagline":
+            size = max(minimum, int(size * factor))
+        else:
+            size = int(size * factor)
         if name.startswith("title"):
             # Keep normal short copy on one line. Longer wording gets two lines
             # before descending to the emergency floor, rather than tiny type.
@@ -96,14 +136,16 @@ def _rows(im, copy, width, style, tight):
             if not short:
                 size = trial.size
         lines, font, short = fit_text(measure, text, face, size, width, 2,
-                                     min(size, minimum), sentences=False,
-                                     weight=800 if name == "eyebrow" and face == "Montserrat" else None)
+                                     min(size, minimum), sentences=False)
         if short:
             shortened.append(name)
         for i, line in enumerate(lines):
             rows.append(dict(name=name, text=line, font=font, fill=colour,
                              height=text_size(measure, line, font)[1],
                              gap=gap if i == len(lines) - 1 else 10))
+    if paper:
+        for row in rows:
+            row["fill"] = brand.INK if row["name"] != "tagline" else brand.INK2
     return rows, shortened
 
 
@@ -120,7 +162,8 @@ def _paint(im, rows, x, top, centered, lay):
     for row in rows:
         if row.get("tab"):
             # Discovery's badge (2026-11-02): the eyebrow on a solid gold tab, ink capitals on it.
-            w_txt, _ = text_size(ImageDraw.Draw(im), row["text"], row["font"])
+            from .typography import tracked_width
+            w_txt = tracked_width(row["text"], row["font"], row.get("track", 0))
             cap = row["font"].getbbox("H", anchor="lt")
             x_tab = x - w_txt / 2 - TAB_PAD[0] if centered else x - TAB_PAD[0] // 2
             box = (x_tab, top + cap[1] - TAB_PAD[1], x_tab + w_txt + 2 * TAB_PAD[0] - (0 if centered else TAB_PAD[0] // 2),
@@ -129,7 +172,7 @@ def _paint(im, rows, x, top, centered, lay):
             if lay is not None:
                 lay.meta.setdefault("tabs", {})[row["name"]] = [round(v) for v in box]
         im, plate = place_text(im, (x, top), row["text"], row["font"], row["fill"],
-                               anchor="mt" if centered else "lt", target=5.1,
+                               anchor="mt" if centered else "lt", target=5.1, track=row.get("track", 0),
                                halo_px=0 if row.get("tab") else None)
         plates.setdefault(row["name"], []).append(plate)
         top += row["height"] + row["gap"]
@@ -142,6 +185,8 @@ def _paint(im, rows, x, top, centered, lay):
 
 BRAND_TEXT = "RELIC & RIDDLE"
 BRAND_PX, BRAND_TRACK = 64, 4.0
+BRAND_TOP = 462     # the masthead's ascender line, the same band in the grid's square on every style
+MINIMAL_GAPS = (40, 22)   # minimal: masthead foot -> eyebrow caps, eyebrow foot -> title caps (ink to ink)
 MARK_R, MARK_GAP = 13, 20   # the gold diamond (the brand's mark, as on the end card) and its gap to the name
 
 
@@ -161,7 +206,7 @@ def _brand(im, lay, centered=False, paper=False):
     # One place on every style (2026-11-02 design review: it moved between left and centre): centred on the
     # canvas, the same band in the profile grid's square on every tile.
     x0 = round(540 - group / 2)
-    top = 462
+    top = BRAND_TOP
     cap = font.getbbox("R", anchor="lt")
     cy = top + (cap[1] + cap[3]) / 2
     cx = x0 + MARK_R
@@ -356,11 +401,11 @@ def _monument(im, copy, lay, tight, source, focus):
             found_other = monument_figure({other: rest.get(other)})
             if found_other and found_other[0] == number:
                 rest[other] = _without(str(rest[other]), found_other[3])
-    titles = [(name, str(rest.get(key) or "").strip().upper()) for name, key in (("title_1", "line1"),
-                                                                                  ("title_2", "line2"))]
+    titles = [(name, display(rest.get(key)).strip().upper()) for name, key in (("title_1", "line1"),
+                                                                                ("title_2", "line2"))]
     titles = [(n, t) for n, t in titles if t]
-    eyebrow = str(rest.get("eyebrow") or "").strip().upper()
-    tagline = str(rest.get("tagline") or "").strip().upper()
+    eyebrow = display(rest.get("eyebrow")).strip().upper()
+    tagline = "" if redundant_tagline(rest) else display(rest.get("tagline")).strip().upper()
 
     margin, width = 84, 1080 - 2 * 84
     measure = ImageDraw.Draw(im)
@@ -371,8 +416,7 @@ def _monument(im, copy, lay, tight, source, focus):
     unit_font = get_font("Anton", max(72, int(num_font.size * 0.33)))
     eyebrow_rows, title_rows, tag_rows = [], [], []
     if eyebrow:
-        lines, f_e, _ = fit_text(measure, eyebrow, "Montserrat", int(36 * factor), width, 1, 28, sentences=False,
-                                 weight=800)
+        lines, f_e, _ = _eyebrow_lines(measure, eyebrow, width)
         eyebrow_rows = [(lines[0], f_e, brand.GOLD)]
     if titles:
         # One size for both title lines: the largest at which each fits on one line (down to 64 px), each kept
@@ -383,13 +427,16 @@ def _monument(im, copy, lay, tight, source, focus):
         shortened = []
         for name, text in titles:
             lines, f_t, short = fit_text(measure, text, "Anton", size, width, 2, min(size, 64), sentences=False)
-            title_rows += [(name, line, f_t, brand.BONE) for line in lines]
+            # Two-tone when both title lines are left (2026-11-02): the second in gold, like the figure above it.
+            colour = brand.GOLD if name == "title_2" and len(titles) > 1 else brand.BONE
+            title_rows += [(name, line, f_t, colour) for line in lines]
             if short:
                 shortened.append(name)
         if lay is not None:
             lay.shortened = shortened
     if tagline:
-        lines, f_g, _ = fit_text(measure, tagline, "Montserrat", int(36 * factor), width, 1, 28, sentences=False)
+        lines, f_g, _ = fit_text(measure, tagline, "Montserrat", max(TAGLINE_MIN, int(36 * factor)), width, 1,
+                                 TAGLINE_MIN, sentences=False)
         tag_rows = [(lines[0], f_g, brand.STONE_LT)]
 
     num_h = cap_h(num_font)
@@ -410,7 +457,8 @@ def _monument(im, copy, lay, tight, source, focus):
 
     def put(name, text, font, fill, xy, anchor="lt", target=5.1):
         nonlocal im
-        im, plate = place_text(im, xy, text, font, fill, anchor=anchor, target=target)
+        im, plate = place_text(im, xy, text, font, fill, anchor=anchor, target=target,
+                               track=EYEBROW_TRACK if name == "eyebrow" else 0)
         plates.setdefault(name, []).append(plate)
 
     for t, f, c in eyebrow_rows:
@@ -496,11 +544,11 @@ def render_cover(im, copy, style, center_y=960, lay=None, tight=False, source=No
     if _height(rows) > 500:
         scale = (500 - sum(r["gap"] for r in rows)) / sum(r["height"] for r in rows)
         for row in rows:
-            row["font"] = get_font("Anton" if row["name"].startswith("title") else
-                                   (brand.DATA_FONT if style == "depth_sandwich" and row["name"] == "eyebrow"
-                                    else "Montserrat"),
-                                   max(24, int(row["font"].size * scale)),
-                                   weight=800 if row["name"] == "eyebrow" and style != "depth_sandwich" else None)
+            # The eyebrow and the subline keep their floors (36 and 32 px): they are what vanished in the grid.
+            floor = {"eyebrow": EYEBROW_MIN, "tagline": TAGLINE_MIN}.get(row["name"], 24)
+            row["font"] = get_font("Anton" if row["name"].startswith("title") else "Montserrat",
+                                   max(floor, int(row["font"].size * scale)),
+                                   weight=800 if row["name"] == "eyebrow" else None)
             row["height"] = text_size(ImageDraw.Draw(im), row["text"], row["font"])[1]
     if lay is not None:
         lay.shortened = shortened
@@ -511,9 +559,6 @@ def render_cover(im, copy, style, center_y=960, lay=None, tight=False, source=No
                 row.update(tab=True, fill=brand.INK, gap=row["gap"] + TAB_PAD[1] + 6)
     height = _height(rows)
     paper = style == "depth_sandwich"
-    if paper:
-        for row in rows:
-            row["fill"] = brand.INK if row["name"] != "tagline" else brand.INK2
     if focus and style in ("badge", "lower_third"):
         top = 1434 - height
         im = _immersive(source, (72, 560, 1008, top - 100), focus, lay)
@@ -530,7 +575,19 @@ def render_cover(im, copy, style, center_y=960, lay=None, tight=False, source=No
         ImageDraw.Draw(im).rectangle((60, 440, 1019, 1479), fill=brand.BONE + (255,))
     im = _brand(im, lay, centered, paper)
     if style == "minimal":
-        top = 560   # below the 64 px masthead (2026-11-02)
+        # Measured ink to ink (2026-11-02 round 2): the masthead's foot to the eyebrow's caps MINIMAL_GAPS[0], the
+        # eyebrow's foot to the title's caps MINIMAL_GAPS[1]. Rows are placed by their ascender line, so each gap
+        # is corrected by how far the next line's ink starts below it.
+        from itertools import pairwise
+
+        def off(r):
+            return r["font"].getbbox(r["text"], anchor="lt")[1]
+        brand_foot = BRAND_TOP + get_font("Cinzel", BRAND_PX, weight=700).getbbox(BRAND_TEXT, anchor="lt")[3]
+        top = brand_foot + MINIMAL_GAPS[0] - (off(rows[0]) if rows else 0)
+        for a, b in pairwise(rows):
+            if a["name"] == "eyebrow" and b["name"] != "eyebrow":
+                a["gap"] = MINIMAL_GAPS[1] - off(b) + off(a)
+        height = _height(rows)
         photo_top = top + height + 40
         aperture = (60, photo_top, 1020, 1456)
     else:

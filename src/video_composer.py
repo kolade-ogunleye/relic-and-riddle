@@ -2,8 +2,10 @@
 src/video_composer.py
 =====================
 FFmpeg assembly embodying the locked production standards:
-1. Anton 92pt running-speech kinetic captions (gold active, white past, gray upcoming),
-   zero-overlap ASS events, Meta UI safe zone (MarginV = 540px / y = 1380px).
+1. Anton 72 px running-speech kinetic captions on an INK plate: each burst shown at one size, its words
+   appearing as they are spoken (upcoming words are transparent placeholders, so the line never moves), bone
+   text, gold for the script's key terms only; zero-overlap ASS events inside the Reel safe box
+   (safe_zones.REEL: the plate ends above y 1248). 16:9 burns in one Montserrat Bold line on the same plate.
 2. Varied Ken Burns motion (rendered at 2x then downscaled to avoid zoompan jitter)
    with matching forward drift on the opening and closing shots for the loop.
 3. Voice cleanup, sidechain ducking of the ambient bed under speech, then measured
@@ -17,9 +19,11 @@ import logging
 import os
 import re
 import subprocess
+from functools import lru_cache
 from pathlib import Path
+from collections.abc import Callable
 from typing import Any, Dict, List, Optional, Set, Tuple
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageFilter
 
 from .config import (
     BASE_DIR,
@@ -40,6 +44,24 @@ from .config import (
     CAPTION_BORDER_RADIUS,
     EMPHASIS_POP,
     COL_BACK,  # the pill; the text colours are the brand's (below)
+    CAPTION_LEAD_FRAMES,
+    CAPTION_PAUSE_GAP,
+    CAPTION_PAUSE_TAIL,
+    CAPTION_MIN_CHUNK,
+    CAPTION_WIDE_FONT,
+    CAPTION_WIDE_SIZE,
+    CAPTION_WIDE_MARGIN_V,
+    CAPTION_WIDE_MAX_CHARS,
+    CAPTION_WIDE_MIN_WORDS,
+    CAPTION_WIDE_TARGET_WORDS,
+    CAPTION_WIDE_MAX_WORDS,
+    SIDECAR_MAX_LINE_CHARS,
+    SIDECAR_MAX_LINES,
+    SIDECAR_MIN_CUE,
+    SIDECAR_MAX_CUE,
+    RECON_FONT,
+    RECON_SIZE_WIDE,
+    RECON_PLATE_ALPHA,
     TARGET_LUFS,
     TARGET_TRUE_PEAK,
     VIDEO_WIDTH,
@@ -58,6 +80,10 @@ from . import brand as _brand
 COL_ACTIVE = COL_PAST = _brand.ass_colour(_brand.BONE)
 COL_EMPHASIS = _brand.ass_colour(_brand.GOLD)
 COL_FUTURE = _brand.ass_colour(_brand.STONE_LT)
+# Upcoming words (caption review round 2, 2026-11-02, finding 2): light stone against bone was about 25% apart in
+# luminance, so the spoken word barely stood out. They are now drawn fully transparent: they keep their place in
+# the line (no reflow as words appear) and show only when spoken. COL_FUTURE stays their (invisible) colour.
+CAPTION_HIDDEN = r"{\alpha&HFF&}"
 
 log = logging.getLogger(__name__)
 
@@ -255,6 +281,9 @@ def partition_words_grammatical(
     target_words: int = TARGET_BURST_WORDS,
     max_words: int = MAX_BURST_WORDS,
     max_chars: int = MAX_BURST_CHARS,
+    fits: Callable[[list[dict[str, Any]]], bool] | None = None,
+    glance: tuple[int, int] = (14, 24),
+    prefer: Callable[[list[dict[str, Any]]], bool] | None = None,
 ) -> List[List[Dict[str, Any]]]:
     """
     Groups spoken words into readable phrases respecting grammatical boundaries:
@@ -264,7 +293,16 @@ def partition_words_grammatical(
     4. Strongly rewards starting new caption blocks on subordinating conjunctions ('though', 'while', 'because').
     5. Respects natural clause punctuation (, ; : - —) and limits line length to avoid margin overflow.
     6. Enforces atomic boundaries to prevent breaking [Name + Roman Numeral] or [Designator + Number].
+    `fits` says whether a multi-word burst may be formed at all and `prefer` whether it fits as wanted (a burst
+    that does not is penalised, and the whole-remainder shortcut needs it). The Reel defaults: a burst must fit at
+    CAPTION_BURST_MIN_SIZE and should fit at the full caption size, so bursts keep one size unless every full-size
+    split would end on a dangling word (caption review round 2, finding 1). The 16:9 burn-in passes its own `fits`.
+    `glance` is the burst length (characters) rewarded as readable at a glance.
     """
+    if fits is None:
+        fits = _fits_caption_burst
+        prefer = prefer or _fits_caption_width
+    prefer = prefer or fits
     sentences: List[List[Dict[str, Any]]] = []
     curr: List[Dict[str, Any]] = []
     for w in words:
@@ -279,7 +317,7 @@ def partition_words_grammatical(
         n = len(sent)
         if n == 0:
             return []
-        if n <= min_words:
+        if n <= min_words and (n == 1 or fits(sent)):
             return [sent]
         memo: Dict[int, Optional[List[List[Dict[str, Any]]]]] = {}
 
@@ -291,13 +329,13 @@ def partition_words_grammatical(
             rem = n - i
             rem_clean = [re.sub(r"[\,\;\.]+$", "", x.get("word", "")) for x in sent[i:]]
             rem_txt = " ".join(rem_clean)
-            if min_words <= rem <= max_words and len(rem_txt) <= max_chars and _fits_caption_width(sent[i:]):
+            if min_words <= rem <= max_words and len(rem_txt) <= max_chars and prefer(sent[i:]):
                 memo[i] = [sent[i:]]
                 return memo[i]
 
             best: Optional[List[List[Dict[str, Any]]]] = None
             best_score = -999999
-            candidate_sizes = [target_words, min_words, 4, 5, 6]
+            candidate_sizes = [target_words, min_words, 4, 5, 6] + list(range(7, max_words + 1))
             for size in candidate_sizes:
                 if i + size <= n:
                     if i + size < n and _is_atomic_boundary(sent[i + size - 1].get("word", ""), sent[i + size].get("word", "")):
@@ -308,7 +346,7 @@ def partition_words_grammatical(
                     after = _solve(i + size)
                     if after is not None:
                         chunk = sent[i:i + size]
-                        if len(chunk) > 1 and not _fits_caption_width(chunk):
+                        if len(chunk) > 1 and not fits(chunk):
                             continue  # a burst its pill cannot hold inside the platforms' safe width is never a choice
                         clean_chunk = [re.sub(r"[\,\;\.]+$", "", x.get("word", "")) for x in chunk]
                         txt = " ".join(clean_chunk)
@@ -337,14 +375,16 @@ def partition_words_grammatical(
                                     score += 160  # Large reward for breaking before 'though', 'although', etc. after comma
                                 else:
                                     score += 60
-                        if 14 <= len(txt) <= 24:
+                        if len(chunk) > 1 and not prefer(chunk):
+                            score -= SHRUNK_BURST_PENALTY  # shown below the full size: only to avoid a dangling end
+                        if glance[0] <= len(txt) <= glance[1]:
                             score += 40   # Reward optimal glanceable width
                         if score > best_score:
                             best_score = score
                             best = [chunk] + after
             if best is None:
                 cut = min(rem, target_words)
-                while cut > 1 and not _fits_caption_width(sent[i:i + cut]):
+                while cut > 1 and not fits(sent[i:i + cut]):
                     cut -= 1  # shorter bursts rather than a pill wider than the safe width
                 best = [sent[i:i + cut]] + (_solve(i + cut) or [sent[i + cut:]])
             memo[i] = best
@@ -361,70 +401,123 @@ def partition_words_grammatical(
     return all_phrases
 
 
-def measure_caption_phrase(phrase: Any, fit_rendered: int, sc_scale: int = CAPTION_SC_SCALE) -> Tuple[int, int]:
-    """Measures rendered width and height of a caption phrase in pixels."""
-    from .typography import get_font
-    if isinstance(phrase, str):
-        words_list = [{"word": w} for w in phrase.split()]
-    else:
-        words_list = phrase
-    f_base = get_font("Anton", fit_rendered)
-    f_sc = get_font("Anton", max(16, int(round(fit_rendered * (sc_scale / 100.0)))))
-    space_w = f_base.getlength(" ")
-    total_w = 0.0
-    for wi, w in enumerate(words_list):
-        if wi > 0:
-            total_w += space_w
-        raw = w if isinstance(w, str) else (w.get("word", "") if isinstance(w, dict) else str(w))
-        if wi == len(words_list) - 1:
-            raw = re.sub(r"[\,\;\.]+$", "", raw)
-        tokens = re.findall(r"[A-Za-z]+|[^A-Za-z]+", raw)
-        for tok in tokens:
-            if tok.isalpha():
-                total_w += f_base.getlength(tok[0].upper())
-                if len(tok) > 1:
-                    total_w += f_sc.getlength(tok[1:].upper())
+CAPTION_ACRONYMS = {
+    "BC", "AD", "BCE", "CE", "BP", "MYA", "KYA", "US", "USA", "UK", "DNA", "GPS",
+    "UNESCO", "CIA", "FBI", "NASA", "USSR", "WWI", "WWII", "AM", "PM", "FT", "KM", "M", "KG"
+}
+
+
+def caption_runs(word: str, sc_scale: int = CAPTION_SC_SCALE) -> list[tuple[str, bool]]:
+    """The word as the caption shows it: (UPPER-CASED text, full size?) runs, adjacent runs of one size merged.
+
+    Casing follows the narration (caption review round 2, 2026-11-02, finding 3): a full-size initial only where
+    the narration's word itself starts with a capital (a name, a sentence's first word, "I"); a lower-case word is
+    small capitals throughout, so the line no longer reads as Title Case. Acronyms and Roman numerals the narration
+    writes in capitals stay full size. A possessive or contraction is one word ("Kailasa's": one initial, the s
+    after the apostrophe small; the first posted Reel showed KAILASA'S with a full-size S, 2026-10-24). Figures are
+    full size; other punctuation takes the size of the letters before it."""
+    tokens = re.findall(r"[A-Za-z]+(?:['’][A-Za-z]+)*|[^A-Za-z]+", word)
+    runs: list[tuple[str, bool]] = []
+    for tok in tokens:
+        if tok[:1].isalpha():
+            upper = tok.upper()
+            letters = re.sub(r"[^A-Za-z]", "", tok)
+            if letters.isupper() and (upper in CAPTION_ACRONYMS or upper in ROMAN_NUMERALS or 2 <= len(letters) <= 4):
+                runs.append((upper, True))
+            elif tok[0].isupper():
+                runs.append((upper[0], True))
+                if len(upper) > 1:
+                    runs.append((upper[1:], False))
             else:
-                total_w += f_base.getlength(tok)
-    # 75px accounts for ascenders, full caps, and descenders like commas at base FONT_SIZE 76
-    text_h = max(30, int(round(75 * (fit_rendered / FONT_SIZE))))
-    return int(round(total_w)), text_h
+                runs.append((upper, False))
+        elif any(c.isdigit() for c in tok):
+            runs.append((tok, True))
+        else:
+            runs.append((tok, runs[-1][1] if runs else True))
+    merged: list[tuple[str, bool]] = []
+    for text, full in runs:
+        if merged and merged[-1][1] == full:
+            merged[-1] = (merged[-1][0] + text, full)
+        else:
+            merged.append((text, full))
+    return merged
 
 
-def _caption_fit_size(phrase: Any, scale: float = 1.0, max_width: int = MAX_CAPTION_WIDTH) -> int:
-    """Largest font size <= FONT_SIZE at which `phrase` (shown at up to `scale`) fits max_width."""
-    from .typography import get_font
-    from PIL import Image, ImageDraw
+def _phrase_words(phrase: Any) -> list[str]:
+    """A burst's words as shown: the last one without its trailing comma, semicolon or full stop."""
     if isinstance(phrase, str):
         words = phrase.split()
     else:
         words = [w if isinstance(w, str) else (w.get("word", "") if isinstance(w, dict) else str(w)) for w in phrase]
     if words:
         words[-1] = re.sub(r"[\,\;\.]+$", "", words[-1])
-    plain = " ".join(words).upper()
-    draw = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    width = draw.textlength(plain, font=get_font("Anton", FONT_SIZE)) * scale
+    return words
+
+
+def _caption_text_width(words: list[str], size: int, sc_scale: int = CAPTION_SC_SCALE) -> float:
+    """Rendered width in px of these words at caption size `size`, with the caption's small capitals."""
+    from .typography import get_font
+    f_base = get_font("Anton", size)
+    f_sc = get_font("Anton", max(16, round(size * (sc_scale / 100.0))))
+    total = 0.0
+    for wi, word in enumerate(words):
+        if wi > 0:
+            total += f_base.getlength(" ")
+        if not CAPTION_SMALL_CAPS:
+            total += f_base.getlength(_ass_escape(word).upper())
+            continue
+        for text, full in caption_runs(_ass_escape(word), sc_scale):
+            total += (f_base if full else f_sc).getlength(text)
+    return total
+
+
+def measure_caption_phrase(phrase: Any, fit_rendered: int, sc_scale: int = CAPTION_SC_SCALE) -> tuple[int, int]:
+    """Measures rendered width and height of a caption phrase in pixels."""
+    total_w = _caption_text_width(_phrase_words(phrase), fit_rendered, sc_scale)
+    # 75px accounts for ascenders, full caps, and descenders like commas at base FONT_SIZE 76
+    text_h = max(30, round(75 * (fit_rendered / FONT_SIZE)))
+    return round(total_w), text_h
+
+
+CAPTION_MIN_SIZE = 60  # px: the smallest a single over-long word shrinks to (round 2: 48 made bursts jump 33%)
+CAPTION_HARD_MIN = 36  # px: below CAPTION_MIN_SIZE only for a word that would otherwise leave the safe width
+
+
+def _caption_fit_size(phrase: Any, scale: float = 1.0, max_width: int = MAX_CAPTION_WIDTH) -> int:
+    """Largest font size <= FONT_SIZE at which `phrase` (shown at up to `scale`) fits max_width.
+
+    Since the caption review of 2026-11-02 (round 2, finding 1) the phrase builder forms bursts that fit at
+    FONT_SIZE, so a Reel's bursts keep one size; it accepts one down to CAPTION_BURST_MIN_SIZE only where every
+    full-size split would end on a dangling word. A single word too long for the line shrinks down to
+    CAPTION_MIN_SIZE (and below it only as far as the safe width requires)."""
+    words = _phrase_words(phrase)
+    width = _caption_text_width(words, FONT_SIZE) * scale
     if width <= max_width:
         return FONT_SIZE
-    return max(CAPTION_MIN_SIZE, int(FONT_SIZE * max_width / width))
+    floor = CAPTION_MIN_SIZE if len(words) == 1 else CAPTION_BURST_MIN_SIZE
+    size = max(floor, int(FONT_SIZE * max_width / width))
+    while size > CAPTION_HARD_MIN and _caption_text_width(words, size) * scale > max_width:
+        size -= 1
+    return size
 
 
-CAPTION_MIN_SIZE = 48  # px: the smallest a caption shrinks to; below this it is not readable on a phone
+CAPTION_BURST_MIN_SIZE = 66  # px: a multi-word burst never shows below this (8% under FONT_SIZE, was 33%)
+SHRUNK_BURST_PENALTY = 150  # the phrase builder's cost of a burst below full size: more than a short burst,
+                            # less than one ending on a dangling article or preposition (200)
 END_CARD_BELOW_BODY_LU = 6.0  # the end card sits this far under the narrated body (the approved prototype: about 6)
 
 
 def _fits_caption_width(phrase: Any, max_width: int = MAX_CAPTION_WIDTH) -> bool:
-    """Whether a burst can be shown inside the caption width at the smallest readable size. A burst that
-    cannot would get a pill wider than the area the platforms leave free (safe_zones.REEL), so the phrase
-    builder never forms one from more than one word (measured 2026-10-24)."""
-    from .typography import get_font
-    from PIL import Image, ImageDraw
-    words = [w if isinstance(w, str) else (w.get("word", "") if isinstance(w, dict) else str(w)) for w in phrase]
-    if words:
-        words[-1] = re.sub(r"[\,\;\.]+$", "", words[-1])
-    draw = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    return draw.textlength(" ".join(words).upper(), font=get_font("Anton", CAPTION_MIN_SIZE)) <= max_width
+    """Whether a burst fits the caption width at the full caption size, as rendered (small capitals included).
+    A burst that does not is never formed from more than one word: until 2026-11-02 this tested the smallest
+    size (48 px), so a wide burst shrank and adjacent bursts differed in size by up to a third (caption review
+    round 2, finding 1); the pill must also stay inside the area the platforms leave free (safe_zones.REEL)."""
+    return _caption_text_width(_phrase_words(phrase), FONT_SIZE) <= max_width
 
+
+def _fits_caption_burst(phrase: Any, max_width: int = MAX_CAPTION_WIDTH) -> bool:
+    """Whether a multi-word burst fits the caption width at CAPTION_BURST_MIN_SIZE, the most a burst may shrink."""
+    return _caption_text_width(_phrase_words(phrase), CAPTION_BURST_MIN_SIZE) <= max_width
 
 
 def format_word_caption(
@@ -438,46 +531,92 @@ def format_word_caption(
     enable_small_caps: bool = CAPTION_SMALL_CAPS,
 ) -> str:
     """Formats a word for ASS kinetic subtitles.
-    When enable_small_caps is True, initial letter of alphabetic segments is full size,
-    and remaining letters are small capitals (sc_scale%).
+    When enable_small_caps is True, the word is upper-cased in runs (caption_runs): full size where the narration
+    has a capital (the initial of a capitalised word, an acronym), small capitals (sc_scale%) elsewhere. Stripping
+    the override tags leaves the narration's word, upper-cased.
     """
     clean = _ass_escape(word)
     if not enable_small_caps:
         return f"{{\\c{colour}\\fscx100\\fscy100}}{clean.upper()}"
-
-    # A possessive or contraction is one word: "Kailasa's" keeps one full-size initial, and the s after the
-    # apostrophe is small (the first posted Reel showed KAILASA'S with a full-size S, 2026-10-24).
-    tokens = re.findall(r"[A-Za-z]+(?:['’][A-Za-z]+)*|[^A-Za-z]+", clean)
-    out = []
-    sc_base = sc_scale
     init_tag = f"\\c{colour}\\fscx100\\fscy100"
-    sc_tag = f"\\c{colour}\\fscx{sc_base}\\fscy{sc_base}"
+    sc_tag = f"\\c{colour}\\fscx{sc_scale}\\fscy{sc_scale}"
+    return "".join(f"{{{init_tag if full else sc_tag}}}{text}" for text, full in caption_runs(clean, sc_scale))
 
-    ACRONYMS = {
-        "BC", "AD", "BCE", "CE", "BP", "MYA", "KYA", "US", "USA", "UK", "DNA", "GPS",
-        "UNESCO", "CIA", "FBI", "NASA", "USSR", "WWI", "WWII", "AM", "PM", "FT", "KM", "M", "KG"
-    }
-    ROMAN_NUMERALS = {
-        "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X",
-        "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX",
-        "XXI", "XXII", "XXIII", "XXIV", "XXV", "XXVI", "XXVII", "XXVIII", "XXIX", "XXX"
-    }
 
-    for tok in tokens:
-        if tok[:1].isalpha():  # a word, possibly with an apostrophe inside it
-            upper = tok.upper()
-            if upper in ACRONYMS or upper in ROMAN_NUMERALS or (tok.isupper() and 2 <= len(tok) <= 4):
-                out.append(f"{{{init_tag}}}{upper}")
-            else:
-                first = tok[0].upper()
-                rest = tok[1:].upper()
-                if rest:
-                    out.append(f"{{{init_tag}}}{first}{{{sc_tag}}}{rest}")
-                else:
-                    out.append(f"{{{init_tag}}}{first}")
+def _word_end(w: dict[str, Any]) -> float:
+    """When a timed word stops being heard: its duration if given, else its end, else 0.3 s after its start."""
+    start = float(w["start"])
+    if w.get("dur") is not None:
+        return start + float(w["dur"])
+    if w.get("end") is not None:
+        return float(w["end"])
+    return start + 0.3
+
+
+def merge_short_bursts(
+    phrases: list[list[dict[str, Any]]],
+    fits: Callable[[list[dict[str, Any]]], bool],
+    max_words: int,
+    min_dur: float = CAPTION_MIN_CHUNK,
+    pause_gap: float = CAPTION_PAUSE_GAP,
+) -> list[list[dict[str, Any]]]:
+    """Joins each burst heard for less than `min_dur` to a neighbour (round 2, finding 4: a flash is not read),
+    preferring the neighbour in the same sentence, then the one before. A join must still fit the line, keep to
+    `max_words` and not bridge a pause longer than `pause_gap`; a burst with no such neighbour stays as it is."""
+    out = [list(p) for p in phrases if p]
+    i = 0
+    while i < len(out):
+        p = out[i]
+        if len(out) == 1 or _word_end(p[-1]) - float(p[0]["start"]) >= min_dur:
+            i += 1
+            continue
+        cands: list[tuple[int, int]] = []  # (rank, neighbour index); rank 0 = same sentence
+        if i > 0 and float(p[0]["start"]) - _word_end(out[i - 1][-1]) <= pause_gap:
+            cands.append((0 if not TERMINAL_PUNCT.search(out[i - 1][-1].get("word", "")) else 1, i - 1))
+        if i + 1 < len(out) and float(out[i + 1][0]["start"]) - _word_end(p[-1]) <= pause_gap:
+            cands.append((0 if not TERMINAL_PUNCT.search(p[-1].get("word", "")) else 1, i + 1))
+        joined = None
+        for _, j in sorted(cands):
+            combo = out[j] + p if j < i else p + out[j]
+            if len(combo) <= max_words and fits(combo):
+                joined = j
+                out[min(i, j)] = combo
+                del out[max(i, j)]
+                break
+        i = min(i, joined) if joined is not None else i + 1
+    return out
+
+
+def burst_timings(
+    phrases: list[list[dict[str, Any]]],
+    lead: float = CAPTION_LEAD_FRAMES / VIDEO_FPS,
+    pause_gap: float = CAPTION_PAUSE_GAP,
+    pause_tail: float = CAPTION_PAUSE_TAIL,
+) -> list[tuple[float, float, list[float]]]:
+    """(show, hide, word reveal times) for each burst (round 2, finding 4). A burst appears `lead` (two frames)
+    before its first word is heard; each word appears the same lead before its own onset. It stays until the next
+    burst appears, except across a pause longer than `pause_gap`, where it leaves `pause_tail` after its last word.
+    The last burst leaves 0.10 s after its last word. No two bursts overlap."""
+    out: list[tuple[float, float, list[float]]] = []
+    prev_hide = 0.0
+    for pi, phrase in enumerate(phrases):
+        first = float(phrase[0]["start"])
+        last_end = _word_end(phrase[-1])
+        show = max(0.0, first - lead, prev_hide)
+        reveals = [show]
+        for w in phrase[1:]:
+            reveals.append(max(reveals[-1], float(w["start"]) - lead))
+        if pi + 1 < len(phrases):
+            next_first = float(phrases[pi + 1][0]["start"])
+            next_show = max(0.0, next_first - lead)
+            hide = last_end + pause_tail if next_first - last_end > pause_gap else next_show
+            hide = min(hide, next_show)
         else:
-            out.append(f"{{{init_tag}}}{tok}")
-    return "".join(out)
+            hide = last_end + 0.10
+        hide = max(hide, reveals[-1] + 0.02)
+        out.append((show, hide, reveals))
+        prev_hide = hide
+    return out
 
 
 def _norm(word: str) -> str:
@@ -627,6 +766,102 @@ def film_grade_filter(grade_bias: float = 0.0, source: Path = FILM_PRINT_LUT, ou
     return grade
 
 
+@lru_cache(maxsize=16)
+def _font_vmetrics(name: str, weight: int | None = None) -> tuple[int, int, int]:
+    """(unitsPerEm, usWinAscent, usWinDescent) of a bundled font, read from its head and OS/2 tables. libass sizes
+    a font so that its Windows ascent plus descent equal the ASS Fontsize (Anton: Fontsize 128 is a 73.8 px em,
+    which is why FONT_SIZE_ASS 128 renders the 72 px caption)."""
+    import struct
+    from .typography import font_file
+    data = (FONTS_DIR / font_file(name, weight)).read_bytes()
+    tables = {}
+    for i in range(struct.unpack(">H", data[4:6])[0]):
+        tag, _, offset, _ = struct.unpack(">4sIII", data[12 + 16 * i:28 + 16 * i])
+        tables[tag] = offset
+    upm = struct.unpack(">H", data[tables[b"head"] + 18:tables[b"head"] + 20])[0]
+    win_ascent, win_descent = struct.unpack(">HH", data[tables[b"OS/2"] + 74:tables[b"OS/2"] + 78])
+    return upm, win_ascent, win_descent
+
+
+def ass_font_size(name: str, px: float, weight: int | None = None) -> int:
+    """The ASS Fontsize that renders a `px` em of this bundled font under libass."""
+    upm, asc, desc = _font_vmetrics(name, weight)
+    return round(px * (asc + desc) / upm)
+
+
+def _ink_band(name: str, px: int, ass_size: int, weight: int | None = None) -> tuple[float, float]:
+    """(cap top, descender bottom) of a line of this font, in px from the top of its libass line box."""
+    from .typography import get_font
+    _, asc, desc = _font_vmetrics(name, weight)
+    baseline = asc * ass_size / (asc + desc)
+    _, top, _, bottom = get_font(name, px, weight=weight).getbbox("Hgjpy", anchor="ls")
+    return baseline + top, baseline + bottom
+
+
+def _fits_wide(phrase: Any, max_width: int) -> bool:
+    """A 16:9 burst fits one line: at most CAPTION_WIDE_MAX_CHARS characters and inside `max_width` (its plate
+    included) in Montserrat Bold at CAPTION_WIDE_SIZE."""
+    from .typography import get_font
+    text = " ".join(_phrase_words(phrase))
+    if len(text) > CAPTION_WIDE_MAX_CHARS:
+        return False
+    return get_font(CAPTION_WIDE_FONT, CAPTION_WIDE_SIZE, weight=700).getlength(text) + 2 * CAPTION_PAD_X <= max_width
+
+
+def _wrap_cue(words: list[str], max_chars: int = SIDECAR_MAX_LINE_CHARS, max_lines: int = SIDECAR_MAX_LINES) -> str | None:
+    """The cue's text in at most `max_lines` lines of at most `max_chars` (two lines balanced, preferring a break
+    after punctuation), or None when it does not fit."""
+    text = " ".join(words)
+    if len(text) <= max_chars:
+        return text
+    if max_lines < 2:
+        return None
+    best: tuple[float, str] | None = None
+    for k in range(1, len(words)):
+        top, bottom = " ".join(words[:k]), " ".join(words[k:])
+        if len(top) <= max_chars and len(bottom) <= max_chars:
+            score = max(len(top), len(bottom)) - (8 if re.search(r"[\,\;\:\.\?!…—]$", top) else 0)
+            if best is None or score < best[0]:
+                best = (score, f"{top}\n{bottom}")
+    return best[1] if best else None
+
+
+def partition_sidecar_cues(words: list[dict[str, Any]]) -> list[tuple[float, float, str]]:
+    """Closed-caption cues for the .srt/.vtt sidecars, (start, end, text): caption review round 2, finding 7. The
+    Reel's 2-5 word bursts made staccato YouTube captions; a sidecar cue holds up to SIDECAR_MAX_LINES lines of
+    SIDECAR_MAX_LINE_CHARS, is on screen SIDECAR_MIN_CUE to SIDECAR_MAX_CUE seconds, and ends at a sentence (or,
+    once it holds a full line, at a clause) where the text allows. Text is the narration's, word for word."""
+    groups: list[list[dict[str, Any]]] = []
+    cur: list[dict[str, Any]] = []
+    for w in words:
+        word = str(w.get("word", "")).strip()
+        if not word:
+            continue
+        if cur:
+            candidate = [str(x["word"]).strip() for x in cur] + [word]
+            if _wrap_cue(candidate) is None or _word_end(w) - float(cur[0]["start"]) > SIDECAR_MAX_CUE:
+                groups.append(cur)
+                cur = []
+        cur.append(w)
+        held = _word_end(w) - float(cur[0]["start"])
+        text_len = len(" ".join(str(x["word"]).strip() for x in cur))
+        if held >= SIDECAR_MIN_CUE and (TERMINAL_PUNCT.search(word) or (CLAUSE_PUNCT.search(word) and text_len >= SIDECAR_MAX_LINE_CHARS)):
+            groups.append(cur)
+            cur = []
+    if cur:
+        groups.append(cur)
+    cues: list[tuple[float, float, str]] = []
+    for gi, g in enumerate(groups):
+        start = float(g[0]["start"])
+        end = max(_word_end(g[-1]) + 0.1, start + SIDECAR_MIN_CUE)
+        if gi + 1 < len(groups):
+            end = min(end, float(groups[gi + 1][0]["start"]))
+        end = max(min(end, start + SIDECAR_MAX_CUE), start + 0.02)
+        text = _wrap_cue([str(x["word"]).strip() for x in g]) or " ".join(str(x["word"]).strip() for x in g)
+        cues.append((start, end, text))
+    return cues
+
+
 class VideoComposer:
     def __init__(self, fonts_dir: Path = FONTS_DIR):
         self.fonts_dir = fonts_dir
@@ -655,72 +890,74 @@ class VideoComposer:
         s, ms = divmod(rem, 1000)
         return f"{h:02d}:{m:02d}:{s:02d}.{ms:03d}"
 
-    def export_subtitles_srt(self, words: List[Dict[str, Any]], srt_path: Path) -> Path:
-        """Export standardized SubRip (.srt) sidecar file for YouTube closed caption indexing."""
-        phrases = partition_words_grammatical(words)
-        lines = []
-        for i, phrase in enumerate(phrases, start=1):
-            t_start = phrase[0]["start"]
-            t_end = phrase[-1]["start"] + phrase[-1].get("dur", 0.3) + 0.1
-            text = " ".join(w["word"] for w in phrase).strip()
-            lines.append(f"{i}\n{self._format_srt_time(t_start)} --> {self._format_srt_time(t_end)}\n{text}\n")
+    def export_subtitles_srt(self, words: list[dict[str, Any]], srt_path: Path) -> Path:
+        """Export the SubRip (.srt) sidecar for YouTube and Facebook closed captions: its own cues
+        (partition_sidecar_cues: up to two 42-character lines, 1.2-7 s each), not the Reel's bursts."""
+        cues = partition_sidecar_cues(words)
+        lines = [f"{i}\n{self._format_srt_time(s)} --> {self._format_srt_time(e)}\n{t}\n"
+                 for i, (s, e, t) in enumerate(cues, start=1)]
         srt_path.write_text("\n".join(lines), encoding="utf-8")
-        log.info("Exported SRT captions (%d cues) -> %s", len(phrases), srt_path.name)
+        log.info("Exported SRT captions (%d cues) -> %s", len(cues), srt_path.name)
         return srt_path
 
-    def export_subtitles_vtt(self, words: List[Dict[str, Any]], vtt_path: Path) -> Path:
-        """Export standardized WebVTT (.vtt) sidecar file for web player closed captions."""
-        phrases = partition_words_grammatical(words)
-        lines = ["WEBVTT\n"]
-        for i, phrase in enumerate(phrases, start=1):
-            t_start = phrase[0]["start"]
-            t_end = phrase[-1]["start"] + phrase[-1].get("dur", 0.3) + 0.1
-            text = " ".join(w["word"] for w in phrase).strip()
-            lines.append(f"{i}\n{self._format_vtt_time(t_start)} --> {self._format_vtt_time(t_end)}\n{text}\n")
+    def export_subtitles_vtt(self, words: list[dict[str, Any]], vtt_path: Path) -> Path:
+        """Export the WebVTT (.vtt) sidecar for web player closed captions: the same cues as the .srt."""
+        cues = partition_sidecar_cues(words)
+        lines = ["WEBVTT\n"] + [f"{i}\n{self._format_vtt_time(s)} --> {self._format_vtt_time(e)}\n{t}\n"
+                                for i, (s, e, t) in enumerate(cues, start=1)]
         vtt_path.write_text("\n".join(lines), encoding="utf-8")
-        log.info("Exported VTT captions (%d cues) -> %s", len(phrases), vtt_path.name)
+        log.info("Exported VTT captions (%d cues) -> %s", len(cues), vtt_path.name)
         return vtt_path
 
     def build_subtitles(
         self,
-        words: List[Dict[str, Any]],
+        words: list[dict[str, Any]],
         ass_path: Path,
-        emphasis: Optional[List[str]] = None,
+        emphasis: list[str] | None = None,
         width: int = VIDEO_WIDTH,
         height: int = VIDEO_HEIGHT,
-        margin_v: Optional[int] = None,
-        reconstruction_intervals: Optional[List[Tuple[float, float]]] = None,
+        margin_v: int | None = None,
+        reconstruction_intervals: list[tuple[float, float]] | None = None,
     ) -> Path:
         """Dynamic running-speech kinetic captions:
         1. Grammatical phrasing: sensitive to punctuation (. ? ! …) so every new sentence starts fresh.
-        2. At least three words per caption burst (wherever feasible) with dynamic resolution protection.
-        3. Equal margin translucent pill background with subtle rounded corners (vector Bézier curve).
-        4. Word-by-word karaoke highlighting (gold key terms with pop, active white, upcoming grey).
-        5. Small Caps typography: initial capital anchors with proportioned small capitals for peak legibility.
-        Supports both 9:16 vertical (Reels) and 16:9 widescreen (Documentaries).
+        2. Bursts formed to fit the line at the full caption size, so a Reel's captions keep one size; a burst
+           heard for under CAPTION_MIN_CHUNK joins a neighbour (merge_short_bursts).
+        3. A plate (the brand's INK, rounded corners, equal margins) behind each burst, fixed for its duration.
+        4. Words appear as they are spoken: upcoming words are transparent placeholders holding their place,
+           spoken words bone, the script's key terms gold. A burst shows two frames before its first word and
+           leaves soon after its last across a pause (burst_timings).
+        5. Small Caps typography following the narration's capitals (caption_runs).
+        Supports both 9:16 vertical (Reels) and 16:9 widescreen (Documentaries: one Montserrat Bold line).
         """
+        from .typography import get_font
         is_widescreen = width > height
-        eff_margin_v = margin_v if margin_v is not None else (70 if is_widescreen else CAPTION_MARGIN_V)
+        if is_widescreen:
+            eff_margin_v = margin_v if margin_v is not None else round(CAPTION_WIDE_MARGIN_V * height / 1080)
+        else:
+            eff_margin_v = margin_v if margin_v is not None else CAPTION_MARGIN_V
         max_caption_width = int(width * 0.75) if is_widescreen else MAX_CAPTION_WIDTH
+        recon_plate = _brand.ass_colour(_brand.INK, RECON_PLATE_ALPHA)
 
         if is_widescreen:
-            header = f"""[Script Info]
-ScriptType: v4.00+
-PlayResX: {width}
-PlayResY: {height}
-ScaledBorderAndShadow: yes
-
-[V4+ Styles]
-Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: CapText,Montserrat,38,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0.5,0,1,1.8,1.2,2,0,0,{eff_margin_v},1
-Style: CapBox,Montserrat,38,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,2,0,0,0,1
-Style: ReconBadge,Montserrat,22,&H40E2DAC8,&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,1.5,0,1,0,0,8,0,0,310,1
-
-[Events]
-Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
-"""
+            wide_px = round(CAPTION_WIDE_SIZE * height / 1080)
+            wide_fs = ass_font_size(CAPTION_WIDE_FONT, wide_px, 700)
+            badge_px = round(RECON_SIZE_WIDE * height / 1080)
+            badge_fs = ass_font_size(RECON_FONT, badge_px, 600)
+            styles = (
+                f"Style: CapText,{CAPTION_WIDE_FONT},{wide_fs},{COL_PAST},&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1\n"
+                f"Style: CapBox,{CAPTION_WIDE_FONT},{wide_fs},{COL_BACK},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
+                f"Style: ReconBadge,{RECON_FONT},{badge_fs},{COL_ACTIVE},&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,1.5,0,1,0,0,7,0,0,0,1\n"
+                f"Style: ReconPlate,{RECON_FONT},{badge_fs},{recon_plate},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
+            )
         else:
-            header = f"""[Script Info]
+            styles = (
+                f"Style: CapText,{FONT_NAME},{FONT_SIZE_ASS},{COL_PAST},&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0.5,0,1,0,0,5,0,0,0,1\n"
+                f"Style: CapBox,{FONT_NAME},{FONT_SIZE_ASS},{COL_BACK},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
+                f"Style: ReconBadge,{RECON_FONT},22,&H40E2DAC8,&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,1.5,0,1,0,0,8,0,0,310,1\n"
+                f"Style: ReconPlate,{RECON_FONT},22,{recon_plate},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1\n"
+            )
+        header = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {width}
 PlayResY: {height}
@@ -728,110 +965,112 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: CapText,{FONT_NAME},{FONT_SIZE_ASS},{COL_PAST},&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0.5,0,1,0,0,5,0,0,0,1
-Style: CapBox,{FONT_NAME},{FONT_SIZE_ASS},{COL_BACK},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
-Style: ReconBadge,Montserrat,22,&H40E2DAC8,&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,1.5,0,1,0,0,8,0,0,310,1
-
+{styles}
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
-        phrases = partition_words_grammatical(words)
+
+        if is_widescreen:
+            def fits(ph: list[dict[str, Any]]) -> bool:
+                return _fits_wide(ph, max_caption_width)
+            phrases = partition_words_grammatical(words, CAPTION_WIDE_MIN_WORDS, CAPTION_WIDE_TARGET_WORDS,
+                                                  CAPTION_WIDE_MAX_WORDS, CAPTION_WIDE_MAX_CHARS, fits=fits,
+                                                  glance=(24, CAPTION_WIDE_MAX_CHARS))
+            phrases = merge_short_bursts(phrases, fits, CAPTION_WIDE_MAX_WORDS)
+        else:
+            phrases = merge_short_bursts(partition_words_grammatical(words), _fits_caption_width, MAX_BURST_WORDS)
+        timings = burst_timings(phrases)
         key = emphasis_indices(words, emphasis)
-        raw_events: List[Tuple[int, float, float, str, str]] = []  # (layer, start, end, style, text)
+        raw_events: list[tuple[int, float, float, str, str]] = []  # (layer, start, end, style, text)
 
         base = 0
-
+        center_x = width // 2
         for pi, phrase in enumerate(phrases):
-            if pi < len(phrases) - 1:
-                next_start = phrases[pi + 1][0]["start"]
-            else:
-                dur = phrase[-1].get("dur", phrase[-1].get("end", phrase[-1]["start"] + 0.5) - phrase[-1]["start"])
-                next_start = phrase[-1]["start"] + dur + 0.10
-
-            phrase_start = phrase[0]["start"]
-            phrase_end = next_start
-
-            # Fit font size to ensure the caption comfortably clears side margins and buttons
+            show, hide, reveals = timings[pi]
             has_key = any(base + j in key for j in range(len(phrase)))
-            fit = _caption_fit_size(phrase, EMPHASIS_POP / 100 if has_key else 1.0, max_width=max_caption_width)
+            shown = _phrase_words(phrase)
+
             if is_widescreen:
-                from .typography import fit_font
-                measure_draw = ImageDraw.Draw(Image.new("RGB", (1, 1)))
-                caption_text = " ".join(w["word"] for w in phrase)
-                fit_wide = fit_font(measure_draw, caption_text, "Montserrat", 38, max_caption_width, 28).size
-                size_tag = f"{{\\fs{fit_wide}}}" if fit_wide < 38 else ""
-            elif fit < FONT_SIZE:
-                fit_ass = int(round(fit / 0.5625))
-                size_tag = f"{{\\fs{fit_ass}}}"
+                font = get_font(CAPTION_WIDE_FONT, wide_px, weight=700)
+                text_w = font.getlength(" ".join(_ass_escape(w) for w in shown))
+                shrink = min(1.0, (max_caption_width - 2 * CAPTION_PAD_X) / max(1.0, text_w))
+                size_tag = f"{{\\fs{int(wide_fs * shrink)}}}" if shrink < 1.0 else ""
+                cap_top, desc_bottom = (v * shrink for v in _ink_band(CAPTION_WIDE_FONT, wide_px, wide_fs, 700))
+                box_w = round(text_w * shrink + CAPTION_PAD_X * 2)
+                box_h = round(desc_bottom - cap_top + CAPTION_PAD_Y * 2)
+                box_x = round(center_x - box_w / 2)
+                box_y = height - eff_margin_v - box_h
+                # \an5 centres the line box (wide_fs tall) on \pos; the letters' ink sits lower in it than its middle
+                ink_mid = (cap_top + desc_bottom) / 2 - wide_fs * shrink / 2
+                center_y = round(box_y + box_h / 2 - ink_mid)
             else:
-                size_tag = ""
-
-            center_x = width // 2
-            center_y = height - eff_margin_v
-
-            if not is_widescreen:
+                # One size per Reel: bursts are formed to fit at FONT_SIZE; only a single over-long word shrinks.
+                fit = _caption_fit_size(phrase, EMPHASIS_POP / 100 if has_key else 1.0, max_width=max_caption_width)
+                size_tag = f"{{\\fs{round(fit / 0.5625)}}}" if fit < FONT_SIZE else ""
                 # Calculate exact bounding dimensions to render perfectly centered pill background
                 text_w, text_h = measure_caption_phrase(phrase, fit, CAPTION_SC_SCALE)
-
-                box_w = int(round(text_w + CAPTION_PAD_X * 2))
-                box_h = int(round(text_h + CAPTION_PAD_Y * 2))
-                box_x = int(round(center_x - box_w / 2))
+                box_w = round(text_w + CAPTION_PAD_X * 2)
+                box_h = round(text_h + CAPTION_PAD_Y * 2)
+                box_x = round(center_x - box_w / 2)
                 # The pill ends above the band the platforms draw over (eff_margin_v = safe_zones.REEL.bottom):
                 # its centre used to sit on that line, so its lower half was under Meta's caption and audio
                 # row (measured on the first publication: pills at y 1202-1309 against the line at 1248).
-                shift = int(round(7.5 * (fit / FONT_SIZE)))  # Anton's visual centre sits below the geometric one
+                shift = round(7.5 * (fit / FONT_SIZE))  # Anton's visual centre sits below the geometric one
                 center_y = height - eff_margin_v - CAPTION_CLEARANCE - box_h // 2 - shift
-                text_visual_center_y = center_y + shift
-                box_y = int(round(text_visual_center_y - box_h / 2))
-                path = rounded_rect_path(box_w, box_h, CAPTION_BORDER_RADIUS)
+                box_y = round(center_y + shift - box_h / 2)
 
-                # Layer 0: Background pill box with subtle rounded corners and exact equal margins
-                box_text = f"{{\\pos({box_x},{box_y})\\p1}}{path}{{\\p0}}"
-                raw_events.append((0, phrase_start, phrase_end, "CapBox", box_text))
+            # Layer 0: the plate, fixed for the whole burst (sized to every word of it, spoken or not)
+            path = rounded_rect_path(box_w, box_h, CAPTION_BORDER_RADIUS)
+            raw_events.append((0, show, hide, "CapBox", f"{{\\pos({box_x},{box_y})\\p1}}{path}{{\\p0}}"))
 
-            # Layer 1: Text events with word-by-word karaoke progression and no-wrap protection
-            for wi, target in enumerate(phrase):
-                t_end = phrase[wi + 1]["start"] if wi < len(phrase) - 1 else next_start
-                parts = []
-                for ji, w in enumerate(phrase):
+            # Layer 1: one event per spoken word; the words still to come are transparent placeholders
+            for wi in range(len(phrase)):
+                t_start = reveals[wi]
+                t_end = reveals[wi + 1] if wi < len(phrase) - 1 else hide
+                visible, hidden = [], []
+                for ji, disp_word in enumerate(shown):
                     is_key = base + ji in key
-                    disp_word = w["word"]
-                    if ji == len(phrase) - 1:
-                        disp_word = re.sub(r"[\,\;\.]+$", "", disp_word)
-
-                    if is_widescreen:
-                        if ji > wi:
-                            c_tag = r"{\c&HCCCCCC&}"
-                        elif is_key:
-                            c_tag = r"{\c&H00D7D7&}"
-                        elif ji == wi:
-                            c_tag = r"{\c&HFFFFFF&}"
-                        else:
-                            c_tag = r"{\c&H999999&}"
-                        parts.append(f"{c_tag}{disp_word}")
+                    if ji > wi:
+                        colour = COL_FUTURE
                     else:
-                        if ji > wi:
-                            colour = COL_FUTURE
-                        else:
-                            colour = COL_EMPHASIS if is_key else COL_PAST if ji < wi else COL_ACTIVE
-                        word_ass = format_word_caption(
-                            disp_word,
-                            colour=colour,
-                            is_key=is_key,
-                            is_spoken_now=(ji == wi),
-                            has_key=has_key,
-                        )
-                        parts.append(word_ass)
-                text_content = f"{{\\pos({center_x},{center_y})\\q2}}{size_tag}" + " ".join(parts)
-                raw_events.append((1, target["start"], t_end, "CapText", text_content))
+                        colour = COL_EMPHASIS if is_key else COL_PAST if ji < wi else COL_ACTIVE
+                    if is_widescreen:
+                        word_ass = f"{{\\c{colour}}}{_ass_escape(disp_word)}"
+                    else:
+                        word_ass = format_word_caption(disp_word, colour=colour, is_key=is_key,
+                                                       is_spoken_now=(ji == wi), has_key=has_key)
+                    (hidden if ji > wi else visible).append(word_ass)
+                line = " ".join(visible)
+                if hidden:
+                    line += " " + CAPTION_HIDDEN + " ".join(hidden)
+                raw_events.append((1, t_start, t_end, "CapText", f"{{\\pos({center_x},{center_y})\\q2}}{size_tag}{line}"))
 
             base += len(phrase)
 
-        # Append historical reconstruction badges on layer 2 if present
+        # The AI-reconstruction disclosure (layer 2 plate, layer 3 text) while a reconstruction is on screen
         if reconstruction_intervals:
+            label = "[ HISTORICAL RECONSTRUCTION ]"
+            if is_widescreen:
+                # Bone IBM Plex Mono on an INK plate in the top-left corner of the 5% title-safe area
+                pad_x, pad_y = round(14 * height / 1080), round(8 * height / 1080)
+                b_top, b_bottom = _ink_band(RECON_FONT, badge_px, badge_fs, 600)
+                tw = get_font(RECON_FONT, badge_px, weight=600).getlength(label) + 1.5 * len(label)
+                x0, y0 = round(0.05 * width), round(0.05 * height)
+                text_pos = (x0 + pad_x, round(y0 + pad_y - b_top))
+                badge_text = f"{{\\an7\\pos({text_pos[0]},{text_pos[1]})}}{label}"
+            else:
+                # 9:16 keeps its upper-third placement and type (locked by tests/test_gap_engine.py), on a plate
+                pad_x, pad_y = 12, 8
+                b_px = max(8, round(22 * _font_vmetrics(RECON_FONT, 600)[0] / sum(_font_vmetrics(RECON_FONT, 600)[1:])))
+                b_top, b_bottom = _ink_band(RECON_FONT, b_px, 22, 600)
+                tw = get_font(RECON_FONT, b_px, weight=600).getlength(label) + 1.5 * len(label)
+                x0, y0 = round(width / 2 - tw / 2 - pad_x), round(310 + b_top - pad_y)
+                badge_text = r"{\an8\fs22\c&HE2DAC8&\alpha&H40&\b1}" + label
+            plate_w, plate_h = round(tw + 2 * pad_x), round(b_bottom - b_top + 2 * pad_y)
+            plate_text = f"{{\\pos({x0},{y0})\\p1}}{rounded_rect_path(plate_w, plate_h, 8)}{{\\p0}}"
             for start_t, end_t in reconstruction_intervals:
-                badge_text = r"{\an8\fs22\c&HE2DAC8&\alpha&H40&\b1}[ HISTORICAL RECONSTRUCTION ]"
-                raw_events.append((2, start_t, end_t, "ReconBadge", badge_text))
+                raw_events.append((2, start_t, end_t, "ReconPlate", plate_text))
+                raw_events.append((3, start_t, end_t, "ReconBadge", badge_text))
 
         # Sort all events chronologically (layer 0 background pill always appears under layer 1 text)
         raw_events.sort(key=lambda e: (e[1], e[0]))

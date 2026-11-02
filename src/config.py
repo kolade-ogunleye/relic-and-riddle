@@ -390,7 +390,43 @@ COL_EMPHASIS = r"&H0000D7FF&"  # Warm Gold #FFD700, only for the script's 1-3 ke
 EMPHASIS_POP = 100             # 100% scale (no animated size pop; eliminates line jitter & glitching)
 COL_PAST = r"&H00FFFFFF&"      # Clean White
 COL_FUTURE = r"&H00909090&"    # Soft Gray
-COL_BACK = r"&H20101010&"      # Translucent Charcoal Pill (alpha 0x20 = ~87% opacity)
+# The plate: the brand's INK (#0B0E12) at alpha 0x20 (~87% opacity), the ground every other surface uses; it was a
+# neutral #101010 until the caption review of 2026-11-02 (round 2, finding 5). The 16:9 burn-in uses the same plate.
+COL_BACK = r"&H20120E0B&"      # brand.ass_colour(brand.INK, 0x20); the round-2 tests hold the two equal
+
+# Caption timing (caption review round 2, 2026-11-02, finding 4). A burst appears two frames before its first
+# word is heard (reading starts a beat behind the eye); across a pause longer than CAPTION_PAUSE_GAP it leaves
+# CAPTION_PAUSE_TAIL after its last word instead of holding through the silence; a burst on screen for less than
+# CAPTION_MIN_CHUNK joins a neighbour (a flash is not readable).
+CAPTION_LEAD_FRAMES = 2
+CAPTION_PAUSE_GAP = 0.8
+CAPTION_PAUSE_TAIL = 0.25
+CAPTION_MIN_CHUNK = 0.6
+
+# 16:9 burn-in (documentary; round 2, finding 6): Montserrat Bold (the bundled variable font's Bold instance; with
+# Bold=0 libass loads its default, Thin), one line of at most 42 characters, 4-8 words a burst, the plate's
+# lower edge CAPTION_WIDE_MARGIN_V above the frame's bottom (y 1000 at 1080). A sentence splits into bursts of at
+# least CAPTION_WIDE_MIN_WORDS (3, so a 5-7 word sentence too long for one line can split without an orphan word);
+# the phrase builder favours 24-42 characters, which is 4-8 words in practice.
+CAPTION_WIDE_FONT = "Montserrat"
+CAPTION_WIDE_SIZE = 52  # px rendered em, as FONT_SIZE; the ASS Fontsize comes from the font's metrics (81)
+CAPTION_WIDE_MARGIN_V = 80
+CAPTION_WIDE_MAX_CHARS = 42
+CAPTION_WIDE_MIN_WORDS = 3
+CAPTION_WIDE_TARGET_WORDS = 6
+CAPTION_WIDE_MAX_WORDS = 8
+
+# Closed-caption sidecars (.srt/.vtt; round 2, finding 7): their own cues, not the Reel's 2-5 word bursts.
+SIDECAR_MAX_LINE_CHARS = 42
+SIDECAR_MAX_LINES = 2
+SIDECAR_MIN_CUE = 1.2
+SIDECAR_MAX_CUE = 7.0
+
+# The AI-reconstruction disclosure badge (round 2, finding 8): the data font, bone on an INK plate.
+RECON_FONT = "IBM Plex Mono"
+RECON_SIZE_PORTRAIT = 30  # the 9:16 size once tests/test_gap_engine.py lets the badge move (it locks \fs22)
+RECON_SIZE_WIDE = 26
+RECON_PLATE_ALPHA = 0x26  # ~85% opacity
 
 # Thumbnail Specifications (Variant B Locked Standard)
 THUMB_OPACITY = 215            # ~85% opacity

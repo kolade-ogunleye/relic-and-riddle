@@ -452,7 +452,14 @@ def split_balanced(text: str) -> Tuple[str, str]:
     if len(words) < 2:
         return text, ""
     best = min(range(1, len(words)), key=lambda k: abs(len(" ".join(words[:k])) - len(" ".join(words[k:]))))
-    return " ".join(words[:best]), " ".join(words[best:])
+    return drop_break_comma(" ".join(words[:best])), " ".join(words[best:])
+
+
+def drop_break_comma(line: str) -> str:
+    """A display line that a break ends drops its trailing comma: the break (and, two-tone, the colour change)
+    already makes the pause, and at the headline's tight leading the comma's tail lands on the next line's cap
+    height ("CARVED," over "NOT BUILT" read as one joined mark). Other end punctuation is kept."""
+    return line[:-1].rstrip() if line.endswith(",") else line
 
 
 def _rel_luminance(rgb) -> float:
@@ -1409,6 +1416,7 @@ class MultiFormatGenerator:
                 if h_short:
                     h_lines, font_h, h_short = self._fit_text(d, heading, "Anton", int(h_spec[0] * scale), width, 2,
                                                               int(h_spec[1] * scale * 0.9), px=px, sentences=False)
+        h_lines = [drop_break_comma(t) if j < len(h_lines) - 1 else t for j, t in enumerate(h_lines)]
         ch = cap_height(font_h)
         for j, line in enumerate(h_lines):
             y += ch if j == 0 else round(ch * 1.13)

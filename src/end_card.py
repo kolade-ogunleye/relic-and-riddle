@@ -40,11 +40,30 @@ FOLLOW = "FOLLOW FOR THE NEXT RELIC"
 GOLD, WHITE, INK = brand.GOLD, brand.BONE, brand.INK   # brand tokens; #D4AF37 gold until 2026-10-29
 BAND = (0.26, 0.66)      # the rows the card's text occupies
 TARGETS = {"band": 30.0, "band_std": 12.0, "outside": 40.0}   # 0-255 luminance after the dim
-TOP = 650                # y of the share line's first row
+TOP = 780                # y of the share line's first row (9:16)
+MAST_TOP = 490           # y of the masthead's cap top (9:16): the composition spreads through the Reel box
+MASTHEAD_W = 740         # the masthead group at cover scale (panel round 2, 2026-11-02: ~200 px wide here, big
+                         # everywhere else); on 9:16 the Reel box's centred width (696) caps it first
+RULE_HALF = 120          # half the gold rule under the masthead
+FOLLOW_GAP = 60          # px from the share block's last row to the follow line
 # The share ask: two lines at the largest of these that fits (operator, 2026-10-29: two lines at >= 54 px), else
-# three at the largest that fits, then longer asks smaller.
-SHARE_SIZES = (62, 58, 54)
+# three at the largest that fits, then longer asks smaller. Montserrat SemiBold (panel round 2: ~56 px, balanced).
+SHARE_SIZES = (58, 56, 54)
+SHARE_WEIGHT = 600
 SHARE_PLAN = ((2, SHARE_SIZES), (3, SHARE_SIZES), (4, (52,)), (5, (46,)))
+# The 16:9 YouTube end screen: YouTube draws its own elements over the last 5-20 s (a video or playlist slot and a
+# subscribe button); the card's text stays clear of where they are placed (1920x1080 px).
+LANDSCAPE_WIDTH, LANDSCAPE_HEIGHT = 1920, 1080
+END_SCREEN_SECONDS = 10.0
+END_SCREEN_SLOTS = {"video": (1100, 260, 1820, 660), "subscribe": (140, 700, 420, 980)}
+END_SCREEN_GAP = 60
+LANDSCAPE_SHARE_SIZES = (64, 60, 56)
+LANDSCAPE_MASTHEAD_W = 620
+# The 9:16 loop bridge (operator, 2026-11-02): the Reel's ending, one share line that resolves into frame 0.
+LOOP_SECONDS = 1.0
+LOOP_TIMES = {"in": 0.25, "out": 0.5}   # the line is up by "in"; the crossfade to frame 0 starts at "out"
+LOOP_DIM = 0.8                          # of the end card's measured dim: lighter, it is on screen for a second
+LOOP_CENTRE = 0.40                      # the line's vertical centre, as a share of the height (y 768: the Reel box)
 FOLLOW_SIZES = range(40, 29, -1)
 FOLLOW_TRACK = 0.12      # the follow line's letter spacing, as a share of its size
 
@@ -125,42 +144,106 @@ def _balanced(words: List[str], font, width: float, max_lines: int) -> Optional[
     return None
 
 
-def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> Dict[str, Any]:
-    """Where everything goes: the share line's size and lines, the follow line's size and its box (the drawn
-    line's ink, no capsule), all inside the Reel safe area's centred width."""
+_FOLLOW_WORD = re.compile(r"\bfollow", re.IGNORECASE)
+
+
+def says_follow(text: str) -> bool:
+    """Whether a share line already asks for a follow (then the card does not ask again)."""
+    return bool(_FOLLOW_WORD.search(text or ""))
+
+
+def _masthead(max_w: int) -> dict[str, Any]:
+    """The cover's masthead (src/cover_design.py _brand: the gold diamond, then RELIC & RIDDLE in tracked Cinzel
+    Bold bone), scaled up from the cover's 64 px to the largest size whose group fits MASTHEAD_W and `max_w`."""
+    from .cover_design import BRAND_PX, BRAND_TEXT, BRAND_TRACK, MARK_GAP, MARK_R
+    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    goal = min(MASTHEAD_W, max_w)
+    best = None
+    for size in range(BRAND_PX, 140):
+        k = size / BRAND_PX
+        font = get_font("Cinzel", size, weight=700)
+        track = BRAND_TRACK * k
+        r, gap = round(MARK_R * k), round(MARK_GAP * k)
+        name_w = probe.textlength(BRAND_TEXT, font=font) + track * (len(BRAND_TEXT) - 1)
+        group = 2 * r + gap + name_w
+        if group > goal and best is not None:
+            break
+        best = {"text": BRAND_TEXT, "font": font, "track": track, "mark_r": r, "gap": gap, "width": round(group),
+                "size": size}
+    return best
+
+
+def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, Any]:
+    """Where everything goes. 9:16: the masthead centred at cover scale, a short gold rule, the share line in bone
+    and, unless the share line already says follow, FOLLOW FOR THE NEXT RELIC in tracked gold, all inside the Reel
+    safe area's centred width and spread through its height. 16:9 (the YouTube end screen): the masthead top-left
+    in title-safe, then the share line, left-aligned, all left of the end screen's video element and above its
+    subscribe button (END_SCREEN_SLOTS); no follow line (the subscribe element asks)."""
     from .typography import drawable
-    max_w = REEL.centred_width(width, height)
+    landscape = width > height
     words = drawable(share, "Montserrat").split() or ["…"]  # no emoji or missing-glyph boxes (2026-10-29)
+    if landscape:
+        x0, y0 = round(width * 0.08), round(height * 0.12)
+        max_w = END_SCREEN_SLOTS["video"][0] - END_SCREEN_GAP - x0
+        plan = ((1, LANDSCAPE_SHARE_SIZES), (2, LANDSCAPE_SHARE_SIZES), (3, LANDSCAPE_SHARE_SIZES), (4, (48,)))
+    else:
+        max_w = REEL.centred_width(width, height)
+        plan = SHARE_PLAN
     share_font, lines = None, None
-    for max_lines, sizes in SHARE_PLAN:
+    for max_lines, sizes in plan:
         for size in sizes:
-            share_font = get_font("Montserrat", size, weight=700)
+            share_font = get_font("Montserrat", size, weight=SHARE_WEIGHT)
             lines = _balanced(words, share_font, max_w, max_lines)
             if lines:
                 break
         if lines:
             break
+    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     if not lines:  # longer still (the writer's limit keeps it far shorter): filled lines, never wider than the area
-        probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
         lines = [[]]
         for w in words:
             if lines[-1] and probe.textlength(" ".join(lines[-1] + [w]), font=share_font) > max_w:
                 lines.append([])
             lines[-1].append(w)
-    line_h = int(share_font.size * 1.24)
+    line_h = round(share_font.size * 1.24)
+    mast = _masthead(max_w if not landscape else LANDSCAPE_MASTHEAD_W)
+    follow = not landscape and not says_follow(share)
     follow_font = spacing = follow_w = None
     for size in FOLLOW_SIZES:  # the largest follow line that fits the safe width
         follow_font, spacing = get_font("Montserrat", size, weight=800), size * FOLLOW_TRACK
         follow_w = _tracked_width(follow_font, FOLLOW, spacing)
         if follow_w <= max_w - 20:
             break
-    follow_y = TOP + len(lines) * line_h + 46
-    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    cap = mast["font"].getbbox("R", anchor="lt")
+    if landscape:
+        mast_xy = (x0 + 2 * mast["mark_r"] + mast["gap"], y0)
+        mark_c = (x0 + mast["mark_r"], y0 + (cap[1] + cap[3]) / 2)
+        rule_y = y0 + cap[3] + 40
+        rule = (x0, x0 + 240)
+        top = rule_y + 70
+        align_x = x0
+    else:
+        cx = width / 2
+        mast_x0 = round(cx - mast["width"] / 2)
+        mast_xy = (mast_x0 + 2 * mast["mark_r"] + mast["gap"], MAST_TOP)
+        mark_c = (mast_x0 + mast["mark_r"], MAST_TOP + (cap[1] + cap[3]) / 2)
+        rule_y = MAST_TOP + cap[3] + 64
+        rule = (cx - RULE_HALF, cx + RULE_HALF)
+        top = TOP
+        align_x = None
+    share_bottom = top + len(lines) * line_h
+    follow_y = share_bottom + FOLLOW_GAP
     ink = probe.textbbox((0, 0), FOLLOW, font=follow_font)
-    cx = width / 2
-    box = (cx - follow_w / 2, follow_y + ink[1], cx + follow_w / 2, follow_y + ink[3])
+    if follow:
+        box = (width / 2 - follow_w / 2, follow_y + ink[1], width / 2 + follow_w / 2, follow_y + ink[3])
+    else:   # no follow line: the box is the share block's
+        widest = max(probe.textlength(" ".join(ln), font=share_font) for ln in lines)
+        left = align_x if landscape else width / 2 - widest / 2
+        box = (left, top, left + widest, share_bottom)
     return {"share_font": share_font, "lines": lines, "line_h": line_h, "follow_font": follow_font, "spacing": spacing,
-            "follow_y": follow_y, "box": box, "max_width": max_w,
+            "follow_y": follow_y, "box": box, "max_width": max_w, "follow": follow, "top": top,
+            "masthead": mast, "masthead_xy": mast_xy, "mark_centre": mark_c, "rule_y": rule_y, "rule": rule,
+            "align_x": align_x, "landscape": landscape,
             "share_widths": [probe.textlength(" ".join(ln), font=share_font) for ln in lines]}
 
 
@@ -214,77 +297,146 @@ def zoom_at(t: float) -> float:
     return 1.0 + 0.035 * (1 - (1 - u) ** 2)
 
 
-def _masks(lay: Dict[str, Any], f_brand, width: int, height: int) -> Dict[str, Image.Image]:
-    """Each line's glyph mask as drawn at rest (for measuring its contrast on the card's last frame)."""
-    out = {}
-    m = Image.new("L", (width, height), 0)
-    _tracked(ImageDraw.Draw(m), width / 2, TOP - 120, BRAND, f_brand, 255, 6)
-    out["brand"] = m
-    m = Image.new("L", (width, height), 0)
-    d = ImageDraw.Draw(m)
+def _word_xs(lay: dict[str, Any], width: int) -> list[tuple[int, int, str, float, int]]:
+    """(line, word, text, x, y) of every word of the share line as it rests."""
+    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    f = lay["share_font"]
+    out = []
     for li, line in enumerate(lay["lines"]):
         text = " ".join(line)
-        d.text((width / 2 - d.textlength(text, font=lay["share_font"]) / 2, TOP + li * lay["line_h"]), text,
-               font=lay["share_font"], fill=255)
-    out["share"] = m
-    m = Image.new("L", (width, height), 0)
-    _tracked(ImageDraw.Draw(m), width / 2, lay["follow_y"], FOLLOW, lay["follow_font"], 255, lay["spacing"])
-    out["follow"] = m
+        left = lay["align_x"] if lay["align_x"] is not None else width / 2 - probe.textlength(text, font=f) / 2
+        for wi, w in enumerate(line):
+            x = left + probe.textlength(" ".join(line[:wi]) + (" " if wi else ""), font=f)
+            out.append((li, wi, w, x, lay["top"] + li * lay["line_h"]))
     return out
 
 
-def frames(last: Image.Image, share: str, stats: Optional[Dict[str, Any]] = None) -> Iterator[Image.Image]:
-    """The card's frames (RGB, WIDTHxHEIGHT, FPS) over the narration's last frame. `stats`, when given, receives
-    the measured dim, the layout and each line's contrast on the last frame."""
-    width, height = WIDTH, HEIGHT
+def _mark(d: ImageDraw.ImageDraw, lay: dict[str, Any], a: float, r_draw: float) -> None:
+    """The masthead's gold diamond (ink edge, as on the cover) and the gold rule drawn out under the masthead."""
+    cx, cy = lay["mark_centre"]
+    r = lay["masthead"]["mark_r"]
+    if a > 0:
+        diamond = [(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)]
+        d.polygon(diamond, outline=(*INK, int(255 * a)), width=3)
+        d.polygon(diamond, fill=(*GOLD, int(255 * a)))
+    if r_draw > 0:
+        x0, x1 = lay["rule"]
+        y = lay["rule_y"]
+        if lay["landscape"]:
+            d.line([(x0, y), (x0 + (x1 - x0) * r_draw, y)], fill=(*GOLD, 235), width=4)
+        else:
+            mid, half = (x0 + x1) / 2, (x1 - x0) / 2 * r_draw
+            d.line([(mid - half, y), (mid + half, y)], fill=(*GOLD, 235), width=4)
+
+
+def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None) -> Iterator[Image.Image]:
+    """The card's frames (RGB, FPS) over the narration's last frame: WIDTHxHEIGHT for SECONDS when `last` is
+    upright, the 16:9 YouTube end screen (1920x1080, END_SCREEN_SECONDS) when it is wide. `stats`, when given,
+    receives the measured dim, the layout and each line's contrast on the last frame."""
+    from .typography import plan_text
+    landscape = last.width > last.height
+    width, height = (LANDSCAPE_WIDTH, LANDSCAPE_HEIGHT) if landscape else (WIDTH, HEIGHT)
+    seconds = END_SCREEN_SECONDS if landscape else SECONDS
     base = last.convert("RGB").resize((width, height))
     shape, soften_w, dim = fit_dim(base)
     soft_base = base.filter(ImageFilter.GaussianBlur(14))
     lay = layout(share, width, height)
-    f_brand, f_share, f_follow = get_font("Cinzel", 44), lay["share_font"], lay["follow_font"]
-    lines, line_h, box, follow_y, spacing = lay["lines"], lay["line_h"], lay["box"], lay["follow_y"], lay["spacing"]
-    if stats is not None:
-        stats.update(dim=dim, box=[round(v, 1) for v in box], share_lines=[" ".join(ln) for ln in lines],
-                     share_size=f_share.size, follow_size=f_follow.size, safe_width=lay["max_width"])
-    words = [(li, wi, w) for li, line in enumerate(lines) for wi, w in enumerate(line)]
+    mast = lay["masthead"]
+    total = round(seconds * FPS)
     ink = np.array(INK, np.float32)
-    rule_y = TOP - 44
-    total = int(round(SECONDS * FPS))
-    for i in range(total):
-        t = i / FPS
-        z = zoom_at(t)
+
+    def ground(t: float) -> Image.Image:
+        z = zoom_at(t * SECONDS / seconds)
         im = _pushed(base, z, width, height)
         sw = (ease(t / 0.6) * soften_w)[..., None]
         im = im * (1 - sw) + _pushed(soft_base, z, width, height) * sw
         dark = (ease(t / 0.45) * shape)[..., None]
-        arr = im * (1 - dark) + ink * dark
-        frame = Image.fromarray(arr.clip(0, 255).astype(np.uint8)).convert("RGBA")
-        layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-        d = ImageDraw.Draw(layer)
+        return Image.fromarray((im * (1 - dark) + ink * dark).clip(0, 255).astype(np.uint8))
+
+    # Every line is planned on the card's last frame (the ground at rest) and drawn from that plan on each frame.
+    rest = ground((total - 1) / FPS)
+    brand_plate = plan_text(rest, lay["masthead_xy"], mast["text"], mast["font"], WHITE, "lt", mast["track"])
+    words = _word_xs(lay, width)
+    word_plates = [plan_text(rest, (round(x), y), w, lay["share_font"], WHITE) for _, _, w, x, y in words]
+    follow_plate = (plan_text(rest, (width / 2, lay["follow_y"]), FOLLOW, lay["follow_font"], GOLD, "ma", lay["spacing"])
+                    if lay["follow"] else None)
+    if stats is not None:
+        stats.update(dim=dim, box=[round(v, 1) for v in lay["box"]], share_lines=[" ".join(ln) for ln in lay["lines"]],
+                     share_size=lay["share_font"].size, follow_size=lay["follow_font"].size if lay["follow"] else None,
+                     follow=lay["follow"], safe_width=lay["max_width"], masthead_width=mast["width"],
+                     size=[width, height], seconds=seconds)
+    for i in range(total):
+        t = i / FPS
+        frame = ground(t)
         a = ease((t - 0.15) / 0.4)
-        if a > 0:
-            _tracked(d, width / 2, TOP - 120, BRAND, f_brand, (*GOLD, int(255 * a)), 6)
-        r = ease((t - 0.25) / 0.5)
-        if r > 0:   # the rule draws out from a gold diamond, both ways at once (the brand's mark, operator 2026-10-29)
-            cx = width / 2
-            d.polygon([(cx, rule_y - 9), (cx + 9, rule_y), (cx, rule_y + 9), (cx - 9, rule_y)],
-                      fill=(*GOLD, int(255 * min(1, r * 2))))
-            d.line([(cx + 20, rule_y), (cx + 20 + 170 * r, rule_y)], fill=(*GOLD, 235), width=4)
-            d.line([(cx - 20, rule_y), (cx - 20 - 170 * r, rule_y)], fill=(*GOLD, 235), width=4)
-        for k, (li, wi, w) in enumerate(words):   # the share line rises word by word
+        frame = brand_plate.draw(frame, a)
+        layer = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        _mark(ImageDraw.Draw(layer), lay, a, ease((t - 0.25) / 0.5))
+        frame = Image.alpha_composite(frame.convert("RGBA"), layer).convert("RGB")
+        for k, plate in enumerate(word_plates):   # the share line rises word by word
             wa = ease((t - 0.45 - 0.055 * k) / 0.3)
-            if wa <= 0:
-                continue
-            line = lines[li]
-            x = width / 2 - d.textlength(" ".join(line), font=f_share) / 2 + d.textlength(" ".join(line[:wi]) + (" " if wi else ""), font=f_share)
-            d.text((x, TOP + li * line_h + 14 * (1 - wa)), w, font=f_share, fill=(*WHITE, int(255 * wa)))
-        fa = ease((t - (BELL_AT - 0.35)) / 0.35)   # the follow line lands with the bell
-        if fa > 0:
-            _tracked(d, width / 2, follow_y + 10 * (1 - fa), FOLLOW, f_follow, (*GOLD, int(255 * fa)), spacing)
-        out = Image.alpha_composite(frame, layer).convert("RGB")
+            if wa > 0:
+                frame = plate.draw(frame, wa, round(14 * (1 - wa)))
+        if follow_plate is not None:
+            fa = ease((t - (BELL_AT - 0.35)) / 0.35)   # the follow line lands with the bell
+            if fa > 0:
+                frame = follow_plate.draw(frame, fa, round(10 * (1 - fa)))
         if stats is not None and i == total - 1:
-            from .typography import ring_contrast
-            rgb = np.asarray(out)
-            stats["contrast"] = {name: ring_contrast(rgb, np.asarray(m), (0, 0)) for name, m in
-                                 _masks(lay, f_brand, width, height).items()}
-        yield out
+            measured = {"brand": brand_plate.measure(frame),
+                        "share": min((v for v in (p.measure(frame) for p in word_plates) if v is not None), default=None)}
+            if follow_plate is not None:
+                measured["follow"] = follow_plate.measure(frame)
+            stats["contrast"] = measured
+        yield frame
+
+
+def loop_text(share: str) -> str:
+    """The loop bridge's one line: the share half only (it never asks for a follow)."""
+    return card_text(share) or " ".join((share or "").split())
+
+
+def loop_bridge(last: Image.Image, first: Image.Image, share: str,
+                stats: dict[str, Any] | None = None) -> Iterator[Image.Image]:
+    """The 9:16 Reel's ending (operator, 2026-11-02): a loop bridge of LOOP_SECONDS instead of the end card. Over
+    the narration's last frame the ground dims and the share line rises in, in bone, at a measured contrast; it
+    holds, then the picture crossfades into the Reel's first frame `first` while the line fades out, so the bridge's
+    last frame is the opening frame and the loop restarts without a cut. WIDTHxHEIGHT, FPS. `stats` receives the
+    line, its size and its contrast at the hold."""
+    from .typography import plan_text
+    width, height = WIDTH, HEIGHT
+    a_img = last.convert("RGB").resize((width, height))
+    b_img = np.asarray(first.convert("RGB").resize((width, height)), dtype=np.float32)
+    shape, _, dim = fit_dim(a_img)
+    shape = shape * LOOP_DIM
+    text = loop_text(share)
+    lay = layout(text, width, height)
+    lines, line_h = lay["lines"], lay["line_h"]
+    top = round(LOOP_CENTRE * height - len(lines) * line_h / 2)
+    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    a_arr = np.asarray(a_img, dtype=np.float32)
+    ink = np.array(INK, np.float32)
+    held = Image.fromarray((a_arr * (1 - shape[..., None]) + ink * shape[..., None]).clip(0, 255).astype(np.uint8))
+    plates = []
+    for li, line in enumerate(lines):
+        s = " ".join(line)
+        x = width / 2 - probe.textlength(s, font=lay["share_font"]) / 2
+        plates.append(plan_text(held, (round(x), top + li * line_h), s, lay["share_font"], WHITE))
+    total = round(LOOP_SECONDS * FPS)
+    t_in, t_out = LOOP_TIMES["in"], LOOP_TIMES["out"]
+    if stats is not None:
+        stats.update(text=text, lines=[" ".join(ln) for ln in lines], share_size=lay["share_font"].size,
+                     dim=dim, seconds=LOOP_SECONDS, follow=False)
+    for i in range(total):
+        u = i / max(1, total - 1)          # 0 on the narration's last frame, 1 on the Reel's first
+        t = u * LOOP_SECONDS
+        dark = ease(t / t_in) * shape
+        ground = a_arr * (1 - dark[..., None]) + ink * dark[..., None]
+        mix = ease_io((t - t_out) / (LOOP_SECONDS - t_out))
+        frame = Image.fromarray((ground * (1 - mix) + b_img * mix).clip(0, 255).astype(np.uint8))
+        la = ease(t / t_in) * (1 - ease_io((t - t_out) / (LOOP_SECONDS - t_out) * 1.4))
+        for p in plates:
+            frame = p.draw(frame, la, round(12 * (1 - ease(t / t_in))))
+        if stats is not None and abs(t - (t_in + t_out) / 2) <= 0.5 / FPS + 1e-9:
+            vals = [v for v in (p.measure(frame) for p in plates) if v is not None]
+            stats["contrast"] = min(vals) if vals else None
+        yield frame

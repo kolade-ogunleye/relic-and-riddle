@@ -18,12 +18,13 @@ import requests
 from PIL import Image, ImageDraw
 from pydantic import BaseModel
 
-from . import commons, config
+from . import commons, config, safe_zones
+from .brand import BONE, DATA_FONT, INK, PLACE_TARGET, rgba
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
 from .credits import normalize
-from .graphics import _text, CLIP_SECONDS, GOLD, TEXT_TOP, WHITE, _ease, _encode
+from .graphics import CLIP_SECONDS, GOLD, TEXT_TOP, WHITE, _ease, _ease_io, _encode, get_text_box, record_contrast
 from .llm import LLMError, image_block, task as llm_task
-from .typography import cover_crop, get_font
+from .typography import cover_crop, get_font, plan_text
 from .upscale import ensure_resolution
 
 log = logging.getLogger(__name__)
@@ -127,39 +128,183 @@ def source(topic: Dict[str, Any], work_dir: Path) -> Optional[Tuple[Path, Dict[s
     return None
 
 
+# The comparison ends on both photographs (panel round 2, 2026-11-02: the last frame showed only the recent one,
+# the old photo's year faded out). The old photo holds full frame, the recent one wipes across it, then the
+# divider comes back to the middle and the two hold side by side for the last WIPE["hold"] seconds or more:
+# 9:16 one above the other (split at the middle of the Reel box, so each half shows the same height clear of
+# the platforms' interface), 16:9 left and right. Each panel shows the centre of its photo at full-frame scale (a
+# window, never a squeeze). The divider is BONE. Each year is a mono THEN / NOW kicker in tracked gold over the
+# year in Anton bone, no box, at a measured contrast on every background it sits on (recorded beside the clip).
+# The years are the ones passed in, from each photo's own record; nothing is added.
+KICKER_PX = {"portrait": 28, "landscape": 28}
+YEAR_PX = {"portrait": 128, "landscape": 112}
+KICKER_TRACK = 0.22                 # the kicker's letter spacing, as a share of its size
+DIVIDER_W = 5
+WIPE = {"then": 1.6, "to_now": 1.1, "now": 0.6, "to_split": 1.0}   # seconds; the split holds for the rest
+
+
+def _split_at(width: int, height: int) -> int:
+    """The divider's resting place: x 960 on 16:9; on 9:16 the middle of the Reel box (y 768 at 1920)."""
+    if width > height:
+        return width // 2
+    _, y0, _, y1 = safe_zones.safe_box("reel", width, height)
+    return (y0 + y1) // 2
+
+
+def _window(full: Image.Image, lo: int, hi: int, axis: int) -> Image.Image:
+    """The centre `hi - lo` px of `full` along `axis` (0: x, 1: y): a panel of the photo at full-frame scale."""
+    size = full.size[axis]
+    span = max(1, hi - lo)
+    a = (size - span) // 2
+    return full.crop((a, 0, a + span, full.size[1])) if axis == 0 else full.crop((0, a, full.size[0], a + span))
+
+
+def divider_at(t: float, width: int, height: int) -> float:
+    """Where the divider is at `t`: the far edge (the old photo whole), the near edge (the recent one whole),
+    then the resting split."""
+    axis = 0 if width > height else 1
+    edge = (width, height)[axis]
+    split = _split_at(width, height)
+    t1 = WIPE["then"]
+    t2 = t1 + WIPE["to_now"]
+    t3 = t2 + WIPE["now"]
+    if t < t2:
+        return edge * (1 - _ease_io((t - t1) / WIPE["to_now"]))
+    return split * _ease_io((t - t3) / WIPE["to_split"])
+
+
+def compose(a: Image.Image, b: Image.Image, pos: float) -> Image.Image:
+    """The old photo `a` before the divider at `pos` (left on 16:9, above on 9:16), the recent `b` after it."""
+    width, height = a.size
+    axis = 0 if width > height else 1
+    edge = (width, height)[axis]
+    p = round(max(0, min(edge, pos)))
+    im = Image.new("RGB", (width, height))
+    if p > 0:
+        im.paste(_window(a, 0, p, axis), (0, 0))
+    if p < edge:
+        im.paste(_window(b, p, edge, axis), (p, 0) if axis == 0 else (0, p))
+    if 0 < p < edge:
+        d = ImageDraw.Draw(im, "RGBA")
+        half = DIVIDER_W / 2
+        box = [p - half - 1, 0, p + half + 1, height] if axis == 0 else [0, p - half - 1, width, p + half + 1]
+        d.rectangle(box, fill=rgba(INK, 140))
+        box = [p - half, 0, p + half - 1, height] if axis == 0 else [0, p - half, width, p + half - 1]
+        d.rectangle(box, fill=rgba(BONE))
+    return im
+
+
+def marker_xy(which: str, width: int, height: int) -> tuple[int, int, str]:
+    """(x, y, anchor) of a year marker. 9:16: top-left of each panel's part of the Reel box. 16:9: either side
+    of the divider at the top of title-safe, THEN set right to it and NOW left (the master's vignette takes the
+    corners of a 16:9 frame below 4.5:1, measured on the graded frame)."""
+    split = _split_at(width, height)
+    if width > height:
+        _, y0, _, _ = get_text_box(width, height)
+        return (split - 64, y0 + 40, "rt") if which == "then" else (split + 64, y0 + 40, "lt")
+    x0, y0, _, _ = safe_zones.safe_box("reel", width, height)
+    return (x0 + 18, max(y0 + 42, TEXT_TOP), "lt") if which == "then" else (x0 + 18, split + 48, "lt")
+
+
+def _marker_plate(split_frame: Image.Image, alone: Image.Image, xy: tuple[int, int], text: str, font: Any,
+                  colour: tuple[int, int, int], anchor: str, track: float, halo_px: int | None, min_halo: float,
+                  target: float = PLACE_TARGET) -> Any:
+    """A marker line planned on the split and solved on the whole photo it also sits on, then on the split again
+    from that halo, so it holds `target` on both (the thin mono kicker loses about 0.6 to the grade)."""
+    plate = plan_text(split_frame, xy, text, font, colour, anchor=anchor, track=track, halo_px=halo_px,
+                      target=target, min_halo=min_halo, max_halo=1.0)
+    plate.solve(alone, target, min_halo=plate.halo, max_halo=1.0)
+    return plate.solve(split_frame, target, min_halo=plate.halo, max_halo=1.0)
+
+
+SHADE_ALPHA, SHADE_PAD = 0.62, 56
+
+
+def _shade_mask(size: tuple[int, int], boxes: list) -> Image.Image:
+    """A feathered ink shade over the union of `boxes` (L mode, 0..255 at SHADE_ALPHA)."""
+    from PIL import ImageFilter
+    m = Image.new("L", size, 0)
+    x0, y0 = min(bx[0] for bx in boxes) - SHADE_PAD, min(bx[1] for bx in boxes) - SHADE_PAD
+    x1, y1 = max(bx[2] for bx in boxes) + SHADE_PAD, max(bx[3] for bx in boxes) + SHADE_PAD
+    ImageDraw.Draw(m).rectangle([x0, y0, x1, y1], fill=round(255 * SHADE_ALPHA))
+    return m.filter(ImageFilter.GaussianBlur(SHADE_PAD * 0.7))
+
+
+def _shade(im: Image.Image, mask: Image.Image, alpha: float = 1.0) -> Image.Image:
+    if alpha <= 0:
+        return im
+    m = mask if alpha >= 1 else mask.point(lambda v: round(v * alpha))
+    return Image.composite(Image.new("RGB", im.size, INK), im.convert("RGB"), m)
+
+
 def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> Path:
-    """The old photo first, then a gold line wipes across to reveal the recent one; year badges on each."""
+    """The old photo, the recent one wiped across it, then both side by side to the end, each with its year."""
     a = cover_crop(old, (width, height)).convert("RGB")
     b = cover_crop(new, (width, height)).convert("RGB")
     n = int(CLIP_SECONDS * VIDEO_FPS)
-    font = get_font("Anton", 60 if width > height else 72)
-    top = int(height * 0.12) if width > height else TEXT_TOP
-    badge_h = 80 if width > height else 100
+    key = "landscape" if width > height else "portrait"
+    kicker_font = get_font(DATA_FONT, KICKER_PX[key], weight=600)
+    year_font = get_font("Anton", YEAR_PX[key])
+    track = KICKER_PX[key] * KICKER_TRACK
+    split = _split_at(width, height)
+    edge = max(width, height)
+    # Each marker is planned where it rests (the split) and solved again on the whole photo it also sits on.
+    split_frame, then_frame, now_frame = compose(a, b, split), compose(a, b, edge), compose(a, b, 0)
 
-    def badge(im: Image.Image, text: str, x: int, alpha: float) -> None:
-        d = ImageDraw.Draw(im, "RGBA")
-        tw = d.textlength(text, font=font)
-        d.rounded_rectangle([x, top, x + tw + 40, top + badge_h], radius=14, fill=(10, 10, 12, int(210 * alpha)),
-                            outline=(*GOLD, int(230 * alpha)), width=3)
-        _text(d, (x + 20, top + badge_h // 2), text, font=font, fill=(*WHITE, int(255 * alpha)), anchor="lm")
+    def plan_marker(which: str, year: int, alone: Image.Image) -> list:
+        x, y, anchor = marker_xy(which, width, height)
+        nudge = 0 if anchor[0] == "r" else -4   # Anton's side bearing, so the year's stem lines up with the kicker
+        # A floor under each halo: the thin mono kicker lost its edge to the grade's chroma smear on a bare photo.
+        # Gold, unless a bright sky keeps it under 4.5:1 at a full halo: then bone, which clears it there.
+        for colour in (GOLD, WHITE):
+            kicker = _marker_plate(split_frame, alone, (x, y), which.upper(), kicker_font, colour, anchor, track,
+                                   halo_px=36, min_halo=0.5, target=PLACE_TARGET + 0.6)
+            if (kicker.contrast or 0) >= PLACE_TARGET and (kicker.measure(alone) or 0) >= PLACE_TARGET:
+                break
+        figure = _marker_plate(split_frame, alone, (x + nudge, y + round(KICKER_PX[key] * 1.5)), str(year),
+                               year_font, WHITE, anchor, 0, halo_px=None, min_halo=0.35)
+        return [kicker, figure]
+
+    def short(ps: list, alone: Image.Image) -> bool:
+        return any(min(p.measure(split_frame) or 0, p.measure(alone) or 0) < PLACE_TARGET for p in ps)
+
+    plates: dict[str, list] = {}
+    shades: dict[str, Image.Image] = {}
+    for which, year, alone in (("then", old_year, then_frame), ("now", new_year, now_frame)):
+        ps = plan_marker(which, year, alone)
+        if short(ps, alone):
+            # A bright, busy photo the halo alone cannot quiet: a feathered ink shade under the marker (no edge,
+            # no box), then the marker is planned again on the shaded pictures.
+            shades[which] = _shade_mask((width, height), [p.box for p in ps])
+            split_frame = _shade(split_frame, shades[which])
+            alone = _shade(alone, shades[which])
+            ps = plan_marker(which, year, alone)
+        plates[which] = ps
+    final: dict[str, Image.Image] = {}
 
     def frames():
         for i in range(n):
             t = i / VIDEO_FPS
-            p = _ease((t - 2.2) / 1.6)  # hold on "then", wipe to "now"
-            xw = int(width * p)
-            im = a.copy()
-            if xw > 0:
-                im.paste(b.crop((0, 0, xw, height)), (0, 0))
-            im = im.convert("RGB")
-            d = ImageDraw.Draw(im, "RGBA")
-            if 0 < p < 1:
-                d.line([(xw, 0), (xw, height)], fill=(*GOLD, 255), width=6)
-            badge(im, str(old_year), 70, 1 - p)
-            badge(im, str(new_year), width - 70 - int(ImageDraw.Draw(im, "RGBA").textlength(str(new_year), font=font)) - 40, p)
+            pos = divider_at(t, width, height)
+            im = compose(a, b, pos)
+            # THEN shows while its panel covers it; NOW from when the recent photo has crossed it.
+            then_clear = pos - max(p.box[2] if width > height else p.box[3] for p in plates["then"])
+            now_clear = min(p.box[0] if width > height else p.box[1] for p in plates["now"]) - pos
+            alphas = {"then": _ease((t - 0.2) / 0.4) * max(0.0, min(1.0, then_clear / 40)),
+                      "now": max(0.0, min(1.0, now_clear / 40)) if t > WIPE["then"] else 0.0}
+            for which in ("then", "now"):
+                if which in shades:
+                    im = _shade(im, shades[which], alphas[which])
+                for p in plates[which]:
+                    im = p.draw(im, alphas[which])
+            final["frame"] = im
             yield im
 
-    return _encode(frames(), out, n, width=width, height=height)
+    clip = _encode(frames(), out, n, width=width, height=height)
+    if "frame" in final:
+        record_contrast(clip, final["frame"], [(f"{w}_{part}", p) for w in ("then", "now")
+                                               for part, p in zip(("kicker", "year"), plates[w])])
+    return clip
 
 
 def make(topic: Dict[str, Any], work_dir: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> Tuple[Optional[Path], List[Dict[str, Any]]]:

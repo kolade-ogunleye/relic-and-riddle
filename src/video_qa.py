@@ -123,6 +123,8 @@ def beat_tag(asset: Any) -> str:
     if original.stem.startswith("gap_gen_"):
         return " [in-house archaeological reconstruction: era-matched archival illustration for unphotographed phenomenon]"
     operations = [r.get("operation") for r in records]
+    if "detail_crop" in operations:   # src/picture_coverage.py: a punch-in on one of the topic's own photos
+        parts.append("a detail (punch-in) of one of the documentary's own photos")
     if "ai_motion" in operations:
         parts.append("AI motion animating a real photo")
     blurs = [r for r in records if r.get("operation") == "face_blur"]
@@ -246,6 +248,60 @@ def drop_designed_backdrops(report: Optional[QAReport], assets: Optional[List[An
     return report.model_copy(update={"issues": [i for i in report.issues if i not in dropped],
                                      "summary": (report.summary or "") + note})
 
+
+
+# ------------------------------------------------------------------ picture coverage severity (2026-11-02)
+# A beat the fallback cascade filled because no approved photo shows its line (src/picture_coverage.py: a same-kind
+# photo, a detail crop, archive film, the map, a graphic, a labelled reconstruction) is an honest, planned visual: a
+# finding that it does not show the very thing named is a warning on the card, never a blocker. A finding that it
+# shows a WRONG or invented subject (a contradiction, an anachronism, another site, a fabricated scene) still blocks,
+# as does any defect of the picture itself (text, a watermark, a glitch, a blank frame).
+_NOT_SHOWN = re.compile(
+    r"(does ?n[o']t (show|depict|match|feature|include)|not (show|depict|match)|no (photo|image|picture|footage|visual)s? of|"
+    r"instead of|rather than|generic|not (the|a) (specific|actual|named)|only (shows|a detail|part)|lacks?|missing|absent|"
+    r"not visible|isn't visible|mismatch|unrelated to the specific|cannot see|can't see|not pictured)", re.IGNORECASE)
+_WRONG_SUBJECT = re.compile(
+    r"(contradict|wrong|incorrect|misleading|mislabel|invent|fabricat|fake|anachronis|modern (car|vehicle|building|"
+    r"city|road|highway|street|tourist|people|person|sign|structure)|different (site|place|building|temple|object|"
+    r"era|period|country|city|monument|subject|civili[sz]ation)|another (site|place|building|temple|object|country|"
+    r"city|monument|civili[sz]ation)|unrelated (site|place|building|object|subject)|irrelevant|offensive|misrepresent)",
+    re.IGNORECASE)
+_PICTURE_DEFECT = re.compile(
+    r"(watermark|logo|cut off|truncat|overlap|illegib|unreadable|caption|subtitle|text in|printed text|placard|label|"
+    r"glitch|artefact|artifact|stretch|blank|black frame|upside|mirrored|pixelat|low[- ]res|blurry|nudity|injur)", re.IGNORECASE)
+COVERAGE_WARNING = "covered by a lower tier ({tier}): "
+
+
+def coverage_warning(issue: str) -> bool:
+    """True when a finding only says the picture does not show the very thing the line names (no wrong or invented
+    subject, no defect of the picture): on a beat the cascade filled, that is a warning."""
+    text = issue or ""
+    return bool(_NOT_SHOWN.search(text) and not _WRONG_SUBJECT.search(text) and not _PICTURE_DEFECT.search(text))
+
+
+def coverage_severity(issues: list[dict[str, Any]], coverage: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """The video check's findings (payload["video_check"]["issues"] rows: beat, severity, issue) with each finding on
+    a beat a lower cascade tier filled (picture_coverage.cascade_beats) that only says the very thing named is not
+    shown turned into a warning: severity "info" (shown on the card, never a block, src/release.py), "warning": True,
+    its original severity and the tier kept. Every other finding is returned as it was. Never raises."""
+    from .picture_coverage import cascade_beats
+    try:
+        lower = cascade_beats(coverage)
+    except (TypeError, ValueError, KeyError):
+        lower = {}
+    out = []
+    for row in issues or []:
+        if not isinstance(row, dict):
+            out.append(row)
+            continue
+        tier = lower.get(row.get("beat")) if isinstance(row.get("beat"), int) else None
+        if tier and row.get("severity") in ("minor", "major", "critical") and coverage_warning(str(row.get("issue") or "")):
+            row = {**row, "severity": "info", "warning": True, "was": row["severity"], "tier": tier,
+                   "issue": COVERAGE_WARNING.format(tier=tier.replace("_", " ")) + str(row.get("issue") or "")}
+            log.info("Video check: beat %s is covered by the %s tier; its finding is a warning: %s", row["beat"], tier,
+                     row["issue"][:160])
+        out.append(row)
+    return out
 
 
 def calculate_wcag_relative_luminance(rgb: Tuple[float, float, float]) -> float:

@@ -40,6 +40,12 @@ ALLOWED_HOSTS = {
     "archive": {"archive.org", ".archive.org"},
     # Europeana's holders serve their own files: any https host, still size-capped, video-only and re-encoded.
     "europeana": {"*"},
+    # Still images from the further open-access sources (src/museum_sources.py, 2026-11-02): a candidate whose file
+    # is on another host is not taken. Openverse indexes files where their holders keep them: the hosts allowed are
+    # Flickr's static servers and Wikimedia's upload server (the bulk of its CC/PD images); others are left out.
+    "openverse": {".staticflickr.com", "upload.wikimedia.org"},
+    "loc": {"tile.loc.gov", "www.loc.gov", "cdn.loc.gov"},
+    "artic": {"www.artic.edu"},
 }
 CREDIT_PREFIX = "🎥 Footage:"
 

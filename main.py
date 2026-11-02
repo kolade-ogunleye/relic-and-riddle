@@ -230,7 +230,26 @@ class PipelineCoordinator:
             # (fetched and reviewed on merit); topics without usable photos are skipped, not failed.
             from src.asset_pipeline import first_ready
             skipped = []
-            topic = first_ready(self.db.ranked_topics(), skipped=skipped)
+            # Topics whose approved pool has too few distinct authoritative photos go behind the others, said with
+            # their reason when one would otherwise have been made first (src/topic_engine.demote_thin, 2026-11-02).
+            ranked = self.db.ranked_topics()
+            order = {t["id"]: i for i, t in enumerate(ranked)}
+            try:
+                from src.topic_engine import demote_thin
+                ranked, thin = demote_thin(ranked)
+            except (OSError, ValueError, TypeError, KeyError) as e:
+                log.warning("Topic image gate could not run (%s); production order unchanged.", e)
+                thin = []
+            topic = first_ready(ranked, skipped=skipped)
+            passed_over = [(t, why) for t, why in thin if topic is not None and t["id"] != topic["id"]
+                           and order.get(t["id"], 0) < order.get(topic["id"], 0)]
+            if passed_over:
+                try:
+                    self._alert("🖼 <b>Topics moved back: too few photos for every line</b>\n\n"
+                                + "\n".join(f"• {html.escape(t.get('title') or t['id'])}: {html.escape(why)}"
+                                            for t, why in passed_over[:8]))
+                except (OSError, RuntimeError, ValueError) as e:   # requests' errors are OSErrors
+                    log.warning("Could not send the topic image gate alert: %s", e)
             if skipped:  # said, with the video's own count: an approved set it could not use failed at start (audit 2026-10-28)
                 try:
                     self._alert("🖼 <b>Topics skipped: not enough photos a video can use</b>\n\n"
@@ -2354,48 +2373,61 @@ class PipelineCoordinator:
         verdicts = pl.judge(payload["narration_script"], photos, title)
         if verdicts is None:  # not stamped: asked again on the next run of this script
             return payload
-        missing = pl.unshown(verdicts)
+        # Only a line naming a particular thing goes back (prevoice_lines.needs_rewrite); an unshown kind-of-thing line
+        # is left to the render's fallback cascade (src/picture_coverage.py).
+        missing = pl.needs_rewrite(verdicts)
         side_report: Dict[str, Any] = {}
         if missing:  # the picture side first: the reserve photos, then a bounded search for just these lines
             missing, verdicts, photos, side_report = self._picture_side(topic, run_id, run_dir, payload["narration_script"],
                                                                         verdicts, missing, photos)
         final, final_verdicts, rewritten, left, why_left = payload, verdicts, [], [], ""
         if missing:
-            log.info("Before the voice, %d line(s) name something no photo shows; sent back to the writer once: %s",
-                     len(missing), " | ".join(v["sentence"] for v in missing)[:300])
+            log.info("Before the voice, %d line(s) name something no photo shows; sent back to the writer (at most %d "
+                     "round(s)): %s", len(missing), pl.rounds(), " | ".join(v["sentence"] for v in missing)[:300])
             import copy
             revised = None
-            draft = copy.deepcopy(payload)
-            # The writer revises the copy as it wrote it: the image credit block is added again after its checks,
-            # never twice (production Derinkuyu, 2026-10-29).
-            draft["caption"] = beat_images.credit_caption(draft.get("caption") or "", {"images": []}, [])
-            try:
-                revised = self._write_and_check_script(topic, run_id, run_dir, dry_run, initial_payload=draft,
-                                                       initial_notes=pl.revision_note(missing, photos, minimal=for_pictures))
-                from src.fact_evidence import current_fact_review
-                if not current_fact_review(revised):
-                    self._verify_final_copy(revised, topic)
-            except JobCancelled:
-                raise
-            except Exception as e:  # never lose a verified script: the rewording is a saving, not a new way to fail
-                revised, why_left = None, f"the rewording did not pass its checks: {pl.clip(str(e), 120)}"
-            if revised is not None and revised.get("origin") != payload.get("origin"):
-                # The revision fell back to another script (the curated one): not a rewording of these lines, so
-                # the card would name sentences it never changed (review, 2026-10-28)
-                revised, why_left = None, "the rewording fell back to another script"
-            if revised is not None and for_pictures:
-                changed = pl.other_lines_changed(payload["narration_script"], revised["narration_script"],
-                                                 [v["sentence"] for v in missing])
-                if changed:   # a pictures regeneration keeps every other line word for word, or nothing changes
-                    revised, why_left = None, f"the rewording changed other lines too (“{pl.clip(changed[0], 60)}”)"
-            if revised is not None:
+            # Up to pl.rounds() rewordings (2026-11-02): each from the last one that passed its checks, for the lines
+            # it still left unshown; a further round only while the previous one left fewer such lines. Every round
+            # goes through the writer and both fact checks; only a rewording that leaves no such line is voiced.
+            current, asked = payload, missing
+            for round_no in range(1, pl.rounds() + 1):
+                revised = None
+                draft = copy.deepcopy(current)
+                # The writer revises the copy as it wrote it: the image credit block is added again after its checks,
+                # never twice (production Derinkuyu, 2026-10-29).
+                draft["caption"] = beat_images.credit_caption(draft.get("caption") or "", {"images": []}, [])
+                try:
+                    revised = self._write_and_check_script(topic, run_id, run_dir, dry_run, initial_payload=draft,
+                                                           initial_notes=pl.revision_note(asked, photos, minimal=for_pictures))
+                    from src.fact_evidence import current_fact_review
+                    if not current_fact_review(revised):
+                        self._verify_final_copy(revised, topic)
+                except JobCancelled:
+                    raise
+                except Exception as e:  # never lose a verified script: the rewording is a saving, not a new way to fail
+                    revised, why_left = None, f"the rewording did not pass its checks: {pl.clip(str(e), 120)}"
+                if revised is not None and revised.get("origin") != payload.get("origin"):
+                    # The revision fell back to another script (the curated one): not a rewording of these lines, so
+                    # the card would name sentences it never changed (review, 2026-10-28)
+                    revised, why_left = None, "the rewording fell back to another script"
+                if revised is not None and for_pictures:
+                    changed = pl.other_lines_changed(payload["narration_script"], revised["narration_script"],
+                                                     [v["sentence"] for v in missing])
+                    if changed:   # a pictures regeneration keeps every other line word for word, or nothing changes
+                        revised, why_left = None, f"the rewording changed other lines too (“{pl.clip(changed[0], 60)}”)"
+                if revised is None:
+                    break
                 again = pl.judge(revised["narration_script"], photos, title)
                 now = pl.sentences(revised["narration_script"])
-                still = pl.unshown(again) if again is not None else [v for v in missing if v["sentence"] in now]
-                if still:
-                    revised, why_left = None, "the rewording still names something no photo shows"
-                else:
+                still = pl.needs_rewrite(again) if again is not None else [v for v in asked if v["sentence"] in now]
+                if not still:
                     final, final_verdicts, rewritten = revised, again or [], missing
+                    break
+                closer, why_left, revised = revised, "the rewording still names something no photo shows", None
+                if round_no >= pl.rounds() or len(still) >= len(asked) or again is None:
+                    break
+                log.info("Before the voice, round %d left %d line(s) no photo shows; asking once more.", round_no, len(still))
+                current, asked = closer, still
             if revised is None:
                 left = missing
                 log.info("Line-picture check: the verified script stands (%s).", why_left)
@@ -2451,7 +2483,7 @@ class PipelineCoordinator:
             again = pl.judge(" ".join(v["sentence"] for v in lines), pool, title)
             if again is None:
                 return lines, None
-            return pl.unshown(again), again
+            return pl.needs_rewrite(again), again
 
         merged = {v["sentence"]: v for v in verdicts}
         still = missing
@@ -2869,6 +2901,11 @@ class PipelineCoordinator:
                              f"{len(reserve_used)} reserve context photo(s) used", source="scene_plan")
             payload["picture_fit"] = {k: fit_report.get(k) for k in ("judged", "cached", "swapped", "graphic", "generated", "held",
                                                                       "unshown", "stopped")}
+            # Which cascade tier filled each beat (src/picture_coverage.py), in the run folder for the video check and
+            # the operator; a beat a lower tier covered is a warning there, not a blocker (video_qa.coverage_severity).
+            from src import picture_coverage
+            coverage = picture_coverage.write(run_dir, beats, scenes, fit_report)
+            payload["beat_coverage"] = {"file": picture_coverage.COVERAGE_FILE, "summary": coverage["summary"]}
             used_graphics = [p.stem.replace("graphic_", "") for p in own_graphics if p in scenes]
             payload["graphics_note"] = ("🗺 Original graphics in this video: " + ", ".join(used_graphics)) if used_graphics else ""
             generated_list = fit_report.get("generated", [])
@@ -3087,6 +3124,18 @@ class PipelineCoordinator:
                                   "issues": [{"beat": i.beat, "severity": str(i.severity).lower(), "issue": i.issue,
                                               "where": beat_where(i.beat, beats)}
                                              for i in (qa.issues if qa is not None else [])]}
+        # A beat the fallback cascade covered honestly (a same-kind photo, a detail, film, map, graphic or labelled
+        # reconstruction) is a warning when the look says only that the very thing named is not shown; a wrong or
+        # invented subject still blocks (src/video_qa.coverage_severity, src/picture_coverage.py).
+        try:
+            from src import picture_coverage
+            from src.video_qa import coverage_severity
+            payload["video_check"]["issues"] = coverage_severity(payload["video_check"]["issues"],
+                                                                 picture_coverage.load(run_dir))
+            payload["video_check"]["coverage_warnings"] = sum(
+                1 for i in payload["video_check"]["issues"] if isinstance(i, dict) and i.get("warning"))
+        except (OSError, ValueError, TypeError, KeyError, AttributeError) as e:  # the findings stand as they were
+            log.warning("Picture coverage could not grade the video check (%s); its findings stand.", e)
         (run_dir / "qa_report.json").write_text(qa.model_dump_json(indent=2) if qa else "null", encoding="utf-8")
         log.info("%s", re.sub(r"<[^>]+>", "", payload["qa_summary"]).replace("\n", " | "))
         self._verify_final_copy(payload, topic)
@@ -5085,6 +5134,11 @@ def main(argv=None) -> int:
         elif args.assets_action == "approve":
             try:
                 print(approve_set(ASSETS_DIR / args.topic_id, MIN_SCENE_IMAGES))
+                # Said at approval: a thin topic is demoted at selection (src/topic_engine.image_gate).
+                from src.topic_engine import image_gate
+                gate = image_gate({"id": args.topic_id})
+                if gate:
+                    print(f"Note: {args.topic_id} will be made after better-stocked topics: {gate}.")
             except ValueError as e:
                 print(e)
                 return 1

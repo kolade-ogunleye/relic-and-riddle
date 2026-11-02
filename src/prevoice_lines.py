@@ -11,6 +11,13 @@ photo shows what it names), "abstract" (an idea, number or question our graphics
 "unshown" (it names something to see that no photo shows). The caller sends the unshown sentences back to the
 writer once, through the same revision path as any fact-check rewrite. Nothing here decides alone: no verdict
 (the check is off, or the model could not run) means the script goes on as verified.
+
+Per-line visual plan (2026-11-02, src/picture_coverage.py): each sentence also gets its planned visual class,
+"named_subject" (it needs a real photo of that very thing), "kind_of_thing" (a photo of the same kind and period is
+honest) or "abstract" (a number, time, comparison or question: a graphic or any topic photo). Only an unshown
+named-subject line goes back to the writer (needs_rewrite): a kind-of-thing line is left to the render's fallback
+cascade. It may go back up to rounds() times (config.PREVOICE_REWRITE_ROUNDS, default 2), a further round only while
+the previous one left fewer such lines than it was given; still nothing blocks alone when the check cannot run.
 """
 
 import logging
@@ -24,7 +31,7 @@ from .checkpoints import fingerprint
 
 log = logging.getLogger(__name__)
 
-VERSION = 2            # changes when the question does: an older verdict is asked again
+VERSION = 3            # changes when the question does: an older verdict is asked again (3: the visual plan)
 STAGE = "picture_lines"
 RECORD_FILE = "picture_lines.json"
 NOTE_LABEL = "🖼 Lines no photo shows"
@@ -36,6 +43,8 @@ class LineVerdict(BaseModel):
     kind: Literal["shown", "abstract", "generable", "unshown"]
     photo: Optional[int] = None                       # the photo that shows it, for "shown"
     modality: Optional[Literal["historical_scene", "technical_schematic", "modern_scientific"]] = None
+    # The planned visual class (src/picture_coverage.VISUAL_CLASSES); None when the answer leaves it out.
+    visual: Literal["named_subject", "kind_of_thing", "abstract"] | None = None
     reason: str = ""                                  # one short sentence
 
 
@@ -48,6 +57,10 @@ SYSTEM = """You check the narration of a short, fact-checked history documentary
 - "abstract": it names nothing in particular to see: an idea, a number or date, a comparison, a question, a feeling or a conclusion. Our own graphics or any photo of the documentary's subject can carry it.
 - "generable": it names an unphotographed historical scene (a 70 BC shipwreck, ancient tomb sealing), artisan craft/metallurgy (Roman furnace melting, casting), or microscopic/forensic science (embedded nanoparticles, chemical bonds, modern laboratory replication). Give modality ("historical_scene", "technical_schematic", or "modern_scientific"). Our Era Illustration and Schematic Engine will illustrate it.
 - "unshown": it names something that can be seen, no photo shows it, and it should NOT be illustrated: an irrelevant or out-of-context modern object or setting (modern highway/bridges when the video is about an ancient temple).
+Also give each sentence its planned visual, "visual":
+- "named_subject": it names one particular thing to see (a named place, building, object, person or document); only a real photo of that very thing is honest.
+- "kind_of_thing": it names a kind of thing to see (Roman harbour piers, lime lumps, a drill core, oil lamps) rather than one particular example; a real photo of the same kind and period is honest.
+- "abstract": a number, date or duration, a comparison, a question, an idea or a conclusion; a graphic or any photo of the documentary's subject carries it.
 Judge from the descriptions only. A photo of the documentary's subject does not show a different thing the sentence names. reason: one short sentence."""
 
 
@@ -111,8 +124,34 @@ def judge(narration: str, photos: List[Dict[str, str]], subject: str) -> Optiona
         v = by.get(i)
         out.append({"sentence": s, "kind": v.kind if v else "abstract", "reason": verdict_reason(v.reason) if v else "",
                     "photo": v.photo if v and v.kind == "shown" else None,
-                    "modality": getattr(v, "modality", None) if v else None})
+                    "modality": getattr(v, "modality", None) if v else None,
+                    "visual": plan_visual(v.kind if v else "abstract", getattr(v, "visual", None) if v else None)})
     return out
+
+
+def plan_visual(kind: str, visual: str | None) -> str:
+    """The sentence's planned visual class: the model's when it gave one, else from its kind (an abstract sentence
+    is abstract, a generable one a kind of thing, a shown or unshown one a named subject, as before the plan)."""
+    from .picture_coverage import ABSTRACT, KIND_OF_THING, NAMED_SUBJECT, VISUAL_CLASSES
+    if visual in VISUAL_CLASSES:
+        return str(visual)
+    return {"abstract": ABSTRACT, "generable": KIND_OF_THING}.get(kind, NAMED_SUBJECT)
+
+
+def needs_rewrite(verdicts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The unshown sentences that go back to the writer: those naming a particular thing (named_subject, or no
+    class recorded). An unshown kind-of-thing line is left to the render's cascade (a same-kind photo, a detail,
+    film, a map, a graphic), and an abstract one is never unshown."""
+    from .picture_coverage import ABSTRACT, KIND_OF_THING
+    return [v for v in unshown(verdicts) if v.get("visual") not in (KIND_OF_THING, ABSTRACT)]
+
+
+def rounds() -> int:
+    """How many times a named-subject line no photo shows may go back to the writer (at least once)."""
+    try:
+        return max(1, int(getattr(config, "PREVOICE_REWRITE_ROUNDS", 2)))
+    except (TypeError, ValueError):
+        return 2
 
 
 def unshown(verdicts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

@@ -451,3 +451,19 @@ ONEDRIVE_SCOPE = (os.getenv("ONEDRIVE_SCOPE") or "appfolder").strip().lower()
 ONEDRIVE_BACKUP_PATH = (os.getenv("ONEDRIVE_BACKUP_PATH") or "").strip()
 ONEDRIVE_TOKEN_CACHE = Path(os.getenv("ONEDRIVE_TOKEN_CACHE") or _backup_secret_dir / f"tokens-{ONEDRIVE_SCOPE}.enc")
 BACKUP_SYNC_FOLDER_FALLBACK = (os.getenv("BACKUP_SYNC_FOLDER_FALLBACK") or "false").lower() in ("true", "1", "yes")
+
+# >>> Picture coverage (2026-11-02): every narrated line has a planned, honest visual -------------------------------
+# Added as one block by the picture-coverage change; the lines above are owned by other changes.
+# Before the paid voice: rounds a named-subject line no photo shows goes back to the writer (src/prevoice_lines.py).
+PREVOICE_REWRITE_ROUNDS = max(1, int(os.getenv("PREVOICE_REWRITE_ROUNDS", "2")))
+# The fallback cascade under a line no photo shows (src/scene_planner.fit_to_lines, src/picture_coverage.py).
+PICTURE_CASCADE = os.getenv("PICTURE_CASCADE", "true").lower() in ("true", "1", "yes")
+DETAIL_CROP_MIN_WIDTH = int(os.getenv("DETAIL_CROP_MIN_WIDTH", "600"))  # px of the source a punch-in keeps, at least
+# Topic image gate: distinct approved authoritative photos a topic needs before it is produced ahead of others.
+TOPIC_MIN_AUTHORITATIVE_IMAGES = int(os.getenv("TOPIC_MIN_AUTHORITATIVE_IMAGES", "8"))
+# Further open-access sources (src/museum_sources.py). Off by default: their API parameters could not be checked
+# against the official documentation from the development container (2026-11-02); enable after a live check.
+MUSEUM_OPENVERSE_ENABLED = os.getenv("MUSEUM_OPENVERSE_ENABLED", "false").lower() in ("true", "1", "yes")
+MUSEUM_LOC_ENABLED = os.getenv("MUSEUM_LOC_ENABLED", "false").lower() in ("true", "1", "yes")
+MUSEUM_ARTIC_ENABLED = os.getenv("MUSEUM_ARTIC_ENABLED", "false").lower() in ("true", "1", "yes")
+# <<< Picture coverage ------------------------------------------------------------------------------------------

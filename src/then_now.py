@@ -87,6 +87,12 @@ MATCH_SIDE = 1000           # px: the long side both photos are matched at
 MIN_INLIERS, MIN_INLIER_SHARE = 15, 0.25
 MAX_SCALE, MAX_ROTATION = 2.5, 12.0
 MIN_SHARED_AREA = 0.45      # the shared crop keeps at least this share of the old photo
+# Panel round 3: registration is measured, not assumed. The inliers' RMS reprojection error under the fitted
+# transform must stay within MAX_REPROJ of the old photo's width, and the numbers are written beside the clip
+# (<clip>.registration.json). After the warp the recent photo's exposure is matched (a global gamma) to within
+# MAX_LSTAR_GAP of the old photo's mean L*, so a brightness jump does not read as change; the old photo is untouched.
+MAX_REPROJ = 0.015
+MAX_LSTAR_GAP = 10.0
 
 
 class ViewpointCheck(BaseModel):
@@ -135,18 +141,23 @@ def geometric_match(old: Path, new: Path) -> dict[str, Any] | None:
     if m is None or mask is None:
         return None
     inliers = int(mask.sum())
+    keep = mask.ravel() > 0
+    fitted = src[keep] @ m[:, :2].T + m[:, 2]
+    reproj = float(np.sqrt(np.mean(np.sum((fitted - dst[keep]) ** 2, axis=1)))) if keep.any() else float("inf")
+    reproj_share = reproj / a.shape[1]
     scale = float((m[0, 0] ** 2 + m[1, 0] ** 2) ** 0.5)
     rotation = float(np.degrees(np.arctan2(m[1, 0], m[0, 0])))
     share = inliers / len(good)
-    log.info("Then-and-now geometry: %d inliers of %d matches, scale %.2f, rotation %.1f deg", inliers, len(good),
-             scale, rotation)
+    log.info("Then-and-now geometry: %d inliers of %d matches, scale %.2f, rotation %.1f deg, reprojection %.2f%%",
+             inliers, len(good), scale, rotation, 100 * reproj_share)
     if not (inliers >= MIN_INLIERS and share >= MIN_INLIER_SHARE and 1 / MAX_SCALE <= scale <= MAX_SCALE
-            and abs(rotation) <= MAX_ROTATION):
+            and abs(rotation) <= MAX_ROTATION and reproj_share <= MAX_REPROJ):
         return None
     # Full resolution: old_full = (1/sa) * M * (sb * new_full)
     full = np.vstack([m, [0, 0, 1]]) @ np.diag([sb, sb, 1.0])
     full = (np.diag([1 / sa, 1 / sa, 1.0]) @ full)[:2]
-    return {"inliers": inliers, "share": round(share, 3), "scale": scale, "rotation": rotation, "matrix": full}
+    return {"inliers": inliers, "share": round(share, 3), "scale": scale, "rotation": rotation,
+            "reproj_px": round(reproj / sa, 2), "reproj_share": round(reproj_share, 5), "matrix": full}
 
 
 @llm_task("then_now_viewpoint")
@@ -179,9 +190,39 @@ def shares_viewpoint(old: Path, new: Path, place: str) -> dict[str, Any] | None:
     return geo
 
 
-def register(old: Path, new: Path, matrix: Any, work_dir: Path) -> tuple[Path, Path] | None:
-    """The recent photo warped onto the old one by `matrix`, both cropped to the area they share: (old, new)
-    paths of equal size, or None when they share too little to fill a frame."""
+def _mean_lstar(rgb: Any) -> float:
+    import cv2
+    import numpy as np
+    return float(np.mean(cv2.cvtColor(np.ascontiguousarray(rgb), cv2.COLOR_RGB2LAB)[..., 0])) * 100 / 255
+
+
+def match_exposure(old_rgb: Any, new_rgb: Any, gap: float = MAX_LSTAR_GAP) -> tuple[Any, float]:
+    """`new_rgb` with a global gamma so its mean L* is within `gap` of `old_rgb`'s (the least change that does it),
+    and the gamma used (1.0: already within)."""
+    import numpy as np
+    lo_, ln = _mean_lstar(old_rgb), _mean_lstar(new_rgb)
+    if abs(ln - lo_) <= gap:
+        return new_rgb, 1.0
+    goal = lo_ + (gap - 0.5 if ln > lo_ else -(gap - 0.5))
+    norm = new_rgb.astype(np.float32) / 255.0
+    lo, hi = 0.2, 5.0                       # gamma > 1 darkens, < 1 brightens
+    for _ in range(30):
+        g = (lo * hi) ** 0.5
+        if _mean_lstar((np.power(norm, g) * 255).round().astype(np.uint8)) > goal:
+            lo = g
+        else:
+            hi = g
+    g = (lo * hi) ** 0.5
+    return (np.power(norm, g) * 255).round().astype(np.uint8), round(g, 3)
+
+
+REGISTRATION_SIDECAR = "registration.json"
+
+
+def register(old: Path, new: Path, matrix: Any, work_dir: Path, stats: dict[str, Any] | None = None) -> tuple[Path, Path] | None:
+    """The recent photo warped onto the old one by `matrix`, both cropped to the area they share, the recent one's
+    exposure matched: (old, new) paths of equal size, or None when they share too little to fill a frame. `stats`
+    (the geometric match) is written with the exposure gamma to `work_dir`/REGISTRATION_SIDECAR."""
     import cv2
     import numpy as np
     with Image.open(old) as im:
@@ -201,8 +242,16 @@ def register(old: Path, new: Path, matrix: Any, work_dir: Path) -> tuple[Path, P
         return None
     work_dir.mkdir(parents=True, exist_ok=True)
     op, np_ = work_dir / f"{Path(old).stem}_reg.jpg", work_dir / f"{Path(new).stem}_reg.jpg"
-    Image.fromarray(a[y0:y1, x0:x1]).save(op, quality=94)
-    Image.fromarray(warped[y0:y1, x0:x1]).save(np_, quality=94)
+    old_crop = a[y0:y1, x0:x1]
+    new_crop, gamma = match_exposure(old_crop, warped[y0:y1, x0:x1])
+    Image.fromarray(old_crop).save(op, quality=94)
+    Image.fromarray(new_crop).save(np_, quality=94)
+    import json
+    rec = {k: v for k, v in (stats or {}).items() if k != "matrix"}
+    rec.update({"shared": [x0, y0, x1, y1], "shared_share": round((x1 - x0) * (y1 - y0) / (w * h), 3),
+                "exposure_gamma": gamma, "old_lstar": round(_mean_lstar(old_crop), 1),
+                "new_lstar": round(_mean_lstar(new_crop), 1)})
+    (work_dir / REGISTRATION_SIDECAR).write_text(json.dumps(rec, indent=1), encoding="utf-8", newline="\n")
     return op, np_
 
 
@@ -273,7 +322,7 @@ def source(topic: dict[str, Any], work_dir: Path) -> tuple[Path, dict[str, Any],
             np_, new = recents[pick.best_match - 1]
             old_hr = ensure_resolution(op)
             geo = shares_viewpoint(old_hr, np_, place)
-            pair = register(old_hr, np_, geo["matrix"], work_dir / "registered") if geo else None
+            pair = register(old_hr, np_, geo["matrix"], work_dir / "registered", geo) if geo else None
             if pair:
                 return pair[0], {**old, "file": str(op)}, pair[1], {**new, "file": str(np_)}
             log.info("Then-and-now: old photo %d and its pick do not share a viewpoint; not shown.", k + 1)
@@ -283,18 +332,21 @@ def source(topic: dict[str, Any], work_dir: Path) -> tuple[Path, dict[str, Any],
 
 
 # The comparison ends on both photographs (panel round 2, 2026-11-02: the last frame showed only the recent one,
-# the old photo's year faded out). The old photo holds full frame, the recent one wipes across it, then the
-# divider comes back to the middle and the two hold side by side for the last WIPE["hold"] seconds or more:
+# the old photo's year faded out). Panel round 3: a true registered wipe, the photos still and only the divider
+# moving (each panel shows its photo's own pixels at the same coordinates, so registered structure stays put). The
+# old photo holds alone for WIPE["then"], the divider sweeps in to the split, dwells there, carries on until the
+# recent photo fills SWEEP_TO of the frame, settles back to the split, and the two hold for the rest
+# (CLIP_SECONDS 6.0 - the 3.4 s of WIPE = 2.6 s):
 # 9:16 one above the other (split at the middle of the Reel box, so each half shows the same height clear of
-# the platforms' interface), 16:9 left and right. Each panel shows the centre of its photo at full-frame scale (a
-# window, never a squeeze). The divider is BONE. Each year is a mono THEN / NOW kicker in tracked gold over the
-# year in Anton bone, no box, at a measured contrast on every background it sits on (recorded beside the clip).
+# the platforms' interface), 16:9 left and right. The divider is BONE. Each year is a mono THEN / NOW kicker in
+# tracked gold over the year in Anton bone, no box, at a measured contrast on every background it sits on (recorded beside the clip).
 # The years are the ones passed in, from each photo's own record; nothing is added.
 KICKER_PX = {"portrait": 28, "landscape": 28}
 YEAR_PX = {"portrait": 128, "landscape": 112}
 KICKER_TRACK = 0.22                 # the kicker's letter spacing, as a share of its size
 DIVIDER_W = 5
-WIPE = {"then": 1.6, "to_now": 1.1, "now": 0.6, "to_split": 1.0}   # seconds; the split holds for the rest
+WIPE = {"then": 1.2, "to_split": 0.5, "dwell": 0.4, "to_far": 0.5, "settle": 0.8}   # seconds; then the split holds
+SWEEP_TO = 0.8                      # the share of the frame the recent photo reaches before settling back
 
 
 def _split_at(width: int, height: int) -> int:
@@ -305,39 +357,39 @@ def _split_at(width: int, height: int) -> int:
     return (y0 + y1) // 2
 
 
-def _window(full: Image.Image, lo: int, hi: int, axis: int) -> Image.Image:
-    """The centre `hi - lo` px of `full` along `axis` (0: x, 1: y): a panel of the photo at full-frame scale."""
-    size = full.size[axis]
-    span = max(1, hi - lo)
-    a = (size - span) // 2
-    return full.crop((a, 0, a + span, full.size[1])) if axis == 0 else full.crop((0, a, full.size[0], a + span))
-
-
 def divider_at(t: float, width: int, height: int) -> float:
-    """Where the divider is at `t`: the far edge (the old photo whole), the near edge (the recent one whole),
-    then the resting split."""
+    """Where the divider is at `t`: the far edge (the old photo whole) for WIPE["then"], in to the split, a dwell,
+    on to (1 - SWEEP_TO) of the edge, then back to the resting split. One ease-in-out per move."""
     axis = 0 if width > height else 1
     edge = (width, height)[axis]
     split = _split_at(width, height)
+    far = edge * (1 - SWEEP_TO)
     t1 = WIPE["then"]
-    t2 = t1 + WIPE["to_now"]
-    t3 = t2 + WIPE["now"]
+    t2 = t1 + WIPE["to_split"]
+    t3 = t2 + WIPE["dwell"]
+    t4 = t3 + WIPE["to_far"]
+    if t < t1:
+        return float(edge)
     if t < t2:
-        return edge * (1 - _ease_io((t - t1) / WIPE["to_now"]))
-    return split * _ease_io((t - t3) / WIPE["to_split"])
+        return edge + (split - edge) * _ease_io((t - t1) / WIPE["to_split"])
+    if t < t3:
+        return float(split)
+    if t < t4:
+        return split + (far - split) * _ease_io((t - t3) / WIPE["to_far"])
+    return far + (split - far) * _ease_io((t - t4) / WIPE["settle"])
 
 
 def compose(a: Image.Image, b: Image.Image, pos: float) -> Image.Image:
-    """The old photo `a` before the divider at `pos` (left on 16:9, above on 9:16), the recent `b` after it."""
+    """The old photo `a` before the divider at `pos` (left on 16:9, above on 9:16), the recent `b` after it, each
+    at its own pixels (a fixed crop, never a sliding window), so a registered pair lines up across the divider."""
     width, height = a.size
     axis = 0 if width > height else 1
     edge = (width, height)[axis]
     p = round(max(0, min(edge, pos)))
-    im = Image.new("RGB", (width, height))
+    im = b.copy() if b.size == a.size else b.resize(a.size)
     if p > 0:
-        im.paste(_window(a, 0, p, axis), (0, 0))
-    if p < edge:
-        im.paste(_window(b, p, edge, axis), (p, 0) if axis == 0 else (0, p))
+        box = (0, 0, p, height) if axis == 0 else (0, 0, width, p)
+        im.paste(a.crop(box), (0, 0))
     if 0 < p < edge:
         d = ImageDraw.Draw(im, "RGBA")
         half = DIVIDER_W / 2
@@ -371,17 +423,65 @@ def _marker_plate(split_frame: Image.Image, alone: Image.Image, xy: tuple[int, i
     return plate.solve(split_frame, target, min_halo=plate.halo, max_halo=1.0)
 
 
-SHADE_ALPHA, SHADE_PAD = 0.62, 56
+# The marker shade (panel round 3: the feathered rectangle read as a smudge on a flat wall) is an INK gradient anchored
+# to the edge of the marker's panel and bleeding off it, like a lens's corner fall-off rather than a patch: on 9:16
+# from the panel's left edge level with the marker, on 16:9 from the top edge at the divider the two markers flank.
+# Its depth holds over the marker (the hull of the anchor and the marker's box) and falls smoothly to nothing
+# SHADE_FALL screen pixels beyond it. Used only when the halo alone falls short; deepened in SHADE_STEPS until
+# the marker holds its floor.
+SHADE_ALPHA, SHADE_FALL = 0.5, 180
+SHADE_STEPS = (0.5, 0.62, 0.75, 0.88)
 
 
-def _shade_mask(size: tuple[int, int], boxes: list) -> Image.Image:
-    """A feathered ink shade over the union of `boxes` (L mode, 0..255 at SHADE_ALPHA)."""
-    from PIL import ImageFilter
-    m = Image.new("L", size, 0)
-    x0, y0 = min(bx[0] for bx in boxes) - SHADE_PAD, min(bx[1] for bx in boxes) - SHADE_PAD
-    x1, y1 = max(bx[2] for bx in boxes) + SHADE_PAD, max(bx[3] for bx in boxes) + SHADE_PAD
-    ImageDraw.Draw(m).rectangle([x0, y0, x1, y1], fill=round(255 * SHADE_ALPHA))
-    return m.filter(ImageFilter.GaussianBlur(SHADE_PAD * 0.7))
+def panel_box(which: str, width: int, height: int) -> tuple[int, int, int, int]:
+    """The THEN (old) or NOW (recent) panel at rest on the split."""
+    split = _split_at(width, height)
+    if width > height:
+        return (0, 0, split, height) if which == "then" else (split, 0, width, height)
+    return (0, 0, width, split) if which == "then" else (0, split, width, height)
+
+
+def shade_corner(which: str, boxes: list, width: int, height: int) -> tuple[int, int]:
+    """Where the marker's shade is anchored: 9:16, the panel's left edge level with the markers; 16:9, the top
+    edge at the divider (the panel's top corner on the markers' side)."""
+    px0, py0, px1, _ = panel_box(which, width, height)
+    cx = (min(bx[0] for bx in boxes) + max(bx[2] for bx in boxes)) / 2
+    x = px0 if abs(cx - px0) <= abs(cx - px1) else px1
+    if width > height:
+        return x, py0
+    return x, round((min(bx[1] for bx in boxes) + max(bx[3] for bx in boxes)) / 2)
+
+
+def _shade_mask(size: tuple[int, int], boxes: list, corner: tuple[int, int] | None = None,
+                alpha: float = SHADE_ALPHA) -> Image.Image:
+    """An ink gradient (L mode, 0..255 at `alpha`) anchored at `corner` (default the top-left) on the frame's edge:
+    full over the hull of the anchor and the box round the markers' `boxes`, then a smoothstep to 0 over SHADE_FALL px of screen
+    distance past that hull (measured in pixels, so the fall-off is the same width on 9:16 and 16:9; panel round 3
+    review: a fade over normalised ellipse radius came to ~30 px on 16:9, a hard-edged half-disc)."""
+    import cv2
+    import numpy as np
+    w, h = size
+    ax, ay = corner if corner is not None else (0, 0)
+    x0, y0 = min(b[0] for b in boxes), min(b[1] for b in boxes)
+    x1, y1 = max(b[2] for b in boxes), max(b[3] for b in boxes)     # the marker's lines as one block
+    pts = np.array([(ax, ay), (x0, y0), (x1, y0), (x1, y1), (x0, y1)], np.float32)
+    hull = cv2.convexHull(pts).round().astype(np.int32)
+    outside = np.full((h, w), 255, np.uint8)
+    cv2.fillConvexPoly(outside, hull, 0)
+    d = cv2.distanceTransform(outside, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)   # px to the hull; 0 inside it
+    f = np.clip(d / SHADE_FALL, 0.0, 1.0)
+    f = 1.0 - f * f * (3 - 2 * f)            # smoothstep fall-off
+    return Image.fromarray(np.round(255 * alpha * f).astype(np.uint8), "L")
+
+
+def _union(masks: list) -> Image.Image:
+    """The deepest of several (mask, alpha) shades at each pixel."""
+    from PIL import ImageChops
+    out = None
+    for m, a in masks:
+        m = m if a >= 1 else m.point(lambda v, a=a: round(v * max(0.0, a)))
+        out = m if out is None else ImageChops.lighter(out, m)
+    return out
 
 
 def _shade(im: Image.Image, mask: Image.Image, alpha: float = 1.0) -> Image.Image:
@@ -419,20 +519,36 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
                                year_font, WHITE, anchor, 0, halo_px=None, min_halo=0.35)
         return [kicker, figure]
 
+    def drawn(ps: list, im: Image.Image) -> Image.Image:
+        for p in ps:
+            im = p.draw(im)
+        return im
+
     def short(ps: list, alone: Image.Image) -> bool:
-        return any(min(p.measure(split_frame) or 0, p.measure(alone) or 0) < PLACE_TARGET for p in ps)
+        """Is any marker line under PLACE_TARGET as drawn with its marker's other line (measure() reads delivered
+        pixels: on the bare frames every marker read ~1:1, so every pair got the shade; and the year's halo dims
+        the kicker above it)?"""
+        on_split, on_alone = drawn(ps, split_frame), drawn(ps, alone)
+        return any(min(p.measure(on_split) or 0, p.measure(on_alone) or 0) < PLACE_TARGET for p in ps)
 
     plates: dict[str, list] = {}
     shades: dict[str, Image.Image] = {}
-    for which, year, alone in (("then", old_year, then_frame), ("now", new_year, now_frame)):
+    split0 = split_frame
+    for which, year, alone0 in (("then", old_year, then_frame), ("now", new_year, now_frame)):
+        alone = _shade(alone0, _union([(m, 1.0) for m in shades.values()])) if shades else alone0
         ps = plan_marker(which, year, alone)
         if short(ps, alone):
-            # A bright, busy photo the halo alone cannot quiet: a feathered ink shade under the marker (no edge,
-            # no box), then the marker is planned again on the shaded pictures.
-            shades[which] = _shade_mask((width, height), [p.box for p in ps])
-            split_frame = _shade(split_frame, shades[which])
-            alone = _shade(alone, shades[which])
-            ps = plan_marker(which, year, alone)
+            # A bright, busy photo the halo alone cannot quiet: an ink gradient from the panel's corner under the
+            # marker (no edge, no box), deepened step by step; the marker is planned again on the shaded pictures.
+            boxes = [p.box for p in ps]
+            corner = shade_corner(which, boxes, width, height)
+            for depth in SHADE_STEPS:
+                shades[which] = _shade_mask((width, height), boxes, corner, depth)
+                both = _union([(m, 1.0) for m in shades.values()])
+                split_frame, alone = _shade(split0, both), _shade(alone0, both)
+                ps = plan_marker(which, year, alone)
+                if not short(ps, alone):
+                    break
         plates[which] = ps
     final: dict[str, Image.Image] = {}
 
@@ -446,9 +562,9 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
             now_clear = min(p.box[0] if width > height else p.box[1] for p in plates["now"]) - pos
             alphas = {"then": _ease((t - 0.2) / 0.4) * max(0.0, min(1.0, then_clear / 40)),
                       "now": max(0.0, min(1.0, now_clear / 40)) if t > WIPE["then"] else 0.0}
+            if shades:   # every shade under every marker, overlapping ones as one (the deeper wins, never stacked)
+                im = _shade(im, _union([(shades[w], alphas[w]) for w in shades]))
             for which in ("then", "now"):
-                if which in shades:
-                    im = _shade(im, shades[which], alphas[which])
                 for p in plates[which]:
                     im = p.draw(im, alphas[which])
             final["frame"] = im
@@ -468,7 +584,11 @@ def make(topic: dict[str, Any], work_dir: Path, width: int = VIDEO_WIDTH, height
         if not found:
             return None, []
         old, old_c, new, new_c = found
-        return render(old, old_c["year"], new, new_c["year"], work_dir / "graphic_thennow.mp4", width=width, height=height), [old_c, new_c]
+        clip = render(old, old_c["year"], new, new_c["year"], work_dir / "graphic_thennow.mp4", width=width, height=height)
+        reg = Path(old).parent / REGISTRATION_SIDECAR
+        if clip and reg.exists():   # the registration's measured numbers beside the clip, as its contrast is
+            Path(str(clip) + ".registration.json").write_text(reg.read_text(encoding="utf-8"), encoding="utf-8")
+        return clip, [old_c, new_c]
     except Exception as e:  # optional graphic
         log.warning("Then-and-now failed: %s", e)
         return None, []

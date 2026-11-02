@@ -16,6 +16,7 @@ import concurrent.futures
 import logging
 import math
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path
 from functools import lru_cache
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -26,7 +27,7 @@ from . import geo
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
 from .typography import (cap_height, drawable, fit_font, fit_lines, fit_text, get_font, plan_text,
                          spoken_system, spoken_units, tracked_width)
-from .art_direction import accent, type_scale, count_start, push_in, MOTION
+from .art_direction import accent, count_start, push_in, MOTION
 from .encoding import bounded_encode
 
 log = logging.getLogger(__name__)
@@ -711,43 +712,7 @@ def render_timeline(events: List[Dict[str, Any]], out: Path, width: int = VIDEO_
         g.line([(0, y), (width, y)], fill=(13 + y // 120, 16 + y // 120, 21 + y // 110, 255))
 
     if width > height:
-        # Landscape: horizontal spine across the centre; entries alternate above/below to prevent overlap
-        spine_y = height // 2
-        left, right = int(width * 0.15), int(width * 0.85)
-        step = (right - left) / (len(events) - 1)
-        f_year, f_lab = get_font("Anton", 54), get_font("Montserrat", 28)
-        max_label_w = max(240, int(step * 0.88))
-
-        def frames():
-            for i in range(n):
-                t = i / VIDEO_FPS
-                im = bg.copy()
-                d = ImageDraw.Draw(im, "RGBA")
-                spine_x = left + (right - left) * _ease(t / 1.0)
-                d.line([(left, spine_y), (spine_x, spine_y)], fill=(*accent(), 255), width=6)
-                for k, e in enumerate(events):
-                    appear = _ease((t - 0.4 - 0.45 * k) / 0.4)
-                    if appear <= 0:
-                        continue
-                    x = left + step * k
-                    a = int(255 * appear)
-                    r = 16 * appear
-                    d.ellipse([x - r, spine_y - r, x + r, spine_y + r], fill=(*accent(), a))
-                    # Alternate above (k even) and below (k odd)
-                    above = (k % 2 == 0)
-                    yt_year = spine_y - 28 if above else spine_y + 30
-                    anchor_year = "ms" if above else "mt"
-                    _text(d, (x, yt_year), year_text(e["year"], e.get("approximate", False)), font=f_year, fill=(*GOLD, a), anchor=anchor_year)
-                    lines, f_fit = fit_lines(d, e["label"], f_lab, max_label_w, 2)
-                    for j, line in enumerate(lines):
-                        if above:
-                            ly = spine_y - 74 - 34 * (len(lines) - 1 - j)
-                            _text(d, (x, ly), line, font=f_fit, fill=(*WHITE, a), anchor="ms")
-                        else:
-                            ly = spine_y + 74 + 34 * j
-                            _text(d, (x, ly), line, font=f_lab, fill=(*WHITE, a), anchor="mt")
-                yield im
-        return _encode(frames(), out, n, width=width, height=height)
+        return _render_timeline_wide(events, out, width, height, photo)
     else:
         # Vertical (2026-10-29): a gold-dim spine draws down, each date lands with its label. Two events get the
         # large years and two-line labels; more get smaller years and one-line labels fitted to the column (a
@@ -863,6 +828,140 @@ def render_timeline(events: List[Dict[str, Any]], out: Path, width: int = VIDEO_
             record_contrast(out, last[0], plates)
         return result
 
+# 16:9 words stay where the master's vignette leaves them legible (see _SECTION_WIDE): design x 400-1600, y 190-800.
+WIDE_SAFE = (400, 190, 1600, 800)
+
+
+def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, height: int,
+                          photo: Path | None) -> Path | None:
+    """The 16:9 timeline (2026-11-02 review round 2, 4/10: labels collided with years): a GOLD_DIM spine across the
+    frame over the blurred, darkened photo, the dates spaced by the time between them (spaced_positions, the
+    logarithm of the years elapsed), each event one block (its year in gold Anton, its label in bone Montserrat
+    under it) on a hairline flag from its dot, alternately above and below the spine, at least 24 px clear of
+    everything else; the elapsed time (gap_text) on the spine between the dots."""
+    import itertools
+    g = _WideGrid(width, height)
+    X, Y, S = g.x, g.y, g.s
+    n = int(CLIP_SECONDS * VIDEO_FPS)
+    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    sx0, _sy0, sx1, _sy1 = WIDE_SAFE
+    spine_y = 536.0
+    x_first, x_last = sx0 + 40, sx1 - 40
+    f_year = get_font("Anton", g.f(90))
+    f_gap = get_font("Montserrat", g.f(26), weight=700)
+    track = S(2)
+    cap_y = cap_height(f_year) / g.k
+    flag, pad, clear = 70.0, 20.0, 40.0       # dot to block, flag to text, block to block (design px)
+    xs = spaced_positions(events, x_first, x_last, 300)
+    entries = []
+    for k, e in enumerate(events):
+        entries.append({"k": k, "x": xs[k], "above": k % 2 == 0, "text": drawable(e["label"].upper(), "Montserrat"),
+                        "year": year_text(e["year"], e.get("approximate", False)).upper()})
+    for side in (True, False):   # each side's blocks set left or right of their flags, whichever leaves most room
+        row = [en for en in entries if en["above"] == side]
+        best: tuple[float, list[float], tuple[bool, ...]] | None = None
+        for combo in itertools.product((False, True), repeat=len(row)):
+            rooms = []
+            for j, (en, right) in enumerate(zip(row, combo)):
+                if right:
+                    prev = row[j - 1]["x"] if j else None
+                    if prev is None:
+                        room = en["x"] - sx0
+                    elif combo[j - 1]:
+                        room = en["x"] - prev - clear
+                    else:
+                        room = (en["x"] - prev - clear) / 2
+                else:
+                    nxt = row[j + 1]["x"] if j + 1 < len(row) else None
+                    if nxt is None:
+                        room = sx1 - en["x"]
+                    elif not combo[j + 1]:
+                        room = nxt - en["x"] - clear
+                    else:
+                        room = (nxt - en["x"] - clear) / 2
+                rooms.append(min(560.0, room) - pad)
+            if best is None or min(rooms) > best[0] + 1:
+                best = (min(rooms), rooms, combo)
+        assert best is not None
+        for en, room, right in zip(row, best[1], best[2]):
+            en["right"] = right
+            lines, f_lab, short = fit_text(probe, en["text"], "Montserrat", g.f(34), int(S(room) - 2 * len(en["text"])),
+                                           3, g.f(32), weight=800, quiet=True)
+            if short:   # never cut: a fourth line at the floor size
+                lines, f_lab, _ = fit_text(probe, en["text"], "Montserrat", g.f(32), int(S(room) - 2 * len(en["text"])),
+                                           4, g.f(32), weight=800, quiet=True)
+            en["font"] = get_font("Montserrat", f_lab.size, weight=800)
+            en["lines"] = lines
+    ground = _backdrop(photo, width, height) if photo else Image.new("RGB", (width, height), brand.INK)
+    plates: list[tuple[str, Any]] = []
+    for en in entries:
+        f_lab = en["font"]
+        cap_l = cap_height(f_lab) / g.k
+        step = round(f_lab.size * 1.3) / g.k
+        h = cap_y + 26 + cap_l + step * (len(en["lines"]) - 1)
+        top = spine_y - flag - h if en["above"] else spine_y + flag
+        en["top"], en["bottom"] = top, top + h
+        tx = en["x"] - pad if en["right"] else en["x"] + pad
+        anchor = "rs" if en["right"] else "ls"
+        en["year_plate"] = plan_text(ground, (X(tx), Y(top + cap_y)), en["year"], f_year, GOLD, anchor)
+        en["label_plates"] = [plan_text(ground, (X(tx), Y(top + cap_y + 26 + cap_l + step * j)), ln, f_lab, WHITE,
+                                        anchor, track=track) for j, ln in enumerate(en["lines"])]
+        plates += [(f"year{en['k']}", en["year_plate"])] + [(f"label{en['k']}", pl) for pl in en["label_plates"]]
+    # the elapsed time on the spine, centred between the dots, above the line; one wording for all
+    wanted = [(k, gap_text(events[k - 1], events[k])) for k in range(1, len(events))]
+    wanted = [(k, t) for k, t in wanted if t]
+
+    def fits(k: int, text: str) -> bool:
+        return tracked_width(text, f_gap, S(1)) / g.k <= xs[k] - xs[k - 1] - 2 * 26
+    if not all(fits(k, t) for k, t in wanted):
+        wanted = [(k, t.removesuffix(" LATER")) for k, t in wanted]
+    gaps = []
+    for k, text in wanted:
+        if not fits(k, text):
+            continue
+        plate = plan_text(ground, (X((xs[k - 1] + xs[k]) / 2), Y(spine_y - 16)), text, f_gap, brand.STONE_LT, "ms",
+                          track=S(1))
+        gaps.append((k, plate))
+        plates.append((f"gap{k}", plate))
+    last: list[Image.Image] = []
+
+    def frames():
+        for i in range(n):
+            t = i / VIDEO_FPS
+            im = ground.copy()
+            d = ImageDraw.Draw(im, "RGBA")
+            spine = x_first + (x_last - x_first) * _ease(t / 1.0)
+            d.line([(X(x_first), Y(spine_y)), (X(spine), Y(spine_y))], fill=(*brand.GOLD_DIM, 255), width=max(2, round(S(6))))
+            for en in entries:
+                appear = _ease((t - 0.4 - 0.45 * en["k"]) / 0.4)
+                if appear <= 0:
+                    continue
+                x, r = X(en["x"]), S(14) * appear
+                far = en["top"] if en["above"] else en["bottom"]
+                y_flag = spine_y + (far - spine_y) * appear
+                d.line([(x, Y(spine_y)), (x, Y(y_flag))], fill=(*brand.GOLD_DIM, int(255 * appear)),
+                       width=max(1, round(S(2))))
+                d.ellipse([x - r, Y(spine_y) - r, x + r, Y(spine_y) + r], fill=(*GOLD, int(255 * appear)))
+                dy = round(S(14) * (1 - appear)) * (-1 if en["above"] else 1)
+                im = en["year_plate"].draw(im, appear, dy)
+                for pl in en["label_plates"]:
+                    im = pl.draw(im, appear, dy)
+                d = ImageDraw.Draw(im, "RGBA")
+            for k, plate in gaps:
+                shown = _ease((t - 0.4 - 0.45 * k) / 0.4)
+                if shown > 0:
+                    im = plate.draw(im, shown)
+                    d = ImageDraw.Draw(im, "RGBA")
+            if i == n - 1:
+                last.append(im.copy())
+            yield im
+
+    result = _encode(frames(), out, n, width=width, height=height)
+    if result and last:
+        record_contrast(out, last[0], plates)
+    return result
+
+
 # -------------------------------------------------------------------- scale
 def pick_reference(feet: float) -> Optional[Tuple[str, float, str]]:
     """The reference whose size is closest (by ratio) to `feet`, if within 1/3x-3x."""
@@ -874,7 +973,9 @@ def render_scale(fact: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
     """The subject's size against a familiar landmark, to true proportion. 9:16 (2026-11-01 review, 5/10
     before): a depth is a shaft drilled down from a ground line with the landmark standing on its floor, a height
     a block risen beside the landmark on a shared baseline; the landmark is drawn as its silhouette, and one
-    line says what the comparison means. 16:9: two bars, the subject (gold) and the landmark (grey)."""
+    line says what the comparison means. 16:9 (2026-11-02 review round 2, 3-4.5/10: a doubled "(TOTAL) (HEIGHT)"
+    label, a height drawn hanging down like a depth, a grey outside the brand): the same drawing on the left of the
+    wide frame, the subject, its figure and the meaning in a column at the right (_render_scale_wide)."""
     feet = fact["value"] * (3.28084 if fact["unit"] == "m" else 1.0)
     ref = pick_reference(feet)
     if ref is None or feet <= 0:
@@ -883,65 +984,7 @@ def render_scale(fact: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
     depth = fact.get("dimension") == "depth"
     if width < height:
         return _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, height)
-    n = int(CLIP_SECONDS * VIDEO_FPS)
-    longest = max(feet, ref_feet)
-    top, bottom = get_text_bounds(width, height)
-    span = bottom - top - (160 if width > height else 330)
-    base_y = top + (80 if width > height else 150) if depth else bottom - 40
-
-    if width > height:
-        bars = [(fact["subject"], feet, GOLD, int(width * 0.35)),
-                (ref_label + (" (height)" if depth else ""), ref_feet, (150, 150, 158), int(width * 0.65))]
-        max_label_w = int(width * 0.28)
-        num_font_size = 54
-        lab_font_size = 28
-    else:
-        bx0, _, bx1, _ = get_text_box(width, height)                 # both bars and their labels inside the Reel box
-        cx_a, cx_b = bx0 + int((bx1 - bx0) * 0.32), bx0 + int((bx1 - bx0) * 0.78)   # 328 and 707 at 1080x1920
-        bars = [(fact["subject"], feet, GOLD, cx_a),
-                (ref_label + (" (height)" if depth else ""), ref_feet, (150, 150, 158), cx_b)]
-        max_label_w = min(340, 2 * (cx_a - bx0), 2 * (bx1 - cx_b))
-        num_font_size = 64
-        lab_font_size = 30
-
-    hedge = "ABOUT " if fact.get("approximate", True) else ""
-
-    def frames():
-        for i in range(n):
-            t = i / VIDEO_FPS
-            im = Image.new("RGB", (width, height), SEA)
-            d = ImageDraw.Draw(im, "RGBA")
-            d.line([(int(width * 0.08), base_y), (int(width * 0.92), base_y)], fill=(*MUTED, 255), width=4)
-            _text(d, (width // 2, base_y + (-24 if depth else 36)), "GROUND LEVEL" if depth else "",
-                  font=get_font("Montserrat", 22), fill=(*MUTED, 255), anchor="mm")
-            for k, (label, ft, colour, cx) in enumerate(bars):
-                grow = _ease((t - 0.3 - 0.5 * k) / 1.3)
-                length = span * ft / longest * grow
-                y1 = base_y + length if depth else base_y - length
-                if label.startswith(PERSON):
-                    _person(d, cx, base_y, length, colour, upward=not depth)
-                else:
-                    bar_w = 55 if width > height else 70
-                    d.rectangle([cx - bar_w, min(base_y, y1), cx + bar_w, max(base_y, y1)], fill=(*colour, 255))
-                a = int(255 * _ease((t - 1.4 - 0.5 * k) / 0.4))
-                if a > 0:
-                    num = measurement_text(ft)
-                    if k == 0 and hedge:
-                        num = hedge + num
-                    elif k == 1:
-                        num = "ABOUT " + num
-                    cur_num_font = fit_font(d, num, "Anton", num_font_size, max_label_w, 26)
-                    cur_lab_font = fit_font(d, label.upper(), "Montserrat", lab_font_size, max_label_w, 20)
-                    ty = (y1 + (44 if width > height else 50)) if depth else (y1 - (58 if width > height else 70))
-                    _text(d, (cx, ty), num, font=cur_num_font, fill=(*colour, a), anchor="mm")
-                    lines, cur_lab_font = fit_lines(d, label.upper(), cur_lab_font, max_label_w, 2)
-                    for j, line in enumerate(lines):
-                        lh = 32 if width > height else 36
-                        ly = ty + 46 + lh * j if depth else ty - 46 - lh * (len(lines) - 1 - j)
-                        _text(d, (cx, ly), line, font=cur_lab_font, fill=(*WHITE, a), anchor="mm")
-            yield im
-
-    return _encode(frames(), out, n, width=width, height=height)
+    return _render_scale_wide(fact, feet, ref_label, ref_feet, depth, out, width, height)
 
 
 def _silhouette(d: ImageDraw.ImageDraw, label: str, cx: float, base_y: float, h: float, colour) -> float:
@@ -1104,6 +1147,146 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
     return result
 
 
+def scale_meaning(fact: dict[str, Any], feet: float, ref_label: str, ref_feet: float, depth: bool) -> list[str]:
+    """The scale graphic's line of meaning, from the subject's and the landmark's sourced figures only."""
+    hedge = "ABOUT " if fact.get("approximate", True) else ""
+    ref_name = ref_label.split(" (")[0]
+    gap = abs(ref_feet - feet)
+    if depth:
+        return ([f"THE {ref_name.upper()}, {measurement_text(ref_feet).split(' (')[0]},",
+                 f"WOULD SHOW ONLY ITS TOP {hedge}{measurement_text(gap).split(' (')[0]}."] if ref_feet > feet else
+                [f"THE {ref_name.upper()} WOULD VANISH:",
+                 f"ITS TOP {hedge}{measurement_text(gap).split(' (')[0]} BELOW THE SURFACE."])
+    ratio = max(feet, ref_feet) / min(feet, ref_feet)
+    return [f"{ref_name.upper()}: {measurement_text(ref_feet).split(' (')[0]}.",
+            (f"ABOUT {ratio:.0f} TIMES TALLER." if ratio >= 1.5 else "NEARLY THE SAME HEIGHT.")]
+
+
+def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_feet: float, depth: bool, out: Path,
+                       width: int, height: int) -> Path | None:
+    """16:9 scale (see render_scale): the drawing in the left half of the vignette-safe area (WIDE_SAFE), a depth
+    as a shaft drilled from the ground with the landmark standing on its floor, a height as a gold block rising
+    from the ground beside the landmark; the subject, its figure and the meaning in a column at the right."""
+    g = _WideGrid(width, height)
+    X, Y, S = g.x, g.y, g.s
+    n = int(CLIP_SECONDS * VIDEO_FPS)
+    sx0, sy0, sx1, sy1 = WIDE_SAFE
+    dx0, dx1 = sx0, 1000.0                    # the drawing
+    cx0, cx1 = 1090.0, sx1                    # the column of words
+    hedge = "ABOUT " if fact.get("approximate", True) else ""
+    subject = str(fact.get("subject") or "").upper()
+    figure = hedge + measurement_text(feet) + (" DEEP" if depth else " TALL")
+    meaning = scale_meaning(fact, feet, ref_label, ref_feet, depth)
+    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    col = S(cx1 - cx0) - 8
+    sub_lines, f_sub, _ = fit_text(probe, subject, "Montserrat", g.f(32), int(col - 3 * len(subject)), 2, g.f(28),
+                                   sentences=False, weight=800, quiet=True)
+    f_sub = get_font("Montserrat", f_sub.size, weight=800)
+    fig_lines, f_fig, _ = fit_text(probe, figure, "Anton", g.f(96), int(col), 2, g.f(64), sentences=False, quiet=True)
+    fits = [fit_text(probe, text, "Montserrat", g.f(36), int(col - len(text)), 2, g.f(30), sentences=False,
+                     weight=700, quiet=True) for text in meaning]
+    f_mean = get_font("Montserrat", min(f.size for _, f, _ in fits), weight=700)
+    mean_lines = [ln for text in meaning for ln in fit_text(probe, text, "Montserrat", f_mean.size, int(col - len(text)),
+                                                            3, f_mean.size, sentences=False, weight=700, quiet=True)[0]]
+    sub_step = cap_height(f_sub) * 1.5 / g.k
+    fig_step = cap_height(f_fig) * 1.22 / g.k
+    mean_step = cap_height(f_mean) * 1.75 / g.k
+    rows: list[tuple[str, str, Any, Any, float, float]] = []    # name, text, font, colour, track, baseline (design)
+    y = 0.0
+    for j, ln in enumerate(sub_lines):
+        y += cap_height(f_sub) / g.k if j == 0 else sub_step
+        rows.append((f"subject{j}" if j else "subject", ln, f_sub, MUTED, S(3), y))
+    y += 30
+    for j, ln in enumerate(fig_lines):
+        y += cap_height(f_fig) / g.k if j == 0 else fig_step
+        rows.append((f"figure{j}" if j else "figure", ln, f_fig, GOLD, 0, y))
+    rule_y = y + 34
+    y = rule_y + 30
+    for j, ln in enumerate(mean_lines):
+        y += cap_height(f_mean) / g.k if j == 0 else mean_step
+        rows.append((f"meaning{j}", ln, f_mean, WHITE, S(1), y))
+    block_h = y
+    col_top = (sy0 + sy1) / 2 - block_h / 2
+    ground = Image.new("RGB", (width, height), SEA)
+    width_per_px = _silhouette_width(ref_label)
+    top_d, draw_bottom = sy0 + 20, sy1 - 10
+    if depth:
+        line_y = top_d + 60
+        above = max(0.0, ref_feet - feet)
+        px_ft = (draw_bottom - line_y) / max(feet, 1.0)
+        if above * px_ft > line_y - top_d:
+            px_ft = (draw_bottom - top_d) / (feet + above)
+        px_ft = min(px_ft, (dx1 - dx0 - 160) / max(1.0, ref_feet * width_per_px))
+        floor_y = draw_bottom
+        line_y = floor_y - feet * px_ft
+        half = max(ref_feet * px_ft * width_per_px / 2 + 60, 160)
+        cx = (dx0 + dx1) / 2
+        shaft = (cx - half, cx + half)
+        ref_cx = cx
+    else:
+        base_y = draw_bottom
+        block = 200.0
+        room = dx1 - dx0 - 60 - block - 60
+        px_ft = min((base_y - top_d) / max(feet, ref_feet), room / max(1.0, ref_feet * width_per_px))
+        shaft = (dx0 + 40, dx0 + 40 + block)
+        ref_cx = shaft[1] + 60 + max(room, ref_feet * px_ft * width_per_px) / 2
+
+    def drawing(t: float) -> Image.Image:
+        im = ground.copy()
+        d = ImageDraw.Draw(im, "RGBA")
+        if depth:
+            d.rectangle([0, Y(line_y), X(dx1), Y(floor_y + 24)], fill=(*EARTH, 255))   # the ground, in section
+            for k in range(1, 6):
+                yy = line_y + (floor_y + 24 - line_y) * k / 6
+                d.line([(0, Y(yy)), (X(dx1), Y(yy))], fill=(*EARTH_LINE, 255), width=max(1, round(S(2))))
+            dig = _ease((t - 0.3) / 1.2)
+            y_end = line_y + (floor_y - line_y) * dig
+            d.rectangle([X(shaft[0]), Y(line_y), X(shaft[1]), Y(y_end)], fill=(*SEA, 255), outline=(*GOLD, 255),
+                        width=max(1, round(S(3))))
+            drop = _ease((t - 1.6) / 1.0)
+            if drop > 0:
+                hh = ref_feet * px_ft
+                base = floor_y - (1 - drop) * (floor_y - line_y + hh + 40)
+                _silhouette(d, ref_label, X(ref_cx), Y(base), S(hh), brand.STONE_LT)
+            d.rectangle([0, Y(line_y) - S(2), X(dx1), Y(line_y) + S(1)], fill=(*WHITE, 255))
+        else:
+            d.rectangle([0, Y(base_y), X(dx1), Y(base_y) + S(3)], fill=(*WHITE, 255))
+            rise = _ease((t - 0.3) / 1.2)
+            hs = feet * px_ft * rise
+            d.rectangle([X(shaft[0]), Y(base_y - hs), X(shaft[1]), Y(base_y)], fill=(*GOLD, 255))
+            rr = _ease((t - 1.2) / 1.2)
+            if rr > 0:
+                _silhouette(d, ref_label, X(ref_cx), Y(base_y), S(ref_feet * px_ft * rr), brand.STONE_LT)
+        return im
+
+    final = drawing(1e9)
+    plates = [(name, plan_text(final, (X(cx0 + 4), Y(col_top + yb)), text, font, colour, "ls", track=track))
+              for name, text, font, colour, track, yb in rows]
+    rule = (X(cx0 + 4), Y(col_top + rule_y), X(cx0 + 4 + 64), Y(col_top + rule_y) + max(2, S(4)))
+    last: list[Image.Image] = []
+
+    def frames():
+        for i in range(n):
+            t = i / VIDEO_FPS
+            im = drawing(t)
+            a_rule = _ease((t - 0.6) / 0.4)
+            if a_rule > 0:
+                ImageDraw.Draw(im, "RGBA").rectangle(rule, fill=(*GOLD, int(255 * a_rule)))
+            for name, plate in plates:
+                at = 0.1 if name.startswith("subject") else 0.4 if name.startswith("figure") else 2.7
+                a = _ease((t - at) / 0.4)
+                if a > 0:
+                    im = plate.draw(im, a, round(S(10) * (1 - a)))
+            if i == n - 1:
+                last.append(im.copy())
+            yield im
+
+    result = _encode(frames(), out, n, width=width, height=height)
+    if result and last:
+        record_contrast(out, last[0], plates)
+    return result
+
+
 def _person(d: ImageDraw.ImageDraw, cx: int, base_y: float, height: float, colour, upward: bool = True) -> None:
     """A simple standing-figure silhouette `height` px tall (head, torso, arms, legs)."""
     if height < 4:
@@ -1169,23 +1352,6 @@ def _shown_value(value: str, p: float) -> str:
     return re.sub(r"\d[\d,]*(?:\.\d+)?", counted, value)
 
 
-def _stat_plan(d: ImageDraw.ImageDraw, card: Dict[str, Any], f_num_size: int, max_w: int, label_px: int,
-               pitch: int) -> Dict[str, Any]:
-    """One number card's text, measured around its centre (offsets from cy): the value's font (sized on its final
-    figure, the widest the count reaches), the rule under it, the label's lines, and the block's top and bottom.
-    The rule sits below the value's measured ink: a large single figure ("40+ KM") reached through it (2026-10-29)."""
-    value = card["value"].upper()
-    value_font = fit_font(d, value, "Anton", f_num_size, max_w, 50)
-    v_top, v_bottom = d.textbbox((0, -30), value, font=value_font, anchor="mm")[1::2]
-    rule = max(60, v_bottom + 18)
-    lines, f_fit = fit_lines(d, card["label"].upper(), get_font("Montserrat", label_px), max_w, 2)
-    step = max(1, round(pitch * f_fit.size / label_px))
-    rows = [rule + 45 + step * j for j in range(len(lines))]
-    bottom = max([rule + 2] + [d.textbbox((0, y), line, font=f_fit, anchor="mm")[3] for y, line in zip(rows, lines)])
-    return {"value_font": value_font, "rule": rule, "lines": lines, "label_font": f_fit, "rows": rows,
-            "top": v_top, "bottom": bottom}
-
-
 def figure_parts(value: str) -> Dict[str, str]:
     """A number card's value in its drawn parts: what comes before the figure ("ABOUT", "EST."), the figure
     ("280", "25+", "94–104"), its unit ("FT", "MILLION YEARS") and a figure in brackets ("85 M"), which the card
@@ -1205,23 +1371,40 @@ def _cells(d: ImageDraw.ImageDraw, text: str, font) -> List[Tuple[str, float]]:
     return [(c, cell if c.isdigit() else d.textlength(c, font=font)) for c in text]
 
 
-def _stat_layout(d: ImageDraw.ImageDraw, card: Dict[str, Any], num_px: int, width: int, scale: float = 1.0) -> Dict[str, Any]:
+def _stat_layout(d: ImageDraw.ImageDraw, card: Dict[str, Any], num_px: int, width: int, scale: float = 1.0,
+                 label_min: int | None = None, num_min: int = 120) -> Dict[str, Any]:
     """One card measured (offsets from its block's top, x from the left margin): the figure's font fitted so the
     figure and its unit stay inside the graphics box, the label in up to two lines, the bracketed figure in the
-    data face (IBM Plex Mono), the prefix as a kicker."""
+    data face (IBM Plex Mono), the prefix as a kicker. A unit that cannot share the figure's line without the
+    figure falling below `num_min` px goes under it ("94 – 104" over "MILLION YEARS AGO", 2026-11-02; it ran past
+    the box before). `label_min`: the label's smallest size (default 75% of its own)."""
     parts = figure_parts(card["value"].upper())
     pre, num, unit, sec = parts["pre"], parts["num"], parts["unit"], parts["sec"]
     if not num:                          # no figure: the value is drawn as a heading
         num, unit = "", parts["unit"]
     size = num_px
+    below = False
+    floor = num_min
     while True:
         f_num = get_font("Anton", size)
         f_unit = get_font("Anton", max(48, round(size * 0.37)))
         num_w = sum(w for _, w in _cells(d, num, f_num)) if num else 0
         unit_w = d.textlength(unit, font=f_unit) if unit else 0
-        if num_w + (24 if num and unit else 0) + unit_w <= width or size <= 120:
+        if num_w + (24 if num and unit else 0) + unit_w <= width:
+            break
+        if size <= floor:
+            below = bool(num and unit)
             break
         size -= 10
+    if below:                            # the unit on its own line: the figure as large as it fits alone
+        size = num_px
+        while size > num_min:
+            f_num, f_unit = get_font("Anton", size), get_font("Anton", max(48, round(size * 0.37)))
+            num_w = sum(w for _, w in _cells(d, num, f_num))
+            unit_w = d.textlength(unit, font=f_unit)
+            if num_w <= width and unit_w <= width:
+                break
+            size -= 10
     rows: List[Dict[str, Any]] = []
     y = 0
     if pre:
@@ -1239,12 +1422,16 @@ def _stat_layout(d: ImageDraw.ImageDraw, card: Dict[str, Any], num_px: int, widt
     num_y = y
     if num:
         rows.append({"name": "figure", "kind": "figure", "text": num, "font": f_num, "y": y, "width": num_w})
-    if unit:
+    if unit and below:
+        y += round(cap_height(f_unit) * 1.45)
+        rows.append({"name": "unit", "kind": "text", "text": unit, "font": f_unit, "y": y, "x": 0, "fill": WHITE})
+    elif unit:
         rows.append({"name": "unit", "kind": "text", "text": unit, "font": f_unit, "y": y, "x": (num_w + 24) if num else 0,
                      "fill": WHITE})
     f_lab_px = round(46 * scale)
     lines, f_lab, _ = fit_text(d, card["label"].upper(), "Montserrat", f_lab_px, width - 120, 2,  # 3 px tracking
-                               max(26, round(f_lab_px * 0.75)), weight=800, quiet=True)
+                               label_min if label_min is not None else max(26, round(f_lab_px * 0.75)), weight=800,
+                               quiet=True)
     f_lab = get_font("Montserrat", f_lab.size, weight=800)
     y += round(f_lab.size * 1.75)
     for j, line in enumerate(lines):
@@ -1258,7 +1445,10 @@ def _stat_layout(d: ImageDraw.ImageDraw, card: Dict[str, Any], num_px: int, widt
     probe_rows = [r for r in rows if r["kind"] != "kicker"]
     low = max(d.textbbox((0, r["y"]), r["text"], font=r["font"], anchor="ls")[3] for r in probe_rows)
     high = min([0] + [d.textbbox((0, r["y"]), r["text"], font=r["font"], anchor="ls")[1] for r in rows])
-    return {"rows": rows, "top": high, "bottom": low, "height": low - high, "num_y": num_y, "figure_px": size}
+    right = max(r.get("x", 0) + (r["width"] if r["kind"] == "figure" else
+                                 tracked_width(r["text"], r["font"], r.get("track", 0))) for r in rows)
+    return {"rows": rows, "top": high, "bottom": low, "height": low - high, "num_y": num_y, "figure_px": size,
+            "width": right}
 
 
 def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Path] = None, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
@@ -1271,7 +1461,7 @@ def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Pa
     it. Every line is drawn at a measured contrast, re-measured on the graded last frame (<clip>.contrast.json).
     `narration`: the run's narration, whose units the figures are drawn in (typography.spoken_units)."""
     # One unit per run: a figure in the other system is drawn in the unit the voice speaks (2026-10-29).
-    cards = [dict(c, value=spoken_units(str(c.get("value") or ""), narration),
+    cards = [dict(c, value=figure_text(spoken_units(str(c.get("value") or ""), narration)),
                   label=spoken_units(str(c.get("label") or ""), narration)) for c in cards[:2]]
     if not cards:
         return None
@@ -1294,6 +1484,7 @@ def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Pa
     y = max(top, (top + bottom) // 2 - total // 2)
     for p in plans:
         p["y0"] = y - p["top"]
+        p["x0"] = M
         y += p["height"] + gap
     if photo and Path(photo).exists():
         bg = cover_crop(Path(photo), (width, height)).convert("RGB")
@@ -1302,30 +1493,96 @@ def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Pa
     from .multi_format import scrim
     bg = scrim(bg, plans[0]["y0"] + plans[0]["top"] - 40, plans[-1]["y0"] + plans[-1]["bottom"] + 40, feather=380,
                target=0.24).convert("RGB")
+    return _stat_clip(cards, plans, bg, out, n, width, height)
+
+
+def figure_text(value: str) -> str:
+    """A number card's value as the card writes it (2026-11-02 review): a range with an en dash between spaces
+    ("94-104" -> "94 – 104"), and an "M" that means millions of years spelled out ("94-104M YEARS AGO" read as
+    metres): "94 – 104 MILLION YEARS AGO". The figures themselves are never changed."""
+    import re
+    text = re.sub(r"(\d)\s*[-–]\s*(\d)", r"\1 – \2", value or "")
+    return re.sub(r"(\d)\s*M\s*((?:YEARS|YRS|YEAR)\b)", r"\1 MILLION \2", text, flags=re.IGNORECASE)
+
+
+class _JoinedPlate:
+    """Several TextPlates recorded as one element: a count-up's figure is planned a character at a time (each
+    digit on its cell), but measured on the union of their glyphs, so the ring around one digit is not read on
+    the digit 4 px beside it (2026-11-02: each "0" of "1,200,000" recorded 1.1:1 against its gold neighbour while
+    the figure stood at 5.7:1 on its photo)."""
+
+    def __init__(self, plates: list[Any], frame: Image.Image, text: str = ""):
+        import numpy as np
+        plates = [p for p in plates if not p.empty]
+        self.empty = not plates
+        self.text = text or "".join(p.text for p in plates)
+        self.font = plates[0].font if plates else None
+        self.halo = max([p.halo for p in plates] or [0.0])
+        self.box = (0, 0, 0, 0)
+        self.contrast = None
+        if self.empty:
+            return
+        self.fill, self.light = plates[0].fill, plates[0].light
+        x0 = min(p.origin[0] for p in plates)
+        y0 = min(p.origin[1] for p in plates)
+        x1 = max(p.origin[0] + p.glyphs.shape[1] for p in plates)
+        y1 = max(p.origin[1] + p.glyphs.shape[0] for p in plates)
+        mask = np.zeros((y1 - y0, x1 - x0), np.uint8)
+        for p in plates:
+            ox, oy = p.origin[0] - x0, p.origin[1] - y0
+            h, w = p.glyphs.shape
+            np.maximum(mask[oy:oy + h, ox:ox + w], p.glyphs, out=mask[oy:oy + h, ox:ox + w])
+        self.glyphs, self.origin = mask, (x0, y0)
+        self.box = (min(p.box[0] for p in plates), min(p.box[1] for p in plates),
+                    max(p.box[2] for p in plates), max(p.box[3] for p in plates))
+        composed = frame
+        for p in plates:
+            composed = p.draw(composed)
+        self.contrast = self.measure(composed)
+
+    def measure(self, im: Image.Image) -> float | None:
+        import numpy as np
+
+        from .typography import ring_contrast
+        if self.empty:
+            return None
+        return ring_contrast(np.asarray(im.convert("RGB")), self.glyphs, self.origin, None if self.light else self.fill,
+                             self.light)
+
+
+def _stat_clip(cards: list[dict[str, Any]], plans: list[dict[str, Any]], bg: Image.Image, out: Path, n: int,
+               width: int, height: int) -> Path | None:
+    """The number cards' clip (both orientations): each line planned on the resting frame at a measured contrast
+    (a figure one plate per character, recorded as one), the figure counting up on fixed cells, the push-in."""
+    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     rest = _pushed_in(bg, push_in((n - 1) / VIDEO_FPS, CLIP_SECONDS))
     plates: List[Tuple[str, Any]] = []
     for p in plans:   # each line planned on the resting frame: its halo, and for a figure one plate per character
+        x0 = p["x0"]
         for r in p["rows"]:
             yy = p["y0"] + r["y"]
             if r["kind"] == "kicker":
                 bx0, by0, bx1, by1 = r.get("bar", (0, 0, 44, 4))
-                r["rule"] = (M + bx0, p["y0"] + by0, M + bx1, p["y0"] + by1)
-                r["plates"] = [plan_text(rest, (M, yy), r["text"], r["font"],
+                r["rule"] = (x0 + bx0, p["y0"] + by0, x0 + bx1, p["y0"] + by1)
+                r["plates"] = [plan_text(rest, (x0, yy), r["text"], r["font"],
                                          GOLD, "ls", track=r["font"].size * 0.15)]
             elif r["kind"] == "figure":
-                x, r["plates"], r["cells"] = M, [], []
+                x, r["plates"] = x0, []
                 for c, w in _cells(probe, r["text"], r["font"]):
                     cx = x + w / 2
                     r["plates"].append(plan_text(rest, (cx, yy), c, r["font"], GOLD, "ms", halo_px=25))
                     x += w
                 r["x_end"] = x
             elif r["kind"] == "count":
-                r["plates"] = [plan_text(rest, (M, yy), r["text"], r["font"], r["fill"], "ls", track=r.get("track", 0))]
-                r["x_end"] = M + probe.textlength(r["text"], font=r["font"])
+                r["plates"] = [plan_text(rest, (x0, yy), r["text"], r["font"], r["fill"], "ls", track=r.get("track", 0))]
+                r["x_end"] = x0 + probe.textlength(r["text"], font=r["font"])
             else:
-                r["plates"] = [plan_text(rest, (M + r.get("x", 0), yy), r["text"], r["font"], r["fill"], "ls",
+                r["plates"] = [plan_text(rest, (x0 + r.get("x", 0), yy), r["text"], r["font"], r["fill"], "ls",
                                          track=r.get("track", 0))]
-            plates += [(r["name"], pl) for pl in r["plates"]]
+            if r["kind"] == "figure":
+                plates.append((r["name"], _JoinedPlate(r["plates"], rest, r["text"])))
+            else:
+                plates += [(r["name"], pl) for pl in r["plates"]]
     last: List[Image.Image] = []
 
     def frames():
@@ -1358,7 +1615,7 @@ def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Pa
                               anchor="rs")
                     else:
                         if r["kind"] == "kicker":
-                            x0, y0, x1, y1 = r.get("rule", r.get("bar", (M, yy, M + 44, yy + 3)))
+                            x0, y0, x1, y1 = r.get("rule", r.get("bar", (p["x0"], yy, p["x0"] + 44, yy + 3)))
                             ImageDraw.Draw(im, "RGBA").rectangle([x0, y0 + dy, x1, y1 + dy], fill=(*GOLD, int(255 * a)))
                         for pl in r["plates"]:
                             im = pl.draw(im, a, dy)
@@ -1374,69 +1631,38 @@ def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Pa
 
 def _render_stat_cards_landscape(cards: List[Dict[str, Any]], out: Path, photo: Optional[Path] = None, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
                       narration: str = "") -> Optional[Path]:
-    """16:9 (the documentary): 1-2 headline figures counting up, centred, over a dark photo backdrop.
+    """16:9 (the documentary, 2026-11-02 review): the 9:16 card's type set for the wide frame over the dark photo
+    backdrop. One card centred as a block, two side by side in the title-safe halves; the figure in gold Anton on
+    fixed cells counting up, its unit in bone beside it (under it when the pair cannot share a line), the label in
+    bone Montserrat at 40 px or more, every line at a measured contrast (<clip>.contrast.json).
     `narration`: the run's narration, whose units the figures are drawn in (typography.spoken_units)."""
-    # One unit per run: a figure in the other system is drawn in the unit the voice speaks (2026-10-29).
-    cards = [dict(c, value=spoken_units(str(c.get("value") or ""), narration),
+    cards = [dict(c, value=figure_text(spoken_units(str(c.get("value") or ""), narration)),
                   label=spoken_units(str(c.get("label") or ""), narration)) for c in cards[:2]]
     if not cards:
         return None
     n = int(CLIP_SECONDS * VIDEO_FPS)
     bg = _backdrop(photo, width=width, height=height)
-    top, bottom = get_text_bounds(width, height)
-    ts = type_scale(width, height)  # one hierarchy for every graphic (art direction, 2026-10-24)
-
-    if width > height:
-        if len(cards) == 1:
-            centres = [(width // 2, height // 2)]
-            max_w = int(width * 0.70)
-        else:
-            centres = [(int(width * 0.30), height // 2), (int(width * 0.70), height // 2)]
-            max_w = int(width * 0.35)
-    else:
-        centres = [(width // 2, (top + bottom) // 2)] if len(cards) == 1 else [(width // 2, top + 190), (width // 2, bottom - 230)]
-        max_w = min(width - 160, centred_text_width(width, height))  # clear of Shorts' icon column
-    f_num_size = int(ts["figure"] * (1.15 if len(cards) == 1 else 1.0))
+    bx0, top, bx1, bottom = get_text_box(width, height)
+    k = min(width / 1920, height / 1080)
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    # Every card ends above the caption band's gap (get_text_bounds' bottom, safe_zones.graphics_box) and clear of
-    # the other card: a label kept whole on three or more lines ran past it and under the second figure
-    # (2026-10-29). A card that would is lifted by its overrun (the one above with it); when the two still do not
-    # fit between the bounds, the labels are set smaller, a step at a time, never cut.
-    for scale in (1.0, 0.9, 0.8, 0.7, 0.6, 0.5):
-        plans = [_stat_plan(probe, card, f_num_size, max_w, max(16, int(ts["label"] * scale)), 46) for card in cards]
-        if width > height:
-            placed = centres
+    gutter = round(110 * k)
+    col_w = (bx1 - bx0) if len(cards) == 1 else (bx1 - bx0 - gutter) // 2
+    for scale in (1.0, 0.9, 0.8, 0.7):
+        num_px = round((300 if len(cards) == 1 else 210) * scale * k)
+        plans = [_stat_layout(probe, c, num_px, col_w - 8, scale * k,
+                              label_min=round(40 * k), num_min=round(num_px * 0.62)) for c in cards]
+        if max(p["height"] for p in plans) <= bottom - top:
             break
-        placed, limit = [], bottom
-        for (cx, cy), plan in reversed(list(zip(centres, plans))):
-            cy = min(cy, limit - plan["bottom"])
-            placed.insert(0, (cx, cy))
-            limit = cy + plan["top"] - 24
-        if all(cy + plan["top"] >= top for (cx, cy), plan in zip(placed, plans)):
-            break
-    centres = placed
-
-    def shown(card: Dict[str, Any], p: float) -> str:
-        return _shown_value(card["value"], p)
-
-    def frames():
-        for i in range(n):
-            t = i / VIDEO_FPS
-            im = _pushed_in(bg, push_in(t, CLIP_SECONDS))  # a slow push on the backdrop: a card never sits static
-            d = ImageDraw.Draw(im, "RGBA")
-            for k, (card, plan, (cx, cy)) in enumerate(zip(cards, plans, centres)):
-                start = count_start(k)  # every count rests by count_done_by of the clip
-                a = _ease((t - start) / MOTION["reveal"])
-                if a <= 0:
-                    continue
-                count = _ease((t - start) / MOTION["count"])
-                _text(d, (cx, cy - 30), shown(card, count).upper(), font=plan["value_font"], fill=(*GOLD, int(255 * a)), anchor="mm")
-                d.line([(cx - 80, cy + plan["rule"]), (cx + 80, cy + plan["rule"])], fill=(*WHITE, int(160 * a)), width=3)
-                for y, line in zip(plan["rows"], plan["lines"]):
-                    _text(d, (cx, cy + y), line, font=plan["label_font"], fill=(*WHITE, int(255 * a)), anchor="mm")
-            yield im
-
-    return _encode(frames(), out, n, width=width, height=height)
+    if len(plans) > 1:   # one figure size for both cards, so their figures share a baseline
+        size = min(p["figure_px"] for p in plans)
+        plans = [_stat_layout(probe, c, size, col_w - 8, scale * k, label_min=round(40 * k), num_min=size)
+                 for c in cards]
+    tallest = max(p["height"] for p in plans)
+    for j, p in enumerate(plans):       # each block centred in its column, the figures on one baseline
+        left = bx0 + j * (col_w + gutter)
+        p["x0"] = round(left + (col_w - p["width"]) / 2)
+        p["y0"] = round((top + bottom) / 2 - tallest / 2 - min(q["top"] for q in plans))
+    return _stat_clip(cards, plans, bg, out, n, width, height)
 
 
 
@@ -1472,6 +1698,10 @@ class _Grid:
 
     def pts(self, pts: Iterable[tuple[float, float]]) -> list[tuple[float, float]]:
         return [(self.x(px), self.y(py)) for px, py in pts]
+
+    def ix(self, px: float) -> float:
+        """The design x of frame x `px`."""
+        return 65 + (px - self.bx0) / self.k
 
 
 class _Sprite:
@@ -1714,38 +1944,137 @@ def _plates_on(frame: Image.Image, plates) -> Image.Image:
     return frame
 
 
+@dataclass(frozen=True)
+class _SectionLayout:
+    """Where the cutaway's parts sit, in its grid's design px: the 9:16 column (the Reel text box, 65-888) or the
+    16:9 frame (1920 x 1080, title-safe 153-1766 x 129-820)."""
+    title_x: float
+    title_w: float
+    title_base: float
+    title_step: float
+    title_px: tuple[int, int]
+    ruler_x: float
+    shaft_x: float
+    shaft_w: float
+    rooms_x1: float
+    label_x: float
+    right: float
+    bottom_d: float
+    axis_limit: float
+    label_hi: float
+    surface_gap: float
+    fig_px: int
+    deep_px: int
+    lab_px: int
+    small_px: int
+    line_step: float
+    label_gap: float
+    fan_gap: float
+    room_start: tuple[float, float]
+    room_w: tuple[float, float]
+    room_gap: tuple[float, float]
+    niche_w: tuple[float, float]
+    room_h_max: float
+    turns: tuple[float, float, float]
+    bends: tuple[float, float, float]
+    approx_inline: bool = False      # "APPROX. DEPTHS" after the title on its baseline, not under it
+    ruler_fill: tuple[int, int, int] = brand.STONE_LT
+    label_lo: float = 14              # the first label block's top below the ground line
+
+
+_SECTION_TALL = _SectionLayout(
+    title_x=77, title_w=811, title_base=382, title_step=64, title_px=(60, 56), ruler_x=150, shaft_x=226, shaft_w=22,
+    rooms_x1=486, label_x=526, right=888, bottom_d=985, axis_limit=1040, label_hi=1052, surface_gap=50,
+    fig_px=44, deep_px=68, lab_px=30, small_px=28, line_step=36, label_gap=42, fan_gap=14, room_start=(10, 24),
+    room_w=(52, 96), room_gap=(14, 30), niche_w=(36, 50), room_h_max=54, turns=(292, 452, 380),
+    bends=(498, 510, 516))
+# The 16:9 master's vignette (video_composer: vignette=PI/4.2, aspect 16/9) takes the frame's edges to about half
+# their brightness, so the wide layouts keep their words inside x 400-1600 and y 190-800, where a bone or gold
+# line still measures 4.5:1 on the graded frame (the 153 px title-safe margin alone left text at 2.7:1).
+_SECTION_WIDE = _SectionLayout(
+    title_x=420, title_w=760, title_base=252, title_step=72, title_px=(68, 56), ruler_x=488, shaft_x=566,
+    shaft_w=28, rooms_x1=1110, label_x=1200, right=1600, bottom_d=768, axis_limit=790, label_hi=802,
+    surface_gap=380, fig_px=54, deep_px=80, lab_px=34, small_px=28, line_step=42, label_gap=50, fan_gap=20,
+    room_start=(12, 26), room_w=(70, 120), room_gap=(18, 36), niche_w=(46, 62), room_h_max=58,
+    turns=(900, 1076, 988), bends=(1130, 1160, 1186), approx_inline=True, ruler_fill=brand.BONE,
+    label_lo=30)
+
+
+class _WideGrid(_Grid):
+    """Design coordinates on the 1920 x 1080 frame (16:9 title-safe text box 153-1766 x 129-820), scaled to this
+    landscape frame and centred on it."""
+
+    def __init__(self, width: int, height: int):
+        self.bx0, self.by0, self.bx1, self.by1 = get_text_box(width, height)
+        self.k = min(width / 1920, height / 1080)
+        self.ox, self.oy = (width - 1920 * self.k) / 2, (height - 1080 * self.k) / 2
+
+    def x(self, v: float) -> float:
+        return self.ox + v * self.k
+
+    def y(self, v: float) -> float:
+        return self.oy + v * self.k
+
+    def ix(self, px: float) -> float:
+        return (px - self.ox) / self.k
+
+
 def _render_cross_section_vertical(cs: dict[str, Any], levels: list[dict[str, Any]], total: float, out: Path,
                                    width: int, height: int) -> Path | None:
     """The 9:16 cutaway (2026-11-02 design review, 6/10 -> rebuilt): a linear depth axis from the ground near the
-    top of the text box to the total depth at its bottom, a ruler at the left (a tick every 50 ft), rooms cut as
-    irregular vaults branching off an accent shaft with sloped passages between levels (a city, not a comb),
-    labels fanned out on leaders so the shallow ones never overlap, and a gold lantern that descends the shaft,
-    each level's label fading in as it arrives and dimming as it moves on, so the deepest figure ends brightest."""
+    top of the text box to the total depth at its bottom, a ruler at the left (a tick every 50 ft, running on to
+    the next tick past the deepest level), rooms cut as irregular vaults branching off an accent shaft with sloped
+    passages between levels (a city, not a comb), labels fanned out on leaders so the shallow ones never overlap,
+    and a gold lantern that descends the shaft, each level's label fading in as it arrives and dimming as it
+    moves on, so the deepest figure ends brightest."""
+    return _render_cross_section(cs, levels, total, out, width, height, _Grid(width, height), _SECTION_TALL)
+
+
+def _render_cross_section_wide(cs: dict[str, Any], levels: list[dict[str, Any]], total: float, out: Path,
+                               width: int, height: int) -> Path | None:
+    """The 16:9 cutaway (2026-11-02 review, 4-5.5/10: the old design, its 15 and 35 ft levels pushed apart off
+    the depth scale): the 9:16 rebuild composed for the wide frame. The ruler at the left, the shaft and a city
+    of rooms running wide across the centre-left on the same true-depth axis, the levels' figures and labels in
+    a column at the right on leaders, the lantern descending the shaft."""
+    return _render_cross_section(cs, levels, total, out, width, height, _WideGrid(width, height), _SECTION_WIDE)
+
+
+def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], total: float, out: Path,
+                          width: int, height: int, g: _Grid, L: _SectionLayout) -> Path | None:
+    """The cutaway on grid `g` with layout `L` (see the two orientations above)."""
     import itertools
     import random
-    g = _Grid(width, height)
     X, Y, S = g.x, g.y, g.s
     n = int(CLIP_SECONDS * VIDEO_FPS)
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
 
-    title_lines, f_title = _fit_title(g, cs["subject"].upper(), S(811))
-    title_base = [382 + 64 * j for j in range(len(title_lines))]
+    probe_t = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    title = cs["subject"].upper()
+    title_lines, f_title, short = fit_text(probe_t, title, "Anton", g.f(L.title_px[0]), int(S(L.title_w)), 1,
+                                           g.f(L.title_px[1]), sentences=False, quiet=True)
+    if short or probe_t.textlength(title_lines[0] if title_lines else "", font=f_title) > S(L.title_w):
+        title_lines, f_title, _ = fit_text(probe_t, title, "Anton", g.f(L.title_px[0]), int(S(L.title_w)), 2,
+                                           g.f(L.title_px[1]), sentences=False, quiet=True)
+    title_base = [L.title_base + L.title_step * j for j in range(len(title_lines))]
     approx = cs.get("approximate", True)
     cap_base = title_base[-1] + 46
-    ground_d = (cap_base if approx else title_base[-1]) + 32        # design y of the ground
-    bottom_d = 985.0                                                 # design y of the total depth
-    scale = (bottom_d - ground_d) / total
+    ground_d = (cap_base if approx and not L.approx_inline else title_base[-1] + 20) + 32   # design y of the ground
+    tick = 50 if total <= 400 else 100 if total <= 900 else 250
+    axis_end = math.ceil(total / tick) * tick                       # the ruler runs on to the next tick (2026-11-02)
+    scale = min((L.bottom_d - ground_d) / total, (L.axis_limit - ground_d) / axis_end)
+    bottom_d = ground_d + total * scale                             # design y of the total depth
 
     def dy(ft: float) -> float:
         return ground_d + ft * scale
 
-    ruler_x, shaft_x, shaft_w = 150.0, 226.0, 22.0
-    rooms_x1, label_x = 486.0, 526.0
-    f_fig = get_font("Anton", g.f(44))
-    f_deep = get_font("Anton", g.f(68))
-    f_lab = get_font("Montserrat", g.f(30), weight=600)
-    f_small = get_font("Montserrat", g.f(28), weight=600)
-    lab_w = S(888 - label_x)
+    ruler_x, shaft_x, shaft_w = L.ruler_x, L.shaft_x, L.shaft_w
+    rooms_x1, label_x = L.rooms_x1, L.label_x
+    f_fig = get_font("Anton", g.f(L.fig_px))
+    f_deep = get_font("Anton", g.f(L.deep_px))
+    f_lab = get_font("Montserrat", g.f(L.lab_px), weight=600)
+    f_small = get_font("Montserrat", g.f(L.small_px), weight=600)
+    lab_w = S(L.right - label_x)
+    left_turn, right_turn, mid_turn = L.turns
 
     # ---- the city: rooms per level, a passage from the shaft, ramps between levels
     plan = []
@@ -1753,17 +2082,17 @@ def _render_cross_section_vertical(cs: dict[str, Any], levels: list[dict[str, An
     for k, lv in enumerate(levels):
         rnd = random.Random(31 + 7 * k)
         floor = dy(lv["depth_ft"])
-        room_h = max(20.0, min(54.0, (floor - prev_floor) * 0.7))
-        x = shaft_x + shaft_w / 2 + rnd.uniform(10, 24)
+        room_h = max(20.0, min(L.room_h_max, (floor - prev_floor) * 0.7))
+        x = shaft_x + shaft_w / 2 + rnd.uniform(*L.room_start)
         rooms = []      # (x0, x1, floor, height, seed): each room's floor a few px off the level's
         while x < rooms_x1 - 40:
-            w = rnd.uniform(52, 96)
+            w = rnd.uniform(*L.room_w)
             if x + w > rooms_x1:
                 w = rooms_x1 - x
             rooms.append((x, x + w, floor - rnd.uniform(0, 4), room_h * rnd.uniform(0.7, 1.0), 100 * k + len(rooms)))
-            x += w + rnd.uniform(14, 30)
+            x += w + rnd.uniform(*L.room_gap)
         if room_h > 24 and rnd.random() < 0.75:                       # a niche on the shaft's other side
-            w = rnd.uniform(36, 50)
+            w = rnd.uniform(*L.niche_w)
             rooms.append((shaft_x - shaft_w / 2 - w, shaft_x - shaft_w / 2 + 2, floor, room_h * 0.6, 100 * k + 50))
         passage_h = min(11.0, room_h * 0.5)
         ramp, landings = [], []
@@ -1774,12 +2103,13 @@ def _render_cross_section_vertical(cs: dict[str, Any], levels: list[dict[str, An
             xa = (src[0] + src[1]) / 2
             ramp = [(xa, prev_floor - 3)]
             for j in range(legs):
-                xb = 292.0 + rnd.uniform(-8, 12) if (j % 2 == 0) == (xa > 380) else 452.0 + rnd.uniform(-12, 8)
+                xb = (left_turn + rnd.uniform(-8, 12) if (j % 2 == 0) == (xa > mid_turn) else
+                      right_turn + rnd.uniform(-12, 8))
                 yb = prev_floor + (floor - 3 - prev_floor) * (j + 1) / legs
                 ramp.append((xb, yb))
                 if j < legs - 1:                                     # a landing at each switchback
                     lw = rnd.uniform(34, 50)
-                    lx = xb - lw * 0.75 if xb < 380 else xb - lw * 0.25
+                    lx = xb - lw * 0.75 if xb < mid_turn else xb - lw * 0.25
                     landings.append((lx, lx + lw, yb + 3, rnd.uniform(18, 26), 100 * k + 70 + j))
                 xa = xb
         plan.append({"floor": floor, "rooms": rooms + landings, "passage_h": passage_h, "ramp": ramp,
@@ -1810,16 +2140,16 @@ def _render_cross_section_vertical(cs: dict[str, Any], levels: list[dict[str, An
     for k, (lv, p) in enumerate(zip(levels, plan)):
         deepest = k == len(levels) - 1
         ff = f_deep if deepest else f_fig
-        lines, f_fit, _ = fit_text(probe, lv["label"], "Montserrat", g.f(30), int(lab_w), 2, g.f(30), weight=600,
-                                   quiet=True)
+        lines, f_fit, _ = fit_text(probe, lv["label"], "Montserrat", g.f(L.lab_px), int(lab_w), 2, g.f(L.lab_px),
+                                   weight=600, quiet=True)
         if probe.textlength(lines[-1] if lines else "", font=f_fit) > lab_w:
-            lines, f_fit, _ = fit_text(probe, lv["label"], "Montserrat", g.f(30), int(lab_w), 3, g.f(30),
+            lines, f_fit, _ = fit_text(probe, lv["label"], "Montserrat", g.f(L.lab_px), int(lab_w), 3, g.f(L.lab_px),
                                        weight=600, quiet=True)
         capf = cap_height(ff) / g.k
-        h = capf + 42 + 36 * (len(lines) - 1) + 8
+        h = capf + L.label_gap + L.line_step * (len(lines) - 1) + 8
         blocks.append({"font": ff, "lines": lines, "cap": capf, "h": h, "want": p["floor"] - p["passage_h"] / 2})
     tops = [b["want"] - b["cap"] / 2 for b in blocks]
-    lo, hi, gap = ground_d + 14, 1052.0, 14.0
+    lo, hi, gap = ground_d + L.label_lo, L.label_hi, L.fan_gap
     for k in range(len(tops)):
         tops[k] = max(tops[k], lo if k == 0 else tops[k - 1] + blocks[k - 1]["h"] + gap)
     for k in range(len(tops) - 1, -1, -1):
@@ -1828,30 +2158,30 @@ def _render_cross_section_vertical(cs: dict[str, Any], levels: list[dict[str, An
 
     # ---- the static ground: sky, banded rock, the surface, the ruler
     ground_px = Y(ground_d)
+    axis_px = Y(dy(axis_end))
     base = _rock_ground(width, height, lambda xs: xs * 0 + ground_px)
-    pen = _Pen((0, Y(ground_d - 8), width, Y(bottom_d + 16)))
+    pen = _Pen((0, Y(ground_d - 8), width, max(Y(bottom_d), axis_px) + S(16)))
     surface = (*brand.STONE_LT, 190)                           # it runs past the text box: kept dim
-    pen.line([(0, ground_px), (X(50), ground_px)], surface, S(3), caps=False)   # gapped for "0 FT"
+    pen.line([(0, ground_px), (X(L.surface_gap), ground_px)], surface, S(3), caps=False)   # gapped for "0 FT"
     pen.line([(X(ruler_x - 16), ground_px), (width, ground_px)], surface, S(3), caps=False)
-    pen.line([(X(ruler_x), ground_px), (X(ruler_x), Y(bottom_d))], (*brand.GOLD_DIM, 255), S(2), caps=False)
-    tick = 50 if total <= 400 else 100 if total <= 900 else 250
-    for ft in range(0, int(total) + 1, 10 if total <= 400 else tick // 5):
+    pen.line([(X(ruler_x), ground_px), (X(ruler_x), axis_px)], (*brand.GOLD_DIM, 255), S(2), caps=False)
+    for ft in range(0, int(axis_end) + 1, 10 if total <= 400 else tick // 5):
         major = ft % tick == 0
         yy = Y(dy(ft))
         pen.line([(X(ruler_x - (16 if major else 7)), yy), (X(ruler_x), yy)],
                  (*(brand.STONE_LT if major else brand.GOLD_DIM), 255), S(2 if major else 1.5), caps=False)
-    pen.line([(X(ruler_x - 16), Y(bottom_d)), (X(ruler_x), Y(bottom_d))], (*brand.STONE_LT, 255), S(2), caps=False)
     base.alpha_composite(pen.image(), (pen.x0, pen.y0))
 
     # ---- leaders, the lantern and its route
     leaders = []
+    b0, b1, b2 = L.bends
     for k, (p, b) in enumerate(zip(plan, blocks)):
         deepest = k == len(levels) - 1
         y0 = p["floor"] - p["passage_h"] / 2
         y1 = tops[k] + b["cap"] / 2
         lp = _Pen((X(p["reach"] - 12), Y(min(y0, y1) - 8), X(label_x), Y(max(y0, y1) + 8)))
         col = (*(brand.GOLD if deepest else brand.GOLD_DIM), 255)
-        lp.line(g.pts([(p["reach"] - 4, y0), (498, y0), (510, y1), (label_x - 10, y1)]), col, S(2))
+        lp.line(g.pts([(p["reach"] - 4, y0), (b0, y0), (b1, y1), (b2, y1)]), col, S(2))
         lp.ellipse(X(p["reach"] - 4), Y(y0), S(3.5), S(3.5), fill=col)
         leaders.append(lp.sprite())
     lantern = _lantern(S(10))
@@ -1893,15 +2223,20 @@ def _render_cross_section_vertical(cs: dict[str, Any], levels: list[dict[str, An
     # ---- every word, planned on the final art
     timed = []   # (name, plate, fades in at, dims at, its dim twin)
     for j, (ln, yb) in enumerate(zip(title_lines, title_base)):
-        timed.append((f"title{j}", _plan(final, (X(77), Y(yb)), ln, f_title, WHITE, "ls"), 0.1 + 0.08 * j, None, None))
-    if approx:
-        timed.append(("approx", _plan(final, (X(79), Y(cap_base)), "APPROX. DEPTHS", f_small, MUTED, "ls",
+        timed.append((f"title{j}", _plan(final, (X(L.title_x), Y(yb)), ln, f_title, WHITE, "ls"), 0.1 + 0.08 * j,
+                      None, None))
+    if approx and L.approx_inline:
+        title_end = timed[-1][1].box[2]
+        timed.append(("approx", _plan(final, (title_end + S(36), Y(title_base[-1])), "APPROX. DEPTHS", f_small, MUTED,
+                                      "ls", track=S(3)), 0.3, None, None))
+    elif approx:
+        timed.append(("approx", _plan(final, (X(L.title_x + 2), Y(cap_base)), "APPROX. DEPTHS", f_small, MUTED, "ls",
                                           track=S(3)), 0.3, None, None))
-    for j, ft in enumerate(range(0, int(total) + 1, tick)):
-        if total - ft < tick * 0.3 and ft:
+    for j, ft in enumerate(range(0, int(axis_end) + 1, tick)):
+        if ft and 0 <= total - ft < tick * 0.3:
             continue                                                 # the deepest level names the bottom
         text = f"{ft} FT" if ft == 0 else f"{ft:,}"
-        timed.append((f"ruler{j}", _plan(final, (X(ruler_x - 24), Y(dy(ft))), text, f_small, MUTED, "rm"),
+        timed.append((f"ruler{j}", _plan(final, (X(ruler_x - 24), Y(dy(ft))), text, f_small, L.ruler_fill, "rm"),
                       0.25 + 0.05 * j, None, None))
     for k, (lv, b) in enumerate(zip(levels, blocks)):
         deepest = k == len(levels) - 1
@@ -1917,7 +2252,7 @@ def _render_cross_section_vertical(cs: dict[str, Any], levels: list[dict[str, An
                            f_lab, MUTED, "ls")
         timed.append((f"level{k}_metres", metres, t_in, None, None))
         for j, ln in enumerate(b["lines"]):
-            yb = fig_base + 42 + 36 * j
+            yb = fig_base + L.label_gap + L.line_step * j
             bp = _plan(final, (X(label_x), Y(yb)), ln, f_lab, WHITE, "ls")
             dim = None if deepest else _plan(final, (X(label_x), Y(yb)), ln, f_lab, MUTED, "ls")
             timed.append((f"level{k}_label{j}", bp, t_in + 0.08, t_out, dim))
@@ -1952,113 +2287,15 @@ def render_cross_section(cs: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH
     level appears as the marker reaches its depth (true proportion), labelled in ft and m.
 
     9:16 (2026-11-02 design review, scored 6/10): rebuilt in _render_cross_section_vertical as a city on a linear
-    depth axis with a ruler, fanned leader labels and a lantern descending the shaft; 16:9 is unchanged."""
-    import random
+    depth axis with a ruler, fanned leader labels and a lantern descending the shaft; 16:9 (round 2, 4-5.5/10)
+    the same rebuild composed for the wide frame (_render_cross_section_wide)."""
     levels = sorted(cs["levels"], key=lambda lv: lv["depth_ft"])
     total = float(cs["total_depth_ft"])
     if total <= 0 or len(levels) < 2:
         return None
     if width <= height:
         return _render_cross_section_vertical(cs, levels, total, out, width, height)
-    n = int(CLIP_SECONDS * VIDEO_FPS)
-    top, bottom_bound = get_text_bounds(width, height)
-
-    if width > height:
-        ground = top + 70
-        bottom = bottom_bound - 30
-        shaft_x = int(width * 0.22)
-        label_x = int(width * 0.42)
-        label_w = int(width * 0.52)
-        f_lab = get_font("Montserrat", 28)
-        f_dep = get_font("Anton", 34)
-        f_sub = get_font("Montserrat", 20)
-        f_title_size = 46
-        min_gap = 64
-        lh = 34
-    else:
-        ground = top + 110
-        bottom = bottom_bound - 40
-        shaft_x = 250
-        label_x = width // 2
-        label_w = get_text_box(width, height)[2] - label_x          # labels end before Shorts' icon column
-        f_lab = get_font("Montserrat", 32)
-        f_dep = get_font("Anton", 40)
-        f_sub = get_font("Montserrat", 22)
-        f_title_size = 56
-        min_gap = 76
-        lh = 38
-
-    scale = (bottom - ground) / total
-    rnd = random.Random(7)
-    bg = Image.new("RGB", (width, height), SEA)
-    d0 = ImageDraw.Draw(bg, "RGBA")
-    for y in range(ground, height):  # strata: warm earth bands darkening with depth
-        k = (y - ground) / (height - ground)
-        band = 6 * math.sin(y / 23.0) + rnd.uniform(-2, 2)
-        d0.line([(0, y), (width, y)], fill=(int(70 - 30 * k + band), int(56 - 26 * k + band), int(44 - 22 * k + band), 255))
-    d0.line([(0, ground), (width, ground)], fill=(*MUTED, 255), width=4)
-    bx0, _, bx1, _ = get_text_box(width, height)
-    _text(d0, (bx1, ground - 26), "GROUND LEVEL", font=get_font("Montserrat", 24), fill=(*MUTED, 255), anchor="rm")
-    title = cs["subject"].upper() + ("  ·  APPROX. DEPTHS" if cs.get("approximate", True) else "")
-    tx = max(int(width * 0.08), bx0)
-    _text(d0, (tx, top + 16), title, font=fit_font(d0, title, "Anton", f_title_size, bx1 - tx, 28), fill=(*WHITE, 255), anchor="lm")
-
-    # Relaxation pass to completely eliminate any label/callout collisions and enforce breathing room below ground
-    min_top_pad = 65 if width > height else 75
-    phys_ys = [ground + lv["depth_ft"] * scale for lv in levels]
-    target_ys = [max(ground + min_top_pad, y) for y in phys_ys]
-    for _ in range(35):
-        for i in range(len(target_ys) - 1):
-            target_ys[i] = max(ground + min_top_pad, target_ys[i])
-            gap = target_ys[i + 1] - target_ys[i]
-            if gap < min_gap:
-                push = (min_gap - gap) / 2
-                target_ys[i] = max(ground + min_top_pad, target_ys[i] - push)
-                target_ys[i + 1] = min(bottom + 20, target_ys[i + 1] + push)
-
-    def frames():
-        for i in range(n):
-            t = i / VIDEO_FPS
-            im = bg.copy()
-            d = ImageDraw.Draw(im, "RGBA")
-            depth_now = total * _ease((t - 0.3) / 3.4)
-            y_now = ground + depth_now * scale
-            d.rectangle([shaft_x - 22, ground, shaft_x + 22, y_now], fill=(18, 16, 14, 255))
-            for idx, lv in enumerate(levels):
-                # A label fades in over the next 8% of the dig; one at the very bottom starts that
-                # fade 8% earlier, or it would never become visible.
-                reveal_at = min(lv["depth_ft"], total * 0.92)
-                if reveal_at > depth_now:
-                    continue
-                y_phys = phys_ys[idx]
-                y_t = target_ys[idx]
-                a = int(255 * _ease((depth_now - reveal_at) / (total * 0.08) if total else 1))
-
-                # Chamber rect & leader line
-                if abs(y_t - y_phys) > 4:
-                    # Shaft opening
-                    d.rectangle([shaft_x + 20, y_phys - 10, shaft_x + 50, y_phys + 10], fill=(22, 19, 16, a))
-                    # Leader line from shaft to target y
-                    d.line([(shaft_x + 50, y_phys), (label_x - 20, y_t)], fill=(*accent(), int(180 * a)), width=2)
-                    d.rectangle([label_x - 20, y_t - 12, label_x - 10, y_t + 12], fill=(*accent(), int(220 * a)))
-                    # Depth leader line (clean orthogonal architectural leader)
-                    d.line([(shaft_x - 22, y_phys), (shaft_x - 38, y_phys), (shaft_x - 38, y_t), (shaft_x - 50, y_t)], fill=(*GOLD, int(160 * a)), width=2)
-                    _text(d, (shaft_x - 58, y_t - 10), f"{lv['depth_ft']:,.0f} FT", font=f_dep, fill=(*GOLD, a), anchor="rm")
-                    _text(d, (shaft_x - 58, y_t + 18), f"({lv['depth_ft'] / 3.28084:,.0f} M)", font=f_sub, fill=(*MUTED, a), anchor="rm")
-                    lines, f_fit = fit_lines(d, lv["label"].upper(), f_lab, label_w, 2)
-                    for j, line in enumerate(lines):
-                        _text(d, (label_x, y_t + (j - (len(lines) - 1) / 2) * lh), line, font=f_fit, fill=(*WHITE, a), anchor="lm")
-                else:
-                    d.rectangle([shaft_x + 22, y_phys - 14, label_x - 25, y_phys + 14], fill=(22, 19, 16, a))
-                    _text(d, (shaft_x - 50, y_phys - 10), f"{lv['depth_ft']:,.0f} FT", font=f_dep, fill=(*GOLD, a), anchor="rm")
-                    _text(d, (shaft_x - 50, y_phys + 18), f"({lv['depth_ft'] / 3.28084:,.0f} M)", font=f_sub, fill=(*MUTED, a), anchor="rm")
-                    lines, f_fit = fit_lines(d, lv["label"].upper(), f_lab, label_w, 2)
-                    for j, line in enumerate(lines):
-                        _text(d, (label_x, y_phys + (j - (len(lines) - 1) / 2) * lh), line, font=f_fit, fill=(*WHITE, a), anchor="lm")
-            d.ellipse([shaft_x - 14, y_now - 14, shaft_x + 14, y_now + 14], fill=(*accent(), 255))
-            yield im
-
-    return _encode(frames(), out, n, width=width, height=height)
+    return _render_cross_section_wide(cs, levels, total, out, width, height)
 
 
 # ---------------------------------------------------------------- route map
@@ -2200,42 +2437,114 @@ def _hatch(pen: _Pen, box: tuple[float, float, float, float], gap: float, colour
         x += gap
 
 
+@dataclass(frozen=True)
+class _DoorLayout:
+    """Where the rolling-stone door's two views sit, in their grid's design px (9:16 column or 16:9 frame)."""
+    title_x: float
+    title_w: float
+    title_base: float
+    title_step: float
+    title_px: tuple[int, int]
+    lab_px: int
+    side_px: int
+    heading_gap: float
+    slot_h: float
+    corr_h: float
+    rock_h: float
+    door_x: float
+    slab_t: float
+    elev_gap: float
+    elev_min: float
+    floor: float
+    floor_bot: float
+    r: float
+    door_w: float
+    door_h: float
+    open_dx: float
+    person_h: float
+    person_x: float
+    px0: float
+    px1: float
+    text_x: float
+    inside: tuple[float, str]       # INSIDE's x and anchor
+    outside: tuple[float, str]
+    tag: tuple[float, float] | None  # the ILLUSTRATIVE tag's right and top; None: after the plan's heading
+    disc_leader_x0: float | None     # where the STONE DISC leader starts; None: after its words
+    disc_dy: float
+    line_step: float
+    heading_fill: tuple[int, int, int] = brand.STONE_LT
+
+
+_DOOR_TALL = _DoorLayout(
+    title_x=77, title_w=561, title_base=382, title_step=64, title_px=(60, 56), lab_px=30, side_px=30,
+    heading_gap=50, slot_h=74, corr_h=64, rock_h=42, door_x=600, slab_t=20, elev_gap=50, elev_min=742,
+    floor=1022, floor_bot=1050, r=100, door_w=124, door_h=172, open_dx=232, person_h=222, person_x=806,
+    px0=65, px1=888, text_x=79, inside=(84, "lm"), outside=(870, "rm"), tag=(888, 342), disc_leader_x0=318,
+    disc_dy=46, line_step=36)
+# 16:9: both views run the width of the frame, stacked as in 9:16 so the door's axis still links them; every word
+# inside the vignette-safe area (see _SECTION_WIDE), INSIDE and OUTSIDE set either side of the door.
+_DOOR_WIDE = _DoorLayout(
+    title_x=420, title_w=1180, title_base=252, title_step=72, title_px=(68, 56), lab_px=32, side_px=32,
+    heading_gap=60, slot_h=80, corr_h=70, rock_h=40, door_x=1060, slab_t=24, elev_gap=62, elev_min=0,
+    floor=796, floor_bot=822, r=96, door_w=132, door_h=180, open_dx=250, person_h=196, person_x=1330,
+    px0=400, px1=1600, text_x=422, inside=(960, "rm"), outside=(1170, "lm"), tag=None, disc_leader_x0=None,
+    disc_dy=52, line_step=40, heading_fill=brand.BONE)
+
+
 def _render_defense_vertical(spec: dict[str, Any], out: Path, width: int, height: int) -> Path | None:
     """The 9:16 rolling-stone door (2026-11-02 design review, 3.5/10 -> rebuilt as two linked views): a plan on
     top (the corridor running across, a slot cut into its wall, the disc edge-on as a gold slab between INSIDE in
-    teal and OUTSIDE in coral, a curved arrow for its path) and an elevation below (the doorway face-on, the disc
-    rolling out of its recess to block it, a standing figure for scale). The disc turns by distance / radius, so
-    it visibly rolls, overshoots a little and settles. Words only from diagram_labels; tagged ILLUSTRATIVE."""
+    teal and OUTSIDE in coral, a straight gold arrow along its track: it rolls, it does not swing) and an
+    elevation below (the doorway face-on, the disc rolling out of its recess to block it, a standing figure for
+    scale). The disc turns by distance / radius, so it visibly rolls, overshoots a little and settles. Words only
+    from diagram_labels; tagged ILLUSTRATIVE."""
+    return _render_defense(spec, out, width, height, _Grid(width, height), _DOOR_TALL)
+
+
+def _render_defense_wide(spec: dict[str, Any], out: Path, width: int, height: int) -> Path | None:
+    """The 16:9 rolling-stone door (2026-11-02 review round 2, 2-3/10: invented words, off-brand colours, 14-18 px
+    type): the 9:16 rebuild composed for the wide frame, the plan a long corridor across the top, the elevation
+    under it with the recess, the doorway and the figure in a row; only diagram_labels' words and the fixed
+    ILLUSTRATIVE / INSIDE / OUTSIDE tags, brand colours, 28 px type or more."""
+    return _render_defense(spec, out, width, height, _WideGrid(width, height), _DOOR_WIDE)
+
+
+def _render_defense(spec: dict[str, Any], out: Path, width: int, height: int, g: _Grid, L: _DoorLayout) -> Path | None:
+    """The rolling-stone door on grid `g` with layout `L` (see the two orientations above)."""
     labels = diagram_labels("defense", spec)
     title = diagram_title("defense", spec)
-    g = _Grid(width, height)
     X, Y, S = g.x, g.y, g.s
     n = int(CLIP_SECONDS * VIDEO_FPS)
 
-    title_lines, f_title = _fit_title(g, title, S(811 - 250))          # clear of the tag at the top right
-    title_base = [382 + 64 * j for j in range(len(title_lines))]
-    f_lab = get_font("Montserrat", g.f(30), weight=600)
-    f_side = get_font("Montserrat", g.f(30), weight=700)
+    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    title_lines, f_title, short = fit_text(probe, title, "Anton", g.f(L.title_px[0]), int(S(L.title_w)), 1,
+                                           g.f(L.title_px[1]), sentences=False, quiet=True)
+    if short or probe.textlength(title_lines[0] if title_lines else "", font=f_title) > S(L.title_w):
+        title_lines, f_title, _ = fit_text(probe, title, "Anton", g.f(L.title_px[0]), int(S(L.title_w)), 2,
+                                           g.f(L.title_px[1]), sentences=False, quiet=True)
+    title_base = [L.title_base + L.title_step * j for j in range(len(title_lines))]
+    f_lab = get_font("Montserrat", g.f(L.lab_px), weight=600)
+    f_side = get_font("Montserrat", g.f(L.side_px), weight=700)
 
     # ---- plan (design y)
-    ph = title_base[-1] + 50                 # the plan's heading baseline
+    ph = title_base[-1] + L.heading_gap      # the plan's heading baseline
     rock_top = ph + 12
     slot_top = rock_top + 6
-    c_top = slot_top + 74                    # the corridor's walls
-    c_bot = c_top + 64
-    rock_bot = c_bot + 42
-    door_x = 600.0                           # both views share the door's axis
-    slab_t, slab_len = 20.0, 72.0
+    c_top = slot_top + L.slot_h              # the corridor's walls
+    c_bot = c_top + L.corr_h
+    rock_bot = c_bot + L.rock_h
+    door_x = L.door_x                        # both views share the door's axis
+    slab_t, slab_len = L.slab_t, L.corr_h + 8
     slab_open, slab_shut = slot_top + 1, c_top - 4
     # ---- elevation
-    eh = max(rock_bot + 50, 742)              # its heading baseline
+    eh = max(rock_bot + L.elev_gap, L.elev_min)   # its heading baseline
     face_top = eh + 14
-    floor = 1022.0
-    r = 100.0
-    door_w, door_h = 124.0, 172.0
-    open_x = door_x - 232
-    person_h = 222.0
-    person_x = 806.0
+    floor = L.floor
+    r = L.r
+    door_w, door_h = L.door_w, L.door_h
+    open_x = door_x - L.open_dx
+    person_h = L.person_h
+    person_x = L.person_x
 
     sky = _rock_ground(width, height, lambda xs: xs * 0 + height * 2)       # the ink ground with its fine noise
     base = sky.copy()
@@ -2244,7 +2553,7 @@ def _render_defense_vertical(spec: dict[str, Any], out: Path, width: int, height
     hatch = (*brand.GOLD_DIM, 120)
     teal_floor = tuple(int(a + (b - a) * 0.14) for a, b in zip(brand.INK, brand.TEAL))
     coral_floor = tuple(int(a + (b - a) * 0.14) for a, b in zip(brand.INK, brand.CORAL))
-    px0, px1 = X(65), X(888)
+    px0, px1 = X(L.px0), X(L.px1)
     # plan: rock walls, the corridor tinted inside / outside, the slot and its groove
     for y0, y1 in ((rock_top, c_top), (c_bot, rock_bot)):
         pen.rect(px0, Y(y0), px1, Y(y1), fill=(*rock, 255))
@@ -2266,8 +2575,8 @@ def _render_defense_vertical(spec: dict[str, Any], out: Path, width: int, height
     # elevation: the rock face, the recess, the track, the doorway, the floor
     pen.rect(px0, Y(face_top), px1, Y(floor), fill=(*rock, 255))
     _hatch(pen, (px0, Y(face_top), px1, Y(floor)), S(16), (*brand.GOLD_DIM, 70))
-    pen.rect(px0, Y(floor), px1, Y(1050), fill=(*tuple(int(v * 0.8) for v in rock), 255))
-    _hatch(pen, (px0, Y(floor), px1, Y(1050)), S(10), hatch)
+    pen.rect(px0, Y(floor), px1, Y(L.floor_bot), fill=(*tuple(int(v * 0.8) for v in rock), 255))
+    _hatch(pen, (px0, Y(floor), px1, Y(L.floor_bot)), S(10), hatch)
     recess = g.pts(_arch(open_x - r - 12, floor - 2 * r - 14, door_x - door_w / 2 + 2, floor, r * 0.95))
     pen.poly(recess, fill=(*brand.INK2, 255))
     pen.line(recess, (*brand.GOLD_DIM, 255), S(2), caps=False)
@@ -2292,39 +2601,42 @@ def _render_defense_vertical(spec: dict[str, Any], out: Path, width: int, height
             p = 1 + 0.035 * math.sin((t - 3.25) * 9.0) * math.exp(-(t - 3.25) * 4.0)
         return p
 
-    arrow_pts = []
-    for j in range(25):
-        a = -math.pi / 2 + math.pi * j / 24
-        arrow_pts.append((door_x + 26 + 30 * math.cos(a), (slot_top + c_bot) / 2 + (c_bot - slot_top) / 2 * 0.82 * math.sin(a)))
-    arrow_box = (X(door_x), Y(slot_top - 6), X(door_x + 80), Y(c_bot + 10))
+    # The disc's path in plan: a straight arrow beside the slab along its track, out of the slot and across the
+    # corridor (2026-11-02 round 2: the curved arrow read as a door swinging on a hinge; the stone rolls).
+    ax = door_x + slab_t / 2 + 14
+    arrow_pts = [(ax, slot_top + 6), (ax, c_bot - 6)]
+    arrow_box = (X(ax - 16), Y(slot_top - 6), X(ax + 16), Y(c_bot + 10))
 
     def arrow(progress: float) -> Image.Image | None:
         if progress <= 0:
             return None
         ap = _Pen(arrow_box)
         pts = g.pts(arrow_pts)
-        upto = _path_len(pts) * progress
-        seg = _sub_path(pts, [math.dist(pts[i], pts[i + 1]) for i in range(len(pts) - 1)], 0, upto)
-        if len(seg) > 1:
-            ap.line(seg[:-1] if progress >= 1 else seg, (*GOLD, 255), S(3.5))
+        head = S(16)
+        tip = (pts[0][0], pts[0][1] + (pts[1][1] - pts[0][1]) * progress)
+        if tip[1] - pts[0][1] > 1:
+            ap.line([pts[0], (tip[0], tip[1] - (head * 0.8 if progress >= 1 else 0))], (*GOLD, 255), S(3.5))
             if progress >= 1:
-                _chevron(ap, pts[-1], (pts[-1][0] - pts[-3][0], pts[-1][1] - pts[-3][1]), S(16), (*GOLD, 255))
+                _chevron(ap, tip, (0, 1), head, (*GOLD, 255))
         return ap.image()
 
     arrow_full = arrow(1.0)
     leaders = _Pen((0, 0, width, height))
     hole_xy = (door_x, floor - r)
-    leaders.line(g.pts([(318, eh + 46), (door_x - 70, eh + 46), (door_x - 52, floor - 2 * r + 22)]),
+    disc_y = eh + L.disc_dy
+    disc_x0 = (L.disc_leader_x0 if L.disc_leader_x0 is not None else
+               L.text_x + probe.textlength(labels["disc"], font=f_side) / g.k + 16)
+    leaders.line(g.pts([(disc_x0, disc_y), (door_x - 70, disc_y), (door_x - 52, floor - 2 * r + 22)]),
                  (*brand.GOLD_DIM, 255), S(2))
     leaders.ellipse(X(door_x - 52), Y(floor - 2 * r + 22), S(4), S(4), fill=(*GOLD, 255))
     # the central opening's words: two lines left of the recess where they fit there, else one line
-    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     recess_x0 = open_x - r - 12
-    op_lines, _f, short = fit_text(probe, labels["opening"], "Montserrat", g.f(30), int(S(recess_x0 - 79 - 12)), 2,
-                                   g.f(30), weight=700, quiet=True)
-    if short or max(probe.textlength(ln, font=f_side) for ln in op_lines) > S(recess_x0 - 79 - 12):
+    room = S(recess_x0 - L.text_x - 12)
+    op_lines, _f, short = fit_text(probe, labels["opening"], "Montserrat", g.f(L.side_px), int(room), 2,
+                                   g.f(L.side_px), weight=700, quiet=True)
+    if short or max(probe.textlength(ln, font=f_side) for ln in op_lines) > room:
         op_lines = [labels["opening"]]
-    op_end = 79 + max(probe.textlength(ln, font=f_side) for ln in op_lines) / g.k
+    op_end = L.text_x + max(probe.textlength(ln, font=f_side) for ln in op_lines) / g.k
     leaders.line(g.pts([(op_end + 12, floor - r), (hole_xy[0] - r * 0.16 - 6, floor - r)]), (*brand.GOLD_DIM, 255),
                  S(2))
     leaders.ellipse(X(hole_xy[0] - r * 0.16 - 6), Y(floor - r), S(4), S(4), fill=(*GOLD, 255))
@@ -2335,8 +2647,7 @@ def _render_defense_vertical(spec: dict[str, Any], out: Path, width: int, height
         p = 1.0 if final else roll(t)
         # plan: the slab moves across the corridor
         top = slab_open + (slab_shut - slab_open) * p
-        d = ImageDraw.Draw(im, "RGBA")
-        slab = _Pen((X(door_x - 16), Y(top - 4), X(door_x + 16), Y(top + slab_len + 4)))
+        slab = _Pen((X(door_x - slab_t / 2 - 6), Y(top - 4), X(door_x + slab_t / 2 + 6), Y(top + slab_len + 4)))
         slab.rect(X(door_x - slab_t / 2), Y(top), X(door_x + slab_t / 2), Y(top + slab_len), radius=S(4),
                   fill=(*GOLD, 255))
         slab.line([(X(door_x), Y(top + slab_len / 2) - S(5)), (X(door_x), Y(top + slab_len / 2) + S(5))],
@@ -2355,28 +2666,32 @@ def _render_defense_vertical(spec: dict[str, Any], out: Path, width: int, height
         spun = disc.rotate(-angle, resample=Image.BICUBIC)
         im.alpha_composite(shadow_im, (int(X(cx) - S(r + 30)), int(Y(floor) - S(20))))
         im.alpha_composite(spun, (round(X(cx) - spun.width / 2), round(Y(floor - r) - spun.height / 2)))
-        del d
         leader_sprite.draw(im, 1.0 if final else _ease((t - 3.55) / 0.45))
         return im
 
     final = art(0, final=True)
     timed = []
     for j, (ln, yb) in enumerate(zip(title_lines, title_base)):
-        timed.append((f"title{j}", _plan(final, (X(77), Y(yb)), ln, f_title, WHITE, "ls"), 0.1 + 0.08 * j))
-    tag, pill = _tag_pill(final, g, 888, 342, "ILLUSTRATIVE")
+        timed.append((f"title{j}", _plan(final, (X(L.title_x), Y(yb)), ln, f_title, WHITE, "ls"), 0.1 + 0.08 * j))
+    heading = _plan(final, (X(L.text_x), Y(ph)), labels["track"], f_lab, L.heading_fill, "ls", track=S(2))
+    if L.tag is not None:
+        tag, pill = _tag_pill(final, g, L.tag[0], L.tag[1], "ILLUSTRATIVE")
+    else:   # on the plan heading's line, after it
+        probe_tag = get_font("Montserrat", g.f(24), weight=700)
+        tw = tracked_width("ILLUSTRATIVE", probe_tag, g.s(3)) + 2 * g.s(16)
+        tag, pill = _tag_pill(final, g, g.ix(heading.box[2] + S(28) + tw), ph - 30, "ILLUSTRATIVE")
     timed.append(("tag", tag, 0.3))
-    timed.append(("plan_heading", _plan(final, (X(79), Y(ph)), labels["track"], f_lab, MUTED, "ls",
-                                            track=S(2)), 0.35))
-    timed.append(("inside", _plan(final, (X(84), Y((c_top + c_bot) / 2)), "INSIDE", f_side, brand.TEAL, "lm",
-                                      track=S(3)), 0.6))
-    timed.append(("outside", _plan(final, (X(870), Y((c_top + c_bot) / 2)), "OUTSIDE", f_side, brand.CORAL,
-                                       "rm", track=S(3)), 0.7))
-    timed.append(("elevation_heading", _plan(final, (X(79), Y(eh)), labels["opening_detail"], f_lab, MUTED,
-                                                 "ls", track=S(2)), 0.45))
-    timed.append(("disc", _plan(final, (X(79), Y(eh + 46)), labels["disc"], f_side, GOLD, "lm"), 3.6))
+    timed.append(("plan_heading", heading, 0.35))
+    timed.append(("inside", _plan(final, (X(L.inside[0]), Y((c_top + c_bot) / 2)), "INSIDE", f_side, brand.TEAL,
+                                  L.inside[1], track=S(3)), 0.6))
+    timed.append(("outside", _plan(final, (X(L.outside[0]), Y((c_top + c_bot) / 2)), "OUTSIDE", f_side, brand.CORAL,
+                                   L.outside[1], track=S(3)), 0.7))
+    timed.append(("elevation_heading", _plan(final, (X(L.text_x), Y(eh)), labels["opening_detail"], f_lab,
+                                             L.heading_fill, "ls", track=S(2)), 0.45))
+    timed.append(("disc", _plan(final, (X(L.text_x), Y(disc_y)), labels["disc"], f_side, GOLD, "lm"), 3.6))
     for j, ln in enumerate(op_lines):
-        yc = floor - r + 36 * (j - (len(op_lines) - 1) / 2)
-        timed.append((f"opening{j}", _plan(final, (X(79), Y(yc)), ln, f_side, WHITE, "lm"), 3.75 + 0.06 * j))
+        yc = floor - r + L.line_step * (j - (len(op_lines) - 1) / 2)
+        timed.append((f"opening{j}", _plan(final, (X(L.text_x), Y(yc)), ln, f_side, WHITE, "lm"), 3.75 + 0.06 * j))
     last: list[Image.Image] = []
 
     def frames():
@@ -2404,169 +2719,122 @@ def render_rolling_stone_defense(
     width: int = VIDEO_WIDTH,
     height: int = VIDEO_HEIGHT,
 ) -> Optional[Path]:
-    """Animated architectural diagram of an ancient subterranean rolling stone door.
-    Shows the stone disc rolling smoothly along its carved track from an interior alcove
-    to securely lock the defensive threshold against surface invaders.
+    """Animated architectural diagram of an ancient subterranean rolling stone door: the stone disc rolling along
+    its carved track out of its recess to block the doorway, in two linked views (plan and elevation).
 
-    9:16 (2026-11-02 design review, scored 3.5/10): rebuilt in _render_defense_vertical as two linked views (plan
-    and elevation), a disc that truly rolls (rotation = distance / radius) and brand colours only; 16:9 unchanged."""
+    9:16 (2026-11-02 design review, scored 3.5/10): rebuilt in _render_defense_vertical, a disc that truly rolls
+    (rotation = distance / radius) and brand colours only; 16:9 (round 2, 2-3/10) the same rebuild composed for
+    the wide frame (_render_defense_wide)."""
     if width <= height:
         return _render_defense_vertical(spec, out, width, height)
-    labels = diagram_labels("defense", spec)
-    n = int(CLIP_SECONDS * VIDEO_FPS)
-    top, bottom_bound = get_text_bounds(width, height)
-    title = diagram_title("defense", spec)
-
-    f_title = fit_font(ImageDraw.Draw(Image.new("RGB", (10, 10))), title, "Anton", 42 if width > height else 34, centred_text_width(width, height), 22)
-    f_stat = get_font("Anton", 30 if width > height else 24)
-    f_lab = get_font("Montserrat", 22 if width > height else 18)
-    f_sub = get_font("Montserrat", 16 if width > height else 14)
-
-    floor_y = int(bottom_bound - (60 if width > height else 90))
-    ceiling_y = int(top + (100 if width > height else 130))
-    corridor_h = floor_y - ceiling_y
-    disc_r = int(corridor_h * (0.58 if width > height else 0.40))
-    alcove_x = int(width * 0.30 if width > height else width * 0.35)
-    sealed_x = int(width * 0.52 if width > height else width * 0.54)
-    track_y = floor_y - disc_r + 14
-
-    bg = Image.new("RGB", (width, height), SEA)
-    d0 = ImageDraw.Draw(bg, "RGBA")
-
-    # Static architectural tunnel structure: solid rock above and below
-    for y in range(top + 40, ceiling_y):
-        k = (y - top) / max(1, ceiling_y - top)
-        d0.line([(0, y), (width, y)], fill=(int(65 - 15 * k), int(52 - 12 * k), int(42 - 10 * k), 255))
-    for y in range(floor_y, height):
-        k = (y - floor_y) / max(1, height - floor_y)
-        d0.line([(0, y), (width, y)], fill=(int(55 - 20 * k), int(44 - 16 * k), int(34 - 12 * k), 255))
-
-    # Architectural blueprint cross-hatching across solid bedrock
-    _draw_cross_hatching(d0, 0, top + 40, width, ceiling_y, spacing=16, fill=(130, 115, 95, 40))
-    _draw_cross_hatching(d0, 0, floor_y, width, height, spacing=16, fill=(120, 105, 85, 40))
-
-    # Corridor walls
-    d0.line([(0, ceiling_y), (width, ceiling_y)], fill=(*MUTED, 255), width=3)
-    d0.line([(0, floor_y), (width, floor_y)], fill=(*MUTED, 255), width=3)
-
-    # Alcove groove in ceiling and floor
-    d0.rectangle([alcove_x - disc_r - 20, ceiling_y - 25, sealed_x + 15, ceiling_y], fill=(22, 19, 16, 255))
-    d0.rectangle([alcove_x - disc_r - 20, floor_y, sealed_x + 15, floor_y + 25], fill=(22, 19, 16, 255))
-
-    # Title
-    bx0, _, bx1, _ = get_text_box(width, height)  # labels at the edges stay inside the Reel box (Shorts' icon column)
-    _text(d0, (int(width * 0.08), top + 16), title, font=f_title, fill=(*WHITE, 255), anchor="lm")
-
-    # Defensive zone labels with ample breathing room
-    if width > height:
-        _text(d0, (int(width * 0.12), ceiling_y + 16), "DEFENDER INTERIOR", font=f_lab, fill=(*accent(), 230), anchor="lm")
-        _text(d0, (int(width * 0.12), ceiling_y + 54), "SAFE REFUGE ZONE", font=f_sub, fill=(*MUTED, 200), anchor="lm")
-        _text(d0, (width - int(width * 0.12), ceiling_y + 16), "SURFACE PASSAGE", font=f_lab, fill=(210, 90, 80, 230), anchor="rm")
-        _text(d0, (width - int(width * 0.12), ceiling_y + 54), "EXTERNAL INVADERS", font=f_sub, fill=(*MUTED, 200), anchor="rm")
-    else:
-        _text(d0, (bx0, ceiling_y + 16), "DEFENDER INTERIOR", font=f_sub, fill=(*accent(), 230), anchor="la")
-        _text(d0, (bx1, ceiling_y + 16), "SURFACE PASSAGE", font=f_sub, fill=(210, 90, 80, 230), anchor="ra")
-
-    def frames():
-        for i in range(n):
-            t = i / VIDEO_FPS
-            im = bg.copy()
-            d = ImageDraw.Draw(im, "RGBA")
-
-            # Stone roll progression: starts at 0.5s, locks at 2.4s
-            roll = _ease((t - 0.5) / 1.9)
-            cx = int(alcove_x + (sealed_x - alcove_x) * roll)
-            rot = roll * math.pi * 1.5
-
-            # Draw stone disc with concentric basalt texture
-            d.ellipse([cx - disc_r, track_y - disc_r, cx + disc_r, track_y + disc_r], fill=(50, 48, 46, 255), outline=(*GOLD, 220), width=4)
-            d.ellipse([cx - int(disc_r * 0.65), track_y - int(disc_r * 0.65), cx + int(disc_r * 0.65), track_y + int(disc_r * 0.65)],
-                      outline=(75, 70, 65, 180), width=2)
-
-            for a_deg in (0, 45, 90, 135, 180, 225, 270, 315):
-                rad = math.radians(a_deg) + rot
-                x0 = cx + int(disc_r * 0.28 * math.cos(rad))
-                y0 = track_y + int(disc_r * 0.28 * math.sin(rad))
-                x1 = cx + int(disc_r * 0.85 * math.cos(rad))
-                y1 = track_y + int(disc_r * 0.85 * math.sin(rad))
-                d.line([(x0, y0), (x1, y1)], fill=(75, 70, 65, 160), width=2)
-
-            # Central spear port
-            port_r = max(10, int(disc_r * 0.14))
-            d.ellipse([cx - port_r, track_y - port_r, cx + port_r, track_y + port_r], fill=(16, 14, 12, 255), outline=(*GOLD, 240), width=2)
-
-            # Annotations fade in at t >= 2.0s
-            a_callout = int(255 * _ease((t - 2.0) / 0.8))
-            if a_callout > 0:
-                call1_x = width - int(width * 0.10) if width > height else bx1
-                leader1_y = ceiling_y - 45 if width < height else track_y - disc_r - 35
-                d.line([(cx, track_y - disc_r), (cx + 35, leader1_y), (call1_x, leader1_y)],
-                       fill=(*accent(), int(180 * a_callout / 255)), width=2)
-                _text(d, (call1_x, leader1_y - 10), labels["disc"], font=f_stat, fill=(*accent(), a_callout), anchor="rd")
-                _text(d, (call1_x, leader1_y + 14), labels["passage"], font=f_sub, fill=(*WHITE, a_callout), anchor="ra")
-
-                call2_x = int(width * 0.10) if width > height else bx0
-                leader2_y = track_y
-                d.line([(cx - port_r, leader2_y), (cx - disc_r - 20, leader2_y), (call2_x, leader2_y)],
-                       fill=(*accent(), int(180 * a_callout / 255)), width=2)
-                _text(d, (call2_x, leader2_y - 10), labels["opening"], font=f_stat, fill=(*accent(), a_callout), anchor="ld")
-                _text(d, (call2_x, leader2_y + 14), labels["opening_detail"], font=f_sub, fill=(*WHITE, a_callout), anchor="la")
-
-                call3_y = min(bottom_bound - 10, floor_y + 30)
-                if width < height:
-                    _text(d, (width // 2, call3_y - 10), labels["track"], font=get_font("Montserrat", 18), fill=(*WHITE, a_callout), anchor="ma")
-                    _text(d, (width // 2, call3_y + 16), labels["summary"], font=get_font("Montserrat", 14), fill=(*MUTED, a_callout), anchor="ma")
-                else:
-                    _text(d, (width // 2, call3_y), labels["track"] + " · " + labels["summary"],
-                          font=f_lab, fill=(*WHITE, a_callout), anchor="ma")
-
-            yield im
-
-    return _encode(frames(), out, n, width=width, height=height)
+    return _render_defense_wide(spec, out, width, height)
 
 
 # ----------------------------------------------- ventilation & airflow dynamics
+@dataclass(frozen=True)
+class _VentLayout:
+    """Where the ventilation section's parts sit, in its grid's design px (9:16 column or 16:9 frame)."""
+    title_x: float
+    title_w: float
+    title_base: float
+    title_step: float
+    title_px: tuple[int, int]
+    lab_px: int
+    side_px: int
+    sub_gap: float
+    ground_gap: float
+    hill: tuple[float, float, float]          # x, height, width
+    in_shaft: tuple[float, float]             # x, width
+    ex_shaft: tuple[float, float]
+    well_d: float
+    gal_h: float
+    room_start: tuple[float, float]
+    room_w: tuple[float, float]
+    room_gap: tuple[float, float]
+    room_h: tuple[float, float]
+    room_stop: float                          # rooms end this far short of the outlet shaft's wall
+    in_label: tuple[float, str]               # the intake's AIR SHAFT: x and anchor
+    out_label: tuple[float, str]
+    tag_right: float | None                   # the tag's right edge (30 above the subtitle); None: after it
+    text_x: float
+    heading_fill: tuple[int, int, int] = brand.STONE_LT
+    hold: float | None = None                 # out-air waits this long after the in-air has landed (None: overlap)
+    label_level: int | None = None            # the AIR SHAFT labels on this level's lane; None: above the first
+
+
+_VENT_TALL = _VentLayout(
+    title_x=77, title_w=811, title_base=382, title_step=64, title_px=(60, 56), lab_px=30, side_px=30, sub_gap=48,
+    ground_gap=92, hill=(690, 40, 190), in_shaft=(300, 36), ex_shaft=(690, 26), well_d=990, gal_h=30,
+    room_start=(26, 50), room_w=(84, 120), room_gap=(30, 52), room_h=(62, 74), room_stop=90, in_label=(79, "lm"),
+    out_label=(886, "rm"), tag_right=888, text_x=79)
+# 16:9: the section centred in the vignette-safe area (see _SECTION_WIDE), the hill and its outlet to the right,
+# each AIR SHAFT beside its own shaft; the in-air lands first and holds 0.6 s before the out-air moves.
+_VENT_WIDE = _VentLayout(
+    title_x=420, title_w=1180, title_base=252, title_step=72, title_px=(68, 56), lab_px=32, side_px=32, sub_gap=50,
+    ground_gap=84, hill=(1300, 46, 250), in_shaft=(740, 44), ex_shaft=(1300, 30), well_d=792, gal_h=32,
+    room_start=(30, 56), room_w=(110, 160), room_gap=(36, 60), room_h=(50, 60), room_stop=110,
+    in_label=(682, "rm"), out_label=(1342, "lm"), tag_right=None, text_x=422, heading_fill=brand.BONE, hold=0.6,
+    label_level=1)
+
+
 def _render_ventilation_vertical(spec: dict[str, Any], out: Path, width: int, height: int) -> Path | None:
     """The 9:16 ventilation section (2026-11-02 design review, 3.5/10 -> rebuilt): a hill's ground profile near
     the top of the text box, one deep shaft to the bottom ending in a well, four levels of rooms off it and a
     second, higher opening. Air in as a TEAL dashed path down the shaft and into the levels, air out as a CORAL
     path through the second shaft (no sky blue or red); the title is the plain head of diagram_title, and the
     only words are diagram_labels' (the intake and the outlet are both the AIR SHAFT), tagged ILLUSTRATIVE."""
+    return _render_ventilation(spec, out, width, height, _Grid(width, height), _VENT_TALL)
+
+
+def _render_ventilation_wide(spec: dict[str, Any], out: Path, width: int, height: int) -> Path | None:
+    """The 16:9 ventilation section (2026-11-02 review round 2, 2-3/10: invented words such as "DRAWS COOL DENSE
+    AIR DOWN" and "CONVECTION EXHAUST", sky blue and amber, 14-18 px type): the 9:16 rebuild composed for the wide
+    frame, TEAL air in first, a 0.6 s hold, then CORAL air out; only diagram_labels' words and the plain title."""
+    return _render_ventilation(spec, out, width, height, _WideGrid(width, height), _VENT_WIDE)
+
+
+def _render_ventilation(spec: dict[str, Any], out: Path, width: int, height: int, g: _Grid,
+                        L: _VentLayout) -> Path | None:
+    """The ventilation section on grid `g` with layout `L` (see the two orientations above)."""
     import random
 
     import numpy as np
     labels = diagram_labels("ventilation", spec)
     title = _plain_title(diagram_title("ventilation", spec))
-    g = _Grid(width, height)
     X, Y, S = g.x, g.y, g.s
     n = int(CLIP_SECONDS * VIDEO_FPS)
 
-    title_lines, f_title = _fit_title(g, title, S(811))
-    title_base = [382 + 64 * j for j in range(len(title_lines))]
-    sub_base = title_base[-1] + 48
-    f_lab = get_font("Montserrat", g.f(30), weight=600)
-    f_side = get_font("Montserrat", g.f(30), weight=700)
+    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    title_lines, f_title, short = fit_text(probe, title, "Anton", g.f(L.title_px[0]), int(S(L.title_w)), 1,
+                                           g.f(L.title_px[1]), sentences=False, quiet=True)
+    if short or probe.textlength(title_lines[0] if title_lines else "", font=f_title) > S(L.title_w):
+        title_lines, f_title, _ = fit_text(probe, title, "Anton", g.f(L.title_px[0]), int(S(L.title_w)), 2,
+                                           g.f(L.title_px[1]), sentences=False, quiet=True)
+    title_base = [L.title_base + L.title_step * j for j in range(len(title_lines))]
+    sub_base = title_base[-1] + L.sub_gap
+    f_lab = get_font("Montserrat", g.f(L.lab_px), weight=600)
+    f_side = get_font("Montserrat", g.f(L.side_px), weight=700)
 
-    ground_lo = sub_base + 92            # the ground at the frame's edges (design y)
-    hill_x, hill_h, hill_w = 690.0, 40.0, 190.0
+    ground_lo = sub_base + L.ground_gap  # the ground at the frame's edges (design y)
+    hill_x, hill_h, hill_w = L.hill
 
     def ground_d(x: float) -> float:
         return ground_lo - hill_h * math.exp(-((x - hill_x) / hill_w) ** 2)
 
-    in_x, in_w = 300.0, 36.0             # the deep shaft
-    ex_x, ex_w = 690.0, 26.0             # the outlet shaft, through the hill's crown
-    well_d = 990.0
+    in_x, in_w = L.in_shaft              # the deep shaft
+    ex_x, ex_w = L.ex_shaft              # the outlet shaft, through the hill's crown
+    well_d = L.well_d
     floors = [ground_lo + (well_d - 60 - ground_lo) * f for f in (0.2, 0.44, 0.68, 0.92)]
-    gal_h = 30.0
+    gal_h = L.gal_h
     rnd = random.Random(11)
     rooms = []
     for k, fl in enumerate(floors):
-        x = in_x + in_w / 2 + rnd.uniform(26, 50)
-        while x < ex_x - ex_w / 2 - 90:
-            w = rnd.uniform(84, 120)
+        x = in_x + in_w / 2 + rnd.uniform(*L.room_start)
+        while x < ex_x - ex_w / 2 - L.room_stop:
+            w = rnd.uniform(*L.room_w)
             w = min(w, ex_x - ex_w / 2 - 30 - x)
-            rooms.append((x, x + w, fl, rnd.uniform(62, 74), 300 + 10 * k + len(rooms)))
-            x += w + rnd.uniform(30, 52)
+            rooms.append((x, x + w, fl, rnd.uniform(*L.room_h), 300 + 10 * k + len(rooms)))
+            x += w + rnd.uniform(*L.room_gap)
 
     carve_box = (X(in_x - 50), Y(ground_lo - hill_h - 4), X(ex_x + 30), Y(well_d + 30))
 
@@ -2580,9 +2848,10 @@ def _render_ventilation_vertical(spec: dict[str, Any], out: Path, width: int, he
             pen.poly(g.pts(_vault(x0, x1, fl, h, seed)), fill=255)
 
     city = _carve(carve_box, paint, S(2))
+
     def gpx(xs) -> Any:
         """The ground's frame y at frame x (the hill in design units, mapped)."""
-        return np.array([Y(ground_d(65 + (x - g.bx0) / g.k)) for x in xs], dtype=np.float32)
+        return np.array([Y(ground_d(g.ix(x))) for x in xs], dtype=np.float32)
 
     base = _rock_ground(width, height, gpx)
     pen = _Pen((0, Y(ground_lo - hill_h - 10), width, Y(ground_lo + 10)))
@@ -2606,7 +2875,11 @@ def _render_ventilation_vertical(spec: dict[str, Any], out: Path, width: int, he
     warm = [[(split + 22, lane(fl)), (ex_x, lane(fl))] for fl in floors]
     warm.append([(ex_x, lane(floors[-1])), (ex_x, ground_d(ex_x) - 26)])
     starts_c = [0.5] + [0.5 + 1.0 * (lane(fl) - cool[0][0][1]) / (lane(floors[-1]) - cool[0][0][1]) for fl in floors]
-    starts_w = [s + 0.55 for s in starts_c[1:]] + [starts_c[-1] + 0.75]
+    if L.hold is None:
+        starts_w = [s + 0.55 for s in starts_c[1:]] + [starts_c[-1] + 0.75]
+    else:   # every in-path lands (0.8 s each), the hold, then the out-air level by level and up the outlet
+        t_out = max(starts_c) + 0.8 + L.hold
+        starts_w = [t_out + 0.12 * k for k in range(len(floors))] + [t_out + 0.12 * len(floors) + 0.3]
     paths = [(p, brand.TEAL, st) for p, st in zip(cool, starts_c)]
     paths += [(p, brand.CORAL, st) for p, st in zip(warm, starts_w)]
     air_box = (X(in_x - 30), Y(ground_lo - hill_h - 70), X(ex_x + 30), Y(lane(floors[-1]) + 24))
@@ -2636,17 +2909,23 @@ def _render_ventilation_vertical(spec: dict[str, Any], out: Path, width: int, he
     final = art(0, final=True)
     timed = []
     for j, (ln, yb) in enumerate(zip(title_lines, title_base)):
-        timed.append((f"title{j}", _plan(final, (X(77), Y(yb)), ln, f_title, WHITE, "ls"), 0.1 + 0.08 * j))
-    timed.append(("subtitle", _plan(final, (X(79), Y(sub_base)), labels["airflow"], f_lab, MUTED, "ls",
-                                        track=S(2)), 0.3))
-    tag, pill = _tag_pill(final, g, 888, sub_base - 30, labels["summary"])
+        timed.append((f"title{j}", _plan(final, (X(L.title_x), Y(yb)), ln, f_title, WHITE, "ls"), 0.1 + 0.08 * j))
+    subtitle = _plan(final, (X(L.text_x), Y(sub_base)), labels["airflow"], f_lab, L.heading_fill, "ls", track=S(2))
+    timed.append(("subtitle", subtitle, 0.3))
+    if L.tag_right is not None:
+        tag, pill = _tag_pill(final, g, L.tag_right, sub_base - 30, labels["summary"])
+    else:   # on the subtitle's line, after it
+        f_tag = get_font("Montserrat", g.f(24), weight=700)
+        tw = tracked_width(labels["summary"], f_tag, g.s(3)) + 2 * g.s(16)
+        tag, pill = _tag_pill(final, g, g.ix(subtitle.box[2] + S(28) + tw), sub_base - 30, labels["summary"])
     timed.append(("tag", tag, 0.35))
-    shaft_y = (ground_d(in_x) + floors[0] - gal_h) / 2 + 6
+    shaft_y = ((ground_d(in_x) + floors[0] - gal_h) / 2 + 6 if L.label_level is None else
+               lane(floors[L.label_level]))
     leaders = _Pen((0, 0, width, height))
-    in_label = _plan(final, (X(79), Y(shaft_y)), labels["shaft"], f_side, brand.TEAL, "lm")
+    in_label = _plan(final, (X(L.in_label[0]), Y(shaft_y)), labels["shaft"], f_side, brand.TEAL, L.in_label[1])
     leaders.line([(in_label.box[2] + S(10), Y(shaft_y)), (X(in_x - in_w / 2 - 6), Y(shaft_y))],
                  (*brand.GOLD_DIM, 255), S(2))
-    out_label = _plan(final, (X(886), Y(shaft_y)), labels["shaft"], f_side, brand.CORAL, "rm")
+    out_label = _plan(final, (X(L.out_label[0]), Y(shaft_y)), labels["shaft"], f_side, brand.CORAL, L.out_label[1])
     leaders.line([(X(ex_x + ex_w / 2 + 6), Y(shaft_y)), (out_label.box[0] - S(10), Y(shaft_y))],
                  (*brand.GOLD_DIM, 255), S(2))
     leader_sprite = leaders.sprite()
@@ -2684,110 +2963,16 @@ def render_ventilation_airflow(
     width: int = VIDEO_WIDTH,
     height: int = VIDEO_HEIGHT,
 ) -> Optional[Path]:
-    """Animated aerodynamic simulation of subterranean ventilation.
-    Visualizes cool surface air descending through the 55m master shaft
-    and warm stale air venting upward through secondary micro-ducts.
+    """Animated section of subterranean ventilation: air drawn in down a deep shaft and through the levels, and
+    out through a second, higher opening.
 
     9:16 (2026-11-02 design review, scored 3.5/10): rebuilt in _render_ventilation_vertical as a section under a
     hill, a deep shaft to a well, four levels, TEAL air in and CORAL air out, a plain title and diagram_labels'
-    words only (the old frame drew sky blue and red and unchecked claims); 16:9 unchanged."""
+    words only (the old frame drew sky blue and red and unchecked claims); 16:9 (round 2, 2-3/10) the same rebuild
+    composed for the wide frame (_render_ventilation_wide)."""
     if width <= height:
         return _render_ventilation_vertical(spec, out, width, height)
-    labels = diagram_labels("ventilation", spec)
-    n = int(CLIP_SECONDS * VIDEO_FPS)
-    top, bottom_bound = get_text_bounds(width, height)
-    title = diagram_title("ventilation", spec)
-
-    f_title = fit_font(ImageDraw.Draw(Image.new("RGB", (10, 10))), title, "Anton", 44 if width > height else 50, centred_text_width(width, height), 26)
-    f_stat = get_font("Anton", 32 if width > height else 28)
-    f_lab = get_font("Montserrat", 24 if width > height else 22)
-    f_sub = get_font("Montserrat", 18 if width > height else 18)
-
-    ground_y = int(top + (50 if width > height else 80))
-    shaft_x = int(width * 0.28) if width > height else int(width * 0.36)
-    shaft_w = 40 if width > height else 48
-    exhaust_x = int(width * 0.68) if width > height else int(width * 0.64)
-    exhaust_w = 26 if width > height else 32
-    deep_y = int(bottom_bound - 45)
-
-    bg = Image.new("RGB", (width, height), SEA)
-    d0 = ImageDraw.Draw(bg, "RGBA")
-
-    for y in range(ground_y, height):
-        k = (y - ground_y) / max(1, height - ground_y)
-        d0.line([(0, y), (width, y)], fill=(int(60 - 25 * k), int(48 - 20 * k), int(38 - 16 * k), 255))
-    _draw_cross_hatching(d0, 0, ground_y, width, height, spacing=18, fill=(110, 95, 75, 40))
-    d0.line([(0, ground_y), (width, ground_y)], fill=(*MUTED, 255), width=3)
-    bx0, _, bx1, _ = get_text_box(width, height)  # labels at the edges stay inside the Reel box (Shorts' icon column)
-    _text(d0, (width - int(width * 0.08) if width > height else bx1, ground_y - 24), "GROUND LEVEL", font=get_font("Montserrat", 22), fill=(*MUTED, 255), anchor="rm")
-    _text(d0, (int(width * 0.08), top + 16), title, font=f_title, fill=(*WHITE, 255), anchor="lm")
-
-    level_ys = [ground_y + int((deep_y - ground_y) * f) for f in (0.28, 0.52, 0.75, 0.94)]
-    bottom_gallery_floor = level_ys[-1] + 14
-
-    # Shaft carve-outs: cleanly terminated flush with lowest horizontal gallery floor
-    d0.rectangle([shaft_x - shaft_w // 2, ground_y, shaft_x + shaft_w // 2, bottom_gallery_floor], fill=(16, 14, 12, 255))
-    d0.rectangle([exhaust_x - exhaust_w // 2, ground_y, exhaust_x + exhaust_w // 2, bottom_gallery_floor], fill=(16, 14, 12, 255))
-
-    for ly in level_ys:
-        d0.rectangle([shaft_x + shaft_w // 2, ly - 14, exhaust_x - exhaust_w // 2, ly + 14], fill=(22, 19, 16, 255))
-
-    CYAN_AIR = (80, 195, 245)
-    AMBER_HEAT = (245, 150, 60)
-
-    def frames():
-        for i in range(n):
-            t = i / VIDEO_FPS
-            im = bg.copy()
-            d = ImageDraw.Draw(im, "RGBA")
-
-            # Cool air descends cleanly through master shaft into lowest level
-            arrow_speed = (t * 110) % 60
-            for y_arr in range(ground_y - 20, level_ys[-1], 45):
-                curr_y = int(y_arr + arrow_speed)
-                if ground_y - 15 <= curr_y <= level_ys[-1] - 8:
-                    d.polygon([(shaft_x, curr_y + 14), (shaft_x - 12, curr_y), (shaft_x + 12, curr_y)], fill=(*CYAN_AIR, 220))
-
-            # Cross-ventilation airflow across horizontal living galleries
-            for ly in level_ys:
-                h_shift = (t * 80) % 50
-                for x_arr in range(shaft_x + shaft_w // 2 + 20, exhaust_x - exhaust_w // 2 - 20, 50):
-                    curr_x = int(x_arr + h_shift)
-                    if shaft_x + shaft_w // 2 < curr_x < exhaust_x - exhaust_w // 2:
-                        d.polygon([(curr_x + 12, ly), (curr_x, ly - 8), (curr_x, ly + 8)], fill=(*CYAN_AIR, 180))
-
-            # Warm exhaust air ascends from lowest floor up to the surface
-            exhaust_speed = (t * 90) % 50
-            for y_arr in range(level_ys[-1] - 10, ground_y - 30, -45):
-                curr_y = int(y_arr - exhaust_speed)
-                if ground_y - 20 <= curr_y <= level_ys[-1] - 8:
-                    d.polygon([(exhaust_x, curr_y - 12), (exhaust_x - 10, curr_y), (exhaust_x + 10, curr_y)], fill=(*AMBER_HEAT, 210))
-
-            a_callout = int(255 * _ease((t - 1.5) / 0.8))
-            if a_callout > 0:
-                call1_x = int(width * 0.08) if width > height else bx0
-                shelf1_y = ground_y + (80 if width > height else 60)
-                d.line([(shaft_x - shaft_w // 2, shelf1_y), (call1_x, shelf1_y)], fill=(*CYAN_AIR, int(180 * a_callout / 255)), width=2)
-                _text(d, (call1_x, shelf1_y - 10), labels["shaft"], font=f_stat, fill=(*CYAN_AIR, a_callout), anchor="ld")
-                _text(d, (call1_x, shelf1_y + 14), "DRAWS COOL DENSE AIR DOWN", font=f_sub, fill=(*WHITE, a_callout), anchor="la")
-
-                call2_x = width - int(width * 0.08) if width > height else bx1
-                shelf2_y = ground_y + (100 if width > height else 80)
-                d.line([(exhaust_x + exhaust_w // 2, shelf2_y), (call2_x, shelf2_y)], fill=(*AMBER_HEAT, int(180 * a_callout / 255)), width=2)
-                _text(d, (call2_x, shelf2_y - 10), "CONVECTION EXHAUST", font=f_stat, fill=(*AMBER_HEAT, a_callout), anchor="rd")
-                _text(d, (call2_x, shelf2_y + 14), labels["exhaust_detail"], font=f_sub, fill=(*WHITE, a_callout), anchor="ra")
-
-                call3_y = min(bottom_bound - 10, bottom_gallery_floor + 20)
-                if width < height:
-                    _text(d, (width // 2, call3_y - 10), labels["airflow"], font=get_font("Montserrat", 20), fill=(*accent(), a_callout), anchor="ma")
-                    _text(d, (width // 2, call3_y + 16), labels["summary"], font=get_font("Montserrat", 15), fill=(*WHITE, a_callout), anchor="ma")
-                else:
-                    _text(d, (width // 2, call3_y), labels["airflow"] + " · " + labels["summary"],
-                          font=f_lab, fill=(*accent(), a_callout), anchor="ma")
-
-            yield im
-
-    return _encode(frames(), out, n, width=width, height=height)
+    return _render_ventilation_wide(spec, out, width, height)
 
 
 # ----------------------------------------------- LiDAR subterranean radar scan

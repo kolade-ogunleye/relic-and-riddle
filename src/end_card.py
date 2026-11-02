@@ -56,8 +56,16 @@ SHARE_PLAN = ((2, SHARE_SIZES), (3, SHARE_SIZES), (4, (52,)), (5, (46,)))
 # subscribe button); the card's text stays clear of where they are placed (1920x1080 px).
 LANDSCAPE_WIDTH, LANDSCAPE_HEIGHT = 1920, 1080
 END_SCREEN_SECONDS = 10.0
-END_SCREEN_SLOTS = {"video": (1100, 260, 1820, 660), "subscribe": (140, 700, 420, 980)}
+END_SCREEN_SLOTS = {"video": (1100, 260, 1820, 660), "subscribe": (140, 700, 420, 980),
+                    # panel round 4: a second element (a playlist or the latest upload) fills the lower right; the
+                    # channel's YouTube Studio template must place it here before slot_frames may frame it
+                    "video2": (1100, 700, 1580, 970)}
+END_SCREEN_VIDEO_SLOTS = ("video", "video2")
+YOUTUBE_TIMESTAMP_ZONE = (1620, 950, 1920, 1080)   # the player's timestamp and controls (1920x1080 px)
 END_SCREEN_GAP = 60
+# The 16:9 hand-off (panel round 4): YouTube's own line, pointing the eye at the watch-next slot. A fixed brand line
+# with no topic claim (the Reel's share ask stays on the 9:16 bridge and in the captions).
+HANDOFF = "The next riddle is right here."
 LANDSCAPE_SHARE_SIZES = (64, 60, 56)
 LANDSCAPE_MASTHEAD_W = 620
 LANDSCAPE_PUSH = 0.02    # the 16:9 push over END_SCREEN_SECONDS, easing to rest (panel round 3: YouTube's tiles sit
@@ -81,6 +89,7 @@ LOOP_PUSH = 0.0016                      # zoom per frame: the composer's forward
                                         # (its stills' "min(pzoom+0.0016,1.24)", its hook clip's "min(1+0.0016*on,1.24)")
 LOOP_PUSH_CAP = 1.24                    # where the composer's push stops: a shot longer than ~5 s is static at its end
 LOOP_MAX_STEP_L = 25.0                  # the largest mean-L* change allowed between consecutive frames of the seam
+LOOP_MAX_MAD = 8.0                      # the bridge's last frame against frame 0: mean absolute difference, 0-255
 LOOP_CENTRE = 0.40                      # the line's vertical centre, as a share of the height (y 768: the Reel box)
 FOLLOW_SIZES = range(40, 29, -1)
 FOLLOW_TRACK = 0.12      # the follow line's letter spacing, as a share of its size
@@ -200,10 +209,15 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
     from .typography import drawable
     landscape = width > height
     words = drawable(share, "Montserrat").split() or ["…"]  # no emoji or missing-glyph boxes (2026-10-29)
+    floor = None   # 16:9: the lowest the text column may reach (above the subscribe slot)
     if landscape:
         x0, y0 = round(width * 0.08), round(height * 0.12)
-        max_w = END_SCREEN_SLOTS["video"][0] - END_SCREEN_GAP - x0
-        plan = ((1, LANDSCAPE_SHARE_SIZES), (2, LANDSCAPE_SHARE_SIZES), (3, LANDSCAPE_SHARE_SIZES), (4, (48,)))
+        max_w = min(END_SCREEN_SLOTS[k][0] for k in END_SCREEN_VIDEO_SLOTS) - END_SCREEN_GAP - x0
+        plan = ((1, LANDSCAPE_SHARE_SIZES), (2, LANDSCAPE_SHARE_SIZES), (3, LANDSCAPE_SHARE_SIZES), (4, (48,)),
+                (5, (44, 40, 36)))   # the last step only when the floor (above the subscribe slot) bites
+        m = _masthead(LANDSCAPE_MASTHEAD_W)
+        top0 = y0 + m["font"].getbbox("R", anchor="lt")[3] + 40 + 70
+        floor = END_SCREEN_SLOTS["subscribe"][1] - END_SCREEN_GAP
     else:
         max_w = REEL.centred_width(width, height)
         plan = SHARE_PLAN
@@ -212,6 +226,8 @@ def layout(share: str, width: int = WIDTH, height: int = HEIGHT) -> dict[str, An
         for size in sizes:
             share_font = get_font("Montserrat", size, weight=SHARE_WEIGHT)
             lines = _balanced(words, share_font, max_w, max_lines)
+            if lines and floor is not None and top0 + len(lines) * round(size * 1.24) > floor:
+                lines = None   # it would run into the subscribe slot: fewer lines or a smaller size
             if lines:
                 break
         if lines:
@@ -394,6 +410,7 @@ def end_screen_extras(width: int = LANDSCAPE_WIDTH) -> dict[str, Any]:
     YouTube's progress bar and timestamp."""
     vx0, vy0, vx1, vy1 = END_SCREEN_SLOTS["video"]
     sx0, sy0, sx1, sy1 = END_SCREEN_SLOTS["subscribe"]
+    wx0, wy0, wx1, wy1 = END_SCREEN_SLOTS["video2"]
     o = SLOT_FRAME_OFFSET
     kfont = get_font(brand.DATA_FONT, KICKER_SIZE, weight=600)
     ink = kfont.getbbox(KICKER, anchor="ls")
@@ -401,12 +418,40 @@ def end_screen_extras(width: int = LANDSCAPE_WIDTH) -> dict[str, Any]:
     cfont = get_font(brand.DATA_FONT, CREDITS_SIZE, weight=500)
     return {"kicker": {"text": KICKER, "font": kfont, "xy": (vx0, kick_baseline), "track": KICKER_TRACK * KICKER_SIZE,
                        "top": kick_baseline + ink[1]},
-            "frames": {"video": (vx0 - o, vy0 - o, vx1 + o, vy1 + o), "subscribe": (sx0 - o, sy0 - o, sx1 + o, sy1 + o)},
+            "frames": {"video": (vx0 - o, vy0 - o, vx1 + o, vy1 + o), "subscribe": (sx0 - o, sy0 - o, sx1 + o, sy1 + o),
+                       "video2": (wx0 - o, wy0 - o, wx1 + o, wy1 + o)},
             "credits": {"text": CREDITS_LINE, "font": cfont, "xy": (sx1 + o + 48, sy1), "track": 0.08 * CREDITS_SIZE}}
 
 
+def _overlap(a: tuple[float, float, float, float], b: tuple[float, float, float, float]) -> bool:
+    return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
+
+
+def end_screen_problems(lay: dict[str, Any], width: int = LANDSCAPE_WIDTH, *, credits: bool = False) -> list[str]:
+    """What, on a 16:9 layout, runs into YouTube's end-screen elements: the text column (masthead to the last line)
+    against every slot (with its hairline frame) and the player's timestamp zone, the kicker against the other
+    slots and the timestamp zone, and (when drawn) the credits line likewise. Empty when all clear."""
+    ex = end_screen_extras(width)
+    m = lay["masthead"]
+    x0 = lay["masthead_xy"][0] - 2 * m["mark_r"] - m["gap"]
+    col_right = max(x0 + m["width"], lay["rule"][1], lay["align_x"] + max(lay["share_widths"]))
+    column = (x0, lay["masthead_top"], col_right, lay["top"] + len(lay["lines"]) * lay["line_h"])
+    k = ex["kicker"]
+    kw = _tracked_width(k["font"], k["text"], k["track"])
+    kicker = (k["xy"][0], k["top"], k["xy"][0] + kw, k["xy"][1])
+    zones = {**ex["frames"], "timestamp": YOUTUBE_TIMESTAMP_ZONE}
+    items = {"text column": (column, zones), "kicker": (kicker, {n: z for n, z in zones.items() if n != "video"})}
+    if credits:
+        c = ex["credits"]
+        cw = _tracked_width(c["font"], c["text"], c["track"])
+        cb = c["font"].getbbox(c["text"], anchor="ls")
+        items["credits line"] = ((c["xy"][0], c["xy"][1] + cb[1], c["xy"][0] + cw, c["xy"][1] + cb[3]), zones)
+    return [f"the {name} runs into the {zone} slot" if zone != "timestamp" else f"the {name} runs into the timestamp"
+            for name, (box, zs) in items.items() for zone, z in zs.items() if _overlap(box, z)]
+
+
 def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *, slot_frames: bool = False,
-           credits: bool = False) -> Iterator[Image.Image]:
+           credits: bool = False, handoff: bool = True) -> Iterator[Image.Image]:
     """The card's frames (RGB, FPS) over the narration's last frame: WIDTHxHEIGHT for SECONDS when `last` is
     upright, the 16:9 YouTube end screen (1920x1080, END_SCREEN_SECONDS) when it is wide (`last` is cropped to
     the size, never stretched). `stats`, when given, receives the measured dim, the layout and each line's contrast
@@ -415,7 +460,8 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
     video slot after the share line (its contrast in stats["contrast_kicker"]); `slot_frames` draws GOLD_DIM
     hairlines around the element slots (only for a channel whose YouTube Studio elements are placed at exactly
     END_SCREEN_SLOTS); `credits` adds IMAGE CREDITS IN DESCRIPTION (only when the description carries them;
-    stats["contrast_credits"])."""
+    stats["contrast_credits"]). The 16:9 screen says HANDOFF, YouTube's hand-off to the watch-next slot, in place of
+    the Reel's share ask (panel round 4; `handoff=False` keeps `share`); stats["text"] records the line drawn."""
     from .typography import plan_text
     landscape = last.width > last.height
     width, height = (LANDSCAPE_WIDTH, LANDSCAPE_HEIGHT) if landscape else (WIDTH, HEIGHT)
@@ -426,7 +472,8 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
         cols = _scrim(width)[None, :]
         shape, soften_w = shape * cols, soften_w * cols
     soft_base = base.filter(ImageFilter.GaussianBlur(14))
-    lay = layout(share, width, height)
+    text = HANDOFF if landscape and handoff else share
+    lay = layout(text, width, height)
     mast = lay["masthead"]
     total = round(seconds * FPS)
     ink = np.array(INK, np.float32)
@@ -459,10 +506,11 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
         stats.update(dim=dim, box=[round(v, 1) for v in lay["box"]], share_lines=[" ".join(ln) for ln in lay["lines"]],
                      share_size=lay["share_font"].size, follow_size=lay["follow_font"].size if lay["follow"] else None,
                      follow=lay["follow"], safe_width=lay["max_width"], masthead_width=mast["width"],
-                     size=[width, height], seconds=seconds, masthead_top=lay["masthead_top"])
+                     size=[width, height], seconds=seconds, masthead_top=lay["masthead_top"], text=text)
         if landscape:
             stats.update(kicker=KICKER, slot_frames=bool(slot_frames), credits_line=bool(credits),
-                         push=LANDSCAPE_PUSH)
+                         push=LANDSCAPE_PUSH, handoff=text == HANDOFF,
+                         layout_problems=end_screen_problems(lay, width, credits=credits))
     for i in range(total):
         t = i / FPS
         frame = ground(t)
@@ -475,6 +523,7 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
             fa = int(255 * ease((t - share_done - 0.1) / 0.5))
             if fa > 0:
                 d.rectangle(extras["frames"]["video"], outline=(*brand.GOLD_DIM, fa), width=1)
+                d.rectangle(extras["frames"]["video2"], outline=(*brand.GOLD_DIM, fa), width=1)
                 d.ellipse(extras["frames"]["subscribe"], outline=(*brand.GOLD_DIM, fa), width=1)
         frame = Image.alpha_composite(frame.convert("RGBA"), layer).convert("RGB")
         for k, plate in enumerate(word_plates):   # the share line rises word by word
@@ -620,6 +669,7 @@ def loop_bridge(last: Image.Image, first: Image.Image, share: str,
     prev_l = mean_lstar(a_img)
     steps: list[float] = []
     mix = 0.0
+    frame = None
     for i in range(total):
         t = i / FPS                      # progress i/total: frame 0 of the Reel would be total/total
         z = 1 + a_rate * (i + 1)         # the last shot's drift carries on from its last frame
@@ -643,9 +693,48 @@ def loop_bridge(last: Image.Image, first: Image.Image, share: str,
         yield frame
     if stats is not None:
         steps.append(abs(mean_lstar(first) - prev_l))   # the bridge's last frame -> the Reel's frame 0
+        stats["mad_last"] = round(float(np.abs(np.asarray(frame, np.float32) - np.asarray(b_img, np.float32)).mean()), 2)
         stats.update(text=text, lines=[" ".join(ln) for ln in lay["lines"]] if lay else [],
                      share_size=lay["share_font"].size if lay else None, dim=dim, seconds=LOOP_SECONDS,
                      follow=False, line=bool(line), crossfade=round(cf, 3), loop_dim=LOOP_DIM, push=close_push,
                      close_zoom=close_zoom, open_push=open_push, mix_last=round(mix, 4),
                      max_step_L=round(max(steps), 2))
         stats.setdefault("contrast", None)
+
+
+def seam_problems(stats: dict[str, Any]) -> list[str]:
+    """Why a rendered loop bridge would hitch at the seam, from loop_bridge's own stats: a step over LOOP_MAX_STEP_L
+    in mean L*, a last frame LOOP_MAX_MAD or further from frame 0, or a last frame that is not one step short of it
+    (mix 29/30). Empty when the seam is clean."""
+    problems = []
+    step = stats.get("max_step_L")
+    if step is None or step > LOOP_MAX_STEP_L:
+        problems.append(f"a frame steps {step} L* at the seam (at most {LOOP_MAX_STEP_L})")
+    mad = stats.get("mad_last")
+    if mad is None or mad >= LOOP_MAX_MAD:
+        problems.append(f"the last frame is {mad} from frame 0 (under {LOOP_MAX_MAD})")
+    total = round(LOOP_SECONDS * FPS)
+    mix = stats.get("mix_last")
+    if mix is None or abs(mix - (1 - 1 / total)) > 1e-3:
+        problems.append(f"the last frame's mix is {mix}, not {total - 1}/{total}")
+    return problems
+
+
+def check_loop_bridge(last: Image.Image, first: Image.Image, share: str, **kw: Any) -> dict[str, Any]:
+    """The render-time gate on a loop bridge (panel round 4): renders it once, frames discarded as they come so
+    memory stays at one frame, and reads its own stats. {"ok", "problems", "stats", "note"}: when not ok the
+    composer ships the plain end card instead, and `note` is the review card's QA line saying why. A frame 0 of the
+    wrong size is a problem too (never resized to fit)."""
+    stats: dict[str, Any] = {}
+    try:
+        for _ in loop_bridge(last, first, share, stats, **kw):
+            pass
+        problems = seam_problems(stats)
+    except ValueError as exc:
+        problems = [str(exc)]
+    note = None
+    if problems:
+        note = {"type": "end_card", "card": "End card", "severity": "warning",
+                "issue": "The loop bridge would hitch at the seam (" + "; ".join(problems)
+                         + "), so the Reel ends on the plain end card instead."}
+    return {"ok": not problems, "problems": problems, "stats": stats, "note": note}

@@ -351,6 +351,21 @@ def _label_box(im: Image.Image, cx: int, y: int, title: str, sub: str, alpha: fl
 # Land a step lighter than it was (74, 76, 82 / 122, 100, 66): after the film grade the land and the sea were close
 # in value (visual critic round 4, 2026-10-29); home stays warm but not a flood of gold (big countries).
 LAND_TINT, HOME_TINT = (88, 92, 100), (150, 122, 72)
+# Round 3 (2026-11-02): neighbours' names and borders on the nearest brand token (an untokenised (150, 152, 160)
+# grey before), the coastal glow's strength on TEAL.
+MAP_NAME, MAP_BORDER, MAP_GLOW = brand.STONE, brand.STONE, 0.38
+
+
+def camera_spans(n: int, wide: float, close: float, travel: float, fps: int) -> list[float]:
+    """The locator's span (degrees across the frame) on each of `n` frames (round 3, 2026-11-02): eased in and
+    out in log space over `travel` seconds, so each halving of the view takes the same time (a cubic ease-out on
+    the linear span spent most of the move in the first half-second), then held."""
+    lw, lc = math.log(wide), math.log(close)
+    return [math.exp(lw + (lc - lw) * _ease_io(i / fps / travel)) for i in range(n)]
+
+
+MAP_TRAVEL = 2.2          # s: the camera's move from the wide view to the close one
+MAP_PIN_AT = MAP_TRAVEL + 0.1   # the pin drops once the camera rests
 
 
 @lru_cache(maxsize=1)
@@ -419,8 +434,15 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
     rows = np.linspace(0, 1, bh, dtype=np.float32)[:, None, None]
     sea_rgb = np.array((14, 22, 34), dtype=np.float32) * (1 - rows) + np.array((7, 11, 19), dtype=np.float32) * rows
     glow = np.asarray(land_m.filter(ImageFilter.GaussianBlur(28)), dtype=np.float32)[..., None] / 255.0
-    sea_rgb = sea_rgb + np.array((40, 62, 84), dtype=np.float32) * np.clip(glow - land, 0, 1) * 0.9
+    # The coastal glow on a brand token (round 3, 2026-11-02: an off-token sky blue (40, 62, 84) before): TEAL at
+    # a low alpha, so the coast still reads against the land at phone size.
+    sea_rgb = sea_rgb + np.array(brand.TEAL, dtype=np.float32) * np.clip(glow - land, 0, 1) * MAP_GLOW
     out = sea_rgb * (1 - land) + land_rgb * land * (1 - homea) + home_rgb * homea
+    if home is not None and homea.max() > 0:     # a bone inner stroke 6 px inside the home country's border
+        inner = home_m.filter(ImageFilter.MinFilter(13))
+        ring = np.clip(np.asarray(inner, np.float32) - np.asarray(inner.filter(ImageFilter.MinFilter(3)), np.float32),
+                       0, 255)[..., None] / 255.0
+        out = out * (1 - ring * 0.5) + np.array(brand.BONE, dtype=np.float32) * ring * 0.5
     base = Image.fromarray(np.clip(out, 0, 255).astype("uint8"), "RGB")
 
     draw = ImageDraw.Draw(base, "RGBA")
@@ -428,63 +450,100 @@ def relief_base(lat0: float, lon0: float, bw: int, bh: int, kx: float, coslat: f
         for poly in c["polygons"]:
             ring = poly[0]
             if any(abs(x - lon0) < lon_half and abs(y - lat0) < lat_half for x, y in ring[:: max(1, len(ring) // 50)]):
-                colour, width = ((*accent(),), 7) if c is home else ((150, 150, 158), 3)
+                colour, width = ((*accent(),), 7) if c is home else (MAP_BORDER, 3)
                 draw.line([project(x, y) for x, y in ring] + [project(*ring[0])], fill=colour, width=width)
 
     # Neighbouring countries, named at Natural Earth's label points. A label is drawn only if it
     # collides with no other label and is either wholly inside the final close-up or wholly
     # outside it, so the last frame never shows half a name.
     font = get_font("Montserrat", 66)
-    fx0, fy0, fx1, fy1 = final_view
     placed: List[Tuple[float, float, float, float]] = list(reserved)  # e.g. the pin and place label
     for c in sorted(visible, key=lambda c: (c["label_rank"], -c["size"])):
         # Areas of indeterminate status (e.g. Siachen Glacier) are not countries and stay unnamed.
         if c is home or not c["label_at"] or c["label_rank"] > 5 or c.get("type") == "Indeterminate":
             continue
-        x, y = project(*c["label_at"])
+        x0_, y0_ = project(*c["label_at"])
         name = " ".join(c["display"].upper())  # letter-spaced small caps
-        l, t, r, b = draw.textbbox((x, y), name, font=font, anchor="mm")
+        l0, t0, r0, b0 = draw.textbbox((x0_, y0_), name, font=font, anchor="mm")
         if c.get("extent"):  # a name much wider than its land reads as naming something else
             ex0, _ = project(c["extent"][0], c["extent"][3])
             ex1, _ = project(c["extent"][2], c["extent"][1])
-            if abs(ex1 - ex0) < 0.6 * (r - l):
+            if abs(ex1 - ex0) < 0.6 * (r0 - l0):
                 continue
-        box = (l - 30, t - 20, r + 30, b + 20)
-        if box[0] < 0 or box[1] < 0 or box[2] > bw or box[3] > bh:
-            continue
-        # Reserve the subtitle band throughout both the wide view and final zoom.
-        label_bottom = min(bh * label_bottom_fraction, fy0 + (fy1 - fy0) * label_bottom_fraction)
-        if box[3] > label_bottom:
-            continue
-        m = 60  # clear of the close-up's edge, so the last frame shows no name touching it
-        inside = fx0 + m <= box[0] and box[2] <= fx1 - m and fy0 + m <= box[1] and box[3] <= fy1 - m
-        if inside and final_safe is not None:  # and inside the Reel's safe box on the last frame (so on every frame)
-            inside = (final_safe[0] <= box[0] and box[2] <= final_safe[2]
-                      and final_safe[1] <= box[1] and box[3] <= final_safe[3])
-        outside = box[2] < fx0 or box[0] > fx1 or box[3] < fy0 or box[1] > fy1
-        if not (inside or outside or transient is not None) or any(not (box[2] < p[0] or box[0] > p[2] or box[3] < p[1] or box[1] > p[3]) for p in placed):
-            continue
-        placed.append(box)
-        if not inside and transient is not None:
-            # A name not wholly inside the close-up's safe box is crossed by the frame's edge as the camera
-            # zooms in: drawn into the base, it showed cut ("THUANIA", "ND": Derinkuyu, prod 2026-10-29). It
-            # is drawn on the frames instead, only while it is wholly inside the safe box, fading out before.
-            sprite = Image.new("L", (int(r - l) + 8, int(b - t) + 8), 0)
-            ImageDraw.Draw(sprite).text((4 - l + x, 4 - t + y), drawable(name, font), font=font, fill=255, anchor="mm")
-            transient.append({"name": c["display"], "sprite": sprite,
-                              "box": (l - 4, t - 4, l - 4 + sprite.width, t - 4 + sprite.height)})
-            continue
-        if transient is not None:  # drawn into the base: recorded so its place on each frame can be checked
-            transient.append({"name": c["display"], "sprite": None, "box": box})
-        _text(draw, (x, y), name, font=font, fill=(150, 152, 160), anchor="mm")
+        # Natural Earth's label point first; when that collides (with a route leg, a stop's label, the scale
+        # bar: round 3 review, 2026-11-02, the route map named no country at all), nearby places on the same
+        # country's land, nearest first, so the journey keeps its geography.
+        rings: list | None = None
+        for dx, dy in _NAME_NUDGES:
+            x, y = x0_ + dx * (r0 - l0), y0_ + dy * (b0 - t0)
+            l, t, r, b = l0 + x - x0_, t0 + y - y0_, r0 + x - x0_, b0 + y - y0_
+            if dx or dy:
+                if rings is None:
+                    rings = [[[project(px_, py_) for px_, py_ in ring] for ring in poly] for poly in c["polygons"]]
+                if not all(geo.point_in_polygons(qx, qy, rings)
+                           for qx, qy in ((x, y), (l, t), (r, t), (l, b), (r, b))):
+                    continue
+            if _place_name(c, name, font, (x, y), (l, t, r, b), bw, bh, label_bottom_fraction, final_view, final_safe,
+                           placed, transient, draw):
+                break
     return base
+
+
+# Where a country's name may move when its label point is taken: offsets in its own width (dx) and height (dy),
+# nearest first; (0, 0) is Natural Earth's point.
+_NAME_NUDGES = sorted(((dx, dy) for dx in (0.0, -0.35, 0.35, -0.7, 0.7) for dy in (0.0, -1.5, 1.5, -3.0, 3.0, -4.5, 4.5)),
+                      key=lambda o: (abs(o[0]) * 3) ** 2 + abs(o[1]) ** 2)
+
+
+def _place_name(c: dict[str, Any], name: str, font, xy: tuple[float, float], ink: tuple[float, float, float, float],
+                bw: int, bh: int, label_bottom_fraction: float, final_view, final_safe, placed: list,
+                transient: list[dict[str, Any]] | None, draw: ImageDraw.ImageDraw) -> bool:
+    """Draws (or, see relief_base's `transient`, records) one neighbour's name at `xy` if its padded box is on the
+    base, above the caption band, wholly inside or outside the close-up and clear of everything placed; True when
+    it is placed."""
+    x, y = xy
+    l, t, r, b = ink
+    fx0, fy0, fx1, fy1 = final_view
+    box = (l - 30, t - 20, r + 30, b + 20)
+    if box[0] < 0 or box[1] < 0 or box[2] > bw or box[3] > bh:
+        return False
+    # Reserve the subtitle band throughout both the wide view and final zoom.
+    label_bottom = min(bh * label_bottom_fraction, fy0 + (fy1 - fy0) * label_bottom_fraction)
+    if box[3] > label_bottom:
+        return False
+    m = 60  # clear of the close-up's edge, so the last frame shows no name touching it
+    inside = fx0 + m <= box[0] and box[2] <= fx1 - m and fy0 + m <= box[1] and box[3] <= fy1 - m
+    if inside and final_safe is not None:  # and inside the Reel's safe box on the last frame (so on every frame)
+        inside = (final_safe[0] <= box[0] and box[2] <= final_safe[2]
+                  and final_safe[1] <= box[1] and box[3] <= final_safe[3])
+    outside = box[2] < fx0 or box[0] > fx1 or box[3] < fy0 or box[1] > fy1
+    if not (inside or outside or transient is not None) or any(
+            not (box[2] < p[0] or box[0] > p[2] or box[3] < p[1] or box[1] > p[3]) for p in placed):
+        return False
+    placed.append(box)
+    if not inside and transient is not None:
+        # A name not wholly inside the close-up's safe box is crossed by the frame's edge as the camera
+        # zooms in: drawn into the base, it showed cut ("THUANIA", "ND": Derinkuyu, prod 2026-10-29). It
+        # is drawn on the frames instead, only while it is wholly inside the safe box, fading out before.
+        sprite = Image.new("L", (int(r - l) + 8, int(b - t) + 8), 0)
+        ImageDraw.Draw(sprite).text((4 - l + x, 4 - t + y), drawable(name, font), font=font, fill=255, anchor="mm")
+        transient.append({"name": c["display"], "sprite": sprite,
+                          "box": (l - 4, t - 4, l - 4 + sprite.width, t - 4 + sprite.height)})
+        return True
+    if transient is not None:  # drawn into the base: recorded so its place on each frame can be checked
+        transient.append({"name": c["display"], "sprite": None, "box": box})
+    _text(draw, (x, y), name, font=font, fill=MAP_NAME, anchor="mm")
+    return True
 
 
 def render_map(place: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
                narration: str = "") -> Optional[Path]:
-    """Regional locator map: eases from a ~40° view to ~18° around the site, pin drop, label, and on a 9:16
-    frame a scale bar in the narration's unit once the camera rests (2026-10-29). `narration`: the run's
-    narration (typography.spoken_system)."""
+    """Regional locator map: moves from a ~40° view to ~18° around the site (camera_spans: log-space ease, then
+    held), and only once the camera rests the arrival: the pin drops with a small overshoot and one ripple that
+    settles, the label rises, a bone leader ties it to the pin, and a scale bar in the narration's unit draws from
+    its left end (both orientations; round 3, 2026-11-02). A point that stands for the topic's whole region
+    (geo.is_region_fallback) is drawn as an area with "APPROX. LOCATION", never as a precise pin.
+    `narration`: the run's narration (typography.spoken_system)."""
     if not geo.available():
         return None
     lat0, lon0 = place["lat"], place["lon"]
@@ -506,38 +565,51 @@ def render_map(place: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heigh
         sub_label = f"{city}, {country}"
     else:
         sub_label = country
-    label_y = int(height * 0.18) if width > height else max(TEXT_TOP + 70, height // 2 - 210)
-    # Keep neighbours' names clear of the place label and the pin in the final close-up: the band from
-    # the label's top to just below the pin, across the label's width plus a margin (output pixels).
+    area = geo.is_region_fallback(place)
+    # 16:9: low enough that the Anton title's top stays inside title-safe (at 18 % it rose to y 91, round 3)
+    label_y = int(height * 0.24) if width > height else max(TEXT_TOP + 70, height // 2 - 210)
+    # Keep neighbours' names clear of the place label, its leader and the pin in the final close-up: the band
+    # from the label's top to just below the pin, across the label's width plus a margin (output pixels).
     half_w = min(width // 2, 60 + max(len(label) * 22, len(sub_label) * 18))
     to_base = lambda x, y: (final_view[0] + x * (final_view[2] - final_view[0]) / width,  # noqa: E731
                             final_view[1] + y * (final_view[3] - final_view[1]) / height)
     reserved = (to_base(width // 2 - half_w, label_y - 200) + to_base(width // 2 + half_w, height // 2 + 70),)
     portrait = height > width
     # The scale bar: the final close-up shows `span_close` degrees of longitude across the frame at cos(lat) scale,
-    # so one degree of latitude is width / span_close px there; the bar appears only once the zoom has stopped.
-    bar = scale_bar(lat0, width / span_close, narration) if portrait else None
-    bar_y = TEXT_BOTTOM - 22
-    if bar:  # no neighbour's name under the bar and its label
-        reserved += (to_base(M - 20, bar_y - 70) + to_base(M + bar["px"] + 260, bar_y + 30),)
+    # so one degree of latitude is width / span_close px there; drawn once the camera rests, in both orientations
+    # (16:9 bottom-left of title-safe, clear of YouTube's timestamp corner).
+    bar = scale_bar(lat0, width / span_close, narration)
     sx0, sy0, sx1, sy1 = get_text_box(width, height)
+    bar_x = M if portrait else sx0 + 10
+    bar_y = TEXT_BOTTOM - 22 if portrait else sy1 - 30
+    if bar:  # no neighbour's name under the bar and its label
+        reserved += (to_base(bar_x - 20, bar_y - 70) + to_base(bar_x + bar["px"] + 260, bar_y + 30),)
     labels: List[Dict[str, Any]] = []
     base = relief_base(lat0, lon0, bw, bh, kx, coslat, geo.find_country(place["country"]), project, final_view,
                        label_bottom_fraction=get_text_bounds(width, height)[1] / height, reserved=reserved,
                        final_safe=to_base(sx0, sy0) + to_base(sx1, sy1), transient=labels)
 
     n = int(CLIP_SECONDS * VIDEO_FPS)
-    zooms = [span_wide / (span_wide + (span_close - span_wide) * _ease(i / VIDEO_FPS / 1.6)) for i in range(n)]
+    zooms = [span_wide / sp for sp in camera_spans(n, span_wide, span_close, MAP_TRAVEL, VIDEO_FPS)]
     plan = map_label_plan(labels, zooms, width, height, bw, bh)
     # The place label and the bar's figure are planned on the camera's resting view (their halos solved there).
     zf_last = zooms[-1]
     rest = base.resize((width, height), Image.BICUBIC, box=(bw / 2 - bw / 2 / zf_last, bh / 2 - bh / 2 / zf_last,
                                                             bw / 2 + bw / 2 / zf_last, bh / 2 + bh / 2 / zf_last)).convert("RGB")
     label_plates = _label_plates(rest, width // 2, label_y, label, sub_label)
+    if area:   # the region's point: say so, in the system-label pattern ("APPROX. DEPTHS")
+        f_ap = get_font("Montserrat", 30, weight=700)
+        under = max(pl.box[3] for _, pl in label_plates)
+        label_plates.append(("approx", plan_text(rest, (width // 2, under + 16 + cap_height(f_ap)), "APPROX. LOCATION",
+                                                 f_ap, MUTED, "ms", track=4, halo_px=21, min_halo=0.8)))
+    cx, cy = width // 2, height // 2
+    lead_top = max(pl.box[3] for _, pl in label_plates) + 14
+    lead_bot = cy - (78 if area else 34)
     bar_plate = None
     if bar:
-        bar_plate = plan_text(rest, (M + bar["px"] + 22, bar_y + 13), bar["label"], get_font(brand.DATA_FONT, 38, weight=600),
-                              WHITE, "ls", track=1, min_halo=0.6, halo_px=17)
+        bar_plate = plan_text(rest, (bar_x + bar["px"] + 22, bar_y + 13), bar["label"],
+                              get_font(brand.DATA_FONT, 38, weight=600), WHITE, "ls", track=1, min_halo=0.6, halo_px=17)
+    t_pin, t_label = MAP_PIN_AT, MAP_PIN_AT + 0.35
     last: List[Image.Image] = []
 
     def frames():
@@ -549,34 +621,48 @@ def render_map(place: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heigh
             im = base.resize((width, height), Image.BICUBIC, box=box).convert("RGB")
             for lab in plan[i]:
                 if lab["mask"] is not None:
-                    im.paste((150, 152, 160), lab["box"][:2], lab["mask"])
+                    im.paste(MAP_NAME, lab["box"][:2], lab["mask"])
             d = ImageDraw.Draw(im, "RGBA")
-            cx, cy = width // 2, height // 2
-            # Pulse rings after the pin lands.
-            if t > 1.6:
-                for k in range(2):
-                    p = ((t - 1.6) * 0.8 + k * 0.5) % 1.0
-                    r = 20 + 90 * p
-                    d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=(*accent(), int(200 * (1 - p))), width=4)
-            # Pin drop with a small bounce (1.8 s -> 2.3 s).
-            if t >= 1.1:
-                drop = _ease((t - 1.1) / 0.5)
-                py = cy - 160 * (1 - drop) - (12 * math.sin(math.pi * min(1.0, (t - 1.6) / 0.25)) if 1.6 <= t <= 1.85 else 0)
-                d.ellipse([cx - 22, py - 22, cx + 22, py + 22], fill=(*accent(), 255), outline=(20, 20, 20, 255), width=4)
-                d.ellipse([cx - 7, py - 7, cx + 7, py + 7], fill=(20, 20, 20, 255))
-            a = _ease((t - 1.5) / 0.4)
+            if area:      # the region as a soft area: a gold-edged disc that settles to its size
+                a_ar = _ease((t - t_pin) / 0.35)
+                if a_ar > 0:
+                    r = 70 * (1 + 0.08 * math.sin(math.pi * min(1.0, (t - t_pin) / 0.35)))
+                    d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(*GOLD, int(46 * a_ar)),
+                              outline=(*GOLD, int(230 * a_ar)), width=4)
+            else:
+                # one ripple as the pin lands, settling (no endless pulse)
+                u_r = (t - t_pin - 0.2) / 0.7
+                if 0 < u_r < 1:
+                    r = 22 + 80 * _ease(u_r)
+                    d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=(*accent(), int(200 * (1 - u_r))), width=4)
+                if t >= t_pin:
+                    u = (t - t_pin) / 0.2                      # a 200 ms drop overshooting by about 8 %
+                    drop = 1 + 0.08 * math.sin(math.pi * min(1.0, (u - 1) / 0.6)) if u > 1 else _ease(u)
+                    drop = drop if u < 1.6 else 1.0
+                    py = cy - 160 * (1 - drop)
+                    d.ellipse([cx - 22, py - 22, cx + 22, py + 22], fill=(*accent(), 255), outline=(*brand.INK, 255),
+                              width=4)
+                    d.ellipse([cx - 7, py - 7, cx + 7, py + 7], fill=(*brand.INK, 255))
+            a = _ease((t - t_label) / 0.4)
             for _, plate in label_plates:  # knockout labels rise 12 px as they fade in
                 im = plate.draw(im, a, dy=round(12 * (1 - a)))
+            al = _ease((t - t_label - 0.2) / 0.3)
+            if al > 0 and lead_bot - lead_top > 28:          # the leader from the label down to the pin
+                d = ImageDraw.Draw(im, "RGBA")
+                y_end = lead_top + (lead_bot - lead_top) * al
+                d.line([(cx, lead_top), (cx, y_end)], fill=(*brand.INK, int(200 * al)), width=6)
+                d.line([(cx, lead_top), (cx, y_end)], fill=(*WHITE, int(255 * al)), width=2)
             if bar:
-                ab = _ease((t - 1.75) / 0.3)
+                ab = _ease((t - t_label - 0.15) / 0.3)        # drawn from its left end
                 if ab > 0:
                     d = ImageDraw.Draw(im, "RGBA")
-                    x1 = M + bar["px"]
-                    col = (*WHITE, int(255 * ab))
-                    d.line([(M, bar_y), (x1, bar_y)], fill=col, width=5)
-                    for xx in (M, x1):
-                        d.line([(xx, bar_y - 14), (xx, bar_y + 2)], fill=col, width=5)
-                    im = bar_plate.draw(im, ab)
+                    x1 = bar_x + bar["px"] * ab
+                    d.line([(bar_x, bar_y), (x1, bar_y)], fill=(*brand.INK, 200), width=9)   # an ink keyline
+                    d.line([(bar_x, bar_y), (x1, bar_y)], fill=(*WHITE, 255), width=5)
+                    for xx, tall in ((bar_x, 16), (bar_x + bar["px"] / 2, 9), (bar_x + bar["px"], 16)):
+                        if xx <= x1 + 0.5:
+                            d.line([(xx, bar_y - tall), (xx, bar_y + 2)], fill=(*WHITE, 255), width=5)
+                    im = bar_plate.draw(im, _ease((t - t_label - 0.35) / 0.3))
             if i == n - 1:
                 last.append(im.copy())
             yield im
@@ -717,7 +803,22 @@ def spaced_positions(events: list[dict[str, Any]], y_first: float, y_last: float
 # a graphic is on screen, video_composer.graphic_vignette_enable, so 16:9 words no longer keep to WIDE_SAFE).
 WIDE_TIMELINE = (160, 1760)       # the 16:9 timeline's run, design px (x 8.3-91.7 %: title-safe, clear of the corner)
 COMPRESSED_FLOOR = 1.2            # a broken gap is drawn at least this much longer than the longest true-scale gap
-DIM_LEVEL = 0.55                  # an earlier event's brightness while a later one is current
+DIM_LEVEL = 0.55                  # an earlier event's brightness while a later one is current (RevealSchedule.level)
+TIMELINE_SPAN_RATIO = 0.8         # a 9:16 span label on its segment: at most this share of the labels' size
+
+
+def span_band(label_px: int, gap_font) -> tuple[int, int]:
+    """A 9:16 span label's own band between two entries (round 3 review, 2026-11-02): (the band's height, the air
+    above and below the label), the air one label line (1.3 x the label size), so the span reads as the time
+    between the two entries and not as a third line of the earlier label (14 px of air before)."""
+    air = round(label_px * 1.3)
+    return cap_height(gap_font) + 2 * air, air
+
+
+def span_font_px(label_px: int) -> int:
+    """The 9:16 on-segment span label's size: below the event labels' (TIMELINE_SPAN_RATIO), so the secondary
+    elapsed time never reads larger or heavier than the white events it sits between; 24 px at least."""
+    return max(24, min(label_px - 4, round(label_px * TIMELINE_SPAN_RATIO)))
 
 
 @dataclass(frozen=True)
@@ -796,6 +897,19 @@ class RevealSchedule:
         back = _ease((t - self.restore) / 0.5)
         return a + (min(1.0, self.appear(k, t)) - a) * back
 
+    def focus(self, k: int, t: float) -> float:
+        """How far event k has stepped back (0-1) since the next one landed, back to 0 from `restore` (round 3,
+        2026-11-02: an earlier event is recoloured to a stone twin at full opacity, not faded, so it keeps its
+        measured contrast)."""
+        if k + 1 >= len(self.at):
+            return 0.0
+        return _ease((t - self.at[k + 1]) / 0.4) * (1 - _ease((t - self.restore) / 0.5))
+
+    def pulse(self, k: int, t: float) -> float:
+        """Event k's node size as it lands: 1.0 to 1.3 and back over 0.5 s, once."""
+        u = (t - self.at[k] - 0.3) / 0.5
+        return 1.0 + 0.3 * math.sin(math.pi * u) if 0.0 < u < 1.0 else 1.0
+
     def head(self, positions: list[float], t: float, end: float) -> float:
         """Where the spine's drawn end is: it travels to each event as that event lands, then on to `end`."""
         if t <= self.at[0] - 0.25:
@@ -843,6 +957,37 @@ def _break_glyph(d: ImageDraw.ImageDraw, x: float, y: float, along_x: bool, size
             d.line([(x - size * 0.5, y + dy + size * 0.28), (x + size * 0.5, y + dy - size * 0.28)], fill=fill, width=w)
 
 
+def _node(d: ImageDraw.ImageDraw, x: float, y: float, r: float, approximate: bool, alpha: float, stroke: float,
+          ground) -> None:
+    """A timeline event's marker (round 3, 2026-11-02: certainty on the node): an exact year a solid gold dot, a
+    circa date a hollow gold ring `stroke` px wide, its inside the ground's colour so the spine does not run
+    through it."""
+    if r <= 0.5 or alpha <= 0:
+        return
+    box = [x - r, y - r, x + r, y + r]
+    if approximate:
+        d.ellipse(box, fill=(*ground, int(255 * alpha)), outline=(*GOLD, int(255 * alpha)),
+                  width=max(2, round(min(stroke, r))))
+    else:
+        d.ellipse(box, fill=(*GOLD, int(255 * alpha)))
+
+
+def _focused(im: Image.Image, bright: list[Any], dim: list[Any], a: float, back: float, dy: float = 0) -> Image.Image:
+    """An event's words at landing `a`: the bright plates, cross-faded to their stone twins as it steps back."""
+    for pl, tw in zip(bright, dim):
+        if back < 0.999:
+            im = pl.draw(im, a * (1 - back), dy)
+        if back > 0.001:
+            im = tw.draw(im, a * back, dy)
+    return im
+
+
+def _twin(ground: Image.Image, plate: Any, fill) -> Any:
+    """A plate's stepped-back twin: the same words, font and place in `fill` (an earlier event while a later one is
+    current), planned on the same ground so its contrast is measured too."""
+    return plan_text(ground, plate.xy, plate.text, plate.font, fill, plate.anchor, track=plate.track)
+
+
 def render_timeline(events: List[Dict[str, Any]], out: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
                     photo: Path | None = None) -> Optional[Path]:
     """Timeline v2 (2026-11-02): a gold spine that draws on event by event, each date landing in turn at full
@@ -871,7 +1016,10 @@ def _render_timeline_tall(events: list[dict[str, Any]], out: Path, width: int, h
     label_w = TEXT_RIGHT * width // VIDEO_WIDTH - xt - 4
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     many = len(events) > 2
-    for scale in (1.0, 0.92, 0.84, 0.76, 0.68, 0.6):
+    spans = [gap_text(events[k - 1], events[k]) for k in range(1, len(events))]
+    scales = (1.0, 0.92, 0.84, 0.76, 0.68, 0.6)
+
+    def measure(scale: float, on_segment: bool):
         f_year = get_font("Anton", int((104 if many else 180) * scale))
         cap_y = cap_height(f_year)
         lab_px = int((38 if many else 42) * scale)
@@ -902,45 +1050,80 @@ def _render_timeline_tall(events: list[dict[str, Any]], out: Path, width: int, h
                             "font": f_lab, "rows": rows, "top": e_top, "bottom": e_bottom})
         y_first = top + 30 - entries[0]["top"]
         y_last = bottom - entries[-1]["bottom"]                    # lifted so its last row ends on the bound
-        f_gap = get_font("Montserrat", max(24, int((30 if many else 36) * scale)), weight=700)
-        needs = [entries[k]["bottom"] - entries[k + 1]["top"] + 28 for k in range(len(entries) - 1)]
-        if (y_last - y_first) / (len(entries) - 1) >= max(needs):
-            break
+        # On its segment (round 3, 2026-11-02) the elapsed time takes its own band between the two entries, set
+        # under the labels' size with a label line of air on each side (span_band); on the later year's baseline
+        # (round 2) it takes no height.
+        lab_min = min(en["font"].size for en in entries)
+        f_gap = (get_font("Montserrat", span_font_px(lab_min), weight=600) if on_segment else
+                 get_font("Montserrat", max(24, int((30 if many else 36) * scale)), weight=700))
+        band = span_band(lab_min, f_gap)[0] if on_segment else 0
+        needs = [entries[k]["bottom"] - entries[k + 1]["top"] + (band if band and spans[k] else 28)
+                 for k in range(len(entries) - 1)]
+        ok = (y_last - y_first) / (len(entries) - 1) >= max(needs)
+        return ok, (f_year, cap_y, entries, y_first, y_last, f_gap, needs, band)
+
+    def first_fit(on_segment: bool) -> tuple[int, tuple]:
+        for j, sc in enumerate(scales):
+            ok, m = measure(sc, on_segment)
+            if ok:
+                return j, m
+        return len(scales) - 1, m
+    j_base, m_base = first_fit(False)
+    j_seg, m_seg = first_fit(True) if any(spans) else (len(scales), m_base)
+    # The span on its own segment only when its band costs the type nothing (round 3 review, 2026-11-02: one step
+    # down was allowed, and the events' labels shrank under their own spans); a column too tight for that keeps
+    # the elapsed time on the later year's baseline, so the dates and labels stay at their size.
+    on_segment = j_seg <= j_base
+    scale = scales[min(j_seg if on_segment else j_base, len(scales) - 1)]
+    f_year, cap_y, entries, y_first, y_last, f_gap, needs, band = m_seg if on_segment else m_base
     if scale < 1.0:
         log.info("Timeline type set at %d%% to keep %d entries above the caption band.", round(scale * 100), len(events))
     spacing = timeline_positions(events, y_first, y_last, needs)
     ground = timeline_backdrop(photo, width, height)
     plates: list[tuple[str, Any]] = []
+    twins = []
     for k, en in enumerate(entries):
         y = spacing.positions[k]
         en["y"] = y
         en["year_plate"] = plan_text(ground, (xt, y + cap_y // 2), en["year"], f_year, GOLD, "ls")
         en["label_plates"] = [plan_text(ground, (xt + 4, y + r), ln, en["font"], WHITE, "ls", track=2)
                               for r, ln in zip(en["rows"], en["lines"])]
+        en["dim_year"] = _twin(ground, en["year_plate"], brand.STONE)
+        en["dim_labels"] = [_twin(ground, pl, brand.STONE_LT) for pl in en["label_plates"]]
         plates += [(f"year{k}", en["year_plate"])] + [(f"label{k}", p) for p in en["label_plates"]]
-    # The time since the previous date, after each year on its baseline ("1923  40 YEARS LATER"): the vertical
-    # room between the platforms' bands holds four entries and nothing more, so it takes no height.
+        twins += [(f"dim{k}", en["dim_year"])] + [(f"dim{k}_label", p) for p in en["dim_labels"]]
+    # The time since the previous date: centred in the band between the two entries, on the segment it measures,
+    # beside the spine (on_segment), else after the later year on its baseline ("1923  40 YEARS LATER"); "LATER"
+    # dropped for the whole timeline when one wording does not fit the column.
     gaps = []
+    col_right = TEXT_RIGHT * width // VIDEO_WIDTH
+    bands = {k: (entries[k - 1]["y"] + entries[k - 1]["bottom"], entries[k]["y"] + entries[k]["top"])
+             for k in range(1, len(entries))}
 
-    def fits(text: str, en: dict[str, Any]) -> bool:
-        return en["year_plate"].box[2] + 28 + probe.textlength(text, font=f_gap) + 3 * len(text) <= TEXT_RIGHT * width // VIDEO_WIDTH
-    wanted = [(k, gap_text(events[k - 1], events[k])) for k in range(1, len(entries))]
-    wanted = [(k, t) for k, t in wanted if t]
-    if not all(fits(t, entries[k]) for k, t in wanted):        # one wording for the whole timeline
+    def gap_xy(k: int) -> tuple[float, float]:
+        if on_segment:
+            a, b = bands[k]
+            return xt, (a + b) / 2 + cap_height(f_gap) / 2
+        return entries[k]["year_plate"].box[2] + 28, entries[k]["y"] + cap_y // 2
+
+    def fits(k: int, text: str) -> bool:
+        a, b = bands[k]
+        room = b - a >= band - 1 if on_segment else True
+        return room and gap_xy(k)[0] + tracked_width(text, f_gap, 2 if on_segment else 3) <= col_right
+    wanted = [(k, t) for k, t in enumerate(spans, start=1) if t]
+    if not all(fits(k, t) for k, t in wanted):
         wanted = [(k, t.removesuffix(" LATER")) for k, t in wanted]
     for k, text in wanted:
-        en = entries[k]
-        if not fits(text, en):
+        if not fits(k, text):
             continue
-        plate = plan_text(ground, (en["year_plate"].box[2] + 28, en["y"] + cap_y // 2), text, f_gap,
-                          brand.STONE_LT, "ls", track=3)
+        plate = plan_text(ground, gap_xy(k), text, f_gap, brand.STONE_LT, "ls", track=2 if on_segment else 3)
         gaps.append((k, plate))
         plates.append((f"gap{k}", plate))
-    # each break mark in the clear band between the two entries it separates (between the dots if there is none)
+    # each break mark on the spine in the clear band between the two entries it separates (between the dots if
+    # there is none); the span label beside it is on the other side of the column
     marks = []
     for k in spacing.breaks:
-        a = entries[k - 1]["y"] + entries[k - 1]["bottom"]
-        b = entries[k]["y"] + entries[k]["top"]
+        a, b = bands[k]
         marks.append((k, (a + b) / 2 if b - a >= 36 else (entries[k - 1]["y"] + entries[k]["y"]) / 2))
     sched = reveal_schedule(len(entries), CLIP_SECONDS)
     ys = [en["y"] for en in entries]
@@ -958,26 +1141,25 @@ def _render_timeline_tall(events: list[dict[str, Any]], out: Path, width: int, h
                 if head >= y_mark + 12 * u:
                     _break_glyph(d, x0, y_mark, False, 30 * u, (*brand.STONE_LT, 255), 3 * u, ground.getpixel((x0, int(y_mark))))
             for k, en in enumerate(entries):
-                lv = sched.level(k, t)
-                if lv <= 0:
-                    continue
                 a = sched.appear(k, t)
-                r, y = 16 * u * a, en["y"]
-                d.ellipse([x0 - r, y - r, x0 + r, y + r], fill=(*GOLD, int(255 * lv)))
-                current = a * (1 - _ease((t - sched.at[k + 1]) / 0.4) if k + 1 < len(entries) else 1.0)
+                if a <= 0:
+                    continue
+                back = sched.focus(k, t)            # stepped back: a stone twin at full opacity, a smaller node
+                r, y = 16 * u * a * sched.pulse(k, t) * (1 - 0.3 * back), en["y"]
+                _node(d, x0, y, r, bool(events[k].get("approximate")), 1.0, 4 * u, brand.INK)
+                current = a * (1 - _ease((t - sched.at[k + 1]) / 0.4)) if k + 1 < len(entries) else a
                 if current > 0.02:                                    # the current event's ring
                     rr = (16 + 10 * a) * u
                     d.ellipse([x0 - rr, y - rr, x0 + rr, y + rr], outline=(*GOLD, int(150 * current)),
                               width=max(1, round(3 * u)))
                 dy = round(14 * u * (1 - a))
-                im = en["year_plate"].draw(im, lv, dy)
-                for p in en["label_plates"]:
-                    im = p.draw(im, lv, dy)
+                im = _focused(im, [en["year_plate"], *en["label_plates"]], [en["dim_year"], *en["dim_labels"]],
+                              a, back, dy)
                 d = ImageDraw.Draw(im, "RGBA")
-            for k, plate in gaps:   # the elapsed time lands with its year and dims with it
-                lv = sched.level(k, t)
-                if lv > 0:
-                    im = plate.draw(im, lv, round(14 * u * (1 - sched.appear(k, t))))
+            for k, plate in gaps:   # the elapsed time lands with its later year
+                a = sched.appear(k, t)
+                if a > 0:
+                    im = plate.draw(im, a, round(14 * u * (1 - a)))
                     d = ImageDraw.Draw(im, "RGBA")
             if i == n - 1:
                 last.append(im.copy())
@@ -992,6 +1174,7 @@ def _render_timeline_tall(events: list[dict[str, Any]], out: Path, width: int, h
 # 16:9 words used to stay where the master's vignette left them legible (see _SECTION_WIDE): design x 400-1600,
 # y 190-800. The scale and cross-section still keep to it; the timeline v2 runs across WIDE_TIMELINE.
 WIDE_SAFE = (400, 190, 1600, 800)
+WIDE_TITLE_SAFE = (153, 129, 1766, 820)   # the 16:9 title-safe box above the caption line, design px
 
 
 def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, height: int,
@@ -1054,18 +1237,29 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
     ground = timeline_backdrop(photo, width, height)
     plates: list[tuple[str, Any]] = []
     entries = []
+
+    def block_h(b: dict[str, Any]) -> float:
+        return (cap_y + 28 + cap_height(b["font"]) / g.k
+                + round(b["font"].size * 1.3) / g.k * (len(b["lines"]) - 1))
+    # One baseline grid per side (round 3, 2026-11-02): every year above the spine on one baseline, every year
+    # below on another, each side's flag sized for its tallest block (a 4-line label lifted its year 80 px).
+    side_h = {side: max(block_h(b) for k, b in enumerate(blocks) if (k % 2 == 0) == side) for side in (True, False)
+              if any((k % 2 == 0) == side for k in range(len(blocks)))}
     for k, (b, x) in enumerate(zip(blocks, xs)):
         f_lab = b["font"]
         cap_l = cap_height(f_lab) / g.k
         step = round(f_lab.size * 1.3) / g.k
-        h = cap_y + 28 + cap_l + step * (len(b["lines"]) - 1)
+        h = block_h(b)
         above = k % 2 == 0
-        top = spine_y - flag - h if above else spine_y + flag
+        top = spine_y - flag - side_h[above] if above else spine_y + flag
         tx = x + pad
-        en = {"k": k, "x": x, "above": above, "top": top, "bottom": top + h}
+        en = {"k": k, "x": x, "above": above, "top": top, "bottom": top + h,
+              "far": top if above else top + side_h[above]}
         en["year_plate"] = plan_text(ground, (X(tx), Y(top + cap_y)), years[k], f_year, GOLD, "ls")
         en["label_plates"] = [plan_text(ground, (X(tx + 2), Y(top + cap_y + 28 + cap_l + step * j)), ln, f_lab, WHITE,
                                         "ls", track=track) for j, ln in enumerate(b["lines"])]
+        en["dim_year"] = _twin(ground, en["year_plate"], brand.STONE)
+        en["dim_labels"] = [_twin(ground, pl, brand.STONE_LT) for pl in en["label_plates"]]
         plates += [(f"year{k}", en["year_plate"])] + [(f"label{k}", pl) for pl in en["label_plates"]]
         entries.append(en)
     gaps = []
@@ -1106,29 +1300,27 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
                                  ground.getpixel((int(X(xm)), int(Y(spine_y)))))
             for en in entries:
                 k = en["k"]
-                lv = sched.level(k, t)
-                if lv <= 0:
-                    continue
                 a = sched.appear(k, t)
-                x, r = X(en["x"]), S(14) * a
-                far = en["top"] if en["above"] else en["bottom"]
-                y_flag = spine_y + (far - spine_y) * a
-                d.line([(x, Y(spine_y)), (x, Y(y_flag))], fill=(*brand.GOLD_DIM, int(255 * lv)), width=max(1, round(S(2))))
-                d.ellipse([x - r, Y(spine_y) - r, x + r, Y(spine_y) + r], fill=(*GOLD, int(255 * lv)))
-                current = a * (1 - _ease((t - sched.at[k + 1]) / 0.4) if k + 1 < len(entries) else 1.0)
+                if a <= 0:
+                    continue
+                back = sched.focus(k, t)
+                x, r = X(en["x"]), S(14) * a * sched.pulse(k, t) * (1 - 0.3 * back)
+                y_flag = spine_y + (en["far"] - spine_y) * a
+                d.line([(x, Y(spine_y)), (x, Y(y_flag))], fill=(*brand.GOLD_DIM, 255), width=max(1, round(S(2))))
+                _node(d, x, Y(spine_y), r, bool(events[k].get("approximate")), 1.0, S(4), brand.INK)
+                current = a * (1 - _ease((t - sched.at[k + 1]) / 0.4)) if k + 1 < len(entries) else a
                 if current > 0.02:                # the current event's ring
                     rr = S(14 + 10 * a)
                     d.ellipse([x - rr, Y(spine_y) - rr, x + rr, Y(spine_y) + rr], outline=(*GOLD, int(150 * current)),
                               width=max(1, round(S(3))))
                 dy = round(S(14) * (1 - a)) * (-1 if en["above"] else 1)
-                im = en["year_plate"].draw(im, lv, dy)
-                for pl in en["label_plates"]:
-                    im = pl.draw(im, lv, dy)
+                im = _focused(im, [en["year_plate"], *en["label_plates"]], [en["dim_year"], *en["dim_labels"]],
+                              a, back, dy)
                 d = ImageDraw.Draw(im, "RGBA")
             for k, plate in gaps:
-                lv = sched.level(k, t)
-                if lv > 0:
-                    im = plate.draw(im, lv)
+                a = sched.appear(k, t)
+                if a > 0:
+                    im = plate.draw(im, a)
                     d = ImageDraw.Draw(im, "RGBA")
             if i == n - 1:
                 last.append(im.copy())
@@ -1373,86 +1565,254 @@ def _silhouette_width(label: str) -> float:
 
 
 SCALE_TEXT_GAP = 44   # px of clear air between a 9:16 scale drawing and its words (2026-11-02)
-SECTION_FOOT = 24     # px of ground drawn under a depth shaft's floor
+SECTION_FOOT = 16     # px of ground drawn under a depth shaft's floor (it holds the floor's ruler figure)
+SCALE_NOTE_LIFT = 14  # px from a depth's ground line up to its bracket note's baseline (ring clear of the line)
+
+
+def heading_clear(heads: list[tuple[float, float, float, float]], xa: float, xb: float, top: float,
+                  gap: float = SCALE_TEXT_GAP) -> float:
+    """The highest y a drawing that spans xa..xb may reach under a 9:16 scale heading: SCALE_TEXT_GAP under the
+    lowest heading line within SCALE_TEXT_GAP of its columns, so the air holds sideways too (round 5 review,
+    2026-11-02: holding the whole drawing under the short metric line "85 M" took 20 % off the well and its
+    landmark, which sit under the feet figure only)."""
+    return max((b[3] for b in heads if b[0] < xb + gap and b[2] > xa - gap), default=top - gap) + gap
+
+
+def scale_figure(fact: dict[str, Any], feet: float, depth: bool) -> tuple[str, str]:
+    """The scale graphic's figure in its two parts (round 3, 2026-11-02): the hedged feet and the dimension in
+    Anton ("ABOUT 280 FT DEEP") and the metric figure on its own, set small in the data face ("85 M"); the same
+    figures as measurement_text, never more precise."""
+    hedge = "ABOUT " if fact.get("approximate", True) else ""
+    text = measurement_text(feet)
+    main, _, metric = text.partition(" (")
+    return hedge + main + (" DEEP" if depth else " TALL"), metric.rstrip(")")
+
+
+def _short(feet: float) -> str:
+    return measurement_text(feet).split(" (")[0]
+
+
+def comparison_ratio(big: float, small: float) -> str:
+    """How many times one sourced figure is the other, never stated more confidently than the figures: one decimal
+    below 2 ("1.5", which the old f"{ratio:.0f}" wrote as 2), else the whole number rounded half up (2.5 -> 3)."""
+    ratio = big / small
+    if ratio < 2:
+        return f"{math.floor(ratio * 10 + 0.5) / 10:g}"
+    return str(math.floor(ratio + 0.5))
+
+
+def _subject_name(fact: dict[str, Any]) -> str:
+    """The payload subject without a trailing dimension word ("KAILASA TEMPLE MONOLITH HEIGHT" -> "... MONOLITH"):
+    only the payload's own words, so the comparative names what it compares."""
+    words = str(fact.get("subject") or "").upper().split()
+    while words and words[-1] in ("HEIGHT", "DEPTH", "TALL", "DEEP"):
+        words.pop()
+    return " ".join(words)
+
+
+def scale_meaning(fact: dict[str, Any], feet: float, ref_label: str, ref_feet: float, depth: bool) -> list[str]:
+    """The scale graphic's line of meaning, from the subject's and the landmark's sourced figures only. A height
+    (round 3, 2026-11-02) says which is taller and names both ("ABOUT 2.9 TIMES TALLER" had no referent and read
+    as n + 1): "STATUE OF LIBERTY: 305 FT." / "ABOUT 3 TIMES AS TALL AS KAILASA TEMPLE." (the landmark taller),
+    "KAILASA TEMPLE IS ABOUT 3 TIMES AS TALL." (the subject taller), the ratio from comparison_ratio."""
+    hedge = "ABOUT " if fact.get("approximate", True) else ""
+    ref_name = ref_label.split(" (")[0]
+    gap = abs(ref_feet - feet)
+    if depth:
+        return ([f"THE {ref_name.upper()}, {_short(ref_feet)},",
+                 f"WOULD SHOW ONLY ITS TOP {hedge}{_short(gap)}."] if ref_feet > feet else
+                [f"THE {ref_name.upper()} WOULD VANISH:",
+                 f"ITS TOP {hedge}{_short(gap)} BELOW THE SURFACE."])
+    first = f"{ref_name.upper()}: {_short(ref_feet)}."
+    if max(feet, ref_feet) / min(feet, ref_feet) < 1.1:
+        return [first, "NEARLY THE SAME HEIGHT."]
+    times = f"ABOUT {comparison_ratio(max(feet, ref_feet), min(feet, ref_feet))} TIMES AS TALL"
+    subject = _subject_name(fact)
+    if not subject:
+        return [first, f"{times}."]
+    return [first, f"{times} AS {subject}." if ref_feet > feet else f"{subject} IS {times}."]
+
+
+SCALE_MEANING_PX = (36, 34)   # the 9:16 line of meaning's size and floor (round 3: it was the smallest text, 30-22)
+SCALE_RULER_PX = 26           # the depth ruler's data-face figures on 9:16
+
+
+def _depth_ruler(feet: float, hedge: str) -> list[tuple[float, str, bool]]:
+    """The depth ruler's marks (round 3, 2026-11-02; it replaces five unlabelled strata that suggested levels
+    that do not exist): (feet, label, is the floor) for "0 FT" at the ground, the round hundreds above the floor
+    (fifties under 200 ft, tens under 40), none within a fifth of a step of it, and the payload figure, hedged
+    like the figure, at the floor."""
+    step = 100 if feet >= 200 else 50 if feet >= 40 else 10
+    marks = [(0.0, "0 FT", False)]
+    v = step
+    while v < feet - step * 0.2:
+        marks.append((float(v), f"{v:,}", False))
+        v += step
+    marks.append((feet, f"{hedge}{_short(feet)}", True))
+    return marks
+
+
+def _bracket_x(ref_cx: float, ref_w: float, gap: float, ref_feet: float, feet: float, shaft_x1: float) -> float:
+    """Where a depth's bracket stands: just right of the landmark's part it measures (its top, narrower than its
+    base: about the base's half-width times the share of its height that is measured), inside the shaft."""
+    reach = ref_w / 2 * min(1.0, 1.5 * gap / max(ref_feet, 1.0)) if ref_feet > feet else ref_w / 2 * 0.5
+    return min(ref_cx + max(14.0, reach) + 16, shaft_x1 - 12)
+
+
+def _bracket(d: ImageDraw.ImageDraw, x: float, y0: float, y1: float, tick: float, width: int, fill) -> None:
+    """A dimension bracket: a vertical line from y0 to y1 with a tick at each end, pointing left."""
+    d.line([(x, y0), (x, y1)], fill=fill, width=width)
+    for yy in (y0, y1):
+        d.line([(x - tick, yy), (x, yy)], fill=fill, width=width)
 
 
 def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, height):
-    """9:16 scale (see render_scale), inside the Reel text box: the subject and its figure above, the drawing,
-    then one line of meaning. Words and drawing start on the shared inset edge (INSET_X0), the drawing ends at
-    INSET_X1 and the words may run on to the Reel box's right edge."""
+    """9:16 scale (see render_scale), inside the Reel text box: the subject and its figure above (the metric figure
+    on its own line under it in the data face, as on 16:9: set beside "DEEP" it read as a tag, "DEEP 85 M"), the
+    drawing, then the meaning. Words and drawing start on the shared inset
+    edge (INSET_X0), the drawing ends at INSET_X1 and the words may run on to the Reel box's right edge. Round 3
+    (2026-11-02): a depth carries a data-face ruler on the shaft's left wall and a gold bracket giving the
+    landmark's part above (or below) the surface; a height labels the landmark's figure at its top; the meaning
+    from scale_meaning at 34-36 px."""
     _bx0, top, box_x1, bottom = get_text_box(width, height)
     x0, x1 = inset_x0(width, height), inset_x1(width, height)
     n = int(CLIP_SECONDS * VIDEO_FPS)
     hedge = "ABOUT " if fact.get("approximate", True) else ""
-    ref_name = ref_label.split(" (")[0]
     subject = str(fact.get("subject") or "").upper()
-    figure = hedge + measurement_text(feet) + (" DEEP" if depth else " TALL")
+    figure, metric = scale_figure(fact, feet, depth)
     gap = abs(ref_feet - feet)
-    if depth:
-        meaning = ([f"THE {ref_name.upper()}, {measurement_text(ref_feet).split(' (')[0]},",
-                    f"WOULD SHOW ONLY ITS TOP {hedge}{measurement_text(gap).split(' (')[0]}."] if ref_feet > feet else
-                   [f"THE {ref_name.upper()} WOULD VANISH:",
-                    f"ITS TOP {hedge}{measurement_text(gap).split(' (')[0]} BELOW THE SURFACE."])
-    else:
-        ratio = max(feet, ref_feet) / min(feet, ref_feet)
-        taller, shorter = (subject.title() if feet > ref_feet else "The " + ref_name), (
-            "the " + ref_name if feet > ref_feet else subject.lower())
-        meaning = [f"{ref_name.upper()}: {measurement_text(ref_feet).split(' (')[0]}.",
-                   (f"ABOUT {ratio:.0f} TIMES TALLER." if ratio >= 1.5 else "NEARLY THE SAME HEIGHT.")]
-        del taller, shorter
+    meaning = scale_meaning(fact, feet, ref_label, ref_feet, depth)
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     wide = box_x1 - x0 - 8
     f_sub = fit_font(probe, subject, "Montserrat", 30, wide, 22)
     f_sub = get_font("Montserrat", f_sub.size, weight=800)
-    f_fig = fit_font(probe, figure, "Anton", 76, wide, 48)
-    f_mean = get_font("Montserrat", 30, weight=700)
-    while any(probe.textlength(t, font=f_mean) > wide for t in meaning) and f_mean.size > 22:
-        f_mean = get_font("Montserrat", f_mean.size - 2, weight=700)
+    f_met = get_font(brand.DATA_FONT, 34, weight=600)
+    f_fig = fit_font(probe, figure, "Anton", 76, int(wide), 48)
+    mean_lines, f_mean = [], None
+    for px in range(SCALE_MEANING_PX[0], SCALE_MEANING_PX[1] - 1, -1):
+        f_mean = get_font("Montserrat", px, weight=700)
+        mean_lines = [ln for text in meaning for ln in fit_text(probe, text, "Montserrat", px, int(wide - len(text)), 3,
+                                                                px, sentences=False, weight=700, quiet=True)[0]]
+        if len(mean_lines) <= len(meaning) + 1:
+            break
+    mean_step = int(cap_height(f_mean) * 1.6)
     y_sub = top + 10 + cap_height(f_sub)
     y_fig = y_sub + 24 + cap_height(f_fig)
-    mean_h = 2 * int(cap_height(f_mean) * 1.6)
-    y_mean0 = bottom - mean_h + cap_height(f_mean)
-    # Clear air between the drawing (incl. the ground section under the shaft floor, SECTION_FOOT) and the line
-    # of meaning, and between the figure and anything rising above the ground (operator, 2026-11-02: they touched).
-    draw_bottom = bottom - mean_h - SCALE_TEXT_GAP - SECTION_FOOT
+    y_met = y_fig + 16 + cap_height(f_met) if metric else y_fig
+    # The meaning's last baseline on the box's foot (it sat a whole line step, ~15 px, above it), so the drawing
+    # keeps its height (round 5 review, 2026-11-02); 4 px for a comma or Q tail.
+    y_mean0 = bottom - 4 - (len(mean_lines) - 1) * mean_step
+    mean_top = y_mean0 - cap_height(f_mean)
+    # Clear air between the drawing and the line of meaning (a depth's ground section under the shaft floor,
+    # SECTION_FOOT, counts as drawing; a height's ground line is 3 px), and between the heading and anything
+    # rising above the ground (operator, 2026-11-02: they touched).
+    draw_bottom = mean_top - SCALE_TEXT_GAP - (SECTION_FOOT if depth else 3)
     ground = Image.new("RGB", (width, height), SEA)
     xt = x0                                                # on the inset edge, well inside the box
     plates = [("subject", plan_text(ground, (xt, y_sub), subject, f_sub, MUTED, "ls", track=3)),
-              ("figure", plan_text(ground, (xt, y_fig), figure, f_fig, GOLD, "ls")),
-              *[(f"meaning{k}", plan_text(ground, (xt, y_mean0 + k * int(cap_height(f_mean) * 1.6)), t, f_mean,
-                                         WHITE, "ls", track=1)) for k, t in enumerate(meaning)]]
+              ("figure", plan_text(ground, (xt, y_fig), figure, f_fig, GOLD, "ls"))]
+    if metric:
+        plates.append(("figure_metric", plan_text(ground, (xt, y_met), metric, f_met, MUTED, "ls", track=1)))
+    plates += [(f"meaning{k}", plan_text(ground, (xt, y_mean0 + k * mean_step), t, f_mean, WHITE, "ls", track=1))
+               for k, t in enumerate(mean_lines)]
+    heads = [pl.box for name, pl in plates if name in ("subject", "figure", "figure_metric")]
     ref_grey = brand.STONE_LT
     width_per_px = _silhouette_width(ref_label)            # the landmark's width per px of its height
+    f_note = get_font("Montserrat", 28, weight=800)
+    f_rule = get_font(brand.DATA_FONT, SCALE_RULER_PX, weight=600)
+    rulers: list[tuple[float, Any]] = []
+    bracket = None                                          # (x, y_top, y_bottom)
     if depth:
         # The landmark stands on the shaft's floor, inside it: room above the ground for any part taller than
         # the depth, and a shaft wide enough to hold it.
-        line_y = y_fig + 70
+        # Everything above the ground keeps SCALE_TEXT_GAP of air under the heading lines it shares columns with
+        # (heading_clear): the ground line spans the drawing, so it clears the metric line; the landmark's top
+        # and the bracket's note, right of the short "85 M", clear the feet figure (round 3 review: the note sat
+        # 10 px under the figure's baseline; round 5 review: clearing the whole heading cost the well 20 %).
         above = max(0.0, ref_feet - feet)
-        px_ft = (draw_bottom - line_y) / max(feet, 1.0)
-        if above * px_ft > line_y - (y_fig + SCALE_TEXT_GAP):
-            px_ft = (draw_bottom - (y_fig + SCALE_TEXT_GAP)) / (feet + above)
-        px_ft = min(px_ft, (x1 - x0 - 120) / max(1.0, ref_feet * width_per_px))
+        cx = (x0 + x1) / 2 + 30                            # a little right of centre: the ruler takes the left
+        note = f"{hedge}{_short(gap)}"
+        note_w = tracked_width(note, f_note, 2)
         floor_y = draw_bottom
+        c_line = heading_clear(heads, x0, x1, top) + (2 if ref_feet > feet else 26)   # the 3 px line's top
+        px_ft = min((floor_y - c_line) / max(feet, 1.0), (x1 - x0 - 120) / max(1.0, ref_feet * width_per_px))
+        for _ in range(3):           # the landmark's and the note's columns depend on the scale: settle them
+            ref_w = ref_feet * px_ft * width_per_px
+            c_top = heading_clear(heads, cx - ref_w / 2, cx + ref_w / 2, top)
+            cand = min((floor_y - c_line) / max(feet, 1.0), (floor_y - c_top) / max(1.0, feet + above),
+                       (x1 - x0 - 120) / max(1.0, ref_feet * width_per_px))
+            if ref_feet > feet:      # the note's top, SCALE_NOTE_LIFT + its cap height over the ground line
+                nx = _bracket_x(cx, ref_w, gap, ref_feet, feet, cx + max(ref_w / 2 + 50, 150)) + 14
+                c_note = heading_clear(heads, nx, nx + note_w, top)
+                cand = min(cand, (floor_y - c_note - SCALE_NOTE_LIFT - cap_height(f_note)) / max(feet, 1.0))
+            px_ft = cand
         line_y = floor_y - feet * px_ft
         ref_w = ref_feet * px_ft * width_per_px
         half = max(ref_w / 2 + 50, 150)
-        cx = (x0 + x1) / 2
         shaft = (cx - half, cx + half)
         ref_cx = cx
+        top_y = floor_y - ref_feet * px_ft
+        # The bracket beside the landmark: its part above the ground, or (it would vanish) from its top up to
+        # the ground; labelled with the gap, hedged like the meaning.
+        bx = _bracket_x(ref_cx, ref_w, gap, ref_feet, feet, shaft[1])
+        bracket = (bx, min(top_y, line_y), max(top_y, line_y))
+        note_x = bx + 14 if ref_feet > feet else shaft[1] + 18
+        if note_x + note_w > box_x1:
+            note_x = None
+        note_y = (bracket[1] + bracket[2]) / 2 + cap_height(f_note) / 2
+        if ref_feet > feet:          # above the ground line, never across it
+            note_y = min(note_y, line_y - SCALE_NOTE_LIFT)   # its measured ring clear of the bone line
+        if note_x is not None and bracket[2] - bracket[1] >= 6:
+            plates.append(("bracket", plan_text(ground, (note_x, note_y), note, f_note, GOLD, "ls", track=2)))
+        for ft, text, is_floor in _depth_ruler(feet, hedge):
+            yy = line_y + ft * px_ft
+            rx = shaft[0] - 26
+            if rx - tracked_width(text, f_rule, 1) < x0:
+                continue
+            # "0 FT" just under the ground line, its 10 px measured ring clear of the 3 px bone line (the review
+            # fix moved the line by a few px and a cap-relative offset let the ring reach it: 1.8:1)
+            yb = yy + (16 + cap_height(f_rule) if ft == 0 else cap_height(f_rule) * 0.5)
+            plate = plan_text(ground, (rx, yb), text, f_rule, GOLD if is_floor else MUTED, "rs", track=1)
+            if any(LayoutConstraintSolver.boxes_intersect(plate.box, q.box, 6) for _, q in rulers):
+                continue
+            rulers.append((yy, plate))
+        plates += [(f"ruler{j}", pl) for j, (_, pl) in enumerate(rulers)]
     else:
         base_y = draw_bottom
         block = 190
         room = x1 - x0 - 60 - block - 40                    # beside the subject's block
-        px_ft = min((base_y - (y_fig + SCALE_TEXT_GAP + 40)) / max(feet, ref_feet),
-                    room / max(1.0, ref_feet * width_per_px))
         shaft = (x0 + 30, x0 + 30 + block)
+        f_blk = get_font("Montserrat", 28, weight=800)
+        blk_text = hedge + _short(feet)                    # hedged like the figure: never more precise
+        ref_txt_w = tracked_width(_short(ref_feet), f_blk, 2)
+        # Each part keeps SCALE_TEXT_GAP under the heading lines over its own columns (heading_clear; round 5
+        # review, 2026-11-02: a flat 40 px reserve under the metric line took 13 % off the landmark): the block's
+        # label, the landmark's top and its figure's label.
+        c_blk = heading_clear(heads, shaft[0] - 30, shaft[1] + 30, top) + 16 + cap_height(f_blk)
+        px_ft = min((base_y - c_blk) / max(feet, 1.0), room / max(1.0, ref_feet * width_per_px))
+        for _ in range(3):
+            ref_w = ref_feet * px_ft * width_per_px
+            rcx = shaft[1] + 40 + max(room, ref_w) / 2
+            c_ref = heading_clear(heads, rcx - ref_w / 2, rcx + ref_w / 2, top)
+            lab_x = rcx + max(0.05 * ref_feet * px_ft, 6) + 34
+            c_lab = heading_clear(heads, lab_x, lab_x + ref_txt_w, top) + cap_height(f_blk) / 2 + 2
+            px_ft = min((base_y - c_blk) / max(feet, 1.0), (base_y - max(c_ref, c_lab)) / max(1.0, ref_feet),
+                        room / max(1.0, ref_feet * width_per_px))
         ref_cx = shaft[1] + 40 + max(room, ref_feet * px_ft * width_per_px) / 2
         # The subject's block is labelled with its own figure, so the gold block reads as the subject at a
         # glance (round-2 panel, 2026-11-02); the same words as the figure above, never new ones.
-        f_blk = get_font("Montserrat", 28, weight=800)
-        blk_text = hedge + measurement_text(feet).split(" (")[0]   # hedged like the figure: never more precise
         plates.append(("block_label", plan_text(ground, ((shaft[0] + shaft[1]) / 2, base_y - feet * px_ft - 16),
                                                 blk_text, f_blk, GOLD, "ms", track=2)))
+        # and the landmark's figure at its top, on a hairline tick (round 3)
+        ref_top = base_y - ref_feet * px_ft
+        tick_x = ref_cx + max(0.05 * ref_feet * px_ft, 6)        # just right of the landmark's top
+        ref_note = plan_text(ground, (tick_x + 34, ref_top + cap_height(f_blk) / 2), _short(ref_feet), f_blk, MUTED,
+                             "ls", track=2)
+        if ref_note.box[2] <= box_x1 and not LayoutConstraintSolver.boxes_intersect(ref_note.box, plates[-1][1].box, 8):
+            plates.append(("ref_label", ref_note))
+            bracket = (tick_x, ref_top, ref_top)
+    t_drop_end = 2.6
+    t_bracket = t_drop_end + 0.25
     last: list = []
 
     def frames():
@@ -1462,20 +1822,20 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
             d = ImageDraw.Draw(im, "RGBA")
             if depth:
                 d.rectangle([x0, line_y, x1, floor_y + SECTION_FOOT], fill=(*EARTH, 255))  # the ground, in section
-                for k in range(1, 6):                                                      # faint strata
-                    yy = line_y + (floor_y + SECTION_FOOT - line_y) * k / 6
-                    d.line([(x0, yy), (x1, yy)], fill=(*EARTH_LINE, 255), width=2)
                 dig = _ease((t - 0.3) / 1.2)
                 y_end = line_y + (floor_y - line_y) * dig
+                for yy, _pl in rulers:                                                     # the ruler's ticks
+                    if yy <= y_end + 1:
+                        d.line([(shaft[0] - 18, yy), (shaft[0] - 3, yy)], fill=(*brand.STONE_LT, 255), width=2)
                 d.rectangle([shaft[0], line_y, shaft[1], y_end], fill=(*SEA, 255), outline=(*GOLD, 255), width=3)
                 drop = _ease((t - 1.6) / 1.0)
                 if drop > 0:
                     hh = ref_feet * px_ft
+                    u = (t - t_drop_end) / 0.15                    # a 2.5 % squash and settle as it lands
+                    hh *= 1 - 0.025 * math.sin(math.pi * u) if 0 < u < 1 else 1
                     base = floor_y - (1 - drop) * (floor_y - line_y + hh + 40)
                     _silhouette(d, ref_label, ref_cx, base, hh, ref_grey)
-                    d.rectangle([x0, line_y - 2, x1, line_y + 1], fill=(*WHITE, 255))     # ground line over it
-                else:
-                    d.rectangle([x0, line_y - 2, x1, line_y + 1], fill=(*WHITE, 255))
+                d.rectangle([x0, line_y - 2, x1, line_y + 1], fill=(*WHITE, 255))         # ground line over it
             else:
                 d.rectangle([x0, base_y, x1, base_y + 3], fill=(*WHITE, 255))
                 rise = _ease((t - 0.3) / 1.2)
@@ -1484,8 +1844,20 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
                 rr = _ease((t - 1.2) / 1.2)
                 if rr > 0:
                     _silhouette(d, ref_label, ref_cx, base_y, ref_feet * px_ft * rr, ref_grey)
+            ab = _ease((t - (t_bracket if depth else 2.4)) / 0.4)
+            if bracket and ab > 0:
+                bx, b0, b1 = bracket
+                if depth:   # drawn on from the ground line
+                    grow = b0 + (b1 - b0) * (1 - ab) if b1 == line_y else b0
+                    end = b1 if b1 == line_y else b0 + (b1 - b0) * ab
+                    _bracket(d, bx, grow, end, 12, 3, (*GOLD, 255))
+                else:       # the landmark's hairline tick
+                    d.line([(bx, b0), (bx + 26 * ab, b0)], fill=(*brand.STONE_LT, 255), width=2)
             for name, plate in plates:
-                at = {"subject": 0.1, "figure": 0.4, "block_label": 1.5}.get(name, 2.7)
+                at = {"subject": 0.1, "figure": 0.4, "figure_metric": 0.5, "block_label": 1.5,
+                      "ref_label": 2.4, "bracket": t_bracket + 0.2}.get(name)
+                if at is None:
+                    at = 0.5 + 0.1 * int(name[5:]) if name.startswith("ruler") else 3.2
                 a = _ease((t - at) / 0.4)
                 if a > 0:
                     im = plate.draw(im, a, round(10 * (1 - a)))
@@ -1499,21 +1871,6 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
     return result
 
 
-def scale_meaning(fact: dict[str, Any], feet: float, ref_label: str, ref_feet: float, depth: bool) -> list[str]:
-    """The scale graphic's line of meaning, from the subject's and the landmark's sourced figures only."""
-    hedge = "ABOUT " if fact.get("approximate", True) else ""
-    ref_name = ref_label.split(" (")[0]
-    gap = abs(ref_feet - feet)
-    if depth:
-        return ([f"THE {ref_name.upper()}, {measurement_text(ref_feet).split(' (')[0]},",
-                 f"WOULD SHOW ONLY ITS TOP {hedge}{measurement_text(gap).split(' (')[0]}."] if ref_feet > feet else
-                [f"THE {ref_name.upper()} WOULD VANISH:",
-                 f"ITS TOP {hedge}{measurement_text(gap).split(' (')[0]} BELOW THE SURFACE."])
-    ratio = max(feet, ref_feet) / min(feet, ref_feet)
-    return [f"{ref_name.upper()}: {measurement_text(ref_feet).split(' (')[0]}.",
-            (f"ABOUT {ratio:.0f} TIMES TALLER." if ratio >= 1.5 else "NEARLY THE SAME HEIGHT.")]
-
-
 def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_feet: float, depth: bool, out: Path,
                        width: int, height: int) -> Path | None:
     """16:9 scale (see render_scale): the drawing in the left half of the vignette-safe area (WIDE_SAFE), a depth
@@ -1522,12 +1879,13 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
     g = _WideGrid(width, height)
     X, Y, S = g.x, g.y, g.s
     n = int(CLIP_SECONDS * VIDEO_FPS)
-    sx0, sy0, sx1, sy1 = WIDE_SAFE
-    dx0, dx1 = sx0, 1000.0                    # the drawing
+    _sx0, sy0, sx1, sy1 = WIDE_SAFE
+    dx0, dx1 = WIDE_TITLE_SAFE[0] + 80, 1000.0   # the drawing (round 3: from title-safe, the master lifts its
+    #                                              vignette under graphics; it kept to WIDE_SAFE's x 400 before)
     cx0, cx1 = 1090.0, sx1                    # the column of words
     hedge = "ABOUT " if fact.get("approximate", True) else ""
     subject = str(fact.get("subject") or "").upper()
-    figure = hedge + measurement_text(feet) + (" DEEP" if depth else " TALL")
+    figure, metric = scale_figure(fact, feet, depth)
     meaning = scale_meaning(fact, feet, ref_label, ref_feet, depth)
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     col = S(cx1 - cx0) - 8
@@ -1535,7 +1893,7 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
                                    sentences=False, weight=800, quiet=True)
     f_sub = get_font("Montserrat", f_sub.size, weight=800)
     fig_lines, f_fig, _ = fit_text(probe, figure, "Anton", g.f(96), int(col), 2, g.f(64), sentences=False, quiet=True)
-    fits = [fit_text(probe, text, "Montserrat", g.f(36), int(col - len(text)), 2, g.f(30), sentences=False,
+    fits = [fit_text(probe, text, "Montserrat", g.f(36), int(col - len(text)), 2, g.f(32), sentences=False,
                      weight=700, quiet=True) for text in meaning]
     f_mean = get_font("Montserrat", min(f.size for _, f, _ in fits), weight=700)
     mean_lines = [ln for text in meaning for ln in fit_text(probe, text, "Montserrat", f_mean.size, int(col - len(text)),
@@ -1552,6 +1910,10 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
     for j, ln in enumerate(fig_lines):
         y += cap_height(f_fig) / g.k if j == 0 else fig_step
         rows.append((f"figure{j}" if j else "figure", ln, f_fig, GOLD, 0, y))
+    if metric:   # the metric figure on its own line in the data face (round 3: no Anton parentheses)
+        f_met = get_font(brand.DATA_FONT, g.f(40), weight=600)
+        y += 22 + cap_height(f_met) / g.k
+        rows.append(("figure_metric", metric, f_met, MUTED, S(1), y))
     rule_y = y + 34
     y = rule_y + 30
     for j, ln in enumerate(mean_lines):
@@ -1583,37 +1945,93 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
         shaft = (dx0 + 40, dx0 + 40 + block)
         ref_cx = shaft[1] + 60 + max(room, ref_feet * px_ft * width_per_px) / 2
 
+    # The ground plane ends inside the frame on both sides (round 3: it ran off x 0 into the dark and stopped
+    # hard at x 1000 mid-frame), from title-safe to just short of the column of words.
+    gx0, gx1 = WIDE_TITLE_SAFE[0], cx0 - 50
+    f_note = get_font("Montserrat", g.f(30), weight=800)
+    f_rule = get_font(brand.DATA_FONT, g.f(28), weight=600)
+    ann: list[tuple[str, str, Any, Any, float, float, str]] = []     # name, text, font, colour, x, baseline, anchor
+    bracket = None
+    if depth:
+        top_y = floor_y - ref_feet * px_ft
+        ref_w = ref_feet * px_ft * width_per_px
+        bx = _bracket_x(ref_cx, ref_w, abs(ref_feet - feet), ref_feet, feet, shaft[1])
+        bracket = (bx, min(top_y, line_y), max(top_y, line_y))
+        note_x = bx + 16 if ref_feet > feet else shaft[1] + 20
+        note_y = (bracket[1] + bracket[2]) / 2 + cap_height(f_note) / g.k / 2
+        if ref_feet > feet:          # above the ground line, never across it
+            note_y = min(note_y, line_y - 20)   # its measured ring clear of the bone line
+        if bracket[2] - bracket[1] >= 6:
+            ann.append(("bracket", f"{hedge}{_short(abs(ref_feet - feet))}", f_note, GOLD, note_x, note_y, "ls"))
+        for j, (ft, text, is_floor) in enumerate(_depth_ruler(feet, hedge)):
+            ann.append((f"ruler{j}", text, f_rule, GOLD if is_floor else MUTED, shaft[0] - 30,
+                        line_y + ft * px_ft + cap_height(f_rule) / g.k * (1.5 if ft == 0 else 0.5), "rs"))
+    else:
+        f_blk = get_font("Montserrat", g.f(30), weight=800)
+        ann.append(("block_label", hedge + _short(feet), f_blk, GOLD, (shaft[0] + shaft[1]) / 2,
+                    base_y - feet * px_ft - 18, "ms"))
+        ref_top = base_y - ref_feet * px_ft
+        tick_x = ref_cx + max(0.05 * ref_feet * px_ft, 6)        # just right of the landmark's top
+        ann.append(("ref_label", _short(ref_feet), f_blk, MUTED, tick_x + 34, ref_top + cap_height(f_blk) / g.k / 2,
+                    "ls"))
+        bracket = (tick_x, ref_top, ref_top)
+
     def drawing(t: float) -> Image.Image:
         im = ground.copy()
         d = ImageDraw.Draw(im, "RGBA")
+        lw = max(1, round(S(3)))
         if depth:
-            d.rectangle([0, Y(line_y), X(dx1), Y(floor_y + 24)], fill=(*EARTH, 255))   # the ground, in section
-            for k in range(1, 6):
-                yy = line_y + (floor_y + 24 - line_y) * k / 6
-                d.line([(0, Y(yy)), (X(dx1), Y(yy))], fill=(*EARTH_LINE, 255), width=max(1, round(S(2))))
+            d.rectangle([X(gx0), Y(line_y), X(gx1), Y(floor_y + 24)], fill=(*EARTH, 255))   # the ground, in section
             dig = _ease((t - 0.3) / 1.2)
             y_end = line_y + (floor_y - line_y) * dig
+            for name, _text, _f, _c, _x, yb, _a in ann:                                  # the ruler's ticks
+                if name.startswith("ruler") and name != "ruler0":
+                    yy = yb - cap_height(f_rule) / g.k / 2
+                    if yy <= y_end + 1:
+                        d.line([(X(shaft[0] - 22), Y(yy)), (X(shaft[0] - 4), Y(yy))], fill=(*brand.STONE_LT, 255),
+                               width=max(1, round(S(2))))
             d.rectangle([X(shaft[0]), Y(line_y), X(shaft[1]), Y(y_end)], fill=(*SEA, 255), outline=(*GOLD, 255),
-                        width=max(1, round(S(3))))
+                        width=lw)
             drop = _ease((t - 1.6) / 1.0)
             if drop > 0:
                 hh = ref_feet * px_ft
+                u = (t - 2.6) / 0.15                                 # a 2.5 % squash and settle as it lands
+                hh *= 1 - 0.025 * math.sin(math.pi * u) if 0 < u < 1 else 1
                 base = floor_y - (1 - drop) * (floor_y - line_y + hh + 40)
                 _silhouette(d, ref_label, X(ref_cx), Y(base), S(hh), brand.STONE_LT)
-            d.rectangle([0, Y(line_y) - S(2), X(dx1), Y(line_y) + S(1)], fill=(*WHITE, 255))
+            d.rectangle([X(gx0), Y(line_y) - S(2), X(gx1), Y(line_y) + S(1)], fill=(*WHITE, 255))
+            ab = _ease((t - 2.85) / 0.4)
+            if bracket and ab > 0 and bracket[2] - bracket[1] >= 6:
+                bx, b0, b1 = bracket
+                y_a = b0 + (b1 - b0) * (1 - ab) if b1 == line_y else b0
+                y_b = b1 if b1 == line_y else b0 + (b1 - b0) * ab
+                _bracket(d, X(bx), Y(y_a), Y(y_b), S(12), lw, (*GOLD, 255))
         else:
-            d.rectangle([0, Y(base_y), X(dx1), Y(base_y) + S(3)], fill=(*WHITE, 255))
+            d.rectangle([X(gx0), Y(base_y), X(gx1), Y(base_y) + S(3)], fill=(*WHITE, 255))
             rise = _ease((t - 0.3) / 1.2)
             hs = feet * px_ft * rise
             d.rectangle([X(shaft[0]), Y(base_y - hs), X(shaft[1]), Y(base_y)], fill=(*GOLD, 255))
             rr = _ease((t - 1.2) / 1.2)
             if rr > 0:
                 _silhouette(d, ref_label, X(ref_cx), Y(base_y), S(ref_feet * px_ft * rr), brand.STONE_LT)
+            ab = _ease((t - 2.4) / 0.4)
+            if bracket and ab > 0 and "ref_label" in shown:          # the landmark's hairline tick
+                d.line([(X(bracket[0]), Y(bracket[1])), (X(bracket[0] + 26 * ab), Y(bracket[1]))],
+                       fill=(*brand.STONE_LT, 255), width=max(1, round(S(2))))
         return im
 
+    shown: set[str] = {"ref_label"}
     final = drawing(1e9)
     plates = [(name, plan_text(final, (X(cx0 + 4), Y(col_top + yb)), text, font, colour, "ls", track=track))
               for name, text, font, colour, track, yb in rows]
+    for name, text, font, colour, x, yb, anchor in ann:
+        plate = plan_text(final, (X(x), Y(yb)), text, font, colour, anchor, track=S(1))
+        if plate.box[0] < X(WIDE_TITLE_SAFE[0]) or plate.box[2] > X(cx0 - 20):
+            continue                                                 # never into the margin or the column
+        if any(LayoutConstraintSolver.boxes_intersect(plate.box, q.box, 6) for _, q in plates):
+            continue
+        plates.append((name, plate))
+    shown.intersection_update(name for name, _ in plates)
     rule = (X(cx0 + 4), Y(col_top + rule_y), X(cx0 + 4 + 64), Y(col_top + rule_y) + max(2, S(4)))
     last: list[Image.Image] = []
 
@@ -1625,7 +2043,9 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
             if a_rule > 0:
                 ImageDraw.Draw(im, "RGBA").rectangle(rule, fill=(*GOLD, int(255 * a_rule)))
             for name, plate in plates:
-                at = 0.1 if name.startswith("subject") else 0.4 if name.startswith("figure") else 2.7
+                at = (0.1 if name.startswith("subject") else 0.4 if name.startswith("figure") else
+                      0.5 + 0.1 * int(name[5:]) if name.startswith("ruler") else
+                      {"block_label": 1.5, "ref_label": 2.5, "bracket": 3.05}.get(name, 3.2))
                 a = _ease((t - at) / 0.4)
                 if a > 0:
                     im = plate.draw(im, a, round(S(10) * (1 - a)))
@@ -1690,18 +2110,60 @@ def _shown_value(value: str, p: float) -> str:
     separator only where the value has one ("1404-1438" was drawn as "1,404-1438": Voynich, 2026-10-25), and
     a year (a plain four-digit number) shown whole from the start, never counted up from zero. Every figure in
     the value counts together: "280 FT (85 M)" counted the feet up while the metres sat at 85 from the first
-    frame, so the two units disagreed until the count landed (number card, 2026-10-29)."""
+    frame, so the two units disagreed until the count landed (number card, 2026-10-29). The count moves in the
+    figure's own precision (count_step), and a second figure ("(85 M)") follows the first one's shown fraction,
+    so the two still name the same depth on every frame (round 3, 2026-11-02)."""
     import re
+    pattern = r"\d[\d,]*(?:\.\d+)?"
+
+    def is_year(raw: str, num: float) -> bool:
+        return "," not in raw and "." not in raw and 1000 <= num <= 2199     # a year, or reads as one
+    q_lead = shown_fraction(value, p)
 
     def counted(m) -> str:
         raw = m.group(0)
         num = float(raw.replace(",", ""))
         separated = "," in raw
-        q = 1.0 if not separated and "." not in raw and 1000 <= num <= 2199 else p  # a year, or reads as one
         decimals = len(raw.split(".")[1]) if "." in raw else 0
         spec = ("," if separated else "") + (f".{decimals}f" if decimals else "")
-        return format(num * q if decimals else round(num * q), spec)
-    return re.sub(r"\d[\d,]*(?:\.\d+)?", counted, value)
+        if is_year(raw, num):
+            return raw
+        if decimals:
+            return format(num * q_lead, spec)
+        step = count_step(raw)
+        return format(round(num * q_lead / step) * step, spec)
+    return re.sub(pattern, counted, value)
+
+
+def shown_fraction(value: str, p: float) -> float:
+    """How far through its count `value`'s first counted figure is shown at progress `p`, once quantised to its
+    count_step (a second figure, in the value or on its own line, counts to this fraction so both agree)."""
+    import re
+    for m in re.finditer(r"\d[\d,]*(?:\.\d+)?", value):
+        raw = m.group(0)
+        num = float(raw.replace(",", ""))
+        if ("," not in raw and "." not in raw and 1000 <= num <= 2199) or num <= 0:
+            continue
+        if "." in raw:
+            return p
+        step = count_step(raw)
+        return round(num * p / step) * step / num
+    return p
+
+
+def count_step(raw: str) -> int:
+    """The step a count-up of the written figure `raw` moves in (round 3, 2026-11-02): the precision its written
+    form carries, 10 to the power of its trailing zeros ("1,200,000" by 100,000, "280" by 10, "20,000" by 1,000), so
+    no frame shows an invented, more precise figure (597,340 on the way to 1,200,000); a figure with fewer than ten
+    such steps counts in the next finer round step (100 by 10), never finer than the units it is written in."""
+    digits = raw.replace(",", "").split(".")[0]
+    num = int(digits or 0)
+    if num <= 0:
+        return 1
+    step = 10 ** (len(digits) - len(digits.rstrip("0")))
+    while step > 1 and num / step < 10:
+        step //= 10
+    return step
 
 
 def figure_parts(value: str) -> Dict[str, str]:
@@ -1834,6 +2296,10 @@ def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Pa
         total = sum(p["height"] for p in plans) + gap * (len(plans) - 1)
         if total <= bottom - top:
             break
+    if len(plans) > 1:   # one figure size for both (round 3): a smaller second figure implied a ranking
+        size = min(p["figure_px"] for p in plans)
+        plans = [_stat_layout(probe, c, size, text_w, scale, num_min=size) for c in cards]
+        total = sum(p["height"] for p in plans) + gap * (len(plans) - 1)
     y = max(top, (top + bottom) // 2 - total // 2)
     for p in plans:
         p["y0"] = y - p["top"]
@@ -1844,17 +2310,35 @@ def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Pa
     else:
         bg = Image.new("RGB", (width, height), SEA)
     from .multi_format import scrim
-    bg = scrim(bg, plans[0]["y0"] + plans[0]["top"] - 40, plans[-1]["y0"] + plans[-1]["bottom"] + 40, feather=380,
-               target=0.24).convert("RGB")
+    y0b, y1b = plans[0]["y0"] + plans[0]["top"] - 40, plans[-1]["y0"] + plans[-1]["bottom"] + 40
+    bg = scrim(bg, y0b, y1b, feather=380, target=stat_scrim_target(bg, (x_text, y0b, x_text + text_w, y1b))).convert("RGB")
     return _stat_clip(cards, plans, bg, out, n, width, height)
 
 
+def stat_scrim_target(bg: Image.Image, box: tuple[float, float, float, float]) -> float:
+    """The 9:16 number card's scrim target (multi_format.scrim brings the block's band toward it; lower is deeper):
+    0.24 as before, deepened to 0.16 behind a bright warm block (gold or ochre tuff, sandstone), where the gold
+    figure separates from its ground by luminance alone (round 3, 2026-11-02): scaled by how bright the block is
+    and how much of it lies in the gold's hues."""
+    import numpy as np
+    x0, y0, x1, y1 = (int(max(0, v)) for v in box)
+    crop = bg.convert("RGB").crop((x0, y0, max(x0 + 1, min(bg.width, x1)), max(y0 + 1, min(bg.height, y1))))
+    hsv = np.asarray(crop.convert("HSV"), dtype=np.float32) / 255.0
+    rgb = np.asarray(crop, dtype=np.float32) / 255.0
+    lum = float((rgb @ np.array([0.2126, 0.7152, 0.0722], np.float32)).mean()) if rgb.size else 0.0
+    hue = hsv[..., 0] * 360.0
+    warm = float(((hue >= 15) & (hue <= 62) & (hsv[..., 1] > 0.25)).mean()) if hsv.size else 0.0
+    bright = float(np.clip((lum - 0.25) / 0.3, 0.0, 1.0))
+    return round(0.24 - 0.08 * warm * bright, 3)
+
+
 def figure_text(value: str) -> str:
-    """A number card's value as the card writes it (2026-11-02 review): a range with an en dash between spaces
-    ("94-104" -> "94 – 104"), and an "M" that means millions of years spelled out ("94-104M YEARS AGO" read as
-    metres): "94 – 104 MILLION YEARS AGO". The figures themselves are never changed."""
+    """A number card's value as the card writes it: a range with a closed en dash ("94-104" -> "94–104"; round 3,
+    2026-11-02: the spaced dash of round 2 read in Anton at hero size as a minus sign or as two stats), and an "M"
+    that means millions of years spelled out ("94-104M YEARS AGO" read as metres): "94–104 MILLION YEARS AGO".
+    The figures themselves are never changed."""
     import re
-    text = re.sub(r"(\d)\s*[-–]\s*(\d)", r"\1 – \2", value or "")
+    text = re.sub(r"(\d)\s*[-–]\s*(\d)", r"\1–\2", value or "")
     return re.sub(r"(\d)\s*M\s*((?:YEARS|YRS|YEAR)\b)", r"\1 MILLION \2", text, flags=re.IGNORECASE)
 
 
@@ -1948,6 +2432,8 @@ def _stat_clip(cards: list[dict[str, Any]], plans: list[dict[str, Any]], bg: Ima
                 if a <= 0:
                     continue
                 count = _ease((t - start) / MOTION["count"])
+                fig = next((r["text"] for r in p["rows"] if r["kind"] == "figure"), "")
+                shown_q = shown_fraction(fig, count) if fig else count   # the bracketed figure follows it
                 dy = round(14 * (1 - a))
                 for r in p["rows"]:
                     yy = p["y0"] + r["y"] + dy
@@ -1964,7 +2450,7 @@ def _stat_clip(cards: list[dict[str, Any]], plans: list[dict[str, Any]], bg: Ima
                         pl = r["plates"][0]
                         im = pl.draw_halo(im, a, dy)
                         d = ImageDraw.Draw(im, "RGBA")
-                        _text(d, (r["x_end"], yy), _shown_value(r["text"], count), r["font"], (*r["fill"], int(255 * a)),
+                        _text(d, (r["x_end"], yy), _shown_value(r["text"], shown_q), r["font"], (*r["fill"], int(255 * a)),
                               anchor="rs")
                     else:
                         if r["kind"] == "kicker":
@@ -2179,8 +2665,9 @@ def _lantern(r: float) -> _Sprite:
     return _Sprite(out, (-size // 2, -size // 2))
 
 
-def _vault(x0: float, x1: float, floor: float, h: float, seed: int) -> list[tuple[float, float]]:
-    """A hand-cut room: a flat floor and an irregular rounded vault `h` high."""
+def _vault(x0: float, x1: float, floor: float, h: float, seed: int, flat: float = 2.4) -> list[tuple[float, float]]:
+    """A hand-cut room: a flat floor and an irregular rounded vault `h` high (`flat`: the larger, the flatter its
+    crown; 2.4 a rounded vault, 5 a low flat-roofed chamber)."""
     import random
     rnd = random.Random(seed)
     p1, p2, a1 = rnd.uniform(0, 6.28), rnd.uniform(0, 6.28), rnd.uniform(0.03, 0.07)
@@ -2189,7 +2676,7 @@ def _vault(x0: float, x1: float, floor: float, h: float, seed: int) -> list[tupl
     steps = 28
     for i in range(steps + 1):
         u = i / steps
-        lift = max(0.0, 1 - abs(2 * u - 1) ** 2.4) ** 0.55
+        lift = max(0.0, 1 - abs(2 * u - 1) ** flat) ** 0.55
         wob = 1 + a1 * math.sin(3 * math.pi * u + p1) + 0.025 * math.sin(9 * math.pi * u + p2)
         pts.append((x0 + (x1 - x0) * u, floor - h * lift * wob * (1 + tilt * (u - 0.5))))
     return pts + [(x1, floor), (x0, floor)]
@@ -2266,8 +2753,9 @@ def _plan(ground: Image.Image, xy, text: str, font, fill, anchor: str = "la", tr
         except TypeError:
             if font.size >= 40:
                 raise
-            family = Path(font.path).stem.split("-")[0]                  # "Montserrat-Variable" -> "Montserrat"
-            font = get_font(family, font.size + 1, weight=700 if family == "Montserrat" else None)
+            family = font.getname()[0] or Path(font.path).stem.split("-")[0]   # "Montserrat", "IBM Plex Mono"
+            weight = 700 if family == "Montserrat" else 600 if family == brand.DATA_FONT else None
+            font = get_font(family, font.size + 1, weight=weight)
 
 
 def _plain_title(title: str) -> str:
@@ -2346,11 +2834,12 @@ _SECTION_TALL = _SectionLayout(
 # line still measures 4.5:1 on the graded frame (the 153 px title-safe margin alone left text at 2.7:1).
 _SECTION_WIDE = _SectionLayout(
     title_x=420, title_w=760, title_base=252, title_step=72, title_px=(68, 56), ruler_x=488, shaft_x=566,
-    shaft_w=28, rooms_x1=1110, label_x=1200, right=1600, bottom_d=768, axis_limit=790, label_hi=802,
-    surface_gap=380, fig_px=54, deep_px=80, lab_px=34, small_px=28, line_step=42, label_gap=50, fan_gap=20,
+    shaft_w=28, rooms_x1=1110, label_x=1200, right=1600, bottom_d=790, axis_limit=812, label_hi=818,
+    surface_gap=380, fig_px=54, deep_px=80, lab_px=34, small_px=28, line_step=42, label_gap=44, fan_gap=20,
     room_start=(12, 26), room_w=(70, 120), room_gap=(18, 36), niche_w=(46, 62), room_h_max=58,
-    turns=(900, 1076, 988), bends=(1130, 1160, 1186), approx_inline=True, ruler_fill=brand.BONE,
-    label_lo=30)
+    turns=(900, 1076, 988), bends=(1130, 1160, 1186), approx_inline=False, ruler_fill=brand.BONE,
+    label_lo=30)   # round 3: the depth caption under the title, as on 9:16 (inline it graded to 4.88); the axis
+#                    down to y 790 and labels to 818, inside title-safe (820), for the room the caption took
 
 
 class _WideGrid(_Grid):
@@ -2392,6 +2881,56 @@ def _render_cross_section_wide(cs: dict[str, Any], levels: list[dict[str, Any]],
     return _render_cross_section(cs, levels, total, out, width, height, _WideGrid(width, height), _SECTION_WIDE)
 
 
+SECTION_CAPTION = "ILLUSTRATIVE · APPROX. DEPTHS"   # round 3: the chambers and their extent are schematic
+SECTION_LABEL_CLEAR = 24                             # design px: the first label block's least gap under the ground
+# Chamber profiles by depth band (round 3, 2026-11-02; the same rounded bump at every level read as a comb):
+# low, wide, flat-roofed chambers near the surface, taller halls with rock pillars left standing mid-depth, fewer
+# and larger rooms at the deepest level. Width and gap scale the layout's ranges; `h` its room height; `flat`
+# the vault's crown (_vault). Driven by depth only, never by the labels' words.
+SECTION_PROFILES = {"shallow": {"w": 1.35, "gap": 0.8, "h": 0.72, "flat": 5.0},
+                    "mid": {"w": 0.85, "gap": 0.55, "h": 1.0, "flat": 2.4},
+                    "deep": {"w": 1.7, "gap": 1.3, "h": 1.12, "flat": 1.8}}
+
+
+def section_band(depth_ft: float, total: float, deepest: bool) -> str:
+    """A level's depth band: the deepest level is "deep", the top quarter "shallow", the rest "mid"."""
+    if deepest:
+        return "deep"
+    return "shallow" if depth_ft <= 0.25 * total else "mid"
+
+
+def label_stack(wants: list[float], heights: list[float], lo: float, hi: float, gap: float,
+                weights: list[float] | None = None) -> list[float]:
+    """Label blocks' tops as near their wanted tops as the stack allows (round 3: least squares, not the greedy
+    top-down push that moved every block below a crowded pair off its floor): each block at least `gap` under
+    the one above, the first never above `lo` (a hard floor under the ground line), the last ending by `hi`. In
+    offset coordinates the order constraint is monotone, solved by pooling adjacent violators and clipping to the
+    bounds (`weights`: how strongly each block keeps its place; a heavy one moves its light neighbours instead);
+    when the stack cannot fit, the gaps shrink to 4 px before anything moves above `lo`."""
+    n = len(wants)
+    if not n:
+        return []
+    for g in (gap, gap * 0.6, gap * 0.3, 4.0):
+        offs = [0.0]
+        for k in range(1, n):
+            offs.append(offs[-1] + heights[k - 1] + g)
+        upper = hi - heights[-1] - offs[-1]
+        if upper >= lo or g == 4.0:
+            break
+    z = [w - o for w, o in zip(wants, offs)]
+    ws = list(weights) if weights else [1.0] * n
+    pools: list[list[float]] = []                      # [weighted mean, weight, count]
+    for v, wt in zip(z, ws):
+        pools.append([v, wt, 1])
+        while len(pools) > 1 and pools[-2][0] > pools[-1][0]:
+            m2, w2, c2 = pools.pop()
+            m1, w1, c1 = pools.pop()
+            pools.append([(m1 * w1 + m2 * w2) / (w1 + w2), w1 + w2, c1 + c2])
+    fit = [m for m, _w, c in pools for _ in range(int(c))]
+    fit = [max(lo, min(max(lo, upper), v)) for v in fit]
+    return [v + o for v, o in zip(fit, offs)]
+
+
 def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], total: float, out: Path,
                           width: int, height: int, g: _Grid, L: _SectionLayout) -> Path | None:
     """The cutaway on grid `g` with layout `L` (see the two orientations above)."""
@@ -2411,7 +2950,7 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
     title_base = [L.title_base + L.title_step * j for j in range(len(title_lines))]
     approx = cs.get("approximate", True)
     cap_base = title_base[-1] + 46
-    ground_d = (cap_base if approx and not L.approx_inline else title_base[-1] + 20) + 32   # design y of the ground
+    ground_d = (cap_base if not L.approx_inline else title_base[-1] + 20) + 32   # design y of the ground
     tick = 50 if total <= 400 else 100 if total <= 900 else 250
     axis_end = math.ceil(total / tick) * tick                       # the ruler runs on to the next tick (2026-11-02)
     scale = min((L.bottom_d - ground_d) / total, (L.axis_limit - ground_d) / axis_end)
@@ -2435,18 +2974,21 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
     for k, lv in enumerate(levels):
         rnd = random.Random(31 + 7 * k)
         floor = dy(lv["depth_ft"])
-        room_h = max(20.0, min(L.room_h_max, (floor - prev_floor) * 0.7))
+        band = section_band(lv["depth_ft"], total, k == len(levels) - 1)
+        prof = SECTION_PROFILES[band]
+        room_h = max(20.0, min(L.room_h_max * prof["h"], (floor - prev_floor) * 0.7))
         x = shaft_x + shaft_w / 2 + rnd.uniform(*L.room_start)
-        rooms = []      # (x0, x1, floor, height, seed): each room's floor a few px off the level's
+        rooms = []      # (x0, x1, floor, height, seed, flat): each room's floor a few px off the level's
         while x < rooms_x1 - 40:
-            w = rnd.uniform(*L.room_w)
-            if x + w > rooms_x1:
+            w = rnd.uniform(*L.room_w) * prof["w"]
+            if x + w > rooms_x1 or rooms_x1 - (x + w) < 40:
                 w = rooms_x1 - x
-            rooms.append((x, x + w, floor - rnd.uniform(0, 4), room_h * rnd.uniform(0.7, 1.0), 100 * k + len(rooms)))
-            x += w + rnd.uniform(*L.room_gap)
+            rooms.append((x, x + w, floor - rnd.uniform(0, 4), room_h * rnd.uniform(0.7, 1.0), 100 * k + len(rooms),
+                          prof["flat"]))
+            x += w + rnd.uniform(*L.room_gap) * prof["gap"]
         if room_h > 24 and rnd.random() < 0.75:                       # a niche on the shaft's other side
             w = rnd.uniform(*L.niche_w)
-            rooms.append((shaft_x - shaft_w / 2 - w, shaft_x - shaft_w / 2 + 2, floor, room_h * 0.6, 100 * k + 50))
+            rooms.append((shaft_x - shaft_w / 2 - w, shaft_x - shaft_w / 2 + 2, floor, room_h * 0.6, 100 * k + 50, 2.4))
         passage_h = min(11.0, room_h * 0.5)
         ramp, landings = [], []
         if k and prev_rooms and floor - room_h - prev_floor > 40:   # close levels share the shaft only
@@ -2463,7 +3005,7 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
                 if j < legs - 1:                                     # a landing at each switchback
                     lw = rnd.uniform(34, 50)
                     lx = xb - lw * 0.75 if xb < mid_turn else xb - lw * 0.25
-                    landings.append((lx, lx + lw, yb + 3, rnd.uniform(18, 26), 100 * k + 70 + j))
+                    landings.append((lx, lx + lw, yb + 3, rnd.uniform(18, 26), 100 * k + 70 + j, 2.4))
                 xa = xb
         plan.append({"floor": floor, "rooms": rooms + landings, "passage_h": passage_h, "ramp": ramp,
                      "end": max(r[1] for r in rooms) if rooms else shaft_x + 40,
@@ -2480,34 +3022,51 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
                 fl = p["floor"]
                 pen.poly(g.pts([(shaft_x, fl - p["passage_h"]), (p["reach"] - 8, fl - p["passage_h"] - 2),
                                 (p["reach"] - 8, fl - 2), (shaft_x, fl)]), fill=255)
-                for x0, x1, f0, h, seed in p["rooms"]:
-                    pen.poly(g.pts(_vault(x0, x1, f0, h, seed)), fill=255)
+                for x0, x1, f0, h, seed, flat in p["rooms"]:
+                    pen.poly(g.pts(_vault(x0, x1, f0, h, seed, flat)), fill=255)
                 if p["ramp"]:
                     pen.line(g.pts(p["ramp"]), 255, S(7))
         return paint
 
-    carves = [_carve(carve_box, paint_upto(k), S(2)) for k in range(-1, len(levels))]   # [shaft only, +lvl0, ...]
+    carves = [_carve(carve_box, paint_upto(k), S(3)) for k in range(-1, len(levels))]   # [shaft only, +lvl0, ...]
 
-    # ---- label blocks fanned out between the ground and the box's bottom
-    blocks = []
-    for k, (lv, p) in enumerate(zip(levels, plan)):
-        deepest = k == len(levels) - 1
-        ff = f_deep if deepest else f_fig
-        lines, f_fit, _ = fit_text(probe, lv["label"], "Montserrat", g.f(L.lab_px), int(lab_w), 2, g.f(L.lab_px),
-                                   weight=600, quiet=True)
-        if probe.textlength(lines[-1] if lines else "", font=f_fit) > lab_w:
-            lines, f_fit, _ = fit_text(probe, lv["label"], "Montserrat", g.f(L.lab_px), int(lab_w), 3, g.f(L.lab_px),
+    # ---- label blocks fanned out between the ground and the box's bottom (round 3, 2026-11-02): each block as
+    # near its floor as the stack allows (label_stack), a level with room above it held on its floor, the first
+    # block never above SECTION_LABEL_CLEAR under the ground; a stack that cannot do that tightens its gaps, then
+    # its label leading, then takes one 2 px step of label type.
+    lo, hi = ground_d + max(L.label_lo, SECTION_LABEL_CLEAR), L.label_hi
+
+    def build(lab_px: int, label_gap: float, line_step: float) -> list[dict[str, Any]]:
+        out_blocks = []
+        for k, (lv, p) in enumerate(zip(levels, plan)):
+            deepest = k == len(levels) - 1
+            ff = f_deep if deepest else f_fig
+            lines, f_fit, _ = fit_text(probe, lv["label"], "Montserrat", g.f(lab_px), int(lab_w), 2, g.f(lab_px),
                                        weight=600, quiet=True)
-        capf = cap_height(ff) / g.k
-        h = capf + L.label_gap + L.line_step * (len(lines) - 1) + 8
-        blocks.append({"font": ff, "lines": lines, "cap": capf, "h": h, "want": p["floor"] - p["passage_h"] / 2})
-    tops = [b["want"] - b["cap"] / 2 for b in blocks]
-    lo, hi, gap = ground_d + L.label_lo, L.label_hi, L.fan_gap
-    for k in range(len(tops)):
-        tops[k] = max(tops[k], lo if k == 0 else tops[k - 1] + blocks[k - 1]["h"] + gap)
-    for k in range(len(tops) - 1, -1, -1):
-        limit = hi - blocks[k]["h"] if k == len(tops) - 1 else tops[k + 1] - gap - blocks[k]["h"]
-        tops[k] = min(tops[k], limit)
+            if probe.textlength(lines[-1] if lines else "", font=f_fit) > lab_w:
+                lines, f_fit, _ = fit_text(probe, lv["label"], "Montserrat", g.f(lab_px), int(lab_w), 3,
+                                           g.f(lab_px), weight=600, quiet=True)
+            capf = cap_height(ff) / g.k
+            h = capf + label_gap + line_step * (len(lines) - 1) + 8
+            out_blocks.append({"font": ff, "lines": lines, "cap": capf, "h": h,
+                               "want": p["floor"] - p["passage_h"] / 2})
+        return out_blocks
+    best = None
+    for fan, lgap, dpx in ((1.0, 1.0, 0), (0.6, 1.0, 0), (0.3, 1.0, 0), (0.3, 0.8, 0), (0.3, 0.8, 2)):
+        label_gap, line_step = L.label_gap * lgap, L.line_step - dpx * 1.2
+        blocks = build(L.lab_px - dpx, label_gap, line_step)
+        wants = [b["want"] - b["cap"] / 2 for b in blocks]
+        anchored = [k > 0 and blocks[k]["want"] - blocks[k - 1]["want"] >= blocks[k - 1]["h"]
+                    for k in range(len(blocks))]
+        tops = label_stack(wants, [b["h"] for b in blocks], lo, hi, L.fan_gap * fan,
+                           weights=[1000.0 if a else 1.0 for a in anchored])
+        off = max([abs(t - w) for t, w, a in zip(tops, wants, anchored) if a] or [0.0])
+        if best is None or off <= 4:     # a tighter stack only where it puts every such level on its floor
+            best = (off, blocks, tops, label_gap, line_step, dpx)
+        if off <= 4:
+            break
+    _off, blocks, tops, label_gap, line_step, dpx = best
+    f_lab = get_font("Montserrat", g.f(L.lab_px - dpx), weight=600)
 
     # ---- the static ground: sky, banded rock, the surface, the ruler
     ground_px = Y(ground_d)
@@ -2525,8 +3084,8 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
                  (*(brand.STONE_LT if major else brand.GOLD_DIM), 255), S(2 if major else 1.5), caps=False)
     base.alpha_composite(pen.image(), (pen.x0, pen.y0))
 
-    # ---- leaders, the lantern and its route
-    leaders = []
+    # ---- leaders, registration ticks, the lantern and its route
+    leaders, registers = [], []
     b0, b1, b2 = L.bends
     for k, (p, b) in enumerate(zip(plan, blocks)):
         deepest = k == len(levels) - 1
@@ -2534,9 +3093,17 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
         y1 = tops[k] + b["cap"] / 2
         lp = _Pen((X(p["reach"] - 12), Y(min(y0, y1) - 8), X(label_x), Y(max(y0, y1) + 8)))
         col = (*(brand.GOLD if deepest else brand.GOLD_DIM), 255)
-        lp.line(g.pts([(p["reach"] - 4, y0), (b0, y0), (b1, y1), (b2, y1)]), col, S(2))
-        lp.ellipse(X(p["reach"] - 4), Y(y0), S(3.5), S(3.5), fill=col)
+        lp.line(g.pts([(p["reach"] - 4, y0), (b0, y0), (b1, y1), (b2, y1)]), col, S(2.75))
+        lp.ellipse(X(p["reach"] - 4), Y(y0), S(4), S(4), fill=col)
         leaders.append(lp.sprite())
+        # registration (round 3): a tick on the ruler at the level's true depth and its floor carried left from
+        # the shaft to it, so each figure is read against its own place on the scale
+        fy = dy(levels[k]["depth_ft"])
+        rp = _Pen((X(ruler_x - 14), Y(fy) - S(4), X(shaft_x), Y(fy) + S(4)))
+        rp.line([(X(ruler_x - 12), Y(fy)), (X(ruler_x + 10), Y(fy))], col, S(2.5), caps=False)
+        rp.line([(X(ruler_x + 10), Y(fy)), (X(shaft_x - shaft_w / 2), Y(fy))], (*brand.GOLD_DIM, 200), S(1.25),
+                caps=False)
+        registers.append(rp.sprite())
     lantern = _lantern(S(10))
     keys = [(0.55, ground_d - 16)]
     arrive = []
@@ -2568,6 +3135,7 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
             d.rectangle([X(shaft_x) - S(3), Y(ground_d - 2), X(shaft_x) + S(3), Y(ly)], fill=(*accent(), 255))
         for k in range(len(levels)):
             leaders[k].draw(im, 1.0 if final else _ease((t - arrive[k] - 0.05) / 0.35))
+            registers[k].draw(im, 1.0 if final else _ease((t - arrive[k] + 0.05) / 0.3))
         lantern.draw(im, a_shaft, X(shaft_x), Y(ly))
         return im
 
@@ -2578,18 +3146,20 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
     for j, (ln, yb) in enumerate(zip(title_lines, title_base)):
         timed.append((f"title{j}", _plan(final, (X(L.title_x), Y(yb)), ln, f_title, WHITE, "ls"), 0.1 + 0.08 * j,
                       None, None))
-    if approx and L.approx_inline:
+    caption = SECTION_CAPTION if approx else "ILLUSTRATIVE"    # round 3: the drawing is schematic either way
+    if L.approx_inline:
         title_end = timed[-1][1].box[2]
-        timed.append(("approx", _plan(final, (title_end + S(36), Y(title_base[-1])), "APPROX. DEPTHS", f_small, MUTED,
+        timed.append(("approx", _plan(final, (title_end + S(36), Y(title_base[-1])), caption, f_small, MUTED,
                                       "ls", track=S(3)), 0.3, None, None))
-    elif approx:
-        timed.append(("approx", _plan(final, (X(L.title_x + 2), Y(cap_base)), "APPROX. DEPTHS", f_small, MUTED, "ls",
-                                          track=S(3)), 0.3, None, None))
+    else:
+        timed.append(("approx", _plan(final, (X(L.title_x + 2), Y(cap_base)), caption, f_small, MUTED, "ls",
+                                      track=S(3)), 0.3, None, None))
+    f_ruler = get_font(brand.DATA_FONT, g.f(L.small_px - 2), weight=600)   # round 3: the axis in the data face
     for j, ft in enumerate(range(0, int(axis_end) + 1, tick)):
         if ft and 0 <= total - ft < tick * 0.3:
             continue                                                 # the deepest level names the bottom
         text = f"{ft} FT" if ft == 0 else f"{ft:,}"
-        timed.append((f"ruler{j}", _plan(final, (X(ruler_x - 24), Y(dy(ft))), text, f_small, L.ruler_fill, "rm"),
+        timed.append((f"ruler{j}", _plan(final, (X(ruler_x - 24), Y(dy(ft))), text, f_ruler, L.ruler_fill, "rm"),
                       0.25 + 0.05 * j, None, None))
     for k, (lv, b) in enumerate(zip(levels, blocks)):
         deepest = k == len(levels) - 1
@@ -2605,7 +3175,7 @@ def _render_cross_section(cs: dict[str, Any], levels: list[dict[str, Any]], tota
                            f_lab, MUTED, "ls")
         timed.append((f"level{k}_metres", metres, t_in, None, None))
         for j, ln in enumerate(b["lines"]):
-            yb = fig_base + L.label_gap + L.line_step * j
+            yb = fig_base + label_gap + line_step * j
             bp = _plan(final, (X(label_x), Y(yb)), ln, f_lab, WHITE, "ls")
             dim = None if deepest else _plan(final, (X(label_x), Y(yb)), ln, f_lab, MUTED, "ls")
             timed.append((f"level{k}_label{j}", bp, t_in + 0.08, t_out, dim))
@@ -2652,9 +3222,39 @@ def render_cross_section(cs: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH
 
 
 # ---------------------------------------------------------------- route map
-def render_route(stops: List[Dict[str, Any]], out: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> Optional[Path]:
-    """The journey on the relief map: a gold path drawn stop by stop, each stop pinned and labelled.
-    Stops are located like the topic itself (inside their stated country, or skipped)."""
+def great_circle(a: tuple[float, float], b: tuple[float, float], steps: int = 32) -> list[tuple[float, float]]:
+    """`steps` + 1 (lon, lat) points along the great circle from `a` to `b` (both (lon, lat), degrees), so a long
+    leg bows as it does on the globe instead of a chord (round 3, 2026-11-02)."""
+    def vec(lon: float, lat: float) -> tuple[float, float, float]:
+        lo, la = math.radians(lon), math.radians(lat)
+        return math.cos(la) * math.cos(lo), math.cos(la) * math.sin(lo), math.sin(la)
+    p, q = vec(*a), vec(*b)
+    omega = math.acos(max(-1.0, min(1.0, sum(x * y for x, y in zip(p, q)))))
+    if omega < 1e-9:
+        return [a] * (steps + 1)
+    out = []
+    for k in range(steps + 1):
+        f = k / steps
+        s0, s1 = math.sin((1 - f) * omega) / math.sin(omega), math.sin(f * omega) / math.sin(omega)
+        x, y, z = (s0 * u + s1 * v for u, v in zip(p, q))
+        out.append((math.degrees(math.atan2(y, x)), math.degrees(math.atan2(z, math.hypot(x, y)))))
+    return out
+
+
+def _leader_box(leader: tuple[tuple[float, float], tuple[float, float]]) -> tuple[float, float, float, float]:
+    (ax, ay), (bx, by) = leader
+    return min(ax, bx), min(ay, by), max(ax, bx), max(ay, by)
+
+
+def render_route(stops: List[Dict[str, Any]], out: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
+                 narration: str = "") -> Optional[Path]:
+    """The journey on the relief map (round 3, 2026-11-02: brought to the locator's standard): each leg a
+    great-circle arc (great_circle), drawn at constant speed as a gold stroke over an ink casing with a leading
+    dot; each stop a gold disc and its name as a measured knockout label (halo, recorded on the last frame) inside
+    the graphics box, moved off an earlier label (with a leader) rather than over it; the neighbours' names inside
+    the safe box and above the caption band; a scale bar once the route is drawn. Stops are located like the topic
+    itself (inside their stated country, or skipped)."""
+    import itertools
     if not geo.available():
         return None
     located = []
@@ -2670,44 +3270,162 @@ def render_route(stops: List[Dict[str, Any]], out: Path, width: int = VIDEO_WIDT
     scale = 2
     bw, bh = width * scale, height * scale
     top, bottom = get_text_bounds(width, height)
-    # Fit every stop inside the middle of the frame (x between 15-85%, y between the text bounds).
-    span_lon = max((max(lons) - min(lons)) * coslat / 0.62, 6.0)
+    sx0, sy0, sx1, sy1 = get_text_box(width, height)
+    # Fit every stop inside the middle of the graphics box (62 % of its width, y between the text bounds).
+    span_lon = max((max(lons) - min(lons)) * coslat / (0.62 * (sx1 - sx0) / width), 6.0)
     span_lat = max((max(lats) - min(lats)) / ((bottom - top - 100) / height), 6.0)
     kx = min(bw / span_lon, bh / span_lat)
+    # The stops centred on the graphics box, not the frame (round 3: on 9:16 the frame's centre is below the
+    # box's, and a southern stop fell under the caption band): the view's centre moved to match.
+    lat_c, lon_c = lat0, lon0
+    lat0 = lat_c - (bh / 2 - (top + bottom) / 2 * scale) / kx
+    lon0 = lon_c + (bw / 2 - (sx0 + sx1) / 2 * scale) / (kx * coslat)
 
     def project(lon: float, lat: float) -> Tuple[float, float]:
         return bw / 2 + (lon - lon0) * kx * coslat, bh / 2 - (lat - lat0) * kx
 
-    base = relief_base(lat0, lon0, bw, bh, kx, coslat, None, project, (0, 0, bw, bh)).resize((width, height), Image.LANCZOS)
+    portrait = height > width
+    bar = scale_bar(lat_c, kx / scale, narration)
+    bar_x = (M if portrait else sx0 + 10)
+    bar_y = (TEXT_BOTTOM - 22 if portrait else sy1 - 30)
+    legs = []
+    for pa, pb in itertools.pairwise(located):
+        arc = great_circle((pa["lon"], pa["lat"]), (pb["lon"], pb["lat"]))
+        legs.append([(project(lo, la)[0] / scale, project(lo, la)[1] / scale) for lo, la in arc])
+    corridor = tuple(((min(xa, xb) - 14) * scale, (min(ya, yb) - 14) * scale, (max(xa, xb) + 14) * scale,
+                      (max(ya, yb) + 14) * scale) for leg in legs for (xa, ya), (xb, yb) in itertools.pairwise(leg))
     pts = [(project(p["lon"], p["lat"])[0] / scale, project(p["lon"], p["lat"])[1] / scale) for p in located]
+    lengths = [_path_len(leg) for leg in legs]
+    total_len = sum(lengths) or 1.0
+    t0, t_draw = 0.6, 3.4                        # the route draws at one speed over t_draw seconds
+    arrive = [t0]
+    for ln in lengths:
+        arrive.append(arrive[-1] + t_draw * ln / total_len)
     n = int(CLIP_SECONDS * VIDEO_FPS)
-    f_lab = get_font("Montserrat", 28 if width > height else 34)
-    seg_time = 3.6 / (len(pts) - 1)
+    # The stops' labels are placed first, on geometry alone (a plate's box does not depend on its ground), so the
+    # neighbours' names can keep clear of them as well as of the legs and the scale bar; each is then measured on
+    # the finished map (round 3 review, 2026-11-02).
+    rest = Image.new("RGB", (width, height), brand.INK)
+    f_lab = get_font("Montserrat", 30 if width > height else 34, weight=800)
+    label_w = 380
+    plates: list[tuple[str, Any]] = []
+    leaders: list[tuple[tuple[float, float], tuple[float, float]] | None] = []
+    taken: list[tuple[float, float, float, float]] = [(x - 26, y - 26, x + 26, y + 26) for x, y in pts]
+    for leg in legs:                                 # and no name over the route itself
+        for (xa, ya), (xb, yb) in itertools.pairwise(leg):
+            for f in (0.0, 0.5):
+                x, y = xa + (xb - xa) * f, ya + (yb - ya) * f
+                taken.append((x - 9, y - 9, x + 9, y + 9))
+    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    for k, ((x, y), p) in enumerate(zip(pts, located)):
+        placed = None
+        for max_lines in (2, 3):
+            lines, f_fit = fit_lines(probe, p["label"].upper(), f_lab, label_w, max_lines)
+            step = round(f_fit.size * 1.22)
+            block = step * (len(lines) - 1) + cap_height(f_fit)
+            # beside the stop on its open side, then the other side, then above and below it, then stepped off
+            sides = [("r" if x < width / 2 else "l"), ("l" if x < width / 2 else "r"), "a", "b"]
+            for dy in (0, -1, 1, -2, 2):
+                for side in sides:
+                    if side in "rl":
+                        tx, anchor = (x + 34, "ls") if side == "r" else (x - 34, "rs")
+                        y_top = y - block / 2 + dy * (block + 16)
+                    else:
+                        if dy:
+                            continue
+                        tx, anchor = x, "ms"
+                        y_top = y - 34 - block if side == "a" else y + 34
+                    trial = [plan_text(rest, (tx, y_top + step * j + cap_height(f_fit)), ln, f_fit, WHITE, anchor,
+                                       track=2, halo_px=21, min_halo=0.7) for j, ln in enumerate(lines)]
+                    boxes = [pl.box for pl in trial]
+                    inside = all(sx0 <= b[0] and b[2] <= sx1 and sy0 <= b[1] and b[3] <= sy1 for b in boxes)
+                    clear = not any(LayoutConstraintSolver.boxes_intersect(b, o, 8) for b in boxes for o in taken)
+                    if inside and clear:
+                        placed = (trial, dy, tx)
+                        break
+                if placed:
+                    break
+            if placed:
+                break
+        if placed is None:
+            leaders.append(None)
+            log.info("Route: no clear place for the label of stop %d (%s); the stop is drawn unlabelled.", k,
+                     p["label"])
+            continue
+        trial, dy, tx = placed
+        taken += [pl.box for pl in trial]
+        plates += [(f"stop{k}", pl) for pl in trial]
+        leaders.append(((x, y), (tx, (trial[0].box[1] + trial[-1].box[3]) / 2)) if dy else None)
+    words = tuple((b[0] * scale - 20, b[1] * scale - 20, b[2] * scale + 20, b[3] * scale + 20)
+                  for b in [pl.box for _, pl in plates] + [_leader_box(ld) for ld in leaders if ld])
+    base = relief_base(lat0, lon0, bw, bh, kx, coslat, None, project, (0, 0, bw, bh),
+                       label_bottom_fraction=bottom / height,
+                       reserved=(((bar_x - 20) * scale, (bar_y - 70) * scale, (bar_x + bar["px"] + 260) * scale,
+                                  (bar_y + 30) * scale),) + corridor + words,   # no name under the route or a stop's
+                       final_safe=(sx0 * scale, sy0 * scale, sx1 * scale, sy1 * scale)).resize((width, height),
+                                                                                              Image.LANCZOS)
+    rest = base.convert("RGB")
+    plates = [(name, plan_text(rest, pl.xy, pl.text, pl.font, pl.fill, pl.anchor, track=pl.track, halo_px=21,
+                               min_halo=0.7)) for name, pl in plates]
+    stop_of = {id(pl): int(name[4:]) for name, pl in plates}
+    bar_plate = plan_text(rest, (bar_x + bar["px"] + 22, bar_y + 13), bar["label"],
+                          get_font(brand.DATA_FONT, 38, weight=600), WHITE, "ls", track=1, min_halo=0.6, halo_px=17)
+    t_bar = arrive[-1] + 0.3
+    last: list[Image.Image] = []
 
     def frames():
         for i in range(n):
             t = i / VIDEO_FPS
             im = base.convert("RGB")
             d = ImageDraw.Draw(im, "RGBA")
-            for k in range(len(pts) - 1):
-                prog = _ease((t - 0.4 - k * seg_time) / seg_time)
+            head = None
+            for k, leg in enumerate(legs):
+                prog = (t - arrive[k]) / max(1e-6, arrive[k + 1] - arrive[k])
                 if prog <= 0:
                     break
-                (x0, y0), (x1, y1) = pts[k], pts[k + 1]
-                d.line([(x0, y0), (x0 + (x1 - x0) * prog, y0 + (y1 - y0) * prog)], fill=(*accent(), 255), width=7)
-            for k, ((x, y), p) in enumerate(zip(pts, located)):
-                a = _ease((t - 0.2 - k * seg_time) / 0.35)
+                part = _sub_path(leg, [math.dist(leg[j], leg[j + 1]) for j in range(len(leg) - 1)], 0.0,
+                                 lengths[k] * min(1.0, prog))
+                if len(part) > 1:
+                    d.line(part, fill=(*brand.INK, 255), width=13, joint="curve")    # the casing
+                    d.line(part, fill=(*accent(), 255), width=7, joint="curve")
+                    if prog < 1:
+                        head = part[-1]
+            for k, (x, y) in enumerate(pts):
+                a = _ease((t - arrive[k] + 0.1) / 0.3)
                 if a <= 0:
                     continue
-                d.ellipse([x - 16, y - 16, x + 16, y + 16], fill=(*accent(), int(255 * a)), outline=(20, 20, 20, int(255 * a)), width=4)
-                right = x < width / 2  # label on the open side
-                tx = x + 34 if right else x - 34
-                stop_lines, f_fit = fit_lines(d, p["label"].upper(), f_lab, 380, 2)
-                for j, line in enumerate(stop_lines):
-                    _text(d, (tx, y - 18 + 36 * j), line, font=f_fit, fill=(*WHITE, int(255 * a)), anchor="lm" if right else "rm")
+                d.ellipse([x - 16, y - 16, x + 16, y + 16], fill=(*accent(), int(255 * a)),
+                          outline=(*brand.INK, int(255 * a)), width=4)
+                lead = leaders[k] if k < len(leaders) else None
+                if lead and a > 0.5:
+                    (lx, ly), (tx, ty) = lead
+                    d.line([(lx, ly), (tx, ty)], fill=(*WHITE, int(220 * a)), width=2)
+            if head is not None:                     # the drawing head
+                d.ellipse([head[0] - 9, head[1] - 9, head[0] + 9, head[1] + 9], fill=(*WHITE, 255),
+                          outline=(*brand.INK, 255), width=3)
+            for name, pl in plates:
+                k = stop_of[id(pl)]
+                a = _ease((t - arrive[k] - 0.05) / 0.35)
+                if a > 0:
+                    im = pl.draw(im, a, round(8 * (1 - a)))
+            ab = _ease((t - t_bar) / 0.3)
+            if ab > 0:
+                d = ImageDraw.Draw(im, "RGBA")
+                x1 = bar_x + bar["px"] * ab
+                d.line([(bar_x, bar_y), (x1, bar_y)], fill=(*brand.INK, 200), width=9)
+                d.line([(bar_x, bar_y), (x1, bar_y)], fill=(*WHITE, 255), width=5)
+                for xx, tall in ((bar_x, 16), (bar_x + bar["px"] / 2, 9), (bar_x + bar["px"], 16)):
+                    if xx <= x1 + 0.5:
+                        d.line([(xx, bar_y - tall), (xx, bar_y + 2)], fill=(*WHITE, 255), width=5)
+                im = bar_plate.draw(im, _ease((t - t_bar - 0.2) / 0.3))
+            if i == n - 1:
+                last.append(im.copy())
             yield im
 
-    return _encode(frames(), out, n, width=width, height=height)
+    result = _encode(frames(), out, n, width=width, height=height)
+    if result and last:
+        record_contrast(out, last[0], plates + [("scale", bar_plate)])
+    return result
 
 
 # ------------------------------------------------ rolling stone door defense

@@ -130,8 +130,9 @@ def _wikidata_point(query: str, country: Dict[str, Any], country_name: str) -> O
 
 
 def locate(topic: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """{"lat", "lon", "qid", "label", "country"} for the topic's place, or None if no
-    Wikidata candidate falls inside the stated country."""
+    """{"lat", "lon", "qid", "label", "country", "approximate", "matched"} for the topic's place, or None if no
+    Wikidata candidate falls inside the stated country. `matched` says which of the topic's names the point is for
+    ("name", "city" or "region"; 2026-11-02: the map draws a region's point as an area, not a precise pin)."""
     loc = topic.get("location", {})
     name, country_name = (loc.get("name") or "").strip(), (loc.get("country") or "").strip()
     if not (name and country_name and available()):
@@ -149,11 +150,13 @@ def locate(topic: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     if None not in stored and any(float(v) != 0.0 for v in stored):  # 0,0 is a placeholder ("Null Island")
         lat, lon = float(stored[0]), float(stored[1])
         if in_country(lon, lat, country):
-            return {"lat": lat, "lon": lon, "qid": "", "label": name, "country": country_name, "approximate": False}
+            return {"lat": lat, "lon": lon, "qid": "", "label": name, "country": country_name, "approximate": False,
+                    "matched": "name"}
         log.warning("Map: stored coordinates for '%s' are not in %s; trying Wikidata.", name, country_name)
     result = None
     # The site's own name first, then its city and region (a coarser but still correct pin).
-    for query in [q for q in (name, loc.get("city"), loc.get("region")) if q]:
+    for kind, query in [(k, q) for k, q in (("name", name), ("city", loc.get("city")), ("region", loc.get("region")))
+                        if q]:
         try:
             result = _wikidata_point(query, country, country_name)
         except requests.RequestException as e:
@@ -161,7 +164,7 @@ def locate(topic: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             return None
         if result:
             # The pin says what it actually marks: the site, or the city/region used instead.
-            result["label"], result["approximate"] = query, query != name
+            result["label"], result["approximate"], result["matched"] = query, query != name, kind
             break
     if result is None:
         log.warning("Map: no Wikidata coordinates for '%s' inside %s; skipping the map.", name, country_name)
@@ -169,3 +172,19 @@ def locate(topic: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     cache[key] = result
     CACHE_FILE.write_text(json.dumps(cache, indent=1, ensure_ascii=False), encoding="utf-8")
     return result
+
+
+def is_region_fallback(place: dict[str, Any]) -> bool:
+    """True when `place` stands for the topic's whole region, not the site or its city (locate fell back to the
+    region's point): recorded as matched "region", or, for a point cached before `matched` was kept, approximate
+    and labelled with the region's own name."""
+    if place.get("matched"):
+        return place["matched"] == "region"
+    region = str(place.get("region") or "").strip().lower()
+    return bool(place.get("approximate")) and bool(region) and str(place.get("label") or "").strip().lower() == region
+
+
+def point_in_polygons(x: float, y: float, polygons: list[list[Ring]]) -> bool:
+    """Point-in-polygon (holes respected) in any one plane: lon/lat or projected pixels alike (2026-11-02: the map
+    checks that a country's name moved off a route still lies on that country's land)."""
+    return any(_in_ring(x, y, poly[0]) and not any(_in_ring(x, y, h) for h in poly[1:]) for poly in polygons)

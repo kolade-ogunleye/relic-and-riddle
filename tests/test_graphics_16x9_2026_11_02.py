@@ -3,7 +3,7 @@ timeline, the scale comparison, the cross-section, the number cards, the rolling
 section. On the 1920x1080 last frame every recorded word is a payload word (or one of the fixed tags), no two
 words collide, type is at least 28 px (sub-labels 22 px), colours are brand tokens, nothing is drawn in YouTube's
 timestamp corner and each word measures at least 4.5:1 drawn and after the master's grade. Also the round's
-number-card fixes for both orientations: a range written "94 – 104", "MILLION" for millions of years, and a
+number-card fixes for both orientations: a range written "94–104" (closed en dash, round 3), "MILLION" for millions of years, and a
 count-up figure measured as one element (its digits read against each other at 1.1:1)."""
 import json
 import re
@@ -238,9 +238,10 @@ def test_ventilation_air_in_lands_and_holds_before_air_out(renders):
 
 
 def test_figure_text_writes_ranges_and_millions_without_changing_the_figures():
-    assert graphics.figure_text("94-104M YEARS AGO") == "94 – 104 MILLION YEARS AGO"
-    assert graphics.figure_text("94–104 m years ago") == "94 – 104 MILLION years ago"
-    assert graphics.figure_text("1404-1438") == "1404 – 1438"
+    # round 3 (2026-11-02): a closed en dash; the spaced one read as a minus sign or two stats in Anton
+    assert graphics.figure_text("94-104M YEARS AGO") == "94–104 MILLION YEARS AGO"
+    assert graphics.figure_text("94–104 m years ago") == "94–104 MILLION years ago"
+    assert graphics.figure_text("1404-1438") == "1404–1438"
     assert graphics.figure_text("280 FT (85 M)") == "280 FT (85 M)"           # metres stay metres
     assert graphics.figure_text("5M VISITORS") == "5M VISITORS"
     assert graphics.figure_parts("94 – 104 MILLION YEARS AGO")["num"] == "94 – 104"
@@ -248,7 +249,7 @@ def test_figure_text_writes_ranges_and_millions_without_changing_the_figures():
 
 def test_number_card_label_and_range_in_16x9(renders):
     texts = [p.text for _, p in renders["numbers"]["plates"]]
-    assert "94 – 104" in texts and "MILLION YEARS AGO" in texts
+    assert "94–104" in texts and "MILLION YEARS AGO" in texts
 
 
 @pytest.mark.parametrize("value", ["1,200,000 TONS", "94-104M years ago"])

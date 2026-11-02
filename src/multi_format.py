@@ -49,6 +49,7 @@ STORY_ONE_LINE = 0.86     # down to this share of the design size, each title li
 STORY_FIGURE_RATIO = 2.0  # the reveal's hero figure against the title's design size (150 -> 300 px)
 STORY_FIGURE_PAIR = 0.3   # the qualifier and the unit, one size, against the figure's
 STORY_FIGURE_GAP = 18     # qualifier to figure and figure to unit, cap to cap (28 and 22 before round 3)
+STORY_INLINE_GAP = 0.45   # an inline qualifier to its numeral, as a share of the qualifier's cap height (round 4)
 # The poll frame's sticker room sits directly under the question (2026-11-02 round 2: at y 1300-1560 it was half a
 # screen from the words it answers), on a quiet ink panel, nothing drawn in it; recorded per frame in layout.json
 # (`poll_sticker_room`) and as the frame's protected region. Every frame still leaves POLL_STICKER_ROOM empty.
@@ -103,6 +104,9 @@ def story_figure(line1: str, line2: str):
     figure (a number with its unit), else None. The unit line keeps what the line says of the figure
     ("FT DEEP"); a qualifier before it ("ABOUT") is kept, never dropped; the other line is the title."""
     from .cover_design import monument_figure
+    span = _story_span(line1, line2)
+    if span is not None:      # a stated span is the hero whole ("94\u2013104"), never its first number (round 4)
+        return span or None
     found = monument_figure({"line1": line1, "line2": line2})
     if not found or not found[1] or found[2] not in ("line1", "line2"):
         return None
@@ -113,6 +117,27 @@ def story_figure(line1: str, line2: str):
         return None   # words before the figure ("THE 144-FOOT DOME") read as a phrase: the frame stays a title
     return {"number": number, "unit": " ".join(x for x in (unit, suffix) if x), "qualifier": prefix,
             "title": line2 if field == "line1" else line1}
+
+
+def _story_span(line1: str, line2: str):
+    """story_figure for a title line that states a span ("94\u2013104 MILLION YEARS OLD", "BETWEEN 8 AND 9 KM WIDE"):
+    the hero dict with the span whole as its number (round 4, 2026-11-02: ranges are shown whole, never rounded to
+    one figure); {} when a line states a span the frame cannot set as its hero (words before it), so the frame stays
+    the two-tone title; None when neither line states a span."""
+    for field, text in (("line1", line1 or ""), ("line2", line2 or "")):
+        for m in _SPAN.finditer(text):
+            lo = m.group("a") or m.group("a2")
+            if float(lo.replace(",", "")) >= float(m.group("b").replace(",", "")):
+                continue
+            prefix, suffix = text[:m.start()].strip(), text[m.end():].strip()
+            if prefix and not _QUALIFIER.match(prefix):
+                return {}
+            unit = " ".join(m.group("unit").upper().split())
+            return {"number": f"{lo}\u2013{m.group('b')}", "unit": " ".join(x for x in (unit, suffix) if x),
+                    "qualifier": prefix, "title": line2 if field == "line1" else line1, "span": True}
+    return None
+
+
 STORY_MARGIN = 84       # the Story's text column starts here, 19 px inside the safe box (2026-10-29: left-aligned)
 
 
@@ -156,6 +181,77 @@ def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: flo
     layer.putalpha(mask)
     out = Image.alpha_composite(im.convert("RGBA"), layer)
     return out if im.mode == "RGBA" else out.convert(im.mode)
+
+
+# Ground-aware legibility (round 4, 2026-11-02), measured and fail-closed. A Story's text band is shaded deeper while
+# (a) the texture behind any of its lines is busy (the high-pass RMS of the luma in a ring round the line, on the
+# shaded frame, above GROUND_ENERGY_MAX), or (b) a gold line sits on a ground of its own hue (within GOLD_HUE_SEP
+# degrees of brand.GOLD at a similar chroma, for GOLD_CLASH_SHARE of its ring: hue gives no separation there). The
+# band stays the feathered gradient (never a box: boxes read as caption bars on a Story). A gold line still on a
+# gold ground at the deepest step is set in bone. What was measured and chosen is the frame's `ground` record.
+GROUND_ENERGY_MAX = 9.0
+GROUND_RING = 14
+GOLD_HUE_SEP = 25.0
+GOLD_CLASH_SHARE = 0.10
+STORY_SCRIM_STEPS = (0.28, 0.2, 0.13, 0.08)
+
+
+def _ring(im: Image.Image, box, pad: int = GROUND_RING) -> Image.Image:
+    W, H = im.size
+    x0, y0, x1, y1 = (int(v) for v in box)
+    return im.crop((max(0, x0 - pad), max(0, y0 - pad), min(W, x1 + pad), min(H, y1 + pad)))
+
+
+def ground_energy(im: Image.Image, box) -> float:
+    """The texture behind a line: the RMS of the luma less its 6 px blur, over the line's box and GROUND_RING px
+    round it (0-255 luma units; a flat ground is 0)."""
+    import numpy as np
+    from PIL import ImageFilter
+    g = _ring(im.convert("L"), box)
+    if not g.width or not g.height:
+        return 0.0
+    a = np.asarray(g, dtype=np.float32)
+    b = np.asarray(g.filter(ImageFilter.GaussianBlur(6)), dtype=np.float32)
+    return round(float(np.sqrt(np.mean((a - b) ** 2))), 2)
+
+
+def gold_clash(im: Image.Image, box, gold=None) -> float:
+    """The share of the ground round `box` whose hue is within GOLD_HUE_SEP degrees of `gold` (brand.GOLD) at a
+    similar chroma (at least half its saturation) and not dark: where gold type has no hue separation."""
+    import colorsys
+
+    import numpy as np
+    gold = gold or GOLD
+    gh, gs, _ = colorsys.rgb_to_hsv(*(c / 255 for c in gold))
+    hsv = np.asarray(_ring(im.convert("RGB"), box).convert("HSV"), dtype=np.float32) / 255.0
+    if not hsv.size:
+        return 0.0
+    dh = np.abs(hsv[..., 0] - gh)
+    dh = np.minimum(dh, 1 - dh) * 360
+    near = (dh <= GOLD_HUE_SEP) & (hsv[..., 1] >= gs * 0.5) & (hsv[..., 2] >= 0.3)
+    return round(float(near.mean()), 3)
+
+
+def story_ground(base: Image.Image, d, rows, x: float, top: float, block: float):
+    """The Story's text band shaded (scrim) only as deep as its ground needs (GROUND_ENERGY_MAX, GOLD_CLASH_SHARE),
+    trying STORY_SCRIM_STEPS in turn; returns (image, rows, record). A gold row still clashing at the deepest step
+    is set in bone (its fill changed, nothing else)."""
+    def boxes(gold: bool):
+        return [d.textbbox((x + r[6], top + r[1]), r[2], font=r[3], anchor="ls") for r in rows
+                if r[2] and ((r[4] == GOLD) if gold else True)]
+    every, golds = boxes(False), boxes(True)
+    for target in STORY_SCRIM_STEPS:
+        shaded = scrim(base, top - 40, top + block + 30, feather=320, target=target)
+        energy = max((ground_energy(shaded, b) for b in every), default=0.0)
+        clash = max((gold_clash(shaded, b) for b in golds), default=0.0)
+        if energy <= GROUND_ENERGY_MAX and clash < GOLD_CLASH_SHARE:
+            break
+    record = {"scrim_target": target, "energy": energy, "gold_clash": clash, "gold_to_bone": False}
+    if clash >= GOLD_CLASH_SHARE:
+        rows = [(r[0], r[1], r[2], r[3], WHITE if r[4] == GOLD else r[4], r[5], r[6]) for r in rows]
+        record["gold_to_bone"] = True
+        log.info("Story gold line set in bone: its ground is gold (%.0f%% of its ring).", clash * 100)
+    return shaded, rows, record
 
 
 WARM_HUE = (15, 62)      # degrees: ochre, gold and amber grounds, where the brand gold has no hue contrast
@@ -239,6 +335,8 @@ def draw_kicker(im: Image.Image, x: float, baseline: float, text: str, font, col
     if lay is not None:
         lay.add(name, box)
         lay.elements[-1].update(plate.record())
+        if isinstance(getattr(lay, "meta", None), dict):   # the rule's own box (the swipe strip meets it)
+            lay.meta[f"{name}_rule"] = [round(x), round(mid - thick / 2), round(x) + bar_w, round(mid - thick / 2) + thick]
     if plates is not None:
         plates.setdefault(name, []).append(plate)
     return im, box
@@ -264,6 +362,88 @@ def story_body_lines(body: str, asks_poll: bool = False) -> int:
         return 0
     d = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     return len(wrap_text(d, " ".join(body.split()), get_font("Montserrat", STORY_BODY_PX), story_body_width()))
+
+
+_AUXILIARY = re.compile(r"^(?:would|will|do|does|did|is|are|was|were|can|could|should|shall|have|has|had|may|might|"
+                        r"must)\b", re.IGNORECASE)
+_YES_NO = re.compile(r"^\W*(?:yes|no|yeah|nope|definitely|never)\b", re.IGNORECASE)
+
+
+def poll_problems(poll: dict[str, Any]) -> list[str]:
+    """What breaks the poll's own rule, "never a yes/no question" (round 4, 2026-11-02): options that answer yes or
+    no ("Yes, safety first" / "No, I need daylight"), or a question opening on an auxiliary verb ("Would you ...?")
+    that offers no "or" between choices. [] for a real either/or poll."""
+    question = " ".join(str(poll.get("question") or "").split())
+    options = [str(o) for o in poll.get("options") or []]
+    out = []
+    if sum(bool(_YES_NO.match(o)) for o in options) >= 2:
+        out.append("the options answer yes or no")
+    if question and _AUXILIARY.match(question) and not re.search(r"\bor\b", question, re.IGNORECASE):
+        out.append("the question asks for yes or no")
+    return out
+
+
+# Words a line should not end on (round 4 review, 2026-11-02): an article, a conjunction or a short preposition
+# leaves the reader holding a word that belongs to the next line ("Tell us in the comments and / follow ...").
+_DANGLING = frozenset(("a", "an", "the", "and", "or", "but", "nor", "so", "yet", "of", "in", "on", "at", "to", "for",
+                       "with", "from", "by", "as", "into", "onto", "than", "via", "per"))
+RAG_DANGLE = 0.3   # a line ending on one of them costs as much as a line this share of `width` off the mean
+
+
+def dangles(line: str) -> bool:
+    """True when the line ends on a word in _DANGLING (punctuation after it means it closes a phrase: not counted)."""
+    words = line.split()
+    return bool(words) and words[-1].lower() in _DANGLING
+
+
+def even_rag(d, lines: list[str], font, width: float, measure: int) -> list[str]:
+    """The same words on the same number of lines, broken for the evenest rag (round 4, 2026-11-02): the least
+    spread of line widths, every line within `width` px and `measure` characters, never a one-word last line where
+    the given lines avoid it. A short first line over a full second ("Visible from space, the") is evened out.
+    A line that ends on an article, conjunction or short preposition (dangles) costs RAG_DANGLE of the width
+    squared, in the given lines too, so an even rag never buys its evenness with a dangling "and".
+    Words split at ordinary spaces only, so a figure glued to its unit stays whole. Unchanged when no other break
+    is better."""
+    from itertools import combinations
+    words = " ".join(lines).split(" ")
+    n = len(lines)
+    if n < 2 or len(words) > 24 or len(words) <= n:
+        return lines
+    widths = {}
+
+    def w(a: int, b: int) -> float:
+        if (a, b) not in widths:
+            widths[(a, b)] = d.textlength(" ".join(words[a:b]), font=font)
+        return widths[(a, b)]
+
+    def cost(cand):
+        ws = [w(a, b) for a, b in cand]
+        mean = sum(ws) / len(ws)
+        # A last line longer than the one above it reads as an inverted rag: counted as much again.
+        dangle = sum(dangles(" ".join(words[a:b])) for a, b in cand[:-1]) * (RAG_DANGLE * width) ** 2
+        return sum((x - mean) ** 2 for x in ws) + max(0.0, ws[-1] - ws[-2]) ** 2 + dangle
+    best, best_cost = None, None
+    for cuts in combinations(range(1, len(words)), n - 1):
+        bounds = list(zip((0,) + cuts, cuts + (len(words),)))
+        if any(w(a, b) > width or len(" ".join(words[a:b])) > measure for a, b in bounds):
+            continue
+        if bounds[-1][1] - bounds[-1][0] == 1 and len(lines[-1].split(" ")) > 1:
+            continue
+        c = cost(bounds)
+        if best_cost is None or c < best_cost - 1e-6:
+            best, best_cost = bounds, c
+    if best is None:
+        return lines
+    out = [" ".join(words[a:b]) for a, b in best]
+    return out if cost(best) < cost(list(_bounds(lines))) - 1e-6 else lines
+
+
+def _bounds(lines: list[str]):
+    k = 0
+    for ln in lines:
+        m = len(ln.split(" "))
+        yield (k, k + m)
+        k += m
 
 
 def split_balanced(text: str) -> Tuple[str, str]:
@@ -316,6 +496,10 @@ def ensure_legible(im: Image.Image, box: Tuple[int, int, int, int], text_rgb=(23
     black = Image.new("RGB", im.size, (0, 0, 0))
     return Image.composite(black, im.convert("RGB"), shade)
 
+
+SHARE_WEIGHT = 700   # the closing slide's share-and-follow line: Montserrat Bold (round 4). The panel asked for
+                     # SemiBold, but every Montserrat line is already 600 (typography.VARIABLE_WEIGHTS), the question
+                     # with it; one step heavier is what sets the ask apart as a second voice.
 
 _render_state = threading.local()   # the slide being drawn on this thread: its subject
 
@@ -374,6 +558,9 @@ class MultiFormatGenerator:
         yt_tags = [h.lstrip("#").lower() for h in hashtags_list] + ["archaeology", "ancient history", "documentary", "history mysteries"]
 
         sticker_spec = dict(script_payload.get("poll") or {})
+        if sticker_spec and poll_problems(sticker_spec):
+            # Recorded for the operator (round 4): the script's rule is "never a yes/no question". Not yet a gate here.
+            sticker_spec["problems"] = poll_problems(sticker_spec)
         room = next(((e["frame"], e.get("poll_sticker_room")) for e in layout if e.get("poll_sticker_room")), None)
         if sticker_spec and room:
             # Where the operator places the native sticker: the room the frame keeps for it (round 3, 2026-11-02).
@@ -464,8 +651,11 @@ class MultiFormatGenerator:
                           complete=all(drawable(line, font_c) == line for line in credit["lines"]))  # no glyph missing
             text_floor = c_top - STORY_CREDIT_GAP
         kicker, l1, l2 = (typeset(slide[k]).upper() for k in ("kicker", "line1", "line2"))
-        if asks_poll and poll.get("question"):
-            l1, l2 = split_balanced(typeset(poll["question"]).upper())  # the frame asks the question its options answer
+        if asks_poll and poll.get("question") and not (l1.strip() or l2.strip()):
+            # Round 4 (2026-11-02): the frame's headline is the slide's own lines (fact-checked with the slide) and the
+            # native sticker asks the poll's question; the question is set as the headline only when the slide has
+            # no lines (it duplicated the sticker word for word, and went on screen unchecked).
+            l1, l2 = split_balanced(typeset(poll["question"]).upper())
         l1, l2 = story_display(l1), story_display(l2)
         body = typeset(slide["body"])
         if asks_poll:  # one question per frame: the poll's; the body keeps only its context
@@ -490,7 +680,7 @@ class MultiFormatGenerator:
 
         def title_plan(size: int, wrap: bool = True):
             """(rows, height) of the title at `size`: rows of (name, baseline offset from the title's top, text,
-            font, fill)."""
+            font, fill, x offset)."""
             out, y = [], 0
             if hero:
                 # The qualifier and the unit are one matched pair (round 3, 2026-11-02): one face, one size, in bone, so
@@ -501,28 +691,37 @@ class MultiFormatGenerator:
                 f_title = get_font("Anton", round(size * 0.66))
                 for ln in balanced_wrap(d, hero["title"], f_title, STORY_TITLE_W) if hero["title"] else []:
                     y += cap_height(f_title) if not out else round(cap_height(f_title) * 1.13)
-                    out.append(("title_1", y, ln, f_title, WHITE))
-                if hero["qualifier"]:
+                    out.append(("title_1", y, ln, f_title, WHITE, 0))
+                # Round 4 (2026-11-02): the qualifier sits inline before the numeral, on its baseline, at the unit's
+                # size ("ABOUT 280"): on a line of its own it read as a one-word headline line. Stacked above the
+                # numeral only when the inline pair is wider than the title's measure.
+                q_w = d.textlength(hero["qualifier"], font=q_font) + round(cap_height(q_font) * STORY_INLINE_GAP) \
+                    if hero["qualifier"] else 0
+                inline = bool(hero["qualifier"]) and q_w + d.textlength(hero["number"], font=f_fig) <= STORY_TITLE_W
+                if hero["qualifier"] and not inline:
                     y += (34 if out else 0) + cap_height(q_font)
-                    out.append(("figure_qualifier", y, hero["qualifier"], q_font, WHITE))
+                    out.append(("figure_qualifier", y, hero["qualifier"], q_font, WHITE, 0))
                 y += (STORY_FIGURE_GAP if out else 0) + cap_height(f_fig)
-                out.append(("figure", y, hero["number"], f_fig, GOLD))
+                if inline:
+                    out.append(("figure_qualifier", y, hero["qualifier"], q_font, WHITE, 0))
+                out.append(("figure", y, hero["number"], f_fig, GOLD, round(q_w) if inline else 0))
                 if hero["unit"]:
                     y += STORY_FIGURE_GAP + cap_height(f_unit)
-                    out.append(("figure_unit", y, hero["unit"], f_unit, WHITE))
+                    # Under the numeral it measures (inline: indented past the qualifier, so "FT DEEP" reads with "280").
+                    out.append(("figure_unit", y, hero["unit"], f_unit, WHITE, round(q_w) if inline else 0))
                 return out, y
             f = get_font("Anton", size)
             for name, text, fill in (("title_1", l1, WHITE), ("title_2", l2, GOLD)):
                 for ln in (balanced_wrap(d, text, f, STORY_TITLE_W) if wrap else [text]) if text else []:
                     y += cap_height(f) if not out else round(cap_height(f) * 1.13)
-                    out.append((name, y, ln, f, fill))
+                    out.append((name, y, ln, f, fill, 0))
             return out, y
 
         def fits(plan) -> bool:
             rows_, _ = plan
             texts = [r for r in rows_ if not r[0].startswith("figure")]
             return (len(texts) <= (2 if hero else STORY_TITLE_LINES)
-                    and all(d.textlength(r[2], font=r[3]) <= STORY_TITLE_W for r in rows_))
+                    and all(r[5] + d.textlength(r[2], font=r[3]) <= STORY_TITLE_W for r in rows_))
 
         t_size, t_min = (124, 56) if tight else (150, 64)
         # Each title line whole while it fits at STORY_ONE_LINE of the design size or more; below that, back at
@@ -562,8 +761,8 @@ class MultiFormatGenerator:
             l2, _, s2 = fit_line(d, l2, "Anton", t_min, STORY_TITLE_W, t_min)
             hero = None
             ct = cap_height(font_t)
-            t_rows = [r for r in (("title_1", ct, l1, font_t, WHITE), ("title_2", ct + round(ct * 1.13), l2, font_t, GOLD))
-                      if r[2]]
+            t_rows = [r for r in (("title_1", ct, l1, font_t, WHITE, 0),
+                                  ("title_2", ct + round(ct * 1.13), l2, font_t, GOLD, 0)) if r[2]]
             t_height = t_rows[-1][1] if t_rows else 0
         n_room = max(1, (room - fixed - t_height - b_gap - 16) // b_step + 1)   # 16: the last line's descenders
         body_lines, font_b, b_short = [], get_font("Montserrat", STORY_BODY_PX, weight=STORY_BODY_WEIGHT), False
@@ -580,10 +779,10 @@ class MultiFormatGenerator:
         lay.shortened = [n for n, short in (("kicker", k_short), ("title_1", s1), ("title_2", s2), ("body", b_short)) if short]
 
         # Baselines, relative to the block's top.
-        rows: List[Tuple[str, float, str, Any, Any, float]] = []   # (name, baseline, text, font, fill, track)
+        rows: List[Tuple[str, float, str, Any, Any, float, int]] = []   # (name, baseline, text, font, fill, track, dx)
         y0 = cap_k + 30 if kicker else 0
-        for name, yy, txt, f, fill in t_rows:
-            rows.append((name, y0 + yy, txt, f, fill, 0))
+        for name, yy, txt, f, fill, dx in t_rows:
+            rows.append((name, y0 + yy, txt, f, fill, 0, dx))
         y = y0 + t_height
         sticker_at = None
         if sticker:   # the poll sticker's room, directly under the question (2026-11-02 round 2)
@@ -592,13 +791,13 @@ class MultiFormatGenerator:
         title_base = y
         for j, line in enumerate(body_lines):
             y = title_base + b_gap + j * b_step
-            rows.append(("body", y, line, font_b, LIGHT, 0))
+            rows.append(("body", y, line, font_b, LIGHT, 0, 0))
         if i == 0:  # No arrow on the pointer (operator, 2026-10-28): the words say where to go.
             y += 96
             # In bone (2026-11-01): gold is the frame's one first read (the title's second line); the kicker's
             # gold rule and capitals are the brand's kicker, and a third gold line competed with both.
-            rows.append(("reel_pointer", y, "FULL STORY IN OUR NEW REEL", font_p, WHITE, font_p.size * 0.11))
-        bottom = max([d.textbbox((x, yy), txt, font=f, anchor="ls")[3] for _, yy, txt, f, _, _ in rows]
+            rows.append(("reel_pointer", y, "FULL STORY IN OUR NEW REEL", font_p, WHITE, font_p.size * 0.11, 0))
+        bottom = max([d.textbbox((x, yy), txt, font=f, anchor="ls")[3] for _, yy, txt, f, _, _, _ in rows]
                      + ([sticker_at + sticker] if sticker else []))
         block = bottom
         top_cand = sy0 + 40 + block // 2
@@ -607,7 +806,8 @@ class MultiFormatGenerator:
         # for no narrative reason). The scrim and each line's measured halo hold the contrast on any photo.
         cy = top_cand
         top = max(sy0 + 30, min(cy - block // 2, text_floor - block))   # above the photo credit, when there is one
-        base = scrim(base, top - 40, top + block + 30, feather=320, target=0.28)
+        base, rows, ground = story_ground(base, d, rows, x, top, block)
+        lay.ground = ground
         im = base.convert("RGBA")
         if sticker:
             room_box = poll_room_box(top + sticker_at, sticker)
@@ -618,8 +818,8 @@ class MultiFormatGenerator:
         if kicker:
             im, k_box = draw_kicker(im, x, top + cap_k, kicker, font_k, GOLD, lay, plates=lay.plates)
         by_name: dict[str, list] = {}
-        for name, yy, txt, f, fill, track in rows:
-            plate = plan_text(im, (x, top + yy), txt, f, fill, "ls", track=track)
+        for name, yy, txt, f, fill, track, dx in rows:
+            plate = plan_text(im, (x + dx, top + yy), txt, f, fill, "ls", track=track)
             im = plate.draw(im)
             lay.plates.setdefault(name, []).append(plate)
             by_name.setdefault(name, []).append(plate)
@@ -649,6 +849,7 @@ class MultiFormatGenerator:
                     "text_box": [min(ux0, x), uy0, max(ux1, x + max_w), max(uy1, int(y_end))],
                     "safe_box": [sx0, sy0, sx1, sy1],
                     **({"poll_sticker_room": getattr(lay, "meta_room", None)} if asks_poll else {}),
+                    "ground": ground,
                     **({"hero_figure": hero["number"]} if hero else {})}
         return base, lay
 
@@ -972,6 +1173,9 @@ class MultiFormatGenerator:
     # px on the 1080-wide canvas, drawn through _px.
     KEY_TOP, KEY_BOTTOM, KEY_GAP = 169, 1181, 18
     MARGIN = 84
+    # The Facebook cover's side inset, design px: the 2:3 hero tile's centre crop starts 90 design px (120 at 1440) in
+    # from each side, plus a 45 design px (60) gutter: the text column is x 180-1260 on the 1440 slide (round 4).
+    FB_COVER_MARGIN = 135
     SPLIT_PHOTO_H = 675
 
     def _stack(self, im: Image.Image, lay, rows: List[Dict[str, Any]], x: int, bottom: int, plates: Dict[str, list]):
@@ -1107,7 +1311,7 @@ class MultiFormatGenerator:
             measure_ok = all(len(ln) <= self.BODY_MEASURE for ln in lines)
             if not short and measure_ok:
                 if not (len(lines) > 1 and len(lines[-1].split()) == 1):
-                    return got
+                    return (even_rag(d, lines, got[1], width, self.BODY_MEASURE), got[1], got[2])
                 fallback = fallback or got
             w -= px(16)
         chosen = fallback or first
@@ -1223,15 +1427,18 @@ class MultiFormatGenerator:
 
     def _slide_text(self, im: Image.Image, lay, cw: int, chh: int, heading: str, body: str, kicker: str = "",
                     stat: str = "", full: bool = True, two_tone: bool | str = False, tight: bool = False, b_lines: int = 3,
-                    h_spec=(112, 60), extra=None, content: bool = False, deep: bool = False):
+                    h_spec=(112, 60), extra=None, content: bool = False, deep: bool = False,
+                    margin: int | None = None):
         """Plans a slide's stack at the largest scale whose top clears KEY_TOP, its foot on the shared line; on a
         content slide (`content`) the kicker and the heading sit on the deck's fixed baselines
         (_content_baselines) while the stack fits them. Shades behind it (a full-bleed photo) and draws it.
         `extra(rows, y)`: rows appended below the body. `deep`: the gradient behind a full-bleed stack is taken almost
-        to ink (a warm or gold photo under gold type: hue gives no contrast, so luminance must)."""
+        to ink (a warm or gold photo under gold type: hue gives no contrast, so luminance must). `margin`: the text
+        column's side inset, design px (default MARGIN)."""
         px = self._px(cw)
         d = ImageDraw.Draw(im)
-        width = cw - 2 * px(self.MARGIN)
+        margin = self.MARGIN if margin is None else margin
+        width = cw - 2 * px(margin)
         bottom = px(self.KEY_BOTTOM - self.KEY_GAP)
         facebook = bool(getattr(_render_state, "facebook", False))
         if content:
@@ -1305,7 +1512,7 @@ class MultiFormatGenerator:
             plates = {}
             if lay is not None:
                 lay.plates = plates
-        im, _ = self._stack(im.convert("RGBA"), lay, rows, px(self.MARGIN), bottom, plates)
+        im, _ = self._stack(im.convert("RGBA"), lay, rows, px(margin), bottom, plates)
         if lay is not None and fixed:
             lay.meta["baselines"] = dict(fixed)
         return im.convert("RGB")
@@ -1330,10 +1537,14 @@ class MultiFormatGenerator:
 
     def _render_cover(self, photo: Path, card: Dict[str, Any], cw: int, chh: int,
                       lay=None, tight: bool = False) -> Image.Image:
-        """The cover: full-bleed, the heading in two balanced Anton lines (bone, then gold), the body under it."""
+        """The cover: full-bleed, the heading in two balanced Anton lines (bone, then gold), the body under it. On the
+        Facebook copy the cover is the collage's tall 2:3 hero tile, which shows the slide's centre 2:3 (x 120-1320 at
+        1440): its text column is FB_COVER_MARGIN in from each side, so no letter is cut (round 4, 2026-11-02:
+        "THE EYE OF" lost its T, the body its first letters)."""
         im = self._fill(photo, (cw, chh))
+        facebook = bool(getattr(_render_state, "facebook", False))
         return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], two_tone=True, tight=tight,
-                                b_lines=3, h_spec=(150, 72))
+                                b_lines=3, h_spec=(150, 72), margin=self.FB_COVER_MARGIN if facebook else None)
 
     def _render_immersive(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
                           lay=None, tight: bool = False) -> Image.Image:
@@ -1394,11 +1605,18 @@ class MultiFormatGenerator:
         def with_share(rows, scale):
             if not share:
                 return rows
-            lines, f_share, sh_short = self._fit_text(d, share, "Montserrat", int(36 * scale), width, 2, 28, px=px)
+            lines, f_share, sh_short = self._fit_text(d, share, "Montserrat", int(36 * scale), width, 2, 28, px=px,
+                                                      weight=SHARE_WEIGHT)
+            # Round 4 (2026-11-02): the ask one weight above the question (SHARE_WEIGHT), a second voice, and
+            # a full body line of air above its gold rule (at one weight and 46 px the two read as one block).
+            f_share = get_font("Montserrat", f_share.size, weight=SHARE_WEIGHT)
+            # Its break as the body's (round 4 review): never a line ending on "a" or "and" where another fits.
+            lines = even_rag(d, lines, f_share, width, max([self.BODY_MEASURE] + [len(ln) for ln in lines]))
             if sh_short and lay is not None and "share" not in lay.shortened:
                 lay.shortened.append("share")
             last = max((r["y"] for r in rows), default=0)
-            rule["y"] = last + px(46 * scale)                       # the rule's top, relative to the stack
+            body_step = round(px.exact(self.BODY_SPEC[0] * scale) * self.BODY_LEADING)
+            rule["y"] = last + body_step + px(16 * scale)           # the rule's top, relative to the stack
             y = rule["y"] + px(6) + px(26 * scale) + cap_height(f_share)
             step = round(f_share.size * 1.38)
             return rows + [{"name": "share", "text": ln, "font": f_share, "fill": WHITE, "y": y + j * step}
@@ -1422,6 +1640,8 @@ class MultiFormatGenerator:
         cropped to what it draws, on its own ink ground above the deck's fixed text baselines, with the card's own
         kicker, heading and body. Nothing is added to the drawing; its own labels and qualifiers stay as drawn."""
         px = self._px(cw)
+        if is_map_poster(poster):
+            return self._render_map_slide(poster, card, index, cw, chh, lay=lay, tight=tight)
         with Image.open(poster) as src:
             g = src.convert("RGB")
         ground, box = diagram_crop(g)
@@ -1453,6 +1673,103 @@ class MultiFormatGenerator:
         return self._slide_text(im, lay, cw, chh, heading, card["body"], kicker=tag, full=False,
                                 tight=tight, two_tone="wrap", b_lines=4, content=True)
 
+    def _render_map_slide(self, poster: Path, card: dict[str, Any], index: int, cw: int, chh: int,
+                          lay=None, tight: bool = False) -> Image.Image:
+        """The locator map's resting frame full bleed (round 4): scaled to the slide's width and cut so the poster's
+        centre (the pin) sits at MAP_FOCUS of the slide, never cropped to a drawn box (diagram_crop: a map has no
+        flat ground); the card's stack over an ink foot (MAP_FOOT_INK), as on a full-bleed photo slide.
+        Round 4 review (2026-11-02): the map's own labels are measured (map_label_bands) against the stack. The
+        place label and pin must show whole above the foot; every other label (the scale bar, a neighbour's name)
+        shows whole above the foot or lies wholly under its ink, never half under it or behind the text. When the
+        pin's resting place leaves no such cut, the map rises (up to MAP_LIFT_MAX design px), then the fade
+        shortens (MAP_FADE down to MAP_FADE_MIN). What it chose is in lay.meta["diagram"]; a map it could not
+        clear says so there ("labels_clear": False) and in the log."""
+        import numpy as np
+
+        from .still_layout import Layout
+        px = self._px(cw)
+        with Image.open(poster) as src:
+            g = src.convert("RGB")
+        k = cw / g.width
+        tag = self._tag(self._get_card_category(card, "diagram"), index)
+        heading = card["heading"].upper()
+
+        def stack(im_, lay_):
+            return self._slide_text(im_, lay_, cw, chh, heading, card["body"], kicker=tag, tight=tight,
+                                    two_tone="wrap", h_spec=(112, 60), content=True, full=False)
+        # Where the stack will stand: a dry run on a throwaway layout (its rows do not depend on the pixels).
+        probe = Layout("carousel", (cw, chh), self._zone(cw, chh), tight=tight)
+        probe.plates = {}
+        stack(Image.new("RGB", (cw, chh), brand.INK), probe)
+        texts = [e["box"] for e in probe.elements]
+        stack_top = min(b[1] for b in texts) if texts else chh
+        if g.height * k < chh:                     # a wide poster: the usual centre crop
+            full = cover_crop(poster, (cw, chh)).convert("RGB")
+            tops, base_top, record = [0], 0, None   # its crop is not the record's frame: measured by pixels only
+        else:
+            full = g.resize((cw, round(g.height * k)), Image.Resampling.LANCZOS)
+            h = full.height
+            base_top = int(min(max(0, MAP_FOCUS[0] * h - MAP_FOCUS[1] * chh), h - chh))
+            lift_max = min(h - chh, base_top + px(MAP_LIFT_MAX))
+            tops, record = list(range(base_top, lift_max + 1, max(1, px(8)))) or [base_top], poster
+            if tops[-1] != lift_max:
+                tops.append(lift_max)
+        bands = map_label_bands(record, full, k, px)
+        pin_y = full.height / 2
+        primary, secondary = [], []
+        for b in bands:   # the place label stands over the pin; the pin itself is MAP_PIN design px about its centre
+            (primary if b[3] > pin_y - px(MAP_LABEL_REACH) and b[1] < pin_y + px(MAP_PIN) else secondary).append(b)
+        primary_bottom = max([pin_y + px(MAP_PIN)] + [b[3] for b in primary])
+        primary_top = min([pin_y - px(MAP_PIN)] + [b[1] for b in primary])
+        foot_low = stack_top - px(MAP_CLEAR)          # the foot's full ink starts here at the latest
+        head_room = px(self.HEADER_Y) + px(80)         # the place label stays under the masthead, as a drawing does
+
+        def cut(top, fade):
+            """(top, fade, y1) when this cut shows the place whole and no label half under the foot, else None."""
+            if primary_top - top < head_room:
+                return None
+            y1 = foot_low
+            for b in sorted(secondary, key=lambda b: -b[3]):   # from the foot up: a half-covered label is covered
+                if b[1] - top < y1 and b[3] - top > y1 - fade:
+                    y1 = min(y1, b[1] - top)
+            return (top, fade, y1) if y1 - fade >= primary_bottom - top + px(MAP_GAP) else None
+        step = max(1, px(10))
+        choice = None
+        # A soft foot (MAP_FADE_GOOD or more) at the least lift first; only then a shorter fade.
+        for fades in ([*range(px(MAP_FADE), px(MAP_FADE_GOOD), -step), px(MAP_FADE_GOOD)],
+                      [*range(px(MAP_FADE_GOOD) - step, px(MAP_FADE_MIN), -step), px(MAP_FADE_MIN)]):
+            choice = next((c for top in tops for fade in fades if (c := cut(top, fade))), None)
+            if choice:
+                break
+        clear = choice is not None
+        if not clear:
+            log.warning("Locator map slide: no cut keeps the map's labels clear of the text (%.40s).", heading)
+            choice = (tops[0], px(MAP_FADE_MIN), foot_low)
+        top, fade, y1 = choice
+        im = full.crop((0, top, cw, top + chh))
+        # The ink foot: none above y1 - fade, a smooth rise to MAP_FOOT_INK at y1, held to the slide's foot.
+        ys = np.arange(chh, dtype=np.float32)
+        u = np.clip((ys - (y1 - fade)) / max(1, fade), 0, 1)
+        alpha = (u * u * (3 - 2 * u) * MAP_FOOT_INK)[:, None, None]
+        a = np.asarray(im, dtype=np.float32)
+        im = Image.fromarray(np.clip(a * (1 - alpha) + np.array(brand.INK, np.float32) * alpha, 0, 255)
+                             .astype(np.uint8), "RGB")
+        labels = []
+        for b in bands:
+            y0b, y1b = b[1] - top, b[3] - top
+            if y1b <= 0 or y0b >= chh:
+                continue
+            shown = y1b <= y1 - fade
+            labels.append({"box": [int(b[0]), round(y0b), int(b[2]), round(y1b)],
+                           "place": b in primary, "shown": bool(shown)})
+        if lay is not None:
+            window = None if g.height * k < chh else [0, round(top / k), g.width, round((top + chh) / k)]
+            lay.meta["diagram"] = {"poster": str(poster), "kind": MAP_KIND, "source_box": window,
+                                   "image_box": [0, 0, cw, chh], "lift": int(top - base_top),
+                                   "foot": [int(y1 - fade), int(y1)], "stack_top": int(stack_top),
+                                   "labels": labels, "labels_clear": clear}
+        return stack(im, lay)
+
     def _render_editorial_split(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
                                 lay=None, tight: bool = False) -> Image.Image:
         """Photo over ink, the stack on the ink panel."""
@@ -1463,14 +1780,15 @@ class MultiFormatGenerator:
 
     def _render_carousel_slide(self, archetype: str, photo: Path, photo_next: Path, card: Dict[str, Any], i: int,
                                total: int, poll: Dict[str, Any], share: str, facebook: bool, tight: bool = False,
-                               subject: str = "", heading_frame: int = 2):
+                               subject: str = "", heading_frame: int = 2, strip: dict[str, Any] | None = None):
         """One carousel slide and its measured layout: the archetype's own text, then the brand in its band at the
         top-left. Nothing is drawn under Instagram's counter (`protected`). Both copies are free of slide chrome
         (operator, 2026-10-28); `facebook` now changes only the words: the grid copy's slide text says nothing
         about swiping ("Swipe to see how ..." is drawn "See how ..."), and neither copy draws a direction cue.
         `tight`: smaller type, and the brand on a solid pill so it reads over any photo (Richat 2's header
         "collides with the spacecraft's solar panel"). `heading_frame`: the deck's content frame (1 or 2 heading
-        lines, _deck_heading_frame); 2, round 2's frame, when the slide is drawn alone."""
+        lines, _deck_heading_frame); 2, round 2's frame, when the slide is drawn alone. `strip`: the Instagram copy's
+        swipe strip on slide 1 or 2 (swipe_strip)."""
         from .still_layout import Layout
         from .script_engine import facebook_photo_caption, neutral_cues
         clean = facebook_photo_caption if facebook else neutral_cues
@@ -1480,7 +1798,7 @@ class MultiFormatGenerator:
         # with the caption on the first only (2026-11-01), and Instagram's copy carries the same kicker so the two
         # copies keep one system and the gold rule (2026-11-02 design review).
         # Per thread: the Instagram and Facebook copies render at once on one generator (PR review, 2026-11-02).
-        _render_state.subject = subject.upper() if i > 0 else ""
+        _render_state.subject = typeset(subject).upper() if i > 0 else ""
         _render_state.facebook = bool(facebook)
         _render_state.heading_frame = 2 if int(heading_frame or 2) > 1 else 1
         cw, chh = self.CAROUSEL_SIZE
@@ -1513,7 +1831,10 @@ class MultiFormatGenerator:
         from .cover_design import MARK_GAP, MARK_R
         brand_font = get_font("Cinzel", px.exact(40), weight=700)
         r, gap = px(MARK_R), px(MARK_GAP)
-        x0, base = px(80), px(self.HEADER_Y) + cap_height(brand_font)
+        # On the Facebook cover (the collage's 2:3 hero tile) the masthead keeps the cover's inset too (round 4: its
+        # diamond fell outside the tile's crop at x 107).
+        x0 = px(self.FB_COVER_MARGIN) if facebook and archetype == "cover" else px(80)
+        base = px(self.HEADER_Y) + cap_height(brand_font)
         # Round 3 (2026-11-02): where the photo is too bright behind the masthead, a soft ink gradient from the top
         # edge, deep only as far as the masthead's planned ratio needs, takes the place of a 36 px halo per line
         # (a dark smudge over Richat's blue sky). The line's own halo then does only what is left.
@@ -1532,6 +1853,8 @@ class MultiFormatGenerator:
         lay.add("header_brand", (min(bx[0], cx - r), min(bx[1], cy - r), max(bx[2], cx + r), max(bx[3], cy + r)))
         lay.elements[-1].update(plate.record())
         lay.plates.setdefault("header_brand", []).append(plate)
+        if strip and not facebook:
+            im = swipe_strip(im, lay, strip)
         return im, lay
 
     def generate_carousel_sequence(self, scene_images: List[Path], script_payload: Dict[str, Any], output_dir: Path,
@@ -1570,22 +1893,37 @@ class MultiFormatGenerator:
         cards = [dict(card, **{k: spoken_units(card[k], narration) for k in ("heading", "body")
                                if isinstance(card.get(k), str)}) for card in cards]
         frame = self._deck_heading_frame(cards, archetypes, facebook)   # one frame for every slide of this copy
-        for i, card in enumerate(cards):
+        # Instagram's swipe strip (round 4): slide 2 is drawn first, so slide 1's strip meets slide 2's kicker rule.
+        strips: dict[int, dict[str, Any]] = {}
+        order = list(range(total))
+        if not facebook and total > 2 and archetypes[0] == "cover" and archetypes[1] not in self.NON_CONTENT_ARCHETYPES:
+            order = [1, 0] + order[2:]
+            strips[1] = {"side": "left"}
+        drawn_paths: dict[int, Path] = {}
+        for i in order:
+            card = cards[i]
             archetype = archetypes[i]
             photo = diagram[1] if archetype == "diagram" else photos[i]
             photo_next = photos[(i + 1) % len(photos)]
+            strip = strips.get(i)
             im, lay, attempts = still_layout.drawn(
-                lambda tight: self._render_carousel_slide(archetype, photo, photo_next, card, i, total, poll, share,
-                                                          facebook, tight=tight, subject=subject,
-                                                          heading_frame=frame))
+                lambda tight, strip=strip: self._render_carousel_slide(archetype, photo, photo_next, card, i, total,
+                                                                       poll, share, facebook, tight=tight,
+                                                                       subject=subject, heading_frame=frame,
+                                                                       strip=strip))
+            drew = lay.meta.get("swipe_strip") or {}
+            if i == 1 and drew.get("box"):
+                strips[0] = {"side": "right", "y0": drew["box"][1], "y1": drew["box"][3]}
             path = out_dir / f"carousel_slide_{i + 1:02d}.jpg"
             self._save_slide(im, path)
             _delivered_contrast(lay, path)
             still_layout.save(path, lay, {"renderer": "multi_format.redraw_carousel_slide", "archetype": archetype,
                                           "photo": str(photo), "photo_next": str(photo_next), "card": card, "index": i,
                                           "total": total, "poll": poll, "share": share, "facebook": facebook,
-                                          "subject": subject, "heading_frame": frame}, attempts)
-            slides.append(path)
+                                          "subject": subject, "heading_frame": frame,
+                                          **({"strip": drew} if drew else {})}, attempts)
+            drawn_paths[i] = path
+        slides = [drawn_paths[i] for i in range(total)]
 
         if facebook:
             write_collage_report(slides, out_dir)
@@ -1627,10 +1965,76 @@ _DIAGRAM_WORDS = {
     "route": ("route", "road", "journey", "path", "trade"),
 }
 DIAGRAM_SLIDES = (2, 3)   # slide 3 or 4 (0-based): after the hook and its first fact
+# Round 4 (2026-11-02): with no explanatory graphic, the locator map's resting frame (graphic_map.jpg: relief, globe
+# inset, place label) is the deck's drawn slide, so every carousel has one. It has no flat ground to crop to: it is
+# laid full bleed (_render_diagram), its pin and label in the slide's upper part (MAP_FOCUS), the text over its foot.
+MAP_KIND = "map"
+MAP_FOCUS = (0.5, 0.36)   # this share of the poster's height (its centre: the map's pin) lands at this share of the slide's
+_DIAGRAM_WORDS[MAP_KIND] = ("where", "desert", "located", "location", "country", "region", "map", "landmark",
+                            "space", "orbit", "visible", "border", "coast", "near", "across")
+
+
+MAP_FOOT_INK = 0.94   # the ink foot under the map slide's stack: the map's lines and labels there all but gone
+MAP_CLEAR = 40        # design px from the foot's full ink to the stack's top (the kicker's cap)
+MAP_FADE, MAP_FADE_GOOD, MAP_FADE_MIN = 160, 110, 56   # design px over which the foot rises to its ink: at most,
+                                                       # preferred at least, and at least
+MAP_GAP = 12          # design px from the place label and pin to where the foot starts
+MAP_PIN = 30          # design px about the poster's centre the pin (22 px, its ink outline) takes
+MAP_LABEL_REACH = 380  # design px above the pin the place label can stand (graphics.render_map: 72 px plus it)
+MAP_LIFT_MAX = 160    # design px the map may rise above MAP_FOCUS to clear its labels
+MAP_LABEL_INK = 200   # a pixel at least this bright in every channel is label ink (bone type, the scale bar)
+
+
+def map_label_bands(poster, full: Image.Image, k: float, px) -> list[tuple[float, float, float, float]]:
+    """The locator map's own labels as horizontal bands (x0, y0, x1, y1) in `full`'s pixels (the poster scaled by
+    `k`): the label boxes graphics.render_map recorded beside its clip (<clip>.contrast.json: the place, the
+    country, the scale bar's figures, a neighbour's name), each padded to take in its halo and the bar under it,
+    and the rows of `full` that carry label ink (MAP_LABEL_INK: bone type and the bar's white line), for a poster
+    with no record. Overlapping bands are merged."""
+    import numpy as np
+    boxes = []
+    side = Path(str(Path(poster).with_suffix(".mp4")) + ".contrast.json") if poster else None
+    try:
+        record = json.loads(side.read_text(encoding="utf-8")) if side and side.is_file() else {}
+    except (OSError, ValueError):
+        record = {}
+    pad = px(14)
+    for e in record.get("elements") or []:
+        b = e.get("box") or []
+        if len(b) == 4:
+            boxes.append((b[0] * k - pad, b[1] * k - pad, b[2] * k + pad, b[3] * k + pad))
+    a = np.asarray(full.convert("RGB"), dtype=np.int16)
+    ink = a.min(axis=2) >= MAP_LABEL_INK
+    rows = np.nonzero(ink.sum(axis=1) >= 3)[0]
+    if len(rows):
+        gap = max(1, px(10))
+        start = prev = int(rows[0])
+        for r in [int(v) for v in rows[1:]] + [None]:
+            if r is not None and r - prev <= gap:
+                prev = r
+                continue
+            xs = np.nonzero(ink[start:prev + 1].any(axis=0))[0]
+            boxes.append((float(xs.min()) - px(6), start - px(6), float(xs.max()) + px(6), prev + 1 + px(6)))
+            if r is not None:
+                start = prev = r
+    boxes.sort(key=lambda b: b[1])
+    merged: list[list[float]] = []
+    for b in boxes:
+        if merged and b[1] <= merged[-1][3]:
+            m = merged[-1]
+            merged[-1] = [min(m[0], b[0]), m[1], max(m[2], b[2]), max(m[3], b[3])]
+        else:
+            merged.append(list(b))
+    return [tuple(m) for m in merged]
+
+
+def is_map_poster(poster) -> bool:
+    return Path(str(poster)).stem == f"graphic_{MAP_KIND}"
 
 
 def diagram_poster(output_dir: Path, graphics: list[Path] | None = None) -> tuple[str, Path] | None:
-    """(kind, poster) of the run's preferred explanatory graphic whose poster frame exists, else None."""
+    """(kind, poster) of the run's preferred explanatory graphic whose poster frame exists, else the locator map's
+    (MAP_KIND), else None."""
     if graphics is None:
         folder = Path(output_dir) / "graphics"
         graphics = sorted(folder.glob("graphic_*.jpg")) if folder.is_dir() else []
@@ -1638,17 +2042,21 @@ def diagram_poster(output_dir: Path, graphics: list[Path] | None = None) -> tupl
     for g in graphics or []:
         poster = Path(g).with_suffix(".jpg")
         kind = poster.stem.replace("graphic_", "", 1)
-        if kind in DIAGRAM_KINDS and poster.is_file():
+        if kind in (*DIAGRAM_KINDS, MAP_KIND) and poster.is_file():
             posters.setdefault(kind, poster)
-    kind = next((k for k in DIAGRAM_KINDS if k in posters), None)
+    kind = next((k for k in DIAGRAM_KINDS + (MAP_KIND,) if k in posters), None)   # the map only as the fallback
     return (kind, posters[kind]) if kind else None
 
 
 def carousel_diagram(output_dir: Path, cards: list[dict[str, Any]],
                      graphics: list[Path] | None = None) -> tuple[int, Path] | None:
     """(slide index, poster) for the carousel's one diagram slide, or None: the run's explanatory graphic on
-    whichever of DIAGRAM_SLIDES says most about what it draws (else the first). Decided once per run and kept in
-    CAROUSEL_DIAGRAM, so the Instagram and Facebook copies, drawn at once, show it on the same slide."""
+    whichever of DIAGRAM_SLIDES says most about what it draws (else the first). The locator map (MAP_KIND, the
+    fallback drawing) goes only on a slide whose words are about place (_DIAGRAM_WORDS["map"]: "visible from
+    space ... desert landmark"), on any content slide (slide 2 included: the place is often said first), the one
+    that says most, DIAGRAM_SLIDES first on a tie; with no such slide the deck has no drawn slide (round 4 review,
+    2026-11-02: the map replaced the photo of a myth-bust about the crater theory). Decided once per run and kept
+    in CAROUSEL_DIAGRAM, so the Instagram and Facebook copies, drawn at once, show it on the same slide."""
     output_dir = Path(output_dir)
     record = output_dir / CAROUSEL_DIAGRAM
     key = [f"{c.get('heading', '')}|{c.get('body', '')}" for c in cards]
@@ -1669,8 +2077,12 @@ def carousel_diagram(output_dir: Path, cards: list[dict[str, Any]],
             def says(i):
                 text = re.findall(r"[a-z]+", f"{cards[i].get('heading', '')} {cards[i].get('body', '')}".lower())
                 return sum(w in words for w in text)
-            index = max(slots, key=lambda i: (says(i), -i))
-            chosen = (index, poster)
+            if kind == MAP_KIND:
+                slots = [i for i in range(1, len(cards) - 1) if says(i) > 0]
+                index = max(slots, key=lambda i: (says(i), i in DIAGRAM_SLIDES, -i)) if slots else None
+            else:
+                index = max(slots, key=lambda i: (says(i), -i))
+            chosen = (index, poster) if index is not None else None
         try:
             output_dir.mkdir(parents=True, exist_ok=True)
             record.write_text(json.dumps({"key": key, "index": chosen[0] if chosen else None,
@@ -1914,7 +2326,9 @@ def slide_alt_text(slide: Path) -> str:
     if not rec or not (card.get("heading") or card.get("body")):
         return ""
     subjects = [x for x in (_photo_subject(photo) for photo in slide_photos(slide)) if x]
-    if rec.get("archetype") == "diagram":
+    if rec.get("archetype") == "diagram" and is_map_poster(rec.get("photo") or ""):
+        picture = "A locator map from the video."
+    elif rec.get("archetype") == "diagram":
         picture = "A diagram from the video."
     elif len(subjects) > 1:
         picture = f"Two photos: {_sentence(subjects[0])[:-1]}; and {_sentence(subjects[1])}"
@@ -1940,12 +2354,46 @@ FACEBOOK_PHOTOS = 4
 FACEBOOK_GALLERY = 5
 
 
+_MYTH_BUST = re.compile(r"\b(?:disproved|disproven|debunked|myths?|mistaken|wrongly|false|once thought|initially|"
+                        r"considered|believed)\b", re.IGNORECASE)
+_ANAPHORA = re.compile(r"^\W*(?:it|its|this|that|these|those|they|their|them|he|she|his|her|here|there|such)\b",
+                       re.IGNORECASE)
+
+
+def slide_strength(rec: dict[str, Any]) -> int:
+    """How strongly a slide's record says it stands on its own as a tile (round 4, 2026-11-02): 1 for a figure slide
+    (a stat, or the colossal_stat archetype), the drawn slide (diagram), or a myth-bust (its heading or body
+    contradicts an earlier view: "IMPACT THEORY DISPROVED"); else 0."""
+    recipe = rec.get("recipe") or {}
+    card = recipe.get("card") or {}
+    if recipe.get("archetype") in ("colossal_stat", "diagram"):
+        return 1
+    if any(e.get("name") == "stat" for e in rec.get("elements") or []):
+        return 1
+    return 1 if _MYTH_BUST.search(f"{card.get('heading', '')} {card.get('body', '')}") else 0
+
+
+def standalone_problems(rec: dict[str, Any]) -> list[str]:
+    """Why a slide does not stand alone as a Facebook photo (each opens alone, without the caption or its
+    neighbours): a body that opens on a pronoun ("It ...", "This ...") whose referent is on another slide, or a
+    heading that is only a figure with no unit beside it. [] when it stands alone; nothing is rewritten."""
+    card = (rec.get("recipe") or {}).get("card") or {}
+    out = []
+    if _ANAPHORA.match(str(card.get("body") or "")):
+        out.append("its body opens on a word that points to another slide")
+    heading = " ".join(str(card.get("heading") or "").split())
+    if re.fullmatch(r"[\d,.\u2013+-]+", heading or "x"):
+        out.append("its heading is a bare number")
+    return out
+
+
 def facebook_pick(slides: List[str], limit: int = FACEBOOK_PHOTOS) -> List[str]:
     """The slides Facebook's multi-photo post gets: its grid shows four tiles and puts "+N" over the last one, so
     a seven-photo post hid the closing share-and-follow slide (platform audit, 2026-10-28). The cover, the
     closing slide, and between them the strongest content slides: those drawn as designed (no layout problem,
-    nothing shortened), showing a photo the post does not already show, then the earliest (the script's order is
-    its order of importance: the reveal comes first). Kept in slide order."""
+    nothing shortened), standing alone (standalone_problems), a single photo, the strongest (slide_strength: a
+    figure, the drawn slide, a myth-bust), showing a photo the post does not already show, then the earliest (the
+    script's order is its order of importance: the reveal comes first). Kept in slide order."""
     slides = list(slides)
     if len(slides) <= limit:
         return slides
@@ -1959,8 +2407,11 @@ def facebook_pick(slides: List[str], limit: int = FACEBOOK_PHOTOS) -> List[str]:
         photos = {str(p) for p in slide_photos(Path(slide))}
         # A single full-bleed photo before a two-photo stack (round 3, 2026-11-02): a stack's hard seam reads as a
         # deck slide in a standalone lightbox and spends a collage tile on two half pictures.
-        return (bool(rec.get("problems")), len(rec.get("shortened") or []), len(photos) > 1,
-                bool(photos and photos <= shown), i)
+        # Round 4: a photo that does not stand alone (its body leans on another slide) after one that does; then the
+        # strongest (a figure, the drawn slide, a myth-bust) before photo novelty, so the order never rests on
+        # which stand-in photos happened to repeat.
+        return (bool(rec.get("problems")), len(rec.get("shortened") or []), bool(standalone_problems(rec)),
+                len(photos) > 1, -slide_strength(rec), bool(photos and photos <= shown), i)
 
     picked = []
     while middle and len(picked) < limit - 2:  # one at a time: a pick's photos count as shown for the next
@@ -2145,16 +2596,90 @@ def standalone_subject(script_payload: dict[str, Any]) -> str:
     return heading if heading and len(heading.split()) <= SUBJECT_MAX_WORDS else ""
 
 
-def redraw_carousel_slide(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
-    """Draws one carousel slide again with the tighter fit, from its kept recipe, in place."""
+def _redraw_strip(kept: dict[str, Any] | None, path: Path | None = None) -> dict[str, Any] | None:
+    """The swipe strip a redrawn slide draws again: the same side; on slide 1 at the height slide 2's kicker rule
+    has now (its record beside `path`, carousel_slide_02.jpg), so the line still meets across the seam after
+    slide 2 was redrawn (round 4 review, 2026-11-02); the kept height only when slide 2 has no record. None when
+    slide 2 now draws no strip."""
+    if not kept or kept.get("side") is None:
+        return None
+    if kept.get("side") == "left":
+        return {"side": "left"} if kept.get("box") else None
+    if path is not None:
+        from . import still_layout
+        rec = still_layout.load(Path(path).with_name("carousel_slide_02.jpg"))
+        if rec is not None:
+            box = ((rec.get("recipe") or {}).get("strip") or {}).get("box")
+            return {"side": "right", "y0": box[1], "y1": box[3]} if box else None
+    box = kept.get("box") or [0, kept.get("y0"), 0, kept.get("y1")]
+    if box[1] is None or box[3] is None:
+        return None
+    return {"side": "right", "y0": box[1], "y1": box[3]}
+
+
+# ---------------------------------------------------------------- Instagram's swipe strip
+# Round 4 (2026-11-02): a non-verbal swipe cue on the Instagram copy only. Slide 2's gold kicker rule runs in from
+# the slide's left edge, and slide 1 carries the same strip's first SWIPE_STRIP design px at the same height, cut at
+# its right edge: across the seam it reads as one line that continues onto the next slide. No chevron and no "swipe"
+# words (operator, 2026-10-28). The Facebook copy is a standalone grid and draws none. Slide 1 draws its part only
+# where nothing of its own text is near; else it draws none and says why (lay.meta["swipe_strip"]).
+SWIPE_STRIP = 72          # design px of the strip on slide 1 (96 at 1440)
+SWIPE_CLEAR = 24          # design px it keeps from any text of slide 1
+
+
+def swipe_strip(im: Image.Image, lay, strip: dict[str, Any]) -> Image.Image:
+    """Draws `strip` ({"side": "left"} on slide 2: from the left edge to its kicker rule; {"side": "right", "y0",
+    "y1"} on slide 1: the last SWIPE_STRIP px to the right edge) in gold; recorded in lay.meta["swipe_strip"]."""
+    cw = im.width
+    px = MultiFormatGenerator._px(cw)
+    if strip.get("side") == "left":
+        rule = lay.meta.get("kicker_rule")
+        if not rule:
+            lay.meta["swipe_strip"] = {"side": "left", "skipped": "the slide has no kicker rule"}
+            return im
+        box = [0, rule[1], rule[0], rule[3]]
+    else:
+        box = [cw - px(SWIPE_STRIP), int(strip["y0"]), cw, int(strip["y1"])]
+        clear = px(SWIPE_CLEAR)
+        hit = [e["name"] for e in lay.elements if e["name"] != "header_brand" and e["box"][2] + clear > box[0]
+               and e["box"][1] - clear < box[3] and e["box"][3] + clear > box[1]]
+        if hit:
+            lay.meta["swipe_strip"] = {"side": "right", "skipped": f"it would touch the slide's {hit[0]}"}
+            return im
+    im = im.convert("RGB")
+    if box[2] > box[0]:
+        ImageDraw.Draw(im).rectangle([box[0], box[1], box[2] - 1, box[3] - 1], fill=GOLD)
+    lay.meta["swipe_strip"] = {"side": strip.get("side"), "box": box}
+    return im
+
+
+def redraw_carousel_slide(path: Path, recipe: Dict[str, Any], tight: bool = True) -> Dict[str, Any]:
+    """Draws one carousel slide again with the tighter fit (or `tight` as given), from its kept recipe, in place.
+    The record keeps the strip it drew now. When slide 2's strip moved (its kicker rule did), slide 1 is drawn
+    again at its own fit so its part of the strip meets slide 2's across the seam (round 4 review, 2026-11-02)."""
     from . import still_layout
+    path = Path(path)
     gen = MultiFormatGenerator()
     im, lay = gen._render_carousel_slide(recipe["archetype"], Path(recipe["photo"]), Path(recipe["photo_next"]),
                                          recipe["card"], int(recipe["index"]), int(recipe["total"]),
                                          recipe.get("poll") or {}, recipe.get("share") or "", bool(recipe.get("facebook")),
-                                         tight=True, subject=recipe.get("subject") or "",
-                                         heading_frame=int(recipe.get("heading_frame") or 2))
+                                         tight=tight, subject=recipe.get("subject") or "",
+                                         heading_frame=int(recipe.get("heading_frame") or 2),
+                                         strip=_redraw_strip(recipe.get("strip"), path))
     gen._save_slide(im, path)
     _delivered_contrast(lay, path)
     prior = still_layout.load(path) or {}
-    return still_layout.save(path, lay, recipe, int(prior.get("attempts", 1)) + 1)
+    old_strip = recipe.get("strip") or {}
+    recipe = {k: v for k, v in recipe.items() if k != "strip"}
+    drew = lay.meta.get("swipe_strip") or {}
+    if drew:
+        recipe["strip"] = drew
+    entry = still_layout.save(path, lay, recipe, int(prior.get("attempts", 1)) + 1)
+    if old_strip.get("side") == "left" and old_strip.get("box") != drew.get("box"):
+        first = path.with_name("carousel_slide_01.jpg")
+        rec1 = still_layout.load(first) or {}
+        r1 = rec1.get("recipe") or {}
+        if r1 and int(r1.get("index", -1)) == 0 and not r1.get("facebook"):   # a slide 1 drawn with no part as well
+            redraw_carousel_slide(first, {**r1, "strip": r1.get("strip") or {"side": "right"}},
+                                  tight=bool(rec1.get("tight")))
+    return entry

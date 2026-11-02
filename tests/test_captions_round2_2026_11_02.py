@@ -94,7 +94,13 @@ def test_bursts_keep_one_size_across_a_realistic_narration(tmp_path):
     ass = VideoComposer().build_subtitles(words, tmp_path / "c.ass", emphasis=["Kailasa"]).read_text(encoding="utf-8")
     sizes = [re.search(r"\\fs(\d+)", e[2]) for e in _events(ass, "CapText")]
     shrunk = [int(m.group(1)) for m in sizes if m]
-    assert len(shrunk) <= 0.1 * len(sizes), shrunk                      # nearly every word event at the full size
+    # Round 4 (caption panel, standards editor): a hedge never leaves its figure (caption_bonds), so this narration's
+    # "an estimated | 200,000 tons" split is gone and AN ESTIMATED 200,000 TONS is one burst a little under the full
+    # size (still above CAPTION_BURST_MIN_SIZE, asserted below). Only bursts holding no such bond count here.
+    from src.video_composer import caption_bonds
+    unbonded = [int(m.group(1)) for e, m in zip(_events(ass, "CapText"), sizes)
+                if m and not caption_bonds(_plain(e[2]).split())]
+    assert len(unbonded) <= 0.1 * len(sizes), unbonded                  # nearly every word event at the full size
     assert all(fs >= round(CAPTION_BURST_MIN_SIZE / 0.5625) for fs in shrunk)
     phrases = merge_short_bursts(partition_words_grammatical(words), _fits_caption_width, 5)
     fits = [_caption_fit_size(p) for p in phrases]

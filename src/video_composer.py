@@ -67,6 +67,9 @@ from .config import (
     CAPTION_READ_PER_CHAR,
     CAPTION_READ_BASE,
     CAPTION_MAX_CPS,
+    CAPTION_FIRST_FRAME_WHOLE_S,
+    CAPTION_CUT_SNAP_FRAMES,
+    CAPTION_CUT_MIN_FRAMES,
     SIDECAR_MAX_LINE_CHARS,
     SIDECAR_MAX_LINES,
     SIDECAR_MIN_CUE,
@@ -347,7 +350,7 @@ SPELLED_NUMBERS = {
 }
 MEASURE_UNITS = {
     # Distance / Dimension
-    "feet", "ft", "meters", "meter", "m", "kilometres", "kilometre", "km", "miles", "mile",
+    "feet", "ft", "meters", "meter", "metres", "metre", "m", "kilometres", "kilometre", "km", "miles", "mile",
     "inches", "inch", "in", "cm", "centimeters", "centimeter", "centimetres", "centimetre",
     "mm", "millimeters", "millimeter", "yards", "yard", "yd",
     # Weight / Mass
@@ -435,6 +438,7 @@ def partition_words_grammatical(
     fits: Callable[[list[dict[str, Any]]], bool] | None = None,
     glance: tuple[int, int] = (14, 24),
     prefer: Callable[[list[dict[str, Any]]], bool] | None = None,
+    bonds: set[int] | None = None,
 ) -> List[List[Dict[str, Any]]]:
     """
     Groups spoken words into readable phrases respecting grammatical boundaries:
@@ -449,22 +453,29 @@ def partition_words_grammatical(
     CAPTION_BURST_MIN_SIZE and should fit at the full caption size, so bursts keep one size unless every full-size
     split would end on a dangling word (caption review round 2, finding 1). The 16:9 burn-in passes its own `fits`.
     `glance` is the burst length (characters) rewarded as readable at a glance.
+    `bonds` (round 4) are word positions i whose boundary with word i + 1 no burst may split: by default
+    caption_bonds(words), a hedge with its figure (ROUGHLY | 280) and both ends of a range (94 | TO | 104).
     """
+    if bonds is None:
+        bonds = caption_bonds(words)
     if fits is None:
         fits = _fits_caption_burst
         prefer = prefer or _fits_caption_width
     prefer = prefer or fits
     sentences: List[List[Dict[str, Any]]] = []
+    offsets: list[int] = []
     curr: List[Dict[str, Any]] = []
-    for w in words:
+    for wi, w in enumerate(words):
+        if not curr:
+            offsets.append(wi)
         curr.append(w)
-        if TERMINAL_PUNCT.search(w.get("word", "")):
+        if TERMINAL_PUNCT.search(w.get("word", "")) and not _is_abbreviation(w.get("word", "")):
             sentences.append(curr)
             curr = []
     if curr:
         sentences.append(curr)
 
-    def _partition_sentence(sent: List[Dict[str, Any]]) -> List[List[Dict[str, Any]]]:
+    def _partition_sentence(sent: List[Dict[str, Any]], off: int) -> List[List[Dict[str, Any]]]:
         n = len(sent)
         if n == 0:
             return []
@@ -489,9 +500,13 @@ def partition_words_grammatical(
             candidate_sizes = [target_words, min_words, 4, 5, 6] + list(range(7, max_words + 1))
             # never past max_words (round 3: sizes 4-6 were tried whatever the cap, so a 4-word cap formed 5)
             candidate_sizes = [c for c in candidate_sizes if c <= max_words] or [min(target_words, rem)]
+            # round 4: past max_words only through bonded words (BETWEEN 94 AND 104 METRES is one burst), at most 2
+            candidate_sizes += [c for c in (max_words + 1, max_words + 2)
+                                if all(off + i + k - 1 in bonds for k in range(max_words, c))]
             for size in candidate_sizes:
                 if i + size <= n:
-                    if i + size < n and _is_atomic_boundary(sent[i + size - 1].get("word", ""), sent[i + size].get("word", "")):
+                    if i + size < n and (off + i + size - 1 in bonds or _is_atomic_boundary(
+                            sent[i + size - 1].get("word", ""), sent[i + size].get("word", ""))):
                         continue
                     rem_after = n - (i + size)
                     if rem_after > 0 and rem_after < min_words:
@@ -536,9 +551,15 @@ def partition_words_grammatical(
                             best_score = score
                             best = [chunk] + after
             if best is None:
-                cut = min(rem, target_words)
-                while cut > 1 and not fits(sent[i:i + cut]):
-                    cut -= 1  # shorter bursts rather than a pill wider than the safe width
+                def _cut(keep_bonds: bool) -> int:
+                    c = min(rem, target_words)
+                    # shorter bursts rather than a pill wider than the safe width (or, where it can, a split bond)
+                    while c > 1 and (not fits(sent[i:i + c]) or (keep_bonds and i + c < n and off + i + c - 1 in bonds)):
+                        c -= 1
+                    return c
+                cut = _cut(True)
+                if i + cut < n and off + i + cut - 1 in bonds:
+                    cut = _cut(False)
                 best = [sent[i:i + cut]] + (_solve(i + cut) or [sent[i + cut:]])
             memo[i] = best
             return best
@@ -547,8 +568,8 @@ def partition_words_grammatical(
         return res if res is not None else [sent]
 
     all_phrases: List[List[Dict[str, Any]]] = []
-    for s in sentences:
-        for p in _partition_sentence(s):
+    for s, off in zip(sentences, offsets):
+        for p in _partition_sentence(s, off):
             if p:
                 all_phrases.append(p)
     return all_phrases
@@ -780,13 +801,16 @@ def burst_timings(
     lead: float = CAPTION_LEAD_FRAMES / VIDEO_FPS,
     pause_gap: float = CAPTION_PAUSE_GAP,
     pause_tail: float = CAPTION_PAUSE_TAIL,
+    first_frame_whole: float | None = None,
 ) -> list[tuple[float, float, list[float]]]:
     """(show, hide, word reveal times) for each burst (round 2, finding 4). A burst appears `lead` (two frames)
     before its first word is heard; each word appears the same lead before its own onset. It stays until the next
     burst appears, except across a pause longer than `pause_gap`, where it leaves `pause_tail` after its last word.
     The last burst leaves 0.10 s after its last word. No two bursts overlap. A burst that would be up for less
     than reading_need holds on into the following pause, never past the next burst's appearance (round 3); one
-    still faster than CAPTION_MAX_CPS characters a second is logged."""
+    still faster than CAPTION_MAX_CPS characters a second is logged.
+    With `first_frame_whole` (round 4; compose_video passes CAPTION_FIRST_FRAME_WHOLE_S for 9:16), a first burst that would
+    appear that soon or sooner is shown whole from 0.0 (every reveal at 0.0): frame 0 carries the hook line."""
     out: list[tuple[float, float, list[float]]] = []
     prev_hide = 0.0
     for pi, phrase in enumerate(phrases):
@@ -796,6 +820,8 @@ def burst_timings(
         reveals = [show]
         for w in phrase[1:]:
             reveals.append(max(reveals[-1], float(w["start"]) - lead))
+        if pi == 0 and first_frame_whole is not None and first - lead <= first_frame_whole + 1e-9:
+            show, reveals = 0.0, [0.0] * len(phrase)
         if pi + 1 < len(phrases):
             next_first = float(phrases[pi + 1][0]["start"])
             next_show = max(0.0, next_first - lead)
@@ -815,6 +841,88 @@ def burst_timings(
         out.append((show, hide, reveals))
         prev_hide = hide
     return out
+
+
+def caption_cut_times(durations: list[float]) -> list[float]:
+    """The picture cuts (s): the boundaries between scenes, as caption_graphic_intervals and graphic_vignette_enable
+    read them (a crossfade is centred on its boundary)."""
+    cuts, t = [], 0.0
+    for dur in durations[:-1]:
+        t += dur
+        cuts.append(t)
+    return [c for c in cuts if c > 0]
+
+
+def snap_to_cuts(
+    phrases: list[list[dict[str, Any]]],
+    timings: list[tuple[float, float, list[float]]],
+    cuts: list[float] | None,
+    fps: float = VIDEO_FPS,
+    snap_frames: int = CAPTION_CUT_SNAP_FRAMES,
+    min_frames: int = CAPTION_CUT_MIN_FRAMES,
+) -> list[tuple[float, float, list[float]]]:
+    """burst_timings with each burst's show and hide moved onto a picture cut 1 to `snap_frames` frames away (round
+    4, cue-to-cut: no plate change a frame or two off a cut). Two bursts heard back to back share one boundary, and
+    it moves as one. A move must leave every burst it touches on screen for its reading_need (or no less than it
+    had), keep the bursts in order, never overlap and keep each burst's last word up; where snapping would not, a
+    boundary nearer than `min_frames` frames moves out to `min_frames` from the cut instead, else stays. Without
+    cuts the timings come back unchanged."""
+    if not cuts or not timings:
+        return timings
+    frame = 1.0 / fps
+    rows = [[show, hide, list(rev)] for show, hide, rev in timings]
+    n = len(rows)
+    first_words = [float(p[0]["start"]) for p in phrases]
+
+    def _valid(cand: list[list[Any]], touched: list[int]) -> bool:
+        for j in touched:
+            show, hide, rev = cand[j]
+            old = timings[j][1] - timings[j][0]
+            if show < 0 or hide - show < min(reading_need(phrases[j]), old) - 1e-9 or hide < rev[-1] + 0.02 - 1e-9:
+                return False
+            if show > first_words[j] + 1e-9:   # never after its first word is heard
+                return False
+            if j > 0 and show < cand[j - 1][1] - 1e-9:
+                return False
+            if j + 1 < n and hide > cand[j + 1][0] + 1e-9:
+                return False
+        return True
+
+    def _moved(cand: list[list[Any]], j: int, show: float | None = None, hide: float | None = None) -> None:
+        if show is not None:
+            # the first word appears with the plate; later words keep their own times, never before it
+            cand[j][0] = show
+            cand[j][2] = [show] + [max(show, r) for r in cand[j][2][1:]]
+        if hide is not None:
+            cand[j][1] = hide
+
+    # the boundaries: (time, burst whose show it is or None, burst whose hide it is or None)
+    bounds: list[tuple[int | None, int | None]] = []
+    for j in range(n):
+        joined = j > 0 and abs(rows[j - 1][1] - rows[j][0]) < 1e-6
+        if not joined:
+            bounds.append((j, None))
+        bounds.append((j + 1 if j + 1 < n and abs(rows[j][1] - rows[j + 1][0]) < 1e-6 else None, j))
+    for show_of, hide_of in bounds:
+        t = rows[show_of][0] if show_of is not None else rows[hide_of][1]
+        cut = min(cuts, key=lambda c: abs(c - t))
+        dist = abs(cut - t)
+        if dist < 1e-6 or dist > snap_frames * frame + 1e-6:
+            continue
+        touched = [j for j in (hide_of, show_of) if j is not None]
+        targets = [cut]
+        if dist < min_frames * frame - 1e-6:
+            targets.append(cut + (min_frames * frame if t > cut else -min_frames * frame))
+        for target in targets:
+            cand = [[r[0], r[1], list(r[2])] for r in rows]
+            if show_of is not None:
+                _moved(cand, show_of, show=target)
+            if hide_of is not None:
+                _moved(cand, hide_of, hide=target)
+            if _valid(cand, touched):
+                rows = cand
+                break
+    return [(r[0], r[1], r[2]) for r in rows]
 
 
 def _norm(word: str) -> str:
@@ -837,41 +945,223 @@ def hedge_figures(words: list[dict[str, Any]], terms: list[str] | None) -> dict[
 
 
 def _emphasis_plan(words: list[dict[str, Any]], terms: list[str] | None) -> tuple[set[int], dict[int, int]]:
-    """(key-term positions, {hedge position: figure start}) for emphasis_indices and hedge_figures."""
+    """(key-term positions, {hedge position: start of the term it qualifies}) for emphasis_indices and
+    hedge_figures. A figure term takes its range with it (round 4: BETWEEN 94 AND 104, never a gold 94 beside a bone
+    104) and its hedge (HEDGE_PHRASES); every key term takes an attribution hedge (ATTRIBUTION_HEDGES: POSSIBLY
+    PHRYGIAN, never a bare gold PHRYGIAN)."""
     tokens = [_norm(w["word"]) for w in words]
+    raw = [str(w.get("word", "")) for w in words]
     picked: set[int] = set()
-    figure_starts: list[int] = []
+    starts: list[tuple[int, bool]] = []   # (first position of a key term, whether it is a figure)
     for term in (terms or [])[:3]:
         seq = [t for t in (_norm(x) for x in term.split()) if t]
         for i in range(len(tokens) - len(seq) + 1):
             if seq and tokens[i:i + len(seq)] == seq:
-                picked.update(range(i, i + len(seq)))
-                if any(c.isdigit() for c in term):
-                    figure_starts.append(i)
+                is_figure = any(c.isdigit() for c in term) or any(t in SPELLED_NUMBERS for t in seq)
+                lo, hi = (_range_span(tokens, raw, i, i + len(seq) - 1) if is_figure else (i, i + len(seq) - 1))
+                picked.update(range(lo, hi + 1))
+                starts.append((lo, is_figure))
                 break
     if not terms:
-        picked = set([i for i, w in enumerate(words) if any(c.isdigit() for c in w["word"])][:2])
-        figure_starts = sorted(picked)
+        digits = [i for i, w in enumerate(words) if any(c.isdigit() for c in w["word"])][:2]
+        picked = set(digits)
+        starts = [(i, True) for i in sorted(digits)]
     # Gold carries the hedge with the figure (round 3, standards editor): ROUGHLY 280 FEET, never a bare 280 FEET.
     hedges: dict[int, int] = {}
-    for i in figure_starts:
-        for hedge in HEDGE_PHRASES:
-            k = len(hedge)
-            if i - k >= 0 and tuple(tokens[i - k:i]) == hedge:
-                for h in range(i - k, i):
-                    if h not in picked:
-                        hedges[h] = i
-                break
+
+    def _take(target: int, start: int, phrases: tuple[tuple[str, ...], ...], skip_det: bool) -> int:
+        """The position a hedge in `phrases` right before `start` begins at (after one article if `skip_det`),
+        its words added to `hedges` as qualifying the term at `target`; `start` when there is none."""
+        for lead_in in ((), ("the",), ("a",), ("an",)) if skip_det else ((),):
+            j = start - len(lead_in)
+            if j < 0 or tuple(tokens[j:start]) != lead_in or any(CLAUSE_PUNCT.search(raw[x]) for x in range(j, start)):
+                continue
+            for hedge in phrases:
+                k = len(hedge)
+                if j - k >= 0 and tuple(tokens[j - k:j]) == hedge and not any(
+                        CLAUSE_PUNCT.search(raw[x]) or TERMINAL_PUNCT.search(raw[x]) for x in range(j - k, j)):
+                    for h in range(j - k, start):
+                        if h not in picked:
+                            hedges[h] = target
+                    return j - k
+        return start
+
+    for target, is_figure in starts:
+        at = _take(target, target, HEDGE_PHRASES, False) if is_figure else target
+        _take(target, at, ATTRIBUTION_HEDGES, True)
     return picked, hedges
 
 
-# The hedges a figure's gold takes with it (emphasis_indices), longest first.
+# The hedges a figure's gold takes with it (emphasis_indices) and that no burst or cue splits from it
+# (caption_bonds), longest first. Round 4: circa / c. / ca., at least and between.
 HEDGE_PHRASES: tuple[tuple[str, ...], ...] = (
     ("more", "than"), ("fewer", "than"), ("less", "than"), ("as", "many", "as"), ("as", "much", "as"),
     ("up", "to"), ("about",), ("roughly",), ("nearly",), ("almost",), ("estimated",),
     ("some",), ("around",), ("approximately",), ("perhaps",), ("over",),
+    ("at", "least"), ("circa",), ("c",), ("ca",), ("between",),
 )
 HEDGE_PHRASES = tuple(sorted(HEDGE_PHRASES, key=len, reverse=True))
+# Attribution hedges (round 4): any key term's gold takes one with it, after at most one article (POSSIBLY THE
+# PHRYGIANS), so the emphasis never states as fact what the narration hedges.
+ATTRIBUTION_HEDGES: tuple[tuple[str, ...], ...] = tuple(sorted((
+    ("may", "have", "been"), ("might", "have", "been"), ("may", "have"), ("might", "have"), ("possibly",),
+    ("probably",), ("likely",), ("perhaps",), ("reportedly",), ("supposedly",), ("allegedly",), ("presumably",),
+), key=len, reverse=True))
+# Words joining the two ends of a range (94 TO 104, BETWEEN 94 AND 104, EIGHT OR NINE).
+RANGE_JOINERS = frozenset({"to", "and", "or"})
+_COUNT_NOUNS = frozenset({"hundred", "thousand", "million", "billion", "dozen"})
+
+
+def _is_figure_at(tokens: list[str], i: int) -> bool:
+    """Whether tokens[i] starts a figure: a numeral, a spelled number, or 'a' before hundred/thousand/dozen."""
+    if not 0 <= i < len(tokens) or not tokens[i]:
+        return False
+    t = tokens[i]
+    return (any(c.isdigit() for c in t) or t in SPELLED_NUMBERS
+            or (t == "a" and i + 1 < len(tokens) and tokens[i + 1] in _COUNT_NOUNS))
+
+
+def _figure_end(tokens: list[str], raw: list[str], i: int) -> int:
+    """The last position of the figure starting at i (TWENTY THOUSAND, A HUNDRED), before any punctuation."""
+    j = i
+    while (j + 1 < len(tokens) and not _ends_clause(raw[j])
+           and (tokens[j + 1] in SPELLED_NUMBERS or tokens[j + 1] in _COUNT_NOUNS
+                or (tokens[j] == "a" and tokens[j + 1] in _COUNT_NOUNS))):
+        j += 1
+    return j
+
+
+def _ends_clause(word: str) -> bool:
+    return bool(CLAUSE_PUNCT.search(word) or (TERMINAL_PUNCT.search(word) and not _is_abbreviation(word)))
+
+
+# Abbreviations whose full stop ends no sentence (round 4: 'c. 1200' split into two sentences)
+SENTENCE_ABBREVIATIONS = frozenset({"c.", "ca.", "approx."})
+
+
+def _is_abbreviation(word: str) -> bool:
+    return word.strip().lower().rstrip("\"'”’)") in SENTENCE_ABBREVIATIONS
+
+
+# Words that may follow a range's second end without naming what it counts (94 TO 104 FEET HIGH, 20 OR 30 YEARS
+# LATER): a function word, not a different noun (round 4 fix: 20 YEARS OR 30 WORKERS is no range).
+_RANGE_TAIL_WORDS = frozenset({
+    "the", "a", "an", "of", "in", "on", "at", "by", "for", "from", "with", "into", "across", "and", "or", "but",
+    "before", "after", "ago", "later", "earlier", "long", "high", "tall", "wide", "deep", "old", "each",
+    "apiece", "per", "away", "around", "below", "above", "beneath", "underground", "down", "up", "back", "then",
+    "were", "was", "are", "is", "had", "have", "could", "would", "might", "may", "will", "to", "than", "that",
+    "which", "who", "when", "where", "while", "as",
+})
+
+
+def _unit_key(word: str) -> str:
+    """One spelling for a counted word, so FOOT, FEET and FT, or YEAR and YEARS, compare equal."""
+    if word in ("feet", "foot", "ft"):
+        return "ft"
+    if word.endswith("ies") and len(word) > 4:
+        return word[:-3] + "y"
+    return word[:-1] if word.endswith("s") and len(word) > 3 else word
+
+
+def _counted_after(tokens: list[str], raw: list[str], e: int) -> str | None:
+    """The word after the figure ending at e that names what it counts (FEET, WORKERS); None at a clause end, the
+    end of the words, a range joiner or a function word (_RANGE_TAIL_WORDS)."""
+    if e + 1 >= len(tokens) or _ends_clause(raw[e]):
+        return None
+    t = tokens[e + 1]
+    return None if not t or t in RANGE_JOINERS or t in _RANGE_TAIL_WORDS else t
+
+
+def _same_count(first: str | None, second: str | None) -> bool:
+    """Whether two range ends count one thing: either end names nothing, or both name the same unit or noun."""
+    return first is None or second is None or _unit_key(first) == _unit_key(second)
+
+
+def _range_span(tokens: list[str], raw: list[str], lo: int, hi: int) -> tuple[int, int]:
+    """(lo, hi) widened over a range the figure at lo..hi is one end of: '94 to [104 feet]' or '[94] to 104
+    (feet)'. A unit may follow either end. Round 4 fix (independent review): AND joins a range only after BETWEEN
+    (20,000 PEOPLE AND 50 CATTLE is two counts); TO / OR / BETWEEN..AND only when the second end names nothing it
+    counts or the same unit or noun as the first (20 YEARS OR 30 WORKERS is no range)."""
+    n = len(tokens)
+    fs = next((x for x in range(lo, hi + 1) if _is_figure_at(tokens, x)), None)
+    if fs is None:
+        return lo, hi
+    fe = min(_figure_end(tokens, raw, fs), hi) if hi >= fs else fs
+    # the term's own count: its last word after the figure, else a unit right after the term
+    j = hi
+    if hi > fe:
+        own: str | None = tokens[hi]
+    elif j + 1 < n and tokens[j + 1] in MEASURE_UNITS and tokens[j + 1] not in _RANGE_TAIL_WORDS \
+            and not _ends_clause(raw[j]):
+        j += 1
+        own = tokens[j]
+    else:
+        own = _counted_after(tokens, raw, hi)
+
+    def _joins(joiner: int, first_start: int) -> bool:
+        if tokens[joiner] not in RANGE_JOINERS or _ends_clause(raw[joiner]) or _ends_clause(raw[joiner - 1]):
+            return False
+        return tokens[joiner] != "and" or (first_start >= 1 and tokens[first_start - 1] == "between"
+                                           and not _ends_clause(raw[first_start - 1]))
+
+    # forward: [figure] (unit) joiner figure (unit)
+    new_hi = hi
+    if j + 2 < n and _joins(j + 1, fs) and _is_figure_at(tokens, j + 2):
+        e2 = _figure_end(tokens, raw, j + 2)
+        other = _counted_after(tokens, raw, e2)
+        first = tokens[j] if j > fe else None
+        if _same_count(first, other):
+            new_hi = e2
+            if other is not None and (other in MEASURE_UNITS or (first is not None and _unit_key(first) == _unit_key(other))):
+                new_hi = e2 + 1
+    # backward: figure (unit) joiner [figure]
+    new_lo = lo
+    k = fs - 1
+    if k >= 1 and tokens[k] in RANGE_JOINERS:
+        m = k - 1
+        earlier: str | None = None
+        if tokens[m] in MEASURE_UNITS and m >= 1 and not _ends_clause(raw[m - 1]):
+            earlier = tokens[m]
+            m -= 1
+        while m >= 1 and (tokens[m] in SPELLED_NUMBERS or tokens[m] in _COUNT_NOUNS) and (
+                tokens[m - 1] in SPELLED_NUMBERS or tokens[m - 1] == "a") and not _ends_clause(raw[m - 1]):
+            m -= 1
+        if _is_figure_at(tokens, m) and _joins(k, m) and _same_count(earlier, own):
+            new_lo = m
+    return new_lo, new_hi
+
+
+def caption_bonds(words: list[Any]) -> set[int]:
+    """Word positions i whose boundary with word i + 1 no caption burst, sidecar cue or cue line may split
+    (round 4, standards editor): a hedge (HEDGE_PHRASES) and the figure it qualifies, inside a multi-word hedge
+    (UP TO, MORE THAN), the words of one figure (TWENTY THOUSAND), and both ends of a range (94 TO 104, 94 FEET TO
+    104 FEET, BETWEEN 94 AND 104). Only before a figure: 'over the wall', 'some of' and 'up to the gate' split
+    freely. Never across punctuation. `words` are timed word dicts or plain strings."""
+    raw = [str(w.get("word", "")) if isinstance(w, dict) else str(w) for w in words]
+    tokens = [_norm(r) for r in raw]
+    n = len(tokens)
+    bonds: set[int] = set()
+
+    def _bond(a: int, b: int) -> None:   # every boundary from a to b - 1, unless a word there ends a clause
+        span = range(a, b)
+        if all(not _ends_clause(raw[x]) for x in span):
+            bonds.update(span)
+
+    for i in range(n):
+        if not tokens[i]:
+            continue
+        for hedge in HEDGE_PHRASES:
+            k = len(hedge)
+            if tuple(tokens[i:i + k]) == hedge and _is_figure_at(tokens, i + k):
+                _bond(i, i + k)
+                break
+        if _is_figure_at(tokens, i):
+            end = _figure_end(tokens, raw, i)
+            _bond(i, end)
+            _, hi = _range_span(tokens, raw, i, end)
+            if hi > end:
+                _bond(i, hi)
+    return bonds
 
 
 def _audio_chain(vo_idx: int, bg_idx: int, pad: float = 0.0, card_at: Optional[float] = None, card_db: float = 0.0) -> str:
@@ -1096,16 +1386,22 @@ def _fits_wide(phrase: Any, max_width: int) -> bool:
     return get_font(CAPTION_WIDE_FONT, CAPTION_WIDE_SIZE, weight=700).getlength(text) + 2 * CAPTION_PAD_X <= max_width
 
 
-def _wrap_cue(words: list[str], max_chars: int = SIDECAR_MAX_LINE_CHARS, max_lines: int = SIDECAR_MAX_LINES) -> str | None:
+def _wrap_cue(words: list[str], max_chars: int = SIDECAR_MAX_LINE_CHARS, max_lines: int = SIDECAR_MAX_LINES,
+              bonds: set[int] | None = None) -> str | None:
     """The cue's text in at most `max_lines` lines of at most `max_chars` (two lines balanced, preferring a break
-    after punctuation), or None when it does not fit."""
+    after punctuation), or None when it does not fit. Never breaks a line after a position in `bonds` (default
+    caption_bonds(words), round 4: ROUGHLY / 280 FEET is never split across the lines)."""
     text = " ".join(words)
     if len(text) <= max_chars:
         return text
     if max_lines < 2:
         return None
+    if bonds is None:
+        bonds = caption_bonds(words)
     best: tuple[float, str] | None = None
     for k in range(1, len(words)):
+        if k - 1 in bonds:
+            continue
         top, bottom = " ".join(words[:k]), " ".join(words[k:])
         if len(top) <= max_chars and len(bottom) <= max_chars:
             score = max(len(top), len(bottom)) - (8 if re.search(r"[\,\;\:\.\?!…—]$", top) else 0)
@@ -1118,22 +1414,28 @@ def partition_sidecar_cues(words: list[dict[str, Any]]) -> list[tuple[float, flo
     """Closed-caption cues for the .srt/.vtt sidecars, (start, end, text): caption review round 2, finding 7. The
     Reel's 2-5 word bursts made staccato YouTube captions; a sidecar cue holds up to SIDECAR_MAX_LINES lines of
     SIDECAR_MAX_LINE_CHARS, is on screen SIDECAR_MIN_CUE to SIDECAR_MAX_CUE seconds, and ends at a sentence (or,
-    once it holds a full line, at a clause) where the text allows. Text is the narration's, word for word."""
+    once it holds a full line, at a clause) where the text allows. Text is the narration's, word for word.
+    No cue ends inside a caption_bonds bond (round 4): a hedge whose figure would open the next cue goes with it."""
+    timed = [w for w in words if str(w.get("word", "")).strip()]
+    bonds = caption_bonds(timed)
+    pos = {id(w): i for i, w in enumerate(timed)}
     groups: list[list[dict[str, Any]]] = []
     cur: list[dict[str, Any]] = []
-    for w in words:
+    for w in timed:
         word = str(w.get("word", "")).strip()
-        if not word:
-            continue
         if cur:
             candidate = [str(x["word"]).strip() for x in cur] + [word]
-            if _wrap_cue(candidate) is None or _word_end(w) - float(cur[0]["start"]) > SIDECAR_MAX_CUE:
+            local = {pos[id(x)] - pos[id(cur[0])] for x in cur if pos[id(x)] in bonds}
+            if _wrap_cue(candidate, bonds=local) is None or _word_end(w) - float(cur[0]["start"]) > SIDECAR_MAX_CUE:
+                carry: list[dict[str, Any]] = []
+                while len(cur) > 1 and pos[id(cur[-1])] in bonds:
+                    carry.insert(0, cur.pop())   # the hedge goes on with its figure
                 groups.append(cur)
-                cur = []
+                cur = carry
         cur.append(w)
         held = _word_end(w) - float(cur[0]["start"])
         text_len = len(" ".join(str(x["word"]).strip() for x in cur))
-        if held >= SIDECAR_MIN_CUE and (TERMINAL_PUNCT.search(word) or (CLAUSE_PUNCT.search(word) and text_len >= SIDECAR_MAX_LINE_CHARS)):
+        if held >= SIDECAR_MIN_CUE and ((TERMINAL_PUNCT.search(word) and not _is_abbreviation(word)) or (CLAUSE_PUNCT.search(word) and text_len >= SIDECAR_MAX_LINE_CHARS)):
             groups.append(cur)
             cur = []
     if cur:
@@ -1145,9 +1447,28 @@ def partition_sidecar_cues(words: list[dict[str, Any]]) -> list[tuple[float, flo
         if gi + 1 < len(groups):
             end = min(end, float(groups[gi + 1][0]["start"]))
         end = max(min(end, start + SIDECAR_MAX_CUE), start + 0.02)
-        text = _wrap_cue([str(x["word"]).strip() for x in g]) or " ".join(str(x["word"]).strip() for x in g)
+        g_words = [str(x["word"]).strip() for x in g]
+        local = {pos[id(x)] - pos[id(g[0])] for x in g if pos[id(x)] in bonds}
+        text = _wrap_cue(g_words, bonds=local) or _wrap_cue(g_words, bonds=set()) or " ".join(g_words)
         cues.append((start, end, text))
     return cues
+
+
+def single_gold_span(shown: list[str], gold: list[int]) -> list[int]:
+    """The gold positions of a still 16:9 line kept to one span (round 4: DERINKUYU ... ROUGHLY 280 FEET drew two
+    gold events in one line): of several runs of adjacent gold words, the last that holds a figure (its hedge and
+    range are in the run), else the first."""
+    runs: list[list[int]] = []
+    for ji in sorted(gold):
+        if runs and ji == runs[-1][-1] + 1:
+            runs[-1].append(ji)
+        else:
+            runs.append([ji])
+    if len(runs) <= 1:
+        return sorted(gold)
+    tokens = [_norm(w) for w in shown]
+    figures = [r for r in runs if any(_is_figure_at(tokens, j) for j in r)]
+    return figures[-1] if figures else runs[0]
 
 
 class VideoComposer:
@@ -1207,6 +1528,8 @@ class VideoComposer:
         margin_v: int | None = None,
         reconstruction_intervals: list[tuple[float, float]] | None = None,
         graphic_intervals: list[tuple[float, float]] | None = None,
+        first_frame_whole: float | None = None,
+        cuts: list[float] | None = None,
     ) -> Path:
         """Dynamic running-speech kinetic captions:
         1. Grammatical phrasing: sensitive to punctuation (. ? ! …) so every new sentence starts fresh.
@@ -1223,6 +1546,11 @@ class VideoComposer:
            leaves soon after its last across a pause (burst_timings).
         5. 9:16: Small Caps typography following the narration's capitals (caption_runs).
         While a graphic is on screen (`graphic_intervals`) the captions carry no gold: one gold event at a time.
+        Round 4: no burst splits a hedge from its figure or term, or a range (caption_bonds); a 16:9 burst carries
+        one gold span (single_gold_span); with `first_frame_whole` a Reel's first burst is whole from frame 0 when
+        its narration starts that soon (burst_timings); with `cuts` a 9:16 burst's show and hide snap to picture cuts
+        (snap_to_cuts). Both are 9:16 only: a 16:9 call ignores them. compose_video passes both for a 9:16 render;
+        without them the timing is as in round 3.
         The designed contrast of bone and gold on the plate over a white ground is written beside the file
         (<stem>.contrast.json, caption_contrast_record); under brand.TEXT_CONTRAST the build fails.
         Supports both 9:16 vertical (Reels) and 16:9 widescreen (Documentaries: one Montserrat Bold line).
@@ -1269,18 +1597,29 @@ Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour,
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
 
+        key = emphasis_indices(words, emphasis)
+        hedge_of = hedge_figures(words, emphasis)  # a hedge's gold waits for its figure (round 3)
+        # No burst splits a hedge from its figure or term, or the ends of a range (round 4)
+        bonds = caption_bonds(words) | {b for h, f in hedge_of.items() for b in range(h, f)}
         if is_widescreen:
             def fits(ph: list[dict[str, Any]]) -> bool:
                 return _fits_wide(ph, max_caption_width)
             phrases = partition_words_grammatical(words, CAPTION_WIDE_MIN_WORDS, CAPTION_WIDE_TARGET_WORDS,
                                                   CAPTION_WIDE_MAX_WORDS, CAPTION_WIDE_MAX_CHARS, fits=fits,
-                                                  glance=(24, CAPTION_WIDE_MAX_CHARS))
+                                                  glance=(24, CAPTION_WIDE_MAX_CHARS), bonds=bonds)
             phrases = merge_short_bursts(phrases, fits, CAPTION_WIDE_MAX_WORDS)
         else:
-            phrases = merge_short_bursts(partition_words_grammatical(words), _fits_caption_width, MAX_BURST_WORDS)
-        timings = burst_timings(phrases)
-        key = emphasis_indices(words, emphasis)
-        hedge_of = hedge_figures(words, emphasis)  # a hedge's gold waits for its figure (round 3)
+            phrases = merge_short_bursts(partition_words_grammatical(words, bonds=bonds), _fits_caption_width,
+                                         MAX_BURST_WORDS)
+        # The whole first frame is a Reel (9:16) feature only: a 16:9 documentary's first line appears with its
+        # narration, as in round 3 (round 4 fix: it jumped to 0.0, up to 0.6 s before the voice).
+        if is_widescreen:
+            first_frame_whole = None
+        timings = burst_timings(phrases, first_frame_whole=first_frame_whole)
+        whole_first = bool(phrases) and timings[0][0] == 0.0 and first_frame_whole is not None and all(
+            r == 0.0 for r in timings[0][2])
+        if not is_widescreen:
+            timings = snap_to_cuts(phrases, timings, cuts)
         raw_events: list[tuple[int, float, float, str, str]] = []  # (layer, start, end, style, text)
 
         center_x = width // 2
@@ -1350,7 +1689,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             base = g["base"]
             box_w, box_h = g["box_w"], g["box_h"]
             box_x = round(center_x - box_w / 2)
-            fade_in = 0 if is_widescreen or (pi > 0 and joined_next[pi - 1]) else CAPTION_PLATE_FADE_IN_MS
+            whole = pi == 0 and whole_first   # round 4: the first burst whole and settled on frame 0
+            fade_in = 0 if is_widescreen or whole or (pi > 0 and joined_next[pi - 1]) else CAPTION_PLATE_FADE_IN_MS
             fade_out = 0 if is_widescreen or joined_next[pi] else CAPTION_PLATE_FADE_OUT_MS
             fad = f"\\fad({fade_in},{fade_out})" if fade_in or fade_out else ""
 
@@ -1362,6 +1702,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             gold_words = [ji for ji in range(len(shown)) if base + ji in key and g["gold"]
                           and (base + ji not in hedge_of or hedge_of[base + ji] - base < len(shown))]
             # 9:16: the reveal index from which each gold word shows gold (a hedge's: its figure's first word)
+            if is_widescreen:   # round 4: one gold span a still 16:9 line (the later figure, with its hedge)
+                gold_words = single_gold_span(shown, gold_words)
             gold_from = {ji: (hedge_of[base + ji] - base if base + ji in hedge_of else ji) for ji in gold_words}
             contrast_rows.append({"burst": pi, "text": " ".join(shown), "gold": bool(gold_words)})
 
@@ -1374,6 +1716,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
             # Layer 1, 9:16: one event per spoken word; the words still to come are transparent placeholders
             for wi in range(len(phrase)):
+                if whole and wi < len(phrase) - 1:
+                    continue   # shown whole: only the full line's event
                 t_start = reveals[wi]
                 t_end = reveals[wi + 1] if wi < len(phrase) - 1 else hide
                 visible, hidden = [], []
@@ -1385,7 +1729,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         colour = COL_EMPHASIS if is_key else COL_PAST if ji < wi else COL_ACTIVE
                     word_ass = format_word_caption(disp_word, colour=colour, is_key=is_key,
                                                    is_spoken_now=(ji == wi), has_key=bool(gold_words),
-                                                   ease_ms=CAPTION_WORD_EASE_MS)
+                                                   ease_ms=0 if whole else CAPTION_WORD_EASE_MS)
                     (hidden if ji > wi else visible).append(word_ass)
                 line = " ".join(visible)
                 if hidden:
@@ -1600,7 +1944,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         ass_path = output_mp4_path.parent / (output_mp4_path.stem + "_captions.ass")
         self.build_subtitles(words, ass_path, emphasis=emphasis, width=width, height=height,
                              reconstruction_intervals=recon_intervals,
-                             graphic_intervals=caption_graphic_intervals(scene_images, durations))
+                             graphic_intervals=caption_graphic_intervals(scene_images, durations),
+                             first_frame_whole=CAPTION_FIRST_FRAME_WHOLE_S if height > width else None,
+                             cuts=caption_cut_times(durations) if height > width else None)
         # The caption plates are measured in the bundled font; burn them in only if libass draws that font
         # (round 3: with only Montserrat-Variable.ttf bundled, the 16:9 line drew in Inter and ran off its plate).
         caption_font = (CAPTION_WIDE_FONT, 700) if width > height else (FONT_NAME, 400)

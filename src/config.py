@@ -535,3 +535,17 @@ CAPTION_READ_BASE = 0.25
 CAPTION_MAX_CPS = 17.0
 # 16:9: CAPTION_WIDE_MARGIN_V (130, y 950 at 1080) is set with the other 16:9 values, above.
 # <<< Captions round 3 ------------------------------------------------------------------------------------------------
+
+# >>> Captions round 4 (2026-11-02): the panel's caption changes (src/video_composer.py caption code) ----------------
+# 9:16 first frame: a Reel whose narration starts within CAPTION_FIRST_FRAME_WHOLE_S of the start (its first word's
+# onset less the two-frame lead) shows its first burst whole, bone and gold, from frame 0, with no fade, so a muted
+# autoplay or feed-preview frame already carries the hook line. compose_video turns it on for 9:16 only
+# (build_subtitles' first_frame_whole, which a 16:9 call ignores: a documentary's first line waits for its
+# narration); a first word at 1.0 s keeps the word-by-word reveal.
+CAPTION_FIRST_FRAME_WHOLE_S = 0.6
+# 9:16 cue-to-cut: a burst's show or hide CAPTION_CUT_SNAP_FRAMES frames or fewer from a picture cut moves onto the
+# cut; where that would leave a burst under its reading time or overlap a neighbour, a boundary nearer than
+# CAPTION_CUT_MIN_FRAMES moves out to that many frames from the cut instead (no plate change a frame off a cut).
+CAPTION_CUT_SNAP_FRAMES = 6
+CAPTION_CUT_MIN_FRAMES = 2
+# <<< Captions round 4 ------------------------------------------------------------------------------------------------

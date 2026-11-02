@@ -227,7 +227,9 @@ def test_widescreen_bursts_are_shown_whole_and_still(tmp_path):
         assert (s, e) == (bs, be)
         assert CAPTION_HIDDEN not in t and COL_FUTURE not in t and "\\t(" not in t and "\\fad" not in t
     gold = [w for _, _, t in texts for c, w in re.findall(r"\\c(&H[0-9A-F]+&)\}([^{ ]+)", t) if c == COL_EMPHASIS]
-    assert gold == ["Derinkuyu", "roughly", "280", "feet"]
+    # Round 4 (caption panel): one gold span a still 16:9 line, the figure with its hedge (single_gold_span); this
+    # burst carried two spans, DERINKUYU and ROUGHLY 280 FEET, until then.
+    assert gold == ["roughly", "280", "feet"]
     # the 9:16 reveal is unchanged: word by word with placeholders
     _, reel = _build(tmp_path, words)
     assert any(CAPTION_HIDDEN in t for _, _, t in _events(reel, "CapText"))

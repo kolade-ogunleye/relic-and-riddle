@@ -21,9 +21,9 @@
      383,
      486
     ],
-    "contrast": 1.41,
+    "contrast": 5.06,
     "contrast_unaided": 1.27,
-    "halo": 0.0,
+    "halo": 0.75,
     "fill": [
      243,
      237,
@@ -31,7 +31,7 @@
     ],
     "font": "Cinzel-Variable.ttf",
     "px": 32.0,
-    "contrast_planned": 1.4
+    "contrast_planned": 5.04
    },
    {
     "name": "eyebrow",

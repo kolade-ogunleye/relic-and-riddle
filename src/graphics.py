@@ -661,13 +661,16 @@ def years_between(a: int, b: int) -> int:
 
 
 def gap_text(a: dict[str, Any], b: dict[str, Any]) -> str:
-    """The elapsed time drawn on the spine between two entries ("1,479 YEARS LATER"; "ABOUT ..." when either
-    date is approximate; "" for less than two years)."""
+    """The elapsed time drawn on the spine between two entries ("40 YEARS LATER"; when either date is approximate,
+    "ABOUT 1,500 YEARS LATER", rounded to the nearest 100 from 500 years, 10 from 50; "" for less than two years)."""
     years = years_between(int(a["year"]), int(b["year"]))
     if years < 2:
         return ""
-    about = "ABOUT " if (a.get("approximate") or b.get("approximate")) else ""
-    return f"{about}{years:,} YEARS LATER"
+    if a.get("approximate") or b.get("approximate"):
+        # An approximate date cannot give an exact span (2026-11-02): round to what the dates support.
+        step = 100 if years >= 500 else 10 if years >= 50 else 1
+        return f"ABOUT {max(step, round(years / step) * step):,} YEARS LATER"
+    return f"{years:,} YEARS LATER"
 
 
 def spaced_positions(events: list[dict[str, Any]], y_first: float, y_last: float, need: float) -> list[float]:
@@ -1001,9 +1004,9 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
     gap = abs(ref_feet - feet)
     if depth:
         meaning = ([f"THE {ref_name.upper()}, {measurement_text(ref_feet).split(' (')[0]},",
-                    f"WOULD SHOW ONLY ITS TOP {measurement_text(gap).split(' (')[0]}."] if ref_feet > feet else
+                    f"WOULD SHOW ONLY ITS TOP {hedge}{measurement_text(gap).split(' (')[0]}."] if ref_feet > feet else
                    [f"THE {ref_name.upper()} WOULD VANISH:",
-                    f"ITS TOP {measurement_text(gap).split(' (')[0]} BELOW THE SURFACE."])
+                    f"ITS TOP {hedge}{measurement_text(gap).split(' (')[0]} BELOW THE SURFACE."])
     else:
         ratio = max(feet, ref_feet) / min(feet, ref_feet)
         taller, shorter = (subject.title() if feet > ref_feet else "The " + ref_name), (

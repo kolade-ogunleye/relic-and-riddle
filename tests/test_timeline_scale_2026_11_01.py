@@ -24,7 +24,7 @@ def test_years_between_has_no_year_zero() -> None:
 
 
 def test_gap_wording() -> None:
-    assert graphics.gap_text(DERINKUYU[0], DERINKUYU[1]) == "ABOUT 1,479 YEARS LATER"
+    assert graphics.gap_text(DERINKUYU[0], DERINKUYU[1]) == "ABOUT 1,500 YEARS LATER"  # rounded: c. dates (2026-11-02)
     assert graphics.gap_text(DERINKUYU[2], DERINKUYU[3]) == "40 YEARS LATER"
     assert graphics.gap_text({"year": 1900}, {"year": 1901}) == ""
 

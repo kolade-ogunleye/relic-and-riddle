@@ -48,6 +48,20 @@ _BOX = safe_zones.graphics_box(VIDEO_WIDTH, VIDEO_HEIGHT)
 TEXT_TOP, TEXT_BOTTOM = max(330, _BOX[1]), _BOX[3]
 TEXT_LEFT, TEXT_RIGHT = _BOX[0], _BOX[2]
 TEXT_MAX_W = safe_zones.REEL.centred_width(VIDEO_WIDTH, VIDEO_HEIGHT)
+# The shared inset edge (2026-11-02): every 9:16 graphic (timeline, scale, cross-section, number cards) starts its
+# words and drawings on one left edge at x 100 and keeps its drawings to x 100-860, inside the Reel box (65-888), so a
+# cut from one graphic to the next keeps the column still (each had its own edge at 65-102 before).
+INSET_X0, INSET_X1 = 100, 860
+
+
+def inset_x0(width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> int:
+    """The shared left edge of a 9:16 graphic on this frame (INSET_X0 on 1080 wide)."""
+    return round(INSET_X0 * width / VIDEO_WIDTH)
+
+
+def inset_x1(width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> int:
+    """The right edge of a 9:16 graphic's drawings on this frame (INSET_X1 on 1080 wide)."""
+    return round(INSET_X1 * width / VIDEO_WIDTH)
 
 from .reference_facts import references, selected_reference, measurement_text, REFERENCE_FILE
 
@@ -222,14 +236,16 @@ def _encode(frames: Iterable[Image.Image], out: Path, n: int, width: int = VIDEO
 
 # ------------------------------------------------------- contrast on the graded frame (2026-10-29)
 # A graphic's text is measured where the viewer reads it: on its last frame after the master's film grade
-# (video_composer.film_grade_filter, noise and vignette), with the glyph masks it was drawn with. The planned and
+# (video_composer.film_grade_filter and noise; the lens vignette is lifted while a graphic is on screen,
+# video_composer.graphic_vignette_enable, 2026-11-02), with the glyph masks it was drawn with. The planned and
 # graded ratios of each element are kept beside the clip (<clip>.contrast.json) for video_qa.graphic_contrast_problems.
 CONTRAST_SIDECAR = ".contrast.json"
 
 
-def graded_frame(frame: Image.Image, work: Path) -> Optional[Image.Image]:
-    """`frame` through the master's picture chain (format, hue-safe film print, noise, vignette); None when ffmpeg
-    cannot run here (the planned ratios are still recorded)."""
+def graded_frame(frame: Image.Image, work: Path, vignette: bool = False) -> Optional[Image.Image]:
+    """`frame` through the master's picture chain (format, hue-safe film print, noise; `vignette` adds the lens
+    vignette, which the master lifts under graphic clips); None when ffmpeg cannot run here (the planned ratios
+    are still recorded)."""
     try:
         from .video_composer import film_grade_filter
         work.mkdir(parents=True, exist_ok=True)
@@ -237,7 +253,7 @@ def graded_frame(frame: Image.Image, work: Path) -> Optional[Image.Image]:
         frame.convert("RGB").save(src)
         aspect = "16/9" if frame.width > frame.height else "9/16"
         vf = (f"format=yuv420p,{film_grade_filter(0.0, out_dir=work)},format=yuv420p,"
-              f"noise=alls=8:allf=t+u:all_seed=7,vignette=PI/4.2:aspect={aspect},format=rgb24")
+              f"noise=alls=8:allf=t+u:all_seed=7,{f'vignette=PI/4.2:aspect={aspect},' if vignette else ''}format=rgb24")
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(src), "-vf", vf, "-frames:v", "1", str(dst)],
                        check=True, timeout=120, capture_output=True)
         with Image.open(dst) as im:
@@ -696,233 +712,239 @@ def spaced_positions(events: list[dict[str, Any]], y_first: float, y_last: float
     return ys
 
 
+# Timeline v2 (2026-11-02, operator-approved brief): honest spacing with drawn breaks, every block starting at its
+# own marker, a tracking reveal, a quieter ground; 16:9 across the frame (the master lifts its lens vignette while
+# a graphic is on screen, video_composer.graphic_vignette_enable, so 16:9 words no longer keep to WIDE_SAFE).
+WIDE_TIMELINE = (160, 1760)       # the 16:9 timeline's run, design px (x 8.3-91.7 %: title-safe, clear of the corner)
+COMPRESSED_FLOOR = 1.2            # a broken gap is drawn at least this much longer than the longest true-scale gap
+DIM_LEVEL = 0.55                  # an earlier event's brightness while a later one is current
+
+
+@dataclass(frozen=True)
+class TimelineSpacing:
+    """Where each event sits on the spine and which gaps are drawn shorter than true scale (`breaks`: k for the
+    gap between events k-1 and k, the same keys as the gap labels), with the px per year the honest gaps use."""
+    positions: list[float]
+    breaks: tuple[int, ...]
+    px_per_year: float
+
+
+def timeline_positions(events: list[dict[str, Any]], first: float, last: float,
+                       need: float | list[float]) -> TimelineSpacing:
+    """Each event's position from `first` to `last`, proportional to the years elapsed (2026-11-02, timeline v2:
+    the log spacing before drew 40 years nearly as long as 1,500). `need`: the least step, one value or one per
+    gap. When true scale cannot give every gap its least step, the fewest longest gaps are compressed and listed in
+    `breaks` (drawn with a break glyph): the others stay on one true scale, the shortest of them at its least step,
+    and each compressed gap is still drawn longer than any true-scale one, sharing what is left by the logarithm of
+    its years, so the order of lengths never lies even where the scale is broken (no shorter than the longest
+    true-scale gap where the column is too tight for COMPRESSED_FLOOR)."""
+    from itertools import pairwise
+    n = len(events) - 1
+    if n < 1:
+        return TimelineSpacing([first], (), 0.0)
+    years = [max(1, years_between(int(a["year"]), int(b["year"]))) for a, b in pairwise(events)]
+    needs = list(need) if isinstance(need, (list, tuple)) else [float(need)] * n
+    span = last - first
+
+    def placed(steps: list[float]) -> list[float]:
+        out = [first]
+        for s in steps:
+            out.append(out[-1] + s)
+        return out
+    scale = span / sum(years)
+    if all(y * scale >= nd - 1e-6 for y, nd in zip(years, needs)):
+        return TimelineSpacing(placed([y * scale for y in years]), (), scale)
+    order = sorted(range(n), key=lambda i: -years[i])
+    for lead in (COMPRESSED_FLOOR, 1.0):          # a tight column (9:16) may only keep them no shorter
+        for m in range(1, n):
+            broken = set(order[:m])
+            honest = [i for i in range(n) if i not in broken]
+            s = max(needs[i] / years[i] for i in honest)           # the least scale that gives each its step
+            lengths = {i: years[i] * s for i in honest}
+            floor_b = {i: max(needs[i], lead * max(lengths.values())) for i in broken}
+            rest = span - sum(lengths.values()) - sum(floor_b.values())
+            if rest < -1e-6:
+                continue
+            weights = {i: math.log10(1 + years[i]) for i in broken}
+            for i in broken:
+                lengths[i] = floor_b[i] + rest * weights[i] / sum(weights.values())
+            steps = [lengths[i] for i in range(n)]
+            breaks = tuple(sorted(i + 1 for i in broken if steps[i] < years[i] * s * 0.95))
+            return TimelineSpacing(placed(steps), breaks, s)
+    # Not even one true-scale gap fits: even steps, every gap longer than the shortest marked as compressed.
+    step = span / n
+    low = min(years)
+    return TimelineSpacing([first + step * k for k in range(n + 1)],
+                           tuple(k + 1 for k in range(n) if years[k] > low * 1.5), step / low)
+
+
+@dataclass(frozen=True)
+class RevealSchedule:
+    """The tracking reveal: event k lands at `at[k]`, the current event full, earlier ones at DIM_LEVEL, and from
+    `restore` every event comes back to full for the held last frame."""
+    at: list[float]
+    restore: float
+
+    def appear(self, k: int, t: float) -> float:
+        return _ease((t - self.at[k]) / 0.45)
+
+    def level(self, k: int, t: float) -> float:
+        """Event k's brightness (0-1): its landing times how far it has dimmed since the next one landed."""
+        a = self.appear(k, t)
+        if k + 1 < len(self.at):
+            a *= 1 - (1 - DIM_LEVEL) * _ease((t - self.at[k + 1]) / 0.4)
+        back = _ease((t - self.restore) / 0.5)
+        return a + (min(1.0, self.appear(k, t)) - a) * back
+
+    def head(self, positions: list[float], t: float, end: float) -> float:
+        """Where the spine's drawn end is: it travels to each event as that event lands, then on to `end`."""
+        if t <= self.at[0] - 0.25:
+            return positions[0]
+        for k in range(1, len(positions)):
+            if t <= self.at[k]:
+                u = (t - (self.at[k - 1] + 0.05)) / max(1e-6, self.at[k] - self.at[k - 1] - 0.05)
+                return positions[k - 1] + (positions[k] - positions[k - 1]) * _ease_io(max(0.0, u))
+        return positions[-1] + (end - positions[-1]) * _ease_io((t - self.at[-1]) / 0.7)
+
+
+def reveal_schedule(count: int, clip: float) -> RevealSchedule:
+    """Landings spread over 8-66 % of the clip (0.5-4.0 s of 6 s), the restore at 76 % so the last frame holds."""
+    if count < 2:
+        return RevealSchedule([0.08 * clip], 0.5 * clip)
+    step = (0.66 - 0.08) * clip / (count - 1)
+    return RevealSchedule([0.08 * clip + step * k for k in range(count)], 0.76 * clip)
+
+
+def timeline_backdrop(photo: Path | None, width: int, height: int) -> Image.Image:
+    """The timeline's ground (v2): the topic's photo blurred, taken to 25 % of its colour and down to about a sixth
+    of its brightness, so the gold line carries the frame (the blurred photo at 28 % read as muddy brown); the
+    plain ink without a photo."""
+    from PIL import ImageEnhance
+    if not (photo and Path(photo).exists()):
+        return Image.new("RGB", (width, height), brand.INK)
+    from .typography import cover_crop
+    im = cover_crop(Path(photo), (width, height)).convert("RGB").filter(ImageFilter.GaussianBlur(34))
+    im = ImageEnhance.Color(im).enhance(0.25)
+    return Image.blend(im, Image.new("RGB", (width, height), brand.INK), 0.84).convert("RGB")
+
+
+def _break_glyph(d: ImageDraw.ImageDraw, x: float, y: float, along_x: bool, size: float, fill, width: float,
+                 ground) -> None:
+    """The axis-break mark on a spine at (x, y): the line cut and two parallel slashes across the cut."""
+    w = max(1, round(width))
+    gap = size * 0.42
+    if along_x:
+        d.rectangle([x - gap, y - width * 2, x + gap, y + width * 2], fill=ground)
+        for dx in (-gap * 0.55, gap * 0.55):
+            d.line([(x + dx - size * 0.28, y + size * 0.5), (x + dx + size * 0.28, y - size * 0.5)], fill=fill, width=w)
+    else:
+        d.rectangle([x - width * 2, y - gap, x + width * 2, y + gap], fill=ground)
+        for dy in (-gap * 0.55, gap * 0.55):
+            d.line([(x - size * 0.5, y + dy + size * 0.28), (x + size * 0.5, y + dy - size * 0.28)], fill=fill, width=w)
+
+
 def render_timeline(events: List[Dict[str, Any]], out: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
                     photo: Path | None = None) -> Optional[Path]:
-    """Timeline: the spine draws down (or across in landscape), then each date appears in order. In 9:16 the
-    entries are spaced by the time between them (spaced_positions), the elapsed years are written on the spine
-    between them, and the topic's photo, blurred and dark, is the ground (`photo`; plain ink without one)."""
+    """Timeline v2 (2026-11-02): a gold spine that draws on event by event, each date landing in turn at full
+    brightness while the earlier ones dim (all full again for the held last frame); the events on a true time scale
+    (timeline_positions), any gap too long to draw to scale cut with a break mark; the elapsed time (gap_text) on
+    each gap; the topic's photo, blurred, desaturated and dark, as the ground (`photo`; plain ink without one).
+    9:16: a vertical spine on the shared inset edge (INSET_X0) inside the Reel box; 16:9: across the frame."""
     events = sorted(events, key=lambda e: e["year"])[:4]
     if len(events) < 2:
         return None
-    n = int(CLIP_SECONDS * VIDEO_FPS)
-    top, bottom = get_text_bounds(width, height)
-    bg = Image.new("RGB", (width, height), SEA)
-    g = ImageDraw.Draw(bg, "RGBA")
-    for y in range(0, height, 6):  # subtle vertical gradient
-        g.line([(0, y), (width, y)], fill=(13 + y // 120, 16 + y // 120, 21 + y // 110, 255))
-
     if width > height:
         return _render_timeline_wide(events, out, width, height, photo)
-    else:
-        # Vertical (2026-10-29): a gold-dim spine draws down, each date lands with its label. Two events get the
-        # large years and two-line labels; more get smaller years and one-line labels fitted to the column (a
-        # label that cannot fit one line at its floor size takes two, never cut). Measured first: if the last
-        # entry's label would pass the graphics box's bottom (graphics_box()[3], above the caption band) the
-        # spine is lifted, and when the entries no longer fit between the bounds the type steps down.
-        x0 = M + 18
-        xt = x0 + 56
-        label_w = TEXT_RIGHT - xt - 4
-        probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-        many = len(events) > 2
-        for scale in (1.0, 0.92, 0.84, 0.76, 0.68, 0.6):
-            f_year = get_font("Anton", int((104 if many else 180) * scale))
-            cap_y = cap_height(f_year)
-            lab_px = int((38 if many else 42) * scale)
-            entries = []
-            texts = [drawable(e["label"].upper(), "Montserrat") for e in events]
-            floor = max(26, round(lab_px * 0.78))
-            if many:  # one size for every label: the smallest at which those that fit one line do; the rest take two
-                fits = [fit_text(probe, tx, "Montserrat", lab_px, label_w - 2 * len(tx), 1, floor, sentences=False,
-                                 weight=800, quiet=True) for tx in texts]
-                common = min([f[1].size for f in fits if not f[2]] or [floor])
-            for e, text in zip(events, texts):
-                if many:
-                    lines, f_lab, short = fit_text(probe, text, "Montserrat", common, label_w - 2 * len(text), 1, common,
-                                                   sentences=False, weight=800, quiet=True)
-                    if short:
-                        lines, f_lab, _ = fit_text(probe, text, "Montserrat", common, label_w - 2 * len(text), 2, common,
-                                                   weight=800, quiet=True)
-                else:
-                    lines, f_lab, _ = fit_text(probe, text, "Montserrat", lab_px, label_w - 2 * len(text), 2,
-                                               max(22, int(lab_px * 0.8)), weight=800, quiet=True)
-                f_lab = get_font("Montserrat", f_lab.size, weight=800)
-                step = round(f_lab.size * 1.3)
-                gap = round(f_lab.size * (1.4 if many else 1.6))
-                # offsets from the entry's dot: the year's top, and the last label row's ink bottom
-                e_top = -cap_y // 2
-                rows = [cap_y // 2 + gap + j * step for j in range(len(lines))]
-                e_bottom = max(probe.textbbox((0, y), ln, font=f_lab, anchor="ls")[3] for y, ln in zip(rows, lines))
-                entries.append({"year": year_text(e["year"], e.get("approximate", False)).upper(), "lines": lines,
-                                "font": f_lab, "rows": rows, "top": e_top, "bottom": e_bottom})
-            y_first = top + 30 - entries[0]["top"]
-            y_last = bottom - entries[-1]["bottom"]                    # lifted so its last row ends on the bound
-            f_gap = get_font("Montserrat", max(24, int((30 if many else 36) * scale)), weight=700)
-            need = max(entries[k]["bottom"] - entries[k + 1]["top"] + 34 for k in range(len(entries) - 1))
-            step_y = (y_last - y_first) / (len(entries) - 1)
-            if step_y >= need:
-                break
-        if scale < 1.0:
-            log.info("Timeline type set at %d%% to keep %d entries above the caption band.", round(scale * 100), len(events))
-        spine_gold, track = brand.GOLD_DIM, 2
-        ground = _backdrop(photo, width, height) if photo else Image.new("RGB", (width, height), brand.INK)
-        plates = []
-        ys = spaced_positions(events, y_first, y_last, need)   # by the time between them, where there is room
-        for k, en in enumerate(entries):
-            y = ys[k]
-            en["y"] = y
-            en["year_plate"] = plan_text(ground, (xt, y + cap_y // 2), en["year"], f_year, GOLD, "ls")
-            en["label_plates"] = [plan_text(ground, (xt + 4, y + r), ln, en["font"], WHITE, "ls", track=track)
-                                  for r, ln in zip(en["rows"], en["lines"])]
-            plates += [(f"year{k}", en["year_plate"])] + [(f"label{k}", p) for p in en["label_plates"]]
-        # The time since the previous date, after each year on its baseline ("1923  1,143 YEARS LATER"): the
-        # vertical room between the platforms' bands holds four entries and nothing more, so it takes no height.
-        gaps = []
-
-        def fits(text, en):
-            return en["year_plate"].box[2] + 28 + probe.textlength(text, font=f_gap) + 3 * len(text) <= TEXT_RIGHT
-        wanted = [(k, gap_text(events[k - 1], events[k])) for k in range(1, len(entries))]
-        wanted = [(k, t) for k, t in wanted if t]
-        # One wording for the whole timeline: "... YEARS LATER" where every one fits, else "... YEARS" for all.
-        if not all(fits(t, entries[k]) for k, t in wanted):
-            wanted = [(k, t.removesuffix(" LATER")) for k, t in wanted]
-        for k, text in wanted:
-            en = entries[k]
-            if not fits(text, en):
-                continue
-            plate = plan_text(ground, (en["year_plate"].box[2] + 28, en["y"] + cap_y // 2), text, f_gap,
-                              brand.STONE_LT, "ls", track=3)
-            gaps.append((k, plate))
-            plates.append((f"gap{k}", plate))
-        last: List[Image.Image] = []
-
-        def frames():
-            for i in range(n):
-                t = i / VIDEO_FPS
-                im = ground.copy()
-                d = ImageDraw.Draw(im, "RGBA")
-                spine = y_first + (entries[-1]["y"] - y_first) * _ease(t / 1.0)
-                d.line([(x0, y_first), (x0, spine)], fill=(*spine_gold, 255), width=6)
-                for k, en in enumerate(entries):
-                    appear = _ease((t - 0.4 - 0.45 * k) / 0.4)
-                    if appear <= 0:
-                        continue
-                    r = 16 * appear
-                    y = en["y"]
-                    d.ellipse([x0 - r, y - r, x0 + r, y + r], fill=(*GOLD, int(255 * appear)))
-                    dy = round(14 * (1 - appear))
-                    im = en["year_plate"].draw(im, appear, dy)
-                    for p in en["label_plates"]:
-                        im = p.draw(im, appear, dy)
-                    d = ImageDraw.Draw(im, "RGBA")
-                for k, plate in gaps:   # the elapsed time lands with its year (fully drawn by the same frame)
-                    shown = _ease((t - 0.4 - 0.45 * k) / 0.4)
-                    if shown > 0:
-                        im = plate.draw(im, shown, round(14 * (1 - shown)))
-                        d = ImageDraw.Draw(im, "RGBA")
-                if i == n - 1:
-                    last.append(im.copy())
-                yield im
-
-        result = _encode(frames(), out, n, width=width, height=height)
-        if result and last:
-            record_contrast(out, last[0], plates)
-        return result
-
-# 16:9 words stay where the master's vignette leaves them legible (see _SECTION_WIDE): design x 400-1600, y 190-800.
-WIDE_SAFE = (400, 190, 1600, 800)
+    return _render_timeline_tall(events, out, width, height, photo)
 
 
-def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, height: int,
+def _render_timeline_tall(events: list[dict[str, Any]], out: Path, width: int, height: int,
                           photo: Path | None) -> Path | None:
-    """The 16:9 timeline (2026-11-02 review round 2, 4/10: labels collided with years): a GOLD_DIM spine across the
-    frame over the blurred, darkened photo, the dates spaced by the time between them (spaced_positions, the
-    logarithm of the years elapsed), each event one block (its year in gold Anton, its label in bone Montserrat
-    under it) on a hairline flag from its dot, alternately above and below the spine, at least 24 px clear of
-    everything else; the elapsed time (gap_text) on the spine between the dots."""
-    import itertools
-    g = _WideGrid(width, height)
-    X, Y, S = g.x, g.y, g.s
+    """The 9:16 timeline: two events get the large years and two-line labels; more get smaller years and one-line
+    labels fitted to the column (a label that cannot fit one line at its floor size takes two, never cut). Measured
+    first: the last entry's label ends on the graphics box's bottom, and when the entries no longer fit between the
+    bounds the type steps down."""
     n = int(CLIP_SECONDS * VIDEO_FPS)
+    top, bottom = get_text_bounds(width, height)
+    x0 = inset_x0(width, height) + round(16 * width / VIDEO_WIDTH)   # the spine: its dots' left edge on the inset
+    xt = x0 + round(56 * width / VIDEO_WIDTH)
+    label_w = TEXT_RIGHT * width // VIDEO_WIDTH - xt - 4
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    sx0, _sy0, sx1, _sy1 = WIDE_SAFE
-    spine_y = 536.0
-    x_first, x_last = sx0 + 40, sx1 - 40
-    f_year = get_font("Anton", g.f(90))
-    f_gap = get_font("Montserrat", g.f(26), weight=700)
-    track = S(2)
-    cap_y = cap_height(f_year) / g.k
-    flag, pad, clear = 70.0, 20.0, 40.0       # dot to block, flag to text, block to block (design px)
-    xs = spaced_positions(events, x_first, x_last, 300)
-    entries = []
-    for k, e in enumerate(events):
-        entries.append({"k": k, "x": xs[k], "above": k % 2 == 0, "text": drawable(e["label"].upper(), "Montserrat"),
-                        "year": year_text(e["year"], e.get("approximate", False)).upper()})
-    for side in (True, False):   # each side's blocks set left or right of their flags, whichever leaves most room
-        row = [en for en in entries if en["above"] == side]
-        best: tuple[float, list[float], tuple[bool, ...]] | None = None
-        for combo in itertools.product((False, True), repeat=len(row)):
-            rooms = []
-            for j, (en, right) in enumerate(zip(row, combo)):
-                if right:
-                    prev = row[j - 1]["x"] if j else None
-                    if prev is None:
-                        room = en["x"] - sx0
-                    elif combo[j - 1]:
-                        room = en["x"] - prev - clear
-                    else:
-                        room = (en["x"] - prev - clear) / 2
-                else:
-                    nxt = row[j + 1]["x"] if j + 1 < len(row) else None
-                    if nxt is None:
-                        room = sx1 - en["x"]
-                    elif not combo[j + 1]:
-                        room = nxt - en["x"] - clear
-                    else:
-                        room = (nxt - en["x"] - clear) / 2
-                rooms.append(min(560.0, room) - pad)
-            if best is None or min(rooms) > best[0] + 1:
-                best = (min(rooms), rooms, combo)
-        assert best is not None
-        for en, room, right in zip(row, best[1], best[2]):
-            en["right"] = right
-            lines, f_lab, short = fit_text(probe, en["text"], "Montserrat", g.f(34), int(S(room) - 2 * len(en["text"])),
-                                           3, g.f(32), weight=800, quiet=True)
-            if short:   # never cut: a fourth line at the floor size
-                lines, f_lab, _ = fit_text(probe, en["text"], "Montserrat", g.f(32), int(S(room) - 2 * len(en["text"])),
-                                           4, g.f(32), weight=800, quiet=True)
-            en["font"] = get_font("Montserrat", f_lab.size, weight=800)
-            en["lines"] = lines
-    ground = _backdrop(photo, width, height) if photo else Image.new("RGB", (width, height), brand.INK)
+    many = len(events) > 2
+    for scale in (1.0, 0.92, 0.84, 0.76, 0.68, 0.6):
+        f_year = get_font("Anton", int((104 if many else 180) * scale))
+        cap_y = cap_height(f_year)
+        lab_px = int((38 if many else 42) * scale)
+        entries = []
+        texts = [drawable(e["label"].upper(), "Montserrat") for e in events]
+        floor = max(26, round(lab_px * 0.78))
+        if many:  # one size for every label: the smallest at which those that fit one line do; the rest take two
+            fits = [fit_text(probe, tx, "Montserrat", lab_px, label_w - 2 * len(tx), 1, floor, sentences=False,
+                             weight=800, quiet=True) for tx in texts]
+            common = min([f[1].size for f in fits if not f[2]] or [floor])
+        for e, text in zip(events, texts):
+            if many:
+                lines, f_lab, short = fit_text(probe, text, "Montserrat", common, label_w - 2 * len(text), 1, common,
+                                               sentences=False, weight=800, quiet=True)
+                if short:
+                    lines, f_lab, _ = fit_text(probe, text, "Montserrat", common, label_w - 2 * len(text), 2, common,
+                                               weight=800, quiet=True)
+            else:
+                lines, f_lab, _ = fit_text(probe, text, "Montserrat", lab_px, label_w - 2 * len(text), 2,
+                                           max(22, int(lab_px * 0.8)), weight=800, quiet=True)
+            f_lab = get_font("Montserrat", f_lab.size, weight=800)
+            step = round(f_lab.size * 1.3)
+            gap = round(f_lab.size * (1.4 if many else 1.6))
+            e_top = -cap_y // 2              # offsets from the entry's dot: the year's top, the last row's ink bottom
+            rows = [cap_y // 2 + gap + j * step for j in range(len(lines))]
+            e_bottom = max(probe.textbbox((0, y), ln, font=f_lab, anchor="ls")[3] for y, ln in zip(rows, lines))
+            entries.append({"year": year_text(e["year"], e.get("approximate", False)).upper(), "lines": lines,
+                            "font": f_lab, "rows": rows, "top": e_top, "bottom": e_bottom})
+        y_first = top + 30 - entries[0]["top"]
+        y_last = bottom - entries[-1]["bottom"]                    # lifted so its last row ends on the bound
+        f_gap = get_font("Montserrat", max(24, int((30 if many else 36) * scale)), weight=700)
+        needs = [entries[k]["bottom"] - entries[k + 1]["top"] + 28 for k in range(len(entries) - 1)]
+        if (y_last - y_first) / (len(entries) - 1) >= max(needs):
+            break
+    if scale < 1.0:
+        log.info("Timeline type set at %d%% to keep %d entries above the caption band.", round(scale * 100), len(events))
+    spacing = timeline_positions(events, y_first, y_last, needs)
+    ground = timeline_backdrop(photo, width, height)
     plates: list[tuple[str, Any]] = []
-    for en in entries:
-        f_lab = en["font"]
-        cap_l = cap_height(f_lab) / g.k
-        step = round(f_lab.size * 1.3) / g.k
-        h = cap_y + 26 + cap_l + step * (len(en["lines"]) - 1)
-        top = spine_y - flag - h if en["above"] else spine_y + flag
-        en["top"], en["bottom"] = top, top + h
-        tx = en["x"] - pad if en["right"] else en["x"] + pad
-        anchor = "rs" if en["right"] else "ls"
-        en["year_plate"] = plan_text(ground, (X(tx), Y(top + cap_y)), en["year"], f_year, GOLD, anchor)
-        en["label_plates"] = [plan_text(ground, (X(tx), Y(top + cap_y + 26 + cap_l + step * j)), ln, f_lab, WHITE,
-                                        anchor, track=track) for j, ln in enumerate(en["lines"])]
-        plates += [(f"year{en['k']}", en["year_plate"])] + [(f"label{en['k']}", pl) for pl in en["label_plates"]]
-    # the elapsed time on the spine, centred between the dots, above the line; one wording for all
-    wanted = [(k, gap_text(events[k - 1], events[k])) for k in range(1, len(events))]
-    wanted = [(k, t) for k, t in wanted if t]
-
-    def fits(k: int, text: str) -> bool:
-        return tracked_width(text, f_gap, S(1)) / g.k <= xs[k] - xs[k - 1] - 2 * 26
-    if not all(fits(k, t) for k, t in wanted):
-        wanted = [(k, t.removesuffix(" LATER")) for k, t in wanted]
+    for k, en in enumerate(entries):
+        y = spacing.positions[k]
+        en["y"] = y
+        en["year_plate"] = plan_text(ground, (xt, y + cap_y // 2), en["year"], f_year, GOLD, "ls")
+        en["label_plates"] = [plan_text(ground, (xt + 4, y + r), ln, en["font"], WHITE, "ls", track=2)
+                              for r, ln in zip(en["rows"], en["lines"])]
+        plates += [(f"year{k}", en["year_plate"])] + [(f"label{k}", p) for p in en["label_plates"]]
+    # The time since the previous date, after each year on its baseline ("1923  40 YEARS LATER"): the vertical
+    # room between the platforms' bands holds four entries and nothing more, so it takes no height.
     gaps = []
+
+    def fits(text: str, en: dict[str, Any]) -> bool:
+        return en["year_plate"].box[2] + 28 + probe.textlength(text, font=f_gap) + 3 * len(text) <= TEXT_RIGHT * width // VIDEO_WIDTH
+    wanted = [(k, gap_text(events[k - 1], events[k])) for k in range(1, len(entries))]
+    wanted = [(k, t) for k, t in wanted if t]
+    if not all(fits(t, entries[k]) for k, t in wanted):        # one wording for the whole timeline
+        wanted = [(k, t.removesuffix(" LATER")) for k, t in wanted]
     for k, text in wanted:
-        if not fits(k, text):
+        en = entries[k]
+        if not fits(text, en):
             continue
-        plate = plan_text(ground, (X((xs[k - 1] + xs[k]) / 2), Y(spine_y - 16)), text, f_gap, brand.STONE_LT, "ms",
-                          track=S(1))
+        plate = plan_text(ground, (en["year_plate"].box[2] + 28, en["y"] + cap_y // 2), text, f_gap,
+                          brand.STONE_LT, "ls", track=3)
         gaps.append((k, plate))
         plates.append((f"gap{k}", plate))
+    # each break mark in the clear band between the two entries it separates (between the dots if there is none)
+    marks = []
+    for k in spacing.breaks:
+        a = entries[k - 1]["y"] + entries[k - 1]["bottom"]
+        b = entries[k]["y"] + entries[k]["top"]
+        marks.append((k, (a + b) / 2 if b - a >= 36 else (entries[k - 1]["y"] + entries[k]["y"]) / 2))
+    sched = reveal_schedule(len(entries), CLIP_SECONDS)
+    ys = [en["y"] for en in entries]
+    u = width / VIDEO_WIDTH
     last: list[Image.Image] = []
 
     def frames():
@@ -930,27 +952,183 @@ def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, h
             t = i / VIDEO_FPS
             im = ground.copy()
             d = ImageDraw.Draw(im, "RGBA")
-            spine = x_first + (x_last - x_first) * _ease(t / 1.0)
-            d.line([(X(x_first), Y(spine_y)), (X(spine), Y(spine_y))], fill=(*brand.GOLD_DIM, 255), width=max(2, round(S(6))))
-            for en in entries:
-                appear = _ease((t - 0.4 - 0.45 * en["k"]) / 0.4)
-                if appear <= 0:
+            head = sched.head(ys, t, ys[-1])
+            d.line([(x0, y_first), (x0, head)], fill=(*brand.GOLD_DIM, 255), width=max(2, round(6 * u)))
+            for k, y_mark in marks:
+                if head >= y_mark + 12 * u:
+                    _break_glyph(d, x0, y_mark, False, 30 * u, (*brand.STONE_LT, 255), 3 * u, ground.getpixel((x0, int(y_mark))))
+            for k, en in enumerate(entries):
+                lv = sched.level(k, t)
+                if lv <= 0:
                     continue
-                x, r = X(en["x"]), S(14) * appear
+                a = sched.appear(k, t)
+                r, y = 16 * u * a, en["y"]
+                d.ellipse([x0 - r, y - r, x0 + r, y + r], fill=(*GOLD, int(255 * lv)))
+                current = a * (1 - _ease((t - sched.at[k + 1]) / 0.4) if k + 1 < len(entries) else 1.0)
+                if current > 0.02:                                    # the current event's ring
+                    rr = (16 + 10 * a) * u
+                    d.ellipse([x0 - rr, y - rr, x0 + rr, y + rr], outline=(*GOLD, int(150 * current)),
+                              width=max(1, round(3 * u)))
+                dy = round(14 * u * (1 - a))
+                im = en["year_plate"].draw(im, lv, dy)
+                for p in en["label_plates"]:
+                    im = p.draw(im, lv, dy)
+                d = ImageDraw.Draw(im, "RGBA")
+            for k, plate in gaps:   # the elapsed time lands with its year and dims with it
+                lv = sched.level(k, t)
+                if lv > 0:
+                    im = plate.draw(im, lv, round(14 * u * (1 - sched.appear(k, t))))
+                    d = ImageDraw.Draw(im, "RGBA")
+            if i == n - 1:
+                last.append(im.copy())
+            yield im
+
+    result = _encode(frames(), out, n, width=width, height=height)
+    if result and last:
+        record_contrast(out, last[0], plates)
+    return result
+
+
+# 16:9 words used to stay where the master's vignette left them legible (see _SECTION_WIDE): design x 400-1600,
+# y 190-800. The scale and cross-section still keep to it; the timeline v2 runs across WIDE_TIMELINE.
+WIDE_SAFE = (400, 190, 1600, 800)
+
+
+def _render_timeline_wide(events: list[dict[str, Any]], out: Path, width: int, height: int,
+                          photo: Path | None) -> Path | None:
+    """The 16:9 timeline v2: a GOLD_DIM spine across the frame (WIDE_TIMELINE) over the quiet photo, the events on a
+    true time scale (timeline_positions, break marks on compressed gaps), each event one block that starts at its
+    own marker (a hairline flag up or down from the dot, the year in gold Anton and the label in bone Montserrat
+    left-aligned beside the flag), alternately above and below the spine, at least 24 px clear of everything else;
+    the elapsed time (gap_text) centred on each gap, above the line."""
+    g = _WideGrid(width, height)
+    X, Y, S = g.x, g.y, g.s
+    n = int(CLIP_SECONDS * VIDEO_FPS)
+    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    run0, run1 = WIDE_TIMELINE
+    spine_y = 540.0
+    f_year = get_font("Anton", g.f(92))
+    f_gap = get_font("Montserrat", g.f(26), weight=700)
+    track = S(2)
+    cap_y = cap_height(f_year) / g.k
+    flag, pad, clear, gap_pad = 74.0, 22.0, 24.0, 30.0      # dot to block, flag to text, block to block, gap label
+    texts = [drawable(e["label"].upper(), "Montserrat") for e in events]
+    years = [year_text(e["year"], e.get("approximate", False)).upper() for e in events]
+    year_w = [probe.textlength(y, font=f_year) / g.k for y in years]
+    raw_gaps = [gap_text(events[k - 1], events[k]) for k in range(1, len(events))]
+    for wording in ("LATER", "SHORT"):
+        gap_texts = [t if wording == "LATER" else t.removesuffix(" LATER") for t in raw_gaps]
+        gap_w = [tracked_width(t, f_gap, S(1)) / g.k if t else 0.0 for t in gap_texts]
+        for label_max in (560, 500, 460, 420, 380, 340, 300, 270):
+            blocks = []
+            for k, text in enumerate(texts):
+                lines, f_lab, short = fit_text(probe, text, "Montserrat", g.f(34), int(S(label_max) - 2 * len(text)),
+                                               3, g.f(32), weight=800, quiet=True)
+                if short:   # never cut: a fourth line at the floor size
+                    lines, f_lab, _ = fit_text(probe, text, "Montserrat", g.f(32), int(S(label_max) - 2 * len(text)),
+                                               4, g.f(32), weight=800, quiet=True)
+                f_lab = get_font("Montserrat", f_lab.size, weight=800)
+                lab_w = max(tracked_width(ln, f_lab, track) for ln in lines) / g.k
+                blocks.append({"lines": lines, "font": f_lab, "w": pad + max(year_w[k], lab_w)})
+            needs = [max(140.0, gw + 2 * gap_pad) for gw in gap_w]
+            last_x = run1 - blocks[-1]["w"]
+            spacing = None
+            for _ in range(8):                      # same-side neighbours (k, k + 2) keep their 24 px
+                spacing = timeline_positions(events, run0, last_x, needs)
+                xs = spacing.positions
+                short_by = [(k, blocks[k]["w"] + clear - (xs[k + 2] - xs[k])) for k in range(len(xs) - 2)]
+                short_by = [(k, s) for k, s in short_by if s > 0.5]
+                if not short_by:
+                    break
+                for k, s in short_by:
+                    needs[k] += s / 2 + 1
+                    needs[k + 1] += s / 2 + 1
+            assert spacing is not None
+            xs = spacing.positions
+            ok = (all(xs[k + 1] - xs[k] >= needs[k] - 1 for k in range(len(xs) - 1))
+                  and all(xs[k + 2] - xs[k] >= blocks[k]["w"] + clear - 1 for k in range(len(xs) - 2)))
+            if ok:
+                break
+        if ok:
+            break
+    ground = timeline_backdrop(photo, width, height)
+    plates: list[tuple[str, Any]] = []
+    entries = []
+    for k, (b, x) in enumerate(zip(blocks, xs)):
+        f_lab = b["font"]
+        cap_l = cap_height(f_lab) / g.k
+        step = round(f_lab.size * 1.3) / g.k
+        h = cap_y + 28 + cap_l + step * (len(b["lines"]) - 1)
+        above = k % 2 == 0
+        top = spine_y - flag - h if above else spine_y + flag
+        tx = x + pad
+        en = {"k": k, "x": x, "above": above, "top": top, "bottom": top + h}
+        en["year_plate"] = plan_text(ground, (X(tx), Y(top + cap_y)), years[k], f_year, GOLD, "ls")
+        en["label_plates"] = [plan_text(ground, (X(tx + 2), Y(top + cap_y + 28 + cap_l + step * j)), ln, f_lab, WHITE,
+                                        "ls", track=track) for j, ln in enumerate(b["lines"])]
+        plates += [(f"year{k}", en["year_plate"])] + [(f"label{k}", pl) for pl in en["label_plates"]]
+        entries.append(en)
+    gaps = []
+    for k, text in enumerate(gap_texts, start=1):
+        if not text or tracked_width(text, f_gap, S(1)) / g.k > xs[k] - xs[k - 1] - 2 * 26:
+            continue
+        plate = plan_text(ground, (X((xs[k - 1] + xs[k]) / 2), Y(spine_y - 26)), text, f_gap, brand.STONE_LT, "ms",
+                          track=S(1))
+        gaps.append((k, plate))
+        plates.append((f"gap{k}", plate))
+    marks = [(k, (xs[k - 1] + xs[k]) / 2) for k in spacing.breaks]
+    end = max(xs[-1] + blocks[-1]["w"], xs[-1] + 60)
+    sched = reveal_schedule(len(entries), CLIP_SECONDS)
+    last: list[Image.Image] = []
+    tail = 70.0                                   # the spine runs on past the last date, fading out
+
+    def frames():
+        for i in range(n):
+            t = i / VIDEO_FPS
+            im = ground.copy()
+            d = ImageDraw.Draw(im, "RGBA")
+            head = sched.head(xs, t, end)
+            lw = max(2, round(S(6)))
+            solid = min(head, xs[-1])
+            d.line([(X(xs[0]), Y(spine_y)), (X(solid), Y(spine_y))], fill=(*brand.GOLD_DIM, 255), width=lw)
+            if head > xs[-1]:                     # the run past the last date fades into the ground
+                span = head - xs[-1]
+                for j in range(12):
+                    a0 = xs[-1] + span * j / 12
+                    a1 = xs[-1] + span * (j + 1) / 12
+                    fade = 1 - (a0 - xs[-1]) / max(1.0, end - xs[-1])
+                    if a1 > end - tail:
+                        fade *= max(0.0, (end - a1) / tail)
+                    d.line([(X(a0), Y(spine_y)), (X(a1), Y(spine_y))], fill=(*brand.GOLD_DIM, int(255 * fade)), width=lw)
+            for k, xm in marks:
+                if head >= xm + 14:
+                    _break_glyph(d, X(xm), Y(spine_y), True, S(30), (*brand.STONE_LT, 255), S(3),
+                                 ground.getpixel((int(X(xm)), int(Y(spine_y)))))
+            for en in entries:
+                k = en["k"]
+                lv = sched.level(k, t)
+                if lv <= 0:
+                    continue
+                a = sched.appear(k, t)
+                x, r = X(en["x"]), S(14) * a
                 far = en["top"] if en["above"] else en["bottom"]
-                y_flag = spine_y + (far - spine_y) * appear
-                d.line([(x, Y(spine_y)), (x, Y(y_flag))], fill=(*brand.GOLD_DIM, int(255 * appear)),
-                       width=max(1, round(S(2))))
-                d.ellipse([x - r, Y(spine_y) - r, x + r, Y(spine_y) + r], fill=(*GOLD, int(255 * appear)))
-                dy = round(S(14) * (1 - appear)) * (-1 if en["above"] else 1)
-                im = en["year_plate"].draw(im, appear, dy)
+                y_flag = spine_y + (far - spine_y) * a
+                d.line([(x, Y(spine_y)), (x, Y(y_flag))], fill=(*brand.GOLD_DIM, int(255 * lv)), width=max(1, round(S(2))))
+                d.ellipse([x - r, Y(spine_y) - r, x + r, Y(spine_y) + r], fill=(*GOLD, int(255 * lv)))
+                current = a * (1 - _ease((t - sched.at[k + 1]) / 0.4) if k + 1 < len(entries) else 1.0)
+                if current > 0.02:                # the current event's ring
+                    rr = S(14 + 10 * a)
+                    d.ellipse([x - rr, Y(spine_y) - rr, x + rr, Y(spine_y) + rr], outline=(*GOLD, int(150 * current)),
+                              width=max(1, round(S(3))))
+                dy = round(S(14) * (1 - a)) * (-1 if en["above"] else 1)
+                im = en["year_plate"].draw(im, lv, dy)
                 for pl in en["label_plates"]:
-                    im = pl.draw(im, appear, dy)
+                    im = pl.draw(im, lv, dy)
                 d = ImageDraw.Draw(im, "RGBA")
             for k, plate in gaps:
-                shown = _ease((t - 0.4 - 0.45 * k) / 0.4)
-                if shown > 0:
-                    im = plate.draw(im, shown)
+                lv = sched.level(k, t)
+                if lv > 0:
+                    im = plate.draw(im, lv)
                     d = ImageDraw.Draw(im, "RGBA")
             if i == n - 1:
                 last.append(im.copy())
@@ -1196,8 +1374,10 @@ def _silhouette_width(label: str) -> float:
 
 def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, height):
     """9:16 scale (see render_scale), inside the Reel text box: the subject and its figure above, the drawing,
-    then one line of meaning."""
-    x0, top, x1, bottom = get_text_box(width, height)
+    then one line of meaning. Words and drawing start on the shared inset edge (INSET_X0), the drawing ends at
+    INSET_X1 and the words may run on to the Reel box's right edge."""
+    _bx0, top, box_x1, bottom = get_text_box(width, height)
+    x0, x1 = inset_x0(width, height), inset_x1(width, height)
     n = int(CLIP_SECONDS * VIDEO_FPS)
     hedge = "ABOUT " if fact.get("approximate", True) else ""
     ref_name = ref_label.split(" (")[0]
@@ -1217,7 +1397,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
                    (f"ABOUT {ratio:.0f} TIMES TALLER." if ratio >= 1.5 else "NEARLY THE SAME HEIGHT.")]
         del taller, shorter
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    wide = x1 - x0 - 8
+    wide = box_x1 - x0 - 8
     f_sub = fit_font(probe, subject, "Montserrat", 30, wide, 22)
     f_sub = get_font("Montserrat", f_sub.size, weight=800)
     f_fig = fit_font(probe, figure, "Anton", 76, wide, 48)
@@ -1230,7 +1410,7 @@ def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, h
     y_mean0 = bottom - mean_h + cap_height(f_mean)
     draw_bottom = bottom - mean_h - 28
     ground = Image.new("RGB", (width, height), SEA)
-    xt = x0 + 4                                            # glyph side-bearings stay inside the box
+    xt = x0                                                # on the inset edge, well inside the box
     plates = [("subject", plan_text(ground, (xt, y_sub), subject, f_sub, MUTED, "ls", track=3)),
               ("figure", plan_text(ground, (xt, y_fig), figure, f_fig, GOLD, "ls")),
               *[(f"meaning{k}", plan_text(ground, (xt, y_mean0 + k * int(cap_height(f_mean) * 1.6)), t, f_mean,
@@ -1629,7 +1809,8 @@ def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Pa
     from .typography import cover_crop
     n = int(CLIP_SECONDS * VIDEO_FPS)
     top, bottom = get_text_bounds(width, height)
-    text_w = TEXT_RIGHT - M - 4
+    x_text = inset_x0(width, height)                     # the shared inset edge (was M, 84)
+    text_w = TEXT_RIGHT - x_text - 4
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     # Measured first: both cards between the bounds (the lower one ending on the graphics box's bottom at most),
     # the type stepped down together when they do not fit.
@@ -1643,7 +1824,7 @@ def render_stat_cards(cards: List[Dict[str, Any]], out: Path, photo: Optional[Pa
     y = max(top, (top + bottom) // 2 - total // 2)
     for p in plans:
         p["y0"] = y - p["top"]
-        p["x0"] = M
+        p["x0"] = x_text
         y += p["height"] + gap
     if photo and Path(photo).exists():
         bg = cover_crop(Path(photo), (width, height)).convert("RGB")
@@ -2142,11 +2323,11 @@ class _SectionLayout:
 
 
 _SECTION_TALL = _SectionLayout(
-    title_x=77, title_w=811, title_base=382, title_step=64, title_px=(60, 56), ruler_x=150, shaft_x=226, shaft_w=22,
-    rooms_x1=486, label_x=526, right=888, bottom_d=985, axis_limit=1040, label_hi=1052, surface_gap=50,
+    title_x=99, title_w=789, title_base=382, title_step=64, title_px=(60, 56), ruler_x=186, shaft_x=260, shaft_w=22,
+    rooms_x1=506, label_x=546, right=888, bottom_d=985, axis_limit=1040, label_hi=1052, surface_gap=86,
     fig_px=44, deep_px=68, lab_px=30, small_px=28, line_step=36, label_gap=42, fan_gap=14, room_start=(10, 24),
-    room_w=(52, 96), room_gap=(14, 30), niche_w=(36, 50), room_h_max=54, turns=(292, 452, 380),
-    bends=(498, 510, 516))
+    room_w=(52, 96), room_gap=(14, 30), niche_w=(36, 50), room_h_max=54, turns=(326, 472, 400),
+    bends=(518, 530, 536))   # on the shared inset edge (2026-11-02): title and ruler figures from x 100
 # The 16:9 master's vignette (video_composer: vignette=PI/4.2, aspect 16/9) takes the frame's edges to about half
 # their brightness, so the wide layouts keep their words inside x 400-1600 and y 190-800, where a bone or gold
 # line still measures 4.5:1 on the graded frame (the 153 px title-safe margin alone left text at 2.7:1).

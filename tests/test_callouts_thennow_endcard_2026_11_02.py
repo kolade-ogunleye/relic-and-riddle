@@ -47,13 +47,18 @@ def test_callout_labels_on_16x9_keep_title_safe_with_elbow_leaders():
     assert not callouts._overlaps(tuple(a), tuple(b), 0)
 
 
-def test_callout_label_starts_on_the_side_its_leader_arrives():
+def test_callout_leader_meets_the_centre_of_its_label_edge():
+    # Operator, 2026-11-02: no corner attachments, one alignment rule (rewritten from the side-flush rule above
+    # it replaced): top/bottom edge centre with centred text, or side mid-height with text flush toward the leader.
     for lab in callouts.layout_labels(POINTS_916, 1080, 1920):
-        b = lab["box"]
-        if lab["on_right"]:
-            assert lab["end"][0] == b[0] and lab["anchor"] == "lm" and lab["text_x"] == b[0] + callouts.PLATE_PAD_X
+        x0, y0, x1, y1 = lab["box"]
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        ex, ey = lab["end"]
+        if lab["attach"] in ("top", "bottom"):
+            assert abs(ex - cx) <= 1 and ey == (y0 if lab["attach"] == "top" else y1) and lab["anchor"] == "mm"
         else:
-            assert lab["end"][0] == b[2] and lab["anchor"] == "rm" and lab["text_x"] == b[2] - callouts.PLATE_PAD_X
+            assert ex == (x0 if lab["attach"] == "left" else x1) and abs(ey - cy) <= 1
+            assert lab["anchor"] == ("lm" if lab["attach"] == "left" else "rm")
 
 
 def test_partial_leader_draws_along_its_length():

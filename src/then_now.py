@@ -6,13 +6,16 @@ revealed with a wipe, each labelled with the year its own Commons record states.
 
 Honesty rules: years come only from each photo's recorded capture date (exactly one year stated;
 "circa"/ranges are skipped); both photos must pass the licence filter; a vision check must say,
-with high confidence, that they show the same place from a comparable view. Otherwise no graphic.
+with high confidence, that they show the same place from a comparable view; and the chosen pair must
+pass the viewpoint gate (feature geometry AND a second vision check: same structure, similar camera
+position). Otherwise no graphic. A pair that passes is registered (the recent photo warped onto the
+old one, both cropped to what they share) so the wipe reveals the same structure in the same place.
 """
 
 import logging
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from typing import Any, Literal
 
 import requests
 from PIL import Image, ImageDraw
@@ -22,8 +25,19 @@ from . import commons, config, safe_zones
 from .brand import BONE, DATA_FONT, INK, PLACE_TARGET, rgba
 from .config import VIDEO_FPS, VIDEO_HEIGHT, VIDEO_WIDTH
 from .credits import normalize
-from .graphics import CLIP_SECONDS, GOLD, TEXT_TOP, WHITE, _ease, _ease_io, _encode, get_text_box, record_contrast
-from .llm import LLMError, image_block, task as llm_task
+from .graphics import (
+    CLIP_SECONDS,
+    GOLD,
+    TEXT_TOP,
+    WHITE,
+    _ease,
+    _ease_io,
+    _encode,
+    get_text_box,
+    record_contrast,
+)
+from .llm import LLMError, image_block
+from .llm import task as llm_task
 from .typography import cover_crop, get_font, plan_text
 from .upscale import ensure_resolution
 
@@ -44,7 +58,7 @@ class PairPick(BaseModel):
 
 
 @llm_task("then_now_check")
-def _pick(old: Path, recents: List[Path], place: str) -> PairPick:
+def _pick(old: Path, recents: list[Path], place: str) -> PairPick:
     content = [{"type": "text", "text": "OLD photo:"}, image_block(old, 768)]
     for i, r in enumerate(recents, 1):
         content += [{"type": "text", "text": f"Recent {i}:"}, image_block(r, 512)]
@@ -58,14 +72,148 @@ def _pick(old: Path, recents: List[Path], place: str) -> PairPick:
                          role="checker", task_class="light", effort="low", max_tokens=1000)
 
 
-def _candidates(query: str, keywords: List[str], old: bool) -> List[Dict[str, Any]]:
+# Viewpoint gate (operator round 3: a then-and-now whose two photos do not share a viewpoint must not be shown).
+# The pick above only chose the best of several recent photos; the chosen pair is then checked twice, and both
+# must pass (fail closed: an error, a missing library or an unclear answer is a no):
+#  1. geometry: ORB features matched between the two (Lowe's ratio test), then a RANSAC similarity transform
+#     (rotation, uniform scale, shift); at least MIN_INLIERS consistent matches and a plausible transform (scale
+#     within 1/MAX_SCALE..MAX_SCALE, rotation within MAX_ROTATION degrees) mean the same structure seen from about
+#     the same place. Photos of the same site from elsewhere (the interior against the exterior) match nothing.
+#  2. vision: a separate call, both photos side by side: the same structure, from a similar camera position?
+#     A high-confidence yes to both.
+# Registration: when the gate passes, the recent photo is warped onto the old one by that transform and both are
+# cropped to the area they share, so the wipe reveals the same structure in the same place.
+MATCH_SIDE = 1000           # px: the long side both photos are matched at
+MIN_INLIERS, MIN_INLIER_SHARE = 15, 0.25
+MAX_SCALE, MAX_ROTATION = 2.5, 12.0
+MIN_SHARED_AREA = 0.45      # the shared crop keeps at least this share of the old photo
+
+
+class ViewpointCheck(BaseModel):
+    same_structure: bool                  # the same building / room / landscape feature in both
+    similar_camera_position: bool         # taken from about the same place, looking the same way
+    confidence: Literal["high", "medium", "low"]
+    note: str
+
+
+def _gray(path: Path) -> tuple[Any, float]:
+    """`path` as an equalised grey array at MATCH_SIDE on its long side, and the scale it was read at."""
+    import cv2
+    import numpy as np
+    with Image.open(path) as im:
+        im = im.convert("L")
+        s = MATCH_SIDE / max(im.size)
+        im = im.resize((max(1, round(im.width * s)), max(1, round(im.height * s))), Image.LANCZOS)
+        arr = np.asarray(im)
+    return cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(arr), s
+
+
+def geometric_match(old: Path, new: Path) -> dict[str, Any] | None:
+    """{"inliers", "share", "scale", "rotation", "matrix"} when the two photos share a viewpoint by feature
+    geometry, else None. `matrix` (2x3) maps the recent photo's full-resolution pixels onto the old one's."""
+    try:
+        import cv2
+        import numpy as np
+        a, sa = _gray(old)
+        b, sb = _gray(new)
+        orb = cv2.ORB_create(nfeatures=4000)
+        ka, da = orb.detectAndCompute(a, None)
+        kb, db = orb.detectAndCompute(b, None)
+        if da is None or db is None or len(ka) < MIN_INLIERS or len(kb) < MIN_INLIERS:
+            return None
+        pairs = cv2.BFMatcher(cv2.NORM_HAMMING).knnMatch(db, da, k=2)
+        good = [m for m, *rest in (p for p in pairs if p) if rest and m.distance < 0.8 * rest[0].distance]
+        if len(good) < MIN_INLIERS:
+            return None
+        src = np.float32([kb[m.queryIdx].pt for m in good])
+        dst = np.float32([ka[m.trainIdx].pt for m in good])
+        m, mask = cv2.estimateAffinePartial2D(src, dst, method=cv2.RANSAC, ransacReprojThreshold=8.0,
+                                              maxIters=4000, confidence=0.995)
+    except Exception as e:  # noqa: BLE001 - fail closed: no geometry, no pair
+        log.info("Then-and-now geometry check unavailable: %s", e)
+        return None
+    if m is None or mask is None:
+        return None
+    inliers = int(mask.sum())
+    scale = float((m[0, 0] ** 2 + m[1, 0] ** 2) ** 0.5)
+    rotation = float(np.degrees(np.arctan2(m[1, 0], m[0, 0])))
+    share = inliers / len(good)
+    log.info("Then-and-now geometry: %d inliers of %d matches, scale %.2f, rotation %.1f deg", inliers, len(good),
+             scale, rotation)
+    if not (inliers >= MIN_INLIERS and share >= MIN_INLIER_SHARE and 1 / MAX_SCALE <= scale <= MAX_SCALE
+            and abs(rotation) <= MAX_ROTATION):
+        return None
+    # Full resolution: old_full = (1/sa) * M * (sb * new_full)
+    full = np.vstack([m, [0, 0, 1]]) @ np.diag([sb, sb, 1.0])
+    full = (np.diag([1 / sa, 1 / sa, 1.0]) @ full)[:2]
+    return {"inliers": inliers, "share": round(share, 3), "scale": scale, "rotation": rotation, "matrix": full}
+
+
+@llm_task("then_now_viewpoint")
+def _viewpoint(old: Path, new: Path, place: str) -> ViewpointCheck:
+    content = [{"type": "text", "text": "OLD photo:"}, image_block(old, 768),
+               {"type": "text", "text": "RECENT photo:"}, image_block(new, 768),
+               {"type": "text", "text": (
+                   f"Named place: {place}. Do both photos show the same structure (the same building, room or "
+                   "feature, not just the same site)? Were they taken from a similar camera position, looking the "
+                   "same way, so a wipe from one to the other shows the same thing in the same place? Be strict.")}]
+    from . import free_llm
+    return free_llm.call("You verify 'then and now' photo pairs for a history documentary.", content, ViewpointCheck,
+                         role="checker", task_class="light", effort="medium", max_tokens=800)
+
+
+def shares_viewpoint(old: Path, new: Path, place: str) -> dict[str, Any] | None:
+    """The geometric match when the pair passes both checks (fail closed), else None."""
+    geo = geometric_match(old, new)
+    if geo is None:
+        log.info("Then-and-now: %s and %s do not share a viewpoint by feature geometry.", Path(old).name, Path(new).name)
+        return None
+    try:
+        v = _viewpoint(old, new, place)
+    except Exception as e:  # noqa: BLE001 - fail closed: an unchecked pair is not shown
+        log.info("Then-and-now viewpoint check failed: %s", e)
+        return None
+    if not (v.same_structure and v.similar_camera_position and v.confidence == "high"):
+        log.info("Then-and-now: viewpoint check said no (%s): %s", v.confidence, v.note[:160])
+        return None
+    return geo
+
+
+def register(old: Path, new: Path, matrix: Any, work_dir: Path) -> tuple[Path, Path] | None:
+    """The recent photo warped onto the old one by `matrix`, both cropped to the area they share: (old, new)
+    paths of equal size, or None when they share too little to fill a frame."""
+    import cv2
+    import numpy as np
+    with Image.open(old) as im:
+        a = np.asarray(im.convert("RGB"))
+    with Image.open(new) as im:
+        b = np.asarray(im.convert("RGB"))
+    h, w = a.shape[:2]
+    warped = cv2.warpAffine(b, np.asarray(matrix, dtype=np.float64), (w, h), flags=cv2.INTER_LANCZOS4,
+                            borderMode=cv2.BORDER_CONSTANT)
+    bh, bw = b.shape[:2]
+    c = np.asarray(matrix) @ np.array([[0, bw, bw, 0], [0, 0, bh, bh], [1, 1, 1, 1]], dtype=np.float64)
+    (tlx, trx, brx, blx), (tly, try_, bry, bly) = c
+    x0, y0 = int(np.ceil(max(tlx, blx, 0))) + 2, int(np.ceil(max(tly, try_, 0))) + 2
+    x1, y1 = int(np.floor(min(trx, brx, w))) - 2, int(np.floor(min(bly, bry, h))) - 2
+    if x1 <= x0 or y1 <= y0 or (x1 - x0) * (y1 - y0) < MIN_SHARED_AREA * w * h:
+        log.info("Then-and-now: the registered photos share too little of the frame.")
+        return None
+    work_dir.mkdir(parents=True, exist_ok=True)
+    op, np_ = work_dir / f"{Path(old).stem}_reg.jpg", work_dir / f"{Path(new).stem}_reg.jpg"
+    Image.fromarray(a[y0:y1, x0:x1]).save(op, quality=94)
+    Image.fromarray(warped[y0:y1, x0:x1]).save(np_, quality=94)
+    return op, np_
+
+
+def _candidates(query: str, keywords: list[str], old: bool) -> list[dict[str, Any]]:
     pages = commons.search(query, limit=40, max_wait=60)
     found = commons.candidates(pages, keywords, config.BEAT_IMAGES_ALLOW_SHARE_ALIKE,
                                **({"min_pixels": 400_000, "min_height": 600} if old else {}))
     return [c for c in found if c.get("year") and ((c["year"] <= OLD_BEFORE) if old else (c["year"] >= NEW_FROM))]
 
 
-def source(topic: Dict[str, Any], work_dir: Path) -> Optional[Tuple[Path, Dict[str, Any], Path, Dict[str, Any]]]:
+def source(topic: dict[str, Any], work_dir: Path) -> tuple[Path, dict[str, Any], Path, dict[str, Any]] | None:
     """(old photo, its credit, new photo, its credit) for a verified pair, or None."""
     loc = topic.get("location", {})
     name = (loc.get("name") or "").strip()
@@ -83,12 +231,12 @@ def source(topic: Dict[str, Any], work_dir: Path) -> Optional[Tuple[Path, Dict[s
         return None
     work_dir.mkdir(parents=True, exist_ok=True)
     place = ", ".join(v for v in (name, loc.get("country")) if v)
-    seen_recent: Dict[str, Path] = {}
+    seen_recent: dict[str, Path] = {}
 
-    def recent_for(old: Dict[str, Any], k: int) -> List[Tuple[Path, Dict[str, Any]]]:
+    def recent_for(old: dict[str, Any], k: int) -> list[tuple[Path, dict[str, Any]]]:
         """Recent photos of the same subject: searched with the old photo's own title (its street,
         building or chamber), then the site name; downloaded once each."""
-        subject = re.sub(r"\.(jpe?g|png|tiff?)$", "", old["title"].replace("File:", ""), flags=re.I)
+        subject = re.sub(r"\.(jpe?g|png|tiff?)$", "", old["title"].replace("File:", ""), flags=re.IGNORECASE)
         subject = " ".join(w for w in re.split(r"[^\w']+", subject)
                            if w and not w.isdigit() and w.lower() not in ARCHIVE_WORDS)[:80]
         pool, out = [], []
@@ -123,7 +271,13 @@ def source(topic: Dict[str, Any], work_dir: Path) -> Optional[Tuple[Path, Dict[s
         if (pick.old_is_photograph and not pick.graphic_or_sensitive and 1 <= pick.best_match <= len(recents)
                 and pick.confidence == "high"):
             np_, new = recents[pick.best_match - 1]
-            return ensure_resolution(op), {**old, "file": str(op)}, np_, {**new, "file": str(np_)}
+            old_hr = ensure_resolution(op)
+            geo = shares_viewpoint(old_hr, np_, place)
+            pair = register(old_hr, np_, geo["matrix"], work_dir / "registered") if geo else None
+            if pair:
+                return pair[0], {**old, "file": str(op)}, pair[1], {**new, "file": str(np_)}
+            log.info("Then-and-now: old photo %d and its pick do not share a viewpoint; not shown.", k + 1)
+            continue
         log.info("Then-and-now: no honest match for old photo %d: %s", k + 1, pick.note[:160])
     return None
 
@@ -307,7 +461,7 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     return clip
 
 
-def make(topic: Dict[str, Any], work_dir: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> Tuple[Optional[Path], List[Dict[str, Any]]]:
+def make(topic: dict[str, Any], work_dir: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> tuple[Path | None, list[dict[str, Any]]]:
     """(clip, credits of both photos) or (None, [])."""
     try:
         found = source(topic, work_dir)

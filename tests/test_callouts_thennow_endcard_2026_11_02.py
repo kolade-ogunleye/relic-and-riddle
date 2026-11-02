@@ -172,6 +172,9 @@ def test_the_loop_bridge_resolves_into_the_first_frame():
                                        stats))
     assert len(frames) == round(end_card.LOOP_SECONDS * end_card.FPS) and end_card.LOOP_SECONDS <= 1.0
     assert np.abs(np.asarray(frames[0], np.float32) - np.asarray(last, np.float32)).mean() < 3     # no jump in
-    assert np.abs(np.asarray(frames[-1], np.float32) - np.asarray(first, np.float32)).mean() < 1   # loops clean
+    # Loops clean: the last bridge frame is one step short of frame 0 (mix 29/30, round-3 panel), so the Reel's own
+    # frame 0 completes the crossfade and plays once; identical (< 1) made frame 0 play twice and the seam stutter.
+    seam = np.abs(np.asarray(frames[-1], np.float32) - np.asarray(first, np.float32)).mean()
+    assert 0 < seam < 8
     assert stats["text"] == "Send this to the codebreaker you know." and "follow" not in stats["text"].lower()
     assert stats["contrast"] is not None and stats["contrast"] >= brand.TEXT_CONTRAST

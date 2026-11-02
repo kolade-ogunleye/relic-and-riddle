@@ -2778,18 +2778,25 @@ class PipelineCoordinator:
                                     lambda: self.visual_engine.generate_thumbnails(hero_img, payload, run_dir, style=style))
             fut_story = pool.submit(cached_artifacts, run_dir, "stories", packaging_inputs,
                                     lambda: self.multiformat_gen.generate_story_sequence(hero_img, payload, run_dir, scene_images=strong_media))
-            fut_carousel = pool.submit(cached_artifacts, run_dir, "carousel", packaging_inputs,
-                                       lambda: self.multiformat_gen.generate_carousel_sequence(strong_media, payload, run_dir))
-            # Facebook's copy of the slides, without swipe cues (it shows a multi-photo post as a grid).
-            fut_carousel_fb = pool.submit(cached_artifacts, run_dir, "carousel_fb", packaging_inputs,
-                                          lambda: self.multiformat_gen.generate_carousel_sequence(strong_media, payload, run_dir, facebook=True))
-
-            fut_beats = pool.submit(beat_images.source, beats, topic, run_dir / "beat_images", plan=query_plan) if query_plan else None
-            fut_footage = pool.submit(footage.source, beats, topic, run_dir / "footage", plan=query_plan) if query_plan else None
             from src import art_direction
             art = art_direction.record(run_dir, hero_img)  # the topic's accent and grade bias, recorded in palette.json
             payload["art_direction"] = art
             fut_graphics = pool.submit(graphics.make_all, payload, topic, run_dir / "graphics", photo=hero_img, palette=art)
+            # The carousel's diagram slide re-lays a graphic's poster (found in run_dir/graphics), so the slides
+            # wait for the graphics (submitted first, so it always holds a worker while they wait; 2026-11-02).
+            def _after_graphics(make):
+                def run():
+                    fut_graphics.result()
+                    return make()
+                return run
+            fut_carousel = pool.submit(cached_artifacts, run_dir, "carousel", packaging_inputs, _after_graphics(
+                lambda: self.multiformat_gen.generate_carousel_sequence(strong_media, payload, run_dir)))
+            # Facebook's copy of the slides, without swipe cues (it shows a multi-photo post as a grid).
+            fut_carousel_fb = pool.submit(cached_artifacts, run_dir, "carousel_fb", packaging_inputs, _after_graphics(
+                lambda: self.multiformat_gen.generate_carousel_sequence(strong_media, payload, run_dir, facebook=True)))
+
+            fut_beats = pool.submit(beat_images.source, beats, topic, run_dir / "beat_images", plan=query_plan) if query_plan else None
+            fut_footage = pool.submit(footage.source, beats, topic, run_dir / "footage", plan=query_plan) if query_plan else None
             fut_callouts = pool.submit(callouts.make, payload, topic, scene_media, run_dir / "graphics")
             fut_then_now = pool.submit(then_now.make, topic, run_dir / "graphics")
 

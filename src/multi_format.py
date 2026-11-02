@@ -47,13 +47,41 @@ STORY_TITLE_W = 860      # the title's measure: three lines at its design size b
 STORY_TITLE_LINES = 3
 STORY_ONE_LINE = 0.86     # down to this share of the design size, each title line stays whole before it wraps
 STORY_FIGURE_RATIO = 2.0  # the reveal's hero figure against the title's design size (150 -> 300 px)
+STORY_FIGURE_PAIR = 0.3   # the qualifier and the unit, one size, against the figure's
+STORY_FIGURE_GAP = 18     # qualifier to figure and figure to unit, cap to cap (28 and 22 before round 3)
 # The poll frame's sticker room sits directly under the question (2026-11-02 round 2: at y 1300-1560 it was half a
 # screen from the words it answers), on a quiet ink panel, nothing drawn in it; recorded per frame in layout.json
 # (`poll_sticker_room`) and as the frame's protected region. Every frame still leaves POLL_STICKER_ROOM empty.
-STORY_STICKER_H = 260
+# Round 3 (2026-11-02): the room is Instagram's default poll footprint (about 760 x 300 on the 1080 frame), centred on
+# the text column, and sits on a feathered ink band built with scrim(), not a hard-edged rectangle (a flat grey box on
+# Richat's grey photo; hard top and bottom edges across Derinkuyu's architecture). The band is full strength across
+# the room, fades over STORY_STICKER_FEATHER px above and below, and is only as deep as the white sticker needs: the
+# band's 95th-percentile luma brought to STORY_STICKER_TARGET (about L* 40). Its box is written to
+# companion_posting.json (story_poll_sticker.position) so the operator places the sticker on it.
+STORY_STICKER_H = 300
+STORY_STICKER_W = 760
 STORY_STICKER_GAP = 36
-STORY_STICKER_ALPHA = 0.55
+STORY_STICKER_FEATHER = 120
+STORY_STICKER_TARGET = 0.37
 _QUALIFIER = re.compile(r"^(ABOUT|APPROX\.?|APPROXIMATELY|ROUGHLY|NEARLY|ALMOST|SOME|OVER|UP TO|MORE THAN|AROUND)$")
+
+
+_RANGE_DASH = re.compile(r"(?<![\w.,-])(\d[\d,]*(?:\.\d+)?)\s*(?:-|\u2014|\s\u2013\s)\s*(\d[\d,]*(?:\.\d+)?)(?![\d-])")
+
+
+def typeset(text: str) -> str:
+    """Display typography for a drawn string, glyphs only (round 3, 2026-11-02): never a word or a figure changed.
+    A numeric span takes an en dash with no spaces ("94 - 104" -> "94\u2013104"; "25-MILE" is no span and stays);
+    straight apostrophes and quotes become curly ("EARTH'S" -> "EARTH\u2019S"); three dots become an ellipsis."""
+    if not text:
+        return text or ""
+    t = text.replace("...", "\u2026")
+    t = _RANGE_DASH.sub(lambda m: f"{m.group(1)}\u2013{m.group(2)}", t)
+    t = re.sub(r"(?<=\w)'|'(?=\d0s\b)", "\u2019", t)          # EARTH'S, the '60s
+    t = re.sub(r"'(?=\w)", "\u2018", t)                       # an opening single quote
+    t = re.sub(r"'", "\u2019", t)
+    t = re.sub(r'(^|[\s(\[\u2014\u2013])"', "\\1\u201c", t)   # an opening double quote after a space or bracket
+    return t.replace('"', "\u201d")
 
 
 def story_display(line: str) -> str:
@@ -96,6 +124,15 @@ def story_body_width() -> int:
     return (sx1 - inset) - (sx0 + inset)
 
 
+def poll_room_box(y0: float, height: int = STORY_STICKER_H) -> tuple[int, int, int, int]:
+    """The poll sticker's room from `y0`: STORY_STICKER_W wide (no wider than the text column), centred on the
+    Story's text column."""
+    col = story_body_width()
+    w = min(STORY_STICKER_W, col)
+    cx = STORY_MARGIN + col / 2
+    return (round(cx - w / 2), round(y0), round(cx + w / 2), round(y0 + height))
+
+
 def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: float = 0.30, cap: float = 0.90,
           floor: float = 0.18, colour=None, pct: float = 95) -> Image.Image:
     """An ink gradient behind one text band, deep only as far as the band's own brightness needs (its `pct`
@@ -121,9 +158,59 @@ def scrim(im: Image.Image, y0: float, y1: float, feather: int = 300, target: flo
     return out if im.mode == "RGBA" else out.convert(im.mode)
 
 
+WARM_HUE = (15, 62)      # degrees: ochre, gold and amber grounds, where the brand gold has no hue contrast
+WARM_SHARE = 0.45
+
+
+def warm_ground(im: Image.Image, box) -> bool:
+    """Whether the pixels in `box` are mostly a warm or gold hue (WARM_HUE, saturated and not dark) for at least
+    WARM_SHARE of them."""
+    import numpy as np
+    hsv = np.asarray(im.convert("RGB").crop(tuple(int(v) for v in box)).reduce(4).convert("HSV"), dtype=np.float32)
+    if not hsv.size:
+        return False
+    hue = hsv[..., 0] * 360 / 255
+    warm = (hue >= WARM_HUE[0]) & (hue <= WARM_HUE[1]) & (hsv[..., 1] > 64) & (hsv[..., 2] > 70)
+    return float(warm.mean()) >= WARM_SHARE
+
+
+def masthead_scrim(im: Image.Image, box, text_rgb, target: float | None = None, feather: int = 150) -> Image.Image:
+    """A soft ink gradient from the top edge down past `box` (the masthead's cap box), only where the pixels behind
+    the masthead hold it under `target` (MASTHEAD_TARGET) and only as deep as that needs; unchanged otherwise."""
+    target = MASTHEAD_TARGET if target is None else target
+    import numpy as np
+    x0, y0, x1, y1 = (int(v) for v in box)
+    measured = (x0, max(0, y0 - 6), x1, y1 + 6)
+    if _contrast(im, measured, text_rgb) >= target:
+        return im
+    W, H = im.size
+    reach = min(H, y1 + feather)                         # the gradient's foot: nothing shaded below it
+    y = np.arange(H, dtype=np.float32)
+    v = np.clip(1 - y / reach, 0, 1)
+    ramp = v * v * (3 - 2 * v)                           # full at the top edge, easing out to nothing at `reach`
+    at_box = float(ramp[min(H - 1, y1)])
+
+    def shaded(strength: float) -> Image.Image:
+        mask = Image.fromarray((ramp * 255 * strength).astype(np.uint8).reshape(H, 1)).resize((W, H))
+        layer = Image.new("RGBA", im.size, tuple(INK) + (255,))
+        layer.putalpha(mask)
+        return Image.alpha_composite(im.convert("RGBA"), layer).convert(im.mode)
+    cap = min(1.0, 0.85 / max(at_box, 1e-3))
+    lo, hi = 0.0, cap
+    for _ in range(8):                                   # the least strength that brings the box to `target`
+        mid = (lo + hi) / 2
+        lo, hi = (lo, mid) if _contrast(shaded(mid), measured, text_rgb) >= target else (mid, hi)
+    return shaded(hi)
+
+
 KICKER_TRACK = 0.15     # a kicker's letter spacing, as a share of its size (Montserrat 800, tracked caps)
 KICKER_RULE = 1.0       # the kicker's gold rule: as long as the capitals are tall
 KICKER_GAP = 0.55       # and this far from the words
+# Planning margins (round 3, 2026-11-02): small gold kickers and the masthead are planned at 5.5:1 so Facebook's
+# downscale and recompression (960 px, JPEG ~70) still leave them at 4.5 (the FB copy measured 5.01 and 4.83).
+KICKER_TARGET = 5.5
+MASTHEAD_TARGET = 5.5
+PLATFORM_WIDTH, PLATFORM_QUALITY = 960, 70   # the platform re-encode every delivered ratio is measured after too
 
 
 def kicker_width(text: str, font) -> float:
@@ -145,7 +232,8 @@ def draw_kicker(im: Image.Image, x: float, baseline: float, text: str, font, col
     d = ImageDraw.Draw(im)
     d.rectangle([round(x), round(mid - thick / 2), round(x) + bar_w - 1, round(mid - thick / 2) + thick - 1],
                 fill=tuple(colour))
-    plate = plan_text(im, (x + bar_w + gap, baseline), text, font, colour, "ls", track=font.size * KICKER_TRACK)
+    plate = plan_text(im, (x + bar_w + gap, baseline), text, font, colour, "ls", track=font.size * KICKER_TRACK,
+                      target=KICKER_TARGET)
     im = plate.draw(im)
     box = (int(round(x)), min(plate.box[1], int(round(baseline - ch))), plate.box[2], max(plate.box[3], int(round(baseline))))
     if lay is not None:
@@ -285,8 +373,13 @@ class MultiFormatGenerator:
         yt_desc = f"{title}\n\n{script_payload.get('narration_script', '')}\n\n{first_comment}\n\n{hashtags_str}"
         yt_tags = [h.lstrip("#").lower() for h in hashtags_list] + ["archaeology", "ancient history", "documentary", "history mysteries"]
 
+        sticker_spec = dict(script_payload.get("poll") or {})
+        room = next(((e["frame"], e.get("poll_sticker_room")) for e in layout if e.get("poll_sticker_room")), None)
+        if sticker_spec and room:
+            # Where the operator places the native sticker: the room the frame keeps for it (round 3, 2026-11-02).
+            sticker_spec["position"] = {"frame": room[0], "box": room[1], "frame_size": [VIDEO_WIDTH, VIDEO_HEIGHT]}
         companion_manifest = {
-            "story_poll_sticker": script_payload.get("poll", {}),
+            "story_poll_sticker": sticker_spec,
             "story_frames": [p.name for p in slides],
             # What each frame credits on itself (Stories carry no caption; story_credit, 2026-10-29)
             "story_credits": {e["frame"]: e["photo_credit"].get("lines", []) for e in layout},
@@ -333,7 +426,6 @@ class MultiFormatGenerator:
         layout.json entry."""
         from .safe_zones import safe_box
         from .still_layout import Layout
-        from .visual_engine import calm_center_y
         sx0, sy0, sx1, sy1 = safe_box("story", VIDEO_WIDTH, VIDEO_HEIGHT)
         x = STORY_MARGIN
         max_w = story_body_width()
@@ -371,11 +463,11 @@ class MultiFormatGenerator:
                           contrast=_contrast(base, backing, c_fill),
                           complete=all(drawable(line, font_c) == line for line in credit["lines"]))  # no glyph missing
             text_floor = c_top - STORY_CREDIT_GAP
-        kicker, l1, l2 = slide["kicker"].upper(), slide["line1"].upper(), slide["line2"].upper()
+        kicker, l1, l2 = (typeset(slide[k]).upper() for k in ("kicker", "line1", "line2"))
         if asks_poll and poll.get("question"):
-            l1, l2 = split_balanced(poll["question"].upper())  # the frame asks the question its options answer
+            l1, l2 = split_balanced(typeset(poll["question"]).upper())  # the frame asks the question its options answer
         l1, l2 = story_display(l1), story_display(l2)
-        body = slide["body"]
+        body = typeset(slide["body"])
         if asks_poll:  # one question per frame: the poll's; the body keeps only its context
             body = " ".join(s for s in re.split(r"(?<=[.!?])\s+", body) if not s.rstrip().endswith("?"))
 
@@ -401,9 +493,11 @@ class MultiFormatGenerator:
             font, fill)."""
             out, y = [], 0
             if hero:
-                q_font = get_font("Montserrat", round(size * 0.3), weight=800)
+                # The qualifier and the unit are one matched pair (round 3, 2026-11-02): one face, one size, in bone, so
+                # the numeral is the frame's single gold read and three type tiers no longer stack around one number.
                 f_fig = fit_font(d, hero["number"], "Anton", round(size * STORY_FIGURE_RATIO), STORY_TITLE_W, 160)
-                f_unit = get_font("Anton", max(56, round(f_fig.size * 0.36)))
+                f_unit = get_font("Anton", max(56, round(f_fig.size * STORY_FIGURE_PAIR)))
+                q_font = f_unit
                 f_title = get_font("Anton", round(size * 0.66))
                 for ln in balanced_wrap(d, hero["title"], f_title, STORY_TITLE_W) if hero["title"] else []:
                     y += cap_height(f_title) if not out else round(cap_height(f_title) * 1.13)
@@ -411,11 +505,11 @@ class MultiFormatGenerator:
                 if hero["qualifier"]:
                     y += (34 if out else 0) + cap_height(q_font)
                     out.append(("figure_qualifier", y, hero["qualifier"], q_font, WHITE))
-                y += (22 if out else 0) + cap_height(f_fig)
+                y += (STORY_FIGURE_GAP if out else 0) + cap_height(f_fig)
                 out.append(("figure", y, hero["number"], f_fig, GOLD))
                 if hero["unit"]:
-                    y += 28 + cap_height(f_unit)
-                    out.append(("figure_unit", y, hero["unit"], f_unit, GOLD))
+                    y += STORY_FIGURE_GAP + cap_height(f_unit)
+                    out.append(("figure_unit", y, hero["unit"], f_unit, WHITE))
                 return out, y
             f = get_font("Anton", size)
             for name, text, fill in (("title_1", l1, WHITE), ("title_2", l2, GOLD)):
@@ -489,7 +583,7 @@ class MultiFormatGenerator:
         rows: List[Tuple[str, float, str, Any, Any, float]] = []   # (name, baseline, text, font, fill, track)
         y0 = cap_k + 30 if kicker else 0
         for name, yy, txt, f, fill in t_rows:
-            rows.append((name, y0 + yy, txt, f, fill, f.size * 0.08 if name == "figure_qualifier" else 0))
+            rows.append((name, y0 + yy, txt, f, fill, 0))
         y = y0 + t_height
         sticker_at = None
         if sticker:   # the poll sticker's room, directly under the question (2026-11-02 round 2)
@@ -508,20 +602,17 @@ class MultiFormatGenerator:
                      + ([sticker_at + sticker] if sticker else []))
         block = bottom
         top_cand = sy0 + 40 + block // 2
-        mid_cand = (sy0 + text_floor) // 2
-        bot_cand = text_floor - 20 - block // 2
-        if sticker:   # the question and its sticker read first, at the top of the box
-            cy = top_cand
-        else:
-            cy = calm_center_y(base, candidates=(top_cand, 720, mid_cand, bot_cand), band=block)  # bands inside the box
+        # One text anchor across the sequence (round 3, 2026-11-02): every frame's kicker sets at the same top y, so a
+        # tap to the next frame keeps the eye in place (calm_center_y's per-frame choice set the hook 160-340 px lower
+        # for no narrative reason). The scrim and each line's measured halo hold the contrast on any photo.
+        cy = top_cand
         top = max(sy0 + 30, min(cy - block // 2, text_floor - block))   # above the photo credit, when there is one
         base = scrim(base, top - 40, top + block + 30, feather=320, target=0.28)
         im = base.convert("RGBA")
         if sticker:
-            room_box = (STORY_MARGIN - 24, top + sticker_at, VIDEO_WIDTH - STORY_MARGIN + 24, top + sticker_at + sticker)
-            panel = Image.new("RGBA", im.size, (0, 0, 0, 0))
-            ImageDraw.Draw(panel).rectangle(room_box, fill=brand.INK + (round(255 * STORY_STICKER_ALPHA),))
-            im = Image.alpha_composite(im, panel)
+            room_box = poll_room_box(top + sticker_at, sticker)
+            im = scrim(im, room_box[1], room_box[3], feather=STORY_STICKER_FEATHER, target=STORY_STICKER_TARGET,
+                       cap=0.9, floor=0.0)
             lay.protected = [{"name": "poll_sticker_room", "box": [int(v) for v in room_box]}]
             lay.meta_room = [int(v) for v in room_box]
         if kicker:
@@ -658,9 +749,14 @@ class MultiFormatGenerator:
             r"\b\d+[\d,]*\s*(?:tons?|people|feet|ft|meters?|m|stories|levels|degrees|bce?|years?)\b",
             r"\b\d+[,.]\d+\b",
         ]
+        if range_figure(text):   # a stated span ("between 94 and 104 million years ago") is the slide's figure
+            return "colossal_stat"
         if any(re.search(p, text) for p in stat_patterns) and any(w in text for w in ("tons", "people", "deep", "stories", "levels", "feet", "meters", "capacity")):
             return "colossal_stat"
-        if any(w in text for w in ("versus", "vs", "compared", "surface", "unlike", "contrast", "above and below", "then and now", "modern")):
+        # Whole words only (round 3, 2026-11-02): "surface" matched inside "Subsurface" and "vs" inside other words,
+        # so slides that contrast nothing got the two-photo stack. Bare "surface" is no contrast ("beneath the
+        # surface"); the card must say it compares.
+        if _CONTRAST.search(text):
             return "comparison"
         relic_keywords = ("gear", "gears", "dial", "dials", "fragment", "fragments", "inscription", "inscriptions",
                           "bronze", "relic", "artifact", "tablet", "device", "pointer", "teeth",
@@ -910,27 +1006,93 @@ class MultiFormatGenerator:
     # photo about a third of the screen wide, a two-line 140 px heading over BODY_LINES_FB): a shorter body opens
     # the gap under the heading instead of moving it. A slide whose stack is taller, or leads with a figure, is
     # bottom-aligned as before.
-    CONTENT_HEADING = (100, 60)          # Instagram: one line from 100 px down to 60, else two
+    # Round 3 (2026-11-02): Instagram's content headlines take the Facebook treatment (Anton two-tone, one line,
+    # else two balanced lines split at the seam, "IMPACT THEORY / DISPROVED"), one step below Facebook's size: the
+    # Instagram viewer shows each slide full width, Facebook's collage shows it a third as wide. At (100, 60) on one
+    # line the type fell about 2x from the cover to slide 2.
+    # Round 3 fix (2026-11-02, second pass): the frame is chosen PER DECK, not per slide (a per-slide frame moved the
+    # kicker and heading top up to ~190 px between a deck's one-line and two-line slides, undoing the shared line
+    # above). generate_carousel_sequence measures every content heading of the copy first (_deck_heading_frame):
+    # - no content heading takes two lines: the ONE-LINE frame. No second heading line is reserved (that
+    #   reservation put ~330 canvas px between a one-line heading and its body on Instagram, and shrank the diagram
+    #   slide's drawing by about a fifth), and BODY_LINES body lines are, so every body meets the frame;
+    # - some content heading takes two lines: the TWO-LINE frame, exactly round 2's (BODY_LINES_TWO_LINE_FRAME body
+    #   lines, the second heading line at Facebook's floor, at Instagram's design size). A one-line heading in such
+    #   a deck keeps the open gap under it: one shared kicker and heading line across the swipe is worth more than
+    #   that gap, and it cannot close without moving the body off the shared bottom line.
+    # Every slide of the copy, the diagram slide with it, sits on the deck's frame; the frame is kept in each slide's
+    # recipe (`heading_frame`) so a redraw lands on the same lines. A slide drawn alone defaults to the two-line frame.
+    CONTENT_HEADING = (138, 124)         # Instagram: one line from 138 px down to 124, else two balanced lines
     CONTENT_HEADING_FB = (150, 140)      # Facebook: one line, else two balanced lines, at 140 px or more
     SPLIT_PHOTO_H_FB = 560
     BODY_SPEC = (36, 34)                 # Montserrat, design px: its size and its floor
     BODY_LEADING = 1.38
     BODY_MEASURE = 34                    # characters a body line may hold
     BODY_LINES = 4
-    BODY_LINES_FB = 3
+    BODY_LINES_FB = 3                    # the stack's body lines planned by the Facebook-only callers (unchanged)
+    BODY_LINES_TWO_LINE_FRAME = 3        # body lines the two-line frame reserves, both copies (round 2's frame)
+    BODY_LINES_ONE_LINE_FRAME = BODY_LINES   # body lines the one-line frame reserves: every body meets it
+    NON_CONTENT_ARCHETYPES = ("cover", "colossal_stat", "debate")   # every other archetype draws a content stack
 
-    def _content_baselines(self, px, facebook: bool) -> tuple[int, int]:
-        """(kicker baseline, heading baseline) of the content slides, canvas px."""
+    def _content_frame(self, px, facebook: bool, heading_lines: int = 2) -> dict[str, int]:
+        """The deck's fixed content baselines, canvas px, for a deck frame of `heading_lines` (1 or 2) heading
+        lines: {"kicker", "heading" (the heading's first line), "heading_last" (where a heading's last line falls
+        when it fills the frame), "heading_lines"}. heading_lines=2 is round 2's frame, value for value."""
         fx = px.exact
         b_size = fx(self.BODY_SPEC[0])
         step = round(b_size * self.BODY_LEADING)
         last = px(self.KEY_BOTTOM - self.KEY_GAP) - round(b_size * 0.25)   # the last body line's baseline
-        lines = self.BODY_LINES_FB if facebook else self.BODY_LINES
+        two = heading_lines > 1
+        lines = self.BODY_LINES_TWO_LINE_FRAME if two else self.BODY_LINES_ONE_LINE_FRAME
         first_body = last - (lines - 1) * step
-        h = get_font("Anton", fx((self.CONTENT_HEADING_FB if facebook else self.CONTENT_HEADING)[0]))
+        spec = self.CONTENT_HEADING_FB if facebook else self.CONTENT_HEADING
+        h = get_font("Anton", fx(spec[0]))
         h_last = first_body - round(b_size * 2.0)
-        hb = h_last - (round(cap_height(get_font("Anton", fx(self.CONTENT_HEADING_FB[1]))) * 1.13) if facebook else 0)
-        return hb - cap_height(h) - px(26), hb
+        hb = h_last
+        if two:
+            # The second heading line: at Facebook's floor (2026-11-02), at Instagram's design size (round 3: at its
+            # floor the two-line "IMPACT THEORY / DISPROVED" missed the frame by a few px and dropped to bottom-aligned).
+            second = spec[1] if facebook else spec[0]
+            hb = h_last - round(cap_height(get_font("Anton", fx(second))) * 1.13)
+        return {"kicker": hb - cap_height(h) - px(26), "heading": hb, "heading_last": h_last,
+                "heading_lines": 2 if two else 1}
+
+    def _content_baselines(self, px, facebook: bool, heading_lines: int = 2) -> tuple[int, int]:
+        """(kicker baseline, heading first-line baseline) of the content slides on a `heading_lines` deck frame."""
+        f = self._content_frame(px, facebook, heading_lines)
+        return f["kicker"], f["heading"]
+
+    @staticmethod
+    def _frame_lines() -> int:
+        """The deck frame the slide being drawn sits on (_render_state, per thread); 2 when drawn alone."""
+        return 2 if int(getattr(_render_state, "heading_frame", 2) or 2) > 1 else 1
+
+    def _heading_lines(self, d, px, heading: str, width: int, two_tone: bool | str = "wrap") -> int:
+        """How many lines a content slide's heading takes at its design scale (the frame it is planned on)."""
+        rows, _ = self._rows(d, px, heading, "", width, "", "", self.CONTENT_HEADING, self.BODY_LINES, two_tone,
+                             1.0, facebook_heading=True)
+        return max(1, sum(1 for r in rows if r["name"] == "heading" and r.get("text")))
+
+    def _deck_heading_frame(self, cards: list[dict[str, Any]], archetypes: list[str], facebook: bool) -> int:
+        """The copy's frame (1 or 2 heading lines): 2 when any content slide's heading, as that copy draws it
+        (its words cleaned and typeset as _render_carousel_slide does), takes two lines at its design scale."""
+        from .script_engine import facebook_photo_caption, neutral_cues
+        clean = facebook_photo_caption if facebook else neutral_cues
+        cw = self.CAROUSEL_SIZE[0]
+        px = self._px(cw)
+        d = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+        prev = getattr(_render_state, "facebook", False)
+        _render_state.facebook = bool(facebook)
+        try:
+            for card, archetype in zip(cards, archetypes):
+                if archetype in self.NON_CONTENT_ARCHETYPES:
+                    continue
+                heading = typeset(clean(card.get("heading") or "")).upper()
+                if heading.strip() and self._heading_lines(d, px, heading, cw - 2 * px(self.MARGIN)) > 1:
+                    return 2
+        finally:
+            _render_state.facebook = prev
+        return 1
 
     def _body(self, d, px, body: str, width: int, max_lines: int, size: float, floor: float):
         """The body in balanced lines of at most BODY_MEASURE characters, not ending on a one-word line where a
@@ -959,7 +1121,8 @@ class MultiFormatGenerator:
         """A slide's text stack, measured (sizes in design px x `scale`): an optional kicker, an optional figure
         (its unit beside it, smaller, in bone), the heading on one or two balanced lines, the body in balanced
         lines (BODY_SPEC, BODY_LEADING, at most BODY_MEASURE characters a line). `facebook_heading`: the heading
-        on one line at CONTENT_HEADING_FB, else two balanced lines at that size, before the usual fit. Returns
+        on one line at the copy's content size (CONTENT_HEADING_FB on Facebook, CONTENT_HEADING on Instagram since
+        round 3), else two balanced lines at that size, before the usual fit. Returns
         (rows, shortened)."""
         fx = getattr(px, "exact", px)
         body_spec = body_spec or self.BODY_SPEC
@@ -974,22 +1137,43 @@ class MultiFormatGenerator:
         if stat:
             m = re.match(r"(\S+)\s*(.*)", stat)
             num, unit = m.group(1), m.group(2).strip()
-            size = 225 * scale
+            size, stacked = 225 * scale, []
             while True:
                 fs, fu = get_font("Anton", fx(size)), get_font("Anton", fx(max(40, size * 0.42)))
                 w = d.textlength(num, font=fs) + (px(18) + d.textlength(unit, font=fu) if unit else 0)
                 if w <= width or size <= 96:
                     break
+                if unit and len(unit.split()) > 1 and size <= 170 * scale:
+                    # A long unit ("MILLION YEARS AGO") is set as a two-line lockup beside the figure, its foot on the
+                    # figure's baseline, rather than shrinking the figure or adding a row under it (round 3).
+                    size = 225 * scale
+                    while size > 96:
+                        fs = get_font("Anton", fx(size))
+                        fu = get_font("Anton", fx(max(40, size * 0.3)))
+                        halves = [h for h in split_balanced(unit) if h]
+                        lw = max(d.textlength(h, font=fu) for h in halves)
+                        if d.textlength(num, font=fs) + px(22) + lw <= width:
+                            stacked = halves
+                            break
+                        size -= 6
+                    break
                 size -= 6
             y += cap_height(fs)
             rows.append({"name": "stat", "text": num, "font": fs, "fill": GOLD, "y": y})
-            if unit:
+            if unit and stacked:
+                ux = int(d.textlength(num, font=fs)) + px(22)
+                step = round(cap_height(fu) * 1.25)
+                for j, half in enumerate(stacked):
+                    rows.append({"name": "stat", "text": half, "font": fu, "fill": WHITE,
+                                 "y": y - (len(stacked) - 1 - j) * step, "x": ux})
+            elif unit:
                 rows.append({"name": "stat", "text": unit, "font": fu, "fill": WHITE, "y": y,
                              "x": int(d.textlength(num, font=fs)) + px(18)})
             y += px(30 * scale)
         h_lines, font_h, h_short, use_two = None, None, False, False
         if facebook_heading:
-            hi, lo = (int(v * scale) for v in self.CONTENT_HEADING_FB)
+            spec = self.CONTENT_HEADING_FB if getattr(_render_state, "facebook", False) else self.CONTENT_HEADING
+            hi, lo = (int(v * scale) for v in spec)
             one = self._fit_text(d, heading, "Anton", hi, width, 1, lo, px=px, sentences=False, quiet=True)
             if not one[2]:
                 h_lines, font_h = one[0], one[1]
@@ -1039,11 +1223,12 @@ class MultiFormatGenerator:
 
     def _slide_text(self, im: Image.Image, lay, cw: int, chh: int, heading: str, body: str, kicker: str = "",
                     stat: str = "", full: bool = True, two_tone: bool | str = False, tight: bool = False, b_lines: int = 3,
-                    h_spec=(112, 60), extra=None, content: bool = False):
+                    h_spec=(112, 60), extra=None, content: bool = False, deep: bool = False):
         """Plans a slide's stack at the largest scale whose top clears KEY_TOP, its foot on the shared line; on a
         content slide (`content`) the kicker and the heading sit on the deck's fixed baselines
         (_content_baselines) while the stack fits them. Shades behind it (a full-bleed photo) and draws it.
-        `extra(rows, y)`: rows appended below the body."""
+        `extra(rows, y)`: rows appended below the body. `deep`: the gradient behind a full-bleed stack is taken almost
+        to ink (a warm or gold photo under gold type: hue gives no contrast, so luminance must)."""
         px = self._px(cw)
         d = ImageDraw.Draw(im)
         width = cw - 2 * px(self.MARGIN)
@@ -1052,7 +1237,6 @@ class MultiFormatGenerator:
         if content:
             h_spec = self.CONTENT_HEADING
             b_lines = max(b_lines, self.BODY_LINES)
-        kb, hb = self._content_baselines(px, facebook)
         fixed = {}
 
         def place(rows):
@@ -1069,7 +1253,15 @@ class MultiFormatGenerator:
 
             def ink(r, dy, i):   # the row's ink box edge (1 top, 3 bottom) once moved by dy
                 return d.textbbox((0, r["y"] + dy), r["text"], font=r["font"], anchor="ls")[i]
-            shift_h = hb - heads[0]["y"]
+            # The deck's frame; a heading that takes more lines than it (measured otherwise than as drawn) gets the
+            # two-line frame rather than overrunning the body, and says so.
+            lines = self._frame_lines()
+            if len(heads) > lines:
+                log.warning("Carousel heading takes %d lines on a %d-line deck frame: %.60s", len(heads), lines,
+                            heading)
+            frame = self._content_frame(px, facebook, max(lines, len(heads)))
+            kb, hb = frame["kicker"], frame["heading"]
+            shift_h = hb - heads[0]["y"]            # the heading's first line on the deck's shared baseline
             shift_k = kb - kick["y"] if kick else shift_h
             shift_b = bottom - max(ink(r, 0, 3) for r in bodies)
             head_foot = max(ink(r, shift_h, 3) for r in heads)
@@ -1080,12 +1272,12 @@ class MultiFormatGenerator:
             for r in rows:
                 dy = shift_b if r["name"] == "body" else shift_h if r["name"] == "heading" else shift_k
                 out.append(dict(r, y=r["y"] + dy))
-            fixed.update(kicker=kb, heading=hb)
+            fixed.update(kicker=kb, heading=hb, heading_frame=frame["heading_lines"], heading_lines=len(heads))
             return out
 
         for scale in ((0.88, 0.8, 0.72) if tight else (1.0, 0.92, 0.84, 0.76, 0.7)):
             rows, short = self._rows(d, px, heading, body, width, kicker, stat, h_spec, b_lines, two_tone, scale,
-                                     facebook_heading=content and facebook)
+                                     facebook_heading=content)
             if extra:
                 rows = extra(rows, scale)
             rows = place(rows)
@@ -1104,7 +1296,10 @@ class MultiFormatGenerator:
         if full and drawn:
             low = max(d.textbbox((0, r["y"]), r["text"], font=r["font"], anchor="ls")[3] for r in drawn)
             high = min(d.textbbox((0, r["y"]), r["text"], font=r["font"], anchor="ls")[1] for r in drawn)
-            im = scrim(im, bottom - (low - high) - px(40), chh, feather=px(300), target=0.26)
+            im = scrim(im, bottom - (low - high) - px(40), chh, feather=px(300), target=0.08 if deep else 0.26,
+                       cap=0.95 if deep else 0.90)
+            if lay is not None and deep:
+                lay.meta["ink_band"] = True
         plates = getattr(lay, "plates", None) if lay is not None else None
         if plates is None:
             plates = {}
@@ -1172,9 +1367,12 @@ class MultiFormatGenerator:
         ARCHEOLOGICAL RECORD" pill (platform audit, 2026-10-28)."""
         heading, body = card["heading"].upper(), card["body"]
         im = self._split_ground(photo, cw, chh)
-        stat_match = re.search(r"(\b\d+[\d,]*\+?(?:\s*(?:TONS?|PEOPLE|FEET|FT|METERS?|M|STORIES|LEVELS))?)\b",
-                               f"{heading} {body}", re.IGNORECASE)
-        stat = stat_match.group(1).upper() if stat_match else ""
+        # A span is drawn whole ("94–104 MILLION YEARS AGO"), never as its first number (round 3, 2026-11-02).
+        span = range_figure(f"{heading} {body}")
+        stat_match = None if span else re.search(
+            r"(\b\d+[\d,]*\+?(?:\s*(?:TONS?|PEOPLE|FEET|FT|METERS?|M|STORIES|LEVELS))?)\b", f"{heading} {body}",
+            re.IGNORECASE)
+        stat = " ".join(x for x in span if x) if span else stat_match.group(1).upper() if stat_match else ""
         if lay is not None and stat:
             lay.meta["stat"] = stat
         tag = self._tag(self._get_card_category(card, "colossal_stat"), index)
@@ -1206,8 +1404,11 @@ class MultiFormatGenerator:
             return rows + [{"name": "share", "text": ln, "font": f_share, "fill": WHITE, "y": y + j * step}
                            for j, ln in enumerate(lines)]
 
+        # Round 3 (2026-11-02): over a warm or gold photo the gold line has no hue contrast ("HIDDEN MARVELS" in gold
+        # over the gold cave measured 4.88), so the stack sits on an ink lower band.
+        warm = warm_ground(im, (0, chh // 2, cw, chh))
         im = self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], kicker=tag, two_tone=True,
-                              tight=tight, b_lines=3, h_spec=(112, 60), extra=with_share)
+                              tight=tight, b_lines=3, h_spec=(112, 60), extra=with_share, deep=warm)
         share_box = next((e["box"] for e in (lay.elements if lay is not None else []) if e["name"] == "share"), None)
         if share_box and "y" in rule:
             # The gold rule: 6 design px tall, 96 wide, its own height above the share line's first cap.
@@ -1226,8 +1427,13 @@ class MultiFormatGenerator:
         ground, box = diagram_crop(g)
         im = Image.new("RGB", (cw, chh), ground)
         facebook = bool(getattr(_render_state, "facebook", False))
-        kb = self._content_baselines(px, facebook)[0]
-        top, bottom = px(self.HEADER_Y) + px(80), kb - px(34) - px(56)
+        # The drawing takes the room above the deck's kicker (round 3 fix): on a one-line deck frame it has the
+        # room a second heading line would have taken; it never moves the kicker off the deck's line. A heading
+        # longer than the deck frame (see place() in _slide_text) takes the two-line frame here too.
+        heading = card["heading"].upper()
+        lines = max(self._frame_lines(), self._heading_lines(ImageDraw.Draw(im), px, heading, cw - 2 * px(self.MARGIN)))
+        kb = self._content_baselines(px, facebook, lines)[0]
+        top, bottom = px(self.HEADER_Y) + px(80), kb - px(34) - px(34)   # the kicker cap, then air
         art = g.crop(box)
         art.thumbnail((cw - 2 * px(self.MARGIN - 24), max(1, bottom - top)), Image.Resampling.LANCZOS)
         if art.width < cw - 2 * px(self.MARGIN - 24) and art.height < bottom - top:   # small drawings scale up
@@ -1244,7 +1450,7 @@ class MultiFormatGenerator:
             lay.meta["diagram"] = {"poster": str(poster), "source_box": list(box),
                                    "image_box": [ax, ay, ax + art.width, ay + art.height]}
         tag = self._tag(self._get_card_category(card, "diagram"), index)
-        return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], kicker=tag, full=False,
+        return self._slide_text(im, lay, cw, chh, heading, card["body"], kicker=tag, full=False,
                                 tight=tight, two_tone="wrap", b_lines=4, content=True)
 
     def _render_editorial_split(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
@@ -1257,24 +1463,26 @@ class MultiFormatGenerator:
 
     def _render_carousel_slide(self, archetype: str, photo: Path, photo_next: Path, card: Dict[str, Any], i: int,
                                total: int, poll: Dict[str, Any], share: str, facebook: bool, tight: bool = False,
-                               subject: str = ""):
+                               subject: str = "", heading_frame: int = 2):
         """One carousel slide and its measured layout: the archetype's own text, then the brand in its band at the
         top-left. Nothing is drawn under Instagram's counter (`protected`). Both copies are free of slide chrome
         (operator, 2026-10-28); `facebook` now changes only the words: the grid copy's slide text says nothing
         about swiping ("Swipe to see how ..." is drawn "See how ..."), and neither copy draws a direction cue.
         `tight`: smaller type, and the brand on a solid pill so it reads over any photo (Richat 2's header
-        "collides with the spacecraft's solar panel")."""
+        "collides with the spacecraft's solar panel"). `heading_frame`: the deck's content frame (1 or 2 heading
+        lines, _deck_heading_frame); 2, round 2's frame, when the slide is drawn alone."""
         from .still_layout import Layout
         from .script_engine import facebook_photo_caption, neutral_cues
         clean = facebook_photo_caption if facebook else neutral_cues
-        card = dict(card, heading=clean(card.get("heading") or ""), body=clean(card.get("body") or ""))
-        share = clean(share or "")
+        card = dict(card, heading=typeset(clean(card.get("heading") or "")), body=typeset(clean(card.get("body") or "")))
+        share = typeset(clean(share or ""))
         # Every slide after the cover names its subject in its kicker: Facebook's viewer opens one photo at a time
         # with the caption on the first only (2026-11-01), and Instagram's copy carries the same kicker so the two
         # copies keep one system and the gold rule (2026-11-02 design review).
         # Per thread: the Instagram and Facebook copies render at once on one generator (PR review, 2026-11-02).
         _render_state.subject = subject.upper() if i > 0 else ""
         _render_state.facebook = bool(facebook)
+        _render_state.heading_frame = 2 if int(heading_frame or 2) > 1 else 1
         cw, chh = self.CAROUSEL_SIZE
         lay = Layout("carousel", (cw, chh), self._zone(cw, chh), tight=tight,
                      protected=[("instagram_counter", self._ig_counter(cw))])
@@ -1306,8 +1514,13 @@ class MultiFormatGenerator:
         brand_font = get_font("Cinzel", px.exact(40), weight=700)
         r, gap = px(MARK_R), px(MARK_GAP)
         x0, base = px(80), px(self.HEADER_Y) + cap_height(brand_font)
+        # Round 3 (2026-11-02): where the photo is too bright behind the masthead, a soft ink gradient from the top
+        # edge, deep only as far as the masthead's planned ratio needs, takes the place of a 36 px halo per line
+        # (a dark smudge over Richat's blue sky). The line's own halo then does only what is left.
+        im = masthead_scrim(im.convert("RGB"), (x0, base - cap_height(brand_font), x0 + px(520), base), WHITE,
+                            feather=px(300))
         plate = plan_text(im, (x0 + 2 * r + gap, base), "RELIC & RIDDLE", brand_font, WHITE,
-                          "ls", track=px(3), min_halo=0.6 if tight else 0.0, halo_px=36)
+                          "ls", track=px(3), min_halo=0.6 if tight else 0.0, target=MASTHEAD_TARGET)
         im = plate.draw(im.convert("RGB"))
         cx, cy = x0 + r, base - cap_height(brand_font) / 2
         diamond = [(cx, cy - r), (cx + r, cy), (cx, cy + r), (cx - r, cy)]
@@ -1351,29 +1564,54 @@ class MultiFormatGenerator:
         slides = []
         archetypes = self.sequence_archetypes(cards)
         diagram = carousel_diagram(output_dir, cards, graphics)
+        if diagram:
+            archetypes = [("diagram" if i == diagram[0] else a) for i, a in enumerate(archetypes)]
+        # One unit per run: figures in the unit the narration speaks (2026-10-29), after the photo match.
+        cards = [dict(card, **{k: spoken_units(card[k], narration) for k in ("heading", "body")
+                               if isinstance(card.get(k), str)}) for card in cards]
+        frame = self._deck_heading_frame(cards, archetypes, facebook)   # one frame for every slide of this copy
         for i, card in enumerate(cards):
             archetype = archetypes[i]
-            if diagram and i == diagram[0]:
-                archetype = "diagram"
-            # One unit per run: figures in the unit the narration speaks (2026-10-29), after the photo match.
-            card = dict(card, **{k: spoken_units(card[k], narration) for k in ("heading", "body")
-                                 if isinstance(card.get(k), str)})
             photo = diagram[1] if archetype == "diagram" else photos[i]
             photo_next = photos[(i + 1) % len(photos)]
             im, lay, attempts = still_layout.drawn(
                 lambda tight: self._render_carousel_slide(archetype, photo, photo_next, card, i, total, poll, share,
-                                                          facebook, tight=tight, subject=subject))
+                                                          facebook, tight=tight, subject=subject,
+                                                          heading_frame=frame))
             path = out_dir / f"carousel_slide_{i + 1:02d}.jpg"
             self._save_slide(im, path)
             _delivered_contrast(lay, path)
             still_layout.save(path, lay, {"renderer": "multi_format.redraw_carousel_slide", "archetype": archetype,
                                           "photo": str(photo), "photo_next": str(photo_next), "card": card, "index": i,
                                           "total": total, "poll": poll, "share": share, "facebook": facebook,
-                                          "subject": subject}, attempts)
+                                          "subject": subject, "heading_frame": frame}, attempts)
             slides.append(path)
 
+        if facebook:
+            write_collage_report(slides, out_dir)
         log.info("Generated %d multi-template carousel slides -> %s", len(slides), out_dir)
         return slides
+
+
+_CONTRAST = re.compile(r"\b(?:versus|vs\.?|compared|unlike|contrast|above and below|then and now|modern)\b")
+_SPAN_UNIT = (r"(?:(?:million|billion|thousand)\s+)?(?:years?|feet|ft|metres?|meters?|m|miles?|km|kilometres?|"
+              r"kilometers?|tons?|tonnes|people|levels|storeys|stories|centuries)(?:\s+(?:ago|old|deep|tall|high|wide|bce?))?")
+_SPAN = re.compile(r"(?<![\w.])(?:between\s+(?P<a>\d[\d,]*(?:\.\d+)?)\s+and\s+|(?P<a2>\d[\d,]*(?:\.\d+)?)\s*"
+                   r"(?:-|\u2013|\u2014|to)\s*)(?P<b>\d[\d,]*(?:\.\d+)?)\s*(?P<unit>" + _SPAN_UNIT + r")\b",
+                   re.IGNORECASE)
+
+
+def range_figure(text: str) -> tuple[str, str] | None:
+    """A stated span and its unit, whole: ("94\u2013104", "MILLION YEARS AGO") for "between 94 and 104 million years
+    ago" or "94-104 million years ago", en dash and no spaces (round 3, 2026-11-02: the stat slide took the first
+    number, "94", which is more precise than the sheet). None when the text states no span with a unit. A span whose
+    ends are not in order ("1 to 3" is a span; "2025 to 12" is not) is no span."""
+    for m in _SPAN.finditer(text or ""):
+        lo = m.group("a") or m.group("a2")
+        a, b = (float(x.replace(",", "")) for x in (lo, m.group("b")))
+        if a < b:
+            return f"{lo}\u2013{m.group('b')}", " ".join(m.group("unit").upper().split())
+    return None
 
 
 CAROUSEL_PHOTOS = "carousel_photos.json"
@@ -1719,7 +1957,10 @@ def facebook_pick(slides: List[str], limit: int = FACEBOOK_PHOTOS) -> List[str]:
         i, slide = item
         rec = still_layout.load(Path(slide)) or {}
         photos = {str(p) for p in slide_photos(Path(slide))}
-        return (bool(rec.get("problems")), len(rec.get("shortened") or []), bool(photos and photos <= shown), i)
+        # A single full-bleed photo before a two-photo stack (round 3, 2026-11-02): a stack's hard seam reads as a
+        # deck slide in a standalone lightbox and spends a collage tile on two half pictures.
+        return (bool(rec.get("problems")), len(rec.get("shortened") or []), len(photos) > 1,
+                bool(photos and photos <= shown), i)
 
     picked = []
     while middle and len(picked) < limit - 2:  # one at a time: a pick's photos count as shown for the next
@@ -1728,6 +1969,89 @@ def facebook_pick(slides: List[str], limit: int = FACEBOOK_PHOTOS) -> List[str]:
         picked.append(best)
         shown |= {str(p) for p in slide_photos(Path(best[1]))}
     return [first] + [slide for _, slide in sorted(picked)] + [last]
+
+
+# Facebook's collage for a multi-photo post of 4:5 photos (round 3, 2026-11-02), as tiles of a square frame, each
+# (x, y, w, h) in shares of it: four photos as one large portrait beside three stacked, five as two over three. Each
+# tile shows the centre crop of its photo. No "+N" is drawn: the gallery sends exactly as many photos as tiles.
+FACEBOOK_COLLAGE = {
+    4: ((0, 0, 2 / 3, 1), (2 / 3, 0, 1 / 3, 1 / 3), (2 / 3, 1 / 3, 1 / 3, 1 / 3), (2 / 3, 2 / 3, 1 / 3, 1 / 3)),
+    5: ((0, 0, 1 / 2, 1 / 2), (1 / 2, 0, 1 / 2, 1 / 2), (0, 1 / 2, 1 / 3, 1 / 2), (1 / 3, 1 / 2, 1 / 3, 1 / 2),
+        (2 / 3, 1 / 2, 1 / 3, 1 / 2)),
+}
+COLLAGE_TEXT = ("kicker", "heading", "body", "stat", "share")
+
+
+def collage_crop(size: tuple[int, int], aspect: float) -> tuple[int, int, int, int]:
+    """The centre crop of a `size` photo that a tile of `aspect` (width / height) shows."""
+    w, h = size
+    if w / h < aspect:          # the tile is wider: the photo's top and bottom are cut
+        vh = w / aspect
+        return (0, round((h - vh) / 2), w, round((h + vh) / 2))
+    vw = h * aspect
+    return (round((w - vw) / 2), 0, round((w + vw) / 2), h)
+
+
+def facebook_collage_report(slides: list[Path], board: Path | None = None, width: int = 1080) -> dict[str, Any]:
+    """The posted Facebook set in its collage (FACEBOOK_COLLAGE): per tile, what its centre crop shows and which
+    text elements it cuts (from each slide's layout record). {"layout", "tiles": [...], "problems": [...]}. With
+    `board`, the collage is drawn there as a QA image. A set with no collage model (under 4 or over 5) is reported
+    as such, with no problems."""
+    from . import still_layout
+    slides = [Path(x) for x in slides]
+    tiles = FACEBOOK_COLLAGE.get(len(slides))
+    if not tiles:
+        return {"layout": None, "tiles": [], "problems": []}
+    out, problems = [], []
+    canvas = Image.new("RGB", (width, width), brand.BONE) if board else None
+    for slide, (tx, ty, tw, th) in zip(slides, tiles):
+        rec = still_layout.load(slide) or {}
+        size = tuple(rec.get("size") or MultiFormatGenerator.CAROUSEL_SIZE)
+        crop = collage_crop(size, tw / th)
+        cut = []
+        for e in rec.get("elements") or []:
+            if e["name"] in COLLAGE_TEXT:
+                b = e["box"]
+                if b[0] < crop[0] or b[1] < crop[1] or b[2] > crop[2] or b[3] > crop[3]:
+                    cut.append(e["name"])
+        out.append({"slide": slide.name, "tile": [round(v, 4) for v in (tx, ty, tw, th)], "crop": list(crop),
+                    "cut": cut})
+        problems += [f"{slide.name}: the collage tile cuts its {name}" for name in cut]
+        if canvas is not None and slide.is_file():
+            gap = 4
+            box = (round(tx * width) + gap // 2, round(ty * width) + gap // 2,
+                   round((tx + tw) * width) - gap // 2, round((ty + th) * width) - gap // 2)
+            with Image.open(slide) as im:
+                tile = im.convert("RGB").crop(crop).resize((box[2] - box[0], box[3] - box[1]), Image.Resampling.LANCZOS)
+            canvas.paste(tile, box[:2])
+            if cut:
+                ImageDraw.Draw(canvas).rectangle(box, outline=brand.CORAL, width=6)
+    if canvas is not None:
+        Path(board).parent.mkdir(parents=True, exist_ok=True)
+        canvas.save(board, quality=90)
+    return {"layout": f"{len(slides)} photos", "tiles": out, "problems": problems}
+
+
+COLLAGE_REPORT = "collage_report.json"
+
+
+def write_collage_report(slides: list[Path], out_dir: Path) -> dict[str, Any]:
+    """ADVISORY, not a gate: the collage report (facebook_collage_report) of the set publisher.py posts by default
+    (facebook_pick(slides), FACEBOOK_PHOTOS), written to <carousel_fb>/collage_report.json with its board
+    (collage_board.jpg) and each cut logged as a warning. Nothing fails, redraws or blocks on it: no QA certifier
+    reads this file yet (video_qa would have to), and the cuts it names (a collage tile's centre crop through a
+    slide's kicker, heading or body) are an OPEN defect of the Facebook copy's layout, not fixed by recording them."""
+    out_dir = Path(out_dir)
+    posted = [Path(x) for x in facebook_pick([str(x) for x in slides])]
+    rep = dict(facebook_collage_report(posted, out_dir / "collage_board.jpg"), advisory=True,
+               posted=[x.name for x in posted])
+    try:
+        (out_dir / COLLAGE_REPORT).write_text(json.dumps(rep, indent=1), encoding="utf-8")
+    except OSError as e:
+        log.warning("Collage report not written to %s (%s).", out_dir, e)
+    for problem in rep["problems"]:
+        log.warning("Facebook collage (advisory): %s", problem)
+    return rep
 
 
 def _delivered_contrast(lay, path: Path) -> None:
@@ -1739,9 +2063,44 @@ def _delivered_contrast(lay, path: Path) -> None:
         return
     try:
         with Image.open(path) as im:
-            remeasure(lay, im.convert("RGB"), plates)
+            im = im.convert("RGB")
+            remeasure(lay, im, plates)
+            platform = platform_encode(im)
     except OSError as e:  # the planned ratios stay recorded
         log.warning("Contrast not re-measured on %s (%s).", Path(path).name, e)
+        return
+    # Round 3 (2026-11-02): measured again after a platform-like downscale and recompression; an element under 4.5
+    # there is flagged in its element record (`contrast_platform`, `platform_low`, both kept in still_layout.json)
+    # and listed in lay.meta["platform_contrast_low"]. ADVISORY, not a gate: only the delivered-JPEG `contrast` is
+    # asserted (video_qa.still_contrast_problems); nothing asserts the platform figures, and lay.meta is not written
+    # to still_layout.json (still_layout.Layout.to_dict leaves meta out), so the still-level list lives only in
+    # memory and in the warning below. The per-element flags are the durable record.
+    low = []
+    for e in getattr(lay, "elements", []):
+        ps = [p for p in plates.get(e["name"], []) if not p.empty]
+        vals = [v for v in (p.measure(platform) for p in ps) if v is not None]
+        if vals:
+            e["contrast_platform"] = round(min(vals), 2)
+            if e["contrast_platform"] < brand.TEXT_CONTRAST:
+                e["platform_low"] = True
+                low.append(e["name"])
+    if isinstance(getattr(lay, "meta", None), dict):
+        lay.meta["platform_contrast_low"] = low
+    if low:
+        log.warning("%s: under %.1f:1 after a platform re-encode: %s", Path(path).name, brand.TEXT_CONTRAST, low)
+
+
+def platform_encode(im: Image.Image) -> Image.Image:
+    """`im` as a platform delivers it, back at its own size for measuring: downscaled to PLATFORM_WIDTH, JPEG at
+    PLATFORM_QUALITY with 4:2:0 chroma, scaled up again."""
+    import io
+    w, h = im.size
+    small = im.convert("RGB").resize((PLATFORM_WIDTH, max(1, round(h * PLATFORM_WIDTH / w))), Image.Resampling.LANCZOS)
+    buf = io.BytesIO()
+    small.save(buf, "JPEG", quality=PLATFORM_QUALITY, subsampling=2)
+    buf.seek(0)
+    with Image.open(buf) as back:
+        return back.convert("RGB").resize((w, h), Image.Resampling.BICUBIC)
 
 
 def _font_family(font) -> str:
@@ -1793,7 +2152,8 @@ def redraw_carousel_slide(path: Path, recipe: Dict[str, Any]) -> Dict[str, Any]:
     im, lay = gen._render_carousel_slide(recipe["archetype"], Path(recipe["photo"]), Path(recipe["photo_next"]),
                                          recipe["card"], int(recipe["index"]), int(recipe["total"]),
                                          recipe.get("poll") or {}, recipe.get("share") or "", bool(recipe.get("facebook")),
-                                         tight=True, subject=recipe.get("subject") or "")
+                                         tight=True, subject=recipe.get("subject") or "",
+                                         heading_frame=int(recipe.get("heading_frame") or 2))
     gen._save_slide(im, path)
     _delivered_contrast(lay, path)
     prior = still_layout.load(path) or {}

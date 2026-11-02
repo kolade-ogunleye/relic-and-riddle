@@ -234,9 +234,9 @@ def test_widescreen_captions_use_montserrat_bold_brand_colours_and_a_plate(tmp_p
     assert COL_EMPHASIS in ass
     assert next(ln for ln in ass.splitlines() if ln.startswith("Style: CapBox,")).split(",")[3] == COL_BACK
     texts = _events(ass, "CapText")
-    assert any(CAPTION_HIDDEN in t for _, _, t in texts)
+    assert not any(CAPTION_HIDDEN in t for _, _, t in texts)            # round 3: each 16:9 burst shown whole
     pills = caption_pills(tmp_path / "w.ass")
-    assert pills and all(p[3] == 1000 and p[1] >= 905 for p in pills)     # lower edge 80 px up, under the graphics
+    assert pills and all(p[3] == 950 and p[1] >= 855 for p in pills)      # round 3: lower edge 130 px up (was 80)
     font = get_font("Montserrat", 52, weight=700)
     finals = [_plain(t) for _, _, t in texts if CAPTION_HIDDEN not in t]
     for line in finals:

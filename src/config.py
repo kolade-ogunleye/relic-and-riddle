@@ -374,7 +374,7 @@ from .safe_zones import REEL as _REEL_UI  # noqa: E402
 CAPTION_MARGIN_V = _REEL_UI.bottom
 MIN_BURST_WORDS = 2
 TARGET_BURST_WORDS = 3
-MAX_BURST_WORDS = 5
+MAX_BURST_WORDS = 4  # round 3 (2026-11-02): at most 4 words a burst, 3 the target (was 5)
 MAX_BURST_CHARS = 28
 CAPTION_SMALL_CAPS = True
 CAPTION_SC_SCALE = 82  # % scale for small capitals (82% of font size)
@@ -403,14 +403,19 @@ CAPTION_PAUSE_GAP = 0.8
 CAPTION_PAUSE_TAIL = 0.25
 CAPTION_MIN_CHUNK = 0.6
 
-# 16:9 burn-in (documentary; round 2, finding 6): Montserrat Bold (the bundled variable font's Bold instance; with
-# Bold=0 libass loads its default, Thin), one line of at most 42 characters, 4-8 words a burst, the plate's
-# lower edge CAPTION_WIDE_MARGIN_V above the frame's bottom (y 1000 at 1080). A sentence splits into bursts of at
-# least CAPTION_WIDE_MIN_WORDS (3, so a 5-7 word sentence too long for one line can split without an orphan word);
-# the phrase builder favours 24-42 characters, which is 4-8 words in practice.
+# 16:9 burn-in (documentary; round 2, finding 6): Montserrat Bold (measured with the variable font's Bold instance;
+# libass needs a static face, below), one line of at most 42 characters, 4-8 words a burst, the plate's
+# lower edge CAPTION_WIDE_MARGIN_V above the frame's bottom (round 3: 130, y 950 at 1080, clear of YouTube's scrubber
+# and hover controls, about y 990-1080, and its timestamp corner, x 1620-1920, y 950-1080; one line still sits under
+# the 16:9 graphics floor, y 820). Each 16:9 burst is shown whole and still (no word-by-word reveal). A sentence
+# splits into bursts of at least CAPTION_WIDE_MIN_WORDS (3, so a 5-7 word sentence too long for one line can split
+# without an orphan word); the phrase builder favours 24-42 characters, which is 4-8 words in practice.
+# libass matches "Montserrat" only against a static face named so (it reads face 0 of a file and no variation axes:
+# Montserrat-Variable.ttf is "Montserrat Thin" to it), so the 16:9 burn-in needs a static Montserrat Bold in fonts/;
+# compose_video stops (libass_font_problems) rather than burn in a fallback face that overruns the plate.
 CAPTION_WIDE_FONT = "Montserrat"
 CAPTION_WIDE_SIZE = 52  # px rendered em, as FONT_SIZE; the ASS Fontsize comes from the font's metrics (81)
-CAPTION_WIDE_MARGIN_V = 80
+CAPTION_WIDE_MARGIN_V = 130
 CAPTION_WIDE_MAX_CHARS = 42
 CAPTION_WIDE_MIN_WORDS = 3
 CAPTION_WIDE_TARGET_WORDS = 6
@@ -489,3 +494,33 @@ IMAGE_GEN_REQUIRE_OCR = os.getenv("IMAGE_GEN_REQUIRE_OCR", "true").lower() in ("
 IMAGE_GEN_MIN_SHARPNESS = float(os.getenv("IMAGE_GEN_MIN_SHARPNESS", "40"))   # Laplacian variance of the fitted frame
 IMAGE_GEN_TIMEOUT = float(os.getenv("IMAGE_GEN_TIMEOUT", "60"))
 # <<< Illustration tier ---------------------------------------------------------------------------------------------
+
+# >>> Captions round 3 (2026-11-02): the panel's caption changes (src/video_composer.py caption code) ----------------
+# Caption values new in round 3; MAX_BURST_WORDS and CAPTION_WIDE_MARGIN_V changed in place above (one definition each).
+# 9:16 type size: the panel's 72 -> 80 px change is NOT made this round. At 80 px (a multi-word floor of 74) the
+# baseline tests on origin/main (tests/test_caption_emphasis.py: "It was hidden underground", "Its origins are
+# uncertain,") no longer form the bursts they pin, so FONT_SIZE, FONT_SIZE_ASS and the side padding stay as above
+# and the size waits for the operator. Bursts hold at most 4 words (MAX_BURST_WORDS, above). The plate's height
+# follows the type's cap height (CAPTION_REEL_PAD_Y_EM above and below), so the capitals sit optically centred.
+CAPTION_REEL_PAD_Y_EM = 0.35                    # x the drawn cap height
+# The pill's bottom edge stands this far above the platforms' bottom band (safe_zones.REEL.bottom), so it reads apart
+# from the Instagram and Facebook username and description rows (was safe_zones.CAPTION_CLEARANCE, 8 px; the panel
+# suggested about 28, held at 20 while tests/test_safe_zones.py keeps the pill within 20 px of the band). The pill's
+# top stays below safe_zones.caption_band_top (y 1098), and so clear of the graphics floor (y 1058).
+CAPTION_REEL_CLEARANCE = 20
+# Words ease in over CAPTION_WORD_EASE_MS instead of cutting on; the plate fades in (CAPTION_PLATE_FADE_IN_MS) only where
+# it really appears after a pause and out (CAPTION_PLATE_FADE_OUT_MS) only where it leaves before one. Between bursts
+# heard back to back its width keeps to at most CAPTION_PLATE_STEPS sizes per run, so it no longer strobes every burst.
+CAPTION_WORD_EASE_MS = 70
+CAPTION_PLATE_FADE_IN_MS = 60
+CAPTION_PLATE_FADE_OUT_MS = 80
+CAPTION_PLATE_STEPS = 3
+CAPTION_PLATE_SLACK = 96   # px: bursts within this of a run's plate width share it (48 px more padding a side at most)
+# Reading rate: a burst wants at least CAPTION_READ_PER_CHAR s a character plus CAPTION_READ_BASE s on screen; a shorter
+# one joins a neighbour where it can, else holds into the following pause (never past the next burst). Bursts faster
+# than CAPTION_MAX_CPS characters a second are logged.
+CAPTION_READ_PER_CHAR = 0.045
+CAPTION_READ_BASE = 0.25
+CAPTION_MAX_CPS = 17.0
+# 16:9: CAPTION_WIDE_MARGIN_V (130, y 950 at 1080) is set with the other 16:9 values, above.
+# <<< Captions round 3 ------------------------------------------------------------------------------------------------

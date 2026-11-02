@@ -872,9 +872,14 @@ class MultiFormatGenerator:
         if photo2 is None:
             im.paste(self._fill(photo, (cw, ph + px(150))), (0, 0))
         else:
-            half = (ph + px(150)) // 2
-            im.paste(self._fill(photo, (cw, half - px(3))), (0, 0))
-            im.paste(self._fill(photo2, (cw, half - px(3))), (0, half + px(3)))
+            # Two whole photographs with an ink gutter, both above the fade (2026-11-02 design review: the lower
+            # one ran into the fade and read as a rendering seam).
+            gutter = px(8)
+            half = (ph + px(40) - gutter) // 2
+            im.paste(self._fill(photo, (cw, half)), (0, 0))
+            im.paste(self._fill(photo2, (cw, half)), (0, half + gutter))
+            return scrim(im, 2 * half + gutter, chh, feather=px(40), target=0.0, cap=1.0, floor=1.0,
+                         colour=brand.INK2)
         return scrim(im, ph + px(60), chh, feather=px(180), target=0.0, cap=1.0, floor=1.0, colour=brand.INK2)
 
     def _render_cover(self, photo: Path, card: Dict[str, Any], cw: int, chh: int,
@@ -890,7 +895,7 @@ class MultiFormatGenerator:
         im = self._fill(photo, (cw, chh))
         tag = self._tag(self._get_card_category(card, "immersive"), index)
         return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], kicker=tag, tight=tight,
-                                h_spec=(112, 60))
+                                two_tone=True, h_spec=(112, 60))
 
     def _render_comparison(self, photo1: Path, photo2: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
                            lay=None, tight: bool = False) -> Image.Image:
@@ -899,7 +904,7 @@ class MultiFormatGenerator:
         im = self._split_ground(photo1, cw, chh, photo2)
         tag = self._tag(self._get_card_category(card, "comparison"), index)
         return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], kicker=tag, full=False,
-                                tight=tight, b_lines=4, h_spec=(96, 56))
+                                tight=tight, two_tone=True, b_lines=4, h_spec=(96, 56))
 
     def _render_blueprint(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
                           lay=None, tight: bool = False) -> Image.Image:
@@ -907,7 +912,7 @@ class MultiFormatGenerator:
         im = self._split_ground(photo, cw, chh)
         tag = self._tag(self._get_card_category(card, "blueprint"), index)
         return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], kicker=tag, full=False,
-                                tight=tight, b_lines=4, h_spec=(96, 56))
+                                tight=tight, two_tone=True, b_lines=4, h_spec=(96, 56))
 
     def _render_colossal_stat(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
                               lay=None, tight: bool = False) -> Image.Image:
@@ -965,7 +970,7 @@ class MultiFormatGenerator:
         im = self._split_ground(photo, cw, chh)
         tag = self._tag(self._get_card_category(card, "editorial_split"), index)
         return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], kicker=tag, full=False,
-                                tight=tight, b_lines=4, h_spec=(96, 56))
+                                tight=tight, two_tone=True, b_lines=4, h_spec=(96, 56))
 
     def _render_carousel_slide(self, archetype: str, photo: Path, photo_next: Path, card: Dict[str, Any], i: int,
                                total: int, poll: Dict[str, Any], share: str, facebook: bool, tight: bool = False,
@@ -981,9 +986,10 @@ class MultiFormatGenerator:
         clean = facebook_photo_caption if facebook else neutral_cues
         card = dict(card, heading=clean(card.get("heading") or ""), body=clean(card.get("body") or ""))
         share = clean(share or "")
-        # Facebook: every photo after the cover names its subject (2026-11-01). Instagram's swipe keeps the
-        # sequence together; Facebook's viewer opens one photo at a time, with the caption on the first only.
-        self._kicker_subject = subject.upper() if facebook and i > 0 else ""
+        # Every slide after the cover names its subject in its kicker: Facebook's viewer opens one photo at a time
+        # with the caption on the first only (2026-11-01), and Instagram's copy carries the same kicker so the two
+        # copies keep one system and the gold rule (2026-11-02 design review).
+        self._kicker_subject = subject.upper() if i > 0 else ""
         cw, chh = self.CAROUSEL_SIZE
         lay = Layout("carousel", (cw, chh), self._zone(cw, chh), tight=tight,
                      protected=[("instagram_counter", self._ig_counter(cw))])
@@ -1050,7 +1056,7 @@ class MultiFormatGenerator:
         from .script_engine import share_prompt
         share = share_prompt(script_payload)  # the closing slide asks for a share and a follow (2026-10-25)
         narration = script_payload.get("narration_script") or ""
-        subject = standalone_subject(script_payload) if facebook else ""
+        subject = standalone_subject(script_payload)   # both copies (2026-11-02): one rule for IG and FB
 
         slides = []
         archetypes = self.sequence_archetypes(cards)

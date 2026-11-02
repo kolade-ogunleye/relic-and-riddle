@@ -1,5 +1,5 @@
 """Facebook's multi-photo post (2026-11-01): each photo is opened on its own, without the post's caption, so
-every photo after the cover names its subject; Instagram's swipe sequence keeps its slides as they were."""
+every photo after the cover names its subject; since 2026-11-02 Instagram's copy carries the same kicker."""
 
 from pathlib import Path
 
@@ -52,7 +52,7 @@ def test_facebook_photos_name_the_subject_and_instagram_slides_do_not(tmp_path: 
     assert fb["carousel_slide_01.jpg"][0]["subject"] == "The Eye of the Sahara"
     for name in ("carousel_slide_02.jpg", "carousel_slide_03.jpg"):
         assert "kicker" in fb[name][1], name             # the subject, on a slide that had no badge
-        assert "kicker" not in ig[name][1], name         # Instagram unchanged
+        assert "kicker" in ig[name][1], name             # and on Instagram's copy too (2026-11-02: one system)
     assert "kicker" not in fb["carousel_slide_01.jpg"][1]  # the cover already is the subject
     for rec in fb.values():
         assert rec[0]["facebook"] is True

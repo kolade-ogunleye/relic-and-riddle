@@ -773,7 +773,7 @@ class MultiFormatGenerator:
         return im, top
 
     def _rows(self, d, px, heading: str, body: str, width: int, kicker: str = "", stat: str = "", h_spec=(112, 60),
-              b_lines: int = 3, two_tone: bool = False, scale: float = 1.0, body_spec=(38, 32)):
+              b_lines: int = 3, two_tone: bool | str = False, scale: float = 1.0, body_spec=(38, 32)):
         """A slide's text stack, measured (sizes in design px x `scale`): an optional kicker, an optional figure
         (its unit beside it, smaller, in bone), the heading on one or two balanced lines, the body in balanced
         lines. Returns (rows, shortened)."""
@@ -802,7 +802,13 @@ class MultiFormatGenerator:
                 rows.append({"name": "stat", "text": unit, "font": fu, "fill": WHITE, "y": y,
                              "x": int(d.textlength(num, font=fs)) + px(18)})
             y += px(30 * scale)
-        if two_tone and len(heading.split()) > 1:
+        use_two = bool(two_tone) and len(heading.split()) > 1
+        if use_two and two_tone == "wrap":
+            # Content slides (2026-11-02): two-tone only when the heading needs two lines anyway; a heading that
+            # fits one line stays one bone line ("25+ MILES WIDE" is one figure, not two thoughts).
+            use_two = self._fit_text(d, heading, "Anton", int(h_spec[0] * scale), width, 1, int(h_spec[1] * scale),
+                                     px=px, sentences=False, quiet=True)[2]
+        if use_two:
             # Two-tone: two balanced lines, each as large as the narrower of the two allows (one size for both).
             halves = [h for h in split_balanced(heading) if h]
             fits = [self._fit_text(d, h, "Anton", int(h_spec[0] * scale), width, 1, int(h_spec[1] * scale), px=px,
@@ -820,7 +826,7 @@ class MultiFormatGenerator:
         for j, line in enumerate(h_lines):
             y += ch if j == 0 else round(ch * 1.13)
             rows.append({"name": "heading", "text": line, "font": font_h,
-                         "fill": GOLD if (two_tone and j == len(h_lines) - 1) else WHITE, "y": y})
+                         "fill": GOLD if (use_two and j == len(h_lines) - 1) else WHITE, "y": y})
         short += ["heading"] if h_short else []
         if body.strip():
             b_size = int(body_spec[0] * scale)
@@ -834,7 +840,7 @@ class MultiFormatGenerator:
         return rows, short
 
     def _slide_text(self, im: Image.Image, lay, cw: int, chh: int, heading: str, body: str, kicker: str = "",
-                    stat: str = "", full: bool = True, two_tone: bool = False, tight: bool = False, b_lines: int = 3,
+                    stat: str = "", full: bool = True, two_tone: bool | str = False, tight: bool = False, b_lines: int = 3,
                     h_spec=(112, 60), extra=None):
         """Plans a slide's stack at the largest scale whose top clears KEY_TOP, shades behind it (a full-bleed
         photo) and draws it bottom-aligned on the shared line. `extra(rows, y)`: rows appended below the body."""
@@ -901,7 +907,7 @@ class MultiFormatGenerator:
         im = self._fill(photo, (cw, chh))
         tag = self._tag(self._get_card_category(card, "immersive"), index)
         return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], kicker=tag, tight=tight,
-                                two_tone=True, h_spec=(112, 60))
+                                two_tone="wrap", h_spec=(112, 60))
 
     def _render_comparison(self, photo1: Path, photo2: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
                            lay=None, tight: bool = False) -> Image.Image:
@@ -910,7 +916,7 @@ class MultiFormatGenerator:
         im = self._split_ground(photo1, cw, chh, photo2)
         tag = self._tag(self._get_card_category(card, "comparison"), index)
         return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], kicker=tag, full=False,
-                                tight=tight, two_tone=True, b_lines=4, h_spec=(96, 56))
+                                tight=tight, two_tone="wrap", b_lines=4, h_spec=(96, 56))
 
     def _render_blueprint(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
                           lay=None, tight: bool = False) -> Image.Image:
@@ -918,7 +924,7 @@ class MultiFormatGenerator:
         im = self._split_ground(photo, cw, chh)
         tag = self._tag(self._get_card_category(card, "blueprint"), index)
         return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], kicker=tag, full=False,
-                                tight=tight, two_tone=True, b_lines=4, h_spec=(96, 56))
+                                tight=tight, two_tone="wrap", b_lines=4, h_spec=(96, 56))
 
     def _render_colossal_stat(self, photo: Path, card: Dict[str, Any], index: int, cw: int, chh: int,
                               lay=None, tight: bool = False) -> Image.Image:
@@ -976,7 +982,7 @@ class MultiFormatGenerator:
         im = self._split_ground(photo, cw, chh)
         tag = self._tag(self._get_card_category(card, "editorial_split"), index)
         return self._slide_text(im, lay, cw, chh, card["heading"].upper(), card["body"], kicker=tag, full=False,
-                                tight=tight, two_tone=True, b_lines=4, h_spec=(96, 56))
+                                tight=tight, two_tone="wrap", b_lines=4, h_spec=(96, 56))
 
     def _render_carousel_slide(self, archetype: str, photo: Path, photo_next: Path, card: Dict[str, Any], i: int,
                                total: int, poll: Dict[str, Any], share: str, facebook: bool, tight: bool = False,

@@ -987,43 +987,203 @@ def render_scale(fact: Dict[str, Any], out: Path, width: int = VIDEO_WIDTH, heig
     return _render_scale_wide(fact, feet, ref_label, ref_feet, depth, out, width, height)
 
 
-def _silhouette(d: ImageDraw.ImageDraw, label: str, cx: float, base_y: float, h: float, colour) -> float:
-    """The reference landmark drawn as its outline, `h` px tall, standing on `base_y`: the Statue of Liberty
-    (foundation and pedestal to the raised torch), Elizabeth Tower (shaft, clock stage, belfry, spire), the
-    Great Pyramid, else a standing person. Returns the drawn width."""
-    fill = (*colour, 255)
-    y = lambda f: base_y - h * f  # 0 = base, 1 = top
+# Each landmark's width per px of its height, from its sourced proportions (reference_facts.json heights):
+# the Statue of Liberty's Fort Wood star wall (about 110 ft across) against 305 ft; Elizabeth Tower's 12 m square
+# shaft with its clock stage and corner pinnacles against 96.3 m; the Great Pyramid's 230.3 m base against its
+# original 146.5 m (faces at 51.8 degrees); an adult man's arms-at-side width, about 0.27 of his height.
+SILHOUETTE_WIDTH = {"liberty": 0.36, "elizabeth": 0.15, "pyramid": 1.57, "person": 0.256}
+
+
+def _landmark_kind(label: str) -> str:
     low = label.lower()
-    if "liberty" in low:
-        w = h * 0.36
-        d.polygon([(cx - w / 2, y(0)), (cx + w / 2, y(0)), (cx + w * 0.36, y(0.17)), (cx - w * 0.36, y(0.17))], fill=fill)
-        d.rectangle([cx - w * 0.26, y(0.40), cx + w * 0.26, y(0.17)], fill=fill)            # pedestal
-        d.polygon([(cx - w * 0.30, y(0.40)), (cx + w * 0.30, y(0.40)), (cx + w * 0.22, y(0.47)),
-                   (cx - w * 0.22, y(0.47))], fill=fill)
-        d.polygon([(cx - w * 0.13, y(0.47)), (cx + w * 0.13, y(0.47)), (cx + w * 0.08, y(0.80)),
-                   (cx - w * 0.09, y(0.80))], fill=fill)                                    # robe
-        r = h * 0.025
-        d.ellipse([cx - r, y(0.83) - r, cx + r, y(0.83) + r], fill=fill)                    # head
-        for k in range(-2, 3):                                                              # crown rays
-            d.line([(cx + k * r * 0.5, y(0.85)), (cx + k * r * 1.4, y(0.88))], fill=fill, width=max(1, int(h * 0.006)))
-        d.line([(cx + w * 0.06, y(0.79)), (cx + w * 0.10, y(0.95))], fill=fill, width=max(2, int(h * 0.022)))   # arm
-        d.polygon([(cx + w * 0.07, y(0.95)), (cx + w * 0.13, y(0.95)), (cx + w * 0.10, y(1.0))], fill=fill)    # torch
-        return w
-    if "elizabeth" in low or "big ben" in low:
-        w = h * 0.13
-        d.rectangle([cx - w / 2, y(0.72), cx + w / 2, y(0)], fill=fill)
-        d.rectangle([cx - w * 0.6, y(0.80), cx + w * 0.6, y(0.70)], fill=fill)              # clock stage
-        r = w * 0.38
-        d.ellipse([cx - r, y(0.75) - r, cx + r, y(0.75) + r], fill=(*SEA, 255))             # clock face
-        d.rectangle([cx - w * 0.45, y(0.86), cx + w * 0.45, y(0.80)], fill=fill)            # belfry
-        d.polygon([(cx - w * 0.45, y(0.86)), (cx + w * 0.45, y(0.86)), (cx, y(1.0))], fill=fill)
-        return w * 1.2
-    if "pyramid" in low:
-        w = h * 1.57
-        d.polygon([(cx - w / 2, y(0)), (cx + w / 2, y(0)), (cx, y(1.0))], fill=fill)
-        return w
-    _person(d, int(cx), base_y, h, colour, upward=True)
-    return h * 0.3
+    return ("liberty" if "liberty" in low else "elizabeth" if ("elizabeth" in low or "big ben" in low) else
+            "pyramid" if "pyramid" in low else "person")
+
+
+class _LandmarkPen:
+    """Draws in a landmark's own units: x in heights from its centre line, y as the fraction of its height above
+    its base (0 = ground, 1 = top), so each drawing is written once and scales to any size."""
+
+    def __init__(self, d: ImageDraw.ImageDraw, cx: float, base_y: float, h: float, colour) -> None:
+        self.d, self.cx, self.base_y, self.h = d, cx, base_y, h
+        self.fill = (*colour, 255)
+        shade = brand.STONE if tuple(colour) == tuple(brand.STONE_LT) else tuple(int(c * 0.82) for c in colour)
+        self.shade = (*shade, 255)
+        self.ink, self.gold = (*brand.INK, 255), (*brand.GOLD_DIM, 255)
+        self.detail = h >= 110                      # fine lines only where they read; the outline carries it below
+        self.lw = max(1, round(h * 0.0035))
+
+    def pt(self, x: float, y: float) -> tuple[float, float]:
+        return self.cx + x * self.h, self.base_y - y * self.h
+
+    def poly(self, pts, fill=None, outline=None) -> None:
+        self.d.polygon([self.pt(x, y) for x, y in pts], fill=fill or self.fill, outline=outline)
+
+    def rect(self, x0: float, y0: float, x1: float, y1: float, fill=None) -> None:
+        self.poly([(x0, y0), (x1, y0), (x1, y1), (x0, y1)], fill)
+
+    def ellipse(self, x: float, y: float, rx: float, ry: float, fill=None, outline=None, width: int = 1) -> None:
+        (a, b), (c, e) = self.pt(x - rx, y + ry), self.pt(x + rx, y - ry)
+        self.d.ellipse([a, b, c, e], fill=fill, outline=outline, width=width)
+
+    def line(self, pts, fill=None, width: int | None = None) -> None:
+        if self.detail:
+            self.d.line([self.pt(x, y) for x, y in pts], fill=fill or self.ink, width=width or self.lw)
+
+
+def _draw_liberty(p: _LandmarkPen) -> None:
+    """NPS statistics as fractions of 305 ft: foundation to 65 ft (0.21), granite pedestal to 154 ft (0.505),
+    heel to head 111 ft (to 0.87), the torch to 1.0. Facing us, her raised right arm is on our left, the tablet in
+    her left arm on our right."""
+    # Fort Wood's star wall: a low wall whose bastion points face us, lit and shaded facets alternating.
+    p.poly([(-0.18, 0), (0.18, 0), (0.17, 0.045), (-0.17, 0.045)])
+    for x0 in (-0.18, -0.06, 0.06):
+        p.poly([(x0 + 0.06, 0), (x0 + 0.12, 0), (x0 + 0.115, 0.045), (x0 + 0.06, 0.045)], p.shade)
+    # The foundation: a stepped, truncated pyramid of concrete.
+    for (y0, y1, a, b) in ((0.045, 0.105, 0.148, 0.138), (0.105, 0.16, 0.128, 0.118), (0.16, 0.213, 0.11, 0.102)):
+        p.poly([(-a, y0), (a, y0), (b, y1), (-b, y1)])
+        p.poly([(a * 0.55, y0), (a, y0), (b, y1), (b * 0.55, y1)], p.shade)
+        p.line([(-a, y0), (a, y0)])
+    # The granite pedestal: base course, dado with its door, cornice, the loggia's columns, top cornice, parapet.
+    p.rect(-0.098, 0.213, 0.098, 0.25)
+    p.rect(-0.084, 0.25, 0.084, 0.365)
+    p.rect(-0.093, 0.365, 0.093, 0.38)
+    p.rect(-0.079, 0.38, 0.079, 0.452)
+    p.rect(-0.09, 0.452, 0.09, 0.47)
+    p.rect(-0.074, 0.47, 0.074, 0.505)
+    p.rect(0.045, 0.25, 0.084, 0.365, p.shade)
+    p.rect(0.042, 0.38, 0.079, 0.452, p.shade)
+    if p.detail:
+        p.rect(-0.016, 0.262, 0.016, 0.33, p.ink)                       # the door
+        for k in range(3):                                              # the loggia between its columns
+            x = -0.05 + k * 0.042
+            p.rect(x - 0.011, 0.392, x + 0.011, 0.44, p.ink)
+        for yy in (0.25, 0.365, 0.38, 0.452, 0.47):
+            p.line([(-0.093, yy), (0.093, yy)])
+    # The figure: robe from the plinth to the shoulders, folds in gold.
+    p.rect(-0.046, 0.505, 0.046, 0.516)
+    p.poly([(-0.066, 0.516), (0.064, 0.516), (0.054, 0.56), (0.05, 0.64), (0.047, 0.72), (0.041, 0.785),
+            (0.02, 0.8), (-0.02, 0.8), (-0.043, 0.785), (-0.046, 0.7), (-0.052, 0.6), (-0.058, 0.55)])
+    p.poly([(0.022, 0.516), (0.064, 0.516), (0.054, 0.56), (0.05, 0.64), (0.047, 0.72), (0.041, 0.785),
+            (0.026, 0.79), (0.03, 0.7)], p.shade)
+    p.line([(-0.04, 0.785), (0.04, 0.64)], p.gold)                                        # the stola's hem
+    for x0, x1 in ((-0.044, -0.03), (-0.018, -0.012), (0.006, 0.006)):                    # the robe's folds
+        p.line([(x0, 0.522), (x1, 0.66)], p.gold)
+    # The tablet, held edge-on against her left side and tilted outward.
+    p.poly([(0.03, 0.655), (0.056, 0.652), (0.078, 0.745), (0.054, 0.752)])
+    p.line([(0.03, 0.655), (0.054, 0.752)])
+    p.poly([(0.02, 0.72), (0.06, 0.70), (0.064, 0.715), (0.024, 0.735)])                     # her forearm across
+    # Neck, head and the crown's seven rays.
+    p.rect(-0.011, 0.795, 0.011, 0.815)
+    p.ellipse(0.0, 0.838, 0.019, 0.03, fill=p.fill)
+    p.rect(-0.021, 0.848, 0.021, 0.857)
+    for k in range(7):
+        a = math.radians(-72 + k * 24)
+        bx, by = 0.017 * math.sin(a), 0.853 + 0.006 * math.cos(a)
+        tx, ty = bx + 0.036 * math.sin(a), by + 0.036 * math.cos(a)
+        nx, ny = 0.0045 * math.cos(a), -0.0045 * math.sin(a)
+        p.poly([(bx - nx, by - ny), (bx + nx, by + ny), (tx, ty)])
+    # The raised right arm, its sleeve falling from it, and the torch with its flame.
+    p.poly([(-0.042, 0.775), (-0.02, 0.79), (-0.048, 0.932), (-0.07, 0.928)])
+    p.poly([(-0.044, 0.776), (-0.07, 0.862), (-0.064, 0.89), (-0.048, 0.83)])                # the sleeve
+    p.poly([(-0.062, 0.928), (-0.054, 0.928), (-0.058, 0.955), (-0.068, 0.955)])
+    p.poly([(-0.084, 0.955), (-0.042, 0.955), (-0.048, 0.968), (-0.078, 0.968)])
+    p.poly([(-0.075, 0.968), (-0.051, 0.968), (-0.052, 0.982), (-0.06, 1.0), (-0.071, 0.984)])
+    p.line([(-0.075, 0.968), (-0.071, 0.984), (-0.06, 1.0), (-0.052, 0.982), (-0.051, 0.968)], p.gold)
+
+
+def _draw_elizabeth(p: _LandmarkPen) -> None:
+    """Parliament's 96.3 m: a 12 m square shaft of Perpendicular panelling, the clock stage (dials 7 m across,
+    their centres about 55 m up), the belfry's arcade, the iron roof and lantern, the spire and its finial."""
+    p.rect(-0.066, 0.0, 0.066, 0.03)
+    p.rect(-0.0623, 0.03, 0.0623, 0.53)
+    p.rect(0.03, 0.03, 0.0623, 0.53, p.shade)
+    if p.detail:
+        for x in (-0.045, -0.015, 0.015, 0.045):                         # the shaft's vertical panels
+            p.line([(x, 0.05), (x, 0.52)], p.gold)
+        for k in range(1, 5):                                            # its string courses
+            yy = 0.03 + k * 0.1
+            p.line([(-0.0623, yy), (0.0623, yy)], p.ink)
+        for x in (-0.03, 0.0, 0.03):                                     # lancet windows in the upper stages
+            for y0 in (0.36, 0.42, 0.475):
+                p.rect(x - 0.005, y0, x + 0.005, y0 + 0.035, p.ink)
+    # The clock stage, a little wider, with its dial, gable and corner pinnacles.
+    p.rect(-0.069, 0.53, 0.069, 0.618)
+    p.rect(0.034, 0.53, 0.069, 0.618, p.shade)
+    p.ellipse(0.0, 0.571, 0.036, 0.036, fill=(*brand.BONE, 255), outline=p.ink, width=max(1, p.lw))
+    if p.detail:
+        p.line([(0.0, 0.571), (0.0, 0.597)], width=max(1, p.lw))
+        p.line([(0.0, 0.571), (0.018, 0.56)], width=max(1, p.lw))
+    p.poly([(-0.05, 0.618), (0.05, 0.618), (0.0, 0.652)])
+    for s in (-1, 1):
+        p.poly([(s * 0.069, 0.618), (s * 0.057, 0.618), (s * 0.063, 0.668)])
+    # The belfry and its arcade.
+    p.rect(-0.058, 0.618, 0.058, 0.70)
+    p.rect(0.03, 0.618, 0.058, 0.70, p.shade)
+    p.poly([(-0.05, 0.618), (0.05, 0.618), (0.0, 0.652)])
+    for x in (-0.03, 0.0, 0.03):
+        p.poly([(x - 0.009, 0.632), (x + 0.009, 0.632), (x + 0.009, 0.676), (x, 0.688), (x - 0.009, 0.676)], p.ink)
+    p.rect(-0.066, 0.70, 0.066, 0.714)
+    for s in (-1, 1):
+        p.poly([(s * 0.074, 0.714), (s * 0.058, 0.714), (s * 0.066, 0.78)])
+    # The iron roof, lantern, spire and finial.
+    p.poly([(-0.056, 0.714), (0.056, 0.714), (0.031, 0.84), (-0.031, 0.84)])
+    p.poly([(0.018, 0.714), (0.056, 0.714), (0.031, 0.84), (0.01, 0.84)], p.shade)
+    p.rect(-0.025, 0.84, 0.025, 0.882)
+    if p.detail:
+        p.rect(-0.012, 0.848, 0.012, 0.874, p.ink)
+    p.poly([(-0.021, 0.882), (0.021, 0.882), (0.0, 0.985)])
+    p.poly([(0.006, 0.882), (0.021, 0.882), (0.0, 0.985)], p.shade)
+    p.rect(-0.003, 0.975, 0.003, 1.0)
+
+
+def _draw_pyramid(p: _LandmarkPen) -> None:
+    """Base 1.57 times its original height (faces at 51.8 degrees), seen a little off its axis: a lit face and a
+    shaded one, coursing on the lit face, and the original apex with its pyramidion."""
+    half = 1.57 / 2
+    split = 0.16
+    p.poly([(-half, 0), (split, 0), (0, 1.0)])
+    p.poly([(split, 0), (half, 0), (0, 1.0)], p.shade)
+    if p.detail:
+        for k in range(1, 12):
+            f = k / 12
+            p.line([(-half * (1 - f), f), (split * (1 - f), f)], p.shade)
+        p.line([(-half * 0.035, 0.965), (split * 0.035, 0.965)], p.gold, width=max(1, p.lw))
+    p.line([(split, 0), (0, 1.0)], p.gold, width=max(1, p.lw))
+
+
+def _draw_person(p: _LandmarkPen) -> None:
+    """An adult standing, arms at his sides: head an eighth of his height, shoulders about a quarter wide, hands
+    at mid-thigh, legs a little under half his height."""
+    p.ellipse(0.0, 0.94, 0.042, 0.06, fill=p.fill)
+    p.rect(-0.019, 0.85, 0.019, 0.89)
+    p.poly([(-0.112, 0.812), (-0.1, 0.835), (-0.05, 0.858), (0.05, 0.858), (0.1, 0.835), (0.112, 0.812),
+            (0.086, 0.76), (0.074, 0.62), (0.088, 0.5), (0.088, 0.47), (-0.088, 0.47), (-0.088, 0.5),
+            (-0.074, 0.62), (-0.086, 0.76)])
+    for s in (-1, 1):
+        p.poly([(s * 0.098, 0.838), (s * 0.122, 0.81), (s * 0.128, 0.74), (s * 0.126, 0.6), (s * 0.128, 0.455),
+                (s * 0.106, 0.455), (s * 0.104, 0.6), (s * 0.094, 0.74), (s * 0.088, 0.79)])        # arm
+        p.ellipse(s * 0.114, 0.43, 0.014, 0.03, fill=p.fill)                                       # hand
+        p.poly([(s * 0.088, 0.5), (s * 0.002, 0.5), (s * 0.002, 0.46), (s * 0.012, 0.27), (s * 0.016, 0.035),
+                (s * 0.052, 0.035), (s * 0.06, 0.27), (s * 0.084, 0.42)])                         # leg
+        p.poly([(s * 0.012, 0.0), (s * 0.074, 0.0), (s * 0.07, 0.022), (s * 0.052, 0.04), (s * 0.016, 0.04)])  # foot
+
+
+_LANDMARK_DRAWINGS = {"liberty": _draw_liberty, "elizabeth": _draw_elizabeth, "pyramid": _draw_pyramid,
+                      "person": _draw_person}
+
+
+def _silhouette(d: ImageDraw.ImageDraw, label: str, cx: float, base_y: float, h: float, colour) -> float:
+    """The reference landmark as a flat illustration (2026-11-02 rebuild: the old outlines read as a lamp post, a
+    chimney and a wedge), `h` px tall standing on `base_y`, in one fill with a shaded side and INK / GOLD_DIM
+    detail lines: the Statue of Liberty (star wall, stepped foundation, pedestal, robed figure, crown, tablet and
+    raised torch), Elizabeth Tower (panelled shaft, clock, belfry, roof, spire), the Great Pyramid (lit and shaded
+    faces, original apex), else an adult standing. Its height is the landmark's true height on the scale and its
+    width _silhouette_width(label) * h; returns that width."""
+    kind = _landmark_kind(label)
+    if h >= 2:
+        _LANDMARK_DRAWINGS[kind](_LandmarkPen(d, cx, base_y, h, colour))
+    return h * SILHOUETTE_WIDTH[kind]
 
 
 EARTH, EARTH_LINE = (38, 31, 24), (52, 43, 33)   # the ground in section: dark warm earth, its strata a step up
@@ -1031,8 +1191,7 @@ EARTH, EARTH_LINE = (38, 31, 24), (52, 43, 33)   # the ground in section: dark w
 
 def _silhouette_width(label: str) -> float:
     """A landmark silhouette's width per px of its height (as _silhouette draws it)."""
-    low = label.lower()
-    return 0.36 if "liberty" in low else 0.16 if ("elizabeth" in low or "big ben" in low) else 1.57 if "pyramid" in low else 0.3
+    return SILHOUETTE_WIDTH[_landmark_kind(label)]
 
 
 def _render_scale_vertical(fact, feet, ref_label, ref_feet, depth, out, width, height):
@@ -2977,6 +3136,7 @@ def render_ventilation_airflow(
 
 # ----------------------------------------------- LiDAR subterranean radar scan
 PHOTO_BUILDERS = frozenset({"numbers", "timeline"})  # builders that draw the hero photo as a backdrop
+RETIRED_DIAGRAM_KEYS = ("rolling_stone_defense", "ventilation_airflow")  # payload keys make_all no longer draws
 
 
 def make_all(payload: Dict[str, Any], topic: Dict[str, Any], work_dir: Path, photo: Optional[Path] = None, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
@@ -2996,12 +3156,10 @@ def make_all(payload: Dict[str, Any], topic: Dict[str, Any], work_dir: Path, pho
         jobs.append(("cross-section", lambda: render_cross_section(payload["cross_section"], work_dir / "graphic_section.mp4", width=width, height=height)))
     if payload.get("route"):
         jobs.append(("route", lambda: render_route(payload["route"], work_dir / "graphic_route.mp4", width=width, height=height)))
-    # Diagrams only when the script declares them (and so the fact check sees their text); a topic-ID
-    # substring used to add them to any topic named "door", "fortress", "hypogeum" or "catacomb".
-    if payload.get("rolling_stone_defense"):
-        jobs.append(("defense", lambda: render_rolling_stone_defense(payload.get("rolling_stone_defense") or {}, work_dir / "graphic_defense.mp4", width=width, height=height)))
-    if payload.get("ventilation_airflow"):
-        jobs.append(("ventilation", lambda: render_ventilation_airflow(payload.get("ventilation_airflow") or {}, work_dir / "graphic_ventilation.mp4", width=width, height=height)))
+    # The rolling-stone door and ventilation diagrams are retired (2026-11-02): no generated script declares
+    # `rolling_stone_defense` or `ventilation_airflow` (script_engine never emits them), so an old payload that
+    # still carries either key renders its other graphics and not these. RETIRED_DIAGRAM_KEYS names them; their
+    # renderers stay only because tests draw them directly.
     place = None
     try:
         place = geo.locate(topic)

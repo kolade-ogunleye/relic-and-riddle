@@ -255,6 +255,7 @@ def openverse_search(query: str, limit: int = 12) -> list[dict]:
 
 
 _NO_KNOWN_RESTRICTIONS = ("no known restrictions", "no known copyright restrictions")
+_LOC_US_ONLY = ("in the u.s.", "in the united states", "use elsewhere may be restricted")
 
 
 def _loc_rights(result: dict) -> str:
@@ -268,9 +269,11 @@ def _loc_rights(result: dict) -> str:
 
 
 def loc_search(query: str, limit: int = 12) -> list[dict]:
-    """UNVERIFIED (www.loc.gov could not be fetched on 2026-11-02): GET /photos/?q=..&fo=json&c=<count>; each result
-    has title, url (the item page), date, image_url (sizes, smallest first) and a rights advisory. Only a result
-    whose advisory says "no known restrictions" is taken. A bot-challenge page is not JSON: skipped by _get."""
+    """Verified against the live API on 2026-11-02: GET /photos/?q=..&fo=json&c=<count>; each result has title, url
+    (the item page), date, image_url (sizes, smallest first) and its rights statement under item.rights. Only a
+    result whose statement says "no known restrictions" without a U.S.-only limit is taken ("Rights status not
+    evaluated" and "publication in the U.S. ... elsewhere may be restricted" are refused). A bot-challenge page is
+    not JSON: skipped by _get."""
     found = _get(LOC, {"q": query, "fo": "json", "c": limit, "fa": "online-format:image"})
     out = []
     for r in (found or {}).get("results") or []:
@@ -278,6 +281,10 @@ def loc_search(query: str, limit: int = 12) -> list[dict]:
             continue
         rights = _loc_rights(r)
         if not any(p in rights.lower() for p in _NO_KNOWN_RESTRICTIONS):
+            continue
+        if any(p in rights.lower() for p in _LOC_US_ONLY):
+            # "No known restrictions on publication in the U.S. Use elsewhere may be restricted": the channel
+            # publishes worldwide from Canada, so a U.S.-only clearance is not taken (2026-11-02).
             continue
         images = [str(u).split("#", 1)[0] for u in r.get("image_url") or [] if u]
         images = ["https:" + u if u.startswith("//") else u for u in images]

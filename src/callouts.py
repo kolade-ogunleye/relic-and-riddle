@@ -1705,7 +1705,9 @@ def _from_rim(path: list[tuple], r: float) -> list[tuple]:
 # TEXT_FRAMES from when the plate is 70 % open, moving 6 px from the attached edge toward the plate's centre. At
 # landing one ripple ring grows and fades (RIPPLE_TIME; never repeated). When a newer label's dot lands the older
 # ones' leader, marker and bar ease to DIM_OLDER over DIM_TIME; fill, hairline and text stay full. All labels exit
-# together from CLIP_SECONDS - EXIT_LEAD over EXIT_TIME, reversed: text, plate, the leader retracting, the dot.
+# together from CLIP_SECONDS - EXIT_LEAD over EXIT_TIME: the text and its plate (fill, hairline, shadow, bar, loupe)
+# fade out as one over EXIT_FADE, the plate never more opaque than its text (review 2026-11-03: the text used to go
+# first, leaving empty plates); only then does the leader retract (EXIT_RETRACT) and the marker shrink.
 LEAD_FRAMES = 6
 DOT_LEAD = LEAD_FRAMES / VIDEO_FPS
 DOT_AT, DOT_GROW, STAGGER = 0.5, 0.12, 1.3                # seconds
@@ -1715,6 +1717,7 @@ BAR_GROW, PLATE_OPEN, TEXT_FRAMES, TEXT_RISE = 0.08, 0.16, 4, 6
 LABEL_FADE = PLATE_OPEN
 DIM_OLDER, DIM_TIME = 0.55, 0.30
 EXIT_LEAD, EXIT_TIME = 0.40, 0.30
+EXIT_FADE, EXIT_RETRACT, EXIT_SHRINK = 0.15, 0.10, 0.08   # within EXIT_TIME; the marker shrinks over its end
 BACK = 1.5                                                # ease-out-back constant: 8 % overshoot
 
 
@@ -2250,7 +2253,7 @@ def drawn_labels(clip: Path) -> list[str] | None:
 
 
 def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
-           reveal: list[float] | None = None) -> Path:
+           reveal: list[float] | None = None, record: dict | None = None) -> Path:
     """Slow centred push-in on the photo (Push); each feature at its cue (`reveal[k]`, the word that names it; else
     a fixed stagger), from DOT_LEAD before it: its marker lands, the leader draws out to the plate, the bar grows,
     the plate opens from that edge's centre, the text fades in, and the spotlight moves to it (see _Timeline). Each
@@ -2258,7 +2261,9 @@ def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH
     DIM_OLDER once a newer one lands. Every label exits together before the clip ends. Raises ValueError on a
     layout with a label in conflict (a hard limit broken). A label still under NONTEXT_MIN non-text contrast after
     every _GUARD step is not drawn (fail closed; recorded under "dropped" in <clip>.contrast.json), and with fewer
-    than two left it raises LowContrast."""
+    than two left it raises LowContrast. `record`, when given, is filled with what each delivered frame drew: under
+    "labels" each label's text mask (its local frame) and plate box at rest, under "frames" one entry per frame with
+    each live label's drawn plate and text alpha, its plate fraction, leader and marker, and where its masks sit."""
     import numpy as np
     base = cover_crop(photo, (width, height)).convert("RGB")
     n = int(CLIP_SECONDS * VIDEO_FPS)
@@ -2309,12 +2314,14 @@ def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH
         tp = max(0.0, min(1.0, (t - tl.text0) / (TEXT_FRAMES / VIDEO_FPS)))
         text_a, text_off = tp, TEXT_RISE * (1 - _ease(tp))
         loupe_a = _ease((t - tl.plate0) / 0.25)
-        if u > 0:   # the exit, reversed: text, plate (and bar, loupe), leader, marker
-            text_a *= 1 - min(1.0, u / 0.06)
-            close = 1 - _ease_in((u - 0.04) / 0.10)
-            plate, bar, loupe_a = plate * close, bar * close, loupe_a * close
-            lead *= 1 - _ease_in((u - 0.12) / 0.12)
-            shrink = 1 - min(1.0, max(0.0, (u - 0.22) / 0.08))
+        plate_a = 1.0
+        if u > 0:   # the exit: text and plate (with its bar, shadow and loupe) fade as one, then leader, marker
+            leave = 1 - _ease_io(u / EXIT_FADE)
+            text_a *= leave
+            plate_a = min(leave, text_a)   # a plate is never more opaque than its text (review 2026-11-03)
+            bar, loupe_a = bar * plate_a, loupe_a * plate_a
+            lead *= 1 - _ease_in((u - EXIT_FADE) / EXIT_RETRACT)
+            shrink = 1 - min(1.0, max(0.0, (u - (EXIT_TIME - EXIT_SHRINK)) / EXIT_SHRINK))
             g, trace = g * shrink, trace * shrink
         ripple = None
         p = (t - tl.landed) / RIPPLE_TIME
@@ -2323,11 +2330,11 @@ def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH
             r0, r1 = RIPPLE[fmt]
             ripple = (r0 + (r1 - r0) * e, 0.9 * (1 - e))
         dim = 1.0 if nexts[k] is None else 1 - (1 - dim_to) * _ease_io((t - nexts[k]) / DIM_TIME)
-        return {"g": g, "trace": trace, "lead": lead, "bar": bar, "plate": plate, "text_a": text_a,
-                "text_off": text_off, "loupe_a": loupe_a, "ripple": ripple, "dim": dim, "casing": casing,
-                "casing_px": casing_px}
+        return {"g": g, "trace": trace, "lead": lead, "bar": bar, "plate": plate, "plate_a": plate_a,
+                "text_a": text_a, "text_off": text_off, "loupe_a": loupe_a, "ripple": ripple, "dim": dim,
+                "casing": casing, "casing_px": casing_px}
 
-    def draw(t: float, masks: dict | None = None, skip_text: bool = False) -> Image.Image:
+    def draw(t: float, masks: dict | None = None, skip_text: bool = False, drew: dict | None = None) -> Image.Image:
         z = push.zoom(t)
         im = background(t).copy()
         live = []
@@ -2341,7 +2348,7 @@ def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH
         for k, st, dx, dy in live:   # every plate's lift shadow, under every leader (it never darkens their gold)
             a = arts[k]
             if st["plate"] > 0:
-                _blit(im, (0, 0, 0), a.plate(st["plate"])[0], a.ox + dx, a.oy + dy, SHADOW_ALPHA / 255)
+                _blit(im, (0, 0, 0), a.plate(st["plate"])[0], a.ox + dx, a.oy + dy, SHADOW_ALPHA / 255 * st["plate_a"])
         for k, st, dx, dy in live:   # every casing and marker ink
             ink, gold = arts[k].lines(st["g"], st["trace"], st["lead"], st["casing_px"])
             drawn[k] = gold
@@ -2355,12 +2362,18 @@ def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH
                 _blit(im, GOLD, a.ripple(st["ripple"][0]), a.ox + dx, a.oy + dy, st["ripple"][1] * st["dim"])
         for k, st, dx, dy in live:   # every plate, bar and text
             a = arts[k]
+            if drew is not None:
+                nx, ny = NORMAL[labels[k]["attach"]]
+                drew[k] = {"plate_a": PLATE_ALPHA / 255 * st["plate_a"] if st["plate"] > 0 else 0.0,
+                           "text_a": st["text_a"] if not skip_text else 0.0, "plate": st["plate"],
+                           "lead": st["lead"], "g": st["g"], "shift": (dx, dy),
+                           "text_at": (a.ox + dx + nx * st["text_off"], a.oy + dy + ny * st["text_off"])}
             if st["plate"] > 0:
                 _, fill, hair = a.plate(st["plate"])
-                _blit(im, INK, fill, a.ox + dx, a.oy + dy, PLATE_ALPHA / 255)
-                _blit(im, BONE, hair, a.ox + dx, a.oy + dy, HAIRLINE_ALPHA / 255)
+                _blit(im, INK, fill, a.ox + dx, a.oy + dy, PLATE_ALPHA / 255 * st["plate_a"])
+                _blit(im, BONE, hair, a.ox + dx, a.oy + dy, HAIRLINE_ALPHA / 255 * st["plate_a"])
             if st["bar"] > 0:
-                _blit(im, GOLD, a.bar(st["bar"]), a.ox + dx, a.oy + dy, st["dim"])
+                _blit(im, GOLD, a.bar(st["bar"]), a.ox + dx, a.oy + dy, st["dim"] * st["plate_a"])
             if st["text_a"] > 0 and not skip_text:
                 nx, ny = NORMAL[labels[k]["attach"]]
                 off = st["text_off"]
@@ -2453,7 +2466,7 @@ def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH
         if len(keep) < 2:
             raise LowContrast(f"fewer than two labels reach {NONTEXT_MIN}:1 non-text contrast: {why}")
         clip = render(photo, [points[k] for k in keep], out, width=width, height=height,
-                      reveal=[cues[k] for k in keep])
+                      reveal=[cues[k] for k in keep], record=record)
         side = Path(str(clip) + ".contrast.json")
         try:
             rec = json.loads(side.read_text(encoding="utf-8"))
@@ -2468,10 +2481,19 @@ def render(photo: Path, points: list[tuple], out: Path, width: int = VIDEO_WIDTH
     low: dict[int, tuple[float, int, Image.Image, list]] = {}
     poster: list[Image.Image] = []
 
+    if record is not None:
+        record["labels"] = [{"text": a.text().copy(), "box": tuple(lab["box"]), "radius": lab["radius"]}
+                            for a, lab in zip(arts, labels)]
+        record["frames"] = []
+        record["exit_frame"] = exit_frame
+
     def frames():
         for i in range(n):
             t = i / VIDEO_FPS
-            im = draw(t)
+            drew: dict | None = {} if record is not None else None
+            im = draw(t, drew=drew)
+            if record is not None:
+                record["frames"].append({"i": i, "t": t, "labels": drew})
             for k, lab in enumerate(labels):
                 if probes[k] and probes[k][0] <= i < exit_frame:
                     dx, dy = push.shift(*lab["dot"], t)

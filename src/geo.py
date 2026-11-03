@@ -8,6 +8,7 @@ Where a topic is, for the locator-map graphic.
   the world can't put the pin in the wrong place. Results are cached in data/geo_cache.json.
 - Country outlines: Natural Earth 1:50m admin-0 countries (public domain), stored at
   tools/geo/ne_50m_admin_0_countries.geojson (fetch with scripts/fetch_geodata.py).
+- Shaded relief: Natural Earth SR_HR.tif (or SR_50M.tif) in tools/geo/relief/ (fetch with scripts/fetch_relief.py).
 Sources and terms: docs/sources.md.
 """
 
@@ -15,6 +16,7 @@ import json
 import logging
 import time
 from functools import lru_cache
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
@@ -24,7 +26,24 @@ from .config import BASE_DIR, DATA_DIR
 log = logging.getLogger(__name__)
 
 COUNTRIES_FILE = BASE_DIR / "tools" / "geo" / "ne_50m_admin_0_countries.geojson"
-RELIEF_FILE = BASE_DIR / "tools" / "geo" / "relief" / "SR_HR.tif"  # Natural Earth shaded relief, public domain
+# Natural Earth shaded relief (public domain; fetch with scripts/fetch_relief.py). The 1:10m SR_HR (21600x10800,
+# 60 px a degree) matches what the locator map samples (about 60 px a degree of latitude on its 9:16 close-up);
+# the 1:50m SR_50M (10800x5400) is the fallback when only it is present (softer: upsampled about 2x).
+RELIEF_HR_FILE = BASE_DIR / "tools" / "geo" / "relief" / "SR_HR.tif"
+RELIEF_50M_FILE = BASE_DIR / "tools" / "geo" / "relief" / "SR_50M.tif"
+FETCH_COUNTRIES_CMD = "python scripts/fetch_geodata.py"
+FETCH_RELIEF_CMD = "python scripts/fetch_relief.py"
+
+
+def _relief_file() -> Path:
+    """SR_HR.tif if present, else SR_50M.tif if present, else the SR_HR path (missing: maps render flat)."""
+    for p in (RELIEF_HR_FILE, RELIEF_50M_FILE):
+        if p.is_file():
+            return p
+    return RELIEF_HR_FILE
+
+
+RELIEF_FILE = _relief_file()
 CACHE_FILE = DATA_DIR / "geo_cache.json"
 WIKIDATA_API = "https://www.wikidata.org/w/api.php"
 NAME_FIELDS = ("NAME", "NAME_LONG", "ADMIN", "FORMAL_EN", "NAME_EN", "GEOUNIT")
@@ -37,6 +56,17 @@ Ring = List[Tuple[float, float]]
 
 def available() -> bool:
     return COUNTRIES_FILE.exists()
+
+
+def missing_files() -> List[Tuple[Path, str]]:
+    """The geo files that are not on disk, each with the command that fetches it: without the country outlines
+    no map is drawn; without the shaded relief maps render flat."""
+    out: List[Tuple[Path, str]] = []
+    if not COUNTRIES_FILE.is_file():
+        out.append((COUNTRIES_FILE, FETCH_COUNTRIES_CMD))
+    if not (RELIEF_FILE.is_file() or _relief_file().is_file()):
+        out.append((RELIEF_HR_FILE, FETCH_RELIEF_CMD))
+    return out
 
 
 @lru_cache(maxsize=1)

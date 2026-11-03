@@ -154,6 +154,23 @@ def documentary_cover(title: str, max_line: int = 22) -> Dict[str, str]:
     return {"eyebrow": "DOCUMENTARY", "line1": lines[0], "line2": lines[1], "tagline": "EXPLORE THE EVIDENCE"}
 
 
+def warn_missing_geo_files() -> List[str]:
+    """A WARNING at run start for each map data file not on disk (tools/ is gitignored, so a deploy from GitHub
+    has neither until they are fetched): without the country outlines no locator or route map is made, without the
+    shaded relief they render flat. Returns the warnings logged."""
+    from src import geo
+    lines = []
+    for path, command in geo.missing_files():
+        try:
+            shown = path.relative_to(config.BASE_DIR)
+        except ValueError:
+            shown = path
+        effect = "maps render flat (no shaded relief)" if "relief" in path.parts else "no map graphics are made"
+        lines.append(f"Map data missing: {shown} is not on disk, so {effect}. Fetch it with: {command}")
+        log.warning(lines[-1])
+    return lines
+
+
 class PipelineCoordinator:
     def __init__(self, db: Optional[PipelineDatabase] = None, schedule_posts: bool = False):
         # schedule_posts: approved Reels wait for their posting slot (daemon); otherwise post at once (CLI).
@@ -211,6 +228,7 @@ class PipelineCoordinator:
         if config.FONT_SIZE == 72:   # the caption size before 2026-11-03, most likely an old .env line
             log.warning("FONT_SIZE=72 is set (a .env from before 2026-11-03?): Reel captions draw at 72 px, not the "
                         "approved 80. Remove the line or set FONT_SIZE=80.")
+        warn_missing_geo_files()
         if not health["all_passed"]:
             # Said in Telegram, not only logged: production's scheduled runs failed this way unnoticed (ffprobe).
             failed = [f"{k}: {v['msg']}" for k, v in health["details"].items() if v["required"] and not v["passed"]]

@@ -132,6 +132,11 @@ the release does not change (fact sheets, credits, music usage) keep their local
 procedure never changes `.env`, identities, ACLs or the backup task, and production stays in
 `--dry-run`. Rollback: the same procedure with the previous tag.
 
+Map data is not in the release either (`tools/` is gitignored). Fetch it once on the VM, from the app root:
+`python scripts/fetch_geodata.py` (country outlines; without them no maps are made) and
+`python scripts/fetch_relief.py` (Natural Earth shaded relief SR_HR.tif; `--medium` for the smaller SR_50M.tif;
+without either, maps render flat). Each run logs a `Map data missing` WARNING naming any file still absent.
+
 ## Automatic release deployment
 
 Once installed, production installs signed releases itself; promotion needs no administrator and

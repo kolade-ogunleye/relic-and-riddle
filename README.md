@@ -108,6 +108,13 @@ pip install -r requirements.txt
 ### 3. Optional tools
 * **Real-ESRGAN (Windows):** the portable [realesrgan-ncnn-vulkan](https://github.com/xinntao/Real-ESRGAN/releases) build in `tools/realesrgan/realesrgan-ncnn-vulkan.exe`.
 * **Depth Anything V2:** `depth_anything_v2_small.onnx` in `tools/models/`.
+* **Map data (Natural Earth, public domain):** `tools/` is gitignored, so a fresh clone or a deploy from
+  GitHub has neither file until it is fetched. A run logs a `Map data missing` WARNING naming each missing file.
+  ```bash
+  python scripts/fetch_geodata.py        # country outlines -> tools/geo/ne_50m_admin_0_countries.geojson (~3 MB); without it no maps are made
+  python scripts/fetch_relief.py         # shaded relief    -> tools/geo/relief/SR_HR.tif (21600x10800); without it maps render flat
+  python scripts/fetch_relief.py --medium  # or the smaller 1:50m SR_50M.tif (10800x5400), used when SR_HR.tif is absent
+  ```
 
 ### 4. Configuration
 ```bash

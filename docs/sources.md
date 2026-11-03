@@ -88,7 +88,8 @@ https://ai.google.dev/gemini-api/docs/pricing
 ## Map and graphics data
 - Natural Earth (https://www.naturalearthdata.com/about/terms-of-use/): "All versions of Natural Earth
   raster + vector map data ... are in the public domain"; commercial use invited; "Crediting the
-  authors is unnecessary". We use 1:50m admin-0 countries v5.1.2 (`scripts/fetch_geodata.py`).
+  authors is unnecessary". We use 1:50m admin-0 countries v5.1.2 (`scripts/fetch_geodata.py`) and the
+  shaded relief raster SR_HR (1:10m) or SR_50M (1:50m) from naciscdn.org (`scripts/fetch_relief.py`).
 - Wikidata (https://www.wikidata.org/wiki/Wikidata:Licensing): structured data is CC0. Coordinates
   (P625) are accepted only inside the topic's country (src/geo.py). API etiquette
   (https://www.mediawiki.org/wiki/API:Etiquette): identifying User-Agent, serial requests, maxlag, cache.

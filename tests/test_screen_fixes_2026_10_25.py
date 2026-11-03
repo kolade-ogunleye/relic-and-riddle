@@ -1,7 +1,10 @@
 """The screens review of 2026-10-25: /render N renders topic N, Help forms vs notes, /help in any case, the
 Bump picker, Covers paged, Posting numbered with each post on its own line, 🗓 Slots, confirmations before
 Post now and Cancel, typed /posts by episode number, plain words where ids and raw statuses were."""
+import sys
 from datetime import datetime, timedelta, timezone
+
+import pytest
 
 from src import control, telegram_commands
 from src.control import make_command_handler
@@ -40,11 +43,35 @@ def test_the_bump_picker_leaves_out_the_topic_already_next(db):
     assert all(nxt["id"] not in b["callback_data"] for row in rows for b in row)
 
 
+# Sun 25 Oct 2026 17:00 EDT, the day of the review. A carousel waits at most 7 days from its booking and goes out
+# no sooner than 48 h after its Reel, on a Tue-Thu slot whose hour alternates by date (src/post_schedule.py), so
+# from some days and hours a Reel booked an hour ahead leaves its carousel no slot before it expires (Tue 3 Nov,
+# 13:00 EST: Thu's 12:00 is 2 h too soon, the next Tue's 19:00 6 h too late). From here it has Tue 27 Oct 19:00.
+FROZEN_NOW = datetime(2026, 10, 25, 21, 0, tzinfo=timezone.utc)
+
+
+class _FrozenDatetime(datetime):
+    @classmethod
+    def now(cls, tz=None):
+        return FROZEN_NOW.astimezone(tz) if tz else FROZEN_NOW.astimezone().replace(tzinfo=None)
+
+
+@pytest.fixture
+def frozen_clock(monkeypatch):
+    """The booking (this module), its created_at (src.db) and the carousel plan (src.posting_view) all read one
+    fixed instant, so a test of who takes a carousel slot does not depend on the day and hour it runs."""
+    from src import db as db_module
+    from src import posting_view
+    for module in (sys.modules[__name__], db_module, posting_view):
+        monkeypatch.setattr(module, "datetime", _FrozenDatetime)
+    return FROZEN_NOW
+
+
 def _book(db, tmp_path):
     topic = db.list_all_topics()[0]["id"]
     db.create_run("run_p", topic)
     db.update_run("run_p", "scheduled", master_video_path=str(tmp_path / "m.mp4"))
-    # an hour ahead: from any day and hour its carousel finds a slot within the 7 days a carousel waits
+    # an hour ahead (tests of the carousel's slot freeze the clock: see FROZEN_NOW)
     due = (datetime.now(timezone.utc) + timedelta(hours=1)).replace(second=0, microsecond=0)
     reel = db.add_scheduled_post("run_p", "reel", due.isoformat(), [])
     db.add_scheduled_post("run_p", "story", (due + timedelta(minutes=45)).isoformat(), ["s.jpg"])
@@ -141,7 +168,7 @@ def test_different_alerts_with_the_same_heading_are_not_merged(db):
     assert "Topic A" in text and "Topic B" in text and text.count("2 times") == 1
 
 
-def test_a_carousel_that_wont_post_takes_no_slot(db, tmp_path):
+def test_a_carousel_that_wont_post_takes_no_slot(db, tmp_path, frozen_clock):
     from src.posting_view import carousel_plan
     _book(db, tmp_path)
     assert carousel_plan(db)                                           # booked and live: it has its slot
@@ -157,7 +184,7 @@ def test_every_recorded_finding_class_has_words():
         assert "." not in name and "_" not in name and name[0].isupper(), (klass, name)
 
 
-def test_a_live_run_not_promoted_takes_no_slot_where_only_promoted_runs_post(db, tmp_path):
+def test_a_live_run_not_promoted_takes_no_slot_where_only_promoted_runs_post(db, tmp_path, frozen_clock):
     # Verification of c27168a: Slots gave such a run a carousel slot the daemon then skipped
     from src.posting_view import carousel_plan, wont_post
     _book(db, tmp_path)

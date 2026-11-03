@@ -1604,6 +1604,37 @@ def single_gold_span(shown: list[str], gold: list[int]) -> list[int]:
     return figures[-1] if figures else runs[0]
 
 
+RELEVEL_MAX_DB = 6.0   # a dropped loop bridge's cut programme is re-levelled by at most this much
+
+
+def _relevel_filter(audio: Path, seconds: float, target_lufs: float) -> str:
+    """The audio filter prefix (ending in a comma) that brings the first `seconds` of `audio` to `target_lufs`
+    integrated, limited at the master chain's ceiling; "" when it is already within 0.2 LU or cannot be measured."""
+    import math
+    import tempfile
+    from .encoded_audio import LOWPASS_HZ, MASTER_LIMIT
+    from .video_qa import measure_program_loudness
+    handle, cut = tempfile.mkstemp(dir=audio.parent, suffix=".wav")
+    os.close(handle)
+    try:
+        _run_ffmpeg(["ffmpeg", "-y", "-hide_banner", "-nostats", "-v", "error", "-i", str(audio),
+                     "-t", f"{seconds:.3f}", "-c:a", "pcm_s24le", cut])
+        measured = measure_program_loudness(Path(cut))["integrated_lufs"]
+    except (ValueError, OSError, subprocess.SubprocessError) as e:
+        log.warning("Could not measure the cut programme (%s); left as mastered.", e)
+        return ""
+    finally:
+        if os.path.exists(cut):
+            os.unlink(cut)
+    gain = max(-RELEVEL_MAX_DB, min(RELEVEL_MAX_DB, target_lufs - measured))
+    if abs(gain) < 0.2:
+        return ""
+    log.info("Cut programme at %.1f LUFS; re-levelled by %+.1f dB to %.1f.", measured, gain, target_lufs)
+    rate = AUDIO_SAMPLE_RATE
+    return (f"volume={gain:.2f}dB,lowpass=f={LOWPASS_HZ}:poles=2,aresample={rate * 4},"
+            f"alimiter=limit={MASTER_LIMIT:.4f}:attack=2.5:release=80:level=disabled:asc=1,aresample={rate},")
+
+
 class VideoComposer:
     def __init__(self, fonts_dir: Path = FONTS_DIR):
         self.fonts_dir = fonts_dir
@@ -2262,7 +2293,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         else:
             motion = loop_motion(scene_images, durations, vo_dur, macro_indices, width, height)
             self.last_end_card = self._render_with_loop_bridge(head, delivery_args, end_card, vo_dur, output_mp4_path,
-                                                               motion)
+                                                               motion, target_lufs=profile.target_lufs)
             self.last_end_card["level"] = card_level
         from .encoded_audio import finalize_encoded_audio
         encoded_audio = finalize_encoded_audio(output_mp4_path, profile.target_lufs, profile.target_true_peak)
@@ -2286,7 +2317,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     @staticmethod
     def _render_with_loop_bridge(head: List[str], delivery_args: List[str], share: str, vo_dur: float,
-                                 output_mp4_path: Path, motion: Optional[Dict[str, float]] = None) -> Dict[str, Any]:
+                                 output_mp4_path: Path, motion: Optional[Dict[str, float]] = None,
+                                 target_lufs: Optional[float] = None) -> Dict[str, Any]:
         """The Reel master ending on the loop bridge (src/end_card.py loop_bridge; operator decision 2026-11-03, in
         place of the full end card), in two passes. The first renders the narrated body (visually lossless), the
         whole mastered programme (narration, then the bed alone under the bridge) and the graded last frame without
@@ -2333,9 +2365,15 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             if not gate["ok"]:
                 log.warning("Loop bridge dropped: %s", "; ".join(gate["problems"]))
                 fade = max(0.0, vo_dur - 0.05)
+                # The programme was mastered to target with the bridge's quieter tail in it: cut at the narration
+                # it reads louder (CI, 2026-11-03: -13.1 LUFS against -14 locally, past the 1 LU tolerance on the
+                # runner). Re-level the cut programme to target, under the master chain's limiter ceiling.
+                level = ""
+                if target_lufs is not None:
+                    level = _relevel_filter(audio, vo_dur, target_lufs)
                 _run_ffmpeg(["ffmpeg", "-y", "-hide_banner", "-nostats", "-v", "error",
                              "-i", str(body), "-i", str(audio), "-map", "0:v", "-map", "1:a",
-                             "-af", f"afade=t=out:st={fade:.3f}:d=0.05", *delivery_args,
+                             "-af", f"{level}afade=t=out:st={fade:.3f}:d=0.05", *delivery_args,
                              "-t", f"{vo_dur:.2f}", str(output_mp4_path)])
                 return {"variant": None, "start_s": round(vo_dur, 3), "duration_s": 0.0, "text": None,
                         "problems": gate["problems"], "note": gate["note"]}

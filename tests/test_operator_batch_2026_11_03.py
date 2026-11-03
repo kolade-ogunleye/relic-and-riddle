@@ -391,3 +391,26 @@ def test_an_atomic_pair_stays_whole_when_no_burst_fits_at_80_px():
     assert any(p[-2:] == ["Krishna", "I"] or p[:2] == ["Krishna", "I"] or "Krishna" in p and "I" in p
                for p in phrases)
     assert [w for p in phrases for w in p] == [w["word"] for w in words]
+
+
+def test_a_dropped_bridge_master_is_re_levelled_to_target(tmp_path, monkeypatch):
+    """CI 2026-11-03: cutting the programme at the narration left it 0.9-1.1 LU over target (it was mastered with
+    the bridge's quieter tail), which failed delivery on the runner. The cut programme is re-levelled to target."""
+    if not shutil.which("ffmpeg"):
+        pytest.skip("FFmpeg is required to render a master")
+    from src.video_qa import measure_program_loudness
+    master, _ = _render(tmp_path, monkeypatch, fail_gate=True)
+    assert measure_program_loudness(master)["integrated_lufs"] == pytest.approx(-14.0, abs=0.5)
+
+
+def test_relevel_filter_targets_the_cut_and_is_bounded(tmp_path):
+    import soundfile as sf
+
+    from src.video_composer import RELEVEL_MAX_DB, _relevel_filter
+    sr = 48000
+    t = np.arange(sr * 3) / sr
+    wav = tmp_path / "p.wav"
+    sf.write(wav, np.column_stack([0.05 * np.sin(2 * np.pi * 220 * t)] * 2), sr)
+    f = _relevel_filter(wav, 3.0, -14.0)
+    gain = float(f.split("volume=")[1].split("dB")[0])
+    assert 0 < gain <= RELEVEL_MAX_DB and "alimiter" in f and f.endswith(",")

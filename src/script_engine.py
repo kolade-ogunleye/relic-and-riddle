@@ -2402,6 +2402,10 @@ class ScriptEngine:
                         previous: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """The run's script (see _generate_script), with the length window kept over its drafts: started afresh
         by a run's first call, carried on by its revisions (`previous`)."""
+        # production with no usable FACT_RECORD_KEY stops before the writer's call is spent: no fact review could be
+        # signed, so nothing would publish (operator decision A; review 2026-11-03, round 4)
+        from .fact_evidence import require_signing_key
+        require_signing_key()
         key = (topic.get("id"), getattr(self, "length_run", None))
         if previous is None or _length_history["key"] != key:
             begin_length_history(key)

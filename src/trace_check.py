@@ -105,7 +105,19 @@ def surfaces(payload: Dict[str, Any]) -> List[Tuple[str, str]]:
     material = ClaimFactChecker._material(material_payload)
     out += [("graphic", ln) for ln in material.splitlines()
             if ln.startswith(("Timeline:", "Scale graphic:", "Scale reference:", "Number card:", "Cross-section", "Route stop:", "Photo labels"))]
+    # A fact sheet's card field, checked on its own (src/card_fields.py): a payload of only "card_copy" lines. No
+    # published payload carries the key, so its fingerprint is unchanged.
+    out += [("graphic", str(t)) for t in payload.get("card_copy") or []]
     return [(w, t) for w, t in out if t.strip()]
+
+
+def checker_models() -> dict[str, str]:
+    """The models check() and evidence_check() run on, as configured: recorded only when no call reported the model
+    that answered (llm.watch_served; card_fields.check_field and main._verify_final_copy record that one)."""
+    from . import config
+    trace = config.FREE_CHECKER_MODEL if free_llm.enabled() else config.CLAUDE_MODEL
+    evidence = config.FREE_CHECKER_MODEL if gemini_checker_available() else trace
+    return {"trace_check": trace, "evidence_check": evidence}
 
 
 def untraced_numbers(payload: Dict[str, Any], sheet: Dict[str, Any]) -> List[str]:

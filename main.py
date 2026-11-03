@@ -2340,8 +2340,13 @@ class PipelineCoordinator:
                             engagement_learning.caption_question(payload.get("caption", "")))]}
         from src.config import DATA_DIR
         sheet_file = DATA_DIR / "fact_sheets" / f"{tid}.json"
-        if passed and sheet_file.is_file():
-            from src.fact_evidence import record_fact_review
+        from src.fact_evidence import record_fact_review, unchecked_pass
+        if passed and sheet_file.is_file() and unchecked_pass(payload):
+            # no checker ran on an unreviewed curated script (a dry run's pass): never stamped or signed, so the
+            # final copy goes through the real checkers before the release gate trusts it (decision A)
+            payload.pop("fact_review", None)
+            log.info("Script passed without a fact checker (unreviewed curated, dry run): no fact review recorded.")
+        elif passed and sheet_file.is_file():
             record_fact_review(payload, sheet_file)
         (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
         self.db.update_run(run_id, "producing", script_payload=payload)
@@ -2354,22 +2359,38 @@ class PipelineCoordinator:
         from src import trace_check, config as pipeline_config
         if current_fact_review(payload):
             return
+        # production with no FACT_RECORD_KEY stops before a checker call: nothing could be signed (decision A)
+        from src.fact_evidence import require_signing_key
+        require_signing_key()
         sheet_path = pipeline_config.DATA_DIR / "fact_sheets" / f"{topic['id']}.json"
         if not sheet_path.is_file():
             raise ValueError("Final package verification requires a fact sheet")
         sheet = json.loads(sheet_path.read_text(encoding="utf-8"))
-        passed, _, audits, notes = trace_check.check(payload, sheet)
+        # the models that ANSWERED go on the gate record, not the configured ones
+        from src.llm import watch_served
+        with watch_served() as t_served:
+            passed, _, audits, notes = trace_check.check(payload, sheet)
         payload["guardrail_passed"] = passed
         payload["final_fact_audits"] = audits
         if not passed:
             raise ValueError("Final public copy failed fact verification: " + notes)
-        status, confidence, evidence_audits, evidence_notes = trace_check.evidence_check(payload, sheet)
+        with watch_served() as e_served:
+            status, confidence, evidence_audits, evidence_notes = trace_check.evidence_check(payload, sheet)
         payload["second_check"] = {"status": status, "confidence": confidence,
                                     "audits": evidence_audits, "summary": evidence_notes}
         if status != "pass":
             payload["guardrail_passed"] = False
             raise ValueError("Final public copy failed evidence verification: " + evidence_notes)
-        record_fact_review(payload, sheet_path)
+        from src.fact_evidence import check_record, checker_run, public_fingerprint
+        models = trace_check.checker_models()
+        served = {"trace_check": t_served, "evidence_check": e_served}
+        models = {k: " + ".join(dict.fromkeys(served[k])) if served[k] else v for k, v in models.items()}
+        # each run signed as the checkers returned it (FACT_RECORD_KEY), then the gate record and the stamp
+        public = public_fingerprint(payload)
+        record_fact_review(payload, sheet_path, check=check_record(
+            checker_run("trace_check", public, models["trace_check"], passed, audits, notes),
+            checker_run("evidence_check", public, models["evidence_check"], status == "pass", evidence_audits,
+                        evidence_notes), public))
 
     def _lines_against_pictures(self, topic, run_id, run_dir, dry_run, payload, scene_media, checkpoints,
                                 kept_words=False) -> Dict[str, Any]:

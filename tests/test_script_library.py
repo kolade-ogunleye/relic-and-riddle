@@ -178,7 +178,10 @@ def test_every_shipped_entry_still_matches_its_research_and_passes_todays_checks
             assert kept is not None, entry.name
             assert main.PipelineCoordinator._passes_today(kept, entry.name), entry.name
             from src.fact_evidence import current_fact_review
-            assert current_fact_review(kept), entry.name   # no new fact-check spend where the rules are unchanged
+            # operator decision A (2026-11-03, a deliberate change): the shipped entries' reviews were stamped before
+            # records were signed, so none is trusted now; the first run re-checks its copy (it was: no new spend)
+            assert not current_fact_review(kept), entry.name
+            assert not (kept.get("fact_review") or {}).get("signature"), entry.name
 
 
 def test_render_fresh_and_reuse_start_a_run_with_those_options(db):

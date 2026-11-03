@@ -95,6 +95,20 @@ def no_real_services(monkeypatch):
     monkeypatch.setattr(audio_engine, "measure_spoken_seconds", lambda text, speed=1.0: None)
 
 
+TEST_FACT_RECORD_KEY = "test-only-fact-record-key-0123456789abcdef"
+
+
+@pytest.fixture(autouse=True)
+def fact_record_key(no_real_services, monkeypatch):
+    """Fact-check records are signed under FACT_RECORD_KEY (src/record_signing.py): tests sign and verify under this
+    test key, never a developer's .env key (no_real_services blanks the real one first). A test of a missing or
+    rotated key sets config.FACT_RECORD_KEY itself."""
+    from src import config, record_signing
+    monkeypatch.setattr(config, "FACT_RECORD_KEY", TEST_FACT_RECORD_KEY)
+    monkeypatch.setattr(record_signing, "_warned", set())
+    return TEST_FACT_RECORD_KEY
+
+
 @pytest.fixture(autouse=True)
 def no_stale_slowdown(monkeypatch):
     """The slow-step note (src/slowdown.py) is process-wide: one test's "free model busy" showed on a later test's

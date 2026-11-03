@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .credits import SHARE_ALIKE_NOTICE, asset_attribution, is_share_alike, sha256_file
-from .fact_evidence import current_fact_review
+from .fact_evidence import fact_review_problem
 from .delivery_profiles import get_delivery_profile
 from .video_qa import measure_program_loudness, verify_provenance_integrity
 
@@ -26,8 +26,11 @@ def write_release_report(run, dry_run=False):
 
     add("caption_length", len(payload.get("caption", "")) <= 2200,
         "Caption and attribution must fit the supported Instagram publication limit.")
-    add("facts", current_fact_review(payload),
-        "Factual review must match the public copy and current research file.")
+    # the review stamp must also carry a valid FACT_RECORD_KEY signature (operator decision A, 2026-11-03): an
+    # unsigned, edited or other-key record fails here, and so does every record when the key is unset
+    facts_problem = fact_review_problem(payload)
+    add("facts", not facts_problem,
+        facts_problem or "Factual review must match the public copy and current research file.")
     try:
         result = subprocess.run(["ffprobe", "-v", "error", "-show_streams", "-show_format",
                                  "-of", "json", str(master)], capture_output=True, text=True,

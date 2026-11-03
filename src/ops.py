@@ -50,20 +50,28 @@ class SecretMasker:
         "EUROPEANA_API_KEY",
         "GEMINI_FREE_API_KEY_SPARE",  # were missing: an error carrying either was shown unmasked
         "GROQ_API_KEY",
+        "FACT_RECORD_KEY",  # signs fact-check records (src/record_signing.py): never shown, even in part
     )
 
     @property
     def sensitive_tokens(self):
         # Read at each use, not once at start: a credential taken from .env while the daemon runs
         # (env_sync.pick_up_credentials) is masked from its first log line
-        return [v for v in (getattr(config, n, "") for n in self.SECRET_NAMES) if is_configured(v) and len(v) > 4]
+        tokens = [v for v in (getattr(config, n, "") for n in self.SECRET_NAMES) if is_configured(v) and len(v) > 4]
+        # the record key is masked whatever it holds (review 2026-11-03, round 4: a short or "your_" key was shown):
+        # such a key is never used to sign (record_signing.MIN_KEY_BYTES), but it is still not printed
+        key = str(getattr(config, "FACT_RECORD_KEY", "") or "").strip()
+        if len(key) >= 4 and key not in tokens:
+            tokens.append(key)
+        return sorted(tokens, key=len, reverse=True)   # a longer secret is masked before one it contains
 
     def mask(self, text: str) -> str:
         if not text:
             return text
         sanitized = str(text)
+        whole = str(getattr(config, "FACT_RECORD_KEY", "") or "")
         for token in self.sensitive_tokens:
-            replacement = token[:3] + "..." + token[-3:] if len(token) > 12 else "***"
+            replacement = token[:3] + "..." + token[-3:] if len(token) > 12 and token != whole else "***"
             sanitized = sanitized.replace(token, replacement)
         sanitized = _GOOGLE_KEY_RE.sub("AIza***", sanitized)
         return _TELEGRAM_TOKEN_RE.sub("bot***", sanitized)

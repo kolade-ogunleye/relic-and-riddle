@@ -7,7 +7,7 @@ The same schema constrains Claude's structured output and validates curated scri
 
 from typing import Annotated, List, Literal, Optional
 
-from pydantic import BaseModel, BeforeValidator
+from pydantic import BaseModel, BeforeValidator, Field
 
 
 class ThumbnailCopy(BaseModel):
@@ -86,8 +86,113 @@ class DraftFact(BaseModel):
     hedge: str                # if disputed or estimated: the safe wording (e.g. "about 85 m; sources range 60-85 m"); else ""
 
 
+CARD_TEXT_MAX = 84   # characters: a card-ready statement or a myth's correction
+
+
+class DraftCardStatement(BaseModel):
+    """A short card-ready statement the fact-sheet writer proposes: one of its own facts, said in at most 84 characters."""
+    id: str                   # short id, e.g. "S1"
+    text: str                 # at most 84 characters; no claim the fact does not make
+    fact_id: str              # the draft fact it restates
+
+
+class DraftCardMyth(BaseModel):
+    id: str                   # e.g. "M1"
+    myth: str                 # the misconception, worded as people state it
+    verdict: Literal["false", "misleading"]
+    refuting_fact_id: str     # the draft fact that refutes it
+    correction: str           # at most 84 characters, said from the refuting fact
+    quote_id: int             # 1-based number of the evidence quote that is its source
+
+
+class Speaker(BaseModel):
+    name: str                 # e.g. "Theodore Monod"
+    role: str = ""            # e.g. "Geologist"; "" when the evidence gives none
+
+
+class DraftCardQuote(BaseModel):
+    id: str                   # e.g. "Q1"
+    quotation: str            # the exact words between the evidence's quotation marks
+    speaker: Speaker
+    work: str = ""            # the work or source it was said in; "" when the evidence gives none
+    date: Optional[str] = None  # as the evidence dates it (e.g. "1940"), else null
+    fact_id: str              # the draft fact whose evidence holds the quotation
+    quote_id: int             # 1-based number of that evidence quote
+
+
+class DraftCardFields(BaseModel):
+    statements: List[DraftCardStatement] = []
+    myths: List[DraftCardMyth] = []
+    quotes: List[DraftCardQuote] = []
+
+
 class FactSheetDraft(BaseModel):
     facts: List[DraftFact]
+    cards: Optional[DraftCardFields] = None   # card-ready copy (src/card_fields.py checks it before any card uses it)
+
+
+# ------------------------------------------------------------------ card fields as stored on a fact sheet
+# The design cards (src/design_cards.py) draw only these fields, each with a verdict from the project's own fact
+# checker (trace_check.check and trace_check.evidence_check) recorded beside it (src/card_fields.py).
+CardVerdict = Literal["supported", "unsupported", "contradicted", "needs_check"]
+
+
+class CheckRun(BaseModel):
+    checker: Literal["trace_check", "evidence_check"]
+    text: str                 # the exact text the checker was given
+    model: str                # the model the checker ran on
+    passed: bool              # the checker's own pass/fail for this text
+    audits: List[dict]        # the checker's own claim audits, as it returned them
+    summary: str
+    signature: str = ""       # HMAC-SHA256 made when the checker returned (src/record_signing.py, "check_run")
+
+
+class CardCheck(BaseModel):
+    verdict: CardVerdict                  # "supported" is the only usable verdict
+    parts: dict = {}                      # per checked text: {"text": ...} or, for a myth, {"myth": ..., "correction": ...}
+    runs: List[CheckRun] = []             # the checker runs the verdict was derived from (empty when needs_check)
+    findings: List[str] = []              # deterministic findings (lengths, verbatim, attribution); empty when clean
+    checked_at: str = ""
+    facts_sha256: str = ""                # the sheet's facts the check was made against
+    field_sha256: str = ""                # the field's own content
+    sha256: str = ""                      # over everything above (card_fields.check_hash)
+    signature: str = ""                   # HMAC-SHA256 over the field and this record (record_signing, "card_check")
+
+
+class CardStatement(BaseModel):
+    id: str
+    text: str = Field(max_length=CARD_TEXT_MAX)
+    fact_id: str
+    check: Optional[CardCheck] = None
+
+
+class CardMyth(BaseModel):
+    id: str
+    myth: str
+    verdict: Literal["false", "misleading"]
+    refuting_fact_id: str
+    correction: str = Field(max_length=CARD_TEXT_MAX)
+    source: Source
+    check: Optional[CardCheck] = None
+
+
+class CardQuote(BaseModel):
+    id: str
+    quotation: str
+    speaker: Speaker
+    work: str = ""
+    date: Optional[str] = None
+    source_url: str
+    evidence: str             # the fact's evidence string the quotation appears in verbatim
+    fact_id: str              # the fact that evidence belongs to
+    check: Optional[CardCheck] = None
+
+
+class FactSheetCards(BaseModel):
+    statements: List[CardStatement] = []
+    myths: List[CardMyth] = []
+    quotes: List[CardQuote] = []
+    dropped: List[dict] = []  # proposed fields the deterministic rules dropped, with why
 
 
 class SentenceTrace(BaseModel):

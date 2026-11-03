@@ -558,3 +558,19 @@ CAPTION_FIRST_FRAME_WHOLE_S = 0.6
 CAPTION_CUT_SNAP_FRAMES = 6
 CAPTION_CUT_MIN_FRAMES = 2
 # <<< Captions round 4 ------------------------------------------------------------------------------------------------
+
+# >>> Signed fact-check records and held quote cards (operator decisions A and B, 2026-11-03) ---------------------------
+# FACT_RECORD_KEY: the secret every fact-check record is signed with (HMAC-SHA256, src/record_signing.py) when the
+# checker runs, and verified with wherever a record is trusted (the design cards, the release gate, and so the
+# publisher). Unset (or under 32 bytes, or a "your_" placeholder: src/record_signing.MIN_KEY_BYTES), nothing can
+# be signed or verified, so every record is untrusted: in production
+# (RELIC_ENVIRONMENT=production, which the launcher src/service_runtime.py sets) the fact check refuses to run and
+# nothing publishes; in development every record stays untrusted (a warning, no hard stop); tests set a test key
+# (tests/conftest.py). Never logged (src/ops.SecretMasker). Rotating it makes every record untrusted: the next run
+# re-checks its copy and a fact sheet's card fields refuse until they are checked again.
+FACT_RECORD_KEY = (os.getenv("FACT_RECORD_KEY") or "").strip()
+# Quote cards are held (decision B): while false, design_cards.plan_quote_card refuses with reason "held". Do not
+# turn on until signed records and a real checker key exist; then the speaker, work and date must come only from
+# the checker's signed record, with the evidence's prose parsed only to refuse.
+QUOTE_CARDS_ENABLED = (os.getenv("QUOTE_CARDS_ENABLED") or "false").strip().lower() in ("true", "1", "yes")
+# <<< Signed fact-check records ---------------------------------------------------------------------------------------

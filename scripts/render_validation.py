@@ -1,7 +1,6 @@
 """Render and inspect a prepared documentary without publishing or sending messages."""
 import argparse
 import json
-import re
 import sys
 from pathlib import Path
 
@@ -41,8 +40,6 @@ def main():
     for credit, photo in zip(selected, photos):
         credit["file"] = str(photo)
     (root / "credits.json").write_text(json.dumps({"reviewed": False, "images": selected}, indent=2), encoding="utf-8")
-    payload.update(rolling_stone_defense={"title": "ILLUSTRATIVE STONE DOOR"},
-                   ventilation_airflow={"title": "ILLUSTRATIVE AIRFLOW"})
     if not current_fact_review(payload):
         sheet_path = DATA_DIR / "fact_sheets" / f"{topic_id}.json"
         passed, confidence, audits, notes = check(payload, json.loads(sheet_path.read_text(encoding="utf-8")))
@@ -63,11 +60,6 @@ def main():
     words = json.loads((root / "words.json").read_text(encoding="utf-8"))
     duration = AudioEngine.get_duration(root / "voiceover.mp3")
     cues = {0.0: by_name["graphic_map"]} if "graphic_map" in by_name else {}
-    for pattern, name in ((r"rolling|cylinders|doors", "graphic_defense"),
-                          (r"ventilation", "graphic_ventilation")):
-        word = next((w for w in words if re.search(pattern, w["word"], re.I)), None)
-        if word and name in by_name:
-            cues[max(0.0, word["start"] - 0.3)] = by_name[name]
     boundaries = [float(t) for t in range(0, int(duration), 8)
                   if t == 0 or all(abs(t - cue) >= 3 for cue in cues)]
     boundaries = sorted(set([*boundaries, *cues, duration]))

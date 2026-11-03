@@ -88,12 +88,6 @@ class ClaimFactChecker:
         on_screen = [payload["thumbnail"][k] for k in ("eyebrow", "line1", "line2", "tagline")]
         on_screen += [f"{s['line1']} {s['line2']}. {s['body']}" for s in payload["story_slides"]]
         on_screen += [f"{c['heading']}: {c['body']}" for c in payload["carousel_slides"]]
-        from .graphics import diagram_labels, diagram_title
-        for key, kind in (("rolling_stone_defense", "defense"), ("ventilation_airflow", "ventilation")):
-            if payload.get(key):
-                spec = payload[key]
-                on_screen.append("Diagram: " + diagram_title(kind, spec) + " " +
-                                 " | ".join(diagram_labels(kind, spec).values()))
         # Animated graphics (src/graphics.py) show these as fact; check them like any on-screen text.
         from .graphics import year_text
         on_screen += [f"Timeline: {year_text(e['year'], e.get('approximate', False))} - {e['label']}"

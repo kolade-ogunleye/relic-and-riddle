@@ -1370,23 +1370,133 @@ def wide_col(i: float) -> float:
 WIDE_TIMELINE = (WIDE_LEFT, 1760)  # the 16:9 timeline's run, design px (from the grid's left edge, clear of the corner)
 COMPRESSED_FLOOR = 1.2            # a broken gap is drawn at least this much longer than the longest true-scale gap
 DIM_LEVEL = 0.55                  # an earlier event's brightness while a later one is current (RevealSchedule.level)
-TIMELINE_SPAN_RATIO = 0.8         # a 9:16 span label on its segment: at most this share of the labels' size
+TIMELINE_SPAN_RATIO = 0.76        # a 9:16 span label on its segment: this share of the labels' size (34 -> 26)
+                                  # (2026-11-03 hierarchy spec: 0.8 before; the 16:9 spans keep WIDE_SPAN_PX)
 SPAN_AIR = 0.6                    # round 4: a 9:16 span band's air above and below its label, in label sizes
-SPAN_MIN_PX = 30                  # round 4: the 9:16 span label's floor (24 before: tertiary type on a phone)
+SPAN_MIN_PX = 24                  # 2026-11-03 hierarchy spec: the 9:16 span label's floor (30 in round 4); the
+                                  # tiers are now told apart by size, weight and colour, so 26 px spans step to 24
+SPAN_AIR_BELOW_MIN = 10           # 2026-11-03: a set 9:16 span's least air under it to the later year (the fallback
+                                  # path keeps SPAN_FALLBACK_AIR); its air above stays >= 1.5 x this
 TALL_LABEL_MIN_PX = 34            # round 4: 9:16 event labels never step below this while the years can (30 before)
+TALL_LABEL_WEIGHT = 700           # 2026-11-03 hierarchy spec: the 9:16 labels' Montserrat weight (800 before)
+TALL_LABEL_FILL = (232, 227, 218)  # 2026-11-03: #E8E3DA, the 9:16 timeline labels' warm off-white (white before),
+                                   # a step under the gold years; brand.py is outside the spec's scope
 TALL_TOP_PAD = 12                 # px from the Reel box's top (safe_zones.graphics_box) to the first year's cap
                                   # (round 4 review 2: 30 px under TEXT_TOP's legacy 330 before, 72 px in all)
-TALL_YEAR_STEPS = (1.0, 0.92, 0.85, 0.78, 0.72, 0.66, 0.6)   # the Anton years' ladder, paid first
+TALL_YEAR_STEPS = tuple(round(1.0 - 0.04 * i, 2) for i in range(11))   # 2026-11-03: a 4 % ladder, 1.00 .. 0.60
 CIRCA = "c."                      # round 4: circa drawn lowercase, smaller, in Montserrat beside the Anton year
 SPAN_UNDER_LABEL = 2             # round 4 review 3: a 9:16 span is always at least this many px under the labels
 TALL_LABEL_ROWS = 3               # round 4 review 3: a 9:16 label's rows before it is cut (never cut where it fits)
 TALL_LABEL_ROWS_MAX = 6           # round 4 review 4: and more, up to this, while the column has room for them
-TALL_TIGHT_LEADING = 0.88         # round 4 review 3: the entries' leading, last, where nothing else fits the column
+TALL_LEADING = 1.15               # 2026-11-03: the 9:16 labels' leading, absolute (34 px -> a 39 px pitch)
+TALL_TIGHT_LEADING = 1.08         # and the tight one (37 px), taken before any year step (0.88 x 1.3 before)
+TALL_YEAR_LABEL_AIR = 14          # 2026-11-03: px from a year's baseline to its label's cap top (3-4 entries)
+TALL_NO_SPAN_AIR = 42             # 2026-11-03: px from a label's ink bottom to the next year's cap with no span
+TALL_ENTRY_SEPARATION = 2.5       # 2026-11-03: the gap between entries, at least this x an entry's largest inner air
+TALL_GAP_CAP = 1.5                # 2026-11-03: a gap between entries grows to at most this x the year cap (or its need)
 SPAN_FALLBACK_AIR = 6             # round 4 review 3: a fallback span's least air to any other plate, px
-CIRCA_MIN_PX = SPAN_MIN_PX        # round 4 review: the circa mark's floor, the tertiary type's (it fell to ~22 px)
-TALL_YEAR_RATIO = 2.0             # round 4 review 6: a 9:16 year's cap at least this many times the labels' cap
-                                  # while the column holds every label whole (the years fell to the labels' class)
-TALL_YEAR_RATIO_MIN = 1.6         # and, only where the column cannot hold every label whole at that, this (logged)
+CIRCA_MIN_PX = 30                 # the circa mark's floor (its own since 2026-11-03; it was SPAN_MIN_PX, 30)
+CIRCA_RATIO = 0.5                 # 2026-11-03: the circa mark's size, of the year's (0.36 before: it read as a speck)
+TALL_YEAR_RATIO = 3.0             # 2026-11-03: a 9:16 year's cap at least this many times the labels' cap
+                                  # while the column holds every label whole (2.0 in round 4)
+TALL_YEAR_RATIO_MIN = 2.5         # and, only where the column cannot hold every label whole at that, this (logged)
+TALL_STOP_WORDS = frozenset({"A", "AN", "THE", "OF", "ON", "IN", "AT", "TO", "INTO", "AND", "OR", "FOR", "BY",
+                             "WITH", "FROM"})   # 2026-11-03: no 9:16 label row but the last ends on one of these
+
+
+def tall_label_rows_budget(count: int) -> int:
+    """The rows a 9:16 timeline label may take before it is over budget (2026-11-03): 2 at 4 entries, 3 at 3, and
+    TALL_LABEL_ROWS at 2."""
+    return 2 if count >= 4 else 3 if count == 3 else TALL_LABEL_ROWS
+
+
+TALL_NUMBER_WORDS = frozenset({"TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE", "TEN", "ELEVEN",
+                               "TWELVE", "TWENTY", "THIRTY", "FORTY", "FIFTY", "SIXTY", "SEVENTY", "EIGHTY",
+                               "NINETY", "HUNDRED", "HUNDREDS", "THOUSAND", "THOUSANDS", "MILLION", "MILLIONS",
+                               "DOZEN", "DOZENS"})  # 2026-11-03 review 15: no row ends on a count before its noun
+
+
+def _held_breaks(words: list[str], source: str | None) -> set[int]:
+    """The break points j (a row ending after words[j - 1]) that split a phrase read as one (2026-11-03 review 15):
+    inside a run of capitalised words in the writer's `source` ("RAPA / NUI", "RANO / RARAKU"; a sentence's
+    first word does not start a run), and after a spelled count ("A HUNDRED / DAYS"). Empty where `source`
+    does not give the same words, or is set in capitals throughout (no case to read)."""
+    from .typography import _plain, _words, glue
+    held = {j for j in range(1, len(words)) if words[j - 1].upper().strip(",;:.") in TALL_NUMBER_WORDS}
+    if not source or not any(ch.islower() for ch in source):
+        return held
+    src = [_plain(w) for w in _words(glue(" ".join(source.split())))]
+    if len(src) != len(words) or any(a.upper() != b.upper() for a, b in zip(src, words)):
+        return held
+
+    def cap(k: int) -> bool:   # a capitalised word that is not a sentence's first
+        w = src[k].lstrip("\"'(\u201c\u2018")
+        first = k == 0 or src[k - 1].rstrip("\"')\u201d\u2019").endswith((".", "!", "?", ":"))
+        return bool(w) and w[0].isupper() and not first
+    for j in range(1, len(words)):
+        if src[j - 1].endswith((",", ";", ":", ".", "!", "?")):
+            continue
+        prev = src[j - 1].lstrip("\"'(\u201c\u2018")
+        if cap(j) and prev[:1].isupper():   # "Jacob Roggeveen", "Rapa Nui National Park"
+            held.add(j)
+    return held
+
+
+def balanced_label_rows(lines: list[str], font, width: float, track: float,
+                        source: str | None = None) -> tuple[list[str], bool]:
+    """`lines` (a whole label wrapped into its fewest rows) re-broken over the same number of rows (2026-11-03,
+    hierarchy spec B5): the widest tracked row as narrow as it can be, every row within `width`, and no row but the
+    last ending on a TALL_STOP_WORDS word. Returns (rows, obeyed): where no break set keeps the word rule the
+    plain balanced break is returned with obeyed False (the caller logs it). The joined text never changes; a
+    figure keeps to its unit (typography.glue). Review 15 (2026-11-03): with the writer's `source` (its case), a
+    break set that also keeps every name and spelled count whole (_held_breaks) is taken first, the widest row
+    least among those; only where none holds within `width` is a name split (the word rule still kept)."""
+    from itertools import pairwise
+    from .typography import _plain, _words, glue
+    rows = len(lines)
+    if rows < 2:
+        return list(lines), True
+    words = [_plain(w) for w in _words(glue(" ".join(lines)))]
+    n = len(words)
+    if n < rows:
+        return list(lines), True
+    widths: dict[tuple[int, int], float] = {}
+
+    def w_of(i: int, j: int) -> float:
+        if (i, j) not in widths:
+            widths[(i, j)] = _tracked_w(" ".join(words[i:j]), font, track)
+        return widths[(i, j)]
+
+    def stop(j: int) -> bool:          # a row ending after words[j - 1] ends on a stop word
+        return words[j - 1].upper().strip(",;:.") in TALL_STOP_WORDS
+    held = _held_breaks(words, source)
+
+    def best(rule: bool, keep: bool = False):
+        @cache
+        def rest(i: int, k: int) -> tuple[float, float, tuple[int, ...]] | None:
+            if k == 1:
+                w = w_of(i, n)
+                return (w, w * w, ()) if w <= width + 1e-6 else None
+            out = None
+            for j in range(i + 1, n - k + 2):
+                w = w_of(i, j)
+                if w > width + 1e-6:
+                    break
+                if (rule and stop(j)) or (keep and j in held):
+                    continue
+                sub = rest(j, k - 1)
+                if sub is None:
+                    continue
+                cand = (max(w, sub[0]), w * w + sub[1], (j, *sub[2]))
+                if out is None or cand[:2] < out[:2]:
+                    out = cand
+            return out
+        got = rest(0, rows)
+        return None if got is None else [" ".join(words[a:b]) for a, b in pairwise((0, *got[2], n))]
+    ruled = (best(True, True) if held else None) or best(True)
+    if ruled is not None:
+        return ruled, True
+    return best(False) or list(lines), False
 
 
 def span_band(label_px: int, gap_font) -> tuple[int, int]:
@@ -1459,8 +1569,12 @@ def span_air_rule(label_px: int, gap_font, inner_air: int, separate: bool) -> tu
     2026-11-02: at the bare lean a span sat 22 px under a two-line label whose own line gap is 18 px)."""
     if separate:
         return span_clear_airs(label_px, gap_font, inner_air)
-    above, below = span_airs(label_px, gap_font)
-    return max(above, span_least_above(inner_air)), below
+    # 2026-11-03 hierarchy spec, stage 3: down to the minimums, SPAN_MIN_SEPARATION x the inner air above and
+    # SPAN_AIR_BELOW_MIN below as the ink measures it (both edges' overshoot paid; 16 px at the lean), the air
+    # above still at least 1.5 x the air below
+    _above, below = span_airs(label_px, gap_font)
+    below = min(below, SPAN_AIR_BELOW_MIN + SPAN_OVERSHOOT)
+    return max(span_least_above(inner_air), math.ceil(1.5 * below)), below
 
 
 def span_fit(text: str, start_px: int, fits) -> tuple[str, int] | None:
@@ -1540,8 +1654,9 @@ def free_span_xy(box: tuple[float, float, float, float], xy: tuple[float, float]
 
 def span_font_px(label_px: int) -> int:
     """The 9:16 on-segment span label's size: below the event labels' (TIMELINE_SPAN_RATIO), so the secondary
-    elapsed time never reads larger or heavier than the white events it sits between; SPAN_MIN_PX (30) at least."""
-    return max(SPAN_MIN_PX, min(label_px - 4, round(label_px * TIMELINE_SPAN_RATIO)))
+    elapsed time never reads larger or heavier than the events it sits between; at least 8 px under them
+    (2026-11-03 hierarchy spec: 34 -> 26, 38 -> 29, 42 -> 32) and SPAN_MIN_PX (24) at least."""
+    return max(SPAN_MIN_PX, min(label_px - 8, round(label_px * TIMELINE_SPAN_RATIO)))
 
 
 @dataclass(frozen=True)
@@ -1819,12 +1934,13 @@ def year_parts(year: int, approximate: bool) -> tuple[str, str]:
 
 
 def circa_font(f_year, min_px: int | None = None) -> Any:
-    """The circa mark's face beside an Anton year: Montserrat SemiBold at about a third of the year's size, never
+    """The circa mark's face beside an Anton year: Montserrat SemiBold at half the year's size (CIRCA_RATIO), never
     under CIRCA_MIN_PX (`min_px` for another frame scale). Round 4 review (2026-11-02): at 0.36 of a stepped-down
     year it fell to about 22 px on a 1080-wide frame, under the span label's floor, and "c. 700 BC" read as an
-    exact date; the hedge is a fact, so it keeps the tertiary type's legibility floor whatever the year does."""
+    exact date; the hedge is a fact, so it keeps a legibility floor whatever the year does. 2026-11-03 hierarchy
+    spec: 0.36 read as a speck beside the numeral; lowercase still (capitals read as an initial), both frames."""
     floor = CIRCA_MIN_PX if min_px is None else min_px
-    return get_font("Montserrat", max(floor, round(f_year.size * 0.36)), weight=600)
+    return get_font("Montserrat", max(floor, round(f_year.size * CIRCA_RATIO)), weight=600)
 
 
 def year_width(year: int, approximate: bool, f_year) -> float:
@@ -1887,6 +2003,99 @@ def timeline_events(events: list[dict[str, Any]], limit: int = TIMELINE_MAX_EVEN
     return [events[i] for i in keep]
 
 
+def tall_label_measure(width: int, height: int) -> float:
+    """The 9:16 timeline labels' measure in px: from the column's left ink edge (xt, every row's ink set on it by
+    tall_left_x) to the graphics box's right, less the ink a row may overshoot its advance on either side
+    (2026-11-03: the rows were drawn at xt + 4 and measured from there)."""
+    x0 = inset_x0(width, height) + round(16 * width / VIDEO_WIDTH)
+    xt = x0 + round(56 * width / VIDEO_WIDTH)
+    return TEXT_RIGHT * width // VIDEO_WIDTH - xt - 2 * SPAN_OVERSHOOT
+
+
+def tall_left_x(xt: float, baseline: float, text: str, font, track: float) -> float:
+    """The x to draw `text` from ("ls") so that its left ink edge sits on `xt` (2026-11-03 hierarchy spec: the
+    year group, every label row and every span share one left edge, each glyph's side bearing measured by
+    ink_box, not a fixed xt + 4)."""
+    bb = ink_box((xt, baseline), text, font, "ls", track)
+    return xt if bb is None else xt + (xt - bb[0])
+
+
+def capped_spacing(spacing: TimelineSpacing, events: list[dict[str, Any]], caps: list[float]) -> TimelineSpacing:
+    """`spacing` with no step longer than its cap (2026-11-03 hierarchy spec, box fill): each step past its cap is
+    set to it and its excess shared by the others in proportion to their lengths (so the true scale among them
+    holds) until none is past its cap; what is left when every step is at its cap stays under the column, never
+    stretched over it. A step drawn shorter than the scale the honest steps keep is marked compressed (`breaks`)."""
+    from itertools import pairwise
+    steps = [b - a for a, b in pairwise(spacing.positions)]
+    if not steps or all(st <= c + 1e-6 for st, c in zip(steps, caps)):
+        return spacing
+    fixed: set[int] = set()
+    while True:
+        over = [k for k in range(len(steps)) if k not in fixed and steps[k] > caps[k] + 1e-6]
+        if not over:
+            break
+        excess = sum(steps[k] - caps[k] for k in over)
+        for k in over:
+            steps[k] = caps[k]
+            fixed.add(k)
+        free = [k for k in range(len(steps)) if k not in fixed]
+        total = sum(steps[k] for k in free)
+        if not free or total <= 0:
+            break                                  # every gap at its cap: the rest stays under the column
+        for k in free:
+            steps[k] += excess * steps[k] / total
+    years = [max(1, years_between(int(a["year"]), int(b["year"]))) for a, b in pairwise(events)]
+    honest = ([k for k in range(len(steps)) if k + 1 not in spacing.breaks and k not in fixed]
+              or [k for k in range(len(steps)) if k + 1 not in spacing.breaks] or list(range(len(steps))))
+    s = max(steps[k] / years[k] for k in honest)
+    breaks = tuple(k + 1 for k in range(len(steps)) if steps[k] < years[k] * s * 0.95)
+    positions = [spacing.positions[0]]
+    for st in steps:
+        positions.append(positions[-1] + st)
+    return TimelineSpacing(positions, breaks, s, spacing.honest)
+
+
+def tall_label_rows_needed(text: str, width: float) -> int | None:
+    """The rows a 9:16 timeline label (`text`, as the column draws it) needs to be set whole at TALL_LABEL_MIN_PX,
+    Montserrat TALL_LABEL_WEIGHT, +2 tracking on `width`: the fit the render makes (fit_tracked, sentences kept
+    whole past one row), so timeline_copy_fit and the render judge a label alike (review 15). None over
+    TALL_LABEL_ROWS_MAX rows, or where one word alone is wider than `width`."""
+    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
+    for r in range(1, TALL_LABEL_ROWS_MAX + 1):
+        lines, font, short = fit_tracked(probe, text, "Montserrat", TALL_LABEL_MIN_PX, width, r, TALL_LABEL_MIN_PX,
+                                         2, sentences=r > 1, weight=TALL_LABEL_WEIGHT, quiet=True)
+        if not short:
+            return r
+    return None
+
+
+def timeline_copy_fit(events: list[dict[str, Any]], width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> list[str]:
+    """The copy-fit problems of a 9:16 timeline's events, for upstream callers (2026-11-03 hierarchy spec): one
+    reason per label over its row budget (tall_label_rows_budget for the entries drawn) at TALL_LABEL_MIN_PX,
+    Montserrat TALL_LABEL_WEIGHT, +2 tracking on the column's measure, and one if there are more than
+    TIMELINE_MAX_EVENTS events. Empty when the copy fits. Pure: nothing is logged or drawn."""
+    out: list[str] = []
+    if len(events) > TIMELINE_MAX_EVENTS:
+        out.append(f"{len(events)} events, at most {TIMELINE_MAX_EVENTS} are drawn")
+    budget = tall_label_rows_budget(min(len(events), TIMELINE_MAX_EVENTS))
+    width_px = tall_label_measure(width, height)
+    font = get_font("Montserrat", TALL_LABEL_MIN_PX, weight=TALL_LABEL_WEIGHT)
+    for e in events:
+        text = drawable(" ".join(str(e.get("label") or "").upper().split()), "Montserrat")
+        if not text:
+            continue
+        rows = tall_label_rows_needed(text, width_px)   # the render's own fit (review 15: not tracked_wrap alone)
+        if rows is not None and rows <= budget:
+            continue
+        if tracked_wrap(text, font, width_px, 2) is None:
+            out.append(f"label {text!r}: a word is wider than the {width_px:.0f} px measure at "
+                       f"{TALL_LABEL_MIN_PX} px")
+        else:
+            got = f"{rows}" if rows is not None else f"more than {TALL_LABEL_ROWS_MAX}"
+            out.append(f"label {text!r} needs {got} rows at {TALL_LABEL_MIN_PX} px, budget {budget}")
+    return out
+
+
 def render_timeline(events: List[Dict[str, Any]], out: Path, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
                     photo: Path | None = None) -> Optional[Path]:
     """Timeline v2 (2026-11-02): a gold spine that draws on event by event, each date landing in turn at full
@@ -1904,186 +2113,211 @@ def render_timeline(events: List[Dict[str, Any]], out: Path, width: int = VIDEO_
 
 def _render_timeline_tall(events: list[dict[str, Any]], out: Path, width: int, height: int,
                           photo: Path | None) -> Path | None:
-    """The 9:16 timeline: two events get the large years and two-line labels; more get smaller years and one-line
-    labels fitted to the column (each line paying for its own tracking, fit_tracked). No label is set under
-    TALL_LABEL_MIN_PX: one that cannot fit one line there takes two, then more, as many as it needs whole at its
-    largest size (at least TALL_LABEL_ROWS, at most TALL_LABEL_ROWS_MAX); only where the column cannot hold it
-    whole is it cut, with an ellipsis (logged). Measured first: the first year's cap TALL_TOP_PAD under the graphics
-    box's top and the last entry's label ending on its bottom (the column uses the box), and when the entries no
-    longer fit between the bounds the column gives way in this order (round 4 review 6, 2026-11-03: the years are
-    the hero): at each year size, the compressed gaps' honest lead, the spans to SPAN_MIN_PX, the spans'
-    separation (span_clear_airs, down to the bare lean of span_airs, never under SPAN_MIN_SEPARATION) and the
-    labels from 38 px (42 for two entries) to TALL_LABEL_MIN_PX (34); then the Anton years, a step at a time down
-    to TALL_YEAR_RATIO x the labels' cap height; then the entries' leading (TALL_TIGHT_LEADING); then the years to
-    TALL_YEAR_RATIO_MIN (logged) where that keeps every label whole; and last the label rows, one at a time down
-    to two (a label cut), at the full ratio unless the least cuts fewer words (round 4 review 9, logged)."""
+    """The 9:16 timeline (2026-11-03 hierarchy spec): the Anton years the hero, one size for the column, from 104
+    px (4 entries), 120 (3) or 180 (2); the labels Montserrat 700 in TALL_LABEL_FILL at 34 px for 3-4 entries
+    (42 down to 34 for two), TALL_YEAR_LABEL_AIR under their year and TALL_LEADING apart, each label within its
+    row budget (tall_label_rows_budget) and re-broken balanced with no row but the last ending on a short word
+    (balanced_label_rows); the spans 26 px (span_font_px) on their own segments. Every left ink edge (the year
+    group, each label row, each span) sits on the same x, side bearings corrected (tall_left_x). The first year's
+    cap is TALL_TOP_PAD under the graphics box's top; spare height goes to the years (up to their starting size),
+    then to the gaps between entries on the honest time scale, each at most max(its need, TALL_GAP_CAP x the year
+    cap) (capped_spacing), and what is left stays under the column. When the entries do not fit, the column gives
+    way in this order: the compressed gaps' honest lead, the spans to SPAN_MIN_PX, the spans' air to its minimums
+    (span_air_rule), the labels' leading (TALL_TIGHT_LEADING), the years down TALL_YEAR_STEPS to TALL_YEAR_RATIO x
+    the labels' cap, then to TALL_YEAR_RATIO_MIN (logged); a span with no band loses " LATER" and takes the
+    fallback place (never dropped); a label over its row budget is a copy-fit error (logged) set whole on up to
+    TALL_LABEL_ROWS_MAX rows; and last the cut ladder, a label cut with an ellipsis (logged). The labels never
+    step under TALL_LABEL_MIN_PX."""
     n = int(CLIP_SECONDS * VIDEO_FPS)
     _top, bottom = get_text_bounds(width, height)
     x0 = inset_x0(width, height) + round(16 * width / VIDEO_WIDTH)   # the spine: its dots' left edge on the inset
     xt = x0 + round(56 * width / VIDEO_WIDTH)
-    # round 4 review 6 (2026-11-03): the labels are drawn at xt + 4, so their measure starts there, and their ink
-    # may overshoot the last advance by SPAN_OVERSHOOT (the labels ran 1-2 px past the graphics box)
-    label_w = TEXT_RIGHT * width // VIDEO_WIDTH - (xt + 4) - SPAN_OVERSHOOT
+    label_w = tall_label_measure(width, height)
     probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
     many = len(events) > 2
+    budget = tall_label_rows_budget(len(events))
     spans = [gap_text(events[k - 1], events[k]) for k in range(1, len(events))]
     scales = (1.0, 0.92, 0.84, 0.76, 0.68, 0.6)
     on_segment = any(spans)
-    year_px0 = 104 if many else 180
+    year_px0 = (104 if len(events) >= 4 else 120) if many else 180
+    texts = [drawable(e["label"].upper(), "Montserrat") for e in events]
+    source_of: dict[str, str] = {}     # review 15: each label's own case, for the balanced break's held names
+    for e, tx in zip(events, texts):
+        source_of.setdefault(tx, str(e["label"]))
 
     col_top = safe_zones.graphics_box(width, height)[1]   # round 4 review 2: the column's own top, the Reel box's
-    fit_memo: dict[tuple[str, int, int, int], tuple[list[str], Any, bool]] = {}
+    fit_memo: dict[tuple[str, int, int, int], tuple[list[str], Any, bool, bool]] = {}
 
-    def measure(year_scale: float, scale: float, honest: bool = True, separate: bool = True,
-                span_px: int | None = None, rows_max: int = TALL_LABEL_ROWS, leading: float = 1.0):
-        f_year = get_font("Anton", int(year_px0 * year_scale))
+    def basis_at(entries_: list[dict[str, Any]], k: int) -> int:
+        # span k's basis (span_basis_at), for 3-4 entries never under the year-to-label air (2026-11-03: the
+        # span's least air above is 1.5 x 14 + 2 = 23 px also where the tight leading closes the line gap to 13)
+        b = span_basis_at(entries_, k)
+        return max(b, TALL_YEAR_LABEL_AIR) if many else b
+
+    def label_px_at(scale: float) -> int:
+        # 2026-11-03: 34 px fixed for 3-4 entries, never smaller; two entries keep 42 -> 34
+        return TALL_LABEL_MIN_PX if many else max(TALL_LABEL_MIN_PX, int(42 * scale))
+
+    def fitted(text: str, px: int, rows: int, lo: int):
+        key = (text, px, rows, lo)
+        if key not in fit_memo:   # the labels' fits do not depend on the years: measured once per render
+            lines, font, short = fit_tracked(probe, text, "Montserrat", px, label_w, rows, lo, 2,
+                                             sentences=rows > 1, weight=TALL_LABEL_WEIGHT, quiet=True)
+            obeyed = True
+            if len(lines) > 1:   # hierarchy spec B5: the same rows (and words), balanced, no short word last
+                lines, obeyed = balanced_label_rows(lines, font, label_w, 2, source=source_of.get(text))
+            fit_memo[key] = (lines, font, short, obeyed)
+        return fit_memo[key]
+
+    def measure(year_px: int, scale: float, honest: bool = True, separate: bool = True,
+                span_px: int | None = None, rows_max: int = TALL_LABEL_ROWS, leading: float = TALL_LEADING):
+        f_year = get_font("Anton", year_px)
         cap_y = cap_height(f_year)
-        # round 4 review 3: the labels never step under TALL_LABEL_MIN_PX (a crowded column took them to 27 px
-        # under 30 px spans); a label too long for one line there wraps to two (then, never cut, to rows_max)
-        lab_px = max(TALL_LABEL_MIN_PX, int((38 if many else 42) * scale))
+        lab_px = label_px_at(scale)
         entries = []
-        texts = [drawable(e["label"].upper(), "Montserrat") for e in events]
-        floor = max(TALL_LABEL_MIN_PX, round(lab_px * (0.78 if many else 0.8)))
+        floor = TALL_LABEL_MIN_PX if many else max(TALL_LABEL_MIN_PX, round(lab_px * 0.8))
 
-        def fitted(text: str, px: int, rows: int, lo: int):
-            key = (text, px, rows, lo)
-            if key not in fit_memo:   # the labels' fits do not depend on the years: measured once per render
-                fit_memo[key] = fit_tracked(probe, text, "Montserrat", px, label_w, rows, lo, 2,
-                                            sentences=rows > 1, weight=800, quiet=True)
-            return fit_memo[key]
-
-        def wrapped(text: str, px: int, lo: int, first: int) -> tuple[list[str], Any, bool]:
-            short = True
-            for rows in range(first, rows_max + 1):
-                lines, f_lab, short = fitted(text, px, rows, lo)
-                if not short:
+        def wrapped(text: str, px: int, lo: int, first: int):
+            got = fitted(text, px, first, lo)
+            for rows in range(first, rows_max + 1):   # the fewest rows that hold it whole, up to rows_max
+                got = fitted(text, px, rows, lo)
+                if not got[2]:
                     break
-            return lines, f_lab, short
-        if many:  # one size for every label: the smallest at which those that fit one line do; the rest take two
-            fits = [fitted(tx, lab_px, 1, floor) for tx in texts]
-            common = min([f[1].size for f in fits if not f[2]] or [floor])
+            return got
         cut = False
         for e, text in zip(events, texts):
-            if many:
-                lines, f_lab, short = wrapped(text, common, common, 1)
-            else:
-                lines, f_lab, short = wrapped(text, lab_px, floor, 2)
+            lines, f_lab, short, obeyed = wrapped(text, lab_px, floor, 1 if many else 2)
             cut = cut or short
-            f_lab = get_font("Montserrat", f_lab.size, weight=800)
-            step = round(f_lab.size * 1.3 * leading)
-            gap = round(f_lab.size * (1.25 if many else 1.6) * leading)   # round 4: 1.4 before, the year sat a line off its label
+            f_lab = get_font("Montserrat", f_lab.size, weight=TALL_LABEL_WEIGHT)
+            cap_l = cap_height(f_lab)
+            step = round(f_lab.size * leading)
+            # 2026-11-03: the first label's cap top TALL_YEAR_LABEL_AIR under its year's baseline (1.25 x the
+            # label size before); two entries keep their 1.6 x, tightened with the leading
+            gap = (TALL_YEAR_LABEL_AIR + cap_l if many
+                   else round(f_lab.size * 1.6 * leading / TALL_LEADING))
             e_top = -cap_y // 2              # offsets from the entry's dot: the year's top, the last row's ink bottom
             rows = [cap_y // 2 + gap + j * step for j in range(len(lines))]
             e_bottom = max(probe.textbbox((0, y), ln, font=f_lab, anchor="ls")[3] for y, ln in zip(rows, lines))
             entries.append({"approx": bool(e.get("approximate")), "year_n": int(e["year"]), "lines": lines,
-                            "font": f_lab, "rows": rows, "top": e_top, "bottom": e_bottom,
+                            "font": f_lab, "rows": rows, "top": e_top, "bottom": e_bottom, "text": text,
+                            "obeyed": obeyed, "short": short,
                             "inner": entry_inner_air(cap_y, f_lab, gap, step, len(lines)),
+                            # the largest inner air: year to label, and line to line where it wraps
+                            "inner_max": max([gap - cap_l] + ([step - cap_l] if len(lines) > 1 else [])),
                             # review 7: a one-line label's line gap is its nominal leading's, also under the
-                            # tight leading (a span kept 1.5 x the tightened 15 px under a one-line label whose
-                            # line gap reads as 20); a wrapped label's is the gap its lines have
-                            "line": (step if len(lines) > 1 else max(step, round(f_lab.size * 1.3)))
-                                    - cap_height(f_lab)})
+                            # tight leading; a wrapped label's is the gap its lines have (2026-11-03: the
+                            # nominal leading is TALL_LEADING, 1.3 before)
+                            "line": (step if len(lines) > 1 else max(step, round(f_lab.size * TALL_LEADING)))
+                                    - cap_l})
         y_first = col_top + TALL_TOP_PAD - entries[0]["top"]
-        y_last = bottom - entries[-1]["bottom"]                    # lifted so its last row ends on the bound
-        # The elapsed time on its own segment, always (round 4, 2026-11-02: the round-2 fallback on the later
-        # year's baseline read "C. AD 780  ABOUT 1,500 YEARS" as that event's duration): its band under the
-        # labels' size with SPAN_AIR of air on each side (span_band).
-        # Round 4 review 2: the band's air above is at least SPAN_SEPARATION x the entries' own inner air
-        # (span_clear_airs), so the span never reads as the earlier label's next line.
+        y_last = bottom - entries[-1]["bottom"]                    # the furthest its last row may end
         lab_min = min(en["font"].size for en in entries)
         f_gap = get_font("Montserrat", min(span_px or span_font_px(lab_min), lab_min - SPAN_UNDER_LABEL), weight=600)
         clear = span_air_rule(lab_min, f_gap, span_basis(entries), separate)
         band = cap_height(f_gap) + sum(clear) if on_segment else 0
         # review 7: each span's band from the label above it (span_basis_at), not the column's loosest
-        bands_k = [cap_height(f_gap) + sum(span_air_rule(lab_min, f_gap, span_basis_at(entries, k + 1), separate))
+        bands_k = [cap_height(f_gap) + sum(span_air_rule(lab_min, f_gap, basis_at(entries, k + 1), separate))
                    for k in range(len(entries) - 1)]
-        # round 4 review 6: a span's ink under its baseline (the comma of "2,956") is paid in its band, not taken
-        # from its air above
-        needs = [entries[k]["bottom"] - entries[k + 1]["top"]
-                 + (bands_k[k] + span_descent(spans[k], f_gap) if band and spans[k] else 28)
-                 for k in range(len(entries) - 1)]
-        spacing = timeline_positions(events, y_first, y_last, needs)
+        needs, caps = [], []
+        for k in range(len(entries) - 1):
+            ext = entries[k]["bottom"] - entries[k + 1]["top"]
+            # round 4 review 6: a span's ink under its baseline (the comma of "2,956") is paid in its band
+            air = bands_k[k] + span_descent(spans[k], f_gap) if band and spans[k] else TALL_NO_SPAN_AIR
+            # 2026-11-03: the gap between entries at least TALL_ENTRY_SEPARATION x their largest inner air, as
+            # the ink measures both (a row's ink can be a px shorter than its cap; the edges overshoot)
+            least = (math.ceil(TALL_ENTRY_SEPARATION * (max(entries[k]["inner_max"], entries[k + 1]["inner_max"])
+                                                        + 1)) + SPAN_OVERSHOOT)
+            air = max(air, least)
+            needs.append(ext + air)
+            caps.append(ext + max(air, TALL_GAP_CAP * cap_y))   # and grows to at most this
+        spacing = capped_spacing(timeline_positions(events, y_first, y_last, needs), events, caps)
         steps = [b - a for a, b in zip(spacing.positions, spacing.positions[1:])]
         ok = (spacing.honest or not honest) and all(st >= nd - 1 for st, nd in zip(steps, needs))
-        return ok, (f_year, cap_y, entries, y_first, y_last, f_gap, needs, band, spacing, clear, separate, cut)
+        return ok, (f_year, cap_y, entries, y_first, y_last, f_gap, needs, band, spacing, clear, separate, cut,
+                    leading)
 
-    # Round 4 review 6 (operator, 2026-11-03: the years are the hero of a timeline): the years hold their size
-    # longest. At each year size, from the largest down, every other valve is tried first: the compressed gaps'
-    # honest lead, the spans to SPAN_MIN_PX and their separation down to the bare lean (never under
-    # SPAN_MIN_SEPARATION), the labels down to TALL_LABEL_MIN_PX. The years step down only to TALL_YEAR_RATIO x the
-    # labels' cap height while every label is whole (its rows, then the entries' tight leading); only a column that
-    # cannot hold its labels whole even so sets the years under that, and last cuts a label.
-    stages = ([(True, True, None), (False, True, None), (False, True, SPAN_MIN_PX), (False, False, None),
-               (False, False, SPAN_MIN_PX)] if on_segment else [(True, True, None), (False, True, None)])
-    label_scales = list(dict.fromkeys(max(TALL_LABEL_MIN_PX, int((38 if many else 42) * sc)) for sc in scales))
-    scale_of = {px: next(sc for sc in scales if max(TALL_LABEL_MIN_PX, int((38 if many else 42) * sc)) == px)
-                for px in label_scales}
+    # The order of give-way (2026-11-03 hierarchy spec C): at each year size (outer), from the largest down, the
+    # leading (TALL_LEADING, then TALL_TIGHT_LEADING, so the tight leading comes before any year step), then the
+    # stages. Spare height goes to the years only from a nominal layout (spec A, box fill; D: Pompeii at 84 px
+    # with its spans whole): the years step down to TALL_YEAR_RATIO x the labels' cap height with the spans at
+    # their size and air (the honest lead alone given up), and only at that floor do the spans step to
+    # SPAN_MIN_PX and their air to its minimums; then the years to TALL_YEAR_RATIO_MIN (logged) with every stage,
+    # and last a label is cut.
+    nominal = [(True, True, None), (False, True, None)]
+    squeeze = [(False, True, SPAN_MIN_PX), (False, False, None), (False, False, SPAN_MIN_PX)] if on_segment else []
+    label_scales = list(dict.fromkeys(label_px_at(sc) for sc in scales))
+    scale_of = {px: next(sc for sc in scales if label_px_at(sc) == px) for px in label_scales}
 
-    def year_floor_ok(ys: float, lab_px: int, ratio: float) -> bool:
-        return (cap_height(get_font("Anton", int(year_px0 * ys)))
-                >= ratio * cap_height(get_font("Montserrat", lab_px, weight=800)))
+    def year_floor_ok(year_px: int, lab_px: int, ratio: float) -> bool:
+        return (cap_height(get_font("Anton", year_px))
+                >= ratio * cap_height(get_font("Montserrat", lab_px, weight=TALL_LABEL_WEIGHT)))
 
-    def year_steps(ratio: float) -> list[float]:
+    def year_sizes(ratio: float) -> list[int]:
         # TALL_YEAR_STEPS down to `ratio` x the smallest labels' cap, then that floor itself (between two steps)
-        cap_l = cap_height(get_font("Montserrat", label_scales[-1], weight=800))
-        px_floor = next((px for px in range(int(year_px0 * TALL_YEAR_STEPS[0]), 1, -1)
+        cap_l = cap_height(get_font("Montserrat", label_scales[-1], weight=TALL_LABEL_WEIGHT))
+        px_floor = next((px for px in range(year_px0, 1, -1)
                          if cap_height(get_font("Anton", px - 1)) < ratio * cap_l), 2)
-        return sorted({*(s_ for s_ in TALL_YEAR_STEPS if int(year_px0 * s_) >= px_floor), px_floor / year_px0},
-                      reverse=True)
+        return sorted({*(round(year_px0 * s_) for s_ in TALL_YEAR_STEPS if round(year_px0 * s_) >= px_floor),
+                       px_floor}, reverse=True)
 
-    def choose(rows_max: int, leading: float, ratio: float):
-        for ys in year_steps(ratio):
-            for lab_px in label_scales:
-                if not year_floor_ok(ys, lab_px, ratio):
-                    continue
-                for honest, separate, span_px in stages:
-                    ok, m = measure(ys, scale_of[lab_px], honest, separate, span_px, rows_max, leading)
-                    if ok:
-                        return True, (ys, scale_of[lab_px], m)
+    def choose(rows_max: int, ratio: float):
+        # at the full ratio the nominal stages over every year size, then the squeeze over them; under it (the
+        # sizes the full ratio does not allow) every stage at once
+        passes = [nominal, squeeze] if ratio >= TALL_YEAR_RATIO else [nominal + squeeze]
+        for stages in passes:
+            for year_px in year_sizes(ratio):
+                for leading in (TALL_LEADING, TALL_TIGHT_LEADING):
+                    for lab_px in label_scales:
+                        if not year_floor_ok(year_px, lab_px, ratio) or (
+                                ratio < TALL_YEAR_RATIO and year_floor_ok(year_px, lab_px, TALL_YEAR_RATIO)):
+                            continue
+                        for honest, separate, span_px in stages:
+                            ok, m = measure(year_px, scale_of[lab_px], honest, separate, span_px, rows_max,
+                                            leading)
+                            if ok:
+                                return True, (year_px, scale_of[lab_px], m)
         return False, None
 
     def labels_px(choice) -> int:
         return min(en["font"].size for en in choice[2][2])
-    chosen = None
-    # Round 4 review 4 (2026-11-02): a label grows rows while the column has room (a 108-character pair was cut at
-    # three rows with ~120 px of the column spare); the ladder starts at the rows the longest label needs whole at
-    # its largest size, and steps down one row at a time to two.
-    px_most = 38 if many else 42                     # measure()'s label size at scale 1: the most rows a label needs
-    most = max(TALL_LABEL_ROWS, *(next((r for r in range(1, TALL_LABEL_ROWS_MAX + 1)
-                                        if not fit_tracked(probe, tx, "Montserrat", px_most, label_w, r, px_most, 2,
-                                                           sentences=r > 1, weight=800, quiet=True)[2]),
-                                       TALL_LABEL_ROWS_MAX)
-                                  for tx in (drawable(e["label"].upper(), "Montserrat") for e in events)))
+
+    # the rows a label needs whole at the label floor, None over 6 (the measure timeline_copy_fit reports)
+    needed = [tall_label_rows_needed(tx, label_w) for tx in texts]
+    over = [(tx, r) for tx, r in zip(texts, needed) if r is None or r > budget]
+    most = max(budget, *(r or TALL_LABEL_ROWS_MAX for r in needed))
     ladder = list(range(most, 1, -1))
-    tight = TALL_TIGHT_LEADING
     full, least = TALL_YEAR_RATIO, TALL_YEAR_RATIO_MIN
-    # Round 4 review 7 (2026-11-03): as the docstring says, where a cut cannot be avoided the years drop to
-    # TALL_YEAR_RATIO_MIN before any label loses a row (the rows were reduced at the full ratio first, so more
-    # labels were cut while the years kept a size the column could give up): fewer rows only at the least ratio,
-    # each trying its larger years first (choose), so no row is given up while smaller years would keep it.
-    # Round 4 review 9 (2026-11-03): the years give way only for what it buys. xv1, xv18 and xv21 set the years
-    # under the full ratio "to keep 4 entries whole" and then cut a label all the same (the rows went at the least
-    # ratio). Now: whole labels at the full ratio, then whole at the least; where no layout keeps every label whole,
-    # the most rows at the full ratio, and the least ratio only where it cuts fewer words than that (logged so).
+
+    # Round 4 review 9 (2026-11-03): the years give way only for what it buys: whole labels at the full ratio, then
+    # whole at the least; where no layout keeps every label whole, the most rows at the full ratio, and the least
+    # ratio only where it cuts fewer words than that (logged so).
     def dropped(choice) -> int:
-        words = sum(len(tx.split()) for tx in (drawable(e["label"].upper(), "Montserrat") for e in events))
+        words = sum(len(tx.split()) for tx in texts)
         return words - sum(len(" ".join(en["lines"]).replace("…", "").split()) for en in choice[2][2])
 
-    def first_fit(tries_: list[tuple[int, float, float]], whole: bool):
-        for rows_max, leading, ratio in tries_:
-            ok, choice = choose(rows_max, leading, ratio)
+    def first_fit(tries_: list[tuple[int, float]], whole: bool):
+        for rows_max, ratio in tries_:
+            ok, choice = choose(rows_max, ratio)
             if ok and not (whole and choice[2][11]):
                 return choice
         return None
 
-    chosen = first_fit([(most, 1.0, full), (most, tight, full), (most, 1.0, least), (most, tight, least)], True)
+    chosen = None
+    if not over:     # every label within its row budget (2 rows at 4 entries, 3 at 3)
+        chosen = first_fit([(budget, full), (budget, least)], True)
+    else:            # hierarchy spec C8: a copy-fit error upstream; set whole on more rows where they hold it
+        for tx, r in over:
+            log.error("Timeline copy-fit: label %r needs %s rows, budget %d at %d px; set whole on more rows "
+                      "where the column holds it.", tx, r if r is not None else f"more than {TALL_LABEL_ROWS_MAX}",
+                      budget, TALL_LABEL_MIN_PX)
+        chosen = first_fit([(TALL_LABEL_ROWS_MAX, full), (TALL_LABEL_ROWS_MAX, least)], True)
     if chosen is not None:
         if not year_floor_ok(chosen[0], labels_px(chosen), full):
             log.warning("Timeline: the years set under %.1f x the labels' cap height to keep %d entries whole.",
                         full, len(events))
     else:
-        at_full = first_fit([(r, ld, full) for r in ladder for ld in (1.0, tight)], False)
-        at_least = first_fit([(r, ld, least) for r in ladder for ld in (1.0, tight)], False)
+        at_full = first_fit([(r, full) for r in ladder], False)
+        at_least = first_fit([(r, least) for r in ladder], False)
         chosen = at_full
         if at_least is not None and (at_full is None or dropped(at_least) < dropped(at_full)):
             chosen = at_least
@@ -2094,26 +2328,36 @@ def _render_timeline_tall(events: list[dict[str, Any]], out: Path, width: int, h
     if chosen is None:
         log.warning("Timeline: %d entries do not fit the column even at the label floor; set at the tightest.",
                     len(events))
-        chosen = (TALL_YEAR_STEPS[-1], scales[-1], measure(TALL_YEAR_STEPS[-1], scales[-1], False, False, SPAN_MIN_PX,
-                                                           2, TALL_TIGHT_LEADING)[1])
+        least_px = year_sizes(least)[-1]
+        chosen = (least_px, scales[-1], measure(least_px, scales[-1], False, False, SPAN_MIN_PX, 2,
+                                                TALL_TIGHT_LEADING)[1])
     if on_segment and not chosen[2][10]:
         log.warning("Timeline spans set without their full separation to keep %d labels at %d px.",
                     len(events), labels_px(chosen))
     if chosen[2][11]:
         log.warning("Timeline: a label cut to fit its rows at %d px.", labels_px(chosen))
-    year_scale, scale, m = chosen
-    f_year, cap_y, entries, y_first, _y_last, f_gap, _needs, _band, spacing, _clear, separate, _cut = m
-    if scale < 1.0 or year_scale < 1.0:
-        log.info("Timeline years at %d%%, labels at %d%% to keep %d entries above the caption band.",
-                 round(year_scale * 100), round(scale * 100), len(events))
+    year_px, scale, m = chosen
+    f_year, cap_y, entries, y_first, _y_last, f_gap, _needs, _band, spacing, _clear, separate, _cut, _lead = m
+    for en in entries:
+        if not en["obeyed"]:
+            log.info("Timeline label %r: no break of its %d rows avoids a short word at a row's end; set balanced.",
+                     en["text"], len(en["lines"]))
+    if scale < 1.0 or year_px < year_px0:
+        log.info("Timeline years at %d px (%d%%), labels at %d%% to keep %d entries above the caption band.",
+                 year_px, round(100 * year_px / year_px0), round(scale * 100), len(events))
     ground = timeline_backdrop(photo, width, height)
     plates: list[tuple[str, Any]] = []
     twins = []
     for k, en in enumerate(entries):
         y = spacing.positions[k]
         en["y"] = y
-        en["year_plates"] = _year_plates(ground, xt, y + cap_y // 2, en["year_n"], en["approx"], f_year, GOLD)
-        en["label_plates"] = [plan_text(ground, (xt + 4, y + r), ln, en["font"], WHITE, "ls", track=2)
+        base = y + cap_y // 2
+        # 2026-11-03: the year group's left ink edge (its circa mark, else the numeral) on xt
+        first_box = year_ink_boxes(xt, base, en["year_n"], en["approx"], f_year)
+        x_year = xt + (xt - first_box[0][0]) if first_box else xt
+        en["year_plates"] = _year_plates(ground, x_year, base, en["year_n"], en["approx"], f_year, GOLD)
+        en["label_plates"] = [plan_text(ground, (tall_left_x(xt, y + r, ln, en["font"], 2), y + r), ln, en["font"],
+                                        TALL_LABEL_FILL, "ls", track=2)
                               for r, ln in zip(en["rows"], en["lines"])]
         en["dim_year"] = [_twin(ground, pl, brand.STONE) for pl in en["year_plates"]]
         en["dim_labels"] = [_twin(ground, pl, brand.STONE_LT) for pl in en["label_plates"]]
@@ -2137,13 +2381,14 @@ def _render_timeline_tall(events: list[dict[str, Any]], out: Path, width: int, h
         # stays the later date's lead-in without crowding that year (`descent`: the span's ink under its
         # baseline, a comma's tail, counted in its air below)
         a, b = bands[k]
-        above, below = span_air_rule(lab_min, font, span_basis_at(entries, k), separate)
+        above, below = span_air_rule(lab_min, font, basis_at(entries, k), separate)
         slack = max(0.0, (b - a) - (cap_height(font) + above + below + descent))
-        return xt, b - below - descent - span_slack_below(slack)
+        # 2026-11-03: where the band is short of its need by the 1 px fits() allows, the air below gives it
+        return xt, max(b - below - descent - span_slack_below(slack), a + above + cap_height(font))
 
     def fits(k: int, text: str, font) -> bool:
         a, b = bands[k]
-        need = (cap_height(font) + sum(span_air_rule(lab_min, font, span_basis_at(entries, k), separate))
+        need = (cap_height(font) + sum(span_air_rule(lab_min, font, basis_at(entries, k), separate))
                 + span_descent(text, font))
         return b - a >= need - 1 and xt + tracked_width(text, font, 2) <= col_right - SPAN_OVERSHOOT
     for k, text in [(k, t) for k, t in enumerate(spans, start=1) if t]:
@@ -2154,6 +2399,7 @@ def _render_timeline_tall(events: list[dict[str, Any]], out: Path, width: int, h
         if placed:
             text, font = placed[0], get_font("Montserrat", placed[1], weight=600)
             xy = gap_xy(k, font, span_descent(text, font))
+            xy = (tall_left_x(xt, xy[1], text, font, 2), xy[1])     # 2026-11-03: its ink on the column's edge
         else:
             # round 4 review 3: centred in the clear band between the two entries (span_fallback_y), and where
             # that band is too short even at SPAN_MIN_PX, the nearest place on its segment clear of every plate
@@ -2162,8 +2408,9 @@ def _render_timeline_tall(events: list[dict[str, Any]], out: Path, width: int, h
             if xt + tracked_width(text, font, 2) > col_right:
                 text = text.removesuffix(" LATER")
             a, b = bands[k]
-            inner = span_basis_at(entries, k)
-            xy = (xt, span_fallback_y(a, b, cap_height(font), inner))
+            inner = basis_at(entries, k)
+            y_fb = span_fallback_y(a, b, cap_height(font), inner)
+            xy = (tall_left_x(xt, y_fb, text, font, 2), y_fb)
             trial = plan_text(ground, xy, text, font, brand.STONE_LT, "ls", track=2)
             lo, hi = entries[k - 1]["y"], entries[k]["y"] + cap_y / 2
             ys = sorted(range(math.floor(lo), math.ceil(hi) + 1, 2), key=lambda y: abs(y - xy[1]))
@@ -2171,7 +2418,7 @@ def _render_timeline_tall(events: list[dict[str, Any]], out: Path, width: int, h
             under = max(0, span_least_above(inner) - SPAN_FALLBACK_AIR)
             obstacles = [(b[0], b[1], b[2], b[3] + (under if nm.startswith("label") else 0))
                          for nm, b in ((nm, pl.box) for nm, pl in plates)]
-            spot = free_span_xy(trial.box, xy, [xy[1]] + ys, [xt], obstacles, col_right,
+            spot = free_span_xy(trial.box, xy, [xy[1]] + ys, [xy[0]], obstacles, col_right,
                                 SPAN_FALLBACK_AIR, [pl.box for nm, pl in plates if nm.startswith("year")])
             if spot is None:
                 log.error("Timeline span %r: no clear place on its segment; set in its band.", text)
@@ -2250,7 +2497,8 @@ WIDE_TITLE_SAFE = (153, 129, 1766, 820)   # the 16:9 title-safe box above the ca
 
 WIDE_SPAN_OFF = 26      # design px from the 16:9 spine to a span's nearest ink, either side
 WIDE_SPAN_CLEAR = 48    # round 4 review: a 16:9 span's least air to any event block (2 x the labels' line air)
-WIDE_SPAN_PX = (32, SPAN_MIN_PX)   # design px: a 16:9 span's size (round 4: 26 before) and, review 5, its floor
+WIDE_SPAN_MIN_PX = 30   # the 16:9 span's floor, its own since the 9:16 floor fell to 24 (2026-11-03: 16:9 out of scope)
+WIDE_SPAN_PX = (32, WIDE_SPAN_MIN_PX)   # design px: a 16:9 span's size (round 4: 26 before) and, review 5, its floor
 WIDE_FLAG_MIN = 40.0    # round 4 review 5: design px, the shortest flag from the spine to a block (74 at rest)
 WIDE_FLAG_STEP = 36.0   # round 4 review 6: and the steps it lengthens by where a span needs the air by the spine
 # (above, below) added to the 74 px flags; round 4 review 7: in half steps too, the least added first, so a span
@@ -3941,22 +4189,6 @@ def _render_scale_wide(fact: dict[str, Any], feet: float, ref_label: str, ref_fe
     return result
 
 
-def _person(d: ImageDraw.ImageDraw, cx: int, base_y: float, height: float, colour, upward: bool = True) -> None:
-    """A simple standing-figure silhouette `height` px tall (head, torso, arms, legs)."""
-    if height < 4:
-        return
-    sgn = -1 if upward else 1
-    y = lambda frac: base_y + sgn * height * frac  # noqa: E731  (0 = feet, 1 = top of head)
-    head_r = height * 0.065
-    fill = (*colour, 255)
-    d.ellipse([cx - head_r, y(0.935) - head_r, cx + head_r, y(0.935) + head_r], fill=fill)
-    w = height * 0.11
-    d.rounded_rectangle([cx - w, min(y(0.86), y(0.47)), cx + w, max(y(0.86), y(0.47))], radius=max(2, int(w / 2)), fill=fill)
-    for side in (-1, 1):  # arms and legs
-        d.line([(cx + side * w * 0.9, y(0.84)), (cx + side * w * 1.6, y(0.50))], fill=fill, width=max(2, int(w * 0.55)))
-        d.line([(cx + side * w * 0.5, y(0.48)), (cx + side * w * 0.8, y(0.0))], fill=fill, width=max(2, int(w * 0.75)))
-
-
 def _backdrop(photo: Optional[Path], width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> Image.Image:
     """A dark, heavily blurred version of the topic's photo (or the plain ground) behind text graphics."""
     if photo and Path(photo).exists():
@@ -4716,21 +4948,6 @@ def _vault(x0: float, x1: float, floor: float, h: float, seed: int, flat: float 
     return pts + [(x1, floor), (x0, floor)]
 
 
-def _dash_runs(pts: list[tuple[float, float]], dash: float, gap: float, phase: float, upto: float):
-    """Dash segments along a polyline (phase moves them forward), drawn only for its first `upto` px."""
-    segs = []
-    lens = [math.dist(pts[i], pts[i + 1]) for i in range(len(pts) - 1)]
-    total = min(sum(lens), upto)
-    period = dash + gap
-    s = (phase % period) - period
-    while s < total:
-        a, b = max(0.0, s), min(total, s + dash)
-        if b > a:
-            segs.append(_sub_path(pts, lens, a, b))
-        s += period
-    return segs
-
-
 def _sub_path(pts, lens, a: float, b: float) -> list[tuple[float, float]]:
     out, acc = [], 0.0
     for i, seg_len in enumerate(lens):
@@ -4751,33 +4968,6 @@ def _path_len(pts: list[tuple[float, float]]) -> float:
     return sum(math.dist(pts[i], pts[i + 1]) for i in range(len(pts) - 1))
 
 
-def _chevron(pen: _Pen, tip: tuple[float, float], direction: tuple[float, float], size: float, fill) -> None:
-    """A filled arrowhead at `tip`, pointing along `direction`."""
-    dx, dy = direction
-    n = math.hypot(dx, dy) or 1.0
-    dx, dy = dx / n, dy / n
-    bx, by = tip[0] - dx * size, tip[1] - dy * size
-    pen.poly([tip, (bx - dy * size * 0.62, by + dx * size * 0.62), (bx + dy * size * 0.62, by - dx * size * 0.62)],
-             fill=fill)
-
-
-def _tag_pill(ground: Image.Image, g: _Grid, right: float, top: float, text: str):
-    """The ILLUSTRATIVE tag: tracked STONE_LT Montserrat in a GOLD_DIM outlined pill, its right edge at `right`
-    (design px). Returns (plate, pill sprite)."""
-    font = get_font("Montserrat", g.f(24), weight=700)
-    track = g.s(3)
-    tw = tracked_width(text, font, track)
-    pad_x, h = g.s(16), g.s(40)
-    x1 = g.x(right)
-    x0 = x1 - tw - 2 * pad_x
-    y0 = g.y(top)
-    pen = _Pen((x0 - 2, y0 - 2, x1 + 2, y0 + h + 2))
-    pen.rect(x0, y0, x1, y0 + h, outline=(*brand.GOLD_DIM, 255), width=max(1.5, g.s(2)), radius=h / 2)
-    pill = pen.sprite()
-    plate = _plan(ground, (x0 + pad_x, y0 + h / 2), text, font, brand.STONE_LT, "lm", track=track)
-    return plate, pill
-
-
 def _plan(ground: Image.Image, xy, text: str, font, fill, anchor: str = "la", track: float = 0) -> Any:
     """plan_text, stepping the font up 1 px while the glyphs are too thin to measure (a 540x960 test frame's
     14 px type leaves typography.ring_contrast no eroded interior to read); full-size frames plan unchanged."""
@@ -4790,16 +4980,6 @@ def _plan(ground: Image.Image, xy, text: str, font, fill, anchor: str = "la", tr
             family = font.getname()[0] or Path(font.path).stem.split("-")[0]   # "Montserrat", "IBM Plex Mono"
             weight = 700 if family == "Montserrat" else 600 if family == brand.DATA_FONT else None
             font = get_font(family, font.size + 1, weight=weight)
-
-
-def _plain_title(title: str) -> str:
-    """The plain head of a jargon title, cut at its first joint ("SUBTERRANEAN VENTILATION & CONVECTION
-    DYNAMICS" -> "SUBTERRANEAN VENTILATION"): only words the fact-checked title already has."""
-    for sep in (" & ", " AND ", ": ", " — ", " – ", " - "):
-        head = title.split(sep)[0].strip()
-        if head != title and len(head.split()) >= 2:
-            return head
-    return title
 
 
 def _fit_title(g: _Grid, title: str, width_px: float) -> tuple[list[str], Any]:
@@ -5977,627 +6157,8 @@ def render_route(stops: List[Dict[str, Any]], out: Path, width: int = VIDEO_WIDT
     return result
 
 
-# ------------------------------------------------ rolling stone door defense
-DIAGRAM_LABELS = {
-    "defense": {"disc": "STONE DISC", "passage": "ILLUSTRATIVE PASSAGE SECTION",
-                "opening": "CENTRAL OPENING", "opening_detail": "DETAIL VIEW",
-                "track": "DOOR MOVEMENT", "summary": "ILLUSTRATIVE MECHANISM"},
-    "ventilation": {"shaft": "AIR SHAFT", "exhaust_detail": "ILLUSTRATIVE AIRFLOW",
-                    "airflow": "AIRFLOW CONCEPT", "summary": "ILLUSTRATIVE SECTION"},
-}
-
-
-# Shown when a spec gives no title of its own.
-DIAGRAM_TITLES = {"defense": "ROLLING STONE DOOR DEFENSE MECHANISM",
-                  "ventilation": "SUBTERRANEAN VENTILATION & CONVECTION DYNAMICS"}
-
-
-def diagram_title(kind, spec):
-    return (spec.get("title") or DIAGRAM_TITLES[kind]).upper()
-
-
-def diagram_labels(kind, spec):
-    overrides = spec.get("labels") or {}
-    return {key: str(overrides.get(key, value)) for key, value in DIAGRAM_LABELS[kind].items()}
-
-
-def _disc_sprite(r: float, seed: int = 5) -> Image.Image:
-    """The rolling stone face-on, unrotated: a dressed stone face, chisel marks, a chipped notch on the rim (so
-    the roll reads), a gold rim and the central opening."""
-    import random
-    rnd = random.Random(seed)
-    size = math.ceil(r * 2 + 8)
-    c = size / 2
-    pen = _Pen((0, 0, size, size))
-    face = tuple(int(a + (b - a) * 0.42) for a, b in zip(brand.INK, brand.GOLD_DIM))
-    pen.ellipse(c, c, r, r, fill=(*face, 255))
-    pen.ellipse(c, c, r * 0.7, r * 0.7, outline=(*brand.GOLD_DIM, 255), width=2)
-    for j in range(11):
-        a = 2 * math.pi * j / 11 + rnd.uniform(-0.15, 0.15)
-        r0, r1 = r * rnd.uniform(0.26, 0.36), r * rnd.uniform(0.5, 0.62)
-        pen.line([(c + r0 * math.cos(a), c + r0 * math.sin(a)), (c + r1 * math.cos(a), c + r1 * math.sin(a))],
-                 (*brand.GOLD_DIM, 230), 2)
-    for j in range(16):
-        a = 2 * math.pi * j / 16 + rnd.uniform(-0.1, 0.1)
-        r0 = r * rnd.uniform(0.76, 0.8)
-        pen.line([(c + r0 * math.cos(a), c + r0 * math.sin(a)),
-                  (c + r * 0.9 * math.cos(a + 0.05), c + r * 0.9 * math.sin(a + 0.05))], (*brand.GOLD_DIM, 200), 1.6)
-    pen.ellipse(c, c, r, r, outline=(*brand.GOLD, 255), width=max(2.5, r * 0.04))
-    notch = [(c + r * 0.985 * math.cos(a), c + r * 0.985 * math.sin(a)) for a in (-1.74, -1.40)]
-    pen.poly([notch[0], (c + r * 0.86 * math.cos(-1.57), c + r * 0.86 * math.sin(-1.57)), notch[1]],
-             fill=(*brand.INK, 255))
-    hole = r * 0.16
-    pen.ellipse(c, c, hole, hole, fill=(*brand.INK, 255), outline=(*brand.GOLD, 255), width=2)
-    return pen.image()
-
-
-def _arch(x0: float, y0: float, x1: float, y1: float, rad: float) -> list[tuple[float, float]]:
-    """An opening with a square foot on the floor (y1) and rounded top corners of radius `rad`."""
-    rad = min(rad, (x1 - x0) / 2, y1 - y0)
-    pts = [(x0, y1)]
-    for j in range(13):
-        a = math.pi + (math.pi / 2) * j / 12
-        pts.append((x0 + rad + rad * math.cos(a), y0 + rad + rad * math.sin(a)))
-    for j in range(13):
-        a = 1.5 * math.pi + (math.pi / 2) * j / 12
-        pts.append((x1 - rad + rad * math.cos(a), y0 + rad + rad * math.sin(a)))
-    return pts + [(x1, y1)]
-
-
-def _hatch(pen: _Pen, box: tuple[float, float, float, float], gap: float, colour, width: float = 1.2) -> None:
-    """Section hatching (45 degrees) clipped to `box`."""
-    x0, y0, x1, y1 = box
-    h = y1 - y0
-    x = x0 - h
-    while x < x1:
-        a = (max(x0, x), y0 + (max(x0, x) - x))
-        b = (min(x1, x + h), y0 + (min(x1, x + h) - x))
-        if b[0] > a[0]:
-            pen.line([(a[0], a[1]), (b[0], b[1])], colour, width, caps=False)
-        x += gap
-
-
-@dataclass(frozen=True)
-class _DoorLayout:
-    """Where the rolling-stone door's two views sit, in their grid's design px (9:16 column or 16:9 frame)."""
-    title_x: float
-    title_w: float
-    title_base: float
-    title_step: float
-    title_px: tuple[int, int]
-    lab_px: int
-    side_px: int
-    heading_gap: float
-    slot_h: float
-    corr_h: float
-    rock_h: float
-    door_x: float
-    slab_t: float
-    elev_gap: float
-    elev_min: float
-    floor: float
-    floor_bot: float
-    r: float
-    door_w: float
-    door_h: float
-    open_dx: float
-    person_h: float
-    person_x: float
-    px0: float
-    px1: float
-    text_x: float
-    inside: tuple[float, str]       # INSIDE's x and anchor
-    outside: tuple[float, str]
-    tag: tuple[float, float] | None  # the ILLUSTRATIVE tag's right and top; None: after the plan's heading
-    disc_leader_x0: float | None     # where the STONE DISC leader starts; None: after its words
-    disc_dy: float
-    line_step: float
-    heading_fill: tuple[int, int, int] = brand.STONE_LT
-
-
-_DOOR_TALL = _DoorLayout(
-    title_x=77, title_w=561, title_base=382, title_step=64, title_px=(60, 56), lab_px=30, side_px=30,
-    heading_gap=50, slot_h=74, corr_h=64, rock_h=42, door_x=600, slab_t=20, elev_gap=50, elev_min=742,
-    floor=1022, floor_bot=1050, r=100, door_w=124, door_h=172, open_dx=232, person_h=222, person_x=806,
-    px0=65, px1=888, text_x=79, inside=(84, "lm"), outside=(870, "rm"), tag=(888, 342), disc_leader_x0=318,
-    disc_dy=46, line_step=36)
-# 16:9: both views run the width of the frame, stacked as in 9:16 so the door's axis still links them; every word
-# inside the vignette-safe area (see _SECTION_WIDE), INSIDE and OUTSIDE set either side of the door.
-_DOOR_WIDE = _DoorLayout(
-    title_x=420, title_w=1180, title_base=252, title_step=72, title_px=(68, 56), lab_px=32, side_px=32,
-    heading_gap=60, slot_h=80, corr_h=70, rock_h=40, door_x=1060, slab_t=24, elev_gap=62, elev_min=0,
-    floor=796, floor_bot=822, r=96, door_w=132, door_h=180, open_dx=250, person_h=196, person_x=1330,
-    px0=400, px1=1600, text_x=422, inside=(960, "rm"), outside=(1170, "lm"), tag=None, disc_leader_x0=None,
-    disc_dy=52, line_step=40, heading_fill=brand.BONE)
-
-
-def _render_defense_vertical(spec: dict[str, Any], out: Path, width: int, height: int) -> Path | None:
-    """The 9:16 rolling-stone door (2026-11-02 design review, 3.5/10 -> rebuilt as two linked views): a plan on
-    top (the corridor running across, a slot cut into its wall, the disc edge-on as a gold slab between INSIDE in
-    teal and OUTSIDE in coral, a straight gold arrow along its track: it rolls, it does not swing) and an
-    elevation below (the doorway face-on, the disc rolling out of its recess to block it, a standing figure for
-    scale). The disc turns by distance / radius, so it visibly rolls, overshoots a little and settles. Words only
-    from diagram_labels; tagged ILLUSTRATIVE."""
-    return _render_defense(spec, out, width, height, _Grid(width, height), _DOOR_TALL)
-
-
-def _render_defense_wide(spec: dict[str, Any], out: Path, width: int, height: int) -> Path | None:
-    """The 16:9 rolling-stone door (2026-11-02 review round 2, 2-3/10: invented words, off-brand colours, 14-18 px
-    type): the 9:16 rebuild composed for the wide frame, the plan a long corridor across the top, the elevation
-    under it with the recess, the doorway and the figure in a row; only diagram_labels' words and the fixed
-    ILLUSTRATIVE / INSIDE / OUTSIDE tags, brand colours, 28 px type or more."""
-    return _render_defense(spec, out, width, height, _WideGrid(width, height), _DOOR_WIDE)
-
-
-def _render_defense(spec: dict[str, Any], out: Path, width: int, height: int, g: _Grid, L: _DoorLayout) -> Path | None:
-    """The rolling-stone door on grid `g` with layout `L` (see the two orientations above)."""
-    labels = diagram_labels("defense", spec)
-    title = diagram_title("defense", spec)
-    X, Y, S = g.x, g.y, g.s
-    n = int(CLIP_SECONDS * VIDEO_FPS)
-
-    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    title_lines, f_title, short = fit_text(probe, title, "Anton", g.f(L.title_px[0]), int(S(L.title_w)), 1,
-                                           g.f(L.title_px[1]), sentences=False, quiet=True)
-    if short or probe.textlength(title_lines[0] if title_lines else "", font=f_title) > S(L.title_w):
-        title_lines, f_title, _ = fit_text(probe, title, "Anton", g.f(L.title_px[0]), int(S(L.title_w)), 2,
-                                           g.f(L.title_px[1]), sentences=False, quiet=True)
-    title_base = [L.title_base + L.title_step * j for j in range(len(title_lines))]
-    f_lab = get_font("Montserrat", g.f(L.lab_px), weight=600)
-    f_side = get_font("Montserrat", g.f(L.side_px), weight=700)
-
-    # ---- plan (design y)
-    ph = title_base[-1] + L.heading_gap      # the plan's heading baseline
-    rock_top = ph + 12
-    slot_top = rock_top + 6
-    c_top = slot_top + L.slot_h              # the corridor's walls
-    c_bot = c_top + L.corr_h
-    rock_bot = c_bot + L.rock_h
-    door_x = L.door_x                        # both views share the door's axis
-    slab_t, slab_len = L.slab_t, L.corr_h + 8
-    slab_open, slab_shut = slot_top + 1, c_top - 4
-    # ---- elevation
-    eh = max(rock_bot + L.elev_gap, L.elev_min)   # its heading baseline
-    face_top = eh + 14
-    floor = L.floor
-    r = L.r
-    door_w, door_h = L.door_w, L.door_h
-    open_x = door_x - L.open_dx
-    person_h = L.person_h
-    person_x = L.person_x
-
-    sky = _rock_ground(width, height, lambda xs: xs * 0 + height * 2)       # the ink ground with its fine noise
-    base = sky.copy()
-    pen = _Pen((0, 0, width, height))
-    rock = tuple(int(a + (b - a) * 0.16) for a, b in zip(brand.INK, brand.GOLD_DIM))
-    hatch = (*brand.GOLD_DIM, 120)
-    teal_floor = tuple(int(a + (b - a) * 0.14) for a, b in zip(brand.INK, brand.TEAL))
-    coral_floor = tuple(int(a + (b - a) * 0.14) for a, b in zip(brand.INK, brand.CORAL))
-    px0, px1 = X(L.px0), X(L.px1)
-    # plan: rock walls, the corridor tinted inside / outside, the slot and its groove
-    for y0, y1 in ((rock_top, c_top), (c_bot, rock_bot)):
-        pen.rect(px0, Y(y0), px1, Y(y1), fill=(*rock, 255))
-        _hatch(pen, (px0, Y(y0), px1, Y(y1)), S(14), hatch)
-    pen.rect(px0, Y(c_top), X(door_x), Y(c_bot), fill=(*teal_floor, 255))
-    pen.rect(X(door_x), Y(c_top), px1, Y(c_bot), fill=(*coral_floor, 255))
-    pen.rect(X(door_x - slab_t / 2 - 3), Y(slot_top - 2), X(door_x + slab_t / 2 + 3), Y(c_top + 1),
-             fill=(*brand.INK, 255), outline=(*brand.GOLD_DIM, 255), width=S(2))
-    pen.rect(X(door_x - slab_t / 2 - 3), Y(c_bot - 1), X(door_x + slab_t / 2 + 3), Y(c_bot + 6),
-             fill=(*brand.INK, 255), outline=(*brand.GOLD_DIM, 255), width=S(2))
-    for yy in (c_top, c_bot):
-        pen.line([(px0, Y(yy)), (X(door_x - slab_t / 2 - 3), Y(yy))], (*brand.STONE_LT, 255), S(3), caps=False)
-        pen.line([(X(door_x + slab_t / 2 + 3), Y(yy)), (px1, Y(yy))], (*brand.STONE_LT, 255), S(3), caps=False)
-    # the projection line between the views
-    yy = rock_bot + 8
-    while yy < face_top - 8:
-        pen.line([(X(door_x), Y(yy)), (X(door_x), Y(min(face_top - 8, yy + 7)))], (*brand.GOLD_DIM, 255), S(2))
-        yy += 15
-    # elevation: the rock face, the recess, the track, the doorway, the floor
-    pen.rect(px0, Y(face_top), px1, Y(floor), fill=(*rock, 255))
-    _hatch(pen, (px0, Y(face_top), px1, Y(floor)), S(16), (*brand.GOLD_DIM, 70))
-    pen.rect(px0, Y(floor), px1, Y(L.floor_bot), fill=(*tuple(int(v * 0.8) for v in rock), 255))
-    _hatch(pen, (px0, Y(floor), px1, Y(L.floor_bot)), S(10), hatch)
-    recess = g.pts(_arch(open_x - r - 12, floor - 2 * r - 14, door_x - door_w / 2 + 2, floor, r * 0.95))
-    pen.poly(recess, fill=(*brand.INK2, 255))
-    pen.line(recess, (*brand.GOLD_DIM, 255), S(2), caps=False)
-    doorway = g.pts(_arch(door_x - door_w / 2, floor - door_h, door_x + door_w / 2, floor, 30))
-    pen.poly(doorway, fill=(*coral_floor, 255))
-    pen.line(doorway, (*brand.STONE_LT, 255), S(2.5), caps=False)
-    pen.line([(px0, Y(floor)), (px1, Y(floor))], (*brand.STONE_LT, 255), S(3), caps=False)
-    figure = _Pen((0, 0, width, height))
-    _person(figure.d, int(X(person_x) * _SS), Y(floor) * _SS, S(person_h) * _SS, brand.STONE_LT)
-    base.alpha_composite(pen.image())
-    base.alpha_composite(figure.image())
-
-    disc = _disc_sprite(S(r))
-    shadow = _Pen((0, 0, S(2 * r + 60), S(40)))
-    shadow.ellipse(S(r + 30), S(20), S(r * 0.95), S(9), fill=(0, 0, 0, 150))
-    shadow_im = shadow.image().filter(ImageFilter.GaussianBlur(S(6)))
-
-    def roll(t: float) -> float:
-        """The disc's travel (0 = in its recess, 1 = across the door), with a small overshoot that settles."""
-        p = _ease_io((t - 1.25) / 2.0) ** 1.15
-        if t > 3.25:
-            p = 1 + 0.035 * math.sin((t - 3.25) * 9.0) * math.exp(-(t - 3.25) * 4.0)
-        return p
-
-    # The disc's path in plan: a straight arrow beside the slab along its track, out of the slot and across the
-    # corridor (2026-11-02 round 2: the curved arrow read as a door swinging on a hinge; the stone rolls).
-    ax = door_x + slab_t / 2 + 14
-    arrow_pts = [(ax, slot_top + 6), (ax, c_bot - 6)]
-    arrow_box = (X(ax - 16), Y(slot_top - 6), X(ax + 16), Y(c_bot + 10))
-
-    def arrow(progress: float) -> Image.Image | None:
-        if progress <= 0:
-            return None
-        ap = _Pen(arrow_box)
-        pts = g.pts(arrow_pts)
-        head = S(16)
-        tip = (pts[0][0], pts[0][1] + (pts[1][1] - pts[0][1]) * progress)
-        if tip[1] - pts[0][1] > 1:
-            ap.line([pts[0], (tip[0], tip[1] - (head * 0.8 if progress >= 1 else 0))], (*GOLD, 255), S(3.5))
-            if progress >= 1:
-                _chevron(ap, tip, (0, 1), head, (*GOLD, 255))
-        return ap.image()
-
-    arrow_full = arrow(1.0)
-    leaders = _Pen((0, 0, width, height))
-    hole_xy = (door_x, floor - r)
-    disc_y = eh + L.disc_dy
-    disc_x0 = (L.disc_leader_x0 if L.disc_leader_x0 is not None else
-               L.text_x + probe.textlength(labels["disc"], font=f_side) / g.k + 16)
-    leaders.line(g.pts([(disc_x0, disc_y), (door_x - 70, disc_y), (door_x - 52, floor - 2 * r + 22)]),
-                 (*brand.GOLD_DIM, 255), S(2))
-    leaders.ellipse(X(door_x - 52), Y(floor - 2 * r + 22), S(4), S(4), fill=(*GOLD, 255))
-    # the central opening's words: two lines left of the recess where they fit there, else one line
-    recess_x0 = open_x - r - 12
-    room = S(recess_x0 - L.text_x - 12)
-    op_lines, _f, short = fit_text(probe, labels["opening"], "Montserrat", g.f(L.side_px), int(room), 2,
-                                   g.f(L.side_px), weight=700, quiet=True)
-    if short or max(probe.textlength(ln, font=f_side) for ln in op_lines) > room:
-        op_lines = [labels["opening"]]
-    op_end = L.text_x + max(probe.textlength(ln, font=f_side) for ln in op_lines) / g.k
-    leaders.line(g.pts([(op_end + 12, floor - r), (hole_xy[0] - r * 0.16 - 6, floor - r)]), (*brand.GOLD_DIM, 255),
-                 S(2))
-    leaders.ellipse(X(hole_xy[0] - r * 0.16 - 6), Y(floor - r), S(4), S(4), fill=(*GOLD, 255))
-    leader_sprite = leaders.sprite()
-
-    def art(t: float, final: bool = False) -> Image.Image:
-        im = base.copy()
-        p = 1.0 if final else roll(t)
-        # plan: the slab moves across the corridor
-        top = slab_open + (slab_shut - slab_open) * p
-        slab = _Pen((X(door_x - slab_t / 2 - 6), Y(top - 4), X(door_x + slab_t / 2 + 6), Y(top + slab_len + 4)))
-        slab.rect(X(door_x - slab_t / 2), Y(top), X(door_x + slab_t / 2), Y(top + slab_len), radius=S(4),
-                  fill=(*GOLD, 255))
-        slab.line([(X(door_x), Y(top + slab_len / 2) - S(5)), (X(door_x), Y(top + slab_len / 2) + S(5))],
-                  (*brand.INK, 255), S(3))
-        im.alpha_composite(slab.image(), (slab.x0, slab.y0))
-        a_arrow = 1.0 if final else _ease((t - 0.55) / 0.6)
-        if a_arrow >= 1 and arrow_full is not None:
-            im.alpha_composite(arrow_full, (math.floor(arrow_box[0]), math.floor(arrow_box[1])))
-        elif a_arrow > 0:
-            part = arrow(a_arrow)
-            if part is not None:
-                im.alpha_composite(part, (math.floor(arrow_box[0]), math.floor(arrow_box[1])))
-        # elevation: the disc rolls (turns by distance / radius)
-        cx = open_x + (door_x - open_x) * p
-        angle = math.degrees((cx - open_x) / r)
-        spun = disc.rotate(-angle, resample=Image.BICUBIC)
-        im.alpha_composite(shadow_im, (int(X(cx) - S(r + 30)), int(Y(floor) - S(20))))
-        im.alpha_composite(spun, (round(X(cx) - spun.width / 2), round(Y(floor - r) - spun.height / 2)))
-        leader_sprite.draw(im, 1.0 if final else _ease((t - 3.55) / 0.45))
-        return im
-
-    final = art(0, final=True)
-    timed = []
-    for j, (ln, yb) in enumerate(zip(title_lines, title_base)):
-        timed.append((f"title{j}", _plan(final, (X(L.title_x), Y(yb)), ln, f_title, WHITE, "ls"), 0.1 + 0.08 * j))
-    heading = _plan(final, (X(L.text_x), Y(ph)), labels["track"], f_lab, L.heading_fill, "ls", track=S(2))
-    if L.tag is not None:
-        tag, pill = _tag_pill(final, g, L.tag[0], L.tag[1], "ILLUSTRATIVE")
-    else:   # on the plan heading's line, after it
-        probe_tag = get_font("Montserrat", g.f(24), weight=700)
-        tw = tracked_width("ILLUSTRATIVE", probe_tag, g.s(3)) + 2 * g.s(16)
-        tag, pill = _tag_pill(final, g, g.ix(heading.box[2] + S(28) + tw), ph - 30, "ILLUSTRATIVE")
-    timed.append(("tag", tag, 0.3))
-    timed.append(("plan_heading", heading, 0.35))
-    timed.append(("inside", _plan(final, (X(L.inside[0]), Y((c_top + c_bot) / 2)), "INSIDE", f_side, brand.TEAL,
-                                  L.inside[1], track=S(3)), 0.6))
-    timed.append(("outside", _plan(final, (X(L.outside[0]), Y((c_top + c_bot) / 2)), "OUTSIDE", f_side, brand.CORAL,
-                                   L.outside[1], track=S(3)), 0.7))
-    timed.append(("elevation_heading", _plan(final, (X(L.text_x), Y(eh)), labels["opening_detail"], f_lab,
-                                             L.heading_fill, "ls", track=S(2)), 0.45))
-    timed.append(("disc", _plan(final, (X(L.text_x), Y(disc_y)), labels["disc"], f_side, GOLD, "lm"), 3.6))
-    for j, ln in enumerate(op_lines):
-        yc = floor - r + L.line_step * (j - (len(op_lines) - 1) / 2)
-        timed.append((f"opening{j}", _plan(final, (X(L.text_x), Y(yc)), ln, f_side, WHITE, "lm"), 3.75 + 0.06 * j))
-    last: list[Image.Image] = []
-
-    def frames():
-        for i in range(n):
-            t = i / VIDEO_FPS
-            im = art(t)
-            pill.draw(im, _ease((t - 0.3) / 0.45))
-            for _name, plate, t_in in timed:
-                a = _ease((t - t_in) / 0.45)
-                if a > 0:
-                    im = plate.draw(im, a, round(S(10) * (1 - a)))
-            if i == n - 1:
-                last.append(im.copy())
-            yield im
-
-    result = _encode(frames(), out, n, width=width, height=height)
-    if result and last:
-        record_contrast(out, last[0], [(name, plate) for name, plate, _t in timed])
-    return result
-
-
-def render_rolling_stone_defense(
-    spec: Dict[str, Any],
-    out: Path,
-    width: int = VIDEO_WIDTH,
-    height: int = VIDEO_HEIGHT,
-) -> Optional[Path]:
-    """Animated architectural diagram of an ancient subterranean rolling stone door: the stone disc rolling along
-    its carved track out of its recess to block the doorway, in two linked views (plan and elevation).
-
-    9:16 (2026-11-02 design review, scored 3.5/10): rebuilt in _render_defense_vertical, a disc that truly rolls
-    (rotation = distance / radius) and brand colours only; 16:9 (round 2, 2-3/10) the same rebuild composed for
-    the wide frame (_render_defense_wide)."""
-    if width <= height:
-        return _render_defense_vertical(spec, out, width, height)
-    return _render_defense_wide(spec, out, width, height)
-
-
-# ----------------------------------------------- ventilation & airflow dynamics
-@dataclass(frozen=True)
-class _VentLayout:
-    """Where the ventilation section's parts sit, in its grid's design px (9:16 column or 16:9 frame)."""
-    title_x: float
-    title_w: float
-    title_base: float
-    title_step: float
-    title_px: tuple[int, int]
-    lab_px: int
-    side_px: int
-    sub_gap: float
-    ground_gap: float
-    hill: tuple[float, float, float]          # x, height, width
-    in_shaft: tuple[float, float]             # x, width
-    ex_shaft: tuple[float, float]
-    well_d: float
-    gal_h: float
-    room_start: tuple[float, float]
-    room_w: tuple[float, float]
-    room_gap: tuple[float, float]
-    room_h: tuple[float, float]
-    room_stop: float                          # rooms end this far short of the outlet shaft's wall
-    in_label: tuple[float, str]               # the intake's AIR SHAFT: x and anchor
-    out_label: tuple[float, str]
-    tag_right: float | None                   # the tag's right edge (30 above the subtitle); None: after it
-    text_x: float
-    heading_fill: tuple[int, int, int] = brand.STONE_LT
-    hold: float | None = None                 # out-air waits this long after the in-air has landed (None: overlap)
-    label_level: int | None = None            # the AIR SHAFT labels on this level's lane; None: above the first
-
-
-_VENT_TALL = _VentLayout(
-    title_x=77, title_w=811, title_base=382, title_step=64, title_px=(60, 56), lab_px=30, side_px=30, sub_gap=48,
-    ground_gap=92, hill=(690, 40, 190), in_shaft=(300, 36), ex_shaft=(690, 26), well_d=990, gal_h=30,
-    room_start=(26, 50), room_w=(84, 120), room_gap=(30, 52), room_h=(62, 74), room_stop=90, in_label=(79, "lm"),
-    out_label=(886, "rm"), tag_right=888, text_x=79)
-# 16:9: the section centred in the vignette-safe area (see _SECTION_WIDE), the hill and its outlet to the right,
-# each AIR SHAFT beside its own shaft; the in-air lands first and holds 0.6 s before the out-air moves.
-_VENT_WIDE = _VentLayout(
-    title_x=420, title_w=1180, title_base=252, title_step=72, title_px=(68, 56), lab_px=32, side_px=32, sub_gap=50,
-    ground_gap=84, hill=(1300, 46, 250), in_shaft=(740, 44), ex_shaft=(1300, 30), well_d=792, gal_h=32,
-    room_start=(30, 56), room_w=(110, 160), room_gap=(36, 60), room_h=(50, 60), room_stop=110,
-    in_label=(682, "rm"), out_label=(1342, "lm"), tag_right=None, text_x=422, heading_fill=brand.BONE, hold=0.6,
-    label_level=1)
-
-
-def _render_ventilation_vertical(spec: dict[str, Any], out: Path, width: int, height: int) -> Path | None:
-    """The 9:16 ventilation section (2026-11-02 design review, 3.5/10 -> rebuilt): a hill's ground profile near
-    the top of the text box, one deep shaft to the bottom ending in a well, four levels of rooms off it and a
-    second, higher opening. Air in as a TEAL dashed path down the shaft and into the levels, air out as a CORAL
-    path through the second shaft (no sky blue or red); the title is the plain head of diagram_title, and the
-    only words are diagram_labels' (the intake and the outlet are both the AIR SHAFT), tagged ILLUSTRATIVE."""
-    return _render_ventilation(spec, out, width, height, _Grid(width, height), _VENT_TALL)
-
-
-def _render_ventilation_wide(spec: dict[str, Any], out: Path, width: int, height: int) -> Path | None:
-    """The 16:9 ventilation section (2026-11-02 review round 2, 2-3/10: invented words such as "DRAWS COOL DENSE
-    AIR DOWN" and "CONVECTION EXHAUST", sky blue and amber, 14-18 px type): the 9:16 rebuild composed for the wide
-    frame, TEAL air in first, a 0.6 s hold, then CORAL air out; only diagram_labels' words and the plain title."""
-    return _render_ventilation(spec, out, width, height, _WideGrid(width, height), _VENT_WIDE)
-
-
-def _render_ventilation(spec: dict[str, Any], out: Path, width: int, height: int, g: _Grid,
-                        L: _VentLayout) -> Path | None:
-    """The ventilation section on grid `g` with layout `L` (see the two orientations above)."""
-    import random
-
-    import numpy as np
-    labels = diagram_labels("ventilation", spec)
-    title = _plain_title(diagram_title("ventilation", spec))
-    X, Y, S = g.x, g.y, g.s
-    n = int(CLIP_SECONDS * VIDEO_FPS)
-
-    probe = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    title_lines, f_title, short = fit_text(probe, title, "Anton", g.f(L.title_px[0]), int(S(L.title_w)), 1,
-                                           g.f(L.title_px[1]), sentences=False, quiet=True)
-    if short or probe.textlength(title_lines[0] if title_lines else "", font=f_title) > S(L.title_w):
-        title_lines, f_title, _ = fit_text(probe, title, "Anton", g.f(L.title_px[0]), int(S(L.title_w)), 2,
-                                           g.f(L.title_px[1]), sentences=False, quiet=True)
-    title_base = [L.title_base + L.title_step * j for j in range(len(title_lines))]
-    sub_base = title_base[-1] + L.sub_gap
-    f_lab = get_font("Montserrat", g.f(L.lab_px), weight=600)
-    f_side = get_font("Montserrat", g.f(L.side_px), weight=700)
-
-    ground_lo = sub_base + L.ground_gap  # the ground at the frame's edges (design y)
-    hill_x, hill_h, hill_w = L.hill
-
-    def ground_d(x: float) -> float:
-        return ground_lo - hill_h * math.exp(-((x - hill_x) / hill_w) ** 2)
-
-    in_x, in_w = L.in_shaft              # the deep shaft
-    ex_x, ex_w = L.ex_shaft              # the outlet shaft, through the hill's crown
-    well_d = L.well_d
-    floors = [ground_lo + (well_d - 60 - ground_lo) * f for f in (0.2, 0.44, 0.68, 0.92)]
-    gal_h = L.gal_h
-    rnd = random.Random(11)
-    rooms = []
-    for k, fl in enumerate(floors):
-        x = in_x + in_w / 2 + rnd.uniform(*L.room_start)
-        while x < ex_x - ex_w / 2 - L.room_stop:
-            w = rnd.uniform(*L.room_w)
-            w = min(w, ex_x - ex_w / 2 - 30 - x)
-            rooms.append((x, x + w, fl, rnd.uniform(*L.room_h), 300 + 10 * k + len(rooms)))
-            x += w + rnd.uniform(*L.room_gap)
-
-    carve_box = (X(in_x - 50), Y(ground_lo - hill_h - 4), X(ex_x + 30), Y(well_d + 30))
-
-    def paint(pen: _Pen) -> None:
-        pen.rect(X(in_x - in_w / 2), Y(ground_d(in_x) - 6), X(in_x + in_w / 2), Y(well_d - 20), fill=255)
-        pen.ellipse(X(in_x), Y(well_d - 24), S(40), S(30), fill=255)                       # the well
-        pen.rect(X(ex_x - ex_w / 2), Y(ground_d(ex_x) - 6), X(ex_x + ex_w / 2), Y(floors[-1]), fill=255)
-        for fl in floors:
-            pen.rect(X(in_x), Y(fl - gal_h), X(ex_x), Y(fl), fill=255)
-        for x0, x1, fl, h, seed in rooms:
-            pen.poly(g.pts(_vault(x0, x1, fl, h, seed)), fill=255)
-
-    city = _carve(carve_box, paint, S(2))
-
-    def gpx(xs) -> Any:
-        """The ground's frame y at frame x (the hill in design units, mapped)."""
-        return np.array([Y(ground_d(g.ix(x))) for x in xs], dtype=np.float32)
-
-    base = _rock_ground(width, height, gpx)
-    pen = _Pen((0, Y(ground_lo - hill_h - 10), width, Y(ground_lo + 10)))
-    surface = [(float(x), gpx([float(x)])[0]) for x in range(0, width + 1, max(4, width // 120))]
-    pen.line(surface, (*brand.STONE_LT, 190), S(3), caps=False)   # it runs past the text box: kept dim
-    base.alpha_composite(pen.image(), (pen.x0, pen.y0))
-    city.draw(base)
-    water = _Pen((X(in_x - 44), Y(well_d - 40), X(in_x + 44), Y(well_d + 10)))
-    for j, yy in enumerate((well_d - 22, well_d - 12, well_d - 3)):
-        half = 30 - 7 * j
-        water.line([(X(in_x - half), Y(yy)), (X(in_x + half), Y(yy))], (*brand.GOLD_DIM, 255), S(2))
-    water.sprite().draw(base)
-
-    # ---- the air: the paths (design px), dashed and moving
-    def lane(fl: float) -> float:
-        return fl - gal_h / 2
-
-    split = (in_x + ex_x) / 2 + 10
-    cool = [[(in_x, ground_d(in_x) - 46), (in_x, lane(floors[-1]))]]
-    cool += [[(in_x, lane(fl)), (split - 22, lane(fl))] for fl in floors]
-    warm = [[(split + 22, lane(fl)), (ex_x, lane(fl))] for fl in floors]
-    warm.append([(ex_x, lane(floors[-1])), (ex_x, ground_d(ex_x) - 26)])
-    starts_c = [0.5] + [0.5 + 1.0 * (lane(fl) - cool[0][0][1]) / (lane(floors[-1]) - cool[0][0][1]) for fl in floors]
-    if L.hold is None:
-        starts_w = [s + 0.55 for s in starts_c[1:]] + [starts_c[-1] + 0.75]
-    else:   # every in-path lands (0.8 s each), the hold, then the out-air level by level and up the outlet
-        t_out = max(starts_c) + 0.8 + L.hold
-        starts_w = [t_out + 0.12 * k for k in range(len(floors))] + [t_out + 0.12 * len(floors) + 0.3]
-    paths = [(p, brand.TEAL, st) for p, st in zip(cool, starts_c)]
-    paths += [(p, brand.CORAL, st) for p, st in zip(warm, starts_w)]
-    air_box = (X(in_x - 30), Y(ground_lo - hill_h - 70), X(ex_x + 30), Y(lane(floors[-1]) + 24))
-
-    def air(t: float) -> Image.Image:
-        ap = _Pen(air_box)
-        for pts_d, colour, start in paths:
-            pts = g.pts(pts_d)
-            grow = _ease((t - start) / 0.8)
-            if grow <= 0:
-                continue
-            length = _path_len(pts)
-            for seg in _dash_runs(pts, S(16), S(13), S(70) * t, length * grow - S(14)):
-                if len(seg) > 1:
-                    ap.line(seg, (*colour, 255), S(6))
-            if grow > 0.98:
-                tip = pts[-1]
-                prev = pts[-2]
-                _chevron(ap, tip, (tip[0] - prev[0], tip[1] - prev[1]), S(18), (*colour, 255))
-        return ap.image()
-
-    def art(t: float, final: bool = False) -> Image.Image:
-        im = base.copy()
-        im.alpha_composite(air(6.0 if final else t), (math.floor(air_box[0]), math.floor(air_box[1])))
-        return im
-
-    final = art(0, final=True)
-    timed = []
-    for j, (ln, yb) in enumerate(zip(title_lines, title_base)):
-        timed.append((f"title{j}", _plan(final, (X(L.title_x), Y(yb)), ln, f_title, WHITE, "ls"), 0.1 + 0.08 * j))
-    subtitle = _plan(final, (X(L.text_x), Y(sub_base)), labels["airflow"], f_lab, L.heading_fill, "ls", track=S(2))
-    timed.append(("subtitle", subtitle, 0.3))
-    if L.tag_right is not None:
-        tag, pill = _tag_pill(final, g, L.tag_right, sub_base - 30, labels["summary"])
-    else:   # on the subtitle's line, after it
-        f_tag = get_font("Montserrat", g.f(24), weight=700)
-        tw = tracked_width(labels["summary"], f_tag, g.s(3)) + 2 * g.s(16)
-        tag, pill = _tag_pill(final, g, g.ix(subtitle.box[2] + S(28) + tw), sub_base - 30, labels["summary"])
-    timed.append(("tag", tag, 0.35))
-    shaft_y = ((ground_d(in_x) + floors[0] - gal_h) / 2 + 6 if L.label_level is None else
-               lane(floors[L.label_level]))
-    leaders = _Pen((0, 0, width, height))
-    in_label = _plan(final, (X(L.in_label[0]), Y(shaft_y)), labels["shaft"], f_side, brand.TEAL, L.in_label[1])
-    leaders.line([(in_label.box[2] + S(10), Y(shaft_y)), (X(in_x - in_w / 2 - 6), Y(shaft_y))],
-                 (*brand.GOLD_DIM, 255), S(2))
-    out_label = _plan(final, (X(L.out_label[0]), Y(shaft_y)), labels["shaft"], f_side, brand.CORAL, L.out_label[1])
-    leaders.line([(X(ex_x + ex_w / 2 + 6), Y(shaft_y)), (out_label.box[0] - S(10), Y(shaft_y))],
-                 (*brand.GOLD_DIM, 255), S(2))
-    leader_sprite = leaders.sprite()
-    timed.append(("shaft_in", in_label, 0.6))
-    timed.append(("shaft_out", out_label, starts_w[-1] + 0.2))
-    final = art(0, final=True)
-    leader_sprite.draw(final)
-    timed = [(name, _plan(final, plate.xy, plate.text, plate.font, plate.fill, plate.anchor, track=plate.track),
-              t_in) for name, plate, t_in in timed]
-    last: list[Image.Image] = []
-
-    def frames():
-        for i in range(n):
-            t = i / VIDEO_FPS
-            im = art(t)
-            pill.draw(im, _ease((t - 0.35) / 0.45))
-            leader_sprite.draw(im, _ease((t - 0.6) / 0.45))
-            for _name, plate, t_in in timed:
-                a = _ease((t - t_in) / 0.45)
-                if a > 0:
-                    im = plate.draw(im, a, round(S(10) * (1 - a)))
-            if i == n - 1:
-                last.append(im.copy())
-            yield im
-
-    result = _encode(frames(), out, n, width=width, height=height)
-    if result and last:
-        record_contrast(out, last[0], [(name, plate) for name, plate, _t in timed])
-    return result
-
-
-def render_ventilation_airflow(
-    spec: Dict[str, Any],
-    out: Path,
-    width: int = VIDEO_WIDTH,
-    height: int = VIDEO_HEIGHT,
-) -> Optional[Path]:
-    """Animated section of subterranean ventilation: air drawn in down a deep shaft and through the levels, and
-    out through a second, higher opening.
-
-    9:16 (2026-11-02 design review, scored 3.5/10): rebuilt in _render_ventilation_vertical as a section under a
-    hill, a deep shaft to a well, four levels, TEAL air in and CORAL air out, a plain title and diagram_labels'
-    words only (the old frame drew sky blue and red and unchecked claims); 16:9 (round 2, 2-3/10) the same rebuild
-    composed for the wide frame (_render_ventilation_wide)."""
-    if width <= height:
-        return _render_ventilation_vertical(spec, out, width, height)
-    return _render_ventilation_wide(spec, out, width, height)
-
-
 # ----------------------------------------------- every graphic for a run (make_all)
 PHOTO_BUILDERS = frozenset({"numbers", "timeline"})  # builders that draw the hero photo as a backdrop
-RETIRED_DIAGRAM_KEYS = ("rolling_stone_defense", "ventilation_airflow")  # payload keys make_all no longer draws
 
 
 def make_all(payload: Dict[str, Any], topic: Dict[str, Any], work_dir: Path, photo: Optional[Path] = None, width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT,
@@ -6617,10 +6178,9 @@ def make_all(payload: Dict[str, Any], topic: Dict[str, Any], work_dir: Path, pho
         jobs.append(("cross-section", lambda: render_cross_section(payload["cross_section"], work_dir / "graphic_section.mp4", width=width, height=height)))
     if payload.get("route"):
         jobs.append(("route", lambda: render_route(payload["route"], work_dir / "graphic_route.mp4", width=width, height=height)))
-    # The rolling-stone door and ventilation diagrams are retired (2026-11-02): no generated script declares
-    # `rolling_stone_defense` or `ventilation_airflow` (script_engine never emits them), so an old payload that
-    # still carries either key renders its other graphics and not these. RETIRED_DIAGRAM_KEYS names them; their
-    # renderers stay only because tests draw them directly.
+    # The rolling-stone door and ventilation diagrams are retired (2026-11-02) and their renderers deleted
+    # (2026-11-03): an old payload that still carries `rolling_stone_defense` or `ventilation_airflow` renders its
+    # other graphics and not these.
     place = None
     try:
         place = geo.locate(topic)
@@ -6661,7 +6221,7 @@ def make_all(payload: Dict[str, Any], topic: Dict[str, Any], work_dir: Path, pho
         inputs = {"sources": file_inputs(source_files), "place": place, "width": width,
                   "height": height, "fps": VIDEO_FPS, "encoder": get_video_encoder(),
                   "spec": {key: payload.get(key) for key in ("stat_cards", "cross_section", "route",
-                           "timeline", "scale_fact", "rolling_stone_defense", "ventilation_airflow")}}
+                           "timeline", "scale_fact")}}
         if name in ("numbers", "map"):  # figures (a map's scale bar) in the narration's units (2026-10-29)
             inputs["narration"] = payload.get("narration_script") or ""
         checkpoint = Checkpoints(work_dir / "stage_cache" / name)
@@ -6671,7 +6231,7 @@ def make_all(payload: Dict[str, Any], topic: Dict[str, Any], work_dir: Path, pho
             result = job()
             # Maps incorporate external relief/geodata and require their own source
             # registry. Only these builders are entirely drawn by this module.
-            original_builders = {"cross-section", "timeline", "scale", "defense", "ventilation", "numbers"}
+            original_builders = {"cross-section", "timeline", "scale", "numbers"}
             if result and name in original_builders:
                 from .lineage import record_graphic
                 media = [photo] if name in PHOTO_BUILDERS and photo else []

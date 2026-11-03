@@ -108,7 +108,20 @@ def test_layout_solver_shelf_anchor_invariant():
 # -----------------------------------------------------------------------------
 # 3. QualityAuditor Deterministic Audits
 # -----------------------------------------------------------------------------
-def test_auditor_semantic_cross_correlation_pass():
+def _declared_section(tmp_path, subject, labels):
+    """A cross-section graphic with its lineage sidecar, so the audit judges it by the words it shows."""
+    from src.lineage import record_graphic
+    code = tmp_path / "draw.py"
+    code.write_bytes(b"drawing code")
+    graphic = tmp_path / "graphic_section.mp4"
+    graphic.write_bytes(b"graphic")
+    record_graphic(graphic, code, {"builder": "cross-section", "payload": {"cross_section": {
+        "subject": subject, "total_depth_ft": 280.0, "approximate": True,
+        "levels": [{"depth_ft": 15.0 * (k + 1), "label": label} for k, label in enumerate(labels)]}}})
+    return graphic
+
+
+def test_auditor_semantic_cross_correlation_pass(tmp_path):
     auditor = QualityAuditor()
     timeline = [
         {
@@ -116,7 +129,7 @@ def test_auditor_semantic_cross_correlation_pass():
             "start": 0.0,
             "end": 6.0,
             "text": "Massive rolling stone doors sealed the corridors from defenders inside.",
-            "asset": Path("output/run_1/graphic_defense.mp4"),
+            "asset": _declared_section(tmp_path, "Rolling stone doors", ["Sealed corridors", "Stone disc"]),
         }
     ]
     words = [
@@ -131,7 +144,7 @@ def test_auditor_semantic_cross_correlation_pass():
     assert len(desync_issues) == 0
 
 
-def test_auditor_semantic_cross_correlation_fail():
+def test_auditor_semantic_cross_correlation_fail(tmp_path):
     auditor = QualityAuditor()
     timeline = [
         {
@@ -139,7 +152,7 @@ def test_auditor_semantic_cross_correlation_fail():
             "start": 0.0,
             "end": 6.0,
             "text": "They gathered at the communal dining tables to eat grain.",
-            "asset": Path("output/run_1/graphic_ventilation.mp4"),
+            "asset": _declared_section(tmp_path, "Ventilation shafts", ["Fresh air intake", "Shaft base"]),
         }
     ]
     words = [
@@ -187,7 +200,7 @@ def test_certify_reports_the_audit(tmp_path):
             "start": 0.0,
             "end": 6.0,
             "text": "Deep ventilation shafts circulated fresh air throughout the city.",
-            "asset": Path("graphic_ventilation.mp4"),
+            "asset": _declared_section(tmp_path, "Ventilation shafts", ["Fresh air intake", "Shaft base"]),
         }
     ]
     words = [

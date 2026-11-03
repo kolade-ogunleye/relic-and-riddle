@@ -1,6 +1,6 @@
 """The 16:9 explanatory graphics rebuilt from their 9:16 versions (design review round 2, 2026-11-02): the
-timeline, the scale comparison, the cross-section, the number cards, the rolling-stone door and the ventilation
-section. On the 1920x1080 last frame every recorded word is a payload word (or one of the fixed tags), no two
+timeline, the scale comparison, the cross-section and the number cards (the rolling-stone door and the ventilation
+section were retired, and their renderers deleted on 2026-11-03). On the 1920x1080 last frame every recorded word is a payload word (or one of the fixed tags), no two
 words collide, type is at least 28 px (sub-labels 22 px), colours are brand tokens, nothing is drawn in YouTube's
 timestamp corner and each word measures at least 4.5:1 drawn and after the master's grade. Also the round's
 number-card fixes for both orientations: a range written "94–104" (closed en dash, round 3), "MILLION" for millions of years, and a
@@ -29,8 +29,6 @@ SECTION = {"subject": "Derinkuyu underground city", "total_depth_ft": 280.0, "ap
                       {"depth_ft": 140.0, "label": "Cruciform church"}, {"depth_ft": 280.0, "label": "Deepest wells"}]}
 CARDS = [{"value": "94-104M years ago", "label": "Carbonatite rock cooling age"},
          {"value": "40+ km", "label": "Across the rings"}]
-DEFENSE = {"title": "Rolling Stone Door Defense Mechanism"}
-VENTILATION = {"title": "Subterranean Ventilation & Convection Dynamics"}
 FIXED = {"ILLUSTRATIVE", "INSIDE", "OUTSIDE", "APPROX", "DEPTHS", "FT", "M", "ABOUT", "YEARS", "LATER", "C", "BC",
          "AD", "DEEP", "TALL", "MILLION"}
 INVENTED = ("SAFE REFUGE", "INVADERS", "DEFENDER", "SURFACE PASSAGE", "DRAWS COOL", "CONVECTION", "GROUND LEVEL",
@@ -57,9 +55,7 @@ def renders(tmp_path_factory):
             "scale_depth": lambda o: graphics.render_scale(DEPTH, o, width=W, height=H),
             "scale_height": lambda o: graphics.render_scale(HEIGHT, o, width=W, height=H),
             "section": lambda o: graphics.render_cross_section(SECTION, o, width=W, height=H),
-            "numbers": lambda o: graphics.render_stat_cards(CARDS, o, photo, width=W, height=H),
-            "defense": lambda o: graphics.render_rolling_stone_defense(DEFENSE, o, width=W, height=H),
-            "ventilation": lambda o: graphics.render_ventilation_airflow(VENTILATION, o, width=W, height=H)}
+            "numbers": lambda o: graphics.render_stat_cards(CARDS, o, photo, width=W, height=H)}
     out = {}
     with pytest.MonkeyPatch.context() as mp:
         state: dict = {}
@@ -97,15 +93,10 @@ def _vocabulary(name: str) -> set[str]:
         texts = [SECTION["subject"], *[lv["label"] for lv in SECTION["levels"]]]
     elif name == "numbers":
         texts = [c["value"] + " " + c["label"] for c in CARDS]
-    elif name == "defense":
-        texts = [graphics.diagram_title("defense", DEFENSE), *graphics.diagram_labels("defense", DEFENSE).values()]
-    elif name == "ventilation":
-        texts = [graphics.diagram_title("ventilation", VENTILATION),
-                 *graphics.diagram_labels("ventilation", VENTILATION).values()]
     return {w for t in texts for w in re.findall(r"[A-Z]+", t.upper())} | FIXED
 
 
-NAMES = ["timeline", "scale_depth", "scale_height", "section", "numbers", "defense", "ventilation"]
+NAMES = ["timeline", "scale_depth", "scale_height", "section", "numbers"]
 
 
 @pytest.mark.parametrize("name", NAMES)
@@ -223,22 +214,6 @@ def test_vertical_section_ruler_also_reaches_300(tmp_path, monkeypatch):
     monkeypatch.setattr(graphics, "_encode", lambda frames, out, n, width=1080, height=1920: None)
     graphics.render_cross_section(SECTION, tmp_path / "v.mp4", width=1080, height=1920)
     assert "300" in seen and "250" in seen
-
-
-def test_ventilation_air_in_lands_and_holds_before_air_out(renders):
-    frames = renders["ventilation"]["frames"]
-
-    def coral(im):
-        arr = np.asarray(im).astype(np.int16)
-        return int((np.abs(arr - np.array(brand.CORAL, np.int16)).max(axis=2) <= 14).sum())
-
-    def teal(im):
-        arr = np.asarray(im).astype(np.int16)
-        return int((np.abs(arr - np.array(brand.TEAL, np.int16)).max(axis=2) <= 14).sum())
-    at = {round(i / 4, 2): f for i, f in enumerate(frames)}
-    words = coral(frames[0])                                     # nothing coral yet (the out label comes late)
-    assert teal(at[2.5]) > 2000 and coral(at[2.5]) <= words + 50  # the in-air has landed; the out-air waits
-    assert coral(frames[-1]) > coral(at[2.5]) + 2000
 
 
 def test_figure_text_writes_ranges_and_millions_without_changing_the_figures():

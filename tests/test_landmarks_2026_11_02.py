@@ -75,15 +75,35 @@ def test_every_reference_cites_its_source_and_when_it_was_checked():
         assert ref["feet"] > 0
 
 
+RETIRED = {"rolling_stone_defense": {"title": "Rolling Stone Door Defense Mechanism"},
+           "ventilation_airflow": {"labels": {"summary": "Sheltered 20,000 residents"}}}
+
+
 def test_make_all_no_longer_draws_the_retired_diagrams(tmp_path, monkeypatch):
     monkeypatch.setattr(graphics.geo, "locate", lambda topic: None)
-    made = []
-    monkeypatch.setattr(graphics, "render_rolling_stone_defense", lambda *a, **k: made.append("defense"))
-    monkeypatch.setattr(graphics, "render_ventilation_airflow", lambda *a, **k: made.append("ventilation"))
     payload = {"rolling_stone_defense": {"title": "Rolling Stone Door Defense Mechanism"},
                "ventilation_airflow": {"title": "Subterranean Ventilation & Convection Dynamics"}}
     assert graphics.make_all(payload, {"id": "derinkuyu_underground_city"}, tmp_path) == []
-    assert made == [] and set(graphics.RETIRED_DIAGRAM_KEYS) == set(payload)
+    assert not hasattr(graphics, "render_rolling_stone_defense") and not hasattr(graphics, "render_ventilation_airflow")
+
+
+def test_the_script_schema_drops_the_retired_diagram_keys(curated_payload):
+    # The renderers were deleted on 2026-11-03: a curated or model-written script that still carries the keys
+    # validates, and the keys do not reach the payload the graphics are made from.
+    from src.models import GraphicsPlan, ScriptPackage
+    assert not set(RETIRED) & set(GraphicsPlan.model_json_schema()["properties"])
+    pkg = ScriptPackage.model_validate({**curated_payload, **RETIRED})
+    assert not set(RETIRED) & set(pkg.model_dump())
+
+
+def test_the_fact_check_ignores_the_retired_diagram_keys(curated_payload):
+    from src.fact_checker import ClaimFactChecker
+    from src.trace_check import surfaces
+    payload = {**curated_payload, **RETIRED}
+    material = ClaimFactChecker._material(payload)
+    assert material == ClaimFactChecker._material({k: v for k, v in payload.items() if k not in RETIRED})
+    assert "DEFENSE MECHANISM" not in material.upper() and "Sheltered 20,000 residents" not in material
+    assert not any("Sheltered 20,000 residents" in text for _, text in surfaces(payload))
 
 
 @needs_ffmpeg

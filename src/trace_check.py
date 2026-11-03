@@ -104,7 +104,7 @@ def surfaces(payload: Dict[str, Any]) -> List[Tuple[str, str]]:
     material_payload["thumbnail"] = {k: th.get(k, "") for k in ("eyebrow", "line1", "line2", "tagline")}
     material = ClaimFactChecker._material(material_payload)
     out += [("graphic", ln) for ln in material.splitlines()
-            if ln.startswith(("Timeline:", "Scale graphic:", "Scale reference:", "Number card:", "Cross-section", "Route stop:", "Photo labels", "Diagram:"))]
+            if ln.startswith(("Timeline:", "Scale graphic:", "Scale reference:", "Number card:", "Cross-section", "Route stop:", "Photo labels"))]
     return [(w, t) for w, t in out if t.strip()]
 
 

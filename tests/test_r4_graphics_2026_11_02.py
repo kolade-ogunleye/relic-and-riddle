@@ -98,7 +98,7 @@ def test_span_helpers_round_4() -> None:
     f = graphics.get_font("Montserrat", graphics.span_font_px(38), weight=600)
     band, air = graphics.span_band(38, f)
     assert air == round(38 * graphics.SPAN_AIR) and band == graphics.cap_height(f) + 2 * air
-    assert graphics.span_font_px(20) == graphics.SPAN_MIN_PX == 30
+    assert graphics.span_font_px(20) == graphics.SPAN_MIN_PX == 24    # 2026-11-03 hierarchy spec: 30 -> 24
 
 
 def test_spacing_reports_whether_compressed_gaps_stay_honest() -> None:
@@ -438,7 +438,7 @@ def test_scale_bar_second_label_sits_on_its_own_tick_not_the_bars_end() -> None:
 def test_circa_mark_keeps_a_legibility_floor_when_the_years_step_down(tmp_path, monkeypatch) -> None:
     small = graphics.get_font("Anton", 40)
     assert graphics.circa_font(small).size == graphics.CIRCA_MIN_PX >= graphics.SPAN_MIN_PX
-    assert graphics.circa_font(graphics.get_font("Anton", 180)).size == round(180 * 0.36)
+    assert graphics.circa_font(graphics.get_font("Anton", 180)).size == round(180 * 0.5)   # 2026-11-03: 0.36 -> 0.5
     st = _render(monkeypatch, lambda: graphics.render_timeline(DERINKUYU, tmp_path / "t.mp4"))
     circas = [p for n, p in st["plates"] if n.endswith("_circa")]
     assert circas and min(p.font.size for p in circas) >= graphics.CIRCA_MIN_PX
@@ -1331,13 +1331,14 @@ NAMED_TL = {"derinkuyu": DERINKUYU, "two_line4": TWO_LINE,
                           {"year": 1700, "label": "Short"}, {"year": 1701, "label": XL}]}
 
 
-def _label_line_gap(lines: list[Any]) -> float:
-    """A label's own line gap: the ink gap between its lines, or for one line its 1.3 leading less its cap."""
+def _label_line_gap(lines: list[Any], leading: float = 1.3) -> float:
+    """A label's own line gap: the ink gap between its lines, or for one line its `leading` (1.3 on 16:9; 9:16 passes
+    graphics.TALL_LEADING, 1.15 since the 2026-11-03 hierarchy spec) less its cap."""
     lines = sorted(lines, key=lambda p: p.box[1])
     if len(lines) > 1:
         return min(b.box[1] - a.box[3] for a, b in itertools.pairwise(lines))
     f = lines[0].font
-    return round(f.size * 1.3) - graphics.cap_height(f)
+    return round(f.size * leading) - graphics.cap_height(f)
 
 
 def _spy_spine(monkeypatch: pytest.MonkeyPatch, st: dict[str, Any]) -> None:
@@ -1389,7 +1390,8 @@ def _timeline_checks(st: dict[str, Any], events, size: tuple[int, int], log_text
         u = graphics._union([p.box for p in ps])
         if tall:
             air = u[1] - max(p.box[3] for p in labels[k - 1])
-            assert air >= 1.5 * _label_line_gap(labels[k - 1]), (k, air, _label_line_gap(labels[k - 1]))
+            gap = _label_line_gap(labels[k - 1], graphics.TALL_LEADING)    # 2026-11-03: 1.15, not 1.3, on 9:16
+            assert air >= 1.5 * gap, (k, air, gap)
         else:
             for j, lp in labels.items():
                 block = graphics._union([p.box for p in lp] + [p.box for n, p in years.items() if n.split("_")[0] == f"year{j}"])
@@ -1412,7 +1414,16 @@ def _timeline_checks(st: dict[str, Any], events, size: tuple[int, int], log_text
         assert year_cap >= floor * label_cap, (year_cap, label_cap)
         assert not cut or "a label cut" in log_text
         bottom = max(p.box[3] for _n, p in plates)
-        assert box[3] - 3 <= bottom <= box[3], (bottom, box)             # the column uses the box to its foot
+        # 2026-11-03 hierarchy spec: inside the box, and on its foot unless the years are at their starting size
+        # and every gap between entries is at its TALL_GAP_CAP x cap limit (the spare height stays under it)
+        assert bottom <= box[3], (bottom, box)
+        if bottom < box[3] - 3:
+            year_px = min(p.font.size for n, p in years.items() if not n.endswith("_circa"))
+            assert year_px == (104 if len(kept) >= 4 else 120 if len(kept) == 3 else 180), (bottom, year_px)
+            for k in range(1, len(kept)):
+                top_k = min(y.box[1] for n, y in years.items() if n.split("_")[0] == f"year{k}")
+                gap = top_k - max(p.box[3] for p in labels[k - 1])
+                assert gap >= graphics.TALL_GAP_CAP * year_cap - 3, (k, gap, year_cap)
     else:
         assert not cut or "label(s) cut" in log_text                      # review 7: every last resort logged
         cut_named = _logged_labels(log_text, "label(s) cut: no measure holds them whole: ")
@@ -1805,7 +1816,10 @@ def test_tall_years_drop_to_their_floor_before_a_label_is_cut(tmp_path, monkeypa
     if cut and ratio < graphics.TALL_YEAR_RATIO:
         assert "to cut fewer words" in caplog.text, (case, ratio, cut)
     assert "entries whole" not in caplog.text or not cut, (case, cut)
-    if case == "nz0":
+    # 2026-11-03 hierarchy spec, a deliberate change: the ratios rose to 3.0 / 2.5 and the labels keep their row
+    # budget (2 rows at 4 entries) with copy-fit rows up to 6: nz0 and now nz5 keep more words at the least ratio,
+    # nz2 cuts the same words at either (this asserted nz0 alone under the full ratio, nz2 and nz5 at it)
+    if case in ("nz0", "nz5"):
         assert cut and ratio < graphics.TALL_YEAR_RATIO, (case, ratio, cut)
     else:
         assert ratio >= graphics.TALL_YEAR_RATIO, (case, ratio, cut)

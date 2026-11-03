@@ -33,7 +33,9 @@ def test_missing_research_cannot_receive_review_evidence(tmp_path):
 
 def test_diagram_claims_are_part_of_public_review():
     from src.trace_check import surfaces
-    payload = {"ventilation_airflow": {"labels": {"summary": "Sheltered 20,000 residents"}}}
+    payload = {"cross_section": {"subject": "Derinkuyu", "total_depth_ft": 280.0, "approximate": True,
+                                 "levels": [{"depth_ft": 15.0, "label": "Stables"},
+                                            {"depth_ft": 280.0, "label": "Sheltered 20,000 residents"}]}}
     assert any("Sheltered 20,000 residents" in text for _, text in surfaces(payload))
 
 

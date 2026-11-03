@@ -70,7 +70,6 @@ MAX_FACT_REVISIONS = 2  # rewrites of a Claude script that failed fact-checking,
 
 MISSED_SLOT_GRACE = timedelta(hours=3)
 SCHEDULED_POSTING_LOCK = "scheduled-posting"  # one post_due pass at a time across processes
-CAROUSEL_GAP = timedelta(hours=48)  # Upload-Post flags similar content within 48h (docs/sources.md)
 
 
 def compute_act_chapters(acts: List[Any], words: List[Dict[str, Any]], total_dur: float) -> Tuple[List[Dict[str, Any]], str, List[float]]:
@@ -1505,8 +1504,15 @@ class PipelineCoordinator:
             if story["kind"] == "story":
                 self.db.update_scheduled_post(story["id"], "pending",
                                               due_at=post_schedule.story_time(now).astimezone(timezone.utc).isoformat())
+        # Its carousel's slot counts from now, when the Reel really posted (post_schedule.carousel_reel): the
+        # booking's confirmation named one counted from the Reel's slot (operator, 2026-11-03)
+        carousels = [p for p in self.db.list_scheduled_posts(("waiting",), run_id=run_id) if p["kind"] == "carousel"]
+        car = (post_schedule.first_carousel_slot(post_schedule.carousel_reel(self.db, carousels[-1])[1], now=now)
+               if carousels else None)
+        then = (f", the carousel {html.escape(post_schedule.fmt(car))}" if car else
+                ", its carousel has no carousel slot left, so it won't post" if carousels else "")
         return (f"⚡ <b>{html.escape(self.db.run_label(run_id))}</b> is posted; its Stories follow in "
-                f"{config.STORY_DELAY_MINUTES} minutes, the carousel in its next slot.")
+                f"{config.STORY_DELAY_MINUTES} minutes{then}.")
 
     def cancel_post(self, post_id: int) -> str:
         """Cancels a booking (operator, 2026-10-24). A Reel's Stories and carousel go with it, and the run
@@ -3319,8 +3325,10 @@ class PipelineCoordinator:
         return {"status": "scheduled", "scheduled_for": slot.isoformat()}
 
     def _book_followers(self, run_id: str, run_dir: Path, reel_slot: datetime) -> List[str]:
-        """Books a Reel's Stories (STORY_DELAY_MINUTES after it) and its carousel (the next carousel slot);
-        the daemon's post_due() publishes them when due. Shared by slot booking and Post now."""
+        """Books a Reel's Stories (STORY_DELAY_MINUTES after it) and its carousel (its first carousel slot 48 h
+        after the Reel, before its deadline: post_schedule.first_carousel_slot, the rule the daemon and Posting use);
+        the daemon's post_due() publishes them when due. Shared by slot booking and Post now. reel_slot is the
+        Reel's slot, or now when the Reel has posted."""
         lines: List[str] = []
         stories = sorted(str(p) for p in (run_dir / "stories").glob("story_*.jpg"))
         if stories:
@@ -3329,8 +3337,16 @@ class PipelineCoordinator:
             lines.append(f"📱 {len(stories)} Story frames: {post_schedule.fmt(when)}")
         carousel = sorted(str(p) for p in (run_dir / "carousel").glob("carousel_slide_*.jpg"))
         if carousel:
-            self.db.add_scheduled_post(run_id, "carousel", None, carousel, status="waiting")
-            lines.append(f"🖼 Carousel: queued for the next carousel slot (from {post_schedule.fmt(post_schedule.next_carousel_slot(reel_slot))})")
+            post_id = self.db.add_scheduled_post(run_id, "carousel", None, carousel, status="waiting")
+            post = next(p for p in self.db.list_scheduled_posts(("waiting",), run_id=run_id) if p["id"] == post_id)
+            # The slot it will take, as the daemon will see it (it named the next carousel slot, which the 48 h gap
+            # and the 7-day expiry could rule out: operator, 2026-11-03); a newer episode's carousel goes first.
+            # None only when booked again too late (its Reel posted days ago and its last carousel slot has passed)
+            car = post_schedule.first_carousel_slot(post_schedule.carousel_reel(self.db, post)[1], now=reel_slot)
+            gap = f"{config.CAROUSEL_GAP_HOURS:g} h"
+            lines.append(f"🖼 Carousel: {post_schedule.fmt(car)} (its first carousel slot {gap} after the Reel)" if car else
+                         f"🖼 Carousel: its last carousel slot ({config.CAROUSEL_MAX_AGE_DAYS:g} days after the Reel, "
+                         f"or its first slot {gap} after it) has passed, so it won't post")
         return lines
 
     def _booked_reel_days(self, exclude_id: Optional[int] = None) -> set:
@@ -3463,13 +3479,6 @@ class PipelineCoordinator:
             self._alert(f"❌ {name} not posted for {label}: {html.escape(str(res.get('error', ''))[:300])}")
         return res["status"]
 
-    def _reel_posted_before(self, run_id: str, cutoff: datetime) -> bool:
-        """Upload-Post flags similar content within 48h per account, so a topic's carousel waits."""
-        for p in self.db.list_scheduled_posts(("published",), run_id=run_id):
-            if p["kind"] == "reel":
-                return datetime.fromisoformat(p["detail"].get("posted_at") or p["updated_at"]) <= cutoff
-        return True  # posted outside the scheduler (CLI): no slot record to wait on
-
     def _post_carousel_if_due(self, now: datetime) -> None:
         local = now.astimezone(post_schedule.tz())
         slot = post_schedule.carousel_time(local.date())
@@ -3478,13 +3487,18 @@ class PipelineCoordinator:
         if self.db.get_setting("carousel_posted_on") == local.date().isoformat():
             return
         waiting = [p for p in self.db.list_scheduled_posts(("waiting",)) if self._may_post(p["run_id"])]
-        for post in waiting:  # a week-old carousel is stale next to newer Reels
-            if now - datetime.fromisoformat(post["created_at"]) > timedelta(days=7):
+        ready = []
+        # One rule with Posting and the booking's confirmation (post_schedule.carousel_may_take), measured at the
+        # slot: from 48 h after its Reel posted (or its slot, while it hasn't) to its deadline, 7 days after it or its
+        # first carousel slot when later
+        for post in waiting:
+            state, reel_at = post_schedule.carousel_reel(self.db, post)
+            if post_schedule.carousel_expired(slot, reel_at):  # a week-old carousel is stale next to newer Reels
                 self.db.update_scheduled_post(post["id"], "expired")
-        ready = [(p, self.db.get_run(p["run_id"])) for p in waiting
-                 if now - datetime.fromisoformat(p["created_at"]) <= timedelta(days=7)]
-        ready = [(p, r) for p, r in ready if r and r["status"] == "published"
-                 and self._reel_posted_before(p["run_id"], now - CAROUSEL_GAP)]
+            elif state == "posted" and post_schedule.carousel_may_take(slot, reel_at):
+                run = self.db.get_run(post["run_id"])
+                if run and run["status"] == "published":
+                    ready.append((post, run))
         if not ready:
             return
         post, run = max(ready, key=lambda pr: pr[0]["id"])  # the newest topic

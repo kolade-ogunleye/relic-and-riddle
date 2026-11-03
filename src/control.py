@@ -1440,21 +1440,6 @@ def _when(iso: Optional[str], ahead: bool = True) -> str:
     return fmt_ahead(moment) if ahead else fmt(moment)
 
 
-def carousel_slot_for(db: PipelineDatabase, post: Dict[str, Any]) -> Optional[datetime]:
-    """When a waiting carousel is expected to go out: the first carousel slot 48 hours after its Reel posted
-    (and not before now). None while its Reel has not posted. Only the newest waiting carousel posts in a slot."""
-    from . import post_schedule
-    reel = next((p for p in db.list_scheduled_posts(("published",), run_id=post["run_id"]) if p["kind"] == "reel"), None)
-    posted = ((reel or {}).get("detail") or {}).get("posted_at") or (reel or {}).get("due_at")
-    if not posted:
-        return None
-    earliest = max(datetime.now(timezone.utc), datetime.fromisoformat(posted) + timedelta(hours=48))
-    try:
-        return post_schedule.next_carousel_slot(earliest)
-    except ValueError:
-        return None
-
-
 def _episode_bookings(db: PipelineDatabase) -> List[Tuple[str, List[Dict[str, Any]]]]:
     """Every run with bookings, those with something still to post first (soonest first), then the rest
     (newest first); each run's bookings in posting order: Reel, Stories, carousel."""

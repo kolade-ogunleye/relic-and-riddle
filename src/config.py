@@ -294,6 +294,12 @@ POST_SCHEDULING = os.getenv("POST_SCHEDULING", "true").lower() in ("true", "1", 
 REEL_POST_TIMES = [t.strip() for t in os.getenv("REEL_POST_TIMES", "12:00,19:00").split(",") if t.strip()]
 STORY_DELAY_MINUTES = int(os.getenv("STORY_DELAY_MINUTES", "45"))
 CAROUSEL_DAYS = [d.strip().lower()[:3] for d in os.getenv("CAROUSEL_DAYS", "tue,wed,thu").split(",") if d.strip()]
+# A carousel goes out CAROUSEL_GAP_HOURS after its Reel at the soonest (Upload-Post flags similar content within
+# 48 h, docs/sources.md: don't go lower) and expires CAROUSEL_MAX_AGE_DAYS after its Reel posts (or, while the Reel
+# hasn't posted, after the Reel's slot), but never before its first carousel slot CAROUSEL_GAP_HOURS after the Reel:
+# every carousel gets its slot (operator, 2026-11-03).
+CAROUSEL_GAP_HOURS = float(os.getenv("CAROUSEL_GAP_HOURS", "48"))
+CAROUSEL_MAX_AGE_DAYS = float(os.getenv("CAROUSEL_MAX_AGE_DAYS", "7"))
 
 # ------------------------------------------------------------------------------
 # LOCKED PRODUCTION SPECIFICATIONS

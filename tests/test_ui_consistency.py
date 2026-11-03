@@ -7,6 +7,8 @@ action, words never cut mid-word, and every published text visible on the review
 
 import json
 
+import pytest
+
 from src import control
 from src.telegram_bot import CARD_PAGE_LIMIT, TelegramApprovalBot, _tg_len
 from src.telegram_presentation import format_html
@@ -136,7 +138,25 @@ def test_the_dashboard_offers_one_action_per_topic(db, tmp_path, monkeypatch):
     assert any(c.startswith("rerender:") for c in flat) and not any(c.startswith("qrender:") for c in flat)
 
 
-def test_posting_groups_an_episodes_posts_with_their_own_times_and_links(db):
+@pytest.fixture
+def day_after_the_reel(monkeypatch):
+    """Sun 25 Oct 2026 17:00 EDT, the day after this test's Reel posted: a carousel's window counts from its Reel
+    (operator, 2026-11-03), so on the real clock a Reel posted on 24 Oct is long past its carousel's 7 days."""
+    from datetime import datetime, timezone
+
+    from src import db as db_module
+    from src import post_schedule, posting_view
+    frozen = datetime(2026, 10, 25, 21, 0, tzinfo=timezone.utc)
+
+    class Frozen(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return frozen.astimezone(tz) if tz else frozen.astimezone().replace(tzinfo=None)
+    for module in (db_module, post_schedule, posting_view):
+        monkeypatch.setattr(module, "datetime", Frozen)
+
+
+def test_posting_groups_an_episodes_posts_with_their_own_times_and_links(db, day_after_the_reel):
     # Operator, 2026-10-25: no date or countdown for the carousel, the Stories showed the Reel's YouTube
     # link, a fixed Stories post kept its old error, and posts of one run were not grouped.
     import json as _json

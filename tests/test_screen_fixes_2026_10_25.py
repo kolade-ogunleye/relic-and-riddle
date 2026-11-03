@@ -43,10 +43,10 @@ def test_the_bump_picker_leaves_out_the_topic_already_next(db):
     assert all(nxt["id"] not in b["callback_data"] for row in rows for b in row)
 
 
-# Sun 25 Oct 2026 17:00 EDT, the day of the review. A carousel waits at most 7 days from its booking and goes out
-# no sooner than 48 h after its Reel, on a Tue-Thu slot whose hour alternates by date (src/post_schedule.py), so
-# from some days and hours a Reel booked an hour ahead leaves its carousel no slot before it expires (Tue 3 Nov,
-# 13:00 EST: Thu's 12:00 is 2 h too soon, the next Tue's 19:00 6 h too late). From here it has Tue 27 Oct 19:00.
+# Sun 25 Oct 2026 17:00 EDT, the day of the review. A carousel goes out 48 h to 7 days after its Reel, on a Tue-Thu
+# slot whose hour alternates by date (src/post_schedule.py), so from some days and hours a Reel put an hour ahead
+# (not in a Reel slot, as _book does) leaves its carousel no slot before it expires (a Reel at Tue 3 Nov 13:00 EST:
+# Thu's 12:00 is 1 h too soon, the next Tue's 19:00 6 h too late). From here it has Tue 27 Oct 19:00.
 FROZEN_NOW = datetime(2026, 10, 25, 21, 0, tzinfo=timezone.utc)
 
 

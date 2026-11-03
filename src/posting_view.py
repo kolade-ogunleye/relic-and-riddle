@@ -62,8 +62,6 @@ def status_words(db, p: Dict[str, Any], on_episode: bool = False) -> str:
         words += "; its Reel has posted since: " + ("tap 📱 Book Stories and carousel again below" if on_episode
                                                      else "open the episode to book it again")
     return words
-CAROUSEL_GAP = timedelta(hours=48)       # main.CAROUSEL_GAP: a carousel goes out 48 h after its Reel at the soonest
-CAROUSEL_MAX_AGE = timedelta(days=7)     # main._post_carousel_if_due: older waiting carousels expire
 SLOT_DAYS = 7
 PROMOTED_PREFIX = "promoted:"            # main.PROMOTED_PREFIX: a dry run promoted to real posting
 POSTS_ONLY_PROMOTED_KEY = "posts_only_promoted"   # main.POSTS_ONLY_PROMOTED_KEY
@@ -121,15 +119,12 @@ def post_error(detail: Dict[str, Any]) -> str:
 
 def carousel_plan(db, now: Optional[datetime] = None, days: int = SLOT_DAYS + 7) -> Dict[int, datetime]:
     """The carousel slot each waiting carousel will take, as the daemon picks them (one per carousel slot, the
-    newest eligible: its Reel out 48 h before, booked under 7 days ago). A carousel with no slot before it
-    expires is left out."""
+    newest eligible: post_schedule.carousel_may_take, from 48 h to 7 days after its Reel posts or, while it
+    hasn't, after its Reel's slot). A carousel with no slot before it expires is left out."""
     now = now or datetime.now(timezone.utc)
     waiting = [p for p in db.list_scheduled_posts(("waiting",)) if not wont_post(db, p["run_id"])]   # as the daemon skips them
-    reels: Dict[str, Optional[datetime]] = {}
-    for p in db.list_scheduled_posts(("pending", "published")):
-        if p["kind"] == "reel":
-            out = _dt((p.get("detail") or {}).get("posted_at")) if p["status"] == "published" else None
-            reels[p["run_id"]] = out or _dt(p.get("due_at"))
+    reels = {p["id"]: post_schedule.carousel_reel(db, p) for p in waiting}
+    waiting = [p for p in waiting if reels[p["id"]][0] in ("posted", "booked")]   # a Reel that won't post: no slot yet
     plan: Dict[int, datetime] = {}
     day = now.astimezone(post_schedule.tz()).date()
     for _ in range(days):
@@ -137,9 +132,7 @@ def carousel_plan(db, now: Optional[datetime] = None, days: int = SLOT_DAYS + 7)
         day += timedelta(days=1)
         if not slot or slot < now:
             continue
-        eligible = [p for p in waiting if p["id"] not in plan and reels.get(p["run_id"])
-                    and reels[p["run_id"]] + CAROUSEL_GAP <= slot
-                    and slot - (_dt(p.get("created_at")) or slot) <= CAROUSEL_MAX_AGE]
+        eligible = [p for p in waiting if p["id"] not in plan and post_schedule.carousel_may_take(slot, reels[p["id"]][1])]
         if eligible:
             plan[max(eligible, key=lambda p: p["id"])["id"]] = slot
     return plan

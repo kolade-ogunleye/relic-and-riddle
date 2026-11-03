@@ -40,9 +40,11 @@ def test_callout_labels_on_16x9_keep_title_safe_with_elbow_leaders():
     for lab in labs:
         b = lab["box"]
         assert x0 <= b[0] and b[2] <= x1 and y0 <= b[1] and b[3] <= y1
-        assert lab["elbow"] is not None and lab["font"].size <= 36
+        # round 5 retired the 16:9 elbow (section 1: one leader style on both formats) and set the 16:9 label at
+        # 44 px (section 6, was 36); the leader still meets the centre of a plate edge
+        assert lab["elbow"] is None and lab["font"].size <= callouts.LABEL_PX["landscape"] == 44
         ex, ey = lab["end"]
-        assert ex == lab["elbow"][0] and ey in (b[1], b[3])         # the vertical run meets the plate's edge
+        assert (ex, ey) == pytest.approx(callouts._attach(tuple(b), lab["attach"]), abs=1)
     a, b = labs[0]["box"], labs[1]["box"]
     assert not callouts._overlaps(tuple(a), tuple(b), 0)
 
@@ -72,11 +74,14 @@ def test_partial_leader_draws_along_its_length():
 @pytest.mark.skipif(not FFMPEG, reason="FFmpeg renders the clip")
 def test_callouts_clip_records_label_contrast_and_haloed_leader(tmp_path):
     photo = _photo(tmp_path / "p.jpg")
-    clip = callouts.render(photo, POINTS_916[:2], tmp_path / "graphic_labels.mp4")
+    # round 5: render refuses a layout in conflict, and POINTS_916's wall dot (y 1300) is below the text box and in
+    # the caption band, where make never sends a label; the wall is drawn at y 1000 instead
+    pts = [POINTS_916[0], ("carved tuff wall", 300, 1000)]
+    clip = callouts.render(photo, pts, tmp_path / "graphic_labels.mp4")
     rec = json.loads((tmp_path / "graphic_labels.mp4.contrast.json").read_text(encoding="utf-8"))
     assert rec["elements"] and all(e["drawn"] >= brand.TEXT_CONTRAST for e in rec["elements"])
     last = np.asarray(Image.open(clip.with_suffix(".jpg")).convert("RGB"), dtype=np.int32)
-    lab = callouts.layout_labels(POINTS_916[:2], 1080, 1920)[0]
+    lab = callouts.layout_labels(pts, 1080, 1920)[0]
     # The plate's ground is the brand ink (230/255 over the dimmed photo), not a neutral black.
     b = lab["box"]
     cy = (b[1] + b[3]) // 2

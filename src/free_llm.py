@@ -21,7 +21,7 @@ from typing import Type, TypeVar
 from pydantic import BaseModel
 
 from . import config, gemini, slowdown
-from .llm import LLMError
+from .llm import LLMError, note_served, served_count
 
 log = logging.getLogger(__name__)
 T = TypeVar("T", bound=BaseModel)
@@ -109,6 +109,7 @@ def _paid_fallback(system, prompt, schema: Type[T], model: str, task_class: str,
         if groq.available():
             try:
                 result = groq.structured(system, prompt, schema)
+                note_served(f"groq:{config.GROQ_MODEL}")
                 log.info("Free Gemini unavailable (%s); answered by the free Groq model.", why)
                 return result
             except groq.GroqError as e:
@@ -209,8 +210,11 @@ def structured(system: str, prompt, schema: Type[T], role: str = "writer", attem
     started = time.perf_counter()
     token = _thinking_level.set(thinking)
     limit_token = _request_timeout.set(request_timeout)
+    noted = served_count()
     try:
         result = _structured_on(model, system, prompt, schema, role, attempts, task_class, timeout, thinking)
+        if served_count() == noted:   # a Gemini key answered (free, spare or billed: all on `model`)
+            note_served(model)
     except Exception as e:
         record_llm_call(current_task(), model, time.perf_counter() - started, outcome=type(e).__name__, role=role)
         raise

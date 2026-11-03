@@ -11,7 +11,8 @@ import numpy as np
 import pytest
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
-from src import brand, callouts, config, free_llm, then_now
+from src import brand, callouts, config, then_now
+from tests import callout_fakes
 
 FFMPEG = shutil.which("ffmpeg") is not None
 POINTS_4 = [("ventilation shaft", 820, 600), ("rolling stone door", 200, 800), ("carved tuff wall", 700, 1150),
@@ -58,15 +59,14 @@ def test_at_most_three_labels_and_a_clashing_one_is_dropped_last_first():
 
 def test_declutter_never_goes_below_two():
     crowded = [("door", 540, 900), ("wall", 545, 905)]          # on top of each other
-    assert len(callouts.declutter(crowded, 1080, 1920)) == 2
+    # round 5 section 7: with no valid pair declutter returns None (no graphic) instead of a pair in conflict
+    assert callouts.declutter(crowded, 1080, 1920) is None
 
 
 def test_plan_proposes_at_most_three(tmp_path, monkeypatch):
     photo = _photo(tmp_path / "p.jpg")
-    monkeypatch.setattr(free_llm, "ready", lambda: True)
-    feats = [callouts.Located(label=f"f{i}", visible=True, x=0.2 + 0.15 * i, y=0.3 + 0.1 * i, w=0.1, h=0.1,
-                              confidence="high") for i in range(5)]
-    monkeypatch.setattr(free_llm, "call", lambda *a, **k: callouts.CalloutPlan(image=1, features=feats))
+    # the same features on each of the three location passes (round 5 section 9)
+    callout_fakes.install(monkeypatch, [(f"f{i}", 0.2 + 0.15 * i, 0.3 + 0.1 * i, 0.1, 0.1) for i in range(5)])
     _, points = callouts.plan([photo], [f"f{i}" for i in range(5)], "x")
     assert len(points) == callouts.MAX_LABELS
 
@@ -83,7 +83,9 @@ BEATS = [{"start": 0.0, "text": "intro"}, {"start": 20.0, "text": " ".join(w["wo
 def test_each_label_holds_before_the_next_starts():
     labels = ["stone door recess", "carved tuff wall"]
     _, t = callouts.reveal_times(labels, BEATS, WORDS)
-    assert t == [pytest.approx(0.6), pytest.approx(1.8)]                    # each on its word
+    # each on its word, the second held for the first's hold (round 5 section 8: max(1.4 s, 0.06 s per character),
+    # so "carved" at 1.8 s waits to 0.6 + 1.4 s)
+    assert t == [pytest.approx(0.6), pytest.approx(max(1.8, 0.6 + callouts.hold(labels[0])))]
     _, t = callouts.reveal_times(labels, BEATS, EARLY)                     # "carved" now at 1.4 s: 0.8 s after
     assert t[0] == pytest.approx(0.6) and t[1] == pytest.approx(0.6 + callouts.hold(labels[0]))
     assert callouts.hold("x" * 30) == pytest.approx(1.8)
@@ -98,22 +100,21 @@ def test_a_label_said_after_the_clip_is_not_drawn_rather_than_shown_early():
 
 
 def test_the_last_label_stays_open_for_its_hold():
-    assert callouts.REVEAL_LAST + callouts.OPEN_TIME + callouts.MIN_REVEAL_GAP == pytest.approx(callouts.CLIP_SECONDS)
-    assert callouts.OPEN_TIME == pytest.approx(0.12 + 0.2 + 0.15)
+    # round 5 section 8: the last label is fully open LAST_OPEN (1.5 s) before the exit, which starts EXIT_LEAD
+    # before the clip ends (was: open MIN_REVEAL_GAP to the clip's end); OPEN_TIME follows the new phase timings
+    assert callouts.REVEAL_LAST + callouts.OPEN_TIME + callouts.LAST_OPEN <= callouts.exit_start() + 1e-9
+    assert callouts.exit_start() - (callouts.REVEAL_LAST + callouts.OPEN_TIME + callouts.LAST_OPEN) < 0.01
+    assert callouts.OPEN_TIME == pytest.approx(callouts.OPEN_FROM_START - callouts.DOT_LEAD)
 
 
 def test_make_drops_labels_said_outside_the_clip(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "CALLOUTS_ENABLED", True)
     photo = _photo(tmp_path / "topic_1.jpg")
-    monkeypatch.setattr(free_llm, "ready", lambda: True)
     plan_pts = [("door", 0.55, 0.45), ("wall", 0.3, 0.52), ("shaft", 0.7, 0.3)]
-
-    def call(system, content, schema, **kw):
-        if schema is callouts.CalloutPlan:
-            return callouts.CalloutPlan(image=1, features=[callouts.Located(
-                label=lb, visible=True, x=x, y=y, w=0.3, h=0.2, confidence="high") for lb, x, y in plan_pts])
-        return callouts.LabelCheck(shows_feature=True, confidence="high", note="")
-    monkeypatch.setattr(free_llm, "call", call)
+    # round 5 section 9: three location passes, then the blind location, blind look, match and decoy
+    # object-sized features (operator 2026-11-03: an object keeps its whole extent clear of every plate, and three
+    # overlapping 0.3 x 0.2 features leave no layout)
+    callout_fakes.install(monkeypatch, [(lb, x, y, 0.08, 0.06) for lb, x, y in plan_pts])
     seen = {}
 
     def fake_render(photo, points, out, width=1080, height=1920, reveal=None):
@@ -193,7 +194,9 @@ def test_nontext_contrast_reads_the_core_against_its_band():
 @pytest.mark.skipif(not FFMPEG, reason="FFmpeg renders the clip")
 def test_render_records_measured_nontext_contrast(tmp_path):
     photo = _photo(tmp_path / "p.jpg", lo=150, hi=240)
-    callouts.render(photo, POINTS_916[:2], tmp_path / "graphic_labels.mp4")
+    # round 5: render refuses a layout in conflict; POINTS_916's wall dot (y 1300) lies below the text box, in the
+    # caption band where make never sends a label, so it is drawn at y 1000
+    callouts.render(photo, [POINTS_916[0], ("carved tuff wall", 300, 1000)], tmp_path / "graphic_labels.mp4")
     rec = json.loads((tmp_path / "graphic_labels.mp4.contrast.json").read_text(encoding="utf-8"))
     assert rec["elements"] and rec["nontext_target"] == callouts.NONTEXT_MIN
     names = {r["name"] for r in rec["nontext"]}

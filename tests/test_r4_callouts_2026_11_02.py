@@ -3,15 +3,17 @@ band; a focus spotlight on the newest label, with each label measured on the fra
 centred; then-and-now kickers at phone size in one colour role, the marker shade as a soft local glow kept to its
 own photo, one slow push shared by both photos, and old photos whose date reads as a publication date are refused
 (a photographic print is not one)."""
+import math
 from itertools import pairwise
 
 import numpy as np
 import pytest
 from PIL import Image
 
-from src import callouts, config, free_llm, safe_zones, then_now
+from src import callouts, config, safe_zones, then_now
 from src.brand import DATA_FONT
 from src.typography import get_font
+from tests import callout_fakes
 
 
 def _photo(path, size=(1200, 2100), seed=1, lo=60, hi=240):
@@ -49,15 +51,17 @@ def test_the_loupe_source_ring_counts_as_the_dot():
     assert [p[0] for p in callouts.clear_of_captions(pts, 1080, 1920, mag=1.3)] == ["a"]
 
 
-def _plan_llm(monkeypatch, feats):
-    monkeypatch.setattr(free_llm, "ready", lambda: True)
+# The review's 9:16 pair with its extents (stone door recess at 600, 900, 260 x 300; carved tuff wall at 300, 1010,
+# 300 x 380) has no layout as two objects under the operator's kind rule (2026-11-03: an object keeps its whole box
+# clear of every plate); with the wall as a surface it is laid out (test_callouts_v3's
+# test_the_reference_916_pair_gets_a_clean_layout_with_the_wall_as_a_surface, and rendered in test_callouts_v4). The
+# render tests here draw this pair of object-sized features.
+PAIR_916 = [("stone door recess", 640, 720, 0.02, 160, 220), ("carved niche", 300, 980, 0.01, 110, 140)]
 
-    def call(system, content, schema, **kw):
-        if schema is callouts.CalloutPlan:
-            return callouts.CalloutPlan(image=1, features=[callouts.Located(
-                label=lb, visible=True, x=x, y=y, w=0.2, h=0.15, confidence="high") for lb, x, y in feats])
-        return callouts.LabelCheck(shows_feature=True, confidence="high", note="")
-    monkeypatch.setattr(free_llm, "call", call)
+
+def _plan_llm(monkeypatch, feats, size=(0.2, 0.15)):
+    # round 5 section 9: three location passes, then the blind location, blind look, match and decoy
+    callout_fakes.install(monkeypatch, [(lb, x, y, *size) for lb, x, y in feats])
 
 
 def test_make_drops_the_low_label_and_gives_up_below_two(tmp_path, monkeypatch):
@@ -71,12 +75,13 @@ def test_make_drops_the_low_label_and_gives_up_below_two(tmp_path, monkeypatch):
         return out
     monkeypatch.setattr(callouts, "render", fake_render)
     # plan() admits a dot down to y 1098; at 1095 the push and the dot's ring take it into the band
-    _plan_llm(monkeypatch, [("door", 0.55, 0.45), ("wall", 0.3, 0.35), ("shaft", 0.7, 1095 / 1920)])
+    # object-sized features (operator 2026-11-03: an object keeps its whole extent clear of every plate)
+    _plan_llm(monkeypatch, [("door", 0.55, 0.45), ("wall", 0.3, 0.35), ("shaft", 0.7, 1095 / 1920)], size=(0.08, 0.06))
     payload = {"photo_labels": ["door", "wall", "shaft"]}
     assert callouts.make(payload, {"id": "t", "title": "x"}, [photo], tmp_path / "g", approved=None)
     assert [p[0] for p in seen["points"]] == ["door", "wall"]
     seen.clear()
-    _plan_llm(monkeypatch, [("door", 0.55, 0.45), ("shaft", 0.7, 1095 / 1920)])
+    _plan_llm(monkeypatch, [("door", 0.55, 0.45), ("shaft", 0.7, 1095 / 1920)], size=(0.08, 0.06))
     assert callouts.make({"photo_labels": ["door", "shaft"]}, {"id": "t", "title": "x"}, [photo], tmp_path / "h",
                          approved=None) is None
     assert "points" not in seen
@@ -86,8 +91,11 @@ def test_plan_carries_the_feature_extent_for_the_spotlight(tmp_path, monkeypatch
     photo = _photo(tmp_path / "p.jpg")
     _plan_llm(monkeypatch, [("door", 0.55, 0.45), ("wall", 0.3, 0.35)])
     _, points = callouts.plan([photo], ["door", "wall"], "x")
-    _label, _x, _y, area, fw, fh = points[0]
-    assert fw == pytest.approx(0.2 * 1080) and fh == pytest.approx(0.15 * 1920) and area == pytest.approx(0.03)
+    _label, _x, _y, area, fw, fh = points[0][:6]
+    # round 5: located on the uncropped 1200 x 2100 photo and mapped into the 9:16 crop (scale 1920 / 2100)
+    k = 1920 / 2100
+    assert fw == pytest.approx(0.2 * 1200 * k) and fh == pytest.approx(0.15 * 1920)
+    assert area == pytest.approx(fw * fh / (1080 * 1920))
 
 
 # ---------------------------------------------------------------- centred push (round-4 review)
@@ -112,8 +120,7 @@ def test_render_lays_out_on_the_centred_push(tmp_path, monkeypatch):
     monkeypatch.setattr(callouts, "layout_labels", lambda *a, **k: seen.append(k.get("push")) or real(*a, **k))
     monkeypatch.setattr(callouts, "_encode", lambda frames, out, n, **k: out)
     photo = _photo(tmp_path / "p.jpg")
-    callouts.render(photo, [("stone door recess", 600, 900, 0.05, 260, 300),
-                            ("carved tuff wall", 300, 1010, 0.08, 300, 380)], tmp_path / "x.mp4", reveal=[0.6, 2.2])
+    callouts.render(photo, PAIR_916, tmp_path / "x.mp4", reveal=[0.6, 2.2])
     assert len(seen) == 1 and isinstance(seen[0], callouts.Push)
     assert seen[0].crop(callouts.CLIP_SECONDS)[1] > 0          # not pinned to the photo's top edge
 
@@ -173,7 +180,7 @@ def test_spotlight_eases_in_with_the_dot_and_leader():
 def test_render_keeps_plate_ground_and_contrast_with_the_spotlight(tmp_path):
     import json
     photo = _photo(tmp_path / "p.jpg")
-    pts = [("stone door recess", 600, 900, 0.05, 260, 300), ("carved tuff wall", 300, 1010, 0.08, 300, 380)]
+    pts = PAIR_916
     clip = callouts.render(photo, pts, tmp_path / "graphic_labels.mp4", reveal=[0.6, 2.2])
     rec = json.loads((tmp_path / "graphic_labels.mp4.contrast.json").read_text(encoding="utf-8"))
     assert rec["elements"] and all(e["drawn"] >= 4.5 for e in rec["elements"])
@@ -187,11 +194,12 @@ def test_probe_frames_cover_the_frames_where_the_label_is_newest():
     starts = [0.5, 2.5]
     first = [p[0] for p in (callouts.probe_frames(k, starts, n) for k in range(2))]
     one = callouts.probe_frames(0, starts, n)
-    open_at = (0.5 + callouts.DOT_GROW + callouts.LEADER_DRAW + callouts.LABEL_FADE) * fps
-    assert one[0] == pytest.approx(open_at, abs=1) and one[-1] == n - 1
+    open_at = (0.5 + callouts.OPEN_FROM_START) * fps            # round 5: the longest open, from the label's start
+    exit_at = round(callouts.exit_start() * fps)                # round 5: every label exits before the clip ends
+    assert one[0] == pytest.approx(open_at, abs=1) and one[-1] == exit_at - 1
     assert any(i < 2.5 * fps for i in one)                      # while label 1 is the newest (its own spotlight)
     assert round(2.5 * fps) in one                              # the spotlight starts to move to label 2
-    assert round((2.5 + callouts.DOT_GROW + callouts.LEADER_DRAW) * fps) in one   # and has settled there
+    assert round((2.5 + callouts.SPOT_FADE) * fps) in one       # and has settled there
     assert max(b - a for a, b in pairwise(one)) <= round(callouts.MEASURE_STEP * fps)
     assert first[1] > first[0] and all(i >= first[1] for i in callouts.probe_frames(1, starts, n))
 
@@ -204,20 +212,36 @@ def test_each_label_is_recorded_on_its_worst_delivered_frame(tmp_path, monkeypat
                             {"name": nm, "drawn": q.measure(frame), "graded": None} for nm, q in rows]})
     # a bright wall: the spotlight's 20 % is what separates label 1's own frames from the last one
     photo = _photo(tmp_path / "p.jpg", lo=180, hi=255)
-    pts = [("stone door recess", 600, 900, 0.05, 260, 300), ("carved tuff wall", 300, 1010, 0.08, 300, 380)]
-    starts = [c - callouts.LEAD_FRAMES / config.VIDEO_FPS for c in (0.6, 2.2)]
+    pts = PAIR_916
     callouts.render(photo, pts, tmp_path / "x.mp4", reveal=[0.6, 2.2])
     n = len(frames)
     rec = __import__("json").loads((tmp_path / "x.mp4.contrast.json").read_text(encoding="utf-8"))
     by_name = {e["name"]: e for e in rec["elements"]}
     for k in range(2):
-        first = callouts.probe_frames(k, starts, n)[0]
-        plates = [q for fr, rows in recs for nm, q in rows if nm.startswith(f"label_{k + 1}_")]
+        plates = [(fr, q) for fr, rows in recs for nm, q in rows if nm.startswith(f"label_{k + 1}_")]
         assert plates
-        for j, q in enumerate(plates):
-            lowest = min(q.measure(f) for f in frames[first:])
-            assert by_name[f"label_{k + 1}_{j + 1}"]["drawn"] == pytest.approx(lowest)
-            assert lowest >= 4.5
+        # round 5 (rigid lock): each label moves with its dot, so its lines are measured where they are on each
+        # frame; the record holds the value on the frame where they measure lowest
+        for j, (fr, q) in enumerate(plates):
+            assert by_name[f"label_{k + 1}_{j + 1}"]["drawn"] == pytest.approx(q.measure(fr))
+            assert q.measure(fr) >= 4.5
+        # ... and that frame is its worst: on every frame from fully open (at the longest) to the exit, the same
+        # lines moved by the dot's push measure no lower than the record
+        push, fps = callouts.Push(1080, 1920), config.VIDEO_FPS
+        dot = (pts[k][1], pts[k][2])
+        rec_t = {e["t"] for e in rec["elements"] if e["name"].startswith(f"label_{k + 1}_")}
+        assert len(rec_t) == 1
+        at = round(rec_t.pop() * fps)
+        bx, by = (round(v) for v in push.shift(*dot, at / fps))
+        start = (0.6, 2.2)[k] - callouts.LEAD_FRAMES / fps
+        for i in range(math.ceil((start + callouts.OPEN_FROM_START) * fps), round(callouts.exit_start() * fps)):
+            sx, sy = (round(v) for v in push.shift(*dot, i / fps))
+            for j, (_fr, q) in enumerate(plates):
+                v = callouts._placed(q, sx - bx, sy - by).measure(frames[i])
+                if v is not None:
+                    assert by_name[f"label_{k + 1}_{j + 1}"]["drawn"] <= v + 1e-6
+    exit_frame = round(callouts.exit_start() * config.VIDEO_FPS)
+    assert all(f is not None for f in frames[:exit_frame])
     # label 1's lowest frame is not simply the last one: the last frame's spotlight is on label 2
     t1 = {e["t"] for e in rec["elements"] if e["name"].startswith("label_1_")}
     assert t1 and all(0 < t <= (n - 1) / config.VIDEO_FPS for t in t1)

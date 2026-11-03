@@ -3,6 +3,7 @@ label is checked again on its own crop (fail closed); only approved topic photos
 the narration names them; a small feature gets a loupe; a then-and-now is shown only for a pair that shares a
 viewpoint (feature geometry and a vision check), registered so the wipe lines the two up."""
 import json
+import math
 
 import numpy as np
 import pytest
@@ -10,6 +11,7 @@ from PIL import Image, ImageFilter, ImageOps
 
 from src import callouts, config, free_llm, then_now
 from src.llm import LLMError
+from tests import callout_fakes
 
 POINTS_916 = [("stone door recess", 600, 900), ("carved tuff wall", 300, 1300), ("ventilation shaft", 1000, 420),
               ("rolling stone door", 70, 700)]
@@ -43,19 +45,24 @@ def test_leader_meets_the_centre_of_a_plate_edge_never_a_corner(points, size):
 def test_one_alignment_rule_centred_on_top_bottom_flush_toward_a_side_leader(points, size):
     for lab in callouts.layout_labels(points, *size):
         x0, _, x1, _ = lab["box"]
+        pad = callouts.PLATE_PAD["landscape" if size[0] > size[1] else "portrait"]   # 26 px [24 px]
         expected = {"top": ("mm", round((x0 + x1) / 2)), "bottom": ("mm", round((x0 + x1) / 2)),
-                    "left": ("lm", x0 + callouts.PLATE_PAD_X), "right": ("rm", x1 - callouts.PLATE_PAD_X)}
+                    "left": ("lm", x0 + pad), "right": ("rm", x1 - pad)}
         assert (lab["anchor"], lab["text_x"]) == expected[lab["attach"]]
 
 
 def test_most_labels_attach_top_or_bottom_and_leaders_are_mostly_vertical():
+    # Round 5 section 2 retired the side penalty ("top or bottom for most labels"): the direction from the plate to
+    # the dot picks the edge, top/bottom within 40 degrees of vertical, a side within 30 degrees of horizontal.
     for points in (POINTS_916[:2], POINTS_4):
         labs = callouts.layout_labels(points, 1080, 1920)
-        vertical = [lab for lab in labs if lab["attach"] in ("top", "bottom")]
-        assert len(vertical) * 2 > len(labs)
         for (_, x, y), lab in zip(points, labs):
+            x0, y0, x1, y1 = lab["box"]
+            phi = math.degrees(math.atan2(abs(x - (x0 + x1) / 2), abs(y - (y0 + y1) / 2)))
             if lab["attach"] in ("top", "bottom"):
-                assert abs(lab["end"][0] - x) <= abs(lab["end"][1] - y)
+                assert phi < 60 and abs(lab["end"][0] - x) <= abs(lab["end"][1] - y)
+            else:
+                assert phi > 40
 
 
 @pytest.mark.parametrize("points,size", [(POINTS_916, (1080, 1920)), (POINTS_4, (1080, 1920)),
@@ -73,38 +80,31 @@ def test_plates_keep_24px_apart_and_off_every_dot_inside_the_text_box(points, si
 
 
 def test_16x9_elbow_runs_vertical_into_the_plate_edge_centre():
+    # Round 5 section 1 retired the 16:9 90-degree elbow: one leader style (S1 or S2) on both formats, still meeting
+    # the centre of the plate edge.
     for lab, (_, x, y) in zip(callouts.layout_labels(POINTS_169, 1920, 1080), POINTS_169):
-        assert lab["elbow"] is not None and lab["attach"] in ("top", "bottom")
-        assert lab["elbow"] == (lab["end"][0], y) and abs(lab["end"][0] - (lab["box"][0] + lab["box"][2]) / 2) <= 1
+        assert lab["elbow"] is None and lab["route"] in ("S1", "S2") and not lab["conflict"]
+        if lab["attach"] in ("top", "bottom"):
+            assert abs(lab["end"][0] - (lab["box"][0] + lab["box"][2]) / 2) <= 1
 
 
 # ---------------------------------------------------------------- accuracy: an independent check per label
 def _fake_llm(monkeypatch, plan_points, verdicts, ready=True):
-    """free_llm faked: the plan returns `plan_points` ((label, x, y) as fractions) on photo 1; each label's check
-    returns verdicts[label] (True / False / an exception)."""
+    """free_llm faked: the plan returns `plan_points` ((label, x, y, w, h) as fractions) on photo 1 on all three
+    location passes; each label's check (round 5 section 9: blind location, blind look, match, decoy) passes for
+    verdicts[label] True, its blind look sees something else for False, and every call about it raises an
+    exception."""
     calls = []
-    monkeypatch.setattr(free_llm, "ready", lambda: ready)
-
-    def call(system, content, schema, **kw):
-        calls.append(schema.__name__)
-        if schema is callouts.CalloutPlan:
-            return callouts.CalloutPlan(image=1, features=[
-                callouts.Located(label=lb, visible=True, x=x, y=y, w=w, h=h, confidence="high")
-                for lb, x, y, w, h in plan_points])
-        if schema is callouts.LabelCheck:
-            text = " ".join(c.get("text", "") for c in content if c.get("type") == "text")
-            label = text.split("Label: ")[1].split("\n")[0]
-            v = verdicts[label]
-            if isinstance(v, Exception):
-                raise v
-            return callouts.LabelCheck(shows_feature=v, confidence="high", note="")
-        raise AssertionError(schema)
-    monkeypatch.setattr(free_llm, "call", call)
-    return calls
+    return callout_fakes.install(monkeypatch, plan_points, ready=ready, calls=calls,
+                                 look={lb: "something else" for lb, v in verdicts.items() if v is False},
+                                 fail={lb: v for lb, v in verdicts.items() if isinstance(v, Exception)})
 
 
-PLAN = [("stone door recess", 0.55, 0.45, 0.3, 0.2), ("carved tuff wall", 0.3, 0.5, 0.4, 0.3),
-        ("ventilation shaft", 0.7, 0.3, 0.1, 0.1)]
+# Object-sized features (operator 2026-11-03: an object keeps its whole extent clear of every plate, so the earlier
+# 0.3 x 0.2 and 0.4 x 0.3 features, which overlap each other, leave no layout at all), the door a little higher and
+# to the right (at 0.55, 0.45 the wall's plate has no room: above it the door's dot is nearer than its own)
+PLAN = [("stone door recess", 0.6, 0.42, 0.08, 0.06), ("carved tuff wall", 0.3, 0.5, 0.08, 0.06),
+        ("ventilation shaft", 0.7, 0.3, 0.08, 0.06)]
 PAYLOAD = {"photo_labels": ["stone door recess", "carved tuff wall", "ventilation shaft"]}
 
 
@@ -127,7 +127,7 @@ def test_failing_verification_drops_that_label(tmp_path, monkeypatch, rendered):
     clip = callouts.make(PAYLOAD, {"id": "t", "title": "Derinkuyu"}, [photo], tmp_path / "g", approved=None)
     assert clip is not None
     assert [p[0] for p in rendered["points"]] == ["stone door recess", "carved tuff wall"]
-    assert calls.count("LabelCheck") == 3                       # one independent check per proposed label
+    assert calls.count("CheckLook") == 3                        # one independent (blind) look per proposed label
 
 
 def test_unavailable_verifier_drops_every_label_and_no_graphic(tmp_path, monkeypatch, rendered):
@@ -156,22 +156,24 @@ def test_two_passing_labels_render_with_their_cues(tmp_path, monkeypatch, render
 def test_verify_crop_is_full_resolution_around_the_dot(tmp_path, monkeypatch):
     photo = _photo(tmp_path / "big.jpg", size=(2160, 3840))
     sizes = []
-    monkeypatch.setattr(free_llm, "ready", lambda: True)
+    pts = [("a", 540, 960, 0.01, 100, 100), ("b", 20, 1900, 0.01, 100, 100)]     # the box agreement needs a box
+    callout_fakes.install(monkeypatch, [(p[0], p[1] * 2 / 2160, p[2] * 2 / 3840, 200 / 2160, 200 / 3840) for p in pts])
+    fake = free_llm.call
 
     def call(system, content, schema, **kw):
         import base64
         import io
-        sizes.append(Image.open(io.BytesIO(base64.b64decode(content[1]["source"]["data"]))).size)
-        return callouts.LabelCheck(shows_feature=True, confidence="high", note="")
+        if schema is callouts.CheckLook:                                         # the crosshair close-up
+            sizes.append(Image.open(io.BytesIO(base64.b64decode(content[1]["source"]["data"]))).size)
+        return fake(system, content, schema, **kw)
     monkeypatch.setattr(free_llm, "call", call)
-    kept = callouts.verify(photo, [("a", 540, 960), ("b", 20, 1900)], "x")
+    kept = callouts.verify(photo, pts, "x")
     assert len(kept) == 2 and sizes == [(callouts.VERIFY_PX, callouts.VERIFY_PX)] * 2
 
 
 def test_medium_confidence_yes_is_a_no(tmp_path, monkeypatch):
     photo = _photo(tmp_path / "p.jpg")
-    monkeypatch.setattr(free_llm, "ready", lambda: True)
-    monkeypatch.setattr(free_llm, "call", lambda *a, **k: callouts.LabelCheck(shows_feature=True, confidence="medium", note=""))
+    callout_fakes.install(monkeypatch, [("a", 0.5, 0.5)], confidence="medium")
     assert callouts.verify(photo, [("a", 540, 960)], "x") == []
 
 
@@ -213,7 +215,9 @@ def test_reveal_without_word_timings_estimates_from_the_beat_text():
 
 
 def test_reveal_falls_back_to_the_stagger_and_stays_in_the_clip():
-    assert callouts.reveal_times(["a door", "a wall"], None) == (None, [callouts.DOT_AT, callouts.DOT_AT + callouts.STAGGER])
+    # round 5 section 8: a label holds max(1.4 s, 0.06 s per character) before the next (was STAGGER alone)
+    gap = max(callouts.STAGGER, callouts.hold("a door"))
+    assert callouts.reveal_times(["a door", "a wall"], None) == (None, [callouts.DOT_AT, callouts.DOT_AT + gap])
     late = [{"start": 0.0, "text": "door " + "x " * 60 + "wall"}, {"start": 30.0, "text": "end"}]
     _, t = callouts.reveal_times(["door", "wall"], late)
     assert t[0] < t[1] <= callouts.REVEAL_LAST and t[1] - t[0] >= callouts.MIN_REVEAL_GAP - 1e-6

@@ -58,13 +58,16 @@ def test_grammatical_burst_partitioning_terminal_punct():
     assert burst_texts[0] == "Wait, look here!"
     assert burst_texts[1] == "Did you see that?"
     # The remainder: "It was hidden underground for thousands of years." (8 words)
-    # Should be partitioned into bursts with >= 3 words
+    # Should be partitioned into bursts of at least MIN_BURST_WORDS (2) words. Item 2 (operator, 2026-11-03): at the
+    # 80 px caption size "It was hidden underground" no longer fits one line, so a 2-word burst forms; at 72 px this
+    # held >= 3 words.
+    from src.config import MIN_BURST_WORDS
     for b in bursts:
-        if len(b) < 3:
-            # only allowed if entire sentence was < 3 words
+        if len(b) < MIN_BURST_WORDS:
+            # only allowed if entire sentence was shorter
             assert any(p in b[-1]["word"] for p in [".", "!", "?"])
         else:
-            assert len(b) >= 3
+            assert len(b) >= MIN_BURST_WORDS
 
 
 def test_ass_generates_rounded_box_layer_and_text_layer(tmp_path):

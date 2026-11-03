@@ -692,20 +692,38 @@ class AudioEngine:
     END_CARD_WHOOSH_DB = -2.5
     END_CARD_BELL_DB = 2.0
     END_CARD_FADE_OUT = 1.2   # s: the music resolves over the card's last moments
+    LOOP_BRIDGE_EDGE = 0.05   # s: the micro-fade at each end of a bed that ends on the Reel's loop bridge (no click)
+    # The loop bridge's starting music level: the bed as it was, no drop (the -7.5 dB card drop left a 1 s bridge
+    # 12.8 dB under its target, past the composer's +/-12 dB correction, 2026-11-03 review). The composer still
+    # measures the bridge and sets it END_CARD_BELOW_BODY_LU under the body.
+    LOOP_BRIDGE_MUSIC_DB = 0.0
 
-    def _end_card_sound(self, bed: np.ndarray, at: float, sr: int) -> None:
+    @staticmethod
+    def ends_on_loop_bridge(duration: float, end_card_at: Optional[float]) -> bool:
+        """Whether a bed of `duration` seconds with its tail from `end_card_at` is a Reel's loop bridge (2026-11-03:
+        the Reel's ending, end_card.LOOP_SECONDS) rather than the full end card (end_card.SECONDS, the 16:9 end
+        screen's length): a tail shorter than the card."""
+        from .end_card import SECONDS
+        return end_card_at is not None and duration - float(end_card_at) < SECONDS
+
+    def _end_card_sound(self, bed: np.ndarray, at: float, sr: int, bridge: bool = False) -> None:
         """The end card's sound mixed into `bed` in place: the music held under the programme from `at`, a soft
         whoosh as the card opens, the bell as its sheen crosses, and a short fade so the ring ends with the card.
-        The bell is a recording with rights evidence or nothing (no synthesized stand-in)."""
+        The bell is a recording with rights evidence or nothing (no synthesized stand-in).
+        `bridge` (the Reel's loop bridge, 2026-11-03): the music is held at LOOP_BRIDGE_MUSIC_DB and runs to the seam with
+        only a LOOP_BRIDGE_EDGE micro-fade, so the sound loops with the picture; no whoosh and no bell (both were
+        timed for the 2.9 s card: the bell at BELL_AT falls after a 1 s bridge has ended)."""
         from .end_card import BELL_AT, WHOOSH_AT
         total = len(bed)
         i0 = int(at * sr)
         if i0 >= total:
             return
         ramp = min(int(0.3 * sr), total - i0)
-        level = 10 ** (self.END_CARD_MUSIC_DB / 20)
+        level = 10 ** ((self.LOOP_BRIDGE_MUSIC_DB if bridge else self.END_CARD_MUSIC_DB) / 20)
         bed[i0:i0 + ramp] *= np.linspace(1.0, level, ramp)[:, None]
         bed[i0 + ramp:] *= level
+        if bridge:
+            return   # the bed's own LOOP_BRIDGE_EDGE micro-fade ends it (generate_ambient_bed)
         music_level = self.MUSIC_RMS * level
 
         def at_level(audio: np.ndarray, db: float) -> np.ndarray:
@@ -909,9 +927,13 @@ class AudioEngine:
                              sound_plan: Optional[Dict[str, Any]] = None, end_card_at: Optional[float] = None) -> Path:
         """Music (if given, with seamless crossfades/movements) or a synthesized drone, plus narration SFX and act boundary risers.
         end_card_at: where the Reel's end card starts (src/end_card.py); the bed then runs on under the card and
-        carries its sound."""
+        carries its sound. A tail shorter than the card is the Reel's loop bridge (ends_on_loop_bridge, 2026-11-03):
+        the bed then has loop_seamless edges, so the music runs through the seam instead of fading out."""
         total = int(sr * duration)
         self.last_sfx_sources = []  # licensed effect recordings mixed into this bed
+        # A Reel that ends on the loop bridge loops its sound too: the seamless edges below, not a fade to silence.
+        bridge = self.ends_on_loop_bridge(duration, end_card_at)
+        loop_seamless = loop_seamless or bridge
         valid_paths = [Path(p) for p in (music_paths or []) if Path(p).exists()]
         if not valid_paths and music_path is not None and Path(music_path).exists():
             valid_paths = [Path(music_path)]
@@ -924,7 +946,7 @@ class AudioEngine:
             if loop_seamless:
                 # Seamless loop: maintain audio energy without a 2.5s fade to silence at the tail.
                 # A 50ms micro-fade prevents boundary clicks while keeping audio momentum continuous.
-                micro = min(int(0.05 * sr), total // 4)
+                micro = min(int(self.LOOP_BRIDGE_EDGE * sr), total // 4)
                 if micro:
                     bed[:micro] *= np.linspace(0.0, 1.0, micro)[:, None]
                     bed[-micro:] *= np.linspace(1.0, 0.0, micro)[:, None]
@@ -1059,7 +1081,7 @@ class AudioEngine:
             bed[i0:i0 + n] += effect_conv[:n] * (gain * 0.40)
 
         if end_card_at is not None:
-            self._end_card_sound(bed, float(end_card_at), sr)
+            self._end_card_sound(bed, float(end_card_at), sr, bridge=bridge)
 
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         sf.write(str(output_path), np.clip(bed, -1.0, 1.0), sr)

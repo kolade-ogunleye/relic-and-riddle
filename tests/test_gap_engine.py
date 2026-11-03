@@ -160,7 +160,7 @@ def test_precision_map_card_urban_targeting():
 # ---------------------------------------------------------------------------
 
 def test_video_composer_reconstruction_badge(tmp_path):
-    """Verifies that build_subtitles emits a [ HISTORICAL RECONSTRUCTION ] badge event for designated intervals."""
+    """Verifies that build_subtitles emits the AI ILLUSTRATION · NOT A PHOTO badge event for designated intervals."""
     composer = VideoComposer(tmp_path)
     ass_file = tmp_path / "test_captions.ass"
     words = [
@@ -182,7 +182,7 @@ def test_video_composer_reconstruction_badge(tmp_path):
     assert ass_file.exists()
     content = ass_file.read_text(encoding="utf-8")
     assert "Style: ReconBadge" in content
-    assert "[ HISTORICAL RECONSTRUCTION ]" in content
+    assert "AI ILLUSTRATION · NOT A PHOTO" in content   # item 4 (2026-11-03): was "[ HISTORICAL RECONSTRUCTION ]"
     assert "ReconBadge" in content
 
 
@@ -401,7 +401,7 @@ def test_recon_badge_upper_third_and_lineage_derivation(tmp_path):
     # upper-third label (\an8, MarginV 310) until the operator approved the move (caption review, 2026-11-02).
     assert "Style: ReconBadge" in content
     assert "Style: ReconPlate" in content
-    assert r"\an7\pos(98," in content and "}[ HISTORICAL RECONSTRUCTION ]" in content
+    assert r"\an7\pos(98," in content and "}AI ILLUSTRATION · NOT A PHOTO" in content
     assert r"{\pos(84,300)\p1}" in content
 
 

@@ -128,13 +128,14 @@ def test_facebook_picks_the_strongest_slides_before_photo_novelty(tmp_path) -> N
         ("immersive", "GLOBAL HERITAGE", "Named in 2022.", (60, 60, 60)),
         ("debate", "YOUR TAKE", "What do you think?", (70, 70, 70)),
     ])
-    picked = [Path(x).name for x in facebook_pick(slides)]
+    picked = [Path(x).name for x in facebook_pick(slides, 4)]   # four: the cap until 2026-11-03
     assert picked == ["carousel_slide_01.jpg", "carousel_slide_03.jpg", "carousel_slide_05.jpg",
                       "carousel_slide_07.jpg"]
     # the gallery's five: the cover, the closing slide, the two strong slides, then the earliest other
     five = [Path(x).name for x in facebook_pick(slides, multi_format.FACEBOOK_GALLERY)]
     assert five == ["carousel_slide_01.jpg", "carousel_slide_02.jpg", "carousel_slide_03.jpg",
                     "carousel_slide_05.jpg", "carousel_slide_07.jpg"]
+    assert facebook_pick(slides) == facebook_pick(slides, multi_format.FACEBOOK_GALLERY)   # the default cap: five
 
 
 def test_facebook_keeps_the_figure_slide_over_a_myth_bust_when_both_repeat_a_photo(tmp_path) -> None:
@@ -153,12 +154,13 @@ def test_facebook_keeps_the_figure_slide_over_a_myth_bust_when_both_repeat_a_pho
     # the photos repeat as in the render: slide 5 shows the cover's, the closing slide slide 3's
     photos = [set(map(str, multi_format.slide_photos(Path(x)))) for x in slides]
     assert photos[4] == photos[0] and photos[6] == photos[2]
-    picked = [Path(x).name for x in facebook_pick(slides)]
+    picked = [Path(x).name for x in facebook_pick(slides, 4)]   # four: the cap until 2026-11-03
     assert picked == ["carousel_slide_01.jpg", "carousel_slide_02.jpg", "carousel_slide_05.jpg",
                       "carousel_slide_07.jpg"]
     five = [Path(x).name for x in facebook_pick(slides, multi_format.FACEBOOK_GALLERY)]
     assert five == ["carousel_slide_01.jpg", "carousel_slide_02.jpg", "carousel_slide_03.jpg",
                     "carousel_slide_05.jpg", "carousel_slide_07.jpg"]
+    assert facebook_pick(slides) == facebook_pick(slides, multi_format.FACEBOOK_GALLERY)   # the default cap: five
 
 
 def test_a_slide_that_does_not_stand_alone_is_passed_over_even_when_strong(tmp_path) -> None:
@@ -169,8 +171,9 @@ def test_a_slide_that_does_not_stand_alone_is_passed_over_even_when_strong(tmp_p
         ("immersive", "A SECOND", "Wells and air.", (40, 40, 40)),
         ("debate", "YOUR TAKE", "Why?", (50, 50, 50)),
     ])
-    picked = [Path(x).name for x in facebook_pick(slides)]
+    picked = [Path(x).name for x in facebook_pick(slides, 4)]   # four: the cap until 2026-11-03
     assert "carousel_slide_02.jpg" not in picked and len(picked) == 4
+    assert facebook_pick(slides) == slides        # the default cap (five) holds all five: none is passed over
 
 
 # ---------------------------------------------------------------- the closing slide and the body rag

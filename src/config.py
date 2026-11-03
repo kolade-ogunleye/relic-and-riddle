@@ -309,7 +309,7 @@ TARGET_TRUE_PEAK = -1.5
 
 TARGET_DURATION_MIN = 42.0
 TARGET_DURATION_MAX = 48.0
-HARD_DURATION_CEILING = 52.0  # longest voiceover allowed; a Reel master is the voiceover plus the end card (end_card.SECONDS)
+HARD_DURATION_CEILING = 52.0  # longest voiceover allowed; a Reel master is the voiceover plus the loop bridge (end_card.LOOP_SECONDS)
 RELEASE_DURATION_MAX = 58.0  # release-gate tolerance for the Reel master (re-measured at publish time)
 # The longest RECORDED take kept (operator, 2026-10-28: "apply 54.5"). The script is still planned under
 # HARD_DURATION_CEILING; a take that lands past it is kept up to this, so ElevenLabs' +/-7% take spread no longer
@@ -366,8 +366,11 @@ NARRATOR_PITCH = (os.getenv("NARRATOR_PITCH") or "-2Hz").strip()
 
 # Subtitle / Caption Typography (Anton Locked Standard)
 FONT_NAME = (os.getenv("FONT_NAME") or "Anton").strip()
-FONT_SIZE = int(os.getenv("FONT_SIZE") or 72)
-FONT_SIZE_ASS = 128  # Compensates for libass PlayResX/PlayResY scale to deliver exact 72px rendered height
+# 9:16 caption size: 80 px (operator decision 2026-11-03, the round-3 panel's 72 -> 80; 72 until then).
+FONT_SIZE = int(os.getenv("FONT_SIZE") or 80)
+# The ASS Fontsize that draws FONT_SIZE under libass's PlayResX/PlayResY scale (a shrunk word uses the same
+# fit / 0.5625): 142 for 80 px (it was a fixed 128 for 72 px, so a FONT_SIZE set in .env drew at the old size).
+FONT_SIZE_ASS = round(FONT_SIZE / 0.5625)
 # The bottom band the Reel platforms draw their own interface over (safe_zones.REEL: Meta's 35%, 672 px,
 # the same figure on YouTube Shorts); the caption pill ends above it.
 from .safe_zones import REEL as _REEL_UI  # noqa: E402
@@ -466,10 +469,11 @@ PICTURE_CASCADE = os.getenv("PICTURE_CASCADE", "true").lower() in ("true", "1", 
 DETAIL_CROP_MIN_WIDTH = int(os.getenv("DETAIL_CROP_MIN_WIDTH", "600"))  # px of the source a punch-in keeps, at least
 # Topic image gate: distinct approved authoritative photos a topic needs before it is produced ahead of others.
 TOPIC_MIN_AUTHORITATIVE_IMAGES = int(os.getenv("TOPIC_MIN_AUTHORITATIVE_IMAGES", "8"))
-# Further open-access sources (src/museum_sources.py). Off by default: their API parameters could not be checked
-# against the official documentation from the development container (2026-11-02); enable after a live check.
+# Further open-access sources (src/museum_sources.py). Openverse and the Art Institute are off by default: their API
+# parameters could not be checked against the official documentation from the development container (2026-11-02);
+# enable after a live check. The Library of Congress is on by default (operator decision 2026-11-03; off until then).
 MUSEUM_OPENVERSE_ENABLED = os.getenv("MUSEUM_OPENVERSE_ENABLED", "false").lower() in ("true", "1", "yes")
-MUSEUM_LOC_ENABLED = os.getenv("MUSEUM_LOC_ENABLED", "false").lower() in ("true", "1", "yes")
+MUSEUM_LOC_ENABLED = os.getenv("MUSEUM_LOC_ENABLED", "true").lower() in ("true", "1", "yes")
 MUSEUM_ARTIC_ENABLED = os.getenv("MUSEUM_ARTIC_ENABLED", "false").lower() in ("true", "1", "yes")
 # <<< Picture coverage ------------------------------------------------------------------------------------------
 
@@ -508,10 +512,9 @@ IMAGE_GEN_TIMEOUT = float(os.getenv("IMAGE_GEN_TIMEOUT", "60"))
 
 # >>> Captions round 3 (2026-11-02): the panel's caption changes (src/video_composer.py caption code) ----------------
 # Caption values new in round 3; MAX_BURST_WORDS and CAPTION_WIDE_MARGIN_V changed in place above (one definition each).
-# 9:16 type size: the panel's 72 -> 80 px change is NOT made this round. At 80 px (a multi-word floor of 74) the
-# baseline tests on origin/main (tests/test_caption_emphasis.py: "It was hidden underground", "Its origins are
-# uncertain,") no longer form the bursts they pin, so FONT_SIZE, FONT_SIZE_ASS and the side padding stay as above
-# and the size waits for the operator. Bursts hold at most 4 words (MAX_BURST_WORDS, above). The plate's height
+# 9:16 type size: the panel's 72 -> 80 px change was held this round and made on 2026-11-03 with the operator's
+# approval (FONT_SIZE, above; the burst tests pinned at 72 px were updated with it). Bursts hold at most 4 words
+# (MAX_BURST_WORDS, above). The plate's height
 # follows the type's cap height (CAPTION_REEL_PAD_Y_EM above and below), so the capitals sit optically centred.
 CAPTION_REEL_PAD_Y_EM = 0.35                    # x the drawn cap height
 # The pill's bottom edge stands this far above the platforms' bottom band (safe_zones.REEL.bottom), so it reads apart

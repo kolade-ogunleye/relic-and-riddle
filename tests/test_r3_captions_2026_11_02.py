@@ -132,8 +132,9 @@ def test_the_plate_is_sized_to_the_line_libass_draws(tmp_path):
     words = _timed("Beneath Cappadocia lies")
     path, _ = _build(tmp_path, words)
     (x0, _, x1, _), = caption_pills(path)
-    drawn = _caption_text_width(["Beneath", "Cappadocia", "lies"], 72, drawn=True)
-    assert drawn > _caption_text_width(["Beneath", "Cappadocia", "lies"], 72)     # the em libass draws is larger
+    from src.config import FONT_SIZE   # item 2 (2026-11-03): the caption size, 80 px (was a literal 72)
+    drawn = _caption_text_width(["Beneath", "Cappadocia", "lies"], FONT_SIZE, drawn=True)
+    assert drawn > _caption_text_width(["Beneath", "Cappadocia", "lies"], FONT_SIZE)   # the em libass draws is larger
     assert x1 - x0 == min(round(drawn + 56), 696)
 
 
@@ -143,7 +144,8 @@ def test_the_capitals_are_optically_centred_in_the_plate(tmp_path):
     (_, _, text), = _events(ass, "CapText")[-1:]
     cy = int(re.search(r"\\pos\(\d+,(\d+)\)", text).group(1))
     _, asc, desc = _font_vmetrics("Anton")
-    baseline_y = cy - 128 / 2 + asc * 128 / (asc + desc)       # \an5 centres the 128-unit line box on \pos
+    from src.config import FONT_SIZE_ASS   # item 2 (2026-11-03): 142 for 80 px (was a literal 128, the 72 px size)
+    baseline_y = cy - FONT_SIZE_ASS / 2 + asc * FONT_SIZE_ASS / (asc + desc)   # \an5 centres the line box on \pos
     cap_top = baseline_y - REEL_CAP_H
     assert abs((cap_top - y0) - (y1 - baseline_y)) <= 1.5        # equal room above and below the capitals
     assert abs((cap_top - y0) - REEL_PAD_Y) <= 1.5

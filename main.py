@@ -208,6 +208,9 @@ class PipelineCoordinator:
         health = self.health_checker.run_all(require_live=require_live)
         for k, v in health["details"].items():
             log.info("Health %-11s %s %s", k, "OK " if v["passed"] else ("FAIL" if v["required"] else "warn"), v["msg"])
+        if config.FONT_SIZE == 72:   # the caption size before 2026-11-03, most likely an old .env line
+            log.warning("FONT_SIZE=72 is set (a .env from before 2026-11-03?): Reel captions draw at 72 px, not the "
+                        "approved 80. Remove the line or set FONT_SIZE=80.")
         if not health["all_passed"]:
             # Said in Telegram, not only logged: production's scheduled runs failed this way unnoticed (ffprobe).
             failed = [f"{k}: {v['msg']}" for k, v in health["details"].items() if v["required"] and not v["passed"]]
@@ -2152,11 +2155,13 @@ class PipelineCoordinator:
         self._seed_bed_from_previous(run_dir, vo_path)  # a regeneration keeps the bed made for its voiceover
         from src.checkpoints import portable_inputs
         from src import end_card
-        card = profile.width < profile.height  # a Reel ends on the end card, whose sound the bed carries
-        bed_seconds = vo_dur + (end_card.SECONDS + 0.05 if card else 0.5)
+        # A Reel ends on the loop bridge (end_card.LOOP_SECONDS; the 2.9 s end card until 2026-11-03), whose sound
+        # the bed carries: the bed is sized to the bridge.
+        card = profile.width < profile.height
+        bed_seconds = vo_dur + end_card.bed_tail(card)
         bed_inputs = {"voice_and_rules": portable_inputs(run_dir, [vo_path, words_path, Path("src/audio_engine.py"),
                                                                     Path("src/end_card.py")]),
-                      "end_card": end_card.VARIANT if card else None,
+                      "end_card": end_card.LOOP_VARIANT if card else None,
                       "profile": profile.model_dump(),
                       "library": [{k: v for k, v in t.items() if k != "uses"} for t in library_tracks],
                       "library_files": file_inputs([MUSIC_DIR / t["file"] for t in library_tracks]),
@@ -2761,9 +2766,10 @@ class PipelineCoordinator:
 
         # Stills setup
         # The cover style: those the copy fits, never the previous run's, the audience's numbers deciding once
-        # each has been tried (src/cover_selector.py; a per-run rotation until 2026-11-01).
+        # each has been tried (src/cover_selector.py; a per-run rotation until 2026-11-01). The hero as prepared
+        # above (upscaled, privacy-checked: the refit), so the paper card's fill rule reads its reviewed focus.
         from src import cover_selector
-        style, _style_why = cover_selector.for_run(self.db, run_id, payload)
+        style, _style_why = cover_selector.for_run(self.db, run_id, payload, hero=hero_img)
 
         # 7. Master render
         self._check_cancel(run_id)
@@ -3014,10 +3020,16 @@ class PipelineCoordinator:
                          self.video_composer.export_subtitles_vtt(words, master_mp4.with_suffix(".vtt"))])
             render_checkpoint = Checkpoints(run_dir / "stage_cache" / "render")
             from src.script_engine import end_card_share
-            from src.end_card import end_card_note, end_card_record
-            card_share, card_fallback = end_card_share(payload)  # the end card's share line (it says FOLLOW itself)
+            from src.end_card import LOOP_LINE, end_card_note, end_card_record
+            # The share line (end_card.LOOP_LINE draws it on the loop bridge; off since 2026-11-03): non-empty, it
+            # also tells the composer to end the Reel on the bridge.
+            card_share, card_fallback = end_card_share(payload)
+            # This 9:16 master's cache keys on the share line only while the bridge draws it (review, 2026-11-03):
+            # with LOOP_LINE off a reworded share line changes nothing in the master, only whether a bridge is there.
+            # The 16:9 end screen still draws the line and keys on it in its own render.
+            card_key = card_share if LOOP_LINE else bool((card_share or "").strip())
             render_inputs = {"media": file_inputs([*scenes, vo_path, bed_path]), "words": words,
-                             "durations": durations, "emphasis": payload.get("emphasis_words"), "end_card": card_share,
+                             "durations": durations, "emphasis": payload.get("emphasis_words"), "end_card": card_key,
                              "grade_bias": (payload.get("art_direction") or {}).get("grade_bias") or 0.0,  # part of the master
                              "rules": file_inputs([Path("src/video_composer.py"), Path("src/end_card.py"), Path("src/config.py"),
                                                    Path("src/encoding.py"), Path("src/encoded_audio.py"), Path("src/delivery_profiles.py")]),

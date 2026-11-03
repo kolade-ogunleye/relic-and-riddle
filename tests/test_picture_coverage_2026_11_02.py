@@ -401,18 +401,20 @@ def test_art_institute_takes_public_domain_artworks_through_iiif(monkeypatch):
 
 
 def test_the_further_sources_are_off_until_enabled(monkeypatch):
-    for flag in ("MUSEUM_OPENVERSE_ENABLED", "MUSEUM_LOC_ENABLED", "MUSEUM_ARTIC_ENABLED"):
+    # item 5 (2026-11-03): the Library of Congress is on by default (was off: False, and no "loc" below)
+    for flag in ("MUSEUM_OPENVERSE_ENABLED", "MUSEUM_ARTIC_ENABLED"):
         assert getattr(config, flag) is False
+    assert config.MUSEUM_LOC_ENABLED is True
     monkeypatch.setattr(config, "SMITHSONIAN_API_KEY", "")
     monkeypatch.setattr(config, "EUROPEANA_API_KEY", "")
-    assert ms.line_sources() == ("met", "nasa")
+    assert ms.line_sources() == ("met", "nasa", "loc")
     asked = []
     for name in ms.SOURCES:
         monkeypatch.setitem(ms.SOURCES, name, lambda q, limit=12, n=name: asked.append(n) or [])
     ms.search_all("x", [])
-    assert asked == list(ms.BASE_SOURCES)                                    # the pool's sources as before
+    assert asked == [*ms.BASE_SOURCES, "loc"]                                # the pool's sources, then the LoC
     monkeypatch.setattr(config, "MUSEUM_ARTIC_ENABLED", True)
-    assert ms.line_sources() == ("met", "nasa", "artic")
+    assert ms.line_sources() == ("met", "nasa", "loc", "artic")
 
 
 def test_cached_search_runs_new_sources_through_the_licence_and_keyword_filters(monkeypatch, tmp_path):

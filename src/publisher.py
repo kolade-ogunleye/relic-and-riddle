@@ -811,8 +811,8 @@ class MetaPublisher:
         tag = f"-{retry_tag}" if retry_tag else ""
         # (photos, platforms, key) per request. Stories: one frame per request, in order. A carousel goes as
         # one post per platform group; Facebook gets its own request, from its copy when the run made one
-        # (carousel_fb/: no "swipe" in its text), with at most four photos: its grid shows four tiles and put
-        # "+3" over the fourth of seven, hiding the closing slide (multi_format.facebook_pick; audit 2026-10-28).
+        # (carousel_fb/: no "swipe" in its text), with at most FACEBOOK_PHOTOS (5): its collage put "+3" over the
+        # fourth of seven, hiding the closing slide (multi_format.facebook_pick; audit 2026-10-28; 4 until 2026-11-03).
         # Upload-Post puts a Facebook multi-photo post's caption on its first photo, which is the cover.
         if kind == "story":
             batches = [([p], platforms, f"{run_id}-{kind}-{i}{tag}") for i, p in enumerate(photos, 1)]

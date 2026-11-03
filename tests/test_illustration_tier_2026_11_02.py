@@ -479,7 +479,7 @@ def test_the_badge_covers_the_crossfades(tmp_path):
     got = reconstruction_badge_intervals(scenes, [3.0, 4.0, 2.0, 3.0], 12.0)
     assert got == [(3.0 - TRANS_DUR / 2, 7.0 + TRANS_DUR / 2), (9.0 - TRANS_DUR / 2, 12.0 + TRANS_DUR / 2)]
     assert reconstruction_badge_intervals([tmp_path / "gap_gen_z.jpg"], [2.0], 2.0)[0][0] == 0.0
-    assert RECON_BADGE_LABEL == "[ HISTORICAL RECONSTRUCTION ]"
+    assert RECON_BADGE_LABEL == "AI ILLUSTRATION · NOT A PHOTO"   # item 4 (2026-11-03): was "[ HISTORICAL RECONSTRUCTION ]"
 
 
 # ------------------------------------------------------------------ B8. protected lines

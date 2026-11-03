@@ -2,7 +2,7 @@
 src/video_composer.py
 =====================
 FFmpeg assembly embodying the locked production standards:
-1. Anton 72 px running-speech kinetic captions on an INK plate: each burst shown at one size, its words
+1. Anton 80 px (72 until 2026-11-03) running-speech kinetic captions on an INK plate: each burst shown at one size, its words
    easing in as they are spoken (upcoming words are transparent placeholders, so the line never moves), bone
    text, gold for the script's key terms only; zero-overlap ASS events inside the Reel safe box
    (safe_zones.REEL: the plate ends above y 1248). 16:9 burns in one still Montserrat Bold line per burst on the
@@ -116,9 +116,10 @@ PARALLAX_TO_TRANSITION = {
     "pull": "dissolve",
 }
 TRANS_DUR = 0.40
-# The on-screen disclosure over a generated illustration, in one place (2026-11-02). The wording stays until the
-# operator decides on "AI ILLUSTRATION · NOT A PHOTO" (tests lock the current text).
-RECON_BADGE_LABEL = "[ HISTORICAL RECONSTRUCTION ]"
+# The on-screen disclosure over a generated illustration, in one place (2026-11-02): it says plainly what the picture
+# is (operator decision 2026-11-03; "[ HISTORICAL RECONSTRUCTION ]" until then, the same 29 monospaced characters, so
+# the plates keep their width). The covers and the YouTube thumbnail draw this same constant.
+RECON_BADGE_LABEL = "AI ILLUSTRATION · NOT A PHOTO"
 
 
 def _is_reconstruction_scene(item) -> bool:
@@ -185,6 +186,35 @@ def hook_clip_filter(i: int, width: int, height: int) -> str:
             f"d=1:s={width}x{height}:fps={VIDEO_FPS},setsar=1,scale=out_range=tv,format=yuv420p[v{i}]")
 
 
+def loop_motion(scene_images: List[Any], durations: List[float], vo_dur: float, macro_indices: Set[int],
+                width: int = VIDEO_WIDTH, height: int = VIDEO_HEIGHT) -> Dict[str, float]:
+    """The push the loop bridge carries through the seam (end_card.loop_bridge's close_zoom, close_push and
+    open_push), read from how compose_video moves the closing and opening shots: a still's capped forward drift
+    (end_card.LOOP_PUSH to LOOP_PUSH_CAP, end_card.shot_drift), a macro drift (0.0025 a frame to 1.35), the AI
+    hook clip's push (LOOP_PUSH), or none for a video (a parallax or footage clip moves by itself). The closing
+    shot's zoom is taken at the narration's end, its frame count from where its clip starts (its crossfade)."""
+    from . import end_card as card_mod
+    n = len(scene_images)
+    if not n:
+        return {"close_zoom": 1.0, "close_push": 0.0, "open_push": 0.0}
+    boundaries = [sum(durations[:k + 1]) for k in range(n - 1)]
+    start = max(0.0, boundaries[-1] - TRANS_DUR / 2) if n > 1 else 0.0
+    frames = max(1, round((vo_dur - start) * VIDEO_FPS))
+
+    def rate(i: int) -> tuple[float, float]:
+        item = Path(scene_images[i])
+        if is_video(item):
+            hook = i == 0 and width < height and is_ai_motion_clip(item)
+            return (card_mod.LOOP_PUSH, card_mod.LOOP_PUSH_CAP) if hook else (0.0, 1.0)
+        if i in macro_indices:
+            return 0.0025, 1.35
+        return card_mod.LOOP_PUSH, card_mod.LOOP_PUSH_CAP
+
+    close_rate, close_cap = rate(n - 1)
+    close_zoom, close_push = (card_mod.shot_drift(frames, close_rate, close_cap) if close_rate else (1.0, 0.0))
+    return {"close_zoom": round(close_zoom, 6), "close_push": round(close_push, 6), "open_push": rate(0)[0]}
+
+
 class RenderError(RuntimeError):
     pass
 
@@ -219,7 +249,7 @@ from .safe_zones import REEL as _REEL_UI
 def _font_vmetrics(name: str, weight: int | None = None) -> tuple[int, int, int]:
     """(unitsPerEm, usWinAscent, usWinDescent) of a bundled font, read from its head and OS/2 tables. libass sizes
     a font so that its Windows ascent plus descent equal the ASS Fontsize (Anton: Fontsize 128 is a 73.8 px em,
-    which is why FONT_SIZE_ASS 128 renders the 72 px caption)."""
+    which is why FONT_SIZE_ASS 128 rendered the 72 px caption and 142 renders the 80 px one)."""
     import struct
     from .typography import font_file
     data = (FONTS_DIR / font_file(name, weight)).read_bytes()
@@ -385,10 +415,22 @@ DANGLING_TAILS = {
     # Conjunctions (coordinating & subordinating)
     "and", "or", "but", "nor", "so", "yet", "though", "although", "while", "whereas",
     "because", "since", "until", "unless", "if", "as", "than", "whether",
-    # Relative Pronouns
-    "which", "who", "whom", "whose", "where", "when",
+    # Relative Pronouns (and the wh- words that open an indirect question: OR WHY | THEY STOPPED, review 2026-11-03)
+    "which", "who", "whom", "whose", "where", "when", "why", "how",
     # Copulas & Auxiliaries (dangling verb tails before predicates)
     "is", "was", "are", "were", "been", "being",
+}
+# Words that carry no content of their own (review, 2026-11-03: OF THE was a burst at 80 px): a burst made of these
+# alone is never formed where another split fits. The dangling tails (articles, determiners, prepositions,
+# conjunctions, relative words, copulas) plus the auxiliaries. Personal pronouns are left out: a subject and its
+# verb (IT WAS, THEY HAD) reads as a burst, and tests/test_caption_emphasis.py pins IT WAS | HIDDEN UNDERGROUND.
+# The tails no burst ends on mid-sentence where another split fits (review, 2026-11-03): articles and determiners,
+# prepositions, conjunctions and the relative and wh- words that open a clause. A copula is no such tail (IT WAS |
+# HIDDEN UNDERGROUND reads; it keeps DANGLING_PENALTY in the burst's own score).
+DANGLING_ENDS = DANGLING_TAILS - {"is", "was", "are", "were", "been", "being"}
+FUNCTION_WORDS = DANGLING_TAILS | {
+    "be", "has", "had", "have", "do", "did", "does", "will", "would", "can", "could", "may", "might", "must",
+    "shall", "should", "not",
 }
 
 CLAUSE_STARTERS = {
@@ -429,6 +471,34 @@ def _is_atomic_boundary(w1_raw: str, w2_raw: str) -> bool:
 
 
 
+def _bare(word: str) -> str:
+    return re.sub(r"[^\w]", "", word).lower()
+
+
+def _function_only(chunk: List[Dict[str, Any]]) -> bool:
+    """A burst made only of FUNCTION_WORDS (OF THE, AND THEY)."""
+    words = [_bare(w.get("word", "")) for w in chunk]
+    return bool(words) and all(w in FUNCTION_WORDS for w in words)
+
+
+def _split_defects(split: List[List[Dict[str, Any]]]) -> int:
+    """How badly a sentence's split (its bursts in order, the last ending the sentence) reads: 2 for each burst
+    of function words only, 1 for each burst but the last ending on a DANGLING_ENDS word (an article, determiner,
+    preposition, conjunction or relative word). A sentence's own last word is no dangling end: nothing follows it."""
+    defects = 0
+    for k, chunk in enumerate(split):
+        if _function_only(chunk):
+            defects += 2
+        elif k < len(split) - 1 and _bare(chunk[-1].get("word", "")) in DANGLING_ENDS:
+            defects += 1
+    return defects
+
+
+def _split_lones(split: List[List[Dict[str, Any]]]) -> int:
+    """Lone-word bursts in a sentence's split of more than one burst."""
+    return sum(len(chunk) == 1 for chunk in split) if len(split) > 1 else 0
+
+
 def partition_words_grammatical(
     words: List[Dict[str, Any]],
     min_words: int = MIN_BURST_WORDS,
@@ -458,8 +528,14 @@ def partition_words_grammatical(
     """
     if bonds is None:
         bonds = caption_bonds(words)
+    # A burst that cannot be cut into bursts of min_words or more without splitting a bond (BETWEEN 94 AND 104
+    # METRES) may shrink further with the Reel defaults, to CAPTION_BOND_MIN_SIZE (item 2, 2026-11-03: at 80 px it
+    # no longer fits at CAPTION_BURST_MIN_SIZE, so the figure was split from its range). A caller's own `fits` is used
+    # as is.
+    fits_bonded = fits
     if fits is None:
         fits = _fits_caption_burst
+        fits_bonded = _fits_caption_bonded
         prefer = prefer or _fits_caption_width
     prefer = prefer or fits
     sentences: List[List[Dict[str, Any]]] = []
@@ -496,25 +572,33 @@ def partition_words_grammatical(
                 return memo[i]
 
             best: Optional[List[List[Dict[str, Any]]]] = None
-            best_score = -999999
+            best_score: tuple[int, int, int] = (-999999, -999999, -999999)
             candidate_sizes = [target_words, min_words, 4, 5, 6] + list(range(7, max_words + 1))
             # never past max_words (round 3: sizes 4-6 were tried whatever the cap, so a 4-word cap formed 5)
             candidate_sizes = [c for c in candidate_sizes if c <= max_words] or [min(target_words, rem)]
             # round 4: past max_words only through bonded words (BETWEEN 94 AND 104 METRES is one burst), at most 2
             candidate_sizes += [c for c in (max_words + 1, max_words + 2)
                                 if all(off + i + k - 1 in bonds for k in range(max_words, c))]
+            # A lone content word is a candidate too (review, 2026-11-03): it costs LONE_WORD_PENALTY, so it is
+            # only formed where every split of min_words or more has more defects (_split_defects), e.g.
+            # BUILT | UNDER KING KRISHNA I rather than BUILT UNDER | KING KRISHNA I.
+            if min_words > 1 and not _function_only(sent[i:i + 1]):
+                candidate_sizes.append(1)
             for size in candidate_sizes:
                 if i + size <= n:
                     if i + size < n and (off + i + size - 1 in bonds or _is_atomic_boundary(
                             sent[i + size - 1].get("word", ""), sent[i + size].get("word", ""))):
                         continue
                     rem_after = n - (i + size)
-                    if rem_after > 0 and rem_after < min_words:
+                    if rem_after > 0 and rem_after < min_words and (
+                            rem_after > 1 or _function_only(sent[n - 1:])):
                         continue
                     after = _solve(i + size)
                     if after is not None:
                         chunk = sent[i:i + size]
-                        if len(chunk) > 1 and not fits(chunk):
+                        if len(chunk) > 1 and not fits(chunk) and not (
+                                all(off + i + k in bonds for k in range(min_words - 1, size - 1))
+                                and fits_bonded(chunk)):
                             continue  # a burst its pill cannot hold inside the platforms' safe width is never a choice
                         clean_chunk = [re.sub(r"[\,\;\.]+$", "", x.get("word", "")) for x in chunk]
                         txt = " ".join(clean_chunk)
@@ -526,7 +610,9 @@ def partition_words_grammatical(
                         else:
                             score -= (len(txt) - max_chars) * 20
                         if last_w in DANGLING_TAILS:
-                            score -= 200  # Strictly penalize dangling prepositions/determiners/conjunctions at block ends
+                            score -= DANGLING_PENALTY  # dangling prepositions/determiners/conjunctions at block ends
+                        if _function_only(chunk):
+                            score -= FUNCTION_ONLY_PENALTY
                         if last_w in CLAUSE_STARTERS:
                             score -= 300  # Conjunctions/clause starters must start a new block, never end one
                         if first_w in ERA_DESIGNATORS:
@@ -547,18 +633,39 @@ def partition_words_grammatical(
                             score -= SHRUNK_BURST_PENALTY  # shown below the full size: only to avoid a dangling end
                         if glance[0] <= len(txt) <= glance[1]:
                             score += 40   # Reward optimal glanceable width
-                        if score > best_score:
-                            best_score = score
-                            best = [chunk] + after
+                        if after and len(after[0]) == 1 and len(after) > 1:
+                            # the rest could only start on a lone word (2026-11-03, 80 px: THEY REMOVED | AN |
+                            # ESTIMATED 200,000 TONS); less than ending this burst on a dangling word
+                            # (DANGLING_PENALTY; review 2026-11-03: at 250 against 200 it formed THEY REMOVED AN)
+                            score -= LONE_WORD_PENALTY
+                        if size == 1 and n > 1:
+                            score -= LONE_WORD_PENALTY   # this burst is the lone word
+                        elif rem_after == 1 and min_words > 1:
+                            score -= LONE_WORD_PENALTY   # the sentence would end on a lone word
+                        # The split's defects come first (review, 2026-11-03): a burst of function words only, or
+                        # one ending on an article, preposition or conjunction mid-sentence, anywhere in the
+                        # sentence's rest, so no split that has fewer is passed over for this burst's own score
+                        # (BUILT UNDER | KING KRISHNA I | OF THE | ..., WHO CARVED | THE STATUES OR WHY | ...).
+                        # Then the fewest lone words: a lone content word only where it saves a defect.
+                        split = [chunk] + after
+                        key = (-_split_defects(split), -_split_lones(split), score)
+                        if key > best_score:
+                            best_score = key
+                            best = split
             if best is None:
+                def _held(c: int) -> bool:   # the cut after c words splits a bond or an atomic pair (KRISHNA | I)
+                    return i + c < n and (off + i + c - 1 in bonds or _is_atomic_boundary(
+                        sent[i + c - 1].get("word", ""), sent[i + c].get("word", "")))
+
                 def _cut(keep_bonds: bool) -> int:
                     c = min(rem, target_words)
-                    # shorter bursts rather than a pill wider than the safe width (or, where it can, a split bond)
-                    while c > 1 and (not fits(sent[i:i + c]) or (keep_bonds and i + c < n and off + i + c - 1 in bonds)):
+                    # shorter bursts rather than a pill wider than the safe width (or, where it can, a split bond or
+                    # atomic pair: at 80 px, 2026-11-03, BUILT UNDER KING KRISHNA I no longer fits one line)
+                    while c > 1 and (not fits(sent[i:i + c]) or (keep_bonds and _held(c))):
                         c -= 1
                     return c
                 cut = _cut(True)
-                if i + cut < n and off + i + cut - 1 in bonds:
+                if _held(cut):
                     cut = _cut(False)
                 best = [sent[i:i + cut]] + (_solve(i + cut) or [sent[i + cut:]])
             memo[i] = best
@@ -682,9 +789,18 @@ def _caption_fit_size(phrase: Any, scale: float = 1.0, max_width: int = MAX_CAPT
     return size
 
 
-CAPTION_BURST_MIN_SIZE = round(0.92 * FONT_SIZE)  # px: a multi-word burst never shows below this (66 at 72 px)
+CAPTION_BURST_MIN_SIZE = round(0.92 * FONT_SIZE)  # px: a multi-word burst never shows below this (74 at 80 px)
+# px: a burst no cut can divide without splitting a bond (partition_words_grammatical) may shrink to this instead, rather than split a figure from its hedge or range (2026-11-03): 66 at 80 px, the floor every burst had at 72 px, so no caption draws
+# smaller than it could before the size change. _caption_fit_size shrinks such a burst as far as it must.
+CAPTION_BOND_MIN_SIZE = round(0.825 * FONT_SIZE)
+LONE_WORD_PENALTY = 250     # the phrase builder's cost of a split that leaves the next burst a lone word mid-sentence
 SHRUNK_BURST_PENALTY = 150  # the phrase builder's cost of a burst below full size: more than a short burst,
-                            # less than one ending on a dangling article or preposition (200)
+                            # less than one ending on a dangling article or preposition (DANGLING_PENALTY)
+# Review, 2026-11-03: a dangling end costs more than a lone content word (it was 200 against LONE_WORD_PENALTY's
+# 250, so THEY REMOVED AN | ESTIMATED 200,000 TONS won over THEY REMOVED | AN ESTIMATED 200,000 TONS), and more
+# than a lone word and a shrunk burst together. A burst of function words only (OF THE) costs more still.
+DANGLING_PENALTY = 450
+FUNCTION_ONLY_PENALTY = 600
 END_CARD_BELOW_BODY_LU = 6.0  # the end card sits this far under the narrated body (the approved prototype: about 6)
 
 
@@ -699,6 +815,12 @@ def _fits_caption_width(phrase: Any, max_width: int = MAX_CAPTION_WIDTH) -> bool
 def _fits_caption_burst(phrase: Any, max_width: int = MAX_CAPTION_WIDTH) -> bool:
     """Whether a multi-word burst fits the caption width at CAPTION_BURST_MIN_SIZE, the most a burst may shrink."""
     return _caption_text_width(_phrase_words(phrase), CAPTION_BURST_MIN_SIZE) <= max_width
+
+
+def _fits_caption_bonded(phrase: Any, max_width: int = MAX_CAPTION_WIDTH) -> bool:
+    """Whether a burst no cut can divide without splitting a bond (a hedge or range with its figure) fits at
+    CAPTION_BOND_MIN_SIZE (partition_words_grammatical)."""
+    return _caption_text_width(_phrase_words(phrase), CAPTION_BOND_MIN_SIZE) <= max_width
 
 
 def format_word_caption(
@@ -1164,15 +1286,26 @@ def caption_bonds(words: list[Any]) -> set[int]:
     return bonds
 
 
+SEAM_RETURN_S = 0.3   # s: the loop bridge's level returns to the bed's own over its last 0.3 s (_audio_chain)
+
+
 def _audio_chain(vo_idx: int, bg_idx: int, pad: float = 0.0, card_at: Optional[float] = None, card_db: float = 0.0) -> str:
     """Voice cleanup + optical vocal leveling + center spectral pocket carving + ducked stereo bed.
     pad: seconds of silence after the voice (the end card), so the mix runs on with the bed alone.
-    card_at/card_db: the end card's level set from card_at on (a 0.3 s ramp), measured per run."""
+    card_at/card_db: the end card's level set from card_at on (a 0.3 s ramp), measured per run. With a pad (the
+    Reel's loop bridge, which loops into the programme's first frame) the level returns to the bed's own over the
+    pad's last SEAM_RETURN_S, so the loop restarts at the level it ends on: no step at the seam of card_db
+    (review, 2026-11-03)."""
     pad_filter = f"apad=pad_dur={pad:.3f}," if pad > 0 else ""
     card_filter = ""
     if card_at is not None and card_db:
         lin = 10 ** (card_db / 20)
-        card_filter = f",volume='1+({lin:.5f}-1)*min(max((t-{card_at:.3f})/0.3,0),1)':eval=frame"
+        ramp = f"min(max((t-{card_at:.3f})/0.3,0),1)"
+        if pad > 0:
+            seam = card_at + pad
+            back = min(SEAM_RETURN_S, pad / 2)
+            ramp = f"min({ramp},min(max(({seam:.4f}-t)/{back:.3f},0),1))"
+        card_filter = f",volume='1+({lin:.5f}-1)*{ramp}':eval=frame"
     return (
         f"[{vo_idx}:a]aresample={AUDIO_SAMPLE_RATE},aformat=channel_layouts=stereo,{pad_filter}"
         f"highpass=f=85,compand=attacks=0.02:decays=0.15:points=-80/-80|-40/-35|-20/-16|0/-10,"
@@ -1914,8 +2047,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         macro_drifts: Optional[List[int]] = None,
     ) -> Path:
         """
-        end_card: the share line of the end card appended after the narration (Reels only, src/end_card.py); the
-        bed must run on for end_card.SECONDS more (generate_ambient_bed(end_card_at=vo_dur)). Empty: no card.
+        end_card: non-empty ends a Reel on the loop bridge after the narration (src/end_card.py loop_bridge,
+        operator decision 2026-11-03: in place of the full end card, which stays the 16:9 YouTube end screen); the
+        value is the share line, drawn only when end_card.LOOP_LINE is on (off: the bridge has no line). The bed must
+        run on for end_card.LOOP_SECONDS more (generate_ambient_bed(end_card_at=vo_dur)). Empty, or 16:9: no tail.
         grade_bias: a bounded warm (+) / cool (-) shift measured from the topic's hero photograph
         (art direction, 2026-10-24), applied after the film LUT; 0 leaves the grade as it was.
         durations: seconds on screen per scene (e.g. from scene_planner beats). Each cut is
@@ -1955,7 +2090,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             raise RenderError("Captions would not draw in the bundled font: " + "; ".join(font_problems))
         from . import end_card as card_mod
         card = bool((end_card or "").strip()) and width < height
-        card_seconds = card_mod.SECONDS if card else 0.0
+        card_seconds = card_mod.LOOP_SECONDS if card else 0.0   # the loop bridge (card_mod.SECONDS until 2026-11-03)
         self.last_end_card = None
 
         # Export sidecar SRT and VTT closed captions for YouTube / platform transcript indexing
@@ -2056,11 +2191,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             filter_parts.append("[v0]null[video_raw]")
 
         input_args += ["-i", str(vo_path), "-i", str(bed_path)]
-        if card:  # the card's sound is the bed running on: a bed made for the narration alone would cut out
+        if card:  # the bridge's sound is the bed running on: a bed made for the narration alone would cut out
             import soundfile as sf
             bed_seconds = sf.info(str(bed_path)).duration
             if bed_seconds < vo_dur + card_seconds - 0.02:
-                raise RenderError(f"The ambient bed runs {bed_seconds:.2f}s; the end card needs "
+                raise RenderError(f"The ambient bed runs {bed_seconds:.2f}s; the loop bridge needs "
                                   f"{vo_dur + card_seconds:.2f}s (make it with end_card_at).")
         # The whole programme is mastered together: narration, and the card after it with the bed alone.
         gain = self.calibrate_gain(vo_path, bed_path, target_lufs=profile.target_lufs,
@@ -2073,7 +2208,18 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 gain = self.calibrate_gain(vo_path, bed_path, target_lufs=profile.target_lufs,
                                            target_true_peak=profile.target_true_peak, pad=card_seconds,
                                            card_at=card_at, card_db=card_db)
-        filter_parts.append(_audio_chain(n, n + 1, card_seconds, card_at, card_db) + _master_chain(gain) + "[a_final]")
+        # The loop seam (review, 2026-11-03): the programme is cut at the bridge's end (vo_dur + card_seconds), and
+        # the bed's LOOP_BRIDGE_EDGE fade-out ends exactly there. The bed file keeps 50 ms of headroom past the cut
+        # (end_card.bed_tail), where its own fade used to fall: the delivered file then ended at the bridge's held
+        # level, and every loop restarted on a level step and a click. The fade is the programme's last filter, so
+        # nothing after it (limiter latency, low-pass) moves it off the cut.
+        seam_fade = ""
+        if card:
+            from .audio_engine import AudioEngine
+            edge = AudioEngine.LOOP_BRIDGE_EDGE
+            seam_fade = f",afade=t=out:st={max(0.0, vo_dur + card_seconds - edge):.4f}:d={edge:.4f}"
+        filter_parts.append(_audio_chain(n, n + 1, card_seconds, card_at, card_db) + _master_chain(gain) + seam_fade
+                            + "[a_final]")
 
         ass_str = str(ass_path.resolve()).replace("\\", "/").replace(":", "\\:")
         fonts_str = str(self.fonts_dir.resolve()).replace("\\", "/").replace(":", "\\:")
@@ -2114,7 +2260,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             _run_ffmpeg([*head, "-map", "[v_final]", "-map", "[a_final]", *delivery_args,
                          "-t", f"{vo_dur:.2f}", str(output_mp4_path)])
         else:
-            self.last_end_card = self._render_with_end_card(head, delivery_args, end_card, vo_dur, output_mp4_path)
+            motion = loop_motion(scene_images, durations, vo_dur, macro_indices, width, height)
+            self.last_end_card = self._render_with_loop_bridge(head, delivery_args, end_card, vo_dur, output_mp4_path,
+                                                               motion)
             self.last_end_card["level"] = card_level
         from .encoded_audio import finalize_encoded_audio
         encoded_audio = finalize_encoded_audio(output_mp4_path, profile.target_lufs, profile.target_true_peak)
@@ -2137,17 +2285,26 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         return output_mp4_path
 
     @staticmethod
-    def _render_with_end_card(head: List[str], delivery_args: List[str], share: str, vo_dur: float,
-                              output_mp4_path: Path) -> Dict[str, Any]:
-        """The master with the end card after the narration, in two passes. The first renders the narrated body
-        (visually lossless), the whole mastered programme (narration, then the bed alone under the card) and the
-        graded last frame without captions; the second draws the card over that frame and encodes body and card
-        as one delivery file. Returns what the card measured, for the record."""
+    def _render_with_loop_bridge(head: List[str], delivery_args: List[str], share: str, vo_dur: float,
+                                 output_mp4_path: Path, motion: Optional[Dict[str, float]] = None) -> Dict[str, Any]:
+        """The Reel master ending on the loop bridge (src/end_card.py loop_bridge; operator decision 2026-11-03, in
+        place of the full end card), in two passes. The first renders the narrated body (visually lossless), the
+        whole mastered programme (narration, then the bed alone under the bridge) and the graded last frame without
+        captions; the Reel's real frame 0 is then read back from the body. The bridge is gated first
+        (check_loop_bridge: a seam that would hitch is not shipped); the second pass encodes body and bridge as one
+        delivery file, or, when the gate fails, the body alone with the programme cut at the narration's end (the
+        record then has no variant and carries the gate's QA note). A failed gate is first retried without the push
+        and on the longest crossfade (record: still_fallback, the first gate's problems); only if that fails too does
+        the Reel end at the narration. `motion`: loop_motion's push through the seam.
+        Returns what the bridge measured, for the record."""
         from . import end_card as card_mod
         stem = output_mp4_path.parent / output_mp4_path.stem
-        body, audio, last = Path(f"{stem}_body.mkv"), Path(f"{stem}_programme.wav"), Path(f"{stem}_card_bg.png")
-        total = vo_dur + card_mod.SECONDS
+        body, audio = Path(f"{stem}_body.mkv"), Path(f"{stem}_programme.wav")
+        last, first = Path(f"{stem}_card_bg.png"), Path(f"{stem}_frame0.png")
+        total = vo_dur + card_mod.LOOP_SECONDS
         inter_encoder = _get_intermediate_video_encoder()
+        kw: Dict[str, Any] = {"line": card_mod.LOOP_LINE, **(motion or {})}
+        fallback: Optional[List[str]] = None
         try:
             _run_ffmpeg([*head,
                          "-map", "[v_final]", *inter_encoder, "-pix_fmt", "yuv420p",
@@ -2155,22 +2312,46 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                          "-map", "[v_last]", "-update", "1", "-frames:v", "1000", str(last),
                          "-map", "[a_final]", "-c:a", "pcm_s24le", "-ar", str(AUDIO_SAMPLE_RATE), "-ac", "2",
                          "-t", f"{total:.3f}", str(audio)])
-            stats: Dict[str, Any] = {}
+            # The frame the loop lands on: the body's first, as delivered (graded, captioned, at its push-in start).
+            _run_ffmpeg(["ffmpeg", "-y", "-hide_banner", "-nostats", "-v", "error", "-i", str(body),
+                         "-frames:v", "1", str(first)])
             with Image.open(last) as im:
                 background = im.convert("RGB")
-            card_frames = card_mod.frames(background, share, stats)
+            with Image.open(first) as im:
+                frame0 = im.convert("RGB")
+            gate = card_mod.check_loop_bridge(background, frame0, share, **kw)
+            if not gate["ok"]:
+                # Before dropping the ending: the same bridge without the push through the seam and on its longest
+                # crossfade (the gentlest it can be). Most seam problems come from the motion; this keeps the Reel's
+                # ending and its length, and the record says which bridge shipped.
+                still = {**kw, "close_push": 0.0, "open_push": 0.0, "crossfade": card_mod.LOOP_CROSSFADE[1]}
+                retry = card_mod.check_loop_bridge(background, frame0, share, **still)
+                if retry["ok"]:
+                    log.warning("Loop bridge without its push: %s", "; ".join(gate["problems"]))
+                    fallback, kw, gate = gate["problems"], still, retry
+            errors = output_mp4_path.parent / f"{output_mp4_path.stem}_card_ffmpeg.log"
+            if not gate["ok"]:
+                log.warning("Loop bridge dropped: %s", "; ".join(gate["problems"]))
+                fade = max(0.0, vo_dur - 0.05)
+                _run_ffmpeg(["ffmpeg", "-y", "-hide_banner", "-nostats", "-v", "error",
+                             "-i", str(body), "-i", str(audio), "-map", "0:v", "-map", "1:a",
+                             "-af", f"afade=t=out:st={fade:.3f}:d=0.05", *delivery_args,
+                             "-t", f"{vo_dur:.2f}", str(output_mp4_path)])
+                return {"variant": None, "start_s": round(vo_dur, 3), "duration_s": 0.0, "text": None,
+                        "problems": gate["problems"], "note": gate["note"]}
+            stats: Dict[str, Any] = {}
+            bridge_frames = card_mod.loop_bridge(background, frame0, share, stats, **kw)
             w, h = card_mod.WIDTH, card_mod.HEIGHT
             cmd = ["ffmpeg", "-y", "-hide_banner", "-nostats", "-v", "error",
                    "-i", str(body), "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-r", str(card_mod.FPS),
                    "-i", "-", "-i", str(audio),
                    "-filter_complex", "[0:v]setsar=1[b];[1:v]scale=out_range=tv,format=yuv420p,setsar=1[c];"
                                       "[b][c]concat=n=2:v=1:a=0[v]",
-                   "-map", "[v]", "-map", "2:a", *delivery_args, "-t", f"{total:.2f}", str(output_mp4_path)]
-            errors = output_mp4_path.parent / f"{output_mp4_path.stem}_card_ffmpeg.log"
+                   "-map", "[v]", "-map", "2:a", *delivery_args, "-t", f"{total:.3f}", str(output_mp4_path)]
             with open(errors, "wb") as err:
                 proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stderr=err)
                 try:
-                    for frame in card_frames:
+                    for frame in bridge_frames:
                         proc.stdin.write(frame.tobytes())
                 except BrokenPipeError:
                     pass
@@ -2180,15 +2361,18 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     code = proc.wait(timeout=FFMPEG_TIMEOUT_SECONDS)
                 except subprocess.TimeoutExpired as e:
                     proc.kill()
-                    raise RenderError(f"ffmpeg did not finish the end card within {FFMPEG_TIMEOUT_SECONDS}s; stopped.") from e
+                    raise RenderError(f"ffmpeg did not finish the loop bridge within {FFMPEG_TIMEOUT_SECONDS}s; stopped.") from e
             if code != 0:
-                raise RenderError("End card encode failed: " + errors.read_text(encoding="utf-8", errors="replace")[-600:])
+                raise RenderError("Loop bridge encode failed: " + errors.read_text(encoding="utf-8", errors="replace")[-600:])
             errors.unlink(missing_ok=True)
         finally:
-            for path in (body, audio, last):
+            for path in (body, audio, last, first):
                 path.unlink(missing_ok=True)
-        return {"variant": card_mod.VARIANT, "start_s": round(vo_dur, 3), "duration_s": card_mod.SECONDS,
-                "text": share, **stats}
+        out = {**stats, "variant": card_mod.LOOP_VARIANT, "start_s": round(vo_dur, 3),
+               "duration_s": card_mod.LOOP_SECONDS, "text": stats.get("text")}
+        if fallback:
+            out["still_fallback"] = fallback   # why the bridge with the push was not used
+        return out
 
     def compose_deep_dive(
         self,

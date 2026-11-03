@@ -2355,11 +2355,11 @@ def slide_alt_text(slide: Path) -> str:
     return text
 
 
-FACEBOOK_PHOTOS = 4
-# Operator decision 2026-11-02: Facebook's collage shows five tiles (the fifth under "+N"), so its gallery takes five
-# (the cover, the three strongest content slides, the closing slide): facebook_pick(slides, FACEBOOK_GALLERY).
-# FACEBOOK_PHOTOS, the default publisher.py uses, stays 4 until the tests pinning four are updated with approval.
-FACEBOOK_GALLERY = 5
+# Operator decision 2026-11-02, approved for the default 2026-11-03: Facebook's collage shows five tiles (the fifth
+# under "+N"), so its gallery takes at most five (the cover, the three strongest content slides, the closing slide).
+# FACEBOOK_PHOTOS is the cap facebook_pick and publisher.py use (4 until 2026-11-03); FACEBOOK_GALLERY is its old name.
+FACEBOOK_PHOTOS = 5
+FACEBOOK_GALLERY = FACEBOOK_PHOTOS
 
 
 _MYTH_BUST = re.compile(r"\b(?:disproved|disproven|debunked|myths?|mistaken|wrongly|false|once thought|initially|"
@@ -2403,8 +2403,9 @@ def standalone_problems(rec: dict[str, Any]) -> list[str]:
 
 
 def facebook_pick(slides: List[str], limit: int = FACEBOOK_PHOTOS) -> List[str]:
-    """The slides Facebook's multi-photo post gets: its grid shows four tiles and puts "+N" over the last one, so
-    a seven-photo post hid the closing share-and-follow slide (platform audit, 2026-10-28). The cover, the
+    """The slides Facebook's multi-photo post gets, at most `limit` (FACEBOOK_PHOTOS, 5): its collage puts "+N"
+    over the last tile it shows, so a seven-photo post hid the closing share-and-follow slide (platform audit,
+    2026-10-28). The cover, the
     closing slide, and between them the strongest content slides: those drawn as designed (no layout problem,
     nothing shortened), standing alone (standalone_problems), a single photo, the strongest (slide_strength: a
     figure, then the drawn slide, then a myth-bust), showing a photo the post does not already show, then the

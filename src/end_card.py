@@ -1,6 +1,11 @@
 """
 src/end_card.py
 ===============
+The 9:16 Reel ends on the loop bridge (loop_bridge, below; operator decision 2026-11-03): LOOP_SECONDS (1 s) after
+the narration, with no share line (LOOP_LINE), resolving into the Reel's frame 0. The full card (frames) is the
+16:9 YouTube end screen, and stays callable at 9:16 for the review renders; until 2026-11-03 it was the Reel's
+ending too, as described below.
+
 The Reel's closing card, appended after the narration. Plain type, no capsule ("plain_v4", operator decision
 2026-10-29: the approved capsule v3 read as a button, visual critic round 4): the channel name, a gold rule drawn
 out from a small gold diamond (the brand's mark, kept at the operator's request), the share ask in bone on two lines where it fits at 54 px or more, then FOLLOW FOR THE NEXT RELIC as one line of
@@ -79,7 +84,11 @@ KICKER_GAP = 24          # px from the slot's hairline frame (or the slot) to th
 SLOT_FRAME_OFFSET = 12   # the optional hairline frames around the YouTube element slots
 CREDITS_LINE = "IMAGE CREDITS IN DESCRIPTION"   # only when the description really carries credit lines
 CREDITS_SIZE = 22
-# The 9:16 loop bridge (operator, 2026-11-02): the Reel's ending, one share line that resolves into frame 0.
+# The 9:16 loop bridge (operator, 2026-11-02): the Reel's ending, resolving into frame 0. Wired into the composer in
+# place of the Reel's end card on 2026-11-03, without its share line (operator: LOOP_LINE False; the line is still
+# drawn when a caller asks for it, line=True). LOOP_VARIANT is what the composition record calls it.
+LOOP_VARIANT = "loop_bridge_v1"
+LOOP_LINE = False
 LOOP_SECONDS = 1.0
 LOOP_TIMES = {"in": 0.25, "out": 0.5}   # the line is up by "in"; with the line, the crossfade starts at "out"
 LOOP_DIM = 0.4                          # of the end card's measured dim (panel round 3: 0.8 read as a black dip that
@@ -118,12 +127,19 @@ def end_card_record(master, fallback: bool = False) -> Optional[Dict[str, Any]]:
         return None
     if not isinstance(card, dict):
         return None
-    return {"variant": card.get("variant"), "start_s": card.get("start_s"), "duration_s": card.get("duration_s"),
-            "text": card.get("text"), "fallback": bool(fallback)}
+    # The share line's fallback only matters where a line is drawn: the loop bridge (no line) never shows it.
+    out = {"variant": card.get("variant"), "start_s": card.get("start_s"), "duration_s": card.get("duration_s"),
+           "text": card.get("text"), "fallback": bool(fallback) and card.get("text") is not None}
+    if isinstance(card.get("note"), dict):   # the loop bridge's render-time gate failed (check_loop_bridge)
+        out["note"] = card["note"]
+    return out
 
 
 def end_card_note(record: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
-    """An info note for the review card when the end card had to use the plain fallback line."""
+    """The review card's note about the Reel's ending: the loop bridge's gate note when the bridge was dropped
+    (a warning), else an info note when the end card had to use the plain fallback line."""
+    if record and isinstance(record.get("note"), dict):
+        return record["note"]
     if not record or not record.get("fallback"):
         return None
     return {"type": "end_card", "card": "End card", "severity": "info",
@@ -555,6 +571,12 @@ def frames(last: Image.Image, share: str, stats: dict[str, Any] | None = None, *
         yield frame
 
 
+def bed_tail(reel: bool) -> float:
+    """Seconds the music bed runs past the narration: a Reel's loop bridge plus 50 ms of headroom (the full card,
+    SECONDS, until 2026-11-03), else the half second a 16:9 master keeps."""
+    return LOOP_SECONDS + 0.05 if reel else 0.5
+
+
 def loop_text(share: str) -> str:
     """The loop bridge's one line: the share half only (it never asks for a follow)."""
     return card_text(share) or " ".join((share or "").split())
@@ -723,8 +745,10 @@ def seam_problems(stats: dict[str, Any]) -> list[str]:
 def check_loop_bridge(last: Image.Image, first: Image.Image, share: str, **kw: Any) -> dict[str, Any]:
     """The render-time gate on a loop bridge (panel round 4): renders it once, frames discarded as they come so
     memory stays at one frame, and reads its own stats. {"ok", "problems", "stats", "note"}: when not ok the
-    composer ships the plain end card instead, and `note` is the review card's QA line saying why. A frame 0 of the
-    wrong size is a problem too (never resized to fit)."""
+    composer retries the bridge without its push and on its longest crossfade, and when that fails too it ends the
+    Reel at the narration with no bridge (its music bed is sized to the bridge, so the plain end
+    card cannot follow instead, as it did until 2026-11-03), and `note` is the review card's QA line saying why. A
+    frame 0 of the wrong size is a problem too (never resized to fit)."""
     stats: dict[str, Any] = {}
     try:
         for _ in loop_bridge(last, first, share, stats, **kw):
@@ -736,5 +760,6 @@ def check_loop_bridge(last: Image.Image, first: Image.Image, share: str, **kw: A
     if problems:
         note = {"type": "end_card", "card": "End card", "severity": "warning",
                 "issue": "The loop bridge would hitch at the seam (" + "; ".join(problems)
-                         + "), so the Reel ends on the plain end card instead."}
+                         + "), so the Reel ends at the narration without it (the plain end card no longer follows a "
+                           "Reel: the music bed is sized to the bridge)."}
     return {"ok": not problems, "problems": problems, "stats": stats, "note": note}

@@ -288,7 +288,7 @@ def test_widescreen_reconstruction_badge_is_bone_plex_mono_on_an_ink_plate(tmp_p
     plate_style = next(ln for ln in ass.splitlines() if ln.startswith("Style: ReconPlate,")).split(",")
     assert plate_style[3] == brand.ass_colour(brand.INK, 0x26)
     (_, _, badge), = _events(ass, "ReconBadge")
-    assert _plain(badge) == "[ HISTORICAL RECONSTRUCTION ]"
+    assert _plain(badge) == "AI ILLUSTRATION · NOT A PHOTO"   # item 4 (2026-11-03): was "[ HISTORICAL RECONSTRUCTION ]"
     x, y = map(int, re.search(r"\\an7\\pos\((\d+),(\d+)\)", badge).groups())
     assert x >= 96 and y >= 54
     (_, _, plate), = _events(ass, "ReconPlate")
@@ -304,7 +304,7 @@ def test_portrait_reconstruction_badge_gets_a_plate_and_keeps_its_wording(tmp_pa
     px, py = map(int, re.search(r"\\pos\((\d+),(\d+)\)", plate).groups())
     box = safe_zones.safe_box("reel")
     assert box[0] <= px and box[1] <= py <= 320
-    assert "[ HISTORICAL RECONSTRUCTION ]" in ass
+    assert "AI ILLUSTRATION · NOT A PHOTO" in ass   # item 4 (2026-11-03): was "[ HISTORICAL RECONSTRUCTION ]"
 
 
 # ---------------------------------------------------------------- safe zones
@@ -328,5 +328,5 @@ def test_portrait_reconstruction_badge_is_readable_top_left(tmp_path):
     assert style[18] == "7"  # top-left alignment
     (_, _, plate), = _events(ass, "ReconPlate")
     assert r"\pos(84,300)" in plate
-    width = get_font("IBM Plex Mono", RECON_SIZE_PORTRAIT, weight=600).getlength("[ HISTORICAL RECONSTRUCTION ]")
+    width = get_font("IBM Plex Mono", RECON_SIZE_PORTRAIT, weight=600).getlength("AI ILLUSTRATION · NOT A PHOTO")
     assert 84 + width + 60 <= 888  # plate stays clear of the right rail

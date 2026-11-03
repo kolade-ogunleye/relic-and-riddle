@@ -188,3 +188,30 @@ def point_in_polygons(x: float, y: float, polygons: list[list[Ring]]) -> bool:
     """Point-in-polygon (holes respected) in any one plane: lon/lat or projected pixels alike (2026-11-02: the map
     checks that a country's name moved off a route still lies on that country's land)."""
     return any(_in_ring(x, y, poly[0]) and not any(_in_ring(x, y, h) for h in poly[1:]) for poly in polygons)
+
+
+def orthographic(lon: float, lat: float, lon0: float, lat0: float) -> tuple[float, float, bool]:
+    """(x, y, visible) of a point on the unit orthographic globe centred on (lon0, lat0): x east, y north, in
+    -1..1; `visible` false on the far hemisphere (round 4, 2026-11-02: the maps' context globe inset)."""
+    import math
+    la, lo, la0 = math.radians(lat), math.radians(lon - lon0), math.radians(lat0)
+    cos_c = math.sin(la0) * math.sin(la) + math.cos(la0) * math.cos(la) * math.cos(lo)
+    x = math.cos(la) * math.sin(lo)
+    y = math.cos(la0) * math.sin(la) - math.sin(la0) * math.cos(la) * math.cos(lo)
+    return x, y, cos_c > 0
+
+
+def globe_rings(lon0: float, lat0: float, step: int = 4) -> list[tuple[dict[str, Any], list[list[tuple[float, float]]]]]:
+    """Every country's outer rings on the orthographic globe centred on (lon0, lat0), as unit (x, y) points, each
+    ring cut to its visible part (every `step`-th vertex: the inset is a few hundred pixels across)."""
+    out = []
+    for c in countries():
+        rings = []
+        for poly in c["polygons"]:
+            pts = [orthographic(x, y, lon0, lat0) for x, y in poly[0][::step]]
+            vis = [(x, y) for x, y, v in pts if v]
+            if len(vis) >= 3:
+                rings.append(vis)
+        if rings:
+            out.append((c, rings))
+    return out

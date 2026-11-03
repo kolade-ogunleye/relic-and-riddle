@@ -18,9 +18,9 @@ def _record(out: Path) -> dict:
 @needs_ffmpeg
 @pytest.mark.parametrize("fact,first", [
     ({"value": 280.0, "unit": "ft", "dimension": "depth", "subject": "Derinkuyu underground city", "approximate": True},
-     "THE STATUE OF LIBERTY, 305 FT,"),
+     "The Statue of Liberty, 305 ft,"),            # round 4: sentence case
     ({"value": 32.0, "unit": "m", "dimension": "height", "subject": "Kailasa temple monolith", "approximate": True},
-     "STATUE OF LIBERTY: 305 FT."),
+     "Kailasa temple monolith: about 105 ft."),    # round 4: the subject first
 ])
 def test_scale_says_what_the_comparison_means(tmp_path: Path, monkeypatch, fact, first) -> None:
     monkeypatch.setattr(graphics, "CLIP_SECONDS", 3.5)

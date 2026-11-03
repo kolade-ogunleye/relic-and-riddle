@@ -188,6 +188,13 @@ def test_the_timeline_is_drawn_and_revealed_earliest_first(tmp_path, monkeypatch
             drawn.append((self.xy[1], self.text))
         return real(self, im, alpha, dy)
     monkeypatch.setattr(typography.TextPlate, "draw", draw)
+    real_plate = graphics.draw_plate
+
+    def draw_plate(im, plate, alpha=1.0, dy=0):   # round 4 review 7: the timeline composites each plate's box only
+        if alpha > 0:
+            drawn.append((plate.xy[1], plate.text))
+        return real_plate(im, plate, alpha, dy)
+    monkeypatch.setattr(graphics, "draw_plate", draw_plate)
 
     def encode(frames, out, n, **k):
         for _ in frames:
@@ -200,8 +207,8 @@ def test_the_timeline_is_drawn_and_revealed_earliest_first(tmp_path, monkeypatch
               {"year": 1923, "approximate": False, "label": "Completely abandoned"},
               {"year": -800, "approximate": True, "label": "First chambers"}]
     graphics.render_timeline(events, tmp_path / "graphic_timeline.mp4", width=540, height=960)
-    years = ("C. 800 BC", "1923", "1963")
+    years = ("800 BC", "1923", "1963")          # round 4: the circa mark is its own lowercase plate
     shown_at = [next(i for i, f in enumerate(per_frame) if y in f) for y in years]
     assert shown_at[0] < shown_at[1] < shown_at[2]                            # revealed earliest first
     last = per_frame[-1]
-    assert last["C. 800 BC"] < last["1923"] < last["1963"]                    # top to bottom, earliest first
+    assert last["800 BC"] < last["1923"] < last["1963"]                    # top to bottom, earliest first

@@ -147,21 +147,25 @@ def test_wide_break_marks_are_drawn_on_the_compressed_gaps(wide) -> None:
     marked = {round(x) for _, x, _ in wide["marks"]}
     assert marked == {round((xs[k - 1] + xs[k]) / 2) for k in spacing.breaks}
     arr = np.asarray(wide["frames"][-1]).astype(np.int16)
+    spine_y = {round(x): round(y) for _, x, y in wide["marks"]}  # round 4 review 7: the spine moves with its flags
     for k in spacing.breaks:                                       # a light slash crosses the spine there
         x = round((xs[k - 1] + xs[k]) / 2)
-        patch = arr[525:556, x - 16:x + 17]
+        y = spine_y[x]
+        patch = arr[y - 15:y + 16, x - 16:x + 17]
         assert (np.abs(patch - np.array(brand.STONE_LT, np.int16)).max(axis=2) <= 40).sum() > 20
 
 
 def test_wide_blocks_start_at_their_markers_and_alternate(wide) -> None:
     xs = wide["spacing"][-1].positions
     plates = {n: p for n, p in wide["plates"] if n.startswith("year")}
-    for k, x in enumerate(xs):
-        assert x + 10 <= plates[f"year{k}"].box[0] <= x + 34, (k, x, plates[f"year{k}"].box)
+    for k, x in enumerate(xs):   # round 4: a circa year starts with its own lowercase "c." plate
+        first = plates.get(f"year{k}_circa", plates[f"year{k}"])
+        assert x + 10 <= first.box[0] <= x + 34, (k, x, first.box)
     for n, p in wide["plates"]:
         m = re.match(r"label(\d)", n)
         if m:
-            assert abs(p.box[0] - plates[f"year{m.group(1)}"].box[0]) <= 8, n    # left-aligned with the year
+            first = plates.get(f"year{m.group(1)}_circa", plates[f"year{m.group(1)}"])   # round 4: "c." starts it
+            assert abs(p.box[0] - first.box[0]) <= 8, n    # left-aligned with the year
     blocks = _blocks(wide["plates"])
     assert [(b[1] + b[3]) / 2 < 540 for _, b in sorted(blocks.items())] == [True, False, True, False]
 
@@ -185,8 +189,12 @@ def test_wide_timeline_spans_the_frame(wide) -> None:
     assert min(b[0] for b in boxes) >= 96 and max(b[2] for b in boxes) <= 1824          # 5 % title-safe
     assert min(b[1] for b in boxes) >= 54 and max(b[3] for b in boxes) <= 1026
     assert not any(graphics.LayoutConstraintSolver.boxes_intersect(b, TIMESTAMP) for b in boxes)
-    row = np.asarray(wide["frames"][-1]).astype(np.int16)[540]
-    gold = np.abs(row - np.array(brand.GOLD_DIM, np.int16)).max(axis=1) <= 30
+    # round 4 review 6: the spine is no longer always at y 540 (a flag lengthens so no span's "LATER" sits level
+    # with a year, and the spine moves to keep both rows title-safe): its row is the one the gold runs along
+    frame = np.asarray(wide["frames"][-1]).astype(np.int16)
+    near = np.abs(frame - np.array(brand.GOLD_DIM, np.int16)).max(axis=2) <= 30
+    spine_row = 380 + int(np.argmax(near[380:700, 170:1400].sum(axis=1)))
+    gold = near[spine_row]
     assert gold[170:200].any() and gold[1400:].any()              # the spine runs from x 160 well past x 1400
     assert all(e["drawn"] >= brand.TEXT_CONTRAST for e in wide["record"]["elements"])
 

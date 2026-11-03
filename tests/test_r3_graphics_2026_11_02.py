@@ -224,12 +224,14 @@ def test_comparison_ratio_is_never_more_confident_than_the_figures() -> None:
 
 def test_height_meaning_says_which_is_taller() -> None:
     fact = dict(HEIGHT)
+    # round 4 (2026-11-02): the subject first (scale_meaning_lines, in capitals here)
     assert graphics.scale_meaning(fact, 107.0, "Statue of Liberty (total)", 305.0, False) == [
-        "STATUE OF LIBERTY: 305 FT.", "ABOUT 3 TIMES AS TALL AS KAILASA TEMPLE."]
+        "KAILASA TEMPLE: ABOUT 107 FT.", "THE STATUE OF LIBERTY, 305 FT, IS ABOUT 3 TIMES AS TALL."]
     taller = dict(HEIGHT, subject="Kailasa Temple monolith height")
     assert graphics.scale_meaning(taller, 457.5, "Statue of Liberty (total)", 305.0, False) == [
-        "STATUE OF LIBERTY: 305 FT.", "KAILASA TEMPLE MONOLITH IS ABOUT 1.5 TIMES AS TALL."]
-    assert graphics.scale_meaning(fact, 300.0, "Statue of Liberty (total)", 305.0, False)[1] == "NEARLY THE SAME HEIGHT."
+        "KAILASA TEMPLE MONOLITH: ABOUT 458 FT,", "ABOUT 1.5 TIMES AS TALL AS THE STATUE OF LIBERTY, 305 FT."]
+    assert graphics.scale_meaning(fact, 300.0, "Statue of Liberty (total)", 305.0, False)[1].endswith(
+        "IS NEARLY THE SAME HEIGHT.")
     assert not any("TALLER" in t for t in graphics.scale_meaning(fact, 107.0, "Statue of Liberty (total)", 305.0, False))
 
 
@@ -268,7 +270,7 @@ def test_height_labels_the_landmarks_figure_at_its_top(tmp_path, monkeypatch, si
     rows = dict(st["plates"])
     assert rows["ref_label"].text == "305 FT" and rows["block_label"].text == "ABOUT 107 FT"
     meaning = [p for n, p in st["plates"] if n.startswith("meaning")]
-    assert " ".join(p.text for p in meaning).endswith("AS TALL AS KAILASA TEMPLE.")
+    assert " ".join(p.text for p in meaning).upper().endswith("IS ABOUT 3 TIMES AS TALL.")   # round 4: subject first
     if size[0] < size[1]:
         assert all(p.font.size >= graphics.SCALE_MEANING_PX[1] for p in meaning)
     _no_collisions(st["plates"])
@@ -473,7 +475,7 @@ def test_a_tall_span_on_its_segment_has_a_label_line_of_air_and_sits_under_the_l
             continue                                                # on the later year's baseline
         above = max(q.box[3] for n, q in st["plates"] if re.fullmatch(rf"(year|label){k - 1}", n))
         below = rows[f"year{k}"].box[1]
-        air = round(lab_px * 1.3)
+        air = round(lab_px * graphics.SPAN_AIR)                    # round 4: 0.6 of a label line, not 1.3
         assert p.box[1] - above >= air - 6 and below - p.box[3] >= air - 6, (k, p.text, p.box, above, below)
         assert p.font.size < lab_px                                 # secondary: smaller than every event label
     if len(events) == 2:
@@ -484,25 +486,27 @@ def test_spans_never_cost_the_event_labels_their_size(tmp_path, monkeypatch) -> 
     with_spans = _render(monkeypatch, lambda: graphics.render_timeline(DERINKUYU, tmp_path / "a.mp4"))
     monkeypatch.setattr(graphics, "gap_text", lambda a, b: "")
     without = _render(monkeypatch, lambda: graphics.render_timeline(DERINKUYU, tmp_path / "b.mp4"))
-    sizes = lambda st: sorted((n, p.font.size) for n, p in st["plates"] if re.fullmatch(r"(label|year)\d", n))
+    # round 4: the spans are paid for by the Anton years first, never by the labels
+    sizes = lambda st: sorted((n, p.font.size) for n, p in st["plates"] if re.fullmatch(r"label\d", n))
     assert sizes(with_spans) == sizes(without)
 
 
-def test_the_four_entry_derinkuyu_spans_stay_on_the_year_baseline(tmp_path, monkeypatch) -> None:
+def test_the_four_entry_derinkuyu_spans_sit_above_the_later_year_clear_of_every_plate(tmp_path, monkeypatch) -> None:
+    # Round 4 (2026-11-02) replaced the baseline fallback this test encoded: the spans now always sit on their
+    # segments, above the later year (tests/test_r4_graphics_2026_11_02.py).
     st = _render(monkeypatch, lambda: graphics.render_timeline(DERINKUYU, tmp_path / "t.mp4"))
     gaps, rows = _span_rows(st)
     assert set(gaps) == {1, 2, 3}
     for k, p in gaps.items():
-        assert abs(p.box[3] - rows[f"year{k}"].box[3]) <= 4, (k, p.text)
-        assert p.box[0] > rows[f"year{k}"].box[2]
+        assert p.box[3] < rows[f"year{k}"].box[1], (k, p.text)
     _no_collisions(st["plates"])
 
 
 def test_span_helpers() -> None:
     f = graphics.get_font("Montserrat", graphics.span_font_px(38), weight=600)
-    assert graphics.span_font_px(38) < 38 and graphics.span_font_px(20) == 24
+    assert graphics.span_font_px(38) < 38 and graphics.span_font_px(20) == graphics.SPAN_MIN_PX   # round 4: 24 -> 30
     band, air = graphics.span_band(38, f)
-    assert air == round(38 * 1.3) and band == graphics.cap_height(f) + 2 * air
+    assert air == round(38 * graphics.SPAN_AIR) and band == graphics.cap_height(f) + 2 * air     # round 4: 1.3 -> 0.6
 
 
 def test_tall_depth_sets_the_metres_under_the_figure_and_keeps_air_over_the_bracket(tmp_path, monkeypatch) -> None:
@@ -655,3 +659,26 @@ def test_the_9x16_meaning_sits_on_the_box_foot_with_air_over_it(tmp_path, monkey
     drawing = [y for y in ink_rows if rows["figure_metric"].box[3] + 4 < y < lines[0][1].box[1] - 4
                and not any(p.box[1] - 2 <= y <= p.box[3] + 2 for n, p in st["plates"])]
     assert drawing and lines[0][1].box[1] - max(drawing) >= graphics.SCALE_TEXT_GAP - 2
+
+
+# ============================================================================ round 4 review 3: the route's scale bar
+@pytest.mark.parametrize("size", FORMATS)
+def test_route_stop_names_keep_clear_air_from_the_scale_bar_figures(tmp_path, monkeypatch, fake_geo, size) -> None:
+    # 9:16: "200 KM" ended 1 px left of "UNDERGROUND" (Derinkuyu's name hung below its pin)
+    stops = [{"place": "Istanbul", "country": "Turkey", "label": "Constantinople"},
+             {"place": "Ankara", "country": "Turkey", "label": "Ancyra"},
+             {"place": "Derinkuyu", "country": "Turkey", "label": "Derinkuyu underground city"}]
+    st = _render(monkeypatch, lambda: graphics.render_route(stops, tmp_path / "r.mp4", width=size[0], height=size[1]))
+    bar = [p.box for n, p in st["plates"] if n.startswith("scale")]
+    names = [p.box for n, p in st["plates"] if n.startswith("stop")]
+    assert bar and names
+    words = " ".join(p.text for n, p in st["plates"] if n.startswith("stop")).split()
+    assert words == ["CONSTANTINOPLE", "ANCYRA", "DERINKUYU", "UNDERGROUND", "CITY"]    # never cut
+    assert not any(graphics.LayoutConstraintSolver.boxes_intersect(a, b, graphics.ROUTE_SCALE_AIR)
+                   for a in bar for b in names)
+
+
+def test_scale_bar_keeps_to_its_longest_length() -> None:
+    long, short = graphics.scale_bar(39.0, 120.0, ""), graphics.scale_bar(39.0, 120.0, "", max_px=120)
+    assert long["px"] <= 260 and short["px"] <= 120 < long["px"]
+    assert short["value"] < long["value"] and graphics.ROUTE_BAR_STEPS[0] == 260

@@ -91,7 +91,8 @@ def _vocabulary(name: str) -> set[str]:
     elif name.startswith("scale"):
         fact = DEPTH if name == "scale_depth" else HEIGHT
         ref = graphics.pick_reference(fact["value"])
-        texts = [fact["subject"], *graphics.scale_meaning(fact, fact["value"], ref[0], ref[1], name == "scale_depth")]
+        texts = [fact["subject"], *graphics.scale_meaning(fact, fact["value"], ref[0], ref[1], name == "scale_depth"),
+                 graphics.reference_note(ref[0])]          # round 4: the landmark's note, the reference file's words
     elif name == "section":
         texts = [SECTION["subject"], *[lv["label"] for lv in SECTION["levels"]]]
     elif name == "numbers":
@@ -153,10 +154,13 @@ def test_type_sizes(renders, name):
         assert p.font.size >= floor, (name, n, p.text, p.font.size)
     if name == "timeline":
         assert all(p.font.size >= 32 for n, p in renders[name]["plates"] if n.startswith("label"))
-        assert all(p.font.size >= 86 and p.fill == brand.GOLD for n, p in renders[name]["plates"] if n.startswith("year"))
+        assert all(p.font.size >= 86 and p.fill == brand.GOLD for n, p in renders[name]["plates"]
+                   if n.startswith("year") and not n.endswith("_circa"))   # round 4: circa is a smaller mark
     if name == "numbers":
         labels = [p for n, p in renders[name]["plates"] if n == "label"]
-        assert labels and all(p.font.size >= 40 and p.fill == brand.BONE for p in labels)
+        # round 4: with two cards the first steps back to its stone twin as the second lands
+        assert labels and all(p.font.size >= 40 and tuple(p.fill) in (brand.BONE, brand.STONE_LT) for p in labels)
+        assert tuple(labels[-1].fill) == brand.BONE
 
 
 @pytest.mark.parametrize("name", NAMES)

@@ -38,7 +38,7 @@ from .graphics import (
 )
 from .llm import LLMError, image_block
 from .llm import task as llm_task
-from .typography import cover_crop, get_font, plan_text
+from .typography import TextPlate, cover_crop, get_font, plan_text
 from .upscale import ensure_resolution
 
 log = logging.getLogger(__name__)
@@ -501,6 +501,69 @@ SHADE_ALPHA, SHADE_FALL = 0.5, 180
 SHADE_STEPS = (0.5, 0.62, 0.75, 0.88)
 BAND_PAD, BAND_FALL = 12, 84        # screen px: full depth this far round the marker's lines, gone this far beyond
 BAND_STEPS = (0.2, 0.28, 0.36, 0.45, 0.55, 0.65, 0.75, 0.88)
+# Freeze panel 2026-11-04 (step 1, ink on paper): on a near-white paper ground (an old map, a document) bone type in
+# a heavy dark halo read as a stepped dark outline where the short kicker sits over the wide year. The box round a
+# marker's kicker and year (their ink boxes' union grown by PAPER_PAD px, kept to its photo) is paper when, on its
+# split and on its alone frame (unshaded), its mean luma is at least PAPER_MEAN, its 10th percentile at least
+# PAPER_P10, its Canny edge density at most PAPER_EDGE and at most PAPER_DARK of its pixels are darker than
+# PAPER_DARK_FRAC x its mean (plain paper only: a diagram's own black rules and labels collide with ink type, which
+# the contrast ratio cannot see). Such a marker is set in brand INK, no halo and no glow; if an ink line then measures
+# under PLACE_TARGET (planned or drawn, split or alone) the marker takes the bone/gold path. With one ink marker the
+# other's kicker is bone (two neutrals). Off paper nothing changes.
+INK_ON_PAPER = True
+PAPER_MEAN, PAPER_P10, PAPER_EDGE, PAPER_PAD = 195.0, 140.0, 0.20, 24
+PAPER_DARK_FRAC, PAPER_DARK = 0.6, 0.02
+LAST_PAPER: dict[str, dict[str, Any]] = {}   # the last render's gate stats and type mode per marker (a record only)
+
+
+def _luma(arr: Any) -> Any:
+    import numpy as np
+    a = np.asarray(arr, np.float32)
+    return a[..., 0] * 0.299 + a[..., 1] * 0.587 + a[..., 2] * 0.114
+
+
+def _edge_density(rgb: Any) -> float:
+    """Canny(50, 150) edge pixels per pixel on the luma of `rgb` (an RGB array or image)."""
+    import cv2
+    import numpy as np
+    y = np.clip(np.round(_luma(np.asarray(rgb))), 0, 255).astype(np.uint8)
+    if y.size == 0:
+        return 0.0
+    return float((cv2.Canny(y, 50, 150) > 0).mean())
+
+
+def paper_stats(im: Image.Image, box: tuple[int, int, int, int]) -> dict[str, float] | None:
+    """{"mean", "p10", "edge", "dark"} of the luma of `im` inside `box` (Canny(50, 150) density; the share of pixels
+    darker than PAPER_DARK_FRAC x the mean), or None when empty."""
+    import numpy as np
+    x0, y0, x1, y1 = (int(round(v)) for v in box)
+    if x1 <= x0 or y1 <= y0:
+        return None
+    rgb = np.asarray(im.convert("RGB").crop((x0, y0, x1, y1)))
+    y = _luma(rgb)
+    mean = float(y.mean())
+    return {"mean": round(mean, 2), "p10": round(float(np.percentile(y, 10)), 2),
+            "edge": round(_edge_density(rgb), 4),
+            "dark": round(float((y < PAPER_DARK_FRAC * mean).mean()), 4)}
+
+
+def paper_gate(boxes: list, frames: list) -> tuple[bool, list]:
+    """Is the ground round a marker's lines `boxes` paper on every (frame, clip box) of `frames`? The lines' union
+    grown by PAPER_PAD px, kept to each clip box. (ok, the measured stats per frame)."""
+    x0, y0 = min(b[0] for b in boxes) - PAPER_PAD, min(b[1] for b in boxes) - PAPER_PAD
+    x1, y1 = max(b[2] for b in boxes) + PAPER_PAD, max(b[3] for b in boxes) + PAPER_PAD
+    ok, out = True, []
+    for im, (cx0, cy0, cx1, cy1) in frames:
+        st = paper_stats(im, (max(x0, cx0), max(y0, cy0), min(x1, cx1), min(y1, cy1)))
+        out.append(st)
+        if (st is None or st["mean"] < PAPER_MEAN or st["p10"] < PAPER_P10 or st["edge"] > PAPER_EDGE
+                or st["dark"] > PAPER_DARK):
+            ok = False
+    return ok, out
+
+
+def on_paper(boxes: list, frames: list) -> bool:
+    return paper_gate(boxes, frames)[0]
 
 
 def panel_box(which: str, width: int, height: int) -> tuple[int, int, int, int]:
@@ -650,6 +713,36 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
         return any(min(p.measure(on_split) or 0, p.measure(on_alone) or 0) < PLACE_TARGET for p in ps)
 
     split0 = split_frame
+    # Ink on paper: each marker's ground measured once, unshaded, on its split and its alone frame.
+    alone_of = {"then": then_frame, "now": now_frame}
+    paper: dict[str, dict[str, Any]] = {}
+    for which, year in (("then", old_year), ("now", new_year)):
+        x, y, anchor = marker_xy(which, width, height)
+        nudge = 0 if anchor[0] == "r" else -4
+        boxes = [TextPlate(text, font, WHITE, xy, anchor, tr, 0, INK, 0, False, size).box
+                 for text, font, xy, tr in ((which.upper(), kicker_font, (x, y), track),
+                                            (str(year), year_font, (x + nudge, y + round(KICKER_PX[key] * 1.5)), 0))]
+        ok, st = paper_gate(boxes, [(split0, panel_box(which, width, height)), (alone_of[which], (0, 0, width, height))])
+        paper[which] = {"ok": bool(INK_ON_PAPER and ok), "split": st[0], "alone": st[1]}
+    LAST_PAPER.clear()
+    LAST_PAPER.update(paper)
+
+    def ink_marker(which: str, year: int, alone: Image.Image) -> list | None:
+        """The marker in brand INK, no halo (and no glow), or None when a line would hold under PLACE_TARGET."""
+        x, y, anchor = marker_xy(which, width, height)
+        nudge = 0 if anchor[0] == "r" else -4
+        ps = [_marker_plate(split_frame, alone, (x, y), which.upper(), kicker_font, INK, anchor, track,
+                            halo_px=0, min_halo=0.0),
+              _marker_plate(split_frame, alone, (x + nudge, y + round(KICKER_PX[key] * 1.5)), str(year),
+                            year_font, INK, anchor, 0, halo_px=0, min_halo=0.0)]
+        if short(ps, alone) or min(p.contrast or 0 for p in ps) < PLACE_TARGET:
+            log.info("Then-and-now: ink type on paper plans %s for %s; bone/gold type instead.",
+                     "/".join(f"{p.contrast or 0:.2f}" for p in ps), which)
+            paper[which]["ink_short"] = [round(p.contrast or 0, 2) for p in ps]
+            return None
+        return ps
+
+    inks: dict[str, list] = {}
 
     def shaded(im: Image.Image, shades: dict[str, Image.Image], pos: float,
                alphas: dict[str, float] | None = None) -> Image.Image:
@@ -663,10 +756,17 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
     def plan_all() -> tuple[dict[str, list], dict[str, Image.Image]]:
         nonlocal split_frame
         split_frame = split0
+        inks.clear()
         plates: dict[str, list] = {}
         shades: dict[str, Image.Image] = {}      # each marker's glow on the whole frame; clipped per frame
         for which, year, alone0, at in (("then", old_year, then_frame, edge), ("now", new_year, now_frame, 0)):
             alone = shaded(alone0, shades, at)
+            if paper[which]["ok"]:
+                ps = ink_marker(which, year, alone)
+                if ps is not None:
+                    plates[which] = inks[which] = ps
+                    continue
+                paper[which]["ok"] = False
             ps = plan_marker(which, year, alone)
             if short(ps, alone):
                 # A bright, busy photo the halo alone cannot quiet: a soft ink glow behind the marker only (no
@@ -683,9 +783,14 @@ def render(old: Path, old_year: int, new: Path, new_year: int, out: Path, width:
         return plates, shades
 
     plates, shades = plan_all()
-    if len(set(colours.values())) > 1:      # one gold, one bone: both bone, so the pair reads in one colour role
+    if len(inks) == 1 and set(colours.values()) != {WHITE}:
+        pair_colour[0] = WHITE              # one ink marker: the other's kicker is bone (two neutrals)
+        plates, shades = plan_all()
+    elif len(set(colours.values())) > 1:    # one gold, one bone: both bone, so the pair reads in one colour role
         pair_colour[0] = WHITE
         plates, shades = plan_all()
+    for w in ("then", "now"):
+        LAST_PAPER[w]["mode"] = "ink" if w in inks else "bone/gold"
     final: dict[str, Image.Image] = {}
 
     def frames():

@@ -17,12 +17,12 @@ name no further gain, two consecutive adversarial rounds find no new defect, and
 | Design | State | Next |
 |---|---|---|
 | Reel covers, grid tiles, YouTube thumbnail | Round-4 work committed | Freeze panel |
-| Captions 9:16 / 16:9 | 80 px committed | Proper-noun phrases are split across bursts ("RASHTRAKUTA / DYNASTY"); keep names together, shrinking if needed |
+| Captions 9:16 / 16:9 | Proper names kept whole, 16:9 vignette and Montserrat Bold (freeze step 1) | Freeze-panel round |
 | IG carousel, FB gallery, Stories | Committed | Freeze panel |
 | Reel loop bridge, 16:9 end screen | Committed; the audio seam is exact (fcb822e) | Freeze panel |
-| Then-and-now | Committed | Stepped label shadow on near-white photos |
+| Then-and-now | Ink on paper grounds (freeze step 1) | Freeze-panel round |
 | Photo callouts | Redesign committed; unattended runs get none until the accuracy audit exists | Needs real photos and an accuracy audit |
-| First frame, chapter card, myth-vs-fact (`src/design_cards.py`) | Committed, 9/10 on review (8693156) | Long 9:16 myth: keep the source line, shrink to a 76 px floor or add a line, never drop it |
+| First frame, chapter card, myth-vs-fact (`src/design_cards.py`) | Long 9:16 myth keeps its source line (freeze step 1) | Freeze-panel round |
 | Quote cards | Held (`QUOTE_CARDS_ENABLED=false`) | Enable only with signed records and a real checker key; speaker, work and date come from the signed check record only |
 | AI illustrations | Built | Needs a Gemini key and Tesseract to judge |
 | Maps, timelines | In progress in the cloud session (round 8) | — |

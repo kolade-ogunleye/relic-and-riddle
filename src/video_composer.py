@@ -172,6 +172,16 @@ def graphic_vignette_enable(scene_images: List[Path], durations: List[float]) ->
     return f":enable='not({inside})'"
 
 
+def picture_vignette(width: int, height: int) -> str:
+    """The lens vignette compose_video draws (freeze pass, 2026-11-04). ffmpeg's vignette `aspect` is the pixel
+    aspect (SAR), not the frame's: 16/9 on a square-pixel 1920x1080 frame crushed its corners to black. 9:16 keeps
+    its approved chain byte for byte; 16:9 uses aspect 1 (square pixels) at a wider angle, PI/6.4, because aspect 1
+    at PI/4.2 still takes the corners to about 0.21 of the centre (measured)."""
+    if width <= height:
+        return "vignette=PI/4.2:aspect=9/16"
+    return "vignette=PI/6.4:aspect=1"
+
+
 def is_ai_motion_clip(path: Path) -> bool:
     """A clip src/motion.py made from a photo (motion_NN.mp4), as opposed to footage, a graphic or a manual
     hook clip, which move by themselves."""
@@ -1283,8 +1293,112 @@ def caption_bonds(words: list[Any]) -> set[int]:
             _, hi = _range_span(tokens, raw, i, end)
             if hi > end:
                 _bond(i, hi)
-    return bonds
+    return bonds | name_bonds(raw)
 
+
+# A proper name is never split across bursts (design handover, 2026-11-04: RASHTRAKUTA | DYNASTY). A name is a run of
+# capitalised words (ELLORA CAVES), linked by a lower-case particle only between two capitalised words (TEMPLE OF
+# KAILASA), and may end on a lower-case head noun that names what it is (RASHTRAKUTA DYNASTY). Topic-agnostic: only
+# the narration's own capitals and these generic words decide.
+NAME_HEADS = DESIGNATORS | {
+    "dynasties", "empire", "empires", "kingdom", "kingdoms", "temple", "temples", "river", "rivers", "valley",
+    "mountains", "mountain", "range", "sea", "ocean", "island", "islands", "wall", "walls", "palace", "fort",
+    "fortress", "castle", "city", "period", "era", "age", "civilisation", "civilization", "culture", "desert",
+    "lake", "canal", "pyramid", "pyramids", "monastery", "cathedral", "abbey", "basilica", "mosque", "shrine",
+    "sultanate", "caliphate", "republic", "basin", "plateau", "peninsula", "gorge", "strait", "bay", "coast",
+    "people", "script", "inscription", "inscriptions", "style", "school", "order", "sect", "tradition", "language",
+    "army", "fleet", "navy", "expedition", "mission", "museum", "library", "university", "observatory",
+    "manuscript", "map", "event", "incident", "war", "wars", "revolution", "treaty", "church", "gallery", "statue",
+    "statues",
+}
+NAME_PARTICLES = {"of", "de", "del", "della", "da", "di", "du", "von", "van", "al", "el", "la", "le"}
+# Capitalised words that open a sentence without naming anything (a name starts after them): the function words,
+# pronouns and the sentence adverbs a narration opens on.
+NAME_STOPS = FUNCTION_WORDS | CLAUSE_STARTERS | {
+    "i", "it", "he", "she", "we", "they", "you", "there", "here", "then", "now", "today", "later", "soon", "once",
+    "still", "even", "only", "inside", "outside", "below", "above", "around", "beyond", "legend", "some", "most",
+    "many", "every", "each", "no", "nobody", "nothing", "what", "one", "two", "three", "yes", "just", "also",
+    "instead", "next", "first", "finally", "today's", "centuries", "thousands", "hundreds", "look", "imagine",
+}
+NAME_ARTICLES = {"the", "a", "an"}
+# a name a number continues (AUGUST 5, CAVE 10, ROOM 101); after any other name a number is a new phrase (EGYPT 3000)
+NAME_NUMBERED = DESIGNATORS | {"january", "february", "march", "april", "may", "june", "july", "august",
+                               "september", "october", "november", "december", "cave", "room", "gate", "tomb",
+                               "chapter", "book", "volume", "site", "level", "number", "apollo", "flight"}
+NAME_MAX_WORDS = MAX_BURST_WORDS   # a longer run is no bond (one burst holds it at most)
+NAME_MAX_CHARS = MAX_BURST_CHARS
+NAME_REGNAL = re.compile(r"^(?=[IVX])X{0,3}(IX|IV|V?I{0,3})$")   # KRISHNA I, LOUIS XIV: a numeral after a name
+
+
+def _regnal(word: str) -> bool:
+    return bool(NAME_REGNAL.match(re.sub(r"[,;.:!?—]+$", "", word)))
+
+
+def _capitalised(word: str) -> bool:
+    core = word.strip("\"'“”‘’()[]")
+    return bool(core) and core[0].isupper() and _bare(core) not in NAME_STOPS
+
+
+def _possessive(word: str) -> bool:
+    return bool(re.search(r"(['’]s|s['’])[,;.:!?]*$", word, re.I))
+
+
+def _sentence_starts(raw: list[str]) -> set[int]:
+    """Positions that open a sentence (the first word, and each word after terminal punctuation)."""
+    return {0} | {k + 1 for k, w in enumerate(raw[:-1]) if TERMINAL_PUNCT.search(w) and not _is_abbreviation(w)}
+
+
+def name_bonds(raw: list[str]) -> set[int]:
+    """Word positions i whose boundary with word i + 1 lies inside a proper name (NAME_HEADS, NAME_PARTICLES).
+    Never across clause or sentence punctuation. A sentence's first word joins a name only if the narration
+    capitalises it elsewhere too (NEAR OUADANE and ANCIENT ROMAN open sentences; ELLORA recurs). A capitalised
+    number word or a Roman numeral continues a name (WORLD WAR TWO, KRISHNA I). A run longer than NAME_MAX_WORDS
+    or NAME_MAX_CHARS, or wider than one burst at the bond floor (CAPTION_BOND_MIN_SIZE), is no bond: forcing it
+    would cost a worse cut elsewhere (review 2026-11-04: ON THE | ADRAR PLATEAU OF | MAURITANIA)."""
+    n = len(raw)
+    starts = _sentence_starts(raw)
+    mid_caps = {_bare(w) for k, w in enumerate(raw) if k not in starts and _capitalised(w)}
+
+    def opens(k: int) -> bool:
+        return _capitalised(raw[k]) and (k not in starts or _bare(raw[k]) in mid_caps)
+
+    def continues(w: str) -> bool:
+        core = w.strip("\"'“”‘’()[]")
+        return _capitalised(w) or _regnal(w) or (core[:1].isupper() and _bare(core) in SPELLED_NUMBERS)
+
+    bonds: set[int] = set()
+    i = 0
+    while i < n:
+        if not opens(i):
+            i += 1
+            continue
+        j = i   # the run's last word
+        # a possessive ends a name (RUSSIA'S | CATHERINE PALACE: two names, review 2026-11-04)
+        while j + 1 < n and not _ends_clause(raw[j]) and not _possessive(raw[j]):
+            nxt = raw[j + 1]
+            if (continues(nxt) and not (_bare(nxt) == "i" and j == i)) or (   # CARTER I BELIEVE: the pronoun
+                    _bare(raw[j]) in NAME_NUMBERED and re.fullmatch(r"\d{1,4}[,;.:!?]*", nxt)):  # AUGUST 5, CAVE 10
+                j += 1
+            elif (_bare(nxt) in NAME_PARTICLES and j + 2 < n and not _ends_clause(nxt)
+                  and _capitalised(raw[j + 2])):
+                j += 2
+            elif _bare(nxt) in NAME_HEADS and nxt[:1].islower():
+                j += 1
+                break
+            else:
+                break
+        words = j - i + 1
+        text = [re.sub(r"[,;.:!?—]+$", "", w) for w in raw[i:j + 1]]
+        # the article before a name goes with it (operator decision 2026-11-04: a burst never ends on THE); a name
+        # whose article cannot fit one burst with it at the bond floor is no bond (WITHIN THE | ADRAR REGION OF
+        # MAURITANIA would end a burst on THE), so the partition cuts it as before
+        article = i > 0 and _bare(raw[i - 1]) in NAME_ARTICLES and not _ends_clause(raw[i - 1])
+        span = [raw[i - 1], *text] if article else text
+        if (1 < words <= NAME_MAX_WORDS and len(" ".join(text)) <= NAME_MAX_CHARS
+                and _caption_text_width(span, CAPTION_BOND_MIN_SIZE) <= MAX_CAPTION_WIDTH):
+            bonds.update(range(i - 1 if article else i, j))
+        i = j + 1
+    return bonds
 
 SEAM_RETURN_S = 0.3   # s: the loop bridge's level returns to the bed's own over its last 0.3 s (_audio_chain)
 
@@ -2276,7 +2390,6 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
         ass_str = str(ass_path.resolve()).replace("\\", "/").replace(":", "\\:")
         fonts_str = str(self.fonts_dir.resolve()).replace("\\", "/").replace(":", "\\:")
-        vignette_aspect = "16/9" if width > height else "9/16"
         # Graphics are drawn to their own measured contrast: the lens vignette is lifted while one is on screen,
         # so a graphic can use the frame's full width (2026-11-02; at the edges it read 2.7:1 after grading).
         vignette_enable = graphic_vignette_enable(scene_images, durations)
@@ -2287,7 +2400,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         card_split = "split[v_graded][v_card_src];[v_graded]" if card else ""
         filter_parts.append(
             f"[video_raw]format=yuv420p,{film_grade},format=yuv420p,"
-            f"noise=alls=8:allf=t+u,vignette=PI/4.2:aspect={vignette_aspect}{vignette_enable},{card_split}"
+            f"noise=alls=8:allf=t+u,{picture_vignette(width, height)}{vignette_enable},{card_split}"
             f"subtitles='{ass_str}':fontsdir='{fonts_str}',scale=out_range=tv,format=yuv420p[v_final]"
         )
         if card:

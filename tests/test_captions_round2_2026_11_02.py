@@ -101,11 +101,27 @@ def test_bursts_keep_one_size_across_a_realistic_narration(tmp_path):
     unbonded = [int(m.group(1)) for e, m in zip(_events(ass, "CapText"), sizes)
                 if m and not caption_bonds(_plain(e[2]).split())]
     assert len(unbonded) <= 0.1 * len(sizes), unbonded                  # nearly every word event at the full size
-    assert all(fs >= round(CAPTION_BURST_MIN_SIZE / 0.5625) for fs in shrunk)
+    # operator decision 2026-11-04 (deliberate change): a burst holding a proper name (with its article) may set down
+    # to the bond floor, CAPTION_BOND_MIN_SIZE, to keep the name whole ("OF THE RASHTRAKUTA DYNASTY," at 67 px);
+    # every other burst keeps CAPTION_BURST_MIN_SIZE. Was: every burst >= CAPTION_BURST_MIN_SIZE.
+    from src.video_composer import CAPTION_BOND_MIN_SIZE, name_bonds
+    raw = NARRATION.split()
+    named = {re.sub(r"[^\w']", "", raw[k]).lower() for b in name_bonds(raw) for k in (b, b + 1)}
+    for e, m in zip(_events(ass, "CapText"), sizes):
+        if m:
+            held = any(re.sub(r"[^\w']", "", w).lower() in named for w in _plain(e[2]).split())
+            floor = CAPTION_BOND_MIN_SIZE if held else CAPTION_BURST_MIN_SIZE
+            assert int(m.group(1)) >= round(floor / 0.5625), (_plain(e[2]), m.group(1))
     phrases = merge_short_bursts(partition_words_grammatical(words), _fits_caption_width, 5)
     fits = [_caption_fit_size(p) for p in phrases]
-    assert min(fits) >= CAPTION_BURST_MIN_SIZE and max(fits) == FONT_SIZE
-    assert max(abs(a - b) / max(a, b) for a, b in pairwise(fits)) <= 0.09   # was up to 33%
+    # operator decision 2026-11-04 (deliberate change, as above): a burst holding a proper name may set down to
+    # CAPTION_BOND_MIN_SIZE and is left out of the one-size step check; every other burst is held as before (was:
+    # min >= CAPTION_BURST_MIN_SIZE and every step <= 0.09)
+    named = [bool(name_bonds([w["word"] for w in p])) for p in phrases]
+    assert min(fits) >= CAPTION_BOND_MIN_SIZE and max(fits) == FONT_SIZE
+    assert min(f for f, nm in zip(fits, named) if not nm) >= CAPTION_BURST_MIN_SIZE
+    plain = [f for f, nm in zip(fits, named) if not nm]
+    assert max(abs(a - b) / max(a, b) for a, b in pairwise(plain)) <= 0.09   # was up to 33%
 
 
 def test_only_a_single_over_long_word_shrinks_and_not_below_60():

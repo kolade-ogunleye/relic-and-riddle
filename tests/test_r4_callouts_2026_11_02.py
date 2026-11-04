@@ -274,6 +274,7 @@ def test_both_kickers_share_one_colour(tmp_path, monkeypatch):
     # a bright sky on the old photo's top half only: gold fails there, so both kickers go bone
     arr = np.full((2100, 1200, 3), 70, np.uint8)
     arr[:1000] = 250
+    monkeypatch.setattr(then_now, "INK_ON_PAPER", False)   # freeze panel 2026-11-04 step 1: a white ground takes ink type
     Image.fromarray(arr).save(tmp_path / "old.jpg")
     _photo(tmp_path / "new.jpg", lo=40, hi=90)
     then_now.render(tmp_path / "old.jpg", 1925, tmp_path / "new.jpg", 2019, tmp_path / "x.mp4")
@@ -360,6 +361,7 @@ def test_16x9_then_shade_leaves_the_recent_photo_alone_on_the_split(tmp_path, mo
     real = then_now._shade
     monkeypatch.setattr(then_now, "_shade", lambda im, m, a=1.0: masks.append(m) or real(im, m, a))
     _encode_capture(monkeypatch)
+    monkeypatch.setattr(then_now, "INK_ON_PAPER", False)   # freeze panel 2026-11-04 step 1: a white ground takes ink type
     w = _photo(tmp_path / "w.jpg", size=(2100, 1200), lo=240, hi=256)      # the old photo: bright, needs a shade
     d = _photo(tmp_path / "d.jpg", size=(2100, 1200), lo=30, hi=70)        # the recent one: dark, needs none
     then_now.render(w, 1925, d, 2019, tmp_path / "z.mp4", width=1920, height=1080)
@@ -374,6 +376,7 @@ def test_render_draws_the_band_when_the_halo_falls_short(tmp_path, monkeypatch):
     real = then_now.band_mask
     monkeypatch.setattr(then_now, "band_mask", lambda *a, **k: calls.append(a[0]) or real(*a, **k))
     _encode_capture(monkeypatch)
+    monkeypatch.setattr(then_now, "INK_ON_PAPER", False)   # freeze panel 2026-11-04 step 1: a white ground takes ink type
     w = _photo(tmp_path / "w.jpg", lo=240, hi=256)
     then_now.render(w, 1925, w, 2019, tmp_path / "y.mp4")
     assert calls
@@ -452,6 +455,7 @@ def test_band_starts_light_and_stops_at_the_first_depth_that_holds(tmp_path, mon
     monkeypatch.setattr(then_now, "band_mask",
                         lambda *a, **k: depths.append(a[4] if len(a) > 4 else k.get("alpha")) or real(*a, **k))
     got = _encode_capture(monkeypatch)
+    monkeypatch.setattr(then_now, "INK_ON_PAPER", False)   # freeze panel 2026-11-04 step 1: a white ground takes ink type
     w = _photo(tmp_path / "w.jpg", size=(2100, 1200), lo=240, hi=256)
     d = _photo(tmp_path / "d.jpg", size=(2100, 1200), lo=30, hi=70)
     then_now.render(w, 1925, d, 2019, tmp_path / "z.mp4", width=1920, height=1080)
@@ -467,6 +471,7 @@ def test_916_white_pair_draws_both_bands(tmp_path, monkeypatch):
     real = then_now.band_mask
     monkeypatch.setattr(then_now, "band_mask", lambda *a, **k: calls.append(a[0]) or real(*a, **k))
     got = _encode_capture(monkeypatch)
+    monkeypatch.setattr(then_now, "INK_ON_PAPER", False)   # freeze panel 2026-11-04 step 1: a white ground takes ink type
     w = _photo(tmp_path / "w.jpg", lo=244, hi=256)
     v = _photo(tmp_path / "v.jpg", seed=2, lo=244, hi=256)
     then_now.render(w, 1925, v, 2019, tmp_path / "y.mp4")

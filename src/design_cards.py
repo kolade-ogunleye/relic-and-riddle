@@ -1646,13 +1646,19 @@ def _myth_rows(P: int, nm: int, nf: int, host: bool, wide: bool, Pm: int | None 
     return m_base, f_base, F, src, bottom
 
 
+MYTH_FLOOR_SOURCE = 76  # design handover 2026-11-04: the 9:16 type may drop to this to keep the source line
+MYTH_EXTRA_LINE = 1     # ... or take this many more fact lines first
 MYTH_FLOOR_916 = 84     # review 2026-11-03 (5; round 3: the long myth reaches 84): the 9:16 type is at least this where it fits
 
 
 def _myth_fit(m_draw: str, f_draw: str, host: str | None, geo: _Geo):
     """(P, myth lines, fact lines, host, why omitted) at the largest size that fits; None when none does. Never a
     smaller size to save a line (review 2026-11-03: an extra line is preferred), and lines are evenly broken with no
-    lone word (_wrap even). On 9:16 the source line gives way before the type drops under MYTH_FLOOR_916."""
+    lone word (_wrap even). On 9:16 the source line is never dropped (design handover, 2026-11-04): the host is kept
+    at MYTH_FLOOR_916 or more, then with one more fact line (MYTH_EXTRA_LINE), then down to MYTH_FLOOR_SOURCE, then at
+    the largest size that holds it (as before). A break with no lone word on any rung is taken before a lone-word
+    break on any rung (as before: a clean break at a smaller size beats a lone word at a larger one). A card the
+    source cannot fit is refused (None), never drawn without it."""
     (m_max, f_max), (m_meas, f_meas) = MYTH_LINES[geo.wide], MYTH_MEASURE[geo.wide]
     top, bottom = MYTH_TOP[geo.wide], MYTH_BOTTOM[geo.wide]
 
@@ -1660,11 +1666,11 @@ def _myth_fit(m_draw: str, f_draw: str, host: str | None, geo: _Geo):
         return len(lines) > 1 and len(text.split()) >= 4 and any(
             len(ln.split()) == 1 or all(w.lower().strip(".,;:") in _STOP for w in ln.split()) for ln in lines)
 
-    def first(with_host: bool):
+    def first(with_host: bool, f_lim: int = f_max, floor: int = 0, clean: bool = False):
         fits = []
-        for P in MYTH_SIZES:
+        for P in (p for p in MYTH_SIZES if p >= floor):
             m_lines = _design_wrap(m_draw, "Anton", None, myth_px(P, geo.wide), m_meas, m_max, geo, even=True)
-            f_lines = _design_wrap(f_draw, "Anton", None, P, f_meas, f_max, geo, even=True)
+            f_lines = _design_wrap(f_draw, "Anton", None, P, f_meas, f_lim, geo, even=True)
             if not m_lines or not f_lines:
                 continue
             if _myth_rows(P, len(m_lines), len(f_lines), with_host, geo.wide)[4] > bottom - top:
@@ -1676,15 +1682,25 @@ def _myth_fit(m_draw: str, f_draw: str, host: str | None, geo: _Geo):
             if not (lone(m_lines, m_draw) or lone(f_lines, f_draw)):
                 return P, m_lines, f_lines
             fits.append((P, m_lines, f_lines))
-        return fits[0] if fits else None
-    hosted = first(True) if host else None
-    bare = first(False)
-    if hosted and (geo.wide or hosted[0] >= MYTH_FLOOR_916 or not bare or bare[0] < MYTH_FLOOR_916):
+        return fits[0] if fits and not clean else None
+    if host and not geo.wide:
+        extra = f_max + MYTH_EXTRA_LINE
+        tries = ((f_max, MYTH_FLOOR_916), (extra, MYTH_FLOOR_916), (f_max, MYTH_FLOOR_SOURCE),
+                 (extra, MYTH_FLOOR_SOURCE), (f_max, 0), (extra, 0))
+        # a break with no lone word first, on every rung, before any rung takes one
+        hosted = next((h for h in (first(True, n, fl, c) for c in (True, False) for n, fl in tries) if h), None)
+        if not hosted:
+            return None
         out = (*hosted, host, None)
-    elif bare:
-        out = (*bare, None, "no room" if host else None)
     else:
-        return None
+        hosted = first(True) if host else None
+        bare = first(False)
+        if hosted:
+            out = (*hosted, host, None)
+        elif bare:
+            out = (*bare, None, "no room" if host else None)
+        else:
+            return None
     P, m_lines, f_lines, h, why = out
     Pm = myth_px(P, geo.wide)
     if geo.wide:
@@ -1901,10 +1917,11 @@ def _myth_compose(spec: MythFact, geo: _Geo, P: int, m_lines: list[str], f_lines
     cap = -get_font("Anton", geo.px(Pm)).getbbox("H", anchor="ls")[1]
     segs = []
     left = geo.x(153) if geo.wide else geo.x(65)
+    right = geo.x(1766) if geo.wide else geo.x(888)   # the zone's right edge, as `left` is its left (2026-11-04)
     for it, b in zip(myth_items, m_base):
         box = it["parts"][0].box
         x0 = max(box[0] - geo.px(10), left)
-        x1 = box[2] + geo.px(10)
+        x1 = min(box[2] + geo.px(10), right)
         cy = geo.y(b) - round(cap / 2)
         top_px = cy - th // 2
         segs.append((x0, x1, top_px, top_px + th))

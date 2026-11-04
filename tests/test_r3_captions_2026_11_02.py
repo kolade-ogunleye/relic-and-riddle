@@ -313,7 +313,10 @@ def test_libass_font_problems_names_a_missing_face_and_a_synthetic_weight(tmp_pa
     from src.video_composer import libass_font_problems
     fonts = Path("fonts")
     assert libass_font_problems(fonts, [(FONT_NAME, 400)]) == []           # Anton: the 9:16 face resolves
-    missing = libass_font_problems(fonts, [("Montserrat", 700)])
+    # operator decision 2026-11-04 (deliberate change): the static Montserrat Bold is bundled for the 16:9 burn-in,
+    # so Montserrat 700 now resolves (was: one "no bundled font" problem); a face still missing is named
+    assert libass_font_problems(fonts, [("Montserrat", 700)]) == []
+    missing = libass_font_problems(fonts, [("Montserrat Black", 900)])
     assert len(missing) == 1 and "no bundled font" in missing[0]
     thin = libass_font_problems(fonts, [("Montserrat Thin", 700)])
     assert len(thin) == 1 and "synthetic" in thin[0]

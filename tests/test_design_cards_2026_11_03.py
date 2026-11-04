@@ -331,6 +331,12 @@ def graphic_plans(w, h, photo=None):
             "quote": dc.plan_quote_card(quote(photo=photo), SHEET, w, h)}
 
 
+def _read_json(p):
+    """A card's .contrast.json / .design.json record: UTF-8 by contract (typographic quotes), read as UTF-8 on every
+    platform (a bare read_text() takes the locale codec: cp1252 on Windows)."""
+    return json.loads(Path(p).read_text(encoding="utf-8"))
+
+
 def inside(b, z):
     return b[0] >= z[0] and b[1] >= z[1] and b[2] <= z[2] and b[3] <= z[3]
 
@@ -509,8 +515,8 @@ def _frame_count(path):
 def _check_render(out, plan):
     assert out is not None and out.exists()
     assert out.with_suffix(".jpg").exists()
-    c = json.loads(Path(str(out) + ".contrast.json").read_text())
-    d = json.loads(Path(str(out) + ".design.json").read_text())
+    c = _read_json(str(out) + ".contrast.json")
+    d = _read_json(str(out) + ".design.json")
     assert c["min"] >= 4.5
     assert c["nontext_min"] is None or c["nontext_min"] >= 3.0
     assert d["refused"] is None and d["version"] == "design-cards-1" and d["frames"] == plan.frames
@@ -1265,7 +1271,7 @@ def test_hook_bright_grounds_grade(tmp_path):
         out = dc.render_hook_frame(hook(path, claim="About 40 km across", eyebrow="The Richat ring"), SHEET,
                                    tmp_path / name)
         assert out is not None, name
-        c = json.loads(Path(str(out) + ".contrast.json").read_text())
+        c = _read_json(str(out) + ".contrast.json")
         assert c["graded"] and c["min"] >= 4.5, (name, c["min"])
 
 

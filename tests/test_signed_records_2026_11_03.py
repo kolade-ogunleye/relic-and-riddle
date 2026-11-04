@@ -423,7 +423,9 @@ def test_the_long_9x16_myth_sets_at_84_px_or_more_and_the_ground_below_is_the_ph
     s = _long_myth_sheet()
     photo = _photo(tmp_path / "cyan.jpg", (190, 232, 240))
     plan = dc.plan_myth_fact(dc.MythFact(photo=photo, myth_src=dc.CardRef("myths", "M")), s, 1080, 1920)
-    assert plan.meta["anchors"]["px"] >= 84
+    # design handover 2026-11-04 (deliberate change): the source line is never dropped; the type may go down to the
+    # MYTH_FLOOR_SOURCE floor (76 px) to keep it. Was: >= 84 px, met by dropping the source ("no room")
+    assert plan.meta["anchors"]["px"] >= dc.MYTH_FLOOR_SOURCE and plan.meta["source_omitted"] is None
     rest = np.asarray(plan.meta["_r"]["rest"]).astype(float)
     low = rest[1500:1900].mean(axis=(0, 1))
     assert low[2] > low[0] + 15 and low.mean() > 90       # the cyan photo's own colour comes back, not slate

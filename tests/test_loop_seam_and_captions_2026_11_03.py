@@ -232,8 +232,11 @@ def _check(text):
 
 def test_the_three_review_sentences():
     built, removed, carved = (_check(t) for t in EXAMPLES)
-    assert "OF THE" not in built and not built[0].endswith("UNDER")        # was BUILT UNDER | ... | OF THE | ...
-    assert any(b.startswith("UNDER KING KRISHNA I") for b in built), built
+    # operator decision 2026-11-04 (deliberate change; a proper name is never split, "UNDER | THE RASHTRAKUTA
+    # DYNASTY"): both names stay whole at no size under the floors, and no burst ends on THE. Was: no burst ends
+    # on UNDER, and one starts UNDER KING KRISHNA I (which left RASHTRAKUTA | DYNASTY split).
+    assert "OF THE" not in built and not any(b.endswith(" THE") for b in built), built
+    assert any("KING KRISHNA I" in b for b in built) and built[-1].endswith("THE RASHTRAKUTA DYNASTY."), built
     assert not any(b.endswith(" OR WHY") or b.endswith(" OR") for b in carved), carved
     assert any(b.startswith("OR WHY") for b in carved), carved
     # THEY REMOVED AN | ESTIMATED 200,000 TONS stays: every other split breaks a rule that ranks above a dangling

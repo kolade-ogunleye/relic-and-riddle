@@ -1289,14 +1289,23 @@ def caption_bonds(words: list[Any]) -> set[int]:
 SEAM_RETURN_S = 0.3   # s: the loop bridge's level returns to the bed's own over its last 0.3 s (_audio_chain)
 
 
-def _audio_chain(vo_idx: int, bg_idx: int, pad: float = 0.0, card_at: Optional[float] = None, card_db: float = 0.0) -> str:
+def _audio_chain(vo_idx: int, bg_idx: int, pad: float = 0.0, card_at: Optional[float] = None, card_db: float = 0.0,
+                 end: float | None = None) -> str:
     """Voice cleanup + optical vocal leveling + center spectral pocket carving + ducked stereo bed.
     pad: seconds of silence after the voice (the end card), so the mix runs on with the bed alone.
     card_at/card_db: the end card's level set from card_at on (a 0.3 s ramp), measured per run. With a pad (the
     Reel's loop bridge, which loops into the programme's first frame) the level returns to the bed's own over the
     pad's last SEAM_RETURN_S, so the loop restarts at the level it ends on: no step at the seam of card_db
-    (review, 2026-11-03)."""
-    pad_filter = f"apad=pad_dur={pad:.3f}," if pad > 0 else ""
+    (review, 2026-11-03).
+    end: the programme's cut (s; the Reel's narration + loop bridge). The mix is then exactly round(end * rate)
+    samples of voice and bed, whatever order ffmpeg feeds the two inputs in (CI, 2026-11-04: sidechaincompress
+    forwards the first EOF it sees and drops what the other input had queued, and amix=duration=first then ran on
+    with the voice's silent pad alone, so the master's last 70 ms were digital zeros on a loaded runner). Both
+    branches are padded without end, so no EOF reaches either filter, and the mix is cut by sample count."""
+    exact = None if end is None else round(end * AUDIO_SAMPLE_RATE)
+    pad_filter = "apad," if exact is not None else (f"apad=pad_dur={pad:.3f}," if pad > 0 else "")
+    bed_pad = ",apad" if exact is not None else ""
+    cut = f",atrim=end_sample={exact}" if exact is not None else ""
     card_filter = ""
     if card_at is not None and card_db:
         lin = 10 ** (card_db / 20)
@@ -1312,10 +1321,22 @@ def _audio_chain(vo_idx: int, bg_idx: int, pad: float = 0.0, card_at: Optional[f
         f"equalizer=f=3500:width_type=q:w=1.2:g=1.8,equalizer=f=7000:width_type=q:w=2.0:g=-2.2,"
         f"asplit[v_main][v_sc];"
         f"[{bg_idx}:a]aresample={AUDIO_SAMPLE_RATE},aformat=channel_layouts=stereo,"
-        f"equalizer=f=3200:width_type=q:w=1.5:g=-3.0[bg_carved];"
+        f"equalizer=f=3200:width_type=q:w=1.5:g=-3.0{bed_pad}[bg_carved];"
         f"[bg_carved][v_sc]sidechaincompress=threshold=0.08:ratio=7:attack=15:release=220[bg_ducked];"
-        f"[v_main][bg_ducked]amix=inputs=2:duration=first:dropout_transition=2:normalize=0,aformat=channel_layouts=stereo{card_filter}"
+        f"[v_main][bg_ducked]amix=inputs=2:duration=first:dropout_transition=2:normalize=0{cut},aformat=channel_layouts=stereo{card_filter}"
     )
+
+
+def _seam_tail(end: float, edge: float) -> str:
+    """The Reel programme's last filters (prefixed with a comma): the loop seam's fade-out over the last `edge`
+    seconds, by sample count, and the programme cut to exactly round(end * rate) samples. The timestamps are
+    renumbered from the sample count first, so the fade cannot land off the cut by any timestamp offset the
+    resampler or limiter carry, and apad/atrim make the length exact whatever those filters flush at the end."""
+    rate = AUDIO_SAMPLE_RATE
+    total = round(end * rate)
+    fade = min(round(edge * rate), total)
+    return (f",asetpts=N/SR/TB,afade=t=out:ss={total - fade}:ns={fade}"
+            f",apad=whole_len={total},atrim=end_sample={total}")
 
 
 def _master_chain(gain_db: float) -> str:
@@ -1982,7 +2003,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         """The end card's loudness against the narrated body in the mastered programme, and the correction (dB)
         that sets it END_CARD_BELOW_BODY_LU under the body: the bed's music level differs from run to run, so the
         card's level is measured, not assumed (6.3 to 8.7 LU under the body on three masters, 2026-10-25)."""
-        chain = _audio_chain(0, 1, pad) + _master_chain(gain)
+        chain = _audio_chain(0, 1, pad, end=card_at + pad if pad > 0 else None) + _master_chain(gain)
         body, _ = self._measure(vo_path, bed_path, chain + f",atrim=end={card_at:.3f}")
         card, _ = self._measure(vo_path, bed_path, chain + f",atrim=start={card_at:.3f},asetpts=PTS-STARTPTS")
         correction = max(-12.0, min(12.0, (body - END_CARD_BELOW_BODY_LU) - card))
@@ -2248,9 +2269,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         if card:
             from .audio_engine import AudioEngine
             edge = AudioEngine.LOOP_BRIDGE_EDGE
-            seam_fade = f",afade=t=out:st={max(0.0, vo_dur + card_seconds - edge):.4f}:d={edge:.4f}"
-        filter_parts.append(_audio_chain(n, n + 1, card_seconds, card_at, card_db) + _master_chain(gain) + seam_fade
-                            + "[a_final]")
+            seam_fade = _seam_tail(vo_dur + card_seconds, edge)
+        filter_parts.append(_audio_chain(n, n + 1, card_seconds, card_at, card_db,
+                                         end=vo_dur + card_seconds if card else None)
+                            + _master_chain(gain) + seam_fade + "[a_final]")
 
         ass_str = str(ass_path.resolve()).replace("\\", "/").replace(":", "\\:")
         fonts_str = str(self.fonts_dir.resolve()).replace("\\", "/").replace(":", "\\:")

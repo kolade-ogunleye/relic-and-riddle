@@ -198,11 +198,11 @@ def test_render_fresh_and_reuse_start_a_run_with_those_options(db):
         assert reply.startswith("⚠️") and started == [["--fresh-from", "voice", "--reuse-from", "run_old"]]
 
 
-def test_a_review_is_current_whatever_line_endings_the_checkout_gave_its_files(tmp_path, monkeypatch):
+def test_a_review_is_current_whatever_line_endings_the_checkout_gave_its_files(tmp_path, monkeypatch, checked_stamp):
     """Production's reference_facts.json still had CRLF (written before the repository kept LF), so Wieliczka's
     library review never counted as current and rc57 and rc58 were rolled back (2026-10-27)."""
     from src import fact_evidence
-    from src.fact_evidence import current_fact_review, record_fact_review
+    from src.fact_evidence import current_fact_review
     sheet, reference = tmp_path / "sheet.json", tmp_path / "reference.json"
     sheet.write_bytes(b'{\n "facts": []\n}\n')
     reference.write_bytes(b'{\n "a": 1\n}\n')
@@ -210,12 +210,12 @@ def test_a_review_is_current_whatever_line_endings_the_checkout_gave_its_files(t
     monkeypatch.setattr(fact_evidence, "selected_reference", lambda scale: True)
     payload = json.loads((main.config.DATA_DIR / "script_library" / "wieliczka_salt_mine" / "verified_script.json")
                          .read_text(encoding="utf-8"))
-    record_fact_review(payload, sheet)
+    checked_stamp(payload, sheet)           # after the checkers passed (2026-11-04)
     assert current_fact_review(payload)
     for f in (sheet, reference):            # the same content with Windows line endings
         f.write_bytes(f.read_bytes().replace(b"\n", b"\r\n"))
     assert current_fact_review(payload)
-    record_fact_review(payload, sheet)      # recorded on the CRLF copies, checked on LF ones
+    checked_stamp(payload, sheet)           # recorded on the CRLF copies, checked on LF ones
     for f in (sheet, reference):
         f.write_bytes(f.read_bytes().replace(b"\r\n", b"\n"))
     assert current_fact_review(payload)

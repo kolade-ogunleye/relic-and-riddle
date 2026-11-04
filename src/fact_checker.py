@@ -76,7 +76,11 @@ class ClaimFactChecker:
         if script_payload.get("origin") == "curated" and script_payload.get("sources"):
             n = len(script_payload["sources"])
             if script_payload.get("human_reviewed"):
-                return True, 100.0, [], f"Human-reviewed curated script with {n} cited sources (automated check unavailable)."
+                # A pass of this stage only: a person's review is never a fact check (operator decision
+                # 2026-11-04), so no confidence is claimed and the final copy is checked by the automated
+                # checkers (main._verify_final_copy) before any fact review is recorded.
+                return True, 0.0, [], (f"Human-reviewed curated script with {n} cited sources; the automated fact "
+                                       "check runs on its final copy.")
             if allow_unreviewed_curated:
                 return True, 0.0, [], f"UNREVIEWED curated script with {n} sources; allowed for dry run only."
             return False, 0.0, [], "Curated script has not been reviewed by a human (_reviewed_by_human) and no automated check is available."

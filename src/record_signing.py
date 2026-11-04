@@ -14,7 +14,10 @@ Kinds signed here:
                  field's text (card_fields.check_field) or the public copy's fingerprint (fact_evidence.checker_run)
   "card_check"   a card field's whole CardCheck with the field it is for (card_fields.check_field)
   "gate_check"   the fact gate's checker record (fact_evidence.check_record)
-  "fact_review"  the release gate's fact-review stamp (fact_evidence.record_fact_review)
+  "fact_review"  the release gate's fact-review stamp (fact_evidence.record_fact_review), which carries the
+                 "gate_check" record of the checkers' runs on that copy and is refused without it
+  "human_review" a person's review of a curated script, who and when (fact_evidence.human_review_record): shown
+                 by the release gate, never counted as a fact check (operator decision, 2026-11-04)
 
 Where the key is unset nothing is signed (sign returns ""), and verify refuses every record. How a missing key is
 treated is decided by the environment (config.RELIC_ENVIRONMENT, which the production launcher sets to
@@ -45,7 +48,7 @@ from typing import Any
 log = logging.getLogger(__name__)
 
 DOMAIN = b"relic-and-riddle/fact-record/v1"
-KINDS = frozenset(("check_run", "card_check", "gate_check", "fact_review"))
+KINDS = frozenset(("check_run", "card_check", "gate_check", "fact_review", "human_review"))
 SIGNATURE = "signature"
 # A key under MIN_KEY_BYTES, or an .env.example placeholder ("your_..."), is treated as unset (review 2026-11-03,
 # round 4): it is never used to sign, so every record stays untrusted and production fails closed. 32 bytes is the

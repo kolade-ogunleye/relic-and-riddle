@@ -231,7 +231,19 @@ def _gate_payload(sheet, path, text, checked=True):
                 {"claim": text, "where": "title", "claim_type": "rhetorical_framing", "verdict": "supported",
                  "quote_ids": [], "note": ""}], "mock"),
             pub)
-    record_fact_review(payload, sp, check=rec)
+        record_fact_review(payload, sp, check=rec)
+        return payload
+    # unchecked: record_fact_review refuses it (operator decision 2026-11-04), so the stamp is signed by hand, as
+    # an old one or an insider's would be, to show the card refusing it too
+    with pytest.raises(ValueError, match="no record of a check run"):
+        record_fact_review(payload, sp, check=rec)
+    from src.credits import sha256_file
+    from src.fact_evidence import STAMP_UNSIGNED, _lf_sha256, review_rules_fingerprint
+    from src.record_signing import signed
+    payload["fact_review"] = signed("fact_review", {
+        "public_fingerprint": public_fingerprint(payload), "sheet_path": str(sp), "sheet_sha256": sha256_file(sp),
+        "sheet_lf_sha256": _lf_sha256(sp), "review_rules_fingerprint": review_rules_fingerprint()},
+        exclude=STAMP_UNSIGNED)
     return payload
 
 

@@ -11,9 +11,9 @@ from src import graphics
 from src.audio_engine import AudioEngine
 from src.config import DATA_DIR
 from src.credits import add_provenance_attributions, generate_provenance_ledger
-from src.fact_evidence import current_fact_review, record_fact_review
+from src.fact_evidence import current_fact_review, stamp_checked_review
 from src.release import write_release_report
-from src.trace_check import check, evidence_check
+from src.trace_check import check, checker_models, evidence_check
 from src.video_composer import VideoComposer
 from src.video_qa import QualityAuditor
 from src.visual_engine import VisualEngine
@@ -53,7 +53,9 @@ def main():
         (root / "script_metadata.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
         if not passed:
             raise ValueError("Final diagram/package review failed: " + notes + "; " + evidence_notes)
-        record_fact_review(payload, sheet_path)
+        # stamped with both checkers' signed runs (fact_evidence.record_fact_review refuses otherwise)
+        stamp_checked_review(payload, sheet_path, (passed, confidence, audits, notes),
+                             (status, evidence_confidence, evidence_audits, evidence_notes), checker_models())
     print("Package verified; generating graphics", flush=True)
     made = graphics.make_all(payload, topic, root / "graphics", width=1920, height=1080)
     by_name = {p.stem: p for p in made}

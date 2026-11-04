@@ -2282,6 +2282,10 @@ class PipelineCoordinator:
                     log.info("Claude script revisions rejected by guardrail; falling back to curated script for '%s'.", tid)
                     payload = self.script_engine._finalize(pkg, topic, origin="curated")
                     payload["human_reviewed"] = reviewed
+                    from src.script_engine import curated_human_review
+                    review = curated_human_review(tid) if reviewed else None
+                    if review:   # who reviewed it and when, signed apart; never counted as a fact check
+                        payload["human_review"] = review
                     passed, payload, notes = self.script_engine.verify_claims(payload, topic=topic, allow_unreviewed_curated=dry_run)
 
         # Soft check on the hook's form: a passed draft that opens in another form than asked is revised once,
@@ -2338,16 +2342,18 @@ class PipelineCoordinator:
             "written": [engagement_learning.classify_share(payload.get("share_line", "")),
                         engagement_learning.classify_question(
                             engagement_learning.caption_question(payload.get("caption", "")))]}
-        from src.config import DATA_DIR
-        sheet_file = DATA_DIR / "fact_sheets" / f"{tid}.json"
-        from src.fact_evidence import record_fact_review, unchecked_pass
-        if passed and sheet_file.is_file() and unchecked_pass(payload):
-            # no checker ran on an unreviewed curated script (a dry run's pass): never stamped or signed, so the
-            # final copy goes through the real checkers before the release gate trusts it (decision A)
+        from src.fact_evidence import current_fact_review, unchecked_pass
+        if passed and not current_fact_review(payload):
+            # Operator decision 2026-11-04: a stamp exists only where the automated checkers ran and passed on this
+            # copy. No script-stage pass is one (a human-reviewed curated script, an unreviewed one in a dry run,
+            # or a draft checked before its share line and credits were added), so nothing is stamped here: the
+            # final copy goes through trace_check and evidence_check (_verify_final_copy), the same path for every
+            # script, and is stamped there with their signed record.
             payload.pop("fact_review", None)
-            log.info("Script passed without a fact checker (unreviewed curated, dry run): no fact review recorded.")
-        elif passed and sheet_file.is_file():
-            record_fact_review(payload, sheet_file)
+            log.info("Script passed its stage%s; its final copy is fact-checked before any fact review is recorded.",
+                     " without a fact checker (unreviewed curated, dry run)" if unchecked_pass(payload)
+                     else " (human reviewed: the review is recorded, not counted as a fact check)"
+                     if payload.get("human_reviewed") else "")
         (run_dir / "script_metadata.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
         self.db.update_run(run_id, "producing", script_payload=payload)
         if not passed:
@@ -2355,7 +2361,7 @@ class PipelineCoordinator:
         return payload
 
     def _verify_final_copy(self, payload, topic):
-        from src.fact_evidence import current_fact_review, record_fact_review
+        from src.fact_evidence import current_fact_review
         from src import trace_check, config as pipeline_config
         if current_fact_review(payload):
             return
@@ -2381,16 +2387,19 @@ class PipelineCoordinator:
         if status != "pass":
             payload["guardrail_passed"] = False
             raise ValueError("Final public copy failed evidence verification: " + evidence_notes)
-        from src.fact_evidence import check_record, checker_run, public_fingerprint
+        from src.fact_evidence import stamp_checked_review
+        from src.record_signing import key_problem
         models = trace_check.checker_models()
         served = {"trace_check": t_served, "evidence_check": e_served}
         models = {k: " + ".join(dict.fromkeys(served[k])) if served[k] else v for k, v in models.items()}
+        if key_problem():
+            # development with no FACT_RECORD_KEY (production stopped above): no record can be signed, so none is
+            # stamped; the release gate says why and nothing publishes, as with an unsigned record before
+            payload.pop("fact_review", None)
+            return
         # each run signed as the checkers returned it (FACT_RECORD_KEY), then the gate record and the stamp
-        public = public_fingerprint(payload)
-        record_fact_review(payload, sheet_path, check=check_record(
-            checker_run("trace_check", public, models["trace_check"], passed, audits, notes),
-            checker_run("evidence_check", public, models["evidence_check"], status == "pass", evidence_audits,
-                        evidence_notes), public))
+        stamp_checked_review(payload, sheet_path, (passed, None, audits, notes),
+                             (status, confidence, evidence_audits, evidence_notes), models)
 
     def _lines_against_pictures(self, topic, run_id, run_dir, dry_run, payload, scene_media, checkpoints,
                                 kept_words=False) -> Dict[str, Any]:

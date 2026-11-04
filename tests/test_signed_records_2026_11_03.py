@@ -115,6 +115,16 @@ def gate_payload(tmp_path, sheet, title, signed_runs=True):
     else:   # the review's forged gate record: check_record handed plain dicts, no checker run
         rec = check_record({"model": "m1", "passed": True, "audits": t_audits, "summary": ""},
                            {"model": "m2", "passed": True, "audits": e_audits, "summary": ""}, pub)
+        # record_fact_review refuses to stamp it (2026-11-04); the forger signs the stamp around it by hand
+        with pytest.raises(ValueError, match="not signed"):
+            record_fact_review(p, sp, check=rec)
+        from src.credits import sha256_file
+        from src.fact_evidence import STAMP_UNSIGNED, _lf_sha256, review_rules_fingerprint
+        p["fact_review"] = record_signing.signed("fact_review", {
+            "public_fingerprint": pub, "sheet_path": str(sp), "sheet_sha256": sha256_file(sp),
+            "sheet_lf_sha256": _lf_sha256(sp), "review_rules_fingerprint": review_rules_fingerprint(), "check": rec},
+            exclude=STAMP_UNSIGNED)
+        return p
     record_fact_review(p, sp, check=rec)
     return p
 
@@ -209,8 +219,9 @@ def test_no_key_signs_nothing_and_trusts_nothing(monkeypatch, tmp_path, caplog):
         sheet = tmp_path / "f.json"
         sheet.write_text("{}")
         p = {"guardrail_passed": True, "title": "T"}
-        record_fact_review(p, sheet)
-        assert p["fact_review"]["signature"] == "" and not current_fact_review(p)
+        with pytest.raises(ValueError, match="no record of a check run"):   # 2026-11-04: never without one
+            record_fact_review(p, sheet)
+        assert "fact_review" not in p and not current_fact_review(p)
         assert "FACT_RECORD_KEY is not set" in fact_review_problem(p)
     assert sum("FACT_RECORD_KEY is not set" in r.getMessage() for r in caplog.records) == 1   # logged once
 
@@ -232,12 +243,12 @@ def test_production_without_a_key_refuses_before_any_check(monkeypatch, tmp_path
     require_signing_key()           # development: a warning only (every record stays untrusted)
 
 
-def test_the_release_gate_refuses_an_unsigned_or_edited_review(tmp_path):
+def test_the_release_gate_refuses_an_unsigned_or_edited_review(tmp_path, checked_stamp):
     from src.release import write_release_report
     sheet = tmp_path / "facts.json"
     sheet.write_text('{"facts": []}')
     p = {"guardrail_passed": True, "title": "T", "narration_script": "Text"}
-    record_fact_review(p, sheet)
+    checked_stamp(p, sheet)          # after the checkers passed (2026-11-04)
     assert current_fact_review(p) and fact_review_problem(p) == ""
 
     def facts_check(payload):
@@ -255,14 +266,14 @@ def test_the_release_gate_refuses_an_unsigned_or_edited_review(tmp_path):
     assert "signature does not match" in facts_check(edited)["detail"]
 
 
-def test_a_review_re_pointed_at_this_checkouts_copy_stays_signed(tmp_path):
+def test_a_review_re_pointed_at_this_checkouts_copy_stays_signed(tmp_path, checked_stamp):
     """script_library re-points the stamp's sheet_path and sheet_sha256 at this checkout's copy of the same sheet;
     those location fields are not signed, the sheet's LF content is (sheet_lf_sha256)."""
     a, b = tmp_path / "a.json", tmp_path / "b.json"
     a.write_bytes(b'{\n "facts": []\n}\n')
     b.write_bytes(b'{\r\n "facts": []\r\n}\r\n')
     p = {"guardrail_passed": True, "title": "T"}
-    record_fact_review(p, a)
+    checked_stamp(p, a)
     from src.credits import sha256_file
     p["fact_review"].update(sheet_path=str(b), sheet_sha256=sha256_file(b))
     assert current_fact_review(p)
@@ -271,7 +282,7 @@ def test_a_review_re_pointed_at_this_checkouts_copy_stays_signed(tmp_path):
     assert not current_fact_review(p)
 
 
-def test_an_unsigned_old_review_is_checked_again_not_a_crash(monkeypatch, tmp_path):
+def test_an_unsigned_old_review_is_checked_again_not_a_crash(monkeypatch, tmp_path, checked_stamp):
     """Old unsigned records on disk are untrusted: the fact gate re-runs the checkers and signs the new record."""
     import main
     from src import trace_check
@@ -280,7 +291,7 @@ def test_an_unsigned_old_review_is_checked_again_not_a_crash(monkeypatch, tmp_pa
     sp = tmp_path / "fact_sheets" / "x.json"
     sp.write_text('{"facts": []}')
     p = {"guardrail_passed": True, "title": "T"}
-    record_fact_review(p, sp)
+    checked_stamp(p, sp)
     p["fact_review"].pop("signature")                 # as written before records were signed
     assert not current_fact_review(p)
     calls = []
@@ -520,7 +531,8 @@ def test_a_bright_hook_has_one_plate_from_the_masthead_to_the_claim(tmp_path):
 def test_a_dry_run_pass_with_no_checker_is_never_stamped(db, tmp_path, curated_payload, monkeypatch):
     """Review 2026-11-03 (round 4, 1): an unreviewed curated script passes a dry run with no checker at all; that
     pass got a stamp signed under the real key, and the release gate then treated it as checked. It is no longer
-    stamped, so the final copy goes through the real checkers; a human-reviewed script is still stamped."""
+    stamped, so the final copy goes through the real checkers; since 2026-11-04 (operator decision) a human-reviewed
+    script is not stamped either."""
     import main
     from types import SimpleNamespace
     from src.fact_evidence import unchecked_pass
@@ -554,10 +566,8 @@ def test_a_dry_run_pass_with_no_checker_is_never_stamped(db, tmp_path, curated_p
         out = c._write_and_check_script({"id": tid, "title": "T"}, run_id, tmp_path, dry_run=True)
         assert out["guardrail_passed"]
         assert unchecked_pass(out) is (not reviewed)
-        if reviewed:
-            assert current_fact_review(out)
-        else:
-            assert "fact_review" not in out and not current_fact_review(out)
+        # operator decision 2026-11-04: a human review is no fact check either, so neither pass is stamped
+        assert "fact_review" not in out and not current_fact_review(out)
 
 
 @pytest.mark.parametrize("weak", ["abcd", "short-key-0123456789", "your_fact_record_key_here_0123456789abcdef",

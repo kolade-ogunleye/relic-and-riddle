@@ -90,13 +90,12 @@ def test_failed_fact_check_is_revised_then_fails_closed(db, monkeypatch, tmp_pat
     assert notes_seen[2].startswith("bad claim 2") and "- bad claim 1" in notes_seen[2]
 
 
-def test_resume_reuses_passed_script_and_voiceover(db, monkeypatch, tmp_path, curated_payload):
+def test_resume_reuses_passed_script_and_voiceover(db, monkeypatch, tmp_path, curated_payload, checked_stamp):
     import json
     import main
     monkeypatch.setattr(main, "OUTPUT_DIR", tmp_path)
     run_dir = tmp_path / "r5"
     run_dir.mkdir()
-    from src.fact_evidence import record_fact_review
     from src import config as test_config
     data_dir = tmp_path / "data"
     sheet = data_dir / "fact_sheets" / "01_topic.json"
@@ -104,7 +103,7 @@ def test_resume_reuses_passed_script_and_voiceover(db, monkeypatch, tmp_path, cu
     sheet.write_text('{"facts": []}', encoding="utf-8")
     monkeypatch.setattr(test_config, "DATA_DIR", data_dir)
     saved_payload = dict(curated_payload, guardrail_passed=True)
-    record_fact_review(saved_payload, sheet)
+    checked_stamp(saved_payload, sheet)   # the checkers passed on it (2026-11-04: a stamp needs their record)
     (run_dir / "script_metadata.json").write_text(json.dumps(saved_payload), encoding="utf-8")
     (run_dir / "voiceover.mp3").write_bytes(b"x")
     (run_dir / "words.json").write_text("[]", encoding="utf-8")

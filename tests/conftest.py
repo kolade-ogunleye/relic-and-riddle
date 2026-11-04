@@ -109,6 +109,25 @@ def fact_record_key(no_real_services, monkeypatch):
     return TEST_FACT_RECORD_KEY
 
 
+def stamp_as_checked(payload, sheet_path):
+    """The fact review as main._verify_final_copy records it after both (mocked) checkers passed on the payload's
+    copy, with their signed runs (operator decision 2026-11-04: record_fact_review refuses a stamp without them).
+    For tests whose subject is not the checkers themselves."""
+    from src.fact_evidence import stamp_checked_review
+    audit = {"claim": "mocked", "where": "title", "fact_ids": [], "claim_type": "rhetorical_framing",
+             "verdict": "traced", "note": ""}
+    stamp_checked_review(payload, sheet_path, (True, 100.0, [audit], "mock trace check"),
+                         ("pass", 100.0, [dict(audit, verdict="supported", quote_ids=[])], "mock evidence check"),
+                         {"trace_check": "mock-trace", "evidence_check": "mock-evidence"})
+    return payload
+
+
+@pytest.fixture
+def checked_stamp():
+    """stamp_as_checked, as a fixture."""
+    return stamp_as_checked
+
+
 @pytest.fixture(autouse=True)
 def no_stale_slowdown(monkeypatch):
     """The slow-step note (src/slowdown.py) is process-wide: one test's "free model busy" showed on a later test's

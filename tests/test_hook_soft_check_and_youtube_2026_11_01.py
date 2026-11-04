@@ -192,4 +192,6 @@ def test_an_accepted_revision_is_recorded_like_any_passed_draft(db, tmp_path, cu
     c, _ = _coordinator(db, _payload(curated_payload), QUESTION_HOOK, monkeypatch=monkeypatch, plain_verify=True)
     out = c._write_and_check_script({"id": "t", "title": "T"}, "run_x", tmp_path, dry_run=True)
     assert out["hook_sentence"] == QUESTION_HOOK and out["hook_plan"]["revised"] is True
-    assert out["guardrail_passed"] is True and "fact_review" in out
+    # Operator decision (2026-11-04): the script stage no longer stamps; the stamp comes only after the automated
+    # checker runs on the final copy (_verify_final_copy), so the accepted revision carries no stamp yet.
+    assert out["guardrail_passed"] is True and "fact_review" not in out

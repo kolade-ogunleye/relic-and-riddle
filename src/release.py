@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .credits import SHARE_ALIKE_NOTICE, asset_attribution, is_share_alike, sha256_file
-from .fact_evidence import fact_review_problem
+from .fact_evidence import fact_review_problem, fact_review_shown, human_review_shown, human_review_text
 from .delivery_profiles import get_delivery_profile
 from .video_qa import measure_program_loudness, verify_provenance_integrity
 
@@ -28,9 +28,14 @@ def write_release_report(run, dry_run=False):
         "Caption and attribution must fit the supported Instagram publication limit.")
     # the review stamp must also carry a valid FACT_RECORD_KEY signature (operator decision A, 2026-11-03): an
     # unsigned, edited or other-key record fails here, and so does every record when the key is unset
+    # ... and carry the automated checkers' own signed record of their passing runs on this copy (operator decision
+    # 2026-11-04). A person's review of a curated script is shown beside it and never decides it.
     facts_problem = fact_review_problem(payload)
+    human = human_review_shown(payload)
     add("facts", not facts_problem,
-        facts_problem or "Factual review must match the public copy and current research file.")
+        " ".join(t for t in (facts_problem or fact_review_shown(payload), human_review_text(human)) if t))
+    if human:
+        checks[-1]["human_review"] = human
     try:
         result = subprocess.run(["ffprobe", "-v", "error", "-show_streams", "-show_format",
                                  "-of", "json", str(master)], capture_output=True, text=True,

@@ -2540,6 +2540,9 @@ class ScriptEngine:
             log.info("Using curated script for '%s' (human reviewed: %s).", topic["id"], reviewed)
             payload = self._finalize(pkg, topic, origin="curated")
             payload["human_reviewed"] = reviewed
+            review = curated_human_review(topic["id"]) if reviewed else None
+            if review:   # who reviewed it and when, signed apart; never counted as a fact check
+                payload["human_review"] = review
             if last_problems or writer_error:  # why the writer's drafts were not used, for the run's record
                 payload["writer_failure"] = (
                     f"The script writer ({writer_origin()}) could not be reached: {writer_error[:300]}" if writer_error
@@ -3104,8 +3107,11 @@ class ScriptEngine:
         elif free_llm.enabled():
             # No fact sheet and no paid checks: only a human-reviewed curated script (or a dry run) may pass.
             if script_payload.get("origin") == "curated" and (script_payload.get("human_reviewed") or allow_unreviewed_curated):
+                # A pass of this stage only, never a fact check (operator decision 2026-11-04): no fact review is
+                # recorded for it, and its final copy goes through trace_check and evidence_check like every
+                # script's (main._verify_final_copy) before one is.
                 passed, confidence, audits = True, 0.0, []
-                msg = "Curated script (" + ("human reviewed" if script_payload.get("human_reviewed") else "UNREVIEWED; dry run only") + ")."
+                msg = "Curated script (" + ("human reviewed" if script_payload.get("human_reviewed") else "UNREVIEWED; dry run only") + "); the automated fact check runs on its final copy."
             else:
                 why = ("The curated script is not human-reviewed, so only a dry run may use it"
                        if script_payload.get("origin") == "curated" else "No verified fact sheet; the free engine fails closed")
@@ -3283,3 +3289,22 @@ For each act, include claim_fact_ids identifying the facts it uses.
 Apply the same factual standard to the YouTube title, description, tags, and debate question.
 Descriptions may contain chapter labels, but timestamps must be derived from actual audio later rather than presented as measured timings.
 Return the requested structured documentary package."""
+
+
+def curated_human_review(topic_id: str) -> Optional[Dict[str, Any]]:
+    """The signed record of a person's review of the topic's curated script (fact_evidence.human_review_record):
+    who (_reviewed_by) and when (_reviewed_at), as the script file states them, bound to that file's content. None
+    when the file is missing, unreadable or not marked _reviewed_by_human. The record is shown by the release gate
+    and never stands in for the automated fact check (operator decision, 2026-11-04)."""
+    import hashlib
+    from .fact_evidence import human_review_record
+    path = CURATED_SCRIPTS_DIR / f"{topic_id}.json"
+    try:
+        raw = path.read_bytes()
+        data = json.loads(raw)
+    except (OSError, ValueError):
+        return None
+    if not isinstance(data, dict) or data.get("_reviewed_by_human") is not True:
+        return None
+    return human_review_record(topic_id, data.get("_reviewed_by") or "", data.get("_reviewed_at") or "",
+                               hashlib.sha256(raw.replace(b"\r\n", b"\n")).hexdigest())

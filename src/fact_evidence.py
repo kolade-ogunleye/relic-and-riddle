@@ -5,7 +5,13 @@ Operator decision A (2026-11-03): every record here is signed with HMAC-SHA256 u
 (checker_run, "check_run"), the gate's checker record (check_record, "gate_check") and the review stamp
 (record_fact_review, "fact_review"). current_fact_review (the release gate, and so publish_run) and
 checked_fact_review (the design cards) refuse a record without a valid signature, so an old unsigned record, an
-edited one or one signed under another key makes the next run check its copy again."""
+edited one or one signed under another key makes the next run check its copy again.
+
+Operator decision (2026-11-04): the automated checkers run on EVERY script, a curated one a person has marked as
+reviewed included. A stamp exists only when they ran and passed: record_fact_review refuses (ValueError) without the
+signed check record of their runs on this very copy, and the release gate (fact_review_problem) verifies that record
+again. A person's review is its own signed record (human_review_record, "human_review": who and when); the gate
+shows it (human_review_shown) and never counts it as a fact check."""
 
 from pathlib import Path
 
@@ -95,32 +101,53 @@ def check_record(trace, evidence, public):
 
 
 def record_fact_review(payload, sheet_path, check=None):
-    """Binds a passed review to the public copy and the research file. `check` is the checkers' own record
-    (check_record); a review stamped without one stays current for the release gate but is never a design card's
-    gate record (checked_fact_review)."""
+    """Binds a passed review to the public copy and the research file. `check` is the checkers' own signed record
+    of their runs on this copy (check_record over checker_run's runs, as main._verify_final_copy makes it):
+    without one that verifies (both runs signed, passing, for this copy's fingerprint) nothing is stamped and
+    ValueError says why (operator decision 2026-11-04: a human review, or a pass with no checker, never is)."""
     sheet_path = Path(sheet_path).resolve()
     digest = sha256_file(sheet_path)
-    if not digest or payload.get("guardrail_passed") is not True:
+    if not isinstance(payload, dict) or not digest or payload.get("guardrail_passed") is not True:
         raise ValueError("Successful review and a research file are required")
+    why = check_record_problem(check, public_fingerprint(payload))
+    if why:
+        payload.pop("fact_review", None)          # refused: no stamp, not even an old one, is left behind
+        raise ValueError(f"No fact review is recorded without the automated checkers' signed, passing record for "
+                         f"this copy: {why}")
     payload["fact_review"] = {"public_fingerprint": public_fingerprint(payload),
                               "sheet_path": str(sheet_path), "sheet_sha256": digest,
                               "sheet_lf_sha256": _lf_sha256(sheet_path),
-                              "review_rules_fingerprint": review_rules_fingerprint()}
-    if check is not None:
-        payload["fact_review"]["check"] = check
+                              "review_rules_fingerprint": review_rules_fingerprint(),
+                              "check": check}
     if selected_reference(payload.get("scale_fact")):
         payload["fact_review"].update(reference_path=str(REFERENCE_FILE.resolve()),
                                       reference_sha256=sha256_file(REFERENCE_FILE))
-    # signed as the review passes (record_signing "fact_review"); unsigned when FACT_RECORD_KEY is unset
+    # signed as the review passes (record_signing "fact_review"), over the check record too
     from .record_signing import signed
     signed("fact_review", payload["fact_review"], exclude=STAMP_UNSIGNED)
+
+
+def stamp_checked_review(payload, sheet_path, trace_result, evidence_result, models):
+    """The stamp after both checkers returned on `payload`'s copy: `trace_result` as trace_check.check returns it
+    (passed, confidence, audits, summary), `evidence_result` as trace_check.evidence_check does (status, ...),
+    `models` {"trace_check": ..., "evidence_check": ...}. Each run is signed as it came back, then the gate record,
+    then the stamp (record_fact_review refuses it when a run did not pass)."""
+    t_passed, _, t_audits, t_notes = trace_result
+    e_status, _, e_audits, e_notes = evidence_result
+    public = public_fingerprint(payload)
+    record_fact_review(payload, sheet_path, check=check_record(
+        checker_run("trace_check", public, models["trace_check"], t_passed, t_audits, t_notes),
+        checker_run("evidence_check", public, models["evidence_check"], e_status == "pass", e_audits, e_notes),
+        public))
 
 
 def unchecked_pass(payload):
     """True when the script stage passed `payload` with no checker run on it: an unreviewed curated script let
     through for a dry run (script_engine.verify_claims / fact_checker.verify, allow_unreviewed_curated). Such a pass
     is never stamped (review 2026-11-03, round 4: a stamp signed under the real key made the release gate treat it
-    as checked), so the final copy is checked by the real checkers (main._verify_final_copy) before it is trusted."""
+    as checked), so the final copy is checked by the real checkers (main._verify_final_copy) before it is trusted.
+    Since 2026-11-04 no script-stage pass is stamped (record_fact_review needs the checkers' record); this names
+    the passes that are dry-run only."""
     return payload.get("origin") == "curated" and not payload.get("human_reviewed")
 
 
@@ -141,61 +168,151 @@ def require_signing_key():
         warn_once("no_key", why)
 
 
+def _blocking(name, audits):
+    from .trace_check import _is_empirical_claim
+    if name == "trace":
+        return any(a.get("verdict") in ("contradicts", "overstated")
+                   or (a.get("verdict") != "traced" and _is_empirical_claim(a)) for a in audits)
+    return any(a.get("verdict") == "contradicted" or (a.get("verdict") == "unsupported" and _is_empirical_claim(a))
+               for a in audits)
+
+
+def check_record_problem(rec, public):
+    """"" when `rec` is the checkers' own record of a passing run on the copy whose fingerprint is `public`: both
+    checkers' models named, their audits present and passing again in code, the record's hash intact, and (last,
+    decisive) the gate record and both runs signed under FACT_RECORD_KEY. Else why not, in words."""
+    if not isinstance(rec, dict):
+        return "the fact review carries no record of a check run"
+    try:
+        if rec.get("sha256") != fingerprint({k: v for k, v in rec.items() if k != "sha256"}):
+            return "the check record does not match its hash"
+    except (TypeError, ValueError):
+        return "the check record cannot be read"
+    if not public or rec.get("public_fingerprint") != public:
+        return "the check record is for other copy"
+    for name in ("trace", "evidence"):
+        run = rec.get(name)
+        if not isinstance(run, dict) or not str(run.get("model") or "").strip():
+            return f"the {name} check names no model"
+        if run.get("passed") is not True or not isinstance(run.get("audits"), list) or not run["audits"]:
+            return f"the {name} check has no passing audits"
+        if not all(isinstance(a, dict) for a in run["audits"]):
+            return f"the {name} check's audits cannot be read"
+    if _blocking("trace", rec["trace"]["audits"]):
+        return "the trace check's audits hold a blocking claim"
+    if _blocking("evidence", rec["evidence"]["audits"]):
+        return "the evidence check's audits hold a blocking claim"
+    # last, and decisive (operator decision A): the gate record and each checker run signed under FACT_RECORD_KEY
+    # when the checkers ran; the hashes above can be recomputed by anyone, the signatures cannot
+    from .record_signing import problem
+    why = (problem("gate_check", rec, exclude=("sha256",))
+           or _run_problem("trace_check", public, rec.get("trace"))
+           or _run_problem("evidence_check", public, rec.get("evidence")))
+    return f"the check record is untrusted: {why}" if why else ""
+
+
+def _review(payload):
+    """The payload's stamp when it is a record; None when there is none; False when it is unreadable."""
+    if not isinstance(payload, dict):
+        return False
+    review = payload.get("fact_review")
+    if review is None or review == {}:
+        return None
+    return review if isinstance(review, dict) else False
+
+
 def checked_fact_review(payload):
     """(True, "") when the payload's fact review is current AND carries the checkers' own record: both checkers'
     models named, their audits present and passing again in code, and the record's hash intact over the current
     public fingerprint. Else (False, why). A review stamped by record_fact_review with no check run is refused."""
-    from .trace_check import _is_empirical_claim
-    if not _current_unsigned(payload):     # the signatures are checked last, below
-        return False, "no current fact review"
-    review = payload.get("fact_review") or {}
-    rec = review.get("check")
-    if not isinstance(rec, dict):
-        return False, "the fact review carries no record of a check run"
-    if rec.get("sha256") != fingerprint({k: v for k, v in rec.items() if k != "sha256"}):
-        return False, "the check record does not match its hash"
-    if rec.get("public_fingerprint") != review.get("public_fingerprint"):
-        return False, "the check record is for other copy"
-    for name in ("trace", "evidence"):
-        run = rec.get(name)
-        if not isinstance(run, dict) or not str(run.get("model") or "").strip():
-            return False, f"the {name} check names no model"
-        if run.get("passed") is not True or not isinstance(run.get("audits"), list) or not run["audits"]:
-            return False, f"the {name} check has no passing audits"
-    if any(a.get("verdict") in ("contradicts", "overstated") or (a.get("verdict") != "traced" and _is_empirical_claim(a))
-           for a in rec["trace"]["audits"]):
-        return False, "the trace check's audits hold a blocking claim"
-    if any(a.get("verdict") == "contradicted" or (a.get("verdict") == "unsupported" and _is_empirical_claim(a))
-           for a in rec["evidence"]["audits"]):
-        return False, "the evidence check's audits hold a blocking claim"
-    # last, and decisive (operator decision A): the gate record, each checker run and the review stamp signed under
-    # FACT_RECORD_KEY when the checkers ran; the hashes above can be recomputed by anyone, the signatures cannot
-    from .record_signing import problem
-    why = (problem("gate_check", rec, exclude=("sha256",))
-           or _run_problem("trace_check", rec.get("public_fingerprint"), rec.get("trace"))
-           or _run_problem("evidence_check", rec.get("public_fingerprint"), rec.get("evidence"))
-           or stamp_problem(review))
-    if why:
-        return False, f"the check record is untrusted: {why}"
-    if not review.get("sheet_lf_sha256") or review["sheet_lf_sha256"] != _lf_sha256(review.get("sheet_path", "")):
-        return False, "the check record is untrusted: its signed research digest does not match the research file"
+    review = _review(payload)
+    try:
+        if not review or not _current_unsigned(payload):     # the signatures are checked last, below
+            return False, "no current fact review"
+        why = check_record_problem(review.get("check"), review.get("public_fingerprint"))
+        if why:
+            return False, why
+        why = stamp_problem(review)
+        if why:
+            return False, f"the check record is untrusted: {why}"
+        if not review.get("sheet_lf_sha256") or review["sheet_lf_sha256"] != _lf_sha256(review.get("sheet_path", "")):
+            return False, "the check record is untrusted: its signed research digest does not match the research file"
+    except (AttributeError, TypeError, KeyError, ValueError):
+        return False, "the fact review cannot be read"
     return True, ""
 
 
+UNREADABLE = "The factual review record cannot be read; the next run checks the copy again."
+
+
 def fact_review_problem(payload):
-    """"" when the payload's fact review is current and signed; else why not, in words (the release gate's detail)."""
+    """"" when the payload's fact review is current, signed and carries the automated checkers' own signed record
+    of a passing run on this copy; else why not, in words (the release gate's detail). A garbled stamp (not a
+    record, or fields of the wrong type) is refused with UNREADABLE, never raised. A person's review
+    (human_review) plays no part here."""
     from .record_signing import key_problem
     if key_problem():
         return key_problem()
-    if not _current_unsigned(payload):
-        return "Factual review must match the public copy and current research file."
-    review = payload.get("fact_review") or {}
-    why = stamp_problem(review)
-    if why:
-        return f"The factual review is untrusted ({why}); the next run checks the copy again."
-    if not review.get("sheet_lf_sha256") or review["sheet_lf_sha256"] != _lf_sha256(review.get("sheet_path", "")):
-        return "The factual review's signed research digest does not match the research file."
+    review = _review(payload)
+    if review is False:
+        return UNREADABLE
+    try:
+        if review is None or not _current_unsigned(payload):
+            return "Factual review must match the public copy and current research file."
+        why = stamp_problem(review)
+        if why:
+            return f"The factual review is untrusted ({why}); the next run checks the copy again."
+        why = check_record_problem(review.get("check"), review.get("public_fingerprint"))
+        if why:
+            return (f"The factual review has no passing automated check behind it ({why}); the next run checks the "
+                    "copy again.")
+        if not review.get("sheet_lf_sha256") or review["sheet_lf_sha256"] != _lf_sha256(review.get("sheet_path", "")):
+            return "The factual review's signed research digest does not match the research file."
+    except (AttributeError, TypeError, KeyError, ValueError):
+        return UNREADABLE
     return ""
+
+
+def fact_review_shown(payload):
+    """The release gate's "facts" detail when it passes: the checkers that ran, never the person's review."""
+    rec = (payload.get("fact_review") or {}).get("check") or {}
+    return ("Automated fact check passed on this copy and is signed: trace check ("
+            f"{rec.get('trace', {}).get('model')}) and evidence check ({rec.get('evidence', {}).get('model')}).")
+
+
+def human_review_record(topic_id, reviewer, reviewed_at, script_sha256):
+    """A person's review of a curated script: who and when, for which topic and which script file (its LF
+    SHA-256), signed ("human_review"). It is shown by the release gate and never counts as a fact check."""
+    from .record_signing import signed
+    return signed("human_review", {"topic_id": str(topic_id), "reviewer": str(reviewer or ""),
+                                   "reviewed_at": str(reviewed_at or ""), "script_sha256": str(script_sha256 or ""),
+                                   "counts_as_fact_check": False})
+
+
+def human_review_shown(payload):
+    """What the release gate shows of a person's review: None when the script records none; else who, when and
+    whether its signature holds. counts_as_fact_check is always False."""
+    if not isinstance(payload, dict):
+        return None
+    rec = payload.get("human_review")
+    if rec is None and not payload.get("human_reviewed"):
+        return None
+    from .record_signing import problem
+    why = problem("human_review", rec) if isinstance(rec, dict) else "no signed record of who reviewed it or when"
+    rec = rec if isinstance(rec, dict) else {}
+    return {"reviewer": str(rec.get("reviewer") or ""), "reviewed_at": str(rec.get("reviewed_at") or ""),
+            "verified": not why, "problem": why, "counts_as_fact_check": False}
+
+
+def human_review_text(shown):
+    """The shown human review in one sentence (the release report's facts detail)."""
+    if not shown:
+        return ""
+    who = f"by {shown['reviewer'] or 'an unnamed reviewer'}"
+    if shown["reviewed_at"]:
+        who += f" at {shown['reviewed_at']}"
+    state = "signed" if shown["verified"] else f"not verified: {shown['problem']}"
+    return f"Human review {who} ({state}); recorded separately, it is not a fact check."
 
 
 def current_fact_review(payload):

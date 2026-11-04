@@ -3,24 +3,24 @@ import pytest
 from src.fact_evidence import current_fact_review, record_fact_review
 
 
-def test_review_expires_when_public_copy_or_research_changes(tmp_path):
+def test_review_expires_when_public_copy_or_research_changes(tmp_path, checked_stamp):
     sheet = tmp_path / "facts.json"
     sheet.write_text('{"facts": []}')
     payload = {"guardrail_passed": True, "title": "Original", "narration_script": "Verified text"}
-    record_fact_review(payload, sheet)
+    checked_stamp(payload, sheet)   # after the checkers passed (2026-11-04: never without their record)
     assert current_fact_review(payload)
     payload["youtube_title"] = "A new claim"
     assert not current_fact_review(payload)
-    record_fact_review(payload, sheet)
+    checked_stamp(payload, sheet)
     sheet.write_text('{"facts": ["changed"]}')
     assert not current_fact_review(payload)
 
 
-def test_metadata_and_attribution_do_not_invalidate_public_facts(tmp_path):
+def test_metadata_and_attribution_do_not_invalidate_public_facts(tmp_path, checked_stamp):
     sheet = tmp_path / "facts.json"
     sheet.write_text('{}')
     payload = {"guardrail_passed": True, "caption": "Verified caption", "title": "Title"}
-    record_fact_review(payload, sheet)
+    checked_stamp(payload, sheet)
     payload["caption"] += "\n\n🎵 Music: Artist"
     payload["qa_summary"] = "Completed"
     assert current_fact_review(payload)

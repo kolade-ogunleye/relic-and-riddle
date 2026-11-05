@@ -24,8 +24,8 @@ operator-approved DirectML pin, done after Phase 1.
 
 | ID | Finding | Status | Commit | Acceptance metric before -> after | Evidence path | Regression test |
 |---|---|---|---|---|---|---|
-| QF-49 | Scrub operator and infrastructure identifiers (STOP-SHIP) | done | this commit | row grep: 160 files outside the allowlist -> 0 (163 -> 3 matched, holding 4 allowlisted third-party attribution lines); wider denylist: 1027 lines outside the allowlist -> 0 | docs/reviews/quality-fixes-2026-11/QF-49/ | tests/test_qf49_identifier_scrub.py |
-| QF-46 | Cap and ledger illustration spend (STOP-SHIP) | todo | | budget 0 -> zero image requests; usage row on the dashboard | QF-46/ | |
+| QF-49 | Scrub operator and infrastructure identifiers (STOP-SHIP) | done | 22e89bc | row grep: 160 files outside the allowlist -> 0 (163 -> 3 matched, holding 4 allowlisted third-party attribution lines); wider denylist: 1027 lines outside the allowlist -> 0 | docs/reviews/quality-fixes-2026-11/QF-49/ | tests/test_qf49_identifier_scrub.py |
+| QF-46 | Cap and ledger illustration spend (STOP-SHIP) | done | this commit | MEDIA_MONTHLY_BUDGET_USD=0: 9 image requests per run (2 beats x 4 candidates + 1 linework) -> 0; one fake 200: 0 media_usage rows -> 1 (ai-images, $0.14); dashboard "AI images this month" line: no -> yes | docs/reviews/quality-fixes-2026-11/QF-46/ | tests/test_qf46_illustration_spend.py |
 | QF-47 | Docs say dry run, code posts live (STOP-SHIP) | todo | | no daemon --dry-run in the four docs; masthead shows the mode | QF-47/ | |
 | QF-48 | maintenance.apply() raises in production (STOP-SHIP) | todo | | no upd:apply button in production; apply raises before git | QF-48/ | |
 | QF-40 | Tier-gated corroboration, signed evidence provenance (STOP-SHIP) | todo | | Wikipedia + cited-host figure -> disputed and hedged | QF-40/ | |

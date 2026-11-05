@@ -761,10 +761,14 @@ class PipelineDatabase:
             conn.execute("INSERT INTO media_usage (provider, item, cost_usd, created_at) VALUES (?, ?, ?, ?)",
                          (provider, item, cost_usd, _now()))
 
-    def media_spend(self, month: str) -> float:
+    def media_spend(self, month: str, provider: str | None = None) -> float:
+        """The month's media spend, all providers or one."""
+        sql = "SELECT COALESCE(SUM(cost_usd), 0) AS s FROM media_usage WHERE substr(created_at, 1, 7) = ?"
+        args: tuple[Any, ...] = (month,)
+        if provider is not None:
+            sql, args = sql + " AND provider = ?", (month, provider)
         with self._conn() as conn:
-            row = conn.execute("SELECT COALESCE(SUM(cost_usd), 0) AS s FROM media_usage WHERE substr(created_at, 1, 7) = ?",
-                               (month,)).fetchone()
+            row = conn.execute(sql, args).fetchone()
         return float(row["s"])
 
     def llm_spend_by_task(self, month: str) -> List[Dict[str, Any]]:

@@ -148,7 +148,8 @@ YOUTUBE_SHORTS = os.getenv("YOUTUBE_SHORTS", "false").strip().lower() in ("true"
 YOUTUBE_SHORTS_PRIVACY = (os.getenv("YOUTUBE_SHORTS_PRIVACY") or YOUTUBE_PRIVACY).strip().lower()
 if YOUTUBE_SHORTS_PRIVACY not in ("public", "unlisted", "private"):
     YOUTUBE_SHORTS_PRIVACY = YOUTUBE_PRIVACY
-# Cap on pay-per-use media APIs (AI video), USD per month; 0 = paid media APIs disabled.
+# Cap on pay-per-use media APIs (AI motion clips and AI illustrations together), USD per month;
+# 0 = paid media APIs disabled (no AI motion and no illustration request).
 MEDIA_MONTHLY_BUDGET_USD = float(os.getenv("MEDIA_MONTHLY_BUDGET_USD") or 0)
 # AI motion (src/motion.py): Veo through the Gemini API (billing on), then Kling. Runs only when
 # MEDIA_MONTHLY_BUDGET_USD > 0. Veo Fast is the default: Standard costs about 3x more per second.
@@ -517,6 +518,11 @@ IMAGE_GEN_IMAGE_SIZE = (os.getenv("IMAGE_GEN_IMAGE_SIZE") or "2K").strip()
 # A reference shown on screen as the exact photo needs at least this short side (px).
 IMAGE_GEN_SHOW_MIN_SIDE = max(64, min(8192, int(os.getenv("IMAGE_GEN_SHOW_MIN_SIDE", "720"))))
 IMAGE_GEN_TIMEOUT = float(os.getenv("IMAGE_GEN_TIMEOUT", "60"))
+# Estimated cost of one illustration request, USD: asked of MEDIA_MONTHLY_BUDGET_USD before the request is sent and
+# recorded in media_usage ("AI images") when it returns HTTP 200 (QF-46). [UNVERIFIED] Google's list price for a
+# gemini-3-pro-image 1K/2K output image (about $0.134) plus reference-image input, rounded up; not yet read from the
+# project's billing. Never below $0.01, so a request always counts against the cap.
+IMAGE_GEN_COST_USD = max(0.01, float(os.getenv("IMAGE_GEN_COST_USD") or 0.14))
 # <<< Illustration tier ---------------------------------------------------------------------------------------------
 
 # >>> Captions round 3 (2026-11-02): the panel's caption changes (src/video_composer.py caption code) ----------------

@@ -201,8 +201,13 @@ class _Resp:
         return self._data
 
 
-def test_the_key_is_sent_in_the_header_and_gemini_takes_aspect_and_no_negative_prompt(monkeypatch):
+def test_the_key_is_sent_in_the_header_and_gemini_takes_aspect_and_no_negative_prompt(tmp_path, monkeypatch):
     seen = {}
+    # A request is asked of the media cap and ledgered (QF-46): a funded cap on a scratch database.
+    from src.db import PipelineDatabase
+    monkeypatch.setattr(config, "MEDIA_MONTHLY_BUDGET_USD", 5.0, raising=False)
+    ledger = PipelineDatabase(tmp_path / "ledger.db")
+    monkeypatch.setattr("src.db.PipelineDatabase", lambda *a, **k: ledger)
     monkeypatch.setattr(config, "GEMINI_API_KEY", "k-123", raising=False)
     monkeypatch.setattr(config, "GENERATIVE_GAP_FILLING", True, raising=False)
     monkeypatch.setattr(config, "IMAGE_GEN_MODEL", "gemini-test-image", raising=False)

@@ -312,10 +312,27 @@ def _sizes_image(model: str) -> bool:
     return model.startswith(("gemini-3", "gemini-nano-banana"))
 
 
+def _spend_ledger(db: Any = None) -> Any:
+    """The database holding media_usage (the media cap's ledger), or None when it cannot be opened."""
+    if db is not None:
+        return db
+    try:
+        from .db import PipelineDatabase
+        return PipelineDatabase()
+    except Exception as e:  # noqa: BLE001 - no ledger means no billed request (fail closed)
+        log.warning("Illustration skipped: the media spend ledger could not be opened (%s).", type(e).__name__)
+        return None
+
+
 def generate_image(prompt: str, aspect_ratio: str = "9:16", timeout: float | None = None,
-                   references: Sequence[Path] = ()) -> bytes | None:
+                   references: Sequence[Path] = (), db: Any = None) -> bytes | None:
     """One image from the configured model, or None. Fails closed: no key, generation off, or a configured model
     the key cannot reach (model_status) means no request is made.
+
+    Billed spend (QF-46): every request is asked of the monthly media cap first (media_budget.allow with
+    config.IMAGE_GEN_COST_USD, shared with AI motion; MEDIA_MONTHLY_BUDGET_USD = 0 means no request at all) and an
+    HTTP 200 is recorded in media_usage as media_budget.AI_IMAGES, whatever the image then turns out to be. `db` is
+    the ledger (the pipeline database by default); one that cannot be opened means no request.
 
     `references`: images of the very subject, sent after the prompt as inlineData parts of the same user turn
     (https://ai.google.dev/api/generate-content, fetched 2026-11-02: contents[].parts[] each a text or an inlineData
@@ -325,6 +342,15 @@ def generate_image(prompt: str, aspect_ratio: str = "9:16", timeout: float | Non
     be read, or the legacy Imagen API (no image input here), means no request (fail closed)."""
     if not is_available():
         log.info("Illustration tier unavailable (no GEMINI_API_KEY, or GENERATIVE_GAP_FILLING is off).")
+        return None
+    from . import media_budget
+    cost = float(getattr(config, "IMAGE_GEN_COST_USD", 0.14))
+    ledger = _spend_ledger(db)
+    if ledger is None:
+        return None
+    if not media_budget.allow(ledger, cost):
+        log.info("Illustration skipped: the monthly media budget (MEDIA_MONTHLY_BUDGET_USD) allows no $%.2f request.",
+                 cost)
         return None
     status = model_status()
     if not status["available"]:
@@ -356,6 +382,8 @@ def generate_image(prompt: str, aspect_ratio: str = "9:16", timeout: float | Non
                 "generationConfig": {"responseModalities": ["IMAGE"], "imageConfig": image_config}}
     try:
         resp = requests.post(url, headers=_headers(), json=body, timeout=timeout)
+        if resp.status_code == 200:   # billed from here on, even if no usable image comes back
+            media_budget.record(ledger, media_budget.AI_IMAGES, model, cost)
         if resp.status_code != 200:
             log.warning("Image generation failed (HTTP %d): %s", resp.status_code, resp.text[:200])
             return None

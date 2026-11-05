@@ -146,6 +146,11 @@ class _Resp:
 
 def test_the_reference_is_sent_as_an_inline_image_part(tmp_path, monkeypatch):
     seen = {}
+    # A request is asked of the media cap and ledgered (QF-46): a funded cap on a scratch database.
+    from src.db import PipelineDatabase
+    monkeypatch.setattr(config, "MEDIA_MONTHLY_BUDGET_USD", 5.0, raising=False)
+    ledger = PipelineDatabase(tmp_path / "ledger.db")
+    monkeypatch.setattr("src.db.PipelineDatabase", lambda *a, **k: ledger)
     monkeypatch.setattr(config, "GEMINI_API_KEY", "k-1", raising=False)
     monkeypatch.setattr(config, "GENERATIVE_GAP_FILLING", True, raising=False)
     monkeypatch.setattr(config, "IMAGE_GEN_MODEL", "gemini-3-pro-image", raising=False)

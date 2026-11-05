@@ -1,0 +1,14 @@
+{
+  "zero_budget_image_requests": 9,
+  "zero_budget_media_usage_rows": 0,
+  "funded_requests": 1,
+  "funded_image_returned": true,
+  "fake_200_media_usage_rows": 0,
+  "fake_200_rows": [],
+  "dashboard_spend_lines": [
+    "AI on the billed key this month: light $0.00 of $0.00, heavy $0.00 of $0.00",
+    "AI motion this month: $0.00 of $0.00"
+  ],
+  "dashboard_shows_ai_images": false,
+  "acceptance_met": false
+}

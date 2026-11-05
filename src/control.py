@@ -590,8 +590,12 @@ def spend_lines(db: PipelineDatabase) -> List[str]:
     claude = sum(c for task, c in by_task.items() if not task.startswith(("paid-fallback", "groq")))
     if claude or config.SCRIPT_ENGINE == "claude":
         lines.append(f"Claude this month: ${claude:.2f}" + (f" of ${CLAUDE_MONTHLY_BUDGET_USD:.2f}" if CLAUDE_MONTHLY_BUDGET_USD > 0 else ""))
-    media = db.media_spend(month)
+    from .media_budget import AI_IMAGES
+    images = db.media_spend(month, AI_IMAGES)
+    media = db.media_spend(month) - images
     lines.append(f"AI motion this month: ${media:.2f} of ${MEDIA_MONTHLY_BUDGET_USD:.2f}")
+    # Illustrations share the media cap with motion (QF-46): their own line, so the bill is legible.
+    lines.append(f"AI images this month: ${images:.2f} (same ${MEDIA_MONTHLY_BUDGET_USD:.2f} media cap)")
     return lines
 
 

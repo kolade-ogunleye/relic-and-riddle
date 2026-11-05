@@ -1,8 +1,8 @@
 """
 src/media_budget.py
 ===================
-Spend guard for pay-per-use media APIs (AI video now; anything billed per second or per
-item later). Every paid call asks `allow(cost)` first and `record(...)` after, so a bug or
+Spend guard for pay-per-use media APIs (AI motion clips, AI illustrations; anything billed per
+second or per item). Every paid call asks `allow(cost)` first and `record(...)` after, so a bug or
 a retry loop can never run up an unbounded bill. MEDIA_MONTHLY_BUDGET_USD = 0 disables
 paid media APIs entirely (the free fallbacks still run).
 """
@@ -15,13 +15,17 @@ from .db import PipelineDatabase
 
 log = logging.getLogger(__name__)
 
+# The media_usage provider for AI illustrations (src/image_gen.py), shown as its own "AI images" spend line.
+AI_IMAGES = "ai-images"
+
 
 def _month() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m")
 
 
-def spent(db: PipelineDatabase) -> float:
-    return db.media_spend(_month())
+def spent(db: PipelineDatabase, provider: str | None = None) -> float:
+    """This month's media spend; all providers (what the cap counts) unless one is named."""
+    return db.media_spend(_month(), provider) if provider else db.media_spend(_month())
 
 
 def allow(db: PipelineDatabase, estimated_cost: float) -> bool:

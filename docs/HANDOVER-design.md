@@ -41,7 +41,13 @@ name no further gain, two consecutive adversarial rounds find no new defect, and
   - Measured test values are pinned to raqm (the CI fix below). Processes started before the `PATH` change (the dev
     bot) lay text out with BASIC until they are restarted.
 - **Chapter cards: draw all of them.** A long act title (3 of 5 Richat titles are over 32 characters) wraps to two
-  lines; no card is dropped.
+  lines; no card is dropped. Done (2026-11-05, reviewer 16:9 9.0, 9:16 9.2): the 32-character cap is gone; on 16:9 the
+  two-line ladder runs to the 96 px floor, and a size that cannot reach the numeral's ink top hangs from it (Richat act
+  1 at 144, act 4 at 128, act 5 at 152). On 9:16 the existing reviewed rule takes three lines when they set at least
+  16 px larger, so acts 1, 4 and 5 set on three (100, 100, 128); two lines there would be 84 px (act 1) or under the
+  84 px floor (act 4). Every card that drew before is identical (1,087 cases checked). A title is refused only when it
+  cannot fit at the floor (about 55-62 characters, depending on the words) or fails grounding. Open: one title size per
+  video (16:9 now 128-176 px across the five acts); a colon break preference ("INTRODUCTION: / ...") on 16:9.
 - **Caption small caps: none.** Anton has no true small caps, and faux caps are 18% thinner; keep full caps.
   **Withdrawn for now (operator, 2026-11-05):** built and measured, full caps make the 9:16 bursts 12-18% wider
   (one-word bursts 13 -> 71 on the five real runs; names stop fitting at the 66 px floor and end on THE; a third main

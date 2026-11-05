@@ -663,15 +663,19 @@ def test_c5_total_and_column():
 
 def test_fr1_c5_cap_top_meets_the_numeral_at_every_two_line_size(monkeypatch):
     """Fix round 1 (review: act 2's cap top within 12 of the numeral's ink top at every title size, 152 included):
-    the 16:9 two-line ladder holds only sizes whose first cap top can stand within CHAPTER_TALL_SLACK of the numeral
-    column's ink top (176..152 for a 5-act video); the real act 2 meets it on its drawn ink at every 16:9 frame size;
-    a title that would need a smaller two-line size is refused (no_fit), never drawn under the numeral's top."""
+    the first cap top stands within CHAPTER_TALL_SLACK of the numeral column's ink top at every 16:9 two-line size;
+    the real act 2 meets it on its drawn ink at every 16:9 frame size. Operator decision 2026-11-05 (draw every
+    chapter card): the ladder runs on to its 96 px floor (was 176..152, smaller sizes refused); under 145 px the
+    lines are top-aligned (their last baseline above the numeral's, the step never past 1.20 P), and only a title that
+    does not fit two lines at the floor is refused (no_fit)."""
     col = dc._numeral_tall(ACTS)
     allowed = [P for P in dc.CHAPTER_WIDE_TWO if dc._chapter_wide_two_ok(P, col)]
-    assert allowed == [176, 168, 160, 152], allowed
+    assert allowed == list(dc.CHAPTER_WIDE_TWO) and allowed[-1] == 96, allowed
     for P in allowed:
         off = dc._chapter_wide_off(["A B", "C D"], P, col)
-        assert abs(round(0.86 * P) + off[1] - col) <= dc.CHAPTER_TALL_SLACK, (P, off)
+        rise = dc._chapter_wide_rise(off, P, col)
+        assert abs(rise - col) <= dc.CHAPTER_TALL_SLACK, (P, off, rise)
+        assert off[1] <= round(dc.CHAPTER_WIDE_LEAD_MAX * P) and rise >= round(0.86 * P) + off[1]
     for size in (WIDE, (1280, 720), (2560, 1440)):
         k = _WideGrid(*size).k
         p = chapter_plan(size, 2, ACTS, ACT2)
@@ -679,12 +683,94 @@ def test_fr1_c5_cap_top_meets_the_numeral_at_every_two_line_size(monkeypatch):
         assert p.meta["anchors"]["title_px"] == 152
         assert abs(e["title_0"].box[1] - e["numeral"].box[1]) / k <= dc.CHAPTER_TALL_SLACK, (size, e["title_0"].box)
     real = dc._design_wrap
+    monkeypatch.setattr(dc, "CHAPTER_WIDE_ONE", ())
+    # decision 2026-11-05: a title that needs a smaller two-line size is drawn (was refused, no_fit), cap top on the
+    # numeral's ink top, last baseline above the numeral's
     monkeypatch.setattr(dc, "_design_wrap", lambda text, face, w, px, *a, **kw: (
         None if px >= 152 and kw.get("even") is not None else real(text, face, w, px, *a, **kw)))
-    monkeypatch.setattr(dc, "CHAPTER_WIDE_ONE", ())
+    p = chapter_plan(WIDE, 2, ACTS, ACT2)
+    e, a = els(p), p.meta["anchors"]
+    assert a["title_px"] == 144 and len(a["title_baselines"]) == 2
+    assert abs(a["title_baselines"][0] - round(0.86 * 144) - e["numeral"].box[1]) <= dc.CHAPTER_TALL_SLACK
+    assert e["title_1"].xy[1] < e["numeral"].xy[1] - dc.CHAPTER_TALL_SLACK
+    # only no two-line size down to the floor refuses
+    monkeypatch.setattr(dc, "_design_wrap", lambda text, face, w, px, *a, **kw: (
+        None if kw.get("even") is not None else real(text, face, w, px, *a, **kw)))
     with pytest.raises(dc.CardRefused) as err:
         chapter_plan(WIDE, 2, ACTS, ACT2)
-    assert err.value.code == "no_fit"
+    assert err.value.code == "no_fit" and "96" in err.value.reason
+
+
+# ------------------------------------------------------------------------------------------------ decision 2026-11-05
+# Operator decision 2026-11-05 (docs/HANDOVER-design.md): "Chapter cards: draw all of them." The real Richat long run's
+# five act titles (output/run_richat_structure_sahara_eye_1792740961_long/verified_deep_dive.json; 3 are past the old
+# 32-character limit), with the run's act count
+RICHAT_ACTS = ("Introduction: A Desert Landmark from Space", ACT2, ACT3, "Archaeological Evidence and Refuted Claims",
+               "International Heritage Recognition")
+# measured (raqm): 16:9 two lines at 176..96 px (one line from 184), 9:16 two or three lines (C6) at 136..84 px
+CHAPTER_FLOOR = {False: 84, True: 96}
+RICHAT_EXPECT = {   # (format wide?, act): (title px, lines)
+    (True, 1): (144, ["INTRODUCTION: A DESERT", "LANDMARK FROM SPACE"]),
+    (True, 4): (128, ["ARCHAEOLOGICAL EVIDENCE", "AND REFUTED CLAIMS"]),
+    (True, 5): (152, ["INTERNATIONAL", "HERITAGE RECOGNITION"]),
+    (False, 1): (100, ["INTRODUCTION:", "A DESERT LANDMARK", "FROM SPACE"]),
+    (False, 4): (100, ["ARCHAEOLOGICAL", "EVIDENCE", "AND REFUTED CLAIMS"]),
+    (False, 5): (128, ["INTERNATIONAL", "HERITAGE", "RECOGNITION"]),
+}
+
+
+@pytest.mark.parametrize("size", [TALL, WIDE])
+def test_d1_every_richat_act_is_drawn(size):
+    """Decision 2026-11-05: all five real Richat act titles plan (none refused for length; 3 were before) on both
+    formats: 16:9 on two lines, 9:16 on C6's two or three; no line ends on a stop word; every size at or above the
+    format's floor; the title inside its measure and the safe zone; the 16:9 first cap top on the numeral
+    column's ink top (within CHAPTER_TALL_SLACK) and the last baseline never below the numeral's; the 9:16 block inside
+    288..1058."""
+    wide = size[0] > size[1]
+    for n, title in enumerate(RICHAT_ACTS, 1):
+        p = chapter_plan(size, n, ACTS, title)
+        e, a = els(p), p.meta["anchors"]
+        lines = lines_of(p, "title")
+        assert " ".join(lines) == " ".join(title.upper().split()), (n, lines)
+        assert no_stop_end(lines), (n, lines)
+        assert a["title_px"] >= CHAPTER_FLOOR[wide], (n, a["title_px"])
+        if (wide, n) in RICHAT_EXPECT:
+            assert (a["title_px"], lines) == RICHAT_EXPECT[(wide, n)], (n, a["title_px"], lines)
+        titles = [x for x in p.elements if x.name.startswith("title_")]
+        if wide:
+            g = _WideGrid(*size)
+            assert len(lines) == 2, (n, lines)
+            assert max(x.box[2] for x in titles) <= g.x(1766) + 1
+            cap_top = a["title_baselines"][0] - round(0.86 * a["title_px"])
+            col_top = a["Bn"] - dc._numeral_tall(ACTS)       # the video's numeral column's ink top (C5)
+            assert abs(cap_top - col_top) <= dc.CHAPTER_TALL_SLACK, (n, cap_top, col_top)
+            assert e[f"title_{len(lines) - 1}"].xy[1] <= e["numeral"].xy[1] + 1
+            assert a["title_x"] == 459
+        else:
+            z = graphics_box(*size)
+            assert 2 <= len(lines) <= 3, (n, lines)
+            assert max(x.box[2] for x in titles) <= 888
+            assert all(z[0] <= x.box[0] and x.box[2] <= z[2] and z[1] <= x.box[1] and x.box[3] <= z[3]
+                       for x in p.elements), n
+            assert max(x.box[3] for x in p.elements) <= 1059 and min(x.box[1] for x in p.elements) >= 288
+        assert p.meta["anchors"]["drawn_contrast_min"] is None or p.meta["anchors"]["drawn_contrast_min"] >= 4.5
+
+
+def test_d1_chapter_refusals_that_protect_facts_stay():
+    """Decision 2026-11-05: the length limit is gone, but a title repeating the chapter number, an empty title and a
+    number or total out of range are still refused, and a title too long for two lines at the 96 px 16:9 floor (or
+    three at 84 on 9:16) is refused (measured: the 75-character join of acts 1 and 2 on both formats)."""
+    for bad in (dict(title="Act 2: Documented Physical Architecture"), dict(number=6), dict(number=0),
+                dict(total=13, number=13)):
+        kw = {"number": 2, "total": ACTS, "title": ACT2, **bad}
+        with pytest.raises(dc.CardRefused):
+            chapter_plan(WIDE, kw["number"], kw["total"], kw["title"])
+    with pytest.raises(dc.CardRefused):
+        dc.plan_chapter_card(T.chapter(sheet=SHEET, number=2, total=5, title="   "), SHEET, *WIDE)
+    too_long = f"{RICHAT_ACTS[0]} {ACT2}"
+    for size in (TALL, WIDE):
+        with pytest.raises(dc.CardRefused):
+            chapter_plan(size, 2, ACTS, too_long)
 
 
 # ------------------------------------------------------------------------------------------------ W2

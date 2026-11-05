@@ -12,8 +12,9 @@ fixtures.py (by path), never invented:
   brightest and busiest taken per run; plus the catalogue's verified hero where the topic has one; plus no photo.
 - hook claims: the catalogue's hook_claim_candidates that fit a claim (run titles), on their own run's photos,
   with the first narration burst from that run's words.json.
-- chapter titles: the Richat deep dive's own act titles and act count (verified_deep_dive.json); titles past
-  32 characters are planned too, so their refusal is shown.
+- chapter titles: the Richat deep dive's own act titles and act count (verified_deep_dive.json), every act on
+  every ground (operator decision 2026-11-05, "chapter cards: draw all of them": the catalogue's fits_chapter, the
+  retired 32-character limit, no longer limits an act to one ground; a tree that still refuses shows its refusal).
 - myths: the catalogue lists no myth field anywhere (gap). The three facts that state a refuted belief
   (damascus-13, kailasa-legend-kokasa, Richat fact-9) seed myth fields built only from those facts' own words
   (each field's derivation is in the manifest).
@@ -470,7 +471,7 @@ def do_chapters():
     for c in CAT["chapter_title_candidates"]:
         n, title = int(c["act"]), c["title"]
         for fmt, size in SIZES.items():
-            for tag, photo, m in (gs if c.get("fits_chapter") else gs[:1]):
+            for tag, photo, m in gs:
                 labels = [NEW_FIELD + " (real act title, test-gated)"]
                 if fmt == "916":
                     labels.append("new: 9:16 chapter card of the 16:9 deep dive's act")

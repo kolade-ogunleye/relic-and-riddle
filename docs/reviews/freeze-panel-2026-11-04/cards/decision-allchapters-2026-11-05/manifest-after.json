@@ -1,0 +1,9205 @@
+{
+ "meta": {
+  "code_root": "C:\\tmp\\rrd",
+  "design_cards": "C:\\tmp\\rrd\\src\\design_cards.py",
+  "version": "design-cards-1",
+  "seconds": 285.2,
+  "inputs": "real run media and fact-sheet facts via docs/reviews/freeze-panel-2026-11-04/fixtures",
+  "card_fields": "new: real fact, test-signed field: checker verdicts from the test suite's mocked checker, signed under THROWAWAY_KEY (this rig's own constant, assigned over config's key before any card module loads; the deployment key is never read) in a temporary sheet copy",
+  "throwaway_key": "THROWAWAY_KEY (render_evidence.py)",
+  "catalogue_gaps": {
+   "myth_fields": "none: no fact sheet in data/fact_sheets or data/script_library carries a cards.myths entry (refuting_fact_id appears in no JSON file in the repository). A real myth-vs-fact card cannot be rendered from existing inputs.",
+   "statement_fields": "one: data/fact_sheets/hal_saflieni_hypogeum.json cards.statements S1, check verdict 'needs_check' with no runs and no signature, so card_fields.verify_field refuses it.",
+   "quote_fields": "none.",
+   "gated_titles": "every run's fact_review holds only public_fingerprint / sheet_path / sheet_sha256 / review_rules_fingerprint, with no check record, so design_cards.gated_text refuses Gated('title'|'youtube_title') on every run (fact_evidence.checked_fact_review: no current check record).",
+   "consequence": "Every hook, chapter and myth card needs a checked, signed card field. None exists. The real inputs are the fact sheets' facts, the runs' titles, act titles and hero photos below; the card fields themselves must be produced by fact_sheet.build + card_fields.check_cards (with a checker key) before a card can be rendered honestly. Anything rendered before that is new and must be labelled."
+  }
+ },
+ "renders": {
+  "chapter_916_act1_dark": {
+   "name": "chapter_916_act1_dark",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 1,
+   "total": 5,
+   "title": "Introduction: A Desert Landmark from Space",
+   "title_chars": 42,
+   "fits_chapter": false,
+   "ground": "dark",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo_name": "14_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 84.2,
+    "edge_energy": 5.8,
+    "mean_saturation": 123.8
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 100,
+    "title_lines": [
+     "INTRODUCTION:",
+     "A DESERT LANDMARK",
+     "FROM SPACE"
+    ],
+    "R": 378,
+    "Bn": 718,
+    "title_baselines": [
+     860,
+     958,
+     1056
+    ],
+    "block_centre": 717.0,
+    "block_h": 678,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 137.3,
+    "darken_steps": 0,
+    "drawn_contrast_min": 7.48
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "1",
+    "title_0": "INTRODUCTION:",
+    "title_1": "A DESERT LANDMARK",
+    "title_2": "FROM SPACE",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "INTRODUCTION:",
+     "A DESERT LANDMARK",
+     "FROM SPACE"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     11.0,
+     11.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     204,
+     656,
+     284,
+     719
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      378,
+      144,
+      382
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      403,
+      339,
+      433
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      460,
+      188,
+      718
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      773,
+      631,
+      861
+     ],
+     "px": 100
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      871,
+      867,
+      959
+     ],
+     "px": 100
+    },
+    {
+     "name": "title_2",
+     "box": [
+      100,
+      969,
+      559,
+      1057
+     ],
+     "px": 100
+    },
+    {
+     "name": "total",
+     "box": [
+      204,
+      656,
+      284,
+      719
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act1_dark__mid.png",
+     "jpg": "chapter_916_act1_dark__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act1_dark__last.png",
+     "jpg": "chapter_916_act1_dark__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 7.48
+    }
+   },
+   "seconds_to_render": 6.9
+  },
+  "chapter_916_act1_bright": {
+   "name": "chapter_916_act1_bright",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 1,
+   "total": 5,
+   "title": "Introduction: A Desert Landmark from Space",
+   "title_chars": 42,
+   "fits_chapter": false,
+   "ground": "bright",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\08_commons.jpg",
+   "photo_name": "08_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 157.8,
+    "edge_energy": 9.1,
+    "mean_saturation": 81.1
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 100,
+    "title_lines": [
+     "INTRODUCTION:",
+     "A DESERT LANDMARK",
+     "FROM SPACE"
+    ],
+    "R": 378,
+    "Bn": 718,
+    "title_baselines": [
+     860,
+     958,
+     1056
+    ],
+    "block_centre": 717.0,
+    "block_h": 678,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 89.1,
+    "darken_steps": 0,
+    "drawn_contrast_min": 7.01
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "1",
+    "title_0": "INTRODUCTION:",
+    "title_1": "A DESERT LANDMARK",
+    "title_2": "FROM SPACE",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "INTRODUCTION:",
+     "A DESERT LANDMARK",
+     "FROM SPACE"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     11.0,
+     11.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     204,
+     656,
+     284,
+     719
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      378,
+      144,
+      382
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      403,
+      339,
+      433
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      460,
+      188,
+      718
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      773,
+      631,
+      861
+     ],
+     "px": 100
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      871,
+      867,
+      959
+     ],
+     "px": 100
+    },
+    {
+     "name": "title_2",
+     "box": [
+      100,
+      969,
+      559,
+      1057
+     ],
+     "px": 100
+    },
+    {
+     "name": "total",
+     "box": [
+      204,
+      656,
+      284,
+      719
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act1_bright__mid.png",
+     "jpg": "chapter_916_act1_bright__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act1_bright__last.png",
+     "jpg": "chapter_916_act1_bright__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 7.01
+    }
+   },
+   "seconds_to_render": 7.0
+  },
+  "chapter_916_act1_busy": {
+   "name": "chapter_916_act1_busy",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 1,
+   "total": 5,
+   "title": "Introduction: A Desert Landmark from Space",
+   "title_chars": 42,
+   "fits_chapter": false,
+   "ground": "busy",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\05_commons.jpg",
+   "photo_name": "05_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 124.2,
+    "edge_energy": 33.7,
+    "mean_saturation": 73.3
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 100,
+    "title_lines": [
+     "INTRODUCTION:",
+     "A DESERT LANDMARK",
+     "FROM SPACE"
+    ],
+    "R": 378,
+    "Bn": 718,
+    "title_baselines": [
+     860,
+     958,
+     1056
+    ],
+    "block_centre": 717.0,
+    "block_h": 678,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 52.2,
+    "darken_steps": 0,
+    "drawn_contrast_min": 8.58
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "1",
+    "title_0": "INTRODUCTION:",
+    "title_1": "A DESERT LANDMARK",
+    "title_2": "FROM SPACE",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "INTRODUCTION:",
+     "A DESERT LANDMARK",
+     "FROM SPACE"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     11.0,
+     11.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     204,
+     656,
+     284,
+     719
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      378,
+      144,
+      382
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      403,
+      339,
+      433
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      460,
+      188,
+      718
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      773,
+      631,
+      861
+     ],
+     "px": 100
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      871,
+      867,
+      959
+     ],
+     "px": 100
+    },
+    {
+     "name": "title_2",
+     "box": [
+      100,
+      969,
+      559,
+      1057
+     ],
+     "px": 100
+    },
+    {
+     "name": "total",
+     "box": [
+      204,
+      656,
+      284,
+      719
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act1_busy__mid.png",
+     "jpg": "chapter_916_act1_busy__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act1_busy__last.png",
+     "jpg": "chapter_916_act1_busy__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 8.58
+    }
+   },
+   "seconds_to_render": 14.1
+  },
+  "chapter_916_act1_hero": {
+   "name": "chapter_916_act1_hero",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 1,
+   "total": 5,
+   "title": "Introduction: A Desert Landmark from Space",
+   "title_chars": 42,
+   "fits_chapter": false,
+   "ground": "hero",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo_name": "01_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 141.3,
+    "edge_energy": 15.1,
+    "mean_saturation": 140.4
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 100,
+    "title_lines": [
+     "INTRODUCTION:",
+     "A DESERT LANDMARK",
+     "FROM SPACE"
+    ],
+    "R": 378,
+    "Bn": 718,
+    "title_baselines": [
+     860,
+     958,
+     1056
+    ],
+    "block_centre": 717.0,
+    "block_h": 678,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 134.5,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.35
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "1",
+    "title_0": "INTRODUCTION:",
+    "title_1": "A DESERT LANDMARK",
+    "title_2": "FROM SPACE",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "INTRODUCTION:",
+     "A DESERT LANDMARK",
+     "FROM SPACE"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     11.0,
+     11.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     204,
+     656,
+     284,
+     719
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      378,
+      144,
+      382
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      403,
+      339,
+      433
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      460,
+      188,
+      718
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      773,
+      631,
+      861
+     ],
+     "px": 100
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      871,
+      867,
+      959
+     ],
+     "px": 100
+    },
+    {
+     "name": "title_2",
+     "box": [
+      100,
+      969,
+      559,
+      1057
+     ],
+     "px": 100
+    },
+    {
+     "name": "total",
+     "box": [
+      204,
+      656,
+      284,
+      719
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act1_hero__mid.png",
+     "jpg": "chapter_916_act1_hero__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act1_hero__last.png",
+     "jpg": "chapter_916_act1_hero__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 9.35
+    }
+   },
+   "seconds_to_render": 4.9
+  },
+  "chapter_916_act1_plain": {
+   "name": "chapter_916_act1_plain",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 1,
+   "total": 5,
+   "title": "Introduction: A Desert Landmark from Space",
+   "title_chars": 42,
+   "fits_chapter": false,
+   "ground": "plain",
+   "photo": null,
+   "photo_name": "(no photo)",
+   "photo_measured": {},
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 100,
+    "title_lines": [
+     "INTRODUCTION:",
+     "A DESERT LANDMARK",
+     "FROM SPACE"
+    ],
+    "R": 378,
+    "Bn": 718,
+    "title_baselines": [
+     860,
+     958,
+     1056
+    ],
+    "block_centre": 717.0,
+    "block_h": 678,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 0.0,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.09
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "1",
+    "title_0": "INTRODUCTION:",
+    "title_1": "A DESERT LANDMARK",
+    "title_2": "FROM SPACE",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "INTRODUCTION:",
+     "A DESERT LANDMARK",
+     "FROM SPACE"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     11.0,
+     11.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     204,
+     656,
+     284,
+     719
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      378,
+      144,
+      382
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      403,
+      339,
+      433
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      460,
+      188,
+      718
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      773,
+      631,
+      861
+     ],
+     "px": 100
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      871,
+      867,
+      959
+     ],
+     "px": 100
+    },
+    {
+     "name": "title_2",
+     "box": [
+      100,
+      969,
+      559,
+      1057
+     ],
+     "px": 100
+    },
+    {
+     "name": "total",
+     "box": [
+      204,
+      656,
+      284,
+      719
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act1_plain__mid.png",
+     "jpg": "chapter_916_act1_plain__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act1_plain__last.png",
+     "jpg": "chapter_916_act1_plain__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 9.09
+    }
+   },
+   "seconds_to_render": 3.3
+  },
+  "chapter_169_act1_dark": {
+   "name": "chapter_169_act1_dark",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 1,
+   "total": 5,
+   "title": "Introduction: A Desert Landmark from Space",
+   "title_chars": 42,
+   "fits_chapter": false,
+   "ground": "dark",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo_name": "14_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 84.2,
+    "edge_energy": 5.8,
+    "mean_saturation": 123.8
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 144,
+    "title_lines": [
+     "INTRODUCTION: A DESERT",
+     "LANDMARK FROM SPACE"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 670,
+    "K": 332,
+    "title_baselines": [
+     483,
+     656
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#F2B630",
+    "numeral_right": 325,
+    "ground_saturation": 137.6,
+    "darken_steps": 0,
+    "drawn_contrast_min": 7.69
+   },
+   "drawn_text": {
+    "numeral": "1",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "INTRODUCTION: A DESERT",
+    "title_1": "LANDMARK FROM SPACE"
+   },
+   "lines": {
+    "title": [
+     "INTRODUCTION: A DESERT",
+     "LANDMARK FROM SPACE"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     48.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     298,
+     780,
+     336
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      220,
+      360,
+      325,
+      670
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      360,
+      393,
+      670
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      281,
+      503,
+      285
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      303,
+      692,
+      333
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      298,
+      780,
+      336
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      358,
+      1747,
+      484
+     ],
+     "px": 144
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      531,
+      1736,
+      657
+     ],
+     "px": 144
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act1_dark__mid.png",
+     "jpg": "chapter_169_act1_dark__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act1_dark__last.png",
+     "jpg": "chapter_169_act1_dark__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 7.69
+    }
+   },
+   "seconds_to_render": 6.5
+  },
+  "chapter_169_act1_bright": {
+   "name": "chapter_169_act1_bright",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 1,
+   "total": 5,
+   "title": "Introduction: A Desert Landmark from Space",
+   "title_chars": 42,
+   "fits_chapter": false,
+   "ground": "bright",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\08_commons.jpg",
+   "photo_name": "08_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 157.8,
+    "edge_energy": 9.1,
+    "mean_saturation": 81.1
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 144,
+    "title_lines": [
+     "INTRODUCTION: A DESERT",
+     "LANDMARK FROM SPACE"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 670,
+    "K": 332,
+    "title_baselines": [
+     483,
+     656
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#8A6A1E",
+    "numeral_right": 325,
+    "ground_saturation": 75.8,
+    "darken_steps": 0,
+    "drawn_contrast_min": 7.41
+   },
+   "drawn_text": {
+    "numeral": "1",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "INTRODUCTION: A DESERT",
+    "title_1": "LANDMARK FROM SPACE"
+   },
+   "lines": {
+    "title": [
+     "INTRODUCTION: A DESERT",
+     "LANDMARK FROM SPACE"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     48.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     298,
+     780,
+     336
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      220,
+      360,
+      325,
+      670
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      360,
+      393,
+      670
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      281,
+      503,
+      285
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      303,
+      692,
+      333
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      298,
+      780,
+      336
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      358,
+      1747,
+      484
+     ],
+     "px": 144
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      531,
+      1736,
+      657
+     ],
+     "px": 144
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act1_bright__mid.png",
+     "jpg": "chapter_169_act1_bright__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act1_bright__last.png",
+     "jpg": "chapter_169_act1_bright__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 7.43
+    }
+   },
+   "seconds_to_render": 6.0
+  },
+  "chapter_169_act1_busy": {
+   "name": "chapter_169_act1_busy",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 1,
+   "total": 5,
+   "title": "Introduction: A Desert Landmark from Space",
+   "title_chars": 42,
+   "fits_chapter": false,
+   "ground": "busy",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\05_commons.jpg",
+   "photo_name": "05_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 124.2,
+    "edge_energy": 33.7,
+    "mean_saturation": 73.3
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 144,
+    "title_lines": [
+     "INTRODUCTION: A DESERT",
+     "LANDMARK FROM SPACE"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 670,
+    "K": 332,
+    "title_baselines": [
+     483,
+     656
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#8A6A1E",
+    "numeral_right": 325,
+    "ground_saturation": 59.0,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.86
+   },
+   "drawn_text": {
+    "numeral": "1",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "INTRODUCTION: A DESERT",
+    "title_1": "LANDMARK FROM SPACE"
+   },
+   "lines": {
+    "title": [
+     "INTRODUCTION: A DESERT",
+     "LANDMARK FROM SPACE"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     48.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     298,
+     780,
+     336
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      220,
+      360,
+      325,
+      670
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      360,
+      393,
+      670
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      281,
+      503,
+      285
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      303,
+      692,
+      333
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      298,
+      780,
+      336
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      358,
+      1747,
+      484
+     ],
+     "px": 144
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      531,
+      1736,
+      657
+     ],
+     "px": 144
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act1_busy__mid.png",
+     "jpg": "chapter_169_act1_busy__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act1_busy__last.png",
+     "jpg": "chapter_169_act1_busy__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 9.87
+    }
+   },
+   "seconds_to_render": 12.4
+  },
+  "chapter_169_act1_hero": {
+   "name": "chapter_169_act1_hero",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 1,
+   "total": 5,
+   "title": "Introduction: A Desert Landmark from Space",
+   "title_chars": 42,
+   "fits_chapter": false,
+   "ground": "hero",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo_name": "01_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 141.3,
+    "edge_energy": 15.1,
+    "mean_saturation": 140.4
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 144,
+    "title_lines": [
+     "INTRODUCTION: A DESERT",
+     "LANDMARK FROM SPACE"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 670,
+    "K": 332,
+    "title_baselines": [
+     483,
+     656
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#8A6A1E",
+    "numeral_right": 325,
+    "ground_saturation": 134.4,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.5
+   },
+   "drawn_text": {
+    "numeral": "1",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "INTRODUCTION: A DESERT",
+    "title_1": "LANDMARK FROM SPACE"
+   },
+   "lines": {
+    "title": [
+     "INTRODUCTION: A DESERT",
+     "LANDMARK FROM SPACE"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     48.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     298,
+     780,
+     336
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      220,
+      360,
+      325,
+      670
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      360,
+      393,
+      670
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      281,
+      503,
+      285
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      303,
+      692,
+      333
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      298,
+      780,
+      336
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      358,
+      1747,
+      484
+     ],
+     "px": 144
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      531,
+      1736,
+      657
+     ],
+     "px": 144
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act1_hero__mid.png",
+     "jpg": "chapter_169_act1_hero__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act1_hero__last.png",
+     "jpg": "chapter_169_act1_hero__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 9.52
+    }
+   },
+   "seconds_to_render": 5.1
+  },
+  "chapter_169_act1_plain": {
+   "name": "chapter_169_act1_plain",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 1,
+   "total": 5,
+   "title": "Introduction: A Desert Landmark from Space",
+   "title_chars": 42,
+   "fits_chapter": false,
+   "ground": "plain",
+   "photo": null,
+   "photo_name": "(no photo)",
+   "photo_measured": {},
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 144,
+    "title_lines": [
+     "INTRODUCTION: A DESERT",
+     "LANDMARK FROM SPACE"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 670,
+    "K": 332,
+    "title_baselines": [
+     483,
+     656
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#8A6A1E",
+    "numeral_right": 325,
+    "ground_saturation": 0.0,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.09
+   },
+   "drawn_text": {
+    "numeral": "1",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "INTRODUCTION: A DESERT",
+    "title_1": "LANDMARK FROM SPACE"
+   },
+   "lines": {
+    "title": [
+     "INTRODUCTION: A DESERT",
+     "LANDMARK FROM SPACE"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     48.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     298,
+     780,
+     336
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      220,
+      360,
+      325,
+      670
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      360,
+      393,
+      670
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      281,
+      503,
+      285
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      303,
+      692,
+      333
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      298,
+      780,
+      336
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      358,
+      1747,
+      484
+     ],
+     "px": 144
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      531,
+      1736,
+      657
+     ],
+     "px": 144
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act1_plain__mid.png",
+     "jpg": "chapter_169_act1_plain__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act1_plain__last.png",
+     "jpg": "chapter_169_act1_plain__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 9.09
+    }
+   },
+   "seconds_to_render": 5.5
+  },
+  "chapter_916_act2_dark": {
+   "name": "chapter_916_act2_dark",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 2,
+   "total": 5,
+   "title": "Documented Physical Architecture",
+   "title_chars": 32,
+   "fits_chapter": true,
+   "ground": "dark",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo_name": "14_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 84.2,
+    "edge_energy": 5.8,
+    "mean_saturation": 123.8
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 128,
+    "title_lines": [
+     "DOCUMENTED",
+     "PHYSICAL",
+     "ARCHITECTURE"
+    ],
+    "R": 300,
+    "Bn": 640,
+    "title_baselines": [
+     806,
+     931,
+     1056
+    ],
+    "block_centre": 678.0,
+    "block_h": 756,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 136.6,
+    "darken_steps": 0,
+    "drawn_contrast_min": 7.45
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "2",
+    "title_0": "DOCUMENTED",
+    "title_1": "PHYSICAL",
+    "title_2": "ARCHITECTURE",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "DOCUMENTED",
+     "PHYSICAL",
+     "ARCHITECTURE"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0,
+     14.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     253,
+     578,
+     333,
+     641
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      300,
+      144,
+      304
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      325,
+      339,
+      355
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      381,
+      237,
+      640
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      695,
+      717,
+      807
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      820,
+      538,
+      932
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_2",
+     "box": [
+      100,
+      945,
+      763,
+      1057
+     ],
+     "px": 128
+    },
+    {
+     "name": "total",
+     "box": [
+      253,
+      578,
+      333,
+      641
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act2_dark__mid.png",
+     "jpg": "chapter_916_act2_dark__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act2_dark__last.png",
+     "jpg": "chapter_916_act2_dark__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 7.45
+    }
+   },
+   "seconds_to_render": 5.9
+  },
+  "chapter_916_act2_bright": {
+   "name": "chapter_916_act2_bright",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 2,
+   "total": 5,
+   "title": "Documented Physical Architecture",
+   "title_chars": 32,
+   "fits_chapter": true,
+   "ground": "bright",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\08_commons.jpg",
+   "photo_name": "08_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 157.8,
+    "edge_energy": 9.1,
+    "mean_saturation": 81.1
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 128,
+    "title_lines": [
+     "DOCUMENTED",
+     "PHYSICAL",
+     "ARCHITECTURE"
+    ],
+    "R": 300,
+    "Bn": 640,
+    "title_baselines": [
+     806,
+     931,
+     1056
+    ],
+    "block_centre": 678.0,
+    "block_h": 756,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 89.5,
+    "darken_steps": 0,
+    "drawn_contrast_min": 7.08
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "2",
+    "title_0": "DOCUMENTED",
+    "title_1": "PHYSICAL",
+    "title_2": "ARCHITECTURE",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "DOCUMENTED",
+     "PHYSICAL",
+     "ARCHITECTURE"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0,
+     14.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     253,
+     578,
+     333,
+     641
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      300,
+      144,
+      304
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      325,
+      339,
+      355
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      381,
+      237,
+      640
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      695,
+      717,
+      807
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      820,
+      538,
+      932
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_2",
+     "box": [
+      100,
+      945,
+      763,
+      1057
+     ],
+     "px": 128
+    },
+    {
+     "name": "total",
+     "box": [
+      253,
+      578,
+      333,
+      641
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act2_bright__mid.png",
+     "jpg": "chapter_916_act2_bright__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act2_bright__last.png",
+     "jpg": "chapter_916_act2_bright__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 7.08
+    }
+   },
+   "seconds_to_render": 4.9
+  },
+  "chapter_916_act2_busy": {
+   "name": "chapter_916_act2_busy",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 2,
+   "total": 5,
+   "title": "Documented Physical Architecture",
+   "title_chars": 32,
+   "fits_chapter": true,
+   "ground": "busy",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\05_commons.jpg",
+   "photo_name": "05_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 124.2,
+    "edge_energy": 33.7,
+    "mean_saturation": 73.3
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 128,
+    "title_lines": [
+     "DOCUMENTED",
+     "PHYSICAL",
+     "ARCHITECTURE"
+    ],
+    "R": 300,
+    "Bn": 640,
+    "title_baselines": [
+     806,
+     931,
+     1056
+    ],
+    "block_centre": 678.0,
+    "block_h": 756,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 51.7,
+    "darken_steps": 0,
+    "drawn_contrast_min": 8.52
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "2",
+    "title_0": "DOCUMENTED",
+    "title_1": "PHYSICAL",
+    "title_2": "ARCHITECTURE",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "DOCUMENTED",
+     "PHYSICAL",
+     "ARCHITECTURE"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0,
+     14.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     253,
+     578,
+     333,
+     641
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      300,
+      144,
+      304
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      325,
+      339,
+      355
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      381,
+      237,
+      640
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      695,
+      717,
+      807
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      820,
+      538,
+      932
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_2",
+     "box": [
+      100,
+      945,
+      763,
+      1057
+     ],
+     "px": 128
+    },
+    {
+     "name": "total",
+     "box": [
+      253,
+      578,
+      333,
+      641
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act2_busy__mid.png",
+     "jpg": "chapter_916_act2_busy__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act2_busy__last.png",
+     "jpg": "chapter_916_act2_busy__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 8.52
+    }
+   },
+   "seconds_to_render": 10.8
+  },
+  "chapter_916_act2_hero": {
+   "name": "chapter_916_act2_hero",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 2,
+   "total": 5,
+   "title": "Documented Physical Architecture",
+   "title_chars": 32,
+   "fits_chapter": true,
+   "ground": "hero",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo_name": "01_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 141.3,
+    "edge_energy": 15.1,
+    "mean_saturation": 140.4
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 128,
+    "title_lines": [
+     "DOCUMENTED",
+     "PHYSICAL",
+     "ARCHITECTURE"
+    ],
+    "R": 300,
+    "Bn": 640,
+    "title_baselines": [
+     806,
+     931,
+     1056
+    ],
+    "block_centre": 678.0,
+    "block_h": 756,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 134.8,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.35
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "2",
+    "title_0": "DOCUMENTED",
+    "title_1": "PHYSICAL",
+    "title_2": "ARCHITECTURE",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "DOCUMENTED",
+     "PHYSICAL",
+     "ARCHITECTURE"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0,
+     14.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     253,
+     578,
+     333,
+     641
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      300,
+      144,
+      304
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      325,
+      339,
+      355
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      381,
+      237,
+      640
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      695,
+      717,
+      807
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      820,
+      538,
+      932
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_2",
+     "box": [
+      100,
+      945,
+      763,
+      1057
+     ],
+     "px": 128
+    },
+    {
+     "name": "total",
+     "box": [
+      253,
+      578,
+      333,
+      641
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act2_hero__mid.png",
+     "jpg": "chapter_916_act2_hero__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act2_hero__last.png",
+     "jpg": "chapter_916_act2_hero__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 9.35
+    }
+   },
+   "seconds_to_render": 3.6
+  },
+  "chapter_916_act2_plain": {
+   "name": "chapter_916_act2_plain",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 2,
+   "total": 5,
+   "title": "Documented Physical Architecture",
+   "title_chars": 32,
+   "fits_chapter": true,
+   "ground": "plain",
+   "photo": null,
+   "photo_name": "(no photo)",
+   "photo_measured": {},
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 128,
+    "title_lines": [
+     "DOCUMENTED",
+     "PHYSICAL",
+     "ARCHITECTURE"
+    ],
+    "R": 300,
+    "Bn": 640,
+    "title_baselines": [
+     806,
+     931,
+     1056
+    ],
+    "block_centre": 678.0,
+    "block_h": 756,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 0.0,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.09
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "2",
+    "title_0": "DOCUMENTED",
+    "title_1": "PHYSICAL",
+    "title_2": "ARCHITECTURE",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "DOCUMENTED",
+     "PHYSICAL",
+     "ARCHITECTURE"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0,
+     14.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     253,
+     578,
+     333,
+     641
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      300,
+      144,
+      304
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      325,
+      339,
+      355
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      381,
+      237,
+      640
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      695,
+      717,
+      807
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      820,
+      538,
+      932
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_2",
+     "box": [
+      100,
+      945,
+      763,
+      1057
+     ],
+     "px": 128
+    },
+    {
+     "name": "total",
+     "box": [
+      253,
+      578,
+      333,
+      641
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act2_plain__mid.png",
+     "jpg": "chapter_916_act2_plain__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act2_plain__last.png",
+     "jpg": "chapter_916_act2_plain__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 9.09
+    }
+   },
+   "seconds_to_render": 1.8
+  },
+  "chapter_169_act2_dark": {
+   "name": "chapter_169_act2_dark",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 2,
+   "total": 5,
+   "title": "Documented Physical Architecture",
+   "title_chars": 32,
+   "fits_chapter": true,
+   "ground": "dark",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo_name": "14_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 84.2,
+    "edge_energy": 5.8,
+    "mean_saturation": 123.8
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 152,
+    "title_lines": [
+     "DOCUMENTED PHYSICAL",
+     "ARCHITECTURE"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 670,
+    "K": 332,
+    "title_baselines": [
+     490,
+     670
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#F2B630",
+    "numeral_right": 325,
+    "ground_saturation": 137.6,
+    "darken_steps": 0,
+    "drawn_contrast_min": 7.69
+   },
+   "drawn_text": {
+    "numeral": "2",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "DOCUMENTED PHYSICAL",
+    "title_1": "ARCHITECTURE"
+   },
+   "lines": {
+    "title": [
+     "DOCUMENTED PHYSICAL",
+     "ARCHITECTURE"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     48.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     298,
+     780,
+     336
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      161,
+      359,
+      325,
+      670
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      360,
+      393,
+      670
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      281,
+      503,
+      285
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      303,
+      692,
+      333
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      298,
+      780,
+      336
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      358,
+      1757,
+      491
+     ],
+     "px": 152
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      538,
+      1245,
+      671
+     ],
+     "px": 152
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act2_dark__mid.png",
+     "jpg": "chapter_169_act2_dark__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act2_dark__last.png",
+     "jpg": "chapter_169_act2_dark__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 7.69
+    }
+   },
+   "seconds_to_render": 4.9
+  },
+  "chapter_169_act2_bright": {
+   "name": "chapter_169_act2_bright",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 2,
+   "total": 5,
+   "title": "Documented Physical Architecture",
+   "title_chars": 32,
+   "fits_chapter": true,
+   "ground": "bright",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\08_commons.jpg",
+   "photo_name": "08_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 157.8,
+    "edge_energy": 9.1,
+    "mean_saturation": 81.1
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 152,
+    "title_lines": [
+     "DOCUMENTED PHYSICAL",
+     "ARCHITECTURE"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 670,
+    "K": 332,
+    "title_baselines": [
+     490,
+     670
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#8A6A1E",
+    "numeral_right": 325,
+    "ground_saturation": 75.8,
+    "darken_steps": 0,
+    "drawn_contrast_min": 7.41
+   },
+   "drawn_text": {
+    "numeral": "2",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "DOCUMENTED PHYSICAL",
+    "title_1": "ARCHITECTURE"
+   },
+   "lines": {
+    "title": [
+     "DOCUMENTED PHYSICAL",
+     "ARCHITECTURE"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     48.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     298,
+     780,
+     336
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      161,
+      359,
+      325,
+      670
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      360,
+      393,
+      670
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      281,
+      503,
+      285
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      303,
+      692,
+      333
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      298,
+      780,
+      336
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      358,
+      1757,
+      491
+     ],
+     "px": 152
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      538,
+      1245,
+      671
+     ],
+     "px": 152
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act2_bright__mid.png",
+     "jpg": "chapter_169_act2_bright__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act2_bright__last.png",
+     "jpg": "chapter_169_act2_bright__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 7.43
+    }
+   },
+   "seconds_to_render": 6.8
+  },
+  "chapter_169_act2_busy": {
+   "name": "chapter_169_act2_busy",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 2,
+   "total": 5,
+   "title": "Documented Physical Architecture",
+   "title_chars": 32,
+   "fits_chapter": true,
+   "ground": "busy",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\05_commons.jpg",
+   "photo_name": "05_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 124.2,
+    "edge_energy": 33.7,
+    "mean_saturation": 73.3
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 152,
+    "title_lines": [
+     "DOCUMENTED PHYSICAL",
+     "ARCHITECTURE"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 670,
+    "K": 332,
+    "title_baselines": [
+     490,
+     670
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#8A6A1E",
+    "numeral_right": 325,
+    "ground_saturation": 59.0,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.86
+   },
+   "drawn_text": {
+    "numeral": "2",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "DOCUMENTED PHYSICAL",
+    "title_1": "ARCHITECTURE"
+   },
+   "lines": {
+    "title": [
+     "DOCUMENTED PHYSICAL",
+     "ARCHITECTURE"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     48.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     298,
+     780,
+     336
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      161,
+      359,
+      325,
+      670
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      360,
+      393,
+      670
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      281,
+      503,
+      285
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      303,
+      692,
+      333
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      298,
+      780,
+      336
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      358,
+      1757,
+      491
+     ],
+     "px": 152
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      538,
+      1245,
+      671
+     ],
+     "px": 152
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act2_busy__mid.png",
+     "jpg": "chapter_169_act2_busy__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act2_busy__last.png",
+     "jpg": "chapter_169_act2_busy__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 9.87
+    }
+   },
+   "seconds_to_render": 10.7
+  },
+  "chapter_169_act2_hero": {
+   "name": "chapter_169_act2_hero",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 2,
+   "total": 5,
+   "title": "Documented Physical Architecture",
+   "title_chars": 32,
+   "fits_chapter": true,
+   "ground": "hero",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo_name": "01_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 141.3,
+    "edge_energy": 15.1,
+    "mean_saturation": 140.4
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 152,
+    "title_lines": [
+     "DOCUMENTED PHYSICAL",
+     "ARCHITECTURE"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 670,
+    "K": 332,
+    "title_baselines": [
+     490,
+     670
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#8A6A1E",
+    "numeral_right": 325,
+    "ground_saturation": 134.4,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.5
+   },
+   "drawn_text": {
+    "numeral": "2",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "DOCUMENTED PHYSICAL",
+    "title_1": "ARCHITECTURE"
+   },
+   "lines": {
+    "title": [
+     "DOCUMENTED PHYSICAL",
+     "ARCHITECTURE"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     48.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     298,
+     780,
+     336
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      161,
+      359,
+      325,
+      670
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      360,
+      393,
+      670
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      281,
+      503,
+      285
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      303,
+      692,
+      333
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      298,
+      780,
+      336
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      358,
+      1757,
+      491
+     ],
+     "px": 152
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      538,
+      1245,
+      671
+     ],
+     "px": 152
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act2_hero__mid.png",
+     "jpg": "chapter_169_act2_hero__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act2_hero__last.png",
+     "jpg": "chapter_169_act2_hero__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 9.52
+    }
+   },
+   "seconds_to_render": 4.2
+  },
+  "chapter_169_act2_plain": {
+   "name": "chapter_169_act2_plain",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 2,
+   "total": 5,
+   "title": "Documented Physical Architecture",
+   "title_chars": 32,
+   "fits_chapter": true,
+   "ground": "plain",
+   "photo": null,
+   "photo_name": "(no photo)",
+   "photo_measured": {},
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 152,
+    "title_lines": [
+     "DOCUMENTED PHYSICAL",
+     "ARCHITECTURE"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 670,
+    "K": 332,
+    "title_baselines": [
+     490,
+     670
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#8A6A1E",
+    "numeral_right": 325,
+    "ground_saturation": 0.0,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.09
+   },
+   "drawn_text": {
+    "numeral": "2",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "DOCUMENTED PHYSICAL",
+    "title_1": "ARCHITECTURE"
+   },
+   "lines": {
+    "title": [
+     "DOCUMENTED PHYSICAL",
+     "ARCHITECTURE"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     48.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     298,
+     780,
+     336
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      161,
+      359,
+      325,
+      670
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      360,
+      393,
+      670
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      281,
+      503,
+      285
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      303,
+      692,
+      333
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      298,
+      780,
+      336
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      358,
+      1757,
+      491
+     ],
+     "px": 152
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      538,
+      1245,
+      671
+     ],
+     "px": 152
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act2_plain__mid.png",
+     "jpg": "chapter_169_act2_plain__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act2_plain__last.png",
+     "jpg": "chapter_169_act2_plain__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 9.09
+    }
+   },
+   "seconds_to_render": 2.7
+  },
+  "chapter_916_act3_dark": {
+   "name": "chapter_916_act3_dark",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 3,
+   "total": 5,
+   "title": "Origin Debates and Rock Dating",
+   "title_chars": 30,
+   "fits_chapter": true,
+   "ground": "dark",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo_name": "14_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 84.2,
+    "edge_energy": 5.8,
+    "mean_saturation": 123.8
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 120,
+    "title_lines": [
+     "ORIGIN DEBATES",
+     "AND ROCK DATING"
+    ],
+    "R": 439,
+    "Bn": 779,
+    "title_baselines": [
+     938,
+     1056
+    ],
+    "block_centre": 747.5,
+    "block_h": 617,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 137.5,
+    "darken_steps": 0,
+    "drawn_contrast_min": 7.35
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "3",
+    "title_0": "ORIGIN DEBATES",
+    "title_1": "AND ROCK DATING",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "ORIGIN DEBATES",
+     "AND ROCK DATING"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     252,
+     717,
+     332,
+     780
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      439,
+      144,
+      443
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      464,
+      339,
+      494
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      520,
+      236,
+      782
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      834,
+      787,
+      939
+     ],
+     "px": 120
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      952,
+      867,
+      1057
+     ],
+     "px": 120
+    },
+    {
+     "name": "total",
+     "box": [
+      252,
+      717,
+      332,
+      780
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act3_dark__mid.png",
+     "jpg": "chapter_916_act3_dark__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act3_dark__last.png",
+     "jpg": "chapter_916_act3_dark__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 7.35
+    }
+   },
+   "seconds_to_render": 4.1
+  },
+  "chapter_916_act3_bright": {
+   "name": "chapter_916_act3_bright",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 3,
+   "total": 5,
+   "title": "Origin Debates and Rock Dating",
+   "title_chars": 30,
+   "fits_chapter": true,
+   "ground": "bright",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\08_commons.jpg",
+   "photo_name": "08_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 157.8,
+    "edge_energy": 9.1,
+    "mean_saturation": 81.1
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 120,
+    "title_lines": [
+     "ORIGIN DEBATES",
+     "AND ROCK DATING"
+    ],
+    "R": 439,
+    "Bn": 779,
+    "title_baselines": [
+     938,
+     1056
+    ],
+    "block_centre": 747.5,
+    "block_h": 617,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 89.1,
+    "darken_steps": 0,
+    "drawn_contrast_min": 7.1
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "3",
+    "title_0": "ORIGIN DEBATES",
+    "title_1": "AND ROCK DATING",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "ORIGIN DEBATES",
+     "AND ROCK DATING"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     252,
+     717,
+     332,
+     780
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      439,
+      144,
+      443
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      464,
+      339,
+      494
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      520,
+      236,
+      782
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      834,
+      787,
+      939
+     ],
+     "px": 120
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      952,
+      867,
+      1057
+     ],
+     "px": 120
+    },
+    {
+     "name": "total",
+     "box": [
+      252,
+      717,
+      332,
+      780
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act3_bright__mid.png",
+     "jpg": "chapter_916_act3_bright__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act3_bright__last.png",
+     "jpg": "chapter_916_act3_bright__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 7.1
+    }
+   },
+   "seconds_to_render": 5.1
+  },
+  "chapter_916_act3_busy": {
+   "name": "chapter_916_act3_busy",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 3,
+   "total": 5,
+   "title": "Origin Debates and Rock Dating",
+   "title_chars": 30,
+   "fits_chapter": true,
+   "ground": "busy",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\05_commons.jpg",
+   "photo_name": "05_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 124.2,
+    "edge_energy": 33.7,
+    "mean_saturation": 73.3
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 120,
+    "title_lines": [
+     "ORIGIN DEBATES",
+     "AND ROCK DATING"
+    ],
+    "R": 439,
+    "Bn": 779,
+    "title_baselines": [
+     938,
+     1056
+    ],
+    "block_centre": 747.5,
+    "block_h": 617,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 53.1,
+    "darken_steps": 0,
+    "drawn_contrast_min": 8.6
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "3",
+    "title_0": "ORIGIN DEBATES",
+    "title_1": "AND ROCK DATING",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "ORIGIN DEBATES",
+     "AND ROCK DATING"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     252,
+     717,
+     332,
+     780
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      439,
+      144,
+      443
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      464,
+      339,
+      494
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      520,
+      236,
+      782
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      834,
+      787,
+      939
+     ],
+     "px": 120
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      952,
+      867,
+      1057
+     ],
+     "px": 120
+    },
+    {
+     "name": "total",
+     "box": [
+      252,
+      717,
+      332,
+      780
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act3_busy__mid.png",
+     "jpg": "chapter_916_act3_busy__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act3_busy__last.png",
+     "jpg": "chapter_916_act3_busy__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 8.6
+    }
+   },
+   "seconds_to_render": 11.3
+  },
+  "chapter_916_act3_hero": {
+   "name": "chapter_916_act3_hero",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 3,
+   "total": 5,
+   "title": "Origin Debates and Rock Dating",
+   "title_chars": 30,
+   "fits_chapter": true,
+   "ground": "hero",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo_name": "01_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 141.3,
+    "edge_energy": 15.1,
+    "mean_saturation": 140.4
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 120,
+    "title_lines": [
+     "ORIGIN DEBATES",
+     "AND ROCK DATING"
+    ],
+    "R": 439,
+    "Bn": 779,
+    "title_baselines": [
+     938,
+     1056
+    ],
+    "block_centre": 747.5,
+    "block_h": 617,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 134.8,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.33
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "3",
+    "title_0": "ORIGIN DEBATES",
+    "title_1": "AND ROCK DATING",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "ORIGIN DEBATES",
+     "AND ROCK DATING"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     252,
+     717,
+     332,
+     780
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      439,
+      144,
+      443
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      464,
+      339,
+      494
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      520,
+      236,
+      782
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      834,
+      787,
+      939
+     ],
+     "px": 120
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      952,
+      867,
+      1057
+     ],
+     "px": 120
+    },
+    {
+     "name": "total",
+     "box": [
+      252,
+      717,
+      332,
+      780
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act3_hero__mid.png",
+     "jpg": "chapter_916_act3_hero__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act3_hero__last.png",
+     "jpg": "chapter_916_act3_hero__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 9.33
+    }
+   },
+   "seconds_to_render": 4.1
+  },
+  "chapter_916_act3_plain": {
+   "name": "chapter_916_act3_plain",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 3,
+   "total": 5,
+   "title": "Origin Debates and Rock Dating",
+   "title_chars": 30,
+   "fits_chapter": true,
+   "ground": "plain",
+   "photo": null,
+   "photo_name": "(no photo)",
+   "photo_measured": {},
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 120,
+    "title_lines": [
+     "ORIGIN DEBATES",
+     "AND ROCK DATING"
+    ],
+    "R": 439,
+    "Bn": 779,
+    "title_baselines": [
+     938,
+     1056
+    ],
+    "block_centre": 747.5,
+    "block_h": 617,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 0.0,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.09
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "3",
+    "title_0": "ORIGIN DEBATES",
+    "title_1": "AND ROCK DATING",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "ORIGIN DEBATES",
+     "AND ROCK DATING"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     252,
+     717,
+     332,
+     780
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      439,
+      144,
+      443
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      464,
+      339,
+      494
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      520,
+      236,
+      782
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      834,
+      787,
+      939
+     ],
+     "px": 120
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      952,
+      867,
+      1057
+     ],
+     "px": 120
+    },
+    {
+     "name": "total",
+     "box": [
+      252,
+      717,
+      332,
+      780
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act3_plain__mid.png",
+     "jpg": "chapter_916_act3_plain__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act3_plain__last.png",
+     "jpg": "chapter_916_act3_plain__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 9.09
+    }
+   },
+   "seconds_to_render": 2.1
+  },
+  "chapter_169_act3_dark": {
+   "name": "chapter_169_act3_dark",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 3,
+   "total": 5,
+   "title": "Origin Debates and Rock Dating",
+   "title_chars": 30,
+   "fits_chapter": true,
+   "ground": "dark",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo_name": "14_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 84.2,
+    "edge_energy": 5.8,
+    "mean_saturation": 123.8
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 176,
+    "title_lines": [
+     "ORIGIN DEBATES",
+     "AND ROCK DATING"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 676,
+    "K": 326,
+    "title_baselines": [
+     504,
+     676
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#F2B630",
+    "numeral_right": 325,
+    "ground_saturation": 137.5,
+    "darken_steps": 0,
+    "drawn_contrast_min": 7.69
+   },
+   "drawn_text": {
+    "numeral": "3",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "ORIGIN DEBATES",
+    "title_1": "AND ROCK DATING"
+   },
+   "lines": {
+    "title": [
+     "ORIGIN DEBATES",
+     "AND ROCK DATING"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     20.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     292,
+     780,
+     330
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      162,
+      366,
+      325,
+      680
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      366,
+      393,
+      676
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      275,
+      503,
+      279
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      297,
+      692,
+      327
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      292,
+      780,
+      330
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      352,
+      1464,
+      505
+     ],
+     "px": 176
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      524,
+      1584,
+      677
+     ],
+     "px": 176
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act3_dark__mid.png",
+     "jpg": "chapter_169_act3_dark__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act3_dark__last.png",
+     "jpg": "chapter_169_act3_dark__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 7.69
+    }
+   },
+   "seconds_to_render": 5.9
+  },
+  "chapter_169_act3_bright": {
+   "name": "chapter_169_act3_bright",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 3,
+   "total": 5,
+   "title": "Origin Debates and Rock Dating",
+   "title_chars": 30,
+   "fits_chapter": true,
+   "ground": "bright",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\08_commons.jpg",
+   "photo_name": "08_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 157.8,
+    "edge_energy": 9.1,
+    "mean_saturation": 81.1
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 176,
+    "title_lines": [
+     "ORIGIN DEBATES",
+     "AND ROCK DATING"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 676,
+    "K": 326,
+    "title_baselines": [
+     504,
+     676
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#8A6A1E",
+    "numeral_right": 325,
+    "ground_saturation": 76.0,
+    "darken_steps": 0,
+    "drawn_contrast_min": 7.42
+   },
+   "drawn_text": {
+    "numeral": "3",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "ORIGIN DEBATES",
+    "title_1": "AND ROCK DATING"
+   },
+   "lines": {
+    "title": [
+     "ORIGIN DEBATES",
+     "AND ROCK DATING"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     20.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     292,
+     780,
+     330
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      162,
+      366,
+      325,
+      680
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      366,
+      393,
+      676
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      275,
+      503,
+      279
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      297,
+      692,
+      327
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      292,
+      780,
+      330
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      352,
+      1464,
+      505
+     ],
+     "px": 176
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      524,
+      1584,
+      677
+     ],
+     "px": 176
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act3_bright__mid.png",
+     "jpg": "chapter_169_act3_bright__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act3_bright__last.png",
+     "jpg": "chapter_169_act3_bright__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 7.43
+    }
+   },
+   "seconds_to_render": 7.1
+  },
+  "chapter_169_act3_busy": {
+   "name": "chapter_169_act3_busy",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 3,
+   "total": 5,
+   "title": "Origin Debates and Rock Dating",
+   "title_chars": 30,
+   "fits_chapter": true,
+   "ground": "busy",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\05_commons.jpg",
+   "photo_name": "05_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 124.2,
+    "edge_energy": 33.7,
+    "mean_saturation": 73.3
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 176,
+    "title_lines": [
+     "ORIGIN DEBATES",
+     "AND ROCK DATING"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 676,
+    "K": 326,
+    "title_baselines": [
+     504,
+     676
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#8A6A1E",
+    "numeral_right": 325,
+    "ground_saturation": 59.1,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.94
+   },
+   "drawn_text": {
+    "numeral": "3",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "ORIGIN DEBATES",
+    "title_1": "AND ROCK DATING"
+   },
+   "lines": {
+    "title": [
+     "ORIGIN DEBATES",
+     "AND ROCK DATING"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     20.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     292,
+     780,
+     330
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      162,
+      366,
+      325,
+      680
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      366,
+      393,
+      676
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      275,
+      503,
+      279
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      297,
+      692,
+      327
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      292,
+      780,
+      330
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      352,
+      1464,
+      505
+     ],
+     "px": 176
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      524,
+      1584,
+      677
+     ],
+     "px": 176
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act3_busy__mid.png",
+     "jpg": "chapter_169_act3_busy__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act3_busy__last.png",
+     "jpg": "chapter_169_act3_busy__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 9.94
+    }
+   },
+   "seconds_to_render": 10.7
+  },
+  "chapter_169_act3_hero": {
+   "name": "chapter_169_act3_hero",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 3,
+   "total": 5,
+   "title": "Origin Debates and Rock Dating",
+   "title_chars": 30,
+   "fits_chapter": true,
+   "ground": "hero",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo_name": "01_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 141.3,
+    "edge_energy": 15.1,
+    "mean_saturation": 140.4
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 176,
+    "title_lines": [
+     "ORIGIN DEBATES",
+     "AND ROCK DATING"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 676,
+    "K": 326,
+    "title_baselines": [
+     504,
+     676
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#8A6A1E",
+    "numeral_right": 325,
+    "ground_saturation": 134.4,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.59
+   },
+   "drawn_text": {
+    "numeral": "3",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "ORIGIN DEBATES",
+    "title_1": "AND ROCK DATING"
+   },
+   "lines": {
+    "title": [
+     "ORIGIN DEBATES",
+     "AND ROCK DATING"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     20.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     292,
+     780,
+     330
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      162,
+      366,
+      325,
+      680
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      366,
+      393,
+      676
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      275,
+      503,
+      279
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      297,
+      692,
+      327
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      292,
+      780,
+      330
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      352,
+      1464,
+      505
+     ],
+     "px": 176
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      524,
+      1584,
+      677
+     ],
+     "px": 176
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act3_hero__mid.png",
+     "jpg": "chapter_169_act3_hero__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act3_hero__last.png",
+     "jpg": "chapter_169_act3_hero__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 9.61
+    }
+   },
+   "seconds_to_render": 4.0
+  },
+  "chapter_169_act3_plain": {
+   "name": "chapter_169_act3_plain",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 3,
+   "total": 5,
+   "title": "Origin Debates and Rock Dating",
+   "title_chars": 30,
+   "fits_chapter": true,
+   "ground": "plain",
+   "photo": null,
+   "photo_name": "(no photo)",
+   "photo_measured": {},
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 176,
+    "title_lines": [
+     "ORIGIN DEBATES",
+     "AND ROCK DATING"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 676,
+    "K": 326,
+    "title_baselines": [
+     504,
+     676
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#8A6A1E",
+    "numeral_right": 325,
+    "ground_saturation": 0.0,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.09
+   },
+   "drawn_text": {
+    "numeral": "3",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "ORIGIN DEBATES",
+    "title_1": "AND ROCK DATING"
+   },
+   "lines": {
+    "title": [
+     "ORIGIN DEBATES",
+     "AND ROCK DATING"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     20.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     292,
+     780,
+     330
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      162,
+      366,
+      325,
+      680
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      366,
+      393,
+      676
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      275,
+      503,
+      279
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      297,
+      692,
+      327
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      292,
+      780,
+      330
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      352,
+      1464,
+      505
+     ],
+     "px": 176
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      524,
+      1584,
+      677
+     ],
+     "px": 176
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act3_plain__mid.png",
+     "jpg": "chapter_169_act3_plain__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act3_plain__last.png",
+     "jpg": "chapter_169_act3_plain__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 9.09
+    }
+   },
+   "seconds_to_render": 2.6
+  },
+  "chapter_916_act4_dark": {
+   "name": "chapter_916_act4_dark",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 4,
+   "total": 5,
+   "title": "Archaeological Evidence and Refuted Claims",
+   "title_chars": 42,
+   "fits_chapter": false,
+   "ground": "dark",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo_name": "14_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 84.2,
+    "edge_energy": 5.8,
+    "mean_saturation": 123.8
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 100,
+    "title_lines": [
+     "ARCHAEOLOGICAL",
+     "EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ],
+    "R": 378,
+    "Bn": 718,
+    "title_baselines": [
+     860,
+     958,
+     1056
+    ],
+    "block_centre": 717.0,
+    "block_h": 678,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 137.3,
+    "darken_steps": 0,
+    "drawn_contrast_min": 7.35
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "4",
+    "title_0": "ARCHAEOLOGICAL",
+    "title_1": "EVIDENCE",
+    "title_2": "AND REFUTED CLAIMS",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "ARCHAEOLOGICAL",
+     "EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     11.0,
+     11.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     260,
+     656,
+     340,
+     719
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      378,
+      144,
+      382
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      403,
+      339,
+      433
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      460,
+      244,
+      719
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      773,
+      725,
+      861
+     ],
+     "px": 100
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      871,
+      435,
+      959
+     ],
+     "px": 100
+    },
+    {
+     "name": "title_2",
+     "box": [
+      100,
+      969,
+      878,
+      1057
+     ],
+     "px": 100
+    },
+    {
+     "name": "total",
+     "box": [
+      260,
+      656,
+      340,
+      719
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act4_dark__mid.png",
+     "jpg": "chapter_916_act4_dark__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act4_dark__last.png",
+     "jpg": "chapter_916_act4_dark__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 7.35
+    }
+   },
+   "seconds_to_render": 4.8
+  },
+  "chapter_916_act4_bright": {
+   "name": "chapter_916_act4_bright",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 4,
+   "total": 5,
+   "title": "Archaeological Evidence and Refuted Claims",
+   "title_chars": 42,
+   "fits_chapter": false,
+   "ground": "bright",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\08_commons.jpg",
+   "photo_name": "08_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 157.8,
+    "edge_energy": 9.1,
+    "mean_saturation": 81.1
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 100,
+    "title_lines": [
+     "ARCHAEOLOGICAL",
+     "EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ],
+    "R": 378,
+    "Bn": 718,
+    "title_baselines": [
+     860,
+     958,
+     1056
+    ],
+    "block_centre": 717.0,
+    "block_h": 678,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 89.1,
+    "darken_steps": 0,
+    "drawn_contrast_min": 7.1
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "4",
+    "title_0": "ARCHAEOLOGICAL",
+    "title_1": "EVIDENCE",
+    "title_2": "AND REFUTED CLAIMS",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "ARCHAEOLOGICAL",
+     "EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     11.0,
+     11.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     260,
+     656,
+     340,
+     719
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      378,
+      144,
+      382
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      403,
+      339,
+      433
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      460,
+      244,
+      719
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      773,
+      725,
+      861
+     ],
+     "px": 100
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      871,
+      435,
+      959
+     ],
+     "px": 100
+    },
+    {
+     "name": "title_2",
+     "box": [
+      100,
+      969,
+      878,
+      1057
+     ],
+     "px": 100
+    },
+    {
+     "name": "total",
+     "box": [
+      260,
+      656,
+      340,
+      719
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act4_bright__mid.png",
+     "jpg": "chapter_916_act4_bright__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act4_bright__last.png",
+     "jpg": "chapter_916_act4_bright__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 7.1
+    }
+   },
+   "seconds_to_render": 4.8
+  },
+  "chapter_916_act4_busy": {
+   "name": "chapter_916_act4_busy",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 4,
+   "total": 5,
+   "title": "Archaeological Evidence and Refuted Claims",
+   "title_chars": 42,
+   "fits_chapter": false,
+   "ground": "busy",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\05_commons.jpg",
+   "photo_name": "05_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 124.2,
+    "edge_energy": 33.7,
+    "mean_saturation": 73.3
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 100,
+    "title_lines": [
+     "ARCHAEOLOGICAL",
+     "EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ],
+    "R": 378,
+    "Bn": 718,
+    "title_baselines": [
+     860,
+     958,
+     1056
+    ],
+    "block_centre": 717.0,
+    "block_h": 678,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 52.2,
+    "darken_steps": 0,
+    "drawn_contrast_min": 8.58
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "4",
+    "title_0": "ARCHAEOLOGICAL",
+    "title_1": "EVIDENCE",
+    "title_2": "AND REFUTED CLAIMS",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "ARCHAEOLOGICAL",
+     "EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     11.0,
+     11.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     260,
+     656,
+     340,
+     719
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      378,
+      144,
+      382
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      403,
+      339,
+      433
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      460,
+      244,
+      719
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      773,
+      725,
+      861
+     ],
+     "px": 100
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      871,
+      435,
+      959
+     ],
+     "px": 100
+    },
+    {
+     "name": "title_2",
+     "box": [
+      100,
+      969,
+      878,
+      1057
+     ],
+     "px": 100
+    },
+    {
+     "name": "total",
+     "box": [
+      260,
+      656,
+      340,
+      719
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act4_busy__mid.png",
+     "jpg": "chapter_916_act4_busy__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act4_busy__last.png",
+     "jpg": "chapter_916_act4_busy__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 8.58
+    }
+   },
+   "seconds_to_render": 9.7
+  },
+  "chapter_916_act4_hero": {
+   "name": "chapter_916_act4_hero",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 4,
+   "total": 5,
+   "title": "Archaeological Evidence and Refuted Claims",
+   "title_chars": 42,
+   "fits_chapter": false,
+   "ground": "hero",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo_name": "01_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 141.3,
+    "edge_energy": 15.1,
+    "mean_saturation": 140.4
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 100,
+    "title_lines": [
+     "ARCHAEOLOGICAL",
+     "EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ],
+    "R": 378,
+    "Bn": 718,
+    "title_baselines": [
+     860,
+     958,
+     1056
+    ],
+    "block_centre": 717.0,
+    "block_h": 678,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 134.5,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.33
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "4",
+    "title_0": "ARCHAEOLOGICAL",
+    "title_1": "EVIDENCE",
+    "title_2": "AND REFUTED CLAIMS",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "ARCHAEOLOGICAL",
+     "EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     11.0,
+     11.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     260,
+     656,
+     340,
+     719
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      378,
+      144,
+      382
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      403,
+      339,
+      433
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      460,
+      244,
+      719
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      773,
+      725,
+      861
+     ],
+     "px": 100
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      871,
+      435,
+      959
+     ],
+     "px": 100
+    },
+    {
+     "name": "title_2",
+     "box": [
+      100,
+      969,
+      878,
+      1057
+     ],
+     "px": 100
+    },
+    {
+     "name": "total",
+     "box": [
+      260,
+      656,
+      340,
+      719
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act4_hero__mid.png",
+     "jpg": "chapter_916_act4_hero__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act4_hero__last.png",
+     "jpg": "chapter_916_act4_hero__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 9.33
+    }
+   },
+   "seconds_to_render": 3.1
+  },
+  "chapter_916_act4_plain": {
+   "name": "chapter_916_act4_plain",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 4,
+   "total": 5,
+   "title": "Archaeological Evidence and Refuted Claims",
+   "title_chars": 42,
+   "fits_chapter": false,
+   "ground": "plain",
+   "photo": null,
+   "photo_name": "(no photo)",
+   "photo_measured": {},
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 100,
+    "title_lines": [
+     "ARCHAEOLOGICAL",
+     "EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ],
+    "R": 378,
+    "Bn": 718,
+    "title_baselines": [
+     860,
+     958,
+     1056
+    ],
+    "block_centre": 717.0,
+    "block_h": 678,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 0.0,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.09
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "4",
+    "title_0": "ARCHAEOLOGICAL",
+    "title_1": "EVIDENCE",
+    "title_2": "AND REFUTED CLAIMS",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "ARCHAEOLOGICAL",
+     "EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     11.0,
+     11.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     260,
+     656,
+     340,
+     719
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      378,
+      144,
+      382
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      403,
+      339,
+      433
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      460,
+      244,
+      719
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      773,
+      725,
+      861
+     ],
+     "px": 100
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      871,
+      435,
+      959
+     ],
+     "px": 100
+    },
+    {
+     "name": "title_2",
+     "box": [
+      100,
+      969,
+      878,
+      1057
+     ],
+     "px": 100
+    },
+    {
+     "name": "total",
+     "box": [
+      260,
+      656,
+      340,
+      719
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act4_plain__mid.png",
+     "jpg": "chapter_916_act4_plain__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act4_plain__last.png",
+     "jpg": "chapter_916_act4_plain__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 9.09
+    }
+   },
+   "seconds_to_render": 1.9
+  },
+  "chapter_169_act4_dark": {
+   "name": "chapter_169_act4_dark",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 4,
+   "total": 5,
+   "title": "Archaeological Evidence and Refuted Claims",
+   "title_chars": 42,
+   "fits_chapter": false,
+   "ground": "dark",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo_name": "14_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 84.2,
+    "edge_energy": 5.8,
+    "mean_saturation": 123.8
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 128,
+    "title_lines": [
+     "ARCHAEOLOGICAL EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 670,
+    "K": 332,
+    "title_baselines": [
+     469,
+     623
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#F2B630",
+    "numeral_right": 325,
+    "ground_saturation": 137.6,
+    "darken_steps": 0,
+    "drawn_contrast_min": 7.69
+   },
+   "drawn_text": {
+    "numeral": "4",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "ARCHAEOLOGICAL EVIDENCE",
+    "title_1": "AND REFUTED CLAIMS"
+   },
+   "lines": {
+    "title": [
+     "ARCHAEOLOGICAL EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     43.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     298,
+     780,
+     336
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      153,
+      360,
+      325,
+      671
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      360,
+      393,
+      670
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      281,
+      503,
+      285
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      303,
+      692,
+      333
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      298,
+      780,
+      336
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      358,
+      1724,
+      470
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      512,
+      1454,
+      624
+     ],
+     "px": 128
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act4_dark__mid.png",
+     "jpg": "chapter_169_act4_dark__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act4_dark__last.png",
+     "jpg": "chapter_169_act4_dark__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 7.69
+    }
+   },
+   "seconds_to_render": 4.6
+  },
+  "chapter_169_act4_bright": {
+   "name": "chapter_169_act4_bright",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 4,
+   "total": 5,
+   "title": "Archaeological Evidence and Refuted Claims",
+   "title_chars": 42,
+   "fits_chapter": false,
+   "ground": "bright",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\08_commons.jpg",
+   "photo_name": "08_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 157.8,
+    "edge_energy": 9.1,
+    "mean_saturation": 81.1
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 128,
+    "title_lines": [
+     "ARCHAEOLOGICAL EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 670,
+    "K": 332,
+    "title_baselines": [
+     469,
+     623
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#8A6A1E",
+    "numeral_right": 325,
+    "ground_saturation": 75.8,
+    "darken_steps": 0,
+    "drawn_contrast_min": 7.41
+   },
+   "drawn_text": {
+    "numeral": "4",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "ARCHAEOLOGICAL EVIDENCE",
+    "title_1": "AND REFUTED CLAIMS"
+   },
+   "lines": {
+    "title": [
+     "ARCHAEOLOGICAL EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     43.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     298,
+     780,
+     336
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      153,
+      360,
+      325,
+      671
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      360,
+      393,
+      670
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      281,
+      503,
+      285
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      303,
+      692,
+      333
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      298,
+      780,
+      336
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      358,
+      1724,
+      470
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      512,
+      1454,
+      624
+     ],
+     "px": 128
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act4_bright__mid.png",
+     "jpg": "chapter_169_act4_bright__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act4_bright__last.png",
+     "jpg": "chapter_169_act4_bright__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 7.43
+    }
+   },
+   "seconds_to_render": 4.8
+  },
+  "chapter_169_act4_busy": {
+   "name": "chapter_169_act4_busy",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 4,
+   "total": 5,
+   "title": "Archaeological Evidence and Refuted Claims",
+   "title_chars": 42,
+   "fits_chapter": false,
+   "ground": "busy",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\05_commons.jpg",
+   "photo_name": "05_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 124.2,
+    "edge_energy": 33.7,
+    "mean_saturation": 73.3
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 128,
+    "title_lines": [
+     "ARCHAEOLOGICAL EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 670,
+    "K": 332,
+    "title_baselines": [
+     469,
+     623
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#8A6A1E",
+    "numeral_right": 325,
+    "ground_saturation": 59.0,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.86
+   },
+   "drawn_text": {
+    "numeral": "4",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "ARCHAEOLOGICAL EVIDENCE",
+    "title_1": "AND REFUTED CLAIMS"
+   },
+   "lines": {
+    "title": [
+     "ARCHAEOLOGICAL EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     43.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     298,
+     780,
+     336
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      153,
+      360,
+      325,
+      671
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      360,
+      393,
+      670
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      281,
+      503,
+      285
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      303,
+      692,
+      333
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      298,
+      780,
+      336
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      358,
+      1724,
+      470
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      512,
+      1454,
+      624
+     ],
+     "px": 128
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act4_busy__mid.png",
+     "jpg": "chapter_169_act4_busy__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act4_busy__last.png",
+     "jpg": "chapter_169_act4_busy__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 9.87
+    }
+   },
+   "seconds_to_render": 8.4
+  },
+  "chapter_169_act4_hero": {
+   "name": "chapter_169_act4_hero",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 4,
+   "total": 5,
+   "title": "Archaeological Evidence and Refuted Claims",
+   "title_chars": 42,
+   "fits_chapter": false,
+   "ground": "hero",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo_name": "01_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 141.3,
+    "edge_energy": 15.1,
+    "mean_saturation": 140.4
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 128,
+    "title_lines": [
+     "ARCHAEOLOGICAL EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 670,
+    "K": 332,
+    "title_baselines": [
+     469,
+     623
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#8A6A1E",
+    "numeral_right": 325,
+    "ground_saturation": 134.4,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.5
+   },
+   "drawn_text": {
+    "numeral": "4",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "ARCHAEOLOGICAL EVIDENCE",
+    "title_1": "AND REFUTED CLAIMS"
+   },
+   "lines": {
+    "title": [
+     "ARCHAEOLOGICAL EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     43.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     298,
+     780,
+     336
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      153,
+      360,
+      325,
+      671
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      360,
+      393,
+      670
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      281,
+      503,
+      285
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      303,
+      692,
+      333
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      298,
+      780,
+      336
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      358,
+      1724,
+      470
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      512,
+      1454,
+      624
+     ],
+     "px": 128
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act4_hero__mid.png",
+     "jpg": "chapter_169_act4_hero__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act4_hero__last.png",
+     "jpg": "chapter_169_act4_hero__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 9.52
+    }
+   },
+   "seconds_to_render": 3.6
+  },
+  "chapter_169_act4_plain": {
+   "name": "chapter_169_act4_plain",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 4,
+   "total": 5,
+   "title": "Archaeological Evidence and Refuted Claims",
+   "title_chars": 42,
+   "fits_chapter": false,
+   "ground": "plain",
+   "photo": null,
+   "photo_name": "(no photo)",
+   "photo_measured": {},
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 128,
+    "title_lines": [
+     "ARCHAEOLOGICAL EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 670,
+    "K": 332,
+    "title_baselines": [
+     469,
+     623
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#8A6A1E",
+    "numeral_right": 325,
+    "ground_saturation": 0.0,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.09
+   },
+   "drawn_text": {
+    "numeral": "4",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "ARCHAEOLOGICAL EVIDENCE",
+    "title_1": "AND REFUTED CLAIMS"
+   },
+   "lines": {
+    "title": [
+     "ARCHAEOLOGICAL EVIDENCE",
+     "AND REFUTED CLAIMS"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     43.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     298,
+     780,
+     336
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      153,
+      360,
+      325,
+      671
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      360,
+      393,
+      670
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      281,
+      503,
+      285
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      303,
+      692,
+      333
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      298,
+      780,
+      336
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      358,
+      1724,
+      470
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      512,
+      1454,
+      624
+     ],
+     "px": 128
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act4_plain__mid.png",
+     "jpg": "chapter_169_act4_plain__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act4_plain__last.png",
+     "jpg": "chapter_169_act4_plain__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 9.09
+    }
+   },
+   "seconds_to_render": 2.1
+  },
+  "chapter_916_act5_dark": {
+   "name": "chapter_916_act5_dark",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 5,
+   "total": 5,
+   "title": "International Heritage Recognition",
+   "title_chars": 34,
+   "fits_chapter": false,
+   "ground": "dark",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo_name": "14_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 84.2,
+    "edge_energy": 5.8,
+    "mean_saturation": 123.8
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 128,
+    "title_lines": [
+     "INTERNATIONAL",
+     "HERITAGE",
+     "RECOGNITION"
+    ],
+    "R": 300,
+    "Bn": 640,
+    "title_baselines": [
+     806,
+     931,
+     1056
+    ],
+    "block_centre": 678.0,
+    "block_h": 756,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 136.6,
+    "darken_steps": 0,
+    "drawn_contrast_min": 7.45
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "5",
+    "title_0": "INTERNATIONAL",
+    "title_1": "HERITAGE",
+    "title_2": "RECOGNITION",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "INTERNATIONAL",
+     "HERITAGE",
+     "RECOGNITION"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0,
+     14.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     254,
+     578,
+     334,
+     641
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      300,
+      144,
+      304
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      325,
+      339,
+      355
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      382,
+      238,
+      644
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      695,
+      796,
+      807
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      820,
+      527,
+      932
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_2",
+     "box": [
+      100,
+      945,
+      688,
+      1057
+     ],
+     "px": 128
+    },
+    {
+     "name": "total",
+     "box": [
+      254,
+      578,
+      334,
+      641
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act5_dark__mid.png",
+     "jpg": "chapter_916_act5_dark__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act5_dark__last.png",
+     "jpg": "chapter_916_act5_dark__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 7.45
+    }
+   },
+   "seconds_to_render": 3.8
+  },
+  "chapter_916_act5_bright": {
+   "name": "chapter_916_act5_bright",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 5,
+   "total": 5,
+   "title": "International Heritage Recognition",
+   "title_chars": 34,
+   "fits_chapter": false,
+   "ground": "bright",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\08_commons.jpg",
+   "photo_name": "08_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 157.8,
+    "edge_energy": 9.1,
+    "mean_saturation": 81.1
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 128,
+    "title_lines": [
+     "INTERNATIONAL",
+     "HERITAGE",
+     "RECOGNITION"
+    ],
+    "R": 300,
+    "Bn": 640,
+    "title_baselines": [
+     806,
+     931,
+     1056
+    ],
+    "block_centre": 678.0,
+    "block_h": 756,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 89.5,
+    "darken_steps": 0,
+    "drawn_contrast_min": 7.08
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "5",
+    "title_0": "INTERNATIONAL",
+    "title_1": "HERITAGE",
+    "title_2": "RECOGNITION",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "INTERNATIONAL",
+     "HERITAGE",
+     "RECOGNITION"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0,
+     14.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     254,
+     578,
+     334,
+     641
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      300,
+      144,
+      304
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      325,
+      339,
+      355
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      382,
+      238,
+      644
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      695,
+      796,
+      807
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      820,
+      527,
+      932
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_2",
+     "box": [
+      100,
+      945,
+      688,
+      1057
+     ],
+     "px": 128
+    },
+    {
+     "name": "total",
+     "box": [
+      254,
+      578,
+      334,
+      641
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act5_bright__mid.png",
+     "jpg": "chapter_916_act5_bright__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act5_bright__last.png",
+     "jpg": "chapter_916_act5_bright__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 7.08
+    }
+   },
+   "seconds_to_render": 3.5
+  },
+  "chapter_916_act5_busy": {
+   "name": "chapter_916_act5_busy",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 5,
+   "total": 5,
+   "title": "International Heritage Recognition",
+   "title_chars": 34,
+   "fits_chapter": false,
+   "ground": "busy",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\05_commons.jpg",
+   "photo_name": "05_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 124.2,
+    "edge_energy": 33.7,
+    "mean_saturation": 73.3
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 128,
+    "title_lines": [
+     "INTERNATIONAL",
+     "HERITAGE",
+     "RECOGNITION"
+    ],
+    "R": 300,
+    "Bn": 640,
+    "title_baselines": [
+     806,
+     931,
+     1056
+    ],
+    "block_centre": 678.0,
+    "block_h": 756,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 51.7,
+    "darken_steps": 0,
+    "drawn_contrast_min": 8.57
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "5",
+    "title_0": "INTERNATIONAL",
+    "title_1": "HERITAGE",
+    "title_2": "RECOGNITION",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "INTERNATIONAL",
+     "HERITAGE",
+     "RECOGNITION"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0,
+     14.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     254,
+     578,
+     334,
+     641
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      300,
+      144,
+      304
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      325,
+      339,
+      355
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      382,
+      238,
+      644
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      695,
+      796,
+      807
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      820,
+      527,
+      932
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_2",
+     "box": [
+      100,
+      945,
+      688,
+      1057
+     ],
+     "px": 128
+    },
+    {
+     "name": "total",
+     "box": [
+      254,
+      578,
+      334,
+      641
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act5_busy__mid.png",
+     "jpg": "chapter_916_act5_busy__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act5_busy__last.png",
+     "jpg": "chapter_916_act5_busy__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 8.57
+    }
+   },
+   "seconds_to_render": 6.2
+  },
+  "chapter_916_act5_hero": {
+   "name": "chapter_916_act5_hero",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 5,
+   "total": 5,
+   "title": "International Heritage Recognition",
+   "title_chars": 34,
+   "fits_chapter": false,
+   "ground": "hero",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo_name": "01_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 141.3,
+    "edge_energy": 15.1,
+    "mean_saturation": 140.4
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 128,
+    "title_lines": [
+     "INTERNATIONAL",
+     "HERITAGE",
+     "RECOGNITION"
+    ],
+    "R": 300,
+    "Bn": 640,
+    "title_baselines": [
+     806,
+     931,
+     1056
+    ],
+    "block_centre": 678.0,
+    "block_h": 756,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 134.8,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.35
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "5",
+    "title_0": "INTERNATIONAL",
+    "title_1": "HERITAGE",
+    "title_2": "RECOGNITION",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "INTERNATIONAL",
+     "HERITAGE",
+     "RECOGNITION"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0,
+     14.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     254,
+     578,
+     334,
+     641
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      300,
+      144,
+      304
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      325,
+      339,
+      355
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      382,
+      238,
+      644
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      695,
+      796,
+      807
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      820,
+      527,
+      932
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_2",
+     "box": [
+      100,
+      945,
+      688,
+      1057
+     ],
+     "px": 128
+    },
+    {
+     "name": "total",
+     "box": [
+      254,
+      578,
+      334,
+      641
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act5_hero__mid.png",
+     "jpg": "chapter_916_act5_hero__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act5_hero__last.png",
+     "jpg": "chapter_916_act5_hero__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 9.35
+    }
+   },
+   "seconds_to_render": 2.7
+  },
+  "chapter_916_act5_plain": {
+   "name": "chapter_916_act5_plain",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "916",
+   "number": 5,
+   "total": 5,
+   "title": "International Heritage Recognition",
+   "title_chars": 34,
+   "fits_chapter": false,
+   "ground": "plain",
+   "photo": null,
+   "photo_name": "(no photo)",
+   "photo_measured": {},
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)",
+    "new: 9:16 chapter card of the 16:9 deep dive's act"
+   ],
+   "size": [
+    1080,
+    1920
+   ],
+   "seconds": 2.5,
+   "frames": 75,
+   "anchors": {
+    "title_px": 128,
+    "title_lines": [
+     "INTERNATIONAL",
+     "HERITAGE",
+     "RECOGNITION"
+    ],
+    "R": 300,
+    "Bn": 640,
+    "title_baselines": [
+     806,
+     931,
+     1056
+    ],
+    "block_centre": 678.0,
+    "block_h": 756,
+    "total_fill": "#F2B630",
+    "total_placement": "after_numeral",
+    "ground_saturation": 0.0,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.09
+   },
+   "drawn_text": {
+    "kicker_label": "CHAPTER",
+    "numeral": "5",
+    "title_0": "INTERNATIONAL",
+    "title_1": "HERITAGE",
+    "title_2": "RECOGNITION",
+    "total": "/ 5"
+   },
+   "lines": {
+    "title": [
+     "INTERNATIONAL",
+     "HERITAGE",
+     "RECOGNITION"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     14.0,
+     14.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 72,
+    "face": "Anton",
+    "fill": "#F2B630",
+    "placement": "after_numeral",
+    "box": [
+     254,
+     578,
+     334,
+     641
+    ],
+    "gap_to_ref_ink": 16.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "kicker_rule",
+     "box": [
+      100,
+      300,
+      144,
+      304
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      100,
+      325,
+      339,
+      355
+     ],
+     "px": 40
+    },
+    {
+     "name": "numeral",
+     "box": [
+      100,
+      382,
+      238,
+      644
+     ],
+     "px": 300
+    },
+    {
+     "name": "title_0",
+     "box": [
+      100,
+      695,
+      796,
+      807
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_1",
+     "box": [
+      100,
+      820,
+      527,
+      932
+     ],
+     "px": 128
+    },
+    {
+     "name": "title_2",
+     "box": [
+      100,
+      945,
+      688,
+      1057
+     ],
+     "px": 128
+    },
+    {
+     "name": "total",
+     "box": [
+      254,
+      578,
+      334,
+      641
+     ],
+     "px": 72
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_916_act5_plain__mid.png",
+     "jpg": "chapter_916_act5_plain__mid.jpg",
+     "png_master": "rgb",
+     "frame": 25,
+     "t": 0.833
+    },
+    "last": {
+     "png": "chapter_916_act5_plain__last.png",
+     "jpg": "chapter_916_act5_plain__last.jpg",
+     "png_master": "rgb",
+     "frame": 74,
+     "t": 2.467,
+     "drawn_contrast_min": 9.09
+    }
+   },
+   "seconds_to_render": 1.6
+  },
+  "chapter_169_act5_dark": {
+   "name": "chapter_169_act5_dark",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 5,
+   "total": 5,
+   "title": "International Heritage Recognition",
+   "title_chars": 34,
+   "fits_chapter": false,
+   "ground": "dark",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\14_commons.jpg",
+   "photo_name": "14_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 84.2,
+    "edge_energy": 5.8,
+    "mean_saturation": 123.8
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 152,
+    "title_lines": [
+     "INTERNATIONAL",
+     "HERITAGE RECOGNITION"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 670,
+    "K": 332,
+    "title_baselines": [
+     490,
+     670
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#F2B630",
+    "numeral_right": 325,
+    "ground_saturation": 137.6,
+    "darken_steps": 0,
+    "drawn_contrast_min": 7.69
+   },
+   "drawn_text": {
+    "numeral": "5",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "INTERNATIONAL",
+    "title_1": "HERITAGE RECOGNITION"
+   },
+   "lines": {
+    "title": [
+     "INTERNATIONAL",
+     "HERITAGE RECOGNITION"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     48.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     298,
+     780,
+     336
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      161,
+      360,
+      325,
+      675
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      360,
+      393,
+      670
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      281,
+      503,
+      285
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      303,
+      692,
+      333
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      298,
+      780,
+      336
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      358,
+      1285,
+      491
+     ],
+     "px": 152
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      538,
+      1706,
+      671
+     ],
+     "px": 152
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act5_dark__mid.png",
+     "jpg": "chapter_169_act5_dark__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act5_dark__last.png",
+     "jpg": "chapter_169_act5_dark__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 7.69
+    }
+   },
+   "seconds_to_render": 4.2
+  },
+  "chapter_169_act5_bright": {
+   "name": "chapter_169_act5_bright",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 5,
+   "total": 5,
+   "title": "International Heritage Recognition",
+   "title_chars": 34,
+   "fits_chapter": false,
+   "ground": "bright",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\08_commons.jpg",
+   "photo_name": "08_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 157.8,
+    "edge_energy": 9.1,
+    "mean_saturation": 81.1
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 152,
+    "title_lines": [
+     "INTERNATIONAL",
+     "HERITAGE RECOGNITION"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 670,
+    "K": 332,
+    "title_baselines": [
+     490,
+     670
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#8A6A1E",
+    "numeral_right": 325,
+    "ground_saturation": 75.8,
+    "darken_steps": 0,
+    "drawn_contrast_min": 7.41
+   },
+   "drawn_text": {
+    "numeral": "5",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "INTERNATIONAL",
+    "title_1": "HERITAGE RECOGNITION"
+   },
+   "lines": {
+    "title": [
+     "INTERNATIONAL",
+     "HERITAGE RECOGNITION"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     48.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     298,
+     780,
+     336
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      161,
+      360,
+      325,
+      675
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      360,
+      393,
+      670
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      281,
+      503,
+      285
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      303,
+      692,
+      333
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      298,
+      780,
+      336
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      358,
+      1285,
+      491
+     ],
+     "px": 152
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      538,
+      1706,
+      671
+     ],
+     "px": 152
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act5_bright__mid.png",
+     "jpg": "chapter_169_act5_bright__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act5_bright__last.png",
+     "jpg": "chapter_169_act5_bright__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 7.43
+    }
+   },
+   "seconds_to_render": 5.2
+  },
+  "chapter_169_act5_busy": {
+   "name": "chapter_169_act5_busy",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 5,
+   "total": 5,
+   "title": "International Heritage Recognition",
+   "title_chars": 34,
+   "fits_chapter": false,
+   "ground": "busy",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\05_commons.jpg",
+   "photo_name": "05_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 124.2,
+    "edge_energy": 33.7,
+    "mean_saturation": 73.3
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 152,
+    "title_lines": [
+     "INTERNATIONAL",
+     "HERITAGE RECOGNITION"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 670,
+    "K": 332,
+    "title_baselines": [
+     490,
+     670
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#8A6A1E",
+    "numeral_right": 325,
+    "ground_saturation": 59.0,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.86
+   },
+   "drawn_text": {
+    "numeral": "5",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "INTERNATIONAL",
+    "title_1": "HERITAGE RECOGNITION"
+   },
+   "lines": {
+    "title": [
+     "INTERNATIONAL",
+     "HERITAGE RECOGNITION"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     48.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     298,
+     780,
+     336
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      161,
+      360,
+      325,
+      675
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      360,
+      393,
+      670
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      281,
+      503,
+      285
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      303,
+      692,
+      333
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      298,
+      780,
+      336
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      358,
+      1285,
+      491
+     ],
+     "px": 152
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      538,
+      1706,
+      671
+     ],
+     "px": 152
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act5_busy__mid.png",
+     "jpg": "chapter_169_act5_busy__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act5_busy__last.png",
+     "jpg": "chapter_169_act5_busy__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 9.87
+    }
+   },
+   "seconds_to_render": 8.0
+  },
+  "chapter_169_act5_hero": {
+   "name": "chapter_169_act5_hero",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 5,
+   "total": 5,
+   "title": "International Heritage Recognition",
+   "title_chars": 34,
+   "fits_chapter": false,
+   "ground": "hero",
+   "photo": "C:\\Users\\omokolade\\GitHub\\relic-and-riddle\\assets\\richat_structure_sahara_eye\\01_commons.jpg",
+   "photo_name": "01_commons.jpg",
+   "photo_measured": {
+    "mean_luma": 141.3,
+    "edge_energy": 15.1,
+    "mean_saturation": 140.4
+   },
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 152,
+    "title_lines": [
+     "INTERNATIONAL",
+     "HERITAGE RECOGNITION"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 670,
+    "K": 332,
+    "title_baselines": [
+     490,
+     670
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#8A6A1E",
+    "numeral_right": 325,
+    "ground_saturation": 134.4,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.5
+   },
+   "drawn_text": {
+    "numeral": "5",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "INTERNATIONAL",
+    "title_1": "HERITAGE RECOGNITION"
+   },
+   "lines": {
+    "title": [
+     "INTERNATIONAL",
+     "HERITAGE RECOGNITION"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     48.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     298,
+     780,
+     336
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      161,
+      360,
+      325,
+      675
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      360,
+      393,
+      670
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      281,
+      503,
+      285
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      303,
+      692,
+      333
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      298,
+      780,
+      336
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      358,
+      1285,
+      491
+     ],
+     "px": 152
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      538,
+      1706,
+      671
+     ],
+     "px": 152
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act5_hero__mid.png",
+     "jpg": "chapter_169_act5_hero__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act5_hero__last.png",
+     "jpg": "chapter_169_act5_hero__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 9.52
+    }
+   },
+   "seconds_to_render": 3.8
+  },
+  "chapter_169_act5_plain": {
+   "name": "chapter_169_act5_plain",
+   "run": "run_richat_structure_sahara_eye_1792740961_long",
+   "topic": "richat_structure_sahara_eye",
+   "card": "chapter",
+   "format": "169",
+   "number": 5,
+   "total": 5,
+   "title": "International Heritage Recognition",
+   "title_chars": 34,
+   "fits_chapter": false,
+   "ground": "plain",
+   "photo": null,
+   "photo_name": "(no photo)",
+   "photo_measured": {},
+   "labels": [
+    "new: real fact, test-signed field (real act title, test-gated)"
+   ],
+   "size": [
+    1920,
+    1080
+   ],
+   "seconds": 3.5,
+   "frames": 105,
+   "anchors": {
+    "title_px": 152,
+    "title_lines": [
+     "INTERNATIONAL",
+     "HERITAGE RECOGNITION"
+    ],
+    "total_fill": "#F2B630",
+    "total_placement": "kicker",
+    "Bn": 670,
+    "K": 332,
+    "title_baselines": [
+     490,
+     670
+    ],
+    "divider_x": 391,
+    "title_x": 459,
+    "divider_fill": "#8A6A1E",
+    "numeral_right": 325,
+    "ground_saturation": 0.0,
+    "darken_steps": 0,
+    "drawn_contrast_min": 9.09
+   },
+   "drawn_text": {
+    "numeral": "5",
+    "kicker_label": "CHAPTER",
+    "total": "/ 5",
+    "title_0": "INTERNATIONAL",
+    "title_1": "HERITAGE RECOGNITION"
+   },
+   "lines": {
+    "title": [
+     "INTERNATIONAL",
+     "HERITAGE RECOGNITION"
+    ]
+   },
+   "stop_end": {
+    "title": false
+   },
+   "accent_gaps": {
+    "title": [
+     48.0
+    ]
+   },
+   "total_mark": {
+    "text": "/ 5",
+    "px": 40,
+    "face": "Montserrat",
+    "fill": "#F2B630",
+    "placement": "kicker",
+    "box": [
+     716,
+     298,
+     780,
+     336
+    ],
+    "gap_to_ref_ink": 24.0,
+    "baseline_vs_ref": 0.0
+   },
+   "quality_notes": null,
+   "source_host_raw": null,
+   "t_s": null,
+   "t_f": null,
+   "pen_total": null,
+   "source_omitted": null,
+   "planned_drawn_contrast_min": null,
+   "elements": [
+    {
+     "name": "numeral",
+     "box": [
+      161,
+      360,
+      325,
+      675
+     ],
+     "px": 360
+    },
+    {
+     "name": "divider",
+     "box": [
+      391,
+      360,
+      393,
+      670
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_rule",
+     "box": [
+      459,
+      281,
+      503,
+      285
+     ],
+     "px": 0
+    },
+    {
+     "name": "kicker_label",
+     "box": [
+      459,
+      303,
+      692,
+      333
+     ],
+     "px": 40
+    },
+    {
+     "name": "total",
+     "box": [
+      716,
+      298,
+      780,
+      336
+     ],
+     "px": 40
+    },
+    {
+     "name": "title_0",
+     "box": [
+      459,
+      358,
+      1285,
+      491
+     ],
+     "px": 152
+    },
+    {
+     "name": "title_1",
+     "box": [
+      459,
+      538,
+      1706,
+      671
+     ],
+     "px": 152
+    }
+   ],
+   "renders": {
+    "mid": {
+     "png": "chapter_169_act5_plain__mid.png",
+     "jpg": "chapter_169_act5_plain__mid.jpg",
+     "png_master": "rgb",
+     "frame": 35,
+     "t": 1.167
+    },
+    "last": {
+     "png": "chapter_169_act5_plain__last.png",
+     "jpg": "chapter_169_act5_plain__last.jpg",
+     "png_master": "rgb",
+     "frame": 104,
+     "t": 3.467,
+     "drawn_contrast_min": 9.09
+    }
+   },
+   "seconds_to_render": 2.2
+  }
+ }
+}

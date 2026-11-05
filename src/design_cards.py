@@ -1536,11 +1536,22 @@ def _chapter_wide_off(lines: Sequence[str], P: int, col_tall: int) -> list[int]:
 
 
 def _chapter_wide_two_ok(P: int, col_tall: int) -> bool:
-    """16:9 (C5, fix round 1): two title lines at P stand with their first cap top within CHAPTER_TALL_SLACK of the
-    numeral column's ink top: no taller at the 0.98 P step, and reaching it at CHAPTER_WIDE_LEAD_MAX x P."""
-    cap = round(0.86 * P)
-    return (cap + round(0.98 * P) <= col_tall + CHAPTER_TALL_SLACK
-            and cap + round(CHAPTER_WIDE_LEAD_MAX * P) >= col_tall - CHAPTER_TALL_SLACK)
+    """16:9 (C5, fix round 1): two title lines at P stand no more than CHAPTER_TALL_SLACK taller than the numeral
+    column's ink at the 0.98 P step. Operator decision 2026-11-05 ("chapter cards: draw all of them"): the lower
+    bound (the lines reaching the numeral's ink top at CHAPTER_WIDE_LEAD_MAX x P, 145 px up for a 311 px numeral) is
+    gone; a smaller two-line size is top-aligned instead (_chapter_wide_rise), so a long act title steps down the
+    ladder to its floor rather than dropping its card."""
+    return round(0.86 * P) + round(0.98 * P) <= col_tall + CHAPTER_TALL_SLACK
+
+
+def _chapter_wide_rise(off: Sequence[int], P: int, col_tall: int) -> int:
+    """16:9: design px from the numeral's baseline up to the first title line's cap top. The lines' own height
+    (cap + the last offset; the last baseline on the numeral's), except two lines that cannot reach the numeral
+    column's ink top at CHAPTER_WIDE_LEAD_MAX x P (sizes under 145 px for a 311 px numeral; operator decision
+    2026-11-05): those keep the cap-top-to-numeral alignment, their first cap top on the column's ink top, and the
+    last baseline stands above the numeral's rather than the lines opening further."""
+    h = off[-1] + round(0.86 * P)
+    return col_tall if len(off) == 2 and h < col_tall - CHAPTER_TALL_SLACK else h
 
 
 def _chapter_tall_block(P: int, lines: Sequence[str]) -> tuple[int, list[int], int]:
@@ -1560,8 +1571,8 @@ def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height:
     if not (1 <= spec.total <= 12 and 1 <= spec.number <= spec.total):
         raise CardRefused(f"chapter {spec.number} of {spec.total} (1..total, total <= 12)")
     title = " ".join(str(spec.title or "").split())
-    if not title or len(title) > 32:
-        raise CardRefused("a chapter title is 1-32 characters")
+    if not title:
+        raise CardRefused("a chapter title is empty")
     if _TITLE_PREFIX.match(title):
         raise CardRefused("the title repeats the chapter number")
     t, cited, prov = ground_line(title, spec.title_src, sheet, spec.fact_ids, role="title", payload=payload)
@@ -1596,14 +1607,15 @@ def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height:
                 break
         if fit is None:
             # fix round 1 (review: the cap top within CHAPTER_TALL_SLACK of the numeral's ink top at every title
-            # size): a two-line size is allowed only where its lines can stand within the slack of the numeral's ink
-            # both ways, the step opened at most to CHAPTER_WIDE_LEAD_MAX x P (145 px up for a 311 px numeral);
-            # a 16:9 title that needs a smaller size is refused rather than drawn under the numeral's top
+            # size): from 145 px up (311 px numeral) the two lines span the numeral's ink, the step opened at most to
+            # CHAPTER_WIDE_LEAD_MAX x P; operator decision 2026-11-05 (draw every chapter card): a long title steps
+            # on down the ladder to its 96 px floor, its first cap top still on the numeral's ink top
+            # (_chapter_wide_rise); only a title that does not fit two lines at the floor is refused
             two = [P for P in CHAPTER_WIDE_TWO if _chapter_wide_two_ok(P, col_tall)]
             fit = _w1_ladder(two, lambda P: _design_wrap(t, "Anton", None, P, measure, 2, geo, even=True))
             if fit is None:
                 raise CardRefused(f"the 16:9 title does not fit two lines at {two[-1] if two else '-'} px, the "
-                                  f"smallest whose lines meet the numeral's ink top", code="no_fit")
+                                  f"type floor", code="no_fit")
     if fit is None:
         refused = None
         try:
@@ -1642,7 +1654,7 @@ def plan_chapter_card(spec: ChapterCard, sheet: dict, width: int = 1080, height:
         H, _, y0 = _chapter_tall_block(P, lines)
         y1 = y0 + H
     else:
-        top_rel = max(310, off[-1] + cap + MYTH_LABEL_AIR[True] + MYTH_KICK[True])
+        top_rel = max(310, _chapter_wide_rise(off, P, col_tall) + MYTH_LABEL_AIR[True] + MYTH_KICK[True])
         y1 = round(475 + top_rel / 2)
         y0 = y1 - top_rel - MYTH_KICK[True]
     inner = CHAPTER_INNER
@@ -1677,7 +1689,8 @@ def _chapter_compose(spec: ChapterCard, geo: _Geo, rest: Image.Image, drift: Any
                      div_x: int, title_x: int, edge: int) -> CardPlan:
     card = _Card("chapter", geo, rest)
     cap, step = round(0.86 * P), round(0.98 * P)
-    off = (_chapter_wide_off(lines, P, _numeral_tall(spec.total)) if geo.wide else _lead(lines, P, step, cap))
+    col_tall = _numeral_tall(spec.total)
+    off = (_chapter_wide_off(lines, P, col_tall) if geo.wide else _lead(lines, P, step, cap))
     anchors: dict[str, Any] = {"title_px": P, "title_lines": list(lines)}
     provenance = {"title": prov}
     npx = CHAPTER_NUMERAL_PX[geo.wide]
@@ -1705,9 +1718,11 @@ def _chapter_compose(spec: ChapterCard, geo: _Geo, rest: Image.Image, drift: Any
             anchors["total_fill"] = brand.hex_colour(GOLD)
             anchors["total_placement"] = "after_numeral"
     else:
-        top_rel = max(310, off[-1] + cap + MYTH_LABEL_AIR[True] + MYTH_KICK[True])
+        rise = _chapter_wide_rise(off, P, col_tall)
+        top_rel = max(310, rise + MYTH_LABEL_AIR[True] + MYTH_KICK[True])
         Bn = round(475 + top_rel / 2)
-        baselines = [Bn - (off[-1] - o) for o in off]
+        # the last baseline on the numeral's; a top-aligned two-line title (_chapter_wide_rise) above it
+        baselines = [Bn - rise + cap + o for o in off]
         K = baselines[0] - cap - MYTH_LABEL_AIR[True]     # the kicker label's baseline
         # freeze panel C4: the 16:9 reveal paced to its 3.5 s card
         n_start = 0.30

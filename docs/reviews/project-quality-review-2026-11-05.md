@@ -222,3 +222,33 @@ it (use `ssim` now).
 - Platform-policy statements that could not be confirmed from code or a document in the repository are marked
   [UNVERIFIED]; verify against the current Meta and YouTube policy pages before acting on them.
 - The underlying reports (one per subsystem) are longer than this synthesis; ask for any of them in full.
+
+## 8. Addendum (2026-11-05): real-footage sourcing
+
+Missed by the six reviews: footage sourcing fell between the video review (composition) and the policy review
+(rights), and neither brief named `src/footage.py` or `src/archive_film.py`. Assessed by the coordinator afterwards.
+
+**What exists.** Operator-supplied clips (`/footage <topic>`, `src/footage.py`) are the only footage a normal run
+uses (`main.py:2905`). Archive film (`src/archive_film.py`, operator decision 2026-10-28 "real film over AI motion")
+searches the Internet Archive and Europeana for openly licensed film, downloads candidates to a pending folder with a
+rights record, and uses nothing until the operator approves it. It is rights-safe (licence read from the item's own
+record, broadcast captures excluded, host allow-list, size cap, re-encode, forced credit, 40% share cap). AI motion
+(Veo/Kling) is off at the default `MEDIA_MONTHLY_BUDGET_USD=0`. YouTube/Pexels/Pixabay scrapers were correctly
+retired (eb23e47); `docs/sources.md:35-49` still describes crediting them.
+
+**Why it is not a working source of topic-specific footage.** (1) It runs only on the Telegram command `filmfind`
+(`src/control.py:2947-2951`); no pre-run or nightly job calls it, unlike photo pools. (2) The two archives are thin
+for this niche (the code itself notes Europeana's Antikythera films are educational-only). (3) The sources with real
+coverage are searched for images only: Wikimedia Commons uses `filetype:bitmap` (`src/commons.py:204`) and NASA
+`media_type=image` (`src/museum_sources.py:114`), so Commons' CC/PD `.webm` heritage clips and NASA's video library
+are never seen. (4) Relevance is a title/subject keyword match (`src/archive_film.py:65`) with no vision check of the
+clip. (5) No `assets/*/footage/` exists in the checkout; the path has never run on a production Reel.
+
+| ID | Finding | Acceptance |
+|---|---|---|
+| QF-36 | Add Commons video (`filetype:video`, `.webm`/`.ogv`) and NASA video (`media_type=video`) to the existing photo-pool fetch, through the same licence checks, vision review (3 frames: shows the named site; no burned-in text, logo or watermark) and approval sheet the photos get. | A topic with Commons video coverage (e.g. a UNESCO site with drone passes) yields ≥1 approved clip in the pool in dry-run; rights record bound to the bytes; credit line present. |
+| QF-37 | Run `archive_film.find` in the pre-run/nightly pool job so pending films wait on the review card; keep the operator approval gate. | Nightly job log shows the search per next topic; `filmfind` becomes optional. |
+| QF-38 | Vision-check archive-film candidates as photos are checked; label GENERIC vs actual-site from the check, not from the record text. | Test with a deliberately off-topic film that is rejected. |
+| QF-39 | Docs: remove Pexels/Pixabay from `docs/sources.md`; README's Footage row describes archive film; originality score (QF-31) weights operator-shot footage above archive footage. | Docs match the code; originality test shows the weighting. |
+
+Add these rows to `docs/reviews/quality-fixes-2026-11/STATUS.md`; Phase 6, after QF-31.

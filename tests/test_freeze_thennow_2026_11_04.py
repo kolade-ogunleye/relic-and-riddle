@@ -140,8 +140,8 @@ def test_the_halo_has_faded_out_at_its_crop_edge(size, text, font, halo_px, trac
 
 def test_a_plate_without_halo_pad_is_byte_identical_to_before():
     """Recorded from the code before the change (HEAD 5fdb5dc typography.py, loaded side by side: the same origin,
-    box, crop, halo mask and composite). Pinned to raqm (operator decision 2026-11-05) per platform: CI's Linux raqm
-    rasterises 1925 as the recorded values; Windows raqm (Pillow 12.3.0, FriBiDi 1.0.18) draws its ink 1 px wider."""
+    box, crop, halo mask and composite). Pinned to raqm (operator decision 2026-11-05) per platform: Linux raqm and
+    Windows raqm (Pillow 12.3.0, FriBiDi 1.0.18) both draw its ink 1 px wider than BASIC layout did."""
     from PIL import features
     assert features.check("raqm"), "Pillow raqm layout is unavailable (FriBiDi missing): measured pins are raqm's"
     box, shape, sha = HALO_DEFAULT_PINS["win32" if sys.platform == "win32" else "linux"]
@@ -159,9 +159,11 @@ def test_a_plate_without_halo_pad_is_byte_identical_to_before():
     assert np.abs(out - want)[glyphless].max() <= 1
 
 
-HALO_DEFAULT_SHA = "50a9763159c699fa"   # sha256 prefix of the halo mask, from the code before the change
-# raqm per platform: (box, glyph crop shape, halo-mask sha256 prefix)
-HALO_DEFAULT_PINS = {"linux": ((85, 392, 314, 504), (206, 323), HALO_DEFAULT_SHA),
+HALO_DEFAULT_SHA = "50a9763159c699fa"   # sha256 prefix of the halo mask under BASIC layout (no longer pinned)
+# raqm per platform: (box, glyph crop shape, halo-mask sha256 prefix). Linux raqm (CI with libfribidi0, and the cloud
+# container: Pillow 12.3.0, raqm 0.10.5) measures exactly what Windows raqm does; the earlier Linux pin (314 / 323 /
+# 50a97631) was BASIC layout's, measured before CI had FriBiDi.
+HALO_DEFAULT_PINS = {"linux": ((85, 392, 315, 504), (206, 324), "64873fb3a147fc06"),
                      "win32": ((85, 392, 315, 504), (206, 324), "64873fb3a147fc06")}
 
 

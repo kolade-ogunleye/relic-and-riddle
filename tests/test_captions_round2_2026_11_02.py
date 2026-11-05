@@ -72,6 +72,18 @@ def _events(ass_text, style):
     return out
 
 
+def _burst_events(ass_text, style):
+    """_events with a two-line burst's lines (freeze pass N1, 2026-11-04: one event a line, same start and end) joined
+    into one, line 1 first."""
+    out = []
+    for s, e, t in _events(ass_text, style):
+        if out and abs(out[-1][0] - s) < 1e-9 and abs(out[-1][1] - e) < 1e-9:
+            out[-1] = (s, e, out[-1][2] + " " + t)
+        else:
+            out.append((s, e, t))
+    return out
+
+
 def _t(stamp):
     h, m, s = stamp.split(":")
     return int(h) * 3600 + int(m) * 60 + float(s)
@@ -101,27 +113,18 @@ def test_bursts_keep_one_size_across_a_realistic_narration(tmp_path):
     unbonded = [int(m.group(1)) for e, m in zip(_events(ass, "CapText"), sizes)
                 if m and not caption_bonds(_plain(e[2]).split())]
     assert len(unbonded) <= 0.1 * len(sizes), unbonded                  # nearly every word event at the full size
-    # operator decision 2026-11-04 (deliberate change): a burst holding a proper name (with its article) may set down
-    # to the bond floor, CAPTION_BOND_MIN_SIZE, to keep the name whole ("OF THE RASHTRAKUTA DYNASTY," at 67 px);
-    # every other burst keeps CAPTION_BURST_MIN_SIZE. Was: every burst >= CAPTION_BURST_MIN_SIZE.
-    from src.video_composer import CAPTION_BOND_MIN_SIZE, name_bonds
-    raw = NARRATION.split()
-    named = {re.sub(r"[^\w']", "", raw[k]).lower() for b in name_bonds(raw) for k in (b, b + 1)}
-    for e, m in zip(_events(ass, "CapText"), sizes):
-        if m:
-            held = any(re.sub(r"[^\w']", "", w).lower() in named for w in _plain(e[2]).split())
-            floor = CAPTION_BOND_MIN_SIZE if held else CAPTION_BURST_MIN_SIZE
-            assert int(m.group(1)) >= round(floor / 0.5625), (_plain(e[2]), m.group(1))
+    # freeze pass C4 (2026-11-04): the ladder 80 -> 74 -> 66 px, 66 only for a bonded burst (a name with its lead-in,
+    # a hedge with its figure); was every shrunk event at 74 or more
+    from src.video_composer import CAPTION_BOND_MIN_SIZE
+    assert set(shrunk) <= {round(CAPTION_BURST_MIN_SIZE / 0.5625), round(CAPTION_BOND_MIN_SIZE / 0.5625)}
     phrases = merge_short_bursts(partition_words_grammatical(words), _fits_caption_width, 5)
     fits = [_caption_fit_size(p) for p in phrases]
-    # operator decision 2026-11-04 (deliberate change, as above): a burst holding a proper name may set down to
-    # CAPTION_BOND_MIN_SIZE and is left out of the one-size step check; every other burst is held as before (was:
-    # min >= CAPTION_BURST_MIN_SIZE and every step <= 0.09)
-    named = [bool(name_bonds([w["word"] for w in p])) for p in phrases]
-    assert min(fits) >= CAPTION_BOND_MIN_SIZE and max(fits) == FONT_SIZE
-    assert min(f for f, nm in zip(fits, named) if not nm) >= CAPTION_BURST_MIN_SIZE
-    plain = [f for f, nm in zip(fits, named) if not nm]
-    assert max(abs(a - b) / max(a, b) for a, b in pairwise(plain)) <= 0.09   # was up to 33%
+    assert set(fits) <= {FONT_SIZE, CAPTION_BURST_MIN_SIZE, CAPTION_BOND_MIN_SIZE} and max(fits) == FONT_SIZE
+    for p, fit in zip(phrases, fits):
+        if fit < CAPTION_BURST_MIN_SIZE:
+            assert caption_bonds(p), [w["word"] for w in p]
+    # adjacent bursts differ by one ladder step at most where neither is bonded (was <= 9% between any two)
+    assert max(abs(a - b) / max(a, b) for a, b in pairwise(fits)) <= (FONT_SIZE - CAPTION_BOND_MIN_SIZE) / FONT_SIZE
 
 
 def test_only_a_single_over_long_word_shrinks_and_not_below_60():
@@ -186,8 +189,11 @@ def test_full_size_initials_only_where_the_narration_has_a_capital(word, runs):
 def test_caption_characters_still_equal_the_narration(tmp_path):
     words = _timed(NARRATION)
     ass = VideoComposer().build_subtitles(words, tmp_path / "c.ass").read_text(encoding="utf-8")
-    phrases = merge_short_bursts(partition_words_grammatical(words), _fits_caption_width, 5)
-    finals = [e[2] for e in _events(ass, "CapText") if CAPTION_HIDDEN not in e[2]]
+    # fix round 1 (2026-11-04): build_subtitles forms its bursts with caption_phrases (the freeze-pass phrasing on the
+    # round-4 base, operator decision: the HEAD-regression gate); was the bare partition and merge
+    from src.video_composer import caption_phrases
+    phrases = caption_phrases(words)
+    finals = [e[2] for e in _burst_events(ass, "CapText") if CAPTION_HIDDEN not in e[2]]
     assert [_plain(t) for t in finals] == [" ".join(_phrase_words(p)).upper() for p in phrases]
     lower_words = [w["word"] for w in words if w["word"][0].islower()]
     first_lower = format_word_caption(lower_words[0], "&H00FFFFFF&", False, False, False)
@@ -220,8 +226,12 @@ def test_a_burst_shorter_than_0_6_s_joins_a_neighbour(tmp_path):
     words = [{"word": "Visible", "start": 0.0, "dur": 0.3}, {"word": "from", "start": 0.35, "dur": 0.2},
              {"word": "space.", "start": 0.6, "dur": 0.4}, {"word": "Ok.", "start": 1.05, "dur": 0.25}]
     merged = merge_short_bursts(partition_words_grammatical(words), _fits_caption_width, 5)
-    assert [len(p) for p in merged] == [4]
+    # freeze pass C6 (2026-11-04): no join crosses a sentence end, and a one-word sentence never joins the burst
+    # before it (was [4]: VISIBLE FROM SPACE. OK), so OK. stays its own burst
+    assert [len(p) for p in merged] == [3, 1]
     ass = VideoComposer().build_subtitles(words, tmp_path / "c.ass").read_text(encoding="utf-8")
+    # fix round 1 (operator decision 2026-11-04, the HEAD-regression gate): the drawn bursts keep HEAD 0036b18's join
+    # across the sentence end (SPACE. | OK. was a cut HEAD does not make), so one plate, as at HEAD (was 2 in round 2)
     assert len(_events(ass, "CapBox")) == 1 and len(_events(ass, "CapText")) == 4
     paused = [dict(w) for w in words]
     paused[3]["start"] = 2.5                                             # after a long pause it stays alone
@@ -232,7 +242,7 @@ def test_caption_events_never_overlap_on_a_realistic_narration(tmp_path):
     words = _timed(NARRATION, sentence_pause=1.0)
     ass = VideoComposer().build_subtitles(words, tmp_path / "c.ass").read_text(encoding="utf-8")
     for style in ("CapText", "CapBox"):
-        spans = [(s, e) for s, e, _ in _events(ass, style)]
+        spans = [(s, e) for s, e, _ in _burst_events(ass, style)]   # a two-line burst's lines share one span (N1)
         assert all(a[1] <= b[0] + 1e-6 for a, b in pairwise(spans)), style
 
 
@@ -261,8 +271,12 @@ def test_widescreen_captions_use_montserrat_bold_brand_colours_and_a_plate(tmp_p
     assert pills and all(p[3] == 950 and p[1] >= 855 for p in pills)      # round 3: lower edge 130 px up (was 80)
     font = get_font("Montserrat", 52, weight=700)
     finals = [_plain(t) for _, _, t in texts if CAPTION_HIDDEN not in t]
+    from src.video_composer import name_bonds
     for line in finals:
-        assert len(line) <= CAPTION_WIDE_MAX_CHARS and len(line.split()) <= CAPTION_WIDE_MAX_WORDS
+        # freeze pass N2 (2026-11-04): a burst holding a whole bonded name may pass the 42 characters while its
+        # plate stays inside the 1440 px line (UNDER KING KRISHNA I OF THE RASHTRAKUTA DYNASTY)
+        named = len(name_bonds(line.split())) >= 3
+        assert (len(line) <= CAPTION_WIDE_MAX_CHARS or named) and len(line.split()) <= CAPTION_WIDE_MAX_WORDS
         assert font.getlength(line) + 56 <= 1440
     counts = [len(line.split()) for line in finals]
     assert sum(4 <= c <= 8 for c in counts) >= 0.7 * len(counts)

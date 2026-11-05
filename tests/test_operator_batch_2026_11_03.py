@@ -243,7 +243,12 @@ def test_reel_captions_are_80_px(tmp_path):
 
 
 @pytest.mark.parametrize("text,run", [
-    ("Its walls measure between 94 and 104 metres around the base.", "between 94 and 104 metres"),
+    # freeze pass C7 (2026-11-04): BETWEEN 94 AND 104 METRES draws 647 px of ink at 66 px (libass's own measure, C5),
+    # over the 640 px budget, so the burst breaks before the range's joiner (was the run "between 94 and 104 metres"
+    # whole). Fix round 1 (operator decision 2026-11-04, the HEAD-regression gate): HEAD 0036b18 keeps ITS WALLS
+    # MEASURE | BETWEEN ..., so the one cut the floor forces is BETWEEN 94 | AND 104 METRES (round 2: "94 and 104
+    # metres", BETWEEN moved onto MEASURE, a second cut HEAD does not have)
+    ("Its walls measure between 94 and 104 metres around the base.", "and 104 metres"),
     # AN ESTIMATED 200,000 TONS is no bonded run (AN | ESTIMATED splits): it may not shrink past the burst floor, and
     # the split keeps the hedge with its figure without leaving AN alone (LONE_WORD_PENALTY)
     ("They removed an estimated 200,000 tons of rock from the cliff.", "estimated 200,000 tons"),
@@ -267,7 +272,8 @@ def test_a_bonded_run_shrinks_rather_than_leave_its_figure_at_80_px(text, run, t
     assert any(run in t for t in texts), texts
     assert all(len(p) > 1 for p in phrases), texts          # no lone AN before ESTIMATED 200,000 TONS
     assert "an estimated 200,000 tons" not in " | ".join(texts) or "between" in text
-    bonds = caption_bonds(words)
+    from src.video_composer import _relax_figure_bonds
+    bonds = _relax_figure_bonds(words, caption_bonds(words))
     for p in phrases:
         size = _caption_fit_size(p)
         if len(p) > 1 and not caption_bonds(p):

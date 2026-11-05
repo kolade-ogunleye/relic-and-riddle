@@ -1,0 +1,51 @@
+=== run_tunguska_event_1908_1792930600 | tunguska_event_1908 [9:16] ===
+why: longest multi-word proper name (characters)
+98 words, 37 bursts, emphasis ['Podkamennaya Tunguska River', 'meteor air burst']; vignette vignette=PI/4.2:aspect=9/16 (src.video_composer.picture_vignette)
+  0    0.00-   0.60   80px  plate  550x121   ON THE MORNING
+  1    0.60-   2.48   80px  plate  552x121   OF 30 JUNE 1908
+  2    2.48-   3.87   80px  plate  552x121   AT AROUND 7:14
+  3    3.87-   5.16   80px  plate  412x121   LOCAL TIME
+  4    5.16-   6.20   74px* plate  668x121   NEAR THE PODKAMENNAYA
+  5    6.20-   7.13   80px  plate  552x121   TUNGUSKA RIVER
+  6    7.13-   8.99   80px  plate  550x121   IN CENTRAL SIBERIA
+  7    8.99-  10.44   80px  plate  668x121   A CATACLYSM STRUCK
+  8   10.44-  11.91   80px  plate  550x121   BY ONE ESTIMATE
+  9   11.91-  13.08   80px  plate  670x121   THE BLAST DEVASTATED
+ 10   13.08-  14.46   80px  plate  550x121   MORE THAN 830
+ 11   14.46-  15.24   80px  plate  414x121   SQUARE MILES
+ 12   15.24-  16.85   80px  plate  550x121   OF TAIGA FOREST
+ 13   16.85-  17.79   80px  plate  550x121   FLATTENING TREES
+ 14   17.79-  18.65   80px  plate  550x121   IN A DISTINCTIVE
+ 15   18.65-  19.90   80px  plate  552x121   RADIAL PATTERN
+ 16   19.90-  21.09   80px  plate  652x121   SCIENTISTS CALCULATE
+ 17   21.09-  22.34   80px  plate  654x121   THE AIRBURST RELEASED
+ 18   22.34-  23.19   80px  plate  362x121   BETWEEN 10
+ 19   23.19-  24.37   80px  plate  528x121   AND 15 MEGATONS
+ 20   24.37-  25.51   80px  plate  362x121   OF TNT
+ 21   25.51-  26.55   80px  plate  690x121   ATMOSPHERIC PRESSURE
+ 22   26.55-  27.61   80px  plate  562x121   WAVES GENERATED
+ 23   27.61-  28.56   80px  plate  560x121   BY THE EXPLOSION
+ 24   28.56-  30.05   74px* plate  690x121   RIPPLED ACROSS THE GLOBE
+ 25   30.05-  30.88   80px  plate  562x121   AND WERE DETECTED
+ 26   30.88-  31.72   80px  plate  458x121   BY BAROGRAPHS
+ 27   31.72-  32.82   80px  plate  458x121   WORLDWIDE
+ 28   32.82-  34.01   80px  plate  678x121   SCIENTIFIC CONSENSUS
+ 29   34.01-  35.04   80px  plate  678x121   ATTRIBUTES THE EVENT
+ 30   35.04-  35.97   80px  plate  570x121   TO AN ATMOSPHERIC
+ 31   35.97-  37.65   80px  plate  566x121   METEOR AIR BURST
+ 32   37.65-  38.58   80px  plate  678x121   THOUGH NO CELESTIAL
+ 33   38.58-  39.50   80px  plate  568x121   FRAGMENT HAS EVER
+ 34   39.50-  40.79   74px* plate  678x121   BEEN FORMALLY IDENTIFIED
+ 35   40.79-  41.44   80px  plate  568x121   FROM THAT SUDDEN
+ 36   41.44-  42.56   80px  plate  568x121   SIBERIAN MORNING
+  names:
+    SPLIT  Podkamennaya Tunguska River  NEAR THE PODKAMENNAYA | TUNGUSKA RIVER
+    WHOLE  Central Siberia              IN CENTRAL SIBERIA
+  bursts ending on an article: none
+  function-word-only bursts: none
+  one-word bursts: ['27: WORLDWIDE']
+  bursts below the 66 px floor: none
+  two-line bursts: none
+  bursts on screen under 0.50 s: none
+  bursts spanning a pause of 0.30 s or more after punctuation: none
+

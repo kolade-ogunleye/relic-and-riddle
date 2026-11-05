@@ -559,6 +559,52 @@ CAPTION_CUT_SNAP_FRAMES = 6
 CAPTION_CUT_MIN_FRAMES = 2
 # <<< Captions round 4 ------------------------------------------------------------------------------------------------
 
+# >>> Captions freeze pass (2026-11-04, design panel; src/video_composer.py caption code). Fixed values, not settings.
+# 9:16 plate: the drawn ink (libass: small-caps \fscx, the style's Spacing, the first and last glyphs' side bearings)
+# sits CAPTION_INK_FIT_PAD px inside each side of its plate (ink budget 640 px; operator decision 2026-11-04: the
+# compliant 28). CAPTION_INK_PAD_MIN (40) is WITHDRAWN by that decision: no plate geometry uses it; kept only so
+# older evidence scripts import. MAX_CAPTION_WIDTH and CAPTION_PAD_X are unchanged.
+CAPTION_INK_PAD_MIN = 40
+CAPTION_INK_FIT_PAD = 28
+# Freeze pass round 2 (2026-11-04), fixed values. A 9:16 name too wide for one line at CAPTION_BOND_MIN_SIZE draws on
+# two lines whose baselines are CAPTION_TWO_LINE_PITCH_EM x the cap height apart (operator decision N1).
+CAPTION_TWO_LINE_PITCH_EM = 1.30
+# P1: after clause or sentence punctuation, a silence of CAPTION_PAUSE_BREAK_S or more is a hard burst break; without
+# punctuation, a break at a silence of CAPTION_PAUSE_SOFT_S or more is rewarded.
+CAPTION_PAUSE_BREAK_S = 0.30
+CAPTION_PAUSE_SOFT_S = 0.45
+# D1: every burst is on screen at least CAPTION_MIN_ON_SCREEN_S (a merge, else a hold into the following silence);
+# the phrase builder avoids bursts under CAPTION_SHORT_BURST_S. A one-word lead-in before a name needs only
+# CAPTION_DWELL_AFTER_LAST_S.
+CAPTION_MIN_ON_SCREEN_S = 0.50
+CAPTION_SHORT_BURST_S = 0.55
+# A bonded burst (a proper name, a figure group, the prepositions and articles leading into one: UNDER THE
+# RASHTRAKUTA DYNASTY) may hold CAPTION_BOND_EXTRA_WORDS more words and CAPTION_BOND_EXTRA_CHARS more characters than
+# MAX_BURST_WORDS / MAX_BURST_CHARS, when it fits at CAPTION_BOND_MIN_SIZE.
+CAPTION_BOND_EXTRA_WORDS = 1
+CAPTION_BOND_EXTRA_CHARS = 2
+# A sentence of one or two words (NO. LOOK.) is its own burst when it is on screen at least this long; else it joins
+# the following burst, never the one before.
+CAPTION_SHORT_SENTENCE_MIN_S = 0.50
+# The phrase builder rewards a break after a comma followed by at least this much silence.
+CAPTION_COMMA_PAUSE_S = 0.15
+# 9:16 dwell: a burst stays whole on screen at least CAPTION_DWELL_AFTER_LAST_S after its last word appears, and one
+# holding a figure at least CAPTION_DIGIT_MIN_S in all, where the speech allows (else it joins a same-clause neighbour).
+CAPTION_DWELL_AFTER_LAST_S = 0.30
+CAPTION_DIGIT_MIN_S = 0.70
+# 9:16 cue-to-cut (C9): where a boundary cannot snap onto a cut it moves at least CAPTION_CUT_CLEAR_FRAMES frames clear
+# of it (a plate change one to three frames off a cut reads as a mistake).
+CAPTION_CUT_CLEAR_FRAMES = 4
+# 16:9: no plate wider than this (px at 1920 wide, 78% of the frame); a longer line shrinks to fit.
+CAPTION_WIDE_MAX_PLATE = 1500
+# Sidecar cues (.srt/.vtt): a cue lasts at least SIDECAR_MIN_CUE_HARD s (an orphan joins its neighbour); a cue ends at a
+# sentence end that falls in the last SIDECAR_SENTENCE_TAIL of its text; of a cue's two lines the shorter is at least
+# SIDECAR_LINE_BALANCE of the longer.
+SIDECAR_MIN_CUE_HARD = 1.0
+SIDECAR_SENTENCE_TAIL = 0.45
+SIDECAR_LINE_BALANCE = 0.60
+# <<< Captions freeze pass --------------------------------------------------------------------------------------------
+
 # >>> Signed fact-check records and held quote cards (operator decisions A and B, 2026-11-03) ---------------------------
 # FACT_RECORD_KEY: the secret every fact-check record is signed with (HMAC-SHA256, src/record_signing.py) when the
 # checker runs, and verified with wherever a record is trusted (the design cards, the release gate, and so the

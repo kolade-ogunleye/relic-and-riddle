@@ -135,7 +135,12 @@ def test_the_plate_is_sized_to_the_line_libass_draws(tmp_path):
     from src.config import FONT_SIZE   # item 2 (2026-11-03): the caption size, 80 px (was a literal 72)
     drawn = _caption_text_width(["Beneath", "Cappadocia", "lies"], FONT_SIZE, drawn=True)
     assert drawn > _caption_text_width(["Beneath", "Cappadocia", "lies"], FONT_SIZE)   # the em libass draws is larger
-    assert x1 - x0 == min(round(drawn + 56), 696)
+    # K1 (operator decision, 2026-11-04): the plate is the ink at the burst's own size plus 28 px a side; at 40 px a
+    # side it was capped at 696 px, so the size the ink was measured at did not show
+    from src.video_composer import _caption_fit_size
+    size = _caption_fit_size("Beneath Cappadocia lies")
+    drawn_at_size = _caption_text_width(["Beneath", "Cappadocia", "lies"], size, drawn=True)
+    assert x1 - x0 == min(round(drawn_at_size + 56), 696)
 
 
 def test_the_capitals_are_optically_centred_in_the_plate(tmp_path):
@@ -313,11 +318,18 @@ def test_libass_font_problems_names_a_missing_face_and_a_synthetic_weight(tmp_pa
     from src.video_composer import libass_font_problems
     fonts = Path("fonts")
     assert libass_font_problems(fonts, [(FONT_NAME, 400)]) == []           # Anton: the 9:16 face resolves
-    # operator decision 2026-11-04 (deliberate change): the static Montserrat Bold is bundled for the 16:9 burn-in,
-    # so Montserrat 700 now resolves (was: one "no bundled font" problem); a face still missing is named
-    assert libass_font_problems(fonts, [("Montserrat", 700)]) == []
-    missing = libass_font_problems(fonts, [("Montserrat Black", 900)])
+    # The static Montserrat-Bold.ttf is bundled now (operator decision, 2026-11-04): a folder holding only the
+    # variable font still names the missing face
+    only_variable = tmp_path / "variable_only"
+    only_variable.mkdir()
+    (only_variable / "Montserrat-Variable.ttf").write_bytes((fonts / "Montserrat-Variable.ttf").read_bytes())
+    missing = libass_font_problems(only_variable, [("Montserrat", 700)])
     assert len(missing) == 1 and "no bundled font" in missing[0]
+    # freeze step 1 (operator decision 2026-11-04): Montserrat 700 resolves in the bundled fonts; a face still missing
+    # there is named
+    assert libass_font_problems(fonts, [("Montserrat", 700)]) == []
+    black = libass_font_problems(fonts, [("Montserrat Black", 900)])
+    assert len(black) == 1 and "no bundled font" in black[0]
     thin = libass_font_problems(fonts, [("Montserrat Thin", 700)])
     assert len(thin) == 1 and "synthetic" in thin[0]
     (tmp_path / "IBMPlexMono-SemiBold.ttf").write_bytes((fonts / "IBMPlexMono-SemiBold.ttf").read_bytes())
@@ -358,16 +370,24 @@ def test_libass_font_problems_agrees_with_libass(tmp_path, fontname):
 
 def test_compose_video_will_not_burn_in_16x9_captions_in_a_fallback_face(tmp_path):
     from src.video_composer import RenderError, libass_font_problems
-    if not libass_font_problems(Path("fonts"), [("Montserrat", 700)]):
-        pytest.skip("a static Montserrat Bold is bundled: the 16:9 face resolves")
+    # The static Montserrat-Bold.ttf is bundled now (operator decision, 2026-11-04): the refusal is exercised on a
+    # fonts folder holding every bundled font but the static Montserrat Bold (as before it was added)
+    fonts = tmp_path / "fonts_without_static_bold"
+    fonts.mkdir()
+    for src in Path("fonts").glob("*.ttf"):   # every bundled font but the static Montserrat Bold
+        if src.name != "Montserrat-Bold.ttf":
+            (fonts / src.name).write_bytes(src.read_bytes())
+    assert libass_font_problems(fonts, [("Montserrat", 700)])
     from PIL import Image
     img = tmp_path / "scene.jpg"
     Image.new("RGB", (64, 64), (120, 110, 90)).save(img)
     vo, bed = tmp_path / "vo.wav", tmp_path / "bed.wav"
     vo.write_bytes(b"RIFF"), bed.write_bytes(b"RIFF")
     with pytest.raises(RenderError, match="would not draw in the bundled font"):
-        VideoComposer().compose_video([img], vo, bed, _timed("Derinkuyu reaches roughly 280 feet deep."), 3.0,
-                                      tmp_path / "out.mp4", width=1920, height=1080, aspect_ratio="16:9")
+        comp = VideoComposer()
+        comp.fonts_dir = fonts
+        comp.compose_video([img], vo, bed, _timed("Derinkuyu reaches roughly 280 feet deep."), 3.0,
+                           tmp_path / "out.mp4", width=1920, height=1080, aspect_ratio="16:9")
 
 
 def test_caption_constants_are_defined_once_in_config():

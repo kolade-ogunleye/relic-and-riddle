@@ -114,11 +114,14 @@ def test_bonds_read_timed_words_and_plain_strings_alike():
 ])
 @pytest.mark.parametrize("max_chars", [26, 32, 42])
 def test_no_burst_ends_inside_a_bond_under_tight_widths(text, max_chars):
+    from src.video_composer import _relax_figure_bonds
     words = _timed(text)
-    bonds = caption_bonds(words)
     for fits in (None, lambda ph: len(" ".join(w["word"] for w in ph)) <= max_chars):
         kw = {"fits": fits} if fits else {}
         phrases = partition_words_grammatical(words, 2, 3, 4, max_chars, **kw)
+        # freeze pass C7 (2026-11-04): with the Reel's own widths a figure group no burst can hold at the bond
+        # floor is released from its range's BETWEEN first (MEASURE BETWEEN | 94 AND 104 METRES)
+        bonds = _relax_figure_bonds(words, caption_bonds(words)) if fits is None else caption_bonds(words)
         ends = []
         n = 0
         for p in phrases[:-1]:
@@ -169,11 +172,13 @@ def test_a_sidecar_cue_never_ends_on_a_hedge_before_its_figure():
 
 def test_a_cue_line_never_breaks_between_a_hedge_and_its_figure():
     words = ["Derinkuyu", "reaches", "roughly", "280", "feet", "deep", "below", "the", "plain"]
-    text = _wrap_cue(words, max_chars=30)
+    # freeze pass C12 (2026-11-04): a line never breaks inside an atomic pair either (280 | FEET), so the only
+    # break is after FEET and the lines are 36 wide (was 30: ROUGHLY 280 / FEET DEEP ...)
+    text = _wrap_cue(words, max_chars=36)
     assert text is not None
     for line in text.split("\n"):
         assert line.split()[-1] != "roughly"
-    assert _wrap_cue(words, max_chars=30, bonds=set()) is not None
+    assert _wrap_cue(words, max_chars=36, bonds=set()) is not None
     assert _wrap_cue(["a", "b", "roughly", "280"], max_chars=10, bonds={2}) is None or "roughly\n" not in _wrap_cue(
         ["a", "b", "roughly", "280"], max_chars=10, bonds={2})
 
@@ -345,7 +350,10 @@ def test_a_snap_that_would_cut_the_reading_time_moves_the_boundary_two_frames_of
     assert hide - show == pytest.approx(reading_need(phrases[0]))
     cut = hide - FRAME
     snapped = snap_to_cuts(phrases, timings, [cut])
-    assert snapped[0][1] == pytest.approx(cut + CAPTION_CUT_MIN_FRAMES * FRAME)
+    # freeze pass C9 (2026-11-04): out to CAPTION_CUT_CLEAR_FRAMES (4) off the cut, no longer CAPTION_CUT_MIN_FRAMES
+    # (2): a plate change one to three frames off a cut reads as a mistake
+    from src.config import CAPTION_CUT_CLEAR_FRAMES
+    assert snapped[0][1] == pytest.approx(cut + CAPTION_CUT_CLEAR_FRAMES * FRAME)
 
 
 def test_build_subtitles_snaps_only_the_reel(tmp_path):
